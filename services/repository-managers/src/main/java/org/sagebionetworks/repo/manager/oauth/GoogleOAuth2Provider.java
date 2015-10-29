@@ -4,7 +4,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.oauth.ProvidedUserInfo;
-import org.scribe.builder.ServiceBuilder;
 import org.scribe.exceptions.OAuthException;
 import org.scribe.model.OAuthConfig;
 import org.scribe.model.OAuthRequest;
@@ -26,7 +25,10 @@ import org.scribe.oauth.OAuthService;
  */
 public class GoogleOAuth2Provider implements OAuthProviderBinding {
 
-	private static final String MESSAGE = " Message: ";
+    private static final String AUTHORIZE_URL = "https://accounts.google.com/o/oauth2/auth?response_type=code&client_id=%s&redirect_uri=%s";
+    private static final String TOKEN_URL = "https://accounts.google.com/o/oauth2/token";
+
+    private static final String MESSAGE = " Message: ";
 	private static final String FAILED_PREFIX = "Failed to get User's information from Google. Code: ";
 	private static final String GOOGLE_OAUTH_USER_INFO_API_URL = "https://www.googleapis.com/oauth2/v2/userinfo";
 	/*
@@ -46,7 +48,7 @@ public class GoogleOAuth2Provider implements OAuthProviderBinding {
 
 	private String apiKey;
 	private String apiSecret;
-
+	
 	/**
 	 * Thread safe Google provider.
 	 * 
@@ -58,33 +60,21 @@ public class GoogleOAuth2Provider implements OAuthProviderBinding {
 		this.apiSecret = apiSecret;
 	}
 	
-	/**
-	 * Build a service using the provided redirectURL
-	 * @param redirectUrl
-	 * @return
-	 */
-	private OAuthService buildService(String redirectUrl){
-		return new ServiceBuilder()
-		.provider(Google2Api.class)
-		.apiKey(apiKey)
-		.apiSecret(apiSecret)
-		.scope(SCOPE_EMAIL)
-		.callback(redirectUrl)
-		.build();
-	}
-
+	// remove either buildService or the call to Google2Api() for consistency.  Ditto with ORCID2Api
 	@Override
 	public String getAuthorizationUrl(String redirectUrl) {
-		return  new Google2Api().getAuthorizationUrl(new OAuthConfig(apiKey, null, redirectUrl, null, SCOPE_EMAIL, null));
+		return new OAuth2Api(AUTHORIZE_URL, TOKEN_URL).
+				getAuthorizationUrl(new OAuthConfig(apiKey, null, redirectUrl, null, SCOPE_EMAIL, null));
 	}
 
 	@Override
 	public ProvidedUserInfo validateUserWithProvider(String authorizationCode, String redirectUrl) {
-		if(redirectUrl == null){
+		if (redirectUrl == null) {
 			throw new IllegalArgumentException("RedirectUrl cannot be null");
 		}
-		try{
-			OAuthService service = buildService(redirectUrl);
+		try {
+			OAuthService service = (new OAuth2Api(AUTHORIZE_URL, TOKEN_URL)).
+					createService(new OAuthConfig(apiKey, apiSecret, redirectUrl, null, null, null));
 			/*
 			 * Get an access token from Google using the provided authorization code.
 			 * This token is used to sign request for user's information.
@@ -98,7 +88,7 @@ public class GoogleOAuth2Provider implements OAuthProviderBinding {
 				throw new UnauthorizedException(FAILED_PREFIX+reponse.getCode()+MESSAGE+reponse.getMessage());
 			}
 			return parserResponseBody(reponse.getBody());
-		}catch(OAuthException e){
+		} catch(OAuthException e) {
 			throw new UnauthorizedException(e);
 		}
 	}
@@ -136,4 +126,8 @@ public class GoogleOAuth2Provider implements OAuthProviderBinding {
 		}
 	}
 
+	@Override
+	public AliasAndType retrieveProvidersId(String authorizationCode, String redirectUrl) {
+		throw new IllegalArgumentException("Retrieving alias is not supported in Synapse for the Google OAuth provider.");
+	}
 }

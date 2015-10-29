@@ -122,9 +122,8 @@ public class DBOMessageStatus implements MigratableDatabaseObject<DBOMessageStat
 		return DBOMessageStatus.class;
 	}
 	
-	@SuppressWarnings("rawtypes")
 	@Override
-	public List<MigratableDatabaseObject> getSecondaryTypes() {
+	public List<MigratableDatabaseObject<?,?>> getSecondaryTypes() {
 		return null;
 	}
 

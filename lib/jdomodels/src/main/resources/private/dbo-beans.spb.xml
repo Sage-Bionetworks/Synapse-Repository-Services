@@ -103,6 +103,11 @@
 								
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOUploadDaemonStatus" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOQuizResponse" />
+				
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOVerificationSubmission" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOVerificationState" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOVerificationSubmissionFile" />
+				
 			</list>
 		</property>
 	</bean>
@@ -153,6 +158,7 @@
 								
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOStorageQuota" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOQuizResponse" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOVerificationSubmission" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOChange" />
 			</list>
 		</property>

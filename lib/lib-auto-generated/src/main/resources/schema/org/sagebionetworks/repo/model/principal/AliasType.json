@@ -1,11 +1,12 @@
 {
-    "description":"The enumeration of the possible alias types that can be bound to a principal.",
+    "description":"The enumeration of the possible alias types that can be bound to a principal.  Note, these names must match those in AliasEnum",
     "name": "AliasType",
     "type":"string",
     "enum":[
     	"USER_NAME",
     	"TEAM_NAME",
     	"USER_EMAIL",
-    	"USER_OPEN_ID"
+    	"USER_OPEN_ID",
+    	"USER_ORCID"
     ]
 }

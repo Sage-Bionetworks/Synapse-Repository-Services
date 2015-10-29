@@ -138,8 +138,8 @@ public class DBOAccessControlList implements MigratableDatabaseObject<DBOAccessC
 		return DBOAccessControlList.class;
 	}
 	@Override
-	public List<MigratableDatabaseObject> getSecondaryTypes() {
-		List<MigratableDatabaseObject> list = new LinkedList<MigratableDatabaseObject>();
+	public List<MigratableDatabaseObject<?,?>> getSecondaryTypes() {
+		List<MigratableDatabaseObject<?,?>> list = new LinkedList<MigratableDatabaseObject<?,?>>();
 		list.add(new DBOResourceAccess());
 		list.add(new DBOResourceAccessType());
 		return list;

@@ -1,0 +1,11 @@
+{
+    "description":"The enumeration of possible verification states.",
+    "name": "VerificationStateEnum",
+    "type":"string",
+    "enum":[
+        "SUBMITTED",
+        "APPROVED",
+	 	"REJECTED",
+	 	"SUSPENDED"
+    ]
+}

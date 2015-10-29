@@ -51,6 +51,9 @@
 	<bean id="stackConfiguration.oAuth2GoogleClientId" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.oAuth2GoogleClientSecret" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	
+	<bean id="stackConfiguration.oAuth2ORCIDClientId" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	<bean id="stackConfiguration.oAuth2ORCIDClientSecret" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	
 	<!-- Map used for JDO config  -->
 	<bean id="stackConfiguration.repositoryJDOConfigurationMap" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	

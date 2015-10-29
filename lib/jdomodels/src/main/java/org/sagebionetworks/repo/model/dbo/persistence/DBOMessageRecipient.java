@@ -110,9 +110,8 @@ public class DBOMessageRecipient implements MigratableDatabaseObject<DBOMessageR
 		return DBOMessageRecipient.class;
 	}
 	
-	@SuppressWarnings("rawtypes")
 	@Override
-	public List<MigratableDatabaseObject> getSecondaryTypes() {
+	public List<MigratableDatabaseObject<?,?>> getSecondaryTypes() {
 		return null;
 	}
 

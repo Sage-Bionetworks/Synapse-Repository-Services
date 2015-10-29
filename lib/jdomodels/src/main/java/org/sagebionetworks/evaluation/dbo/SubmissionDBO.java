@@ -291,8 +291,8 @@ public class SubmissionDBO implements MigratableDatabaseObject<SubmissionDBO, Su
 		return SubmissionDBO.class;
 	}
 	@Override
-	public List<MigratableDatabaseObject> getSecondaryTypes() {
-		List<MigratableDatabaseObject> list = new LinkedList<MigratableDatabaseObject>();
+	public List<MigratableDatabaseObject<?,?>> getSecondaryTypes() {
+		List<MigratableDatabaseObject<?,?>> list = new LinkedList<MigratableDatabaseObject<?,?>>();
 		list.add(new SubmissionFileHandleDBO());
 		return list;
 	}

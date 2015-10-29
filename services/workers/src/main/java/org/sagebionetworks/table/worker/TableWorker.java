@@ -260,6 +260,7 @@ public class TableWorker implements ChangeMessageDrivenRunner {
 		// Apply each change set not already indexed
 		long currentProgress = 0;
 		String lastEtag = null;
+		Exception lastFailedException = null;
 		for(TableRowChange changeSet: changes){
 			progressCallback.progressMade(change);
 			currentProgress += changeSet.getRowCount();
@@ -268,14 +269,26 @@ public class TableWorker implements ChangeMessageDrivenRunner {
 			if(!indexManager.isVersionAppliedToIndex(changeSet.getRowVersion())){
 				// This is a change that we must apply.
 				RowSet rowSet = tableRowManager.getRowSet(tableId, changeSet.getRowVersion(), mapper);
-				
 				tableRowManager.attemptToUpdateTableProgress(tableId,
 						resetToken, "Applying " + rowSet.getRows().size()
 								+ " rows for version: " + changeSet.getRowVersion(), currentProgress,
 								totalProgress);
-				// apply the change to the table
-				indexManager.applyChangeSetToIndex(rowSet, currentSchema, changeSet.getRowVersion());
+				try {
+					// attempt to apply this change set to the table.
+					indexManager.applyChangeSetToIndex(rowSet, currentSchema, changeSet.getRowVersion());
+					// Clear the exception (we will be removing this in the future).
+					lastFailedException = null;
+				} catch (Exception e) {
+					/*
+					 * Log and then skip failures.
+					 */
+					log.error("Failed to apply a change set to table :"+tableId+" version: "+changeSet.getRowVersion(), e);
+					lastFailedException = e;
+				}
 			}
+		}
+		if(lastFailedException != null){
+			throw new RuntimeException(lastFailedException);
 		}
 		return lastEtag;
 	}

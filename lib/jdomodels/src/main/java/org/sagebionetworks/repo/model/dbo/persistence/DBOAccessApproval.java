@@ -305,7 +305,7 @@ public class DBOAccessApproval implements MigratableDatabaseObject<DBOAccessAppr
 
 
 	@Override
-	public List<MigratableDatabaseObject> getSecondaryTypes() {
+	public List<MigratableDatabaseObject<?,?>> getSecondaryTypes() {
 		return null;
 	}
 
