@@ -116,12 +116,16 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 					return AuthorizationManagerUtil.accessDenied("Unauthorized to access Team "+objectId+" for "+accessType);
 				}
 			case VERIFICATION_SUBMISSION:
-				if (isACTTeamMemberOrAdmin(userInfo) ||
-						verificationDao.getVerificationSubmitter(Long.parseLong(objectId))==userInfo.getId()) {
-					return AuthorizationManagerUtil.AUTHORIZED;
+				if (accessType==ACCESS_TYPE.DOWNLOAD) {
+					if (isACTTeamMemberOrAdmin(userInfo) ||
+							verificationDao.getVerificationSubmitter(Long.parseLong(objectId))==userInfo.getId()) {
+						return AuthorizationManagerUtil.AUTHORIZED;
+					} else {
+					return AuthorizationManagerUtil.accessDenied(
+							"You must be an ACT member or the owner of the Verification Submission to download its attachments.");
+					}
 				} else {
-				return AuthorizationManagerUtil.accessDenied(
-						"You must be an ACT member or the owner of the Verification Submission to download its attachments.");
+					return AuthorizationManagerUtil.accessDenied("Unexpected access type "+accessType);
 				}
 			default:
 				throw new IllegalArgumentException("Unknown ObjectType: "+objectType);
