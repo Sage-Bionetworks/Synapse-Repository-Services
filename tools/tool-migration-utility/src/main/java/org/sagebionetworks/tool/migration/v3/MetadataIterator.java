@@ -30,6 +30,7 @@ public class MetadataIterator implements Iterator<RowMetadata> {
 	long offset;
 	boolean done = false;
 	BasicProgress progress;
+	Long maxSrcChangeNum;
 	
 	/**
 	 * Create a new iterator that can be used for one pass over the data.
@@ -38,7 +39,7 @@ public class MetadataIterator implements Iterator<RowMetadata> {
 	 * @param client - The Synapse client used to get the real data.
 	 * @param batchSize - The batch size is the page size of data fetched from a stack.
 	 */
-	public MetadataIterator(MigrationType type,	SynapseAdminClient client, long batchSize, BasicProgress progress) {
+	public MetadataIterator(MigrationType type,	SynapseAdminClient client, long batchSize, BasicProgress progress, Long maxSrcChangeNum) {
 		super();
 		this.type = type;
 		this.client = client;
@@ -46,6 +47,7 @@ public class MetadataIterator implements Iterator<RowMetadata> {
 		this.offset = 0;
 		this.done = false;
 		this.progress = progress;
+		this.maxSrcChangeNum = maxSrcChangeNum;
 	}
 
 	/**
@@ -81,7 +83,12 @@ public class MetadataIterator implements Iterator<RowMetadata> {
 	 */
 	private boolean getNextPage() throws SynapseException,	JSONObjectAdapterException {
 		long start = System.currentTimeMillis();
-		this.lastPage = client.getRowMetadata(type, batchSize, offset);
+		if (maxSrcChangeNum == null) {
+			this.lastPage = client.getRowMetadata(type, batchSize, offset);
+		} else {
+			// this.lastPage = client.getRowMetadataWithMaxId(type, batchSize, offset, maxSrcChangeNum);
+		}
+		
 		long elapse = System.currentTimeMillis()-start;
 //		System.out.println("Fetched "+batchSize+" ids in "+elapse+" ms");
 		this.offset += this.batchSize;
