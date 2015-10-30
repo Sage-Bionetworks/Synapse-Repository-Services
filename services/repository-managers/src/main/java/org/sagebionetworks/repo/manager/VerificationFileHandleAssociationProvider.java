@@ -20,8 +20,10 @@ public class VerificationFileHandleAssociationProvider implements
 	public Set<String> getFileHandleIdsAssociatedWithObject(
 			List<String> fileHandleIds, String objectId) {
 		List<Long> associatedIds = verificationDao.listFileHandleIds(Long.parseLong(objectId));
-		Set<String> result = new HashSet<String>(fileHandleIds);
-		result.retainAll(associatedIds);
+		Set<String> result = new HashSet<String>();
+		for (String id : fileHandleIds) {
+			if (associatedIds.contains(Long.parseLong(id))) result.add(id);
+		}
 		return result;
 	}
 
