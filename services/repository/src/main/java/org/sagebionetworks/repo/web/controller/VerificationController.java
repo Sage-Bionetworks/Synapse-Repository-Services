@@ -92,6 +92,15 @@ public class VerificationController extends BaseController {
 			) throws DatastoreException, NotFoundException {
 		serviceProvider.getVerificationService().changeSubmissionState(userId, id, newState, notificationUnsubscribeEndpoint);
 	}
+	
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.VERIFICATION_SUBMISSION_ID, method=RequestMethod.DELETE)
+	public void deleteVerificationSubmission(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable Long id
+	) {
+		serviceProvider.getVerificationService().deleteVerificationSubmission(userId, id);
+	}
 
 	/**
 	 * List the verification submissions in the system.  This service is available only

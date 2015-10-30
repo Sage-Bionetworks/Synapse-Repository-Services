@@ -19,6 +19,14 @@ public interface VerificationManager {
 	VerificationSubmission createVerificationSubmission(UserInfo userInfo, VerificationSubmission verificationSubmission);
 	
 	/**
+	 * delete a verification submission.  Must be the creator to delete
+	 * @param userInfo
+	 * @param verificationId
+	 */
+	void deleteVerificationSubmission(UserInfo userInfo, Long verificationId);
+	
+	
+	/**
 	 * List the verification submissions, optionally filtering by 
 	 * the current state of the verification submissions and/or the 
 	 * user who is the subject of the verification submission.

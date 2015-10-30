@@ -11,6 +11,8 @@ public interface VerificationService {
 	
 	VerificationSubmission createVerificationSubmission(Long userId, VerificationSubmission verificationSubmission, String notificationUnsubscribeEndpoint);
 	
+	void deleteVerificationSubmission(Long userId, Long verificationId);
+	
 	VerificationPagedResults listVerificationSubmissions(
 			Long userId, List<VerificationStateEnum> currentVerificationState, Long verifiedUserId, long limit, long offset);
 	

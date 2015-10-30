@@ -1,6 +1,8 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.sagebionetworks.repo.manager.EmailUtils.*;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_DISPLAY_NAME;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_REASON;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_USER_ID;
 import static org.sagebionetworks.repo.model.verification.VerificationStateEnum.APPROVED;
 import static org.sagebionetworks.repo.model.verification.VerificationStateEnum.REJECTED;
 import static org.sagebionetworks.repo.model.verification.VerificationStateEnum.SUSPENDED;
@@ -103,6 +105,14 @@ public class VerificationManagerImpl implements VerificationManager {
 			}
 		}
 		return verificationDao.createVerificationSubmission(verificationSubmission);
+	}
+	
+	@Override
+	public void deleteVerificationSubmission(UserInfo userInfo, Long verificationId) {
+		if (!userInfo.isAdmin() && 
+				userInfo.getId()!=verificationDao.getVerificationSubmitter(verificationId))
+			throw new UnauthorizedException("Only the creator of a verification submission may delete it.");
+		verificationDao.deleteVerificationSubmission(verificationId);
 	}
 	
 	public static void populateCreateFields(VerificationSubmission verificationSubmission, UserInfo userInfo, Date now) {

@@ -852,6 +852,7 @@ public class UrlHelpers {
 	
 	// verified user services
 	public static final String VERIFICATION_SUBMISSION = "/verificationSubmission";
+	public static final String VERIFICATION_SUBMISSION_ID = VERIFICATION_SUBMISSION+ID;
 	public static final String VERIFICATION_SUBMISSION_ID_STATE = "/verificationSubmission"+ID+"/state";
 
 	/**

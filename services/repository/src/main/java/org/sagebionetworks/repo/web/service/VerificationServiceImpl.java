@@ -42,6 +42,11 @@ public class VerificationServiceImpl implements VerificationService {
 		notificationManager.sendNotifications(userInfo, createNotifications);
 		return result;
 	}
+	
+	public void deleteVerificationSubmission(Long userId, Long verificationId) {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		verificationManager.deleteVerificationSubmission(userInfo, verificationId);
+	}
 
 	@Override
 	public VerificationPagedResults listVerificationSubmissions(Long userId,
