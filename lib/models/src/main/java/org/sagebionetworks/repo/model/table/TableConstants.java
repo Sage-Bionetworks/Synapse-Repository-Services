@@ -23,6 +23,10 @@ public class TableConstants {
 	 */
 	public static final String ROW_VERSION = "ROW_VERSION";
 	/**
+	 * FileHandle IDs 
+	 */
+	public static final String FILE_ID = "FILE_ID";
+	/**
 	 * The reserved column name for row version.
 	 */
 	public static final Long ROW_VERSION_ID = -2L;

@@ -314,6 +314,8 @@
 		class="org.sagebionetworks.evaluation.dao.AnnotationsDAOImpl" />
 	<bean id="quizResponseDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOQuizResponseDAOImpl" />
+	<bean id="verificationDao"
+		class="org.sagebionetworks.repo.model.dbo.dao.DBOVerificationDAOImpl" />
 		
 	<!-- Misc beans -->
 	<bean id="countingSemaphore"

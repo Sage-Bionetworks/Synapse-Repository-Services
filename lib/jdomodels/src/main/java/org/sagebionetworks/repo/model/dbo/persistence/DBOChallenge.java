@@ -92,9 +92,8 @@ public class DBOChallenge implements MigratableDatabaseObject<DBOChallenge, DBOC
 	}
 
 
-	@SuppressWarnings("rawtypes")
 	@Override
-	public List<MigratableDatabaseObject> getSecondaryTypes() {
+	public List<MigratableDatabaseObject<?,?>> getSecondaryTypes() {
 		return null;
 	}
 

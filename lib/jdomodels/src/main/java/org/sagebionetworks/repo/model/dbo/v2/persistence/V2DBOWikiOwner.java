@@ -119,9 +119,8 @@ public class V2DBOWikiOwner implements MigratableDatabaseObject<V2DBOWikiOwner, 
 		return V2DBOWikiOwner.class;
 	}
 	
-	@SuppressWarnings("rawtypes")
 	@Override
-	public List<MigratableDatabaseObject> getSecondaryTypes() {
+	public List<MigratableDatabaseObject<?,?>> getSecondaryTypes() {
 		return null;
 	}
 

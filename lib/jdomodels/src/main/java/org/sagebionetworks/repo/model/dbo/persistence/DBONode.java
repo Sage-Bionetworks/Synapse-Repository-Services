@@ -262,10 +262,9 @@ public class DBONode implements MigratableDatabaseObject<DBONode, DBONode>, Obse
 		return DBONode.class;
 	}
 	
-	@SuppressWarnings("rawtypes")
 	@Override
-	public List<MigratableDatabaseObject> getSecondaryTypes() {
-		List<MigratableDatabaseObject> list = new LinkedList<MigratableDatabaseObject>();
+	public List<MigratableDatabaseObject<?,?>> getSecondaryTypes() {
+		List<MigratableDatabaseObject<?,?>> list = new LinkedList<MigratableDatabaseObject<?,?>>();
 		list.add(new DBORevision());
 		return list;
 	}

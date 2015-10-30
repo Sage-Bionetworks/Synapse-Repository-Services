@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.oauth;
 
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.oauth.ProvidedUserInfo;
+import org.sagebionetworks.repo.model.principal.AliasType;
 
 /**
  * Abstraction for authenticating users using third party OauthProviders.
@@ -56,5 +57,17 @@ public interface OAuthManager {
 	 * @return
 	 */
 	public OAuthProviderBinding getBinding(OAuthProvider provider);
+	
+	/**
+	 * Retrieve the unique ID for the user defined by the provider
+	 * 
+	 * @param provider
+	 * @param authorizationCode
+	 * @param redirectUrl
+	 * @return
+	 */
+	AliasAndType retrieveProvidersId(OAuthProvider provider,
+			String authorizationCode, String redirectUrl);
+
 
 }

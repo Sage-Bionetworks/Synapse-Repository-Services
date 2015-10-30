@@ -1,0 +1,24 @@
+{
+    "title":"VerificationState",
+    "description":"The state of a verification submission",
+	"properties": {
+		"createdOn":{
+			"type":"string",
+			"format":"date-time",
+			"description":"The date and time this object was created"
+		},
+		"createdBy":{
+			"type":"string",
+			"description":"The principal ID of the user who created this object"
+		},
+		"state":{
+			"type":"object",
+			"description":"The state of the verification submission",
+			"$ref":"org.sagebionetworks.repo.model.verification.VerificationStateEnum"
+		},
+		"reason":{
+			"type":"string",
+			"description":"The reason for putting the verification submission in this state."
+		}
+	}
+}

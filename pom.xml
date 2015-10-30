@@ -518,10 +518,10 @@
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
 				<artifactId>lib-test</artifactId>
-				<type>test-jar</type>
 				<version>${project.version}</version>
 				<scope>test</scope>
 			</dependency>
+
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
 				<artifactId>database-semaphore</artifactId>
@@ -535,7 +535,12 @@
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
 				<artifactId>aws-utilities</artifactId>
-				<version>1.0.6</version>
+				<version>1.0.9</version>
+			</dependency>
+			<dependency>
+				<groupId>org.sagebionetworks</groupId>
+				<artifactId>csv-utilities</artifactId>
+				<version>1.0.1</version>
 			</dependency>
 			<dependency>
 				<groupId>com.google.gwt</groupId>

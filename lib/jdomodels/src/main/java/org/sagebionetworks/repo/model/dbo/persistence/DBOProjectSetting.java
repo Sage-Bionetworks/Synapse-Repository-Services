@@ -176,7 +176,7 @@ public class DBOProjectSetting implements MigratableDatabaseObject<DBOProjectSet
 	}
 
 	@Override
-	public List<MigratableDatabaseObject> getSecondaryTypes() {
+	public List<MigratableDatabaseObject<?,?>> getSecondaryTypes() {
 		return null;
 	}
 }

@@ -85,9 +85,8 @@ public class MigratableTableDAOImplUnitTest {
 			return null;
 		}
 
-		@SuppressWarnings("rawtypes")
 		@Override
-		public List<MigratableDatabaseObject> getSecondaryTypes() {
+		public List<MigratableDatabaseObject<?,?>> getSecondaryTypes() {
 			return null;
 		}
 		

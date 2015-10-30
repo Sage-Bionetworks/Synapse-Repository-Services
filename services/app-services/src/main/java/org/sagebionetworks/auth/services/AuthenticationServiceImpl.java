@@ -8,15 +8,18 @@ import org.sagebionetworks.authutil.OpenIDInfo;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.MessageManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.oauth.AliasAndType;
 import org.sagebionetworks.repo.manager.oauth.OAuthManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.ChangePasswordRequest;
 import org.sagebionetworks.repo.model.auth.LoginCredentials;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Session;
+import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthValidationRequest;
@@ -24,10 +27,10 @@ import org.sagebionetworks.repo.model.oauth.ProvidedUserInfo;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.web.ForbiddenException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-
-import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class AuthenticationServiceImpl implements AuthenticationService {
 
@@ -48,7 +51,11 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	
 	public AuthenticationServiceImpl() {}
 	
-	public AuthenticationServiceImpl(UserManager userManager, AuthenticationManager authManager, MessageManager messageManager, OAuthManager oauthManager) {
+	public AuthenticationServiceImpl(
+			UserManager userManager, 
+			AuthenticationManager authManager, 
+			MessageManager messageManager, 
+			OAuthManager oauthManager) {
 		this.userManager = userManager;
 		this.authManager = authManager;
 		this.messageManager = messageManager;
@@ -280,7 +287,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	}
 
 	@Override
-	public Session validateOAuthAuthenticationCode(
+	public Session validateOAuthAuthenticationCodeAndLogin(
 			OAuthValidationRequest request) throws NotFoundException {
 		// Use the authentication code to lookup the user's information.
 		ProvidedUserInfo providedInfo = oauthManager.validateUserWithProvider(
@@ -289,12 +296,23 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 			throw new IllegalArgumentException("OAuthProvider: "+request.getProvider().name()+" did not provide a user email");
 		}
 		// This is the ID of the user within the provider's system.
-		PrincipalAlias emailAlais = userManager.lookupPrincipalByAlias(providedInfo.getUsersVerifiedEmail());
-		if(emailAlais == null){
+		PrincipalAlias emailAlias = userManager.lookupPrincipalByAlias(providedInfo.getUsersVerifiedEmail());
+		if(emailAlias == null){
 			// Let the caller know we did not find the user
 			throw new NotFoundException(providedInfo.getUsersVerifiedEmail());
 		}
 		// Return the user's session token
-		return authManager.getSessionToken(emailAlais.getPrincipalId(), DomainType.SYNAPSE);
+		return authManager.getSessionToken(emailAlias.getPrincipalId(), DomainType.SYNAPSE);
+	}
+	
+	@Override
+	public PrincipalAlias bindExternalID(Long userId, OAuthValidationRequest validationRequest) {
+		if (userId==null) throw new UnauthorizedException("User ID is required.");
+		AliasAndType providersUserId = oauthManager.retrieveProvidersId(
+				validationRequest.getProvider(), 
+				validationRequest.getAuthenticationCode(),
+				validationRequest.getRedirectUrl());
+		// now bind the ID to the user account
+		return userManager.bindAlias(providersUserId.getAlias(), providersUserId.getType(), userId);
 	}
 }

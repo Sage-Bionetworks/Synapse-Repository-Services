@@ -231,7 +231,7 @@ public class DBOUserProfile implements MigratableDatabaseObject<DBOUserProfile, 
 
 
 	@Override
-	public List<MigratableDatabaseObject> getSecondaryTypes() {
+	public List<MigratableDatabaseObject<?,?>> getSecondaryTypes() {
 		return null;
 	}
 

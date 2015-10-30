@@ -131,7 +131,7 @@ public class IT970UserProfileController {
 		assertEquals(0, favs.getResults().size());
 	}
 
-	@Ignore
+	@Ignore // Unstable test: PLFM-3609
 	@Test
 	public void testMyProjects() throws Exception {
 		Project entity = new Project();

@@ -372,14 +372,14 @@ public abstract class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	 * @throws NotFoundException
 	 */
 	@Override
-	public RowSet getRowSet(String tableId, long rowVersion, Set<Long> rowsToGet, ColumnModelMapper schema)
+	public RowSet getRowSet(String tableId, long rowVersion, ColumnModelMapper schema)
 			throws IOException, NotFoundException {
 		TableRowChange dto = getTableRowChange(tableId, rowVersion);
 		// Downlaod the file from S3
 		S3Object object = s3Client.getObject(dto.getBucket(), dto.getKey());
 		try {
 			RowSet set = new RowSet();
-			List<Row> rows = TableModelUtils.readFromCSVgzStream(object.getObjectContent(), rowsToGet);
+			List<Row> rows = TableModelUtils.readFromCSVgzStream(object.getObjectContent());
 			set.setTableId(tableId);
 			set.setHeaders(TableModelUtils.getSelectColumnsFromColumnIds(dto.getIds(), schema));
 			set.setRows(rows);

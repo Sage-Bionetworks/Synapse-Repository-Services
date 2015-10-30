@@ -249,7 +249,7 @@ public class SubmissionStatusDBO implements MigratableDatabaseObject<SubmissionS
 		return SubmissionStatusDBO.class;
 	}
 	@Override
-	public List<MigratableDatabaseObject> getSecondaryTypes() {
+	public List<MigratableDatabaseObject<?,?>> getSecondaryTypes() {
 		return null;
 	}
 	

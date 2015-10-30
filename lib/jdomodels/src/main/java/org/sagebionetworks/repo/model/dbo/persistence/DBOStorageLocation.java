@@ -202,7 +202,7 @@ public class DBOStorageLocation implements MigratableDatabaseObject<DBOStorageLo
 	}
 
 	@Override
-	public List<MigratableDatabaseObject> getSecondaryTypes() {
+	public List<MigratableDatabaseObject<?,?>> getSecondaryTypes() {
 		return null;
 	}
 }

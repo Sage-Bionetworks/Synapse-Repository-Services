@@ -113,9 +113,8 @@ public class DBOCredential implements MigratableDatabaseObject<DBOCredential, DB
 		return DBOCredential.class;
 	}
 
-	@SuppressWarnings("rawtypes")
 	@Override
-	public List<MigratableDatabaseObject> getSecondaryTypes() {
+	public List<MigratableDatabaseObject<?,?>> getSecondaryTypes() {
 		return null;
 	}
 

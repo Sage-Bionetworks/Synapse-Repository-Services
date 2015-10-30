@@ -148,7 +148,7 @@ public class SubmissionFileHandleDBO implements MigratableDatabaseObject<Submiss
 	}
 
 	@Override
-	public List<MigratableDatabaseObject> getSecondaryTypes() {
+	public List<MigratableDatabaseObject<?,?>> getSecondaryTypes() {
 		return null;
 	}
 	

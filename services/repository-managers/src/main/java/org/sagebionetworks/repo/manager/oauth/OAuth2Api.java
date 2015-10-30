@@ -1,8 +1,7 @@
 package org.sagebionetworks.repo.manager.oauth;
 
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.scribe.builder.api.DefaultApi20;
 import org.scribe.exceptions.OAuthException;
 import org.scribe.extractors.AccessTokenExtractor;
@@ -25,15 +24,23 @@ import org.scribe.utils.Preconditions;
  * 
  * @see <a href="https://gist.githubusercontent.com/yincrash/2465453/raw/9d4eb3149ff8c0eba0316a29d4598949975ac6f5/Google2APi.java">Original Google2Apis</a>
  * 
+ * 
  */
-public class Google2Api extends DefaultApi20 {
-
-    private static final String AUTHORIZE_URL = "https://accounts.google.com/o/oauth2/auth?response_type=code&client_id=%s&redirect_uri=%s";
-    private static final String SCOPED_AUTHORIZE_URL = AUTHORIZE_URL + "&scope=%s";
-
+public class OAuth2Api extends DefaultApi20 {
+	private static String ACCESS_TOKEN_TAG = "access_token";
+	private static String ERROR_TAG = "error";
+	
+	private String authorizationEndpoint;
+	private String accessTokenEndpoint;
+	
+	public OAuth2Api(String authorizationEndpoint, String accessTokenEndpoint) {
+		this.authorizationEndpoint=authorizationEndpoint;
+		this.accessTokenEndpoint=accessTokenEndpoint;		
+	}
+	
     @Override
     public String getAccessTokenEndpoint() {
-        return "https://accounts.google.com/o/oauth2/token";
+    	return accessTokenEndpoint;
     }
     
     @Override
@@ -42,18 +49,20 @@ public class Google2Api extends DefaultApi20 {
             
             @Override
             public Token extract(String response) {
-                Preconditions.checkEmptyString(response, "Response body is incorrect. Can't extract a token from an empty string");
-
-                Matcher matcher = Pattern.compile("\"access_token\" : \"([^&\"]+)\"").matcher(response);
-                if (matcher.find())
-                {
-                  String token = OAuthEncoder.decode(matcher.group(1));
-                  return new Token(token, "", response);
-                } 
-                else
-                {
-                  throw new OAuthException("Response body is incorrect. Can't extract a token from this: '" + response + "'", null);
-                }
+            	Preconditions.checkEmptyString(response, "Response body is incorrect. Can't extract a token from an empty string");
+            	try {
+            		JSONObject json = new JSONObject(response);
+            		if (json.has(ACCESS_TOKEN_TAG)) {
+            			String token = OAuthEncoder.decode(json.getString(ACCESS_TOKEN_TAG));
+            			return new Token(token, "", response);
+            		} else if (json.has(ERROR_TAG)) {
+            			throw new OAuthException(json.getString(ERROR_TAG));
+            		} else {
+            			throw new OAuthException("Response body is incorrect. Can't parse: '" + response + "'", null);
+            		}
+            	} catch (JSONException e) {
+            		throw new RuntimeException(e);
+            	}
             }
         };
     }
@@ -62,11 +71,12 @@ public class Google2Api extends DefaultApi20 {
     public String getAuthorizationUrl(OAuthConfig config) {
         // Append scope if present
         if (config.hasScope()) {
-            return String.format(SCOPED_AUTHORIZE_URL, config.getApiKey(),
+            String scopedAuthorizationUrl = authorizationEndpoint + "&scope=%s";
+            return String.format(scopedAuthorizationUrl, config.getApiKey(),
                     OAuthEncoder.encode(config.getCallback()),
                     OAuthEncoder.encode(config.getScope()));
         } else {
-            return String.format(AUTHORIZE_URL, config.getApiKey(),
+            return String.format(authorizationEndpoint, config.getApiKey(),
                     OAuthEncoder.encode(config.getCallback()));
         }
     }
@@ -78,17 +88,17 @@ public class Google2Api extends DefaultApi20 {
     
     @Override
     public OAuthService createService(OAuthConfig config) {
-        return new GoogleOAuth2Service(this, config);
+        return new BasicOAuth2Service(this, config);
     }
     
-    private class GoogleOAuth2Service extends OAuth20ServiceImpl {
+    private class BasicOAuth2Service extends OAuth20ServiceImpl {
 
         private static final String GRANT_TYPE_AUTHORIZATION_CODE = "authorization_code";
         private static final String GRANT_TYPE = "grant_type";
         private DefaultApi20 api;
         private OAuthConfig config;
 
-        public GoogleOAuth2Service(DefaultApi20 api, OAuthConfig config) {
+        public BasicOAuth2Service(DefaultApi20 api, OAuthConfig config) {
             super(api, config);
             this.api = api;
             this.config = config;
@@ -102,7 +112,7 @@ public class Google2Api extends DefaultApi20 {
                 request.addBodyParameter(OAuthConstants.CLIENT_ID, config.getApiKey());
                 request.addBodyParameter(OAuthConstants.CLIENT_SECRET, config.getApiSecret());
                 request.addBodyParameter(OAuthConstants.CODE, verifier.getValue());
-                request.addBodyParameter(OAuthConstants.REDIRECT_URI, config.getCallback());
+                if (config.getCallback()!=null) request.addBodyParameter(OAuthConstants.REDIRECT_URI, config.getCallback());
                 request.addBodyParameter(GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE);
                 break;
             case GET:
@@ -110,7 +120,7 @@ public class Google2Api extends DefaultApi20 {
                 request.addQuerystringParameter(OAuthConstants.CLIENT_ID, config.getApiKey());
                 request.addQuerystringParameter(OAuthConstants.CLIENT_SECRET, config.getApiSecret());
                 request.addQuerystringParameter(OAuthConstants.CODE, verifier.getValue());
-                request.addQuerystringParameter(OAuthConstants.REDIRECT_URI, config.getCallback());
+                if (config.getCallback()!=null) request.addQuerystringParameter(OAuthConstants.REDIRECT_URI, config.getCallback());
                 if(config.hasScope()) request.addQuerystringParameter(OAuthConstants.SCOPE, config.getScope());
             }
             Response response = request.send();

@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.audit.utils.AccessRecordUtils;
-import org.sagebionetworks.aws.utils.s3.ObjectCSVDAO;
 import org.sagebionetworks.repo.model.audit.AccessRecord;
 import org.springframework.beans.factory.annotation.Autowired;
 

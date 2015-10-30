@@ -56,6 +56,9 @@
         "TABLE_FILE_ASSOCIATION",
         "STORAGE_QUOTA",
         "QUIZ_RESPONSE",
+        "VERIFICATION_SUBMISSION",
+        "VERIFICATION_STATE",
+        "VERIFICATION_FILE",
         "CHANGE"
     ]
 }

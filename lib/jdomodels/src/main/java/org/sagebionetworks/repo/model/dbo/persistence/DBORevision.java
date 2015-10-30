@@ -213,7 +213,7 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 	}
 	
 	@Override
-	public List<MigratableDatabaseObject> getSecondaryTypes() {
+	public List<MigratableDatabaseObject<?,?>> getSecondaryTypes() {
 		return null;
 	}
 	
