@@ -77,6 +77,7 @@ public class FileHandleManagerImplTest {
 	AmazonS3Client mockS3Client;
 	AuthorizationManager mockAuthorizationManager;
 	StorageLocationDAO mockStorageLocationDao;
+	FileHandleAuthorizationManager mockileHandleAuthorizationManager;
 	
 	String bucket;
 	String key;
@@ -95,6 +96,7 @@ public class FileHandleManagerImplTest {
 		mockS3Client = Mockito.mock(AmazonS3Client.class);
 		mockAuthorizationManager = Mockito.mock(AuthorizationManager.class);
 		mockStorageLocationDao = Mockito.mock(StorageLocationDAO.class);
+		mockileHandleAuthorizationManager = Mockito.mock(FileHandleAuthorizationManager.class);
 		
 		// The user is not really a mock
 		mockUser = new UserInfo(false,"987");
@@ -160,7 +162,10 @@ public class FileHandleManagerImplTest {
 		when(mockfileMetadataDao.createFile(externals3FileHandle)).thenReturn(externals3FileHandle);
 		
 		// the manager to test.
-		manager = new FileHandleManagerImpl(mockfileMetadataDao, mockPrimaryStrategy, mockFallbackStrategy, mockAuthorizationManager, mockS3Client);
+		manager = new FileHandleManagerImpl(
+				mockfileMetadataDao, mockPrimaryStrategy, 
+				mockFallbackStrategy, mockAuthorizationManager, 
+				mockS3Client, mockileHandleAuthorizationManager);
 		ReflectionTestUtils.setField(manager, "storageLocationDAO", mockStorageLocationDao);
 	}
 	

@@ -41,6 +41,7 @@ public class VerificationController extends BaseController {
 	 * 
 	 * @param userId
 	 * @param verificationSubmission
+	 * @param notificationUnsubscribeEndpoint
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
@@ -50,16 +51,18 @@ public class VerificationController extends BaseController {
 	public @ResponseBody
 	VerificationSubmission createVerificationSubmission(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestBody VerificationSubmission verificationSubmission
+			@RequestBody VerificationSubmission verificationSubmission,
+			@RequestParam(value = AuthorizationConstants.NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM, required = false) String notificationUnsubscribeEndpoint
 			) throws DatastoreException, NotFoundException {
-		return serviceProvider.getVerificationService().createVerificationSubmission(userId, verificationSubmission);
+		return serviceProvider.getVerificationService().createVerificationSubmission(userId, verificationSubmission, notificationUnsubscribeEndpoint);
 	}
 
 	/**
-	 * 
+	 * TODO
 	 * @param userId
 	 * @param id
 	 * @param newState
+	 * @param notificationUnsubscribeEndpoint
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
@@ -69,13 +72,14 @@ public class VerificationController extends BaseController {
 	void changeVerificationSubmissionState(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable Long id,
-			@RequestBody VerificationState newState
+			@RequestBody VerificationState newState,
+			@RequestParam(value = AuthorizationConstants.NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM, required = false) String notificationUnsubscribeEndpoint
 			) throws DatastoreException, NotFoundException {
-		serviceProvider.getVerificationService().changeSubmissionState(userId, id, newState);
+		serviceProvider.getVerificationService().changeSubmissionState(userId, id, newState, notificationUnsubscribeEndpoint);
 	}
 
 	/**
-	 * 
+	 * TODO
 	 * @param userId
 	 * @param verifiedUserId
 	 * @param currentVerificationState

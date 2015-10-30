@@ -40,4 +40,25 @@ public interface VerificationManager {
 	 * @param newState
 	 */
 	void changeSubmissionState(UserInfo userInfo, long verificationSubmissionId, VerificationState newState);
+	
+	/**
+	 * Create a message to the ACT members telling them there is a new VerificationSubmission
+	 * waiting for review.
+	 * 
+	 * @param verificationSubmission
+	 * @param notificationUnsubscribeEndpoint
+	 * @return
+	 */
+	List<MessageToUserAndBody> createSubmissionNotification(VerificationSubmission verificationSubmission, String notificationUnsubscribeEndpoint);
+	
+	/**
+	 * Create a message to the user requesting verification that the ACT has acted, accepting, rejecting, or
+	 * suspending the verification.
+	 * 
+	 * @param verificationSubmissionId
+	 * @param newState
+	 * @param notificationUnsubscribeEndpoint
+	 * @return
+	 */
+	List<MessageToUserAndBody> createStateChangeNotification(long verificationSubmissionId, VerificationState newState, String notificationUnsubscribeEndpoint);
 }

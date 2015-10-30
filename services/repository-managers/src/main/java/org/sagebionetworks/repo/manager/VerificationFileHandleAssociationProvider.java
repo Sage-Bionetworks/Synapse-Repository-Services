@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -18,8 +19,10 @@ public class VerificationFileHandleAssociationProvider implements
 	@Override
 	public Set<String> getFileHandleIdsAssociatedWithObject(
 			List<String> fileHandleIds, String objectId) {
-		// TODO Auto-generated method stub
-		return null;
+		List<Long> associatedIds = verificationDao.listFileHandleIds(Long.parseLong(objectId));
+		Set<String> result = new HashSet<String>(fileHandleIds);
+		result.retainAll(associatedIds);
+		return result;
 	}
 
 	@Override

@@ -106,9 +106,9 @@ public class DBOVerificationDAOImpl implements VerificationDAO {
 			" WHERE "+COL_VERIFICATION_STATE_VERIFICATION_ID+" in (:"+COL_VERIFICATION_STATE_VERIFICATION_ID+") ORDER BY "+
 			COL_VERIFICATION_STATE_CREATED_ON+" ASC";
 	
-	private static final String FILE_ID_IN_VERIFICATION_SQL = 
-			"SELECT COUNT(*) FROM "+TABLE_VERIFICATION_FILE+" WHERE "+
-			COL_VERIFICATION_FILE_VERIFICATION_ID+"=? AND "+COL_VERIFICATION_FILE_FILEHANDLEID+"=?";
+	private static final String FILE_IDS_IN_VERIFICATION_SQL = 
+			"SELECT "+COL_VERIFICATION_FILE_FILEHANDLEID+" FROM "+TABLE_VERIFICATION_FILE+" WHERE "+
+			COL_VERIFICATION_FILE_VERIFICATION_ID+"=?";
 
 	private static TableMapping<DBOVerificationSubmission> DBO_VERIFICATION_SUB_MAPPING =
 			(new DBOVerificationSubmission()).getTableMapping();
@@ -308,10 +308,8 @@ public class DBOVerificationDAOImpl implements VerificationDAO {
 	}
 	
 	@Override
-	public boolean isFileHandleIdInVerificationSubmission(long verificationId,
-			long fileHandleId) {
-		Long count = jdbcTemplate.queryForObject(FILE_ID_IN_VERIFICATION_SQL, Long.class, verificationId, fileHandleId);
-		return count>0;
+	public List<Long> listFileHandleIds(long verificationId) {
+		return jdbcTemplate.queryForList(FILE_IDS_IN_VERIFICATION_SQL, Long.class, verificationId);
 	}
 
 	@Override

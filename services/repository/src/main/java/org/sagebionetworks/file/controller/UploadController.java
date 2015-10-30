@@ -750,7 +750,8 @@ public class UploadController extends BaseController {
 	}
 	
 	/**
-	 * Get the actual URL of the file associated with an associated object
+	 * 
+	 * Get the actual URL of the file from with an associated object
 	 * .
 	 * <p>
 	 * Note: This call will result in a HTTP temporary redirect (307), to the
@@ -758,24 +759,24 @@ public class UploadController extends BaseController {
 	 * </p>
 	 * 
 	 * @param userId
-	 * @param id
-	 *            The ID of the affiliated object.
-	 * @param redirect
-	 *            When set to false, the URL will be returned as text/plain
-	 *            instead of redirecting.
+	 * @param id the ID of the file handle to be downloaded
+	 * @param redirect 
+	 * 		When set to false, the URL will be returned as text/plain
+	 *      instead of redirecting.
+	 * @param fileAssociateType the type of object with which the file is associated
+	 * @param fileAssociateId the ID fo the object with which the file is associated
 	 * @param response
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 * @throws IOException
 	 */
 	@RequestMapping(value = UrlHelpers.FILE_DOWNLOAD, method = RequestMethod.GET)
-	public @ResponseBody
-	void fileRedirectURLForAffiliate(
+	public void fileRedirectURLForAffiliate(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id,
 			@RequestParam(required = false) Boolean redirect,
-			@RequestParam(required = false) FileHandleAssociateType fileAssociateType,
-			@RequestParam(required = false) String fileAssociateId,
+			@RequestParam(required = true) FileHandleAssociateType fileAssociateType,
+			@RequestParam(required = true) String fileAssociateId,
 			HttpServletResponse response) throws DatastoreException,
 			NotFoundException, IOException {
 		// Get the redirect url

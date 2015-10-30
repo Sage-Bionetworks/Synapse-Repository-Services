@@ -2,6 +2,8 @@ package org.sagebionetworks.repo.web.service;
 
 import java.util.List;
 
+import org.sagebionetworks.repo.manager.MessageToUserAndBody;
+import org.sagebionetworks.repo.manager.NotificationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.VerificationManager;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -18,6 +20,9 @@ public class VerificationServiceImpl implements VerificationService {
 
 	@Autowired
 	private UserManager userManager;
+	
+	@Autowired
+	private NotificationManager notificationManager;
 
 	public VerificationServiceImpl() {}
 
@@ -29,10 +34,12 @@ public class VerificationServiceImpl implements VerificationService {
 
 	@Override
 	public VerificationSubmission createVerificationSubmission(Long userId,
-			VerificationSubmission verificationSubmission) {
+			VerificationSubmission verificationSubmission,
+			String notificationUnsubscribeEndpoint) {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		VerificationSubmission result = verificationManager.createVerificationSubmission(userInfo, verificationSubmission);
-		// TODO notify ACT
+		List<MessageToUserAndBody> createNotifications = verificationManager.createSubmissionNotification(result, notificationUnsubscribeEndpoint);
+		notificationManager.sendNotifications(userInfo, createNotifications);
 		return result;
 	}
 
@@ -46,10 +53,12 @@ public class VerificationServiceImpl implements VerificationService {
 
 	@Override
 	public void changeSubmissionState(Long userId,
-			long verificationSubmissionId, VerificationState newState) {
+			long verificationSubmissionId, VerificationState newState,
+			String notificationUnsubscribeEndpoint) {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		verificationManager.changeSubmissionState(userInfo, verificationSubmissionId, newState);
-		// TODO notify user who is the subject of the verification submission, including the 'reason'
+		List<MessageToUserAndBody> createNotifications = verificationManager.createStateChangeNotification(verificationSubmissionId, newState, notificationUnsubscribeEndpoint);
+		notificationManager.sendNotifications(userInfo, createNotifications);
 	}
 
 }

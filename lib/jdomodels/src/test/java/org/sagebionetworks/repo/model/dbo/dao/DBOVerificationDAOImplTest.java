@@ -334,7 +334,7 @@ public class DBOVerificationDAOImplTest {
 	}
 	
 	@Test
-	public void testIsFileHandleIdInVerificationSubmission() throws Exception {
+	public void testListFileHandleIdsInVerificationSubmission() throws Exception {
 		FileHandle fh1 = createFileHandle(USER_1_ID);
 		FileHandle fh2 = createFileHandle(USER_1_ID);
 		List<String> fileHandleIds =Arrays.asList(fh1.getId(), fh2.getId());
@@ -344,9 +344,15 @@ public class DBOVerificationDAOImplTest {
 		vsToDelete.add(created.getId());
 		
 		long longId = Long.parseLong(created.getId());
-		long longFhId = Long.parseLong(fh1.getId());
-		assertTrue(verificationDao.isFileHandleIdInVerificationSubmission(longId, longFhId));
-		assertFalse(verificationDao.isFileHandleIdInVerificationSubmission(longId*13, longFhId));
-		assertFalse(verificationDao.isFileHandleIdInVerificationSubmission(longId, longFhId*13));
+		
+		// make sure the file handle IDs appear in the query results
+		List<Long> retrieved = verificationDao.listFileHandleIds(longId);
+		assertEquals(2, retrieved.size());
+		assertTrue(retrieved.contains(Long.parseLong(fh1.getId())));
+		assertTrue(retrieved.contains(Long.parseLong(fh2.getId())));
+		
+		// no file handles for this ID
+		assertTrue(verificationDao.listFileHandleIds(longId*13).isEmpty());
+
 	}
 }

@@ -62,14 +62,11 @@ public interface VerificationDAO {
 	public VerificationStateEnum getVerificationState(long verificationId);
 
 	/**
-	 * check whether a file handle ID is in a verification submission
-	 * this is used in authorization checks
 	 * 
-	 * @param verificationId id of the VerificationSubmission
-	 * @param fileHandleId
-	 * @return true iff the given file handle is in the given verification submission
+	 * @param verificationId
+	 * @return the file handle IDs associated with the given verification submission
 	 */
-	public boolean isFileHandleIdInVerificationSubmission(long verificationId, long fileHandleId);
+	public List<Long> listFileHandleIds(long verificationId);
 
 
 	/**
