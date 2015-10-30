@@ -50,18 +50,19 @@ public interface UserProfileService {
 	/**
 	 * 
 	 * @param userId
+	 * @param mask integer flag defining which components to include in the bundle
 	 * @return
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	public UserBundle getMyOwnUserBundle(Long userId) throws DatastoreException,
+	public UserBundle getMyOwnUserBundle(Long userId, int mask) throws DatastoreException,
 	UnauthorizedException, NotFoundException;
 
 	/**
 	 * Get a user profile specifying the individual group id for the user of interest
 	 * @param userId - The user that is making the request.
-	 * @param request
+	 * @param mask integer flag defining which components to include in the bundle
 	 * @return The UserProfile
 	 * @throws DatastoreException - Thrown when there is a server-side problem.
 	 */
@@ -77,7 +78,7 @@ public interface UserProfileService {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	public UserBundle getUserBundleByOwnerId(Long userId, String profileId)
+	public UserBundle getUserBundleByOwnerId(Long userId, String profileId, int mask)
 			throws DatastoreException, UnauthorizedException, NotFoundException;
 
 	/**

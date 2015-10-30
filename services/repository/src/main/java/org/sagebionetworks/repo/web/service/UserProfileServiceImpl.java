@@ -11,12 +11,13 @@ import java.util.Set;
 import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.repo.manager.CertifiedUserManager;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.EntityPermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.manager.UserProfileManagerUtils;
-import org.sagebionetworks.repo.manager.VerificationManager;
+import org.sagebionetworks.repo.manager.team.TeamConstants;
 import org.sagebionetworks.repo.manager.team.TeamManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -39,6 +40,7 @@ import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.VerificationDAO;
 import org.sagebionetworks.repo.model.dbo.principal.PrincipalPrefixDAO;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken;
@@ -46,6 +48,10 @@ import org.sagebionetworks.repo.model.message.Settings;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
+import org.sagebionetworks.repo.model.quiz.PassingRecord;
+import org.sagebionetworks.repo.model.verification.VerificationState;
+import org.sagebionetworks.repo.model.verification.VerificationStateEnum;
+import org.sagebionetworks.repo.model.verification.VerificationSubmission;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.util.SignedTokenUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -60,7 +66,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 	private UserProfileManager userProfileManager;
 	
 	@Autowired
-	private VerificationManager verificationManager;
+	private VerificationDAO verificationDao;
 	
 	@Autowired
 	PrincipalAliasDAO principalAliasDAO;
@@ -82,8 +88,12 @@ public class UserProfileServiceImpl implements UserProfileService {
 	
 	@Autowired
 	PrincipalPrefixDAO principalPrefixDAO;
+	
 	@Autowired
 	UserGroupDAO userGroupDao;
+	
+	@Autowired
+	CertifiedUserManager certifiedUserManager;
 
 	@Override
 	public UserProfile getMyOwnUserProfile(Long userId) 
@@ -361,37 +371,64 @@ public class UserProfileServiceImpl implements UserProfileService {
 		return responseMessage;
 	}
 
-	// TODO add a bitmask
 	@Override
-	public UserBundle getMyOwnUserBundle(Long userId)
+	public UserBundle getMyOwnUserBundle(Long userId, int mask)
 			throws DatastoreException, UnauthorizedException, NotFoundException {
+		return getUserBundlePrivate(userId, mask);
+	}
+	
+	private static int USER_PROFILE_MASK = 0x1;
+	private static int ORCID_MASK = 0x2;
+	private static int VERIFICATION_MASK = 0x4;
+	private static int IS_CERTIFIED_MASK = 0x8;
+	private static int IS_VERIFIED_MASK = 0x10;
+	private static int IS_ACT_MEMBER_MASK = 0x20;
+	
+	private UserBundle getUserBundlePrivate(Long profileId, int mask) {
 		UserBundle result = new UserBundle();
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		result.setUserProfile(userProfileManager.getUserProfile(userInfo.getId().toString()));
-		result.setIsACTMember(false/*TODO*/);
-		result.setIsCertified(false/*TODO*/);
-		result.setIsVerified(false/*TODO*/);
-		result.setORCID(""/*TODO*/);
-		result.setUserId(""/*TODO*/);
-		result.setVerificationSubmission(null/*TODO*/);
+		result.setUserId(profileId.toString());
+		if ((mask&USER_PROFILE_MASK)!=0) {
+			result.setUserProfile(userProfileManager.getUserProfile(profileId.toString()));
+		}
+		if ((mask&IS_ACT_MEMBER_MASK)!=0) {
+			UserInfo userInfo = userManager.getUserInfo(profileId);
+			result.setIsACTMember(userInfo.getGroups().contains(TeamConstants.ACT_TEAM_ID));
+		}
+		if ((mask&IS_CERTIFIED_MASK)!=0) {
+			PassingRecord passingRecord = certifiedUserManager.getPassingRecord(profileId);
+			result.setIsCertified(passingRecord.getPassed());
+		}
+		VerificationSubmission verificationSubmission = null;
+		if ((mask&(VERIFICATION_MASK|IS_VERIFIED_MASK))!=0) {
+			verificationSubmission = verificationDao.getCurrentVerificationSubmissionForUser(profileId);
+		}
+		if ((mask&IS_VERIFIED_MASK)!=0) {
+			result.setIsVerified(false);
+			if (verificationSubmission!=null) {
+				List<VerificationState> list = verificationSubmission.getStateHistory();
+				VerificationStateEnum currentState = list.get(list.size()-1).getState();
+				result.setIsVerified(currentState==VerificationStateEnum.APPROVED);
+			}
+		}
+		if ((mask&ORCID_MASK)!=0) {
+			List<PrincipalAlias> orcidAliases = principalAliasDAO.listPrincipalAliases(profileId, AliasType.USER_ORCID);
+			if (orcidAliases.size()>1) throw new IllegalStateException("Cannot have multiple ORCIDs.");
+			result.setORCID(orcidAliases.isEmpty() ? null : orcidAliases.get(0).getAlias());
+		}
+		if ((mask&VERIFICATION_MASK)!=0) {
+			result.setVerificationSubmission(verificationSubmission);
+		}
 		return result;
+		
 	}
 
-	// TODO add a bitmask
 	@Override
-	public UserBundle getUserBundleByOwnerId(Long userId, String profileId)
+	public UserBundle getUserBundleByOwnerId(Long userId, String profileId, int mask)
 			throws DatastoreException, UnauthorizedException, NotFoundException {
-		UserBundle result = new UserBundle();
+		UserBundle result = getUserBundlePrivate(Long.parseLong(profileId), mask);
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		UserProfile userProfile = userProfileManager.getUserProfile(profileId);
-		UserProfileManagerUtils.clearPrivateFields(userInfo, userProfile);
-		result.setUserProfile(userProfile);
-		result.setIsACTMember(false/*TODO*/);
-		result.setIsCertified(false/*TODO*/);
-		result.setIsVerified(false/*TODO*/);
-		result.setORCID(""/*TODO*/);
-		result.setUserId(""/*TODO*/);
-		result.setVerificationSubmission(null/*TODO*/);
+		UserProfileManagerUtils.clearPrivateFields(userInfo, result.getUserProfile());
+		UserProfileManagerUtils.clearPrivateFields(userInfo, result.getVerificationSubmission());
 		return result;
 	}
 
