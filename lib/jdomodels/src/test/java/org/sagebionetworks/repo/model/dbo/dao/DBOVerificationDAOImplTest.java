@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.dbo.dao;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
@@ -353,6 +354,71 @@ public class DBOVerificationDAOImplTest {
 		
 		// no file handles for this ID
 		assertTrue(verificationDao.listFileHandleIds(longId*13).isEmpty());
-
 	}
+	
+	@Test
+	public void testGetCurrentVerificationSubmissionForUser() {
+		long user1long = Long.parseLong(USER_1_ID);
+		// when there is no verification submission we should get null
+		assertNull(verificationDao.getCurrentVerificationSubmissionForUser(user1long));
+
+		VerificationSubmission dto = newVerificationSubmission(USER_1_ID, null);
+		VerificationSubmission created = verificationDao.createVerificationSubmission(dto);
+		vsToDelete.add(created.getId());
+		
+		VerificationSubmission current = verificationDao.getCurrentVerificationSubmissionForUser(user1long);
+		assertEquals(created, current);
+		
+		dto = newVerificationSubmission(USER_1_ID, null); // this one will have a later time stamp
+		VerificationSubmission created2 = verificationDao.createVerificationSubmission(dto);
+		vsToDelete.add(created2.getId());
+		// the new one is different!
+		assertFalse(created.getId().equals(created2.getId()));
+
+		current = verificationDao.getCurrentVerificationSubmissionForUser(user1long);
+		assertEquals(created2, current);
+	}
+	
+	@Test
+	public void testGetVerificationState() {
+		VerificationSubmission dto = newVerificationSubmission(USER_1_ID, null);
+		VerificationSubmission created = verificationDao.createVerificationSubmission(dto);
+		vsToDelete.add(created.getId());
+		long createdIdLong = Long.parseLong(created.getId());
+		assertEquals(VerificationStateEnum.SUBMITTED, verificationDao.getVerificationState(createdIdLong));
+
+		VerificationState newState = new VerificationState();
+		newState.setCreatedBy(USER_2_ID);
+		newState.setCreatedOn(new Date());
+		newState.setState(VerificationStateEnum.REJECTED);
+		verificationDao.appendVerificationSubmissionState(createdIdLong, newState);
+		
+		assertEquals(VerificationStateEnum.REJECTED, verificationDao.getVerificationState(createdIdLong));
+
+		// if we make a new one, there's no confusion about which state we're checking...
+		VerificationSubmission created2 = verificationDao.createVerificationSubmission(dto);
+		vsToDelete.add(created2.getId());
+		
+		// ...still get the correct status, that of the first submission
+		assertEquals(VerificationStateEnum.REJECTED, verificationDao.getVerificationState(createdIdLong));	
+	}
+	
+	@Test
+	public void testGetVerificationSubmitter() {
+		VerificationSubmission dto = newVerificationSubmission(USER_1_ID, null);
+		VerificationSubmission created = verificationDao.createVerificationSubmission(dto);
+		vsToDelete.add(created.getId());
+		long createdIdLong = Long.parseLong(created.getId());
+		long user1Long = Long.parseLong(USER_1_ID);
+		assertEquals(user1Long, verificationDao.getVerificationSubmitter(createdIdLong));
+
+		// if we make a new one, there's no confusion about which object we're checking...
+		dto = newVerificationSubmission(USER_2_ID, null);
+		VerificationSubmission created2 = verificationDao.createVerificationSubmission(dto);
+		vsToDelete.add(created2.getId());
+		
+		// ...still get the correct submitter, that of the first submission
+		assertEquals(user1Long, verificationDao.getVerificationSubmitter(createdIdLong));
+	}
+
 }

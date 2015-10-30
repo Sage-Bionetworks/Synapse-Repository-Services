@@ -40,6 +40,7 @@ import org.sagebionetworks.repo.model.verification.VerificationStateEnum;
 import org.sagebionetworks.repo.model.verification.VerificationSubmission;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -63,11 +64,11 @@ public class DBOVerificationDAOImpl implements VerificationDAO {
 	// v.created_on=
 	// (select max(v2.created_on) from verification_submission v2 where v2.created_by=v.created_by)
 	private static final String LATEST_VERIFICATION_SUBMISSION_SQL = 
-		"SELECT * FROM "+TABLE_VERIFICATION_SUBMISSION+" v, "+
+		"SELECT * FROM "+TABLE_VERIFICATION_SUBMISSION+" v "+
 		" WHERE v."+COL_VERIFICATION_SUBMISSION_CREATED_BY+"=? AND v."+
 		COL_VERIFICATION_SUBMISSION_CREATED_ON+"=(SELECT MAX(v2."+COL_VERIFICATION_SUBMISSION_CREATED_ON+
 		") FROM "+TABLE_VERIFICATION_SUBMISSION+" v2 WHERE v2."+COL_VERIFICATION_SUBMISSION_CREATED_BY+
-		"=v."+COL_VERIFICATION_SUBMISSION_CREATED_BY;
+		"=v."+COL_VERIFICATION_SUBMISSION_CREATED_BY+")";
 	
 	// get the latest/current state for a verification submission
 	// select s.state from VERIFICATION_STATE s where
@@ -77,7 +78,7 @@ public class DBOVerificationDAOImpl implements VerificationDAO {
 	private static final String CURRENT_VERIFICATION_STATE_SQL =
 			"SELECT s."+COL_VERIFICATION_STATE_STATE+" FROM "+TABLE_VERIFICATION_STATE+
 			" s WHERE s."+COL_VERIFICATION_STATE_VERIFICATION_ID+"=? AND s."+
-			COL_VERIFICATION_STATE_CREATED_ON+"=SELECT(MAX(s2."+COL_VERIFICATION_STATE_CREATED_ON+
+			COL_VERIFICATION_STATE_CREATED_ON+"=(SELECT MAX(s2."+COL_VERIFICATION_STATE_CREATED_ON+
 			") FROM "+TABLE_VERIFICATION_STATE+" s2 WHERE s2."+COL_VERIFICATION_STATE_VERIFICATION_ID+
 			"=s."+COL_VERIFICATION_STATE_VERIFICATION_ID+")";
 	
@@ -315,8 +316,13 @@ public class DBOVerificationDAOImpl implements VerificationDAO {
 	@Override
 	public VerificationSubmission getCurrentVerificationSubmissionForUser(
 			long userId) {
-		DBOVerificationSubmission dbo = jdbcTemplate.queryForObject(
+		DBOVerificationSubmission dbo = null;
+		try {
+			dbo = jdbcTemplate.queryForObject(
 				LATEST_VERIFICATION_SUBMISSION_SQL, DBO_VERIFICATION_SUB_MAPPING, userId);
+		} catch (EmptyResultDataAccessException e) {
+			return null;
+		}
 		Map<Long,List<VerificationState>> stateMap = getVerificationStates(
 				Collections.singleton(dbo.getId()));
 		List<VerificationState> stateHistory = stateMap.get(dbo.getId());
@@ -327,7 +333,8 @@ public class DBOVerificationDAOImpl implements VerificationDAO {
 	@Override
 	public VerificationStateEnum getVerificationState(
 			long verificationId) {
-		return jdbcTemplate.queryForObject(CURRENT_VERIFICATION_STATE_SQL, VerificationStateEnum.class, verificationId);
+		String stateName = jdbcTemplate.queryForObject(CURRENT_VERIFICATION_STATE_SQL, String.class, verificationId);
+		return VerificationStateEnum.valueOf(stateName);
 	}
 
 	@Override
