@@ -27,9 +27,13 @@ public class VerificationServiceImpl implements VerificationService {
 	public VerificationServiceImpl() {}
 
 	// for testing
-	public VerificationServiceImpl(VerificationManager verificationManager, UserManager userManager) {
+	public VerificationServiceImpl(
+			VerificationManager verificationManager, 
+			UserManager userManager,
+			NotificationManager notificationManager) {
 		this.verificationManager=verificationManager;
 		this.userManager = userManager;
+		this.notificationManager = notificationManager;
 	}
 
 	@Override
@@ -37,8 +41,10 @@ public class VerificationServiceImpl implements VerificationService {
 			VerificationSubmission verificationSubmission,
 			String notificationUnsubscribeEndpoint) {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		VerificationSubmission result = verificationManager.createVerificationSubmission(userInfo, verificationSubmission);
-		List<MessageToUserAndBody> createNotifications = verificationManager.createSubmissionNotification(result, notificationUnsubscribeEndpoint);
+		VerificationSubmission result = verificationManager.
+				createVerificationSubmission(userInfo, verificationSubmission);
+		List<MessageToUserAndBody> createNotifications = verificationManager.
+				createSubmissionNotification(result, notificationUnsubscribeEndpoint);
 		notificationManager.sendNotifications(userInfo, createNotifications);
 		return result;
 	}

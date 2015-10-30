@@ -428,7 +428,12 @@ public class UserProfileServiceImpl implements UserProfileService {
 		UserBundle result = getUserBundlePrivate(Long.parseLong(profileId), mask);
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		UserProfileManagerUtils.clearPrivateFields(userInfo, result.getUserProfile());
-		UserProfileManagerUtils.clearPrivateFields(userInfo, result.getVerificationSubmission());
+		if (!result.getIsVerified() && !UserProfileManagerUtils.isOwnerACTOrAdmin(userInfo, profileId)) {
+			// public doesn't get to see the VerificationSubmission unless it's 'APPROVED'
+			result.setVerificationSubmission(null);
+		} else {
+			UserProfileManagerUtils.clearPrivateFields(userInfo, result.getVerificationSubmission());
+		}
 		return result;
 	}
 
