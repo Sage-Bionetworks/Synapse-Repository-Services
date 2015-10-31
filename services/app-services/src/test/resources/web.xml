@@ -1,0 +1,252 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns="http://java.sun.com/xml/ns/javaee" xmlns:web="http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd"
+	xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd"
+	version="2.5">
+
+	<display-name>Synapse Web Services</display-name>
+
+	<welcome-file-list>
+		<welcome-file>index.html</welcome-file>
+	</welcome-file-list>
+
+	<!-- The context params that read by ContextLoaderListener -->
+	<context-param>
+		<param-name>contextConfigLocation</param-name>
+		<param-value>/WEB-INF/shared-context.xml</param-value>
+	</context-param>
+
+	<!-- This must remain the top-most filter in the filter chain.
+	 It is our last chance to capture and log unexpected exceptions.  
+	 Without it, users could see errors that never make it into our logs.
+	 See PLFM-3205 & PLFM-3206  -->
+	<filter>
+		<filter-name>unexpectedExceptionFilter</filter-name>
+		<filter-class>org.sagebionetworks.repo.web.filter.UnexpectedExceptionFilter</filter-class>
+	</filter>
+	<filter-mapping>
+		<filter-name>unexpectedExceptionFilter</filter-name>
+		<url-pattern>/*</url-pattern>
+	</filter-mapping>
+
+
+	<!-- This is required for logging: see http://logging.apache.org/log4j/2.x/manual/webapp.html -->
+	<listener>
+		<listener-class>org.apache.logging.log4j.core.web.Log4jServletContextListener</listener-class>
+	</listener>
+	<!-- This is required for logging: see http://logging.apache.org/log4j/2.x/manual/webapp.html -->
+	<filter>
+		<filter-name>log4jServletFilter</filter-name>
+		<filter-class>org.apache.logging.log4j.core.web.Log4jServletFilter</filter-class>
+	</filter>
+	<!-- This is required for logging: see http://logging.apache.org/log4j/2.x/manual/webapp.html -->
+	<filter-mapping>
+		<filter-name>log4jServletFilter</filter-name>
+		<url-pattern>/*</url-pattern>
+		<dispatcher>REQUEST</dispatcher>
+		<dispatcher>FORWARD</dispatcher>
+		<dispatcher>INCLUDE</dispatcher>
+		<dispatcher>ERROR</dispatcher>
+	</filter-mapping>
+
+
+	<!-- This listener will load other application context file in addition 
+		to springweb-servlet.xml -->
+	<listener>
+		<listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>
+	</listener>
+
+	<!-- Python Client Filter -->
+
+	<filter>
+		<filter-name>pythonClientFilter</filter-name>
+		<filter-class>org.sagebionetworks.repo.web.filter.PythonClientFilter</filter-class>
+	</filter>
+
+	<filter-mapping>
+		<filter-name>pythonClientFilter</filter-name>
+		<url-pattern>/auth/v1/*</url-pattern>
+		<url-pattern>/repo/v1/*</url-pattern>
+		<url-pattern>/file/v1/*</url-pattern>
+	</filter-mapping>
+
+	<!-- END Python Client Filter -->
+
+	<!-- Some browsers do not support PUT and DELETE methods, this filter will 
+		examine the form field parameter _method -->
+	<filter>
+		<filter-name>httpMethodFilter</filter-name>
+		<filter-class>org.springframework.web.filter.HiddenHttpMethodFilter</filter-class>
+	</filter>
+
+	<filter-mapping>
+		<filter-name>httpMethodFilter</filter-name>
+		<url-pattern>/*</url-pattern>
+	</filter-mapping>
+
+	<!-- This filter will look for the session token as a cookie, if it finds 
+		it, the token will be added to the header of the request -->
+	<filter>
+		<filter-name>cookieFilter</filter-name>
+		<filter-class>org.sagebionetworks.authutil.CookieSessionTokenFilter</filter-class>
+	</filter>
+
+	<filter-mapping>
+		<filter-name>cookieFilter</filter-name>
+		<url-pattern>/*</url-pattern>
+	</filter-mapping>
+
+	<filter>
+		<filter-name>authFilter</filter-name>
+		<filter-class>org.springframework.web.filter.DelegatingFilterProxy</filter-class>
+		<init-param>
+			<!-- Make sure the init-params are passed through the proxy to the bean -->
+			<param-name>targetFilterLifecycle</param-name>
+			<param-value>true</param-value>
+		</init-param>
+		<init-param>
+			<param-name>allow-anonymous</param-name>
+			<param-value>true</param-value>
+		</init-param>
+	</filter>
+
+	<filter-mapping>
+		<filter-name>authFilter</filter-name>
+		<url-pattern>/auth/v1/secretKey</url-pattern>
+		<url-pattern>/repo/v1/*</url-pattern>
+		<url-pattern>/file/v1/*</url-pattern>
+	</filter-mapping>
+
+	<filter>
+		<filter-name>profileFilter</filter-name>
+		<filter-class>org.sagebionetworks.profiler.ProfileFilter</filter-class>
+		<init-param>
+			<param-name>default_value</param-name>
+			<param-value>false</param-value>
+		</init-param>
+	</filter>
+
+	<filter-mapping>
+		<filter-name>profileFilter</filter-name>
+		<url-pattern>/*</url-pattern>
+	</filter-mapping>
+
+	<filter>
+		<filter-name>userThrottleFilter</filter-name>
+		<filter-class>org.springframework.web.filter.DelegatingFilterProxy</filter-class>
+		<init-param>
+			<!-- Make sure the init-params are passed through the proxy to the bean -->
+			<param-name>targetFilterLifecycle</param-name>
+			<param-value>true</param-value>
+		</init-param>
+	</filter>
+
+	<filter-mapping>
+		<filter-name>userThrottleFilter</filter-name>
+		<url-pattern>/repo/v1/*</url-pattern>
+		<url-pattern>/file/v1/*</url-pattern>
+	</filter-mapping>
+
+	<filter>
+		<filter-name>jsonpCallbackFilter</filter-name>
+		<!-- This filter allows JSONP to be returned for methods that are already 
+			returning JSON -->
+		<filter-class>org.sagebionetworks.repo.web.filter.JsonpCallbackFilter</filter-class>
+		<init-param>
+			<param-name>default_value</param-name>
+			<param-value>false</param-value>
+		</init-param>
+	</filter>
+
+	<filter-mapping>
+		<filter-name>jsonpCallbackFilter</filter-name>
+		<!-- This filter should only be used on publicly accessible methods to 
+			minimize the risks of Cross-site request forgery (CSRF) associated with JSONP. 
+			Only add patterns that are public! -->
+		<url-pattern>/repo/v1/concept/*</url-pattern>
+	</filter-mapping>
+
+	<filter-mapping>
+		<filter-name>jsonpCallbackFilter</filter-name>
+		<!-- This filter should only be used on publicly accessible methods to 
+			minimize the risks of Cross-site request forgery (CSRF) associated with JSONP. 
+			Only add patterns that are public! -->
+
+		<url-pattern>/repo/v1/userGroupHeaders/*</url-pattern>
+		<!-- This is the uri for looking up teams by name fragment -->
+		<url-pattern>/repo/v1/teams</url-pattern>
+		<!-- This is the uri for looking up team members by name fragment -->
+		<url-pattern>/repo/v1/teamMembers/*</url-pattern>
+	</filter-mapping>
+
+	<!-- Rather than using multiple DispatcherServlet each with their own Spring 
+		context we are now using a singleton DispatcherServlet. See: PLFM-2530 -->
+	<servlet>
+		<servlet-name>singleton</servlet-name>
+		<servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
+		<!-- These two parameters are required to register an interceptor with 
+			the org.springframework.web.servlet.mvc.annotation.AnnotationMethodHandlerAdapter. 
+			Without them the handler simply will not be used. jmhill 12/10/11 -->
+		<init-param>
+			<param-name>detectAllHandlerMappings</param-name>
+			<param-value>true</param-value>
+		</init-param>
+		<load-on-startup>1</load-on-startup>
+	</servlet>
+
+	<servlet-mapping>
+		<servlet-name>singleton</servlet-name>
+		<url-pattern>/*</url-pattern>
+	</servlet-mapping>
+
+	<servlet>
+		<servlet-name>tomcatDefaultServlet</servlet-name>
+		<servlet-class>org.apache.catalina.servlets.DefaultServlet</servlet-class>
+	</servlet>
+
+
+	<servlet-mapping>
+		<servlet-name>tomcatDefaultServlet</servlet-name>
+		<url-pattern>/auth/v1/synapseTermsOfUse.html</url-pattern>
+	</servlet-mapping>
+
+
+	<!-- This filter will look for the session token as a cookie, if it finds 
+		it, the token will be added to the header of the request -->
+	<filter>
+		<filter-name>CORSFilter</filter-name>
+		<filter-class>org.sagebionetworks.authutil.SimpleCORSFilter</filter-class>
+	</filter>
+
+	<filter-mapping>
+		<filter-name>CORSFilter</filter-name>
+		<url-pattern>*</url-pattern>
+	</filter-mapping>
+	
+	<filter>
+		<filter-name>cloudMailInAuthFilter</filter-name>
+		<filter-class>org.sagebionetworks.auth.CloudMailInAuthFilter</filter-class>
+	</filter>
+
+	<filter>
+		<filter-name>cloudMailInAcceptPlainTextFilter</filter-name>
+		<filter-class>org.sagebionetworks.auth.CloudMailInAcceptPlainTextFilter</filter-class>
+	</filter>
+
+    <!--  Note we tried applying the filter to both /cloudMailInMessage and /cloudMailInAuthorization,
+    but CloudMailIn doesn't seem to pass the BasicAuthentication credentials when it calls the latter
+    service.   -->
+	<filter-mapping>
+		<filter-name>cloudMailInAuthFilter</filter-name>
+		<url-pattern>/repo/v1/cloudMailInMessage/*</url-pattern>
+	</filter-mapping>
+
+	<filter-mapping>
+		<filter-name>cloudMailInAcceptPlainTextFilter</filter-name>
+		<url-pattern>/repo/v1/cloudMailInMessage/*</url-pattern>
+		<url-pattern>/repo/v1/cloudMailInAuthorization/*</url-pattern>
+	</filter-mapping>
+
+	
+
+</web-app>

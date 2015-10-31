@@ -49,7 +49,6 @@ import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.util.SignedTokenUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.web.controller.ObjectTypeSerializer;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -71,9 +70,6 @@ public class UserProfileServiceImpl implements UserProfileService {
 
 	@Autowired
 	private EntityPermissionsManager entityPermissionsManager;
-	
-	@Autowired
-	private ObjectTypeSerializer objectTypeSerializer;
 	
 	@Autowired
 	private EntityManager entityManager;
@@ -137,10 +133,9 @@ public class UserProfileServiceImpl implements UserProfileService {
 
 	@WriteTransaction
 	@Override
-	public UserProfile updateUserProfile(Long userId, HttpHeaders header, HttpServletRequest request) 
+	public UserProfile updateUserProfile(Long userId, UserProfile entity) 
 			throws NotFoundException, ConflictingUpdateException, DatastoreException, InvalidModelException, UnauthorizedException, IOException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		UserProfile entity = (UserProfile) objectTypeSerializer.deserialize(request.getInputStream(), header, UserProfile.class, header.getContentType());
 		return userProfileManager.updateUserProfile(userInfo, entity);
 	}
 	
@@ -204,12 +199,6 @@ public class UserProfileServiceImpl implements UserProfileService {
 		response.setPrefixFilter(prefix);
 		response.setTotalNumberOfResults(principalPrefixDAO.countPrincipalsForPrefix(prefix));
 		return response;
-	}
-	
-	// setters for managers (for testing)
-	@Override
-	public void setObjectTypeSerializer(ObjectTypeSerializer objectTypeSerializer) {
-		this.objectTypeSerializer = objectTypeSerializer;
 	}
 
 	@Override

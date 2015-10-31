@@ -10,7 +10,6 @@ import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.ontology.Concept;
 import org.sagebionetworks.repo.model.ontology.ConceptResponsePage;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.web.controller.ObjectTypeSerializer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 
@@ -23,8 +22,6 @@ public class ConceptServiceImpl implements ConceptService {
 	
 	@Autowired
 	ConceptManager conceptManager;	
-	@Autowired
-	ObjectTypeSerializer objectTypeSerializer;
 
 	@Override
 	public ConceptResponsePage getConceptsForParent(String id, String prefixFilter,
@@ -40,7 +37,6 @@ public class ConceptServiceImpl implements ConceptService {
 			offesetInt = offset.intValue();
 		}
 		String conceptUri = conceptManager.getOntologyBaseURI()+id;
-//		SummaryRequest summaryRequest =  (SummaryRequest) objectTypeSerializer.deserialize(request.getInputStream(), header, SummaryRequest.class, header.getContentType());
 		// Get the results from the manager
 		QueryResults<Concept> eqr = conceptManager.getChildConcepts(conceptUri, prefixFilter, limitInt, offesetInt);
 		ConceptResponsePage results = new ConceptResponsePage();

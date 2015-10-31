@@ -11,6 +11,6 @@
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 	
-	<bean id="authenticationService" class="org.sagebionetworks.auth.services.AuthenticationServiceImpl" />
-	<bean id="authFilter" class="org.sagebionetworks.auth.AuthenticationFilter" />
+	<bean id="fileService" class="org.sagebionetworks.file.services.FileUploadServiceImpl" />
+	
 </beans>

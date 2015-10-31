@@ -10,7 +10,15 @@
 
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
+
+	<bean id="userThrottleFilter" class="org.sagebionetworks.repo.web.filter.UserThrottleFilter">
+		<!-- This gate ensures we never run more than the max number requests this user -->
+		<property name="userThrottleGate">
+			<bean name="userThrottle" class="org.sagebionetworks.repo.model.dbo.dao.semaphore.CountingSemaphoreDaoImpl">
+				<property name="lockTimeoutMS" value="300000" />
+				<property name="maxCountAccessor" ref="stackConfiguration.maxConcurrentRepoConnections" />
+			</bean>
+		</property>
+	</bean>
 	
-	<bean id="authenticationService" class="org.sagebionetworks.auth.services.AuthenticationServiceImpl" />
-	<bean id="authFilter" class="org.sagebionetworks.auth.AuthenticationFilter" />
 </beans>

@@ -17,18 +17,18 @@
 	<dependencies>
 
 		<!-- Sage Bionetworks Dependencies -->
-		<dependency>
+		<!-- <dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-table-query</artifactId>
-		</dependency>
+		</dependency>-->
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
-			<artifactId>repository-managers</artifactId>
+			<artifactId>app-services</artifactId>
 		</dependency>
-		<dependency>
+		<!-- <dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>auth-util</artifactId>
-		</dependency>
+		</dependency>-->
 
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
@@ -62,6 +62,7 @@
 			<artifactId>commons-fileupload</artifactId>
 		</dependency>
 
+
 		<dependency>
 			<groupId>javax.servlet</groupId>
 			<artifactId>javax.servlet-api</artifactId>
@@ -80,7 +81,7 @@
 		<dependency>
 			<groupId>org.springframework</groupId>
 			<artifactId>spring-context-support</artifactId>
-		</dependency>			
+		</dependency>
 		<!-- ATOM -->
 		<dependency>
 			<groupId>rome</groupId>

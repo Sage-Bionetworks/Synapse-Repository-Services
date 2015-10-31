@@ -10,7 +10,14 @@
 
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
-	
-	<bean id="authenticationService" class="org.sagebionetworks.auth.services.AuthenticationServiceImpl" />
-	<bean id="authFilter" class="org.sagebionetworks.auth.AuthenticationFilter" />
+
+	<!-- Make sure we can watch for deadlock on all methods of the Generic Entity 
+		Controller -->
+	<bean id="deadlockWatcher" class="org.sagebionetworks.repo.web.DeadlockWatcher" />
+
+	<!-- controllerProfiler that collects latency information in the form of CloudWatch objects -->
+	<bean id="controllerProfiler" class="org.sagebionetworks.cloudwatch.ControllerProfiler">
+		<property name="shouldProfile" ref="stackConfiguration.cloudWatchOnOff" />
+	</bean>
+
 </beans>

@@ -118,6 +118,11 @@
 				<artifactId>log4j-jcl</artifactId>
 				<version>${log4j.version}</version>
 			</dependency>
+			<dependency>
+				<groupId>org.slf4j</groupId>
+				<artifactId>slf4j-log4j12</artifactId>
+			  	<version>${slf4j.version}</version>
+			</dependency>
 			<!-- Jena provides ontology APIs including loading and querying for RDF -->
 			<dependency>
 				<groupId>com.hp.hpl.jena</groupId>
@@ -357,6 +362,11 @@
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
 				<artifactId>repository-managers</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+ 				<groupId>org.sagebionetworks</groupId>
+				<artifactId>app-services</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 			<dependency>
@@ -904,6 +914,7 @@
 		<com.sun.tools.version>1.7</com.sun.tools.version>
 		<org.apache.pivot.version>2.0.1</org.apache.pivot.version>
 		<log4j.version>2.0-beta8</log4j.version>
+		<slf4j.version>1.7.5</slf4j.version>
 		<org.openoffice.version>3.2.1</org.openoffice.version>
 		<org.im4java.version>1.4.0</org.im4java.version>
 	</properties>

@@ -8,25 +8,25 @@
                            http://www.springframework.org/schema/context
                            http://www.springframework.org/schema/context/spring-context-3.0.xsd">
 
-  <context:annotation-config />
-  
-  <import resource="classpath:jdomodels-import.xml" />
-  <import resource="classpath:search-import.xml" />
-  <import resource="classpath:audit-dao.spb.xml" />
-  <import resource="classpath:id-generator.spb.xml" />
-  <import resource="classpath:concept-dao-beans.spb.xml" />
-  <import resource="classpath:table-cluster-spb.xml" />
-  <!-- Load the authFilter -->
-  <import resource="classpath:stack-configuration.spb.xml" />
-  <!-- Load the single cloudwatch consumer -->
-  <import resource="classpath:cloudwatch-spb.xml" />
-  <!-- Load the loggers -->
-  <import resource="classpath:log-sweeper.spb.xml" />
-  <!-- Load the managers -->
-  <import resource="classpath:managers-import.xml" />
-  <import resource="classpath:managers-topic-publisher-import.xml" />
-
-  <import resource="classpath:repository-shared-import.xml" />
+	<context:annotation-config />
+	
+	<import resource="classpath:jdomodels-import.xml" />
+	<import resource="classpath:search-import.xml" />
+	<import resource="classpath:audit-dao.spb.xml" />
+	<import resource="classpath:id-generator.spb.xml" />
+	<import resource="classpath:concept-dao-beans.spb.xml" />
+	<import resource="classpath:table-cluster-spb.xml" />
+	<!-- Load the authFilter -->
+	<import resource="classpath:stack-configuration.spb.xml" />
+	<!-- Load the single cloudwatch consumer -->
+	<import resource="classpath:cloudwatch-spb.xml" />
+	<!-- Load the loggers -->
+	<import resource="classpath:log-sweeper.spb.xml" />
+	<!-- Load the managers -->
+	<import resource="classpath:managers-import.xml" />
+	<import resource="classpath:managers-topic-publisher-import.xml" />
+	
+	<import resource="classpath:repository-shared-import.xml" />
 
 	<!-- Load the triggers and the scheduler -->
 	<import resource="classpath:stack-configuration-trigger.spb.xml" />
