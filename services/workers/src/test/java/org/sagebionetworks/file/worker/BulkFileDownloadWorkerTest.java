@@ -218,6 +218,8 @@ public class BulkFileDownloadWorkerTest {
 		// expect the job to be completed with the response body.
 		FileDownloadSummary summary = new FileDownloadSummary();
 		summary.setFileHandleId(fha1.getFileHandleId());
+		summary.setAssociateObjectId(fha1.getAssociateObjectId());
+		summary.setAssociateObjectType(fha1.getAssociateObjectType());
 		summary.setStatus(FileDownloadStatus.SUCCESS);
 		summary.setZipEntryName("1/1/foo.txt");
 		BulkFileDownloadResponse expectedResponse = new BulkFileDownloadResponse();
@@ -253,6 +255,8 @@ public class BulkFileDownloadWorkerTest {
 		// expect the job to be completed with the response body.
 		FileDownloadSummary summary = new FileDownloadSummary();
 		summary.setFileHandleId(fha1.getFileHandleId());
+		summary.setAssociateObjectId(fha1.getAssociateObjectId());
+		summary.setAssociateObjectType(fha1.getAssociateObjectType());
 		summary.setStatus(FileDownloadStatus.FAILURE);
 		summary.setFailureCode(FileDownloadCode.UNAUTHORIZED);
 		summary.setFailureMessage(deniedReason);
@@ -302,12 +306,16 @@ public class BulkFileDownloadWorkerTest {
 		// 1
 		FileDownloadSummary summary1 = new FileDownloadSummary();
 		summary1.setFileHandleId(fha1.getFileHandleId());
+		summary1.setAssociateObjectId(fha1.getAssociateObjectId());
+		summary1.setAssociateObjectType(fha1.getAssociateObjectType());
 		summary1.setStatus(FileDownloadStatus.FAILURE);
 		summary1.setFailureCode(FileDownloadCode.UNAUTHORIZED);
 		summary1.setFailureMessage(deniedReason);
 		// 2
 		FileDownloadSummary summary2 = new FileDownloadSummary();
 		summary2.setFileHandleId(fha2.getFileHandleId());
+		summary2.setAssociateObjectId(fha2.getAssociateObjectId());
+		summary2.setAssociateObjectType(fha2.getAssociateObjectType());
 		summary2.setStatus(FileDownloadStatus.SUCCESS);
 		summary2.setZipEntryName("2/2/bar.txt");
 		// response
@@ -335,6 +343,8 @@ public class BulkFileDownloadWorkerTest {
 		// expect the job to be completed with the response body.
 		FileDownloadSummary summary = new FileDownloadSummary();
 		summary.setFileHandleId(fha1.getFileHandleId());
+		summary.setAssociateObjectId(fha1.getAssociateObjectId());
+		summary.setAssociateObjectType(fha1.getAssociateObjectType());
 		summary.setStatus(FileDownloadStatus.FAILURE);
 		summary.setFailureCode(FileDownloadCode.NOT_FOUND);
 		summary.setFailureMessage(error);
@@ -363,6 +373,8 @@ public class BulkFileDownloadWorkerTest {
 		// expect the job to be completed with the response body.
 		FileDownloadSummary summary = new FileDownloadSummary();
 		summary.setFileHandleId(fha1.getFileHandleId());
+		summary.setAssociateObjectId(fha1.getAssociateObjectId());
+		summary.setAssociateObjectType(fha1.getAssociateObjectType());
 		summary.setStatus(FileDownloadStatus.FAILURE);
 		summary.setFailureCode(FileDownloadCode.UNKNOWN_ERROR);
 		summary.setFailureMessage(error);
@@ -389,6 +401,8 @@ public class BulkFileDownloadWorkerTest {
 		// expect the job to be completed with the response body.
 		FileDownloadSummary summary = new FileDownloadSummary();
 		summary.setFileHandleId(fha1.getFileHandleId());
+		summary.setAssociateObjectId(fha1.getAssociateObjectId());
+		summary.setAssociateObjectType(fha1.getAssociateObjectType());
 		summary.setStatus(FileDownloadStatus.FAILURE);
 		summary.setFailureCode(FileDownloadCode.EXCEEDS_SIZE_LIMIT);
 		summary.setFailureMessage(BulkFileDownloadWorker.FILE_EXCEEDS_THE_MAXIMUM_SIZE_LIMIT);
@@ -416,6 +430,8 @@ public class BulkFileDownloadWorkerTest {
 		// expect the job to be completed with the response body.
 		FileDownloadSummary summary = new FileDownloadSummary();
 		summary.setFileHandleId(fha1.getFileHandleId());
+		summary.setAssociateObjectId(fha1.getAssociateObjectId());
+		summary.setAssociateObjectType(fha1.getAssociateObjectType());
 		summary.setStatus(FileDownloadStatus.FAILURE);
 		summary.setFailureCode(FileDownloadCode.EXCEEDS_SIZE_LIMIT);
 		summary.setFailureMessage(BulkFileDownloadWorker.RESULT_FILE_HAS_REACHED_THE_MAXIMUM_SIZE);
@@ -460,11 +476,15 @@ public class BulkFileDownloadWorkerTest {
 		// 1
 		FileDownloadSummary summary1 = new FileDownloadSummary();
 		summary1.setFileHandleId(fha1.getFileHandleId());
+		summary1.setAssociateObjectId(fha1.getAssociateObjectId());
+		summary1.setAssociateObjectType(fha1.getAssociateObjectType());
 		summary1.setStatus(FileDownloadStatus.SUCCESS);
 		summary1.setZipEntryName("1/1/foo.txt");
 		// 2
 		FileDownloadSummary summary2 = new FileDownloadSummary();
 		summary2.setFileHandleId(fha2.getFileHandleId());
+		summary2.setAssociateObjectId(fha2.getAssociateObjectId());
+		summary2.setAssociateObjectType(fha2.getAssociateObjectType());
 		summary2.setStatus(FileDownloadStatus.FAILURE);
 		summary2.setFailureCode(FileDownloadCode.DUPLICATE);
 		summary2.setFailureMessage(BulkFileDownloadWorker.FILE_ALREADY_ADDED);

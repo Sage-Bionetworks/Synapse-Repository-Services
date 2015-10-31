@@ -183,6 +183,8 @@ public class BulkFileDownloadWorker implements MessageDrivenRunner {
 							+ fhas.getAssociation().getFileHandleId());
 			FileDownloadSummary summary = new FileDownloadSummary();
 			summary.setFileHandleId(fileHandleId);
+			summary.setAssociateObjectId(fhas.getAssociation().getAssociateObjectId());
+			summary.setAssociateObjectType(fhas.getAssociation().getAssociateObjectType());
 			fileSummaries.add(summary);
 			try {
 				String zipEntryName = writeOneFileToZip(zipOut, tempResultFile.length(), fhas, fileIdsInZip);

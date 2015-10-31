@@ -3,6 +3,9 @@
 	"implements":[
         {
             "$ref":"org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody"
+        },
+        {
+            "$ref":"org.sagebionetworks.repo.model.Snapshotable"
         }
     ],
 	"properties": {
