@@ -218,33 +218,6 @@ public class UserProfileServiceImpl implements UserProfileService {
 		return response;
 	}
 	
-	// setters for managers (for testing)
-	@Override
-	public void setObjectTypeSerializer(ObjectTypeSerializer objectTypeSerializer) {
-		this.objectTypeSerializer = objectTypeSerializer;
-	}
-
-	@Override
-	public void setPermissionsManager(EntityPermissionsManager permissionsManager) {
-		this.entityPermissionsManager = permissionsManager;
-	}
-
-	@Override
-	public void setUserManager(UserManager userManager) {
-		this.userManager = userManager;
-	}
-
-	@Override
-	public void setUserProfileManager(UserProfileManager userProfileManager) {
-		this.userProfileManager = userProfileManager;
-	}
-
-	@Override
-	public void setEntityManager(EntityManager entityManager) {
-		this.entityManager = entityManager;
-	}
-
-	
 	@Override
 	public EntityHeader addFavorite(Long userId, String entityId)
 			throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException {
@@ -323,11 +296,6 @@ public class UserProfileServiceImpl implements UserProfileService {
 		return header;
 	}
 	
-	@Override
-	public void setPrincipalAlaisDAO(PrincipalAliasDAO mockPrincipalAlaisDAO) {
-		this.principalAliasDAO = mockPrincipalAlaisDAO;
-	}
-
 	/*
 	 * (non-Javadoc)
 	 * @see org.sagebionetworks.repo.web.service.UserProfileService#getUserProfileImage(java.lang.String)
@@ -396,7 +364,11 @@ public class UserProfileServiceImpl implements UserProfileService {
 		}
 		if ((mask&IS_CERTIFIED_MASK)!=0) {
 			PassingRecord passingRecord = certifiedUserManager.getPassingRecord(profileId);
-			result.setIsCertified(passingRecord.getPassed());
+			if (passingRecord==null) {
+				result.setIsCertified(false);
+			} else {
+				result.setIsCertified(passingRecord.getPassed());
+			}
 		}
 		VerificationSubmission verificationSubmission = null;
 		if ((mask&(VERIFICATION_MASK|IS_VERIFIED_MASK))!=0) {

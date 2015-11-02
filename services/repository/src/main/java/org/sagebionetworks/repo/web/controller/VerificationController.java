@@ -93,6 +93,12 @@ public class VerificationController extends BaseController {
 		serviceProvider.getVerificationService().changeSubmissionState(userId, id, newState, notificationUnsubscribeEndpoint);
 	}
 	
+	/**
+	 * Delete a verification submission by its ID.
+	 * Note:  This service may be called only by the original verification requestor.
+	 * @param userId
+	 * @param id
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.VERIFICATION_SUBMISSION_ID, method=RequestMethod.DELETE)
 	public void deleteVerificationSubmission(
