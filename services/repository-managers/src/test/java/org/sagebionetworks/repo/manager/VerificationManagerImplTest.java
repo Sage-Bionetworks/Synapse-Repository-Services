@@ -1,12 +1,13 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.sagebionetworks.repo.model.verification.VerificationStateEnum.*;
+import static org.sagebionetworks.repo.manager.EmailUtils.*;
+import static org.sagebionetworks.repo.manager.VerificationManagerImpl.VERIFICATION_NOTIFICATION_SUBJECT;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -17,6 +18,9 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
+import org.sagebionetworks.repo.manager.team.EmailParseUtil;
+import org.sagebionetworks.repo.manager.team.MembershipInvitationManagerImpl;
+import org.sagebionetworks.repo.manager.team.TeamConstants;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -25,13 +29,16 @@ import org.sagebionetworks.repo.model.VerificationDAO;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
+import org.sagebionetworks.repo.model.verification.VerificationPagedResults;
 import org.sagebionetworks.repo.model.verification.VerificationState;
 import org.sagebionetworks.repo.model.verification.VerificationStateEnum;
 import org.sagebionetworks.repo.model.verification.VerificationSubmission;
 
 public class VerificationManagerImplTest {
 	
+	
 	private static final Long USER_ID = 101L;
+	private static final String USER_NAME = "username";
 	private static final String FIRST_NAME = "fname";
 	private static final String LAST_NAME = "lname";
 	private static final String COMPANY = "company";
@@ -39,6 +46,8 @@ public class VerificationManagerImplTest {
 	private static final String ORCID = "http://www.orcid.org/my-id";
 	private static final List<String> EMAILS = Arrays.asList("primary.email.com", "secondary.email.com");
 	private static final List<String> FILES = Arrays.asList("888", "999");
+	private static final String NOTIFICATION_UNSUBSCRIBE_ENDPOINT = "https://synapse.org/#notificationUnsubscribeEndpoint:";
+
 	
 	private VerificationDAO mockVerificationDao;
 	
@@ -58,6 +67,7 @@ public class VerificationManagerImplTest {
 
 	private static UserProfile createUserProfile() {
 		UserProfile userProfile = new UserProfile();
+		userProfile.setUserName(USER_NAME);
 		userProfile.setFirstName(FIRST_NAME);
 		userProfile.setLastName(LAST_NAME);
 		userProfile.setLocation(LOCATION);
@@ -244,27 +254,154 @@ public class VerificationManagerImplTest {
 
 	@Test
 	public void testListVerificationSubmissions() {
-		fail("Not yet implemented");
+		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
+		List<VerificationStateEnum> states = Collections.singletonList(VerificationStateEnum.SUBMITTED);
+		VerificationSubmission vs = new VerificationSubmission();
+		vs.setId("101");
+		List<VerificationSubmission> vsList = Collections.singletonList(vs);
+		when(mockVerificationDao.listVerificationSubmissions(
+				states, USER_ID, 10, 0)).thenReturn(vsList);
+		when(mockVerificationDao.countVerificationSubmissions(states, USER_ID)).thenReturn(1L);
+		
+		// method under test:
+		VerificationPagedResults  result = 
+				verificationManager.listVerificationSubmissions(userInfo, states, USER_ID, 10, 0);
+		VerificationPagedResults expected = new VerificationPagedResults();
+		expected.setResults(vsList);
+		expected.setTotalNumberOfResults(1L);
+		assertEquals(expected, result);
+	}
+
+	@Test(expected=UnauthorizedException.class)
+	public void testListVerificationSubmissionsUnauthorized() {
+		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(false);
+		List<VerificationStateEnum> states = Collections.singletonList(VerificationStateEnum.SUBMITTED);
+		verificationManager.listVerificationSubmissions(userInfo, states, USER_ID, 10, 0);
 	}
 
 	@Test
 	public void testChangeSubmissionState() {
-		fail("Not yet implemented");
+		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
+		Long verificationId = 222L;
+		when(mockVerificationDao.getVerificationState(verificationId)).thenReturn(
+				VerificationStateEnum.SUBMITTED);
+		
+		VerificationState state = new VerificationState();
+		state.setState(VerificationStateEnum.APPROVED);
+		verificationManager.changeSubmissionState(userInfo, verificationId, state);
+
+		assertEquals(USER_ID.toString(), state.getCreatedBy());
+		assertNotNull(state.getCreatedOn());
+		
+		verify(mockVerificationDao).appendVerificationSubmissionState(verificationId, state);
 	}
 
-	@Test
+	@Test(expected=InvalidModelException.class)
+	public void testChangeSubmissionStateTransitionNotAllowed() {
+		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
+		Long verificationId = 222L;
+		when(mockVerificationDao.getVerificationState(verificationId)).thenReturn(
+				VerificationStateEnum.SUSPENDED);
+		
+		VerificationState state = new VerificationState();
+		state.setState(VerificationStateEnum.APPROVED);
+		verificationManager.changeSubmissionState(userInfo, verificationId, state);
+	}
+	
 	public void testIsStateTransitionAllowed() {
+		assertFalse(VerificationManagerImpl.isStateTransitionAllowed(SUBMITTED, SUBMITTED));
+		assertTrue(VerificationManagerImpl.isStateTransitionAllowed(SUBMITTED, REJECTED));
+		assertTrue(VerificationManagerImpl.isStateTransitionAllowed(SUBMITTED, APPROVED));
+		assertFalse(VerificationManagerImpl.isStateTransitionAllowed(SUBMITTED, SUSPENDED));
+		
+		assertFalse(VerificationManagerImpl.isStateTransitionAllowed(REJECTED, SUBMITTED));
+		assertFalse(VerificationManagerImpl.isStateTransitionAllowed(REJECTED, REJECTED));
+		assertFalse(VerificationManagerImpl.isStateTransitionAllowed(REJECTED, APPROVED));
+		assertFalse(VerificationManagerImpl.isStateTransitionAllowed(REJECTED, SUSPENDED));
+		
+		assertFalse(VerificationManagerImpl.isStateTransitionAllowed(APPROVED, SUBMITTED));
+		assertFalse(VerificationManagerImpl.isStateTransitionAllowed(APPROVED, REJECTED));
+		assertFalse(VerificationManagerImpl.isStateTransitionAllowed(APPROVED, APPROVED));
+		assertTrue(VerificationManagerImpl.isStateTransitionAllowed(APPROVED, SUSPENDED));
+		
+		assertFalse(VerificationManagerImpl.isStateTransitionAllowed(SUSPENDED, SUBMITTED));
+		assertFalse(VerificationManagerImpl.isStateTransitionAllowed(SUSPENDED, REJECTED));
+		assertFalse(VerificationManagerImpl.isStateTransitionAllowed(SUSPENDED, APPROVED));
+		assertFalse(VerificationManagerImpl.isStateTransitionAllowed(SUSPENDED, SUSPENDED));
+		
+	}
+
+
+	@Test(expected=UnauthorizedException.class)
+	public void testChangeSubmissionStateUnauthorzed() {
+		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(false);
+		Long verificationId = 222L;
+		VerificationState state = new VerificationState();
+		state.setState(VerificationStateEnum.APPROVED);
+		verificationManager.changeSubmissionState(userInfo, verificationId, state);
+	}
+
+
+	@Test
+	public void testCreateSubmissionNotification() throws Exception {
+		VerificationSubmission verificationSubmission = createVerificationSubmission();
+		verificationSubmission.setCreatedBy(USER_ID.toString());
+		List<MessageToUserAndBody> mtubs = verificationManager.createSubmissionNotification(
+				verificationSubmission, NOTIFICATION_UNSUBSCRIBE_ENDPOINT);
+		assertEquals(1, mtubs.size());
+		MessageToUserAndBody result = mtubs.get(0);
+		assertEquals(VERIFICATION_NOTIFICATION_SUBJECT, result.getMetadata().getSubject());
+		assertEquals(Collections.singleton(TeamConstants.ACT_TEAM_ID.toString()), 
+				result.getMetadata().getRecipients());
+		assertEquals(NOTIFICATION_UNSUBSCRIBE_ENDPOINT, 
+				result.getMetadata().getNotificationUnsubscribeEndpoint());
+		assertEquals("text/html", result.getMimeType());
+		
+		System.out.println(result.getBody());
+		
+		// this will give us seven pieces...
+		List<String> delims = Arrays.asList(new String[] {
+				TEMPLATE_KEY_DISPLAY_NAME,
+				TEMPLATE_KEY_USER_ID
+		});
+		// this will create 5 pieces
+		List<String> templatePieces = EmailParseUtil.splitEmailTemplate(
+				VerificationManagerImpl.VERIFICATION_SUBMISSION_TEMPLATE, delims);
+		
+		assertTrue(result.getBody().startsWith(templatePieces.get(0)));
+		assertTrue(result.getBody().indexOf(templatePieces.get(2))>0);
+		String displayName = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces.get(0), templatePieces.get(2));
+		assertEquals("fname lname (username)", displayName);	
+		assertTrue(result.getBody().endsWith(templatePieces.get(4)));
+		String userId = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces.get(2), templatePieces.get(4));
+		assertEquals(USER_ID.toString(), userId);
+	}
+
+
+	@Test
+	public void testCreateStateChangeNotificationApproved() {
 		fail("Not yet implemented");
 	}
 
 	@Test
-	public void testCreateSubmissionNotification() {
+	public void testCreateStateChangeNotificationRejected() {
 		fail("Not yet implemented");
 	}
 
 	@Test
-	public void testCreateStateChangeNotification() {
+	public void testCreateStateChangeNotificationRejectedNoReason() {
 		fail("Not yet implemented");
 	}
+
+	@Test
+	public void testCreateStateChangeNotificationSuspended() {
+		fail("Not yet implemented");
+	}
+
+	@Test
+	public void testCreateStateChangeNotificationSuspendedNoReason() {
+		fail("Not yet implemented");
+	}
+
 
 }
