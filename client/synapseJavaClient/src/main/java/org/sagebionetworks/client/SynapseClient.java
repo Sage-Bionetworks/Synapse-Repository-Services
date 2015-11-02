@@ -2349,8 +2349,9 @@ public interface SynapseClient extends BaseClient {
 	 * Delete a verification submission. The caller must be the creator of the object.
 	 * 
 	 * @param verificationId
+	 * @throws SynapseException 
 	 */
-	void deleteVerificationSubmission(long verificationId);
+	void deleteVerificationSubmission(long verificationId) throws SynapseException;
 	
 	/**
 	 * Get ones own user bundle.  Private fields in the UserProfile and 
@@ -2403,15 +2404,16 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	URL getFileURL(FileHandleAssociation fileHandleAssociation) throws SynapseException;
+	
 	/**
 	 * Download the specified file handle.
 	 * The associateObjectType and associateObjectId give the context of the request
 	 * and are used to perform the authorization check.
 	 * 
 	 * @param fileHandleAssociation
+	 * @param target the location to download the File to
 	 * @return
 	 * @throws SynapseException
 	 */
-	
-	void downloadFile(FileHandleAssociation fileHandleAssociation) throws SynapseException;
+	void downloadFile(FileHandleAssociation fileHandleAssociation, File target) throws SynapseException;
 }

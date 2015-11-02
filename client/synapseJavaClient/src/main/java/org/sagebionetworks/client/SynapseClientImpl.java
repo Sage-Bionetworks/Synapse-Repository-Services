@@ -409,6 +409,13 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public static final String AUTH_OAUTH_2_SESSION = AUTH_OAUTH_2+"/session";
 	public static final String AUTH_OAUTH_2_ALIAS = AUTH_OAUTH_2+"/alias";
 	
+	private static final String VERIFICATION_SUBMISSION = "/verificationSubmission";
+	private static final String CURRENT_VERIFICATION_STATE = "currentVerificationState";
+	private static final String VERIFICATION_STATE = "/state";
+	private static final String VERIFICED_USER_ID = "verifiedUserId";
+	private static final String USER_BUNDLE = "/bundle";
+	private static final String FILE_ASSOCIATE_TYPE = "fileAssociateType";
+	private static final String FILE_ASSOCIATE_ID = "fileAssociateId";
 	
 	// web request pagination parameters
 	public static final String LIMIT = "limit";
@@ -7411,11 +7418,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		throw new RuntimeException("Not Yet Implemented");
 	}
 	
-	private static final String VERIFICATION_SUBMISSION = "/verificationSubmission";
-	private static final String CURRENT_VERIFICATION_STATE = "currentVerificationState";
-	private static final String VERIFICED_USER_ID = "verifiedUserId";
-
-
 	@Override
 	public VerificationSubmission createVerificationSubmission(
 			VerificationSubmission verificationSubmission)
@@ -7465,41 +7467,71 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public void updateVerificationState(long verificationId,
 			VerificationState verificationState) throws SynapseException {
-		// TODO Auto-generated method stub
-		
+		try {
+			JSONObject jsonObj = EntityFactory.createJSONObjectForEntity(verificationState);
+			String uri = VERIFICATION_SUBMISSION+"/"+verificationId+VERIFICATION_STATE;
+			createJSONObject(uri, jsonObj);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
 	}
 
 	@Override
-	public void deleteVerificationSubmission(long verificationId) {
-		// TODO Auto-generated method stub
-		
+	public void deleteVerificationSubmission(long verificationId) throws SynapseException {
+		getSharedClientConnection().deleteUri(repoEndpoint, 
+				VERIFICATION_SUBMISSION+"/"+verificationId, getUserAgent());
 	}
 
 	@Override
 	public UserBundle getMyOwnUserBundle(int mask) throws SynapseException {
-		// TODO Auto-generated method stub
-		return null;
+		JSONObject jsonObj = getEntity(USER+USER_BUNDLE+"?mask="+mask);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		UserBundle results = new UserBundle();
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
 	}
 
 	@Override
 	public UserBundle getUserBundle(long principalId, int mask)
 			throws SynapseException {
-		// TODO Auto-generated method stub
-		return null;
+		JSONObject jsonObj = getEntity(USER+"/"+principalId+USER_BUNDLE+"?mask="+mask);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		UserBundle results = new UserBundle();
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
+	}
+	
+	private static String createFileDownloadUri(FileHandleAssociation fileHandleAssociation, boolean redirect) {
+		return FILE + "/" + fileHandleAssociation.getFileHandleId() + "?" +
+				"&" + FILE_ASSOCIATE_TYPE + fileHandleAssociation.getAssociateObjectType() +
+		"&" + FILE_ASSOCIATE_ID + fileHandleAssociation.getAssociateObjectId() +
+		"&" + REDIRECT_PARAMETER + redirect;
 	}
 
 	@Override
 	public URL getFileURL(FileHandleAssociation fileHandleAssociation)
 			throws SynapseException {
-		// TODO Auto-generated method stub
-		return null;
+		try {
+			return getUrl(createFileDownloadUri(fileHandleAssociation, false));
+		} catch (IOException e) {
+			throw new SynapseClientException(e);
+		}
 	}
 
 	@Override
-	public void downloadFile(FileHandleAssociation fileHandleAssociation)
+	public void downloadFile(FileHandleAssociation fileHandleAssociation, File target)
 			throws SynapseException {
-		// TODO Auto-generated method stub
-		
+		String uri = createFileDownloadUri(fileHandleAssociation, true);
+		getSharedClientConnection().downloadFromSynapse(
+				getRepoEndpoint() + uri, null, target, getUserAgent());
 	}
 
 }
