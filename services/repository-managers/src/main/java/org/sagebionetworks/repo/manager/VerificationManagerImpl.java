@@ -107,14 +107,6 @@ public class VerificationManagerImpl implements VerificationManager {
 		return verificationDao.createVerificationSubmission(verificationSubmission);
 	}
 	
-	@Override
-	public void deleteVerificationSubmission(UserInfo userInfo, Long verificationId) {
-		if (!userInfo.isAdmin() && 
-				userInfo.getId()!=verificationDao.getVerificationSubmitter(verificationId))
-			throw new UnauthorizedException("Only the creator of a verification submission may delete it.");
-		verificationDao.deleteVerificationSubmission(verificationId);
-	}
-	
 	public static void populateCreateFields(VerificationSubmission verificationSubmission, UserInfo userInfo, Date now) {
 		verificationSubmission.setCreatedBy(userInfo.getId().toString());
 		verificationSubmission.setCreatedOn(now);
@@ -153,6 +145,14 @@ public class VerificationManagerImpl implements VerificationManager {
 		if (!submissionField.equals(userProfileField)) throw new InvalidModelException(fieldName+" does not match value in user profile.");
 	}
 
+	@Override
+	public void deleteVerificationSubmission(UserInfo userInfo, Long verificationId) {
+		if (!userInfo.isAdmin() && 
+				userInfo.getId()!=verificationDao.getVerificationSubmitter(verificationId))
+			throw new UnauthorizedException("Only the creator of a verification submission may delete it.");
+		verificationDao.deleteVerificationSubmission(verificationId);
+	}
+	
 	@Override
 	public VerificationPagedResults listVerificationSubmissions(
 			UserInfo userInfo, List<VerificationStateEnum> currentVerificationState,
