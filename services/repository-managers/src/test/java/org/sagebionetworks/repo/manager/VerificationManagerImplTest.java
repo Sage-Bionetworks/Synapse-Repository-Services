@@ -48,6 +48,8 @@ public class VerificationManagerImplTest {
 	private static final List<String> FILES = Arrays.asList("888", "999");
 	private static final String NOTIFICATION_UNSUBSCRIBE_ENDPOINT = "https://synapse.org/#notificationUnsubscribeEndpoint:";
 
+	private static final Long VERIFICATION_ID = 222L;
+
 	
 	private VerificationDAO mockVerificationDao;
 	
@@ -239,17 +241,15 @@ public class VerificationManagerImplTest {
 
 	@Test
 	public void testDeleteVerificationSubmission() {
-		Long verificationId = 222L;
-		when(mockVerificationDao.getVerificationSubmitter(verificationId)).thenReturn(USER_ID);
-		verificationManager.deleteVerificationSubmission(userInfo, verificationId);
-		verify(mockVerificationDao).deleteVerificationSubmission(verificationId);
+		when(mockVerificationDao.getVerificationSubmitter(VERIFICATION_ID)).thenReturn(USER_ID);
+		verificationManager.deleteVerificationSubmission(userInfo, VERIFICATION_ID);
+		verify(mockVerificationDao).deleteVerificationSubmission(VERIFICATION_ID);
 	}
 
 	@Test(expected=UnauthorizedException.class)
 	public void testDeleteVerificationSubmissionUnauthorized() {
-		Long verificationId = 222L;
-		when(mockVerificationDao.getVerificationSubmitter(verificationId)).thenReturn(USER_ID*13);
-		verificationManager.deleteVerificationSubmission(userInfo, verificationId);
+		when(mockVerificationDao.getVerificationSubmitter(VERIFICATION_ID)).thenReturn(USER_ID*13);
+		verificationManager.deleteVerificationSubmission(userInfo, VERIFICATION_ID);
 	}
 
 	@Test
@@ -282,30 +282,28 @@ public class VerificationManagerImplTest {
 	@Test
 	public void testChangeSubmissionState() {
 		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
-		Long verificationId = 222L;
-		when(mockVerificationDao.getVerificationState(verificationId)).thenReturn(
+		when(mockVerificationDao.getVerificationState(VERIFICATION_ID)).thenReturn(
 				VerificationStateEnum.SUBMITTED);
 		
 		VerificationState state = new VerificationState();
 		state.setState(VerificationStateEnum.APPROVED);
-		verificationManager.changeSubmissionState(userInfo, verificationId, state);
+		verificationManager.changeSubmissionState(userInfo, VERIFICATION_ID, state);
 
 		assertEquals(USER_ID.toString(), state.getCreatedBy());
 		assertNotNull(state.getCreatedOn());
 		
-		verify(mockVerificationDao).appendVerificationSubmissionState(verificationId, state);
+		verify(mockVerificationDao).appendVerificationSubmissionState(VERIFICATION_ID, state);
 	}
 
 	@Test(expected=InvalidModelException.class)
 	public void testChangeSubmissionStateTransitionNotAllowed() {
 		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
-		Long verificationId = 222L;
-		when(mockVerificationDao.getVerificationState(verificationId)).thenReturn(
+		when(mockVerificationDao.getVerificationState(VERIFICATION_ID)).thenReturn(
 				VerificationStateEnum.SUSPENDED);
 		
 		VerificationState state = new VerificationState();
 		state.setState(VerificationStateEnum.APPROVED);
-		verificationManager.changeSubmissionState(userInfo, verificationId, state);
+		verificationManager.changeSubmissionState(userInfo, VERIFICATION_ID, state);
 	}
 	
 	public void testIsStateTransitionAllowed() {
@@ -335,10 +333,9 @@ public class VerificationManagerImplTest {
 	@Test(expected=UnauthorizedException.class)
 	public void testChangeSubmissionStateUnauthorzed() {
 		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(false);
-		Long verificationId = 222L;
 		VerificationState state = new VerificationState();
 		state.setState(VerificationStateEnum.APPROVED);
-		verificationManager.changeSubmissionState(userInfo, verificationId, state);
+		verificationManager.changeSubmissionState(userInfo, VERIFICATION_ID, state);
 	}
 
 
@@ -357,9 +354,6 @@ public class VerificationManagerImplTest {
 				result.getMetadata().getNotificationUnsubscribeEndpoint());
 		assertEquals("text/html", result.getMimeType());
 		
-		System.out.println(result.getBody());
-		
-		// this will give us seven pieces...
 		List<String> delims = Arrays.asList(new String[] {
 				TEMPLATE_KEY_DISPLAY_NAME,
 				TEMPLATE_KEY_USER_ID
@@ -379,28 +373,210 @@ public class VerificationManagerImplTest {
 
 
 	@Test
-	public void testCreateStateChangeNotificationApproved() {
-		fail("Not yet implemented");
+	public void testCreateStateChangeNotificationApproved() throws Exception {
+		VerificationState newState = new VerificationState();
+		newState.setState(APPROVED);
+		when(mockVerificationDao.getVerificationSubmitter(VERIFICATION_ID)).thenReturn(USER_ID);
+
+		// method under test
+		List<MessageToUserAndBody> mtubs = verificationManager.createStateChangeNotification(
+				VERIFICATION_ID, newState, NOTIFICATION_UNSUBSCRIBE_ENDPOINT);
+		
+		assertEquals(1, mtubs.size());
+		MessageToUserAndBody result = mtubs.get(0);
+		assertEquals(VERIFICATION_NOTIFICATION_SUBJECT, result.getMetadata().getSubject());
+		assertEquals(Collections.singleton(USER_ID.toString()), 
+				result.getMetadata().getRecipients());
+		assertEquals(NOTIFICATION_UNSUBSCRIBE_ENDPOINT, 
+				result.getMetadata().getNotificationUnsubscribeEndpoint());
+		assertEquals("text/html", result.getMimeType());
+		
+		System.out.println(result.getBody());
+		
+		List<String> delims = Arrays.asList(new String[] {
+				TEMPLATE_KEY_DISPLAY_NAME,
+				TEMPLATE_KEY_USER_ID
+		});
+		
+		// this will create 5 pieces
+		List<String> templatePieces = EmailParseUtil.splitEmailTemplate(
+				VerificationManagerImpl.VERIFICATION_APPROVED_TEMPLATE, delims);
+		
+		assertTrue(result.getBody().startsWith(templatePieces.get(0)));
+		assertTrue(result.getBody().indexOf(templatePieces.get(2))>0);
+		String displayName = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces.get(0), templatePieces.get(2));
+		assertEquals("fname lname (username)", displayName);	
+		assertTrue(result.getBody().endsWith(templatePieces.get(4)));
+		String userId = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces.get(2), templatePieces.get(4));
+		assertEquals(USER_ID.toString(), userId);
 	}
 
 	@Test
-	public void testCreateStateChangeNotificationRejected() {
-		fail("Not yet implemented");
+	public void testCreateStateChangeNotificationRejected() throws Exception {
+		VerificationState newState = new VerificationState();
+		newState.setState(REJECTED);
+		String expectedReason = "your submission is invalid";
+		newState.setReason(expectedReason);
+		when(mockVerificationDao.getVerificationSubmitter(VERIFICATION_ID)).thenReturn(USER_ID);
+
+		// method under test
+		List<MessageToUserAndBody> mtubs = verificationManager.createStateChangeNotification(
+				VERIFICATION_ID, newState, NOTIFICATION_UNSUBSCRIBE_ENDPOINT);
+		
+		assertEquals(1, mtubs.size());
+		MessageToUserAndBody result = mtubs.get(0);
+		assertEquals(VERIFICATION_NOTIFICATION_SUBJECT, result.getMetadata().getSubject());
+		assertEquals(Collections.singleton(USER_ID.toString()), 
+				result.getMetadata().getRecipients());
+		assertEquals(NOTIFICATION_UNSUBSCRIBE_ENDPOINT, 
+				result.getMetadata().getNotificationUnsubscribeEndpoint());
+		assertEquals("text/html", result.getMimeType());
+		
+		System.out.println(result.getBody());
+		
+		List<String> delims = Arrays.asList(new String[] {
+				TEMPLATE_KEY_DISPLAY_NAME,
+				TEMPLATE_KEY_REASON,
+				TEMPLATE_KEY_USER_ID
+		});
+		
+		// this will create 7 pieces
+		List<String> templatePieces = EmailParseUtil.splitEmailTemplate(
+				VerificationManagerImpl.VERIFICATION_REJECTED_TEMPLATE, delims);
+		
+		assertTrue(result.getBody().startsWith(templatePieces.get(0)));
+		assertTrue(result.getBody().indexOf(templatePieces.get(2))>0);
+		String displayName = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces.get(0), templatePieces.get(2));
+		assertEquals("fname lname (username)", displayName);	
+		assertTrue(result.getBody().indexOf(templatePieces.get(4))>0);
+		String reason = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces.get(2), templatePieces.get(4));
+		assertEquals(expectedReason, reason);
+		assertTrue(result.getBody().endsWith(templatePieces.get(6)));
+		String userId = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces.get(4), templatePieces.get(6));
+		assertEquals(USER_ID.toString(), userId);
 	}
 
 	@Test
-	public void testCreateStateChangeNotificationRejectedNoReason() {
-		fail("Not yet implemented");
+	public void testCreateStateChangeNotificationRejectedNoReason() throws Exception {
+		VerificationState newState = new VerificationState();
+		newState.setState(REJECTED);
+		when(mockVerificationDao.getVerificationSubmitter(VERIFICATION_ID)).thenReturn(USER_ID);
+
+		// method under test
+		List<MessageToUserAndBody> mtubs = verificationManager.createStateChangeNotification(
+				VERIFICATION_ID, newState, NOTIFICATION_UNSUBSCRIBE_ENDPOINT);
+		
+		assertEquals(1, mtubs.size());
+		MessageToUserAndBody result = mtubs.get(0);
+		assertEquals(VERIFICATION_NOTIFICATION_SUBJECT, result.getMetadata().getSubject());
+		assertEquals(Collections.singleton(USER_ID.toString()), 
+				result.getMetadata().getRecipients());
+		assertEquals(NOTIFICATION_UNSUBSCRIBE_ENDPOINT, 
+				result.getMetadata().getNotificationUnsubscribeEndpoint());
+		assertEquals("text/html", result.getMimeType());
+		
+		System.out.println(result.getBody());
+		
+		List<String> delims = Arrays.asList(new String[] {
+				TEMPLATE_KEY_DISPLAY_NAME,
+				TEMPLATE_KEY_USER_ID
+		});
+		
+		// this will create 5 pieces
+		List<String> templatePieces = EmailParseUtil.splitEmailTemplate(
+				VerificationManagerImpl.VERIFICATION_REJECTED_NO_REASON_TEMPLATE, delims);
+		
+		assertTrue(result.getBody().startsWith(templatePieces.get(0)));
+		assertTrue(result.getBody().indexOf(templatePieces.get(2))>0);
+		String displayName = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces.get(0), templatePieces.get(2));
+		assertEquals("fname lname (username)", displayName);	
+		assertTrue(result.getBody().endsWith(templatePieces.get(4)));
+		String userId = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces.get(2), templatePieces.get(4));
+		assertEquals(USER_ID.toString(), userId);
 	}
 
 	@Test
-	public void testCreateStateChangeNotificationSuspended() {
-		fail("Not yet implemented");
+	public void testCreateStateChangeNotificationSuspended() throws Exception {
+		VerificationState newState = new VerificationState();
+		newState.setState(SUSPENDED);
+		String expectedReason = "your submission is invalid";
+		newState.setReason(expectedReason);
+		when(mockVerificationDao.getVerificationSubmitter(VERIFICATION_ID)).thenReturn(USER_ID);
+
+		// method under test
+		List<MessageToUserAndBody> mtubs = verificationManager.createStateChangeNotification(
+				VERIFICATION_ID, newState, NOTIFICATION_UNSUBSCRIBE_ENDPOINT);
+		
+		assertEquals(1, mtubs.size());
+		MessageToUserAndBody result = mtubs.get(0);
+		assertEquals(VERIFICATION_NOTIFICATION_SUBJECT, result.getMetadata().getSubject());
+		assertEquals(Collections.singleton(USER_ID.toString()), 
+				result.getMetadata().getRecipients());
+		assertEquals(NOTIFICATION_UNSUBSCRIBE_ENDPOINT, 
+				result.getMetadata().getNotificationUnsubscribeEndpoint());
+		assertEquals("text/html", result.getMimeType());
+		
+		System.out.println(result.getBody());
+		
+		List<String> delims = Arrays.asList(new String[] {
+				TEMPLATE_KEY_DISPLAY_NAME,
+				TEMPLATE_KEY_REASON,
+				TEMPLATE_KEY_USER_ID
+		});
+		
+		// this will create 7 pieces
+		List<String> templatePieces = EmailParseUtil.splitEmailTemplate(
+				VerificationManagerImpl.VERIFICATION_SUSPENDED_TEMPLATE, delims);
+		
+		assertTrue(result.getBody().startsWith(templatePieces.get(0)));
+		assertTrue(result.getBody().indexOf(templatePieces.get(2))>0);
+		String displayName = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces.get(0), templatePieces.get(2));
+		assertEquals("fname lname (username)", displayName);	
+		assertTrue(result.getBody().indexOf(templatePieces.get(4))>0);
+		String reason = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces.get(2), templatePieces.get(4));
+		assertEquals(expectedReason, reason);
+		assertTrue(result.getBody().endsWith(templatePieces.get(6)));
+		String userId = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces.get(4), templatePieces.get(6));
+		assertEquals(USER_ID.toString(), userId);
 	}
 
 	@Test
-	public void testCreateStateChangeNotificationSuspendedNoReason() {
-		fail("Not yet implemented");
+	public void testCreateStateChangeNotificationSuspendedNoReason() throws Exception {
+		VerificationState newState = new VerificationState();
+		newState.setState(SUSPENDED);
+		when(mockVerificationDao.getVerificationSubmitter(VERIFICATION_ID)).thenReturn(USER_ID);
+
+		// method under test
+		List<MessageToUserAndBody> mtubs = verificationManager.createStateChangeNotification(
+				VERIFICATION_ID, newState, NOTIFICATION_UNSUBSCRIBE_ENDPOINT);
+		
+		assertEquals(1, mtubs.size());
+		MessageToUserAndBody result = mtubs.get(0);
+		assertEquals(VERIFICATION_NOTIFICATION_SUBJECT, result.getMetadata().getSubject());
+		assertEquals(Collections.singleton(USER_ID.toString()), 
+				result.getMetadata().getRecipients());
+		assertEquals(NOTIFICATION_UNSUBSCRIBE_ENDPOINT, 
+				result.getMetadata().getNotificationUnsubscribeEndpoint());
+		assertEquals("text/html", result.getMimeType());
+		
+		System.out.println(result.getBody());
+		
+		List<String> delims = Arrays.asList(new String[] {
+				TEMPLATE_KEY_DISPLAY_NAME,
+				TEMPLATE_KEY_USER_ID
+		});
+		
+		// this will create 5 pieces
+		List<String> templatePieces = EmailParseUtil.splitEmailTemplate(
+				VerificationManagerImpl.VERIFICATION_SUSPENDED_NO_REASON_TEMPLATE, delims);
+		
+		assertTrue(result.getBody().startsWith(templatePieces.get(0)));
+		assertTrue(result.getBody().indexOf(templatePieces.get(2))>0);
+		String displayName = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces.get(0), templatePieces.get(2));
+		assertEquals("fname lname (username)", displayName);	
+		assertTrue(result.getBody().endsWith(templatePieces.get(4)));
+		String userId = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces.get(2), templatePieces.get(4));
+		assertEquals(USER_ID.toString(), userId);
 	}
 
 
