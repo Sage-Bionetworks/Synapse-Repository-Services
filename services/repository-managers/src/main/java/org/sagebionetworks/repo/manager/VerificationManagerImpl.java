@@ -126,9 +126,9 @@ public class VerificationManagerImpl implements VerificationManager {
 			VerificationSubmission verificationSubmission, 
 			UserProfile userProfile, 
 			String orcId) {
-		validateField(verificationSubmission.getCompany(), userProfile.getCompany(), "Company");
 		validateField(verificationSubmission.getFirstName(), userProfile.getFirstName(), "First name");
 		validateField(verificationSubmission.getLastName(), userProfile.getLastName(), "Last name");
+		validateField(verificationSubmission.getCompany(), userProfile.getCompany(), "Company");
 		validateField(verificationSubmission.getLocation(), userProfile.getLocation(), "Location");
 		validateField(AliasUtils.getUniqueAliasName(verificationSubmission.getOrcid()), 
 					AliasUtils.getUniqueAliasName(orcId), "ORCID");
