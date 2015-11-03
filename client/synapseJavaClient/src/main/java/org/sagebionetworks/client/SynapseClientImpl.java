@@ -412,7 +412,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String VERIFICATION_SUBMISSION = "/verificationSubmission";
 	private static final String CURRENT_VERIFICATION_STATE = "currentVerificationState";
 	private static final String VERIFICATION_STATE = "/state";
-	private static final String VERIFICED_USER_ID = "verifiedUserId";
+	private static final String VERIFIED_USER_ID = "verifiedUserId";
 	private static final String USER_BUNDLE = "/bundle";
 	private static final String FILE_ASSOCIATE_TYPE = "fileAssociateType";
 	private static final String FILE_ASSOCIATE_ID = "fileAssociateId";
@@ -7442,7 +7442,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			anyParameters = true;
 		}
 		if  (submitterId!=null) {
-			uri+=(anyParameters ?"&":"?")+VERIFICED_USER_ID+"="+submitterId;
+			uri+=(anyParameters ?"&":"?")+VERIFIED_USER_ID+"="+submitterId;
 			anyParameters = true;
 		}
 		if  (limit!=null) {
