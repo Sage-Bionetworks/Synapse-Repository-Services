@@ -363,7 +363,12 @@ public class UserProfileServiceImpl implements UserProfileService {
 			result.setIsACTMember(userInfo.getGroups().contains(TeamConstants.ACT_TEAM_ID));
 		}
 		if ((mask&IS_CERTIFIED_MASK)!=0) {
-			PassingRecord passingRecord = certifiedUserManager.getPassingRecord(profileId);
+			PassingRecord passingRecord = null;
+			try {
+				passingRecord = certifiedUserManager.getPassingRecord(profileId);
+			} catch (NotFoundException e) {
+				passingRecord = null;
+			}
 			if (passingRecord==null) {
 				result.setIsCertified(false);
 			} else {

@@ -340,6 +340,26 @@ public class UserProfileServiceTest {
 	}
 
 	@Test
+	public void testGetMyOwnUserBundleNoPassingRecord() throws Exception {
+		mockUserInfo(EXTRA_USER_ID, true);
+		when(mockCertifiedUserManager.getPassingRecord(EXTRA_USER_ID)).thenThrow(new NotFoundException());
+
+		VerificationSubmission verificationSubmission = mockVerificationSubmission(EXTRA_USER_ID, VerificationStateEnum.APPROVED);
+		UserProfile userProfile = mockUserProfile(EXTRA_USER_ID);
+		mockOrcid(EXTRA_USER_ID, "http://orcid.org/foo");
+		UserBundle result = userProfileService.getMyOwnUserBundle(EXTRA_USER_ID, 63/*everything*/);
+		
+		assertEquals(EXTRA_USER_ID.toString(), result.getUserId());
+		assertEquals(userProfile, result.getUserProfile());
+		assertEquals("test@example.com", result.getUserProfile().getEmails().get(0));
+		assertTrue(result.getIsACTMember());
+		assertFalse(result.getIsCertified());
+		assertTrue(result.getIsVerified());
+		assertEquals("http://orcid.org/foo", result.getORCID());
+		assertEquals(verificationSubmission, result.getVerificationSubmission());
+	}
+
+	@Test
 	public void testGetMyOwnUserBundleNullRecords() throws Exception {
 		mockUserInfo(EXTRA_USER_ID, false);
 		UserProfile userProfile = mockUserProfile(EXTRA_USER_ID);
