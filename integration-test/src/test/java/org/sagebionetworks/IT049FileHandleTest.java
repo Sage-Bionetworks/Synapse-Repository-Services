@@ -390,54 +390,6 @@ public class IT049FileHandleTest {
 		assertNotNull(externalS3.getId());
 	}
 
-	@Ignore //PLFM-3543
-	@Test
-	public void testAutoSyncRoundTrip() throws Exception {
-		String baseKey = "test-" + UUID.randomUUID();
-
-		// we need to create a authentication object
-		String username = synapse.getUserSessionData().getProfile().getUserName();
-		S3TestUtils.createObjectFromString(StackConfiguration.singleton().getExternalS3TestBucketName(), baseKey + "owner.txt", username,
-				s3Client);
-
-		final String md5 = S3TestUtils.createObjectFromString(StackConfiguration.singleton().getExternalS3TestBucketName(), baseKey
-				+ "file1.txt", UUID.randomUUID().toString(), s3Client);
-
-		// create setting
-		ExternalS3StorageLocationSetting externalS3Destination = new ExternalS3StorageLocationSetting();
-		externalS3Destination.setUploadType(UploadType.S3);
-		externalS3Destination.setEndpointUrl(null);
-		externalS3Destination.setBucket(StackConfiguration.singleton().getExternalS3TestBucketName());
-		externalS3Destination.setBaseKey(baseKey);
-		externalS3Destination.setBanner("warning, at institute");
-		externalS3Destination.setDescription("not in synapse, this is");
-		externalS3Destination = synapse.createStorageLocationSetting(externalS3Destination);
-
-		ExternalSyncSetting externalSyncSetting = new ExternalSyncSetting();
-		externalSyncSetting.setLocationId(externalS3Destination.getStorageLocationId());
-		externalSyncSetting.setAutoSync(true);
-		externalSyncSetting.setProjectId(project.getId());
-		externalSyncSetting.setSettingsType(ProjectSettingsType.external_sync);
-		synapse.createProjectSetting(externalSyncSetting);
-
-		TimedAssert.waitForAssert(30000, 500, new Runnable() {
-			@Override
-			public void run() {
-				try {
-					JSONObject query = synapse.query("select name from entity where parentId == '" + project.getId() + "' LIMIT_1_OFFSET_1");
-					assertEquals(1L, query.getInt("totalNumberOfResults"));
-					assertEquals("file1.txt", query.getJSONArray("results").getJSONObject(0).getString("entity.name"));
-					String hexMD5 = BinaryUtils.toHex(BinaryUtils.fromBase64(md5));
-					assertEquals(1, synapse.getEntityHeaderByMd5(hexMD5).size());
-				} catch (SynapseNotFoundException e) {
-					fail();
-				} catch (Exception e) {
-					throw new RuntimeException(e);
-				}
-			}
-		});
-	}
-
 	@Test
 	public void testExternalUploadDestinationChoice() throws SynapseException, IOException, InterruptedException {
 		// create an project setting
