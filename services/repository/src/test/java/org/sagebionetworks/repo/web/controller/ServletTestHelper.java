@@ -1983,7 +1983,7 @@ public class ServletTestHelper {
 	
 	public String getFileHandleUrl(DispatcherServlet instance, 
 			FileHandleAssociation fha, Long userId) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.GET, 
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.GET, "/file/v1",
 				UrlHelpers.FILE + "/" + fha.getFileHandleId(), userId, null);
 		request.addParameter("fileAssociateType", fha.getAssociateObjectType().name());
 		request.addParameter("fileAssociateId", fha.getAssociateObjectId());

@@ -7,8 +7,10 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.Random;
 import java.util.UUID;
 
+import org.apache.commons.lang3.StringUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -57,13 +59,24 @@ public class VerificationControllerAutowiredTest extends AbstractAutowiredContro
 	private static final String LAST_NAME = "lname";
 	private static final String COMPANY = "company";
 	private static final String LOCATION = "location";
-	private static final String ORCID = "http://www.orcid.org/0000-1111-2222-3333";
 	String NOTIFICATION_UNSUBSCRIBE_ENDPOINT = "https://synapse.org/#notificationUnsubscribeEndpoint:";
 	
 	private List<String> emails;
+	private String orcid;
 	
 	private VerificationSubmission verificationToDelete;
 	private ExternalFileHandle fileHandleToDelete;
+	
+	private static final Random random = new Random();
+	
+	private static String randomOrcid() {
+		StringBuilder sb = new StringBuilder("http://orcid.org/");
+		for (int i=0; i<4; i++)  {
+			sb.append(StringUtils.leftPad(""+random.nextInt(10000), 4, "0"));
+			if (i<3) sb.append("-");
+		}
+		return sb.toString();
+	}
 
 	@Before
 	public void before() throws Exception {
@@ -76,7 +89,8 @@ public class VerificationControllerAutowiredTest extends AbstractAutowiredContro
 		user.setUserName(UUID.randomUUID().toString());
 		userInfo = userManager.getUserInfo(userManager.createUser(user));
 
-		userManager.bindAlias(ORCID, AliasType.USER_ORCID, userInfo.getId());
+		this.orcid = randomOrcid();
+		userManager.bindAlias(orcid, AliasType.USER_ORCID, userInfo.getId());
 		
 		UserProfile userProfile = userProfileManager.getUserProfile(userInfo.getId().toString());
 		assertNotNull(userProfile.getEmails());
@@ -93,16 +107,21 @@ public class VerificationControllerAutowiredTest extends AbstractAutowiredContro
 		fileHandleToDelete.setEtag("etag");
 		fileHandleToDelete.setFileName("foo.bar");
 		fileHandleToDelete.setContentMd5("handleOneContentMd5");
-		fileHandleToDelete.setExternalURL("http://foo.bar/baz.txt");
+		fileHandleToDelete.setExternalURL("http://foo.bar.com/baz.txt");
 		fileHandleToDelete = fileMetadataDao.createFile(fileHandleToDelete);
 	}
 
 	@After
 	public void after() throws Exception {
-		servletTestHelper.deleteVerificationSubmission(dispatchServlet, 
+		if (verificationToDelete!=null) {
+			servletTestHelper.deleteVerificationSubmission(dispatchServlet, 
 				userInfo.getId(), Long.parseLong(verificationToDelete.getId()));
-		verificationToDelete = null;
-		 
+			verificationToDelete = null;
+		}
+		
+		if (fileHandleToDelete!=null) {
+			fileMetadataDao.delete(fileHandleToDelete.getId());
+		}
 	}
 
 	@Test
@@ -115,9 +134,10 @@ public class VerificationControllerAutowiredTest extends AbstractAutowiredContro
 		vs.setEmails(emails);
 		String fileHandleId = fileHandleToDelete.getId();
 		vs.setFiles(Collections.singletonList(fileHandleId));
-		vs.setOrcid(ORCID);
+		vs.setOrcid(orcid);
 		vs = servletTestHelper.createVerificationSubmission(dispatchServlet, 
 				userInfo.getId(), vs, NOTIFICATION_UNSUBSCRIBE_ENDPOINT);
+		verificationToDelete=vs;
 		assertNotNull(vs.getId());
 		
 		VerificationPagedResults list = servletTestHelper.listVerificationSubmissions(
@@ -132,8 +152,10 @@ public class VerificationControllerAutowiredTest extends AbstractAutowiredContro
 				newState, NOTIFICATION_UNSUBSCRIBE_ENDPOINT);
 		
 		FileHandleAssociation fha = new FileHandleAssociation();
+		assertNotNull(fileHandleId);
 		fha.setFileHandleId(fileHandleId);
 		fha.setAssociateObjectType(FileHandleAssociateType.VerificationSubmission);
+		assertNotNull(vs.getId());
 		fha.setAssociateObjectId(vs.getId());
 		String url = servletTestHelper.getFileHandleUrl(dispatchServlet, fha, adminUserId);
 		assertEquals(fileHandleToDelete.getExternalURL(), url);

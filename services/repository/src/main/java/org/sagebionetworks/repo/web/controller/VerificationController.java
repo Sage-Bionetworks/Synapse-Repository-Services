@@ -99,7 +99,7 @@ public class VerificationController extends BaseController {
 	 * @param userId
 	 * @param id
 	 */
-	@ResponseStatus(HttpStatus.OK)
+	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.VERIFICATION_SUBMISSION_ID, method=RequestMethod.DELETE)
 	public void deleteVerificationSubmission(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
