@@ -1,0 +1,36 @@
+{
+	"title": "User Bundle",
+	"description": "JSON schema for UserProfile POJO",
+	"properties": {
+		"userId": {
+			"type": "string",
+			"description": "The ID of the user described by this bundle"
+		},
+		"userProfile": {
+			"type": "object",
+			"$ref": "org.sagebionetworks.repo.model.UserProfile",
+			"description": "The User Profile of the user described by this bundle"
+		},
+		"ORCID": {
+			"type": "string",
+			"description": "The ORCID ID for the user, if any"
+		},
+		"verificationSubmission": {
+			"type": "object",
+			"$ref": "org.sagebionetworks.repo.model.verification.VerificationSubmission",
+			"description": "The verification record for the given user."
+		},
+		"isCertified": {
+			"type": "boolean",
+			"description": "true iff the user is Certified"
+		},
+		"isVerified": {
+			"type": "boolean",
+			"description": "true iff the user is Verified"
+		},
+		"isACTMember": {
+			"type": "boolean",
+			"description": "true iff the user is an ACT member"
+		}
+	}
+}

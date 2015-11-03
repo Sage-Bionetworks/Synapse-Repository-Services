@@ -16,14 +16,21 @@ public interface VerificationDAO {
 	public VerificationSubmission createVerificationSubmission(VerificationSubmission dto);
 	
 	/**
+	 * Get the latest verification submission
+	 * @param userId
+	 * @return
+	 */
+	public VerificationSubmission getCurrentVerificationSubmissionForUser(long userId);
+	
+	/**
 	 * 
-	 * @param states the results are limited to verification submissions in any of the given states (optional)
+	 * @param currentVerificationState the results are limited to verification submissions in any of the given states (optional)
 	 * @param userId the results are limited to verification submissions for the given userId (optional)
 	 * @param limit required
 	 * @param offset required
 	 * @return
 	 */
-	public List<VerificationSubmission> listVerificationSubmissions(List<VerificationStateEnum> states, Long userId, long limit, long offset);
+	public List<VerificationSubmission> listVerificationSubmissions(List<VerificationStateEnum> currentVerificationState, Long userId, long limit, long offset);
 	
 	/**
 	 * 
@@ -37,7 +44,7 @@ public interface VerificationDAO {
 	 * delete object given its ID
 	 * @param id
 	 */
-	public void deleteVerificationSubmission(String id);
+	public void deleteVerificationSubmission(long verificationId);
 	
 	/**
 	 * append a new state object to the given submission's state history, updating its state
@@ -45,16 +52,27 @@ public interface VerificationDAO {
 	 * @param verificationSubmissionId
 	 * @param newState
 	 */
-	public void appendVerificationSubmissionState(long verificationSubmissionId, VerificationState newState);
+	public void appendVerificationSubmissionState(long verificationId, VerificationState newState);
 	
-
 	/**
-	 * check whether a file handle ID is in a verification submission
-	 * this is used in authorization checks
 	 * 
-	 * @param id
-	 * @param fileHandleId
+	 * @param verificationSubmissionId
 	 * @return
 	 */
-	public boolean isFileHandleIdInVerificationSubmission(long id, long fileHandleId);
+	public VerificationStateEnum getVerificationState(long verificationId);
+
+	/**
+	 * 
+	 * @param verificationId
+	 * @return the file handle IDs associated with the given verification submission
+	 */
+	public List<Long> listFileHandleIds(long verificationId);
+
+
+	/**
+	 * 
+	 * @param verificationId
+	 * @return the user who submitted the verification request
+	 */
+	public long getVerificationSubmitter(long verificationId);
 }

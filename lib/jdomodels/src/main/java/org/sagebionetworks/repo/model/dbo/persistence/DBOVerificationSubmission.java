@@ -84,6 +84,7 @@ public class DBOVerificationSubmission implements
 	public List<MigratableDatabaseObject<?,?>> getSecondaryTypes() {
 		List<MigratableDatabaseObject<?,?>> list = new LinkedList<MigratableDatabaseObject<?,?>>();
 		list.add(new DBOVerificationState());
+		list.add(new DBOVerificationSubmissionFile());
 		return list;
 	}
 

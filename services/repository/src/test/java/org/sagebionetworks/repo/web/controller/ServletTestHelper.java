@@ -54,6 +54,7 @@ import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
+import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.MessageBundle;
 import org.sagebionetworks.repo.model.message.MessageRecipientSet;
@@ -79,6 +80,10 @@ import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
+import org.sagebionetworks.repo.model.verification.VerificationPagedResults;
+import org.sagebionetworks.repo.model.verification.VerificationState;
+import org.sagebionetworks.repo.model.verification.VerificationStateEnum;
+import org.sagebionetworks.repo.model.verification.VerificationSubmission;
 import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
@@ -1923,4 +1928,70 @@ public class ServletTestHelper {
 
 		return ServletTestHelperUtils.readResponse(response, ExternalFileHandle.class);
 	}
+	
+	public VerificationSubmission createVerificationSubmission(
+			HttpServlet dispatchServlet, Long userId,
+			VerificationSubmission vs, String notificationUnsubscribeEndpoint) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.POST, UrlHelpers.VERIFICATION_SUBMISSION, userId, vs);
+		request.addParameter(AuthorizationConstants.NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM, notificationUnsubscribeEndpoint);
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.CREATED);
+
+		return objectMapper.readValue(response.getContentAsString(),
+				VerificationSubmission.class);
+	}
+
+	public VerificationPagedResults listVerificationSubmissions(
+			HttpServlet dispatchServlet, VerificationStateEnum state, 
+			Long verifiedUserId, Long limit, Long offset, Long userId)
+			throws Exception {
+
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.VERIFICATION_SUBMISSION, userId, null);
+		if (verifiedUserId!=null) request.addParameter("verifiedUserId", verifiedUserId.toString());
+		if (state!=null) request.addParameter("currentVerificationState", state.name());
+		if (limit!=null) request.addParameter(ServiceConstants.PAGINATION_LIMIT_PARAM, limit.toString());
+		if (offset!=null) request.addParameter(ServiceConstants.PAGINATION_OFFSET_PARAM, offset.toString());
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
+		return objectMapper.readValue(response.getContentAsString(),
+				VerificationPagedResults.class);
+	}
+
+	public void deleteVerificationSubmission(HttpServlet dispatchServlet,
+			Long userId, Long verificationId) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.DELETE,
+				UrlHelpers.VERIFICATION_SUBMISSION + "/" + verificationId, userId,
+				null);
+		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
+				HttpStatus.NO_CONTENT);
+	}
+
+	public void updateVerificationState(
+			HttpServlet dispatchServlet, Long userId, Long verificationId,
+			VerificationState state, String notificationUnsubscribeEndpoint) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.POST, UrlHelpers.VERIFICATION_SUBMISSION+"/"+verificationId+"/state", userId, state);
+		request.addParameter(AuthorizationConstants.
+				NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM, notificationUnsubscribeEndpoint);
+		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request, HttpStatus.CREATED);
+	}
+	
+	public String getFileHandleUrl(DispatcherServlet instance, 
+			FileHandleAssociation fha, Long userId) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.GET, "/file/v1",
+				UrlHelpers.FILE + "/" + fha.getFileHandleId(), userId, null);
+		request.addParameter("fileAssociateType", fha.getAssociateObjectType().name());
+		request.addParameter("fileAssociateId", fha.getAssociateObjectId());
+		request.addParameter("redirect", "false");
+				MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(instance, request, HttpStatus.OK);
+		return response.getContentAsString();
+	}
+
+
+
 }

@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.model.ProjectListType;
 import org.sagebionetworks.repo.model.ResponseMessage;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserBundle;
 import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
@@ -60,34 +61,92 @@ public class UserProfileController extends BaseController {
 	 * Get the profile of the caller (my profile).
 	 * <p><b>Note:</b> Private user profile fields will be returned.</p>
 	 * @param userId
-	 *             The user that is making the request.
+	 *             The user who is making the request.
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.USER_PROFILE, method = RequestMethod.GET)
 	public @ResponseBody
 	UserProfile getMyOwnUserProfile(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			HttpServletRequest request) throws DatastoreException, UnauthorizedException, NotFoundException {
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId
+			) throws DatastoreException, UnauthorizedException, NotFoundException {
 		return serviceProvider.getUserProfileService().getMyOwnUserProfile(userId);
+	}
+
+	/**
+	 * Get the user bundle of the caller (my own bundle).
+	 * <p><b>Note:</b> Private fields will be returned.</p>
+	 * @param userId The user who is making the request.
+	 * @param mask integer flag defining which components to include in the bundle
+	 * 
+	 * <p> This integer is used as a bit-string of flags to specify which parts to include 
+	 *  in the UserBundle. The mask is defined as follows:
+	 * <ul>
+	 * <li>	UserProfile  = 0x1 </li>
+	 * <li> ORCID  = 0x2 </li>
+	 * <li> VerificationSubmission  = 0x4 </li>
+	 * <li> IsCertified = 0x8 </li>
+	 * <li> Is Verified  = 0x10 </li>
+	 * <li> Is ACT Member = 0x20 </li>
+	 * </ul>
+	 * </p>
+	 *
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.USER_BUNDLE, method = RequestMethod.GET)
+	public @ResponseBody
+	UserBundle getMyOwnUserBundle(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam int mask
+			) throws DatastoreException, UnauthorizedException, NotFoundException {
+		return serviceProvider.getUserProfileService().getMyOwnUserBundle(userId, mask);
 	}
 
 	/**
 	 * Get the profile of a specified user.
 	 * <p><b>Note:</b> Private fields (e.g. "rStudioUrl") are omitted unless the requester is the profile owner or an administrator.</p>
-	 * @param userId
-	 *            The user that is making the request.
-	 * @param profileId 
-	 *            The target profile owner ID (the "id" field returned in the "/user" request).
+	 * @param userId The user who is making the request.
+	 * @param profileId The target profile owner ID (the "id" field returned in the "/user" request).
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.USER_PROFILE_ID, method = RequestMethod.GET)
 	public @ResponseBody
 	UserProfile getUserProfileByOwnerId(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String profileId,
-			HttpServletRequest request) throws DatastoreException, UnauthorizedException, NotFoundException {
+			@PathVariable String profileId) throws DatastoreException, UnauthorizedException, NotFoundException {
 		return serviceProvider.getUserProfileService().getUserProfileByOwnerId(userId, profileId);
 	}
+	
+	/**
+	 * Get the user bundle of a specified user.
+	 * <p><b>Note:</b> Private fields (e.g. "rStudioUrl") are omitted unless the requester is the profile owner or an administrator.</p>
+	 * @param userId The user who is making the request.
+	 * @param profileId  The target profile owner ID
+	 * @param mask integer flag defining which components to include in the bundle
+	 * 
+	 * <p> This integer is used as a bit-string of flags to specify which parts to include 
+	 *  in the UserBundle. The mask is defined as follows:
+	 * <ul>
+	 * <li>	UserProfile  = 0x1 </li>
+	 * <li> ORCID  = 0x2 </li>
+	 * <li> VerificationSubmission  = 0x4 </li>
+	 * <li> IsCertified = 0x8 </li>
+	 * <li> Is Verified  = 0x10 </li>
+	 * <li> Is ACT Member = 0x20 </li>
+	 * </ul>
+	 * </p>
+	 *
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.USER_BUNDLE_ID, method = RequestMethod.GET)
+	public @ResponseBody
+	UserBundle getUserBundleByOwnerId(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam int mask,
+			@PathVariable String id
+			) throws DatastoreException, UnauthorizedException, NotFoundException {
+		return serviceProvider.getUserProfileService().getUserBundleByOwnerId(userId, id, mask);
+	}
+
 
 	/**
 	 * Get all publicly available <a href="${org.sagebionetworks.repo.model.UserProfile}">UserProfile</a> data in the system

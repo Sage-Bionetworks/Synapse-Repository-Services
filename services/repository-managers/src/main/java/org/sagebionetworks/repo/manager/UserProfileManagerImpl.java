@@ -106,6 +106,8 @@ public class UserProfileManagerImpl implements UserProfileManager {
 			profile.getEmails().add(aliasName);
 		} else if (alias.getType().equals(AliasType.USER_OPEN_ID)) {
 			profile.getOpenIds().add(aliasName);
+		} else if (alias.getType().equals(AliasType.USER_ORCID)) {
+			// not added to user profile
 		} else {
 			throw new IllegalStateException("Expected user name, email or open id but found "+alias.getType());
 		}
