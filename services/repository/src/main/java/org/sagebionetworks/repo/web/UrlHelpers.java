@@ -415,7 +415,7 @@ public class UrlHelpers {
 	
 	public static final String USER_BUNDLE = USER+BUNDLE;
 	
-	public static final String USER_BUNDLE_ID = USER+BUNDLE+ID;
+	public static final String USER_BUNDLE_ID = USER+ID+BUNDLE;
 
 	
 	/**
