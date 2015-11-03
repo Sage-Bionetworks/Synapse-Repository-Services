@@ -46,8 +46,7 @@ public class CertifiedUserServiceImpl implements CertifiedUserService {
 
 	@Override
 	public PassingRecord getPassingRecord(Long userId, Long principalId) throws NotFoundException {
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		return certifiedUserManager.getPassingRecord(userInfo, principalId);
+		return certifiedUserManager.getPassingRecord(principalId);
 	}
 
 	@Override

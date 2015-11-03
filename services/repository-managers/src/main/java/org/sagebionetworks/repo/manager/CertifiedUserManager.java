@@ -55,14 +55,13 @@ public interface CertifiedUserManager {
 	
 	/**
 	 * Get the info about the user (indicated by principalId) passing the test.
-	 * Requestor must be the 
-	 * @param userInfo
+
 	 * @param principalId
 	 * @return
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public PassingRecord getPassingRecord(UserInfo userInfo, Long principalId) throws DatastoreException, NotFoundException;
+	public PassingRecord getPassingRecord(Long principalId) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Get all Passing Records for a given user.

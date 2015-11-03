@@ -66,4 +66,6 @@ public interface ServiceProvider {
 	
 	public ChallengeService getChallengeService();
 	
+	public VerificationService getVerificationService();
+	
 }

@@ -32,6 +32,7 @@ import org.sagebionetworks.repo.model.ProjectListSortColumn;
 import org.sagebionetworks.repo.model.ProjectListType;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.Team;
+import org.sagebionetworks.repo.model.UserBundle;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.util.TimeUtils;
@@ -236,4 +237,16 @@ public class IT970UserProfileController {
 			}
 		});
 	}
+	
+	@Test
+	public void testGetBundle() throws Exception {
+		UserProfile userProfile = synapse.getMyProfile();
+		UserBundle bundle = synapse.getMyOwnUserBundle(63/*everything*/);
+		assertEquals(userProfile, bundle.getUserProfile());
+		
+		bundle = synapse.getUserBundle(Long.parseLong(userProfile.getOwnerId()), 63/*everything*/);
+		assertEquals(userProfile, bundle.getUserProfile());	
+	}
+
+
 }

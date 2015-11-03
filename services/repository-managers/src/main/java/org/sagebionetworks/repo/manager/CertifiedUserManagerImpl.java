@@ -406,7 +406,7 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager {
 	}
 
 	@Override
-	public PassingRecord getPassingRecord(UserInfo userInfo, Long principalId) throws DatastoreException, NotFoundException {
+	public PassingRecord getPassingRecord(Long principalId) throws DatastoreException, NotFoundException {
 		QuizGenerator quizGenerator = retrieveCertificationQuizGenerator();
 		long quizId = quizGenerator.getId();
 		return quizResponseDao.getPassingRecord(quizId, principalId);

@@ -33,6 +33,7 @@ import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.VerificationDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
@@ -69,6 +70,8 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	private FileHandleDao fileHandleDao;
 	@Autowired
 	private AccessControlListDAO aclDAO;
+	@Autowired
+	private VerificationDAO verificationDao;
 	@Autowired
 	private FileHandleAssociationManager fileHandleAssociationSwitch;
 	
@@ -111,6 +114,18 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 					return AuthorizationManagerUtil.AUTHORIZED;
 				} else {
 					return AuthorizationManagerUtil.accessDenied("Unauthorized to access Team "+objectId+" for "+accessType);
+				}
+			case VERIFICATION_SUBMISSION:
+				if (accessType==ACCESS_TYPE.DOWNLOAD) {
+					if (isACTTeamMemberOrAdmin(userInfo) ||
+							verificationDao.getVerificationSubmitter(Long.parseLong(objectId))==userInfo.getId()) {
+						return AuthorizationManagerUtil.AUTHORIZED;
+					} else {
+					return AuthorizationManagerUtil.accessDenied(
+							"You must be an ACT member or the owner of the Verification Submission to download its attachments.");
+					}
+				} else {
+					return AuthorizationManagerUtil.accessDenied("Unexpected access type "+accessType);
 				}
 			default:
 				throw new IllegalArgumentException("Unknown ObjectType: "+objectType);
@@ -237,6 +252,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		}
 	}
 	
+	@Override
 	public boolean isACTTeamMemberOrAdmin(UserInfo userInfo) throws DatastoreException, UnauthorizedException {
 		if (userInfo.isAdmin()) return true;
 		if(userInfo.getGroups().contains(TeamConstants.ACT_TEAM_ID)) return true;

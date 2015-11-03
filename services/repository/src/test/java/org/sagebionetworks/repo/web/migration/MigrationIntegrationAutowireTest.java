@@ -306,6 +306,7 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		VerificationSubmission dto = new VerificationSubmission();
 		dto.setCreatedBy(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString());
 		dto.setCreatedOn(new Date());
+		dto.setFiles(Collections.singletonList(handleOne.getId()));
 		verificationDao.createVerificationSubmission(dto);
 	}
 	

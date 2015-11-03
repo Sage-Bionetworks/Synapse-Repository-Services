@@ -5,7 +5,8 @@
 		"createdOn":{
 			"type":"string",
 			"format":"date-time",
-			"description":"The date and time this object was created"
+			"description":"The date and time this object was created",
+			"links": [{"rel": "describedby", "href": "http://synapse.sagebase.org/access/public"}]
 		},
 		"createdBy":{
 			"type":"string",
@@ -14,7 +15,8 @@
 		"state":{
 			"type":"object",
 			"description":"The state of the verification submission",
-			"$ref":"org.sagebionetworks.repo.model.verification.VerificationStateEnum"
+			"$ref":"org.sagebionetworks.repo.model.verification.VerificationStateEnum",
+			"links": [{"rel": "describedby", "href": "http://synapse.sagebase.org/access/public"}]
 		},
 		"reason":{
 			"type":"string",
