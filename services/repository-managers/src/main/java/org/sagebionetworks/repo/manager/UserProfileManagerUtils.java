@@ -42,12 +42,9 @@ public class UserProfileManagerUtils {
 	 * @param userInfo
 	 * @param userProfile Note this is treated as MUTABLE
 	 */
-	public static void clearPrivateFields(UserInfo userInfo, VerificationSubmission verificationSubmission) {		
+	public static void clearPrivateFields(VerificationSubmission verificationSubmission) {		
 		if (verificationSubmission != null) {
-			boolean canSeePrivate = isOwnerACTOrAdmin(userInfo, verificationSubmission.getCreatedBy());
-			if (!canSeePrivate) {
-				PrivateFieldUtils.clearPrivateFields(verificationSubmission);			
-			}
+			PrivateFieldUtils.clearPrivateFields(verificationSubmission);			
 		}
 	}
 	

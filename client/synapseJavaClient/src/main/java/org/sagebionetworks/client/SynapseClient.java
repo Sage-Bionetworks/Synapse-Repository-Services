@@ -2341,7 +2341,7 @@ public interface SynapseClient extends BaseClient {
 	 * 
 	 * @param verificationId
 	 * @param verificationState the new state for the verification request
-	 * @throws SynapseException
+	 * @throws SynapseException.   If the caller specifies an illegal state transition a BadRequestException will be thrown.
 	 */
 	void updateVerificationState(long verificationId, VerificationState verificationState) throws SynapseException;
 	

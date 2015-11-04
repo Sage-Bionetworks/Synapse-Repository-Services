@@ -25,10 +25,12 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.VerificationDAO;
 import org.sagebionetworks.repo.model.dbo.principal.AliasUtils;
+import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
+import org.sagebionetworks.repo.model.verification.AttachmentMetadata;
 import org.sagebionetworks.repo.model.verification.VerificationPagedResults;
 import org.sagebionetworks.repo.model.verification.VerificationState;
 import org.sagebionetworks.repo.model.verification.VerificationStateEnum;
@@ -98,10 +100,13 @@ public class VerificationManagerImpl implements VerificationManager {
 				userProfileManager.getUserProfile(userInfo.getId().toString()),
 				getOrcid(userInfo.getId()));
 		// 		User must be owner of file handle Ids
-		if (verificationSubmission.getFiles()!=null) {
-			for (String fileHandleId : verificationSubmission.getFiles()) {
-				AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-					authorizationManager.canAccessRawFileHandleById(userInfo, fileHandleId));
+		if (verificationSubmission.getAttachments()!=null) {
+			for (AttachmentMetadata attachmentMetadata : verificationSubmission.getAttachments()) {
+				String fileHandleId = attachmentMetadata.getId();
+				// this will throw an UnauthorizedException if the user is not the owner
+				FileHandle fileHandle = fileHandleManager.getRawFileHandle(userInfo, fileHandleId);
+				// now fill in the file metadata
+				attachmentMetadata.setFileName(fileHandle.getFileName());
 			}
 		}
 		return verificationDao.createVerificationSubmission(verificationSubmission);

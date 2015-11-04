@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.model.VerificationDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.verification.AttachmentMetadata;
 import org.sagebionetworks.repo.model.verification.VerificationState;
 import org.sagebionetworks.repo.model.verification.VerificationStateEnum;
 import org.sagebionetworks.repo.model.verification.VerificationSubmission;
@@ -89,7 +90,15 @@ public class DBOVerificationDAOImplTest {
 		}
 		dto.setCompany(COMPANY);
 		dto.setEmails(EMAILS);
-		dto.setFiles(fileHandleIds);
+		if (fileHandleIds!=null) {
+			List<AttachmentMetadata> attachments = new ArrayList<AttachmentMetadata>();
+			for (String fileHandleId : fileHandleIds) {
+				AttachmentMetadata attachmentMetadata = new AttachmentMetadata();
+				attachmentMetadata.setId(fileHandleId);
+				attachments.add(attachmentMetadata);
+			}
+			dto.setAttachments(attachments);
+		}
 		dto.setFirstName(FIRST_NAME);
 		dto.setLastName(LAST_NAME);
 		dto.setLocation(LOCATION);
@@ -396,6 +405,7 @@ public class DBOVerificationDAOImplTest {
 		assertEquals(VerificationStateEnum.REJECTED, verificationDao.getVerificationState(createdIdLong));
 
 		// if we make a new one, there's no confusion about which state we're checking...
+		dto = newVerificationSubmission(USER_1_ID, null);
 		VerificationSubmission created2 = verificationDao.createVerificationSubmission(dto);
 		vsToDelete.add(created2.getId());
 		

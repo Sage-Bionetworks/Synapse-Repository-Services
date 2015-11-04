@@ -27,13 +27,13 @@ import java.util.Map;
 import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
-import org.sagebionetworks.repo.manager.CertifiedUserManager;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.EntityPermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.manager.team.TeamConstants;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.IdList;
@@ -51,7 +51,7 @@ import org.sagebionetworks.repo.model.message.Settings;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
-import org.sagebionetworks.repo.model.quiz.PassingRecord;
+import org.sagebionetworks.repo.model.verification.AttachmentMetadata;
 import org.sagebionetworks.repo.model.verification.VerificationState;
 import org.sagebionetworks.repo.model.verification.VerificationStateEnum;
 import org.sagebionetworks.repo.model.verification.VerificationSubmission;
@@ -79,8 +79,6 @@ public class UserProfileServiceTest {
 	private EntityManager mockEntityManager;
 	private PrincipalAliasDAO mockPrincipalAliasDAO;
 	private VerificationDAO mockVerificationDao;
-	private CertifiedUserManager mockCertifiedUserManager;
-
 	
 	@Before
 	public void before() throws Exception {
@@ -90,8 +88,6 @@ public class UserProfileServiceTest {
 		mockEntityManager = mock(EntityManager.class);
 		mockPrincipalAliasDAO = mock(PrincipalAliasDAO.class);
 		mockVerificationDao = mock(VerificationDAO.class);
-		mockCertifiedUserManager = mock(CertifiedUserManager.class);
-		
 		
 		// Create UserGroups
 		List<PrincipalAlias> groups = new LinkedList<PrincipalAlias>();
@@ -133,7 +129,6 @@ public class UserProfileServiceTest {
 		ReflectionTestUtils.setField(userProfileService, "entityManager", mockEntityManager);
 		ReflectionTestUtils.setField(userProfileService, "principalAliasDAO", mockPrincipalAliasDAO);
 		ReflectionTestUtils.setField(userProfileService, "verificationDao", mockVerificationDao);
-		ReflectionTestUtils.setField(userProfileService, "certifiedUserManager", mockCertifiedUserManager);
 	}
 
 	
@@ -271,12 +266,6 @@ public class UserProfileServiceTest {
 		assertNull(settings2.getMarkEmailedMessagesAsRead());
 	}
 	
-	private void mockPassingRecord(Long userId) {
-		PassingRecord passingRecord = new PassingRecord();
-		passingRecord.setPassed(true);
-		when(mockCertifiedUserManager.getPassingRecord(userId)).thenReturn(passingRecord);
-	}
-	
 	private VerificationSubmission mockVerificationSubmission(Long userId, VerificationStateEnum currentState) {
 		VerificationSubmission verificationSubmission = new VerificationSubmission();
 		VerificationState state1 = new VerificationState(); 
@@ -288,7 +277,9 @@ public class UserProfileServiceTest {
 		state2.setCreatedBy("000");
 		state2.setCreatedOn(new Date());
 		verificationSubmission.setStateHistory(Arrays.asList(state1, state2));
-		verificationSubmission.setFiles(Collections.singletonList("123"));
+		AttachmentMetadata attachmentMetadata = new AttachmentMetadata();
+		attachmentMetadata.setId("123");
+		verificationSubmission.setAttachments(Collections.singletonList(attachmentMetadata));
 		verificationSubmission.setEmails(Collections.singletonList("test@example.com"));
 		when(mockVerificationDao.
 				getCurrentVerificationSubmissionForUser(userId)).thenReturn(verificationSubmission);
@@ -304,11 +295,12 @@ public class UserProfileServiceTest {
 		return userProfile;
 	}
 	
-	private void mockUserInfo(Long userId, boolean isACTMember) {
+	private void mockUserInfo(Long userId, boolean isACTMember, boolean isCertified) {
 		UserInfo userInfo = new UserInfo(false);
 		userInfo.setId(userId);
 		userInfo.setGroups(new HashSet<Long>(Arrays.asList(userId)));
 		if (isACTMember) userInfo.getGroups().add(TeamConstants.ACT_TEAM_ID);
+		if (isCertified) userInfo.getGroups().add(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
 
 		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo);
 	}
@@ -322,8 +314,7 @@ public class UserProfileServiceTest {
 	
 	@Test
 	public void testGetMyOwnUserBundle() throws Exception {
-		mockUserInfo(EXTRA_USER_ID, true);
-		mockPassingRecord(EXTRA_USER_ID);
+		mockUserInfo(EXTRA_USER_ID, /*isInACT*/true, /*isCertified*/true);
 		VerificationSubmission verificationSubmission = mockVerificationSubmission(EXTRA_USER_ID, VerificationStateEnum.APPROVED);
 		UserProfile userProfile = mockUserProfile(EXTRA_USER_ID);
 		mockOrcid(EXTRA_USER_ID, "http://orcid.org/foo");
@@ -341,8 +332,7 @@ public class UserProfileServiceTest {
 
 	@Test
 	public void testGetMyOwnUserBundleNoPassingRecord() throws Exception {
-		mockUserInfo(EXTRA_USER_ID, true);
-		when(mockCertifiedUserManager.getPassingRecord(EXTRA_USER_ID)).thenThrow(new NotFoundException());
+		mockUserInfo(EXTRA_USER_ID, /*isInACT*/true, /*isCertified*/false);
 
 		VerificationSubmission verificationSubmission = mockVerificationSubmission(EXTRA_USER_ID, VerificationStateEnum.APPROVED);
 		UserProfile userProfile = mockUserProfile(EXTRA_USER_ID);
@@ -361,7 +351,7 @@ public class UserProfileServiceTest {
 
 	@Test
 	public void testGetMyOwnUserBundleNullRecords() throws Exception {
-		mockUserInfo(EXTRA_USER_ID, false);
+		mockUserInfo(EXTRA_USER_ID, /*isInACT*/false, /*isCertified*/false);
 		UserProfile userProfile = mockUserProfile(EXTRA_USER_ID);
 		when(mockPrincipalAliasDAO.listPrincipalAliases(EXTRA_USER_ID, AliasType.USER_ORCID)).
 			thenReturn(Collections.EMPTY_LIST);
@@ -380,8 +370,7 @@ public class UserProfileServiceTest {
 	
 	@Test
 	public void testUserBundleMask() throws Exception {
-		mockUserInfo(EXTRA_USER_ID, true);
-		mockPassingRecord(EXTRA_USER_ID);
+		mockUserInfo(EXTRA_USER_ID, /*isInACT*/true, /*isCertified*/true);
 		mockVerificationSubmission(EXTRA_USER_ID, VerificationStateEnum.APPROVED);
 		mockUserProfile(EXTRA_USER_ID);
 		mockOrcid(EXTRA_USER_ID, "http://orcid.org/foo");
@@ -401,9 +390,8 @@ public class UserProfileServiceTest {
 	@Test
 	public void testUserBundlePublic() throws Exception {
 		Long bundleOwner = 101L;
-		mockUserInfo(bundleOwner, false);
-		mockUserInfo(EXTRA_USER_ID, false);
-		mockPassingRecord(bundleOwner);
+		mockUserInfo(bundleOwner, /*isInACT*/false, /*isCertified*/true);
+		mockUserInfo(EXTRA_USER_ID, /*isInACT*/false, /*isCertified*/false);
 		VerificationSubmission verificationSubmission = mockVerificationSubmission(bundleOwner, VerificationStateEnum.APPROVED);
 		mockUserProfile(bundleOwner);
 		mockOrcid(bundleOwner, "http://orcid.org/foo");
@@ -419,7 +407,7 @@ public class UserProfileServiceTest {
 		assertEquals("http://orcid.org/foo", result.getORCID());
 		assertEquals(verificationSubmission, result.getVerificationSubmission());
 		assertNull(verificationSubmission.getEmails());
-		assertNull(verificationSubmission.getFiles());
+		assertNull(verificationSubmission.getAttachments());
 		for (VerificationState state : verificationSubmission.getStateHistory()) {
 			assertNull(state.getCreatedBy());
 			assertNotNull(state.getCreatedOn());
@@ -434,13 +422,13 @@ public class UserProfileServiceTest {
 		assertNull(result.getVerificationSubmission());
 		
 		// unless we're in the ACT
-		mockUserInfo(EXTRA_USER_ID, /*is in the ACT*/true);
+		mockUserInfo(EXTRA_USER_ID, /*isInACT*/true, /*isCertified*/false);
 		result = userProfileService.
 				getUserBundleByOwnerId(EXTRA_USER_ID, bundleOwner.toString(), 63/*get everything*/);
 		assertFalse(result.getIsVerified());
 		assertEquals(verificationSubmission, result.getVerificationSubmission());
 		assertNotNull(verificationSubmission.getEmails());
-		assertNotNull(verificationSubmission.getFiles());
+		assertNotNull(verificationSubmission.getAttachments());
 		for (VerificationState state : verificationSubmission.getStateHistory()) {
 			assertNotNull(state.getCreatedBy());
 			assertNotNull(state.getCreatedOn());

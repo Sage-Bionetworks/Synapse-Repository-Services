@@ -26,6 +26,7 @@ import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
+import org.sagebionetworks.repo.model.verification.AttachmentMetadata;
 import org.sagebionetworks.repo.model.verification.VerificationPagedResults;
 import org.sagebionetworks.repo.model.verification.VerificationState;
 import org.sagebionetworks.repo.model.verification.VerificationStateEnum;
@@ -133,7 +134,9 @@ public class VerificationControllerAutowiredTest extends AbstractAutowiredContro
 		vs.setLocation(LOCATION);
 		vs.setEmails(emails);
 		String fileHandleId = fileHandleToDelete.getId();
-		vs.setFiles(Collections.singletonList(fileHandleId));
+		AttachmentMetadata attachmentMetadata = new AttachmentMetadata();
+		attachmentMetadata.setId(fileHandleId);
+		vs.setAttachments(Collections.singletonList(attachmentMetadata));
 		vs.setOrcid(orcid);
 		vs = servletTestHelper.createVerificationSubmission(dispatchServlet, 
 				userInfo.getId(), vs, NOTIFICATION_UNSUBSCRIBE_ENDPOINT);

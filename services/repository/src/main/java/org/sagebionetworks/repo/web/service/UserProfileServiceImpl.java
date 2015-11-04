@@ -41,6 +41,7 @@ import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.VerificationDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.dbo.principal.PrincipalPrefixDAO;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken;
@@ -92,9 +93,6 @@ public class UserProfileServiceImpl implements UserProfileService {
 	@Autowired
 	UserGroupDAO userGroupDao;
 	
-	@Autowired
-	CertifiedUserManager certifiedUserManager;
-
 	@Override
 	public UserProfile getMyOwnUserProfile(Long userId) 
 			throws DatastoreException, UnauthorizedException, NotFoundException {
@@ -342,7 +340,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 	@Override
 	public UserBundle getMyOwnUserBundle(Long userId, int mask)
 			throws DatastoreException, UnauthorizedException, NotFoundException {
-		return getUserBundlePrivate(userId, mask);
+		return getUserBundleWithAllPrivateFields(userId, mask);
 	}
 	
 	private static int USER_PROFILE_MASK = 0x1;
@@ -352,28 +350,19 @@ public class UserProfileServiceImpl implements UserProfileService {
 	private static int IS_VERIFIED_MASK = 0x10;
 	private static int IS_ACT_MEMBER_MASK = 0x20;
 	
-	private UserBundle getUserBundlePrivate(Long profileId, int mask) {
+	private UserBundle getUserBundleWithAllPrivateFields(Long profileId, int mask) {
 		UserBundle result = new UserBundle();
 		result.setUserId(profileId.toString());
 		if ((mask&USER_PROFILE_MASK)!=0) {
 			result.setUserProfile(userProfileManager.getUserProfile(profileId.toString()));
 		}
+		UserInfo userInfo = userManager.getUserInfo(profileId);
 		if ((mask&IS_ACT_MEMBER_MASK)!=0) {
-			UserInfo userInfo = userManager.getUserInfo(profileId);
 			result.setIsACTMember(userInfo.getGroups().contains(TeamConstants.ACT_TEAM_ID));
 		}
 		if ((mask&IS_CERTIFIED_MASK)!=0) {
-			PassingRecord passingRecord = null;
-			try {
-				passingRecord = certifiedUserManager.getPassingRecord(profileId);
-			} catch (NotFoundException e) {
-				passingRecord = null;
-			}
-			if (passingRecord==null) {
-				result.setIsCertified(false);
-			} else {
-				result.setIsCertified(passingRecord.getPassed());
-			}
+			result.setIsCertified(userInfo.getGroups().contains(
+					BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId()));
 		}
 		VerificationSubmission verificationSubmission = null;
 		if ((mask&(VERIFICATION_MASK|IS_VERIFIED_MASK))!=0) {
@@ -402,14 +391,16 @@ public class UserProfileServiceImpl implements UserProfileService {
 	@Override
 	public UserBundle getUserBundleByOwnerId(Long userId, String profileId, int mask)
 			throws DatastoreException, UnauthorizedException, NotFoundException {
-		UserBundle result = getUserBundlePrivate(Long.parseLong(profileId), mask);
+		UserBundle result = getUserBundleWithAllPrivateFields(Long.parseLong(profileId), mask);
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		UserProfileManagerUtils.clearPrivateFields(userInfo, result.getUserProfile());
-		if (!result.getIsVerified() && !UserProfileManagerUtils.isOwnerACTOrAdmin(userInfo, profileId)) {
-			// public doesn't get to see the VerificationSubmission unless it's 'APPROVED'
-			result.setVerificationSubmission(null);
-		} else {
-			UserProfileManagerUtils.clearPrivateFields(userInfo, result.getVerificationSubmission());
+		if (!UserProfileManagerUtils.isOwnerACTOrAdmin(userInfo, profileId)) {
+			if (result.getIsVerified()) {
+				UserProfileManagerUtils.clearPrivateFields(result.getVerificationSubmission());
+			} else {
+				// public doesn't get to see the VerificationSubmission unless it's 'APPROVED'
+				result.setVerificationSubmission(null);
+			}
 		}
 		return result;
 	}
