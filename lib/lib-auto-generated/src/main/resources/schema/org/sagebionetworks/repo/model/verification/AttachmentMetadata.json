@@ -1,0 +1,14 @@
+{
+    "title":"Attachment Metadata",
+    "description":"The metadata of a file attached to a Verification Submission",
+	"properties": {
+		"fileName":{
+			"type":"string",
+			"description":"The name of a file"
+		},
+		"id":{
+			"type":"string",
+			"description":"The identifier of a file"
+		}
+	}
+}
