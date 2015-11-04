@@ -127,8 +127,6 @@ public class VerificationManagerImplTest {
 		orcidAlias.setAlias(ORCID);
 		List<PrincipalAlias> paList = Collections.singletonList(orcidAlias);
 		when(mockPrincipalAliasDAO.listPrincipalAliases(USER_ID, AliasType.USER_ORCID)).thenReturn(paList);
-		when(mockAuthorizationManager.canAccessRawFileHandleById(eq(userInfo), FILE_HANDLE_ID)).
-			thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		verificationSubmission = createVerificationSubmission();
 		when(mockVerificationDao.
 				createVerificationSubmission(verificationSubmission)).thenReturn(verificationSubmission);
@@ -252,8 +250,8 @@ public class VerificationManagerImplTest {
 
 	@Test(expected=UnauthorizedException.class)
 	public void testCreateVerificationSubmissionUnauthorizedFile() {
-		when(mockAuthorizationManager.canAccessRawFileHandleById(eq(userInfo), anyString())).
-			thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+		when(mockFileHandleManager.getRawFileHandle(userInfo, FILE_HANDLE_ID)).thenThrow(new UnauthorizedException());
+
 		// method under test:
 		verificationSubmission = verificationManager.
 				createVerificationSubmission(userInfo, verificationSubmission);
