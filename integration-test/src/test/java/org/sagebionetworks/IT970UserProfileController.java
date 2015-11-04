@@ -47,6 +47,7 @@ public class IT970UserProfileController {
 	private static final int MAX_WAIT_MS = 40000;
 	private static final String MOCK_TEAM_ENDPOINT = "https://www.synapse.org/#Team:";
 	private static final String MOCK_NOTIFICATION_UNSUB_ENDPOINT = "https://www.synapse.org#unsub:";
+	private static final int ALL_USER_BUNDLE_FIELDS = 63;
 	
 	private static SynapseAdminClient adminSynapse;
 	private static SynapseClient synapse;
@@ -241,10 +242,10 @@ public class IT970UserProfileController {
 	@Test
 	public void testGetBundle() throws Exception {
 		UserProfile userProfile = synapse.getMyProfile();
-		UserBundle bundle = synapse.getMyOwnUserBundle(63/*everything*/);
+		UserBundle bundle = synapse.getMyOwnUserBundle(ALL_USER_BUNDLE_FIELDS);
 		assertEquals(userProfile, bundle.getUserProfile());
 		
-		bundle = synapse.getUserBundle(Long.parseLong(userProfile.getOwnerId()), 63/*everything*/);
+		bundle = synapse.getUserBundle(Long.parseLong(userProfile.getOwnerId()), ALL_USER_BUNDLE_FIELDS);
 		assertEquals(userProfile, bundle.getUserProfile());	
 	}
 

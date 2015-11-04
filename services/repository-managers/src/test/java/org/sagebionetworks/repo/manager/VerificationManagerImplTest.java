@@ -1,13 +1,22 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.sagebionetworks.repo.model.verification.VerificationStateEnum.*;
-import static org.sagebionetworks.repo.manager.EmailUtils.*;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_DISPLAY_NAME;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_REASON;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_USER_ID;
 import static org.sagebionetworks.repo.manager.VerificationManagerImpl.VERIFICATION_NOTIFICATION_SUBJECT;
+import static org.sagebionetworks.repo.model.verification.VerificationStateEnum.APPROVED;
+import static org.sagebionetworks.repo.model.verification.VerificationStateEnum.REJECTED;
+import static org.sagebionetworks.repo.model.verification.VerificationStateEnum.SUBMITTED;
+import static org.sagebionetworks.repo.model.verification.VerificationStateEnum.SUSPENDED;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -19,16 +28,17 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.team.EmailParseUtil;
-import org.sagebionetworks.repo.manager.team.MembershipInvitationManagerImpl;
 import org.sagebionetworks.repo.manager.team.TeamConstants;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.VerificationDAO;
+import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
+import org.sagebionetworks.repo.model.verification.AttachmentMetadata;
 import org.sagebionetworks.repo.model.verification.VerificationPagedResults;
 import org.sagebionetworks.repo.model.verification.VerificationState;
 import org.sagebionetworks.repo.model.verification.VerificationStateEnum;
@@ -45,7 +55,8 @@ public class VerificationManagerImplTest {
 	private static final String LOCATION = "location";
 	private static final String ORCID = "http://www.orcid.org/my-id";
 	private static final List<String> EMAILS = Arrays.asList("primary.email.com", "secondary.email.com");
-	private static final List<String> FILES = Arrays.asList("888", "999");
+	private static final String FILE_HANDLE_ID = "101";
+	private static final String FILE_NAME = "filename.txt";
 	private static final String NOTIFICATION_UNSUBSCRIBE_ENDPOINT = "https://synapse.org/#notificationUnsubscribeEndpoint:";
 
 	private static final Long VERIFICATION_ID = 222L;
@@ -85,7 +96,9 @@ public class VerificationManagerImplTest {
 		verificationSubmission.setLocation(LOCATION);
 		verificationSubmission.setCompany(COMPANY);
 		verificationSubmission.setEmails(EMAILS);
-		verificationSubmission.setFiles(FILES);
+		AttachmentMetadata attachmentMetadata = new AttachmentMetadata();
+		attachmentMetadata.setId(FILE_HANDLE_ID);
+		verificationSubmission.setAttachments(Collections.singletonList(attachmentMetadata));
 		verificationSubmission.setOrcid(ORCID);
 		return verificationSubmission;
 	}
@@ -114,12 +127,15 @@ public class VerificationManagerImplTest {
 		orcidAlias.setAlias(ORCID);
 		List<PrincipalAlias> paList = Collections.singletonList(orcidAlias);
 		when(mockPrincipalAliasDAO.listPrincipalAliases(USER_ID, AliasType.USER_ORCID)).thenReturn(paList);
-		when(mockAuthorizationManager.canAccessRawFileHandleById(eq(userInfo), anyString())).
+		when(mockAuthorizationManager.canAccessRawFileHandleById(eq(userInfo), FILE_HANDLE_ID)).
 			thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		verificationSubmission = createVerificationSubmission();
 		when(mockVerificationDao.
 				createVerificationSubmission(verificationSubmission)).thenReturn(verificationSubmission);
-				
+		FileHandle fileHandle = Mockito.mock(FileHandle.class);
+		when(fileHandle.getId()).thenReturn(FILE_HANDLE_ID);
+		when(fileHandle.getFileName()).thenReturn(FILE_NAME);
+		when(mockFileHandleManager.getRawFileHandle(userInfo, FILE_HANDLE_ID)).thenReturn(fileHandle);
 
 	}
 	
@@ -133,6 +149,9 @@ public class VerificationManagerImplTest {
 		verify(mockVerificationDao).createVerificationSubmission(verificationSubmission);
 		assertEquals(USER_ID.toString(), verificationSubmission.getCreatedBy());
 		assertNotNull(verificationSubmission.getCreatedOn());
+		assertEquals(1, verificationSubmission.getAttachments().size());
+		assertEquals(FILE_HANDLE_ID, verificationSubmission.getAttachments().get(0).getId());
+		assertEquals(FILE_NAME, verificationSubmission.getAttachments().get(0).getFileName());
 	}
 	
 	@Test
@@ -225,6 +244,7 @@ public class VerificationManagerImplTest {
 			String orcId) {
 		try {
 			VerificationManagerImpl.validateVerificationSubmission(verificationSubmission, userProfile, orcId);
+			fail("exception expected");
 		} catch (RuntimeException e) {
 			// as expected
 		}

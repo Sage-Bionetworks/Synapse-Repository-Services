@@ -35,6 +35,7 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOVerificationState;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOVerificationSubmission;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOVerificationSubmissionFile;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
+import org.sagebionetworks.repo.model.verification.AttachmentMetadata;
 import org.sagebionetworks.repo.model.verification.VerificationState;
 import org.sagebionetworks.repo.model.verification.VerificationStateEnum;
 import org.sagebionetworks.repo.model.verification.VerificationSubmission;
@@ -129,7 +130,7 @@ public class DBOVerificationDAOImpl implements VerificationDAO {
 		initialState.setCreatedOn(dto.getCreatedOn());
 		initialState.setState(VerificationStateEnum.SUBMITTED);
 		appendVerificationSubmissionState(dbo.getId(), initialState);
-		storeFileHandleIds(dbo.getId(), dto.getFiles());
+		storeFileHandleIds(dbo.getId(), dto.getAttachments());
 		return copyVerificationDBOtoDTO(created, Collections.singletonList(initialState));
 	}
 	
@@ -157,13 +158,13 @@ public class DBOVerificationDAOImpl implements VerificationDAO {
 		return dto;
 	}
 	
-	private void storeFileHandleIds(Long verificationSubmissionId, List<String> fileHandleIds) {
-		if (fileHandleIds==null || fileHandleIds.isEmpty()) return;
+	private void storeFileHandleIds(Long verificationSubmissionId, List<AttachmentMetadata> attachments) {
+		if (attachments==null || attachments.isEmpty()) return;
 		List<DBOVerificationSubmissionFile> batch = new ArrayList<DBOVerificationSubmissionFile>();
-		for (String fileHandleId : fileHandleIds) {
+		for (AttachmentMetadata attachmentMetadata : attachments) {
 			DBOVerificationSubmissionFile sf = new DBOVerificationSubmissionFile();
 			sf.setVerificationId(verificationSubmissionId);
-			sf.setFileHandleId(Long.parseLong(fileHandleId));
+			sf.setFileHandleId(Long.parseLong(attachmentMetadata.getId()));
 			batch.add(sf);
 		}
 		basicDao.createBatch(batch);

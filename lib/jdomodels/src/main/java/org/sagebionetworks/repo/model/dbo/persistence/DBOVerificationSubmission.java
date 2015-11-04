@@ -22,7 +22,7 @@ import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
-@Table(name = TABLE_VERIFICATION_SUBMISSION)
+@Table(name = TABLE_VERIFICATION_SUBMISSION, constraints={"UNIQUE UNIQUE_VERIFICATION_BY_ON ("+COL_VERIFICATION_SUBMISSION_CREATED_BY+", "+COL_VERIFICATION_SUBMISSION_CREATED_ON+")"})
 public class DBOVerificationSubmission implements
 		MigratableDatabaseObject<DBOVerificationSubmission, DBOVerificationSubmission> {
 
