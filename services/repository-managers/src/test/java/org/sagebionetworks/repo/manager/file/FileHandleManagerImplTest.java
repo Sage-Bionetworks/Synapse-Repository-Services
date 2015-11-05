@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
@@ -19,8 +20,10 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.List;
 
 import org.apache.commons.fileupload.FileItemIterator;
 import org.apache.commons.fileupload.FileItemStream;
@@ -41,6 +44,8 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
+import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
@@ -77,6 +82,7 @@ public class FileHandleManagerImplTest {
 	AmazonS3Client mockS3Client;
 	AuthorizationManager mockAuthorizationManager;
 	StorageLocationDAO mockStorageLocationDao;
+	FileHandleAuthorizationManager mockFileHandleAuthorizationManager;
 	
 	String bucket;
 	String key;
@@ -95,6 +101,7 @@ public class FileHandleManagerImplTest {
 		mockS3Client = Mockito.mock(AmazonS3Client.class);
 		mockAuthorizationManager = Mockito.mock(AuthorizationManager.class);
 		mockStorageLocationDao = Mockito.mock(StorageLocationDAO.class);
+		mockFileHandleAuthorizationManager = Mockito.mock(FileHandleAuthorizationManager.class);
 		
 		// The user is not really a mock
 		mockUser = new UserInfo(false,"987");
@@ -160,7 +167,10 @@ public class FileHandleManagerImplTest {
 		when(mockfileMetadataDao.createFile(externals3FileHandle)).thenReturn(externals3FileHandle);
 		
 		// the manager to test.
-		manager = new FileHandleManagerImpl(mockfileMetadataDao, mockPrimaryStrategy, mockFallbackStrategy, mockAuthorizationManager, mockS3Client);
+		manager = new FileHandleManagerImpl(
+				mockfileMetadataDao, mockPrimaryStrategy, 
+				mockFallbackStrategy, mockAuthorizationManager, 
+				mockS3Client, mockFileHandleAuthorizationManager);
 		ReflectionTestUtils.setField(manager, "storageLocationDAO", mockStorageLocationDao);
 	}
 	
@@ -498,7 +508,7 @@ public class FileHandleManagerImplTest {
 	}
 	
 	@Test
-	public void testGetURLAuthroized() throws Exception{
+	public void testGetURLAuthorized() throws Exception{
 		S3FileHandle s3FileHandle = new S3FileHandle();
 		s3FileHandle.setId("123");
 		s3FileHandle.setCreatedBy("456");
@@ -513,7 +523,7 @@ public class FileHandleManagerImplTest {
 	}
 	
 	@Test (expected=UnauthorizedException.class)
-	public void testGetURLUnauthroized() throws Exception{
+	public void testGetURLUnauthorized() throws Exception{
 		S3FileHandle s3FileHandle = new S3FileHandle();
 		s3FileHandle.setId("123");
 		s3FileHandle.setCreatedBy("456");
@@ -526,6 +536,49 @@ public class FileHandleManagerImplTest {
 		String redirect = manager.getRedirectURLForFileHandle(mockUser, s3FileHandle.getId());
 		assertEquals(expecedURL, redirect);
 	}
+	
+	
+	@Test
+	public void testGetURLforAssociatedFileAuthorized() throws Exception{
+		S3FileHandle s3FileHandle = new S3FileHandle();
+		s3FileHandle.setId("123");
+		s3FileHandle.setCreatedBy("456");
+		s3FileHandle.setBucketName("bucket");
+		s3FileHandle.setKey("key");
+		when(mockfileMetadataDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
+		String expectedURL = "https://amazon.com";
+		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).thenReturn(new URL(expectedURL));
+		FileHandleAssociation association = new FileHandleAssociation();
+		String associateObjectId = "999";
+		association.setAssociateObjectId(associateObjectId);
+		association.setAssociateObjectType(FileHandleAssociateType.VerificationSubmission);
+		association.setFileHandleId(s3FileHandle.getId());
+		List<FileHandleAssociation> associations = Collections.singletonList(association);
+		FileHandleAssociationAuthorizationStatus authorizationResult = 
+				new FileHandleAssociationAuthorizationStatus(
+				association, AuthorizationManagerUtil.AUTHORIZED);
+
+		when(mockFileHandleAuthorizationManager.canDownLoadFile(mockUser, associations)).
+		thenReturn(Collections.singletonList(authorizationResult));
+		
+		// method under test
+		String redirect = manager.getRedirectURLForFileHandle(mockUser,
+				s3FileHandle.getId(), FileHandleAssociateType.VerificationSubmission, associateObjectId);
+		
+		// the manager returns the redirect URL, no exception thrown
+		assertEquals(expectedURL, redirect);
+		
+		// now make it unauthorized
+		authorizationResult.setStatus(AuthorizationManagerUtil.ACCESS_DENIED);
+		try {
+			 manager.getRedirectURLForFileHandle(mockUser,
+						s3FileHandle.getId(), FileHandleAssociateType.VerificationSubmission, associateObjectId);;
+			fail("Exception expected");
+		} catch (UnauthorizedException e) {
+			// as expected
+		}
+	}
+	
 	
 	@Test
 	public void testCreateExternalS3FileHandleHappy(){

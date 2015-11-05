@@ -6,6 +6,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICA
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_STATE_STATE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_STATE_VERIFICATION_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_SUBMISSION_CREATED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_SUBMISSION_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_SUBMISSION_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_VERIFICATION_FILE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_VERIFICATION_STATE;
@@ -34,11 +35,13 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOVerificationState;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOVerificationSubmission;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOVerificationSubmissionFile;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
+import org.sagebionetworks.repo.model.verification.AttachmentMetadata;
 import org.sagebionetworks.repo.model.verification.VerificationState;
 import org.sagebionetworks.repo.model.verification.VerificationStateEnum;
 import org.sagebionetworks.repo.model.verification.VerificationSubmission;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -56,7 +59,34 @@ public class DBOVerificationDAOImpl implements VerificationDAO {
 	@Autowired
 	private IdGenerator idGenerator;
 
+	// get the latest submission for a user
+	// select * from verification_submission v where 
+	// v.created_by=? and 
+	// v.created_on=
+	// (select max(v2.created_on) from verification_submission v2 where v2.created_by=v.created_by)
+	private static final String LATEST_VERIFICATION_SUBMISSION_SQL = 
+		"SELECT * FROM "+TABLE_VERIFICATION_SUBMISSION+" v "+
+		" WHERE v."+COL_VERIFICATION_SUBMISSION_CREATED_BY+"=? AND v."+
+		COL_VERIFICATION_SUBMISSION_CREATED_ON+"=(SELECT MAX(v2."+COL_VERIFICATION_SUBMISSION_CREATED_ON+
+		") FROM "+TABLE_VERIFICATION_SUBMISSION+" v2 WHERE v2."+COL_VERIFICATION_SUBMISSION_CREATED_BY+
+		"=v."+COL_VERIFICATION_SUBMISSION_CREATED_BY+")";
+	
+	// get the latest/current state for a verification submission
+	// select s.state from VERIFICATION_STATE s where
+	// s.verification_id=? and 
+	// s.created_on =
+	// select(max(s2.created_on) from verification_state s2 where s2.verification_id=s.verification_id)
+	private static final String CURRENT_VERIFICATION_STATE_SQL =
+			"SELECT s."+COL_VERIFICATION_STATE_STATE+" FROM "+TABLE_VERIFICATION_STATE+
+			" s WHERE s."+COL_VERIFICATION_STATE_VERIFICATION_ID+"=? AND s."+
+			COL_VERIFICATION_STATE_CREATED_ON+"=(SELECT MAX(s2."+COL_VERIFICATION_STATE_CREATED_ON+
+			") FROM "+TABLE_VERIFICATION_STATE+" s2 WHERE s2."+COL_VERIFICATION_STATE_VERIFICATION_ID+
+			"=s."+COL_VERIFICATION_STATE_VERIFICATION_ID+")";
+	
 	private static final String VERIFICATION_SUBMISSION_CORE = "FROM "+TABLE_VERIFICATION_SUBMISSION;
+	
+	private static final String VERIFICATION_SUBMITTER_SQL = "SELECT "+COL_VERIFICATION_SUBMISSION_CREATED_BY+
+			" FROM "+TABLE_VERIFICATION_SUBMISSION+" WHERE "+COL_VERIFICATION_SUBMISSION_ID+"=?";
 	
 	// select verifications whose latest/newest state has the given state value
 	private static final String VERIFICATION_SUBMISSION_WITH_STATE_CORE = 
@@ -78,9 +108,9 @@ public class DBOVerificationDAOImpl implements VerificationDAO {
 			" WHERE "+COL_VERIFICATION_STATE_VERIFICATION_ID+" in (:"+COL_VERIFICATION_STATE_VERIFICATION_ID+") ORDER BY "+
 			COL_VERIFICATION_STATE_CREATED_ON+" ASC";
 	
-	private static final String FILE_ID_IN_VERIFICATION_SQL = 
-			"SELECT COUNT(*) FROM "+TABLE_VERIFICATION_FILE+" WHERE "+
-			COL_VERIFICATION_FILE_VERIFICATION_ID+"=? AND "+COL_VERIFICATION_FILE_FILEHANDLEID+"=?";
+	private static final String FILE_IDS_IN_VERIFICATION_SQL = 
+			"SELECT "+COL_VERIFICATION_FILE_FILEHANDLEID+" FROM "+TABLE_VERIFICATION_FILE+" WHERE "+
+			COL_VERIFICATION_FILE_VERIFICATION_ID+"=?";
 
 	private static TableMapping<DBOVerificationSubmission> DBO_VERIFICATION_SUB_MAPPING =
 			(new DBOVerificationSubmission()).getTableMapping();
@@ -100,7 +130,7 @@ public class DBOVerificationDAOImpl implements VerificationDAO {
 		initialState.setCreatedOn(dto.getCreatedOn());
 		initialState.setState(VerificationStateEnum.SUBMITTED);
 		appendVerificationSubmissionState(dbo.getId(), initialState);
-		storeFileHandleIds(dbo.getId(), dto.getFiles());
+		storeFileHandleIds(dbo.getId(), dto.getAttachments());
 		return copyVerificationDBOtoDTO(created, Collections.singletonList(initialState));
 	}
 	
@@ -128,13 +158,13 @@ public class DBOVerificationDAOImpl implements VerificationDAO {
 		return dto;
 	}
 	
-	private void storeFileHandleIds(Long verificationSubmissionId, List<String> fileHandleIds) {
-		if (fileHandleIds==null || fileHandleIds.isEmpty()) return;
+	private void storeFileHandleIds(Long verificationSubmissionId, List<AttachmentMetadata> attachments) {
+		if (attachments==null || attachments.isEmpty()) return;
 		List<DBOVerificationSubmissionFile> batch = new ArrayList<DBOVerificationSubmissionFile>();
-		for (String fileHandleId : fileHandleIds) {
+		for (AttachmentMetadata attachmentMetadata : attachments) {
 			DBOVerificationSubmissionFile sf = new DBOVerificationSubmissionFile();
 			sf.setVerificationId(verificationSubmissionId);
-			sf.setFileHandleId(Long.parseLong(fileHandleId));
+			sf.setFileHandleId(Long.parseLong(attachmentMetadata.getId()));
 			batch.add(sf);
 		}
 		basicDao.createBatch(batch);
@@ -142,16 +172,16 @@ public class DBOVerificationDAOImpl implements VerificationDAO {
 	
 	@WriteTransaction
 	@Override
-	public void deleteVerificationSubmission(String id) {
+	public void deleteVerificationSubmission(long verificationId) {
 		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(COL_VERIFICATION_SUBMISSION_ID.toLowerCase(), id);
+		param.addValue(COL_VERIFICATION_SUBMISSION_ID.toLowerCase(), verificationId);
 		basicDao.deleteObjectByPrimaryKey(DBOVerificationSubmission.class, param);
 	}
 
 	@WriteTransaction
 	@Override
-	public void appendVerificationSubmissionState(long verificationSubmissionId, VerificationState newState) {
-		DBOVerificationState dbo = copyVerificationStateDTOtoDBO(verificationSubmissionId, newState);
+	public void appendVerificationSubmissionState(long verificationId, VerificationState newState) {
+		DBOVerificationState dbo = copyVerificationStateDTOtoDBO(verificationId, newState);
 		basicDao.createNew(dbo);
 	}
 	
@@ -186,9 +216,9 @@ public class DBOVerificationDAOImpl implements VerificationDAO {
 	
 	@Override
 	public List<VerificationSubmission> listVerificationSubmissions(
-			List<VerificationStateEnum> states, Long userId, long limit, long offset) {
-		String sql = "SELECT * "+listVerificationSubmissionsSQLcore(states, userId)+LIMIT_OFFSET;
-		MapSqlParameterSource param = listVerificationSubmissionsParams(states, userId);
+			List<VerificationStateEnum> currentVerificationState, Long userId, long limit, long offset) {
+		String sql = "SELECT * "+listVerificationSubmissionsSQLcore(currentVerificationState, userId)+LIMIT_OFFSET;
+		MapSqlParameterSource param = listVerificationSubmissionsParams(currentVerificationState, userId);
 		param.addValue(LIMIT, limit);
 		param.addValue(OFFSET, offset);
 		
@@ -280,10 +310,38 @@ public class DBOVerificationDAOImpl implements VerificationDAO {
 	}
 	
 	@Override
-	public boolean isFileHandleIdInVerificationSubmission(long id,
-			long fileHandleId) {
-		Long count = jdbcTemplate.queryForObject(FILE_ID_IN_VERIFICATION_SQL, Long.class, id, fileHandleId);
-		return count>0;
+	public List<Long> listFileHandleIds(long verificationId) {
+		return jdbcTemplate.queryForList(FILE_IDS_IN_VERIFICATION_SQL, Long.class, verificationId);
+	}
+
+	@Override
+	public VerificationSubmission getCurrentVerificationSubmissionForUser(
+			long userId) {
+		DBOVerificationSubmission dbo = null;
+		try {
+			dbo = jdbcTemplate.queryForObject(
+				LATEST_VERIFICATION_SUBMISSION_SQL, DBO_VERIFICATION_SUB_MAPPING, userId);
+		} catch (EmptyResultDataAccessException e) {
+			return null;
+		}
+		Map<Long,List<VerificationState>> stateMap = getVerificationStates(
+				Collections.singleton(dbo.getId()));
+		List<VerificationState> stateHistory = stateMap.get(dbo.getId());
+		if (stateHistory==null) throw new IllegalStateException("Failed to retrieve state history for submission verification "+dbo.getId());
+		return copyVerificationDBOtoDTO(dbo, stateHistory);
+	}
+
+	@Override
+	public VerificationStateEnum getVerificationState(
+			long verificationId) {
+		String stateName = jdbcTemplate.queryForObject(CURRENT_VERIFICATION_STATE_SQL, String.class, verificationId);
+		return VerificationStateEnum.valueOf(stateName);
+	}
+
+	@Override
+	public long getVerificationSubmitter(long verificationId) {
+		return jdbcTemplate.queryForObject(VERIFICATION_SUBMITTER_SQL, Long.class, verificationId);
+		
 	}
 
 }

@@ -32,6 +32,7 @@ import org.sagebionetworks.repo.model.ProjectListSortColumn;
 import org.sagebionetworks.repo.model.ProjectListType;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.Team;
+import org.sagebionetworks.repo.model.UserBundle;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.util.TimeUtils;
@@ -46,6 +47,7 @@ public class IT970UserProfileController {
 	private static final int MAX_WAIT_MS = 40000;
 	private static final String MOCK_TEAM_ENDPOINT = "https://www.synapse.org/#Team:";
 	private static final String MOCK_NOTIFICATION_UNSUB_ENDPOINT = "https://www.synapse.org#unsub:";
+	private static final int ALL_USER_BUNDLE_FIELDS = 63;
 	
 	private static SynapseAdminClient adminSynapse;
 	private static SynapseClient synapse;
@@ -236,4 +238,16 @@ public class IT970UserProfileController {
 			}
 		});
 	}
+	
+	@Test
+	public void testGetBundle() throws Exception {
+		UserProfile userProfile = synapse.getMyProfile();
+		UserBundle bundle = synapse.getMyOwnUserBundle(ALL_USER_BUNDLE_FIELDS);
+		assertEquals(userProfile, bundle.getUserProfile());
+		
+		bundle = synapse.getUserBundle(Long.parseLong(userProfile.getOwnerId()), ALL_USER_BUNDLE_FIELDS);
+		assertEquals(userProfile, bundle.getUserProfile());	
+	}
+
+
 }

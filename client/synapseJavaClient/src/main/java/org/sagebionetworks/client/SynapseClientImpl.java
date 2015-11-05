@@ -97,6 +97,7 @@ import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.TeamMembershipStatus;
 import org.sagebionetworks.repo.model.TrashedEntity;
+import org.sagebionetworks.repo.model.UserBundle;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserProfile;
@@ -128,6 +129,7 @@ import org.sagebionetworks.repo.model.file.CompleteChunkedFileRequest;
 import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileCopyRequest;
 import org.sagebionetworks.repo.model.file.S3FileCopyResults;
@@ -193,6 +195,10 @@ import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiOrderHint;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
+import org.sagebionetworks.repo.model.verification.VerificationPagedResults;
+import org.sagebionetworks.repo.model.verification.VerificationState;
+import org.sagebionetworks.repo.model.verification.VerificationStateEnum;
+import org.sagebionetworks.repo.model.verification.VerificationSubmission;
 import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
 import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
@@ -403,6 +409,13 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public static final String AUTH_OAUTH_2_SESSION = AUTH_OAUTH_2+"/session";
 	public static final String AUTH_OAUTH_2_ALIAS = AUTH_OAUTH_2+"/alias";
 	
+	private static final String VERIFICATION_SUBMISSION = "/verificationSubmission";
+	private static final String CURRENT_VERIFICATION_STATE = "currentVerificationState";
+	private static final String VERIFICATION_STATE = "/state";
+	private static final String VERIFIED_USER_ID = "verifiedUserId";
+	private static final String USER_BUNDLE = "/bundle";
+	private static final String FILE_ASSOCIATE_TYPE = "fileAssociateType";
+	private static final String FILE_ASSOCIATE_ID = "fileAssociateId";
 	
 	// web request pagination parameters
 	public static final String LIMIT = "limit";
@@ -7403,6 +7416,122 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public void removeTeamFromChallenge(String challengeId, String teamId)
 			throws SynapseException {
 		throw new RuntimeException("Not Yet Implemented");
+	}
+	
+	@Override
+	public VerificationSubmission createVerificationSubmission(
+			VerificationSubmission verificationSubmission)
+			throws SynapseException {
+		try {
+			JSONObject jsonObj = EntityFactory.createJSONObjectForEntity(verificationSubmission);
+			jsonObj = createJSONObject(VERIFICATION_SUBMISSION, jsonObj);
+			return initializeFromJSONObject(jsonObj, VerificationSubmission.class);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
+	}
+	
+	@Override
+	public VerificationPagedResults listVerificationSubmissions(
+			VerificationStateEnum currentState, Long submitterId, Long limit,
+			Long offset) throws SynapseException {
+		String uri = VERIFICATION_SUBMISSION;
+		boolean anyParameters = false;
+		if  (currentState!=null) {
+			uri+=(anyParameters ?"&":"?")+CURRENT_VERIFICATION_STATE+"="+currentState;
+			anyParameters = true;
+		}
+		if  (submitterId!=null) {
+			uri+=(anyParameters ?"&":"?")+VERIFIED_USER_ID+"="+submitterId;
+			anyParameters = true;
+		}
+		if  (limit!=null) {
+			uri+=(anyParameters ?"&":"?")+LIMIT+"="+limit;
+			anyParameters = true;
+		}
+		if  (offset!=null) {
+			uri+=(anyParameters ?"&":"?")+OFFSET+"="+offset;
+			anyParameters = true;
+		}
+		JSONObject jsonObj = getEntity(uri);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		VerificationPagedResults results = new VerificationPagedResults();
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
+	}
+
+	@Override
+	public void updateVerificationState(long verificationId,
+			VerificationState verificationState) throws SynapseException {
+		try {
+			JSONObject jsonObj = EntityFactory.createJSONObjectForEntity(verificationState);
+			String uri = VERIFICATION_SUBMISSION+"/"+verificationId+VERIFICATION_STATE;
+			createJSONObject(uri, jsonObj);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
+	}
+
+	@Override
+	public void deleteVerificationSubmission(long verificationId) throws SynapseException {
+		getSharedClientConnection().deleteUri(repoEndpoint, 
+				VERIFICATION_SUBMISSION+"/"+verificationId, getUserAgent());
+	}
+
+	@Override
+	public UserBundle getMyOwnUserBundle(int mask) throws SynapseException {
+		JSONObject jsonObj = getEntity(USER+USER_BUNDLE+"?mask="+mask);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		UserBundle results = new UserBundle();
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
+	}
+
+	@Override
+	public UserBundle getUserBundle(long principalId, int mask)
+			throws SynapseException {
+		JSONObject jsonObj = getEntity(USER+"/"+principalId+USER_BUNDLE+"?mask="+mask);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		UserBundle results = new UserBundle();
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
+	}
+	
+	private static String createFileDownloadUri(FileHandleAssociation fileHandleAssociation, boolean redirect) {
+		return FILE + "/" + fileHandleAssociation.getFileHandleId() + "?" +
+				"&" + FILE_ASSOCIATE_TYPE + fileHandleAssociation.getAssociateObjectType() +
+		"&" + FILE_ASSOCIATE_ID + fileHandleAssociation.getAssociateObjectId() +
+		"&" + REDIRECT_PARAMETER + redirect;
+	}
+
+	@Override
+	public URL getFileURL(FileHandleAssociation fileHandleAssociation)
+			throws SynapseException {
+		try {
+			return getUrl(createFileDownloadUri(fileHandleAssociation, false));
+		} catch (IOException e) {
+			throw new SynapseClientException(e);
+		}
+	}
+
+	@Override
+	public void downloadFile(FileHandleAssociation fileHandleAssociation, File target)
+			throws SynapseException {
+		String uri = createFileDownloadUri(fileHandleAssociation, true);
+		getSharedClientConnection().downloadFromSynapse(
+				getRepoEndpoint() + uri, null, target, getUserAgent());
 	}
 
 }

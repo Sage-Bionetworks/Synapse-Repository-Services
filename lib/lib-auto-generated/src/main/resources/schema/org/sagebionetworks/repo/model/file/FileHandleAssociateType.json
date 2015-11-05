@@ -8,6 +8,7 @@
 		"UserProfileAttachment",
 		"MessageAttachment",
 		"TeamAttachment",
-		"SubmissionAttachment"
+		"SubmissionAttachment",
+		"VerificationSubmission"
 	]
 }

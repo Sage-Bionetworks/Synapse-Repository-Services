@@ -113,6 +113,7 @@ import org.sagebionetworks.repo.model.table.RawRowSet;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
+import org.sagebionetworks.repo.model.verification.AttachmentMetadata;
 import org.sagebionetworks.repo.model.verification.VerificationSubmission;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.controller.AbstractAutowiredControllerTestBase;
@@ -306,6 +307,9 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		VerificationSubmission dto = new VerificationSubmission();
 		dto.setCreatedBy(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString());
 		dto.setCreatedOn(new Date());
+		AttachmentMetadata attachmentMetadata = new AttachmentMetadata();
+		attachmentMetadata.setId(handleOne.getId());
+		dto.setAttachments(Collections.singletonList(attachmentMetadata));
 		verificationDao.createVerificationSubmission(dto);
 	}
 	

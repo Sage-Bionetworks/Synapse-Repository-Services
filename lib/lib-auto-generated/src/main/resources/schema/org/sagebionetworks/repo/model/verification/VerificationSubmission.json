@@ -15,7 +15,7 @@
 		},
 		"createdBy":{
 			"type":"string",
-			"description":"The principal ID of the user who created this object",
+			"description":"The principal ID of the user requesting verification",
 			"links": [{"rel": "describedby", "href": "http://synapse.sagebase.org/access/public"}]
 		},
 		"firstName": {
@@ -64,10 +64,13 @@
 			},
 			"links": [{"rel": "describedby", "href": "http://synapse.sagebase.org/access/public"}]
 		},
-		"files":{
+		"attachments":{
 			"type":"array",
-			"description":"Files attached to the submission",
-			"items":{"type":"string"}
+			"description":"Metadata of Files attached to the submission",
+			"items":{
+				"type":"object",
+				"$ref":"org.sagebionetworks.repo.model.verification.AttachmentMetadata"
+			}
 		}
 	}
 }

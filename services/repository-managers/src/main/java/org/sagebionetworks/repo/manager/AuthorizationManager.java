@@ -11,6 +11,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
@@ -181,4 +182,14 @@ public interface AuthorizationManager {
 	 * @throws NotFoundException
 	 */
 	public AuthorizationStatus canCreateWiki(UserInfo userInfo, String objectId, ObjectType objectType) throws DatastoreException, NotFoundException;
+
+	/**
+	 * 
+	 * @param userInfo
+	 * @return
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 */
+	boolean isACTTeamMemberOrAdmin(UserInfo userInfo)
+			throws DatastoreException, UnauthorizedException;
 }

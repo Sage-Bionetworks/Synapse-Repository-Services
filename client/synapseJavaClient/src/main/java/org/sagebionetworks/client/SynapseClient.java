@@ -62,6 +62,7 @@ import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.TeamMembershipStatus;
 import org.sagebionetworks.repo.model.TrashedEntity;
+import org.sagebionetworks.repo.model.UserBundle;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserProfile;
@@ -88,6 +89,7 @@ import org.sagebionetworks.repo.model.file.CompleteChunkedFileRequest;
 import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileCopyResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -141,6 +143,10 @@ import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiOrderHint;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
+import org.sagebionetworks.repo.model.verification.VerificationPagedResults;
+import org.sagebionetworks.repo.model.verification.VerificationState;
+import org.sagebionetworks.repo.model.verification.VerificationStateEnum;
+import org.sagebionetworks.repo.model.verification.VerificationSubmission;
 import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
 import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
@@ -2297,4 +2303,117 @@ public interface SynapseClient extends BaseClient {
 	BulkFileDownloadResponse getBulkFileDownloadResults(String asyncJobToken)
 			throws SynapseException, SynapseResultNotReadyException;
 	
+	/**
+	 *Request identity verification by the Synapse Access and Compliance Team
+	 *
+	 * @param verificationSubmission
+	 * @return the created submission
+	 * @throws SynapseException
+	 */
+	VerificationSubmission createVerificationSubmission(VerificationSubmission verificationSubmission) throws SynapseException;
+	
+	/**
+	 * Retrieve a list of verification submissions, optionally filtering by the
+	 * state of the submission (SUBMITTED, REJECTED, APPROVED, or SUSPENDED) and/or
+	 * the ID of the user who requested verification. If limit or offset is not
+	 * provided then a default page will be returned.
+	 * 
+	 * Note:  This service is available only the Synapse Access and Compliance Team
+	 * 
+	 * @param currentState (optional)
+	 * @param submitterId (optional)
+	 * @param limit (optional)
+	 * @param offset (optional)
+	 * @return
+	 * @throws SynapseException
+	 */
+	VerificationPagedResults listVerificationSubmissions(VerificationStateEnum currentState, Long submitterId, Long limit, Long offset) throws SynapseException;
+	
+	/**
+	 * Update the state of a verification request.  The allowed state transitions are:
+	 * <ul>
+	 * <li>SUBMITTED->REJECTED</li>
+	 * <li>SUBMITTED->APPROVED</li>
+	 * <li>APPROVED->SUSPENDED</li>
+	 * </ul>
+	 * 
+	 * Note:  This service is available only the Synapse Access and Compliance Team
+	 * 
+	 * @param verificationId
+	 * @param verificationState the new state for the verification request
+	 * @throws SynapseException.   If the caller specifies an illegal state transition a BadRequestException will be thrown.
+	 */
+	void updateVerificationState(long verificationId, VerificationState verificationState) throws SynapseException;
+	
+	/**
+	 * Delete a verification submission. The caller must be the creator of the object.
+	 * 
+	 * @param verificationId
+	 * @throws SynapseException 
+	 */
+	void deleteVerificationSubmission(long verificationId) throws SynapseException;
+	
+	/**
+	 * Get ones own user bundle.  Private fields in the UserProfile and 
+	 * VerificationSubmission (if one exists) are not scrubbed.  The mask bits
+	 * are defined as:
+	 * <li>	UserProfile  = 0x1 </li>
+	 * <li> ORCID  = 0x2 </li>
+	 * <li> VerificationSubmission  = 0x4 </li>
+	 * <li> IsCertified = 0x8 </li>
+	 * <li> Is Verified  = 0x10 </li>
+	 * <li> Is ACT Member = 0x20 </li>
+	 * 
+	 * @param mask
+	 * @return
+	 * @throws SynapseException
+	 */
+	UserBundle getMyOwnUserBundle(int mask) throws SynapseException;
+	
+	/**
+	 * 
+	 * Get the user bundle of another user.  If the subject is not oneself,
+	 * private fields in the User Profile are scrubbed.  If the subject is
+	 * not oneself and the caller is not an ACT member, then private fields
+	 * in the VerificationSubmission are scrubbed.
+	 * 
+	 * Private fields in the UserProfile and 
+	 * VerificationSubmission (if one exists) scrubbed.  The mask bits
+	 * are defined as:
+	 * <li>	UserProfile  = 0x1 </li>
+	 * <li> ORCID  = 0x2 </li>
+	 * <li> VerificationSubmission  = 0x4 </li>
+	 * <li> IsCertified = 0x8 </li>
+	 * <li> Is Verified  = 0x10 </li>
+	 * <li> Is ACT Member = 0x20 </li>
+	 *
+	 * @param principalId
+	 * @param mask
+	 * @return
+	 * @throws SynapseException
+	 */
+	UserBundle getUserBundle(long principalId, int mask) throws SynapseException;
+	
+	/**
+	 * Get the temporary URL from which the specified file handle may be downloaded.
+	 * The associateObjectType and associateObjectId give the context of the request
+	 * and are used to perform the authorization check.
+	 * 
+	 * @param fileHandleAssociation
+	 * @return
+	 * @throws SynapseException
+	 */
+	URL getFileURL(FileHandleAssociation fileHandleAssociation) throws SynapseException;
+	
+	/**
+	 * Download the specified file handle.
+	 * The associateObjectType and associateObjectId give the context of the request
+	 * and are used to perform the authorization check.
+	 * 
+	 * @param fileHandleAssociation
+	 * @param target the location to download the File to
+	 * @return
+	 * @throws SynapseException
+	 */
+	void downloadFile(FileHandleAssociation fileHandleAssociation, File target) throws SynapseException;
 }
