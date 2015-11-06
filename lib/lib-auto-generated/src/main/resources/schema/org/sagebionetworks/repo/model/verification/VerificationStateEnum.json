@@ -7,5 +7,7 @@
         "APPROVED",
 	 	"REJECTED",
 	 	"SUSPENDED"
-    ]
+    ],
+    "links": [{"rel": "describedby", "href": "http://synapse.sagebase.org/access/public"}]
+    
 }

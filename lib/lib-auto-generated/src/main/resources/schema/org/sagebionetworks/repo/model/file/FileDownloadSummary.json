@@ -5,6 +5,14 @@
 			"type": "string",
 			"description": "The file handle id of a requested file."
 		},
+		"associateObjectId": {
+			"description": "The ID of the object associated with the file",
+			"type": "string"
+		},
+		"associateObjectType": {
+			"description": "The type of object associated with the file.",
+			"$ref": "org.sagebionetworks.repo.model.file.FileHandleAssociateType"
+		},		
 		"zipEntryName": {
 			"type": "string",
 			"description": "The zip entry name used for this file.  This entry includes both the path and file name.  The value will only be set if the status is set to 'SUCCESS'"

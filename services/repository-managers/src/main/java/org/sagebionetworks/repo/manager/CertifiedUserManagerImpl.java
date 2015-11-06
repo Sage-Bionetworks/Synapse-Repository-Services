@@ -50,7 +50,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  */
 public class CertifiedUserManagerImpl implements CertifiedUserManager {
 	
-	public static final String QUESTIONNAIRE_PROPERTIES_FILE = "certifiedUsersTestDefault.json";
+	public static final String QUESTIONNAIRE_PROPERTIES_FILE = "certifiedUsersTestDefault_v2.json";
 	public static final String S3_QUESTIONNAIRE_KEY = "repository-managers."+QUESTIONNAIRE_PROPERTIES_FILE;
 	
 	@Autowired
@@ -406,7 +406,7 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager {
 	}
 
 	@Override
-	public PassingRecord getPassingRecord(UserInfo userInfo, Long principalId) throws DatastoreException, NotFoundException {
+	public PassingRecord getPassingRecord(Long principalId) throws DatastoreException, NotFoundException {
 		QuizGenerator quizGenerator = retrieveCertificationQuizGenerator();
 		long quizId = quizGenerator.getId();
 		return quizResponseDao.getPassingRecord(quizId, principalId);

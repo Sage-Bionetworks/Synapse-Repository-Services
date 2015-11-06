@@ -17,6 +17,7 @@ import org.sagebionetworks.repo.model.file.CompleteChunkedFileRequest;
 import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
@@ -223,4 +224,17 @@ public interface FileUploadService {
 	 * @return
 	 */
 	S3FileHandle createS3FileHandleCopy(Long userId, String handleIdToCopyFrom, String fileName, String contentType);
+
+	/**
+	 * 
+	 * @param userId
+	 * @param fileHandleId
+	 * @param fileAssociateType
+	 * @param fileAssociateId
+	 * @return
+	 * @throws NotFoundException
+	 */
+	String getPresignedUrlForFileHandle(Long userId, String fileHandleId,
+			FileHandleAssociateType fileAssociateType, String fileAssociateId)
+			throws NotFoundException;
 }

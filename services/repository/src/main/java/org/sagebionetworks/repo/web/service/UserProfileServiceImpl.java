@@ -10,14 +10,14 @@ import java.util.Set;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.repo.manager.CertifiedUserManager;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.EntityPermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.manager.UserProfileManagerUtils;
+import org.sagebionetworks.repo.manager.team.TeamConstants;
 import org.sagebionetworks.repo.manager.team.TeamManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -34,11 +34,14 @@ import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.ResponseMessage;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserBundle;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.VerificationDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.dbo.principal.PrincipalPrefixDAO;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken;
@@ -46,6 +49,10 @@ import org.sagebionetworks.repo.model.message.Settings;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
+import org.sagebionetworks.repo.model.quiz.PassingRecord;
+import org.sagebionetworks.repo.model.verification.VerificationState;
+import org.sagebionetworks.repo.model.verification.VerificationStateEnum;
+import org.sagebionetworks.repo.model.verification.VerificationSubmission;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.util.SignedTokenUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -56,10 +63,12 @@ import org.springframework.http.HttpHeaders;
 
 public class UserProfileServiceImpl implements UserProfileService {
 
-	private final Logger logger = LogManager.getLogger(UserProfileServiceImpl.class);
-
 	@Autowired
 	private UserProfileManager userProfileManager;
+	
+	@Autowired
+	private VerificationDAO verificationDao;
+	
 	@Autowired
 	PrincipalAliasDAO principalAliasDAO;
 	
@@ -80,9 +89,10 @@ public class UserProfileServiceImpl implements UserProfileService {
 	
 	@Autowired
 	PrincipalPrefixDAO principalPrefixDAO;
+	
 	@Autowired
 	UserGroupDAO userGroupDao;
-
+	
 	@Override
 	public UserProfile getMyOwnUserProfile(Long userId) 
 			throws DatastoreException, UnauthorizedException, NotFoundException {
@@ -206,33 +216,6 @@ public class UserProfileServiceImpl implements UserProfileService {
 		return response;
 	}
 	
-	// setters for managers (for testing)
-	@Override
-	public void setObjectTypeSerializer(ObjectTypeSerializer objectTypeSerializer) {
-		this.objectTypeSerializer = objectTypeSerializer;
-	}
-
-	@Override
-	public void setPermissionsManager(EntityPermissionsManager permissionsManager) {
-		this.entityPermissionsManager = permissionsManager;
-	}
-
-	@Override
-	public void setUserManager(UserManager userManager) {
-		this.userManager = userManager;
-	}
-
-	@Override
-	public void setUserProfileManager(UserProfileManager userProfileManager) {
-		this.userProfileManager = userProfileManager;
-	}
-
-	@Override
-	public void setEntityManager(EntityManager entityManager) {
-		this.entityManager = entityManager;
-	}
-
-	
 	@Override
 	public EntityHeader addFavorite(Long userId, String entityId)
 			throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException {
@@ -311,11 +294,6 @@ public class UserProfileServiceImpl implements UserProfileService {
 		return header;
 	}
 	
-	@Override
-	public void setPrincipalAlaisDAO(PrincipalAliasDAO mockPrincipalAlaisDAO) {
-		this.principalAliasDAO = mockPrincipalAlaisDAO;
-	}
-
 	/*
 	 * (non-Javadoc)
 	 * @see org.sagebionetworks.repo.web.service.UserProfileService#getUserProfileImage(java.lang.String)
@@ -357,6 +335,74 @@ public class UserProfileServiceImpl implements UserProfileService {
 		ResponseMessage responseMessage = new ResponseMessage();
 		responseMessage.setMessage("You have successfully updated your email notification settings.");
 		return responseMessage;
+	}
+
+	@Override
+	public UserBundle getMyOwnUserBundle(Long userId, int mask)
+			throws DatastoreException, UnauthorizedException, NotFoundException {
+		return getUserBundleWithAllPrivateFields(userId, mask);
+	}
+	
+	private static int USER_PROFILE_MASK = 0x1;
+	private static int ORCID_MASK = 0x2;
+	private static int VERIFICATION_MASK = 0x4;
+	private static int IS_CERTIFIED_MASK = 0x8;
+	private static int IS_VERIFIED_MASK = 0x10;
+	private static int IS_ACT_MEMBER_MASK = 0x20;
+	
+	private UserBundle getUserBundleWithAllPrivateFields(Long profileId, int mask) {
+		UserBundle result = new UserBundle();
+		result.setUserId(profileId.toString());
+		if ((mask&USER_PROFILE_MASK)!=0) {
+			result.setUserProfile(userProfileManager.getUserProfile(profileId.toString()));
+		}
+		UserInfo userInfo = userManager.getUserInfo(profileId);
+		if ((mask&IS_ACT_MEMBER_MASK)!=0) {
+			result.setIsACTMember(userInfo.getGroups().contains(TeamConstants.ACT_TEAM_ID));
+		}
+		if ((mask&IS_CERTIFIED_MASK)!=0) {
+			result.setIsCertified(userInfo.getGroups().contains(
+					BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId()));
+		}
+		VerificationSubmission verificationSubmission = null;
+		if ((mask&(VERIFICATION_MASK|IS_VERIFIED_MASK))!=0) {
+			verificationSubmission = verificationDao.getCurrentVerificationSubmissionForUser(profileId);
+		}
+		if ((mask&IS_VERIFIED_MASK)!=0) {
+			result.setIsVerified(false);
+			if (verificationSubmission!=null) {
+				List<VerificationState> list = verificationSubmission.getStateHistory();
+				VerificationStateEnum currentState = list.get(list.size()-1).getState();
+				result.setIsVerified(currentState==VerificationStateEnum.APPROVED);
+			}
+		}
+		if ((mask&ORCID_MASK)!=0) {
+			List<PrincipalAlias> orcidAliases = principalAliasDAO.listPrincipalAliases(profileId, AliasType.USER_ORCID);
+			if (orcidAliases.size()>1) throw new IllegalStateException("Cannot have multiple ORCIDs.");
+			result.setORCID(orcidAliases.isEmpty() ? null : orcidAliases.get(0).getAlias());
+		}
+		if ((mask&VERIFICATION_MASK)!=0) {
+			result.setVerificationSubmission(verificationSubmission);
+		}
+		return result;
+		
+	}
+
+	@Override
+	public UserBundle getUserBundleByOwnerId(Long userId, String profileId, int mask)
+			throws DatastoreException, UnauthorizedException, NotFoundException {
+		UserBundle result = getUserBundleWithAllPrivateFields(Long.parseLong(profileId), mask);
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		UserProfileManagerUtils.clearPrivateFields(userInfo, result.getUserProfile());
+		if (!UserProfileManagerUtils.isOwnerACTOrAdmin(userInfo, profileId)) {
+			if (result.getIsVerified()) {
+				UserProfileManagerUtils.clearPrivateFields(result.getVerificationSubmission());
+			} else {
+				// public doesn't get to see the VerificationSubmission unless it's 'APPROVED'
+				result.setVerificationSubmission(null);
+			}
+		}
+		return result;
 	}
 
 }
