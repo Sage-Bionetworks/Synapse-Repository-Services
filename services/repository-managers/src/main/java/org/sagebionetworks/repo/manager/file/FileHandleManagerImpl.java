@@ -1062,6 +1062,9 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		if(fileHandle.getStorageLocationId() == null){
 			throw new IllegalArgumentException("FileHandle.storageLocationId cannot be null");
 		}
+		if(fileHandle.getContentMd5() == null){
+			throw new IllegalArgumentException("FileHandle.contentMd5 cannot be null");
+		}
 		if (fileHandle.getFileName() == null) {
 			fileHandle.setFileName(NOT_SET);
 		}
@@ -1089,10 +1092,6 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		}
 		try {
 			ObjectMetadata summary = s3Client.getObjectMetadata(fileHandle.getBucketName(), fileHandle.getKey());
-			// set content MD5 and lenght if they were not passed in
-			if (fileHandle.getContentMd5() == null) {
-				fileHandle.setContentMd5(summary.getETag());
-			}
 			if (fileHandle.getContentSize() == null) {
 				fileHandle.setContentSize(summary.getContentLength());
 			}
