@@ -163,6 +163,7 @@ public class FileHandleManagerImplTest {
 		externals3FileHandle.setBucketName(bucket);
 		externals3FileHandle.setKey(key);
 		externals3FileHandle.setStorageLocationId(storageLocationId);
+		externals3FileHandle.setContentMd5(md5);
 		
 		when(mockfileMetadataDao.createFile(externals3FileHandle)).thenReturn(externals3FileHandle);
 		
@@ -593,6 +594,13 @@ public class FileHandleManagerImplTest {
 		assertEquals(bucket, result.getBucketName());
 		assertEquals(key, result.getKey());
 		assertEquals(storageLocationId, result.getStorageLocationId());
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCreateExternalS3FileHandleNullMD5(){
+		externals3FileHandle.setContentMd5(null);
+		// call under test
+		S3FileHandle result = manager.createExternalS3FileHandle(mockUser, externals3FileHandle);
 	}
 	
 	@Test (expected=UnauthorizedException.class)
