@@ -595,6 +595,13 @@ public class FileHandleManagerImplTest {
 		assertEquals(storageLocationId, result.getStorageLocationId());
 	}
 	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCreateExternalS3FileHandleNullMD5(){
+		externals3FileHandle.setContentMd5(null);
+		// call under test
+		S3FileHandle result = manager.createExternalS3FileHandle(mockUser, externals3FileHandle);
+	}
+	
 	@Test (expected=UnauthorizedException.class)
 	public void testCreateExternalS3FileHandleUnauthorized(){
 		// In this case the esl created by does not match the caller.
