@@ -260,4 +260,14 @@ public class UserManagerImpl implements UserManager {
 		return this.principalAliasDAO.findPrincipalWithAlias(alias);
 	}
 
+	@Override
+	public void unbindAlias(String aliasName, AliasType type, Long principalId) {
+		List<PrincipalAlias> aliases = principalAliasDAO.listPrincipalAliases(principalId, type, aliasName);
+		if (aliases.isEmpty()) throw new NotFoundException(
+				"The alias "+aliasName+" is not associated with the given user");
+		if (aliases.size()>1) throw new IllegalStateException(
+				"Expected one alias with name "+aliasName+" but found "+aliases.size());
+		principalAliasDAO.removeAliasFromPrincipal(principalId, aliases.get(0).getAliasId());
+	}
+
 }

@@ -69,5 +69,7 @@ public interface OAuthManager {
 	AliasAndType retrieveProvidersId(OAuthProvider provider,
 			String authorizationCode, String redirectUrl);
 
+	public AliasType getAliasTypeForProvider(OAuthProvider provider);
+
 
 }

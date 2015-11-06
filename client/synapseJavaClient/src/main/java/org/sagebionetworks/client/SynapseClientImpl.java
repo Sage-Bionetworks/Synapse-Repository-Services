@@ -147,6 +147,7 @@ import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken;
+import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthValidationRequest;
@@ -7032,8 +7033,21 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		
 	}
 	
+	@Override
+	public void unbindOAuthProvidersUserId(OAuthProvider provider, String alias) throws SynapseException {
+		if (provider==null) throw new IllegalArgumentException("provider is required.");
+		if (alias==null) throw new IllegalArgumentException("alias is required.");
+		try {
+		getSharedClientConnection().deleteUri(repoEndpoint,
+				AUTH_OAUTH_2_ALIAS+"?provider="+
+						URLEncoder.encode(provider.name(), "UTF-8")+
+						"&"+"alias="+URLEncoder.encode(alias, "UTF-8"), 
+				getUserAgent());
+		} catch (UnsupportedEncodingException e) {
+			throw new SynapseClientException(e);
+		}
+	}
 
-	
 	private Map<String, String> domainToParameterMap(DomainType domain) {
 		Map<String, String> parameters = Maps.newHashMap();
 		parameters.put(AuthorizationConstants.DOMAIN_PARAM, domain.name());

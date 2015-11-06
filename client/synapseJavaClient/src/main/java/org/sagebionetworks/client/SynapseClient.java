@@ -103,6 +103,7 @@ import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken;
+import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthValidationRequest;
@@ -1900,6 +1901,15 @@ public interface SynapseClient extends BaseClient {
 	 */
 	PrincipalAlias bindOAuthProvidersUserId(OAuthValidationRequest request)
 			throws SynapseException;
+	
+	/**
+	 * Remove an alias associated with an account via the OAuth mechanism.
+	 * 
+	 * @param provider
+	 * @param alias
+	 * @throws SynapseException
+	 */
+	void unbindOAuthProvidersUserId(OAuthProvider provider, String alias) throws SynapseException;
 	
 	/**
 	 * Get the Quiz specifically intended to be the Certified User test
