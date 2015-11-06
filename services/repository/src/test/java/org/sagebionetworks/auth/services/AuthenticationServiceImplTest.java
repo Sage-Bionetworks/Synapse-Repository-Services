@@ -16,8 +16,10 @@ import org.sagebionetworks.repo.manager.MessageManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.oauth.AliasAndType;
 import org.sagebionetworks.repo.manager.oauth.OAuthManager;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.TermsOfUseException;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.LoginCredentials;
 import org.sagebionetworks.repo.model.auth.NewUser;
@@ -191,6 +193,12 @@ public class AuthenticationServiceImplTest {
 
 		PrincipalAlias result = service.bindExternalID(principalId, request);
 		assertEquals(principalAlias, result);
+	}
+	
+	@Test(expected=UnauthorizedException.class)
+	public void testBindExternalIDAnonymous() throws Exception {
+		service.bindExternalID(
+				AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId(), null);
 	}
 	
 

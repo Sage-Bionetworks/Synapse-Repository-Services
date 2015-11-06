@@ -10,6 +10,8 @@ import org.sagebionetworks.repo.manager.MessageManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.oauth.AliasAndType;
 import org.sagebionetworks.repo.manager.oauth.OAuthManager;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
@@ -307,7 +309,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	
 	@Override
 	public PrincipalAlias bindExternalID(Long userId, OAuthValidationRequest validationRequest) {
-		if (userId==null) throw new UnauthorizedException("User ID is required.");
+		if (AuthorizationUtils.isUserAnonymous(userId)) throw new UnauthorizedException("User ID is required.");
 		AliasAndType providersUserId = oauthManager.retrieveProvidersId(
 				validationRequest.getProvider(), 
 				validationRequest.getAuthenticationCode(),
