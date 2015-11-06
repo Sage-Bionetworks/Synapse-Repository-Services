@@ -10,6 +10,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 
 import org.junit.Before;
@@ -118,6 +120,27 @@ public class UserManagerImplUnitTest {
 		PrincipalAlias result = userManager.bindAlias(aliasName, type, principalId);
 		verify(mockPrincipalAliasDAO).bindAliasToPrincipal(eq(expected));
 		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testUnBindAlias() throws Exception {
+		String aliasName = "name";
+		AliasType type = AliasType.USER_OPEN_ID;
+		Long principalId = 101L;
+		PrincipalAlias principalAlias = new PrincipalAlias();
+		principalAlias.setAliasId(999L);
+		principalAlias.setAlias(aliasName);
+		principalAlias.setPrincipalId(principalId);
+		principalAlias.setType(type);
+		List<PrincipalAlias> list = Collections.singletonList(principalAlias);
+		when(mockPrincipalAliasDAO.
+				listPrincipalAliases(principalId, type, aliasName)).
+				thenReturn(list);
+		
+		userManager.unbindAlias(aliasName, type, principalId);
+		
+		verify(mockPrincipalAliasDAO).listPrincipalAliases(principalId, type, aliasName);
+		verify(mockPrincipalAliasDAO).removeAliasFromPrincipal(principalId, 999L);
 	}
 	
 }
