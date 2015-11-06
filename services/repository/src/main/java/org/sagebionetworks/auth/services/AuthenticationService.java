@@ -9,6 +9,7 @@ import org.sagebionetworks.repo.model.auth.ChangePasswordRequest;
 import org.sagebionetworks.repo.model.auth.LoginCredentials;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Session;
+import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthValidationRequest;
@@ -123,4 +124,6 @@ public interface AuthenticationService {
 			OAuthValidationRequest request) throws NotFoundException;
 
 	public PrincipalAlias bindExternalID(Long userId, OAuthValidationRequest validationRequest);
+
+	void unbindExternalID(Long userId, OAuthProvider provider, String aliasName);
 }
