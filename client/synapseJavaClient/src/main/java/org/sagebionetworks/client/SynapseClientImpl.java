@@ -7029,7 +7029,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public PrincipalAlias bindOAuthProvidersUserId(OAuthValidationRequest request)
 			throws SynapseException {
-		return asymmetricalPost(getAuthEndpoint(), AUTH_OAUTH_2_ALIAS, request, PrincipalAlias.class, null);
+		return asymmetricalPost(authEndpoint, AUTH_OAUTH_2_ALIAS, request, PrincipalAlias.class, null);
 		
 	}
 	
@@ -7038,7 +7038,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		if (provider==null) throw new IllegalArgumentException("provider is required.");
 		if (alias==null) throw new IllegalArgumentException("alias is required.");
 		try {
-		getSharedClientConnection().deleteUri(repoEndpoint,
+		getSharedClientConnection().deleteUri(authEndpoint,
 				AUTH_OAUTH_2_ALIAS+"?provider="+
 						URLEncoder.encode(provider.name(), "UTF-8")+
 						"&"+"alias="+URLEncoder.encode(alias, "UTF-8"), 
