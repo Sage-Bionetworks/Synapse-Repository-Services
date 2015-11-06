@@ -163,6 +163,7 @@ public class FileHandleManagerImplTest {
 		externals3FileHandle.setBucketName(bucket);
 		externals3FileHandle.setKey(key);
 		externals3FileHandle.setStorageLocationId(storageLocationId);
+		externals3FileHandle.setContentMd5(md5);
 		
 		when(mockfileMetadataDao.createFile(externals3FileHandle)).thenReturn(externals3FileHandle);
 		
