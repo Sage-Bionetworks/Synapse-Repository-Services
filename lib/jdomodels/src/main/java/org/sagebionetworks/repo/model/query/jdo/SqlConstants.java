@@ -691,8 +691,13 @@ public class SqlConstants {
 	public static final String COL_VERIFICATION_FILE_FILEHANDLEID = "FILE_HANDLE_ID";
 	public static final String FK_VERIFICATION_FILE_FILE_ID = "VERI_FILE_FILE_ID";
 	public static final String FK_VERIFICATION_FILE_VERIFICATION_ID = "VERI_FILE_VERI_ID";
-	
-	
+
+	// Forum table
+	public static final String TABLE_FORUM = "FORUM";
+	public static final String COL_FORUM_ID = "ID";
+	public static final String FK_FORUM_PROJECT_ID = "PROJECT_ID";
+	public static final String DDL_FORUM = "Forum-ddl.sql";
+
 	// This seems to be the name of the id column for all tables.
 	public static final String COLUMN_ID		= "id";
 	
