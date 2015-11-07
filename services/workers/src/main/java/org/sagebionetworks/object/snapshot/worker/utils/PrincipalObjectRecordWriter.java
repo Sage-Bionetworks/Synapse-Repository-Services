@@ -1,10 +1,11 @@
 package org.sagebionetworks.object.snapshot.worker.utils;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.io.IOException;
+import java.util.Arrays;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.audit.dao.ObjectRecordDAO;
 import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Team;
@@ -19,36 +20,41 @@ import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
-public class PrincipalObjectRecordBuilder implements ObjectRecordBuilder {
+public class PrincipalObjectRecordWriter implements ObjectRecordWriter {
 
-	static private Logger log = LogManager.getLogger(PrincipalObjectRecordBuilder.class);
+	static private Logger log = LogManager.getLogger(PrincipalObjectRecordWriter.class);
 	@Autowired
 	private UserGroupDAO userGroupDAO;
 	@Autowired
 	private UserProfileDAO userProfileDAO;
 	@Autowired
 	private TeamDAO teamDAO;
+	@Autowired
+	private ObjectRecordDAO objectRecordDAO;
 	
-	PrincipalObjectRecordBuilder(){}
+	PrincipalObjectRecordWriter(){}
 	
 	// for unit test only
-	PrincipalObjectRecordBuilder(UserGroupDAO userGroupDAO, UserProfileDAO userProfileDAO, TeamDAO teamDAO) {
+	PrincipalObjectRecordWriter(UserGroupDAO userGroupDAO, UserProfileDAO userProfileDAO, 
+			TeamDAO teamDAO, ObjectRecordDAO objectRecordDAO) {
 		this.userGroupDAO = userGroupDAO;
 		this.userProfileDAO = userProfileDAO;
 		this.teamDAO = teamDAO;
+		this.objectRecordDAO = objectRecordDAO;
 	}
 
 	@Override
-	public List<ObjectRecord> build(ChangeMessage message) {
+	public void buildAndWriteRecord(ChangeMessage message) throws IOException {
 		if (message.getObjectType() != ObjectType.PRINCIPAL || message.getChangeType() == ChangeType.DELETE) {
 			throw new IllegalArgumentException();
 		}
 		Long principalId = Long.parseLong(message.getObjectId());
 		UserGroup userGroup = null;
-		List<ObjectRecord> list = new ArrayList<ObjectRecord>();
 		try {
 			userGroup = userGroupDAO.get(principalId);
-			list.add(ObjectRecordBuilderUtils.buildObjectRecord(userGroup, message.getTimestamp().getTime()));
+			ObjectRecord objectRecord = ObjectRecordBuilderUtils.buildObjectRecord(userGroup, message.getTimestamp().getTime());
+			objectRecordDAO.saveBatch(Arrays.asList(objectRecord), objectRecord.getJsonClassName());
+			// TODO: log all teams this principal belongs to
 		} catch (NotFoundException e) {
 			log.warn("Principal not found: "+principalId);
 		}
@@ -57,7 +63,8 @@ public class PrincipalObjectRecordBuilder implements ObjectRecordBuilder {
 			try {
 				UserProfile profile = userProfileDAO.get(message.getObjectId());
 				profile.setSummary(null);
-				list.add(ObjectRecordBuilderUtils.buildObjectRecord(profile, message.getTimestamp().getTime()));
+				ObjectRecord objectRecord = ObjectRecordBuilderUtils.buildObjectRecord(profile, message.getTimestamp().getTime());
+				objectRecordDAO.saveBatch(Arrays.asList(objectRecord), objectRecord.getJsonClassName());
 			} catch (NotFoundException e) {
 				log.warn("UserProfile not found: "+principalId);
 			}
@@ -65,11 +72,11 @@ public class PrincipalObjectRecordBuilder implements ObjectRecordBuilder {
 			// Team
 			try {
 				Team team = teamDAO.get(message.getObjectId());
-				list.add(ObjectRecordBuilderUtils.buildObjectRecord(team, message.getTimestamp().getTime()));
+				ObjectRecord objectRecord = ObjectRecordBuilderUtils.buildObjectRecord(team, message.getTimestamp().getTime());
+				objectRecordDAO.saveBatch(Arrays.asList(objectRecord), objectRecord.getJsonClassName());
 			} catch (NotFoundException e) {
 				log.warn("Team not found: "+principalId);
 			}
 		}
-		return list;
 	}
 }

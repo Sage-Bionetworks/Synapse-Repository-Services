@@ -1,16 +1,14 @@
 package org.sagebionetworks.object.snapshot.worker.utils;
 
-import static org.junit.Assert.*;
-
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Date;
-import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
+import org.sagebionetworks.audit.dao.ObjectRecordDAO;
 import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Team;
@@ -25,12 +23,13 @@ import org.sagebionetworks.repo.model.message.ChangeType;
 
 import com.amazonaws.services.sqs.model.Message;
 
-public class PrincipalObjectRecordBuilderTest {
+public class PrincipalObjectRecordWriterTest {
 	
-	private PrincipalObjectRecordBuilder builder;
+	private PrincipalObjectRecordWriter writer;
 	private UserProfileDAO mockUserProfileDAO;
 	private UserGroupDAO mockUserGroupDAO;
 	private TeamDAO mockTeamDAO;
+	private ObjectRecordDAO mockObjectRecordDao;
 	
 	private Long principalID = 123L;
 	private Date createdOn = new Date();
@@ -48,7 +47,9 @@ public class PrincipalObjectRecordBuilderTest {
 		mockUserGroupDAO = Mockito.mock(UserGroupDAO.class);
 		mockUserProfileDAO = Mockito.mock(UserProfileDAO.class);
 		mockTeamDAO = Mockito.mock(TeamDAO.class);
-		builder = new PrincipalObjectRecordBuilder(mockUserGroupDAO, mockUserProfileDAO, mockTeamDAO);	
+		mockObjectRecordDao = Mockito.mock(ObjectRecordDAO.class);
+		writer = new PrincipalObjectRecordWriter(mockUserGroupDAO, mockUserProfileDAO,
+				mockTeamDAO, mockObjectRecordDao);	
 
 		ug = new UserGroup();
 
@@ -82,7 +83,7 @@ public class PrincipalObjectRecordBuilderTest {
 	public void nonPrincipalChangeMessage() throws IOException {
 		Message message = MessageUtils.buildMessage(ChangeType.CREATE, "123", ObjectType.ACTIVITY, "1", "etag", timestamp);
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
-		builder.build(changeMessage);
+		writer.buildAndWriteRecord(changeMessage);
 	}
 
 	@Test
@@ -92,7 +93,7 @@ public class PrincipalObjectRecordBuilderTest {
 		Mockito.when(mockTeamDAO.get(principalID.toString())).thenReturn(team);
 		Message message = MessageUtils.buildMessage(ChangeType.CREATE, principalID.toString(), ObjectType.PRINCIPAL, etag, timestamp);
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
-		builder.build(changeMessage);
+		writer.buildAndWriteRecord(changeMessage);
 		Mockito.verify(mockUserGroupDAO).get(principalID);
 		Mockito.verify(mockUserProfileDAO, Mockito.never()).get(Mockito.anyString());
 		Mockito.verify(mockTeamDAO).get(principalID.toString());
@@ -103,7 +104,7 @@ public class PrincipalObjectRecordBuilderTest {
 	public void deleteTeamTest() throws IOException {
 		Message message = MessageUtils.buildMessage(ChangeType.DELETE, principalID.toString(), ObjectType.PRINCIPAL, etag, timestamp);
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
-		builder.build(changeMessage);
+		writer.buildAndWriteRecord(changeMessage);
 	}
 
 	@Test
@@ -113,7 +114,7 @@ public class PrincipalObjectRecordBuilderTest {
 		Mockito.when(mockTeamDAO.get(principalID.toString())).thenReturn(team);
 		Message message = MessageUtils.buildMessage(ChangeType.UPDATE, principalID.toString(), ObjectType.PRINCIPAL, etag, timestamp);
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
-		builder.build(changeMessage);
+		writer.buildAndWriteRecord(changeMessage);
 		Mockito.verify(mockUserGroupDAO).get(principalID);
 		Mockito.verify(mockUserProfileDAO, Mockito.never()).get(Mockito.anyString());
 		Mockito.verify(mockTeamDAO).get(principalID.toString());
@@ -127,13 +128,15 @@ public class PrincipalObjectRecordBuilderTest {
 		Mockito.when(mockUserProfileDAO.get(principalID.toString())).thenReturn(up);
 		Message message = MessageUtils.buildMessage(ChangeType.CREATE, principalID.toString(), ObjectType.PRINCIPAL, etag, timestamp);
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
-		List<ObjectRecord> records = builder.build(changeMessage);
+		ObjectRecord ugr = ObjectRecordBuilderUtils.buildObjectRecord(ug, timestamp);
+		ObjectRecord upr = ObjectRecordBuilderUtils.buildObjectRecord(up, timestamp);
+		writer.buildAndWriteRecord(changeMessage);
 		Mockito.verify(mockUserGroupDAO).get(principalID);
 		Mockito.verify(mockUserProfileDAO).get(principalID.toString());
 		Mockito.verify(mockTeamDAO, Mockito.never()).get(Mockito.anyString());
 		Mockito.verify(mockTeamDAO, Mockito.never()).getMember(Mockito.anyString(), Mockito.anyString());
-		assertEquals(records.get(0), ObjectRecordBuilderUtils.buildObjectRecord(ug, timestamp));
-		assertEquals(records.get(1), ObjectRecordBuilderUtils.buildObjectRecord(up, timestamp));
+		Mockito.verify(mockObjectRecordDao).saveBatch(Mockito.eq(Arrays.asList(ugr)), Mockito.eq(ugr.getJsonClassName()));
+		Mockito.verify(mockObjectRecordDao).saveBatch(Mockito.eq(Arrays.asList(upr)), Mockito.eq(upr.getJsonClassName()));
 	}
 
 	@Test
@@ -143,7 +146,7 @@ public class PrincipalObjectRecordBuilderTest {
 		Mockito.when(mockUserProfileDAO.get(principalID.toString())).thenReturn(up);
 		Message message = MessageUtils.buildMessage(ChangeType.UPDATE, principalID.toString(), ObjectType.PRINCIPAL, etag, timestamp);
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
-		builder.build(changeMessage);
+		writer.buildAndWriteRecord(changeMessage);
 		Mockito.verify(mockUserGroupDAO).get(principalID);
 		Mockito.verify(mockUserProfileDAO).get(principalID.toString());
 		Mockito.verify(mockTeamDAO, Mockito.never()).get(Mockito.anyString());
@@ -154,6 +157,6 @@ public class PrincipalObjectRecordBuilderTest {
 	public void deleteUserProfileTest() throws IOException {
 		Message message = MessageUtils.buildMessage(ChangeType.DELETE, principalID.toString(), ObjectType.PRINCIPAL, etag, timestamp);
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
-		builder.build(changeMessage);
+		writer.buildAndWriteRecord(changeMessage);
 	}
 }

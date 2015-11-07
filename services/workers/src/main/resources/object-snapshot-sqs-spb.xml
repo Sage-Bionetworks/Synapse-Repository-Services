@@ -11,43 +11,37 @@
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 	
-		<!-- ObjectRecord Builders -->
-	<bean id="principalObjectRecordBuilder"
-		class="org.sagebionetworks.object.snapshot.worker.utils.PrincipalObjectRecordBuilder"
+		<!-- ObjectRecord Writers -->
+	<bean id="principalObjectRecordWriter"
+		class="org.sagebionetworks.object.snapshot.worker.utils.PrincipalObjectRecordWriter"
 		scope="singleton" />
-	<bean id="teamMemberObjectRecordBuilder"
-		class="org.sagebionetworks.object.snapshot.worker.utils.TeamMemberObjectRecordBuilder"
+	<bean id="aclObjectRecordWriter"
+		class="org.sagebionetworks.object.snapshot.worker.utils.AclObjectRecordWriter"
 		scope="singleton" />
-	<bean id="aclObjectRecordBuilder"
-		class="org.sagebionetworks.object.snapshot.worker.utils.AclObjectRecordBuilder"
+	<bean id="nodeObjectRecordWriter"
+		class="org.sagebionetworks.object.snapshot.worker.utils.NodeObjectRecordWriter"
 		scope="singleton" />
-	<bean id="nodeObjectRecordBuilder"
-		class="org.sagebionetworks.object.snapshot.worker.utils.NodeObjectRecordBuilder"
-		scope="singleton" />
-	<bean id="projectSettingObjectRecordBuilder"
-		class="org.sagebionetworks.object.snapshot.worker.utils.ProjectSettingObjectRecordBuilder"
+	<bean id="projectSettingObjectRecordWriter"
+		class="org.sagebionetworks.object.snapshot.worker.utils.ProjectSettingObjectRecordWriter"
 		scope="singleton" />
 
 	<!-- the keys in this map must be the values of the org.sagebionetworks.repo.model.ObjectType enum -->
-	<bean id="objectRecordBuilderFactory"
-		class="org.sagebionetworks.object.snapshot.worker.utils.ObjectRecordBuilderFactory"
+	<bean id="objectRecordWriterFactory"
+		class="org.sagebionetworks.object.snapshot.worker.utils.ObjectRecordWriterFactory"
 		scope="singleton">
-		<property name="builderMap">
+		<property name="WriterMap">
 			<map>
 				<entry key="PRINCIPAL">
-					<ref bean="principalObjectRecordBuilder" />
-				</entry>
-				<entry key="TEAM_MEMBER">
-					<ref bean="teamMemberObjectRecordBuilder" />
+					<ref bean="principalObjectRecordWriter" />
 				</entry>
 				<entry key="ACCESS_CONTROL_LIST">
-					<ref bean="aclObjectRecordBuilder" />
+					<ref bean="aclObjectRecordWriter" />
 				</entry>
 				<entry key="ENTITY">
-					<ref bean="nodeObjectRecordBuilder" />
+					<ref bean="nodeObjectRecordWriter" />
 				</entry>
 				<entry key="PROJECT_SETTING">
-					<ref bean="projectSettingObjectRecordBuilder" />
+					<ref bean="projectSettingObjectRecordWriter" />
 				</entry>
 			</map>
 		</property>
@@ -82,7 +76,6 @@
 								</property>
 								<property name="topicNamesToSubscribe">
 									<list>
-										<ref bean="stackConfiguration.repositoryChangeTopic[TEAM_MEMBER]" />
 										<ref bean="stackConfiguration.repositoryChangeTopic[PRINCIPAL]" />
 										<ref bean="stackConfiguration.repositoryChangeTopic[ACCESS_CONTROL_LIST]" />
 										<ref bean="stackConfiguration.repositoryChangeTopic[ENTITY]" />
