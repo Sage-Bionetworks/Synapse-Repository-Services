@@ -1,7 +1,9 @@
 package org.sagebionetworks.object.snapshot.worker.utils;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -10,6 +12,7 @@ import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
+import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserProfile;
@@ -31,6 +34,8 @@ public class PrincipalObjectRecordWriter implements ObjectRecordWriter {
 	private TeamDAO teamDAO;
 	@Autowired
 	private ObjectRecordDAO objectRecordDAO;
+
+	private final long LIMIT = 100;
 	
 	PrincipalObjectRecordWriter(){}
 	
@@ -54,7 +59,7 @@ public class PrincipalObjectRecordWriter implements ObjectRecordWriter {
 			userGroup = userGroupDAO.get(principalId);
 			ObjectRecord objectRecord = ObjectRecordBuilderUtils.buildObjectRecord(userGroup, message.getTimestamp().getTime());
 			objectRecordDAO.saveBatch(Arrays.asList(objectRecord), objectRecord.getJsonClassName());
-			// TODO: log all teams this principal belongs to
+			logTeam(principalId, LIMIT, message.getTimestamp().getTime());
 		} catch (NotFoundException e) {
 			log.warn("Principal not found: "+principalId);
 		}
@@ -77,6 +82,29 @@ public class PrincipalObjectRecordWriter implements ObjectRecordWriter {
 			} catch (NotFoundException e) {
 				log.warn("Team not found: "+principalId);
 			}
+		}
+	}
+
+	/**
+	 * Log all teams that this principal belongs to
+	 * @param principalId
+	 * @throws IOException 
+	 */
+	public void logTeam(Long principalId, long limit, long timestamp) throws IOException {
+		long offset = 0;
+		long numberOfTeams = teamDAO.getCountForMember(principalId.toString());
+		
+		while (offset < numberOfTeams) {
+			List<Team> teams = teamDAO.getForMemberInRange(principalId.toString(), limit, offset);
+			List<ObjectRecord> records = new ArrayList<ObjectRecord>();
+			for (Team team : teams) {
+				TeamMember teamMember = teamDAO.getMember(team.getId(), principalId.toString());
+				records.add(ObjectRecordBuilderUtils.buildObjectRecord(teamMember, timestamp));
+			}
+			if (records.size() > 0) {
+				objectRecordDAO.saveBatch(records, records.get(0).getJsonClassName());
+			}
+			offset += limit;
 		}
 	}
 }

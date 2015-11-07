@@ -9,7 +9,7 @@ public class ObjectRecordWriterFactory {
 	private Map<ObjectType, ObjectRecordWriter> writerMap;
 
 	// injected
-	public void setBuilderMap(Map<ObjectType, ObjectRecordWriter> builderMap) {
+	public void setWriterMap(Map<ObjectType, ObjectRecordWriter> builderMap) {
 		this.writerMap = builderMap;
 	}
 

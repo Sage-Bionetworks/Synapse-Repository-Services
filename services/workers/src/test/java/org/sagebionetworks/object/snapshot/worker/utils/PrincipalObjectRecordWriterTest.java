@@ -1,8 +1,10 @@
 package org.sagebionetworks.object.snapshot.worker.utils;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -13,6 +15,7 @@ import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
+import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserProfile;
@@ -53,7 +56,7 @@ public class PrincipalObjectRecordWriterTest {
 
 		ug = new UserGroup();
 
-		buildTeam();
+		team = buildTeam(teamId);
 
 		buildUserProfile();	
 	}
@@ -67,8 +70,8 @@ public class PrincipalObjectRecordWriterTest {
 		up.setOwnerId(principalID.toString());
 	}
 
-	private void buildTeam() {
-		team = new Team();
+	private Team buildTeam(String teamId) {
+		Team team = new Team();
 		team.setCanPublicJoin(true);
 		team.setCreatedBy("333");
 		team.setCreatedOn(createdOn);
@@ -77,6 +80,7 @@ public class PrincipalObjectRecordWriterTest {
 		team.setId(teamId);
 		team.setModifiedBy("444");
 		team.setModifiedOn(modifiedOn);
+		return team;
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -158,5 +162,39 @@ public class PrincipalObjectRecordWriterTest {
 		Message message = MessageUtils.buildMessage(ChangeType.DELETE, principalID.toString(), ObjectType.PRINCIPAL, etag, timestamp);
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
 		writer.buildAndWriteRecord(changeMessage);
+	}
+
+	@Test
+	public void logTeamTest() throws IOException {
+		// principal that does not belong to any team
+		Mockito.when(mockTeamDAO.getCountForMember(Mockito.anyString())).thenReturn(0L);
+		writer.logTeam(principalID, 1, timestamp);
+		Mockito.verify(mockTeamDAO, Mockito.never()).getForMemberInRange(Mockito.anyString(), Mockito.anyLong(), Mockito.anyLong());
+		Mockito.verify(mockTeamDAO, Mockito.never()).getMember(Mockito.anyString(), Mockito.anyString());
+		Mockito.verify(mockObjectRecordDao, Mockito.never()).saveBatch(Mockito.anyList(), Mockito.anyString());
+		
+		// principal that belongs to 2 team
+		Mockito.when(mockTeamDAO.getCountForMember(Mockito.anyString())).thenReturn(4L);
+		List<Team> list = createListOfTeam(2);
+		Mockito.when(mockTeamDAO.getForMemberInRange(Mockito.anyString(), Mockito.anyLong(), Mockito.anyLong())).thenReturn(list);
+		TeamMember teamMember = new TeamMember();
+		Mockito.when(mockTeamDAO.getMember(Mockito.anyString(), Mockito.anyString())).thenReturn(teamMember);
+		writer.logTeam(principalID, 2, timestamp);
+		Mockito.verify(mockTeamDAO, Mockito.times(2)).getForMemberInRange(Mockito.anyString(), Mockito.anyLong(), Mockito.anyLong());
+		Mockito.verify(mockTeamDAO, Mockito.times(4)).getMember(Mockito.anyString(), Mockito.anyString());
+		Mockito.verify(mockObjectRecordDao, Mockito.times(2)).saveBatch(Mockito.anyList(), Mockito.anyString());
+	}
+
+	/**
+	 * create a list of teams
+	 * @param numberOfTeams
+	 * @return
+	 */
+	private List<Team> createListOfTeam(int numberOfTeams) {
+		List<Team> list = new ArrayList<Team>();
+		for (int i = 0; i < numberOfTeams; i++) {
+			list.add(buildTeam(String.valueOf(i)));
+		}
+		return list;
 	}
 }
