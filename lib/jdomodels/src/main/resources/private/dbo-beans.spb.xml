@@ -107,7 +107,8 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOVerificationSubmission" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOVerificationState" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOVerificationSubmissionFile" />
-				
+
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.discussion.DBOForum" />
 			</list>
 		</property>
 	</bean>
@@ -160,6 +161,8 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOQuizResponse" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOVerificationSubmission" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOChange" />
+
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.discussion.DBOForum" />
 			</list>
 		</property>
 		<!-- These are UserGroup row IDs that should not be deleted during migration -->

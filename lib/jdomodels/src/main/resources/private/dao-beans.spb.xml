@@ -333,4 +333,9 @@
 	<bean id="exclusiveOrSharedSemaphoreRunner"
 		class="org.sagebionetworks.repo.model.dbo.dao.semaphore.ExclusiveOrSharedSemaphoreRunnerImpl"/>
 
+	<!-- DAO for Discussion -->
+	<bean id="forumDao"
+		class="org.sagebionetworks.repo.model.dbo.dao.discussion.DBOForumDAOImpl" 
+		scope="singleton">
+	</bean>
 </beans>
