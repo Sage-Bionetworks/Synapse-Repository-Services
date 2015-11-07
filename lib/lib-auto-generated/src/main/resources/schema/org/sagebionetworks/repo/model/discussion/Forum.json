@@ -1,0 +1,13 @@
+{
+	"title":"Forum",
+	"properties": {
+		"id":{
+			"type":"integer",
+			"description":"The ID of this object"
+		},
+		"projectId":{
+			"type":"integer",
+			"description":"The ID of the project to which this forum belongs."
+		}
+	}
+}
