@@ -41,7 +41,7 @@ public class DeltaBuilderTest {
 	public void testNoDelta() throws Exception{
 		Iterator<RowMetadata> srcIt = createIterator(new Long[]{0L, 1L, 2L, null}, new String[]{"e0","e2","e3", null});
 		Iterator<RowMetadata> desIt = createIterator(new Long[]{0L, 1L, 2L, null}, new String[]{"e0","e2","e3", null});
-		DeltaBuilder builder = new DeltaBuilder(srcIt, desIt, create, update, delete);
+		DeltaBuilder builder = new DeltaBuilder(srcIt, desIt, create, update, delete, null);
 		// Build the deltas
 		DeltaCounts counts = builder.call();
 		assertEquals(0, counts.getCreate());
@@ -60,6 +60,32 @@ public class DeltaBuilderTest {
 	}
 	
 	/**
+	 * Same as above but only look at sourceId < 1
+	 * @throws Exception
+	 */
+	@Test
+	public void testNoDeltaPartial() throws Exception{
+		Iterator<RowMetadata> srcIt = createIterator(new Long[]{0L, 1L, 2L, 3L, null}, new String[]{"e0","e2","e3", "e4", null});
+		Iterator<RowMetadata> desIt = createIterator(new Long[]{0L, 1L, 2L, 3L, null}, new String[]{"e0","e2","e3", "e4", null});
+		DeltaBuilder builder = new DeltaBuilder(srcIt, desIt, create, update, delete, 1L);
+		// Build the deltas
+		DeltaCounts counts = builder.call();
+		assertEquals(0, counts.getCreate());
+		assertEquals(0, counts.getUpdate());
+		assertEquals(2, counts.getDelete());
+		// Create the input streams
+		// create
+		List<RowMetadata> results = create.getList();
+		assertTrue(results.isEmpty());
+		// update
+		results = update.getList();
+		assertTrue(results.isEmpty());
+		// delete
+		results = delete.getList();
+		assertEquals(2, results.size());
+	}
+	
+	/**
 	 * For this case both the source and destination are same size but there are etag changes
 	 * @throws Exception 
 	 */
@@ -67,7 +93,7 @@ public class DeltaBuilderTest {
 	public void testUpdates() throws Exception{
 		Iterator<RowMetadata> srcIt = createIterator(new Long[]{0L, 1L, 2L, null}, new String[]{"e0","e2","e3", null});
 		Iterator<RowMetadata> desIt = createIterator(new Long[]{0L, 1L, 2L, null}, new String[]{"e5","e2","e4", null});
-		DeltaBuilder builder = new DeltaBuilder(srcIt, desIt, create, update, delete);
+		DeltaBuilder builder = new DeltaBuilder(srcIt, desIt, create, update, delete, null);
 		// Build the deltas
 		DeltaCounts counts = builder.call();
 		assertEquals(0, counts.getCreate());
@@ -87,6 +113,30 @@ public class DeltaBuilderTest {
 		assertTrue(results.isEmpty());
 	}
 	
+	@Test
+	public void testUpdatesPartial() throws Exception{
+		Iterator<RowMetadata> srcIt = createIterator(new Long[]{0L, 1L, 2L, null}, new String[]{"e0","e2","e3", null});
+		Iterator<RowMetadata> desIt = createIterator(new Long[]{0L, 1L, 2L, null}, new String[]{"e5","e2","e4", null});
+		DeltaBuilder builder = new DeltaBuilder(srcIt, desIt, create, update, delete, 1L);
+		// Build the deltas
+		DeltaCounts counts = builder.call();
+		assertEquals(0, counts.getCreate());
+		assertEquals(1, counts.getUpdate());
+		assertEquals(1, counts.getDelete());
+		// Create the input streams
+		// create
+		List<Long> results = readFromStream(create);
+		assertTrue(results.isEmpty());
+		// update
+		results = readFromStream(update);
+		assertEquals(1, results.size());
+		assertEquals(new Long(0), results.get(0));
+		//delete
+		results = readFromStream(delete);
+		assertEquals(1, results.size());
+		assertEquals(new Long(2), results.get(0));
+	}
+	
 	/**
 	 * For this there is not data in the destination.
 	 * @throws Exception 
@@ -95,7 +145,7 @@ public class DeltaBuilderTest {
 	public void testDestEmpty() throws Exception{
 		Iterator<RowMetadata> srcIt = createIterator(new Long[]{0L, 1L, 2L, null}, new String[]{"e0","e2","e3", null});
 		Iterator<RowMetadata> desIt = createIterator(new Long[]{null, null, null, null}, new String[]{null, null, null, null});
-		DeltaBuilder builder = new DeltaBuilder(srcIt, desIt, create, update, delete);
+		DeltaBuilder builder = new DeltaBuilder(srcIt, desIt, create, update, delete, null);
 		// Build the deltas
 		DeltaCounts counts = builder.call();
 		assertEquals(3, counts.getCreate());
@@ -125,7 +175,7 @@ public class DeltaBuilderTest {
 		Iterator<RowMetadata> srcIt = createIterator(new Long[]{null, null, null, null}, new String[]{null, null, null, null});
 		Iterator<RowMetadata> desIt = createIterator(new Long[]{0L, 1L, 2L, null}, new String[]{"e0","e2","e3", null});
 
-		DeltaBuilder builder = new DeltaBuilder(srcIt, desIt, create, update, delete);
+		DeltaBuilder builder = new DeltaBuilder(srcIt, desIt, create, update, delete, null);
 		// Build the deltas
 		DeltaCounts counts = builder.call();
 		assertEquals(0, counts.getCreate());
@@ -156,7 +206,7 @@ public class DeltaBuilderTest {
 		Iterator<RowMetadata> srcIt = createIterator(new Long[]{0L, 2L, 3L, 4L, null, null}, new String[]{"e0","e22","e3","e4", null, null});
 		Iterator<RowMetadata> desIt = createIterator(new Long[]{0L, 1L, 2L, 5L, 6L, null}, new String[]{"e0","e1","e2","e5","e6", null});
 
-		DeltaBuilder builder = new DeltaBuilder(srcIt, desIt, create, update, delete);
+		DeltaBuilder builder = new DeltaBuilder(srcIt, desIt, create, update, delete, null);
 		// Build the deltas
 		DeltaCounts counts = builder.call();
 		assertEquals(2, counts.getCreate());
@@ -188,7 +238,7 @@ public class DeltaBuilderTest {
 		Iterator<RowMetadata> srcIt = createIterator(new Long[]{0L, 4L, 5L, 6L, 7L, 8L, null}, new String[]{"e0","e4","e5","e6","e7","e8", null});
 		Iterator<RowMetadata> desIt = createIterator(new Long[]{0L, 1L, 2L, 3L, 6L, 8L, null}, new String[]{"e01","e1","e2","e3","e6","e81", null});
 
-		DeltaBuilder builder = new DeltaBuilder(srcIt, desIt, create, update, delete);
+		DeltaBuilder builder = new DeltaBuilder(srcIt, desIt, create, update, delete, null);
 		// Build the deltas
 		DeltaCounts counts = builder.call();
 		assertEquals(3, counts.getCreate());
