@@ -17,7 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class ObjectSnapshotWorker implements ChangeMessageDrivenRunner {
 
 	@Autowired
-	private ObjectRecordWriterFactory builderFactory;
+	private ObjectRecordWriterFactory writerFactory;
 	
 	ObjectSnapshotWorker(){
 	}
@@ -30,7 +30,7 @@ public class ObjectSnapshotWorker implements ChangeMessageDrivenRunner {
 			// TODO: capture the deleted objects
 			return;
 		}
-		ObjectRecordWriter objectRecordBuilder = builderFactory.getObjectRecordBuilder(changeMessage.getObjectType());
+		ObjectRecordWriter objectRecordBuilder = writerFactory.getObjectRecordBuilder(changeMessage.getObjectType());
 		objectRecordBuilder.buildAndWriteRecord(changeMessage);
 	}
 }
