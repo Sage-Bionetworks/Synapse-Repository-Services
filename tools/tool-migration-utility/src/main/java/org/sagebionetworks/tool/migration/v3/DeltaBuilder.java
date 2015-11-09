@@ -64,6 +64,7 @@ public class DeltaBuilder implements Callable<DeltaCounts> {
 			if(sourceRow != null){
 				sourceId = sourceRow.getId();
 				if ((maxSourceId != null) && (sourceId > maxSourceId)) {
+					sourceId = -1L;
 					sourceRow = null;
 				}
 			}

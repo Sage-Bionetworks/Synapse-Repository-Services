@@ -113,6 +113,10 @@ public class DeltaBuilderTest {
 		assertTrue(results.isEmpty());
 	}
 	
+	/**
+	 * Same as above but only look until id <= 1
+	 * @throws Exception
+	 */
 	@Test
 	public void testUpdatesPartial() throws Exception{
 		Iterator<RowMetadata> srcIt = createIterator(new Long[]{0L, 1L, 2L, null}, new String[]{"e0","e2","e3", null});
@@ -158,6 +162,34 @@ public class DeltaBuilderTest {
 		assertEquals(new Long(0), results.get(0));
 		assertEquals(new Long(1), results.get(1));
 		assertEquals(new Long(2), results.get(2));
+		// update
+		results = readFromStream(update);
+		assertTrue(results.isEmpty());
+		// delte
+		results = readFromStream(delete);
+		assertTrue(results.isEmpty());
+	}
+	
+	/**
+	 * Same as above but only look at id <= 1
+	 * @throws Exception
+	 */
+	@Test
+	public void testDestEmptyPartial() throws Exception{
+		Iterator<RowMetadata> srcIt = createIterator(new Long[]{0L, 1L, 2L, null}, new String[]{"e0","e2","e3", null});
+		Iterator<RowMetadata> desIt = createIterator(new Long[]{null, null, null, null}, new String[]{null, null, null, null});
+		DeltaBuilder builder = new DeltaBuilder(srcIt, desIt, create, update, delete, 1L);
+		// Build the deltas
+		DeltaCounts counts = builder.call();
+		assertEquals(2, counts.getCreate());
+		assertEquals(0, counts.getUpdate());
+		assertEquals(0, counts.getDelete());
+		// Create the input streams
+		// create
+		List<Long> results = readFromStream(create);
+		assertEquals(2, results.size());
+		assertEquals(new Long(0), results.get(0));
+		assertEquals(new Long(1), results.get(1));
 		// update
 		results = readFromStream(update);
 		assertTrue(results.isEmpty());
@@ -229,6 +261,33 @@ public class DeltaBuilderTest {
 		assertEquals(new Long(6), results.get(2));
 	}
 	
+	@Test
+	public void testMixedPartial() throws Exception{
+		Iterator<RowMetadata> srcIt = createIterator(new Long[]{0L, 2L, 3L, 4L, null, null}, new String[]{"e0","e22","e3","e4", null, null});
+		Iterator<RowMetadata> desIt = createIterator(new Long[]{0L, 1L, 2L, 5L, 6L, null}, new String[]{"e0","e1","e2","e5","e6", null});
+
+		DeltaBuilder builder = new DeltaBuilder(srcIt, desIt, create, update, delete, 3L);
+		// Build the deltas
+		DeltaCounts counts = builder.call();
+		assertEquals(1, counts.getCreate());
+		assertEquals(1, counts.getUpdate());
+		assertEquals(3, counts.getDelete());
+		// create
+		List<Long> results = readFromStream(create);
+		assertEquals(1, results.size());
+		assertEquals(new Long(3), results.get(0));
+		// update
+		results = readFromStream(update);
+		assertEquals(1, results.size());
+		assertEquals(new Long(2), results.get(0));
+		// delete
+		results = readFromStream(delete);
+		assertEquals(3, results.size());
+		assertEquals(new Long(1), results.get(0));
+		assertEquals(new Long(5), results.get(1));
+		assertEquals(new Long(6), results.get(2));
+	}
+	
 	/**
 	 * For this there is not data source
 	 * @throws Exception 
@@ -261,6 +320,72 @@ public class DeltaBuilderTest {
 		assertEquals(new Long(1), results.get(0));
 		assertEquals(new Long(2), results.get(1));
 		assertEquals(new Long(3), results.get(2));
+	}
+	
+	/**
+	 * For this there is not data source
+	 * @throws Exception 
+	 */
+	@Test
+	public void testMixed2Partial1() throws Exception{
+		Iterator<RowMetadata> srcIt = createIterator(new Long[]{0L, 4L, 5L, 6L, 7L, 8L, null}, new String[]{"e0","e4","e5","e6","e7","e8", null});
+		Iterator<RowMetadata> desIt = createIterator(new Long[]{0L, 1L, 2L, 3L, 6L, 8L, null}, new String[]{"e01","e1","e2","e3","e6","e81", null});
+
+		DeltaBuilder builder = new DeltaBuilder(srcIt, desIt, create, update, delete, 8L);
+		// Build the deltas
+		DeltaCounts counts = builder.call();
+		assertEquals(3, counts.getCreate());
+		assertEquals(2, counts.getUpdate());
+		assertEquals(3, counts.getDelete());
+		// create
+		List<Long> results = readFromStream(create);
+		assertEquals(3, results.size());
+		assertEquals(new Long(4), results.get(0));
+		assertEquals(new Long(5), results.get(1));
+		assertEquals(new Long(7), results.get(2));
+		// update
+		results = readFromStream(update);
+		assertEquals(2, results.size());
+		assertEquals(new Long(0), results.get(0));
+		assertEquals(new Long(8), results.get(1));
+		// delete
+		results = readFromStream(delete);
+		assertEquals(3, results.size());
+		assertEquals(new Long(1), results.get(0));
+		assertEquals(new Long(2), results.get(1));
+		assertEquals(new Long(3), results.get(2));
+	}
+	
+	/**
+	 * For this there is not data source
+	 * @throws Exception 
+	 */
+	@Test
+	public void testMixed2Partial2() throws Exception{
+		Iterator<RowMetadata> srcIt = createIterator(new Long[]{0L, 4L, 5L, 6L, 7L, 8L, null}, new String[]{"e0","e4","e5","e6","e7","e8", null});
+		Iterator<RowMetadata> desIt = createIterator(new Long[]{0L, 1L, 2L, 3L, 6L, 8L, null}, new String[]{"e01","e1","e2","e3","e6","e81", null});
+
+		DeltaBuilder builder = new DeltaBuilder(srcIt, desIt, create, update, delete, 0L);
+		// Build the deltas
+		DeltaCounts counts = builder.call();
+		assertEquals(0, counts.getCreate());
+		assertEquals(1, counts.getUpdate());
+		assertEquals(5, counts.getDelete());
+		// create
+		List<Long> results = readFromStream(create);
+		assertEquals(0, results.size());
+		// update
+		results = readFromStream(update);
+		assertEquals(1, results.size());
+		assertEquals(new Long(0), results.get(0));
+		// delete
+		results = readFromStream(delete);
+		assertEquals(5, results.size());
+		assertEquals(new Long(1), results.get(0));
+		assertEquals(new Long(2), results.get(1));
+		assertEquals(new Long(3), results.get(2));
+		assertEquals(new Long(6), results.get(3));
+		assertEquals(new Long(8), results.get(4));
 	}
 	
 	/**
