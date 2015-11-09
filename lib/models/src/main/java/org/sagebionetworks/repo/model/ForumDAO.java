@@ -6,10 +6,10 @@ public interface ForumDAO {
 
 	/**
 	 * create new object
-	 * @param dto
+	 * @param projectId
 	 * @return
 	 */
-	public Forum createForum(Forum dto);
+	public Forum createForum(Long projectId);
 
 	/**
 	 * get the forum object given its Id

@@ -7,6 +7,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FORUM;
 import java.util.List;
 
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.ForumDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.discussion.DBOForum;
@@ -41,10 +42,13 @@ public class DBOForumDAOImpl implements ForumDAO {
 
 	@WriteTransaction
 	@Override
-	public Forum createForum(Forum dto) {
-		DBOForum dbo = ForumUtils.createDBOFromDTO(dto);
+	public Forum createForum(Long projectId) {
+		long id = idGenerator.generateNewId(TYPE.FORUM_ID);
+		DBOForum dbo = new DBOForum();
+		dbo.setId(id);
+		dbo.setProjectId(projectId);
 		basicDao.createNew(dbo);
-		return getForum(dto.getId());
+		return getForum(id);
 	}
 
 	@Override
@@ -79,4 +83,5 @@ public class DBOForumDAOImpl implements ForumDAO {
 	public void truncateAll() {
 		jdbcTemplate.update(SQL_TRUNCATE);
 	}
+
 }
