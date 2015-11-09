@@ -60,28 +60,30 @@ public class PrincipalObjectRecordWriter implements ObjectRecordWriter {
 			ObjectRecord objectRecord = ObjectRecordBuilderUtils.buildObjectRecord(userGroup, message.getTimestamp().getTime());
 			objectRecordDAO.saveBatch(Arrays.asList(objectRecord), objectRecord.getJsonClassName());
 			logTeam(principalId, LIMIT, message.getTimestamp().getTime());
+
+			if(userGroup.getIsIndividual()){
+				// User
+				try {
+					UserProfile profile = userProfileDAO.get(message.getObjectId());
+					profile.setSummary(null);
+					ObjectRecord upRecord = ObjectRecordBuilderUtils.buildObjectRecord(profile, message.getTimestamp().getTime());
+					objectRecordDAO.saveBatch(Arrays.asList(upRecord), upRecord.getJsonClassName());
+				} catch (NotFoundException e) {
+					log.warn("UserProfile not found: "+principalId);
+				}
+			} else {
+				// Team
+				try {
+					Team team = teamDAO.get(message.getObjectId());
+					ObjectRecord teamRecord = ObjectRecordBuilderUtils.buildObjectRecord(team, message.getTimestamp().getTime());
+					objectRecordDAO.saveBatch(Arrays.asList(teamRecord), teamRecord.getJsonClassName());
+				} catch (NotFoundException e) {
+					log.warn("Team not found: "+principalId);
+				}
+			}
+
 		} catch (NotFoundException e) {
 			log.warn("Principal not found: "+principalId);
-		}
-		if(userGroup.getIsIndividual()){
-			// User
-			try {
-				UserProfile profile = userProfileDAO.get(message.getObjectId());
-				profile.setSummary(null);
-				ObjectRecord objectRecord = ObjectRecordBuilderUtils.buildObjectRecord(profile, message.getTimestamp().getTime());
-				objectRecordDAO.saveBatch(Arrays.asList(objectRecord), objectRecord.getJsonClassName());
-			} catch (NotFoundException e) {
-				log.warn("UserProfile not found: "+principalId);
-			}
-		} else {
-			// Team
-			try {
-				Team team = teamDAO.get(message.getObjectId());
-				ObjectRecord objectRecord = ObjectRecordBuilderUtils.buildObjectRecord(team, message.getTimestamp().getTime());
-				objectRecordDAO.saveBatch(Arrays.asList(objectRecord), objectRecord.getJsonClassName());
-			} catch (NotFoundException e) {
-				log.warn("Team not found: "+principalId);
-			}
 		}
 	}
 
