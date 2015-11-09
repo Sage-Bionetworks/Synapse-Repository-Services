@@ -168,7 +168,7 @@ public class PrincipalObjectRecordWriterTest {
 	public void logTeamTest() throws IOException {
 		// principal that does not belong to any team
 		Mockito.when(mockTeamDAO.getCountForMember(Mockito.anyString())).thenReturn(0L);
-		writer.logTeam(principalID, 1, timestamp);
+		writer.captureAllTeams(principalID, 1, timestamp);
 		Mockito.verify(mockTeamDAO, Mockito.never()).getForMemberInRange(Mockito.anyString(), Mockito.anyLong(), Mockito.anyLong());
 		Mockito.verify(mockTeamDAO, Mockito.never()).getMember(Mockito.anyString(), Mockito.anyString());
 		Mockito.verify(mockObjectRecordDao, Mockito.never()).saveBatch(Mockito.anyList(), Mockito.anyString());
@@ -179,7 +179,7 @@ public class PrincipalObjectRecordWriterTest {
 		Mockito.when(mockTeamDAO.getForMemberInRange(Mockito.anyString(), Mockito.anyLong(), Mockito.anyLong())).thenReturn(list);
 		TeamMember teamMember = new TeamMember();
 		Mockito.when(mockTeamDAO.getMember(Mockito.anyString(), Mockito.anyString())).thenReturn(teamMember);
-		writer.logTeam(principalID, 2, timestamp);
+		writer.captureAllTeams(principalID, 2, timestamp);
 		Mockito.verify(mockTeamDAO, Mockito.times(2)).getForMemberInRange(Mockito.anyString(), Mockito.anyLong(), Mockito.anyLong());
 		Mockito.verify(mockTeamDAO, Mockito.times(4)).getMember(Mockito.anyString(), Mockito.anyString());
 		Mockito.verify(mockObjectRecordDao, Mockito.times(2)).saveBatch(Mockito.anyList(), Mockito.anyString());

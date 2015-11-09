@@ -59,7 +59,7 @@ public class PrincipalObjectRecordWriter implements ObjectRecordWriter {
 			userGroup = userGroupDAO.get(principalId);
 			ObjectRecord objectRecord = ObjectRecordBuilderUtils.buildObjectRecord(userGroup, message.getTimestamp().getTime());
 			objectRecordDAO.saveBatch(Arrays.asList(objectRecord), objectRecord.getJsonClassName());
-			logTeam(principalId, LIMIT, message.getTimestamp().getTime());
+			captureAllTeams(principalId, LIMIT, message.getTimestamp().getTime());
 
 			if(userGroup.getIsIndividual()){
 				// User
@@ -90,9 +90,11 @@ public class PrincipalObjectRecordWriter implements ObjectRecordWriter {
 	/**
 	 * Log all teams that this principal belongs to
 	 * @param principalId
+	 * @param limit - the max number of teams will be written in to a log file at a time
+	 * @param timestamp - the timestamp of the change message
 	 * @throws IOException 
 	 */
-	public void logTeam(Long principalId, long limit, long timestamp) throws IOException {
+	public void captureAllTeams(Long principalId, long limit, long timestamp) throws IOException {
 		long offset = 0;
 		long numberOfTeams = teamDAO.getCountForMember(principalId.toString());
 		
