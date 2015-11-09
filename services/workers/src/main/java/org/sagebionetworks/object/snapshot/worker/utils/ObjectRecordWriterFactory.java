@@ -18,7 +18,7 @@ public class ObjectRecordWriterFactory {
 	 * @param type
 	 * @return the object record builder for the requested type
 	 */
-	public ObjectRecordWriter getObjectRecordBuilder(ObjectType type){
+	public ObjectRecordWriter getObjectRecordWriter(ObjectType type){
 		return writerMap.get(type);
 	}
 }

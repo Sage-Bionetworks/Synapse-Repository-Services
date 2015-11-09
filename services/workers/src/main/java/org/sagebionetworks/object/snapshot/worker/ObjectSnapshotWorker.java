@@ -30,7 +30,7 @@ public class ObjectSnapshotWorker implements ChangeMessageDrivenRunner {
 			// TODO: capture the deleted objects
 			return;
 		}
-		ObjectRecordWriter objectRecordBuilder = writerFactory.getObjectRecordBuilder(changeMessage.getObjectType());
+		ObjectRecordWriter objectRecordBuilder = writerFactory.getObjectRecordWriter(changeMessage.getObjectType());
 		objectRecordBuilder.buildAndWriteRecord(changeMessage);
 	}
 }
