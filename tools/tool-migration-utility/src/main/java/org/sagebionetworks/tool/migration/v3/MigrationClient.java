@@ -191,7 +191,12 @@ public class MigrationClient {
 			throws Exception {
 		List<DeltaData> deltaList = new LinkedList<DeltaData>();
 		for(MigrationType type: primaryTypes){
-			DeltaData dd = calculateDeltaForType(type, batchSize);
+			DeltaData dd = null;
+			if (type == MigrationType.CHANGE) {
+				dd = calculateDeltaForType(type, batchSize, maxSrcChangeNum);
+			} else {
+				dd = calculateDeltaForType(type, batchSize, null);
+			}
 			deltaList.add(dd);
 		}
 		
@@ -317,14 +322,14 @@ public class MigrationClient {
 	 * @param progress
 	 * @throws Exception 
 	 */
-	public DeltaData calculateDeltaForType(MigrationType type, long batchSize) throws Exception{
+	public DeltaData calculateDeltaForType(MigrationType type, long batchSize, Long maxSrcChangeNum) throws Exception{
 		// the first thing we need to do is calculate the what needs to be created, updated, or deleted.
 		// We need three temp file to keep track of the deltas
 		File createTemp = File.createTempFile("create", ".tmp");
 		File updateTemp = File.createTempFile("update", ".tmp");
 		File deleteTemp = File.createTempFile("delete", ".tmp");
 		// Calculate the deltas
-		DeltaCounts counts = calculateDeltas(type, batchSize, createTemp, updateTemp, deleteTemp);
+		DeltaCounts counts = calculateDeltas(type, batchSize, createTemp, updateTemp, deleteTemp, maxSrcChangeNum);
 		return new DeltaData(type, createTemp, updateTemp, deleteTemp, counts);
 		
 	}
@@ -340,7 +345,7 @@ public class MigrationClient {
 	 * @throws FileNotFoundException
 	 * @throws IOException
 	 */
-	private DeltaCounts calculateDeltas(MigrationType type, long batchSize, File createTemp, File updateTemp, File deleteTemp) throws Exception {
+	private DeltaCounts calculateDeltas(MigrationType type, long batchSize, File createTemp, File updateTemp, File deleteTemp, Long maxSrcChangeNum) throws Exception {
 		BasicProgress sourceProgress = new BasicProgress();
 		BasicProgress destProgress = new BasicProgress();
 		BufferedRowMetadataWriter createOut = null;
@@ -352,7 +357,7 @@ public class MigrationClient {
 			deleteOut = new BufferedRowMetadataWriter(new FileWriter(deleteTemp));
 			MetadataIterator sourceIt = new MetadataIterator(type, factory.createNewSourceClient(), batchSize, sourceProgress);
 			MetadataIterator destIt = new MetadataIterator(type, factory.createNewDestinationClient(), batchSize, destProgress);
-			DeltaBuilder builder  = new DeltaBuilder(sourceIt, destIt, createOut, updateOut, deleteOut, null);
+			DeltaBuilder builder = new DeltaBuilder(sourceIt, destIt, createOut, updateOut, deleteOut, maxSrcChangeNum);
 			// Do the work on a separate thread
 			Future<DeltaCounts> future = this.threadPool.submit(builder);
 			// Wait for the future to finish
