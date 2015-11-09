@@ -316,7 +316,11 @@
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOQuizResponseDAOImpl" />
 	<bean id="verificationDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOVerificationDAOImpl" />
-		
+
+	<!-- DAO for Discussion -->
+	<bean id="forumDao"
+		class="org.sagebionetworks.repo.model.dbo.dao.discussion.DBOForumDAOImpl" />
+
 	<!-- Misc beans -->
 	<bean id="countingSemaphore"
 		class="org.sagebionetworks.database.semaphore.CountingSemaphoreImpl">
@@ -333,9 +337,4 @@
 	<bean id="exclusiveOrSharedSemaphoreRunner"
 		class="org.sagebionetworks.repo.model.dbo.dao.semaphore.ExclusiveOrSharedSemaphoreRunnerImpl"/>
 
-	<!-- DAO for Discussion -->
-	<bean id="forumDao"
-		class="org.sagebionetworks.repo.model.dbo.dao.discussion.DBOForumDAOImpl" 
-		scope="singleton">
-	</bean>
 </beans>
