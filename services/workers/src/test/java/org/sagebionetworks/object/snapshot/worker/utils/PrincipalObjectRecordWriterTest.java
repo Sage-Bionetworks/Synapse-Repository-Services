@@ -173,7 +173,7 @@ public class PrincipalObjectRecordWriterTest {
 		Mockito.verify(mockTeamDAO, Mockito.never()).getMember(Mockito.anyString(), Mockito.anyString());
 		Mockito.verify(mockObjectRecordDao, Mockito.never()).saveBatch(Mockito.anyList(), Mockito.anyString());
 		
-		// principal that belongs to 2 team
+		// principal that belongs to 2 teams
 		Mockito.when(mockTeamDAO.getCountForMember(Mockito.anyString())).thenReturn(4L);
 		List<Team> list = createListOfTeam(2);
 		Mockito.when(mockTeamDAO.getForMemberInRange(Mockito.anyString(), Mockito.anyLong(), Mockito.anyLong())).thenReturn(list);
