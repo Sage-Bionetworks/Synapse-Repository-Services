@@ -20,6 +20,7 @@ import java.util.concurrent.Future;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -514,6 +515,7 @@ public class DBOChangeDAOImplAutowiredTest {
 	 * @throws ExecutionException 
 	 * @throws InterruptedException 
 	 */
+	@Ignore
 	@Test
 	public void testPLFM2756() throws InterruptedException, ExecutionException{
 		final List<ChangeMessage> toSpam = createList(1, ObjectType.TABLE);

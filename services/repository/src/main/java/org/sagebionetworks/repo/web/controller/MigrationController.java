@@ -11,6 +11,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
 import org.sagebionetworks.repo.model.migration.MigrationType;
+import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.MigrationTypeList;
@@ -225,4 +226,18 @@ public class MigrationController extends BaseController {
 		return serviceProvider.getMigrationService().getPrimaryTypes(userId);
 	}
 	
+	/**
+	 * A checksum on ETAG or backup ID for a given range and a given migration type
+	 * @throws NotFoundException 
+	 */	
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.MIGRATION_CHECKSUM }, method = RequestMethod.GET)
+	public @ResponseBody
+	MigrationTypeChecksum getChecksumForIdRange(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam(required = true) String migrationType,
+			@RequestParam(required = true) Long minId,
+			@RequestParam(required = true) Long maxId) throws NotFoundException {
+		return serviceProvider.getMigrationService().getChecksumForIdRange(userId, MigrationType.valueOf(migrationType), minId, maxId);
+	}
 }

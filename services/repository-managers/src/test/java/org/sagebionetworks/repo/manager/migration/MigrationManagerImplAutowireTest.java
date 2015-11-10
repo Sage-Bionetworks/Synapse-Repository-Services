@@ -43,6 +43,7 @@ import org.sagebionetworks.repo.model.file.UploadDestination;
 import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.migration.MigrationType;
+import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.model.project.ExternalUploadDestinationSetting;
@@ -211,6 +212,34 @@ public class MigrationManagerImplAutowireTest {
 		assertEquals(Long.parseLong(preview.getId()), mx);
 	}
 	
+	@Test
+	public void testGetMinId() {
+		long min = migrationManager.getMinId(adminUser, MigrationType.FILE_HANDLE);
+		long max = migrationManager.getMaxId(adminUser, MigrationType.FILE_HANDLE);
+		RowMetadataResult rmr =	migrationManager.getRowMetadaForType(adminUser, MigrationType.FILE_HANDLE, 100, 0);
+		long m = Long.MAX_VALUE;
+		for (RowMetadata rm: rmr.getList()) {
+			Long id = rm.getId();
+			if (id < m) {
+				m = id;
+			}
+		}
+		assertTrue(m < Long.MAX_VALUE);
+		assertEquals(m, min);
+		assertTrue(min <= max);
+	}
+	
+	@Test
+	public void testGetChecksumForIdRange() {
+		long max = migrationManager.getMaxId(adminUser, MigrationType.FILE_HANDLE);
+		MigrationTypeChecksum checksum = migrationManager.getChecksumForIdRange(adminUser, MigrationType.FILE_HANDLE, 0L, max);
+		assertNotNull(checksum);
+		assertEquals(MigrationType.FILE_HANDLE, checksum.getType());
+		assertEquals(0L, checksum.getMinid().longValue());
+		assertEquals(max, checksum.getMaxid().longValue());
+		assertNotNull(checksum.getChecksum());
+	}
+ 	
 	@Test
 	public void testListRowMetadata(){
 		RowMetadataResult result = migrationManager.getRowMetadaForType(adminUser, MigrationType.FILE_HANDLE, Long.MAX_VALUE, startCount);

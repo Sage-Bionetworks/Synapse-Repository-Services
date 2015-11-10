@@ -50,6 +50,11 @@ public class MigratableTableDAOImplUnitTest {
 
 	}
 	
+	@Test(expected=IllegalArgumentException.class)
+	public void testGetChecksumForIdRangeInvalidRange() {
+		dao.getChecksumForIdRange(MigrationType.FILE_HANDLE, 10, 9);
+	}
+	
 	public static class StubAutoIncrement implements MigratableDatabaseObject<StubAutoIncrement, StubAutoIncrement>, AutoIncrementDatabaseObject<StubAutoIncrement>{
 
 		@Override

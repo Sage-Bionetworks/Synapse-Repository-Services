@@ -70,6 +70,38 @@ public class DMLUtilsTest {
 			};
 		}
 	};
+	
+	private TableMapping<Object> migrateableMappingEtagAndId = new AbstractTestTableMapping<Object>() {
+		@Override
+		public String getTableName() {
+			return "SOME_TABLE";
+		}
+		
+		@Override
+		public FieldColumn[] getFieldColumns() {
+			return new FieldColumn[] {
+					new FieldColumn("id", "ID", true).withIsBackupId(true),
+					new FieldColumn("etag", "ETAG").withIsEtag(true),
+					new FieldColumn("parentId", "PARENT_ID")					
+			};
+		}
+	};
+
+	private TableMapping<Object> migrateableMappingNoEtag = new AbstractTestTableMapping<Object>() {
+		@Override
+		public String getTableName() {
+			return "SOME_TABLE";
+		}
+		
+		@Override
+		public FieldColumn[] getFieldColumns() {
+			return new FieldColumn[] {
+					new FieldColumn("id", "ID", true).withIsBackupId(true),
+					new FieldColumn("etag", "ETAG"),
+					new FieldColumn("parentId", "PARENT_ID")					
+			};
+		}
+	};
 
 	
 	@Test
@@ -141,6 +173,14 @@ public class DMLUtilsTest {
 		assertNotNull(dml);
 		System.out.println(dml);
 		assertEquals("SELECT MAX(ID) FROM SOME_TABLE", dml);
+	}
+	
+	@Test
+	public void testCreateGetMinStatement() {
+		String dml = DMLUtils.createGetMinByBackupKeyStatement(mapping);
+		assertNotNull(dml);
+		System.out.println(dml);
+		assertEquals("SELECT MIN(ID) FROM SOME_TABLE", dml);
 	}
 	
 	@Test
@@ -232,4 +272,21 @@ public class DMLUtilsTest {
 		assertEquals("INSERT IGNORE INTO SOME_TABLE(`ID`) VALUES (:id)", sql);
 	}
 	
+	@Test
+	public void testcreateSelectSumCrc32ByIdRangeStatementWithEtag() {
+		String expectedSql = "select sum(crc32(`ETAG`)) from SOME_TABLE where `ID` between :BVIDRMIN and :BVIDRMAX";
+		String sql = DMLUtils.createSelectSumCrc32ByIdRangeStatement(migrateableMappingEtagAndId);
+		assertNotNull(sql);
+		System.out.println(sql);
+		assertEquals(expectedSql, sql);
+	}
+	
+	@Test
+	public void testcreateSelectSumCrc32ByIdRangeStatementWithoutEtag() {
+		String expectedSql = "select sum(crc32(`ID`)) from SOME_TABLE where `ID` between :BVIDRMIN and :BVIDRMAX";
+		String sql = DMLUtils.createSelectSumCrc32ByIdRangeStatement(migrateableMappingNoEtag);
+		assertNotNull(sql);
+		System.out.println(sql);
+		assertEquals(expectedSql, sql);
+	}
 }

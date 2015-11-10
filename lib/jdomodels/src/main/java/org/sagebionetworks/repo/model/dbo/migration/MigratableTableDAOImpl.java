@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.migration;
 
+import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashMap;
@@ -23,10 +24,14 @@ import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.SingleColumnRowMapper;
 import org.springframework.jdbc.core.namedparam.BeanPropertySqlParameterSource;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
 
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 
@@ -88,10 +93,12 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	private Map<MigrationType, String> deleteSqlMap = new HashMap<MigrationType, String>();
 	private Map<MigrationType, String> countSqlMap = new HashMap<MigrationType, String>();
 	private Map<MigrationType, String> maxSqlMap = new HashMap<MigrationType, String>();
+	private Map<MigrationType, String> minSqlMap = new HashMap<MigrationType, String>();
 	private Map<MigrationType, String> listSqlMap = new HashMap<MigrationType, String>();
 	private Map<MigrationType, String> deltaListSqlMap = new HashMap<MigrationType, String>();
 	private Map<MigrationType, String> backupSqlMap = new HashMap<MigrationType, String>();
 	private Map<MigrationType, String> insertOrUpdateSqlMap = new HashMap<MigrationType, String>();
+	private Map<MigrationType, String> sumCrc32SqlMap = new HashMap<MigrationType, String>();
 	
 	private Map<MigrationType, FieldColumn> etagColumns = new HashMap<MigrationType, FieldColumn>();
 	private Map<MigrationType, FieldColumn> backupIdColumns = new HashMap<MigrationType, FieldColumn>();
@@ -164,6 +171,10 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		countSqlMap.put(type, count);
 		String mx = DMLUtils.createGetMaxByBackupKeyStatement(mapping);
 		maxSqlMap.put(type, mx);
+		String mi = DMLUtils.createGetMinByBackupKeyStatement(mapping);
+		minSqlMap.put(type,  mi);
+		String sumCrc = DMLUtils.createSelectSumCrc32ByIdRangeStatement(mapping);
+		sumCrc32SqlMap.put(type, sumCrc);
 		String listRowMetadataSQL = DMLUtils.listRowMetadata(mapping);
 		listSqlMap.put(type, listRowMetadataSQL);
 		String deltalistRowMetadataSQL = DMLUtils.deltaListRowMetadata(mapping);
@@ -249,6 +260,14 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		String maxSql = this.maxSqlMap.get(type);
 		if(maxSql == null) throw new IllegalArgumentException("Cannot find max SQL for "+type);
 		return simpleJdbcTemplate.queryForLong(maxSql);
+	}
+
+	@Override
+	public long getMinId(MigrationType type) {
+		if(type == null) throw new IllegalArgumentException("type cannot be null");
+		String minSql = this.minSqlMap.get(type);
+		if(minSql == null) throw new IllegalArgumentException("Cannot find min SQL for "+type);
+		return simpleJdbcTemplate.queryForLong(minSql);
 	}
 
 	@Override
@@ -431,8 +450,7 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	public List<MigrationType> getPrimaryMigrationTypes() {
 		return rootTypes;
 	}
-
-	
+		
 	/*
 	 * (non-Javadoc)
 	 * @see org.sagebionetworks.repo.model.dbo.migration.MigratableTableDAO#runWithForeignKeyIgnored(java.util.concurrent.Callable)
@@ -458,10 +476,32 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		if(enabled){
 			// trun it on.
 			value = 1;
-		}else{
+		} else {
 			// turn it off
 			value = 0;
 		}
 		simpleJdbcTemplate.update(SET_FOREIGN_KEY_CHECKS, value);
 	}
+
+
+	@Override
+	public String getChecksumForIdRange(MigrationType type, long minId, long maxId) {
+		String sql = this.sumCrc32SqlMap.get(type);
+		if (sql == null) {
+			throw new IllegalArgumentException("Cannot find the checksum SQL for type" + type);
+		}
+		if (minId > maxId) {
+			throw new IllegalArgumentException("MaxId must be greater than minId");
+		}
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue(DMLUtils.BIND_VAR_ID_RANGE_MIN, minId);
+		params.addValue(DMLUtils.BIND_VAR_ID_RANGE_MAX, maxId);
+		BigDecimal cs = simpleJdbcTemplate.queryForObject(sql, new SingleColumnRowMapper<BigDecimal>(), params);
+		if (cs == null) {
+			return null;
+		} else {
+			return cs.toString();
+		}
+	}
+	
 }

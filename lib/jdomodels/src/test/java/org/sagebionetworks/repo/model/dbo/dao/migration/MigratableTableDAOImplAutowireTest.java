@@ -1,7 +1,11 @@
 package org.sagebionetworks.repo.model.dbo.dao.migration;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
+import java.math.BigDecimal;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -120,6 +124,12 @@ public class MigratableTableDAOImplAutowireTest {
 		assertEquals(preview2.getId(), ""+row.getId());
 		assertEquals(preview2.getEtag(), row.getEtag());
 		assertEquals(null, row.getParentId());
+		
+		// Get checksums
+		String checkSum = migratableTableDAO.getChecksumForIdRange(MigrationType.FILE_HANDLE, Long.parseLong(withPreview.getId()), Long.parseLong(preview2.getId()));
+		assertNotNull(checkSum);
+		long minId = migratableTableDAO.getMinId(MigrationType.FILE_HANDLE);
+		assertTrue(minId + ":" + preview2.getId(), minId <= Long.parseLong(preview2.getId()));
 		
 		// Get the full back object
 		List<Long> idsToBackup1 = new LinkedList<Long>();
@@ -303,4 +313,5 @@ public class MigratableTableDAOImplAutowireTest {
 		System.out.println(primary);
 		assertEquals(expectedPrimaryTypes, primary);
 	}
+	
 }

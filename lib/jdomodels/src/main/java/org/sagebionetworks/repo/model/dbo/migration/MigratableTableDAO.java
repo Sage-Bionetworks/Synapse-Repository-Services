@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.migration;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.concurrent.Callable;
 
@@ -29,6 +30,16 @@ public interface MigratableTableDAO {
 	 * The current max(id) for a table
 	 */
 	public long getMaxId(MigrationType type);
+	
+	/**
+	 * The current min(id) for a table
+	 */
+	public long getMinId(MigrationType type);
+	
+	/**
+	 * A checksum on etag or id for a range of ids
+	 */
+	public String getChecksumForIdRange(MigrationType type, long minId, long maxId);
 	
 	/**
 	 * List all row metadata in a paginated format. All rows will be migrated in the order listed by this method.

@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.migration.MigrationType;
+import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
@@ -116,6 +117,15 @@ public class MigrationControllerAutowireTest extends AbstractAutowiredController
 		// They should be ordered by ID
 		assertEquals(handleOne.getId(), ""+results.getList().get(0).getId());
 		assertEquals(preview.getId(), ""+results.getList().get(1).getId());
+	}
+	
+	@Test
+	public void testGetChecksumForIdRange() throws Exception {
+		MigrationTypeChecksum checksum = entityServletHelper.getChecksumForIdRange(adminUserId, MigrationType.FILE_HANDLE, "0", handleOne.getId());
+		assertNotNull(checksum);
+		assertEquals(MigrationType.FILE_HANDLE, checksum.getType());
+		assertEquals(0, checksum.getMinid().longValue());
+		assertEquals(new Long(handleOne.getId()), checksum.getMaxid());
 	}
 	
 

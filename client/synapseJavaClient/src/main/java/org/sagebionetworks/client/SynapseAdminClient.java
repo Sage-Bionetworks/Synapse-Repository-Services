@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.message.FireMessagesResult;
 import org.sagebionetworks.repo.model.message.PublishResults;
 import org.sagebionetworks.repo.model.migration.MigrationType;
+import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.MigrationTypeList;
@@ -110,6 +111,13 @@ public interface SynapseAdminClient extends SynapseClient {
 	 * @throws SynapseException
 	 */
 	public BackupRestoreStatus getStatus(String daemonId) throws JSONObjectAdapterException, SynapseException;
+	
+	/**
+	 * Get checksum for migration type and range of ids
+	 * @throws SynapseException 
+	 * @throws JSONObjectAdapterException 
+	 */
+	public MigrationTypeChecksum getChecksumForIdRange(MigrationType type, Long minId, Long maxId) throws SynapseException, JSONObjectAdapterException;
 	
 
 	/**
