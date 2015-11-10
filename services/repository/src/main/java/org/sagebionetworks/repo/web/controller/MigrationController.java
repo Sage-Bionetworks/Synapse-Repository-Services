@@ -84,6 +84,30 @@ public class MigrationController extends BaseController {
 	}
 
 	/**
+	 * This method is used to query a source stack for all of its metadata for a given id range.
+	 * 
+	 * @param userId
+	 * @param type
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.MIGRATION_ROWS_BY_ID, method = RequestMethod.GET)
+	public @ResponseBody
+	RowMetadataResult getRowMetadataById(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam(required = true) String type,
+			@RequestParam(required = true) Long minId,
+			@RequestParam(required = true) Long maxId)
+			throws DatastoreException, NotFoundException {
+		return serviceProvider.getMigrationService().getRowMetadaByIdForType(
+				userId, MigrationType.valueOf(type), minId, maxId);
+	}
+
+	/**
 	 * This method is called on the destination stack to compare compare its
 	 * metadata with the source stack metadata
 	 * 

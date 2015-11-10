@@ -708,6 +708,32 @@ public class EntityServletTestHelper {
 		return EntityFactory.createEntityFromJSONString(
 				response.getContentAsString(), RowMetadataResult.class);
 	}
+	
+	/**
+	 * Get the RowMetadata for a given type and id range
+	 * 
+	 * @param userId
+	 * @param type
+	 * @param minId
+	 * @param maxId
+	 * @return
+	 * @throws Exception
+	 */
+	public RowMetadataResult getRowMetadataById(Long userId,
+			MigrationType type, long minId, long maxId) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, "/migration/rowsbyid", userId, null);
+		request.setParameter("type", type.name());
+		request.setParameter("minId", "" + minId);
+		request.setParameter("maxId", "" + maxId);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+
+		return EntityFactory.createEntityFromJSONString(
+				response.getContentAsString(), RowMetadataResult.class);
+	}
+	
 
 	/**
 	 * Get the RowMetadata for a given Migration type. This is used to get all

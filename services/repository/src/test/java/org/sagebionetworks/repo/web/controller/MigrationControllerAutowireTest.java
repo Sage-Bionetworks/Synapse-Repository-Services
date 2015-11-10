@@ -120,6 +120,19 @@ public class MigrationControllerAutowireTest extends AbstractAutowiredController
 	}
 	
 	@Test
+	public void testRowMetadataById() throws Exception {
+		// First list the values for files
+		RowMetadataResult results = entityServletHelper.getRowMetadataById(adminUserId, MigrationType.FILE_HANDLE, Long.parseLong(handleOne.getId()), Long.parseLong(preview.getId()));
+		assertNotNull(results);
+		assertNotNull(results.getList());
+		assertEquals(new Long(startFileCount+2), results.getTotalCount());
+		assertEquals(2, results.getList().size());
+		// They should be ordered by ID
+		assertEquals(handleOne.getId(), ""+results.getList().get(0).getId());
+		assertEquals(preview.getId(), ""+results.getList().get(1).getId());
+	}
+	
+	@Test
 	public void testGetChecksumForIdRange() throws Exception {
 		MigrationTypeChecksum checksum = entityServletHelper.getChecksumForIdRange(adminUserId, MigrationType.FILE_HANDLE, "0", handleOne.getId());
 		assertNotNull(checksum);
