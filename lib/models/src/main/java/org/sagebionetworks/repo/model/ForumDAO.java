@@ -9,7 +9,7 @@ public interface ForumDAO {
 	 * @param projectId
 	 * @return
 	 */
-	public Forum createForum(Long projectId);
+	public Forum createForum(long projectId);
 
 	/**
 	 * get the forum object given its Id

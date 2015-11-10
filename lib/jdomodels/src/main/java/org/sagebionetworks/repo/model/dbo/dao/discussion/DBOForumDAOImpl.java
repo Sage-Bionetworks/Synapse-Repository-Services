@@ -42,7 +42,7 @@ public class DBOForumDAOImpl implements ForumDAO {
 
 	@WriteTransaction
 	@Override
-	public Forum createForum(Long projectId) {
+	public Forum createForum(long projectId) {
 		long id = idGenerator.generateNewId(TYPE.FORUM_ID);
 		DBOForum dbo = new DBOForum();
 		dbo.setId(id);
