@@ -309,13 +309,7 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 	}
 	
 	private void createForum() {
-		Long projectId = null;
-		if (project.getId().startsWith("syn")) {
-			projectId = Long.parseLong(project.getId().substring(3));
-		} else {
-			projectId = Long.parseLong(project.getId());
-		}
-		forumDao.createForum(projectId);
+		forumDao.createForum(project.getId());
 	}
 
 	private void createVerificationSubmission() {

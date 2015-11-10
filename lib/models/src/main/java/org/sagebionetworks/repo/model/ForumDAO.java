@@ -9,7 +9,7 @@ public interface ForumDAO {
 	 * @param projectId
 	 * @return
 	 */
-	public Forum createForum(long projectId);
+	public Forum createForum(String projectId);
 
 	/**
 	 * get the forum object given its Id
@@ -23,19 +23,13 @@ public interface ForumDAO {
 	 * @param projectId
 	 * @return
 	 */
-	public Forum getForumByProjectId(long projectId);
+	public Forum getForumByProjectId(String projectId);
 
 	/**
 	 * delete forum that has the given forumId
 	 * @param id
 	 */
 	public int deleteForum(long id);
-
-	/**
-	 * delete forum that has the given projectId
-	 * @param projectId
-	 */
-	public int deleteForumByProjectId(long projectId);
 
 	/**
 	 * truncate all data in Forum table

@@ -66,17 +66,25 @@ public class DBOForumDAOImplTest {
 	@Test
 	public void testCreateGetDelete() {
 		// create a forum
-		Forum dto = forumDao.createForum(Long.parseLong(projectId));
+		Forum dto = forumDao.createForum(projectId);
+		long forumId = Long.parseLong(dto.getId());
 
 		// make sure we can find the forum created
-		assertEquals(forumDao.getForum(dto.getId()), dto);
+		assertEquals(forumDao.getForum(forumId), dto);
 		assertEquals(forumDao.getForumByProjectId(dto.getProjectId()), dto);
 
+		// cannot create more than one forum for a project
+		try {
+			forumDao.createForum(projectId);
+		} catch (IllegalArgumentException e) {
+			// as expected
+		}
+
 		// delete the forum
-		forumDao.deleteForum(dto.getId());
+		forumDao.deleteForum(forumId);
 		// make sure that we can no longer find it
 		try {
-			forumDao.getForum(dto.getId());
+			forumDao.getForum(forumId);
 			fail("Should not be able to find a forum that has been deleted.");
 		} catch (NotFoundException e) {
 			// as expected

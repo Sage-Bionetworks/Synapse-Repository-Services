@@ -2,12 +2,12 @@
 	"title":"Forum",
 	"properties": {
 		"id":{
-			"type":"integer",
+			"type":"string",
 			"description":"The ID of this object"
 		},
 		"projectId":{
-			"type":"integer",
-			"description":"The ID of the project to which this forum belongs."
+			"type":"string",
+			"description":"The ID of the project to which this forum belongs. This ID may or may not start with prefix 'syn'."
 		}
 	}
 }

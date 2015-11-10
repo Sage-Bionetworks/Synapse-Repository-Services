@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.persistence.discussion;
 
 import org.sagebionetworks.repo.model.discussion.Forum;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 
 public class ForumUtils {
 
@@ -11,8 +12,8 @@ public class ForumUtils {
 	 */
 	public static DBOForum createDBOFromDTO(Forum dto) {
 		DBOForum dbo = new DBOForum();
-		dbo.setId(dto.getId());
-		dbo.setProjectId(dto.getProjectId());
+		dbo.setId(Long.parseLong(dto.getId()));
+		dbo.setProjectId(KeyFactory.stringToKey(dto.getProjectId()));
 		return dbo;
 	}
 
@@ -23,8 +24,8 @@ public class ForumUtils {
 	 */
 	public static Forum createDTOFromDBO(DBOForum dbo) {
 		Forum dto = new Forum();
-		dto.setId(dbo.getId());
-		dto.setProjectId(dbo.getProjectId());
+		dto.setId(dbo.getId().toString());
+		dto.setProjectId(KeyFactory.keyToString(dbo.getProjectId()));
 		return dto;
 	}
 }
