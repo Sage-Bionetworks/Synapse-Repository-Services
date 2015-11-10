@@ -16,6 +16,7 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.discussion.Forum;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,9 +48,6 @@ public class DBOForumDAOImplTest {
 				Long.parseLong(userId));
 		project.setParentId(StackConfiguration.getRootFolderEntityIdStatic());
 		projectId = nodeDao.createNew(project);
-		if (projectId.startsWith("syn")) {
-			projectId = projectId.substring(3);
-		}
 	}
 
 	@After
@@ -91,5 +89,12 @@ public class DBOForumDAOImplTest {
 		} catch (NotFoundException e) {
 			// as expected
 		}
+	}
+
+	@Test
+	public void testKeyWithoutSynPrefix() {
+		Forum dto = forumDao.createForum(KeyFactory.stringToKey(projectId).toString());
+		assertEquals(forumDao.getForum(Long.parseLong(dto.getId())), dto);
+		assertEquals(forumDao.getForumByProjectId(dto.getProjectId()), dto);
 	}
 }
