@@ -21,7 +21,7 @@ public class DBOForum implements MigratableDatabaseObject<DBOForum, DBOForum>{
 
 	private static final FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("id", COL_FORUM_ID, true).withIsBackupId(true),
-		new FieldColumn("projectId", FK_FORUM_PROJECT_ID).withIsSelfForeignKey(true)
+		new FieldColumn("projectId", COL_FORUM_PROJECT_ID)
 	};
 
 	private Long id;
@@ -83,7 +83,7 @@ public class DBOForum implements MigratableDatabaseObject<DBOForum, DBOForum>{
 			public DBOForum mapRow(ResultSet rs, int rowNum) throws SQLException {
 				DBOForum dbo = new DBOForum();
 				dbo.setId(rs.getLong(COL_FORUM_ID));
-				dbo.setProjectId(rs.getLong(FK_FORUM_PROJECT_ID));
+				dbo.setProjectId(rs.getLong(COL_FORUM_PROJECT_ID));
 				return dbo;
 			}
 

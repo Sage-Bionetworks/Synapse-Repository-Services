@@ -695,7 +695,7 @@ public class SqlConstants {
 	// Forum table
 	public static final String TABLE_FORUM = "FORUM";
 	public static final String COL_FORUM_ID = "ID";
-	public static final String FK_FORUM_PROJECT_ID = "PROJECT_ID";
+	public static final String COL_FORUM_PROJECT_ID = "PROJECT_ID";
 	public static final String DDL_FORUM = "schema/Forum-ddl.sql";
 
 	// This seems to be the name of the id column for all tables.
