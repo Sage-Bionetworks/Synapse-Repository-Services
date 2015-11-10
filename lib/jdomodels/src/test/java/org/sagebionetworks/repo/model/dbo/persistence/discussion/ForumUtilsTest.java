@@ -4,6 +4,7 @@ import static org.junit.Assert.*;
 
 import org.junit.Test;
 import org.sagebionetworks.repo.model.discussion.Forum;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 
 public class ForumUtilsTest {
 	private static final Long ID = 123L;
@@ -16,8 +17,8 @@ public class ForumUtilsTest {
 		dbo.setProjectId(PROJECT_ID);
 		// From DBO to DTO
 		Forum dto = ForumUtils.createDTOFromDBO(dbo);
-		assertEquals(dto.getId(), ID);
-		assertEquals(dto.getProjectId(), PROJECT_ID);
+		assertEquals(dto.getId(), ID.toString());
+		assertEquals(KeyFactory.stringToKey(dto.getProjectId()), PROJECT_ID);
 		// From DTO to DBO
 		DBOForum dbo2 = ForumUtils.createDBOFromDTO(dto);
 		assertEquals(dbo, dbo2);
