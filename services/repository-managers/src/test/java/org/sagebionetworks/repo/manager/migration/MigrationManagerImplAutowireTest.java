@@ -259,6 +259,17 @@ public class MigrationManagerImplAutowireTest {
 	}
 	
 	@Test
+	public void testListRowMetadataById() {
+		long minId = migrationManager.getMinId(adminUser, MigrationType.FILE_HANDLE);
+		long maxId = migrationManager.getMaxId(adminUser, MigrationType.FILE_HANDLE);
+		RowMetadataResult result = migrationManager.getRowMetadataByIdForType(adminUser, MigrationType.FILE_HANDLE, minId, maxId-1);
+		assertNotNull(result);
+		assertEquals(new Long(startCount+2), result.getTotalCount());
+		assertNotNull(result.getList());
+		assertEquals(1, result.getList().size());
+	}
+	
+	@Test
 	public void testRoundTrip() throws Exception{
 		RowMetadataResult result = migrationManager.getRowMetadaForType(adminUser, MigrationType.FILE_HANDLE, Long.MAX_VALUE, startCount);
 		assertNotNull(result);

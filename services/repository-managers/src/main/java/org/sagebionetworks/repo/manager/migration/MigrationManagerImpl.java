@@ -97,6 +97,14 @@ public class MigrationManagerImpl implements MigrationManager {
 		// pass this to the dao.
 		return migratableTableDao.listRowMetadata(type, limit, offset);
 	}
+	
+	@Override
+	public RowMetadataResult getRowMetadataByIdForType(UserInfo user, MigrationType type, long minId, long maxId) {
+		validateUser(user);
+		if(type == null) throw new IllegalArgumentException("Type cannot be null");
+		// pass this to the dao.
+		return migratableTableDao.listRowMetadataById(type, minId, maxId);
+	}
 
 	@Override
 	public RowMetadataResult getRowMetadataDeltaForType(UserInfo user, MigrationType type, List<Long> idList) {
