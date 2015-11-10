@@ -314,4 +314,54 @@ public class MigratableTableDAOImplAutowireTest {
 		assertEquals(expectedPrimaryTypes, primary);
 	}
 	
+	@Test
+	public void testListRowMetadataById() {
+		long startCount = fileHandleDao.getCount();
+		long migrationCount = migratableTableDAO.getCount(MigrationType.FILE_HANDLE);
+		assertEquals(startCount, migrationCount);
+		long startMax = fileHandleDao.getMaxId();
+		// The one will have a preview
+		S3FileHandle withPreview = TestUtils.createS3FileHandle(creatorUserGroupId);
+		withPreview.setFileName("withPreview.txt");
+		withPreview = fileHandleDao.createFile(withPreview);
+		assertNotNull(withPreview);
+		toDelete.add(withPreview.getId());
+		S3FileHandle withPreview2 = TestUtils.createS3FileHandle(creatorUserGroupId);
+		withPreview2.setFileName("withPreview2.txt");
+		withPreview2 = fileHandleDao.createFile(withPreview2);
+		assertNotNull(withPreview2);
+		toDelete.add(withPreview2.getId());
+		// The Preview
+		PreviewFileHandle preview = TestUtils.createPreviewFileHandle(creatorUserGroupId);
+		preview.setFileName("preview.txt");
+		preview = fileHandleDao.createFile(preview);
+		assertNotNull(preview);
+		toDelete.add(preview.getId());
+		// Preview 2
+		PreviewFileHandle preview2 = TestUtils.createPreviewFileHandle(creatorUserGroupId);
+		preview2.setFileName("preview.txt");
+		preview2 = fileHandleDao.createFile(preview2);
+		assertNotNull(preview2);
+		toDelete.add(preview2.getId());
+		
+		assertEquals(Long.parseLong(preview2.getId()), fileHandleDao.getMaxId());
+		
+		// Assign it as a preview
+		fileHandleDao.setPreviewId(withPreview.getId(), preview.getId());
+		fileHandleDao.setPreviewId(withPreview2.getId(), preview2.getId());
+		// The etag should have changed
+		withPreview = (S3FileHandle) fileHandleDao.get(withPreview.getId());
+		withPreview2 = (S3FileHandle) fileHandleDao.get(withPreview2.getId());
+		
+		// Now list only the files in the middle
+		RowMetadataResult partialList = migratableTableDAO.listRowMetadataById(MigrationType.FILE_HANDLE, Long.parseLong(withPreview2.getId()), Long.parseLong(preview.getId()));
+		assertNotNull(partialList);
+		// Note: We still return the total count for type
+		assertEquals(new Long(startCount+4),  partialList.getTotalCount());
+		assertNotNull(partialList.getList());
+		assertEquals(2, partialList.getList().size());
+		System.out.println(partialList.getList());
+		
+	}
+	
 }

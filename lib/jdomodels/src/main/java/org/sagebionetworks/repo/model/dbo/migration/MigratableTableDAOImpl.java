@@ -95,6 +95,7 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	private Map<MigrationType, String> maxSqlMap = new HashMap<MigrationType, String>();
 	private Map<MigrationType, String> minSqlMap = new HashMap<MigrationType, String>();
 	private Map<MigrationType, String> listSqlMap = new HashMap<MigrationType, String>();
+	private Map<MigrationType, String> listByIdSqlMap = new HashMap<MigrationType, String>();
 	private Map<MigrationType, String> deltaListSqlMap = new HashMap<MigrationType, String>();
 	private Map<MigrationType, String> backupSqlMap = new HashMap<MigrationType, String>();
 	private Map<MigrationType, String> insertOrUpdateSqlMap = new HashMap<MigrationType, String>();
@@ -177,6 +178,8 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		sumCrc32SqlMap.put(type, sumCrc);
 		String listRowMetadataSQL = DMLUtils.listRowMetadata(mapping);
 		listSqlMap.put(type, listRowMetadataSQL);
+		String listRowMetaDataByIdSQL = DMLUtils.listRowMetadataById(mapping);
+		listByIdSqlMap.put(type, listRowMetaDataByIdSQL);
 		String deltalistRowMetadataSQL = DMLUtils.deltaListRowMetadata(mapping);
 		deltaListSqlMap.put(type, deltalistRowMetadataSQL);
 		// Does this type have an etag?
@@ -287,6 +290,22 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	}
 	
 	@Override
+	public RowMetadataResult listRowMetadataById(MigrationType type, long minId, long maxId) {
+		if(type == null) throw new IllegalArgumentException("type cannot be null");
+		String sql = this.getListSqlById(type);
+		RowMapper<RowMetadata> mapper = this.getRowMetadataRowMapper(type);
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue(DMLUtils.BIND_VAR_ID_RANGE_MIN, minId);
+		params.addValue(DMLUtils.BIND_VAR_ID_RANGE_MAX, maxId);
+		List<RowMetadata> page = simpleJdbcTemplate.query(sql, mapper, params);
+		long count = this.getCount(type);
+		RowMetadataResult result = new RowMetadataResult();
+		result.setList(page);
+		result.setTotalCount(count);
+		return result;
+	}
+	
+	@Override
 	public List<RowMetadata> listDeltaRowMetadata(MigrationType type, List<Long> idList) {
 		if(type == null) throw new IllegalArgumentException("type cannot be null");
 		// Fix for PLFM-1978
@@ -386,6 +405,12 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	private String getListSql(MigrationType type){
 		String sql = this.listSqlMap.get(type);
 		if(sql == null) throw new IllegalArgumentException("Cannot find list SQL for type: "+type);
+		return sql;
+	}
+	
+	private String getListSqlById(MigrationType type) {
+		String sql = this.listByIdSqlMap.get(type);
+		if(sql == null) throw new IllegalArgumentException("Cannot find listById SQL for type: "+type);
 		return sql;
 	}
 	
