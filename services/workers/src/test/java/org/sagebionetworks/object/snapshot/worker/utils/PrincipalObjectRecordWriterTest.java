@@ -1,8 +1,7 @@
 package org.sagebionetworks.object.snapshot.worker.utils;
 
-import static org.junit.Assert.*;
-
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
@@ -11,10 +10,12 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
+import org.sagebionetworks.audit.dao.ObjectRecordDAO;
 import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
+import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserProfile;
@@ -25,12 +26,13 @@ import org.sagebionetworks.repo.model.message.ChangeType;
 
 import com.amazonaws.services.sqs.model.Message;
 
-public class PrincipalObjectRecordBuilderTest {
+public class PrincipalObjectRecordWriterTest {
 	
-	private PrincipalObjectRecordBuilder builder;
+	private PrincipalObjectRecordWriter writer;
 	private UserProfileDAO mockUserProfileDAO;
 	private UserGroupDAO mockUserGroupDAO;
 	private TeamDAO mockTeamDAO;
+	private ObjectRecordDAO mockObjectRecordDao;
 	
 	private Long principalID = 123L;
 	private Date createdOn = new Date();
@@ -48,11 +50,13 @@ public class PrincipalObjectRecordBuilderTest {
 		mockUserGroupDAO = Mockito.mock(UserGroupDAO.class);
 		mockUserProfileDAO = Mockito.mock(UserProfileDAO.class);
 		mockTeamDAO = Mockito.mock(TeamDAO.class);
-		builder = new PrincipalObjectRecordBuilder(mockUserGroupDAO, mockUserProfileDAO, mockTeamDAO);	
+		mockObjectRecordDao = Mockito.mock(ObjectRecordDAO.class);
+		writer = new PrincipalObjectRecordWriter(mockUserGroupDAO, mockUserProfileDAO,
+				mockTeamDAO, mockObjectRecordDao);	
 
 		ug = new UserGroup();
 
-		buildTeam();
+		team = buildTeam(teamId);
 
 		buildUserProfile();	
 	}
@@ -66,8 +70,8 @@ public class PrincipalObjectRecordBuilderTest {
 		up.setOwnerId(principalID.toString());
 	}
 
-	private void buildTeam() {
-		team = new Team();
+	private Team buildTeam(String teamId) {
+		Team team = new Team();
 		team.setCanPublicJoin(true);
 		team.setCreatedBy("333");
 		team.setCreatedOn(createdOn);
@@ -76,13 +80,14 @@ public class PrincipalObjectRecordBuilderTest {
 		team.setId(teamId);
 		team.setModifiedBy("444");
 		team.setModifiedOn(modifiedOn);
+		return team;
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void nonPrincipalChangeMessage() throws IOException {
 		Message message = MessageUtils.buildMessage(ChangeType.CREATE, "123", ObjectType.ACTIVITY, "1", "etag", timestamp);
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
-		builder.build(changeMessage);
+		writer.buildAndWriteRecord(changeMessage);
 	}
 
 	@Test
@@ -92,7 +97,7 @@ public class PrincipalObjectRecordBuilderTest {
 		Mockito.when(mockTeamDAO.get(principalID.toString())).thenReturn(team);
 		Message message = MessageUtils.buildMessage(ChangeType.CREATE, principalID.toString(), ObjectType.PRINCIPAL, etag, timestamp);
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
-		builder.build(changeMessage);
+		writer.buildAndWriteRecord(changeMessage);
 		Mockito.verify(mockUserGroupDAO).get(principalID);
 		Mockito.verify(mockUserProfileDAO, Mockito.never()).get(Mockito.anyString());
 		Mockito.verify(mockTeamDAO).get(principalID.toString());
@@ -103,7 +108,7 @@ public class PrincipalObjectRecordBuilderTest {
 	public void deleteTeamTest() throws IOException {
 		Message message = MessageUtils.buildMessage(ChangeType.DELETE, principalID.toString(), ObjectType.PRINCIPAL, etag, timestamp);
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
-		builder.build(changeMessage);
+		writer.buildAndWriteRecord(changeMessage);
 	}
 
 	@Test
@@ -113,7 +118,7 @@ public class PrincipalObjectRecordBuilderTest {
 		Mockito.when(mockTeamDAO.get(principalID.toString())).thenReturn(team);
 		Message message = MessageUtils.buildMessage(ChangeType.UPDATE, principalID.toString(), ObjectType.PRINCIPAL, etag, timestamp);
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
-		builder.build(changeMessage);
+		writer.buildAndWriteRecord(changeMessage);
 		Mockito.verify(mockUserGroupDAO).get(principalID);
 		Mockito.verify(mockUserProfileDAO, Mockito.never()).get(Mockito.anyString());
 		Mockito.verify(mockTeamDAO).get(principalID.toString());
@@ -127,13 +132,15 @@ public class PrincipalObjectRecordBuilderTest {
 		Mockito.when(mockUserProfileDAO.get(principalID.toString())).thenReturn(up);
 		Message message = MessageUtils.buildMessage(ChangeType.CREATE, principalID.toString(), ObjectType.PRINCIPAL, etag, timestamp);
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
-		List<ObjectRecord> records = builder.build(changeMessage);
+		ObjectRecord ugr = ObjectRecordBuilderUtils.buildObjectRecord(ug, timestamp);
+		ObjectRecord upr = ObjectRecordBuilderUtils.buildObjectRecord(up, timestamp);
+		writer.buildAndWriteRecord(changeMessage);
 		Mockito.verify(mockUserGroupDAO).get(principalID);
 		Mockito.verify(mockUserProfileDAO).get(principalID.toString());
 		Mockito.verify(mockTeamDAO, Mockito.never()).get(Mockito.anyString());
 		Mockito.verify(mockTeamDAO, Mockito.never()).getMember(Mockito.anyString(), Mockito.anyString());
-		assertEquals(records.get(0), ObjectRecordBuilderUtils.buildObjectRecord(ug, timestamp));
-		assertEquals(records.get(1), ObjectRecordBuilderUtils.buildObjectRecord(up, timestamp));
+		Mockito.verify(mockObjectRecordDao).saveBatch(Mockito.eq(Arrays.asList(ugr)), Mockito.eq(ugr.getJsonClassName()));
+		Mockito.verify(mockObjectRecordDao).saveBatch(Mockito.eq(Arrays.asList(upr)), Mockito.eq(upr.getJsonClassName()));
 	}
 
 	@Test
@@ -143,7 +150,7 @@ public class PrincipalObjectRecordBuilderTest {
 		Mockito.when(mockUserProfileDAO.get(principalID.toString())).thenReturn(up);
 		Message message = MessageUtils.buildMessage(ChangeType.UPDATE, principalID.toString(), ObjectType.PRINCIPAL, etag, timestamp);
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
-		builder.build(changeMessage);
+		writer.buildAndWriteRecord(changeMessage);
 		Mockito.verify(mockUserGroupDAO).get(principalID);
 		Mockito.verify(mockUserProfileDAO).get(principalID.toString());
 		Mockito.verify(mockTeamDAO, Mockito.never()).get(Mockito.anyString());
@@ -154,6 +161,41 @@ public class PrincipalObjectRecordBuilderTest {
 	public void deleteUserProfileTest() throws IOException {
 		Message message = MessageUtils.buildMessage(ChangeType.DELETE, principalID.toString(), ObjectType.PRINCIPAL, etag, timestamp);
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
-		builder.build(changeMessage);
+		writer.buildAndWriteRecord(changeMessage);
+	}
+
+	@Test
+	public void logTeamTest() throws IOException {
+		// principal that does not belong to any team
+		Mockito.when(mockTeamDAO.getCountForMember(Mockito.anyString())).thenReturn(0L);
+		writer.captureAllTeams(principalID, 1, timestamp);
+		Mockito.verify(mockTeamDAO, Mockito.never()).getForMemberInRange(Mockito.anyString(), Mockito.anyLong(), Mockito.anyLong());
+		Mockito.verify(mockTeamDAO, Mockito.never()).getMember(Mockito.anyString(), Mockito.anyString());
+		Mockito.verify(mockObjectRecordDao, Mockito.never()).saveBatch(Mockito.anyList(), Mockito.anyString());
+		
+		// principal that belongs to 2 teams
+		Mockito.when(mockTeamDAO.getCountForMember(Mockito.anyString())).thenReturn(4L);
+		List<Team> list = createListOfTeam(2);
+		Mockito.when(mockTeamDAO.getForMemberInRange(Mockito.anyString(), Mockito.anyLong(), Mockito.anyLong())).thenReturn(list);
+		TeamMember teamMember = new TeamMember();
+		Mockito.when(mockTeamDAO.getMember(Mockito.anyString(), Mockito.anyString())).thenReturn(teamMember);
+		writer.captureAllTeams(principalID, 2, timestamp);
+		Mockito.verify(mockTeamDAO).getForMemberInRange(Mockito.anyString(), Mockito.eq(2L), Mockito.eq(0L));
+		Mockito.verify(mockTeamDAO).getForMemberInRange(Mockito.anyString(), Mockito.eq(2L), Mockito.eq(2L));
+		Mockito.verify(mockTeamDAO, Mockito.times(4)).getMember(Mockito.anyString(), Mockito.anyString());
+		Mockito.verify(mockObjectRecordDao, Mockito.times(2)).saveBatch(Mockito.anyList(), Mockito.anyString());
+	}
+
+	/**
+	 * create a list of teams
+	 * @param numberOfTeams
+	 * @return
+	 */
+	private List<Team> createListOfTeam(int numberOfTeams) {
+		List<Team> list = new ArrayList<Team>();
+		for (int i = 0; i < numberOfTeams; i++) {
+			list.add(buildTeam(String.valueOf(i)));
+		}
+		return list;
 	}
 }

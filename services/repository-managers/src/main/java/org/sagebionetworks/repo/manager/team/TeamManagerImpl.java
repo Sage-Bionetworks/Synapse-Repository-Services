@@ -549,8 +549,6 @@ public class TeamManagerImpl implements TeamManager {
 		if (!alreadyInTeam) {
 			groupMembersDAO.addMembers(teamId, Collections.singletonList(principalId));
 			
-			transactionalMessenger.sendMessageAfterCommit(principalId, ObjectType.TEAM_MEMBER, "etag", teamId, ChangeType.UPDATE);
-			
 			TeamModificationMessage message = new TeamModificationMessage();
 			message.setObjectId(teamId);
 			message.setObjectType(ObjectType.TEAM);
@@ -603,8 +601,6 @@ public class TeamManagerImpl implements TeamManager {
 			}
 			groupMembersDAO.removeMembers(teamId, Collections.singletonList(principalId));
 			
-			transactionalMessenger.sendMessageAfterCommit(principalId, ObjectType.TEAM_MEMBER, "etag", teamId, ChangeType.DELETE);
-
 			TeamModificationMessage message = new TeamModificationMessage();
 			message.setObjectId(teamId);
 			message.setObjectType(ObjectType.TEAM);

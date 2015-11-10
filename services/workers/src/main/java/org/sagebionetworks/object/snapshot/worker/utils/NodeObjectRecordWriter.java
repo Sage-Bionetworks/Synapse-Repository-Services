@@ -1,10 +1,11 @@
 package org.sagebionetworks.object.snapshot.worker.utils;
 
+import java.io.IOException;
 import java.util.Arrays;
-import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.audit.dao.ObjectRecordDAO;
 import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
 import org.sagebionetworks.repo.manager.AccessRequirementManager;
 import org.sagebionetworks.repo.manager.EntityPermissionsManager;
@@ -28,8 +29,8 @@ import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
-public class NodeObjectRecordBuilder implements ObjectRecordBuilder {
-	private static Logger log = LogManager.getLogger(NodeObjectRecordBuilder.class);
+public class NodeObjectRecordWriter implements ObjectRecordWriter {
+	private static Logger log = LogManager.getLogger(NodeObjectRecordWriter.class);
 
 	@Autowired
 	private NodeDAO nodeDAO;
@@ -39,33 +40,21 @@ public class NodeObjectRecordBuilder implements ObjectRecordBuilder {
 	private AccessRequirementManager accessRequirementManager;
 	@Autowired
 	private EntityPermissionsManager entityPermissionManager;
+	@Autowired
+	private ObjectRecordDAO objectRecordDAO;
 
-	NodeObjectRecordBuilder(){}
+	NodeObjectRecordWriter(){}
 
 	// for test only
-	NodeObjectRecordBuilder(NodeDAO nodeDAO, UserManager userManager,
+	NodeObjectRecordWriter(NodeDAO nodeDAO, UserManager userManager,
 			AccessRequirementManager accessRequirementManager,
-			EntityPermissionsManager entityPermissionManager) {
+			EntityPermissionsManager entityPermissionManager,
+			ObjectRecordDAO objectRecordDAO) {
 		this.nodeDAO = nodeDAO;
 		this.userManager = userManager;
 		this.accessRequirementManager = accessRequirementManager;
 		this.entityPermissionManager = entityPermissionManager;
-	}
-
-	@Override
-	public List<ObjectRecord> build(ChangeMessage message) {
-		if (message.getObjectType() != ObjectType.ENTITY || message.getChangeType() == ChangeType.DELETE) {
-			throw new IllegalArgumentException();
-		}
-		try {
-			Node node = nodeDAO.getNode(message.getObjectId());
-			NodeRecord record = buildNodeRecord(node);
-			record = setAccessProperties(record, userManager, accessRequirementManager, entityPermissionManager);
-			return Arrays.asList(ObjectRecordBuilderUtils.buildObjectRecord(record, message.getTimestamp().getTime()));
-		} catch (NotFoundException e) {
-			log.error("Cannot find node for a " + message.getChangeType() + " message: " + message.toString()) ;
-			return null;
-		}
+		this.objectRecordDAO = objectRecordDAO;
 	}
 
 	/**
@@ -131,5 +120,21 @@ public class NodeObjectRecordBuilder implements ObjectRecordBuilder {
 		record.setFileHandleId(node.getFileHandleId());
 		record.setName(node.getName());
 		return record;
+	}
+
+	@Override
+	public void buildAndWriteRecord(ChangeMessage message) throws IOException {
+		if (message.getObjectType() != ObjectType.ENTITY || message.getChangeType() == ChangeType.DELETE) {
+			throw new IllegalArgumentException();
+		}
+		try {
+			Node node = nodeDAO.getNode(message.getObjectId());
+			NodeRecord record = buildNodeRecord(node);
+			record = setAccessProperties(record, userManager, accessRequirementManager, entityPermissionManager);
+			ObjectRecord objectRecord = ObjectRecordBuilderUtils.buildObjectRecord(record, message.getTimestamp().getTime());
+			objectRecordDAO.saveBatch(Arrays.asList(objectRecord), objectRecord.getJsonClassName());
+		} catch (NotFoundException e) {
+			log.error("Cannot find node for a " + message.getChangeType() + " message: " + message.toString()) ;
+		}
 	}
 }
