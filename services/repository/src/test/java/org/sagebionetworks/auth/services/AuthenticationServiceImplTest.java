@@ -5,6 +5,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import org.junit.Before;
@@ -201,5 +202,16 @@ public class AuthenticationServiceImplTest {
 				AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId(), null);
 	}
 	
+	@Test
+	public void testUnbindExternalID() throws NotFoundException{
+		Long principalId = 101L;
+		when(mockOAuthManager.getAliasTypeForProvider(OAuthProvider.ORCID)).thenReturn(AliasType.USER_ORCID);
+		String aliasName = "name";
 
+		service.unbindExternalID(principalId, OAuthProvider.ORCID, aliasName);
+		
+		verify(mockOAuthManager).getAliasTypeForProvider(OAuthProvider.ORCID);
+		verify(mockUserManager).unbindAlias(aliasName, AliasType.USER_ORCID, principalId);
+	}
+	
 }

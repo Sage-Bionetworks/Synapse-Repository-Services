@@ -51,6 +51,11 @@ public interface OAuthProviderBinding {
 	 * @return Information about the user provided by the OAuthProvider.
 	 */
 	public ProvidedUserInfo validateUserWithProvider(String authorizationCode, String redirectUrl);
+	
+	/**
+	 * @return the type of alias used for the provider's user id
+	 */
+	public AliasType getAliasType();
 
 	/**
 	 * Retrieve the unique ID in the provider's system for the user.  ID
