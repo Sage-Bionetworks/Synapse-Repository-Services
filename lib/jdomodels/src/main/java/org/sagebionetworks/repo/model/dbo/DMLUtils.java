@@ -277,18 +277,25 @@ public class DMLUtils {
 		}
 		String crcColName = crcCol.getColumnName();
 		// batch by ranges of backup ids
-		String idColName = getBackupIdColumnName(mapping).getColumnName();
 		// build the statement
 		StringBuilder builder = new StringBuilder();
-		builder.append("select sum(crc32(`");
+		builder.append("SELECT SUM(crc32(`");
 		builder.append(crcColName);
-		builder.append("`)) from ");
+		builder.append("`)) FROM ");
 		builder.append(mapping.getTableName());
-		builder.append(" where `");
-		builder.append(idColName);
-		builder.append("` between :" + BIND_VAR_ID_RANGE_MIN);
-		builder.append(" and :" + BIND_VAR_ID_RANGE_MAX);
+		buildWhereBackupIdInRange(mapping, builder);
 		return builder.toString();
+	}
+	
+	private static void buildWhereBackupIdInRange(TableMapping mapping, StringBuilder builder) {
+		String idColName = getBackupIdColumnName(mapping).getColumnName();
+		builder.append(" WHERE `");
+		builder.append(idColName);
+		builder.append("` >= :" + BIND_VAR_ID_RANGE_MIN);
+		builder.append(" AND `");
+		builder.append(idColName);
+		builder.append("` <= :" + BIND_VAR_ID_RANGE_MAX);
+		return;
 	}
 	
 	/**
@@ -366,6 +373,18 @@ public class DMLUtils {
 		return builder.toString();
 	}
 
+	public static String listRowMetadataById(TableMapping mapping) {
+		validateMigratableTableMapping(mapping);
+		StringBuilder builder = new StringBuilder();
+		builder.append("SELECT ");
+		buildSelectIdAndEtag(mapping, builder);
+		builder.append(" FROM ");
+		builder.append(mapping.getTableName());
+		buildWhereBackupIdInRange(mapping, builder);
+		buildBackupOrderBy(mapping, builder, true);
+		return builder.toString();
+	}
+	
 	/**
 	 * When etag is not null: " `ID`, `ETAG`", else: "`ID`"
 	 * @param mapping

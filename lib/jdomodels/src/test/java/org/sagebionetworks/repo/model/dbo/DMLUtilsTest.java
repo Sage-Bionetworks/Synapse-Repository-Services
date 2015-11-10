@@ -210,18 +210,34 @@ public class DMLUtilsTest {
 	
 	@Test
 	public void testListWithSelfForeignKey(){
-		String batchDelete = DMLUtils.listRowMetadata(migrateableMappingSelfForeignKey);
-		assertNotNull(batchDelete);
-		System.out.println(batchDelete);
-		assertEquals("SELECT `ID`, `ETAG`, `PARENT_ID` FROM SOME_TABLE ORDER BY `ID` ASC LIMIT :BCLIMIT OFFSET :BVOFFSET", batchDelete);
+		String sql = DMLUtils.listRowMetadata(migrateableMappingSelfForeignKey);
+		assertNotNull(sql);
+		System.out.println(sql);
+		assertEquals("SELECT `ID`, `ETAG`, `PARENT_ID` FROM SOME_TABLE ORDER BY `ID` ASC LIMIT :BCLIMIT OFFSET :BVOFFSET", sql);
 	}
 
 	@Test
 	public void testListWithNoEtagNoSelfForeignKey(){
-		String batchDelete = DMLUtils.listRowMetadata(migrateableMappingNoEtagNotSelfForeignKey);
-		assertNotNull(batchDelete);
-		System.out.println(batchDelete);
-		assertEquals("SELECT `ID` FROM SOME_TABLE ORDER BY `ID` ASC LIMIT :BCLIMIT OFFSET :BVOFFSET", batchDelete);
+		String sql = DMLUtils.listRowMetadata(migrateableMappingNoEtagNotSelfForeignKey);
+		assertNotNull(sql);
+		System.out.println(sql);
+		assertEquals("SELECT `ID` FROM SOME_TABLE ORDER BY `ID` ASC LIMIT :BCLIMIT OFFSET :BVOFFSET", sql);
+	}
+	
+	@Test
+	public void testListByIdWithSelfForeignKey() {
+		String sql = DMLUtils.listRowMetadataById(migrateableMappingSelfForeignKey);
+		assertNotNull(sql);
+		System.out.println(sql);
+		assertEquals("SELECT `ID`, `ETAG`, `PARENT_ID` FROM SOME_TABLE WHERE `ID` >= :BVIDRMIN AND `ID` <= :BVIDRMAX ORDER BY `ID` ASC", sql);
+	}
+	
+	@Test
+	public void testListByIdWithNoEtagNoSelfForeignKey(){
+		String sql = DMLUtils.listRowMetadataById(migrateableMappingNoEtagNotSelfForeignKey);
+		assertNotNull(sql);
+		System.out.println(sql);
+		assertEquals("SELECT `ID` FROM SOME_TABLE WHERE `ID` >= :BVIDRMIN AND `ID` <= :BVIDRMAX ORDER BY `ID` ASC", sql);
 	}
 	
 	@Test
@@ -274,7 +290,7 @@ public class DMLUtilsTest {
 	
 	@Test
 	public void testcreateSelectSumCrc32ByIdRangeStatementWithEtag() {
-		String expectedSql = "select sum(crc32(`ETAG`)) from SOME_TABLE where `ID` between :BVIDRMIN and :BVIDRMAX";
+		String expectedSql = "SELECT SUM(crc32(`ETAG`)) FROM SOME_TABLE WHERE `ID` >= :BVIDRMIN AND `ID` <= :BVIDRMAX";
 		String sql = DMLUtils.createSelectSumCrc32ByIdRangeStatement(migrateableMappingEtagAndId);
 		assertNotNull(sql);
 		System.out.println(sql);
@@ -283,7 +299,7 @@ public class DMLUtilsTest {
 	
 	@Test
 	public void testcreateSelectSumCrc32ByIdRangeStatementWithoutEtag() {
-		String expectedSql = "select sum(crc32(`ID`)) from SOME_TABLE where `ID` between :BVIDRMIN and :BVIDRMAX";
+		String expectedSql = "SELECT SUM(crc32(`ID`)) FROM SOME_TABLE WHERE `ID` >= :BVIDRMIN AND `ID` <= :BVIDRMAX";
 		String sql = DMLUtils.createSelectSumCrc32ByIdRangeStatement(migrateableMappingNoEtag);
 		assertNotNull(sql);
 		System.out.println(sql);
