@@ -180,7 +180,8 @@ public class PrincipalObjectRecordWriterTest {
 		TeamMember teamMember = new TeamMember();
 		Mockito.when(mockTeamDAO.getMember(Mockito.anyString(), Mockito.anyString())).thenReturn(teamMember);
 		writer.captureAllTeams(principalID, 2, timestamp);
-		Mockito.verify(mockTeamDAO, Mockito.times(2)).getForMemberInRange(Mockito.anyString(), Mockito.anyLong(), Mockito.anyLong());
+		Mockito.verify(mockTeamDAO).getForMemberInRange(Mockito.anyString(), Mockito.eq(2L), Mockito.eq(0L));
+		Mockito.verify(mockTeamDAO).getForMemberInRange(Mockito.anyString(), Mockito.eq(2L), Mockito.eq(2L));
 		Mockito.verify(mockTeamDAO, Mockito.times(4)).getMember(Mockito.anyString(), Mockito.anyString());
 		Mockito.verify(mockObjectRecordDao, Mockito.times(2)).saveBatch(Mockito.anyList(), Mockito.anyString());
 	}
