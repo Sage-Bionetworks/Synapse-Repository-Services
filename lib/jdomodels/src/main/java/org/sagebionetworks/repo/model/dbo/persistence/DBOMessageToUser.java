@@ -174,27 +174,8 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 	public MigratableTableTranslation<DBOMessageToUser, DBOMessageToUser> getTranslator() {
 		return new MigratableTableTranslation<DBOMessageToUser, DBOMessageToUser>() {
 			@Override
-			public DBOMessageToUser createDatabaseObjectFromBackup(DBOMessageToUser b) {
-				DBOMessageToUserBackup backup = (DBOMessageToUserBackup)b;
-				DBOMessageToUser dbo = new DBOMessageToUser();
-				dbo.setTo(backup.getTo());
-				dbo.setBcc(backup.getBcc());
-				dbo.setCc(backup.getCc());
-				dbo.setInReplyTo(backup.getInReplyTo());
-				dbo.setMessageId(backup.getMessageId());
-				dbo.setNotificationsEndpoint(backup.getNotificationsEndpoint());
-				dbo.setRootMessageId(backup.getRootMessageId());
-				dbo.setSent(backup.getSent());
-				if (backup.getSubject()!=null) {
-					try {
-						dbo.setSubjectBytes(backup.getSubject().getBytes("UTF-8"));
-					} catch (UnsupportedEncodingException e) {
-						throw new RuntimeException(e);
-					}
-				} else {
-					dbo.setSubjectBytes(backup.getSubjectBytes());
-				}
-				return dbo;
+			public DBOMessageToUser createDatabaseObjectFromBackup(DBOMessageToUser backup) {
+				return backup;
 			}
 			
 			@Override
@@ -205,8 +186,8 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 	}
 
 	@Override
-	public Class<? extends DBOMessageToUserBackup> getBackupClass() {
-		return DBOMessageToUserBackup.class;
+	public Class<? extends DBOMessageToUser> getBackupClass() {
+		return DBOMessageToUser.class;
 	}
 	
 	@Override

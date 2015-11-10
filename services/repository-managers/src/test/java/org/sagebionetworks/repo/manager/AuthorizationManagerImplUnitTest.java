@@ -15,6 +15,7 @@ import static org.mockito.Mockito.when;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -44,10 +45,10 @@ import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.VerificationDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
-import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.FileHandleAssociationManager;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -70,6 +71,7 @@ public class AuthorizationManagerImplUnitTest {
 	private EntityPermissionsManager mockEntityPermissionsManager;
 	private AccessControlListDAO mockAclDAO;
 	private FileHandleAssociationManager mockFileHandleAssociationManager;
+	private VerificationDAO mockVerificationDao;
 
 	private static String USER_PRINCIPAL_ID = "123";
 	private static String EVAL_OWNER_PRINCIPAL_ID = "987";
@@ -95,6 +97,7 @@ public class AuthorizationManagerImplUnitTest {
 		mockAclDAO = Mockito.mock(AccessControlListDAO.class);
 		mockNodeDao = Mockito.mock(NodeDAO.class);
 		mockFileHandleAssociationManager = Mockito.mock(FileHandleAssociationManager.class);
+		mockVerificationDao = Mockito.mock(VerificationDAO.class);
 
 		authorizationManager = new AuthorizationManagerImpl();
 		ReflectionTestUtils.setField(authorizationManager, "accessRequirementDAO", mockAccessRequirementDAO);
@@ -108,7 +111,8 @@ public class AuthorizationManagerImplUnitTest {
 		ReflectionTestUtils.setField(authorizationManager, "aclDAO", mockAclDAO);
 		ReflectionTestUtils.setField(authorizationManager, "nodeDao", mockNodeDao);
 		ReflectionTestUtils.setField(authorizationManager, "fileHandleAssociationSwitch", mockFileHandleAssociationManager);
-
+		ReflectionTestUtils.setField(authorizationManager, "verificationDao", mockVerificationDao);
+				
 		userInfo = new UserInfo(false, USER_PRINCIPAL_ID);
 
 		adminUser = new UserInfo(true, 456L);
@@ -412,6 +416,35 @@ public class AuthorizationManagerImplUnitTest {
 		// otherwise not
 		when(mockAclDAO.canAccess(userInfo.getGroups(), teamId, ObjectType.TEAM, accessType)).thenReturn(false);
 		assertFalse(authorizationManager.canAccess(userInfo, teamId, ObjectType.TEAM, accessType).getAuthorized());
+	}
+	
+	@Test
+	public void testCanDownloadVerificationSubmission() throws Exception {
+		String verificationId = "123";
+		long verificationIdLong = Long.parseLong(verificationId);
+		ACCESS_TYPE accessType = ACCESS_TYPE.DOWNLOAD;
+		ObjectType ot = ObjectType.VERIFICATION_SUBMISSION;
+		// admin can always access
+		assertTrue(authorizationManager.canAccess(adminUser, verificationId, ot, accessType).getAuthorized());
+		
+		// owner can access
+		when(mockVerificationDao.getVerificationSubmitter(verificationIdLong)).thenReturn(userInfo.getId());
+		assertTrue(authorizationManager.canAccess(userInfo, verificationId, ot, accessType).getAuthorized());
+		
+		// non-owner can't access
+		when(mockVerificationDao.getVerificationSubmitter(verificationIdLong)).thenReturn(userInfo.getId()*13);
+		assertFalse(authorizationManager.canAccess(userInfo, verificationId, ot, accessType).getAuthorized());
+		
+		// ACT can access
+		UserInfo actInfo = new UserInfo(false);
+		actInfo.setId(999L);
+		actInfo.setGroups(Collections.singleton(TeamConstants.ACT_TEAM_ID));
+		when(mockVerificationDao.getVerificationSubmitter(verificationIdLong)).thenReturn(userInfo.getId()*13);
+		assertTrue(authorizationManager.canAccess(actInfo, verificationId, ot, accessType).getAuthorized());
+		
+		// can't do other operations though
+		assertFalse(authorizationManager.canAccess(actInfo, verificationId, ot, ACCESS_TYPE.UPDATE).getAuthorized());
+
 	}
 	
 	private static void addEntityHeaderTo(String id, Collection<EntityHeader>c) {

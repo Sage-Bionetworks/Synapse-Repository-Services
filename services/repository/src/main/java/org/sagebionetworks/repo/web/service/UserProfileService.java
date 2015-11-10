@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.model.ProjectListSortColumn;
 import org.sagebionetworks.repo.model.ProjectListType;
 import org.sagebionetworks.repo.model.ResponseMessage;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserBundle;
 import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
@@ -44,16 +45,40 @@ public interface UserProfileService {
 	 * @throws DatastoreException - Thrown when there is a server-side problem.
 	 */
 	public UserProfile getMyOwnUserProfile(Long userId) throws DatastoreException,
-			UnauthorizedException, NotFoundException;
+	UnauthorizedException, NotFoundException;
+
+	/**
+	 * 
+	 * @param userId
+	 * @param mask integer flag defining which components to include in the bundle
+	 * @return
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
+	public UserBundle getMyOwnUserBundle(Long userId, int mask) throws DatastoreException,
+	UnauthorizedException, NotFoundException;
 
 	/**
 	 * Get a user profile specifying the individual group id for the user of interest
 	 * @param userId - The user that is making the request.
-	 * @param request
+	 * @param mask integer flag defining which components to include in the bundle
 	 * @return The UserProfile
 	 * @throws DatastoreException - Thrown when there is a server-side problem.
 	 */
 	public UserProfile getUserProfileByOwnerId(Long userId, String profileId)
+			throws DatastoreException, UnauthorizedException, NotFoundException;
+
+	/**
+	 * 
+	 * @param userId
+	 * @param profileId
+	 * @return
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
+	public UserBundle getUserBundleByOwnerId(Long userId, String profileId, int mask)
 			throws DatastoreException, UnauthorizedException, NotFoundException;
 
 	/**
@@ -119,16 +144,6 @@ public interface UserProfileService {
 			HttpHeaders header, HttpServletRequest request)
 			throws DatastoreException, NotFoundException;
 
-	public void setObjectTypeSerializer(ObjectTypeSerializer objectTypeSerializer);
-
-	public void setPermissionsManager(EntityPermissionsManager permissionsManager);
-
-	public void setUserManager(UserManager userManager);
-
-	public void setUserProfileManager(UserProfileManager userProfileManager);	
-	
-	public void setEntityManager(EntityManager entityManager);
-
 	/**
 	 * Adds the entity id to the users's favorites list
 	 * @param userId
@@ -178,8 +193,6 @@ public interface UserProfileService {
 	public PaginatedResults<ProjectHeader> getProjects(Long userId, Long otherUserId, Long teamId, ProjectListType type,
 			ProjectListSortColumn sortColumn, SortDirection sortDirection, Integer limit, Integer offset) throws DatastoreException,
 			InvalidModelException, NotFoundException;
-
-	public void setPrincipalAlaisDAO(PrincipalAliasDAO mockPrincipalAlaisDAO);
 
 	/**
 	 * Get the pre-signed URL for a user's profile image.

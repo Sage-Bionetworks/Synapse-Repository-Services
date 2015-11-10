@@ -208,6 +208,7 @@ public class UrlHelpers {
 	public static final String BULK_FILE_DOWNLOAD = FILE + "/bulk";
 	public static final String BULK_FILE_DOWNLOAD_ASYNC_START = BULK_FILE_DOWNLOAD + ASYNC_START_REQUEST;
 	public static final String BULK_FILE_DOWNLOAD_ASYNC_GET = BULK_FILE_DOWNLOAD + ASYNC_GET_REQUEST;
+	public static final String FILE_DOWNLOAD = FILE+ID;
 	
 	// version
 	public static final String ENTITY_VERSION_FILE = ENTITY_ID+VERSION+VERSION_NUMBER+FILE;
@@ -411,6 +412,10 @@ public class UrlHelpers {
 	 * 
 	 */
 	public static final String USER = "/user";
+	
+	public static final String USER_BUNDLE = USER+BUNDLE;
+	
+	public static final String USER_BUNDLE_ID = USER+ID+BUNDLE;
 
 	
 	/**
@@ -843,6 +848,12 @@ public class UrlHelpers {
 	public static final String CERTIFIED_USER_PASSING_RECORD_WITH_ID = USER+ID+"/certifiedUserPassingRecord";
 	public static final String CERTIFIED_USER_PASSING_RECORDS_WITH_ID = USER+ID+"/certifiedUserPassingRecords";
 	public static final String CERTIFIED_USER_STATUS = USER+ID+"/certificationStatus";
+	
+	
+	// verified user services
+	public static final String VERIFICATION_SUBMISSION = "/verificationSubmission";
+	public static final String VERIFICATION_SUBMISSION_ID = VERIFICATION_SUBMISSION+ID;
+	public static final String VERIFICATION_SUBMISSION_ID_STATE = "/verificationSubmission"+ID+"/state";
 
 	/**
 	 * APIs for DynamoDB related operations.

@@ -18,7 +18,7 @@
     	"TEAM",
     	"TABLE",
     	"ACCESS_CONTROL_LIST",
-    	"TEAM_MEMBER",
-    	"PROJECT_SETTING"
+    	"PROJECT_SETTING",
+    	"VERIFICATION_SUBMISSION"
     ]
 }

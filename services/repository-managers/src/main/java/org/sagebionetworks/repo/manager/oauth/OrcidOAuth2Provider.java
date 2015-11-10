@@ -91,4 +91,10 @@ public class OrcidOAuth2Provider implements OAuthProviderBinding {
 	}
 
 
+	@Override
+	public AliasType getAliasType() {
+		return AliasType.USER_ORCID;
+	}
+
+
 }

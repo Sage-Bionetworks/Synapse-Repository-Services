@@ -37,6 +37,7 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
+import org.sagebionetworks.repo.manager.AuthorizationStatus;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.manager.file.transfer.FileTransferStrategy;
@@ -60,6 +61,8 @@ import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.ExternalS3UploadDestination;
 import org.sagebionetworks.repo.model.file.ExternalUploadDestination;
 import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
+import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.HasPreviewId;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -161,6 +164,9 @@ public class FileHandleManagerImpl implements FileHandleManager {
 
 	@Autowired
 	NodeManager nodeManager;
+	
+	@Autowired
+	FileHandleAuthorizationManager fileHandleAuthorizationManager;
 
 	/**
 	 * This is the first strategy we try to use.
@@ -208,13 +214,15 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	public FileHandleManagerImpl(FileHandleDao fileMetadataDao,
 			FileTransferStrategy primaryStrategy,
 			FileTransferStrategy fallbackStrategy,
-			AuthorizationManager authorizationManager, AmazonS3Client s3Client) {
+			AuthorizationManager authorizationManager, AmazonS3Client s3Client,
+			FileHandleAuthorizationManager fileHandleAuthorizationManager) {
 		super();
 		this.fileHandleDao = fileMetadataDao;
 		this.primaryStrategy = primaryStrategy;
 		this.fallbackStrategy = fallbackStrategy;
 		this.authorizationManager = authorizationManager;
 		this.s3Client = s3Client;
+		this.fileHandleAuthorizationManager=fileHandleAuthorizationManager;
 	}
 
 	/**
@@ -1054,6 +1062,9 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		if(fileHandle.getStorageLocationId() == null){
 			throw new IllegalArgumentException("FileHandle.storageLocationId cannot be null");
 		}
+		if(fileHandle.getContentMd5() == null){
+			throw new IllegalArgumentException("FileHandle.contentMd5 cannot be null");
+		}
 		if (fileHandle.getFileName() == null) {
 			fileHandle.setFileName(NOT_SET);
 		}
@@ -1081,10 +1092,6 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		}
 		try {
 			ObjectMetadata summary = s3Client.getObjectMetadata(fileHandle.getBucketName(), fileHandle.getKey());
-			// set content MD5 and lenght if they were not passed in
-			if (fileHandle.getContentMd5() == null) {
-				fileHandle.setContentMd5(summary.getETag());
-			}
 			if (fileHandle.getContentSize() == null) {
 				fileHandle.setContentSize(summary.getContentLength());
 			}
@@ -1143,5 +1150,22 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		}
 		// Save the file metadata to the DB.
 		return fileHandleDao.createFile(newS3FileHandle);
+	}
+
+	@Override
+	public String getRedirectURLForFileHandle(UserInfo userInfo,
+			String fileHandleId, FileHandleAssociateType fileAssociateType,
+			String fileAssociateId) {
+		FileHandleAssociation fileHandleAssociation = new FileHandleAssociation();
+		fileHandleAssociation.setFileHandleId(fileHandleId);
+		fileHandleAssociation.setAssociateObjectType(fileAssociateType);
+		fileHandleAssociation.setAssociateObjectId(fileAssociateId);
+		List<FileHandleAssociation> associations = Collections.singletonList(fileHandleAssociation);
+		List<FileHandleAssociationAuthorizationStatus> authResults = fileHandleAuthorizationManager.canDownLoadFile(userInfo, associations);
+		if (authResults.size()!=1) throw new IllegalStateException("Expected one result but found "+authResults.size());
+		AuthorizationStatus authStatus = authResults.get(0).getStatus();
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(authStatus);
+		FileHandle fileHandle = fileHandleDao.get(fileHandleId);
+		return getURLForFileHandle(fileHandle, null);
 	}
 }

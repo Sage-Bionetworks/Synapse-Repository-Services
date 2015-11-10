@@ -719,8 +719,7 @@ public class CertifiedUserManagerImplTest {
 	
 	@Test
 	public void testGetPassingRecord() throws Exception {
-		UserInfo userInfo = new UserInfo(false);
-		certifiedUserManager.getPassingRecord(userInfo, 101L);
+		certifiedUserManager.getPassingRecord(101L);
 		verify(quizResponseDao).getPassingRecord(anyLong(), eq(101L));
 	}
 	

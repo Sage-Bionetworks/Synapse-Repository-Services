@@ -29,6 +29,7 @@ import org.sagebionetworks.repo.model.file.CompleteChunkedFileRequest;
 import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileCopyRequest;
 import org.sagebionetworks.repo.model.file.S3FileCopyResults;
@@ -747,4 +748,40 @@ public class UploadController extends BaseController {
 		AsynchronousJobStatus jobStatus = serviceProvider.getAsynchronousJobServices().getJobStatusAndThrow(userId, asyncToken);
 		return (BulkFileDownloadResponse) jobStatus.getResponseBody();
 	}
+	
+	/**
+	 * 
+	 * Get the actual URL of the file from with an associated object
+	 * .
+	 * <p>
+	 * Note: This call will result in a HTTP temporary redirect (307), to the
+	 * actual file URL if the caller meets all of the download requirements.
+	 * </p>
+	 * 
+	 * @param userId
+	 * @param id the ID of the file handle to be downloaded
+	 * @param redirect 
+	 * 		When set to false, the URL will be returned as text/plain
+	 *      instead of redirecting.
+	 * @param fileAssociateType the type of object with which the file is associated
+	 * @param fileAssociateId the ID fo the object with which the file is associated
+	 * @param response
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 */
+	@RequestMapping(value = UrlHelpers.FILE_DOWNLOAD, method = RequestMethod.GET)
+	public void fileRedirectURLForAffiliate(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String id,
+			@RequestParam(required = false) Boolean redirect,
+			@RequestParam(required = true) FileHandleAssociateType fileAssociateType,
+			@RequestParam(required = true) String fileAssociateId,
+			HttpServletResponse response) throws DatastoreException,
+			NotFoundException, IOException {
+		// Get the redirect url
+		String redirectUrl = fileService.getPresignedUrlForFileHandle(userId, id, fileAssociateType, fileAssociateId);
+		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
+	}
+	
 }

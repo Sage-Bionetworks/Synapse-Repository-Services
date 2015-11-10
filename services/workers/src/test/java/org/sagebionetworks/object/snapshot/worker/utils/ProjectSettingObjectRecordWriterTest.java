@@ -1,11 +1,13 @@
 package org.sagebionetworks.object.snapshot.worker.utils;
 
-import static org.junit.Assert.*;
+import java.io.IOException;
+import java.util.Arrays;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
+import org.sagebionetworks.audit.dao.ObjectRecordDAO;
 import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ProjectSettingsDAO;
@@ -18,9 +20,10 @@ import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 
 import com.amazonaws.services.sqs.model.Message;
 
-public class ProjectSettingObjectRecordBuilderTest {
+public class ProjectSettingObjectRecordWriterTest {
 	private ProjectSettingsDAO mockProjectSettingsDao;
-	private ProjectSettingObjectRecordBuilder builder;
+	private ObjectRecordDAO mockObjectRecordDao;
+	private ProjectSettingObjectRecordWriter builder;
 	private ProjectSetting projectSetting;
 	private final Long projectSettingId = 123L;
 	private final Long projectId = 456L;
@@ -28,7 +31,8 @@ public class ProjectSettingObjectRecordBuilderTest {
 	@Before
 	public void before() {
 		mockProjectSettingsDao = Mockito.mock(ProjectSettingsDAO.class);
-		builder = new ProjectSettingObjectRecordBuilder(mockProjectSettingsDao);
+		mockObjectRecordDao = Mockito.mock(ObjectRecordDAO.class);
+		builder = new ProjectSettingObjectRecordWriter(mockProjectSettingsDao, mockObjectRecordDao);
 
 		projectSetting = new UploadDestinationListSetting();
 		projectSetting.setEtag("etag");
@@ -40,27 +44,27 @@ public class ProjectSettingObjectRecordBuilderTest {
 	}
 
 	@Test (expected=IllegalArgumentException.class)
-	public void deleteChangeMessage() {
+	public void deleteChangeMessage() throws IOException {
 		Message message = MessageUtils.buildMessage(ChangeType.DELETE, projectSettingId.toString(), ObjectType.PROJECT_SETTING, "etag", System.currentTimeMillis());
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
-		builder.build(changeMessage);
+		builder.buildAndWriteRecord(changeMessage);
 	}
 
 	@Test (expected=IllegalArgumentException.class)
-	public void invalidObjectType() {
+	public void invalidObjectType() throws IOException {
 		Message message = MessageUtils.buildMessage(ChangeType.CREATE, projectSettingId.toString(), ObjectType.TABLE, "etag", System.currentTimeMillis());
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
-		builder.build(changeMessage);
+		builder.buildAndWriteRecord(changeMessage);
 	}
 
 	@Test
-	public void validChangeMessage() {
+	public void validChangeMessage() throws IOException {
 		Long timestamp = System.currentTimeMillis();
 		Message message = MessageUtils.buildMessage(ChangeType.UPDATE, projectSettingId.toString(), ObjectType.PROJECT_SETTING, "etag", timestamp);
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
 		ObjectRecord expected = ObjectRecordBuilderUtils.buildObjectRecord(projectSetting, timestamp);
-		ObjectRecord actual = builder.build(changeMessage).get(0);
+		builder.buildAndWriteRecord(changeMessage);
 		Mockito.verify(mockProjectSettingsDao).get(Mockito.eq(projectSettingId.toString()));
-		assertEquals(expected, actual);
+		Mockito.verify(mockObjectRecordDao).saveBatch(Mockito.eq(Arrays.asList(expected)), Mockito.eq(expected.getJsonClassName()));
 	}
 }

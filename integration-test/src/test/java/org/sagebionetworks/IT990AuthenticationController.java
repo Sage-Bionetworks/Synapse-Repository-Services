@@ -301,4 +301,14 @@ public class IT990AuthenticationController {
 			// OK
 		}
 	}
+	
+	/**
+	 * Since a browser is need to get a real authentication code, we are just testing
+	 * that everything is wires up correctly.
+	 * @throws SynapseException 
+	 */
+	@Test(expected=SynapseNotFoundException.class)
+	public void testUnbindExternalId() throws SynapseException {
+		synapse.unbindOAuthProvidersUserId(OAuthProvider.ORCID, "http://orcid.org/1234-5678-9876-5432");
+	}
 }

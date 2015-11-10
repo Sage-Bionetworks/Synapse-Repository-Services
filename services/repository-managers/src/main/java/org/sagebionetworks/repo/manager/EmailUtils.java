@@ -28,6 +28,7 @@ public class EmailUtils {
 	
 	public static final String TEMPLATE_KEY_ORIGIN_CLIENT = "#domain#";
 	public static final String TEMPLATE_KEY_DISPLAY_NAME = "#displayName#";
+	public static final String TEMPLATE_KEY_USER_ID = "#userid#";
 	public static final String TEMPLATE_KEY_USERNAME = "#username#";
 	public static final String TEMPLATE_KEY_WEB_LINK = "#link#";
 	public static final String TEMPLATE_KEY_HTML_SAFE_WEB_LINK = "#htmlSafelink#";
@@ -45,6 +46,9 @@ public class EmailUtils {
 	
 	public static final String TEMPLATE_KEY_CHALLENGE_NAME = "#challengeName#";
 	public static final String TEMPLATE_KEY_CHALLENGE_WEB_LINK = "#challengeWebLink#";
+	
+	public static final String TEMPLATE_KEY_REASON = "#reason#";
+	
 	
 	/*
 	 * The default local/name part of the email address
@@ -187,9 +191,8 @@ public class EmailUtils {
 	public static String createEmailBodyFromHtml(String messageBody,
 			String unsubscribeLink) {
 		if (unsubscribeLink==null) return messageBody;
-	   	StringBuilder bodyWithFooter = new StringBuilder();
-	   	bodyWithFooter.append(messageBody);
-	    bodyWithFooter.append(createHtmlUnsubscribeFooter(unsubscribeLink));
+	   	StringBuilder bodyWithFooter = new StringBuilder(messageBody);
+	   	bodyWithFooter.append(createHtmlUnsubscribeFooter(unsubscribeLink));
    	return bodyWithFooter.toString();
 	}
 	

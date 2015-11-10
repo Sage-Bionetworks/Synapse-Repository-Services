@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.SecretKey;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.Username;
+import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthValidationRequest;
@@ -284,6 +285,26 @@ public class AuthenticationController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId)
 			throws Exception {
 		return authenticationService.bindExternalID(userId, request);
+	}
+	
+	/**
+	 * Remove an alias associated with an account via the OAuth mechanism.
+	 * 
+	 * @param userId
+	 * @param provider the OAuth provider through which the alias was associated
+	 * @param alias the alias for the user given by the provider
+	 * @throws Exception
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.AUTH_OAUTH_2_ALIAS, method = RequestMethod.DELETE)
+	public @ResponseBody
+	void unbindExternalAliasFromAccount(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam(required=true) String provider,
+			@RequestParam(required=true) String alias
+			) throws Exception {
+		OAuthProvider providerEnum = OAuthProvider.valueOf(provider);
+		authenticationService.unbindExternalID(userId, providerEnum, alias);
 	}
 
 }
