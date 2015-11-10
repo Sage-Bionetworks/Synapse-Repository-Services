@@ -60,10 +60,10 @@ public class MigrationServiceImpl implements MigrationService {
 	}
 
 	@Override
-	public RowMetadataResult getRowMetadaByIdForType(Long userId,	MigrationType type, long minId, long maxId) throws DatastoreException, NotFoundException {
+	public RowMetadataResult getRowMetadaByRangeForType(Long userId,	MigrationType type, long minId, long maxId) throws DatastoreException, NotFoundException {
 		if(userId == null) throw new IllegalArgumentException("userId cannot be null");
 		UserInfo user = userManager.getUserInfo(userId);
-		return migrationManager.getRowMetadataByIdForType(user, type, minId, maxId);
+		return migrationManager.getRowMetadataByRangeForType(user, type, minId, maxId);
 	}
 
 	@Override

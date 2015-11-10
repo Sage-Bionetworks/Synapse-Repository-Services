@@ -122,7 +122,7 @@ public class MigrationControllerAutowireTest extends AbstractAutowiredController
 	@Test
 	public void testRowMetadataById() throws Exception {
 		// First list the values for files
-		RowMetadataResult results = entityServletHelper.getRowMetadataById(adminUserId, MigrationType.FILE_HANDLE, Long.parseLong(handleOne.getId()), Long.parseLong(preview.getId()));
+		RowMetadataResult results = entityServletHelper.getRowMetadataByRange(adminUserId, MigrationType.FILE_HANDLE, Long.parseLong(handleOne.getId()), Long.parseLong(preview.getId()));
 		assertNotNull(results);
 		assertNotNull(results.getList());
 		assertEquals(new Long(startFileCount+2), results.getTotalCount());

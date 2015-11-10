@@ -110,7 +110,7 @@ public interface MigrationManager {
 	public MigrationTypeChecksum getChecksumForIdRange(UserInfo user, MigrationType type,
 			long minId, long maxId);
 
-	RowMetadataResult getRowMetadataByIdForType(UserInfo user,
+	RowMetadataResult getRowMetadataByRangeForType(UserInfo user,
 			MigrationType type, long minId, long maxId);
 	
 	

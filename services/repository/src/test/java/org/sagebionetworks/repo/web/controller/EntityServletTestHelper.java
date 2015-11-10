@@ -719,10 +719,10 @@ public class EntityServletTestHelper {
 	 * @return
 	 * @throws Exception
 	 */
-	public RowMetadataResult getRowMetadataById(Long userId,
+	public RowMetadataResult getRowMetadataByRange(Long userId,
 			MigrationType type, long minId, long maxId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, "/migration/rowsbyid", userId, null);
+				HTTPMODE.GET, UrlHelpers.MIGRATION_ROWS_BY_RANGE, userId, null);
 		request.setParameter("type", type.name());
 		request.setParameter("minId", "" + minId);
 		request.setParameter("maxId", "" + maxId);

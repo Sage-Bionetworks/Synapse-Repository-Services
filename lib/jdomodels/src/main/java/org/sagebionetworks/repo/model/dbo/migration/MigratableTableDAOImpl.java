@@ -290,9 +290,9 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	}
 	
 	@Override
-	public RowMetadataResult listRowMetadataById(MigrationType type, long minId, long maxId) {
+	public RowMetadataResult listRowMetadataByRange(MigrationType type, long minId, long maxId) {
 		if(type == null) throw new IllegalArgumentException("type cannot be null");
-		String sql = this.getListSqlById(type);
+		String sql = this.getListSqlByRange(type);
 		RowMapper<RowMetadata> mapper = this.getRowMetadataRowMapper(type);
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(DMLUtils.BIND_VAR_ID_RANGE_MIN, minId);
@@ -408,9 +408,9 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		return sql;
 	}
 	
-	private String getListSqlById(MigrationType type) {
+	private String getListSqlByRange(MigrationType type) {
 		String sql = this.listByIdSqlMap.get(type);
-		if(sql == null) throw new IllegalArgumentException("Cannot find listById SQL for type: "+type);
+		if(sql == null) throw new IllegalArgumentException("Cannot find listByRange SQL for type: "+type);
 		return sql;
 	}
 	

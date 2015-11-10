@@ -315,7 +315,7 @@ public class MigratableTableDAOImplAutowireTest {
 	}
 	
 	@Test
-	public void testListRowMetadataById() {
+	public void testListRowMetadataByRange() {
 		long startCount = fileHandleDao.getCount();
 		long migrationCount = migratableTableDAO.getCount(MigrationType.FILE_HANDLE);
 		assertEquals(startCount, migrationCount);
@@ -354,7 +354,7 @@ public class MigratableTableDAOImplAutowireTest {
 		withPreview2 = (S3FileHandle) fileHandleDao.get(withPreview2.getId());
 		
 		// Now list only the files in the middle
-		RowMetadataResult partialList = migratableTableDAO.listRowMetadataById(MigrationType.FILE_HANDLE, Long.parseLong(withPreview2.getId()), Long.parseLong(preview.getId()));
+		RowMetadataResult partialList = migratableTableDAO.listRowMetadataByRange(MigrationType.FILE_HANDLE, Long.parseLong(withPreview2.getId()), Long.parseLong(preview.getId()));
 		assertNotNull(partialList);
 		// Note: We still return the total count for type
 		assertEquals(new Long(startCount+4),  partialList.getTotalCount());

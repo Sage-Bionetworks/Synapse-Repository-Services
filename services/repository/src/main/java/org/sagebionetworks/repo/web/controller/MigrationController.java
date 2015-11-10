@@ -95,15 +95,15 @@ public class MigrationController extends BaseController {
 	 * @throws NotFoundException
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.MIGRATION_ROWS_BY_ID, method = RequestMethod.GET)
+	@RequestMapping(value = UrlHelpers.MIGRATION_ROWS_BY_RANGE, method = RequestMethod.GET)
 	public @ResponseBody
-	RowMetadataResult getRowMetadataById(
+	RowMetadataResult getRowMetadataByRange(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(required = true) String type,
 			@RequestParam(required = true) Long minId,
 			@RequestParam(required = true) Long maxId)
 			throws DatastoreException, NotFoundException {
-		return serviceProvider.getMigrationService().getRowMetadaByIdForType(
+		return serviceProvider.getMigrationService().getRowMetadaByRangeForType(
 				userId, MigrationType.valueOf(type), minId, maxId);
 	}
 
