@@ -325,7 +325,6 @@
 	<bean id="countingSemaphore"
 		class="org.sagebionetworks.database.semaphore.CountingSemaphoreImpl">
 		<constructor-arg ref="dataSourcePool" index="0"></constructor-arg>
-		<constructor-arg ref="txManager" index="1"></constructor-arg>
 	</bean>	
 
 </beans>
