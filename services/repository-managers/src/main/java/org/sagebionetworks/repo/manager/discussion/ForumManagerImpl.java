@@ -34,10 +34,11 @@ public class ForumManagerImpl implements ForumManager {
 	private void validateProjectIdAndThrowException(String projectId) {
 		if (projectId == null) throw new IllegalArgumentException("projectId cannot be null.");
 		if (!nodeDao.doesNodeExist(KeyFactory.stringToKey(projectId))) {
-			throw new IllegalArgumentException("Project does not exist.");
+			throw new NotFoundException("Project does not exist.");
 		}
 	}
 
+	@WriteTransaction
 	@Override
 	public Forum getForumMetadata(UserInfo user, String projectId) {
 		validateProjectIdAndThrowException(projectId);

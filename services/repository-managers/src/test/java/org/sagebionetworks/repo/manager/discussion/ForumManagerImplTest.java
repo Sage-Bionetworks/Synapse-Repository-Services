@@ -51,10 +51,22 @@ public class ForumManagerImplTest {
 	}
 
 	@Test (expected=IllegalArgumentException.class)
+	public void testGetWithNullProjectId() {
+		forumManager.getForumMetadata(userInfo, null);
+	}
+
+	@Test (expected=NotFoundException.class)
 	public void testCreateWithNonExistingProjectId() {
 		Mockito.when(mockNodeDao.doesNodeExist(KeyFactory.stringToKey(projectId)))
 				.thenReturn(false);
 		forumManager.createForum(userInfo, projectId);
+	}
+
+	@Test (expected=NotFoundException.class)
+	public void testGetWithNonExistingProjectId() {
+		Mockito.when(mockNodeDao.doesNodeExist(KeyFactory.stringToKey(projectId)))
+				.thenReturn(false);
+		forumManager.getForumMetadata(userInfo, projectId);
 	}
 
 	@Test (expected=IllegalArgumentException.class)
