@@ -28,13 +28,6 @@ public class DiscussionServiceImplTest {
 	}
 
 	@Test
-	public void testCreateForum() {
-		discussionServices.createForum(userId, projectId);
-		Mockito.verify(mockUserManager).getUserInfo(userId);
-		Mockito.verify(mockForumManager).createForum(userInfo, projectId);
-	}
-
-	@Test
 	public void testGetForumMetadata() {
 		discussionServices.getForumMetadata(userId, projectId);
 		Mockito.verify(mockUserManager).getUserInfo(userId);
