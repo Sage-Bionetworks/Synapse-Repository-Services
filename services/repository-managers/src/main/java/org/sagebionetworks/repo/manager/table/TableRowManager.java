@@ -5,13 +5,13 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.Callable;
 
+import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.RowAndHeaderHandler;
-import org.sagebionetworks.repo.model.exception.LockUnavilableException;
 import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
@@ -34,8 +34,8 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.util.Pair;
-import org.sagebionetworks.util.ProgressCallback;
 import org.sagebionetworks.util.csv.CSVWriterStream;
+import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 
 /**
  * Abstraction for Table Row management.
@@ -255,8 +255,8 @@ public interface TableRowManager {
 	 * @throws Exception
 	 * @throws InterruptedException
 	 */
-	public <T> T tryRunWithTableExclusiveLock(String tableId, long timeoutMS,
-			Callable<T> runner) throws LockUnavilableException,
+	public <R, T> R tryRunWithTableExclusiveLock(ProgressCallback<T> callback, String tableId, int timeoutMS,
+			ProgressingCallable<R, T> runner) throws LockUnavilableException,
 			InterruptedException, Exception;
 
 	/**
@@ -285,8 +285,8 @@ public interface TableRowManager {
 	 * @throws LockUnavilableException
 	 * @throws Exception
 	 */
-	public <T> T tryRunWithTableNonexclusiveLock(String tableId,
-			long timeoutMS, Callable<T> runner) throws LockUnavilableException,
+	public <R, T> R tryRunWithTableNonexclusiveLock(String tableId,
+			int timeoutMS, ProgressingCallable<R, T> runner) throws LockUnavilableException,
 			Exception;
 
 	/**

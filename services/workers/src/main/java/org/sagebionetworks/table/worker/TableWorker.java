@@ -10,6 +10,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.asynchronous.workers.changes.ChangeMessageDrivenRunner;
+import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.manager.NodeInheritanceManager;
 import org.sagebionetworks.repo.manager.table.TableIndexConnectionFactory;
 import org.sagebionetworks.repo.manager.table.TableIndexConnectionUnavailableException;
@@ -18,7 +20,6 @@ import org.sagebionetworks.repo.manager.table.TableRowManager;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.exception.LockUnavilableException;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.table.ColumnMapper;
@@ -30,8 +31,10 @@ import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
-import org.sagebionetworks.workers.util.progress.ProgressCallback;
+import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import com.amazonaws.services.route53.model.Change;
 
 /**
  * This worker updates the index used to support the tables features. It will
@@ -48,6 +51,8 @@ public class TableWorker implements ChangeMessageDrivenRunner {
 	}
 	
 	static private Logger log = LogManager.getLogger(TableWorker.class);
+	
+	public static final int WRITE_LOCK_TIMEOUT_SEC = 60;
 
 	@Autowired
 	TableRowManager tableRowManager;
@@ -124,11 +129,11 @@ public class TableWorker implements ChangeMessageDrivenRunner {
 				return State.SUCCESS;
 			}
 			// Run with the exclusive lock on the table if we can get it.
-			return tableRowManager.tryRunWithTableExclusiveLock(tableId,
-					configuration.getTableWorkerTimeoutMS(),
-					new Callable<State>() {
+			return tableRowManager.tryRunWithTableExclusiveLock(progressCallback,tableId,
+					WRITE_LOCK_TIMEOUT_SEC,
+					new ProgressingCallable<State, ChangeMessage>() {
 						@Override
-						public State call() throws Exception {
+						public State call(ProgressCallback<ChangeMessage> progress) throws Exception {
 							// This method does the real work.
 							return createOrUpdateWhileHoldingLock(
 									progressCallback, tableId, tableIndexManger, tableResetToken,

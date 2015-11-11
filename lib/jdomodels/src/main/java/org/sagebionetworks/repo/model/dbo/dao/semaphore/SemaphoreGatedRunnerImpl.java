@@ -8,12 +8,12 @@ import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.ImmutablePropertyAccessor;
 import org.sagebionetworks.PropertyAccessor;
 import org.sagebionetworks.collections.Maps2;
+import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.database.semaphore.LockReleaseFailedException;
 import org.sagebionetworks.database.semaphore.CountingSemaphore;
 import org.sagebionetworks.repo.model.dao.semaphore.ProgressingRunner;
 import org.sagebionetworks.repo.model.dao.semaphore.SemaphoreGatedRunner;
 import org.sagebionetworks.util.Clock;
-import org.sagebionetworks.util.ProgressCallback;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.google.common.base.Supplier;

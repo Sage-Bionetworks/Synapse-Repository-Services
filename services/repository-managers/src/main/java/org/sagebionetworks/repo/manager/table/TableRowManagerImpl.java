@@ -11,7 +11,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.Callable;
 
 import org.apache.commons.lang.BooleanUtils;
 import org.apache.commons.lang.StringUtils;
@@ -19,6 +18,8 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.collections.Transform;
+import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.manager.util.Validate;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
@@ -30,14 +31,12 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dao.semaphore.ExclusiveOrSharedSemaphoreRunner;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.RowAccessor;
 import org.sagebionetworks.repo.model.dao.table.RowAndHeaderHandler;
 import org.sagebionetworks.repo.model.dao.table.RowSetAccessor;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
-import org.sagebionetworks.repo.model.exception.LockUnavilableException;
 import org.sagebionetworks.repo.model.exception.ReadOnlyException;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.status.StatusEnum;
@@ -86,9 +85,10 @@ import org.sagebionetworks.table.query.model.visitors.GetTableNameVisitor;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 import org.sagebionetworks.util.Closer;
 import org.sagebionetworks.util.Pair;
-import org.sagebionetworks.util.ProgressCallback;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.util.csv.CSVWriterStream;
+import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
+import org.sagebionetworks.workers.util.semaphore.WriteReadSemaphoreRunner;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionCallback;
@@ -112,6 +112,8 @@ public class TableRowManagerImpl implements TableRowManager {
 	public static final long BUNDLE_MASK_QUERY_MAX_ROWS_PER_PAGE = 0x8;
 	public static final long BUNDLE_MASK_QUERY_COLUMN_MODELS = 0x10;
 
+	public static final int READ_LOCK_TIMEOUT_SEC = 60;
+	
 	@Autowired
 	AuthorizationManager authorizationManager;
 	@Autowired
@@ -121,7 +123,7 @@ public class TableRowManagerImpl implements TableRowManager {
 	@Autowired
 	ColumnModelDAO columnModelDAO;
 	@Autowired
-	ExclusiveOrSharedSemaphoreRunner exclusiveOrSharedSemaphoreRunner;
+	WriteReadSemaphoreRunner writeReadSemaphoreRunner;
 	@Autowired
 	ConnectionFactory tableConnectionFactory;
 	@Autowired
@@ -129,10 +131,6 @@ public class TableRowManagerImpl implements TableRowManager {
 	@Autowired
 	StackStatusDao stackStatusDao;
 	
-	/**
-	 * Injected via Spring.
-	 */
-	long tableReadTimeoutMS;
 	
 	/**
 	 * Injected via spring
@@ -143,13 +141,6 @@ public class TableRowManagerImpl implements TableRowManager {
 	 * Injected by spring
 	 */
 	int maxBytesPerChangeSet;
-	/**
-	 * Injected via spring
-	 * @param tableReadTimeoutMS
-	 */
-	public void setTableReadTimeoutMS(long tableReadTimeoutMS) {
-		this.tableReadTimeoutMS = tableReadTimeoutMS;
-	}
 
 	/**
 	 * Injected via spring
@@ -508,19 +499,20 @@ public class TableRowManagerImpl implements TableRowManager {
 	}
 
 	@Override
-	public <T> T tryRunWithTableExclusiveLock(String tableId, long lockTimeoutMS, Callable<T> runner)
-			throws InterruptedException, Exception {
+	public <R,T> R tryRunWithTableExclusiveLock(ProgressCallback<T> callback,
+			String tableId, int timeoutSec, ProgressingCallable<R, T> callable)
+			throws LockUnavilableException, InterruptedException, Exception {
 		String key = TableModelUtils.getTableSemaphoreKey(tableId);
 		// The semaphore runner does all of the lock work.
-		return exclusiveOrSharedSemaphoreRunner.tryRunWithExclusiveLock(key, lockTimeoutMS, runner);
+		return writeReadSemaphoreRunner.tryRunWithWriteLock(callback, key, timeoutSec, callable);
 	}
 
 	@Override
-	public <T> T tryRunWithTableNonexclusiveLock(String tableId, long lockTimeoutMS, Callable<T> runner)
+	public <R,T> R tryRunWithTableNonexclusiveLock(String tableId, int lockTimeoutSec, ProgressingCallable<R, T> callable)
 			throws Exception {
 		String key = TableModelUtils.getTableSemaphoreKey(tableId);
 		// The semaphore runner does all of the lock work.
-		return exclusiveOrSharedSemaphoreRunner.tryRunWithSharedLock(key, lockTimeoutMS, runner);
+		return writeReadSemaphoreRunner.tryRunWithReadLock(null, key, lockTimeoutSec, callable);
 	}
 
 	/*
@@ -983,9 +975,9 @@ public class TableRowManagerImpl implements TableRowManager {
 		final String tableId = queryHandlers.get(0).getQuery().getTableId();
 		try {
 			// Run with a read lock.
-			tryRunWithTableNonexclusiveLock(tableId, tableReadTimeoutMS, new Callable<String>() {
+			tryRunWithTableNonexclusiveLock(tableId, READ_LOCK_TIMEOUT_SEC, new ProgressingCallable<String, Void>() {
 				@Override
-				public String call() throws Exception {
+				public String call(ProgressCallback<Void> callback) throws Exception {
 					// We can only run this query if the table is available.
 					final TableStatus status = getTableStatusOrCreateIfNotExists(tableId);
 					switch(status.getState()){
@@ -1336,15 +1328,14 @@ public class TableRowManagerImpl implements TableRowManager {
 	@Override
 	public Set<Long> getFileHandleIdsAssociatedWithTable(final String tableId,
 			final Set<Long> toTest) {
-		// Since this uses the index we need a read lock to execute
-		long thritySecondTimeoutMS = 30*1000L;
 		try {
-			return this.tryRunWithTableNonexclusiveLock(tableId, thritySecondTimeoutMS, new Callable<Set<Long>>(){
+			return this.tryRunWithTableNonexclusiveLock(tableId, READ_LOCK_TIMEOUT_SEC, new ProgressingCallable<Set<Long>, Void>(){
 
 				@Override
-				public Set<Long> call() throws Exception {
+				public Set<Long> call(ProgressCallback<Void> callback) throws Exception {
 					// What is the current version of the talbe's truth?
 					TableRowChange lastChange = tableRowTruthDao.getLastTableRowChange(tableId);
+					callback.progressMade(null);
 					if(lastChange == null){
 						// There are no changes applied to this table so return an empty set.
 						return Sets.newHashSet();
@@ -1359,6 +1350,7 @@ public class TableRowManagerImpl implements TableRowManager {
 					if(indexVersion < truthVersion){
 						throw new TemporarilyUnavailableException("Waiting for the table index to be built.");
 					}
+					callback.progressMade(null);
 					// the index dao 
 					return indexDao.getFileHandleIdsAssociatedWithTable(toTest, tableId);
 				}});
@@ -1371,4 +1363,5 @@ public class TableRowManagerImpl implements TableRowManager {
 		}
 
 	}
+
 }

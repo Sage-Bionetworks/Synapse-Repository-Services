@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.model.dao.semaphore;
 
-import org.sagebionetworks.util.ProgressCallback;
+import org.sagebionetworks.common.util.progress.ProgressCallback;
 
 /**
  * For jobs that need to hold a semaphore for a long period of time, the runner is given

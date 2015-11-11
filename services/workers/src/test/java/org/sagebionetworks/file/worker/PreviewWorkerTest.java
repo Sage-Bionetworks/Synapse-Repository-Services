@@ -17,6 +17,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
+import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.file.preview.PreviewManager;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
@@ -27,7 +28,6 @@ import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
-import org.sagebionetworks.workers.util.progress.ProgressCallback;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.amazonaws.services.sqs.model.Message;

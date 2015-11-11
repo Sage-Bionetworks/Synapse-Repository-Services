@@ -9,15 +9,7 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.reset;
-import static org.mockito.Mockito.stub;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -27,7 +19,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.Callable;
 
 import org.apache.commons.lang.StringUtils;
 import org.junit.Assume;
@@ -37,6 +28,8 @@ import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -46,7 +39,6 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dao.semaphore.ExclusiveOrSharedSemaphoreRunner;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.RowAccessor;
 import org.sagebionetworks.repo.model.dao.table.RowAndHeaderHandler;
@@ -54,11 +46,30 @@ import org.sagebionetworks.repo.model.dao.table.RowSetAccessor;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
-import org.sagebionetworks.repo.model.exception.LockUnavilableException;
 import org.sagebionetworks.repo.model.exception.ReadOnlyException;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.status.StatusEnum;
-import org.sagebionetworks.repo.model.table.*;
+import org.sagebionetworks.repo.model.table.ColumnMapper;
+import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnModelMapper;
+import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.PartialRow;
+import org.sagebionetworks.repo.model.table.PartialRowSet;
+import org.sagebionetworks.repo.model.table.Query;
+import org.sagebionetworks.repo.model.table.QueryBundleRequest;
+import org.sagebionetworks.repo.model.table.QueryResult;
+import org.sagebionetworks.repo.model.table.QueryResultBundle;
+import org.sagebionetworks.repo.model.table.RawRowSet;
+import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.repo.model.table.RowReference;
+import org.sagebionetworks.repo.model.table.RowReferenceSet;
+import org.sagebionetworks.repo.model.table.RowSelection;
+import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.SelectColumn;
+import org.sagebionetworks.repo.model.table.TableRowChange;
+import org.sagebionetworks.repo.model.table.TableState;
+import org.sagebionetworks.repo.model.table.TableStatus;
+import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
@@ -66,7 +77,8 @@ import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.Pair;
-import org.sagebionetworks.util.ProgressCallback;
+import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
+import org.sagebionetworks.workers.util.semaphore.WriteReadSemaphoreRunner;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.support.TransactionCallback;
 
@@ -87,8 +99,9 @@ public class TableRowManagerImplTest {
 	ColumnModelDAO mockColumnModelDAO;
 	ConnectionFactory mockTableConnectionFactory;
 	TableIndexDAO mockTableIndexDAO;
-	ExclusiveOrSharedSemaphoreRunner mockExclusiveOrSharedSemaphoreRunner;
+	WriteReadSemaphoreRunner mockWriteReadSemaphoreRunner;
 	List<ColumnModel> models;
+	ProgressCallback<Object> mockProgressCallback2;
 	UserInfo user;
 	String tableId;
 	RowSet set;
@@ -111,18 +124,19 @@ public class TableRowManagerImplTest {
 		mockColumnModelDAO = Mockito.mock(ColumnModelDAO.class);
 		mockTableConnectionFactory = Mockito.mock(ConnectionFactory.class);
 		mockTableIndexDAO = Mockito.mock(TableIndexDAO.class);
-		mockExclusiveOrSharedSemaphoreRunner = Mockito.mock(ExclusiveOrSharedSemaphoreRunner.class);
+		mockWriteReadSemaphoreRunner = Mockito.mock(WriteReadSemaphoreRunner.class);
 		mockStackStatusDao = Mockito.mock(StackStatusDao.class);
 		mockProgressCallback = Mockito.mock(ProgressCallback.class);
+		mockProgressCallback2 = Mockito.mock(ProgressCallback.class);
 
 		// Just call the caller.
-		stub(mockExclusiveOrSharedSemaphoreRunner.tryRunWithSharedLock(anyString(), anyLong(), any(Callable.class))).toAnswer(new Answer<Object>() {
+		stub(mockWriteReadSemaphoreRunner.tryRunWithReadLock(any(ProgressCallback.class),anyString(), anyInt(), any(ProgressingCallable.class))).toAnswer(new Answer<Object>() {
 			@Override
 			public Object answer(InvocationOnMock invocation) throws Throwable {
 				if(invocation == null) return null;
-				Callable<Object> callable = (Callable<Object>) invocation.getArguments()[2];
+				ProgressingCallable<Object, Object> callable = (ProgressingCallable<Object, Object>) invocation.getArguments()[3];
 						if (callable != null) {
-							return callable.call();
+							return callable.call(mockProgressCallback2);
 						} else {
 							return null;
 						}
@@ -207,8 +221,7 @@ public class TableRowManagerImplTest {
 		ReflectionTestUtils.setField(manager, "nodeDao", mockNodeDAO);
 		ReflectionTestUtils.setField(manager, "columnModelDAO", mockColumnModelDAO);
 		ReflectionTestUtils.setField(manager, "tableConnectionFactory", mockTableConnectionFactory);
-		ReflectionTestUtils.setField(manager, "exclusiveOrSharedSemaphoreRunner", mockExclusiveOrSharedSemaphoreRunner);
-		ReflectionTestUtils.setField(manager, "tableReadTimeoutMS", 5000L);
+		ReflectionTestUtils.setField(manager, "writeReadSemaphoreRunner", mockWriteReadSemaphoreRunner);
 		// read-write be default.
 		when(mockStackStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_WRITE);
 		rowIdSequence = 0;
@@ -851,7 +864,7 @@ public class TableRowManagerImplTest {
 		status.setState(TableState.AVAILABLE);
 		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
 		// Throw a lock LockUnavilableException
-		when(mockExclusiveOrSharedSemaphoreRunner.tryRunWithSharedLock(anyString(), anyLong(), any(Callable.class))).thenThrow(new LockUnavilableException());
+		when(mockWriteReadSemaphoreRunner.tryRunWithReadLock(any(ProgressCallback.class),anyString(), anyInt(), any(ProgressingCallable.class))).thenThrow(new LockUnavilableException());
 		try{
 			manager.query(user, "select * from " + tableId + " limit 1", null, null, null, true, false, true);
 			fail("should have failed");
@@ -1247,7 +1260,7 @@ public class TableRowManagerImplTest {
 	@Test (expected=TemporarilyUnavailableException.class)
 	public void testGetFileHandleIdsAssociatedWithTableLockFailed() throws LockUnavilableException, Exception{
 		// setup LockUnavilableException.
-		when(mockExclusiveOrSharedSemaphoreRunner.tryRunWithSharedLock(anyString(), anyLong(), any(Callable.class))).thenThrow(new LockUnavilableException());
+		when(mockWriteReadSemaphoreRunner.tryRunWithReadLock(any(ProgressCallback.class),anyString(), anyInt(), any(ProgressingCallable.class))).thenThrow(new LockUnavilableException());
 		TableRowChange lastChange = new TableRowChange();
 		lastChange.setRowVersion(3L);
 		when(mockTruthDao.getLastTableRowChange(tableId)).thenReturn(lastChange);

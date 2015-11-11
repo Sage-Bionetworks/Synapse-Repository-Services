@@ -281,6 +281,16 @@
 	<bean id="columnModelManager" class="org.sagebionetworks.repo.manager.table.ColumnModelManagerImpl"
 		scope="singleton" />
 		
+	<bean id="writeReadSemaphore" class="org.sagebionetworks.database.semaphore.WriteReadSemaphoreImpl">
+		<constructor-arg ref="dataSourcePool"/>
+	</bean>
+	
+	<bean id="writeReadSemaphoreRunner" class="org.sagebionetworks.workers.util.semaphore.WriteReadSemaphoreRunnerImpl">
+		<constructor-arg index="0" ref="writeReadSemaphore"/>
+		<constructor-arg index="1"><bean class="org.sagebionetworks.workers.util.ClockImpl"/>
+		</constructor-arg>
+	</bean>
+		
 	<bean id="tableRowManager" class="org.sagebionetworks.repo.manager.table.TableRowManagerImpl" scope="singleton" >
         <property name="tableReadTimeoutMS"	ref="stackConfiguration.tableReadTimeoutMS" />
        	<property name="maxBytesPerRequest" ref="stackConfiguration.tableMaxBytesPerRequest"/>

@@ -12,9 +12,9 @@ import java.sql.Timestamp;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.trash.TrashManager;
 import org.sagebionetworks.repo.manager.trash.TrashManager.PurgeCallback;
-import org.sagebionetworks.workers.util.progress.ProgressCallback;
 import org.springframework.test.util.ReflectionTestUtils;
 
 public class TrashWorkerTest {

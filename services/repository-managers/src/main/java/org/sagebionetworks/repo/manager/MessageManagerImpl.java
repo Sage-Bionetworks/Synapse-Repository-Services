@@ -13,6 +13,7 @@ import org.apache.commons.lang.WordUtils;
 import org.apache.http.entity.ContentType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.principal.SynapseEmailService;
 import org.sagebionetworks.repo.manager.team.TeamConstants;
@@ -49,7 +50,6 @@ import org.sagebionetworks.repo.model.message.Settings;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.util.ProgressCallback;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.simpleemail.model.SendEmailRequest;
