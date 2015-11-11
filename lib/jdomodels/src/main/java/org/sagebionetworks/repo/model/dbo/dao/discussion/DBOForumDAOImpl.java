@@ -69,11 +69,13 @@ public class DBOForumDAOImpl implements ForumDAO {
 		return ForumUtils.createDTOFromDBO(results.get(0));
 	}
 
+	@WriteTransaction
 	@Override
 	public int deleteForum(long id) {
 		return jdbcTemplate.update(SQL_DELETE_FORUM, id);
 	}
 
+	@WriteTransaction
 	@Override
 	public void truncateAll() {
 		jdbcTemplate.update(SQL_TRUNCATE);
