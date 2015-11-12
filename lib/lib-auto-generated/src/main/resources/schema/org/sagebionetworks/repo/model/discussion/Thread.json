@@ -27,9 +27,9 @@
 			"format":"date-time",
 			"description":"The timestamp when this Thread was last modified"
 		},
-		"messageMarkdown": {
+		"messageKey": {
 		"type": "string",
-			"description": "The markdown of the Thread's message"
+			"description": "The S3 key where the Thread's message stored"
 		},
 		"numberOfViews": {
 			"type": "integer",
