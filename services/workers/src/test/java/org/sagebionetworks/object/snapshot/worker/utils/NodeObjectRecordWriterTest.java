@@ -2,7 +2,9 @@ package org.sagebionetworks.object.snapshot.worker.utils;
 
 import static org.junit.Assert.assertEquals;
 
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
@@ -10,6 +12,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
+import org.sagebionetworks.audit.dao.ObjectRecordDAO;
 import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
 import org.sagebionetworks.repo.manager.AccessRequirementManager;
 import org.sagebionetworks.repo.manager.EntityPermissionsManager;
@@ -34,10 +37,10 @@ import org.sagebionetworks.repo.model.message.ChangeType;
 
 import com.amazonaws.services.sqs.model.Message;
 
-public class NodeObjectRecordBuilderTest {
+public class NodeObjectRecordWriterTest {
 
 	private NodeDAO mockNodeDAO;
-	private NodeObjectRecordBuilder builder;
+	private NodeObjectRecordWriter writer;
 	private NodeRecord node;
 	private UserManager mockUserManager;
 	private AccessRequirementManager mockAccessRequirementManager;
@@ -45,6 +48,7 @@ public class NodeObjectRecordBuilderTest {
 	private QueryResults<AccessRequirement> mockArs;
 	private UserEntityPermissions mockPermissions;
 	private UserInfo mockUserInfo;
+	private ObjectRecordDAO mockObjectRecordDao;
 
 	@Before
 	public void setup() {
@@ -52,8 +56,10 @@ public class NodeObjectRecordBuilderTest {
 		mockUserManager = Mockito.mock(UserManager.class);
 		mockAccessRequirementManager = Mockito.mock(AccessRequirementManager.class);
 		mockEntityPermissionManager = Mockito.mock(EntityPermissionsManager.class);
-		builder = new NodeObjectRecordBuilder(mockNodeDAO, mockUserManager,
-				mockAccessRequirementManager, mockEntityPermissionManager);
+		mockObjectRecordDao = Mockito.mock(ObjectRecordDAO.class);
+		writer = new NodeObjectRecordWriter(mockNodeDAO, mockUserManager,
+				mockAccessRequirementManager, mockEntityPermissionManager,
+				mockObjectRecordDao);
 
 		node = new NodeRecord();
 		node.setId("123");
@@ -73,21 +79,21 @@ public class NodeObjectRecordBuilderTest {
 	}
 
 	@Test (expected=IllegalArgumentException.class)
-	public void deleteChangeMessage() {
+	public void deleteChangeMessage() throws IOException {
 		Message message = MessageUtils.buildMessage(ChangeType.DELETE, "123", ObjectType.ENTITY, "etag", System.currentTimeMillis());
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
-		builder.build(changeMessage);
+		writer.buildAndWriteRecord(changeMessage);
 	}
 
 	@Test (expected=IllegalArgumentException.class)
-	public void invalidObjectType() {
+	public void invalidObjectType() throws IOException {
 		Message message = MessageUtils.buildMessage(ChangeType.CREATE, "123", ObjectType.TABLE, "etag", System.currentTimeMillis());
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
-		builder.build(changeMessage);
+		writer.buildAndWriteRecord(changeMessage);
 	}
 
 	@Test
-	public void notPublicTest() {
+	public void notPublicTest() throws IOException {
 		// not restricted, not controlled
 		List<AccessRequirement> ars = new ArrayList<AccessRequirement>();
 		Mockito.when(mockArs.getResults()).thenReturn(ars);
@@ -103,13 +109,13 @@ public class NodeObjectRecordBuilderTest {
 		node.setIsRestricted(false);
 		ObjectRecord expected = ObjectRecordBuilderUtils.buildObjectRecord(node, timestamp);
 
-		ObjectRecord actual = builder.build(changeMessage).get(0);
+		writer.buildAndWriteRecord(changeMessage);
 		Mockito.verify(mockNodeDAO).getNode(Mockito.eq("123"));
-		assertEquals(expected, actual);
+		Mockito.verify(mockObjectRecordDao).saveBatch(Mockito.eq(Arrays.asList(expected)), Mockito.eq(expected.getJsonClassName()));
 	}
 
 	@Test
-	public void publicTest() {
+	public void publicTest() throws IOException {
 		// not restricted, not controlled
 		List<AccessRequirement> ars = new ArrayList<AccessRequirement>();
 		Mockito.when(mockArs.getResults()).thenReturn(ars);
@@ -125,13 +131,13 @@ public class NodeObjectRecordBuilderTest {
 		node.setIsRestricted(false);
 		ObjectRecord expected = ObjectRecordBuilderUtils.buildObjectRecord(node, timestamp);
 
-		ObjectRecord actual = builder.build(changeMessage).get(0);
+		writer.buildAndWriteRecord(changeMessage);
 		Mockito.verify(mockNodeDAO).getNode(Mockito.eq("123"));
-		assertEquals(expected, actual);
+		Mockito.verify(mockObjectRecordDao).saveBatch(Mockito.eq(Arrays.asList(expected)), Mockito.eq(expected.getJsonClassName()));
 	}
 
 	@Test
-	public void restrictedTest() {
+	public void restrictedTest() throws IOException {
 		// Restricted
 		List<AccessRequirement> ars = new ArrayList<AccessRequirement>();
 		ars.add(new PostMessageContentAccessRequirement());
@@ -148,13 +154,13 @@ public class NodeObjectRecordBuilderTest {
 		node.setIsRestricted(true);
 		ObjectRecord expected = ObjectRecordBuilderUtils.buildObjectRecord(node, timestamp);
 
-		ObjectRecord actual = builder.build(changeMessage).get(0);
+		writer.buildAndWriteRecord(changeMessage);
 		Mockito.verify(mockNodeDAO).getNode(Mockito.eq("123"));
-		assertEquals(expected, actual);
+		Mockito.verify(mockObjectRecordDao).saveBatch(Mockito.eq(Arrays.asList(expected)), Mockito.eq(expected.getJsonClassName()));
 	}
 
 	@Test
-	public void controlledTest() {
+	public void controlledTest() throws IOException {
 		// controlled
 		List<AccessRequirement> ars = new ArrayList<AccessRequirement>();
 		ars.add(new ACTAccessRequirement());
@@ -171,13 +177,13 @@ public class NodeObjectRecordBuilderTest {
 		node.setIsRestricted(false);
 		ObjectRecord expected = ObjectRecordBuilderUtils.buildObjectRecord(node, timestamp);
 
-		ObjectRecord actual = builder.build(changeMessage).get(0);
+		writer.buildAndWriteRecord(changeMessage);
 		Mockito.verify(mockNodeDAO).getNode(Mockito.eq("123"));
-		assertEquals(expected, actual);
+		Mockito.verify(mockObjectRecordDao).saveBatch(Mockito.eq(Arrays.asList(expected)), Mockito.eq(expected.getJsonClassName()));
 	}
 
 	@Test
-	public void publicRestrictedAndControlledTest() {
+	public void publicRestrictedAndControlledTest() throws IOException {
 		// controlled
 		List<AccessRequirement> ars = new ArrayList<AccessRequirement>();
 		ars.add(new ACTAccessRequirement());
@@ -195,9 +201,9 @@ public class NodeObjectRecordBuilderTest {
 		node.setIsRestricted(true);
 		ObjectRecord expected = ObjectRecordBuilderUtils.buildObjectRecord(node, timestamp);
 
-		ObjectRecord actual = builder.build(changeMessage).get(0);
+		writer.buildAndWriteRecord(changeMessage);
 		Mockito.verify(mockNodeDAO).getNode(Mockito.eq("123"));
-		assertEquals(expected, actual);
+		Mockito.verify(mockObjectRecordDao).saveBatch(Mockito.eq(Arrays.asList(expected)), Mockito.eq(expected.getJsonClassName()));
 	}
 
 	@Test
@@ -215,7 +221,7 @@ public class NodeObjectRecordBuilderTest {
 		node.setVersionNumber(3L);
 		node.setFileHandleId("fileHandleId");
 		node.setName("name");
-		NodeRecord record = NodeObjectRecordBuilder.buildNodeRecord(node);
+		NodeRecord record = NodeObjectRecordWriter.buildNodeRecord(node);
 		assertEquals(node.getId(), record.getId());
 		assertEquals(node.getBenefactorId(), record.getBenefactorId());
 		assertEquals(node.getProjectId(), record.getProjectId());

@@ -1,10 +1,11 @@
 package org.sagebionetworks.object.snapshot.worker.utils;
 
+import java.io.IOException;
 import java.util.Arrays;
-import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.audit.dao.ObjectRecordDAO;
 import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
@@ -16,36 +17,20 @@ import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
-public class AclObjectRecordBuilder implements ObjectRecordBuilder {
+public class AclObjectRecordWriter implements ObjectRecordWriter {
 
-	static private Logger log = LogManager.getLogger(AclObjectRecordBuilder.class);
+	static private Logger log = LogManager.getLogger(AclObjectRecordWriter.class);
 	@Autowired
 	private AccessControlListDAO accessControlListDao;
+	@Autowired
+	private ObjectRecordDAO objectRecordDAO;
 
-	AclObjectRecordBuilder(){}
+	AclObjectRecordWriter(){}
 	
 	// for test only
-	AclObjectRecordBuilder(AccessControlListDAO accessControlListDao) {
+	AclObjectRecordWriter(AccessControlListDAO accessControlListDao, ObjectRecordDAO objectRecordDAO) {
 		this.accessControlListDao = accessControlListDao;
-	}
-
-	@Override
-	public List<ObjectRecord> build(ChangeMessage message) {
-		if (message.getObjectType() != ObjectType.ACCESS_CONTROL_LIST || message.getChangeType() == ChangeType.DELETE) {
-			throw new IllegalArgumentException();
-		}
-		try {
-			AccessControlList acl = accessControlListDao.get(Long.parseLong(message.getObjectId()));
-			if (!acl.getEtag().equals(message.getObjectEtag())) {
-				log.info("Ignoring old message.");
-				return null;
-			}
-			AclRecord record = buildAclRecord(acl, accessControlListDao.getOwnerType(Long.parseLong(message.getObjectId())));
-			return Arrays.asList(ObjectRecordBuilderUtils.buildObjectRecord(record, message.getTimestamp().getTime()));
-		} catch (NotFoundException e) {
-			log.error("Cannot find acl for a " + message.getChangeType() + " message: " + message.toString()) ;
-			return null;
-		}
+		this.objectRecordDAO = objectRecordDAO;
 	}
 
 	/**
@@ -68,6 +53,24 @@ public class AclObjectRecordBuilder implements ObjectRecordBuilder {
 		record.setResourceAccess(acl.getResourceAccess());
 		record.setUri(acl.getUri());
 		return record;
+	}
+
+	@Override
+	public void buildAndWriteRecord(ChangeMessage message) throws IOException {
+		if (message.getObjectType() != ObjectType.ACCESS_CONTROL_LIST || message.getChangeType() == ChangeType.DELETE) {
+			throw new IllegalArgumentException();
+		}
+		try {
+			AccessControlList acl = accessControlListDao.get(Long.parseLong(message.getObjectId()));
+			if (!acl.getEtag().equals(message.getObjectEtag())) {
+				log.info("Ignoring old message.");
+			}
+			AclRecord record = buildAclRecord(acl, accessControlListDao.getOwnerType(Long.parseLong(message.getObjectId())));
+			ObjectRecord objectRecord = ObjectRecordBuilderUtils.buildObjectRecord(record, message.getTimestamp().getTime());
+			objectRecordDAO.saveBatch(Arrays.asList(objectRecord), objectRecord.getJsonClassName());
+		} catch (NotFoundException e) {
+			log.error("Cannot find acl for a " + message.getChangeType() + " message: " + message.toString()) ;
+		}
 	}
 
 }

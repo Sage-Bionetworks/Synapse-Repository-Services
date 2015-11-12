@@ -75,6 +75,7 @@ import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
+import org.sagebionetworks.repo.model.discussion.Forum;
 import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.entity.query.EntityQuery;
 import org.sagebionetworks.repo.model.entity.query.EntityQueryResults;
@@ -2426,4 +2427,13 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	void downloadFile(FileHandleAssociation fileHandleAssociation, File target) throws SynapseException;
+
+	/**
+	 * Get the forum metadata for a given project
+	 * 
+	 * @param projectId
+	 * @return
+	 * @throws SynapseException
+	 */
+	Forum getForumMetadata(String projectId) throws SynapseException;
 }

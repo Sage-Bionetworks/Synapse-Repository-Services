@@ -52,6 +52,7 @@ import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
+import org.sagebionetworks.repo.model.discussion.Forum;
 import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
@@ -1990,6 +1991,15 @@ public class ServletTestHelper {
 		request.addParameter("redirect", "false");
 				MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(instance, request, HttpStatus.OK);
 		return response.getContentAsString();
+	}
+
+	public Forum getForumMetadata(DispatcherServlet dispatchServlet, String projectId,
+			Long userId) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, "/repo/v1", UrlHelpers.FORUM+"/"+projectId, userId, null);
+		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
+				HttpStatus.OK);
+		return objectMapper.readValue(response.getContentAsString(), Forum.class);
 	}
 
 

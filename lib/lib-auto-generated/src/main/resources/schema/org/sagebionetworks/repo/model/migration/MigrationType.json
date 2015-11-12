@@ -59,6 +59,7 @@
         "VERIFICATION_SUBMISSION",
         "VERIFICATION_STATE",
         "VERIFICATION_FILE",
+        "FORUM",
         "CHANGE"
     ]
 }

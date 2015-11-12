@@ -304,6 +304,11 @@
 	<bean id="subStatusAnnoAsyncManager"
 		class="org.sagebionetworks.repo.model.dbo.dao.SubmissionStatusAnnotationsAsyncManagerImpl" />
 
+	<!-- The Discussion managers -->
+	<bean id="forumManager"
+		class="org.sagebionetworks.repo.manager.discussion.ForumManagerImpl"
+		scope ="singleton" />
+
 	<!-- The thread pool used by the backup/restore daemons -->
 	<bean id="backupDaemonThreadPool"
 		class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
