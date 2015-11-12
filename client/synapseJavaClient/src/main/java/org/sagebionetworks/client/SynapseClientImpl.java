@@ -7534,7 +7534,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public URL getFileURL(FileHandleAssociation fileHandleAssociation)
 			throws SynapseException {
 		try {
-			return getUrl(authEndpoint, createFileDownloadUri(fileHandleAssociation, false));
+			return getUrl(getFileEndpoint(), createFileDownloadUri(fileHandleAssociation, false));
 		} catch (IOException e) {
 			throw new SynapseClientException(e);
 		}
@@ -7545,7 +7545,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			throws SynapseException {
 		String uri = createFileDownloadUri(fileHandleAssociation, true);
 		getSharedClientConnection().downloadFromSynapse(
-				authEndpoint + uri, null, target, getUserAgent());
+				getFileEndpoint() + uri, null, target, getUserAgent());
 	}
 
 }
