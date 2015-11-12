@@ -7528,9 +7528,9 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	
 	private static String createFileDownloadUri(FileHandleAssociation fileHandleAssociation, boolean redirect) {
 		return FILE + "/" + fileHandleAssociation.getFileHandleId() + "?" +
-				"&" + FILE_ASSOCIATE_TYPE + fileHandleAssociation.getAssociateObjectType() +
-		"&" + FILE_ASSOCIATE_ID + fileHandleAssociation.getAssociateObjectId() +
-		"&" + REDIRECT_PARAMETER + redirect;
+				FILE_ASSOCIATE_TYPE + "=" + fileHandleAssociation.getAssociateObjectType() +
+		"&" + FILE_ASSOCIATE_ID + "=" + fileHandleAssociation.getAssociateObjectId() +
+		"&" + REDIRECT_PARAMETER + "=" + redirect;
 	}
 
 	@Override
