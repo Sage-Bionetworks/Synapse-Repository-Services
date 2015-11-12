@@ -30,8 +30,26 @@ public class DBOThread  implements MigratableDatabaseObject<DBOThread, DBOThread
 		new FieldColumn("createdOn", COL_THREAD_CREATED_ON),
 		new FieldColumn("createdBy", COL_THREAD_CREATED_BY),
 		new FieldColumn("modifiedOn", COL_THREAD_MODIFIED_ON),
-		new FieldColumn("messageKey", COL_THREAD_MESSAGE_KEY)
+		new FieldColumn("messageKey", COL_THREAD_MESSAGE_KEY),
+		new FieldColumn("isEdited", COL_THREAD_IS_EDITED),
+		new FieldColumn("isDeleted", COL_THREAD_IS_DELETED)
 	};
+
+	public Boolean isEdited() {
+		return isEdited;
+	}
+
+	public void setEdited(Boolean isEdited) {
+		this.isEdited = isEdited;
+	}
+
+	public Boolean isDeleted() {
+		return isDeleted;
+	}
+
+	public void setDeleted(Boolean isDeleted) {
+		this.isDeleted = isDeleted;
+	}
 
 	private Long id;
 	private Long forumId;
@@ -41,13 +59,16 @@ public class DBOThread  implements MigratableDatabaseObject<DBOThread, DBOThread
 	private Long createdBy;
 	private Date modifiedOn;
 	private String messageKey;
+	private Boolean isEdited;
+	private Boolean isDeleted;
 
 	@Override
 	public String toString() {
 		return "DBOThread [id=" + id + ", forumId=" + forumId + ", title="
 				+ Arrays.toString(title) + ", etag=" + etag + ", createdOn="
 				+ createdOn + ", createdBy=" + createdBy + ", modifiedOn="
-				+ modifiedOn + ", messageKey=" + messageKey + "]";
+				+ modifiedOn + ", messageKey=" + messageKey + ", isEdited="
+				+ isEdited + ", isDeleted=" + isDeleted + "]";
 	}
 
 	@Override
@@ -61,6 +82,8 @@ public class DBOThread  implements MigratableDatabaseObject<DBOThread, DBOThread
 		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
 		result = prime * result + ((forumId == null) ? 0 : forumId.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
+		result = prime * result + (isDeleted ? 1231 : 1237);
+		result = prime * result + (isEdited ? 1231 : 1237);
 		result = prime * result
 				+ ((messageKey == null) ? 0 : messageKey.hashCode());
 		result = prime * result
@@ -102,6 +125,10 @@ public class DBOThread  implements MigratableDatabaseObject<DBOThread, DBOThread
 			if (other.id != null)
 				return false;
 		} else if (!id.equals(other.id))
+			return false;
+		if (isDeleted != other.isDeleted)
+			return false;
+		if (isEdited != other.isEdited)
 			return false;
 		if (messageKey == null) {
 			if (other.messageKey != null)
@@ -198,6 +225,8 @@ public class DBOThread  implements MigratableDatabaseObject<DBOThread, DBOThread
 				dbo.setCreatedBy(rs.getLong(COL_THREAD_CREATED_BY));
 				dbo.setModifiedOn(new Date(rs.getLong(COL_THREAD_MODIFIED_ON)));
 				dbo.setMessageKey(rs.getString(COL_THREAD_MESSAGE_KEY));
+				dbo.setEdited(rs.getBoolean(COL_THREAD_IS_EDITED));
+				dbo.setDeleted(rs.getBoolean(COL_THREAD_IS_DELETED));
 				return dbo;
 			}
 

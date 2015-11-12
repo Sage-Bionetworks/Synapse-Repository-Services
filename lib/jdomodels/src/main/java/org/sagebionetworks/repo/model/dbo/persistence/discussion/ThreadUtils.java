@@ -22,6 +22,9 @@ public class ThreadUtils {
 		dbo.setCreatedOn(dto.getCreatedOn());
 		dbo.setCreatedBy(Long.parseLong(dto.getCreatedBy()));
 		dbo.setModifiedOn(dto.getModifiedOn());
+		dbo.setMessageKey(dto.getMessageKey());
+		dbo.setEdited(dto.getIsEdited());
+		dbo.setDeleted(dto.getIsDeleted());
 		return dbo;
 	}
 
@@ -38,6 +41,9 @@ public class ThreadUtils {
 		dto.setCreatedOn(dbo.getCreatedOn());
 		dto.setCreatedBy(dbo.getCreatedBy().toString());
 		dto.setModifiedOn(dbo.getModifiedOn());
+		dto.setMessageKey(dbo.getMessageKey());
+		dto.setIsEdited(dbo.isEdited());
+		dto.setIsDeleted(dbo.isDeleted());
 		return dto;
 	}
 }

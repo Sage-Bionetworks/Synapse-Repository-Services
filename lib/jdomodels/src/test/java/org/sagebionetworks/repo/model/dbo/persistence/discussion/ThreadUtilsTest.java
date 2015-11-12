@@ -18,6 +18,9 @@ public class ThreadUtilsTest {
 		dto.setCreatedOn(new Date());
 		dto.setCreatedBy("3");
 		dto.setModifiedOn(new Date());
+		dto.setMessageKey("messageKey");
+		dto.setIsEdited(false);
+		dto.setIsDeleted(true);
 
 		DBOThread dbo = ThreadUtils.createDBOFromDTO(dto);
 		assertNotNull(dbo);
@@ -26,6 +29,9 @@ public class ThreadUtilsTest {
 		assertEquals(dbo.getCreatedOn(), dto.getCreatedOn());
 		assertEquals(dbo.getModifiedOn(), dto.getModifiedOn());
 		assertEquals(dbo.getCreatedBy().toString(), dto.getCreatedBy());
+		assertEquals(dbo.getMessageKey(), dto.getMessageKey());
+		assertEquals(dbo.isEdited(), dto.getIsEdited());
+		assertEquals(dbo.isDeleted(), dto.getIsDeleted());
 
 		assertEquals(ThreadUtils.createDTOFromDBO(dbo), dto);
 	}
