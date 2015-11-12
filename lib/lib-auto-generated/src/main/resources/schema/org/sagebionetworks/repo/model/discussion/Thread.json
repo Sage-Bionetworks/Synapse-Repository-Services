@@ -27,9 +27,9 @@
 			"format":"date-time",
 			"description":"The timestamp when this Thread was last modified"
 		},
-		"messageKey": {
+		"messageUrl": {
 		"type": "string",
-			"description": "The S3 key where the Thread's message stored"
+			"description": "The URL to download the file that contains the message"
 		},
 		"numberOfViews": {
 			"type": "integer",

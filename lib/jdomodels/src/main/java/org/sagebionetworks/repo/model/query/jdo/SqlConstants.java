@@ -707,7 +707,7 @@ public class SqlConstants {
 	public static final String COL_THREAD_CREATED_ON = "CREATED_ON";
 	public static final String COL_THREAD_CREATED_BY = "CREATED_BY";
 	public static final String COL_THREAD_MODIFIED_ON = "MODIFIED_ON";
-	public static final String COL_THREAD_MESSAGE_KEY = "MESSAGE_KEY";
+	public static final String COL_THREAD_MESSAGE_URL = "MESSAGE_URL";
 	public static final String COL_THREAD_IS_EDITED = "IS_EDITED";
 	public static final String COL_THREAD_IS_DELETED = "IS_DELETED";
 	public static final String DDL_THREAD = "schema/Thread-ddl.sql";

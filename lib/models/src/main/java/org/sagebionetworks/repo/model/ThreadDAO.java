@@ -9,10 +9,10 @@ public interface ThreadDAO {
 	/**
 	 * Create a new Thread
 	 * 
-	 * @param createThread
+	 * @param dto
 	 * @return
 	 */
-	public Thread createThread(Thread createThread);
+	public Thread createThread(Thread dto);
 
 	/**
 	 * Get a Thread
@@ -45,9 +45,9 @@ public interface ThreadDAO {
 	 * Update a Thread's message
 	 * 
 	 * @param threadId
-	 * @param newMessageKey
+	 * @param newMessageUrl
 	 */
-	public Thread updateMessageKey(long threadId, String newMessageKey);
+	public Thread updateMessageUrl(long threadId, String newMessageUrl);
 
 	/**
 	 * Update a Thread's title
