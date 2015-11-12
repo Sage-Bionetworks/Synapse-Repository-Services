@@ -46,4 +46,19 @@ public class ThreadUtils {
 		dto.setIsDeleted(dbo.getIsDeleted());
 		return dto;
 	}
+
+	/**
+	 * validate that all fields in the DBO are not null
+	 * 
+	 * @param dbo
+	 */
+	public static void validateDBOAndThrowException(DBOThread dbo) {
+		if (dbo.getId() == null || dbo.getForumId() == null
+				|| dbo.getTitle() == null || dbo.getCreatedOn() == null
+				|| dbo.getCreatedBy() == null || dbo.getModifiedOn() == null
+				|| dbo.getMessageUrl() == null || dbo.getIsEdited() == null
+				|| dbo.getIsDeleted() == null || dbo.getEtag() == null) {
+			throw new IllegalArgumentException();
+		}
+	}
 }
