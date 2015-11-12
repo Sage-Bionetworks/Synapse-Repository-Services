@@ -47,6 +47,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
+import org.sagebionetworks.repo.model.ForumDAO;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
@@ -227,6 +228,9 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 	@Autowired
 	private VerificationDAO verificationDao;
 	
+	@Autowired
+	private ForumDAO forumDao;
+	
 	private Team team;
 
 	private Long adminUserId;
@@ -301,8 +305,13 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		createQuizResponse();
 		createChallengeAndRegisterTeam();
 		createVerificationSubmission();
+		createForum();
 	}
 	
+	private void createForum() {
+		forumDao.createForum(project.getId());
+	}
+
 	private void createVerificationSubmission() {
 		VerificationSubmission dto = new VerificationSubmission();
 		dto.setCreatedBy(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString());

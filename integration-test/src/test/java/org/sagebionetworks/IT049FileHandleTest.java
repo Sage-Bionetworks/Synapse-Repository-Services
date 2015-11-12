@@ -384,6 +384,7 @@ public class IT049FileHandleTest {
 		externalS3.setKey(result2S3.getKey());
 		externalS3.setFileName(result2S3.getFileName());
 		externalS3.setStorageLocationId(result.getStorageLocationId());
+		externalS3.setContentMd5(result2S3.getContentMd5());
 		// create it
 		externalS3 = synapse.createExternalS3FileHandle(externalS3);
 		assertNotNull(externalS3);

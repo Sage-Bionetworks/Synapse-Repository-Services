@@ -15,7 +15,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.audit.dao.ObjectRecordDAO;
-import org.sagebionetworks.object.snapshot.worker.utils.NodeObjectRecordBuilder;
+import org.sagebionetworks.object.snapshot.worker.utils.NodeObjectRecordWriter;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
@@ -89,7 +89,7 @@ public class NodeObjectSnapshotWorkerIntegrationTest {
 
 		// fetch it
 		Node node = nodeDao.getNode(id);
-		NodeRecord record = NodeObjectRecordBuilder.buildNodeRecord(node);
+		NodeRecord record = NodeObjectRecordWriter.buildNodeRecord(node);
 		record.setIsPublic(false);
 		record.setIsRestricted(false);
 		record.setIsControlled(false);

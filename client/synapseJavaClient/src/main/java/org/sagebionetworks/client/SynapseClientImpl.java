@@ -115,6 +115,7 @@ import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.auth.Username;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
+import org.sagebionetworks.repo.model.discussion.Forum;
 import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.entity.query.EntityQuery;
 import org.sagebionetworks.repo.model.entity.query.EntityQueryResults;
@@ -147,6 +148,7 @@ import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken;
+import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthValidationRequest;
@@ -468,6 +470,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String CERTIFIED_USER_PASSING_RECORD = "/certifiedUserPassingRecord";
 	private static final String CERTIFIED_USER_PASSING_RECORDS = "/certifiedUserPassingRecords";
 	private static final String CERTIFIED_USER_STATUS = "/certificationStatus";
+
+	private static final String FORUM = "/forum";
 
 	private static final String PRINCIPAL_ID_REQUEST_PARAM = "principalId";
 
@@ -7028,12 +7032,25 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public PrincipalAlias bindOAuthProvidersUserId(OAuthValidationRequest request)
 			throws SynapseException {
-		return asymmetricalPost(getAuthEndpoint(), AUTH_OAUTH_2_ALIAS, request, PrincipalAlias.class, null);
+		return asymmetricalPost(authEndpoint, AUTH_OAUTH_2_ALIAS, request, PrincipalAlias.class, null);
 		
 	}
 	
+	@Override
+	public void unbindOAuthProvidersUserId(OAuthProvider provider, String alias) throws SynapseException {
+		if (provider==null) throw new IllegalArgumentException("provider is required.");
+		if (alias==null) throw new IllegalArgumentException("alias is required.");
+		try {
+		getSharedClientConnection().deleteUri(authEndpoint,
+				AUTH_OAUTH_2_ALIAS+"?provider="+
+						URLEncoder.encode(provider.name(), "UTF-8")+
+						"&"+"alias="+URLEncoder.encode(alias, "UTF-8"), 
+				getUserAgent());
+		} catch (UnsupportedEncodingException e) {
+			throw new SynapseClientException(e);
+		}
+	}
 
-	
 	private Map<String, String> domainToParameterMap(DomainType domain) {
 		Map<String, String> parameters = Maps.newHashMap();
 		parameters.put(AuthorizationConstants.DOMAIN_PARAM, domain.name());
@@ -7532,6 +7549,17 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		String uri = createFileDownloadUri(fileHandleAssociation, true);
 		getSharedClientConnection().downloadFromSynapse(
 				getRepoEndpoint() + uri, null, target, getUserAgent());
+	}
+
+	@Override
+	public Forum getForumMetadata(String projectId) throws SynapseException {
+		try {
+			if (projectId == null)
+				throw new IllegalArgumentException("projectId cannot be null");
+			return getJSONEntity(FORUM+"/"+projectId, Forum.class);
+		} catch (Exception e) {
+			throw new SynapseClientException(e);
+		}
 	}
 
 }

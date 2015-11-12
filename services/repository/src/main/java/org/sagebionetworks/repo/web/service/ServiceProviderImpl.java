@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.web.service;
 
+import org.sagebionetworks.repo.web.service.discussion.DiscussionService;
 import org.sagebionetworks.repo.web.service.table.TableServices;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -71,6 +72,8 @@ public class ServiceProviderImpl implements ServiceProvider {
 	private ChallengeService challengeService;
 	@Autowired
 	private VerificationService verificationService;
+	@Autowired
+	private DiscussionService discussionService;
 	
 	public AccessApprovalService getAccessApprovalService() {
 		return accessApprovalService;
@@ -185,6 +188,10 @@ public class ServiceProviderImpl implements ServiceProvider {
 	@Override
 	public VerificationService getVerificationService() {
 		return verificationService;
+	}
+	@Override
+	public DiscussionService getDiscussionService() {
+		return discussionService;
 	}
 	
 }

@@ -191,9 +191,8 @@ public class EmailUtils {
 	public static String createEmailBodyFromHtml(String messageBody,
 			String unsubscribeLink) {
 		if (unsubscribeLink==null) return messageBody;
-	   	StringBuilder bodyWithFooter = new StringBuilder();
-	   	bodyWithFooter.append(messageBody);
-	    bodyWithFooter.append(createHtmlUnsubscribeFooter(unsubscribeLink));
+	   	StringBuilder bodyWithFooter = new StringBuilder(messageBody);
+	   	bodyWithFooter.append(createHtmlUnsubscribeFooter(unsubscribeLink));
    	return bodyWithFooter.toString();
 	}
 	

@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.web.service;
 
+import org.sagebionetworks.repo.web.service.discussion.DiscussionService;
 import org.sagebionetworks.repo.web.service.table.TableServices;
 
 /**
@@ -67,5 +68,6 @@ public interface ServiceProvider {
 	public ChallengeService getChallengeService();
 	
 	public VerificationService getVerificationService();
-	
+
+	public DiscussionService getDiscussionService();
 }

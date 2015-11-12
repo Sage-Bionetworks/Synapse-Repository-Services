@@ -173,7 +173,7 @@ public class MessageManagerImplUnitTest {
 		assertEquals("Foo FOO <foo@synapse.org>", ser.getSource());
 		assertEquals(1, ser.getDestinations().size());
 		assertEquals("bar@sagebase.org", ser.getDestinations().get(0));
-		String body = MessageTestUtil.getBodyFromRawMessage(ser, "text/plain");
+		String body = MessageTestUtil.getBodyFromRawMessage(ser, "text/html");
 		assertTrue(body.indexOf(messageBody)>=0);
 		assertTrue(body.indexOf(UNSUBSCRIBE_ENDPOINT)>=0);
 		assertEquals(mtu.getSubject(), MessageTestUtil.getSubjectFromRawMessage(ser));

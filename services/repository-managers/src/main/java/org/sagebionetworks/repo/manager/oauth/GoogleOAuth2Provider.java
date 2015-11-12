@@ -4,6 +4,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.oauth.ProvidedUserInfo;
+import org.sagebionetworks.repo.model.principal.AliasType;
 import org.scribe.exceptions.OAuthException;
 import org.scribe.model.OAuthConfig;
 import org.scribe.model.OAuthRequest;
@@ -128,6 +129,11 @@ public class GoogleOAuth2Provider implements OAuthProviderBinding {
 
 	@Override
 	public AliasAndType retrieveProvidersId(String authorizationCode, String redirectUrl) {
+		throw new IllegalArgumentException("Retrieving alias is not supported in Synapse for the Google OAuth provider.");
+	}
+
+	@Override
+	public AliasType getAliasType() {
 		throw new IllegalArgumentException("Retrieving alias is not supported in Synapse for the Google OAuth provider.");
 	}
 }

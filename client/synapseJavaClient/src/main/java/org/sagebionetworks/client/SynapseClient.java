@@ -75,6 +75,7 @@ import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
+import org.sagebionetworks.repo.model.discussion.Forum;
 import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.entity.query.EntityQuery;
 import org.sagebionetworks.repo.model.entity.query.EntityQueryResults;
@@ -103,6 +104,7 @@ import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken;
+import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthValidationRequest;
@@ -1902,6 +1904,15 @@ public interface SynapseClient extends BaseClient {
 			throws SynapseException;
 	
 	/**
+	 * Remove an alias associated with an account via the OAuth mechanism.
+	 * 
+	 * @param provider
+	 * @param alias
+	 * @throws SynapseException
+	 */
+	void unbindOAuthProvidersUserId(OAuthProvider provider, String alias) throws SynapseException;
+	
+	/**
 	 * Get the Quiz specifically intended to be the Certified User test
 	 * @return
 	 * @throws SynapseException 
@@ -2416,4 +2427,13 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	void downloadFile(FileHandleAssociation fileHandleAssociation, File target) throws SynapseException;
+
+	/**
+	 * Get the forum metadata for a given project
+	 * 
+	 * @param projectId
+	 * @return
+	 * @throws SynapseException
+	 */
+	Forum getForumMetadata(String projectId) throws SynapseException;
 }

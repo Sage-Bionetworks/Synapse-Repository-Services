@@ -4,6 +4,7 @@ import java.util.Map;
 
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.oauth.ProvidedUserInfo;
+import org.sagebionetworks.repo.model.principal.AliasType;
 
 /**
  * Simple implementation of the  OAuthManager.
@@ -48,6 +49,11 @@ public class OAuthManagerImpl implements OAuthManager {
 			throw new IllegalArgumentException("Unknown provider: "+provider.name());
 		}
 		return binding;
+	}
+
+	@Override
+	public AliasType getAliasTypeForProvider(OAuthProvider provider) {
+		return getBinding(provider).getAliasType();
 	}
 
 }

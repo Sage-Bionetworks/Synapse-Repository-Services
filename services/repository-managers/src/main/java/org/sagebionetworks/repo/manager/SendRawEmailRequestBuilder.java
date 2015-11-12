@@ -246,8 +246,17 @@ public class SendRawEmailRequestBuilder {
 		MimeMultipart mp = new MimeMultipart("related");
 		try {
 			BodyPart part = new MimeBodyPart();
-			part.setContent(EmailUtils.createEmailBodyFromHtml(messageBodyString, unsubscribeLink), 
-					contentType.getMimeType());
+			if (contentType.getMimeType().equals(ContentType.TEXT_HTML.getMimeType())) {
+				part.setContent(EmailUtils.createEmailBodyFromHtml(messageBodyString, unsubscribeLink), 
+						ContentType.TEXT_HTML.getMimeType());
+			} else if (contentType.getMimeType().equals(ContentType.TEXT_PLAIN.getMimeType())) {
+				StringBuilder sb = new StringBuilder("<html>\n<body>\n");
+				sb.append(EmailUtils.createEmailBodyFromHtml(messageBodyString, unsubscribeLink));
+				sb.append("\n</body>\n</html>\n");
+				part.setContent(sb.toString(), ContentType.TEXT_HTML.getMimeType());
+			} else {
+				throw new IllegalArgumentException("Unexpected mime type for text: "+contentType.getMimeType());
+			}
 			mp.addBodyPart(part);
 		} catch (MessagingException e) {
 			throw new RuntimeException(e);

@@ -600,7 +600,6 @@ public class TeamManagerImplTest {
 		expectedMessage.setMemberId(987L);
 		expectedMessage.setTeamModificationType(TeamModificationType.MEMBER_ADDED);
 		verify(mockTransactionalMessenger).sendModificationMessageAfterCommit(expectedMessage);
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(principalId, ObjectType.TEAM_MEMBER, "etag", TEAM_ID, ChangeType.UPDATE);
 	}
 	
 	@Test
@@ -668,7 +667,6 @@ public class TeamManagerImplTest {
 		expectedMessage.setTeamModificationType(TeamModificationType.MEMBER_REMOVED);
 		verify(mockTransactionalMessenger).sendModificationMessageAfterCommit(expectedMessage);
 		assertEquals(1, acl.getResourceAccess().size());
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(memberPrincipalId, ObjectType.TEAM_MEMBER, "etag", TEAM_ID, ChangeType.DELETE);
 	}
 	
 	@Test(expected=InvalidModelException.class)
