@@ -70,7 +70,7 @@ public class BeanTest implements ApplicationContextAware {
 	}
 
 	private static final List<String> readMethodPrefixes = Lists.newArrayList("check", "get");
-	private static final List<String> exceptions = Lists.newArrayList("checkSessionToken", "getSessionToken", "getEtagForUpdate");
+	private static final List<String> exceptions = Lists.newArrayList("checkSessionToken", "getSessionToken", "getEtagForUpdate", "getForumMetadata");
 
 	@Test
 	public void testNoGetterWriteTransactions() {

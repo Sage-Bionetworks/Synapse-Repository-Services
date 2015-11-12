@@ -112,6 +112,10 @@
 	<bean id="challengeService" class="org.sagebionetworks.repo.web.service.ChallengeServiceImpl" />
 		
 	<bean id="verificationService" class="org.sagebionetworks.repo.web.service.VerificationServiceImpl" />
+
+	<!-- The Discussion Service -->
+	<bean id="discussionService" class="org.sagebionetworks.repo.web.service.discussion.DiscussionServiceImpl" />
+
 		
 		<!-- The Location helper -->
 	<bean id="locationHelper" class="org.sagebionetworks.repo.util.LocationHelpersImpl" />

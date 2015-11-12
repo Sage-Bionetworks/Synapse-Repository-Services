@@ -855,6 +855,11 @@ public class UrlHelpers {
 	public static final String VERIFICATION_SUBMISSION_ID = VERIFICATION_SUBMISSION+ID;
 	public static final String VERIFICATION_SUBMISSION_ID_STATE = "/verificationSubmission"+ID+"/state";
 
+	// Discussion Services
+	public static final String FORUM = "/forum";
+	public static final String PROJECT_ID = "/{projectId}";
+	public static final String FORUM_PROJECT_ID = FORUM+PROJECT_ID;
+
 	/**
 	 * APIs for DynamoDB related operations.
 	 */
