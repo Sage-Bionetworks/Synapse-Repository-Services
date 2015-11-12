@@ -1,0 +1,43 @@
+package org.sagebionetworks.repo.model.dbo.persistence.discussion;
+
+import java.io.IOException;
+import java.nio.charset.Charset;
+
+import org.sagebionetworks.repo.model.discussion.Thread;
+
+public class ThreadUtils {
+	public static final Charset UTF8 = Charset.forName("UTF-8");
+
+	/**
+	 * Translate from a DTO to DBO.
+	 * @param dto
+	 * @return dbo
+	 * @throws IOException 
+	 */
+	public static DBOThread createDBOFromDTO(Thread dto) {
+		DBOThread dbo = new DBOThread();
+		dbo.setId(Long.parseLong(dto.getId()));
+		dbo.setForumId(Long.parseLong(dto.getForumId()));
+		dbo.setTitle(dto.getTitle().getBytes(UTF8));
+		dbo.setCreatedOn(dto.getCreatedOn());
+		dbo.setCreatedBy(Long.parseLong(dto.getCreatedBy()));
+		dbo.setModifiedOn(dto.getModifiedOn());
+		return dbo;
+	}
+
+	/**
+	 * Translate from a DBO to DTO.
+	 * @param dbo
+	 * @return dto
+	 */
+	public static Thread createDTOFromDBO(DBOThread dbo) {
+		Thread dto = new Thread();
+		dto.setId(dbo.getId().toString());
+		dto.setForumId(dbo.getForumId().toString());
+		dto.setTitle(new String (dbo.getTitle(), UTF8));
+		dto.setCreatedOn(dbo.getCreatedOn());
+		dto.setCreatedBy(dbo.getCreatedBy().toString());
+		dto.setModifiedOn(dbo.getModifiedOn());
+		return dto;
+	}
+}
