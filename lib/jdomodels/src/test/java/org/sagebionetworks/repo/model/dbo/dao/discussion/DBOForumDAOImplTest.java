@@ -97,4 +97,14 @@ public class DBOForumDAOImplTest {
 		assertEquals(forumDao.getForum(Long.parseLong(dto.getId())), dto);
 		assertEquals(forumDao.getForumByProjectId(dto.getProjectId()), dto);
 	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void createWithNullProjectId() {
+		forumDao.createForum(null);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void createGetNullProjectId() {
+		forumDao.getForumByProjectId(null);
+	}
 }
