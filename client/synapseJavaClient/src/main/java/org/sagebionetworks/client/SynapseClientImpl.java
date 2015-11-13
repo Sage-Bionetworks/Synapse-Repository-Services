@@ -7528,16 +7528,16 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	
 	private static String createFileDownloadUri(FileHandleAssociation fileHandleAssociation, boolean redirect) {
 		return FILE + "/" + fileHandleAssociation.getFileHandleId() + "?" +
-				"&" + FILE_ASSOCIATE_TYPE + fileHandleAssociation.getAssociateObjectType() +
-		"&" + FILE_ASSOCIATE_ID + fileHandleAssociation.getAssociateObjectId() +
-		"&" + REDIRECT_PARAMETER + redirect;
+				FILE_ASSOCIATE_TYPE + "=" + fileHandleAssociation.getAssociateObjectType() +
+		"&" + FILE_ASSOCIATE_ID + "=" + fileHandleAssociation.getAssociateObjectId() +
+		"&" + REDIRECT_PARAMETER + "=" + redirect;
 	}
 
 	@Override
 	public URL getFileURL(FileHandleAssociation fileHandleAssociation)
 			throws SynapseException {
 		try {
-			return getUrl(createFileDownloadUri(fileHandleAssociation, false));
+			return getUrl(getFileEndpoint(), createFileDownloadUri(fileHandleAssociation, false));
 		} catch (IOException e) {
 			throw new SynapseClientException(e);
 		}
@@ -7548,7 +7548,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			throws SynapseException {
 		String uri = createFileDownloadUri(fileHandleAssociation, true);
 		getSharedClientConnection().downloadFromSynapse(
-				getRepoEndpoint() + uri, null, target, getUserAgent());
+				getFileEndpoint() + uri, null, target, getUserAgent());
 	}
 
 	@Override
