@@ -28,7 +28,6 @@ public class DBOForumDAOImpl implements ForumDAO {
 			+TABLE_FORUM+" WHERE "+COL_FORUM_ID+" = ?";
 	private static final String SQL_SELECT_FORUM_BY_PROJECT_ID = "SELECT * FROM "
 			+TABLE_FORUM+" WHERE "+COL_FORUM_PROJECT_ID+" = ?";
-	private static final String SQL_TRUNCATE = "TRUNCATE "+TABLE_FORUM;
 
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
@@ -76,11 +75,4 @@ public class DBOForumDAOImpl implements ForumDAO {
 	public int deleteForum(long id) {
 		return jdbcTemplate.update(SQL_DELETE_FORUM, id);
 	}
-
-	@WriteTransaction
-	@Override
-	public void truncateAll() {
-		jdbcTemplate.update(SQL_TRUNCATE);
-	}
-
 }

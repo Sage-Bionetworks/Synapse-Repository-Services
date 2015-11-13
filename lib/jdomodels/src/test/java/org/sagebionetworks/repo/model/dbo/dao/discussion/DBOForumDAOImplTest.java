@@ -35,10 +35,10 @@ public class DBOForumDAOImplTest {
 
 	private String userId = null;
 	private String projectId = null;
+	private long forumId;
 
 	@Before
 	public void before() {
-		forumDao.truncateAll();
 		// create a user to create a project
 		UserGroup user = new UserGroup();
 		user.setIsIndividual(true);
@@ -54,13 +54,14 @@ public class DBOForumDAOImplTest {
 	public void cleanup() {
 		if (projectId != null) nodeDao.delete(projectId);
 		if (userId != null) userGroupDAO.delete(userId);
+		forumDao.deleteForum(forumId);
 	}
 
 	@Test
 	public void testCreateGetDelete() {
 		// create a forum
 		Forum dto = forumDao.createForum(projectId);
-		long forumId = Long.parseLong(dto.getId());
+		forumId = Long.parseLong(dto.getId());
 
 		// make sure we can find the forum created
 		assertEquals(forumDao.getForum(forumId), dto);
@@ -94,7 +95,8 @@ public class DBOForumDAOImplTest {
 	@Test
 	public void testKeyWithoutSynPrefix() {
 		Forum dto = forumDao.createForum(KeyFactory.stringToKey(projectId).toString());
-		assertEquals(forumDao.getForum(Long.parseLong(dto.getId())), dto);
+		forumId = Long.parseLong(dto.getId());
+		assertEquals(forumDao.getForum(forumId), dto);
 		assertEquals(forumDao.getForumByProjectId(dto.getProjectId()), dto);
 	}
 
