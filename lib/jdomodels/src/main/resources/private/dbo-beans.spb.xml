@@ -98,8 +98,6 @@
 				<!-- misc -->
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOSentMessage" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOProcessedMessage" />
-				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOExclusiveLock" />
-				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOSharedLock" />
 								
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOUploadDaemonStatus" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOQuizResponse" />

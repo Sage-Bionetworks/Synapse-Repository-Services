@@ -511,16 +511,20 @@
 				<version>${project.version}</version>
 				<scope>test</scope>
 			</dependency>
-
+			<dependency>
+				<groupId>org.sagebionetworks</groupId>
+				<artifactId>common-utilities</artifactId>
+				<version>1.0.2</version>
+			</dependency>
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
 				<artifactId>database-semaphore</artifactId>
-				<version>1.0.4</version>
+				<version>1.0.5</version>
 			</dependency>
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
 				<artifactId>worker-utilities</artifactId>
-				<version>1.0.11</version>
+				<version>1.0.19</version>
 			</dependency>
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>

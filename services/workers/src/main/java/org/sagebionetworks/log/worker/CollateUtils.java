@@ -3,9 +3,9 @@ package org.sagebionetworks.log.worker;
 import java.io.BufferedWriter;
 import java.io.IOException;
 
+import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.logging.s3.LogEntry;
 import org.sagebionetworks.logging.s3.LogReader;
-import org.sagebionetworks.workers.util.progress.ProgressCallback;
 
 /**
  * Simple utility for Collating logs by streaming the data

@@ -5,14 +5,7 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.stub;
 import static org.mockito.Mockito.*;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
-import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -25,6 +18,8 @@ import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.manager.NodeInheritanceManager;
 import org.sagebionetworks.repo.manager.table.TableIndexConnectionFactory;
 import org.sagebionetworks.repo.manager.table.TableIndexConnectionUnavailableException;
@@ -33,7 +28,6 @@ import org.sagebionetworks.repo.manager.table.TableRowManager;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
-import org.sagebionetworks.repo.model.exception.LockUnavilableException;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.table.ColumnMapper;
@@ -44,7 +38,7 @@ import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.worker.TableWorker.State;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
-import org.sagebionetworks.workers.util.progress.ProgressCallback;
+import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
@@ -81,12 +75,12 @@ public class TableWorkerTest {
 		when(mockConnectionFactory.connectToTableIndex(anyString())).thenReturn(mockTableIndexManager);
 		
 		// By default we want to the manager to just call the passed callable.
-		stub(mockTableRowManager.tryRunWithTableExclusiveLock(anyString(), anyLong(), any(Callable.class))).toAnswer(new Answer<TableWorker.State>() {
+		stub(mockTableRowManager.tryRunWithTableExclusiveLock(any(ProgressCallback.class),anyString(), anyInt(), any(ProgressingCallable.class))).toAnswer(new Answer<TableWorker.State>() {
 			@Override
 			public TableWorker.State answer(InvocationOnMock invocation) throws Throwable {
-				Callable<TableWorker.State> callable = (Callable<State>) invocation.getArguments()[2];
+				ProgressingCallable<TableWorker.State, ChangeMessage> callable = (ProgressingCallable<State, ChangeMessage>) invocation.getArguments()[3];
 				if(callable != null){
-					return callable.call();
+					return callable.call(mockProgressCallback);
 				}else{
 					return null;
 				}
@@ -343,7 +337,7 @@ public class TableWorkerTest {
 		verifyZeroInteractions(mockTableIndexManager);
 		verify(mockTableRowManager, never()).attemptToSetTableStatusToAvailable(anyString(), anyString(), anyString());
 		// The token must be checked before we acquire the lock
-		verify(mockTableRowManager, never()).tryRunWithTableExclusiveLock(anyString(), anyLong(), any(Callable.class));
+		verify(mockTableRowManager, never()).tryRunWithTableExclusiveLock(any(ProgressCallback.class),anyString(), anyInt(), any(ProgressingCallable.class));
 	}
 	
 	/**
@@ -379,7 +373,7 @@ public class TableWorkerTest {
 		status.setResetToken(resetToken);
 		when(mockTableRowManager.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
 		// Simulate a failure to get the lock
-		when(mockTableRowManager.tryRunWithTableExclusiveLock(anyString(), anyLong(), any(Callable.class))).thenThrow(new LockUnavilableException("Cannot get a lock at this time"));
+		when(mockTableRowManager.tryRunWithTableExclusiveLock(any(ProgressCallback.class),anyString(), anyInt(), any(ProgressingCallable.class))).thenThrow(new LockUnavilableException("Cannot get a lock at this time"));
 		two.setObjectType(ObjectType.TABLE);
 		two.setChangeType(ChangeType.UPDATE);
 		two.setObjectEtag(resetToken);
@@ -407,7 +401,7 @@ public class TableWorkerTest {
 		status.setResetToken(resetToken);
 		when(mockTableRowManager.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
 		// Simulate a failure to get the lock
-		when(mockTableRowManager.tryRunWithTableExclusiveLock(anyString(), anyLong(), any(Callable.class))).thenThrow(new InterruptedException("Sop!!!"));
+		when(mockTableRowManager.tryRunWithTableExclusiveLock(any(ProgressCallback.class),anyString(), anyInt(), any(ProgressingCallable.class))).thenThrow(new InterruptedException("Sop!!!"));
 		two.setObjectType(ObjectType.TABLE);
 		two.setChangeType(ChangeType.UPDATE);
 		two.setObjectEtag(resetToken);

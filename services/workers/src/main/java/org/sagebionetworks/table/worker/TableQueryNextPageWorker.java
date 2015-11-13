@@ -3,6 +3,8 @@ package org.sagebionetworks.table.worker;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
+import org.sagebionetworks.common.util.progress.ForwardingProgressCallback;
+import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.table.TableRowManager;
@@ -15,7 +17,6 @@ import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
-import org.sagebionetworks.workers.util.progress.ProgressCallback;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.sqs.model.Message;
@@ -42,7 +43,8 @@ public class TableQueryNextPageWorker implements MessageDrivenRunner {
 		try{
 			UserInfo user = userManger.getUserInfo(status.getStartedByUserId());
 			QueryNextPageToken request = (QueryNextPageToken) status.getRequestBody();
-			QueryResult queryResult = tableRowManager.queryNextPage(user, request);
+			ForwardingProgressCallback<Void, Message> forwardCallabck = new ForwardingProgressCallback<Void, Message>(progressCallback, message);
+			QueryResult queryResult = tableRowManager.queryNextPage(forwardCallabck, user, request);
 			asynchJobStatusManager.setComplete(status.getJobId(), queryResult);
 		}catch (TableUnavilableException e){
 			// This just means we cannot do this right now.  We can try again later.
