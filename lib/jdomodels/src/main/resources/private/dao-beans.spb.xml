@@ -320,6 +320,8 @@
 	<!-- DAO for Discussion -->
 	<bean id="forumDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.discussion.DBOForumDAOImpl" />
+	<bean id="threadDao"
+		class="org.sagebionetworks.repo.model.dbo.dao.discussion.DBOThreadDAOImpl" />
 
 	<!-- Misc beans -->
 	<bean id="countingSemaphore"
