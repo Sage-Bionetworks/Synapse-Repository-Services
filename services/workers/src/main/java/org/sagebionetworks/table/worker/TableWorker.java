@@ -113,7 +113,7 @@ public class TableWorker implements ChangeMessageDrivenRunner {
 	 * @return
 	 */
 	public State createOrUpdateTable(
-			final ProgressCallback<ChangeMessage> progressCallback,
+			ProgressCallback<ChangeMessage> progressCallback,
 			final String tableId, final TableIndexManager tableIndexManger, final String tableResetToken,
 			final ChangeMessage change) {
 		// Attempt to run with
@@ -136,7 +136,7 @@ public class TableWorker implements ChangeMessageDrivenRunner {
 						public State call(ProgressCallback<ChangeMessage> progress) throws Exception {
 							// This method does the real work.
 							return createOrUpdateWhileHoldingLock(
-									progressCallback, tableId, tableIndexManger, tableResetToken,
+									progress, tableId, tableIndexManger, tableResetToken,
 									change);
 						}
 					});

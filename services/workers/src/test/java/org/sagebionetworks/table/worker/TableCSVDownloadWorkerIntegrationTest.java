@@ -21,7 +21,9 @@ import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mockito;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -93,12 +95,14 @@ public class TableCSVDownloadWorkerIntegrationTest {
 	private List<String> toDelete;
 	private File tempFile;
 	S3FileHandle fileHandle;
+	ProgressCallback<Void> mockProgressCallback;
 	
 	@Before
 	public void before() throws NotFoundException{
 		// Only run this test if the table feature is enabled.
 		Assume.assumeTrue(config.getTableEnabled());
 		semphoreManager.releaseAllLocksAsAdmin(new UserInfo(true));
+		mockProgressCallback = Mockito.mock(ProgressCallback.class);
 		// Start with an empty queue.
 		asynchJobStatusManager.emptyAllQueues();
 		// Get the admin user
@@ -304,7 +308,7 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		long start = System.currentTimeMillis();
 		while(true){
 			try {
-				return tableRowManager.query(adminUserInfo, sql, null, 0L, 100L, true, false, true).getFirst().getQueryResults();
+				return tableRowManager.query(mockProgressCallback, adminUserInfo, sql, null, 0L, 100L, true, false, true).getFirst().getQueryResults();
 			} catch (TableUnavilableException e) {
 				assertTrue("Timed out waiting for table index worker to make the table available.", (System.currentTimeMillis()-start) <  MAX_WAIT_MS);
 				assertNotNull(e.getStatus());

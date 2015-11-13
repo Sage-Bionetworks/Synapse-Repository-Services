@@ -3,6 +3,7 @@ package org.sagebionetworks.table.worker;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
+import org.sagebionetworks.common.util.progress.ForwardingProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
@@ -38,14 +39,14 @@ public class TableQueryWorker implements MessageDrivenRunner {
 
 
 	@Override
-	public void run(ProgressCallback<Message> progressCallback, Message message) throws JSONObjectAdapterException, RecoverableMessageException{
+	public void run(final ProgressCallback<Message> progressCallback, final Message message) throws JSONObjectAdapterException, RecoverableMessageException{
 		AsynchronousJobStatus status = extractStatus(message);
 		try {
 			UserInfo user = userManger.getUserInfo(status.getStartedByUserId());
 			QueryBundleRequest request = (QueryBundleRequest) status
 					.getRequestBody();
-			QueryResultBundle queryBundle = tableRowManager.queryBundle(user,
-					request);
+			ForwardingProgressCallback<Void, Message> forwardCallabck = new ForwardingProgressCallback<Void, Message>(progressCallback, message);
+			QueryResultBundle queryBundle = tableRowManager.queryBundle(forwardCallabck, user, request);
 			asynchJobStatusManager.setComplete(status.getJobId(), queryBundle);
 		} catch (TableUnavilableException e) {
 			// This just means we cannot do this right now. We can try again

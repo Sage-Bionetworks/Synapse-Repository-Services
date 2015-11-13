@@ -78,7 +78,7 @@ public class TableWorkerTest {
 		stub(mockTableRowManager.tryRunWithTableExclusiveLock(any(ProgressCallback.class),anyString(), anyInt(), any(ProgressingCallable.class))).toAnswer(new Answer<TableWorker.State>() {
 			@Override
 			public TableWorker.State answer(InvocationOnMock invocation) throws Throwable {
-				ProgressingCallable<TableWorker.State, ChangeMessage> callable = (ProgressingCallable<State, ChangeMessage>) invocation.getArguments()[2];
+				ProgressingCallable<TableWorker.State, ChangeMessage> callable = (ProgressingCallable<State, ChangeMessage>) invocation.getArguments()[3];
 				if(callable != null){
 					return callable.call(mockProgressCallback);
 				}else{

@@ -8,6 +8,7 @@ import org.apache.commons.lang.BooleanUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
+import org.sagebionetworks.common.util.progress.ForwardingProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
@@ -64,7 +65,8 @@ public class TableCSVDownloadWorker implements MessageDrivenRunner {
 			UserInfo user = userManger.getUserInfo(status.getStartedByUserId());
 			DownloadFromTableRequest request = (DownloadFromTableRequest) status.getRequestBody();
 			// Before we start determine how many rows there are.
-			Pair<QueryResult, Long> queryResult = tableRowManager.query(user, request.getSql(), request.getSort(), null, null, false, true,
+			ForwardingProgressCallback<Void, Message> forwardCallabck = new ForwardingProgressCallback<Void, Message>(progressCallback, message);
+			Pair<QueryResult, Long> queryResult = tableRowManager.query(forwardCallabck, user, request.getSql(), request.getSort(), null, null, false, true,
 					true);
 			long rowCount = queryResult.getSecond();
 			// Since each row must first be read from the database then uploaded to S3
@@ -85,7 +87,7 @@ public class TableCSVDownloadWorker implements MessageDrivenRunner {
 			// Execute the actual query and stream the results to the file.
 			DownloadFromTableResult result = null;
 			try{
-				result = tableRowManager.runConsistentQueryAsStream(user, request.getSql(), request.getSort(), stream,
+				result = tableRowManager.runConsistentQueryAsStream(forwardCallabck, user, request.getSql(), request.getSort(), stream,
 						includeRowIdAndVersion, writeHeaders);
 			}finally{
 				writer.close();
