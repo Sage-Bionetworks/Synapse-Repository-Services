@@ -2,8 +2,10 @@ package org.sagebionetworks.repo.model.dbo.persistence.discussion;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.List;
 
-import org.sagebionetworks.repo.model.discussion.Thread;
+import org.sagebionetworks.repo.model.discussion.DiscussionThread;
 
 public class ThreadUtils {
 	public static final Charset UTF8 = Charset.forName("UTF-8");
@@ -14,7 +16,7 @@ public class ThreadUtils {
 	 * @return dbo
 	 * @throws IOException 
 	 */
-	public static DBOThread createDBOFromDTO(Thread dto) {
+	public static DBOThread createDBOFromDTO(DiscussionThread dto) {
 		DBOThread dbo = new DBOThread();
 		dbo.setId(Long.parseLong(dto.getId()));
 		dbo.setForumId(Long.parseLong(dto.getForumId()));
@@ -33,8 +35,8 @@ public class ThreadUtils {
 	 * @param dbo
 	 * @return dto
 	 */
-	public static Thread createDTOFromDBO(DBOThread dbo) {
-		Thread dto = new Thread();
+	public static DiscussionThread createDTOFromDBO(DBOThread dbo) {
+		DiscussionThread dto = new DiscussionThread();
 		dto.setId(dbo.getId().toString());
 		dto.setForumId(dbo.getForumId().toString());
 		dto.setTitle(new String (dbo.getTitle(), UTF8));
@@ -60,5 +62,18 @@ public class ThreadUtils {
 				|| dbo.getIsDeleted() == null || dbo.getEtag() == null) {
 			throw new IllegalArgumentException();
 		}
+	}
+
+	/**
+	 * 
+	 * @param results
+	 * @return
+	 */
+	public static List<DiscussionThread> createDTOListFromDBOList(List<DBOThread> dboList) {
+		List<DiscussionThread> dtoList = new ArrayList<DiscussionThread>();
+		for (DBOThread dbo : dboList) {
+			dtoList.add(createDTOFromDBO(dbo));
+		}
+		return dtoList;
 	}
 }

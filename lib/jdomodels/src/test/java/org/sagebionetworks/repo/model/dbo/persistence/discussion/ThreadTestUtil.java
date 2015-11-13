@@ -3,13 +3,13 @@ package org.sagebionetworks.repo.model.dbo.persistence.discussion;
 import java.util.Date;
 import java.util.Random;
 
-import org.sagebionetworks.repo.model.discussion.Thread;
+import org.sagebionetworks.repo.model.discussion.DiscussionThread;
 
 public class ThreadTestUtil {
 	private static Random random = new Random();
 
 	public static DBOThread createValidatedThread() {
-		Thread dto = new Thread();
+		DiscussionThread dto = new DiscussionThread();
 		dto.setId(""+random.nextLong());
 		dto.setForumId(""+random.nextLong());
 		dto.setTitle("title");

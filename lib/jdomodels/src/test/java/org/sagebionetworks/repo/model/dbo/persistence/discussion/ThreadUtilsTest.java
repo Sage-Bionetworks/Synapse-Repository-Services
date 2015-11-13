@@ -4,7 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import org.junit.Test;
-import org.sagebionetworks.repo.model.discussion.Thread;
+import org.sagebionetworks.repo.model.discussion.DiscussionThread;
 
 public class ThreadUtilsTest {
 
@@ -13,7 +13,7 @@ public class ThreadUtilsTest {
 		DBOThread dbo = ThreadTestUtil.createValidatedThread();
 		dbo.setEtag(null);
 
-		Thread dto = ThreadUtils.createDTOFromDBO(dbo);
+		DiscussionThread dto = ThreadUtils.createDTOFromDBO(dbo);
 		assertNotNull(dto);
 		assertEquals(dbo.getId().toString(), dto.getId());
 		assertEquals(dbo.getForumId().toString(), dto.getForumId());
