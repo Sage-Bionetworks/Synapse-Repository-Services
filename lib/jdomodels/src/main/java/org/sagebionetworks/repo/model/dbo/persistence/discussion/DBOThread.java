@@ -6,7 +6,6 @@ import java.sql.Blob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
@@ -26,11 +25,11 @@ public class DBOThread  implements MigratableDatabaseObject<DBOThread, DBOThread
 		new FieldColumn("id", COL_THREAD_ID, true).withIsBackupId(true),
 		new FieldColumn("forumId", COL_THREAD_FORUM_ID),
 		new FieldColumn("title", COL_THREAD_TITLE),
-		new FieldColumn("etag", COL_THREAD_ETAG),
+		new FieldColumn("etag", COL_THREAD_ETAG).withIsEtag(true),
 		new FieldColumn("createdOn", COL_THREAD_CREATED_ON),
 		new FieldColumn("createdBy", COL_THREAD_CREATED_BY),
 		new FieldColumn("modifiedOn", COL_THREAD_MODIFIED_ON),
-		new FieldColumn("messageKey", COL_THREAD_MESSAGE_URL),
+		new FieldColumn("messageUrl", COL_THREAD_MESSAGE_URL),
 		new FieldColumn("isEdited", COL_THREAD_IS_EDITED),
 		new FieldColumn("isDeleted", COL_THREAD_IS_DELETED)
 	};
@@ -39,9 +38,9 @@ public class DBOThread  implements MigratableDatabaseObject<DBOThread, DBOThread
 	private Long forumId;
 	private byte[] title;
 	private String etag;
-	private Date createdOn;
+	private Long createdOn;
 	private Long createdBy;
-	private Date modifiedOn;
+	private Long modifiedOn;
 	private String messageUrl;
 	private Boolean isEdited;
 	private Boolean isDeleted;
@@ -169,11 +168,11 @@ public class DBOThread  implements MigratableDatabaseObject<DBOThread, DBOThread
 		this.etag = etag;
 	}
 
-	public Date getCreatedOn() {
+	public Long getCreatedOn() {
 		return createdOn;
 	}
 
-	public void setCreatedOn(Date createdOn) {
+	public void setCreatedOn(Long createdOn) {
 		this.createdOn = createdOn;
 	}
 
@@ -185,11 +184,11 @@ public class DBOThread  implements MigratableDatabaseObject<DBOThread, DBOThread
 		this.createdBy = createdBy;
 	}
 
-	public Date getModifiedOn() {
+	public Long getModifiedOn() {
 		return modifiedOn;
 	}
 
-	public void setModifiedOn(Date modifiedOn) {
+	public void setModifiedOn(Long modifiedOn) {
 		this.modifiedOn = modifiedOn;
 	}
 
@@ -227,11 +226,11 @@ public class DBOThread  implements MigratableDatabaseObject<DBOThread, DBOThread
 				dbo.setId(rs.getLong(COL_THREAD_ID));
 				dbo.setForumId(rs.getLong(COL_THREAD_FORUM_ID));
 				Blob blob = rs.getBlob(COL_THREAD_TITLE);
-				dbo.setTitle(blob.getBytes(0, (int) blob.length()));
+				dbo.setTitle(blob.getBytes(1, (int) blob.length()));
 				dbo.setEtag(rs.getString(COL_THREAD_ETAG));
-				dbo.setCreatedOn(new Date(rs.getLong(COL_THREAD_CREATED_ON)));
+				dbo.setCreatedOn(rs.getLong(COL_THREAD_CREATED_ON));
 				dbo.setCreatedBy(rs.getLong(COL_THREAD_CREATED_BY));
-				dbo.setModifiedOn(new Date(rs.getLong(COL_THREAD_MODIFIED_ON)));
+				dbo.setModifiedOn(rs.getLong(COL_THREAD_MODIFIED_ON));
 				dbo.setMessageUrl(rs.getString(COL_THREAD_MESSAGE_URL));
 				dbo.setIsEdited(rs.getBoolean(COL_THREAD_IS_EDITED));
 				dbo.setIsDeleted(rs.getBoolean(COL_THREAD_IS_DELETED));
