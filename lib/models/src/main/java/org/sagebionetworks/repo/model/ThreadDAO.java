@@ -2,29 +2,37 @@ package org.sagebionetworks.repo.model;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.discussion.DiscussionOrder;
-import org.sagebionetworks.repo.model.discussion.Thread;
+import org.sagebionetworks.repo.model.discussion.DiscussionThread;
 
 public interface ThreadDAO {
 
 	/**
-	 * Create a new Thread
+	 * Create a new DiscussionThread
 	 * 
 	 * @param dto
 	 * @return
 	 */
-	public Thread createThread(Thread dto);
+	public DiscussionThread createThread(DiscussionThread dto);
 
 	/**
-	 * Get a Thread
+	 * Get a DiscussionThread
 	 * 
 	 * @param threadId
 	 * @return
 	 */
-	public Thread getThread(long threadId);
+	public DiscussionThread getThread(long threadId);
 
 	/**
-	 * Get a paginated list of Threads for a forum given forumId, the order of 
-	 * the Thread, limit and offset
+	 * Get the number of DiscussionThread in a given forum
+	 * 
+	 * @param forumId
+	 * @return
+	 */
+	public long getThreadCount(long forumId);
+
+	/**
+	 * Get a paginated list of DiscussionThread for a forum given forumId, the order of 
+	 * the DiscussionThread, limit and offset
 	 * 
 	 * @param forumId
 	 * @param order
@@ -32,28 +40,28 @@ public interface ThreadDAO {
 	 * @param offset
 	 * @return
 	 */
-	public PaginatedResults<Thread> getThreads(long forumId, DiscussionOrder order, long limit, long offset);
+	public PaginatedResults<DiscussionThread> getThreads(long forumId, DiscussionOrder order, Integer limit, Integer offset);
 
 	/**
-	 * Mark a Thread as deleted
+	 * Mark a DiscussionThread as deleted
 	 * 
 	 * @param threadId
 	 */
 	public void deleteThread(long threadId);
 
 	/**
-	 * Update a Thread's message
+	 * Update a DiscussionThread message
 	 * 
 	 * @param threadId
 	 * @param newMessageUrl
 	 */
-	public Thread updateMessageUrl(long threadId, String newMessageUrl);
+	public DiscussionThread updateMessageUrl(long threadId, String newMessageUrl);
 
 	/**
-	 * Update a Thread's title
+	 * Update a DiscussionThread title
 	 * 
 	 * @param threadId
 	 * @param title
 	 */
-	public Thread updateTitle(long threadId, byte[] title);
+	public DiscussionThread updateTitle(long threadId, byte[] title);
 }
