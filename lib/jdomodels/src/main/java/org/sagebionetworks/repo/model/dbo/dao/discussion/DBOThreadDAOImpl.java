@@ -100,7 +100,7 @@ public class DBOThreadDAOImpl implements ThreadDAO {
 		}
 		if (limit != null && offset != null ) {
 			ValidateArgument.requirement(limit >= 0 && offset >= 0 && limit <= MAX_LIMIT,
-					"limit and offset must be greater than 0, and limit must be smaller than or equal to"+MAX_LIMIT);
+					"limit and offset must be greater than 0, and limit must be smaller than or equal to "+MAX_LIMIT);
 		} else {
 			ValidateArgument.requirement(limit == null && offset == null,
 					"Both limit and offset must be null or not null");
@@ -132,6 +132,7 @@ public class DBOThreadDAOImpl implements ThreadDAO {
 	@WriteTransaction
 	@Override
 	public DiscussionThread updateMessageUrl(long threadId, String newMessageUrl) {
+		if (newMessageUrl == null) throw new IllegalArgumentException("Message Url cannot be null");
 		String etag = UUID.randomUUID().toString();
 		Long modifiedOn = new Date().getTime();
 		jdbcTemplate.update(SQL_UPDATE_MESSAGE_URL, newMessageUrl, etag, modifiedOn, threadId);
@@ -141,6 +142,7 @@ public class DBOThreadDAOImpl implements ThreadDAO {
 	@WriteTransaction
 	@Override
 	public DiscussionThread updateTitle(long threadId, byte[] title) {
+		if (title == null) throw new IllegalArgumentException("Title cannot be null");
 		String etag = UUID.randomUUID().toString();
 		Long modifiedOn = new Date().getTime();
 		jdbcTemplate.update(SQL_UPDATE_TITLE, title, etag, modifiedOn, threadId);

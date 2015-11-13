@@ -121,6 +121,19 @@ public class DBOThreadDAOImplTest {
 		assertFalse(dto.equals(returnedDto));
 		dto.setModifiedOn(returnedDto.getModifiedOn());
 		assertEquals(dto, returnedDto);
+
+		try {
+			threadDao.updateTitle(threadId, null);
+			fail("Must throw exception when the title is null");
+		} catch (IllegalArgumentException e) {
+			// as expected
+		}
+		try {
+			threadDao.updateMessageUrl(threadId, null);
+			fail("Must throw exception when the message Url is null");
+		} catch (IllegalArgumentException e) {
+			// as expected
+		}
 	}
 
 	@Test
@@ -159,31 +172,31 @@ public class DBOThreadDAOImplTest {
 
 		try {
 			threadDao.getThreads(forumIdLong, DiscussionOrder.LAST_ACTIVITY, 2, -3);
-			fail("Both limit and offset must be greater than zero");
+			fail("Must throw exception when limit or offset smaller than zero");
 		} catch (IllegalArgumentException e) {
 			// as expected
 		}
 		try {
 			threadDao.getThreads(forumIdLong, DiscussionOrder.LAST_ACTIVITY, -2, 3);
-			fail("Both limit and offset must be greater than zero");
+			fail("Must throw exception when limit or offset smaller than zero");
 		} catch (IllegalArgumentException e) {
 			// as expected
 		}
 		try {
 			threadDao.getThreads(forumIdLong, DiscussionOrder.LAST_ACTIVITY, DBOThreadDAOImpl.MAX_LIMIT+1, 3);
-			fail("Limit must be smaller or equal to max limit");
+			fail("Must throw exception when limit greater to max limit");
 		} catch (IllegalArgumentException e) {
 			// as expected
 		}
 		try {
-			threadDao.getThreads(forumIdLong, DiscussionOrder.LAST_ACTIVITY, -2, null);
-			fail("Both limit and offset must be null or not null");
+			threadDao.getThreads(forumIdLong, DiscussionOrder.LAST_ACTIVITY, 2, null);
+			fail("Must throw exception when limit is not null and offset is null");
 		} catch (IllegalArgumentException e) {
 			// as expected
 		}
 		try {
 			threadDao.getThreads(forumIdLong, DiscussionOrder.LAST_ACTIVITY, null, 2);
-			fail("Both limit and offset must be null or not null");
+			fail("Must throw exception when limit is null and offset is not null");
 		} catch (IllegalArgumentException e) {
 			// as expected
 		}
