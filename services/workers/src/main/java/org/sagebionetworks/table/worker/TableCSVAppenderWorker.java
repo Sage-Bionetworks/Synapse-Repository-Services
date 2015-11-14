@@ -116,7 +116,7 @@ public class TableCSVAppenderWorker implements MessageDrivenRunner {
 			rowCount = 0;
 			String etag = tableRowManager.appendRowsAsStream(user, body.getTableId(),
 					TableModelUtils.createColumnModelColumnMapper(tableSchema, false), iteratorProxy, body.getUpdateEtag(), null,
-					new org.sagebionetworks.common.util.progress.ProgressCallback<Long>() {
+					new ProgressCallback<Long>() {
 
 				@Override
 				public void progressMade(Long count) {

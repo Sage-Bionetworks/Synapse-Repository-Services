@@ -705,10 +705,10 @@ public class TableRowManagerImpl implements TableRowManager {
 			// This path queries the table index regardless of the state of the index and without a
 			// read-lock.
 			if (paginatedQuery != null) {
-				rowSet = query(paginatedQuery);
+				rowSet = query(progressCallback, paginatedQuery);
 			}
 			if (countQuery != null) {
-				RowSet countResult = query(countQuery);
+				RowSet countResult = query(progressCallback, countQuery);
 				List<Row> rows = countResult.getRows();
 				if (!rows.isEmpty()) {
 					List<String> values = rows.get(0).getValues();
@@ -1105,10 +1105,10 @@ public class TableRowManagerImpl implements TableRowManager {
 	 * @param query
 	 * @return
 	 */
-	private RowSet query(SqlQuery query) {
+	private RowSet query(ProgressCallback<Void> callback, SqlQuery query) {
 		// Get a connection
 		TableIndexDAO indexDao = tableConnectionFactory.getConnection(query.getTableId());
-		return indexDao.query(null, query);
+		return indexDao.query(callback, query);
 	}
 	
 	/**
