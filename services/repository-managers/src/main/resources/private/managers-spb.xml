@@ -282,7 +282,8 @@
 		scope="singleton" />
 		
 	<bean id="writeReadSemaphore" class="org.sagebionetworks.database.semaphore.WriteReadSemaphoreImpl">
-		<constructor-arg ref="dataSourcePool"/>
+		<constructor-arg ref="dataSourcePool" index="0"></constructor-arg>
+		<constructor-arg ref="txManager" index="1"></constructor-arg>
 	</bean>
 	
 	<bean id="writeReadSemaphoreRunner" class="org.sagebionetworks.workers.util.semaphore.WriteReadSemaphoreRunnerImpl">

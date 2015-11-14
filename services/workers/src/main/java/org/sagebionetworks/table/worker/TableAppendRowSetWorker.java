@@ -86,7 +86,7 @@ public class TableAppendRowSetWorker implements MessageDrivenRunner {
 			long progressTotal = 100L;
 			// Start the progress
 			asynchJobStatusManager.updateJobProgress(status.getJobId(), progressCurrent, progressTotal, "Starting...");
-			org.sagebionetworks.common.util.progress.ProgressCallback<Long> rowCallback = new org.sagebionetworks.common.util.progress.ProgressCallback<Long>() {
+			ProgressCallback<Long> rowCallback = new ProgressCallback<Long>() {
 				@Override
 				public void progressMade(Long progress) {
 					progressCallback.progressMade(message);

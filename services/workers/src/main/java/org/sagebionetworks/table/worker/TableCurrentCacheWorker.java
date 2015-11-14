@@ -97,7 +97,7 @@ public class TableCurrentCacheWorker implements ChangeMessageDrivenRunner {
 
 		log.info("Updating current versions for " + tableId);
 		tableRowManager.updateLatestVersionCache(tableId,
-				new org.sagebionetworks.common.util.progress.ProgressCallback<Long>() {
+				new ProgressCallback<Long>() {
 					@Override
 					public void progressMade(Long version) {
 						progressCallback.progressMade(message);

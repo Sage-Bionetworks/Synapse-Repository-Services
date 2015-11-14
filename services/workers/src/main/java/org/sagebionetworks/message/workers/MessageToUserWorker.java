@@ -38,7 +38,7 @@ public class MessageToUserWorker implements ChangeMessageDrivenRunner {
 				switch (change.getChangeType()) {
 				case CREATE:
 					errors = messageManager.processMessage(change.getObjectId(), 
-							new org.sagebionetworks.common.util.progress.ProgressCallback<Void>() {
+							new ProgressCallback<Void>() {
 						@Override
 						public void progressMade(Void foo) {
 							progressCallback.progressMade(change);
