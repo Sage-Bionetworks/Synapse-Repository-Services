@@ -373,7 +373,7 @@ public class DMLUtils {
 		return builder.toString();
 	}
 
-	public static String listRowMetadataById(TableMapping mapping) {
+	public static String listRowMetadataByRange(TableMapping mapping) {
 		validateMigratableTableMapping(mapping);
 		StringBuilder builder = new StringBuilder();
 		builder.append("SELECT ");
@@ -382,6 +382,10 @@ public class DMLUtils {
 		builder.append(mapping.getTableName());
 		buildWhereBackupIdInRange(mapping, builder);
 		buildBackupOrderBy(mapping, builder, true);
+		builder.append(" LIMIT :");
+		builder.append(BIND_VAR_LIMIT);
+		builder.append(" OFFSET :");
+		builder.append(BIND_VAR_OFFSET);
 		return builder.toString();
 	}
 	

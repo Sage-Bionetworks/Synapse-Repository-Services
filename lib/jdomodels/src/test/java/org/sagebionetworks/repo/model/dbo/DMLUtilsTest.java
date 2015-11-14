@@ -225,19 +225,19 @@ public class DMLUtilsTest {
 	}
 	
 	@Test
-	public void testListByIdWithSelfForeignKey() {
-		String sql = DMLUtils.listRowMetadataById(migrateableMappingSelfForeignKey);
+	public void testListByRangeWithSelfForeignKey() {
+		String sql = DMLUtils.listRowMetadataByRange(migrateableMappingSelfForeignKey);
 		assertNotNull(sql);
 		System.out.println(sql);
-		assertEquals("SELECT `ID`, `ETAG`, `PARENT_ID` FROM SOME_TABLE WHERE `ID` >= :BVIDRMIN AND `ID` <= :BVIDRMAX ORDER BY `ID` ASC", sql);
+		assertEquals("SELECT `ID`, `ETAG`, `PARENT_ID` FROM SOME_TABLE WHERE `ID` >= :BVIDRMIN AND `ID` <= :BVIDRMAX ORDER BY `ID` ASC LIMIT :BCLIMIT OFFSET :BVOFFSET", sql);
 	}
 	
 	@Test
-	public void testListByIdWithNoEtagNoSelfForeignKey(){
-		String sql = DMLUtils.listRowMetadataById(migrateableMappingNoEtagNotSelfForeignKey);
+	public void testListByRangeWithNoEtagNoSelfForeignKey(){
+		String sql = DMLUtils.listRowMetadataByRange(migrateableMappingNoEtagNotSelfForeignKey);
 		assertNotNull(sql);
 		System.out.println(sql);
-		assertEquals("SELECT `ID` FROM SOME_TABLE WHERE `ID` >= :BVIDRMIN AND `ID` <= :BVIDRMAX ORDER BY `ID` ASC", sql);
+		assertEquals("SELECT `ID` FROM SOME_TABLE WHERE `ID` >= :BVIDRMIN AND `ID` <= :BVIDRMAX ORDER BY `ID` ASC LIMIT :BCLIMIT OFFSET :BVOFFSET", sql);
 	}
 	
 	@Test

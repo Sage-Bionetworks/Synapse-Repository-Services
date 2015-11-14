@@ -52,6 +52,7 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	private static final String MIGRATION = "/migration";
 	private static final String MIGRATION_COUNTS = MIGRATION + "/counts";
 	private static final String MIGRATION_ROWS = MIGRATION + "/rows";
+	private static final String MIGRATION_ROWS_BY_RANGE = MIGRATION + "/rowsbyrange";
 	private static final String MIGRATION_DELTA = MIGRATION + "/delta";
 	private static final String MIGRATION_BACKUP = MIGRATION + "/backup";
 	private static final String MIGRATION_RESTORE = MIGRATION + "/restore";
@@ -144,6 +145,15 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	
 	public RowMetadataResult getRowMetadata(MigrationType migrationType, Long limit, Long offset) throws SynapseException, JSONObjectAdapterException {
 		String uri = MIGRATION_ROWS + "?type=" + migrationType.name() + "&limit=" + limit + "&offset=" + offset;
+		JSONObject jsonObj = getSharedClientConnection().getJson(repoEndpoint, uri, getUserAgent());
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		RowMetadataResult results = new RowMetadataResult(); 
+		results.initializeFromJSONObject(adapter);
+		return results;
+	}
+	
+	public RowMetadataResult getRowMetadataByRange(MigrationType migrationType, Long minId, Long maxId, Long limit, Long offset) throws SynapseException, JSONObjectAdapterException {
+		String uri = MIGRATION_ROWS_BY_RANGE + "?type=" + migrationType.name() + "&minId=" + minId + "&maxId=" + maxId + "&limit=" + limit + "&offset=" + offset;
 		JSONObject jsonObj = getSharedClientConnection().getJson(repoEndpoint, uri, getUserAgent());
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
 		RowMetadataResult results = new RowMetadataResult(); 
@@ -403,4 +413,5 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 			return e.getStatusCode();
 		}
 	}
+
 }
