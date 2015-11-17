@@ -1,11 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.persistence.discussion;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_THREAD_STATS_ACTIVE_AUTHORS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_THREAD_STATS_NUMBER_OF_REPLIES;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_THREAD_STATS_NUMBER_OF_VIEWS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_THREAD_STATS_THREAD_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_DISCUSSION_THREAD_STATS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DISCUSSION_THREAD_STATS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 
 import java.sql.Blob;
 import java.sql.ResultSet;
@@ -22,20 +17,22 @@ public class DBODiscussionThreadStats implements DatabaseObject<DBODiscussionThr
 		new FieldColumn("threadId", COL_DISCUSSION_THREAD_STATS_THREAD_ID, true).withIsBackupId(true),
 		new FieldColumn("numberOfViews", COL_DISCUSSION_THREAD_STATS_NUMBER_OF_VIEWS),
 		new FieldColumn("numberOfReplies", COL_DISCUSSION_THREAD_STATS_NUMBER_OF_REPLIES),
+		new FieldColumn("lastActivity", COL_DISCUSSION_THREAD_STATS_LAST_ACTIVITY),
 		new FieldColumn("activeAuthors", COL_DISCUSSION_THREAD_STATS_ACTIVE_AUTHORS)
 	};
 
 	private Long threadIs;
 	private Long numberOfViews;
 	private Long numberOfReplies;
+	private Long lastActivity;
 	private byte[] activeAuthors;
 
 	@Override
 	public String toString() {
 		return "DBODiscussionThreadStats [threadIs=" + threadIs
 				+ ", numberOfViews=" + numberOfViews + ", numberOfReplies="
-				+ numberOfReplies + ", activeAuthors="
-				+ Arrays.toString(activeAuthors) + "]";
+				+ numberOfReplies + ", lastActivity=" + lastActivity
+				+ ", activeAuthors=" + Arrays.toString(activeAuthors) + "]";
 	}
 
 	@Override
@@ -43,6 +40,8 @@ public class DBODiscussionThreadStats implements DatabaseObject<DBODiscussionThr
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + Arrays.hashCode(activeAuthors);
+		result = prime * result
+				+ ((lastActivity == null) ? 0 : lastActivity.hashCode());
 		result = prime * result
 				+ ((numberOfReplies == null) ? 0 : numberOfReplies.hashCode());
 		result = prime * result
@@ -62,6 +61,11 @@ public class DBODiscussionThreadStats implements DatabaseObject<DBODiscussionThr
 			return false;
 		DBODiscussionThreadStats other = (DBODiscussionThreadStats) obj;
 		if (!Arrays.equals(activeAuthors, other.activeAuthors))
+			return false;
+		if (lastActivity == null) {
+			if (other.lastActivity != null)
+				return false;
+		} else if (!lastActivity.equals(other.lastActivity))
 			return false;
 		if (numberOfReplies == null) {
 			if (other.numberOfReplies != null)
@@ -103,6 +107,14 @@ public class DBODiscussionThreadStats implements DatabaseObject<DBODiscussionThr
 
 	public void setNumberOfReplies(Long numberOfReplies) {
 		this.numberOfReplies = numberOfReplies;
+	}
+
+	public Long getLastActivity() {
+		return lastActivity;
+	}
+
+	public void setLastActivity(Long lastActivity) {
+		this.lastActivity = lastActivity;
 	}
 
 	public byte[] getActiveAuthors() {
