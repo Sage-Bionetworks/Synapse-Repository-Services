@@ -712,6 +712,21 @@ public class SqlConstants {
 	public static final String COL_DISCUSSION_THREAD_IS_DELETED = "IS_DELETED";
 	public static final String DDL_DISCUSSION_THREAD = "schema/DiscussionThread-ddl.sql";
 
+	// Discussion Thread Stats table
+	public static final String TABLE_DISCUSSION_THREAD_STATS = "DISCUSSION_THREAD_STATS";
+	public static final String COL_DISCUSSION_THREAD_STATS_THREAD_ID = "THREAD_ID";
+	public static final String COL_DISCUSSION_THREAD_STATS_NUMBER_OF_VIEWS = "NUMBER_OF_VIEWS";
+	public static final String COL_DISCUSSION_THREAD_STATS_NUMBER_OF_REPLIES = "NUMBER_OF_REPLIES";
+	public static final String COL_DISCUSSION_THREAD_STATS_ACTIVE_AUTHORS = "ACTIVE_AUTHORS";
+	public static final String DDL_DISCUSSION_THREAD_STATS = "schema/DiscussionThreadStats-ddl.sql";
+
+	// Discussion Thread View table
+	public static final String TABLE_DISCUSSION_THREAD_VIEW = "DISCUSSION_THREAD_VIEW";
+	public static final String COL_DISCUSSION_THREAD_VIEW_ID = "ID";
+	public static final String COL_DISCUSSION_THREAD_VIEW_THREAD_ID = "THREAD_ID";
+	public static final String COL_DISCUSSION_THREAD_VIEW_USER_ID = "USER_ID";
+	public static final String DDL_DISCUSSION_THREAD_VIEW = "schema/DiscussionThreadView-ddl.sql";
+
 	// This seems to be the name of the id column for all tables.
 	public static final String COLUMN_ID		= "id";
 	
