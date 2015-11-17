@@ -698,19 +698,19 @@ public class SqlConstants {
 	public static final String COL_FORUM_PROJECT_ID = "PROJECT_ID";
 	public static final String DDL_FORUM = "schema/Forum-ddl.sql";
 
-	// Thread table
-	public static final String TABLE_THREAD = "THREAD";
-	public static final String COL_THREAD_ID = "ID";
-	public static final String COL_THREAD_FORUM_ID = "FORUM_ID";
-	public static final String COL_THREAD_TITLE = "TITLE";
-	public static final String COL_THREAD_ETAG = "ETAG";
-	public static final String COL_THREAD_CREATED_ON = "CREATED_ON";
-	public static final String COL_THREAD_CREATED_BY = "CREATED_BY";
-	public static final String COL_THREAD_MODIFIED_ON = "MODIFIED_ON";
-	public static final String COL_THREAD_MESSAGE_URL = "MESSAGE_URL";
-	public static final String COL_THREAD_IS_EDITED = "IS_EDITED";
-	public static final String COL_THREAD_IS_DELETED = "IS_DELETED";
-	public static final String DDL_THREAD = "schema/Thread-ddl.sql";
+	// Discussion Thread table
+	public static final String TABLE_DISCUSSION_THREAD = "DISCUSSION_THREAD";
+	public static final String COL_DISCUSSION_THREAD_ID = "ID";
+	public static final String COL_DISCUSSION_THREAD_FORUM_ID = "FORUM_ID";
+	public static final String COL_DISCUSSION_THREAD_TITLE = "TITLE";
+	public static final String COL_DISCUSSION_THREAD_ETAG = "ETAG";
+	public static final String COL_DISCUSSION_THREAD_CREATED_ON = "CREATED_ON";
+	public static final String COL_DISCUSSION_THREAD_CREATED_BY = "CREATED_BY";
+	public static final String COL_DISCUSSION_THREAD_MODIFIED_ON = "MODIFIED_ON";
+	public static final String COL_DISCUSSION_THREAD_MESSAGE_URL = "MESSAGE_URL";
+	public static final String COL_DISCUSSION_THREAD_IS_EDITED = "IS_EDITED";
+	public static final String COL_DISCUSSION_THREAD_IS_DELETED = "IS_DELETED";
+	public static final String DDL_DISCUSSION_THREAD = "schema/DiscussionThread-ddl.sql";
 
 	// This seems to be the name of the id column for all tables.
 	public static final String COLUMN_ID		= "id";

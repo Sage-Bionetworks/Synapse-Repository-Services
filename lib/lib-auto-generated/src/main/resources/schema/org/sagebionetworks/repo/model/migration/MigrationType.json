@@ -60,7 +60,7 @@
         "VERIFICATION_STATE",
         "VERIFICATION_FILE",
         "FORUM",
-        "THREAD",
+        "DISCUSSION_THREAD",
         "CHANGE"
     ]
 }

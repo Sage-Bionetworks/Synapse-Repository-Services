@@ -298,7 +298,7 @@ public class MigratableTableDAOImplAutowireTest {
 		expectedPrimaryTypes.add(MigrationType.QUIZ_RESPONSE);
 		expectedPrimaryTypes.add(MigrationType.VERIFICATION_SUBMISSION);
 		expectedPrimaryTypes.add(MigrationType.FORUM);
-		expectedPrimaryTypes.add(MigrationType.THREAD);
+		expectedPrimaryTypes.add(MigrationType.DISCUSSION_THREAD);
 		expectedPrimaryTypes.add(MigrationType.CHANGE);
 		// Get the list
 		List<MigrationType> primary = migratableTableDAO.getPrimaryMigrationTypes();

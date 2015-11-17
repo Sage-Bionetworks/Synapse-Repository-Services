@@ -44,6 +44,7 @@ import org.sagebionetworks.repo.model.ChallengeTeam;
 import org.sagebionetworks.repo.model.ChallengeTeamDAO;
 import org.sagebionetworks.repo.model.CommentDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.DiscussionThreadDAO;
 import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
@@ -69,7 +70,6 @@ import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
-import org.sagebionetworks.repo.model.ThreadDAO;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -86,8 +86,6 @@ import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOSessionToken;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
-import org.sagebionetworks.repo.model.discussion.Forum;
-import org.sagebionetworks.repo.model.discussion.DiscussionThread;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
@@ -235,7 +233,7 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 	private ForumDAO forumDao;
 
 	@Autowired
-	private ThreadDAO threadDao;
+	private DiscussionThreadDAO threadDao;
 	
 	private Team team;
 
@@ -322,16 +320,7 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 	}
 
 	private void createThread() {
-		DiscussionThread dto = new DiscussionThread();
-		dto.setForumId(forumId);
-		dto.setTitle("title");
-		dto.setCreatedOn(new Date());
-		dto.setModifiedOn(new Date());
-		dto.setCreatedBy(adminUserIdString);
-		dto.setMessageUrl("fakeMessageUrl");
-		dto.setIsEdited(false);
-		dto.setIsDeleted(false);
-		threadDao.createThread(dto);
+		threadDao.createThread(forumId, "title", "fakeMessageUrl", adminUserId);
 	}
 
 	private void createVerificationSubmission() {

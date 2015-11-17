@@ -19,19 +19,19 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
  * @author kimyentruong
  *
  */
-public class DBOThread  implements MigratableDatabaseObject<DBOThread, DBOThread> {
+public class DBODiscussionThread  implements MigratableDatabaseObject<DBODiscussionThread, DBODiscussionThread> {
 
 	private static final FieldColumn[] FIELDS = new FieldColumn[] {
-		new FieldColumn("id", COL_THREAD_ID, true).withIsBackupId(true),
-		new FieldColumn("forumId", COL_THREAD_FORUM_ID),
-		new FieldColumn("title", COL_THREAD_TITLE),
-		new FieldColumn("etag", COL_THREAD_ETAG).withIsEtag(true),
-		new FieldColumn("createdOn", COL_THREAD_CREATED_ON),
-		new FieldColumn("createdBy", COL_THREAD_CREATED_BY),
-		new FieldColumn("modifiedOn", COL_THREAD_MODIFIED_ON),
-		new FieldColumn("messageUrl", COL_THREAD_MESSAGE_URL),
-		new FieldColumn("isEdited", COL_THREAD_IS_EDITED),
-		new FieldColumn("isDeleted", COL_THREAD_IS_DELETED)
+		new FieldColumn("id", COL_DISCUSSION_THREAD_ID, true).withIsBackupId(true),
+		new FieldColumn("forumId", COL_DISCUSSION_THREAD_FORUM_ID),
+		new FieldColumn("title", COL_DISCUSSION_THREAD_TITLE),
+		new FieldColumn("etag", COL_DISCUSSION_THREAD_ETAG).withIsEtag(true),
+		new FieldColumn("createdOn", COL_DISCUSSION_THREAD_CREATED_ON),
+		new FieldColumn("createdBy", COL_DISCUSSION_THREAD_CREATED_BY),
+		new FieldColumn("modifiedOn", COL_DISCUSSION_THREAD_MODIFIED_ON),
+		new FieldColumn("messageUrl", COL_DISCUSSION_THREAD_MESSAGE_URL),
+		new FieldColumn("isEdited", COL_DISCUSSION_THREAD_IS_EDITED),
+		new FieldColumn("isDeleted", COL_DISCUSSION_THREAD_IS_DELETED)
 	};
 
 	private Long id;
@@ -85,7 +85,7 @@ public class DBOThread  implements MigratableDatabaseObject<DBOThread, DBOThread
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		DBOThread other = (DBOThread) obj;
+		DBODiscussionThread other = (DBODiscussionThread) obj;
 		if (createdBy == null) {
 			if (other.createdBy != null)
 				return false;
@@ -217,34 +217,34 @@ public class DBOThread  implements MigratableDatabaseObject<DBOThread, DBOThread
 	}
 
 	@Override
-	public TableMapping<DBOThread> getTableMapping() {
-		return new TableMapping<DBOThread>() {
+	public TableMapping<DBODiscussionThread> getTableMapping() {
+		return new TableMapping<DBODiscussionThread>() {
 
 			@Override
-			public DBOThread mapRow(ResultSet rs, int rowNum) throws SQLException {
-				DBOThread dbo = new DBOThread();
-				dbo.setId(rs.getLong(COL_THREAD_ID));
-				dbo.setForumId(rs.getLong(COL_THREAD_FORUM_ID));
-				Blob blob = rs.getBlob(COL_THREAD_TITLE);
+			public DBODiscussionThread mapRow(ResultSet rs, int rowNum) throws SQLException {
+				DBODiscussionThread dbo = new DBODiscussionThread();
+				dbo.setId(rs.getLong(COL_DISCUSSION_THREAD_ID));
+				dbo.setForumId(rs.getLong(COL_DISCUSSION_THREAD_FORUM_ID));
+				Blob blob = rs.getBlob(COL_DISCUSSION_THREAD_TITLE);
 				dbo.setTitle(blob.getBytes(1, (int) blob.length()));
-				dbo.setEtag(rs.getString(COL_THREAD_ETAG));
-				dbo.setCreatedOn(rs.getLong(COL_THREAD_CREATED_ON));
-				dbo.setCreatedBy(rs.getLong(COL_THREAD_CREATED_BY));
-				dbo.setModifiedOn(rs.getLong(COL_THREAD_MODIFIED_ON));
-				dbo.setMessageUrl(rs.getString(COL_THREAD_MESSAGE_URL));
-				dbo.setIsEdited(rs.getBoolean(COL_THREAD_IS_EDITED));
-				dbo.setIsDeleted(rs.getBoolean(COL_THREAD_IS_DELETED));
+				dbo.setEtag(rs.getString(COL_DISCUSSION_THREAD_ETAG));
+				dbo.setCreatedOn(rs.getLong(COL_DISCUSSION_THREAD_CREATED_ON));
+				dbo.setCreatedBy(rs.getLong(COL_DISCUSSION_THREAD_CREATED_BY));
+				dbo.setModifiedOn(rs.getLong(COL_DISCUSSION_THREAD_MODIFIED_ON));
+				dbo.setMessageUrl(rs.getString(COL_DISCUSSION_THREAD_MESSAGE_URL));
+				dbo.setIsEdited(rs.getBoolean(COL_DISCUSSION_THREAD_IS_EDITED));
+				dbo.setIsDeleted(rs.getBoolean(COL_DISCUSSION_THREAD_IS_DELETED));
 				return dbo;
 			}
 
 			@Override
 			public String getTableName() {
-				return TABLE_THREAD;
+				return TABLE_DISCUSSION_THREAD;
 			}
 
 			@Override
 			public String getDDLFileName() {
-				return DDL_THREAD;
+				return DDL_DISCUSSION_THREAD;
 			}
 
 			@Override
@@ -253,41 +253,41 @@ public class DBOThread  implements MigratableDatabaseObject<DBOThread, DBOThread
 			}
 
 			@Override
-			public Class<? extends DBOThread> getDBOClass() {
-				return DBOThread.class;
+			public Class<? extends DBODiscussionThread> getDBOClass() {
+				return DBODiscussionThread.class;
 			}
 		};
 	}
 
 	@Override
 	public MigrationType getMigratableTableType() {
-		return MigrationType.THREAD;
+		return MigrationType.DISCUSSION_THREAD;
 	}
 
 	@Override
-	public MigratableTableTranslation<DBOThread, DBOThread> getTranslator() {
-		return new MigratableTableTranslation<DBOThread, DBOThread>(){
+	public MigratableTableTranslation<DBODiscussionThread, DBODiscussionThread> getTranslator() {
+		return new MigratableTableTranslation<DBODiscussionThread, DBODiscussionThread>(){
 
 			@Override
-			public DBOThread createDatabaseObjectFromBackup(DBOThread backup) {
+			public DBODiscussionThread createDatabaseObjectFromBackup(DBODiscussionThread backup) {
 				return backup;
 			}
 
 			@Override
-			public DBOThread createBackupFromDatabaseObject(DBOThread dbo) {
+			public DBODiscussionThread createBackupFromDatabaseObject(DBODiscussionThread dbo) {
 				return dbo;
 			}
 		};
 	}
 
 	@Override
-	public Class<? extends DBOThread> getBackupClass() {
-		return DBOThread.class;
+	public Class<? extends DBODiscussionThread> getBackupClass() {
+		return DBODiscussionThread.class;
 	}
 
 	@Override
-	public Class<? extends DBOThread> getDatabaseObjectClass() {
-		return DBOThread.class;
+	public Class<? extends DBODiscussionThread> getDatabaseObjectClass() {
+		return DBODiscussionThread.class;
 	}
 
 	@Override
