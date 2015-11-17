@@ -6,6 +6,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.asynchronous.workers.changes.ChangeMessageDrivenRunner;
+import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.NodeInheritanceManager;
 import org.sagebionetworks.repo.manager.table.TableRowManager;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -14,7 +15,6 @@ import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
-import org.sagebionetworks.workers.util.progress.ProgressCallback;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -97,7 +97,7 @@ public class TableCurrentCacheWorker implements ChangeMessageDrivenRunner {
 
 		log.info("Updating current versions for " + tableId);
 		tableRowManager.updateLatestVersionCache(tableId,
-				new org.sagebionetworks.util.ProgressCallback<Long>() {
+				new ProgressCallback<Long>() {
 					@Override
 					public void progressMade(Long version) {
 						progressCallback.progressMade(message);

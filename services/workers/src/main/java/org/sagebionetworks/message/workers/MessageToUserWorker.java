@@ -6,12 +6,12 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.asynchronous.workers.changes.ChangeMessageDrivenRunner;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
+import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.MessageManager;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
-import org.sagebionetworks.workers.util.progress.ProgressCallback;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -38,7 +38,7 @@ public class MessageToUserWorker implements ChangeMessageDrivenRunner {
 				switch (change.getChangeType()) {
 				case CREATE:
 					errors = messageManager.processMessage(change.getObjectId(), 
-							new org.sagebionetworks.util.ProgressCallback<Void>() {
+							new ProgressCallback<Void>() {
 						@Override
 						public void progressMade(Void foo) {
 							progressCallback.progressMade(change);

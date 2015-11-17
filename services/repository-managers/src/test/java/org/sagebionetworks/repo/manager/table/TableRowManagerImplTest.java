@@ -9,15 +9,7 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.reset;
-import static org.mockito.Mockito.stub;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -27,7 +19,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.Callable;
 
 import org.apache.commons.lang.StringUtils;
 import org.junit.Assume;
@@ -37,6 +28,8 @@ import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -46,7 +39,6 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dao.semaphore.ExclusiveOrSharedSemaphoreRunner;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.RowAccessor;
 import org.sagebionetworks.repo.model.dao.table.RowAndHeaderHandler;
@@ -54,11 +46,30 @@ import org.sagebionetworks.repo.model.dao.table.RowSetAccessor;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
-import org.sagebionetworks.repo.model.exception.LockUnavilableException;
 import org.sagebionetworks.repo.model.exception.ReadOnlyException;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.status.StatusEnum;
-import org.sagebionetworks.repo.model.table.*;
+import org.sagebionetworks.repo.model.table.ColumnMapper;
+import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnModelMapper;
+import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.PartialRow;
+import org.sagebionetworks.repo.model.table.PartialRowSet;
+import org.sagebionetworks.repo.model.table.Query;
+import org.sagebionetworks.repo.model.table.QueryBundleRequest;
+import org.sagebionetworks.repo.model.table.QueryResult;
+import org.sagebionetworks.repo.model.table.QueryResultBundle;
+import org.sagebionetworks.repo.model.table.RawRowSet;
+import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.repo.model.table.RowReference;
+import org.sagebionetworks.repo.model.table.RowReferenceSet;
+import org.sagebionetworks.repo.model.table.RowSelection;
+import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.SelectColumn;
+import org.sagebionetworks.repo.model.table.TableRowChange;
+import org.sagebionetworks.repo.model.table.TableState;
+import org.sagebionetworks.repo.model.table.TableStatus;
+import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
@@ -66,7 +77,8 @@ import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.Pair;
-import org.sagebionetworks.util.ProgressCallback;
+import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
+import org.sagebionetworks.workers.util.semaphore.WriteReadSemaphoreRunner;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.support.TransactionCallback;
 
@@ -87,8 +99,10 @@ public class TableRowManagerImplTest {
 	ColumnModelDAO mockColumnModelDAO;
 	ConnectionFactory mockTableConnectionFactory;
 	TableIndexDAO mockTableIndexDAO;
-	ExclusiveOrSharedSemaphoreRunner mockExclusiveOrSharedSemaphoreRunner;
+	WriteReadSemaphoreRunner mockWriteReadSemaphoreRunner;
 	List<ColumnModel> models;
+	ProgressCallback<Object> mockProgressCallback2;
+	ProgressCallback<Void> mockProgressCallbackVoid;
 	UserInfo user;
 	String tableId;
 	RowSet set;
@@ -111,18 +125,20 @@ public class TableRowManagerImplTest {
 		mockColumnModelDAO = Mockito.mock(ColumnModelDAO.class);
 		mockTableConnectionFactory = Mockito.mock(ConnectionFactory.class);
 		mockTableIndexDAO = Mockito.mock(TableIndexDAO.class);
-		mockExclusiveOrSharedSemaphoreRunner = Mockito.mock(ExclusiveOrSharedSemaphoreRunner.class);
+		mockWriteReadSemaphoreRunner = Mockito.mock(WriteReadSemaphoreRunner.class);
 		mockStackStatusDao = Mockito.mock(StackStatusDao.class);
 		mockProgressCallback = Mockito.mock(ProgressCallback.class);
+		mockProgressCallback2 = Mockito.mock(ProgressCallback.class);
+		mockProgressCallbackVoid = Mockito.mock(ProgressCallback.class);
 
 		// Just call the caller.
-		stub(mockExclusiveOrSharedSemaphoreRunner.tryRunWithSharedLock(anyString(), anyLong(), any(Callable.class))).toAnswer(new Answer<Object>() {
+		stub(mockWriteReadSemaphoreRunner.tryRunWithReadLock(any(ProgressCallback.class),anyString(), anyInt(), any(ProgressingCallable.class))).toAnswer(new Answer<Object>() {
 			@Override
 			public Object answer(InvocationOnMock invocation) throws Throwable {
 				if(invocation == null) return null;
-				Callable<Object> callable = (Callable<Object>) invocation.getArguments()[2];
+				ProgressingCallable<Object, Object> callable = (ProgressingCallable<Object, Object>) invocation.getArguments()[3];
 						if (callable != null) {
-							return callable.call();
+							return callable.call(mockProgressCallback2);
 						} else {
 							return null;
 						}
@@ -159,12 +175,12 @@ public class TableRowManagerImplTest {
 		
 		when(mockColumnModelDAO.getColumnModelsForObject(tableId)).thenReturn(models);
 		when(mockTableConnectionFactory.getConnection(tableId)).thenReturn(mockTableIndexDAO);
-		when(mockTableIndexDAO.query(any(SqlQuery.class))).thenReturn(set);
-		stub(mockTableIndexDAO.queryAsStream(any(SqlQuery.class), any(RowAndHeaderHandler.class))).toAnswer(new Answer<Boolean>() {
+		when(mockTableIndexDAO.query(any(ProgressCallback.class),any(SqlQuery.class))).thenReturn(set);
+		stub(mockTableIndexDAO.queryAsStream(any(ProgressCallback.class),any(SqlQuery.class), any(RowAndHeaderHandler.class))).toAnswer(new Answer<Boolean>() {
 			@Override
 			public Boolean answer(InvocationOnMock invocation) throws Throwable {
-				SqlQuery query = (SqlQuery) invocation.getArguments()[0];
-				RowAndHeaderHandler handler =  (RowAndHeaderHandler) invocation.getArguments()[1];
+				SqlQuery query = (SqlQuery) invocation.getArguments()[1];
+				RowAndHeaderHandler handler =  (RowAndHeaderHandler) invocation.getArguments()[2];
 				boolean isCount = false;
 				if (query.getModel().getSelectList().getColumns() != null) {
 					String sql = query.getModel().getSelectList().getColumns().get(0).toString();
@@ -207,8 +223,7 @@ public class TableRowManagerImplTest {
 		ReflectionTestUtils.setField(manager, "nodeDao", mockNodeDAO);
 		ReflectionTestUtils.setField(manager, "columnModelDAO", mockColumnModelDAO);
 		ReflectionTestUtils.setField(manager, "tableConnectionFactory", mockTableConnectionFactory);
-		ReflectionTestUtils.setField(manager, "exclusiveOrSharedSemaphoreRunner", mockExclusiveOrSharedSemaphoreRunner);
-		ReflectionTestUtils.setField(manager, "tableReadTimeoutMS", 5000L);
+		ReflectionTestUtils.setField(manager, "writeReadSemaphoreRunner", mockWriteReadSemaphoreRunner);
 		// read-write be default.
 		when(mockStackStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_WRITE);
 		rowIdSequence = 0;
@@ -701,7 +716,7 @@ public class TableRowManagerImplTest {
 	@Test (expected = UnauthorizedException.class)
 	public void testQueryUnauthroized() throws Exception {
 		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
-		manager.query(user, "select * from " + tableId, null, null, null, true, false, true);
+		manager.query(mockProgressCallbackVoid, user, "select * from " + tableId, null, null, null, true, false, true);
 	}
 	
 	@Test 
@@ -709,8 +724,8 @@ public class TableRowManagerImplTest {
 		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		RowSet expected = new RowSet();
 		expected.setTableId(tableId);
-		when(mockTableIndexDAO.query(any(SqlQuery.class))).thenReturn(expected);
-		Pair<QueryResult, Long> results = manager.query(user, "select * from " + tableId + " limit 1", null, null, null, true, false, false);
+		when(mockTableIndexDAO.query(any(ProgressCallback.class),any(SqlQuery.class))).thenReturn(expected);
+		Pair<QueryResult, Long> results = manager.query(mockProgressCallbackVoid, user, "select * from " + tableId + " limit 1", null, null, null, true, false, false);
 		// The etag should be null for this case
 		assertEquals("The etag must be null for non-consistent query results.  These results cannot be used for a table update.", null,
 				results.getFirst().getQueryResults().getEtag());
@@ -727,7 +742,7 @@ public class TableRowManagerImplTest {
 		status.setState(TableState.AVAILABLE);
 		status.setLastTableChangeEtag(UUID.randomUUID().toString());
 		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
-		Pair<QueryResult, Long> results = manager.query(user, "select * from " + tableId + " limit 1", null, null, null, true, false, true);
+		Pair<QueryResult, Long> results = manager.query(mockProgressCallbackVoid, user, "select * from " + tableId + " limit 1", null, null, null, true, false, true);
 		// The etag should be set
 		assertEquals(status.getLastTableChangeEtag(), results.getFirst().getQueryResults().getEtag());
 		// Clear the etag for the test
@@ -743,7 +758,7 @@ public class TableRowManagerImplTest {
 		status.setState(TableState.AVAILABLE);
 		status.setLastTableChangeEtag(UUID.randomUUID().toString());
 		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
-		Pair<QueryResult, Long> results = manager.query(user, "select * from " + tableId + " limit 1", null, null, null, true, true, true);
+		Pair<QueryResult, Long> results = manager.query(mockProgressCallbackVoid, user, "select * from " + tableId + " limit 1", null, null, null, true, true, true);
 		// The etag should be set
 		assertEquals(status.getLastTableChangeEtag(), results.getFirst().getQueryResults().getEtag());
 		// Clear the etag for the test
@@ -760,7 +775,7 @@ public class TableRowManagerImplTest {
 		status.setState(TableState.AVAILABLE);
 		status.setLastTableChangeEtag(UUID.randomUUID().toString());
 		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
-		Pair<QueryResult, Long> results = manager.query(user, "select * from " + tableId + " limit 1", null, null, null, true, false, true);
+		Pair<QueryResult, Long> results = manager.query(mockProgressCallbackVoid, user, "select * from " + tableId + " limit 1", null, null, null, true, false, true);
 		// The etag should be set
 		assertEquals(status.getLastTableChangeEtag(), results.getFirst().getQueryResults().getEtag());
 		// Clear the etag for the test
@@ -778,7 +793,7 @@ public class TableRowManagerImplTest {
 		status.setState(TableState.AVAILABLE);
 		status.setLastTableChangeEtag(UUID.randomUUID().toString());
 		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
-		Pair<QueryResult, Long> results = manager.query(user, "select * from " + tableId + " limit 1", null, null, null, true, false, true);
+		Pair<QueryResult, Long> results = manager.query(mockProgressCallbackVoid, user, "select * from " + tableId + " limit 1", null, null, null, true, false, true);
 		assertNotNull(results);
 		assertEquals(tableId, results.getFirst().getQueryResults().getTableId());
 		assertNull(results.getFirst().getQueryResults().getEtag());
@@ -798,7 +813,7 @@ public class TableRowManagerImplTest {
 		status.setState(TableState.PROCESSING);
 		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
 		try{
-			manager.query(user, "select * from " + tableId + " limit 1", null, null, null, true, false, true);
+			manager.query(mockProgressCallbackVoid, user, "select * from " + tableId + " limit 1", null, null, null, true, false, true);
 			fail("should have failed");
 		}catch(TableUnavilableException e){
 			// expected
@@ -822,7 +837,7 @@ public class TableRowManagerImplTest {
 		when(mockTruthDao.getLastTableRowChange(tableId)).thenReturn(new TableRowChange());
 		when(mockNodeDAO.doesNodeExist(123L)).thenReturn(true);
 		try{
-			manager.query(user, "select * from " + tableId + " limit 1", null, null, null, true, false, true);
+			manager.query(mockProgressCallbackVoid, user, "select * from " + tableId + " limit 1", null, null, null, true, false, true);
 			fail("should have failed");
 		}catch(TableUnavilableException e){
 			// expected
@@ -851,9 +866,9 @@ public class TableRowManagerImplTest {
 		status.setState(TableState.AVAILABLE);
 		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
 		// Throw a lock LockUnavilableException
-		when(mockExclusiveOrSharedSemaphoreRunner.tryRunWithSharedLock(anyString(), anyLong(), any(Callable.class))).thenThrow(new LockUnavilableException());
+		when(mockWriteReadSemaphoreRunner.tryRunWithReadLock(any(ProgressCallback.class),anyString(), anyInt(), any(ProgressingCallable.class))).thenThrow(new LockUnavilableException());
 		try{
-			manager.query(user, "select * from " + tableId + " limit 1", null, null, null, true, false, true);
+			manager.query(mockProgressCallbackVoid, user, "select * from " + tableId + " limit 1", null, null, null, true, false, true);
 			fail("should have failed");
 		}catch(TableUnavilableException e){
 			// expected
@@ -928,7 +943,7 @@ public class TableRowManagerImplTest {
 
 		// Request query only
 		queryBundle.setPartMask(TableRowManagerImpl.BUNDLE_MASK_QUERY_RESULTS);
-		QueryResultBundle bundle = manager.queryBundle(user, queryBundle);
+		QueryResultBundle bundle = manager.queryBundle(mockProgressCallbackVoid, user, queryBundle);
 		assertEquals(selectResult, bundle.getQueryResult().getQueryResults());
 		assertEquals(null, bundle.getQueryCount());
 		assertEquals(null, bundle.getSelectColumns());
@@ -936,7 +951,7 @@ public class TableRowManagerImplTest {
 
 		// Count only
 		queryBundle.setPartMask(TableRowManagerImpl.BUNDLE_MASK_QUERY_COUNT);
-		bundle = manager.queryBundle(user, queryBundle);
+		bundle = manager.queryBundle(mockProgressCallbackVoid, user, queryBundle);
 		assertEquals(null, bundle.getQueryResult());
 		assertEquals(countResult, bundle.getQueryCount());
 		assertEquals(null, bundle.getSelectColumns());
@@ -944,7 +959,7 @@ public class TableRowManagerImplTest {
 
 		// select columns
 		queryBundle.setPartMask(TableRowManagerImpl.BUNDLE_MASK_QUERY_SELECT_COLUMNS);
-		bundle = manager.queryBundle(user, queryBundle);
+		bundle = manager.queryBundle(mockProgressCallbackVoid, user, queryBundle);
 		assertEquals(null, bundle.getQueryResult());
 		assertEquals(null, bundle.getQueryCount());
 		assertEquals(selectColumns, bundle.getSelectColumns().toString());
@@ -952,7 +967,7 @@ public class TableRowManagerImplTest {
 
 		// max rows per page
 		queryBundle.setPartMask(TableRowManagerImpl.BUNDLE_MASK_QUERY_MAX_ROWS_PER_PAGE);
-		bundle = manager.queryBundle(user, queryBundle);
+		bundle = manager.queryBundle(mockProgressCallbackVoid, user, queryBundle);
 		assertEquals(null, bundle.getQueryResult());
 		assertEquals(null, bundle.getQueryCount());
 		assertEquals(null, bundle.getSelectColumns());
@@ -961,7 +976,7 @@ public class TableRowManagerImplTest {
 		// now combine them all
 		queryBundle.setPartMask(TableRowManagerImpl.BUNDLE_MASK_QUERY_RESULTS | TableRowManagerImpl.BUNDLE_MASK_QUERY_COUNT
 				| TableRowManagerImpl.BUNDLE_MASK_QUERY_SELECT_COLUMNS | TableRowManagerImpl.BUNDLE_MASK_QUERY_MAX_ROWS_PER_PAGE);
-		bundle = manager.queryBundle(user, queryBundle);
+		bundle = manager.queryBundle(mockProgressCallbackVoid, user, queryBundle);
 		assertEquals(selectResult, bundle.getQueryResult().getQueryResults());
 		assertEquals(countResult, bundle.getQueryCount());
 		assertEquals(selectColumns, bundle.getSelectColumns().toString());
@@ -1184,9 +1199,9 @@ public class TableRowManagerImplTest {
 		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(tableStatus);
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(Collections.nCopies(100000, new Row()));
-		when(mockTableIndexDAO.query(any(SqlQuery.class))).thenReturn(rowSet);
+		when(mockTableIndexDAO.query(any(ProgressCallback.class), any(SqlQuery.class))).thenReturn(rowSet);
 
-		Pair<QueryResult, Long> query = manager.query(user, "select * from " + tableId, null, 0L, 100000L, true, false, false);
+		Pair<QueryResult, Long> query = manager.query(mockProgressCallbackVoid, user, "select * from " + tableId, null, 0L, 100000L, true, false, false);
 		assertNotNull(query.getFirst().getNextPageToken());
 	}
 
@@ -1198,7 +1213,7 @@ public class TableRowManagerImplTest {
 		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(tableStatus);
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(Collections.nCopies(100000, new Row()));
-		when(mockTableIndexDAO.query(any(SqlQuery.class))).thenReturn(rowSet);
+		when(mockTableIndexDAO.query(any(ProgressCallback.class), any(SqlQuery.class))).thenReturn(rowSet);
 
 		// introduce escape-needed column names
 		for (int i = 0; i < models.size(); i++) {
@@ -1207,11 +1222,11 @@ public class TableRowManagerImplTest {
 			models.get(i).setName(name);
 		}
 
-		Pair<QueryResult, Long> query = manager.query(user, "select \"i-0\" from " + tableId, null, 0L, 100000L, true, false, false);
+		Pair<QueryResult, Long> query = manager.query(mockProgressCallbackVoid, user, "select \"i-0\" from " + tableId, null, 0L, 100000L, true, false, false);
 		assertNotNull(query.getFirst().getNextPageToken());
 		assertTrue(query.getFirst().getNextPageToken().getToken().indexOf("&quot;i-0&quot") != -1);
 
-		query = manager.query(user, "select * from " + tableId, null, 0L, 100000L, true, false, false);
+		query = manager.query(mockProgressCallbackVoid, user, "select * from " + tableId, null, 0L, 100000L, true, false, false);
 		assertNotNull(query.getFirst().getNextPageToken());
 		assertTrue(query.getFirst().getNextPageToken().getToken().indexOf("&quot;i-0&quot") != -1);
 	}
@@ -1247,7 +1262,7 @@ public class TableRowManagerImplTest {
 	@Test (expected=TemporarilyUnavailableException.class)
 	public void testGetFileHandleIdsAssociatedWithTableLockFailed() throws LockUnavilableException, Exception{
 		// setup LockUnavilableException.
-		when(mockExclusiveOrSharedSemaphoreRunner.tryRunWithSharedLock(anyString(), anyLong(), any(Callable.class))).thenThrow(new LockUnavilableException());
+		when(mockWriteReadSemaphoreRunner.tryRunWithReadLock(any(ProgressCallback.class),anyString(), anyInt(), any(ProgressingCallable.class))).thenThrow(new LockUnavilableException());
 		TableRowChange lastChange = new TableRowChange();
 		lastChange.setRowVersion(3L);
 		when(mockTruthDao.getLastTableRowChange(tableId)).thenReturn(lastChange);
@@ -1305,4 +1320,5 @@ public class TableRowManagerImplTest {
 		Set<String> expected = Sets.newHashSet("1","2");
 		assertEquals(expected, out);
 	}
+	
 }
