@@ -110,6 +110,8 @@
 
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.discussion.DBOForum" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.discussion.DBODiscussionThread" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.discussion.DBODiscussionThreadStats" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.discussion.DBODiscussionThreadView" />
 			</list>
 		</property>
 	</bean>
