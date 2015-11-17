@@ -2,7 +2,9 @@ package org.sagebionetworks.repo.model.dbo.persistence.discussion;
 
 import static org.junit.Assert.*;
 
+import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
 
 import org.junit.Test;
 import org.sagebionetworks.repo.model.discussion.CreateThread;
@@ -96,5 +98,21 @@ public class DiscussionThreadUtilsTest {
 		} catch (IllegalArgumentException e) {
 			// as expected
 		}
+	}
+
+	@Test
+	public void testCompressAndDecompressUTF8() {
+		String string = "This is a title";
+		byte[] bytes = DiscussionThreadUtils.compressUTF8(string);
+		assertEquals(string, DiscussionThreadUtils.decompressUTF8(bytes));
+	}
+
+	@Test
+	public void testCreateList() {
+		List<Long> longList = Arrays.asList(1L, 2L, 3L, 4L, 5L);
+		List<String> stringList = Arrays.asList("1", "2", "3", "4", "5");
+		byte[] bytes = DiscussionThreadUtils.compressUTF8(longList.toString());
+		String decompress = DiscussionThreadUtils.decompressUTF8(bytes);
+		assertEquals(stringList, DiscussionThreadUtils.createList(decompress));
 	}
 }

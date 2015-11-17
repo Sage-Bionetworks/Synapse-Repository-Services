@@ -2,6 +2,8 @@ package org.sagebionetworks.repo.model.dbo.persistence.discussion;
 
 import java.nio.charset.Charset;
 import java.util.Date;
+import java.util.LinkedList;
+import java.util.List;
 
 import org.sagebionetworks.repo.model.discussion.CreateThread;
 
@@ -49,5 +51,40 @@ public class DiscussionThreadUtils {
 		if (etag == null) throw new IllegalArgumentException("etag must be initialized");
 		dbo.setEtag(etag);
 		return dbo;
+	}
+
+	/**
+	 * 
+	 * @param bytes
+	 * @return
+	 */
+	public static String decompressUTF8(byte[] bytes) {
+		return new String(bytes, UTF8);
+	}
+
+	/**
+	 * 
+	 * @param toCompress
+	 * @return
+	 */
+	public static byte[] compressUTF8(String toCompress) {
+		return toCompress.getBytes(UTF8);
+	}
+
+	/**
+	 * convert an input String to a list of String, separated by comma.
+	 * 
+	 * @param inputString
+	 * @return
+	 */
+	public static List<String> createList(String inputString) {
+		List<String> list = new LinkedList<String>();
+		inputString = inputString.replace("[", "");
+		inputString = inputString.replace("]", "");
+		String[] elements = inputString.split(",");
+		for (String string : elements) {
+			list.add(string.trim());
+		}
+		return list;
 	}
 }
