@@ -6,7 +6,6 @@ import java.sql.Blob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
-import java.util.LinkedList;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
@@ -293,9 +292,7 @@ public class DBODiscussionThread  implements MigratableDatabaseObject<DBODiscuss
 
 	@Override
 	public List<MigratableDatabaseObject<?, ?>> getSecondaryTypes() {
-		List<MigratableDatabaseObject<?,?>> list = new LinkedList<MigratableDatabaseObject<?,?>>();
-		list.add(new DBODiscussionThreadView());
-		return list;
+		return null;
 	}
 
 }

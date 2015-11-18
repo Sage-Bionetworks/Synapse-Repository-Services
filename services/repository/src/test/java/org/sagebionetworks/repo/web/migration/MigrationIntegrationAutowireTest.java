@@ -275,6 +275,7 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 	private ChallengeTeam challengeTeam;
 
 	private String forumId;
+	private String threadId;
 
 	@Before
 	public void before() throws Exception {
@@ -313,6 +314,7 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		createVerificationSubmission();
 		createForum();
 		createThread();
+		createThreadView();
 	}
 	
 	private void createForum() {
@@ -320,7 +322,11 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 	}
 
 	private void createThread() {
-		threadDao.createThread(forumId, "title", "fakeMessageUrl", adminUserId);
+		threadId = threadDao.createThread(forumId, "title", "fakeMessageUrl", adminUserId).getId();
+	}
+
+	private void createThreadView() {
+		threadDao.updateThreadView(Long.parseLong(threadId), adminUserId);
 	}
 
 	private void createVerificationSubmission() {
@@ -831,7 +837,7 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		for (int i = 1; i < finalCounts.getList().size(); i++) {
 			MigrationTypeCount startCount = startCounts.getList().get(i);
 			MigrationTypeCount afterRestore = finalCounts.getList().get(i);
-			assertEquals("Count for " + startCount.getType().name() + " does not match", startCount.getCount(), afterRestore.getCount());
+			assertEquals("Count for " + startCount.getType().name() + " does not match.", startCount.getCount(), afterRestore.getCount());
 		}
 	}
 

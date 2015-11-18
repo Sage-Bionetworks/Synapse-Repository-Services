@@ -163,6 +163,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOVerificationSubmission" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.discussion.DBOForum" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.discussion.DBODiscussionThread" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.discussion.DBODiscussionThreadView" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOChange" />
 			</list>
 		</property>
