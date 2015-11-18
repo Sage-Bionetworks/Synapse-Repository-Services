@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.dbo.dao.discussion;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 
 import java.sql.Blob;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -23,6 +24,7 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 
@@ -99,7 +101,8 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 			+" = "+TABLE_DISCUSSION_THREAD_STATS+"."+COL_DISCUSSION_THREAD_STATS_THREAD_ID;
 	private static final String SQL_SELECT_THREAD_BY_ID = SELECT_THREAD_BUNDLE
 			+" WHERE "+COL_DISCUSSION_THREAD_ID+" = ?";
-	private static final String SQL_SELECT_THREAD_COUNT = "SELECT COUNT(*) FROM "+TABLE_DISCUSSION_THREAD
+	private static final String SQL_SELECT_THREAD_COUNT = "SELECT COUNT(*)"
+			+" FROM "+TABLE_DISCUSSION_THREAD
 			+" WHERE "+COL_DISCUSSION_THREAD_FORUM_ID+" = ?";
 	private static final String SQL_SELECT_THREADS_BY_FORUM_ID = SELECT_THREAD_BUNDLE
 			+" WHERE "+COL_DISCUSSION_THREAD_FORUM_ID+" = ?";
@@ -108,6 +111,26 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 	private static final String ORDER_BY_NUMBER_OF_REPLIES = " ORDER BY "+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_REPLIES+" DESC";
 	public static final Integer MAX_LIMIT = 100;
 	private static final String DEFAULT_LIMIT = " LIMIT "+MAX_LIMIT+" OFFSET 0";
+
+	private static final String SQL_UPDATE_THREAD_VIEW_TABLE = "INSERT IGNORE INTO "
+			+TABLE_DISCUSSION_THREAD_VIEW+"("
+			+COL_DISCUSSION_THREAD_VIEW_ID+","
+			+COL_DISCUSSION_THREAD_VIEW_THREAD_ID+","
+			+COL_DISCUSSION_THREAD_VIEW_USER_ID
+			+") VALUES (?,?,?)";
+
+	private static final String SQL_UPDATE_THREAD_STATS_VIEWS = "UPDATE "+TABLE_DISCUSSION_THREAD_STATS
+			+" SET "+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_VIEWS+" = ? "
+			+" WHERE "+COL_DISCUSSION_THREAD_STATS_THREAD_ID+" = ?";
+	private static final String SQL_UPDATE_THREAD_STATS_REPLIES = "UPDATE "+TABLE_DISCUSSION_THREAD_STATS
+			+" SET "+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_REPLIES+" = ? "
+			+" WHERE "+COL_DISCUSSION_THREAD_STATS_THREAD_ID+" = ?";
+	private static final String SQL_UPDATE_THREAD_STATS_LAST_ACTIVITY = "UPDATE "+TABLE_DISCUSSION_THREAD_STATS
+			+" SET "+COL_DISCUSSION_THREAD_STATS_LAST_ACTIVITY+" = ? "
+			+" WHERE "+COL_DISCUSSION_THREAD_STATS_THREAD_ID+" = ?";
+	private static final String SQL_UPDATE_THREAD_STATS_ACTIVE_AUTHORS = "UPDATE "+TABLE_DISCUSSION_THREAD_STATS
+			+" SET "+COL_DISCUSSION_THREAD_STATS_ACTIVE_AUTHORS+" = ? "
+			+" WHERE "+COL_DISCUSSION_THREAD_STATS_THREAD_ID+" = ?";
 
 	@WriteTransaction
 	@Override
@@ -123,10 +146,27 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 
 	@Override
 	public DiscussionThreadBundle getThread(long threadId, long userId) {
-		// add {threadId, userId} to thread view
+		updateThreadView(threadId, userId);
 		return doGet(threadId);
 	}
 
+	/**
+	 * insert ignore a record into THREAD_VIEW table
+	 * 
+	 * @param threadId
+	 * @param userId
+	 */
+	private void updateThreadView(long threadId, long userId) {
+		long id = idGenerator.generateNewId(TYPE.DISCUSSION_THREAD_VIEW_ID);
+		jdbcTemplate.update(SQL_UPDATE_THREAD_VIEW_TABLE, id, threadId, userId);
+	}
+
+	/**
+	 * getting the DiscussionThreadBundle object
+	 * 
+	 * @param threadId
+	 * @return
+	 */
 	private DiscussionThreadBundle doGet(long threadId) {
 		List<DiscussionThreadBundle> results = jdbcTemplate.query(SQL_SELECT_THREAD_BY_ID, DISCUSSION_THREAD_BUNDLE_ROW_MAPPER, threadId);
 		if (results.size() != 1) {
@@ -138,9 +178,6 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 	@Override
 	public PaginatedResults<DiscussionThreadBundle> getThreads(long forumId,
 			DiscussionOrder order, Integer limit, Integer offset, long userId) {
-		if (order != null && order != DiscussionOrder.LAST_ACTIVITY) {
-			throw new IllegalArgumentException("Does not support order type: "+ order);
-		}
 		if (limit != null && offset != null ) {
 			ValidateArgument.requirement(limit >= 0 && offset >= 0 && limit <= MAX_LIMIT,
 					"limit and offset must be greater than 0, and limit must be smaller than or equal to "+MAX_LIMIT);
@@ -150,7 +187,19 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 		}
 
 		String query = SQL_SELECT_THREADS_BY_FORUM_ID;
-		if (order != null) query += ORDER_BY_LAST_ACTIVITY;
+		if (order != null) {
+			switch (order) {
+				case NUMBER_OF_REPLIES:
+					query += ORDER_BY_NUMBER_OF_REPLIES;
+					break;
+				case NUMBER_OF_VIEWS:
+					query += ORDER_BY_NUMBER_OF_VIEWS;
+					break;
+				case LAST_ACTIVITY:
+					query += ORDER_BY_LAST_ACTIVITY;
+					break;
+			}
+		}
 		if (limit != null && offset != null) {
 			query += " LIMIT "+limit+" OFFSET "+offset;
 		} else {
@@ -161,7 +210,34 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 		results = jdbcTemplate.query(query, DISCUSSION_THREAD_BUNDLE_ROW_MAPPER, forumId);
 		PaginatedResults<DiscussionThreadBundle> threads = new PaginatedResults<DiscussionThreadBundle>();
 		threads.setResults(results);
+
+		updateThreadView(results, userId);
+
 		return threads;
+	}
+
+	/**
+	 * insert ignore a batch of records into THREAD_VIEW table
+	 * 
+	 * @param threads
+	 * @param userId
+	 */
+	private void updateThreadView(final List<DiscussionThreadBundle> threads, final long userId) {
+		jdbcTemplate.batchUpdate(SQL_UPDATE_THREAD_VIEW_TABLE, new BatchPreparedStatementSetter() {
+
+			@Override
+			public void setValues(PreparedStatement ps, int i)
+					throws SQLException {
+				ps.setLong(0, idGenerator.generateNewId(TYPE.DISCUSSION_THREAD_VIEW_ID));
+				ps.setLong(1, Long.parseLong(threads.get(i).getId()));
+				ps.setLong(2, userId);
+			}
+
+			@Override
+			public int getBatchSize() {
+				return threads.size();
+			}
+		});
 	}
 
 	@WriteTransaction
@@ -199,19 +275,22 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 
 	@Override
 	public void setNumberOfViews(long threadId, long numberOfViews) {
-		// TODO Auto-generated method stub
-		
+		jdbcTemplate.update(SQL_UPDATE_THREAD_STATS_VIEWS, numberOfViews, threadId);
 	}
 
 	@Override
 	public void setNumberOfReplies(long threadId, long numberOfReplies) {
-		// TODO Auto-generated method stub
-		
+		jdbcTemplate.update(SQL_UPDATE_THREAD_STATS_REPLIES, numberOfReplies, threadId);
 	}
 
 	@Override
 	public void setActiveAuthors(long threadId, List<Long> activeAuthors) {
-		// TODO Auto-generated method stub
-		
+		byte[] bytes = DiscussionThreadUtils.compressUTF8(activeAuthors.toString());
+		jdbcTemplate.update(SQL_UPDATE_THREAD_STATS_ACTIVE_AUTHORS, bytes, threadId);
+	}
+
+	@Override
+	public void setLastActivity(long threadId, long lastActivity) {
+		jdbcTemplate.update(SQL_UPDATE_THREAD_STATS_LAST_ACTIVITY, lastActivity, threadId);
 	}
 }
