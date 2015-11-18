@@ -7,33 +7,33 @@ import java.util.Date;
 import java.util.List;
 
 import org.junit.Test;
-import org.sagebionetworks.repo.model.discussion.CreateThread;
+import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
 
 public class DiscussionThreadUtilsTest {
 
 	@Test
 	public void testValidCreateThread() {
-		CreateThread createThread = DiscussionThreadTestUtil.createValidCreateThread();
+		CreateDiscussionThread createThread = DiscussionThreadTestUtil.createValidCreateThread();
 		DiscussionThreadUtils.validateCreateThreadAndThrowException(createThread);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testInvalidCreateThreadWithNullForumId() {
-		CreateThread createThread = DiscussionThreadTestUtil.createValidCreateThread();
+		CreateDiscussionThread createThread = DiscussionThreadTestUtil.createValidCreateThread();
 		createThread.setForumId(null);
 		DiscussionThreadUtils.validateCreateThreadAndThrowException(createThread);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testInvalidCreateThreadWithNullTitle() {
-		CreateThread createThread = DiscussionThreadTestUtil.createValidCreateThread();
+		CreateDiscussionThread createThread = DiscussionThreadTestUtil.createValidCreateThread();
 		createThread.setTitle(null);
 		DiscussionThreadUtils.validateCreateThreadAndThrowException(createThread);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testInvalidCreateThreadWithNullMessage() {
-		CreateThread createThread = DiscussionThreadTestUtil.createValidCreateThread();
+		CreateDiscussionThread createThread = DiscussionThreadTestUtil.createValidCreateThread();
 		createThread.setMessageMarkdown(null);
 		DiscussionThreadUtils.validateCreateThreadAndThrowException(createThread);
 	}

@@ -5,7 +5,7 @@ import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.sagebionetworks.repo.model.discussion.CreateThread;
+import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
 
 public class DiscussionThreadUtils {
 	public static final Charset UTF8 = Charset.forName("UTF-8");
@@ -15,7 +15,7 @@ public class DiscussionThreadUtils {
 	 * @param createThread - the object to validate
 	 */
 	public static void validateCreateThreadAndThrowException(
-			CreateThread createThread) {
+			CreateDiscussionThread createThread) {
 		if (createThread.getForumId() == null
 				|| createThread.getTitle() == null
 				|| createThread.getMessageMarkdown() == null) {

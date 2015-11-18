@@ -4,7 +4,7 @@ import java.util.Date;
 import java.util.Random;
 import java.util.UUID;
 
-import org.sagebionetworks.repo.model.discussion.CreateThread;
+import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
 
 public class DiscussionThreadTestUtil {
 	private static Random random = new Random();
@@ -31,8 +31,8 @@ public class DiscussionThreadTestUtil {
 	 * 
 	 * @return a valid CreateThread
 	 */
-	public static CreateThread createValidCreateThread() {
-		CreateThread createThread = new CreateThread();
+	public static CreateDiscussionThread createValidCreateThread() {
+		CreateDiscussionThread createThread = new CreateDiscussionThread();
 		createThread.setForumId(""+random.nextLong());
 		createThread.setTitle("title");
 		createThread.setMessageMarkdown("markdown");
