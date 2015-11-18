@@ -1,15 +1,8 @@
 package org.sagebionetworks.repo.model.dbo.dao.discussion;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_THREAD_ETAG;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_THREAD_FORUM_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_THREAD_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_THREAD_IS_DELETED;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_THREAD_IS_EDITED;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_THREAD_MESSAGE_URL;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_THREAD_MODIFIED_ON;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_THREAD_TITLE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DISCUSSION_THREAD;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 
+import java.sql.Blob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -42,13 +35,29 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 	@Autowired
 	private IdGenerator idGenerator;
 
-	private RowMapper<DiscussionThreadBundle> BUNDLE_ROW_MAPPER = new RowMapper<DiscussionThreadBundle>(){
+	private RowMapper<DiscussionThreadBundle> DISCUSSION_THREAD_BUNDLE_ROW_MAPPER = new RowMapper<DiscussionThreadBundle>(){
 
 		@Override
 		public DiscussionThreadBundle mapRow(ResultSet rs, int rowNum)
 				throws SQLException {
-			// TODO Auto-generated method stub
-			return null;
+			DiscussionThreadBundle dbo = new DiscussionThreadBundle();
+			dbo.setId(COL_DISCUSSION_THREAD_ID);
+			dbo.setForumId(COL_DISCUSSION_THREAD_FORUM_ID);
+			Blob titleBlob = rs.getBlob(COL_DISCUSSION_THREAD_TITLE);
+			dbo.setTitle(DiscussionThreadUtils.decompressUTF8(titleBlob.getBytes(1, (int) titleBlob.length())));
+			dbo.setCreatedOn(new Date(rs.getLong(COL_DISCUSSION_THREAD_CREATED_ON)));
+			dbo.setCreatedBy(Long.toString(rs.getLong(COL_DISCUSSION_THREAD_CREATED_BY)));
+			dbo.setModifiedOn(new Date(rs.getLong(COL_DISCUSSION_THREAD_MODIFIED_ON)));
+			dbo.setMessageUrl(rs.getString(COL_DISCUSSION_THREAD_MESSAGE_URL));
+			dbo.setIsEdited(rs.getBoolean(COL_DISCUSSION_THREAD_IS_EDITED));
+			dbo.setIsDeleted(rs.getBoolean(COL_DISCUSSION_THREAD_IS_DELETED));
+			dbo.setNumberOfViews(rs.getLong(COL_DISCUSSION_THREAD_STATS_NUMBER_OF_VIEWS));
+			dbo.setNumberOfReplies(rs.getLong(COL_DISCUSSION_THREAD_STATS_NUMBER_OF_REPLIES));
+			dbo.setLastActivity(new Date(rs.getLong(COL_DISCUSSION_THREAD_STATS_LAST_ACTIVITY)));
+			Blob activeAuthorsBlob = rs.getBlob(COL_DISCUSSION_THREAD_STATS_ACTIVE_AUTHORS);
+			String listString = DiscussionThreadUtils.decompressUTF8(activeAuthorsBlob.getBytes(1, (int) activeAuthorsBlob.length()));
+			dbo.setActiveAuthors(DiscussionThreadUtils.createList(listString));
+			return dbo;
 		}
 	};
 
@@ -70,31 +79,56 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 			+COL_DISCUSSION_THREAD_MODIFIED_ON+" = ?"
 			+" WHERE "+COL_DISCUSSION_THREAD_ID+" = ?";
 
-	private static final String SQL_SELECT_THREAD_BY_ID = "SELECT * FROM "+TABLE_DISCUSSION_THREAD
+	private static final String SELECT_THREAD_BUNDLE = "SELECT "
+			+TABLE_DISCUSSION_THREAD+"."+COL_DISCUSSION_THREAD_ID+" AS ID, "
+			+COL_DISCUSSION_THREAD_FORUM_ID+", "
+			+COL_DISCUSSION_THREAD_TITLE+", "
+			+COL_DISCUSSION_THREAD_CREATED_ON+", "
+			+COL_DISCUSSION_THREAD_CREATED_BY+", "
+			+COL_DISCUSSION_THREAD_MODIFIED_ON+", "
+			+COL_DISCUSSION_THREAD_MESSAGE_URL+", "
+			+COL_DISCUSSION_THREAD_IS_EDITED+", "
+			+COL_DISCUSSION_THREAD_IS_DELETED+", "
+			+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_VIEWS+", "
+			+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_REPLIES+", "
+			+COL_DISCUSSION_THREAD_STATS_LAST_ACTIVITY+", "
+			+COL_DISCUSSION_THREAD_STATS_ACTIVE_AUTHORS+", "
+			+" FROM "+TABLE_DISCUSSION_THREAD
+			+" LEFT OUTER JOIN "+TABLE_DISCUSSION_THREAD_STATS
+			+" ON "+TABLE_DISCUSSION_THREAD+"."+COL_DISCUSSION_THREAD_ID
+			+" = "+TABLE_DISCUSSION_THREAD_STATS+"."+COL_DISCUSSION_THREAD_STATS_THREAD_ID;
+	private static final String SQL_SELECT_THREAD_BY_ID = SELECT_THREAD_BUNDLE
 			+" WHERE "+COL_DISCUSSION_THREAD_ID+" = ?";
 	private static final String SQL_SELECT_THREAD_COUNT = "SELECT COUNT(*) FROM "+TABLE_DISCUSSION_THREAD
 			+" WHERE "+COL_DISCUSSION_THREAD_FORUM_ID+" = ?";
-	private static final String SQL_SELECT_THREADS_BY_FORUM_ID = "SELECT * FROM "+TABLE_DISCUSSION_THREAD
+	private static final String SQL_SELECT_THREADS_BY_FORUM_ID = SELECT_THREAD_BUNDLE
 			+" WHERE "+COL_DISCUSSION_THREAD_FORUM_ID+" = ?";
-	private static final String ORDER_BY_LAST_ACTIVITY = " ORDER BY "+COL_DISCUSSION_THREAD_MODIFIED_ON+" DESC";
+	private static final String ORDER_BY_LAST_ACTIVITY = " ORDER BY "+COL_DISCUSSION_THREAD_STATS_LAST_ACTIVITY+" DESC";
+	private static final String ORDER_BY_NUMBER_OF_VIEWS = " ORDER BY "+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_VIEWS+" DESC";
+	private static final String ORDER_BY_NUMBER_OF_REPLIES = " ORDER BY "+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_REPLIES+" DESC";
 	public static final Integer MAX_LIMIT = 100;
 	private static final String DEFAULT_LIMIT = " LIMIT "+MAX_LIMIT+" OFFSET 0";
 
 	@WriteTransaction
 	@Override
-	public DiscussionThreadBundle createThread(String forumId, String title, String messageUrl, Long userId) {
+	public DiscussionThreadBundle createThread(String forumId, String title, String messageUrl, long userId) {
 		if (forumId == null || title == null || messageUrl == null) 
 			throw new IllegalArgumentException("All parameters must be initialized.");
 		Long id = idGenerator.generateNewId(TYPE.DISCUSSION_THREAD_ID);
 		String etag = UUID.randomUUID().toString();
 		DBODiscussionThread dbo = DiscussionThreadUtils.createDBO(forumId, title, messageUrl, userId, id.toString(), etag);
 		basicDao.createNew(dbo);
-		return getThread(id);
+		return getThread(id, userId);
 	}
 
 	@Override
-	public DiscussionThreadBundle getThread(long threadId) {
-		List<DiscussionThreadBundle> results = jdbcTemplate.query(SQL_SELECT_THREAD_BY_ID, BUNDLE_ROW_MAPPER, threadId);
+	public DiscussionThreadBundle getThread(long threadId, long userId) {
+		// add {threadId, userId} to thread view
+		return doGet(threadId);
+	}
+
+	private DiscussionThreadBundle doGet(long threadId) {
+		List<DiscussionThreadBundle> results = jdbcTemplate.query(SQL_SELECT_THREAD_BY_ID, DISCUSSION_THREAD_BUNDLE_ROW_MAPPER, threadId);
 		if (results.size() != 1) {
 			throw new NotFoundException();
 		}
@@ -103,7 +137,7 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 
 	@Override
 	public PaginatedResults<DiscussionThreadBundle> getThreads(long forumId,
-			DiscussionOrder order, Integer limit, Integer offset) {
+			DiscussionOrder order, Integer limit, Integer offset, long userId) {
 		if (order != null && order != DiscussionOrder.LAST_ACTIVITY) {
 			throw new IllegalArgumentException("Does not support order type: "+ order);
 		}
@@ -124,7 +158,7 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 		}
 
 		List<DiscussionThreadBundle> results = new ArrayList<DiscussionThreadBundle>();
-		results = jdbcTemplate.query(query, BUNDLE_ROW_MAPPER, forumId);
+		results = jdbcTemplate.query(query, DISCUSSION_THREAD_BUNDLE_ROW_MAPPER, forumId);
 		PaginatedResults<DiscussionThreadBundle> threads = new PaginatedResults<DiscussionThreadBundle>();
 		threads.setResults(results);
 		return threads;
@@ -145,7 +179,7 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 		String etag = UUID.randomUUID().toString();
 		Long modifiedOn = new Date().getTime();
 		jdbcTemplate.update(SQL_UPDATE_MESSAGE_URL, newMessageUrl, etag, modifiedOn, threadId);
-		return getThread(threadId);
+		return doGet(threadId);
 	}
 
 	@WriteTransaction
@@ -155,11 +189,29 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 		String etag = UUID.randomUUID().toString();
 		Long modifiedOn = new Date().getTime();
 		jdbcTemplate.update(SQL_UPDATE_TITLE, title, etag, modifiedOn, threadId);
-		return getThread(threadId);
+		return doGet(threadId);
 	}
 
 	@Override
 	public long getThreadCount(long forumId) {
 		return jdbcTemplate.queryForLong(SQL_SELECT_THREAD_COUNT, forumId);
+	}
+
+	@Override
+	public void setNumberOfViews(long threadId, long numberOfViews) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void setNumberOfReplies(long threadId, long numberOfReplies) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void setActiveAuthors(long threadId, List<Long> activeAuthors) {
+		// TODO Auto-generated method stub
+		
 	}
 }
