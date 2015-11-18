@@ -87,13 +87,13 @@ public class DBODiscussionThreadDAOImplTest {
 		 DiscussionThreadBundle dto = threadDao.createThread(forumId, "title", "messageUrl", userId);
 
 		long threadId = Long.parseLong(dto.getId());
-		assertEquals(dto, threadDao.getThread(threadId));
+		assertEquals(dto, threadDao.getThread(threadId, userId));
 
 		dto.setIsEdited(true);
 		String newMessageUrl = "newMessageUrl";
 		dto.setMessageUrl(newMessageUrl);
 		threadDao.updateMessageUrl(threadId, newMessageUrl);
-		DiscussionThreadBundle returnedDto = threadDao.getThread(threadId);
+		DiscussionThreadBundle returnedDto = threadDao.getThread(threadId, userId);
 		assertFalse(dto.equals(returnedDto));
 		dto.setModifiedOn(returnedDto.getModifiedOn());
 		assertEquals(dto, returnedDto);
@@ -101,14 +101,14 @@ public class DBODiscussionThreadDAOImplTest {
 		String newTitle = "newTitle";
 		dto.setTitle(newTitle);
 		threadDao.updateTitle(threadId, newTitle);
-		returnedDto = threadDao.getThread(threadId);
+		returnedDto = threadDao.getThread(threadId, userId);
 		assertFalse(dto.equals(returnedDto));
 		dto.setModifiedOn(returnedDto.getModifiedOn());
 		assertEquals(dto, returnedDto);
 
 		dto.setIsDeleted(true);
 		threadDao.deleteThread(threadId);
-		returnedDto = threadDao.getThread(threadId);
+		returnedDto = threadDao.getThread(threadId, userId);
 		assertFalse(dto.equals(returnedDto));
 		dto.setModifiedOn(returnedDto.getModifiedOn());
 		assertEquals(dto, returnedDto);
@@ -142,51 +142,51 @@ public class DBODiscussionThreadDAOImplTest {
 
 		assertEquals("non order",
 				new HashSet<DiscussionThreadBundle>(createdThreads),
-				new HashSet<DiscussionThreadBundle>(threadDao.getThreads(forumIdLong, null, null, null).getResults()));
+				new HashSet<DiscussionThreadBundle>(threadDao.getThreads(forumIdLong, null, null, null, userId).getResults()));
 
 		Collections.sort(createdThreads, sortByModifiedOnDesc);
 		assertEquals("order, all",
 				createdThreads,
-				threadDao.getThreads(forumIdLong, DiscussionOrder.LAST_ACTIVITY, null, null).getResults());
+				threadDao.getThreads(forumIdLong, DiscussionOrder.LAST_ACTIVITY, null, null, userId).getResults());
 		assertEquals("order, second the third",
 				Arrays.asList(createdThreads.get(1), createdThreads.get(2)),
-				threadDao.getThreads(forumIdLong, DiscussionOrder.LAST_ACTIVITY, 2, 1).getResults());
+				threadDao.getThreads(forumIdLong, DiscussionOrder.LAST_ACTIVITY, 2, 1, userId).getResults());
 		assertEquals("order, last",
 				Arrays.asList(createdThreads.get(9)),
-				threadDao.getThreads(forumIdLong, DiscussionOrder.LAST_ACTIVITY, 2, 9).getResults());
+				threadDao.getThreads(forumIdLong, DiscussionOrder.LAST_ACTIVITY, 2, 9, userId).getResults());
 		assertEquals("order, out of range",
 				Arrays.asList(),
-				threadDao.getThreads(forumIdLong, DiscussionOrder.LAST_ACTIVITY, 2, 10).getResults());
+				threadDao.getThreads(forumIdLong, DiscussionOrder.LAST_ACTIVITY, 2, 10, userId).getResults());
 		assertEquals("order, on limit",
 				Arrays.asList(createdThreads.get(8), createdThreads.get(9)),
-				threadDao.getThreads(forumIdLong, DiscussionOrder.LAST_ACTIVITY, DBODiscussionThreadDAOImpl.MAX_LIMIT, 8).getResults());
+				threadDao.getThreads(forumIdLong, DiscussionOrder.LAST_ACTIVITY, DBODiscussionThreadDAOImpl.MAX_LIMIT, 8, userId).getResults());
 
 		try {
-			threadDao.getThreads(forumIdLong, DiscussionOrder.LAST_ACTIVITY, 2, -3);
+			threadDao.getThreads(forumIdLong, DiscussionOrder.LAST_ACTIVITY, 2, -3, userId);
 			fail("Must throw exception when limit or offset smaller than zero");
 		} catch (IllegalArgumentException e) {
 			// as expected
 		}
 		try {
-			threadDao.getThreads(forumIdLong, DiscussionOrder.LAST_ACTIVITY, -2, 3);
+			threadDao.getThreads(forumIdLong, DiscussionOrder.LAST_ACTIVITY, -2, 3, userId);
 			fail("Must throw exception when limit or offset smaller than zero");
 		} catch (IllegalArgumentException e) {
 			// as expected
 		}
 		try {
-			threadDao.getThreads(forumIdLong, DiscussionOrder.LAST_ACTIVITY, DBODiscussionThreadDAOImpl.MAX_LIMIT+1, 3);
+			threadDao.getThreads(forumIdLong, DiscussionOrder.LAST_ACTIVITY, DBODiscussionThreadDAOImpl.MAX_LIMIT+1, 3, userId);
 			fail("Must throw exception when limit greater to max limit");
 		} catch (IllegalArgumentException e) {
 			// as expected
 		}
 		try {
-			threadDao.getThreads(forumIdLong, DiscussionOrder.LAST_ACTIVITY, 2, null);
+			threadDao.getThreads(forumIdLong, DiscussionOrder.LAST_ACTIVITY, 2, null, userId);
 			fail("Must throw exception when limit is not null and offset is null");
 		} catch (IllegalArgumentException e) {
 			// as expected
 		}
 		try {
-			threadDao.getThreads(forumIdLong, DiscussionOrder.LAST_ACTIVITY, null, 2);
+			threadDao.getThreads(forumIdLong, DiscussionOrder.LAST_ACTIVITY, null, 2, userId);
 			fail("Must throw exception when limit is null and offset is not null");
 		} catch (IllegalArgumentException e) {
 			// as expected
