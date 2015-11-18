@@ -705,6 +705,12 @@ public class UploadController extends BaseController {
 	 * 
 	 *  Use <a href="${GET.file.bulk.async.get.asyncToken}">GET /file/bulk/async/get/{asyncToken}</a> to get both the job status
 	 *  and job results.
+	 *  
+	 *  <p>
+	 *  Note: There is a one gigabyte limit to the total size of the resulting zip file.  When a request is made that exceeds 
+	 *  this limit, a zip file will be generated and capped close to the size limit.  All files that were not included due
+	 *  to exceeding the limit will be marked accordingly in the results.  
+	 *  </p>
 	 * 
 	 * @param userId
 	 * @param request The files to be included in the bulk download.

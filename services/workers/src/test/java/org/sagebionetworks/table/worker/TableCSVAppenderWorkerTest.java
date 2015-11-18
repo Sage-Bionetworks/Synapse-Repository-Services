@@ -117,6 +117,7 @@ public class TableCSVAppenderWorkerTest {
 		when(mockS3Client.getObjectMetadata(fileHandle.getBucketName(), fileHandle.getKey())).thenReturn(fileMetadata);
 		when(mockS3Client.getObject(fileHandle.getBucketName(), fileHandle.getKey())).thenReturn(s3Object);
 		when(mockTableRowManager.getColumnModelsForTable(body.getTableId())).thenReturn(tableSchema);
+		when(mockAasynchJobStatusManager.lookupJobStatus(status.getJobId())).thenReturn(status);
 	}
 
 	@Test

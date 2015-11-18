@@ -2,7 +2,6 @@ package org.sagebionetworks.table.worker;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.common.util.progress.ForwardingProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -80,8 +79,7 @@ public class TableQueryWorker implements MessageDrivenRunner {
 		if (message == null) {
 			throw new IllegalArgumentException("Message cannot be null");
 		}
-		AsynchronousJobStatus status = MessageUtils.readMessageBody(message,
-				AsynchronousJobStatus.class);
+		AsynchronousJobStatus status = asynchJobStatusManager.lookupJobStatus(message.getBody());
 		if (status.getRequestBody() == null) {
 			throw new IllegalArgumentException("Job body cannot be null");
 		}

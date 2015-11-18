@@ -369,7 +369,7 @@ public class S3FileCopyWorker implements MessageDrivenRunner {
 		if (message == null) {
 			throw new IllegalArgumentException("Message cannot be null");
 		}
-		AsynchronousJobStatus status = MessageUtils.readMessageBody(message, AsynchronousJobStatus.class);
+		AsynchronousJobStatus status = asynchJobStatusManager.lookupJobStatus(message.getBody());
 		ValidateArgument.requireType(status.getRequestBody(), S3FileCopyRequest.class, "job body");
 		return status;
 	}
