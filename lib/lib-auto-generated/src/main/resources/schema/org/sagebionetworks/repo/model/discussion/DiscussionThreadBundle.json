@@ -33,7 +33,11 @@
 		},
 		"numberOfViews": {
 			"type": "integer",
-			"description": "TBD"
+			"description": "The number of unique users who has viewed this thread"
+		},
+		"numberOfReplies": {
+			"type": "integer",
+			"description": "The number of replies to this thread"
 		},
 		"lastActivity": {
 			"type": "string",
