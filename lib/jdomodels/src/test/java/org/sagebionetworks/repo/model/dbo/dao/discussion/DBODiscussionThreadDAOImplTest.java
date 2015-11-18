@@ -46,6 +46,7 @@ public class DBODiscussionThreadDAOImplTest {
 	private DiscussionThreadDAO threadDao;
 
 	private Long userId = null;
+	private Long userId2 = null;
 	private String projectId = null;
 	private String forumId;
 	private long forumIdLong;
@@ -91,6 +92,7 @@ public class DBODiscussionThreadDAOImplTest {
 	public void cleanup() {
 		if (projectId != null) nodeDao.delete(projectId);
 		if (userId != null) userGroupDAO.delete(userId.toString());
+		if (userId2 != null) userGroupDAO.delete(userId.toString());
 	}
 
 	@Test
@@ -114,7 +116,7 @@ public class DBODiscussionThreadDAOImplTest {
 
 	@Test
 	public void testRoundTrip() throws InterruptedException {
-		 DiscussionThreadBundle dto = threadDao.createThread(forumId, "title", "messageUrl", userId);
+		DiscussionThreadBundle dto = threadDao.createThread(forumId, "title", "messageUrl", userId);
 
 		long threadId = Long.parseLong(dto.getId());
 		assertEquals(dto, threadDao.getThread(threadId, userId));
@@ -270,5 +272,24 @@ public class DBODiscussionThreadDAOImplTest {
 			createdThreads.add(dto);
 		}
 		return createdThreads;
+	}
+
+	
+	@Test
+	public void threadViewTest() {
+		DiscussionThreadBundle dto = threadDao.createThread(forumId, "title", "messageUrl", userId);
+		long threadId = Long.parseLong(dto.getId());
+		threadDao.updateThreadView(threadId, userId);
+		assertEquals(1L, threadDao.countThreadView(threadId));
+		threadDao.updateThreadView(threadId, userId);
+		assertEquals(1L, threadDao.countThreadView(threadId));
+
+		// create a user to create a project
+		UserGroup user2 = new UserGroup();
+		user2.setIsIndividual(true);
+		userId2 = userGroupDAO.create(user2);
+
+		threadDao.updateThreadView(threadId, userId2);
+		assertEquals(2L, threadDao.countThreadView(threadId));
 	}
 }

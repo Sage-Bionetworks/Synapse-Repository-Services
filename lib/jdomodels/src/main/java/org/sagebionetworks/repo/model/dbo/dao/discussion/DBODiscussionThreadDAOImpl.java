@@ -138,6 +138,9 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 			+COL_DISCUSSION_THREAD_VIEW_THREAD_ID+","
 			+COL_DISCUSSION_THREAD_VIEW_USER_ID
 			+") VALUES (?,?,?)";
+	private static final String SQL_SELECT_THREAD_VIEW_COUNT = "SELECT COUNT(*)"
+			+" FROM "+TABLE_DISCUSSION_THREAD_VIEW
+			+" WHERE "+COL_DISCUSSION_THREAD_VIEW_THREAD_ID+" = ?";
 
 	private static final String SQL_UPDATE_THREAD_STATS_VIEWS = "UPDATE "+TABLE_DISCUSSION_THREAD_STATS
 			+" SET "+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_VIEWS+" = ? "
@@ -170,13 +173,8 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 		return doGet(threadId);
 	}
 
-	/**
-	 * insert ignore a record into THREAD_VIEW table
-	 * 
-	 * @param threadId
-	 * @param userId
-	 */
-	private void updateThreadView(long threadId, long userId) {
+	@Override
+	public void updateThreadView(long threadId, long userId) {
 		long id = idGenerator.generateNewId(TYPE.DISCUSSION_THREAD_VIEW_ID);
 		jdbcTemplate.update(SQL_UPDATE_THREAD_VIEW_TABLE, id, threadId, userId);
 	}
@@ -312,5 +310,10 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 	@Override
 	public void setLastActivity(long threadId, long lastActivity) {
 		jdbcTemplate.update(SQL_UPDATE_THREAD_STATS_LAST_ACTIVITY, lastActivity, threadId);
+	}
+
+	@Override
+	public long countThreadView(long threadId) {
+		return jdbcTemplate.queryForLong(SQL_SELECT_THREAD_VIEW_COUNT, threadId);
 	}
 }

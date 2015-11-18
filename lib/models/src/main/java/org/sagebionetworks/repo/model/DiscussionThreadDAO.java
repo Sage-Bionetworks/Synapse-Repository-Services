@@ -105,4 +105,19 @@ public interface DiscussionThreadDAO {
 	 * @param activeAuthors - the top 5 active authors
 	 */
 	public void setActiveAuthors(long threadId, List<Long> activeAuthors);
+
+	/**
+	 * insert ignore a record into THREAD_VIEW table
+	 * 
+	 * @param threadId
+	 * @param userId
+	 */
+	public void updateThreadView(long threadId, long userId);
+
+	/**
+	 * count the number of users who viewed this thread
+	 * 
+	 * @param threadId
+	 */
+	public long countThreadView(long threadId);
 }
