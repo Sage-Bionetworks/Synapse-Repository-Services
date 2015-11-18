@@ -91,6 +91,14 @@ public interface DiscussionThreadDAO {
 	public void setNumberOfReplies(long threadId, long numberOfReplies);
 
 	/**
+	 * update the last activity of the given thread
+	 * 
+	 * @param threadId
+	 * @param lastActivity
+	 */
+	public void setLastActivity(long threadId, long lastActivity);
+
+	/**
 	 * update active authors for the given thread
 	 * 
 	 * @param threadId
