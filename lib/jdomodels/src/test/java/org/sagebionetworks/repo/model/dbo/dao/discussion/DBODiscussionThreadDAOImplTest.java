@@ -48,11 +48,26 @@ public class DBODiscussionThreadDAOImplTest {
 	private Long userId = null;
 	private String projectId = null;
 	private String forumId;
-	private Comparator<DiscussionThreadBundle> sortByModifiedOnDesc = new Comparator<DiscussionThreadBundle>(){
+	private long forumIdLong;
+	private Comparator<DiscussionThreadBundle> sortByLastActivityDesc = new Comparator<DiscussionThreadBundle>(){
 
 		@Override
 		public int compare(DiscussionThreadBundle o1, DiscussionThreadBundle o2) {
-			return -o1.getModifiedOn().compareTo(o2.getModifiedOn());
+			return -o1.getLastActivity().compareTo(o2.getLastActivity());
+		}
+	};
+	private Comparator<DiscussionThreadBundle> sortByNumberOfViews = new Comparator<DiscussionThreadBundle>(){
+
+		@Override
+		public int compare(DiscussionThreadBundle o1, DiscussionThreadBundle o2) {
+			return -o1.getNumberOfViews().compareTo(o2.getNumberOfViews());
+		}
+	};
+	private Comparator<DiscussionThreadBundle> sortByNumberOfReplies = new Comparator<DiscussionThreadBundle>(){
+
+		@Override
+		public int compare(DiscussionThreadBundle o1, DiscussionThreadBundle o2) {
+			return -o1.getNumberOfReplies().compareTo(o2.getNumberOfReplies());
 		}
 	};
 
@@ -69,6 +84,7 @@ public class DBODiscussionThreadDAOImplTest {
 		// create a forum
 		Forum dto = forumDao.createForum(projectId);
 		forumId = dto.getId();
+		forumIdLong = Long.parseLong(forumId);
 	}
 
 	@After
@@ -146,22 +162,16 @@ public class DBODiscussionThreadDAOImplTest {
 
 	@Test
 	public void testGetThreads() throws Exception {
-		List<DiscussionThreadBundle> createdThreads = new ArrayList<DiscussionThreadBundle>();
-		for (int i = 0; i < 10; i++) {
-			DiscussionThreadBundle dto = threadDao.createThread(forumId, "title", 
-					UUID.randomUUID().toString(), userId);
-			createdThreads.add(dto);
-		}
+		List<DiscussionThreadBundle> createdThreads = createListOfThreads(10);
 		assertEquals(createdThreads.size(), 10);
 
-		long forumIdLong = Long.parseLong(forumId);
 		assertEquals(10, threadDao.getThreadCount(forumIdLong));
 
 		assertEquals("non order",
 				new HashSet<DiscussionThreadBundle>(createdThreads),
 				new HashSet<DiscussionThreadBundle>(threadDao.getThreads(forumIdLong, null, null, null, userId).getResults()));
 
-		Collections.sort(createdThreads, sortByModifiedOnDesc);
+		Collections.sort(createdThreads, sortByLastActivityDesc);
 		assertEquals("order, all",
 				createdThreads,
 				threadDao.getThreads(forumIdLong, DiscussionOrder.LAST_ACTIVITY, null, null, userId).getResults());
@@ -208,5 +218,57 @@ public class DBODiscussionThreadDAOImplTest {
 		} catch (IllegalArgumentException e) {
 			// as expected
 		}
+	}
+
+	@Test
+	public void testSetLastActivity() {
+		List<DiscussionThreadBundle> createdThreads = createListOfThreads(10);
+
+		List<Long> lastActivities = Arrays.asList(3L, 4L, 2L, 9L, 7L, 8L, 1L, 0L, 5L, 6L);
+		for (int i = 0; i < 10; i++) {
+			threadDao.setLastActivity(Long.parseLong(createdThreads.get(i).getId()), lastActivities.get(i));
+		}
+		Collections.sort(createdThreads, sortByLastActivityDesc);
+		assertEquals("sorted by last activity",
+				createdThreads,
+				threadDao.getThreads(forumIdLong, DiscussionOrder.LAST_ACTIVITY, null, null, userId).getResults());
+	}
+
+	@Test
+	public void testSetNumberOfViews() {
+		List<DiscussionThreadBundle> createdThreads = createListOfThreads(10);
+
+		List<Long> numberOfViews = Arrays.asList(3L, 5L, 2L, 9L, 1L, 8L, 7L, 0L, 4L, 6L);
+		for (int i = 0; i < 10; i++) {
+			threadDao.setNumberOfViews(Long.parseLong(createdThreads.get(i).getId()), numberOfViews.get(i));
+		}
+		Collections.sort(createdThreads, sortByNumberOfViews);
+		assertEquals("sorted by number of views",
+				createdThreads,
+				threadDao.getThreads(forumIdLong, DiscussionOrder.NUMBER_OF_VIEWS, null, null, userId).getResults());
+	}
+
+	@Test
+	public void testSetNumberOfReplies() {
+		List<DiscussionThreadBundle> createdThreads = createListOfThreads(10);
+
+		List<Long> numberOfReplies = Arrays.asList(4L, 3L, 2L, 6L, 7L, 0L, 1L, 8L, 5L, 9L);
+		for (int i = 0; i < 10; i++) {
+			threadDao.setNumberOfReplies(Long.parseLong(createdThreads.get(i).getId()), numberOfReplies.get(i));
+		}
+		Collections.sort(createdThreads, sortByNumberOfReplies);
+		assertEquals("sorted by number of replies",
+				createdThreads,
+				threadDao.getThreads(forumIdLong, DiscussionOrder.NUMBER_OF_REPLIES, null, null, userId).getResults());
+	}
+
+	private List<DiscussionThreadBundle> createListOfThreads(int numberOfThreads) {
+		List<DiscussionThreadBundle> createdThreads = new ArrayList<DiscussionThreadBundle>();
+		for (int i = 0; i < numberOfThreads; i++) {
+			DiscussionThreadBundle dto = threadDao.createThread(forumId, "title", 
+					UUID.randomUUID().toString(), userId);
+			createdThreads.add(dto);
+		}
+		return createdThreads;
 	}
 }
