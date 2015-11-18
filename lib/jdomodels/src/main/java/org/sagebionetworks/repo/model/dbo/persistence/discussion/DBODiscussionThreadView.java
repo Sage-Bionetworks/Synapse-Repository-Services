@@ -102,7 +102,7 @@ public class DBODiscussionThreadView implements MigratableDatabaseObject<DBODisc
 				DBODiscussionThreadView dbo = new DBODiscussionThreadView();
 				dbo.setId(rs.getLong(COL_DISCUSSION_THREAD_VIEW_ID));
 				dbo.setThreadId(rs.getLong(COL_DISCUSSION_THREAD_VIEW_THREAD_ID));
-				dbo.setThreadId(rs.getLong(COL_DISCUSSION_THREAD_VIEW_USER_ID));
+				dbo.setUserId(rs.getLong(COL_DISCUSSION_THREAD_VIEW_USER_ID));
 				return dbo;
 			}
 
