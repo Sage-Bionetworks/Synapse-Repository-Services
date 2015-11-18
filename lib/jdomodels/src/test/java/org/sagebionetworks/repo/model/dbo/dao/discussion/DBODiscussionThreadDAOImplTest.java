@@ -77,13 +77,27 @@ public class DBODiscussionThreadDAOImplTest {
 		if (userId != null) userGroupDAO.delete(userId.toString());
 	}
 
-	@Test (expected = IllegalArgumentException.class)
-	public void testCreateWithInvalidDTO() {
-		// TO DO: test each case
+	@Test
+	public void testCreateWithInvalidArguments() {
+		try {
+			threadDao.createThread(null, "title", "messageUrl", userId);
+		} catch (IllegalArgumentException e) {
+			// as expected
+		}
+		try {
+			threadDao.createThread(forumId, null, "messageUrl", userId);
+		} catch (IllegalArgumentException e) {
+			// as expected
+		}
+		try {
+			threadDao.createThread(forumId, "title", null, userId);
+		} catch (IllegalArgumentException e) {
+			// as expected
+		}
 	}
 
 	@Test
-	public void testRoundTrip() {
+	public void testRoundTrip() throws InterruptedException {
 		 DiscussionThreadBundle dto = threadDao.createThread(forumId, "title", "messageUrl", userId);
 
 		long threadId = Long.parseLong(dto.getId());
@@ -96,6 +110,7 @@ public class DBODiscussionThreadDAOImplTest {
 		DiscussionThreadBundle returnedDto = threadDao.getThread(threadId, userId);
 		assertFalse(dto.equals(returnedDto));
 		dto.setModifiedOn(returnedDto.getModifiedOn());
+		dto.setLastActivity(returnedDto.getLastActivity());
 		assertEquals(dto, returnedDto);
 
 		String newTitle = "newTitle";
@@ -104,6 +119,7 @@ public class DBODiscussionThreadDAOImplTest {
 		returnedDto = threadDao.getThread(threadId, userId);
 		assertFalse(dto.equals(returnedDto));
 		dto.setModifiedOn(returnedDto.getModifiedOn());
+		dto.setLastActivity(returnedDto.getLastActivity());
 		assertEquals(dto, returnedDto);
 
 		dto.setIsDeleted(true);
@@ -111,6 +127,7 @@ public class DBODiscussionThreadDAOImplTest {
 		returnedDto = threadDao.getThread(threadId, userId);
 		assertFalse(dto.equals(returnedDto));
 		dto.setModifiedOn(returnedDto.getModifiedOn());
+		dto.setLastActivity(returnedDto.getLastActivity());
 		assertEquals(dto, returnedDto);
 
 		try {

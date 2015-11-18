@@ -7,6 +7,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
@@ -43,8 +44,8 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 		public DiscussionThreadBundle mapRow(ResultSet rs, int rowNum)
 				throws SQLException {
 			DiscussionThreadBundle dbo = new DiscussionThreadBundle();
-			dbo.setId(COL_DISCUSSION_THREAD_ID);
-			dbo.setForumId(COL_DISCUSSION_THREAD_FORUM_ID);
+			dbo.setId(Long.toString(rs.getLong(COL_DISCUSSION_THREAD_ID)));
+			dbo.setForumId(Long.toString(rs.getLong(COL_DISCUSSION_THREAD_FORUM_ID)));
 			Blob titleBlob = rs.getBlob(COL_DISCUSSION_THREAD_TITLE);
 			dbo.setTitle(DiscussionThreadUtils.decompressUTF8(titleBlob.getBytes(1, (int) titleBlob.length())));
 			dbo.setCreatedOn(new Date(rs.getLong(COL_DISCUSSION_THREAD_CREATED_ON)));
@@ -53,12 +54,31 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 			dbo.setMessageUrl(rs.getString(COL_DISCUSSION_THREAD_MESSAGE_URL));
 			dbo.setIsEdited(rs.getBoolean(COL_DISCUSSION_THREAD_IS_EDITED));
 			dbo.setIsDeleted(rs.getBoolean(COL_DISCUSSION_THREAD_IS_DELETED));
-			dbo.setNumberOfViews(rs.getLong(COL_DISCUSSION_THREAD_STATS_NUMBER_OF_VIEWS));
-			dbo.setNumberOfReplies(rs.getLong(COL_DISCUSSION_THREAD_STATS_NUMBER_OF_REPLIES));
-			dbo.setLastActivity(new Date(rs.getLong(COL_DISCUSSION_THREAD_STATS_LAST_ACTIVITY)));
+			long numberOfViews = rs.getLong(COL_DISCUSSION_THREAD_STATS_NUMBER_OF_VIEWS);
+			if (rs.wasNull()) {
+				dbo.setNumberOfViews(0L);
+			} else {
+				dbo.setNumberOfViews(numberOfViews);
+			}
+			long numberOfReplies = rs.getLong(COL_DISCUSSION_THREAD_STATS_NUMBER_OF_REPLIES);
+			if (rs.wasNull()) {
+				dbo.setNumberOfReplies(0L);
+			} else {
+				dbo.setNumberOfReplies(numberOfReplies);
+			}
+			long lastActivity = rs.getLong(COL_DISCUSSION_THREAD_STATS_LAST_ACTIVITY);
+			if (rs.wasNull()) {
+				dbo.setLastActivity(dbo.getModifiedOn());
+			} else {
+				dbo.setLastActivity(new Date(lastActivity));
+			}
 			Blob activeAuthorsBlob = rs.getBlob(COL_DISCUSSION_THREAD_STATS_ACTIVE_AUTHORS);
-			String listString = DiscussionThreadUtils.decompressUTF8(activeAuthorsBlob.getBytes(1, (int) activeAuthorsBlob.length()));
-			dbo.setActiveAuthors(DiscussionThreadUtils.createList(listString));
+			if (rs.wasNull()) {
+				dbo.setActiveAuthors(Arrays.asList(dbo.getCreatedBy()));
+			} else {
+				String listString = DiscussionThreadUtils.decompressUTF8(activeAuthorsBlob.getBytes(1, (int) activeAuthorsBlob.length()));
+				dbo.setActiveAuthors(DiscussionThreadUtils.createList(listString));
+			}
 			return dbo;
 		}
 	};
@@ -93,8 +113,8 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 			+COL_DISCUSSION_THREAD_IS_DELETED+", "
 			+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_VIEWS+", "
 			+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_REPLIES+", "
-			+COL_DISCUSSION_THREAD_STATS_LAST_ACTIVITY+", "
-			+COL_DISCUSSION_THREAD_STATS_ACTIVE_AUTHORS+", "
+			+"IFNULL("+COL_DISCUSSION_THREAD_STATS_LAST_ACTIVITY+", "+COL_DISCUSSION_THREAD_MODIFIED_ON+") AS "+COL_DISCUSSION_THREAD_STATS_LAST_ACTIVITY+", "
+			+COL_DISCUSSION_THREAD_STATS_ACTIVE_AUTHORS
 			+" FROM "+TABLE_DISCUSSION_THREAD
 			+" LEFT OUTER JOIN "+TABLE_DISCUSSION_THREAD_STATS
 			+" ON "+TABLE_DISCUSSION_THREAD+"."+COL_DISCUSSION_THREAD_ID
@@ -228,9 +248,9 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 			@Override
 			public void setValues(PreparedStatement ps, int i)
 					throws SQLException {
-				ps.setLong(0, idGenerator.generateNewId(TYPE.DISCUSSION_THREAD_VIEW_ID));
-				ps.setLong(1, Long.parseLong(threads.get(i).getId()));
-				ps.setLong(2, userId);
+				ps.setLong(1, idGenerator.generateNewId(TYPE.DISCUSSION_THREAD_VIEW_ID));
+				ps.setLong(2, Long.parseLong(threads.get(i).getId()));
+				ps.setLong(3, userId);
 			}
 
 			@Override
