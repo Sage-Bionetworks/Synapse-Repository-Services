@@ -2,7 +2,7 @@ package org.sagebionetworks.repo.manager.discussion;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.discussion.CreateThread;
+import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
 import org.sagebionetworks.repo.model.discussion.DiscussionOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 
@@ -15,7 +15,7 @@ public interface DiscussionThreadManager {
 	 * @param createThread
 	 * @return
 	 */
-	public DiscussionThreadBundle createThread(UserInfo userInfo, CreateThread createThread);
+	public DiscussionThreadBundle createThread(UserInfo userInfo, CreateDiscussionThread createThread);
 
 	/**
 	 * Get a thread given its Id

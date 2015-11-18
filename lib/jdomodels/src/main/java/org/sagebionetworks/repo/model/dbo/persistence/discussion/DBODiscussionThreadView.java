@@ -15,9 +15,9 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
 public class DBODiscussionThreadView implements MigratableDatabaseObject<DBODiscussionThreadView, DBODiscussionThreadView>{
 
 	private static final FieldColumn[] FIELDS = new FieldColumn[] {
-		new FieldColumn("id", COL_DISCUSSION_THREAD_ID, false).withIsBackupId(true),
-		new FieldColumn("threadId", COL_DISCUSSION_THREAD_ID, true),
-		new FieldColumn("userId", COL_DISCUSSION_THREAD_FORUM_ID, true),
+		new FieldColumn("id", COL_DISCUSSION_THREAD_VIEW_ID, false).withIsBackupId(true),
+		new FieldColumn("threadId", COL_DISCUSSION_THREAD_VIEW_THREAD_ID, true),
+		new FieldColumn("userId", COL_DISCUSSION_THREAD_VIEW_USER_ID, true),
 	};
 
 	private Long id;
