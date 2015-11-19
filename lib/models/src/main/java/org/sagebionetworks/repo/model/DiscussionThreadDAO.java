@@ -24,10 +24,9 @@ public interface DiscussionThreadDAO {
 	 * Get a discussion thread
 	 * 
 	 * @param threadId
-	 * @param userId
 	 * @return
 	 */
-	public DiscussionThreadBundle getThread(long threadId, long userId);
+	public DiscussionThreadBundle getThread(long threadId);
 
 	/**
 	 * Get the number of discussion thread in a given forum
@@ -49,7 +48,7 @@ public interface DiscussionThreadDAO {
 	 * @return
 	 */
 	public PaginatedResults<DiscussionThreadBundle> getThreads(long forumId,
-			DiscussionOrder order, Integer limit, Integer offset, long userId);
+			DiscussionOrder order, Integer limit, Integer offset);
 
 	/**
 	 * Mark a discussion thread as deleted
@@ -120,4 +119,12 @@ public interface DiscussionThreadDAO {
 	 * @param threadId
 	 */
 	public long countThreadView(long threadId);
+
+	/**
+	 * insert ignore a batch of records into THREAD_VIEW table
+	 * 
+	 * @param threads
+	 * @param userId
+	 */
+	public void updateThreadView(List<DiscussionThreadBundle> threads, long userId);
 }

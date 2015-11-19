@@ -164,28 +164,11 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 		String etag = UUID.randomUUID().toString();
 		DBODiscussionThread dbo = DiscussionThreadUtils.createDBO(forumId, title, messageUrl, userId, id.toString(), etag);
 		basicDao.createNew(dbo);
-		return getThread(id, userId);
+		return getThread(id);
 	}
 
 	@Override
-	public DiscussionThreadBundle getThread(long threadId, long userId) {
-		updateThreadView(threadId, userId);
-		return doGet(threadId);
-	}
-
-	@Override
-	public void updateThreadView(long threadId, long userId) {
-		long id = idGenerator.generateNewId(TYPE.DISCUSSION_THREAD_VIEW_ID);
-		jdbcTemplate.update(SQL_UPDATE_THREAD_VIEW_TABLE, id, threadId, userId);
-	}
-
-	/**
-	 * getting the DiscussionThreadBundle object
-	 * 
-	 * @param threadId
-	 * @return
-	 */
-	private DiscussionThreadBundle doGet(long threadId) {
+	public DiscussionThreadBundle getThread(long threadId) {
 		List<DiscussionThreadBundle> results = jdbcTemplate.query(SQL_SELECT_THREAD_BY_ID, DISCUSSION_THREAD_BUNDLE_ROW_MAPPER, threadId);
 		if (results.size() != 1) {
 			throw new NotFoundException();
@@ -194,8 +177,14 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 	}
 
 	@Override
+	public void updateThreadView(long threadId, long userId) {
+		long id = idGenerator.generateNewId(TYPE.DISCUSSION_THREAD_VIEW_ID);
+		jdbcTemplate.update(SQL_UPDATE_THREAD_VIEW_TABLE, id, threadId, userId);
+	}
+
+	@Override
 	public PaginatedResults<DiscussionThreadBundle> getThreads(long forumId,
-			DiscussionOrder order, Integer limit, Integer offset, long userId) {
+			DiscussionOrder order, Integer limit, Integer offset) {
 		if (limit != null && offset != null ) {
 			ValidateArgument.requirement(limit >= 0 && offset >= 0 && limit <= MAX_LIMIT,
 					"limit and offset must be greater than 0, and limit must be smaller than or equal to "+MAX_LIMIT);
@@ -229,18 +218,11 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 		PaginatedResults<DiscussionThreadBundle> threads = new PaginatedResults<DiscussionThreadBundle>();
 		threads.setResults(results);
 
-		updateThreadView(results, userId);
-
 		return threads;
 	}
 
-	/**
-	 * insert ignore a batch of records into THREAD_VIEW table
-	 * 
-	 * @param threads
-	 * @param userId
-	 */
-	private void updateThreadView(final List<DiscussionThreadBundle> threads, final long userId) {
+	@Override
+	public void updateThreadView(final List<DiscussionThreadBundle> threads, final long userId) {
 		jdbcTemplate.batchUpdate(SQL_UPDATE_THREAD_VIEW_TABLE, new BatchPreparedStatementSetter() {
 
 			@Override
@@ -273,7 +255,7 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 		String etag = UUID.randomUUID().toString();
 		Long modifiedOn = new Date().getTime();
 		jdbcTemplate.update(SQL_UPDATE_MESSAGE_URL, newMessageUrl, etag, modifiedOn, threadId);
-		return doGet(threadId);
+		return getThread(threadId);
 	}
 
 	@WriteTransaction
@@ -283,7 +265,7 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 		String etag = UUID.randomUUID().toString();
 		Long modifiedOn = new Date().getTime();
 		jdbcTemplate.update(SQL_UPDATE_TITLE, title, etag, modifiedOn, threadId);
-		return doGet(threadId);
+		return getThread(threadId);
 	}
 
 	@Override
