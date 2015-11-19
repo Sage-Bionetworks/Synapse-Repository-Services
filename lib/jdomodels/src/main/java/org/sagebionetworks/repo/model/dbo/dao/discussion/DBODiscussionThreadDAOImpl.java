@@ -48,9 +48,9 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 			dbo.setForumId(Long.toString(rs.getLong(COL_DISCUSSION_THREAD_FORUM_ID)));
 			Blob titleBlob = rs.getBlob(COL_DISCUSSION_THREAD_TITLE);
 			dbo.setTitle(DiscussionThreadUtils.decompressUTF8(titleBlob.getBytes(1, (int) titleBlob.length())));
-			dbo.setCreatedOn(new Date(rs.getLong(COL_DISCUSSION_THREAD_CREATED_ON)));
+			dbo.setCreatedOn(new Date(rs.getTimestamp(COL_DISCUSSION_THREAD_CREATED_ON).getTime()));
 			dbo.setCreatedBy(Long.toString(rs.getLong(COL_DISCUSSION_THREAD_CREATED_BY)));
-			dbo.setModifiedOn(new Date(rs.getLong(COL_DISCUSSION_THREAD_MODIFIED_ON)));
+			dbo.setModifiedOn(new Date(rs.getTimestamp(COL_DISCUSSION_THREAD_MODIFIED_ON).getTime()));
 			dbo.setMessageUrl(rs.getString(COL_DISCUSSION_THREAD_MESSAGE_URL));
 			dbo.setIsEdited(rs.getBoolean(COL_DISCUSSION_THREAD_IS_EDITED));
 			dbo.setIsDeleted(rs.getBoolean(COL_DISCUSSION_THREAD_IS_DELETED));
@@ -72,11 +72,10 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 			} else {
 				dbo.setLastActivity(new Date(lastActivity));
 			}
-			Blob activeAuthorsBlob = rs.getBlob(COL_DISCUSSION_THREAD_STATS_ACTIVE_AUTHORS);
+			String listString = rs.getString(COL_DISCUSSION_THREAD_STATS_ACTIVE_AUTHORS);
 			if (rs.wasNull()) {
 				dbo.setActiveAuthors(Arrays.asList(dbo.getCreatedBy()));
 			} else {
-				String listString = DiscussionThreadUtils.decompressUTF8(activeAuthorsBlob.getBytes(1, (int) activeAuthorsBlob.length()));
 				dbo.setActiveAuthors(DiscussionThreadUtils.createList(listString));
 			}
 			return dbo;
@@ -85,20 +84,17 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 
 	private static final String SQL_MARK_THREAD_AS_DELETED = "UPDATE "+TABLE_DISCUSSION_THREAD
 			+" SET "+COL_DISCUSSION_THREAD_IS_DELETED+" = TRUE, "
-			+COL_DISCUSSION_THREAD_ETAG+" = ?, "
-			+COL_DISCUSSION_THREAD_MODIFIED_ON+" = ?"
+			+COL_DISCUSSION_THREAD_ETAG+" = ? "
 			+" WHERE "+COL_DISCUSSION_THREAD_ID+" = ?";
 	private static final String SQL_UPDATE_TITLE = "UPDATE "+TABLE_DISCUSSION_THREAD
 			+" SET "+COL_DISCUSSION_THREAD_TITLE+" = ?, "
 			+COL_DISCUSSION_THREAD_IS_EDITED+" = TRUE, "
-			+COL_DISCUSSION_THREAD_ETAG+" = ?, "
-			+COL_DISCUSSION_THREAD_MODIFIED_ON+" = ?"
+			+COL_DISCUSSION_THREAD_ETAG+" = ? "
 			+" WHERE "+COL_DISCUSSION_THREAD_ID+" = ?";
 	private static final String SQL_UPDATE_MESSAGE_URL = "UPDATE "+TABLE_DISCUSSION_THREAD
 			+" SET "+COL_DISCUSSION_THREAD_MESSAGE_URL+" = ?, "
 			+COL_DISCUSSION_THREAD_IS_EDITED+" = TRUE, "
-			+COL_DISCUSSION_THREAD_ETAG+" = ?, "
-			+COL_DISCUSSION_THREAD_MODIFIED_ON+" = ?"
+			+COL_DISCUSSION_THREAD_ETAG+" = ? "
 			+" WHERE "+COL_DISCUSSION_THREAD_ID+" = ?";
 
 	private static final String SELECT_THREAD_BUNDLE = "SELECT "
@@ -244,8 +240,7 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 	@Override
 	public void deleteThread(long threadId) {
 		String etag = UUID.randomUUID().toString();
-		Long modifiedOn = new Date().getTime();
-		jdbcTemplate.update(SQL_MARK_THREAD_AS_DELETED, etag, modifiedOn, threadId);
+		jdbcTemplate.update(SQL_MARK_THREAD_AS_DELETED, etag, threadId);
 	}
 
 	@WriteTransaction
@@ -253,8 +248,7 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 	public DiscussionThreadBundle updateMessageUrl(long threadId, String newMessageUrl) {
 		if (newMessageUrl == null) throw new IllegalArgumentException("Message Url cannot be null");
 		String etag = UUID.randomUUID().toString();
-		Long modifiedOn = new Date().getTime();
-		jdbcTemplate.update(SQL_UPDATE_MESSAGE_URL, newMessageUrl, etag, modifiedOn, threadId);
+		jdbcTemplate.update(SQL_UPDATE_MESSAGE_URL, newMessageUrl, etag, threadId);
 		return getThread(threadId);
 	}
 
@@ -263,8 +257,7 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 	public DiscussionThreadBundle updateTitle(long threadId, String title) {
 		if (title == null) throw new IllegalArgumentException("Title cannot be null");
 		String etag = UUID.randomUUID().toString();
-		Long modifiedOn = new Date().getTime();
-		jdbcTemplate.update(SQL_UPDATE_TITLE, title, etag, modifiedOn, threadId);
+		jdbcTemplate.update(SQL_UPDATE_TITLE, title, etag, threadId);
 		return getThread(threadId);
 	}
 

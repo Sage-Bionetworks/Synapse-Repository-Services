@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.persistence.discussion;
 
 import java.nio.charset.Charset;
-import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -44,8 +43,6 @@ public class DiscussionThreadUtils {
 		dbo.setMessageUrl(messageUrl);
 		if (userId == null) throw new IllegalArgumentException("userId must be initialized");
 		dbo.setCreatedBy(userId);
-		dbo.setCreatedOn(new Date().getTime());
-		dbo.setModifiedOn(new Date().getTime());
 		dbo.setIsEdited(false);
 		dbo.setIsDeleted(false);
 		if (etag == null) throw new IllegalArgumentException("etag must be initialized");

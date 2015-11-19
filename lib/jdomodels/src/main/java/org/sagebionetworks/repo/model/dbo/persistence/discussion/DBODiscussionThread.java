@@ -6,6 +6,7 @@ import java.sql.Blob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
@@ -26,9 +27,7 @@ public class DBODiscussionThread  implements MigratableDatabaseObject<DBODiscuss
 		new FieldColumn("forumId", COL_DISCUSSION_THREAD_FORUM_ID),
 		new FieldColumn("title", COL_DISCUSSION_THREAD_TITLE),
 		new FieldColumn("etag", COL_DISCUSSION_THREAD_ETAG).withIsEtag(true),
-		new FieldColumn("createdOn", COL_DISCUSSION_THREAD_CREATED_ON),
 		new FieldColumn("createdBy", COL_DISCUSSION_THREAD_CREATED_BY),
-		new FieldColumn("modifiedOn", COL_DISCUSSION_THREAD_MODIFIED_ON),
 		new FieldColumn("messageUrl", COL_DISCUSSION_THREAD_MESSAGE_URL),
 		new FieldColumn("isEdited", COL_DISCUSSION_THREAD_IS_EDITED),
 		new FieldColumn("isDeleted", COL_DISCUSSION_THREAD_IS_DELETED)
@@ -38,20 +37,17 @@ public class DBODiscussionThread  implements MigratableDatabaseObject<DBODiscuss
 	private Long forumId;
 	private byte[] title;
 	private String etag;
-	private Long createdOn;
 	private Long createdBy;
-	private Long modifiedOn;
 	private String messageUrl;
 	private Boolean isEdited;
 	private Boolean isDeleted;
 
 	@Override
 	public String toString() {
-		return "DBOThread [id=" + id + ", forumId=" + forumId + ", title="
-				+ Arrays.toString(title) + ", etag=" + etag + ", createdOn="
-				+ createdOn + ", createdBy=" + createdBy + ", modifiedOn="
-				+ modifiedOn + ", messageUrl=" + messageUrl + ", isEdited="
-				+ isEdited + ", isDeleted=" + isDeleted + "]";
+		return "DBODiscussionThread [id=" + id + ", forumId=" + forumId
+				+ ", title=" + Arrays.toString(title) + ", etag=" + etag
+				+ ", createdBy=" + createdBy + ", messageUrl=" + messageUrl
+				+ ", isEdited=" + isEdited + ", isDeleted=" + isDeleted + "]";
 	}
 
 	@Override
@@ -60,8 +56,6 @@ public class DBODiscussionThread  implements MigratableDatabaseObject<DBODiscuss
 		int result = 1;
 		result = prime * result
 				+ ((createdBy == null) ? 0 : createdBy.hashCode());
-		result = prime * result
-				+ ((createdOn == null) ? 0 : createdOn.hashCode());
 		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
 		result = prime * result + ((forumId == null) ? 0 : forumId.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
@@ -71,8 +65,6 @@ public class DBODiscussionThread  implements MigratableDatabaseObject<DBODiscuss
 				+ ((isEdited == null) ? 0 : isEdited.hashCode());
 		result = prime * result
 				+ ((messageUrl == null) ? 0 : messageUrl.hashCode());
-		result = prime * result
-				+ ((modifiedOn == null) ? 0 : modifiedOn.hashCode());
 		result = prime * result + Arrays.hashCode(title);
 		return result;
 	}
@@ -90,11 +82,6 @@ public class DBODiscussionThread  implements MigratableDatabaseObject<DBODiscuss
 			if (other.createdBy != null)
 				return false;
 		} else if (!createdBy.equals(other.createdBy))
-			return false;
-		if (createdOn == null) {
-			if (other.createdOn != null)
-				return false;
-		} else if (!createdOn.equals(other.createdOn))
 			return false;
 		if (etag == null) {
 			if (other.etag != null)
@@ -125,11 +112,6 @@ public class DBODiscussionThread  implements MigratableDatabaseObject<DBODiscuss
 			if (other.messageUrl != null)
 				return false;
 		} else if (!messageUrl.equals(other.messageUrl))
-			return false;
-		if (modifiedOn == null) {
-			if (other.modifiedOn != null)
-				return false;
-		} else if (!modifiedOn.equals(other.modifiedOn))
 			return false;
 		if (!Arrays.equals(title, other.title))
 			return false;
@@ -168,28 +150,12 @@ public class DBODiscussionThread  implements MigratableDatabaseObject<DBODiscuss
 		this.etag = etag;
 	}
 
-	public Long getCreatedOn() {
-		return createdOn;
-	}
-
-	public void setCreatedOn(Long createdOn) {
-		this.createdOn = createdOn;
-	}
-
 	public Long getCreatedBy() {
 		return createdBy;
 	}
 
 	public void setCreatedBy(Long createdBy) {
 		this.createdBy = createdBy;
-	}
-
-	public Long getModifiedOn() {
-		return modifiedOn;
-	}
-
-	public void setModifiedOn(Long modifiedOn) {
-		this.modifiedOn = modifiedOn;
 	}
 
 	public String getMessageUrl() {
@@ -228,9 +194,7 @@ public class DBODiscussionThread  implements MigratableDatabaseObject<DBODiscuss
 				Blob blob = rs.getBlob(COL_DISCUSSION_THREAD_TITLE);
 				dbo.setTitle(blob.getBytes(1, (int) blob.length()));
 				dbo.setEtag(rs.getString(COL_DISCUSSION_THREAD_ETAG));
-				dbo.setCreatedOn(rs.getLong(COL_DISCUSSION_THREAD_CREATED_ON));
 				dbo.setCreatedBy(rs.getLong(COL_DISCUSSION_THREAD_CREATED_BY));
-				dbo.setModifiedOn(rs.getLong(COL_DISCUSSION_THREAD_MODIFIED_ON));
 				dbo.setMessageUrl(rs.getString(COL_DISCUSSION_THREAD_MESSAGE_URL));
 				dbo.setIsEdited(rs.getBoolean(COL_DISCUSSION_THREAD_IS_EDITED));
 				dbo.setIsDeleted(rs.getBoolean(COL_DISCUSSION_THREAD_IS_DELETED));

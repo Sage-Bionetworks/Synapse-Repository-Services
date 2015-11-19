@@ -119,14 +119,15 @@ public class DBODiscussionThreadDAOImplTest {
 		DiscussionThreadBundle dto = threadDao.createThread(forumId, "title", "messageUrl", userId);
 
 		long threadId = Long.parseLong(dto.getId());
-		assertEquals(dto, threadDao.getThread(threadId));
+		assertEquals("getThread() should return the created one", dto, threadDao.getThread(threadId));
 
+		Thread.sleep(1000);
 		dto.setIsEdited(true);
-		String newMessageUrl = "newMessageUrl";
+		String newMessageUrl = UUID.randomUUID().toString();
 		dto.setMessageUrl(newMessageUrl);
 		threadDao.updateMessageUrl(threadId, newMessageUrl);
 		DiscussionThreadBundle returnedDto = threadDao.getThread(threadId);
-		assertFalse(dto.equals(returnedDto));
+		assertFalse("after updating message url, modifiedOn should be different", dto.equals(returnedDto));
 		dto.setModifiedOn(returnedDto.getModifiedOn());
 		dto.setLastActivity(returnedDto.getLastActivity());
 		assertEquals(dto, returnedDto);
@@ -135,7 +136,6 @@ public class DBODiscussionThreadDAOImplTest {
 		dto.setTitle(newTitle);
 		threadDao.updateTitle(threadId, newTitle);
 		returnedDto = threadDao.getThread(threadId);
-		assertFalse(dto.equals(returnedDto));
 		dto.setModifiedOn(returnedDto.getModifiedOn());
 		dto.setLastActivity(returnedDto.getLastActivity());
 		assertEquals(dto, returnedDto);
@@ -143,7 +143,6 @@ public class DBODiscussionThreadDAOImplTest {
 		dto.setIsDeleted(true);
 		threadDao.deleteThread(threadId);
 		returnedDto = threadDao.getThread(threadId);
-		assertFalse(dto.equals(returnedDto));
 		dto.setModifiedOn(returnedDto.getModifiedOn());
 		dto.setLastActivity(returnedDto.getLastActivity());
 		assertEquals(dto, returnedDto);
