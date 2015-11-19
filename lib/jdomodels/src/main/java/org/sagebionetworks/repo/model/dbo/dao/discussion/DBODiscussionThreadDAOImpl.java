@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.dbo.dao.discussion;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 
+import java.nio.charset.Charset;
 import java.sql.Blob;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -38,6 +39,7 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 	@Autowired
 	private IdGenerator idGenerator;
 
+	public static final Charset UTF8 = Charset.forName("UTF-8");
 	private RowMapper<DiscussionThreadBundle> DISCUSSION_THREAD_BUNDLE_ROW_MAPPER = new RowMapper<DiscussionThreadBundle>(){
 
 		@Override
@@ -47,7 +49,7 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 			dbo.setId(Long.toString(rs.getLong(COL_DISCUSSION_THREAD_ID)));
 			dbo.setForumId(Long.toString(rs.getLong(COL_DISCUSSION_THREAD_FORUM_ID)));
 			Blob titleBlob = rs.getBlob(COL_DISCUSSION_THREAD_TITLE);
-			dbo.setTitle(DiscussionThreadUtils.decompressUTF8(titleBlob.getBytes(1, (int) titleBlob.length())));
+			dbo.setTitle(new String(titleBlob.getBytes(1, (int) titleBlob.length()), UTF8));
 			dbo.setCreatedOn(new Date(rs.getTimestamp(COL_DISCUSSION_THREAD_CREATED_ON).getTime()));
 			dbo.setCreatedBy(Long.toString(rs.getLong(COL_DISCUSSION_THREAD_CREATED_BY)));
 			dbo.setModifiedOn(new Date(rs.getTimestamp(COL_DISCUSSION_THREAD_MODIFIED_ON).getTime()));
@@ -76,7 +78,7 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 			if (rs.wasNull()) {
 				dbo.setActiveAuthors(Arrays.asList(dbo.getCreatedBy()));
 			} else {
-				dbo.setActiveAuthors(DiscussionThreadUtils.createList(listString));
+				dbo.setActiveAuthors(DiscussionThreadUtils.toList(listString));
 			}
 			return dbo;
 		}
@@ -277,9 +279,9 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 	}
 
 	@Override
-	public void setActiveAuthors(long threadId, List<Long> activeAuthors) {
-		byte[] bytes = DiscussionThreadUtils.compressUTF8(activeAuthors.toString());
-		jdbcTemplate.update(SQL_UPDATE_THREAD_STATS_ACTIVE_AUTHORS, bytes, threadId);
+	public void setActiveAuthors(long threadId, List<String> activeAuthors) {
+		String list = DiscussionThreadUtils.toString(activeAuthors);
+		jdbcTemplate.update(SQL_UPDATE_THREAD_STATS_ACTIVE_AUTHORS, list, threadId);
 	}
 
 	@Override

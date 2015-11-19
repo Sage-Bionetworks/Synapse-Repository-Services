@@ -103,7 +103,7 @@ public interface DiscussionThreadDAO {
 	 * @param threadId
 	 * @param activeAuthors - the top 5 active authors
 	 */
-	public void setActiveAuthors(long threadId, List<Long> activeAuthors);
+	public void setActiveAuthors(long threadId, List<String> activeAuthors);
 
 	/**
 	 * insert ignore a record into THREAD_VIEW table
