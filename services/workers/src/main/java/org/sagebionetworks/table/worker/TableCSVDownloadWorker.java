@@ -140,7 +140,7 @@ public class TableCSVDownloadWorker implements MessageDrivenRunner {
 		if(message == null){
 			throw new IllegalArgumentException("Message cannot be null");
 		}
-		AsynchronousJobStatus status = MessageUtils.readMessageBody(message, AsynchronousJobStatus.class);
+		AsynchronousJobStatus status = asynchJobStatusManager.lookupJobStatus(message.getBody());
 		if(status.getRequestBody() == null){
 			throw new IllegalArgumentException("Job body cannot be null");
 		}

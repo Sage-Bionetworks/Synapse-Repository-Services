@@ -171,6 +171,7 @@ public class BulkFileDownloadWorkerTest {
 				mockBulkDownloadManager.multipartUploadLocalFile(
 						any(UserInfo.class), any(File.class), anyString(),
 						any(ProgressListener.class))).thenReturn(resultHandle);
+		when(mockAsynchJobStatusManager.lookupJobStatus(jobStatus.getJobId())).thenReturn(jobStatus);
 	}
 
 	@Test
