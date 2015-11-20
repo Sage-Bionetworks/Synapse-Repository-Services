@@ -133,7 +133,6 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 	private static final String ORDER_BY_NUMBER_OF_VIEWS_DESC = " ORDER BY "+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_VIEWS+" DESC";
 	private static final String ORDER_BY_NUMBER_OF_REPLIES_DESC = " ORDER BY "+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_REPLIES+" DESC";
 	public static final Integer MAX_LIMIT = 100;
-	private static final String DEFAULT_LIMIT = " LIMIT "+MAX_LIMIT+" OFFSET 0";
 
 	private static final String SQL_UPDATE_THREAD_VIEW_TABLE = "INSERT IGNORE INTO "
 			+TABLE_DISCUSSION_THREAD_VIEW+" ("
@@ -196,13 +195,10 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 	@Override
 	public PaginatedResults<DiscussionThreadBundle> getThreads(long forumId,
 			DiscussionOrder order, Integer limit, Integer offset) {
-		if (limit != null && offset != null ) {
-			ValidateArgument.requirement(limit >= 0 && offset >= 0 && limit <= MAX_LIMIT,
-					"limit and offset must be greater than 0, and limit must be smaller than or equal to "+MAX_LIMIT);
-		} else {
-			ValidateArgument.requirement(limit == null && offset == null,
-					"Both limit and offset must be null or not null");
-		}
+		ValidateArgument.requirement(limit != null && offset != null,
+				"Both limit and offset must be not null");
+		ValidateArgument.requirement(limit >= 0 && offset >= 0 && limit <= MAX_LIMIT,
+					"Limit and offset must be greater than 0, and limit must be smaller than or equal to "+MAX_LIMIT);
 
 		String query = SQL_SELECT_THREADS_BY_FORUM_ID;
 		if (order != null) {
@@ -227,11 +223,7 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 					break;
 			}
 		}
-		if (limit != null && offset != null) {
-			query += " LIMIT "+limit+" OFFSET "+offset;
-		} else {
-			query += DEFAULT_LIMIT;
-		}
+		query += " LIMIT "+limit+" OFFSET "+offset;
 
 		List<DiscussionThreadBundle> results = new ArrayList<DiscussionThreadBundle>();
 		results = jdbcTemplate.query(query, DISCUSSION_THREAD_BUNDLE_ROW_MAPPER, forumId);
