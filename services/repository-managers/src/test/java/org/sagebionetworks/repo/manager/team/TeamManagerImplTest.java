@@ -673,12 +673,33 @@ public class TeamManagerImplTest {
 	public void testRemoveLastAdminMember() throws Exception {
 		String memberPrincipalId = "987";
 		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		when(mockGroupMembersDAO.getMembers(TEAM_ID)).thenReturn(ugList(new String[]{memberPrincipalId}));
+		// there are two members, but only one is an admin
+		when(mockGroupMembersDAO.getMembers(TEAM_ID)).thenReturn(ugList(new String[]{memberPrincipalId, "000"}));
 		AccessControlList acl = new AccessControlList();
 		acl.setResourceAccess(new HashSet<ResourceAccess>());
 		acl.getResourceAccess().add(TeamManagerImpl.createResourceAccess(Long.parseLong(memberPrincipalId), Collections.singleton(ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)));
 		when(mockAclDAO.get(TEAM_ID, ObjectType.TEAM)).thenReturn(acl);
 		teamManagerImpl.removeMember(userInfo, TEAM_ID, memberPrincipalId);
+	}
+	
+	/*
+	 * create team T
+	in the team ACL, set the team to administrator
+	remove the user from the team
+	--> At this point the team is empty, no one can administer the team
+	 */
+	@Test(expected=UnauthorizedException.class)
+	public void testPLFM_3612() throws Exception {
+		// the user (MEMBER_PRINCIPAL_ID) IS a team admin
+		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		// this user is the only one in the team
+		when(mockGroupMembersDAO.getMembers(TEAM_ID)).thenReturn(ugList(new String[]{MEMBER_PRINCIPAL_ID}));
+		AccessControlList acl = new AccessControlList();
+		acl.setResourceAccess(new HashSet<ResourceAccess>());
+		acl.getResourceAccess().add(TeamManagerImpl.createResourceAccess(Long.parseLong(TEAM_ID), Collections.singleton(ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)));
+		when(mockAclDAO.get(TEAM_ID, ObjectType.TEAM)).thenReturn(acl);
+		// if we remove the only member then there is no one who can administer the team
+		teamManagerImpl.removeMember(userInfo, TEAM_ID, MEMBER_PRINCIPAL_ID);
 	}
 	
 	@Test(expected=UnauthorizedException.class)
