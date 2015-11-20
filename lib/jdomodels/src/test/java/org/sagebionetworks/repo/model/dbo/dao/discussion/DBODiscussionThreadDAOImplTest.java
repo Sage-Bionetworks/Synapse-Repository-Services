@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.dbo.dao.discussion;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.sagebionetworks.repo.model.dbo.dao.discussion.DBODiscussionThreadDAOImpl.MAX_LIMIT;
 
 import java.util.ArrayList;
@@ -93,11 +94,21 @@ public class DBODiscussionThreadDAOImplTest {
 	}
 
 	@Test
-	public void testCreateUpdateMessageUrl() throws InterruptedException {
+	public void testCreate() {
 		DiscussionThreadBundle dto = threadDao.createThread(forumId, "title", "messageUrl", userId);
+		assertEquals("check default number of views", dto.getNumberOfViews(), (Long) 0L);
+		assertEquals("check default number of replies", dto.getNumberOfReplies(), (Long) 0L);
+		assertEquals("check default last activity", dto.getLastActivity(), dto.getModifiedOn());
+		assertEquals("check default active authors", dto.getActiveAuthors(), Arrays.asList(dto.getCreatedBy()));
 
 		long threadId = Long.parseLong(dto.getId());
 		assertEquals("getThread() should return the created one", dto, threadDao.getThread(threadId));
+	}
+
+	@Test
+	public void testUpdateMessageUrl() throws InterruptedException {
+		DiscussionThreadBundle dto = threadDao.createThread(forumId, "title", "messageUrl", userId);
+		long threadId = Long.parseLong(dto.getId());
 
 		Thread.sleep(1000);
 		dto.setIsEdited(true);
@@ -112,9 +123,8 @@ public class DBODiscussionThreadDAOImplTest {
 	}
 
 	@Test
-	public void testCreateUpdateTitle() throws InterruptedException {
+	public void testUpdateTitle(){
 		DiscussionThreadBundle dto = threadDao.createThread(forumId, "title", "messageUrl", userId);
-
 		long threadId = Long.parseLong(dto.getId());
 
 		String newTitle = "newTitle";
@@ -128,9 +138,8 @@ public class DBODiscussionThreadDAOImplTest {
 	}
 
 	@Test
-	public void testCreateDelete() throws InterruptedException {
+	public void testDelete(){
 		DiscussionThreadBundle dto = threadDao.createThread(forumId, "title", "messageUrl", userId);
-
 		long threadId = Long.parseLong(dto.getId());
 
 		dto.setIsDeleted(true);
