@@ -120,4 +120,12 @@ public interface DiscussionThreadDAO {
 	 * @param threadId
 	 */
 	public long countThreadView(long threadId);
+
+	/**
+	 * Get the etag before attempt to update
+	 * 
+	 * @param threadId
+	 * @return
+	 */
+	public String getEtagForUpdate(long threadId);
 }

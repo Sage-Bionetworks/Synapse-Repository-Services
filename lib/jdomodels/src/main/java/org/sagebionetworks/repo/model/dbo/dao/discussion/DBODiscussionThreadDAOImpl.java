@@ -54,6 +54,7 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 			dbo.setCreatedOn(new Date(rs.getTimestamp(COL_DISCUSSION_THREAD_CREATED_ON).getTime()));
 			dbo.setCreatedBy(Long.toString(rs.getLong(COL_DISCUSSION_THREAD_CREATED_BY)));
 			dbo.setModifiedOn(new Date(rs.getTimestamp(COL_DISCUSSION_THREAD_MODIFIED_ON).getTime()));
+			dbo.setEtag(rs.getString(COL_DISCUSSION_THREAD_ETAG));
 			dbo.setMessageUrl(rs.getString(COL_DISCUSSION_THREAD_MESSAGE_URL));
 			dbo.setIsEdited(rs.getBoolean(COL_DISCUSSION_THREAD_IS_EDITED));
 			dbo.setIsDeleted(rs.getBoolean(COL_DISCUSSION_THREAD_IS_DELETED));
@@ -85,6 +86,9 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 		}
 	};
 
+	private static final String SQL_SELECT_ETAG_FOR_UPDATE = "SELECT "+COL_DISCUSSION_THREAD_ETAG
+			+" FROM "+TABLE_DISCUSSION_THREAD
+			+" WHERE "+COL_DISCUSSION_THREAD_ID+" = ? FOR UPDATE";
 	private static final String SQL_MARK_THREAD_AS_DELETED = "UPDATE "+TABLE_DISCUSSION_THREAD
 			+" SET "+COL_DISCUSSION_THREAD_IS_DELETED+" = TRUE, "
 			+COL_DISCUSSION_THREAD_ETAG+" = ? "
@@ -107,6 +111,7 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 			+COL_DISCUSSION_THREAD_CREATED_ON+", "
 			+COL_DISCUSSION_THREAD_CREATED_BY+", "
 			+COL_DISCUSSION_THREAD_MODIFIED_ON+", "
+			+COL_DISCUSSION_THREAD_ETAG+", "
 			+COL_DISCUSSION_THREAD_MESSAGE_URL+", "
 			+COL_DISCUSSION_THREAD_IS_EDITED+", "
 			+COL_DISCUSSION_THREAD_IS_DELETED+", "
@@ -186,6 +191,7 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 		return results.get(0);
 	}
 
+	@WriteTransaction
 	@Override
 	public void updateThreadView(long threadId, long userId) {
 		long id = idGenerator.generateNewId(TYPE.DISCUSSION_THREAD_VIEW_ID);
@@ -263,22 +269,26 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 		return jdbcTemplate.queryForLong(SQL_SELECT_THREAD_COUNT, forumId);
 	}
 
+	@WriteTransaction
 	@Override
 	public void setNumberOfViews(long threadId, long numberOfViews) {
 		jdbcTemplate.update(SQL_UPDATE_THREAD_STATS_VIEWS, threadId, numberOfViews, numberOfViews);
 	}
 
+	@WriteTransaction
 	@Override
 	public void setNumberOfReplies(long threadId, long numberOfReplies) {
 		jdbcTemplate.update(SQL_UPDATE_THREAD_STATS_REPLIES, threadId, numberOfReplies, numberOfReplies);
 	}
 
+	@WriteTransaction
 	@Override
 	public void setActiveAuthors(long threadId, List<String> activeAuthors) {
 		String list = DiscussionThreadUtils.toString(activeAuthors);
 		jdbcTemplate.update(SQL_UPDATE_THREAD_STATS_ACTIVE_AUTHORS, threadId, list, list);
 	}
 
+	@WriteTransaction
 	@Override
 	public void setLastActivity(final long threadId, Date lastActivity) {
 		final Timestamp timestamp = new Timestamp(lastActivity.getTime());
@@ -296,5 +306,18 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 	@Override
 	public long countThreadView(long threadId) {
 		return jdbcTemplate.queryForLong(SQL_SELECT_THREAD_VIEW_COUNT, threadId);
+	}
+
+	@Override
+	public String getEtagForUpdate(long threadId) {
+		List<String> results = jdbcTemplate.query(SQL_SELECT_ETAG_FOR_UPDATE, new RowMapper<String>(){
+
+			@Override
+			public String mapRow(ResultSet rs, int rowNum) throws SQLException {
+				return rs.getString(COL_DISCUSSION_THREAD_ETAG);
+			}
+		}, threadId);
+		if (results.size() != 1) throw new NotFoundException();
+		return results.get(0);
 	}
 }

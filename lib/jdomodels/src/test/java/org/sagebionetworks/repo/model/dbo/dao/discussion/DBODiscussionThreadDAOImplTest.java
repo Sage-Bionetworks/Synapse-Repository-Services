@@ -1,8 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.dao.discussion;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
+import static org.junit.Assert.*;
 import static org.sagebionetworks.repo.model.dbo.dao.discussion.DBODiscussionThreadDAOImpl.MAX_LIMIT;
 
 import java.util.ArrayList;
@@ -106,6 +104,13 @@ public class DBODiscussionThreadDAOImplTest {
 	}
 
 	@Test
+	public void testGetEtag(){
+		DiscussionThreadBundle dto = threadDao.createThread(forumId, "title", "messageUrl", userId);
+		long threadId = Long.parseLong(dto.getId());
+		assertNotNull(threadDao.getEtagForUpdate(threadId));
+	}
+
+	@Test
 	public void testUpdateMessageUrl() throws InterruptedException {
 		DiscussionThreadBundle dto = threadDao.createThread(forumId, "title", "messageUrl", userId);
 		long threadId = Long.parseLong(dto.getId());
@@ -116,9 +121,15 @@ public class DBODiscussionThreadDAOImplTest {
 		dto.setMessageUrl(newMessageUrl);
 		threadDao.updateMessageUrl(threadId, newMessageUrl);
 		DiscussionThreadBundle returnedDto = threadDao.getThread(threadId);
-		assertFalse("after updating message url, modifiedOn should be different", dto.equals(returnedDto));
+		assertFalse("after updating message url, modifiedOn should be different",
+				dto.getModifiedOn().equals(returnedDto.getModifiedOn()));
+		assertFalse("after updating message url, lastActivity should be different",
+				dto.getLastActivity().equals(returnedDto.getLastActivity()));
+		assertFalse("after updating message url, etag should be different",
+				dto.getEtag().equals(returnedDto.getEtag()));
 		dto.setModifiedOn(returnedDto.getModifiedOn());
 		dto.setLastActivity(returnedDto.getLastActivity());
+		dto.setEtag(returnedDto.getEtag());
 		assertEquals(dto, returnedDto);
 	}
 
@@ -134,6 +145,7 @@ public class DBODiscussionThreadDAOImplTest {
 		DiscussionThreadBundle returnedDto = threadDao.getThread(threadId);
 		dto.setModifiedOn(returnedDto.getModifiedOn());
 		dto.setLastActivity(returnedDto.getLastActivity());
+		dto.setEtag(returnedDto.getEtag());
 		assertEquals(dto, returnedDto);
 	}
 
@@ -147,6 +159,7 @@ public class DBODiscussionThreadDAOImplTest {
 		DiscussionThreadBundle returnedDto = threadDao.getThread(threadId);
 		dto.setModifiedOn(returnedDto.getModifiedOn());
 		dto.setLastActivity(returnedDto.getLastActivity());
+		dto.setEtag(returnedDto.getEtag());
 		assertEquals(dto, returnedDto);
 	}
 
