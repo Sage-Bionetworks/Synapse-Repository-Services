@@ -7,6 +7,7 @@ import java.sql.Blob;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -28,6 +29,7 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.jdbc.core.RowMapper;
 
 public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
@@ -68,11 +70,11 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 			} else {
 				dbo.setNumberOfReplies(numberOfReplies);
 			}
-			long lastActivity = rs.getLong(COL_DISCUSSION_THREAD_STATS_LAST_ACTIVITY);
+			Timestamp lastActivity = rs.getTimestamp(COL_DISCUSSION_THREAD_STATS_LAST_ACTIVITY);
 			if (rs.wasNull()) {
 				dbo.setLastActivity(dbo.getModifiedOn());
 			} else {
-				dbo.setLastActivity(new Date(lastActivity));
+				dbo.setLastActivity(new Date(lastActivity.getTime()));
 			}
 			String listString = rs.getString(COL_DISCUSSION_THREAD_STATS_ACTIVE_AUTHORS);
 			if (rs.wasNull()) {
@@ -124,14 +126,17 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 			+" WHERE "+COL_DISCUSSION_THREAD_FORUM_ID+" = ?";
 	private static final String SQL_SELECT_THREADS_BY_FORUM_ID = SELECT_THREAD_BUNDLE
 			+" WHERE "+COL_DISCUSSION_THREAD_FORUM_ID+" = ?";
-	private static final String ORDER_BY_LAST_ACTIVITY = " ORDER BY "+COL_DISCUSSION_THREAD_STATS_LAST_ACTIVITY+" DESC";
-	private static final String ORDER_BY_NUMBER_OF_VIEWS = " ORDER BY "+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_VIEWS+" DESC";
-	private static final String ORDER_BY_NUMBER_OF_REPLIES = " ORDER BY "+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_REPLIES+" DESC";
+	private static final String ORDER_BY_LAST_ACTIVITY = " ORDER BY "+COL_DISCUSSION_THREAD_STATS_LAST_ACTIVITY;
+	private static final String ORDER_BY_NUMBER_OF_VIEWS = " ORDER BY "+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_VIEWS;
+	private static final String ORDER_BY_NUMBER_OF_REPLIES = " ORDER BY "+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_REPLIES;
+	private static final String ORDER_BY_LAST_ACTIVITY_DESC = " ORDER BY "+COL_DISCUSSION_THREAD_STATS_LAST_ACTIVITY+" DESC";
+	private static final String ORDER_BY_NUMBER_OF_VIEWS_DESC = " ORDER BY "+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_VIEWS+" DESC";
+	private static final String ORDER_BY_NUMBER_OF_REPLIES_DESC = " ORDER BY "+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_REPLIES+" DESC";
 	public static final Integer MAX_LIMIT = 100;
 	private static final String DEFAULT_LIMIT = " LIMIT "+MAX_LIMIT+" OFFSET 0";
 
 	private static final String SQL_UPDATE_THREAD_VIEW_TABLE = "INSERT IGNORE INTO "
-			+TABLE_DISCUSSION_THREAD_VIEW+"("
+			+TABLE_DISCUSSION_THREAD_VIEW+" ("
 			+COL_DISCUSSION_THREAD_VIEW_ID+","
 			+COL_DISCUSSION_THREAD_VIEW_THREAD_ID+","
 			+COL_DISCUSSION_THREAD_VIEW_USER_ID
@@ -140,18 +145,26 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 			+" FROM "+TABLE_DISCUSSION_THREAD_VIEW
 			+" WHERE "+COL_DISCUSSION_THREAD_VIEW_THREAD_ID+" = ?";
 
-	private static final String SQL_UPDATE_THREAD_STATS_VIEWS = "UPDATE "+TABLE_DISCUSSION_THREAD_STATS
-			+" SET "+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_VIEWS+" = ? "
-			+" WHERE "+COL_DISCUSSION_THREAD_STATS_THREAD_ID+" = ?";
-	private static final String SQL_UPDATE_THREAD_STATS_REPLIES = "UPDATE "+TABLE_DISCUSSION_THREAD_STATS
-			+" SET "+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_REPLIES+" = ? "
-			+" WHERE "+COL_DISCUSSION_THREAD_STATS_THREAD_ID+" = ?";
-	private static final String SQL_UPDATE_THREAD_STATS_LAST_ACTIVITY = "UPDATE "+TABLE_DISCUSSION_THREAD_STATS
-			+" SET "+COL_DISCUSSION_THREAD_STATS_LAST_ACTIVITY+" = ? "
-			+" WHERE "+COL_DISCUSSION_THREAD_STATS_THREAD_ID+" = ?";
-	private static final String SQL_UPDATE_THREAD_STATS_ACTIVE_AUTHORS = "UPDATE "+TABLE_DISCUSSION_THREAD_STATS
-			+" SET "+COL_DISCUSSION_THREAD_STATS_ACTIVE_AUTHORS+" = ? "
-			+" WHERE "+COL_DISCUSSION_THREAD_STATS_THREAD_ID+" = ?";
+	private static final String SQL_UPDATE_THREAD_STATS_VIEWS = "INSERT INTO "
+			+TABLE_DISCUSSION_THREAD_STATS+" ("
+			+COL_DISCUSSION_THREAD_STATS_THREAD_ID+", "
+			+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_VIEWS+" ) VALUES (?, ?) ON DUPLICATE KEY UPDATE "
+			+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_VIEWS+" = ? ";
+	private static final String SQL_UPDATE_THREAD_STATS_REPLIES = "INSERT INTO "
+			+TABLE_DISCUSSION_THREAD_STATS+" ("
+			+COL_DISCUSSION_THREAD_STATS_THREAD_ID+", "
+			+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_REPLIES+" ) VALUES (?, ?) ON DUPLICATE KEY UPDATE "
+			+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_REPLIES+" = ? ";
+	private static final String SQL_UPDATE_THREAD_STATS_LAST_ACTIVITY = "INSERT INTO "
+			+TABLE_DISCUSSION_THREAD_STATS+" ("
+			+COL_DISCUSSION_THREAD_STATS_THREAD_ID+", "
+			+COL_DISCUSSION_THREAD_STATS_LAST_ACTIVITY+" ) VALUES (?, ?) ON DUPLICATE KEY UPDATE "
+			+COL_DISCUSSION_THREAD_STATS_LAST_ACTIVITY+" = ? ";
+	private static final String SQL_UPDATE_THREAD_STATS_ACTIVE_AUTHORS = "INSERT INTO "
+			+TABLE_DISCUSSION_THREAD_STATS+" ("
+			+COL_DISCUSSION_THREAD_STATS_THREAD_ID+", "
+			+COL_DISCUSSION_THREAD_STATS_ACTIVE_AUTHORS+" ) VALUES (?, ?) ON DUPLICATE KEY UPDATE "
+			+COL_DISCUSSION_THREAD_STATS_ACTIVE_AUTHORS+" = ? ";
 
 	@WriteTransaction
 	@Override
@@ -202,6 +215,15 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 					break;
 				case LAST_ACTIVITY:
 					query += ORDER_BY_LAST_ACTIVITY;
+					break;
+				case NUMBER_OF_REPLIES_DESC:
+					query += ORDER_BY_NUMBER_OF_REPLIES_DESC;
+					break;
+				case NUMBER_OF_VIEWS_DESC:
+					query += ORDER_BY_NUMBER_OF_VIEWS_DESC;
+					break;
+				case LAST_ACTIVITY_DESC:
+					query += ORDER_BY_LAST_ACTIVITY_DESC;
 					break;
 			}
 		}
@@ -270,23 +292,32 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 
 	@Override
 	public void setNumberOfViews(long threadId, long numberOfViews) {
-		jdbcTemplate.update(SQL_UPDATE_THREAD_STATS_VIEWS, numberOfViews, threadId);
+		jdbcTemplate.update(SQL_UPDATE_THREAD_STATS_VIEWS, threadId, numberOfViews, numberOfViews);
 	}
 
 	@Override
 	public void setNumberOfReplies(long threadId, long numberOfReplies) {
-		jdbcTemplate.update(SQL_UPDATE_THREAD_STATS_REPLIES, numberOfReplies, threadId);
+		jdbcTemplate.update(SQL_UPDATE_THREAD_STATS_REPLIES, threadId, numberOfReplies, numberOfReplies);
 	}
 
 	@Override
 	public void setActiveAuthors(long threadId, List<String> activeAuthors) {
 		String list = DiscussionThreadUtils.toString(activeAuthors);
-		jdbcTemplate.update(SQL_UPDATE_THREAD_STATS_ACTIVE_AUTHORS, list, threadId);
+		jdbcTemplate.update(SQL_UPDATE_THREAD_STATS_ACTIVE_AUTHORS, threadId, list, list);
 	}
 
 	@Override
-	public void setLastActivity(long threadId, long lastActivity) {
-		jdbcTemplate.update(SQL_UPDATE_THREAD_STATS_LAST_ACTIVITY, lastActivity, threadId);
+	public void setLastActivity(final long threadId, Date lastActivity) {
+		final Timestamp timestamp = new Timestamp(lastActivity.getTime());
+		jdbcTemplate.update(SQL_UPDATE_THREAD_STATS_LAST_ACTIVITY, new PreparedStatementSetter(){
+
+			@Override
+			public void setValues(PreparedStatement ps) throws SQLException {
+				ps.setLong(1, threadId);
+				ps.setTimestamp(2, timestamp);
+				ps.setTimestamp(3, timestamp);
+			}
+		});
 	}
 
 	@Override

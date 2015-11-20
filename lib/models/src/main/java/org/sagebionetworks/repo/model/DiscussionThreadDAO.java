@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model;
 
+import java.util.Date;
 import java.util.List;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
@@ -95,7 +96,7 @@ public interface DiscussionThreadDAO {
 	 * @param threadId
 	 * @param lastActivity
 	 */
-	public void setLastActivity(long threadId, long lastActivity);
+	public void setLastActivity(long threadId, Date lastActivity);
 
 	/**
 	 * update active authors for the given thread
