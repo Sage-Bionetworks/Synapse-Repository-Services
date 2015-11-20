@@ -149,6 +149,12 @@ public class VerificationControllerAutowiredTest extends AbstractAutowiredContro
 		assertEquals(1L, list.getTotalNumberOfResults().longValue());
 		assertEquals(1, list.getResults().size());
 		
+		// PLFM-3656:  check that param's are optional
+		list = servletTestHelper.listVerificationSubmissions(
+				dispatchServlet, null, null, null, null, adminUserId);
+		assertEquals(1L, list.getTotalNumberOfResults().longValue());
+		assertEquals(1, list.getResults().size());
+		
 		VerificationState newState = new VerificationState();
 		newState.setState(VerificationStateEnum.APPROVED);
 		servletTestHelper.updateVerificationState(dispatchServlet, adminUserId, Long.parseLong(vs.getId()),
