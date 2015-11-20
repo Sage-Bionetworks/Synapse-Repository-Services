@@ -72,7 +72,7 @@ public class RangeMetadataIteratorTest {
 			}
 		} while (row != null);
 		// Did we get what we expected?
-		List<RowMetadata> expectedResult = new LinkedList<>();
+		List<RowMetadata> expectedResult = new LinkedList<RowMetadata>();
 		for (int id = 0; id <= 7; id++) {
 			expectedResult.add(mockStack.metadata.get(type).get(id));
 		}
