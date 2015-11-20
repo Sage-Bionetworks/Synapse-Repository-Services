@@ -4,22 +4,10 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
 import org.sagebionetworks.util.ValidateArgument;
 
 public class DiscussionThreadUtils {
 	public static final Charset UTF8 = Charset.forName("UTF-8");
-
-	/**
-	 * 
-	 * @param createThread - the object to validate
-	 */
-	public static void validateCreateThreadAndThrowException(
-			CreateDiscussionThread createThread) {
-		ValidateArgument.requirement(createThread.getForumId() != null, "forumId can not be null");
-		ValidateArgument.requirement(createThread.getTitle() != null, "title cannot be null");
-		ValidateArgument.requirement(createThread.getMessageMarkdown() != null, "message cannot be null");
-	}
 
 	/**
 	 * Create a DBO from user's request

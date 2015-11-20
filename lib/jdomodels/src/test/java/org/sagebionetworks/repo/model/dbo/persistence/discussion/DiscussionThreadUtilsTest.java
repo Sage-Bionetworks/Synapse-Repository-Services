@@ -8,7 +8,6 @@ import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
 
 public class DiscussionThreadUtilsTest {
 
@@ -27,33 +26,6 @@ public class DiscussionThreadUtilsTest {
 		userId = 2L;
 		id = "3";
 		etag = "etag";
-	}
-
-	@Test
-	public void testValidCreateThread() {
-		CreateDiscussionThread createThread = DiscussionThreadTestUtil.createValidCreateDiscussionThread();
-		DiscussionThreadUtils.validateCreateThreadAndThrowException(createThread);
-	}
-
-	@Test (expected = IllegalArgumentException.class)
-	public void testInvalidCreateThreadWithNullForumId() {
-		CreateDiscussionThread createThread = DiscussionThreadTestUtil.createValidCreateDiscussionThread();
-		createThread.setForumId(null);
-		DiscussionThreadUtils.validateCreateThreadAndThrowException(createThread);
-	}
-
-	@Test (expected = IllegalArgumentException.class)
-	public void testInvalidCreateThreadWithNullTitle() {
-		CreateDiscussionThread createThread = DiscussionThreadTestUtil.createValidCreateDiscussionThread();
-		createThread.setTitle(null);
-		DiscussionThreadUtils.validateCreateThreadAndThrowException(createThread);
-	}
-
-	@Test (expected = IllegalArgumentException.class)
-	public void testInvalidCreateThreadWithNullMessage() {
-		CreateDiscussionThread createThread = DiscussionThreadTestUtil.createValidCreateDiscussionThread();
-		createThread.setMessageMarkdown(null);
-		DiscussionThreadUtils.validateCreateThreadAndThrowException(createThread);
 	}
 
 	@Test
