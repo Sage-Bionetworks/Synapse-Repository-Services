@@ -2318,10 +2318,12 @@ public interface SynapseClient extends BaseClient {
 	 *Request identity verification by the Synapse Access and Compliance Team
 	 *
 	 * @param verificationSubmission
+	 * @param notificationUnsubscribeEndpoint the portal prefix for one-click email unsubscription (optional)
 	 * @return the created submission
 	 * @throws SynapseException
 	 */
-	VerificationSubmission createVerificationSubmission(VerificationSubmission verificationSubmission) throws SynapseException;
+	VerificationSubmission createVerificationSubmission(VerificationSubmission verificationSubmission,
+			String notificationUnsubscribeEndpoint) throws SynapseException;
 	
 	/**
 	 * Retrieve a list of verification submissions, optionally filtering by the
@@ -2352,9 +2354,12 @@ public interface SynapseClient extends BaseClient {
 	 * 
 	 * @param verificationId
 	 * @param verificationState the new state for the verification request
+	 * @param notificationUnsubscribeEndpoint the portal prefix for one-click email unsubscription (optional)
 	 * @throws SynapseException.   If the caller specifies an illegal state transition a BadRequestException will be thrown.
 	 */
-	void updateVerificationState(long verificationId, VerificationState verificationState) throws SynapseException;
+	void updateVerificationState(long verificationId, 
+			VerificationState verificationState,
+			String notificationUnsubscribeEndpoint) throws SynapseException;
 	
 	/**
 	 * Delete a verification submission. The caller must be the creator of the object.

@@ -75,8 +75,7 @@ public class BulkFileDownloadWorker implements MessageDrivenRunner {
 	public void run(ProgressCallback<Message> progressCallback, Message message)
 			throws RecoverableMessageException, Exception {
 
-		AsynchronousJobStatus status = MessageUtils.readMessageBody(message,
-				AsynchronousJobStatus.class);
+		AsynchronousJobStatus status = asynchJobStatusManager.lookupJobStatus(message.getBody());
 		try {
 
 			if (!(status.getRequestBody() instanceof BulkFileDownloadRequest)) {
