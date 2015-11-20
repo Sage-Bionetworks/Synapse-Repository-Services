@@ -27,7 +27,6 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.jdbc.core.RowMapper;
@@ -168,8 +167,9 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 	@WriteTransaction
 	@Override
 	public DiscussionThreadBundle createThread(String forumId, String title, String messageUrl, long userId) {
-		if (forumId == null || title == null || messageUrl == null) 
-			throw new IllegalArgumentException("All parameters must be initialized.");
+		ValidateArgument.requirement(forumId != null, "forumId cannot be null");
+		ValidateArgument.requirement(title != null, "title cannot be null");
+		ValidateArgument.requirement(messageUrl != null, "messageUrl cannot be null");
 		Long id = idGenerator.generateNewId(TYPE.DISCUSSION_THREAD_ID);
 		String etag = UUID.randomUUID().toString();
 		DBODiscussionThread dbo = DiscussionThreadUtils.createDBO(forumId, title, messageUrl, userId, id.toString(), etag);
@@ -231,25 +231,6 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 		threads.setResults(results);
 
 		return threads;
-	}
-
-	@Override
-	public void updateThreadView(final List<DiscussionThreadBundle> threads, final long userId) {
-		jdbcTemplate.batchUpdate(SQL_UPDATE_THREAD_VIEW_TABLE, new BatchPreparedStatementSetter() {
-
-			@Override
-			public void setValues(PreparedStatement ps, int i)
-					throws SQLException {
-				ps.setLong(1, idGenerator.generateNewId(TYPE.DISCUSSION_THREAD_VIEW_ID));
-				ps.setLong(2, Long.parseLong(threads.get(i).getId()));
-				ps.setLong(3, userId);
-			}
-
-			@Override
-			public int getBatchSize() {
-				return threads.size();
-			}
-		});
 	}
 
 	@WriteTransaction

@@ -120,12 +120,4 @@ public interface DiscussionThreadDAO {
 	 * @param threadId
 	 */
 	public long countThreadView(long threadId);
-
-	/**
-	 * insert ignore a batch of records into THREAD_VIEW table
-	 * 
-	 * @param threads
-	 * @param userId
-	 */
-	public void updateThreadView(List<DiscussionThreadBundle> threads, long userId);
 }
