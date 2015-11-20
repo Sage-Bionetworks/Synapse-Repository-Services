@@ -6,10 +6,28 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
 
 public class DiscussionThreadUtilsTest {
+
+	private String forumId;
+	private String title;
+	private String messageUrl;
+	private long userId;
+	private String id;
+	private String etag;
+
+	@Before
+	public void before() {
+		forumId = "1";
+		title = "title";
+		messageUrl = "messageUrl";
+		userId = 2L;
+		id = "3";
+		etag = "etag";
+	}
 
 	@Test
 	public void testValidCreateThread() {
@@ -40,12 +58,6 @@ public class DiscussionThreadUtilsTest {
 
 	@Test
 	public void testCreateDBO() throws InterruptedException {
-		String forumId = "1";
-		String title = "title";
-		String messageUrl = "messageUrl";
-		Long userId = 2L;
-		String id = "3";
-		String etag = "etag";
 		DBODiscussionThread dbo = DiscussionThreadUtils.createDBO(forumId, title,
 				messageUrl, userId, id, etag);
 		assertNotNull(dbo);
@@ -53,47 +65,35 @@ public class DiscussionThreadUtilsTest {
 		assertEquals(dbo.getForumId().toString(), forumId);
 		assertEquals(new String(dbo.getTitle(), DiscussionThreadUtils.UTF8), title);
 		assertEquals(dbo.getMessageUrl(), messageUrl);
-		assertEquals(dbo.getCreatedBy(), userId);
+		assertEquals(dbo.getCreatedBy(), (Long) userId);
 		assertEquals(dbo.getEtag(), etag);
 		assertFalse(dbo.getIsEdited());
 		assertFalse(dbo.getIsDeleted());
+	}
 
-		try {
-			DiscussionThreadUtils.createDBO(null, title, messageUrl, userId, id, etag);
-			fail("Must throw exception for null forumId");
-		} catch (IllegalArgumentException e) {
-			// as expected
-		}
-		try {
-			DiscussionThreadUtils.createDBO(forumId, null, messageUrl, userId, id, etag);
-			fail("Must throw exception for null title");
-		} catch (NullPointerException e) {
-			// as expected
-		}
-		try {
-			DiscussionThreadUtils.createDBO(forumId, title, null, userId, id, etag);
-			fail("Must throw exception for null messageUrl");
-		} catch (IllegalArgumentException e) {
-			// as expected
-		}
-		try {
-			DiscussionThreadUtils.createDBO(forumId, title, messageUrl, null, id, etag);
-			fail("Must throw exception for null userId");
-		} catch (IllegalArgumentException e) {
-			// as expected
-		}
-		try {
-			DiscussionThreadUtils.createDBO(forumId, title, messageUrl, userId, null, etag);
-			fail("Must throw exception for null id");
-		} catch (IllegalArgumentException e) {
-			// as expected
-		}
-		try {
-			DiscussionThreadUtils.createDBO(forumId, title, messageUrl, userId, id, null);
-			fail("Must throw exception for null etag");
-		} catch (IllegalArgumentException e) {
-			// as expected
-		}
+	@Test (expected = IllegalArgumentException.class)
+	public void testInvalidDBOWithNullForumId() {
+		DiscussionThreadUtils.createDBO(null, title, messageUrl, userId, id, etag);
+	}
+	@Test (expected = IllegalArgumentException.class)
+	public void testInvalidDBOWithNullTitle(){
+		DiscussionThreadUtils.createDBO(forumId, null, messageUrl, userId, id, etag);
+	}
+	@Test (expected = IllegalArgumentException.class)
+	public void testInvalidDBOWithNullMessage(){
+		DiscussionThreadUtils.createDBO(forumId, title, null, userId, id, etag);
+	}
+	@Test (expected = IllegalArgumentException.class)
+	public void testInvalidDBOWithNullUserId(){
+		DiscussionThreadUtils.createDBO(forumId, title, messageUrl, null, id, etag);
+	}
+	@Test (expected = IllegalArgumentException.class)
+	public void testInvalidDBOWithNullId(){
+		DiscussionThreadUtils.createDBO(forumId, title, messageUrl, userId, null, etag);
+	}
+	@Test (expected = IllegalArgumentException.class)
+	public void testInvalidDBOWithNullEtag(){
+		DiscussionThreadUtils.createDBO(forumId, title, messageUrl, userId, id, null);
 	}
 
 	@Test

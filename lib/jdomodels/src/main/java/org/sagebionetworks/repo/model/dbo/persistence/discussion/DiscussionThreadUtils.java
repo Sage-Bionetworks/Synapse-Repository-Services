@@ -34,17 +34,20 @@ public class DiscussionThreadUtils {
 	 */
 	public static DBODiscussionThread createDBO(String forumId, String title,
 			String messageUrl, Long userId, String id, String etag) {
+		ValidateArgument.requirement(forumId != null, "forumId cannot be null");
+		ValidateArgument.requirement(title != null, "title cannot be null");
+		ValidateArgument.requirement(messageUrl != null, "messageUrl cannot be null");
+		ValidateArgument.requirement(userId != null, "userId cannot be null");
+		ValidateArgument.requirement(id != null, "id cannot be null");
+		ValidateArgument.requirement(etag != null, "etag cannot be null");
 		DBODiscussionThread dbo = new DBODiscussionThread();
 		dbo.setId(Long.parseLong(id));
 		dbo.setForumId(Long.parseLong(forumId));
 		dbo.setTitle(title.getBytes(UTF8));
-		if (messageUrl == null) throw new IllegalArgumentException("messageUrl must be initialized");
 		dbo.setMessageUrl(messageUrl);
-		if (userId == null) throw new IllegalArgumentException("userId must be initialized");
 		dbo.setCreatedBy(userId);
 		dbo.setIsEdited(false);
 		dbo.setIsDeleted(false);
-		if (etag == null) throw new IllegalArgumentException("etag must be initialized");
 		dbo.setEtag(etag);
 		return dbo;
 	}
