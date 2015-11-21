@@ -7,6 +7,7 @@ import static org.sagebionetworks.repo.model.verification.VerificationStateEnum.
 import static org.sagebionetworks.repo.model.verification.VerificationStateEnum.REJECTED;
 import static org.sagebionetworks.repo.model.verification.VerificationStateEnum.SUSPENDED;
 
+import java.io.UnsupportedEncodingException;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -15,8 +16,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import javax.mail.internet.InternetAddress;
+
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.entity.ContentType;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.team.TeamConstants;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -223,6 +227,21 @@ public class VerificationManagerImpl implements VerificationManager {
 		MessageToUser mtu = new MessageToUser();
 		mtu.setSubject(VERIFICATION_NOTIFICATION_SUBJECT);
 		mtu.setRecipients(Collections.singleton(recipient));
+		
+		List<PrincipalAlias> actTeamAliases = principalAliasDAO.listPrincipalAliases(TeamConstants.ACT_TEAM_ID, AliasType.TEAM_NAME);
+		// should just be one
+		if (actTeamAliases.size()!=1) throw new IllegalStateException("Expected one but found "+actTeamAliases.size());
+		String actName = actTeamAliases.get(0).getAlias();
+		String actEmailAddress = 
+				AliasUtils.getUniqueAliasName(actName)+
+				StackConfiguration.getNotificationEmailSuffix();
+		String internetAddress;
+		try {
+			internetAddress = (new InternetAddress(actEmailAddress, actName)).toString();
+		} catch (UnsupportedEncodingException e) {
+			throw new RuntimeException(e);
+		}
+		mtu.setTo(internetAddress);
 		mtu.setNotificationUnsubscribeEndpoint(notificationUnsubscribeEndpoint);
 		return Collections.singletonList(new MessageToUserAndBody(
 				mtu, messageContent, ContentType.TEXT_HTML.getMimeType()));
