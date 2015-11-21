@@ -1,11 +1,16 @@
 package org.sagebionetworks.repo.model.dbo.persistence.discussion;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_THREAD_STATS_ACTIVE_AUTHORS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_THREAD_STATS_LAST_ACTIVITY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_THREAD_STATS_NUMBER_OF_REPLIES;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_THREAD_STATS_NUMBER_OF_VIEWS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_THREAD_STATS_THREAD_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_DISCUSSION_THREAD_STATS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DISCUSSION_THREAD_STATS;
 
-import java.sql.Blob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Arrays;
+import java.util.Date;
 
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
@@ -14,7 +19,7 @@ import org.sagebionetworks.repo.model.dbo.TableMapping;
 public class DBODiscussionThreadStats implements DatabaseObject<DBODiscussionThreadStats> {
 
 	private static final FieldColumn[] FIELDS = new FieldColumn[] {
-		new FieldColumn("threadId", COL_DISCUSSION_THREAD_STATS_THREAD_ID, true).withIsBackupId(true),
+		new FieldColumn("threadId", COL_DISCUSSION_THREAD_STATS_THREAD_ID, true),
 		new FieldColumn("numberOfViews", COL_DISCUSSION_THREAD_STATS_NUMBER_OF_VIEWS),
 		new FieldColumn("numberOfReplies", COL_DISCUSSION_THREAD_STATS_NUMBER_OF_REPLIES),
 		new FieldColumn("lastActivity", COL_DISCUSSION_THREAD_STATS_LAST_ACTIVITY),
@@ -24,22 +29,23 @@ public class DBODiscussionThreadStats implements DatabaseObject<DBODiscussionThr
 	private Long threadIs;
 	private Long numberOfViews;
 	private Long numberOfReplies;
-	private Long lastActivity;
-	private byte[] activeAuthors;
+	private Date lastActivity;
+	private String activeAuthors;
 
 	@Override
 	public String toString() {
 		return "DBODiscussionThreadStats [threadIs=" + threadIs
 				+ ", numberOfViews=" + numberOfViews + ", numberOfReplies="
 				+ numberOfReplies + ", lastActivity=" + lastActivity
-				+ ", activeAuthors=" + Arrays.toString(activeAuthors) + "]";
+				+ ", activeAuthors=" + activeAuthors + "]";
 	}
 
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + Arrays.hashCode(activeAuthors);
+		result = prime * result
+				+ ((activeAuthors == null) ? 0 : activeAuthors.hashCode());
 		result = prime * result
 				+ ((lastActivity == null) ? 0 : lastActivity.hashCode());
 		result = prime * result
@@ -60,7 +66,10 @@ public class DBODiscussionThreadStats implements DatabaseObject<DBODiscussionThr
 		if (getClass() != obj.getClass())
 			return false;
 		DBODiscussionThreadStats other = (DBODiscussionThreadStats) obj;
-		if (!Arrays.equals(activeAuthors, other.activeAuthors))
+		if (activeAuthors == null) {
+			if (other.activeAuthors != null)
+				return false;
+		} else if (!activeAuthors.equals(other.activeAuthors))
 			return false;
 		if (lastActivity == null) {
 			if (other.lastActivity != null)
@@ -109,19 +118,19 @@ public class DBODiscussionThreadStats implements DatabaseObject<DBODiscussionThr
 		this.numberOfReplies = numberOfReplies;
 	}
 
-	public Long getLastActivity() {
+	public Date getLastActivity() {
 		return lastActivity;
 	}
 
-	public void setLastActivity(Long lastActivity) {
+	public void setLastActivity(Date lastActivity) {
 		this.lastActivity = lastActivity;
 	}
 
-	public byte[] getActiveAuthors() {
+	public String getActiveAuthors() {
 		return activeAuthors;
 	}
 
-	public void setActiveAuthors(byte[] activeAuthors) {
+	public void setActiveAuthors(String activeAuthors) {
 		this.activeAuthors = activeAuthors;
 	}
 
@@ -136,8 +145,7 @@ public class DBODiscussionThreadStats implements DatabaseObject<DBODiscussionThr
 				dbo.setThreadIs(rs.getLong(COL_DISCUSSION_THREAD_STATS_THREAD_ID));
 				dbo.setNumberOfViews(rs.getLong(COL_DISCUSSION_THREAD_STATS_NUMBER_OF_VIEWS));
 				dbo.setNumberOfReplies(rs.getLong(COL_DISCUSSION_THREAD_STATS_NUMBER_OF_REPLIES));
-				Blob blob = rs.getBlob(COL_DISCUSSION_THREAD_STATS_ACTIVE_AUTHORS);
-				dbo.setActiveAuthors(blob.getBytes(1, (int) blob.length()));
+				dbo.setActiveAuthors(rs.getString(COL_DISCUSSION_THREAD_STATS_ACTIVE_AUTHORS));
 				return dbo;
 			}
 

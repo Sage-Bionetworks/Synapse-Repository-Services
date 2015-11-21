@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model;
 
+import java.util.Date;
 import java.util.List;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
@@ -24,10 +25,9 @@ public interface DiscussionThreadDAO {
 	 * Get a discussion thread
 	 * 
 	 * @param threadId
-	 * @param userId
 	 * @return
 	 */
-	public DiscussionThreadBundle getThread(long threadId, long userId);
+	public DiscussionThreadBundle getThread(long threadId);
 
 	/**
 	 * Get the number of discussion thread in a given forum
@@ -49,7 +49,7 @@ public interface DiscussionThreadDAO {
 	 * @return
 	 */
 	public PaginatedResults<DiscussionThreadBundle> getThreads(long forumId,
-			DiscussionOrder order, Integer limit, Integer offset, long userId);
+			DiscussionOrder order, Integer limit, Integer offset);
 
 	/**
 	 * Mark a discussion thread as deleted
@@ -96,7 +96,7 @@ public interface DiscussionThreadDAO {
 	 * @param threadId
 	 * @param lastActivity
 	 */
-	public void setLastActivity(long threadId, long lastActivity);
+	public void setLastActivity(long threadId, Date lastActivity);
 
 	/**
 	 * update active authors for the given thread
@@ -104,7 +104,7 @@ public interface DiscussionThreadDAO {
 	 * @param threadId
 	 * @param activeAuthors - the top 5 active authors
 	 */
-	public void setActiveAuthors(long threadId, List<Long> activeAuthors);
+	public void setActiveAuthors(long threadId, List<String> activeAuthors);
 
 	/**
 	 * insert ignore a record into THREAD_VIEW table
@@ -120,4 +120,12 @@ public interface DiscussionThreadDAO {
 	 * @param threadId
 	 */
 	public long countThreadView(long threadId);
+
+	/**
+	 * Get the etag before attempt to update
+	 * 
+	 * @param threadId
+	 * @return
+	 */
+	public String getEtagForUpdate(long threadId);
 }
