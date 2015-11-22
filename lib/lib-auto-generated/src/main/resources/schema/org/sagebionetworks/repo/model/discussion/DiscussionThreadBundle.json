@@ -27,9 +27,6 @@
 			"format":"date-time",
 			"description":"The timestamp when this Thread was last modified"
 		},
-		"etag": {
-			"type": "string"
-		},
 		"messageUrl": {
 		"type": "string",
 			"description": "The URL to download the file that contains the message"
