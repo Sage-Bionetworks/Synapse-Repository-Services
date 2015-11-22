@@ -1,13 +1,27 @@
 package org.sagebionetworks.repo.model.dbo.persistence.discussion;
 
 import java.nio.charset.Charset;
-import java.util.ArrayList;
+import java.util.Date;
+import java.util.LinkedList;
 import java.util.List;
 
-import org.sagebionetworks.util.ValidateArgument;
+import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
 
 public class DiscussionThreadUtils {
 	public static final Charset UTF8 = Charset.forName("UTF-8");
+
+	/**
+	 * 
+	 * @param createThread - the object to validate
+	 */
+	public static void validateCreateThreadAndThrowException(
+			CreateDiscussionThread createThread) {
+		if (createThread.getForumId() == null
+				|| createThread.getTitle() == null
+				|| createThread.getMessageMarkdown() == null) {
+			throw new IllegalArgumentException();
+		}
+	}
 
 	/**
 	 * Create a DBO from user's request
@@ -22,58 +36,55 @@ public class DiscussionThreadUtils {
 	 */
 	public static DBODiscussionThread createDBO(String forumId, String title,
 			String messageUrl, Long userId, String id, String etag) {
-		ValidateArgument.requirement(forumId != null, "forumId cannot be null");
-		ValidateArgument.requirement(title != null, "title cannot be null");
-		ValidateArgument.requirement(messageUrl != null, "messageUrl cannot be null");
-		ValidateArgument.requirement(userId != null, "userId cannot be null");
-		ValidateArgument.requirement(id != null, "id cannot be null");
-		ValidateArgument.requirement(etag != null, "etag cannot be null");
 		DBODiscussionThread dbo = new DBODiscussionThread();
 		dbo.setId(Long.parseLong(id));
 		dbo.setForumId(Long.parseLong(forumId));
 		dbo.setTitle(title.getBytes(UTF8));
+		if (messageUrl == null) throw new IllegalArgumentException("messageUrl must be initialized");
 		dbo.setMessageUrl(messageUrl);
+		if (userId == null) throw new IllegalArgumentException("userId must be initialized");
 		dbo.setCreatedBy(userId);
+		dbo.setCreatedOn(new Date().getTime());
+		dbo.setModifiedOn(new Date().getTime());
 		dbo.setIsEdited(false);
 		dbo.setIsDeleted(false);
+		if (etag == null) throw new IllegalArgumentException("etag must be initialized");
 		dbo.setEtag(etag);
 		return dbo;
 	}
 
 	/**
-	 * convert an input String to a list of String
-	 * the input has the following format:
-	 * <string1>,<string2>,...
+	 * 
+	 * @param bytes
+	 * @return
+	 */
+	public static String decompressUTF8(byte[] bytes) {
+		return new String(bytes, UTF8);
+	}
+
+	/**
+	 * 
+	 * @param toCompress
+	 * @return
+	 */
+	public static byte[] compressUTF8(String toCompress) {
+		return toCompress.getBytes(UTF8);
+	}
+
+	/**
+	 * convert an input String to a list of String, separated by comma.
 	 * 
 	 * @param inputString
 	 * @return
 	 */
-	public static List<String> toList(String inputString) {
-		if (inputString == null) throw new IllegalArgumentException("input string cannot be null");
-		List<String> list = new ArrayList<String>();
-		if (inputString.equals("")) return list;
+	public static List<String> createList(String inputString) {
+		List<String> list = new LinkedList<String>();
+		inputString = inputString.replace("[", "");
+		inputString = inputString.replace("]", "");
 		String[] elements = inputString.split(",");
 		for (String string : elements) {
-			list.add(string);
+			list.add(string.trim());
 		}
 		return list;
-	}
-
-	/**
-	 * convert a list of String to a String with format:
-	 * <string1>,<string2>,...
-	 * 
-	 * @param listOfString
-	 * @return
-	 */
-	public static String toString(List<String> listOfString) {
-		String result = "";
-		if (listOfString.isEmpty()) return result;
-		if (listOfString.size() == 1) return listOfString.get(0);
-		result += listOfString.get(0);
-		for (int i = 1; i < listOfString.size(); i++) {
-			result += ","+listOfString.get(i);
-		}
-		return result;
 	}
 }

@@ -35,9 +35,7 @@ import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ActivityDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.DiscussionThreadDAO;
 import org.sagebionetworks.repo.model.EntityHeader;
-import org.sagebionetworks.repo.model.ForumDAO;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Reference;
@@ -49,8 +47,6 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VerificationDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
-import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
-import org.sagebionetworks.repo.model.discussion.Forum;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociationManager;
@@ -86,13 +82,6 @@ public class AuthorizationManagerImplUnitTest {
 	private UserInfo adminUser;
 	private Evaluation evaluation;
 	private NodeDAO mockNodeDao;
-	private DiscussionThreadDAO mockThreadDao;
-	private ForumDAO mockForumDao;
-	private String threadId;
-	private String forumId;
-	private String projectId;
-	private DiscussionThreadBundle bundle;
-	private Forum forum;
 
 	@Before
 	public void setUp() throws Exception {
@@ -109,8 +98,6 @@ public class AuthorizationManagerImplUnitTest {
 		mockNodeDao = Mockito.mock(NodeDAO.class);
 		mockFileHandleAssociationManager = Mockito.mock(FileHandleAssociationManager.class);
 		mockVerificationDao = Mockito.mock(VerificationDAO.class);
-		mockThreadDao = Mockito.mock(DiscussionThreadDAO.class);
-		mockForumDao = Mockito.mock(ForumDAO.class);
 
 		authorizationManager = new AuthorizationManagerImpl();
 		ReflectionTestUtils.setField(authorizationManager, "accessRequirementDAO", mockAccessRequirementDAO);
@@ -125,9 +112,7 @@ public class AuthorizationManagerImplUnitTest {
 		ReflectionTestUtils.setField(authorizationManager, "nodeDao", mockNodeDao);
 		ReflectionTestUtils.setField(authorizationManager, "fileHandleAssociationSwitch", mockFileHandleAssociationManager);
 		ReflectionTestUtils.setField(authorizationManager, "verificationDao", mockVerificationDao);
-		ReflectionTestUtils.setField(authorizationManager, "threadDao", mockThreadDao);
-		ReflectionTestUtils.setField(authorizationManager, "forumDao", mockForumDao);
-
+				
 		userInfo = new UserInfo(false, USER_PRINCIPAL_ID);
 
 		adminUser = new UserInfo(true, 456L);
@@ -149,17 +134,6 @@ public class AuthorizationManagerImplUnitTest {
 		when(mockFileHandleAssociationManager.getAuthorizationObjectTypeForAssociatedObjectType(FileHandleAssociateType.FileEntity)).thenReturn(ObjectType.ENTITY);
 		when(mockFileHandleAssociationManager.getAuthorizationObjectTypeForAssociatedObjectType(FileHandleAssociateType.TableEntity)).thenReturn(ObjectType.ENTITY);
 		when(mockFileHandleAssociationManager.getAuthorizationObjectTypeForAssociatedObjectType(FileHandleAssociateType.WikiAttachment)).thenReturn(ObjectType.WIKI);
-
-		threadId = "0";
-		forumId = "1";
-		projectId = "syn123";
-		bundle = new DiscussionThreadBundle();
-		bundle.setForumId(forumId);
-		forum = new Forum();
-		forum.setId(forumId);
-		forum.setProjectId(projectId);
-		when(mockThreadDao.getThread(Mockito.anyLong())).thenReturn(bundle);
-		when(mockForumDao.getForum(1L)).thenReturn(forum);
 	}
 
 	private PaginatedResults<Reference> generateQueryResults(int numResults, int total) {
@@ -646,44 +620,5 @@ public class AuthorizationManagerImplUnitTest {
 		);
 		assertEquals(expected, results);
 	}
-
-	@Test
-	public void testCanAccessDiscussionThreadReadAuthorized() {
-		when(mockEntityPermissionsManager.hasAccess(any(String.class), any(ACCESS_TYPE.class), eq(userInfo))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		assertEquals(authorizationManager.canAccess(userInfo, threadId, ObjectType.DISCUSSION_THREAD, ACCESS_TYPE.READ),
-				AuthorizationManagerUtil.AUTHORIZED);
-	}
-
-	@Test
-	public void testCanAccessDiscussionThreadReadUnauthorized() {
-		when(mockEntityPermissionsManager.hasAccess(any(String.class), any(ACCESS_TYPE.class), eq(userInfo))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
-		assertEquals(authorizationManager.canAccess(userInfo, threadId, ObjectType.DISCUSSION_THREAD, ACCESS_TYPE.READ),
-				AuthorizationManagerUtil.ACCESS_DENIED);
-	}
-
-	@Test
-	public void testCanAccessDiscussionThreadUpdateAuthorized(){
-		bundle.setCreatedBy(userInfo.getId().toString());
-		assertEquals(authorizationManager.canAccess(userInfo, threadId, ObjectType.DISCUSSION_THREAD, ACCESS_TYPE.UPDATE),
-				AuthorizationManagerUtil.AUTHORIZED);
-	}
-
-	@Test
-	public void testCanAccessDiscussionThreadUpdateUnauthorized(){
-		bundle.setCreatedBy("0");
-		assertEquals(authorizationManager.canAccess(userInfo, threadId, ObjectType.DISCUSSION_THREAD, ACCESS_TYPE.UPDATE),
-				AuthorizationManagerUtil.accessDenied("You must be the author of the thread to update it."));
-	}
-
-	@Test
-	public void testCanAccessDiscussionThreadDeleteAuthorized(){
-		assertEquals(authorizationManager.canAccess(adminUser, threadId, ObjectType.DISCUSSION_THREAD, ACCESS_TYPE.DELETE),
-				AuthorizationManagerUtil.AUTHORIZED);
-	}
-
-	@Test
-	public void testCanAccessDiscussionThreadDeleteUnauthorized(){
-		assertEquals(authorizationManager.canAccess(userInfo, threadId, ObjectType.DISCUSSION_THREAD, ACCESS_TYPE.DELETE),
-				AuthorizationManagerUtil.accessDenied("Only forum admin can delete a thread."));
-	}
+	
 }
