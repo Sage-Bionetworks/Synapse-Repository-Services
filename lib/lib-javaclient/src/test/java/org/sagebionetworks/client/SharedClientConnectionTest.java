@@ -15,6 +15,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.SocketTimeoutException;
 import java.util.Map;
 
 import org.apache.http.Header;
@@ -156,6 +157,21 @@ public class SharedClientConnectionTest {
 			//verify retried with SERVICE_UNAVAILABLE
 			verify(mockClientProvider, times(SharedClientConnection.MAX_RETRY_SERVICE_UNAVAILABLE_COUNT)).performRequest(anyString(), anyString(), anyString(), anyMap());
 			assertTrue(e.getMessage().contains("throttled"));
+		}
+	}
+	
+	@Test
+	public void testSocketTimeoutExceptionRetry() throws Exception {
+		sharedClientConnection.setRetryRequestIfServiceUnavailable(true);
+		String errorMessage = "a timeout occurred on a socket read (or accept)";
+		when(mockClientProvider.performRequest(any(String.class),any(String.class),any(String.class),any(Map.class))).thenThrow(new SocketTimeoutException(errorMessage));
+		try {
+			sharedClientConnection.postJson(endpoint, uri,jsonString, userAgent, null);
+			fail("expected exception");
+		} catch (SynapseServerException e) {
+			//verify retried with SocketTimeoutException
+			verify(mockClientProvider, times(SharedClientConnection.MAX_RETRY_SERVICE_UNAVAILABLE_COUNT)).performRequest(anyString(), anyString(), anyString(), anyMap());
+			assertTrue(e.getMessage().contains(errorMessage));
 		}
 	}
 	
