@@ -232,16 +232,7 @@ public class VerificationManagerImpl implements VerificationManager {
 		// should just be one
 		if (actTeamAliases.size()!=1) throw new IllegalStateException("Expected one but found "+actTeamAliases.size());
 		String actName = actTeamAliases.get(0).getAlias();
-		String actEmailAddress = 
-				AliasUtils.getUniqueAliasName(actName)+
-				StackConfiguration.getNotificationEmailSuffix();
-		String internetAddress;
-		try {
-			internetAddress = (new InternetAddress(actEmailAddress, actName)).toString();
-		} catch (UnsupportedEncodingException e) {
-			throw new RuntimeException(e);
-		}
-		mtu.setTo(internetAddress);
+		mtu.setTo(EmailUtils.getEmailAddressForPrincipalName(actName));
 		mtu.setNotificationUnsubscribeEndpoint(notificationUnsubscribeEndpoint);
 		return Collections.singletonList(new MessageToUserAndBody(
 				mtu, messageContent, ContentType.TEXT_HTML.getMimeType()));

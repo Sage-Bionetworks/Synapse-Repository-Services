@@ -788,6 +788,7 @@ public class SubmissionManagerTest {
 						NOTIFICATION_UNSUBSCRIBE_END_POINT);
 		assertEquals(1, result.size());
 		assertEquals("Team Challenge Submission", result.get(0).getMetadata().getSubject());
+		assertEquals("test team <testteam@synapse.org>", result.get(0).getMetadata().getTo());
 		assertEquals(Collections.singleton("99"), result.get(0).getMetadata().getRecipients());
 		String body = result.get(0).getBody();
 		
