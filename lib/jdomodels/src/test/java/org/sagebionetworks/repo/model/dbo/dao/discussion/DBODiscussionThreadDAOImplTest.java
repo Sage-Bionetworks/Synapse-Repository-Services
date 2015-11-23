@@ -155,7 +155,7 @@ public class DBODiscussionThreadDAOImplTest {
 		long threadId = Long.parseLong(dto.getId());
 
 		dto.setIsDeleted(true);
-		threadDao.deleteThread(threadId);
+		threadDao.markThreadAsDeleted(threadId);
 		DiscussionThreadBundle returnedDto = threadDao.getThread(threadId);
 		dto.setModifiedOn(returnedDto.getModifiedOn());
 		dto.setLastActivity(returnedDto.getLastActivity());

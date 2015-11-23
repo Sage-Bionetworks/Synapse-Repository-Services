@@ -99,7 +99,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 
 	@WriteTransaction
 	@Override
-	public void deleteThread(UserInfo userInfo, String threadId) {
+	public void markThreadAsDeleted(UserInfo userInfo, String threadId) {
 		if (threadId == null) {
 			throw new IllegalArgumentException("threadId cannot be null");
 		}
@@ -108,7 +108,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		DiscussionThreadBundle thread = threadDao.getThread(threadIdLong);
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canAccess(userInfo, thread.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.DELETE));
-		threadDao.deleteThread(threadIdLong);
+		threadDao.markThreadAsDeleted(threadIdLong);
 	}
 
 	@Override

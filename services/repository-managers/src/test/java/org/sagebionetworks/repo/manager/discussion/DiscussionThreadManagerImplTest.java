@@ -179,15 +179,15 @@ public class DiscussionThreadManagerImplTest {
 	public void testDeleteUnauthorized() {
 		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.DELETE))
 				.thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
-		threadManager.deleteThread(userInfo, threadId.toString());
+		threadManager.markThreadAsDeleted(userInfo, threadId.toString());
 	}
 
 	@Test
 	public void testDeleteAuthorized() {
 		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.DELETE))
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		threadManager.deleteThread(userInfo, threadId.toString());
-		Mockito.verify(mockThreadDao).deleteThread(threadId);
+		threadManager.markThreadAsDeleted(userInfo, threadId.toString());
+		Mockito.verify(mockThreadDao).markThreadAsDeleted(threadId);
 	}
 
 	@Test (expected = IllegalArgumentException.class)

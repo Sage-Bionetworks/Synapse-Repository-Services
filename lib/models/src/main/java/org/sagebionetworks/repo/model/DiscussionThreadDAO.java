@@ -56,7 +56,7 @@ public interface DiscussionThreadDAO {
 	 * 
 	 * @param threadId
 	 */
-	public void deleteThread(long threadId);
+	public void markThreadAsDeleted(long threadId);
 
 	/**
 	 * Update a discussion thread message

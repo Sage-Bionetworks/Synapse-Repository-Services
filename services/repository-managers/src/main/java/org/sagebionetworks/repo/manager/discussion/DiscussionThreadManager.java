@@ -52,7 +52,7 @@ public interface DiscussionThreadManager {
 	 * @param userInfo
 	 * @param threadId
 	 */
-	public void deleteThread(UserInfo userInfo, String threadId);
+	public void markThreadAsDeleted(UserInfo userInfo, String threadId);
 
 	/**
 	 * Get threads that belongs to forumId
