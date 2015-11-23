@@ -49,11 +49,22 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 	@Autowired
 	ObjectRecordDAO objectRecordDAO;
 	
+	/*
+	 * (non-Javadoc)
+	 * @see org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager#lookupJobStatus(java.lang.String)
+	 */
+	@Override
+	public AsynchronousJobStatus lookupJobStatus(String jobId)
+			throws DatastoreException, NotFoundException {
+		// Get the status
+		return asynchJobStatusDao.getJobStatus(jobId);
+	}
+	
 	@Override
 	public AsynchronousJobStatus getJobStatus(UserInfo userInfo, String jobId) throws DatastoreException, NotFoundException {
 		if(userInfo == null) throw new IllegalArgumentException("UserInfo cannot be null");
 		// Get the status
-		AsynchronousJobStatus status = asynchJobStatusDao.getJobStatus(jobId);
+		AsynchronousJobStatus status = lookupJobStatus(jobId);
 		// Only the user that started a job can read it
 		if(!authorizationManager.isUserCreatorOrAdmin(userInfo, status.getStartedByUserId().toString())){
 			throw new UnauthorizedException("Only the user that created a job can access the job's status.");
@@ -102,6 +113,7 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 				return status;
 			}
 		}
+		
 		// Start the job.
 		AsynchronousJobStatus status = asynchJobStatusDao.startJob(user.getId(), body);
 		// publish a message to get the work started
@@ -192,8 +204,6 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 	@Override
 	public void emptyAllQueues() {
 		asynchJobQueuePublisher.emptyAllQueues();
-	}
-	
-	
+	}	
 
 }

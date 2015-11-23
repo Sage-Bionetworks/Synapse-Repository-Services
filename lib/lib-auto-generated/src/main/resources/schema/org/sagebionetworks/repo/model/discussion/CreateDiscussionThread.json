@@ -1,0 +1,17 @@
+{
+	"description": "The CreateThread model object represents a single Thread creation.",
+	"properties": {
+		"forumId": {
+			"type": "string",
+			"description": "The ID of the forum this CreateThread belongs to"
+		},
+		"title": {
+			"type": "string",
+			"description": "The title of the Thread"
+		},
+		"messageMarkdown": {
+			"type": "string",
+			"description": "The markdown of the Thread's message"
+		}
+	}
+}

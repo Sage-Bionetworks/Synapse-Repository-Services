@@ -5,8 +5,6 @@ import java.util.Map;
 
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.dbo.asynch.AsynchJobType;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.sqs.AmazonSQSClient;
@@ -43,14 +41,12 @@ public class AsynchJobQueuePublisherImpl implements AsynchJobQueuePublisher {
 		AsynchJobType type = AsynchJobType.findTypeFromRequestClass(status.getRequestBody().getClass());
 		// Get the URL for this type's queue
 		String url = getQueueURLForType(type);
-		String bodyJson;
-		try {
-			bodyJson = EntityFactory.createJSONStringForEntity(status);
-		} catch (JSONObjectAdapterException e) {
-			throw new RuntimeException(e);
-		}
+		/*
+		 * Since PLFM-3645, we no longer push the JSON of the request to the SQS.  Instead, we only
+		 * publish the jobId and expect the workers to lookup the request from the database.
+		 */
 		// publish the message
-		awsSQSClient.sendMessage(new SendMessageRequest(url, bodyJson));
+		awsSQSClient.sendMessage(new SendMessageRequest(url, status.getJobId()));
 	}
 	
 	/**

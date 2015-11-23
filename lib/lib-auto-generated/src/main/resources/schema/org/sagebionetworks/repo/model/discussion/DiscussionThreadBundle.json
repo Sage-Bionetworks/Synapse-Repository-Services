@@ -1,0 +1,63 @@
+{
+	"description": "The Thread model object represents a single Thread.",
+	"properties": {
+		"id": {
+			"type": "string",
+			"description": "The ID of the Thread"
+		},
+		"forumId": {
+			"type": "string",
+			"description": "The ID of the forum this Thread belongs to"
+		},
+		"title": {
+		"type": "string",
+			"description": "The title of the Thread"
+		},
+		"createdOn": {
+			"type": "string",
+			"format":"date-time",
+			"description":"The timestamp when this Thread was created"
+		},
+		"createdBy": {
+			"type": "string",
+			"description":"The id of the user that created this Thread"
+		},
+		"modifiedOn": {
+			"type": "string",
+			"format":"date-time",
+			"description":"The timestamp when this Thread was last modified"
+		},
+		"messageUrl": {
+		"type": "string",
+			"description": "The URL to download the file that contains the message"
+		},
+		"numberOfViews": {
+			"type": "integer",
+			"description": "The number of unique users who has viewed this thread"
+		},
+		"numberOfReplies": {
+			"type": "integer",
+			"description": "The number of replies to this thread"
+		},
+		"lastActivity": {
+			"type": "string",
+			"format":"date-time",
+			"description":"The timestamp when the last activity occurs on this Thread"
+		},
+		"activeAuthors": {
+			"type": "array",
+			"description": "The list of userId whose most active on this Thread ",
+			"items":{
+				"type":"string"
+			}
+		},
+		"isEdited": {
+			"type": "boolean",
+			"description": "Has the author edited this Thread?"
+		},
+		"isDeleted": {
+			"type": "boolean",
+			"description": "Has this Thread been deleted?"
+		}
+	}
+}

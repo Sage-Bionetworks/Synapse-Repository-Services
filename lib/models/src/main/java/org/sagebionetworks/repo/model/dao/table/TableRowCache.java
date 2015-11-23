@@ -2,8 +2,8 @@ package org.sagebionetworks.repo.model.dao.table;
 
 import java.util.Map;
 
+import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.table.ColumnMapper;
-import org.sagebionetworks.util.ProgressCallback;
 
 /**
  * This is an interface to the row cache.

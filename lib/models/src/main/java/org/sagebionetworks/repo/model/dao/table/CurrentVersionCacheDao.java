@@ -2,7 +2,7 @@ package org.sagebionetworks.repo.model.dao.table;
 
 import java.util.Map;
 
-import org.sagebionetworks.util.ProgressCallback;
+import org.sagebionetworks.common.util.progress.ProgressCallback;
 
 public interface CurrentVersionCacheDao {
 	boolean isEnabled();

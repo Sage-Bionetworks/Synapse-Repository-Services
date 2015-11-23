@@ -38,7 +38,6 @@ public class DBOForumDAOImplTest {
 
 	@Before
 	public void before() {
-		forumDao.truncateAll();
 		// create a user to create a project
 		UserGroup user = new UserGroup();
 		user.setIsIndividual(true);
@@ -94,7 +93,18 @@ public class DBOForumDAOImplTest {
 	@Test
 	public void testKeyWithoutSynPrefix() {
 		Forum dto = forumDao.createForum(KeyFactory.stringToKey(projectId).toString());
-		assertEquals(forumDao.getForum(Long.parseLong(dto.getId())), dto);
+		long forumId = Long.parseLong(dto.getId());
+		assertEquals(forumDao.getForum(forumId), dto);
 		assertEquals(forumDao.getForumByProjectId(dto.getProjectId()), dto);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void createWithNullProjectId() {
+		forumDao.createForum(null);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void createGetNullProjectId() {
+		forumDao.getForumByProjectId(null);
 	}
 }

@@ -11,11 +11,13 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeUtility;
 
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.JoinTeamSignedToken;
 import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.dbo.principal.AliasUtils;
 import org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken;
 import org.sagebionetworks.repo.model.message.Settings;
 import org.sagebionetworks.repo.util.SignedTokenUtil;
@@ -78,6 +80,18 @@ public class EmailUtils {
 			displayName = userName;
 		}
 		return displayName;
+	}
+	
+	public static String getEmailAddressForPrincipalName(String principalAlias) {
+		String actEmailAddress = 
+				AliasUtils.getUniqueAliasName(principalAlias)+
+				StackConfiguration.getNotificationEmailSuffix();
+		try {
+			return (new InternetAddress(actEmailAddress, principalAlias)).toString();
+		} catch (UnsupportedEncodingException e) {
+			throw new RuntimeException(e);
+		}
+
 	}
 
 	/**
