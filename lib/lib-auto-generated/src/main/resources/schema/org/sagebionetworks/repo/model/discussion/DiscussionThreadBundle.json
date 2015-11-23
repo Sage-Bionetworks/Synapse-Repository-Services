@@ -9,6 +9,10 @@
 			"type": "string",
 			"description": "The ID of the forum this Thread belongs to"
 		},
+		"projectId": {
+			"type": "string",
+			"description": "The ID of the project this Thread belongs to"
+		},
 		"title": {
 		"type": "string",
 			"description": "The title of the Thread"

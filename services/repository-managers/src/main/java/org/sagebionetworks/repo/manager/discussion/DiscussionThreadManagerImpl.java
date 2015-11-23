@@ -9,6 +9,7 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DiscussionThreadDAO;
 import org.sagebionetworks.repo.model.ForumDAO;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UploadContentToS3DAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
@@ -45,59 +46,83 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 
 	@Override
 	public DiscussionThreadBundle getThread(UserInfo userInfo, String threadId) {
-		if (threadId == null) throw new IllegalArgumentException("threadId cannot be null");
+		if (threadId == null) {
+			throw new IllegalArgumentException("threadId cannot be null");
+		}
 		UserInfo.validateUserInfo(userInfo);
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccess(userInfo, threadId, ObjectType.DISCUSSION_THREAD, ACCESS_TYPE.READ));
 		Long threadIdLong = Long.parseLong(threadId);
+		DiscussionThreadBundle thread = threadDao.getThread(threadIdLong);
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+				authorizationManager.canAccess(userInfo, thread.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
 		threadDao.updateThreadView(threadIdLong, userInfo.getId());
-		return threadDao.getThread(threadIdLong);
+		return thread;
 	}
 
 	@WriteTransaction
 	@Override
 	public DiscussionThreadBundle updateTitle(UserInfo userInfo, String threadId, String newTitle) {
-		if (threadId == null) throw new IllegalArgumentException("threadId cannot be null");
-		if (newTitle == null) throw new IllegalArgumentException("newTitle cannot be null");
+		if (threadId == null) {
+			throw new IllegalArgumentException("threadId cannot be null");
+		}
+		if (newTitle == null) {
+			throw new IllegalArgumentException("newTitle cannot be null");
+		}
 		UserInfo.validateUserInfo(userInfo);
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccess(userInfo, threadId, ObjectType.DISCUSSION_THREAD, ACCESS_TYPE.UPDATE));
-		return threadDao.updateTitle(Long.parseLong(threadId), newTitle);
+		Long threadIdLong = Long.parseLong(threadId);
+		DiscussionThreadBundle thread = threadDao.getThread(threadIdLong);
+		if (authorizationManager.isUserCreatorOrAdmin(userInfo, thread.getCreatedBy())) {
+			return threadDao.updateTitle(threadIdLong, newTitle);
+		} else {
+			throw new UnauthorizedException("Only the user that created the thread can modify it.");
+		}
 	}
 
 	@WriteTransaction
 	@Override
 	public DiscussionThreadBundle updateMessage(UserInfo userInfo, String threadId, String markdown) {
-		if (threadId == null) throw new IllegalArgumentException("threadId cannot be null");
-		if (markdown == null) throw new IllegalArgumentException("markdown cannot be null");
+		if (threadId == null) {
+			throw new IllegalArgumentException("threadId cannot be null");
+		}
+		if (markdown == null) {
+			throw new IllegalArgumentException("markdown cannot be null");
+		}
 		UserInfo.validateUserInfo(userInfo);
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccess(userInfo, threadId, ObjectType.DISCUSSION_THREAD, ACCESS_TYPE.UPDATE));
-		String messageUrl = uploadDao.upload(markdown, UUID.randomUUID().toString());
-		return threadDao.updateMessageUrl(Long.parseLong(threadId), messageUrl);
+		Long threadIdLong = Long.parseLong(threadId);
+		DiscussionThreadBundle thread = threadDao.getThread(threadIdLong);
+		if (authorizationManager.isUserCreatorOrAdmin(userInfo, thread.getCreatedBy())) {
+			String messageUrl = uploadDao.upload(markdown, UUID.randomUUID().toString());
+			return threadDao.updateMessageUrl(threadIdLong, messageUrl);
+		} else {
+			throw new UnauthorizedException("Only the user that created the thread can modify it.");
+		}
 	}
 
 	@WriteTransaction
 	@Override
 	public void deleteThread(UserInfo userInfo, String threadId) {
-		if (threadId == null) throw new IllegalArgumentException("threadId cannot be null");
+		if (threadId == null) {
+			throw new IllegalArgumentException("threadId cannot be null");
+		}
 		UserInfo.validateUserInfo(userInfo);
+		Long threadIdLong = Long.parseLong(threadId);
+		DiscussionThreadBundle thread = threadDao.getThread(threadIdLong);
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccess(userInfo, threadId, ObjectType.DISCUSSION_THREAD, ACCESS_TYPE.DELETE));
-		threadDao.deleteThread(Long.parseLong(threadId));
+				authorizationManager.canAccess(userInfo, thread.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.DELETE));
+		threadDao.deleteThread(threadIdLong);
 	}
 
 	@Override
 	public PaginatedResults<DiscussionThreadBundle> getThreadsForForum(
 			UserInfo userInfo, String forumId, DiscussionOrder order,
 			Integer limit, Integer offset) {
-		if (forumId == null) throw new IllegalArgumentException("forumId cannot be null");
+		if (forumId == null) {
+			throw new IllegalArgumentException("forumId cannot be null");
+		}
 		UserInfo.validateUserInfo(userInfo);
 		String projectId = forumDao.getForum(Long.parseLong(forumId)).getProjectId();
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ));
-		PaginatedResults<DiscussionThreadBundle> results = threadDao.getThreads(Long.parseLong(forumId), order, limit, offset);
-		return results;
+		return threadDao.getThreads(Long.parseLong(forumId), order, limit, offset);
 	}
 
 }

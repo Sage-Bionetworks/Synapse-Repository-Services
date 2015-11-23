@@ -34,7 +34,7 @@ public class DiscussionThreadManagerImplTest {
 	private Long forumId = 1L;
 	private String projectId = "syn123";
 	private Long userId = 2L;
-	private String threadId = "3";
+	private Long threadId = 3L;
 	private Forum forum;
 	private String messageUrl = "messageUrl";
 
@@ -58,9 +58,11 @@ public class DiscussionThreadManagerImplTest {
 		forum.setId(forumId.toString());
 		forum.setProjectId(projectId);
 		dto = new DiscussionThreadBundle();
+		dto.setProjectId(projectId);
 		userInfo.setId(userId);
 
 		Mockito.when(mockForumDao.getForum(Long.parseLong(createDto.getForumId()))).thenReturn(forum);
+		Mockito.when(mockThreadDao.getThread(threadId)).thenReturn(dto);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -118,76 +120,74 @@ public class DiscussionThreadManagerImplTest {
 
 	@Test (expected = UnauthorizedException.class)
 	public void testGetThreadUnauthorized() {
-		Mockito.when(mockAuthorizationManager.canAccess(userInfo, threadId, ObjectType.DISCUSSION_THREAD, ACCESS_TYPE.READ))
+		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
 				.thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
-		threadManager.getThread(userInfo, threadId);
+		threadManager.getThread(userInfo, threadId.toString());
 	}
 
 	@Test
 	public void testGetThreadAuthorized() {
-		Mockito.when(mockAuthorizationManager.canAccess(userInfo, threadId, ObjectType.DISCUSSION_THREAD, ACCESS_TYPE.READ))
+		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		Mockito.when(mockThreadDao.getThread(Mockito.anyLong())).thenReturn(dto);
-		assertEquals(dto, threadManager.getThread(userInfo, threadId));
+		assertEquals(dto, threadManager.getThread(userInfo, threadId.toString()));
 		Mockito.verify(mockThreadDao).updateThreadView(Mockito.anyLong(), Mockito.anyLong());
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testUpdateTitleWithNullTitle() {
-		threadManager.updateTitle(userInfo, threadId, null);
+		threadManager.updateTitle(userInfo, threadId.toString(), null);
 	}
 
 	@Test (expected = UnauthorizedException.class)
 	public void testUpdateTitleUnauthorized() {
-		Mockito.when(mockAuthorizationManager.canAccess(userInfo, threadId, ObjectType.DISCUSSION_THREAD, ACCESS_TYPE.UPDATE))
-				.thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
-		threadManager.updateTitle(userInfo, threadId, "newTitle");
+		Mockito.when(mockAuthorizationManager.isUserCreatorOrAdmin(Mockito.eq(userInfo), Mockito.anyString()))
+				.thenReturn(false);
+		threadManager.updateTitle(userInfo, threadId.toString(), "newTitle");
 	}
 
 	@Test
 	public void testUpdateTitleAuthorized() {
-		Mockito.when(mockAuthorizationManager.canAccess(userInfo, threadId, ObjectType.DISCUSSION_THREAD, ACCESS_TYPE.UPDATE))
-				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		Mockito.when(mockAuthorizationManager.isUserCreatorOrAdmin(Mockito.eq(userInfo), Mockito.anyString()))
+				.thenReturn(true);
 		Mockito.when(mockThreadDao.updateTitle(Mockito.anyLong(), Mockito.anyString())).thenReturn(dto);
-		assertEquals(dto, threadManager.updateTitle(userInfo, threadId, "newTitle"));
+		assertEquals(dto, threadManager.updateTitle(userInfo, threadId.toString(), "newTitle"));
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testUpdateMessageWithNullMessage() {
-		threadManager.updateMessage(userInfo, threadId, null);
+		threadManager.updateMessage(userInfo, threadId.toString(), null);
 	}
 
 	@Test (expected = UnauthorizedException.class)
 	public void testUpdateMessageUnauthorized() {
-		Mockito.when(mockAuthorizationManager.canAccess(userInfo, threadId, ObjectType.DISCUSSION_THREAD, ACCESS_TYPE.UPDATE))
-				.thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
-		threadManager.updateMessage(userInfo, threadId, "newMessage");
+		Mockito.when(mockAuthorizationManager.isUserCreatorOrAdmin(Mockito.eq(userInfo), Mockito.anyString()))
+				.thenReturn(false);
+		threadManager.updateMessage(userInfo, threadId.toString(), "newMessage");
 	}
 
 	@Test
 	public void testUpdateMessageAuthorized() {
-		Mockito.when(mockAuthorizationManager.canAccess(userInfo, threadId, ObjectType.DISCUSSION_THREAD, ACCESS_TYPE.UPDATE))
-				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		Mockito.when(mockAuthorizationManager.isUserCreatorOrAdmin(Mockito.eq(userInfo), Mockito.anyString()))
+				.thenReturn(true);
 		Mockito.when(mockUploadDao.upload(Mockito.anyString(), Mockito.anyString()))
 				.thenReturn("newMessage");
 		Mockito.when(mockThreadDao.updateMessageUrl(Mockito.anyLong(), Mockito.anyString())).thenReturn(dto);
-		assertEquals(dto, threadManager.updateMessage(userInfo, threadId, "newMessage"));
+		assertEquals(dto, threadManager.updateMessage(userInfo, threadId.toString(), "newMessage"));
 	}
 
 	@Test (expected = UnauthorizedException.class)
 	public void testDeleteUnauthorized() {
-		Mockito.when(mockAuthorizationManager.canAccess(userInfo, threadId, ObjectType.DISCUSSION_THREAD, ACCESS_TYPE.DELETE))
+		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.DELETE))
 				.thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
-		threadManager.deleteThread(userInfo, threadId);
+		threadManager.deleteThread(userInfo, threadId.toString());
 	}
 
 	@Test
 	public void testDeleteAuthorized() {
-		Mockito.when(mockAuthorizationManager.canAccess(userInfo, threadId, ObjectType.DISCUSSION_THREAD, ACCESS_TYPE.DELETE))
+		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.DELETE))
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		Mockito.when(mockThreadDao.updateTitle(Mockito.anyLong(), Mockito.anyString())).thenReturn(dto);
-		threadManager.deleteThread(userInfo, threadId);
-		Mockito.verify(mockThreadDao).deleteThread(Long.parseLong(threadId));
+		threadManager.deleteThread(userInfo, threadId.toString());
+		Mockito.verify(mockThreadDao).deleteThread(threadId);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -202,6 +202,6 @@ public class DiscussionThreadManagerImplTest {
 				.thenReturn(threads);
 		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		assertEquals(threads, threadManager.getThreadsForForum(userInfo, forumId.toString(), null, 2, 0));
+		assertEquals(threads, threadManager.getThreadsForForum(userInfo, forumId.toString(), DiscussionOrder.LAST_ACTIVITY, 2, 0));
 	}
 }
