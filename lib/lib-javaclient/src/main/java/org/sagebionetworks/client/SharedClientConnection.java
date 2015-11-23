@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.net.SocketTimeoutException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -716,18 +717,22 @@ public class SharedClientConnection {
 			return TimeUtils.waitForExponentialMaxRetry(MAX_RETRY_SERVICE_UNAVAILABLE_COUNT, 1000, new Callable<HttpResponse>() {
 				@Override
 				public HttpResponse call() throws Exception {
-					HttpResponse response = clientProvider.performRequest(requestUrl, requestMethod, requestContent, requestHeaders);
-					//if 503, then we can retry
-					int statusCode = response.getStatusLine().getStatusCode();
-					if (statusCode == HttpStatus.SC_SERVICE_UNAVAILABLE) {
-						HttpEntity responseEntity = response.getEntity();
-						String responseBody = (null != responseEntity) ? EntityUtils
-								.toString(responseEntity) : null;
-						throw new RetryException(new SynapseServerException(statusCode, responseBody));
-					}
+					try {
+						HttpResponse response = clientProvider.performRequest(requestUrl, requestMethod, requestContent, requestHeaders);
+						//if 503, then we can retry
+						int statusCode = response.getStatusLine().getStatusCode();
+						if (statusCode == HttpStatus.SC_SERVICE_UNAVAILABLE) {
+							HttpEntity responseEntity = response.getEntity();
+							String responseBody = (null != responseEntity) ? EntityUtils
+									.toString(responseEntity) : null;
+							throw new RetryException(new SynapseServerException(statusCode, responseBody));
+						}
 						
-					return response;
-							}
+						return response;
+					} catch (SocketTimeoutException ste) {
+						throw new RetryException(new SynapseServerException(HttpStatus.SC_SERVICE_UNAVAILABLE, ste));
+					}
+				}
 			});
 		} catch (RetryException e) {
 			throw (SynapseServerException) e.getCause();
