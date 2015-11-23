@@ -49,6 +49,7 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 			DiscussionThreadBundle dbo = new DiscussionThreadBundle();
 			dbo.setId(Long.toString(rs.getLong(COL_DISCUSSION_THREAD_ID)));
 			dbo.setForumId(Long.toString(rs.getLong(COL_DISCUSSION_THREAD_FORUM_ID)));
+			dbo.setProjectId(Long.toString(rs.getLong(COL_FORUM_PROJECT_ID)));
 			Blob titleBlob = rs.getBlob(COL_DISCUSSION_THREAD_TITLE);
 			dbo.setTitle(new String(titleBlob.getBytes(1, (int) titleBlob.length()), UTF8));
 			dbo.setCreatedOn(new Date(rs.getTimestamp(COL_DISCUSSION_THREAD_CREATED_ON).getTime()));
@@ -107,6 +108,7 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 	private static final String SELECT_THREAD_BUNDLE = "SELECT "
 			+TABLE_DISCUSSION_THREAD+"."+COL_DISCUSSION_THREAD_ID+" AS ID, "
 			+COL_DISCUSSION_THREAD_FORUM_ID+", "
+			+COL_FORUM_PROJECT_ID+", "
 			+COL_DISCUSSION_THREAD_TITLE+", "
 			+COL_DISCUSSION_THREAD_CREATED_ON+", "
 			+COL_DISCUSSION_THREAD_CREATED_BY+", "
@@ -120,6 +122,9 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 			+"IFNULL("+COL_DISCUSSION_THREAD_STATS_LAST_ACTIVITY+", "+COL_DISCUSSION_THREAD_MODIFIED_ON+") AS "+COL_DISCUSSION_THREAD_STATS_LAST_ACTIVITY+", "
 			+COL_DISCUSSION_THREAD_STATS_ACTIVE_AUTHORS
 			+" FROM "+TABLE_DISCUSSION_THREAD
+			+" JOIN "+TABLE_FORUM
+			+" ON "+COL_DISCUSSION_THREAD_FORUM_ID
+			+" = "+COL_FORUM_ID
 			+" LEFT OUTER JOIN "+TABLE_DISCUSSION_THREAD_STATS
 			+" ON "+TABLE_DISCUSSION_THREAD+"."+COL_DISCUSSION_THREAD_ID
 			+" = "+TABLE_DISCUSSION_THREAD_STATS+"."+COL_DISCUSSION_THREAD_STATS_THREAD_ID;
@@ -241,7 +246,7 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 
 	@WriteTransaction
 	@Override
-	public void deleteThread(long threadId) {
+	public void markThreadAsDeleted(long threadId) {
 		String etag = UUID.randomUUID().toString();
 		jdbcTemplate.update(SQL_MARK_THREAD_AS_DELETED, etag, threadId);
 	}
