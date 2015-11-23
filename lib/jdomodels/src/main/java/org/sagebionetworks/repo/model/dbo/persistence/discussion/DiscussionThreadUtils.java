@@ -49,9 +49,13 @@ public class DiscussionThreadUtils {
 	 * @return
 	 */
 	public static List<String> toList(String inputString) {
-		if (inputString == null) throw new IllegalArgumentException("input string cannot be null");
+		if (inputString == null) {
+			throw new IllegalArgumentException("input string cannot be null");
+		}
 		List<String> list = new ArrayList<String>();
-		if (inputString.equals("")) return list;
+		if (inputString.equals("")) {
+			return list;
+		}
 		String[] elements = inputString.split(",");
 		for (String string : elements) {
 			list.add(string);
@@ -68,8 +72,12 @@ public class DiscussionThreadUtils {
 	 */
 	public static String toString(List<String> listOfString) {
 		String result = "";
-		if (listOfString.isEmpty()) return result;
-		if (listOfString.size() == 1) return listOfString.get(0);
+		if (listOfString.isEmpty()) {
+			return result;
+		}
+		if (listOfString.size() == 1) {
+			return listOfString.get(0);
+		}
 		result += listOfString.get(0);
 		for (int i = 1; i < listOfString.size(); i++) {
 			result += ","+listOfString.get(i);

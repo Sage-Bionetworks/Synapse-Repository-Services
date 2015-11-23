@@ -41,7 +41,9 @@ public class DBOForumDAOImpl implements ForumDAO {
 	@WriteTransaction
 	@Override
 	public Forum createForum(String projectId) {
-		if (projectId == null) throw new IllegalArgumentException("projectId cannot be null");
+		if (projectId == null) {
+			throw new IllegalArgumentException("projectId cannot be null");
+		}
 		long id = idGenerator.generateNewId(TYPE.FORUM_ID);
 		DBOForum dbo = new DBOForum();
 		dbo.setId(id);
@@ -61,7 +63,9 @@ public class DBOForumDAOImpl implements ForumDAO {
 
 	@Override
 	public Forum getForumByProjectId(String projectId) {
-		if (projectId == null) throw new IllegalArgumentException("projectId cannot be null");
+		if (projectId == null) {
+			throw new IllegalArgumentException("projectId cannot be null");
+		}
 		List<DBOForum> results = jdbcTemplate.query(SQL_SELECT_FORUM_BY_PROJECT_ID, ROW_MAPPER,
 				KeyFactory.stringToKey(projectId));
 		if (results.size() != 1) {

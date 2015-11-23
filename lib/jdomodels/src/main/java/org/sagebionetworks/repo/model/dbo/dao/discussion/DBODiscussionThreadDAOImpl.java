@@ -249,7 +249,9 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 	@WriteTransaction
 	@Override
 	public DiscussionThreadBundle updateMessageUrl(long threadId, String newMessageUrl) {
-		if (newMessageUrl == null) throw new IllegalArgumentException("Message Url cannot be null");
+		if (newMessageUrl == null) {
+			throw new IllegalArgumentException("Message Url cannot be null");
+		}
 		String etag = UUID.randomUUID().toString();
 		jdbcTemplate.update(SQL_UPDATE_MESSAGE_URL, newMessageUrl, etag, threadId);
 		return getThread(threadId);
@@ -258,7 +260,9 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 	@WriteTransaction
 	@Override
 	public DiscussionThreadBundle updateTitle(long threadId, String title) {
-		if (title == null) throw new IllegalArgumentException("Title cannot be null");
+		if (title == null) {
+			throw new IllegalArgumentException("Title cannot be null");
+		}
 		String etag = UUID.randomUUID().toString();
 		jdbcTemplate.update(SQL_UPDATE_TITLE, title, etag, threadId);
 		return getThread(threadId);
@@ -317,7 +321,9 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 				return rs.getString(COL_DISCUSSION_THREAD_ETAG);
 			}
 		}, threadId);
-		if (results.size() != 1) throw new NotFoundException();
+		if (results.size() != 1) {
+			throw new NotFoundException();
+		}
 		return results.get(0);
 	}
 }
