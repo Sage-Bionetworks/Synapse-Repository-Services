@@ -326,7 +326,7 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 	}
 
 	private void createThread() {
-		String threadId = idGenerator.generateNewId(TYPE.DISCUSSION_THREAD_ID).toString();
+		threadId = idGenerator.generateNewId(TYPE.DISCUSSION_THREAD_ID).toString();
 		threadDao.createThread(forumId, threadId, "title", "fakeMessageUrl", adminUserId);
 	}
 
