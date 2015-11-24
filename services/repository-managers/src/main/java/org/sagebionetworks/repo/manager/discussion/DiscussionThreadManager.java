@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.manager.discussion;
 
+import java.io.UnsupportedEncodingException;
+
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
@@ -14,8 +16,9 @@ public interface DiscussionThreadManager {
 	 * @param userInfo
 	 * @param createThread
 	 * @return
+	 * @throws UnsupportedEncodingException 
 	 */
-	public DiscussionThreadBundle createThread(UserInfo userInfo, CreateDiscussionThread createThread);
+	public DiscussionThreadBundle createThread(UserInfo userInfo, CreateDiscussionThread createThread) throws UnsupportedEncodingException;
 
 	/**
 	 * Get a thread given its Id
@@ -43,8 +46,9 @@ public interface DiscussionThreadManager {
 	 * @param threadId
 	 * @param markdown
 	 * @return
+	 * @throws UnsupportedEncodingException 
 	 */
-	public DiscussionThreadBundle updateMessage(UserInfo userInfo, String threadId, String markdown);
+	public DiscussionThreadBundle updateMessage(UserInfo userInfo, String threadId, String markdown) throws UnsupportedEncodingException;
 
 	/**
 	 * Mark a thread as deleted

@@ -3,6 +3,8 @@ package org.sagebionetworks.repo.manager.discussion;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
+import java.util.Arrays;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -40,6 +42,7 @@ public class DiscussionThreadManagerImplTest {
 	private Long threadId = 3L;
 	private Forum forum;
 	private String messageKey = "messageKey";
+	private String messageUrl = "messageUrl";
 
 	@Before
 	public void before() {
@@ -64,50 +67,52 @@ public class DiscussionThreadManagerImplTest {
 		forum.setProjectId(projectId);
 		dto = new DiscussionThreadBundle();
 		dto.setProjectId(projectId);
+		dto.setMessageKey(messageKey);
 		userInfo.setId(userId);
 
 		Mockito.when(mockForumDao.getForum(Long.parseLong(createDto.getForumId()))).thenReturn(forum);
 		Mockito.when(mockThreadDao.getThread(threadId)).thenReturn(dto);
 		Mockito.when(mockIdGenerator.generateNewId(TYPE.DISCUSSION_THREAD_ID)).thenReturn(threadId);
+		Mockito.when(mockUploadDao.getUrl(messageKey)).thenReturn(messageUrl);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
-	public void testCreateWithNullDTO(){
+	public void testCreateWithNullDTO() throws Exception {
 		threadManager.createThread(userInfo, null);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
-	public void testCreateWithNullForumId(){
+	public void testCreateWithNullForumId() throws Exception {
 		createDto.setForumId(null);
 		threadManager.createThread(userInfo, createDto);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
-	public void testCreateWithNullTitle(){
+	public void testCreateWithNullTitle() throws Exception {
 		createDto.setTitle(null);
 		threadManager.createThread(userInfo, createDto);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
-	public void testCreateWithNullMessage(){
+	public void testCreateWithNullMessage() throws Exception {
 		createDto.setMessageMarkdown(null);
 		threadManager.createThread(userInfo, createDto);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
-	public void testCreateWithNulluserInfo(){
+	public void testCreateWithNulluserInfo() throws Exception {
 		threadManager.createThread(null, new CreateDiscussionThread());
 	}
 
 	@Test (expected = UnauthorizedException.class)
-	public void testCreateAccessDenied() {
+	public void testCreateAccessDenied() throws Exception {
 		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
 				.thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		threadManager.createThread(userInfo, createDto);
 	}
 
 	@Test
-	public void testCreateAuthorized() {
+	public void testCreateAuthorized() throws Exception {
 		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		Mockito.when(mockUploadDao.uploadDiscussionContent(Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
@@ -160,19 +165,19 @@ public class DiscussionThreadManagerImplTest {
 	}
 
 	@Test (expected = IllegalArgumentException.class)
-	public void testUpdateMessageWithNullMessage() {
+	public void testUpdateMessageWithNullMessage() throws Exception {
 		threadManager.updateMessage(userInfo, threadId.toString(), null);
 	}
 
 	@Test (expected = UnauthorizedException.class)
-	public void testUpdateMessageUnauthorized() {
+	public void testUpdateMessageUnauthorized() throws Exception {
 		Mockito.when(mockAuthorizationManager.isUserCreatorOrAdmin(Mockito.eq(userInfo), Mockito.anyString()))
 				.thenReturn(false);
 		threadManager.updateMessage(userInfo, threadId.toString(), "newMessage");
 	}
 
 	@Test
-	public void testUpdateMessageAuthorized() {
+	public void testUpdateMessageAuthorized() throws Exception {
 		Mockito.when(mockAuthorizationManager.isUserCreatorOrAdmin(Mockito.eq(userInfo), Mockito.anyString()))
 				.thenReturn(true);
 		Mockito.when(mockUploadDao.uploadDiscussionContent(Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
@@ -204,6 +209,7 @@ public class DiscussionThreadManagerImplTest {
 	@Test
 	public void testGetThreadsForForum() {
 		PaginatedResults<DiscussionThreadBundle> threads = new PaginatedResults<DiscussionThreadBundle>();
+		threads.setResults(Arrays.asList(dto));
 		Mockito.when(mockThreadDao.getThreads(Mockito.anyLong(), (DiscussionOrder) Mockito.any(), Mockito.anyInt(), Mockito.anyInt()))
 				.thenReturn(threads);
 		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
