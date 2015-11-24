@@ -3,13 +3,13 @@ package org.sagebionetworks.repo.model.dbo.dao.table;
 import java.util.Map;
 
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.dao.table.CurrentRowCacheDao;
 import org.sagebionetworks.repo.model.dao.table.CurrentVersionCacheDao;
 import org.sagebionetworks.repo.model.dao.table.RowAccessor;
 import org.sagebionetworks.repo.model.dao.table.TableRowCache;
 import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
-import org.sagebionetworks.util.ProgressCallback;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class TableRowCacheImpl implements TableRowCache {

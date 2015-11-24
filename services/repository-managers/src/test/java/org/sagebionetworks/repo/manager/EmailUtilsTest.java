@@ -150,4 +150,9 @@ public class EmailUtilsTest {
 		assertTrue(messageWithFooter.startsWith(messageWithFooter));
 		assertTrue(messageWithFooter.endsWith(EmailUtils.createTextUnsubscribeFooter("link")));		
 	}
+	
+	@Test
+	public void testgetEmailAddressForPrincipalName() {
+		assertEquals("Foo Bar <foobar@synapse.org>", EmailUtils.getEmailAddressForPrincipalName("Foo Bar"));
+	}
 }

@@ -7437,11 +7437,17 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	
 	@Override
 	public VerificationSubmission createVerificationSubmission(
-			VerificationSubmission verificationSubmission)
+			VerificationSubmission verificationSubmission,
+			String notificationUnsubscribeEndpoint)
 			throws SynapseException {
+		String uri = VERIFICATION_SUBMISSION;
+		if (notificationUnsubscribeEndpoint!=null) {
+			uri += "?" + NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM + "=" + urlEncode(notificationUnsubscribeEndpoint);
+		}
+
 		try {
 			JSONObject jsonObj = EntityFactory.createJSONObjectForEntity(verificationSubmission);
-			jsonObj = createJSONObject(VERIFICATION_SUBMISSION, jsonObj);
+			jsonObj = createJSONObject(uri, jsonObj);
 			return initializeFromJSONObject(jsonObj, VerificationSubmission.class);
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseClientException(e);
@@ -7483,10 +7489,14 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 	@Override
 	public void updateVerificationState(long verificationId,
-			VerificationState verificationState) throws SynapseException {
+			VerificationState verificationState,
+			String notificationUnsubscribeEndpoint) throws SynapseException {
+		String uri = VERIFICATION_SUBMISSION+"/"+verificationId+VERIFICATION_STATE;
+		if (notificationUnsubscribeEndpoint!=null) {
+			uri += "?" + NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM + "=" + urlEncode(notificationUnsubscribeEndpoint);
+		}
 		try {
 			JSONObject jsonObj = EntityFactory.createJSONObjectForEntity(verificationState);
-			String uri = VERIFICATION_SUBMISSION+"/"+verificationId+VERIFICATION_STATE;
 			createJSONObject(uri, jsonObj);
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseClientException(e);
@@ -7530,7 +7540,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		return FILE + "/" + fileHandleAssociation.getFileHandleId() + "?" +
 				FILE_ASSOCIATE_TYPE + "=" + fileHandleAssociation.getAssociateObjectType() +
 		"&" + FILE_ASSOCIATE_ID + "=" + fileHandleAssociation.getAssociateObjectId() +
-		"&" + REDIRECT_PARAMETER + "=" + redirect;
+		"&" + REDIRECT_PARAMETER + redirect;
 	}
 
 	@Override

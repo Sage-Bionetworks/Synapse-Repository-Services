@@ -413,4 +413,13 @@ public class AsynchJobStatusDaoImplTest {
 		assertEquals(two, foundStatus.get(1));
 	}
 	
+	@Test (expected=IllegalArgumentException.class)
+	public void testIdNull(){
+		asynchJobStatusDao.getJobStatus(null);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testIdNAN(){
+		asynchJobStatusDao.getJobStatus("not a number");
+	}
 }

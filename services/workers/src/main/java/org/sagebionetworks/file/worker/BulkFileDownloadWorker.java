@@ -10,6 +10,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
+import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.file.FileHandleAssociationAuthorizationStatus;
@@ -24,7 +25,6 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
-import org.sagebionetworks.workers.util.progress.ProgressCallback;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.event.ProgressEvent;
@@ -75,8 +75,7 @@ public class BulkFileDownloadWorker implements MessageDrivenRunner {
 	public void run(ProgressCallback<Message> progressCallback, Message message)
 			throws RecoverableMessageException, Exception {
 
-		AsynchronousJobStatus status = MessageUtils.readMessageBody(message,
-				AsynchronousJobStatus.class);
+		AsynchronousJobStatus status = asynchJobStatusManager.lookupJobStatus(message.getBody());
 		try {
 
 			if (!(status.getRequestBody() instanceof BulkFileDownloadRequest)) {

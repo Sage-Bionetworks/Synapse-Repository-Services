@@ -34,6 +34,7 @@ import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
+import org.sagebionetworks.repo.manager.team.TeamConstants;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -61,6 +62,8 @@ import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
+import org.sagebionetworks.repo.model.principal.AliasType;
+import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
@@ -288,6 +291,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		for (SubmissionContributor contributor : submission.getContributors()) {
 			if (submitterId.equals(contributor.getPrincipalId())) continue;
 			MessageToUser mtu = new MessageToUser();
+			mtu.setTo(EmailUtils.getEmailAddressForPrincipalName(team.getName()));
 			mtu.setSubject(TEAM_SUBMISSION_SUBJECT);
 			mtu.setRecipients(Collections.singleton(contributor.getPrincipalId()));
 			mtu.setNotificationUnsubscribeEndpoint(notificationUnsubscribeEndpoint);

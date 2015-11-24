@@ -98,7 +98,7 @@ public class FieldColumn {
 	/**
 	 * Is this column the backup ID.
 	 * Note: The backup ID is the same as the primary key as only as the primary key only includes one column.
-	 * For tables that have primary keys that span multiple columns a separate single backup column ID must be provided.
+	 * For primary tables that have primary keys that span multiple columns a separate single backup column ID must be provided.
 	 * For such cases the backup ID should be a single delimited string of the primary key columns. The backup ID must be unique.
 	 * This is only used for MigratableDatabaseObject.
 	 * @param isBackupId

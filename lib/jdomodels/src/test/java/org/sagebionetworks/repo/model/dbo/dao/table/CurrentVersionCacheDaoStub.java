@@ -9,8 +9,8 @@ import java.util.Set;
 import org.sagebionetworks.collections.Maps2;
 import org.sagebionetworks.collections.Transform;
 import org.sagebionetworks.collections.Transform.TransformEntry;
+import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.dao.table.CurrentVersionCacheDao;
-import org.sagebionetworks.util.ProgressCallback;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;

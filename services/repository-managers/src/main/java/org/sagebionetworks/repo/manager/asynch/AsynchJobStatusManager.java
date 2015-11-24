@@ -38,6 +38,17 @@ public interface AsynchJobStatusManager {
 	 * @throws DatastoreException 
 	 */
 	public AsynchronousJobStatus getJobStatus(UserInfo user, String jobId) throws DatastoreException, NotFoundException;
+	
+	/**
+	 * Lookup an job status using only the ID.
+	 * This method is for server-side calls only.  For user requests use {@link #getJobStatus(UserInfo, String)}
+	 * to ensure a security check is used.
+	 * @param jobId
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	public AsynchronousJobStatus lookupJobStatus(String jobId) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Stop a job.

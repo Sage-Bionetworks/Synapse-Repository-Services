@@ -149,6 +149,12 @@ public class AsynchJobStatusManagerImplTest {
 		assertNotNull(status);
 	}
 	
+	@Test
+	public void testLookupStatus(){
+		AsynchronousJobStatus status = manager.lookupJobStatus("999");
+		assertNotNull(status);
+	}
+	
 	/**
 	 * Should be able to get a completed job while in read-only mode.
 	 * @throws DatastoreException
@@ -465,4 +471,6 @@ public class AsynchJobStatusManagerImplTest {
 		verify(mockAsynchJobStatusDao, times(1)).startJob(anyLong(), any(AsynchronousRequestBody.class));
 		verify(mockAsynchJobQueuePublisher, times(1)).publishMessage(status);
 	}
+	
+
 }

@@ -60,6 +60,8 @@
         "VERIFICATION_STATE",
         "VERIFICATION_FILE",
         "FORUM",
+        "DISCUSSION_THREAD",
+        "DISCUSSION_THREAD_VIEW",
         "CHANGE"
     ]
 }

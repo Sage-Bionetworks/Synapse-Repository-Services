@@ -11,7 +11,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.Callable;
 
 import org.apache.commons.lang.BooleanUtils;
 import org.apache.commons.lang.StringUtils;
@@ -19,6 +18,8 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.collections.Transform;
+import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.manager.util.Validate;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
@@ -30,14 +31,12 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dao.semaphore.ExclusiveOrSharedSemaphoreRunner;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.RowAccessor;
 import org.sagebionetworks.repo.model.dao.table.RowAndHeaderHandler;
 import org.sagebionetworks.repo.model.dao.table.RowSetAccessor;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
-import org.sagebionetworks.repo.model.exception.LockUnavilableException;
 import org.sagebionetworks.repo.model.exception.ReadOnlyException;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.status.StatusEnum;
@@ -86,9 +85,10 @@ import org.sagebionetworks.table.query.model.visitors.GetTableNameVisitor;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 import org.sagebionetworks.util.Closer;
 import org.sagebionetworks.util.Pair;
-import org.sagebionetworks.util.ProgressCallback;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.util.csv.CSVWriterStream;
+import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
+import org.sagebionetworks.workers.util.semaphore.WriteReadSemaphoreRunner;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionCallback;
@@ -112,6 +112,8 @@ public class TableRowManagerImpl implements TableRowManager {
 	public static final long BUNDLE_MASK_QUERY_MAX_ROWS_PER_PAGE = 0x8;
 	public static final long BUNDLE_MASK_QUERY_COLUMN_MODELS = 0x10;
 
+	public static final int READ_LOCK_TIMEOUT_SEC = 60;
+	
 	@Autowired
 	AuthorizationManager authorizationManager;
 	@Autowired
@@ -121,7 +123,7 @@ public class TableRowManagerImpl implements TableRowManager {
 	@Autowired
 	ColumnModelDAO columnModelDAO;
 	@Autowired
-	ExclusiveOrSharedSemaphoreRunner exclusiveOrSharedSemaphoreRunner;
+	WriteReadSemaphoreRunner writeReadSemaphoreRunner;
 	@Autowired
 	ConnectionFactory tableConnectionFactory;
 	@Autowired
@@ -129,10 +131,6 @@ public class TableRowManagerImpl implements TableRowManager {
 	@Autowired
 	StackStatusDao stackStatusDao;
 	
-	/**
-	 * Injected via Spring.
-	 */
-	long tableReadTimeoutMS;
 	
 	/**
 	 * Injected via spring
@@ -143,13 +141,6 @@ public class TableRowManagerImpl implements TableRowManager {
 	 * Injected by spring
 	 */
 	int maxBytesPerChangeSet;
-	/**
-	 * Injected via spring
-	 * @param tableReadTimeoutMS
-	 */
-	public void setTableReadTimeoutMS(long tableReadTimeoutMS) {
-		this.tableReadTimeoutMS = tableReadTimeoutMS;
-	}
 
 	/**
 	 * Injected via spring
@@ -508,19 +499,20 @@ public class TableRowManagerImpl implements TableRowManager {
 	}
 
 	@Override
-	public <T> T tryRunWithTableExclusiveLock(String tableId, long lockTimeoutMS, Callable<T> runner)
-			throws InterruptedException, Exception {
+	public <R,T> R tryRunWithTableExclusiveLock(ProgressCallback<T> callback,
+			String tableId, int timeoutSec, ProgressingCallable<R, T> callable)
+			throws LockUnavilableException, InterruptedException, Exception {
 		String key = TableModelUtils.getTableSemaphoreKey(tableId);
 		// The semaphore runner does all of the lock work.
-		return exclusiveOrSharedSemaphoreRunner.tryRunWithExclusiveLock(key, lockTimeoutMS, runner);
+		return writeReadSemaphoreRunner.tryRunWithWriteLock(callback, key, timeoutSec, callable);
 	}
 
 	@Override
-	public <T> T tryRunWithTableNonexclusiveLock(String tableId, long lockTimeoutMS, Callable<T> runner)
+	public <R,T> R tryRunWithTableNonexclusiveLock(ProgressCallback<T> callback, String tableId, int lockTimeoutSec, ProgressingCallable<R, T> callable)
 			throws Exception {
 		String key = TableModelUtils.getTableSemaphoreKey(tableId);
 		// The semaphore runner does all of the lock work.
-		return exclusiveOrSharedSemaphoreRunner.tryRunWithSharedLock(key, lockTimeoutMS, runner);
+		return writeReadSemaphoreRunner.tryRunWithReadLock(callback, key, lockTimeoutSec, callable);
 	}
 
 	/*
@@ -595,14 +587,14 @@ public class TableRowManagerImpl implements TableRowManager {
 	}
 
 	@Override
-	public Pair<QueryResult, Long> query(UserInfo user, String query, List<SortItem> sortList, Long offset, Long limit, boolean runQuery,
+	public Pair<QueryResult, Long> query(ProgressCallback<Void> progressCallback, UserInfo user, String query, List<SortItem> sortList, Long offset, Long limit, boolean runQuery,
 			boolean runCount, boolean isConsistent) throws DatastoreException, NotFoundException, TableUnavilableException,
 			TableFailedException {
-		return query(user, createQuery(query, sortList), offset, limit, runQuery, runCount, isConsistent);
+		return query(progressCallback, user, createQuery(query, sortList), offset, limit, runQuery, runCount, isConsistent);
 	}
 
 	@Override
-	public Pair<QueryResult, Long> query(UserInfo user, SqlQuery query, Long offset, Long limit, boolean runQuery,
+	public Pair<QueryResult, Long> query(ProgressCallback<Void> progressCallback, UserInfo user, SqlQuery query, Long offset, Long limit, boolean runQuery,
 			boolean runCount, boolean isConsistent) throws DatastoreException, NotFoundException, TableUnavilableException,
 			TableFailedException {
 		ValidateArgument.required(user, "UserInfo");
@@ -706,17 +698,17 @@ public class TableRowManagerImpl implements TableRowManager {
 		if (isConsistent) {
 			// A consistent query is only run if the table index is available and up-to-date
 			// with the table state. A read-lock on the index will be held while the query is run.
-			Pair<RowSet, Long> result = runConsistentQuery(paginatedQuery, countQuery);
+			Pair<RowSet, Long> result = runConsistentQuery(progressCallback, paginatedQuery, countQuery);
 			rowSet = result.getFirst();
 			count = result.getSecond();
 		} else {
 			// This path queries the table index regardless of the state of the index and without a
 			// read-lock.
 			if (paginatedQuery != null) {
-				rowSet = query(paginatedQuery);
+				rowSet = query(progressCallback, paginatedQuery);
 			}
 			if (countQuery != null) {
-				RowSet countResult = query(countQuery);
+				RowSet countResult = query(progressCallback, countQuery);
 				List<Row> rows = countResult.getRows();
 				if (!rows.isEmpty()) {
 					List<String> values = rows.get(0).getValues();
@@ -765,16 +757,16 @@ public class TableRowManagerImpl implements TableRowManager {
 	}
 	
 	@Override
-	public QueryResult queryNextPage(UserInfo user, QueryNextPageToken nextPageToken) throws DatastoreException, NotFoundException,
+	public QueryResult queryNextPage(ProgressCallback<Void> progressCallback, UserInfo user, QueryNextPageToken nextPageToken) throws DatastoreException, NotFoundException,
 			TableUnavilableException, TableFailedException {
 		Query query = createQueryFromNextPageToken(nextPageToken);
-		Pair<QueryResult, Long> queryResult = query(user, query.getSql(), null, query.getOffset(), query.getLimit(), true,
+		Pair<QueryResult, Long> queryResult = query(progressCallback, user, query.getSql(), null, query.getOffset(), query.getLimit(), true,
 				false, query.getIsConsistent());
 		return queryResult.getFirst();
 	}
 
 	@Override
-	public QueryResultBundle queryBundle(UserInfo user, QueryBundleRequest queryBundle) throws DatastoreException, NotFoundException,
+	public QueryResultBundle queryBundle(ProgressCallback<Void> progressCallback, UserInfo user, QueryBundleRequest queryBundle) throws DatastoreException, NotFoundException,
 			TableUnavilableException, TableFailedException {
 		ValidateArgument.required(queryBundle.getQuery(), "query");
 		ValidateArgument.required(queryBundle.getQuery().getSql(), "query.sql");
@@ -791,7 +783,7 @@ public class TableRowManagerImpl implements TableRowManager {
 		boolean runQuery = ((partMask & BUNDLE_MASK_QUERY_RESULTS) != 0);
 		boolean runCount = ((partMask & BUNDLE_MASK_QUERY_COUNT) != 0);
 		if (runQuery || runCount) {
-			Pair<QueryResult, Long> queryResult = query(user, sqlQuery, queryBundle.getQuery().getOffset(),
+			Pair<QueryResult, Long> queryResult = query(progressCallback, user, sqlQuery, queryBundle.getQuery().getOffset(),
 					queryBundle.getQuery().getLimit(), runQuery, runCount, BooleanUtils.isNotFalse(queryBundle.getQuery().getIsConsistent()));
 			bundle.setQueryResult(queryResult.getFirst());
 			bundle.setQueryCount(queryResult.getSecond());
@@ -908,7 +900,7 @@ public class TableRowManagerImpl implements TableRowManager {
 	 * @throws NotFoundException
 	 * @throws TableFailedException
 	 */
-	private Pair<RowSet, Long> runConsistentQuery(final SqlQuery query, final SqlQuery countQuery) throws TableUnavilableException,
+	private Pair<RowSet, Long> runConsistentQuery(ProgressCallback<Void> progressCallback, final SqlQuery query, final SqlQuery countQuery) throws TableUnavilableException,
 			NotFoundException, TableFailedException {
 		List<QueryHandler> queryHandlers = Lists.newArrayList();
 		final Object[] output = { null, null };
@@ -959,7 +951,7 @@ public class TableRowManagerImpl implements TableRowManager {
 			}));
 		}
 
-		runConsistentQueryAsStream(queryHandlers);
+		runConsistentQueryAsStream(progressCallback, queryHandlers);
 
 		return Pair.create((RowSet) output[0], (Long) output[1]);
 	}
@@ -974,7 +966,7 @@ public class TableRowManagerImpl implements TableRowManager {
 	 * @throws NotFoundException
 	 * @throws TableFailedException
 	 */
-	private void runConsistentQueryAsStream(final List<QueryHandler> queryHandlers) throws TableUnavilableException, NotFoundException,
+	private void runConsistentQueryAsStream(ProgressCallback<Void> progressCallback, final List<QueryHandler> queryHandlers) throws TableUnavilableException, NotFoundException,
 			TableFailedException {
 		if (queryHandlers.isEmpty()) {
 			return;
@@ -983,9 +975,9 @@ public class TableRowManagerImpl implements TableRowManager {
 		final String tableId = queryHandlers.get(0).getQuery().getTableId();
 		try {
 			// Run with a read lock.
-			tryRunWithTableNonexclusiveLock(tableId, tableReadTimeoutMS, new Callable<String>() {
+			tryRunWithTableNonexclusiveLock(progressCallback, tableId, READ_LOCK_TIMEOUT_SEC, new ProgressingCallable<String, Void>() {
 				@Override
-				public String call() throws Exception {
+				public String call(final ProgressCallback<Void> callback) throws Exception {
 					// We can only run this query if the table is available.
 					final TableStatus status = getTableStatusOrCreateIfNotExists(tableId);
 					switch(status.getState()){
@@ -1011,7 +1003,7 @@ public class TableRowManagerImpl implements TableRowManager {
 									throw new IllegalArgumentException("All queries should be on the same table, but " + tableId + " and "
 											+ queryHandler.getQuery().getTableId());
 								}
-								indexDao.queryAsStream(queryHandler.getQuery(), queryHandler.getHandler());
+								indexDao.queryAsStream(callback, queryHandler.getQuery(), queryHandler.getHandler());
 								queryHandler.getHandler().setEtag(status.getLastTableChangeEtag());
 							}
 							return null;
@@ -1045,7 +1037,7 @@ public class TableRowManagerImpl implements TableRowManager {
 	 * @throws TableFailedException
 	 */
 	@Override
-	public DownloadFromTableResult runConsistentQueryAsStream(UserInfo user, String sql, List<SortItem> sortList,
+	public DownloadFromTableResult runConsistentQueryAsStream(ProgressCallback<Void> progressCallback, UserInfo user, String sql, List<SortItem> sortList,
 			final CSVWriterStream writer, boolean includeRowIdAndVersion, final boolean writeHeader) throws TableUnavilableException,
 			NotFoundException, TableFailedException {
 		// Convert to a query.
@@ -1064,7 +1056,7 @@ public class TableRowManagerImpl implements TableRowManager {
 		repsonse.setTableId(query.getTableId());
 		repsonse.setHeaders(query.getSelectColumnModels().getSelectColumns());
 
-		runConsistentQueryAsStream(Collections.singletonList(new QueryHandler(query, new RowAndHeaderHandler() {
+		runConsistentQueryAsStream(progressCallback, Collections.singletonList(new QueryHandler(query, new RowAndHeaderHandler() {
 			@Override
 			public void writeHeader() {
 				if (writeHeader) {
@@ -1113,10 +1105,10 @@ public class TableRowManagerImpl implements TableRowManager {
 	 * @param query
 	 * @return
 	 */
-	private RowSet query(SqlQuery query) {
+	private RowSet query(ProgressCallback<Void> callback, SqlQuery query) {
 		// Get a connection
 		TableIndexDAO indexDao = tableConnectionFactory.getConnection(query.getTableId());
-		return indexDao.query(query);
+		return indexDao.query(callback, query);
 	}
 	
 	/**
@@ -1336,15 +1328,14 @@ public class TableRowManagerImpl implements TableRowManager {
 	@Override
 	public Set<Long> getFileHandleIdsAssociatedWithTable(final String tableId,
 			final Set<Long> toTest) {
-		// Since this uses the index we need a read lock to execute
-		long thritySecondTimeoutMS = 30*1000L;
 		try {
-			return this.tryRunWithTableNonexclusiveLock(tableId, thritySecondTimeoutMS, new Callable<Set<Long>>(){
+			return this.tryRunWithTableNonexclusiveLock(null, tableId, READ_LOCK_TIMEOUT_SEC, new ProgressingCallable<Set<Long>, Void>(){
 
 				@Override
-				public Set<Long> call() throws Exception {
+				public Set<Long> call(ProgressCallback<Void> callback) throws Exception {
 					// What is the current version of the talbe's truth?
 					TableRowChange lastChange = tableRowTruthDao.getLastTableRowChange(tableId);
+					callback.progressMade(null);
 					if(lastChange == null){
 						// There are no changes applied to this table so return an empty set.
 						return Sets.newHashSet();
@@ -1359,6 +1350,7 @@ public class TableRowManagerImpl implements TableRowManager {
 					if(indexVersion < truthVersion){
 						throw new TemporarilyUnavailableException("Waiting for the table index to be built.");
 					}
+					callback.progressMade(null);
 					// the index dao 
 					return indexDao.getFileHandleIdsAssociatedWithTable(toTest, tableId);
 				}});
@@ -1371,4 +1363,5 @@ public class TableRowManagerImpl implements TableRowManager {
 		}
 
 	}
+
 }

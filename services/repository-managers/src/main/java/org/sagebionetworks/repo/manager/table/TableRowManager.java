@@ -5,13 +5,13 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.Callable;
 
+import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.RowAndHeaderHandler;
-import org.sagebionetworks.repo.model.exception.LockUnavilableException;
 import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
@@ -34,8 +34,10 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.util.Pair;
-import org.sagebionetworks.util.ProgressCallback;
 import org.sagebionetworks.util.csv.CSVWriterStream;
+import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
+
+import com.amazonaws.services.sqs.model.Message;
 
 /**
  * Abstraction for Table Row management.
@@ -255,8 +257,8 @@ public interface TableRowManager {
 	 * @throws Exception
 	 * @throws InterruptedException
 	 */
-	public <T> T tryRunWithTableExclusiveLock(String tableId, long timeoutMS,
-			Callable<T> runner) throws LockUnavilableException,
+	public <R, T> R tryRunWithTableExclusiveLock(ProgressCallback<T> callback, String tableId, int timeoutMS,
+			ProgressingCallable<R, T> runner) throws LockUnavilableException,
 			InterruptedException, Exception;
 
 	/**
@@ -285,8 +287,8 @@ public interface TableRowManager {
 	 * @throws LockUnavilableException
 	 * @throws Exception
 	 */
-	public <T> T tryRunWithTableNonexclusiveLock(String tableId,
-			long timeoutMS, Callable<T> runner) throws LockUnavilableException,
+	public <R, T> R tryRunWithTableNonexclusiveLock(ProgressCallback<T> callback, String tableId,
+			int timeoutMS, ProgressingCallable<R, T> runner) throws LockUnavilableException,
 			Exception;
 
 	/**
@@ -372,7 +374,7 @@ public interface TableRowManager {
 	 * @throws TableUnavilableException
 	 * @throws TableFailedException
 	 */
-	public Pair<QueryResult, Long> query(UserInfo user, String query, List<SortItem> sortList, Long offset, Long limit, boolean runQuery,
+	public Pair<QueryResult, Long> query(ProgressCallback<Void> progressCallback, UserInfo user, String query, List<SortItem> sortList, Long offset, Long limit, boolean runQuery,
 			boolean runCount, boolean isConsistent) throws DatastoreException, NotFoundException, TableUnavilableException,
 			TableFailedException;
 
@@ -388,7 +390,7 @@ public interface TableRowManager {
 	 * @throws TableUnavilableException
 	 * @throws TableFailedException
 	 */
-	public Pair<QueryResult, Long> query(UserInfo user, SqlQuery query, Long offset, Long limit, boolean runQuery, boolean runCount,
+	public Pair<QueryResult, Long> query(ProgressCallback<Void> progressCallback, UserInfo user, SqlQuery query, Long offset, Long limit, boolean runQuery, boolean runCount,
 			boolean isConsistent) throws DatastoreException, NotFoundException, TableUnavilableException, TableFailedException;
 
 	/**
@@ -402,7 +404,7 @@ public interface TableRowManager {
 	 * @throws TableUnavilableException
 	 * @throws TableFailedException
 	 */
-	public QueryResult queryNextPage(UserInfo user, QueryNextPageToken nextPageToken) throws DatastoreException, NotFoundException,
+	public QueryResult queryNextPage(ProgressCallback<Void> progressCallback, UserInfo user, QueryNextPageToken nextPageToken) throws DatastoreException, NotFoundException,
 			TableUnavilableException, TableFailedException;
 
 	/**
@@ -416,7 +418,7 @@ public interface TableRowManager {
 	 * @throws DatastoreException
 	 * @throws TableFailedException
 	 */
-	public QueryResultBundle queryBundle(UserInfo user, QueryBundleRequest queryBundle) throws DatastoreException, NotFoundException,
+	public QueryResultBundle queryBundle(ProgressCallback<Void> progressCallback, UserInfo user, QueryBundleRequest queryBundle) throws DatastoreException, NotFoundException,
 			TableUnavilableException, TableFailedException;
 
 	/**
@@ -435,7 +437,7 @@ public interface TableRowManager {
 	 * @throws NotFoundException
 	 * @throws TableFailedException
 	 */
-	DownloadFromTableResult runConsistentQueryAsStream(UserInfo user, String sql, List<SortItem> list, CSVWriterStream writer,
+	DownloadFromTableResult runConsistentQueryAsStream(ProgressCallback<Void> progressCallback, UserInfo user, String sql, List<SortItem> list, CSVWriterStream writer,
 			boolean includeRowIdAndVersion, boolean writeHeader) throws TableUnavilableException, NotFoundException, TableFailedException;
 
 	/**

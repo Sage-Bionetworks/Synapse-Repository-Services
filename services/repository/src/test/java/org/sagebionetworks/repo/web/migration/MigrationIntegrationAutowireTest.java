@@ -44,6 +44,7 @@ import org.sagebionetworks.repo.model.ChallengeTeam;
 import org.sagebionetworks.repo.model.ChallengeTeamDAO;
 import org.sagebionetworks.repo.model.CommentDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.DiscussionThreadDAO;
 import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
@@ -230,6 +231,9 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 	
 	@Autowired
 	private ForumDAO forumDao;
+
+	@Autowired
+	private DiscussionThreadDAO threadDao;
 	
 	private Team team;
 
@@ -270,6 +274,9 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 	private Challenge challenge;
 	private ChallengeTeam challengeTeam;
 
+	private String forumId;
+	private String threadId;
+
 	@Before
 	public void before() throws Exception {
 		mockRequest = Mockito.mock(HttpServletRequest.class);
@@ -306,10 +313,20 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		createChallengeAndRegisterTeam();
 		createVerificationSubmission();
 		createForum();
+		createThread();
+		createThreadView();
 	}
 	
 	private void createForum() {
-		forumDao.createForum(project.getId());
+		forumId = forumDao.createForum(project.getId()).getId();
+	}
+
+	private void createThread() {
+		threadId = threadDao.createThread(forumId, "title", "fakeMessageUrl", adminUserId).getId();
+	}
+
+	private void createThreadView() {
+		threadDao.updateThreadView(Long.parseLong(threadId), adminUserId);
 	}
 
 	private void createVerificationSubmission() {
@@ -820,7 +837,7 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		for (int i = 1; i < finalCounts.getList().size(); i++) {
 			MigrationTypeCount startCount = startCounts.getList().get(i);
 			MigrationTypeCount afterRestore = finalCounts.getList().get(i);
-			assertEquals("Count for " + startCount.getType().name() + " does not match", startCount.getCount(), afterRestore.getCount());
+			assertEquals("Count for " + startCount.getType().name() + " does not match.", startCount.getCount(), afterRestore.getCount());
 		}
 	}
 
@@ -863,6 +880,8 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		for (MigrationTypeCount count : startCounts.getList()) {
 			assertTrue("This test requires at least one object to exist for each MigrationType.  Please create a new object of type: "
 					+ count.getType() + " in the before() method of this test.", count.getCount() > 0);
+			assertTrue(count.getMinid() >= 0);
+			assertTrue(count.getMaxid() >= count.getMinid());
 		}
 	}
 

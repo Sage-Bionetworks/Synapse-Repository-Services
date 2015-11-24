@@ -593,6 +593,7 @@ public class TeamManagerImpl implements TeamManager {
 		// check that member is actually in Team
 		List<UserGroup> currentMembers = groupMembersDAO.getMembers(teamId);
 		if (userGroupsHasPrincipalId(currentMembers, principalId)) {
+			if (currentMembers.size()==1) throw new UnauthorizedException("Cannot remove the last member of a Team.");
 			// remove from ACL
 			AccessControlList acl = aclDAO.get(teamId, ObjectType.TEAM);
 			removeFromACL(acl, principalId);

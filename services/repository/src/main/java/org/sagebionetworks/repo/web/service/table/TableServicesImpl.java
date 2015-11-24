@@ -5,6 +5,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.manager.util.Validate;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -232,14 +233,26 @@ public class TableServicesImpl implements TableServices {
 			TableUnavilableException, TableFailedException {
 		UserInfo user = userManager.getUserInfo(userId);
 
-		return tableRowManager.queryBundle(user, queryBundle);
+		return tableRowManager.queryBundle(new ProgressCallback<Void>() {
+			
+			@Override
+			public void progressMade(Void t) {
+				
+			}
+		}, user, queryBundle);
 	}
 
 	@Override
 	public QueryResult queryNextPage(Long userId, QueryNextPageToken nextPageToken) throws DatastoreException, NotFoundException,
 			TableUnavilableException, TableFailedException {
 		UserInfo user = userManager.getUserInfo(userId);
-		QueryResult queryResult = tableRowManager.queryNextPage(user, nextPageToken);
+		QueryResult queryResult = tableRowManager.queryNextPage(new ProgressCallback<Void>() {
+			
+			@Override
+			public void progressMade(Void t) {
+				
+			}
+		},user, nextPageToken);
 		return queryResult;
 	}
 

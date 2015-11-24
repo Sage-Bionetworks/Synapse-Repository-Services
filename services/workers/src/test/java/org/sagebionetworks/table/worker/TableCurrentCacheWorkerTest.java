@@ -14,19 +14,16 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
+import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.NodeInheritanceManager;
 import org.sagebionetworks.repo.manager.table.TableRowManager;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.exception.LockUnavilableException;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.workers.util.progress.ProgressCallback;
+import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.test.util.ReflectionTestUtils;
-
-import com.amazonaws.services.sqs.model.Message;
 
 public class TableCurrentCacheWorkerTest {
 
@@ -151,7 +148,7 @@ public class TableCurrentCacheWorkerTest {
 		two.setObjectEtag(resetToken);
 		// call under test
 		worker.run(mockProgressCallback, two);
-		verify(mockTableRowManager).updateLatestVersionCache(eq(tableId), any(org.sagebionetworks.util.ProgressCallback.class));
+		verify(mockTableRowManager).updateLatestVersionCache(eq(tableId), any(org.sagebionetworks.common.util.progress.ProgressCallback.class));
 	}
 
 	/**
@@ -167,7 +164,7 @@ public class TableCurrentCacheWorkerTest {
 		status.setResetToken(resetToken);
 		when(mockTableRowManager.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
 		// This should trigger a failure
-		doThrow(new IOException("mock")).when(mockTableRowManager).updateLatestVersionCache(eq(tableId), any(org.sagebionetworks.util.ProgressCallback.class));
+		doThrow(new IOException("mock")).when(mockTableRowManager).updateLatestVersionCache(eq(tableId), any(org.sagebionetworks.common.util.progress.ProgressCallback.class));
 		two.setChangeType(ChangeType.UPDATE);
 		two.setObjectEtag(resetToken);
 		// call under test

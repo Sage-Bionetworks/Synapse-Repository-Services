@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager;
 
 import java.util.List;
 
+import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.QueryResults;
@@ -13,7 +14,6 @@ import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.util.ProgressCallback;
 
 
 

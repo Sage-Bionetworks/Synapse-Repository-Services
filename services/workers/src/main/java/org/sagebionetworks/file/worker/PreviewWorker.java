@@ -5,6 +5,7 @@ import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.asynchronous.workers.changes.ChangeMessageDrivenRunner;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
+import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.file.preview.PreviewManager;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
@@ -17,7 +18,6 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
-import org.sagebionetworks.workers.util.progress.ProgressCallback;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.sqs.model.Message;
