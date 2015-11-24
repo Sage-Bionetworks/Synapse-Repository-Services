@@ -41,6 +41,7 @@ public class MigrationControllerAutowireTest extends AbstractAutowiredController
 	S3FileHandle handleOne;
 	PreviewFileHandle preview;
 	long startFileCount;
+	long startMinId;
 	
 	@Before
 	public void before() throws Exception{
@@ -49,6 +50,7 @@ public class MigrationControllerAutowireTest extends AbstractAutowiredController
 		String adminUserIdString = adminUserId.toString();
 
 		startFileCount = fileMetadataDao.getCount();
+
 		// Create a file handle
 		handleOne = new S3FileHandle();
 		handleOne.setCreatedBy(adminUserIdString);
@@ -96,14 +98,18 @@ public class MigrationControllerAutowireTest extends AbstractAutowiredController
 		System.out.println(counts);
 		long fileCount = 0;
 		long fileMaxId = 0;
+		long fileMinId = 0;
 		for(MigrationTypeCount type: counts.getList()){
 			if(type.getType() == MigrationType.FILE_HANDLE){
 				fileCount = type.getCount();
 				fileMaxId = type.getMaxid();
+				fileMinId = type.getMinid();
 			}
 		}
 		assertEquals(startFileCount+2, fileCount);
 		assertEquals(Long.parseLong(preview.getId()), fileMaxId);
+		assertTrue(fileMinId >= 0);
+		assertTrue(fileMaxId >= fileMinId);
 	}
 	
 	@Test

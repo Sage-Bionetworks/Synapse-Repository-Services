@@ -40,9 +40,11 @@ public class MigrationServiceImpl implements MigrationService {
 			if (migrationManager.isMigrationTypeUsed(user, type)) {
 				long count = migrationManager.getCount(user, type);
 				long maxId = migrationManager.getMaxId(user, type);
+				long minId = migrationManager.getMinId(user, type);
 				MigrationTypeCount tc = new MigrationTypeCount();
 				tc.setCount(count);
 				tc.setMaxid(maxId);
+				tc.setMinid(minId);
 				tc.setType(type);
 				list.add(tc);
 			}
