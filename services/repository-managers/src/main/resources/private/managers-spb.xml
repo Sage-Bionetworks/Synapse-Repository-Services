@@ -318,6 +318,9 @@
 	<bean id="forumManager"
 		class="org.sagebionetworks.repo.manager.discussion.ForumManagerImpl"
 		scope ="singleton" />
+	<bean id="threadManager"
+		class="org.sagebionetworks.repo.manager.discussion.DiscussionThreadManagerImpl"
+		scope ="singleton" />
 
 	<!-- The thread pool used by the backup/restore daemons -->
 	<bean id="backupDaemonThreadPool"

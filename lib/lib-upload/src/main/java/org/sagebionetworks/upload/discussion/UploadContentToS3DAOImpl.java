@@ -30,6 +30,14 @@ public class UploadContentToS3DAOImpl implements UploadContentToS3DAO {
 		this.bucketName = bucketName;
 	}
 
+	/**
+	 * Initialize is called when this bean is first created.
+	 * 
+	 */
+	public void initialize() {
+		s3Client.createBucket(bucketName);
+	}
+
 	@Override
 	public String uploadDiscussionContent(String content, String forumId, String threadId) throws UnsupportedEncodingException{
 		String key = generateKey(forumId, threadId);
