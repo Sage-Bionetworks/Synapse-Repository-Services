@@ -16,6 +16,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.DiscussionThreadDAO;
 import org.sagebionetworks.repo.model.ForumDAO;
 import org.sagebionetworks.repo.model.Node;
@@ -42,11 +44,14 @@ public class DBODiscussionThreadDAOImplTest {
 	private NodeDAO nodeDao;
 	@Autowired
 	private DiscussionThreadDAO threadDao;
+	@Autowired
+	private IdGenerator idGenerator;
 
 	private Long userId = null;
 	private Long userId2 = null;
 	private String projectId = null;
 	private String forumId;
+	private Long threadId;
 	private long forumIdLong;
 
 	@Before
@@ -63,6 +68,7 @@ public class DBODiscussionThreadDAOImplTest {
 		Forum dto = forumDao.createForum(projectId);
 		forumId = dto.getId();
 		forumIdLong = Long.parseLong(forumId);
+		threadId = idGenerator.generateNewId(TYPE.DISCUSSION_THREAD_ID);
 	}
 
 	@After
@@ -72,28 +78,29 @@ public class DBODiscussionThreadDAOImplTest {
 		if (userId2 != null) userGroupDAO.delete(userId.toString());
 	}
 
-	@Test
-	public void testCreateWithInvalidArguments() {
-		try {
-			threadDao.createThread(null, "title", "messageUrl", userId);
-		} catch (IllegalArgumentException e) {
-			// as expected
-		}
-		try {
-			threadDao.createThread(forumId, null, "messageUrl", userId);
-		} catch (IllegalArgumentException e) {
-			// as expected
-		}
-		try {
-			threadDao.createThread(forumId, "title", null, userId);
-		} catch (IllegalArgumentException e) {
-			// as expected
-		}
+	@Test (expected = IllegalArgumentException.class)
+	public void testCreateWithInvalidForumId() {
+		threadDao.createThread(null, threadId.toString(), "title", "messageKey", userId);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testCreateWithInvalidThreadId() {
+		threadDao.createThread(forumId, null, "title", "messageKey", userId);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testCreateWithInvalidTitle() {
+		threadDao.createThread(forumId, threadId.toString(), null, "messageKey", userId);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testCreateWithInvalidMessageKey() {
+		threadDao.createThread(forumId, threadId.toString(), "title", null, userId);
 	}
 
 	@Test
 	public void testCreate() {
-		DiscussionThreadBundle dto = threadDao.createThread(forumId, "title", "messageUrl", userId);
+		DiscussionThreadBundle dto = threadDao.createThread(forumId, threadId.toString(), "title", "messageKey", userId);
 		assertEquals("check default number of views", dto.getNumberOfViews(), (Long) 0L);
 		assertEquals("check default number of replies", dto.getNumberOfReplies(), (Long) 0L);
 		assertEquals("check default last activity", dto.getLastActivity(), dto.getModifiedOn());
@@ -105,21 +112,21 @@ public class DBODiscussionThreadDAOImplTest {
 
 	@Test
 	public void testGetEtag(){
-		DiscussionThreadBundle dto = threadDao.createThread(forumId, "title", "messageUrl", userId);
+		DiscussionThreadBundle dto = threadDao.createThread(forumId, threadId.toString(), "title", "messageKey", userId);
 		long threadId = Long.parseLong(dto.getId());
 		assertNotNull(threadDao.getEtagForUpdate(threadId));
 	}
 
 	@Test
-	public void testUpdateMessageUrl() throws InterruptedException {
-		DiscussionThreadBundle dto = threadDao.createThread(forumId, "title", "messageUrl", userId);
+	public void testUpdateMessageKey() throws InterruptedException {
+		DiscussionThreadBundle dto = threadDao.createThread(forumId, threadId.toString(), "title", "messageKey", userId);
 		long threadId = Long.parseLong(dto.getId());
 
 		Thread.sleep(1000);
 		dto.setIsEdited(true);
-		String newMessageUrl = UUID.randomUUID().toString();
-		dto.setMessageUrl(newMessageUrl);
-		threadDao.updateMessageUrl(threadId, newMessageUrl);
+		String newMessageKey = UUID.randomUUID().toString();
+		dto.setMessageKey(newMessageKey);
+		threadDao.updateMessageKey(threadId, newMessageKey);
 		DiscussionThreadBundle returnedDto = threadDao.getThread(threadId);
 		assertFalse("after updating message url, modifiedOn should be different",
 				dto.getModifiedOn().equals(returnedDto.getModifiedOn()));
@@ -135,7 +142,7 @@ public class DBODiscussionThreadDAOImplTest {
 
 	@Test
 	public void testUpdateTitle(){
-		DiscussionThreadBundle dto = threadDao.createThread(forumId, "title", "messageUrl", userId);
+		DiscussionThreadBundle dto = threadDao.createThread(forumId, threadId.toString(), "title", "messageKey", userId);
 		long threadId = Long.parseLong(dto.getId());
 
 		String newTitle = "newTitle";
@@ -151,7 +158,7 @@ public class DBODiscussionThreadDAOImplTest {
 
 	@Test
 	public void testDelete(){
-		DiscussionThreadBundle dto = threadDao.createThread(forumId, "title", "messageUrl", userId);
+		DiscussionThreadBundle dto = threadDao.createThread(forumId, threadId.toString(), "title", "messageKey", userId);
 		long threadId = Long.parseLong(dto.getId());
 
 		dto.setIsDeleted(true);
@@ -170,7 +177,7 @@ public class DBODiscussionThreadDAOImplTest {
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testUpdateMessageUrlWithInvalidArgument(){
-		threadDao.updateMessageUrl(1L, null);
+		threadDao.updateMessageKey(1L, null);
 	}
 
 	@Test
@@ -295,8 +302,9 @@ public class DBODiscussionThreadDAOImplTest {
 	private List<DiscussionThreadBundle> createListOfThreads(int numberOfThreads) {
 		List<DiscussionThreadBundle> createdThreads = new ArrayList<DiscussionThreadBundle>();
 		for (int i = 0; i < numberOfThreads; i++) {
-			DiscussionThreadBundle dto = threadDao.createThread(forumId, "title", 
-					UUID.randomUUID().toString(), userId);
+			threadId = idGenerator.generateNewId(TYPE.DISCUSSION_THREAD_ID);
+			DiscussionThreadBundle dto = threadDao.createThread(forumId, threadId.toString(),
+					"title", UUID.randomUUID().toString(), userId);
 			createdThreads.add(dto);
 		}
 		return createdThreads;
@@ -304,7 +312,7 @@ public class DBODiscussionThreadDAOImplTest {
 
 	@Test
 	public void testSetActiveAuthors() {
-		DiscussionThreadBundle dto = threadDao.createThread(forumId, "title", "messageUrl", userId);
+		DiscussionThreadBundle dto = threadDao.createThread(forumId, threadId.toString(), "title", "messageKey", userId);
 		long threadId = Long.parseLong(dto.getId());
 		threadDao.setActiveAuthors(threadId, Arrays.asList(dto.getCreatedBy(), "123456"));
 		dto.setActiveAuthors(Arrays.asList(dto.getCreatedBy(), "123456"));
@@ -313,7 +321,7 @@ public class DBODiscussionThreadDAOImplTest {
 
 	@Test
 	public void threadViewTest() {
-		DiscussionThreadBundle dto = threadDao.createThread(forumId, "title", "messageUrl", userId);
+		DiscussionThreadBundle dto = threadDao.createThread(forumId, threadId.toString(), "title", "messageKey", userId);
 		long threadId = Long.parseLong(dto.getId());
 		threadDao.updateThreadView(threadId, userId);
 		assertEquals(1L, threadDao.countThreadView(threadId));

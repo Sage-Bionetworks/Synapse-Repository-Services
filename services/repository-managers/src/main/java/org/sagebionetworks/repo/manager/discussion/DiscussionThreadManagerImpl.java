@@ -1,7 +1,7 @@
 package org.sagebionetworks.repo.manager.discussion;
 
-import java.util.UUID;
-
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
@@ -28,6 +28,9 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 	private UploadContentToS3DAO uploadDao;
 	@Autowired
 	private AuthorizationManager authorizationManager;
+	@Autowired
+	private IdGenerator idGenerator;
+
 
 	@WriteTransaction
 	@Override
@@ -40,8 +43,9 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		String projectId = forumDao.getForum(Long.parseLong(createThread.getForumId())).getProjectId();
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ));
-		String messageUrl = uploadDao.upload(createThread.getMessageMarkdown(), UUID.randomUUID().toString());
-		return threadDao.createThread(createThread.getForumId(), createThread.getTitle(), messageUrl, userInfo.getId());
+		Long id = idGenerator.generateNewId(TYPE.DISCUSSION_THREAD_ID);
+		String messageKey = uploadDao.uploadDiscussionContent(createThread.getMessageMarkdown(), createThread.getForumId(), id.toString());
+		return threadDao.createThread(createThread.getForumId(), id.toString(), createThread.getTitle(), messageKey, userInfo.getId());
 	}
 
 	@Override
@@ -90,8 +94,8 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		Long threadIdLong = Long.parseLong(threadId);
 		DiscussionThreadBundle thread = threadDao.getThread(threadIdLong);
 		if (authorizationManager.isUserCreatorOrAdmin(userInfo, thread.getCreatedBy())) {
-			String messageUrl = uploadDao.upload(markdown, UUID.randomUUID().toString());
-			return threadDao.updateMessageUrl(threadIdLong, messageUrl);
+			String messageKey = uploadDao.uploadDiscussionContent(markdown, thread.getForumId(), thread.getId());
+			return threadDao.updateMessageKey(threadIdLong, messageKey);
 		} else {
 			throw new UnauthorizedException("Only the user that created the thread can modify it.");
 		}

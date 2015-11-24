@@ -6,6 +6,8 @@ import static org.junit.Assert.assertNotNull;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
@@ -27,6 +29,7 @@ public class DiscussionThreadManagerImplTest {
 	private ForumDAO mockForumDao;
 	private UploadContentToS3DAO mockUploadDao;
 	private AuthorizationManager mockAuthorizationManager;
+	private IdGenerator mockIdGenerator;
 	private DiscussionThreadManager threadManager;
 	private UserInfo userInfo = new UserInfo(false /*not admin*/);
 	private CreateDiscussionThread createDto;
@@ -36,7 +39,7 @@ public class DiscussionThreadManagerImplTest {
 	private Long userId = 2L;
 	private Long threadId = 3L;
 	private Forum forum;
-	private String messageUrl = "messageUrl";
+	private String messageKey = "messageKey";
 
 	@Before
 	public void before() {
@@ -44,11 +47,13 @@ public class DiscussionThreadManagerImplTest {
 		mockForumDao = Mockito.mock(ForumDAO.class);
 		mockUploadDao = Mockito.mock(UploadContentToS3DAO.class);
 		mockAuthorizationManager = Mockito.mock(AuthorizationManager.class);
+		mockIdGenerator = Mockito.mock(IdGenerator.class);
 		threadManager = new DiscussionThreadManagerImpl();
 		ReflectionTestUtils.setField(threadManager, "threadDao", mockThreadDao);
 		ReflectionTestUtils.setField(threadManager, "forumDao", mockForumDao);
 		ReflectionTestUtils.setField(threadManager, "uploadDao", mockUploadDao);
 		ReflectionTestUtils.setField(threadManager, "authorizationManager", mockAuthorizationManager);
+		ReflectionTestUtils.setField(threadManager, "idGenerator", mockIdGenerator);
 
 		createDto = new CreateDiscussionThread();
 		createDto.setForumId(forumId.toString());
@@ -63,6 +68,7 @@ public class DiscussionThreadManagerImplTest {
 
 		Mockito.when(mockForumDao.getForum(Long.parseLong(createDto.getForumId()))).thenReturn(forum);
 		Mockito.when(mockThreadDao.getThread(threadId)).thenReturn(dto);
+		Mockito.when(mockIdGenerator.generateNewId(TYPE.DISCUSSION_THREAD_ID)).thenReturn(threadId);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -104,9 +110,9 @@ public class DiscussionThreadManagerImplTest {
 	public void testCreateAuthorized() {
 		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		Mockito.when(mockUploadDao.upload(Mockito.anyString(), Mockito.anyString()))
-				.thenReturn(messageUrl);
-		Mockito.when(mockThreadDao.createThread(Mockito.anyString(), Mockito.anyString(), Mockito.anyString(), Mockito.anyLong()))
+		Mockito.when(mockUploadDao.uploadDiscussionContent(Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
+				.thenReturn(messageKey);
+		Mockito.when(mockThreadDao.createThread(Mockito.anyString(), Mockito.anyString(), Mockito.anyString(), Mockito.anyString(), Mockito.anyLong()))
 				.thenReturn(dto);
 		DiscussionThreadBundle createdThread = threadManager.createThread(userInfo, createDto);
 		assertNotNull(createdThread);
@@ -169,9 +175,9 @@ public class DiscussionThreadManagerImplTest {
 	public void testUpdateMessageAuthorized() {
 		Mockito.when(mockAuthorizationManager.isUserCreatorOrAdmin(Mockito.eq(userInfo), Mockito.anyString()))
 				.thenReturn(true);
-		Mockito.when(mockUploadDao.upload(Mockito.anyString(), Mockito.anyString()))
+		Mockito.when(mockUploadDao.uploadDiscussionContent(Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
 				.thenReturn("newMessage");
-		Mockito.when(mockThreadDao.updateMessageUrl(Mockito.anyLong(), Mockito.anyString())).thenReturn(dto);
+		Mockito.when(mockThreadDao.updateMessageKey(Mockito.anyLong(), Mockito.anyString())).thenReturn(dto);
 		assertEquals(dto, threadManager.updateMessage(userInfo, threadId.toString(), "newMessage"));
 	}
 

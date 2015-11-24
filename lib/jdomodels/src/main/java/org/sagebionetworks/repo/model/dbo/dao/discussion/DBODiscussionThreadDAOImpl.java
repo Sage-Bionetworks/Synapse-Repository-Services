@@ -176,15 +176,14 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 
 	@WriteTransaction
 	@Override
-	public DiscussionThreadBundle createThread(String forumId, String title, String messageUrl, long userId) {
+	public DiscussionThreadBundle createThread(String forumId, String threadId, String title, String messageKey, long userId) {
 		ValidateArgument.requirement(forumId != null, "forumId cannot be null");
 		ValidateArgument.requirement(title != null, "title cannot be null");
-		ValidateArgument.requirement(messageUrl != null, "messageUrl cannot be null");
-		Long id = idGenerator.generateNewId(TYPE.DISCUSSION_THREAD_ID);
+		ValidateArgument.requirement(messageKey != null, "messageUrl cannot be null");
 		String etag = UUID.randomUUID().toString();
-		DBODiscussionThread dbo = DiscussionThreadUtils.createDBO(forumId, title, messageUrl, userId, id.toString(), etag);
+		DBODiscussionThread dbo = DiscussionThreadUtils.createDBO(forumId, title, messageKey, userId, threadId, etag);
 		basicDao.createNew(dbo);
-		return getThread(id);
+		return getThread(Long.parseLong(threadId));
 	}
 
 	@Override
@@ -253,7 +252,7 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 
 	@WriteTransaction
 	@Override
-	public DiscussionThreadBundle updateMessageUrl(long threadId, String newMessageUrl) {
+	public DiscussionThreadBundle updateMessageKey(long threadId, String newMessageUrl) {
 		if (newMessageUrl == null) {
 			throw new IllegalArgumentException("Message Url cannot be null");
 		}
