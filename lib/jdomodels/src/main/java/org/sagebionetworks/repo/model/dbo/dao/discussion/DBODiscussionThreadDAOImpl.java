@@ -56,7 +56,7 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 			dbo.setCreatedBy(Long.toString(rs.getLong(COL_DISCUSSION_THREAD_CREATED_BY)));
 			dbo.setModifiedOn(new Date(rs.getTimestamp(COL_DISCUSSION_THREAD_MODIFIED_ON).getTime()));
 			dbo.setEtag(rs.getString(COL_DISCUSSION_THREAD_ETAG));
-			dbo.setMessageUrl(rs.getString(COL_DISCUSSION_THREAD_MESSAGE_URL));
+			dbo.setMessageKey(rs.getString(COL_DISCUSSION_THREAD_MESSAGE_KEY));
 			dbo.setIsEdited(rs.getBoolean(COL_DISCUSSION_THREAD_IS_EDITED));
 			dbo.setIsDeleted(rs.getBoolean(COL_DISCUSSION_THREAD_IS_DELETED));
 			long numberOfViews = rs.getLong(COL_DISCUSSION_THREAD_STATS_NUMBER_OF_VIEWS);
@@ -100,7 +100,7 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 			+COL_DISCUSSION_THREAD_ETAG+" = ? "
 			+" WHERE "+COL_DISCUSSION_THREAD_ID+" = ?";
 	private static final String SQL_UPDATE_MESSAGE_URL = "UPDATE "+TABLE_DISCUSSION_THREAD
-			+" SET "+COL_DISCUSSION_THREAD_MESSAGE_URL+" = ?, "
+			+" SET "+COL_DISCUSSION_THREAD_MESSAGE_KEY+" = ?, "
 			+COL_DISCUSSION_THREAD_IS_EDITED+" = TRUE, "
 			+COL_DISCUSSION_THREAD_ETAG+" = ? "
 			+" WHERE "+COL_DISCUSSION_THREAD_ID+" = ?";
@@ -114,7 +114,7 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 			+COL_DISCUSSION_THREAD_CREATED_BY+", "
 			+COL_DISCUSSION_THREAD_MODIFIED_ON+", "
 			+COL_DISCUSSION_THREAD_ETAG+", "
-			+COL_DISCUSSION_THREAD_MESSAGE_URL+", "
+			+COL_DISCUSSION_THREAD_MESSAGE_KEY+", "
 			+COL_DISCUSSION_THREAD_IS_EDITED+", "
 			+COL_DISCUSSION_THREAD_IS_DELETED+", "
 			+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_VIEWS+", "

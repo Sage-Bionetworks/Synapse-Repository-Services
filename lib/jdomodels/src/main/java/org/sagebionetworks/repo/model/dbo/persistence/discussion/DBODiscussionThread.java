@@ -27,7 +27,7 @@ public class DBODiscussionThread  implements MigratableDatabaseObject<DBODiscuss
 		new FieldColumn("title", COL_DISCUSSION_THREAD_TITLE),
 		new FieldColumn("etag", COL_DISCUSSION_THREAD_ETAG).withIsEtag(true),
 		new FieldColumn("createdBy", COL_DISCUSSION_THREAD_CREATED_BY),
-		new FieldColumn("messageUrl", COL_DISCUSSION_THREAD_MESSAGE_URL),
+		new FieldColumn("messageUrl", COL_DISCUSSION_THREAD_MESSAGE_KEY),
 		new FieldColumn("isEdited", COL_DISCUSSION_THREAD_IS_EDITED),
 		new FieldColumn("isDeleted", COL_DISCUSSION_THREAD_IS_DELETED)
 	};
@@ -194,7 +194,7 @@ public class DBODiscussionThread  implements MigratableDatabaseObject<DBODiscuss
 				dbo.setTitle(blob.getBytes(1, (int) blob.length()));
 				dbo.setEtag(rs.getString(COL_DISCUSSION_THREAD_ETAG));
 				dbo.setCreatedBy(rs.getLong(COL_DISCUSSION_THREAD_CREATED_BY));
-				dbo.setMessageUrl(rs.getString(COL_DISCUSSION_THREAD_MESSAGE_URL));
+				dbo.setMessageUrl(rs.getString(COL_DISCUSSION_THREAD_MESSAGE_KEY));
 				dbo.setIsEdited(rs.getBoolean(COL_DISCUSSION_THREAD_IS_EDITED));
 				dbo.setIsDeleted(rs.getBoolean(COL_DISCUSSION_THREAD_IS_DELETED));
 				return dbo;
