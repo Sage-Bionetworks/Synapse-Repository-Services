@@ -29,6 +29,10 @@ import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.tool.migration.v3.stream.BufferedRowMetadataReader;
 import org.sagebionetworks.tool.migration.v3.stream.BufferedRowMetadataWriter;
+import org.sagebionetworks.tool.migration.v4.Delta.DeltaFinder;
+import org.sagebionetworks.tool.migration.v4.Delta.DeltaRanges;
+import org.sagebionetworks.tool.migration.v4.utils.ToolMigrationUtils;
+import org.sagebionetworks.tool.migration.v4.utils.TypeToMigrateMetadata;
 import org.sagebionetworks.tool.progress.BasicProgress;
 
 /**
@@ -44,6 +48,9 @@ public class MigrationClient {
 	ExecutorService threadPool;
 	List<Exception> deferredExceptions;
 	final int MAX_DEFERRED_EXCEPTIONS = 10;
+	MigrationTypeCounts startSourceCounts;
+	MigrationTypeCounts startDestCounts;
+	
 	
 	/**
 	 * New migration client.
@@ -136,11 +143,13 @@ public class MigrationClient {
 	public void migrateAllTypes(long batchSize, long timeoutMS, int retryDenominator, boolean deferExceptions) throws Exception {
 		SynapseAdminClient source = factory.createNewSourceClient();
 		SynapseAdminClient destination = factory.createNewDestinationClient();
-		// Get the counts for all type from both the source and destination
-		MigrationTypeCounts startSourceCounts = source.getTypeCounts();
-		MigrationTypeCounts startDestCounts = destination.getTypeCounts();
+		
+		// Get the counts for all type from both the source and destination, including minIds and maxIds
+		startSourceCounts = source.getTypeCounts();
+		startDestCounts = destination.getTypeCounts();
 		log.info("Start counts:");
 		printCounts(startSourceCounts.getList(), startDestCounts.getList());
+		
 		// Get the primary types for src and dest
 		List<MigrationType> srcPrimaryTypes = source.getPrimaryTypes().getList();
 		List<MigrationType> destPrimaryTypes = destination.getPrimaryTypes().getList();
@@ -151,8 +160,11 @@ public class MigrationClient {
 				primaryTypesToMigrate.add(pt);
 			}
 		}
+		List<TypeToMigrateMetadata> typesToMigrate = ToolMigrationUtils.buildTypeToMigrateMetadata(startSourceCounts, startDestCounts, primaryTypesToMigrate);
+		
 		// Do the actual migration.
-		migrateAll(batchSize, timeoutMS, retryDenominator, primaryTypesToMigrate, deferExceptions);
+		migrateAll(batchSize, timeoutMS, retryDenominator, typesToMigrate, deferExceptions);
+
 		// Print the final counts
 		MigrationTypeCounts endSourceCounts = source.getTypeCounts();
 		MigrationTypeCounts endDestCounts = destination.getTypeCounts();
@@ -174,11 +186,12 @@ public class MigrationClient {
 	 * @param primaryTypes
 	 * @throws Exception
 	 */
-	private void migrateAll(long batchSize, long timeoutMS,	int retryDenominator, List<MigrationType> primaryTypes, boolean deferExceptions)
+	private void migrateAll(long batchSize, long timeoutMS,	int retryDenominator, List<TypeToMigrateMetadata> typesToMigrate, boolean deferExceptions)
 			throws Exception {
+		
 		List<DeltaData> deltaList = new LinkedList<DeltaData>();
-		for(MigrationType type: primaryTypes){
-			DeltaData dd = calculateDeltaForType(type, batchSize);
+		for(TypeToMigrateMetadata tm: typesToMigrate){
+			DeltaData dd = calculateDeltaForType(tm, batchSize);
 			deltaList.add(dd);
 		}
 		
@@ -304,15 +317,20 @@ public class MigrationClient {
 	 * @param progress
 	 * @throws Exception 
 	 */
-	public DeltaData calculateDeltaForType(MigrationType type, long batchSize) throws Exception{
+	public DeltaData calculateDeltaForType(TypeToMigrateMetadata tm, long batchSize) throws Exception{
+		
+		// First, we find the delta ranges
+		DeltaFinder finder = new DeltaFinder(tm, factory.createNewSourceClient(), factory.createNewDestinationClient());
+		DeltaRanges ranges = finder.findDeltaRanges();
+		
 		// the first thing we need to do is calculate the what needs to be created, updated, or deleted.
 		// We need three temp file to keep track of the deltas
 		File createTemp = File.createTempFile("create", ".tmp");
 		File updateTemp = File.createTempFile("update", ".tmp");
 		File deleteTemp = File.createTempFile("delete", ".tmp");
 		// Calculate the deltas
-		DeltaCounts counts = calcualteDeltas(type, batchSize, createTemp, updateTemp, deleteTemp);
-		return new DeltaData(type, createTemp, updateTemp, deleteTemp, counts);
+		DeltaCounts counts = calcualteDeltas(tm.getType(), batchSize, createTemp, updateTemp, deleteTemp);
+		return new DeltaData(tm.getType(), createTemp, updateTemp, deleteTemp, counts);
 		
 	}
 
