@@ -39,7 +39,7 @@ public class TypeToMigrateMetadata {
 		return srcMinId;
 	}
 
-	public void setSrcMinId(long srcMinId) {
+	public void setSrcMinId(Long srcMinId) {
 		this.srcMinId = srcMinId;
 	}
 
@@ -55,7 +55,7 @@ public class TypeToMigrateMetadata {
 		return srcCount;
 	}
 
-	public void setSrcCount(long srcCount) {
+	public void setSrcCount(Long srcCount) {
 		this.srcCount = srcCount;
 	}
 
@@ -63,7 +63,7 @@ public class TypeToMigrateMetadata {
 		return destMinId;
 	}
 
-	public void setDestMinId(long destMinId) {
+	public void setDestMinId(Long destMinId) {
 		this.destMinId = destMinId;
 	}
 
@@ -71,7 +71,7 @@ public class TypeToMigrateMetadata {
 		return destMaxId;
 	}
 
-	public void setDestMaxId(long destMaxId) {
+	public void setDestMaxId(Long destMaxId) {
 		this.destMaxId = destMaxId;
 	}
 
@@ -79,7 +79,7 @@ public class TypeToMigrateMetadata {
 		return destCount;
 	}
 
-	public void setDestCount(long destCount) {
+	public void setDestCount(Long destCount) {
 		this.destCount = destCount;
 	}
 	

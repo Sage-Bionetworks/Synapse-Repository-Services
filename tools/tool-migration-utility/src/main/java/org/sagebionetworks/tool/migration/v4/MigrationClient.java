@@ -320,7 +320,7 @@ public class MigrationClient {
 	public DeltaData calculateDeltaForType(TypeToMigrateMetadata tm, long batchSize) throws Exception{
 		
 		// First, we find the delta ranges
-		DeltaFinder finder = new DeltaFinder(tm, factory.createNewSourceClient(), factory.createNewDestinationClient());
+		DeltaFinder finder = new DeltaFinder(tm, factory.createNewSourceClient(), factory.createNewDestinationClient(), batchSize);
 		DeltaRanges ranges = finder.findDeltaRanges();
 		
 		// the first thing we need to do is calculate the what needs to be created, updated, or deleted.
