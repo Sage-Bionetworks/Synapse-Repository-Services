@@ -9,6 +9,10 @@
 			"type": "string",
 			"description": "The ID of the forum this Thread belongs to"
 		},
+		"projectId": {
+			"type": "string",
+			"description": "The ID of the project this Thread belongs to"
+		},
 		"title": {
 		"type": "string",
 			"description": "The title of the Thread"
@@ -26,6 +30,13 @@
 			"type": "string",
 			"format":"date-time",
 			"description":"The timestamp when this Thread was last modified"
+		},
+		"etag": {
+			"type": "string"
+		},
+		"messageKey": {
+		"type": "string",
+			"description": "The S3 key where the actual message stored"
 		},
 		"messageUrl": {
 		"type": "string",

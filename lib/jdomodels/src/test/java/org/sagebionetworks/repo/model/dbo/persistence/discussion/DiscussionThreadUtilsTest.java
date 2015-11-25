@@ -2,117 +2,98 @@ package org.sagebionetworks.repo.model.dbo.persistence.discussion;
 
 import static org.junit.Assert.*;
 
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.List;
 
+import org.junit.Before;
 import org.junit.Test;
-import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
 
 public class DiscussionThreadUtilsTest {
 
-	@Test
-	public void testValidCreateThread() {
-		CreateDiscussionThread createThread = DiscussionThreadTestUtil.createValidCreateThread();
-		DiscussionThreadUtils.validateCreateThreadAndThrowException(createThread);
-	}
+	private String forumId;
+	private String title;
+	private String messageKey;
+	private long userId;
+	private String id;
+	private String etag;
 
-	@Test (expected = IllegalArgumentException.class)
-	public void testInvalidCreateThreadWithNullForumId() {
-		CreateDiscussionThread createThread = DiscussionThreadTestUtil.createValidCreateThread();
-		createThread.setForumId(null);
-		DiscussionThreadUtils.validateCreateThreadAndThrowException(createThread);
-	}
-
-	@Test (expected = IllegalArgumentException.class)
-	public void testInvalidCreateThreadWithNullTitle() {
-		CreateDiscussionThread createThread = DiscussionThreadTestUtil.createValidCreateThread();
-		createThread.setTitle(null);
-		DiscussionThreadUtils.validateCreateThreadAndThrowException(createThread);
-	}
-
-	@Test (expected = IllegalArgumentException.class)
-	public void testInvalidCreateThreadWithNullMessage() {
-		CreateDiscussionThread createThread = DiscussionThreadTestUtil.createValidCreateThread();
-		createThread.setMessageMarkdown(null);
-		DiscussionThreadUtils.validateCreateThreadAndThrowException(createThread);
+	@Before
+	public void before() {
+		forumId = "1";
+		title = "title";
+		messageKey = "messageKey";
+		userId = 2L;
+		id = "3";
+		etag = "etag";
 	}
 
 	@Test
 	public void testCreateDBO() throws InterruptedException {
-		String forumId = "1";
-		String title = "title";
-		String messageUrl = "messageUrl";
-		Long userId = 2L;
-		String id = "3";
-		String etag = "etag";
-		Long timestamp = new Date().getTime();
-		Thread.sleep(100);
 		DBODiscussionThread dbo = DiscussionThreadUtils.createDBO(forumId, title,
-				messageUrl, userId, id, etag);
+				messageKey, userId, id, etag);
 		assertNotNull(dbo);
 		assertEquals(dbo.getId().toString(), id);
 		assertEquals(dbo.getForumId().toString(), forumId);
 		assertEquals(new String(dbo.getTitle(), DiscussionThreadUtils.UTF8), title);
-		assertEquals(dbo.getMessageUrl(), messageUrl);
-		assertEquals(dbo.getCreatedBy(), userId);
-		assertTrue(timestamp < dbo.getCreatedOn());
-		assertTrue(timestamp < dbo.getModifiedOn());
+		assertEquals(dbo.getMessageKey(), messageKey);
+		assertEquals(dbo.getCreatedBy(), (Long) userId);
 		assertEquals(dbo.getEtag(), etag);
 		assertFalse(dbo.getIsEdited());
 		assertFalse(dbo.getIsDeleted());
+	}
 
-		try {
-			DiscussionThreadUtils.createDBO(null, title, messageUrl, userId, id, etag);
-			fail("Must throw exception for null forumId");
-		} catch (IllegalArgumentException e) {
-			// as expected
-		}
-		try {
-			DiscussionThreadUtils.createDBO(forumId, null, messageUrl, userId, id, etag);
-			fail("Must throw exception for null title");
-		} catch (NullPointerException e) {
-			// as expected
-		}
-		try {
-			DiscussionThreadUtils.createDBO(forumId, title, null, userId, id, etag);
-			fail("Must throw exception for null messageUrl");
-		} catch (IllegalArgumentException e) {
-			// as expected
-		}
-		try {
-			DiscussionThreadUtils.createDBO(forumId, title, messageUrl, null, id, etag);
-			fail("Must throw exception for null userId");
-		} catch (IllegalArgumentException e) {
-			// as expected
-		}
-		try {
-			DiscussionThreadUtils.createDBO(forumId, title, messageUrl, userId, null, etag);
-			fail("Must throw exception for null id");
-		} catch (IllegalArgumentException e) {
-			// as expected
-		}
-		try {
-			DiscussionThreadUtils.createDBO(forumId, title, messageUrl, userId, id, null);
-			fail("Must throw exception for null etag");
-		} catch (IllegalArgumentException e) {
-			// as expected
-		}
+	@Test (expected = IllegalArgumentException.class)
+	public void testInvalidDBOWithNullForumId() {
+		DiscussionThreadUtils.createDBO(null, title, messageKey, userId, id, etag);
+	}
+	@Test (expected = IllegalArgumentException.class)
+	public void testInvalidDBOWithNullTitle(){
+		DiscussionThreadUtils.createDBO(forumId, null, messageKey, userId, id, etag);
+	}
+	@Test (expected = IllegalArgumentException.class)
+	public void testInvalidDBOWithNullMessage(){
+		DiscussionThreadUtils.createDBO(forumId, title, null, userId, id, etag);
+	}
+	@Test (expected = IllegalArgumentException.class)
+	public void testInvalidDBOWithNullUserId(){
+		DiscussionThreadUtils.createDBO(forumId, title, messageKey, null, id, etag);
+	}
+	@Test (expected = IllegalArgumentException.class)
+	public void testInvalidDBOWithNullId(){
+		DiscussionThreadUtils.createDBO(forumId, title, messageKey, userId, null, etag);
+	}
+	@Test (expected = IllegalArgumentException.class)
+	public void testInvalidDBOWithNullEtag(){
+		DiscussionThreadUtils.createDBO(forumId, title, messageKey, userId, id, null);
 	}
 
 	@Test
-	public void testCompressAndDecompressUTF8() {
-		String string = "This is a title";
-		byte[] bytes = DiscussionThreadUtils.compressUTF8(string);
-		assertEquals(string, DiscussionThreadUtils.decompressUTF8(bytes));
+	public void testConvertListToStringAndBackWithEmptyList() {
+		List<String> list = new ArrayList<String>();
+		String empty = DiscussionThreadUtils.toString(list);
+		assertEquals(empty, "");
+		List<String> result = DiscussionThreadUtils.toList(empty);
+		assertTrue(result.isEmpty());
 	}
 
 	@Test
-	public void testCreateList() {
-		List<Long> longList = Arrays.asList(1L, 2L, 3L, 4L, 5L);
-		List<String> stringList = Arrays.asList("1", "2", "3", "4", "5");
-		byte[] bytes = DiscussionThreadUtils.compressUTF8(longList.toString());
-		String decompress = DiscussionThreadUtils.decompressUTF8(bytes);
-		assertEquals(stringList, DiscussionThreadUtils.createList(decompress));
+	public void testConvertListToStringAndBackWithOneElmList() {
+		List<String> list = new ArrayList<String>();
+		list.add("a");
+		String string = DiscussionThreadUtils.toString(list);
+		assertEquals(string, "a");
+		List<String> result = DiscussionThreadUtils.toList(string);
+		assertEquals(list, result);
+	}
+
+	@Test
+	public void testConvertListToStringAndBackWithMoreThanOneElmList() {
+		List<String> list = new ArrayList<String>();
+		list.addAll(Arrays.asList("a", "b", "c"));
+		String string = DiscussionThreadUtils.toString(list);
+		assertEquals(string, "a,b,c");
+		List<String> result = DiscussionThreadUtils.toList(string);
+		assertEquals(list, result);
 	}
 }

@@ -143,6 +143,9 @@
 	<bean id="stackConfiguration.snapshotRecordBucketName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.stack" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	
+	<!-- Discussion -->
+	<bean id="stackConfiguration.discussionBucketName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+
 	<!-- Logging -->
 	<bean id="stackConfiguration.logBucketName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	

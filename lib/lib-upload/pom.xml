@@ -1,0 +1,49 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>org.sagebionetworks</groupId>
+    <artifactId>lib</artifactId>
+    <version>develop-SNAPSHOT</version>
+  </parent>
+  <artifactId>lib-upload</artifactId>
+  <name>lib-upload</name>
+  <description>DAOs for uploading files to places like S3</description>
+
+	<dependencies>
+		<!-- Logging -->
+		<dependency>
+			<groupId>org.apache.logging.log4j</groupId>
+			<artifactId>log4j-core</artifactId>
+		</dependency>
+		<!-- Sage Bionetworks Dependencies -->
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>lib-stackConfiguration</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>lib-models</artifactId>
+		</dependency>
+		<!-- Spring -->
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-context</artifactId>
+		</dependency>
+		<!-- For testing -->
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.mockito</groupId>
+			<artifactId>mockito-all</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+	</dependencies>
+</project>

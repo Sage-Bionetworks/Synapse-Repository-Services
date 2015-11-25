@@ -21,6 +21,8 @@ import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ActivityDAO;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.DiscussionThreadDAO;
+import org.sagebionetworks.repo.model.ForumDAO;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -72,6 +74,10 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	private AccessControlListDAO aclDAO;
 	@Autowired
 	private VerificationDAO verificationDao;
+	@Autowired
+	private ForumDAO forumDao;
+	@Autowired
+	private DiscussionThreadDAO threadDao;
 	@Autowired
 	private FileHandleAssociationManager fileHandleAssociationSwitch;
 	

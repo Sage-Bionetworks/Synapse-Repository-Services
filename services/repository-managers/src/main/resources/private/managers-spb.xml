@@ -17,6 +17,8 @@
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 
+	<import resource="classpath:upload-dao.spb.xml" />
+
 	<!-- The real Node DAO -->
 	<bean id="nodeManager" class="org.sagebionetworks.repo.manager.NodeManagerImpl" />
 	<bean id="nodeInheritanceManager"
@@ -317,6 +319,9 @@
 	<!-- The Discussion managers -->
 	<bean id="forumManager"
 		class="org.sagebionetworks.repo.manager.discussion.ForumManagerImpl"
+		scope ="singleton" />
+	<bean id="threadManager"
+		class="org.sagebionetworks.repo.manager.discussion.DiscussionThreadManagerImpl"
 		scope ="singleton" />
 
 	<!-- The thread pool used by the backup/restore daemons -->
