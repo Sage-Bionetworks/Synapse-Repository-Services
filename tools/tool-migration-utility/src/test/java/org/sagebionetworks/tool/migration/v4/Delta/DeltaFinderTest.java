@@ -351,4 +351,39 @@ public class DeltaFinderTest {
 		assertEquals(2345, ranges.getDelRanges().get(0).getMinId());
 		assertEquals(2444, ranges.getDelRanges().get(0).getMaxId());
 	}
+	
+	@Test
+	public void testUpgRange() throws Exception {
+		TypeToMigrateMetadata meta = new TypeToMigrateMetadata();
+		meta.setType(MigrationType.FILE_HANDLE);
+		meta.setSrcCount(1345L);
+		meta.setSrcMinId(1000L);
+		meta.setSrcMaxId(2344L);
+		meta.setDestCount(1345L);
+		meta.setDestMinId(1000L);
+		meta.setDestMaxId(2344L);
+		MigrationTypeChecksum expectedChecksum1 = new MigrationTypeChecksum();
+		expectedChecksum1.setType(MigrationType.FILE_HANDLE);
+		expectedChecksum1.setMinid(1000L);
+		expectedChecksum1.setMaxid(2344L);
+		expectedChecksum1.setChecksum("CRC32-1");
+		MigrationTypeChecksum expectedChecksum2 = new MigrationTypeChecksum();
+		expectedChecksum2.setType(MigrationType.FILE_HANDLE);
+		expectedChecksum2.setMinid(1000L);
+		expectedChecksum2.setMaxid(2344L);
+		expectedChecksum2.setChecksum("CRC32-2");
+		when(mockSrcClient.getChecksumForIdRange(eq(MigrationType.FILE_HANDLE), eq(1000L), eq(2344L))).thenReturn(expectedChecksum1);
+		when(mockDestClient.getChecksumForIdRange(eq(MigrationType.FILE_HANDLE), eq(1000L), eq(2344L))).thenReturn(expectedChecksum2);
+		DeltaFinder finder = new DeltaFinder(meta, mockSrcClient, mockDestClient, 5000L);
+		DeltaRanges ranges = finder.findDeltaRanges();
+		assertEquals(MigrationType.FILE_HANDLE, ranges.getMigrationType());
+		assertNotNull(ranges.getInsRanges());
+		assertEquals(0, ranges.getInsRanges().size());
+		assertNotNull(ranges.getUpdRanges());
+		assertEquals(1, ranges.getUpdRanges().size());
+		assertEquals(1000, ranges.getUpdRanges().get(0).getMinId());
+		assertEquals(2344, ranges.getUpdRanges().get(0).getMaxId());
+		assertEquals(0, ranges.getDelRanges().size());
+		assertNotNull(ranges.getDelRanges());
+	}
 }

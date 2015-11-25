@@ -45,7 +45,7 @@ public class ToolMigrationUtilsTest {
 	}
 	
 	@Test
-	public void testBuildTypesToMigrateMetadataInvalidArgs() {
+	public void testBuildTypesToMigrateMetadataInvalidArgs() throws Exception {
 		try {
 			ToolMigrationUtils.buildTypeToMigrateMetadata(null, destTypeCounts, typesToMigrate.getList());
 		} catch (IllegalArgumentException e) {
