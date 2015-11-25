@@ -29,6 +29,8 @@ import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionContributor;
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.manager.StorageQuotaManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
@@ -234,6 +236,8 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 
 	@Autowired
 	private DiscussionThreadDAO threadDao;
+	@Autowired
+	private IdGenerator idGenerator;
 	
 	private Team team;
 
@@ -322,7 +326,8 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 	}
 
 	private void createThread() {
-		threadId = threadDao.createThread(forumId, "title", "fakeMessageUrl", adminUserId).getId();
+		threadId = idGenerator.generateNewId(TYPE.DISCUSSION_THREAD_ID).toString();
+		threadDao.createThread(forumId, threadId, "title", "fakeMessageUrl", adminUserId);
 	}
 
 	private void createThreadView() {

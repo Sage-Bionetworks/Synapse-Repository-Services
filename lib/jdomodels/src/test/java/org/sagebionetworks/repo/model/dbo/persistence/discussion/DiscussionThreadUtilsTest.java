@@ -13,7 +13,7 @@ public class DiscussionThreadUtilsTest {
 
 	private String forumId;
 	private String title;
-	private String messageUrl;
+	private String messageKey;
 	private long userId;
 	private String id;
 	private String etag;
@@ -22,7 +22,7 @@ public class DiscussionThreadUtilsTest {
 	public void before() {
 		forumId = "1";
 		title = "title";
-		messageUrl = "messageUrl";
+		messageKey = "messageKey";
 		userId = 2L;
 		id = "3";
 		etag = "etag";
@@ -31,12 +31,12 @@ public class DiscussionThreadUtilsTest {
 	@Test
 	public void testCreateDBO() throws InterruptedException {
 		DBODiscussionThread dbo = DiscussionThreadUtils.createDBO(forumId, title,
-				messageUrl, userId, id, etag);
+				messageKey, userId, id, etag);
 		assertNotNull(dbo);
 		assertEquals(dbo.getId().toString(), id);
 		assertEquals(dbo.getForumId().toString(), forumId);
 		assertEquals(new String(dbo.getTitle(), DiscussionThreadUtils.UTF8), title);
-		assertEquals(dbo.getMessageUrl(), messageUrl);
+		assertEquals(dbo.getMessageKey(), messageKey);
 		assertEquals(dbo.getCreatedBy(), (Long) userId);
 		assertEquals(dbo.getEtag(), etag);
 		assertFalse(dbo.getIsEdited());
@@ -45,11 +45,11 @@ public class DiscussionThreadUtilsTest {
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testInvalidDBOWithNullForumId() {
-		DiscussionThreadUtils.createDBO(null, title, messageUrl, userId, id, etag);
+		DiscussionThreadUtils.createDBO(null, title, messageKey, userId, id, etag);
 	}
 	@Test (expected = IllegalArgumentException.class)
 	public void testInvalidDBOWithNullTitle(){
-		DiscussionThreadUtils.createDBO(forumId, null, messageUrl, userId, id, etag);
+		DiscussionThreadUtils.createDBO(forumId, null, messageKey, userId, id, etag);
 	}
 	@Test (expected = IllegalArgumentException.class)
 	public void testInvalidDBOWithNullMessage(){
@@ -57,15 +57,15 @@ public class DiscussionThreadUtilsTest {
 	}
 	@Test (expected = IllegalArgumentException.class)
 	public void testInvalidDBOWithNullUserId(){
-		DiscussionThreadUtils.createDBO(forumId, title, messageUrl, null, id, etag);
+		DiscussionThreadUtils.createDBO(forumId, title, messageKey, null, id, etag);
 	}
 	@Test (expected = IllegalArgumentException.class)
 	public void testInvalidDBOWithNullId(){
-		DiscussionThreadUtils.createDBO(forumId, title, messageUrl, userId, null, etag);
+		DiscussionThreadUtils.createDBO(forumId, title, messageKey, userId, null, etag);
 	}
 	@Test (expected = IllegalArgumentException.class)
 	public void testInvalidDBOWithNullEtag(){
-		DiscussionThreadUtils.createDBO(forumId, title, messageUrl, userId, id, null);
+		DiscussionThreadUtils.createDBO(forumId, title, messageKey, userId, id, null);
 	}
 
 	@Test

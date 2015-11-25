@@ -646,44 +646,4 @@ public class AuthorizationManagerImplUnitTest {
 		);
 		assertEquals(expected, results);
 	}
-
-	@Test
-	public void testCanAccessDiscussionThreadReadAuthorized() {
-		when(mockEntityPermissionsManager.hasAccess(any(String.class), any(ACCESS_TYPE.class), eq(userInfo))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		assertEquals(authorizationManager.canAccess(userInfo, threadId, ObjectType.DISCUSSION_THREAD, ACCESS_TYPE.READ),
-				AuthorizationManagerUtil.AUTHORIZED);
-	}
-
-	@Test
-	public void testCanAccessDiscussionThreadReadUnauthorized() {
-		when(mockEntityPermissionsManager.hasAccess(any(String.class), any(ACCESS_TYPE.class), eq(userInfo))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
-		assertEquals(authorizationManager.canAccess(userInfo, threadId, ObjectType.DISCUSSION_THREAD, ACCESS_TYPE.READ),
-				AuthorizationManagerUtil.ACCESS_DENIED);
-	}
-
-	@Test
-	public void testCanAccessDiscussionThreadUpdateAuthorized(){
-		bundle.setCreatedBy(userInfo.getId().toString());
-		assertEquals(authorizationManager.canAccess(userInfo, threadId, ObjectType.DISCUSSION_THREAD, ACCESS_TYPE.UPDATE),
-				AuthorizationManagerUtil.AUTHORIZED);
-	}
-
-	@Test
-	public void testCanAccessDiscussionThreadUpdateUnauthorized(){
-		bundle.setCreatedBy("0");
-		assertEquals(authorizationManager.canAccess(userInfo, threadId, ObjectType.DISCUSSION_THREAD, ACCESS_TYPE.UPDATE),
-				AuthorizationManagerUtil.accessDenied("You must be the author of the thread to update it."));
-	}
-
-	@Test
-	public void testCanAccessDiscussionThreadDeleteAuthorized(){
-		assertEquals(authorizationManager.canAccess(adminUser, threadId, ObjectType.DISCUSSION_THREAD, ACCESS_TYPE.DELETE),
-				AuthorizationManagerUtil.AUTHORIZED);
-	}
-
-	@Test
-	public void testCanAccessDiscussionThreadDeleteUnauthorized(){
-		assertEquals(authorizationManager.canAccess(userInfo, threadId, ObjectType.DISCUSSION_THREAD, ACCESS_TYPE.DELETE),
-				AuthorizationManagerUtil.accessDenied("Only forum admin can delete a thread."));
-	}
 }
