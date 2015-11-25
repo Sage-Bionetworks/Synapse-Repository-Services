@@ -229,7 +229,26 @@ public class SqlConstants {
 	public static final String COL_FILES_NAME						= "NAME";
 	public static final String COL_FILES_STORAGE_LOCATION_ID		= "STORAGE_LOCATION_ID";
 	public static final String DDL_FILES							= "schema/Files-ddl.sql";
-
+	
+	// multipart upload state
+	public static final String TABLE_MULTIPART_UPLOAD				= "MULTIPART_UPLOAD";
+	public static final String COL_MULTIPART_UPLOAD_ID				= "ID";
+	public static final String COL_MULTIPART_UPLOAD_ETAG			= "ETAG";
+	public static final String COL_MULTIPART_AWS_UPLOAD_ID			= "AWS_UPLOAD_ID";
+	public static final String COL_MULTIPART_FILE_SIZE				= "FILE_SIZE";
+	public static final String COL_MULTIPART_PART_SIZE				= "PART_SIZE";
+	public static final String COL_MULTIPART_FILE_MD5_HEX			= "FILE_MD5_HEX";
+	public static final String COL_MULTIPART_FILE_NAME				= "FILE_NAME";
+	public static final String COL_MULTIPART_CONTENT_TYPE			= "CONTENT_TYPE";
+	public static final String COL_MULTIPART_CONTENT_ENCODING		= "CONTENT_ENCODING";
+	public static final String COL_MULTIPART_STARTED_BY				= "STARTED_BY";
+	public static final String COL_MULTIPART_STARTED_ON				= "STARTED_ON";
+	public static final String COL_MULTIPART_UPDATED_ON				= "UPDATED_ON";
+	public static final String COL_MULTIPART_FILE_HANDLE_ID			= "FILE_HANDLE_ID";
+	public static final String COL_MULTIPART_STATE					= "STATE";
+	public static final String COL_MULTIPART_STORAGE_LOCATION_ID	= "STORAGE_LOCATION_ID";
+	public static final String COL_MULTIPART_DDL					= "schema/MutipartUpload-ddl.sql";
+	
 	// 
 	public static final String COL_STACK_STATUS_ID					= "ID";
 	public static final String COL_STACK_STATUS_STATUS				= "STATUS";
