@@ -77,6 +77,26 @@
 					</execution>
 				</executions>
 			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-jarsigner-plugin</artifactId>
+				<version>1.2</version>
+				<executions>
+					<execution>
+						<id>sign</id>
+						<phase>package</phase>
+						<goals>
+							<goal>sign</goal>
+						</goals>
+					</execution>
+				</executions>
+				<configuration>
+					<keystore>SynapseKeystore</keystore>
+					<alias>SynapseKeystore</alias>
+					<storepass>${settings.org.sagebionetworks.stackEncryptionKey}</storepass>
+					<keypass>${settings.org.sagebionetworks.stackEncryptionKey}</keypass>
+				</configuration>
+			</plugin>
 		</plugins>
 	</build>
 
