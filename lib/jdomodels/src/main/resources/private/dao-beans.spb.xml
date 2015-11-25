@@ -320,6 +320,8 @@
 	<!-- DAO for Discussion -->
 	<bean id="forumDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.discussion.DBOForumDAOImpl" />
+	<bean id="discussionThreadDao"
+		class="org.sagebionetworks.repo.model.dbo.dao.discussion.DBODiscussionThreadDAOImpl" />
 
 	<!-- Misc beans -->
 	<bean id="countingSemaphore"
@@ -327,14 +329,5 @@
 		<constructor-arg ref="dataSourcePool" index="0"></constructor-arg>
 		<constructor-arg ref="txManager" index="1"></constructor-arg>
 	</bean>	
-
-	<bean id="exclusiveOrSharedSemaphoreDao"
-		class="org.sagebionetworks.repo.model.dbo.dao.semaphore.ExclusiveOrSharedSemaphoreDaoImpl">
-		<property name="maxSharedLockTimeoutMS" ref="stackConfiguration.semaphoreSharedMaxTimeoutMS"/>
-		<property name="maxExclusiveLockTimeoutMS" ref="stackConfiguration.semaphoreExclusiveMaxTimeoutMS"/>
-	</bean>
-	
-	<bean id="exclusiveOrSharedSemaphoreRunner"
-		class="org.sagebionetworks.repo.model.dbo.dao.semaphore.ExclusiveOrSharedSemaphoreRunnerImpl"/>
 
 </beans>

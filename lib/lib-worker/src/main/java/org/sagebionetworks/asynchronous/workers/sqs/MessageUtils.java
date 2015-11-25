@@ -8,6 +8,7 @@ import java.util.UUID;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.message.ChangeType;
@@ -269,17 +270,7 @@ public class MessageUtils {
 		return buildMessage(changeType, objectId, objectType, null, etag, timestamp);
 	}
 
-	
-	/**
-	 * Read a JSON entity from the message body
-	 * @param e
-	 * @param clazz
-	 * @return
-	 * @throws JSONObjectAdapterException 
-	 */
-	public static <T extends JSONEntity> T readMessageBody(Message e, Class<? extends T> clazz) throws JSONObjectAdapterException{
-		return EntityFactory.createEntityFromJSONString(e.getBody(), clazz);
-	}
+
 	
 	/**
 	 * Create a message with the passed JSONEntity as the body of the message.
@@ -290,6 +281,18 @@ public class MessageUtils {
 	public static Message buildMessage(JSONEntity body) throws JSONObjectAdapterException{
 		Message message = new Message();
 		message.setBody(EntityFactory.createJSONStringForEntity(body));
+		return message;
+	}
+	
+	/**
+	 * Create a message with the passed JSONEntity as the body of the message.
+	 * @param body
+	 * @return
+	 * @throws JSONObjectAdapterException
+	 */
+	public static Message buildMessage(AsynchronousJobStatus status) throws JSONObjectAdapterException{
+		Message message = new Message();
+		message.setBody(status.getJobId());
 		return message;
 	}
 

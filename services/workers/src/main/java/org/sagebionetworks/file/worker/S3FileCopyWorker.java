@@ -9,6 +9,7 @@ import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.asynchronous.workers.sqs.JobCanceledException;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.collections.Transform;
+import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationStatus;
 import org.sagebionetworks.repo.manager.EntityManager;
@@ -35,7 +36,6 @@ import org.sagebionetworks.util.AmazonErrorCodes;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
-import org.sagebionetworks.workers.util.progress.ProgressCallback;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.AmazonClientException;
@@ -369,7 +369,7 @@ public class S3FileCopyWorker implements MessageDrivenRunner {
 		if (message == null) {
 			throw new IllegalArgumentException("Message cannot be null");
 		}
-		AsynchronousJobStatus status = MessageUtils.readMessageBody(message, AsynchronousJobStatus.class);
+		AsynchronousJobStatus status = asynchJobStatusManager.lookupJobStatus(message.getBody());
 		ValidateArgument.requireType(status.getRequestBody(), S3FileCopyRequest.class, "job body");
 		return status;
 	}

@@ -30,10 +30,4 @@ public interface ForumDAO {
 	 * @param id
 	 */
 	public int deleteForum(long id);
-
-	/**
-	 * truncate all data in Forum table
-	 * This method should only be used for testing
-	 */
-	public void truncateAll();
 }

@@ -2,6 +2,8 @@ package org.sagebionetworks.util;
 
 import java.util.Date;
 
+import org.sagebionetworks.common.util.progress.ProgressCallback;
+
 public interface Clock {
 
 	public abstract long currentTimeMillis();

@@ -1,0 +1,8 @@
+{
+	"type":"string",
+	"enum":[
+		"NUMBER_OF_REPLIES",
+		"NUMBER_OF_VIEWS",
+		"LAST_ACTIVITY"
+	]
+}

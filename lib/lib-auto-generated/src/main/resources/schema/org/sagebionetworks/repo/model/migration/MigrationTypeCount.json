@@ -9,6 +9,9 @@
          },
          "maxid":{
         	"type":"integer"
+         },
+         "minid":{
+         	"type":"integer"
          }
 	}
 }

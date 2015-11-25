@@ -12,11 +12,43 @@ import org.sagebionetworks.tool.migration.v4.RangeMetadataIterator;
 public class DeltaRanges {
 	
 	private MigrationType migrationType;
-	private List<IdRange> ranges;
+	private List<IdRange> insRanges;
+	private List<IdRange> updRanges;
+	private List<IdRange> delRanges;
 	
-	public DeltaRanges(MigrationType type, List<IdRange> idRanges) {
-		this.migrationType = type;
-		this.ranges = idRanges;
+	public DeltaRanges() {
+	}
+
+	public MigrationType getMigrationType() {
+		return migrationType;
+	}
+
+	public void setMigrationType(MigrationType migrationType) {
+		this.migrationType = migrationType;
+	}
+
+	public List<IdRange> getInsRanges() {
+		return insRanges;
+	}
+
+	public void setInsRanges(List<IdRange> insRanges) {
+		this.insRanges = insRanges;
+	}
+
+	public List<IdRange> getUpdRanges() {
+		return updRanges;
+	}
+
+	public void setUpdRanges(List<IdRange> updRanges) {
+		this.updRanges = updRanges;
+	}
+
+	public List<IdRange> getDelRanges() {
+		return delRanges;
+	}
+
+	public void setDelRanges(List<IdRange> delRanges) {
+		this.delRanges = delRanges;
 	}
 
 }
