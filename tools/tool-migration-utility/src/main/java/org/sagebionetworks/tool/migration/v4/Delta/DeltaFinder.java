@@ -5,18 +5,19 @@ import java.util.List;
 
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.repo.model.migration.MigrationType;
-import org.sagebionetworks.tool.migration.v4.SynapseClientFactory;
 
 public class DeltaFinder {
 	
-	private SynapseClientFactory clientFactory;
+	private SynapseAdminClient sourceClient;
+	private SynapseAdminClient destinationClient;
 	private MigrationType migrationType;
 	private int batchSize;
 	private long minId;
 	private long maxId;
 	
-	public DeltaFinder(SynapseClientFactory factory, MigrationType type, int bSize, long min, long max) {
-		this.clientFactory = factory;
+	public DeltaFinder(SynapseAdminClient srClient, SynapseAdminClient destClient, MigrationType type, int bSize, long min, long max) {
+		this.sourceClient = sourceClient;
+		this.destinationClient = destClient;
 		this.migrationType = type;
 		this.batchSize = bSize;
 		this.minId = min;

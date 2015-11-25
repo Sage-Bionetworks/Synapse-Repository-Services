@@ -29,7 +29,6 @@ import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.tool.migration.v3.stream.BufferedRowMetadataReader;
 import org.sagebionetworks.tool.migration.v3.stream.BufferedRowMetadataWriter;
-import org.sagebionetworks.tool.migration.v4.Delta.DeltaRanges;
 import org.sagebionetworks.tool.progress.BasicProgress;
 
 /**
@@ -312,28 +311,11 @@ public class MigrationClient {
 		File updateTemp = File.createTempFile("update", ".tmp");
 		File deleteTemp = File.createTempFile("delete", ".tmp");
 		// Calculate the deltas
-		DeltaCounts counts = calculateDeltas(type, batchSize, createTemp, updateTemp, deleteTemp);
+		DeltaCounts counts = calcualteDeltas(type, batchSize, createTemp, updateTemp, deleteTemp);
 		return new DeltaData(type, createTemp, updateTemp, deleteTemp, counts);
 		
 	}
 
-
-	/**
-	 * Calculates the ranges where deltas need to be calculated, also adds
-	 * the rows that are not within srcMindId and srcMaxId range to createTemp
-	 * and deleteTemp
-	 * @param type
-	 * @param batchSize
-	 * @param createTemp
-	 * @param updateTemp
-	 * @param deleteTemp
-	 * @return
-	 * @throws Exception
-	 */
-	private DeltaRanges calculateDeltaRanges(MigrationType type, long batchSize, File createTemp, File updateTemp, File deleteTemp) throws Exception {
-		return null;
-	}
-	
 	/**
 	 * Calcaulte the deltas
 	 * @param type
@@ -345,7 +327,7 @@ public class MigrationClient {
 	 * @throws FileNotFoundException
 	 * @throws IOException
 	 */
-	private DeltaCounts calculateDeltas(MigrationType type, long batchSize, File createTemp, File updateTemp, File deleteTemp)	throws Exception {
+	private DeltaCounts calcualteDeltas(MigrationType type, long batchSize, File createTemp, File updateTemp, File deleteTemp)	throws Exception {
 		BasicProgress sourceProgress = new BasicProgress();
 		BasicProgress destProgress = new BasicProgress();
 		BufferedRowMetadataWriter createOut = null;
