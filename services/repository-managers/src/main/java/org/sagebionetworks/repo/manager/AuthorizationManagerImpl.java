@@ -21,6 +21,8 @@ import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ActivityDAO;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.DiscussionThreadDAO;
+import org.sagebionetworks.repo.model.ForumDAO;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -35,6 +37,7 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VerificationDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociationManager;
@@ -72,6 +75,10 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	private AccessControlListDAO aclDAO;
 	@Autowired
 	private VerificationDAO verificationDao;
+	@Autowired
+	private ForumDAO forumDao;
+	@Autowired
+	private DiscussionThreadDAO threadDao;
 	@Autowired
 	private FileHandleAssociationManager fileHandleAssociationSwitch;
 	
@@ -126,6 +133,30 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 					}
 				} else {
 					return AuthorizationManagerUtil.accessDenied("Unexpected access type "+accessType);
+				}
+			case DISCUSSION_THREAD:
+				DiscussionThreadBundle threadBundle = threadDao.getThread(Long.parseLong(objectId));
+				switch (accessType) {
+					case READ:
+						String forumId = threadBundle.getForumId();
+						String projectId = forumDao.getForum(Long.parseLong(forumId)).getProjectId();
+						return canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ);
+					case UPDATE:
+						if (threadBundle.getCreatedBy().equals(userInfo.getId().toString())) {
+							return AuthorizationManagerUtil.AUTHORIZED;
+						} else {
+							return AuthorizationManagerUtil.accessDenied(
+									"You must be the author of the thread to update it.");
+						}
+					case DELETE:
+						if (userInfo.isAdmin()) {
+							return AuthorizationManagerUtil.AUTHORIZED;
+						} else {
+							return AuthorizationManagerUtil.accessDenied(
+									"Only forum admin can delete a thread.");
+						}
+					default:
+						return AuthorizationManagerUtil.accessDenied("Unexpected access type "+accessType);
 				}
 			default:
 				throw new IllegalArgumentException("Unknown ObjectType: "+objectType);
