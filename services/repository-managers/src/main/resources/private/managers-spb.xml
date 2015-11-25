@@ -17,6 +17,8 @@
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 
+	<import resource="classpath:upload-dao.spb.xml" />
+
 	<!-- The real Node DAO -->
 	<bean id="nodeManager" class="org.sagebionetworks.repo.manager.NodeManagerImpl" />
 	<bean id="nodeInheritanceManager"
