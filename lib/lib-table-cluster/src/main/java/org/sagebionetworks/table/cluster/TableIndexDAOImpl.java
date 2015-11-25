@@ -23,6 +23,7 @@ import java.util.regex.Pattern;
 import javax.sql.DataSource;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.database.StreamingJdbcTemplate;
 import org.sagebionetworks.repo.model.dao.table.RowAndHeaderHandler;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -93,17 +94,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		 * JdbcTemplate to force the fetch size of Integer.MIN_VALUE. See:
 		 * PLFM-3429
 		 */
-		this.template = new JdbcTemplate(dataSource) {
-			@Override
-			protected void applyStatementSettings(Statement stmt) throws SQLException {
-				super.applyStatementSettings(stmt);
-				if (getFetchSize() == Integer.MIN_VALUE) {
-					stmt.setFetchSize(getFetchSize());
-				}
-			}
-		};
-		// See comments above.
-		this.template.setFetchSize(Integer.MIN_VALUE);
+		this.template = new StreamingJdbcTemplate(dataSource);
 	}
 
 	private static TransactionTemplate createTransactionTemplate(DataSourceTransactionManager transactionManager, boolean readOnly) {
