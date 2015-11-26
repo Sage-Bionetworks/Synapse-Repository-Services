@@ -9,7 +9,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.web.AccessInterceptor;
+import org.sagebionetworks.repo.web.controller.AccessInterceptor;
 
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;

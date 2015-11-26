@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.model.search.Hit;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.KeyValue;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
+import org.sagebionetworks.repo.web.controller.SearchServiceImpl;
 import org.sagebionetworks.search.SearchDao;
 
 /**

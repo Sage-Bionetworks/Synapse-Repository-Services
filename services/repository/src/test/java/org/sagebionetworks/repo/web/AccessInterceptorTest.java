@@ -18,6 +18,7 @@ import org.sagebionetworks.audit.utils.VirtualMachineIdProvider;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.audit.AccessRecord;
+import org.sagebionetworks.repo.web.controller.AccessInterceptor;
 import org.sagebionetworks.util.TestClock;
 import org.springframework.test.util.ReflectionTestUtils;
 

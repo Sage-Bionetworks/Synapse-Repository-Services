@@ -4,7 +4,7 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.apache.logging.log4j.ThreadContext;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.web.AccessInterceptor;
+import org.sagebionetworks.repo.web.controller.AccessInterceptor;
 /**
  * Gathers basic data from an http request.
  * 

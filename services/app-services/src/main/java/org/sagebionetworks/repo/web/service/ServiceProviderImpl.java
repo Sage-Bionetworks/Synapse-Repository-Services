@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.web.service;
 
+import org.sagebionetworks.repo.web.controller.SearchService;
 import org.sagebionetworks.repo.web.service.table.TableServices;
 import org.springframework.beans.factory.annotation.Autowired;
 

@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.web;
+package org.sagebionetworks.repo.web.controller;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -15,6 +15,7 @@ import org.sagebionetworks.audit.utils.VirtualMachineIdProvider;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.audit.AccessRecord;
 import org.sagebionetworks.repo.model.audit.AccessRecorder;
+import org.sagebionetworks.repo.web.AccessIdListener;
 import org.sagebionetworks.util.Clock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.servlet.HandlerInterceptor;
