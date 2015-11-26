@@ -59,9 +59,9 @@ public interface DiscussionThreadManager {
 	 * 
 	 * @param userInfo
 	 * @param forumId
-	 * @param order - optional
-	 * @param limit - optional
-	 * @param offset - optional
+	 * @param order
+	 * @param limit
+	 * @param offset
 	 * @return
 	 */
 	public PaginatedResults<DiscussionThreadBundle> getThreadsForForum(UserInfo userInfo, String forumId, DiscussionOrder order, Integer limit, Integer offset);
