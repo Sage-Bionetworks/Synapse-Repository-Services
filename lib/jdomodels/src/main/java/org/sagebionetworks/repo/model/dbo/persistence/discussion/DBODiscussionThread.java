@@ -27,7 +27,7 @@ public class DBODiscussionThread  implements MigratableDatabaseObject<DBODiscuss
 		new FieldColumn("title", COL_DISCUSSION_THREAD_TITLE),
 		new FieldColumn("etag", COL_DISCUSSION_THREAD_ETAG).withIsEtag(true),
 		new FieldColumn("createdBy", COL_DISCUSSION_THREAD_CREATED_BY),
-		new FieldColumn("messageUrl", COL_DISCUSSION_THREAD_MESSAGE_URL),
+		new FieldColumn("messageKey", COL_DISCUSSION_THREAD_MESSAGE_KEY),
 		new FieldColumn("isEdited", COL_DISCUSSION_THREAD_IS_EDITED),
 		new FieldColumn("isDeleted", COL_DISCUSSION_THREAD_IS_DELETED)
 	};
@@ -37,7 +37,7 @@ public class DBODiscussionThread  implements MigratableDatabaseObject<DBODiscuss
 	private byte[] title;
 	private String etag;
 	private Long createdBy;
-	private String messageUrl;
+	private String messageKey;
 	private Boolean isEdited;
 	private Boolean isDeleted;
 
@@ -45,7 +45,7 @@ public class DBODiscussionThread  implements MigratableDatabaseObject<DBODiscuss
 	public String toString() {
 		return "DBODiscussionThread [id=" + id + ", forumId=" + forumId
 				+ ", title=" + Arrays.toString(title) + ", etag=" + etag
-				+ ", createdBy=" + createdBy + ", messageUrl=" + messageUrl
+				+ ", createdBy=" + createdBy + ", messageKey=" + messageKey
 				+ ", isEdited=" + isEdited + ", isDeleted=" + isDeleted + "]";
 	}
 
@@ -63,7 +63,7 @@ public class DBODiscussionThread  implements MigratableDatabaseObject<DBODiscuss
 		result = prime * result
 				+ ((isEdited == null) ? 0 : isEdited.hashCode());
 		result = prime * result
-				+ ((messageUrl == null) ? 0 : messageUrl.hashCode());
+				+ ((messageKey == null) ? 0 : messageKey.hashCode());
 		result = prime * result + Arrays.hashCode(title);
 		return result;
 	}
@@ -107,10 +107,10 @@ public class DBODiscussionThread  implements MigratableDatabaseObject<DBODiscuss
 				return false;
 		} else if (!isEdited.equals(other.isEdited))
 			return false;
-		if (messageUrl == null) {
-			if (other.messageUrl != null)
+		if (messageKey == null) {
+			if (other.messageKey != null)
 				return false;
-		} else if (!messageUrl.equals(other.messageUrl))
+		} else if (!messageKey.equals(other.messageKey))
 			return false;
 		if (!Arrays.equals(title, other.title))
 			return false;
@@ -157,12 +157,12 @@ public class DBODiscussionThread  implements MigratableDatabaseObject<DBODiscuss
 		this.createdBy = createdBy;
 	}
 
-	public String getMessageUrl() {
-		return messageUrl;
+	public String getMessageKey() {
+		return messageKey;
 	}
 
-	public void setMessageUrl(String messageUrl) {
-		this.messageUrl = messageUrl;
+	public void setMessageKey(String messageUrl) {
+		this.messageKey = messageUrl;
 	}
 
 	public Boolean getIsEdited() {
@@ -194,7 +194,7 @@ public class DBODiscussionThread  implements MigratableDatabaseObject<DBODiscuss
 				dbo.setTitle(blob.getBytes(1, (int) blob.length()));
 				dbo.setEtag(rs.getString(COL_DISCUSSION_THREAD_ETAG));
 				dbo.setCreatedBy(rs.getLong(COL_DISCUSSION_THREAD_CREATED_BY));
-				dbo.setMessageUrl(rs.getString(COL_DISCUSSION_THREAD_MESSAGE_URL));
+				dbo.setMessageKey(rs.getString(COL_DISCUSSION_THREAD_MESSAGE_KEY));
 				dbo.setIsEdited(rs.getBoolean(COL_DISCUSSION_THREAD_IS_EDITED));
 				dbo.setIsDeleted(rs.getBoolean(COL_DISCUSSION_THREAD_IS_DELETED));
 				return dbo;

@@ -124,6 +124,11 @@ public class StackConstants {
 	public static final String SNAPSHOT_RECORD_BUCKET = "%1$s.snapshot.record.sagebase.org";
 
 	/**
+	 * The bucket containing all discussion data.
+	 */
+	public static final String DISCUSSION_BUCKET = "%1$s.discussion.sagebase.org";
+
+	/**
 	 * The bucket containing all access record data.
 	 */
 	public static final String STACK_LOG_BUCKET = "%1$s.log.sagebase.org";

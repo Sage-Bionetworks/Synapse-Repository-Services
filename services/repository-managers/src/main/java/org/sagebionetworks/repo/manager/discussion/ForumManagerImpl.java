@@ -32,7 +32,9 @@ public class ForumManagerImpl implements ForumManager {
 	}
 
 	private void validateProjectIdAndThrowException(String projectId) {
-		if (projectId == null) throw new IllegalArgumentException("projectId cannot be null.");
+		if (projectId == null) {
+			throw new IllegalArgumentException("projectId cannot be null.");
+		}
 		if (!nodeDao.doesNodeExist(KeyFactory.stringToKey(projectId))) {
 			throw new NotFoundException("Project does not exist.");
 		}
