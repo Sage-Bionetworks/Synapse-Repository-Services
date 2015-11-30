@@ -1,7 +1,14 @@
 package org.sagebionetworks.repo.web.controller;
 
+import java.io.UnsupportedEncodingException;
+
+import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.ServiceConstants;
+import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
+import org.sagebionetworks.repo.model.discussion.DiscussionOrder;
+import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.Forum;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
@@ -11,6 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -52,5 +60,108 @@ public class DiscussionController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String projectId) throws DatastoreException, NotFoundException {
 		return serviceProvider.getDiscussionService().getForumMetadata(userId, projectId);
+	}
+
+	/**
+	 * Get limit number of threads starting at offset for a given forum
+	 * 
+	 * @param userId
+	 * @param limit
+	 * @param offset
+	 * @param sort
+	 * @param ascending
+	 * @param forumId
+	 * @return
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.FORUM_FORUM_ID_THREADS, method = RequestMethod.GET)
+	public @ResponseBody PaginatedResults<DiscussionThreadBundle> getThreads(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM) Long limit,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM) Long offset,
+			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_SORT_BY_PARAM) String sort,
+			@RequestParam(value = ServiceConstants.ASCENDING_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_ASCENDING_PARAM) Boolean ascending,
+			@PathVariable String forumId) {
+		return serviceProvider.getDiscussionService().getThreads(userId, forumId, limit, offset, sort, ascending);
+	}
+
+	/**
+	 * This method is used to create a new thread in a forum.
+	 * 
+	 * @param userId
+	 * @param toCreate
+	 * @return
+	 * @throws UnsupportedEncodingException
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.THREAD, method = RequestMethod.POST)
+	public @ResponseBody DiscussionThreadBundle createThread(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody CreateDiscussionThread toCreate) throws UnsupportedEncodingException {
+		return serviceProvider.getDiscussionService().createThread(userId, toCreate);
+	}
+
+	/**
+	 * This method is used to get a thread and its statistic given its ID.
+	 * 
+	 * @param userId
+	 * @param threadId
+	 * @return
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.THREAD_THREAD_ID, method = RequestMethod.GET)
+	public @ResponseBody DiscussionThreadBundle getThread(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String threadId) {
+		return serviceProvider.getDiscussionService().getThread(userId, threadId);
+	}
+
+	/**
+	 * This method is used to update the title of a thread.
+	 * 
+	 * @param userId
+	 * @param threadId
+	 * @param title
+	 * @return
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.THREAD_THREAD_ID_TITLE, method = RequestMethod.PUT)
+	public @ResponseBody DiscussionThreadBundle updateThreadTitle(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String threadId,
+			@RequestBody String title) {
+		return serviceProvider.getDiscussionService().updateThreadTitle(userId, threadId, title);
+	}
+
+	/**
+	 * This method is used to update the message of a thread.
+	 * 
+	 * @param userId
+	 * @param threadId
+	 * @param message
+	 * @return
+	 * @throws UnsupportedEncodingException 
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.THREAD_THREAD_ID_MESSAGE, method = RequestMethod.PUT)
+	public @ResponseBody DiscussionThreadBundle updateThreadMessage(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String threadId,
+			@RequestBody String message) throws UnsupportedEncodingException {
+		return serviceProvider.getDiscussionService().updateThreadMessage(userId, threadId, message);
+	}
+
+	/**
+	 * Mark a thread as deleted. Only forum's moderator can perform this action.
+	 * 
+	 * @param userId
+	 * @param threadId
+	 */
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	@RequestMapping(value = UrlHelpers.THREAD_THREAD_ID, method = RequestMethod.DELETE)
+	public void markThreadAsDeleted(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String threadId) {
+		serviceProvider.getDiscussionService().markThreadAsDeleted(userId, threadId);
 	}
 }
