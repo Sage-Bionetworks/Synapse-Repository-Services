@@ -1469,6 +1469,15 @@ public class StackConfiguration {
 	}
 
 	/**
+	 * Get the name of the object snapshot record bucket.
+	 * 
+	 * @return
+	 */
+	public String getDiscussionBucketName() {
+		return String.format(StackConstants.DISCUSSION_BUCKET, singleton().getStack());
+	}
+
+	/**
 	 * Get the name of the stack log bucket.
 	 * 
 	 * @return

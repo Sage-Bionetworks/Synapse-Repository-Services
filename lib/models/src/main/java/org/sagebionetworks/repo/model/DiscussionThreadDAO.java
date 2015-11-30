@@ -13,13 +13,14 @@ public interface DiscussionThreadDAO {
 	 * Create a new discussion thread
 	 * 
 	 * @param forumId
+	 * @param threadId
 	 * @param title
 	 * @param messageUrl
 	 * @param userId
 	 * @return
 	 */
-	public DiscussionThreadBundle createThread(String forumId, String title,
-			String messageUrl, long userId);
+	public DiscussionThreadBundle createThread(String forumId, String threadId,
+			String title, String messageUrl, long userId);
 
 	/**
 	 * Get a discussion thread
@@ -56,15 +57,15 @@ public interface DiscussionThreadDAO {
 	 * 
 	 * @param threadId
 	 */
-	public void deleteThread(long threadId);
+	public void markThreadAsDeleted(long threadId);
 
 	/**
 	 * Update a discussion thread message
 	 * 
 	 * @param threadId
-	 * @param newMessageUrl
+	 * @param newMessageKey
 	 */
-	public DiscussionThreadBundle updateMessageUrl(long threadId, String newMessageUrl);
+	public DiscussionThreadBundle updateMessageKey(long threadId, String newMessageKey);
 
 	/**
 	 * Update a discussion thread title

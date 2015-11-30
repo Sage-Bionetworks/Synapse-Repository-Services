@@ -49,13 +49,14 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 			DiscussionThreadBundle dbo = new DiscussionThreadBundle();
 			dbo.setId(Long.toString(rs.getLong(COL_DISCUSSION_THREAD_ID)));
 			dbo.setForumId(Long.toString(rs.getLong(COL_DISCUSSION_THREAD_FORUM_ID)));
+			dbo.setProjectId(Long.toString(rs.getLong(COL_FORUM_PROJECT_ID)));
 			Blob titleBlob = rs.getBlob(COL_DISCUSSION_THREAD_TITLE);
 			dbo.setTitle(new String(titleBlob.getBytes(1, (int) titleBlob.length()), UTF8));
 			dbo.setCreatedOn(new Date(rs.getTimestamp(COL_DISCUSSION_THREAD_CREATED_ON).getTime()));
 			dbo.setCreatedBy(Long.toString(rs.getLong(COL_DISCUSSION_THREAD_CREATED_BY)));
 			dbo.setModifiedOn(new Date(rs.getTimestamp(COL_DISCUSSION_THREAD_MODIFIED_ON).getTime()));
 			dbo.setEtag(rs.getString(COL_DISCUSSION_THREAD_ETAG));
-			dbo.setMessageUrl(rs.getString(COL_DISCUSSION_THREAD_MESSAGE_URL));
+			dbo.setMessageKey(rs.getString(COL_DISCUSSION_THREAD_MESSAGE_KEY));
 			dbo.setIsEdited(rs.getBoolean(COL_DISCUSSION_THREAD_IS_EDITED));
 			dbo.setIsDeleted(rs.getBoolean(COL_DISCUSSION_THREAD_IS_DELETED));
 			long numberOfViews = rs.getLong(COL_DISCUSSION_THREAD_STATS_NUMBER_OF_VIEWS);
@@ -99,7 +100,7 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 			+COL_DISCUSSION_THREAD_ETAG+" = ? "
 			+" WHERE "+COL_DISCUSSION_THREAD_ID+" = ?";
 	private static final String SQL_UPDATE_MESSAGE_URL = "UPDATE "+TABLE_DISCUSSION_THREAD
-			+" SET "+COL_DISCUSSION_THREAD_MESSAGE_URL+" = ?, "
+			+" SET "+COL_DISCUSSION_THREAD_MESSAGE_KEY+" = ?, "
 			+COL_DISCUSSION_THREAD_IS_EDITED+" = TRUE, "
 			+COL_DISCUSSION_THREAD_ETAG+" = ? "
 			+" WHERE "+COL_DISCUSSION_THREAD_ID+" = ?";
@@ -107,12 +108,13 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 	private static final String SELECT_THREAD_BUNDLE = "SELECT "
 			+TABLE_DISCUSSION_THREAD+"."+COL_DISCUSSION_THREAD_ID+" AS ID, "
 			+COL_DISCUSSION_THREAD_FORUM_ID+", "
+			+COL_FORUM_PROJECT_ID+", "
 			+COL_DISCUSSION_THREAD_TITLE+", "
 			+COL_DISCUSSION_THREAD_CREATED_ON+", "
 			+COL_DISCUSSION_THREAD_CREATED_BY+", "
 			+COL_DISCUSSION_THREAD_MODIFIED_ON+", "
 			+COL_DISCUSSION_THREAD_ETAG+", "
-			+COL_DISCUSSION_THREAD_MESSAGE_URL+", "
+			+COL_DISCUSSION_THREAD_MESSAGE_KEY+", "
 			+COL_DISCUSSION_THREAD_IS_EDITED+", "
 			+COL_DISCUSSION_THREAD_IS_DELETED+", "
 			+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_VIEWS+", "
@@ -120,11 +122,14 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 			+"IFNULL("+COL_DISCUSSION_THREAD_STATS_LAST_ACTIVITY+", "+COL_DISCUSSION_THREAD_MODIFIED_ON+") AS "+COL_DISCUSSION_THREAD_STATS_LAST_ACTIVITY+", "
 			+COL_DISCUSSION_THREAD_STATS_ACTIVE_AUTHORS
 			+" FROM "+TABLE_DISCUSSION_THREAD
+			+" JOIN "+TABLE_FORUM
+			+" ON "+COL_DISCUSSION_THREAD_FORUM_ID
+			+" = "+TABLE_FORUM+"."+COL_FORUM_ID
 			+" LEFT OUTER JOIN "+TABLE_DISCUSSION_THREAD_STATS
 			+" ON "+TABLE_DISCUSSION_THREAD+"."+COL_DISCUSSION_THREAD_ID
-			+" = "+TABLE_DISCUSSION_THREAD_STATS+"."+COL_DISCUSSION_THREAD_STATS_THREAD_ID;
+			+" = "+COL_DISCUSSION_THREAD_STATS_THREAD_ID;
 	private static final String SQL_SELECT_THREAD_BY_ID = SELECT_THREAD_BUNDLE
-			+" WHERE "+COL_DISCUSSION_THREAD_ID+" = ?";
+			+" WHERE "+TABLE_DISCUSSION_THREAD+"."+COL_DISCUSSION_THREAD_ID+" = ?";
 	private static final String SQL_SELECT_THREAD_COUNT = "SELECT COUNT(*)"
 			+" FROM "+TABLE_DISCUSSION_THREAD
 			+" WHERE "+COL_DISCUSSION_THREAD_FORUM_ID+" = ?";
@@ -171,15 +176,14 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 
 	@WriteTransaction
 	@Override
-	public DiscussionThreadBundle createThread(String forumId, String title, String messageUrl, long userId) {
+	public DiscussionThreadBundle createThread(String forumId, String threadId, String title, String messageKey, long userId) {
 		ValidateArgument.requirement(forumId != null, "forumId cannot be null");
 		ValidateArgument.requirement(title != null, "title cannot be null");
-		ValidateArgument.requirement(messageUrl != null, "messageUrl cannot be null");
-		Long id = idGenerator.generateNewId(TYPE.DISCUSSION_THREAD_ID);
+		ValidateArgument.requirement(messageKey != null, "messageUrl cannot be null");
 		String etag = UUID.randomUUID().toString();
-		DBODiscussionThread dbo = DiscussionThreadUtils.createDBO(forumId, title, messageUrl, userId, id.toString(), etag);
+		DBODiscussionThread dbo = DiscussionThreadUtils.createDBO(forumId, title, messageKey, userId, threadId, etag);
 		basicDao.createNew(dbo);
-		return getThread(id);
+		return getThread(Long.parseLong(threadId));
 	}
 
 	@Override
@@ -241,15 +245,17 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 
 	@WriteTransaction
 	@Override
-	public void deleteThread(long threadId) {
+	public void markThreadAsDeleted(long threadId) {
 		String etag = UUID.randomUUID().toString();
 		jdbcTemplate.update(SQL_MARK_THREAD_AS_DELETED, etag, threadId);
 	}
 
 	@WriteTransaction
 	@Override
-	public DiscussionThreadBundle updateMessageUrl(long threadId, String newMessageUrl) {
-		if (newMessageUrl == null) throw new IllegalArgumentException("Message Url cannot be null");
+	public DiscussionThreadBundle updateMessageKey(long threadId, String newMessageUrl) {
+		if (newMessageUrl == null) {
+			throw new IllegalArgumentException("Message Url cannot be null");
+		}
 		String etag = UUID.randomUUID().toString();
 		jdbcTemplate.update(SQL_UPDATE_MESSAGE_URL, newMessageUrl, etag, threadId);
 		return getThread(threadId);
@@ -258,7 +264,9 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 	@WriteTransaction
 	@Override
 	public DiscussionThreadBundle updateTitle(long threadId, String title) {
-		if (title == null) throw new IllegalArgumentException("Title cannot be null");
+		if (title == null) {
+			throw new IllegalArgumentException("Title cannot be null");
+		}
 		String etag = UUID.randomUUID().toString();
 		jdbcTemplate.update(SQL_UPDATE_TITLE, title, etag, threadId);
 		return getThread(threadId);
@@ -317,7 +325,9 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 				return rs.getString(COL_DISCUSSION_THREAD_ETAG);
 			}
 		}, threadId);
-		if (results.size() != 1) throw new NotFoundException();
+		if (results.size() != 1) {
+			throw new NotFoundException();
+		}
 		return results.get(0);
 	}
 }

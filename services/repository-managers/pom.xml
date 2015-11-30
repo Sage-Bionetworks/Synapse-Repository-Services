@@ -71,6 +71,10 @@
 			<artifactId>lib-test</artifactId>
 			<scope>test</scope>
 		</dependency>
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>lib-upload</artifactId>
+		</dependency>
 		
 		<!-- Oauth support -->
 		<dependency>

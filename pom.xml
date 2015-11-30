@@ -511,6 +511,13 @@
 				<version>${project.version}</version>
 				<scope>test</scope>
 			</dependency>
+
+			<dependency>
+				<groupId>org.sagebionetworks</groupId>
+				<artifactId>lib-upload</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
 				<artifactId>common-utilities</artifactId>
