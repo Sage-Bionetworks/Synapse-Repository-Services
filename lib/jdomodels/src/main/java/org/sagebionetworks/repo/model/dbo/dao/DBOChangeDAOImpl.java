@@ -28,7 +28,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
-import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
@@ -313,8 +312,8 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 
 	@Override
 	public void registerMessageProcessed(long changeNumber, String queueName) {
-		jdbcTemplate.update(SQL_INSERT_PROCESSED_ON_DUPLICATE_UPDATE, changeNumber, queueName, null, null);
-		
+		Timestamp now = new Timestamp(System.currentTimeMillis());
+		jdbcTemplate.update(SQL_INSERT_PROCESSED_ON_DUPLICATE_UPDATE, changeNumber, queueName, now, now);
 	}
 
 	@Override

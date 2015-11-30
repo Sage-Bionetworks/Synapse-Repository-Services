@@ -66,6 +66,8 @@ public class FileMetadataUtils {
 		}
 		if (fileHandle.getCreatedOn() != null) {
 			dbo.setCreatedOn(new Timestamp(fileHandle.getCreatedOn().getTime()));
+		} else {
+			dbo.setCreatedOn(new Timestamp(System.currentTimeMillis()));
 		}
 		dbo.setName(fileHandle.getFileName());
 		dbo.setStorageLocationId(fileHandle.getStorageLocationId());
