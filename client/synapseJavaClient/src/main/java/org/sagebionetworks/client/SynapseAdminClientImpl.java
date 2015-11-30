@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.message.FireMessagesResult;
 import org.sagebionetworks.repo.model.message.PublishResults;
 import org.sagebionetworks.repo.model.migration.MigrationType;
+import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.MigrationTypeList;
@@ -51,12 +52,14 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	private static final String MIGRATION = "/migration";
 	private static final String MIGRATION_COUNTS = MIGRATION + "/counts";
 	private static final String MIGRATION_ROWS = MIGRATION + "/rows";
+	private static final String MIGRATION_ROWS_BY_RANGE = MIGRATION + "/rowsbyrange";
 	private static final String MIGRATION_DELTA = MIGRATION + "/delta";
 	private static final String MIGRATION_BACKUP = MIGRATION + "/backup";
 	private static final String MIGRATION_RESTORE = MIGRATION + "/restore";
 	private static final String MIGRATION_DELETE = MIGRATION + "/delete";
 	private static final String MIGRATION_STATUS = MIGRATION + "/status";
 	private static final String MIGRATION_PRIMARY = MIGRATION + "/primarytypes";
+	private static final String MIGRATION_CHECKSUM = MIGRATION + "/checksum";
 
 	private static final String ADMIN_DYNAMO_CLEAR = ADMIN + "/dynamo/clear";
 	private static final String ADMIN_MIGRATE_WIKIS_TO_V2 = ADMIN + "/migrateWiki";
@@ -149,6 +152,15 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 		return results;
 	}
 	
+	public RowMetadataResult getRowMetadataByRange(MigrationType migrationType, Long minId, Long maxId, Long limit, Long offset) throws SynapseException, JSONObjectAdapterException {
+		String uri = MIGRATION_ROWS_BY_RANGE + "?type=" + migrationType.name() + "&minId=" + minId + "&maxId=" + maxId + "&limit=" + limit + "&offset=" + offset;
+		JSONObject jsonObj = getSharedClientConnection().getJson(repoEndpoint, uri, getUserAgent());
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		RowMetadataResult results = new RowMetadataResult(); 
+		results.initializeFromJSONObject(adapter);
+		return results;
+	}
+	
 	public RowMetadataResult getRowMetadataDelta(MigrationType migrationType, IdList ids) throws JSONObjectAdapterException, SynapseException {
 		String uri = MIGRATION_DELTA + "?type=" + migrationType.name();
 		String jsonStr = EntityFactory.createJSONStringForEntity(ids);
@@ -198,6 +210,19 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 		return mtc;
 	}
 
+	@Override
+	public MigrationTypeChecksum getChecksumForIdRange(MigrationType migrationType, Long minId, Long maxId) throws SynapseException, JSONObjectAdapterException {
+		if (migrationType == null || minId == null || maxId == null) {
+			throw new IllegalArgumentException("Arguments type, minId and maxId cannot be null");
+		}
+		String uri = MIGRATION_CHECKSUM + "?migrationType=" + migrationType.name() + "&minId=" + minId + "&maxId=" + maxId;
+		JSONObject jsonObj = getSharedClientConnection().getJson(repoEndpoint, uri, getUserAgent());
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		MigrationTypeChecksum mtc = new MigrationTypeChecksum();
+		mtc.initializeFromJSONObject(adapter);
+		return mtc;
+	}
+	
 	@Override
 	public FireMessagesResult fireChangeMessages(Long startChangeNumber, Long limit) throws SynapseException, JSONObjectAdapterException {
 		if(startChangeNumber == null) throw new IllegalArgumentException("startChangeNumber cannot be null");
@@ -388,4 +413,5 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 			return e.getStatusCode();
 		}
 	}
+
 }

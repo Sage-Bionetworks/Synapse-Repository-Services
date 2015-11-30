@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.migration.MigrationType;
+import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
@@ -40,6 +41,7 @@ public class MigrationControllerAutowireTest extends AbstractAutowiredController
 	S3FileHandle handleOne;
 	PreviewFileHandle preview;
 	long startFileCount;
+	long startMinId;
 	
 	@Before
 	public void before() throws Exception{
@@ -48,6 +50,7 @@ public class MigrationControllerAutowireTest extends AbstractAutowiredController
 		String adminUserIdString = adminUserId.toString();
 
 		startFileCount = fileMetadataDao.getCount();
+
 		// Create a file handle
 		handleOne = new S3FileHandle();
 		handleOne.setCreatedBy(adminUserIdString);
@@ -95,14 +98,18 @@ public class MigrationControllerAutowireTest extends AbstractAutowiredController
 		System.out.println(counts);
 		long fileCount = 0;
 		long fileMaxId = 0;
+		long fileMinId = 0;
 		for(MigrationTypeCount type: counts.getList()){
 			if(type.getType() == MigrationType.FILE_HANDLE){
 				fileCount = type.getCount();
 				fileMaxId = type.getMaxid();
+				fileMinId = type.getMinid();
 			}
 		}
 		assertEquals(startFileCount+2, fileCount);
 		assertEquals(Long.parseLong(preview.getId()), fileMaxId);
+		assertTrue(fileMinId >= 0);
+		assertTrue(fileMaxId >= fileMinId);
 	}
 	
 	@Test
@@ -116,6 +123,28 @@ public class MigrationControllerAutowireTest extends AbstractAutowiredController
 		// They should be ordered by ID
 		assertEquals(handleOne.getId(), ""+results.getList().get(0).getId());
 		assertEquals(preview.getId(), ""+results.getList().get(1).getId());
+	}
+	
+	@Test
+	public void testRowMetadataByRange() throws Exception {
+		// First list the values for files
+		RowMetadataResult results = entityServletHelper.getRowMetadataByRange(adminUserId, MigrationType.FILE_HANDLE, Long.parseLong(handleOne.getId()), Long.parseLong(preview.getId()), Long.MAX_VALUE, startFileCount);
+		assertNotNull(results);
+		assertNotNull(results.getList());
+		assertEquals(new Long(startFileCount+2), results.getTotalCount());
+		assertEquals(2, results.getList().size());
+		// They should be ordered by ID
+		assertEquals(handleOne.getId(), ""+results.getList().get(0).getId());
+		assertEquals(preview.getId(), ""+results.getList().get(1).getId());
+	}
+	
+	@Test
+	public void testGetChecksumForIdRange() throws Exception {
+		MigrationTypeChecksum checksum = entityServletHelper.getChecksumForIdRange(adminUserId, MigrationType.FILE_HANDLE, "0", handleOne.getId());
+		assertNotNull(checksum);
+		assertEquals(MigrationType.FILE_HANDLE, checksum.getType());
+		assertEquals(0, checksum.getMinid().longValue());
+		assertEquals(new Long(handleOne.getId()), checksum.getMaxid());
 	}
 	
 

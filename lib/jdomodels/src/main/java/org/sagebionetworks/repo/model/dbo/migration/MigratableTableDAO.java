@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.migration;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.concurrent.Callable;
 
@@ -31,6 +32,16 @@ public interface MigratableTableDAO {
 	public long getMaxId(MigrationType type);
 	
 	/**
+	 * The current min(id) for a table
+	 */
+	public long getMinId(MigrationType type);
+	
+	/**
+	 * A checksum on etag or id for a range of ids
+	 */
+	public String getChecksumForIdRange(MigrationType type, long minId, long maxId);
+	
+	/**
 	 * List all row metadata in a paginated format. All rows will be migrated in the order listed by this method.
 	 * This means metadata must be listed in dependency order.  For example, if row 'b' depends on row 'a' 
 	 * then row 'a' must be listed before row 'b'.  For this example, row 'a' would be migrated before row 'b'.
@@ -40,6 +51,17 @@ public interface MigratableTableDAO {
 	 * @return
 	 */
 	public RowMetadataResult listRowMetadata(MigrationType type, long limit, long offset);
+	
+	/**
+	 * List row metadata in a paginated format for a given id range. All rows will be migrated in the order listed by this method.
+	 * This means metadata must be listed in dependency order.  For example, if row 'b' depends on row 'a' 
+	 * then row 'a' must be listed before row 'b'.  For this example, row 'a' would be migrated before row 'b'.
+	 *    
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
+	RowMetadataResult listRowMetadataByRange(MigrationType type, long minId, long maxId, long limit, long offset);
 	
 	/**
 	 * Given a list of ID return the RowMetadata for each row that exist in the table.
@@ -97,5 +119,6 @@ public interface MigratableTableDAO {
 	 * @throws Exception
 	 */
 	public <T> T runWithForeignKeyIgnored(Callable<T> call) throws Exception;
+
 
 }

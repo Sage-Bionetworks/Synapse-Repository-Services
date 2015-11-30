@@ -20,6 +20,8 @@ public class DMLUtils {
 	public static final String BIND_VAR_ID_lIST = "BVIDLIST";
 	public static final String BIND_VAR_OFFSET = "BVOFFSET";
 	public static final String BIND_VAR_LIMIT = "BCLIMIT";
+	public static final String BIND_VAR_ID_RANGE_MIN = "BVIDRMIN";
+	public static final String BIND_VAR_ID_RANGE_MAX = "BVIDRMAX";
 
 	/**
 	 * Create an INSERT statement for a given mapping.
@@ -131,6 +133,19 @@ public class DMLUtils {
 		return main.toString();		
 	}
 
+	/**
+	 * Create a MAX statement for a given mapping
+	 * @param mapping
+	 * @return the MAX statement
+	 */
+	public static String createGetMinByBackupKeyStatement(TableMapping mapping) {
+		if(mapping == null) throw new IllegalArgumentException("Mapping cannot be null");
+		StringBuilder main = new StringBuilder();
+		main.append("SELECT MIN("+getBackupFieldColumnName(mapping)+") FROM ");
+		main.append(mapping.getTableName());
+		return main.toString();		
+	}
+
 	public static String getPrimaryFieldColumnName(TableMapping mapping) {
 		for(int i=0; i<mapping.getFieldColumns().length; i++){
 			FieldColumn fc = mapping.getFieldColumns()[i];
@@ -145,6 +160,14 @@ public class DMLUtils {
 			if(fc.isBackupId()) return fc.getColumnName();
 		}
 		throw new IllegalArgumentException("Table "+mapping.getTableName()+" has no backup key.");
+	}
+	
+	public static String getEtagFieldColumnName(TableMapping mapping) {
+		for(int i=0; i<mapping.getFieldColumns().length; i++){
+			FieldColumn fc = mapping.getFieldColumns()[i];
+			if(fc.isEtag()) return fc.getColumnName();
+		}
+		throw new IllegalArgumentException("Table "+mapping.getTableName()+" has no etag column.");
 	}
 
 	/**
@@ -241,6 +264,39 @@ public class DMLUtils {
 		addBackupIdInList(builder, mapping);
 		return builder.toString();
 	}
+
+	/**
+	 *	Build a 'select sum(crc32(etag|id)) statement for given mapping
+	 */
+	public static String createSelectSumCrc32ByIdRangeStatement(TableMapping mapping) {
+		validateMigratableTableMapping(mapping);
+		// sum(crc32()) on etag if exist, id if not
+		FieldColumn crcCol = getEtagColumn(mapping);
+		if (crcCol  == null) {
+			crcCol = getBackupIdColumnName(mapping);
+		}
+		String crcColName = crcCol.getColumnName();
+		// batch by ranges of backup ids
+		// build the statement
+		StringBuilder builder = new StringBuilder();
+		builder.append("SELECT SUM(crc32(`");
+		builder.append(crcColName);
+		builder.append("`)) FROM ");
+		builder.append(mapping.getTableName());
+		buildWhereBackupIdInRange(mapping, builder);
+		return builder.toString();
+	}
+	
+	private static void buildWhereBackupIdInRange(TableMapping mapping, StringBuilder builder) {
+		String idColName = getBackupIdColumnName(mapping).getColumnName();
+		builder.append(" WHERE `");
+		builder.append(idColName);
+		builder.append("` >= :" + BIND_VAR_ID_RANGE_MIN);
+		builder.append(" AND `");
+		builder.append(idColName);
+		builder.append("` <= :" + BIND_VAR_ID_RANGE_MAX);
+		return;
+	}
 	
 	/**
 	 * 'ID' IN ( :BVIDLIST )
@@ -317,6 +373,22 @@ public class DMLUtils {
 		return builder.toString();
 	}
 
+	public static String listRowMetadataByRange(TableMapping mapping) {
+		validateMigratableTableMapping(mapping);
+		StringBuilder builder = new StringBuilder();
+		builder.append("SELECT ");
+		buildSelectIdAndEtag(mapping, builder);
+		builder.append(" FROM ");
+		builder.append(mapping.getTableName());
+		buildWhereBackupIdInRange(mapping, builder);
+		buildBackupOrderBy(mapping, builder, true);
+		builder.append(" LIMIT :");
+		builder.append(BIND_VAR_LIMIT);
+		builder.append(" OFFSET :");
+		builder.append(BIND_VAR_OFFSET);
+		return builder.toString();
+	}
+	
 	/**
 	 * When etag is not null: " `ID`, `ETAG`", else: "`ID`"
 	 * @param mapping

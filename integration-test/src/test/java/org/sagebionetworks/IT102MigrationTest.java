@@ -3,6 +3,7 @@ package org.sagebionetworks;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertFalse;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -17,6 +18,7 @@ import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.DaemonStatus;
@@ -24,6 +26,7 @@ import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
 import org.sagebionetworks.repo.model.message.FireMessagesResult;
 import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.migration.MigrationType;
+import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.MigrationTypeList;
@@ -111,6 +114,13 @@ public class IT102MigrationTest {
 			System.out.println(mtc.getType().name() + ":" + mtc.getCount());
 			countByMigrationType.put(mtc.getType(), mtc.getCount());
 		}
+		// Checksums per type
+		System.out.println("Checksums by type");
+		for (MigrationType mt: migrationTypes) {
+			MigrationTypeChecksum mtc = adminSynapse.getChecksumForIdRange(mt, 0L, Long.MAX_VALUE);
+			System.out.println(mt.name() + ":" + mtc);			
+		}
+		
 		// Round trip
 		System.out.println("Backup/restore");
 		IdList idList = new IdList();
@@ -135,6 +145,23 @@ public class IT102MigrationTest {
 		// Fire change messages
 		FireMessagesResult fmRes = adminSynapse.fireChangeMessages(0L, 10L);
 		assertTrue(fmRes.getNextChangeNumber() > 0);
+	}
+	
+	@Test
+	public void testChecksumForIdRange() throws SynapseException, JSONObjectAdapterException {
+		Long minId = Long.parseLong(project.getId().substring(3));
+		Project p = null;
+		Folder f = null;
+		p = new Project();
+		p.setName("projectIT102-1");
+		p = adminSynapse.createEntity(p);
+		Long maxId = Long.parseLong(p.getId().substring(3));
+		MigrationTypeChecksum checksum1 = adminSynapse.getChecksumForIdRange(MigrationType.NODE, minId, maxId);
+		assertNotNull(checksum1);
+		adminSynapse.deleteEntity(p);
+		MigrationTypeChecksum checksum2 = adminSynapse.getChecksumForIdRange(MigrationType.NODE, minId, maxId);
+		assertNotNull(checksum2);
+		assertFalse(checksum1.equals(checksum2));
 	}
 	
 }

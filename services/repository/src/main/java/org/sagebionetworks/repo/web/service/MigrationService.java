@@ -5,6 +5,7 @@ import java.util.List;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.migration.MigrationType;
+import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.MigrationTypeList;
@@ -29,7 +30,7 @@ public interface MigrationService {
 	MigrationTypeCounts getTypeCounts(Long userId) throws DatastoreException, NotFoundException;
 
 	/**
-	 * Get the pagainated row metadta for one type.
+	 * Get the paginated row metadata for one type.
 	 * @param userId
 	 * @param type
 	 * @param limit
@@ -39,6 +40,18 @@ public interface MigrationService {
 	 * @throws DatastoreException 
 	 */
 	RowMetadataResult getRowMetadaForType(Long userId, MigrationType type, long limit, long offset) throws DatastoreException, NotFoundException;
+
+	/**
+	 * Get the paginated row metadata for one type and id range.
+	 * @param userId
+	 * @param type
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	RowMetadataResult getRowMetadaByRangeForType(Long userId, MigrationType type, long minId, long maxId, long limit, long offset) throws DatastoreException, NotFoundException;
 
 	/**
 	 * This method is called on the destination stack to compare compare its metadata with the source stack metadata
@@ -103,5 +116,11 @@ public interface MigrationService {
 	 * @throws DatastoreException 
 	 */
 	MigrationTypeList getPrimaryTypes(Long userId) throws DatastoreException, NotFoundException;
+	
+	/**
+	 * A checksum for a range of ids and a migration type
+	 * @throws NotFoundException 
+	 */
+	MigrationTypeChecksum getChecksumForIdRange(Long userId, MigrationType type, long minId, long maxId) throws NotFoundException;
 
 }

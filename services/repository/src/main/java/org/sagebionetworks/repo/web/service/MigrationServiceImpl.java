@@ -10,6 +10,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.migration.MigrationType;
+import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.MigrationTypeList;
@@ -39,9 +40,11 @@ public class MigrationServiceImpl implements MigrationService {
 			if (migrationManager.isMigrationTypeUsed(user, type)) {
 				long count = migrationManager.getCount(user, type);
 				long maxId = migrationManager.getMaxId(user, type);
+				long minId = migrationManager.getMinId(user, type);
 				MigrationTypeCount tc = new MigrationTypeCount();
 				tc.setCount(count);
 				tc.setMaxid(maxId);
+				tc.setMinid(minId);
 				tc.setType(type);
 				list.add(tc);
 			}
@@ -56,6 +59,13 @@ public class MigrationServiceImpl implements MigrationService {
 		if(userId == null) throw new IllegalArgumentException("userId cannot be null");
 		UserInfo user = userManager.getUserInfo(userId);
 		return migrationManager.getRowMetadaForType(user, type, limit, offset);
+	}
+
+	@Override
+	public RowMetadataResult getRowMetadaByRangeForType(Long userId,	MigrationType type, long minId, long maxId, long limit, long offset) throws DatastoreException, NotFoundException {
+		if(userId == null) throw new IllegalArgumentException("userId cannot be null");
+		UserInfo user = userManager.getUserInfo(userId);
+		return migrationManager.getRowMetadataByRangeForType(user, type, minId, maxId, limit, offset);
 	}
 
 	@Override
@@ -105,6 +115,17 @@ public class MigrationServiceImpl implements MigrationService {
 		MigrationTypeList mtl = new MigrationTypeList();
 		mtl.setList(list);
 		return mtl;
+	}
+
+	@Override
+	public MigrationTypeChecksum getChecksumForIdRange(Long userId, MigrationType type,
+			long minId, long maxId) throws NotFoundException {
+		if (userId == null) {
+			throw new IllegalArgumentException("userId cannot be null");
+		}
+		UserInfo user = userManager.getUserInfo(userId);
+		MigrationTypeChecksum chksum = migrationManager.getChecksumForIdRange(user, type, minId, maxId);
+		return chksum;
 	}
 
 }
