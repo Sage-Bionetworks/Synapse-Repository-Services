@@ -32,6 +32,16 @@ public class DeltaCounts {
 	public long getDelete() {
 		return delete;
 	}
+	public void setCreate(long c) {
+		this.create = c;
+	}
+	public void setUpdate(long c) {
+		this.update = c;
+	}
+	public void setDelete(long c) {
+		this.delete = c;
+	}
+	
 	@Override
 	public String toString() {
 		return "DeltaCounts [create=" + create + ", update=" + update

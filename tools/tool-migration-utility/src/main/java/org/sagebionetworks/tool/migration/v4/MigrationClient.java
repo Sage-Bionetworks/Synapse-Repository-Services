@@ -24,6 +24,7 @@ import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
+import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -31,6 +32,7 @@ import org.sagebionetworks.tool.migration.v3.stream.BufferedRowMetadataReader;
 import org.sagebionetworks.tool.migration.v3.stream.BufferedRowMetadataWriter;
 import org.sagebionetworks.tool.migration.v4.Delta.DeltaFinder;
 import org.sagebionetworks.tool.migration.v4.Delta.DeltaRanges;
+import org.sagebionetworks.tool.migration.v4.Delta.IdRange;
 import org.sagebionetworks.tool.migration.v4.utils.ToolMigrationUtils;
 import org.sagebionetworks.tool.migration.v4.utils.TypeToMigrateMetadata;
 import org.sagebionetworks.tool.progress.BasicProgress;
@@ -329,7 +331,7 @@ public class MigrationClient {
 		File updateTemp = File.createTempFile("update", ".tmp");
 		File deleteTemp = File.createTempFile("delete", ".tmp");
 		// Calculate the deltas
-		DeltaCounts counts = calcualteDeltas(tm.getType(), batchSize, createTemp, updateTemp, deleteTemp);
+		DeltaCounts counts = calcualteDeltas(tm, ranges, batchSize, createTemp, updateTemp, deleteTemp);
 		return new DeltaData(tm.getType(), createTemp, updateTemp, deleteTemp, counts);
 		
 	}
@@ -345,7 +347,7 @@ public class MigrationClient {
 	 * @throws FileNotFoundException
 	 * @throws IOException
 	 */
-	private DeltaCounts calcualteDeltas(MigrationType type, long batchSize, File createTemp, File updateTemp, File deleteTemp)	throws Exception {
+	private DeltaCounts calcualteDeltas(TypeToMigrateMetadata typeMeta, DeltaRanges ranges, long batchSize, File createTemp, File updateTemp, File deleteTemp)	throws Exception {
 		BasicProgress sourceProgress = new BasicProgress();
 		BasicProgress destProgress = new BasicProgress();
 		BufferedRowMetadataWriter createOut = null;
@@ -355,32 +357,74 @@ public class MigrationClient {
 			createOut = new BufferedRowMetadataWriter(new FileWriter(createTemp));
 			updateOut = new BufferedRowMetadataWriter(new FileWriter(updateTemp));
 			deleteOut = new BufferedRowMetadataWriter(new FileWriter(deleteTemp));
-			MetadataIterator sourceIt = new MetadataIterator(type, factory.createNewSourceClient(), batchSize, sourceProgress);
-			MetadataIterator destIt = new MetadataIterator(type, factory.createNewDestinationClient(), batchSize, destProgress);
-			DeltaBuilder builder  = new DeltaBuilder(sourceIt, destIt, createOut, updateOut, deleteOut);
-			// Do the work on a separate thread
-			Future<DeltaCounts> future = this.threadPool.submit(builder);
-			// Wait for the future to finish
-			while(!future.isDone()){
-				// Log the progress
-				log.info("Calculating deltas for type: "+type.name()+" Progress: "+sourceProgress.getCurrentStatus());
-				Thread.sleep(2000);
+			
+			// Unconditional inserts
+			long insCount = 0;
+			List<IdRange> insRanges = ranges.getInsRanges();
+			for (IdRange r: insRanges) {
+				RangeMetadataIterator it = new RangeMetadataIterator(typeMeta.getType(), factory.createNewSourceClient(), batchSize, r.getMinId(), r.getMaxId(), sourceProgress);
+				RowMetadata sourceRow = null;
+				do {
+					sourceRow = it.next();
+					if (sourceRow != null) {
+						createOut.write(sourceRow);
+						insCount++;
+					}
+				} while (sourceRow != null);
 			}
-			DeltaCounts counts = future.get();
-			log.info("Calculated the following counts for type: "+type.name()+" Counts: "+counts);
+			// Unconditional deletes
+			long delCount = 0;
+			List<IdRange> delRanges = ranges.getDelRanges();
+			for (IdRange r: delRanges) {
+				RangeMetadataIterator it = new RangeMetadataIterator(typeMeta.getType(), factory.createNewSourceClient(), batchSize, r.getMinId(), r.getMaxId(), sourceProgress);
+				RowMetadata destRow = null;
+				do {
+					destRow = it.next();
+					if (destRow != null) {
+						deleteOut.write(destRow);
+						delCount++;
+					}
+				} while (destRow != null);
+			}
+			
+			// Updates
+			DeltaCounts counts = null;
+			List<IdRange> updRanges = ranges.getUpdRanges();
+			for (IdRange r: updRanges) {
+				RangeMetadataIterator sourceIt = new RangeMetadataIterator(typeMeta.getType(), factory.createNewSourceClient(), batchSize, r.getMinId(), r.getMaxId(), sourceProgress);
+				RangeMetadataIterator destIt = new RangeMetadataIterator(typeMeta.getType(), factory.createNewDestinationClient(), batchSize, r.getMinId(), r.getMaxId(), destProgress);
+				DeltaBuilder builder  = new DeltaBuilder(sourceIt, destIt, createOut, updateOut, deleteOut);
+				// Do the work on a separate thread
+				Future<DeltaCounts> future = this.threadPool.submit(builder);
+				// Wait for the future to finish
+				while(!future.isDone()){
+					// Log the progress
+					log.info("Calculating deltas for type: "+typeMeta.getType().name()+" Progress: "+sourceProgress.getCurrentStatus());
+					Thread.sleep(2000);
+				}
+				counts = future.get();
+			}
+			
+			// Fix the counts
+			counts.setCreate(insCount+counts.getCreate());
+			counts.setDelete(delCount+counts.getDelete());
+			
+			log.info("Calculated the following counts for type: "+typeMeta.getType().name()+" Counts: "+counts);
+			
 			return counts;
-		}finally{
-			if(createOut != null){
+			
+		} finally {
+			if (createOut != null){
 				try {
 					createOut.close();
 				} catch (Exception e) {}
 			}
-			if(updateOut != null){
+			if (updateOut != null){
 				try {
 					updateOut.close();
 				} catch (Exception e) {}
 			}
-			if(deleteOut != null){
+			if (deleteOut != null){
 				try {
 					deleteOut.close();
 				} catch (Exception e) {}

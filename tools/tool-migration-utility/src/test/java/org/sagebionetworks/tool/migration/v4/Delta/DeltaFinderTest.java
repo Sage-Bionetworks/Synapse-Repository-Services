@@ -542,10 +542,10 @@ public class DeltaFinderTest {
 		when(mockDestClient.getChecksumForIdRange(eq(MigrationType.FILE_HANDLE), eq(1010L), eq(1019L))).thenReturn(expectedChecksum9);
 		// 3rd quarter - same CRC32
 		MigrationTypeChecksum expectedChecksum10 = new MigrationTypeChecksum();
-		expectedChecksum9.setType(MigrationType.FILE_HANDLE);
-		expectedChecksum9.setMinid(1020L);
-		expectedChecksum9.setMaxid(1029L);
-		expectedChecksum9.setChecksum("CRC32-3-4");
+		expectedChecksum10.setType(MigrationType.FILE_HANDLE);
+		expectedChecksum10.setMinid(1020L);
+		expectedChecksum10.setMaxid(1029L);
+		expectedChecksum10.setChecksum("CRC32-3-4");
 		when(mockSrcClient.getChecksumForIdRange(eq(MigrationType.FILE_HANDLE), eq(1020L), eq(1029L))).thenReturn(expectedChecksum10);
 		when(mockDestClient.getChecksumForIdRange(eq(MigrationType.FILE_HANDLE), eq(1020L), eq(1029L))).thenReturn(expectedChecksum10);
 		// 4th quarter - different CRC32
