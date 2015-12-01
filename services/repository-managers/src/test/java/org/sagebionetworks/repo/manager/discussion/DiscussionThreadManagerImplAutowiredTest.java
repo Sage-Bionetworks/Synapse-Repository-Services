@@ -2,6 +2,9 @@ package org.sagebionetworks.repo.manager.discussion;
 
 import static org.junit.Assert.*;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.URL;
 import java.util.UUID;
 
 import org.junit.After;
@@ -19,6 +22,7 @@ import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
+import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.Forum;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -42,6 +46,7 @@ public class DiscussionThreadManagerImplAutowiredTest {
 	private String projectId;
 	private Forum forum;
 	private CreateDiscussionThread createThread;
+	private String messageMarkdown = "<header>This is a message.</header>";
 
 	@Before
 	public void before() {
@@ -69,7 +74,7 @@ public class DiscussionThreadManagerImplAutowiredTest {
 		createThread = new CreateDiscussionThread();
 		createThread.setForumId(forum.getId());
 		createThread.setTitle("Title");
-		createThread.setMessageMarkdown("<header>This is a message.</header>");
+		createThread.setMessageMarkdown(messageMarkdown);
 	}
 
 	@After
@@ -80,7 +85,19 @@ public class DiscussionThreadManagerImplAutowiredTest {
 
 	@Test
 	public void test() throws Exception {
-		assertNotNull(threadManager.createThread(userInfo, createThread));
-		assertNotNull(threadManager.createThread(userInfo, createThread).getMessageUrl());
+		DiscussionThreadBundle bundle = threadManager.createThread(userInfo, createThread);
+		assertNotNull(bundle);
+		String urlString = bundle.getMessageUrl();
+		assertNotNull(urlString);
+		URL url = new URL(urlString);
+		BufferedReader in = new BufferedReader(new InputStreamReader(url.openStream()));
+		String inputLine;
+		boolean matched = false;
+		while ((inputLine = in.readLine()) != null) {
+			assertEquals(inputLine, messageMarkdown);
+			matched = true;
+		}
+		assertTrue(matched);
+		in.close();
 	}
 }
