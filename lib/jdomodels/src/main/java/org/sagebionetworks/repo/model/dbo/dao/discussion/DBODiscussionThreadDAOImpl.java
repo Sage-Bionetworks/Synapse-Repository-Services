@@ -46,44 +46,44 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 		@Override
 		public DiscussionThreadBundle mapRow(ResultSet rs, int rowNum)
 				throws SQLException {
-			DiscussionThreadBundle dbo = new DiscussionThreadBundle();
-			dbo.setId(Long.toString(rs.getLong(COL_DISCUSSION_THREAD_ID)));
-			dbo.setForumId(Long.toString(rs.getLong(COL_DISCUSSION_THREAD_FORUM_ID)));
-			dbo.setProjectId(Long.toString(rs.getLong(COL_FORUM_PROJECT_ID)));
+			DiscussionThreadBundle dto = new DiscussionThreadBundle();
+			dto.setId(Long.toString(rs.getLong(COL_DISCUSSION_THREAD_ID)));
+			dto.setForumId(Long.toString(rs.getLong(COL_DISCUSSION_THREAD_FORUM_ID)));
+			dto.setProjectId(Long.toString(rs.getLong(COL_FORUM_PROJECT_ID)));
 			Blob titleBlob = rs.getBlob(COL_DISCUSSION_THREAD_TITLE);
-			dbo.setTitle(new String(titleBlob.getBytes(1, (int) titleBlob.length()), UTF8));
-			dbo.setCreatedOn(new Date(rs.getTimestamp(COL_DISCUSSION_THREAD_CREATED_ON).getTime()));
-			dbo.setCreatedBy(Long.toString(rs.getLong(COL_DISCUSSION_THREAD_CREATED_BY)));
-			dbo.setModifiedOn(new Date(rs.getTimestamp(COL_DISCUSSION_THREAD_MODIFIED_ON).getTime()));
-			dbo.setEtag(rs.getString(COL_DISCUSSION_THREAD_ETAG));
-			dbo.setMessageKey(rs.getString(COL_DISCUSSION_THREAD_MESSAGE_KEY));
-			dbo.setIsEdited(rs.getBoolean(COL_DISCUSSION_THREAD_IS_EDITED));
-			dbo.setIsDeleted(rs.getBoolean(COL_DISCUSSION_THREAD_IS_DELETED));
+			dto.setTitle(new String(titleBlob.getBytes(1, (int) titleBlob.length()), UTF8));
+			dto.setCreatedOn(new Date(rs.getTimestamp(COL_DISCUSSION_THREAD_CREATED_ON).getTime()));
+			dto.setCreatedBy(Long.toString(rs.getLong(COL_DISCUSSION_THREAD_CREATED_BY)));
+			dto.setModifiedOn(new Date(rs.getTimestamp(COL_DISCUSSION_THREAD_MODIFIED_ON).getTime()));
+			dto.setEtag(rs.getString(COL_DISCUSSION_THREAD_ETAG));
+			dto.setMessageKey(rs.getString(COL_DISCUSSION_THREAD_MESSAGE_KEY));
+			dto.setIsEdited(rs.getBoolean(COL_DISCUSSION_THREAD_IS_EDITED));
+			dto.setIsDeleted(rs.getBoolean(COL_DISCUSSION_THREAD_IS_DELETED));
 			long numberOfViews = rs.getLong(COL_DISCUSSION_THREAD_STATS_NUMBER_OF_VIEWS);
 			if (rs.wasNull()) {
-				dbo.setNumberOfViews(0L);
+				dto.setNumberOfViews(0L);
 			} else {
-				dbo.setNumberOfViews(numberOfViews);
+				dto.setNumberOfViews(numberOfViews);
 			}
 			long numberOfReplies = rs.getLong(COL_DISCUSSION_THREAD_STATS_NUMBER_OF_REPLIES);
 			if (rs.wasNull()) {
-				dbo.setNumberOfReplies(0L);
+				dto.setNumberOfReplies(0L);
 			} else {
-				dbo.setNumberOfReplies(numberOfReplies);
+				dto.setNumberOfReplies(numberOfReplies);
 			}
 			Timestamp lastActivity = rs.getTimestamp(COL_DISCUSSION_THREAD_STATS_LAST_ACTIVITY);
 			if (rs.wasNull()) {
-				dbo.setLastActivity(dbo.getModifiedOn());
+				dto.setLastActivity(dto.getModifiedOn());
 			} else {
-				dbo.setLastActivity(new Date(lastActivity.getTime()));
+				dto.setLastActivity(new Date(lastActivity.getTime()));
 			}
 			String listString = rs.getString(COL_DISCUSSION_THREAD_STATS_ACTIVE_AUTHORS);
 			if (rs.wasNull()) {
-				dbo.setActiveAuthors(Arrays.asList(dbo.getCreatedBy()));
+				dto.setActiveAuthors(Arrays.asList(dto.getCreatedBy()));
 			} else {
-				dbo.setActiveAuthors(DiscussionThreadUtils.toList(listString));
+				dto.setActiveAuthors(DiscussionThreadUtils.toList(listString));
 			}
-			return dbo;
+			return dto;
 		}
 	};
 
@@ -316,6 +316,7 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 		return jdbcTemplate.queryForLong(SQL_SELECT_THREAD_VIEW_COUNT, threadId);
 	}
 
+	@WriteTransaction
 	@Override
 	public String getEtagForUpdate(long threadId) {
 		List<String> results = jdbcTemplate.query(SQL_SELECT_ETAG_FOR_UPDATE, new RowMapper<String>(){
