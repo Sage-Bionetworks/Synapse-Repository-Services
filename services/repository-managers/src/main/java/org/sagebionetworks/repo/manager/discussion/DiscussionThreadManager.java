@@ -63,10 +63,11 @@ public interface DiscussionThreadManager {
 	 * 
 	 * @param userInfo
 	 * @param forumId
-	 * @param order
 	 * @param limit
 	 * @param offset
+	 * @param order
+	 * @param ascending
 	 * @return
 	 */
-	public PaginatedResults<DiscussionThreadBundle> getThreadsForForum(UserInfo userInfo, String forumId, DiscussionOrder order, Integer limit, Integer offset);
+	public PaginatedResults<DiscussionThreadBundle> getThreadsForForum(UserInfo userInfo, String forumId, Long limit, Long offset, DiscussionOrder order, Boolean ascending );
 }

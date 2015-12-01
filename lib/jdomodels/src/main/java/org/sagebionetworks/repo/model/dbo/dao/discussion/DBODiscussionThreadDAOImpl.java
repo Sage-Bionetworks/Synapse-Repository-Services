@@ -138,10 +138,8 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 	private static final String ORDER_BY_LAST_ACTIVITY = " ORDER BY "+COL_DISCUSSION_THREAD_STATS_LAST_ACTIVITY;
 	private static final String ORDER_BY_NUMBER_OF_VIEWS = " ORDER BY "+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_VIEWS;
 	private static final String ORDER_BY_NUMBER_OF_REPLIES = " ORDER BY "+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_REPLIES;
-	private static final String ORDER_BY_LAST_ACTIVITY_DESC = " ORDER BY "+COL_DISCUSSION_THREAD_STATS_LAST_ACTIVITY+" DESC";
-	private static final String ORDER_BY_NUMBER_OF_VIEWS_DESC = " ORDER BY "+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_VIEWS+" DESC";
-	private static final String ORDER_BY_NUMBER_OF_REPLIES_DESC = " ORDER BY "+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_REPLIES+" DESC";
-	public static final Integer MAX_LIMIT = 100;
+	private static final String DESC = " DESC ";
+	public static final Long MAX_LIMIT = 100L;
 
 	private static final String SQL_UPDATE_THREAD_VIEW_TABLE = "INSERT IGNORE INTO "
 			+TABLE_DISCUSSION_THREAD_VIEW+" ("
@@ -204,11 +202,12 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 
 	@Override
 	public PaginatedResults<DiscussionThreadBundle> getThreads(long forumId,
-			DiscussionOrder order, Integer limit, Integer offset) {
-		ValidateArgument.requirement(limit != null && offset != null,
-				"Both limit and offset must be not null");
+			Long limit, Long offset, DiscussionOrder order, Boolean ascending) {
+		ValidateArgument.required(limit,"limit cannot be null");
+		ValidateArgument.required(offset,"offset cannot be null");
 		ValidateArgument.requirement(limit >= 0 && offset >= 0 && limit <= MAX_LIMIT,
 					"Limit and offset must be greater than 0, and limit must be smaller than or equal to "+MAX_LIMIT);
+		ValidateArgument.required(ascending,"ascending cannot be null");
 
 		String query = SQL_SELECT_THREADS_BY_FORUM_ID;
 		if (order != null) {
@@ -222,16 +221,12 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 				case LAST_ACTIVITY:
 					query += ORDER_BY_LAST_ACTIVITY;
 					break;
-				case NUMBER_OF_REPLIES_DESC:
-					query += ORDER_BY_NUMBER_OF_REPLIES_DESC;
-					break;
-				case NUMBER_OF_VIEWS_DESC:
-					query += ORDER_BY_NUMBER_OF_VIEWS_DESC;
-					break;
-				case LAST_ACTIVITY_DESC:
-					query += ORDER_BY_LAST_ACTIVITY_DESC;
+				default:
 					break;
 			}
+		}
+		if (!ascending) {
+			query += DESC;
 		}
 		query += " LIMIT "+limit+" OFFSET "+offset;
 

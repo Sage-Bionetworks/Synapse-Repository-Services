@@ -193,48 +193,48 @@ public class DBODiscussionThreadDAOImplTest {
 
 		assertEquals("non order",
 				new HashSet<DiscussionThreadBundle>(createdThreads),
-				new HashSet<DiscussionThreadBundle>(threadDao.getThreads(forumIdLong, null, MAX_LIMIT, 0).getResults()));
+				new HashSet<DiscussionThreadBundle>(threadDao.getThreads(forumIdLong, MAX_LIMIT, 0L, null, true).getResults()));
 
 		assertEquals("order, all",
 				createdThreads,
-				threadDao.getThreads(forumIdLong, DiscussionOrder.LAST_ACTIVITY, MAX_LIMIT, 0).getResults());
+				threadDao.getThreads(forumIdLong, MAX_LIMIT, 0L, DiscussionOrder.LAST_ACTIVITY, true).getResults());
 		assertEquals("order, second the third",
 				Arrays.asList(createdThreads.get(1), createdThreads.get(2)),
-				threadDao.getThreads(forumIdLong, DiscussionOrder.LAST_ACTIVITY, 2, 1).getResults());
+				threadDao.getThreads(forumIdLong, 2L, 1L, DiscussionOrder.LAST_ACTIVITY, true).getResults());
 		assertEquals("order, last",
 				Arrays.asList(createdThreads.get(2)),
-				threadDao.getThreads(forumIdLong, DiscussionOrder.LAST_ACTIVITY, 2, 2).getResults());
+				threadDao.getThreads(forumIdLong, 2L, 2L, DiscussionOrder.LAST_ACTIVITY, true).getResults());
 		assertEquals("order, out of range",
 				Arrays.asList(),
-				threadDao.getThreads(forumIdLong, DiscussionOrder.LAST_ACTIVITY, 2, 3).getResults());
+				threadDao.getThreads(forumIdLong, 2L, 3L, DiscussionOrder.LAST_ACTIVITY, true).getResults());
 		assertEquals("order, on limit",
 				Arrays.asList(createdThreads.get(1), createdThreads.get(2)),
-				threadDao.getThreads(forumIdLong, DiscussionOrder.LAST_ACTIVITY, DBODiscussionThreadDAOImpl.MAX_LIMIT, 1).getResults());
+				threadDao.getThreads(forumIdLong, DBODiscussionThreadDAOImpl.MAX_LIMIT, 1L, DiscussionOrder.LAST_ACTIVITY, true).getResults());
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testNegativeOffset() {
-		threadDao.getThreads(forumIdLong, DiscussionOrder.LAST_ACTIVITY, 2, -3);
+		threadDao.getThreads(forumIdLong, 2L, -3L, DiscussionOrder.LAST_ACTIVITY, true);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testNegativeLimit() {
-		threadDao.getThreads(forumIdLong, DiscussionOrder.LAST_ACTIVITY, -2, 3);
+		threadDao.getThreads(forumIdLong, -2L, 3L, DiscussionOrder.LAST_ACTIVITY, true);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testOverLimit() {
-		threadDao.getThreads(forumIdLong, DiscussionOrder.LAST_ACTIVITY, DBODiscussionThreadDAOImpl.MAX_LIMIT+1, 3);
+		threadDao.getThreads(forumIdLong, DBODiscussionThreadDAOImpl.MAX_LIMIT+1, 3L, DiscussionOrder.LAST_ACTIVITY, true);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testNullOffset() {
-		threadDao.getThreads(forumIdLong, DiscussionOrder.LAST_ACTIVITY, 2, null);
+		threadDao.getThreads(forumIdLong, 2L, null, DiscussionOrder.LAST_ACTIVITY, true);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testNullLimit() {
-		threadDao.getThreads(forumIdLong, DiscussionOrder.LAST_ACTIVITY, null, 2);
+		threadDao.getThreads(forumIdLong, null, 2L, DiscussionOrder.LAST_ACTIVITY, true);
 	}
 
 	@Test
@@ -253,12 +253,12 @@ public class DBODiscussionThreadDAOImplTest {
 		List<DiscussionThreadBundle> expected = Arrays.asList(createdThreads.get(0), createdThreads.get(2), createdThreads.get(1));
 		assertEquals("sorted by last activity",
 				expected,
-				threadDao.getThreads(forumIdLong, DiscussionOrder.LAST_ACTIVITY, MAX_LIMIT, 0).getResults());
+				threadDao.getThreads(forumIdLong, MAX_LIMIT, 0L, DiscussionOrder.LAST_ACTIVITY, true).getResults());
 
 		expected = Arrays.asList(createdThreads.get(1), createdThreads.get(2), createdThreads.get(0));
 		assertEquals("sorted by last activity desc",
 				expected,
-				threadDao.getThreads(forumIdLong, DiscussionOrder.LAST_ACTIVITY_DESC, MAX_LIMIT, 0).getResults());
+				threadDao.getThreads(forumIdLong, MAX_LIMIT, 0L, DiscussionOrder.LAST_ACTIVITY, false).getResults());
 	}
 
 	@Test
@@ -274,12 +274,12 @@ public class DBODiscussionThreadDAOImplTest {
 		List<DiscussionThreadBundle> expected = Arrays.asList(createdThreads.get(0), createdThreads.get(2), createdThreads.get(1));
 		assertEquals("sorted by number of views",
 				expected,
-				threadDao.getThreads(forumIdLong, DiscussionOrder.NUMBER_OF_VIEWS, MAX_LIMIT, 0).getResults());
+				threadDao.getThreads(forumIdLong, MAX_LIMIT, 0L, DiscussionOrder.NUMBER_OF_VIEWS, true).getResults());
 
 		expected = Arrays.asList(createdThreads.get(1), createdThreads.get(2), createdThreads.get(0));
 		assertEquals("sorted by number of views desc",
 				expected,
-				threadDao.getThreads(forumIdLong, DiscussionOrder.NUMBER_OF_VIEWS_DESC, MAX_LIMIT, 0).getResults());
+				threadDao.getThreads(forumIdLong, MAX_LIMIT, 0L, DiscussionOrder.NUMBER_OF_VIEWS, false).getResults());
 	}
 
 	@Test
@@ -295,12 +295,12 @@ public class DBODiscussionThreadDAOImplTest {
 		List<DiscussionThreadBundle> expected = Arrays.asList(createdThreads.get(0), createdThreads.get(2), createdThreads.get(1));
 		assertEquals("sorted by number of replies",
 				expected,
-				threadDao.getThreads(forumIdLong, DiscussionOrder.NUMBER_OF_REPLIES, MAX_LIMIT, 0).getResults());
+				threadDao.getThreads(forumIdLong, MAX_LIMIT, 0L, DiscussionOrder.NUMBER_OF_REPLIES, true).getResults());
 
 		expected = Arrays.asList(createdThreads.get(1), createdThreads.get(2), createdThreads.get(0));
 		assertEquals("sorted by number of replies desc",
 				expected,
-				threadDao.getThreads(forumIdLong, DiscussionOrder.NUMBER_OF_REPLIES_DESC, MAX_LIMIT, 0).getResults());
+				threadDao.getThreads(forumIdLong, MAX_LIMIT, 0L, DiscussionOrder.NUMBER_OF_REPLIES, false).getResults());
 	}
 
 	private List<DiscussionThreadBundle> createListOfThreads(int numberOfThreads) {

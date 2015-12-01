@@ -43,14 +43,14 @@ public interface DiscussionThreadDAO {
 	 * the order of the discussion thread, limit and offset
 	 * 
 	 * @param forumId
-	 * @param order
 	 * @param limit
 	 * @param offset
-	 * @param userId
+	 * @param order
+	 * @param ascending
 	 * @return
 	 */
 	public PaginatedResults<DiscussionThreadBundle> getThreads(long forumId,
-			DiscussionOrder order, Integer limit, Integer offset);
+			Long limit, Long offset, DiscussionOrder order, Boolean ascending);
 
 	/**
 	 * Mark a discussion thread as deleted

@@ -8,6 +8,7 @@ import org.sagebionetworks.repo.manager.discussion.DiscussionThreadManager;
 import org.sagebionetworks.repo.manager.discussion.ForumManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
+import org.sagebionetworks.repo.model.discussion.DiscussionOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.Forum;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -61,10 +62,10 @@ public class DiscussionServiceImpl implements DiscussionService{
 
 	@Override
 	public PaginatedResults<DiscussionThreadBundle> getThreads(Long userId,
-			String forumId, Long limit, Long offset, String sort,
+			String forumId, Long limit, Long offset, DiscussionOrder order,
 			Boolean ascending) {
-		// TODO Auto-generated method stub
-		return null;
+		UserInfo user = userManager.getUserInfo(userId);
+		return threadManager.getThreadsForForum(user, forumId, limit, offset, order, ascending);
 	}
 
 }

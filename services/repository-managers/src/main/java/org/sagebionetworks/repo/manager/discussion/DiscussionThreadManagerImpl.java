@@ -126,8 +126,8 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 
 	@Override
 	public PaginatedResults<DiscussionThreadBundle> getThreadsForForum(
-			UserInfo userInfo, String forumId, DiscussionOrder order,
-			Integer limit, Integer offset) {
+			UserInfo userInfo, String forumId, Long limit, Long offset,
+			DiscussionOrder order, Boolean ascending) {
 		if (forumId == null) {
 			throw new IllegalArgumentException("forumId cannot be null");
 		}
@@ -135,7 +135,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		String projectId = forumDao.getForum(Long.parseLong(forumId)).getProjectId();
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ));
-		return addMessageUrl(threadDao.getThreads(Long.parseLong(forumId), order, limit, offset));
+		return addMessageUrl(threadDao.getThreads(Long.parseLong(forumId), limit, offset, order, ascending));
 	}
 
 	private PaginatedResults<DiscussionThreadBundle> addMessageUrl(

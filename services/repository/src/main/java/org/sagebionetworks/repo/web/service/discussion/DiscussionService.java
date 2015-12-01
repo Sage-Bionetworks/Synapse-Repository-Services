@@ -4,6 +4,7 @@ import java.io.UnsupportedEncodingException;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
+import org.sagebionetworks.repo.model.discussion.DiscussionOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.Forum;
 
@@ -73,10 +74,10 @@ public interface DiscussionService {
 	 * @param forumId
 	 * @param limit
 	 * @param offset
-	 * @param sort
+	 * @param order
 	 * @param ascending
 	 * @return
 	 */
 	public PaginatedResults<DiscussionThreadBundle> getThreads(Long userId,
-			String forumId, Long limit, Long offset, String sort, Boolean ascending);
+			String forumId, Long limit, Long offset, DiscussionOrder order, Boolean ascending);
 }
