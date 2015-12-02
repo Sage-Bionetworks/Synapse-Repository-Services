@@ -229,7 +229,7 @@ public class DMLUtilsTest {
 		String sql = DMLUtils.listRowMetadataByRange(migrateableMappingSelfForeignKey);
 		assertNotNull(sql);
 		System.out.println(sql);
-		assertEquals("SELECT `ID`, `ETAG`, `PARENT_ID` FROM SOME_TABLE WHERE `ID` >= :BVIDRMIN AND `ID` <= :BVIDRMAX ORDER BY `ID` ASC LIMIT :BCLIMIT OFFSET :BVOFFSET", sql);
+		assertEquals("SELECT `ID`, `ETAG`, `PARENT_ID` FROM SOME_TABLE WHERE `ID` >= :BVIDRMIN AND `ID` <= :BVIDRMAX ORDER BY `ID` ASC", sql);
 	}
 	
 	@Test
@@ -237,7 +237,7 @@ public class DMLUtilsTest {
 		String sql = DMLUtils.listRowMetadataByRange(migrateableMappingNoEtagNotSelfForeignKey);
 		assertNotNull(sql);
 		System.out.println(sql);
-		assertEquals("SELECT `ID` FROM SOME_TABLE WHERE `ID` >= :BVIDRMIN AND `ID` <= :BVIDRMAX ORDER BY `ID` ASC LIMIT :BCLIMIT OFFSET :BVOFFSET", sql);
+		assertEquals("SELECT `ID` FROM SOME_TABLE WHERE `ID` >= :BVIDRMIN AND `ID` <= :BVIDRMAX ORDER BY `ID` ASC", sql);
 	}
 	
 	@Test

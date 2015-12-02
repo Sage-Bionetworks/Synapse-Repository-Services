@@ -99,11 +99,11 @@ public class MigrationManagerImpl implements MigrationManager {
 	}
 	
 	@Override
-	public RowMetadataResult getRowMetadataByRangeForType(UserInfo user, MigrationType type, long minId, long maxId, long limit, long offset) {
+	public RowMetadataResult getRowMetadataByRangeForType(UserInfo user, MigrationType type, long minId, long maxId) {
 		validateUser(user);
 		if(type == null) throw new IllegalArgumentException("Type cannot be null");
 		// pass this to the dao.
-		return migratableTableDao.listRowMetadataByRange(type, minId, maxId, limit, offset);
+		return migratableTableDao.listRowMetadataByRange(type, minId, maxId);
 	}
 
 	@Override

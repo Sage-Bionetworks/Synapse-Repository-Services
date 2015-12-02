@@ -290,15 +290,13 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	}
 	
 	@Override
-	public RowMetadataResult listRowMetadataByRange(MigrationType type, long minId, long maxId, long limit, long offset) {
+	public RowMetadataResult listRowMetadataByRange(MigrationType type, long minId, long maxId) {
 		if(type == null) throw new IllegalArgumentException("type cannot be null");
 		String sql = this.getListSqlByRange(type);
 		RowMapper<RowMetadata> mapper = this.getRowMetadataRowMapper(type);
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(DMLUtils.BIND_VAR_ID_RANGE_MIN, minId);
 		params.addValue(DMLUtils.BIND_VAR_ID_RANGE_MAX, maxId);
-		params.addValue(DMLUtils.BIND_VAR_LIMIT, limit);
-		params.addValue(DMLUtils.BIND_VAR_OFFSET, offset);
 		List<RowMetadata> page = simpleJdbcTemplate.query(sql, mapper, params);
 		long count = this.getCount(type);
 		RowMetadataResult result = new RowMetadataResult();

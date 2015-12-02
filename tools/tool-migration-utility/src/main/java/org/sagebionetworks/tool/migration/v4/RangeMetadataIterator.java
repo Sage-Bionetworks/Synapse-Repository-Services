@@ -25,7 +25,6 @@ public class RangeMetadataIterator implements Iterator<RowMetadata> {
 	long minId;
 	long maxId;
 	long batchSize;
-	long offset;
 	
 	/**
 	 * Create a new iterator that can be used for one pass over a range of the data.
@@ -44,9 +43,13 @@ public class RangeMetadataIterator implements Iterator<RowMetadata> {
 		this.batchSize = batchSize;
 		this.done = false;
 		this.progress = progress;
-		this.offset = 0;
+		if (maxId - minId > batchSize) {
+			throw new IllegalArgumentException("MaxId-MinId must be less than batchSize");
+		}
 	}
 
+	// TODO: If maxId-minId < batchSize, should only fetch one page ==> simplify below
+	
 	/**
 	 * Get the next page with exponential back-off.
 	 */
@@ -80,10 +83,9 @@ public class RangeMetadataIterator implements Iterator<RowMetadata> {
 	 */
 	private boolean getNextPage() throws SynapseException,	JSONObjectAdapterException {
 		long start = System.currentTimeMillis();
-		this.lastPage = client.getRowMetadataByRange(type, minId, maxId, batchSize, offset);
+		this.lastPage = client.getRowMetadataByRange(type, minId, maxId);
 		long elapse = System.currentTimeMillis()-start;
 //		System.out.println("Fetched "+batchSize+" ids in "+elapse+" ms");
-		this.offset += this.batchSize;
 		this.lastPageIterator = lastPage.getList().iterator();
 		this.done = this.lastPage.getList().isEmpty();
 		progress.setTotal(lastPage.getTotalCount());

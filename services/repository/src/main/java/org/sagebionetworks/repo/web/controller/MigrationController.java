@@ -101,12 +101,10 @@ public class MigrationController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(required = true) String type,
 			@RequestParam(required = true) Long minId,
-			@RequestParam(required = true) Long maxId,
-			@RequestParam(required = true) Long limit,
-			@RequestParam(required = true) Long offset)
+			@RequestParam(required = true) Long maxId)
 			throws DatastoreException, NotFoundException {
 		return serviceProvider.getMigrationService().getRowMetadaByRangeForType(
-				userId, MigrationType.valueOf(type), minId, maxId, limit, offset);
+				userId, MigrationType.valueOf(type), minId, maxId);
 	}
 
 	/**

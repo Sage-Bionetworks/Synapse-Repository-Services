@@ -65,7 +65,7 @@ public interface SynapseAdminClient extends SynapseClient {
 	 * @throws SynapseException
 	 * @throws JSONObjectAdapterException
 	 */
-	public RowMetadataResult getRowMetadataByRange(MigrationType type, Long minId, Long maxId, Long limit, Long offset) throws SynapseException, JSONObjectAdapterException;
+	public RowMetadataResult getRowMetadataByRange(MigrationType type, Long minId, Long maxId) throws SynapseException, JSONObjectAdapterException;
 	
 	/**
 	 * Get the counts for all types

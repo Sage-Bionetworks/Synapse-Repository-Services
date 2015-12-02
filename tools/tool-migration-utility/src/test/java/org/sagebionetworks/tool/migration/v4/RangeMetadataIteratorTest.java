@@ -59,7 +59,7 @@ public class RangeMetadataIteratorTest {
 	public void testHappyCase(){
 		// Iterate over all data
 		BasicProgress progress = new BasicProgress();
-		RangeMetadataIterator iterator = new RangeMetadataIterator(type, stubSynapse, 5, 0 , 7, progress);
+		RangeMetadataIterator iterator = new RangeMetadataIterator(type, stubSynapse, 10, 0 , 7, progress);
 		// We should be able to iterate over all of the data and end up with list
 		// the same as used by the stub
 		List<RowMetadata> results = new LinkedList<RowMetadata>();
@@ -83,7 +83,7 @@ public class RangeMetadataIteratorTest {
 	public void testFailure() throws SynapseException, JSONObjectAdapterException{
 		// Throw exceptions
 		BasicProgress progress = new BasicProgress();
-		when(mockSynapse.getRowMetadataByRange(any(MigrationType.class), any(Long.class), any(Long.class), any(Long.class), any(Long.class))).thenThrow(new IllegalStateException("one"));
+		when(mockSynapse.getRowMetadataByRange(any(MigrationType.class), any(Long.class), any(Long.class))).thenThrow(new IllegalStateException("one"));
 		RangeMetadataIterator iterator = new RangeMetadataIterator(type, mockSynapse, 7, 0, rowCount-1, progress);
 		iterator.next();
 	}}

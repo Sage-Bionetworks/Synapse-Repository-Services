@@ -218,7 +218,7 @@ public class SynapseAdminClientMocker {
 			
 		});
 		
-		when(client.getRowMetadataByRange(any(MigrationType.class), anyLong(), anyLong(), anyLong(), anyLong())).thenAnswer(new Answer<RowMetadataResult>() {
+		when(client.getRowMetadataByRange(any(MigrationType.class), anyLong(), anyLong())).thenAnswer(new Answer<RowMetadataResult>() {
 
 			@Override
 			public RowMetadataResult answer(InvocationOnMock invocation)
@@ -226,8 +226,6 @@ public class SynapseAdminClientMocker {
 				MigrationType migrationType = (MigrationType) invocation.getArguments()[0];
 				Long minId = (Long) invocation.getArguments()[1];
 				Long maxId = (Long) invocation.getArguments()[2];
-				Long limit = (Long) invocation.getArguments()[3];
-				Long offset = (Long) invocation.getArguments()[4];
 				
 				
 				if (migrationType == null)
@@ -239,19 +237,15 @@ public class SynapseAdminClientMocker {
 				
 				List<RowMetadata> resultList = new LinkedList<RowMetadata>();
 				
-				if (offset <= maxId-minId) {
-					for (Long id=minId+offset; id <= maxId; id++) {
-						if (resultList.size() >= limit) {
-							break;
-						}
-						RowMetadata rmd = new RowMetadata();
-						rmd.setId(id);
-						rmd.setEtag("etag"+id);
-						if (list.contains(rmd)) {
-							resultList.add(rmd);
-						}
+				for (Long id=minId; id <= maxId; id++) {
+					RowMetadata rmd = new RowMetadata();
+					rmd.setId(id);
+					rmd.setEtag("etag"+id);
+					if (list.contains(rmd)) {
+						resultList.add(rmd);
 					}
 				}
+				
 				result.setList(resultList);
 				return result;
 			}

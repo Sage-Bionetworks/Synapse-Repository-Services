@@ -51,7 +51,7 @@ public interface MigrationService {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	RowMetadataResult getRowMetadaByRangeForType(Long userId, MigrationType type, long minId, long maxId, long limit, long offset) throws DatastoreException, NotFoundException;
+	RowMetadataResult getRowMetadaByRangeForType(Long userId, MigrationType type, long minId, long maxId) throws DatastoreException, NotFoundException;
 
 	/**
 	 * This method is called on the destination stack to compare compare its metadata with the source stack metadata

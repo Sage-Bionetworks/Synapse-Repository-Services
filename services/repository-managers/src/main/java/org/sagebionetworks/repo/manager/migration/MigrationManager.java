@@ -111,7 +111,7 @@ public interface MigrationManager {
 			long minId, long maxId);
 
 	RowMetadataResult getRowMetadataByRangeForType(UserInfo user,
-			MigrationType type, long minId, long maxId, long limit, long offset);
+			MigrationType type, long minId, long maxId);
 	
 	
 }

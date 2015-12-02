@@ -152,8 +152,8 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 		return results;
 	}
 	
-	public RowMetadataResult getRowMetadataByRange(MigrationType migrationType, Long minId, Long maxId, Long limit, Long offset) throws SynapseException, JSONObjectAdapterException {
-		String uri = MIGRATION_ROWS_BY_RANGE + "?type=" + migrationType.name() + "&minId=" + minId + "&maxId=" + maxId + "&limit=" + limit + "&offset=" + offset;
+	public RowMetadataResult getRowMetadataByRange(MigrationType migrationType, Long minId, Long maxId) throws SynapseException, JSONObjectAdapterException {
+		String uri = MIGRATION_ROWS_BY_RANGE + "?type=" + migrationType.name() + "&minId=" + minId + "&maxId=" + maxId;
 		JSONObject jsonObj = getSharedClientConnection().getJson(repoEndpoint, uri, getUserAgent());
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
 		RowMetadataResult results = new RowMetadataResult(); 

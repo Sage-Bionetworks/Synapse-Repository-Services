@@ -61,7 +61,7 @@ public interface MigratableTableDAO {
 	 * @param offset
 	 * @return
 	 */
-	RowMetadataResult listRowMetadataByRange(MigrationType type, long minId, long maxId, long limit, long offset);
+	RowMetadataResult listRowMetadataByRange(MigrationType type, long minId, long maxId);
 	
 	/**
 	 * Given a list of ID return the RowMetadata for each row that exist in the table.
