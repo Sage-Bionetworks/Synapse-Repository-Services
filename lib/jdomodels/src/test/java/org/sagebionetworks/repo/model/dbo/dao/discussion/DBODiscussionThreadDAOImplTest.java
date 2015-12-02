@@ -101,6 +101,13 @@ public class DBODiscussionThreadDAOImplTest {
 	@Test
 	public void testCreate() {
 		DiscussionThreadBundle dto = threadDao.createThread(forumId, threadId.toString(), "title", "messageKey", userId);
+		assertEquals(dto.getId(), threadId.toString());
+		assertEquals(dto.getForumId(), forumId);
+		assertEquals(dto.getProjectId(), projectId);
+		assertEquals(dto.getTitle(), "title");
+		assertEquals(dto.getCreatedBy(), userId.toString());
+		assertEquals(dto.getIsEdited(), false);
+		assertEquals(dto.getIsDeleted(), false);
 		assertEquals("check default number of views", dto.getNumberOfViews(), (Long) 0L);
 		assertEquals("check default number of replies", dto.getNumberOfReplies(), (Long) 0L);
 		assertEquals("check default last activity", dto.getLastActivity(), dto.getModifiedOn());

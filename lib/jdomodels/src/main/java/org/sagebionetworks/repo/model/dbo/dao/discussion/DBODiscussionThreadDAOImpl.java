@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.model.dbo.persistence.discussion.DBODiscussionTh
 import org.sagebionetworks.repo.model.dbo.persistence.discussion.DiscussionThreadUtils;
 import org.sagebionetworks.repo.model.discussion.DiscussionOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
@@ -49,7 +50,7 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 			DiscussionThreadBundle dto = new DiscussionThreadBundle();
 			dto.setId(Long.toString(rs.getLong(COL_DISCUSSION_THREAD_ID)));
 			dto.setForumId(Long.toString(rs.getLong(COL_DISCUSSION_THREAD_FORUM_ID)));
-			dto.setProjectId(Long.toString(rs.getLong(COL_FORUM_PROJECT_ID)));
+			dto.setProjectId(KeyFactory.keyToString(rs.getLong(COL_FORUM_PROJECT_ID)));
 			Blob titleBlob = rs.getBlob(COL_DISCUSSION_THREAD_TITLE);
 			dto.setTitle(new String(titleBlob.getBytes(1, (int) titleBlob.length()), UTF8));
 			dto.setCreatedOn(new Date(rs.getTimestamp(COL_DISCUSSION_THREAD_CREATED_ON).getTime()));
