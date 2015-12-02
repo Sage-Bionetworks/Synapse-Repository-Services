@@ -75,7 +75,12 @@ import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
+import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
+import org.sagebionetworks.repo.model.discussion.DiscussionOrder;
+import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.Forum;
+import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
+import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
 import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.entity.query.EntityQuery;
 import org.sagebionetworks.repo.model.entity.query.EntityQueryResults;
@@ -2441,4 +2446,63 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	Forum getForumMetadata(String projectId) throws SynapseException;
+
+	/**
+	 * Create a new Discussion Thread
+	 * 
+	 * @param toCreate
+	 * @return
+	 * @throws SynapseException
+	 */
+	DiscussionThreadBundle createThread(CreateDiscussionThread toCreate) throws SynapseException;
+
+	/**
+	 * Get the discussion thread given its ID
+	 * 
+	 * @param threadId
+	 * @return
+	 * @throws SynapseException
+	 */
+	DiscussionThreadBundle getThread(String threadId) throws SynapseException;
+
+	/**
+	 * Get threads for a given forum
+	 * 
+	 * @param forumId
+	 * @param limit
+	 * @param offset
+	 * @param order
+	 * @param ascending
+	 * @return
+	 * @throws SynapseException
+	 */
+	PaginatedResults<DiscussionThreadBundle> getThreadsForForum(String forumId, Long limit, Long offset, DiscussionOrder order, Boolean ascending) throws SynapseException;
+
+	/**
+	 * Update the title of an existing thread
+	 * 
+	 * @param threadId
+	 * @param newTitle
+	 * @return
+	 * @throws SynapseException
+	 */
+	DiscussionThreadBundle updateThreadTitle(String threadId, UpdateThreadTitle newTitle) throws SynapseException;
+
+	/**
+	 * Update the message of an existing thread
+	 * 
+	 * @param threadId
+	 * @param newMessage
+	 * @return
+	 * @throws SynapseException
+	 */
+	DiscussionThreadBundle updateThreadMessage(String threadId, UpdateThreadMessage newMessage) throws SynapseException;
+
+	/**
+	 * Mark a thread as deleted
+	 * 
+	 * @param threadId
+	 * @throws SynapseException
+	 */
+	void markThreadAsDeleted(String threadId) throws SynapseException;
 }
