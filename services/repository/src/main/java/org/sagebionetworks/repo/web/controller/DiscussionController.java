@@ -10,6 +10,8 @@ import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
 import org.sagebionetworks.repo.model.discussion.DiscussionOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.Forum;
+import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
+import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
@@ -129,7 +131,7 @@ public class DiscussionController extends BaseController {
 	public @ResponseBody DiscussionThreadBundle updateThreadTitle(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String threadId,
-			@RequestBody String title) {
+			@RequestBody UpdateThreadTitle title) {
 		return serviceProvider.getDiscussionService().updateThreadTitle(userId, threadId, title);
 	}
 
@@ -147,7 +149,7 @@ public class DiscussionController extends BaseController {
 	public @ResponseBody DiscussionThreadBundle updateThreadMessage(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String threadId,
-			@RequestBody String message) throws UnsupportedEncodingException {
+			@RequestBody UpdateThreadMessage message) throws UnsupportedEncodingException {
 		return serviceProvider.getDiscussionService().updateThreadMessage(userId, threadId, message);
 	}
 

@@ -19,6 +19,8 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
 import org.sagebionetworks.repo.model.discussion.DiscussionOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
+import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
+import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,10 +41,10 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 	@WriteTransaction
 	@Override
 	public DiscussionThreadBundle createThread(UserInfo userInfo, CreateDiscussionThread createThread) throws UnsupportedEncodingException {
-		ValidateArgument.requirement(createThread != null, "createThread cannot be null");
-		ValidateArgument.requirement(createThread.getForumId() != null, "forumId can not be null");
-		ValidateArgument.requirement(createThread.getTitle() != null, "title cannot be null");
-		ValidateArgument.requirement(createThread.getMessageMarkdown() != null, "message cannot be null");
+		ValidateArgument.required(createThread, "createThread cannot be null");
+		ValidateArgument.required(createThread.getForumId(), "forumId can not be null");
+		ValidateArgument.required(createThread.getTitle(), "title cannot be null");
+		ValidateArgument.required(createThread.getMessageMarkdown(), "message cannot be null");
 		UserInfo.validateUserInfo(userInfo);
 		String projectId = forumDao.getForum(Long.parseLong(createThread.getForumId())).getProjectId();
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
@@ -73,18 +75,15 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 
 	@WriteTransaction
 	@Override
-	public DiscussionThreadBundle updateTitle(UserInfo userInfo, String threadId, String newTitle) {
-		if (threadId == null) {
-			throw new IllegalArgumentException("threadId cannot be null");
-		}
-		if (newTitle == null) {
-			throw new IllegalArgumentException("newTitle cannot be null");
-		}
+	public DiscussionThreadBundle updateTitle(UserInfo userInfo, String threadId, UpdateThreadTitle newTitle) {
+		ValidateArgument.required(threadId, "threadId cannot be null");
+		ValidateArgument.required(newTitle, "newTitle cannot be null");
+		ValidateArgument.required(newTitle.getTitle(), "title cannot be null");
 		UserInfo.validateUserInfo(userInfo);
 		Long threadIdLong = Long.parseLong(threadId);
 		DiscussionThreadBundle thread = threadDao.getThread(threadIdLong);
 		if (authorizationManager.isUserCreatorOrAdmin(userInfo, thread.getCreatedBy())) {
-			return addMessageUrl(threadDao.updateTitle(threadIdLong, newTitle));
+			return addMessageUrl(threadDao.updateTitle(threadIdLong, newTitle.getTitle()));
 		} else {
 			throw new UnauthorizedException("Only the user that created the thread can modify it.");
 		}
@@ -92,18 +91,16 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 
 	@WriteTransaction
 	@Override
-	public DiscussionThreadBundle updateMessage(UserInfo userInfo, String threadId, String markdown) throws UnsupportedEncodingException {
-		if (threadId == null) {
-			throw new IllegalArgumentException("threadId cannot be null");
-		}
-		if (markdown == null) {
-			throw new IllegalArgumentException("markdown cannot be null");
-		}
+	public DiscussionThreadBundle updateMessage(UserInfo userInfo, String threadId,
+			UpdateThreadMessage newMessage) throws UnsupportedEncodingException {
+		ValidateArgument.required(threadId, "threadId cannot be null");
+		ValidateArgument.required(newMessage, "newMessage cannot be null");
+		ValidateArgument.required(newMessage.getMessageMarkdown(), "message markdown cannot be null");
 		UserInfo.validateUserInfo(userInfo);
 		Long threadIdLong = Long.parseLong(threadId);
 		DiscussionThreadBundle thread = threadDao.getThread(threadIdLong);
 		if (authorizationManager.isUserCreatorOrAdmin(userInfo, thread.getCreatedBy())) {
-			String messageKey = uploadDao.uploadDiscussionContent(markdown, thread.getForumId(), thread.getId());
+			String messageKey = uploadDao.uploadDiscussionContent(newMessage.getMessageMarkdown(), thread.getForumId(), thread.getId());
 			return addMessageUrl(threadDao.updateMessageKey(threadIdLong, messageKey));
 		} else {
 			throw new UnauthorizedException("Only the user that created the thread can modify it.");

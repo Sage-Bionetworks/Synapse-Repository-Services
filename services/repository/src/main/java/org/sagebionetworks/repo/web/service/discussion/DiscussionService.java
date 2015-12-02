@@ -7,6 +7,8 @@ import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
 import org.sagebionetworks.repo.model.discussion.DiscussionOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.Forum;
+import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
+import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
 
 public interface DiscussionService {
 
@@ -43,10 +45,10 @@ public interface DiscussionService {
 	 * 
 	 * @param userId
 	 * @param threadId
-	 * @param title
+	 * @param newTitle
 	 * @return
 	 */
-	public DiscussionThreadBundle updateThreadTitle(Long userId, String threadId, String title);
+	public DiscussionThreadBundle updateThreadTitle(Long userId, String threadId, UpdateThreadTitle newTitle);
 
 	/**
 	 * Update a thread message
@@ -57,7 +59,7 @@ public interface DiscussionService {
 	 * @return
 	 * @throws UnsupportedEncodingException 
 	 */
-	public DiscussionThreadBundle updateThreadMessage(Long userId, String threadId, String message) throws UnsupportedEncodingException;
+	public DiscussionThreadBundle updateThreadMessage(Long userId, String threadId, UpdateThreadMessage message) throws UnsupportedEncodingException;
 
 	/**
 	 * Mark a thread as deleted

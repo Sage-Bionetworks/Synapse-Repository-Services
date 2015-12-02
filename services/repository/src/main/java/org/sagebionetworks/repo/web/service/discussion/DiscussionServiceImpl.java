@@ -11,6 +11,8 @@ import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
 import org.sagebionetworks.repo.model.discussion.DiscussionOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.Forum;
+import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
+import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class DiscussionServiceImpl implements DiscussionService{
@@ -41,14 +43,14 @@ public class DiscussionServiceImpl implements DiscussionService{
 	}
 
 	@Override
-	public DiscussionThreadBundle updateThreadTitle(Long userId, String threadId, String title) {
+	public DiscussionThreadBundle updateThreadTitle(Long userId, String threadId, UpdateThreadTitle title) {
 		UserInfo user = userManager.getUserInfo(userId);
 		return threadManager.updateTitle(user, threadId, title);
 	}
 
 	@Override
 	public DiscussionThreadBundle updateThreadMessage(Long userId, String threadId,
-			String message) throws UnsupportedEncodingException {
+			UpdateThreadMessage message) throws UnsupportedEncodingException {
 		UserInfo user = userManager.getUserInfo(userId);
 		return threadManager.updateMessage(user, threadId, message);
 	}
