@@ -150,7 +150,7 @@ public class DBODiscussionThreadDAOImplTest {
 		dto.setTitle(newTitle);
 		threadDao.updateTitle(threadId, newTitle);
 		DiscussionThreadBundle returnedDto = threadDao.getThread(threadId);
-		assertFalse("after updating message url, etag should be different",
+		assertFalse("after updating title, etag should be different",
 				dto.getEtag().equals(returnedDto.getEtag()));
 		dto.setModifiedOn(returnedDto.getModifiedOn());
 		dto.setLastActivity(returnedDto.getLastActivity());
@@ -166,7 +166,7 @@ public class DBODiscussionThreadDAOImplTest {
 		dto.setIsDeleted(true);
 		threadDao.markThreadAsDeleted(threadId);
 		DiscussionThreadBundle returnedDto = threadDao.getThread(threadId);
-		assertFalse("after updating message url, etag should be different",
+		assertFalse("after marking thread as deleted, etag should be different",
 				dto.getEtag().equals(returnedDto.getEtag()));
 		dto.setModifiedOn(returnedDto.getModifiedOn());
 		dto.setLastActivity(returnedDto.getLastActivity());
