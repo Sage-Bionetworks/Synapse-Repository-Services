@@ -23,7 +23,7 @@ public class DBOMultipartUpload implements MigratableDatabaseObject<DBOMultipart
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("id", COL_MULTIPART_UPLOAD_ID, true).withIsBackupId(true),
 		new FieldColumn("etag", COL_MULTIPART_UPLOAD_ETAG).withIsEtag(true),
-		new FieldColumn("awsUploadId", COL_MULTIPART_AWS_UPLOAD_ID),
+		new FieldColumn("awsUploadId", COL_MULTIPART_PROVIDER_UPLOAD_ID),
 		new FieldColumn("fileSize", COL_MULTIPART_FILE_SIZE),
 		new FieldColumn("partSize", COL_MULTIPART_PART_SIZE),
 		new FieldColumn("fileMD5Hex", COL_MULTIPART_FILE_MD5_HEX),
@@ -64,7 +64,7 @@ public class DBOMultipartUpload implements MigratableDatabaseObject<DBOMultipart
 				DBOMultipartUpload dbo = new DBOMultipartUpload();
 				dbo.setId(rs.getLong(COL_MULTIPART_UPLOAD_ID));
 				dbo.setEtag(rs.getString(COL_MULTIPART_UPLOAD_ETAG));
-				dbo.setAwsUploadId(rs.getString(COL_MULTIPART_AWS_UPLOAD_ID));
+				dbo.setAwsUploadId(rs.getString(COL_MULTIPART_PROVIDER_UPLOAD_ID));
 				dbo.setFileSize(rs.getLong(COL_MULTIPART_FILE_SIZE));
 				dbo.setPartSize(rs.getLong(COL_MULTIPART_PART_SIZE));
 				dbo.setFileMD5Hex(rs.getString(COL_MULTIPART_FILE_MD5_HEX));

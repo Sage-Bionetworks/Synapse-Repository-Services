@@ -1,0 +1,32 @@
+{
+	"description": "Describes the status of a multi-part file upload.",
+	"properties": {
+		"uploadId": {
+			"type": "string",
+			"description": "The unique identifier of a multip-part file upload."
+		},
+		"startedBy": {
+			"description": "The id of the user that started this multi-part file upload.",
+			"type": "string"
+		},
+		"startedOn": {
+			"description": "The date and time this upload was first initiated.",
+			"type": "string",
+			"format":"date-time"
+		},
+		"state": {
+			"type": "string",
+			"description": "The state of this file upload.",
+			"name": "State",
+			"id": "org.sagebionetworks.repo.model.file.Multipart.State",
+			"enum": [
+				"UPLOADING",
+				"COMPLETED"
+			]
+		},
+		"resultFileHandleId": {
+			"description": "After a multi-part file upload is completed, a file handle will be created to represent the resulting file with this ID.  This value will be null until the multi-part file upload state transitions to COMPLETED",
+			"type": "string"
+		}
+	}
+}

@@ -234,7 +234,7 @@ public class SqlConstants {
 	public static final String TABLE_MULTIPART_UPLOAD				= "MULTIPART_UPLOAD";
 	public static final String COL_MULTIPART_UPLOAD_ID				= "ID";
 	public static final String COL_MULTIPART_UPLOAD_ETAG			= "ETAG";
-	public static final String COL_MULTIPART_AWS_UPLOAD_ID			= "AWS_UPLOAD_ID";
+	public static final String COL_MULTIPART_PROVIDER_UPLOAD_ID		= "PROVIDER_UPLOAD_ID";
 	public static final String COL_MULTIPART_FILE_SIZE				= "FILE_SIZE";
 	public static final String COL_MULTIPART_PART_SIZE				= "PART_SIZE";
 	public static final String COL_MULTIPART_FILE_MD5_HEX			= "FILE_MD5_HEX";
