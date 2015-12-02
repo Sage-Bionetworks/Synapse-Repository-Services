@@ -16,6 +16,8 @@ import org.sagebionetworks.repo.manager.discussion.ForumManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
+import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
+import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
 import org.springframework.test.util.ReflectionTestUtils;
 
 public class DiscussionServiceImplTest {
@@ -86,15 +88,17 @@ public class DiscussionServiceImplTest {
 
 	@Test
 	public void testUpdateThreadTitle() {
-		String newTitle = "newTitle";
-		bundle.setTitle(newTitle);
+		UpdateThreadTitle newTitle = new UpdateThreadTitle();
+		newTitle.setTitle("newTitle");
+		bundle.setTitle("newTitle");
 		Mockito.when(mockThreadManager.updateTitle(userInfo, threadId, newTitle)).thenReturn(bundle);
 		assertEquals(bundle, discussionServices.updateThreadTitle(userId, threadId, newTitle));
 	}
 
 	@Test
 	public void testUpdateThreadMessage() throws Exception {
-		String newMessage = "newMessage";
+		UpdateThreadMessage newMessage = new UpdateThreadMessage();
+		newMessage.setMessageMarkdown("newMessage");
 		bundle.setMessageKey("newkey");
 		bundle.setMessageUrl("newUrl");
 		Mockito.when(mockThreadManager.updateMessage(userInfo, threadId, newMessage)).thenReturn(bundle);
