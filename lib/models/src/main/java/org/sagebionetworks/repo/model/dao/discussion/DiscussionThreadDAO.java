@@ -4,8 +4,8 @@ import java.util.Date;
 import java.util.List;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
-import org.sagebionetworks.repo.model.discussion.DiscussionOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
+import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
 
 public interface DiscussionThreadDAO {
 
@@ -50,7 +50,7 @@ public interface DiscussionThreadDAO {
 	 * @return
 	 */
 	public PaginatedResults<DiscussionThreadBundle> getThreads(long forumId,
-			Long limit, Long offset, DiscussionOrder order, Boolean ascending);
+			Long limit, Long offset, DiscussionThreadOrder order, Boolean ascending);
 
 	/**
 	 * Mark a discussion thread as deleted

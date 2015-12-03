@@ -8,7 +8,7 @@ import org.sagebionetworks.repo.manager.discussion.DiscussionThreadManager;
 import org.sagebionetworks.repo.manager.discussion.ForumManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
-import org.sagebionetworks.repo.model.discussion.DiscussionOrder;
+import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.Forum;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
@@ -64,7 +64,7 @@ public class DiscussionServiceImpl implements DiscussionService{
 
 	@Override
 	public PaginatedResults<DiscussionThreadBundle> getThreads(Long userId,
-			String forumId, Long limit, Long offset, DiscussionOrder order,
+			String forumId, Long limit, Long offset, DiscussionThreadOrder order,
 			Boolean ascending) {
 		UserInfo user = userManager.getUserInfo(userId);
 		return threadManager.getThreadsForForum(user, forumId, limit, offset, order, ascending);
