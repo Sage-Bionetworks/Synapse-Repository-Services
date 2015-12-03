@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.web.service.discussion;
 
-import java.io.UnsupportedEncodingException;
+import java.io.IOException;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -31,7 +31,7 @@ public class DiscussionServiceImpl implements DiscussionService{
 
 	@Override
 	public DiscussionThreadBundle createThread(Long userId,
-			CreateDiscussionThread toCreate) throws UnsupportedEncodingException {
+			CreateDiscussionThread toCreate) throws IOException {
 		UserInfo user = userManager.getUserInfo(userId);
 		return threadManager.createThread(user, toCreate);
 	}
@@ -50,7 +50,7 @@ public class DiscussionServiceImpl implements DiscussionService{
 
 	@Override
 	public DiscussionThreadBundle updateThreadMessage(Long userId, String threadId,
-			UpdateThreadMessage message) throws UnsupportedEncodingException {
+			UpdateThreadMessage message) throws IOException {
 		UserInfo user = userManager.getUserInfo(userId);
 		return threadManager.updateMessage(user, threadId, message);
 	}

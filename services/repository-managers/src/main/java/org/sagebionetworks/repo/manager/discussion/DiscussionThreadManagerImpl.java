@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.manager.discussion;
 
-import java.io.UnsupportedEncodingException;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -40,7 +40,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 
 	@WriteTransaction
 	@Override
-	public DiscussionThreadBundle createThread(UserInfo userInfo, CreateDiscussionThread createThread) throws UnsupportedEncodingException {
+	public DiscussionThreadBundle createThread(UserInfo userInfo, CreateDiscussionThread createThread) throws IOException {
 		ValidateArgument.required(createThread, "createThread cannot be null");
 		ValidateArgument.required(createThread.getForumId(), "forumId can not be null");
 		ValidateArgument.required(createThread.getTitle(), "title cannot be null");
@@ -90,7 +90,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 	@WriteTransaction
 	@Override
 	public DiscussionThreadBundle updateMessage(UserInfo userInfo, String threadId,
-			UpdateThreadMessage newMessage) throws UnsupportedEncodingException {
+			UpdateThreadMessage newMessage) throws IOException {
 		ValidateArgument.required(threadId, "threadId cannot be null");
 		ValidateArgument.required(newMessage, "newMessage cannot be null");
 		ValidateArgument.required(newMessage.getMessageMarkdown(), "message markdown cannot be null");

@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.web.controller;
 
-import java.io.UnsupportedEncodingException;
+import java.io.IOException;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -105,7 +105,7 @@ public class DiscussionController extends BaseController {
 	@RequestMapping(value = UrlHelpers.THREAD, method = RequestMethod.POST)
 	public @ResponseBody DiscussionThreadBundle createThread(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestBody CreateDiscussionThread toCreate) throws UnsupportedEncodingException {
+			@RequestBody CreateDiscussionThread toCreate) throws IOException {
 		return serviceProvider.getDiscussionService().createThread(userId, toCreate);
 	}
 
@@ -161,7 +161,7 @@ public class DiscussionController extends BaseController {
 	public @ResponseBody DiscussionThreadBundle updateThreadMessage(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String threadId,
-			@RequestBody UpdateThreadMessage message) throws UnsupportedEncodingException {
+			@RequestBody UpdateThreadMessage message) throws IOException {
 		return serviceProvider.getDiscussionService().updateThreadMessage(userId, threadId, message);
 	}
 
