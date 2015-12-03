@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.model;
 
-import java.io.UnsupportedEncodingException;
+import java.io.IOException;
 
 public interface UploadContentToS3DAO {
 
@@ -11,9 +11,9 @@ public interface UploadContentToS3DAO {
 	 * @param forumId
 	 * @param threadId
 	 * @return the S3 key
-	 * @throws UnsupportedEncodingException 
+	 * @throws IOException 
 	 */
-	public String uploadDiscussionContent(String content, String forumId, String threadId) throws UnsupportedEncodingException;
+	public String uploadDiscussionContent(String content, String forumId, String threadId) throws IOException;
 
 	/**
 	 * get the URL from key

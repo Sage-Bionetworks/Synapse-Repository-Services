@@ -6,6 +6,7 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.URL;
 import java.util.UUID;
+import java.util.zip.GZIPInputStream;
 
 import org.junit.After;
 import org.junit.Before;
@@ -90,7 +91,7 @@ public class DiscussionThreadManagerImplAutowiredTest {
 		String urlString = bundle.getMessageUrl();
 		assertNotNull(urlString);
 		URL url = new URL(urlString);
-		BufferedReader in = new BufferedReader(new InputStreamReader(url.openStream()));
+		BufferedReader in = new BufferedReader(new InputStreamReader(new GZIPInputStream(url.openStream())));
 		String inputLine;
 		boolean matched = false;
 		while ((inputLine = in.readLine()) != null) {
