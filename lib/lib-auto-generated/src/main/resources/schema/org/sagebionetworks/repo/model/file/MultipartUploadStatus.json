@@ -1,0 +1,45 @@
+{
+	"description": "Describes the status of a multi-part file upload.",
+	"properties": {
+		"uploadId": {
+			"type": "string",
+			"description": "The unique identifier of a multip-part file upload."
+		},
+		"storageLocationToken": {
+			"type": "string",
+			"description": "The token from the storage location provider for this file upload."
+		},
+		"startedBy": {
+			"description": "The id of the user that started this multi-part file upload.",
+			"type": "string"
+		},
+		"startedOn": {
+			"description": "The date and time this upload was first initiated.",
+			"type": "string",
+			"format":"date-time"
+		},
+		"updatedOn": {
+			"description": "The date and time this upload was last updated.",
+			"type": "string",
+			"format":"date-time"
+		},
+		"partsState": {
+			"type": "string",
+			"description": "The concatenation of the state of each part.  Each part will have a state of 'added' (1) or 'missing' (0).  For example, given an upload composed of two parts such that the first part has been added successfully while the second part is still missing the partsState='10'.",
+		},
+		"state": {
+			"type": "string",
+			"description": "The state of this file upload.",
+			"name": "State",
+			"id": "org.sagebionetworks.repo.model.file.Multipart.State",
+			"enum": [
+				"UPLOADING",
+				"COMPLETED"
+			]
+		},
+		"resultFileHandleId": {
+			"description": "After a multi-part file upload is completed, a file handle will be created to represent the resulting file with this ID.  This value will be null until the multi-part file upload state transitions to COMPLETED",
+			"type": "string"
+		}
+	}
+}

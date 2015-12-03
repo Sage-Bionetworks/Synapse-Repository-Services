@@ -229,7 +229,22 @@ public class SqlConstants {
 	public static final String COL_FILES_NAME						= "NAME";
 	public static final String COL_FILES_STORAGE_LOCATION_ID		= "STORAGE_LOCATION_ID";
 	public static final String DDL_FILES							= "schema/Files-ddl.sql";
-
+	
+	// multipart upload state
+	public static final String TABLE_MULTIPART_UPLOAD				= "MULTIPART_UPLOAD";
+	public static final String COL_MULTIPART_UPLOAD_ID				= "ID";
+	public static final String COL_MULTIPART_REQUEST_HASH			= "REQUEST_HASH";
+	public static final String COL_MULTIPART_UPLOAD_ETAG			= "ETAG";
+	public static final String COL_MULTIPART_UPLOAD_REQUEST			= "REQUEST_BLOB";
+	public static final String COL_MULTIPART_STARTED_BY				= "STARTED_BY";
+	public static final String COL_MULTIPART_STARTED_ON				= "STARTED_ON";
+	public static final String COL_MULTIPART_UPDATED_ON				= "UPDATED_ON";
+	public static final String COL_MULTIPART_FILE_HANDLE_ID			= "FILE_HANDLE_ID";
+	public static final String COL_MULTIPART_STATE					= "STATE";
+	public static final String COL_MULTIPART_STORAGE_LOCATION_ID	= "STORAGE_LOCATION_ID";
+	public static final String COL_MULTIPART_STORAGE_LOCATION_TOKEN	= "STORAGE_LOCATION_TOKEN";
+	public static final String COL_MULTIPART_DDL					= "schema/MutipartUpload-ddl.sql";
+	
 	// 
 	public static final String COL_STACK_STATUS_ID					= "ID";
 	public static final String COL_STACK_STATUS_STATUS				= "STATUS";
