@@ -17,5 +17,9 @@
 			"type": "string",
 			"description": "The name of the file to be uploaded."
 		},
+		"storageLocationId": {
+			"type": "integer",
+			"description": "The identifier of the storage location where this file should be upload."
+		},
 	}
 }

@@ -14,6 +14,15 @@
 			"type": "string",
 			"format":"date-time"
 		},
+		"updatedOn": {
+			"description": "The date and time this upload was last updated.",
+			"type": "string",
+			"format":"date-time"
+		},
+		"partsState": {
+			"type": "string",
+			"description": "The concatenation of the state of each part.  Each part will have a state of 'added' (1) or 'missing' (0).  For example, given an upload composed of two parts such that the first part has been added successfully while the second part is still missing the partsState='10'.",
+		},
 		"state": {
 			"type": "string",
 			"description": "The state of this file upload.",

@@ -47,6 +47,11 @@
 			<tx:method name="*" propagation="REQUIRED" rollback-for="Throwable" />
 		</tx:attributes>
 	</tx:advice>
+	<tx:advice id="readCommittedWriteTxRollbackAdvice" transaction-manager="txManager">
+		<tx:attributes>
+			<tx:method name="*" propagation="REQUIRED" rollback-for="Throwable" isolation="READ_COMMITTED" />
+		</tx:attributes>
+	</tx:advice>
 	<tx:advice id="defaultNewWriteTxRollbackAdvice" transaction-manager="txManager">
 		<tx:attributes>
 			<tx:method name="*" propagation="REQUIRES_NEW" rollback-for="Throwable" />
@@ -66,6 +71,11 @@
 			expression="@annotation(org.sagebionetworks.repo.transactions.WriteTransaction)" />
 		<aop:advisor pointcut-ref="defaultWrites" advice-ref="defaultWriteTxRollbackAdvice" />
 	</aop:config>
+	<aop:config>
+		<aop:pointcut id="readCommittedWrites"
+			expression="@annotation(org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted)" />
+		<aop:advisor pointcut-ref="readCommittedWrites" advice-ref="readCommittedWriteTxRollbackAdvice" />
+	</aop:config>	
 	<aop:config>
 		<aop:pointcut id="defaultNewWrites"
 			expression="@annotation(org.sagebionetworks.repo.transactions.NewWriteTransaction)" />

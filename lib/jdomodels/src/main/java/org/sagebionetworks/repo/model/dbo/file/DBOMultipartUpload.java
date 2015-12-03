@@ -1,6 +1,25 @@
 package org.sagebionetworks.repo.model.dbo.file;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_CONTENT_ENCODING;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_CONTENT_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_DDL;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_FILE_HANDLE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_FILE_MD5_HEX;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_FILE_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_FILE_SIZE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_PART_SIZE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_PROVIDER_UPLOAD_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_REQUEST_HASH;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_STARTED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_STARTED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_STATE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_STORAGE_LOCATION_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_UPDATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_UPLOAD_ETAG;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_UPLOAD_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_MULTIPART_UPLOAD;
+
+import org.sagebionetworks.repo.model.file.Multipart.State;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -14,16 +33,12 @@ import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
 public class DBOMultipartUpload implements MigratableDatabaseObject<DBOMultipartUpload, DBOMultipartUpload>{
-	
-	enum State {
-		UPLOADING,
-		COMPLETE		
-	}
-	
+		
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("id", COL_MULTIPART_UPLOAD_ID, true).withIsBackupId(true),
+		new FieldColumn("requestHash", COL_MULTIPART_REQUEST_HASH, true).withIsBackupId(true),
 		new FieldColumn("etag", COL_MULTIPART_UPLOAD_ETAG).withIsEtag(true),
-		new FieldColumn("awsUploadId", COL_MULTIPART_PROVIDER_UPLOAD_ID),
+		new FieldColumn("providerUploadId", COL_MULTIPART_PROVIDER_UPLOAD_ID),
 		new FieldColumn("fileSize", COL_MULTIPART_FILE_SIZE),
 		new FieldColumn("partSize", COL_MULTIPART_PART_SIZE),
 		new FieldColumn("fileMD5Hex", COL_MULTIPART_FILE_MD5_HEX),
@@ -39,8 +54,9 @@ public class DBOMultipartUpload implements MigratableDatabaseObject<DBOMultipart
 	};
 	
 	Long id;
+	String requestHash;
 	String etag;
-	String awsUploadId;
+	String providerUploadId;
 	Long fileSize;
 	Long partSize;
 	String fileMD5Hex;
@@ -51,7 +67,7 @@ public class DBOMultipartUpload implements MigratableDatabaseObject<DBOMultipart
 	Date startedOn;
 	Date updatedOn;
 	Long fileHandleId;
-	State state;
+	String state;
 	Long storageLocationId;
 
 	@Override
@@ -63,8 +79,9 @@ public class DBOMultipartUpload implements MigratableDatabaseObject<DBOMultipart
 					throws SQLException {
 				DBOMultipartUpload dbo = new DBOMultipartUpload();
 				dbo.setId(rs.getLong(COL_MULTIPART_UPLOAD_ID));
+				dbo.setRequestHash(rs.getString(COL_MULTIPART_REQUEST_HASH));
 				dbo.setEtag(rs.getString(COL_MULTIPART_UPLOAD_ETAG));
-				dbo.setAwsUploadId(rs.getString(COL_MULTIPART_PROVIDER_UPLOAD_ID));
+				dbo.setProviderUploadId(rs.getString(COL_MULTIPART_PROVIDER_UPLOAD_ID));
 				dbo.setFileSize(rs.getLong(COL_MULTIPART_FILE_SIZE));
 				dbo.setPartSize(rs.getLong(COL_MULTIPART_PART_SIZE));
 				dbo.setFileMD5Hex(rs.getString(COL_MULTIPART_FILE_MD5_HEX));
@@ -73,8 +90,9 @@ public class DBOMultipartUpload implements MigratableDatabaseObject<DBOMultipart
 				dbo.setContentEncoding(rs.getString(COL_MULTIPART_CONTENT_ENCODING));
 				dbo.setStartedBy(rs.getLong(COL_MULTIPART_STARTED_BY));
 				dbo.setStartedOn(rs.getDate(COL_MULTIPART_STARTED_ON));
+				dbo.setUpdatedOn(rs.getDate(COL_MULTIPART_UPDATED_ON));
 				dbo.setFileHandleId(rs.getLong(COL_MULTIPART_FILE_HANDLE_ID));
-				dbo.setState(State.valueOf(rs.getString(COL_MULTIPART_STATE)));
+				dbo.setState(rs.getString(COL_MULTIPART_STATE));
 				dbo.setStorageLocationId(rs.getLong(COL_MULTIPART_STORAGE_LOCATION_ID));
 				return dbo;
 			}
@@ -154,12 +172,12 @@ public class DBOMultipartUpload implements MigratableDatabaseObject<DBOMultipart
 		this.etag = etag;
 	}
 
-	public String getAwsUploadId() {
-		return awsUploadId;
+	public String getProviderUploadId() {
+		return providerUploadId;
 	}
 
-	public void setAwsUploadId(String awsUploadId) {
-		this.awsUploadId = awsUploadId;
+	public void setProviderUploadId(String providerUploadId) {
+		this.providerUploadId = providerUploadId;
 	}
 
 	public Long getFileSize() {
@@ -176,6 +194,22 @@ public class DBOMultipartUpload implements MigratableDatabaseObject<DBOMultipart
 
 	public void setPartSize(Long partSize) {
 		this.partSize = partSize;
+	}
+
+	public String getRequestHash() {
+		return requestHash;
+	}
+
+	public void setRequestHash(String requestHash) {
+		this.requestHash = requestHash;
+	}
+
+	public Date getUpdatedOn() {
+		return updatedOn;
+	}
+
+	public void setUpdatedOn(Date updatedOn) {
+		this.updatedOn = updatedOn;
 	}
 
 	public String getFileMD5Hex() {
@@ -234,14 +268,6 @@ public class DBOMultipartUpload implements MigratableDatabaseObject<DBOMultipart
 		this.fileHandleId = fileHandleId;
 	}
 
-	public State getState() {
-		return state;
-	}
-
-	public void setState(State state) {
-		this.state = state;
-	}
-
 	public Long getStorageLocationId() {
 		return storageLocationId;
 	}
@@ -250,12 +276,18 @@ public class DBOMultipartUpload implements MigratableDatabaseObject<DBOMultipart
 		this.storageLocationId = storageLocationId;
 	}
 
+	public String getState() {
+		return state;
+	}
+
+	public void setState(String state) {
+		this.state = state;
+	}
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result
-				+ ((awsUploadId == null) ? 0 : awsUploadId.hashCode());
 		result = prime * result
 				+ ((contentEncoding == null) ? 0 : contentEncoding.hashCode());
 		result = prime * result
@@ -272,6 +304,11 @@ public class DBOMultipartUpload implements MigratableDatabaseObject<DBOMultipart
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result
 				+ ((partSize == null) ? 0 : partSize.hashCode());
+		result = prime
+				* result
+				+ ((providerUploadId == null) ? 0 : providerUploadId.hashCode());
+		result = prime * result
+				+ ((requestHash == null) ? 0 : requestHash.hashCode());
 		result = prime * result
 				+ ((startedBy == null) ? 0 : startedBy.hashCode());
 		result = prime * result
@@ -295,11 +332,6 @@ public class DBOMultipartUpload implements MigratableDatabaseObject<DBOMultipart
 		if (getClass() != obj.getClass())
 			return false;
 		DBOMultipartUpload other = (DBOMultipartUpload) obj;
-		if (awsUploadId == null) {
-			if (other.awsUploadId != null)
-				return false;
-		} else if (!awsUploadId.equals(other.awsUploadId))
-			return false;
 		if (contentEncoding == null) {
 			if (other.contentEncoding != null)
 				return false;
@@ -345,6 +377,16 @@ public class DBOMultipartUpload implements MigratableDatabaseObject<DBOMultipart
 				return false;
 		} else if (!partSize.equals(other.partSize))
 			return false;
+		if (providerUploadId == null) {
+			if (other.providerUploadId != null)
+				return false;
+		} else if (!providerUploadId.equals(other.providerUploadId))
+			return false;
+		if (requestHash == null) {
+			if (other.requestHash != null)
+				return false;
+		} else if (!requestHash.equals(other.requestHash))
+			return false;
 		if (startedBy == null) {
 			if (other.startedBy != null)
 				return false;
@@ -372,14 +414,15 @@ public class DBOMultipartUpload implements MigratableDatabaseObject<DBOMultipart
 
 	@Override
 	public String toString() {
-		return "DBOMultipartUpload [id=" + id + ", etag=" + etag
-				+ ", awsUploadId=" + awsUploadId + ", fileSize=" + fileSize
-				+ ", partSize=" + partSize + ", fileMD5Hex=" + fileMD5Hex
-				+ ", fileName=" + fileName + ", contentType=" + contentType
-				+ ", contentEncoding=" + contentEncoding + ", startedBy="
-				+ startedBy + ", startedOn=" + startedOn + ", updatedOn="
-				+ updatedOn + ", fileHandleId=" + fileHandleId + ", state="
-				+ state + ", storageLocationId=" + storageLocationId + "]";
+		return "DBOMultipartUpload [id=" + id + ", requestHash=" + requestHash
+				+ ", etag=" + etag + ", providerUploadId=" + providerUploadId
+				+ ", fileSize=" + fileSize + ", partSize=" + partSize
+				+ ", fileMD5Hex=" + fileMD5Hex + ", fileName=" + fileName
+				+ ", contentType=" + contentType + ", contentEncoding="
+				+ contentEncoding + ", startedBy=" + startedBy + ", startedOn="
+				+ startedOn + ", updatedOn=" + updatedOn + ", fileHandleId="
+				+ fileHandleId + ", state=" + state + ", storageLocationId="
+				+ storageLocationId + "]";
 	}
 
 }
