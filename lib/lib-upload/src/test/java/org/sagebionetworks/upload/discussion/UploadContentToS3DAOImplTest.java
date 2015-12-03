@@ -12,6 +12,7 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.model.BucketCrossOriginConfiguration;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 
 public class UploadContentToS3DAOImplTest {
@@ -32,6 +33,10 @@ public class UploadContentToS3DAOImplTest {
 
 	@Test
 	public void testUploadDiscussionContent() throws Exception {
+		dao.initialize();
+		Mockito.verify(mockS3Client).createBucket(Mockito.anyString());
+		Mockito.verify(mockS3Client).setBucketCrossOriginConfiguration(Mockito.anyString(), (BucketCrossOriginConfiguration) Mockito.any());
+
 		String content = "this is a message";
 		String forumId = "1";
 		String threadId = "2";
