@@ -52,7 +52,12 @@ import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
+import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
+import org.sagebionetworks.repo.model.discussion.DiscussionOrder;
+import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.Forum;
+import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
+import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
 import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
@@ -2002,6 +2007,65 @@ public class ServletTestHelper {
 		return objectMapper.readValue(response.getContentAsString(), Forum.class);
 	}
 
+	public DiscussionThreadBundle createThread(DispatcherServlet dispatchServlet,
+			Long userId, CreateDiscussionThread toCreate) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.POST, "/repo/v1", UrlHelpers.THREAD, userId, toCreate);
+		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
+				HttpStatus.CREATED);
+		return objectMapper.readValue(response.getContentAsString(), DiscussionThreadBundle.class);
+	}
 
+	public DiscussionThreadBundle getThread(DispatcherServlet dispatchServlet,
+			Long userId, String threadId) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, "/repo/v1", UrlHelpers.THREAD+"/"+threadId, userId, null);
+		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
+				HttpStatus.OK);
+		return objectMapper.readValue(response.getContentAsString(), DiscussionThreadBundle.class);
+	}
 
+	public DiscussionThreadBundle updateThreadTitle(DispatcherServlet dispatchServlet,
+			Long userId, String threadId, UpdateThreadTitle title) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.PUT, "/repo/v1", UrlHelpers.THREAD+"/"+threadId+"/title", userId, title);
+		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
+				HttpStatus.CREATED);
+		return objectMapper.readValue(response.getContentAsString(), DiscussionThreadBundle.class);
+	}
+
+	public DiscussionThreadBundle updateThreadMessage(DispatcherServlet dispatchServlet,
+			Long userId, String threadId, UpdateThreadMessage newMessage) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.PUT, "/repo/v1", UrlHelpers.THREAD+"/"+threadId+"/message", userId, newMessage);
+		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
+				HttpStatus.CREATED);
+		return objectMapper.readValue(response.getContentAsString(), DiscussionThreadBundle.class);
+	}
+
+	public void markThreadAsDeleted(DispatcherServlet dispatchServlet,
+			Long userId, String threadId) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.DELETE, "/repo/v1", UrlHelpers.THREAD+"/"+threadId, userId, null);
+		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request, HttpStatus.NO_CONTENT);
+	}
+
+	public PaginatedResults<DiscussionThreadBundle> getThreads(DispatcherServlet dispatchServlet,
+			Long userId, String forumId, Long limit, Long offset, DiscussionOrder order,
+			Boolean ascending) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, "/repo/v1", UrlHelpers.FORUM+"/"+forumId+"/threads", userId, null);
+		request.addParameter("limit", limit.toString());
+		request.addParameter("offset", offset.toString());
+		if (order != null) {
+			request.addParameter("sort", order.name());
+		}
+		if (ascending != null) {
+			request.addParameter("ascending", ascending.toString());
+		}
+		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
+				HttpStatus.OK);
+		return ServletTestHelperUtils.readResponsePaginatedResults(response, DiscussionThreadBundle.class);
+
+	}
 }

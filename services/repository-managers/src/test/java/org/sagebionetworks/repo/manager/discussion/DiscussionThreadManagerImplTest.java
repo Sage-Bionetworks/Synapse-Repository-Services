@@ -24,6 +24,8 @@ import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
 import org.sagebionetworks.repo.model.discussion.DiscussionOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.Forum;
+import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
+import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
 import org.springframework.test.util.ReflectionTestUtils;
 
 public class DiscussionThreadManagerImplTest {
@@ -43,6 +45,8 @@ public class DiscussionThreadManagerImplTest {
 	private Forum forum;
 	private String messageKey = "messageKey";
 	private String messageUrl = "messageUrl";
+	private UpdateThreadTitle newTitle = new UpdateThreadTitle();
+	private UpdateThreadMessage newMessage = new UpdateThreadMessage();
 
 	@Before
 	public void before() {
@@ -69,6 +73,9 @@ public class DiscussionThreadManagerImplTest {
 		dto.setProjectId(projectId);
 		dto.setMessageKey(messageKey);
 		userInfo.setId(userId);
+
+		newTitle.setTitle("newTitle");
+		newMessage.setMessageMarkdown("newMessageMarkdown");
 
 		Mockito.when(mockForumDao.getForum(Long.parseLong(createDto.getForumId()))).thenReturn(forum);
 		Mockito.when(mockThreadDao.getThread(threadId)).thenReturn(dto);
@@ -153,7 +160,7 @@ public class DiscussionThreadManagerImplTest {
 	public void testUpdateTitleUnauthorized() {
 		Mockito.when(mockAuthorizationManager.isUserCreatorOrAdmin(Mockito.eq(userInfo), Mockito.anyString()))
 				.thenReturn(false);
-		threadManager.updateTitle(userInfo, threadId.toString(), "newTitle");
+		threadManager.updateTitle(userInfo, threadId.toString(), newTitle);
 	}
 
 	@Test
@@ -161,7 +168,8 @@ public class DiscussionThreadManagerImplTest {
 		Mockito.when(mockAuthorizationManager.isUserCreatorOrAdmin(Mockito.eq(userInfo), Mockito.anyString()))
 				.thenReturn(true);
 		Mockito.when(mockThreadDao.updateTitle(Mockito.anyLong(), Mockito.anyString())).thenReturn(dto);
-		assertEquals(dto, threadManager.updateTitle(userInfo, threadId.toString(), "newTitle"));
+
+		assertEquals(dto, threadManager.updateTitle(userInfo, threadId.toString(), newTitle));
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -173,7 +181,7 @@ public class DiscussionThreadManagerImplTest {
 	public void testUpdateMessageUnauthorized() throws Exception {
 		Mockito.when(mockAuthorizationManager.isUserCreatorOrAdmin(Mockito.eq(userInfo), Mockito.anyString()))
 				.thenReturn(false);
-		threadManager.updateMessage(userInfo, threadId.toString(), "newMessage");
+		threadManager.updateMessage(userInfo, threadId.toString(), newMessage );
 	}
 
 	@Test
@@ -183,7 +191,7 @@ public class DiscussionThreadManagerImplTest {
 		Mockito.when(mockUploadDao.uploadDiscussionContent(Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
 				.thenReturn("newMessage");
 		Mockito.when(mockThreadDao.updateMessageKey(Mockito.anyLong(), Mockito.anyString())).thenReturn(dto);
-		assertEquals(dto, threadManager.updateMessage(userInfo, threadId.toString(), "newMessage"));
+		assertEquals(dto, threadManager.updateMessage(userInfo, threadId.toString(), newMessage));
 	}
 
 	@Test (expected = UnauthorizedException.class)
@@ -203,17 +211,17 @@ public class DiscussionThreadManagerImplTest {
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testGetThreadsForForumWithNullForumId() {
-		threadManager.getThreadsForForum(userInfo, null, null, 2, 0);
+		threadManager.getThreadsForForum(userInfo, null, 2L, 0L, DiscussionOrder.LAST_ACTIVITY, false);
 	}
 
 	@Test
 	public void testGetThreadsForForum() {
 		PaginatedResults<DiscussionThreadBundle> threads = new PaginatedResults<DiscussionThreadBundle>();
 		threads.setResults(Arrays.asList(dto));
-		Mockito.when(mockThreadDao.getThreads(Mockito.anyLong(), (DiscussionOrder) Mockito.any(), Mockito.anyInt(), Mockito.anyInt()))
+		Mockito.when(mockThreadDao.getThreads(Mockito.anyLong(), Mockito.anyLong(), Mockito.anyLong(), (DiscussionOrder) Mockito.any(), Mockito.anyBoolean()))
 				.thenReturn(threads);
 		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		assertEquals(threads, threadManager.getThreadsForForum(userInfo, forumId.toString(), DiscussionOrder.LAST_ACTIVITY, 2, 0));
+		assertEquals(threads, threadManager.getThreadsForForum(userInfo, forumId.toString(), 2L, 0L, DiscussionOrder.LAST_ACTIVITY, true));
 	}
 }

@@ -1,0 +1,8 @@
+{
+	"properties": {
+		"messageMarkdown": {
+			"type": "string",
+			"description": "The new message markdown"
+		}
+	}
+}
