@@ -48,10 +48,12 @@ public class DiscussionController extends BaseController {
 	ServiceProvider serviceProvider;
 
 	/**
-	 * Given the Project's ID, get the Forum's metadata.
+	 * This API is used to get the Forum's metadata for a given project ID.
+	 * <br/>
+	 * Target users: anyone who has READ permission to the project.
 	 * 
-	 * @param userId
-	 * @param projectId
+	 * @param userId - The ID of the user who is making the request.
+	 * @param projectId - The ID of the project to which the forum belongs.
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
@@ -65,14 +67,16 @@ public class DiscussionController extends BaseController {
 	}
 
 	/**
-	 * Get limit number of threads starting at offset for a given forum
+	 * This API is used to get N number of threads for a given forum ID.
+	 * <br/>
+	 * Target users: anyone who has READ permission to the project.
 	 * 
-	 * @param userId
-	 * @param limit
-	 * @param offset
-	 * @param sort
-	 * @param ascending
-	 * @param forumId
+	 * @param userId - The ID of the user who is making the request
+	 * @param limit - Limits the size of the page returned. For example, a page size of 10 require limit = 10. The maximum Limit for this call is 100.
+	 * @param offset - The index of the pagination offset. For a page size of 10, the first page would be at offset = 0, and the second page would be at offset = 10.
+	 * @param sort - The field to sort the resulting threads on
+	 * @param ascending - The direction of sort: true for ascending, and false for descending
+	 * @param forumId - The forum ID to which the returning threads belong
 	 * @return
 	 */
 	@ResponseStatus(HttpStatus.OK)
@@ -88,10 +92,12 @@ public class DiscussionController extends BaseController {
 	}
 
 	/**
-	 * This method is used to create a new thread in a forum.
+	 * This API is used to create a new thread in a forum.
+	 * <br/>
+	 * Target users: anyone who has READ permission to the project.
 	 * 
-	 * @param userId
-	 * @param toCreate
+	 * @param userId - The ID of the user who is making the request
+	 * @param toCreate - This object contains information needed to create a thread
 	 * @return
 	 * @throws UnsupportedEncodingException
 	 */
@@ -104,10 +110,12 @@ public class DiscussionController extends BaseController {
 	}
 
 	/**
-	 * This method is used to get a thread and its statistic given its ID.
+	 * This API is used to get a thread and its statistic given its ID.
+	 * <br/>
+	 * Target users: anyone who has READ permission to the project.
 	 * 
-	 * @param userId
-	 * @param threadId
+	 * @param userId - The ID of the user who is making the request
+	 * @param threadId - The ID of the thread being requested
 	 * @return
 	 */
 	@ResponseStatus(HttpStatus.OK)
@@ -119,11 +127,13 @@ public class DiscussionController extends BaseController {
 	}
 
 	/**
-	 * This method is used to update the title of a thread.
+	 * This API is used to update the title of a thread.
+	 * <br/>
+	 * Target users: only the author of the thread can update its title.
 	 * 
-	 * @param userId
-	 * @param threadId
-	 * @param title
+	 * @param userId - The ID of the user who is making the request
+	 * @param threadId - The ID of the thread being updated
+	 * @param title - The new title
 	 * @return
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
@@ -136,11 +146,13 @@ public class DiscussionController extends BaseController {
 	}
 
 	/**
-	 * This method is used to update the message of a thread.
+	 * This API is used to update the message of a thread.
+	 * <br/>
+	 * Target users: only the author of the thread can update its message.
 	 * 
-	 * @param userId
-	 * @param threadId
-	 * @param message
+	 * @param userId - The ID of the user who is making the request
+	 * @param threadId - The ID of the thread being updated
+	 * @param message - The new message
 	 * @return
 	 * @throws UnsupportedEncodingException 
 	 */
@@ -154,10 +166,12 @@ public class DiscussionController extends BaseController {
 	}
 
 	/**
-	 * Mark a thread as deleted. Only forum's moderator can perform this action.
+	 * This API is used to mark a thread as deleted.
+	 * <br/>
+	 * Target users: only forum's moderator can mark a thread as deleted.
 	 * 
-	 * @param userId
-	 * @param threadId
+	 * @param userId - the ID of the user who is making the request
+	 * @param threadId - the ID of the thread being marked as deleted
 	 */
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.THREAD_THREAD_ID, method = RequestMethod.DELETE)
