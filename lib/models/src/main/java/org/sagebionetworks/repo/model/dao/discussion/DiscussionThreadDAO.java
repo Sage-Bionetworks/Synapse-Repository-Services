@@ -15,12 +15,12 @@ public interface DiscussionThreadDAO {
 	 * @param forumId
 	 * @param threadId
 	 * @param title
-	 * @param messageUrl
+	 * @param messageKey
 	 * @param userId
 	 * @return
 	 */
 	public DiscussionThreadBundle createThread(String forumId, String threadId,
-			String title, String messageUrl, long userId);
+			String title, String messageKey, long userId);
 
 	/**
 	 * Get a discussion thread
