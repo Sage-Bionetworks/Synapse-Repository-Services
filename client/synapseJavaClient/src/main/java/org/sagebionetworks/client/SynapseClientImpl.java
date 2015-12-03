@@ -7583,15 +7583,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public DiscussionThreadBundle createThread(CreateDiscussionThread toCreate)
 			throws SynapseException {
-		try {
-			ValidateArgument.required(toCreate, "toCreate cannot be null");
-			String postJSON = EntityFactory.createJSONStringForEntity(toCreate);
-			JSONObject jsonObject = getSharedClientConnection().postJson(
-					repoEndpoint, THREAD, postJSON, getUserAgent(), null);
-			return EntityFactory.createEntityFromJSONObject(jsonObject, DiscussionThreadBundle.class);
-		} catch (Exception e) {
-			throw new SynapseClientException(e);
-		}
+		ValidateArgument.required(toCreate, "toCreate cannot be null");
+		return asymmetricalPost(repoEndpoint, THREAD, toCreate, DiscussionThreadBundle.class, null);
 	}
 
 	@Override
@@ -7636,27 +7629,17 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public DiscussionThreadBundle updateThreadTitle(String threadId,
 			UpdateThreadTitle newTitle) throws SynapseException {
-		try {
-			JSONObject jsonToPut = EntityFactory.createJSONObjectForEntity(newTitle);
-			JSONObject returnedJson = getSharedClientConnection().putJson(repoEndpoint, THREAD+"/"+threadId+THREAD_TITLE,
-					jsonToPut.toString(), getUserAgent());
-			return initializeFromJSONObject(returnedJson, DiscussionThreadBundle.class);
-		} catch (JSONObjectAdapterException e) {
-			throw new SynapseClientException(e);
-		}
+		ValidateArgument.required(threadId, "threadId cannot be null");
+		ValidateArgument.required(newTitle, "newTitle cannot be null");
+		return asymmetricalPut(repoEndpoint, THREAD+"/"+threadId+THREAD_TITLE, newTitle, DiscussionThreadBundle.class);
 	}
 
 	@Override
 	public DiscussionThreadBundle updateThreadMessage(String threadId,
 			UpdateThreadMessage newMessage) throws SynapseException {
-		try {
-			JSONObject jsonToPut = EntityFactory.createJSONObjectForEntity(newMessage);
-			JSONObject returnedJson = getSharedClientConnection().putJson(repoEndpoint, THREAD+"/"+threadId+THREAD_MESSAGE,
-					jsonToPut.toString(), getUserAgent());
-			return initializeFromJSONObject(returnedJson, DiscussionThreadBundle.class);
-		} catch (JSONObjectAdapterException e) {
-			throw new SynapseClientException(e);
-		}
+		ValidateArgument.required(threadId, "threadId cannot be null");
+		ValidateArgument.required(newMessage, "newMessage cannot be null");
+		return asymmetricalPut(repoEndpoint, THREAD+"/"+threadId+THREAD_MESSAGE, newMessage, DiscussionThreadBundle.class);
 	}
 
 	@Override
