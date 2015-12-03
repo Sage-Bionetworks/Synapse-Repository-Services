@@ -8,7 +8,7 @@ import java.util.List;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
-import org.sagebionetworks.repo.model.ForumDAO;
+import org.sagebionetworks.repo.model.dao.discussion.ForumDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.discussion.DBOForum;
 import org.sagebionetworks.repo.model.dbo.persistence.discussion.ForumUtils;

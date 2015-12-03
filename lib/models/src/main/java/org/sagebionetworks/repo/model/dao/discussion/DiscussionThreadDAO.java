@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.model;
+package org.sagebionetworks.repo.model.dao.discussion;
 
 import java.util.Date;
 import java.util.List;
