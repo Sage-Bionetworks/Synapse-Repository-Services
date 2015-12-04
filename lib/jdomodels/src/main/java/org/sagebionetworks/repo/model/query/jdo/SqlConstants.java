@@ -241,8 +241,9 @@ public class SqlConstants {
 	public static final String COL_MULTIPART_UPDATED_ON				= "UPDATED_ON";
 	public static final String COL_MULTIPART_FILE_HANDLE_ID			= "FILE_HANDLE_ID";
 	public static final String COL_MULTIPART_STATE					= "STATE";
-	public static final String COL_MULTIPART_STORAGE_LOCATION_ID	= "STORAGE_LOCATION_ID";
-	public static final String COL_MULTIPART_STORAGE_LOCATION_TOKEN	= "STORAGE_LOCATION_TOKEN";
+	public static final String COL_MULTIPART_UPLOAD_TOKEN			= "UPLOAD_TOKEN";
+	public static final String COL_MULTIPART_BUCKET					= "S3_BUCKET";
+	public static final String COL_MULTIPART_KEY					= "S3_KEY";
 	public static final String COL_MULTIPART_DDL					= "schema/MutipartUpload-ddl.sql";
 	
 	// 

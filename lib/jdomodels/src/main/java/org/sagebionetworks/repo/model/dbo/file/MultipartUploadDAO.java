@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.model.dbo.file;
 
-import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
 
 /**
  * DAO to for metadata persisted for a multi-part upload.
@@ -14,14 +13,14 @@ public interface MultipartUploadDAO {
 	 * @param hash
 	 * @return
 	 */
-	public MultipartUploadStatus getUploadStatus(Long userId, String hash);
+	public CompositeMultipartUploadStatus getUploadStatus(Long userId, String hash);
 	
 	/**
 	 * Get the upload status for a file given an upload id.
 	 * @param id
 	 * @return
 	 */
-	public MultipartUploadStatus getUploadStatus(String id);
+	public CompositeMultipartUploadStatus getUploadStatus(String id);
 	
 	/**
 	 * Delete all data for a file upload given a userId and upload hash.
@@ -37,7 +36,7 @@ public interface MultipartUploadDAO {
 	 * @param request
 	 * @return
 	 */
-	public MultipartUploadStatus createUploadStatus(CreateMultipartRequest createRequest);
+	public CompositeMultipartUploadStatus createUploadStatus(CreateMultipartRequest createRequest);
 	
 	/**
 	 * Remove all data for all users.

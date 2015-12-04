@@ -1,9 +1,13 @@
 {
 	"description": "Request to start or continue a multi-part file upload.",
 	"properties": {
-		"md5Hex": {
+		"contentMD5Hex": {
 			"type": "string",
 			"description": "The MD5 of the entire file to be uploaded represented as a HEX string"
+		},
+		"contentType": {
+			"type": "string",
+			"description": "The content type of the file."
 		},
 		"fileSizeBytes": {
 			"type": "integer",

@@ -30,9 +30,9 @@ public class DBOMultipartUpload implements MigratableDatabaseObject<DBOMultipart
 		new FieldColumn("updatedOn", COL_MULTIPART_UPDATED_ON),
 		new FieldColumn("fileHandleId", COL_MULTIPART_FILE_HANDLE_ID),
 		new FieldColumn("state", COL_MULTIPART_STATE),
-		new FieldColumn("storageLocationId", COL_MULTIPART_STORAGE_LOCATION_ID),
-		new FieldColumn("storageLocationToken", COL_MULTIPART_STORAGE_LOCATION_TOKEN),
-		
+		new FieldColumn("uploadToken", COL_MULTIPART_UPLOAD_TOKEN),
+		new FieldColumn("bucket", COL_MULTIPART_BUCKET),
+		new FieldColumn("key", COL_MULTIPART_KEY),
 	};
 	
 	Long id;
@@ -44,8 +44,9 @@ public class DBOMultipartUpload implements MigratableDatabaseObject<DBOMultipart
 	Date updatedOn;
 	Long fileHandleId;
 	String state;
-	Long storageLocationId;
-	String storageLocationToken;
+	String uploadToken;
+	String bucket;
+	String key;
 
 	@Override
 	public TableMapping<DBOMultipartUpload> getTableMapping() {
@@ -63,9 +64,10 @@ public class DBOMultipartUpload implements MigratableDatabaseObject<DBOMultipart
 				dbo.setUpdatedOn(rs.getDate(COL_MULTIPART_UPDATED_ON));
 				dbo.setFileHandleId(rs.getLong(COL_MULTIPART_FILE_HANDLE_ID));
 				dbo.setState(rs.getString(COL_MULTIPART_STATE));
-				dbo.setStorageLocationId(rs.getLong(COL_MULTIPART_STORAGE_LOCATION_ID));
 				dbo.setRequestBlob(rs.getBytes(COL_MULTIPART_UPLOAD_REQUEST));
-				dbo.setStorageLocationToken(rs.getString(COL_MULTIPART_STORAGE_LOCATION_TOKEN));
+				dbo.setUploadToken(rs.getString(COL_MULTIPART_UPLOAD_TOKEN));
+				dbo.setBucket(rs.getString(COL_MULTIPART_BUCKET));
+				dbo.setKey(rs.getString(COL_CREDENTIAL_SECRET_KEY));
 				return dbo;
 			}
 
@@ -192,14 +194,6 @@ public class DBOMultipartUpload implements MigratableDatabaseObject<DBOMultipart
 		this.fileHandleId = fileHandleId;
 	}
 
-	public Long getStorageLocationId() {
-		return storageLocationId;
-	}
-
-	public void setStorageLocationId(Long storageLocationId) {
-		this.storageLocationId = storageLocationId;
-	}
-
 	public String getState() {
 		return state;
 	}
@@ -208,22 +202,40 @@ public class DBOMultipartUpload implements MigratableDatabaseObject<DBOMultipart
 		this.state = state;
 	}
 
-	public String getStorageLocationToken() {
-		return storageLocationToken;
+	public String getUploadToken() {
+		return uploadToken;
 	}
 
-	public void setStorageLocationToken(String storageLocationToken) {
-		this.storageLocationToken = storageLocationToken;
+	public void setUploadToken(String uploadToken) {
+		this.uploadToken = uploadToken;
+	}
+
+	public String getBucket() {
+		return bucket;
+	}
+
+	public void setBucket(String bucket) {
+		this.bucket = bucket;
+	}
+
+	public String getKey() {
+		return key;
+	}
+
+	public void setKey(String key) {
+		this.key = key;
 	}
 
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
+		result = prime * result + ((bucket == null) ? 0 : bucket.hashCode());
 		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
 		result = prime * result
 				+ ((fileHandleId == null) ? 0 : fileHandleId.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
+		result = prime * result + ((key == null) ? 0 : key.hashCode());
 		result = prime * result + Arrays.hashCode(requestBlob);
 		result = prime * result
 				+ ((requestHash == null) ? 0 : requestHash.hashCode());
@@ -232,16 +244,10 @@ public class DBOMultipartUpload implements MigratableDatabaseObject<DBOMultipart
 		result = prime * result
 				+ ((startedOn == null) ? 0 : startedOn.hashCode());
 		result = prime * result + ((state == null) ? 0 : state.hashCode());
-		result = prime
-				* result
-				+ ((storageLocationId == null) ? 0 : storageLocationId
-						.hashCode());
-		result = prime
-				* result
-				+ ((storageLocationToken == null) ? 0 : storageLocationToken
-						.hashCode());
 		result = prime * result
 				+ ((updatedOn == null) ? 0 : updatedOn.hashCode());
+		result = prime * result
+				+ ((uploadToken == null) ? 0 : uploadToken.hashCode());
 		return result;
 	}
 
@@ -254,6 +260,11 @@ public class DBOMultipartUpload implements MigratableDatabaseObject<DBOMultipart
 		if (getClass() != obj.getClass())
 			return false;
 		DBOMultipartUpload other = (DBOMultipartUpload) obj;
+		if (bucket == null) {
+			if (other.bucket != null)
+				return false;
+		} else if (!bucket.equals(other.bucket))
+			return false;
 		if (etag == null) {
 			if (other.etag != null)
 				return false;
@@ -268,6 +279,11 @@ public class DBOMultipartUpload implements MigratableDatabaseObject<DBOMultipart
 			if (other.id != null)
 				return false;
 		} else if (!id.equals(other.id))
+			return false;
+		if (key == null) {
+			if (other.key != null)
+				return false;
+		} else if (!key.equals(other.key))
 			return false;
 		if (!Arrays.equals(requestBlob, other.requestBlob))
 			return false;
@@ -291,20 +307,15 @@ public class DBOMultipartUpload implements MigratableDatabaseObject<DBOMultipart
 				return false;
 		} else if (!state.equals(other.state))
 			return false;
-		if (storageLocationId == null) {
-			if (other.storageLocationId != null)
-				return false;
-		} else if (!storageLocationId.equals(other.storageLocationId))
-			return false;
-		if (storageLocationToken == null) {
-			if (other.storageLocationToken != null)
-				return false;
-		} else if (!storageLocationToken.equals(other.storageLocationToken))
-			return false;
 		if (updatedOn == null) {
 			if (other.updatedOn != null)
 				return false;
 		} else if (!updatedOn.equals(other.updatedOn))
+			return false;
+		if (uploadToken == null) {
+			if (other.uploadToken != null)
+				return false;
+		} else if (!uploadToken.equals(other.uploadToken))
 			return false;
 		return true;
 	}
@@ -316,8 +327,9 @@ public class DBOMultipartUpload implements MigratableDatabaseObject<DBOMultipart
 				+ Arrays.toString(requestBlob) + ", startedBy=" + startedBy
 				+ ", startedOn=" + startedOn + ", updatedOn=" + updatedOn
 				+ ", fileHandleId=" + fileHandleId + ", state=" + state
-				+ ", storageLocationId=" + storageLocationId
-				+ ", storageLocationToken=" + storageLocationToken + "]";
+				+ ", uploadToken=" + uploadToken + ", bucket=" + bucket
+				+ ", key=" + key + "]";
 	}
+
 
 }

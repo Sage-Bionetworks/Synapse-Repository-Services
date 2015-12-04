@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.file;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -25,6 +26,9 @@ public class MultipartUploadDAOImplTest {
 	
 	Long userId;
 	String hash;
+	String uploadToken;
+	String bucket;
+	String key;
 	CreateMultipartRequest createRequest;
 	
 	@Before
@@ -34,30 +38,39 @@ public class MultipartUploadDAOImplTest {
 		
 		hash = "someHash";
 		Long storageLocationId = null;
-		String storageLocationToken = "locationToken";
 		MultipartUploadRequest request = new MultipartUploadRequest();
 		request.setFileName("foo.txt");
 		request.setFileSizeBytes(123L);
-		request.setMd5Hex("someMD5Hex");
+		request.setContentMD5Hex("someMD5Hex");
+		request.setContentType("plain/text");
 		request.setPartSizeBytes(5L);
 		request.setStorageLocationId(storageLocationId);
+		
+		uploadToken = "someUploadToken";
+		bucket = "someBucket";
+		key = "someKey";
+		
 		String requestJSON = EntityFactory.createJSONStringForEntity(request);
-		createRequest = new CreateMultipartRequest(userId, hash, requestJSON, storageLocationId, storageLocationToken);
+		createRequest = new CreateMultipartRequest(userId, hash, requestJSON, uploadToken, bucket, key);
 	}
 
 	
 	@Test
 	public void testCreate() throws JSONObjectAdapterException{
 		// call under test
-		MultipartUploadStatus status = multipartUplaodDAO.createUploadStatus(createRequest);
+		CompositeMultipartUploadStatus composite = multipartUplaodDAO.createUploadStatus(createRequest);
+		assertNotNull(composite);
+		MultipartUploadStatus status = composite.getMultipartUploadStatus();
 		assertNotNull(status);
 		assertNotNull(status.getUploadId());
 		assertNotNull(status.getStartedOn());
 		assertNotNull(status.getUpdatedOn());
 		assertEquals(""+userId, status.getStartedBy());
-		assertEquals(createRequest.getStorageLocationToken(), status.getStorageLocationToken());
 		assertEquals(State.UPLOADING, status.getState());
 		assertEquals(null, status.getResultFileHandleId());
+		assertEquals(uploadToken, composite.getUploadToken());
+		assertEquals(bucket, composite.getBucket());
+		assertEquals(key, composite.getKey());
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -80,26 +93,20 @@ public class MultipartUploadDAOImplTest {
 		multipartUplaodDAO.createUploadStatus(createRequest);
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
-	public void testCreateTokenNull() throws JSONObjectAdapterException{
-		createRequest.setStorageLocationToken(null);
-		// call under test
-		multipartUplaodDAO.createUploadStatus(createRequest);
-	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testCreateRequestStringNull() throws JSONObjectAdapterException{
-		createRequest.setRequestString(null);
+		createRequest.setRequestBody(null);
 		// call under test
 		multipartUplaodDAO.createUploadStatus(createRequest);
 	}
 	
 	@Test
 	public void testGetUploadStatusById(){
-		MultipartUploadStatus status = multipartUplaodDAO.createUploadStatus(createRequest);
+		CompositeMultipartUploadStatus status = multipartUplaodDAO.createUploadStatus(createRequest);
 		assertNotNull(status);
 		// call under tests
-		MultipartUploadStatus fetched = multipartUplaodDAO.getUploadStatus(status.getUploadId());
+		CompositeMultipartUploadStatus fetched = multipartUplaodDAO.getUploadStatus(status.getMultipartUploadStatus().getUploadId());
 		assertEquals(status, fetched);
 	}
 	
@@ -116,10 +123,10 @@ public class MultipartUploadDAOImplTest {
 	
 	@Test
 	public void testGetUploadStatusByUserIdAndHash(){
-		MultipartUploadStatus status = multipartUplaodDAO.createUploadStatus(createRequest);
+		CompositeMultipartUploadStatus status = multipartUplaodDAO.createUploadStatus(createRequest);
 		assertNotNull(status);
 		// call under tests
-		MultipartUploadStatus fetched = multipartUplaodDAO.getUploadStatus(userId, hash);
+		CompositeMultipartUploadStatus fetched = multipartUplaodDAO.getUploadStatus(userId, hash);
 		assertEquals(status, fetched);
 	}
 	
@@ -139,7 +146,7 @@ public class MultipartUploadDAOImplTest {
 	public void testGetUploadStatusByUserIdAndHashDoesNotExist(){
 		hash = "unknownHash";
 		// call under tests
-		MultipartUploadStatus fetched = multipartUplaodDAO.getUploadStatus(userId, hash);
+		CompositeMultipartUploadStatus fetched = multipartUplaodDAO.getUploadStatus(userId, hash);
 		assertEquals(null, fetched);
 	}
 }

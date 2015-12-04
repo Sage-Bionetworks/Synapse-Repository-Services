@@ -8,29 +8,30 @@ public class CreateMultipartRequest {
 
 	Long userId;
 	String hash;
-	String requestString;
-	Long storageLocationId;
-	String storageLocationToken;
+	String requestBody;
+	String uploadToken;
+	String bucket;
+	String key;
 	
 	/**
 	 * 
-	 * @param userId The Id of the user starting the upload.
-	 * @param hash The hash the uniquely identifies this upload.
-	 * @param requestString Data about the request to stored.
-	 * @param storageLocationId The location where the file is to be upload.
-	 * @param storageLocationToken  The identifier for this upload from the storate location provider.
+	 * @param userId The Id of the user that started the upload.
+	 * @param hash The hash represents request.
+	 * @param requestBody
+	 * @param uploadToken
+	 * @param bucket
+	 * @param key
 	 */
 	public CreateMultipartRequest(Long userId, String hash,
-			String requestString, Long storageLocationId,
-			String storageLocationToken) {
+			String requestBody, String uploadToken, String bucket, String key) {
 		super();
 		this.userId = userId;
 		this.hash = hash;
-		this.requestString = requestString;
-		this.storageLocationId = storageLocationId;
-		this.storageLocationToken = storageLocationToken;
+		this.requestBody = requestBody;
+		this.uploadToken = uploadToken;
+		this.bucket = bucket;
+		this.key = key;
 	}
-	
 	public Long getUserId() {
 		return userId;
 	}
@@ -43,44 +44,45 @@ public class CreateMultipartRequest {
 	public void setHash(String hash) {
 		this.hash = hash;
 	}
-	public String getRequestString() {
-		return requestString;
+	
+	public String getRequestBody() {
+		return requestBody;
 	}
-	public void setRequestString(String requestString) {
-		this.requestString = requestString;
+	public void setRequestBody(String requestBody) {
+		this.requestBody = requestBody;
 	}
-	public Long getStorageLocationId() {
-		return storageLocationId;
+	public String getUploadToken() {
+		return uploadToken;
 	}
-	public void setStorageLocationId(Long storageLocationId) {
-		this.storageLocationId = storageLocationId;
+	public void setUploadToken(String uploadToken) {
+		this.uploadToken = uploadToken;
 	}
-	public String getStorageLocationToken() {
-		return storageLocationToken;
+	public String getBucket() {
+		return bucket;
 	}
-	public void setStorageLocationToken(String storageLocationToken) {
-		this.storageLocationToken = storageLocationToken;
+	public void setBucket(String bucket) {
+		this.bucket = bucket;
 	}
-
+	public String getKey() {
+		return key;
+	}
+	public void setKey(String key) {
+		this.key = key;
+	}
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
+		result = prime * result + ((bucket == null) ? 0 : bucket.hashCode());
 		result = prime * result + ((hash == null) ? 0 : hash.hashCode());
+		result = prime * result + ((key == null) ? 0 : key.hashCode());
 		result = prime * result
-				+ ((requestString == null) ? 0 : requestString.hashCode());
-		result = prime
-				* result
-				+ ((storageLocationId == null) ? 0 : storageLocationId
-						.hashCode());
-		result = prime
-				* result
-				+ ((storageLocationToken == null) ? 0 : storageLocationToken
-						.hashCode());
+				+ ((requestBody == null) ? 0 : requestBody.hashCode());
+		result = prime * result
+				+ ((uploadToken == null) ? 0 : uploadToken.hashCode());
 		result = prime * result + ((userId == null) ? 0 : userId.hashCode());
 		return result;
 	}
-
 	@Override
 	public boolean equals(Object obj) {
 		if (this == obj)
@@ -90,25 +92,30 @@ public class CreateMultipartRequest {
 		if (getClass() != obj.getClass())
 			return false;
 		CreateMultipartRequest other = (CreateMultipartRequest) obj;
+		if (bucket == null) {
+			if (other.bucket != null)
+				return false;
+		} else if (!bucket.equals(other.bucket))
+			return false;
 		if (hash == null) {
 			if (other.hash != null)
 				return false;
 		} else if (!hash.equals(other.hash))
 			return false;
-		if (requestString == null) {
-			if (other.requestString != null)
+		if (key == null) {
+			if (other.key != null)
 				return false;
-		} else if (!requestString.equals(other.requestString))
+		} else if (!key.equals(other.key))
 			return false;
-		if (storageLocationId == null) {
-			if (other.storageLocationId != null)
+		if (requestBody == null) {
+			if (other.requestBody != null)
 				return false;
-		} else if (!storageLocationId.equals(other.storageLocationId))
+		} else if (!requestBody.equals(other.requestBody))
 			return false;
-		if (storageLocationToken == null) {
-			if (other.storageLocationToken != null)
+		if (uploadToken == null) {
+			if (other.uploadToken != null)
 				return false;
-		} else if (!storageLocationToken.equals(other.storageLocationToken))
+		} else if (!uploadToken.equals(other.uploadToken))
 			return false;
 		if (userId == null) {
 			if (other.userId != null)
@@ -117,14 +124,11 @@ public class CreateMultipartRequest {
 			return false;
 		return true;
 	}
-
 	@Override
 	public String toString() {
 		return "CreateMultipartRequest [userId=" + userId + ", hash=" + hash
-				+ ", requestString=" + requestString + ", storageLocationId="
-				+ storageLocationId + ", storageLocationToken="
-				+ storageLocationToken + "]";
+				+ ", requestString=" + requestBody + ", uploadToken="
+				+ uploadToken + ", bucket=" + bucket + ", key=" + key + "]";
 	}
-
 	
 }

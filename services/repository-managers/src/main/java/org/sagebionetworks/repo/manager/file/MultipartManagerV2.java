@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.file;
 
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
 
@@ -14,6 +15,6 @@ public interface MultipartManagerV2 {
 	 * @param request
 	 * @return
 	 */
-	public MultipartUploadStatus startOrResumeMultipartUpload(MultipartUploadRequest request);
+	public MultipartUploadStatus startOrResumeMultipartUpload(UserInfo user, MultipartUploadRequest request, Boolean forceRestart);
 
 }

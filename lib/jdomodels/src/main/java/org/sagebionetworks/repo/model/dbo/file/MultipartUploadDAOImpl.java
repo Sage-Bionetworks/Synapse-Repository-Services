@@ -1,14 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.file;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_FILE_HANDLE_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_REQUEST_HASH;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_STARTED_BY;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_STARTED_ON;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_STATE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_STORAGE_LOCATION_TOKEN;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_UPDATED_ON;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_UPLOAD_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_MULTIPART_UPLOAD;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 
 import java.io.UnsupportedEncodingException;
 import java.sql.ResultSet;
@@ -38,16 +30,18 @@ public class MultipartUploadDAOImpl implements MultipartUploadDAO {
 	private static final String STATUS_SELECT = COL_MULTIPART_UPLOAD_ID + ","
 			+ COL_MULTIPART_STARTED_BY + "," + COL_MULTIPART_STARTED_ON + ","
 			+ COL_MULTIPART_UPDATED_ON + "," + COL_MULTIPART_FILE_HANDLE_ID
-			+ "," + COL_MULTIPART_STATE+","+COL_MULTIPART_STORAGE_LOCATION_TOKEN;
+			+ "," + COL_MULTIPART_STATE + "," + COL_MULTIPART_UPLOAD_TOKEN
+			+ "," + COL_MULTIPART_BUCKET + "," + COL_MULTIPART_KEY;
 
-	private static final String SELECT_BY_ID = "SELECT "+STATUS_SELECT+" FROM "
-			+ TABLE_MULTIPART_UPLOAD + " WHERE " + COL_MULTIPART_UPLOAD_ID
-			+ " = ?";
-	
-	private static final String SELECT_BY_USER_AND_HASH = "SELECT "+STATUS_SELECT+" FROM "
-			+ TABLE_MULTIPART_UPLOAD + " WHERE " + COL_MULTIPART_STARTED_BY
-			+ " = ? AND " + COL_MULTIPART_REQUEST_HASH + " = ?";
-	
+	private static final String SELECT_BY_ID = "SELECT " + STATUS_SELECT
+			+ " FROM " + TABLE_MULTIPART_UPLOAD + " WHERE "
+			+ COL_MULTIPART_UPLOAD_ID + " = ?";
+
+	private static final String SELECT_BY_USER_AND_HASH = "SELECT "
+			+ STATUS_SELECT + " FROM " + TABLE_MULTIPART_UPLOAD + " WHERE "
+			+ COL_MULTIPART_STARTED_BY + " = ? AND "
+			+ COL_MULTIPART_REQUEST_HASH + " = ?";
+
 	@Autowired
 	private IdGenerator idGenerator;
 
@@ -57,19 +51,23 @@ public class MultipartUploadDAOImpl implements MultipartUploadDAO {
 	@Autowired
 	private DBOBasicDao basicDao;
 
-	RowMapper<MultipartUploadStatus> statusMapper = new RowMapper<MultipartUploadStatus>() {
+	RowMapper<CompositeMultipartUploadStatus> statusMapper = new RowMapper<CompositeMultipartUploadStatus>() {
 		@Override
-		public MultipartUploadStatus mapRow(ResultSet rs, int rowNum)
+		public CompositeMultipartUploadStatus mapRow(ResultSet rs, int rowNum)
 				throws SQLException {
-			MultipartUploadStatus dto = new MultipartUploadStatus();
-			dto.setUploadId(rs.getString(COL_MULTIPART_UPLOAD_ID));
-			dto.setStartedBy(rs.getString(COL_MULTIPART_STARTED_BY));
-			dto.setStartedOn(rs.getDate(COL_MULTIPART_STARTED_ON));
-			dto.setUpdatedOn(rs.getDate(COL_MULTIPART_UPDATED_ON));
-			dto.setResultFileHandleId(rs
+			CompositeMultipartUploadStatus dto = new CompositeMultipartUploadStatus();
+			MultipartUploadStatus mus = new MultipartUploadStatus();
+			mus.setUploadId(rs.getString(COL_MULTIPART_UPLOAD_ID));
+			mus.setStartedBy(rs.getString(COL_MULTIPART_STARTED_BY));
+			mus.setStartedOn(rs.getDate(COL_MULTIPART_STARTED_ON));
+			mus.setUpdatedOn(rs.getDate(COL_MULTIPART_UPDATED_ON));
+			mus.setResultFileHandleId(rs
 					.getString(COL_MULTIPART_FILE_HANDLE_ID));
-			dto.setState(State.valueOf(rs.getString(COL_MULTIPART_STATE)));
-			dto.setStorageLocationToken(rs.getString(COL_MULTIPART_STORAGE_LOCATION_TOKEN));
+			mus.setState(State.valueOf(rs.getString(COL_MULTIPART_STATE)));
+			dto.setMultipartUploadStatus(mus);
+			dto.setUploadToken(rs.getString(COL_MULTIPART_UPLOAD_TOKEN));
+			dto.setBucket(rs.getString(COL_MULTIPART_BUCKET));
+			dto.setKey(rs.getString(COL_MULTIPART_KEY));
 			return dto;
 		}
 	};
@@ -82,12 +80,13 @@ public class MultipartUploadDAOImpl implements MultipartUploadDAO {
 	 * (long, java.lang.String)
 	 */
 	@Override
-	public MultipartUploadStatus getUploadStatus(Long userId, String hash) {
+	public CompositeMultipartUploadStatus getUploadStatus(Long userId,
+			String hash) {
 		ValidateArgument.required(userId, "UserId");
 		ValidateArgument.required(hash, "RequestHash");
 		try {
-			return this.jdbcTemplate.queryForObject(
-					SELECT_BY_USER_AND_HASH, statusMapper, userId, hash);
+			return this.jdbcTemplate.queryForObject(SELECT_BY_USER_AND_HASH,
+					statusMapper, userId, hash);
 		} catch (EmptyResultDataAccessException e) {
 			return null;
 		}
@@ -101,7 +100,7 @@ public class MultipartUploadDAOImpl implements MultipartUploadDAO {
 	 * (java.lang.String)
 	 */
 	@Override
-	public MultipartUploadStatus getUploadStatus(String idString) {
+	public CompositeMultipartUploadStatus getUploadStatus(String idString) {
 		ValidateArgument.required(idString, "UploadId");
 		try {
 			long id = Long.parseLong(idString);
@@ -139,32 +138,36 @@ public class MultipartUploadDAOImpl implements MultipartUploadDAO {
 	 */
 	@WriteTransactionReadCommitted
 	@Override
-	public MultipartUploadStatus createUploadStatus(CreateMultipartRequest createRequest) {
-		
+	public CompositeMultipartUploadStatus createUploadStatus(
+			CreateMultipartRequest createRequest) {
 		ValidateArgument.required(createRequest, "CreateMultipartRequest");
 		ValidateArgument.required(createRequest.getUserId(), "UserId");
 		ValidateArgument.required(createRequest.getHash(), "RequestHash");
-		ValidateArgument.required(createRequest.getStorageLocationToken(), "StorageLocationToken");
-		
+		ValidateArgument
+				.required(createRequest.getUploadToken(), "UploadToken");
+		ValidateArgument.required(createRequest.getBucket(), "Bucket");
+		ValidateArgument.required(createRequest.getKey(), "Key");
+
 		DBOMultipartUpload dbo = new DBOMultipartUpload();
 		dbo.setId(idGenerator.generateNewId(TYPE.MULTIPART_UPLOAD_ID));
 		dbo.setEtag(UUID.randomUUID().toString());
 		dbo.setRequestHash(createRequest.getHash());
 		dbo.setStartedBy(createRequest.getUserId());
 		dbo.setState(State.UPLOADING.name());
-		dbo.setStorageLocationToken(createRequest.getStorageLocationToken());
-		dbo.setStorageLocationId(createRequest.getStorageLocationId());
-		dbo.setRequestBlob(requestToBytes(createRequest.getRequestString()));
+		dbo.setRequestBlob(extractBytes(createRequest.getRequestBody()));
 		dbo.setStartedOn(new Date(System.currentTimeMillis()));
 		dbo.setUpdatedOn(dbo.getStartedOn());
+		dbo.setUploadToken(createRequest.getUploadToken());
+		dbo.setBucket(createRequest.getBucket());
+		dbo.setKey(createRequest.getKey());
 		basicDao.createNew(dbo);
 		return getUploadStatus(dbo.getId());
 	}
-	
-	private byte[] requestToBytes(String requestString){
-		ValidateArgument.required(requestString, "RequestString");
+
+	private byte[] extractBytes(String requestBody) {
+		ValidateArgument.required(requestBody, "RequestBody");
 		try {
-			return requestString.getBytes("UTF-8");
+			return requestBody.getBytes("UTF-8");
 		} catch (UnsupportedEncodingException e) {
 			throw new RuntimeException(e);
 		}
@@ -176,7 +179,7 @@ public class MultipartUploadDAOImpl implements MultipartUploadDAO {
 	 * @param id
 	 * @return
 	 */
-	private MultipartUploadStatus getUploadStatus(long id) {
+	private CompositeMultipartUploadStatus getUploadStatus(long id) {
 		try {
 			return this.jdbcTemplate.queryForObject(SELECT_BY_ID, statusMapper,
 					id);
