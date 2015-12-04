@@ -10,9 +10,9 @@ import org.sagebionetworks.repo.model.dbo.DDLUtilsImpl;
 import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
 import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 /**
@@ -71,6 +71,7 @@ public class TransactionValidatorImpl implements TransactionValidator {
 	public String requiresNew(Callable<String> callable) throws Exception {
 		return callable.call();
 	}
+	
 
 	@Override
 	public void setStringNoTransaction(Long id, String value) {
@@ -98,6 +99,13 @@ public class TransactionValidatorImpl implements TransactionValidator {
 			String tableDDL = DDLUtilsImpl.loadSchemaSql("schema/TransactionTest-ddl.sql");
 			simpleJdbcTemplate.update(tableDDL);
 		}
+	}
+
+	@WriteTransactionReadCommitted
+	@Override
+	public String writeReadCommitted(Callable<String> callable)
+			throws Exception {
+		return callable.call();
 	}
 
 }

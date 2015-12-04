@@ -8,6 +8,7 @@ import java.util.Set;
 
 import org.sagebionetworks.repo.manager.NodeManager.FileHandleReason;
 import org.sagebionetworks.repo.manager.file.MultipartManagerImpl;
+import org.sagebionetworks.repo.manager.file.MultipartUtils;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -498,7 +499,7 @@ public class EntityManagerImpl implements EntityManager {
 
 		for (int i = startIndex; i < entityPath.size(); i++) {
 			if (path.length() > 0) {
-				path.append(MultipartManagerImpl.FILE_TOKEN_TEMPLATE_SEPARATOR);
+				path.append(MultipartUtils.FILE_TOKEN_TEMPLATE_SEPARATOR);
 			}
 			path.append(entityPath.get(i).getName());
 		}
