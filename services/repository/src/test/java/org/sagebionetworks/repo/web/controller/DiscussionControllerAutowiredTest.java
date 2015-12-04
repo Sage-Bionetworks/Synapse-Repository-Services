@@ -74,14 +74,6 @@ public class DiscussionControllerAutowiredTest extends AbstractAutowiredControll
 	}
 
 	@Test
-	public void testGetThreadCount() throws Exception {
-		Forum forum = servletTestHelper.getForumMetadata(dispatchServlet, project.getId(), adminUserId);
-		toCreate.setForumId(forum.getId());
-		servletTestHelper.createThread(dispatchServlet, adminUserId, toCreate);
-		assertEquals((Long) 1L, servletTestHelper.getThreadCount(dispatchServlet, adminUserId, forum.getId()));
-	}
-
-	@Test
 	public void testGetThreads() throws Exception {
 		Forum forum = servletTestHelper.getForumMetadata(dispatchServlet, project.getId(), adminUserId);
 		toCreate.setForumId(forum.getId());

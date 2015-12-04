@@ -2068,12 +2068,4 @@ public class ServletTestHelper {
 		return ServletTestHelperUtils.readResponsePaginatedResults(response, DiscussionThreadBundle.class);
 
 	}
-
-	public Long getThreadCount(DispatcherServlet dispatchServlet, Long userId, String forumId) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, "/repo/v1", UrlHelpers.FORUM+"/"+forumId+"/threads/count", userId, null);
-		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
-				HttpStatus.OK);
-		return Long.parseLong(response.getContentAsString());
-	}
 }
