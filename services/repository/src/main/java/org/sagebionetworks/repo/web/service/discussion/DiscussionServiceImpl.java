@@ -69,11 +69,4 @@ public class DiscussionServiceImpl implements DiscussionService{
 		UserInfo user = userManager.getUserInfo(userId);
 		return threadManager.getThreadsForForum(user, forumId, limit, offset, order, ascending);
 	}
-
-	@Override
-	public Long getThreadCount(Long userId, String forumId) {
-		UserInfo user = userManager.getUserInfo(userId);
-		return threadManager.getThreadCount(user, forumId);
-	}
-
 }

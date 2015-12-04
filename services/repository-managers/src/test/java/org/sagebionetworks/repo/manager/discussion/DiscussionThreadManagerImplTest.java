@@ -224,13 +224,4 @@ public class DiscussionThreadManagerImplTest {
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		assertEquals(threads, threadManager.getThreadsForForum(userInfo, forumId.toString(), 2L, 0L, DiscussionThreadOrder.LAST_ACTIVITY, true));
 	}
-
-	@Test
-	public void testGetThreadCount() {
-		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
-				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		long count = 23L;
-		Mockito.when(mockThreadDao.getThreadCount(Mockito.anyLong())).thenReturn(count);
-		assertEquals(count, threadManager.getThreadCount(userInfo, forumId.toString()));
-	}
 }

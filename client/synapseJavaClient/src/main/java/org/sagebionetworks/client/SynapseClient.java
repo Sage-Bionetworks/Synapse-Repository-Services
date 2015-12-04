@@ -2479,15 +2479,6 @@ public interface SynapseClient extends BaseClient {
 	PaginatedResults<DiscussionThreadBundle> getThreadsForForum(String forumId, Long limit, Long offset, DiscussionThreadOrder order, Boolean ascending) throws SynapseException;
 
 	/**
-	 * Get the number of threads for a given forum
-	 * 
-	 * @param forumId
-	 * @return
-	 * @throws SynapseException 
-	 */
-	Long getThreadCount(String forumId) throws SynapseException;
-
-	/**
 	 * Update the title of an existing thread
 	 * 
 	 * @param threadId

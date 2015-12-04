@@ -235,7 +235,7 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 		results = jdbcTemplate.query(query, DISCUSSION_THREAD_BUNDLE_ROW_MAPPER, forumId);
 		PaginatedResults<DiscussionThreadBundle> threads = new PaginatedResults<DiscussionThreadBundle>();
 		threads.setResults(results);
-
+		threads.setTotalNumberOfResults(getThreadCount(forumId));
 		return threads;
 	}
 

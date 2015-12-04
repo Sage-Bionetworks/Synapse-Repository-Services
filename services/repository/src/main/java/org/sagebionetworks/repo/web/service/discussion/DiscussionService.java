@@ -82,13 +82,4 @@ public interface DiscussionService {
 	 */
 	public PaginatedResults<DiscussionThreadBundle> getThreads(Long userId,
 			String forumId, Long limit, Long offset, DiscussionThreadOrder order, Boolean ascending);
-
-	/**
-	 * Get the number of threads the given forum has
-	 * 
-	 * @param userId
-	 * @param forumId
-	 * @return
-	 */
-	public Long getThreadCount(Long userId, String forumId);
 }

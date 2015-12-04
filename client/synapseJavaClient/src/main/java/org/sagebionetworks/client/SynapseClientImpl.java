@@ -27,10 +27,12 @@ import java.util.concurrent.Future;
 
 import org.apache.commons.lang.NotImplementedException;
 import org.apache.commons.lang.StringUtils;
+import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.entity.ContentType;
+import org.apache.http.util.EntityUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONException;
@@ -38,6 +40,7 @@ import org.json.JSONObject;
 import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseResultNotReadyException;
+import org.sagebionetworks.client.exceptions.SynapseServerException;
 import org.sagebionetworks.client.exceptions.SynapseTableUnavailableException;
 import org.sagebionetworks.client.exceptions.SynapseTermsOfUseException;
 import org.sagebionetworks.downloadtools.FileUtils;
@@ -7647,12 +7650,4 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public void markThreadAsDeleted(String threadId) throws SynapseException {
 		getSharedClientConnection().deleteUri(repoEndpoint, THREAD+"/"+threadId, getUserAgent());
 	}
-
-	@Override
-	public Long getThreadCount(String forumId) throws SynapseException {
-		ValidateArgument.required(forumId, "forumId cannot be null");
-		return Long.parseLong(getHttpClientHelper().getDataDirect(repoEndpoint,
-				FORUM+"/"+forumId+THREAD_COUNT));
-	}
-
 }
