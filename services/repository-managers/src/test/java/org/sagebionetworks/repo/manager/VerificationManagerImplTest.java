@@ -5,8 +5,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_DISPLAY_NAME;
@@ -127,6 +125,12 @@ public class VerificationManagerImplTest {
 		orcidAlias.setAlias(ORCID);
 		List<PrincipalAlias> paList = Collections.singletonList(orcidAlias);
 		when(mockPrincipalAliasDAO.listPrincipalAliases(USER_ID, AliasType.USER_ORCID)).thenReturn(paList);
+		PrincipalAlias actAlias = new PrincipalAlias();
+		actAlias.setAlias("Synapse Access and Compliance Team");
+		List<PrincipalAlias> actPaList = Collections.singletonList(actAlias);
+		when(mockPrincipalAliasDAO.listPrincipalAliases(
+				TeamConstants.ACT_TEAM_ID, AliasType.TEAM_NAME)).
+				thenReturn(actPaList);
 		verificationSubmission = createVerificationSubmission();
 		when(mockVerificationDao.
 				createVerificationSubmission(verificationSubmission)).thenReturn(verificationSubmission);
@@ -371,6 +375,7 @@ public class VerificationManagerImplTest {
 		assertEquals(NOTIFICATION_UNSUBSCRIBE_ENDPOINT, 
 				result.getMetadata().getNotificationUnsubscribeEndpoint());
 		assertEquals("text/html", result.getMimeType());
+		assertEquals("Synapse Access and Compliance Team <synapseaccessandcomplianceteam@synapse.org>", result.getMetadata().getTo());
 		
 		List<String> delims = Arrays.asList(new String[] {
 				TEMPLATE_KEY_DISPLAY_NAME,

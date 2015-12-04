@@ -28,7 +28,6 @@ public class DBOForumDAOImpl implements ForumDAO {
 			+TABLE_FORUM+" WHERE "+COL_FORUM_ID+" = ?";
 	private static final String SQL_SELECT_FORUM_BY_PROJECT_ID = "SELECT * FROM "
 			+TABLE_FORUM+" WHERE "+COL_FORUM_PROJECT_ID+" = ?";
-	private static final String SQL_TRUNCATE = "TRUNCATE "+TABLE_FORUM;
 
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
@@ -42,6 +41,9 @@ public class DBOForumDAOImpl implements ForumDAO {
 	@WriteTransaction
 	@Override
 	public Forum createForum(String projectId) {
+		if (projectId == null) {
+			throw new IllegalArgumentException("projectId cannot be null");
+		}
 		long id = idGenerator.generateNewId(TYPE.FORUM_ID);
 		DBOForum dbo = new DBOForum();
 		dbo.setId(id);
@@ -61,6 +63,9 @@ public class DBOForumDAOImpl implements ForumDAO {
 
 	@Override
 	public Forum getForumByProjectId(String projectId) {
+		if (projectId == null) {
+			throw new IllegalArgumentException("projectId cannot be null");
+		}
 		List<DBOForum> results = jdbcTemplate.query(SQL_SELECT_FORUM_BY_PROJECT_ID, ROW_MAPPER,
 				KeyFactory.stringToKey(projectId));
 		if (results.size() != 1) {
@@ -74,11 +79,4 @@ public class DBOForumDAOImpl implements ForumDAO {
 	public int deleteForum(long id) {
 		return jdbcTemplate.update(SQL_DELETE_FORUM, id);
 	}
-
-	@WriteTransaction
-	@Override
-	public void truncateAll() {
-		jdbcTemplate.update(SQL_TRUNCATE);
-	}
-
 }

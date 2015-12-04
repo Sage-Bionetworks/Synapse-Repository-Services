@@ -3,11 +3,11 @@ package org.sagebionetworks.object.snapshot.worker;
 import java.io.IOException;
 
 import org.sagebionetworks.asynchronous.workers.changes.ChangeMessageDrivenRunner;
+import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.object.snapshot.worker.utils.ObjectRecordWriterFactory;
 import org.sagebionetworks.object.snapshot.worker.utils.ObjectRecordWriter;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.workers.util.progress.ProgressCallback;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**

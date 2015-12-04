@@ -1,7 +1,6 @@
 package org.sagebionetworks.message.workers;
 
 import static org.junit.Assert.fail;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.*;
 
 import java.util.Date;
@@ -10,13 +9,13 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
+import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.MessageManager;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
-import org.sagebionetworks.workers.util.progress.ProgressCallback;
 import org.springframework.test.util.ReflectionTestUtils;
 
 public class MessageToUserWorkerTest {
@@ -62,7 +61,7 @@ public class MessageToUserWorkerTest {
 		chgMsg.setParentId("parentId");
 		chgMsg.setTimestamp(new Date());
 		NotFoundException e = new NotFoundException();
-		when(mockMessageManager.processMessage(eq(chgMsg.getObjectId()), any(org.sagebionetworks.util.ProgressCallback.class))).thenThrow(e);
+		when(mockMessageManager.processMessage(eq(chgMsg.getObjectId()), any(org.sagebionetworks.common.util.progress.ProgressCallback.class))).thenThrow(e);
 		// call under test
 		worker.run(mockCallback, chgMsg);
 		verify(mockWorkerLogger).logWorkerFailure(MessageToUserWorker.class, chgMsg, e, false);
@@ -79,7 +78,7 @@ public class MessageToUserWorkerTest {
 		chgMsg.setParentId("parentId");
 		chgMsg.setTimestamp(new Date());
 		RuntimeException e = new RuntimeException();
-		when(mockMessageManager.processMessage(eq(chgMsg.getObjectId()), any(org.sagebionetworks.util.ProgressCallback.class))).thenThrow(e);
+		when(mockMessageManager.processMessage(eq(chgMsg.getObjectId()), any(org.sagebionetworks.common.util.progress.ProgressCallback.class))).thenThrow(e);
 		try {
 			// call under test
 			worker.run(mockCallback, chgMsg);

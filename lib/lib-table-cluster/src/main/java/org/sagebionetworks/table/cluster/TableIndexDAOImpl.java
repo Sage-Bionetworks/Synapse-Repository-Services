@@ -22,6 +22,7 @@ import java.util.regex.Pattern;
 
 import javax.sql.DataSource;
 
+import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.dao.table.RowAndHeaderHandler;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -340,7 +341,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public RowSet query(final SqlQuery query) {
+	public RowSet query(ProgressCallback<Void> callback, final SqlQuery query) {
 		if (query == null)
 			throw new IllegalArgumentException("SqlQuery cannot be null");
 		final List<Row> rows = new LinkedList<Row>();
@@ -348,7 +349,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		rowSet.setRows(rows);
 		rowSet.setHeaders(query.getSelectColumnModels().getSelectColumns());
 		// Stream over the results and save the results in a a list
-		queryAsStream(query, new RowAndHeaderHandler() {
+		queryAsStream(callback, query, new RowAndHeaderHandler() {
 			@Override
 			public void writeHeader() {
 				// no-op
@@ -369,14 +370,18 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 	
 	@Override
-	public boolean queryAsStream(final SqlQuery query, final RowAndHeaderHandler handler) {
+	public boolean queryAsStream(final ProgressCallback<Void> callback, final SqlQuery query, final RowAndHeaderHandler handler) {
 		ValidateArgument.required(query, "Query");
+		ValidateArgument.required(callback, "ProgressCallback");
 		// We use spring to create create the prepared statement
 		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
 		handler.writeHeader();
 		namedTemplate.query(query.getOutputSQL(), new MapSqlParameterSource(query.getParameters()), new RowCallbackHandler() {
 			@Override
 			public void processRow(ResultSet rs) throws SQLException {
+				// refresh the lock.
+				callback.progressMade(null);
+
 				ResultSetMetaData metadata = rs.getMetaData();
 
 				Row row = new Row();

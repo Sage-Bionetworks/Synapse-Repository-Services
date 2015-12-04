@@ -5,7 +5,8 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.stub;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.*;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 
@@ -28,6 +29,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.ImmutablePropertyAccessor;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.dao.table.CurrentRowCacheDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -64,11 +66,14 @@ public class TableIndexDAOImplTest {
 	// These are not a bean
 	TableIndexDAO tableIndexDAO;
 	CurrentRowCacheDao currentRowCacheDao;
+	
+	ProgressCallback<Void> mockProgressCallback;
 
 	String tableId;
 
 	@Before
 	public void before() {
+		mockProgressCallback = Mockito.mock(ProgressCallback.class);
 		// Only run this test if the table feature is enabled.
 		Assume.assumeTrue(config.getTableEnabled());
 		tableId = "syn" + new Random().nextInt(Integer.MAX_VALUE);
@@ -285,7 +290,7 @@ public class TableIndexDAOImplTest {
 		// This is our query
 		SqlQuery query = new SqlQuery("select * from " + tableId, allTypes);
 		// Now query for the results
-		RowSet results = tableIndexDAO.query(query);
+		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
 		assertNotNull(results);
 		System.out.println(results);
 		assertEquals(headers, results.getHeaders());
@@ -309,6 +314,10 @@ public class TableIndexDAOImplTest {
 		expectedValues = Arrays.asList("string1", "341006.53", "203001",
 				"true", "404001", "505001", "syn606001.607001", "link708001");
 		assertEquals(expectedValues, row.getValues());
+		// progress should be made for each row.
+		verify(mockProgressCallback, times(2)).progressMade(null);
+		// must also be able to run the query with a null callback
+		mockProgressCallback = null;
 	}
 
 	private StackConfiguration oldStackConfiguration = null;
@@ -420,7 +429,7 @@ public class TableIndexDAOImplTest {
 		RowSet results;
 
 		query = new SqlQuery("select distinct * from " + tableId, allTypes);
-		results = tableIndexDAO.query(query);
+		results = tableIndexDAO.query(mockProgressCallback, query);
 		assertNotNull(results);
 		assertEquals(distinctCount, results.getRows().size());
 		now = System.currentTimeMillis();
@@ -429,7 +438,7 @@ public class TableIndexDAOImplTest {
 		startTime = now;
 
 		query = new SqlQuery("select distinct * from " + tableId, allTypes);
-		results = tableIndexDAO.query(query);
+		results = tableIndexDAO.query(mockProgressCallback, query);
 		assertNotNull(results);
 		assertEquals(distinctCount, results.getRows().size());
 		now = System.currentTimeMillis();
@@ -446,7 +455,7 @@ public class TableIndexDAOImplTest {
 				+ allTypes.get(0).getName() + " = '"
 				+ results.getRows().get(0).getValues().get(0) + "'", allTypes);
 		// Now query for the results
-		results = tableIndexDAO.query(query);
+		results = tableIndexDAO.query(mockProgressCallback, query);
 		assertNotNull(results);
 		now = System.currentTimeMillis();
 		times.add("Select");
@@ -455,7 +464,7 @@ public class TableIndexDAOImplTest {
 
 		query = new SqlQuery("select * from " + tableId + " limit 20", allTypes);
 		// Now query for the results
-		results = tableIndexDAO.query(query);
+		results = tableIndexDAO.query(mockProgressCallback, query);
 		assertNotNull(results);
 		now = System.currentTimeMillis();
 		times.add("Limit");
@@ -470,7 +479,7 @@ public class TableIndexDAOImplTest {
 		query = new SqlQuery("select * from " + tableId + " order by "
 				+ allTypes.get(1).getName() + " asc limit 20", allTypes);
 		// Now query for the results
-		results = tableIndexDAO.query(query);
+		results = tableIndexDAO.query(mockProgressCallback, query);
 		assertNotNull(results);
 		now = System.currentTimeMillis();
 		times.add("Limit sort asc");
@@ -485,7 +494,7 @@ public class TableIndexDAOImplTest {
 		query = new SqlQuery("select * from " + tableId + " order by "
 				+ allTypes.get(2).getName() + " desc limit 20", allTypes);
 		// Now query for the results
-		results = tableIndexDAO.query(query);
+		results = tableIndexDAO.query(mockProgressCallback, query);
 		assertNotNull(results);
 		now = System.currentTimeMillis();
 		times.add("Limit sort desc");
@@ -494,7 +503,7 @@ public class TableIndexDAOImplTest {
 
 		query = new SqlQuery("select count(*) from " + tableId, allTypes);
 		// Now query for the results
-		results = tableIndexDAO.query(query);
+		results = tableIndexDAO.query(mockProgressCallback, query);
 		assertNotNull(results);
 		assertEquals("" + endgoal, results.getRows().get(0).getValues().get(0));
 		now = System.currentTimeMillis();
@@ -532,7 +541,7 @@ public class TableIndexDAOImplTest {
 		// This is our query
 		SqlQuery query = new SqlQuery("select * from " + tableId, doubleColumn);
 		// Now query for the results
-		RowSet results = tableIndexDAO.query(query);
+		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
 		assertNotNull(results);
 		System.out.println(results);
 		assertEquals(headers, results.getHeaders());
@@ -581,7 +590,7 @@ public class TableIndexDAOImplTest {
 		// This is our query
 		SqlQuery query = new SqlQuery("select * from " + tableId, allTypes);
 		// Now query for the results
-		RowSet results = tableIndexDAO.query(query);
+		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
 		assertNotNull(results);
 		System.out.println(results);
 		assertEquals(2, results.getRows().size());
@@ -611,7 +620,7 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.createOrUpdateOrDeleteRows(set, allTypes);
 		// Now query for the results
 		SqlQuery query = new SqlQuery("select * from " + tableId, allTypes);
-		RowSet results = tableIndexDAO.query(query);
+		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
 		assertNotNull(results);
 		System.out.println(results);
 		assertEquals(headers, results.getHeaders());
@@ -664,7 +673,7 @@ public class TableIndexDAOImplTest {
 		SqlQuery query = new SqlQuery("select count(*) from " + tableId,
 				allTypes);
 		// Now query for the results
-		RowSet results = tableIndexDAO.query(query);
+		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
 		assertNotNull(results);
 		List<SelectColumn> expectedHeaders = Lists.newArrayList(TableModelUtils
 				.createSelectColumn("COUNT(*)", ColumnType.INTEGER, null));
@@ -722,7 +731,7 @@ public class TableIndexDAOImplTest {
 						+ " where foo is not null group by foo order by bar desc limit 1 offset 0",
 				schema);
 		// Now query for the results
-		RowSet results = tableIndexDAO.query(query);
+		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
 		assertNotNull(results);
 		assertEquals(TableModelUtils.getSelectColumns(schema, true),
 				results.getHeaders());
@@ -776,7 +785,7 @@ public class TableIndexDAOImplTest {
 				+ " where ROW_ID = 104 AND Row_Version > 1 limit 1 offset 0",
 				schema);
 		// Now query for the results
-		RowSet results = tableIndexDAO.query(query);
+		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
 		assertNotNull(results);
 		assertNotNull(results.getRows());
 		assertEquals(tableId, results.getTableId());

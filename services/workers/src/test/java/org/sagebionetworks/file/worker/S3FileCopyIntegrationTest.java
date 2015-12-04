@@ -21,6 +21,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
+import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.junit.BeforeAll;
 import org.sagebionetworks.junit.ParallelizedSpringJUnit4ClassRunner;
 import org.sagebionetworks.repo.manager.EntityManager;
@@ -46,7 +47,6 @@ import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.ReflectionStaticTestUtils;
 import org.sagebionetworks.util.TestStreams;
 import org.sagebionetworks.util.TimeUtils;
-import org.sagebionetworks.workers.util.progress.ProgressCallback;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 

@@ -59,7 +59,16 @@ public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 
 	@Override
 	public AsynchronousJobStatus getJobStatus(String jobId) throws DatastoreException, NotFoundException {
-		DBOAsynchJobStatus dbo =  basicDao.getObjectByPrimaryKey(DBOAsynchJobStatus.class, new SinglePrimaryKeySqlParameterSource(jobId));
+		if(jobId == null){
+			throw new IllegalArgumentException("Job id cannot be null");
+		}
+		Long jobIdLong;
+		try {
+			jobIdLong = Long.parseLong(jobId);
+		} catch (NumberFormatException e) {
+			throw new IllegalArgumentException("Cannot read job id: "+e.getMessage());
+		}
+		DBOAsynchJobStatus dbo =  basicDao.getObjectByPrimaryKey(DBOAsynchJobStatus.class, new SinglePrimaryKeySqlParameterSource(jobIdLong));
 		return AsynchJobStatusUtils.createDTOFromDBO(dbo);
 	}
 

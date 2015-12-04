@@ -17,6 +17,8 @@
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 
+	<import resource="classpath:upload-dao.spb.xml" />
+
 	<!-- The real Node DAO -->
 	<bean id="nodeManager" class="org.sagebionetworks.repo.manager.NodeManagerImpl" />
 	<bean id="nodeInheritanceManager"
@@ -281,8 +283,18 @@
 	<bean id="columnModelManager" class="org.sagebionetworks.repo.manager.table.ColumnModelManagerImpl"
 		scope="singleton" />
 		
+	<bean id="writeReadSemaphore" class="org.sagebionetworks.database.semaphore.WriteReadSemaphoreImpl">
+		<constructor-arg ref="dataSourcePool" index="0"></constructor-arg>
+		<constructor-arg ref="txManager" index="1"></constructor-arg>
+	</bean>
+	
+	<bean id="writeReadSemaphoreRunner" class="org.sagebionetworks.workers.util.semaphore.WriteReadSemaphoreRunnerImpl">
+		<constructor-arg index="0" ref="writeReadSemaphore"/>
+		<constructor-arg index="1"><bean class="org.sagebionetworks.common.util.ClockImpl"/>
+		</constructor-arg>
+	</bean>
+		
 	<bean id="tableRowManager" class="org.sagebionetworks.repo.manager.table.TableRowManagerImpl" scope="singleton" >
-        <property name="tableReadTimeoutMS"	ref="stackConfiguration.tableReadTimeoutMS" />
        	<property name="maxBytesPerRequest" ref="stackConfiguration.tableMaxBytesPerRequest"/>
        	<property name="maxBytesPerChangeSet" ref="stackConfiguration.tableMaxBytesPerChangeSet"/>
     </bean>
@@ -307,6 +319,9 @@
 	<!-- The Discussion managers -->
 	<bean id="forumManager"
 		class="org.sagebionetworks.repo.manager.discussion.ForumManagerImpl"
+		scope ="singleton" />
+	<bean id="threadManager"
+		class="org.sagebionetworks.repo.manager.discussion.DiscussionThreadManagerImpl"
 		scope ="singleton" />
 
 	<!-- The thread pool used by the backup/restore daemons -->

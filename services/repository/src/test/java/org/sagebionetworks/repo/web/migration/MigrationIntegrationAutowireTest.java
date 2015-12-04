@@ -29,6 +29,8 @@ import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionContributor;
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.manager.StorageQuotaManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
@@ -44,6 +46,7 @@ import org.sagebionetworks.repo.model.ChallengeTeam;
 import org.sagebionetworks.repo.model.ChallengeTeamDAO;
 import org.sagebionetworks.repo.model.CommentDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.DiscussionThreadDAO;
 import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
@@ -230,6 +233,11 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 	
 	@Autowired
 	private ForumDAO forumDao;
+
+	@Autowired
+	private DiscussionThreadDAO threadDao;
+	@Autowired
+	private IdGenerator idGenerator;
 	
 	private Team team;
 
@@ -270,6 +278,9 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 	private Challenge challenge;
 	private ChallengeTeam challengeTeam;
 
+	private String forumId;
+	private String threadId;
+
 	@Before
 	public void before() throws Exception {
 		mockRequest = Mockito.mock(HttpServletRequest.class);
@@ -306,10 +317,21 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		createChallengeAndRegisterTeam();
 		createVerificationSubmission();
 		createForum();
+		createThread();
+		createThreadView();
 	}
 	
 	private void createForum() {
-		forumDao.createForum(project.getId());
+		forumId = forumDao.createForum(project.getId()).getId();
+	}
+
+	private void createThread() {
+		threadId = idGenerator.generateNewId(TYPE.DISCUSSION_THREAD_ID).toString();
+		threadDao.createThread(forumId, threadId, "title", "fakeMessageUrl", adminUserId);
+	}
+
+	private void createThreadView() {
+		threadDao.updateThreadView(Long.parseLong(threadId), adminUserId);
 	}
 
 	private void createVerificationSubmission() {
@@ -820,7 +842,7 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		for (int i = 1; i < finalCounts.getList().size(); i++) {
 			MigrationTypeCount startCount = startCounts.getList().get(i);
 			MigrationTypeCount afterRestore = finalCounts.getList().get(i);
-			assertEquals("Count for " + startCount.getType().name() + " does not match", startCount.getCount(), afterRestore.getCount());
+			assertEquals("Count for " + startCount.getType().name() + " does not match.", startCount.getCount(), afterRestore.getCount());
 		}
 	}
 

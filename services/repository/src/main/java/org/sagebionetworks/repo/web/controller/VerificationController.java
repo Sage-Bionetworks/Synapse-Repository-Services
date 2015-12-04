@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.web.controller;
 
 import java.util.Collections;
+import java.util.List;
 
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -126,13 +127,18 @@ public class VerificationController extends BaseController {
 	@RequestMapping(value = UrlHelpers.VERIFICATION_SUBMISSION, method = RequestMethod.GET)
 	public @ResponseBody VerificationPagedResults listVerificationSubmissions(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestParam Long verifiedUserId,
-			@RequestParam VerificationStateEnum currentVerificationState,
+			@RequestParam(required = false) Long verifiedUserId,
+			@RequestParam(required = false) VerificationStateEnum currentVerificationState,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) long offset
 			) throws DatastoreException, NotFoundException {
+		List<VerificationStateEnum> currentVerificationStateList = null;
+		if (currentVerificationState!=null) {
+			currentVerificationStateList = 
+				Collections.singletonList(currentVerificationState);
+		}
 		return serviceProvider.getVerificationService().
-				listVerificationSubmissions(userId, Collections.singletonList(currentVerificationState), verifiedUserId, limit, offset);
+				listVerificationSubmissions(userId, currentVerificationStateList, verifiedUserId, limit, offset);
 	}
 
 }

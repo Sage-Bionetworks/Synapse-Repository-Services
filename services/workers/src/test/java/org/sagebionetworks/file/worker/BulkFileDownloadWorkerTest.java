@@ -4,10 +4,6 @@ import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.*;
 import static org.sagebionetworks.repo.manager.AuthorizationManagerUtil.AUTHORIZED;
 
@@ -24,6 +20,7 @@ import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
+import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
@@ -39,7 +36,6 @@ import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.workers.util.progress.ProgressCallback;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.amazonaws.event.ProgressListener;
@@ -175,6 +171,7 @@ public class BulkFileDownloadWorkerTest {
 				mockBulkDownloadManager.multipartUploadLocalFile(
 						any(UserInfo.class), any(File.class), anyString(),
 						any(ProgressListener.class))).thenReturn(resultHandle);
+		when(mockAsynchJobStatusManager.lookupJobStatus(jobStatus.getJobId())).thenReturn(jobStatus);
 	}
 
 	@Test

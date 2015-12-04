@@ -1,0 +1,8 @@
+{
+	"properties": {
+		"title": {
+			"type": "string",
+			"description": "The new title"
+		}
+	}
+}

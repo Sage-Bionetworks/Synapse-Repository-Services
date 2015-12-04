@@ -2,8 +2,8 @@ package org.sagebionetworks.table.worker;
 
 import java.util.Iterator;
 
+import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.table.Row;
-import org.sagebionetworks.workers.util.progress.ProgressCallback;
 
 /**
  * A simple proxy for reporting progress on an iterator.
