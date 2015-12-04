@@ -86,4 +86,11 @@ public class RangeMetadataIteratorTest {
 		when(mockSynapse.getRowMetadataByRange(any(MigrationType.class), any(Long.class), any(Long.class))).thenThrow(new IllegalStateException("one"));
 		RangeMetadataIterator iterator = new RangeMetadataIterator(type, mockSynapse, 7, 0, rowCount-1, progress);
 		iterator.next();
-	}}
+	}
+	
+	@Test(expected=IllegalArgumentException.class)
+	public void testInvalidRange() {
+		BasicProgress progress = new BasicProgress();
+		RangeMetadataIterator iterator = new RangeMetadataIterator(type, stubSynapse, 10, 0 , 10, progress);
+	}
+}
