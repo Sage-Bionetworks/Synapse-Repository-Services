@@ -115,8 +115,8 @@ import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.auth.Username;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
-import org.sagebionetworks.repo.model.discussion.DiscussionOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
+import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
 import org.sagebionetworks.repo.model.discussion.Forum;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
@@ -479,6 +479,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String FORUM = "/forum";
 	private static final String THREAD = "/thread";
 	private static final String THREADS = "/threads";
+	private static final String THREAD_COUNT = THREADS+"/count";
 	private static final String THREAD_TITLE = "/title";
 	private static final String THREAD_MESSAGE = "/message";
 
@@ -7600,7 +7601,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 	@Override
 	public PaginatedResults<DiscussionThreadBundle> getThreadsForForum(
-			String forumId, Long limit, Long offset, DiscussionOrder order,
+			String forumId, Long limit, Long offset, DiscussionThreadOrder order,
 			Boolean ascending) throws SynapseException {
 		ValidateArgument.required(forumId, "forumId cannot be null");
 		ValidateArgument.required(limit, "limit cannot be null");
@@ -7645,6 +7646,13 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public void markThreadAsDeleted(String threadId) throws SynapseException {
 		getSharedClientConnection().deleteUri(repoEndpoint, THREAD+"/"+threadId, getUserAgent());
+	}
+
+	@Override
+	public Long getThreadCount(String forumId) throws SynapseException {
+		ValidateArgument.required(forumId, "forumId cannot be null");
+		return Long.parseLong(getHttpClientHelper().getDataDirect(repoEndpoint,
+				FORUM+"/"+forumId+THREAD_COUNT));
 	}
 
 }

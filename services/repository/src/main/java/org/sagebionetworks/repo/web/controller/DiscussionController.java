@@ -92,6 +92,23 @@ public class DiscussionController extends BaseController {
 	}
 
 	/**
+	 * This API is used to get the number of existing threads for a given forum ID.
+	 * <br/>
+	 * Target users: anyone who has READ permission to the project.
+	 * 
+	 * @param userId - The ID of the user who is making the request
+	 * @param forumId - The forum ID to which the returning threads belong
+	 * @return
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.FORUM_FORUM_ID_THREAD_COUNT, method = RequestMethod.GET)
+	public @ResponseBody Long getThreadCount(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String forumId) {
+		return serviceProvider.getDiscussionService().getThreadCount(userId, forumId);
+	}
+
+	/**
 	 * This API is used to create a new thread in a forum.
 	 * <br/>
 	 * Target users: anyone who has READ permission to the project.

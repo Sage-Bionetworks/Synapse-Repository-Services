@@ -118,4 +118,11 @@ public class DiscussionServiceImplTest {
 		Mockito.when(mockThreadManager.getThreadsForForum(userInfo, forumId, 10L, 0L, null, true)).thenReturn(threads);
 		assertEquals(threads, discussionServices.getThreads(userId, forumId, 10L, 0L, null, true));
 	}
+
+	@Test
+	public void testGetThreadCount() {
+		Long count = 23L;
+		Mockito.when(mockThreadManager.getThreadCount(userInfo, forumId)).thenReturn(count);
+		assertEquals(count, discussionServices.getThreadCount(userId, forumId));
+	}
 }

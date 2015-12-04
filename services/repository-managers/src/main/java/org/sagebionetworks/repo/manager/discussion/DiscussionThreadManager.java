@@ -61,6 +61,15 @@ public interface DiscussionThreadManager {
 	public void markThreadAsDeleted(UserInfo userInfo, String threadId);
 
 	/**
+	 * Get the number of threads the given forum has
+	 * 
+	 * @param userInfo
+	 * @param forumId
+	 * @return
+	 */
+	public long getThreadCount(UserInfo userInfo, String forumId);
+
+	/**
 	 * Get threads that belongs to forumId
 	 * 
 	 * @param userInfo

@@ -139,4 +139,14 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		return threads;
 	}
 
+	@Override
+	public long getThreadCount(UserInfo userInfo, String forumId) {
+		ValidateArgument.required(forumId, "forumId cannot be null");
+		UserInfo.validateUserInfo(userInfo);
+		String projectId = forumDao.getForum(Long.parseLong(forumId)).getProjectId();
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+				authorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ));
+		return threadDao.getThreadCount(Long.parseLong(forumId));
+	}
+
 }

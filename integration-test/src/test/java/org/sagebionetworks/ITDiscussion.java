@@ -66,6 +66,7 @@ public class ITDiscussion {
 		assertEquals(forum.getProjectId(), projectId);
 
 		// get all threads in the forum
+		assertEquals((Long) 0L,synapse.getThreadCount(forumId));
 		PaginatedResults<DiscussionThreadBundle> threads = synapse.getThreadsForForum(forumId, 100L, 0L, null, null);
 		assertTrue(threads.getResults().isEmpty());
 
@@ -83,6 +84,7 @@ public class ITDiscussion {
 		assertEquals(bundle.getProjectId(), projectId);
 		assertEquals(bundle.getTitle(), title);
 
+		assertEquals((Long) 1L,synapse.getThreadCount(forumId));
 		assertEquals(synapse.getThread(threadId), bundle);
 		threads = synapse.getThreadsForForum(forumId, 100L, 0L, null, null);
 		assertTrue(threads.getResults().size() == 1);
