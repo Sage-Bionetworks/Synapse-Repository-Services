@@ -482,7 +482,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String FORUM = "/forum";
 	private static final String THREAD = "/thread";
 	private static final String THREADS = "/threads";
-	private static final String THREAD_COUNT = THREADS+"/count";
 	private static final String THREAD_TITLE = "/title";
 	private static final String THREAD_MESSAGE = "/message";
 
