@@ -34,6 +34,7 @@
 		<module>lib-table-cluster</module>
 		<module>lib-table-query</module>
 		<module>lib-test</module>
+		<module>lib-upload</module>
 	</modules>
 
 </project>

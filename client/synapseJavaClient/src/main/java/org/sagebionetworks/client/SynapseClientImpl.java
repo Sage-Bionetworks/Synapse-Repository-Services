@@ -71,7 +71,6 @@ import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityBundleCreate;
 import org.sagebionetworks.repo.model.EntityHeader;
-import org.sagebionetworks.repo.model.EntityIdList;
 import org.sagebionetworks.repo.model.EntityInstanceFactory;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.IdList;
@@ -115,7 +114,12 @@ import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.auth.Username;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
+import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
+import org.sagebionetworks.repo.model.discussion.DiscussionOrder;
+import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.Forum;
+import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
+import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
 import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.entity.query.EntityQuery;
 import org.sagebionetworks.repo.model.entity.query.EntityQueryResults;
@@ -210,6 +214,7 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
+import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
 
 import com.google.common.collect.Maps;
@@ -472,6 +477,10 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String CERTIFIED_USER_STATUS = "/certificationStatus";
 
 	private static final String FORUM = "/forum";
+	private static final String THREAD = "/thread";
+	private static final String THREADS = "/threads";
+	private static final String THREAD_TITLE = "/title";
+	private static final String THREAD_MESSAGE = "/message";
 
 	private static final String PRINCIPAL_ID_REQUEST_PARAM = "principalId";
 
@@ -7564,12 +7573,78 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public Forum getForumMetadata(String projectId) throws SynapseException {
 		try {
-			if (projectId == null)
-				throw new IllegalArgumentException("projectId cannot be null");
+			ValidateArgument.required(projectId, "projectId cannot be null");
 			return getJSONEntity(FORUM+"/"+projectId, Forum.class);
 		} catch (Exception e) {
 			throw new SynapseClientException(e);
 		}
+	}
+
+	@Override
+	public DiscussionThreadBundle createThread(CreateDiscussionThread toCreate)
+			throws SynapseException {
+		ValidateArgument.required(toCreate, "toCreate cannot be null");
+		return asymmetricalPost(repoEndpoint, THREAD, toCreate, DiscussionThreadBundle.class, null);
+	}
+
+	@Override
+	public DiscussionThreadBundle getThread(String threadId)
+			throws SynapseException {
+		try {
+			ValidateArgument.required(threadId, "threadId cannot be null");
+			return getJSONEntity(THREAD+"/"+threadId, DiscussionThreadBundle.class);
+		} catch (Exception e) {
+			throw new SynapseClientException(e);
+		}
+	}
+
+	@Override
+	public PaginatedResults<DiscussionThreadBundle> getThreadsForForum(
+			String forumId, Long limit, Long offset, DiscussionOrder order,
+			Boolean ascending) throws SynapseException {
+		ValidateArgument.required(forumId, "forumId cannot be null");
+		ValidateArgument.required(limit, "limit cannot be null");
+		ValidateArgument.required(offset, "offset cannot be null");
+		String url = FORUM+"/"+forumId+THREADS
+				+"?"+LIMIT+"="+limit+"&"+OFFSET+"="+offset;
+		if (order != null) {
+			url += "&sort="+order.name();
+		}
+		if (ascending != null) {
+			url += "&ascending="+ascending;
+		}
+		JSONObject jsonObj = getEntity(url);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		PaginatedResults<DiscussionThreadBundle> results =
+				new PaginatedResults<DiscussionThreadBundle>(DiscussionThreadBundle.class);
+
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
+	}
+
+	@Override
+	public DiscussionThreadBundle updateThreadTitle(String threadId,
+			UpdateThreadTitle newTitle) throws SynapseException {
+		ValidateArgument.required(threadId, "threadId cannot be null");
+		ValidateArgument.required(newTitle, "newTitle cannot be null");
+		return asymmetricalPut(repoEndpoint, THREAD+"/"+threadId+THREAD_TITLE, newTitle, DiscussionThreadBundle.class);
+	}
+
+	@Override
+	public DiscussionThreadBundle updateThreadMessage(String threadId,
+			UpdateThreadMessage newMessage) throws SynapseException {
+		ValidateArgument.required(threadId, "threadId cannot be null");
+		ValidateArgument.required(newMessage, "newMessage cannot be null");
+		return asymmetricalPut(repoEndpoint, THREAD+"/"+threadId+THREAD_MESSAGE, newMessage, DiscussionThreadBundle.class);
+	}
+
+	@Override
+	public void markThreadAsDeleted(String threadId) throws SynapseException {
+		getSharedClientConnection().deleteUri(repoEndpoint, THREAD+"/"+threadId, getUserAgent());
 	}
 
 }

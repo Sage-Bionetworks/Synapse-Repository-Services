@@ -861,6 +861,16 @@ public class UrlHelpers {
 	public static final String FORUM = "/forum";
 	public static final String PROJECT_ID = "/{projectId}";
 	public static final String FORUM_PROJECT_ID = FORUM+PROJECT_ID;
+	public static final String FORUM_ID = "/{forumId}";
+	public static final String THREADS = "/threads";
+	public static final String FORUM_FORUM_ID_THREADS = FORUM+FORUM_ID+THREADS;
+	public static final String THREAD = "/thread";
+	public static final String THREAD_ID = "/{threadId}";
+	public static final String THREAD_THREAD_ID = THREAD+THREAD_ID;
+	public static final String TITLE = "/title";
+	public static final String THREAD_THREAD_ID_TITLE = THREAD_THREAD_ID+TITLE;
+	public static final String DISCUSSION_MESSAGE = "/message";
+	public static final String THREAD_THREAD_ID_MESSAGE = THREAD_THREAD_ID+DISCUSSION_MESSAGE;
 
 	/**
 	 * APIs for DynamoDB related operations.
