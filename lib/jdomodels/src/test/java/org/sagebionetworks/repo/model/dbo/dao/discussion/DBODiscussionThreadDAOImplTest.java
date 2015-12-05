@@ -192,11 +192,14 @@ public class DBODiscussionThreadDAOImplTest {
 	}
 
 	@Test
-	public void testGetThreadsLimitAndOffset() throws Exception {
+	public void testGetThreadsWithZeroExistingThreads() {
 		assertEquals("empty threads",
 				new ArrayList<DiscussionThreadBundle>(),
 				threadDao.getThreads(forumIdLong, MAX_LIMIT, 0L, null, null).getResults());
+	}
 
+	@Test
+	public void testGetThreadsLimitAndOffset() throws Exception {
 		List<DiscussionThreadBundle> createdThreads = createListOfThreads(3);
 		assertEquals(createdThreads.size(), 3);
 
@@ -259,7 +262,7 @@ public class DBODiscussionThreadDAOImplTest {
 	}
 
 	@Test
-	public void testSetLastActivity() {
+	public void testSetLastActivity() throws InterruptedException {
 		List<DiscussionThreadBundle> createdThreads = createListOfThreads(3);
 
 		Date date1 = new Date(2015-1900, 10, 19, 0, 0, 1);
@@ -283,7 +286,7 @@ public class DBODiscussionThreadDAOImplTest {
 	}
 
 	@Test
-	public void testSetNumberOfViews() {
+	public void testSetNumberOfViews() throws InterruptedException {
 		List<DiscussionThreadBundle> createdThreads = createListOfThreads(3);
 
 		List<Long> numberOfViews = Arrays.asList(1L, 3L, 2L);
@@ -304,7 +307,7 @@ public class DBODiscussionThreadDAOImplTest {
 	}
 
 	@Test
-	public void testSetNumberOfReplies() {
+	public void testSetNumberOfReplies() throws InterruptedException {
 		List<DiscussionThreadBundle> createdThreads = createListOfThreads(3);
 
 		List<Long> numberOfReplies = Arrays.asList(1L, 3L, 2L);
@@ -324,9 +327,10 @@ public class DBODiscussionThreadDAOImplTest {
 				threadDao.getThreads(forumIdLong, MAX_LIMIT, 0L, DiscussionThreadOrder.NUMBER_OF_REPLIES, false).getResults());
 	}
 
-	private List<DiscussionThreadBundle> createListOfThreads(int numberOfThreads) {
+	private List<DiscussionThreadBundle> createListOfThreads(int numberOfThreads) throws InterruptedException {
 		List<DiscussionThreadBundle> createdThreads = new ArrayList<DiscussionThreadBundle>();
 		for (int i = 0; i < numberOfThreads; i++) {
+			Thread.sleep(1000);
 			threadId = idGenerator.generateNewId(TYPE.DISCUSSION_THREAD_ID);
 			DiscussionThreadBundle dto = threadDao.createThread(forumId, threadId.toString(),
 					"title", UUID.randomUUID().toString(), userId);
