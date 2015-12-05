@@ -124,9 +124,11 @@ public class DBODiscussionReplyDAOImpl implements DiscussionReplyDAO{
 					default:
 						throw new IllegalArgumentException("Unsupported order "+order);
 				}
-				
+				if (!ascending) {
+					query += DESC;
+				}
 			}
-			query += " LIMIT "+limit+" OFFSET "+offset;
+			query += LIMIT+limit+OFFSET+offset;
 			replies = jdbcTemplate.query(query,  DISCUSSION_REPLY_BUNDLE_ROW_MAPPER, threadId);
 		}
 

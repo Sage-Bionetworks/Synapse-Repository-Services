@@ -4,6 +4,7 @@ import static org.junit.Assert.*;
 import static org.sagebionetworks.repo.model.dbo.dao.discussion.DBODiscussionReplyDAOImpl.MAX_LIMIT;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
@@ -160,23 +161,26 @@ public class DBODiscussionReplyDAOImplTest {
 	}
 
 	@Test
-	public void getRepliesForThreadLimitAndOffsetTest() {
+	public void testGetRepliesForThreadWithZeroExistingReplies() {
 		PaginatedResults<DiscussionReplyBundle> results = replyDao.getRepliesForThread(threadIdLong, MAX_LIMIT, 0L, null, null);
 		assertNotNull(results);
 		assertEquals(0L, results.getTotalNumberOfResults());
 		assertTrue(results.getResults().isEmpty());
+	}
 
+	@Test
+	public void getRepliesForThreadLimitAndOffsetTest() throws InterruptedException {
 		int numberOfReplies = 3;
 		List<DiscussionReplyBundle> createdReplies = createReplies(numberOfReplies);
 
-		results = replyDao.getRepliesForThread(threadIdLong, MAX_LIMIT, 0L, null, null);
+		PaginatedResults<DiscussionReplyBundle> results = replyDao.getRepliesForThread(threadIdLong, MAX_LIMIT, 0L, null, null);
 		assertNotNull(results);
 		assertEquals("unordered replies", numberOfReplies, results.getTotalNumberOfResults());
 		assertEquals("unordered replies",
 				new HashSet<DiscussionReplyBundle>(results.getResults()),
 				new HashSet<DiscussionReplyBundle>(createdReplies));
 
-		results = replyDao.getRepliesForThread(threadIdLong, MAX_LIMIT, 0L, null, null);
+		results = replyDao.getRepliesForThread(threadIdLong, MAX_LIMIT, 0L, DiscussionReplyOrder.CREATED_ON, true);
 		assertEquals("ordered replies", numberOfReplies, results.getTotalNumberOfResults());
 		assertEquals("ordered replies", createdReplies, results.getResults());
 
@@ -189,9 +193,22 @@ public class DBODiscussionReplyDAOImplTest {
 		assertTrue("out of range", results.getResults().isEmpty());
 	}
 
-	private List<DiscussionReplyBundle> createReplies(int numberOfReplies) {
+	@Test
+	public void getRepliesForThreadDescendingTest() throws InterruptedException {
+		int numberOfReplies = 3;
+		List<DiscussionReplyBundle> createdReplies = createReplies(numberOfReplies);
+
+		PaginatedResults<DiscussionReplyBundle> results =
+				replyDao.getRepliesForThread(threadIdLong, MAX_LIMIT, 0L, DiscussionReplyOrder.CREATED_ON, false);
+		assertEquals("ordered desc replies", numberOfReplies, results.getTotalNumberOfResults());
+		Collections.reverse(createdReplies);
+		assertEquals("ordered desc replies", createdReplies, results.getResults());
+	}
+
+	private List<DiscussionReplyBundle> createReplies(int numberOfReplies) throws InterruptedException {
 		List<DiscussionReplyBundle> list = new ArrayList<DiscussionReplyBundle>();
 		for (int i = 0; i < numberOfReplies; i++) {
+			Thread.sleep(1000);
 			list.add(replyDao.createReply(threadId, UUID.randomUUID().toString(), userId));
 		}
 		return list;
