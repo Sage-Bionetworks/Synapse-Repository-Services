@@ -4,6 +4,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
@@ -51,6 +52,9 @@ public class DBODiscussionReplyDAOImpl implements DiscussionReplyDAO{
 		}
 	};
 
+	private static final String SQL_SELECT_REPLY_COUNT = "SELECT COUNT(*)"
+			+" FROM "+TABLE_DISCUSSION_REPLY
+			+" WHERE "+COL_DISCUSSION_REPLY_THREAD_ID+" = ?";
 	private static final String SQL_SELECT_REPLY_BUNDLE = "SELECT "
 			+COL_DISCUSSION_REPLY_ID+", "
 			+COL_DISCUSSION_REPLY_THREAD_ID+", "
@@ -64,6 +68,13 @@ public class DBODiscussionReplyDAOImpl implements DiscussionReplyDAO{
 			+" FROM "+TABLE_DISCUSSION_REPLY;
 	private static final String SQL_GET_REPLY_BY_ID = SQL_SELECT_REPLY_BUNDLE
 			+" WHERE "+COL_DISCUSSION_REPLY_ID+" = ?";
+	private static final String SQL_GET_REPLIES_BY_THREAD_ID = SQL_SELECT_REPLY_BUNDLE
+			+" WHERE "+COL_DISCUSSION_REPLY_THREAD_ID+" = ?";
+	private static final String ORDER_BY_CREATED_ON = " ORDER BY "+COL_DISCUSSION_REPLY_CREATED_ON;
+	private static final String DESC = " DESC";
+	private static final String LIMIT = " LIMIT ";
+	private static final String OFFSET = " OFFSET ";
+	public static final Long MAX_LIMIT = 100L;
 
 	@Override
 	public DiscussionReplyBundle createReply(String threadId, String messageKey, Long userId) {
@@ -88,16 +99,44 @@ public class DBODiscussionReplyDAOImpl implements DiscussionReplyDAO{
 
 	@Override
 	public PaginatedResults<DiscussionReplyBundle> getRepliesForThread(
-			long threadId, Long limit, Long offset, DiscussionReplyOrder order,
+			Long threadId, Long limit, Long offset, DiscussionReplyOrder order,
 			Boolean ascending) {
-		// TODO Auto-generated method stub
-		return null;
+		ValidateArgument.required(threadId, "threadId cannot be null");
+		ValidateArgument.required(limit, "limit cannot be null");
+		ValidateArgument.required(offset, "offset cannot be null");
+		ValidateArgument.requirement(limit >= 0 && offset >= 0 && limit <= MAX_LIMIT,
+				"Limit and offset must be greater than 0, and limit must be smaller than or equal to "+MAX_LIMIT);
+		ValidateArgument.requirement((order == null && ascending == null)
+			|| (order != null && ascending != null),"order and ascending must be both null or not null");
+
+		PaginatedResults<DiscussionReplyBundle> results = new PaginatedResults<DiscussionReplyBundle>();
+		List<DiscussionReplyBundle> replies = new ArrayList<DiscussionReplyBundle>();
+		long replyCount = getReplyCount(threadId);
+		results.setTotalNumberOfResults(replyCount);
+
+		if (replyCount > 0) {
+			String query = SQL_GET_REPLIES_BY_THREAD_ID;
+			if (order != null) {
+				switch (order) {
+					case CREATED_ON:
+						query += ORDER_BY_CREATED_ON;
+						break;
+					default:
+						throw new IllegalArgumentException("Unsupported order "+order);
+				}
+				
+			}
+			query += " LIMIT "+limit+" OFFSET "+offset;
+			replies = jdbcTemplate.query(query,  DISCUSSION_REPLY_BUNDLE_ROW_MAPPER, threadId);
+		}
+
+		results.setResults(replies);
+		return results;
 	}
 
 	@Override
 	public long getReplyCount(long threadId) {
-		// TODO Auto-generated method stub
-		return 0;
+		return jdbcTemplate.queryForLong(SQL_SELECT_REPLY_COUNT, threadId);
 	}
 
 	@Override

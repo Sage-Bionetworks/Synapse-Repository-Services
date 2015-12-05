@@ -1,8 +1,13 @@
 package org.sagebionetworks.repo.model.dbo.dao.discussion;
 
 import static org.junit.Assert.*;
+import static org.sagebionetworks.repo.model.dbo.dao.discussion.DBODiscussionReplyDAOImpl.MAX_LIMIT;
 
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Random;
+import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
@@ -11,6 +16,7 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -19,6 +25,7 @@ import org.sagebionetworks.repo.model.dao.discussion.DiscussionReplyDAO;
 import org.sagebionetworks.repo.model.dao.discussion.DiscussionThreadDAO;
 import org.sagebionetworks.repo.model.dao.discussion.ForumDAO;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
+import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.Forum;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
@@ -48,6 +55,7 @@ public class DBODiscussionReplyDAOImplTest {
 	private String forumId;
 	private String threadId;
 	private Long replyId;
+	private Long threadIdLong;
 
 	@Before
 	public void before() {
@@ -63,7 +71,8 @@ public class DBODiscussionReplyDAOImplTest {
 		Forum dto = forumDao.createForum(projectId);
 		forumId = dto.getId();
 		// create a thread
-		threadId = idGenerator.generateNewId(TYPE.DISCUSSION_THREAD_ID).toString();
+		threadIdLong = idGenerator.generateNewId(TYPE.DISCUSSION_THREAD_ID);
+		threadId = threadIdLong.toString();
 		threadDao.createThread(forumId, threadId, "title", "messageKey", userId);
 	}
 
@@ -102,5 +111,89 @@ public class DBODiscussionReplyDAOImplTest {
 		assertNotNull(dto.getEtag());
 		Long replyId = Long.parseLong(dto.getId());
 		assertEquals(dto, replyDao.getReply(replyId));
+	}
+
+	@Test
+	public void testGetReplyCount() {
+		assertEquals(0L, replyDao.getReplyCount(threadIdLong));
+		replyDao.createReply(threadId, "messageKey", userId);
+		assertEquals(1L, replyDao.getReplyCount(threadIdLong));
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetRepliesForThreadWithNullThreadId() {
+		replyDao.getRepliesForThread(null, 1L, 0L, null, null);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetRepliesForThreadWithNullLimit() {
+		replyDao.getRepliesForThread(threadIdLong, null, 0L, null, null);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetRepliesForThreadWithNullOffset() {
+		replyDao.getRepliesForThread(threadIdLong, 1L, null, null, null);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetRepliesForThreadWithNegativeLimit() {
+		replyDao.getRepliesForThread(threadIdLong, -1L, 0l, null, null);
+	}
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetRepliesForThreadWithNegativeOffset() {
+		replyDao.getRepliesForThread(threadIdLong, 1L, -1l, null, null);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetRepliesForThreadWithLimitOverMax() {
+		replyDao.getRepliesForThread(threadIdLong, MAX_LIMIT+1, 0l, null, null);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetRepliesForThreadWithNullOrderNotNullAscending() {
+		replyDao.getRepliesForThread(threadIdLong, 1L, 0l, null, true);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetRepliesForThreadWithNotNullOrderNullAscending() {
+		replyDao.getRepliesForThread(threadIdLong, 1L, 0l, DiscussionReplyOrder.CREATED_ON, null);
+	}
+
+	@Test
+	public void getRepliesForThreadLimitAndOffsetTest() {
+		PaginatedResults<DiscussionReplyBundle> results = replyDao.getRepliesForThread(threadIdLong, MAX_LIMIT, 0L, null, null);
+		assertNotNull(results);
+		assertEquals(0L, results.getTotalNumberOfResults());
+		assertTrue(results.getResults().isEmpty());
+
+		int numberOfReplies = 3;
+		List<DiscussionReplyBundle> createdReplies = createReplies(numberOfReplies);
+
+		results = replyDao.getRepliesForThread(threadIdLong, MAX_LIMIT, 0L, null, null);
+		assertNotNull(results);
+		assertEquals("unordered replies", numberOfReplies, results.getTotalNumberOfResults());
+		assertEquals("unordered replies",
+				new HashSet<DiscussionReplyBundle>(results.getResults()),
+				new HashSet<DiscussionReplyBundle>(createdReplies));
+
+		results = replyDao.getRepliesForThread(threadIdLong, MAX_LIMIT, 0L, null, null);
+		assertEquals("ordered replies", numberOfReplies, results.getTotalNumberOfResults());
+		assertEquals("ordered replies", createdReplies, results.getResults());
+
+		results = replyDao.getRepliesForThread(threadIdLong, 1L, 1L, DiscussionReplyOrder.CREATED_ON, true);
+		assertEquals("middle element", numberOfReplies, results.getTotalNumberOfResults());
+		assertEquals("middle element", createdReplies.get(1), results.getResults().get(0));
+
+		results = replyDao.getRepliesForThread(threadIdLong, MAX_LIMIT, 3L, DiscussionReplyOrder.CREATED_ON, true);
+		assertEquals("out of range", numberOfReplies, results.getTotalNumberOfResults());
+		assertTrue("out of range", results.getResults().isEmpty());
+	}
+
+	private List<DiscussionReplyBundle> createReplies(int numberOfReplies) {
+		List<DiscussionReplyBundle> list = new ArrayList<DiscussionReplyBundle>();
+		for (int i = 0; i < numberOfReplies; i++) {
+			list.add(replyDao.createReply(threadId, UUID.randomUUID().toString(), userId));
+		}
+		return list;
 	}
 }

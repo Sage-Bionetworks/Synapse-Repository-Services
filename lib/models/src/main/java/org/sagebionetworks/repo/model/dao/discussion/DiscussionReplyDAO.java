@@ -35,7 +35,7 @@ public interface DiscussionReplyDAO {
 	 * @param ascending
 	 * @return
 	 */
-	public PaginatedResults<DiscussionReplyBundle> getRepliesForThread(long threadId,
+	public PaginatedResults<DiscussionReplyBundle> getRepliesForThread(Long threadId,
 			Long limit, Long offset, DiscussionReplyOrder order, Boolean ascending);
 
 	/**
