@@ -318,4 +318,53 @@ public class TransactionSettingsTest {
 		});
 		stepper.run();
 	}
+	
+	@Test
+	public void validateWriteReadCommittedTransaction() {
+		final Long id = 3l;
+		final ThreadStepper stepper = new ThreadStepper(10);
+		transactionValidator.setStringNoTransaction(id, "startValue");
+		stepper.add(new Callable<Void>() {
+			@Override
+			public Void call() throws Exception {
+				// start a transaction with read-committed.
+				transactionValidator.writeReadCommitted(new Callable<String>() {
+					@Override
+					public String call() throws Exception {
+						stepper.stepDone("first started");
+						stepper.waitForStepDone("second started");
+						// update the row
+						transactionValidator.setStringNoTransaction(id, "updatedValue");
+						stepper.stepDone("first insert");
+						stepper.waitForStepDone("second check");
+						return null;
+					}
+				});
+				// the first transaction is now committed
+				stepper.stepDone("first commit");
+				return null;
+			}
+		});
+		stepper.add(new Callable<Void>() {
+			@Override
+			public Void call() throws Exception {
+				transactionValidator.writeReadCommitted(new Callable<String>() {
+					@Override
+					public String call() throws Exception {
+						stepper.waitForStepDone("first started");
+						assertEquals("Before either starts the row should be null", "startValue", transactionValidator.getString(id));
+						stepper.stepDone("second started");
+						stepper.waitForStepDone("first insert");
+						assertEquals("Since the other transaction has not committed should not be able to see the insert.","startValue", transactionValidator.getString(id));
+						stepper.stepDone("second check");
+						stepper.waitForStepDone("first commit");
+						assertEquals("Cannot see the value from a commited transaction.","updatedValue", transactionValidator.getString(id));
+						return null;
+					}
+				});
+				return null;
+			}
+		});
+		stepper.run();
+	}
 }
