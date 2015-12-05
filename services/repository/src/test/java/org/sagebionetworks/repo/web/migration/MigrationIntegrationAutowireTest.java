@@ -80,6 +80,7 @@ import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.DaemonStatus;
 import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.dao.discussion.DiscussionReplyDAO;
 import org.sagebionetworks.repo.model.dao.discussion.DiscussionThreadDAO;
 import org.sagebionetworks.repo.model.dao.discussion.ForumDAO;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
@@ -233,9 +234,10 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 	
 	@Autowired
 	private ForumDAO forumDao;
-
 	@Autowired
 	private DiscussionThreadDAO threadDao;
+	@Autowired
+	private DiscussionReplyDAO replyDao;
 	@Autowired
 	private IdGenerator idGenerator;
 	
@@ -319,6 +321,7 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		createForum();
 		createThread();
 		createThreadView();
+		createReply();
 	}
 	
 	private void createForum() {
@@ -332,6 +335,10 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 
 	private void createThreadView() {
 		threadDao.updateThreadView(Long.parseLong(threadId), adminUserId);
+	}
+
+	private void createReply() {
+		replyDao.createReply(threadId, "messageKey", adminUserId);
 	}
 
 	private void createVerificationSubmission() {
