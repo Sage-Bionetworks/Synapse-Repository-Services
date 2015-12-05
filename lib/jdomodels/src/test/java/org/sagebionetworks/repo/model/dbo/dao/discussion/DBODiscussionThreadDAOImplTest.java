@@ -200,7 +200,7 @@ public class DBODiscussionThreadDAOImplTest {
 
 		assertEquals("non order",
 				new HashSet<DiscussionThreadBundle>(createdThreads),
-				new HashSet<DiscussionThreadBundle>(threadDao.getThreads(forumIdLong, MAX_LIMIT, 0L, null, true).getResults()));
+				new HashSet<DiscussionThreadBundle>(threadDao.getThreads(forumIdLong, MAX_LIMIT, 0L, null, null).getResults()));
 
 		assertEquals("order, all",
 				createdThreads,
@@ -242,6 +242,16 @@ public class DBODiscussionThreadDAOImplTest {
 	@Test (expected = IllegalArgumentException.class)
 	public void testNullLimit() {
 		threadDao.getThreads(forumIdLong, null, 2L, DiscussionThreadOrder.LAST_ACTIVITY, true);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testNullOrderNotNullAscending() {
+		threadDao.getThreads(forumIdLong, 2L, 2L, null, true);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testNotNullOrderNullAscending() {
+		threadDao.getThreads(forumIdLong, 2L, 2L, DiscussionThreadOrder.LAST_ACTIVITY, null);
 	}
 
 	@Test

@@ -208,34 +208,40 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 		ValidateArgument.required(offset,"offset cannot be null");
 		ValidateArgument.requirement(limit >= 0 && offset >= 0 && limit <= MAX_LIMIT,
 					"Limit and offset must be greater than 0, and limit must be smaller than or equal to "+MAX_LIMIT);
-		ValidateArgument.required(ascending,"ascending cannot be null");
+		ValidateArgument.requirement((order == null && ascending == null)
+				|| (order != null && ascending != null),"order and ascending must be both null or not null");
 
-		String query = SQL_SELECT_THREADS_BY_FORUM_ID;
-		if (order != null) {
-			switch (order) {
-				case NUMBER_OF_REPLIES:
-					query += ORDER_BY_NUMBER_OF_REPLIES;
-					break;
-				case NUMBER_OF_VIEWS:
-					query += ORDER_BY_NUMBER_OF_VIEWS;
-					break;
-				case LAST_ACTIVITY:
-					query += ORDER_BY_LAST_ACTIVITY;
-					break;
-				default:
-					break;
-			}
-		}
-		if (!ascending) {
-			query += DESC;
-		}
-		query += " LIMIT "+limit+" OFFSET "+offset;
-
-		List<DiscussionThreadBundle> results = new ArrayList<DiscussionThreadBundle>();
-		results = jdbcTemplate.query(query, DISCUSSION_THREAD_BUNDLE_ROW_MAPPER, forumId);
 		PaginatedResults<DiscussionThreadBundle> threads = new PaginatedResults<DiscussionThreadBundle>();
+		List<DiscussionThreadBundle> results = new ArrayList<DiscussionThreadBundle>();
+		long threadCount = getThreadCount(forumId);
+		threads.setTotalNumberOfResults(threadCount);
+
+		if (threadCount > 0) {
+			String query = SQL_SELECT_THREADS_BY_FORUM_ID;
+			if (order != null) {
+				switch (order) {
+					case NUMBER_OF_REPLIES:
+						query += ORDER_BY_NUMBER_OF_REPLIES;
+						break;
+					case NUMBER_OF_VIEWS:
+						query += ORDER_BY_NUMBER_OF_VIEWS;
+						break;
+					case LAST_ACTIVITY:
+						query += ORDER_BY_LAST_ACTIVITY;
+						break;
+					default:
+						throw new IllegalArgumentException("Unsupported order "+order);
+				}
+				if (!ascending) {
+					query += DESC;
+				}
+			}
+
+			query += " LIMIT "+limit+" OFFSET "+offset;
+			results = jdbcTemplate.query(query, DISCUSSION_THREAD_BUNDLE_ROW_MAPPER, forumId);
+		}
+
 		threads.setResults(results);
-		threads.setTotalNumberOfResults(getThreadCount(forumId));
 		return threads;
 	}
 
