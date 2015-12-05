@@ -176,9 +176,9 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 	@WriteTransaction
 	@Override
 	public DiscussionThreadBundle createThread(String forumId, String threadId, String title, String messageKey, long userId) {
-		ValidateArgument.requirement(forumId != null, "forumId cannot be null");
-		ValidateArgument.requirement(title != null, "title cannot be null");
-		ValidateArgument.requirement(messageKey != null, "messageUrl cannot be null");
+		ValidateArgument.required(forumId, "forumId cannot be null");
+		ValidateArgument.required(title, "title cannot be null");
+		ValidateArgument.required(messageKey, "messageUrl cannot be null");
 		String etag = UUID.randomUUID().toString();
 		DBODiscussionThread dbo = DiscussionThreadUtils.createDBO(forumId, title, messageKey, userId, threadId, etag);
 		basicDao.createNew(dbo);
