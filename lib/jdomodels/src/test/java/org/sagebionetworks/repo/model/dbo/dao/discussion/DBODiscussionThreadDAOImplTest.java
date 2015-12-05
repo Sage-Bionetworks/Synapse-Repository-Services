@@ -193,6 +193,10 @@ public class DBODiscussionThreadDAOImplTest {
 
 	@Test
 	public void testGetThreadsLimitAndOffset() throws Exception {
+		assertEquals("empty threads",
+				new ArrayList<DiscussionThreadBundle>(),
+				threadDao.getThreads(forumIdLong, MAX_LIMIT, 0L, null, null).getResults());
+
 		List<DiscussionThreadBundle> createdThreads = createListOfThreads(3);
 		assertEquals(createdThreads.size(), 3);
 
