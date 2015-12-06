@@ -22,7 +22,7 @@ public class DBOMultipartUpload implements MigratableDatabaseObject<DBOMultipart
 		
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("id", COL_MULTIPART_UPLOAD_ID, true).withIsBackupId(true),
-		new FieldColumn("requestHash", COL_MULTIPART_REQUEST_HASH, true).withIsBackupId(true),
+		new FieldColumn("requestHash", COL_MULTIPART_REQUEST_HASH),
 		new FieldColumn("etag", COL_MULTIPART_UPLOAD_ETAG).withIsEtag(true),
 		new FieldColumn("requestBlob", COL_MULTIPART_UPLOAD_REQUEST),
 		new FieldColumn("startedBy", COL_MULTIPART_STARTED_BY),

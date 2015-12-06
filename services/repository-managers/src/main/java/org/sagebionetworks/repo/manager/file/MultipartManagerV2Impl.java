@@ -32,7 +32,7 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 	S3MultipartUploadDAO s3multipartUploadDAO;
 
 	@Autowired
-	MultipartUploadDAO multiparUploadDAO;
+	MultipartUploadDAO multipartUploadDAO;
 
 	@Autowired
 	ProjectSettingsManager projectSettingsManager;
@@ -53,7 +53,7 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		ValidateArgument.required(request.getContentMD5Hex(),
 				"MultipartUploadRequest.MD5Hex");
 
-		// anonymous cannot upload.
+		// anonymous cannot upload. See: PLFM-2621.
 		if (AuthorizationUtils.isUserAnonymous(user)) {
 			throw new UnauthorizedException("Anonymous cannot upload files.");
 		}
@@ -62,11 +62,11 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		String requestMD5Hex = calculateMD5AsHex(request);
 		// Clear all data if this is a forced restart
 		if (forceRestart != null && forceRestart.booleanValue()) {
-			multiparUploadDAO.deleteUploadStatus(user.getId(), requestMD5Hex);
+			multipartUploadDAO.deleteUploadStatus(user.getId(), requestMD5Hex);
 		}
 
 		// Has an upload already been started for this user and request
-		CompositeMultipartUploadStatus status = multiparUploadDAO
+		CompositeMultipartUploadStatus status = multipartUploadDAO
 				.getUploadStatus(user.getId(), requestMD5Hex);
 		if (status == null) {
 			// This is the first time we have seen this request.
@@ -81,13 +81,13 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 					bucket, key, request);
 			String requestJson = createRequestJSON(request);
 			// Start the upload
-			status = multiparUploadDAO
+			status = multipartUploadDAO
 					.createUploadStatus(new CreateMultipartRequest(
 							user.getId(), requestMD5Hex, requestJson,
 							uploadToken, bucket, key));
 			// create all of the parts for this file
 			String uploadId = status.getMultipartUploadStatus().getUploadId();
-			int partSize = calculateNumberOfParts(request.getFileSizeBytes(),
+			int numberParts = calculateNumberOfParts(request.getFileSizeBytes(),
 					request.getPartSizeBytes());
 			
 
