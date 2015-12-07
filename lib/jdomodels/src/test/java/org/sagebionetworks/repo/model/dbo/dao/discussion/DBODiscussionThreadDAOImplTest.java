@@ -121,7 +121,9 @@ public class DBODiscussionThreadDAOImplTest {
 	public void testGetEtag(){
 		DiscussionThreadBundle dto = threadDao.createThread(forumId, threadId.toString(), "title", "messageKey", userId);
 		long threadId = Long.parseLong(dto.getId());
-		assertNotNull(threadDao.getEtagForUpdate(threadId));
+		String etag = threadDao.getEtagForUpdate(threadId);
+		assertNotNull(etag);
+		assertEquals(etag, dto.getEtag());
 	}
 
 	@Test
@@ -135,11 +137,11 @@ public class DBODiscussionThreadDAOImplTest {
 		dto.setMessageKey(newMessageKey);
 		threadDao.updateMessageKey(threadId, newMessageKey);
 		DiscussionThreadBundle returnedDto = threadDao.getThread(threadId);
-		assertFalse("after updating message url, modifiedOn should be different",
+		assertFalse("after updating message key, modifiedOn should be different",
 				dto.getModifiedOn().equals(returnedDto.getModifiedOn()));
-		assertFalse("after updating message url, lastActivity should be different",
+		assertFalse("after updating message key, lastActivity should be different",
 				dto.getLastActivity().equals(returnedDto.getLastActivity()));
-		assertFalse("after updating message url, etag should be different",
+		assertFalse("after updating message key, etag should be different",
 				dto.getEtag().equals(returnedDto.getEtag()));
 		dto.setModifiedOn(returnedDto.getModifiedOn());
 		dto.setLastActivity(returnedDto.getLastActivity());
