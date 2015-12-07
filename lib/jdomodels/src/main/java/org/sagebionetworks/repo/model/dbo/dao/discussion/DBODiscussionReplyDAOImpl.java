@@ -76,6 +76,19 @@ public class DBODiscussionReplyDAOImpl implements DiscussionReplyDAO{
 	private static final String OFFSET = " OFFSET ";
 	public static final Long MAX_LIMIT = 100L;
 
+	private static final String SQL_SELECT_ETAG_FOR_UPDATE = "SELECT "+COL_DISCUSSION_REPLY_ETAG
+			+" FROM "+TABLE_DISCUSSION_REPLY
+			+" WHERE "+COL_DISCUSSION_REPLY_ID+" = ? FOR UPDATE";
+	private static final String SQL_MARK_REPLY_AS_DELETED = "UPDATE "+TABLE_DISCUSSION_REPLY
+			+" SET "+COL_DISCUSSION_REPLY_IS_DELETED+" = TRUE, "
+			+COL_DISCUSSION_REPLY_ETAG+" = ? "
+			+" WHERE "+COL_DISCUSSION_REPLY_ID+" = ?";
+	private static final String SQL_UPDATE_MESSAGE_KEY = "UPDATE "+TABLE_DISCUSSION_REPLY
+			+" SET "+COL_DISCUSSION_REPLY_MESSAGE_KEY+" = ?, "
+			+COL_DISCUSSION_REPLY_IS_EDITED+" = TRUE, "
+			+COL_DISCUSSION_REPLY_ETAG+" = ? "
+			+" WHERE "+COL_DISCUSSION_REPLY_ID+" = ?";
+
 	@Override
 	public DiscussionReplyBundle createReply(String threadId, String messageKey, Long userId) {
 		ValidateArgument.required(threadId, "threadId cannot be null");
@@ -143,20 +156,33 @@ public class DBODiscussionReplyDAOImpl implements DiscussionReplyDAO{
 
 	@Override
 	public void markReplyAsDeleted(long replyId) {
-		// TODO Auto-generated method stub
-		
+		String etag = UUID.randomUUID().toString();
+		jdbcTemplate.update(SQL_MARK_REPLY_AS_DELETED, etag, replyId);
 	}
 
 	@Override
 	public DiscussionReplyBundle updateMessageKey(long replyId, String newKey) {
-		// TODO Auto-generated method stub
-		return null;
+		if (newKey == null) {
+			throw new IllegalArgumentException("Message Key cannot be null");
+		}
+		String etag = UUID.randomUUID().toString();
+		jdbcTemplate.update(SQL_UPDATE_MESSAGE_KEY, newKey, etag, replyId);
+		return getReply(replyId);
 	}
 
 	@Override
 	public String getEtagForUpdate(long replyId) {
-		// TODO Auto-generated method stub
-		return null;
+		List<String> results = jdbcTemplate.query(SQL_SELECT_ETAG_FOR_UPDATE, new RowMapper<String>(){
+
+			@Override
+			public String mapRow(ResultSet rs, int rowNum) throws SQLException {
+				return rs.getString(COL_DISCUSSION_REPLY_ETAG);
+			}
+		}, replyId);
+		if (results.size() != 1) {
+			throw new NotFoundException();
+		}
+		return results.get(0);
 	}
 
 }

@@ -55,7 +55,6 @@ public class DBODiscussionReplyDAOImplTest {
 	private String projectId = null;
 	private String forumId;
 	private String threadId;
-	private Long replyId;
 	private Long threadIdLong;
 
 	@Before
@@ -212,5 +211,49 @@ public class DBODiscussionReplyDAOImplTest {
 			list.add(replyDao.createReply(threadId, UUID.randomUUID().toString(), userId));
 		}
 		return list;
+	}
+
+	@Test
+	public void testGetEtag(){
+		DiscussionReplyBundle dto = replyDao.createReply(threadId, "messageKey", userId);
+		long replyId = Long.parseLong(dto.getId());
+		String etag = replyDao.getEtagForUpdate(replyId);
+		assertNotNull(etag);
+		assertEquals(dto.getEtag(), etag);
+	}
+
+	@Test
+	public void testDelete(){
+		DiscussionReplyBundle dto = replyDao.createReply(threadId, "messageKey", userId);
+		long replyId = Long.parseLong(dto.getId());
+
+		dto.setIsDeleted(true);
+		replyDao.markReplyAsDeleted(replyId);
+		DiscussionReplyBundle returnedDto = replyDao.getReply(replyId);
+		assertFalse("after marking reply as deleted, etag should be different",
+				dto.getEtag().equals(returnedDto.getEtag()));
+		dto.setModifiedOn(returnedDto.getModifiedOn());
+		dto.setEtag(returnedDto.getEtag());
+		assertEquals(dto, returnedDto);
+	}
+
+	@Test
+	public void testUpdateMessageKey() throws InterruptedException {
+		DiscussionReplyBundle dto = replyDao.createReply(threadId, "messageKey", userId);
+		long replyId = Long.parseLong(dto.getId());
+
+		Thread.sleep(1000);
+		dto.setIsEdited(true);
+		String newMessageKey = UUID.randomUUID().toString();
+		dto.setMessageKey(newMessageKey);
+		replyDao.updateMessageKey(replyId, newMessageKey);
+		DiscussionReplyBundle returnedDto = replyDao.getReply(replyId);
+		assertFalse("after updating message key, modifiedOn should be different",
+				dto.getModifiedOn().equals(returnedDto.getModifiedOn()));
+		assertFalse("after updating message key, etag should be different",
+				dto.getEtag().equals(returnedDto.getEtag()));
+		dto.setModifiedOn(returnedDto.getModifiedOn());
+		dto.setEtag(returnedDto.getEtag());
+		assertEquals(dto, returnedDto);
 	}
 }
