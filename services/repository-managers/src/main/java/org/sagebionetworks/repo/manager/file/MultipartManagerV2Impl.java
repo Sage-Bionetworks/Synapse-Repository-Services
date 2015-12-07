@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.file;
 import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 
 import org.apache.commons.codec.binary.Hex;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
@@ -80,19 +81,37 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 			String uploadToken = s3multipartUploadDAO.initiateMultipartUpload(
 					bucket, key, request);
 			String requestJson = createRequestJSON(request);
+			// How many parts will be needed to upload this file?
+			int numberParts = calculateNumberOfParts(request.getFileSizeBytes(),
+					request.getPartSizeBytes());
 			// Start the upload
 			status = multipartUploadDAO
 					.createUploadStatus(new CreateMultipartRequest(
 							user.getId(), requestMD5Hex, requestJson,
-							uploadToken, bucket, key));
-			// create all of the parts for this file
-			String uploadId = status.getMultipartUploadStatus().getUploadId();
-			int numberParts = calculateNumberOfParts(request.getFileSizeBytes(),
-					request.getPartSizeBytes());
-			
-
+							uploadToken, bucket, key, numberParts));
 		}
+		// Is this file done?
+		String partsState = null;
+		if(status.getMultipartUploadStatus().getResultFileHandleId() != null){
+			// When the upload is done we just create a string of all '1' without hitting the DB.
+			partsState = getCompletePartStateString(status.getNumberOfParts());
+		}else{
+			// Get the parts state from the DAO.
+			partsState = multipartUploadDAO.getPartsState(status.getMultipartUploadStatus().getUploadId(), status.getNumberOfParts());
+		}
+		status.getMultipartUploadStatus().setPartsState(partsState);
 		return status.getMultipartUploadStatus();
+	}
+	
+	/**
+	 * Create string of '1' of the size of the passed number of parts. 
+	 * @param numberOfParts
+	 * @return
+	 */
+	public static String getCompletePartStateString(int numberOfParts){
+		char[] chars = new char[numberOfParts];
+		Arrays.fill(chars,'1');
+		return new String(chars);
 	}
 
 	/**

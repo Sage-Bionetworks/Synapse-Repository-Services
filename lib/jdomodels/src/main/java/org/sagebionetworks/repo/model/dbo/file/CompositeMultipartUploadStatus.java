@@ -12,6 +12,7 @@ public class CompositeMultipartUploadStatus {
 	String uploadToken;
 	String bucket;
 	String key;
+	Integer numberOfParts;
 	
 	public MultipartUploadStatus getMultipartUploadStatus() {
 		return multipartUploadStatus;
@@ -37,6 +38,13 @@ public class CompositeMultipartUploadStatus {
 	public void setKey(String key) {
 		this.key = key;
 	}
+	
+	public Integer getNumberOfParts() {
+		return numberOfParts;
+	}
+	public void setNumberOfParts(Integer numberOfParts) {
+		this.numberOfParts = numberOfParts;
+	}
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -47,6 +55,8 @@ public class CompositeMultipartUploadStatus {
 				* result
 				+ ((multipartUploadStatus == null) ? 0 : multipartUploadStatus
 						.hashCode());
+		result = prime * result
+				+ ((numberOfParts == null) ? 0 : numberOfParts.hashCode());
 		result = prime * result
 				+ ((uploadToken == null) ? 0 : uploadToken.hashCode());
 		return result;
@@ -75,6 +85,11 @@ public class CompositeMultipartUploadStatus {
 				return false;
 		} else if (!multipartUploadStatus.equals(other.multipartUploadStatus))
 			return false;
+		if (numberOfParts == null) {
+			if (other.numberOfParts != null)
+				return false;
+		} else if (!numberOfParts.equals(other.numberOfParts))
+			return false;
 		if (uploadToken == null) {
 			if (other.uploadToken != null)
 				return false;
@@ -84,9 +99,10 @@ public class CompositeMultipartUploadStatus {
 	}
 	@Override
 	public String toString() {
-		return "CompleteMultipartUploadStatus [multipartUploadStatus="
+		return "CompositeMultipartUploadStatus [multipartUploadStatus="
 				+ multipartUploadStatus + ", uploadToken=" + uploadToken
-				+ ", bucket=" + bucket + ", key=" + key + "]";
+				+ ", bucket=" + bucket + ", key=" + key + ", numberOfParts="
+				+ numberOfParts + "]";
 	}
 
 }

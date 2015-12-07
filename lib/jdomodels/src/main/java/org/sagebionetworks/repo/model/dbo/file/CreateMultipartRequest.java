@@ -12,6 +12,7 @@ public class CreateMultipartRequest {
 	String uploadToken;
 	String bucket;
 	String key;
+	Integer numberOfParts;
 	
 	/**
 	 * 
@@ -23,7 +24,7 @@ public class CreateMultipartRequest {
 	 * @param key
 	 */
 	public CreateMultipartRequest(Long userId, String hash,
-			String requestBody, String uploadToken, String bucket, String key) {
+			String requestBody, String uploadToken, String bucket, String key, Integer numberOfParts) {
 		super();
 		this.userId = userId;
 		this.hash = hash;
@@ -31,6 +32,7 @@ public class CreateMultipartRequest {
 		this.uploadToken = uploadToken;
 		this.bucket = bucket;
 		this.key = key;
+		this.numberOfParts = numberOfParts;
 	}
 	public Long getUserId() {
 		return userId;
@@ -44,7 +46,6 @@ public class CreateMultipartRequest {
 	public void setHash(String hash) {
 		this.hash = hash;
 	}
-	
 	public String getRequestBody() {
 		return requestBody;
 	}
@@ -69,6 +70,13 @@ public class CreateMultipartRequest {
 	public void setKey(String key) {
 		this.key = key;
 	}
+	
+	public Integer getNumberOfParts() {
+		return numberOfParts;
+	}
+	public void setNumberOfParts(Integer numberOfParts) {
+		this.numberOfParts = numberOfParts;
+	}
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -76,6 +84,8 @@ public class CreateMultipartRequest {
 		result = prime * result + ((bucket == null) ? 0 : bucket.hashCode());
 		result = prime * result + ((hash == null) ? 0 : hash.hashCode());
 		result = prime * result + ((key == null) ? 0 : key.hashCode());
+		result = prime * result
+				+ ((numberOfParts == null) ? 0 : numberOfParts.hashCode());
 		result = prime * result
 				+ ((requestBody == null) ? 0 : requestBody.hashCode());
 		result = prime * result
@@ -107,6 +117,11 @@ public class CreateMultipartRequest {
 				return false;
 		} else if (!key.equals(other.key))
 			return false;
+		if (numberOfParts == null) {
+			if (other.numberOfParts != null)
+				return false;
+		} else if (!numberOfParts.equals(other.numberOfParts))
+			return false;
 		if (requestBody == null) {
 			if (other.requestBody != null)
 				return false;
@@ -127,8 +142,9 @@ public class CreateMultipartRequest {
 	@Override
 	public String toString() {
 		return "CreateMultipartRequest [userId=" + userId + ", hash=" + hash
-				+ ", requestString=" + requestBody + ", uploadToken="
-				+ uploadToken + ", bucket=" + bucket + ", key=" + key + "]";
+				+ ", requestBody=" + requestBody + ", uploadToken="
+				+ uploadToken + ", bucket=" + bucket + ", key=" + key
+				+ ", numberOfParts=" + numberOfParts + "]";
 	}
 	
 }

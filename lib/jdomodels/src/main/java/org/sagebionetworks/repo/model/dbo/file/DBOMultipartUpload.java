@@ -33,6 +33,7 @@ public class DBOMultipartUpload implements MigratableDatabaseObject<DBOMultipart
 		new FieldColumn("uploadToken", COL_MULTIPART_UPLOAD_TOKEN),
 		new FieldColumn("bucket", COL_MULTIPART_BUCKET),
 		new FieldColumn("key", COL_MULTIPART_KEY),
+		new FieldColumn("numberOfParts", COL_MULTIPART_NUMBER_OF_PARTS)
 	};
 	
 	Long id;
@@ -47,6 +48,7 @@ public class DBOMultipartUpload implements MigratableDatabaseObject<DBOMultipart
 	String uploadToken;
 	String bucket;
 	String key;
+	Integer numberOfParts;
 
 	@Override
 	public TableMapping<DBOMultipartUpload> getTableMapping() {
@@ -68,6 +70,7 @@ public class DBOMultipartUpload implements MigratableDatabaseObject<DBOMultipart
 				dbo.setUploadToken(rs.getString(COL_MULTIPART_UPLOAD_TOKEN));
 				dbo.setBucket(rs.getString(COL_MULTIPART_BUCKET));
 				dbo.setKey(rs.getString(COL_CREDENTIAL_SECRET_KEY));
+				dbo.setNumberOfParts(rs.getInt(COL_MULTIPART_NUMBER_OF_PARTS));
 				return dbo;
 			}
 
@@ -226,6 +229,14 @@ public class DBOMultipartUpload implements MigratableDatabaseObject<DBOMultipart
 		this.key = key;
 	}
 
+	public Integer getNumberOfParts() {
+		return numberOfParts;
+	}
+
+	public void setNumberOfParts(Integer numberOfParts) {
+		this.numberOfParts = numberOfParts;
+	}
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -236,6 +247,8 @@ public class DBOMultipartUpload implements MigratableDatabaseObject<DBOMultipart
 				+ ((fileHandleId == null) ? 0 : fileHandleId.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result + ((key == null) ? 0 : key.hashCode());
+		result = prime * result
+				+ ((numberOfParts == null) ? 0 : numberOfParts.hashCode());
 		result = prime * result + Arrays.hashCode(requestBlob);
 		result = prime * result
 				+ ((requestHash == null) ? 0 : requestHash.hashCode());
@@ -285,6 +298,11 @@ public class DBOMultipartUpload implements MigratableDatabaseObject<DBOMultipart
 				return false;
 		} else if (!key.equals(other.key))
 			return false;
+		if (numberOfParts == null) {
+			if (other.numberOfParts != null)
+				return false;
+		} else if (!numberOfParts.equals(other.numberOfParts))
+			return false;
 		if (!Arrays.equals(requestBlob, other.requestBlob))
 			return false;
 		if (requestHash == null) {
@@ -328,7 +346,7 @@ public class DBOMultipartUpload implements MigratableDatabaseObject<DBOMultipart
 				+ ", startedOn=" + startedOn + ", updatedOn=" + updatedOn
 				+ ", fileHandleId=" + fileHandleId + ", state=" + state
 				+ ", uploadToken=" + uploadToken + ", bucket=" + bucket
-				+ ", key=" + key + "]";
+				+ ", key=" + key + ", numberOfParts=" + numberOfParts + "]";
 	}
 
 
