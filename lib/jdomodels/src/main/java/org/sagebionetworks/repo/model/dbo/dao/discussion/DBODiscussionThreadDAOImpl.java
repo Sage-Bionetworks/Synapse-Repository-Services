@@ -100,7 +100,7 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 			+COL_DISCUSSION_THREAD_IS_EDITED+" = TRUE, "
 			+COL_DISCUSSION_THREAD_ETAG+" = ? "
 			+" WHERE "+COL_DISCUSSION_THREAD_ID+" = ?";
-	private static final String SQL_UPDATE_MESSAGE_URL = "UPDATE "+TABLE_DISCUSSION_THREAD
+	private static final String SQL_UPDATE_MESSAGE_KEY = "UPDATE "+TABLE_DISCUSSION_THREAD
 			+" SET "+COL_DISCUSSION_THREAD_MESSAGE_KEY+" = ?, "
 			+COL_DISCUSSION_THREAD_IS_EDITED+" = TRUE, "
 			+COL_DISCUSSION_THREAD_ETAG+" = ? "
@@ -254,12 +254,12 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 
 	@WriteTransaction
 	@Override
-	public DiscussionThreadBundle updateMessageKey(long threadId, String newMessageUrl) {
-		if (newMessageUrl == null) {
-			throw new IllegalArgumentException("Message Url cannot be null");
+	public DiscussionThreadBundle updateMessageKey(long threadId, String newMessageKey) {
+		if (newMessageKey == null) {
+			throw new IllegalArgumentException("Message Key cannot be null");
 		}
 		String etag = UUID.randomUUID().toString();
-		jdbcTemplate.update(SQL_UPDATE_MESSAGE_URL, newMessageUrl, etag, threadId);
+		jdbcTemplate.update(SQL_UPDATE_MESSAGE_KEY, newMessageKey, etag, threadId);
 		return getThread(threadId);
 	}
 
