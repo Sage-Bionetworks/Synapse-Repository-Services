@@ -744,6 +744,19 @@ public class SqlConstants {
 	public static final String COL_DISCUSSION_THREAD_VIEW_USER_ID = "USER_ID";
 	public static final String DDL_DISCUSSION_THREAD_VIEW = "schema/DiscussionThreadView-ddl.sql";
 
+	// Discussion Reply table
+	public static final String TABLE_DISCUSSION_REPLY = "DISCUSSION_REPLY";
+	public static final String COL_DISCUSSION_REPLY_ID = "ID";
+	public static final String COL_DISCUSSION_REPLY_THREAD_ID = "THREAD_ID";
+	public static final String COL_DISCUSSION_REPLY_ETAG = "ETAG";
+	public static final String COL_DISCUSSION_REPLY_CREATED_ON = "CREATED_ON";
+	public static final String COL_DISCUSSION_REPLY_CREATED_BY = "CREATED_BY";
+	public static final String COL_DISCUSSION_REPLY_MODIFIED_ON = "MODIFIED_ON";
+	public static final String COL_DISCUSSION_REPLY_MESSAGE_KEY = "MESSAGE_KEY";
+	public static final String COL_DISCUSSION_REPLY_IS_EDITED = "IS_EDITED";
+	public static final String COL_DISCUSSION_REPLY_IS_DELETED = "IS_DELETED";
+	public static final String DDL_DISCUSSION_REPLY = "schema/DiscussionReply-ddl.sql";
+
 	// This seems to be the name of the id column for all tables.
 	public static final String COLUMN_ID		= "id";
 	

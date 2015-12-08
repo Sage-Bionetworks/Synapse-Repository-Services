@@ -1,0 +1,13 @@
+{
+	"description": "The model object represents a single Reply creation.",
+	"properties": {
+		"threadId": {
+			"type": "string",
+			"description": "The ID of the thread this Reply belongs to"
+		},
+		"messageMarkdown": {
+			"type": "string",
+			"description": "The markdown of the Reply's message"
+		}
+	}
+}

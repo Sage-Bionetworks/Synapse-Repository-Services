@@ -27,10 +27,12 @@ import java.util.concurrent.Future;
 
 import org.apache.commons.lang.NotImplementedException;
 import org.apache.commons.lang.StringUtils;
+import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.entity.ContentType;
+import org.apache.http.util.EntityUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONException;
@@ -38,6 +40,7 @@ import org.json.JSONObject;
 import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseResultNotReadyException;
+import org.sagebionetworks.client.exceptions.SynapseServerException;
 import org.sagebionetworks.client.exceptions.SynapseTableUnavailableException;
 import org.sagebionetworks.client.exceptions.SynapseTermsOfUseException;
 import org.sagebionetworks.downloadtools.FileUtils;
@@ -115,8 +118,8 @@ import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.auth.Username;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
-import org.sagebionetworks.repo.model.discussion.DiscussionOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
+import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
 import org.sagebionetworks.repo.model.discussion.Forum;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
@@ -7600,7 +7603,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 	@Override
 	public PaginatedResults<DiscussionThreadBundle> getThreadsForForum(
-			String forumId, Long limit, Long offset, DiscussionOrder order,
+			String forumId, Long limit, Long offset, DiscussionThreadOrder order,
 			Boolean ascending) throws SynapseException {
 		ValidateArgument.required(forumId, "forumId cannot be null");
 		ValidateArgument.required(limit, "limit cannot be null");
@@ -7646,5 +7649,4 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public void markThreadAsDeleted(String threadId) throws SynapseException {
 		getSharedClientConnection().deleteUri(repoEndpoint, THREAD+"/"+threadId, getUserAgent());
 	}
-
 }
