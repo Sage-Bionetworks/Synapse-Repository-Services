@@ -31,7 +31,7 @@
 								<property name="semaphoreLockKey" value="tableIndexWorker" />
 								<property name="semaphoreMaxLockCount" value="10" />
 								<property name="semaphoreLockAndMessageVisibilityTimeoutSec"
-									value="60" />
+									value="120" />
 								<property name="queueName"
 									ref="stackConfiguration.tableUpdateQueueName" />
 								<property name="topicNamesToSubscribe">
