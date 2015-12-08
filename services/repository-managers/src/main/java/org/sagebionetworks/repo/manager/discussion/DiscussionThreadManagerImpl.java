@@ -22,7 +22,7 @@ import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
-import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -39,7 +39,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 	private IdGenerator idGenerator;
 
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public DiscussionThreadBundle createThread(UserInfo userInfo, CreateDiscussionThread createThread) throws IOException {
 		ValidateArgument.required(createThread, "createThread cannot be null");
@@ -72,7 +72,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		return addMessageUrl(thread);
 	}
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public DiscussionThreadBundle updateTitle(UserInfo userInfo, String threadId, UpdateThreadTitle newTitle) {
 		ValidateArgument.required(threadId, "threadId cannot be null");
@@ -88,7 +88,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		}
 	}
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public DiscussionThreadBundle updateMessage(UserInfo userInfo, String threadId,
 			UpdateThreadMessage newMessage) throws IOException {
@@ -106,7 +106,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		}
 	}
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public void markThreadAsDeleted(UserInfo userInfo, String threadId) {
 		ValidateArgument.required(threadId, "threadId cannot be null");

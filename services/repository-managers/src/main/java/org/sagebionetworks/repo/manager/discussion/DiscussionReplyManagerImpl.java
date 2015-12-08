@@ -13,6 +13,7 @@ import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
+import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -26,6 +27,7 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 	@Autowired
 	private DiscussionReplyDAO replyDao;
 
+	@WriteTransactionReadCommitted
 	@Override
 	public DiscussionReplyBundle createReply(UserInfo userInfo,
 			CreateDiscussionReply createReply) throws IOException {
@@ -54,6 +56,7 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 		return addMessageUrl(reply);
 	}
 
+	@WriteTransactionReadCommitted
 	@Override
 	public DiscussionReplyBundle updateReplyMessage(UserInfo userInfo,
 			String replyId, UpdateReplyMessage newMessage) {
@@ -61,6 +64,7 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 		return null;
 	}
 
+	@WriteTransactionReadCommitted
 	@Override
 	public void markReplyAsDeleted(UserInfo userInfo, String replyId) {
 		// TODO Auto-generated method stub

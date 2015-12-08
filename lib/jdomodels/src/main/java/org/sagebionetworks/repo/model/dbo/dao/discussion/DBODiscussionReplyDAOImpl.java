@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.model.dbo.persistence.discussion.DBODiscussionRe
 import org.sagebionetworks.repo.model.dbo.persistence.discussion.DiscussionReplyUtils;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
+import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -89,6 +90,7 @@ public class DBODiscussionReplyDAOImpl implements DiscussionReplyDAO{
 			+COL_DISCUSSION_REPLY_ETAG+" = ? "
 			+" WHERE "+COL_DISCUSSION_REPLY_ID+" = ?";
 
+	@WriteTransactionReadCommitted
 	@Override
 	public DiscussionReplyBundle createReply(String threadId, String messageKey, Long userId) {
 		ValidateArgument.required(threadId, "threadId cannot be null");
@@ -154,12 +156,14 @@ public class DBODiscussionReplyDAOImpl implements DiscussionReplyDAO{
 		return jdbcTemplate.queryForLong(SQL_SELECT_REPLY_COUNT, threadId);
 	}
 
+	@WriteTransactionReadCommitted
 	@Override
 	public void markReplyAsDeleted(long replyId) {
 		String etag = UUID.randomUUID().toString();
 		jdbcTemplate.update(SQL_MARK_REPLY_AS_DELETED, etag, replyId);
 	}
 
+	@WriteTransactionReadCommitted
 	@Override
 	public DiscussionReplyBundle updateMessageKey(long replyId, String newKey) {
 		if (newKey == null) {
@@ -170,6 +174,7 @@ public class DBODiscussionReplyDAOImpl implements DiscussionReplyDAO{
 		return getReply(replyId);
 	}
 
+	@WriteTransactionReadCommitted
 	@Override
 	public String getEtagForUpdate(long replyId) {
 		List<String> results = jdbcTemplate.query(SQL_SELECT_ETAG_FOR_UPDATE, new RowMapper<String>(){
