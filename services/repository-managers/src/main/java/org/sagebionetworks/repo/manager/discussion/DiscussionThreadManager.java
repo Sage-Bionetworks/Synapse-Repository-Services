@@ -72,4 +72,12 @@ public interface DiscussionThreadManager {
 	 * @return
 	 */
 	public PaginatedResults<DiscussionThreadBundle> getThreadsForForum(UserInfo userInfo, String forumId, Long limit, Long offset, DiscussionThreadOrder order, Boolean ascending );
+
+	/**
+	 * Can the user read this thread
+	 * 
+	 * @param userInfo
+	 * @param threadId
+	 */
+	public void canAccess(UserInfo userInfo, String threadId);
 }
