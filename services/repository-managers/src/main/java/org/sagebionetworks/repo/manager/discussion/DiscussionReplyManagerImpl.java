@@ -4,6 +4,7 @@ import java.io.IOException;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.model.UploadContentToS3DAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.discussion.DiscussionReplyDAO;
@@ -45,6 +46,12 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 
 	@Override
 	public DiscussionReplyBundle getReply(UserInfo userInfo, String replyId) {
+		UserInfo.validateUserInfo(userInfo);
+		ValidateArgument.required(replyId, "replyId cannot be null");
+		DiscussionReplyBundle reply = replyDao.getReply(Long.parseLong(replyId));
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+				threadManager.canAccess(userInfo, reply.getThreadId()));
+		return reply;
 	}
 
 	@Override

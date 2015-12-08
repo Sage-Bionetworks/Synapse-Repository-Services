@@ -11,6 +11,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UploadContentToS3DAO;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -37,6 +38,7 @@ public class DiscussionReplyManagerImplTest {
 	private String threadId = "123";
 	private String projectId = "syn456";
 	private String forumId = "789";
+	DiscussionReplyBundle bundle;
 
 	@Before
 	public void before() {
@@ -51,6 +53,9 @@ public class DiscussionReplyManagerImplTest {
 		Mockito.when(mockThreadManager.getThread(userInfo, threadId)).thenReturn(mockThread);
 		Mockito.when(mockThread.getProjectId()).thenReturn(projectId);
 		Mockito.when(mockThread.getForumId()).thenReturn(forumId);
+
+		bundle = new DiscussionReplyBundle();
+		bundle.setThreadId(threadId);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -95,7 +100,6 @@ public class DiscussionReplyManagerImplTest {
 		CreateDiscussionReply createReply = new CreateDiscussionReply();
 		createReply.setThreadId(threadId);
 		createReply.setMessageMarkdown(message);
-		DiscussionReplyBundle bundle = new DiscussionReplyBundle();
 		Mockito.when(mockUploadDao.uploadDiscussionContent(message, forumId, threadId))
 				.thenReturn(messageKey);
 		Mockito.when(mockReplyDao.createReply(threadId, messageKey, userInfo.getId()))
@@ -104,5 +108,17 @@ public class DiscussionReplyManagerImplTest {
 		assertEquals(bundle, reply);
 	}
 
-	
+	@Test (expected = UnauthorizedException.class)
+	public void testGetReplyUnauthorized() {
+		Mockito.when(mockReplyDao.getReply(Mockito.anyLong())).thenReturn(bundle);
+		Mockito.when(mockThreadManager.canAccess(userInfo, threadId)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+		replyManager.getReply(userInfo, "123");
+	}
+
+	@Test
+	public void testGetReplyAuthorized() {
+		Mockito.when(mockReplyDao.getReply(Mockito.anyLong())).thenReturn(bundle);
+		Mockito.when(mockThreadManager.canAccess(userInfo, threadId)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		assertEquals(bundle, replyManager.getReply(userInfo, "123"));
+	}
 }
