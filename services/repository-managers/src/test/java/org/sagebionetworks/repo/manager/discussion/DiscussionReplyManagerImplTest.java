@@ -38,7 +38,8 @@ public class DiscussionReplyManagerImplTest {
 	private String threadId = "123";
 	private String projectId = "syn456";
 	private String forumId = "789";
-	DiscussionReplyBundle bundle;
+	private DiscussionReplyBundle bundle;
+	private String messageKey;
 
 	@Before
 	public void before() {
@@ -53,9 +54,13 @@ public class DiscussionReplyManagerImplTest {
 		Mockito.when(mockThreadManager.getThread(userInfo, threadId)).thenReturn(mockThread);
 		Mockito.when(mockThread.getProjectId()).thenReturn(projectId);
 		Mockito.when(mockThread.getForumId()).thenReturn(forumId);
+		Mockito.when(mockUploadDao.getUrl(Mockito.anyString())).thenReturn("messageUrl");
 
 		bundle = new DiscussionReplyBundle();
 		bundle.setThreadId(threadId);
+		messageKey = UUID.randomUUID().toString();
+		bundle.setMessageKey(messageKey);
+		bundle.setMessageUrl("messageUrl");
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -96,7 +101,6 @@ public class DiscussionReplyManagerImplTest {
 	@Test
 	public void testCreateReplyAuthorized() throws IOException {
 		String message = "messageMarkdown";
-		String messageKey = UUID.randomUUID().toString();
 		CreateDiscussionReply createReply = new CreateDiscussionReply();
 		createReply.setThreadId(threadId);
 		createReply.setMessageMarkdown(message);
@@ -119,6 +123,7 @@ public class DiscussionReplyManagerImplTest {
 	public void testGetReplyAuthorized() {
 		Mockito.when(mockReplyDao.getReply(Mockito.anyLong())).thenReturn(bundle);
 		Mockito.when(mockThreadManager.canAccess(userInfo, threadId)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		assertEquals(bundle, replyManager.getReply(userInfo, "123"));
+		DiscussionReplyBundle reply = replyManager.getReply(userInfo, "123");
+		assertEquals(bundle, reply);
 	}
 }

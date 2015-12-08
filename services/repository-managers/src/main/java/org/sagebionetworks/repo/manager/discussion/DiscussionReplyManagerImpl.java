@@ -51,7 +51,7 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 		DiscussionReplyBundle reply = replyDao.getReply(Long.parseLong(replyId));
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				threadManager.canAccess(userInfo, reply.getThreadId()));
-		return reply;
+		return addMessageUrl(reply);
 	}
 
 	@Override
