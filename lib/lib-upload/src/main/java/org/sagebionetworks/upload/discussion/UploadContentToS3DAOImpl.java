@@ -8,6 +8,7 @@ import java.util.UUID;
 import java.util.zip.GZIPOutputStream;
 
 import org.sagebionetworks.repo.model.UploadContentToS3DAO;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.s3.AmazonS3Client;
@@ -75,6 +76,7 @@ public class UploadContentToS3DAOImpl implements UploadContentToS3DAO {
 
 	@Override
 	public String getUrl(String key) {
+		ValidateArgument.required(key, "key cannot be null");
 		return S3_PREFIX + bucketName + "/" + key;
 	}
 }
