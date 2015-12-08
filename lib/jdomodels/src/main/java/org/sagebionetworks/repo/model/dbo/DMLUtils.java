@@ -266,25 +266,60 @@ public class DMLUtils {
 	}
 
 	/**
-	 *	Build a 'select sum(crc32(etag|id)) statement for given mapping
+	 *	Build a 'select sum(crc32(concat(id, '@', 'NA'))), bit_xor(crc32(concat(id, '@', ifnull(etag, 'NULL')))) statement for given mapping
 	 */
-	public static String createSelectSumCrc32ByIdRangeStatement(TableMapping mapping) {
+	public static String createSelectChecksumStatement(TableMapping mapping) {
+
 		validateMigratableTableMapping(mapping);
-		// sum(crc32()) on etag if exist, id if not
-		FieldColumn crcCol = getEtagColumn(mapping);
-		if (crcCol  == null) {
-			crcCol = getBackupIdColumnName(mapping);
-		}
-		String crcColName = crcCol.getColumnName();
+
 		// batch by ranges of backup ids
 		// build the statement
 		StringBuilder builder = new StringBuilder();
-		builder.append("SELECT SUM(crc32(`");
-		builder.append(crcColName);
-		builder.append("`)) FROM ");
+		builder.append("SELECT CONCAT(");
+		builder.append(buildAggregateCrc32Call(mapping, "SUM"));
+		builder.append(", '%', ");
+		builder.append(buildAggregateCrc32Call(mapping, "BIT_XOR"));
+		builder.append(") FROM ");
 		builder.append(mapping.getTableName());
 		buildWhereBackupIdInRange(mapping, builder);
 		return builder.toString();
+	}
+	
+	/**
+	 * Builds the <aggregate>(crc32()) call
+	 * @param mapping
+	 * @return
+	 */
+	private static String buildAggregateCrc32Call(TableMapping mapping, String aggregate) {
+		String concatCall = buildCallConcatIdAndEtagIfExists(mapping);
+		StringBuilder builder = new StringBuilder();
+		builder.append(aggregate);
+		builder.append("(CRC32(");
+		builder.append(concatCall);
+		builder.append("))");
+		return builder.toString();
+	}
+	
+	/**
+	 * Builds the concat() call
+	 */
+	private static String buildCallConcatIdAndEtagIfExists(TableMapping mapping) {
+		FieldColumn etagCol = getEtagColumn(mapping);
+		FieldColumn idCol = getBackupIdColumnName(mapping);
+		StringBuilder builder = new StringBuilder();
+		builder.append("CONCAT(`");
+		builder.append(idCol.getColumnName());
+		builder.append("`, '@', ");
+		if (etagCol == null) {
+			builder.append("'NA'");
+		} else {
+			builder.append("IFNULL(`");
+			builder.append(etagCol.getColumnName());
+			builder.append("`, 'NULL')");
+		}
+		builder.append(")");
+		return builder.toString();
+		
 	}
 	
 	private static void buildWhereBackupIdInRange(TableMapping mapping, StringBuilder builder) {

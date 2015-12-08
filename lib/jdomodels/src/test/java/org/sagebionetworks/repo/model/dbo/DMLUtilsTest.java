@@ -289,18 +289,18 @@ public class DMLUtilsTest {
 	}
 	
 	@Test
-	public void testcreateSelectSumCrc32ByIdRangeStatementWithEtag() {
-		String expectedSql = "SELECT SUM(crc32(`ETAG`)) FROM SOME_TABLE WHERE `ID` >= :BVIDRMIN AND `ID` <= :BVIDRMAX";
-		String sql = DMLUtils.createSelectSumCrc32ByIdRangeStatement(migrateableMappingEtagAndId);
+	public void createSelectChecksumStatementWithEtagColumn() {
+		final String expectedSql = "SELECT CONCAT(SUM(CRC32(CONCAT(`ID`, '@', IFNULL(`ETAG`, 'NULL')))), '%', BIT_XOR(CRC32(CONCAT(`ID`, '@', IFNULL(`ETAG`, 'NULL'))))) FROM SOME_TABLE WHERE `ID` >= :BVIDRMIN AND `ID` <= :BVIDRMAX";
+		String sql = DMLUtils.createSelectChecksumStatement(migrateableMappingEtagAndId);
 		assertNotNull(sql);
 		System.out.println(sql);
 		assertEquals(expectedSql, sql);
 	}
 	
 	@Test
-	public void testcreateSelectSumCrc32ByIdRangeStatementWithoutEtag() {
-		String expectedSql = "SELECT SUM(crc32(`ID`)) FROM SOME_TABLE WHERE `ID` >= :BVIDRMIN AND `ID` <= :BVIDRMAX";
-		String sql = DMLUtils.createSelectSumCrc32ByIdRangeStatement(migrateableMappingNoEtag);
+	public void createSelectChecksumStatementWithoutEtagColumn() {
+		String expectedSql = "SELECT CONCAT(SUM(CRC32(CONCAT(`ID`, '@', 'NA'))), '%', BIT_XOR(CRC32(CONCAT(`ID`, '@', 'NA')))) FROM SOME_TABLE WHERE `ID` >= :BVIDRMIN AND `ID` <= :BVIDRMAX";
+		String sql = DMLUtils.createSelectChecksumStatement(migrateableMappingNoEtag);
 		assertNotNull(sql);
 		System.out.println(sql);
 		assertEquals(expectedSql, sql);
