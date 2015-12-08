@@ -236,7 +236,7 @@ public class DiscussionThreadManagerImplTest {
 				Mockito.anyString(), Mockito.eq(ObjectType.ENTITY), Mockito.eq(ACCESS_TYPE.READ)))
 				.thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		Mockito.when(mockThreadDao.getThread(threadId)).thenReturn(dto);
-		assertEquals(AuthorizationManagerUtil.ACCESS_DENIED, threadManager.canAccess(userInfo, threadId.toString()));
+		assertEquals(AuthorizationManagerUtil.ACCESS_DENIED, threadManager.canAccess(userInfo, threadId.toString(), ACCESS_TYPE.READ));
 	}
 
 	@Test
@@ -245,6 +245,6 @@ public class DiscussionThreadManagerImplTest {
 				Mockito.anyString(), Mockito.eq(ObjectType.ENTITY), Mockito.eq(ACCESS_TYPE.READ)))
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		Mockito.when(mockThreadDao.getThread(threadId)).thenReturn(dto);
-		assertEquals(AuthorizationManagerUtil.AUTHORIZED, threadManager.canAccess(userInfo, threadId.toString()));
+		assertEquals(AuthorizationManagerUtil.AUTHORIZED, threadManager.canAccess(userInfo, threadId.toString(), ACCESS_TYPE.READ));
 	}
 }

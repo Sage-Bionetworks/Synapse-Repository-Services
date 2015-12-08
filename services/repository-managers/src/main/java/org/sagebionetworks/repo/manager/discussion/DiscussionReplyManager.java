@@ -37,8 +37,9 @@ public interface DiscussionReplyManager {
 	 * @param replyId
 	 * @param newMessage
 	 * @return
+	 * @throws IOException 
 	 */
-	public DiscussionReplyBundle updateReplyMessage(UserInfo userInfo, String replyId, UpdateReplyMessage newMessage);
+	public DiscussionReplyBundle updateReplyMessage(UserInfo userInfo, String replyId, UpdateReplyMessage newMessage) throws IOException;
 
 	/**
 	 * Mark a reply as deleted

@@ -141,10 +141,11 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 	}
 
 	@Override
-	public AuthorizationStatus canAccess(UserInfo userInfo, String threadId) {
+	public AuthorizationStatus canAccess(UserInfo userInfo, String threadId, ACCESS_TYPE accessType) {
 		UserInfo.validateUserInfo(userInfo);
 		ValidateArgument.required(threadId, "threadId cannot be null");
+		ValidateArgument.required(accessType, "accessType cannot be null");
 		DiscussionThreadBundle thread = threadDao.getThread(Long.parseLong(threadId));
-		return authorizationManager.canAccess(userInfo, thread.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ);
+		return authorizationManager.canAccess(userInfo, thread.getProjectId(), ObjectType.ENTITY, accessType);
 	}
 }
