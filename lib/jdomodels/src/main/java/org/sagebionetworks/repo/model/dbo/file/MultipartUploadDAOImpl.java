@@ -1,6 +1,22 @@
 package org.sagebionetworks.repo.model.dbo.file;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_BUCKET;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_FILE_HANDLE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_KEY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_NUMBER_OF_PARTS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_PART_ERROR_DETAILS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_PART_MD5_HEX;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_PART_NUMBER;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_PART_UPLOAD_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_REQUEST_HASH;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_STARTED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_STARTED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_STATE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_UPDATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_UPLOAD_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_UPLOAD_TOKEN;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_MULTIPART_UPLOAD;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_MULTIPART_UPLOAD_PART_STATE;
 
 import java.io.UnsupportedEncodingException;
 import java.sql.Blob;
@@ -25,6 +41,10 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 
 public class MultipartUploadDAOImpl implements MultipartUploadDAO {
+
+	private static final String SQL_SELECT_STARTED_BY = "SELECT "
+			+ COL_MULTIPART_STARTED_BY + " FROM " + TABLE_MULTIPART_UPLOAD
+			+ " WHERE " + COL_MULTIPART_UPLOAD_ID + " = ?";
 
 	private static final String SQL_SELECT_ADDED_PART_NUMBERS = "SELECT "
 			+ COL_MULTIPART_PART_NUMBER + " FROM "
@@ -224,6 +244,13 @@ public class MultipartUploadDAOImpl implements MultipartUploadDAO {
 		jdbcTemplate.update(SQL_TRUNCATE_ALL);
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * org.sagebionetworks.repo.model.dbo.file.MultipartUploadDAO#getPartsState
+	 * (java.lang.String, int)
+	 */
 	@Override
 	public String getPartsState(String uploadId, int numberOfParts) {
 		ValidateArgument.required(uploadId, "UploadId");
@@ -239,6 +266,14 @@ public class MultipartUploadDAOImpl implements MultipartUploadDAO {
 		return new String(chars);
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * org.sagebionetworks.repo.model.dbo.file.MultipartUploadDAO#addPartToUpload
+	 * (java.lang.String, int, java.lang.String)
+	 */
+	@WriteTransactionReadCommitted
 	@Override
 	public void addPartToUpload(String uploadId, int partNumber,
 			String partMD5Hex) {
@@ -253,6 +288,14 @@ public class MultipartUploadDAOImpl implements MultipartUploadDAO {
 		basicDao.createOrUpdate(partState);
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * org.sagebionetworks.repo.model.dbo.file.MultipartUploadDAO#setPartToFailed
+	 * (java.lang.String, int, java.lang.String)
+	 */
+	@WriteTransactionReadCommitted
 	@Override
 	public void setPartToFailed(String uploadId, int partNumber,
 			String errorDetails) {
@@ -283,6 +326,13 @@ public class MultipartUploadDAOImpl implements MultipartUploadDAO {
 		}
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * org.sagebionetworks.repo.model.dbo.file.MultipartUploadDAO#getAddedPartMD5s
+	 * (java.lang.String)
+	 */
 	@Override
 	public List<PartMD5> getAddedPartMD5s(final String uploadId) {
 		ValidateArgument.required(uploadId, "UploadId");
@@ -300,6 +350,13 @@ public class MultipartUploadDAOImpl implements MultipartUploadDAO {
 				}, uploadId);
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * org.sagebionetworks.repo.model.dbo.file.MultipartUploadDAO#getPartErrors
+	 * (java.lang.String)
+	 */
 	@Override
 	public List<PartErrors> getPartErrors(String uploadId) {
 		ValidateArgument.required(uploadId, "UploadId");
@@ -324,4 +381,5 @@ public class MultipartUploadDAOImpl implements MultipartUploadDAO {
 					}
 				}, uploadId);
 	}
+
 }

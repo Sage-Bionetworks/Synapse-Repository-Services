@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.file.CompositeMultipartUploadStatus;
 import org.sagebionetworks.repo.model.dbo.file.CreateMultipartRequest;
 import org.sagebionetworks.repo.model.dbo.file.MultipartUploadDAO;
+import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
 import org.sagebionetworks.repo.model.file.Multipart.State;
@@ -67,6 +68,7 @@ public class MultipartManagerV2ImplTest {
 		
 		MultipartUploadStatus status = new MultipartUploadStatus();
 		status.setUploadId("123456");
+		status.setStartedBy(""+userInfo.getId());
 		composite = new CompositeMultipartUploadStatus();
 		composite.setMultipartUploadStatus(status);
 		composite.setNumberOfParts(10);
@@ -274,5 +276,38 @@ public class MultipartManagerV2ImplTest {
 		MultipartUploadStatus status = manager.startOrResumeMultipartUpload(userInfo, request, forceRestart);
 		assertNotNull(status);
 		verify(mockMultiparUploadDAO).deleteUploadStatus(anyLong(), anyString());
+	}
+	
+	@Test
+	public void testGetCompletePartStateString(){
+		assertEquals("1111", MultipartManagerV2Impl.getCompletePartStateString(4));
+	}
+	
+	@Test (expected=UnauthorizedException.class)
+	public void testGetBatchPresignedUploadUrlsUnauthorized(){
+		String uplaodId = composite.getMultipartUploadStatus().getUploadId();
+		// set this upload started by another user.
+		composite.getMultipartUploadStatus().setStartedBy(""+(userInfo.getId()+1));
+		// setup the case where the status already exists
+		when(mockMultiparUploadDAO.getUploadStatus(uplaodId)).thenReturn(composite);
+		
+		BatchPresignedUploadUrlRequest request = new BatchPresignedUploadUrlRequest();
+		request.setUploadId(uplaodId);
+		request.setPartNumbers(Lists.newArrayList(1L, 2L));
+		// call under test
+		manager.getBatchPresignedUploadUrls(userInfo, request);
+	}
+	
+	@Test
+	public void testGetBatchPresignedUploadUrls(){
+		String uplaodId = composite.getMultipartUploadStatus().getUploadId();
+		// setup the case where the status already exists
+		when(mockMultiparUploadDAO.getUploadStatus(uplaodId)).thenReturn(composite);
+		
+		BatchPresignedUploadUrlRequest request = new BatchPresignedUploadUrlRequest();
+		request.setUploadId(uplaodId);
+		request.setPartNumbers(Lists.newArrayList(1L, 2L));
+		// call under test
+		manager.getBatchPresignedUploadUrls(userInfo, request);
 	}
 }

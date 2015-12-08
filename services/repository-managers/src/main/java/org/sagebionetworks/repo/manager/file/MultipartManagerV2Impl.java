@@ -13,6 +13,8 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.file.CompositeMultipartUploadStatus;
 import org.sagebionetworks.repo.model.dbo.file.CreateMultipartRequest;
 import org.sagebionetworks.repo.model.dbo.file.MultipartUploadDAO;
+import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlRequest;
+import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlResponse;
 import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
@@ -38,6 +40,14 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 	@Autowired
 	ProjectSettingsManager projectSettingsManager;
 
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see org.sagebionetworks.repo.manager.file.MultipartManagerV2#
+	 * startOrResumeMultipartUpload(org.sagebionetworks.repo.model.UserInfo,
+	 * org.sagebionetworks.repo.model.file.MultipartUploadRequest,
+	 * java.lang.Boolean)
+	 */
 	@WriteTransactionReadCommitted
 	@Override
 	public MultipartUploadStatus startOrResumeMultipartUpload(UserInfo user,
@@ -73,14 +83,15 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 			// Since the status for this file does not exist, create it.
 			status = createNewMultipartUpload(user, request, requestMD5Hex);
 		}
-		// Is this file done?
+		// Calculate the parts state for this file.
 		String partsState = setupPartState(status);
 		status.getMultipartUploadStatus().setPartsState(partsState);
 		return status.getMultipartUploadStatus();
 	}
 
 	/**
-	 * Create a new multipart upload both in S3 and the database.
+	 * Create a new multi-part upload both in S3 and the database.
+	 * 
 	 * @param user
 	 * @param request
 	 * @param requestMD5Hex
@@ -100,13 +111,13 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 				bucket, key, request);
 		String requestJson = createRequestJSON(request);
 		// How many parts will be needed to upload this file?
-		int numberParts = calculateNumberOfParts(
-				request.getFileSizeBytes(), request.getPartSizeBytes());
+		int numberParts = calculateNumberOfParts(request.getFileSizeBytes(),
+				request.getPartSizeBytes());
 		// Start the upload
 		return multipartUploadDAO
-				.createUploadStatus(new CreateMultipartRequest(
-						user.getId(), requestMD5Hex, requestJson,
-						uploadToken, bucket, key, numberParts));
+				.createUploadStatus(new CreateMultipartRequest(user.getId(),
+						requestMD5Hex, requestJson, uploadToken, bucket, key,
+						numberParts));
 	}
 
 	/**
@@ -218,6 +229,48 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 			throw new RuntimeException(e);
 		} catch (NoSuchAlgorithmException e) {
 			throw new RuntimeException(e);
+		}
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see org.sagebionetworks.repo.manager.file.MultipartManagerV2#
+	 * getBatchPresignedUploadUrls(org.sagebionetworks.repo.model.UserInfo,
+	 * org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlRequest)
+	 */
+	@Override
+	public BatchPresignedUploadUrlResponse getBatchPresignedUploadUrls(
+			UserInfo user, BatchPresignedUploadUrlRequest request) {
+
+		ValidateArgument.required(request, "BatchPresignedUploadUrlRequest");
+		ValidateArgument.required(request.getPartNumbers(),
+				"BatchPresignedUploadUrlRequest.partNumbers");
+		if (request.getPartNumbers().isEmpty()) {
+			throw new IllegalArgumentException(
+					"BatchPresignedUploadUrlRequest.partNumbers must contain at least one value");
+		}
+		// lookup this upload.
+		CompositeMultipartUploadStatus status = multipartUploadDAO.getUploadStatus(request.getUploadId());
+		// validate the caller is the user that started this upload.
+		validateStartedBy(user, status);
+		return null;
+	}
+
+	/**
+	 * Validate the caller started the given 
+	 * @param user
+	 * @param startedBy
+	 */
+	private void validateStartedBy(UserInfo user, CompositeMultipartUploadStatus composite) {
+		ValidateArgument.required(user, "UserInfo");
+		ValidateArgument.required(composite, "CompositeMultipartUploadStatus");
+		ValidateArgument.required(composite.getMultipartUploadStatus(), "CompositeMultipartUploadStatus.multipartUploadStatus");
+		ValidateArgument.required(composite.getMultipartUploadStatus().getStartedBy(), "CompositeMultipartUploadStatus.multipartUploadStatus.startedBy");
+		Long startedBy = Long.parseLong(composite.getMultipartUploadStatus().getStartedBy());
+		if (!startedBy.equals(user.getId())) {
+			throw new UnauthorizedException(
+					"Only the user that started a multipart upload can get part upload pre-signed URLs for that file upload.");
 		}
 	}
 

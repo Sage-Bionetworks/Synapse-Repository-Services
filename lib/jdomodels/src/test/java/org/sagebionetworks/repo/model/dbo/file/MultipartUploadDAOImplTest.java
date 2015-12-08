@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.model.dbo.file;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
-import java.util.Arrays;
 import java.util.List;
 
 import org.junit.Before;
@@ -184,6 +183,5 @@ public class MultipartUploadDAOImplTest {
 		String partsState = multipartUplaodDAO.getPartsState(uploadId, numberOfParts);
 		assertEquals("10000000100", partsState);
 	}
-	
 	
 }
