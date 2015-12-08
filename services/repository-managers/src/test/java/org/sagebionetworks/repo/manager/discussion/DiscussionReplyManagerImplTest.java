@@ -11,9 +11,6 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
-import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UploadContentToS3DAO;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -87,8 +84,7 @@ public class DiscussionReplyManagerImplTest {
 		CreateDiscussionReply createReply = new CreateDiscussionReply();
 		createReply.setThreadId(threadId);
 		createReply.setMessageMarkdown("messageMarkdown");
-		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
-				.thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+		Mockito.when(mockThreadManager.getThread(userInfo, threadId)).thenThrow(new UnauthorizedException());
 		replyManager.createReply(userInfo, createReply);
 	}
 
@@ -100,8 +96,6 @@ public class DiscussionReplyManagerImplTest {
 		createReply.setThreadId(threadId);
 		createReply.setMessageMarkdown(message);
 		DiscussionReplyBundle bundle = new DiscussionReplyBundle();
-		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
-				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		Mockito.when(mockUploadDao.uploadDiscussionContent(message, forumId, threadId))
 				.thenReturn(messageKey);
 		Mockito.when(mockReplyDao.createReply(threadId, messageKey, userInfo.getId()))
@@ -109,4 +103,6 @@ public class DiscussionReplyManagerImplTest {
 		DiscussionReplyBundle reply = replyManager.createReply(userInfo, createReply);
 		assertEquals(bundle, reply);
 	}
+
+	
 }
