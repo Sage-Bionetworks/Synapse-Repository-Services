@@ -4,11 +4,16 @@ import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 import static org.sagebionetworks.repo.manager.file.MultipartManagerV2Impl.*;
 
+import java.util.Arrays;
+import java.util.Date;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -19,8 +24,11 @@ import org.sagebionetworks.repo.model.dbo.file.CreateMultipartRequest;
 import org.sagebionetworks.repo.model.dbo.file.MultipartUploadDAO;
 import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
+import org.sagebionetworks.repo.model.file.Multipart.State;
 import org.sagebionetworks.upload.multipart.S3MultipartUploadDAO;
 import org.springframework.test.util.ReflectionTestUtils;
+
+import com.google.common.collect.Lists;
 
 public class MultipartManagerV2ImplTest {
 	
@@ -61,16 +69,48 @@ public class MultipartManagerV2ImplTest {
 		status.setUploadId("123456");
 		composite = new CompositeMultipartUploadStatus();
 		composite.setMultipartUploadStatus(status);
+		composite.setNumberOfParts(10);
 		
 		uploadToken = "someUploadToken";
 		
-		when(mockMultiparUploadDAO.createUploadStatus(any(CreateMultipartRequest.class))).thenReturn(composite);
-		when(mockS3multipartUploadDAO.initiateMultipartUpload(anyString(), anyString(), any(MultipartUploadRequest.class))).thenReturn(uploadToken);
+		// capture all data from a created
+		doAnswer(new Answer<CompositeMultipartUploadStatus>(){
+			@Override
+			public CompositeMultipartUploadStatus answer(
+					InvocationOnMock invocation) throws Throwable {
+				CreateMultipartRequest cmr = (CreateMultipartRequest) invocation.getArguments()[0];
 
-				
+				MultipartUploadStatus status = new MultipartUploadStatus();
+				status.setStartedBy(""+cmr.getUserId());
+				status.setStartedOn(new Date());
+				status.setState(State.UPLOADING);
+				status.setUploadId("123456");
+				status.setUpdatedOn(status.getStartedOn());
+				CompositeMultipartUploadStatus composite = new CompositeMultipartUploadStatus();
+				composite.setMultipartUploadStatus(status);
+				composite.setBucket(cmr.getBucket());
+				composite.setKey(cmr.getKey());
+				composite.setNumberOfParts(cmr.getNumberOfParts());
+				composite.setUploadToken("anUploadToken");
+				return composite;
+			}}).when(mockMultiparUploadDAO).createUploadStatus(any(CreateMultipartRequest.class));
+		
+		when(mockS3multipartUploadDAO.initiateMultipartUpload(anyString(), anyString(), any(MultipartUploadRequest.class))).thenReturn(uploadToken);
+		
+		// Simulate the number of parts
+		doAnswer(new Answer<String>(){
+			@Override
+			public String answer(InvocationOnMock invocation) throws Throwable {
+				String uploadId = (String) invocation.getArguments()[0];
+				int numberOfParts = (Integer) invocation.getArguments()[1];
+				char[] chars = new char[numberOfParts];
+				Arrays.fill(chars, '0');
+				return new String(chars);
+			}}).when(mockMultiparUploadDAO).getPartsState(anyString(), anyInt());
+						
 		forceRestart = null;
 		manager = new MultipartManagerV2Impl();
-		ReflectionTestUtils.setField(manager, "multiparUploadDAO", mockMultiparUploadDAO);
+		ReflectionTestUtils.setField(manager, "multipartUploadDAO", mockMultiparUploadDAO);
 		ReflectionTestUtils.setField(manager, "projectSettingsManager", mockProjectSettingsManager);
 		ReflectionTestUtils.setField(manager, "s3multipartUploadDAO", mockS3multipartUploadDAO);
 		
@@ -166,6 +206,10 @@ public class MultipartManagerV2ImplTest {
 		// call under test
 		MultipartUploadStatus status = manager.startOrResumeMultipartUpload(userInfo, request, forceRestart);
 		assertNotNull(status);
+		assertEquals(State.UPLOADING, status.getState());
+		assertEquals("000000000000000000000", status.getPartsState());
+		assertEquals("123456", status.getUploadId());
+		
 		// the status should not be reset.
 		verify(mockMultiparUploadDAO, never()).deleteUploadStatus(anyLong(), anyString());
 		
@@ -186,10 +230,32 @@ public class MultipartManagerV2ImplTest {
 		when(mockMultiparUploadDAO.getUploadStatus(anyLong(), anyString())).thenReturn(composite);
 		// call under test
 		MultipartUploadStatus status = manager.startOrResumeMultipartUpload(userInfo, request, forceRestart);
+		assertEquals("0000000000", status.getPartsState());
 		assertNotNull(status);
 		// the status should not be reset.
 		verify(mockMultiparUploadDAO, never()).deleteUploadStatus(anyLong(), anyString());
 		verify(mockMultiparUploadDAO, never()).createUploadStatus(any(CreateMultipartRequest.class));
+		verify(mockMultiparUploadDAO).getPartsState(anyString(), anyInt());
+	}
+	
+	@Test
+	public void testStartOrResumeMultipartUploadAlreadyStartedCompleted(){
+		// setup the case where the status already exists and it is complete
+		composite.getMultipartUploadStatus().setState(State.COMPLETED);
+		composite.getMultipartUploadStatus().setResultFileHandleId("9876");
+		when(mockMultiparUploadDAO.getUploadStatus(anyLong(), anyString())).thenReturn(composite);
+		// call under test
+		MultipartUploadStatus status = manager.startOrResumeMultipartUpload(userInfo, request, forceRestart);
+		assertNotNull(status);
+		assertEquals(State.COMPLETED, status.getState());
+		assertEquals("1111111111", status.getPartsState());
+		assertEquals("9876", status.getResultFileHandleId());
+
+		// the status should not be reset.
+		verify(mockMultiparUploadDAO, never()).deleteUploadStatus(anyLong(), anyString());
+		verify(mockMultiparUploadDAO, never()).createUploadStatus(any(CreateMultipartRequest.class));
+		// When the file is completed, the database should not be used to get the partsState.
+		verify(mockMultiparUploadDAO, never()).getPartsState(anyString(), anyInt());
 	}
 	
 	@Test

@@ -70,47 +70,74 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		CompositeMultipartUploadStatus status = multipartUploadDAO
 				.getUploadStatus(user.getId(), requestMD5Hex);
 		if (status == null) {
-			// This is the first time we have seen this request.
-			StorageLocationSetting locationSettings = getStorageLocationSettions(request
-					.getStorageLocationId());
-			// the bucket depends on the upload location used.
-			String bucket = MultipartUtils.getBucket(locationSettings);
-			// create a new key for this file.
-			String key = MultipartUtils.createNewKey(user.getId().toString(),
-					request.getFileName(), locationSettings);
-			String uploadToken = s3multipartUploadDAO.initiateMultipartUpload(
-					bucket, key, request);
-			String requestJson = createRequestJSON(request);
-			// How many parts will be needed to upload this file?
-			int numberParts = calculateNumberOfParts(request.getFileSizeBytes(),
-					request.getPartSizeBytes());
-			// Start the upload
-			status = multipartUploadDAO
-					.createUploadStatus(new CreateMultipartRequest(
-							user.getId(), requestMD5Hex, requestJson,
-							uploadToken, bucket, key, numberParts));
+			// Since the status for this file does not exist, create it.
+			status = createNewMultipartUpload(user, request, requestMD5Hex);
 		}
 		// Is this file done?
-		String partsState = null;
-		if(status.getMultipartUploadStatus().getResultFileHandleId() != null){
-			// When the upload is done we just create a string of all '1' without hitting the DB.
-			partsState = getCompletePartStateString(status.getNumberOfParts());
-		}else{
-			// Get the parts state from the DAO.
-			partsState = multipartUploadDAO.getPartsState(status.getMultipartUploadStatus().getUploadId(), status.getNumberOfParts());
-		}
+		String partsState = setupPartState(status);
 		status.getMultipartUploadStatus().setPartsState(partsState);
 		return status.getMultipartUploadStatus();
 	}
-	
+
 	/**
-	 * Create string of '1' of the size of the passed number of parts. 
+	 * Create a new multipart upload both in S3 and the database.
+	 * @param user
+	 * @param request
+	 * @param requestMD5Hex
+	 * @return
+	 */
+	private CompositeMultipartUploadStatus createNewMultipartUpload(
+			UserInfo user, MultipartUploadRequest request, String requestMD5Hex) {
+		// This is the first time we have seen this request.
+		StorageLocationSetting locationSettings = getStorageLocationSettions(request
+				.getStorageLocationId());
+		// the bucket depends on the upload location used.
+		String bucket = MultipartUtils.getBucket(locationSettings);
+		// create a new key for this file.
+		String key = MultipartUtils.createNewKey(user.getId().toString(),
+				request.getFileName(), locationSettings);
+		String uploadToken = s3multipartUploadDAO.initiateMultipartUpload(
+				bucket, key, request);
+		String requestJson = createRequestJSON(request);
+		// How many parts will be needed to upload this file?
+		int numberParts = calculateNumberOfParts(
+				request.getFileSizeBytes(), request.getPartSizeBytes());
+		// Start the upload
+		return multipartUploadDAO
+				.createUploadStatus(new CreateMultipartRequest(
+						user.getId(), requestMD5Hex, requestJson,
+						uploadToken, bucket, key, numberParts));
+	}
+
+	/**
+	 * Setup the partsState string for a given status multi-part status. For the
+	 * cases where the file upload is complete, this string is built without a
+	 * database call.
+	 * 
+	 * @param status
+	 */
+	public String setupPartState(CompositeMultipartUploadStatus status) {
+		if (status.getMultipartUploadStatus().getResultFileHandleId() != null) {
+			// When the upload is done we just create a string of all '1'
+			// without hitting the DB.
+			return getCompletePartStateString(status.getNumberOfParts());
+		} else {
+			// Get the parts state from the DAO.
+			return multipartUploadDAO.getPartsState(status
+					.getMultipartUploadStatus().getUploadId(), status
+					.getNumberOfParts());
+		}
+	}
+
+	/**
+	 * Create string of '1' of the size of the passed number of parts.
+	 * 
 	 * @param numberOfParts
 	 * @return
 	 */
-	public static String getCompletePartStateString(int numberOfParts){
+	public static String getCompletePartStateString(int numberOfParts) {
 		char[] chars = new char[numberOfParts];
-		Arrays.fill(chars,'1');
+		Arrays.fill(chars, '1');
 		return new String(chars);
 	}
 
