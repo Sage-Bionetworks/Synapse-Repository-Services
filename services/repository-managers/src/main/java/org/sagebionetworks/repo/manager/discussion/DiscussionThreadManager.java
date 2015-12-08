@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.discussion;
 import java.io.IOException;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.repo.manager.AuthorizationStatus;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
@@ -78,6 +79,7 @@ public interface DiscussionThreadManager {
 	 * 
 	 * @param userInfo
 	 * @param threadId
+	 * @return 
 	 */
-	public void canAccess(UserInfo userInfo, String threadId);
+	public AuthorizationStatus canAccess(UserInfo userInfo, String threadId);
 }

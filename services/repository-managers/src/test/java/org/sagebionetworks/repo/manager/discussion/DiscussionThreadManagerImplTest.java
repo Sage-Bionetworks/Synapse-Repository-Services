@@ -230,13 +230,13 @@ public class DiscussionThreadManagerImplTest {
 		assertEquals(threads, threadManager.getThreadsForForum(userInfo, forumId.toString(), 2L, 0L, DiscussionThreadOrder.LAST_ACTIVITY, true));
 	}
 
-	@Test (expected = UnauthorizedException.class)
+	@Test
 	public void testCanAccessUnauthorized() {
 		Mockito.when(mockAuthorizationManager.canAccess(Mockito.eq(userInfo),
 				Mockito.anyString(), Mockito.eq(ObjectType.ENTITY), Mockito.eq(ACCESS_TYPE.READ)))
 				.thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		Mockito.when(mockThreadDao.getThread(threadId)).thenReturn(dto);
-		threadManager.canAccess(userInfo, threadId.toString());
+		assertEquals(AuthorizationManagerUtil.ACCESS_DENIED, threadManager.canAccess(userInfo, threadId.toString()));
 	}
 
 	@Test
@@ -245,6 +245,6 @@ public class DiscussionThreadManagerImplTest {
 				Mockito.anyString(), Mockito.eq(ObjectType.ENTITY), Mockito.eq(ACCESS_TYPE.READ)))
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		Mockito.when(mockThreadDao.getThread(threadId)).thenReturn(dto);
-		threadManager.canAccess(userInfo, threadId.toString());
+		assertEquals(AuthorizationManagerUtil.AUTHORIZED, threadManager.canAccess(userInfo, threadId.toString()));
 	}
 }
