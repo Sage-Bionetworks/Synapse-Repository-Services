@@ -76,7 +76,7 @@ public class UploadContentToS3DAOImpl implements UploadContentToS3DAO {
 
 	@Override
 	public String getUrl(String key) {
-		ValidateArgument.required(key, "key cannot be null");
+		ValidateArgument.required(key, "key");
 		return S3_PREFIX + bucketName + "/" + key;
 	}
 }

@@ -176,9 +176,9 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 	@WriteTransactionReadCommitted
 	@Override
 	public DiscussionThreadBundle createThread(String forumId, String threadId, String title, String messageKey, long userId) {
-		ValidateArgument.required(forumId, "forumId cannot be null");
-		ValidateArgument.required(title, "title cannot be null");
-		ValidateArgument.required(messageKey, "messageUrl cannot be null");
+		ValidateArgument.required(forumId, "forumId");
+		ValidateArgument.required(title, "title");
+		ValidateArgument.required(messageKey, "messageUrl");
 		String etag = UUID.randomUUID().toString();
 		DBODiscussionThread dbo = DiscussionThreadUtils.createDBO(forumId, title, messageKey, userId, threadId, etag);
 		basicDao.createNew(dbo);
@@ -204,8 +204,8 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 	@Override
 	public PaginatedResults<DiscussionThreadBundle> getThreads(long forumId,
 			Long limit, Long offset, DiscussionThreadOrder order, Boolean ascending) {
-		ValidateArgument.required(limit,"limit cannot be null");
-		ValidateArgument.required(offset,"offset cannot be null");
+		ValidateArgument.required(limit,"limit");
+		ValidateArgument.required(offset,"offset");
 		ValidateArgument.requirement(limit >= 0 && offset >= 0 && limit <= MAX_LIMIT,
 					"Limit and offset must be greater than 0, and limit must be smaller than or equal to "+MAX_LIMIT);
 		ValidateArgument.requirement((order == null && ascending == null)
@@ -256,7 +256,7 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 	@Override
 	public DiscussionThreadBundle updateMessageKey(long threadId, String newMessageKey) {
 		if (newMessageKey == null) {
-			throw new IllegalArgumentException("Message Key cannot be null");
+			throw new IllegalArgumentException("newMessageKey");
 		}
 		String etag = UUID.randomUUID().toString();
 		jdbcTemplate.update(SQL_UPDATE_MESSAGE_KEY, newMessageKey, etag, threadId);
@@ -267,7 +267,7 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 	@Override
 	public DiscussionThreadBundle updateTitle(long threadId, String title) {
 		if (title == null) {
-			throw new IllegalArgumentException("Title cannot be null");
+			throw new IllegalArgumentException("title");
 		}
 		String etag = UUID.randomUUID().toString();
 		jdbcTemplate.update(SQL_UPDATE_TITLE, title, etag, threadId);

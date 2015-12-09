@@ -93,9 +93,9 @@ public class DBODiscussionReplyDAOImpl implements DiscussionReplyDAO{
 	@WriteTransactionReadCommitted
 	@Override
 	public DiscussionReplyBundle createReply(String threadId, String messageKey, Long userId) {
-		ValidateArgument.required(threadId, "threadId cannot be null");
-		ValidateArgument.required(messageKey, "messageKey cannot be null");
-		ValidateArgument.required(userId, "userId cannot be null");
+		ValidateArgument.required(threadId, "threadId");
+		ValidateArgument.required(messageKey, "messageKey");
+		ValidateArgument.required(userId, "userId");
 		Long id = idGenerator.generateNewId(TYPE.DISCUSSION_REPLY_ID);
 		String etag = UUID.randomUUID().toString();
 		DBODiscussionReply dbo = DiscussionReplyUtils.createDBO(threadId, messageKey, userId, id, etag);
@@ -116,9 +116,9 @@ public class DBODiscussionReplyDAOImpl implements DiscussionReplyDAO{
 	public PaginatedResults<DiscussionReplyBundle> getRepliesForThread(
 			Long threadId, Long limit, Long offset, DiscussionReplyOrder order,
 			Boolean ascending) {
-		ValidateArgument.required(threadId, "threadId cannot be null");
-		ValidateArgument.required(limit, "limit cannot be null");
-		ValidateArgument.required(offset, "offset cannot be null");
+		ValidateArgument.required(threadId, "threadId");
+		ValidateArgument.required(limit, "limit");
+		ValidateArgument.required(offset, "offset");
 		ValidateArgument.requirement(limit >= 0 && offset >= 0 && limit <= MAX_LIMIT,
 				"Limit and offset must be greater than 0, and limit must be smaller than or equal to "+MAX_LIMIT);
 		ValidateArgument.requirement((order == null && ascending == null)
@@ -167,7 +167,7 @@ public class DBODiscussionReplyDAOImpl implements DiscussionReplyDAO{
 	@Override
 	public DiscussionReplyBundle updateMessageKey(long replyId, String newKey) {
 		if (newKey == null) {
-			throw new IllegalArgumentException("Message Key cannot be null");
+			throw new IllegalArgumentException("newKey");
 		}
 		String etag = UUID.randomUUID().toString();
 		jdbcTemplate.update(SQL_UPDATE_MESSAGE_KEY, newKey, etag, replyId);

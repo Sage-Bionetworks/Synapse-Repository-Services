@@ -42,10 +42,10 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 	@WriteTransactionReadCommitted
 	@Override
 	public DiscussionThreadBundle createThread(UserInfo userInfo, CreateDiscussionThread createThread) throws IOException {
-		ValidateArgument.required(createThread, "createThread cannot be null");
-		ValidateArgument.required(createThread.getForumId(), "forumId can not be null");
-		ValidateArgument.required(createThread.getTitle(), "title cannot be null");
-		ValidateArgument.required(createThread.getMessageMarkdown(), "message cannot be null");
+		ValidateArgument.required(createThread, "createThread");
+		ValidateArgument.required(createThread.getForumId(), "forumId");
+		ValidateArgument.required(createThread.getTitle(), "title");
+		ValidateArgument.required(createThread.getMessageMarkdown(), "message");
 		UserInfo.validateUserInfo(userInfo);
 		String projectId = forumDao.getForum(Long.parseLong(createThread.getForumId())).getProjectId();
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
@@ -62,7 +62,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 
 	@Override
 	public DiscussionThreadBundle getThread(UserInfo userInfo, String threadId) {
-		ValidateArgument.required(threadId, "threadId cannot be null");
+		ValidateArgument.required(threadId, "threadId");
 		UserInfo.validateUserInfo(userInfo);
 		Long threadIdLong = Long.parseLong(threadId);
 		DiscussionThreadBundle thread = threadDao.getThread(threadIdLong);
@@ -75,9 +75,9 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 	@WriteTransactionReadCommitted
 	@Override
 	public DiscussionThreadBundle updateTitle(UserInfo userInfo, String threadId, UpdateThreadTitle newTitle) {
-		ValidateArgument.required(threadId, "threadId cannot be null");
-		ValidateArgument.required(newTitle, "newTitle cannot be null");
-		ValidateArgument.required(newTitle.getTitle(), "title cannot be null");
+		ValidateArgument.required(threadId, "threadId");
+		ValidateArgument.required(newTitle, "newTitle");
+		ValidateArgument.required(newTitle.getTitle(), "title");
 		UserInfo.validateUserInfo(userInfo);
 		Long threadIdLong = Long.parseLong(threadId);
 		DiscussionThreadBundle thread = threadDao.getThread(threadIdLong);
@@ -92,9 +92,9 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 	@Override
 	public DiscussionThreadBundle updateMessage(UserInfo userInfo, String threadId,
 			UpdateThreadMessage newMessage) throws IOException {
-		ValidateArgument.required(threadId, "threadId cannot be null");
-		ValidateArgument.required(newMessage, "newMessage cannot be null");
-		ValidateArgument.required(newMessage.getMessageMarkdown(), "message markdown cannot be null");
+		ValidateArgument.required(threadId, "threadId");
+		ValidateArgument.required(newMessage, "newMessage");
+		ValidateArgument.required(newMessage.getMessageMarkdown(), "messageMarkdown");
 		UserInfo.validateUserInfo(userInfo);
 		Long threadIdLong = Long.parseLong(threadId);
 		DiscussionThreadBundle thread = threadDao.getThread(threadIdLong);
@@ -109,7 +109,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 	@WriteTransactionReadCommitted
 	@Override
 	public void markThreadAsDeleted(UserInfo userInfo, String threadId) {
-		ValidateArgument.required(threadId, "threadId cannot be null");
+		ValidateArgument.required(threadId, "threadId");
 		UserInfo.validateUserInfo(userInfo);
 		Long threadIdLong = Long.parseLong(threadId);
 		DiscussionThreadBundle thread = threadDao.getThread(threadIdLong);
@@ -122,7 +122,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 	public PaginatedResults<DiscussionThreadBundle> getThreadsForForum(
 			UserInfo userInfo, String forumId, Long limit, Long offset,
 			DiscussionThreadOrder order, Boolean ascending) {
-		ValidateArgument.required(forumId, "forumId cannot be null");
+		ValidateArgument.required(forumId, "forumId");
 		UserInfo.validateUserInfo(userInfo);
 		String projectId = forumDao.getForum(Long.parseLong(forumId)).getProjectId();
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
@@ -143,8 +143,8 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 	@Override
 	public AuthorizationStatus canAccess(UserInfo userInfo, String threadId, ACCESS_TYPE accessType) {
 		UserInfo.validateUserInfo(userInfo);
-		ValidateArgument.required(threadId, "threadId cannot be null");
-		ValidateArgument.required(accessType, "accessType cannot be null");
+		ValidateArgument.required(threadId, "threadId");
+		ValidateArgument.required(accessType, "accessType");
 		DiscussionThreadBundle thread = threadDao.getThread(Long.parseLong(threadId));
 		return authorizationManager.canAccess(userInfo, thread.getProjectId(), ObjectType.ENTITY, accessType);
 	}

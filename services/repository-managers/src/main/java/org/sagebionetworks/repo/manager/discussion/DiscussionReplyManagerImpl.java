@@ -36,10 +36,10 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 	public DiscussionReplyBundle createReply(UserInfo userInfo,
 			CreateDiscussionReply createReply) throws IOException {
 		UserInfo.validateUserInfo(userInfo);
-		ValidateArgument.required(createReply, "createReply cannot be null");
+		ValidateArgument.required(createReply, "createReply");
 		String threadId = createReply.getThreadId();
-		ValidateArgument.required(threadId, "threadId cannot be null");
-		ValidateArgument.required(createReply.getMessageMarkdown(), "message cannot be null");
+		ValidateArgument.required(threadId, "threadId");
+		ValidateArgument.required(createReply.getMessageMarkdown(), "message");
 		DiscussionThreadBundle thread = threadManager.getThread(userInfo, threadId);
 		String messageKey = uploadDao.uploadDiscussionContent(createReply.getMessageMarkdown(), thread.getForumId(), threadId);
 		return addMessageUrl(replyDao.createReply(threadId, messageKey, userInfo.getId()));
@@ -53,7 +53,7 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 	@Override
 	public DiscussionReplyBundle getReply(UserInfo userInfo, String replyId) {
 		UserInfo.validateUserInfo(userInfo);
-		ValidateArgument.required(replyId, "replyId cannot be null");
+		ValidateArgument.required(replyId, "replyId");
 		DiscussionReplyBundle reply = replyDao.getReply(Long.parseLong(replyId));
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				threadManager.canAccess(userInfo, reply.getThreadId(), ACCESS_TYPE.READ));
@@ -65,9 +65,9 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 	public DiscussionReplyBundle updateReplyMessage(UserInfo userInfo,
 			String replyId, UpdateReplyMessage newMessage) throws IOException {
 		UserInfo.validateUserInfo(userInfo);
-		ValidateArgument.required(replyId, "replyId cannot be null");
-		ValidateArgument.required(newMessage, "newMessage cannot be null");
-		ValidateArgument.required(newMessage.getMessageMarkdown(), "message markdown cannot be null");
+		ValidateArgument.required(replyId, "replyId");
+		ValidateArgument.required(newMessage, "newMessage");
+		ValidateArgument.required(newMessage.getMessageMarkdown(), "messageMarkdown");
 		Long replyIdLong = Long.parseLong(replyId);
 		DiscussionReplyBundle reply = replyDao.getReply(replyIdLong);
 		DiscussionThreadBundle thread = threadManager.getThread(userInfo, reply.getThreadId());
@@ -83,7 +83,7 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 	@Override
 	public void markReplyAsDeleted(UserInfo userInfo, String replyId) {
 		UserInfo.validateUserInfo(userInfo);
-		ValidateArgument.required(replyId, "replyId cannot be null");
+		ValidateArgument.required(replyId, "replyId");
 		Long replyIdLong = Long.parseLong(replyId);
 		DiscussionReplyBundle reply = replyDao.getReply(replyIdLong);
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
@@ -96,9 +96,9 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 			UserInfo userInfo, String threadId, Long limit, Long offset,
 			DiscussionReplyOrder order, Boolean ascending) {
 		UserInfo.validateUserInfo(userInfo);
-		ValidateArgument.required(threadId, "threadId cannot be null");
-		ValidateArgument.required(limit, "limit cannot be null");
-		ValidateArgument.required(offset, "offset cannot be null");
+		ValidateArgument.required(threadId, "threadId");
+		ValidateArgument.required(limit, "limit");
+		ValidateArgument.required(offset, "offset");
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				threadManager.canAccess(userInfo, threadId, ACCESS_TYPE.READ));
 		return addMessageUrl(replyDao.getRepliesForThread(Long.parseLong(threadId), limit, offset, order, ascending));
