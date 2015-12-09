@@ -131,6 +131,10 @@ public class MigratableTableDAOImplAutowireTest {
 		long minId = migratableTableDAO.getMinId(MigrationType.FILE_HANDLE);
 		assertTrue(minId + ":" + preview2.getId(), minId <= Long.parseLong(preview2.getId()));
 		
+		// Get table checksum
+		String tblChecksum = migratableTableDAO.getChecksumForType(MigrationType.FILE_HANDLE);
+		assertNotNull(tblChecksum);
+		
 		// Get the full back object
 		List<Long> idsToBackup1 = new LinkedList<Long>();
 		idsToBackup1.add(Long.parseLong(preview.getId()));

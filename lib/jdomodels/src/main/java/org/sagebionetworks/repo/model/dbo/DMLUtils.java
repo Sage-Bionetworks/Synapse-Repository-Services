@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.dbo;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
+import org.sagebionetworks.repo.model.dbo.migration.ChecksumTableResult;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.springframework.jdbc.core.RowMapper;
 
@@ -598,6 +599,25 @@ public class DMLUtils {
 			}
 
 		}
+	}
+	
+	public static String createChecksumTableStatement(TableMapping mapping) {
+		validateMigratableTableMapping(mapping);
+		String tableName = mapping.getTableName();
+		String stmt = "CHECKSUM TABLE " + tableName;
+		return stmt;
+	}
+	
+	public static RowMapper<ChecksumTableResult> getChecksumTableResultMapper() {
+		return new RowMapper<ChecksumTableResult>() {
+			@Override
+			public ChecksumTableResult mapRow(ResultSet rs, int rowNum) throws SQLException {
+				ChecksumTableResult ctRes = new ChecksumTableResult();
+				ctRes.setTableName(rs.getString(1));
+				ctRes.setValue(String.valueOf(rs.getLong(2)));
+				return ctRes;
+			}
+		};
 	}
 	
 }

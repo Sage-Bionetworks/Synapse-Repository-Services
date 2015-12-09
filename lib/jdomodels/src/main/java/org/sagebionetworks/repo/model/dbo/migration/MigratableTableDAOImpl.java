@@ -99,7 +99,8 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	private Map<MigrationType, String> deltaListSqlMap = new HashMap<MigrationType, String>();
 	private Map<MigrationType, String> backupSqlMap = new HashMap<MigrationType, String>();
 	private Map<MigrationType, String> insertOrUpdateSqlMap = new HashMap<MigrationType, String>();
-	private Map<MigrationType, String> sumCrc32SqlMap = new HashMap<MigrationType, String>();
+	private Map<MigrationType, String> checksumRangeSqlMap = new HashMap<MigrationType, String>();
+	private Map<MigrationType, String> checksumTableSqlMap = new HashMap<MigrationType, String>();
 	
 	private Map<MigrationType, FieldColumn> etagColumns = new HashMap<MigrationType, FieldColumn>();
 	private Map<MigrationType, FieldColumn> backupIdColumns = new HashMap<MigrationType, FieldColumn>();
@@ -174,8 +175,10 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		maxSqlMap.put(type, mx);
 		String mi = DMLUtils.createGetMinByBackupKeyStatement(mapping);
 		minSqlMap.put(type,  mi);
-		String sumCrc = DMLUtils.createSelectSumCrc32ByIdRangeStatement(mapping);
-		sumCrc32SqlMap.put(type, sumCrc);
+		String sumCrc = DMLUtils.createSelectChecksumStatement(mapping);
+		checksumRangeSqlMap.put(type, sumCrc);
+		String checksumTable = DMLUtils.createChecksumTableStatement(mapping);
+		checksumTableSqlMap.put(type, checksumTable);
 		String listRowMetadataSQL = DMLUtils.listRowMetadata(mapping);
 		listSqlMap.put(type, listRowMetadataSQL);
 		String listRowMetaDataByIdSQL = DMLUtils.listRowMetadataByRange(mapping);
@@ -511,7 +514,7 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 
 	@Override
 	public String getChecksumForIdRange(MigrationType type, long minId, long maxId) {
-		String sql = this.sumCrc32SqlMap.get(type);
+		String sql = this.checksumRangeSqlMap.get(type);
 		if (sql == null) {
 			throw new IllegalArgumentException("Cannot find the checksum SQL for type" + type);
 		}
@@ -521,12 +524,32 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(DMLUtils.BIND_VAR_ID_RANGE_MIN, minId);
 		params.addValue(DMLUtils.BIND_VAR_ID_RANGE_MAX, maxId);
-		BigDecimal cs = simpleJdbcTemplate.queryForObject(sql, new SingleColumnRowMapper<BigDecimal>(), params);
+		SingleColumnRowMapper mapper = new SingleColumnRowMapper(String.class);
+		List<String> l = simpleJdbcTemplate.query(sql, mapper, params);
+		if ((l == null) || (l.size() != 1)) {
+			return null;
+		}
+		String cs = l.get(0);
 		if (cs == null) {
 			return null;
 		} else {
 			return cs.toString();
 		}
+	}
+	
+	@Override
+	public String getChecksumForType(MigrationType type) {
+		String sql = this.checksumTableSqlMap.get(type);
+		if (sql == null) {
+			throw new IllegalArgumentException("Cannot find the checksum SQL for type" + type);
+		}
+		RowMapper mapper = DMLUtils.getChecksumTableResultMapper();
+		List<ChecksumTableResult> l = simpleJdbcTemplate.query(sql, mapper);
+		if ((l == null) || (l.size() != 1)) {
+			return null;
+		}
+		String s = l.get(0).getValue();
+		return s;
 	}
 	
 }
