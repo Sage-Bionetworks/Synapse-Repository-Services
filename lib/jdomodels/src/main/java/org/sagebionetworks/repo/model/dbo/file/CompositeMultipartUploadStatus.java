@@ -9,6 +9,7 @@ import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
 public class CompositeMultipartUploadStatus {
 
 	MultipartUploadStatus multipartUploadStatus;
+	String etag;
 	String uploadToken;
 	String bucket;
 	String key;
@@ -45,11 +46,19 @@ public class CompositeMultipartUploadStatus {
 	public void setNumberOfParts(Integer numberOfParts) {
 		this.numberOfParts = numberOfParts;
 	}
+	
+	public String getEtag() {
+		return etag;
+	}
+	public void setEtag(String etag) {
+		this.etag = etag;
+	}
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + ((bucket == null) ? 0 : bucket.hashCode());
+		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
 		result = prime * result + ((key == null) ? 0 : key.hashCode());
 		result = prime
 				* result
@@ -74,6 +83,11 @@ public class CompositeMultipartUploadStatus {
 			if (other.bucket != null)
 				return false;
 		} else if (!bucket.equals(other.bucket))
+			return false;
+		if (etag == null) {
+			if (other.etag != null)
+				return false;
+		} else if (!etag.equals(other.etag))
 			return false;
 		if (key == null) {
 			if (other.key != null)
@@ -100,9 +114,9 @@ public class CompositeMultipartUploadStatus {
 	@Override
 	public String toString() {
 		return "CompositeMultipartUploadStatus [multipartUploadStatus="
-				+ multipartUploadStatus + ", uploadToken=" + uploadToken
-				+ ", bucket=" + bucket + ", key=" + key + ", numberOfParts="
-				+ numberOfParts + "]";
+				+ multipartUploadStatus + ", etag=" + etag + ", uploadToken="
+				+ uploadToken + ", bucket=" + bucket + ", key=" + key
+				+ ", numberOfParts=" + numberOfParts + "]";
 	}
 
 }

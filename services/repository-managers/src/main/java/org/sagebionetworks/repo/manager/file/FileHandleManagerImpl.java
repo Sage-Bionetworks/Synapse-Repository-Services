@@ -1097,7 +1097,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 				fileHandle.setContentSize(summary.getContentLength());
 			}
 		} catch (Exception e) {
-			throw new IllegalArgumentException("Unable to ready metadata for bucket: "+fileHandle.getBucketName()+" key: "+fileHandle.getKey(), e);
+			throw new IllegalArgumentException("Unable to access the file at bucket: "+fileHandle.getBucketName()+" key: "+fileHandle.getKey()+".", e);
 		} 
 		// set this user as the creator of the file
 		fileHandle.setCreatedBy(getUserId(userInfo));

@@ -6,7 +6,7 @@
 			"description": "The part number matching this pre-signed URL."
 		},
 		"uploadPresignedUrl": {
-			"description": "A pre-signed URL for uploading a part.",
+			"description": "A pre-signed URL to upload a part of multi-part file upload.  The part should be uploaded as an HTTP PUT using this URL. Each URL will expire after 15 minutes.",
 			"type": "string"
 		}
 	}

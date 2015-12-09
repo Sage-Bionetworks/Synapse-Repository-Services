@@ -1,22 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.file;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_BUCKET;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_FILE_HANDLE_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_KEY;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_NUMBER_OF_PARTS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_PART_ERROR_DETAILS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_PART_MD5_HEX;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_PART_NUMBER;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_PART_UPLOAD_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_REQUEST_HASH;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_STARTED_BY;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_STARTED_ON;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_STATE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_UPDATED_ON;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_UPLOAD_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_UPLOAD_TOKEN;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_MULTIPART_UPLOAD;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_MULTIPART_UPLOAD_PART_STATE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 
 import java.io.UnsupportedEncodingException;
 import java.sql.Blob;
@@ -42,9 +26,9 @@ import org.springframework.jdbc.core.RowMapper;
 
 public class MultipartUploadDAOImpl implements MultipartUploadDAO {
 
-	private static final String SQL_SELECT_STARTED_BY = "SELECT "
-			+ COL_MULTIPART_STARTED_BY + " FROM " + TABLE_MULTIPART_UPLOAD
-			+ " WHERE " + COL_MULTIPART_UPLOAD_ID + " = ?";
+	private static final String SQL_UPDATE_ETAG = "UPDATE "
+			+ TABLE_MULTIPART_UPLOAD + " SET " + COL_MULTIPART_UPLOAD_ETAG
+			+ " = ? WHERE " + COL_MULTIPART_UPLOAD_ID + " = ?";
 
 	private static final String SQL_SELECT_ADDED_PART_NUMBERS = "SELECT "
 			+ COL_MULTIPART_PART_NUMBER + " FROM "
@@ -76,7 +60,7 @@ public class MultipartUploadDAOImpl implements MultipartUploadDAO {
 			+ COL_MULTIPART_UPDATED_ON + "," + COL_MULTIPART_FILE_HANDLE_ID
 			+ "," + COL_MULTIPART_STATE + "," + COL_MULTIPART_UPLOAD_TOKEN
 			+ "," + COL_MULTIPART_BUCKET + "," + COL_MULTIPART_KEY + ","
-			+ COL_MULTIPART_NUMBER_OF_PARTS;
+			+ COL_MULTIPART_NUMBER_OF_PARTS+"," +COL_MULTIPART_UPLOAD_ETAG;
 
 	private static final String SELECT_BY_ID = "SELECT " + STATUS_SELECT
 			+ " FROM " + TABLE_MULTIPART_UPLOAD + " WHERE "
@@ -115,6 +99,7 @@ public class MultipartUploadDAOImpl implements MultipartUploadDAO {
 			dto.setKey(rs.getString(COL_MULTIPART_KEY));
 			dto.setNumberOfParts((int) rs
 					.getLong(COL_MULTIPART_NUMBER_OF_PARTS));
+			dto.setEtag(rs.getString(COL_MULTIPART_UPLOAD_ETAG));
 			return dto;
 		}
 	};
@@ -280,6 +265,9 @@ public class MultipartUploadDAOImpl implements MultipartUploadDAO {
 		ValidateArgument.required(uploadId, "UploadId");
 		ValidateArgument.required(partMD5Hex, "PartMD5Hex");
 		validatePartNumber(partNumber);
+		// update the etag of the master row.
+		updateEtag(uploadId);
+		// update the part state
 		DBOMultipartUploadPartState partState = new DBOMultipartUploadPartState();
 		partState.setUploadId(Long.parseLong(uploadId));
 		partState.setPartNumber(partNumber);
@@ -302,6 +290,9 @@ public class MultipartUploadDAOImpl implements MultipartUploadDAO {
 		ValidateArgument.required(uploadId, "UploadId");
 		ValidateArgument.required(errorDetails, "ErrorDetails");
 		validatePartNumber(partNumber);
+		// update the etag of the master row.
+		updateEtag(uploadId);
+		// update the part state
 		DBOMultipartUploadPartState partState = new DBOMultipartUploadPartState();
 		partState.setUploadId(Long.parseLong(uploadId));
 		partState.setPartNumber(partNumber);
@@ -380,6 +371,16 @@ public class MultipartUploadDAOImpl implements MultipartUploadDAO {
 
 					}
 				}, uploadId);
+	}
+
+	/**
+	 * Update the etag for the given upload.
+	 * @param uploadId
+	 */
+	private void updateEtag(String uploadId) {
+		ValidateArgument.required(uploadId, "UploadId");
+		String newEtag = UUID.randomUUID().toString();
+		jdbcTemplate.update(SQL_UPDATE_ETAG, newEtag, uploadId);
 	}
 
 }

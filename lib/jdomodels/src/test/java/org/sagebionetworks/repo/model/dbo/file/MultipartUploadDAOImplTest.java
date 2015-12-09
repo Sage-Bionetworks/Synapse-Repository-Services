@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.file;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.*;
 
 import java.util.List;
 
@@ -182,6 +181,37 @@ public class MultipartUploadDAOImplTest {
 		
 		String partsState = multipartUplaodDAO.getPartsState(uploadId, numberOfParts);
 		assertEquals("10000000100", partsState);
+	}
+	
+	@Test
+	public void testAddPartUpdateEtag(){
+		CompositeMultipartUploadStatus status = multipartUplaodDAO.createUploadStatus(createRequest);
+		assertNotNull(status);
+		assertNotNull(status.getEtag());
+		String uploadId = status.getMultipartUploadStatus().getUploadId();
+		// Call under test
+		multipartUplaodDAO.addPartToUpload(uploadId, 1, "partOneMD5Hex");
+
+		CompositeMultipartUploadStatus updated = multipartUplaodDAO.getUploadStatus(uploadId);
+		assertNotNull(updated);
+		assertNotNull(updated.getEtag());
+		assertFalse("Adding a part must update the etag of the master row.",status.getEtag().equals(updated.getEtag()));
+	}
+	
+	@Test
+	public void testSetPartFailedUpdateEtag(){
+		CompositeMultipartUploadStatus status = multipartUplaodDAO.createUploadStatus(createRequest);
+		assertNotNull(status);
+		assertNotNull(status.getEtag());
+		String uploadId = status.getMultipartUploadStatus().getUploadId();
+		// Call under test
+		// also call under test
+		multipartUplaodDAO.setPartToFailed(uploadId, 10, "some kind of error");
+
+		CompositeMultipartUploadStatus updated = multipartUplaodDAO.getUploadStatus(uploadId);
+		assertNotNull(updated);
+		assertNotNull(updated.getEtag());
+		assertFalse("setting part to failed must update the etag of the master row.",status.getEtag().equals(updated.getEtag()));
 	}
 	
 }
