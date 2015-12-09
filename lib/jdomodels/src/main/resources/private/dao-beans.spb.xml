@@ -290,8 +290,11 @@
 	<bean id="backupRestoreStatusDao"
 		class="org.sagebionetworks.repo.model.jdo.BackupRestoreStatusDAOImpl"
 		scope="singleton" />
-
+		
 	<bean id="stackStatusDao" class="org.sagebionetworks.repo.model.jdo.StackStatusDaoImpl"
+		scope="singleton" />	
+
+	<bean id="multipartUplaodDAO" class="org.sagebionetworks.repo.model.dbo.file.MultipartUploadDAOImpl"
 		scope="singleton" />
 
 	<!-- DAO used by asynchronous RDS works to update RDS tables acting as indicies -->
@@ -322,6 +325,8 @@
 		class="org.sagebionetworks.repo.model.dbo.dao.discussion.DBOForumDAOImpl" />
 	<bean id="discussionThreadDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.discussion.DBODiscussionThreadDAOImpl" />
+	<bean id="discussionReplyDao"
+		class="org.sagebionetworks.repo.model.dbo.dao.discussion.DBODiscussionReplyDAOImpl" />
 
 	<!-- Misc beans -->
 	<bean id="countingSemaphore"

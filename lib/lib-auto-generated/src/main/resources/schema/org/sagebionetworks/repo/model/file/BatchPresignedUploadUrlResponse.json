@@ -1,0 +1,12 @@
+{
+	"description": "Batch response of part pre-signed upload URLs.",
+	"properties": {
+		"partPresignedUrls": {
+			"description":"List of part pre-signed upload URLs.",
+			"type":"array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.file.PartPresignedUrl"
+			}
+		}
+	}
+}

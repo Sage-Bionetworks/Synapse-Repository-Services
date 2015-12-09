@@ -89,16 +89,6 @@ public interface MultipartManager {
 	String getChunkPartKey(ChunkedFileToken token, int partNumber);
 
 	/**
-	 * Get the bucket
-	 * 
-	 * @param storageLocationId
-	 * @return
-	 * @throws NotFoundException
-	 * @throws DatastoreException
-	 */
-	String getBucket(Long storageLocationId) throws DatastoreException, NotFoundException;
-
-	/**
 	 * 
 	 * @param bucket
 	 * @param userId

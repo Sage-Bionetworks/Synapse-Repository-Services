@@ -78,7 +78,7 @@ public class DiscussionControllerAutowiredTest extends AbstractAutowiredControll
 		Forum forum = servletTestHelper.getForumMetadata(dispatchServlet, project.getId(), adminUserId);
 		toCreate.setForumId(forum.getId());
 		DiscussionThreadBundle bundle = servletTestHelper.createThread(dispatchServlet, adminUserId, toCreate);
-		PaginatedResults<DiscussionThreadBundle> results = servletTestHelper.getThreads(dispatchServlet, adminUserId, forum.getId(), 100L, 0L, null, true);
+		PaginatedResults<DiscussionThreadBundle> results = servletTestHelper.getThreads(dispatchServlet, adminUserId, forum.getId(), 100L, 0L, null, null);
 		assertEquals(bundle, results.getResults().get(0));
 	}
 

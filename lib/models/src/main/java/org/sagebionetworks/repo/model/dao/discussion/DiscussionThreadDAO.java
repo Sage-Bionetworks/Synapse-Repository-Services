@@ -1,11 +1,11 @@
-package org.sagebionetworks.repo.model;
+package org.sagebionetworks.repo.model.dao.discussion;
 
 import java.util.Date;
 import java.util.List;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
-import org.sagebionetworks.repo.model.discussion.DiscussionOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
+import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
 
 public interface DiscussionThreadDAO {
 
@@ -15,12 +15,12 @@ public interface DiscussionThreadDAO {
 	 * @param forumId
 	 * @param threadId
 	 * @param title
-	 * @param messageUrl
+	 * @param messageKey
 	 * @param userId
 	 * @return
 	 */
 	public DiscussionThreadBundle createThread(String forumId, String threadId,
-			String title, String messageUrl, long userId);
+			String title, String messageKey, long userId);
 
 	/**
 	 * Get a discussion thread
@@ -50,7 +50,7 @@ public interface DiscussionThreadDAO {
 	 * @return
 	 */
 	public PaginatedResults<DiscussionThreadBundle> getThreads(long forumId,
-			Long limit, Long offset, DiscussionOrder order, Boolean ascending);
+			Long limit, Long offset, DiscussionThreadOrder order, Boolean ascending);
 
 	/**
 	 * Mark a discussion thread as deleted
