@@ -9,9 +9,11 @@ import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
 public class CompositeMultipartUploadStatus {
 
 	MultipartUploadStatus multipartUploadStatus;
+	String etag;
 	String uploadToken;
 	String bucket;
 	String key;
+	Integer numberOfParts;
 	
 	public MultipartUploadStatus getMultipartUploadStatus() {
 		return multipartUploadStatus;
@@ -37,16 +39,33 @@ public class CompositeMultipartUploadStatus {
 	public void setKey(String key) {
 		this.key = key;
 	}
+	
+	public Integer getNumberOfParts() {
+		return numberOfParts;
+	}
+	public void setNumberOfParts(Integer numberOfParts) {
+		this.numberOfParts = numberOfParts;
+	}
+	
+	public String getEtag() {
+		return etag;
+	}
+	public void setEtag(String etag) {
+		this.etag = etag;
+	}
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + ((bucket == null) ? 0 : bucket.hashCode());
+		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
 		result = prime * result + ((key == null) ? 0 : key.hashCode());
 		result = prime
 				* result
 				+ ((multipartUploadStatus == null) ? 0 : multipartUploadStatus
 						.hashCode());
+		result = prime * result
+				+ ((numberOfParts == null) ? 0 : numberOfParts.hashCode());
 		result = prime * result
 				+ ((uploadToken == null) ? 0 : uploadToken.hashCode());
 		return result;
@@ -65,6 +84,11 @@ public class CompositeMultipartUploadStatus {
 				return false;
 		} else if (!bucket.equals(other.bucket))
 			return false;
+		if (etag == null) {
+			if (other.etag != null)
+				return false;
+		} else if (!etag.equals(other.etag))
+			return false;
 		if (key == null) {
 			if (other.key != null)
 				return false;
@@ -75,6 +99,11 @@ public class CompositeMultipartUploadStatus {
 				return false;
 		} else if (!multipartUploadStatus.equals(other.multipartUploadStatus))
 			return false;
+		if (numberOfParts == null) {
+			if (other.numberOfParts != null)
+				return false;
+		} else if (!numberOfParts.equals(other.numberOfParts))
+			return false;
 		if (uploadToken == null) {
 			if (other.uploadToken != null)
 				return false;
@@ -84,9 +113,10 @@ public class CompositeMultipartUploadStatus {
 	}
 	@Override
 	public String toString() {
-		return "CompleteMultipartUploadStatus [multipartUploadStatus="
-				+ multipartUploadStatus + ", uploadToken=" + uploadToken
-				+ ", bucket=" + bucket + ", key=" + key + "]";
+		return "CompositeMultipartUploadStatus [multipartUploadStatus="
+				+ multipartUploadStatus + ", etag=" + etag + ", uploadToken="
+				+ uploadToken + ", bucket=" + bucket + ", key=" + key
+				+ ", numberOfParts=" + numberOfParts + "]";
 	}
 
 }

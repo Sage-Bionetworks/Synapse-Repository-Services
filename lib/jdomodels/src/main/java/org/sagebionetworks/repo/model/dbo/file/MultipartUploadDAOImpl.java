@@ -3,9 +3,12 @@ package org.sagebionetworks.repo.model.dbo.file;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 
 import java.io.UnsupportedEncodingException;
+import java.sql.Blob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
 import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
@@ -23,6 +26,31 @@ import org.springframework.jdbc.core.RowMapper;
 
 public class MultipartUploadDAOImpl implements MultipartUploadDAO {
 
+	private static final String SQL_UPDATE_ETAG = "UPDATE "
+			+ TABLE_MULTIPART_UPLOAD + " SET " + COL_MULTIPART_UPLOAD_ETAG
+			+ " = ? WHERE " + COL_MULTIPART_UPLOAD_ID + " = ?";
+
+	private static final String SQL_SELECT_ADDED_PART_NUMBERS = "SELECT "
+			+ COL_MULTIPART_PART_NUMBER + " FROM "
+			+ TABLE_MULTIPART_UPLOAD_PART_STATE + " WHERE "
+			+ COL_MULTIPART_PART_UPLOAD_ID + " = ? AND "
+			+ COL_MULTIPART_PART_MD5_HEX + " IS NOT NULL";
+
+	private static final String SQL_SELECT_PART_MD5S = "SELECT "
+			+ COL_MULTIPART_PART_NUMBER + ", " + COL_MULTIPART_PART_MD5_HEX
+			+ " FROM " + TABLE_MULTIPART_UPLOAD_PART_STATE + " WHERE "
+			+ COL_MULTIPART_PART_UPLOAD_ID + " = ? AND "
+			+ COL_MULTIPART_PART_MD5_HEX + " IS NOT NULL ORDER BY "
+			+ COL_MULTIPART_PART_NUMBER + " ASC";
+
+	private static final String SQL_SELECT_PART_ERROR = "SELECT "
+			+ COL_MULTIPART_PART_NUMBER + ", "
+			+ COL_MULTIPART_PART_ERROR_DETAILS + " FROM "
+			+ TABLE_MULTIPART_UPLOAD_PART_STATE + " WHERE "
+			+ COL_MULTIPART_PART_UPLOAD_ID + " = ? AND "
+			+ COL_MULTIPART_PART_ERROR_DETAILS + " IS NOT NULL ORDER BY "
+			+ COL_MULTIPART_PART_NUMBER + " ASC";
+
 	private static final String SQL_TRUNCATE_ALL = "DELETE FROM "
 			+ TABLE_MULTIPART_UPLOAD + " WHERE " + COL_MULTIPART_UPLOAD_ID
 			+ " > -1";
@@ -31,7 +59,8 @@ public class MultipartUploadDAOImpl implements MultipartUploadDAO {
 			+ COL_MULTIPART_STARTED_BY + "," + COL_MULTIPART_STARTED_ON + ","
 			+ COL_MULTIPART_UPDATED_ON + "," + COL_MULTIPART_FILE_HANDLE_ID
 			+ "," + COL_MULTIPART_STATE + "," + COL_MULTIPART_UPLOAD_TOKEN
-			+ "," + COL_MULTIPART_BUCKET + "," + COL_MULTIPART_KEY;
+			+ "," + COL_MULTIPART_BUCKET + "," + COL_MULTIPART_KEY + ","
+			+ COL_MULTIPART_NUMBER_OF_PARTS+"," +COL_MULTIPART_UPLOAD_ETAG;
 
 	private static final String SELECT_BY_ID = "SELECT " + STATUS_SELECT
 			+ " FROM " + TABLE_MULTIPART_UPLOAD + " WHERE "
@@ -68,6 +97,9 @@ public class MultipartUploadDAOImpl implements MultipartUploadDAO {
 			dto.setUploadToken(rs.getString(COL_MULTIPART_UPLOAD_TOKEN));
 			dto.setBucket(rs.getString(COL_MULTIPART_BUCKET));
 			dto.setKey(rs.getString(COL_MULTIPART_KEY));
+			dto.setNumberOfParts((int) rs
+					.getLong(COL_MULTIPART_NUMBER_OF_PARTS));
+			dto.setEtag(rs.getString(COL_MULTIPART_UPLOAD_ETAG));
 			return dto;
 		}
 	};
@@ -147,6 +179,8 @@ public class MultipartUploadDAOImpl implements MultipartUploadDAO {
 				.required(createRequest.getUploadToken(), "UploadToken");
 		ValidateArgument.required(createRequest.getBucket(), "Bucket");
 		ValidateArgument.required(createRequest.getKey(), "Key");
+		ValidateArgument.required(createRequest.getNumberOfParts(),
+				"NumberOfParts");
 
 		DBOMultipartUpload dbo = new DBOMultipartUpload();
 		dbo.setId(idGenerator.generateNewId(TYPE.MULTIPART_UPLOAD_ID));
@@ -160,6 +194,7 @@ public class MultipartUploadDAOImpl implements MultipartUploadDAO {
 		dbo.setUploadToken(createRequest.getUploadToken());
 		dbo.setBucket(createRequest.getBucket());
 		dbo.setKey(createRequest.getKey());
+		dbo.setNumberOfParts(createRequest.getNumberOfParts());
 		basicDao.createNew(dbo);
 		return getUploadStatus(dbo.getId());
 	}
@@ -192,6 +227,160 @@ public class MultipartUploadDAOImpl implements MultipartUploadDAO {
 	@Override
 	public void truncateAll() {
 		jdbcTemplate.update(SQL_TRUNCATE_ALL);
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * org.sagebionetworks.repo.model.dbo.file.MultipartUploadDAO#getPartsState
+	 * (java.lang.String, int)
+	 */
+	@Override
+	public String getPartsState(String uploadId, int numberOfParts) {
+		ValidateArgument.required(uploadId, "UploadId");
+		validatePartNumber(numberOfParts);
+		char[] chars = new char[numberOfParts];
+		// start with each part missing
+		Arrays.fill(chars, '0');
+		List<Integer> addedParts = jdbcTemplate.queryForList(
+				SQL_SELECT_ADDED_PART_NUMBERS, Integer.class, uploadId);
+		for (Integer partNumber : addedParts) {
+			chars[partNumber - 1] = '1';
+		}
+		return new String(chars);
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * org.sagebionetworks.repo.model.dbo.file.MultipartUploadDAO#addPartToUpload
+	 * (java.lang.String, int, java.lang.String)
+	 */
+	@WriteTransactionReadCommitted
+	@Override
+	public void addPartToUpload(String uploadId, int partNumber,
+			String partMD5Hex) {
+		ValidateArgument.required(uploadId, "UploadId");
+		ValidateArgument.required(partMD5Hex, "PartMD5Hex");
+		validatePartNumber(partNumber);
+		// update the etag of the master row.
+		updateEtag(uploadId);
+		// update the part state
+		DBOMultipartUploadPartState partState = new DBOMultipartUploadPartState();
+		partState.setUploadId(Long.parseLong(uploadId));
+		partState.setPartNumber(partNumber);
+		partState.setPartMD5Hex(partMD5Hex);
+		partState.setErrorDetails(null);
+		basicDao.createOrUpdate(partState);
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * org.sagebionetworks.repo.model.dbo.file.MultipartUploadDAO#setPartToFailed
+	 * (java.lang.String, int, java.lang.String)
+	 */
+	@WriteTransactionReadCommitted
+	@Override
+	public void setPartToFailed(String uploadId, int partNumber,
+			String errorDetails) {
+		ValidateArgument.required(uploadId, "UploadId");
+		ValidateArgument.required(errorDetails, "ErrorDetails");
+		validatePartNumber(partNumber);
+		// update the etag of the master row.
+		updateEtag(uploadId);
+		// update the part state
+		DBOMultipartUploadPartState partState = new DBOMultipartUploadPartState();
+		partState.setUploadId(Long.parseLong(uploadId));
+		partState.setPartNumber(partNumber);
+		partState.setPartMD5Hex(null);
+		try {
+			partState.setErrorDetails(errorDetails.getBytes("UTF-8"));
+		} catch (UnsupportedEncodingException e) {
+			throw new RuntimeException(e);
+		}
+		basicDao.createOrUpdate(partState);
+	}
+
+	/**
+	 * Validate that a part number is within range.
+	 * 
+	 * @param partNumber
+	 */
+	private void validatePartNumber(int partNumber) {
+		if (partNumber < 1 || partNumber > 10 * 1000) {
+			throw new IllegalArgumentException(
+					"Part number must be between 1 and 10,000 (inclusive).");
+		}
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * org.sagebionetworks.repo.model.dbo.file.MultipartUploadDAO#getAddedPartMD5s
+	 * (java.lang.String)
+	 */
+	@Override
+	public List<PartMD5> getAddedPartMD5s(final String uploadId) {
+		ValidateArgument.required(uploadId, "UploadId");
+		return jdbcTemplate.query(SQL_SELECT_PART_MD5S,
+				new RowMapper<PartMD5>() {
+
+					@Override
+					public PartMD5 mapRow(ResultSet rs, int rowNum)
+							throws SQLException {
+						int partNumber = rs.getInt(COL_MULTIPART_PART_NUMBER);
+						String partMD5Hex = rs
+								.getString(COL_MULTIPART_PART_MD5_HEX);
+						return new PartMD5(partNumber, partMD5Hex);
+					}
+				}, uploadId);
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * org.sagebionetworks.repo.model.dbo.file.MultipartUploadDAO#getPartErrors
+	 * (java.lang.String)
+	 */
+	@Override
+	public List<PartErrors> getPartErrors(String uploadId) {
+		ValidateArgument.required(uploadId, "UploadId");
+		return jdbcTemplate.query(SQL_SELECT_PART_ERROR,
+				new RowMapper<PartErrors>() {
+
+					@Override
+					public PartErrors mapRow(ResultSet rs, int rowNum)
+							throws SQLException {
+						int partNumber = rs.getInt(COL_MULTIPART_PART_NUMBER);
+						Blob blob = rs
+								.getBlob(COL_MULTIPART_PART_ERROR_DETAILS);
+						String error;
+						try {
+							error = new String(blob.getBytes(1,
+									(int) blob.length()), "UTF-8");
+							return new PartErrors(partNumber, error);
+						} catch (UnsupportedEncodingException e) {
+							throw new RuntimeException(e);
+						}
+
+					}
+				}, uploadId);
+	}
+
+	/**
+	 * Update the etag for the given upload.
+	 * @param uploadId
+	 */
+	private void updateEtag(String uploadId) {
+		ValidateArgument.required(uploadId, "UploadId");
+		String newEtag = UUID.randomUUID().toString();
+		jdbcTemplate.update(SQL_UPDATE_ETAG, newEtag, uploadId);
 	}
 
 }

@@ -1,0 +1,28 @@
+{
+	"description": "Response from adding a part to multi-part upload.",
+	"properties": {
+		"uploadId": {
+			"type": "string",
+			"description": "The unique identifier of a multi-part file upload."
+		},
+		"partNumber": {
+			"type": "integer",
+			"description":"The part number of the add."
+		},
+		"addPartState": {
+			"type": "string",
+			"description": "The state of this add.",
+			"name": "AddPartState",
+			"id": "org.sagebionetworks.repo.model.file.Multipart.AddPartState",
+			"enum": [
+				"ADD_SUCCESS",
+				"ADD_FAILED"
+			]
+		},
+		"errorMessage": {
+			"type": "string",
+			"description":"If the added failed, this will contain the error message of the cause.  Will be null when the add is successful."
+		}
+		
+	}
+}

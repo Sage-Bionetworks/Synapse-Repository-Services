@@ -3,7 +3,7 @@
 	"properties": {
 		"uploadId": {
 			"type": "string",
-			"description": "The unique identifier of a multip-part file upload."
+			"description": "The unique identifier of a multi-part file upload."
 		},
 		"startedBy": {
 			"description": "The id of the user that started this multi-part file upload.",
@@ -21,7 +21,7 @@
 		},
 		"partsState": {
 			"type": "string",
-			"description": "The concatenation of the state of each part.  Each part will have a state of 'added' (1) or 'missing' (0).  For example, given an upload composed of two parts such that the first part has been added successfully while the second part is still missing the partsState='10'."
+			"description": "A binary representation of the upload status of all parts comprising the file to be uploaded.  A part that has been 'added' will have a state of '1', while a part that is 'missing' will have a state = '0'.  For example, a two part file for which the first part has been added but the second part is missing would have a partState='10'."
 		},
 		"state": {
 			"type": "string",

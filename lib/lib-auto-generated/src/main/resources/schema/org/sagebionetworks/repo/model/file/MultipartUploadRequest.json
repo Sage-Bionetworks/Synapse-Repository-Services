@@ -3,7 +3,7 @@
 	"properties": {
 		"contentMD5Hex": {
 			"type": "string",
-			"description": "The MD5 of the entire file to be uploaded represented as a HEX string"
+			"description": "The MD5 of the entire file to be uploaded represented as a HEX string."
 		},
 		"contentType": {
 			"type": "string",
@@ -15,7 +15,7 @@
 		},
 		"partSizeBytes": {
 			"type": "integer",
-			"description": "In order to upload a file, a client must chunk the file into 'parts' and upload each part separately.  This indicates the clients intended intended part size in bytes.  Part size must be at least 5,242,880 bytes (5MB).  Also the maximum number of parts for a single file is 10K. Therefore, the recommended part size for a single file upload should be: MAX( 5242880, (fileSizeBytes/10000)). "
+			"description": "In order to upload a file, a client must chunk the file into 'parts' and upload each part separately.  This indicates the clients intended part size in bytes.  Part size must be at least 5,242,880 bytes (5MB).  Also the maximum number of parts for a single file is 10K. Therefore, the recommended part size for a single file upload should be: MAX( 5242880, (fileSizeBytes/10000)). "
 		},
 		"fileName": {
 			"type": "string",
@@ -23,7 +23,7 @@
 		},
 		"storageLocationId": {
 			"type": "integer",
-			"description": "The identifier of the storage location where this file should be upload."
+			"description": "The identifier of the storage location where this file should be uploaded.  A value of null indicates the default upload location."
 		}
 	}
 }

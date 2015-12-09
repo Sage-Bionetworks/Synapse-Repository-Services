@@ -1,7 +1,8 @@
 package org.sagebionetworks.repo.model.dbo.file;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.*;
+
+import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -29,6 +30,7 @@ public class MultipartUploadDAOImplTest {
 	String uploadToken;
 	String bucket;
 	String key;
+	Integer numberOfParts;
 	CreateMultipartRequest createRequest;
 	
 	@Before
@@ -49,9 +51,9 @@ public class MultipartUploadDAOImplTest {
 		uploadToken = "someUploadToken";
 		bucket = "someBucket";
 		key = "someKey";
-		
+		numberOfParts = 11;
 		String requestJSON = EntityFactory.createJSONStringForEntity(request);
-		createRequest = new CreateMultipartRequest(userId, hash, requestJSON, uploadToken, bucket, key);
+		createRequest = new CreateMultipartRequest(userId, hash, requestJSON, uploadToken, bucket, key,numberOfParts);
 	}
 
 	
@@ -71,6 +73,7 @@ public class MultipartUploadDAOImplTest {
 		assertEquals(uploadToken, composite.getUploadToken());
 		assertEquals(bucket, composite.getBucket());
 		assertEquals(key, composite.getKey());
+		assertEquals(numberOfParts, composite.getNumberOfParts());
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -149,4 +152,66 @@ public class MultipartUploadDAOImplTest {
 		CompositeMultipartUploadStatus fetched = multipartUplaodDAO.getUploadStatus(userId, hash);
 		assertEquals(null, fetched);
 	}
+	
+	@Test
+	public void testAddPartToAndErrorToUpload(){
+		CompositeMultipartUploadStatus status = multipartUplaodDAO.createUploadStatus(createRequest);
+		assertNotNull(status);
+		String uploadId = status.getMultipartUploadStatus().getUploadId();
+		// Should have not md5s since none have been added
+		List<PartMD5> partMD5s = multipartUplaodDAO.getAddedPartMD5s(uploadId);
+		assertNotNull(partMD5s);
+		assertEquals(0, partMD5s.size());
+		// Call under test
+		multipartUplaodDAO.addPartToUpload(uploadId, 1, "partOneMD5Hex");
+		multipartUplaodDAO.addPartToUpload(uploadId, 9, "partNineMD5Hex");
+		// also call under test
+		multipartUplaodDAO.setPartToFailed(uploadId, 10, "some kind of error");
+		// both should be added.
+		partMD5s = multipartUplaodDAO.getAddedPartMD5s(uploadId);
+		assertNotNull(partMD5s);
+		assertEquals(2, partMD5s.size());
+		assertEquals(new PartMD5(1, "partOneMD5Hex"), partMD5s.get(0));
+		assertEquals(new PartMD5(9, "partNineMD5Hex"), partMD5s.get(1));
+		// Get the errors
+		List<PartErrors> partErrors = multipartUplaodDAO.getPartErrors(uploadId);
+		assertNotNull(partErrors);
+		assertEquals(1, partErrors.size());
+		assertEquals(new PartErrors(10, "some kind of error"), partErrors.get(0));
+		
+		String partsState = multipartUplaodDAO.getPartsState(uploadId, numberOfParts);
+		assertEquals("10000000100", partsState);
+	}
+	
+	@Test
+	public void testAddPartUpdateEtag(){
+		CompositeMultipartUploadStatus status = multipartUplaodDAO.createUploadStatus(createRequest);
+		assertNotNull(status);
+		assertNotNull(status.getEtag());
+		String uploadId = status.getMultipartUploadStatus().getUploadId();
+		// Call under test
+		multipartUplaodDAO.addPartToUpload(uploadId, 1, "partOneMD5Hex");
+
+		CompositeMultipartUploadStatus updated = multipartUplaodDAO.getUploadStatus(uploadId);
+		assertNotNull(updated);
+		assertNotNull(updated.getEtag());
+		assertFalse("Adding a part must update the etag of the master row.",status.getEtag().equals(updated.getEtag()));
+	}
+	
+	@Test
+	public void testSetPartFailedUpdateEtag(){
+		CompositeMultipartUploadStatus status = multipartUplaodDAO.createUploadStatus(createRequest);
+		assertNotNull(status);
+		assertNotNull(status.getEtag());
+		String uploadId = status.getMultipartUploadStatus().getUploadId();
+		// Call under test
+		// also call under test
+		multipartUplaodDAO.setPartToFailed(uploadId, 10, "some kind of error");
+
+		CompositeMultipartUploadStatus updated = multipartUplaodDAO.getUploadStatus(uploadId);
+		assertNotNull(updated);
+		assertNotNull(updated.getEtag());
+		assertFalse("setting part to failed must update the etag of the master row.",status.getEtag().equals(updated.getEtag()));
+	}
+	
 }
