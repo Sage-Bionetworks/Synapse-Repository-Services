@@ -16,6 +16,7 @@ import org.sagebionetworks.repo.model.discussion.Forum;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -41,9 +42,7 @@ public class DBOForumDAOImpl implements ForumDAO {
 	@WriteTransaction
 	@Override
 	public Forum createForum(String projectId) {
-		if (projectId == null) {
-			throw new IllegalArgumentException("projectId");
-		}
+		ValidateArgument.required(projectId, "projectId");
 		long id = idGenerator.generateNewId(TYPE.FORUM_ID);
 		DBOForum dbo = new DBOForum();
 		dbo.setId(id);
@@ -63,9 +62,7 @@ public class DBOForumDAOImpl implements ForumDAO {
 
 	@Override
 	public Forum getForumByProjectId(String projectId) {
-		if (projectId == null) {
-			throw new IllegalArgumentException("projectId");
-		}
+		ValidateArgument.required(projectId, "projectId");
 		List<DBOForum> results = jdbcTemplate.query(SQL_SELECT_FORUM_BY_PROJECT_ID, ROW_MAPPER,
 				KeyFactory.stringToKey(projectId));
 		if (results.size() != 1) {
