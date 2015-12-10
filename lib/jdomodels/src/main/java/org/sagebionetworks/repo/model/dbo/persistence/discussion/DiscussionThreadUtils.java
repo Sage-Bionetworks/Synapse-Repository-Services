@@ -49,9 +49,7 @@ public class DiscussionThreadUtils {
 	 * @return
 	 */
 	public static List<String> toList(String inputString) {
-		if (inputString == null) {
-			throw new IllegalArgumentException("inputString");
-		}
+		ValidateArgument.required(inputString, "inputString");
 		List<String> list = new ArrayList<String>();
 		if (inputString.equals("")) {
 			return list;
