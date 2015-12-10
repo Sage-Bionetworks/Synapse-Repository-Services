@@ -1,5 +1,9 @@
-package org.sagebionetworks.repo.model.dbo.file;
+package org.sagebionetworks.repo.model.file;
 
+/**
+ * A DTO representing an error of a single part of a multi-part upload.
+ *
+ */
 public class PartErrors {
 
 	int partNumber;

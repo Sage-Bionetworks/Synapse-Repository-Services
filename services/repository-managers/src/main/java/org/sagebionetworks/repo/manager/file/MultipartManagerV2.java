@@ -39,6 +39,21 @@ public interface MultipartManagerV2 {
 	 */
 	public AddPartResponse addMultipartPart(UserInfo user, String uploadId, Integer partNumber, String partMD5Hex);
 	
+	/**
+	 * After all of the parts are uploaded, complete the multi-part upload and generate a file.
+	 * @param user
+	 * @param uploadId
+	 * @return
+	 */
+	public MultipartUploadStatus completeMultipartUpload(UserInfo user, String uploadId);
+	
+	/**
+	 * Get the original request for a given multi-part file upload.
+	 * @param uploadId
+	 * @return
+	 */
+	public MultipartUploadRequest getRequestForUpload(String uploadId);
+	
 
 
 }

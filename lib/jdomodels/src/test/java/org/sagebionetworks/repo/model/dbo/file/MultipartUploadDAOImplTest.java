@@ -1,16 +1,24 @@
 package org.sagebionetworks.repo.model.dbo.file;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 
 import java.util.List;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
+import org.sagebionetworks.repo.model.file.MultipartUploadState;
 import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
-import org.sagebionetworks.repo.model.file.Multipart.State;
+import org.sagebionetworks.repo.model.file.PartErrors;
+import org.sagebionetworks.repo.model.file.PartMD5;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
@@ -24,6 +32,8 @@ public class MultipartUploadDAOImplTest {
 
 	@Autowired
 	MultipartUploadDAO multipartUplaodDAO;
+	@Autowired
+	FileHandleDao fileHandleDao;
 	
 	Long userId;
 	String hash;
@@ -32,6 +42,15 @@ public class MultipartUploadDAOImplTest {
 	String key;
 	Integer numberOfParts;
 	CreateMultipartRequest createRequest;
+	String requestJSON;
+	S3FileHandle file;
+	
+	@After
+	public void after(){
+		if(file != null){
+			fileHandleDao.delete(file.getId());;
+		}
+	}
 	
 	@Before
 	public void before() throws JSONObjectAdapterException{
@@ -52,7 +71,7 @@ public class MultipartUploadDAOImplTest {
 		bucket = "someBucket";
 		key = "someKey";
 		numberOfParts = 11;
-		String requestJSON = EntityFactory.createJSONStringForEntity(request);
+		requestJSON = EntityFactory.createJSONStringForEntity(request);
 		createRequest = new CreateMultipartRequest(userId, hash, requestJSON, uploadToken, bucket, key,numberOfParts);
 	}
 
@@ -68,7 +87,7 @@ public class MultipartUploadDAOImplTest {
 		assertNotNull(status.getStartedOn());
 		assertNotNull(status.getUpdatedOn());
 		assertEquals(""+userId, status.getStartedBy());
-		assertEquals(State.UPLOADING, status.getState());
+		assertEquals(MultipartUploadState.UPLOADING, status.getState());
 		assertEquals(null, status.getResultFileHandleId());
 		assertEquals(uploadToken, composite.getUploadToken());
 		assertEquals(bucket, composite.getBucket());
@@ -212,6 +231,52 @@ public class MultipartUploadDAOImplTest {
 		assertNotNull(updated);
 		assertNotNull(updated.getEtag());
 		assertFalse("setting part to failed must update the etag of the master row.",status.getEtag().equals(updated.getEtag()));
+	}
+	
+	@Test
+	public void testGetUploadRequest(){
+		CompositeMultipartUploadStatus status = multipartUplaodDAO.createUploadStatus(createRequest);
+		assertNotNull(status);
+		String uploadId = status.getMultipartUploadStatus().getUploadId();
+		// call under test
+		String requestBody = multipartUplaodDAO.getUploadRequest(uploadId);
+		assertEquals(requestJSON, requestBody);
+	}
+	
+	@Test (expected=NotFoundException.class)
+	public void testGetUploadRequestNotFound(){
+		//call under test.
+		multipartUplaodDAO.getUploadRequest("-1");
+	}
+	
+	@Test
+	public void testSetUploadComplete(){
+		// setup a file.
+		S3FileHandle file = TestUtils.createS3FileHandle(""+userId);
+		file = fileHandleDao.createFile(file);
+		
+		CompositeMultipartUploadStatus status = multipartUplaodDAO.createUploadStatus(createRequest);
+		assertNotNull(status);
+		assertEquals(MultipartUploadState.UPLOADING, status.getMultipartUploadStatus().getState());
+		String uploadId = status.getMultipartUploadStatus().getUploadId();
+		
+		// Add a part so we can confirm the are removed upon completion.
+		int partNumber = 1;
+		multipartUplaodDAO.addPartToUpload(uploadId, partNumber, "partOneMD5Hex");
+		List<PartMD5> partMD5s = multipartUplaodDAO.getAddedPartMD5s(uploadId);
+		assertNotNull(partMD5s);
+		assertEquals(1, partMD5s.size());
+		// call under test
+		CompositeMultipartUploadStatus result = multipartUplaodDAO.setUploadComplete(uploadId, file.getId());
+		assertNotNull(result);
+		assertEquals(MultipartUploadState.COMPLETED, result.getMultipartUploadStatus().getState());
+		assertEquals(file.getId(), result.getMultipartUploadStatus().getResultFileHandleId());
+		// the etag must change
+		assertFalse("Completing an upload must update the etag of the master row.",status.getEtag().equals(result.getEtag()));
+		// the part state should be cleared
+		partMD5s = multipartUplaodDAO.getAddedPartMD5s(uploadId);
+		assertNotNull(partMD5s);
+		assertEquals("Setting an upload complete should clear all part state.",0, partMD5s.size());
 	}
 	
 }

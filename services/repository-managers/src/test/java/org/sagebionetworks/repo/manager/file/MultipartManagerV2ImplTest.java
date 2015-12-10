@@ -1,19 +1,34 @@
 package org.sagebionetworks.repo.manager.file;
 
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
-import static org.sagebionetworks.repo.manager.file.MultipartManagerV2Impl.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyInt;
+import static org.mockito.Matchers.anyLong;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Matchers.startsWith;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.sagebionetworks.repo.manager.file.MultipartManagerV2Impl.MAX_NUMBER_OF_PARTS;
+import static org.sagebionetworks.repo.manager.file.MultipartManagerV2Impl.MIN_PART_SIZE_BYTES;
+import static org.sagebionetworks.repo.manager.file.MultipartManagerV2Impl.calculateMD5AsHex;
+import static org.sagebionetworks.repo.manager.file.MultipartManagerV2Impl.createPartKey;
+import static org.sagebionetworks.repo.manager.file.MultipartManagerV2Impl.createRequestJSON;
 
 import java.net.URL;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.LinkedList;
 
-import org.apache.commons.lang.exception.ExceptionUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
-import org.mockito.Matchers;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
@@ -26,15 +41,15 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.file.CompositeMultipartUploadStatus;
 import org.sagebionetworks.repo.model.dbo.file.CreateMultipartRequest;
 import org.sagebionetworks.repo.model.dbo.file.MultipartUploadDAO;
+import org.sagebionetworks.repo.model.file.AddPartRequest;
 import org.sagebionetworks.repo.model.file.AddPartResponse;
 import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlRequest;
 import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlResponse;
 import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
+import org.sagebionetworks.repo.model.file.MultipartUploadState;
 import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
 import org.sagebionetworks.repo.model.file.PartPresignedUrl;
-import org.sagebionetworks.repo.model.file.Multipart.AddPartState;
-import org.sagebionetworks.repo.model.file.Multipart.State;
-import org.sagebionetworks.upload.multipart.AddPartRequest;
+import org.sagebionetworks.repo.model.file.AddPartState;
 import org.sagebionetworks.upload.multipart.S3MultipartUploadDAO;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -96,7 +111,7 @@ public class MultipartManagerV2ImplTest {
 				MultipartUploadStatus status = new MultipartUploadStatus();
 				status.setStartedBy(""+cmr.getUserId());
 				status.setStartedOn(new Date());
-				status.setState(State.UPLOADING);
+				status.setState(MultipartUploadState.UPLOADING);
 				status.setUploadId("123456");
 				status.setUpdatedOn(status.getStartedOn());
 				CompositeMultipartUploadStatus composite = new CompositeMultipartUploadStatus();
@@ -230,7 +245,7 @@ public class MultipartManagerV2ImplTest {
 		// call under test
 		MultipartUploadStatus status = manager.startOrResumeMultipartUpload(userInfo, request, forceRestart);
 		assertNotNull(status);
-		assertEquals(State.UPLOADING, status.getState());
+		assertEquals(MultipartUploadState.UPLOADING, status.getState());
 		assertEquals("000000000000000000000", status.getPartsState());
 		assertEquals("123456", status.getUploadId());
 		
@@ -265,13 +280,13 @@ public class MultipartManagerV2ImplTest {
 	@Test
 	public void testStartOrResumeMultipartUploadAlreadyStartedCompleted(){
 		// setup the case where the status already exists and it is complete
-		composite.getMultipartUploadStatus().setState(State.COMPLETED);
+		composite.getMultipartUploadStatus().setState(MultipartUploadState.COMPLETED);
 		composite.getMultipartUploadStatus().setResultFileHandleId("9876");
 		when(mockMultiparUploadDAO.getUploadStatus(anyLong(), anyString())).thenReturn(composite);
 		// call under test
 		MultipartUploadStatus status = manager.startOrResumeMultipartUpload(userInfo, request, forceRestart);
 		assertNotNull(status);
-		assertEquals(State.COMPLETED, status.getState());
+		assertEquals(MultipartUploadState.COMPLETED, status.getState());
 		assertEquals("1111111111", status.getPartsState());
 		assertEquals("9876", status.getResultFileHandleId());
 
