@@ -22,12 +22,12 @@ public class DiscussionThreadUtils {
 	 */
 	public static DBODiscussionThread createDBO(String forumId, String title,
 			String messageKey, Long userId, String id, String etag) {
-		ValidateArgument.requirement(forumId != null, "forumId");
-		ValidateArgument.requirement(title != null, "title");
-		ValidateArgument.requirement(messageKey != null, "messageUrl");
-		ValidateArgument.requirement(userId != null, "userId");
-		ValidateArgument.requirement(id != null, "id");
-		ValidateArgument.requirement(etag != null, "etag");
+		ValidateArgument.required(forumId, "forumId");
+		ValidateArgument.required(title, "title");
+		ValidateArgument.required(messageKey, "messageUrl");
+		ValidateArgument.required(userId, "userId");
+		ValidateArgument.required(id, "id");
+		ValidateArgument.required(etag, "etag");
 		DBODiscussionThread dbo = new DBODiscussionThread();
 		dbo.setId(Long.parseLong(id));
 		dbo.setForumId(Long.parseLong(forumId));
