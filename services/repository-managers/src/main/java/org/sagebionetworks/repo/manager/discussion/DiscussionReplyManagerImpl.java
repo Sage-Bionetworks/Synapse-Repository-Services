@@ -39,8 +39,8 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 		UserInfo.validateUserInfo(userInfo);
 		ValidateArgument.required(createReply, "createReply");
 		String threadId = createReply.getThreadId();
-		ValidateArgument.required(threadId, "threadId");
-		ValidateArgument.required(createReply.getMessageMarkdown(), "message");
+		ValidateArgument.required(threadId, "CreateDiscussionReply.threadId");
+		ValidateArgument.required(createReply.getMessageMarkdown(), "CreateDiscussionReply.messageMarkdown");
 		DiscussionThreadBundle thread = threadManager.getThread(userInfo, threadId);
 		String messageKey = uploadDao.uploadDiscussionContent(createReply.getMessageMarkdown(), thread.getForumId(), threadId);
 		return addMessageUrl(replyDao.createReply(threadId, messageKey, userInfo.getId()));
@@ -68,7 +68,7 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 		UserInfo.validateUserInfo(userInfo);
 		ValidateArgument.required(replyId, "replyId");
 		ValidateArgument.required(newMessage, "newMessage");
-		ValidateArgument.required(newMessage.getMessageMarkdown(), "messageMarkdown");
+		ValidateArgument.required(newMessage.getMessageMarkdown(), "UpdateReplyMessage.messageMarkdown");
 		Long replyIdLong = Long.parseLong(replyId);
 		DiscussionReplyBundle reply = replyDao.getReply(replyIdLong);
 		DiscussionThreadBundle thread = threadManager.getThread(userInfo, reply.getThreadId());

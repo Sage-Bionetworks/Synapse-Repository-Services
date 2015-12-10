@@ -43,9 +43,9 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 	@Override
 	public DiscussionThreadBundle createThread(UserInfo userInfo, CreateDiscussionThread createThread) throws IOException {
 		ValidateArgument.required(createThread, "createThread");
-		ValidateArgument.required(createThread.getForumId(), "forumId");
-		ValidateArgument.required(createThread.getTitle(), "title");
-		ValidateArgument.required(createThread.getMessageMarkdown(), "message");
+		ValidateArgument.required(createThread.getForumId(), "CreateDiscussionThread.forumId");
+		ValidateArgument.required(createThread.getTitle(), "CreateDiscussionThread.title");
+		ValidateArgument.required(createThread.getMessageMarkdown(), "CreateDiscussionThread.messageMarkdown");
 		UserInfo.validateUserInfo(userInfo);
 		String projectId = forumDao.getForum(Long.parseLong(createThread.getForumId())).getProjectId();
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
@@ -77,7 +77,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 	public DiscussionThreadBundle updateTitle(UserInfo userInfo, String threadId, UpdateThreadTitle newTitle) {
 		ValidateArgument.required(threadId, "threadId");
 		ValidateArgument.required(newTitle, "newTitle");
-		ValidateArgument.required(newTitle.getTitle(), "title");
+		ValidateArgument.required(newTitle.getTitle(), "UpdateThreadTitle.title");
 		UserInfo.validateUserInfo(userInfo);
 		Long threadIdLong = Long.parseLong(threadId);
 		DiscussionThreadBundle thread = threadDao.getThread(threadIdLong);
@@ -94,7 +94,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 			UpdateThreadMessage newMessage) throws IOException {
 		ValidateArgument.required(threadId, "threadId");
 		ValidateArgument.required(newMessage, "newMessage");
-		ValidateArgument.required(newMessage.getMessageMarkdown(), "messageMarkdown");
+		ValidateArgument.required(newMessage.getMessageMarkdown(), "UpdateThreadMessage.messageMarkdown");
 		UserInfo.validateUserInfo(userInfo);
 		Long threadIdLong = Long.parseLong(threadId);
 		DiscussionThreadBundle thread = threadDao.getThread(threadIdLong);
