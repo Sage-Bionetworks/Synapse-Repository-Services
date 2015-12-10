@@ -2073,7 +2073,7 @@ public class ServletTestHelper {
 	}
 
 	public DiscussionReplyBundle createReply(DispatcherServlet dispatchServlet,
-			Long adminUserId, CreateDiscussionReply createReply) throws Exception {
+			Long userId, CreateDiscussionReply createReply) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.POST, "/repo/v1", UrlHelpers.REPLY, userId, createReply);
 		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
@@ -2081,7 +2081,7 @@ public class ServletTestHelper {
 		return objectMapper.readValue(response.getContentAsString(), DiscussionReplyBundle.class);
 	}
 
-	public DiscussionReplyBundle getReply(DispatcherServlet dispatchServlet, Long adminUserId, String replyId) throws Exception {
+	public DiscussionReplyBundle getReply(DispatcherServlet dispatchServlet, Long userId, String replyId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, "/repo/v1", UrlHelpers.REPLY+"/"+replyId, userId, null);
 		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
@@ -2116,7 +2116,7 @@ public class ServletTestHelper {
 		return objectMapper.readValue(response.getContentAsString(), DiscussionReplyBundle.class);
 	}
 
-	public void markReplyAsDeleted(DispatcherServlet dispatchServlet, Long adminUserId,
+	public void markReplyAsDeleted(DispatcherServlet dispatchServlet, Long userId,
 			String replyId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.DELETE, "/repo/v1", UrlHelpers.REPLY+"/"+replyId, userId, null);
