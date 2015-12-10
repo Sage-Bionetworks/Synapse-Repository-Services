@@ -197,7 +197,7 @@ public class DiscussionController extends BaseController {
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.REPLY, method = RequestMethod.POST)
-	public DiscussionReplyBundle createReply(
+	public @ResponseBody DiscussionReplyBundle createReply(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody CreateDiscussionReply toCreate) throws IOException {
 		return serviceProvider.getDiscussionService().createReply(userId, toCreate);
