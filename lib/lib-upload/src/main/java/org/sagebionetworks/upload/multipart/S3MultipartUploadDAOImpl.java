@@ -137,10 +137,12 @@ public class S3MultipartUploadDAOImpl implements S3MultipartUploadDAO {
 		cmur.setUploadId(request.getUploadToken());
 		// convert the parts MD5s to etags
 		List<PartETag> partEtags = new LinkedList<PartETag>();
+		cmur.setPartETags(partEtags);
 		for (PartMD5 partMD5 : request.getAddedParts()) {
 			String partEtag = hexToBase64(partMD5.getPartMD5Hex());
 			partEtags.add(new PartETag(partMD5.getPartNumber(), partEtag));
 		}
+
 		s3Client.completeMultipartUpload(cmur);
 		// Lookup the final size of this file
 		ObjectMetadata resultFileMetadata = s3Client.getObjectMetadata(

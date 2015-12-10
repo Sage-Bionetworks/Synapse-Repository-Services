@@ -409,14 +409,7 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		// Are all parts added?
 		List<PartMD5> addedParts = multipartUploadDAO
 				.getAddedPartMD5s(uploadId);
-		if (addedParts.size() < composite.getNumberOfParts()) {
-			int missingPartCount = composite.getNumberOfParts()
-					- addedParts.size();
-			throw new IllegalArgumentException(
-					"Missing "
-							+ missingPartCount
-							+ " parts.  All parts must be succesfully added before a file upload can be completed.");
-		}
+		validateParts(composite.getNumberOfParts(), addedParts);
 		// complete the upload
 		CompleteMultipartRequest request = new CompleteMultipartRequest();
 		request.setAddedParts(addedParts);
@@ -435,6 +428,24 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		composite = multipartUploadDAO.setUploadComplete(uploadId, resultFileHandle.getId());
 		return prepareCompleteStatus(composite);
 	}
+
+	/**
+	 * Validate there is one part for the expected number of parts.
+	 * 
+	 * @param numberOfParts
+	 * @param addedParts
+	 */
+	public static void validateParts(int numberOfParts,
+			List<PartMD5> addedParts) {
+		if (addedParts.size() < numberOfParts) {
+			int missingPartCount = numberOfParts
+					- addedParts.size();
+			throw new IllegalArgumentException(
+					"Missing "
+							+ missingPartCount
+							+ " part(s).  All parts must be successfully added before a file upload can be completed.");
+		}
+	}
 	
 	/**
 	 * Prepare a COMPLETED status for a given composite.
@@ -445,9 +456,10 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		ValidateArgument.required(composite, "CompositeMultipartUploadStatus");
 		ValidateArgument.required(composite.getMultipartUploadStatus(), "MultipartUploadStatus");
 		ValidateArgument.required(composite.getMultipartUploadStatus().getResultFileHandleId(), "ResultFileHandleId");
+		ValidateArgument.required(composite.getNumberOfParts(), "NumberOfParts");
 		MultipartUploadStatus status = composite.getMultipartUploadStatus();
-		if(MultipartUploadState.COMPLETED.equals(status.getState())){
-			throw new IllegalStateException("Expected a COMPLETED state");
+		if(!MultipartUploadState.COMPLETED.equals(status.getState())){
+			throw new IllegalArgumentException("Expected a COMPLETED state");
 		}
 		// Build a state string of all '1's.
 		String completePartsState = getCompletePartStateString(composite.getNumberOfParts());
@@ -480,7 +492,9 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 	 * @param request
 	 * @return
 	 */
-	private S3FileHandle createFileHandle(long fileSize, CompositeMultipartUploadStatus composite, MultipartUploadRequest request){
+	@WriteTransactionReadCommitted
+	@Override
+	public S3FileHandle createFileHandle(long fileSize, CompositeMultipartUploadStatus composite, MultipartUploadRequest request){
 		// Convert all of the data to a file handle.
 		S3FileHandle fileHandle = new S3FileHandle();
 		fileHandle.setFileName(request.getFileName());
