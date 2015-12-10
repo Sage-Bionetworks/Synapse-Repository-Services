@@ -8,6 +8,7 @@ import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UploadContentToS3DAO;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -56,7 +57,7 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 		ValidateArgument.required(replyId, "replyId");
 		DiscussionReplyBundle reply = replyDao.getReply(Long.parseLong(replyId));
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				threadManager.canAccess(userInfo, reply.getThreadId(), ACCESS_TYPE.READ));
+				authorizationManager.canAccess(userInfo, reply.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
 		return addMessageUrl(reply);
 	}
 
@@ -87,7 +88,7 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 		Long replyIdLong = Long.parseLong(replyId);
 		DiscussionReplyBundle reply = replyDao.getReply(replyIdLong);
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				threadManager.canAccess(userInfo, reply.getThreadId(), ACCESS_TYPE.DELETE));
+				authorizationManager.canAccess(userInfo, reply.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.DELETE));
 		replyDao.markReplyAsDeleted(replyIdLong);
 	}
 
@@ -99,8 +100,7 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 		ValidateArgument.required(threadId, "threadId");
 		ValidateArgument.required(limit, "limit");
 		ValidateArgument.required(offset, "offset");
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				threadManager.canAccess(userInfo, threadId, ACCESS_TYPE.READ));
+		threadManager.getThread(userInfo, threadId);
 		return addMessageUrl(replyDao.getRepliesForThread(Long.parseLong(threadId), limit, offset, order, ascending));
 	}
 

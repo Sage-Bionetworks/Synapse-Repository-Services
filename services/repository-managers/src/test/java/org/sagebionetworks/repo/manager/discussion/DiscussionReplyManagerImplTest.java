@@ -15,6 +15,7 @@ import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UploadContentToS3DAO;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -64,6 +65,8 @@ public class DiscussionReplyManagerImplTest {
 
 		bundle = new DiscussionReplyBundle();
 		bundle.setThreadId(threadId);
+		bundle.setForumId(forumId);
+		bundle.setProjectId(projectId);
 		messageKey = UUID.randomUUID().toString();
 		bundle.setMessageKey(messageKey);
 		bundle.setMessageUrl("messageUrl");
@@ -123,13 +126,15 @@ public class DiscussionReplyManagerImplTest {
 
 	@Test (expected = UnauthorizedException.class)
 	public void testGetReplyUnauthorized() {
-		Mockito.when(mockThreadManager.canAccess(userInfo, threadId, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
+				.thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		replyManager.getReply(userInfo, replyId.toString());
 	}
 
 	@Test
 	public void testGetReplyAuthorized() {
-		Mockito.when(mockThreadManager.canAccess(userInfo, threadId, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
+				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		DiscussionReplyBundle reply = replyManager.getReply(userInfo, replyId.toString());
 		assertEquals(bundle, reply);
 	}
@@ -163,14 +168,16 @@ public class DiscussionReplyManagerImplTest {
 
 	@Test (expected = UnauthorizedException.class)
 	public void testMarkReplyAsDeletedUnauthorized() {
-		Mockito.when(mockThreadManager.canAccess(userInfo, threadId, ACCESS_TYPE.DELETE)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.DELETE))
+				.thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		replyManager.markReplyAsDeleted(userInfo, replyId.toString());
 		Mockito.verifyZeroInteractions(mockReplyDao);
 	}
 
 	@Test
 	public void testMarkReplyAsDeletedAuthorized() {
-		Mockito.when(mockThreadManager.canAccess(userInfo, threadId, ACCESS_TYPE.DELETE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.DELETE))
+				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		replyManager.markReplyAsDeleted(userInfo, replyId.toString());
 		Mockito.verify(mockReplyDao).markReplyAsDeleted(replyId);
 	}
@@ -186,7 +193,8 @@ public class DiscussionReplyManagerImplTest {
 		replies.setResults(Arrays.asList(bundle));
 		Mockito.when(mockReplyDao.getRepliesForThread(Mockito.anyLong(), Mockito.anyLong(), Mockito.anyLong(), (DiscussionReplyOrder) Mockito.any(), Mockito.anyBoolean()))
 				.thenReturn(replies);
-		Mockito.when(mockThreadManager.canAccess(userInfo, threadId, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
+				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		assertEquals(replies, replyManager.getRepliesForThread(userInfo, threadId, 2L, 0L, DiscussionReplyOrder.CREATED_ON, true));
 	}
 }
