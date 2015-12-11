@@ -362,6 +362,10 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		// lookup this upload.
 		CompositeMultipartUploadStatus composite = multipartUploadDAO
 				.getUploadStatus(uploadId);
+		// block add if the upload is complete
+		if(MultipartUploadState.COMPLETED.equals(composite.getMultipartUploadStatus().getState())){
+			throw new IllegalArgumentException("Cannot add parts to completed file upload.");
+		}
 		validatePartNumber(partNumber, composite.getNumberOfParts());
 		// validate the user started this upload.
 		validateStartedBy(user, composite);

@@ -549,9 +549,6 @@ public class MultipartManagerV2ImplTest {
 	
 	@Test
 	public void testAddMultipartPartHappy(){
-		String uploadId = composite.getMultipartUploadStatus().getUploadId();
-		// setup the case where the status already exists
-		when(mockMultiparUploadDAO.getUploadStatus(uploadId)).thenReturn(composite);
 		String partMD5Hex = "8356accbaa8bfc6ddc6c612224c6c9b3";
 		int partNumber = 2;
 		String partKey = createPartKey(composite.getKey(), partNumber);
@@ -576,6 +573,16 @@ public class MultipartManagerV2ImplTest {
 		
 		// the part should get deleted
 		verify(mockS3multipartUploadDAO).deleteObject(composite.getBucket(), partKey);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testAddMultipartPartComplete(){
+		// setup a complete state
+		composite.getMultipartUploadStatus().setState(MultipartUploadState.COMPLETED);
+		String partMD5Hex = "8356accbaa8bfc6ddc6c612224c6c9b3";
+		int partNumber = 2;
+		// call under test
+		manager.addMultipartPart(userInfo, uploadId, partNumber, partMD5Hex);
 	}
 	
 	@Test
@@ -751,8 +758,7 @@ public class MultipartManagerV2ImplTest {
 		composite.getMultipartUploadStatus().setStartedBy(""+(userInfo.getId()+1));
 	
 		//call under test
-		MultipartUploadStatus status = manager.completeMultipartUpload(userInfo, uploadId);
-		assertNotNull(status);
+		manager.completeMultipartUpload(userInfo, uploadId);
 	}
 	
 	@Test
