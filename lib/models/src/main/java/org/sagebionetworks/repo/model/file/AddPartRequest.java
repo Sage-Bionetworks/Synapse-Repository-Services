@@ -1,4 +1,4 @@
-package org.sagebionetworks.upload.multipart;
+package org.sagebionetworks.repo.model.file;
 
 /**
  * Parameters for adding a part to a multi-part upload.

@@ -26,8 +26,8 @@
 		"state": {
 			"type": "string",
 			"description": "The state of this file upload.",
-			"name": "State",
-			"id": "org.sagebionetworks.repo.model.file.Multipart.State",
+			"name": "MultipartUploadState",
+			"id": "org.sagebionetworks.repo.model.file.MultipartUploadState",
 			"enum": [
 				"UPLOADING",
 				"COMPLETED"

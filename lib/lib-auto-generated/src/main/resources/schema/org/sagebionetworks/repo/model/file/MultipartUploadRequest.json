@@ -24,6 +24,10 @@
 		"storageLocationId": {
 			"type": "integer",
 			"description": "The identifier of the storage location where this file should be uploaded.  A value of null indicates the default upload location."
+		},
+		"generatePreview": {
+			"type": "boolean",
+			"description": "Optional parameter.  When set to 'false' a preview will not be generated for the resulting file.."
 		}
 	}
 }

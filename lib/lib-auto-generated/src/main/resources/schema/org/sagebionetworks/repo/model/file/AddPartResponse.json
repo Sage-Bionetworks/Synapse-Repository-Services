@@ -13,7 +13,7 @@
 			"type": "string",
 			"description": "The state of this add.",
 			"name": "AddPartState",
-			"id": "org.sagebionetworks.repo.model.file.Multipart.AddPartState",
+			"id": "org.sagebionetworks.repo.model.file.AddPartState",
 			"enum": [
 				"ADD_SUCCESS",
 				"ADD_FAILED"

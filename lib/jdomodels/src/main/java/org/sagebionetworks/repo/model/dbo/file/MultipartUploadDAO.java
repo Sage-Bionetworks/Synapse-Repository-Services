@@ -2,6 +2,9 @@ package org.sagebionetworks.repo.model.dbo.file;
 
 import java.util.List;
 
+import org.sagebionetworks.repo.model.file.PartErrors;
+import org.sagebionetworks.repo.model.file.PartMD5;
+
 
 /**
  * DAO to for metadata persisted for a multi-part upload.
@@ -23,6 +26,13 @@ public interface MultipartUploadDAO {
 	 * @return
 	 */
 	public CompositeMultipartUploadStatus getUploadStatus(String id);
+	
+	/**
+	 * Get the JSON string for the original request of a multi-part upload.
+	 * @param id
+	 * @return
+	 */
+	public String getUploadRequest(String id);
 	
 	/**
 	 * Delete all data for a file upload given a userId and upload hash.
@@ -84,5 +94,13 @@ public interface MultipartUploadDAO {
 	 * @return
 	 */
 	public List<PartErrors> getPartErrors(String uploadId);
+
+	/**
+	 * Set the given file upload to be complete.
+	 * @param uploadId
+	 * @param fileHandleId
+	 * @return The final status of the file.
+	 */
+	public CompositeMultipartUploadStatus setUploadComplete(String uploadId, String fileHandleId);
 
 }

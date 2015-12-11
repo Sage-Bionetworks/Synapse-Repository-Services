@@ -1,6 +1,24 @@
 package org.sagebionetworks.repo.model.dbo.file;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_BUCKET;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_FILE_HANDLE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_KEY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_NUMBER_OF_PARTS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_PART_ERROR_DETAILS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_PART_MD5_HEX;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_PART_NUMBER;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_PART_UPLOAD_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_REQUEST_HASH;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_STARTED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_STARTED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_STATE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_UPDATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_UPLOAD_ETAG;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_UPLOAD_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_UPLOAD_REQUEST;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_UPLOAD_TOKEN;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_MULTIPART_UPLOAD;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_MULTIPART_UPLOAD_PART_STATE;
 
 import java.io.UnsupportedEncodingException;
 import java.sql.Blob;
@@ -14,8 +32,10 @@ import java.util.UUID;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.file.MultipartUploadState;
 import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
-import org.sagebionetworks.repo.model.file.Multipart.State;
+import org.sagebionetworks.repo.model.file.PartErrors;
+import org.sagebionetworks.repo.model.file.PartMD5;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
@@ -25,6 +45,20 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 
 public class MultipartUploadDAOImpl implements MultipartUploadDAO {
+
+	private static final String SQL_DELETE_ALL_PARTS = "DELETE FROM "
+			+ TABLE_MULTIPART_UPLOAD_PART_STATE + " WHERE "
+			+ COL_MULTIPART_PART_UPLOAD_ID + " = ?";
+
+	private static final String SQL_SET_COMPLETE = "UPDATE "
+			+ TABLE_MULTIPART_UPLOAD + " SET " + COL_MULTIPART_FILE_HANDLE_ID
+			+ " = ? , " + COL_MULTIPART_UPLOAD_ETAG + " = ? , "
+			+ COL_MULTIPART_STATE + " = ? WHERE " + COL_MULTIPART_UPLOAD_ID
+			+ " = ?";
+
+	private static final String SQL_SELECT_BLOB = "SELECT "
+			+ COL_MULTIPART_UPLOAD_REQUEST + " FROM " + TABLE_MULTIPART_UPLOAD
+			+ " WHERE " + COL_MULTIPART_UPLOAD_ID + " = ?";
 
 	private static final String SQL_UPDATE_ETAG = "UPDATE "
 			+ TABLE_MULTIPART_UPLOAD + " SET " + COL_MULTIPART_UPLOAD_ETAG
@@ -60,7 +94,7 @@ public class MultipartUploadDAOImpl implements MultipartUploadDAO {
 			+ COL_MULTIPART_UPDATED_ON + "," + COL_MULTIPART_FILE_HANDLE_ID
 			+ "," + COL_MULTIPART_STATE + "," + COL_MULTIPART_UPLOAD_TOKEN
 			+ "," + COL_MULTIPART_BUCKET + "," + COL_MULTIPART_KEY + ","
-			+ COL_MULTIPART_NUMBER_OF_PARTS+"," +COL_MULTIPART_UPLOAD_ETAG;
+			+ COL_MULTIPART_NUMBER_OF_PARTS + "," + COL_MULTIPART_UPLOAD_ETAG;
 
 	private static final String SELECT_BY_ID = "SELECT " + STATUS_SELECT
 			+ " FROM " + TABLE_MULTIPART_UPLOAD + " WHERE "
@@ -92,7 +126,8 @@ public class MultipartUploadDAOImpl implements MultipartUploadDAO {
 			mus.setUpdatedOn(rs.getDate(COL_MULTIPART_UPDATED_ON));
 			mus.setResultFileHandleId(rs
 					.getString(COL_MULTIPART_FILE_HANDLE_ID));
-			mus.setState(State.valueOf(rs.getString(COL_MULTIPART_STATE)));
+			mus.setState(MultipartUploadState.valueOf(rs
+					.getString(COL_MULTIPART_STATE)));
 			dto.setMultipartUploadStatus(mus);
 			dto.setUploadToken(rs.getString(COL_MULTIPART_UPLOAD_TOKEN));
 			dto.setBucket(rs.getString(COL_MULTIPART_BUCKET));
@@ -155,7 +190,7 @@ public class MultipartUploadDAOImpl implements MultipartUploadDAO {
 	public void deleteUploadStatus(long userId, String hash) {
 		ValidateArgument.required(userId, "UserId");
 		ValidateArgument.required(hash, "RequestHash");
-		this.jdbcTemplate.update("DELETE FROM " + TABLE_MULTIPART_UPLOAD
+		this.jdbcTemplate.update(SQL_DELETE_ALL_PARTS + TABLE_MULTIPART_UPLOAD
 				+ " WHERE " + COL_MULTIPART_STARTED_BY + " = ? AND "
 				+ COL_MULTIPART_REQUEST_HASH + " = ?", userId, hash);
 	}
@@ -187,7 +222,7 @@ public class MultipartUploadDAOImpl implements MultipartUploadDAO {
 		dbo.setEtag(UUID.randomUUID().toString());
 		dbo.setRequestHash(createRequest.getHash());
 		dbo.setStartedBy(createRequest.getUserId());
-		dbo.setState(State.UPLOADING.name());
+		dbo.setState(MultipartUploadState.UPLOADING.name());
 		dbo.setRequestBlob(extractBytes(createRequest.getRequestBody()));
 		dbo.setStartedOn(new Date(System.currentTimeMillis()));
 		dbo.setUpdatedOn(dbo.getStartedOn());
@@ -375,12 +410,59 @@ public class MultipartUploadDAOImpl implements MultipartUploadDAO {
 
 	/**
 	 * Update the etag for the given upload.
+	 * 
 	 * @param uploadId
 	 */
 	private void updateEtag(String uploadId) {
 		ValidateArgument.required(uploadId, "UploadId");
 		String newEtag = UUID.randomUUID().toString();
 		jdbcTemplate.update(SQL_UPDATE_ETAG, newEtag, uploadId);
+	}
+
+	@Override
+	public String getUploadRequest(String uploadId) {
+		ValidateArgument.required(uploadId, "UploadId");
+		List<String> results = jdbcTemplate.query(SQL_SELECT_BLOB,
+				new RowMapper<String>() {
+					@Override
+					public String mapRow(ResultSet rs, int rowNum)
+							throws SQLException {
+						Blob blob = rs.getBlob(COL_MULTIPART_UPLOAD_REQUEST);
+						byte[] bytes = blob.getBytes(1, (int) blob.length());
+						try {
+							return new String(bytes, "UTF-8");
+						} catch (UnsupportedEncodingException e) {
+							throw new RuntimeException(e);
+						}
+					}
+				}, uploadId);
+
+		if (results.size() != 1) {
+			throw new NotFoundException("Could not find uploadId: " + uploadId);
+		}
+		return results.get(0);
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * org.sagebionetworks.repo.model.dbo.file.MultipartUploadDAO#setUploadComplete
+	 * (java.lang.String, java.lang.String)
+	 */
+	@WriteTransactionReadCommitted
+	@Override
+	public CompositeMultipartUploadStatus setUploadComplete(String uploadId,
+			String fileHandleId) {
+		ValidateArgument.required(uploadId, "UploadId");
+		ValidateArgument.required(fileHandleId, "FileHandleId");
+		String newEtag = UUID.randomUUID().toString();
+		MultipartUploadState state = MultipartUploadState.COMPLETED;
+		jdbcTemplate.update(SQL_SET_COMPLETE, fileHandleId, newEtag,
+				state.name(), uploadId);
+		// delete all of the parts for this file
+		jdbcTemplate.update(SQL_DELETE_ALL_PARTS, uploadId);
+		return getUploadStatus(uploadId);
 	}
 
 }

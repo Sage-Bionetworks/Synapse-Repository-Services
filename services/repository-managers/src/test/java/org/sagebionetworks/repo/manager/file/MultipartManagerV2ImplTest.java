@@ -1,19 +1,37 @@
 package org.sagebionetworks.repo.manager.file;
 
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
-import static org.sagebionetworks.repo.manager.file.MultipartManagerV2Impl.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyBoolean;
+import static org.mockito.Matchers.anyInt;
+import static org.mockito.Matchers.anyLong;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Matchers.startsWith;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.sagebionetworks.repo.manager.file.MultipartManagerV2Impl.MAX_NUMBER_OF_PARTS;
+import static org.sagebionetworks.repo.manager.file.MultipartManagerV2Impl.MIN_PART_SIZE_BYTES;
+import static org.sagebionetworks.repo.manager.file.MultipartManagerV2Impl.calculateMD5AsHex;
+import static org.sagebionetworks.repo.manager.file.MultipartManagerV2Impl.createPartKey;
+import static org.sagebionetworks.repo.manager.file.MultipartManagerV2Impl.createRequestJSON;
 
 import java.net.URL;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.LinkedList;
+import java.util.List;
 
-import org.apache.commons.lang.exception.ExceptionUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
-import org.mockito.Matchers;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
@@ -23,20 +41,26 @@ import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.file.CompositeMultipartUploadStatus;
 import org.sagebionetworks.repo.model.dbo.file.CreateMultipartRequest;
 import org.sagebionetworks.repo.model.dbo.file.MultipartUploadDAO;
+import org.sagebionetworks.repo.model.file.AddPartRequest;
 import org.sagebionetworks.repo.model.file.AddPartResponse;
+import org.sagebionetworks.repo.model.file.AddPartState;
 import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlRequest;
 import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlResponse;
+import org.sagebionetworks.repo.model.file.CompleteMultipartRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
+import org.sagebionetworks.repo.model.file.MultipartUploadState;
 import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
+import org.sagebionetworks.repo.model.file.PartMD5;
 import org.sagebionetworks.repo.model.file.PartPresignedUrl;
-import org.sagebionetworks.repo.model.file.Multipart.AddPartState;
-import org.sagebionetworks.repo.model.file.Multipart.State;
-import org.sagebionetworks.upload.multipart.AddPartRequest;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.upload.multipart.S3MultipartUploadDAO;
 import org.springframework.test.util.ReflectionTestUtils;
+
+import sun.tools.tree.AddExpression;
 
 import com.google.common.collect.Lists;
 
@@ -50,6 +74,8 @@ public class MultipartManagerV2ImplTest {
 	ProjectSettingsManager mockProjectSettingsManager;
 	@Mock
 	S3MultipartUploadDAO mockS3multipartUploadDAO;
+	@Mock
+	FileHandleDao mockFileHandleDao;
 
 	MultipartUploadRequest request;	
 	String requestJson;
@@ -57,8 +83,12 @@ public class MultipartManagerV2ImplTest {
 	MultipartManagerV2Impl manager;
 	Boolean forceRestart;
 	
+	String uploadId;
 	String uploadToken;
 	CompositeMultipartUploadStatus composite;
+	CompositeMultipartUploadStatus completeComposite;
+	S3FileHandle fileHandle;
+	List<PartMD5> addedParts;
 	
 	@Before
 	public void before(){
@@ -71,20 +101,48 @@ public class MultipartManagerV2ImplTest {
 		request.setContentMD5Hex("someMD5Hex");
 		request.setPartSizeBytes((long) (1024*1024*5));
 		request.setStorageLocationId(789L);
+		request.setContentType("plain/text");
 		
 		requestJson = createRequestJSON(request);
 		requestHash = calculateMD5AsHex(request);
 		
+		uploadId = "123456";
+		uploadToken = "someUploadToken";
+		
 		MultipartUploadStatus status = new MultipartUploadStatus();
-		status.setUploadId("123456");
+		status.setUploadId(uploadId);
 		status.setStartedBy(""+userInfo.getId());
 		composite = new CompositeMultipartUploadStatus();
 		composite.setMultipartUploadStatus(status);
-		composite.setNumberOfParts(10);
+		composite.setNumberOfParts(2);
 		composite.setBucket("someBucket");
 		composite.setKey("someKey");
+		composite.setUploadToken(uploadToken);
 		
-		uploadToken = "someUploadToken";
+		fileHandle = new S3FileHandle();
+		fileHandle.setId("9999");
+		when(mockFileHandleDao.createFile(any(S3FileHandle.class), anyBoolean())).thenReturn(fileHandle);
+		
+		// setup a completed upload.
+		MultipartUploadStatus completeStatus = new MultipartUploadStatus();
+		completeStatus.setUploadId(status.getUploadId());
+		completeStatus.setStartedBy(""+userInfo.getId());
+		completeStatus.setResultFileHandleId(fileHandle.getId());
+		completeStatus.setStartedBy(""+userInfo.getId());
+		completeStatus.setState(MultipartUploadState.COMPLETED);
+		completeStatus.setStartedOn(new Date());
+		completeComposite = new CompositeMultipartUploadStatus();
+		completeComposite.setMultipartUploadStatus(completeStatus);
+		completeComposite.setBucket(composite.getBucket());
+		completeComposite.setKey(composite.getKey());
+		completeComposite.setUploadToken(uploadToken);
+		completeComposite.setNumberOfParts(composite.getNumberOfParts());
+		
+		addedParts = Lists.newArrayList(new PartMD5(2, "partMD5HexTwo"), new PartMD5(1, "partMD5HexOne"));
+		when(mockMultiparUploadDAO.getAddedPartMD5s(uploadId)).thenReturn(addedParts);
+		when(mockMultiparUploadDAO.getUploadRequest(uploadId)).thenReturn(requestJson);
+		when(mockMultiparUploadDAO.getUploadStatus(uploadId)).thenReturn(composite);
+		when(mockMultiparUploadDAO.setUploadComplete(uploadId, fileHandle.getId())).thenReturn(completeComposite);
 		
 		// capture all data from a created
 		doAnswer(new Answer<CompositeMultipartUploadStatus>(){
@@ -96,7 +154,7 @@ public class MultipartManagerV2ImplTest {
 				MultipartUploadStatus status = new MultipartUploadStatus();
 				status.setStartedBy(""+cmr.getUserId());
 				status.setStartedOn(new Date());
-				status.setState(State.UPLOADING);
+				status.setState(MultipartUploadState.UPLOADING);
 				status.setUploadId("123456");
 				status.setUpdatedOn(status.getStartedOn());
 				CompositeMultipartUploadStatus composite = new CompositeMultipartUploadStatus();
@@ -137,6 +195,7 @@ public class MultipartManagerV2ImplTest {
 		ReflectionTestUtils.setField(manager, "multipartUploadDAO", mockMultiparUploadDAO);
 		ReflectionTestUtils.setField(manager, "projectSettingsManager", mockProjectSettingsManager);
 		ReflectionTestUtils.setField(manager, "s3multipartUploadDAO", mockS3multipartUploadDAO);
+		ReflectionTestUtils.setField(manager, "fileHandleDao", mockFileHandleDao);
 		
 	}
 	
@@ -152,7 +211,7 @@ public class MultipartManagerV2ImplTest {
 	@Test
 	public void testCalculateMD5AsHex(){
 		// This md5 was generated from the json string of the request.
-		String expected = "8356accbaa8bfc6ddc6c612224c6c9b3";
+		String expected = "b492959f313596e14ae6ab380e5ceb36";
 		//call under test
 		String md5Hex = MultipartManagerV2Impl.calculateMD5AsHex(request);
 		assertEquals(expected, md5Hex);
@@ -230,7 +289,7 @@ public class MultipartManagerV2ImplTest {
 		// call under test
 		MultipartUploadStatus status = manager.startOrResumeMultipartUpload(userInfo, request, forceRestart);
 		assertNotNull(status);
-		assertEquals(State.UPLOADING, status.getState());
+		assertEquals(MultipartUploadState.UPLOADING, status.getState());
 		assertEquals("000000000000000000000", status.getPartsState());
 		assertEquals("123456", status.getUploadId());
 		
@@ -254,7 +313,7 @@ public class MultipartManagerV2ImplTest {
 		when(mockMultiparUploadDAO.getUploadStatus(anyLong(), anyString())).thenReturn(composite);
 		// call under test
 		MultipartUploadStatus status = manager.startOrResumeMultipartUpload(userInfo, request, forceRestart);
-		assertEquals("0000000000", status.getPartsState());
+		assertEquals("00", status.getPartsState());
 		assertNotNull(status);
 		// the status should not be reset.
 		verify(mockMultiparUploadDAO, never()).deleteUploadStatus(anyLong(), anyString());
@@ -265,14 +324,14 @@ public class MultipartManagerV2ImplTest {
 	@Test
 	public void testStartOrResumeMultipartUploadAlreadyStartedCompleted(){
 		// setup the case where the status already exists and it is complete
-		composite.getMultipartUploadStatus().setState(State.COMPLETED);
+		composite.getMultipartUploadStatus().setState(MultipartUploadState.COMPLETED);
 		composite.getMultipartUploadStatus().setResultFileHandleId("9876");
 		when(mockMultiparUploadDAO.getUploadStatus(anyLong(), anyString())).thenReturn(composite);
 		// call under test
 		MultipartUploadStatus status = manager.startOrResumeMultipartUpload(userInfo, request, forceRestart);
 		assertNotNull(status);
-		assertEquals(State.COMPLETED, status.getState());
-		assertEquals("1111111111", status.getPartsState());
+		assertEquals(MultipartUploadState.COMPLETED, status.getState());
+		assertEquals("11", status.getPartsState());
 		assertEquals("9876", status.getResultFileHandleId());
 
 		// the status should not be reset.
@@ -307,14 +366,14 @@ public class MultipartManagerV2ImplTest {
 	
 	@Test (expected=UnauthorizedException.class)
 	public void testGetBatchPresignedUploadUrlsUnauthorized(){
-		String uplaodId = composite.getMultipartUploadStatus().getUploadId();
+//		String uplaodId = composite.getMultipartUploadStatus().getUploadId();
 		// set this upload started by another user.
 		composite.getMultipartUploadStatus().setStartedBy(""+(userInfo.getId()+1));
 		// setup the case where the status already exists
-		when(mockMultiparUploadDAO.getUploadStatus(uplaodId)).thenReturn(composite);
+		when(mockMultiparUploadDAO.getUploadStatus(uploadId)).thenReturn(composite);
 		
 		BatchPresignedUploadUrlRequest request = new BatchPresignedUploadUrlRequest();
-		request.setUploadId(uplaodId);
+		request.setUploadId(uploadId);
 		request.setPartNumbers(Lists.newArrayList(1L, 2L));
 		// call under test
 		manager.getBatchPresignedUploadUrls(userInfo, request);
@@ -551,6 +610,185 @@ public class MultipartManagerV2ImplTest {
 		
 		// the part state should be saved
 		verify(mockMultiparUploadDAO).setPartToFailed(eq(uploadId), eq(partNumber), startsWith("java.lang.RuntimeException: Something went wrong"));
+	}
+	
+	@Test
+	public void testValidatePartsHappy(){
+		List<PartMD5> addedParts = Lists.newArrayList(new PartMD5(2, "partMD5HexTwo"), new PartMD5(1, "partMD5HexOne"));
+		int numberOfParts = 2;
+		MultipartManagerV2Impl.validateParts(numberOfParts, addedParts);
+	}
+	
+	@Test
+	public void testValidatePartsMissing(){
+		List<PartMD5> addedParts = Lists.newArrayList(new PartMD5(2, "partMD5HexTwo"), new PartMD5(1, "partMD5HexOne"));
+		int numberOfParts = 3;
+		try {
+			MultipartManagerV2Impl.validateParts(numberOfParts, addedParts);
+			fail("Expected an exception");
+		} catch (IllegalArgumentException e) {
+			assertTrue(e.getMessage().contains("Missing 1 part(s)"));
+		}
+	}
+	
+	@Test
+	public void testPrepareCompleteStatusHappy(){
+		composite.getMultipartUploadStatus().setState(MultipartUploadState.COMPLETED);
+		composite.getMultipartUploadStatus().setResultFileHandleId("12345");
+		composite.setNumberOfParts(3);
+		//call under test
+		MultipartUploadStatus status = MultipartManagerV2Impl.prepareCompleteStatus(composite);
+		assertNotNull(status);
+		assertEquals(MultipartUploadState.COMPLETED, status.getState());
+		assertEquals("12345", status.getResultFileHandleId());
+		assertEquals("111", status.getPartsState());
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testPrepareCompleteStatusNotComplete(){
+		composite.getMultipartUploadStatus().setState(MultipartUploadState.UPLOADING);
+		composite.getMultipartUploadStatus().setResultFileHandleId("12345");
+		composite.setNumberOfParts(3);
+		//call under test.
+		 MultipartManagerV2Impl.prepareCompleteStatus(composite);;
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testPrepareCompleteStatusMissingFileHandle(){
+		composite.getMultipartUploadStatus().setState(MultipartUploadState.COMPLETED);
+		composite.getMultipartUploadStatus().setResultFileHandleId(null);
+		composite.setNumberOfParts(3);
+		//call under test.
+		 MultipartManagerV2Impl.prepareCompleteStatus(composite);;
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testPrepareCompleteStatusMissingNumberOfParts(){
+		composite.getMultipartUploadStatus().setState(MultipartUploadState.COMPLETED);
+		composite.getMultipartUploadStatus().setResultFileHandleId("12345");
+		composite.setNumberOfParts(null);
+		//call under test.
+		 MultipartManagerV2Impl.prepareCompleteStatus(composite);;
+	}
+	
+	@Test
+	public void testGetRequestForUpload(){
+		String uploadId = composite.getMultipartUploadStatus().getUploadId();
+		when(mockMultiparUploadDAO.getUploadRequest(uploadId)).thenReturn(requestJson);
+		// call under test
+		MultipartUploadRequest returnedRequest = manager.getRequestForUpload(uploadId);
+		assertEquals(request, returnedRequest);
+	}
+	
+	@Test
+	public void testcreateFileHandle(){
+
+		long fileSize = 123;
+		// call under test
+		S3FileHandle result = manager.createFileHandle(fileSize, composite, request);
+		assertEquals(fileHandle, result);
 		
+		ArgumentCaptor<S3FileHandle> capture = ArgumentCaptor.forClass(S3FileHandle.class);
+		ArgumentCaptor<Boolean> previewCapture = ArgumentCaptor.forClass(Boolean.class);
+		verify(mockFileHandleDao).createFile(capture.capture(), previewCapture.capture());
+		
+		S3FileHandle capturedFileHandle = capture.getValue();
+		assertEquals(composite.getBucket(), capturedFileHandle.getBucketName());
+		assertEquals(composite.getKey(), capturedFileHandle.getKey());
+		assertEquals(request.getContentMD5Hex(), capturedFileHandle.getContentMd5());
+		assertEquals(request.getContentType(), capturedFileHandle.getContentType());
+		assertEquals(new Long(fileSize), capturedFileHandle.getContentSize());
+		assertEquals(""+userInfo.getId(), capturedFileHandle.getCreatedBy());
+		assertNotNull(capturedFileHandle.getCreatedOn());
+		assertNotNull(capturedFileHandle.getEtag());
+		assertEquals(request.getFileName(), capturedFileHandle.getFileName());
+		// preview should be generated
+		assertTrue(previewCapture.getValue());
+	}
+	
+	@Test
+	public void testcreateFileHandleNoPreview(){
+		long fileSize = 123;
+		request.setGeneratePreview(false);
+		// call under test
+		S3FileHandle result = manager.createFileHandle(fileSize, composite, request);
+		assertEquals(fileHandle, result);
+		
+		ArgumentCaptor<S3FileHandle> capture = ArgumentCaptor.forClass(S3FileHandle.class);
+		ArgumentCaptor<Boolean> previewCapture = ArgumentCaptor.forClass(Boolean.class);
+		verify(mockFileHandleDao).createFile(capture.capture(), previewCapture.capture());
+		
+		// preview should not be generated
+		assertFalse(previewCapture.getValue());
+	}
+	
+	@Test
+	public void testCompleteMultipartUploadHappy(){		
+		//call under test
+		MultipartUploadStatus status = manager.completeMultipartUpload(userInfo, uploadId);
+		assertNotNull(status);
+		assertEquals(MultipartUploadState.COMPLETED, status.getState());
+		assertEquals("11", status.getPartsState());
+		assertEquals(fileHandle.getId(), status.getResultFileHandleId());
+		
+		verify(mockMultiparUploadDAO).getUploadStatus(uploadId);
+		verify(mockMultiparUploadDAO).getAddedPartMD5s(uploadId);
+		verify(mockFileHandleDao).createFile(any(S3FileHandle.class), anyBoolean());
+		
+		ArgumentCaptor<CompleteMultipartRequest> completeCpature = ArgumentCaptor.forClass(CompleteMultipartRequest.class);
+		verify(mockS3multipartUploadDAO).completeMultipartUpload(completeCpature.capture());
+		assertEquals(composite.getBucket(), completeCpature.getValue().getBucket());
+		assertEquals(composite.getKey(), completeCpature.getValue().getKey());
+		assertEquals(uploadToken, completeCpature.getValue().getUploadToken());
+		assertEquals(addedParts, completeCpature.getValue().getAddedParts());
+		
+		verify(mockMultiparUploadDAO).setUploadComplete(uploadId, fileHandle.getId());
+	}
+	
+	@Test (expected=UnauthorizedException.class)
+	public void testCompleteMultipartUploadUnAuthorized(){
+		// started by another.
+		composite.getMultipartUploadStatus().setStartedBy(""+(userInfo.getId()+1));
+	
+		//call under test
+		MultipartUploadStatus status = manager.completeMultipartUpload(userInfo, uploadId);
+		assertNotNull(status);
+	}
+	
+	@Test
+	public void testCompleteMultipartUploadAlreadyComplete(){
+		// the upload is already complete.s
+		composite.getMultipartUploadStatus().setState(MultipartUploadState.COMPLETED);
+		composite.getMultipartUploadStatus().setResultFileHandleId(fileHandle.getId());
+		//call under test
+		MultipartUploadStatus status = manager.completeMultipartUpload(userInfo, uploadId);
+		assertNotNull(status);
+		assertEquals(MultipartUploadState.COMPLETED, status.getState());
+		assertEquals("11", status.getPartsState());
+		assertEquals(fileHandle.getId(), status.getResultFileHandleId());
+		
+		verify(mockMultiparUploadDAO).getUploadStatus(uploadId);
+		verify(mockMultiparUploadDAO, never()).getAddedPartMD5s(uploadId);
+		verify(mockFileHandleDao, never()).createFile(any(S3FileHandle.class), anyBoolean());
+		verify(mockS3multipartUploadDAO, never()).completeMultipartUpload(any(CompleteMultipartRequest.class));
+		verify(mockMultiparUploadDAO, never()).setUploadComplete(uploadId, fileHandle.getId());		
+	}
+	
+	@Test
+	public void testCompleteMultipartUploadNotReady(){
+		// the upload is missing a file.
+		addedParts.remove(1);
+		try {
+			//call under test
+			manager.completeMultipartUpload(userInfo, uploadId);
+			fail("Expected an exception.");
+		} catch (IllegalArgumentException e) {
+			assertTrue(e.getMessage().contains("Missing 1 part(s"));
+		}
+		verify(mockMultiparUploadDAO).getUploadStatus(uploadId);
+		verify(mockMultiparUploadDAO).getAddedPartMD5s(uploadId);
+		verify(mockFileHandleDao, never()).createFile(any(S3FileHandle.class), anyBoolean());
+		verify(mockS3multipartUploadDAO, never()).completeMultipartUpload(any(CompleteMultipartRequest.class));
+		verify(mockMultiparUploadDAO, never()).setUploadComplete(uploadId, fileHandle.getId());		
 	}
 }
