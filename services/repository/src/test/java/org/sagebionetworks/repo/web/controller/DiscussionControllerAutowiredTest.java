@@ -15,7 +15,9 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
+import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
+import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
 import org.sagebionetworks.repo.model.discussion.Forum;
 import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
@@ -84,10 +86,11 @@ public class DiscussionControllerAutowiredTest extends AbstractAutowiredControll
 	public void testGetThreads() throws Exception {
 		Forum forum = servletTestHelper.getForumMetadata(dispatchServlet, project.getId(), adminUserId);
 		createThread.setForumId(forum.getId());
-		DiscussionThreadBundle bundle = servletTestHelper.createThread(dispatchServlet, adminUserId, createThread);
-		PaginatedResults<DiscussionThreadBundle> results = servletTestHelper.getThreads(dispatchServlet, adminUserId, forum.getId(), 100L, 0L, null, null);
-		assertEquals(bundle, results.getResults().get(0));
-		assertEquals(1L, results.getTotalNumberOfResults());
+		DiscussionThreadBundle bundle1 = servletTestHelper.createThread(dispatchServlet, adminUserId, createThread);
+		DiscussionThreadBundle bundle2 = servletTestHelper.createThread(dispatchServlet, adminUserId, createThread);
+		PaginatedResults<DiscussionThreadBundle> results = servletTestHelper.getThreads(dispatchServlet, adminUserId, forum.getId(), 1L, 1L, DiscussionThreadOrder.LAST_ACTIVITY, true);
+		assertEquals(bundle2, results.getResults().get(0));
+		assertEquals(2L, results.getTotalNumberOfResults());
 	}
 
 	@Test
@@ -155,10 +158,11 @@ public class DiscussionControllerAutowiredTest extends AbstractAutowiredControll
 		createThread.setForumId(forum.getId());
 		DiscussionThreadBundle threadBundle = servletTestHelper.createThread(dispatchServlet, adminUserId, createThread);
 		createReply.setThreadId(threadBundle.getId());
-		DiscussionReplyBundle replyBundle = servletTestHelper.createReply(dispatchServlet, adminUserId, createReply);
-		PaginatedResults<DiscussionReplyBundle> results = servletTestHelper.getReplies(dispatchServlet, adminUserId, threadBundle.getId(), 100L, 0L, null, null);
-		assertEquals(replyBundle, results.getResults().get(0));
-		assertEquals(1L, results.getTotalNumberOfResults());
+		DiscussionReplyBundle replyBundle1 = servletTestHelper.createReply(dispatchServlet, adminUserId, createReply);
+		DiscussionReplyBundle replyBundle2 = servletTestHelper.createReply(dispatchServlet, adminUserId, createReply);
+		PaginatedResults<DiscussionReplyBundle> results = servletTestHelper.getReplies(dispatchServlet, adminUserId, threadBundle.getId(), 1L, 1L, DiscussionReplyOrder.CREATED_ON, true);
+		assertEquals(replyBundle2, results.getResults().get(0));
+		assertEquals(2L, results.getTotalNumberOfResults());
 	}
 
 	@Test

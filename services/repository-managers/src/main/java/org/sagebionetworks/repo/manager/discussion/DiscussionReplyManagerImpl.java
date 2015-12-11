@@ -71,9 +71,8 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 		ValidateArgument.required(newMessage.getMessageMarkdown(), "UpdateReplyMessage.messageMarkdown");
 		Long replyIdLong = Long.parseLong(replyId);
 		DiscussionReplyBundle reply = replyDao.getReply(replyIdLong);
-		DiscussionThreadBundle thread = threadManager.getThread(userInfo, reply.getThreadId());
 		if (authorizationManager.isUserCreatorOrAdmin(userInfo, reply.getCreatedBy())) {
-			String messageKey = uploadDao.uploadDiscussionContent(newMessage.getMessageMarkdown(), thread.getForumId(), reply.getThreadId());
+			String messageKey = uploadDao.uploadDiscussionContent(newMessage.getMessageMarkdown(), reply.getForumId(), reply.getThreadId());
 			return addMessageUrl(replyDao.updateMessageKey(replyIdLong, messageKey));
 		} else {
 			throw new UnauthorizedException("Only the user that created the thread can modify it.");
