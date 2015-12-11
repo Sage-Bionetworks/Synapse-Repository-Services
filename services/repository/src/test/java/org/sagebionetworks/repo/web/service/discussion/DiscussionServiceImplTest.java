@@ -11,11 +11,15 @@ import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.discussion.DiscussionReplyManager;
 import org.sagebionetworks.repo.manager.discussion.DiscussionThreadManager;
 import org.sagebionetworks.repo.manager.discussion.ForumManager;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
+import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
+import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -28,19 +32,24 @@ public class DiscussionServiceImplTest {
 	private ForumManager mockForumManager;
 	@Mock
 	private DiscussionThreadManager mockThreadManager;
+	@Mock
+	private DiscussionReplyManager mockReplyManager;
 
 	private DiscussionServiceImpl discussionServices;
 	private Long userId = 123L;
 	private UserInfo userInfo = new UserInfo(false /*not admin*/);
 	private String projectId = "syn456";
-	private CreateDiscussionThread toCreate;
+	private CreateDiscussionThread createThread;
 	private String forumId = "789";
 	private String messageMarkdown = "messageMarkdown";
 	private String title = "title";
-	private DiscussionThreadBundle bundle;
+	private DiscussionThreadBundle threadBundle;
 	private String threadId = "321";
 	private String messageUrl = "messageUrl";
 	private String messageKey = "messageKey";
+	private DiscussionReplyBundle replyBundle;
+	private String replyId = "987";
+	private CreateDiscussionReply createReply;
 
 	@Before
 	public void before() {
@@ -50,21 +59,32 @@ public class DiscussionServiceImplTest {
 		ReflectionTestUtils.setField(discussionServices, "userManager", mockUserManager);
 		ReflectionTestUtils.setField(discussionServices, "forumManager", mockForumManager);
 		ReflectionTestUtils.setField(discussionServices, "threadManager", mockThreadManager);
+		ReflectionTestUtils.setField(discussionServices, "replyManager", mockReplyManager);
 
 		Mockito.when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo);
 
-		toCreate = new CreateDiscussionThread();
-		toCreate.setForumId(forumId);
-		toCreate.setMessageMarkdown(messageMarkdown);
-		toCreate.setTitle(title);
+		createThread = new CreateDiscussionThread();
+		createThread.setForumId(forumId);
+		createThread.setMessageMarkdown(messageMarkdown);
+		createThread.setTitle(title);
 
-		bundle = new DiscussionThreadBundle();
-		bundle.setId(threadId);
-		bundle.setForumId(forumId);
-		bundle.setTitle(title);
-		bundle.setProjectId(projectId);
-		bundle.setMessageKey(messageKey);
-		bundle.setMessageUrl(messageUrl);
+		threadBundle = new DiscussionThreadBundle();
+		threadBundle.setId(threadId);
+		threadBundle.setForumId(forumId);
+		threadBundle.setTitle(title);
+		threadBundle.setProjectId(projectId);
+		threadBundle.setMessageKey(messageKey);
+		threadBundle.setMessageUrl(messageUrl);
+
+		createReply = new CreateDiscussionReply();
+		createReply.setThreadId(threadId);
+		createReply.setMessageMarkdown(messageMarkdown);
+
+		replyBundle = new DiscussionReplyBundle();
+		replyBundle.setId(replyId);
+		replyBundle.setThreadId(threadId);
+		replyBundle.setMessageKey(messageKey);
+		replyBundle.setMessageUrl(messageUrl);
 	}
 
 	@Test
@@ -76,33 +96,33 @@ public class DiscussionServiceImplTest {
 
 	@Test
 	public void testCreateThread() throws Exception {
-		Mockito.when(mockThreadManager.createThread(userInfo, toCreate)).thenReturn(bundle);
-		assertEquals(bundle, discussionServices.createThread(userId, toCreate));
+		Mockito.when(mockThreadManager.createThread(userInfo, createThread)).thenReturn(threadBundle);
+		assertEquals(threadBundle, discussionServices.createThread(userId, createThread));
 	}
 
 	@Test
 	public void testGetThread() {
-		Mockito.when(mockThreadManager.getThread(userInfo, threadId)).thenReturn(bundle);
-		assertEquals(bundle, discussionServices.getThread(userId, threadId));
+		Mockito.when(mockThreadManager.getThread(userInfo, threadId)).thenReturn(threadBundle);
+		assertEquals(threadBundle, discussionServices.getThread(userId, threadId));
 	}
 
 	@Test
 	public void testUpdateThreadTitle() {
 		UpdateThreadTitle newTitle = new UpdateThreadTitle();
 		newTitle.setTitle("newTitle");
-		bundle.setTitle("newTitle");
-		Mockito.when(mockThreadManager.updateTitle(userInfo, threadId, newTitle)).thenReturn(bundle);
-		assertEquals(bundle, discussionServices.updateThreadTitle(userId, threadId, newTitle));
+		threadBundle.setTitle("newTitle");
+		Mockito.when(mockThreadManager.updateTitle(userInfo, threadId, newTitle)).thenReturn(threadBundle);
+		assertEquals(threadBundle, discussionServices.updateThreadTitle(userId, threadId, newTitle));
 	}
 
 	@Test
 	public void testUpdateThreadMessage() throws Exception {
 		UpdateThreadMessage newMessage = new UpdateThreadMessage();
 		newMessage.setMessageMarkdown("newMessage");
-		bundle.setMessageKey("newkey");
-		bundle.setMessageUrl("newUrl");
-		Mockito.when(mockThreadManager.updateMessage(userInfo, threadId, newMessage)).thenReturn(bundle);
-		assertEquals(bundle, discussionServices.updateThreadMessage(userId, threadId, newMessage));
+		threadBundle.setMessageKey("newkey");
+		threadBundle.setMessageUrl("newUrl");
+		Mockito.when(mockThreadManager.updateMessage(userInfo, threadId, newMessage)).thenReturn(threadBundle);
+		assertEquals(threadBundle, discussionServices.updateThreadMessage(userId, threadId, newMessage));
 	}
 
 	@Test
@@ -114,8 +134,44 @@ public class DiscussionServiceImplTest {
 	@Test
 	public void testGetThreads() {
 		PaginatedResults<DiscussionThreadBundle> threads = new PaginatedResults<DiscussionThreadBundle>();
-		threads.setResults(Arrays.asList(bundle));
+		threads.setResults(Arrays.asList(threadBundle));
 		Mockito.when(mockThreadManager.getThreadsForForum(userInfo, forumId, 10L, 0L, null, true)).thenReturn(threads);
 		assertEquals(threads, discussionServices.getThreads(userId, forumId, 10L, 0L, null, true));
+	}
+
+	@Test
+	public void testCreateReply() throws Exception {
+		Mockito.when(mockReplyManager.createReply(userInfo, createReply)).thenReturn(replyBundle);
+		assertEquals(replyBundle, discussionServices.createReply(userId, createReply));
+	}
+
+	@Test
+	public void testGetReply() {
+		Mockito.when(mockReplyManager.getReply(userInfo, replyId)).thenReturn(replyBundle);
+		assertEquals(replyBundle, discussionServices.getReply(userId, replyId));
+	}
+
+	@Test
+	public void testUpdateReplyMessage() throws Exception {
+		UpdateReplyMessage newMessage = new UpdateReplyMessage();
+		newMessage.setMessageMarkdown("newMessage");
+		replyBundle.setMessageKey("newkey");
+		replyBundle.setMessageUrl("newUrl");
+		Mockito.when(mockReplyManager.updateReplyMessage(userInfo, replyId, newMessage)).thenReturn(replyBundle);
+		assertEquals(replyBundle, discussionServices.updateReplyMessage(userId, replyId, newMessage));
+	}
+
+	@Test
+	public void testMarkReplyAsDeleted() {
+		discussionServices.markReplyAsDeleted(userId, replyId);
+		Mockito.verify(mockReplyManager).markReplyAsDeleted(userInfo, replyId);
+	}
+
+	@Test
+	public void testGetReplies() {
+		PaginatedResults<DiscussionReplyBundle> replies = new PaginatedResults<DiscussionReplyBundle>();
+		replies.setResults(Arrays.asList(replyBundle));
+		Mockito.when(mockReplyManager.getRepliesForThread(userInfo, threadId, 10L, 0L, null, true)).thenReturn(replies);
+		assertEquals(replies, discussionServices.getReplies(userId, threadId, 10L, 0L, null, true));
 	}
 }

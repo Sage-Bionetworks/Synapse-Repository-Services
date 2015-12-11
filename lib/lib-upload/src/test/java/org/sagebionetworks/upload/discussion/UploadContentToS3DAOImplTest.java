@@ -48,4 +48,15 @@ public class UploadContentToS3DAOImplTest {
 		assertEquals(parts[0], forumId);
 		assertEquals(parts[1], threadId);
 	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetUrlWithNullKey() {
+		dao.getUrl(null);
+	}
+
+	@Test
+	public void testGetUrl() {
+		String url = dao.getUrl("key");
+		assertNotNull(url);
+	}
 }

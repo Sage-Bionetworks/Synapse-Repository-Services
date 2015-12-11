@@ -16,11 +16,11 @@ public class DiscussionReplyUtils {
 	 */
 	public static DBODiscussionReply createDBO(String threadId,
 			String messageKey, Long userId, Long id, String etag) {
-		ValidateArgument.required(threadId, "threadId cannot be null");
-		ValidateArgument.required(messageKey, "messageKey cannot be null");
-		ValidateArgument.required(userId, "userId cannot be null");
-		ValidateArgument.required(id, "id cannot be null");
-		ValidateArgument.required(etag, "etag cannot be null");
+		ValidateArgument.required(threadId, "threadId");
+		ValidateArgument.required(messageKey, "messageKey");
+		ValidateArgument.required(userId, "userId");
+		ValidateArgument.required(id, "id");
+		ValidateArgument.required(etag, "etag");
 		DBODiscussionReply dbo = new DBODiscussionReply();
 		dbo.setId(id);
 		dbo.setThreadId(Long.parseLong(threadId));

@@ -7,7 +7,9 @@ import java.util.Arrays;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.reflection.model.PaginatedResults;
@@ -29,11 +31,17 @@ import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
 import org.springframework.test.util.ReflectionTestUtils;
 
 public class DiscussionThreadManagerImplTest {
+	@Mock
 	private DiscussionThreadDAO mockThreadDao;
+	@Mock
 	private ForumDAO mockForumDao;
+	@Mock
 	private UploadContentToS3DAO mockUploadDao;
+	@Mock
 	private AuthorizationManager mockAuthorizationManager;
+	@Mock
 	private IdGenerator mockIdGenerator;
+
 	private DiscussionThreadManager threadManager;
 	private UserInfo userInfo = new UserInfo(false /*not admin*/);
 	private CreateDiscussionThread createDto;
@@ -50,11 +58,8 @@ public class DiscussionThreadManagerImplTest {
 
 	@Before
 	public void before() {
-		mockThreadDao = Mockito.mock(DiscussionThreadDAO.class);
-		mockForumDao = Mockito.mock(ForumDAO.class);
-		mockUploadDao = Mockito.mock(UploadContentToS3DAO.class);
-		mockAuthorizationManager = Mockito.mock(AuthorizationManager.class);
-		mockIdGenerator = Mockito.mock(IdGenerator.class);
+		MockitoAnnotations.initMocks(this);
+
 		threadManager = new DiscussionThreadManagerImpl();
 		ReflectionTestUtils.setField(threadManager, "threadDao", mockThreadDao);
 		ReflectionTestUtils.setField(threadManager, "forumDao", mockForumDao);

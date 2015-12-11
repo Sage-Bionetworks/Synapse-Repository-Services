@@ -103,6 +103,8 @@ public class DBODiscussionReplyDAOImplTest {
 		DiscussionReplyBundle dto = replyDao.createReply(threadId, messageKey, userId);
 		assertNotNull(dto);
 		assertEquals(threadId, dto.getThreadId());
+		assertEquals(forumId, dto.getForumId());
+		assertEquals(projectId, dto.getProjectId());
 		assertEquals(messageKey, dto.getMessageKey());
 		assertEquals(userId.toString(), dto.getCreatedBy());
 		assertFalse(dto.getIsEdited());

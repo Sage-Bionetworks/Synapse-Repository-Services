@@ -18,6 +18,8 @@ import org.sagebionetworks.repo.model.dbo.persistence.discussion.DBODiscussionRe
 import org.sagebionetworks.repo.model.dbo.persistence.discussion.DiscussionReplyUtils;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,6 +43,8 @@ public class DBODiscussionReplyDAOImpl implements DiscussionReplyDAO{
 			DiscussionReplyBundle dto = new DiscussionReplyBundle();
 			dto.setId(Long.toString(rs.getLong(COL_DISCUSSION_REPLY_ID)));
 			dto.setThreadId(Long.toString(rs.getLong(COL_DISCUSSION_REPLY_THREAD_ID)));
+			dto.setForumId(Long.toString(rs.getLong(COL_DISCUSSION_THREAD_FORUM_ID)));
+			dto.setProjectId(KeyFactory.keyToString(rs.getLong(COL_FORUM_PROJECT_ID)));
 			dto.setMessageKey(rs.getString(COL_DISCUSSION_REPLY_MESSAGE_KEY));
 			dto.setCreatedBy(Long.toString(rs.getLong(COL_DISCUSSION_REPLY_CREATED_BY)));
 			dto.setCreatedOn(new Date(rs.getTimestamp(COL_DISCUSSION_REPLY_CREATED_ON).getTime()));
@@ -56,20 +60,24 @@ public class DBODiscussionReplyDAOImpl implements DiscussionReplyDAO{
 			+" FROM "+TABLE_DISCUSSION_REPLY
 			+" WHERE "+COL_DISCUSSION_REPLY_THREAD_ID+" = ?";
 	private static final String SQL_SELECT_REPLY_BUNDLE = "SELECT "
-			+COL_DISCUSSION_REPLY_ID+", "
+			+TABLE_DISCUSSION_REPLY+"."+COL_DISCUSSION_REPLY_ID+" AS "+COL_DISCUSSION_REPLY_ID+" , "
 			+COL_DISCUSSION_REPLY_THREAD_ID+", "
-			+COL_DISCUSSION_REPLY_MESSAGE_KEY+", "
-			+COL_DISCUSSION_REPLY_CREATED_BY+", "
-			+COL_DISCUSSION_REPLY_CREATED_ON+", "
-			+COL_DISCUSSION_REPLY_MODIFIED_ON+", "
-			+COL_DISCUSSION_REPLY_ETAG+", "
-			+COL_DISCUSSION_REPLY_IS_EDITED+", "
-			+COL_DISCUSSION_REPLY_IS_DELETED
-			+" FROM "+TABLE_DISCUSSION_REPLY;
+			+COL_DISCUSSION_THREAD_FORUM_ID+", "
+			+COL_FORUM_PROJECT_ID+", "
+			+TABLE_DISCUSSION_REPLY+"."+COL_DISCUSSION_REPLY_MESSAGE_KEY+" AS "+COL_DISCUSSION_REPLY_MESSAGE_KEY+" , "
+			+TABLE_DISCUSSION_REPLY+"."+COL_DISCUSSION_REPLY_CREATED_BY+" AS "+COL_DISCUSSION_REPLY_CREATED_BY+", "
+			+TABLE_DISCUSSION_REPLY+"."+COL_DISCUSSION_REPLY_CREATED_ON+" AS "+COL_DISCUSSION_REPLY_CREATED_ON+", "
+			+TABLE_DISCUSSION_REPLY+"."+COL_DISCUSSION_REPLY_MODIFIED_ON+" AS "+COL_DISCUSSION_REPLY_MODIFIED_ON+", "
+			+TABLE_DISCUSSION_REPLY+"."+COL_DISCUSSION_REPLY_ETAG+" AS "+COL_DISCUSSION_REPLY_ETAG+", "
+			+TABLE_DISCUSSION_REPLY+"."+COL_DISCUSSION_REPLY_IS_EDITED+" AS "+COL_DISCUSSION_REPLY_IS_EDITED+", "
+			+TABLE_DISCUSSION_REPLY+"."+COL_DISCUSSION_REPLY_IS_DELETED+" AS "+COL_DISCUSSION_REPLY_IS_DELETED
+			+" FROM "+TABLE_DISCUSSION_REPLY+", "+TABLE_DISCUSSION_THREAD+", "+TABLE_FORUM
+			+" WHERE "+COL_DISCUSSION_REPLY_THREAD_ID+" = "+TABLE_DISCUSSION_THREAD+"."+COL_DISCUSSION_THREAD_ID
+			+" AND "+COL_DISCUSSION_THREAD_FORUM_ID+" = "+TABLE_FORUM+"."+COL_FORUM_ID;
 	private static final String SQL_GET_REPLY_BY_ID = SQL_SELECT_REPLY_BUNDLE
-			+" WHERE "+COL_DISCUSSION_REPLY_ID+" = ?";
+			+" AND "+TABLE_DISCUSSION_REPLY+"."+COL_DISCUSSION_REPLY_ID+" = ?";
 	private static final String SQL_GET_REPLIES_BY_THREAD_ID = SQL_SELECT_REPLY_BUNDLE
-			+" WHERE "+COL_DISCUSSION_REPLY_THREAD_ID+" = ?";
+			+" AND "+COL_DISCUSSION_REPLY_THREAD_ID+" = ?";
 	private static final String ORDER_BY_CREATED_ON = " ORDER BY "+COL_DISCUSSION_REPLY_CREATED_ON;
 	private static final String DESC = " DESC";
 	private static final String LIMIT = " LIMIT ";
@@ -89,11 +97,12 @@ public class DBODiscussionReplyDAOImpl implements DiscussionReplyDAO{
 			+COL_DISCUSSION_REPLY_ETAG+" = ? "
 			+" WHERE "+COL_DISCUSSION_REPLY_ID+" = ?";
 
+	@WriteTransactionReadCommitted
 	@Override
 	public DiscussionReplyBundle createReply(String threadId, String messageKey, Long userId) {
-		ValidateArgument.required(threadId, "threadId cannot be null");
-		ValidateArgument.required(messageKey, "messageKey cannot be null");
-		ValidateArgument.required(userId, "userId cannot be null");
+		ValidateArgument.required(threadId, "threadId");
+		ValidateArgument.required(messageKey, "messageKey");
+		ValidateArgument.required(userId, "userId");
 		Long id = idGenerator.generateNewId(TYPE.DISCUSSION_REPLY_ID);
 		String etag = UUID.randomUUID().toString();
 		DBODiscussionReply dbo = DiscussionReplyUtils.createDBO(threadId, messageKey, userId, id, etag);
@@ -114,9 +123,9 @@ public class DBODiscussionReplyDAOImpl implements DiscussionReplyDAO{
 	public PaginatedResults<DiscussionReplyBundle> getRepliesForThread(
 			Long threadId, Long limit, Long offset, DiscussionReplyOrder order,
 			Boolean ascending) {
-		ValidateArgument.required(threadId, "threadId cannot be null");
-		ValidateArgument.required(limit, "limit cannot be null");
-		ValidateArgument.required(offset, "offset cannot be null");
+		ValidateArgument.required(threadId, "threadId");
+		ValidateArgument.required(limit, "limit");
+		ValidateArgument.required(offset, "offset");
 		ValidateArgument.requirement(limit >= 0 && offset >= 0 && limit <= MAX_LIMIT,
 				"Limit and offset must be greater than 0, and limit must be smaller than or equal to "+MAX_LIMIT);
 		ValidateArgument.requirement((order == null && ascending == null)
@@ -154,22 +163,25 @@ public class DBODiscussionReplyDAOImpl implements DiscussionReplyDAO{
 		return jdbcTemplate.queryForLong(SQL_SELECT_REPLY_COUNT, threadId);
 	}
 
+	@WriteTransactionReadCommitted
 	@Override
 	public void markReplyAsDeleted(long replyId) {
 		String etag = UUID.randomUUID().toString();
 		jdbcTemplate.update(SQL_MARK_REPLY_AS_DELETED, etag, replyId);
 	}
 
+	@WriteTransactionReadCommitted
 	@Override
 	public DiscussionReplyBundle updateMessageKey(long replyId, String newKey) {
 		if (newKey == null) {
-			throw new IllegalArgumentException("Message Key cannot be null");
+			throw new IllegalArgumentException("newKey");
 		}
 		String etag = UUID.randomUUID().toString();
 		jdbcTemplate.update(SQL_UPDATE_MESSAGE_KEY, newKey, etag, replyId);
 		return getReply(replyId);
 	}
 
+	@WriteTransactionReadCommitted
 	@Override
 	public String getEtagForUpdate(long replyId) {
 		List<String> results = jdbcTemplate.query(SQL_SELECT_ETAG_FOR_UPDATE, new RowMapper<String>(){
