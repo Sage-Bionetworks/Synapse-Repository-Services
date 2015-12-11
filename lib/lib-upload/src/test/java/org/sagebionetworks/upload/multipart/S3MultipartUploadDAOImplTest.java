@@ -117,7 +117,6 @@ public class S3MultipartUploadDAOImplTest {
 		String uplaodToken = "uploadToken";
 		String partKey = key+"/101";
 		String partMD5Hex = "8356accbaa8bfc6ddc6c612224c6c9b3";
-		String partEtag = S3MultipartUploadDAOImpl.hexToBase64(partMD5Hex);
 		int partNumber = 101;
 		AddPartRequest request  = new AddPartRequest(uplaodToken, bucket, key, partKey, partMD5Hex, partNumber);
 		// call under test.
@@ -131,7 +130,7 @@ public class S3MultipartUploadDAOImplTest {
 		assertEquals(key, capture.getValue().getDestinationKey());
 		assertEquals(uplaodToken, capture.getValue().getUploadId());
 		assertEquals(partNumber, capture.getValue().getPartNumber());
-		assertEquals(Lists.newArrayList(partEtag), capture.getValue().getMatchingETagConstraints());
+		assertEquals(Lists.newArrayList(partMD5Hex), capture.getValue().getMatchingETagConstraints());
 	}
 	
 	@Test
@@ -154,13 +153,6 @@ public class S3MultipartUploadDAOImplTest {
 		}
 	}
 	
-	@Test
-	public void testHexToBase64(){
-		String partMD5Hex = "8ff6accbaa8bfc6ddc6c612224c6c9b3";
-		String expectedBase64  = "j/asy6qL/G3cbGEiJMbJsw==";
-		String resultEtag = S3MultipartUploadDAOImpl.hexToBase64(partMD5Hex);
-		assertEquals(expectedBase64, resultEtag);
-	}
 	
 	@Test
 	public void testCompleteMultipartUpload(){
@@ -173,8 +165,8 @@ public class S3MultipartUploadDAOImplTest {
 		when(mockS3Client.getObjectMetadata(bucket, key)).thenReturn(metadata);
 		String md5Hex1 = "e31f1bce63e28dd8157876638818284c";
 		String md5Hex2 = "c295c08ccfd979130729592bf936b85f";
-		String etag1 = S3MultipartUploadDAOImpl.hexToBase64(md5Hex1);
-		String etag2 = S3MultipartUploadDAOImpl.hexToBase64(md5Hex2);
+		String etag1 = md5Hex1;
+		String etag2 = md5Hex2;
 		
 		CompleteMultipartRequest request = new CompleteMultipartRequest();
 		request.setAddedParts(Lists.newArrayList(new PartMD5(1,md5Hex1), new PartMD5(2,md5Hex2)));

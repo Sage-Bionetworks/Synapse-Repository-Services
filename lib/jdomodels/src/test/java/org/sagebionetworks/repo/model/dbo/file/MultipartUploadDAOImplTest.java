@@ -1,8 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.file;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.*;
 
 import java.util.List;
 
@@ -66,8 +64,8 @@ public class MultipartUploadDAOImplTest {
 		request.setContentType("plain/text");
 		request.setPartSizeBytes(5L);
 		request.setStorageLocationId(storageLocationId);
-		
-		uploadToken = "someUploadToken";
+		// Upload tokens can be large
+		uploadToken = "n0LRZqFh9zvMZAIY_PInQBJdKxrqRwbOa8W4JJ.X1DiiqI8bJsh.LOWMAENIemWgfLNwCrs0J2xYiIPcKvK6uW9igwCoaYWgSrkLuwIbaJ6au85CYlCGfK8oUcDByxiI";
 		bucket = "someBucket";
 		key = "someKey";
 		numberOfParts = 11;
@@ -200,6 +198,23 @@ public class MultipartUploadDAOImplTest {
 		
 		String partsState = multipartUplaodDAO.getPartsState(uploadId, numberOfParts);
 		assertEquals("10000000100", partsState);
+	}
+	
+	@Test
+	public void testDeleteUploadStatus(){
+		CompositeMultipartUploadStatus status = multipartUplaodDAO.createUploadStatus(createRequest);
+		assertNotNull(status);
+		assertNotNull(status.getEtag());
+		String uploadId = status.getMultipartUploadStatus().getUploadId();
+		// call under test.
+		multipartUplaodDAO.deleteUploadStatus(userId, createRequest.getHash());
+		
+		try {
+			multipartUplaodDAO.getUploadRequest(uploadId);
+			fail("Should no longer exist");
+		} catch (NotFoundException e) {
+			// expected
+		}
 	}
 	
 	@Test
