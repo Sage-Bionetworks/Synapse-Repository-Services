@@ -173,9 +173,7 @@ public class DBODiscussionReplyDAOImpl implements DiscussionReplyDAO{
 	@WriteTransactionReadCommitted
 	@Override
 	public DiscussionReplyBundle updateMessageKey(long replyId, String newKey) {
-		if (newKey == null) {
-			throw new IllegalArgumentException("newKey");
-		}
+		ValidateArgument.required(newKey, "newKey");
 		String etag = UUID.randomUUID().toString();
 		jdbcTemplate.update(SQL_UPDATE_MESSAGE_KEY, newKey, etag, replyId);
 		return getReply(replyId);
