@@ -119,6 +119,7 @@ public class MigrationManagerImplAutowireTest {
 	private String[] projectIds = new String[3];
 	StackConfiguration stackConfig;
 	ProgressCallback<Long> mockProgressCallback;
+	private long startId;
 
 	@Before
 	public void before() throws Exception {
@@ -135,6 +136,7 @@ public class MigrationManagerImplAutowireTest {
 		withPreview = fileHandleDao.createFile(withPreview);
 		assertNotNull(withPreview);
 		toDelete.add(withPreview.getId());
+		startId = Integer.parseInt(withPreview.getId());
 		// The Preview
 		preview = TestUtils.createPreviewFileHandle(creatorUserGroupId);
 		preview.setFileName("preview.txt");
@@ -210,6 +212,7 @@ public class MigrationManagerImplAutowireTest {
 	public void testGetMaxId() {
 		long mx = migrationManager.getMaxId(adminUser, MigrationType.FILE_HANDLE);
 		assertEquals(Long.parseLong(preview.getId()), mx);
+		assertEquals(startId+1, mx);
 	}
 	
 	@Test
@@ -262,10 +265,11 @@ public class MigrationManagerImplAutowireTest {
 	public void testListRowMetadataByRange() {
 		long minId = migrationManager.getMinId(adminUser, MigrationType.FILE_HANDLE);
 		long maxId = migrationManager.getMaxId(adminUser, MigrationType.FILE_HANDLE);
-		RowMetadataResult result = migrationManager.getRowMetadataByRangeForType(adminUser, MigrationType.FILE_HANDLE, minId, maxId);
+		RowMetadataResult result = migrationManager.getRowMetadataByRangeForType(adminUser, MigrationType.FILE_HANDLE, startId, maxId);
 		assertNotNull(result);
 		assertEquals(new Long(startCount+2), result.getTotalCount());
 		assertNotNull(result.getList());
+		System.out.println("minid: " + minId + ", maxId: " + maxId + ", resList:" + result.getList());
 		assertEquals(2, result.getList().size());
 	}
 	
