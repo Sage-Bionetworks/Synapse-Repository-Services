@@ -64,6 +64,11 @@ public interface MultipartManagerV2 {
 	 * @return
 	 */
 	public S3FileHandle createFileHandle(long fileSize, CompositeMultipartUploadStatus composite, MultipartUploadRequest request);
+
+	/**
+	 * Truncate all data
+	 */
+	public void truncateAll();
 	
 
 

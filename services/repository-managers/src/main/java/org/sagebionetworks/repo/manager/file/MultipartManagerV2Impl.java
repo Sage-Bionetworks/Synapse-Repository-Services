@@ -520,4 +520,9 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		return fileHandleDao.createFile(fileHandle, shouldPreviewBeCreated);
 	}
 
+	@Override
+	public void truncateAll() {
+		this.multipartUploadDAO.truncateAll();
+	}
+
 }

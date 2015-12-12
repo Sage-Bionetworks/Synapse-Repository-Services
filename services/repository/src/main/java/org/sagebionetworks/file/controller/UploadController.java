@@ -841,10 +841,7 @@ public class UploadController extends BaseController {
 	 * 
 	 * @param userId
 	 * @param uploadId
-	 *            The unique identifier of the file upload returned when the
-	 *            upload was started with <a
-	 *            href="${POST.file.multipart.upload}">POST
-	 *            /file/multipart/upload</a>
+	 *            The unique identifier of the file upload.
 	 * @param request
 	 * @return
 	 */
@@ -870,10 +867,7 @@ public class UploadController extends BaseController {
 	 * 
 	 * @param userId
 	 * @param uploadId
-	 *            The unique identifier of the file upload returned when the
-	 *            upload was started with <a
-	 *            href="${POST.file.multipart.upload}">POST
-	 *            /file/multipart/upload</a>
+	 *            The unique identifier of the file upload.
 	 * @param partNumber
 	 *            The part number to add. Must be a number between 1 and 10,000.
 	 * @param partMD5Hex
@@ -881,7 +875,7 @@ public class UploadController extends BaseController {
 	 *            string. If the provided MD5 does not match the MD5 of the
 	 *            uploaded part, the add will fail.
 	 * @return The response will indicate if add succeeded or failed. When an
-	 *         add fails, the resonse will include an error message.
+	 *         add fails, the response will include an error message.
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.FILE_MULTIPART_UPLOAD_ID_ADD_PART, method = RequestMethod.PUT)
@@ -899,10 +893,7 @@ public class UploadController extends BaseController {
 	 * 
 	 * @param userId
 	 * @param uploadId
-	 *            The unique identifier of the file upload returned when the
-	 *            upload was started with <a
-	 *            href="${POST.file.multipart.upload}">POST
-	 *            /file/multipart/upload</a>
+	 *            The unique identifier of the file upload.
 	 * @return If successful, the response will include the ID of the new file
 	 *         handle.
 	 */

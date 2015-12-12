@@ -63,7 +63,7 @@ public class MultipartManagerV2ImplAutowireTest {
 	String fileMD5Hex;
 
 	@Before
-	public void before() throws Exception {
+	public void before() throws Exception {		
 		// used to put data to a pre-signed url.
 		httpClient = DefaultHttpClientSingleton.getInstance();
 		fileHandlesToDelete = new LinkedList<String>();
@@ -95,6 +95,7 @@ public class MultipartManagerV2ImplAutowireTest {
 				}
 			}
 		}
+		multipartManagerV2.truncateAll();
 	}
 
 	@Test
