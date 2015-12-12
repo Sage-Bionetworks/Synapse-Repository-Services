@@ -82,8 +82,6 @@ public class S3MultipartUploadDAOImpl implements S3MultipartUploadDAO {
 	 */
 	@Override
 	public void addPart(AddPartRequest request) {
-		// convert the MD5Hex to an S3 etag by converting to base 64.
-		String etag = hexToBase64(request.getPartMD5Hex());
 		CopyPartRequest cpr = new CopyPartRequest();
 		cpr.setSourceBucketName(request.getBucket());
 		cpr.setSourceKey(request.getPartKey());
@@ -92,7 +90,7 @@ public class S3MultipartUploadDAOImpl implements S3MultipartUploadDAO {
 		cpr.setUploadId(request.getUploadToken());
 		cpr.setPartNumber(request.getPartNumber());
 		// only add if the etag matches.
-		cpr.withMatchingETagConstraint(etag);
+		cpr.withMatchingETagConstraint(request.getPartMD5Hex());
 		CopyPartResult result = s3Client.copyPart(cpr);
 		if (result == null) {
 			throw new IllegalArgumentException(
@@ -100,15 +98,6 @@ public class S3MultipartUploadDAOImpl implements S3MultipartUploadDAO {
 		}
 	}
 
-	/**
-	 * Convert a hex string to a base64 string.
-	 * 
-	 * @param hex
-	 * @return
-	 */
-	public static String hexToBase64(String hex) {
-		return BinaryUtils.toBase64(BinaryUtils.fromHex(hex));
-	}
 
 	/*
 	 * (non-Javadoc)
@@ -139,7 +128,7 @@ public class S3MultipartUploadDAOImpl implements S3MultipartUploadDAO {
 		List<PartETag> partEtags = new LinkedList<PartETag>();
 		cmur.setPartETags(partEtags);
 		for (PartMD5 partMD5 : request.getAddedParts()) {
-			String partEtag = hexToBase64(partMD5.getPartMD5Hex());
+			String partEtag = partMD5.getPartMD5Hex();
 			partEtags.add(new PartETag(partMD5.getPartNumber(), partEtag));
 		}
 

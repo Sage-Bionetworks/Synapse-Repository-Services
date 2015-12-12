@@ -253,7 +253,7 @@ public class SqlConstants {
 	public static final String COL_MULTIPART_PART_NUMBER			= "PART_NUMBER";
 	public static final String COL_MULTIPART_PART_MD5_HEX			= "PART_MD5_HEX";
 	public static final String COL_MULTIPART_PART_ERROR_DETAILS		= "ERROR_DETAILS";
-	public static final String COL_MULTIPART_UPLOAD_PART_STATE_DDL	= "schema/MultipartUploadPartState.ddl.sql";
+	public static final String COL_MULTIPART_UPLOAD_PART_STATE_DDL	= "schema/MultipartUploadPartState-ddl.sql";
 	
 	// 
 	public static final String COL_STACK_STATUS_ID					= "ID";

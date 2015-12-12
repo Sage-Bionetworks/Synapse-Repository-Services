@@ -87,6 +87,9 @@ import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
+import org.sagebionetworks.repo.model.dbo.file.CompositeMultipartUploadStatus;
+import org.sagebionetworks.repo.model.dbo.file.CreateMultipartRequest;
+import org.sagebionetworks.repo.model.dbo.file.MultipartUploadDAO;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOSessionToken;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
@@ -241,6 +244,9 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 	@Autowired
 	private IdGenerator idGenerator;
 	
+	@Autowired
+	private MultipartUploadDAO multipartUploadDAO;
+	
 	private Team team;
 
 	private Long adminUserId;
@@ -322,6 +328,24 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		createThread();
 		createThreadView();
 		createReply();
+		createMultipartUpload();
+	}
+	
+	private void createMultipartUpload(){
+		CreateMultipartRequest request = new CreateMultipartRequest();
+		request.setBucket("someBucket");
+		request.setHash("someHash");
+		request.setKey("someKey");
+		request.setNumberOfParts(1);
+		request.setUploadToken("uploadToken");
+		request.setRequestBody("someRequestBody");
+		request.setUserId(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		// main row
+		CompositeMultipartUploadStatus composite = multipartUploadDAO.createUploadStatus(request);
+		// secondary row
+		int partNumber =1;
+		String partMD5Hex = "548c050497fb361742b85e0712b0cc96";
+		multipartUploadDAO.addPartToUpload(composite.getMultipartUploadStatus().getUploadId(), partNumber, partMD5Hex);
 	}
 	
 	private void createForum() {

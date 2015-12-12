@@ -1,11 +1,26 @@
 package org.sagebionetworks.repo.model.dbo.file;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_BUCKET;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_DDL;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_FILE_HANDLE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_KEY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_NUMBER_OF_PARTS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_REQUEST_HASH;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_STARTED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_STARTED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_STATE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_UPDATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_UPLOAD_ETAG;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_UPLOAD_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_UPLOAD_REQUEST;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_UPLOAD_TOKEN;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_MULTIPART_UPLOAD;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.LinkedList;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
@@ -69,7 +84,7 @@ public class DBOMultipartUpload implements MigratableDatabaseObject<DBOMultipart
 				dbo.setRequestBlob(rs.getBytes(COL_MULTIPART_UPLOAD_REQUEST));
 				dbo.setUploadToken(rs.getString(COL_MULTIPART_UPLOAD_TOKEN));
 				dbo.setBucket(rs.getString(COL_MULTIPART_BUCKET));
-				dbo.setKey(rs.getString(COL_CREDENTIAL_SECRET_KEY));
+				dbo.setKey(rs.getString(COL_MULTIPART_KEY));
 				dbo.setNumberOfParts(rs.getInt(COL_MULTIPART_NUMBER_OF_PARTS));
 				return dbo;
 			}
@@ -97,8 +112,7 @@ public class DBOMultipartUpload implements MigratableDatabaseObject<DBOMultipart
 
 	@Override
 	public MigrationType getMigratableTableType() {
-		// TODO Auto-generated method stub
-		return null;
+		return MigrationType.MULTIPART_UPLOAD;
 	}
 
 	@Override
@@ -130,7 +144,9 @@ public class DBOMultipartUpload implements MigratableDatabaseObject<DBOMultipart
 
 	@Override
 	public List<MigratableDatabaseObject<?, ?>> getSecondaryTypes() {
-		return null;
+		List<MigratableDatabaseObject<?,?>> list = new LinkedList<MigratableDatabaseObject<?,?>>();
+		list.add(new DBOMultipartUploadPartState());
+		return list;
 	}
 
 	public Long getId() {

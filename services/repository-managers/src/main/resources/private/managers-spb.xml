@@ -69,6 +69,8 @@
 	
 	<bean id="multipartManager" class="org.sagebionetworks.repo.manager.file.MultipartManagerImpl" />
 	
+	<bean id="multipartManagerV2" class="org.sagebionetworks.repo.manager.file.MultipartManagerV2Impl"  />
+	
 	<bean id="semaphoreManager" class="org.sagebionetworks.repo.manager.SemaphoreManagerImpl" />
 	
 	<!-- The thread pool used by the asynchronous fileupload primary daemons -->
