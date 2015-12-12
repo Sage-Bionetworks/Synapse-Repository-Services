@@ -1,0 +1,55 @@
+{
+	"description": "The Reply model object represents a single reply in a thread.",
+	"properties": {
+		"id": {
+			"type": "string",
+			"description": "The ID of the reply"
+		},
+		"threadId": {
+			"type": "string",
+			"description": "The ID of the thread this Reply belongs to"
+		},
+		"forumId": {
+			"type": "string",
+			"description": "The ID of the forum this Reply belongs to"
+		},
+		"projectId": {
+			"type": "string",
+			"description": "The ID of the project this Reply belongs to"
+		},
+		"createdOn": {
+			"type": "string",
+			"format":"date-time",
+			"description":"The timestamp when this Reply was created"
+		},
+		"createdBy": {
+			"type": "string",
+			"description":"The id of the user that created this Reply"
+		},
+		"modifiedOn": {
+			"type": "string",
+			"format":"date-time",
+			"description":"The timestamp when this Reply was last modified"
+		},
+		"etag": {
+			"type": "string",
+			"description": "Synapse employs an Optimistic Concurrency Control (OCC) scheme to handle concurrent updates. Since the E-Tag changes every time an entity is updated it is used to detect when a client's current representation of an entity is out-of-date."
+		},
+		"messageKey": {
+		"type": "string",
+			"description": "The S3 key where the actual message stored"
+		},
+		"messageUrl": {
+		"type": "string",
+			"description": "The URL to download the file that contains the message"
+		},
+		"isEdited": {
+			"type": "boolean",
+			"description": "Has the author edited this Reply?"
+		},
+		"isDeleted": {
+			"type": "boolean",
+			"description": "Has this Reply been deleted?"
+		}
+	}
+}

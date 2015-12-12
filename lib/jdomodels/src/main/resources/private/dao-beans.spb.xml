@@ -325,6 +325,8 @@
 		class="org.sagebionetworks.repo.model.dbo.dao.discussion.DBOForumDAOImpl" />
 	<bean id="discussionThreadDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.discussion.DBODiscussionThreadDAOImpl" />
+	<bean id="discussionReplyDao"
+		class="org.sagebionetworks.repo.model.dbo.dao.discussion.DBODiscussionReplyDAOImpl" />
 
 	<!-- Misc beans -->
 	<bean id="countingSemaphore"

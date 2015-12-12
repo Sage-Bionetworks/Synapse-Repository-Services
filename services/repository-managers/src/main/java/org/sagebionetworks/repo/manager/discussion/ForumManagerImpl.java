@@ -3,14 +3,15 @@ package org.sagebionetworks.repo.manager.discussion;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.ForumDAO;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dao.discussion.ForumDAO;
 import org.sagebionetworks.repo.model.discussion.Forum;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class ForumManagerImpl implements ForumManager {
@@ -32,9 +33,7 @@ public class ForumManagerImpl implements ForumManager {
 	}
 
 	private void validateProjectIdAndThrowException(String projectId) {
-		if (projectId == null) {
-			throw new IllegalArgumentException("projectId cannot be null.");
-		}
+		ValidateArgument.required(projectId, "projectId");
 		if (!nodeDao.doesNodeExist(KeyFactory.stringToKey(projectId))) {
 			throw new NotFoundException("Project does not exist.");
 		}

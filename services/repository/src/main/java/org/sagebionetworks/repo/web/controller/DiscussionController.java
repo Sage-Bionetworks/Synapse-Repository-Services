@@ -6,10 +6,14 @@ import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ServiceConstants;
+import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
-import org.sagebionetworks.repo.model.discussion.DiscussionOrder;
+import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
+import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
+import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.Forum;
+import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -81,12 +85,12 @@ public class DiscussionController extends BaseController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.FORUM_FORUM_ID_THREADS, method = RequestMethod.GET)
-	public @ResponseBody PaginatedResults<DiscussionThreadBundle> getThreads(
+	public @ResponseBody PaginatedResults<DiscussionThreadBundle> getThreadsForForum(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM) Long limit,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM) Long offset,
-			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false) DiscussionOrder order,
-			@RequestParam(value = ServiceConstants.ASCENDING_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_ASCENDING_PARAM) Boolean ascending,
+			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false) DiscussionThreadOrder order,
+			@RequestParam(value = ServiceConstants.ASCENDING_PARAM, required = false) Boolean ascending,
 			@PathVariable String forumId) {
 		return serviceProvider.getDiscussionService().getThreads(userId, forumId, limit, offset, order, ascending);
 	}
@@ -179,5 +183,101 @@ public class DiscussionController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String threadId) {
 		serviceProvider.getDiscussionService().markThreadAsDeleted(userId, threadId);
+	}
+
+	/**
+	 * This API is used to create a new reply to a thread.
+	 * <br/>
+	 * Target users: anyone who has READ permission to the project.
+	 * 
+	 * @param userId - The ID of the user who is making the request
+	 * @param toCreate - This object contains information needed to create a reply.
+	 * @return
+	 * @throws IOException
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.REPLY, method = RequestMethod.POST)
+	public @ResponseBody DiscussionReplyBundle createReply(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody CreateDiscussionReply toCreate) throws IOException {
+		return serviceProvider.getDiscussionService().createReply(userId, toCreate);
+	}
+
+	/**
+	 * This API is used to get a reply and its statistic given its ID.
+	 * <br/>
+	 * Target users: anyone who has READ permission to the project.
+	 * 
+	 * @param userId - The ID of the user who is making the request
+	 * @param replyId - The ID of the reply being requested
+	 * @return
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.REPLY_REPLY_ID, method = RequestMethod.GET)
+	public @ResponseBody DiscussionReplyBundle getReply(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String replyId) {
+		return serviceProvider.getDiscussionService().getReply(userId, replyId);
+	}
+
+	/**
+	 * This API is used to update the message of a reply.
+	 * <br/>
+	 * Target users: only the author of the reply can update its message.
+	 * 
+	 * @param userId - The ID of the user who is making the request
+	 * @param replyId - The ID of the reply being updated
+	 * @param message - The new message
+	 * @return
+	 * @throws UnsupportedEncodingException
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.REPLY_REPLY_ID_MESSAGE, method = RequestMethod.PUT)
+	public @ResponseBody DiscussionReplyBundle updateReplyMessage(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String replyId,
+			@RequestBody UpdateReplyMessage message) throws IOException {
+		return serviceProvider.getDiscussionService().updateReplyMessage(userId, replyId, message);
+	}
+
+	/**
+	 * This API is used to mark a reply as deleted.
+	 * <br/>
+	 * Target users: only forum's moderator can mark a reply as deleted.
+	 * 
+	 * @param userId - the ID of the user who is making the request
+	 * @param replyId - the ID of the reply being marked as deleted
+	 */
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	@RequestMapping(value = UrlHelpers.REPLY_REPLY_ID, method = RequestMethod.DELETE)
+	public void markReplyAsDeleted(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String replyId) {
+		serviceProvider.getDiscussionService().markReplyAsDeleted(userId, replyId);
+	}
+
+	/**
+	 * This API is used to get N number of replies for a given thread ID.
+	 * <br/>
+	 * Target users: anyone who has READ permission to the project.
+	 * 
+	 * @param userId - The ID of the user who is making the request
+	 * @param limit - Limits the size of the page returned. For example, a page size of 10 require limit = 10. The maximum Limit for this call is 100.
+	 * @param offset - The index of the pagination offset. For a page size of 10, the first page would be at offset = 0, and the second page would be at offset = 10.
+	 * @param sort - The field to sort the resulting threads on
+	 * @param ascending - The direction of sort: true for ascending, and false for descending
+	 * @param threadId - The thread ID to which the returning replies belong
+	 * @return
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.THREAD_THREAD_ID_REPLIES, method = RequestMethod.GET)
+	public @ResponseBody PaginatedResults<DiscussionReplyBundle> getRepliesForThread(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM) Long limit,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM) Long offset,
+			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false) DiscussionReplyOrder order,
+			@RequestParam(value = ServiceConstants.ASCENDING_PARAM, required = false) Boolean ascending,
+			@PathVariable String threadId) {
+		return serviceProvider.getDiscussionService().getReplies(userId, threadId, limit, offset, order, ascending);
 	}
 }

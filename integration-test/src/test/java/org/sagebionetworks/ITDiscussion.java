@@ -68,6 +68,7 @@ public class ITDiscussion {
 		// get all threads in the forum
 		PaginatedResults<DiscussionThreadBundle> threads = synapse.getThreadsForForum(forumId, 100L, 0L, null, null);
 		assertTrue(threads.getResults().isEmpty());
+		assertEquals(0L, threads.getTotalNumberOfResults());
 
 		// create a thread
 		CreateDiscussionThread toCreate = new CreateDiscussionThread();
@@ -87,6 +88,7 @@ public class ITDiscussion {
 		threads = synapse.getThreadsForForum(forumId, 100L, 0L, null, null);
 		assertTrue(threads.getResults().size() == 1);
 		assertEquals(threads.getResults().get(0), bundle);
+		assertEquals(1L, threads.getTotalNumberOfResults());
 
 		// update title
 		UpdateThreadTitle updateTitle = new UpdateThreadTitle();

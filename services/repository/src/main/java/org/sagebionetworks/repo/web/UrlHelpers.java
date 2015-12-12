@@ -876,6 +876,12 @@ public class UrlHelpers {
 	public static final String THREAD_THREAD_ID_TITLE = THREAD_THREAD_ID+TITLE;
 	public static final String DISCUSSION_MESSAGE = "/message";
 	public static final String THREAD_THREAD_ID_MESSAGE = THREAD_THREAD_ID+DISCUSSION_MESSAGE;
+	public static final String REPLY = "/reply";
+	public static final String REPLY_ID = "/{replyId}";
+	public static final String REPLY_REPLY_ID = REPLY+REPLY_ID;
+	public static final String REPLY_REPLY_ID_MESSAGE = REPLY_REPLY_ID+DISCUSSION_MESSAGE;
+	public static final String REPLIES = "/replies";
+	public static final String THREAD_THREAD_ID_REPLIES = THREAD_THREAD_ID+REPLIES;
 
 	/**
 	 * APIs for DynamoDB related operations.

@@ -17,14 +17,14 @@ import java.util.UUID;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.reflection.model.PaginatedResults;
-import org.sagebionetworks.repo.model.DiscussionThreadDAO;
+import org.sagebionetworks.repo.model.dao.discussion.DiscussionThreadDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.discussion.DBODiscussionThread;
 import org.sagebionetworks.repo.model.dbo.persistence.discussion.DiscussionThreadUtils;
-import org.sagebionetworks.repo.model.discussion.DiscussionOrder;
+import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -100,7 +100,7 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 			+COL_DISCUSSION_THREAD_IS_EDITED+" = TRUE, "
 			+COL_DISCUSSION_THREAD_ETAG+" = ? "
 			+" WHERE "+COL_DISCUSSION_THREAD_ID+" = ?";
-	private static final String SQL_UPDATE_MESSAGE_URL = "UPDATE "+TABLE_DISCUSSION_THREAD
+	private static final String SQL_UPDATE_MESSAGE_KEY = "UPDATE "+TABLE_DISCUSSION_THREAD
 			+" SET "+COL_DISCUSSION_THREAD_MESSAGE_KEY+" = ?, "
 			+COL_DISCUSSION_THREAD_IS_EDITED+" = TRUE, "
 			+COL_DISCUSSION_THREAD_ETAG+" = ? "
@@ -173,12 +173,12 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 			+COL_DISCUSSION_THREAD_STATS_ACTIVE_AUTHORS+" ) VALUES (?, ?) ON DUPLICATE KEY UPDATE "
 			+COL_DISCUSSION_THREAD_STATS_ACTIVE_AUTHORS+" = ? ";
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public DiscussionThreadBundle createThread(String forumId, String threadId, String title, String messageKey, long userId) {
-		ValidateArgument.requirement(forumId != null, "forumId cannot be null");
-		ValidateArgument.requirement(title != null, "title cannot be null");
-		ValidateArgument.requirement(messageKey != null, "messageUrl cannot be null");
+		ValidateArgument.required(forumId, "forumId");
+		ValidateArgument.required(title, "title");
+		ValidateArgument.required(messageKey, "messageUrl");
 		String etag = UUID.randomUUID().toString();
 		DBODiscussionThread dbo = DiscussionThreadUtils.createDBO(forumId, title, messageKey, userId, threadId, etag);
 		basicDao.createNew(dbo);
@@ -194,7 +194,7 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 		return results.get(0);
 	}
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public void updateThreadView(long threadId, long userId) {
 		long id = idGenerator.generateNewId(TYPE.DISCUSSION_THREAD_VIEW_ID);
@@ -203,65 +203,71 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 
 	@Override
 	public PaginatedResults<DiscussionThreadBundle> getThreads(long forumId,
-			Long limit, Long offset, DiscussionOrder order, Boolean ascending) {
-		ValidateArgument.required(limit,"limit cannot be null");
-		ValidateArgument.required(offset,"offset cannot be null");
+			Long limit, Long offset, DiscussionThreadOrder order, Boolean ascending) {
+		ValidateArgument.required(limit,"limit");
+		ValidateArgument.required(offset,"offset");
 		ValidateArgument.requirement(limit >= 0 && offset >= 0 && limit <= MAX_LIMIT,
 					"Limit and offset must be greater than 0, and limit must be smaller than or equal to "+MAX_LIMIT);
-		ValidateArgument.required(ascending,"ascending cannot be null");
+		ValidateArgument.requirement((order == null && ascending == null)
+				|| (order != null && ascending != null),"order and ascending must be both null or not null");
 
-		String query = SQL_SELECT_THREADS_BY_FORUM_ID;
-		if (order != null) {
-			switch (order) {
-				case NUMBER_OF_REPLIES:
-					query += ORDER_BY_NUMBER_OF_REPLIES;
-					break;
-				case NUMBER_OF_VIEWS:
-					query += ORDER_BY_NUMBER_OF_VIEWS;
-					break;
-				case LAST_ACTIVITY:
-					query += ORDER_BY_LAST_ACTIVITY;
-					break;
-				default:
-					break;
-			}
-		}
-		if (!ascending) {
-			query += DESC;
-		}
-		query += " LIMIT "+limit+" OFFSET "+offset;
-
-		List<DiscussionThreadBundle> results = new ArrayList<DiscussionThreadBundle>();
-		results = jdbcTemplate.query(query, DISCUSSION_THREAD_BUNDLE_ROW_MAPPER, forumId);
 		PaginatedResults<DiscussionThreadBundle> threads = new PaginatedResults<DiscussionThreadBundle>();
-		threads.setResults(results);
+		List<DiscussionThreadBundle> results = new ArrayList<DiscussionThreadBundle>();
+		long threadCount = getThreadCount(forumId);
+		threads.setTotalNumberOfResults(threadCount);
 
+		if (threadCount > 0) {
+			String query = SQL_SELECT_THREADS_BY_FORUM_ID;
+			if (order != null) {
+				switch (order) {
+					case NUMBER_OF_REPLIES:
+						query += ORDER_BY_NUMBER_OF_REPLIES;
+						break;
+					case NUMBER_OF_VIEWS:
+						query += ORDER_BY_NUMBER_OF_VIEWS;
+						break;
+					case LAST_ACTIVITY:
+						query += ORDER_BY_LAST_ACTIVITY;
+						break;
+					default:
+						throw new IllegalArgumentException("Unsupported order "+order);
+				}
+				if (!ascending) {
+					query += DESC;
+				}
+			}
+
+			query += " LIMIT "+limit+" OFFSET "+offset;
+			results = jdbcTemplate.query(query, DISCUSSION_THREAD_BUNDLE_ROW_MAPPER, forumId);
+		}
+
+		threads.setResults(results);
 		return threads;
 	}
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public void markThreadAsDeleted(long threadId) {
 		String etag = UUID.randomUUID().toString();
 		jdbcTemplate.update(SQL_MARK_THREAD_AS_DELETED, etag, threadId);
 	}
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
-	public DiscussionThreadBundle updateMessageKey(long threadId, String newMessageUrl) {
-		if (newMessageUrl == null) {
-			throw new IllegalArgumentException("Message Url cannot be null");
+	public DiscussionThreadBundle updateMessageKey(long threadId, String newMessageKey) {
+		if (newMessageKey == null) {
+			throw new IllegalArgumentException("newMessageKey");
 		}
 		String etag = UUID.randomUUID().toString();
-		jdbcTemplate.update(SQL_UPDATE_MESSAGE_URL, newMessageUrl, etag, threadId);
+		jdbcTemplate.update(SQL_UPDATE_MESSAGE_KEY, newMessageKey, etag, threadId);
 		return getThread(threadId);
 	}
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public DiscussionThreadBundle updateTitle(long threadId, String title) {
 		if (title == null) {
-			throw new IllegalArgumentException("Title cannot be null");
+			throw new IllegalArgumentException("title");
 		}
 		String etag = UUID.randomUUID().toString();
 		jdbcTemplate.update(SQL_UPDATE_TITLE, title, etag, threadId);
@@ -273,26 +279,26 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 		return jdbcTemplate.queryForLong(SQL_SELECT_THREAD_COUNT, forumId);
 	}
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public void setNumberOfViews(long threadId, long numberOfViews) {
 		jdbcTemplate.update(SQL_UPDATE_THREAD_STATS_VIEWS, threadId, numberOfViews, numberOfViews);
 	}
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public void setNumberOfReplies(long threadId, long numberOfReplies) {
 		jdbcTemplate.update(SQL_UPDATE_THREAD_STATS_REPLIES, threadId, numberOfReplies, numberOfReplies);
 	}
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public void setActiveAuthors(long threadId, List<String> activeAuthors) {
 		String list = DiscussionThreadUtils.toString(activeAuthors);
 		jdbcTemplate.update(SQL_UPDATE_THREAD_STATS_ACTIVE_AUTHORS, threadId, list, list);
 	}
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public void setLastActivity(final long threadId, Date lastActivity) {
 		final Timestamp timestamp = new Timestamp(lastActivity.getTime());
@@ -312,7 +318,7 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 		return jdbcTemplate.queryForLong(SQL_SELECT_THREAD_VIEW_COUNT, threadId);
 	}
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public String getEtagForUpdate(long threadId) {
 		List<String> results = jdbcTemplate.query(SQL_SELECT_ETAG_FOR_UPDATE, new RowMapper<String>(){

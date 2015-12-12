@@ -3,10 +3,14 @@ package org.sagebionetworks.repo.web.service.discussion;
 import java.io.IOException;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
-import org.sagebionetworks.repo.model.discussion.DiscussionOrder;
+import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
+import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
+import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.Forum;
+import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
 
@@ -81,5 +85,59 @@ public interface DiscussionService {
 	 * @return
 	 */
 	public PaginatedResults<DiscussionThreadBundle> getThreads(Long userId,
-			String forumId, Long limit, Long offset, DiscussionOrder order, Boolean ascending);
+			String forumId, Long limit, Long offset, DiscussionThreadOrder order, Boolean ascending);
+
+	/**
+	 * Create a new reply
+	 * 
+	 * @param userId
+	 * @param toCreate
+	 * @return
+	 * @throws IOException 
+	 */
+	public DiscussionReplyBundle createReply(Long userId, CreateDiscussionReply toCreate) throws IOException;
+
+	/**
+	 * Get a reply given its ID
+	 * 
+	 * @param userId
+	 * @param replyId
+	 * @return
+	 */
+	public DiscussionReplyBundle getReply(Long userId, String replyId);
+
+	/**
+	 * Update a reply's message
+	 * 
+	 * @param userId
+	 * @param replyId
+	 * @param message
+	 * @return
+	 * @throws IOException 
+	 */
+	public DiscussionReplyBundle updateReplyMessage(Long userId,
+			String replyId, UpdateReplyMessage message) throws IOException;
+
+	/**
+	 * Mark a reply as deleted
+	 * 
+	 * @param userId
+	 * @param replyId
+	 */
+	public void markReplyAsDeleted(Long userId, String replyId);
+
+	/**
+	 * Get replies for a given thread ID
+	 * 
+	 * @param userId
+	 * @param threadId
+	 * @param limit
+	 * @param offset
+	 * @param order
+	 * @param ascending
+	 * @return
+	 */
+	public PaginatedResults<DiscussionReplyBundle> getReplies(Long userId,
+			String threadId, Long limit, Long offset,
+			DiscussionReplyOrder order, Boolean ascending);
 }

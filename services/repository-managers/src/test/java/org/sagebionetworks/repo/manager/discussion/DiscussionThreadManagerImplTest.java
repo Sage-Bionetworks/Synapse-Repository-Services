@@ -7,21 +7,23 @@ import java.util.Arrays;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.DiscussionThreadDAO;
-import org.sagebionetworks.repo.model.ForumDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UploadContentToS3DAO;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dao.discussion.DiscussionThreadDAO;
+import org.sagebionetworks.repo.model.dao.discussion.ForumDAO;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
-import org.sagebionetworks.repo.model.discussion.DiscussionOrder;
+import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.Forum;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
@@ -29,11 +31,17 @@ import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
 import org.springframework.test.util.ReflectionTestUtils;
 
 public class DiscussionThreadManagerImplTest {
+	@Mock
 	private DiscussionThreadDAO mockThreadDao;
+	@Mock
 	private ForumDAO mockForumDao;
+	@Mock
 	private UploadContentToS3DAO mockUploadDao;
+	@Mock
 	private AuthorizationManager mockAuthorizationManager;
+	@Mock
 	private IdGenerator mockIdGenerator;
+
 	private DiscussionThreadManager threadManager;
 	private UserInfo userInfo = new UserInfo(false /*not admin*/);
 	private CreateDiscussionThread createDto;
@@ -50,11 +58,8 @@ public class DiscussionThreadManagerImplTest {
 
 	@Before
 	public void before() {
-		mockThreadDao = Mockito.mock(DiscussionThreadDAO.class);
-		mockForumDao = Mockito.mock(ForumDAO.class);
-		mockUploadDao = Mockito.mock(UploadContentToS3DAO.class);
-		mockAuthorizationManager = Mockito.mock(AuthorizationManager.class);
-		mockIdGenerator = Mockito.mock(IdGenerator.class);
+		MockitoAnnotations.initMocks(this);
+
 		threadManager = new DiscussionThreadManagerImpl();
 		ReflectionTestUtils.setField(threadManager, "threadDao", mockThreadDao);
 		ReflectionTestUtils.setField(threadManager, "forumDao", mockForumDao);
@@ -211,17 +216,17 @@ public class DiscussionThreadManagerImplTest {
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testGetThreadsForForumWithNullForumId() {
-		threadManager.getThreadsForForum(userInfo, null, 2L, 0L, DiscussionOrder.LAST_ACTIVITY, false);
+		threadManager.getThreadsForForum(userInfo, null, 2L, 0L, DiscussionThreadOrder.LAST_ACTIVITY, false);
 	}
 
 	@Test
 	public void testGetThreadsForForum() {
 		PaginatedResults<DiscussionThreadBundle> threads = new PaginatedResults<DiscussionThreadBundle>();
 		threads.setResults(Arrays.asList(dto));
-		Mockito.when(mockThreadDao.getThreads(Mockito.anyLong(), Mockito.anyLong(), Mockito.anyLong(), (DiscussionOrder) Mockito.any(), Mockito.anyBoolean()))
+		Mockito.when(mockThreadDao.getThreads(Mockito.anyLong(), Mockito.anyLong(), Mockito.anyLong(), (DiscussionThreadOrder) Mockito.any(), Mockito.anyBoolean()))
 				.thenReturn(threads);
 		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		assertEquals(threads, threadManager.getThreadsForForum(userInfo, forumId.toString(), 2L, 0L, DiscussionOrder.LAST_ACTIVITY, true));
+		assertEquals(threads, threadManager.getThreadsForForum(userInfo, forumId.toString(), 2L, 0L, DiscussionThreadOrder.LAST_ACTIVITY, true));
 	}
 }
