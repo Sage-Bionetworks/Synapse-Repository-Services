@@ -9,6 +9,9 @@ import org.apache.commons.fileupload.FileUploadException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.file.AddPartResponse;
+import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlRequest;
+import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlResponse;
 import org.sagebionetworks.repo.model.file.ChunkRequest;
 import org.sagebionetworks.repo.model.file.ChunkResult;
 import org.sagebionetworks.repo.model.file.ChunkedFileToken;
@@ -19,6 +22,8 @@ import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
+import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
+import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
 import org.sagebionetworks.repo.model.file.UploadDestination;
@@ -44,6 +49,7 @@ public interface FileUploadService {
 	 * @throws FileUploadException 
 	 * @throws ServiceUnavailableException 
 	 */
+	@Deprecated
 	FileHandleResults uploadFiles(Long userId, FileItemIterator itemIterator) throws DatastoreException, NotFoundException, FileUploadException, IOException, ServiceUnavailableException;
 
 	/**
@@ -93,6 +99,7 @@ public interface FileUploadService {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
+	@Deprecated // replaced with multi-part upload V2
 	ChunkedFileToken createChunkedFileUploadToken(Long userId, CreateChunkedFileTokenRequest ccftr) throws DatastoreException, NotFoundException;
 	
 	/**
@@ -103,6 +110,7 @@ public interface FileUploadService {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
+	@Deprecated // replaced with multi-part upload V2
 	URL createChunkedFileUploadPartURL(Long userId, ChunkRequest cpr) throws DatastoreException, NotFoundException;
 
 	/**
@@ -113,6 +121,7 @@ public interface FileUploadService {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
+	@Deprecated // replaced with multi-part upload V2
 	ChunkResult addChunkToFile(Long userId, ChunkRequest cpr) throws DatastoreException, NotFoundException;
 
 	/**
@@ -123,6 +132,7 @@ public interface FileUploadService {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
+	@Deprecated // replaced with multi-part upload V2
 	S3FileHandle completeChunkFileUpload(Long userId, CompleteChunkedFileRequest ccfr) throws DatastoreException, NotFoundException;
 	
 	/**
@@ -134,6 +144,7 @@ public interface FileUploadService {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
+	@Deprecated // replaced with multi-part upload V2
 	public UploadDaemonStatus startUploadDeamon(Long userId, CompleteAllChunksRequest cacf) throws DatastoreException, NotFoundException;
 	
 	/**
@@ -144,6 +155,7 @@ public interface FileUploadService {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
+	@Deprecated // replaced with multi-part upload V2
 	public UploadDaemonStatus getUploadDaemonStatus(Long userId, String daemonId) throws DatastoreException, NotFoundException;
 
 	/**
@@ -237,4 +249,44 @@ public interface FileUploadService {
 	String getPresignedUrlForFileHandle(Long userId, String fileHandleId,
 			FileHandleAssociateType fileAssociateType, String fileAssociateId)
 			throws NotFoundException;
+
+	/**
+	 * Start or resume a multi-part upload.
+	 * @param userId
+	 * @param request
+	 * @param forceRestart
+	 * @return
+	 */
+	MultipartUploadStatus startMultipartUpload(Long userId,
+			MultipartUploadRequest request, Boolean forceRestart);
+
+	/**
+	 * Get a batch of pre-signed urls.
+	 * @param userId
+	 * @param request
+	 * @return
+	 */
+	BatchPresignedUploadUrlResponse getMultipartPresignedUrlBatch(Long userId,
+			BatchPresignedUploadUrlRequest request);
+
+	/**
+	 * Add a part to a multi-part upload.
+	 * @param userId
+	 * @param uploadId
+	 * @param partNumber
+	 * @param partMD5Hex
+	 * @return
+	 */
+	AddPartResponse addPart(Long userId, String uploadId, Integer partNumber,
+			String partMD5Hex);
+
+	/**
+	 * Complete a multi-part upload.
+	 * @param userId
+	 * @param uploadId
+	 * @return
+	 */
+	MultipartUploadStatus completeMultipartUpload(Long userId, String uploadId);
+	
+	
 }
