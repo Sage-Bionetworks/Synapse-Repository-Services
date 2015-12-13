@@ -39,6 +39,8 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.jsoup.Jsoup;
+import org.sagebionetworks.markdown.SynapseMarkdownProcessor;
 
 /**
  * This class writes out search documents in batch.
@@ -423,6 +425,20 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 					builder.append(page.getTitle());
 				}
 				String markdownString = wikiPageDao.getMarkdown(key, null);
+				try {
+					markdownString = SynapseMarkdownProcessor.getInstance().markdown2Html(markdownString, false, null);
+					markdownString = Jsoup.parse(markdownString).text();
+				} catch (IOException e) {
+					// AwesomeSearch pukes on control characters. Some descriptions have
+					// control characters in them for some reason, in any case, just get rid
+					// of all control characters in the search document
+					markdownString = markdownString.replaceAll("\\p{Cc}", "");
+
+					// Get rid of escaped control characters too
+					markdownString = markdownString.replaceAll("\\\\u00[0,1][0-9,a-f]","");
+				}
+				
+				
 				builder.append("\n");
 				builder.append(markdownString);
 			}
