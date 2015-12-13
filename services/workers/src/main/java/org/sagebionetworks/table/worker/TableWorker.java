@@ -52,7 +52,7 @@ public class TableWorker implements ChangeMessageDrivenRunner {
 	
 	static private Logger log = LogManager.getLogger(TableWorker.class);
 	
-	public static final int WRITE_LOCK_TIMEOUT_SEC = 60;
+	public static final int WRITE_LOCK_TIMEOUT_SEC = 120;
 
 	@Autowired
 	TableRowManager tableRowManager;
