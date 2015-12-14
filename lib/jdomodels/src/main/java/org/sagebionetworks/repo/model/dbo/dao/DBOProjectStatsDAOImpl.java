@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import java.util.List;
+import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.ProjectStat;
@@ -13,7 +14,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 import com.google.common.base.Function;
@@ -49,6 +49,7 @@ public class DBOProjectStatsDAOImpl implements ProjectStatsDAO {
 			dbo = jdbcTemplate.queryForObject(SQL_GET_STATS, rowMapper, projectStat.getProjectId(), projectStat.getUserId());
 			if (projectStat.getLastAccessed().after(dbo.getLastAccessed())) {
 				dbo.setLastAccessed(projectStat.getLastAccessed());
+				dbo.setEtag(UUID.randomUUID().toString());
 				basicDAO.update(dbo);
 			}
 		} catch (EmptyResultDataAccessException e) {
@@ -57,6 +58,7 @@ public class DBOProjectStatsDAOImpl implements ProjectStatsDAO {
 			dbo.setProjectId(projectStat.getProjectId());
 			dbo.setUserId(projectStat.getUserId());
 			dbo.setLastAccessed(projectStat.getLastAccessed());
+			dbo.setEtag(UUID.randomUUID().toString());
 			basicDAO.createNew(dbo);
 		}
 	}
@@ -67,7 +69,7 @@ public class DBOProjectStatsDAOImpl implements ProjectStatsDAO {
 		return Lists.transform(queryResult, new Function<DBOProjectStat, ProjectStat>() {
 			@Override
 			public ProjectStat apply(DBOProjectStat input) {
-				return new ProjectStat(input.getProjectId(), input.getUserId(), input.getLastAccessed());
+				return new ProjectStat(input.getProjectId(), input.getUserId(), input.getLastAccessed(), input.getEtag());
 			}
 		});
 	}
