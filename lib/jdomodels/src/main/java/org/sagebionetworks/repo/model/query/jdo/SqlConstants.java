@@ -98,6 +98,7 @@ public class SqlConstants {
 	public static final String COL_PROJECT_STAT_PROJECT_ID		= "PROJECT_ID";
 	public static final String COL_PROJECT_STAT_USER_ID			= "USER_ID";
 	public static final String COL_PROJECT_STAT_LAST_ACCESSED	= "LAST_ACCESSED";
+	public static final String COL_PROJECT_STAT_ETAG			= "ETAG";
 	
 	// Principal Prefix table
 	public static final String TABLE_PRINCIPAL_PREFIX 				= "PRINCIPAL_PREFIX";

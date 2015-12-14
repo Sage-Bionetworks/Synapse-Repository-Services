@@ -13,11 +13,17 @@ public class ProjectStat {
 	long projectId;
 	long userId;
 	Date lastAccessed;
-
+	String etag;
+	
 	public ProjectStat(long projectId, long userId, Date lastAccessed) {
+		this(projectId, userId, lastAccessed, null);
+	}
+
+	public ProjectStat(long projectId, long userId, Date lastAccessed, String etag) {
 		this.projectId = projectId;
 		this.userId = userId;
 		this.lastAccessed = lastAccessed;
+		this.etag = etag;
 	}
 
 	public long getProjectId() {
@@ -44,11 +50,21 @@ public class ProjectStat {
 		this.lastAccessed = lastAccessed;
 	}
 
+	public String getEtag() {
+		return etag;
+	}
+
+	public void setEtag(String etag) {
+		this.etag = etag;
+	}
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + ((lastAccessed == null) ? 0 : lastAccessed.hashCode());
+		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
+		result = prime * result
+				+ ((lastAccessed == null) ? 0 : lastAccessed.hashCode());
 		result = prime * result + (int) (projectId ^ (projectId >>> 32));
 		result = prime * result + (int) (userId ^ (userId >>> 32));
 		return result;
@@ -63,6 +79,11 @@ public class ProjectStat {
 		if (getClass() != obj.getClass())
 			return false;
 		ProjectStat other = (ProjectStat) obj;
+		if (etag == null) {
+			if (other.etag != null)
+				return false;
+		} else if (!etag.equals(other.etag))
+			return false;
 		if (lastAccessed == null) {
 			if (other.lastAccessed != null)
 				return false;
