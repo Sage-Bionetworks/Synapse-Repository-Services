@@ -248,12 +248,15 @@ public class MigrationManagerImplAutowireTest {
 	@Test
 	public void testGetChecksumForIdRange() {
 		long max = migrationManager.getMaxId(adminUser, MigrationType.FILE_HANDLE);
-		MigrationTypeChecksum checksum = migrationManager.getChecksumForIdRange(adminUser, MigrationType.FILE_HANDLE, 0L, max);
+		String checksum = migrationManager.getChecksumForIdRange(adminUser, MigrationType.FILE_HANDLE, 0L, max);
 		assertNotNull(checksum);
-		assertEquals(MigrationType.FILE_HANDLE, checksum.getType());
-		assertEquals(0L, checksum.getMinid().longValue());
-		assertEquals(max, checksum.getMaxid().longValue());
-		assertNotNull(checksum.getChecksum());
+		assertTrue(checksum.contains("%"));
+	}
+	
+	@Test
+	public void testGetChecksumForType() {
+		String checksum = migrationManager.getChecksumForType(adminUser, MigrationType.FILE_HANDLE);
+		assertNotNull(checksum);
 	}
  	
 	@Test

@@ -387,16 +387,18 @@ public class MigrationManagerImpl implements MigrationManager {
 	}
 
 	@Override
-	public MigrationTypeChecksum getChecksumForIdRange(UserInfo user, MigrationType type,
+	public String getChecksumForIdRange(UserInfo user, MigrationType type,
 			long minId, long maxId) {
 		validateUser(user);
 		String checksum = migratableTableDao.getChecksumForIdRange(type, minId, maxId);
-		MigrationTypeChecksum mts = new MigrationTypeChecksum();
-		mts.setType(type);
-		mts.setChecksum(checksum);
-		mts.setMinid(minId);
-		mts.setMaxid(maxId);
-		return mts;
+		return checksum;
+	}
+	
+	@Override
+	public String getChecksumForType(UserInfo user, MigrationType type) {
+		validateUser(user);
+		String checksum = migratableTableDao.getChecksumForType(type);
+		return checksum;
 	}
 
 	@Override

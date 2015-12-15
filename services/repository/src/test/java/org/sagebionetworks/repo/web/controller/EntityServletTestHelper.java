@@ -32,6 +32,7 @@ import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
+import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
@@ -848,7 +849,7 @@ public class EntityServletTestHelper {
 	 * Returns checksum for migration type and id range
 	 * @throws Exception 
 	 */
-	public MigrationTypeChecksum getChecksumForIdRange(Long userId, MigrationType type,
+	public MigrationRangeChecksum getChecksumForIdRange(Long userId, MigrationType type,
 			String minId, String maxId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, "/migration/checksum", userId, null);
@@ -859,7 +860,7 @@ public class EntityServletTestHelper {
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
 		
-		return EntityFactory.createEntityFromJSONString(response.getContentAsString(), MigrationTypeChecksum.class);
+		return EntityFactory.createEntityFromJSONString(response.getContentAsString(), MigrationRangeChecksum.class);
 		
 	}
 

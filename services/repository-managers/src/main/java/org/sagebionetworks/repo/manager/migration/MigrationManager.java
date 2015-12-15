@@ -5,6 +5,7 @@ import java.io.Writer;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
@@ -108,9 +109,11 @@ public interface MigrationManager {
 	
 	public long getMinId(UserInfo user, MigrationType type);
 	
-	public MigrationTypeChecksum getChecksumForIdRange(UserInfo user, MigrationType type,
+	public String getChecksumForIdRange(UserInfo user, MigrationType type,
 			long minId, long maxId);
-
+	
+	public String getChecksumForType(UserInfo user, MigrationType type);
+	
 	public RowMetadataResult getRowMetadataByRangeForType(UserInfo user, MigrationType type, long minId, long maxId);
 	
 	public MigrationTypeCount getMigrationTypeCount(UserInfo user, MigrationType type);

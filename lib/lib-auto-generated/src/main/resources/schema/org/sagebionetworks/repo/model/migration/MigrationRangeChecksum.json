@@ -6,6 +6,12 @@
 		},
          "checksum":{
         	"type":"string"
+         },
+         "minid":{
+        	"type":"integer"
+         },
+         "maxid":{
+        	"type":"integer"
          }
 	}
 }

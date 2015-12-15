@@ -25,6 +25,7 @@ import org.sagebionetworks.repo.model.daemon.DaemonStatus;
 import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
 import org.sagebionetworks.repo.model.message.FireMessagesResult;
 import org.sagebionetworks.repo.model.IdList;
+import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
@@ -117,7 +118,7 @@ public class IT102MigrationTest {
 		// Checksums per type
 		System.out.println("Checksums by type");
 		for (MigrationType mt: migrationTypes) {
-			MigrationTypeChecksum mtc = adminSynapse.getChecksumForIdRange(mt, 0L, Long.MAX_VALUE);
+			MigrationRangeChecksum mtc = adminSynapse.getChecksumForIdRange(mt, 0L, Long.MAX_VALUE);
 			System.out.println(mt.name() + ":" + mtc);			
 		}
 		
@@ -156,10 +157,10 @@ public class IT102MigrationTest {
 		p.setName("projectIT102-1");
 		p = adminSynapse.createEntity(p);
 		Long maxId = Long.parseLong(p.getId().substring(3));
-		MigrationTypeChecksum checksum1 = adminSynapse.getChecksumForIdRange(MigrationType.NODE, minId, maxId);
+		MigrationRangeChecksum checksum1 = adminSynapse.getChecksumForIdRange(MigrationType.NODE, minId, maxId);
 		assertNotNull(checksum1);
 		adminSynapse.deleteEntity(p);
-		MigrationTypeChecksum checksum2 = adminSynapse.getChecksumForIdRange(MigrationType.NODE, minId, maxId);
+		MigrationRangeChecksum checksum2 = adminSynapse.getChecksumForIdRange(MigrationType.NODE, minId, maxId);
 		assertNotNull(checksum2);
 		assertFalse(checksum1.equals(checksum2));
 	}

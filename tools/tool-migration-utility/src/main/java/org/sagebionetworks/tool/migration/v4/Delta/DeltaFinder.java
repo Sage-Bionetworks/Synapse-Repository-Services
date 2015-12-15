@@ -6,6 +6,7 @@ import java.util.List;
 import org.apache.commons.net.bsd.RLoginClient;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -101,8 +102,8 @@ public class DeltaFinder {
 	
 	private List<IdRange> findUpdDeltaRanges(SynapseAdminClient srcClient, SynapseAdminClient destClient, MigrationType type, long minId, long maxId, long batchSize) throws SynapseException, JSONObjectAdapterException {
 		List<IdRange> l = new LinkedList<IdRange>();
-		MigrationTypeChecksum srcCrc32 = srcClient.getChecksumForIdRange(type, minId, maxId);
-		MigrationTypeChecksum destCrc32 = destClient.getChecksumForIdRange(type, minId, maxId);
+		MigrationRangeChecksum srcCrc32 = srcClient.getChecksumForIdRange(type, minId, maxId);
+		MigrationRangeChecksum destCrc32 = destClient.getChecksumForIdRange(type, minId, maxId);
 		if (srcCrc32.getChecksum().equals(destCrc32.getChecksum())) {
 			return l;
 		} else {

@@ -139,6 +139,7 @@ public class MigratableTableDAOImplAutowireTest {
 		// Get checksums
 		String checkSum = migratableTableDAO.getChecksumForIdRange(MigrationType.FILE_HANDLE, Long.parseLong(withPreview.getId()), Long.parseLong(preview2.getId()));
 		assertNotNull(checkSum);
+		assertTrue(checkSum.contains("%"));
 		long minId = migratableTableDAO.getMinId(MigrationType.FILE_HANDLE);
 		assertTrue(minId + ":" + preview2.getId(), minId <= Long.parseLong(preview2.getId()));
 		
