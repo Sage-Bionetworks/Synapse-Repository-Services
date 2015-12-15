@@ -23,7 +23,7 @@
 							<bean
 								class="org.sagebionetworks.workers.util.semaphore.SemaphoreGatedWorkerStackConfiguration">
 								<property name="progressingRunner">
-									<bean class="org.sagebionetworks.discussion.worker.DiscussionThreadViewStatsWorker" />
+									<bean class="org.sagebionetworks.discussion.workers.DiscussionThreadViewStatsWorker" />
 								</property>
 								<property name="semaphoreLockKey" value="threadViewStatsWorker" />
 								<property name="semaphoreMaxLockCount" value="1" />
@@ -57,7 +57,7 @@
 							<bean
 								class="org.sagebionetworks.workers.util.semaphore.SemaphoreGatedWorkerStackConfiguration">
 								<property name="progressingRunner">
-									<bean class="org.sagebionetworks.discussion.worker.DiscussionThreadReplyStatsWorker" />
+									<bean class="org.sagebionetworks.discussion.workers.DiscussionThreadReplyStatsWorker" />
 								</property>
 								<property name="semaphoreLockKey" value="threadReplyStatsWorker" />
 								<property name="semaphoreMaxLockCount" value="1" />
@@ -91,7 +91,7 @@
 							<bean
 								class="org.sagebionetworks.workers.util.semaphore.SemaphoreGatedWorkerStackConfiguration">
 								<property name="progressingRunner">
-									<bean class="org.sagebionetworks.discussion.worker.DiscussionThreadAuthorStatsWorker" />
+									<bean class="org.sagebionetworks.discussion.workers.DiscussionThreadAuthorStatsWorker" />
 								</property>
 								<property name="semaphoreLockKey" value="threadAuthorStatsWorker" />
 								<property name="semaphoreMaxLockCount" value="1" />
