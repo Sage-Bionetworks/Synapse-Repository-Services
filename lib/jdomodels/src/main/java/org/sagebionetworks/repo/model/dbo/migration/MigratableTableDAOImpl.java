@@ -545,8 +545,8 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		if (sql == null) {
 			throw new IllegalArgumentException("Cannot find the checksum SQL for type" + type);
 		}
-		RowMapper mapper = DMLUtils.getChecksumTableResultMapper();
-		ChecksumTableResult checksum = simpleJdbcTemplate.queryForObject(sql,  mapper);
+		RowMapper<ChecksumTableResult> mapper = DMLUtils.getChecksumTableResultMapper();
+		ChecksumTableResult checksum = simpleJdbcTemplate.queryForObject(sql, mapper);
 		String s = checksum.getValue();
 		return s;
 	}
@@ -557,7 +557,7 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		if (sql == null) {
 			throw new IllegalArgumentException("Cannot find the migrationTypeCount SQL for type" + type);
 		}
-		RowMapper mapper = DMLUtils.getMigrationTypeCountResultMapper();
+		RowMapper<MigrationTypeCount> mapper = DMLUtils.getMigrationTypeCountResultMapper();
 		MigrationTypeCount mtc = simpleJdbcTemplate.queryForObject(sql, mapper);
 		mtc.setType(type);
 		return mtc;

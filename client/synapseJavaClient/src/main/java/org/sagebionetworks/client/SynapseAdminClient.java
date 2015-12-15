@@ -76,6 +76,15 @@ public interface SynapseAdminClient extends SynapseClient {
 	public MigrationTypeCounts getTypeCounts() throws SynapseException, JSONObjectAdapterException;
 	
 	/**
+	 * Get the counts for one type
+	 * @param type
+	 * @return
+	 * @throws SynapseException
+	 * @throws JSONObjectAdapterException
+	 */
+	public MigrationTypeCount getTypeCount(MigrationType type) throws SynapseException, JSONObjectAdapterException;
+	
+	/**
 	 * Get the primary migration types
 	 * @return
 	 * @throws SynapseException

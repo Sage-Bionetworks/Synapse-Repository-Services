@@ -51,6 +51,7 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 
 	private static final String MIGRATION = "/migration";
 	private static final String MIGRATION_COUNTS = MIGRATION + "/counts";
+	private static final String MIGRATION_COUNT = MIGRATION + "/count";
 	private static final String MIGRATION_ROWS = MIGRATION + "/rows";
 	private static final String MIGRATION_ROWS_BY_RANGE = MIGRATION + "/rowsbyrange";
 	private static final String MIGRATION_DELTA = MIGRATION + "/delta";
@@ -139,6 +140,15 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 		JSONObject jsonObj = getSharedClientConnection().getJson(repoEndpoint, uri, getUserAgent());
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
 		MigrationTypeCounts mtc = new MigrationTypeCounts();
+		mtc.initializeFromJSONObject(adapter);
+		return mtc;
+	}
+	
+	public MigrationTypeCount getTypeCount(MigrationType type) throws SynapseException, JSONObjectAdapterException {
+		String uri = MIGRATION_COUNT + "?type=" + type.name() ;
+		JSONObject jsonObj = getSharedClientConnection().getJson(repoEndpoint, uri, getUserAgent());
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		MigrationTypeCount mtc = new MigrationTypeCount();
 		mtc.initializeFromJSONObject(adapter);
 		return mtc;
 	}
