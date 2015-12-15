@@ -4,6 +4,7 @@ import static org.junit.Assert.*;
 import static org.sagebionetworks.repo.model.dbo.dao.discussion.DBODiscussionReplyDAOImpl.MAX_LIMIT;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -27,7 +28,8 @@ import org.sagebionetworks.repo.model.dao.discussion.DiscussionThreadDAO;
 import org.sagebionetworks.repo.model.dao.discussion.ForumDAO;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
-import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
+import org.sagebionetworks.repo.model.discussion.DiscussionThreadAuthorStat;
+import org.sagebionetworks.repo.model.discussion.DiscussionThreadReplyStat;
 import org.sagebionetworks.repo.model.discussion.Forum;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -56,6 +58,7 @@ public class DBODiscussionReplyDAOImplTest {
 	private String forumId;
 	private String threadId;
 	private Long threadIdLong;
+	private List<Long> usersToDelete = new ArrayList<Long>();
 
 	@Before
 	public void before() {
@@ -63,6 +66,7 @@ public class DBODiscussionReplyDAOImplTest {
 		UserGroup user = new UserGroup();
 		user.setIsIndividual(true);
 		userId = userGroupDAO.create(user);
+		usersToDelete.add(userId);
 		// create a project
 		Node project = NodeTestUtils.createNew("projectName" + "-" + new Random().nextInt(), userId);
 		project.setParentId(StackConfiguration.getRootFolderEntityIdStatic());
@@ -79,7 +83,11 @@ public class DBODiscussionReplyDAOImplTest {
 	@After
 	public void after() {
 		if (projectId != null) nodeDao.delete(projectId);
-		if (userId != null) userGroupDAO.delete(userId.toString());
+		for (Long userId: usersToDelete) {
+			if (userId != null) {
+				userGroupDAO.delete(userId.toString());
+			}
+		}
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -172,7 +180,7 @@ public class DBODiscussionReplyDAOImplTest {
 	@Test
 	public void getRepliesForThreadLimitAndOffsetTest() throws InterruptedException {
 		int numberOfReplies = 3;
-		List<DiscussionReplyBundle> createdReplies = createReplies(numberOfReplies);
+		List<DiscussionReplyBundle> createdReplies = createReplies(numberOfReplies, threadId);
 
 		PaginatedResults<DiscussionReplyBundle> results = replyDao.getRepliesForThread(threadIdLong, MAX_LIMIT, 0L, null, null);
 		assertNotNull(results);
@@ -197,7 +205,7 @@ public class DBODiscussionReplyDAOImplTest {
 	@Test
 	public void getRepliesForThreadDescendingTest() throws InterruptedException {
 		int numberOfReplies = 3;
-		List<DiscussionReplyBundle> createdReplies = createReplies(numberOfReplies);
+		List<DiscussionReplyBundle> createdReplies = createReplies(numberOfReplies, threadId);
 
 		PaginatedResults<DiscussionReplyBundle> results =
 				replyDao.getRepliesForThread(threadIdLong, MAX_LIMIT, 0L, DiscussionReplyOrder.CREATED_ON, false);
@@ -206,7 +214,7 @@ public class DBODiscussionReplyDAOImplTest {
 		assertEquals("ordered desc replies", createdReplies, results.getResults());
 	}
 
-	private List<DiscussionReplyBundle> createReplies(int numberOfReplies) throws InterruptedException {
+	private List<DiscussionReplyBundle> createReplies(int numberOfReplies, String threadId) throws InterruptedException {
 		List<DiscussionReplyBundle> list = new ArrayList<DiscussionReplyBundle>();
 		for (int i = 0; i < numberOfReplies; i++) {
 			Thread.sleep(1000);
@@ -257,5 +265,74 @@ public class DBODiscussionReplyDAOImplTest {
 		dto.setModifiedOn(returnedDto.getModifiedOn());
 		dto.setEtag(returnedDto.getEtag());
 		assertEquals(dto, returnedDto);
+	}
+
+	@Test
+	public void testGetThreadReplyStats() throws InterruptedException {
+		// create another thread
+		Long threadIdLong2 = idGenerator.generateNewId(TYPE.DISCUSSION_THREAD_ID);
+		String threadId2 = threadIdLong2.toString();
+		threadDao.createThread(forumId, threadId2, "title", "messageKey2", userId);
+
+		int numberOfReplies = 2;
+		// create 2 replies for each thread
+		createReplies(numberOfReplies, threadId);
+		createReplies(numberOfReplies, threadId2);
+
+		List<DiscussionThreadReplyStat> stats = replyDao.getThreadReplyStat(10L, 0L);
+		assertNotNull(stats);
+		assertEquals(stats.size(), 2);
+		DiscussionThreadReplyStat stat1 = stats.get(0);
+		DiscussionThreadReplyStat stat2 = stats.get(1);
+		assertEquals(stat1.getThreadId(), threadIdLong);
+		assertEquals(stat2.getThreadId(), threadIdLong2);
+		assertEquals(stat1.getNumberOfReplies(), (Long) 2L);
+		assertEquals(stat2.getNumberOfReplies(), (Long) 2L);
+		assertNotNull(stat1.getLastActivity());
+		assertNotNull(stat2.getLastActivity());
+	}
+
+	@Test
+	public void testGetThreadAuthorStats() throws InterruptedException {
+		DiscussionThreadAuthorStat stat = replyDao.getDiscussionThreadAuthorStat(threadIdLong);
+		assertNotNull(stat);
+		assertEquals(stat.getThreadId(), threadIdLong);
+		assertTrue(stat.getActiveAuthors().isEmpty());
+
+		List<Long> users = createUsers(6);
+		replyDao.createReply(threadId, UUID.randomUUID().toString(), users.get(0));
+		replyDao.createReply(threadId, UUID.randomUUID().toString(), users.get(0));
+		replyDao.createReply(threadId, UUID.randomUUID().toString(), users.get(1));
+
+		stat = replyDao.getDiscussionThreadAuthorStat(threadIdLong);
+		assertEquals(stat.getActiveAuthors(),
+				Arrays.asList(users.get(0).toString(), users.get(1).toString()));
+
+		replyDao.createReply(threadId, UUID.randomUUID().toString(), users.get(1));
+		replyDao.createReply(threadId, UUID.randomUUID().toString(), users.get(2));
+		replyDao.createReply(threadId, UUID.randomUUID().toString(), users.get(2));
+		replyDao.createReply(threadId, UUID.randomUUID().toString(), users.get(3));
+		replyDao.createReply(threadId, UUID.randomUUID().toString(), users.get(3));
+		replyDao.createReply(threadId, UUID.randomUUID().toString(), users.get(4));
+		replyDao.createReply(threadId, UUID.randomUUID().toString(), users.get(4));
+		replyDao.createReply(threadId, UUID.randomUUID().toString(), users.get(5));
+
+		stat = replyDao.getDiscussionThreadAuthorStat(threadIdLong);
+		assertEquals(stat.getActiveAuthors(),
+				Arrays.asList(users.get(0).toString(),
+						users.get(1).toString(), users.get(2).toString(),
+						users.get(3).toString(), users.get(4).toString()));
+
+		usersToDelete.addAll(users);
+	}
+
+	private List<Long> createUsers(int numberOfUsers) {
+		List<Long> createdUsers = new ArrayList<Long>();
+		UserGroup user = new UserGroup();
+		user.setIsIndividual(true);
+		for (int i = 0; i < numberOfUsers; i++) {
+			createdUsers.add(userGroupDAO.create(user));
+		}
+		return createdUsers;
 	}
 }
