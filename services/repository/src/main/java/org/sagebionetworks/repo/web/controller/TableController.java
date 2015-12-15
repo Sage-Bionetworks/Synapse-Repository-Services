@@ -18,7 +18,6 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
-import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
 import org.sagebionetworks.repo.model.table.QueryNextPageToken;
 import org.sagebionetworks.repo.model.table.QueryResult;
@@ -267,63 +266,6 @@ public class TableController extends BaseController {
 			throws DatastoreException, NotFoundException {
 		return serviceProvider.getTableServices().listColumnModels(userId,
 				prefix, limit, offset);
-	}
-	
-	@Deprecated // This is now asynchronous
-	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = UrlHelpers.ENTITY_TABLE, method = RequestMethod.POST)
-	public @ResponseBody
-	RowReferenceSet appendRows(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String id, @RequestBody RowSet rows)
-			throws DatastoreException, NotFoundException, IOException {
-		if (id == null)
-			throw new IllegalArgumentException("{id} cannot be null");
-		rows.setTableId(id);
-		return serviceProvider.getTableServices().appendRows(userId, rows);
-	}
-	
-	@Deprecated // this is now asynchronous
-	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_PARTIAL, method = RequestMethod.POST)
-	public @ResponseBody
-	RowReferenceSet appendPartialRows(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String id, @RequestBody PartialRowSet rows)
-			throws DatastoreException, NotFoundException, IOException {
-		if (id == null)
-			throw new IllegalArgumentException("{id} cannot be null");
-		rows.setTableId(id);
-		return serviceProvider.getTableServices().appendPartialRows(userId,
-				rows);
-	}
-
-	@Deprecated
-	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = UrlHelpers.TABLE_APPEND_ROW_ASYNC_START, method = RequestMethod.POST)
-	public @ResponseBody
-	AsyncJobId startAppendRowsJob(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestBody AppendableRowSetRequest request) throws DatastoreException,
-			NotFoundException, IOException {
-		AsynchronousJobStatus job = serviceProvider
-				.getAsynchronousJobServices().startJob(userId, request);
-		AsyncJobId asyncJobId = new AsyncJobId();
-		asyncJobId.setToken(job.getJobId());
-		return asyncJobId;
-	}
-
-	@Deprecated
-	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = UrlHelpers.TABLE_APPEND_ROW_ASYNC_GET, method = RequestMethod.GET)
-	public @ResponseBody
-	RowReferenceSetResults getAppendRowsResult(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String asyncToken) throws Throwable {
-		AsynchronousJobStatus jobStatus = serviceProvider
-				.getAsynchronousJobServices().getJobStatusAndThrow(userId,
-						asyncToken);
-		return (RowReferenceSetResults) jobStatus.getResponseBody();
 	}
 
 	/**
@@ -656,33 +598,6 @@ public class TableController extends BaseController {
 		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
 	}
 
-	@Deprecated
-	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = UrlHelpers.TABLE_QUERY_ASYNC_START, method = RequestMethod.POST)
-	public @ResponseBody
-	AsyncJobId queryAsyncStart(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestBody QueryBundleRequest query) throws DatastoreException,
-			NotFoundException, IOException {
-		AsynchronousJobStatus job = serviceProvider
-				.getAsynchronousJobServices().startJob(userId, query);
-		AsyncJobId asyncJobId = new AsyncJobId();
-		asyncJobId.setToken(job.getJobId());
-		return asyncJobId;
-	}
-
-	@Deprecated
-	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = UrlHelpers.TABLE_QUERY_ASYNC_GET, method = RequestMethod.GET)
-	public @ResponseBody
-	QueryResultBundle queryAsyncGet(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String asyncToken)
-			throws Throwable {
-		AsynchronousJobStatus jobStatus = serviceProvider
-				.getAsynchronousJobServices().getJobStatusAndThrow(userId,
-						asyncToken);
-		return (QueryResultBundle) jobStatus.getResponseBody();
-	}
-
 	/**
 	 * Asynchronously start a query. Use the returned job id and <a
 	 * href="${GET.entity.id.table.query.async.get.asyncToken}">GET
@@ -823,33 +738,6 @@ public class TableController extends BaseController {
 				.getAsynchronousJobServices().getJobStatusAndThrow(userId,
 						asyncToken);
 		return (QueryResultBundle) jobStatus.getResponseBody();
-	}
-
-	@Deprecated
-	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = UrlHelpers.TABLE_QUERY_NEXT_PAGE_ASYNC_START, method = RequestMethod.POST)
-	public @ResponseBody
-	AsyncJobId queryNextPageAsyncStart(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestBody QueryNextPageToken nextPageToken)
-			throws DatastoreException, NotFoundException, IOException {
-		AsynchronousJobStatus job = serviceProvider
-				.getAsynchronousJobServices().startJob(userId, nextPageToken);
-		AsyncJobId asyncJobId = new AsyncJobId();
-		asyncJobId.setToken(job.getJobId());
-		return asyncJobId;
-	}
-
-	@Deprecated
-	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = UrlHelpers.TABLE_QUERY_NEXT_PAGE_ASYNC_GET, method = RequestMethod.GET)
-	public @ResponseBody
-	QueryResult queryNextPageAsyncGet(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String asyncToken)
-			throws Throwable {
-		AsynchronousJobStatus jobStatus = serviceProvider
-				.getAsynchronousJobServices().getJobStatusAndThrow(userId,
-						asyncToken);
-		return (QueryResult) jobStatus.getResponseBody();
 	}
 
 	/**
