@@ -127,6 +127,9 @@ import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.entity.query.EntityQuery;
 import org.sagebionetworks.repo.model.entity.query.EntityQueryResults;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
+import org.sagebionetworks.repo.model.file.AddPartResponse;
+import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlRequest;
+import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlResponse;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadRequest;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadResponse;
 import org.sagebionetworks.repo.model.file.ChunkRequest;
@@ -139,6 +142,8 @@ import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
+import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
+import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
 import org.sagebionetworks.repo.model.file.S3FileCopyRequest;
 import org.sagebionetworks.repo.model.file.S3FileCopyResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -2676,8 +2681,11 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			String url, JSONEntity requestBody, Class<? extends T> returnClass)
 			throws SynapseException {
 		try {
-			String jsonString = EntityFactory
-					.createJSONStringForEntity(requestBody);
+			String jsonString = null;
+			if(requestBody != null){
+				jsonString = EntityFactory
+						.createJSONStringForEntity(requestBody);
+			}
 			JSONObject responseBody = getSharedClientConnection().putJson(
 					endpoint, url, jsonString, getUserAgent());
 			return EntityFactory.createEntityFromJSONObject(responseBody,
@@ -7648,5 +7656,43 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public void markThreadAsDeleted(String threadId) throws SynapseException {
 		getSharedClientConnection().deleteUri(repoEndpoint, THREAD+"/"+threadId, getUserAgent());
+	}
+
+	@Override
+	public MultipartUploadStatus startMultipartUpload(
+			MultipartUploadRequest request, Boolean forceRestart) throws SynapseException {
+		ValidateArgument.required(request, "MultipartUploadRequest");
+		return asymmetricalPost(fileEndpoint, "/file/multipart", request, MultipartUploadStatus.class, null);
+	}
+
+	@Override
+	public BatchPresignedUploadUrlResponse getMultipartPresignedUrlBatch(
+			BatchPresignedUploadUrlRequest request) throws SynapseException {
+		ValidateArgument.required(request, "BatchPresignedUploadUrlRequest");
+		ValidateArgument.required(request.getUploadId(), "BatchPresignedUploadUrlRequest.uploadId");
+		String path = String.format("/file/multipart/%1$s/presigned/url/batch", request.getUploadId());
+		return asymmetricalPost(fileEndpoint,path,request, BatchPresignedUploadUrlResponse.class, null);
+	}
+
+	@Override
+	public AddPartResponse addPartToMultipartUpload(String uploadId,
+			int partNumber, String partMD5Hex) throws SynapseException {
+		ValidateArgument.required(uploadId, "uploadId");
+		ValidateArgument.required(partMD5Hex, "partMD5Hex");
+		String path = String.format("/file/multipart/%1$s/add/%2$d?partMD5Hex=%3$s", uploadId, partNumber, partMD5Hex);
+		return asymmetricalPut(fileEndpoint, path, null, AddPartResponse.class);
+	}
+
+	@Override
+	public MultipartUploadStatus completeMultipartUpload(String uploadId) throws SynapseException {
+		ValidateArgument.required(uploadId, "uploadId");
+		String path = String.format("/file/multipart/%1$1/complete", uploadId);
+		return asymmetricalPut(fileEndpoint, path, null, MultipartUploadStatus.class);
+	}
+
+	@Override
+	public S3FileHandle multipartUpload(InputStream input, long fileSize, String fileName,
+			String contentType, Long storageLocationId, boolean generatePreview) {
+		return new MultipartUpload(this, input, fileSize, fileName, contentType, storageLocationId, generatePreview).uploadFile();
 	}
 }
