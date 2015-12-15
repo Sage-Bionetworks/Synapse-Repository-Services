@@ -108,8 +108,7 @@ public class DBOMultipartUploadPartState implements MigratableDatabaseObject<DBO
 
 	@Override
 	public MigrationType getMigratableTableType() {
-		// TODO Auto-generated method stub
-		return null;
+		return MigrationType.MULTIPART_UPLOAD_PART_STATE;
 	}
 
 	@Override

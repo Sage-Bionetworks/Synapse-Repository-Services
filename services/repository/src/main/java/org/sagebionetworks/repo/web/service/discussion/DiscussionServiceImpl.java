@@ -4,13 +4,18 @@ import java.io.IOException;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.discussion.DiscussionReplyManager;
 import org.sagebionetworks.repo.manager.discussion.DiscussionThreadManager;
 import org.sagebionetworks.repo.manager.discussion.ForumManager;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
+import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
+import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.Forum;
+import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +27,8 @@ public class DiscussionServiceImpl implements DiscussionService{
 	private ForumManager forumManager;
 	@Autowired
 	private DiscussionThreadManager threadManager;
+	@Autowired
+	private DiscussionReplyManager replyManager;
 
 	@Override
 	public Forum getForumMetadata(Long userId, String projectId) {
@@ -68,5 +75,37 @@ public class DiscussionServiceImpl implements DiscussionService{
 			Boolean ascending) {
 		UserInfo user = userManager.getUserInfo(userId);
 		return threadManager.getThreadsForForum(user, forumId, limit, offset, order, ascending);
+	}
+
+	@Override
+	public DiscussionReplyBundle createReply(Long userId, CreateDiscussionReply toCreate) throws IOException {
+		UserInfo user = userManager.getUserInfo(userId);
+		return replyManager.createReply(user, toCreate);
+	}
+
+	@Override
+	public DiscussionReplyBundle getReply(Long userId, String replyId) {
+		UserInfo user = userManager.getUserInfo(userId);
+		return replyManager.getReply(user, replyId);
+	}
+
+	@Override
+	public DiscussionReplyBundle updateReplyMessage(Long userId, String replyId, UpdateReplyMessage message) throws IOException {
+		UserInfo user = userManager.getUserInfo(userId);
+		return replyManager.updateReplyMessage(user, replyId, message);
+	}
+
+	@Override
+	public void markReplyAsDeleted(Long userId, String replyId) {
+		UserInfo user = userManager.getUserInfo(userId);
+		replyManager.markReplyAsDeleted(user, replyId);
+	}
+
+	@Override
+	public PaginatedResults<DiscussionReplyBundle> getReplies(Long userId,
+			String threadId, Long limit, Long offset,
+			DiscussionReplyOrder order, Boolean ascending) {
+		UserInfo user = userManager.getUserInfo(userId);
+		return replyManager.getRepliesForThread(user, threadId, limit, offset, order, ascending);
 	}
 }

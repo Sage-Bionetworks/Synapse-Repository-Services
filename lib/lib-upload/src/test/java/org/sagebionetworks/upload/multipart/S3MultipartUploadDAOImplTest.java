@@ -1,6 +1,9 @@
 package org.sagebionetworks.upload.multipart;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -8,23 +11,29 @@ import static org.mockito.Mockito.when;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Date;
+import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.sagebionetworks.repo.model.file.AddPartRequest;
+import org.sagebionetworks.repo.model.file.CompleteMultipartRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
+import org.sagebionetworks.repo.model.file.PartMD5;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.model.CompleteMultipartUploadRequest;
 import com.amazonaws.services.s3.model.CopyPartRequest;
 import com.amazonaws.services.s3.model.CopyPartResult;
 import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
 import com.amazonaws.services.s3.model.InitiateMultipartUploadRequest;
 import com.amazonaws.services.s3.model.InitiateMultipartUploadResult;
-import com.amazonaws.util.BinaryUtils;
+import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.PartETag;
 import com.google.common.collect.Lists;
 
 public class S3MultipartUploadDAOImplTest {
@@ -108,7 +117,6 @@ public class S3MultipartUploadDAOImplTest {
 		String uplaodToken = "uploadToken";
 		String partKey = key+"/101";
 		String partMD5Hex = "8356accbaa8bfc6ddc6c612224c6c9b3";
-		String partEtag = BinaryUtils.toBase64(BinaryUtils.fromHex(partMD5Hex));
 		int partNumber = 101;
 		AddPartRequest request  = new AddPartRequest(uplaodToken, bucket, key, partKey, partMD5Hex, partNumber);
 		// call under test.
@@ -122,7 +130,7 @@ public class S3MultipartUploadDAOImplTest {
 		assertEquals(key, capture.getValue().getDestinationKey());
 		assertEquals(uplaodToken, capture.getValue().getUploadId());
 		assertEquals(partNumber, capture.getValue().getPartNumber());
-		assertEquals(Lists.newArrayList(partEtag), capture.getValue().getMatchingETagConstraints());
+		assertEquals(Lists.newArrayList(partMD5Hex), capture.getValue().getMatchingETagConstraints());
 	}
 	
 	@Test
@@ -134,7 +142,6 @@ public class S3MultipartUploadDAOImplTest {
 		String uplaodToken = "uploadToken";
 		String partKey = key+"/101";
 		String partMD5Hex = "8356accbaa8bfc6ddc6c612224c6c9b3";
-		String partEtag = BinaryUtils.toBase64(BinaryUtils.fromHex(partMD5Hex));
 		int partNumber = 101;
 		AddPartRequest request  = new AddPartRequest(uplaodToken, bucket, key, partKey, partMD5Hex, partNumber);
 		// call under test.
@@ -144,6 +151,49 @@ public class S3MultipartUploadDAOImplTest {
 		} catch (IllegalArgumentException e) {
 			assertTrue(e.getMessage().contains("The provided MD5 does not match"));
 		}
+	}
+	
+	
+	@Test
+	public void testCompleteMultipartUpload(){
+		String key = "someKey";
+		String bucket = "someBucket";
+		// this method should lookup the file size
+		long fileSize = 12345L;
+		ObjectMetadata metadata = new ObjectMetadata();
+		metadata.setContentLength(fileSize);
+		when(mockS3Client.getObjectMetadata(bucket, key)).thenReturn(metadata);
+		String md5Hex1 = "e31f1bce63e28dd8157876638818284c";
+		String md5Hex2 = "c295c08ccfd979130729592bf936b85f";
+		String etag1 = md5Hex1;
+		String etag2 = md5Hex2;
+		
+		CompleteMultipartRequest request = new CompleteMultipartRequest();
+		request.setAddedParts(Lists.newArrayList(new PartMD5(1,md5Hex1), new PartMD5(2,md5Hex2)));
+		request.setBucket(bucket);
+		request.setKey(key);
+		request.setUploadToken("uplaodToken");
+		// call under test
+		long resultFileSize = dao.completeMultipartUpload(request);
+		assertEquals(fileSize, resultFileSize);
+		
+		// check the passed arguments
+		ArgumentCaptor<CompleteMultipartUploadRequest> capture = ArgumentCaptor.forClass(CompleteMultipartUploadRequest.class);
+		verify(mockS3Client).completeMultipartUpload(capture.capture());
+		assertEquals(bucket, capture.getValue().getBucketName());
+		assertEquals(key, capture.getValue().getKey());
+		// the part md5 should be converted to etags (base64)
+		List<PartETag> capturedEtags = capture.getValue().getPartETags();
+		assertNotNull(capturedEtags);
+		assertEquals(2, capturedEtags.size());
+		// one
+		PartETag partEtag = capturedEtags.get(0);
+		assertEquals(1, partEtag.getPartNumber());
+		assertEquals(etag1, partEtag.getETag());
+		// two
+		partEtag = capturedEtags.get(1);
+		assertEquals(2, partEtag.getPartNumber());
+		assertEquals(etag2, partEtag.getETag());
 	}
 
 }

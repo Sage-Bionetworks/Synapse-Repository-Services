@@ -12,6 +12,8 @@
     	"USER_PROFILE",
     	"STORAGE_LOCATION",
         "FILE_HANDLE",
+        "MULTIPART_UPLOAD",
+        "MULTIPART_UPLOAD_PART_STATE",
         "MESSAGE_CONTENT", 
         "MESSAGE_TO_USER", 
         "MESSAGE_RECIPIENT", 

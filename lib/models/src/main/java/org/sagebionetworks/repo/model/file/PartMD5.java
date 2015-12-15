@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.model.dbo.file;
+package org.sagebionetworks.repo.model.file;
 
 public class PartMD5 {
 

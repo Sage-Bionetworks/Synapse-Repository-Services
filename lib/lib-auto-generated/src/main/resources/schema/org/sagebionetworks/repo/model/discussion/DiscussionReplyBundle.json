@@ -3,11 +3,19 @@
 	"properties": {
 		"id": {
 			"type": "string",
-			"description": "The ID of the Reply"
+			"description": "The ID of the reply"
 		},
 		"threadId": {
 			"type": "string",
-			"description": "The ID of the Thread this Reply belongs to"
+			"description": "The ID of the thread this Reply belongs to"
+		},
+		"forumId": {
+			"type": "string",
+			"description": "The ID of the forum this Reply belongs to"
+		},
+		"projectId": {
+			"type": "string",
+			"description": "The ID of the project this Reply belongs to"
 		},
 		"createdOn": {
 			"type": "string",

@@ -98,6 +98,7 @@ public class SqlConstants {
 	public static final String COL_PROJECT_STAT_PROJECT_ID		= "PROJECT_ID";
 	public static final String COL_PROJECT_STAT_USER_ID			= "USER_ID";
 	public static final String COL_PROJECT_STAT_LAST_ACCESSED	= "LAST_ACCESSED";
+	public static final String COL_PROJECT_STAT_ETAG			= "ETAG";
 	
 	// Principal Prefix table
 	public static final String TABLE_PRINCIPAL_PREFIX 				= "PRINCIPAL_PREFIX";
@@ -253,7 +254,7 @@ public class SqlConstants {
 	public static final String COL_MULTIPART_PART_NUMBER			= "PART_NUMBER";
 	public static final String COL_MULTIPART_PART_MD5_HEX			= "PART_MD5_HEX";
 	public static final String COL_MULTIPART_PART_ERROR_DETAILS		= "ERROR_DETAILS";
-	public static final String COL_MULTIPART_UPLOAD_PART_STATE_DDL	= "schema/MultipartUploadPartState.ddl";
+	public static final String COL_MULTIPART_UPLOAD_PART_STATE_DDL	= "schema/MultipartUploadPartState-ddl.sql";
 	
 	// 
 	public static final String COL_STACK_STATUS_ID					= "ID";

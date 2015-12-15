@@ -11,9 +11,13 @@ import org.apache.commons.fileupload.FileUploadException;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.FileUploadResults;
+import org.sagebionetworks.repo.manager.file.MultipartManagerV2;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.file.AddPartResponse;
+import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlRequest;
+import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlResponse;
 import org.sagebionetworks.repo.model.file.ChunkRequest;
 import org.sagebionetworks.repo.model.file.ChunkResult;
 import org.sagebionetworks.repo.model.file.ChunkedFileToken;
@@ -24,6 +28,8 @@ import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
+import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
+import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
 import org.sagebionetworks.repo.model.file.UploadDestination;
@@ -45,6 +51,9 @@ public class FileUploadServiceImpl implements FileUploadService {
 	
 	@Autowired
 	FileHandleManager fileUploadManager;
+	
+	@Autowired
+	MultipartManagerV2 multipartManagerV2;
 
 	@Override
 	public FileHandleResults uploadFiles(Long userId, FileItemIterator itemIterator) throws DatastoreException, NotFoundException, FileUploadException, IOException, ServiceUnavailableException {
@@ -200,5 +209,33 @@ public class FileUploadServiceImpl implements FileUploadService {
 	public S3FileHandle createS3FileHandleCopy(Long userId, String handleIdToCopyFrom, String fileName, String contentType) {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return fileUploadManager.createS3FileHandleCopy(userInfo, handleIdToCopyFrom, fileName, contentType);
+	}
+
+	@Override
+	public MultipartUploadStatus startMultipartUpload(Long userId,
+			MultipartUploadRequest request, Boolean forceRestart) {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return multipartManagerV2.startOrResumeMultipartUpload(userInfo, request, forceRestart);
+	}
+
+	@Override
+	public BatchPresignedUploadUrlResponse getMultipartPresignedUrlBatch(
+			Long userId, BatchPresignedUploadUrlRequest request) {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return multipartManagerV2.getBatchPresignedUploadUrls(userInfo, request);
+	}
+
+	@Override
+	public AddPartResponse addPart(Long userId, String uploadId,
+			Integer partNumber, String partMD5Hex) {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return multipartManagerV2.addMultipartPart(userInfo, uploadId, partNumber, partMD5Hex);
+	}
+
+	@Override
+	public MultipartUploadStatus completeMultipartUpload(Long userId,
+			String uploadId) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 }

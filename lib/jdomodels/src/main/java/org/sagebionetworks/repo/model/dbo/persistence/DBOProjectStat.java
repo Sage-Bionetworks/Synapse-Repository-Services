@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_STAT_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_STAT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_STAT_LAST_ACCESSED;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_STAT_PROJECT_ID;
@@ -39,6 +40,9 @@ public class DBOProjectStat implements MigratableDatabaseObject<DBOProjectStat, 
 
 	@Field(name = COL_PROJECT_STAT_LAST_ACCESSED, nullable = false)
 	private Date lastAccessed;
+	
+	@Field(name = COL_PROJECT_STAT_ETAG, etag = true)
+	private String etag;
 
 	private static TableMapping<DBOProjectStat> tableMapping = AutoTableMapping.create(DBOProjectStat.class);
 
@@ -84,13 +88,24 @@ public class DBOProjectStat implements MigratableDatabaseObject<DBOProjectStat, 
 		this.lastAccessed = lastAccessed;
 	}
 
+	public String getEtag() {
+		return etag;
+	}
+
+	public void setEtag(String etag) {
+		this.etag = etag;
+	}
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + ((lastAccessed == null) ? 0 : lastAccessed.hashCode());
+		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
-		result = prime * result + ((projectId == null) ? 0 : projectId.hashCode());
+		result = prime * result
+				+ ((lastAccessed == null) ? 0 : lastAccessed.hashCode());
+		result = prime * result
+				+ ((projectId == null) ? 0 : projectId.hashCode());
 		result = prime * result + ((userId == null) ? 0 : userId.hashCode());
 		return result;
 	}
@@ -104,15 +119,20 @@ public class DBOProjectStat implements MigratableDatabaseObject<DBOProjectStat, 
 		if (getClass() != obj.getClass())
 			return false;
 		DBOProjectStat other = (DBOProjectStat) obj;
-		if (lastAccessed == null) {
-			if (other.lastAccessed != null)
+		if (etag == null) {
+			if (other.etag != null)
 				return false;
-		} else if (!lastAccessed.equals(other.lastAccessed))
+		} else if (!etag.equals(other.etag))
 			return false;
 		if (id == null) {
 			if (other.id != null)
 				return false;
 		} else if (!id.equals(other.id))
+			return false;
+		if (lastAccessed == null) {
+			if (other.lastAccessed != null)
+				return false;
+		} else if (!lastAccessed.equals(other.lastAccessed))
 			return false;
 		if (projectId == null) {
 			if (other.projectId != null)

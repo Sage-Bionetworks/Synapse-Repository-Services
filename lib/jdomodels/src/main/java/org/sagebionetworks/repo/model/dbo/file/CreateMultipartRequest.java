@@ -34,6 +34,8 @@ public class CreateMultipartRequest {
 		this.key = key;
 		this.numberOfParts = numberOfParts;
 	}
+	public CreateMultipartRequest() {
+	}
 	public Long getUserId() {
 		return userId;
 	}

@@ -1,7 +1,11 @@
 package org.sagebionetworks.upload.multipart;
 
 import java.net.URL;
+import java.util.List;
 
+import org.sagebionetworks.repo.model.file.AddPartRequest;
+import org.sagebionetworks.repo.model.file.CompleteMultipartRequest;
+import org.sagebionetworks.repo.model.file.PartMD5;
 import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
 
 /**
@@ -42,5 +46,12 @@ public interface S3MultipartUploadDAO {
 	 * @param key
 	 */
 	public void deleteObject(String bucket, String key);
+
+	/**
+	 * Complete a multi-part upload.
+	 * @param request
+	 * @return The size of the resulting file.
+	 */
+	public long completeMultipartUpload(CompleteMultipartRequest request);
 
 }

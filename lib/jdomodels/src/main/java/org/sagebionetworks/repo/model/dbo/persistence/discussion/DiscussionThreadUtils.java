@@ -22,12 +22,12 @@ public class DiscussionThreadUtils {
 	 */
 	public static DBODiscussionThread createDBO(String forumId, String title,
 			String messageKey, Long userId, String id, String etag) {
-		ValidateArgument.requirement(forumId != null, "forumId cannot be null");
-		ValidateArgument.requirement(title != null, "title cannot be null");
-		ValidateArgument.requirement(messageKey != null, "messageUrl cannot be null");
-		ValidateArgument.requirement(userId != null, "userId cannot be null");
-		ValidateArgument.requirement(id != null, "id cannot be null");
-		ValidateArgument.requirement(etag != null, "etag cannot be null");
+		ValidateArgument.required(forumId, "forumId");
+		ValidateArgument.required(title, "title");
+		ValidateArgument.required(messageKey, "messageUrl");
+		ValidateArgument.required(userId, "userId");
+		ValidateArgument.required(id, "id");
+		ValidateArgument.required(etag, "etag");
 		DBODiscussionThread dbo = new DBODiscussionThread();
 		dbo.setId(Long.parseLong(id));
 		dbo.setForumId(Long.parseLong(forumId));
@@ -49,9 +49,7 @@ public class DiscussionThreadUtils {
 	 * @return
 	 */
 	public static List<String> toList(String inputString) {
-		if (inputString == null) {
-			throw new IllegalArgumentException("input string cannot be null");
-		}
+		ValidateArgument.required(inputString, "inputString");
 		List<String> list = new ArrayList<String>();
 		if (inputString.equals("")) {
 			return list;

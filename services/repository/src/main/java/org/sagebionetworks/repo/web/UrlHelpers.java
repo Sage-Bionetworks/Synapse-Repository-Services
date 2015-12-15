@@ -210,6 +210,13 @@ public class UrlHelpers {
 	public static final String BULK_FILE_DOWNLOAD_ASYNC_GET = BULK_FILE_DOWNLOAD + ASYNC_GET_REQUEST;
 	public static final String FILE_DOWNLOAD = FILE+ID;
 	
+	// multipart upload v2
+	public static final String FILE_MULTIPART = FILE+"/multipart";
+	public static final String FILE_MULTIPART_UPLOAD_ID = FILE_MULTIPART+"/{uploadId}";
+	public static final String FILE_MULTIPART_UPLOAD_ID_PRESIGNED = FILE_MULTIPART_UPLOAD_ID+"/presigned/url/batch";
+	public static final String FILE_MULTIPART_UPLOAD_ID_ADD_PART = FILE_MULTIPART_UPLOAD_ID+"/add/{partNumber}";
+	public static final String FILE_MULTIPART_UPLOAD_ID_COMPLETE = FILE_MULTIPART_UPLOAD_ID+"/complete";
+	
 	// version
 	public static final String ENTITY_VERSION_FILE = ENTITY_ID+VERSION+VERSION_NUMBER+FILE;
 	public static final String ENTITY_VERSION_FILE_PREVIEW = ENTITY_ID+VERSION+VERSION_NUMBER+FILE_PREVIEW;
@@ -872,6 +879,12 @@ public class UrlHelpers {
 	public static final String THREAD_THREAD_ID_TITLE = THREAD_THREAD_ID+TITLE;
 	public static final String DISCUSSION_MESSAGE = "/message";
 	public static final String THREAD_THREAD_ID_MESSAGE = THREAD_THREAD_ID+DISCUSSION_MESSAGE;
+	public static final String REPLY = "/reply";
+	public static final String REPLY_ID = "/{replyId}";
+	public static final String REPLY_REPLY_ID = REPLY+REPLY_ID;
+	public static final String REPLY_REPLY_ID_MESSAGE = REPLY_REPLY_ID+DISCUSSION_MESSAGE;
+	public static final String REPLIES = "/replies";
+	public static final String THREAD_THREAD_ID_REPLIES = THREAD_THREAD_ID+REPLIES;
 
 	/**
 	 * APIs for DynamoDB related operations.

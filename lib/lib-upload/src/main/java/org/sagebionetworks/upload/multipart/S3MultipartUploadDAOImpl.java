@@ -2,19 +2,26 @@ package org.sagebionetworks.upload.multipart;
 
 import java.net.URL;
 import java.util.Date;
+import java.util.LinkedList;
+import java.util.List;
 
+import org.sagebionetworks.repo.model.file.AddPartRequest;
+import org.sagebionetworks.repo.model.file.CompleteMultipartRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
+import org.sagebionetworks.repo.model.file.PartMD5;
 import org.sagebionetworks.upload.UploadUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.HttpMethod;
 import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.model.CompleteMultipartUploadRequest;
 import com.amazonaws.services.s3.model.CopyPartRequest;
 import com.amazonaws.services.s3.model.CopyPartResult;
 import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
 import com.amazonaws.services.s3.model.InitiateMultipartUploadRequest;
 import com.amazonaws.services.s3.model.InitiateMultipartUploadResult;
 import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.PartETag;
 import com.amazonaws.util.BinaryUtils;
 
 public class S3MultipartUploadDAOImpl implements S3MultipartUploadDAO {
@@ -75,9 +82,6 @@ public class S3MultipartUploadDAOImpl implements S3MultipartUploadDAO {
 	 */
 	@Override
 	public void addPart(AddPartRequest request) {
-		// convert the MD5Hex to an S3 etag by converting to base 64.
-		String etag = BinaryUtils.toBase64(BinaryUtils.fromHex(request
-				.getPartMD5Hex()));
 		CopyPartRequest cpr = new CopyPartRequest();
 		cpr.setSourceBucketName(request.getBucket());
 		cpr.setSourceKey(request.getPartKey());
@@ -86,13 +90,14 @@ public class S3MultipartUploadDAOImpl implements S3MultipartUploadDAO {
 		cpr.setUploadId(request.getUploadToken());
 		cpr.setPartNumber(request.getPartNumber());
 		// only add if the etag matches.
-		cpr.withMatchingETagConstraint(etag);
+		cpr.withMatchingETagConstraint(request.getPartMD5Hex());
 		CopyPartResult result = s3Client.copyPart(cpr);
 		if (result == null) {
 			throw new IllegalArgumentException(
 					"The provided MD5 does not match the MD5 of the uploaded part.  Please re-upload the part.");
 		}
 	}
+
 
 	/*
 	 * (non-Javadoc)
@@ -104,6 +109,34 @@ public class S3MultipartUploadDAOImpl implements S3MultipartUploadDAO {
 	@Override
 	public void deleteObject(String bucket, String key) {
 		s3Client.deleteObject(bucket, key);
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see org.sagebionetworks.upload.multipart.S3MultipartUploadDAO#
+	 * completeMultipartUpload
+	 * (org.sagebionetworks.repo.model.file.CompleteMultipartRequest)
+	 */
+	@Override
+	public long completeMultipartUpload(CompleteMultipartRequest request) {
+		CompleteMultipartUploadRequest cmur = new CompleteMultipartUploadRequest();
+		cmur.setBucketName(request.getBucket());
+		cmur.setKey(request.getKey());
+		cmur.setUploadId(request.getUploadToken());
+		// convert the parts MD5s to etags
+		List<PartETag> partEtags = new LinkedList<PartETag>();
+		cmur.setPartETags(partEtags);
+		for (PartMD5 partMD5 : request.getAddedParts()) {
+			String partEtag = partMD5.getPartMD5Hex();
+			partEtags.add(new PartETag(partMD5.getPartNumber(), partEtag));
+		}
+
+		s3Client.completeMultipartUpload(cmur);
+		// Lookup the final size of this file
+		ObjectMetadata resultFileMetadata = s3Client.getObjectMetadata(
+				request.getBucket(), request.getKey());
+		return resultFileMetadata.getContentLength();
 	}
 
 }
