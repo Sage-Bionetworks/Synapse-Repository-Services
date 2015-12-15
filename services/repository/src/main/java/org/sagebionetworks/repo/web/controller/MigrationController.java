@@ -60,6 +60,25 @@ public class MigrationController extends BaseController {
 	}
 	
 	/**
+	 * Get the counts for a migration type.
+	 * 
+	 * @param userId
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.MIGRATION_COUNT, method = RequestMethod.GET)
+	public @ResponseBody
+	MigrationTypeCount getTypeCount(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam(required=true) String type)
+			throws DatastoreException, NotFoundException {
+		return serviceProvider.getMigrationService().getTypeCount(userId, MigrationType.valueOf(type));
+	}
+	
+	
+	/**
 	 * This method is used to query a source stack for all of its metadata.
 	 * 
 	 * @param userId

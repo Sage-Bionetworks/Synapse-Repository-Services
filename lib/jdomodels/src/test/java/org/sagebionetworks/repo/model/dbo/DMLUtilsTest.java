@@ -314,4 +314,13 @@ public class DMLUtilsTest {
 		System.out.println(sql);
 		assertEquals(expectedSql, sql);
 	}
+	
+	@Test
+	public void testCreateMinMaxCountByKeyStatement() {
+		String expectedSql = "SELECT MIN(`ID`), MAX(`ID`), COUNT(`ID`) FROM SOME_TABLE";
+		String sql = DMLUtils.createGetMinMaxCountByKeyStatement(migrateableMappingEtagAndId);
+		assertNotNull(sql);
+		System.out.println(sql);
+		assertEquals(expectedSql, sql);
+	}
 }

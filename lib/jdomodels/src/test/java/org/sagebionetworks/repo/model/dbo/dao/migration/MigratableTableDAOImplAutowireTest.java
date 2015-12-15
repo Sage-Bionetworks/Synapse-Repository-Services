@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.migration.MigrationType;
+import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -124,6 +125,16 @@ public class MigratableTableDAOImplAutowireTest {
 		assertEquals(preview2.getId(), ""+row.getId());
 		assertEquals(preview2.getEtag(), row.getEtag());
 		assertEquals(null, row.getParentId());
+		
+		// Get migration type count
+		MigrationTypeCount mtc = migratableTableDAO.getMigrationTypeCount(MigrationType.FILE_HANDLE);
+		assertNotNull(mtc);
+		MigrationTypeCount expectedTypeCount = new MigrationTypeCount();
+		expectedTypeCount.setType(MigrationType.FILE_HANDLE);
+		expectedTypeCount.setMinid(migratableTableDAO.getMinId(MigrationType.FILE_HANDLE));
+		expectedTypeCount.setMaxid(migratableTableDAO.getMaxId(MigrationType.FILE_HANDLE));
+		expectedTypeCount.setCount(migratableTableDAO.getCount(MigrationType.FILE_HANDLE));
+		assertEquals(expectedTypeCount, mtc);
 		
 		// Get checksums
 		String checkSum = migratableTableDAO.getChecksumForIdRange(MigrationType.FILE_HANDLE, Long.parseLong(withPreview.getId()), Long.parseLong(preview2.getId()));

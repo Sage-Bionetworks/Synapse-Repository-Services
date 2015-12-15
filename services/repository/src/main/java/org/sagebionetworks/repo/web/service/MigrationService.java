@@ -30,6 +30,11 @@ public interface MigrationService {
 	MigrationTypeCounts getTypeCounts(Long userId) throws DatastoreException, NotFoundException;
 
 	/**
+	 * Get type count for a Migration type
+	 */
+	MigrationTypeCount getTypeCount(Long userId, MigrationType type);
+	
+	/**
 	 * Get the paginated row metadata for one type.
 	 * @param userId
 	 * @param type

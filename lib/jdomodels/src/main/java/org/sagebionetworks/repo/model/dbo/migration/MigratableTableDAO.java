@@ -7,6 +7,7 @@ import java.util.concurrent.Callable;
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.migration.MigrationType;
+import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 
@@ -35,6 +36,11 @@ public interface MigratableTableDAO {
 	 * The current min(id) for a table
 	 */
 	public long getMinId(MigrationType type);
+	
+	/**
+	 * MigrationTypeCount for given migration type
+	 */
+	public MigrationTypeCount getMigrationTypeCount(MigrationType type);
 	
 	/**
 	 * A checksum on etag or id for a range of ids

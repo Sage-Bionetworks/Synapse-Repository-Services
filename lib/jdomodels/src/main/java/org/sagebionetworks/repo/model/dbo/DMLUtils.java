@@ -4,6 +4,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 import org.sagebionetworks.repo.model.dbo.migration.ChecksumTableResult;
+import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.springframework.jdbc.core.RowMapper;
 
@@ -145,6 +146,16 @@ public class DMLUtils {
 		main.append("SELECT MIN("+getBackupFieldColumnName(mapping)+") FROM ");
 		main.append(mapping.getTableName());
 		return main.toString();		
+	}
+	
+	public static String createGetMinMaxCountByKeyStatement(TableMapping mapping) {
+		if(mapping == null) throw new IllegalArgumentException("Mapping cannot be null");
+		String backupFieldName = getBackupFieldColumnName(mapping);
+		String primaryFieldName = getPrimaryFieldColumnName(mapping);
+		StringBuilder builder = new StringBuilder();
+		builder.append("SELECT MIN(`" + backupFieldName + "`), MAX(`" + backupFieldName + "`), COUNT(`" + primaryFieldName + "`) FROM ");
+		builder.append(mapping.getTableName());
+		return builder.toString();
 	}
 
 	public static String getPrimaryFieldColumnName(TableMapping mapping) {
@@ -616,6 +627,19 @@ public class DMLUtils {
 				ctRes.setTableName(rs.getString(1));
 				ctRes.setValue(String.valueOf(rs.getLong(2)));
 				return ctRes;
+			}
+		};
+	}
+	
+	public static RowMapper<MigrationTypeCount> getMigrationTypeCountResultMapper() {
+		return new RowMapper<MigrationTypeCount>() {
+			@Override
+			public MigrationTypeCount mapRow(ResultSet rs, int rowNum) throws SQLException {
+				MigrationTypeCount mtc = new MigrationTypeCount();
+				mtc.setMinid(rs.getLong(1));
+				mtc.setMaxid(rs.getLong(2));
+				mtc.setCount(rs.getLong(3));
+				return mtc;
 			}
 		};
 	}

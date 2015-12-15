@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.migration.MigrationType;
+import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,8 +32,6 @@ import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-
-
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 /**
@@ -101,6 +100,7 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	private Map<MigrationType, String> insertOrUpdateSqlMap = new HashMap<MigrationType, String>();
 	private Map<MigrationType, String> checksumRangeSqlMap = new HashMap<MigrationType, String>();
 	private Map<MigrationType, String> checksumTableSqlMap = new HashMap<MigrationType, String>();
+	private Map<MigrationType, String> migrationTypeCountSqlMap = new HashMap<MigrationType, String>();
 	
 	private Map<MigrationType, FieldColumn> etagColumns = new HashMap<MigrationType, FieldColumn>();
 	private Map<MigrationType, FieldColumn> backupIdColumns = new HashMap<MigrationType, FieldColumn>();
@@ -175,6 +175,8 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		maxSqlMap.put(type, mx);
 		String mi = DMLUtils.createGetMinByBackupKeyStatement(mapping);
 		minSqlMap.put(type,  mi);
+		String mtc = DMLUtils.createGetMinMaxCountByKeyStatement(mapping);
+		migrationTypeCountSqlMap.put(type, mtc);
 		String sumCrc = DMLUtils.createSelectChecksumStatement(mapping);
 		checksumRangeSqlMap.put(type, sumCrc);
 		String checksumTable = DMLUtils.createChecksumTableStatement(mapping);
@@ -544,12 +546,23 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 			throw new IllegalArgumentException("Cannot find the checksum SQL for type" + type);
 		}
 		RowMapper mapper = DMLUtils.getChecksumTableResultMapper();
-		List<ChecksumTableResult> l = simpleJdbcTemplate.query(sql, mapper);
-		if ((l == null) || (l.size() != 1)) {
-			return null;
-		}
-		String s = l.get(0).getValue();
+		ChecksumTableResult checksum = simpleJdbcTemplate.queryForObject(sql,  mapper);
+		String s = checksum.getValue();
 		return s;
 	}
+
+	@Override
+	public MigrationTypeCount getMigrationTypeCount(MigrationType type) {
+		String sql = this.migrationTypeCountSqlMap.get(type);
+		if (sql == null) {
+			throw new IllegalArgumentException("Cannot find the migrationTypeCount SQL for type" + type);
+		}
+		RowMapper mapper = DMLUtils.getMigrationTypeCountResultMapper();
+		MigrationTypeCount mtc = simpleJdbcTemplate.queryForObject(sql, mapper);
+		mtc.setType(type);
+		return mtc;
+	}
+	
+	
 	
 }

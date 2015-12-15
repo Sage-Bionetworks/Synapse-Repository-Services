@@ -108,8 +108,21 @@ public class MigrationControllerAutowireTest extends AbstractAutowiredController
 		}
 		assertEquals(startFileCount+2, fileCount);
 		assertEquals(Long.parseLong(preview.getId()), fileMaxId);
-		assertTrue(fileMinId >= 0);
+		assertTrue(fileMinId > 0);
 		assertTrue(fileMaxId >= fileMinId);
+	}
+	
+	@Test
+	public void testGetCount() throws Exception {
+		MigrationTypeCount expectedCount = new MigrationTypeCount();
+		expectedCount.setType(MigrationType.FILE_HANDLE);
+		MigrationTypeCount mtc = entityServletHelper.getMigrationTypeCount(adminUserId, MigrationType.FILE_HANDLE);
+		assertNotNull(mtc);
+		assertEquals(MigrationType.FILE_HANDLE, mtc.getType());
+		assertEquals(startFileCount+2, mtc.getCount().longValue());
+		assertEquals(Long.parseLong(preview.getId()), mtc.getMaxid().longValue());
+		assertTrue(mtc.getMinid() > 0);
+		assertTrue(mtc.getMaxid() >= mtc.getMinid());
 	}
 	
 	@Test

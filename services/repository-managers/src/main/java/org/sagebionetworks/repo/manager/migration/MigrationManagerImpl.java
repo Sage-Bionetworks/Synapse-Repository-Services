@@ -17,6 +17,7 @@ import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.ListBucketProvider;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
+import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationUtils;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
@@ -396,6 +397,13 @@ public class MigrationManagerImpl implements MigrationManager {
 		mts.setMinid(minId);
 		mts.setMaxid(maxId);
 		return mts;
+	}
+
+	@Override
+	public MigrationTypeCount getMigrationTypeCount(UserInfo user, MigrationType type) {
+		validateUser(user);
+		MigrationTypeCount mtc = migratableTableDao.getMigrationTypeCount(type);
+		return mtc;
 	}
 
 }

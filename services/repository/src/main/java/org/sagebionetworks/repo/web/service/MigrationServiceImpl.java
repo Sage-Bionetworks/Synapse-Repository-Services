@@ -54,6 +54,17 @@ public class MigrationServiceImpl implements MigrationService {
 		return counts;
 	}
 	
+	/**
+	 * Get count for a single migration type
+	 */
+	@Override
+	public MigrationTypeCount getTypeCount(Long userId, MigrationType type) {
+		if(userId == null) throw new IllegalArgumentException("userId cannot be null");
+		UserInfo user = userManager.getUserInfo(userId);
+		MigrationTypeCount mtc = migrationManager.getMigrationTypeCount(user, type);
+		return mtc;
+	}
+	
 	@Override
 	public RowMetadataResult getRowMetadaForType(Long userId,	MigrationType type, long limit, long offset) throws DatastoreException, NotFoundException {
 		if(userId == null) throw new IllegalArgumentException("userId cannot be null");

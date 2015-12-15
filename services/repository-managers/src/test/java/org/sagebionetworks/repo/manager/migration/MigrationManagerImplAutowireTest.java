@@ -45,6 +45,7 @@ import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
+import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.model.project.ExternalUploadDestinationSetting;
@@ -230,6 +231,18 @@ public class MigrationManagerImplAutowireTest {
 		assertTrue(m < Long.MAX_VALUE);
 		assertEquals(m, min);
 		assertTrue(min <= max);
+	}
+	
+	@Test
+	public void testGetMigrationTypeCount() {
+		MigrationTypeCount expectedCount = new MigrationTypeCount();
+		expectedCount.setType(MigrationType.FILE_HANDLE);
+		expectedCount.setMinid(migrationManager.getMinId(adminUser, MigrationType.FILE_HANDLE));
+		expectedCount.setMaxid(migrationManager.getMaxId(adminUser, MigrationType.FILE_HANDLE));
+		expectedCount.setCount(migrationManager.getCount(adminUser, MigrationType.FILE_HANDLE));
+		MigrationTypeCount mtc = migrationManager.getMigrationTypeCount(adminUser, MigrationType.FILE_HANDLE);
+		assertNotNull(mtc);
+		assertEquals(expectedCount, mtc);
 	}
 	
 	@Test

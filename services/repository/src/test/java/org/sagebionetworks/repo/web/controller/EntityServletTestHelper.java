@@ -689,6 +689,18 @@ public class EntityServletTestHelper {
 		return EntityFactory.createEntityFromJSONString(
 				response.getContentAsString(), MigrationTypeCounts.class);
 	}
+	
+	public MigrationTypeCount getMigrationTypeCount(Long userId, MigrationType type) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, "/migration/count", userId, null);
+		request.setParameter("type", type.name());
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+
+		return EntityFactory.createEntityFromJSONString(
+				response.getContentAsString(), MigrationTypeCount.class);
+	}
 
 	/**
 	 * Get the RowMetadata for a given Migration type. This is used to get all
