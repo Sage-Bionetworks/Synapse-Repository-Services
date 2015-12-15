@@ -157,6 +157,10 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 	private static final String DESC = " DESC ";
 	public static final Long MAX_LIMIT = 100L;
 
+	public static final String SQL_SELECT_ALL_THREAD_ID = "SELECT "+COL_DISCUSSION_THREAD_ID
+			+" FROM "+TABLE_DISCUSSION_THREAD
+			+" LIMIT ? OFFSET ?";
+
 	private static final String SQL_UPDATE_THREAD_VIEW_TABLE = "INSERT IGNORE INTO "
 			+TABLE_DISCUSSION_THREAD_VIEW+" ("
 			+COL_DISCUSSION_THREAD_VIEW_ID+","
@@ -320,11 +324,26 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 
 	@WriteTransactionReadCommitted
 	@Override
-	public void updateThreadAuthorStat(DiscussionThreadAuthorStat stat) {
-		List<String> authors = new ArrayList<String>();
-		authors.addAll(stat.getActiveAuthors());
-		String list = DiscussionThreadUtils.toString(authors);
-		jdbcTemplate.update(SQL_UPDATE_THREAD_STATS_ACTIVE_AUTHORS, stat.getThreadId(), list, list);
+	public void updateThreadAuthorStat(final List<DiscussionThreadAuthorStat> stats) {
+		jdbcTemplate.batchUpdate(SQL_UPDATE_THREAD_STATS_ACTIVE_AUTHORS, new BatchPreparedStatementSetter(){
+
+			@Override
+			public void setValues(PreparedStatement ps, int i)
+					throws SQLException {
+				ps.setLong(1, stats.get(i).getThreadId());
+				List<String> authors = new ArrayList<String>();
+				authors.addAll(stats.get(i).getActiveAuthors());
+				String list = DiscussionThreadUtils.toString(authors);
+				ps.setString(2, list);
+				ps.setString(3, list);
+			}
+
+			@Override
+			public int getBatchSize() {
+				return stats.size();
+			}
+			
+		});
 	}
 
 	@Override
@@ -377,5 +396,20 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 				return stats.size();
 			}
 		});
+	}
+
+	@Override
+	public List<Long> getAllThreadId(Long limit, Long offset) {
+		ValidateArgument.required(limit, "limit");
+		ValidateArgument.required(offset, "offset");
+		ValidateArgument.requirement(limit >= 0 && offset >= 0 && limit <= MAX_LIMIT,
+				"Limit and offset must be greater than 0, and limit must be smaller than or equal to "+MAX_LIMIT);
+		return jdbcTemplate.query(SQL_SELECT_ALL_THREAD_ID, new RowMapper<Long>(){
+
+			@Override
+			public Long mapRow(ResultSet rs, int rowNum) throws SQLException {
+				return rs.getLong(COL_DISCUSSION_THREAD_ID);
+			}
+		}, limit, offset);
 	}
 }

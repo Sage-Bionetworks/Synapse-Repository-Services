@@ -294,16 +294,19 @@ public class DBODiscussionReplyDAOImplTest {
 
 	@Test
 	public void testGetThreadAuthorStats() throws InterruptedException {
+		DiscussionThreadAuthorStat stat = replyDao.getDiscussionThreadAuthorStat(threadIdLong);
+		assertNotNull(stat);
+		assertEquals(stat.getThreadId(), threadIdLong);
+		assertTrue(stat.getActiveAuthors().isEmpty());
+
 		List<Long> users = createUsers(6);
 		replyDao.createReply(threadId, UUID.randomUUID().toString(), users.get(0));
 		replyDao.createReply(threadId, UUID.randomUUID().toString(), users.get(0));
 		replyDao.createReply(threadId, UUID.randomUUID().toString(), users.get(1));
 
-		DiscussionThreadAuthorStat stat = replyDao.getDiscussionThreadAuthorStat(threadIdLong);
-		assertNotNull(stat);
-		assertEquals(stat.getThreadId(), threadIdLong);
+		stat = replyDao.getDiscussionThreadAuthorStat(threadIdLong);
 		assertEquals(stat.getActiveAuthors(),
-				new HashSet<String>(Arrays.asList(users.get(0).toString(), users.get(1).toString())));
+				Arrays.asList(users.get(0).toString(), users.get(1).toString()));
 
 		replyDao.createReply(threadId, UUID.randomUUID().toString(), users.get(1));
 		replyDao.createReply(threadId, UUID.randomUUID().toString(), users.get(2));
@@ -316,9 +319,9 @@ public class DBODiscussionReplyDAOImplTest {
 
 		stat = replyDao.getDiscussionThreadAuthorStat(threadIdLong);
 		assertEquals(stat.getActiveAuthors(),
-				new HashSet<String>(Arrays.asList(users.get(0).toString(),
+				Arrays.asList(users.get(0).toString(),
 						users.get(1).toString(), users.get(2).toString(),
-						users.get(3).toString(), users.get(4).toString())));
+						users.get(3).toString(), users.get(4).toString()));
 
 		usersToDelete.addAll(users);
 	}

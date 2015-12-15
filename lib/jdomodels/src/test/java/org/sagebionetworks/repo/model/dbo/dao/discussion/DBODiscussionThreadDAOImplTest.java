@@ -372,7 +372,7 @@ public class DBODiscussionThreadDAOImplTest {
 		DiscussionThreadAuthorStat stat = new DiscussionThreadAuthorStat();
 		stat.setThreadId(threadId);
 		stat.setActiveAuthors(Arrays.asList(dto.getCreatedBy(), "123456"));
-		threadDao.updateThreadAuthorStat(stat);
+		threadDao.updateThreadAuthorStat(Arrays.asList(stat));
 		dto.setActiveAuthors(Arrays.asList(dto.getCreatedBy(), "123456"));
 		assertEquals(new HashSet<String>(dto.getActiveAuthors()),
 				new HashSet<String>(threadDao.getThread(threadId).getActiveAuthors()));
@@ -405,5 +405,18 @@ public class DBODiscussionThreadDAOImplTest {
 		assertEquals(stat2.getThreadId(), threadId2);
 		assertEquals(stat1.getNumberOfViews(), (Long) 1L);
 		assertEquals(stat2.getNumberOfViews(), (Long) 2L);
+	}
+
+	@Test
+	public void testGetAllThreadId() {
+		assertTrue(threadDao.getAllThreadId(10L, 0L).isEmpty());
+
+		// create some threads
+		threadDao.createThread(forumId, threadId.toString(), "title", "messageKey", userId);
+		Long threadId2 = idGenerator.generateNewId(TYPE.DISCUSSION_THREAD_ID);
+		threadDao.createThread(forumId, threadId2 .toString(), "title", "messageKey2", userId);
+
+		assertEquals(new HashSet<Long>(Arrays.asList(threadId, threadId2)),
+				new HashSet<Long>(threadDao.getAllThreadId(10L, 0L)));
 	}
 }

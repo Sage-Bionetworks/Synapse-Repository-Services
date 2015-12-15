@@ -94,9 +94,9 @@ public interface DiscussionThreadDAO {
 	/**
 	 * update active authors for the given thread
 	 * 
-	 * @param stat
+	 * @param stats
 	 */
-	public void updateThreadAuthorStat(DiscussionThreadAuthorStat stat);
+	public void updateThreadAuthorStat(List<DiscussionThreadAuthorStat> stats);
 
 	/**
 	 * insert ignore a record into THREAD_VIEW table
@@ -129,4 +129,13 @@ public interface DiscussionThreadDAO {
 	 * @return
 	 */
 	public List<DiscussionThreadViewStat> getThreadViewStat(Long limit, Long offset);
+
+	/**
+	 * Get all thread Id
+	 * 
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
+	public List<Long> getAllThreadId(Long limit, Long offset);
 }
