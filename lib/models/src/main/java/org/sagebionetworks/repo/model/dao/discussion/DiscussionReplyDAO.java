@@ -1,8 +1,12 @@
 package org.sagebionetworks.repo.model.dao.discussion;
 
+import java.util.List;
+
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
+import org.sagebionetworks.repo.model.discussion.DiscussionThreadAuthorStat;
+import org.sagebionetworks.repo.model.discussion.DiscussionThreadReplyStat;
 
 public interface DiscussionReplyDAO {
 
@@ -69,4 +73,21 @@ public interface DiscussionReplyDAO {
 	 * @return
 	 */
 	public String getEtagForUpdate(long replyId);
+
+	/**
+	 * Get the thread statistic about reply
+	 * 
+	 * @param limit - the maximum number of results return in one call. The default and maximum limit is 100.
+	 * @param offset
+	 * @return
+	 */
+	public List<DiscussionThreadReplyStat> getThreadReplyStat(Long limit, Long offset);
+
+	/**
+	 * Get the top 5 contributors for this thread
+	 * 
+	 * @param threadId
+	 * @return
+	 */
+	public DiscussionThreadAuthorStat getDiscussionThreadAuthorStat(long threadId);
 }

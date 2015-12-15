@@ -18,6 +18,8 @@ import org.sagebionetworks.repo.model.dbo.persistence.discussion.DBODiscussionRe
 import org.sagebionetworks.repo.model.dbo.persistence.discussion.DiscussionReplyUtils;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
+import org.sagebionetworks.repo.model.discussion.DiscussionThreadAuthorStat;
+import org.sagebionetworks.repo.model.discussion.DiscussionThreadReplyStat;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -55,6 +57,36 @@ public class DBODiscussionReplyDAOImpl implements DiscussionReplyDAO{
 			return dto;
 		}
 	};
+
+	private RowMapper<DiscussionThreadReplyStat> DISCUSSION_THREAD_REPLY_STAT_ROW_MAPPER = new RowMapper<DiscussionThreadReplyStat>(){
+
+		@Override
+		public DiscussionThreadReplyStat mapRow(ResultSet rs, int rowNum)
+				throws SQLException {
+			DiscussionThreadReplyStat dto = new DiscussionThreadReplyStat();
+			dto.setThreadId(rs.getLong(COL_DISCUSSION_REPLY_THREAD_ID));
+			dto.setNumberOfReplies(rs.getLong(COL_DISCUSSION_THREAD_STATS_NUMBER_OF_REPLIES));
+			dto.setLastActivity(rs.getTimestamp(COL_DISCUSSION_THREAD_STATS_LAST_ACTIVITY).getTime());
+			return dto;
+		}
+		
+	};
+
+	private static final String SQL_SELECT_THREAD_REPLY_STAT = "SELECT "
+			+COL_DISCUSSION_REPLY_THREAD_ID+", "
+			+"COUNT(*) AS "+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_REPLIES+", "
+			+"MAX("+COL_DISCUSSION_REPLY_MODIFIED_ON+") AS "+COL_DISCUSSION_THREAD_STATS_LAST_ACTIVITY+" "
+			+"FROM "+TABLE_DISCUSSION_REPLY+" "
+			+"GROUP BY "+COL_DISCUSSION_REPLY_THREAD_ID+" "
+			+"ORDER BY "+COL_DISCUSSION_REPLY_THREAD_ID+" "
+			+"LIMIT ? OFFSET ?";
+
+	private static final String SQL_SELECT_THREAD_AUTHOR_STAT = "SELECT "+COL_DISCUSSION_REPLY_CREATED_BY
+			+" FROM "+TABLE_DISCUSSION_REPLY
+			+" WHERE "+COL_DISCUSSION_REPLY_THREAD_ID+" = ?"
+			+" GROUP BY "+COL_DISCUSSION_REPLY_CREATED_BY
+			+" ORDER BY COUNT(*) DESC"
+			+" LIMIT 5";
 
 	private static final String SQL_SELECT_REPLY_COUNT = "SELECT COUNT(*)"
 			+" FROM "+TABLE_DISCUSSION_REPLY
@@ -193,6 +225,31 @@ public class DBODiscussionReplyDAOImpl implements DiscussionReplyDAO{
 			throw new NotFoundException();
 		}
 		return results.get(0);
+	}
+
+	@Override
+	public List<DiscussionThreadReplyStat> getThreadReplyStat(Long limit,
+			Long offset) {
+		ValidateArgument.required(limit, "limit");
+		ValidateArgument.required(offset, "offset");
+		ValidateArgument.requirement(limit >= 0 && offset >= 0 && limit <= MAX_LIMIT,
+				"Limit and offset must be greater than 0, and limit must be smaller than or equal to "+MAX_LIMIT);
+		return jdbcTemplate.query(SQL_SELECT_THREAD_REPLY_STAT, DISCUSSION_THREAD_REPLY_STAT_ROW_MAPPER, limit, offset);
+	}
+
+	@Override
+	public DiscussionThreadAuthorStat getDiscussionThreadAuthorStat(long threadId) {
+		DiscussionThreadAuthorStat dto = new DiscussionThreadAuthorStat();
+		dto.setThreadId(threadId);
+		List<String> authors = jdbcTemplate.query(SQL_SELECT_THREAD_AUTHOR_STAT, new RowMapper<String>(){
+
+			@Override
+			public String mapRow(ResultSet rs, int rowNum) throws SQLException {
+				return rs.getString(COL_DISCUSSION_REPLY_CREATED_BY);
+			}
+		}, threadId);
+		dto.setActiveAuthors(authors);
+		return dto;
 	}
 
 }

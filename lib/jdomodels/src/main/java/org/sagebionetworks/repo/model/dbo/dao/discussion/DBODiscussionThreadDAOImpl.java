@@ -21,15 +21,18 @@ import org.sagebionetworks.repo.model.dao.discussion.DiscussionThreadDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.discussion.DBODiscussionThread;
 import org.sagebionetworks.repo.model.dbo.persistence.discussion.DiscussionThreadUtils;
+import org.sagebionetworks.repo.model.discussion.DiscussionThreadAuthorStat;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
+import org.sagebionetworks.repo.model.discussion.DiscussionThreadReplyStat;
+import org.sagebionetworks.repo.model.discussion.DiscussionThreadViewStat;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.jdbc.core.RowMapper;
 
 public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
@@ -84,6 +87,18 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 			} else {
 				dto.setActiveAuthors(DiscussionThreadUtils.toList(listString));
 			}
+			return dto;
+		}
+	};
+
+	private RowMapper<DiscussionThreadViewStat> DISCUSSION_THREAD_VIEW_STAT_ROW_MAPPER = new RowMapper<DiscussionThreadViewStat>(){
+
+		@Override
+		public DiscussionThreadViewStat mapRow(ResultSet rs, int rowNum)
+				throws SQLException {
+			DiscussionThreadViewStat dto = new DiscussionThreadViewStat();
+			dto.setThreadId(rs.getLong(COL_DISCUSSION_THREAD_VIEW_THREAD_ID));
+			dto.setNumberOfViews(rs.getLong(COL_DISCUSSION_THREAD_STATS_NUMBER_OF_VIEWS));
 			return dto;
 		}
 	};
@@ -151,27 +166,31 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 	private static final String SQL_SELECT_THREAD_VIEW_COUNT = "SELECT COUNT(*)"
 			+" FROM "+TABLE_DISCUSSION_THREAD_VIEW
 			+" WHERE "+COL_DISCUSSION_THREAD_VIEW_THREAD_ID+" = ?";
+	private static final String SQL_SELECT_THREAD_VIEW_STAT = "SELECT "
+			+COL_DISCUSSION_THREAD_VIEW_THREAD_ID+", "
+			+"COUNT(*) AS "+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_VIEWS+" "
+			+"FROM "+TABLE_DISCUSSION_THREAD_VIEW+" "
+			+"GROUP BY "+COL_DISCUSSION_THREAD_VIEW_THREAD_ID+" "
+			+"ORDER BY "+COL_DISCUSSION_THREAD_VIEW_THREAD_ID+" "
+			+"LIMIT ? OFFSET ?";
 
 	private static final String SQL_UPDATE_THREAD_STATS_VIEWS = "INSERT INTO "
 			+TABLE_DISCUSSION_THREAD_STATS+" ("
 			+COL_DISCUSSION_THREAD_STATS_THREAD_ID+", "
 			+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_VIEWS+" ) VALUES (?, ?) ON DUPLICATE KEY UPDATE "
 			+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_VIEWS+" = ? ";
-	private static final String SQL_UPDATE_THREAD_STATS_REPLIES = "INSERT INTO "
-			+TABLE_DISCUSSION_THREAD_STATS+" ("
-			+COL_DISCUSSION_THREAD_STATS_THREAD_ID+", "
-			+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_REPLIES+" ) VALUES (?, ?) ON DUPLICATE KEY UPDATE "
-			+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_REPLIES+" = ? ";
-	private static final String SQL_UPDATE_THREAD_STATS_LAST_ACTIVITY = "INSERT INTO "
-			+TABLE_DISCUSSION_THREAD_STATS+" ("
-			+COL_DISCUSSION_THREAD_STATS_THREAD_ID+", "
-			+COL_DISCUSSION_THREAD_STATS_LAST_ACTIVITY+" ) VALUES (?, ?) ON DUPLICATE KEY UPDATE "
-			+COL_DISCUSSION_THREAD_STATS_LAST_ACTIVITY+" = ? ";
 	private static final String SQL_UPDATE_THREAD_STATS_ACTIVE_AUTHORS = "INSERT INTO "
 			+TABLE_DISCUSSION_THREAD_STATS+" ("
 			+COL_DISCUSSION_THREAD_STATS_THREAD_ID+", "
 			+COL_DISCUSSION_THREAD_STATS_ACTIVE_AUTHORS+" ) VALUES (?, ?) ON DUPLICATE KEY UPDATE "
 			+COL_DISCUSSION_THREAD_STATS_ACTIVE_AUTHORS+" = ? ";
+	private static final String SQL_UPDATE_THREAD_REPLY_STATS =  "INSERT INTO "
+			+TABLE_DISCUSSION_THREAD_STATS+" ("
+			+COL_DISCUSSION_THREAD_STATS_THREAD_ID+", "
+			+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_REPLIES+", "
+			+COL_DISCUSSION_THREAD_STATS_LAST_ACTIVITY+" ) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE "
+			+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_REPLIES+" = ?, "
+			+COL_DISCUSSION_THREAD_STATS_LAST_ACTIVITY+" = ? ";
 
 	@WriteTransactionReadCommitted
 	@Override
@@ -281,36 +300,31 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 
 	@WriteTransactionReadCommitted
 	@Override
-	public void setNumberOfViews(long threadId, long numberOfViews) {
-		jdbcTemplate.update(SQL_UPDATE_THREAD_STATS_VIEWS, threadId, numberOfViews, numberOfViews);
-	}
-
-	@WriteTransactionReadCommitted
-	@Override
-	public void setNumberOfReplies(long threadId, long numberOfReplies) {
-		jdbcTemplate.update(SQL_UPDATE_THREAD_STATS_REPLIES, threadId, numberOfReplies, numberOfReplies);
-	}
-
-	@WriteTransactionReadCommitted
-	@Override
-	public void setActiveAuthors(long threadId, List<String> activeAuthors) {
-		String list = DiscussionThreadUtils.toString(activeAuthors);
-		jdbcTemplate.update(SQL_UPDATE_THREAD_STATS_ACTIVE_AUTHORS, threadId, list, list);
-	}
-
-	@WriteTransactionReadCommitted
-	@Override
-	public void setLastActivity(final long threadId, Date lastActivity) {
-		final Timestamp timestamp = new Timestamp(lastActivity.getTime());
-		jdbcTemplate.update(SQL_UPDATE_THREAD_STATS_LAST_ACTIVITY, new PreparedStatementSetter(){
+	public void updateThreadViewStat(final List<DiscussionThreadViewStat> stats) {
+		jdbcTemplate.batchUpdate(SQL_UPDATE_THREAD_STATS_VIEWS, new BatchPreparedStatementSetter(){
 
 			@Override
-			public void setValues(PreparedStatement ps) throws SQLException {
-				ps.setLong(1, threadId);
-				ps.setTimestamp(2, timestamp);
-				ps.setTimestamp(3, timestamp);
+			public void setValues(PreparedStatement ps, int i)
+					throws SQLException {
+				ps.setLong(1, stats.get(i).getThreadId());
+				ps.setLong(2, stats.get(i).getNumberOfViews());
+				ps.setLong(3, stats.get(i).getNumberOfViews());
+			}
+
+			@Override
+			public int getBatchSize() {
+				return stats.size();
 			}
 		});
+	}
+
+	@WriteTransactionReadCommitted
+	@Override
+	public void updateThreadAuthorStat(DiscussionThreadAuthorStat stat) {
+		List<String> authors = new ArrayList<String>();
+		authors.addAll(stat.getActiveAuthors());
+		String list = DiscussionThreadUtils.toString(authors);
+		jdbcTemplate.update(SQL_UPDATE_THREAD_STATS_ACTIVE_AUTHORS, stat.getThreadId(), list, list);
 	}
 
 	@Override
@@ -332,5 +346,36 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 			throw new NotFoundException();
 		}
 		return results.get(0);
+	}
+
+	@Override
+	public List<DiscussionThreadViewStat> getThreadViewStat(Long limit, Long offset) {
+		ValidateArgument.required(limit, "limit");
+		ValidateArgument.required(offset, "offset");
+		ValidateArgument.requirement(limit >= 0 && offset >= 0 && limit <= MAX_LIMIT,
+				"Limit and offset must be greater than 0, and limit must be smaller than or equal to "+MAX_LIMIT);
+		return jdbcTemplate.query(SQL_SELECT_THREAD_VIEW_STAT, DISCUSSION_THREAD_VIEW_STAT_ROW_MAPPER, limit, offset);
+	}
+
+	@WriteTransactionReadCommitted
+	@Override
+	public void updateThreadReplyStat(final List<DiscussionThreadReplyStat> stats) {
+		jdbcTemplate.batchUpdate(SQL_UPDATE_THREAD_REPLY_STATS, new BatchPreparedStatementSetter(){
+
+			@Override
+			public void setValues(PreparedStatement ps, int i)
+					throws SQLException {
+				ps.setLong(1, stats.get(i).getThreadId());
+				ps.setLong(2, stats.get(i).getNumberOfReplies());
+				ps.setTimestamp(3, new Timestamp(stats.get(i).getLastActivity()));
+				ps.setLong(4, stats.get(i).getNumberOfReplies());
+				ps.setTimestamp(5, new Timestamp(stats.get(i).getLastActivity()));
+			}
+
+			@Override
+			public int getBatchSize() {
+				return stats.size();
+			}
+		});
 	}
 }
