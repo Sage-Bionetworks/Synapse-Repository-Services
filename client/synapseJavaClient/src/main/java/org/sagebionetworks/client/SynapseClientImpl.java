@@ -43,7 +43,6 @@ import org.sagebionetworks.client.exceptions.SynapseTermsOfUseException;
 import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.evaluation.model.BatchUploadResponse;
 import org.sagebionetworks.evaluation.model.Evaluation;
-import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionContributor;
@@ -302,7 +301,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String ALL = "/all";
 	private static final String STATUS = "/status";
 	private static final String STATUS_BATCH = "/statusBatch";
-	private static final String PARTICIPANT = "participant";
 	private static final String LOCK_ACCESS_REQUIREMENT = "/lockAccessRequirement";
 	private static final String SUBMISSION = "submission";
 	private static final String SUBMISSION_BUNDLE = SUBMISSION + BUNDLE;
@@ -4726,40 +4724,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		String uri = createEntityUri(EVALUATION_URI_PATH, evalId);
 		getSharedClientConnection()
 				.deleteUri(repoEndpoint, uri, getUserAgent());
-	}
-
-	/**
-	 * Adds the authenticated user as a Participant in Evaluation evalId
-	 */
-	@Override
-	public Participant createParticipant(String evalId) throws SynapseException {
-		if (evalId == null)
-			throw new IllegalArgumentException("Evaluation id cannot be null");
-		String uri = createEntityUri(EVALUATION_URI_PATH, evalId) + "/"
-				+ PARTICIPANT;
-		JSONObject jsonObj = getSharedClientConnection().postUri(repoEndpoint,
-				uri, getUserAgent());
-		return initializeFromJSONObject(jsonObj, Participant.class);
-	}
-
-	@Override
-	public PaginatedResults<Participant> getAllParticipants(String evalId,
-			long offset, long limit) throws SynapseException {
-		if (evalId == null)
-			throw new IllegalArgumentException("Evaluation id cannot be null");
-		String url = EVALUATION_URI_PATH + "/" + evalId + "/" + PARTICIPANT
-				+ "?" + OFFSET + "=" + offset + "&limit=" + limit;
-		JSONObject jsonObj = getEntity(url);
-		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
-		PaginatedResults<Participant> results = new PaginatedResults<Participant>(
-				Participant.class);
-
-		try {
-			results.initializeFromJSONObject(adapter);
-			return results;
-		} catch (JSONObjectAdapterException e) {
-			throw new SynapseClientException(e);
-		}
 	}
 
 	@Override

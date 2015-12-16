@@ -17,7 +17,6 @@ import org.sagebionetworks.client.exceptions.SynapseResultNotReadyException;
 import org.sagebionetworks.client.exceptions.SynapseTableUnavailableException;
 import org.sagebionetworks.evaluation.model.BatchUploadResponse;
 import org.sagebionetworks.evaluation.model.Evaluation;
-import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionContributor;
@@ -87,10 +86,8 @@ import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadRequest;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadResponse;
 import org.sagebionetworks.repo.model.file.ChunkRequest;
-import org.sagebionetworks.repo.model.file.ChunkResult;
 import org.sagebionetworks.repo.model.file.ChunkedFileToken;
 import org.sagebionetworks.repo.model.file.CompleteAllChunksRequest;
-import org.sagebionetworks.repo.model.file.CompleteChunkedFileRequest;
 import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
@@ -990,11 +987,6 @@ public interface SynapseClient extends BaseClient {
 	public Evaluation updateEvaluation(Evaluation eval) throws SynapseException;
 
 	public void deleteEvaluation(String evalId) throws SynapseException;
-
-	public Participant createParticipant(String evalId) throws SynapseException;
-
-	public PaginatedResults<Participant> getAllParticipants(String s, long offset,
-			long limit) throws SynapseException;
 
 	/**
 	 * 
