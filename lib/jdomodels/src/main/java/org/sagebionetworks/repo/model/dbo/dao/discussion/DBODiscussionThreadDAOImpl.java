@@ -331,9 +331,7 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 			public void setValues(PreparedStatement ps, int i)
 					throws SQLException {
 				ps.setLong(1, stats.get(i).getThreadId());
-				List<String> authors = new ArrayList<String>();
-				authors.addAll(stats.get(i).getActiveAuthors());
-				String list = DiscussionThreadUtils.toString(authors);
+				String list = DiscussionThreadUtils.toCsvString(stats.get(i).getActiveAuthors());
 				ps.setString(2, list);
 				ps.setString(3, list);
 			}

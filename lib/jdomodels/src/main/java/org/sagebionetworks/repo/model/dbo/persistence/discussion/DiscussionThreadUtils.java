@@ -68,7 +68,7 @@ public class DiscussionThreadUtils {
 	 * @param listOfString
 	 * @return
 	 */
-	public static String toString(List<String> listOfString) {
+	public static String toCsvString(List<String> listOfString) {
 		String result = "";
 		if (listOfString.isEmpty()) {
 			return result;
