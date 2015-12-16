@@ -112,10 +112,10 @@ public class PartUtilsTest {
 	
 	@Test
 	public void testChoosePartSizeFileSizeOver50GB(){
-		long fileSize = MIN_PART_SIZE_BYTES*MAX_NUMBER_OF_PARTS+1;
+		long fileSize = MIN_PART_SIZE_BYTES*MAX_NUMBER_OF_PARTS+MIN_PART_SIZE_BYTES;
 		// call under test
 		long partSize = choosePartSize(fileSize);
-		assertEquals(MIN_PART_SIZE_BYTES, partSize);
+		assertTrue(partSize > MIN_PART_SIZE_BYTES);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
