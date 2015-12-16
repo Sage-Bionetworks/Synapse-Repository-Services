@@ -25,6 +25,7 @@ public class DiscussionThreadViewStatsWorker implements ProgressingRunner<Void>{
 		List<DiscussionThreadViewStat> viewStats = threadDao.getThreadViewStat(LIMIT, offset);
 		while (!viewStats.isEmpty()) {
 			threadDao.updateThreadViewStat(viewStats);
+			progressCallback.progressMade(null);
 			offset += LIMIT;
 			viewStats = threadDao.getThreadViewStat(LIMIT, offset);
 		}

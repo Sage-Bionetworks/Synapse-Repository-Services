@@ -46,6 +46,7 @@ public class DiscussionThreadReplyStatsWorkerTest {
 		Mockito.verify(mockReplyDao).getThreadReplyStat(LIMIT, 0L);
 		Mockito.verify(mockReplyDao, Mockito.never()).getThreadReplyStat(LIMIT, LIMIT);
 		Mockito.verify(mockThreadDao, Mockito.never()).updateThreadReplyStat(Mockito.anyList());
+		Mockito.verify(mockCallback, Mockito.never()).progressMade(null);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -61,5 +62,6 @@ public class DiscussionThreadReplyStatsWorkerTest {
 		Mockito.verify(mockReplyDao).getThreadReplyStat(LIMIT, LIMIT);
 		Mockito.verify(mockReplyDao, Mockito.never()).getThreadReplyStat(LIMIT, 2*LIMIT);
 		Mockito.verify(mockThreadDao).updateThreadReplyStat(stats);
+		Mockito.verify(mockCallback).progressMade(null);
 	}
 }

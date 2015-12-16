@@ -47,6 +47,7 @@ public class DiscussionThreadAuthorStatsWorkerTest {
 		Mockito.verify(mockThreadDao, Mockito.never()).getAllThreadId(LIMIT, LIMIT);
 		Mockito.verify(mockReplyDao, Mockito.never()).getDiscussionThreadAuthorStat(Mockito.anyLong());
 		Mockito.verify(mockThreadDao, Mockito.never()).updateThreadAuthorStat(Mockito.anyList());
+		Mockito.verify(mockCallback, Mockito.never()).progressMade(null);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -65,6 +66,7 @@ public class DiscussionThreadAuthorStatsWorkerTest {
 		Mockito.verify(mockThreadDao, Mockito.never()).getAllThreadId(LIMIT, 2*LIMIT);
 		Mockito.verify(mockReplyDao).getDiscussionThreadAuthorStat(threadId);
 		Mockito.verify(mockThreadDao, Mockito.never()).updateThreadAuthorStat(Mockito.anyList());
+		Mockito.verify(mockCallback).progressMade(null);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -83,5 +85,6 @@ public class DiscussionThreadAuthorStatsWorkerTest {
 		Mockito.verify(mockThreadDao, Mockito.never()).getAllThreadId(LIMIT, 2*LIMIT);
 		Mockito.verify(mockReplyDao).getDiscussionThreadAuthorStat(threadId);
 		Mockito.verify(mockThreadDao).updateThreadAuthorStat(Mockito.eq(Arrays.asList(stat)));
+		Mockito.verify(mockCallback).progressMade(null);
 	}
 }

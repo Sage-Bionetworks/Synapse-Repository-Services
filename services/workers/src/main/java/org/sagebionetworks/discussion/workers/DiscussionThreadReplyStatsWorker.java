@@ -28,6 +28,7 @@ public class DiscussionThreadReplyStatsWorker implements ProgressingRunner<Void>
 		List<DiscussionThreadReplyStat> replyStats = replyDao.getThreadReplyStat(LIMIT, offset);
 		while (!replyStats.isEmpty()) {
 			threadDao.updateThreadReplyStat(replyStats);
+			progressCallback.progressMade(null);
 			offset += LIMIT;
 			replyStats = replyDao.getThreadReplyStat(LIMIT, offset);
 		}

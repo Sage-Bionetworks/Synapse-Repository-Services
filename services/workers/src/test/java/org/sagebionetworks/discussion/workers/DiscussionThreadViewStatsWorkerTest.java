@@ -42,6 +42,7 @@ public class DiscussionThreadViewStatsWorkerTest {
 		Mockito.verify(mockThreadDao).getThreadViewStat(LIMIT, 0L);
 		Mockito.verify(mockThreadDao, Mockito.never()).getThreadViewStat(LIMIT, LIMIT);
 		Mockito.verify(mockThreadDao, Mockito.never()).updateThreadViewStat(Mockito.anyList());
+		Mockito.verify(mockCallback, Mockito.never()).progressMade(null);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -57,5 +58,6 @@ public class DiscussionThreadViewStatsWorkerTest {
 		Mockito.verify(mockThreadDao).getThreadViewStat(LIMIT, LIMIT);
 		Mockito.verify(mockThreadDao, Mockito.never()).getThreadViewStat(LIMIT, 2*LIMIT);
 		Mockito.verify(mockThreadDao).updateThreadViewStat(stats);
+		Mockito.verify(mockCallback).progressMade(null);
 	}
 }
