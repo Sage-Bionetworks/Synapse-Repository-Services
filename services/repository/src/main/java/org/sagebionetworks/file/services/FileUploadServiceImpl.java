@@ -235,7 +235,7 @@ public class FileUploadServiceImpl implements FileUploadService {
 	@Override
 	public MultipartUploadStatus completeMultipartUpload(Long userId,
 			String uploadId) {
-		// TODO Auto-generated method stub
-		return null;
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return multipartManagerV2.completeMultipartUpload(userInfo, uploadId);
 	}
 }
