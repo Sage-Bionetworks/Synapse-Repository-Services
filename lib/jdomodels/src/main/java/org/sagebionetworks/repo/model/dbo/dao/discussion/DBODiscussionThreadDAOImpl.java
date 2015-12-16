@@ -113,12 +113,14 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 	private static final String SQL_UPDATE_TITLE = "UPDATE "+TABLE_DISCUSSION_THREAD
 			+" SET "+COL_DISCUSSION_THREAD_TITLE+" = ?, "
 			+COL_DISCUSSION_THREAD_IS_EDITED+" = TRUE, "
-			+COL_DISCUSSION_THREAD_ETAG+" = ? "
+			+COL_DISCUSSION_THREAD_ETAG+" = ?, "
+			+COL_DISCUSSION_THREAD_MODIFIED_ON+" = ? "
 			+" WHERE "+COL_DISCUSSION_THREAD_ID+" = ?";
 	private static final String SQL_UPDATE_MESSAGE_KEY = "UPDATE "+TABLE_DISCUSSION_THREAD
 			+" SET "+COL_DISCUSSION_THREAD_MESSAGE_KEY+" = ?, "
 			+COL_DISCUSSION_THREAD_IS_EDITED+" = TRUE, "
-			+COL_DISCUSSION_THREAD_ETAG+" = ? "
+			+COL_DISCUSSION_THREAD_ETAG+" = ?, "
+			+COL_DISCUSSION_THREAD_MODIFIED_ON+" = ? "
 			+" WHERE "+COL_DISCUSSION_THREAD_ID+" = ?";
 
 	private static final String SELECT_THREAD_BUNDLE = "SELECT "
@@ -282,7 +284,8 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 			throw new IllegalArgumentException("newMessageKey");
 		}
 		String etag = UUID.randomUUID().toString();
-		jdbcTemplate.update(SQL_UPDATE_MESSAGE_KEY, newMessageKey, etag, threadId);
+		Timestamp modifiedOn = new Timestamp(new Date().getTime());
+		jdbcTemplate.update(SQL_UPDATE_MESSAGE_KEY, newMessageKey, etag, modifiedOn, threadId);
 		return getThread(threadId);
 	}
 
@@ -293,7 +296,8 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 			throw new IllegalArgumentException("title");
 		}
 		String etag = UUID.randomUUID().toString();
-		jdbcTemplate.update(SQL_UPDATE_TITLE, title, etag, threadId);
+		Timestamp modifiedOn = new Timestamp(new Date().getTime());
+		jdbcTemplate.update(SQL_UPDATE_TITLE, title, etag, modifiedOn, threadId);
 		return getThread(threadId);
 	}
 

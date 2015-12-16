@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.dbo.persistence.discussion;
 
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 import org.sagebionetworks.util.ValidateArgument;
@@ -36,6 +37,8 @@ public class DiscussionThreadUtils {
 		dbo.setCreatedBy(userId);
 		dbo.setIsEdited(false);
 		dbo.setIsDeleted(false);
+		dbo.setCreatedOn(new Date());
+		dbo.setModifiedOn(new Date());
 		dbo.setEtag(etag);
 		return dbo;
 	}
