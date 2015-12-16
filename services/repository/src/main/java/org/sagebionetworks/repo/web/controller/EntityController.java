@@ -782,67 +782,6 @@ public class EntityController extends BaseController {
 	}
 
 	/**
-	 * Get the headers for entities having references to an existing entity.
-	 * 
-	 * @param id
-	 *            - The target entity's ID.
-	 * @param userId
-	 *            -The user that is doing the get.
-	 * @param request
-	 * @return The headers of the entities having references to the given entity
-	 * @throws NotFoundException
-	 *             - Thrown if the requested entity does not exist.
-	 * @throws DatastoreException
-	 *             - Thrown when an there is a server failure.
-	 */
-	@Deprecated
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = { UrlHelpers.ENTITY_ID + UrlHelpers.REFERENCED_BY }, method = RequestMethod.GET)
-	public @ResponseBody
-	PaginatedResults<EntityHeader> getEntityReferences(
-			@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NO_OFFSET_EQUALS_ONE) Integer offset,
-			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
-			HttpServletRequest request) throws NotFoundException,
-			DatastoreException {
-		// Get the type of an entity by ID.
-		return serviceProvider.getEntityService().getEntityReferences(userId,
-				id, null, offset, limit, request);
-	}
-
-	/**
-	 * Get the headers for entities having references to an existing entity.
-	 * 
-	 * @param id
-	 *            - The target entity's ID.
-	 * @param userId
-	 *            -The user that is doing the get.
-	 * @param request
-	 * @return The headers of the entities having references to the given entity
-	 * @throws NotFoundException
-	 *             - Thrown if the requested entity does not exist.
-	 * @throws DatastoreException
-	 *             - Thrown when an there is a server failure.
-	 */
-	@Deprecated
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = { UrlHelpers.ENTITY_ID + UrlHelpers.VERSION
-			+ UrlHelpers.VERSION_NUMBER + UrlHelpers.REFERENCED_BY }, method = RequestMethod.GET)
-	public @ResponseBody
-	PaginatedResults<EntityHeader> getEntityReferences(
-			@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NO_OFFSET_EQUALS_ONE) Integer offset,
-			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
-			@PathVariable int versionNumber, HttpServletRequest request)
-			throws NotFoundException, DatastoreException {
-		// Get the type of an entity by ID.
-		return serviceProvider.getEntityService().getEntityReferences(userId,
-				id, versionNumber, offset, limit, request);
-	}
-
-	/**
 	 * Get the full path of an Entity as a List of EntityHeaders. The first
 	 * EntityHeader will be the Root Entity, and the last EntityHeader will be
 	 * the requested Entity.
