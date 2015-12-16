@@ -185,7 +185,7 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 	
 	@Test
 	public void testEvaluationRoundTrip() throws Exception {
-		long initialCount = entityServletHelper.getEvaluationCount(adminUserId);
+		long initialCount = entityServletHelper.getAvailableEvaluations(adminUserId).getTotalNumberOfResults();
 		
 		// Create
 		eval1 = entityServletHelper.createEvaluation(eval1, adminUserId);		
@@ -233,8 +233,8 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 		Evaluation updated = entityServletHelper.updateEvaluation(fetched, adminUserId);
 		assertFalse("eTag was not updated", updated.getEtag().equals(fetched.getEtag()));
 		fetched.setEtag(updated.getEtag());
-		assertEquals(fetched, updated);		
-		assertEquals(initialCount + 1, entityServletHelper.getEvaluationCount(adminUserId));
+		assertEquals(fetched, updated);
+		assertEquals(initialCount + 1, entityServletHelper.getAvailableEvaluations(adminUserId).getTotalNumberOfResults());
 		
 		// Delete
 		entityServletHelper.deleteEvaluation(eval1.getId(), adminUserId);
@@ -244,75 +244,7 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 		} catch (NotFoundException e) {
 			// expected
 		}
-		assertEquals(initialCount, entityServletHelper.getEvaluationCount(adminUserId));
-	}
-	
-	@Test
-	public void testParticipantRoundTrip() throws Exception {
-		eval1.setStatus(EvaluationStatus.OPEN);
-		eval1 = entityServletHelper.createEvaluation(eval1, adminUserId);
-		evaluationsToDelete.add(eval1.getId());
-		
-		// create -- can't join yet
-		try {
-			part1 = entityServletHelper.createParticipant(testUserId, eval1.getId());
-			fail();
-		} catch (UnauthorizedException e) {
-			// Expected
-		}
-		
-		// open the evaluation to join
-		AccessControlList acl = entityServletHelper.getEvaluationAcl(adminUserId, eval1.getId());
-		{
-			Set<ACCESS_TYPE> accessSet = new HashSet<ACCESS_TYPE>(2);
-			accessSet.add(ACCESS_TYPE.PARTICIPATE);
-			accessSet.add(ACCESS_TYPE.READ);
-			ResourceAccess ra = new ResourceAccess();
-			ra.setAccessType(accessSet);
-			ra.setPrincipalId(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId());
-			acl.getResourceAccess().add(ra);
-		}
-		{
-			// this is the new way to add a participant
-			Set<ACCESS_TYPE> accessSet = new HashSet<ACCESS_TYPE>(1);
-			accessSet.add(ACCESS_TYPE.SUBMIT);
-			ResourceAccess ra = new ResourceAccess();
-			ra.setAccessType(accessSet);
-			String userId = userManager.getUserInfo(testUserId).getId().toString();
-			assertNotNull(userId);
-			ra.setPrincipalId(Long.parseLong(userId));
-			acl.getResourceAccess().add(ra);
-		}
-		acl = entityServletHelper.updateEvaluationAcl(adminUserId, acl);
-		assertNotNull(acl);
-
-		// create
-		long initialCount = entityServletHelper.getParticipantCount(adminUserId, eval1.getId());
-		part1 = entityServletHelper.createParticipant(testUserId, eval1.getId());
-		assertNotNull(part1.getCreatedOn());
-		participantsToDelete.add(part1);
-		assertEquals(initialCount + 1, entityServletHelper.getParticipantCount(adminUserId, eval1.getId()));
-
-		// query, just checking basic wiring
-		PaginatedResults<Evaluation> pr = entityServletHelper.getAvailableEvaluations(testUserId);
-		assertEquals(1L, pr.getTotalNumberOfResults());
-		// get the new etag (changed when participant was added?)
-		eval1 = entityServletHelper.getEvaluation(testUserId, eval1.getId());
-		assertEquals(eval1, pr.getResults().iterator().next());
-		
-		// read
-		Participant clone = entityServletHelper.getParticipant(testUserId, testUserId, eval1.getId());
-		assertEquals(part1, clone);
-		
-		// delete
-		entityServletHelper.deleteParticipant(adminUserId, testUserId, eval1.getId());
-		try {
-			entityServletHelper.getParticipant(adminUserId, testUserId, eval1.getId());
-			fail("Failed to delete Participant " + part1.toString());
-		} catch (NotFoundException e) {
-			// expected
-		}
-		assertEquals(initialCount, entityServletHelper.getParticipantCount(adminUserId, eval1.getId()));
+		assertEquals(initialCount, entityServletHelper.getAvailableEvaluations(adminUserId).getTotalNumberOfResults());
 	}
 	
 	@Test
