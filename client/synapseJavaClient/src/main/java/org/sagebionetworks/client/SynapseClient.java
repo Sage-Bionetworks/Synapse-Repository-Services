@@ -26,7 +26,6 @@ import org.sagebionetworks.evaluation.model.SubmissionStatusBatch;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.model.TeamSubmissionEligibility;
 import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
-import org.sagebionetworks.evaluation.model.UserEvaluationState;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
@@ -575,12 +574,6 @@ public interface SynapseClient extends BaseClient {
 	public PaginatedResults<EntityHeader> getEntityHeaderBatch(List<Reference> references)
 			throws SynapseException;
 
-	public PaginatedResults<EntityHeader> getEntityReferencedBy(Entity entity)
-			throws SynapseException;
-
-	public PaginatedResults<EntityHeader> getEntityReferencedBy(String entityId,
-			String targetVersion) throws SynapseException;
-
 	public JSONObject query(String query) throws SynapseException;
 
 	/**
@@ -633,14 +626,6 @@ public interface SynapseClient extends BaseClient {
 			throws SynapseException;
 
 	public String putFileToURL(URL url, File file, String contentType)
-			throws SynapseException;
-
-	@Deprecated
-	public ChunkResult addChunkToFile(ChunkRequest chunkRequest)
-			throws SynapseException;
-
-	@Deprecated
-	public S3FileHandle completeChunkFileUpload(CompleteChunkedFileRequest request)
 			throws SynapseException;
 
 	public UploadDaemonStatus startUploadDeamon(CompleteAllChunksRequest cacr)
@@ -999,8 +984,6 @@ public interface SynapseClient extends BaseClient {
 	public PaginatedResults<Evaluation> getAvailableEvaluationsPaginated(int offset, int limit, List<String> evaluationIds)
 			throws SynapseException;
 
-	public Long getEvaluationCount() throws SynapseException;
-
 	public Evaluation findEvaluation(String name) throws SynapseException,
 			UnsupportedEncodingException;
 
@@ -1010,16 +993,8 @@ public interface SynapseClient extends BaseClient {
 
 	public Participant createParticipant(String evalId) throws SynapseException;
 
-	public Participant getParticipant(String evalId, String principalId)
-			throws SynapseException;
-
-	public void deleteParticipant(String evalId, String principalId)
-			throws SynapseException;
-
 	public PaginatedResults<Participant> getAllParticipants(String s, long offset,
 			long limit) throws SynapseException;
-
-	public Long getParticipantCount(String evalId) throws SynapseException;
 
 	/**
 	 * 
@@ -1119,9 +1094,6 @@ public interface SynapseClient extends BaseClient {
 	
 	public Long getSubmissionCount(String evalId) throws SynapseException;
 
-	public UserEvaluationState getUserEvaluationState(String evalId)
-			throws SynapseException;
-
 	public QueryTableResults queryEvaluation(String query) throws SynapseException;
 	
 	public StorageUsageSummaryList getStorageUsageSummary(List<StorageUsageDimension> aggregation) throws SynapseException;
@@ -1144,15 +1116,6 @@ public interface SynapseClient extends BaseClient {
 
 	public PaginatedResults<EntityHeader> getFavorites(Integer limit, Integer offset)
 			throws SynapseException;
-
-	@Deprecated
-	public PaginatedResults<ProjectHeader> getMyProjects(Integer limit, Integer offset) throws SynapseException;
-
-	@Deprecated
-	public PaginatedResults<ProjectHeader> getProjectsFromUser(Long userId, Integer limit, Integer offset) throws SynapseException;
-
-	@Deprecated
-	public PaginatedResults<ProjectHeader> getProjectsForTeam(Long teamId, Integer limit, Integer offset) throws SynapseException;
 
 	public PaginatedResults<ProjectHeader> getMyProjects(ProjectListType type, ProjectListSortColumn sortColumn, SortDirection sortDirection,
 			Integer limit, Integer offset) throws SynapseException;
