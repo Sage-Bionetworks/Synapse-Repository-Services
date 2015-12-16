@@ -25,10 +25,8 @@ import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlResponse;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadRequest;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadResponse;
 import org.sagebionetworks.repo.model.file.ChunkRequest;
-import org.sagebionetworks.repo.model.file.ChunkResult;
 import org.sagebionetworks.repo.model.file.ChunkedFileToken;
 import org.sagebionetworks.repo.model.file.CompleteAllChunksRequest;
-import org.sagebionetworks.repo.model.file.CompleteChunkedFileRequest;
 import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
@@ -414,56 +412,6 @@ public class UploadController extends BaseController {
 		response.setContentType("text/plain");
 		response.getWriter().write(url.toString());
 		response.getWriter().flush();
-	}
-
-	/**
-	 * This method is Deprecated and should not longer be use.
-	 * 
-	 * After POSTing a chunk to a pre-signed URL see:
-	 * {@link #createChunkedPresignedUrl(String, ChunkedPartRequest, HttpServletResponse)}
-	 * , the chunk must be added to the final file.
-	 * 
-	 * @param userId
-	 * @param cpr
-	 *            - Includes the {@link ChunkedFileToken} and the chunk number.
-	 *            The chunk number indicates this chunks position in the larger
-	 *            file. If there are 'n' chunks then the first chunk is '1' and
-	 *            the last chunk is 'n'.
-	 * @return The returned ChunkPart will be need to complete the file upload.
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 */
-	@Deprecated
-	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = "/addChunkToFile", method = RequestMethod.POST)
-	public @ResponseBody ChunkResult addChunkToFile(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestBody ChunkRequest cpr) throws DatastoreException,
-			NotFoundException {
-		return fileService.addChunkToFile(userId, cpr);
-	}
-
-	/**
-	 * This method is Deprecated and should not longer be use. After all of the
-	 * chunks are added to the file using:
-	 * {@link #addChunkToFile(String, ChunkedPartRequest)} this method must be
-	 * called to complete the upload process and create an {@link S3FileHandle}
-	 * 
-	 * @param userId
-	 * @param ccfr
-	 *            - This includes the {@link ChunkedFileToken} and the list
-	 * @return
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 */
-	@Deprecated
-	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = "/completeChunkFileUpload", method = RequestMethod.POST)
-	public @ResponseBody S3FileHandle completeChunkFileUpload(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestBody CompleteChunkedFileRequest ccfr)
-			throws DatastoreException, NotFoundException {
-		return fileService.completeChunkFileUpload(userId, ccfr);
 	}
 
 	/**
