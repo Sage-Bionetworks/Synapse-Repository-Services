@@ -7687,7 +7687,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public MultipartUploadStatus completeMultipartUpload(String uploadId) throws SynapseException {
 		ValidateArgument.required(uploadId, "uploadId");
-		String path = String.format("/file/multipart/%1$1/complete", uploadId);
+		String path = String.format("/file/multipart/%1$s/complete", uploadId);
 		return asymmetricalPut(fileEndpoint, path, null, MultipartUploadStatus.class);
 	}
 

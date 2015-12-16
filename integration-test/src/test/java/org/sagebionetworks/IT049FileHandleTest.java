@@ -536,6 +536,9 @@ public class IT049FileHandleTest {
 	
 	@Test
 	public void testMultipartUploadV2() throws FileNotFoundException, SynapseException, IOException{
+		assertNotNull(imageFile);
+		assertTrue(imageFile.exists());
+		String expectedMD5 = MD5ChecksumHelper.getMD5Checksum(imageFile);
 		// upload the little image using mutli-part upload
 		Long storageLocationId = null;
 		Boolean generatePreview = false;
@@ -544,5 +547,6 @@ public class IT049FileHandleTest {
 		assertNotNull(result);
 		toDelete.add(result);
 		assertNotNull(result.getFileName());
+		assertEquals(expectedMD5, result.getContentMd5());
 	}
 }
