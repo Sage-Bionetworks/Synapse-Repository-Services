@@ -2548,13 +2548,28 @@ public interface SynapseClient extends BaseClient {
 	MultipartUploadStatus completeMultipartUpload(String uploadId) throws SynapseException;
 	
 	/**
-	 * Upload a file using m
+	 * Upload a file using multi-part upload.
 	 * @param input
 	 * @param fileSize
 	 * @param fileName
 	 * @param contentType
 	 * @param storageLocationId
 	 * @return
+	 * @throws SynapseException 
 	 */
-	S3FileHandle multipartUpload(InputStream input, long fileSize, String fileName, String contentType, Long storageLocationId, boolean generatePreview);
+	S3FileHandle multipartUpload(InputStream input, long fileSize, String fileName, String contentType, Long storageLocationId, Boolean generatePreview, Boolean forceRestart) throws SynapseException;
+	
+	/**
+	 * Upload the passed file with mutli-part upload.
+	 * @param file
+	 * @param storageLocationId
+	 * @param generatePreview
+	 * @param forceRestart
+	 * @return
+	 * @throws SynapseException
+	 * @throws FileNotFoundException 
+	 * @throws IOException 
+	 */
+	S3FileHandle multipartUpload(File file, Long storageLocationId, Boolean generatePreview, Boolean forceRestart) throws SynapseException, FileNotFoundException, IOException;
+
 }

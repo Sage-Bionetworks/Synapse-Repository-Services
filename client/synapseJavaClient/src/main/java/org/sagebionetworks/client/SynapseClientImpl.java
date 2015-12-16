@@ -25,6 +25,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.NotImplementedException;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpResponse;
@@ -7692,7 +7693,24 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 	@Override
 	public S3FileHandle multipartUpload(InputStream input, long fileSize, String fileName,
-			String contentType, Long storageLocationId, boolean generatePreview) {
-		return new MultipartUpload(this, input, fileSize, fileName, contentType, storageLocationId, generatePreview).uploadFile();
+			String contentType, Long storageLocationId, Boolean generatePreview, Boolean forceRestart) throws SynapseException {
+		return new MultipartUpload(this, input, fileSize, fileName, contentType, storageLocationId, generatePreview, forceRestart).uploadFile();
+	}
+
+
+	@Override
+	public S3FileHandle multipartUpload(File file,
+			Long storageLocationId, Boolean generatePreview,
+			Boolean forceRestart) throws SynapseException, IOException {
+		InputStream fileInputStream = null;
+		try{
+			fileInputStream = new FileInputStream(file);
+			String fileName = file.getName();
+			long fileSize = file.length();
+			String contentType = guessContentTypeFromStream(file);
+			return multipartUpload(fileInputStream, fileSize, fileName, contentType, storageLocationId, generatePreview, forceRestart);
+		}finally{
+			IOUtils.closeQuietly(fileInputStream);
+		}
 	}
 }

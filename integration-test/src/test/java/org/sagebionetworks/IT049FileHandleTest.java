@@ -8,6 +8,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
@@ -531,5 +532,17 @@ public class IT049FileHandleTest {
 			assertTrue("Timed out waiting for bulk download job.",System.currentTimeMillis() - start < MAX_WAIT_MS);
 			Thread.sleep(2000);
 		}
+	}
+	
+	@Test
+	public void testMultipartUploadV2() throws FileNotFoundException, SynapseException, IOException{
+		// upload the little image using mutli-part upload
+		Long storageLocationId = null;
+		Boolean generatePreview = false;
+		Boolean forceRestart = null;
+		S3FileHandle result = synapse.multipartUpload(this.imageFile, storageLocationId, generatePreview, forceRestart);
+		assertNotNull(result);
+		toDelete.add(result);
+		assertNotNull(result.getFileName());
 	}
 }
