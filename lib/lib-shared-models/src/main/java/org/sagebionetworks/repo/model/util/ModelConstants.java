@@ -10,6 +10,7 @@ import static org.sagebionetworks.repo.model.ACCESS_TYPE.READ_PRIVATE_SUBMISSION
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.SUBMIT;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE_SUBMISSION;
+import static org.sagebionetworks.repo.model.ACCESS_TYPE.MODERATE;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -22,7 +23,7 @@ public class ModelConstants {
 	public static final String VALID_ENTITY_NAME_REGEX = "^[a-z,A-Z,0-9,_,., ,\\-,\\+,(,)]+";
 
 	public static final Set<ACCESS_TYPE> ENITY_ADMIN_ACCESS_PERMISSIONS = new HashSet<ACCESS_TYPE>(
-		Arrays.asList(READ, UPDATE, DELETE, CREATE, CHANGE_PERMISSIONS, CHANGE_SETTINGS));
+		Arrays.asList(READ, UPDATE, DELETE, CREATE, CHANGE_PERMISSIONS, CHANGE_SETTINGS, MODERATE));
 	
 	public static final Set<ACCESS_TYPE> EVALUATION_ADMIN_ACCESS_PERMISSIONS = new HashSet<ACCESS_TYPE>(
 			Arrays.asList(CREATE, READ, SUBMIT, READ_PRIVATE_SUBMISSION, UPDATE_SUBMISSION, 
