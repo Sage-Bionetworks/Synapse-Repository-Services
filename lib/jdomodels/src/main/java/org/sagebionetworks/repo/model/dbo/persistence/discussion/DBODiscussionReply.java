@@ -1,6 +1,8 @@
 package org.sagebionetworks.repo.model.dbo.persistence.discussion;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_REPLY_CREATED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_REPLY_CREATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_REPLY_MODIFIED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_REPLY_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_REPLY_THREAD_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_REPLY_ID;
@@ -12,6 +14,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DISCUS
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Date;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
@@ -29,7 +32,9 @@ public class DBODiscussionReply implements MigratableDatabaseObject<DBODiscussio
 		new FieldColumn("createdBy", COL_DISCUSSION_REPLY_CREATED_BY),
 		new FieldColumn("messageKey", COL_DISCUSSION_REPLY_MESSAGE_KEY),
 		new FieldColumn("isEdited", COL_DISCUSSION_REPLY_IS_EDITED),
-		new FieldColumn("isDeleted", COL_DISCUSSION_REPLY_IS_DELETED)
+		new FieldColumn("isDeleted", COL_DISCUSSION_REPLY_IS_DELETED),
+		new FieldColumn("createdOn", COL_DISCUSSION_REPLY_CREATED_ON),
+		new FieldColumn("modifiedOn", COL_DISCUSSION_REPLY_MODIFIED_ON)
 	};
 
 	private Long id;
@@ -39,13 +44,16 @@ public class DBODiscussionReply implements MigratableDatabaseObject<DBODiscussio
 	private String messageKey;
 	private Boolean isEdited;
 	private Boolean isDeleted;
+	private Date createdOn;
+	private Date modifiedOn;
 
 	@Override
 	public String toString() {
 		return "DBODiscussionReply [id=" + id + ", threadId=" + threadId
 				+ ", etag=" + etag + ", createdBy=" + createdBy
 				+ ", messageKey=" + messageKey + ", isEdited=" + isEdited
-				+ ", isDeleted=" + isDeleted + "]";
+				+ ", isDeleted=" + isDeleted + ", createdOn=" + createdOn
+				+ ", modifiedOn=" + modifiedOn + "]";
 	}
 
 	@Override
@@ -54,6 +62,8 @@ public class DBODiscussionReply implements MigratableDatabaseObject<DBODiscussio
 		int result = 1;
 		result = prime * result
 				+ ((createdBy == null) ? 0 : createdBy.hashCode());
+		result = prime * result
+				+ ((createdOn == null) ? 0 : createdOn.hashCode());
 		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result
@@ -62,6 +72,8 @@ public class DBODiscussionReply implements MigratableDatabaseObject<DBODiscussio
 				+ ((isEdited == null) ? 0 : isEdited.hashCode());
 		result = prime * result
 				+ ((messageKey == null) ? 0 : messageKey.hashCode());
+		result = prime * result
+				+ ((modifiedOn == null) ? 0 : modifiedOn.hashCode());
 		result = prime * result
 				+ ((threadId == null) ? 0 : threadId.hashCode());
 		return result;
@@ -80,6 +92,11 @@ public class DBODiscussionReply implements MigratableDatabaseObject<DBODiscussio
 			if (other.createdBy != null)
 				return false;
 		} else if (!createdBy.equals(other.createdBy))
+			return false;
+		if (createdOn == null) {
+			if (other.createdOn != null)
+				return false;
+		} else if (!createdOn.equals(other.createdOn))
 			return false;
 		if (etag == null) {
 			if (other.etag != null)
@@ -105,6 +122,11 @@ public class DBODiscussionReply implements MigratableDatabaseObject<DBODiscussio
 			if (other.messageKey != null)
 				return false;
 		} else if (!messageKey.equals(other.messageKey))
+			return false;
+		if (modifiedOn == null) {
+			if (other.modifiedOn != null)
+				return false;
+		} else if (!modifiedOn.equals(other.modifiedOn))
 			return false;
 		if (threadId == null) {
 			if (other.threadId != null)
@@ -170,6 +192,22 @@ public class DBODiscussionReply implements MigratableDatabaseObject<DBODiscussio
 		this.isDeleted = isDeleted;
 	}
 
+	public Date getCreatedOn() {
+		return createdOn;
+	}
+
+	public void setCreatedOn(Date createdOn) {
+		this.createdOn = createdOn;
+	}
+
+	public Date getModifiedOn() {
+		return modifiedOn;
+	}
+
+	public void setModifiedOn(Date modifiedOn) {
+		this.modifiedOn = modifiedOn;
+	}
+
 	@Override
 	public TableMapping<DBODiscussionReply> getTableMapping() {
 		return new TableMapping<DBODiscussionReply>(){
@@ -184,6 +222,8 @@ public class DBODiscussionReply implements MigratableDatabaseObject<DBODiscussio
 				dbo.setMessageKey(rs.getString(COL_DISCUSSION_REPLY_MESSAGE_KEY));
 				dbo.setIsEdited(rs.getBoolean(COL_DISCUSSION_REPLY_IS_EDITED));
 				dbo.setIsDeleted(rs.getBoolean(COL_DISCUSSION_REPLY_IS_DELETED));
+				dbo.setCreatedOn(new Date(rs.getTimestamp(COL_DISCUSSION_REPLY_CREATED_ON).getTime()));
+				dbo.setModifiedOn(new Date(rs.getTimestamp(COL_DISCUSSION_REPLY_MODIFIED_ON).getTime()));
 				return dbo;
 			}
 

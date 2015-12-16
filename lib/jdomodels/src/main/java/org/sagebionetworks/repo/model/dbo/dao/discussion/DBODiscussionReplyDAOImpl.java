@@ -4,6 +4,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -126,7 +127,8 @@ public class DBODiscussionReplyDAOImpl implements DiscussionReplyDAO{
 	private static final String SQL_UPDATE_MESSAGE_KEY = "UPDATE "+TABLE_DISCUSSION_REPLY
 			+" SET "+COL_DISCUSSION_REPLY_MESSAGE_KEY+" = ?, "
 			+COL_DISCUSSION_REPLY_IS_EDITED+" = TRUE, "
-			+COL_DISCUSSION_REPLY_ETAG+" = ? "
+			+COL_DISCUSSION_REPLY_ETAG+" = ?, "
+			+COL_DISCUSSION_REPLY_MODIFIED_ON+" =? "
 			+" WHERE "+COL_DISCUSSION_REPLY_ID+" = ?";
 
 	@WriteTransactionReadCommitted
@@ -207,7 +209,8 @@ public class DBODiscussionReplyDAOImpl implements DiscussionReplyDAO{
 	public DiscussionReplyBundle updateMessageKey(long replyId, String newKey) {
 		ValidateArgument.required(newKey, "newKey");
 		String etag = UUID.randomUUID().toString();
-		jdbcTemplate.update(SQL_UPDATE_MESSAGE_KEY, newKey, etag, replyId);
+		Timestamp modifiedOn = new Timestamp(new Date().getTime());
+		jdbcTemplate.update(SQL_UPDATE_MESSAGE_KEY, newKey, etag, modifiedOn, replyId);
 		return getReply(replyId);
 	}
 

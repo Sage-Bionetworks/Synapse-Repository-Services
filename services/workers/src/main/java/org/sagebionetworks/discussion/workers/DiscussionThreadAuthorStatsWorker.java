@@ -38,6 +38,7 @@ public class DiscussionThreadAuthorStatsWorker implements ProgressingRunner<Void
 			if (!toUpdate.isEmpty()) {
 				threadDao.updateThreadAuthorStat(toUpdate);
 			}
+			progressCallback.progressMade(null);
 			offset += LIMIT;
 			threadIds = threadDao.getAllThreadId(LIMIT, offset);
 		}
