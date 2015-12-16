@@ -87,7 +87,7 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 		Long replyIdLong = Long.parseLong(replyId);
 		DiscussionReplyBundle reply = replyDao.getReply(replyIdLong);
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccess(userInfo, reply.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.DELETE));
+				authorizationManager.canAccess(userInfo, reply.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.MODERATE));
 		replyDao.markReplyAsDeleted(replyIdLong);
 	}
 

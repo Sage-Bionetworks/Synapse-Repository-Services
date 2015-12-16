@@ -201,14 +201,14 @@ public class DiscussionThreadManagerImplTest {
 
 	@Test (expected = UnauthorizedException.class)
 	public void testDeleteUnauthorized() {
-		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.DELETE))
+		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.MODERATE))
 				.thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		threadManager.markThreadAsDeleted(userInfo, threadId.toString());
 	}
 
 	@Test
 	public void testDeleteAuthorized() {
-		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.DELETE))
+		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.MODERATE))
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		threadManager.markThreadAsDeleted(userInfo, threadId.toString());
 		Mockito.verify(mockThreadDao).markThreadAsDeleted(threadId);
