@@ -8,7 +8,6 @@ import static org.sagebionetworks.repo.model.ACCESS_TYPE.DOWNLOAD;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.READ;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPLOAD;
-import static org.sagebionetworks.repo.model.ACCESS_TYPE.MODERATE;
 
 import java.util.List;
 
@@ -281,6 +280,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 				&& !DELETE.equals(accessType)) {
 			throw new EntityInTrashCanException("Entity " + entityId + " is in trash can.");
 		}
+		
 		// Can download
 		if (accessType == DOWNLOAD) {
 			return canDownload(userInfo, entityId);
@@ -288,10 +288,6 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		// Can upload
 		if (accessType == UPLOAD) {
 			return canUpload(userInfo, entityId);
-		}
-		// Can moderate
-		if (accessType == MODERATE) {
-			return canModerate(userInfo, entityId);
 		}
 		// Anonymous can at most READ
 		if (AuthorizationUtils.isUserAnonymous(userInfo)) {
@@ -362,20 +358,6 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 			return nodeInheritanceManager.getBenefactor(resourceId).equals(resourceId);
 		} catch (Exception e) {
 			return false;
-		}
-	}
-
-	private AuthorizationStatus canModerate(UserInfo userInfo, String entityId) {
-		if (!nodeDao.getNodeTypeById(entityId).equals(EntityType.project)) {
-			return AuthorizationManagerUtil.accessDenied("Moderate permission is only granted on project level.");
-		}
-		if (userInfo.isAdmin()) {
-			return AuthorizationManagerUtil.AUTHORIZED;
-		}
-		if (aclDAO.canAccess(userInfo.getGroups(), entityId, ObjectType.ENTITY, ACCESS_TYPE.MODERATE)) {
-			return AuthorizationManagerUtil.AUTHORIZED;
-		} else {
-			return AuthorizationManagerUtil.accessDenied("You do not have permission to moderate this project.");
 		}
 	}
 
