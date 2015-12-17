@@ -1,14 +1,11 @@
 package org.sagebionetworks.repo.web.service.table;
 
 import java.io.IOException;
-import java.net.URL;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
-import org.sagebionetworks.repo.model.table.PartialRowSet;
-import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
 import org.sagebionetworks.repo.model.table.QueryNextPageToken;
 import org.sagebionetworks.repo.model.table.QueryResult;
@@ -84,13 +81,6 @@ public interface TableServices {
 	 * @throws NotFoundException
 	 */
 	public PaginatedColumnModels listColumnModels(Long userId, String prefix, Long limit, Long offset) throws DatastoreException, NotFoundException;
-	
-	@Deprecated // This is now asynchronous
-	public RowReferenceSet appendRows(Long userId, RowSet rowsToAppend) throws DatastoreException, NotFoundException, IOException;
-
-	@Deprecated // This is now asynchronous
-	public RowReferenceSet appendPartialRows(Long userId, PartialRowSet rowsToAppendOrUpdateOrDelete) throws NotFoundException,
-			DatastoreException, IOException;
 
 	/**
 	 * Delete rows in a table.
