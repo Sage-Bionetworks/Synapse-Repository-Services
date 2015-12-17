@@ -41,5 +41,8 @@
 		scope="singleton" init-method="initialize">
 		<property name="bucketName" ref="stackConfiguration.discussionBucketName" />
 	</bean>
+	
+	<bean id="s3multipartUploadDAO" class="org.sagebionetworks.upload.multipart.S3MultipartUploadDAOImpl"
+		scope="singleton"/>
 
 </beans>

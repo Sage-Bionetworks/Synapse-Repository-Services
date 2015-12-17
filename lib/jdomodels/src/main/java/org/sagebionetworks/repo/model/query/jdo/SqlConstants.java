@@ -98,6 +98,7 @@ public class SqlConstants {
 	public static final String COL_PROJECT_STAT_PROJECT_ID		= "PROJECT_ID";
 	public static final String COL_PROJECT_STAT_USER_ID			= "USER_ID";
 	public static final String COL_PROJECT_STAT_LAST_ACCESSED	= "LAST_ACCESSED";
+	public static final String COL_PROJECT_STAT_ETAG			= "ETAG";
 	
 	// Principal Prefix table
 	public static final String TABLE_PRINCIPAL_PREFIX 				= "PRINCIPAL_PREFIX";
@@ -229,7 +230,32 @@ public class SqlConstants {
 	public static final String COL_FILES_NAME						= "NAME";
 	public static final String COL_FILES_STORAGE_LOCATION_ID		= "STORAGE_LOCATION_ID";
 	public static final String DDL_FILES							= "schema/Files-ddl.sql";
-
+	
+	// multipart upload state
+	public static final String TABLE_MULTIPART_UPLOAD				= "MULTIPART_UPLOAD";
+	public static final String COL_MULTIPART_UPLOAD_ID				= "ID";
+	public static final String COL_MULTIPART_REQUEST_HASH			= "REQUEST_HASH";
+	public static final String COL_MULTIPART_UPLOAD_ETAG			= "ETAG";
+	public static final String COL_MULTIPART_UPLOAD_REQUEST			= "REQUEST_BLOB";
+	public static final String COL_MULTIPART_STARTED_BY				= "STARTED_BY";
+	public static final String COL_MULTIPART_STARTED_ON				= "STARTED_ON";
+	public static final String COL_MULTIPART_UPDATED_ON				= "UPDATED_ON";
+	public static final String COL_MULTIPART_FILE_HANDLE_ID			= "FILE_HANDLE_ID";
+	public static final String COL_MULTIPART_STATE					= "STATE";
+	public static final String COL_MULTIPART_UPLOAD_TOKEN			= "UPLOAD_TOKEN";
+	public static final String COL_MULTIPART_BUCKET					= "S3_BUCKET";
+	public static final String COL_MULTIPART_KEY					= "S3_KEY";
+	public static final String COL_MULTIPART_NUMBER_OF_PARTS		= "NUMBER_OF_PARTS";
+	public static final String COL_MULTIPART_DDL					= "schema/MutipartUpload-ddl.sql";
+	
+	// multipar upload part state
+	public static final String TABLE_MULTIPART_UPLOAD_PART_STATE	= "MULTIPART_UPLOAD_PART_STATE";
+	public static final String COL_MULTIPART_PART_UPLOAD_ID			= "UPLOAD_ID";
+	public static final String COL_MULTIPART_PART_NUMBER			= "PART_NUMBER";
+	public static final String COL_MULTIPART_PART_MD5_HEX			= "PART_MD5_HEX";
+	public static final String COL_MULTIPART_PART_ERROR_DETAILS		= "ERROR_DETAILS";
+	public static final String COL_MULTIPART_UPLOAD_PART_STATE_DDL	= "schema/MultipartUploadPartState-ddl.sql";
+	
 	// 
 	public static final String COL_STACK_STATUS_ID					= "ID";
 	public static final String COL_STACK_STATUS_STATUS				= "STATUS";
@@ -727,6 +753,19 @@ public class SqlConstants {
 	public static final String COL_DISCUSSION_THREAD_VIEW_THREAD_ID = "THREAD_ID";
 	public static final String COL_DISCUSSION_THREAD_VIEW_USER_ID = "USER_ID";
 	public static final String DDL_DISCUSSION_THREAD_VIEW = "schema/DiscussionThreadView-ddl.sql";
+
+	// Discussion Reply table
+	public static final String TABLE_DISCUSSION_REPLY = "DISCUSSION_REPLY";
+	public static final String COL_DISCUSSION_REPLY_ID = "ID";
+	public static final String COL_DISCUSSION_REPLY_THREAD_ID = "THREAD_ID";
+	public static final String COL_DISCUSSION_REPLY_ETAG = "ETAG";
+	public static final String COL_DISCUSSION_REPLY_CREATED_ON = "CREATED_ON";
+	public static final String COL_DISCUSSION_REPLY_CREATED_BY = "CREATED_BY";
+	public static final String COL_DISCUSSION_REPLY_MODIFIED_ON = "MODIFIED_ON";
+	public static final String COL_DISCUSSION_REPLY_MESSAGE_KEY = "MESSAGE_KEY";
+	public static final String COL_DISCUSSION_REPLY_IS_EDITED = "IS_EDITED";
+	public static final String COL_DISCUSSION_REPLY_IS_DELETED = "IS_DELETED";
+	public static final String DDL_DISCUSSION_REPLY = "schema/DiscussionReply-ddl.sql";
 
 	// This seems to be the name of the id column for all tables.
 	public static final String COLUMN_ID		= "id";

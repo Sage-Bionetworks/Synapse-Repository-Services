@@ -654,7 +654,8 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		ChunkResult result = this.multipartManager.copyPart(token, partNumber, token.getStorageLocationId());
 		// Now delete the original file since we now have a copy
 		String partkey = this.multipartManager.getChunkPartKey(token, partNumber);
-		String bucket = this.multipartManager.getBucket(token.getStorageLocationId());
+		StorageLocationSetting storageLocationSettins = projectSettingsManager.getStorageLocationSetting(token.getStorageLocationId());
+		String bucket = MultipartUtils.getBucket(storageLocationSettins);
 		s3Client.deleteObject(bucket, partkey);
 		return result;
 	}
@@ -699,7 +700,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		String userId = getUserId(userInfo);
 		if (!token.getKey().startsWith(userId)
 				&& token.getKey().indexOf(
-						MultipartManagerImpl.FILE_TOKEN_TEMPLATE_SEPARATOR + userId + MultipartManagerImpl.FILE_TOKEN_TEMPLATE_SEPARATOR) == -1)
+						MultipartUtils.FILE_TOKEN_TEMPLATE_SEPARATOR + userId + MultipartUtils.FILE_TOKEN_TEMPLATE_SEPARATOR) == -1)
 			throw new UnauthorizedException("The ChunkedFileToken: " + token
 					+ " does not belong to User: " + userId);
 	}
@@ -956,7 +957,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		meta.setContentLength(fileContents.length);
 		meta.setContentDisposition(TransferUtils.getContentDispositionValue(fileName));
 		if (contentEncoding!=null) meta.setContentEncoding(contentEncoding);
-		String key = MultipartManagerImpl.createNewKey(createdBy, fileName, null);
+		String key = MultipartUtils.createNewKey(createdBy, fileName, null);
 		String bucket = StackConfiguration.getS3Bucket();
 		s3Client.putObject(bucket, key, in, meta);
 		// Create the file handle
@@ -1028,7 +1029,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		meta.setContentMD5(hexMd5);
 		meta.setContentLength(bytes.length);
 		meta.setContentDisposition(TransferUtils.getContentDispositionValue(fileName));
-		String key = MultipartManagerImpl.createNewKey(createdBy, fileName, null);
+		String key = MultipartUtils.createNewKey(createdBy, fileName, null);
 		String bucket = StackConfiguration.getS3Bucket();
 		s3Client.putObject(bucket, key, in, meta);
 		// Create the file handle
@@ -1096,7 +1097,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 				fileHandle.setContentSize(summary.getContentLength());
 			}
 		} catch (Exception e) {
-			throw new IllegalArgumentException("Unable to ready metadata for bucket: "+fileHandle.getBucketName()+" key: "+fileHandle.getKey(), e);
+			throw new IllegalArgumentException("Unable to access the file at bucket: "+fileHandle.getBucketName()+" key: "+fileHandle.getKey()+".", e);
 		} 
 		// set this user as the creator of the file
 		fileHandle.setCreatedBy(getUserId(userInfo));

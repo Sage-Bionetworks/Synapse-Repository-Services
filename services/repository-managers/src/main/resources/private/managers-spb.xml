@@ -69,6 +69,8 @@
 	
 	<bean id="multipartManager" class="org.sagebionetworks.repo.manager.file.MultipartManagerImpl" />
 	
+	<bean id="multipartManagerV2" class="org.sagebionetworks.repo.manager.file.MultipartManagerV2Impl"  />
+	
 	<bean id="semaphoreManager" class="org.sagebionetworks.repo.manager.SemaphoreManagerImpl" />
 	
 	<!-- The thread pool used by the asynchronous fileupload primary daemons -->
@@ -322,6 +324,9 @@
 		scope ="singleton" />
 	<bean id="threadManager"
 		class="org.sagebionetworks.repo.manager.discussion.DiscussionThreadManagerImpl"
+		scope ="singleton" />
+	<bean id="replyManager"
+		class="org.sagebionetworks.repo.manager.discussion.DiscussionReplyManagerImpl"
 		scope ="singleton" />
 
 	<!-- The thread pool used by the backup/restore daemons -->

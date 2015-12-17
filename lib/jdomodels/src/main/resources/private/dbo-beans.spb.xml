@@ -30,6 +30,8 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOActivity" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOStorageLocation" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle" />
+				<bean class="org.sagebionetworks.repo.model.dbo.file.DBOMultipartUpload" />
+				<bean class="org.sagebionetworks.repo.model.dbo.file.DBOMultipartUploadPartState" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOMessageContent" />
                 <bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOMessageToUser" />
                 <bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOMessageRecipient" />
@@ -110,6 +112,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.discussion.DBODiscussionThread" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.discussion.DBODiscussionThreadStats" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.discussion.DBODiscussionThreadView" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.discussion.DBODiscussionReply" />
 			</list>
 		</property>
 	</bean>
@@ -124,6 +127,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOUserProfile" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOStorageLocation" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle" />
+				<bean class="org.sagebionetworks.repo.model.dbo.file.DBOMultipartUpload" />
                 <bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOMessageContent" />
 				<bean class="org.sagebionetworks.repo.model.dbo.v2.persistence.V2DBOWikiPage" />
 				<bean class="org.sagebionetworks.repo.model.dbo.v2.persistence.V2DBOWikiOwner" />
@@ -164,6 +168,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.discussion.DBOForum" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.discussion.DBODiscussionThread" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.discussion.DBODiscussionThreadView" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.discussion.DBODiscussionReply" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOChange" />
 			</list>
 		</property>

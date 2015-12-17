@@ -7,7 +7,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.manager.file.transfer.TransferUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -18,16 +17,14 @@ import org.sagebionetworks.repo.model.file.ChunkedFileToken;
 import org.sagebionetworks.repo.model.file.CompleteChunkedFileRequest;
 import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
-import org.sagebionetworks.repo.model.project.S3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.util.StringUtils;
 
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.HttpMethod;
+import com.amazonaws.event.ProgressListener;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.CompleteMultipartUploadRequest;
 import com.amazonaws.services.s3.model.CompleteMultipartUploadResult;
@@ -38,7 +35,6 @@ import com.amazonaws.services.s3.model.InitiateMultipartUploadRequest;
 import com.amazonaws.services.s3.model.InitiateMultipartUploadResult;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PartETag;
-import com.amazonaws.event.ProgressListener;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.transfer.TransferManager;
 import com.amazonaws.services.s3.transfer.Upload;
@@ -52,11 +48,6 @@ import com.amazonaws.util.BinaryUtils;
  *
  */
 public class MultipartManagerImpl implements MultipartManager {
-	
-	// [base/]userid/UUID/filename
-	public static final String FILE_TOKEN_TEMPLATE_SEPARATOR = "/";
-	private static final String FILE_TOKEN_TEMPLATE = "%1$s%2$s" + FILE_TOKEN_TEMPLATE_SEPARATOR + "%3$s" + FILE_TOKEN_TEMPLATE_SEPARATOR
-			+ "%4$s";
 	
 	@Autowired
 	AmazonS3Client s3Client;
@@ -75,10 +66,10 @@ public class MultipartManagerImpl implements MultipartManager {
 		StorageLocationSetting storageLocationSetting = getStorageLocationSetting(storageLocationId);
 		// copy this part to the larger file.
 		CopyPartRequest copyPartRequest = new CopyPartRequest();
-		copyPartRequest.setDestinationBucketName(getBucket(storageLocationSetting));
+		copyPartRequest.setDestinationBucketName(MultipartUtils.getBucket(storageLocationSetting));
 		copyPartRequest.setDestinationKey(token.getKey());
 		copyPartRequest.setPartNumber(partNumber);
-		copyPartRequest.setSourceBucketName(getBucket(storageLocationSetting));
+		copyPartRequest.setSourceBucketName(MultipartUtils.getBucket(storageLocationSetting));
 		copyPartRequest.setSourceKey(partKey);
 		copyPartRequest.setUploadId(token.getUploadId());
 		// copy the part
@@ -95,7 +86,7 @@ public class MultipartManagerImpl implements MultipartManager {
 		StorageLocationSetting storageLocationSetting = getStorageLocationSetting(storageLocationId);
 		String partKey = getChunkPartKey(token, partNumber);
 		try{
-			ObjectMetadata meta = s3Client.getObjectMetadata(getBucket(storageLocationSetting), partKey);
+			ObjectMetadata meta = s3Client.getObjectMetadata(MultipartUtils.getBucket(storageLocationSetting), partKey);
 			return true;
 		}catch (AmazonClientException e){
 			return false;
@@ -114,7 +105,7 @@ public class MultipartManagerImpl implements MultipartManager {
 		}
 		StorageLocationSetting storageLocationSetting = getStorageLocationSetting(storageLocationId);
 		// Start a multi-file upload
-		String key = createNewKey(userId, ccftr.getFileName(), storageLocationSetting);
+		String key = MultipartUtils.createNewKey(userId, ccftr.getFileName(), storageLocationSetting);
 		ObjectMetadata objMeta = new ObjectMetadata();
 		objMeta.setContentType(contentType);
 		objMeta.setContentDisposition(TransferUtils.getContentDispositionValue(ccftr.getFileName()));
@@ -123,7 +114,7 @@ public class MultipartManagerImpl implements MultipartManager {
 			objMeta.setContentMD5(BinaryUtils.toBase64(BinaryUtils.fromHex(ccftr.getContentMD5())));
 		}
 		InitiateMultipartUploadResult imur = s3Client.initiateMultipartUpload(new InitiateMultipartUploadRequest(
-				getBucket(storageLocationSetting), key).withObjectMetadata(objMeta));
+				MultipartUtils.getBucket(storageLocationSetting), key).withObjectMetadata(objMeta));
 		// the token will be the ke
 		ChunkedFileToken cft = new ChunkedFileToken();
 		cft.setKey(key);
@@ -141,41 +132,6 @@ public class MultipartManagerImpl implements MultipartManager {
 			storageLocationSetting = projectSettingsManager.getStorageLocationSetting(storageLocationId);
 		}
 		return storageLocationSetting;
-	}
-
-	/**
-	 * Create a new key
-	 * @param userId
-	 * @param fileName
-	 * @return
-	 */
-	public static String createNewKey(String userId, String fileName, StorageLocationSetting storageLocationSetting) {
-		String base = "";
-		if (storageLocationSetting instanceof ExternalS3StorageLocationSetting) {
-			ExternalS3StorageLocationSetting externalS3StorageLocationSetting = (ExternalS3StorageLocationSetting) storageLocationSetting;
-			if (!StringUtils.isEmpty(externalS3StorageLocationSetting.getBaseKey())) {
-				base = externalS3StorageLocationSetting.getBaseKey() + FILE_TOKEN_TEMPLATE_SEPARATOR;
-			}
-		}
-		return String.format(FILE_TOKEN_TEMPLATE, base, userId, UUID.randomUUID().toString(), fileName);
-	}
-	
-	private static String getBucket(StorageLocationSetting storageLocationSetting) {
-		String bucket;
-		if (storageLocationSetting == null || storageLocationSetting instanceof S3StorageLocationSetting) {
-			bucket = StackConfiguration.getS3Bucket();
-		} else if (storageLocationSetting instanceof ExternalS3StorageLocationSetting) {
-			bucket = ((ExternalS3StorageLocationSetting) storageLocationSetting).getBucket();
-		} else {
-			throw new IllegalArgumentException("Cannot get bucket from storage location setting type " + storageLocationSetting.getClass());
-		}
-		return bucket;
-	}
-
-	@Override
-	public String getBucket(Long storageLocationId) throws DatastoreException, NotFoundException {
-		StorageLocationSetting storageLocationSetting = getStorageLocationSetting(storageLocationId);
-		return getBucket(storageLocationSetting);
 	}
 
 	/**
@@ -198,7 +154,7 @@ public class MultipartManagerImpl implements MultipartManager {
 		String partKey = getChunkPartKey(token, partNumber);
 		// For each block we want to create a pre-signed URL file.
 		StorageLocationSetting storageLocationSetting = getStorageLocationSetting(storageLocationId);
-		GeneratePresignedUrlRequest gpur = new GeneratePresignedUrlRequest(getBucket(storageLocationSetting), partKey)
+		GeneratePresignedUrlRequest gpur = new GeneratePresignedUrlRequest(MultipartUtils.getBucket(storageLocationSetting), partKey)
 				.withMethod(HttpMethod.PUT);
 		if(cpr.getChunkedFileToken().getContentType() != null){
 			gpur.setContentType(cpr.getChunkedFileToken().getContentType());
@@ -226,13 +182,13 @@ public class MultipartManagerImpl implements MultipartManager {
 		StorageLocationSetting storageLocationSetting = getStorageLocationSetting(storageLocationId);
 		// We are now ready to complete the parts
 		CompleteMultipartUploadResult cmp = s3Client.completeMultipartUpload(new CompleteMultipartUploadRequest(
-				getBucket(storageLocationSetting), token.getKey(), token.getUploadId(), ptList));
+				MultipartUtils.getBucket(storageLocationSetting), token.getKey(), token.getUploadId(), ptList));
 		// Update the metadata
 		// The file is now in S3.
 		S3FileHandle fileHandle = new S3FileHandle();
 		fileHandle.setFileName(token.getFileName());
 		fileHandle.setContentType(token.getContentType());
-		fileHandle.setBucketName(getBucket(storageLocationSetting));
+		fileHandle.setBucketName(MultipartUtils.getBucket(storageLocationSetting));
 		fileHandle.setKey(token.getKey());
 		fileHandle.setCreatedBy(userId);
 		fileHandle.setCreatedOn(new Date(System.currentTimeMillis()));
@@ -240,7 +196,7 @@ public class MultipartManagerImpl implements MultipartManager {
 		fileHandle.setContentMd5(token.getContentMD5());
 		fileHandle.setStorageLocationId(token.getStorageLocationId());
 		// Lookup the final file size
-		ObjectMetadata current = s3Client.getObjectMetadata(getBucket(storageLocationSetting), token.getKey());
+		ObjectMetadata current = s3Client.getObjectMetadata(MultipartUtils.getBucket(storageLocationSetting), token.getKey());
 		// Capture the content length
 		fileHandle.setContentSize(current.getContentLength());
 		
@@ -253,7 +209,7 @@ public class MultipartManagerImpl implements MultipartManager {
 		// Upon success we need to delete all of the parts.
 		for(ChunkResult cp: chunkParts){
 			String partKey = getChunkPartKey(token, cp.getChunkNumber().intValue());
-			s3Client.deleteObject(getBucket(storageLocationSetting), partKey);
+			s3Client.deleteObject(MultipartUtils.getBucket(storageLocationSetting), partKey);
 		}
 		return result;
 	}
@@ -264,12 +220,12 @@ public class MultipartManagerImpl implements MultipartManager {
 		try {
 			StorageLocationSetting storageLocationSetting = getStorageLocationSetting(storageLocationId);
 			// We let amazon's TransferManager do most of the heavy lifting
-			String key = createNewKey(userId, fileToUpload.getName(), storageLocationSetting);
+			String key = MultipartUtils.createNewKey(userId, fileToUpload.getName(), storageLocationSetting);
 			String md5 = MD5ChecksumHelper.getMD5Checksum(fileToUpload);
 			// Start the fileHandle
 			// We can now create a FileHandle for this upload
 			S3FileHandle handle = new S3FileHandle();
-			handle.setBucketName(getBucket(storageLocationSetting));
+			handle.setBucketName(MultipartUtils.getBucket(storageLocationSetting));
 			handle.setKey(key);
 			handle.setContentMd5(md5);
 			handle.setContentType(contentType);
@@ -278,7 +234,7 @@ public class MultipartManagerImpl implements MultipartManager {
 			handle.setEtag(UUID.randomUUID().toString());
 			handle.setFileName(fileToUpload.getName());
 			
-			PutObjectRequest por = new PutObjectRequest(getBucket(storageLocationSetting), key, fileToUpload);
+			PutObjectRequest por = new PutObjectRequest(MultipartUtils.getBucket(storageLocationSetting), key, fileToUpload);
 			ObjectMetadata meta = TransferUtils.prepareObjectMetadata(handle);
 			por.setMetadata(meta);
 			Upload upload = transferManager.upload(por);

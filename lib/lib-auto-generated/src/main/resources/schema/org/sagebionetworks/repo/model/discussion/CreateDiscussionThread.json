@@ -1,5 +1,5 @@
 {
-	"description": "The CreateThread model object represents a single Thread creation.",
+	"description": "The model object represents a single Thread creation.",
 	"properties": {
 		"forumId": {
 			"type": "string",

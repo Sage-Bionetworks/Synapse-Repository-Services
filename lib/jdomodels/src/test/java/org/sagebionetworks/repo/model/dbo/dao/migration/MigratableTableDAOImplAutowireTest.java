@@ -267,6 +267,7 @@ public class MigratableTableDAOImplAutowireTest {
 		expectedPrimaryTypes.add(MigrationType.USER_PROFILE);
 		expectedPrimaryTypes.add(MigrationType.STORAGE_LOCATION);
 		expectedPrimaryTypes.add(MigrationType.FILE_HANDLE);
+		expectedPrimaryTypes.add(MigrationType.MULTIPART_UPLOAD);
 		expectedPrimaryTypes.add(MigrationType.MESSAGE_CONTENT);
 		expectedPrimaryTypes.add(MigrationType.V2_WIKI_PAGE);
 		expectedPrimaryTypes.add(MigrationType.V2_WIKI_OWNERS);
@@ -300,6 +301,7 @@ public class MigratableTableDAOImplAutowireTest {
 		expectedPrimaryTypes.add(MigrationType.FORUM);
 		expectedPrimaryTypes.add(MigrationType.DISCUSSION_THREAD);
 		expectedPrimaryTypes.add(MigrationType.DISCUSSION_THREAD_VIEW);
+		expectedPrimaryTypes.add(MigrationType.DISCUSSION_REPLY);
 		expectedPrimaryTypes.add(MigrationType.CHANGE);
 		// Get the list
 		List<MigrationType> primary = migratableTableDAO.getPrimaryMigrationTypes();

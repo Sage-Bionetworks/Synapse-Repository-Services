@@ -47,15 +47,20 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.Versionable;
+import org.sagebionetworks.repo.model.asynch.AsyncJobId;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
+import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
-import org.sagebionetworks.repo.model.discussion.DiscussionOrder;
+import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
+import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
+import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
 import org.sagebionetworks.repo.model.discussion.Forum;
+import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
 import org.sagebionetworks.repo.model.doi.Doi;
@@ -79,10 +84,12 @@ import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.storage.StorageUsage;
 import org.sagebionetworks.repo.model.storage.StorageUsageSummaryList;
+import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
+import org.sagebionetworks.repo.model.table.RowReferenceSetResults;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
@@ -1488,26 +1495,6 @@ public class ServletTestHelper {
 		}
 	}
 
-	/**
-	 * Append some rows to a table.
-	 * 
-	 * @param instance
-	 * @param rows
-	 * @param user
-	 * @return
-	 * @throws Exception
-	 */
-	public RowReferenceSet appendTableRows(DispatcherServlet instance,
-			RowSet rows, Long userId) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.POST, UrlHelpers.ENTITY + "/" + rows.getTableId()
-						+ UrlHelpers.TABLE, userId, rows);
-		MockHttpServletResponse response = ServletTestHelperUtils
-				.dispatchRequest(instance, request, HttpStatus.CREATED);
-		return ServletTestHelperUtils.readResponse(response,
-				RowReferenceSet.class);
-	}
-
 	public void deleteTableRows(DispatcherServlet instance, RowSelection rows, Long userId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.POST, UrlHelpers.ENTITY + "/" + rows.getTableId()
 				+ UrlHelpers.TABLE + "/deleteRows", userId, rows);
@@ -2051,7 +2038,7 @@ public class ServletTestHelper {
 	}
 
 	public PaginatedResults<DiscussionThreadBundle> getThreads(DispatcherServlet dispatchServlet,
-			Long userId, String forumId, Long limit, Long offset, DiscussionOrder order,
+			Long userId, String forumId, Long limit, Long offset, DiscussionThreadOrder order,
 			Boolean ascending) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, "/repo/v1", UrlHelpers.FORUM+"/"+forumId+"/threads", userId, null);
@@ -2066,6 +2053,56 @@ public class ServletTestHelper {
 		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.OK);
 		return ServletTestHelperUtils.readResponsePaginatedResults(response, DiscussionThreadBundle.class);
+	}
 
+	public DiscussionReplyBundle createReply(DispatcherServlet dispatchServlet,
+			Long userId, CreateDiscussionReply createReply) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.POST, "/repo/v1", UrlHelpers.REPLY, userId, createReply);
+		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
+				HttpStatus.CREATED);
+		return objectMapper.readValue(response.getContentAsString(), DiscussionReplyBundle.class);
+	}
+
+	public DiscussionReplyBundle getReply(DispatcherServlet dispatchServlet, Long userId, String replyId) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, "/repo/v1", UrlHelpers.REPLY+"/"+replyId, userId, null);
+		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
+				HttpStatus.OK);
+		return objectMapper.readValue(response.getContentAsString(), DiscussionReplyBundle.class);
+	}
+
+	public PaginatedResults<DiscussionReplyBundle> getReplies(DispatcherServlet dispatchServlet,
+			Long userId, String threadId, Long limit, Long offset, DiscussionReplyOrder order,
+			Boolean ascending) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, "/repo/v1", UrlHelpers.THREAD+"/"+threadId+"/replies", userId, null);
+		request.addParameter("limit", limit.toString());
+		request.addParameter("offset", offset.toString());
+		if (order != null) {
+			request.addParameter("sort", order.name());
+		}
+		if (ascending != null) {
+			request.addParameter("ascending", ascending.toString());
+		}
+		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
+				HttpStatus.OK);
+		return ServletTestHelperUtils.readResponsePaginatedResults(response, DiscussionReplyBundle.class);
+	}
+
+	public DiscussionReplyBundle updateReplyMessage(DispatcherServlet dispatchServlet,
+			Long userId, String replyId, UpdateReplyMessage newMessage) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.PUT, "/repo/v1", UrlHelpers.REPLY+"/"+replyId+"/message", userId, newMessage);
+		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
+				HttpStatus.CREATED);
+		return objectMapper.readValue(response.getContentAsString(), DiscussionReplyBundle.class);
+	}
+
+	public void markReplyAsDeleted(DispatcherServlet dispatchServlet, Long userId,
+			String replyId) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.DELETE, "/repo/v1", UrlHelpers.REPLY+"/"+replyId, userId, null);
+		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request, HttpStatus.NO_CONTENT);
 	}
 }

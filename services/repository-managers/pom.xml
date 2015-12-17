@@ -17,12 +17,14 @@
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-models</artifactId>
 		</dependency>
-
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-jdomodels</artifactId>
 		</dependency>
-
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>lib-upload</artifactId>
+		</dependency>
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-audit</artifactId>
