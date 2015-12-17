@@ -106,7 +106,56 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * <p>
  * <b>Multi-part File Upload API</b>
  * </p>
- * TODO
+ * <p>
+ * In order to ensure file upload is robust, all files must be uploaded to
+ * Synapse in 'parts'. This means clients are expected to divide each file into
+ * 'parts' and upload each part separately. Since Synapse tracks the state of
+ * all multi-part uploads, upload failure can be recovered simply by uploading
+ * all parts that Synapse reports as missing.
+ * </p>
+ * <p>
+ * <i>Note: For mutli-part upload 1 MB is defined as 1024*1024 bytes </i>
+ * </p>
+ * <p>
+ * The first task in mutli-part upload is choosing a part size. The minimum part
+ * size is 5 MB (1024*1024*5). Therefore, any file with a size less than or
+ * equal to 5 MB will have a single part and a partSize=5242880. The maximum
+ * number of parts for a single file 10,000 parts. The following should be used
+ * to choose a part size:
+ * </p>
+ * <p>
+ * partSize = max(5242880, (fileSize/10000))
+ * </p>
+ * <p>
+ * Once a partSize is chosen, a multi-part upload can be started using the
+ * following: <a href="${POST.file.multipart}">POST /file/multipart</a> which
+ * will return an <a
+ * href="${org.sagebionetworks.repo.model.file.MultipartUploadStatus}"
+ * >MultipartUploadStatus</a>. The client is expected the use
+ * MultipartUploadStatus to drive the upload. The client will need to upload
+ * each missing part (parts with '0' in the partsState) as follows:
+ * </p>
+ * <p>
+ * <ol>
+ * <li>Get a pre-signed URL to upload the part to using: <a
+ * href="${POST.file.multipart.uploadId.presigned.url.batch}">POST
+ * /file/multipart/{uploadId}/presigned/url/batch</a></li>
+ * <li>Upload the part to the pre-signed URL using HTTPs PUT</li>
+ * <li>Add the part to the mutli-part upload using: <a
+ * href="${PUT.file.multipart.uploadId.add.partNumber}">PUT
+ * /file/multipart/{uploadId}/add/{partNumber}</a></li>
+ * </ol>
+ * </p>
+ * <p>
+ * Once all parts have been successfully added to the multi-part upload, the
+ * upload can be completed using: <a
+ * href="${PUT.file.multipart.uploadId.complete}">PUT
+ * /file/multipart/{uploadId}/complete</a> to produce a new <a
+ * href="${org.sagebionetworks.repo.model.file.FileHandle}">FileHandle</a> If
+ * the upload fails for any reason, the client should start over ( <a
+ * href="${POST.file.multipart}">POST /file/multipart</a>) and continue by
+ * uploading any parts that are reported as missing.
+ * </p>
  * <p>
  * <b>Associating FileHandles with Synapse objects</b>
  * </p>
