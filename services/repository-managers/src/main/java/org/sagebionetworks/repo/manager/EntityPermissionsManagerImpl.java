@@ -8,6 +8,7 @@ import static org.sagebionetworks.repo.model.ACCESS_TYPE.DOWNLOAD;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.READ;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPLOAD;
+import static org.sagebionetworks.repo.model.ACCESS_TYPE.MODERATE;
 
 import java.util.List;
 
@@ -332,6 +333,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		permissions.setCanView(hasAccess(entityId, READ, userInfo).getAuthorized());
 		permissions.setCanDownload(canDownload(userInfo, entityId).getAuthorized());
 		permissions.setCanUpload(canUpload(userInfo, entityId).getAuthorized());
+		permissions.setCanModerate(hasAccess(entityId, MODERATE, userInfo).getAuthorized());
 
 		Node node = nodeDao.getNode(entityId);
 		permissions.setOwnerPrincipalId(node.getCreatedByPrincipalId());
