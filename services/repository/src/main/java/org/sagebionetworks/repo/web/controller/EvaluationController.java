@@ -279,29 +279,7 @@ public class EvaluationController extends BaseController {
 		}
 		return serviceProvider.getEvaluationService().getAvailableEvaluationsInRange(userId, limit, offset, evalIds, request);
 	}	
-	
-	/**
-	 * Gets the total number of Evaluations in Synapse.
-	 * 
-	 * <b>Note:</b> This method is deprecated and should not be used.
-	 * </p>
-	 * 
-	 * @param request
-	 * @return
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 */
-	@Deprecated
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.EVALUATION_COUNT, method = RequestMethod.GET)
-	public @ResponseBody
-	long getEvaluationCount(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			HttpServletRequest request) throws DatastoreException, NotFoundException
-	{
-		return serviceProvider.getEvaluationService().getEvaluationCount(userId);
-	}
-	
+
 	/**
 	 * Finds an Evaluation by name.
 	 * 
@@ -442,74 +420,7 @@ public class EvaluationController extends BaseController {
 	{
 		return serviceProvider.getEvaluationService().addParticipant(userId, evalId);
 	}
-	
-	/**
-	 * Gets a Participant. 
-	 * 
-	 * <p>
-	 * <b>Note:</b> The caller must be granted the <a
-	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
-	 * >ACCESS_TYPE.UPDATE</a> on the specified Evaluation.
-	 * </p>
-	 * Note:  This service is deprecated.
-	 * 
-	 * @param evalId - the ID of the specified Evaluation.
-	 * @param partId - the ID of the Synapse user whose participation is to be deleted
-	 * @param request
-	 * @return
-	 * @throws DatastoreException
-	 * @throws UnauthorizedException
-	 * @throws NotFoundException
-	 */
-	@Deprecated
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.PARTICIPANT_WITH_ID, method = RequestMethod.GET)
-	public @ResponseBody
-	Participant getParticipant(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String evalId,
-			@PathVariable String partId,
-			HttpServletRequest request
-			) throws DatastoreException, UnauthorizedException, NotFoundException 
-	{
-		return serviceProvider.getEvaluationService().getParticipant(userId, partId, evalId);
-	}
-	
-	/**
-	 * Deletes a Participant.
-	 * 
-	 * <p>
-	 * <b>Note:</b> The caller must be granted the <a
-	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
-	 * >ACCESS_TYPE.DELETE</a> on the specified Evaluation.
-	 * </p>
-	 *
-	 * Note:  This service is deprecated.
-	 * 
-	 * @param evalId - the ID of the specified Evaluation.
-	 * @param partId - the ID of the Synapse user whose participation is to be deleted
-	 * @param userId
-	 * @param header
-	 * @param request
-	 * @throws DatastoreException
-	 * @throws InvalidModelException
-	 * @throws NotFoundException
-	 */
-	@Deprecated
-	@ResponseStatus(HttpStatus.NO_CONTENT)
-	@RequestMapping(value = UrlHelpers.PARTICIPANT_WITH_ID, method = RequestMethod.DELETE)
-	public @ResponseBody
-	void deleteParticipantAsAdmin(
-			@PathVariable String evalId,
-			@PathVariable String partId,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestHeader HttpHeaders header,
-			HttpServletRequest request
-			) throws DatastoreException, InvalidModelException, NotFoundException
-	{
-		serviceProvider.getEvaluationService().removeParticipant(userId, evalId, partId);
-	}
-	
+
 	/**
 	 * Gets all Participants for a specified Evaluation. 
 	 * 
@@ -549,36 +460,7 @@ public class EvaluationController extends BaseController {
 	{
 		return serviceProvider.getEvaluationService().getAllParticipants(userId, evalId, limit, offset, request);
 	}
-	
-	/**
-	 * Gets the number of Participants in a specified Evaluation.
-	 * 
-	 * <p>
-	 * <b>Note:</b> The caller must be granted the <a
-	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
-	 * >ACCESS_TYPE.UPDATE</a> on the specified Evaluation.
-	 * </p>
- 	 * Note:  This service is deprecated.
-	 * 
-	 * @param evalId
-	 * @param request
-	 * @return
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 */
-	@Deprecated
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.PARTICIPANT_COUNT, method = RequestMethod.GET)
-	public @ResponseBody
-	long getParticipantCount(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String evalId,
-			HttpServletRequest request) 
-			throws DatastoreException, NotFoundException
-	{
-		return serviceProvider.getEvaluationService().getParticipantCount(userId, evalId);
-	}
-	
+
 	/**
 	 * Find out whether a Team and its members are eligible to submit to a given Evaluation queue (at the 
 	 * current time).  The request must include an Evaluation ID and a Team ID.   The 'eligibilityStateHash' 
@@ -856,7 +738,7 @@ public class EvaluationController extends BaseController {
 	
 	/**	
 	 * Deletes a Submission and its accompanying SubmissionStatus.
-	 * Use of this service is discouraged, since Submissions should be immutable.
+	 * <b>This service is intended to only be used by ChallengesInfrastructure service account.</b>
 	 * 
 	 * <p>
 	 * <b>Note:</b> The caller must be granted the <a
@@ -872,7 +754,6 @@ public class EvaluationController extends BaseController {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	@Deprecated
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.SUBMISSION_WITH_ID, method = RequestMethod.DELETE)
 	public @ResponseBody

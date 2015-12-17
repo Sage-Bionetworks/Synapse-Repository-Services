@@ -65,7 +65,6 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.JoinTeamSignedToken;
-import org.sagebionetworks.repo.model.Link;
 import org.sagebionetworks.repo.model.LogEntry;
 import org.sagebionetworks.repo.model.MembershipInvitation;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
@@ -73,7 +72,6 @@ import org.sagebionetworks.repo.model.MembershipRequest;
 import org.sagebionetworks.repo.model.MembershipRqstSubmission;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.Project;
-import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.ResponseMessage;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
@@ -521,8 +519,6 @@ public class IT500SynapseJavaClient {
 				synapseOne.getAnnotations(project.getId()), entityBundle.getAnnotations());
 		assertEquals("Invalid fetched EntityPath in the EntityBundle", 
 				synapseOne.getEntityPath(project.getId()), entityBundle.getPath());
-		assertEquals("Invalid fetched ReferencedBy in the EntityBundle", 
-				synapseOne.getEntityReferencedBy(project).getResults(), entityBundle.getReferencedBy());
 		assertEquals("Invalid fetched ChildCount in the EntityBundle", 
 				synapseOne.getChildCount(project.getId()) > 0, entityBundle.getHasChildren());
 		assertEquals("Invalid fetched ACL in the EntityBundle", 
@@ -925,52 +921,6 @@ public class IT500SynapseJavaClient {
 		
 	}
 
-	/**
-	 * PLFM-1212 Links need to return what they reference.
-	 */
-	@Test 
-	public void testPLFM_1212() throws SynapseException, JSONException, InterruptedException{
-		// The dataset should start with no references
-		PaginatedResults<EntityHeader> refs = synapseOne.getEntityReferencedBy(dataset);
-		assertNotNull(refs);
-		assertEquals(0l, refs.getTotalNumberOfResults());
-		// Add a link to the dataset in the project
-		Link link = new Link();
-		Reference ref = new Reference();
-		ref.setTargetId(dataset.getId());
-		link.setLinksTo(ref);
-		link.setLinksToClassName(Folder.class.getName());
-		link.setParentId(project.getId());
-		// Create the link
-		link = synapseOne.createEntity(link);
-		// Get 
-		waitForReferencesBy(dataset);
-		refs = synapseOne.getEntityReferencedBy(dataset);
-		assertNotNull(refs);
-		assertEquals(1l, refs.getTotalNumberOfResults());
-		assertNotNull(refs.getResults());
-		assertEquals(1, refs.getResults().size());
-		// Test that the hack for PLFM-1287 is still in place.
-		assertEquals(project.getId(), refs.getResults().get(0).getId());
-		
-	}
-	
-	/**
-	 * Helper to wait for references to be update.
-	 */
-	private void waitForReferencesBy(Entity toWatch) throws SynapseException, InterruptedException{
-		// Wait for the references to appear
-		PaginatedResults<EntityHeader> refs = synapseOne.getEntityReferencedBy(toWatch);
-		long start = System.currentTimeMillis();
-		while(refs.getTotalNumberOfResults() < 1){
-			System.out.println("Waiting for refrences to be published for entity: "+toWatch.getId());
-			Thread.sleep(1000);
-			long elapse = System.currentTimeMillis() - start;
-			assertTrue("Timed out waiting for refernces to be published for entity: "+toWatch.getId(), elapse < RDS_WORKER_TIMEOUT);
-			refs = synapseOne.getEntityReferencedBy(toWatch);
-		}
-	}
-
 	@Test
 	public void testPLFM_1548() throws SynapseException, InterruptedException, JSONException{
 		// Add a unique annotation and query for it
@@ -1052,20 +1002,7 @@ public class IT500SynapseJavaClient {
 		String apiKey = synapseOne.retrieveApiKey();
 		assertNotNull(apiKey);		
 	}
-	
-	private String getSomeGroup(String notThisOne) throws SynapseException {
-		PaginatedResults<UserGroup> groups = synapseOne.getGroups(0,100);
-		String somePrincipalId = null;
-		for (UserGroup ug : groups.getResults()) {
-			if (ug.getId()!=notThisOne) { // don't want to use the team itself!
-				somePrincipalId = ug.getId();
-				break;
-			}
-		}
-		assertNotNull(somePrincipalId);
-		return somePrincipalId;
-	}
-	
+
 	@Test
 	public void testTeamAPI() throws SynapseException, IOException, InterruptedException {
 		// create a Team
