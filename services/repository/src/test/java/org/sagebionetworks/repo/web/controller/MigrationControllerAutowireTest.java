@@ -161,6 +161,14 @@ public class MigrationControllerAutowireTest extends AbstractAutowiredController
 		assertEquals(new Long(handleOne.getId()), checksum.getMaxid());
 	}
 	
+	@Test
+	public void testGetChecksumForType() throws Exception {
+		MigrationTypeChecksum checksum = entityServletHelper.getChecksumForType(adminUserId, MigrationType.FILE_HANDLE);
+		assertNotNull(checksum);
+		assertEquals(MigrationType.FILE_HANDLE, checksum.getType());
+		assertNotNull(checksum.getChecksum());
+	}
+	
 
 	/**
 	 * Extract the filename from the full url.

@@ -852,7 +852,7 @@ public class EntityServletTestHelper {
 	public MigrationRangeChecksum getChecksumForIdRange(Long userId, MigrationType type,
 			String minId, String maxId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, "/migration/checksum", userId, null);
+				HTTPMODE.GET, "/migration/rangechecksum", userId, null);
 		request.setParameter("migrationType", type.name());
 		request.setParameter("minId", minId);
 		request.setParameter("maxId", maxId);
@@ -862,6 +862,17 @@ public class EntityServletTestHelper {
 		
 		return EntityFactory.createEntityFromJSONString(response.getContentAsString(), MigrationRangeChecksum.class);
 		
+	}
+	
+	public MigrationTypeChecksum getChecksumForType(Long userId, MigrationType type) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, "/migration/typechecksum", userId, null);
+		request.setParameter("migrationType", type.name());
+		
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+		
+		return EntityFactory.createEntityFromJSONString(response.getContentAsString(), MigrationTypeChecksum.class);
 	}
 
 	public WikiPage createWikiPage(Long userId, String ownerId,
