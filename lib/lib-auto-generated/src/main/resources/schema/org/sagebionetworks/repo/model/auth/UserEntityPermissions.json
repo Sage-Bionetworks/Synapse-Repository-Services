@@ -56,7 +56,10 @@
 		"canPublicRead": {
 			"type": "boolean",
 			"description": "Is this entity considered public?"
+		},
+		"canModerate": {
+			"type": "boolean",
+			"description": "Can the user moderate the forum associated with this entity? Note that only project entity has forum."
 		}
-		
 	}
 }

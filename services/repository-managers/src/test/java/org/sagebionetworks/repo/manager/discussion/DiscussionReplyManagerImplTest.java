@@ -168,7 +168,7 @@ public class DiscussionReplyManagerImplTest {
 
 	@Test (expected = UnauthorizedException.class)
 	public void testMarkReplyAsDeletedUnauthorized() {
-		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.DELETE))
+		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.MODERATE))
 				.thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		replyManager.markReplyAsDeleted(userInfo, replyId.toString());
 		Mockito.verifyZeroInteractions(mockReplyDao);
@@ -176,7 +176,7 @@ public class DiscussionReplyManagerImplTest {
 
 	@Test
 	public void testMarkReplyAsDeletedAuthorized() {
-		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.DELETE))
+		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.MODERATE))
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		replyManager.markReplyAsDeleted(userInfo, replyId.toString());
 		Mockito.verify(mockReplyDao).markReplyAsDeleted(replyId);
