@@ -124,6 +124,15 @@ public interface MigrationService {
 	MigrationTypeList getPrimaryTypes(Long userId) throws DatastoreException, NotFoundException;
 	
 	/**
+	 * The list of migrations types
+	 * @param userId
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	MigrationTypeList getMigrationTypes(Long userId) throws DatastoreException, NotFoundException;
+	
+	/**
 	 * A checksum for a range of ids and a migration type
 	 * @throws NotFoundException 
 	 */

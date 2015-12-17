@@ -271,6 +271,19 @@ public class MigrationController extends BaseController {
 	}
 	
 	/**
+	 * The list of  migration types.
+	 * @param userId
+	 * @return
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.MIGRATION_TYPES }, method = RequestMethod.GET)
+	public @ResponseBody
+	MigrationTypeList getMigrationTypes(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) throws DatastoreException, NotFoundException {
+		return serviceProvider.getMigrationService().getMigrationTypes(userId);
+	}
+	
+	/**
 	 * A checksum on ETAG or backup ID for a given range and a given migration type
 	 * @throws NotFoundException 
 	 */	

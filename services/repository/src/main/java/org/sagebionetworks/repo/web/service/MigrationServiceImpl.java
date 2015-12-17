@@ -128,6 +128,16 @@ public class MigrationServiceImpl implements MigrationService {
 		mtl.setList(list);
 		return mtl;
 	}
+	
+	@Override
+	public MigrationTypeList getMigrationTypes(Long userId) throws DatastoreException, NotFoundException {
+		if(userId == null) throw new IllegalArgumentException("userId cannot be null");
+		UserInfo user = userManager.getUserInfo(userId);
+		List<MigrationType> list = migrationManager.getMigrationTypes(user);
+		MigrationTypeList mtl = new MigrationTypeList();
+		mtl.setList(list);
+		return mtl;
+	}
 
 	@Override
 	public MigrationRangeChecksum getChecksumForIdRange(Long userId, MigrationType type,

@@ -9,6 +9,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -360,6 +361,13 @@ public class MigrationManagerImplAutowireTest {
 			currentRowCacheDao = connectionFactory.getCurrentVersionCacheConnection(KeyFactory.stringToKey(tableId));
 			assertEquals(0, currentRowCacheDao.getCurrentVersions(KeyFactory.stringToKey(tableId), 0L, 10L).size());
 		}
+	}
+	
+	@Test
+	public void testGetMigrationTypes() {
+		List<MigrationType> expected = new LinkedList<MigrationType>(Arrays.asList(MigrationType.values()));
+		List<MigrationType> actual = migrationManager.getMigrationTypes(adminUser);
+		assertEquals(expected, actual);
 	}
 	
 	@Test

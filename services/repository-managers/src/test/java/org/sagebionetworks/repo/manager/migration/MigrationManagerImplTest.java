@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOSubjectAccessRequirement;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
+import org.sagebionetworks.repo.model.migration.MigrationType;
 
 /**
  * The Unit test for MigrationManagerImpl;
@@ -166,7 +167,7 @@ public class MigrationManagerImplTest {
 		assertNotNull(databaseObject);
 		assertEquals(ref, JDOSecondaryPropertyUtils.decompressedReference(databaseObject.getReference()));
 	}
-
+	
 	/**
 	 * Build a list of objects from a list of IDs
 	 * @param fullList

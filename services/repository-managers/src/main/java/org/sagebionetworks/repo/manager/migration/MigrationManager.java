@@ -84,6 +84,14 @@ public interface MigrationManager {
 	public List<MigrationType> getPrimaryMigrationTypes(UserInfo user);
 	
 	/**
+	 * The list of all migration types
+	 * 
+	 * @param user
+	 * @return
+	 */
+	public List<MigrationType> getMigrationTypes(UserInfo user);
+	
+	/**
 	 * If this object is the 'owner' of other object, then it is a primary type. All secondary types should be returned in their
 	 * migration order.
 	 * For example, if A owns B and B owns C (A->B->C) then A is the primary, and both B and C are secondary. For this case, return B followed by C.

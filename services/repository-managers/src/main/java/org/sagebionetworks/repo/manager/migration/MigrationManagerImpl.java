@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.migration;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Writer;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -311,6 +312,13 @@ public class MigrationManagerImpl implements MigrationManager {
 	public List<MigrationType> getPrimaryMigrationTypes(UserInfo user) {
 		validateUser(user);
 		return migratableTableDao.getPrimaryMigrationTypes();
+	}
+	
+	@Override
+	public List<MigrationType> getMigrationTypes(UserInfo user) {
+		validateUser(user);
+		List<MigrationType> l = new LinkedList<MigrationType>(Arrays.asList(MigrationType.values()));
+		return l;
 	}
 
 	@Override
