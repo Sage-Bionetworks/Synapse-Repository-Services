@@ -46,12 +46,6 @@ public interface EvaluationManager {
 			throws DatastoreException, NotFoundException;
 
 	/**
-	 * Get the total number of Evaluations in the system
-	 */
-	@Deprecated
-	public long getCount(UserInfo userInfo) throws DatastoreException, NotFoundException;
-
-	/**
 	 * Find a Evaluation, by name
 	 */
 	public Evaluation findEvaluation(UserInfo userInfo, String name)

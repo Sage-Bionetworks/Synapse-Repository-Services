@@ -1,6 +1,5 @@
 package org.sagebionetworks.evaluation.manager;
 
-import static org.sagebionetworks.repo.model.ACCESS_TYPE.DELETE;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.PARTICIPATE;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE;
 
@@ -36,31 +35,6 @@ public class ParticipantManagerImpl implements ParticipantManager {
 	private EvaluationPermissionsManager evaluationPermissionsManager;
 
 	@Override
-	public Participant getParticipant(UserInfo userInfo, final String participantId, final String evalId)
-			throws DatastoreException, NotFoundException {
-
-		if (userInfo == null) {
-			throw new IllegalArgumentException("User info cannot be null or empty.");
-		}
-		if (participantId == null || participantId.isEmpty()) {
-			throw new IllegalArgumentException("Participant user ID cannot be null or empty.");
-		}
-		if (evalId == null || evalId.isEmpty()) {
-			throw new IllegalArgumentException("Evaluation ID cannot be null or empty.");
-		}
-
-		String userId = userInfo.getId().toString();
-		if (!userId.equals(participantId)) {
-			if (!evaluationPermissionsManager.hasAccess(userInfo, evalId, UPDATE).getAuthorized()) {
-				throw new UnauthorizedException("User " + userId +
-						" not allowed to read participant " + participantId);
-			}
-		}
-
-		return participantDAO.get(participantId, evalId);
-	}
-
-	@Override
 	@WriteTransaction
 	public Participant addParticipant(UserInfo userInfo, String evalId) throws NotFoundException {
 		EvaluationUtils.ensureNotNull(evalId, "Evaluation ID");
@@ -93,30 +67,6 @@ public class ParticipantManagerImpl implements ParticipantManager {
 	}
 
 	@Override
-	@WriteTransaction
-	public void removeParticipant(UserInfo userInfo, String evalId, String idToRemove)
-			throws DatastoreException, NotFoundException {
-
-		EvaluationUtils.ensureNotNull(evalId, "Evaluation ID");
-		EvaluationUtils.ensureNotNull(idToRemove, "Participant User ID");
-		UserInfo.validateUserInfo(userInfo);
-		String principalId = userInfo.getId().toString();
-
-		// verify permissions
-		if (!evaluationPermissionsManager.hasAccess(userInfo, evalId, DELETE).getAuthorized()) {
-			EvaluationUtils.ensureEvaluationIsOpen(evaluationDAO.get(evalId));
-			throw new UnauthorizedException("User Principal ID: " + principalId +
-					" is not authorized to remove other users from Evaluation ID: " + evalId);
-		}
-
-		// trigger etag update of the parent Evaluation
-		// this is required for migration consistency
-		evaluationManager.updateEvaluationEtag(evalId);
-		
-		participantDAO.delete(idToRemove, evalId);
-	}
-	
-	@Override
 	public QueryResults<Participant> getAllParticipants(
 			UserInfo userInfo, final String evalId, final long limit, final long offset)
 			throws NumberFormatException, DatastoreException, NotFoundException {
@@ -125,13 +75,6 @@ public class ParticipantManagerImpl implements ParticipantManager {
 		long totalNumberOfResults = participantDAO.getCountByEvaluation(evalId);
 		QueryResults<Participant> res = new QueryResults<Participant>(participants, totalNumberOfResults);
 		return res;
-	}
-
-	@Override
-	public long getNumberofParticipants(UserInfo userInfo, final String evalId)
-			throws DatastoreException, NotFoundException {
-		validateUpdateAccess(userInfo, evalId);
-		return participantDAO.getCountByEvaluation(evalId);
 	}
 
 	private void validateUpdateAccess(final UserInfo userInfo, final String evalId)
