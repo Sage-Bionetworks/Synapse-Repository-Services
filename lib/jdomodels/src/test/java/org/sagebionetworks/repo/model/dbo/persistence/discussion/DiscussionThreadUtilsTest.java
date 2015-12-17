@@ -71,7 +71,7 @@ public class DiscussionThreadUtilsTest {
 	@Test
 	public void testConvertListToStringAndBackWithEmptyList() {
 		List<String> list = new ArrayList<String>();
-		String empty = DiscussionThreadUtils.toString(list);
+		String empty = DiscussionThreadUtils.toCsvString(list);
 		assertEquals(empty, "");
 		List<String> result = DiscussionThreadUtils.toList(empty);
 		assertTrue(result.isEmpty());
@@ -81,7 +81,7 @@ public class DiscussionThreadUtilsTest {
 	public void testConvertListToStringAndBackWithOneElmList() {
 		List<String> list = new ArrayList<String>();
 		list.add("a");
-		String string = DiscussionThreadUtils.toString(list);
+		String string = DiscussionThreadUtils.toCsvString(list);
 		assertEquals(string, "a");
 		List<String> result = DiscussionThreadUtils.toList(string);
 		assertEquals(list, result);
@@ -91,7 +91,7 @@ public class DiscussionThreadUtilsTest {
 	public void testConvertListToStringAndBackWithMoreThanOneElmList() {
 		List<String> list = new ArrayList<String>();
 		list.addAll(Arrays.asList("a", "b", "c"));
-		String string = DiscussionThreadUtils.toString(list);
+		String string = DiscussionThreadUtils.toCsvString(list);
 		assertEquals(string, "a,b,c");
 		List<String> result = DiscussionThreadUtils.toList(string);
 		assertEquals(list, result);

@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.persistence.discussion;
 
+import java.util.Date;
+
 import org.sagebionetworks.util.ValidateArgument;
 
 public class DiscussionReplyUtils {
@@ -29,6 +31,8 @@ public class DiscussionReplyUtils {
 		dbo.setEtag(etag);
 		dbo.setIsEdited(false);
 		dbo.setIsDeleted(false);
+		dbo.setCreatedOn(new Date());
+		dbo.setModifiedOn(new Date());
 		return dbo;
 	}
 

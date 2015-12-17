@@ -1,11 +1,13 @@
 package org.sagebionetworks.repo.model.dao.discussion;
 
-import java.util.Date;
 import java.util.List;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.repo.model.discussion.DiscussionThreadAuthorStat;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
+import org.sagebionetworks.repo.model.discussion.DiscussionThreadReplyStat;
+import org.sagebionetworks.repo.model.discussion.DiscussionThreadViewStat;
 
 public interface DiscussionThreadDAO {
 
@@ -78,34 +80,23 @@ public interface DiscussionThreadDAO {
 	/**
 	 * update number of views for the given thread
 	 * 
-	 * @param threadId
-	 * @param numberOfViews
+	 * @param stats
 	 */
-	public void setNumberOfViews(long threadId, long numberOfViews);
+	public void updateThreadViewStat(List<DiscussionThreadViewStat> stats);
 
 	/**
-	 * update number of replies for the given thread
+	 * update number of replies and last activity for the given thread
 	 * 
-	 * @param threadId
-	 * @param numberOfReplies
+	 * @param stats
 	 */
-	public void setNumberOfReplies(long threadId, long numberOfReplies);
-
-	/**
-	 * update the last activity of the given thread
-	 * 
-	 * @param threadId
-	 * @param lastActivity
-	 */
-	public void setLastActivity(long threadId, Date lastActivity);
+	public void updateThreadReplyStat(List<DiscussionThreadReplyStat> stats);
 
 	/**
 	 * update active authors for the given thread
 	 * 
-	 * @param threadId
-	 * @param activeAuthors - the top 5 active authors
+	 * @param stats
 	 */
-	public void setActiveAuthors(long threadId, List<String> activeAuthors);
+	public void updateThreadAuthorStat(List<DiscussionThreadAuthorStat> stats);
 
 	/**
 	 * insert ignore a record into THREAD_VIEW table
@@ -129,4 +120,22 @@ public interface DiscussionThreadDAO {
 	 * @return
 	 */
 	public String getEtagForUpdate(long threadId);
+
+	/**
+	 * Get the thread view statistic
+	 * 
+	 * @Param limit
+	 * @param offset
+	 * @return
+	 */
+	public List<DiscussionThreadViewStat> getThreadViewStat(Long limit, Long offset);
+
+	/**
+	 * Get all thread Id
+	 * 
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
+	public List<Long> getAllThreadId(Long limit, Long offset);
 }
