@@ -116,14 +116,12 @@ public class DBOGroupMembersDAOImplTest {
 
 		changes = changeDAO.listChanges(startChangeNumber, ObjectType.PRINCIPAL, Long.MAX_VALUE);
 		assertNotNull(changes);
-		assertEquals(4, changes.size());
-		for (ChangeMessage message : changes) {
-			assertNotNull(message);
-			System.out.println(message.toString());
-			assertEquals(ChangeType.UPDATE, message.getChangeType());
-			assertEquals(ObjectType.PRINCIPAL, message.getObjectType());
-			assertTrue(adder.contains(message.getObjectId()) || testGroup.getId().equals(message.getObjectId()));
-		}
+		assertEquals(1, changes.size());
+		ChangeMessage message = changes.get(0);
+		assertNotNull(message);
+		assertEquals(ChangeType.UPDATE, message.getChangeType());
+		assertEquals(ObjectType.PRINCIPAL, message.getObjectType());
+		assertEquals(testGroup.getId(), message.getObjectId());
 
 		// Insertion is idempotent
 		groupMembersDAO.addMembers(testGroup.getId(), adder); 

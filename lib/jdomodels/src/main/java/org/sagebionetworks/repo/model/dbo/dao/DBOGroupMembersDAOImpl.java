@@ -80,17 +80,11 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 		if (memberIds.isEmpty()) {
 			return;
 		}
-		
-		// The insertion into GroupMembers requires a read lock on many rows of the UserGroup table
-		// So fetch a write lock on all necessary rows
-		List<String> locks = new ArrayList<String>(memberIds);
-		locks.add(groupId);
-		for (Long id : sortIds(locks)) {
-			String etag = userGroupDAO.getEtagForUpdate(id.toString());
-			transactionalMessenger.sendMessageAfterCommit(id.toString(), ObjectType.PRINCIPAL, etag, ChangeType.UPDATE);
 
-		}
-		
+		// get the lock on group principal
+		String etag = userGroupDAO.getEtagForUpdate(groupId);
+		transactionalMessenger.sendMessageAfterCommit(groupId, ObjectType.PRINCIPAL, etag, ChangeType.UPDATE);
+
 		// Make sure the UserGroup corresponding to the ID holds a group, not an individual
 		if (userGroupDAO.get(Long.parseLong(groupId)).getIsIndividual()) {
 			throw new IllegalArgumentException("Members cannot be added to an individual");
