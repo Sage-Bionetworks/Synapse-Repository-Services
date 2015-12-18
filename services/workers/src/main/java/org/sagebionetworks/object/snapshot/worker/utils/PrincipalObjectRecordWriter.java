@@ -9,7 +9,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.audit.dao.ObjectRecordDAO;
 import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Team;
@@ -39,14 +38,6 @@ public class PrincipalObjectRecordWriter implements ObjectRecordWriter {
 	private GroupMembersDAO groupMembersDAO;
 	@Autowired
 	private ObjectRecordDAO objectRecordDAO;
-
-	private final int LIMIT = 100;
-	private static final List<String> BOOTSTRAP_PRINCIPALS =
-			Arrays.asList(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString(),
-					AuthorizationConstants.BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId().toString(),
-					AuthorizationConstants.BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId().toString(),
-					AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString(),
-					AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString());
 	
 	PrincipalObjectRecordWriter(){}
 	
@@ -84,7 +75,7 @@ public class PrincipalObjectRecordWriter implements ObjectRecordWriter {
 				}
 			} else {
 				// Group
-				captureAllMembers(message.getObjectId(), LIMIT, message.getTimestamp().getTime());
+				captureAllMembers(message.getObjectId(), message.getTimestamp().getTime());
 				try {
 					Team team = teamDAO.get(message.getObjectId());
 					ObjectRecord teamRecord = ObjectRecordBuilderUtils.buildObjectRecord(team, message.getTimestamp().getTime());
@@ -103,35 +94,23 @@ public class PrincipalObjectRecordWriter implements ObjectRecordWriter {
 	 * Log all members that belongs to this group
 	 * 
 	 * @param groupId
-	 * @param limit - the max number of members will be written in to a log file at a time
 	 * @param timestamp - the timestamp of the change message
 	 * @throws IOException 
 	 */
-	public void captureAllMembers(String groupId, int limit, long timestamp) throws IOException {
-		int offset = 0;
+	public void captureAllMembers(String groupId, long timestamp) throws IOException {
 		List<UserGroup> members = groupMembersDAO.getMembers(groupId);
-
-		while (offset < members.size()) {
-			List<UserGroup> membersToWrite = members.subList(offset, Math.min(offset+limit, members.size()));
-			List<ObjectRecord> records = new ArrayList<ObjectRecord>();
-			for (UserGroup member : membersToWrite) {
-				TeamMember teamMember = null;
-				if (BOOTSTRAP_PRINCIPALS.contains(groupId)) {
-					teamMember = new TeamMember();
-					teamMember.setTeamId(groupId);
-					UserGroupHeader ugh = new UserGroupHeader();
-					ugh.setOwnerId(member.getId());
-					teamMember.setMember(ugh);
-					teamMember.setIsAdmin(false);
-				} else {
-					teamMember = teamDAO.getMember(groupId, member.getId());
-				}
-				records.add(ObjectRecordBuilderUtils.buildObjectRecord(teamMember, timestamp));
-			}
-			if (records.size() > 0) {
-				objectRecordDAO.saveBatch(records, records.get(0).getJsonClassName());
-			}
-			offset += limit;
+		List<ObjectRecord> records = new ArrayList<ObjectRecord>();
+		for (UserGroup member : members) {
+			TeamMember teamMember = new TeamMember();
+			teamMember.setTeamId(groupId);
+			UserGroupHeader ugh = new UserGroupHeader();
+			ugh.setOwnerId(member.getId());
+			teamMember.setMember(ugh);
+			teamMember.setIsAdmin(false);
+			records.add(ObjectRecordBuilderUtils.buildObjectRecord(teamMember, timestamp));
+		}
+		if (records.size() > 0) {
+			objectRecordDAO.saveBatch(records, records.get(0).getJsonClassName());
 		}
 	}
 }

@@ -173,30 +173,21 @@ public class PrincipalObjectRecordWriterTest {
 	}
 
 	@Test
-	public void logMembersTest() throws IOException {
-		// team that does not has any members
+	public void logGroupMembersWithZeroMembersTest() throws IOException {
 		Mockito.when(mockGroupMembersDao.getMembers(principalID.toString())).thenReturn(new ArrayList<UserGroup>());
-		writer.captureAllMembers(principalID.toString(), 1, timestamp);
+		writer.captureAllMembers(principalID.toString(), timestamp);
 		Mockito.verify(mockTeamDAO, Mockito.never()).getMember(Mockito.anyString(), Mockito.anyString());
 		Mockito.verify(mockObjectRecordDao, Mockito.never()).saveBatch(Mockito.anyList(), Mockito.anyString());
-		
-		// team that has four members
+	}
+
+	@Test
+	public void logGroupMembersTest() throws IOException {
 		List<UserGroup> list = createListOfMembers(2);
 		Mockito.when(mockGroupMembersDao.getMembers(principalID.toString())).thenReturn(list);
 		TeamMember teamMember = new TeamMember();
 		Mockito.when(mockTeamDAO.getMember(Mockito.anyString(), Mockito.anyString())).thenReturn(teamMember);
-		writer.captureAllMembers(principalID.toString(), 1, timestamp);
-		Mockito.verify(mockTeamDAO, Mockito.times(2)).getMember(Mockito.anyString(), Mockito.anyString());
-		Mockito.verify(mockObjectRecordDao, Mockito.times(2)).saveBatch(Mockito.anyList(), Mockito.anyString());
-	}
-
-	@Test
-	public void logMembersWithBootstrapPrincipalTest() throws IOException {
-		List<UserGroup> list = createListOfMembers(2);
-		Mockito.when(mockGroupMembersDao.getMembers(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString())).thenReturn(list);
-		writer.captureAllMembers(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString(), 1, timestamp);
-		Mockito.verify(mockTeamDAO, Mockito.never()).getMember(Mockito.anyString(), Mockito.anyString());
-		Mockito.verify(mockObjectRecordDao, Mockito.times(2)).saveBatch(Mockito.anyList(), Mockito.anyString());
+		writer.captureAllMembers(principalID.toString(), timestamp);
+		Mockito.verify(mockObjectRecordDao).saveBatch(Mockito.anyList(), Mockito.anyString());
 	}
 
 	/**
