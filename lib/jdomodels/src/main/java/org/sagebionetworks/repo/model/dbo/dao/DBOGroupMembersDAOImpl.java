@@ -7,16 +7,18 @@ import java.util.List;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup;
+import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 
@@ -27,6 +29,9 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 
 	@Autowired
 	private UserGroupDAO userGroupDAO;
+
+	@Autowired
+	private TransactionalMessenger transactionalMessenger;
 
 	private static final String PRINCIPAL_ID_PARAM_NAME = "principalId";
 	private static final String GROUP_ID_PARAM_NAME     = "groupId";
@@ -81,7 +86,9 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 		List<String> locks = new ArrayList<String>(memberIds);
 		locks.add(groupId);
 		for (Long id : sortIds(locks)) {
-			userGroupDAO.getEtagForUpdate(id.toString());
+			String etag = userGroupDAO.getEtagForUpdate(id.toString());
+			transactionalMessenger.sendMessageAfterCommit(id.toString(), ObjectType.PRINCIPAL, etag, ChangeType.UPDATE);
+
 		}
 		
 		// Make sure the UserGroup corresponding to the ID holds a group, not an individual

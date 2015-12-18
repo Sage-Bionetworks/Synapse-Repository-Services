@@ -9,6 +9,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.audit.dao.ObjectRecordDAO;
 import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
+import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
@@ -33,19 +34,22 @@ public class PrincipalObjectRecordWriter implements ObjectRecordWriter {
 	@Autowired
 	private TeamDAO teamDAO;
 	@Autowired
+	private GroupMembersDAO groupMembersDAO;
+	@Autowired
 	private ObjectRecordDAO objectRecordDAO;
 
-	private final long LIMIT = 100;
+	private final int LIMIT = 100;
 	
 	PrincipalObjectRecordWriter(){}
 	
 	// for unit test only
 	PrincipalObjectRecordWriter(UserGroupDAO userGroupDAO, UserProfileDAO userProfileDAO, 
-			TeamDAO teamDAO, ObjectRecordDAO objectRecordDAO) {
+			TeamDAO teamDAO, GroupMembersDAO groupMembersDAO, ObjectRecordDAO objectRecordDAO) {
 		this.userGroupDAO = userGroupDAO;
 		this.userProfileDAO = userProfileDAO;
 		this.teamDAO = teamDAO;
 		this.objectRecordDAO = objectRecordDAO;
+		this.groupMembersDAO = groupMembersDAO;
 	}
 
 	@Override
@@ -59,7 +63,6 @@ public class PrincipalObjectRecordWriter implements ObjectRecordWriter {
 			userGroup = userGroupDAO.get(principalId);
 			ObjectRecord objectRecord = ObjectRecordBuilderUtils.buildObjectRecord(userGroup, message.getTimestamp().getTime());
 			objectRecordDAO.saveBatch(Arrays.asList(objectRecord), objectRecord.getJsonClassName());
-			captureAllTeams(principalId, LIMIT, message.getTimestamp().getTime());
 
 			if(userGroup.getIsIndividual()){
 				// User
@@ -72,7 +75,8 @@ public class PrincipalObjectRecordWriter implements ObjectRecordWriter {
 					log.warn("UserProfile not found: "+principalId);
 				}
 			} else {
-				// Team
+				// Group
+				captureAllMembers(message.getObjectId(), LIMIT, message.getTimestamp().getTime());
 				try {
 					Team team = teamDAO.get(message.getObjectId());
 					ObjectRecord teamRecord = ObjectRecordBuilderUtils.buildObjectRecord(team, message.getTimestamp().getTime());
@@ -88,21 +92,22 @@ public class PrincipalObjectRecordWriter implements ObjectRecordWriter {
 	}
 
 	/**
-	 * Log all teams that this principal belongs to
-	 * @param principalId
-	 * @param limit - the max number of teams will be written in to a log file at a time
+	 * Log all members that belongs to this group
+	 * 
+	 * @param groupId
+	 * @param limit - the max number of members will be written in to a log file at a time
 	 * @param timestamp - the timestamp of the change message
 	 * @throws IOException 
 	 */
-	public void captureAllTeams(Long principalId, long limit, long timestamp) throws IOException {
-		long offset = 0;
-		long numberOfTeams = teamDAO.getCountForMember(principalId.toString());
+	public void captureAllMembers(String groupId, int limit, long timestamp) throws IOException {
+		int offset = 0;
+		List<UserGroup> members = groupMembersDAO.getMembers(groupId);
 		
-		while (offset < numberOfTeams) {
-			List<Team> teams = teamDAO.getForMemberInRange(principalId.toString(), limit, offset);
+		while (offset < members.size()) {
+			List<UserGroup> membersToWrite = members.subList(offset, Math.min(offset+LIMIT, members.size() -1));
 			List<ObjectRecord> records = new ArrayList<ObjectRecord>();
-			for (Team team : teams) {
-				TeamMember teamMember = teamDAO.getMember(team.getId(), principalId.toString());
+			for (UserGroup member : membersToWrite) {
+				TeamMember teamMember = teamDAO.getMember(groupId, member.getId());
 				records.add(ObjectRecordBuilderUtils.buildObjectRecord(teamMember, timestamp));
 			}
 			if (records.size() > 0) {

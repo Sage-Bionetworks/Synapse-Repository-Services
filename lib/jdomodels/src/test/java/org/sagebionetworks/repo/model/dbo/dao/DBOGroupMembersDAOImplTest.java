@@ -13,9 +13,12 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.ids.NamedIdGenerator;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.message.ChangeMessage;
+import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -38,6 +41,9 @@ public class DBOGroupMembersDAOImplTest {
 	
 	@Autowired
 	private NamedIdGenerator idGenerator;
+
+	@Autowired
+	DBOChangeDAO changeDAO;
 	
 	private List<String> groupsToDelete;
 	
@@ -67,7 +73,7 @@ public class DBOGroupMembersDAOImplTest {
 		}
 	}
 	
-	private UserGroup createTestGroup(boolean isIndividual) throws Exception {		
+	private UserGroup createTestGroup(boolean isIndividual) throws Exception {
 		UserGroup group = new UserGroup();
 		group.setIsIndividual(isIndividual);
 		String id = userGroupDAO.create(group).toString();
@@ -87,23 +93,41 @@ public class DBOGroupMembersDAOImplTest {
 	
 	@Test
 	public void testAddMembers() throws Exception {
+		changeDAO.deleteAllChanges();
+		long startChangeNumber = changeDAO.getCurrentChangeNumber();
 		// Add users to the test group
 		List<String> adder = new ArrayList<String>();
 		
 		// Empty list should work
 		groupMembersDAO.addMembers(testGroup.getId(), adder);
-		
+		// No messages should be sent
+		List<ChangeMessage> changes = changeDAO.listChanges(changeDAO.getCurrentChangeNumber(), ObjectType.PRINCIPAL, Long.MAX_VALUE);
+		assertNotNull(changes);
+		assertTrue(changes.isEmpty());
+
 		// Repeated entries should work
 		adder.add(testUserOne.getId());
 		adder.add(testUserTwo.getId());
 		adder.add(testUserThree.getId());
 		adder.add(testUserThree.getId());
 		adder.add(testUserThree.getId());
-		
-		// Insertion is idempotent
+
 		groupMembersDAO.addMembers(testGroup.getId(), adder);
+
+		changes = changeDAO.listChanges(startChangeNumber, ObjectType.PRINCIPAL, Long.MAX_VALUE);
+		assertNotNull(changes);
+		assertEquals(4, changes.size());
+		for (ChangeMessage message : changes) {
+			assertNotNull(message);
+			System.out.println(message.toString());
+			assertEquals(ChangeType.UPDATE, message.getChangeType());
+			assertEquals(ObjectType.PRINCIPAL, message.getObjectType());
+			assertTrue(adder.contains(message.getObjectId()) || testGroup.getId().equals(message.getObjectId()));
+		}
+
+		// Insertion is idempotent
 		groupMembersDAO.addMembers(testGroup.getId(), adder); 
-		
+
 		// Validate the addition worked
 		List<UserGroup> newMembers = groupMembersDAO.getMembers(testGroup.getId());
 		assertEquals("Number of users should match", 3, newMembers.size());
