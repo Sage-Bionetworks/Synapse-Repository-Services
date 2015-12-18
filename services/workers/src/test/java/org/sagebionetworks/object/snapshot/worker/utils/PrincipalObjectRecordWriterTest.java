@@ -14,6 +14,7 @@ import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.audit.dao.ObjectRecordDAO;
 import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Team;
@@ -172,7 +173,7 @@ public class PrincipalObjectRecordWriterTest {
 	}
 
 	@Test
-	public void logMemberTest() throws IOException {
+	public void logMembersTest() throws IOException {
 		// team that does not has any members
 		Mockito.when(mockGroupMembersDao.getMembers(principalID.toString())).thenReturn(new ArrayList<UserGroup>());
 		writer.captureAllMembers(principalID.toString(), 1, timestamp);
@@ -186,6 +187,15 @@ public class PrincipalObjectRecordWriterTest {
 		Mockito.when(mockTeamDAO.getMember(Mockito.anyString(), Mockito.anyString())).thenReturn(teamMember);
 		writer.captureAllMembers(principalID.toString(), 2, timestamp);
 		Mockito.verify(mockTeamDAO, Mockito.times(4)).getMember(Mockito.anyString(), Mockito.anyString());
+		Mockito.verify(mockObjectRecordDao, Mockito.times(2)).saveBatch(Mockito.anyList(), Mockito.anyString());
+	}
+
+	@Test
+	public void logMembersWithBootstrapPrincipalTest() throws IOException {
+		List<UserGroup> list = createListOfMembers(4);
+		Mockito.when(mockGroupMembersDao.getMembers(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString())).thenReturn(list);
+		writer.captureAllMembers(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString(), 2, timestamp);
+		Mockito.verify(mockTeamDAO, Mockito.never()).getMember(Mockito.anyString(), Mockito.anyString());
 		Mockito.verify(mockObjectRecordDao, Mockito.times(2)).saveBatch(Mockito.anyList(), Mockito.anyString());
 	}
 
