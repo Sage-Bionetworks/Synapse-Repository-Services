@@ -143,6 +143,7 @@ import org.sagebionetworks.repo.model.file.S3FileCopyResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.S3UploadDestination;
 import org.sagebionetworks.repo.model.file.State;
+import org.sagebionetworks.repo.model.file.TempFileProviderImpl;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
 import org.sagebionetworks.repo.model.file.UploadDestination;
 import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
@@ -7363,7 +7364,14 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public MultipartUploadStatus startMultipartUpload(
 			MultipartUploadRequest request, Boolean forceRestart) throws SynapseException {
 		ValidateArgument.required(request, "MultipartUploadRequest");
-		return asymmetricalPost(fileEndpoint, "/file/multipart", request, MultipartUploadStatus.class, null);
+		StringBuilder pathBuilder = new StringBuilder();
+		pathBuilder.append("/file/multipart");
+		//the restart parameter is optional.
+		if(forceRestart != null){
+			pathBuilder.append("?forceRestart=");
+			pathBuilder.append(forceRestart.toString());
+		}
+		return asymmetricalPost(fileEndpoint, pathBuilder.toString(), request, MultipartUploadStatus.class, null);
 	}
 
 	@Override
@@ -7394,7 +7402,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public S3FileHandle multipartUpload(InputStream input, long fileSize, String fileName,
 			String contentType, Long storageLocationId, Boolean generatePreview, Boolean forceRestart) throws SynapseException {
-		return new MultipartUpload(this, input, fileSize, fileName, contentType, storageLocationId, generatePreview, forceRestart).uploadFile();
+		return new MultipartUpload(this, input, fileSize, fileName, contentType, storageLocationId, generatePreview, forceRestart, new TempFileProviderImpl()).uploadFile();
 	}
 
 
