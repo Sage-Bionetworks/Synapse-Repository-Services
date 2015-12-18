@@ -1,7 +1,6 @@
 package org.sagebionetworks.client;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -23,6 +22,7 @@ import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
 import org.sagebionetworks.repo.model.file.PartUtils;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.file.TempFileProvider;
 import org.sagebionetworks.util.ValidateArgument;
 
 /**
@@ -32,23 +32,22 @@ import org.sagebionetworks.util.ValidateArgument;
  */
 public class MultipartUpload {
 
-	public static final long MINIMUM_PART_SIZE = 5 * 1024 * 1024;
-	public static final long MAX_NUMBER_OF_PARTS = 10 * 1000;
-
 	// input parameters
 	final SynapseClient client;
 	final InputStream input;
 	final Boolean forceRestart;
 	final MultipartUploadRequest request;
+	final TempFileProvider fileProvider;
 
 	public MultipartUpload(SynapseClient client, InputStream input,
 			long fileSizeBytes, String fileName, String contentType,
-			Long storageLocationId, Boolean generatePreview, Boolean forceRestart) {
+			Long storageLocationId, Boolean generatePreview, Boolean forceRestart, TempFileProvider fileProvider) {
 		super();
 		ValidateArgument.required(client, "SynapseClient");
 		ValidateArgument.required(input, "InputStream");
 		ValidateArgument.required(fileName, "fileName");
 		ValidateArgument.required(contentType, "contentType");
+		ValidateArgument.required(fileProvider, "fileProvider");
 		this.request = new MultipartUploadRequest();
 		this.request.setFileName(fileName);
 		this.request.setContentType(contentType);
@@ -58,6 +57,7 @@ public class MultipartUpload {
 		this.client = client;
 		this.input = input;
 		this.forceRestart = forceRestart;
+		this.fileProvider = fileProvider;
 	}
 
 	/**
@@ -79,7 +79,7 @@ public class MultipartUpload {
 				(int) numberOfParts);
 		try {
 			// All of the part files are created.
-			String fileMD5Hex = createParts(input, fileSizeBytes,
+			String fileMD5Hex = createParts(fileProvider, input, fileSizeBytes,
 					partSizeBytes, numberOfParts, partDataList);
 			
 			this.request.setPartSizeBytes(partSizeBytes);
@@ -159,7 +159,7 @@ public class MultipartUpload {
 	 * @param partDataList
 	 * @return
 	 */
-	public static String createParts(InputStream input, long fileSizeBytes,
+	public static String createParts(TempFileProvider fileProvider, InputStream input, long fileSizeBytes,
 			long partSizeBytes, long numberOfParts, List<PartData> partDataList) {
 		// digest for the entire file.
 		MessageDigest fileMD5Digest = createMD5Digest();
@@ -172,7 +172,13 @@ public class MultipartUpload {
 			try {
 				if (i == numberOfParts - 1) {
 					// this is the last part
-					length = (int) (fileSizeBytes % partSizeBytes);
+					int remainder = (int) (fileSizeBytes % partSizeBytes);
+					if(remainder > 0){
+						length = remainder;
+					}else{
+						length = (int) partSizeBytes;
+					}
+
 				}
 				// fill the buffer
 				input.read(buffer, offset, length);
@@ -180,9 +186,9 @@ public class MultipartUpload {
 				fileMD5Digest.update(buffer, offset, length);
 				// Calculate the MD5 of the part
 				String partMD5Hex = calculateMD5Hex(buffer, offset, length);
-				File partFile = File.createTempFile("multipart", ".tmp");
+				File partFile = fileProvider.createTempFile("multipart", ".tmp");
 				// write the buffer to a file.
-				writeByteArrayToFile(partFile, buffer, offset, length);
+				writeByteArrayToFile(fileProvider, partFile, buffer, offset, length);
 				PartData partData = new PartData();
 				partData.setPartFile(partFile);
 				partData.setPartMD5Hex(partMD5Hex);
@@ -205,11 +211,11 @@ public class MultipartUpload {
 	 * @param length
 	 * @throws IOException
 	 */
-	public static void writeByteArrayToFile(File file, byte[] data, int offset,
+	public static void writeByteArrayToFile(TempFileProvider fileProvider, File file, byte[] data, int offset,
 			int length) throws IOException {
 		OutputStream out = null;
 		try {
-			out = new FileOutputStream(file);
+			out = fileProvider.createFileOutputStream(file);
 			out.write(data, offset, length);
 		} finally {
 			IOUtils.closeQuietly(out);

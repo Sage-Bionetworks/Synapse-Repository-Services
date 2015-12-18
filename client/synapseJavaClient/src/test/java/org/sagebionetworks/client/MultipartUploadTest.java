@@ -5,18 +5,21 @@ import static org.junit.Assert.assertNotNull;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.sagebionetworks.client.MultipartUpload.calculateMD5Hex;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.net.URL;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.io.FileUtils;
 import org.junit.After;
@@ -26,6 +29,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlRequest;
 import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlResponse;
@@ -34,11 +39,15 @@ import org.sagebionetworks.repo.model.file.MultipartUploadState;
 import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
 import org.sagebionetworks.repo.model.file.PartPresignedUrl;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.file.TempFileProvider;
+import org.sagebionetworks.repo.model.file.TempFileProviderImpl;
 
 public class MultipartUploadTest {
 
 	@Mock
 	SynapseClient mockClient;
+	@Mock
+	TempFileProvider mockFileProvider;
 
 	List<PartData> partDataList;
 
@@ -51,14 +60,38 @@ public class MultipartUploadTest {
 	byte[] fileBytes;
 	ByteArrayInputStream input;
 	S3FileHandle fileHandle;
+	
+	List<File> mockFiles;
+	List<OutputStream> mockOutStreams;
 
 	MultipartUploadStatus startStatus;
 
 	MultipartUploadStatus completeStatus;
 
 	@Before
-	public void before() throws SynapseException, DecoderException {
+	public void before() throws Exception {
 		MockitoAnnotations.initMocks(this);
+		
+		// capture all mock files created.
+		mockFiles = new LinkedList<File>();
+		doAnswer(new Answer<File>(){
+			@Override
+			public File answer(InvocationOnMock invocation) throws Throwable {
+				// create a mock file
+				File mockFile = Mockito.mock(File.class);
+				mockFiles.add(mockFile);
+				return mockFile;
+			}}).when(mockFileProvider).createTempFile(anyString(), anyString());
+		
+		mockOutStreams = new LinkedList<OutputStream>();
+		doAnswer(new Answer<OutputStream>(){
+			@Override
+			public OutputStream answer(InvocationOnMock invocation) throws Throwable {
+				// create a mock file
+				OutputStream mockStream = Mockito.mock(FileOutputStream.class);
+				mockOutStreams.add(mockStream);
+				return mockStream;
+			}}).when(mockFileProvider).createFileOutputStream(any(File.class));
 
 		// The file's data is the following byte [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
 		fileBytes = Hex.decodeHex("00010203040506070809".toCharArray());
@@ -123,7 +156,7 @@ public class MultipartUploadTest {
 				calculateMD5Hex(fileBytes, 4, 4),
 				calculateMD5Hex(fileBytes, 8, 2), };
 		// call under test
-		String fileMD5Hex = MultipartUpload.createParts(input, fileSizeBytes,
+		String fileMD5Hex = MultipartUpload.createParts(new TempFileProviderImpl(), input, fileSizeBytes,
 				partSizeBytes, numberOfParts, partDataList);
 		assertEquals(expectedFileMD5Hex, fileMD5Hex);
 		assertEquals(3, partDataList.size());
@@ -159,14 +192,15 @@ public class MultipartUploadTest {
 	@Test
 	public void testCreatePartsPartSizeLargerThanFile() throws Exception {
 		long fileSizeBytes = fileBytes.length;
-		long partSizeBytes = fileSizeBytes + 1;
+		long partSizeBytes = 5L*1024L*1024L;
 		long numberOfParts = 1;
 		partDataList = new LinkedList<PartData>();
 		String expectedFileMD5Hex = calculateMD5Hex(fileBytes, 0, 10);
-		String[] expectedPartMD5Hex = new String[] { calculateMD5Hex(fileBytes,
-				0, 10), };
+		String[] expectedPartMD5Hex = new String[] {
+				calculateMD5Hex(fileBytes, 0, 10),
+		};
 		// call under test
-		String fileMD5Hex = MultipartUpload.createParts(input, fileSizeBytes,
+		String fileMD5Hex = MultipartUpload.createParts(new TempFileProviderImpl(),input, fileSizeBytes,
 				partSizeBytes, numberOfParts, partDataList);
 		assertEquals(expectedFileMD5Hex, fileMD5Hex);
 		assertEquals(1, partDataList.size());
@@ -180,6 +214,44 @@ public class MultipartUploadTest {
 				.readFileToByteArray(partData.getPartFile());
 		assertEquals("00010203040506070809",
 				new String(Hex.encodeHex(partBytes)));
+		
+	}
+	
+	@Test
+	public void testCreatePartsPartSizeEvenPartSize() throws Exception {
+		long fileSizeBytes = fileBytes.length;
+		long partSizeBytes = 5L;
+		long numberOfParts = 2;
+		partDataList = new LinkedList<PartData>();
+		String expectedFileMD5Hex = calculateMD5Hex(fileBytes, 0, 10);
+		String[] expectedPartMD5Hex = new String[] { 
+				calculateMD5Hex(fileBytes, 0, 5),
+				calculateMD5Hex(fileBytes, 5, 5),
+		};
+		// call under test
+		String fileMD5Hex = MultipartUpload.createParts(new TempFileProviderImpl(),input, fileSizeBytes,
+				partSizeBytes, numberOfParts, partDataList);
+		assertEquals(expectedFileMD5Hex, fileMD5Hex);
+		assertEquals(2, partDataList.size());
+		// one
+		int index = 0;
+		PartData partData = partDataList.get(index);
+		assertEquals(expectedPartMD5Hex[index], partData.getPartMD5Hex());
+		assertEquals(5, partData.getPartFile().length());
+		assertEquals(1, partData.getPartNumber());
+		byte[] partBytes = FileUtils
+				.readFileToByteArray(partData.getPartFile());
+		assertEquals("0001020304",
+				new String(Hex.encodeHex(partBytes)));
+		
+		// two
+		index = 1;
+		partData = partDataList.get(index);
+		assertEquals(expectedPartMD5Hex[index], partData.getPartMD5Hex());
+		assertEquals(5, partData.getPartFile().length());
+		assertEquals(2, partData.getPartNumber());
+		partBytes = FileUtils.readFileToByteArray(partData.getPartFile());
+		assertEquals("0506070809", new String(Hex.encodeHex(partBytes)));
 	}
 
 	@Test
@@ -230,10 +302,10 @@ public class MultipartUploadTest {
 	}
 
 	@Test
-	public void testUploadFileHappy() throws SynapseException {
+	public void testUploadFileHappy() throws Exception {
 		MultipartUpload upload = new MultipartUpload(mockClient, input,
 				fileSizeBytes, fileName, contentType, storageLocationId,
-				generatePreview, forceRestart);
+				generatePreview, forceRestart, mockFileProvider);
 		S3FileHandle result = upload.uploadFile();
 		assertEquals(fileHandle, result);
 
@@ -246,6 +318,56 @@ public class MultipartUploadTest {
 		verify(mockClient, times(1)).addPartToMultipartUpload(anyString(),
 				anyInt(), anyString());
 		verify(mockClient, times(1)).completeMultipartUpload(startStatus.getUploadId());
+		
+		verifyMockFilesDeleted(1);
+		verifyMockStreamsClosed(1);
+	}
+	@Test
+	public void testUploadFileComplete() throws Exception {
+		// Setup a status of complete from the start.
+		startStatus.setPartsState("1");
+		startStatus.setResultFileHandleId(fileHandle.getId());
+		startStatus.setState(MultipartUploadState.COMPLETED);
+		
+		MultipartUpload upload = new MultipartUpload(mockClient, input,
+				fileSizeBytes, fileName, contentType, storageLocationId,
+				generatePreview, forceRestart, mockFileProvider);
+		// since it is complete it should just return the file handle.
+		S3FileHandle result = upload.uploadFile();
+		assertEquals(fileHandle, result);
+
+		verify(mockClient, times(1)).startMultipartUpload(
+				any(MultipartUploadRequest.class), any(Boolean.class));
+		verify(mockClient, never()).getMultipartPresignedUrlBatch(
+				any(BatchPresignedUploadUrlRequest.class));
+		verify(mockClient, never()).putFileToURL(any(URL.class),
+				any(File.class), any(String.class));
+		verify(mockClient, never()).addPartToMultipartUpload(anyString(),
+				anyInt(), anyString());
+		verify(mockClient, never()).completeMultipartUpload(startStatus.getUploadId());
+	}
+	
+	/**
+	 * Verify the expected number of mock files were created and deleted.
+	 * @param expectedCount
+	 */
+	public void verifyMockFilesDeleted(int expectedCount){
+		assertEquals(expectedCount, mockFiles.size());
+		for(File mockFile: mockFiles){
+			verify(mockFile).delete();
+		}
+	}
+	
+	/**
+	 * Verify the expected number of mock OutputStreams were created and closed.
+	 * @param expectedCount
+	 * @throws IOException
+	 */
+	public void verifyMockStreamsClosed(int expectedCount) throws IOException{
+		assertEquals(expectedCount, mockOutStreams.size());
+		for(OutputStream mockOut: mockOutStreams){
+			verify(mockOut).close();
+		}
 	}
 
 	/**
