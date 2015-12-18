@@ -560,7 +560,7 @@ public class IT049FileHandleTest {
 	 */
 	@Test
 	public void testMultipartUploadV2Reset() throws FileNotFoundException, SynapseException, IOException{
-		Boolean forceRestart = true;
+		Boolean forceRestart = false;
 		MultipartUploadRequest request = new MultipartUploadRequest();
 		request.setContentMD5Hex("47f208f98d738d5ff3330f4a0b358788");
 		request.setContentType("plain/text");
