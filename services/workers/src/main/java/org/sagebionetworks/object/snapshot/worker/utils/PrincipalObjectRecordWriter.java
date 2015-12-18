@@ -112,7 +112,7 @@ public class PrincipalObjectRecordWriter implements ObjectRecordWriter {
 		List<UserGroup> members = groupMembersDAO.getMembers(groupId);
 
 		while (offset < members.size()) {
-			List<UserGroup> membersToWrite = members.subList(offset, Math.min(offset+LIMIT, members.size() -1));
+			List<UserGroup> membersToWrite = members.subList(offset, Math.min(offset+limit, members.size()));
 			List<ObjectRecord> records = new ArrayList<ObjectRecord>();
 			for (UserGroup member : membersToWrite) {
 				TeamMember teamMember = null;

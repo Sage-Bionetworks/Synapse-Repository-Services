@@ -181,20 +181,20 @@ public class PrincipalObjectRecordWriterTest {
 		Mockito.verify(mockObjectRecordDao, Mockito.never()).saveBatch(Mockito.anyList(), Mockito.anyString());
 		
 		// team that has four members
-		List<UserGroup> list = createListOfMembers(4);
+		List<UserGroup> list = createListOfMembers(2);
 		Mockito.when(mockGroupMembersDao.getMembers(principalID.toString())).thenReturn(list);
 		TeamMember teamMember = new TeamMember();
 		Mockito.when(mockTeamDAO.getMember(Mockito.anyString(), Mockito.anyString())).thenReturn(teamMember);
-		writer.captureAllMembers(principalID.toString(), 2, timestamp);
-		Mockito.verify(mockTeamDAO, Mockito.times(4)).getMember(Mockito.anyString(), Mockito.anyString());
+		writer.captureAllMembers(principalID.toString(), 1, timestamp);
+		Mockito.verify(mockTeamDAO, Mockito.times(2)).getMember(Mockito.anyString(), Mockito.anyString());
 		Mockito.verify(mockObjectRecordDao, Mockito.times(2)).saveBatch(Mockito.anyList(), Mockito.anyString());
 	}
 
 	@Test
 	public void logMembersWithBootstrapPrincipalTest() throws IOException {
-		List<UserGroup> list = createListOfMembers(4);
+		List<UserGroup> list = createListOfMembers(2);
 		Mockito.when(mockGroupMembersDao.getMembers(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString())).thenReturn(list);
-		writer.captureAllMembers(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString(), 2, timestamp);
+		writer.captureAllMembers(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString(), 1, timestamp);
 		Mockito.verify(mockTeamDAO, Mockito.never()).getMember(Mockito.anyString(), Mockito.anyString());
 		Mockito.verify(mockObjectRecordDao, Mockito.times(2)).saveBatch(Mockito.anyList(), Mockito.anyString());
 	}
