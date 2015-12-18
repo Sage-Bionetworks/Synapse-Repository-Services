@@ -12,8 +12,7 @@ import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 public class ToolMigrationUtils {
 	
 	public static List<TypeToMigrateMetadata> buildTypeToMigrateMetadata(
-		MigrationTypeCounts srcCounts, MigrationTypeCounts destCounts,
-		List<MigrationType> typesToMigrate) {
+		List<MigrationTypeCount> srcCounts, List<MigrationTypeCount> destCounts, List<MigrationType> typesToMigrate) {
 		if (srcCounts == null) throw new IllegalArgumentException("srcCounts cannot be null.");
 		if (destCounts == null) throw new IllegalArgumentException("destCounts cannot be null.");
 		if (typesToMigrate == null) throw new IllegalArgumentException("typesToMigrate cannot be null.");
@@ -34,9 +33,9 @@ public class ToolMigrationUtils {
 		return l;
 	}
 	
-	private static MigrationTypeCount findMetadata(MigrationTypeCounts tCounts, MigrationType t) {
+	private static MigrationTypeCount findMetadata(List<MigrationTypeCount> tCounts, MigrationType t) {
 		MigrationTypeCount tc = null;
-		for (MigrationTypeCount c: tCounts.getList()) {
+		for (MigrationTypeCount c: tCounts) {
 			if (c.getType().equals(t)) {
 				tc = c;
 				break;

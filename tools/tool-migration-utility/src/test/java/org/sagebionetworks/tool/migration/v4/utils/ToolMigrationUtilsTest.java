@@ -16,8 +16,8 @@ import org.sagebionetworks.repo.model.migration.MigrationTypeList;
 
 public class ToolMigrationUtilsTest {
 	
-	MigrationTypeCounts srcTypeCounts;
-	MigrationTypeCounts destTypeCounts;
+	List<MigrationTypeCount> srcTypeCounts;
+	List<MigrationTypeCount> destTypeCounts;
 	MigrationTypeList typesToMigrate;
 
 	@Before
@@ -35,7 +35,7 @@ public class ToolMigrationUtilsTest {
 	@Test
 	public void testGenerateMigrationTypeCounts() {
 		assertNotNull(srcTypeCounts);
-		assertEquals(MigrationType.values().length, srcTypeCounts.getList().size());
+		assertEquals(MigrationType.values().length, srcTypeCounts.size());
 	}
 	
 	@Test
@@ -75,12 +75,12 @@ public class ToolMigrationUtilsTest {
 		int idx = 0;
 		for (MigrationType t: typesToMigrate.getList()) {
 			TypeToMigrateMetadata d = new TypeToMigrateMetadata();
-			d.setDestCount(destTypeCounts.getList().get(idx).getCount());
-			d.setDestMaxId(destTypeCounts.getList().get(idx).getMaxid());
-			d.setDestMinId(destTypeCounts.getList().get(idx).getMinid());
-			d.setSrcCount(srcTypeCounts.getList().get(idx).getCount());
-			d.setSrcMaxId(srcTypeCounts.getList().get(idx).getMaxid());
-			d.setSrcMinId(srcTypeCounts.getList().get(idx).getMinid());
+			d.setDestCount(destTypeCounts.get(idx).getCount());
+			d.setDestMaxId(destTypeCounts.get(idx).getMaxid());
+			d.setDestMinId(destTypeCounts.get(idx).getMinid());
+			d.setSrcCount(srcTypeCounts.get(idx).getCount());
+			d.setSrcMaxId(srcTypeCounts.get(idx).getMaxid());
+			d.setSrcMinId(srcTypeCounts.get(idx).getMinid());
 			d.setType(t);
 			expectedMetadata.add(d);
 			idx++;
@@ -92,7 +92,7 @@ public class ToolMigrationUtilsTest {
 		}
 	}
 	
-	private MigrationTypeCounts generateMigrationTypeCounts() {
+	private List<MigrationTypeCount> generateMigrationTypeCounts() {
 		Random r = new Random();
 		List<MigrationTypeCount> l = new LinkedList<MigrationTypeCount>();
 		for (MigrationType t: MigrationType.values()) {
@@ -104,9 +104,7 @@ public class ToolMigrationUtilsTest {
 			l.add(tc);
 		}
 		
-		MigrationTypeCounts mtc = new MigrationTypeCounts();
-		mtc.setList(l);
-		return mtc;
+		return l;
 	}
 	
 	private List<MigrationType> generateTypesToMigrate() {
