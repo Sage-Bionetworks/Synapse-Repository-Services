@@ -298,6 +298,7 @@ public class MigratableTableDAOImplAutowireTest {
 		expectedPrimaryTypes.add(MigrationType.STORAGE_QUOTA);
 		expectedPrimaryTypes.add(MigrationType.QUIZ_RESPONSE);
 		expectedPrimaryTypes.add(MigrationType.VERIFICATION_SUBMISSION);
+		expectedPrimaryTypes.add(MigrationType.VERIFICATION_STATE);
 		expectedPrimaryTypes.add(MigrationType.FORUM);
 		expectedPrimaryTypes.add(MigrationType.DISCUSSION_THREAD);
 		expectedPrimaryTypes.add(MigrationType.DISCUSSION_THREAD_VIEW);
