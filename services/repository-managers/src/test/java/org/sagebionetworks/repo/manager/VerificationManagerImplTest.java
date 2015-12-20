@@ -28,11 +28,14 @@ import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.team.EmailParseUtil;
 import org.sagebionetworks.repo.manager.team.TeamConstants;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.VerificationDAO;
 import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
@@ -69,6 +72,8 @@ public class VerificationManagerImplTest {
 	private PrincipalAliasDAO mockPrincipalAliasDAO;
 	
 	private AuthorizationManager mockAuthorizationManager;
+
+	private TransactionalMessenger mockTransactionalMessenger;
 
 	private VerificationManagerImpl verificationManager;
 	
@@ -111,12 +116,14 @@ public class VerificationManagerImplTest {
 		mockFileHandleManager = Mockito.mock(FileHandleManager.class);
 		mockPrincipalAliasDAO = Mockito.mock(PrincipalAliasDAO.class);
 		mockAuthorizationManager = Mockito.mock(AuthorizationManager.class);
+		mockTransactionalMessenger = Mockito.mock(TransactionalMessenger.class);
 		verificationManager = new VerificationManagerImpl(
 				mockVerificationDao,
 				mockUserProfileManager,
 				mockFileHandleManager,
 				mockPrincipalAliasDAO,
-				mockAuthorizationManager);
+				mockAuthorizationManager,
+				mockTransactionalMessenger);
 		
 		UserProfile userProfile = createUserProfile();
 		when(mockUserProfileManager.getUserProfile(USER_ID.toString())).
@@ -154,6 +161,7 @@ public class VerificationManagerImplTest {
 		assertEquals(1, verificationSubmission.getAttachments().size());
 		assertEquals(FILE_HANDLE_ID, verificationSubmission.getAttachments().get(0).getId());
 		assertEquals(FILE_NAME, verificationSubmission.getAttachments().get(0).getFileName());
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(USER_ID.toString(), ObjectType.VERIFICATION_SUBMISSION, ChangeType.CREATE);
 	}
 	
 	@Test
@@ -197,6 +205,7 @@ public class VerificationManagerImplTest {
 		state.setState(VerificationStateEnum.SUSPENDED);
 		verificationManager.
 			createVerificationSubmission(userInfo, verificationSubmission);
+		verify(mockTransactionalMessenger, Mockito.times(2)).sendMessageAfterCommit(userInfo.getId().toString(), ObjectType.VERIFICATION_SUBMISSION, ChangeType.CREATE);
 	}
 	
 	@Test
@@ -315,6 +324,7 @@ public class VerificationManagerImplTest {
 		assertNotNull(state.getCreatedOn());
 		
 		verify(mockVerificationDao).appendVerificationSubmissionState(VERIFICATION_ID, state);
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(USER_ID.toString(), ObjectType.VERIFICATION_SUBMISSION, ChangeType.CREATE);
 	}
 
 	@Test(expected=InvalidModelException.class)

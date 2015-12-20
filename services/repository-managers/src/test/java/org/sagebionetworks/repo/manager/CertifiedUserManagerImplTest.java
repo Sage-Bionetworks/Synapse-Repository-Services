@@ -30,9 +30,12 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.QuizResponseDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.quiz.MultichoiceAnswer;
 import org.sagebionetworks.repo.model.quiz.MultichoiceQuestion;
 import org.sagebionetworks.repo.model.quiz.MultichoiceResponse;
@@ -58,16 +61,19 @@ public class CertifiedUserManagerImplTest {
 	private AmazonS3Utility s3Utility;
 	private GroupMembersDAO groupMembersDao;
 	private QuizResponseDAO quizResponseDao;
+	private TransactionalMessenger mockTransactionalMessenger;
 	
 	@Before
 	public void setUp() throws Exception {
 		s3Utility = Mockito.mock(AmazonS3Utility.class);
 		groupMembersDao = Mockito.mock(GroupMembersDAO.class);
 		quizResponseDao = Mockito.mock(QuizResponseDAO.class);
+		mockTransactionalMessenger = Mockito.mock(TransactionalMessenger.class);
 		certifiedUserManager = new CertifiedUserManagerImpl(
 				 s3Utility,
 				 groupMembersDao,
-				 quizResponseDao);
+				 quizResponseDao,
+				 mockTransactionalMessenger);
 		
 	}
 	
@@ -617,6 +623,7 @@ public class CertifiedUserManagerImplTest {
 		assertEquals(created.getId(), pr.getResponseId());
 		assertEquals(passingRecord.getScore(), pr.getScore());
 		assertEquals(created.getCreatedBy(), pr.getUserId());
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(userInfo.getId().toString(), ObjectType.CERTIFIED_USER_PASSING_RECORD, ChangeType.CREATE);
 	}
 	
 	@Test
@@ -653,6 +660,7 @@ public class CertifiedUserManagerImplTest {
 		assertEquals(created.getId(), pr.getResponseId());
 		assertEquals(passingRecord.getScore(), pr.getScore());
 		assertEquals(created.getCreatedBy(), pr.getUserId());
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(userInfo.getId().toString(), ObjectType.CERTIFIED_USER_PASSING_RECORD, ChangeType.CREATE);
 	}
 	
 	@Test(expected=UnauthorizedException.class)

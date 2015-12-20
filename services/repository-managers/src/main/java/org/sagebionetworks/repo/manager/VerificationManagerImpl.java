@@ -7,7 +7,6 @@ import static org.sagebionetworks.repo.model.verification.VerificationStateEnum.
 import static org.sagebionetworks.repo.model.verification.VerificationStateEnum.REJECTED;
 import static org.sagebionetworks.repo.model.verification.VerificationStateEnum.SUSPENDED;
 
-import java.io.UnsupportedEncodingException;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -16,21 +15,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import javax.mail.internet.InternetAddress;
-
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.entity.ContentType;
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.team.TeamConstants;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.VerificationDAO;
 import org.sagebionetworks.repo.model.dbo.principal.AliasUtils;
 import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
@@ -58,7 +57,9 @@ public class VerificationManagerImpl implements VerificationManager {
 	
 	@Autowired
 	private AuthorizationManager authorizationManager;
-	
+
+	@Autowired
+	private TransactionalMessenger transactionalMessenger;
 	
 	public static final String VERIFICATION_APPROVED_TEMPLATE = "message/verificationApprovedTemplate.html";
 	public static final String VERIFICATION_SUBMISSION_TEMPLATE = "message/verificationSubmissionTemplate.html";
@@ -77,12 +78,14 @@ public class VerificationManagerImpl implements VerificationManager {
 			UserProfileManager userProfileManager,
 			FileHandleManager fileHandleManager,
 			PrincipalAliasDAO principalAliasDAO,
-			AuthorizationManager authorizationManager) {
+			AuthorizationManager authorizationManager,
+			TransactionalMessenger transactionalMessenger) {
 		this.verificationDao = verificationDao;
 		this.userProfileManager = userProfileManager;
 		this.fileHandleManager = fileHandleManager;
 		this.principalAliasDAO = principalAliasDAO;
 		this.authorizationManager = authorizationManager;
+		this.transactionalMessenger = transactionalMessenger;
 	}
 
 	@Override
@@ -113,6 +116,7 @@ public class VerificationManagerImpl implements VerificationManager {
 				attachmentMetadata.setFileName(fileHandle.getFileName());
 			}
 		}
+		transactionalMessenger.sendMessageAfterCommit(userInfo.getId().toString(), ObjectType.VERIFICATION_SUBMISSION, ChangeType.CREATE);
 		return verificationDao.createVerificationSubmission(verificationSubmission);
 	}
 	
@@ -190,6 +194,7 @@ public class VerificationManagerImpl implements VerificationManager {
 			throw new InvalidModelException("Cannot transition verification submission from "+currentState+" to "+newState.getState());
 		populateCreateFields(newState, userInfo, new Date());
 		verificationDao.appendVerificationSubmissionState(verificationSubmissionId, newState);
+		transactionalMessenger.sendMessageAfterCommit(userInfo.getId().toString(), ObjectType.VERIFICATION_SUBMISSION, ChangeType.CREATE);
 	}
 	
 	public static void populateCreateFields(VerificationState state, UserInfo userInfo, Date now) {

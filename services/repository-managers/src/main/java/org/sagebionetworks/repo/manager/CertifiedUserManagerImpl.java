@@ -21,9 +21,12 @@ import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.QuizResponseDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.quiz.MultichoiceAnswer;
 import org.sagebionetworks.repo.model.quiz.MultichoiceQuestion;
 import org.sagebionetworks.repo.model.quiz.MultichoiceResponse;
@@ -61,6 +64,9 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager {
 	
 	@Autowired
 	private QuizResponseDAO quizResponseDao;
+
+	@Autowired
+	private TransactionalMessenger transactionalMessenger;
 	
 	public CertifiedUserManagerImpl() {}
 	
@@ -70,15 +76,18 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager {
 	 * @param s3Utility
 	 * @param groupMembersDao
 	 * @param quizResponseDao
+	 * @param transactionalMessenger
 	 */
 	public CertifiedUserManagerImpl(
 			 AmazonS3Utility s3Utility,
 			 GroupMembersDAO groupMembersDao,
-			 QuizResponseDAO quizResponseDao
+			 QuizResponseDAO quizResponseDao,
+			 TransactionalMessenger transactionalMessenger
 			) {
 		this.s3Utility=s3Utility;
 		this.groupMembersDao=groupMembersDao;
 		this.quizResponseDao=quizResponseDao;
+		this.transactionalMessenger=transactionalMessenger;
 	}
 	
 	/**
@@ -356,7 +365,7 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager {
 					AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString(), 
 					Collections.singletonList(userInfo.getId().toString()));
 		}
-
+		transactionalMessenger.sendMessageAfterCommit(userInfo.getId().toString(), ObjectType.CERTIFIED_USER_PASSING_RECORD, ChangeType.CREATE);
 		return passingRecord;
 	}
 	
