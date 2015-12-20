@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableDAOImpl;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 
 /**
@@ -23,14 +24,14 @@ import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 public class MigratableTableDAOImplUnitTest {
 
 	private MigratableTableDAOImpl dao;
-	private SimpleJdbcTemplate mockSimpleJdbcTemplate;
+	private JdbcTemplate mockSimpleJdbcTemplate;
 	@SuppressWarnings("rawtypes")
 	private List<MigratableDatabaseObject> databaseObjectRegister;
 	
 	@SuppressWarnings("rawtypes")
 	@Before
 	public void before(){
-		mockSimpleJdbcTemplate = Mockito.mock(SimpleJdbcTemplate.class);
+		mockSimpleJdbcTemplate = Mockito.mock(JdbcTemplate.class);
 		databaseObjectRegister = new ArrayList<MigratableDatabaseObject>();
 		dao = new MigratableTableDAOImpl(mockSimpleJdbcTemplate, databaseObjectRegister);
 	}

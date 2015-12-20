@@ -182,6 +182,7 @@ public class MigratableTableDAOImplAutowireTest {
 		assertEquals(2, count);
 		assertEquals(startCount, migratableTableDAO.getCount(MigrationType.FILE_HANDLE));
 		assertEquals(startMax, migratableTableDAO.getMaxId(MigrationType.FILE_HANDLE));
+		
 		// Now restore the data
 		List<Long> results = migratableTableDAO.createOrUpdateBatch(backupList1);
 		assertNotNull(results);
