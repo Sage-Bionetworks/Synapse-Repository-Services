@@ -8,6 +8,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
@@ -43,6 +44,8 @@ import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
+import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
+import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.S3UploadDestination;
@@ -531,5 +534,53 @@ public class IT049FileHandleTest {
 			assertTrue("Timed out waiting for bulk download job.",System.currentTimeMillis() - start < MAX_WAIT_MS);
 			Thread.sleep(2000);
 		}
+	}
+	
+	@Test
+	public void testMultipartUploadV2() throws FileNotFoundException, SynapseException, IOException{
+		assertNotNull(imageFile);
+		assertTrue(imageFile.exists());
+		String expectedMD5 = MD5ChecksumHelper.getMD5Checksum(imageFile);
+		// upload the little image using mutli-part upload
+		Long storageLocationId = null;
+		Boolean generatePreview = false;
+		Boolean forceRestart = null;
+		S3FileHandle result = synapse.multipartUpload(this.imageFile, storageLocationId, generatePreview, forceRestart);
+		assertNotNull(result);
+		toDelete.add(result);
+		assertNotNull(result.getFileName());
+		assertEquals(expectedMD5, result.getContentMd5());
+	}
+	
+	/**
+	 * Validate that a forceRestart=true actually restarts the upload.s
+	 * @throws FileNotFoundException
+	 * @throws SynapseException
+	 * @throws IOException
+	 */
+	@Test
+	public void testMultipartUploadV2Reset() throws FileNotFoundException, SynapseException, IOException{
+		Boolean forceRestart = false;
+		MultipartUploadRequest request = new MultipartUploadRequest();
+		request.setContentMD5Hex("47f208f98d738d5ff3330f4a0b358788");
+		request.setContentType("plain/text");
+		request.setFileName("foo.txt");
+		request.setFileSizeBytes(1L);
+		request.setGeneratePreview(false);
+		request.setStorageLocationId(null);
+		request.setPartSizeBytes((long) (5*1024*1024));
+		// start this job once.
+		MultipartUploadStatus startStatus = synapse.startMultipartUpload(request, forceRestart);
+		assertNotNull(startStatus);
+		assertNotNull(startStatus.getUploadId());
+		// Starting again should yield the same job
+		MultipartUploadStatus statusAgain = synapse.startMultipartUpload(request, forceRestart);
+		assertNotNull(statusAgain);
+		assertEquals(startStatus.getUploadId(), statusAgain.getUploadId());
+		// now a force restart should yield a new id.
+		forceRestart = true;
+		statusAgain = synapse.startMultipartUpload(request, forceRestart);
+		assertNotNull(statusAgain);
+		assertFalse(startStatus.getUploadId().equals(statusAgain.getUploadId()));
 	}
 }

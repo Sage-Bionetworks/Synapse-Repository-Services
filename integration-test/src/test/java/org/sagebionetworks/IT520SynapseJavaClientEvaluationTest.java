@@ -271,7 +271,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 	
 	@Test
 	public void testEvaluationRestrictionRoundTrip() throws SynapseException, UnsupportedEncodingException {
-		Long initialCount = synapseOne.getEvaluationCount();
+		Long initialCount = synapseOne.getAvailableEvaluationsPaginated(100, 0).getTotalNumberOfResults();
 		
 		// Create Evaluation
 		eval1 = synapseOne.createEvaluation(eval1);		
@@ -279,7 +279,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		assertNotNull(eval1.getId());
 		evaluationsToDelete.add(eval1.getId());
 		Long newCount = initialCount + 1;
-		assertEquals(newCount, synapseOne.getEvaluationCount());
+		assertEquals(newCount, (Long) synapseOne.getAvailableEvaluationsPaginated(100, 0).getTotalNumberOfResults());
 
 		// Create AccessRestriction
 		TermsOfUseAccessRequirement tou = new TermsOfUseAccessRequirement();
@@ -320,7 +320,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 	
 	@Test
 	public void testEvaluationRoundTrip() throws SynapseException, UnsupportedEncodingException {
-		Long initialCount = synapseOne.getEvaluationCount();
+		Long initialCount = synapseOne.getAvailableEvaluationsPaginated(100, 0).getTotalNumberOfResults();
 		
 		// Create
 		eval1 = synapseOne.createEvaluation(eval1);		
@@ -328,7 +328,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		assertNotNull(eval1.getId());
 		evaluationsToDelete.add(eval1.getId());
 		Long newCount = initialCount + 1;
-		assertEquals(newCount, synapseOne.getEvaluationCount());
+		assertEquals(newCount, (Long) synapseOne.getAvailableEvaluationsPaginated(100, 0).getTotalNumberOfResults());
 		
 		// Read
 		Evaluation fetched = synapseOne.getEvaluation(eval1.getId());
@@ -356,7 +356,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		} catch (SynapseException e) {
 			// expected
 		}
-		assertEquals(initialCount, synapseOne.getEvaluationCount());
+		assertEquals(initialCount, (Long) synapseOne.getAvailableEvaluationsPaginated(100, 0).getTotalNumberOfResults());
 	}
 	
 	@Test
@@ -364,8 +364,6 @@ public class IT520SynapseJavaClientEvaluationTest {
 		eval1.setStatus(EvaluationStatus.OPEN);
 		eval1 = synapseOne.createEvaluation(eval1);
 		evaluationsToDelete.add(eval1.getId());
-		
-		synapseOne.getParticipantCount(eval1.getId());
 		
 		// query for someone having SUBMIT privileges
 		PaginatedResults<Evaluation> evals = synapseOne.getAvailableEvaluationsPaginated(0, 100);
@@ -720,7 +718,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 	
 	@Test
 	public void testEvaluationsParticipantsPaginated() throws SynapseException {
-		Long initialEvaluationCount = synapseOne.getEvaluationCount();
+		Long initialEvaluationCount = synapseOne.getAvailableEvaluationsPaginated(100, 0).getTotalNumberOfResults();
 		
 		// create objects
 		eval1.setStatus(EvaluationStatus.OPEN);
@@ -972,49 +970,6 @@ public class IT520SynapseJavaClientEvaluationTest {
 		return file;
 	}
 
-	@Test
-	public void testGetUserEvaluationStateRegistered() throws Exception{
-		//base case, OPEN competition where user is a participant
-		eval1.setStatus(EvaluationStatus.OPEN);
-		eval1 = synapseOne.createEvaluation(eval1);		
-		evaluationsToDelete.add(eval1.getId());
-
-		UserEvaluationState state = synapseOne.getUserEvaluationState(eval1.getId());
-		assertEquals(UserEvaluationState.EVAL_OPEN_USER_NOT_REGISTERED, state);
-	}
-	
-	@Test
-	public void testGetUserEvaluationStateUnregistered() throws Exception{
-		//OPEN competition where user is not yet a participant
-		eval1.setStatus(EvaluationStatus.OPEN);
-		eval1 = synapseOne.createEvaluation(eval1);		
-		evaluationsToDelete.add(eval1.getId());
-
-		UserEvaluationState state = synapseOne.getUserEvaluationState(eval1.getId());
-		assertEquals(UserEvaluationState.EVAL_OPEN_USER_NOT_REGISTERED, state);
-	}
-	
-	@Test
-	public void testGetUserEvaluationStateNotOpen() throws Exception{
-		//evaluation is in some state, other than OPEN.  Could be CLOSED, COMPLETED, or PLANNED.
-		//in all cases, registration is unavailable
-		eval1.setStatus(EvaluationStatus.CLOSED);
-		eval1 = synapseOne.createEvaluation(eval1);		
-		evaluationsToDelete.add(eval1.getId());
-		UserEvaluationState state = synapseOne.getUserEvaluationState(eval1.getId());
-		assertEquals(UserEvaluationState.EVAL_REGISTRATION_UNAVAILABLE, state);
-		
-		eval1.setStatus(EvaluationStatus.COMPLETED);
-		eval1 = synapseOne.updateEvaluation(eval1);		
-		state = synapseOne.getUserEvaluationState(eval1.getId());
-		assertEquals(UserEvaluationState.EVAL_REGISTRATION_UNAVAILABLE, state);
-
-		eval1.setStatus(EvaluationStatus.PLANNED);
-		eval1 = synapseOne.updateEvaluation(eval1);		
-		state = synapseOne.getUserEvaluationState(eval1.getId());
-		assertEquals(UserEvaluationState.EVAL_REGISTRATION_UNAVAILABLE, state);
-	}
-	
 	@Test
 	public void testAclRoundtrip() throws Exception {
 

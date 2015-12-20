@@ -143,15 +143,6 @@ public class EvaluationManagerImpl implements EvaluationManager {
 		return res;
 	}
 
-	@Deprecated
-	@Override
-	public long getCount(UserInfo userInfo) throws DatastoreException, NotFoundException {
-		if (!userInfo.isAdmin()) {
-			throw new UnauthorizedException("Must be an administrator.");
-		}
-		return evaluationDAO.getCount();
-	}
-
 	@Override
 	public Evaluation findEvaluation(UserInfo userInfo, String name)
 			throws DatastoreException, NotFoundException, UnauthorizedException {

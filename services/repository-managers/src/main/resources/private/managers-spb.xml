@@ -109,7 +109,7 @@
 	<bean id="memoryTransferStrategy" class="org.sagebionetworks.repo.manager.file.transfer.MemoryTransferStrategy" />
 	
 	<!-- Temp file provider -->
-	<bean id="tempFileProvider" class="org.sagebionetworks.repo.util.TempFileProviderImpl" />
+	<bean id="tempFileProvider" class="org.sagebionetworks.repo.model.file.TempFileProviderImpl" />
 	
 	<!-- Temp File Transfer Strategy -->
 	<bean id="tempFileTransferStrategy" class="org.sagebionetworks.repo.manager.file.transfer.TempFileTransferStrategy" />

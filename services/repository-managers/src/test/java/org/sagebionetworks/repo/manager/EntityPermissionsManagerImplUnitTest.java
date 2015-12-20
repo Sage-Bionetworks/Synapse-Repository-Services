@@ -11,7 +11,6 @@ import java.util.Collections;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.PropertyAccessor;
 import org.sagebionetworks.StackConfiguration;
@@ -29,7 +28,6 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.util.ReflectionStaticTestUtils;
-import org.springframework.test.util.ReflectionTestUtils;
 
 public class EntityPermissionsManagerImplUnitTest {
 	
@@ -148,6 +146,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		assertTrue(uep.getCanCertifiedUserAddChild());
 		assertTrue(uep.getCanCertifiedUserEdit());
 		assertTrue(uep.getIsCertifiedUser());
+		assertTrue(uep.getCanModerate());
 		
 		assertTrue(entityPermissionsManager.canCreate(project, certifiedUserInfo).getAuthorized());
 		
@@ -172,6 +171,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		assertTrue(uep.getCanCertifiedUserAddChild());
 		assertTrue(uep.getCanCertifiedUserEdit());
 		assertFalse(uep.getIsCertifiedUser()); // not certified!
+		assertTrue(uep.getCanModerate());
 		
 		assertTrue(entityPermissionsManager.canCreate(project, nonCertifiedUserInfo).getAuthorized());
 		
@@ -196,6 +196,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		assertTrue(uep.getCanCertifiedUserAddChild());
 		assertTrue(uep.getCanCertifiedUserEdit());
 		assertTrue(uep.getIsCertifiedUser());
+		assertTrue(uep.getCanModerate());
 		
 		assertTrue(entityPermissionsManager.canCreate(folder, certifiedUserInfo).getAuthorized());
 		
@@ -220,6 +221,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		assertTrue(uep.getCanCertifiedUserAddChild());
 		assertTrue(uep.getCanCertifiedUserEdit());
 		assertFalse(uep.getIsCertifiedUser()); // not certified!
+		assertTrue(uep.getCanModerate());
 		
 		assertFalse(entityPermissionsManager.canCreate(folder, nonCertifiedUserInfo).getAuthorized());
 		

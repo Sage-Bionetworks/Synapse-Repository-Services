@@ -27,9 +27,9 @@ import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.file.TempFileProvider;
 import org.sagebionetworks.repo.util.ResourceTracker;
 import org.sagebionetworks.repo.util.ResourceTracker.ExceedsMaximumResources;
-import org.sagebionetworks.repo.util.TempFileProvider;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 
 import com.amazonaws.services.s3.AmazonS3Client;

@@ -25,10 +25,8 @@ import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlResponse;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadRequest;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadResponse;
 import org.sagebionetworks.repo.model.file.ChunkRequest;
-import org.sagebionetworks.repo.model.file.ChunkResult;
 import org.sagebionetworks.repo.model.file.ChunkedFileToken;
 import org.sagebionetworks.repo.model.file.CompleteAllChunksRequest;
-import org.sagebionetworks.repo.model.file.CompleteChunkedFileRequest;
 import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
@@ -108,7 +106,56 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * <p>
  * <b>Multi-part File Upload API</b>
  * </p>
- * TODO
+ * <p>
+ * In order to ensure file upload is robust, all files must be uploaded to
+ * Synapse in 'parts'. This means clients are expected to divide each file into
+ * 'parts' and upload each part separately. Since Synapse tracks the state of
+ * all multi-part uploads, upload failure can be recovered simply by uploading
+ * all parts that Synapse reports as missing.
+ * </p>
+ * <p>
+ * <i>Note: For mutli-part upload 1 MB is defined as 1024*1024 bytes </i>
+ * </p>
+ * <p>
+ * The first task in mutli-part upload is choosing a part size. The minimum part
+ * size is 5 MB (1024*1024*5). Therefore, any file with a size less than or
+ * equal to 5 MB will have a single part and a partSize=5242880. The maximum
+ * number of parts for a single file 10,000 parts. The following should be used
+ * to choose a part size:
+ * </p>
+ * <p>
+ * partSize = max(5242880, (fileSize/10000))
+ * </p>
+ * <p>
+ * Once a partSize is chosen, a multi-part upload can be started using the
+ * following: <a href="${POST.file.multipart}">POST /file/multipart</a> which
+ * will return an <a
+ * href="${org.sagebionetworks.repo.model.file.MultipartUploadStatus}"
+ * >MultipartUploadStatus</a>. The client is expected the use
+ * MultipartUploadStatus to drive the upload. The client will need to upload
+ * each missing part (parts with '0' in the partsState) as follows:
+ * </p>
+ * <p>
+ * <ol>
+ * <li>Get a pre-signed URL to upload the part to using: <a
+ * href="${POST.file.multipart.uploadId.presigned.url.batch}">POST
+ * /file/multipart/{uploadId}/presigned/url/batch</a></li>
+ * <li>Upload the part to the pre-signed URL using HTTPs PUT</li>
+ * <li>Add the part to the mutli-part upload using: <a
+ * href="${PUT.file.multipart.uploadId.add.partNumber}">PUT
+ * /file/multipart/{uploadId}/add/{partNumber}</a></li>
+ * </ol>
+ * </p>
+ * <p>
+ * Once all parts have been successfully added to the multi-part upload, the
+ * upload can be completed using: <a
+ * href="${PUT.file.multipart.uploadId.complete}">PUT
+ * /file/multipart/{uploadId}/complete</a> to produce a new <a
+ * href="${org.sagebionetworks.repo.model.file.FileHandle}">FileHandle</a> If
+ * the upload fails for any reason, the client should start over ( <a
+ * href="${POST.file.multipart}">POST /file/multipart</a>) and continue by
+ * uploading any parts that are reported as missing.
+ * </p>
  * <p>
  * <b>Associating FileHandles with Synapse objects</b>
  * </p>
@@ -414,56 +461,6 @@ public class UploadController extends BaseController {
 		response.setContentType("text/plain");
 		response.getWriter().write(url.toString());
 		response.getWriter().flush();
-	}
-
-	/**
-	 * This method is Deprecated and should not longer be use.
-	 * 
-	 * After POSTing a chunk to a pre-signed URL see:
-	 * {@link #createChunkedPresignedUrl(String, ChunkedPartRequest, HttpServletResponse)}
-	 * , the chunk must be added to the final file.
-	 * 
-	 * @param userId
-	 * @param cpr
-	 *            - Includes the {@link ChunkedFileToken} and the chunk number.
-	 *            The chunk number indicates this chunks position in the larger
-	 *            file. If there are 'n' chunks then the first chunk is '1' and
-	 *            the last chunk is 'n'.
-	 * @return The returned ChunkPart will be need to complete the file upload.
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 */
-	@Deprecated
-	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = "/addChunkToFile", method = RequestMethod.POST)
-	public @ResponseBody ChunkResult addChunkToFile(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestBody ChunkRequest cpr) throws DatastoreException,
-			NotFoundException {
-		return fileService.addChunkToFile(userId, cpr);
-	}
-
-	/**
-	 * This method is Deprecated and should not longer be use. After all of the
-	 * chunks are added to the file using:
-	 * {@link #addChunkToFile(String, ChunkedPartRequest)} this method must be
-	 * called to complete the upload process and create an {@link S3FileHandle}
-	 * 
-	 * @param userId
-	 * @param ccfr
-	 *            - This includes the {@link ChunkedFileToken} and the list
-	 * @return
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 */
-	@Deprecated
-	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = "/completeChunkFileUpload", method = RequestMethod.POST)
-	public @ResponseBody S3FileHandle completeChunkFileUpload(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestBody CompleteChunkedFileRequest ccfr)
-			throws DatastoreException, NotFoundException {
-		return fileService.completeChunkFileUpload(userId, ccfr);
 	}
 
 	/**

@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.web.service.table;
 
 import java.io.IOException;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -20,7 +19,6 @@ import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
-import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
 import org.sagebionetworks.repo.model.table.QueryNextPageToken;
 import org.sagebionetworks.repo.model.table.QueryResult;
@@ -30,17 +28,14 @@ import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
-import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.SelectColumnAndModel;
 import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 
 /**
  * Basic implementation of the TableServices.
@@ -99,28 +94,6 @@ public class TableServicesImpl implements TableServices {
 			offset = new Long(0);
 		}
 		return columnModelManager.listColumnModels(user, prefix, limit, offset);
-	}
-
-	@Deprecated // This is now asynchronous
-	@Override
-	public RowReferenceSet appendRows(Long userId, RowSet rows) throws DatastoreException, NotFoundException, IOException {
-		if(rows == null) throw new IllegalArgumentException("Rows cannot be null");
-		if(rows.getTableId() == null) throw new IllegalArgumentException("RowSet.tableId cannot be null");
-		UserInfo user = userManager.getUserInfo(userId);
-		ColumnMapper columnMap = columnModelManager.getCurrentColumns(user, rows.getTableId(), rows.getHeaders());
-		return tableRowManager.appendRows(user, rows.getTableId(), columnMap, rows, null);
-	}
-	
-	@Deprecated // This is now asynchronous
-	@Override
-	public RowReferenceSet appendPartialRows(Long userId, PartialRowSet rowsToAppendOrUpdateOrDelete) throws NotFoundException,
-			DatastoreException, IOException {
-		Validate.required(rowsToAppendOrUpdateOrDelete, "rowsToAppendOrUpdateOrDelete");
-		Validate.required(rowsToAppendOrUpdateOrDelete.getTableId(), "rowsToAppendOrUpdateOrDelete.tableId");
-		UserInfo user = userManager.getUserInfo(userId);
-		List<ColumnModel> columnModelsForTable = columnModelManager.getColumnModelsForTable(user, rowsToAppendOrUpdateOrDelete.getTableId());
-		ColumnMapper columnMap = TableModelUtils.createColumnModelColumnMapper(columnModelsForTable, false);
-		return tableRowManager.appendPartialRows(user, rowsToAppendOrUpdateOrDelete.getTableId(), columnMap, rowsToAppendOrUpdateOrDelete, null);
 	}
 
 	@Override
