@@ -35,7 +35,6 @@ import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.query.BasicQuery;
 import org.sagebionetworks.repo.model.query.QueryDAO;
 import org.sagebionetworks.repo.model.query.QueryTableResults;
@@ -43,10 +42,8 @@ import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.util.QueryTranslator;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.query.QueryStatement;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.sagebionetworks.util.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class EvaluationServiceImpl implements EvaluationService {
@@ -148,13 +145,6 @@ public class EvaluationServiceImpl implements EvaluationService {
 	}
 
 	@Override
-	@Deprecated
-	public long getEvaluationCount(Long userId) throws DatastoreException, NotFoundException {
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		return evaluationManager.getCount(userInfo);
-	}
-
-	@Override
 	public Evaluation findEvaluation(Long userId, String name)
 			throws DatastoreException, NotFoundException, UnauthorizedException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
@@ -186,21 +176,6 @@ public class EvaluationServiceImpl implements EvaluationService {
 	}
 
 	@Override
-	public Participant getParticipant(Long userId, String principalId, String evalId)
-			throws DatastoreException, NotFoundException {
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		return participantManager.getParticipant(userInfo, principalId, evalId);
-	}
-
-	@Override
-	@WriteTransaction
-	public void removeParticipant(Long userId, String evalId,
-			String idToRemove) throws DatastoreException, NotFoundException {
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		participantManager.removeParticipant(userInfo, evalId, idToRemove);
-	}
-
-	@Override
 	public PaginatedResults<Participant> getAllParticipants(Long userId, String evalId, long limit, long offset, HttpServletRequest request)
 			throws NumberFormatException, DatastoreException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
@@ -209,13 +184,6 @@ public class EvaluationServiceImpl implements EvaluationService {
 				res.getTotalNumberOfResults());
 	}
 
-	@Override
-	public long getParticipantCount(Long userId, String evalId)
-			throws DatastoreException, NotFoundException {
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		return participantManager.getNumberofParticipants(userInfo, evalId);
-	}
-	
 	@Override
 	public Submission createSubmission(Long userId, Submission submission, String entityEtag, 
 			String submissionEligibilityHash, HttpServletRequest request, String challengeEndpoint, String notificationUnsubscribeEndpoint)
@@ -417,19 +385,7 @@ public class EvaluationServiceImpl implements EvaluationService {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return queryDAO.executeQuery(basicQuery, userInfo);
 	}
-	
-	/**
-	 * Inserts an evaluation ID into a provided URL anywhere the
-	 * EVALUATION_ID_PATH_VAR is found.
-	 * 
-	 * @param evalId
-	 * @param url
-	 * @return
-	 */
-	private String makeEvalIdUrl(String evalId, String url) {
-		return url.replace(UrlHelpers.EVALUATION_ID_PATH_VAR, evalId);
-	}
-	
+
 	public TeamSubmissionEligibility getTeamSubmissionEligibility(Long userId, String evalId, String teamId) throws NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return evaluationManager.getTeamSubmissionEligibility(userInfo, evalId, teamId);

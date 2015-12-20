@@ -3,6 +3,7 @@ package org.sagebionetworks.client;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -17,7 +18,6 @@ import org.sagebionetworks.client.exceptions.SynapseResultNotReadyException;
 import org.sagebionetworks.client.exceptions.SynapseTableUnavailableException;
 import org.sagebionetworks.evaluation.model.BatchUploadResponse;
 import org.sagebionetworks.evaluation.model.Evaluation;
-import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionContributor;
@@ -26,7 +26,6 @@ import org.sagebionetworks.evaluation.model.SubmissionStatusBatch;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.model.TeamSubmissionEligibility;
 import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
-import org.sagebionetworks.evaluation.model.UserEvaluationState;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
@@ -85,18 +84,21 @@ import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.entity.query.EntityQuery;
 import org.sagebionetworks.repo.model.entity.query.EntityQueryResults;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
+import org.sagebionetworks.repo.model.file.AddPartResponse;
+import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlRequest;
+import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlResponse;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadRequest;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadResponse;
 import org.sagebionetworks.repo.model.file.ChunkRequest;
-import org.sagebionetworks.repo.model.file.ChunkResult;
 import org.sagebionetworks.repo.model.file.ChunkedFileToken;
 import org.sagebionetworks.repo.model.file.CompleteAllChunksRequest;
-import org.sagebionetworks.repo.model.file.CompleteChunkedFileRequest;
 import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
+import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
+import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
 import org.sagebionetworks.repo.model.file.S3FileCopyResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
@@ -575,12 +577,6 @@ public interface SynapseClient extends BaseClient {
 	public PaginatedResults<EntityHeader> getEntityHeaderBatch(List<Reference> references)
 			throws SynapseException;
 
-	public PaginatedResults<EntityHeader> getEntityReferencedBy(Entity entity)
-			throws SynapseException;
-
-	public PaginatedResults<EntityHeader> getEntityReferencedBy(String entityId,
-			String targetVersion) throws SynapseException;
-
 	public JSONObject query(String query) throws SynapseException;
 
 	/**
@@ -633,14 +629,6 @@ public interface SynapseClient extends BaseClient {
 			throws SynapseException;
 
 	public String putFileToURL(URL url, File file, String contentType)
-			throws SynapseException;
-
-	@Deprecated
-	public ChunkResult addChunkToFile(ChunkRequest chunkRequest)
-			throws SynapseException;
-
-	@Deprecated
-	public S3FileHandle completeChunkFileUpload(CompleteChunkedFileRequest request)
 			throws SynapseException;
 
 	public UploadDaemonStatus startUploadDeamon(CompleteAllChunksRequest cacr)
@@ -999,27 +987,12 @@ public interface SynapseClient extends BaseClient {
 	public PaginatedResults<Evaluation> getAvailableEvaluationsPaginated(int offset, int limit, List<String> evaluationIds)
 			throws SynapseException;
 
-	public Long getEvaluationCount() throws SynapseException;
-
 	public Evaluation findEvaluation(String name) throws SynapseException,
 			UnsupportedEncodingException;
 
 	public Evaluation updateEvaluation(Evaluation eval) throws SynapseException;
 
 	public void deleteEvaluation(String evalId) throws SynapseException;
-
-	public Participant createParticipant(String evalId) throws SynapseException;
-
-	public Participant getParticipant(String evalId, String principalId)
-			throws SynapseException;
-
-	public void deleteParticipant(String evalId, String principalId)
-			throws SynapseException;
-
-	public PaginatedResults<Participant> getAllParticipants(String s, long offset,
-			long limit) throws SynapseException;
-
-	public Long getParticipantCount(String evalId) throws SynapseException;
 
 	/**
 	 * 
@@ -1119,9 +1092,6 @@ public interface SynapseClient extends BaseClient {
 	
 	public Long getSubmissionCount(String evalId) throws SynapseException;
 
-	public UserEvaluationState getUserEvaluationState(String evalId)
-			throws SynapseException;
-
 	public QueryTableResults queryEvaluation(String query) throws SynapseException;
 	
 	public StorageUsageSummaryList getStorageUsageSummary(List<StorageUsageDimension> aggregation) throws SynapseException;
@@ -1144,15 +1114,6 @@ public interface SynapseClient extends BaseClient {
 
 	public PaginatedResults<EntityHeader> getFavorites(Integer limit, Integer offset)
 			throws SynapseException;
-
-	@Deprecated
-	public PaginatedResults<ProjectHeader> getMyProjects(Integer limit, Integer offset) throws SynapseException;
-
-	@Deprecated
-	public PaginatedResults<ProjectHeader> getProjectsFromUser(Long userId, Integer limit, Integer offset) throws SynapseException;
-
-	@Deprecated
-	public PaginatedResults<ProjectHeader> getProjectsForTeam(Long teamId, Integer limit, Integer offset) throws SynapseException;
 
 	public PaginatedResults<ProjectHeader> getMyProjects(ProjectListType type, ProjectListSortColumn sortColumn, SortDirection sortDirection,
 			Integer limit, Integer offset) throws SynapseException;
@@ -2505,4 +2466,65 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	void markThreadAsDeleted(String threadId) throws SynapseException;
+	
+	/**
+	 * Low-level API to start a mutli-part upload.  Start or resume a mutli-part upload.
+	 * @param request
+	 * @param forceRestart Optional parameter.  When forceRestart=true all upload state will be cleared and the upload will start over.
+	 * @return
+	 * @throws SynapseException 
+	 */
+	MultipartUploadStatus startMultipartUpload(MultipartUploadRequest request, Boolean forceRestart) throws SynapseException;
+	
+	/**
+	 *  Low-level API to start a mutli-part upload. Get a batch of pre-signed URLs for multi-part upload.
+	 * @param request
+	 * @return
+	 * @throws SynapseException 
+	 */
+	BatchPresignedUploadUrlResponse getMultipartPresignedUrlBatch(BatchPresignedUploadUrlRequest request) throws SynapseException;
+	
+	/**
+	 *  Low-level API for mutli-part upload.  After uploading a part to a pre-signed URL, it must be added to the multi-part upload.
+	 * @param uploadId
+	 * @param partNumber
+	 * @param partMD5Hex
+	 * @return
+	 * @throws SynapseException 
+	 */
+	AddPartResponse addPartToMultipartUpload(String uploadId, int partNumber, String partMD5Hex) throws SynapseException;
+	
+	/**
+	 * Low-level API for mutli-part upload. Complete a multi-part upload.
+	 * @param uploadId
+	 * @return
+	 * @throws SynapseException 
+	 */
+	MultipartUploadStatus completeMultipartUpload(String uploadId) throws SynapseException;
+	
+	/**
+	 * Upload a file using multi-part upload.
+	 * @param input
+	 * @param fileSize
+	 * @param fileName
+	 * @param contentType
+	 * @param storageLocationId
+	 * @return
+	 * @throws SynapseException 
+	 */
+	S3FileHandle multipartUpload(InputStream input, long fileSize, String fileName, String contentType, Long storageLocationId, Boolean generatePreview, Boolean forceRestart) throws SynapseException;
+	
+	/**
+	 * Upload the passed file with mutli-part upload.
+	 * @param file
+	 * @param storageLocationId
+	 * @param generatePreview
+	 * @param forceRestart
+	 * @return
+	 * @throws SynapseException
+	 * @throws FileNotFoundException 
+	 * @throws IOException 
+	 */
+	S3FileHandle multipartUpload(File file, Long storageLocationId, Boolean generatePreview, Boolean forceRestart) throws SynapseException, FileNotFoundException, IOException;
+
 }

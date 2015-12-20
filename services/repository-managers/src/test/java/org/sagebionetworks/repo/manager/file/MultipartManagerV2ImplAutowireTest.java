@@ -26,6 +26,7 @@ import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadState;
 import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
 import org.sagebionetworks.repo.model.file.PartPresignedUrl;
+import org.sagebionetworks.repo.model.file.PartUtils;
 import org.sagebionetworks.utils.DefaultHttpClientSingleton;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -77,7 +78,7 @@ public class MultipartManagerV2ImplAutowireTest {
 		request.setContentType("plain/text");
 		request.setFileName("foo.txt");
 		request.setFileSizeBytes(new Long(fileDataBytes.length));
-		request.setPartSizeBytes(MultipartManagerV2Impl.MIN_PART_SIZE_BYTES);
+		request.setPartSizeBytes(PartUtils.MIN_PART_SIZE_BYTES);
 		request.setStorageLocationId(null);
 		// calculate the MD5
 		byte[] md5 = Md5Utils.computeMD5Hash(fileDataBytes);

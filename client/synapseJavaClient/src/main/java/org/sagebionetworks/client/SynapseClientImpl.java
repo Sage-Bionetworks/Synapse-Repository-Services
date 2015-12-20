@@ -25,14 +25,13 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.NotImplementedException;
 import org.apache.commons.lang.StringUtils;
-import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.entity.ContentType;
-import org.apache.http.util.EntityUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONException;
@@ -40,14 +39,11 @@ import org.json.JSONObject;
 import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseResultNotReadyException;
-import org.sagebionetworks.client.exceptions.SynapseServerException;
 import org.sagebionetworks.client.exceptions.SynapseTableUnavailableException;
 import org.sagebionetworks.client.exceptions.SynapseTermsOfUseException;
 import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.evaluation.model.BatchUploadResponse;
 import org.sagebionetworks.evaluation.model.Evaluation;
-import org.sagebionetworks.evaluation.model.EvaluationStatus;
-import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionContributor;
@@ -56,7 +52,6 @@ import org.sagebionetworks.evaluation.model.SubmissionStatusBatch;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.model.TeamSubmissionEligibility;
 import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
-import org.sagebionetworks.evaluation.model.UserEvaluationState;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
@@ -127,10 +122,12 @@ import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.entity.query.EntityQuery;
 import org.sagebionetworks.repo.model.entity.query.EntityQueryResults;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
+import org.sagebionetworks.repo.model.file.AddPartResponse;
+import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlRequest;
+import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlResponse;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadRequest;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadResponse;
 import org.sagebionetworks.repo.model.file.ChunkRequest;
-import org.sagebionetworks.repo.model.file.ChunkResult;
 import org.sagebionetworks.repo.model.file.ChunkedFileToken;
 import org.sagebionetworks.repo.model.file.CompleteAllChunksRequest;
 import org.sagebionetworks.repo.model.file.CompleteChunkedFileRequest;
@@ -139,11 +136,14 @@ import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
+import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
+import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
 import org.sagebionetworks.repo.model.file.S3FileCopyRequest;
 import org.sagebionetworks.repo.model.file.S3FileCopyResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.S3UploadDestination;
 import org.sagebionetworks.repo.model.file.State;
+import org.sagebionetworks.repo.model.file.TempFileProviderImpl;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
 import org.sagebionetworks.repo.model.file.UploadDestination;
 import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
@@ -270,7 +270,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String ACTIVITY_URI_PATH = "/activity";
 	private static final String GENERATED_PATH = "/generated";
 	private static final String FAVORITE_URI_PATH = "/favorite";
-	private static final String PROJECT_URI_PATH = "/project";
 	private static final String PROJECTS_URI_PATH = "/projects";
 
 	public static final String PRINCIPAL = "/principal";
@@ -309,7 +308,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String ALL = "/all";
 	private static final String STATUS = "/status";
 	private static final String STATUS_BATCH = "/statusBatch";
-	private static final String PARTICIPANT = "participant";
 	private static final String LOCK_ACCESS_REQUIREMENT = "/lockAccessRequirement";
 	private static final String SUBMISSION = "submission";
 	private static final String SUBMISSION_BUNDLE = SUBMISSION + BUNDLE;
@@ -389,8 +387,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 	private static final String CREATE_CHUNKED_FILE_UPLOAD_TOKEN = "/createChunkedFileUploadToken";
 	private static final String CREATE_CHUNKED_FILE_UPLOAD_CHUNK_URL = "/createChunkedFileUploadChunkURL";
-	private static final String ADD_CHUNK_TO_FILE = "/addChunkToFile";
-	private static final String COMPLETE_CHUNK_FILE_UPLOAD = "/completeChunkFileUpload";
 	private static final String START_COMPLETE_UPLOAD_DAEMON = "/startCompleteUploadDaemon";
 	private static final String COMPLETE_UPLOAD_DAEMON_STATUS = "/completeUploadDaemonStatus";
 
@@ -2113,51 +2109,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	/**
-	 * Get the hierarchical path to this entity
-	 * 
-	 * @param entity
-	 * @return
-	 * @throws SynapseException
-	 */
-	@Override
-	public PaginatedResults<EntityHeader> getEntityReferencedBy(Entity entity)
-			throws SynapseException {
-		// By default we want to find anything that references any version of
-		// this entity.
-		String version = null;
-		return getEntityReferencedBy(entity.getId(), version);
-	}
-
-	/**
-	 * Get the hierarchical path to this entity via its id and urlPrefix
-	 * 
-	 * @param entityId
-	 * @param urlPrefix
-	 * @return
-	 * @throws SynapseException
-	 */
-	@Override
-	public PaginatedResults<EntityHeader> getEntityReferencedBy(
-			String entityId, String targetVersion) throws SynapseException {
-		String url = ENTITY_URI_PATH + "/" + entityId;
-		if (targetVersion != null) {
-			url += "/version/" + targetVersion;
-		}
-		url += "/referencedby";
-
-		JSONObject jsonObj = getEntity(url);
-		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
-		PaginatedResults<EntityHeader> results = new PaginatedResults<EntityHeader>(
-				EntityHeader.class);
-		try {
-			results.initializeFromJSONObject(adapter);
-			return results;
-		} catch (JSONObjectAdapterException e) {
-			throw new RuntimeException(e);
-		}
-	}
-
-	/**
 	 * Perform a query
 	 * 
 	 * @param query
@@ -2485,58 +2436,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	/**
-	 * <P>
-	 * This is a low-level API call for uploading large files. We recomend using
-	 * the high-level API call for uploading files
-	 * {@link #createFileHandle(File, String)}.
-	 * </P>
-	 * 
-	 * The thrid step in the low-level API used to upload large files to
-	 * Synapse. After a chunk is PUT to a pre-signed URL (see:
-	 * {@link #createChunkedPresignedUrl(ChunkRequest)}, it must be added to the
-	 * file. The resulting {@link ChunkResult} is required to complte the with
-	 * {@link #completeChunkFileUpload(CompleteChunkedFileRequest)}.
-	 * 
-	 * @param chunkRequest
-	 * @return
-	 * @throws SynapseException
-	 */
-	@Deprecated
-	@Override
-	public ChunkResult addChunkToFile(ChunkRequest chunkRequest)
-			throws SynapseException {
-		String url = ADD_CHUNK_TO_FILE;
-		return asymmetricalPost(getFileEndpoint(), url, chunkRequest,
-				ChunkResult.class, null);
-	}
-
-	/**
-	 * <P>
-	 * This is a low-level API call for uploading large files. We recomend using
-	 * the high-level API call for uploading files
-	 * {@link #createFileHandle(File, String)}.
-	 * </P>
-	 * 
-	 * The final step in the low-level API used to upload large files to
-	 * Synapse. After all of the chunks have been added to the file (see:
-	 * {@link #addChunkToFile(ChunkRequest)}) the upload is complted by calling
-	 * this method.
-	 * 
-	 * @param request
-	 * @return Returns the resulting {@link S3FileHandle} that can be used for
-	 *         any opperation that accepts {@link FileHandle} objects.
-	 * @throws SynapseException
-	 */
-	@Deprecated
-	@Override
-	public S3FileHandle completeChunkFileUpload(
-			CompleteChunkedFileRequest request) throws SynapseException {
-		String url = COMPLETE_CHUNK_FILE_UPLOAD;
-		return asymmetricalPost(getFileEndpoint(), url, request,
-				S3FileHandle.class, null);
-	}
-
-	/**
 	 * Start a daemon that will asycnrhounsously complete the multi-part upload.
 	 * 
 	 * @param cacr
@@ -2676,8 +2575,11 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			String url, JSONEntity requestBody, Class<? extends T> returnClass)
 			throws SynapseException {
 		try {
-			String jsonString = EntityFactory
-					.createJSONStringForEntity(requestBody);
+			String jsonString = null;
+			if(requestBody != null){
+				jsonString = EntityFactory
+						.createJSONStringForEntity(requestBody);
+			}
 			JSONObject responseBody = getSharedClientConnection().putJson(
 					endpoint, url, jsonString, getUserAgent());
 			return EntityFactory.createEntityFromJSONObject(responseBody,
@@ -4788,13 +4690,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		}
 	}
 
-	@Deprecated
-	@Override
-	public Long getEvaluationCount() throws SynapseException {
-		PaginatedResults<Evaluation> res = getEvaluationsPaginated(0, 0);
-		return res.getTotalNumberOfResults();
-	}
-
 	@Override
 	public Evaluation findEvaluation(String name) throws SynapseException,
 			UnsupportedEncodingException {
@@ -4839,89 +4734,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		String uri = createEntityUri(EVALUATION_URI_PATH, evalId);
 		getSharedClientConnection()
 				.deleteUri(repoEndpoint, uri, getUserAgent());
-	}
-
-	/**
-	 * Adds the authenticated user as a Participant in Evaluation evalId
-	 */
-	@Override
-	public Participant createParticipant(String evalId) throws SynapseException {
-		if (evalId == null)
-			throw new IllegalArgumentException("Evaluation id cannot be null");
-		String uri = createEntityUri(EVALUATION_URI_PATH, evalId) + "/"
-				+ PARTICIPANT;
-		JSONObject jsonObj = getSharedClientConnection().postUri(repoEndpoint,
-				uri, getUserAgent());
-		return initializeFromJSONObject(jsonObj, Participant.class);
-	}
-
-	@Override
-	public Participant getParticipant(String evalId, String principalId)
-			throws SynapseException {
-		if (evalId == null)
-			throw new IllegalArgumentException("Evaluation id cannot be null");
-		if (principalId == null)
-			throw new IllegalArgumentException("Principal ID cannot be null");
-		// Make sure we are passing in the ID, not the user name
-		try {
-			Long.parseLong(principalId);
-		} catch (NumberFormatException e) {
-			throw new SynapseClientException(
-					"Please pass in the pricipal ID, not the user name.", e);
-		}
-		String uri = createEntityUri(EVALUATION_URI_PATH, evalId) + "/"
-				+ PARTICIPANT + "/" + principalId;
-		JSONObject jsonObj = getEntity(uri);
-		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
-		try {
-			return new Participant(adapter);
-		} catch (JSONObjectAdapterException e1) {
-			throw new RuntimeException(e1);
-		}
-	}
-
-	/**
-	 * Removes user principalId from Evaluation evalId.
-	 */
-	@Override
-	public void deleteParticipant(String evalId, String principalId)
-			throws SynapseException {
-		if (evalId == null)
-			throw new IllegalArgumentException("Evaluation id cannot be null");
-		if (principalId == null)
-			throw new IllegalArgumentException("Principal ID cannot be null");
-		String uri = createEntityUri(EVALUATION_URI_PATH, evalId) + "/"
-				+ PARTICIPANT + "/" + principalId;
-		getSharedClientConnection()
-				.deleteUri(repoEndpoint, uri, getUserAgent());
-	}
-
-	@Override
-	public PaginatedResults<Participant> getAllParticipants(String evalId,
-			long offset, long limit) throws SynapseException {
-		if (evalId == null)
-			throw new IllegalArgumentException("Evaluation id cannot be null");
-		String url = EVALUATION_URI_PATH + "/" + evalId + "/" + PARTICIPANT
-				+ "?" + OFFSET + "=" + offset + "&limit=" + limit;
-		JSONObject jsonObj = getEntity(url);
-		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
-		PaginatedResults<Participant> results = new PaginatedResults<Participant>(
-				Participant.class);
-
-		try {
-			results.initializeFromJSONObject(adapter);
-			return results;
-		} catch (JSONObjectAdapterException e) {
-			throw new SynapseClientException(e);
-		}
-	}
-
-	@Override
-	public Long getParticipantCount(String evalId) throws SynapseException {
-		if (evalId == null)
-			throw new IllegalArgumentException("Evaluation id cannot be null");
-		PaginatedResults<Participant> res = getAllParticipants(evalId, 0, 0);
-		return res.getTotalNumberOfResults();
 	}
 
 	@Override
@@ -5340,39 +5152,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		return res.getTotalNumberOfResults();
 	}
 
-	@Override
-	public UserEvaluationState getUserEvaluationState(String evalId)
-			throws SynapseException {
-		UserEvaluationState returnState = UserEvaluationState.EVAL_REGISTRATION_UNAVAILABLE;
-		// TODO: replace with single call to getAvailableEvaluations()
-		// (PLFM-1858, simply check to see if evalId is in the return set)
-		// instead of these three calls
-		Evaluation evaluation = getEvaluation(evalId);
-		EvaluationStatus status = evaluation.getStatus();
-		if (EvaluationStatus.OPEN.equals(status)) {
-			// is the user registered for this?
-			UserProfile profile = getMyProfile();
-			if (profile != null && profile.getOwnerId() != null) {
-				// try to get the participant
-				returnState = UserEvaluationState.EVAL_OPEN_USER_NOT_REGISTERED;
-				try {
-					Participant user = getParticipant(evalId,
-							profile.getOwnerId());
-					if (user != null) {
-						returnState = UserEvaluationState.EVAL_OPEN_USER_REGISTERED;
-					}
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
-			// else user principle id unavailable, returnState =
-			// EVAL_REGISTRATION_UNAVAILABLE
-		}
-		// else registration is not OPEN, returnState =
-		// EVAL_REGISTRATION_UNAVAILABLE
-		return returnState;
-	}
-
 	/**
 	 * Execute a user query over the Submissions of a specified Evaluation.
 	 * 
@@ -5722,75 +5501,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			throw new SynapseClientException(e);
 		}
 
-	}
-
-	/**
-	 * Retrieve this user's Projects list
-	 * 
-	 * @param limit
-	 * @param offset
-	 * @return
-	 * @throws SynapseException
-	 */
-	@Override
-	@Deprecated
-	public PaginatedResults<ProjectHeader> getMyProjects(Integer limit,
-			Integer offset) throws SynapseException {
-		return getProjects(null, null, limit, offset);
-	}
-
-	/**
-	 * Retrieve another user's Projects list
-	 * 
-	 * @param limit
-	 * @param offset
-	 * @return
-	 * @throws SynapseException
-	 */
-	@Override
-	@Deprecated
-	public PaginatedResults<ProjectHeader> getProjectsFromUser(Long userId,
-			Integer limit, Integer offset) throws SynapseException {
-		return getProjects(userId, null, limit, offset);
-	}
-
-	/**
-	 * Retrieve another user's Projects list
-	 * 
-	 * @param limit
-	 * @param offset
-	 * @return
-	 * @throws SynapseException
-	 */
-	@Override
-	@Deprecated
-	public PaginatedResults<ProjectHeader> getProjectsForTeam(Long teamId,
-			Integer limit, Integer offset) throws SynapseException {
-		return getProjects(null, teamId, limit, offset);
-	}
-
-	@Deprecated
-	private PaginatedResults<ProjectHeader> getProjects(Long userId,
-			Long teamId, Integer limit, Integer offset)
-			throws SynapseException, SynapseClientException {
-		String url = PROJECT_URI_PATH;
-		if (userId != null) {
-			url += USER + '/' + userId;
-		} else if (teamId != null) {
-			url += TEAM + '/' + teamId;
-		}
-		url += '?' + OFFSET_PARAMETER + offset + '&' + LIMIT_PARAMETER + limit;
-		JSONObject jsonObj = getEntity(url);
-		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
-		PaginatedResults<ProjectHeader> results = new PaginatedResults<ProjectHeader>(
-				ProjectHeader.class);
-
-		try {
-			results.initializeFromJSONObject(adapter);
-			return results;
-		} catch (JSONObjectAdapterException e) {
-			throw new SynapseClientException(e);
-		}
 	}
 
 	/**
@@ -7648,5 +7358,67 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public void markThreadAsDeleted(String threadId) throws SynapseException {
 		getSharedClientConnection().deleteUri(repoEndpoint, THREAD+"/"+threadId, getUserAgent());
+	}
+
+	@Override
+	public MultipartUploadStatus startMultipartUpload(
+			MultipartUploadRequest request, Boolean forceRestart) throws SynapseException {
+		ValidateArgument.required(request, "MultipartUploadRequest");
+		StringBuilder pathBuilder = new StringBuilder();
+		pathBuilder.append("/file/multipart");
+		//the restart parameter is optional.
+		if(forceRestart != null){
+			pathBuilder.append("?forceRestart=");
+			pathBuilder.append(forceRestart.toString());
+		}
+		return asymmetricalPost(fileEndpoint, pathBuilder.toString(), request, MultipartUploadStatus.class, null);
+	}
+
+	@Override
+	public BatchPresignedUploadUrlResponse getMultipartPresignedUrlBatch(
+			BatchPresignedUploadUrlRequest request) throws SynapseException {
+		ValidateArgument.required(request, "BatchPresignedUploadUrlRequest");
+		ValidateArgument.required(request.getUploadId(), "BatchPresignedUploadUrlRequest.uploadId");
+		String path = String.format("/file/multipart/%1$s/presigned/url/batch", request.getUploadId());
+		return asymmetricalPost(fileEndpoint,path,request, BatchPresignedUploadUrlResponse.class, null);
+	}
+
+	@Override
+	public AddPartResponse addPartToMultipartUpload(String uploadId,
+			int partNumber, String partMD5Hex) throws SynapseException {
+		ValidateArgument.required(uploadId, "uploadId");
+		ValidateArgument.required(partMD5Hex, "partMD5Hex");
+		String path = String.format("/file/multipart/%1$s/add/%2$d?partMD5Hex=%3$s", uploadId, partNumber, partMD5Hex);
+		return asymmetricalPut(fileEndpoint, path, null, AddPartResponse.class);
+	}
+
+	@Override
+	public MultipartUploadStatus completeMultipartUpload(String uploadId) throws SynapseException {
+		ValidateArgument.required(uploadId, "uploadId");
+		String path = String.format("/file/multipart/%1$s/complete", uploadId);
+		return asymmetricalPut(fileEndpoint, path, null, MultipartUploadStatus.class);
+	}
+
+	@Override
+	public S3FileHandle multipartUpload(InputStream input, long fileSize, String fileName,
+			String contentType, Long storageLocationId, Boolean generatePreview, Boolean forceRestart) throws SynapseException {
+		return new MultipartUpload(this, input, fileSize, fileName, contentType, storageLocationId, generatePreview, forceRestart, new TempFileProviderImpl()).uploadFile();
+	}
+
+
+	@Override
+	public S3FileHandle multipartUpload(File file,
+			Long storageLocationId, Boolean generatePreview,
+			Boolean forceRestart) throws SynapseException, IOException {
+		InputStream fileInputStream = null;
+		try{
+			fileInputStream = new FileInputStream(file);
+			String fileName = file.getName();
+			long fileSize = file.length();
+			String contentType = guessContentTypeFromStream(file);
+			return multipartUpload(fileInputStream, fileSize, fileName, contentType, storageLocationId, generatePreview, forceRestart);
+		}finally{
+			IOUtils.closeQuietly(fileInputStream);
+		}
 	}
 }

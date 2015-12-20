@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.util;
+package org.sagebionetworks.repo.model.file;
 
 import java.io.File;
 import java.io.FileInputStream;

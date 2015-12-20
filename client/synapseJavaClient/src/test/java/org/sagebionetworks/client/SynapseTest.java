@@ -46,7 +46,6 @@ import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.NameConflictException;
-import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
@@ -271,36 +270,7 @@ public class SynapseTest {
 		assertEquals(layerHeader, firstHeader);
 		
 	}
-	
-	@Test
-	public void testGetEntityReferencedBy() throws Exception {							
-		Project proj2 = new Project();
-		proj2.setId("5");
-		proj2.setName("proj2");
-		
-		EntityHeader proj1Header = new EntityHeader();
-		proj1Header.setId("id");
-		proj1Header.setName("name");
-		proj1Header.setType("type");		
-		List<EntityHeader> eHeaderList = new ArrayList<EntityHeader>();
-		eHeaderList.add(proj1Header);		
-		
-		PaginatedResults<EntityHeader> paginatedResult = new PaginatedResults<EntityHeader>();
-		paginatedResult.setResults(eHeaderList);
-		paginatedResult.setTotalNumberOfResults(1);
-				
-		// setup mock
-		JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
-		paginatedResult.writeToJSONObject(adapter);		
-		configureMockHttpResponse(200, adapter.toJSONString());		
-		
-		PaginatedResults<EntityHeader> realResults = synapse.getEntityReferencedBy(proj2);
-		
-		assertEquals(1, realResults.getTotalNumberOfResults());
-		EntityHeader firstHeader = realResults.getResults().get(0);
-		assertEquals(proj1Header, firstHeader);
-	}		
-	
+
 	@Test
 	public void testCreateAccessRequirement() throws Exception {
 		TermsOfUseAccessRequirement ar = new TermsOfUseAccessRequirement();
