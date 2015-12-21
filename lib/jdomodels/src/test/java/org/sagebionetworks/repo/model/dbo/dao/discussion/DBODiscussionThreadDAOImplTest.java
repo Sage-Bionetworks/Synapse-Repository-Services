@@ -16,7 +16,6 @@ import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
@@ -133,7 +132,6 @@ public class DBODiscussionThreadDAOImplTest {
 		assertEquals(etag, dto.getEtag());
 	}
 	
-	@Ignore
 	@Test
 	public void testUpdateMessageKey() throws InterruptedException {
 		DiscussionThreadBundle dto = threadDao.createThread(forumId, threadId.toString(), "title", "messageKey", userId);

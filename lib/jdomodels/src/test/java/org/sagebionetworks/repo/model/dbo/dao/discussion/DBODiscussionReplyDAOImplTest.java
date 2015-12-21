@@ -16,7 +16,6 @@ import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
@@ -251,7 +250,6 @@ public class DBODiscussionReplyDAOImplTest {
 		assertEquals(dto, returnedDto);
 	}
 
-	@Ignore
 	@Test
 	public void testUpdateMessageKey() throws InterruptedException {
 		DiscussionReplyBundle dto = replyDao.createReply(threadId, "messageKey", userId);
