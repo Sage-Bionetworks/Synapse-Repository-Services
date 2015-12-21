@@ -1,5 +1,5 @@
 {
-	"description": "List of ",
+	"description": "A record containing count of instances, minimum id and maximum id for a migration type",
 	"properties": {
 		"type": {
 			"$ref": "org.sagebionetworks.repo.model.migration.MigrationType"
