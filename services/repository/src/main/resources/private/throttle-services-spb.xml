@@ -12,14 +12,6 @@
 	<aop:aspectj-autoproxy />
 
 	<bean id="userThrottleFilter" class="org.sagebionetworks.repo.web.filter.UserThrottleFilter">
-		<!-- This gate ensures we never run more than the max number requests this user -->
-		<property name="userThrottleGate">
-			<bean name="userThrottle" class="org.sagebionetworks.repo.model.semaphore.MemoryCountingSemaphore">
-				<constructor-arg index="0">
-				<bean class="org.sagebionetworks.common.util.ClockImpl"/>
-				</constructor-arg>
-			</bean>
-		</property>
 	</bean>
 	
 </beans>
