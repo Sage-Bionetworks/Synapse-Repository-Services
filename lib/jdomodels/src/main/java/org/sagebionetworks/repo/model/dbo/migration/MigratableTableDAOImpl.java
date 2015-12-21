@@ -271,6 +271,7 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		String maxSql = this.maxSqlMap.get(type);
 		if(maxSql == null) throw new IllegalArgumentException("Cannot find max SQL for "+type);
 		Long res = jdbcTemplate.queryForObject(maxSql, Long.class);
+		// Consistent with simpleJdbcTemplate
 		if (res == null) {
 			return 0;
 		} else {
@@ -284,6 +285,7 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		String minSql = this.minSqlMap.get(type);
 		if(minSql == null) throw new IllegalArgumentException("Cannot find min SQL for "+type);
 		Long res = jdbcTemplate.queryForObject(minSql, Long.class);
+		// Consistent with simpleJdbcTemplate
 		if (res == null) {
 			return 0;
 		} else {
