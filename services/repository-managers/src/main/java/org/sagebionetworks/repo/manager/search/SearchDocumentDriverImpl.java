@@ -150,6 +150,7 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 	 * @return
 	 * @throws NotFoundException
 	 */
+	
 	public EntityPath getEntityPath(String nodeId) throws NotFoundException {
 		List<EntityHeader> pathHeaders = nodeDao.getEntityPath(nodeId);
 		EntityPath entityPath = new EntityPath();
@@ -168,11 +169,22 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		String cleanedDocument = serializedDocument.replaceAll("\\p{Cc}", "");
 
 		// Get rid of escaped control characters too
-		cleanedDocument = cleanedDocument.replaceAll("\\\\u00[0,1][0-9,a-f]",
-				"");
-
+		cleanedDocument = cleanedDocument.replaceAll("\\\\u00[0,1][0-9,a-f]", "");
+		
 		// AwesomeSearch expects UTF-8
 		return cleanedDocument.getBytes("UTF-8");
+	}
+	
+	public String cleanSearchDocument(String document) {
+		// AwesomeSearch pukes on control characters. Some descriptions have
+		// control characters in them for some reason, in any case, just get rid
+		// of all control characters in the search document
+		String cleanedDocument = document.replaceAll("\\p{Cc}", "");
+
+		// Get rid of escaped control characters too
+		cleanedDocument = cleanedDocument.replaceAll("\\\\u00[0,1][0-9,a-f]", "");
+
+		return cleanedDocument;
 	}
 
 	@Override
@@ -429,15 +441,8 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 					markdownString = SynapseMarkdownProcessor.getInstance().markdown2Html(markdownString, false, null);
 					markdownString = Jsoup.parse(markdownString).text();
 				} catch (IOException e) {
-					// AwesomeSearch pukes on control characters. Some descriptions have
-					// control characters in them for some reason, in any case, just get rid
-					// of all control characters in the search document
-					markdownString = markdownString.replaceAll("\\p{Cc}", "");
-
-					// Get rid of escaped control characters too
-					markdownString = markdownString.replaceAll("\\\\u00[0,1][0-9,a-f]","");
+					markdownString = cleanSearchDocument(markdownString);
 				}
-				
 				
 				builder.append("\n");
 				builder.append(markdownString);

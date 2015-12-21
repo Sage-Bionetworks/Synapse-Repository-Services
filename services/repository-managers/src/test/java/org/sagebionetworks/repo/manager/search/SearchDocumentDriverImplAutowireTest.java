@@ -115,7 +115,7 @@ public class SearchDocumentDriverImplAutowireTest {
 		subPage.setTitle("subTitle");
 		subPage.setParentWikiId(rootPage.getId());
 		subPage = wikiPageDao.create(subPage, new HashMap<String, FileHandle>(), project.getId(), ObjectType.ENTITY, new ArrayList<String>());
-		subPageKey =WikiPageKeyHelper.createWikiPageKey(project.getId(), ObjectType.ENTITY, subPage.getId());
+		subPageKey = WikiPageKeyHelper.createWikiPageKey(project.getId(), ObjectType.ENTITY, subPage.getId());
 	}
 	
 	private V2WikiPage createWikiPageWithMarkdown(String markdown) throws IOException{
@@ -338,7 +338,7 @@ public class SearchDocumentDriverImplAutowireTest {
 	
 	@Test
 	public void testGetAllWikiPageText() throws DatastoreException, IOException, NotFoundException{
-		// The expected text fo
+		// The expected text
 		StringBuilder expected = new StringBuilder();
 		expected.append("\n");
 		expected.append(rootPage.getTitle());
@@ -348,7 +348,7 @@ public class SearchDocumentDriverImplAutowireTest {
 		expected.append(subPage.getTitle());
 		expected.append("\n");
 		expected.append(wikiPageDao.getMarkdown(subPageKey, null));
-		// Now get the text from the d
+		// Now get the text from the driver
 		String resultText = searchDocumentDriver.getAllWikiPageText(project.getId());
 		assertNotNull(resultText);
 		assertEquals(expected.toString(), resultText);
@@ -356,7 +356,52 @@ public class SearchDocumentDriverImplAutowireTest {
 		resultText = searchDocumentDriver.getAllWikiPageText("-123");
 		assertEquals(null, resultText);
 	}
-
+	
+	@Test
+	public void testGetAllWikiPageTextParseEscapeControlCharacters() throws DatastoreException, IOException, NotFoundException{
+		// add another subpage with escape control characters
+		V2WikiPage escapeControlCharSubPage = createWikiPageWithMarkdown("& ==> &amp;\" ==> &quot;> ==> &gt;< ==> &lt;' =");
+		escapeControlCharSubPage.setTitle("subTitle");
+		escapeControlCharSubPage.setParentWikiId(rootPage.getId());
+		escapeControlCharSubPage = wikiPageDao.create(escapeControlCharSubPage, new HashMap<String, FileHandle>(), project.getId(), ObjectType.ENTITY, new ArrayList<String>());
+		WikiPageKey escapeControlCharSubPageKey = WikiPageKeyHelper.createWikiPageKey(project.getId(), ObjectType.ENTITY, escapeControlCharSubPage.getId());
+		
+		// Now get the text from the driver
+		String actualResult = searchDocumentDriver.getAllWikiPageText(project.getId());
+		
+		// Check against plain text
+		assertTrue(!actualResult.contains("&amp;"));
+		assertTrue(!actualResult.contains("==&gt;"));
+		assertTrue(!actualResult.contains("&amp;&quot;"));
+		assertTrue(!actualResult.contains("==&gt;"));
+		assertTrue(!actualResult.contains("&quot;&gt;"));
+		assertTrue(!actualResult.contains("&lt;'"));
+	}
+	
+	@Test
+	public void testGetAllWikiPageTextRemoveHTML() throws DatastoreException, IOException, NotFoundException{
+		// add another subpage with HTML
+		V2WikiPage htmlSubpage = createWikiPageWithMarkdown("<table><tr><td>this is a test</td><td>column 2</td></tr></table><iframe width=\"420\" height=\"315\" src=\"http://www.youtube.com/embed/AOjaQ7Vl7SM\" frameborder=\"0\" allowfullscreen></iframe><embed>");
+		htmlSubpage.setTitle("subTitle");
+		htmlSubpage.setParentWikiId(rootPage.getId());
+		htmlSubpage = wikiPageDao.create(htmlSubpage, new HashMap<String, FileHandle>(), project.getId(), ObjectType.ENTITY, new ArrayList<String>());
+		WikiPageKey htmlSubPageKey = WikiPageKeyHelper.createWikiPageKey(project.getId(), ObjectType.ENTITY, htmlSubpage.getId());
+		
+		// Now get the text from the driver, verify tags have been removed
+		String actualResult = searchDocumentDriver.getAllWikiPageText(project.getId());
+		assertTrue(!actualResult.contains("<table>"));
+		assertTrue(!actualResult.contains("<iframe>"));
+		assertTrue(!actualResult.contains("<embed>"));
+	}
+	
+	@Test
+	public void testCleanSearchDocumentString() {
+		String dirtyString = "For the microarray experiments, MV4-11 and MOLM-14 ... Midi Kit, according to the manufacturer\u0019s instruction (Qiagen, Valencia, USA). \u0006f";
+		String cleanedString = searchDocumentDriver.cleanSearchDocument(dirtyString);
+		assertEquals(-1, new String(cleanedString).indexOf("\\u0019"));
+		assertEquals(-1, new String(cleanedString).indexOf("\\u0006f"));
+	}
+	
 
 	// http://stackoverflow.com/questions/326390/how-to-create-a-java-string-from-the-contents-of-a-file
 	private static String readFile(File file) throws IOException {
