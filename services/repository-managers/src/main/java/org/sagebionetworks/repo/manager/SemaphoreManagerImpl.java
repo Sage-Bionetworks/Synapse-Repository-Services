@@ -8,7 +8,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class SemaphoreManagerImpl implements SemaphoreManager {
 	
 	@Autowired
-	CountingSemaphore semaphoreDao;
+	CountingSemaphore countingSemaphore;
+	
+	@Autowired
+	CountingSemaphore userThrottleMemoryCountingSemaphore;
 
 	@Override
 	public void releaseAllLocksAsAdmin(UserInfo admin) {
@@ -20,7 +23,9 @@ public class SemaphoreManagerImpl implements SemaphoreManager {
 			throw new UnauthorizedException("Only an administrator can make this call");
 		}
 		// Release all locks
-		semaphoreDao.releaseAllLocks();
+		countingSemaphore.releaseAllLocks();
+		// release memory locks.
+		userThrottleMemoryCountingSemaphore.releaseAllLocks();
 	}
 	
 

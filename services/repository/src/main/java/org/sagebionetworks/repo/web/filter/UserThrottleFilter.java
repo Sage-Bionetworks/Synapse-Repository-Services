@@ -17,10 +17,10 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.cloudwatch.ProfileData;
-import org.sagebionetworks.database.semaphore.CountingSemaphore;
-import org.sagebionetworks.database.semaphore.LockReleaseFailedException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
+import org.sagebionetworks.repo.model.semaphore.LockReleaseFailedException;
+import org.sagebionetworks.repo.model.semaphore.MemoryCountingSemaphore;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -35,14 +35,12 @@ public class UserThrottleFilter implements Filter {
 	public static final int MAX_CONCURRENT_LOCKS = 3;
 
 	private static Logger log = LogManager.getLogger(UserThrottleFilter.class);
-	private CountingSemaphore userThrottleGate;
 
 	@Autowired
 	private Consumer consumer;
-
-	public void setUserThrottleGate(CountingSemaphore userThrottleGate) {
-		this.userThrottleGate = userThrottleGate;
-	}
+	
+	@Autowired
+	MemoryCountingSemaphore userThrottleGate;
 
 	@Override
 	public void destroy() {

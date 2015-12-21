@@ -6,7 +6,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
-
 import static org.sagebionetworks.repo.web.filter.UserThrottleFilter.*;
 
 import javax.servlet.FilterChain;
@@ -19,6 +18,7 @@ import org.sagebionetworks.cloudwatch.ProfileData;
 import org.sagebionetworks.database.semaphore.CountingSemaphore;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.semaphore.MemoryCountingSemaphore;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -27,13 +27,13 @@ public class UserThrottleFilterTest {
 
 	private UserThrottleFilter filter;
 
-	private CountingSemaphore userThrottleGate;
+	private MemoryCountingSemaphore userThrottleGate;
 
 	@Before
 	public void setupFilter() throws Exception {
-		userThrottleGate = mock(CountingSemaphore.class);
+		userThrottleGate = mock(MemoryCountingSemaphore.class);
 		filter = new UserThrottleFilter();
-		filter.setUserThrottleGate(userThrottleGate);
+		ReflectionTestUtils.setField(filter, "userThrottleGate", userThrottleGate);
 	}
 
 	@Test

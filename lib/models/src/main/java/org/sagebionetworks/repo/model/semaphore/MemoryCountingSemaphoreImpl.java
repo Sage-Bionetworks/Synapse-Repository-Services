@@ -8,8 +8,6 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.sagebionetworks.common.util.Clock;
-import org.sagebionetworks.database.semaphore.CountingSemaphore;
-import org.sagebionetworks.database.semaphore.LockReleaseFailedException;
 import org.sagebionetworks.util.ValidateArgument;
 
 /**
@@ -18,7 +16,7 @@ import org.sagebionetworks.util.ValidateArgument;
  * 
  * 
  */
-public class MemoryCountingSemaphore implements CountingSemaphore {
+public class MemoryCountingSemaphoreImpl implements MemoryCountingSemaphore {
 	
 	/*
 	 * Note: This is not a synchronized map. All access to this map must occur in a synchronized method
@@ -32,7 +30,7 @@ public class MemoryCountingSemaphore implements CountingSemaphore {
 	 * Create a new semaphore given a clock.
 	 * @param clock
 	 */
-	public MemoryCountingSemaphore(Clock clock) {
+	public MemoryCountingSemaphoreImpl(Clock clock) {
 		super();
 		this.clock = clock;
 	}

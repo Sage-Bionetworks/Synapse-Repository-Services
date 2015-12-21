@@ -11,19 +11,18 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.common.util.Clock;
-import org.sagebionetworks.database.semaphore.LockReleaseFailedException;
 
 public class MemoryCountingSemaphoreTest {
 	
 	@Mock
 	Clock mockClock;
 	
-	MemoryCountingSemaphore memoryCountingSemaphore;
+	MemoryCountingSemaphoreImpl memoryCountingSemaphore;
 	
 	@Before
 	public void before(){
 		MockitoAnnotations.initMocks(this);
-		memoryCountingSemaphore = new MemoryCountingSemaphore(mockClock);
+		memoryCountingSemaphore = new MemoryCountingSemaphoreImpl(mockClock);
 		// setup some default clock behavior
 		when(mockClock.currentTimeMillis()).thenReturn(1000L, 2000L,3000L,4000L,5000L,6000L);
 	}
