@@ -1,10 +1,10 @@
 package org.sagebionetworks.repo.model.semaphore;
 
 /**
- * Token used to track a semaphore lock.
+ * Locked used by MemoryCountingSemaphore.
  *
  */
-public class Token {
+public class Lock {
 	
 	String token;
 	long expiresTimeMs;
@@ -38,7 +38,7 @@ public class Token {
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		Token other = (Token) obj;
+		Lock other = (Lock) obj;
 		if (expiresTimeMs != other.expiresTimeMs)
 			return false;
 		if (token == null) {
