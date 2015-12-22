@@ -1796,7 +1796,7 @@ public class IT500SynapseJavaClient {
 		nonWaitingAdminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
 		nonWaitingAdminSynapse.clearAllLocks();
 		nonWaitingAdminSynapse.getSharedClientConnection().setRetryRequestIfServiceUnavailable(false);
-		int max = StackConfiguration.singleton().getMaxConcurrentRepoConnections().get();
+		int max = 3;
 		ExecutorService executor = Executors.newFixedThreadPool(max + 1);
 		List<Future<Void>> results = Lists.newArrayList();
 		for (int i = 0; i < max; i++) {
