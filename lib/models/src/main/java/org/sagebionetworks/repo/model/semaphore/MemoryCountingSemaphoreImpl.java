@@ -22,7 +22,7 @@ public class MemoryCountingSemaphoreImpl implements MemoryCountingSemaphore {
 	 * Note: This is not a synchronized map. All access to this map must occur in a synchronized method
 	 * making this singleton the lock (not the map).
 	 */
-	private Map<String, List<Token>> keyTokenMap = new HashMap<String, List<Token>>();
+	private Map<String, List<Lock>> keyTokenMap = new HashMap<String, List<Lock>>();
 	// abstraction from the system clock.
 	private Clock clock;
 	
@@ -40,27 +40,27 @@ public class MemoryCountingSemaphoreImpl implements MemoryCountingSemaphore {
 			int maxLockCount) {
 		ValidateArgument.required(key, "key");
 		// Is there an entry in the map for this key?
-		List<Token> tokens = keyTokenMap.get(key);
-		if(tokens == null){
-			tokens = new LinkedList<Token>();
-			keyTokenMap.put(key, tokens);
+		List<Lock> locks = keyTokenMap.get(key);
+		if(locks == null){
+			locks = new LinkedList<Lock>();
+			keyTokenMap.put(key, locks);
 		}
 		// remove expired locks
 		long now = clock.currentTimeMillis();
-		Iterator<Token> it = tokens.iterator();
+		Iterator<Lock> it = locks.iterator();
 		while(it.hasNext()){
-			Token token = it.next();
+			Lock token = it.next();
 			if(now > token.getExpiresTimeMs()){
 				it.remove();
 			}
 		}
 		// are we out of locks for this key?
-		if(tokens.size() < maxLockCount){
+		if(locks.size() < maxLockCount){
 			// a new lock can be issued
-			Token token = new Token();
+			Lock token = new Lock();
 			token.setExpiresTimeMs(now+(timeoutSec*1000));
 			token.setToken(UUID.randomUUID().toString());
-			tokens.add(token);
+			locks.add(token);
 			return token.getToken();
 		}
 		// a new token could not be issued.
@@ -72,12 +72,12 @@ public class MemoryCountingSemaphoreImpl implements MemoryCountingSemaphore {
 		ValidateArgument.required(key, "key");
 		ValidateArgument.required(tokenString, "token");
 		// Get the tokens for this key
-		List<Token> tokens = keyTokenMap.get(key);
+		List<Lock> locks = keyTokenMap.get(key);
 		boolean refreshed = false;
-		if(tokens != null){
-			Iterator<Token> it = tokens.iterator();
+		if(locks != null){
+			Iterator<Lock> it = locks.iterator();
 			while(it.hasNext()){
-				Token token = it.next();
+				Lock token = it.next();
 				if(token.getToken().equals(tokenString)){
 					// found a match.
 					long now = clock.currentTimeMillis();
@@ -97,12 +97,12 @@ public class MemoryCountingSemaphoreImpl implements MemoryCountingSemaphore {
 		ValidateArgument.required(key, "key");
 		ValidateArgument.required(tokenString, "token");
 		// Get the tokens for this key
-		List<Token> tokens = keyTokenMap.get(key);
+		List<Lock> locks = keyTokenMap.get(key);
 		boolean released = false;
-		if(tokens != null){
-			Iterator<Token> it = tokens.iterator();
+		if(locks != null){
+			Iterator<Lock> it = locks.iterator();
 			while(it.hasNext()){
-				Token token = it.next();
+				Lock token = it.next();
 				if(token.getToken().equals(tokenString)){
 					// found a match.
 					it.remove();
