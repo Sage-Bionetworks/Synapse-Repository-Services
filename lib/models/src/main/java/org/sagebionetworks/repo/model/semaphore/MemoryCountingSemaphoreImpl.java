@@ -49,19 +49,19 @@ public class MemoryCountingSemaphoreImpl implements MemoryCountingSemaphore {
 		long now = clock.currentTimeMillis();
 		Iterator<Lock> it = locks.iterator();
 		while(it.hasNext()){
-			Lock token = it.next();
-			if(now > token.getExpiresTimeMs()){
+			Lock lock = it.next();
+			if(now > lock.getExpiresTimeMs()){
 				it.remove();
 			}
 		}
 		// are we out of locks for this key?
 		if(locks.size() < maxLockCount){
 			// a new lock can be issued
-			Lock token = new Lock();
-			token.setExpiresTimeMs(now+(timeoutSec*1000));
-			token.setToken(UUID.randomUUID().toString());
-			locks.add(token);
-			return token.getToken();
+			Lock lock = new Lock();
+			lock.setExpiresTimeMs(now+(timeoutSec*1000));
+			lock.setToken(UUID.randomUUID().toString());
+			locks.add(lock);
+			return lock.getToken();
 		}
 		// a new token could not be issued.
 		return null;
@@ -77,11 +77,11 @@ public class MemoryCountingSemaphoreImpl implements MemoryCountingSemaphore {
 		if(locks != null){
 			Iterator<Lock> it = locks.iterator();
 			while(it.hasNext()){
-				Lock token = it.next();
-				if(token.getToken().equals(tokenString)){
+				Lock lock = it.next();
+				if(lock.getToken().equals(tokenString)){
 					// found a match.
 					long now = clock.currentTimeMillis();
-					token.setExpiresTimeMs(now+(timeoutSec*1000));
+					lock.setExpiresTimeMs(now+(timeoutSec*1000));
 					refreshed = true;
 					break;
 				}
@@ -102,8 +102,8 @@ public class MemoryCountingSemaphoreImpl implements MemoryCountingSemaphore {
 		if(locks != null){
 			Iterator<Lock> it = locks.iterator();
 			while(it.hasNext()){
-				Lock token = it.next();
-				if(token.getToken().equals(tokenString)){
+				Lock lock = it.next();
+				if(lock.getToken().equals(tokenString)){
 					// found a match.
 					it.remove();
 					released = true;
