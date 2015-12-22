@@ -558,7 +558,7 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		}
 		RowMapper<ChecksumTableResult> mapper = DMLUtils.getChecksumTableResultMapper();
 		ChecksumTableResult checksum = jdbcTemplate.queryForObject(sql, mapper);
-		String s = checksum.getValue();
+		String s = checksum.getChecksum();
 		return s;
 	}
 

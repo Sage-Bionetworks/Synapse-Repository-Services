@@ -619,7 +619,7 @@ public class DMLUtils {
 			public ChecksumTableResult mapRow(ResultSet rs, int rowNum) throws SQLException {
 				ChecksumTableResult ctRes = new ChecksumTableResult();
 				ctRes.setTableName(rs.getString(1));
-				ctRes.setValue(String.valueOf(rs.getLong(2)));
+				ctRes.setChecksum(String.valueOf(rs.getLong(2)));
 				return ctRes;
 			}
 		};

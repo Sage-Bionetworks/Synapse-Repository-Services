@@ -5,7 +5,7 @@ import java.math.BigInteger;
 public class ChecksumTableResult {
 	
 	private String tableName;
-	private String value;
+	private String checksum;
 	
 	
 	public String getTableName() {
@@ -14,11 +14,11 @@ public class ChecksumTableResult {
 	public void setTableName(String tableName) {
 		this.tableName = tableName;
 	}
-	public String getValue() {
-		return value;
+	public String getChecksum() {
+		return checksum;
 	}
-	public void setValue(String value) {
-		this.value = value;
+	public void setChecksum(String value) {
+		this.checksum = value;
 	}
 
 	

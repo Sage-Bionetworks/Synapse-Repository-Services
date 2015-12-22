@@ -1,5 +1,5 @@
 {
-	"description": "Row metadata for MigrationType"
+	"description": "Row metadata for MigrationType",
  	"properties":{
          "id":{
         	"type":"integer"
