@@ -6,7 +6,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
-import static org.sagebionetworks.repo.web.filter.UserThrottleFilter.*;
+import static org.sagebionetworks.repo.web.filter.UserThrottleFilter.LOCK_TIMOUTE_SEC;
+import static org.sagebionetworks.repo.web.filter.UserThrottleFilter.MAX_CONCURRENT_LOCKS;
 
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
@@ -15,7 +16,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.cloudwatch.ProfileData;
-import org.sagebionetworks.database.semaphore.CountingSemaphore;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.semaphore.MemoryCountingSemaphore;
@@ -61,7 +61,7 @@ public class UserThrottleFilterTest {
 
 		verify(filterChain).doFilter(request, response);
 		verify(userThrottleGate).attemptToAcquireLock("111", LOCK_TIMOUTE_SEC, MAX_CONCURRENT_LOCKS);
-		verify(userThrottleGate).releaseLock("token", "111");
+		verify(userThrottleGate).releaseLock("111", "token");
 		verifyNoMoreInteractions(filterChain, userThrottleGate);
 	}
 

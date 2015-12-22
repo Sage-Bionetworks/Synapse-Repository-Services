@@ -50,7 +50,8 @@ public class UserThrottleFilter implements Filter {
 			ServletException {
 
 		String userId = request.getParameter(AuthorizationConstants.USER_ID_PARAM);
-		if (AuthorizationUtils.isUserAnonymous(Long.parseLong(userId))) {
+		long userIdLong = Long.parseLong(userId);
+		if (AuthorizationUtils.isUserAnonymous(userIdLong)) {
 			chain.doFilter(request, response);
 		} else {
 			try {
@@ -60,7 +61,7 @@ public class UserThrottleFilter implements Filter {
 						chain.doFilter(request, response);
 					} finally {
 						try {
-							userThrottleGate.releaseLock(lockToken, userId);
+							userThrottleGate.releaseLock(userId, lockToken);
 						} catch (LockReleaseFailedException e) {
 							// This happens when test force the release of all locks.
 							log.info(e.getMessage());
