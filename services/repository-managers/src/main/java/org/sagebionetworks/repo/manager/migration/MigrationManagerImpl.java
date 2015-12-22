@@ -16,6 +16,7 @@ import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableDAO;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.ListBucketProvider;
+import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
@@ -395,18 +396,26 @@ public class MigrationManagerImpl implements MigrationManager {
 	}
 
 	@Override
-	public String getChecksumForIdRange(UserInfo user, MigrationType type,
+	public MigrationRangeChecksum getChecksumForIdRange(UserInfo user, MigrationType type,
 			long minId, long maxId) {
 		validateUser(user);
 		String checksum = migratableTableDao.getChecksumForIdRange(type, minId, maxId);
-		return checksum;
+		MigrationRangeChecksum mrc = new MigrationRangeChecksum();
+		mrc.setType(type);
+		mrc.setMinid(minId);
+		mrc.setMaxid(maxId);
+		mrc.setChecksum(checksum);
+		return mrc;
 	}
 	
 	@Override
-	public String getChecksumForType(UserInfo user, MigrationType type) {
+	public MigrationTypeChecksum getChecksumForType(UserInfo user, MigrationType type) {
 		validateUser(user);
 		String checksum = migratableTableDao.getChecksumForType(type);
-		return checksum;
+		MigrationTypeChecksum mtc = new MigrationTypeChecksum();
+		mtc.setType(type);
+		mtc.setChecksum(checksum);
+		return mtc;
 	}
 
 	@Override

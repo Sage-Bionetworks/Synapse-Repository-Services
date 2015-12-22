@@ -117,10 +117,10 @@ public interface MigrationManager {
 	
 	public long getMinId(UserInfo user, MigrationType type);
 	
-	public String getChecksumForIdRange(UserInfo user, MigrationType type,
+	public MigrationRangeChecksum getChecksumForIdRange(UserInfo user, MigrationType type,
 			long minId, long maxId);
 	
-	public String getChecksumForType(UserInfo user, MigrationType type);
+	public MigrationTypeChecksum getChecksumForType(UserInfo user, MigrationType type);
 	
 	public RowMetadataResult getRowMetadataByRangeForType(UserInfo user, MigrationType type, long minId, long maxId);
 	
