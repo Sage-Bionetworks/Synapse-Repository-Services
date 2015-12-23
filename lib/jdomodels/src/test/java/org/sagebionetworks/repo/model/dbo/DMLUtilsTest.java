@@ -290,7 +290,7 @@ public class DMLUtilsTest {
 	
 	@Test
 	public void testCreateSelectChecksumStatementWithEtagColumn() {
-		final String expectedSql = "SELECT CONCAT(SUM(CRC32(CONCAT(`ID`, '@', IFNULL(`ETAG`, 'NULL')))), '%', BIT_XOR(CRC32(CONCAT(`ID`, '@', IFNULL(`ETAG`, 'NULL'))))) FROM SOME_TABLE WHERE `ID` >= ? AND `ID` <= ?";
+		final String expectedSql = "SELECT CONCAT(SUM(CRC32(CONCAT(`ID`, '@', IFNULL(`ETAG`, 'NULL'), '@@', ?))), '%', BIT_XOR(CRC32(CONCAT(`ID`, '@', IFNULL(`ETAG`, 'NULL'), '@@', ?)))) FROM SOME_TABLE WHERE `ID` >= ? AND `ID` <= ?";
 		String sql = DMLUtils.createSelectChecksumStatement(migrateableMappingEtagAndId);
 		assertNotNull(sql);
 		System.out.println(sql);
@@ -299,7 +299,7 @@ public class DMLUtilsTest {
 	
 	@Test
 	public void testCreateSelectChecksumStatementWithoutEtagColumn() {
-		String expectedSql = "SELECT CONCAT(SUM(CRC32(CONCAT(`ID`, '@', 'NA'))), '%', BIT_XOR(CRC32(CONCAT(`ID`, '@', 'NA')))) FROM SOME_TABLE WHERE `ID` >= ? AND `ID` <= ?";
+		String expectedSql = "SELECT CONCAT(SUM(CRC32(CONCAT(`ID`, '@@', ?))), '%', BIT_XOR(CRC32(CONCAT(`ID`, '@@', ?)))) FROM SOME_TABLE WHERE `ID` >= ? AND `ID` <= ?";
 		String sql = DMLUtils.createSelectChecksumStatement(migrateableMappingNoEtag);
 		assertNotNull(sql);
 		System.out.println(sql);

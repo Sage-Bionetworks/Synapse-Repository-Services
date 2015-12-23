@@ -529,7 +529,7 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 
 
 	@Override
-	public String getChecksumForIdRange(MigrationType type, long minId, long maxId) {
+	public String getChecksumForIdRange(MigrationType type, String salt, long minId, long maxId) {
 		String sql = this.checksumRangeSqlMap.get(type);
 		if (sql == null) {
 			throw new IllegalArgumentException("Cannot find the checksum SQL for type" + type);
@@ -538,7 +538,7 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 			throw new IllegalArgumentException("MaxId must be greater than minId");
 		}
 		SingleColumnRowMapper mapper = new SingleColumnRowMapper(String.class);
-		List<String> l = jdbcTemplate.query(sql, mapper, minId, maxId);
+		List<String> l = jdbcTemplate.query(sql, mapper, salt, salt, minId, maxId);
 		if ((l == null) || (l.size() != 1)) {
 			return null;
 		}

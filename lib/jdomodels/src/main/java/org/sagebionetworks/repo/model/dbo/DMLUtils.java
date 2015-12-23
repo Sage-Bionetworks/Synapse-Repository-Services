@@ -319,14 +319,15 @@ public class DMLUtils {
 		StringBuilder builder = new StringBuilder();
 		builder.append("CONCAT(`");
 		builder.append(idCol.getColumnName());
-		builder.append("`, '@', ");
-		if (etagCol == null) {
-			builder.append("'NA'");
-		} else {
+		builder.append("`");
+		if (etagCol != null) {
+			builder.append(", '@', ");
 			builder.append("IFNULL(`");
 			builder.append(etagCol.getColumnName());
 			builder.append("`, 'NULL')");
 		}
+		// Append salt parameter
+		builder.append(", '@@', ?");
 		builder.append(")");
 		return builder.toString();
 		

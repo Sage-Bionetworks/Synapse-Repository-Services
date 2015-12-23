@@ -45,7 +45,7 @@ public interface MigratableTableDAO {
 	/**
 	 * A checksum on etag or id for a range of ids
 	 */
-	public String getChecksumForIdRange(MigrationType type, long minId, long maxId);
+	public String getChecksumForIdRange(MigrationType type, String salt, long minId, long maxId);
 	
 	/**
 	 * A table checksum (CHECKSUM TABLE statement)
