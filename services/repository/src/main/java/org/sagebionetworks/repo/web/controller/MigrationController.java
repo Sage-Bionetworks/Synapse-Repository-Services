@@ -293,9 +293,10 @@ public class MigrationController extends BaseController {
 	MigrationRangeChecksum getChecksumForIdRange(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(required = true) String migrationType,
+			@RequestParam(required = true) String salt,
 			@RequestParam(required = true) Long minId,
 			@RequestParam(required = true) Long maxId) throws NotFoundException {
-		return serviceProvider.getMigrationService().getChecksumForIdRange(userId, MigrationType.valueOf(migrationType), minId, maxId);
+		return serviceProvider.getMigrationService().getChecksumForIdRange(userId, MigrationType.valueOf(migrationType), salt, minId, maxId);
 	}
 	
 	/**

@@ -136,7 +136,7 @@ public interface MigrationService {
 	 * A checksum for a range of ids and a migration type
 	 * @throws NotFoundException 
 	 */
-	MigrationRangeChecksum getChecksumForIdRange(Long userId, MigrationType type, long minId, long maxId) throws NotFoundException;
+	MigrationRangeChecksum getChecksumForIdRange(Long userId, MigrationType type, String salt, long minId, long maxId) throws NotFoundException;
 	
 	/**
 	 * A checksum for a type (table)

@@ -7,6 +7,7 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -352,8 +353,8 @@ public class MigrationManagerImpl implements MigrationManager {
 	private void deleteAllForType(UserInfo user, MigrationType type) throws Exception {
 		// First get all data for this type.
 		RowMetadataResult result =  migratableTableDao.listRowMetadata(type, Long.MAX_VALUE, 0);
-		List<RowMetadata> list =result.getList();
-		if(list.size() > 0){
+		List<RowMetadata> list = result.getList();
+		if (list.size() > 0) {
 			// Create the list of IDs to delete
 			List<Long> toDelete = new LinkedList<Long>();
 			for(RowMetadata row: list){
@@ -397,9 +398,9 @@ public class MigrationManagerImpl implements MigrationManager {
 
 	@Override
 	public MigrationRangeChecksum getChecksumForIdRange(UserInfo user, MigrationType type,
-			long minId, long maxId) {
+			String salt, long minId, long maxId) {
 		validateUser(user);
-		String checksum = migratableTableDao.getChecksumForIdRange(type, minId, maxId);
+		String checksum = migratableTableDao.getChecksumForIdRange(type, salt, minId, maxId);
 		MigrationRangeChecksum mrc = new MigrationRangeChecksum();
 		mrc.setType(type);
 		mrc.setMinid(minId);

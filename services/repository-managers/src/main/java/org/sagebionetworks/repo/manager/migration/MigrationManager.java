@@ -118,7 +118,7 @@ public interface MigrationManager {
 	public long getMinId(UserInfo user, MigrationType type);
 	
 	public MigrationRangeChecksum getChecksumForIdRange(UserInfo user, MigrationType type,
-			long minId, long maxId);
+			String salt, long minId, long maxId);
 	
 	public MigrationTypeChecksum getChecksumForType(UserInfo user, MigrationType type);
 	

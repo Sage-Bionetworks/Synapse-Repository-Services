@@ -223,11 +223,11 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	}
 
 	@Override
-	public MigrationRangeChecksum getChecksumForIdRange(MigrationType migrationType, Long minId, Long maxId) throws SynapseException, JSONObjectAdapterException {
+	public MigrationRangeChecksum getChecksumForIdRange(MigrationType migrationType, String salt, Long minId, Long maxId) throws SynapseException, JSONObjectAdapterException {
 		if (migrationType == null || minId == null || maxId == null) {
 			throw new IllegalArgumentException("Arguments type, minId and maxId cannot be null");
 		}
-		String uri = MIGRATION_RANGE_CHECKSUM + "?migrationType=" + migrationType.name() + "&minId=" + minId + "&maxId=" + maxId;
+		String uri = MIGRATION_RANGE_CHECKSUM + "?migrationType=" + migrationType.name() + "&salt=" + salt + "&minId=" + minId + "&maxId=" + maxId;
 		JSONObject jsonObj = getSharedClientConnection().getJson(repoEndpoint, uri, getUserAgent());
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
 		MigrationRangeChecksum mrc = new MigrationRangeChecksum();
