@@ -3,12 +3,16 @@ package org.sagebionetworks.repo.manager;
 import org.sagebionetworks.database.semaphore.CountingSemaphore;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.semaphore.MemoryCountingSemaphore;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class SemaphoreManagerImpl implements SemaphoreManager {
 	
 	@Autowired
-	CountingSemaphore semaphoreDao;
+	CountingSemaphore countingSemaphore;
+	
+	@Autowired
+	MemoryCountingSemaphore userThrottleMemoryCountingSemaphore;
 
 	@Override
 	public void releaseAllLocksAsAdmin(UserInfo admin) {
@@ -20,7 +24,9 @@ public class SemaphoreManagerImpl implements SemaphoreManager {
 			throw new UnauthorizedException("Only an administrator can make this call");
 		}
 		// Release all locks
-		semaphoreDao.releaseAllLocks();
+		countingSemaphore.releaseAllLocks();
+		// release memory locks.
+		userThrottleMemoryCountingSemaphore.releaseAllLocks();
 	}
 	
 

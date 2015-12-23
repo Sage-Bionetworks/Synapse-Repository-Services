@@ -704,6 +704,7 @@ public class SqlConstants {
 
 	
 	public static final String TABLE_VERIFICATION_STATE = "VERIFICATION_STATE";
+	public static final String COL_VERIFICATION_STATE_ID = "ID";
 	public static final String COL_VERIFICATION_STATE_VERIFICATION_ID = "VERIFICATION_ID";
 	public static final String COL_VERIFICATION_STATE_CREATED_BY = "CREATED_BY";
 	public static final String COL_VERIFICATION_STATE_CREATED_ON = "CREATED_ON";

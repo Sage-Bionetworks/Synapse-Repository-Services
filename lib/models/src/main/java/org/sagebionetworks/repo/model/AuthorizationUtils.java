@@ -14,8 +14,7 @@ public class AuthorizationUtils {
 	
 	public static boolean isUserAnonymous(Long id) {
 		return id==null || BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().equals(id);
-	}
-	
+	}	
 	
 	/**
 	 * returns true iff the user is a certified user

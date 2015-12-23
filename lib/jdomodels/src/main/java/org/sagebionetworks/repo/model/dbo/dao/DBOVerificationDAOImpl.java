@@ -181,7 +181,8 @@ public class DBOVerificationDAOImpl implements VerificationDAO {
 	@WriteTransaction
 	@Override
 	public void appendVerificationSubmissionState(long verificationId, VerificationState newState) {
-		DBOVerificationState dbo = copyVerificationStateDTOtoDBO(verificationId, newState);
+		long stateId = idGenerator.generateNewId(TYPE.VERIFICATION_SUBMISSION_ID);
+		DBOVerificationState dbo = copyVerificationStateDTOtoDBO(verificationId, stateId, newState);
 		basicDao.createNew(dbo);
 	}
 	
@@ -274,8 +275,9 @@ public class DBOVerificationDAOImpl implements VerificationDAO {
 	
 	private static final String REASON_CHARACTER_SET = "UTF-8";
 
-	public static DBOVerificationState copyVerificationStateDTOtoDBO(long verificationSubmissionId, VerificationState dto) {
+	public static DBOVerificationState copyVerificationStateDTOtoDBO(long verificationSubmissionId, long stateId, VerificationState dto) {
 		DBOVerificationState dbo = new DBOVerificationState();
+		dbo.setId(stateId);
 		dbo.setCreatedBy(Long.parseLong(dto.getCreatedBy()));
 		dbo.setCreatedOn(dto.getCreatedOn().getTime());
 		if (dto.getReason()==null) {

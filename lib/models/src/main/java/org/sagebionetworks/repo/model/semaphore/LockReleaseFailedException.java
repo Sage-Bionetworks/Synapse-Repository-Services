@@ -1,17 +1,20 @@
-package org.sagebionetworks.repo.model.exception;
+package org.sagebionetworks.repo.model.semaphore;
 
 /**
- * This exception is thrown when releasing a lock failed.
- * 
- * @author jmhill
+ * Thrown if a lock cannot be released.
  *
  */
 public class LockReleaseFailedException extends RuntimeException {
 
-	private static final long serialVersionUID = 1121605776704903477L;
+	private static final long serialVersionUID = 1L;
 
 	public LockReleaseFailedException() {
 		super();
+	}
+
+	public LockReleaseFailedException(String message, Throwable cause,
+			boolean enableSuppression, boolean writableStackTrace) {
+		super(message, cause, enableSuppression, writableStackTrace);
 	}
 
 	public LockReleaseFailedException(String message, Throwable cause) {
@@ -25,5 +28,7 @@ public class LockReleaseFailedException extends RuntimeException {
 	public LockReleaseFailedException(Throwable cause) {
 		super(cause);
 	}
+	
+	
 
 }

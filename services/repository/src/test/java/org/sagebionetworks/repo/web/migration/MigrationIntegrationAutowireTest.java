@@ -149,7 +149,7 @@ import com.google.common.collect.Lists;
 @DirtiesContext
 public class MigrationIntegrationAutowireTest extends AbstractAutowiredControllerTestBase {
 
-	public static final long MAX_WAIT_MS = 30 * 1000; // 10 sec.
+	public static final long MAX_WAIT_MS = 45 * 1000; // 45 sec.
 
 	@Autowired
 	private DBOBasicDao basicDao;
