@@ -165,6 +165,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOStorageQuota" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOQuizResponse" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOVerificationSubmission" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOVerificationState" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.discussion.DBOForum" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.discussion.DBODiscussionThread" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.discussion.DBODiscussionThreadView" />
