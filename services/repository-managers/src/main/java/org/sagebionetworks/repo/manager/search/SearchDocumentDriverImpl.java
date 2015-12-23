@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.manager.search;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -14,6 +13,8 @@ import java.util.Map;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.joda.time.DateTime;
+import org.jsoup.Jsoup;
+import org.sagebionetworks.markdown.SynapseMarkdownProcessor;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
@@ -36,11 +37,7 @@ import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.jsoup.Jsoup;
-import org.sagebionetworks.markdown.SynapseMarkdownProcessor;
 
 /**
  * This class writes out search documents in batch.
@@ -156,35 +153,6 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		EntityPath entityPath = new EntityPath();
 		entityPath.setPath(pathHeaders);
 		return entityPath;
-	}
-
-	static byte[] cleanSearchDocument(Document document)
-			throws UnsupportedEncodingException, JSONObjectAdapterException {
-		String serializedDocument = EntityFactory
-				.createJSONStringForEntity(document);
-
-		// AwesomeSearch pukes on control characters. Some descriptions have
-		// control characters in them for some reason, in any case, just get rid
-		// of all control characters in the search document
-		String cleanedDocument = serializedDocument.replaceAll("\\p{Cc}", "");
-
-		// Get rid of escaped control characters too
-		cleanedDocument = cleanedDocument.replaceAll("\\\\u00[0,1][0-9,a-f]", "");
-		
-		// AwesomeSearch expects UTF-8
-		return cleanedDocument.getBytes("UTF-8");
-	}
-	
-	public String cleanSearchDocument(String document) {
-		// AwesomeSearch pukes on control characters. Some descriptions have
-		// control characters in them for some reason, in any case, just get rid
-		// of all control characters in the search document
-		String cleanedDocument = document.replaceAll("\\p{Cc}", "");
-
-		// Get rid of escaped control characters too
-		cleanedDocument = cleanedDocument.replaceAll("\\\\u00[0,1][0-9,a-f]", "");
-
-		return cleanedDocument;
 	}
 
 	@Override
@@ -437,13 +405,8 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 					builder.append(page.getTitle());
 				}
 				String markdownString = wikiPageDao.getMarkdown(key, null);
-				try {
-					markdownString = SynapseMarkdownProcessor.getInstance().markdown2Html(markdownString, false, null);
-					markdownString = Jsoup.parse(markdownString).text();
-				} catch (IOException e) {
-					markdownString = cleanSearchDocument(markdownString);
-				}
-				
+				markdownString = SynapseMarkdownProcessor.getInstance().markdown2Html(markdownString, false, null);
+				markdownString = Jsoup.parse(markdownString).text();
 				builder.append("\n");
 				builder.append(markdownString);
 			}

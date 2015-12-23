@@ -300,41 +300,6 @@ public class SearchDocumentDriverImplAutowireTest {
 		return fakeEntityPath;
 	}
 
-	/**
-	 * @throws Exception
-	 */
-	@Test
-	public void testCleanOutControlCharacters() throws Exception {
-		// Cloud Search cannot handle control characters, strip them out of the
-		// search document
-		Node node = new Node();
-		node.setId("5678");
-		node.setParentId("1234");
-		node.setETag("0");
-		node.setNodeType(EntityType.folder);
-		node
-				.setDescription("For the microarray experiments, MV4-11 and MOLM-14 ... Midi Kit, according to the manufacturer\u0019s instruction (Qiagen, Valencia, USA).");
-		Long nonexistantPrincipalId = 42L;
-		node.setCreatedByPrincipalId(nonexistantPrincipalId);
-		node.setCreatedOn(new Date());
-		node.setModifiedByPrincipalId(nonexistantPrincipalId);
-		node.setModifiedOn(new Date());
-		NamedAnnotations named = new NamedAnnotations();
-		Annotations primaryAnnos = named.getAdditionalAnnotations();
-		primaryAnnos.addAnnotation("stringKey", "a");
-		primaryAnnos.addAnnotation("longKey", Long.MAX_VALUE);
-		Annotations additionalAnnos = named.getAdditionalAnnotations();
-		additionalAnnos.addAnnotation("stringKey", "a");
-		additionalAnnos.addAnnotation("longKey", Long.MAX_VALUE);
-		AccessControlList acl = new AccessControlList();
-		Set<ResourceAccess> resourceAccess = new HashSet<ResourceAccess>();
-		acl.setResourceAccess(resourceAccess);
-		Document document = searchDocumentDriver.formulateSearchDocument(node,
-				named, acl, new EntityPath(), null);
-		byte[] cloudSearchDocument = SearchDocumentDriverImpl
-				.cleanSearchDocument(document);
-		assertEquals(-1, new String(cloudSearchDocument).indexOf("\\u0019"));
-	}
 	
 	@Test
 	public void testGetAllWikiPageText() throws DatastoreException, IOException, NotFoundException{
@@ -392,16 +357,7 @@ public class SearchDocumentDriverImplAutowireTest {
 		assertTrue(!actualResult.contains("<table>"));
 		assertTrue(!actualResult.contains("<iframe>"));
 		assertTrue(!actualResult.contains("<embed>"));
-	}
-	
-	@Test
-	public void testCleanSearchDocumentString() {
-		String dirtyString = "For the microarray experiments, MV4-11 and MOLM-14 ... Midi Kit, according to the manufacturer\u0019s instruction (Qiagen, Valencia, USA). \u0006f";
-		String cleanedString = searchDocumentDriver.cleanSearchDocument(dirtyString);
-		assertEquals(-1, new String(cleanedString).indexOf("\\u0019"));
-		assertEquals(-1, new String(cleanedString).indexOf("\\u0006f"));
-	}
-	
+	}	
 
 	// http://stackoverflow.com/questions/326390/how-to-create-a-java-string-from-the-contents-of-a-file
 	private static String readFile(File file) throws IOException {
