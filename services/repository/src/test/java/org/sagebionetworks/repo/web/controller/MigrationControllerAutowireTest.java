@@ -154,7 +154,7 @@ public class MigrationControllerAutowireTest extends AbstractAutowiredController
 	
 	@Test
 	public void testGetChecksumForIdRange() throws Exception {
-		MigrationRangeChecksum checksum = entityServletHelper.getChecksumForIdRange(adminUserId, MigrationType.FILE_HANDLE, "0", handleOne.getId());
+		MigrationRangeChecksum checksum = entityServletHelper.getChecksumForIdRange(adminUserId, MigrationType.FILE_HANDLE, "salt", "0", handleOne.getId());
 		assertNotNull(checksum);
 		assertEquals(MigrationType.FILE_HANDLE, checksum.getType());
 		assertEquals(0, checksum.getMinid().longValue());

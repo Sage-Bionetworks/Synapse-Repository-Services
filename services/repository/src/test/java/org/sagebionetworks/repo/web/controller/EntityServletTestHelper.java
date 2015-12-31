@@ -805,10 +805,11 @@ public class EntityServletTestHelper {
 	 * @throws Exception 
 	 */
 	public MigrationRangeChecksum getChecksumForIdRange(Long userId, MigrationType type,
-			String minId, String maxId) throws Exception {
+			String salt, String minId, String maxId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, "/migration/rangechecksum", userId, null);
 		request.setParameter("migrationType", type.name());
+		request.setParameter("salt", salt);
 		request.setParameter("minId", minId);
 		request.setParameter("maxId", maxId);
 		
