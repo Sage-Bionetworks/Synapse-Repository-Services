@@ -24,6 +24,12 @@
 	<bean id="projectSettingObjectRecordWriter"
 		class="org.sagebionetworks.object.snapshot.worker.utils.ProjectSettingObjectRecordWriter"
 		scope="singleton" />
+	<bean id="verificationSubmissionObjectRecordWriter"
+		class="org.sagebionetworks.object.snapshot.worker.utils.VerificationSubmissionObjectRecordWriter"
+		scope="singleton" />
+	<bean id="certifiedUserPassingRecordWriter"
+		class="org.sagebionetworks.object.snapshot.worker.utils.CertifiedUserPassingRecordWriter"
+		scope="singleton" />
 
 	<!-- the keys in this map must be the values of the org.sagebionetworks.repo.model.ObjectType enum -->
 	<bean id="objectRecordWriterFactory"
@@ -42,6 +48,12 @@
 				</entry>
 				<entry key="PROJECT_SETTING">
 					<ref bean="projectSettingObjectRecordWriter" />
+				</entry>
+				<entry key="VERIFICATION_SUBMISSION">
+					<ref bean="verificationSubmissionObjectRecordWriter" />
+				</entry>
+				<entry key="CERTIFIED_USER_PASSING_RECORD">
+					<ref bean="certifiedUserPassingRecordWriter" />
 				</entry>
 			</map>
 		</property>
@@ -80,6 +92,8 @@
 										<ref bean="stackConfiguration.repositoryChangeTopic[ACCESS_CONTROL_LIST]" />
 										<ref bean="stackConfiguration.repositoryChangeTopic[ENTITY]" />
 										<ref bean="stackConfiguration.repositoryChangeTopic[PROJECT_SETTING]" />
+										<ref bean="stackConfiguration.repositoryChangeTopic[VERIFICATION_SUBMISSION]" />
+										<ref bean="stackConfiguration.repositoryChangeTopic[CERTIFIED_USER_PASSING_RECORD]" />
 									</list>
 								</property>
 							</bean>
