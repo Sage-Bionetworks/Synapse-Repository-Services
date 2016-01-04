@@ -722,7 +722,6 @@ public class CertifiedUserManagerImplTest {
 	public void testDeleteQuizResponseNonAdmin() throws Exception {
 		UserInfo userInfo = new UserInfo(false);
 		certifiedUserManager.deleteQuizResponse(userInfo, 101L);
-		verify(quizResponseDao).delete(101L);
 	}
 	
 	@Test
@@ -730,7 +729,18 @@ public class CertifiedUserManagerImplTest {
 		certifiedUserManager.getPassingRecord(101L);
 		verify(quizResponseDao).getPassingRecord(anyLong(), eq(101L));
 	}
-	
+
+	@Test(expected=ForbiddenException.class)
+	public void testGetPassingRecordsNonAdmin() throws Exception {
+		UserInfo userInfo = new UserInfo(false);
+		certifiedUserManager.getPassingRecords(userInfo, 101L, 10L, 0L);
+	}
+
+	@Test
+	public void testGetPassingRecordsAdmin() throws Exception {
+		UserInfo userInfo = new UserInfo(true);
+		certifiedUserManager.getPassingRecords(userInfo, 101L, 10L, 0L);
+		verify(quizResponseDao).getAllPassingRecords(anyLong(), eq(101L), eq(10L), eq(0L));
+		verify(quizResponseDao).getAllPassingRecordsCount(anyLong(), eq(101L));
+	}
 }
-
-
