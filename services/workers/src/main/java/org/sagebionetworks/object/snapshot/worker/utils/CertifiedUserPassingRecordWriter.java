@@ -31,7 +31,7 @@ public class CertifiedUserPassingRecordWriter implements ObjectRecordWriter {
 	@Autowired
 	private ObjectRecordDAO objectRecordDAO;
 
-	public  static final long LIMIT = 10L;
+	public static final long LIMIT = 10L;
 
 	@Override
 	public void buildAndWriteRecord(ChangeMessage message) throws IOException {
