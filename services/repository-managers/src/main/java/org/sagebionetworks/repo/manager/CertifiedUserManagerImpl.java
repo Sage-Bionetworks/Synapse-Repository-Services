@@ -40,6 +40,7 @@ import org.sagebionetworks.repo.model.quiz.QuizResponse;
 import org.sagebionetworks.repo.model.quiz.ResponseCorrectness;
 import org.sagebionetworks.repo.model.quiz.TextFieldQuestion;
 import org.sagebionetworks.repo.model.quiz.TextFieldResponse;
+import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.ForbiddenException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
@@ -337,6 +338,7 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager {
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.CertifiedUserManager#submitCertificationQuizResponse(org.sagebionetworks.repo.model.UserInfo, org.sagebionetworks.repo.model.quiz.QuizResponse)
 	 */
+	@WriteTransactionReadCommitted
 	@Override
 	public PassingRecord submitCertificationQuizResponse(
 			UserInfo userInfo, QuizResponse response) throws NotFoundException {

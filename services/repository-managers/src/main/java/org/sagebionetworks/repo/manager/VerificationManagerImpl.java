@@ -38,7 +38,7 @@ import org.sagebionetworks.repo.model.verification.VerificationPagedResults;
 import org.sagebionetworks.repo.model.verification.VerificationState;
 import org.sagebionetworks.repo.model.verification.VerificationStateEnum;
 import org.sagebionetworks.repo.model.verification.VerificationSubmission;
-import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class VerificationManagerImpl implements VerificationManager {
@@ -88,7 +88,7 @@ public class VerificationManagerImpl implements VerificationManager {
 		this.transactionalMessenger = transactionalMessenger;
 	}
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public VerificationSubmission createVerificationSubmission(
 			UserInfo userInfo, VerificationSubmission verificationSubmission) {
@@ -182,7 +182,7 @@ public class VerificationManagerImpl implements VerificationManager {
 		return result;
 	}
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public void changeSubmissionState(UserInfo userInfo,
 			long verificationSubmissionId, VerificationState newState) {
