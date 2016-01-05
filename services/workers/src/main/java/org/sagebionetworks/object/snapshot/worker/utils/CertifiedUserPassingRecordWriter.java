@@ -46,9 +46,6 @@ public class CertifiedUserPassingRecordWriter implements ObjectRecordWriter {
 			PaginatedResults<PassingRecord> records = null;
 			do {
 				records = certifiedUserManager.getPassingRecords(adminUser, userId, LIMIT , offset);
-				if (records.getTotalNumberOfResults() == 0) {
-					break;
-				}
 				for (PassingRecord record : records.getResults()) {
 					toWrite.add(ObjectRecordBuilderUtils.buildObjectRecord(record, message.getTimestamp().getTime()));
 				}

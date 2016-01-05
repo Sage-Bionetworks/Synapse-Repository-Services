@@ -46,9 +46,6 @@ public class VerificationSubmissionObjectRecordWriter implements ObjectRecordWri
 			VerificationPagedResults records = null;
 			do {
 				records = verificationManager.listVerificationSubmissions(adminUser, null, userId, LIMIT , offset);
-				if (records.getTotalNumberOfResults() == 0) {
-					break;
-				}
 				for (VerificationSubmission record : records.getResults()) {
 					toWrite.add(ObjectRecordBuilderUtils.buildObjectRecord(record, message.getTimestamp().getTime()));
 				}
