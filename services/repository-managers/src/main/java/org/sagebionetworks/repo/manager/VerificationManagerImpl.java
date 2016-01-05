@@ -88,6 +88,7 @@ public class VerificationManagerImpl implements VerificationManager {
 		this.transactionalMessenger = transactionalMessenger;
 	}
 
+	@WriteTransaction
 	@Override
 	public VerificationSubmission createVerificationSubmission(
 			UserInfo userInfo, VerificationSubmission verificationSubmission) {
@@ -116,7 +117,7 @@ public class VerificationManagerImpl implements VerificationManager {
 				attachmentMetadata.setFileName(fileHandle.getFileName());
 			}
 		}
-		transactionalMessenger.sendMessageAfterCommit(userInfo.getId().toString(), ObjectType.VERIFICATION_SUBMISSION, ChangeType.CREATE);
+		transactionalMessenger.sendMessageAfterCommit(userInfo.getId().toString(), ObjectType.VERIFICATION_SUBMISSION, "etag", ChangeType.CREATE);
 		return verificationDao.createVerificationSubmission(verificationSubmission);
 	}
 	
@@ -194,7 +195,7 @@ public class VerificationManagerImpl implements VerificationManager {
 			throw new InvalidModelException("Cannot transition verification submission from "+currentState+" to "+newState.getState());
 		populateCreateFields(newState, userInfo, new Date());
 		verificationDao.appendVerificationSubmissionState(verificationSubmissionId, newState);
-		transactionalMessenger.sendMessageAfterCommit(userInfo.getId().toString(), ObjectType.VERIFICATION_SUBMISSION, ChangeType.CREATE);
+		transactionalMessenger.sendMessageAfterCommit(userInfo.getId().toString(), ObjectType.VERIFICATION_SUBMISSION, "etag", ChangeType.UPDATE);
 	}
 	
 	public static void populateCreateFields(VerificationState state, UserInfo userInfo, Date now) {

@@ -623,7 +623,7 @@ public class CertifiedUserManagerImplTest {
 		assertEquals(created.getId(), pr.getResponseId());
 		assertEquals(passingRecord.getScore(), pr.getScore());
 		assertEquals(created.getCreatedBy(), pr.getUserId());
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(userInfo.getId().toString(), ObjectType.CERTIFIED_USER_PASSING_RECORD, ChangeType.CREATE);
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(userInfo.getId().toString(), ObjectType.CERTIFIED_USER_PASSING_RECORD, "etag", ChangeType.CREATE);
 	}
 	
 	@Test
@@ -660,7 +660,7 @@ public class CertifiedUserManagerImplTest {
 		assertEquals(created.getId(), pr.getResponseId());
 		assertEquals(passingRecord.getScore(), pr.getScore());
 		assertEquals(created.getCreatedBy(), pr.getUserId());
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(userInfo.getId().toString(), ObjectType.CERTIFIED_USER_PASSING_RECORD, ChangeType.CREATE);
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(userInfo.getId().toString(), ObjectType.CERTIFIED_USER_PASSING_RECORD, "etag", ChangeType.CREATE);
 	}
 	
 	@Test(expected=UnauthorizedException.class)
