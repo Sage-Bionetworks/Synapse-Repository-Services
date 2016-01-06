@@ -119,6 +119,7 @@ import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
 import org.sagebionetworks.repo.model.discussion.Forum;
+import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
 import org.sagebionetworks.repo.model.doi.Doi;
@@ -7414,7 +7415,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 	@Override
 	public DiscussionReplyBundle updateReplyMessage(String replyId,
-			UpdateThreadMessage newMessage) throws SynapseException {
+			UpdateReplyMessage newMessage) throws SynapseException {
 		ValidateArgument.required(replyId, "replyId");
 		ValidateArgument.required(newMessage, "newMessage");
 		return asymmetricalPut(repoEndpoint, REPLY+"/"+replyId+DISCUSSION_MESSAGE, newMessage, DiscussionReplyBundle.class);

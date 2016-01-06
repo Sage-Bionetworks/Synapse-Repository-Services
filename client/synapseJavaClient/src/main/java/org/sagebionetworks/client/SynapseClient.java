@@ -81,6 +81,7 @@ import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.Forum;
+import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
 import org.sagebionetworks.repo.model.doi.Doi;
@@ -2450,7 +2451,7 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
-	DiscussionReplyBundle updateReplyMessage(String replyId, UpdateThreadMessage newMessage) throws SynapseException;
+	DiscussionReplyBundle updateReplyMessage(String replyId, UpdateReplyMessage newMessage) throws SynapseException;
 
 	/**
 	 * Mark a reply as deleted

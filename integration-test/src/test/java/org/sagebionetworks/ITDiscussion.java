@@ -137,7 +137,7 @@ public class ITDiscussion {
 		// update message
 		UpdateReplyMessage updateReplyMessage = new UpdateReplyMessage();
 		updateReplyMessage.setMessageMarkdown("Maybe the vet can help?");
-		DiscussionReplyBundle updatedReply = synapse.updateReplyMessage(replyId, updateMessage);
+		DiscussionReplyBundle updatedReply = synapse.updateReplyMessage(replyId, updateReplyMessage);
 		assertEquals(updatedReply.getId(), replyId);
 		assertTrue(updatedReply.getIsEdited());
 
