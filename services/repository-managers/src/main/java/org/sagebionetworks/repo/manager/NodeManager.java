@@ -230,6 +230,18 @@ public interface NodeManager {
 	 * @throws UnauthorizedException
 	 */
 	public EntityHeader getNodeHeader(UserInfo userInfo, String entityId, Long versionNumber) throws NotFoundException, DatastoreException, UnauthorizedException;
+	
+	/**
+	 * Get an entity header for each reference.
+	 * 
+	 * @param userInfo
+	 * @param references
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 */
+	public List<EntityHeader> getNodeHeader(UserInfo userInfo, List<Reference> references) throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	/**
 	 * Gets the header information for entities whose file's MD5 matches the given MD5 checksum.

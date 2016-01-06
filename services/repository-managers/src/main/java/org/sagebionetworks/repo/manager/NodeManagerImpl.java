@@ -575,6 +575,14 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 				authorizationManager.canAccess(userInfo, entityId, ObjectType.ENTITY, ACCESS_TYPE.READ));
 		return nodeDao.getEntityHeader(entityId, versionNumber);
 	}
+	
+	@Override
+	public List<EntityHeader> getNodeHeader(UserInfo userInfo,
+			List<Reference> references) throws NotFoundException,
+			DatastoreException, UnauthorizedException {
+		UserInfo.validateUserInfo(userInfo);
+		return null;
+	}
 
 	@Override
 	public List<EntityHeader> getNodeHeaderByMd5(UserInfo userInfo, String md5)

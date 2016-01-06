@@ -457,6 +457,13 @@ public class EntityManagerImpl implements EntityManager {
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		return nodeManager.getNodeHeader(userInfo, entityId, versionNumber);
 	}
+	
+	@Override
+	public List<EntityHeader> getEntityHeader(UserInfo userInfo,
+			List<Reference> references) throws NotFoundException,
+			DatastoreException, UnauthorizedException {
+		return nodeManager.getNodeHeader(userInfo, references);
+	}
 
 	@Override
 	public List<Long> getAllVersionNumbersForEntity(UserInfo userInfo,
@@ -634,5 +641,7 @@ public class EntityManagerImpl implements EntityManager {
 	public List<Reference> getCurrentRevisionNumbers(List<String> entityIds) {
 		return nodeManager.getCurrentRevisionNumbers(entityIds);
 	}
+
+
 
 }

@@ -125,6 +125,18 @@ public interface EntityManager {
 	public EntityHeader getEntityHeader(UserInfo userInfo, String entityId, Long versionNumber) throws NotFoundException, DatastoreException, UnauthorizedException;
 	
 	/**
+	 * Get an entity header for each reference.
+	 * 
+	 * @param userInfo
+	 * @param references
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 */
+	public List<EntityHeader> getEntityHeader(UserInfo userInfo, List<Reference> references) throws NotFoundException, DatastoreException, UnauthorizedException;
+	
+	/**
 	 * Get the children of of an entity.
 	 * @param <T>
 	 * @param userInfo

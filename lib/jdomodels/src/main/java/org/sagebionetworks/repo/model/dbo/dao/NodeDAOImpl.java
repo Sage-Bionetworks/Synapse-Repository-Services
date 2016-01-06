@@ -42,6 +42,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -95,6 +96,7 @@ import org.sagebionetworks.repo.model.query.jdo.QueryUtils;
 import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.SerializationUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -119,6 +121,7 @@ import com.google.common.collect.Sets;
  */
 public class NodeDAOImpl implements NodeDAO, InitializingBean {
 
+	private static final String SELECT_ENTITY_HEADERS_FOR_ENTITY_IDS = "SELECT "+COL_NODE_ID+", "+COL_NODE_NAME+", "+COL_NODE_TYPE+", "+COL_CURRENT_REV+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" IN (:nodeIds)";
 	private static final String USER_ID_PARAM_NAME = "user_id_param";
 	private static final String IDS_PARAM_NAME = "ids_param";
 	private static final String PROJECT_ID_PARAM_NAME = "project_id_param";
@@ -210,9 +213,9 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	 */
 	private static final int NODE_VERSION_LIMIT_BY_FILE_MD5 = 200;
 	private static final String SELECT_NODE_VERSION_BY_FILE_MD5 =
-			"SELECT R." + COL_REVISION_OWNER_NODE + ", R." + COL_REVISION_NUMBER + ", R." + COL_REVISION_LABEL
-			+ " FROM " + TABLE_REVISION + " R, " + TABLE_FILES + " F"
-			+ " WHERE R." + COL_REVISION_FILE_HANDLE_ID + " = F." + COL_FILES_ID
+			"SELECT N." + COL_NODE_ID + ", N."+COL_NODE_TYPE+", N."+COL_NODE_NAME+", R." + COL_REVISION_NUMBER + ", R." + COL_REVISION_LABEL
+			+ " FROM " + TABLE_REVISION + " R, " + TABLE_FILES + " F, "+TABLE_NODE+" N"
+			+ " WHERE R."+COL_REVISION_OWNER_NODE+" = N."+COL_NODE_ID+" AND  R." + COL_REVISION_FILE_HANDLE_ID + " = F." + COL_FILES_ID
 			+ " AND F." + COL_FILES_CONTENT_MD5 + " = :" + COL_FILES_CONTENT_MD5
 			+ " LIMIT " + (NODE_VERSION_LIMIT_BY_FILE_MD5 + 1);
 
@@ -358,7 +361,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	public Long createNewVersion(Node newVersion) throws NotFoundException, DatastoreException, InvalidModelException {
 		if(newVersion == null) throw new IllegalArgumentException("New version node cannot be null");
 		if(newVersion.getId() == null) throw new IllegalArgumentException("New version node ID cannot be null");
-//		if(newVersion.getVersionLabel() == null) throw new IllegalArgumentException("Cannot create a new version with a null version label");
 		// Get the Node
 		Long nodeId = KeyFactory.stringToKey(newVersion.getId());
 		DBONode jdo = getNodeById(nodeId);
@@ -873,19 +875,67 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 
 	@Override
 	public EntityHeader getEntityHeader(String nodeId, Long versionNumber) throws DatastoreException, NotFoundException {
-		// Fetch the basic data for an entity.
-		Long id = KeyFactory.stringToKey(nodeId);
-		ParentTypeName ptn = getParentTypeName(id);
-		String versionLabel = null;		
-		if(versionNumber == null) {
-			versionNumber = getCurrentRevisionNumber(nodeId);
+		Reference ref = new Reference();
+		ref.setTargetId(nodeId);
+		ref.setTargetVersionNumber(versionNumber);
+		LinkedList<Reference> list = new LinkedList<Reference>();
+		list.add(ref);
+		List<EntityHeader> header = getEntityHeader(list);
+		if(header.size() != 1){
+			throw new NotFoundException(ERROR_RESOURCE_NOT_FOUND);
 		}
-		if(versionNumber != null) {
-			versionLabel = getVersionLabel(nodeId, versionNumber);			
-		}
-		EntityHeader header = createHeaderFromParentTypeName(ptn, versionNumber, versionLabel);
-		return header;
+		return header.get(0);
 	}
+	
+	@Override
+	public List<EntityHeader> getEntityHeader(List<Reference> references) {
+		Set<Long> entityIdSet = Sets.newHashSetWithExpectedSize(references.size());
+		for(Reference ref:references){
+			Long id = KeyFactory.stringToKey(ref.getTargetId());
+			entityIdSet.add(id);
+		}
+		List<EntityHeader> unorderedResults = getEntityHeader(entityIdSet);
+		Map<Long, EntityHeader> idToHeader = Maps.newHashMapWithExpectedSize(unorderedResults.size());
+		for(EntityHeader header: unorderedResults){
+			Long id = KeyFactory.stringToKey(header.getId());
+			idToHeader.put(id, header);
+		}
+		// Create the results driven by the input
+		List<EntityHeader> finalResults = new ArrayList<EntityHeader>(references.size());
+		for(Reference ref: references){
+			Long id = KeyFactory.stringToKey(ref.getTargetId());
+			EntityHeader original = idToHeader.get(id);
+			EntityHeader clone = SerializationUtils.cloneJSONEntity(original);
+			if(ref.getTargetVersionNumber() != null){
+				clone.setVersionLabel(ref.getTargetVersionNumber().toString());
+				clone.setVersionNumber(ref.getTargetVersionNumber());
+			}
+			finalResults.add(clone);
+		}
+		return finalResults;
+	}
+	
+	@Override
+	public List<EntityHeader> getEntityHeader(Set<Long> entityIds) {
+		Map<String, Set<Long>> namedParameters = Collections.singletonMap("nodeIds", entityIds);
+		return namedParameterJdbcTemplate.query(SELECT_ENTITY_HEADERS_FOR_ENTITY_IDS, namedParameters,new RowMapper<EntityHeader>() {
+			@Override
+			public EntityHeader mapRow(ResultSet rs, int rowNum)
+					throws SQLException {
+				EntityHeader header = new EntityHeader();
+				Long entityId = rs.getLong(COL_NODE_ID);
+				header.setId(KeyFactory.keyToString(entityId));
+				EntityType type = EntityType.valueOf((String) rs.getString(COL_NODE_TYPE));
+				header.setType(EntityTypeUtils.getEntityTypeClassName(type));
+				header.setName(rs.getString(COL_NODE_NAME));
+				Long currentVersion = rs.getLong(COL_CURRENT_REV);
+				header.setVersionNumber(currentVersion);
+				header.setVersionLabel(currentVersion.toString());
+				return header;
+			}
+		});
+	}
+
 
 	@Override
 	public List<EntityHeader> getEntityHeaderByMd5(String md5) throws DatastoreException, NotFoundException {
@@ -893,41 +943,30 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		if (md5 == null) {
 			throw new IllegalArgumentException("md5 cannot be null.");
 		}
-
 		MapSqlParameterSource paramMap = new MapSqlParameterSource();
 		paramMap.addValue(COL_FILES_CONTENT_MD5, md5);
-		List<Map<String, Object>> rowList = namedParameterJdbcTemplate.queryForList(SELECT_NODE_VERSION_BY_FILE_MD5, paramMap);
+		List<EntityHeader> rowList = namedParameterJdbcTemplate.query(SELECT_NODE_VERSION_BY_FILE_MD5, paramMap, new RowMapper<EntityHeader>() {
+
+			@Override
+			public EntityHeader mapRow(ResultSet rs, int rowNum)
+					throws SQLException {
+				EntityHeader header = new EntityHeader();
+				Long entityId = rs.getLong(COL_NODE_ID);
+				header.setId(KeyFactory.keyToString(entityId));
+				EntityType type = EntityType.valueOf((String) rs.getString(COL_NODE_TYPE));
+				header.setType(EntityTypeUtils.getEntityTypeClassName(type));
+				header.setName(rs.getString(COL_NODE_NAME));
+				header.setVersionNumber(rs.getLong(COL_REVISION_NUMBER));
+				header.setVersionLabel(rs.getString(COL_REVISION_LABEL));
+				return header;
+			}
+		});
 
 		if (rowList.size() > NODE_VERSION_LIMIT_BY_FILE_MD5) {
 			throw new DatastoreException("MD5 " + md5 + " maps to more than "
 					+ NODE_VERSION_LIMIT_BY_FILE_MD5 + " entity versions.");
 		}
-
-		List<EntityHeader> entityHeaderList = new ArrayList<EntityHeader>(rowList.size());
-		for (Map<String, Object> row : rowList) {
-			Long nodeId = (Long)row.get(COL_REVISION_OWNER_NODE);
-			Long versionNumber = (Long)row.get(COL_REVISION_NUMBER);
-			String versionLabel = (String)row.get(COL_REVISION_LABEL);
-			ParentTypeName ptn = getParentTypeName(nodeId);
-			EntityHeader header = createHeaderFromParentTypeName(ptn, versionNumber, versionLabel);
-			entityHeaderList.add(header);
-		}
-
-		return entityHeaderList;
-	}
-
-	@Override
-	public String getVersionLabel(String nodeId, Long versionNumber) throws DatastoreException, NotFoundException {
-		if(nodeId == null) throw new IllegalArgumentException("NodeId cannot be null");
-		if(versionNumber == null) throw new IllegalArgumentException("Version number cannot be null");
-		Long id = KeyFactory.stringToKey(nodeId);
-		try{
-			Map<String, Object> row = jdbcTemplate.queryForMap(SQL_SELECT_VERSION_LABEL, id, versionNumber);
-			return (String) row.get(COL_REVISION_LABEL);
-		}catch(EmptyResultDataAccessException e){
-			// Occurs if there are no results
-			throw new NotFoundException(CANNOT_FIND_A_NODE_WITH_ID+nodeId + ", version: " + versionNumber);
-		}
+		return rowList;
 	}
 
 	/**
@@ -1020,43 +1059,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		return "("+outerJoinElement(i-1)+") \nLEFT OUTER JOIN JDONODE n"+(i)+" ON n"+(i-1)+".parent_id=n"+(i)+".id";
 	}
 	
-	/**
-	 * Simple structure for three basic pieces of information about a node.
-	 * @author jmhill
-	 *
-	 */
-	public  static class ParentTypeName {
-		Long id;
-		Long parentId;
-		EntityType type;
-		String name;
-		
-		public Long getId() {
-			return id;
-		}
-		public void setId(Long id) {
-			this.id = id;
-		}
-		public Long getParentId() {
-			return parentId;
-		}
-		public void setParentId(Long parentId) {
-			this.parentId = parentId;
-		}
-		public EntityType getType() {
-			return type;
-		}
-		public void setType(EntityType type) {
-			this.type = type;
-		}
-		public String getName() {
-			return name;
-		}
-		public void setName(String name) {
-			this.name = name;
-		}
-	}
-
 	@Override
 	public List<EntityHeader> getEntityPath(String nodeId) throws DatastoreException, NotFoundException {
 		// Call the recursive method
@@ -1505,6 +1507,5 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		queryResults.setTotalNumberOfResults(totalCount);
 		return queryResults;
 	}
-
 
 }
