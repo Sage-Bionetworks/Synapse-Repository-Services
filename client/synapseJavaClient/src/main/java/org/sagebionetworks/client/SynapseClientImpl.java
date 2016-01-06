@@ -115,6 +115,7 @@ import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
+import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
 import org.sagebionetworks.repo.model.discussion.Forum;
@@ -7385,7 +7386,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public PaginatedResults<DiscussionReplyBundle> getRepliesForThread(
 			String threadId, Long limit, Long offset,
-			DiscussionThreadOrder order, Boolean ascending)
+			DiscussionReplyOrder order, Boolean ascending)
 			throws SynapseException {
 		ValidateArgument.required(threadId, "threadId");
 		ValidateArgument.required(limit, "limit");
