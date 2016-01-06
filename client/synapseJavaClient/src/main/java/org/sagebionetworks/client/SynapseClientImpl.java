@@ -7368,7 +7368,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public DiscussionReplyBundle createReply(CreateDiscussionReply toCreate)
 			throws SynapseException {
 		ValidateArgument.required(toCreate, "toCreate");
-		return asymmetricalPost(repoEndpoint, THREAD, toCreate, DiscussionReplyBundle.class, null);
+		return asymmetricalPost(repoEndpoint, REPLY, toCreate, DiscussionReplyBundle.class, null);
 	}
 
 	@Override

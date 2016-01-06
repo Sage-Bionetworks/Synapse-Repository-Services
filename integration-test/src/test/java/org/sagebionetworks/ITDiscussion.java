@@ -137,7 +137,7 @@ public class ITDiscussion {
 		// update message
 		UpdateReplyMessage updateReplyMessage = new UpdateReplyMessage();
 		updateReplyMessage.setMessageMarkdown("Maybe the vet can help?");
-		DiscussionReplyBundle updatedReply = synapse.updateReplyMessage(threadId, updateMessage);
+		DiscussionReplyBundle updatedReply = synapse.updateReplyMessage(replyId, updateMessage);
 		assertEquals(updatedReply.getId(), replyId);
 		assertTrue(updatedReply.getIsEdited());
 
@@ -145,7 +145,7 @@ public class ITDiscussion {
 		synapse.markReplyAsDeleted(replyId);
 		DiscussionReplyBundle deletedReply = synapse.getReply(replyId);
 		assertFalse(deletedReply.equals(updatedReply));
-		assertEquals(deletedReply.getId(), threadId);
+		assertEquals(deletedReply.getId(), replyId);
 		assertTrue(deletedReply.getIsDeleted());
 	}
 }
