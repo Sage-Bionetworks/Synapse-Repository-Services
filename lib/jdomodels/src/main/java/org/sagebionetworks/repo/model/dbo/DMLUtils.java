@@ -172,14 +172,6 @@ public class DMLUtils {
 		throw new IllegalArgumentException("Table "+mapping.getTableName()+" has no backup key.");
 	}
 	
-	public static String getEtagFieldColumnName(TableMapping mapping) {
-		for(int i=0; i<mapping.getFieldColumns().length; i++){
-			FieldColumn fc = mapping.getFieldColumns()[i];
-			if(fc.isEtag()) return fc.getColumnName();
-		}
-		throw new IllegalArgumentException("Table "+mapping.getTableName()+" has no etag column.");
-	}
-
 	/**
 	 * Append the primary key
 	 * @param mapping
