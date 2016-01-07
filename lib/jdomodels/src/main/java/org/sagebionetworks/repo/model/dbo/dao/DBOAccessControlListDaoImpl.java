@@ -12,6 +12,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_RESOUR
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -46,8 +47,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 import com.google.common.base.Function;
@@ -95,6 +96,8 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 	private IdGenerator idGenerator;
 	@Autowired
 	TransactionalMessenger transactionalMessenger;
+	@Autowired
+	private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
 	@WriteTransaction
 	@Override
@@ -324,5 +327,24 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 		param.addValue(COL_ACL_OWNER_ID, ownerId);
 		param.addValue(COL_ACL_OWNER_TYPE, ownerType.name());
 		return simpleJdbcTemplate.queryForObject(SELECT_FOR_UPDATE, aclRowMapper, param);
+	}
+
+	@Override
+	public Set<Long> canAccess(Set<Long> groups, Set<Long> benefactors,
+			ObjectType resourceType, ACCESS_TYPE accessType) {
+		Map<String, Object> namedParameters = new HashMap<String, Object>(4);
+		namedParameters.put(AuthorizationSqlUtil.RESOURCE_ID_BIND_VAR, benefactors);
+		namedParameters.put(AuthorizationSqlUtil.PRINCIPAL_IDS_BIND_VAR, groups);
+		namedParameters.put(AuthorizationSqlUtil.RESOURCE_TYPE_BIND_VAR, resourceType.name());
+		namedParameters.put(AuthorizationSqlUtil.ACCESS_TYPE_BIND_VAR, accessType.name());
+		// query
+		List<Long> result = namedParameterJdbcTemplate.query(AuthorizationSqlUtil.SELECT_RESOURCE_INTERSECTION, namedParameters, new RowMapper<Long>() {
+
+			@Override
+			public Long mapRow(ResultSet rs, int rowNum) throws SQLException {
+				return rs.getLong(COL_ACL_OWNER_ID);
+			}
+		});
+		return new HashSet<Long>(result);
 	}
 }

@@ -121,7 +121,7 @@ import com.google.common.collect.Sets;
  */
 public class NodeDAOImpl implements NodeDAO, InitializingBean {
 
-	private static final String SELECT_ENTITY_HEADERS_FOR_ENTITY_IDS = "SELECT "+COL_NODE_ID+", "+COL_NODE_NAME+", "+COL_NODE_TYPE+", "+COL_CURRENT_REV+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" IN (:nodeIds)";
+	private static final String SELECT_ENTITY_HEADERS_FOR_ENTITY_IDS = "SELECT "+COL_NODE_ID+", "+COL_NODE_NAME+", "+COL_NODE_TYPE+", "+COL_CURRENT_REV+", "+COL_NODE_BENEFACTOR_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" IN (:nodeIds)";
 	private static final String USER_ID_PARAM_NAME = "user_id_param";
 	private static final String IDS_PARAM_NAME = "ids_param";
 	private static final String PROJECT_ID_PARAM_NAME = "project_id_param";
@@ -213,7 +213,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	 */
 	private static final int NODE_VERSION_LIMIT_BY_FILE_MD5 = 200;
 	private static final String SELECT_NODE_VERSION_BY_FILE_MD5 =
-			"SELECT N." + COL_NODE_ID + ", N."+COL_NODE_TYPE+", N."+COL_NODE_NAME+", R." + COL_REVISION_NUMBER + ", R." + COL_REVISION_LABEL
+			"SELECT N." + COL_NODE_ID + ", N."+COL_NODE_TYPE+", N."+COL_NODE_NAME+", N."+COL_NODE_BENEFACTOR_ID+" , R." + COL_REVISION_NUMBER + ", R." + COL_REVISION_LABEL
 			+ " FROM " + TABLE_REVISION + " R, " + TABLE_FILES + " F, "+TABLE_NODE+" N"
 			+ " WHERE R."+COL_REVISION_OWNER_NODE+" = N."+COL_NODE_ID+" AND  R." + COL_REVISION_FILE_HANDLE_ID + " = F." + COL_FILES_ID
 			+ " AND F." + COL_FILES_CONTENT_MD5 + " = :" + COL_FILES_CONTENT_MD5
@@ -905,12 +905,14 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		for(Reference ref: references){
 			Long id = KeyFactory.stringToKey(ref.getTargetId());
 			EntityHeader original = idToHeader.get(id);
-			EntityHeader clone = SerializationUtils.cloneJSONEntity(original);
-			if(ref.getTargetVersionNumber() != null){
-				clone.setVersionLabel(ref.getTargetVersionNumber().toString());
-				clone.setVersionNumber(ref.getTargetVersionNumber());
+			if(original != null){
+				EntityHeader clone = SerializationUtils.cloneJSONEntity(original);
+				if(ref.getTargetVersionNumber() != null){
+					clone.setVersionLabel(ref.getTargetVersionNumber().toString());
+					clone.setVersionNumber(ref.getTargetVersionNumber());
+				}
+				finalResults.add(clone);
 			}
-			finalResults.add(clone);
 		}
 		return finalResults;
 	}
@@ -931,6 +933,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 				Long currentVersion = rs.getLong(COL_CURRENT_REV);
 				header.setVersionNumber(currentVersion);
 				header.setVersionLabel(currentVersion.toString());
+				header.setBenefactorId(rs.getLong(COL_NODE_BENEFACTOR_ID));
 				return header;
 			}
 		});
@@ -958,6 +961,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 				header.setName(rs.getString(COL_NODE_NAME));
 				header.setVersionNumber(rs.getLong(COL_REVISION_NUMBER));
 				header.setVersionLabel(rs.getString(COL_REVISION_LABEL));
+				header.setBenefactorId(rs.getLong(COL_NODE_BENEFACTOR_ID));
 				return header;
 			}
 		});

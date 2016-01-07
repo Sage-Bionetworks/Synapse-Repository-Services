@@ -2,7 +2,9 @@ package org.sagebionetworks.repo.manager;
   
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -581,7 +583,9 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 			List<Reference> references) throws NotFoundException,
 			DatastoreException, UnauthorizedException {
 		UserInfo.validateUserInfo(userInfo);
-		return null;
+		List<EntityHeader> results = nodeDao.getEntityHeader(references);
+		// Will remove headers they user cannot see.
+		return filterUnauthorizedHeaders(userInfo, results);
 	}
 
 	@Override
@@ -594,19 +598,24 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		if (md5 == null) {
 			throw new IllegalArgumentException("MD5 cannot be null.");
 		}
-
 		List<EntityHeader> entityHeaderList = nodeDao.getEntityHeaderByMd5(md5);
-		List<EntityHeader> results = new ArrayList<EntityHeader>(entityHeaderList.size());
-		for (EntityHeader entityHeader: entityHeaderList) {
-			try {
-				if (authorizationManager.canAccess(userInfo, entityHeader.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ).getAuthorized()) {
-					results.add(entityHeader);
-				}
-			} catch (EntityInTrashCanException e) {
-				// Skip trash can items for md5 search
+		return filterUnauthorizedHeaders(userInfo, entityHeaderList);
+	}
+	
+	@Override
+	public List<EntityHeader> filterUnauthorizedHeaders(UserInfo userInfo, List<EntityHeader> toFilter){
+		Set<Long> originalBenefactors = new HashSet<Long>(toFilter.size());
+		for(EntityHeader header: toFilter){
+			originalBenefactors.add(header.getBenefactorId());
+		}
+		Set<Long> benefactorIntersection = authorizationManager.canReadBenefactor(userInfo, originalBenefactors);
+		List<EntityHeader> filtered = new LinkedList<EntityHeader>();
+		for(EntityHeader header: toFilter){
+			if(benefactorIntersection.contains(header.getBenefactorId())){
+				filtered.add(header);
 			}
 		}
-		return results;
+		return filtered;
 	}
 
 	@Override

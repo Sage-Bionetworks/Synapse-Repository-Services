@@ -344,4 +344,13 @@ public interface NodeManager {
 	 */
 	public List<Reference> getCurrentRevisionNumbers(List<String> nodeIds);
 
+	/**
+	 * Given a list of EntityHeaders, return the sub-set of EntityHeaders that the user is authorized to read.
+	 * @param userInfo
+	 * @param toFilter
+	 * @return
+	 */
+	List<EntityHeader> filterUnauthorizedHeaders(UserInfo userInfo,
+			List<EntityHeader> toFilter);
+
 }
