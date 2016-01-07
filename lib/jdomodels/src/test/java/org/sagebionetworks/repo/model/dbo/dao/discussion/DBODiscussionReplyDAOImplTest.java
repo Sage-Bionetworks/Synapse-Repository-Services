@@ -318,10 +318,10 @@ public class DBODiscussionReplyDAOImplTest {
 		replyDao.createReply(threadId, UUID.randomUUID().toString(), users.get(5));
 
 		stat = replyDao.getDiscussionThreadAuthorStat(threadIdLong);
-		assertEquals(stat.getActiveAuthors(),
-				Arrays.asList(users.get(0).toString(),
+		assertEquals(new HashSet<String>(stat.getActiveAuthors()),
+				new HashSet<String>(Arrays.asList(users.get(0).toString(),
 						users.get(1).toString(), users.get(2).toString(),
-						users.get(3).toString(), users.get(4).toString()));
+						users.get(3).toString(), users.get(4).toString())));
 
 		usersToDelete.addAll(users);
 	}
