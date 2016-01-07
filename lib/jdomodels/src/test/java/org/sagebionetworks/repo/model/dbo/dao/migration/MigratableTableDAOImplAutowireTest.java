@@ -134,16 +134,6 @@ public class MigratableTableDAOImplAutowireTest {
 		assertEquals(preview2.getEtag(), row.getEtag());
 		assertEquals(null, row.getParentId());
 		
-		// Get migration type count
-		MigrationTypeCount mtc = migratableTableDAO.getMigrationTypeCount(MigrationType.FILE_HANDLE);
-		assertNotNull(mtc);
-		MigrationTypeCount expectedTypeCount = new MigrationTypeCount();
-		expectedTypeCount.setType(MigrationType.FILE_HANDLE);
-		expectedTypeCount.setMinid(migratableTableDAO.getMinId(MigrationType.FILE_HANDLE));
-		expectedTypeCount.setMaxid(migratableTableDAO.getMaxId(MigrationType.FILE_HANDLE));
-		expectedTypeCount.setCount(migratableTableDAO.getCount(MigrationType.FILE_HANDLE));
-		assertEquals(expectedTypeCount, mtc);
-		
 		// Get the full back object
 		List<Long> idsToBackup1 = new LinkedList<Long>();
 		idsToBackup1.add(Long.parseLong(preview.getId()));
