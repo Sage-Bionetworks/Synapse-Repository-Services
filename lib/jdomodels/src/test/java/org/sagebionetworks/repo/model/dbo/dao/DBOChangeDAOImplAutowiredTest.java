@@ -515,7 +515,6 @@ public class DBOChangeDAOImplAutowiredTest {
 	 * @throws ExecutionException 
 	 * @throws InterruptedException 
 	 */
-	@Ignore
 	@Test
 	public void testPLFM2756() throws InterruptedException, ExecutionException{
 		final List<ChangeMessage> toSpam = createList(1, ObjectType.TABLE);
