@@ -74,10 +74,14 @@ import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
+import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
+import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
+import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.Forum;
+import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
 import org.sagebionetworks.repo.model.doi.Doi;
@@ -2407,6 +2411,55 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	Forum getForumMetadata(String projectId) throws SynapseException;
+
+	/**
+	 * Create a new Discussion Reply
+	 * 
+	 * @param toCreate
+	 * @return
+	 * @throws SynapseException
+	 */
+	DiscussionReplyBundle createReply(CreateDiscussionReply toCreate) throws SynapseException;
+
+	/**
+	 * Get the discussion reply given its ID
+	 * 
+	 * @param replyId
+	 * @return
+	 * @throws SynapseException
+	 */
+	DiscussionReplyBundle getReply(String replyId) throws SynapseException;
+
+	/**
+	 * Get replies for a given thread
+	 * 
+	 * @param threadId
+	 * @param limit
+	 * @param offset
+	 * @param order
+	 * @param ascending
+	 * @return
+	 * @throws SynapseException
+	 */
+	PaginatedResults<DiscussionReplyBundle> getRepliesForThread(String threadId, Long limit, Long offset, DiscussionReplyOrder order, Boolean ascending) throws SynapseException;
+
+	/**
+	 * Update the message of an existing reply
+	 * 
+	 * @param replyId
+	 * @param newMessage
+	 * @return
+	 * @throws SynapseException
+	 */
+	DiscussionReplyBundle updateReplyMessage(String replyId, UpdateReplyMessage newMessage) throws SynapseException;
+
+	/**
+	 * Mark a reply as deleted
+	 * 
+	 * @param replyId
+	 * @throws SynapseException
+	 */
+	void markReplyAsDeleted(String replyId) throws SynapseException;
 
 	/**
 	 * Create a new Discussion Thread

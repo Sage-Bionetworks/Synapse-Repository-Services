@@ -30,9 +30,12 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.QuizResponseDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.quiz.MultichoiceAnswer;
 import org.sagebionetworks.repo.model.quiz.MultichoiceQuestion;
 import org.sagebionetworks.repo.model.quiz.MultichoiceResponse;
@@ -58,16 +61,19 @@ public class CertifiedUserManagerImplTest {
 	private AmazonS3Utility s3Utility;
 	private GroupMembersDAO groupMembersDao;
 	private QuizResponseDAO quizResponseDao;
+	private TransactionalMessenger mockTransactionalMessenger;
 	
 	@Before
 	public void setUp() throws Exception {
 		s3Utility = Mockito.mock(AmazonS3Utility.class);
 		groupMembersDao = Mockito.mock(GroupMembersDAO.class);
 		quizResponseDao = Mockito.mock(QuizResponseDAO.class);
+		mockTransactionalMessenger = Mockito.mock(TransactionalMessenger.class);
 		certifiedUserManager = new CertifiedUserManagerImpl(
 				 s3Utility,
 				 groupMembersDao,
-				 quizResponseDao);
+				 quizResponseDao,
+				 mockTransactionalMessenger);
 		
 	}
 	
@@ -617,6 +623,7 @@ public class CertifiedUserManagerImplTest {
 		assertEquals(created.getId(), pr.getResponseId());
 		assertEquals(passingRecord.getScore(), pr.getScore());
 		assertEquals(created.getCreatedBy(), pr.getUserId());
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(userInfo.getId().toString(), ObjectType.CERTIFIED_USER_PASSING_RECORD, "etag", ChangeType.CREATE);
 	}
 	
 	@Test
@@ -653,6 +660,7 @@ public class CertifiedUserManagerImplTest {
 		assertEquals(created.getId(), pr.getResponseId());
 		assertEquals(passingRecord.getScore(), pr.getScore());
 		assertEquals(created.getCreatedBy(), pr.getUserId());
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(userInfo.getId().toString(), ObjectType.CERTIFIED_USER_PASSING_RECORD, "etag", ChangeType.CREATE);
 	}
 	
 	@Test(expected=UnauthorizedException.class)
@@ -714,7 +722,6 @@ public class CertifiedUserManagerImplTest {
 	public void testDeleteQuizResponseNonAdmin() throws Exception {
 		UserInfo userInfo = new UserInfo(false);
 		certifiedUserManager.deleteQuizResponse(userInfo, 101L);
-		verify(quizResponseDao).delete(101L);
 	}
 	
 	@Test
@@ -722,7 +729,18 @@ public class CertifiedUserManagerImplTest {
 		certifiedUserManager.getPassingRecord(101L);
 		verify(quizResponseDao).getPassingRecord(anyLong(), eq(101L));
 	}
-	
+
+	@Test(expected=ForbiddenException.class)
+	public void testGetPassingRecordsNonAdmin() throws Exception {
+		UserInfo userInfo = new UserInfo(false);
+		certifiedUserManager.getPassingRecords(userInfo, 101L, 10L, 0L);
+	}
+
+	@Test
+	public void testGetPassingRecordsAdmin() throws Exception {
+		UserInfo userInfo = new UserInfo(true);
+		certifiedUserManager.getPassingRecords(userInfo, 101L, 10L, 0L);
+		verify(quizResponseDao).getAllPassingRecords(anyLong(), eq(101L), eq(10L), eq(0L));
+		verify(quizResponseDao).getAllPassingRecordsCount(anyLong(), eq(101L));
+	}
 }
-
-

@@ -112,10 +112,14 @@ import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.auth.Username;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
+import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
+import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
+import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
 import org.sagebionetworks.repo.model.discussion.Forum;
+import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
 import org.sagebionetworks.repo.model.doi.Doi;
@@ -479,7 +483,9 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String THREAD = "/thread";
 	private static final String THREADS = "/threads";
 	private static final String THREAD_TITLE = "/title";
-	private static final String THREAD_MESSAGE = "/message";
+	private static final String DISCUSSION_MESSAGE = "/message";
+	private static final String REPLY = "/reply";
+	private static final String REPLIES = "/replies";
 
 	private static final String PRINCIPAL_ID_REQUEST_PARAM = "principalId";
 
@@ -7286,7 +7292,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public Forum getForumMetadata(String projectId) throws SynapseException {
 		try {
-			ValidateArgument.required(projectId, "projectId cannot be null");
+			ValidateArgument.required(projectId, "projectId");
 			return getJSONEntity(FORUM+"/"+projectId, Forum.class);
 		} catch (Exception e) {
 			throw new SynapseClientException(e);
@@ -7296,7 +7302,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public DiscussionThreadBundle createThread(CreateDiscussionThread toCreate)
 			throws SynapseException {
-		ValidateArgument.required(toCreate, "toCreate cannot be null");
+		ValidateArgument.required(toCreate, "toCreate");
 		return asymmetricalPost(repoEndpoint, THREAD, toCreate, DiscussionThreadBundle.class, null);
 	}
 
@@ -7304,7 +7310,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public DiscussionThreadBundle getThread(String threadId)
 			throws SynapseException {
 		try {
-			ValidateArgument.required(threadId, "threadId cannot be null");
+			ValidateArgument.required(threadId, "threadId");
 			return getJSONEntity(THREAD+"/"+threadId, DiscussionThreadBundle.class);
 		} catch (Exception e) {
 			throw new SynapseClientException(e);
@@ -7315,9 +7321,9 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public PaginatedResults<DiscussionThreadBundle> getThreadsForForum(
 			String forumId, Long limit, Long offset, DiscussionThreadOrder order,
 			Boolean ascending) throws SynapseException {
-		ValidateArgument.required(forumId, "forumId cannot be null");
-		ValidateArgument.required(limit, "limit cannot be null");
-		ValidateArgument.required(offset, "offset cannot be null");
+		ValidateArgument.required(forumId, "forumId");
+		ValidateArgument.required(limit, "limit");
+		ValidateArgument.required(offset, "offset");
 		String url = FORUM+"/"+forumId+THREADS
 				+"?"+LIMIT+"="+limit+"&"+OFFSET+"="+offset;
 		if (order != null) {
@@ -7342,22 +7348,82 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public DiscussionThreadBundle updateThreadTitle(String threadId,
 			UpdateThreadTitle newTitle) throws SynapseException {
-		ValidateArgument.required(threadId, "threadId cannot be null");
-		ValidateArgument.required(newTitle, "newTitle cannot be null");
+		ValidateArgument.required(threadId, "threadId");
+		ValidateArgument.required(newTitle, "newTitle");
 		return asymmetricalPut(repoEndpoint, THREAD+"/"+threadId+THREAD_TITLE, newTitle, DiscussionThreadBundle.class);
 	}
 
 	@Override
 	public DiscussionThreadBundle updateThreadMessage(String threadId,
 			UpdateThreadMessage newMessage) throws SynapseException {
-		ValidateArgument.required(threadId, "threadId cannot be null");
-		ValidateArgument.required(newMessage, "newMessage cannot be null");
-		return asymmetricalPut(repoEndpoint, THREAD+"/"+threadId+THREAD_MESSAGE, newMessage, DiscussionThreadBundle.class);
+		ValidateArgument.required(threadId, "threadId");
+		ValidateArgument.required(newMessage, "newMessage");
+		return asymmetricalPut(repoEndpoint, THREAD+"/"+threadId+DISCUSSION_MESSAGE, newMessage, DiscussionThreadBundle.class);
 	}
 
 	@Override
 	public void markThreadAsDeleted(String threadId) throws SynapseException {
 		getSharedClientConnection().deleteUri(repoEndpoint, THREAD+"/"+threadId, getUserAgent());
+	}
+
+	@Override
+	public DiscussionReplyBundle createReply(CreateDiscussionReply toCreate)
+			throws SynapseException {
+		ValidateArgument.required(toCreate, "toCreate");
+		return asymmetricalPost(repoEndpoint, REPLY, toCreate, DiscussionReplyBundle.class, null);
+	}
+
+	@Override
+	public DiscussionReplyBundle getReply(String replyId)
+			throws SynapseException {
+		try {
+			ValidateArgument.required(replyId, "replyId");
+			return getJSONEntity(REPLY+"/"+replyId, DiscussionReplyBundle.class);
+		} catch (Exception e) {
+			throw new SynapseClientException(e);
+		}
+	}
+
+	@Override
+	public PaginatedResults<DiscussionReplyBundle> getRepliesForThread(
+			String threadId, Long limit, Long offset,
+			DiscussionReplyOrder order, Boolean ascending)
+			throws SynapseException {
+		ValidateArgument.required(threadId, "threadId");
+		ValidateArgument.required(limit, "limit");
+		ValidateArgument.required(offset, "offset");
+		String url = THREAD+"/"+threadId+REPLIES
+				+"?"+LIMIT+"="+limit+"&"+OFFSET+"="+offset;
+		if (order != null) {
+			url += "&sort="+order.name();
+		}
+		if (ascending != null) {
+			url += "&ascending="+ascending;
+		}
+		JSONObject jsonObj = getEntity(url);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		PaginatedResults<DiscussionReplyBundle> results =
+				new PaginatedResults<DiscussionReplyBundle>(DiscussionReplyBundle.class);
+
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
+	}
+
+	@Override
+	public DiscussionReplyBundle updateReplyMessage(String replyId,
+			UpdateReplyMessage newMessage) throws SynapseException {
+		ValidateArgument.required(replyId, "replyId");
+		ValidateArgument.required(newMessage, "newMessage");
+		return asymmetricalPut(repoEndpoint, REPLY+"/"+replyId+DISCUSSION_MESSAGE, newMessage, DiscussionReplyBundle.class);
+	}
+
+	@Override
+	public void markReplyAsDeleted(String replyId) throws SynapseException {
+		getSharedClientConnection().deleteUri(repoEndpoint, REPLY+"/"+replyId, getUserAgent());
 	}
 
 	@Override
