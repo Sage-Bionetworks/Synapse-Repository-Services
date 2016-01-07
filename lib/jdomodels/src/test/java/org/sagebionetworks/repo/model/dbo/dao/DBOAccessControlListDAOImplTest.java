@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
@@ -33,6 +34,8 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+
+import com.google.common.collect.Sets;
 
 /**
  * @author bhoff
@@ -193,6 +196,51 @@ public class DBOAccessControlListDAOImplTest {
 		gs.clear();
 		gs.add(Long.parseLong(sham.getId()));
 		assertFalse(aclDAO.canAccess(gs, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
+	}
+	
+	@Test
+	public void testCanAccessMultiple() throws Exception {
+		Set<Long> gs = new HashSet<Long>();
+		gs.add(Long.parseLong(group.getId()));
+		
+		Long nodeId = KeyFactory.stringToKey(node.getId());
+		Set<Long> benefactors = Sets.newHashSet(nodeId, new Long(-1));
+		
+		Set<Long> results = aclDAO.canAccess(gs, benefactors, ObjectType.ENTITY, ACCESS_TYPE.READ);
+		assertNotNull(results);
+		assertEquals(1, results.size());
+		assertTrue(results.contains(nodeId));
+		assertFalse(results.contains(new Long(-1)));
+	}
+	
+	@Test
+	public void testCanAccessMultipleNoMatch() throws Exception {
+		Set<Long> gs = new HashSet<Long>();
+		gs.add(Long.parseLong(group.getId()));
+		
+		// there should be no matches in this set.
+		Set<Long> benefactors = Sets.newHashSet(new Long(-2), new Long(-1));
+		
+		Set<Long> results = aclDAO.canAccess(gs, benefactors, ObjectType.ENTITY, ACCESS_TYPE.READ);
+		assertNotNull(results);
+		assertTrue(results.isEmpty());
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCanAccessMultipleGroupsNull() throws Exception {
+		Set<Long> gs = null;
+		Set<Long> benefactors = Sets.newHashSet(new Long(-2), new Long(-1));
+		// call under test
+		aclDAO.canAccess(gs, benefactors, ObjectType.ENTITY, ACCESS_TYPE.READ);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCanAccessMultipleBenefactorsNull() throws Exception {
+		Set<Long> gs = new HashSet<Long>();
+		gs.add(Long.parseLong(group.getId()));
+		Set<Long> benefactors = null;
+		// call under test
+		aclDAO.canAccess(gs, benefactors, ObjectType.ENTITY, ACCESS_TYPE.READ);
 	}
 
 	/**

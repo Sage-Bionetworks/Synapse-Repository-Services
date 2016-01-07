@@ -61,7 +61,7 @@ public class AuthorizationSqlUtil {
 					" AND acl." + COL_ACL_OWNER_ID + " =:" + RESOURCE_ID_BIND_VAR
 					+ " AND acl."+COL_ACL_OWNER_TYPE+"=:"+RESOURCE_TYPE_BIND_VAR;
 	
-	public static final String SELECT_RESOURCE_INTERSECTION = "SELECT DISTINCT acl."
+	public static final String SELECT_RESOURCE_INTERSECTION = "SELECT acl."
 			+ COL_ACL_OWNER_ID
 			+ " as "+COL_ACL_OWNER_ID+" FROM "
 			+ AUTHORIZATION_SQL_TABLES

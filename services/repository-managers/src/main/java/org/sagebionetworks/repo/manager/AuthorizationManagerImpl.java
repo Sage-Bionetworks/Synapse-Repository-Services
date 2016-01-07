@@ -411,10 +411,12 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 
 
 	@Override
-	public Set<Long> canReadBenefactor(UserInfo userInfo,
-			Set<Long> benefactors) {
-		if (userInfo.isAdmin()) return benefactors;
-		return this.aclDAO.canAccess(userInfo.getGroups(), benefactors, ObjectType.ENTITY, ACCESS_TYPE.READ);
+	public Set<Long> canReadBenefactors(UserInfo userInfo, Set<Long> benefactors) {
+		if (userInfo.isAdmin()){
+			return benefactors;
+		}
+		return this.aclDAO.canAccess(userInfo.getGroups(), benefactors,
+				ObjectType.ENTITY, ACCESS_TYPE.READ);
 	}
 	
 }

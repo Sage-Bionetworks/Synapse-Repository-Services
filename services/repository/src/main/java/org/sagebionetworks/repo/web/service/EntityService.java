@@ -13,6 +13,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VersionInfo;
@@ -538,6 +539,18 @@ public interface EntityService {
 	 * @throws UnauthorizedException
 	 */
 	public EntityHeader getEntityHeader(Long userId, String entityId, Long versionNumber)
+			throws NotFoundException, DatastoreException, UnauthorizedException;
+	
+	/**
+	 * Get a list of Headers given a list of References.
+	 * @param userId
+	 * @param references
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 */
+	public PaginatedResults<EntityHeader> getEntityHeader(Long userId, List<Reference> references)
 			throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	/**

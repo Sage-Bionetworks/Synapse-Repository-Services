@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -582,6 +583,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	public List<EntityHeader> getNodeHeader(UserInfo userInfo,
 			List<Reference> references) throws NotFoundException,
 			DatastoreException, UnauthorizedException {
+		ValidateArgument.required(references, "references");
 		UserInfo.validateUserInfo(userInfo);
 		List<EntityHeader> results = nodeDao.getEntityHeader(references);
 		// Will remove headers they user cannot see.
@@ -604,11 +606,19 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	
 	@Override
 	public List<EntityHeader> filterUnauthorizedHeaders(UserInfo userInfo, List<EntityHeader> toFilter){
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(toFilter, "toFilter");
+		if(toFilter.isEmpty()){
+			// nothing to do.
+			return toFilter;
+		}
 		Set<Long> originalBenefactors = new HashSet<Long>(toFilter.size());
 		for(EntityHeader header: toFilter){
+			ValidateArgument.required(header.getBenefactorId(), "entityHeader.benefactorId");
 			originalBenefactors.add(header.getBenefactorId());
 		}
-		Set<Long> benefactorIntersection = authorizationManager.canReadBenefactor(userInfo, originalBenefactors);
+		// find the intersection.
+		Set<Long> benefactorIntersection = authorizationManager.canReadBenefactors(userInfo, originalBenefactors);
 		List<EntityHeader> filtered = new LinkedList<EntityHeader>();
 		for(EntityHeader header: toFilter){
 			if(benefactorIntersection.contains(header.getBenefactorId())){
