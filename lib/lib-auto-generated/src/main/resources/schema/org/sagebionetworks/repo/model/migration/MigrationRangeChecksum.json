@@ -1,5 +1,5 @@
 {
-	"description": "List of ",
+	"description": "Checksum (aggregate) for record range from minId to maxId of migration type 'type'",
 	"properties": {
 		"type": {
 			"$ref": "org.sagebionetworks.repo.model.migration.MigrationType"

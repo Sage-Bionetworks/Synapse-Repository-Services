@@ -1,5 +1,5 @@
 {
-	"description": "List of ",
+	"description": "Table checksum (CHECKSUM TABLE) for migration type 'type'",
 	"properties": {
 		"type": {
 			"$ref": "org.sagebionetworks.repo.model.migration.MigrationType"
