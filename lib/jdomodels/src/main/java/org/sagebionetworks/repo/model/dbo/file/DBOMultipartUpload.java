@@ -80,6 +80,9 @@ public class DBOMultipartUpload implements MigratableDatabaseObject<DBOMultipart
 				dbo.setStartedOn(rs.getDate(COL_MULTIPART_STARTED_ON));
 				dbo.setUpdatedOn(rs.getDate(COL_MULTIPART_UPDATED_ON));
 				dbo.setFileHandleId(rs.getLong(COL_MULTIPART_FILE_HANDLE_ID));
+				if(rs.wasNull()){
+					dbo.setFileHandleId(null);
+				}
 				dbo.setState(rs.getString(COL_MULTIPART_STATE));
 				dbo.setRequestBlob(rs.getBytes(COL_MULTIPART_UPLOAD_REQUEST));
 				dbo.setUploadToken(rs.getString(COL_MULTIPART_UPLOAD_TOKEN));
