@@ -13,6 +13,7 @@ import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
@@ -292,6 +293,7 @@ public class DBODiscussionReplyDAOImplTest {
 		assertNotNull(stat2.getLastActivity());
 	}
 
+	@Ignore // see PLFM-3700
 	@Test
 	public void testGetThreadAuthorStats() throws InterruptedException {
 		DiscussionThreadAuthorStat stat = replyDao.getDiscussionThreadAuthorStat(threadIdLong);

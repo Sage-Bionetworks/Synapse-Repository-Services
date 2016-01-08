@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager;
 
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -7,6 +8,7 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.evaluation.manager.EvaluationPermissionsManager;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.file.FileHandleAuthorizationStatus;
@@ -45,8 +47,12 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 
 public class AuthorizationManagerImpl implements AuthorizationManager {
+	
+	public static final Long TRASH_FOLDER_ID = Long.parseLong(
+			StackConfiguration.getTrashFolderEntityIdStatic());
 
 	private static final String FILE_HANDLE_UNAUTHORIZED_TEMPLATE = "Only the creator of a FileHandle can assign it to an Entity.  FileHandleId = '%1$s', UserId = '%2$s'";
 
@@ -412,11 +418,18 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 
 	@Override
 	public Set<Long> canReadBenefactors(UserInfo userInfo, Set<Long> benefactors) {
+		Set<Long> results = null;
 		if (userInfo.isAdmin()){
-			return benefactors;
+			// admin same as input
+			results = Sets.newHashSet(benefactors);
+		}else{
+			// non-adim run a query
+			results = this.aclDAO.canAccess(userInfo.getGroups(), benefactors,
+					ObjectType.ENTITY, ACCESS_TYPE.READ);
 		}
-		return this.aclDAO.canAccess(userInfo.getGroups(), benefactors,
-				ObjectType.ENTITY, ACCESS_TYPE.READ);
+		// The trash folder should not be in the results
+		results.remove(TRASH_FOLDER_ID);
+		return results;
 	}
 	
 }
