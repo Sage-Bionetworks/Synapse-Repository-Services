@@ -10,6 +10,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadState;
@@ -21,6 +22,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
@@ -32,6 +34,8 @@ public class MultipartUploadDAOImplTest {
 	MultipartUploadDAO multipartUplaodDAO;
 	@Autowired
 	FileHandleDao fileHandleDao;
+	@Autowired
+	private DBOBasicDao basicDao;
 	
 	Long userId;
 	String hash;
@@ -91,6 +95,19 @@ public class MultipartUploadDAOImplTest {
 		assertEquals(bucket, composite.getBucket());
 		assertEquals(key, composite.getKey());
 		assertEquals(numberOfParts, composite.getNumberOfParts());
+	}
+	
+	@Test
+	public void testPLFM_3701(){
+		CompositeMultipartUploadStatus composite = multipartUplaodDAO.createUploadStatus(createRequest);
+		assertNotNull(composite);
+		assertEquals(null, composite.getMultipartUploadStatus().getResultFileHandleId());
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue("id", composite.getMultipartUploadStatus().getUploadId());
+		DBOMultipartUpload dbo = basicDao.getObjectByPrimaryKey(DBOMultipartUpload.class, param);
+		assertNotNull(dbo);
+		assertEquals(null, dbo.getFileHandleId());
+		assertEquals(composite.getMultipartUploadStatus().getUploadId(), ""+dbo.getId());
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
