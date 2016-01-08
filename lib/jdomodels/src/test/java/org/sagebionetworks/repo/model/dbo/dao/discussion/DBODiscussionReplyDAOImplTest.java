@@ -293,7 +293,6 @@ public class DBODiscussionReplyDAOImplTest {
 		assertNotNull(stat2.getLastActivity());
 	}
 
-	@Ignore // see PLFM-3700
 	@Test
 	public void testGetThreadAuthorStats() throws InterruptedException {
 		DiscussionThreadAuthorStat stat = replyDao.getDiscussionThreadAuthorStat(threadIdLong);
