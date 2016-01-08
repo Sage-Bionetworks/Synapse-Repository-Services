@@ -105,7 +105,6 @@ public class CertifiedUserPassingRecordWriterTest {
 		ObjectRecord record = ObjectRecordBuilderUtils.buildObjectRecord(passingRecord, timestamp);
 		List<ObjectRecord> orList = new ArrayList<ObjectRecord>();
 		orList.add(record);
-		orList.add(record);
 		PaginatedResults<PassingRecord> pageOne = new PaginatedResults<PassingRecord>();
 		pageOne.setTotalNumberOfResults(11);
 		pageOne.setResults(Arrays.asList(passingRecord));
@@ -116,6 +115,6 @@ public class CertifiedUserPassingRecordWriterTest {
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
 		writer.buildAndWriteRecord(changeMessage);
 
-		Mockito.verify(mockObjectRecordDAO).saveBatch(orList, record.getJsonClassName());
+		Mockito.verify(mockObjectRecordDAO, Mockito.times(2)).saveBatch(orList, record.getJsonClassName());
 	}
 }

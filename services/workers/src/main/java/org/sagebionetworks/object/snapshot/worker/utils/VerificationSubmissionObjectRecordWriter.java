@@ -42,18 +42,18 @@ public class VerificationSubmissionObjectRecordWriter implements ObjectRecordWri
 		UserInfo adminUser = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		try {
 			long offset = 0L;
-			List<ObjectRecord> toWrite = new ArrayList<ObjectRecord>();
 			VerificationPagedResults records = null;
 			do {
+				List<ObjectRecord> toWrite = new ArrayList<ObjectRecord>();
 				records = verificationManager.listVerificationSubmissions(adminUser, null, userId, LIMIT , offset);
 				for (VerificationSubmission record : records.getResults()) {
 					toWrite.add(ObjectRecordBuilderUtils.buildObjectRecord(record, message.getTimestamp().getTime()));
 				}
+				if (!toWrite.isEmpty()) {
+					objectRecordDAO.saveBatch(toWrite, toWrite.get(0).getJsonClassName());
+				}
 				offset += LIMIT;
 			} while (offset < records.getTotalNumberOfResults());
-			if (!toWrite.isEmpty()) {
-				objectRecordDAO.saveBatch(toWrite, toWrite.get(0).getJsonClassName());
-			}
 		} catch (NotFoundException e) {
 			log.error("Cannot find verification submission for user " + message.getObjectId() + " message: " + message.toString()) ;
 		}

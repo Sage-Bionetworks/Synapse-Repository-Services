@@ -42,18 +42,18 @@ public class CertifiedUserPassingRecordWriter implements ObjectRecordWriter {
 		UserInfo adminUser = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		try {
 			long offset = 0L;
-			List<ObjectRecord> toWrite = new ArrayList<ObjectRecord>();
 			PaginatedResults<PassingRecord> records = null;
 			do {
+				List<ObjectRecord> toWrite = new ArrayList<ObjectRecord>();
 				records = certifiedUserManager.getPassingRecords(adminUser, userId, LIMIT , offset);
 				for (PassingRecord record : records.getResults()) {
 					toWrite.add(ObjectRecordBuilderUtils.buildObjectRecord(record, message.getTimestamp().getTime()));
 				}
+				if (!toWrite.isEmpty()) {
+					objectRecordDAO.saveBatch(toWrite, toWrite.get(0).getJsonClassName());
+				}
 				offset += LIMIT;
 			} while (offset < records.getTotalNumberOfResults());
-			if (!toWrite.isEmpty()) {
-				objectRecordDAO.saveBatch(toWrite, toWrite.get(0).getJsonClassName());
-			}
 		} catch (NotFoundException e) {
 			log.error("Cannot find certified user passing record for user " + message.getObjectId() + " message: " + message.toString()) ;
 		}

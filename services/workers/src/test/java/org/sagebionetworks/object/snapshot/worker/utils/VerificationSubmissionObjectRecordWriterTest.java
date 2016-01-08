@@ -105,7 +105,6 @@ public class VerificationSubmissionObjectRecordWriterTest {
 		ObjectRecord record = ObjectRecordBuilderUtils.buildObjectRecord(verificationSubmission, timestamp);
 		List<ObjectRecord> orList = new ArrayList<ObjectRecord>();
 		orList.add(record);
-		orList.add(record);
 		VerificationPagedResults pageOne = new VerificationPagedResults();
 		pageOne.setTotalNumberOfResults(11L);
 		pageOne.setResults(Arrays.asList(verificationSubmission));
@@ -116,6 +115,6 @@ public class VerificationSubmissionObjectRecordWriterTest {
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
 		writer.buildAndWriteRecord(changeMessage);
 
-		Mockito.verify(mockObjectRecordDAO).saveBatch(orList, record.getJsonClassName());
+		Mockito.verify(mockObjectRecordDAO, Mockito.times(2)).saveBatch(orList, record.getJsonClassName());
 	}
 }
