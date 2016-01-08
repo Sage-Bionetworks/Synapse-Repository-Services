@@ -16,9 +16,12 @@ import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
+import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.Forum;
+import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -112,5 +115,37 @@ public class ITDiscussion {
 		assertFalse(deleted.equals(updateThreadMessage));
 		assertEquals(deleted.getId(), threadId);
 		assertTrue(deleted.getIsDeleted());
+
+		// create a reply
+		CreateDiscussionReply replyToCreate = new CreateDiscussionReply();
+		replyToCreate.setThreadId(threadId);
+		message = "Bring the cat to the vet.";
+		replyToCreate.setMessageMarkdown(message);
+		DiscussionReplyBundle replyBundle = synapse.createReply(replyToCreate);
+		assertNotNull(replyBundle);
+		String replyId = replyBundle.getId();
+		assertEquals(replyBundle.getThreadId(), threadId);
+		assertEquals(replyBundle.getProjectId(), projectId);
+		assertEquals(replyBundle.getForumId(), forumId);
+
+		assertEquals(synapse.getReply(replyId), replyBundle);
+		PaginatedResults<DiscussionReplyBundle> replies = synapse.getRepliesForThread(threadId, 100L, 0L, null, null);
+		assertTrue(replies.getResults().size() == 1);
+		assertEquals(replies.getResults().get(0), replyBundle);
+		assertEquals(1L, replies.getTotalNumberOfResults());
+
+		// update message
+		UpdateReplyMessage updateReplyMessage = new UpdateReplyMessage();
+		updateReplyMessage.setMessageMarkdown("Maybe the vet can help?");
+		DiscussionReplyBundle updatedReply = synapse.updateReplyMessage(replyId, updateReplyMessage);
+		assertEquals(updatedReply.getId(), replyId);
+		assertTrue(updatedReply.getIsEdited());
+
+		// delete
+		synapse.markReplyAsDeleted(replyId);
+		DiscussionReplyBundle deletedReply = synapse.getReply(replyId);
+		assertFalse(deletedReply.equals(updatedReply));
+		assertEquals(deletedReply.getId(), replyId);
+		assertTrue(deletedReply.getIsDeleted());
 	}
 }

@@ -44,6 +44,7 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadDestination;
 import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
@@ -249,15 +250,23 @@ public class MigrationManagerImplAutowireTest {
 	@Test
 	public void testGetChecksumForIdRange() {
 		long max = migrationManager.getMaxId(adminUser, MigrationType.FILE_HANDLE);
-		String checksum = migrationManager.getChecksumForIdRange(adminUser, MigrationType.FILE_HANDLE, 0L, max);
-		assertNotNull(checksum);
-		assertTrue(checksum.contains("%"));
+		String salt = "salt";
+		MigrationRangeChecksum mrc = migrationManager.getChecksumForIdRange(adminUser, MigrationType.FILE_HANDLE, salt, 0L, max);
+		assertNotNull(mrc);
+		assertNotNull(mrc.getChecksum());
+		assertTrue(mrc.getChecksum().contains("%"));
+		assertEquals(MigrationType.FILE_HANDLE, mrc.getType());
+		assertEquals(0L, mrc.getMinid().longValue());
+		assertEquals(max, mrc.getMaxid().longValue());
+		
 	}
 	
 	@Test
 	public void testGetChecksumForType() {
-		String checksum = migrationManager.getChecksumForType(adminUser, MigrationType.FILE_HANDLE);
-		assertNotNull(checksum);
+		MigrationTypeChecksum mtc = migrationManager.getChecksumForType(adminUser, MigrationType.FILE_HANDLE);
+		assertNotNull(mtc);
+		assertNotNull(mtc.getChecksum());
+		assertEquals(MigrationType.FILE_HANDLE, mtc.getType());
 	}
  	
 	@Test

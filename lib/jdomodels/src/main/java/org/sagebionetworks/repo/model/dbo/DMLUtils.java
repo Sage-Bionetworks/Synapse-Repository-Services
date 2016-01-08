@@ -22,8 +22,6 @@ public class DMLUtils {
 	public static final String BIND_VAR_ID_lIST = "BVIDLIST";
 	public static final String BIND_VAR_OFFSET = "BVOFFSET";
 	public static final String BIND_VAR_LIMIT = "BCLIMIT";
-	public static final String BIND_VAR_ID_RANGE_MIN = "BVIDRMIN";
-	public static final String BIND_VAR_ID_RANGE_MAX = "BVIDRMAX";
 
 	/**
 	 * Create an INSERT statement for a given mapping.
@@ -174,14 +172,6 @@ public class DMLUtils {
 		throw new IllegalArgumentException("Table "+mapping.getTableName()+" has no backup key.");
 	}
 	
-	public static String getEtagFieldColumnName(TableMapping mapping) {
-		for(int i=0; i<mapping.getFieldColumns().length; i++){
-			FieldColumn fc = mapping.getFieldColumns()[i];
-			if(fc.isEtag()) return fc.getColumnName();
-		}
-		throw new IllegalArgumentException("Table "+mapping.getTableName()+" has no etag column.");
-	}
-
 	/**
 	 * Append the primary key
 	 * @param mapping
@@ -321,14 +311,15 @@ public class DMLUtils {
 		StringBuilder builder = new StringBuilder();
 		builder.append("CONCAT(`");
 		builder.append(idCol.getColumnName());
-		builder.append("`, '@', ");
-		if (etagCol == null) {
-			builder.append("'NA'");
-		} else {
+		builder.append("`");
+		if (etagCol != null) {
+			builder.append(", '@', ");
 			builder.append("IFNULL(`");
 			builder.append(etagCol.getColumnName());
 			builder.append("`, 'NULL')");
 		}
+		// Append salt parameter
+		builder.append(", '@@', ?");
 		builder.append(")");
 		return builder.toString();
 		
@@ -338,10 +329,9 @@ public class DMLUtils {
 		String idColName = getBackupIdColumnName(mapping).getColumnName();
 		builder.append(" WHERE `");
 		builder.append(idColName);
-		builder.append("` >= :" + BIND_VAR_ID_RANGE_MIN);
-		builder.append(" AND `");
+		builder.append("` >= ? AND `");
 		builder.append(idColName);
-		builder.append("` <= :" + BIND_VAR_ID_RANGE_MAX);
+		builder.append("` <= ?");
 		return;
 	}
 	
@@ -413,10 +403,7 @@ public class DMLUtils {
 		builder.append(" FROM ");
 		builder.append(mapping.getTableName());
 		buildBackupOrderBy(mapping, builder, true);
-		builder.append(" LIMIT :");
-		builder.append(BIND_VAR_LIMIT);
-		builder.append(" OFFSET :");
-		builder.append(BIND_VAR_OFFSET);
+		builder.append(" LIMIT ? OFFSET ?");
 		return builder.toString();
 	}
 
@@ -625,7 +612,7 @@ public class DMLUtils {
 			public ChecksumTableResult mapRow(ResultSet rs, int rowNum) throws SQLException {
 				ChecksumTableResult ctRes = new ChecksumTableResult();
 				ctRes.setTableName(rs.getString(1));
-				ctRes.setValue(String.valueOf(rs.getLong(2)));
+				ctRes.setChecksum(String.valueOf(rs.getLong(2)));
 				return ctRes;
 			}
 		};

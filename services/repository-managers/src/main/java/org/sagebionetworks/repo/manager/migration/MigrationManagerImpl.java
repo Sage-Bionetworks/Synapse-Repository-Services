@@ -7,6 +7,7 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -16,6 +17,7 @@ import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableDAO;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.ListBucketProvider;
+import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
@@ -351,8 +353,8 @@ public class MigrationManagerImpl implements MigrationManager {
 	private void deleteAllForType(UserInfo user, MigrationType type) throws Exception {
 		// First get all data for this type.
 		RowMetadataResult result =  migratableTableDao.listRowMetadata(type, Long.MAX_VALUE, 0);
-		List<RowMetadata> list =result.getList();
-		if(list.size() > 0){
+		List<RowMetadata> list = result.getList();
+		if (list.size() > 0) {
 			// Create the list of IDs to delete
 			List<Long> toDelete = new LinkedList<Long>();
 			for(RowMetadata row: list){
@@ -395,18 +397,26 @@ public class MigrationManagerImpl implements MigrationManager {
 	}
 
 	@Override
-	public String getChecksumForIdRange(UserInfo user, MigrationType type,
-			long minId, long maxId) {
+	public MigrationRangeChecksum getChecksumForIdRange(UserInfo user, MigrationType type,
+			String salt, long minId, long maxId) {
 		validateUser(user);
-		String checksum = migratableTableDao.getChecksumForIdRange(type, minId, maxId);
-		return checksum;
+		String checksum = migratableTableDao.getChecksumForIdRange(type, salt, minId, maxId);
+		MigrationRangeChecksum mrc = new MigrationRangeChecksum();
+		mrc.setType(type);
+		mrc.setMinid(minId);
+		mrc.setMaxid(maxId);
+		mrc.setChecksum(checksum);
+		return mrc;
 	}
 	
 	@Override
-	public String getChecksumForType(UserInfo user, MigrationType type) {
+	public MigrationTypeChecksum getChecksumForType(UserInfo user, MigrationType type) {
 		validateUser(user);
 		String checksum = migratableTableDao.getChecksumForType(type);
-		return checksum;
+		MigrationTypeChecksum mtc = new MigrationTypeChecksum();
+		mtc.setType(type);
+		mtc.setChecksum(checksum);
+		return mtc;
 	}
 
 	@Override

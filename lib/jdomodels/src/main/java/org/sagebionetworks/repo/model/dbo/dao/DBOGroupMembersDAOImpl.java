@@ -7,16 +7,18 @@ import java.util.List;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup;
+import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 
@@ -27,6 +29,9 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 
 	@Autowired
 	private UserGroupDAO userGroupDAO;
+
+	@Autowired
+	private TransactionalMessenger transactionalMessenger;
 
 	private static final String PRINCIPAL_ID_PARAM_NAME = "principalId";
 	private static final String GROUP_ID_PARAM_NAME     = "groupId";
@@ -75,15 +80,11 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 		if (memberIds.isEmpty()) {
 			return;
 		}
-		
-		// The insertion into GroupMembers requires a read lock on many rows of the UserGroup table
-		// So fetch a write lock on all necessary rows
-		List<String> locks = new ArrayList<String>(memberIds);
-		locks.add(groupId);
-		for (Long id : sortIds(locks)) {
-			userGroupDAO.getEtagForUpdate(id.toString());
-		}
-		
+
+		// get the lock on group principal
+		String etag = userGroupDAO.getEtagForUpdate(groupId);
+		transactionalMessenger.sendMessageAfterCommit(groupId, ObjectType.PRINCIPAL, etag, ChangeType.UPDATE);
+
 		// Make sure the UserGroup corresponding to the ID holds a group, not an individual
 		if (userGroupDAO.get(Long.parseLong(groupId)).getIsIndividual()) {
 			throw new IllegalArgumentException("Members cannot be added to an individual");

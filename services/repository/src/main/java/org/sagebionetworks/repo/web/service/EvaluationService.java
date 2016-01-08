@@ -82,16 +82,6 @@ public interface EvaluationService {
 			Long userId, long limit, long offset, List<Long> evaluationIds, HttpServletRequest request) throws DatastoreException, NotFoundException;
 
 	/**
-	 * Get the total number of Evaluations in the system
-	 *
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 */
-	@Deprecated
-	public long getEvaluationCount(Long userId) throws DatastoreException,
-			NotFoundException;
-
-	/**
 	 * Find a Evaluation, by name
 	 * 
 	 * @param name
@@ -146,30 +136,6 @@ public interface EvaluationService {
 			throws NotFoundException;
 
 	/**
-	 * Get a Participant
-	 * 
-	 * @param principalId
-	 * @param evalId
-	 * @return
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 */
-	public Participant getParticipant(Long userId, String principalId, String evalId)
-			throws DatastoreException, NotFoundException;
-
-	/**
-	 * Remove a Participant from a Evaluation.
-	 * 
-	 * @param userId
-	 * @param evalId
-	 * @param idToRemove
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 */
-	public void removeParticipant(Long userId, String evalId,
-			String idToRemove) throws DatastoreException, NotFoundException;
-
-	/**
 	 * Get all Participants for a given Evaluation.
 	 * 
 	 * @param evalId
@@ -180,17 +146,6 @@ public interface EvaluationService {
 	 */
 	public PaginatedResults<Participant> getAllParticipants(Long userId, String evalId, long limit, long offset, HttpServletRequest request)
 			throws NumberFormatException, DatastoreException, NotFoundException;
-
-	/**
-	 * Get the number of Participants in a given Evaluation.
-	 * 
-	 * @param evalId
-	 * @return
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 */
-	public long getParticipantCount(Long userId, String evalId) throws DatastoreException,
-			NotFoundException;
 
 	////// Methods for managing submissions //////
 

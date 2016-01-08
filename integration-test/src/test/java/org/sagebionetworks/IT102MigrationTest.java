@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
@@ -117,8 +118,9 @@ public class IT102MigrationTest {
 		}
 		// Checksums per type
 		System.out.println("Checksums by type");
+		String salt = "SALT";
 		for (MigrationType mt: migrationTypes) {
-			MigrationRangeChecksum mtc = adminSynapse.getChecksumForIdRange(mt, 0L, Long.MAX_VALUE);
+			MigrationRangeChecksum mtc = adminSynapse.getChecksumForIdRange(mt, salt, 0L, Long.MAX_VALUE);
 			System.out.println(mt.name() + ":" + mtc);			
 		}
 		
@@ -157,10 +159,11 @@ public class IT102MigrationTest {
 		p.setName("projectIT102-1");
 		p = adminSynapse.createEntity(p);
 		Long maxId = Long.parseLong(p.getId().substring(3));
-		MigrationRangeChecksum checksum1 = adminSynapse.getChecksumForIdRange(MigrationType.NODE, minId, maxId);
+		String salt = "SALT";
+		MigrationRangeChecksum checksum1 = adminSynapse.getChecksumForIdRange(MigrationType.NODE, salt, minId, maxId);
 		assertNotNull(checksum1);
 		adminSynapse.deleteEntity(p);
-		MigrationRangeChecksum checksum2 = adminSynapse.getChecksumForIdRange(MigrationType.NODE, minId, maxId);
+		MigrationRangeChecksum checksum2 = adminSynapse.getChecksumForIdRange(MigrationType.NODE, salt, minId, maxId);
 		assertNotNull(checksum2);
 		assertFalse(checksum1.equals(checksum2));
 	}

@@ -17,8 +17,6 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.sagebionetworks.repo.manager.file.MultipartManagerV2Impl.MAX_NUMBER_OF_PARTS;
-import static org.sagebionetworks.repo.manager.file.MultipartManagerV2Impl.MIN_PART_SIZE_BYTES;
 import static org.sagebionetworks.repo.manager.file.MultipartManagerV2Impl.calculateMD5AsHex;
 import static org.sagebionetworks.repo.manager.file.MultipartManagerV2Impl.createPartKey;
 import static org.sagebionetworks.repo.manager.file.MultipartManagerV2Impl.createRequestJSON;
@@ -59,8 +57,6 @@ import org.sagebionetworks.repo.model.file.PartPresignedUrl;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.upload.multipart.S3MultipartUploadDAO;
 import org.springframework.test.util.ReflectionTestUtils;
-
-import sun.tools.tree.AddExpression;
 
 import com.google.common.collect.Lists;
 
@@ -215,71 +211,6 @@ public class MultipartManagerV2ImplTest {
 		//call under test
 		String md5Hex = MultipartManagerV2Impl.calculateMD5AsHex(request);
 		assertEquals(expected, md5Hex);
-	}
-	
-	@Test
-	public void testCalculateNumberOfPartsSmall(){
-		long fileSize = 1;
-		long partSize = MIN_PART_SIZE_BYTES;
-		//call under test
-		int numberOfParts = MultipartManagerV2Impl.calculateNumberOfParts(fileSize, partSize);
-		assertEquals(1, numberOfParts);
-	}
-
-	@Test
-	public void testCalculateNumberOfPartsNoRemainder(){
-		long fileSize = MIN_PART_SIZE_BYTES*2;
-		long partSize = MIN_PART_SIZE_BYTES;
-		//call under test
-		int numberOfParts = MultipartManagerV2Impl.calculateNumberOfParts(fileSize, partSize);
-		assertEquals(2, numberOfParts);
-	}
-	
-	@Test
-	public void testCalculateNumberOfPartsWithRemainder(){
-		long fileSize = MIN_PART_SIZE_BYTES*2+1;
-		long partSize = MIN_PART_SIZE_BYTES;
-		//call under test
-		int numberOfParts = MultipartManagerV2Impl.calculateNumberOfParts(fileSize, partSize);
-		assertEquals(3, numberOfParts);
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testCalculateNumberOfLessThanOne(){
-		long fileSize = 0;
-		long partSize = MIN_PART_SIZE_BYTES;
-		//call under test
-		MultipartManagerV2Impl.calculateNumberOfParts(fileSize, partSize);
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testCalculateNumberOfPartTooSmall(){
-		long fileSize = 1;
-		long partSize = MIN_PART_SIZE_BYTES-1;
-		//call under test
-		MultipartManagerV2Impl.calculateNumberOfParts(fileSize, partSize);
-	}
-	
-	@Test
-	public void testCalculateNumberOfPartAtMax(){
-		long fileSize = MIN_PART_SIZE_BYTES*MAX_NUMBER_OF_PARTS;
-		long partSize = MIN_PART_SIZE_BYTES;
-		//call under test
-		int numberOfParts = MultipartManagerV2Impl.calculateNumberOfParts(fileSize, partSize);
-		assertEquals(MAX_NUMBER_OF_PARTS, numberOfParts);
-	}
-	
-	@Test
-	public void testCalculateNumberOfPartOverMax(){
-		long fileSize = MIN_PART_SIZE_BYTES*MAX_NUMBER_OF_PARTS+1;
-		long partSize = MIN_PART_SIZE_BYTES;
-		//call under test
-		try {
-			MultipartManagerV2Impl.calculateNumberOfParts(fileSize, partSize);
-			fail("Should have thrown an exception");
-		} catch (IllegalArgumentException e) {
-			assertTrue(e.getMessage().contains("10001"));
-		}
 	}
 	
 	@Test

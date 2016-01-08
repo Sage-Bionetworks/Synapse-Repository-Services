@@ -8,10 +8,13 @@ import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.audit.dao.ObjectRecordDAO;
 import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
+import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
@@ -29,10 +32,16 @@ import com.amazonaws.services.sqs.model.Message;
 public class PrincipalObjectRecordWriterTest {
 	
 	private PrincipalObjectRecordWriter writer;
+	@Mock
 	private UserProfileDAO mockUserProfileDAO;
+	@Mock
 	private UserGroupDAO mockUserGroupDAO;
+	@Mock
 	private TeamDAO mockTeamDAO;
+	@Mock
 	private ObjectRecordDAO mockObjectRecordDao;
+	@Mock
+	private GroupMembersDAO mockGroupMembersDao;
 	
 	private Long principalID = 123L;
 	private Date createdOn = new Date();
@@ -47,12 +56,10 @@ public class PrincipalObjectRecordWriterTest {
 	
 	@Before
 	public void setup() {
-		mockUserGroupDAO = Mockito.mock(UserGroupDAO.class);
-		mockUserProfileDAO = Mockito.mock(UserProfileDAO.class);
-		mockTeamDAO = Mockito.mock(TeamDAO.class);
-		mockObjectRecordDao = Mockito.mock(ObjectRecordDAO.class);
+		MockitoAnnotations.initMocks(this);
+
 		writer = new PrincipalObjectRecordWriter(mockUserGroupDAO, mockUserProfileDAO,
-				mockTeamDAO, mockObjectRecordDao);	
+				mockTeamDAO, mockGroupMembersDao, mockObjectRecordDao);	
 
 		ug = new UserGroup();
 
@@ -165,36 +172,34 @@ public class PrincipalObjectRecordWriterTest {
 	}
 
 	@Test
-	public void logTeamTest() throws IOException {
-		// principal that does not belong to any team
-		Mockito.when(mockTeamDAO.getCountForMember(Mockito.anyString())).thenReturn(0L);
-		writer.captureAllTeams(principalID, 1, timestamp);
-		Mockito.verify(mockTeamDAO, Mockito.never()).getForMemberInRange(Mockito.anyString(), Mockito.anyLong(), Mockito.anyLong());
+	public void logGroupMembersWithZeroMembersTest() throws IOException {
+		Mockito.when(mockGroupMembersDao.getMembers(principalID.toString())).thenReturn(new ArrayList<UserGroup>());
+		writer.captureAllMembers(principalID.toString(), timestamp);
 		Mockito.verify(mockTeamDAO, Mockito.never()).getMember(Mockito.anyString(), Mockito.anyString());
 		Mockito.verify(mockObjectRecordDao, Mockito.never()).saveBatch(Mockito.anyList(), Mockito.anyString());
-		
-		// principal that belongs to 2 teams
-		Mockito.when(mockTeamDAO.getCountForMember(Mockito.anyString())).thenReturn(4L);
-		List<Team> list = createListOfTeam(2);
-		Mockito.when(mockTeamDAO.getForMemberInRange(Mockito.anyString(), Mockito.anyLong(), Mockito.anyLong())).thenReturn(list);
+	}
+
+	@Test
+	public void logGroupMembersTest() throws IOException {
+		List<UserGroup> list = createListOfMembers(2);
+		Mockito.when(mockGroupMembersDao.getMembers(principalID.toString())).thenReturn(list);
 		TeamMember teamMember = new TeamMember();
 		Mockito.when(mockTeamDAO.getMember(Mockito.anyString(), Mockito.anyString())).thenReturn(teamMember);
-		writer.captureAllTeams(principalID, 2, timestamp);
-		Mockito.verify(mockTeamDAO).getForMemberInRange(Mockito.anyString(), Mockito.eq(2L), Mockito.eq(0L));
-		Mockito.verify(mockTeamDAO).getForMemberInRange(Mockito.anyString(), Mockito.eq(2L), Mockito.eq(2L));
-		Mockito.verify(mockTeamDAO, Mockito.times(4)).getMember(Mockito.anyString(), Mockito.anyString());
-		Mockito.verify(mockObjectRecordDao, Mockito.times(2)).saveBatch(Mockito.anyList(), Mockito.anyString());
+		writer.captureAllMembers(principalID.toString(), timestamp);
+		Mockito.verify(mockObjectRecordDao).saveBatch(Mockito.anyList(), Mockito.anyString());
 	}
 
 	/**
-	 * create a list of teams
-	 * @param numberOfTeams
+	 * create a list of members
+	 * @param numberOfMembers
 	 * @return
 	 */
-	private List<Team> createListOfTeam(int numberOfTeams) {
-		List<Team> list = new ArrayList<Team>();
-		for (int i = 0; i < numberOfTeams; i++) {
-			list.add(buildTeam(String.valueOf(i)));
+	private List<UserGroup> createListOfMembers(int numberOfMembers) {
+		List<UserGroup> list = new ArrayList<UserGroup>();
+		for (int i = 0; i < numberOfMembers; i++) {
+			UserGroup ug = new UserGroup();
+			ug.setId(""+i);
+			list.add(ug);
 		}
 		return list;
 	}

@@ -1,11 +1,12 @@
 package org.sagebionetworks.repo.model.dbo.dao.migration;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.math.BigDecimal;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -15,6 +16,9 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.TeamDAO;
+import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableDAO;
@@ -34,25 +38,29 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 public class MigratableTableDAOImplAutowireTest {
 
 	@Autowired
+	private UserProfileDAO userProfileDAO;
+	
+	@Autowired
 	private FileHandleDao fileHandleDao;
-
+	
 	@Autowired
 	private MigratableTableDAO migratableTableDAO;
 	
-	private List<String> toDelete;
+	private List<String> filesToDelete;
+	
 	private String creatorUserGroupId;
 	
 	@Before
 	public void before(){
-		toDelete = new LinkedList<String>();
+		filesToDelete = new LinkedList<String>();
 		creatorUserGroupId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString();
 		assertNotNull(creatorUserGroupId);
 	}
 	
 	@After
 	public void after(){
-		if(fileHandleDao != null && toDelete != null){
-			for(String id: toDelete){
+		if(fileHandleDao != null && filesToDelete != null){
+			for(String id: filesToDelete){
 				fileHandleDao.delete(id);
 			}
 		}
@@ -69,24 +77,24 @@ public class MigratableTableDAOImplAutowireTest {
 		withPreview.setFileName("withPreview.txt");
 		withPreview = fileHandleDao.createFile(withPreview);
 		assertNotNull(withPreview);
-		toDelete.add(withPreview.getId());
+		filesToDelete.add(withPreview.getId());
 		S3FileHandle withPreview2 = TestUtils.createS3FileHandle(creatorUserGroupId);
 		withPreview2.setFileName("withPreview2.txt");
 		withPreview2 = fileHandleDao.createFile(withPreview2);
 		assertNotNull(withPreview2);
-		toDelete.add(withPreview2.getId());
+		filesToDelete.add(withPreview2.getId());
 		// The Preview
 		PreviewFileHandle preview = TestUtils.createPreviewFileHandle(creatorUserGroupId);
 		preview.setFileName("preview.txt");
 		preview = fileHandleDao.createFile(preview);
 		assertNotNull(preview);
-		toDelete.add(preview.getId());
+		filesToDelete.add(preview.getId());
 		// Preview 2
 		PreviewFileHandle preview2 = TestUtils.createPreviewFileHandle(creatorUserGroupId);
 		preview2.setFileName("preview.txt");
 		preview2 = fileHandleDao.createFile(preview2);
 		assertNotNull(preview2);
-		toDelete.add(preview2.getId());
+		filesToDelete.add(preview2.getId());
 		
 		assertEquals(Long.parseLong(preview2.getId()), fileHandleDao.getMaxId());
 		
@@ -126,27 +134,6 @@ public class MigratableTableDAOImplAutowireTest {
 		assertEquals(preview2.getEtag(), row.getEtag());
 		assertEquals(null, row.getParentId());
 		
-		// Get migration type count
-		MigrationTypeCount mtc = migratableTableDAO.getMigrationTypeCount(MigrationType.FILE_HANDLE);
-		assertNotNull(mtc);
-		MigrationTypeCount expectedTypeCount = new MigrationTypeCount();
-		expectedTypeCount.setType(MigrationType.FILE_HANDLE);
-		expectedTypeCount.setMinid(migratableTableDAO.getMinId(MigrationType.FILE_HANDLE));
-		expectedTypeCount.setMaxid(migratableTableDAO.getMaxId(MigrationType.FILE_HANDLE));
-		expectedTypeCount.setCount(migratableTableDAO.getCount(MigrationType.FILE_HANDLE));
-		assertEquals(expectedTypeCount, mtc);
-		
-		// Get checksums
-		String checkSum = migratableTableDAO.getChecksumForIdRange(MigrationType.FILE_HANDLE, Long.parseLong(withPreview.getId()), Long.parseLong(preview2.getId()));
-		assertNotNull(checkSum);
-		assertTrue(checkSum.contains("%"));
-		long minId = migratableTableDAO.getMinId(MigrationType.FILE_HANDLE);
-		assertTrue(minId + ":" + preview2.getId(), minId <= Long.parseLong(preview2.getId()));
-		
-		// Get table checksum
-		String tblChecksum = migratableTableDAO.getChecksumForType(MigrationType.FILE_HANDLE);
-		assertNotNull(tblChecksum);
-		
 		// Get the full back object
 		List<Long> idsToBackup1 = new LinkedList<Long>();
 		idsToBackup1.add(Long.parseLong(preview.getId()));
@@ -182,6 +169,7 @@ public class MigratableTableDAOImplAutowireTest {
 		assertEquals(2, count);
 		assertEquals(startCount, migratableTableDAO.getCount(MigrationType.FILE_HANDLE));
 		assertEquals(startMax, migratableTableDAO.getMaxId(MigrationType.FILE_HANDLE));
+		
 		// Now restore the data
 		List<Long> results = migratableTableDAO.createOrUpdateBatch(backupList1);
 		assertNotNull(results);
@@ -258,7 +246,7 @@ public class MigratableTableDAOImplAutowireTest {
 			public Boolean call() throws Exception {
 				// We should be able to do this now that foreign keys are disabled.
 				S3FileHandle updated = fileHandleDao.createFile(fh);
-				toDelete.add(updated.getId());
+				filesToDelete.add(updated.getId());
 				return true;
 			}});
 		assertTrue(result);
@@ -324,6 +312,7 @@ public class MigratableTableDAOImplAutowireTest {
 		expectedPrimaryTypes.add(MigrationType.STORAGE_QUOTA);
 		expectedPrimaryTypes.add(MigrationType.QUIZ_RESPONSE);
 		expectedPrimaryTypes.add(MigrationType.VERIFICATION_SUBMISSION);
+		expectedPrimaryTypes.add(MigrationType.VERIFICATION_STATE);
 		expectedPrimaryTypes.add(MigrationType.FORUM);
 		expectedPrimaryTypes.add(MigrationType.DISCUSSION_THREAD);
 		expectedPrimaryTypes.add(MigrationType.DISCUSSION_THREAD_VIEW);
@@ -336,53 +325,173 @@ public class MigratableTableDAOImplAutowireTest {
 	}
 	
 	@Test
-	public void testListRowMetadataByRange() {
+	public void testGetMigrationTypeCount() throws Exception {
 		long startCount = fileHandleDao.getCount();
-		long migrationCount = migratableTableDAO.getCount(MigrationType.FILE_HANDLE);
-		assertEquals(startCount, migrationCount);
-		long startMax = fileHandleDao.getMaxId();
-		// The one will have a preview
-		S3FileHandle withPreview = TestUtils.createS3FileHandle(creatorUserGroupId);
-		withPreview.setFileName("withPreview.txt");
-		withPreview = fileHandleDao.createFile(withPreview);
-		assertNotNull(withPreview);
-		toDelete.add(withPreview.getId());
-		S3FileHandle withPreview2 = TestUtils.createS3FileHandle(creatorUserGroupId);
-		withPreview2.setFileName("withPreview2.txt");
-		withPreview2 = fileHandleDao.createFile(withPreview2);
-		assertNotNull(withPreview2);
-		toDelete.add(withPreview2.getId());
-		// The Preview
-		PreviewFileHandle preview = TestUtils.createPreviewFileHandle(creatorUserGroupId);
-		preview.setFileName("preview.txt");
-		preview = fileHandleDao.createFile(preview);
-		assertNotNull(preview);
-		toDelete.add(preview.getId());
-		// Preview 2
-		PreviewFileHandle preview2 = TestUtils.createPreviewFileHandle(creatorUserGroupId);
-		preview2.setFileName("preview.txt");
-		preview2 = fileHandleDao.createFile(preview2);
-		assertNotNull(preview2);
-		toDelete.add(preview2.getId());
-		
-		assertEquals(Long.parseLong(preview2.getId()), fileHandleDao.getMaxId());
-		
-		// Assign it as a preview
-		fileHandleDao.setPreviewId(withPreview.getId(), preview.getId());
-		fileHandleDao.setPreviewId(withPreview2.getId(), preview2.getId());
-		// The etag should have changed
-		withPreview = (S3FileHandle) fileHandleDao.get(withPreview.getId());
-		withPreview2 = (S3FileHandle) fileHandleDao.get(withPreview2.getId());
-		
-		// Now list only the files in the middle
-		RowMetadataResult partialList = migratableTableDAO.listRowMetadataByRange(MigrationType.FILE_HANDLE, Long.parseLong(withPreview2.getId()), Long.parseLong(preview.getId()));
-		assertNotNull(partialList);
-		// Note: We still return the total count for type
-		assertEquals(new Long(startCount+4),  partialList.getTotalCount());
-		assertNotNull(partialList.getList());
-		assertEquals(2, partialList.getList().size());
-		System.out.println(partialList.getList());
+		assertEquals(startCount, migratableTableDAO.getCount(MigrationType.FILE_HANDLE));
+		S3FileHandle handle = TestUtils.createS3FileHandle(creatorUserGroupId);
+		handle.setFileName("handle");
+		handle = fileHandleDao.createFile(handle);
+		filesToDelete.add(handle.getId());
+		assertEquals(startCount+1, migratableTableDAO.getCount(MigrationType.FILE_HANDLE));
+		fileHandleDao.delete(handle.getId());
+		assertEquals(startCount, migratableTableDAO.getCount(MigrationType.FILE_HANDLE));
+	}
+	
+	@Test
+	public void testGetListRowMetadataByRange() throws Exception {
+		long startId = fileHandleDao.getMaxId() + 1;
+		long startCount = fileHandleDao.getCount();
+		RowMetadataResult l = migratableTableDAO.listRowMetadataByRange(MigrationType.FILE_HANDLE, startId, startId+1);
+		assertNotNull(l);
+		assertEquals(startCount, l.getTotalCount().longValue());
+		assertNotNull(l.getList());
+		assertEquals(0, l.getList().size());
+		// Add a file handle
+		S3FileHandle handle1 = TestUtils.createS3FileHandle(creatorUserGroupId);
+		handle1.setFileName("handle1");
+		handle1 = fileHandleDao.createFile(handle1);
+		filesToDelete.add(handle1.getId());
+		// Test
+		l = migratableTableDAO.listRowMetadataByRange(MigrationType.FILE_HANDLE, startId, Long.parseLong(handle1.getId())-1);
+		assertNotNull(l);
+		assertEquals(startCount+1, l.getTotalCount().longValue());
+		assertNotNull(l.getList());
+		assertEquals(0, l.getList().size());
+		l = migratableTableDAO.listRowMetadataByRange(MigrationType.FILE_HANDLE, startId, Long.parseLong(handle1.getId()));
+		assertNotNull(l);
+		assertEquals(startCount+1, l.getTotalCount().longValue());
+		assertNotNull(l.getList());
+		assertEquals(1, l.getList().size());
+		assertEquals(handle1.getId(), l.getList().get(0).getId().toString());
+		l = migratableTableDAO.listRowMetadataByRange(MigrationType.FILE_HANDLE, startId, Long.parseLong(handle1.getId())+1);
+		assertNotNull(l);
+		assertEquals(startCount+1, l.getTotalCount().longValue());
+		assertNotNull(l.getList());
+		assertEquals(1, l.getList().size());
+		assertEquals(handle1.getId(), l.getList().get(0).getId().toString());
+		// Add a preview
+		PreviewFileHandle previewHandle1 = TestUtils.createPreviewFileHandle(creatorUserGroupId);
+		previewHandle1.setFileName("preview1");
+		previewHandle1 = fileHandleDao.createFile(previewHandle1);
+		filesToDelete.add(previewHandle1.getId());
+		// Test
+		l = migratableTableDAO.listRowMetadataByRange(MigrationType.FILE_HANDLE, startId, Long.parseLong(previewHandle1.getId()));
+		assertNotNull(l);
+		assertEquals(startCount+2, l.getTotalCount().longValue());
+		assertNotNull(l.getList());
+		assertEquals(2, l.getList().size());
+		assertEquals(handle1.getId(), l.getList().get(0).getId().toString());
+		assertEquals(previewHandle1.getId(), l.getList().get(1).getId().toString());
+		// Delete preview
+		fileHandleDao.delete(previewHandle1.getId());
+		// Test
+		l = migratableTableDAO.listRowMetadataByRange(MigrationType.FILE_HANDLE, startId, Long.parseLong(previewHandle1.getId()));
+		assertNotNull(l);
+		assertEquals(startCount+1, l.getTotalCount().longValue());
+		assertNotNull(l.getList());
+		assertEquals(1, l.getList().size());
+		assertEquals(handle1.getId(), l.getList().get(0).getId().toString());
 		
 	}
 	
+	@Test
+	public void testGetChecksumForType() throws Exception {
+		// Start checksum
+		String checksum1 = migratableTableDAO.getChecksumForType(MigrationType.FILE_HANDLE);
+		// Add file handle
+		S3FileHandle handle1 = TestUtils.createS3FileHandle(creatorUserGroupId);
+		handle1.setFileName("handle1");
+		handle1 = fileHandleDao.createFile(handle1);
+		filesToDelete.add(handle1.getId());
+		// Checksum again
+		String checksum2 = migratableTableDAO.getChecksumForType(MigrationType.FILE_HANDLE);
+		// Test
+		assertFalse(checksum1.equals(checksum2));
+		// Delete file handle
+		fileHandleDao.delete(handle1.getId());
+		checksum2 = migratableTableDAO.getChecksumForType(MigrationType.FILE_HANDLE);
+		// Test
+		assertEquals(checksum1, checksum2);
+	}
+	
+	@Test
+	public void testGetChecksumForIdRange1() throws Exception {
+		long startId = fileHandleDao.getMaxId() + 1;
+		long startCount = fileHandleDao.getCount();
+
+		// Add file handle
+		S3FileHandle handle1 = TestUtils.createS3FileHandle(creatorUserGroupId);
+		handle1.setFileName("handle1");
+		handle1 = fileHandleDao.createFile(handle1);
+		filesToDelete.add(handle1.getId());
+		// Add a preview
+		PreviewFileHandle previewHandle1 = TestUtils.createPreviewFileHandle(creatorUserGroupId);
+		previewHandle1.setFileName("preview1");
+		previewHandle1 = fileHandleDao.createFile(previewHandle1);
+		filesToDelete.add(previewHandle1.getId());
+		
+		// Checksum file only
+		String checksum1 = migratableTableDAO.getChecksumForIdRange(MigrationType.FILE_HANDLE, "X", startId, Long.parseLong(handle1.getId()));
+		// Checksum file and preview
+		String checksum2 = migratableTableDAO.getChecksumForIdRange(MigrationType.FILE_HANDLE, "X", startId, Long.parseLong(previewHandle1.getId()));
+		// Test
+		assertFalse(checksum1.equals(checksum2));
+		// Checksum preview only
+		String checksum3 = migratableTableDAO.getChecksumForIdRange(MigrationType.FILE_HANDLE, "X", Long.parseLong(handle1.getId())+1, Long.parseLong(previewHandle1.getId()));
+		// Test
+		assertFalse(checksum1.equals(checksum3));
+		assertFalse(checksum2.equals(checksum3));
+		// Different salt
+		String checksum4 = migratableTableDAO.getChecksumForIdRange(MigrationType.FILE_HANDLE, "Y", startId, Long.parseLong(handle1.getId()));
+		assertFalse(checksum4.equals(checksum1));
+		String checksum5 = migratableTableDAO.getChecksumForIdRange(MigrationType.FILE_HANDLE, "Y", startId, Long.parseLong(previewHandle1.getId()));
+		assertFalse(checksum5.equals(checksum2));
+		// Different way to specify range
+		String checksum6 = migratableTableDAO.getChecksumForIdRange(MigrationType.FILE_HANDLE, "X", Long.parseLong(handle1.getId()), Long.parseLong(previewHandle1.getId()));
+		assertEquals(checksum2, checksum6);
+		checksum6 = migratableTableDAO.getChecksumForIdRange(MigrationType.FILE_HANDLE, "X", Long.parseLong(handle1.getId()), Long.parseLong(previewHandle1.getId())+100);
+		assertEquals(checksum2, checksum6);
+		// Empty range
+		String checksum7 = migratableTableDAO.getChecksumForIdRange(MigrationType.FILE_HANDLE, "X", Long.parseLong(previewHandle1.getId())+1, Long.parseLong(previewHandle1.getId())+100);
+		assertNull(checksum7);
+		
+	}
+	
+	@Test
+	public void testGetChecksumForType2() throws Exception {
+		// Before
+		UserProfile profile = userProfileDAO.get(creatorUserGroupId);
+		String etag1 = profile.getEtag();
+		String checksum1 = migratableTableDAO.getChecksumForType(MigrationType.USER_PROFILE);
+
+		// Update
+		profile.setCompany("newCompany");
+		profile = userProfileDAO.update(profile);
+		String etag2 = profile.getEtag();
+		String checksum2 = migratableTableDAO.getChecksumForType(MigrationType.USER_PROFILE);
+		
+		// Test
+		assertFalse(etag1.equals(etag2));
+		assertFalse(checksum1.equals(checksum2));
+		
+	}
+
+	@Test
+	public void testGetChecksumForRange2() throws Exception {
+		// Before
+		UserProfile profile = userProfileDAO.get(creatorUserGroupId);
+		String etag1 = profile.getEtag();
+		String checksum1 = migratableTableDAO.getChecksumForIdRange(MigrationType.USER_PROFILE, "X", Long.parseLong(profile.getOwnerId()), Long.parseLong(profile.getOwnerId()));
+
+		// Update
+		profile.setCompany("newCompany");
+		profile = userProfileDAO.update(profile);
+		String etag2 = profile.getEtag();
+		String checksum2 = migratableTableDAO.getChecksumForIdRange(MigrationType.USER_PROFILE, "X", Long.parseLong(profile.getOwnerId()), Long.parseLong(profile.getOwnerId()));
+		
+		// Test
+		assertFalse(etag1.equals(etag2));
+		assertFalse(checksum1.equals(checksum2));
+		
+	}
 }

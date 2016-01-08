@@ -213,7 +213,7 @@ public class DMLUtilsTest {
 		String sql = DMLUtils.listRowMetadata(migrateableMappingSelfForeignKey);
 		assertNotNull(sql);
 		System.out.println(sql);
-		assertEquals("SELECT `ID`, `ETAG`, `PARENT_ID` FROM SOME_TABLE ORDER BY `ID` ASC LIMIT :BCLIMIT OFFSET :BVOFFSET", sql);
+		assertEquals("SELECT `ID`, `ETAG`, `PARENT_ID` FROM SOME_TABLE ORDER BY `ID` ASC LIMIT ? OFFSET ?", sql);
 	}
 
 	@Test
@@ -221,7 +221,7 @@ public class DMLUtilsTest {
 		String sql = DMLUtils.listRowMetadata(migrateableMappingNoEtagNotSelfForeignKey);
 		assertNotNull(sql);
 		System.out.println(sql);
-		assertEquals("SELECT `ID` FROM SOME_TABLE ORDER BY `ID` ASC LIMIT :BCLIMIT OFFSET :BVOFFSET", sql);
+		assertEquals("SELECT `ID` FROM SOME_TABLE ORDER BY `ID` ASC LIMIT ? OFFSET ?", sql);
 	}
 	
 	@Test
@@ -229,7 +229,7 @@ public class DMLUtilsTest {
 		String sql = DMLUtils.listRowMetadataByRange(migrateableMappingSelfForeignKey);
 		assertNotNull(sql);
 		System.out.println(sql);
-		assertEquals("SELECT `ID`, `ETAG`, `PARENT_ID` FROM SOME_TABLE WHERE `ID` >= :BVIDRMIN AND `ID` <= :BVIDRMAX ORDER BY `ID` ASC", sql);
+		assertEquals("SELECT `ID`, `ETAG`, `PARENT_ID` FROM SOME_TABLE WHERE `ID` >= ? AND `ID` <= ? ORDER BY `ID` ASC", sql);
 	}
 	
 	@Test
@@ -237,7 +237,7 @@ public class DMLUtilsTest {
 		String sql = DMLUtils.listRowMetadataByRange(migrateableMappingNoEtagNotSelfForeignKey);
 		assertNotNull(sql);
 		System.out.println(sql);
-		assertEquals("SELECT `ID` FROM SOME_TABLE WHERE `ID` >= :BVIDRMIN AND `ID` <= :BVIDRMAX ORDER BY `ID` ASC", sql);
+		assertEquals("SELECT `ID` FROM SOME_TABLE WHERE `ID` >= ? AND `ID` <= ? ORDER BY `ID` ASC", sql);
 	}
 	
 	@Test
@@ -290,7 +290,7 @@ public class DMLUtilsTest {
 	
 	@Test
 	public void testCreateSelectChecksumStatementWithEtagColumn() {
-		final String expectedSql = "SELECT CONCAT(SUM(CRC32(CONCAT(`ID`, '@', IFNULL(`ETAG`, 'NULL')))), '%', BIT_XOR(CRC32(CONCAT(`ID`, '@', IFNULL(`ETAG`, 'NULL'))))) FROM SOME_TABLE WHERE `ID` >= :BVIDRMIN AND `ID` <= :BVIDRMAX";
+		final String expectedSql = "SELECT CONCAT(SUM(CRC32(CONCAT(`ID`, '@', IFNULL(`ETAG`, 'NULL'), '@@', ?))), '%', BIT_XOR(CRC32(CONCAT(`ID`, '@', IFNULL(`ETAG`, 'NULL'), '@@', ?)))) FROM SOME_TABLE WHERE `ID` >= ? AND `ID` <= ?";
 		String sql = DMLUtils.createSelectChecksumStatement(migrateableMappingEtagAndId);
 		assertNotNull(sql);
 		System.out.println(sql);
@@ -299,7 +299,7 @@ public class DMLUtilsTest {
 	
 	@Test
 	public void testCreateSelectChecksumStatementWithoutEtagColumn() {
-		String expectedSql = "SELECT CONCAT(SUM(CRC32(CONCAT(`ID`, '@', 'NA'))), '%', BIT_XOR(CRC32(CONCAT(`ID`, '@', 'NA')))) FROM SOME_TABLE WHERE `ID` >= :BVIDRMIN AND `ID` <= :BVIDRMAX";
+		String expectedSql = "SELECT CONCAT(SUM(CRC32(CONCAT(`ID`, '@@', ?))), '%', BIT_XOR(CRC32(CONCAT(`ID`, '@@', ?)))) FROM SOME_TABLE WHERE `ID` >= ? AND `ID` <= ?";
 		String sql = DMLUtils.createSelectChecksumStatement(migrateableMappingNoEtag);
 		assertNotNull(sql);
 		System.out.println(sql);

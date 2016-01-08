@@ -20,7 +20,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.util.TempFileProvider;
+import org.sagebionetworks.repo.model.file.TempFileProvider;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 
 import com.amazonaws.services.s3.AmazonS3Client;

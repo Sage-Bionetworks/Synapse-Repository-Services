@@ -71,6 +71,12 @@
 	
 	<bean id="multipartManagerV2" class="org.sagebionetworks.repo.manager.file.MultipartManagerV2Impl"  />
 	
+	<bean name="userThrottleMemoryCountingSemaphore" class="org.sagebionetworks.repo.model.semaphore.MemoryCountingSemaphoreImpl" scope="singleton">
+		<constructor-arg index="0">
+		<bean class="org.sagebionetworks.common.util.ClockImpl"/>
+		</constructor-arg>
+	</bean>
+	
 	<bean id="semaphoreManager" class="org.sagebionetworks.repo.manager.SemaphoreManagerImpl" />
 	
 	<!-- The thread pool used by the asynchronous fileupload primary daemons -->
@@ -109,7 +115,7 @@
 	<bean id="memoryTransferStrategy" class="org.sagebionetworks.repo.manager.file.transfer.MemoryTransferStrategy" />
 	
 	<!-- Temp file provider -->
-	<bean id="tempFileProvider" class="org.sagebionetworks.repo.util.TempFileProviderImpl" />
+	<bean id="tempFileProvider" class="org.sagebionetworks.repo.model.file.TempFileProviderImpl" />
 	
 	<!-- Temp File Transfer Strategy -->
 	<bean id="tempFileTransferStrategy" class="org.sagebionetworks.repo.manager.file.transfer.TempFileTransferStrategy" />

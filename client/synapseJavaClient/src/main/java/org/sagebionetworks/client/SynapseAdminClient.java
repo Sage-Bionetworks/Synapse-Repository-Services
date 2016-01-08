@@ -146,7 +146,7 @@ public interface SynapseAdminClient extends SynapseClient {
 	 * @throws SynapseException 
 	 * @throws JSONObjectAdapterException 
 	 */
-	public MigrationRangeChecksum getChecksumForIdRange(MigrationType type, Long minId, Long maxId) throws SynapseException, JSONObjectAdapterException;
+	public MigrationRangeChecksum getChecksumForIdRange(MigrationType type, String salt, Long minId, Long maxId) throws SynapseException, JSONObjectAdapterException;
 	
 
 	/**

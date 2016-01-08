@@ -30,6 +30,7 @@ import org.sagebionetworks.repo.model.file.MultipartUploadState;
 import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
 import org.sagebionetworks.repo.model.file.PartMD5;
 import org.sagebionetworks.repo.model.file.PartPresignedUrl;
+import org.sagebionetworks.repo.model.file.PartUtils;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.AddPartState;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
@@ -43,9 +44,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 
 public class MultipartManagerV2Impl implements MultipartManagerV2 {
-
-	public static final long MAX_NUMBER_OF_PARTS = 10 * 1000; // 10K
-	public static final long MIN_PART_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
 
 	@Autowired
 	S3MultipartUploadDAO s3multipartUploadDAO;
@@ -130,7 +128,7 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 				bucket, key, request);
 		String requestJson = createRequestJSON(request);
 		// How many parts will be needed to upload this file?
-		int numberParts = calculateNumberOfParts(request.getFileSizeBytes(),
+		int numberParts = PartUtils.calculateNumberOfParts(request.getFileSizeBytes(),
 				request.getPartSizeBytes());
 		// Start the upload
 		return multipartUploadDAO
@@ -169,43 +167,6 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		char[] chars = new char[numberOfParts];
 		Arrays.fill(chars, '1');
 		return new String(chars);
-	}
-
-	/**
-	 * Calculate the number of parts required to upload file given a part size
-	 * and file size.
-	 * 
-	 * @param fileSize
-	 * @param partSize
-	 * @return
-	 */
-	public static int calculateNumberOfParts(long fileSize, long partSize) {
-		if (fileSize < 1) {
-			throw new IllegalArgumentException(
-					"File size must be at least one byte");
-		}
-		if (partSize < MIN_PART_SIZE_BYTES) {
-			throw new IllegalArgumentException("Part size of " + partSize
-					+ " bytes is too small.  The minimum part size is :"
-					+ MIN_PART_SIZE_BYTES + " bytes");
-		}
-		// Only one part is needed when the file is smaller than the part size.
-		if (partSize > fileSize) {
-			return 1;
-		}
-		int remainder = (int) (fileSize % partSize);
-		int numberOfParts = ((int) (fileSize / partSize))
-				+ (remainder > 0 ? 1 : 0);
-		// Validate the number of parts.
-		if (numberOfParts > MAX_NUMBER_OF_PARTS) {
-			throw new IllegalArgumentException(
-					"File Upload would required: "
-							+ numberOfParts
-							+ " parts, which exceeds the maximum number of allowed parts of: "
-							+ MAX_NUMBER_OF_PARTS
-							+ ". Please choose a larger part size");
-		}
-		return numberOfParts;
 	}
 
 	/**

@@ -463,16 +463,6 @@ public class EntityServletTestHelper {
 				Evaluation.class);
 	}
 
-	public long getEvaluationCount(Long userId) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, UrlHelpers.EVALUATION_COUNT, userId, null);
-
-		MockHttpServletResponse response = ServletTestHelperUtils
-				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
-
-		return Long.parseLong(response.getContentAsString());
-	}
-
 	public Participant createParticipant(Long userId, String evalId)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
@@ -486,29 +476,6 @@ public class EntityServletTestHelper {
 				ServletTestHelperUtils.readResponseJSON(response));
 	}
 
-	public Participant getParticipant(Long userId, Long partId,
-			String evalId) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, UrlHelpers.EVALUATION + "/" + evalId
-						+ "/participant/" + partId, userId, null);
-
-		MockHttpServletResponse response = ServletTestHelperUtils
-				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
-
-		return new Participant(
-				ServletTestHelperUtils.readResponseJSON(response));
-	}
-
-	public void deleteParticipant(Long userId, Long partId, String evalId)
-			throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.DELETE, UrlHelpers.EVALUATION + "/" + evalId
-						+ "/participant/" + partId, userId, null);
-
-		ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request,
-				HttpStatus.NO_CONTENT);
-	}
-
 	public PaginatedResults<Participant> getAllParticipants(Long userId,
 			String evalId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
@@ -520,18 +487,6 @@ public class EntityServletTestHelper {
 
 		return ServletTestHelperUtils.readResponsePaginatedResults(response,
 				Participant.class);
-	}
-
-	public long getParticipantCount(Long userId, String evalId)
-			throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, UrlHelpers.EVALUATION + "/" + evalId
-						+ "/participant/count", userId, null);
-
-		MockHttpServletResponse response = ServletTestHelperUtils
-				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
-
-		return Long.parseLong(response.getContentAsString());
 	}
 
 	public Submission createSubmission(Submission sub, Long userId,
@@ -850,10 +805,11 @@ public class EntityServletTestHelper {
 	 * @throws Exception 
 	 */
 	public MigrationRangeChecksum getChecksumForIdRange(Long userId, MigrationType type,
-			String minId, String maxId) throws Exception {
+			String salt, String minId, String maxId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, "/migration/rangechecksum", userId, null);
 		request.setParameter("migrationType", type.name());
+		request.setParameter("salt", salt);
 		request.setParameter("minId", minId);
 		request.setParameter("maxId", maxId);
 		

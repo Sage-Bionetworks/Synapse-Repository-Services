@@ -3,7 +3,6 @@ package org.sagebionetworks.evaluation.manager;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -93,34 +92,6 @@ public class ParticipantManagerTest {
     	ReflectionTestUtils.setField(participantManager, "evaluationPermissionsManager", mockEvalPermissionsManager);
     }
 
-    @Test
-    public void testRDAsAdmin() throws NotFoundException {
-    	participantManager.getParticipant(ownerInfo, userId, evalId);
-    	participantManager.removeParticipant(ownerInfo, evalId, userId);
-    	verify(mockParticipantDAO, times(1)).get(eq(userId), eq(evalId));
-    	verify(mockParticipantDAO).delete(eq(userId), eq(evalId));
-    }
-    
-    @Test
-    public void testRDAsAdmin_NotOpen() throws NotFoundException {
-    	// admin should be able to add participants even if Evaluation is closed
-    	eval.setStatus(EvaluationStatus.CLOSED);
-    	participantManager.getParticipant(ownerInfo, userId, evalId);
-    	participantManager.removeParticipant(ownerInfo, evalId, userId);
-    	verify(mockParticipantDAO, times(1)).get(eq(userId), eq(evalId));
-    	verify(mockParticipantDAO).delete(eq(userId), eq(evalId));
-    }
-    
-    @Test
-    public void testCRDAsUser() throws DatastoreException, NotFoundException {
-    	participantManager.addParticipant(userInfo, evalId);
-    	participantManager.getParticipant(userInfo, userId, evalId);
-    	participantManager.removeParticipant(userInfo, evalId, userId);
-    	verify(mockParticipantDAO).create(any(Participant.class));
-    	verify(mockParticipantDAO, times(2)).get(eq(userId), eq(evalId));
-    	verify(mockParticipantDAO).delete(eq(userId), eq(evalId));
-    }
-    
     @Test(expected=UnauthorizedException.class)
     public void testCRDAsUser_NotOpen() throws DatastoreException, NotFoundException {
     	// user should not be able to join Evaluation if it is closed
@@ -138,11 +109,5 @@ public class ParticipantManagerTest {
     public void testGetAllParticipants() throws NumberFormatException, DatastoreException, NotFoundException {
     	participantManager.getAllParticipants(ownerInfo, evalId, 10, 0);
     	verify(mockParticipantDAO).getAllByEvaluation(eq(evalId), eq(10L), eq(0L));
-    }
-    
-    @Test
-    public void testGetNumberOfParticipants() throws DatastoreException, NotFoundException {
-    	participantManager.getNumberofParticipants(ownerInfo, evalId);
-    	verify(mockParticipantDAO).getCountByEvaluation(eq(evalId));
     }
 }

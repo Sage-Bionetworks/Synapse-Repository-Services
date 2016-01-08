@@ -6,7 +6,7 @@ import java.io.IOException;
 import java.security.MessageDigest;
 
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.util.TempFileProvider;
+import org.sagebionetworks.repo.model.file.TempFileProvider;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.springframework.beans.factory.annotation.Autowired;
 

@@ -23,11 +23,14 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
+import org.sagebionetworks.repo.model.verification.VerificationState;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.SingleColumnRowMapper;
 import org.springframework.jdbc.core.namedparam.BeanPropertySqlParameterSource;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.springframework.transaction.annotation.Propagation;
@@ -47,15 +50,15 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	Logger log = LogManager.getLogger(MigratableTableDAOImpl.class);
 
 	@Autowired
-	private SimpleJdbcTemplate simpleJdbcTemplate;
+	private JdbcTemplate jdbcTemplate;
 	
 	/**
 	 * For unit testing
 	 */
-	public MigratableTableDAOImpl(SimpleJdbcTemplate simpleJdbcTemplate,
+	public MigratableTableDAOImpl(JdbcTemplate jdbcTemplate,
 			List<MigratableDatabaseObject> databaseObjectRegister) {
 		super();
-		this.simpleJdbcTemplate = simpleJdbcTemplate;
+		this.jdbcTemplate = jdbcTemplate;
 		this.databaseObjectRegister = databaseObjectRegister;
 	}
 
@@ -231,7 +234,7 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		String backupColumnName = DMLUtils.getBackupIdColumnName(mapping)
 				.getColumnName();
 		String sql = DMLUtils.getBackupUniqueValidation(mapping);
-		List<String> names = simpleJdbcTemplate.query(sql,
+		List<String> names = jdbcTemplate.query(sql,
 				new RowMapper<String>() {
 					@Override
 					public String mapRow(ResultSet rs, int rowNum)
@@ -259,7 +262,7 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		if(type == null) throw new IllegalArgumentException("type cannot be null");
 		String countSql = this.countSqlMap.get(type);
 		if(countSql == null) throw new IllegalArgumentException("Cannot find count SQL for "+type);
-		return simpleJdbcTemplate.queryForLong(countSql);
+		return jdbcTemplate.queryForObject(countSql, Long.class);
 	}
 	
 	@Override
@@ -267,7 +270,13 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		if(type == null) throw new IllegalArgumentException("type cannot be null");
 		String maxSql = this.maxSqlMap.get(type);
 		if(maxSql == null) throw new IllegalArgumentException("Cannot find max SQL for "+type);
-		return simpleJdbcTemplate.queryForLong(maxSql);
+		Long res = jdbcTemplate.queryForObject(maxSql, Long.class);
+		// Consistent with simpleJdbcTemplate
+		if (res == null) {
+			return 0;
+		} else {
+			return res;
+		}
 	}
 
 	@Override
@@ -275,7 +284,13 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		if(type == null) throw new IllegalArgumentException("type cannot be null");
 		String minSql = this.minSqlMap.get(type);
 		if(minSql == null) throw new IllegalArgumentException("Cannot find min SQL for "+type);
-		return simpleJdbcTemplate.queryForLong(minSql);
+		Long res = jdbcTemplate.queryForObject(minSql, Long.class);
+		// Consistent with simpleJdbcTemplate
+		if (res == null) {
+			return 0;
+		} else {
+			return res;
+		}
 	}
 
 	@Override
@@ -283,10 +298,7 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		if(type == null) throw new IllegalArgumentException("type cannot be null");
 		String sql = this.getListSql(type);
 		RowMapper<RowMetadata> mapper = this.getRowMetadataRowMapper(type);
-		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue(DMLUtils.BIND_VAR_LIMIT, limit);
-		params.addValue(DMLUtils.BIND_VAR_OFFSET, offset);
-		List<RowMetadata> page = simpleJdbcTemplate.query(sql, mapper, params);
+		List<RowMetadata> page = jdbcTemplate.query(sql, mapper, limit, offset);
 		long count = this.getCount(type);
 		RowMetadataResult result = new RowMetadataResult();
 		result.setList(page);
@@ -299,10 +311,7 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		if(type == null) throw new IllegalArgumentException("type cannot be null");
 		String sql = this.getListSqlByRange(type);
 		RowMapper<RowMetadata> mapper = this.getRowMetadataRowMapper(type);
-		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue(DMLUtils.BIND_VAR_ID_RANGE_MIN, minId);
-		params.addValue(DMLUtils.BIND_VAR_ID_RANGE_MAX, maxId);
-		List<RowMetadata> page = simpleJdbcTemplate.query(sql, mapper, params);
+		List<RowMetadata> page = jdbcTemplate.query(sql, mapper, minId, maxId);
 		long count = this.getCount(type);
 		RowMetadataResult result = new RowMetadataResult();
 		result.setList(page);
@@ -316,10 +325,12 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		// Fix for PLFM-1978
 		if(idList.size() < 1) return new LinkedList<RowMetadata>();
 		String sql = this.getDeltaListSql(type);
+		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue(DMLUtils.BIND_VAR_ID_lIST, idList);
 		RowMapper<RowMetadata> mapper = this.getRowMetadataRowMapper(type);
-		SqlParameterSource params = new MapSqlParameterSource(DMLUtils.BIND_VAR_ID_lIST, idList);
-		List<RowMetadata> page = simpleJdbcTemplate.query(sql, mapper, params);
-		return page;
+		final List<RowMetadata> result = namedTemplate.query(sql, params, mapper);
+		return result;
 	}
 
 
@@ -351,7 +362,8 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		}
 		SqlParameterSource params = new MapSqlParameterSource(
 				DMLUtils.BIND_VAR_ID_lIST, idList);
-		return simpleJdbcTemplate.update(deleteSQL, params);
+		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
+		return namedTemplate.update(deleteSQL, params);
 	}
 	
 
@@ -364,9 +376,10 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		String sql = getBatchBackupSql(type);
 		
 		@SuppressWarnings("unchecked")
+		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
 		MigratableDatabaseObject<D, ?> object = getMigratableObject(type);
 		SqlParameterSource params = new MapSqlParameterSource(DMLUtils.BIND_VAR_ID_lIST, rowIds);
-		List<D> page = simpleJdbcTemplate.query(sql, object.getTableMapping(), params);
+		List<D> page = namedTemplate.query(sql, params, object.getTableMapping());
 		return page;
 	}
 
@@ -391,7 +404,8 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 			createOrUpdateIds.add(id);
 		}
 		// execute the batch
-		simpleJdbcTemplate.batchUpdate(sql, namedParameters);
+		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
+		namedTemplate.batchUpdate(sql, namedParameters);
 		return createOrUpdateIds;
 	}
 
@@ -510,12 +524,12 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 			// turn it off
 			value = 0;
 		}
-		simpleJdbcTemplate.update(SET_FOREIGN_KEY_CHECKS, value);
+		jdbcTemplate.update(SET_FOREIGN_KEY_CHECKS, value);
 	}
 
 
 	@Override
-	public String getChecksumForIdRange(MigrationType type, long minId, long maxId) {
+	public String getChecksumForIdRange(MigrationType type, String salt, long minId, long maxId) {
 		String sql = this.checksumRangeSqlMap.get(type);
 		if (sql == null) {
 			throw new IllegalArgumentException("Cannot find the checksum SQL for type" + type);
@@ -523,11 +537,8 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		if (minId > maxId) {
 			throw new IllegalArgumentException("MaxId must be greater than minId");
 		}
-		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue(DMLUtils.BIND_VAR_ID_RANGE_MIN, minId);
-		params.addValue(DMLUtils.BIND_VAR_ID_RANGE_MAX, maxId);
 		SingleColumnRowMapper mapper = new SingleColumnRowMapper(String.class);
-		List<String> l = simpleJdbcTemplate.query(sql, mapper, params);
+		List<String> l = jdbcTemplate.query(sql, mapper, salt, salt, minId, maxId);
 		if ((l == null) || (l.size() != 1)) {
 			return null;
 		}
@@ -546,8 +557,8 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 			throw new IllegalArgumentException("Cannot find the checksum SQL for type" + type);
 		}
 		RowMapper<ChecksumTableResult> mapper = DMLUtils.getChecksumTableResultMapper();
-		ChecksumTableResult checksum = simpleJdbcTemplate.queryForObject(sql, mapper);
-		String s = checksum.getValue();
+		ChecksumTableResult checksum = jdbcTemplate.queryForObject(sql, mapper);
+		String s = checksum.getChecksum();
 		return s;
 	}
 
@@ -558,7 +569,7 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 			throw new IllegalArgumentException("Cannot find the migrationTypeCount SQL for type" + type);
 		}
 		RowMapper<MigrationTypeCount> mapper = DMLUtils.getMigrationTypeCountResultMapper();
-		MigrationTypeCount mtc = simpleJdbcTemplate.queryForObject(sql, mapper);
+		MigrationTypeCount mtc = jdbcTemplate.queryForObject(sql, mapper);
 		mtc.setType(type);
 		return mtc;
 	}
