@@ -916,8 +916,6 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		for (MigrationTypeCount count : startCounts.getList()) {
 			assertTrue("This test requires at least one object to exist for each MigrationType.  Please create a new object of type: "
 					+ count.getType() + " in the before() method of this test.", count.getCount() > 0);
-			assertTrue(count.getMinid() >= 0);
-			assertTrue(count.getMaxid() >= count.getMinid());
 		}
 	}
 
