@@ -27,8 +27,39 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.reflection.model.PaginatedResults;
-import org.sagebionetworks.repo.model.*;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AccessControlListDAO;
+import org.sagebionetworks.repo.model.ActivityDAO;
+import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.EntityTypeUtils;
+import org.sagebionetworks.repo.model.GroupMembersDAO;
+import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.NamedAnnotations;
+import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.NodeConstants;
+import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.NodeInheritanceDAO;
+import org.sagebionetworks.repo.model.NodeParentRelation;
+import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.ProjectHeader;
+import org.sagebionetworks.repo.model.ProjectListSortColumn;
+import org.sagebionetworks.repo.model.ProjectListType;
+import org.sagebionetworks.repo.model.ProjectStat;
+import org.sagebionetworks.repo.model.ProjectStatsDAO;
+import org.sagebionetworks.repo.model.QueryResults;
+import org.sagebionetworks.repo.model.Reference;
+import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.Team;
+import org.sagebionetworks.repo.model.TeamDAO;
+import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -1059,6 +1090,70 @@ public class NodeDAOImplTest {
 
 	}
 	
+	@Test
+	public void testGetEntityHeaderByReference() throws Exception {
+		Node parent = privateCreateNew("parent");
+		parent.setNodeType(EntityType.project);
+		String parentId = nodeDao.createNew(parent);
+		Long parentBenefactor = KeyFactory.stringToKey(parentId);
+		toDelete.add(parentId);
+		assertNotNull(parentId);
+		
+		Node child = privateCreateNew("child");
+		child.setNodeType(EntityType.folder);
+		child.setParentId(parentId);
+		String childId = nodeDao.createNew(child);
+		toDelete.add(childId);
+		assertNotNull(childId);
+		child = nodeDao.getNode(childId);
+		// create a second version
+		child.setVersionLabel(""+child.getVersionNumber()+1);
+		nodeDao.createNewVersion(child);
+		
+		List<Reference> request = new LinkedList<Reference>();
+		Reference r = new Reference();
+		r.setTargetId(parentId);
+		r.setTargetVersionNumber(null);
+		request.add(r);
+		
+		r = new Reference();
+		r.setTargetId(child.getId());
+		r.setTargetVersionNumber(null);
+		request.add(r);
+		
+		r = new Reference();
+		r.setTargetId(child.getId());
+		r.setTargetVersionNumber(2L);
+		request.add(r);
+		
+		r = new Reference();
+		r.setTargetId(child.getId());
+		r.setTargetVersionNumber(1L);
+		request.add(r);
+		
+		List<EntityHeader> results = nodeDao.getEntityHeader(request);
+		assertNotNull(results);
+		assertEquals(4, results.size());
+		
+		EntityHeader header = results.get(0);
+		assertEquals(parentId, header.getId());
+		assertEquals("1", header.getVersionLabel());
+		assertEquals(new Long(1), header.getVersionNumber());
+		assertEquals(parentBenefactor, header.getBenefactorId());
+		
+		header = results.get(2);
+		assertEquals(childId, header.getId());
+		assertEquals("2", header.getVersionLabel());
+		assertEquals(new Long(2), header.getVersionNumber());
+		assertEquals(parentBenefactor, header.getBenefactorId());
+		
+		header = results.get(3);
+		assertEquals(childId, header.getId());
+		assertEquals("1", header.getVersionLabel());
+		assertEquals(new Long(1), header.getVersionNumber());
+		assertEquals(parentBenefactor, header.getBenefactorId());
+	}
+	
 	@Test (expected=NotFoundException.class)
 	public void testGetEntityHeaderDoesNotExist() throws NotFoundException, DatastoreException{
 		// There should be no node with this id.
@@ -1156,6 +1251,7 @@ public class NodeDAOImplTest {
 			// 'getEntityPath' doesn't retreive version info, so we clear these fields for the sake of comparison
 			array[i].setVersionLabel(null);
 			array[i].setVersionNumber(null);
+			array[i].setBenefactorId(null);
 		}
 		List<EntityHeader> path = nodeDao.getEntityPath(ids[depth-1]);
 		assertNotNull(path);
@@ -1973,6 +2069,7 @@ public class NodeDAOImplTest {
 		assertNotNull(results);
 		assertEquals(1, results.size());
 		assertEquals(id1, results.get(0).getId());
+		assertNotNull(results.get(0).getBenefactorId());
 		assertEquals(Long.valueOf(1L), results.get(0).getVersionNumber());
 		assertEquals(node1Label1, results.get(0).getVersionLabel());
 

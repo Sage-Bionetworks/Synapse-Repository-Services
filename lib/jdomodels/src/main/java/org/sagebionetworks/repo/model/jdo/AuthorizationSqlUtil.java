@@ -41,6 +41,7 @@ public class AuthorizationSqlUtil {
 	 */
 	public static final String ACCESS_TYPE_BIND_VAR = "type";
 	public static final String RESOURCE_ID_BIND_VAR = "resourceId";
+	public static final String PRINCIPAL_IDS_BIND_VAR = "principalIds";
 	public static final String RESOURCE_TYPE_BIND_VAR = COL_ACL_OWNER_TYPE;
 	
 	private static final String AUTHORIZATION_SQL_WHERE_2 = 
@@ -59,6 +60,26 @@ public class AuthorizationSqlUtil {
 					" AND at." + COL_RESOURCE_ACCESS_TYPE_ELEMENT + "=:" + ACCESS_TYPE_BIND_VAR +
 					" AND acl." + COL_ACL_OWNER_ID + " =:" + RESOURCE_ID_BIND_VAR
 					+ " AND acl."+COL_ACL_OWNER_TYPE+"=:"+RESOURCE_TYPE_BIND_VAR;
+	
+	public static final String SELECT_RESOURCE_INTERSECTION = "SELECT acl."
+			+ COL_ACL_OWNER_ID
+			+ " as "+COL_ACL_OWNER_ID+" FROM "
+			+ AUTHORIZATION_SQL_TABLES
+			+ " WHERE "
+			+ AUTHORIZATION_SQL_JOIN
+			+ " AND ra."
+			+ COL_RESOURCE_ACCESS_GROUP_ID
+			+ " IN (:"
+			+ PRINCIPAL_IDS_BIND_VAR
+			+ ") AND at."
+			+ COL_RESOURCE_ACCESS_TYPE_ELEMENT
+			+ "=:"
+			+ ACCESS_TYPE_BIND_VAR
+			+ " AND acl."
+			+ COL_ACL_OWNER_ID
+			+ " IN (:"
+			+ RESOURCE_ID_BIND_VAR
+			+ ") AND acl." + COL_ACL_OWNER_TYPE + "=:" + RESOURCE_TYPE_BIND_VAR;
 
 	/**
 	 * The bind variable prefix used for group ID for the authorization SQL.

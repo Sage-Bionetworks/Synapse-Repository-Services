@@ -78,4 +78,15 @@ public interface AccessControlListDAO  {
 	 * @throws NotFoundException
 	 */
 	public void delete(String id, ObjectType ownerType) throws DatastoreException, NotFoundException;
+
+	/**
+	 * Given a set of benefactors, and benefactors, return the sub-set of benefactors the that any given principal can see.
+	 * @param groups
+	 * @param benefactors
+	 * @param entity
+	 * @param read
+	 * @return
+	 */
+	public Set<Long> canAccess(Set<Long> groups, Set<Long> benefactors,
+			ObjectType entity, ACCESS_TYPE read);
 }

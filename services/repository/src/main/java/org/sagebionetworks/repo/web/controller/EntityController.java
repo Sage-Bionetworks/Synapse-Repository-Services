@@ -640,24 +640,18 @@ public class EntityController extends BaseController {
 	public @ResponseBody
 	PaginatedResults<EntityHeader> getEntityTypeBatch(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestParam(value = ServiceConstants.BATCH_PARAM, required = true) String batch,
-			HttpServletRequest request) throws NotFoundException,
+			@RequestParam(value = ServiceConstants.BATCH_PARAM, required = true) String batch) throws NotFoundException,
 			DatastoreException, UnauthorizedException {
 
 		String ids[] = batch.split(",");
 
-		List<EntityHeader> entityHeaders = new ArrayList<EntityHeader>();
+		List<Reference> request = new ArrayList<Reference>();
 		for (String id : ids) {
-			// Get the type of an entity by ID.
-			EntityHeader entityHeader = serviceProvider.getEntityService()
-					.getEntityHeader(userId, id, null);
-			entityHeaders.add(entityHeader);
+			Reference ref = new Reference();
+			ref.setTargetId(id);
+			request.add(ref);
 		}
-
-		PaginatedResults<EntityHeader> results = new PaginatedResults<EntityHeader>();
-		results.setResults(entityHeaders);
-		results.setTotalNumberOfResults(entityHeaders.size());
-		return results;
+		return serviceProvider.getEntityService().getEntityHeader(userId, request);
 	}
 
 	/**
@@ -674,39 +668,14 @@ public class EntityController extends BaseController {
 	 *             - Thrown when an there is a server failure.
 	 * @throws UnauthorizedException
 	 */
-	@Deprecated
-	// It is silly to overload an HTTP GET method with a POST!! An optional
-	// paramter on the GET method would have been a better solution.
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_TYPE_HEADER }, method = RequestMethod.POST)
 	public @ResponseBody
 	PaginatedResults<EntityHeader> getEntityVersionedTypeBatch(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestBody ReferenceList referenceList, HttpServletRequest request)
+			@RequestBody ReferenceList referenceList)
 			throws DatastoreException, UnauthorizedException {
-		List<EntityHeader> entityHeaders = new ArrayList<EntityHeader>();
-		if (referenceList.getReferences() != null) {
-			for (Reference ref : referenceList.getReferences()) {
-				// Get the type of an entity by ID.
-				EntityHeader entityHeader = null;
-				try {
-					entityHeader = serviceProvider.getEntityService()
-							.getEntityHeader(userId, ref.getTargetId(),
-									ref.getTargetVersionNumber());
-				} catch (NotFoundException e) {
-					// skip
-				} catch (UnauthorizedException e) {
-					// skip
-				}
-				if (entityHeader != null)
-					entityHeaders.add(entityHeader);
-			}
-		}
-
-		PaginatedResults<EntityHeader> results = new PaginatedResults<EntityHeader>();
-		results.setResults(entityHeaders);
-		results.setTotalNumberOfResults(entityHeaders.size());
-		return results;
+		return serviceProvider.getEntityService().getEntityHeader(userId, referenceList.getReferences());
 	}
 
 	/**

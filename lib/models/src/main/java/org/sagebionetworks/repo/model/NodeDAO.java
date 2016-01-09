@@ -208,6 +208,20 @@ public interface NodeDAO {
 	public EntityHeader getEntityHeader(String nodeId, Long versionNumber) throws DatastoreException, NotFoundException;
 	
 	/**
+	 * Get a list of entity headers from a list of references.
+	 * @param references
+	 * @return
+	 */
+	public List<EntityHeader> getEntityHeader(List<Reference> references);
+	
+	/**
+	 * Get the headers for the given entity ids.
+	 * @param entityIds
+	 * @return
+	 */
+	public List<EntityHeader> getEntityHeader(Set<Long> entityIds);
+	
+	/**
 	 * returns just the entity type for the given node
 	 * @param nodeId
 	 * @return
@@ -220,16 +234,6 @@ public interface NodeDAO {
 	 * Gets the header information for entities whose file's MD5 matches the given MD5 checksum.
 	 */
 	public List<EntityHeader> getEntityHeaderByMd5(String md5) throws DatastoreException, NotFoundException;
-
-	/**
-	 * Get the version label for a node
-	 * @param nodeId
-	 * @param versionNumber
-	 * @return
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 */
-	public String getVersionLabel(String nodeId, Long versionNumber) throws DatastoreException, NotFoundException; 
 	
 	/**
 	 * Get the full path for an entity.

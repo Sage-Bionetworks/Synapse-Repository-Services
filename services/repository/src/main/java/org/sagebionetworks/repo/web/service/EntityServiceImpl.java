@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.NodeQueryResults;
 import org.sagebionetworks.repo.model.QueryResults;
+import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -523,6 +524,15 @@ public class EntityServiceImpl implements EntityService {
 	public EntityHeader getEntityHeader(Long userId, String entityId, Long versionNumber) throws NotFoundException, DatastoreException, UnauthorizedException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return entityManager.getEntityHeader(userInfo, entityId, versionNumber);
+	}
+	
+	@Override
+	public PaginatedResults<EntityHeader> getEntityHeader(Long userId,
+			List<Reference> references) throws NotFoundException,
+			DatastoreException, UnauthorizedException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		List<EntityHeader> headers = entityManager.getEntityHeader(userInfo, references);
+		return new PaginatedResults<EntityHeader>(headers, headers.size());
 	}
 
 	@Override

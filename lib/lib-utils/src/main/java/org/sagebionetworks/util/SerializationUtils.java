@@ -46,4 +46,18 @@ public class SerializationUtils {
 			throw new RuntimeException(e);
 		}
 	}
+	
+	/**
+	 * Clone a JSONEntity by first creating a JSON string representation, then creating a new instance from the JSON string.
+	 * @param toClone
+	 * @return
+	 */
+	public static <T extends JSONEntity> T cloneJSONEntity(T toClone){
+		try {
+			String json =  EntityFactory.createJSONStringForEntity(toClone);
+			return EntityFactory.createEntityFromJSONString(json, (Class<T>)toClone.getClass());
+		} catch (JSONObjectAdapterException e) {
+			throw new RuntimeException(e);
+		}
+	}
 }

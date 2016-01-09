@@ -230,6 +230,18 @@ public interface NodeManager {
 	 * @throws UnauthorizedException
 	 */
 	public EntityHeader getNodeHeader(UserInfo userInfo, String entityId, Long versionNumber) throws NotFoundException, DatastoreException, UnauthorizedException;
+	
+	/**
+	 * Get an entity header for each reference.
+	 * 
+	 * @param userInfo
+	 * @param references
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 */
+	public List<EntityHeader> getNodeHeader(UserInfo userInfo, List<Reference> references) throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	/**
 	 * Gets the header information for entities whose file's MD5 matches the given MD5 checksum.
@@ -331,5 +343,14 @@ public interface NodeManager {
 	 * @return list of References with the current version filled in
 	 */
 	public List<Reference> getCurrentRevisionNumbers(List<String> nodeIds);
+
+	/**
+	 * Given a list of EntityHeaders, return the sub-set of EntityHeaders that the user is authorized to read.
+	 * @param userInfo
+	 * @param toFilter
+	 * @return
+	 */
+	List<EntityHeader> filterUnauthorizedHeaders(UserInfo userInfo,
+			List<EntityHeader> toFilter);
 
 }

@@ -192,4 +192,13 @@ public interface AuthorizationManager {
 	 */
 	boolean isACTTeamMemberOrAdmin(UserInfo userInfo)
 			throws DatastoreException, UnauthorizedException;
+
+	/**
+	 * Get the intersection of the given benefactor ids and the benefactors the user can read.
+	 * @param userInfo
+	 * @param originalBenefactors
+	 * @return
+	 */
+	public Set<Long> canReadBenefactors(UserInfo userInfo,
+			Set<Long> originalBenefactors);
 }

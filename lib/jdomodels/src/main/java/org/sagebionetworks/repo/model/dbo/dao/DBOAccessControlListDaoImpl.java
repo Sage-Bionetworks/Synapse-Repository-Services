@@ -41,14 +41,15 @@ import org.sagebionetworks.repo.model.message.AclModificationMessage;
 import org.sagebionetworks.repo.model.message.AclModificationType;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-
-import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Sets;
@@ -95,6 +96,8 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 	private IdGenerator idGenerator;
 	@Autowired
 	TransactionalMessenger transactionalMessenger;
+	@Autowired
+	private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
 	@WriteTransaction
 	@Override
@@ -300,22 +303,10 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 	@Override
 	public boolean canAccess(Set<Long> groups, String resourceId, ObjectType resourceType,
 			ACCESS_TYPE accessType) throws DatastoreException {
-		// Build up the parameters
-		Map<String,Object> parameters = new HashMap<String,Object>();
-		int i=0;
-		for (Long gId : groups) {
-			parameters.put(AuthorizationSqlUtil.BIND_VAR_PREFIX+(i++), gId);
-		}
-		// Bind the type
-		parameters.put(AuthorizationSqlUtil.ACCESS_TYPE_BIND_VAR, accessType.name());
-		// Bind the object id
-		parameters.put(AuthorizationSqlUtil.RESOURCE_ID_BIND_VAR, KeyFactory.stringToKey(resourceId));
-		// Bind the object type
-		parameters.put(AuthorizationSqlUtil.RESOURCE_TYPE_BIND_VAR, resourceType.name());
-		String sql = AuthorizationSqlUtil.authorizationCanAccessSQL(groups.size());
-
-		long count = simpleJdbcTemplate.queryForLong(sql, parameters);
-		return count > 0;
+		Long idLong = KeyFactory.stringToKey(resourceId);
+		HashSet<Long> benefactors = Sets.newHashSet(idLong);
+		Set<Long> results = canAccess(groups, benefactors, resourceType, accessType);
+		return results.contains(idLong);
 	}
 	
 	// To avoid potential race conditions, we do "SELECT ... FOR UPDATE" on etags.
@@ -324,5 +315,28 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 		param.addValue(COL_ACL_OWNER_ID, ownerId);
 		param.addValue(COL_ACL_OWNER_TYPE, ownerType.name());
 		return simpleJdbcTemplate.queryForObject(SELECT_FOR_UPDATE, aclRowMapper, param);
+	}
+
+	@Override
+	public Set<Long> canAccess(Set<Long> groups, Set<Long> benefactors,
+			ObjectType resourceType, ACCESS_TYPE accessType) {
+		ValidateArgument.required(groups, "groups");
+		ValidateArgument.required(benefactors, "benefactors");
+		ValidateArgument.required(resourceType, "resourceType");
+		ValidateArgument.required(accessType, "accessType");
+		Map<String, Object> namedParameters = new HashMap<String, Object>(4);
+		namedParameters.put(AuthorizationSqlUtil.RESOURCE_ID_BIND_VAR, benefactors);
+		namedParameters.put(AuthorizationSqlUtil.PRINCIPAL_IDS_BIND_VAR, groups);
+		namedParameters.put(AuthorizationSqlUtil.RESOURCE_TYPE_BIND_VAR, resourceType.name());
+		namedParameters.put(AuthorizationSqlUtil.ACCESS_TYPE_BIND_VAR, accessType.name());
+		// query
+		List<Long> result = namedParameterJdbcTemplate.query(AuthorizationSqlUtil.SELECT_RESOURCE_INTERSECTION, namedParameters, new RowMapper<Long>() {
+
+			@Override
+			public Long mapRow(ResultSet rs, int rowNum) throws SQLException {
+				return rs.getLong(COL_ACL_OWNER_ID);
+			}
+		});
+		return new HashSet<Long>(result);
 	}
 }

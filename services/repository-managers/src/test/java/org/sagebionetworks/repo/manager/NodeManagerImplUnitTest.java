@@ -18,6 +18,7 @@ import static org.mockito.Mockito.when;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -35,6 +36,7 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.QueryResults;
+import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ReferenceDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -42,6 +44,9 @@ import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
+
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 /**
  * This is the unit test version of this class.
@@ -631,10 +636,15 @@ public class NodeManagerImplUnitTest {
 
 		// Test empty results
 		final String nodeId = "testGetNodeHeaderByMd5";
-		when(mockAuthManager.canAccess(eq(mockUserInfo), eq(nodeId), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.READ))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+
+		// no intersection
+		Set<Long> intersection = Sets.newHashSet();
+		when(mockAuthManager.canReadBenefactors(any(UserInfo.class), (any(Set.class)))).thenReturn(intersection);
+		
 		List<EntityHeader> results = new ArrayList<EntityHeader>(1);
 		EntityHeader header = new EntityHeader();
 		header.setId(nodeId);
+		header.setBenefactorId(0L);
 		results.add(header);
 		String md5 = "md5NotFound";
 		when(mockNodeDao.getEntityHeaderByMd5(md5)).thenReturn(results);
@@ -644,21 +654,119 @@ public class NodeManagerImplUnitTest {
 
 		// Test 2 nodes and 1 node gets filtered out
 		final String nodeId1 = "canRead";
-		when(mockAuthManager.canAccess(eq(mockUserInfo), eq(nodeId1), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.READ))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		final String nodeId2 = "cannotRead";
-		when(mockAuthManager.canAccess(eq(mockUserInfo), eq(nodeId2), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.READ))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+
 		results = new ArrayList<EntityHeader>(1);
 		EntityHeader header1 = new EntityHeader();
 		header1.setId(nodeId1);
+		header1.setBenefactorId(1L);
 		results.add(header1);
 		EntityHeader header2 = new EntityHeader();
 		header2.setId(nodeId2);
+		header2.setBenefactorId(2L);
 		results.add(header2);
 		md5 = "md5";
+		
+		intersection = Sets.newHashSet(header1.getBenefactorId());
+		when(mockAuthManager.canReadBenefactors(any(UserInfo.class), (any(Set.class)))).thenReturn(intersection);
+		
 		when(mockNodeDao.getEntityHeaderByMd5(md5)).thenReturn(results);
 		List<EntityHeader> headerList = nodeManager.getNodeHeaderByMd5(mockUserInfo, md5);
 		assertNotNull(headerList);
 		assertEquals(1, headerList.size());
 		assertEquals(nodeId1, headerList.get(0).getId());
 	}
+	
+	@Test
+	public void testFilterUnauthorizedHeaders(){
+		List<EntityHeader> toFilter = createTestEntityHeaders(3);
+		// Filter out the middle benefactor.
+		Set<Long> intersection = Sets.newHashSet(toFilter.get(0).getBenefactorId(), toFilter.get(2).getBenefactorId());
+		when(mockAuthManager.canReadBenefactors(any(UserInfo.class), (any(Set.class)))).thenReturn(intersection);
+		//call under test
+		List<EntityHeader> results = nodeManager.filterUnauthorizedHeaders(mockUserInfo, toFilter);
+		assertNotNull(results);
+		assertEquals(2, results.size());
+		assertEquals(toFilter.get(0), results.get(0));
+		assertEquals(toFilter.get(2), results.get(1));
+	}
+	
+	@Test
+	public void testFilterUnauthorizedHeadersNoIntersection(){
+		List<EntityHeader> toFilter = createTestEntityHeaders(3);
+		// Filter out the middle benefactor.
+		Set<Long> intersection = Sets.newHashSet();
+		when(mockAuthManager.canReadBenefactors(any(UserInfo.class), (any(Set.class)))).thenReturn(intersection);
+		//call under test
+		List<EntityHeader> results = nodeManager.filterUnauthorizedHeaders(mockUserInfo, toFilter);
+		assertNotNull(results);
+		assertEquals(0, results.size());
+	}
+	
+	@Test
+	public void testFilterUnauthorizedHeadersEmptyStart(){
+		// empty starting list should not hit the DB.
+		List<EntityHeader> toFilter = createTestEntityHeaders(0);
+		//call under test
+		List<EntityHeader> results = nodeManager.filterUnauthorizedHeaders(mockUserInfo, toFilter);
+		assertNotNull(results);
+		assertEquals(0, results.size());
+		verify(mockAuthManager, never()).canReadBenefactors(any(UserInfo.class), (any(Set.class)));
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testFilterUnauthorizedHeadersNullFilter(){
+		List<EntityHeader> toFilter = null;
+		//call under test
+		 nodeManager.filterUnauthorizedHeaders(mockUserInfo, toFilter);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testFilterUnauthorizedHeadersNullUser(){
+		List<EntityHeader> toFilter = createTestEntityHeaders(2);
+		mockUserInfo = null;
+		//call under test
+		 nodeManager.filterUnauthorizedHeaders(mockUserInfo, toFilter);
+	}
+	
+	/**
+	 * Helper to create some EntityHeaders.
+	 * @param count
+	 * @return
+	 */
+	private List<EntityHeader> createTestEntityHeaders(int count){
+		List<EntityHeader> list = Lists.newArrayListWithCapacity(count);
+		for(int i=0; i<count; i++){
+			EntityHeader header = new EntityHeader();
+			header.setBenefactorId(new Long(i-1));
+			header.setId(""+i);
+			header.setName("name"+i);
+			list.add(header);
+		}
+		return list;
+	}
+	
+	@Test
+	public void testGetNodeHeader(){
+		List<EntityHeader> allResults = createTestEntityHeaders(3);
+		List<Reference> refs = Lists.newArrayList(new Reference(), new Reference(), new Reference(), new Reference());
+		refs.get(0).setTargetId(allResults.get(0).getId());
+		refs.get(1).setTargetId(allResults.get(1).getId());
+		refs.get(2).setTargetId(allResults.get(2).getId());
+		refs.get(3).setTargetId("4");
+		
+		when(mockNodeDao.getEntityHeader(any(List.class))).thenReturn(allResults);
+		// the user can only read 0 and 2.
+		Set<Long> intersection = Sets.newHashSet(allResults.get(0).getBenefactorId(), allResults.get(2).getBenefactorId());
+		when(mockAuthManager.canReadBenefactors(any(UserInfo.class), (any(Set.class)))).thenReturn(intersection);
+		
+		List<EntityHeader> results = nodeManager.getNodeHeader(mockUserInfo, refs);
+		// only two results should be returned
+		assertNotNull(results);
+		assertEquals(2, results.size());
+		assertEquals(allResults.get(0), results.get(0));
+		assertEquals(allResults.get(2), results.get(1));
+	}
+	
+	
 }

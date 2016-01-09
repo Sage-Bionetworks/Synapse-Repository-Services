@@ -10,7 +10,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -645,5 +645,41 @@ public class AuthorizationManagerImplUnitTest {
 						associationType))
 		);
 		assertEquals(expected, results);
+	}
+	
+	@Test
+	public void testCanReadBenefactorsAdmin(){
+		Set<Long> benefactors = Sets.newHashSet(1L,2L);
+		// call under test
+		Set<Long> results = authorizationManager.canReadBenefactors(adminUser, benefactors);
+		assertEquals(benefactors, results);
+		verify(mockAclDAO, never()).canAccess(any(Set.class), any(Set.class), any(ObjectType.class), any(ACCESS_TYPE.class));
+	}
+	
+	@Test
+	public void testCanReadBenefactorsNonAdmin(){
+		Set<Long> benefactors = Sets.newHashSet(1L,2L);
+		// call under test
+		authorizationManager.canReadBenefactors(userInfo, benefactors);
+		verify(mockAclDAO, times(1)).canAccess(any(Set.class), any(Set.class), any(ObjectType.class), any(ACCESS_TYPE.class));
+	}
+	
+	@Test
+	public void testCanReadBenefactorsTrashAdmin(){
+		Set<Long> benefactors = Sets.newHashSet(AuthorizationManagerImpl.TRASH_FOLDER_ID);
+		// call under test
+		Set<Long> results = authorizationManager.canReadBenefactors(adminUser, benefactors);
+		assertNotNull(results);
+		assertEquals(0, results.size());
+	}
+	
+	@Test
+	public void testCanReadBenefactorsTrashNonAdmin(){
+		Set<Long> benefactors = Sets.newHashSet(AuthorizationManagerImpl.TRASH_FOLDER_ID);
+		when(mockAclDAO.canAccess(any(Set.class), any(Set.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(benefactors);
+		// call under test
+		Set<Long> results = authorizationManager.canReadBenefactors(userInfo, benefactors);
+		assertNotNull(results);
+		assertEquals(0, results.size());
 	}
 }
