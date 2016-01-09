@@ -41,7 +41,7 @@ public class RangeMetadataIterator implements Iterator<RowMetadata> {
 		this.maxId = maxId;
 		this.batchSize = batchSize;
 		this.progress = progress;
-		if (maxId - minId >= batchSize) {
+		if (maxId - minId > batchSize) {
 			throw new IllegalArgumentException("MaxId-MinId must be less than batchSize");
 		}
 	}
@@ -79,7 +79,7 @@ public class RangeMetadataIterator implements Iterator<RowMetadata> {
 	 * @throws SynapseException
 	 * @throws JSONObjectAdapterException
 	 */
-	private void getRange() throws SynapseException,	JSONObjectAdapterException {
+	private void getRange() throws SynapseException, JSONObjectAdapterException {
 		long start = System.currentTimeMillis();
 		this.range = client.getRowMetadataByRange(type, minId, maxId);
 		long elapse = System.currentTimeMillis()-start;

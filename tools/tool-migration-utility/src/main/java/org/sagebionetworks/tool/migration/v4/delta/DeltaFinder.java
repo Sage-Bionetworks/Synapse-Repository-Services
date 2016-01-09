@@ -24,10 +24,12 @@ public class DeltaFinder {
 	public DeltaFinder(TypeToMigrateMetadata tm,
 			SynapseAdminClient srcClient,
 			SynapseAdminClient destClient,
+			String salt,
 			Long bSize) {
 		typeToMigrateMeta = tm;
 		sourceClient = srcClient;
 		destinationClient = destClient;
+		this.salt = salt;
 		batchSize = bSize;
 	}
 
