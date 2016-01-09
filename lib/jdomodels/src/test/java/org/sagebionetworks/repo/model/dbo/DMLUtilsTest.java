@@ -70,6 +70,38 @@ public class DMLUtilsTest {
 			};
 		}
 	};
+	
+	private TableMapping<Object> migrateableMappingEtagAndId = new AbstractTestTableMapping<Object>() {
+		@Override
+		public String getTableName() {
+			return "SOME_TABLE";
+		}
+		
+		@Override
+		public FieldColumn[] getFieldColumns() {
+			return new FieldColumn[] {
+					new FieldColumn("id", "ID", true).withIsBackupId(true),
+					new FieldColumn("etag", "ETAG").withIsEtag(true),
+					new FieldColumn("parentId", "PARENT_ID")					
+			};
+		}
+	};
+
+	private TableMapping<Object> migrateableMappingNoEtag = new AbstractTestTableMapping<Object>() {
+		@Override
+		public String getTableName() {
+			return "SOME_TABLE";
+		}
+		
+		@Override
+		public FieldColumn[] getFieldColumns() {
+			return new FieldColumn[] {
+					new FieldColumn("id", "ID", true).withIsBackupId(true),
+					new FieldColumn("etag", "ETAG"),
+					new FieldColumn("parentId", "PARENT_ID")					
+			};
+		}
+	};
 
 	
 	@Test
@@ -144,6 +176,14 @@ public class DMLUtilsTest {
 	}
 	
 	@Test
+	public void testCreateGetMinStatement() {
+		String dml = DMLUtils.createGetMinByBackupKeyStatement(mapping);
+		assertNotNull(dml);
+		System.out.println(dml);
+		assertEquals("SELECT MIN(ID) FROM SOME_TABLE", dml);
+	}
+	
+	@Test
 	public void testCreateUpdateStatmentTwoKeys(){
 		// Here is our simple mapping.
 		String dml = DMLUtils.createUpdateStatment(mappingTwoKeys);
@@ -170,18 +210,34 @@ public class DMLUtilsTest {
 	
 	@Test
 	public void testListWithSelfForeignKey(){
-		String batchDelete = DMLUtils.listRowMetadata(migrateableMappingSelfForeignKey);
-		assertNotNull(batchDelete);
-		System.out.println(batchDelete);
-		assertEquals("SELECT `ID`, `ETAG`, `PARENT_ID` FROM SOME_TABLE ORDER BY `ID` ASC LIMIT :BCLIMIT OFFSET :BVOFFSET", batchDelete);
+		String sql = DMLUtils.listRowMetadata(migrateableMappingSelfForeignKey);
+		assertNotNull(sql);
+		System.out.println(sql);
+		assertEquals("SELECT `ID`, `ETAG`, `PARENT_ID` FROM SOME_TABLE ORDER BY `ID` ASC LIMIT ? OFFSET ?", sql);
 	}
 
 	@Test
 	public void testListWithNoEtagNoSelfForeignKey(){
-		String batchDelete = DMLUtils.listRowMetadata(migrateableMappingNoEtagNotSelfForeignKey);
-		assertNotNull(batchDelete);
-		System.out.println(batchDelete);
-		assertEquals("SELECT `ID` FROM SOME_TABLE ORDER BY `ID` ASC LIMIT :BCLIMIT OFFSET :BVOFFSET", batchDelete);
+		String sql = DMLUtils.listRowMetadata(migrateableMappingNoEtagNotSelfForeignKey);
+		assertNotNull(sql);
+		System.out.println(sql);
+		assertEquals("SELECT `ID` FROM SOME_TABLE ORDER BY `ID` ASC LIMIT ? OFFSET ?", sql);
+	}
+	
+	@Test
+	public void testListByRangeWithSelfForeignKey() {
+		String sql = DMLUtils.listRowMetadataByRange(migrateableMappingSelfForeignKey);
+		assertNotNull(sql);
+		System.out.println(sql);
+		assertEquals("SELECT `ID`, `ETAG`, `PARENT_ID` FROM SOME_TABLE WHERE `ID` >= ? AND `ID` <= ? ORDER BY `ID` ASC", sql);
+	}
+	
+	@Test
+	public void testListByRangeWithNoEtagNoSelfForeignKey(){
+		String sql = DMLUtils.listRowMetadataByRange(migrateableMappingNoEtagNotSelfForeignKey);
+		assertNotNull(sql);
+		System.out.println(sql);
+		assertEquals("SELECT `ID` FROM SOME_TABLE WHERE `ID` >= ? AND `ID` <= ? ORDER BY `ID` ASC", sql);
 	}
 	
 	@Test
@@ -232,4 +288,39 @@ public class DMLUtilsTest {
 		assertEquals("INSERT IGNORE INTO SOME_TABLE(`ID`) VALUES (:id)", sql);
 	}
 	
+	@Test
+	public void testCreateSelectChecksumStatementWithEtagColumn() {
+		final String expectedSql = "SELECT CONCAT(SUM(CRC32(CONCAT(`ID`, '@', IFNULL(`ETAG`, 'NULL'), '@@', ?))), '%', BIT_XOR(CRC32(CONCAT(`ID`, '@', IFNULL(`ETAG`, 'NULL'), '@@', ?)))) FROM SOME_TABLE WHERE `ID` >= ? AND `ID` <= ?";
+		String sql = DMLUtils.createSelectChecksumStatement(migrateableMappingEtagAndId);
+		assertNotNull(sql);
+		System.out.println(sql);
+		assertEquals(expectedSql, sql);
+	}
+	
+	@Test
+	public void testCreateSelectChecksumStatementWithoutEtagColumn() {
+		String expectedSql = "SELECT CONCAT(SUM(CRC32(CONCAT(`ID`, '@@', ?))), '%', BIT_XOR(CRC32(CONCAT(`ID`, '@@', ?)))) FROM SOME_TABLE WHERE `ID` >= ? AND `ID` <= ?";
+		String sql = DMLUtils.createSelectChecksumStatement(migrateableMappingNoEtag);
+		assertNotNull(sql);
+		System.out.println(sql);
+		assertEquals(expectedSql, sql);
+	}
+	
+	@Test
+	public void testCreateChecksumTableStatement() {
+		String expectedSql = "CHECKSUM TABLE SOME_TABLE";
+		String sql = DMLUtils.createChecksumTableStatement(migrateableMappingEtagAndId);
+		assertNotNull(sql);
+		System.out.println(sql);
+		assertEquals(expectedSql, sql);
+	}
+	
+	@Test
+	public void testCreateMinMaxCountByKeyStatement() {
+		String expectedSql = "SELECT MIN(`ID`), MAX(`ID`), COUNT(`ID`) FROM SOME_TABLE";
+		String sql = DMLUtils.createGetMinMaxCountByKeyStatement(migrateableMappingEtagAndId);
+		assertNotNull(sql);
+		System.out.println(sql);
+		assertEquals(expectedSql, sql);
+	}
 }

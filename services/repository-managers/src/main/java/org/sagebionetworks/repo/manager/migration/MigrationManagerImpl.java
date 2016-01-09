@@ -1,10 +1,13 @@
 package org.sagebionetworks.repo.manager.migration;
 
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.Writer;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -14,12 +17,18 @@ import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableDAO;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.ListBucketProvider;
+import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationType;
+import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
+import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationUtils;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
-import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
+
 
 /**
  * Basic implementation of migration manager.
@@ -78,6 +87,12 @@ public class MigrationManagerImpl implements MigrationManager {
 		validateUser(user);
 		return migratableTableDao.getMaxId(type);
 	}
+	
+	@Override
+	public long getMinId(UserInfo user, MigrationType type) {
+		validateUser(user);
+		return migratableTableDao.getMinId(type);
+	}
 
 	@Override
 	public RowMetadataResult getRowMetadaForType(UserInfo user,  MigrationType type, long limit, long offset) {
@@ -85,6 +100,14 @@ public class MigrationManagerImpl implements MigrationManager {
 		if(type == null) throw new IllegalArgumentException("Type cannot be null");
 		// pass this to the dao.
 		return migratableTableDao.listRowMetadata(type, limit, offset);
+	}
+	
+	@Override
+	public RowMetadataResult getRowMetadataByRangeForType(UserInfo user, MigrationType type, long minId, long maxId) {
+		validateUser(user);
+		if(type == null) throw new IllegalArgumentException("Type cannot be null");
+		// pass this to the dao.
+		return migratableTableDao.listRowMetadataByRange(type, minId, maxId);
 	}
 
 	@Override
@@ -121,8 +144,8 @@ public class MigrationManagerImpl implements MigrationManager {
 				// Get the database object from the dao
 				MigratableDatabaseObject mdo = migratableTableDao.getObjectForType(type);
 				return createOrUpdateBatch(mdo, type, in);
-			}});
-
+			}
+		});
 	}
 
 	@WriteTransaction
@@ -292,6 +315,13 @@ public class MigrationManagerImpl implements MigrationManager {
 		validateUser(user);
 		return migratableTableDao.getPrimaryMigrationTypes();
 	}
+	
+	@Override
+	public List<MigrationType> getMigrationTypes(UserInfo user) {
+		validateUser(user);
+		List<MigrationType> l = new LinkedList<MigrationType>(Arrays.asList(MigrationType.values()));
+		return l;
+	}
 
 	@Override
 	public List<MigrationType> getSecondaryTypes(MigrationType type) {
@@ -320,11 +350,11 @@ public class MigrationManagerImpl implements MigrationManager {
 		}
 	}
 
-	private void deleteAllForType(UserInfo user, MigrationType type) throws Exception{
+	private void deleteAllForType(UserInfo user, MigrationType type) throws Exception {
 		// First get all data for this type.
 		RowMetadataResult result =  migratableTableDao.listRowMetadata(type, Long.MAX_VALUE, 0);
-		List<RowMetadata> list =result.getList();
-		if(list.size() > 0){
+		List<RowMetadata> list = result.getList();
+		if (list.size() > 0) {
 			// Create the list of IDs to delete
 			List<Long> toDelete = new LinkedList<Long>();
 			for(RowMetadata row: list){
@@ -366,5 +396,34 @@ public class MigrationManagerImpl implements MigrationManager {
 		this.migrationListeners = migrationListeners;
 	}
 
+	@Override
+	public MigrationRangeChecksum getChecksumForIdRange(UserInfo user, MigrationType type,
+			String salt, long minId, long maxId) {
+		validateUser(user);
+		String checksum = migratableTableDao.getChecksumForIdRange(type, salt, minId, maxId);
+		MigrationRangeChecksum mrc = new MigrationRangeChecksum();
+		mrc.setType(type);
+		mrc.setMinid(minId);
+		mrc.setMaxid(maxId);
+		mrc.setChecksum(checksum);
+		return mrc;
+	}
+	
+	@Override
+	public MigrationTypeChecksum getChecksumForType(UserInfo user, MigrationType type) {
+		validateUser(user);
+		String checksum = migratableTableDao.getChecksumForType(type);
+		MigrationTypeChecksum mtc = new MigrationTypeChecksum();
+		mtc.setType(type);
+		mtc.setChecksum(checksum);
+		return mtc;
+	}
+
+	@Override
+	public MigrationTypeCount getMigrationTypeCount(UserInfo user, MigrationType type) {
+		validateUser(user);
+		MigrationTypeCount mtc = migratableTableDao.getMigrationTypeCount(type);
+		return mtc;
+	}
 
 }

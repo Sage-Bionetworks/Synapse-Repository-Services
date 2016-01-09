@@ -17,7 +17,9 @@ import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.message.FireMessagesResult;
 import org.sagebionetworks.repo.model.message.PublishResults;
+import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationType;
+import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.MigrationTypeList;
@@ -56,12 +58,32 @@ public interface SynapseAdminClient extends SynapseClient {
 	public RowMetadataResult getRowMetadata(MigrationType migrationType, Long limit, Long offset) throws SynapseException, JSONObjectAdapterException;
 	
 	/**
+	 * 
+	 * @param type
+	 * @param minId
+	 * @param maxId
+	 * @return
+	 * @throws SynapseException
+	 * @throws JSONObjectAdapterException
+	 */
+	public RowMetadataResult getRowMetadataByRange(MigrationType type, Long minId, Long maxId) throws SynapseException, JSONObjectAdapterException;
+	
+	/**
 	 * Get the counts for all types
 	 * @return
 	 * @throws SynapseException
 	 * @throws JSONObjectAdapterException
 	 */
 	public MigrationTypeCounts getTypeCounts() throws SynapseException, JSONObjectAdapterException;
+	
+	/**
+	 * Get the counts for one type
+	 * @param type
+	 * @return
+	 * @throws SynapseException
+	 * @throws JSONObjectAdapterException
+	 */
+	public MigrationTypeCount getTypeCount(MigrationType type) throws SynapseException, JSONObjectAdapterException;
 	
 	/**
 	 * Get the primary migration types
@@ -110,6 +132,21 @@ public interface SynapseAdminClient extends SynapseClient {
 	 * @throws SynapseException
 	 */
 	public BackupRestoreStatus getStatus(String daemonId) throws JSONObjectAdapterException, SynapseException;
+	
+	/**
+	 * Get checksum for migration type and range of ids
+	 * @throws SynapseException 
+	 * @throws JSONObjectAdapterException 
+	 */
+	public MigrationRangeChecksum getChecksumForIdRange(MigrationType type, String salt, Long minId, Long maxId) throws SynapseException, JSONObjectAdapterException;
+	
+
+	/**
+	 * Get checksum for migration type and range of ids
+	 * @throws SynapseException 
+	 * @throws JSONObjectAdapterException 
+	 */
+	public MigrationTypeChecksum getChecksumForType(MigrationType type) throws SynapseException, JSONObjectAdapterException;
 	
 
 	/**

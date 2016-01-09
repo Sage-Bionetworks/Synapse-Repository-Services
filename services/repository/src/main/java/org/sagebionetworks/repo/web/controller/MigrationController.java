@@ -10,7 +10,9 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
+import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationType;
+import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.MigrationTypeList;
@@ -59,6 +61,25 @@ public class MigrationController extends BaseController {
 	}
 	
 	/**
+	 * Get the counts for a migration type.
+	 * 
+	 * @param userId
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.MIGRATION_COUNT, method = RequestMethod.GET)
+	public @ResponseBody
+	MigrationTypeCount getTypeCount(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam(required=true) String type)
+			throws DatastoreException, NotFoundException {
+		return serviceProvider.getMigrationService().getTypeCount(userId, MigrationType.valueOf(type));
+	}
+	
+	
+	/**
 	 * This method is used to query a source stack for all of its metadata.
 	 * 
 	 * @param userId
@@ -80,6 +101,30 @@ public class MigrationController extends BaseController {
 			throws DatastoreException, NotFoundException {
 		return serviceProvider.getMigrationService().getRowMetadaForType(
 				userId, MigrationType.valueOf(type), limit, offset);
+	}
+
+	/**
+	 * This method is used to query a source stack for all of its metadata for a given id range.
+	 * 
+	 * @param userId
+	 * @param type
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.MIGRATION_ROWS_BY_RANGE, method = RequestMethod.GET)
+	public @ResponseBody
+	RowMetadataResult getRowMetadataByRange(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam(required = true) String type,
+			@RequestParam(required = true) Long minId,
+			@RequestParam(required = true) Long maxId)
+			throws DatastoreException, NotFoundException {
+		return serviceProvider.getMigrationService().getRowMetadaByRangeForType(
+				userId, MigrationType.valueOf(type), minId, maxId);
 	}
 
 	/**
@@ -224,5 +269,48 @@ public class MigrationController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) throws DatastoreException, NotFoundException {
 		return serviceProvider.getMigrationService().getPrimaryTypes(userId);
 	}
+	
+	/**
+	 * The list of  migration types.
+	 * @param userId
+	 * @return
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.MIGRATION_TYPES }, method = RequestMethod.GET)
+	public @ResponseBody
+	MigrationTypeList getMigrationTypes(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) throws DatastoreException, NotFoundException {
+		return serviceProvider.getMigrationService().getMigrationTypes(userId);
+	}
+	
+	/**
+	 * A checksum on ETAG or backup ID for a given range and a given migration type
+	 * @throws NotFoundException 
+	 */	
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.MIGRATION_RANGE_CHECKSUM }, method = RequestMethod.GET)
+	public @ResponseBody
+	MigrationRangeChecksum getChecksumForIdRange(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam(required = true) String migrationType,
+			@RequestParam(required = true) String salt,
+			@RequestParam(required = true) Long minId,
+			@RequestParam(required = true) Long maxId) throws NotFoundException {
+		return serviceProvider.getMigrationService().getChecksumForIdRange(userId, MigrationType.valueOf(migrationType), salt, minId, maxId);
+	}
+	
+	/**
+	 * A (table) checksum on a given migration type
+	 * @throws NotFoundException 
+	 */	
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.MIGRATION_TYPE_CHECKSUM }, method = RequestMethod.GET)
+	public @ResponseBody
+	MigrationTypeChecksum getChecksumForType(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam(required = true) String migrationType) throws NotFoundException {
+		return serviceProvider.getMigrationService().getChecksumForType(userId, MigrationType.valueOf(migrationType));
+	}
+	
 	
 }

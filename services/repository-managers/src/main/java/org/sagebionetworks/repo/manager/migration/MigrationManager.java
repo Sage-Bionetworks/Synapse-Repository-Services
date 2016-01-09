@@ -5,7 +5,10 @@ import java.io.Writer;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationType;
+import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
+import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 
 /**
@@ -81,6 +84,14 @@ public interface MigrationManager {
 	public List<MigrationType> getPrimaryMigrationTypes(UserInfo user);
 	
 	/**
+	 * The list of all migration types
+	 * 
+	 * @param user
+	 * @return
+	 */
+	public List<MigrationType> getMigrationTypes(UserInfo user);
+	
+	/**
 	 * If this object is the 'owner' of other object, then it is a primary type. All secondary types should be returned in their
 	 * migration order.
 	 * For example, if A owns B and B owns C (A->B->C) then A is the primary, and both B and C are secondary. For this case, return B followed by C.
@@ -103,6 +114,17 @@ public interface MigrationManager {
 	 * @return
 	 */
 	public boolean isMigrationTypeUsed(UserInfo user, MigrationType mt);
+	
+	public long getMinId(UserInfo user, MigrationType type);
+	
+	public MigrationRangeChecksum getChecksumForIdRange(UserInfo user, MigrationType type,
+			String salt, long minId, long maxId);
+	
+	public MigrationTypeChecksum getChecksumForType(UserInfo user, MigrationType type);
+	
+	public RowMetadataResult getRowMetadataByRangeForType(UserInfo user, MigrationType type, long minId, long maxId);
+	
+	public MigrationTypeCount getMigrationTypeCount(UserInfo user, MigrationType type);
 	
 	
 }

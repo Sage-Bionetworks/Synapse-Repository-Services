@@ -9,6 +9,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -43,7 +44,10 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadDestination;
 import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationType;
+import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
+import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.model.project.ExternalUploadDestinationSetting;
@@ -118,6 +122,7 @@ public class MigrationManagerImplAutowireTest {
 	private String[] projectIds = new String[3];
 	StackConfiguration stackConfig;
 	ProgressCallback<Long> mockProgressCallback;
+	private long startId;
 
 	@Before
 	public void before() throws Exception {
@@ -134,6 +139,7 @@ public class MigrationManagerImplAutowireTest {
 		withPreview = fileHandleDao.createFile(withPreview);
 		assertNotNull(withPreview);
 		toDelete.add(withPreview.getId());
+		startId = Integer.parseInt(withPreview.getId());
 		// The Preview
 		preview = TestUtils.createPreviewFileHandle(creatorUserGroupId);
 		preview.setFileName("preview.txt");
@@ -209,8 +215,60 @@ public class MigrationManagerImplAutowireTest {
 	public void testGetMaxId() {
 		long mx = migrationManager.getMaxId(adminUser, MigrationType.FILE_HANDLE);
 		assertEquals(Long.parseLong(preview.getId()), mx);
+		assertEquals(startId+1, mx);
 	}
 	
+	@Test
+	public void testGetMinId() {
+		long min = migrationManager.getMinId(adminUser, MigrationType.FILE_HANDLE);
+		long max = migrationManager.getMaxId(adminUser, MigrationType.FILE_HANDLE);
+		RowMetadataResult rmr =	migrationManager.getRowMetadaForType(adminUser, MigrationType.FILE_HANDLE, 100, 0);
+		long m = Long.MAX_VALUE;
+		for (RowMetadata rm: rmr.getList()) {
+			Long id = rm.getId();
+			if (id < m) {
+				m = id;
+			}
+		}
+		assertTrue(m < Long.MAX_VALUE);
+		assertEquals(m, min);
+		assertTrue(min <= max);
+	}
+	
+	@Test
+	public void testGetMigrationTypeCount() {
+		MigrationTypeCount expectedCount = new MigrationTypeCount();
+		expectedCount.setType(MigrationType.FILE_HANDLE);
+		expectedCount.setMinid(migrationManager.getMinId(adminUser, MigrationType.FILE_HANDLE));
+		expectedCount.setMaxid(migrationManager.getMaxId(adminUser, MigrationType.FILE_HANDLE));
+		expectedCount.setCount(migrationManager.getCount(adminUser, MigrationType.FILE_HANDLE));
+		MigrationTypeCount mtc = migrationManager.getMigrationTypeCount(adminUser, MigrationType.FILE_HANDLE);
+		assertNotNull(mtc);
+		assertEquals(expectedCount, mtc);
+	}
+	
+	@Test
+	public void testGetChecksumForIdRange() {
+		long max = migrationManager.getMaxId(adminUser, MigrationType.FILE_HANDLE);
+		String salt = "salt";
+		MigrationRangeChecksum mrc = migrationManager.getChecksumForIdRange(adminUser, MigrationType.FILE_HANDLE, salt, 0L, max);
+		assertNotNull(mrc);
+		assertNotNull(mrc.getChecksum());
+		assertTrue(mrc.getChecksum().contains("%"));
+		assertEquals(MigrationType.FILE_HANDLE, mrc.getType());
+		assertEquals(0L, mrc.getMinid().longValue());
+		assertEquals(max, mrc.getMaxid().longValue());
+		
+	}
+	
+	@Test
+	public void testGetChecksumForType() {
+		MigrationTypeChecksum mtc = migrationManager.getChecksumForType(adminUser, MigrationType.FILE_HANDLE);
+		assertNotNull(mtc);
+		assertNotNull(mtc.getChecksum());
+		assertEquals(MigrationType.FILE_HANDLE, mtc.getType());
+	}
+ 	
 	@Test
 	public void testListRowMetadata(){
 		RowMetadataResult result = migrationManager.getRowMetadaForType(adminUser, MigrationType.FILE_HANDLE, Long.MAX_VALUE, startCount);
@@ -227,6 +285,18 @@ public class MigrationManagerImplAutowireTest {
 		assertNotNull(delta);
 		assertNotNull(delta.getList());
 		assertEquals(result.getList(), delta.getList());
+	}
+	
+	@Test
+	public void testListRowMetadataByRange() {
+		long minId = migrationManager.getMinId(adminUser, MigrationType.FILE_HANDLE);
+		long maxId = migrationManager.getMaxId(adminUser, MigrationType.FILE_HANDLE);
+		RowMetadataResult result = migrationManager.getRowMetadataByRangeForType(adminUser, MigrationType.FILE_HANDLE, startId, maxId);
+		assertNotNull(result);
+		assertEquals(new Long(startCount+2), result.getTotalCount());
+		assertNotNull(result.getList());
+		System.out.println("minid: " + minId + ", maxId: " + maxId + ", resList:" + result.getList());
+		assertEquals(2, result.getList().size());
 	}
 	
 	@Test
@@ -300,6 +370,13 @@ public class MigrationManagerImplAutowireTest {
 			currentRowCacheDao = connectionFactory.getCurrentVersionCacheConnection(KeyFactory.stringToKey(tableId));
 			assertEquals(0, currentRowCacheDao.getCurrentVersions(KeyFactory.stringToKey(tableId), 0L, 10L).size());
 		}
+	}
+	
+	@Test
+	public void testGetMigrationTypes() {
+		List<MigrationType> expected = new LinkedList<MigrationType>(Arrays.asList(MigrationType.values()));
+		List<MigrationType> actual = migrationManager.getMigrationTypes(adminUser);
+		assertEquals(expected, actual);
 	}
 	
 	@Test

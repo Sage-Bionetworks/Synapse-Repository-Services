@@ -1,0 +1,17 @@
+{
+	"description": "Checksum (aggregate) for record range from minId to maxId of migration type 'type'",
+	"properties": {
+		"type": {
+			"$ref": "org.sagebionetworks.repo.model.migration.MigrationType"
+		},
+         "checksum":{
+        	"type":"string"
+         },
+         "minid":{
+        	"type":"integer"
+         },
+         "maxid":{
+        	"type":"integer"
+         }
+	}
+}

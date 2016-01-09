@@ -32,7 +32,9 @@ import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
+import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationType;
+import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.MigrationTypeList;
@@ -643,6 +645,18 @@ public class EntityServletTestHelper {
 		return EntityFactory.createEntityFromJSONString(
 				response.getContentAsString(), MigrationTypeCounts.class);
 	}
+	
+	public MigrationTypeCount getMigrationTypeCount(Long userId, MigrationType type) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, "/migration/count", userId, null);
+		request.setParameter("type", type.name());
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+
+		return EntityFactory.createEntityFromJSONString(
+				response.getContentAsString(), MigrationTypeCount.class);
+	}
 
 	/**
 	 * Get the RowMetadata for a given Migration type. This is used to get all
@@ -662,6 +676,32 @@ public class EntityServletTestHelper {
 		return EntityFactory.createEntityFromJSONString(
 				response.getContentAsString(), RowMetadataResult.class);
 	}
+	
+	/**
+	 * Get the RowMetadata for a given type and id range
+	 * 
+	 * @param userId
+	 * @param type
+	 * @param minId
+	 * @param maxId
+	 * @return
+	 * @throws Exception
+	 */
+	public RowMetadataResult getRowMetadataByRange(Long userId,
+			MigrationType type, long minId, long maxId) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.MIGRATION_ROWS_BY_RANGE, userId, null);
+		request.setParameter("type", type.name());
+		request.setParameter("minId", "" + minId);
+		request.setParameter("maxId", "" + maxId);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+
+		return EntityFactory.createEntityFromJSONString(
+				response.getContentAsString(), RowMetadataResult.class);
+	}
+	
 
 	/**
 	 * Get the RowMetadata for a given Migration type. This is used to get all
@@ -758,6 +798,37 @@ public class EntityServletTestHelper {
 
 		return EntityFactory.createEntityFromJSONString(
 				response.getContentAsString(), MigrationTypeCount.class);
+	}
+	
+	/**
+	 * Returns checksum for migration type and id range
+	 * @throws Exception 
+	 */
+	public MigrationRangeChecksum getChecksumForIdRange(Long userId, MigrationType type,
+			String salt, String minId, String maxId) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, "/migration/rangechecksum", userId, null);
+		request.setParameter("migrationType", type.name());
+		request.setParameter("salt", salt);
+		request.setParameter("minId", minId);
+		request.setParameter("maxId", maxId);
+		
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+		
+		return EntityFactory.createEntityFromJSONString(response.getContentAsString(), MigrationRangeChecksum.class);
+		
+	}
+	
+	public MigrationTypeChecksum getChecksumForType(Long userId, MigrationType type) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, "/migration/typechecksum", userId, null);
+		request.setParameter("migrationType", type.name());
+		
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+		
+		return EntityFactory.createEntityFromJSONString(response.getContentAsString(), MigrationTypeChecksum.class);
 	}
 
 	public WikiPage createWikiPage(Long userId, String ownerId,

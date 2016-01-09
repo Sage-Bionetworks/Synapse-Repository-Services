@@ -3,6 +3,8 @@ package org.sagebionetworks.repo.model.dbo;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
+import org.sagebionetworks.repo.model.dbo.migration.ChecksumTableResult;
+import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.springframework.jdbc.core.RowMapper;
 
@@ -131,6 +133,29 @@ public class DMLUtils {
 		return main.toString();		
 	}
 
+	/**
+	 * Create a MAX statement for a given mapping
+	 * @param mapping
+	 * @return the MAX statement
+	 */
+	public static String createGetMinByBackupKeyStatement(TableMapping mapping) {
+		if(mapping == null) throw new IllegalArgumentException("Mapping cannot be null");
+		StringBuilder main = new StringBuilder();
+		main.append("SELECT MIN("+getBackupFieldColumnName(mapping)+") FROM ");
+		main.append(mapping.getTableName());
+		return main.toString();		
+	}
+	
+	public static String createGetMinMaxCountByKeyStatement(TableMapping mapping) {
+		if(mapping == null) throw new IllegalArgumentException("Mapping cannot be null");
+		String backupFieldName = getBackupFieldColumnName(mapping);
+		String primaryFieldName = getPrimaryFieldColumnName(mapping);
+		StringBuilder builder = new StringBuilder();
+		builder.append("SELECT MIN(`" + backupFieldName + "`), MAX(`" + backupFieldName + "`), COUNT(`" + primaryFieldName + "`) FROM ");
+		builder.append(mapping.getTableName());
+		return builder.toString();
+	}
+
 	public static String getPrimaryFieldColumnName(TableMapping mapping) {
 		for(int i=0; i<mapping.getFieldColumns().length; i++){
 			FieldColumn fc = mapping.getFieldColumns()[i];
@@ -146,7 +171,7 @@ public class DMLUtils {
 		}
 		throw new IllegalArgumentException("Table "+mapping.getTableName()+" has no backup key.");
 	}
-
+	
 	/**
 	 * Append the primary key
 	 * @param mapping
@@ -241,6 +266,74 @@ public class DMLUtils {
 		addBackupIdInList(builder, mapping);
 		return builder.toString();
 	}
+
+	/**
+	 *	Build a 'select sum(crc32(concat(id, '@', 'NA'))), bit_xor(crc32(concat(id, '@', ifnull(etag, 'NULL')))) statement for given mapping
+	 */
+	public static String createSelectChecksumStatement(TableMapping mapping) {
+
+		validateMigratableTableMapping(mapping);
+
+		// batch by ranges of backup ids
+		// build the statement
+		StringBuilder builder = new StringBuilder();
+		builder.append("SELECT CONCAT(");
+		builder.append(buildAggregateCrc32Call(mapping, "SUM"));
+		builder.append(", '%', ");
+		builder.append(buildAggregateCrc32Call(mapping, "BIT_XOR"));
+		builder.append(") FROM ");
+		builder.append(mapping.getTableName());
+		buildWhereBackupIdInRange(mapping, builder);
+		return builder.toString();
+	}
+	
+	/**
+	 * Builds the <aggregate>(crc32()) call
+	 * @param mapping
+	 * @return
+	 */
+	private static String buildAggregateCrc32Call(TableMapping mapping, String aggregate) {
+		String concatCall = buildCallConcatIdAndEtagIfExists(mapping);
+		StringBuilder builder = new StringBuilder();
+		builder.append(aggregate);
+		builder.append("(CRC32(");
+		builder.append(concatCall);
+		builder.append("))");
+		return builder.toString();
+	}
+	
+	/**
+	 * Builds the concat() call
+	 */
+	private static String buildCallConcatIdAndEtagIfExists(TableMapping mapping) {
+		FieldColumn etagCol = getEtagColumn(mapping);
+		FieldColumn idCol = getBackupIdColumnName(mapping);
+		StringBuilder builder = new StringBuilder();
+		builder.append("CONCAT(`");
+		builder.append(idCol.getColumnName());
+		builder.append("`");
+		if (etagCol != null) {
+			builder.append(", '@', ");
+			builder.append("IFNULL(`");
+			builder.append(etagCol.getColumnName());
+			builder.append("`, 'NULL')");
+		}
+		// Append salt parameter
+		builder.append(", '@@', ?");
+		builder.append(")");
+		return builder.toString();
+		
+	}
+	
+	private static void buildWhereBackupIdInRange(TableMapping mapping, StringBuilder builder) {
+		String idColName = getBackupIdColumnName(mapping).getColumnName();
+		builder.append(" WHERE `");
+		builder.append(idColName);
+		builder.append("` >= ? AND `");
+		builder.append(idColName);
+		builder.append("` <= ?");
+		return;
+	}
 	
 	/**
 	 * 'ID' IN ( :BVIDLIST )
@@ -310,13 +403,22 @@ public class DMLUtils {
 		builder.append(" FROM ");
 		builder.append(mapping.getTableName());
 		buildBackupOrderBy(mapping, builder, true);
-		builder.append(" LIMIT :");
-		builder.append(BIND_VAR_LIMIT);
-		builder.append(" OFFSET :");
-		builder.append(BIND_VAR_OFFSET);
+		builder.append(" LIMIT ? OFFSET ?");
 		return builder.toString();
 	}
 
+	public static String listRowMetadataByRange(TableMapping mapping) {
+		validateMigratableTableMapping(mapping);
+		StringBuilder builder = new StringBuilder();
+		builder.append("SELECT ");
+		buildSelectIdAndEtag(mapping, builder);
+		builder.append(" FROM ");
+		builder.append(mapping.getTableName());
+		buildWhereBackupIdInRange(mapping, builder);
+		buildBackupOrderBy(mapping, builder, true);
+		return builder.toString();
+	}
+	
 	/**
 	 * When etag is not null: " `ID`, `ETAG`", else: "`ID`"
 	 * @param mapping
@@ -495,6 +597,38 @@ public class DMLUtils {
 			}
 
 		}
+	}
+	
+	public static String createChecksumTableStatement(TableMapping mapping) {
+		validateMigratableTableMapping(mapping);
+		String tableName = mapping.getTableName();
+		String stmt = "CHECKSUM TABLE " + tableName;
+		return stmt;
+	}
+	
+	public static RowMapper<ChecksumTableResult> getChecksumTableResultMapper() {
+		return new RowMapper<ChecksumTableResult>() {
+			@Override
+			public ChecksumTableResult mapRow(ResultSet rs, int rowNum) throws SQLException {
+				ChecksumTableResult ctRes = new ChecksumTableResult();
+				ctRes.setTableName(rs.getString(1));
+				ctRes.setChecksum(String.valueOf(rs.getLong(2)));
+				return ctRes;
+			}
+		};
+	}
+	
+	public static RowMapper<MigrationTypeCount> getMigrationTypeCountResultMapper() {
+		return new RowMapper<MigrationTypeCount>() {
+			@Override
+			public MigrationTypeCount mapRow(ResultSet rs, int rowNum) throws SQLException {
+				MigrationTypeCount mtc = new MigrationTypeCount();
+				mtc.setMinid(rs.getLong(1));
+				mtc.setMaxid(rs.getLong(2));
+				mtc.setCount(rs.getLong(3));
+				return mtc;
+			}
+		};
 	}
 	
 }

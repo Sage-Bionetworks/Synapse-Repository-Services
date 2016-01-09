@@ -9,7 +9,9 @@ import org.sagebionetworks.repo.manager.migration.MigrationManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
+import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationType;
+import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.MigrationTypeList;
@@ -51,11 +53,29 @@ public class MigrationServiceImpl implements MigrationService {
 		return counts;
 	}
 	
+	/**
+	 * Get count for a single migration type
+	 */
+	@Override
+	public MigrationTypeCount getTypeCount(Long userId, MigrationType type) {
+		if(userId == null) throw new IllegalArgumentException("userId cannot be null");
+		UserInfo user = userManager.getUserInfo(userId);
+		MigrationTypeCount mtc = migrationManager.getMigrationTypeCount(user, type);
+		return mtc;
+	}
+	
 	@Override
 	public RowMetadataResult getRowMetadaForType(Long userId,	MigrationType type, long limit, long offset) throws DatastoreException, NotFoundException {
 		if(userId == null) throw new IllegalArgumentException("userId cannot be null");
 		UserInfo user = userManager.getUserInfo(userId);
 		return migrationManager.getRowMetadaForType(user, type, limit, offset);
+	}
+
+	@Override
+	public RowMetadataResult getRowMetadaByRangeForType(Long userId,	MigrationType type, long minId, long maxId) throws DatastoreException, NotFoundException {
+		if(userId == null) throw new IllegalArgumentException("userId cannot be null");
+		UserInfo user = userManager.getUserInfo(userId);
+		return migrationManager.getRowMetadataByRangeForType(user, type, minId, maxId);
 	}
 
 	@Override
@@ -105,6 +125,38 @@ public class MigrationServiceImpl implements MigrationService {
 		MigrationTypeList mtl = new MigrationTypeList();
 		mtl.setList(list);
 		return mtl;
+	}
+	
+	@Override
+	public MigrationTypeList getMigrationTypes(Long userId) throws DatastoreException, NotFoundException {
+		if(userId == null) throw new IllegalArgumentException("userId cannot be null");
+		UserInfo user = userManager.getUserInfo(userId);
+		List<MigrationType> list = migrationManager.getMigrationTypes(user);
+		MigrationTypeList mtl = new MigrationTypeList();
+		mtl.setList(list);
+		return mtl;
+	}
+
+	@Override
+	public MigrationRangeChecksum getChecksumForIdRange(Long userId, MigrationType type,
+			String salt, long minId, long maxId) throws NotFoundException {
+		if (userId == null) {
+			throw new IllegalArgumentException("userId cannot be null");
+		}
+		UserInfo user = userManager.getUserInfo(userId);
+		
+		MigrationRangeChecksum rChecksum = migrationManager.getChecksumForIdRange(user, type, salt, minId, maxId);
+		return rChecksum;
+	}
+	
+	@Override
+	public MigrationTypeChecksum getChecksumForType(Long userId, MigrationType type) throws NotFoundException {
+		if (userId == null) {
+			throw new IllegalArgumentException("userId cannot be null");
+		}
+		UserInfo user = userManager.getUserInfo(userId);
+		MigrationTypeChecksum tChecksum = migrationManager.getChecksumForType(user, type);
+		return tChecksum;
 	}
 
 }

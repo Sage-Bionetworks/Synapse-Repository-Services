@@ -583,13 +583,18 @@ public class UrlHelpers {
 	
 	public static final String MIGRATION = "/migration";
 	public static final String MIGRATION_COUNTS = MIGRATION+"/counts";
+	public static final String MIGRATION_COUNT = MIGRATION+"/count";
 	public static final String MIGRATION_ROWS = MIGRATION+"/rows";
+	public static final String MIGRATION_ROWS_BY_RANGE = MIGRATION+"/rowsbyrange";
 	public static final String MIGRATION_DELTA = MIGRATION+"/delta";
 	public static final String MIGRATION_BACKUP = MIGRATION+"/backup";
 	public static final String MIGRATION_RESTORE = MIGRATION+"/restore";
 	public static final String MIGRATION_DELETE = MIGRATION+"/delete";
 	public static final String MIGRATION_STATUS = MIGRATION+"/status";
 	public static final String MIGRATION_PRIMARY = MIGRATION+"/primarytypes";
+	public static final String MIGRATION_TYPES = MIGRATION+"/types";
+	public static final String MIGRATION_RANGE_CHECKSUM = MIGRATION+"/rangechecksum";
+	public static final String MIGRATION_TYPE_CHECKSUM = MIGRATION+"/typechecksum";
 
 	/**
 	 * Used by AdministrationController service to say whether object dependencies should be calculated
