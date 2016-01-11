@@ -18,7 +18,7 @@ public class PartUtils {
 	 */
 	public static long choosePartSize(long fileSizeBytes){
 		validateFileSize(fileSizeBytes);
-		long partSizeBytes = Math.max(MIN_PART_SIZE_BYTES, (fileSizeBytes/MAX_NUMBER_OF_PARTS));
+		long partSizeBytes = Math.max(MIN_PART_SIZE_BYTES, (long)Math.ceil((double)fileSizeBytes/(double)MAX_NUMBER_OF_PARTS));
 		if(partSizeBytes > MAX_PART_SIZE_BYTES){
 			// the could only happen if MAX_NUMBER_OF_PARTS or MAX_FILE_SIZE_BYTES are increased.
 			throw new IllegalStateException("Part size exceeds maximum integer size");
