@@ -651,24 +651,24 @@ public class AuthorizationManagerImplUnitTest {
 	public void testCanReadBenefactorsAdmin(){
 		Set<Long> benefactors = Sets.newHashSet(1L,2L);
 		// call under test
-		Set<Long> results = authorizationManager.canReadBenefactors(adminUser, benefactors);
+		Set<Long> results = authorizationManager.getAccessibleBenefactors(adminUser, benefactors);
 		assertEquals(benefactors, results);
-		verify(mockAclDAO, never()).canAccess(any(Set.class), any(Set.class), any(ObjectType.class), any(ACCESS_TYPE.class));
+		verify(mockAclDAO, never()).getAccessibleBenefactors(any(Set.class), any(Set.class), any(ObjectType.class), any(ACCESS_TYPE.class));
 	}
 	
 	@Test
 	public void testCanReadBenefactorsNonAdmin(){
 		Set<Long> benefactors = Sets.newHashSet(1L,2L);
 		// call under test
-		authorizationManager.canReadBenefactors(userInfo, benefactors);
-		verify(mockAclDAO, times(1)).canAccess(any(Set.class), any(Set.class), any(ObjectType.class), any(ACCESS_TYPE.class));
+		authorizationManager.getAccessibleBenefactors(userInfo, benefactors);
+		verify(mockAclDAO, times(1)).getAccessibleBenefactors(any(Set.class), any(Set.class), any(ObjectType.class), any(ACCESS_TYPE.class));
 	}
 	
 	@Test
 	public void testCanReadBenefactorsTrashAdmin(){
 		Set<Long> benefactors = Sets.newHashSet(AuthorizationManagerImpl.TRASH_FOLDER_ID);
 		// call under test
-		Set<Long> results = authorizationManager.canReadBenefactors(adminUser, benefactors);
+		Set<Long> results = authorizationManager.getAccessibleBenefactors(adminUser, benefactors);
 		assertNotNull(results);
 		assertEquals(0, results.size());
 	}
@@ -676,9 +676,9 @@ public class AuthorizationManagerImplUnitTest {
 	@Test
 	public void testCanReadBenefactorsTrashNonAdmin(){
 		Set<Long> benefactors = Sets.newHashSet(AuthorizationManagerImpl.TRASH_FOLDER_ID);
-		when(mockAclDAO.canAccess(any(Set.class), any(Set.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(benefactors);
+		when(mockAclDAO.getAccessibleBenefactors(any(Set.class), any(Set.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(benefactors);
 		// call under test
-		Set<Long> results = authorizationManager.canReadBenefactors(userInfo, benefactors);
+		Set<Long> results = authorizationManager.getAccessibleBenefactors(userInfo, benefactors);
 		assertNotNull(results);
 		assertEquals(0, results.size());
 	}

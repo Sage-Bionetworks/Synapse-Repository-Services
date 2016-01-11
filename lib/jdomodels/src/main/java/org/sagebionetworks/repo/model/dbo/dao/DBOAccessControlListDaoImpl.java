@@ -305,7 +305,7 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 			ACCESS_TYPE accessType) throws DatastoreException {
 		Long idLong = KeyFactory.stringToKey(resourceId);
 		HashSet<Long> benefactors = Sets.newHashSet(idLong);
-		Set<Long> results = canAccess(groups, benefactors, resourceType, accessType);
+		Set<Long> results = getAccessibleBenefactors(groups, benefactors, resourceType, accessType);
 		return results.contains(idLong);
 	}
 	
@@ -318,12 +318,16 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 	}
 
 	@Override
-	public Set<Long> canAccess(Set<Long> groups, Set<Long> benefactors,
+	public Set<Long> getAccessibleBenefactors(Set<Long> groups, Set<Long> benefactors,
 			ObjectType resourceType, ACCESS_TYPE accessType) {
 		ValidateArgument.required(groups, "groups");
 		ValidateArgument.required(benefactors, "benefactors");
 		ValidateArgument.required(resourceType, "resourceType");
 		ValidateArgument.required(accessType, "accessType");
+		if(groups.isEmpty() || benefactors.isEmpty()){
+			// there will be no matches for empty inputs.
+			return new HashSet<Long>(0);
+		}
 		Map<String, Object> namedParameters = new HashMap<String, Object>(4);
 		namedParameters.put(AuthorizationSqlUtil.RESOURCE_ID_BIND_VAR, benefactors);
 		namedParameters.put(AuthorizationSqlUtil.PRINCIPAL_IDS_BIND_VAR, groups);
