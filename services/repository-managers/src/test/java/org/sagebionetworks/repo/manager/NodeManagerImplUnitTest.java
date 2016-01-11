@@ -639,7 +639,7 @@ public class NodeManagerImplUnitTest {
 
 		// no intersection
 		Set<Long> intersection = Sets.newHashSet();
-		when(mockAuthManager.canReadBenefactors(any(UserInfo.class), (any(Set.class)))).thenReturn(intersection);
+		when(mockAuthManager.getAccessibleBenefactors(any(UserInfo.class), (any(Set.class)))).thenReturn(intersection);
 		
 		List<EntityHeader> results = new ArrayList<EntityHeader>(1);
 		EntityHeader header = new EntityHeader();
@@ -668,7 +668,7 @@ public class NodeManagerImplUnitTest {
 		md5 = "md5";
 		
 		intersection = Sets.newHashSet(header1.getBenefactorId());
-		when(mockAuthManager.canReadBenefactors(any(UserInfo.class), (any(Set.class)))).thenReturn(intersection);
+		when(mockAuthManager.getAccessibleBenefactors(any(UserInfo.class), (any(Set.class)))).thenReturn(intersection);
 		
 		when(mockNodeDao.getEntityHeaderByMd5(md5)).thenReturn(results);
 		List<EntityHeader> headerList = nodeManager.getNodeHeaderByMd5(mockUserInfo, md5);
@@ -682,7 +682,7 @@ public class NodeManagerImplUnitTest {
 		List<EntityHeader> toFilter = createTestEntityHeaders(3);
 		// Filter out the middle benefactor.
 		Set<Long> intersection = Sets.newHashSet(toFilter.get(0).getBenefactorId(), toFilter.get(2).getBenefactorId());
-		when(mockAuthManager.canReadBenefactors(any(UserInfo.class), (any(Set.class)))).thenReturn(intersection);
+		when(mockAuthManager.getAccessibleBenefactors(any(UserInfo.class), (any(Set.class)))).thenReturn(intersection);
 		//call under test
 		List<EntityHeader> results = nodeManager.filterUnauthorizedHeaders(mockUserInfo, toFilter);
 		assertNotNull(results);
@@ -696,7 +696,7 @@ public class NodeManagerImplUnitTest {
 		List<EntityHeader> toFilter = createTestEntityHeaders(3);
 		// Filter out the middle benefactor.
 		Set<Long> intersection = Sets.newHashSet();
-		when(mockAuthManager.canReadBenefactors(any(UserInfo.class), (any(Set.class)))).thenReturn(intersection);
+		when(mockAuthManager.getAccessibleBenefactors(any(UserInfo.class), (any(Set.class)))).thenReturn(intersection);
 		//call under test
 		List<EntityHeader> results = nodeManager.filterUnauthorizedHeaders(mockUserInfo, toFilter);
 		assertNotNull(results);
@@ -711,7 +711,7 @@ public class NodeManagerImplUnitTest {
 		List<EntityHeader> results = nodeManager.filterUnauthorizedHeaders(mockUserInfo, toFilter);
 		assertNotNull(results);
 		assertEquals(0, results.size());
-		verify(mockAuthManager, never()).canReadBenefactors(any(UserInfo.class), (any(Set.class)));
+		verify(mockAuthManager, never()).getAccessibleBenefactors(any(UserInfo.class), (any(Set.class)));
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -758,7 +758,7 @@ public class NodeManagerImplUnitTest {
 		when(mockNodeDao.getEntityHeader(any(List.class))).thenReturn(allResults);
 		// the user can only read 0 and 2.
 		Set<Long> intersection = Sets.newHashSet(allResults.get(0).getBenefactorId(), allResults.get(2).getBenefactorId());
-		when(mockAuthManager.canReadBenefactors(any(UserInfo.class), (any(Set.class)))).thenReturn(intersection);
+		when(mockAuthManager.getAccessibleBenefactors(any(UserInfo.class), (any(Set.class)))).thenReturn(intersection);
 		
 		List<EntityHeader> results = nodeManager.getNodeHeader(mockUserInfo, refs);
 		// only two results should be returned

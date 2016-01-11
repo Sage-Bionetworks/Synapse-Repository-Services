@@ -618,7 +618,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 			originalBenefactors.add(header.getBenefactorId());
 		}
 		// find the intersection.
-		Set<Long> benefactorIntersection = authorizationManager.canReadBenefactors(userInfo, originalBenefactors);
+		Set<Long> benefactorIntersection = authorizationManager.getAccessibleBenefactors(userInfo, originalBenefactors);
 		List<EntityHeader> filtered = new LinkedList<EntityHeader>();
 		for(EntityHeader header: toFilter){
 			if(benefactorIntersection.contains(header.getBenefactorId())){

@@ -87,6 +87,6 @@ public interface AccessControlListDAO  {
 	 * @param read
 	 * @return
 	 */
-	public Set<Long> canAccess(Set<Long> groups, Set<Long> benefactors,
+	public Set<Long> getAccessibleBenefactors(Set<Long> groups, Set<Long> benefactors,
 			ObjectType entity, ACCESS_TYPE read);
 }

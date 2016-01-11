@@ -206,7 +206,7 @@ public class DBOAccessControlListDAOImplTest {
 		Long nodeId = KeyFactory.stringToKey(node.getId());
 		Set<Long> benefactors = Sets.newHashSet(nodeId, new Long(-1));
 		
-		Set<Long> results = aclDAO.canAccess(gs, benefactors, ObjectType.ENTITY, ACCESS_TYPE.READ);
+		Set<Long> results = aclDAO.getAccessibleBenefactors(gs, benefactors, ObjectType.ENTITY, ACCESS_TYPE.READ);
 		assertNotNull(results);
 		assertEquals(1, results.size());
 		assertTrue(results.contains(nodeId));
@@ -221,7 +221,31 @@ public class DBOAccessControlListDAOImplTest {
 		// there should be no matches in this set.
 		Set<Long> benefactors = Sets.newHashSet(new Long(-2), new Long(-1));
 		
-		Set<Long> results = aclDAO.canAccess(gs, benefactors, ObjectType.ENTITY, ACCESS_TYPE.READ);
+		Set<Long> results = aclDAO.getAccessibleBenefactors(gs, benefactors, ObjectType.ENTITY, ACCESS_TYPE.READ);
+		assertNotNull(results);
+		assertTrue(results.isEmpty());
+	}
+	
+	@Test
+	public void testCanAccessMultipleBenefactorsEmpty() throws Exception {
+		Set<Long> gs = new HashSet<Long>();
+		gs.add(Long.parseLong(group.getId()));
+		
+		// there should be no matches in this set.
+		Set<Long> benefactors = Sets.newHashSet();
+		
+		Set<Long> results = aclDAO.getAccessibleBenefactors(gs, benefactors, ObjectType.ENTITY, ACCESS_TYPE.READ);
+		assertNotNull(results);
+		assertTrue(results.isEmpty());
+	}
+	
+	@Test
+	public void testCanAccessMultipleGroupsEmptyEmpty() throws Exception {
+		Set<Long> gs = new HashSet<Long>();
+		// there should be no matches in this set.
+		Set<Long> benefactors = Sets.newHashSet(new Long(-2), new Long(-1));
+		
+		Set<Long> results = aclDAO.getAccessibleBenefactors(gs, benefactors, ObjectType.ENTITY, ACCESS_TYPE.READ);
 		assertNotNull(results);
 		assertTrue(results.isEmpty());
 	}
@@ -231,7 +255,7 @@ public class DBOAccessControlListDAOImplTest {
 		Set<Long> gs = null;
 		Set<Long> benefactors = Sets.newHashSet(new Long(-2), new Long(-1));
 		// call under test
-		aclDAO.canAccess(gs, benefactors, ObjectType.ENTITY, ACCESS_TYPE.READ);
+		aclDAO.getAccessibleBenefactors(gs, benefactors, ObjectType.ENTITY, ACCESS_TYPE.READ);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -240,7 +264,7 @@ public class DBOAccessControlListDAOImplTest {
 		gs.add(Long.parseLong(group.getId()));
 		Set<Long> benefactors = null;
 		// call under test
-		aclDAO.canAccess(gs, benefactors, ObjectType.ENTITY, ACCESS_TYPE.READ);
+		aclDAO.getAccessibleBenefactors(gs, benefactors, ObjectType.ENTITY, ACCESS_TYPE.READ);
 	}
 
 	/**
