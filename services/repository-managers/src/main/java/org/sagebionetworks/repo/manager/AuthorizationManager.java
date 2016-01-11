@@ -199,6 +199,6 @@ public interface AuthorizationManager {
 	 * @param originalBenefactors
 	 * @return
 	 */
-	public Set<Long> canReadBenefactors(UserInfo userInfo,
+	public Set<Long> getAccessibleBenefactors(UserInfo userInfo,
 			Set<Long> originalBenefactors);
 }

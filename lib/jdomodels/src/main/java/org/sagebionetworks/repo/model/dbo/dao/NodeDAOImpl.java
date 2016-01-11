@@ -959,8 +959,9 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 				EntityType type = EntityType.valueOf((String) rs.getString(COL_NODE_TYPE));
 				header.setType(EntityTypeUtils.getEntityTypeClassName(type));
 				header.setName(rs.getString(COL_NODE_NAME));
-				header.setVersionNumber(rs.getLong(COL_REVISION_NUMBER));
-				header.setVersionLabel(rs.getString(COL_REVISION_LABEL));
+				Long versionNumber = rs.getLong(COL_REVISION_NUMBER);
+				header.setVersionNumber(versionNumber);
+				header.setVersionLabel(versionNumber.toString());
 				header.setBenefactorId(rs.getLong(COL_NODE_BENEFACTOR_ID));
 				return header;
 			}
