@@ -112,7 +112,7 @@ public class PartUtilsTest {
 	
 	@Test
 	public void testChoosePartSizeFileSizeOver50GB(){
-		long fileSize = MIN_PART_SIZE_BYTES*MAX_NUMBER_OF_PARTS+MIN_PART_SIZE_BYTES;
+		long fileSize = MIN_PART_SIZE_BYTES*MAX_NUMBER_OF_PARTS+1;
 		// call under test
 		long partSize = choosePartSize(fileSize);
 		assertTrue(partSize > MIN_PART_SIZE_BYTES);
