@@ -2058,7 +2058,7 @@ public class NodeDAOImplTest {
 		// Add a node with a file handle
 		Node node1 = NodeTestUtils.createNew("testGetEntityHeaderByMd5 node 1", creatorUserGroupId);
 		node1.setFileHandleId(fileHandle.getId());
-		final String node1Label1 = "Node 1 version label 1";
+		final String node1Label1 = "1";
 		node1.setVersionLabel(node1Label1);
 		final String id1 = nodeDao.createNew(node1);
 		assertNotNull(id1);
