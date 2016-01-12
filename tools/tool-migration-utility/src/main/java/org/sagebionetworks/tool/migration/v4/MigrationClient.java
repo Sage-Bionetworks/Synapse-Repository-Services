@@ -378,7 +378,7 @@ public class MigrationClient {
 			long delCount = 0;
 			List<IdRange> delRanges = ranges.getDelRanges();
 			for (IdRange r: delRanges) {
-				RangeMetadataIterator it = new RangeMetadataIterator(typeMeta.getType(), factory.createNewSourceClient(), batchSize, r.getMinId(), r.getMaxId(), sourceProgress);
+				RangeMetadataIterator it = new RangeMetadataIterator(typeMeta.getType(), factory.createNewDestinationClient(), batchSize, r.getMinId(), r.getMaxId(), sourceProgress);
 				RowMetadata destRow = null;
 				do {
 					destRow = it.next();

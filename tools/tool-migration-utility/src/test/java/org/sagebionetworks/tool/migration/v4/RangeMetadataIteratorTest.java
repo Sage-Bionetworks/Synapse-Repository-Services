@@ -1,17 +1,12 @@
 package org.sagebionetworks.tool.migration.v4;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.when;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -59,7 +54,7 @@ public class RangeMetadataIteratorTest {
 	public void testHappyCase(){
 		// Iterate over all data
 		BasicProgress progress = new BasicProgress();
-		RangeMetadataIterator iterator = new RangeMetadataIterator(type, stubSynapse, 5, 0 , 4, progress);
+		RangeMetadataIterator iterator = new RangeMetadataIterator(type, stubSynapse, 5, 50 , 54, progress);
 		// We should be able to iterate over all of the data and end up with list
 		// the same as used by the stub
 		List<RowMetadata> results = new LinkedList<RowMetadata>();
@@ -73,7 +68,7 @@ public class RangeMetadataIteratorTest {
 		} while (row != null);
 		// Did we get what we expected?
 		List<RowMetadata> expectedResult = new LinkedList<RowMetadata>();
-		for (int id = 0; id <= 7; id++) {
+		for (int id = 50; id <= 54; id++) {
 			expectedResult.add(mockStack.metadata.get(type).get(id));
 		}
 		assertEquals(expectedResult, results);

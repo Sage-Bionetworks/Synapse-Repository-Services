@@ -76,7 +76,7 @@ public class MigrationClientTest {
 	public void testMigrateAllTypes() throws Exception{
 		// Setup the destination
 		// The first element should get deleted and second should get updated.
-		List<RowMetadata> list = createList(new Long[]{0L, 1L}, new String[]{"e0","e1"}, new Long[]{null, null});
+		List<RowMetadata> list = createList(new Long[]{1L, 2L}, new String[]{"e1","e2"}, new Long[]{null, null});
 		mockDestination.metadata.put(MigrationType.values()[0], list);
 		
 		// Setup a second type with no values
@@ -89,19 +89,19 @@ public class MigrationClientTest {
 		
 		// setup the source
 		// The first element should get trigger an update and the second should trigger an add
-		list = createList(new Long[]{1L, 2L}, new String[]{"e1changed","e2"}, new Long[]{null, 1l});
+		list = createList(new Long[]{2L, 3L}, new String[]{"e2changed","e3"}, new Long[]{null, 1l});
 		mockSource.metadata.put(MigrationType.values()[0], list);
 		
 		// both values should get added
-		list = createList(new Long[]{4L, 5L}, new String[]{"e4","e5"}, new Long[]{null, 4L});
+		list = createList(new Long[]{5L, 6L}, new String[]{"e5","e6"}, new Long[]{null, 4L});
 		mockSource.metadata.put(MigrationType.values()[1], list);
 		
 		// Migrate the data
-		migrationClient.migrateAllTypes(1l, 1000*60, 2, false);
+		migrationClient.migrateAllTypes(10L, 1000*60, 2, false);
 		
 		// Now validate the results
-		List<RowMetadata> expected0 = createList(new Long[]{1L, 2L}, new String[]{"e1changed","e2"}, new Long[]{null, 1l});
-		List<RowMetadata> expected1 = createList(new Long[]{4L, 5L}, new String[]{"e4","e5"}, new Long[]{null, 4L});
+		List<RowMetadata> expected0 = createList(new Long[]{1L, 2L}, new String[]{"e2changed","e3"}, new Long[]{null, 1l});
+		List<RowMetadata> expected1 = createList(new Long[]{4L, 5L}, new String[]{"e5","e6"}, new Long[]{null, 4L});
 		
 		// check the state of the destination.
 		assertEquals(expected0, mockDestination.metadata.get(MigrationType.values()[0]));
