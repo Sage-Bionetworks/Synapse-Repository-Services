@@ -49,6 +49,7 @@ import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.tool.migration.v3.SynapseAdminClientMockState;
 import org.sagebionetworks.util.Closer;
 
 import com.google.common.io.Closeables;

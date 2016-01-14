@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.status.StatusEnum;
+import org.sagebionetworks.tool.migration.v3.SynapseAdminClientMockState;
 import org.sagebionetworks.tool.migration.v3.SynapseClientFactory;
 
 /**

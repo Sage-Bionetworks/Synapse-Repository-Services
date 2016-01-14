@@ -16,6 +16,7 @@ import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.tool.migration.v3.SynapseAdminClientMockState;
 import org.sagebionetworks.tool.progress.BasicProgress;
 
 public class RangeMetadataIteratorTest {
