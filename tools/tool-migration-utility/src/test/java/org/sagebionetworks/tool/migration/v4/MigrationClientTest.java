@@ -93,15 +93,15 @@ public class MigrationClientTest {
 		mockSource.metadata.put(MigrationType.values()[0], list);
 		
 		// both values should get added
-		list = createList(new Long[]{5L, 6L}, new String[]{"e5","e6"}, new Long[]{null, 4L});
+		list = createList(new Long[]{5L, 6L}, new String[]{"e5","e6"}, new Long[]{null, 6L});
 		mockSource.metadata.put(MigrationType.values()[1], list);
 		
 		// Migrate the data
 		migrationClient.migrateAllTypes(10L, 1000*60, 2, false);
 		
 		// Now validate the results
-		List<RowMetadata> expected0 = createList(new Long[]{1L, 2L}, new String[]{"e2changed","e3"}, new Long[]{null, 1l});
-		List<RowMetadata> expected1 = createList(new Long[]{4L, 5L}, new String[]{"e5","e6"}, new Long[]{null, 4L});
+		List<RowMetadata> expected0 = createList(new Long[]{2L, 3L}, new String[]{"e2changed","e3"}, new Long[]{null, 1l});
+		List<RowMetadata> expected1 = createList(new Long[]{5L, 6L}, new String[]{"e5","e6"}, new Long[]{null, 6L});
 		
 		// check the state of the destination.
 		assertEquals(expected0, mockDestination.metadata.get(MigrationType.values()[0]));
@@ -124,10 +124,10 @@ public class MigrationClientTest {
 	 */
 	public static List<RowMetadata> createList(Long[] ids, String[] etags, Long[] parentId){
 		List<RowMetadata> list = new LinkedList<RowMetadata>();
-		for(int i=0;  i<ids.length; i++){
-			if(ids[i] == null){
+		for (int i=0;  i<ids.length; i++) {
+			if (ids[i] == null) {
 				list.add(null);
-			}else{
+			} else {
 				RowMetadata row = new RowMetadata();
 				row.setId(ids[i]);
 				row.setEtag(etags[i]);

@@ -367,8 +367,9 @@ public class MigrationClient {
 				RangeMetadataIterator it = new RangeMetadataIterator(typeMeta.getType(), factory.createNewSourceClient(), batchSize, r.getMinId(), r.getMaxId(), sourceProgress);
 				RowMetadata sourceRow = null;
 				do {
-					sourceRow = it.next();
-					if (sourceRow != null) {
+					sourceRow = null;
+					if (it.hasNext()) {
+						sourceRow = it.next();
 						createOut.write(sourceRow);
 						insCount++;
 					}
@@ -381,8 +382,9 @@ public class MigrationClient {
 				RangeMetadataIterator it = new RangeMetadataIterator(typeMeta.getType(), factory.createNewDestinationClient(), batchSize, r.getMinId(), r.getMaxId(), sourceProgress);
 				RowMetadata destRow = null;
 				do {
-					destRow = it.next();
-					if (destRow != null) {
+					destRow = null;
+					if (it.hasNext()) {
+						destRow = it.next();
 						deleteOut.write(destRow);
 						delCount++;
 					}
@@ -409,9 +411,13 @@ public class MigrationClient {
 				counts = future.get();
 			}
 			
-			// Fix the counts
-			counts.setCreate(insCount+counts.getCreate());
-			counts.setDelete(delCount+counts.getDelete());
+			// Fix the counts, check for counts == null (no updates)
+			if (counts != null) {
+				counts.setCreate(insCount+counts.getCreate());
+				counts.setDelete(delCount+counts.getDelete());
+			} else {
+				counts = new DeltaCounts(insCount, 0, delCount);
+			}
 			
 			log.info("Calculated the following counts for type: "+typeMeta.getType().name()+" Counts: "+counts);
 			

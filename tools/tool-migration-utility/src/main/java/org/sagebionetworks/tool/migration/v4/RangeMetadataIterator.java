@@ -1,6 +1,7 @@
 package org.sagebionetworks.tool.migration.v4;
 
 import java.util.Iterator;
+import java.util.NoSuchElementException;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -92,23 +93,25 @@ public class RangeMetadataIterator implements Iterator<RowMetadata> {
 
 	/**
 	 * Get the next row metadata
-	 * @return Returns non-null as long as there is more data to read. Returns null when there is no more data to read. 
+	 * @return Returns non-null as long as there is more data to read. Throws NoSuchElementException when there is no more data to read. 
 	 */
 	public RowMetadata next() {
+		if (! this.rangeIterator.hasNext()) {
+			throw new NoSuchElementException();
+		}
 		progress.setCurrent(progress.getCurrent()+1);
+		return this.rangeIterator.next();
+	}
+
+	@Override
+	public boolean hasNext() {
 		if (range == null){
 			getRangeWithBackupoff();
 		}
 		if (! this.rangeIterator.hasNext()) {
 			this.progress.setDone();
-			return null;
 		}
-		return rangeIterator.next();
-	}
-
-	@Override
-	public boolean hasNext() {
-		return rangeIterator.hasNext();
+		return this.rangeIterator.hasNext();
 	}
 
 	@Override

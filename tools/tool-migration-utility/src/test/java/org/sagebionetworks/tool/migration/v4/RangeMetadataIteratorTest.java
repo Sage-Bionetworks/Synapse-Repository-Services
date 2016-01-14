@@ -6,6 +6,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -58,11 +59,12 @@ public class RangeMetadataIteratorTest {
 		// We should be able to iterate over all of the data and end up with list
 		// the same as used by the stub
 		List<RowMetadata> results = new LinkedList<RowMetadata>();
-		RowMetadata row = null;
+		RowMetadata row = null;;
 		do {
-			row = iterator.next();
-			System.out.println(progress.getCurrentStatus());
-			if(row != null){
+			row = null;
+			if (iterator.hasNext()) {
+				row = iterator.next();
+				System.out.println(progress.getCurrentStatus());
 				results.add(row);
 			}
 		} while (row != null);
@@ -72,6 +74,12 @@ public class RangeMetadataIteratorTest {
 			expectedResult.add(mockStack.metadata.get(type).get(id));
 		}
 		assertEquals(expectedResult, results);
+		// Calling next() now should throw an exception
+		try {
+			iterator.next();
+		} catch (NoSuchElementException e) {
+			System.out.println("Caught NoSuchElementException.");
+		}
 	}
 	
 	@Test (expected=RuntimeException.class)
@@ -81,4 +89,6 @@ public class RangeMetadataIteratorTest {
 		when(mockSynapse.getRowMetadataByRange(any(MigrationType.class), any(Long.class), any(Long.class))).thenThrow(new IllegalStateException("one"));
 		RangeMetadataIterator iterator = new RangeMetadataIterator(type, mockSynapse, 7, 0, rowCount-1, progress);
 		iterator.next();
-	}}
+	}
+	
+}

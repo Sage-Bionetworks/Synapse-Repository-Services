@@ -45,25 +45,39 @@ public class DeltaBuilder implements Callable<DeltaCounts> {
 		RowMetadata destRow = null;
 		boolean nextSource = true;
 		boolean nextDest = true;
-		do{
-			if(nextSource){
-				sourceRow = sourceIterator.next();
+		do {
+			if (nextSource) {
+				sourceRow = null;
+			}
+			if (nextDest) {
+				destRow = null;
+			}
+			
+			if (nextSource) {
+				if (sourceIterator.hasNext()) {
+					sourceRow = sourceIterator.next();
+				}
 				nextSource = false;
 			}
-			if(nextDest){
-				destRow = destIterator.next();
+			if (nextDest) {
+				if (destIterator.hasNext()) {
+					destRow = destIterator.next();
+				}
 				nextDest = false;
 			}
 
 			long sourceId = -1l;
 			long destId = -1l;
-			if(sourceRow != null){
+			
+			if (sourceRow != null) {
 				sourceId = sourceRow.getId();
 			}
-			if(destRow != null){
+			if (destRow != null) {
 				destId = destRow.getId();
 			}
-			if(sourceRow != null && destRow == null){
+			
+			// At source and no more dest: insert and move src pointer
+			if (sourceRow != null && destRow == null) {
 				// Need to create the source object
 				toCreate.write(sourceRow);
 				createCount++;
@@ -71,7 +85,9 @@ public class DeltaBuilder implements Callable<DeltaCounts> {
 				nextDest = false;
 				continue;
 			}
-			if(destRow != null && sourceRow == null){
+			
+			// At dest and no more source: delete and move src pointer
+			if (destRow != null && sourceRow == null) {
 				// Need to delete the destination object
 				toDelete.write(destRow);
 				deleteCount++;
@@ -81,7 +97,7 @@ public class DeltaBuilder implements Callable<DeltaCounts> {
 			}
 
 			// Case where objects are in the destination but not the source.
-			if(destId > sourceId){
+			if (destId > sourceId) {
 				// need to create the source
 				toCreate.write(sourceRow);
 				createCount++;
@@ -89,8 +105,9 @@ public class DeltaBuilder implements Callable<DeltaCounts> {
 				nextDest = false;
 				continue;
 			}
+			
 			// The case where objects are in the source but not the destination.
-			if(sourceId > destId){
+			if (sourceId > destId) {
 				// We need to delete the destination
 				toDelete.write(destRow);
 				deleteCount++;
@@ -98,19 +115,20 @@ public class DeltaBuilder implements Callable<DeltaCounts> {
 				nextSource = false;
 				continue;
 			}
+			
 			// If the ids are equal then we compare the etags
-			if(sourceId == destId){
+			if (sourceId == destId) {
 				// Is either null?
-				if(sourceRow != null && destRow != null){
+				if (sourceRow != null && destRow != null) {
 					// Null etag check
-					if(sourceRow.getEtag() == null){
-						if(destRow.getEtag() != null){
+					if (sourceRow.getEtag() == null) {
+						if (destRow.getEtag() != null) {
 							toUpdate.write(sourceRow);
 							updateCount++;
 						}
-					}else{
+					} else {
 						// Etags are not null so are they equal?
-						if(!sourceRow.getEtag().equals(destRow.getEtag())){
+						if (!sourceRow.getEtag().equals(destRow.getEtag())) {
 							toUpdate.write(sourceRow);
 							updateCount++;
 						}
@@ -121,7 +139,7 @@ public class DeltaBuilder implements Callable<DeltaCounts> {
 				continue;
 			}
 			
-		}while(sourceRow != null || destRow != null);
+		} while (sourceRow != null || destRow != null);
 		
 		// done
 		return new DeltaCounts(createCount, updateCount, deleteCount);
