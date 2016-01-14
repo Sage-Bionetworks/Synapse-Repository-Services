@@ -107,7 +107,7 @@ public class ControllerUtilsTest {
 		MethodModel model = ControllerUtils.translateMethod(method);
 		assertNotNull(model);
 		assertNotNull(model.getParameters());
-		assertEquals(3, model.getParameters().size());
+		assertEquals(4, model.getParameters().size());
 		// one
 		ParameterModel param = model.getParameters().get(0);
 		assertNotNull(param);
@@ -124,6 +124,12 @@ public class ControllerUtilsTest {
 		param = model.getParameters().get(2);
 		assertNotNull(param);
 		assertEquals("offset", param.getName());
+		assertNotNull(param.getDescription());
+		assertTrue(param.getIsOptional());
+		// four
+		param = model.getParameters().get(3);
+		assertNotNull(param);
+		assertEquals("foo", param.getName());
 		assertNotNull(param.getDescription());
 		assertTrue(param.getIsOptional());
 	}
