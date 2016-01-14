@@ -159,7 +159,13 @@ public class ControllerUtils {
         						methodModel.setIsAuthenticationRequired(true);
         					}else{
             					ParameterModel paramModel = new ParameterModel();
-            					paramModel.setName(param.name());
+            					// If the annotation has a value then it should be used as the name.
+            					String requestParameterValue = (String)annotationMap.get(REQUEST_PARAMETER_VALUE);
+            					if(requestParameterValue != null){
+            						paramModel.setName(requestParameterValue);
+            					}else{
+            						paramModel.setName(param.name());
+            					}
             					paramModel.setIsOptional(!(isRequired(annotationMap)));
             					methodModel.addParameter(paramModel);
             					paramMap.put(param.name(), paramModel);

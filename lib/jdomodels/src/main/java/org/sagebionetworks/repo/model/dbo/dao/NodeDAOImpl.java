@@ -889,6 +889,10 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	
 	@Override
 	public List<EntityHeader> getEntityHeader(List<Reference> references) {
+		ValidateArgument.required(references, "references");
+		if(references.isEmpty()){
+			return new LinkedList<EntityHeader>();
+		}
 		Set<Long> entityIdSet = Sets.newHashSetWithExpectedSize(references.size());
 		for(Reference ref:references){
 			Long id = KeyFactory.stringToKey(ref.getTargetId());

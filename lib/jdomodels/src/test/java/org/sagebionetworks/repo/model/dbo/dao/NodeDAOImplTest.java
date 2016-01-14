@@ -1154,6 +1154,26 @@ public class NodeDAOImplTest {
 		assertEquals(parentBenefactor, header.getBenefactorId());
 	}
 	
+	/*
+	 * Test for PLFM-3706 
+	 * @throws Exception
+	 */
+	@Test 
+	public void testGetEntityHeaderByReferenceEmpty() throws Exception {
+		List<Reference> request = new LinkedList<Reference>();
+		//call under test
+		List<EntityHeader> results = nodeDao.getEntityHeader(request);
+		assertNotNull(results);
+		assertTrue(results.isEmpty());
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetEntityHeaderByReferenceNull() throws Exception {
+		List<Reference> request = null;
+		// call under test.
+		nodeDao.getEntityHeader(request);
+	}
+	
 	@Test (expected=NotFoundException.class)
 	public void testGetEntityHeaderDoesNotExist() throws NotFoundException, DatastoreException{
 		// There should be no node with this id.

@@ -146,6 +146,7 @@ public class ExampleController {
 	 * @param type The MigrationType.name()
 	 * @param limit Limit the number of results resturned.
 	 * @param offset The offest from zero of the page.
+	 * @param bar The parameter named foo.
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
@@ -158,6 +159,7 @@ public class ExampleController {
 			@RequestParam(required = true) String type,
 			@RequestParam(required = false) String limit,
 			@RequestParam(required = false) String offset,
+			@RequestParam(value = "foo") String bar,
 			@RequestBody IdList request) throws DatastoreException,
 			NotFoundException {
 		if (request == null)
