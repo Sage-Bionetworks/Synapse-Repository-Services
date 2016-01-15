@@ -10,6 +10,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.asynchronous.workers.changes.ChangeMessageDrivenRunner;
+import org.sagebionetworks.asynchronous.workers.changes.LockTimeoutAware;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.manager.NodeInheritanceManager;
@@ -30,6 +31,7 @@ import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
+import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,7 +46,7 @@ import com.amazonaws.services.route53.model.Change;
  * @author John
  * 
  */
-public class TableWorker implements ChangeMessageDrivenRunner {
+public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware {
 
 	enum State {
 		SUCCESS, UNRECOVERABLE_FAILURE, RECOVERABLE_FAILURE,
@@ -52,7 +54,6 @@ public class TableWorker implements ChangeMessageDrivenRunner {
 	
 	static private Logger log = LogManager.getLogger(TableWorker.class);
 	
-	public static final int WRITE_LOCK_TIMEOUT_SEC = 120;
 
 	@Autowired
 	TableRowManager tableRowManager;
@@ -62,6 +63,8 @@ public class TableWorker implements ChangeMessageDrivenRunner {
 	NodeInheritanceManager nodeInheritanceManager;
 	@Autowired
 	TableIndexConnectionFactory connectionFactory;
+	
+	Integer lockTimeoutSec;
 
 	@Override
 	public void run(ProgressCallback<ChangeMessage> progressCallback, ChangeMessage change)
@@ -69,6 +72,9 @@ public class TableWorker implements ChangeMessageDrivenRunner {
 		// If the feature is disabled then we simply swallow all messages
 		if (!configuration.getTableEnabled()) {
 			return;
+		}
+		if(lockTimeoutSec == null){
+			throw new IllegalStateException("lockTimeoutSec must be set before the worker can be run.");
 		}
 		// We only care about entity messages here
 		if (ObjectType.TABLE.equals((change.getObjectType()))) {
@@ -130,7 +136,7 @@ public class TableWorker implements ChangeMessageDrivenRunner {
 			}
 			// Run with the exclusive lock on the table if we can get it.
 			return tableRowManager.tryRunWithTableExclusiveLock(progressCallback,tableId,
-					WRITE_LOCK_TIMEOUT_SEC,
+					lockTimeoutSec,
 					new ProgressingCallable<State, ChangeMessage>() {
 						@Override
 						public State call(ProgressCallback<ChangeMessage> progress) throws Exception {
@@ -296,6 +302,13 @@ public class TableWorker implements ChangeMessageDrivenRunner {
 			throw new RuntimeException(lastFailedException);
 		}
 		return lastEtag;
+	}
+
+
+	@Override
+	public void setTimeoutSeconds(Long lockTimeoutSec) {
+		ValidateArgument.required(lockTimeoutSec, "lockTimeoutSec");
+		this.lockTimeoutSec = lockTimeoutSec.intValue();
 	}
 
 }
