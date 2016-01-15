@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle.MetadataType
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
+import org.sagebionetworks.repo.model.file.ProxyFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 
 public class FileMetadataUtilsTest {
@@ -133,6 +134,27 @@ public class FileMetadataUtilsTest {
 		DBOFileHandle clone = FileMetadataUtils.createDBOFromBackup(backup);
 		assertNotNull(clone);
 		assertEquals(dbo, clone);
+	}
+	
+	@Test
+	public void testProxyFileHandleRoundTrip(){
+		ProxyFileHandle proxy = new ProxyFileHandle();
+		proxy.setProxyHost("host.org");
+		proxy.setFilePath("/foo/bar/cat.txt");
+		proxy.setCreatedBy("456");
+		proxy.setCreatedOn(new Date());
+		proxy.setId("987");
+		proxy.setContentMd5("md5");
+		proxy.setContentSize(123l);
+		proxy.setContentType("contentType");
+		proxy.setPreviewId("9999");
+		proxy.setEtag("etag");
+		proxy.setFileName("cat.txt");
+		
+		DBOFileHandle dbo = FileMetadataUtils.createDBOFromDTO(proxy);
+		assertNotNull(dbo);
+		FileHandle clone = FileMetadataUtils.createDTOFromDBO(dbo);
+		assertEquals(proxy, clone);
 	}
 
 

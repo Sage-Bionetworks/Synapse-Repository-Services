@@ -10,7 +10,6 @@ import static org.mockito.Mockito.when;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.charset.Charset;
@@ -43,6 +42,7 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
+import org.sagebionetworks.repo.manager.ProjectSettingsManagerImpl;
 import org.sagebionetworks.repo.manager.S3TestUtils;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.transfer.TransferUtils;
@@ -75,6 +75,7 @@ import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
+import org.sagebionetworks.repo.model.project.ProxyStorageLocationSettings;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
@@ -653,6 +654,46 @@ public class FileHandleManagerImplAutowireTest {
 		}
 
 		projectSettingsManager.createProjectSetting(userInfo, uploadDestinationListSetting);
+	}
+	
+	@Test
+	public void testProxyStorageLocationSettings() throws DatastoreException, NotFoundException, IOException{
+		ProxyStorageLocationSettings proxy = new ProxyStorageLocationSettings();
+		proxy.setProxyHost("host.org");
+		proxy.setSecretKey(UUID.randomUUID().toString());
+		//call under test
+		ProxyStorageLocationSettings result = projectSettingsManager.createStorageLocationSetting(userInfo, proxy);
+		assertNotNull(result);
+		assertEquals(proxy.getProxyHost(), result.getProxyHost());
+		assertEquals(proxy.getSecretKey(), result.getSecretKey());
+		assertNotNull(result.getStorageLocationId());
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testProxyStorageLocationSettingsHostNull() throws DatastoreException, NotFoundException, IOException{
+		ProxyStorageLocationSettings proxy = new ProxyStorageLocationSettings();
+		proxy.setProxyHost(null);
+		proxy.setSecretKey(UUID.randomUUID().toString());
+		// call under test
+		projectSettingsManager.createStorageLocationSetting(userInfo, proxy);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testProxyStorageLocationSettingsSecretNull() throws DatastoreException, NotFoundException, IOException{
+		ProxyStorageLocationSettings proxy = new ProxyStorageLocationSettings();
+		proxy.setProxyHost("host.org");
+		proxy.setSecretKey(null);
+		// call under test
+		projectSettingsManager.createStorageLocationSetting(userInfo, proxy);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testProxyStorageLocationSettingsSecretTooSmall() throws DatastoreException, NotFoundException, IOException{
+		ProxyStorageLocationSettings proxy = new ProxyStorageLocationSettings();
+		proxy.setProxyHost("host.org");
+		proxy.setSecretKey(new String(new char[ProjectSettingsManagerImpl.MIN_SECRET_KEY_CHARS-1]));
+		// call under test
+		projectSettingsManager.createStorageLocationSetting(userInfo, proxy);
 	}
 
 	@Test

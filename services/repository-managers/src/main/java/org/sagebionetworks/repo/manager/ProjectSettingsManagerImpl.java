@@ -26,12 +26,14 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
+import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalSyncSetting;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
+import org.sagebionetworks.repo.model.project.ProxyStorageLocationSettings;
 import org.sagebionetworks.repo.model.project.RequesterPaysSetting;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
@@ -50,6 +52,8 @@ import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 
 public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
+
+	public static final int MIN_SECRET_KEY_CHARS = 36;
 
 	private static final String EXTERNAL_S3_HELP = "https://www.synapse.org/#!Help:ExternalS3Buckets for more information on how to create a new external s3 upload destination";
 
@@ -200,6 +204,13 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 			ExternalStorageLocationSetting externalStorageLocationSetting = (ExternalStorageLocationSetting) storageLocationSetting;
 			ValidateArgument.required(externalStorageLocationSetting.getUrl(), "url");
 			ValidateArgument.validUrl(externalStorageLocationSetting.getUrl());
+		}else if (storageLocationSetting instanceof ProxyStorageLocationSettings){
+			ProxyStorageLocationSettings proxySettings = (ProxyStorageLocationSettings)storageLocationSetting;
+			ValidateArgument.required(proxySettings.getProxyHost(), "proxyHost");
+			ValidateArgument.required(proxySettings.getSecretKey(), "secretKey");
+			if(proxySettings.getSecretKey().length() < MIN_SECRET_KEY_CHARS){
+				throw new IllegalArgumentException("SecretKey must be at least: "+MIN_SECRET_KEY_CHARS+" characters but was: "+proxySettings.getSecretKey().length());
+			}
 		}
 
 		storageLocationSetting.setCreatedBy(userInfo.getId());
