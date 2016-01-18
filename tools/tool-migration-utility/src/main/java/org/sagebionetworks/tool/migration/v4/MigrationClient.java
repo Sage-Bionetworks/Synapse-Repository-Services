@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.tool.migration.v3.CreateUpdateWorker;
 import org.sagebionetworks.tool.migration.v3.DeleteWorker;
+import org.sagebionetworks.tool.migration.v4.DeltaData;
 import org.sagebionetworks.tool.migration.v3.SynapseClientFactory;
 import org.sagebionetworks.tool.migration.v3.stream.BufferedRowMetadataReader;
 import org.sagebionetworks.tool.migration.v3.stream.BufferedRowMetadataWriter;
