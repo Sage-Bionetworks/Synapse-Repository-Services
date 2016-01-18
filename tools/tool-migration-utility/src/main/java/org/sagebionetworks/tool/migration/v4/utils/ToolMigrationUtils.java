@@ -57,5 +57,20 @@ public class ToolMigrationUtils {
 		}
 		return typeCounts;
 	}
+	
+	public static List<MigrationTypeCountDiff> getMigrationTypeCountDiffs(List<MigrationTypeCount> srcCounts, List<MigrationTypeCount> destCounts) {
+		List<MigrationTypeCountDiff> result = new LinkedList<MigrationTypeCountDiff>();
+		Map<MigrationType, Long> mapSrcCounts = new HashMap<MigrationType, Long>();
+		for (MigrationTypeCount sMtc: srcCounts) {
+			mapSrcCounts.put(sMtc.getType(), sMtc.getCount());
+		}
+		// All migration types of source should be at destination
+		// Note: unused src migration types are covered, they're not in destination results
+		for (MigrationTypeCount mtc: destCounts) {
+			MigrationTypeCountDiff outcome = 	new MigrationTypeCountDiff(mtc.getType(), (mapSrcCounts.containsKey(mtc.getType()) ? mapSrcCounts.get(mtc.getType()) : null), mtc.getCount());
+			result.add(outcome);
+		}
+		return result;
+	}
 
 }

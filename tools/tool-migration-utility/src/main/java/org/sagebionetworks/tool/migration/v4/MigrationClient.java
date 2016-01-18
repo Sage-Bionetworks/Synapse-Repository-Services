@@ -35,6 +35,7 @@ import org.sagebionetworks.tool.migration.v3.stream.BufferedRowMetadataWriter;
 import org.sagebionetworks.tool.migration.v4.delta.DeltaFinder;
 import org.sagebionetworks.tool.migration.v4.delta.DeltaRanges;
 import org.sagebionetworks.tool.migration.v4.delta.IdRange;
+import org.sagebionetworks.tool.migration.v4.utils.MigrationTypeCountDiff;
 import org.sagebionetworks.tool.migration.v4.utils.ToolMigrationUtils;
 import org.sagebionetworks.tool.migration.v4.utils.TypeToMigrateMetadata;
 import org.sagebionetworks.tool.progress.BasicProgress;
@@ -145,8 +146,8 @@ public class MigrationClient {
 		// Get the counts for all type from both the source and destination
 		List<MigrationTypeCount> startSourceCounts = ToolMigrationUtils.getTypeCounts(source);
 		List<MigrationTypeCount> startDestCounts = ToolMigrationUtils.getTypeCounts(destination);
-		log.info("Start counts:");
-		printCounts(startSourceCounts, startDestCounts);
+		log.info("Starting diffs in counts:");
+		printDiffsInCounts(startSourceCounts, startDestCounts);
 		
 		// Get the primary types for src and dest
 		List<MigrationType> srcPrimaryTypes = source.getPrimaryTypes().getList();
@@ -168,8 +169,8 @@ public class MigrationClient {
 		// Print the final counts
 		List<MigrationTypeCount> endSourceCounts = ToolMigrationUtils.getTypeCounts(source);
 		List<MigrationTypeCount> endDestCounts = ToolMigrationUtils.getTypeCounts(destination);
-		log.info("End counts:");
-		printCounts(endSourceCounts, endDestCounts);
+		log.info("Ending diffs in  counts:");
+		printDiffsInCounts(endSourceCounts, endDestCounts);
 		
 		if ((deferExceptions) && (this.deferredExceptions.size() > 0)) {
 			log.error("Encountered " + this.deferredExceptions.size() + " execution exceptions in the worker threads");
@@ -302,15 +303,16 @@ public class MigrationClient {
 		}
 	}
 
-	private void printCounts(List<MigrationTypeCount> srcCounts, List<MigrationTypeCount> destCounts) {
-		Map<MigrationType, Long> mapSrcCounts = new HashMap<MigrationType, Long>();
-		for (MigrationTypeCount sMtc: srcCounts) {
-			mapSrcCounts.put(sMtc.getType(), sMtc.getCount());
-		}
-		// All migration types of source should be at destination
-		// Note: unused src migration types are covered, they're not in destination results
-		for (MigrationTypeCount mtc: destCounts) {
-			log.info("\t" + mtc.getType().name() + ":\t" + (mapSrcCounts.containsKey(mtc.getType()) ? mapSrcCounts.get(mtc.getType()).toString() : "NA") + "\t" + mtc.getCount());
+	private void printDiffsInCounts(List<MigrationTypeCount> srcCounts, List<MigrationTypeCount> destCounts) {
+		List<MigrationTypeCountDiff> diffs = ToolMigrationUtils.getMigrationTypeCountDiffs(srcCounts, destCounts);
+		for (MigrationTypeCountDiff d: diffs) {
+			// Missing at source
+			if (d.getDelta() == null) {
+				log.info("\t" + d.getType().name() + "\tNA\t" + d.getDestinationCount());
+			}
+			if (d.getDelta() != 0L) {
+				log.info("\t" + d.getType().name() + ":\t" + d.getDelta() + "\t" + d.getSourceCount() + "\t" + d.getDestinationCount());
+			}
 		}
 	}
 	
