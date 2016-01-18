@@ -186,6 +186,22 @@ public class DiscussionController extends BaseController {
 	}
 
 	/**
+	 * This API is used to mark a thread as viewed by a user.
+	 * <br/>
+	 * Target users: anyone who has READ permission to the project.
+	 * 
+	 * @param userId - the ID of the user who is making the request
+	 * @param threadId - the ID of the thread being marked as viewed
+	 */
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	@RequestMapping(value = UrlHelpers.THREAD_THREAD_ID_VIEW, method = RequestMethod.POST)
+	public void updateThreadView(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String threadId) {
+		serviceProvider.getDiscussionService().updateThreadView(userId, threadId);
+	}
+
+	/**
 	 * This API is used to create a new reply to a thread.
 	 * <br/>
 	 * Target users: anyone who has READ permission to the project.

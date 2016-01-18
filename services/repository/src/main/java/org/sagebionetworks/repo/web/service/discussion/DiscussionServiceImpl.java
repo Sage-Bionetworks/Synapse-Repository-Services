@@ -108,4 +108,10 @@ public class DiscussionServiceImpl implements DiscussionService{
 		UserInfo user = userManager.getUserInfo(userId);
 		return replyManager.getRepliesForThread(user, threadId, limit, offset, order, ascending);
 	}
+
+	@Override
+	public void updateThreadView(Long userId, String threadId) {
+		UserInfo user = userManager.getUserInfo(userId);
+		threadManager.updateThreadView(user, threadId);
+	}
 }

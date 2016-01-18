@@ -2519,6 +2519,14 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	void markThreadAsDeleted(String threadId) throws SynapseException;
+
+	/**
+	 * Update the number of views of a thread by marking this user has viewed this thread
+	 * 
+	 * @param threadId
+	 * @throws SynapseException
+	 */
+	void updateThreadView(String threadId) throws SynapseException;
 	
 	/**
 	 * Low-level API to start a mutli-part upload.  Start or resume a mutli-part upload.

@@ -140,4 +140,12 @@ public interface DiscussionService {
 	public PaginatedResults<DiscussionReplyBundle> getReplies(Long userId,
 			String threadId, Long limit, Long offset,
 			DiscussionReplyOrder order, Boolean ascending);
+
+	/**
+	 * Mark a thread as viewed by a user
+	 * 
+	 * @param userId
+	 * @param threadId
+	 */
+	public void updateThreadView(Long userId, String threadId);
 }

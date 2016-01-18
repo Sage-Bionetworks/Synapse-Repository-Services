@@ -132,6 +132,15 @@ public class DiscussionControllerAutowiredTest extends AbstractAutowiredControll
 	}
 
 	@Test
+	public void testUpdateThreadView() throws Exception {
+		Forum dto = servletTestHelper.getForumMetadata(dispatchServlet, project.getId(), adminUserId);
+		createThread.setForumId(dto.getId());
+		DiscussionThreadBundle bundle = servletTestHelper.createThread(dispatchServlet, adminUserId, createThread);
+		servletTestHelper.updateThreadView(dispatchServlet, adminUserId, bundle.getId());
+		DiscussionThreadBundle bundle2 = servletTestHelper.getThread(dispatchServlet, adminUserId, bundle.getId());
+	}
+
+	@Test
 	public void testCreateReply() throws Exception {
 		Forum dto = servletTestHelper.getForumMetadata(dispatchServlet, project.getId(), adminUserId);
 		createThread.setForumId(dto.getId());

@@ -486,6 +486,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String DISCUSSION_MESSAGE = "/message";
 	private static final String REPLY = "/reply";
 	private static final String REPLIES = "/replies";
+	private static final String VIEW = "/view";
 
 	private static final String PRINCIPAL_ID_REQUEST_PARAM = "principalId";
 
@@ -7364,6 +7365,11 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public void markThreadAsDeleted(String threadId) throws SynapseException {
 		getSharedClientConnection().deleteUri(repoEndpoint, THREAD+"/"+threadId, getUserAgent());
+	}
+
+	@Override
+	public void updateThreadView(String threadId) throws SynapseException {
+		getSharedClientConnection().postUri(repoEndpoint, THREAD+"/"+threadId+VIEW, getUserAgent());
 	}
 
 	@Override

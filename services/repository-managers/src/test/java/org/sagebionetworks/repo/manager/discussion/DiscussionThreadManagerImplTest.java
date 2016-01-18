@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UploadContentToS3DAO;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dao.discussion.DiscussionReplyDAO;
 import org.sagebionetworks.repo.model.dao.discussion.DiscussionThreadDAO;
 import org.sagebionetworks.repo.model.dao.discussion.ForumDAO;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
@@ -33,6 +34,8 @@ import org.springframework.test.util.ReflectionTestUtils;
 public class DiscussionThreadManagerImplTest {
 	@Mock
 	private DiscussionThreadDAO mockThreadDao;
+	@Mock
+	private DiscussionReplyDAO mockReplyDao;
 	@Mock
 	private ForumDAO mockForumDao;
 	@Mock
@@ -66,6 +69,7 @@ public class DiscussionThreadManagerImplTest {
 		ReflectionTestUtils.setField(threadManager, "uploadDao", mockUploadDao);
 		ReflectionTestUtils.setField(threadManager, "authorizationManager", mockAuthorizationManager);
 		ReflectionTestUtils.setField(threadManager, "idGenerator", mockIdGenerator);
+		ReflectionTestUtils.setField(threadManager, "replyDao", mockReplyDao);
 
 		createDto = new CreateDiscussionThread();
 		createDto.setForumId(forumId.toString());
@@ -77,6 +81,7 @@ public class DiscussionThreadManagerImplTest {
 		dto = new DiscussionThreadBundle();
 		dto.setProjectId(projectId);
 		dto.setMessageKey(messageKey);
+		dto.setId(threadId.toString());
 		userInfo.setId(userId);
 
 		newTitle.setTitle("newTitle");
@@ -86,6 +91,7 @@ public class DiscussionThreadManagerImplTest {
 		Mockito.when(mockThreadDao.getThread(threadId)).thenReturn(dto);
 		Mockito.when(mockIdGenerator.generateNewId(TYPE.DISCUSSION_THREAD_ID)).thenReturn(threadId);
 		Mockito.when(mockUploadDao.getUrl(messageKey)).thenReturn(messageUrl);
+		Mockito.when(mockReplyDao.getReplyCount(Mockito.anyLong())).thenReturn(0L);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -134,6 +140,7 @@ public class DiscussionThreadManagerImplTest {
 		DiscussionThreadBundle createdThread = threadManager.createThread(userInfo, createDto);
 		assertNotNull(createdThread);
 		assertEquals(createdThread, dto);
+		Mockito.verify(mockReplyDao).getReplyCount(Long.parseLong(createdThread.getId()));
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -154,6 +161,7 @@ public class DiscussionThreadManagerImplTest {
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		assertEquals(dto, threadManager.getThread(userInfo, threadId.toString()));
 		Mockito.verify(mockThreadDao).updateThreadView(Mockito.anyLong(), Mockito.anyLong());
+		Mockito.verify(mockReplyDao).getReplyCount(threadId);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -175,6 +183,7 @@ public class DiscussionThreadManagerImplTest {
 		Mockito.when(mockThreadDao.updateTitle(Mockito.anyLong(), Mockito.anyString())).thenReturn(dto);
 
 		assertEquals(dto, threadManager.updateTitle(userInfo, threadId.toString(), newTitle));
+		Mockito.verify(mockReplyDao).getReplyCount(threadId);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -197,6 +206,7 @@ public class DiscussionThreadManagerImplTest {
 				.thenReturn("newMessage");
 		Mockito.when(mockThreadDao.updateMessageKey(Mockito.anyLong(), Mockito.anyString())).thenReturn(dto);
 		assertEquals(dto, threadManager.updateMessage(userInfo, threadId.toString(), newMessage));
+		Mockito.verify(mockReplyDao).getReplyCount(threadId);
 	}
 
 	@Test (expected = UnauthorizedException.class)
@@ -228,5 +238,22 @@ public class DiscussionThreadManagerImplTest {
 		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		assertEquals(threads, threadManager.getThreadsForForum(userInfo, forumId.toString(), 2L, 0L, DiscussionThreadOrder.LAST_ACTIVITY, true));
+		Mockito.verify(mockReplyDao).getReplyCount(threadId);
+	}
+
+
+	@Test (expected = UnauthorizedException.class)
+	public void testUpdateViewUnauthorized() {
+		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
+				.thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+		threadManager.updateThreadView(userInfo, threadId.toString());
+	}
+
+	@Test
+	public void testUpdateViewAuthorized() {
+		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
+				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		threadManager.updateThreadView(userInfo, threadId.toString());
+		Mockito.verify(mockThreadDao).updateThreadView(threadId, userInfo.getId());
 	}
 }

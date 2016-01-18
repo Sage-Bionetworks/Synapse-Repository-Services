@@ -887,6 +887,8 @@ public class UrlHelpers {
 	public static final String REPLY_REPLY_ID_MESSAGE = REPLY_REPLY_ID+DISCUSSION_MESSAGE;
 	public static final String REPLIES = "/replies";
 	public static final String THREAD_THREAD_ID_REPLIES = THREAD_THREAD_ID+REPLIES;
+	public static final String VIEW = "/view";
+	public static final String THREAD_THREAD_ID_VIEW = THREAD_THREAD_ID+VIEW;
 
 	/**
 	 * APIs for DynamoDB related operations.
