@@ -8,6 +8,7 @@ import java.util.UUID;
 import java.util.zip.GZIPOutputStream;
 
 import org.sagebionetworks.repo.model.UploadContentToS3DAO;
+import org.sagebionetworks.repo.model.discussion.MessageURL;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -75,8 +76,10 @@ public class UploadContentToS3DAOImpl implements UploadContentToS3DAO {
 	}
 
 	@Override
-	public String getUrl(String key) {
+	public MessageURL getUrl(String key) {
 		ValidateArgument.required(key, "key");
-		return S3_PREFIX + bucketName + "/" + key;
+		MessageURL url = new MessageURL();
+		url.setMessageUrl(S3_PREFIX + bucketName + "/" + key);
+		return url;
 	}
 }

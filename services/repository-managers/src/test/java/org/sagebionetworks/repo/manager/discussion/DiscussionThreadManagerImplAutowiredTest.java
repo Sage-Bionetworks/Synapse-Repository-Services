@@ -25,6 +25,7 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.Forum;
+import org.sagebionetworks.repo.model.discussion.MessageURL;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -88,10 +89,9 @@ public class DiscussionThreadManagerImplAutowiredTest {
 	public void test() throws Exception {
 		DiscussionThreadBundle bundle = threadManager.createThread(userInfo, createThread);
 		assertNotNull(bundle);
-		// TODO use API GET /thread/{id}/messageUrl
-		/*String urlString = bundle.getMessageUrl();
-		assertNotNull(urlString);
-		URL url = new URL(urlString);
+		MessageURL messageUrl = threadManager.getMessageUrl(userInfo, bundle.getId());
+		assertNotNull(messageUrl);
+		URL url = new URL(messageUrl.getMessageUrl());
 		BufferedReader in = new BufferedReader(new InputStreamReader(new GZIPInputStream(url.openStream())));
 		String inputLine;
 		boolean matched = false;
@@ -100,6 +100,6 @@ public class DiscussionThreadManagerImplAutowiredTest {
 			matched = true;
 		}
 		assertTrue(matched);
-		in.close();*/
+		in.close();
 	}
 }

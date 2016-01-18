@@ -10,6 +10,7 @@ import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.Forum;
+import org.sagebionetworks.repo.model.discussion.MessageURL;
 import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
@@ -142,10 +143,20 @@ public interface DiscussionService {
 			DiscussionReplyOrder order, Boolean ascending);
 
 	/**
-	 * Mark a thread as viewed by a user
+	 * Get the message Url of a thread
 	 * 
 	 * @param userId
 	 * @param threadId
+	 * @return
 	 */
-	public void updateThreadView(Long userId, String threadId);
+	public MessageURL getThreadUrl(Long userId, String threadId);
+
+	/**
+	 * Get the message Url of a reply
+	 * 
+	 * @param userId
+	 * @param replyId
+	 * @return
+	 */
+	public MessageURL getReplyUrl(Long userId, String replyId);
 }

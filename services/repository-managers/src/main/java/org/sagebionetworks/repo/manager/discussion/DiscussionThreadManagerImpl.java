@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.model.dao.discussion.ForumDAO;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
+import org.sagebionetworks.repo.model.discussion.MessageURL;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
@@ -155,5 +156,17 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canAccess(userInfo, thread.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
 		threadDao.updateThreadView(threadIdLong, userInfo.getId());
+	}
+
+	@Override
+	public MessageURL getMessageUrl(UserInfo userInfo, String threadId) {
+		ValidateArgument.required(threadId, "threadId");
+		UserInfo.validateUserInfo(userInfo);
+		Long threadIdLong = Long.parseLong(threadId);
+		DiscussionThreadBundle thread = threadDao.getThread(threadIdLong);
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+				authorizationManager.canAccess(userInfo, thread.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
+		threadDao.updateThreadView(threadIdLong, userInfo.getId());
+		return uploadDao.getUrl(thread.getMessageKey());
 	}
 }

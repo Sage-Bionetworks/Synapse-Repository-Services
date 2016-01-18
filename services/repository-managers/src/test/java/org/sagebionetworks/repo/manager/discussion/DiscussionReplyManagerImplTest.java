@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.manager.discussion;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
+import org.sagebionetworks.repo.model.discussion.MessageURL;
 import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -47,6 +48,7 @@ public class DiscussionReplyManagerImplTest {
 	private Long replyId = 222L;
 	private DiscussionReplyBundle bundle;
 	private String messageKey;
+	private MessageURL messageUrl = new MessageURL();
 
 	@Before
 	public void before() {
@@ -61,7 +63,8 @@ public class DiscussionReplyManagerImplTest {
 		Mockito.when(mockThreadManager.getThread(userInfo, threadId)).thenReturn(mockThread);
 		Mockito.when(mockThread.getProjectId()).thenReturn(projectId);
 		Mockito.when(mockThread.getForumId()).thenReturn(forumId);
-		Mockito.when(mockUploadDao.getUrl(Mockito.anyString())).thenReturn("messageUrl");
+		messageUrl.setMessageUrl("messageUrl");
+		Mockito.when(mockUploadDao.getUrl(Mockito.anyString())).thenReturn(messageUrl);
 
 		bundle = new DiscussionReplyBundle();
 		bundle.setThreadId(threadId);
@@ -195,5 +198,22 @@ public class DiscussionReplyManagerImplTest {
 		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		assertEquals(replies, replyManager.getRepliesForThread(userInfo, threadId, 2L, 0L, DiscussionReplyOrder.CREATED_ON, true));
+	}
+
+
+	@Test (expected = UnauthorizedException.class)
+	public void testGetReplyUrlUnauthorized() {
+		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
+				.thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+		replyManager.getMessageUrl(userInfo, replyId.toString());
+	}
+
+	@Test
+	public void testGetReplyUrlAuthorized() {
+		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
+				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		MessageURL url = replyManager.getMessageUrl(userInfo, replyId.toString());
+		assertNotNull(url);
+		assertNotNull(url.getMessageUrl());
 	}
 }

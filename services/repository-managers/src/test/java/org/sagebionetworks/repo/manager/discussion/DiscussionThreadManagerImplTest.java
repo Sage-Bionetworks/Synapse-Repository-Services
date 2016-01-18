@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.Forum;
+import org.sagebionetworks.repo.model.discussion.MessageURL;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -55,7 +56,7 @@ public class DiscussionThreadManagerImplTest {
 	private Long threadId = 3L;
 	private Forum forum;
 	private String messageKey = "messageKey";
-	private String messageUrl = "messageUrl";
+	private MessageURL messageUrl = new MessageURL();
 	private UpdateThreadTitle newTitle = new UpdateThreadTitle();
 	private UpdateThreadMessage newMessage = new UpdateThreadMessage();
 
@@ -90,6 +91,7 @@ public class DiscussionThreadManagerImplTest {
 		Mockito.when(mockForumDao.getForum(Long.parseLong(createDto.getForumId()))).thenReturn(forum);
 		Mockito.when(mockThreadDao.getThread(threadId)).thenReturn(dto);
 		Mockito.when(mockIdGenerator.generateNewId(TYPE.DISCUSSION_THREAD_ID)).thenReturn(threadId);
+		messageUrl.setMessageUrl("messageUrl");
 		Mockito.when(mockUploadDao.getUrl(messageKey)).thenReturn(messageUrl);
 		Mockito.when(mockReplyDao.getReplyCount(Mockito.anyLong())).thenReturn(0L);
 	}
@@ -255,5 +257,22 @@ public class DiscussionThreadManagerImplTest {
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		threadManager.updateThreadView(userInfo, threadId.toString());
 		Mockito.verify(mockThreadDao).updateThreadView(threadId, userInfo.getId());
+	}
+
+	@Test (expected = UnauthorizedException.class)
+	public void testGetThreadURLUnauthorized() {
+		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
+				.thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+		threadManager.getMessageUrl(userInfo, threadId.toString());
+	}
+
+	@Test
+	public void testGetThreadURLAuthorized() {
+		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
+				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		MessageURL url = threadManager.getMessageUrl(userInfo, threadId.toString());
+		assertNotNull(url);
+		assertNotNull(url.getMessageUrl());
+		Mockito.verify(mockThreadDao).updateThreadView(threadId, userId);
 	}
 }

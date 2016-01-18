@@ -7,6 +7,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
+import org.sagebionetworks.repo.model.discussion.MessageURL;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
 
@@ -81,4 +82,12 @@ public interface DiscussionThreadManager {
 	 * @return
 	 */
 	public void updateThreadView(UserInfo user, String threadId);
+
+	/**
+	 * Get message Url for a thread
+	 * 
+	 * @param user
+	 * @param threadId
+	 */
+	public MessageURL getMessageUrl(UserInfo user, String threadId);
 }

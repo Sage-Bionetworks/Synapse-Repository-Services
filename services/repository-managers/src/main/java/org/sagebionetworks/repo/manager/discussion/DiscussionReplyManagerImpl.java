@@ -1,8 +1,6 @@
 package org.sagebionetworks.repo.manager.discussion;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
@@ -17,6 +15,7 @@ import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
+import org.sagebionetworks.repo.model.discussion.MessageURL;
 import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.util.ValidateArgument;
@@ -95,17 +94,17 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 		ValidateArgument.required(limit, "limit");
 		ValidateArgument.required(offset, "offset");
 		threadManager.getThread(userInfo, threadId);
-		return addMessageUrl(replyDao.getRepliesForThread(Long.parseLong(threadId), limit, offset, order, ascending));
+		return replyDao.getRepliesForThread(Long.parseLong(threadId), limit, offset, order, ascending);
 	}
 
-	private PaginatedResults<DiscussionReplyBundle> addMessageUrl(
-			PaginatedResults<DiscussionReplyBundle> repliesForThread) {
-		List<DiscussionReplyBundle> list = new ArrayList<DiscussionReplyBundle>();
-		for (DiscussionReplyBundle reply : repliesForThread.getResults()) {
-			list.add(reply);
-		}
-		repliesForThread.setResults(list);
-		return repliesForThread;
+	@Override
+	public MessageURL getMessageUrl(UserInfo userInfo, String replyId) {
+		UserInfo.validateUserInfo(userInfo);
+		ValidateArgument.required(replyId, "replyId");
+		DiscussionReplyBundle reply = replyDao.getReply(Long.parseLong(replyId));
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+				authorizationManager.canAccess(userInfo, reply.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
+		return uploadDao.getUrl(reply.getMessageKey());
 	}
 
 }

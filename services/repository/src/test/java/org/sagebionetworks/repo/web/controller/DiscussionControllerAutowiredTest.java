@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
 import org.sagebionetworks.repo.model.discussion.Forum;
+import org.sagebionetworks.repo.model.discussion.MessageURL;
 import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
@@ -132,12 +133,13 @@ public class DiscussionControllerAutowiredTest extends AbstractAutowiredControll
 	}
 
 	@Test
-	public void testUpdateThreadView() throws Exception {
+	public void testGetThreadUrl() throws Exception {
 		Forum dto = servletTestHelper.getForumMetadata(dispatchServlet, project.getId(), adminUserId);
 		createThread.setForumId(dto.getId());
 		DiscussionThreadBundle bundle = servletTestHelper.createThread(dispatchServlet, adminUserId, createThread);
-		servletTestHelper.updateThreadView(dispatchServlet, adminUserId, bundle.getId());
-		DiscussionThreadBundle bundle2 = servletTestHelper.getThread(dispatchServlet, adminUserId, bundle.getId());
+		MessageURL url = servletTestHelper.getThreadUrl(dispatchServlet, adminUserId, bundle.getId());
+		assertNotNull(url);
+		assertNotNull(url.getMessageUrl());
 	}
 
 	@Test
@@ -201,5 +203,17 @@ public class DiscussionControllerAutowiredTest extends AbstractAutowiredControll
 		assertFalse(replyBundle.equals(bundle2));
 		assertEquals(bundle2.getId(), replyBundle.getId());
 		assertTrue(bundle2.getIsDeleted());
+	}
+
+	@Test
+	public void testGetReplyUrl() throws Exception {
+		Forum dto = servletTestHelper.getForumMetadata(dispatchServlet, project.getId(), adminUserId);
+		createThread.setForumId(dto.getId());
+		DiscussionThreadBundle threadBundle = servletTestHelper.createThread(dispatchServlet, adminUserId, createThread);
+		createReply.setThreadId(threadBundle.getId());
+		DiscussionReplyBundle replyBundle = servletTestHelper.createReply(dispatchServlet, adminUserId, createReply);
+		MessageURL url = servletTestHelper.getReplyUrl(dispatchServlet, adminUserId, replyBundle.getId());
+		assertNotNull(url);
+		assertNotNull(url.getMessageUrl());
 	}
 }

@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
+import org.sagebionetworks.repo.model.discussion.MessageURL;
 import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
@@ -49,6 +50,7 @@ public class DiscussionServiceImplTest {
 	private DiscussionReplyBundle replyBundle;
 	private String replyId = "987";
 	private CreateDiscussionReply createReply;
+	private MessageURL messageUrl = new MessageURL();
 
 	@Before
 	public void before() {
@@ -82,6 +84,8 @@ public class DiscussionServiceImplTest {
 		replyBundle.setId(replyId);
 		replyBundle.setThreadId(threadId);
 		replyBundle.setMessageKey(messageKey);
+
+		messageUrl.setMessageUrl("messageUrl");
 	}
 
 	@Test
@@ -168,5 +172,17 @@ public class DiscussionServiceImplTest {
 		replies.setResults(Arrays.asList(replyBundle));
 		Mockito.when(mockReplyManager.getRepliesForThread(userInfo, threadId, 10L, 0L, null, true)).thenReturn(replies);
 		assertEquals(replies, discussionServices.getReplies(userId, threadId, 10L, 0L, null, true));
+	}
+
+	@Test
+	public void testGetThreadUrl() {
+		Mockito.when(mockThreadManager.getMessageUrl(userInfo, threadId)).thenReturn(messageUrl);
+		assertEquals(messageUrl, discussionServices.getThreadUrl(userId, threadId));
+	}
+
+	@Test
+	public void testGetReplyUrl() {
+		Mockito.when(mockReplyManager.getMessageUrl(userInfo, threadId)).thenReturn(messageUrl);
+		assertEquals(messageUrl, discussionServices.getReplyUrl(userId, threadId));
 	}
 }
