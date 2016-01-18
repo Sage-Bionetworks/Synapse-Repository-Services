@@ -43,12 +43,7 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 		ValidateArgument.required(createReply.getMessageMarkdown(), "CreateDiscussionReply.messageMarkdown");
 		DiscussionThreadBundle thread = threadManager.getThread(userInfo, threadId);
 		String messageKey = uploadDao.uploadDiscussionContent(createReply.getMessageMarkdown(), thread.getForumId(), threadId);
-		return addMessageUrl(replyDao.createReply(threadId, messageKey, userInfo.getId()));
-	}
-
-	private DiscussionReplyBundle addMessageUrl(DiscussionReplyBundle reply) {
-		reply.setMessageUrl(uploadDao.getUrl(reply.getMessageKey()));
-		return reply;
+		return replyDao.createReply(threadId, messageKey, userInfo.getId());
 	}
 
 	@Override
@@ -58,7 +53,7 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 		DiscussionReplyBundle reply = replyDao.getReply(Long.parseLong(replyId));
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canAccess(userInfo, reply.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
-		return addMessageUrl(reply);
+		return reply;
 	}
 
 	@WriteTransactionReadCommitted
@@ -73,7 +68,7 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 		DiscussionReplyBundle reply = replyDao.getReply(replyIdLong);
 		if (authorizationManager.isUserCreatorOrAdmin(userInfo, reply.getCreatedBy())) {
 			String messageKey = uploadDao.uploadDiscussionContent(newMessage.getMessageMarkdown(), reply.getForumId(), reply.getThreadId());
-			return addMessageUrl(replyDao.updateMessageKey(replyIdLong, messageKey));
+			return replyDao.updateMessageKey(replyIdLong, messageKey);
 		} else {
 			throw new UnauthorizedException("Only the user that created the thread can modify it.");
 		}
@@ -107,7 +102,7 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 			PaginatedResults<DiscussionReplyBundle> repliesForThread) {
 		List<DiscussionReplyBundle> list = new ArrayList<DiscussionReplyBundle>();
 		for (DiscussionReplyBundle reply : repliesForThread.getResults()) {
-			list.add(addMessageUrl(reply));
+			list.add(reply);
 		}
 		repliesForThread.setResults(list);
 		return repliesForThread;

@@ -69,7 +69,6 @@ public class DiscussionReplyManagerImplTest {
 		bundle.setProjectId(projectId);
 		messageKey = UUID.randomUUID().toString();
 		bundle.setMessageKey(messageKey);
-		bundle.setMessageUrl("messageUrl");
 		userInfo.setId(765L);
 		bundle.setCreatedBy(userInfo.getId().toString());
 		Mockito.when(mockReplyDao.getReply(Mockito.anyLong())).thenReturn(bundle);

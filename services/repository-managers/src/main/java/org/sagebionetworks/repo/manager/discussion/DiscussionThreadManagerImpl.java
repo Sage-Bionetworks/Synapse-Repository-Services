@@ -55,12 +55,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		Long id = idGenerator.generateNewId(TYPE.DISCUSSION_THREAD_ID);
 		String messageKey = uploadDao.uploadDiscussionContent(createThread.getMessageMarkdown(), createThread.getForumId(), id.toString());
 		DiscussionThreadBundle thread = threadDao.createThread(createThread.getForumId(), id.toString(), createThread.getTitle(), messageKey, userInfo.getId());
-		return addMessageUrl(updateNumberOfReplies(thread));
-	}
-
-	private DiscussionThreadBundle addMessageUrl(DiscussionThreadBundle thread) {
-		thread.setMessageUrl(uploadDao.getUrl(thread.getMessageKey()));
-		return thread;
+		return updateNumberOfReplies(thread);
 	}
 
 	private DiscussionThreadBundle updateNumberOfReplies(DiscussionThreadBundle thread) {
@@ -77,7 +72,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canAccess(userInfo, thread.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
 		threadDao.updateThreadView(threadIdLong, userInfo.getId());
-		return addMessageUrl(updateNumberOfReplies(thread));
+		return updateNumberOfReplies(thread);
 	}
 
 	@WriteTransactionReadCommitted
@@ -91,7 +86,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		DiscussionThreadBundle thread = threadDao.getThread(threadIdLong);
 		if (authorizationManager.isUserCreatorOrAdmin(userInfo, thread.getCreatedBy())) {
 			thread = threadDao.updateTitle(threadIdLong, newTitle.getTitle());
-			return addMessageUrl(updateNumberOfReplies(thread));
+			return updateNumberOfReplies(thread);
 		} else {
 			throw new UnauthorizedException("Only the user that created the thread can modify it.");
 		}
@@ -110,7 +105,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		if (authorizationManager.isUserCreatorOrAdmin(userInfo, thread.getCreatedBy())) {
 			String messageKey = uploadDao.uploadDiscussionContent(newMessage.getMessageMarkdown(), thread.getForumId(), thread.getId());
 			thread = threadDao.updateMessageKey(threadIdLong, messageKey);
-			return addMessageUrl(updateNumberOfReplies(thread));
+			return updateNumberOfReplies(thread);
 		} else {
 			throw new UnauthorizedException("Only the user that created the thread can modify it.");
 		}
@@ -138,14 +133,14 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ));
 		PaginatedResults<DiscussionThreadBundle> threads = threadDao.getThreads(Long.parseLong(forumId), limit, offset, order, ascending);
-		return update(threads);
+		return updateNumberOfReplies(threads);
 	}
 
-	private PaginatedResults<DiscussionThreadBundle> update(
+	private PaginatedResults<DiscussionThreadBundle> updateNumberOfReplies(
 			PaginatedResults<DiscussionThreadBundle> threads) {
 		List<DiscussionThreadBundle> list = new ArrayList<DiscussionThreadBundle>();
 		for (DiscussionThreadBundle thread : threads.getResults()) {
-			list.add(addMessageUrl(updateNumberOfReplies(thread)));
+			list.add(updateNumberOfReplies(thread));
 		}
 		threads.setResults(list);
 		return threads;

@@ -88,7 +88,8 @@ public class DiscussionThreadManagerImplAutowiredTest {
 	public void test() throws Exception {
 		DiscussionThreadBundle bundle = threadManager.createThread(userInfo, createThread);
 		assertNotNull(bundle);
-		String urlString = bundle.getMessageUrl();
+		// TODO use API GET /thread/{id}/messageUrl
+		/*String urlString = bundle.getMessageUrl();
 		assertNotNull(urlString);
 		URL url = new URL(urlString);
 		BufferedReader in = new BufferedReader(new InputStreamReader(new GZIPInputStream(url.openStream())));
@@ -99,6 +100,6 @@ public class DiscussionThreadManagerImplAutowiredTest {
 			matched = true;
 		}
 		assertTrue(matched);
-		in.close();
+		in.close();*/
 	}
 }
