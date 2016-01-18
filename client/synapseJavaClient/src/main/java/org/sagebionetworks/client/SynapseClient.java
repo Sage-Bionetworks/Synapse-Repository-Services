@@ -81,6 +81,7 @@ import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.Forum;
+import org.sagebionetworks.repo.model.discussion.MessageURL;
 import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
@@ -2462,6 +2463,14 @@ public interface SynapseClient extends BaseClient {
 	void markReplyAsDeleted(String replyId) throws SynapseException;
 
 	/**
+	 * Get the message URL for a reply
+	 * 
+	 * @param replyId
+	 * @throws SynapseException
+	 */
+	MessageURL getReplyUrl(String replyId) throws SynapseException;
+
+	/**
 	 * Create a new Discussion Thread
 	 * 
 	 * @param toCreate
@@ -2521,12 +2530,12 @@ public interface SynapseClient extends BaseClient {
 	void markThreadAsDeleted(String threadId) throws SynapseException;
 
 	/**
-	 * Update the number of views of a thread by marking this user has viewed this thread
+	 * Get the message URL for a thread
 	 * 
 	 * @param threadId
 	 * @throws SynapseException
 	 */
-	void updateThreadView(String threadId) throws SynapseException;
+	MessageURL getThreadUrl(String threadId) throws SynapseException;
 	
 	/**
 	 * Low-level API to start a mutli-part upload.  Start or resume a mutli-part upload.
