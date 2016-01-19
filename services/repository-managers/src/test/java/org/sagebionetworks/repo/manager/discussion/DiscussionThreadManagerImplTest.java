@@ -243,22 +243,6 @@ public class DiscussionThreadManagerImplTest {
 		Mockito.verify(mockReplyDao).getReplyCount(threadId);
 	}
 
-
-	@Test (expected = UnauthorizedException.class)
-	public void testUpdateViewUnauthorized() {
-		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
-				.thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
-		threadManager.updateThreadView(userInfo, threadId.toString());
-	}
-
-	@Test
-	public void testUpdateViewAuthorized() {
-		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
-				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		threadManager.updateThreadView(userInfo, threadId.toString());
-		Mockito.verify(mockThreadDao).updateThreadView(threadId, userInfo.getId());
-	}
-
 	@Test (expected = UnauthorizedException.class)
 	public void testGetThreadURLUnauthorized() {
 		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))

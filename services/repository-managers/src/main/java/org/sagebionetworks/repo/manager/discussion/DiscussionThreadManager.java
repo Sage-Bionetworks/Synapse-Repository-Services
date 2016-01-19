@@ -75,15 +75,6 @@ public interface DiscussionThreadManager {
 	public PaginatedResults<DiscussionThreadBundle> getThreadsForForum(UserInfo userInfo, String forumId, Long limit, Long offset, DiscussionThreadOrder order, Boolean ascending );
 
 	/**
-	 * Update the number of views of a thread
-	 * 
-	 * @param user
-	 * @param threadId
-	 * @return
-	 */
-	public void updateThreadView(UserInfo user, String threadId);
-
-	/**
 	 * Get message Url for a thread
 	 * 
 	 * @param user

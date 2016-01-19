@@ -148,17 +148,6 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 	}
 
 	@Override
-	public void updateThreadView(UserInfo userInfo, String threadId) {
-		ValidateArgument.required(threadId, "threadId");
-		UserInfo.validateUserInfo(userInfo);
-		Long threadIdLong = Long.parseLong(threadId);
-		DiscussionThreadBundle thread = threadDao.getThread(threadIdLong);
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccess(userInfo, thread.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
-		threadDao.updateThreadView(threadIdLong, userInfo.getId());
-	}
-
-	@Override
 	public MessageURL getMessageUrl(UserInfo userInfo, String threadId) {
 		ValidateArgument.required(threadId, "threadId");
 		UserInfo.validateUserInfo(userInfo);
