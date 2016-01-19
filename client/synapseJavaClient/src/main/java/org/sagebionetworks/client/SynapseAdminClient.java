@@ -94,6 +94,14 @@ public interface SynapseAdminClient extends SynapseClient {
 	public MigrationTypeList getPrimaryTypes() throws SynapseException, JSONObjectAdapterException;
 	
 	/**
+	 * Get the list of migration types
+	 * @return
+	 * @throws SynapseException
+	 * @throws JSONObjectAdapterException
+	 */
+	public MigrationTypeList getMigrationTypes() throws SynapseException, JSONObjectAdapterException;
+	
+	/**
 	 * Delete a list of IDs
 	 * 
 	 * @param migrationType
