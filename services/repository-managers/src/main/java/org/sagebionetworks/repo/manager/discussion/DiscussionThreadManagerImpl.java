@@ -14,11 +14,13 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UploadContentToS3DAO;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dao.discussion.DiscussionReplyDAO;
 import org.sagebionetworks.repo.model.dao.discussion.DiscussionThreadDAO;
 import org.sagebionetworks.repo.model.dao.discussion.ForumDAO;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
+import org.sagebionetworks.repo.model.discussion.MessageURL;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
@@ -28,6 +30,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 	@Autowired
 	private DiscussionThreadDAO threadDao;
+	@Autowired
+	private DiscussionReplyDAO replyDao;
 	@Autowired
 	private ForumDAO forumDao;
 	@Autowired
@@ -51,11 +55,12 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 				authorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ));
 		Long id = idGenerator.generateNewId(TYPE.DISCUSSION_THREAD_ID);
 		String messageKey = uploadDao.uploadDiscussionContent(createThread.getMessageMarkdown(), createThread.getForumId(), id.toString());
-		return addMessageUrl(threadDao.createThread(createThread.getForumId(), id.toString(), createThread.getTitle(), messageKey, userInfo.getId()));
+		DiscussionThreadBundle thread = threadDao.createThread(createThread.getForumId(), id.toString(), createThread.getTitle(), messageKey, userInfo.getId());
+		return updateNumberOfReplies(thread);
 	}
 
-	private DiscussionThreadBundle addMessageUrl(DiscussionThreadBundle thread) {
-		thread.setMessageUrl(uploadDao.getUrl(thread.getMessageKey()));
+	private DiscussionThreadBundle updateNumberOfReplies(DiscussionThreadBundle thread) {
+		thread.setNumberOfReplies(replyDao.getReplyCount(Long.parseLong(thread.getId())));
 		return thread;
 	}
 
@@ -68,7 +73,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canAccess(userInfo, thread.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
 		threadDao.updateThreadView(threadIdLong, userInfo.getId());
-		return addMessageUrl(thread);
+		return updateNumberOfReplies(thread);
 	}
 
 	@WriteTransactionReadCommitted
@@ -81,7 +86,8 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		Long threadIdLong = Long.parseLong(threadId);
 		DiscussionThreadBundle thread = threadDao.getThread(threadIdLong);
 		if (authorizationManager.isUserCreatorOrAdmin(userInfo, thread.getCreatedBy())) {
-			return addMessageUrl(threadDao.updateTitle(threadIdLong, newTitle.getTitle()));
+			thread = threadDao.updateTitle(threadIdLong, newTitle.getTitle());
+			return updateNumberOfReplies(thread);
 		} else {
 			throw new UnauthorizedException("Only the user that created the thread can modify it.");
 		}
@@ -99,7 +105,8 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		DiscussionThreadBundle thread = threadDao.getThread(threadIdLong);
 		if (authorizationManager.isUserCreatorOrAdmin(userInfo, thread.getCreatedBy())) {
 			String messageKey = uploadDao.uploadDiscussionContent(newMessage.getMessageMarkdown(), thread.getForumId(), thread.getId());
-			return addMessageUrl(threadDao.updateMessageKey(threadIdLong, messageKey));
+			thread = threadDao.updateMessageKey(threadIdLong, messageKey);
+			return updateNumberOfReplies(thread);
 		} else {
 			throw new UnauthorizedException("Only the user that created the thread can modify it.");
 		}
@@ -126,16 +133,29 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		String projectId = forumDao.getForum(Long.parseLong(forumId)).getProjectId();
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ));
-		return addMessageUrl(threadDao.getThreads(Long.parseLong(forumId), limit, offset, order, ascending));
+		PaginatedResults<DiscussionThreadBundle> threads = threadDao.getThreads(Long.parseLong(forumId), limit, offset, order, ascending);
+		return updateNumberOfReplies(threads);
 	}
 
-	private PaginatedResults<DiscussionThreadBundle> addMessageUrl(
+	private PaginatedResults<DiscussionThreadBundle> updateNumberOfReplies(
 			PaginatedResults<DiscussionThreadBundle> threads) {
 		List<DiscussionThreadBundle> list = new ArrayList<DiscussionThreadBundle>();
 		for (DiscussionThreadBundle thread : threads.getResults()) {
-			list.add(addMessageUrl(thread));
+			list.add(updateNumberOfReplies(thread));
 		}
 		threads.setResults(list);
 		return threads;
+	}
+
+	@Override
+	public MessageURL getMessageUrl(UserInfo userInfo, String threadId) {
+		ValidateArgument.required(threadId, "threadId");
+		UserInfo.validateUserInfo(userInfo);
+		Long threadIdLong = Long.parseLong(threadId);
+		DiscussionThreadBundle thread = threadDao.getThread(threadIdLong);
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+				authorizationManager.canAccess(userInfo, thread.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
+		threadDao.updateThreadView(threadIdLong, userInfo.getId());
+		return uploadDao.getUrl(thread.getMessageKey());
 	}
 }

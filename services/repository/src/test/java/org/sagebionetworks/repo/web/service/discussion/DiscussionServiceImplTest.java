@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
+import org.sagebionetworks.repo.model.discussion.MessageURL;
 import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
@@ -45,11 +46,11 @@ public class DiscussionServiceImplTest {
 	private String title = "title";
 	private DiscussionThreadBundle threadBundle;
 	private String threadId = "321";
-	private String messageUrl = "messageUrl";
 	private String messageKey = "messageKey";
 	private DiscussionReplyBundle replyBundle;
 	private String replyId = "987";
 	private CreateDiscussionReply createReply;
+	private MessageURL messageUrl = new MessageURL();
 
 	@Before
 	public void before() {
@@ -74,7 +75,6 @@ public class DiscussionServiceImplTest {
 		threadBundle.setTitle(title);
 		threadBundle.setProjectId(projectId);
 		threadBundle.setMessageKey(messageKey);
-		threadBundle.setMessageUrl(messageUrl);
 
 		createReply = new CreateDiscussionReply();
 		createReply.setThreadId(threadId);
@@ -84,7 +84,8 @@ public class DiscussionServiceImplTest {
 		replyBundle.setId(replyId);
 		replyBundle.setThreadId(threadId);
 		replyBundle.setMessageKey(messageKey);
-		replyBundle.setMessageUrl(messageUrl);
+
+		messageUrl.setMessageUrl("messageUrl");
 	}
 
 	@Test
@@ -120,7 +121,6 @@ public class DiscussionServiceImplTest {
 		UpdateThreadMessage newMessage = new UpdateThreadMessage();
 		newMessage.setMessageMarkdown("newMessage");
 		threadBundle.setMessageKey("newkey");
-		threadBundle.setMessageUrl("newUrl");
 		Mockito.when(mockThreadManager.updateMessage(userInfo, threadId, newMessage)).thenReturn(threadBundle);
 		assertEquals(threadBundle, discussionServices.updateThreadMessage(userId, threadId, newMessage));
 	}
@@ -156,7 +156,6 @@ public class DiscussionServiceImplTest {
 		UpdateReplyMessage newMessage = new UpdateReplyMessage();
 		newMessage.setMessageMarkdown("newMessage");
 		replyBundle.setMessageKey("newkey");
-		replyBundle.setMessageUrl("newUrl");
 		Mockito.when(mockReplyManager.updateReplyMessage(userInfo, replyId, newMessage)).thenReturn(replyBundle);
 		assertEquals(replyBundle, discussionServices.updateReplyMessage(userId, replyId, newMessage));
 	}
@@ -173,5 +172,17 @@ public class DiscussionServiceImplTest {
 		replies.setResults(Arrays.asList(replyBundle));
 		Mockito.when(mockReplyManager.getRepliesForThread(userInfo, threadId, 10L, 0L, null, true)).thenReturn(replies);
 		assertEquals(replies, discussionServices.getReplies(userId, threadId, 10L, 0L, null, true));
+	}
+
+	@Test
+	public void testGetThreadUrl() {
+		Mockito.when(mockThreadManager.getMessageUrl(userInfo, threadId)).thenReturn(messageUrl);
+		assertEquals(messageUrl, discussionServices.getThreadUrl(userId, threadId));
+	}
+
+	@Test
+	public void testGetReplyUrl() {
+		Mockito.when(mockReplyManager.getMessageUrl(userInfo, threadId)).thenReturn(messageUrl);
+		assertEquals(messageUrl, discussionServices.getReplyUrl(userId, threadId));
 	}
 }

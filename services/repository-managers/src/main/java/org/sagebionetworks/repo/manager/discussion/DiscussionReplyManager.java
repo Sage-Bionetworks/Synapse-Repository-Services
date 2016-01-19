@@ -7,6 +7,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
+import org.sagebionetworks.repo.model.discussion.MessageURL;
 import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
 
 public interface DiscussionReplyManager {
@@ -61,4 +62,12 @@ public interface DiscussionReplyManager {
 	 * @return
 	 */
 	public PaginatedResults<DiscussionReplyBundle> getRepliesForThread(UserInfo userInfo, String threadId, Long limit, Long offset, DiscussionReplyOrder order, Boolean ascending);
+
+	/**
+	 * Get message Url for a reply
+	 * 
+	 * @param user
+	 * @param replyId
+	 */
+	public MessageURL getMessageUrl(UserInfo user, String replyId);
 }
