@@ -1,0 +1,8 @@
+{
+	"properties": {
+		"messageUrl": {
+			"type": "string",
+			"description": "The URL to download the file which contains the message."
+		}
+	}
+}

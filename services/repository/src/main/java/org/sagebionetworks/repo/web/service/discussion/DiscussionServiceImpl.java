@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.Forum;
+import org.sagebionetworks.repo.model.discussion.MessageURL;
 import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
@@ -107,5 +108,17 @@ public class DiscussionServiceImpl implements DiscussionService{
 			DiscussionReplyOrder order, Boolean ascending) {
 		UserInfo user = userManager.getUserInfo(userId);
 		return replyManager.getRepliesForThread(user, threadId, limit, offset, order, ascending);
+	}
+
+	@Override
+	public MessageURL getThreadUrl(Long userId, String threadId) {
+		UserInfo user = userManager.getUserInfo(userId);
+		return threadManager.getMessageUrl(user, threadId);
+	}
+
+	@Override
+	public MessageURL getReplyUrl(Long userId, String replyId) {
+		UserInfo user = userManager.getUserInfo(userId);
+		return replyManager.getMessageUrl(user, replyId);
 	}
 }
