@@ -679,6 +679,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		return currentTag;
 	}
 
+	@MandatoryWriteTransaction
 	@Override
 	public String lockNode(final Long longId) {
 		String currentTag = jdbcTemplate.queryForObject(SQL_ETAG_FOR_UPDATE, String.class, longId);
@@ -1515,6 +1516,27 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		}
 		queryResults.setTotalNumberOfResults(totalCount);
 		return queryResults;
+	}
+
+	@MandatoryWriteTransaction
+	@Override
+	public List<String> lockNodes(List<String> nodeStringIds) {
+		ValidateArgument.required(nodeStringIds, "nodeIds");
+		if(nodeStringIds.isEmpty()){
+			return new LinkedList<String>();
+		}
+		List<Long> nodeIds = new LinkedList<Long>();
+		for(String stringId: nodeStringIds){
+			Long id = KeyFactory.stringToKey(stringId);
+			nodeIds.add(id);
+		}
+		Collections.sort(nodeIds);
+		List<String> etags = new LinkedList<String>();
+		for(Long id: nodeIds){
+			String etag = lockNode(id);
+			etags.add(etag);
+		}
+		return etags;
 	}
 
 }

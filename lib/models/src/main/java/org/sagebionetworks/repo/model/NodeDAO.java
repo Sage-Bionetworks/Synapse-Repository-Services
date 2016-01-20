@@ -403,6 +403,14 @@ public interface NodeDAO {
 	 * @return
 	 */
 	public String lockNode(Long longId);
+	
+	/**
+	 * Lock on a list of node IDs.
+	 * Note: The locks will be acquired in the numeric order of the entity IDs to prevent deadlock.
+	 * @param longIds
+	 * @return
+	 */
+	public List<String> lockNodes(List<String> nodeIds);
 
 	/**
 	 * get a list of projects

@@ -73,7 +73,11 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.transaction.IllegalTransactionStateException;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.UnexpectedRollbackException;
+import org.springframework.transaction.support.TransactionCallback;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
@@ -114,6 +118,11 @@ public class NodeDAOImplTest {
 
 	@Autowired
 	private ProjectStatsDAO projectStatsDAO;
+	
+	@Autowired
+	private PlatformTransactionManager txManager;
+	
+	private TransactionTemplate transactionTemplate;
 
 	// the datasets that must be deleted at the end of each test.
 	List<String> toDelete = new ArrayList<String>();
@@ -189,6 +198,8 @@ public class NodeDAOImplTest {
 
 		groupMembersDAO.addMembers(group, Lists.newArrayList(user1));
 		groupMembersDAO.addMembers(group, Lists.newArrayList(user3));
+		
+		transactionTemplate = new TransactionTemplate(txManager);
 	}
 	
 	@After
@@ -569,6 +580,75 @@ public class NodeDAOImplTest {
 		eTag = nodeDao.lockNodeAndIncrementEtag(id, eTag, ChangeType.DELETE);
 		fail("Should have thrown an IllegalTransactionStateException");
 	}
+	
+	@Test(expected=IllegalTransactionStateException.class)
+	public void testLockNodesNoTransaction(){
+		// must call must be made from within a transaction.
+		nodeDao.lockNodes(new LinkedList<String>());
+	}
+	
+	@Test
+	public void testLockNodes(){
+		// one
+		Node toCreate = privateCreateNew("testOne");
+		String id = nodeDao.createNew(toCreate);
+		toDelete.add(id);
+		assertNotNull(id);
+		final Node one = nodeDao.getNode(id);
+
+		// two
+		toCreate = privateCreateNew("testTwo");
+		id = nodeDao.createNew(toCreate);
+		toDelete.add(id);
+		assertNotNull(id);
+		final Node two = nodeDao.getNode(id);
+
+		// attempt to lock both within a transaction.
+		List<String> lockedEtags = transactionTemplate.execute(new TransactionCallback<List<String>>() {
+			@Override
+			public List<String> doInTransaction(TransactionStatus status) {
+				// Try to lock both nodes out of order
+				List<String> etags = nodeDao.lockNodes(Lists.newArrayList(two.getId(), one.getId()));
+				return etags;
+			}
+		});
+		assertNotNull(lockedEtags);
+		assertEquals(2, lockedEtags.size());
+		// The first etag should be first
+		assertEquals(one.getETag(), lockedEtags.get(0));
+		assertEquals(two.getETag(), lockedEtags.get(1));
+	}
+	
+	@Test
+	public void testLockNodesEmpty(){
+		// attempt to lock both within a transaction.
+		List<String> lockedEtags = transactionTemplate.execute(new TransactionCallback<List<String>>() {
+			@Override
+			public List<String> doInTransaction(TransactionStatus status) {
+				// Empty list should result in an empty return.
+				List<String> etags = nodeDao.lockNodes(new LinkedList<String>());
+				return etags;
+			}
+		});
+		assertNotNull(lockedEtags);
+		assertEquals(0, lockedEtags.size());
+	}
+	
+	@Test(expected=IllegalArgumentException.class)
+	public void testLockNodesEmptyNull(){
+		// attempt to lock both within a transaction.
+		List<String> lockedEtags = transactionTemplate.execute(new TransactionCallback<List<String>>() {
+			@Override
+			public List<String> doInTransaction(TransactionStatus status) {
+				// Empty list should result in an empty return.
+				List<String> etags = nodeDao.lockNodes(null);
+				return etags;
+			}
+		});
+		assertNotNull(lockedEtags);
+		assertEquals(0, lockedEtags.size());
+	}
+	
 
 	@Test
 	public void testUpdateNode() throws Exception{
