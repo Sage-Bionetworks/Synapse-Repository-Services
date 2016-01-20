@@ -25,6 +25,7 @@ public class RangeMetadataIterator implements Iterator<RowMetadata> {
 	long minId;
 	long maxId;
 	long batchSize;
+	Boolean hasNext;
 	
 	/**
 	 * Create a new iterator that can be used for one pass over a range of the data.
@@ -96,11 +97,18 @@ public class RangeMetadataIterator implements Iterator<RowMetadata> {
 	 * @return Returns non-null as long as there is more data to read. Throws NoSuchElementException when there is no more data to read. 
 	 */
 	public RowMetadata next() {
-		if (! this.rangeIterator.hasNext()) {
+		if (this.hasNext == null) {
+			this.hasNext();
+		}
+
+		if (! this.hasNext) {
 			throw new NoSuchElementException();
 		}
+
 		progress.setCurrent(progress.getCurrent()+1);
-		return this.rangeIterator.next();
+		RowMetadata res = this.rangeIterator.next();
+		this.hasNext = null;
+		return res;
 	}
 
 	@Override
@@ -108,10 +116,11 @@ public class RangeMetadataIterator implements Iterator<RowMetadata> {
 		if (range == null){
 			getRangeWithBackupoff();
 		}
-		if (! this.rangeIterator.hasNext()) {
+		this.hasNext = rangeIterator.hasNext();
+		if (! this.hasNext) {
 			this.progress.setDone();
 		}
-		return this.rangeIterator.hasNext();
+		return this.hasNext;
 	}
 
 	@Override

@@ -4,6 +4,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.commons.net.bsd.RLoginClient;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.exceptions.SynapseException;
@@ -11,10 +13,13 @@ import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.tool.migration.v4.MigrationClient;
 import org.sagebionetworks.tool.migration.v4.utils.TypeToMigrateMetadata;
 
 public class DeltaFinder {
-	
+
+	static private Log log = LogFactory.getLog(DeltaFinder.class);
+
 	private SynapseAdminClient sourceClient;
 	private SynapseAdminClient destinationClient;
 	TypeToMigrateMetadata typeToMigrateMeta;
@@ -33,7 +38,7 @@ public class DeltaFinder {
 		batchSize = bSize;
 	}
 
-	public DeltaRanges findDeltaRanges() {
+	public DeltaRanges findDeltaRanges() throws SynapseException, JSONObjectAdapterException {
 		DeltaRanges deltas = new DeltaRanges();
 		deltas.setMigrationType(typeToMigrateMeta.getType());
 		List<IdRange> insRanges = new LinkedList<IdRange>();
@@ -82,15 +87,7 @@ public class DeltaFinder {
 					}
 					
 					// Update ranges
-					try {
-						updRanges.addAll(findUpdDeltaRanges(sourceClient, destinationClient, typeToMigrateMeta.getType(), salt, updatesMinId, updatesMaxId, batchSize));
-					} catch (SynapseException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					} catch (JSONObjectAdapterException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
+					updRanges.addAll(findUpdDeltaRanges(sourceClient, destinationClient, typeToMigrateMeta.getType(), salt, updatesMinId, updatesMaxId, batchSize));
 				}
 
 			}
@@ -108,6 +105,7 @@ public class DeltaFinder {
 		List<IdRange> l = new LinkedList<IdRange>();
 		MigrationRangeChecksum srcCrc32 = srcClient.getChecksumForIdRange(type, salt, minId, maxId);
 		MigrationRangeChecksum destCrc32 = destClient.getChecksumForIdRange(type, salt, minId, maxId);
+		log.info("Computed range checksums from " + minId + " to " + maxId + ": (" + srcCrc32 + ", " + destCrc32 + ").");
 		if (srcCrc32.getChecksum().equals(destCrc32.getChecksum())) {
 			return l;
 		} else {

@@ -86,10 +86,7 @@ public class ToolMigrationUtilsTest {
 			idx++;
 		}
 		List<TypeToMigrateMetadata> l = ToolMigrationUtils.buildTypeToMigrateMetadata(srcTypeCounts, destTypeCounts, typesToMigrate.getList());
-		idx = 0;
-		for (TypeToMigrateMetadata d: expectedMetadata) {
-			assertEquals(d, l.get(idx++));
-		}
+		assertEquals(expectedMetadata, l);
 	}
 	
 	private List<MigrationTypeCount> generateMigrationTypeCounts() {
