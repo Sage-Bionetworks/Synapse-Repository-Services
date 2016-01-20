@@ -49,6 +49,8 @@ public class NodeInheritanceManagerImplUnitTest {
 		
 		// call under test
 		manager.nodeParentChanged(toMoveId, newParentId, false);
+		// Must lock on the node and parent before benefactor lookup.
+		verify(nodeDao).lockNodes(Lists.newArrayList(toMoveId, newParentId));
 		// start and end benefactor should be locked.
 		verify(nodeDao).lockNodes(Lists.newArrayList(toMoveStartBenefactor, newParentBenefactor));
 	}
