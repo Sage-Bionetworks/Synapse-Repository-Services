@@ -20,7 +20,7 @@ import org.sagebionetworks.tool.migration.v3.stream.ListRowMetadataWriter;
  * @author John
  *
  */
-public class DeltaBuilderTest {
+public class RangeDeltaBuilderTest {
 	
 	
 	ListRowMetadataWriter create;
@@ -42,9 +42,9 @@ public class DeltaBuilderTest {
 	public void testNoDelta() throws Exception{
 		Iterator<RowMetadata> srcIt = createIterator(new Long[]{0L, 1L, 2L, null}, new String[]{"e0","e2","e3", null});
 		Iterator<RowMetadata> desIt = createIterator(new Long[]{0L, 1L, 2L, null}, new String[]{"e0","e2","e3", null});
-		DeltaBuilder builder = new DeltaBuilder(srcIt, desIt, create, update, delete);
+		RangeDeltaBuilder builder = new RangeDeltaBuilder(srcIt, desIt, create, update, delete);
 		// Build the deltas
-		DeltaCounts counts = builder.call();
+		DeltaCounts counts = builder.buildDeltaCounts();
 		assertEquals(0, counts.getCreate());
 		assertEquals(0, counts.getUpdate());
 		assertEquals(0, counts.getDelete());
@@ -68,9 +68,9 @@ public class DeltaBuilderTest {
 	public void testUpdates() throws Exception{
 		Iterator<RowMetadata> srcIt = createIterator(new Long[]{0L, 1L, 2L, null}, new String[]{"e0","e2","e3", null});
 		Iterator<RowMetadata> desIt = createIterator(new Long[]{0L, 1L, 2L, null}, new String[]{"e5","e2","e4", null});
-		DeltaBuilder builder = new DeltaBuilder(srcIt, desIt, create, update, delete);
+		RangeDeltaBuilder builder = new RangeDeltaBuilder(srcIt, desIt, create, update, delete);
 		// Build the deltas
-		DeltaCounts counts = builder.call();
+		DeltaCounts counts = builder.buildDeltaCounts();
 		assertEquals(0, counts.getCreate());
 		assertEquals(2, counts.getUpdate());
 		assertEquals(0, counts.getDelete());
@@ -96,9 +96,9 @@ public class DeltaBuilderTest {
 	public void testDestEmpty() throws Exception{
 		Iterator<RowMetadata> srcIt = createIterator(new Long[]{0L, 1L, 2L, null}, new String[]{"e0","e2","e3", null});
 		Iterator<RowMetadata> desIt = createIterator(new Long[]{null, null, null, null}, new String[]{null, null, null, null});
-		DeltaBuilder builder = new DeltaBuilder(srcIt, desIt, create, update, delete);
+		RangeDeltaBuilder builder = new RangeDeltaBuilder(srcIt, desIt, create, update, delete);
 		// Build the deltas
-		DeltaCounts counts = builder.call();
+		DeltaCounts counts = builder.buildDeltaCounts();
 		assertEquals(3, counts.getCreate());
 		assertEquals(0, counts.getUpdate());
 		assertEquals(0, counts.getDelete());
@@ -126,9 +126,9 @@ public class DeltaBuilderTest {
 		Iterator<RowMetadata> srcIt = createIterator(new Long[]{null, null, null, null}, new String[]{null, null, null, null});
 		Iterator<RowMetadata> desIt = createIterator(new Long[]{0L, 1L, 2L, null}, new String[]{"e0","e2","e3", null});
 
-		DeltaBuilder builder = new DeltaBuilder(srcIt, desIt, create, update, delete);
+		RangeDeltaBuilder builder = new RangeDeltaBuilder(srcIt, desIt, create, update, delete);
 		// Build the deltas
-		DeltaCounts counts = builder.call();
+		DeltaCounts counts = builder.buildDeltaCounts();
 		assertEquals(0, counts.getCreate());
 		assertEquals(0, counts.getUpdate());
 		assertEquals(3, counts.getDelete());
@@ -157,9 +157,9 @@ public class DeltaBuilderTest {
 		Iterator<RowMetadata> srcIt = createIterator(new Long[]{0L, 2L, 3L, 4L, null, null}, new String[]{"e0","e22","e3","e4", null, null});
 		Iterator<RowMetadata> desIt = createIterator(new Long[]{0L, 1L, 2L, 5L, 6L, null}, new String[]{"e0","e1","e2","e5","e6", null});
 
-		DeltaBuilder builder = new DeltaBuilder(srcIt, desIt, create, update, delete);
+		RangeDeltaBuilder builder = new RangeDeltaBuilder(srcIt, desIt, create, update, delete);
 		// Build the deltas
-		DeltaCounts counts = builder.call();
+		DeltaCounts counts = builder.buildDeltaCounts();
 		assertEquals(2, counts.getCreate());
 		assertEquals(1, counts.getUpdate());
 		assertEquals(3, counts.getDelete());
@@ -189,9 +189,9 @@ public class DeltaBuilderTest {
 		Iterator<RowMetadata> srcIt = createIterator(new Long[]{0L, 4L, 5L, 6L, 7L, 8L, null}, new String[]{"e0","e4","e5","e6","e7","e8", null});
 		Iterator<RowMetadata> desIt = createIterator(new Long[]{0L, 1L, 2L, 3L, 6L, 8L, null}, new String[]{"e01","e1","e2","e3","e6","e81", null});
 
-		DeltaBuilder builder = new DeltaBuilder(srcIt, desIt, create, update, delete);
+		RangeDeltaBuilder builder = new RangeDeltaBuilder(srcIt, desIt, create, update, delete);
 		// Build the deltas
-		DeltaCounts counts = builder.call();
+		DeltaCounts counts = builder.buildDeltaCounts();
 		assertEquals(3, counts.getCreate());
 		assertEquals(2, counts.getUpdate());
 		assertEquals(3, counts.getDelete());
