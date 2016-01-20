@@ -19,10 +19,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-import org.apache.commons.lang.StringUtils;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
@@ -73,7 +71,6 @@ import org.springframework.test.util.ReflectionTestUtils;
 import com.amazonaws.services.simpleemail.AmazonSimpleEmailService;
 import com.amazonaws.services.simpleemail.model.SendEmailRequest;
 import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
-import com.google.common.collect.Sets;
 
 /**
  * Tests message access requirement checking and the sending of messages
@@ -135,6 +132,9 @@ public class MessageManagerImplTest {
 	private AuthorizationManager authorizationManager;
 	
 	@Autowired
+	private NodeInheritanceManager nodeInheritanceManager;
+	
+	@Autowired
 	private NodeDAO nodeDAO;
 	
 
@@ -165,6 +165,7 @@ public class MessageManagerImplTest {
 	private UserInfo adminUserInfo;
 	private List<String> cleanup;
 	private String nodeId;
+	private String childId;
 	
 	private List<PrincipalAlias> aliasesToDelete;
 	
@@ -186,6 +187,7 @@ public class MessageManagerImplTest {
 		ReflectionTestUtils.setField(messageManager, "fileHandleDao", fileDAO);
 		ReflectionTestUtils.setField(messageManager, "nodeDAO", nodeDAO);
 		ReflectionTestUtils.setField(messageManager, "entityPermissionsManager", entityPermissionsManager);
+		ReflectionTestUtils.setField(messageManager, "nodeInheritanceManager", nodeInheritanceManager);
 		// the normally autowired SynapseEmailService diverts email from Amazon SES into an S3
 		// file for testing.  In this test suite, however, we want mail to actually go to SES,
 		// so we override the normal autowiring.
@@ -435,6 +437,14 @@ public class MessageManagerImplTest {
 				nodeManager.delete(adminUserInfo, nodeId);
 			} catch (NotFoundException e) { }
 		}
+		nodeId=null;
+		
+		if (childId != null) {
+			try {
+				nodeManager.delete(adminUserInfo, childId);
+			} catch (NotFoundException e) { }
+		}
+		childId=null;
 		
 		// Reset the test user's notification settings to the default
 		UserProfile profile = userProfileManager.getUserProfile(testUser.getId().toString());
@@ -821,7 +831,38 @@ public class MessageManagerImplTest {
 
 		try {
 			message = messageManager.createMessageToEntityOwner(otherTestUser, nodeId, userToOther);
-		} catch (UnauthorizedException e) { }
+			fail("Exception expected");
+		} catch (UnauthorizedException e) { 
+			// as expected
+		}
+	}
+	
+	@Test
+	public void shareChildEntity() throws Exception {
+		// Make an "entity"
+		Node node = new Node();
+		node.setName(UUID.randomUUID().toString());
+		node.setNodeType(EntityType.project);
+		nodeId = nodeManager.createNewNode(node, testUser);
+		
+		Node child = new Node();
+		child.setName(UUID.randomUUID().toString());
+		child.setNodeType(EntityType.project);
+		child.setParentId(node.getId());
+		child.setProjectId(node.getId());
+		childId = nodeManager.createNewNode(child, testUser);
+		
+		// Creator can share
+		// This is in effect sending a message from the other test user to the test user
+		userToOther.setRecipients(null);
+		MessageToUser message = messageManager.createMessageToEntityOwner(otherTestUser, childId, userToOther);
+		cleanup.add(message.getId());
+		
+		// Check the test user's inbox
+		QueryResults<MessageBundle> inbox = messageManager.getInbox(testUser, 
+				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
+		assertEquals(message, inbox.getResults().get(0).getMessage());
+		
 	}
 	
 	@Test
