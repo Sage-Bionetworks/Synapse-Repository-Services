@@ -341,7 +341,7 @@ public class MigrationClient {
 	}
 
 	/**
-	 * Calcaulte the deltas
+	 * Calculate the deltas
 	 * @param type
 	 * @param batchSize
 	 * @param createTemp
@@ -363,64 +363,18 @@ public class MigrationClient {
 			updateOut = new BufferedRowMetadataWriter(new FileWriter(updateTemp));
 			deleteOut = new BufferedRowMetadataWriter(new FileWriter(deleteTemp));
 			
+			DeltaBuilder builder = new DeltaBuilder(factory, batchSize, typeMeta, ranges, createOut, updateOut, deleteOut);
+			
 			// Unconditional inserts
-			long insCount = 0;
-			List<IdRange> insRanges = ranges.getInsRanges();
-			for (IdRange r: insRanges) {
-				RangeMetadataIterator it = new RangeMetadataIterator(typeMeta.getType(), factory.createNewSourceClient(), batchSize, r.getMinId(), r.getMaxId(), sourceProgress);
-				RowMetadata sourceRow = null;
-				do {
-					sourceRow = null;
-					if (it.hasNext()) {
-						sourceRow = it.next();
-						createOut.write(sourceRow);
-						insCount++;
-					}
-				} while (sourceRow != null);
-			}
+			long insCount = builder.addInsertsFromSource();
+			
 			// Unconditional deletes
-			long delCount = 0;
-			List<IdRange> delRanges = ranges.getDelRanges();
-			for (IdRange r: delRanges) {
-				RangeMetadataIterator it = new RangeMetadataIterator(typeMeta.getType(), factory.createNewDestinationClient(), batchSize, r.getMinId(), r.getMaxId(), sourceProgress);
-				RowMetadata destRow = null;
-				do {
-					destRow = null;
-					if (it.hasNext()) {
-						destRow = it.next();
-						deleteOut.write(destRow);
-						delCount++;
-					}
-				} while (destRow != null);
-			}
+			long delCount = builder.addDeletesAtDestination();;
 			
-			// Updates
-			DeltaCounts counts = null;
-			List<IdRange> updRanges = ranges.getUpdRanges();
-			for (IdRange r: updRanges) {
-
-				RangeMetadataIterator sourceIt = new RangeMetadataIterator(typeMeta.getType(), factory.createNewSourceClient(), batchSize, r.getMinId(), r.getMaxId(), sourceProgress);
-				RangeMetadataIterator destIt = new RangeMetadataIterator(typeMeta.getType(), factory.createNewDestinationClient(), batchSize, r.getMinId(), r.getMaxId(), destProgress);
-				DeltaBuilder builder  = new DeltaBuilder(sourceIt, destIt, createOut, updateOut, deleteOut);
-
-				// Do the work on a separate thread
-				Future<DeltaCounts> future = this.threadPool.submit(builder);
-				// Wait for the future to finish
-				while(!future.isDone()){
-					// Log the progress
-					log.info("Calculating deltas for type: "+typeMeta.getType().name()+" Progress: "+sourceProgress.getCurrentStatus());
-					Thread.sleep(2000);
-				}
-				counts = future.get();
-			}
-			
-			// Fix the counts, check for counts == null (no updates)
-			if (counts != null) {
-				counts.setCreate(insCount+counts.getCreate());
-				counts.setDelete(delCount+counts.getDelete());
-			} else {
-				counts = new DeltaCounts(insCount, 0, delCount);
-			}
+			// Deep comparison of update box
+			DeltaCounts counts = builder.addDifferencesBetweenSourceAndDestination();
+			counts.setCreate(counts.getCreate()+insCount);
+			counts.setDelete(counts.getDelete()+delCount);
 			
 			log.info("Calculated the following counts for type: "+typeMeta.getType().name()+" Counts: "+counts);
 			
