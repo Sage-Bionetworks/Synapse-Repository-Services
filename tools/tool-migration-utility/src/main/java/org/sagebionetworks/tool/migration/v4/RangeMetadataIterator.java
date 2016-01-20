@@ -96,9 +96,10 @@ public class RangeMetadataIterator implements Iterator<RowMetadata> {
 	 * Get the next row metadata
 	 * @return Returns non-null as long as there is more data to read. Throws NoSuchElementException when there is no more data to read. 
 	 */
+	@Override
 	public RowMetadata next() {
 		if (this.hasNext == null) {
-			this.hasNext();
+			throw new IllegalStateException("HasNext() must be called prior to any call to next().");
 		}
 
 		if (! this.hasNext) {

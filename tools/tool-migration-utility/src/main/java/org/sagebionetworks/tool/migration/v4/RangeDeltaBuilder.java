@@ -32,8 +32,6 @@ public class RangeDeltaBuilder {
 		this.toDelete = toDelete;
 	}
 
-
-
 	public DeltaCounts buildDeltaCounts() throws Exception {
 		// Walk both iterators
 		long createCount = 0;

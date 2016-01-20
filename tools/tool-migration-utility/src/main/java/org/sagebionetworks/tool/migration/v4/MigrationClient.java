@@ -361,16 +361,16 @@ public class MigrationClient {
 			updateOut = new BufferedRowMetadataWriter(new FileWriter(updateTemp));
 			deleteOut = new BufferedRowMetadataWriter(new FileWriter(deleteTemp));
 			
-			DeltaBuilder builder = new DeltaBuilder(batchSize, typeMeta, ranges, createOut, updateOut, deleteOut);
+			DeltaBuilder builder = new DeltaBuilder(factory, batchSize, typeMeta, ranges, createOut, updateOut, deleteOut);
 			
 			// Unconditional inserts
-			long insCount = builder.addUnconditionalDeltas(factory.createNewSourceClient(), ranges.getInsRanges(), createOut);
+			long insCount = builder.addInsertsFromSource();
 			
 			// Unconditional deletes
-			long delCount = builder.addUnconditionalDeltas(factory.createNewDestinationClient(), ranges.getDelRanges(), deleteOut);;
+			long delCount = builder.addDeletesAtDestination();;
 			
-			// Updates
-			DeltaCounts counts = builder.addConditionalDeltas(factory.createNewSourceClient(), factory.createNewDestinationClient(), ranges.getUpdRanges());
+			// Deep comparison of update box
+			DeltaCounts counts = builder.addDifferencesBetweenSourceAndDestination();
 			counts.setCreate(counts.getCreate()+insCount);
 			counts.setDelete(counts.getDelete()+delCount);
 			

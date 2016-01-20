@@ -53,7 +53,7 @@ public class RangeMetadataIteratorTest {
 	}
 	
 	@Test
-	public void testHappyCase(){
+	public void testHappyCase() {
 		// Iterate over all data
 		BasicProgress progress = new BasicProgress();
 		RangeMetadataIterator iterator = new RangeMetadataIterator(type, stubSynapse, 5, 50 , 54, progress);
@@ -80,6 +80,7 @@ public class RangeMetadataIteratorTest {
 		try {
 			iterator.next();
 		} catch (NoSuchElementException e) {
+			// hasNext() has been called in the loop, so this is the correct exception
 			System.out.println("Caught NoSuchElementException.");
 		}
 	}
@@ -93,46 +94,25 @@ public class RangeMetadataIteratorTest {
 		iterator.next();
 	}
 	
-	@Test
-	public void testNoCallToHasNext() {
+	@Test(expected=IllegalStateException.class)
+	public void testNoCallToHasNext1() {
 		BasicProgress progress = new BasicProgress();
 		RangeMetadataIterator iterator = new RangeMetadataIterator(type, stubSynapse, 5, 50 , 54, progress);
 		RowMetadata row = iterator.next();
-		assertNotNull(row);
-		assertEquals(50L, row.getId().longValue());
 	}
 	
-	@Test(expected=NoSuchElementException.class)
-	public void testNoCallToHasNextNoSuchElement() {
+	@Test(expected=IllegalStateException.class)
+	public void testNoCallToHasNext2() {
 		BasicProgress progress = new BasicProgress();
-		// Should yield no row
-		RangeMetadataIterator iterator = new RangeMetadataIterator(type, stubSynapse, 5, rowCount , rowCount+1, progress);
-		// Even without call hasNext()
-		RowMetadata row = iterator.next();
-	}
-	
-	@Test(expected=NoSuchElementException.class)
-	public void testOneCallToHasNext() {
-		BasicProgress progress = new BasicProgress();
-		RangeMetadataIterator iterator = new RangeMetadataIterator(type, stubSynapse, 5, 54 , 55, progress);
-		// We should be able to iterate over all of the data and end up with list
-		// the same as used by the stub
-		RowMetadata row = null;;
-		row = null;
-		// 1st time, call hasNext()
+		RangeMetadataIterator iterator = new RangeMetadataIterator(type, stubSynapse, 5, 50 , 54, progress);
+		RowMetadata row = null;
 		if (iterator.hasNext()) {
+			// This will succeed
 			row = iterator.next();
-			System.out.println(progress.getCurrentStatus());
+			assertNotNull(row);
+			assertEquals(50L, row.getId().longValue());
 		}
-		assertNotNull(row);
-		assertEquals(54L, row.getId().longValue());
-		// Now call next() without calling hasNext();
-		row = iterator.next();
-		assertNotNull(row);
-		assertEquals(55L, row.getId().longValue());
-		// Same, if hasNext member not reset to null we use the cached value and call rangeIterator.next()
-		// Should throw an exception from rangeIterator
-		// After fix, should throw from this iterator
+		// This will throw an exception
 		row = iterator.next();
 	}
 	
