@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model;
 
+import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -29,6 +30,7 @@ public interface NodeInheritanceDAO {
 	 * @throws DatastoreException 
 	 */
 	public String getBenefactor(String beneficiaryId) throws NotFoundException, DatastoreException;
+	
 	
 	/**
 	 * Add a node as beneficiary to a given benefactor
