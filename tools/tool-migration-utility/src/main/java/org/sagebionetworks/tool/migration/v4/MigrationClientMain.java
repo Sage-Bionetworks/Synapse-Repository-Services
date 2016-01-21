@@ -37,8 +37,7 @@ public class MigrationClientMain {
 				configuration.getMaxRetries(),
 				configuration.getMaximumBatchSize(),
 				configuration.getWorkerTimeoutMs(),
-				configuration.getRetryDenominator(),
-				configuration.getDeferExceptions());
+				configuration.getRetryDenominator());
 		if (failed) {
 			System.exit(-1);
 		} else {
