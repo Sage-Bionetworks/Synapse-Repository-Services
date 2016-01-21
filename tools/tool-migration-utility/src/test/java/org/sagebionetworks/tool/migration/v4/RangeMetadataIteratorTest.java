@@ -1,6 +1,6 @@
 package org.sagebionetworks.tool.migration.v4;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.when;
 
@@ -53,7 +53,7 @@ public class RangeMetadataIteratorTest {
 	}
 	
 	@Test
-	public void testHappyCase(){
+	public void testHappyCase() {
 		// Iterate over all data
 		BasicProgress progress = new BasicProgress();
 		RangeMetadataIterator iterator = new RangeMetadataIterator(type, stubSynapse, 5, 50 , 54, progress);
@@ -75,21 +75,45 @@ public class RangeMetadataIteratorTest {
 			expectedResult.add(mockStack.metadata.get(type).get(id));
 		}
 		assertEquals(expectedResult, results);
+		
 		// Calling next() now should throw an exception
 		try {
 			iterator.next();
 		} catch (NoSuchElementException e) {
+			// hasNext() has been called in the loop, so this is the correct exception
 			System.out.println("Caught NoSuchElementException.");
 		}
 	}
 	
-	@Test (expected=RuntimeException.class)
-	public void testFailure() throws SynapseException, JSONObjectAdapterException{
+	@Test (expected=IllegalArgumentException.class)
+	public void testFailureRangeGreaterThanBatchSize() throws SynapseException, JSONObjectAdapterException{
 		// Throw exceptions
 		BasicProgress progress = new BasicProgress();
 		when(mockSynapse.getRowMetadataByRange(any(MigrationType.class), any(Long.class), any(Long.class))).thenThrow(new IllegalStateException("one"));
 		RangeMetadataIterator iterator = new RangeMetadataIterator(type, mockSynapse, 7, 0, rowCount-1, progress);
 		iterator.next();
+	}
+	
+	@Test(expected=IllegalStateException.class)
+	public void testNoCallToHasNext1() {
+		BasicProgress progress = new BasicProgress();
+		RangeMetadataIterator iterator = new RangeMetadataIterator(type, stubSynapse, 5, 50 , 54, progress);
+		RowMetadata row = iterator.next();
+	}
+	
+	@Test(expected=IllegalStateException.class)
+	public void testNoCallToHasNext2() {
+		BasicProgress progress = new BasicProgress();
+		RangeMetadataIterator iterator = new RangeMetadataIterator(type, stubSynapse, 5, 50 , 54, progress);
+		RowMetadata row = null;
+		if (iterator.hasNext()) {
+			// This will succeed
+			row = iterator.next();
+			assertNotNull(row);
+			assertEquals(50L, row.getId().longValue());
+		}
+		// This will throw an exception
+		row = iterator.next();
 	}
 	
 }
