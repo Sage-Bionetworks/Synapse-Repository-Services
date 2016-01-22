@@ -119,7 +119,6 @@ import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
 import org.sagebionetworks.repo.model.discussion.Forum;
-import org.sagebionetworks.repo.model.discussion.MessageURL;
 import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
@@ -488,6 +487,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String REPLY = "/reply";
 	private static final String REPLIES = "/replies";
 	private static final String URL = "/messageUrl";
+	private static final String MESSAGE_KEY_PARAMETER = "messageKey=";
 
 	private static final String PRINCIPAL_ID_REQUEST_PARAM = "principalId";
 
@@ -7491,21 +7491,23 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public MessageURL getReplyUrl(String replyId) throws SynapseException {
+	public URL getReplyUrl(String messageKey, boolean redirect) throws SynapseException {
 		try {
-			ValidateArgument.required(replyId, "replyId");
-			return getJSONEntity(REPLY+"/"+replyId+URL, MessageURL.class);
-		} catch (JSONObjectAdapterException e) {
+			ValidateArgument.required(messageKey, "messageKey");
+			String url = REPLY+URL+"?"+MESSAGE_KEY_PARAMETER+messageKey+AND_REDIRECT_PARAMETER+redirect;
+			return getUrl(url);
+		} catch (IOException e) {
 			throw new SynapseClientException(e);
 		}
 	}
 
 	@Override
-	public MessageURL getThreadUrl(String threadId) throws SynapseException {
+	public URL getThreadUrl(String messageKey, boolean redirect) throws SynapseException {
 		try {
-			ValidateArgument.required(threadId, "threadId");
-			return getJSONEntity(THREAD+"/"+threadId+URL, MessageURL.class);
-		} catch (JSONObjectAdapterException e) {
+			ValidateArgument.required(messageKey, "messageKey");
+			String url = THREAD+URL+"?"+MESSAGE_KEY_PARAMETER+messageKey+AND_REDIRECT_PARAMETER+redirect;
+			return getUrl(url);
+		} catch (IOException e) {
 			throw new SynapseClientException(e);
 		}
 	}

@@ -5,6 +5,9 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.io.IOException;
+import java.net.URL;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -60,7 +63,7 @@ public class ITDiscussion {
 	}
 
 	@Test
-	public void test() throws SynapseException {
+	public void test() throws SynapseException, IOException {
 		// create a forum
 		Forum forum = synapse.getForumMetadata(projectId);
 		assertNotNull(forum);
@@ -92,6 +95,12 @@ public class ITDiscussion {
 		assertTrue(threads.getResults().size() == 1);
 		assertEquals(threads.getResults().get(0), bundle);
 		assertEquals(1L, threads.getTotalNumberOfResults());
+
+		// get message URL
+		URL url = synapse.getThreadUrl(bundle.getMessageKey(), false);
+		assertNotNull(url);
+		url = synapse.getThreadUrl(bundle.getMessageKey(), true);
+		assertNotNull(url);
 
 		// update title
 		UpdateThreadTitle updateTitle = new UpdateThreadTitle();
@@ -133,6 +142,12 @@ public class ITDiscussion {
 		assertTrue(replies.getResults().size() == 1);
 		assertEquals(replies.getResults().get(0), replyBundle);
 		assertEquals(1L, replies.getTotalNumberOfResults());
+
+		// get message URL
+		url = synapse.getReplyUrl(replyBundle.getMessageKey(), false);
+		assertNotNull(url);
+		url = synapse.getReplyUrl(replyBundle.getMessageKey(), true);
+		assertNotNull(url);
 
 		// update message
 		UpdateReplyMessage updateReplyMessage = new UpdateReplyMessage();
