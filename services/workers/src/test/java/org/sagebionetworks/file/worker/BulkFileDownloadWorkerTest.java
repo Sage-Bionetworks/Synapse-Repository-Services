@@ -222,6 +222,7 @@ public class BulkFileDownloadWorkerTest {
 		BulkFileDownloadResponse expectedResponse = new BulkFileDownloadResponse();
 		expectedResponse.setResultZipFileHandleId(resultHandle.getId());
 		expectedResponse.setFileSummary(Arrays.asList(summary));
+		expectedResponse.setUserId(""+user.getId());
 		verify(mockAsynchJobStatusManager).setComplete(jobStatus.getJobId(),
 				expectedResponse);
 	}
@@ -260,6 +261,7 @@ public class BulkFileDownloadWorkerTest {
 		BulkFileDownloadResponse expectedResponse = new BulkFileDownloadResponse();
 		expectedResponse.setResultZipFileHandleId(null);
 		expectedResponse.setFileSummary(Arrays.asList(summary));
+		expectedResponse.setUserId(""+user.getId());
 		verify(mockAsynchJobStatusManager).setComplete(jobStatus.getJobId(),
 				expectedResponse);
 	}
@@ -319,6 +321,7 @@ public class BulkFileDownloadWorkerTest {
 		BulkFileDownloadResponse expectedResponse = new BulkFileDownloadResponse();
 		expectedResponse.setResultZipFileHandleId(resultHandle.getId());
 		expectedResponse.setFileSummary(Arrays.asList(summary1, summary2));
+		expectedResponse.setUserId(""+user.getId());
 		verify(mockAsynchJobStatusManager).setComplete(jobStatus.getJobId(),
 				expectedResponse);
 	}
@@ -349,6 +352,7 @@ public class BulkFileDownloadWorkerTest {
 		BulkFileDownloadResponse expectedResponse = new BulkFileDownloadResponse();
 		expectedResponse.setResultZipFileHandleId(null);
 		expectedResponse.setFileSummary(Arrays.asList(summary));
+		expectedResponse.setUserId(""+user.getId());
 		verify(mockAsynchJobStatusManager).setComplete(jobStatus.getJobId(),
 				expectedResponse);
 	}
@@ -379,6 +383,7 @@ public class BulkFileDownloadWorkerTest {
 		BulkFileDownloadResponse expectedResponse = new BulkFileDownloadResponse();
 		expectedResponse.setResultZipFileHandleId(null);
 		expectedResponse.setFileSummary(Arrays.asList(summary));
+		expectedResponse.setUserId(""+user.getId());
 		verify(mockAsynchJobStatusManager).setComplete(jobStatus.getJobId(),
 				expectedResponse);
 	}
@@ -407,6 +412,7 @@ public class BulkFileDownloadWorkerTest {
 		BulkFileDownloadResponse expectedResponse = new BulkFileDownloadResponse();
 		expectedResponse.setResultZipFileHandleId(null);
 		expectedResponse.setFileSummary(Arrays.asList(summary));
+		expectedResponse.setUserId(""+user.getId());
 		verify(mockAsynchJobStatusManager).setComplete(jobStatus.getJobId(),
 				expectedResponse);
 	}
@@ -436,6 +442,7 @@ public class BulkFileDownloadWorkerTest {
 		BulkFileDownloadResponse expectedResponse = new BulkFileDownloadResponse();
 		expectedResponse.setResultZipFileHandleId(null);
 		expectedResponse.setFileSummary(Arrays.asList(summary));
+		expectedResponse.setUserId(""+user.getId());
 		verify(mockAsynchJobStatusManager).setComplete(jobStatus.getJobId(),
 				expectedResponse);
 	}
@@ -489,6 +496,7 @@ public class BulkFileDownloadWorkerTest {
 		BulkFileDownloadResponse expectedResponse = new BulkFileDownloadResponse();
 		expectedResponse.setResultZipFileHandleId(resultHandle.getId());
 		expectedResponse.setFileSummary(Arrays.asList(summary1, summary2));
+		expectedResponse.setUserId(""+user.getId());
 		verify(mockAsynchJobStatusManager).setComplete(jobStatus.getJobId(),
 				expectedResponse);
 	}

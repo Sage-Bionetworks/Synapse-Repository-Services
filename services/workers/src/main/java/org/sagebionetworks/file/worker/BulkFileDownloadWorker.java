@@ -145,6 +145,8 @@ public class BulkFileDownloadWorker implements MessageDrivenRunner {
 			// All of the parts are ready.
 			BulkFileDownloadResponse response = new BulkFileDownloadResponse();
 			response.setFileSummary(results);
+			// added for PLFM-3629
+			response.setUserId(""+user.getId());
 			response.setResultZipFileHandleId(resultFileHandleId);
 			return response;
 		} finally {
