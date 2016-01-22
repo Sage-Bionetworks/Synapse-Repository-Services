@@ -2,6 +2,8 @@ package org.sagebionetworks.repo.manager.discussion;
 
 import java.io.IOException;
 
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
@@ -15,9 +17,9 @@ import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
-import org.sagebionetworks.repo.model.discussion.MessageURL;
 import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
+import org.sagebionetworks.upload.discussion.MessageKeyUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -30,6 +32,8 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 	private AuthorizationManager authorizationManager;
 	@Autowired
 	private DiscussionReplyDAO replyDao;
+	@Autowired
+	private IdGenerator idGenerator;
 
 	@WriteTransactionReadCommitted
 	@Override
@@ -41,8 +45,9 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 		ValidateArgument.required(threadId, "CreateDiscussionReply.threadId");
 		ValidateArgument.required(createReply.getMessageMarkdown(), "CreateDiscussionReply.messageMarkdown");
 		DiscussionThreadBundle thread = threadManager.getThread(userInfo, threadId);
-		String messageKey = uploadDao.uploadDiscussionContent(createReply.getMessageMarkdown(), thread.getForumId(), threadId);
-		return replyDao.createReply(threadId, messageKey, userInfo.getId());
+		String replyId = idGenerator.generateNewId(TYPE.DISCUSSION_REPLY_ID).toString();
+		String messageKey = uploadDao.uploadReplyMessage(createReply.getMessageMarkdown(), thread.getForumId(), threadId, replyId);
+		return replyDao.createReply(threadId, replyId, messageKey, userInfo.getId());
 	}
 
 	@Override
@@ -66,7 +71,7 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 		Long replyIdLong = Long.parseLong(replyId);
 		DiscussionReplyBundle reply = replyDao.getReply(replyIdLong);
 		if (authorizationManager.isUserCreatorOrAdmin(userInfo, reply.getCreatedBy())) {
-			String messageKey = uploadDao.uploadDiscussionContent(newMessage.getMessageMarkdown(), reply.getForumId(), reply.getThreadId());
+			String messageKey = uploadDao.uploadThreadMessage(newMessage.getMessageMarkdown(), reply.getForumId(), reply.getThreadId());
 			return replyDao.updateMessageKey(replyIdLong, messageKey);
 		} else {
 			throw new UnauthorizedException("Only the user that created the thread can modify it.");
@@ -98,13 +103,15 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 	}
 
 	@Override
-	public MessageURL getMessageUrl(UserInfo userInfo, String replyId) {
+	public String getMessageUrl(UserInfo userInfo, String messageKey) {
+		ValidateArgument.required(messageKey, "messageKey");
 		UserInfo.validateUserInfo(userInfo);
+		String replyId = MessageKeyUtils.getReplyId(messageKey);
 		ValidateArgument.required(replyId, "replyId");
 		DiscussionReplyBundle reply = replyDao.getReply(Long.parseLong(replyId));
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canAccess(userInfo, reply.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
-		return uploadDao.getUrl(reply.getMessageKey());
+		return uploadDao.getReplyUrl(messageKey);
 	}
 
 }

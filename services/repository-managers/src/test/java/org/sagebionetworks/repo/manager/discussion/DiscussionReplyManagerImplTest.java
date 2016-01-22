@@ -11,6 +11,8 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
@@ -24,7 +26,6 @@ import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
-import org.sagebionetworks.repo.model.discussion.MessageURL;
 import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -39,6 +40,8 @@ public class DiscussionReplyManagerImplTest {
 	private AuthorizationManager mockAuthorizationManager;
 	@Mock
 	private DiscussionThreadBundle mockThread;
+	@Mock
+	private IdGenerator mockIdGenerator;
 
 	private DiscussionReplyManager replyManager;
 	private UserInfo userInfo = new UserInfo(false /*not admin*/);
@@ -48,7 +51,7 @@ public class DiscussionReplyManagerImplTest {
 	private Long replyId = 222L;
 	private DiscussionReplyBundle bundle;
 	private String messageKey;
-	private MessageURL messageUrl = new MessageURL();
+	private String messageUrl = "messageUrl";
 
 	@Before
 	public void before() {
@@ -59,22 +62,23 @@ public class DiscussionReplyManagerImplTest {
 		ReflectionTestUtils.setField(replyManager, "replyDao", mockReplyDao);
 		ReflectionTestUtils.setField(replyManager, "uploadDao", mockUploadDao);
 		ReflectionTestUtils.setField(replyManager, "authorizationManager", mockAuthorizationManager);
-
-		Mockito.when(mockThreadManager.getThread(userInfo, threadId)).thenReturn(mockThread);
-		Mockito.when(mockThread.getProjectId()).thenReturn(projectId);
-		Mockito.when(mockThread.getForumId()).thenReturn(forumId);
-		messageUrl.setMessageUrl("messageUrl");
-		Mockito.when(mockUploadDao.getUrl(Mockito.anyString())).thenReturn(messageUrl);
+		ReflectionTestUtils.setField(replyManager, "idGenerator", mockIdGenerator);
 
 		bundle = new DiscussionReplyBundle();
 		bundle.setThreadId(threadId);
 		bundle.setForumId(forumId);
 		bundle.setProjectId(projectId);
-		messageKey = UUID.randomUUID().toString();
+		messageKey = forumId+"/"+threadId+"/"+replyId+"/"+UUID.randomUUID().toString();
 		bundle.setMessageKey(messageKey);
 		userInfo.setId(765L);
 		bundle.setCreatedBy(userInfo.getId().toString());
+
+		Mockito.when(mockThreadManager.getThread(userInfo, threadId)).thenReturn(mockThread);
+		Mockito.when(mockThread.getProjectId()).thenReturn(projectId);
+		Mockito.when(mockThread.getForumId()).thenReturn(forumId);
+		Mockito.when(mockUploadDao.getReplyUrl(messageKey)).thenReturn(messageUrl);
 		Mockito.when(mockReplyDao.getReply(Mockito.anyLong())).thenReturn(bundle);
+		Mockito.when(mockIdGenerator.generateNewId(TYPE.DISCUSSION_REPLY_ID)).thenReturn(replyId);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -118,9 +122,9 @@ public class DiscussionReplyManagerImplTest {
 		CreateDiscussionReply createReply = new CreateDiscussionReply();
 		createReply.setThreadId(threadId);
 		createReply.setMessageMarkdown(message);
-		Mockito.when(mockUploadDao.uploadDiscussionContent(message, forumId, threadId))
+		Mockito.when(mockUploadDao.uploadReplyMessage(message, forumId, threadId, replyId.toString()))
 				.thenReturn(messageKey);
-		Mockito.when(mockReplyDao.createReply(threadId, messageKey, userInfo.getId()))
+		Mockito.when(mockReplyDao.createReply(threadId, replyId.toString(), messageKey, userInfo.getId()))
 				.thenReturn(bundle);
 		DiscussionReplyBundle reply = replyManager.createReply(userInfo, createReply);
 		assertEquals(bundle, reply);
@@ -159,7 +163,7 @@ public class DiscussionReplyManagerImplTest {
 	@Test
 	public void testUpdateReplyMessageAuthorized() throws IOException {
 		Mockito.when(mockAuthorizationManager.isUserCreatorOrAdmin(userInfo, bundle.getCreatedBy())).thenReturn(true);
-		Mockito.when(mockUploadDao.uploadDiscussionContent("messageMarkdown", forumId, threadId))
+		Mockito.when(mockUploadDao.uploadThreadMessage("messageMarkdown", forumId, threadId))
 				.thenReturn(messageKey);
 		Mockito.when(mockReplyDao.updateMessageKey(replyId, messageKey)).thenReturn(bundle);
 		UpdateReplyMessage newMessage = new UpdateReplyMessage();
@@ -205,15 +209,14 @@ public class DiscussionReplyManagerImplTest {
 	public void testGetReplyUrlUnauthorized() {
 		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
 				.thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
-		replyManager.getMessageUrl(userInfo, replyId.toString());
+		replyManager.getMessageUrl(userInfo, messageKey);
 	}
 
 	@Test
 	public void testGetReplyUrlAuthorized() {
 		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		MessageURL url = replyManager.getMessageUrl(userInfo, replyId.toString());
+		String url = replyManager.getMessageUrl(userInfo, messageKey);
 		assertNotNull(url);
-		assertNotNull(url.getMessageUrl());
 	}
 }

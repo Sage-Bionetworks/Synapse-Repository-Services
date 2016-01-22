@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import java.util.Arrays;
+import java.util.UUID;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -27,7 +28,6 @@ import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.Forum;
-import org.sagebionetworks.repo.model.discussion.MessageURL;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -55,8 +55,8 @@ public class DiscussionThreadManagerImplTest {
 	private Long userId = 2L;
 	private Long threadId = 3L;
 	private Forum forum;
-	private String messageKey = "messageKey";
-	private MessageURL messageUrl = new MessageURL();
+	private String messageKey;
+	private String messageUrl = "messageUrl";
 	private UpdateThreadTitle newTitle = new UpdateThreadTitle();
 	private UpdateThreadMessage newMessage = new UpdateThreadMessage();
 
@@ -87,12 +87,12 @@ public class DiscussionThreadManagerImplTest {
 
 		newTitle.setTitle("newTitle");
 		newMessage.setMessageMarkdown("newMessageMarkdown");
+		messageKey = forumId+"/"+threadId+"/"+UUID.randomUUID().toString();
 
 		Mockito.when(mockForumDao.getForum(Long.parseLong(createDto.getForumId()))).thenReturn(forum);
 		Mockito.when(mockThreadDao.getThread(threadId)).thenReturn(dto);
 		Mockito.when(mockIdGenerator.generateNewId(TYPE.DISCUSSION_THREAD_ID)).thenReturn(threadId);
-		messageUrl.setMessageUrl("messageUrl");
-		Mockito.when(mockUploadDao.getUrl(messageKey)).thenReturn(messageUrl);
+		Mockito.when(mockUploadDao.getThreadUrl(messageKey)).thenReturn(messageUrl);
 		Mockito.when(mockReplyDao.getReplyCount(Mockito.anyLong())).thenReturn(0L);
 	}
 
@@ -135,7 +135,7 @@ public class DiscussionThreadManagerImplTest {
 	public void testCreateAuthorized() throws Exception {
 		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		Mockito.when(mockUploadDao.uploadDiscussionContent(Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
+		Mockito.when(mockUploadDao.uploadThreadMessage(Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
 				.thenReturn(messageKey);
 		Mockito.when(mockThreadDao.createThread(Mockito.anyString(), Mockito.anyString(), Mockito.anyString(), Mockito.anyString(), Mockito.anyLong()))
 				.thenReturn(dto);
@@ -204,7 +204,7 @@ public class DiscussionThreadManagerImplTest {
 	public void testUpdateMessageAuthorized() throws Exception {
 		Mockito.when(mockAuthorizationManager.isUserCreatorOrAdmin(Mockito.eq(userInfo), Mockito.anyString()))
 				.thenReturn(true);
-		Mockito.when(mockUploadDao.uploadDiscussionContent(Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
+		Mockito.when(mockUploadDao.uploadThreadMessage(Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
 				.thenReturn("newMessage");
 		Mockito.when(mockThreadDao.updateMessageKey(Mockito.anyLong(), Mockito.anyString())).thenReturn(dto);
 		assertEquals(dto, threadManager.updateMessage(userInfo, threadId.toString(), newMessage));
@@ -247,16 +247,15 @@ public class DiscussionThreadManagerImplTest {
 	public void testGetThreadURLUnauthorized() {
 		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
 				.thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
-		threadManager.getMessageUrl(userInfo, threadId.toString());
+		threadManager.getMessageUrl(userInfo, messageKey);
 	}
 
 	@Test
 	public void testGetThreadURLAuthorized() {
 		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		MessageURL url = threadManager.getMessageUrl(userInfo, threadId.toString());
+		String url = threadManager.getMessageUrl(userInfo, messageKey);
 		assertNotNull(url);
-		assertNotNull(url.getMessageUrl());
 		Mockito.verify(mockThreadDao).updateThreadView(threadId, userId);
 	}
 }
