@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.web.controller;
 
 import static org.junit.Assert.*;
 
+import java.net.URL;
 import java.util.Collections;
 import java.util.UUID;
 
@@ -19,7 +20,6 @@ import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
 import org.sagebionetworks.repo.model.discussion.Forum;
-import org.sagebionetworks.repo.model.discussion.MessageURL;
 import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
@@ -137,9 +137,14 @@ public class DiscussionControllerAutowiredTest extends AbstractAutowiredControll
 		Forum dto = servletTestHelper.getForumMetadata(dispatchServlet, project.getId(), adminUserId);
 		createThread.setForumId(dto.getId());
 		DiscussionThreadBundle bundle = servletTestHelper.createThread(dispatchServlet, adminUserId, createThread);
-		MessageURL url = servletTestHelper.getThreadUrl(dispatchServlet, adminUserId, bundle.getId());
+		URL url = servletTestHelper.getThreadUrl(dispatchServlet, adminUserId, bundle.getMessageKey(), false);
 		assertNotNull(url);
-		assertNotNull(url.getMessageUrl());
+		String urlString = url.toString();
+		assertTrue(urlString.contains(bundle.getMessageKey()));
+		url = servletTestHelper.getThreadUrl(dispatchServlet, adminUserId, bundle.getMessageKey(), true);
+		assertNotNull(url);
+		urlString = url.toString();
+		assertTrue(urlString.contains(bundle.getMessageKey()));
 	}
 
 	@Test
@@ -212,8 +217,13 @@ public class DiscussionControllerAutowiredTest extends AbstractAutowiredControll
 		DiscussionThreadBundle threadBundle = servletTestHelper.createThread(dispatchServlet, adminUserId, createThread);
 		createReply.setThreadId(threadBundle.getId());
 		DiscussionReplyBundle replyBundle = servletTestHelper.createReply(dispatchServlet, adminUserId, createReply);
-		MessageURL url = servletTestHelper.getReplyUrl(dispatchServlet, adminUserId, replyBundle.getId());
+		URL url = servletTestHelper.getReplyUrl(dispatchServlet, adminUserId, replyBundle.getMessageKey(), false);
 		assertNotNull(url);
-		assertNotNull(url.getMessageUrl());
+		String urlString = url.toString();
+		assertTrue(urlString.contains(replyBundle.getMessageKey()));
+		url = servletTestHelper.getReplyUrl(dispatchServlet, adminUserId, replyBundle.getMessageKey(), true);
+		assertNotNull(url);
+		urlString = url.toString();
+		assertTrue(urlString.contains(replyBundle.getMessageKey()));
 	}
 }
