@@ -9,7 +9,6 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
-import org.sagebionetworks.repo.model.discussion.MessageURL;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.amazonaws.services.s3.AmazonS3Client;
@@ -33,7 +32,7 @@ public class UploadContentToS3DAOImplTest {
 	}
 
 	@Test
-	public void testUploadDiscussionContent() throws Exception {
+	public void testUploadThreadMessage() throws Exception {
 		dao.initialize();
 		Mockito.verify(mockS3Client).createBucket(Mockito.anyString());
 		Mockito.verify(mockS3Client).setBucketCrossOriginConfiguration(Mockito.anyString(), (BucketCrossOriginConfiguration) Mockito.any());
@@ -41,7 +40,7 @@ public class UploadContentToS3DAOImplTest {
 		String content = "this is a message";
 		String forumId = "1";
 		String threadId = "2";
-		String key = dao.uploadDiscussionContent(content, forumId, threadId);
+		String key = dao.uploadThreadMessage(content, forumId, threadId);
 		Mockito.verify(mockS3Client).putObject((PutObjectRequest) Mockito.any());
 		assertNotNull(key);
 		String[] parts = key.split("/");
@@ -50,15 +49,55 @@ public class UploadContentToS3DAOImplTest {
 		assertEquals(parts[1], threadId);
 	}
 
+	@Test
+	public void testUploadReplyMessage() throws Exception {
+		dao.initialize();
+		Mockito.verify(mockS3Client).createBucket(Mockito.anyString());
+		Mockito.verify(mockS3Client).setBucketCrossOriginConfiguration(Mockito.anyString(), (BucketCrossOriginConfiguration) Mockito.any());
+
+		String content = "this is a message";
+		String forumId = "1";
+		String threadId = "2";
+		String replyId = "3";
+		String key = dao.uploadReplyMessage(content, forumId, threadId, replyId);
+		Mockito.verify(mockS3Client).putObject((PutObjectRequest) Mockito.any());
+		assertNotNull(key);
+		String[] parts = key.split("/");
+		assertTrue(parts.length == 4);
+		assertEquals(parts[0], forumId);
+		assertEquals(parts[1], threadId);
+		assertEquals(parts[2], replyId);
+	}
+
 	@Test (expected = IllegalArgumentException.class)
-	public void testGetUrlWithNullKey() {
-		dao.getUrl(null);
+	public void testGetThreadUrlWithNullKey() {
+		dao.getThreadUrl(null);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetThreadUrlWithBadKey() {
+		dao.getThreadUrl("1/2/3/key");
 	}
 
 	@Test
-	public void testGetUrl() {
-		MessageURL url = dao.getUrl("key");
+	public void testGetThreadUrl() {
+		String url = dao.getThreadUrl("1/2/key");
 		assertNotNull(url);
-		assertNotNull(url.getMessageUrl());
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetRepyUrlWithNullKey() {
+		dao.getReplyUrl(null);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetReplyUrlWithBadKey() {
+		dao.getReplyUrl("1/2/key");
+	}
+
+	@Test
+	public void testGetReplyUrl() {
+		String url = dao.getReplyUrl("1/2/3/key");
+		assertNotNull(url);
 	}
 }
