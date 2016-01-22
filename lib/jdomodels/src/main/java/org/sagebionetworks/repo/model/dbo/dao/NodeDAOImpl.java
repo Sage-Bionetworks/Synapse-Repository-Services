@@ -121,6 +121,7 @@ import com.google.common.collect.Sets;
  */
 public class NodeDAOImpl implements NodeDAO, InitializingBean {
 
+	private static final String SQL_UPDATE_PARENT_ID = "UPDATE "+TABLE_NODE+" SET "+COL_NODE_PARENT_ID+" = ?, "+COL_NODE_ETAG+" = UUID() WHERE "+COL_NODE_ID+" = ?";
 	private static final String SELECT_ENTITY_HEADERS_FOR_ENTITY_IDS = "SELECT "+COL_NODE_ID+", "+COL_NODE_NAME+", "+COL_NODE_TYPE+", "+COL_CURRENT_REV+", "+COL_NODE_BENEFACTOR_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" IN (:nodeIds)";
 	private static final String USER_ID_PARAM_NAME = "user_id_param";
 	private static final String IDS_PARAM_NAME = "ids_param";
@@ -219,7 +220,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			+ " AND F." + COL_FILES_CONTENT_MD5 + " = :" + COL_FILES_CONTENT_MD5
 			+ " LIMIT " + (NODE_VERSION_LIMIT_BY_FILE_MD5 + 1);
 
-	private static final String UPDATE_PROJECT_IDS = "UPDATE " + TABLE_NODE + " SET " + COL_NODE_PROJECT_ID + " = :" + PROJECT_ID_PARAM_NAME
+	private static final String UPDATE_PROJECT_IDS = "UPDATE " + TABLE_NODE + " SET " + COL_NODE_PROJECT_ID + " = :" + PROJECT_ID_PARAM_NAME +", "+COL_NODE_ETAG+" = UUID()"
 			+ " WHERE " + COL_NODE_ID + " IN (:" + IDS_PARAM_NAME + ")";
 
 	private static final RowMapper<EntityHeader> ENTITY_HEADER_ROWMAPPER = new RowMapper<EntityHeader>() {
@@ -1254,17 +1255,25 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 
 		// also update the project, since that might have changed too
 		if (!ObjectUtils.equals(node.getProjectId(), desiredProjectId)) {
-			node.setProjectId(desiredProjectId);
 			// this means we need to update all the children also
-			updateProjectForAllChildren(node, desiredProjectId);
+			updateProjectForAllChildren(node.getId(), desiredProjectId);
 		}
-		dboBasicDao.update(node);
+		jdbcTemplate.update(SQL_UPDATE_PARENT_ID, newParentNode.getId(), node.getId());
 		return true;
 	}
 	
-	private int updateProjectForAllChildren(DBONode node, Long projectId) {
+	@WriteTransaction
+	@Override
+	public int updateProjectForAllChildren(String nodeId, String projectId) {
+		ValidateArgument.required(nodeId, "nodeId");
+		ValidateArgument.required(projectId, "projectId");
+		return updateProjectForAllChildren(KeyFactory.stringToKey(nodeId), KeyFactory.stringToKey(projectId));
+	}
+	
+	private int updateProjectForAllChildren(Long nodeId, Long projectId) {
 		List<Long> allChildren = Lists.newLinkedList();
-		getChildrenIdsRecursive(node.getId(), allChildren);
+		allChildren.add(nodeId);
+		getChildrenIdsRecursive(nodeId, allChildren);
 		// batch the updates, so we don't overwhelm the in clause
 		int count = 0;
 		for (List<Long> batch : Lists.partition(allChildren, 500)) {
