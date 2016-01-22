@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.model;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
@@ -429,4 +428,13 @@ public interface NodeDAO {
 			ProjectListType type, ProjectListSortColumn sortColumn, SortDirection sortDirection, Integer limit, Integer offset);
 
 	long getCount();
+	
+	/**
+	 * Update the project Id for a given node and all of its children.
+	 * @param nodeId
+	 * @param projectId
+	 * @return
+	 */
+	int updateProjectForAllChildren(String nodeId, String projectId);
+
 }
