@@ -97,10 +97,11 @@ public class ITDiscussion {
 		assertEquals(1L, threads.getTotalNumberOfResults());
 
 		// get message URL
-		URL url = synapse.getThreadUrl(bundle.getMessageKey(), false);
+		URL url = synapse.getThreadMessageUrl(bundle.getMessageKey());
 		assertNotNull(url);
-		url = synapse.getThreadUrl(bundle.getMessageKey(), true);
-		assertNotNull(url);
+		String returnedMessage = synapse.getThreadMessage(bundle.getMessageKey());
+		assertNotNull(returnedMessage);
+		assertEquals(returnedMessage, message);
 
 		// update title
 		UpdateThreadTitle updateTitle = new UpdateThreadTitle();
@@ -144,10 +145,11 @@ public class ITDiscussion {
 		assertEquals(1L, replies.getTotalNumberOfResults());
 
 		// get message URL
-		url = synapse.getReplyUrl(replyBundle.getMessageKey(), false);
+		url = synapse.getReplyMessageUrl(replyBundle.getMessageKey());
 		assertNotNull(url);
-		url = synapse.getReplyUrl(replyBundle.getMessageKey(), true);
-		assertNotNull(url);
+		returnedMessage = synapse.getReplyMessage(replyBundle.getMessageKey());
+		assertNotNull(returnedMessage);
+		assertEquals(returnedMessage, message);
 
 		// update message
 		UpdateReplyMessage updateReplyMessage = new UpdateReplyMessage();

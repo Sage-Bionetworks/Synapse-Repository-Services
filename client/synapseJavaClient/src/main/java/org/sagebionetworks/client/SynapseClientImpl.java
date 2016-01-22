@@ -7491,10 +7491,10 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public URL getReplyUrl(String messageKey, boolean redirect) throws SynapseException {
+	public URL getReplyMessageUrl(String messageKey) throws SynapseException {
 		try {
 			ValidateArgument.required(messageKey, "messageKey");
-			String url = REPLY+URL+"?"+MESSAGE_KEY_PARAMETER+messageKey+AND_REDIRECT_PARAMETER+redirect;
+			String url = REPLY+URL+"?"+MESSAGE_KEY_PARAMETER+messageKey+AND_REDIRECT_PARAMETER+Boolean.FALSE.toString();
 			return getUrl(url);
 		} catch (IOException e) {
 			throw new SynapseClientException(e);
@@ -7502,11 +7502,33 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public URL getThreadUrl(String messageKey, boolean redirect) throws SynapseException {
+	public String getReplyMessage(String messageKey) throws SynapseException {
 		try {
 			ValidateArgument.required(messageKey, "messageKey");
-			String url = THREAD+URL+"?"+MESSAGE_KEY_PARAMETER+messageKey+AND_REDIRECT_PARAMETER+redirect;
+			String url = REPLY+URL+"?"+MESSAGE_KEY_PARAMETER+messageKey+AND_REDIRECT_PARAMETER+Boolean.TRUE.toString();
+			return getSharedClientConnection().getDirect(repoEndpoint, url, getUserAgent());
+		} catch (IOException e) {
+			throw new SynapseClientException(e);
+		}
+	}
+
+	@Override
+	public URL getThreadMessageUrl(String messageKey) throws SynapseException {
+		try {
+			ValidateArgument.required(messageKey, "messageKey");
+			String url = THREAD+URL+"?"+MESSAGE_KEY_PARAMETER+messageKey+AND_REDIRECT_PARAMETER+Boolean.FALSE.toString();
 			return getUrl(url);
+		} catch (IOException e) {
+			throw new SynapseClientException(e);
+		}
+	}
+
+	@Override
+	public String getThreadMessage(String messageKey) throws SynapseException {
+		try {
+			ValidateArgument.required(messageKey, "messageKey");
+			String url = THREAD+URL+"?"+MESSAGE_KEY_PARAMETER+messageKey+AND_REDIRECT_PARAMETER+Boolean.TRUE.toString();
+			return getSharedClientConnection().getDirect(repoEndpoint, url, getUserAgent());
 		} catch (IOException e) {
 			throw new SynapseClientException(e);
 		}

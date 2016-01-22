@@ -2465,10 +2465,17 @@ public interface SynapseClient extends BaseClient {
 	 * Get the message URL for a reply
 	 * 
 	 * @param messageKey
-	 * @param redirect
 	 * @throws SynapseException
 	 */
-	URL getReplyUrl(String messageKey, boolean redirect) throws SynapseException;
+	URL getReplyMessageUrl(String messageKey) throws SynapseException;
+
+	/**
+	 * Get the message for a reply
+	 * 
+	 * @param messageKey
+	 * @throws SynapseException
+	 */
+	String getReplyMessage(String messageKey) throws SynapseException;
 
 	/**
 	 * Create a new Discussion Thread
@@ -2533,10 +2540,17 @@ public interface SynapseClient extends BaseClient {
 	 * Get the message URL for a thread
 	 * 
 	 * @param messageKey
-	 * @param redirect
 	 * @throws SynapseException
 	 */
-	URL getThreadUrl(String messageKey, boolean redirect) throws SynapseException;
+	URL getThreadMessageUrl(String messageKey) throws SynapseException;
+	
+	/**
+	 * Get the message for a thread
+	 * 
+	 * @param messageKey
+	 * @throws SynapseException
+	 */
+	String getThreadMessage(String messageKey) throws SynapseException;
 	
 	/**
 	 * Low-level API to start a mutli-part upload.  Start or resume a mutli-part upload.
