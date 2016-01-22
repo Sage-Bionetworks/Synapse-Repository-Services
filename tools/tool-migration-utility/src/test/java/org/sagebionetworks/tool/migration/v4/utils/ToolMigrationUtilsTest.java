@@ -89,6 +89,42 @@ public class ToolMigrationUtilsTest {
 		assertEquals(expectedMetadata, l);
 	}
 	
+	@Test
+	public void testMigrationOutcomeGetDelta() {
+		MigrationTypeCountDiff outcome = new MigrationTypeCountDiff(MigrationType.ACCESS_APPROVAL, null, null);
+		Long delta = outcome.getDelta();
+		assertNull(delta);
+		outcome.setSourceCount(10L);
+		delta = outcome.getDelta();
+		assertNull(delta);
+		outcome.setSourceCount(null);
+		outcome.setDestinationCount(20L);
+		delta = outcome.getDelta();
+		assertNull(delta);
+		outcome.setSourceCount(10L);
+		delta = outcome.getDelta();
+		assertNotNull(delta);
+		assertEquals(20L-10L, delta.longValue());
+	}
+	
+	@Test
+	public void testGetMigrationOutcomesAllSourcesExist() {
+		List<MigrationTypeCount> srcCounts = generateMigrationTypeCounts();
+		List<MigrationTypeCount> destCounts = generateMigrationTypeCounts();
+		
+		List<MigrationTypeCountDiff> expectedOutcomes = new LinkedList<MigrationTypeCountDiff>();
+		int idx = 0;
+		for (MigrationTypeCount tc: destCounts) {
+			MigrationTypeCountDiff outcome = new MigrationTypeCountDiff(tc.getType(), srcCounts.get(idx++).getCount(), tc.getCount());
+			expectedOutcomes.add(outcome);
+		}
+		
+		List<MigrationTypeCountDiff> outcomes = ToolMigrationUtils.getMigrationTypeCountDiffs(srcCounts, destCounts);
+		
+		assertNotNull(outcomes);
+		assertEquals(expectedOutcomes.size(), outcomes.size());
+	}
+	
 	private List<MigrationTypeCount> generateMigrationTypeCounts() {
 		Random r = new Random();
 		List<MigrationTypeCount> l = new LinkedList<MigrationTypeCount>();

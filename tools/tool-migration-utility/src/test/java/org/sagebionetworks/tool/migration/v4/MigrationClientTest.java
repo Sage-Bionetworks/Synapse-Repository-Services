@@ -98,7 +98,7 @@ public class MigrationClientTest {
 		mockSource.metadata.put(MigrationType.values()[1], list);
 		
 		// Migrate the data
-		migrationClient.migrateAllTypes(10L, 1000*60, 2, false);
+		migrationClient.migrateAllTypes(10L, 1000*60, 2);
 		
 		// Now validate the results
 		List<RowMetadata> expected0 = createList(new Long[]{2L, 3L}, new String[]{"e2changed","e3"}, new Long[]{null, 1l});
