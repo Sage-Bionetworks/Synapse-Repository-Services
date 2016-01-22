@@ -14,12 +14,13 @@ public interface DiscussionReplyDAO {
 	 * Create a new Reply
 	 * 
 	 * @param threadId
+	 * @param replyId
 	 * @param messageKey
 	 * @param userId
 	 * @return
 	 */
-	public DiscussionReplyBundle createReply(String threadId, String messageKey,
-			Long userId);
+	public DiscussionReplyBundle createReply(String threadId, String replyId,
+			String messageKey, Long userId);
 
 	/**
 	 * Get a reply given its ID
