@@ -2,6 +2,8 @@ package org.sagebionetworks.repo.model;
 
 import java.io.IOException;
 
+import org.sagebionetworks.repo.model.discussion.MessageURL;
+
 public interface UploadContentToS3DAO {
 
 	/**
@@ -21,5 +23,5 @@ public interface UploadContentToS3DAO {
 	 * @param key
 	 * @return
 	 */
-	public String getUrl(String key);
+	public MessageURL getUrl(String key);
 }

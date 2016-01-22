@@ -104,5 +104,5 @@
 	<bean id="namedParameterJdbcTemplate" class="org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate">
 		<constructor-arg ref="dataSourcePool"></constructor-arg>
 	</bean>
-
+	
 </beans>

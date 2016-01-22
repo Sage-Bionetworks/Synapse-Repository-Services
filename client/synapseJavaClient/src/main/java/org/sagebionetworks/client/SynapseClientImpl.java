@@ -119,6 +119,7 @@ import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
 import org.sagebionetworks.repo.model.discussion.Forum;
+import org.sagebionetworks.repo.model.discussion.MessageURL;
 import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
@@ -486,6 +487,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String DISCUSSION_MESSAGE = "/message";
 	private static final String REPLY = "/reply";
 	private static final String REPLIES = "/replies";
+	private static final String URL = "/messageUrl";
 
 	private static final String PRINCIPAL_ID_REQUEST_PARAM = "principalId";
 
@@ -7485,6 +7487,26 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			return multipartUpload(fileInputStream, fileSize, fileName, contentType, storageLocationId, generatePreview, forceRestart);
 		}finally{
 			IOUtils.closeQuietly(fileInputStream);
+		}
+	}
+
+	@Override
+	public MessageURL getReplyUrl(String replyId) throws SynapseException {
+		try {
+			ValidateArgument.required(replyId, "replyId");
+			return getJSONEntity(REPLY+"/"+replyId+URL, MessageURL.class);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
+	}
+
+	@Override
+	public MessageURL getThreadUrl(String threadId) throws SynapseException {
+		try {
+			ValidateArgument.required(threadId, "threadId");
+			return getJSONEntity(THREAD+"/"+threadId+URL, MessageURL.class);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
 		}
 	}
 }

@@ -13,6 +13,7 @@ import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.Forum;
+import org.sagebionetworks.repo.model.discussion.MessageURL;
 import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
@@ -186,6 +187,23 @@ public class DiscussionController extends BaseController {
 	}
 
 	/**
+	 * This API is used to get the message URL of a thread. The message URL is
+	 * the URL to download the file which contains the thread message.
+	 * <br/>
+	 * Target users: anyone who has READ permission to the project.
+	 * 
+	 * @param userId - the ID of the user who is making the request
+	 * @param threadId - the ID of the thread whose data being requested
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.THREAD_THREAD_ID_URL, method = RequestMethod.GET)
+	public @ResponseBody MessageURL getThreadUrl(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String threadId) {
+		return serviceProvider.getDiscussionService().getThreadUrl(userId, threadId);
+	}
+
+	/**
 	 * This API is used to create a new reply to a thread.
 	 * <br/>
 	 * Target users: anyone who has READ permission to the project.
@@ -279,5 +297,22 @@ public class DiscussionController extends BaseController {
 			@RequestParam(value = ServiceConstants.ASCENDING_PARAM, required = false) Boolean ascending,
 			@PathVariable String threadId) {
 		return serviceProvider.getDiscussionService().getReplies(userId, threadId, limit, offset, order, ascending);
+	}
+
+	/**
+	 * This API is used to get the message URL of a reply. The message URL is
+	 * the URL to download the file which contains the reply message.
+	 * <br/>
+	 * Target users: anyone who has READ permission to the project.
+	 * 
+	 * @param userId - the ID of the user who is making the request
+	 * @param replyId - the ID of the reply whose data being requested
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.REPLY_REPLY_ID_URL, method = RequestMethod.GET)
+	public @ResponseBody MessageURL getReplyUrl(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String replyId) {
+		return serviceProvider.getDiscussionService().getReplyUrl(userId, replyId);
 	}
 }

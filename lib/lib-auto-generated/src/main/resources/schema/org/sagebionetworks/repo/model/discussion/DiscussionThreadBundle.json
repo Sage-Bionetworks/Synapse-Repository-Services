@@ -39,10 +39,6 @@
 		"type": "string",
 			"description": "The S3 key where the actual message stored"
 		},
-		"messageUrl": {
-		"type": "string",
-			"description": "The URL to download the file that contains the message"
-		},
 		"numberOfViews": {
 			"type": "integer",
 			"description": "The number of unique users who has viewed this thread"

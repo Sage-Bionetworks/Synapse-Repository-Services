@@ -20,12 +20,14 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UploadContentToS3DAO;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dao.discussion.DiscussionReplyDAO;
 import org.sagebionetworks.repo.model.dao.discussion.DiscussionThreadDAO;
 import org.sagebionetworks.repo.model.dao.discussion.ForumDAO;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.Forum;
+import org.sagebionetworks.repo.model.discussion.MessageURL;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -33,6 +35,8 @@ import org.springframework.test.util.ReflectionTestUtils;
 public class DiscussionThreadManagerImplTest {
 	@Mock
 	private DiscussionThreadDAO mockThreadDao;
+	@Mock
+	private DiscussionReplyDAO mockReplyDao;
 	@Mock
 	private ForumDAO mockForumDao;
 	@Mock
@@ -52,7 +56,7 @@ public class DiscussionThreadManagerImplTest {
 	private Long threadId = 3L;
 	private Forum forum;
 	private String messageKey = "messageKey";
-	private String messageUrl = "messageUrl";
+	private MessageURL messageUrl = new MessageURL();
 	private UpdateThreadTitle newTitle = new UpdateThreadTitle();
 	private UpdateThreadMessage newMessage = new UpdateThreadMessage();
 
@@ -66,6 +70,7 @@ public class DiscussionThreadManagerImplTest {
 		ReflectionTestUtils.setField(threadManager, "uploadDao", mockUploadDao);
 		ReflectionTestUtils.setField(threadManager, "authorizationManager", mockAuthorizationManager);
 		ReflectionTestUtils.setField(threadManager, "idGenerator", mockIdGenerator);
+		ReflectionTestUtils.setField(threadManager, "replyDao", mockReplyDao);
 
 		createDto = new CreateDiscussionThread();
 		createDto.setForumId(forumId.toString());
@@ -77,6 +82,7 @@ public class DiscussionThreadManagerImplTest {
 		dto = new DiscussionThreadBundle();
 		dto.setProjectId(projectId);
 		dto.setMessageKey(messageKey);
+		dto.setId(threadId.toString());
 		userInfo.setId(userId);
 
 		newTitle.setTitle("newTitle");
@@ -85,7 +91,9 @@ public class DiscussionThreadManagerImplTest {
 		Mockito.when(mockForumDao.getForum(Long.parseLong(createDto.getForumId()))).thenReturn(forum);
 		Mockito.when(mockThreadDao.getThread(threadId)).thenReturn(dto);
 		Mockito.when(mockIdGenerator.generateNewId(TYPE.DISCUSSION_THREAD_ID)).thenReturn(threadId);
+		messageUrl.setMessageUrl("messageUrl");
 		Mockito.when(mockUploadDao.getUrl(messageKey)).thenReturn(messageUrl);
+		Mockito.when(mockReplyDao.getReplyCount(Mockito.anyLong())).thenReturn(0L);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -134,6 +142,7 @@ public class DiscussionThreadManagerImplTest {
 		DiscussionThreadBundle createdThread = threadManager.createThread(userInfo, createDto);
 		assertNotNull(createdThread);
 		assertEquals(createdThread, dto);
+		Mockito.verify(mockReplyDao).getReplyCount(Long.parseLong(createdThread.getId()));
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -154,6 +163,7 @@ public class DiscussionThreadManagerImplTest {
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		assertEquals(dto, threadManager.getThread(userInfo, threadId.toString()));
 		Mockito.verify(mockThreadDao).updateThreadView(Mockito.anyLong(), Mockito.anyLong());
+		Mockito.verify(mockReplyDao).getReplyCount(threadId);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -175,6 +185,7 @@ public class DiscussionThreadManagerImplTest {
 		Mockito.when(mockThreadDao.updateTitle(Mockito.anyLong(), Mockito.anyString())).thenReturn(dto);
 
 		assertEquals(dto, threadManager.updateTitle(userInfo, threadId.toString(), newTitle));
+		Mockito.verify(mockReplyDao).getReplyCount(threadId);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -197,6 +208,7 @@ public class DiscussionThreadManagerImplTest {
 				.thenReturn("newMessage");
 		Mockito.when(mockThreadDao.updateMessageKey(Mockito.anyLong(), Mockito.anyString())).thenReturn(dto);
 		assertEquals(dto, threadManager.updateMessage(userInfo, threadId.toString(), newMessage));
+		Mockito.verify(mockReplyDao).getReplyCount(threadId);
 	}
 
 	@Test (expected = UnauthorizedException.class)
@@ -228,5 +240,23 @@ public class DiscussionThreadManagerImplTest {
 		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		assertEquals(threads, threadManager.getThreadsForForum(userInfo, forumId.toString(), 2L, 0L, DiscussionThreadOrder.LAST_ACTIVITY, true));
+		Mockito.verify(mockReplyDao).getReplyCount(threadId);
+	}
+
+	@Test (expected = UnauthorizedException.class)
+	public void testGetThreadURLUnauthorized() {
+		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
+				.thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+		threadManager.getMessageUrl(userInfo, threadId.toString());
+	}
+
+	@Test
+	public void testGetThreadURLAuthorized() {
+		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
+				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		MessageURL url = threadManager.getMessageUrl(userInfo, threadId.toString());
+		assertNotNull(url);
+		assertNotNull(url.getMessageUrl());
+		Mockito.verify(mockThreadDao).updateThreadView(threadId, userId);
 	}
 }

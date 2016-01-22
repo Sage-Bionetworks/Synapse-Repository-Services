@@ -61,6 +61,7 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	private static final String MIGRATION_DELETE = MIGRATION + "/delete";
 	private static final String MIGRATION_STATUS = MIGRATION + "/status";
 	private static final String MIGRATION_PRIMARY = MIGRATION + "/primarytypes";
+	private static final String MIGRATION_TYPES = MIGRATION + "/types";
 	private static final String MIGRATION_RANGE_CHECKSUM = MIGRATION + "/rangechecksum";
 	private static final String MIGRATION_TYPE_CHECKSUM = MIGRATION + "/typechecksum";
 
@@ -130,6 +131,15 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	
 	public MigrationTypeList getPrimaryTypes() throws SynapseException, JSONObjectAdapterException {
 		String uri = MIGRATION_PRIMARY;
+		JSONObject jsonObj = getSharedClientConnection().getJson(repoEndpoint, uri, getUserAgent());
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		MigrationTypeList mtl = new MigrationTypeList();
+		mtl.initializeFromJSONObject(adapter);
+		return mtl;
+	}
+	
+	public MigrationTypeList getMigrationTypes() throws SynapseException, JSONObjectAdapterException {
+		String uri = MIGRATION_TYPES;
 		JSONObject jsonObj = getSharedClientConnection().getJson(repoEndpoint, uri, getUserAgent());
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
 		MigrationTypeList mtl = new MigrationTypeList();

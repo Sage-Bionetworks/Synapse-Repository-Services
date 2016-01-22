@@ -9,6 +9,7 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
+import org.sagebionetworks.repo.model.discussion.MessageURL;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.amazonaws.services.s3.AmazonS3Client;
@@ -56,7 +57,8 @@ public class UploadContentToS3DAOImplTest {
 
 	@Test
 	public void testGetUrl() {
-		String url = dao.getUrl("key");
+		MessageURL url = dao.getUrl("key");
 		assertNotNull(url);
+		assertNotNull(url.getMessageUrl());
 	}
 }

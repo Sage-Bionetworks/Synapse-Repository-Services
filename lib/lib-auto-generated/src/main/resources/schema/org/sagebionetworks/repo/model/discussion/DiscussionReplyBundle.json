@@ -39,10 +39,6 @@
 		"type": "string",
 			"description": "The S3 key where the actual message stored"
 		},
-		"messageUrl": {
-		"type": "string",
-			"description": "The URL to download the file that contains the message"
-		},
 		"isEdited": {
 			"type": "boolean",
 			"description": "Has the author edited this Reply?"

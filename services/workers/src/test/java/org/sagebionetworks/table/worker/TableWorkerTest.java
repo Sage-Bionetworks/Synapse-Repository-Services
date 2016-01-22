@@ -91,6 +91,7 @@ public class TableWorkerTest {
 		ReflectionTestUtils.setField(worker, "tableRowManager", mockTableRowManager);
 		ReflectionTestUtils.setField(worker, "configuration", mockConfiguration);
 		ReflectionTestUtils.setField(worker, "nodeInheritanceManager", mockNodeInheritanceManager);
+		worker.setTimeoutSeconds(1200L);
 		
 		one = new ChangeMessage();
 		one.setChangeType(ChangeType.CREATE);
@@ -144,6 +145,17 @@ public class TableWorkerTest {
 		worker.run(mockProgressCallback, two);
 		// The connection factory should never be called
 		verifyZeroInteractions(mockConnectionFactory);
+	}
+	
+	@Test (expected=IllegalStateException.class)
+	public void testLockTimeoutNotSet() throws Exception{
+		worker = new TableWorker();
+		ReflectionTestUtils.setField(worker, "connectionFactory", mockConnectionFactory);
+		ReflectionTestUtils.setField(worker, "tableRowManager", mockTableRowManager);
+		ReflectionTestUtils.setField(worker, "configuration", mockConfiguration);
+		ReflectionTestUtils.setField(worker, "nodeInheritanceManager", mockNodeInheritanceManager);
+		// call under test
+		worker.run(mockProgressCallback, one);
 	}
 	
 	/**

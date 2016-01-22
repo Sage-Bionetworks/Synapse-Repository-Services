@@ -21,6 +21,11 @@ public class ChangeMessageDrivenWorkerStack implements Runnable {
 			ChangeMessageDrivenWorkerStackConfig config) {
 		// Get the configured runner.
 		ChangeMessageDrivenRunner changeRunner = config.getRunner();
+		if(changeRunner instanceof LockTimeoutAware){
+			LockTimeoutAware lockAware = (LockTimeoutAware) changeRunner;
+			// forward the lock timeout to the runner.
+			lockAware.setTimeoutSeconds(config.getConfig().getSemaphoreGatedRunnerConfiguration().getLockTimeoutSec());
+		}
 		// Wrap the runner in a processor that converts batches of change
 		// messages into single messages.
 		ChangeMessageBatchProcessor batchProcessor = new ChangeMessageBatchProcessor(

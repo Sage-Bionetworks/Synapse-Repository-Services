@@ -7,6 +7,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -25,8 +26,8 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.util.ValidateArgument;
 
 public class JDONodeInheritanceDAOImpl implements NodeInheritanceDAO {
 	
@@ -100,5 +101,6 @@ public class JDONodeInheritanceDAOImpl implements NodeInheritanceDAO {
 		transactionalMessenger.sendModificationMessageAfterCommit(toBenefactorId, ObjectType.ENTITY);
 		dboBasicDao.update(beneficiary);
 	}
+
 
 }

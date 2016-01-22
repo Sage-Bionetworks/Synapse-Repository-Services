@@ -10,6 +10,7 @@ import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.Forum;
+import org.sagebionetworks.repo.model.discussion.MessageURL;
 import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
@@ -140,4 +141,22 @@ public interface DiscussionService {
 	public PaginatedResults<DiscussionReplyBundle> getReplies(Long userId,
 			String threadId, Long limit, Long offset,
 			DiscussionReplyOrder order, Boolean ascending);
+
+	/**
+	 * Get the message Url of a thread
+	 * 
+	 * @param userId
+	 * @param threadId
+	 * @return
+	 */
+	public MessageURL getThreadUrl(Long userId, String threadId);
+
+	/**
+	 * Get the message Url of a reply
+	 * 
+	 * @param userId
+	 * @param replyId
+	 * @return
+	 */
+	public MessageURL getReplyUrl(Long userId, String replyId);
 }
