@@ -245,9 +245,16 @@ public class MigrationManagerImplTest {
 		
 	}
 	
-	@Test
+	@Test(expected=RuntimeException.class)
 	public void testgetMigrationChecksumForTypeReadWriteMode() throws Exception {
 		when(mockStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_WRITE);
+		UserInfo user = new UserInfo(true, "0");
+		MigrationTypeChecksum c = manager.getChecksumForType(user, MigrationType.FILE_HANDLE);
+	}
+
+	@Test
+	public void testgetMigrationChecksumForTypeReadOnlyMode() throws Exception {
+		when(mockStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_ONLY);
 		UserInfo user = new UserInfo(true, "0");
 		MigrationTypeChecksum c = manager.getChecksumForType(user, MigrationType.FILE_HANDLE);
 	}
