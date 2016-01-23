@@ -246,14 +246,14 @@ public class MigrationManagerImplAutowireTest {
 	
 	@Test
 	public void testGetMigrationTypeCount() {
-			MigrationTypeCount expectedCount = new MigrationTypeCount();
-			expectedCount.setType(MigrationType.FILE_HANDLE);
-			expectedCount.setMinid(migrationManager.getMinId(adminUser, MigrationType.FILE_HANDLE));
-			expectedCount.setMaxid(migrationManager.getMaxId(adminUser, MigrationType.FILE_HANDLE));
-			expectedCount.setCount(migrationManager.getCount(adminUser, MigrationType.FILE_HANDLE));
-			MigrationTypeCount mtc = migrationManager.getMigrationTypeCount(adminUser, MigrationType.FILE_HANDLE);
-			assertNotNull(mtc);
-			assertEquals(expectedCount, mtc);
+		MigrationTypeCount expectedCount = new MigrationTypeCount();
+		expectedCount.setType(MigrationType.FILE_HANDLE);
+		expectedCount.setMinid(migrationManager.getMinId(adminUser, MigrationType.FILE_HANDLE));
+		expectedCount.setMaxid(migrationManager.getMaxId(adminUser, MigrationType.FILE_HANDLE));
+		expectedCount.setCount(migrationManager.getCount(adminUser, MigrationType.FILE_HANDLE));
+		MigrationTypeCount mtc = migrationManager.getMigrationTypeCount(adminUser, MigrationType.FILE_HANDLE);
+		assertNotNull(mtc);
+		assertEquals(expectedCount, mtc);
 	}
 	
 	@Test
