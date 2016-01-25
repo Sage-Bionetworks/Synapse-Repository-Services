@@ -15,7 +15,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 
-import org.apache.commons.lang.RandomStringUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -32,17 +31,15 @@ import org.sagebionetworks.repo.manager.table.TableRowManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ProjectSettingsDAO;
+import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.table.CurrentVersionCacheDao;
 import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
-import org.sagebionetworks.repo.model.file.ExternalUploadDestination;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.file.UploadDestination;
-import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationType;
@@ -50,11 +47,8 @@ import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
-import org.sagebionetworks.repo.model.project.ExternalUploadDestinationSetting;
-import org.sagebionetworks.repo.model.project.ProjectSetting;
-import org.sagebionetworks.repo.model.project.ProjectSettingsType;
-import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
-import org.sagebionetworks.repo.model.project.UploadDestinationSetting;
+import org.sagebionetworks.repo.model.status.StackStatus;
+import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
@@ -111,6 +105,9 @@ public class MigrationManagerImplAutowireTest {
 
 	@Autowired
 	FileHandleManager fileHandleManager;
+	
+	@Autowired
+	StackStatusDao stackStatusDao;
 
 	private List<String> toDelete;
 	private UserInfo adminUser;
@@ -413,5 +410,35 @@ public class MigrationManagerImplAutowireTest {
 						0L, migrationManager.getCount(adminUser, type));
 			}
 		}
+	}
+	//	PLFM-3725: make sure methods can be called for all types
+	@Test
+	public void testAllMigrationTypesSqlMap() {
+		for (MigrationType t: MigrationType.values()) {
+			migrationManager.getCount(adminUser, t);
+			migrationManager.getMaxId(adminUser, t);
+			migrationManager.getMigrationTypeCount(adminUser, t);
+			migrationManager.getMinId(adminUser, t);
+			migrationManager.getRowMetadaForType(adminUser, t, 1, 0);
+			migrationManager.getChecksumForIdRange(adminUser, t, "salt", 0, 10);
+			migrationManager.getRowMetadataByRangeForType(adminUser, t, 0, 10);
+			migrationManager.getRowMetadataDeltaForType(adminUser, t, new LinkedList<Long>());
+			migrationManager.getChecksumForIdRange(adminUser, t, "salt", 0, 10);
+		}
+		try {
+			StackStatus sStatus = new StackStatus();
+			sStatus.setStatus(StatusEnum.READ_ONLY);
+			sStatus.setCurrentMessage("Stack in read-only mode");
+			stackStatusDao.updateStatus(sStatus);
+			for (MigrationType t: MigrationType.values()) {
+				migrationManager.getChecksumForType(adminUser, t);
+			}
+		} finally {
+			StackStatus sStatus = new StackStatus();
+			sStatus.setStatus(StatusEnum.READ_WRITE);
+			sStatus.setCurrentMessage("Stack in read/write mode");
+			stackStatusDao.updateStatus(sStatus);
+		}
+
 	}
 }
