@@ -4,22 +4,25 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.zip.GZIPOutputStream;
 
 import org.sagebionetworks.repo.model.UploadContentToS3DAO;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import com.amazonaws.HttpMethod;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.BucketCrossOriginConfiguration;
 import com.amazonaws.services.s3.model.CORSRule;
 import com.amazonaws.services.s3.model.CORSRule.AllowedMethods;
 import com.amazonaws.services.s3.model.CannedAccessControlList;
+import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 
 public class UploadContentToS3DAOImpl implements UploadContentToS3DAO {
 
-	private static final String S3_PREFIX = "https://s3.amazonaws.com/";
+	private static final int PRE_SIGNED_URL_EXPIRATION_MS = 30*60*1000;
 
 
 	@Autowired
@@ -82,12 +85,20 @@ public class UploadContentToS3DAOImpl implements UploadContentToS3DAO {
 	@Override
 	public String getThreadUrl(String key) {
 		MessageKeyUtils.validateThreadKey(key);
-		return S3_PREFIX + bucketName + "/" + key;
+		GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(
+				bucketName, key).withMethod(HttpMethod.GET).withExpiration(
+				new Date(System.currentTimeMillis()
+						+ PRE_SIGNED_URL_EXPIRATION_MS));
+		return s3Client.generatePresignedUrl(request).toString();
 	}
 
 	@Override
 	public String getReplyUrl(String key) {
 		MessageKeyUtils.validateReplyKey(key);
-		return S3_PREFIX + bucketName + "/" + key;
+		GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(
+				bucketName, key).withMethod(HttpMethod.GET).withExpiration(
+				new Date(System.currentTimeMillis()
+						+ PRE_SIGNED_URL_EXPIRATION_MS));
+		return s3Client.generatePresignedUrl(request).toString();
 	}
 }
