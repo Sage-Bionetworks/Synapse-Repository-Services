@@ -106,9 +106,6 @@ public class MigrationManagerImplAutowireTest {
 	@Autowired
 	FileHandleManager fileHandleManager;
 	
-	@Autowired
-	StackStatusDao stackStatusDao;
-
 	private List<String> toDelete;
 	private UserInfo adminUser;
 	private String creatorUserGroupId;
@@ -411,34 +408,5 @@ public class MigrationManagerImplAutowireTest {
 			}
 		}
 	}
-	//	PLFM-3725: make sure methods can be called for all types
-	@Test
-	public void testAllMigrationTypesSqlMap() {
-		for (MigrationType t: MigrationType.values()) {
-			migrationManager.getCount(adminUser, t);
-			migrationManager.getMaxId(adminUser, t);
-			migrationManager.getMigrationTypeCount(adminUser, t);
-			migrationManager.getMinId(adminUser, t);
-			migrationManager.getRowMetadaForType(adminUser, t, 1, 0);
-			migrationManager.getChecksumForIdRange(adminUser, t, "salt", 0, 10);
-			migrationManager.getRowMetadataByRangeForType(adminUser, t, 0, 10);
-			migrationManager.getRowMetadataDeltaForType(adminUser, t, new LinkedList<Long>());
-			migrationManager.getChecksumForIdRange(adminUser, t, "salt", 0, 10);
-		}
-		try {
-			StackStatus sStatus = new StackStatus();
-			sStatus.setStatus(StatusEnum.READ_ONLY);
-			sStatus.setCurrentMessage("Stack in read-only mode");
-			stackStatusDao.updateStatus(sStatus);
-			for (MigrationType t: MigrationType.values()) {
-				migrationManager.getChecksumForType(adminUser, t);
-			}
-		} finally {
-			StackStatus sStatus = new StackStatus();
-			sStatus.setStatus(StatusEnum.READ_WRITE);
-			sStatus.setCurrentMessage("Stack in read/write mode");
-			stackStatusDao.updateStatus(sStatus);
-		}
 
-	}
 }

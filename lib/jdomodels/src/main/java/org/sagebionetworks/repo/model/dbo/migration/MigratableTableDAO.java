@@ -130,6 +130,13 @@ public interface MigratableTableDAO {
 	 * @throws Exception
 	 */
 	public <T> T runWithForeignKeyIgnored(Callable<T> call) throws Exception;
+	
+	/**
+	 * Checks if the migration type has been registered
+	 * @param type
+	 * @return
+	 */
+	public boolean isMigrationTypeRegistered(MigrationType type);
 
 
 }
