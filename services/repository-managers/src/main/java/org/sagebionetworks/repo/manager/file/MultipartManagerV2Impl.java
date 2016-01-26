@@ -244,7 +244,7 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 			validatePartNumber(partNumber, numberOfParts);
 			String partKey = createPartKey(status.getKey(), partNumber);
 			URL url = s3multipartUploadDAO.createPreSignedPutUrl(
-					status.getBucket(), partKey);
+					status.getBucket(), partKey, request.getContentType());
 			PartPresignedUrl part = new PartPresignedUrl();
 			part.setPartNumber((long) partNumber);
 			part.setUploadPresignedUrl(url.toString());

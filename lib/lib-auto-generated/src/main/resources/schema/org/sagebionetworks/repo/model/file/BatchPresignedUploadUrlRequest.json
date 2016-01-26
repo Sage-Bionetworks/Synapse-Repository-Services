@@ -11,6 +11,10 @@
 			"items": {
 				"type": "integer"
 			}
+		},
+		"contentType": {
+			"type": "string",
+			"description": "Optional parameter.  When included each pre-signed URL will be signed with the given Content-Type.  This is necessary for clients that must include the header 'Content-Type' with all HTTP GET calls."
 		}
 	}
 }

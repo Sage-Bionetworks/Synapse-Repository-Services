@@ -183,8 +183,7 @@ public class MultipartManagerV2ImplTest {
 				String key = (String) invocation.getArguments()[1];
 				return new URL("http", "amazon.com", bucket+"/"+key);
 			}
-		}).when(mockS3multipartUploadDAO).createPreSignedPutUrl(anyString(), anyString());
-		//when(mockS3multipartUploadDAO.createPreSignedPutUrl(anyString(), partKey)).
+		}).when(mockS3multipartUploadDAO).createPreSignedPutUrl(anyString(), anyString(), anyString());
 		
 		forceRestart = null;
 		manager = new MultipartManagerV2Impl();
