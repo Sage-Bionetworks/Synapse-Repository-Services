@@ -22,8 +22,8 @@ import com.amazonaws.services.s3.model.PutObjectRequest;
 
 public class UploadContentToS3DAOImpl implements UploadContentToS3DAO {
 
+	private static final String TEXT_PLAIN_CHARSET_UTF_8 = "text/plain; charset=utf-8";
 	private static final int PRE_SIGNED_URL_EXPIRATION_MS = 30*60*1000;
-
 
 	@Autowired
 	private AmazonS3Client s3Client;
@@ -73,7 +73,7 @@ public class UploadContentToS3DAOImpl implements UploadContentToS3DAO {
 		byte[] compressedBytes = out.toByteArray();
 		ByteArrayInputStream in = new ByteArrayInputStream(compressedBytes);
 		ObjectMetadata om = new ObjectMetadata();
-		om.setContentType("plain/text");
+		om.setContentType(TEXT_PLAIN_CHARSET_UTF_8);
 		om.setContentDisposition("attachment; filename=" + key + ";");
 		om.setContentEncoding("gzip");
 		om.setContentLength(compressedBytes.length);
@@ -88,7 +88,7 @@ public class UploadContentToS3DAOImpl implements UploadContentToS3DAO {
 		GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(
 				bucketName, key).withMethod(HttpMethod.GET).withExpiration(
 				new Date(System.currentTimeMillis()
-						+ PRE_SIGNED_URL_EXPIRATION_MS));
+						+ PRE_SIGNED_URL_EXPIRATION_MS)).withContentType(TEXT_PLAIN_CHARSET_UTF_8);
 		return s3Client.generatePresignedUrl(request).toString();
 	}
 

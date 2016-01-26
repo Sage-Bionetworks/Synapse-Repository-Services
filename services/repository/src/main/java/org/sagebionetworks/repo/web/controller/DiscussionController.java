@@ -196,6 +196,9 @@ public class DiscussionController extends BaseController {
 	 * Note: This call will result in a HTTP temporary redirect (307), to the
 	 * actual file URL if the caller meets all of the download requirements.
 	 * </p>
+	 * <p>
+	 * If you get 403 status code, set Content-Type to "text/plain; charset=utf-8".
+	 * </p>
 	 * 
 	 * @param userId - the ID of the user who is making the request
 	 * @param messageKey - the messageKey of a thread
@@ -318,6 +321,9 @@ public class DiscussionController extends BaseController {
 	 * <p>
 	 * Note: This call will result in a HTTP temporary redirect (307), to the
 	 * actual file URL if the caller meets all of the download requirements.
+	 * </p>
+	 * <p>
+	 * If you get 403 status code, set Content-Type to "text/plain; charset=utf-8".
 	 * </p>
 	 * 
 	 * @param userId - the ID of the user who is making the request
