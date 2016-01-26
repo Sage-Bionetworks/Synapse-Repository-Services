@@ -97,13 +97,32 @@ public class S3MultipartUploadDAOImplTest {
 	@Test
 	public void testcreatePreSignedPutUrl() throws AmazonClientException, MalformedURLException{
 		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).thenReturn(new URL("http", "amazon.com", "bucket/key"));
+		String contentType = null;
 		//call under test.
-		URL url = dao.createPreSignedPutUrl("bucket", "key");
+		URL url = dao.createPreSignedPutUrl("bucket", "key", contentType);
 		assertNotNull(url);
 		ArgumentCaptor<GeneratePresignedUrlRequest> capture = ArgumentCaptor.forClass(GeneratePresignedUrlRequest.class);
 		verify(mockS3Client).generatePresignedUrl(capture.capture());
 		assertEquals("bucket", capture.getValue().getBucketName());
 		assertEquals("key", capture.getValue().getKey());
+		assertEquals(null, capture.getValue().getContentType());
+		// expiration should be set for the future.
+		Date now = new Date(System.currentTimeMillis());
+		assertTrue(now.before( capture.getValue().getExpiration()));
+	}
+	
+	@Test
+	public void testcreatePreSignedPutUrlWithContentType() throws AmazonClientException, MalformedURLException{
+		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).thenReturn(new URL("http", "amazon.com", "bucket/key"));
+		String contentType = "text/plain";
+		//call under test.
+		URL url = dao.createPreSignedPutUrl("bucket", "key", contentType);
+		assertNotNull(url);
+		ArgumentCaptor<GeneratePresignedUrlRequest> capture = ArgumentCaptor.forClass(GeneratePresignedUrlRequest.class);
+		verify(mockS3Client).generatePresignedUrl(capture.capture());
+		assertEquals("bucket", capture.getValue().getBucketName());
+		assertEquals("key", capture.getValue().getKey());
+		assertEquals("text/plain", capture.getValue().getContentType());
 		// expiration should be set for the future.
 		Date now = new Date(System.currentTimeMillis());
 		assertTrue(now.before( capture.getValue().getExpiration()));

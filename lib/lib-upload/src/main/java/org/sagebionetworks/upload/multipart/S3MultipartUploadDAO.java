@@ -27,9 +27,11 @@ public interface S3MultipartUploadDAO {
 	 * Create a pre-signed URL to A pre-signed URL to upload a part of multi-part file upload.
 	 * @param bucket
 	 * @param partKey
+	 * @param contentType Optional parameter.  Sets the expected content-type of the request. The content-type is included in
+     * the signature.
 	 * @return
 	 */
-	public URL createPreSignedPutUrl(String bucket, String partKey);
+	public URL createPreSignedPutUrl(String bucket, String partKey, String contentType);
 
 	/**
 	 * Add a part to a multi-part upload.s
