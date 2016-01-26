@@ -197,7 +197,8 @@ public class DiscussionController extends BaseController {
 	 * actual file URL if the caller meets all of the download requirements.
 	 * </p>
 	 * <p>
-	 * If you get 403 status code, set Content-Type to "text/plain; charset=utf-8".
+	 * The resulting URL will be signed with Content-Type ="text/plain; charset=utf-8";
+	 * therefore, this header must be included with the GET on the URL.
 	 * </p>
 	 * 
 	 * @param userId - the ID of the user who is making the request
@@ -323,7 +324,8 @@ public class DiscussionController extends BaseController {
 	 * actual file URL if the caller meets all of the download requirements.
 	 * </p>
 	 * <p>
-	 * If you get 403 status code, set Content-Type to "text/plain; charset=utf-8".
+	 * The resulting URL will be signed with Content-Type ="text/plain; charset=utf-8";
+	 * therefore, this header must be included with the GET on the URL.
 	 * </p>
 	 * 
 	 * @param userId - the ID of the user who is making the request
