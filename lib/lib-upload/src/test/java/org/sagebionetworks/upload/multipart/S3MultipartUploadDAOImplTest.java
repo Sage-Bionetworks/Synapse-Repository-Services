@@ -97,8 +97,9 @@ public class S3MultipartUploadDAOImplTest {
 	@Test
 	public void testcreatePreSignedPutUrl() throws AmazonClientException, MalformedURLException{
 		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).thenReturn(new URL("http", "amazon.com", "bucket/key"));
+		String contentType = null;
 		//call under test.
-		URL url = dao.createPreSignedPutUrl("bucket", "key", null);
+		URL url = dao.createPreSignedPutUrl("bucket", "key", contentType);
 		assertNotNull(url);
 		ArgumentCaptor<GeneratePresignedUrlRequest> capture = ArgumentCaptor.forClass(GeneratePresignedUrlRequest.class);
 		verify(mockS3Client).generatePresignedUrl(capture.capture());
@@ -113,8 +114,9 @@ public class S3MultipartUploadDAOImplTest {
 	@Test
 	public void testcreatePreSignedPutUrlWithContentType() throws AmazonClientException, MalformedURLException{
 		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).thenReturn(new URL("http", "amazon.com", "bucket/key"));
+		String contentType = "text/plain";
 		//call under test.
-		URL url = dao.createPreSignedPutUrl("bucket", "key", "text/plain");
+		URL url = dao.createPreSignedPutUrl("bucket", "key", contentType);
 		assertNotNull(url);
 		ArgumentCaptor<GeneratePresignedUrlRequest> capture = ArgumentCaptor.forClass(GeneratePresignedUrlRequest.class);
 		verify(mockS3Client).generatePresignedUrl(capture.capture());
