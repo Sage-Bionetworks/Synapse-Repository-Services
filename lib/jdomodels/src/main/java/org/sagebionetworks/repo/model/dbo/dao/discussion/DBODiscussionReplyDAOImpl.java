@@ -10,8 +10,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
-import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.dao.discussion.DiscussionReplyDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
@@ -35,8 +33,6 @@ public class DBODiscussionReplyDAOImpl implements DiscussionReplyDAO{
 	private JdbcTemplate jdbcTemplate;
 	@Autowired
 	private DBOBasicDao basicDao;
-	@Autowired
-	private IdGenerator idGenerator;
 
 	private RowMapper<DiscussionReplyBundle> DISCUSSION_REPLY_BUNDLE_ROW_MAPPER = new RowMapper<DiscussionReplyBundle>(){
 
@@ -133,11 +129,12 @@ public class DBODiscussionReplyDAOImpl implements DiscussionReplyDAO{
 
 	@WriteTransactionReadCommitted
 	@Override
-	public DiscussionReplyBundle createReply(String threadId, String messageKey, Long userId) {
+	public DiscussionReplyBundle createReply(String threadId, String replyId, String messageKey, Long userId) {
 		ValidateArgument.required(threadId, "threadId");
+		ValidateArgument.required(replyId, "replyId");
 		ValidateArgument.required(messageKey, "messageKey");
 		ValidateArgument.required(userId, "userId");
-		Long id = idGenerator.generateNewId(TYPE.DISCUSSION_REPLY_ID);
+		Long id = Long.parseLong(replyId);
 		String etag = UUID.randomUUID().toString();
 		DBODiscussionReply dbo = DiscussionReplyUtils.createDBO(threadId, messageKey, userId, id, etag);
 		basicDao.createNew(dbo);
