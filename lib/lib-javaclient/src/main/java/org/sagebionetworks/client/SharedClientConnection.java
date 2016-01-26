@@ -20,13 +20,9 @@ import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.client.utils.URIBuilder;
-import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.entity.ContentType;
-import org.apache.http.entity.StringEntity;
 import org.apache.http.util.EntityUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -750,6 +746,23 @@ public class SharedClientConnection {
 	 */
 	public String getDirect(String endpoint, String uri, String userAgent) throws IOException, SynapseException {
 		ResponseBodyAndStatusCode response = signAndDispatchSynapseRequest(endpoint, uri, "GET", null, defaultGETDELETEHeaders, userAgent, null, null);
+		convertHttpResponseToException(response.getStatusCode(), response.getResponseBody());
+		return response.getResponseBody();
+	}
+
+	/**
+	 * This is used to get a response which is a simple string (not encoded as JSON)
+	 * @param endpoint
+	 * @param uri
+	 * @param userAgent
+	 * @return
+	 * @throws IOException
+	 * @throws SynapseException
+	 */
+	public String getTextDirect(String endpoint, String uri, String userAgent) throws IOException, SynapseException {
+		Map<String, String> headers = defaultGETDELETEHeaders;
+		headers.put("Content-Type", "text/plain; charset=utf-8");
+		ResponseBodyAndStatusCode response = signAndDispatchSynapseRequest(endpoint, uri, "GET", null, headers, userAgent, null, null);
 		convertHttpResponseToException(response.getStatusCode(), response.getResponseBody());
 		return response.getResponseBody();
 	}

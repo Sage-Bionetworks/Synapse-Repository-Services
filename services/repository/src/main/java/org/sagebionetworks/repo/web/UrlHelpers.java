@@ -888,8 +888,8 @@ public class UrlHelpers {
 	public static final String REPLIES = "/replies";
 	public static final String THREAD_THREAD_ID_REPLIES = THREAD_THREAD_ID+REPLIES;
 	public static final String URL = "/messageUrl";
-	public static final String THREAD_THREAD_ID_URL = THREAD_THREAD_ID+URL;
-	public static final String REPLY_REPLY_ID_URL = REPLY_REPLY_ID+URL;
+	public static final String THREAD_URL = THREAD+URL;
+	public static final String REPLY_URL = REPLY+URL;
 
 	/**
 	 * APIs for DynamoDB related operations.

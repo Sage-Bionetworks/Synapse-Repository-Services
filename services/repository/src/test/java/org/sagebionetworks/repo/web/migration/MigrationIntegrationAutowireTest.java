@@ -288,6 +288,7 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 
 	private String forumId;
 	private String threadId;
+	private String replyId;
 
 	@Before
 	public void before() throws Exception {
@@ -362,7 +363,8 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 	}
 
 	private void createReply() {
-		replyDao.createReply(threadId, "messageKey", adminUserId);
+		replyId = idGenerator.generateNewId(TYPE.DISCUSSION_REPLY_ID).toString();
+		replyDao.createReply(threadId, replyId, "messageKey", adminUserId);
 	}
 
 	private void createVerificationSubmission() {

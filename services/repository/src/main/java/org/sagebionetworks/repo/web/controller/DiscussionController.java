@@ -2,6 +2,8 @@ package org.sagebionetworks.repo.web.controller;
 
 import java.io.IOException;
 
+import javax.servlet.http.HttpServletResponse;
+
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -13,7 +15,6 @@ import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.Forum;
-import org.sagebionetworks.repo.model.discussion.MessageURL;
 import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
@@ -191,16 +192,30 @@ public class DiscussionController extends BaseController {
 	 * the URL to download the file which contains the thread message.
 	 * <br/>
 	 * Target users: anyone who has READ permission to the project.
+	 * <p>
+	 * Note: This call will result in a HTTP temporary redirect (307), to the
+	 * actual file URL if the caller meets all of the download requirements.
+	 * </p>
+	 * <p>
+	 * The resulting URL will be signed with Content-Type ="text/plain; charset=utf-8";
+	 * therefore, this header must be included with the GET on the URL.
+	 * </p>
 	 * 
 	 * @param userId - the ID of the user who is making the request
-	 * @param threadId - the ID of the thread whose data being requested
+	 * @param messageKey - the messageKey of a thread
+	 * @param redirect
+	 *            When set to false, the URL will be returned as text/plain
+	 *            instead of redirecting.
+	 * @throws IOException 
 	 */
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.THREAD_THREAD_ID_URL, method = RequestMethod.GET)
-	public @ResponseBody MessageURL getThreadUrl(
+	@RequestMapping(value = UrlHelpers.THREAD_URL, method = RequestMethod.GET)
+	public @ResponseBody void getThreadUrl(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String threadId) {
-		return serviceProvider.getDiscussionService().getThreadUrl(userId, threadId);
+			@RequestParam(required = true) String messageKey,
+			@RequestParam(required = true) Boolean redirect,
+			HttpServletResponse response) throws IOException {
+		String redirectUrl = serviceProvider.getDiscussionService().getThreadUrl(userId, messageKey);
+		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
 	}
 
 	/**
@@ -304,15 +319,29 @@ public class DiscussionController extends BaseController {
 	 * the URL to download the file which contains the reply message.
 	 * <br/>
 	 * Target users: anyone who has READ permission to the project.
+	 * <p>
+	 * Note: This call will result in a HTTP temporary redirect (307), to the
+	 * actual file URL if the caller meets all of the download requirements.
+	 * </p>
+	 * <p>
+	 * The resulting URL will be signed with Content-Type ="text/plain; charset=utf-8";
+	 * therefore, this header must be included with the GET on the URL.
+	 * </p>
 	 * 
 	 * @param userId - the ID of the user who is making the request
-	 * @param replyId - the ID of the reply whose data being requested
+	 * @param messageKey - the messageKey of a reply
+	 * @param redirect
+	 *            When set to false, the URL will be returned as text/plain
+	 *            instead of redirecting.
+	 * @throws IOException 
 	 */
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.REPLY_REPLY_ID_URL, method = RequestMethod.GET)
-	public @ResponseBody MessageURL getReplyUrl(
+	@RequestMapping(value = UrlHelpers.REPLY_URL, method = RequestMethod.GET)
+	public @ResponseBody void getReplyUrl(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String replyId) {
-		return serviceProvider.getDiscussionService().getReplyUrl(userId, replyId);
+			@RequestParam(required = true) String messageKey,
+			@RequestParam(required = true) Boolean redirect,
+			HttpServletResponse response) throws IOException {
+		String redirectUrl = serviceProvider.getDiscussionService().getReplyUrl(userId, messageKey);
+		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
 	}
 }

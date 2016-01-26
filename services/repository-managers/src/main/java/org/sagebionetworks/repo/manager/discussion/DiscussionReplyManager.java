@@ -7,7 +7,6 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
-import org.sagebionetworks.repo.model.discussion.MessageURL;
 import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
 
 public interface DiscussionReplyManager {
@@ -67,7 +66,7 @@ public interface DiscussionReplyManager {
 	 * Get message Url for a reply
 	 * 
 	 * @param user
-	 * @param replyId
+	 * @param messageKey
 	 */
-	public MessageURL getMessageUrl(UserInfo user, String replyId);
+	public String getMessageUrl(UserInfo user, String messageKey);
 }
