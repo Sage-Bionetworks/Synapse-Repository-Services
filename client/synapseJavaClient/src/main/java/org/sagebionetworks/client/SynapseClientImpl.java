@@ -7506,7 +7506,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		try {
 			ValidateArgument.required(messageKey, "messageKey");
 			String url = REPLY+URL+"?"+MESSAGE_KEY_PARAMETER+messageKey+AND_REDIRECT_PARAMETER+Boolean.TRUE.toString();
-			return getSharedClientConnection().getDirect(repoEndpoint, url, getUserAgent());
+			return getSharedClientConnection().getTextDirect(repoEndpoint, url, getUserAgent());
 		} catch (IOException e) {
 			throw new SynapseClientException(e);
 		}
@@ -7528,7 +7528,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		try {
 			ValidateArgument.required(messageKey, "messageKey");
 			String url = THREAD+URL+"?"+MESSAGE_KEY_PARAMETER+messageKey+AND_REDIRECT_PARAMETER+Boolean.TRUE.toString();
-			return getSharedClientConnection().getDirect(repoEndpoint, url, getUserAgent());
+			return getSharedClientConnection().getTextDirect(repoEndpoint, url, getUserAgent());
 		} catch (IOException e) {
 			throw new SynapseClientException(e);
 		}
