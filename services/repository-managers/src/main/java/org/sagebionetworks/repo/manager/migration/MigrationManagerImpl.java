@@ -417,7 +417,7 @@ public class MigrationManagerImpl implements MigrationManager {
 	@Override
 	public MigrationTypeChecksum getChecksumForType(UserInfo user, MigrationType type) {
 		if (stackStatusDao.getCurrentStatus() == StatusEnum.READ_WRITE) { 
-			throw new RuntimeException("API getMigrationTypeCount() cannot be called in Read/Write mode");
+			throw new RuntimeException("API getChecksumForType() cannot be called in Read/Write mode");
 		}
 		validateUser(user);
 		String checksum = migratableTableDao.getChecksumForType(type);
