@@ -23,7 +23,7 @@ import com.amazonaws.services.s3.model.PutObjectRequest;
 public class UploadContentToS3DAOImpl implements UploadContentToS3DAO {
 
 	private static final String TEXT_PLAIN_CHARSET_UTF_8 = "text/plain; charset=utf-8";
-	private static final int PRE_SIGNED_URL_EXPIRATION_MS = 30*60*1000;
+	private static final int PRE_SIGNED_URL_EXPIRATION_MS = 60*1000;
 
 	@Autowired
 	private AmazonS3Client s3Client;
