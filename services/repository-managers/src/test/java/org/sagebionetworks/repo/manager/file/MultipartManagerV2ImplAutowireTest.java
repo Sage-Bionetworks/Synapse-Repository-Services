@@ -17,7 +17,6 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
-import org.sagebionetworks.repo.model.file.AddPartRequest;
 import org.sagebionetworks.repo.model.file.AddPartResponse;
 import org.sagebionetworks.repo.model.file.AddPartState;
 import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlRequest;
@@ -103,10 +102,32 @@ public class MultipartManagerV2ImplAutowireTest {
 	public void testMultipartUpload() throws Exception {
 		// step one start the upload.
 		MultipartUploadStatus status = startUpload();
+		String contentType = null;
 		// step two get pre-signed URLs for the parts
-		String preSignedUrl = getPresignedURLForPart(status.getUploadId());
+		String preSignedUrl = getPresignedURLForPart(status.getUploadId(), contentType);
 		// step three put the part to the URL
-		putBytesToURL(preSignedUrl, fileDataBytes);
+		putBytesToURL(preSignedUrl, fileDataBytes, contentType);
+		// step four add the part to the upload
+		addPart(status.getUploadId());
+		// Step five complete the upload
+		MultipartUploadStatus finalStatus = completeUpload(status.getUploadId());
+		// validate the results
+		assertNotNull(finalStatus);
+		assertEquals("1", finalStatus.getPartsState());
+		assertEquals(MultipartUploadState.COMPLETED, finalStatus.getState());
+		assertNotNull(finalStatus.getResultFileHandleId());
+		fileHandlesToDelete.add(finalStatus.getResultFileHandleId());
+	}
+	
+	@Test
+	public void testMultipartUploadWithContentType() throws Exception {
+		// step one start the upload.
+		MultipartUploadStatus status = startUpload();
+		String contentType = "application/octet-stream";
+		// step two get pre-signed URLs for the parts
+		String preSignedUrl = getPresignedURLForPart(status.getUploadId(), contentType);
+		// step three put the part to the URL
+		putBytesToURL(preSignedUrl, fileDataBytes, contentType);
 		// step four add the part to the upload
 		addPart(status.getUploadId());
 		// Step five complete the upload
@@ -138,9 +159,10 @@ public class MultipartManagerV2ImplAutowireTest {
 	 * @param uploadId
 	 * @return
 	 */
-	private String getPresignedURLForPart(String uploadId){
+	private String getPresignedURLForPart(String uploadId, String contentType){
 		BatchPresignedUploadUrlRequest batchURLRequest = new BatchPresignedUploadUrlRequest();
 		batchURLRequest.setUploadId(uploadId);
+		batchURLRequest.setContentType(contentType);
 		Long partNumber = 1L;
 		batchURLRequest.setPartNumbers(Lists.newArrayList(partNumber));
 		BatchPresignedUploadUrlResponse bpuur = multipartManagerV2
@@ -158,11 +180,14 @@ public class MultipartManagerV2ImplAutowireTest {
 	 * @param bytes
 	 * @throws Exception
 	 */
-	private void putBytesToURL(String url, byte[] bytes) throws Exception{
+	private void putBytesToURL(String url, byte[] bytes, String contentType) throws Exception{
 		// PUT the data to the url.
 		HttpPut put = new HttpPut(url);
 		ByteArrayEntity byteArrayEntity = new ByteArrayEntity(bytes);
 		put.setEntity(byteArrayEntity);
+		if(contentType != null){
+			put.setHeader("Content-Type", contentType);
+		}
 		httpClient.execute(put);
 	}
 	

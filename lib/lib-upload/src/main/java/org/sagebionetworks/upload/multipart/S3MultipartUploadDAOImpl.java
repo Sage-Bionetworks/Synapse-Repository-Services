@@ -65,11 +65,14 @@ public class S3MultipartUploadDAOImpl implements S3MultipartUploadDAO {
 	 * createPreSignedPutUrl(java.lang.String, java.lang.String)
 	 */
 	@Override
-	public URL createPreSignedPutUrl(String bucket, String partKey) {
+	public URL createPreSignedPutUrl(String bucket, String partKey, String contentType) {
 		GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(
 				bucket, partKey).withMethod(HttpMethod.PUT).withExpiration(
 				new Date(System.currentTimeMillis()
 						+ PRE_SIGNED_URL_EXPIRATION_MS));
+		if(contentType != null){
+			request.setContentType(contentType);
+		}
 		return s3Client.generatePresignedUrl(request);
 	}
 
