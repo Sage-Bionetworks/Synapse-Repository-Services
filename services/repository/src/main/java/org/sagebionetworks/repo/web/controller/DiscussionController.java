@@ -200,7 +200,7 @@ public class DiscussionController extends BaseController {
 	 * @param threadId - DiscussionThreadBundle.messageKey
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.THREAD_THREAD_ID_URL, method = RequestMethod.GET)
+	@RequestMapping(value = UrlHelpers.THREAD_URL, method = RequestMethod.GET)
 	public @ResponseBody MessageURL getThreadUrl(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(required = true) String messageKey) {
@@ -317,7 +317,7 @@ public class DiscussionController extends BaseController {
 	 * @param messageKey - DiscussionReplyBundle.messageKey
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.REPLY_REPLY_ID_URL, method = RequestMethod.GET)
+	@RequestMapping(value = UrlHelpers.REPLY_URL, method = RequestMethod.GET)
 	public @ResponseBody MessageURL getReplyUrl(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(required = true) String messageKey) {
