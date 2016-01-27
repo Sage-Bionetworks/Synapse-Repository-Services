@@ -321,9 +321,6 @@ public class SynapseAdminClientMocker {
 						if (migrationType == null)
 							throw new IllegalArgumentException("Type cannot be null");
 						
-						if (maxId - minId > limit)
-							throw new IllegalArgumentException("MaxId-MinId must be less than or equal to batch size.");
-						
 						// All the values
 						List<RowMetadata> list = state.metadata.get(migrationType);
 						// Subset on (minId, maxId)

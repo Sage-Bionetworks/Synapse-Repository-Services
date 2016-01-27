@@ -87,7 +87,6 @@ public class RangeMetadataIteratorTest {
 		}
 	}
 	
-	@Ignore
 	@Test
 	public void testHappyCaseMultiplePages() {
 		// Iterate over all data
@@ -121,15 +120,6 @@ public class RangeMetadataIteratorTest {
 		}
 	}
 
-	@Test (expected=IllegalArgumentException.class)
-	public void testFailureRangeGreaterThanBatchSize() throws SynapseException, JSONObjectAdapterException{
-		// Throw exceptions
-		BasicProgress progress = new BasicProgress();
-		when(mockSynapse.getRowMetadataByRange(any(MigrationType.class), anyLong(), anyLong(), anyLong(), anyLong())).thenThrow(new IllegalStateException("one"));
-		RangeMetadataIterator iterator = new RangeMetadataIterator(type, mockSynapse, 7, 0, rowCount-1, progress);
-		iterator.next();
-	}
-	
 	@Test(expected=IllegalStateException.class)
 	public void testNoCallToHasNext1() {
 		BasicProgress progress = new BasicProgress();
