@@ -81,7 +81,6 @@ import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.Forum;
-import org.sagebionetworks.repo.model.discussion.MessageURL;
 import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
@@ -2465,10 +2464,10 @@ public interface SynapseClient extends BaseClient {
 	/**
 	 * Get the message URL for a reply
 	 * 
-	 * @param replyId
+	 * @param messageKey
 	 * @throws SynapseException
 	 */
-	MessageURL getReplyUrl(String replyId) throws SynapseException;
+	URL getReplyUrl(String messageKey) throws SynapseException;
 
 	/**
 	 * Create a new Discussion Thread
@@ -2532,10 +2531,10 @@ public interface SynapseClient extends BaseClient {
 	/**
 	 * Get the message URL for a thread
 	 * 
-	 * @param threadId
+	 * @param messageKey
 	 * @throws SynapseException
 	 */
-	MessageURL getThreadUrl(String threadId) throws SynapseException;
+	URL getThreadUrl(String messageKey) throws SynapseException;
 	
 	/**
 	 * Low-level API to start a mutli-part upload.  Start or resume a mutli-part upload.

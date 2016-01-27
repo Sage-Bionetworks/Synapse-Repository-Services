@@ -92,6 +92,8 @@ public class ITDiscussion {
 		assertTrue(threads.getResults().size() == 1);
 		assertEquals(threads.getResults().get(0), bundle);
 		assertEquals(1L, threads.getTotalNumberOfResults());
+	
+		assertNotNull(synapse.getThreadUrl(bundle.getMessageKey()));
 
 		// update title
 		UpdateThreadTitle updateTitle = new UpdateThreadTitle();
@@ -133,6 +135,8 @@ public class ITDiscussion {
 		assertTrue(replies.getResults().size() == 1);
 		assertEquals(replies.getResults().get(0), replyBundle);
 		assertEquals(1L, replies.getTotalNumberOfResults());
+
+		assertNotNull(synapse.getReplyUrl(replyBundle.getMessageKey()));
 
 		// update message
 		UpdateReplyMessage updateReplyMessage = new UpdateReplyMessage();
