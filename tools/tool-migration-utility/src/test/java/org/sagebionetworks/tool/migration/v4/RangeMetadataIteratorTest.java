@@ -2,6 +2,7 @@ package org.sagebionetworks.tool.migration.v4;
 
 import static org.junit.Assert.*;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyLong;
 import static org.mockito.Mockito.when;
 
 import java.util.LinkedList;
@@ -9,6 +10,7 @@ import java.util.List;
 import java.util.NoSuchElementException;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.client.SynapseAdminClient;
@@ -53,7 +55,7 @@ public class RangeMetadataIteratorTest {
 	}
 	
 	@Test
-	public void testHappyCase() {
+	public void testHappyCaseSinglePage() {
 		// Iterate over all data
 		BasicProgress progress = new BasicProgress();
 		RangeMetadataIterator iterator = new RangeMetadataIterator(type, stubSynapse, 5, 50 , 54, progress);
@@ -85,11 +87,45 @@ public class RangeMetadataIteratorTest {
 		}
 	}
 	
+	@Ignore
+	@Test
+	public void testHappyCaseMultiplePages() {
+		// Iterate over all data
+		BasicProgress progress = new BasicProgress();
+		RangeMetadataIterator iterator = new RangeMetadataIterator(type, stubSynapse, 6, 50 , 64, progress);
+		// We should be able to iterate over all of the data and end up with list
+		// the same as used by the stub
+		List<RowMetadata> results = new LinkedList<RowMetadata>();
+		RowMetadata row = null;;
+		do {
+			row = null;
+			if (iterator.hasNext()) {
+				row = iterator.next();
+				System.out.println(progress.getCurrentStatus());
+				results.add(row);
+			}
+		} while (row != null);
+		// Did we get what we expected?
+		List<RowMetadata> expectedResult = new LinkedList<RowMetadata>();
+		for (int id = 50; id <= 64; id++) {
+			expectedResult.add(mockStack.metadata.get(type).get(id));
+		}
+		assertEquals(expectedResult, results);
+		
+		// Calling next() now should throw an exception
+		try {
+			iterator.next();
+		} catch (NoSuchElementException e) {
+			// hasNext() has been called in the loop, so this is the correct exception
+			System.out.println("Caught NoSuchElementException.");
+		}
+	}
+
 	@Test (expected=IllegalArgumentException.class)
 	public void testFailureRangeGreaterThanBatchSize() throws SynapseException, JSONObjectAdapterException{
 		// Throw exceptions
 		BasicProgress progress = new BasicProgress();
-		when(mockSynapse.getRowMetadataByRange(any(MigrationType.class), any(Long.class), any(Long.class))).thenThrow(new IllegalStateException("one"));
+		when(mockSynapse.getRowMetadataByRange(any(MigrationType.class), anyLong(), anyLong(), anyLong(), anyLong())).thenThrow(new IllegalStateException("one"));
 		RangeMetadataIterator iterator = new RangeMetadataIterator(type, mockSynapse, 7, 0, rowCount-1, progress);
 		iterator.next();
 	}
@@ -97,20 +133,20 @@ public class RangeMetadataIteratorTest {
 	@Test(expected=IllegalStateException.class)
 	public void testNoCallToHasNext1() {
 		BasicProgress progress = new BasicProgress();
-		RangeMetadataIterator iterator = new RangeMetadataIterator(type, stubSynapse, 5, 50 , 54, progress);
+		RangeMetadataIterator iterator = new RangeMetadataIterator(type, stubSynapse, 5, 60 , 64, progress);
 		RowMetadata row = iterator.next();
 	}
 	
 	@Test(expected=IllegalStateException.class)
 	public void testNoCallToHasNext2() {
 		BasicProgress progress = new BasicProgress();
-		RangeMetadataIterator iterator = new RangeMetadataIterator(type, stubSynapse, 5, 50 , 54, progress);
+		RangeMetadataIterator iterator = new RangeMetadataIterator(type, stubSynapse, 5, 60 , 64, progress);
 		RowMetadata row = null;
 		if (iterator.hasNext()) {
 			// This will succeed
 			row = iterator.next();
 			assertNotNull(row);
-			assertEquals(50L, row.getId().longValue());
+			assertEquals(60L, row.getId().longValue());
 		}
 		// This will throw an exception
 		row = iterator.next();

@@ -19,13 +19,15 @@ public class RangeMetadataIterator implements Iterator<RowMetadata> {
 	
 	MigrationType type;
 	SynapseAdminClient client;
-	Iterator<RowMetadata> rangeIterator;
-	RowMetadataResult range;
+	Iterator<RowMetadata> pageIterator;
+	RowMetadataResult lastPage;
 	BasicProgress progress;
 	long minId;
 	long maxId;
 	long batchSize;
 	Boolean hasNext;
+	long offset;
+	boolean done;
 	
 	/**
 	 * Create a new iterator that can be used for one pass over a range of the data.
@@ -43,6 +45,8 @@ public class RangeMetadataIterator implements Iterator<RowMetadata> {
 		this.maxId = maxId;
 		this.batchSize = batchSize;
 		this.progress = progress;
+		this.offset = 0;
+		this.done = false;
 		if (maxId - minId > batchSize) {
 			throw new IllegalArgumentException("MaxId-MinId must be less than batchSize");
 		}
@@ -53,21 +57,21 @@ public class RangeMetadataIterator implements Iterator<RowMetadata> {
 	/**
 	 * Get the next page with exponential back-off.
 	 */
-	private void getRangeWithBackupoff() {
+	private void getNextPageWithBackupoff() {
 		try {
-			getRange();
+			getNextPage();
 		} catch (Exception e) {
 			// When there is a failure wait and try again.
 			try {
 				logger.warn("Failed to get a page of metadata from client: "+client.getRepoEndpoint()+" will attempt again in one second", e);
 				Thread.sleep(1000);
-				getRange();
+				getNextPage();
 			} catch (Exception e1) {
 				// Try one last time
 				try {
 					logger.warn("Failed to get a page of metadata from client: "+client.getRepoEndpoint()+" for a second time.  Will attempt again in ten seconds", e);
 					Thread.sleep(10000);
-					getRange();
+					getNextPage();
 				} catch (Exception e2) {
 					throw new RuntimeException("Failed to get a page of metadata from "+client.getRepoEndpoint(), e);
 				}
@@ -81,13 +85,14 @@ public class RangeMetadataIterator implements Iterator<RowMetadata> {
 	 * @throws SynapseException
 	 * @throws JSONObjectAdapterException
 	 */
-	private void getRange() throws SynapseException, JSONObjectAdapterException {
+	private void getNextPage() throws SynapseException, JSONObjectAdapterException {
 		long start = System.currentTimeMillis();
-		this.range = client.getRowMetadataByRange(type, minId, maxId);
+		this.lastPage = client.getRowMetadataByRange(type, minId, maxId, batchSize, offset);
 		long elapse = System.currentTimeMillis()-start;
 //		System.out.println("Fetched "+batchSize+" ids in "+elapse+" ms");
-		this.rangeIterator = range.getList().iterator();
-//		this.done = this.lastPage.getList().isEmpty();
+		this.offset += this.batchSize;
+		this.pageIterator = lastPage.getList().iterator();
+		this.done = this.lastPage.getList().isEmpty();
 		progress.setTotal(maxId-minId);
 		return;
 	}
@@ -107,19 +112,33 @@ public class RangeMetadataIterator implements Iterator<RowMetadata> {
 		}
 
 		progress.setCurrent(progress.getCurrent()+1);
-		RowMetadata res = this.rangeIterator.next();
+		RowMetadata res = this.pageIterator.next();
 		this.hasNext = null;
 		return res;
 	}
 
 	@Override
 	public boolean hasNext() {
-		if (range == null){
-			getRangeWithBackupoff();
-		}
-		this.hasNext = rangeIterator.hasNext();
-		if (! this.hasNext) {
+		// If the page iterator is empty, we're done
+		if (this.done) {
+			this.hasNext = false;
 			this.progress.setDone();
+		} else {
+			// First time
+			if (lastPage == null) {
+				getNextPageWithBackupoff();
+			}
+			this.hasNext = pageIterator.hasNext();
+			// En of page iterator
+			if (! this.hasNext) {
+				getNextPageWithBackupoff();
+				if (this.done) {
+					this.hasNext = false;
+					this.progress.setDone();
+				} else {
+					this.hasNext = pageIterator.hasNext();
+				}
+			}
 		}
 		return this.hasNext;
 	}
