@@ -146,17 +146,17 @@ public interface DiscussionService {
 	 * Get the message Url of a thread
 	 * 
 	 * @param userId
-	 * @param threadId
+	 * @param messageKey
 	 * @return
 	 */
-	public MessageURL getThreadUrl(Long userId, String threadId);
+	public MessageURL getThreadUrl(Long userId, String messageKey);
 
 	/**
 	 * Get the message Url of a reply
 	 * 
 	 * @param userId
-	 * @param replyId
+	 * @param messageKey
 	 * @return
 	 */
-	public MessageURL getReplyUrl(Long userId, String replyId);
+	public MessageURL getReplyUrl(Long userId, String messageKey);
 }

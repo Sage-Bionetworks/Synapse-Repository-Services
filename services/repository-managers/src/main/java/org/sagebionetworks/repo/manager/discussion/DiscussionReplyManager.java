@@ -67,7 +67,7 @@ public interface DiscussionReplyManager {
 	 * Get message Url for a reply
 	 * 
 	 * @param user
-	 * @param replyId
+	 * @param messageKey
 	 */
-	public MessageURL getMessageUrl(UserInfo user, String replyId);
+	public MessageURL getMessageUrl(UserInfo user, String messageKey);
 }

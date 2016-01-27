@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.discussion.MessageURL;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
+import org.sagebionetworks.upload.discussion.MessageKeyUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -54,7 +55,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ));
 		Long id = idGenerator.generateNewId(TYPE.DISCUSSION_THREAD_ID);
-		String messageKey = uploadDao.uploadDiscussionContent(createThread.getMessageMarkdown(), createThread.getForumId(), id.toString());
+		String messageKey = uploadDao.uploadThreadMessage(createThread.getMessageMarkdown(), createThread.getForumId(), id.toString());
 		DiscussionThreadBundle thread = threadDao.createThread(createThread.getForumId(), id.toString(), createThread.getTitle(), messageKey, userInfo.getId());
 		return updateNumberOfReplies(thread);
 	}
@@ -104,7 +105,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		Long threadIdLong = Long.parseLong(threadId);
 		DiscussionThreadBundle thread = threadDao.getThread(threadIdLong);
 		if (authorizationManager.isUserCreatorOrAdmin(userInfo, thread.getCreatedBy())) {
-			String messageKey = uploadDao.uploadDiscussionContent(newMessage.getMessageMarkdown(), thread.getForumId(), thread.getId());
+			String messageKey = uploadDao.uploadThreadMessage(newMessage.getMessageMarkdown(), thread.getForumId(), thread.getId());
 			thread = threadDao.updateMessageKey(threadIdLong, messageKey);
 			return updateNumberOfReplies(thread);
 		} else {
@@ -148,14 +149,14 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 	}
 
 	@Override
-	public MessageURL getMessageUrl(UserInfo userInfo, String threadId) {
-		ValidateArgument.required(threadId, "threadId");
+	public MessageURL getMessageUrl(UserInfo userInfo, String messageKey) {
+		ValidateArgument.required(messageKey, "messageKey");
 		UserInfo.validateUserInfo(userInfo);
-		Long threadIdLong = Long.parseLong(threadId);
+		Long threadIdLong = Long.parseLong(MessageKeyUtils.getThreadId(messageKey));
 		DiscussionThreadBundle thread = threadDao.getThread(threadIdLong);
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canAccess(userInfo, thread.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
 		threadDao.updateThreadView(threadIdLong, userInfo.getId());
-		return uploadDao.getUrl(thread.getMessageKey());
+		return uploadDao.getThreadUrl(thread.getMessageKey());
 	}
 }
