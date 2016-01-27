@@ -4,22 +4,27 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.zip.GZIPOutputStream;
 
 import org.sagebionetworks.repo.model.UploadContentToS3DAO;
+import org.sagebionetworks.repo.model.discussion.MessageURL;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import com.amazonaws.HttpMethod;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.BucketCrossOriginConfiguration;
 import com.amazonaws.services.s3.model.CORSRule;
 import com.amazonaws.services.s3.model.CORSRule.AllowedMethods;
 import com.amazonaws.services.s3.model.CannedAccessControlList;
+import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 
 public class UploadContentToS3DAOImpl implements UploadContentToS3DAO {
 
-	private static final String S3_PREFIX = "https://s3.amazonaws.com/";
+	private static final String TEXT_PLAIN_CHARSET_UTF_8 = "text/plain; charset=utf-8";
+	private static final int PRE_SIGNED_URL_EXPIRATION_MS = 60*1000;
 
 
 	@Autowired
@@ -70,7 +75,7 @@ public class UploadContentToS3DAOImpl implements UploadContentToS3DAO {
 		byte[] compressedBytes = out.toByteArray();
 		ByteArrayInputStream in = new ByteArrayInputStream(compressedBytes);
 		ObjectMetadata om = new ObjectMetadata();
-		om.setContentType("plain/text");
+		om.setContentType(TEXT_PLAIN_CHARSET_UTF_8);
 		om.setContentDisposition("attachment; filename=" + key + ";");
 		om.setContentEncoding("gzip");
 		om.setContentLength(compressedBytes.length);
@@ -80,14 +85,26 @@ public class UploadContentToS3DAOImpl implements UploadContentToS3DAO {
 	}
 
 	@Override
-	public String getThreadUrl(String key) {
+	public MessageURL getThreadUrl(String key) {
 		MessageKeyUtils.validateThreadKey(key);
-		return S3_PREFIX + bucketName + "/" + key;
+		MessageURL url = new MessageURL();
+		GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(
+				bucketName, key).withMethod(HttpMethod.GET).withExpiration(
+				new Date(System.currentTimeMillis()
+				+ PRE_SIGNED_URL_EXPIRATION_MS)).withContentType(TEXT_PLAIN_CHARSET_UTF_8);
+		url.setMessageUrl(s3Client.generatePresignedUrl(request).toString());
+		return url;
 	}
 
 	@Override
-	public String getReplyUrl(String key) {
+	public MessageURL getReplyUrl(String key) {
 		MessageKeyUtils.validateReplyKey(key);
-		return S3_PREFIX + bucketName + "/" + key;
+		MessageURL url = new MessageURL();
+		GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(
+				bucketName, key).withMethod(HttpMethod.GET).withExpiration(
+				new Date(System.currentTimeMillis()
+				+ PRE_SIGNED_URL_EXPIRATION_MS)).withContentType(TEXT_PLAIN_CHARSET_UTF_8);
+		url.setMessageUrl(s3Client.generatePresignedUrl(request).toString());
+		return url;
 	}
 }

@@ -4,6 +4,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.net.MalformedURLException;
+import java.net.URL;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -13,6 +16,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.BucketCrossOriginConfiguration;
+import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 
 public class UploadContentToS3DAOImplTest {
@@ -21,14 +25,16 @@ public class UploadContentToS3DAOImplTest {
 	private AmazonS3Client mockS3Client;
 	private String bucketName = "bucket";
 	private UploadContentToS3DAOImpl dao;
+	private URL url;
 
 	@Before
-	public void before() {
+	public void before() throws MalformedURLException {
 		MockitoAnnotations.initMocks(this);
 
 		dao = new UploadContentToS3DAOImpl();
 		ReflectionTestUtils.setField(dao, "s3Client", mockS3Client);
 		ReflectionTestUtils.setField(dao, "bucketName", bucketName);
+		url = new URL("https://www.synapse.org/");
 	}
 
 	@Test
@@ -81,7 +87,9 @@ public class UploadContentToS3DAOImplTest {
 
 	@Test
 	public void testGetThreadUrl() {
-		String url = dao.getThreadUrl("1/2/key");
+		Mockito.when(mockS3Client.generatePresignedUrl(Mockito.any(GeneratePresignedUrlRequest.class)))
+				.thenReturn(url);
+		String url = dao.getThreadUrl("1/2/key").getMessageUrl();
 		assertNotNull(url);
 	}
 
@@ -97,7 +105,9 @@ public class UploadContentToS3DAOImplTest {
 
 	@Test
 	public void testGetReplyUrl() {
-		String url = dao.getReplyUrl("1/2/3/key");
+		Mockito.when(mockS3Client.generatePresignedUrl(Mockito.any(GeneratePresignedUrlRequest.class)))
+				.thenReturn(url);
+		String url = dao.getReplyUrl("1/2/3/key").getMessageUrl();
 		assertNotNull(url);
 	}
 }
