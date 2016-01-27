@@ -89,7 +89,7 @@ public class DiscussionThreadManagerImplAutowiredTest {
 	public void test() throws Exception {
 		DiscussionThreadBundle bundle = threadManager.createThread(userInfo, createThread);
 		assertNotNull(bundle);
-		MessageURL messageUrl = threadManager.getMessageUrl(userInfo, bundle.getId());
+		MessageURL messageUrl = threadManager.getMessageUrl(userInfo, bundle.getMessageKey());
 		assertNotNull(messageUrl);
 		URL url = new URL(messageUrl.getMessageUrl());
 		BufferedReader in = new BufferedReader(new InputStreamReader(new GZIPInputStream(url.openStream())));

@@ -191,16 +191,20 @@ public class DiscussionController extends BaseController {
 	 * the URL to download the file which contains the thread message.
 	 * <br/>
 	 * Target users: anyone who has READ permission to the project.
+	 * <p>
+ 	 * The resulting URL will be signed with Content-Type ="text/plain; charset=utf-8";
+ 	 * therefore, this header must be included with the GET on the URL.
+ 	 * </p>
 	 * 
 	 * @param userId - the ID of the user who is making the request
-	 * @param threadId - the ID of the thread whose data being requested
+	 * @param threadId - DiscussionThreadBundle.messageKey
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.THREAD_THREAD_ID_URL, method = RequestMethod.GET)
 	public @ResponseBody MessageURL getThreadUrl(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String threadId) {
-		return serviceProvider.getDiscussionService().getThreadUrl(userId, threadId);
+			@RequestParam(required = true) String messageKey) {
+		return serviceProvider.getDiscussionService().getThreadUrl(userId, messageKey);
 	}
 
 	/**
@@ -304,15 +308,19 @@ public class DiscussionController extends BaseController {
 	 * the URL to download the file which contains the reply message.
 	 * <br/>
 	 * Target users: anyone who has READ permission to the project.
+	 * <p>
+ 	 * The resulting URL will be signed with Content-Type ="text/plain; charset=utf-8";
+ 	 * therefore, this header must be included with the GET on the URL.
+ 	 * </p>
 	 * 
 	 * @param userId - the ID of the user who is making the request
-	 * @param replyId - the ID of the reply whose data being requested
+	 * @param messageKey - DiscussionReplyBundle.messageKey
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.REPLY_REPLY_ID_URL, method = RequestMethod.GET)
 	public @ResponseBody MessageURL getReplyUrl(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String replyId) {
-		return serviceProvider.getDiscussionService().getReplyUrl(userId, replyId);
+			@RequestParam(required = true) String messageKey) {
+		return serviceProvider.getDiscussionService().getReplyUrl(userId, messageKey);
 	}
 }

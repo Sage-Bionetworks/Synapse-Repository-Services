@@ -137,7 +137,7 @@ public class DiscussionControllerAutowiredTest extends AbstractAutowiredControll
 		Forum dto = servletTestHelper.getForumMetadata(dispatchServlet, project.getId(), adminUserId);
 		createThread.setForumId(dto.getId());
 		DiscussionThreadBundle bundle = servletTestHelper.createThread(dispatchServlet, adminUserId, createThread);
-		MessageURL url = servletTestHelper.getThreadUrl(dispatchServlet, adminUserId, bundle.getId());
+		MessageURL url = servletTestHelper.getThreadUrl(dispatchServlet, adminUserId, bundle.getMessageKey());
 		assertNotNull(url);
 		assertNotNull(url.getMessageUrl());
 	}
@@ -212,7 +212,7 @@ public class DiscussionControllerAutowiredTest extends AbstractAutowiredControll
 		DiscussionThreadBundle threadBundle = servletTestHelper.createThread(dispatchServlet, adminUserId, createThread);
 		createReply.setThreadId(threadBundle.getId());
 		DiscussionReplyBundle replyBundle = servletTestHelper.createReply(dispatchServlet, adminUserId, createReply);
-		MessageURL url = servletTestHelper.getReplyUrl(dispatchServlet, adminUserId, replyBundle.getId());
+		MessageURL url = servletTestHelper.getReplyUrl(dispatchServlet, adminUserId, replyBundle.getMessageKey());
 		assertNotNull(url);
 		assertNotNull(url.getMessageUrl());
 	}
