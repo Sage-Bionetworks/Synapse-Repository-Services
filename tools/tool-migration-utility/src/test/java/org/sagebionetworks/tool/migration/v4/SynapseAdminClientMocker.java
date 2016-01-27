@@ -305,8 +305,8 @@ public class SynapseAdminClientMocker {
 			}
 			
 		});
-		
-		when(client.getRowMetadataByRange(any(MigrationType.class), eq(60L), eq(64L), eq(5L), anyLong())
+
+		when(client.getRowMetadataByRange(any(MigrationType.class), anyLong(), anyLong(), anyLong(), anyLong())
 				).thenAnswer(new Answer<RowMetadataResult>() {
 
 					@Override
@@ -315,20 +315,35 @@ public class SynapseAdminClientMocker {
 						MigrationType migrationType = (MigrationType) invocation.getArguments()[0];
 						Long minId = (Long) invocation.getArguments()[1];
 						Long maxId = (Long) invocation.getArguments()[2];
+						Long limit = (Long) invocation.getArguments()[3];
+						Long offset = (Long) invocation.getArguments()[4];
 						
 						if (migrationType == null)
 							throw new IllegalArgumentException("Type cannot be null");
 						
+						if (maxId - minId > limit)
+							throw new IllegalArgumentException("MaxId-MinId must be less than or equal to batch size.");
+						
+						// All the values
 						List<RowMetadata> list = state.metadata.get(migrationType);
+						// Subset on (minId, maxId)
+						List<RowMetadata> subset = new LinkedList<RowMetadata>();
+						for (RowMetadata r: list) {
+							if ((r.getId() >= minId) && (r.getId() <= maxId)) {
+								subset.add(r);
+							}
+						}
+						// Only return at offset for limit
 						RowMetadataResult result = new RowMetadataResult();
 						result.setTotalCount(new Long(list.size()));
 						
 						List<RowMetadata> resultList = new LinkedList<RowMetadata>();
-						
-						for (RowMetadata rm: list) {
-							if ((rm.getId() >= minId) && (rm.getId() <= maxId)) {
+						long idx = 0;
+						for (RowMetadata rm: subset) {
+							if ((idx >= offset) && (idx < offset+limit)) {
 								resultList.add(rm);
 							}
+							idx++;
 						}
 						
 						result.setList(resultList);
@@ -337,126 +352,6 @@ public class SynapseAdminClientMocker {
 				
 			});
 		
-		when(client.getRowMetadataByRange(any(MigrationType.class), eq(50L), eq(54L), eq(5L), anyLong())
-			).thenAnswer(new Answer<RowMetadataResult>() {
-
-				@Override
-				public RowMetadataResult answer(InvocationOnMock invocation)
-						throws Throwable {
-					MigrationType migrationType = (MigrationType) invocation.getArguments()[0];
-					Long minId = (Long) invocation.getArguments()[1];
-					Long maxId = (Long) invocation.getArguments()[2];
-					
-					if (migrationType == null)
-						throw new IllegalArgumentException("Type cannot be null");
-					
-					List<RowMetadata> list = state.metadata.get(migrationType);
-					RowMetadataResult result = new RowMetadataResult();
-					result.setTotalCount(new Long(list.size()));
-					
-					List<RowMetadata> resultList = new LinkedList<RowMetadata>();
-					
-					for (RowMetadata rm: list) {
-						if ((rm.getId() >= minId) && (rm.getId() <= maxId)) {
-							resultList.add(rm);
-						}
-					}
-					
-					result.setList(resultList);
-					return result;
-				}
-			
-		}).then(new Answer<RowMetadataResult>() {
-
-			@Override
-			public RowMetadataResult answer(InvocationOnMock invocation)
-					throws Throwable {
-				RowMetadataResult result = new RowMetadataResult();
-				List<RowMetadata> resultList = new LinkedList<RowMetadata>();
-				result.setList(resultList);
-				return result;
-			}
-			
-		});
-		
-		when(client.getRowMetadataByRange(any(MigrationType.class), eq(50L), eq(64L), eq(7L), anyLong())
-			).thenAnswer(new Answer<RowMetadataResult>() {
-					// 1st page: offset 0
-					@Override
-					public RowMetadataResult answer(InvocationOnMock invocation)
-							throws Throwable {
-						MigrationType migrationType = (MigrationType) invocation.getArguments()[0];
-						Long minId = (Long) invocation.getArguments()[1];
-						Long maxId = (Long) invocation.getArguments()[2];
-						Long batchSize = (Long) invocation.getArguments()[3];
-						Long offset = (long) invocation.getArguments()[4];
-						
-						if (migrationType == null)
-							throw new IllegalArgumentException("Type cannot be null");
-						
-						List<RowMetadata> list = state.metadata.get(migrationType);
-						RowMetadataResult result = new RowMetadataResult();
-						result.setTotalCount(new Long(list.size()));
-						
-						List<RowMetadata> resultList = new LinkedList<RowMetadata>();
-						
-						long currentOffset = 0;
-						for (RowMetadata rm: list) {
-							if ((currentOffset >= offset) && (rm.getId() >= minId) && (rm.getId() <= maxId)) {
-								resultList.add(rm);
-							}
-							currentOffset++;
-						}
-						
-						result.setList(resultList);
-						return result;
-					}
-				
-			}).thenAnswer(new Answer<RowMetadataResult>() {
-				// 2nd page: offset 7
-				@Override
-				public RowMetadataResult answer(InvocationOnMock invocation)
-						throws Throwable {
-					MigrationType migrationType = (MigrationType) invocation.getArguments()[0];
-					Long minId = (Long) invocation.getArguments()[1];
-					Long maxId = (Long) invocation.getArguments()[2];
-					Long batchSize = (Long) invocation.getArguments()[3];
-					Long offset = (long) invocation.getArguments()[4];
-					
-					if (migrationType == null)
-						throw new IllegalArgumentException("Type cannot be null");
-					
-					List<RowMetadata> list = state.metadata.get(migrationType);
-					RowMetadataResult result = new RowMetadataResult();
-					result.setTotalCount(new Long(list.size()));
-					
-					List<RowMetadata> resultList = new LinkedList<RowMetadata>();
-					
-					long currentOffset = 7;
-					for (RowMetadata rm: list) {
-						if ((currentOffset >= offset) && (rm.getId() >= minId) && (rm.getId() <= maxId)) {
-							resultList.add(rm);
-						}
-						currentOffset++;
-					}
-					
-					result.setList(resultList);
-					return result;
-				}
-			
-			}).then(new Answer<RowMetadataResult>() {
-
-				@Override
-				public RowMetadataResult answer(InvocationOnMock invocation)
-						throws Throwable {
-					RowMetadataResult result = new RowMetadataResult();
-					List<RowMetadata> resultList = new LinkedList<RowMetadata>();
-					result.setList(resultList);
-					return result;
-				}
-				
-			});
-			
 		when(client.startBackup(any(MigrationType.class), any(IdList.class))).thenAnswer(new Answer<BackupRestoreStatus>() {
 
 			@Override
