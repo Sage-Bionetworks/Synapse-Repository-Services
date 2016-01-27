@@ -31,6 +31,30 @@ public class FileMetadataUtilsTest {
 		meta.setEtag("etag");
 		meta.setFileName("fileName");
 		meta.setContentType("text/plain");
+		// PLFM-3466
+		meta.setContentSize(12345L);
+		System.out.println(meta);
+		// Convert to dbo
+		DBOFileHandle dbo = FileMetadataUtils.createDBOFromDTO(meta);
+		assertNotNull(dbo);
+		FileHandle clone = FileMetadataUtils.createDTOFromDBO(dbo);
+		assertEquals(meta, clone);
+	}
+	
+	@Test
+	public void testExternalFileMetadataRoundTripSizeNull() throws MalformedURLException{
+		// External
+		ExternalFileHandle meta = new ExternalFileHandle();
+		meta.setCreatedBy("456");
+		meta.setCreatedOn(new Date());
+		meta.setExternalURL("http://google.com");
+		meta.setId("987");
+		meta.setPreviewId("456");
+		meta.setEtag("etag");
+		meta.setFileName("fileName");
+		meta.setContentType("text/plain");
+		// PLFM-3466
+		meta.setContentSize(null);
 		System.out.println(meta);
 		// Convert to dbo
 		DBOFileHandle dbo = FileMetadataUtils.createDBOFromDTO(meta);

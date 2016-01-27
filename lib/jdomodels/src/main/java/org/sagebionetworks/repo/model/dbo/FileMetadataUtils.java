@@ -78,6 +78,7 @@ public class FileMetadataUtils {
 		dbo.setName(fileHandle.getFileName());
 		dbo.setStorageLocationId(fileHandle.getStorageLocationId());
 		dbo.setContentType(fileHandle.getContentType());
+		dbo.setContentSize(fileHandle.getContentSize());
 		dbo.setContentMD5(fileHandle.getContentMd5());
 	}
 
@@ -164,6 +165,7 @@ public class FileMetadataUtils {
 		fileHandle.setStorageLocationId(dbo.getStorageLocationId());
 		fileHandle.setContentType(dbo.getContentType());
 		fileHandle.setContentMd5(dbo.getContentMD5());
+		fileHandle.setContentSize(dbo.getContentSize());
 		fileHandle.setFileName(dbo.getName());
 	}
 
