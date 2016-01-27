@@ -4,6 +4,7 @@ import static org.junit.Assert.*;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.UUID;
 import java.util.zip.GZIPInputStream;
@@ -92,14 +93,19 @@ public class DiscussionThreadManagerImplAutowiredTest {
 		MessageURL messageUrl = threadManager.getMessageUrl(userInfo, bundle.getMessageKey());
 		assertNotNull(messageUrl);
 		URL url = new URL(messageUrl.getMessageUrl());
-		BufferedReader in = new BufferedReader(new InputStreamReader(new GZIPInputStream(url.openStream())));
+		HttpURLConnection con = (HttpURLConnection) url.openConnection();
+		con.setRequestMethod("GET");
+		con.setRequestProperty("Content-Type", "text/plain; charset=utf-8");
+		assertEquals(con.getResponseCode(), 200);
+		BufferedReader in = new BufferedReader(new InputStreamReader(
+				new GZIPInputStream(con.getInputStream())));
 		String inputLine;
-		boolean matched = false;
+		StringBuffer response = new StringBuffer();
 		while ((inputLine = in.readLine()) != null) {
-			assertEquals(inputLine, messageMarkdown);
-			matched = true;
+			response.append(inputLine);
 		}
-		assertTrue(matched);
 		in.close();
+		assertNotNull(response.toString());
+		assertEquals(messageMarkdown, response.toString());
 	}
 }
