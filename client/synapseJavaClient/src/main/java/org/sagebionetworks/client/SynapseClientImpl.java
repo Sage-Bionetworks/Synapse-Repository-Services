@@ -7491,21 +7491,21 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public MessageURL getReplyUrl(String replyId) throws SynapseException {
+	public URL getReplyUrl(String messageKey) throws SynapseException {
 		try {
-			ValidateArgument.required(replyId, "replyId");
-			return getJSONEntity(REPLY+"/"+replyId+URL, MessageURL.class);
-		} catch (JSONObjectAdapterException e) {
+			ValidateArgument.required(messageKey, "messageKey");
+			return new URL(getJSONEntity(REPLY+URL+"?messageKey="+messageKey, MessageURL.class).getMessageUrl());
+		} catch (Exception e) {
 			throw new SynapseClientException(e);
 		}
 	}
 
 	@Override
-	public MessageURL getThreadUrl(String threadId) throws SynapseException {
+	public URL getThreadUrl(String messageKey) throws SynapseException {
 		try {
-			ValidateArgument.required(threadId, "threadId");
-			return getJSONEntity(THREAD+"/"+threadId+URL, MessageURL.class);
-		} catch (JSONObjectAdapterException e) {
+			ValidateArgument.required(messageKey, "messageKey");
+			return new URL(getJSONEntity(THREAD+URL+"?messageKey="+messageKey, MessageURL.class).getMessageUrl());
+		} catch (Exception e) {
 			throw new SynapseClientException(e);
 		}
 	}

@@ -111,14 +111,14 @@ public class DiscussionServiceImpl implements DiscussionService{
 	}
 
 	@Override
-	public MessageURL getThreadUrl(Long userId, String threadId) {
+	public MessageURL getThreadUrl(Long userId, String messageKey) {
 		UserInfo user = userManager.getUserInfo(userId);
-		return threadManager.getMessageUrl(user, threadId);
+		return threadManager.getMessageUrl(user, messageKey);
 	}
 
 	@Override
-	public MessageURL getReplyUrl(Long userId, String replyId) {
+	public MessageURL getReplyUrl(Long userId, String messageKey) {
 		UserInfo user = userManager.getUserInfo(userId);
-		return replyManager.getMessageUrl(user, replyId);
+		return replyManager.getMessageUrl(user, messageKey);
 	}
 }

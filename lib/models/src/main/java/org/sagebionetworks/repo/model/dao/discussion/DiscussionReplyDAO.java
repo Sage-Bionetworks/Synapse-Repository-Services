@@ -18,7 +18,7 @@ public interface DiscussionReplyDAO {
 	 * @param userId
 	 * @return
 	 */
-	public DiscussionReplyBundle createReply(String threadId, String messageKey,
+	public DiscussionReplyBundle createReply(String threadId, String replyId, String messageKey,
 			Long userId);
 
 	/**

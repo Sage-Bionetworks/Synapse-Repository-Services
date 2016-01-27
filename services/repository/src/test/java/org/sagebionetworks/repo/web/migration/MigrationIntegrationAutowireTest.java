@@ -362,7 +362,8 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 	}
 
 	private void createReply() {
-		replyDao.createReply(threadId, "messageKey", adminUserId);
+		String replyId = idGenerator.generateNewId(TYPE.DISCUSSION_REPLY_ID).toString();
+		replyDao.createReply(threadId, replyId, "messageKey", adminUserId);
 	}
 
 	private void createVerificationSubmission() {

@@ -2104,19 +2104,21 @@ public class ServletTestHelper {
 		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request, HttpStatus.NO_CONTENT);
 	}
 
-	public MessageURL getThreadUrl(DispatcherServlet dispatchServlet2,
-			Long userId, String threadId) throws Exception {
+	public MessageURL getThreadUrl(DispatcherServlet dispatchServlet,
+			Long userId, String messageKey) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, "/repo/v1", UrlHelpers.THREAD+"/"+threadId+UrlHelpers.URL, userId, null);
+				HTTPMODE.GET, "/repo/v1", UrlHelpers.THREAD_URL, userId, null);
+		request.setParameter("messageKey", messageKey);
 		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.OK);
 		return objectMapper.readValue(response.getContentAsString(), MessageURL.class);
 	}
 
-	public MessageURL getReplyUrl(DispatcherServlet dispatchServlet2,
-			Long userId, String replyId) throws Exception {
+	public MessageURL getReplyUrl(DispatcherServlet dispatchServlet,
+			Long userId, String messageKey) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, "/repo/v1", UrlHelpers.REPLY+"/"+replyId+UrlHelpers.URL, userId, null);
+				HTTPMODE.GET, "/repo/v1", UrlHelpers.REPLY_URL, userId, null);
+		request.setParameter("messageKey", messageKey);
 		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.OK);
 		return objectMapper.readValue(response.getContentAsString(), MessageURL.class);

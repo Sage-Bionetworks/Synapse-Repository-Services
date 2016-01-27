@@ -78,7 +78,7 @@ public interface DiscussionThreadManager {
 	 * Get message Url for a thread
 	 * 
 	 * @param user
-	 * @param threadId
+	 * @param messageKey
 	 */
-	public MessageURL getMessageUrl(UserInfo user, String threadId);
+	public MessageURL getMessageUrl(UserInfo user, String messageKey);
 }

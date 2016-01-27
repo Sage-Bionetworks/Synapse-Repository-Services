@@ -176,13 +176,13 @@ public class DiscussionServiceImplTest {
 
 	@Test
 	public void testGetThreadUrl() {
-		Mockito.when(mockThreadManager.getMessageUrl(userInfo, threadId)).thenReturn(messageUrl);
-		assertEquals(messageUrl, discussionServices.getThreadUrl(userId, threadId));
+		Mockito.when(mockThreadManager.getMessageUrl(userInfo, messageKey)).thenReturn(messageUrl);
+		assertEquals(messageUrl, discussionServices.getThreadUrl(userId, messageKey));
 	}
 
 	@Test
 	public void testGetReplyUrl() {
-		Mockito.when(mockReplyManager.getMessageUrl(userInfo, threadId)).thenReturn(messageUrl);
-		assertEquals(messageUrl, discussionServices.getReplyUrl(userId, threadId));
+		Mockito.when(mockReplyManager.getMessageUrl(userInfo, messageKey)).thenReturn(messageUrl);
+		assertEquals(messageUrl, discussionServices.getReplyUrl(userId, messageKey));
 	}
 }
