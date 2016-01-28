@@ -3,6 +3,7 @@ package org.sagebionetworks.tool.migration.v4;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -304,36 +305,49 @@ public class SynapseAdminClientMocker {
 			}
 			
 		});
-		
-		when(client.getRowMetadataByRange(any(MigrationType.class), anyLong(), anyLong())).thenAnswer(new Answer<RowMetadataResult>() {
 
-			@Override
-			public RowMetadataResult answer(InvocationOnMock invocation)
-					throws Throwable {
-				MigrationType migrationType = (MigrationType) invocation.getArguments()[0];
-				Long minId = (Long) invocation.getArguments()[1];
-				Long maxId = (Long) invocation.getArguments()[2];
-				
-				if (migrationType == null)
-					throw new IllegalArgumentException("Type cannot be null");
-				
-				List<RowMetadata> list = state.metadata.get(migrationType);
-				RowMetadataResult result = new RowMetadataResult();
-				result.setTotalCount(new Long(list.size()));
-				
-				List<RowMetadata> resultList = new LinkedList<RowMetadata>();
-				
-				for (RowMetadata rm: list) {
-					if ((rm.getId() >= minId) && (rm.getId() <= maxId)) {
-						resultList.add(rm);
+		when(client.getRowMetadataByRange(any(MigrationType.class), anyLong(), anyLong(), anyLong(), anyLong())
+				).thenAnswer(new Answer<RowMetadataResult>() {
+
+					@Override
+					public RowMetadataResult answer(InvocationOnMock invocation)
+							throws Throwable {
+						MigrationType migrationType = (MigrationType) invocation.getArguments()[0];
+						Long minId = (Long) invocation.getArguments()[1];
+						Long maxId = (Long) invocation.getArguments()[2];
+						Long limit = (Long) invocation.getArguments()[3];
+						Long offset = (Long) invocation.getArguments()[4];
+						
+						if (migrationType == null)
+							throw new IllegalArgumentException("Type cannot be null");
+						
+						// All the values
+						List<RowMetadata> list = state.metadata.get(migrationType);
+						// Subset on (minId, maxId)
+						List<RowMetadata> subset = new LinkedList<RowMetadata>();
+						for (RowMetadata r: list) {
+							if ((r.getId() >= minId) && (r.getId() <= maxId)) {
+								subset.add(r);
+							}
+						}
+						// Only return at offset for limit
+						RowMetadataResult result = new RowMetadataResult();
+						result.setTotalCount(new Long(list.size()));
+						
+						List<RowMetadata> resultList = new LinkedList<RowMetadata>();
+						long idx = 0;
+						for (RowMetadata rm: subset) {
+							if ((idx >= offset) && (idx < offset+limit)) {
+								resultList.add(rm);
+							}
+							idx++;
+						}
+						
+						result.setList(resultList);
+						return result;
 					}
-				}
 				
-				result.setList(resultList);
-				return result;
-			}
-			
-		});
+			});
 		
 		when(client.startBackup(any(MigrationType.class), any(IdList.class))).thenAnswer(new Answer<BackupRestoreStatus>() {
 

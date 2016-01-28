@@ -122,7 +122,7 @@ public interface MigrationManager {
 	
 	public MigrationTypeChecksum getChecksumForType(UserInfo user, MigrationType type);
 	
-	public RowMetadataResult getRowMetadataByRangeForType(UserInfo user, MigrationType type, long minId, long maxId);
+	public RowMetadataResult getRowMetadataByRangeForType(UserInfo user, MigrationType type, long minId, long maxId, long limit, long offset);
 	
 	public MigrationTypeCount getMigrationTypeCount(UserInfo user, MigrationType type);
 	
