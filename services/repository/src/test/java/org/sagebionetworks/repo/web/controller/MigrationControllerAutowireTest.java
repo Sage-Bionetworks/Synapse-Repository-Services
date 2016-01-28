@@ -13,6 +13,7 @@ import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
@@ -23,6 +24,8 @@ import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
+import org.sagebionetworks.repo.model.status.StackStatus;
+import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class MigrationControllerAutowireTest extends AbstractAutowiredControllerTestBase {
@@ -35,6 +38,8 @@ public class MigrationControllerAutowireTest extends AbstractAutowiredController
 	private NodeManager nodeManager;
 	@Autowired
 	private FileHandleDao fileMetadataDao;
+	@Autowired
+	private StackStatusDao stackStatusDao;
 	
 	private Long adminUserId;
 	
@@ -131,8 +136,21 @@ public class MigrationControllerAutowireTest extends AbstractAutowiredController
 	
 	@Test
 	public void testGetChecksumForType() throws Exception {
-		MigrationTypeChecksum checksum = entityServletHelper.getChecksumForType(adminUserId, MigrationType.FILE_HANDLE);
-		assertNotNull(checksum);
+		try {
+			StackStatus sStatus = new StackStatus();
+			sStatus.setStatus(StatusEnum.READ_ONLY);
+			sStatus.setCurrentMessage("Stack in read-only mode");
+			stackStatusDao.updateStatus(sStatus);
+			MigrationTypeChecksum checksum = entityServletHelper.getChecksumForType(adminUserId, MigrationType.FILE_HANDLE);
+			assertNotNull(checksum);
+			assertNotNull(checksum.getChecksum());
+			assertEquals(MigrationType.FILE_HANDLE, checksum.getType());
+		} finally {
+			StackStatus sStatus = new StackStatus();
+			sStatus.setStatus(StatusEnum.READ_WRITE);
+			sStatus.setCurrentMessage("Stack in read/write mode");
+			stackStatusDao.updateStatus(sStatus);
+		}
 	}
 	
 
