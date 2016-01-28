@@ -340,6 +340,40 @@ public class DeltaFinderTest {
 	}
 	
 	@Test
+	public void testUpgRangeNullChecksum() throws Exception {
+		TypeToMigrateMetadata meta = new TypeToMigrateMetadata();
+		meta.setType(MigrationType.FILE_HANDLE);
+		meta.setSrcCount(1345L);
+		meta.setSrcMinId(1000L);
+		meta.setSrcMaxId(2344L);
+		meta.setDestCount(1345L);
+		meta.setDestMinId(1000L);
+		meta.setDestMaxId(2344L);
+		MigrationRangeChecksum expectedChecksum1 = new MigrationRangeChecksum();
+		expectedChecksum1.setType(MigrationType.FILE_HANDLE);
+		expectedChecksum1.setMinid(1000L);
+		expectedChecksum1.setMaxid(2344L);
+		MigrationRangeChecksum expectedChecksum2 = new MigrationRangeChecksum();
+		expectedChecksum2.setType(MigrationType.FILE_HANDLE);
+		expectedChecksum2.setMinid(1000L);
+		expectedChecksum2.setMaxid(2344L);
+		when(mockSrcClient.getChecksumForIdRange(eq(MigrationType.FILE_HANDLE), eq("salt"), eq(1000L), eq(2344L))).thenReturn(expectedChecksum1);
+		when(mockDestClient.getChecksumForIdRange(eq(MigrationType.FILE_HANDLE), eq("salt"), eq(1000L), eq(2344L))).thenReturn(expectedChecksum2);
+		DeltaFinder finder = new DeltaFinder(meta, mockSrcClient, mockDestClient, "salt", 5000L);
+		DeltaRanges ranges = finder.findDeltaRanges();
+		assertEquals(MigrationType.FILE_HANDLE, ranges.getMigrationType());
+		assertNotNull(ranges.getInsRanges());
+		assertEquals(0, ranges.getInsRanges().size());
+		assertNotNull(ranges.getUpdRanges());
+		assertEquals(0, ranges.getUpdRanges().size());
+		assertNotNull(ranges.getDelRanges());
+		assertEquals(0, ranges.getDelRanges().size());
+		assertNotNull(ranges.getDelRanges());
+		verify(mockSrcClient).getChecksumForIdRange(eq(MigrationType.FILE_HANDLE), eq("salt"), eq(1000L), eq(2344L));
+		verify(mockDestClient).getChecksumForIdRange(eq(MigrationType.FILE_HANDLE), eq("salt"), eq(1000L), eq(2344L));
+	}
+	
+	@Test
 	public void testUpgRangeOneRecursion() throws Exception {
 		TypeToMigrateMetadata meta = new TypeToMigrateMetadata();
 		meta.setType(MigrationType.FILE_HANDLE);
