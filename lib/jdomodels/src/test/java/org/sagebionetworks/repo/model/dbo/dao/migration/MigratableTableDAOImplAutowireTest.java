@@ -338,10 +338,10 @@ public class MigratableTableDAOImplAutowireTest {
 	}
 	
 	@Test
-	public void testGetListRowMetadataByRange() throws Exception {
+	public void testGetListRowMetadataByRangeOneBatch() throws Exception {
 		long startId = fileHandleDao.getMaxId() + 1;
 		long startCount = fileHandleDao.getCount();
-		RowMetadataResult l = migratableTableDAO.listRowMetadataByRange(MigrationType.FILE_HANDLE, startId, startId+1);
+		RowMetadataResult l = migratableTableDAO.listRowMetadataByRange(MigrationType.FILE_HANDLE, startId, startId+1, 10, 0);
 		assertNotNull(l);
 		assertEquals(startCount, l.getTotalCount().longValue());
 		assertNotNull(l.getList());
@@ -352,18 +352,18 @@ public class MigratableTableDAOImplAutowireTest {
 		handle1 = fileHandleDao.createFile(handle1);
 		filesToDelete.add(handle1.getId());
 		// Test
-		l = migratableTableDAO.listRowMetadataByRange(MigrationType.FILE_HANDLE, startId, Long.parseLong(handle1.getId())-1);
+		l = migratableTableDAO.listRowMetadataByRange(MigrationType.FILE_HANDLE, startId, Long.parseLong(handle1.getId())-1, 10, 0);
 		assertNotNull(l);
 		assertEquals(startCount+1, l.getTotalCount().longValue());
 		assertNotNull(l.getList());
 		assertEquals(0, l.getList().size());
-		l = migratableTableDAO.listRowMetadataByRange(MigrationType.FILE_HANDLE, startId, Long.parseLong(handle1.getId()));
+		l = migratableTableDAO.listRowMetadataByRange(MigrationType.FILE_HANDLE, startId, Long.parseLong(handle1.getId()), 10, 0);
 		assertNotNull(l);
 		assertEquals(startCount+1, l.getTotalCount().longValue());
 		assertNotNull(l.getList());
 		assertEquals(1, l.getList().size());
 		assertEquals(handle1.getId(), l.getList().get(0).getId().toString());
-		l = migratableTableDAO.listRowMetadataByRange(MigrationType.FILE_HANDLE, startId, Long.parseLong(handle1.getId())+1);
+		l = migratableTableDAO.listRowMetadataByRange(MigrationType.FILE_HANDLE, startId, Long.parseLong(handle1.getId())+1, 10, 0);
 		assertNotNull(l);
 		assertEquals(startCount+1, l.getTotalCount().longValue());
 		assertNotNull(l.getList());
@@ -375,7 +375,7 @@ public class MigratableTableDAOImplAutowireTest {
 		previewHandle1 = fileHandleDao.createFile(previewHandle1);
 		filesToDelete.add(previewHandle1.getId());
 		// Test
-		l = migratableTableDAO.listRowMetadataByRange(MigrationType.FILE_HANDLE, startId, Long.parseLong(previewHandle1.getId()));
+		l = migratableTableDAO.listRowMetadataByRange(MigrationType.FILE_HANDLE, startId, Long.parseLong(previewHandle1.getId()), 10, 0);
 		assertNotNull(l);
 		assertEquals(startCount+2, l.getTotalCount().longValue());
 		assertNotNull(l.getList());
@@ -385,13 +385,56 @@ public class MigratableTableDAOImplAutowireTest {
 		// Delete preview
 		fileHandleDao.delete(previewHandle1.getId());
 		// Test
-		l = migratableTableDAO.listRowMetadataByRange(MigrationType.FILE_HANDLE, startId, Long.parseLong(previewHandle1.getId()));
+		l = migratableTableDAO.listRowMetadataByRange(MigrationType.FILE_HANDLE, startId, Long.parseLong(previewHandle1.getId()), 10, 0);
 		assertNotNull(l);
 		assertEquals(startCount+1, l.getTotalCount().longValue());
 		assertNotNull(l.getList());
 		assertEquals(1, l.getList().size());
 		assertEquals(handle1.getId(), l.getList().get(0).getId().toString());
 		
+	}
+	
+	@Test
+	public void testGetListRowMetadataByRangeMultipleBatches() {
+		long minId = fileHandleDao.getMaxId()+1;
+		List<Long> ids = new LinkedList<Long>();
+		// Create 5 file handles
+		for (int i = 1; i < 6; i++) {
+			S3FileHandle handle = TestUtils.createS3FileHandle(creatorUserGroupId);
+			handle.setFileName("handle"+i);
+			handle = fileHandleDao.createFile(handle);
+			filesToDelete.add(handle.getId());
+			ids.add(Long.parseLong(handle.getId()));
+		}
+		// First batch
+		RowMetadataResult b = migratableTableDAO.listRowMetadataByRange(MigrationType.FILE_HANDLE, minId, ids.get(4)+1, 2, 0);
+		assertNotNull(b);
+		assertEquals(5L, b.getTotalCount().longValue());
+		assertNotNull(b.getList());
+		assertEquals(2, b.getList().size());
+		assertEquals(ids.get(0), b.getList().get(0).getId());
+		assertEquals(ids.get(1), b.getList().get(1).getId());
+		// Second batch
+		b = migratableTableDAO.listRowMetadataByRange(MigrationType.FILE_HANDLE, minId, ids.get(4)+1, 2, 2);
+		assertNotNull(b);
+		assertEquals(5L, b.getTotalCount().longValue());
+		assertNotNull(b.getList());
+		assertEquals(2, b.getList().size());
+		assertEquals(ids.get(2), b.getList().get(0).getId());
+		assertEquals(ids.get(3), b.getList().get(1).getId());
+		// Last batch
+		b = migratableTableDAO.listRowMetadataByRange(MigrationType.FILE_HANDLE, minId, ids.get(4)+1, 2, 4);
+		assertNotNull(b);
+		assertEquals(5L, b.getTotalCount().longValue());
+		assertNotNull(b.getList());
+		assertEquals(1, b.getList().size());
+		assertEquals(ids.get(4), b.getList().get(0).getId());
+		// Beyond
+		b = migratableTableDAO.listRowMetadataByRange(MigrationType.FILE_HANDLE, minId, ids.get(4)+1, 2, 5);
+		assertNotNull(b);
+		assertEquals(5L, b.getTotalCount().longValue());
+		assertNotNull(b.getList());
+		assertEquals(0, b.getList().size());
 	}
 	
 	@Test
@@ -493,5 +536,12 @@ public class MigratableTableDAOImplAutowireTest {
 		assertFalse(etag1.equals(etag2));
 		assertFalse(checksum1.equals(checksum2));
 		
+	}
+	
+	@Test
+	public void testAllMigrationTypesRegistered() {
+		for (MigrationType t: MigrationType.values()) {
+			assertTrue(migratableTableDAO.isMigrationTypeRegistered(t));
+		}
 	}
 }

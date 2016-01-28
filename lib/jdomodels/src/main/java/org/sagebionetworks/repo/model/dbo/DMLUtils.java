@@ -416,6 +416,7 @@ public class DMLUtils {
 		builder.append(mapping.getTableName());
 		buildWhereBackupIdInRange(mapping, builder);
 		buildBackupOrderBy(mapping, builder, true);
+		builder.append(" LIMIT ? OFFSET ?");
 		return builder.toString();
 	}
 	
