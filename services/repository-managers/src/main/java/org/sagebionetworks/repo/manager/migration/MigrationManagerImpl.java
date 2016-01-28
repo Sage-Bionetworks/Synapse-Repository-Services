@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 
+import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
@@ -24,6 +25,7 @@ import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationUtils;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
+import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,6 +42,8 @@ public class MigrationManagerImpl implements MigrationManager {
 	
 	@Autowired
 	MigratableTableDAO migratableTableDao;
+	@Autowired
+	StackStatusDao stackStatusDao;
 	
 	/**
 	 * The list of migration listeners
@@ -56,9 +60,10 @@ public class MigrationManagerImpl implements MigrationManager {
 	 * @param migratableTableDao
 	 * @param backupBatchMax
 	 */
-	public MigrationManagerImpl(MigratableTableDAO migratableTableDao, int backupBatchMax) {
+	public MigrationManagerImpl(MigratableTableDAO migratableTableDao, StackStatusDao stackStatusDao, int backupBatchMax) {
 		super();
 		this.migratableTableDao = migratableTableDao;
+		this.stackStatusDao = stackStatusDao;
 		this.backupBatchMax = backupBatchMax;
 	}
 	
@@ -411,6 +416,9 @@ public class MigrationManagerImpl implements MigrationManager {
 	
 	@Override
 	public MigrationTypeChecksum getChecksumForType(UserInfo user, MigrationType type) {
+		if (stackStatusDao.getCurrentStatus() == StatusEnum.READ_WRITE) { 
+			throw new RuntimeException("API getChecksumForType() cannot be called in Read/Write mode");
+		}
 		validateUser(user);
 		String checksum = migratableTableDao.getChecksumForType(type);
 		MigrationTypeChecksum mtc = new MigrationTypeChecksum();

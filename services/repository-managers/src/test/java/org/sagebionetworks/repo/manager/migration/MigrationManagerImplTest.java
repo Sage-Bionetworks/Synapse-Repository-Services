@@ -18,6 +18,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.Reference;
+import org.sagebionetworks.repo.model.StackStatusDao;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
@@ -28,6 +30,8 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOSubjectAccessRequirement;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.migration.MigrationType;
+import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
+import org.sagebionetworks.repo.model.status.StatusEnum;
 
 /**
  * The Unit test for MigrationManagerImpl;
@@ -37,12 +41,14 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
 public class MigrationManagerImplTest {
 	
 	private MigratableTableDAO mockDao;
+	private StackStatusDao mockStatusDao;
 	MigrationManagerImpl manager;
 	
 	@Before
 	public void before(){
 		mockDao = Mockito.mock(MigratableTableDAO.class);
-		manager = new MigrationManagerImpl(mockDao, 10);
+		mockStatusDao = Mockito.mock(StackStatusDao.class);
+		manager = new MigrationManagerImpl(mockDao, mockStatusDao, 10);
 	}
 	
 	@Test
@@ -237,6 +243,20 @@ public class MigrationManagerImplTest {
 			return "StubDatabaseObject [id=" + id + "]";
 		}
 		
+	}
+	
+	@Test(expected=RuntimeException.class)
+	public void testgetMigrationChecksumForTypeReadWriteMode() throws Exception {
+		when(mockStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_WRITE);
+		UserInfo user = new UserInfo(true, "0");
+		MigrationTypeChecksum c = manager.getChecksumForType(user, MigrationType.FILE_HANDLE);
+	}
+
+	@Test
+	public void testgetMigrationChecksumForTypeReadOnlyMode() throws Exception {
+		when(mockStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_ONLY);
+		UserInfo user = new UserInfo(true, "0");
+		MigrationTypeChecksum c = manager.getChecksumForType(user, MigrationType.FILE_HANDLE);
 	}
 
 }

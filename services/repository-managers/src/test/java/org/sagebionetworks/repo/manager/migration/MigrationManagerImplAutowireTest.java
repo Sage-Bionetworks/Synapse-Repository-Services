@@ -21,6 +21,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
+
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.EntityManager;
@@ -32,6 +33,7 @@ import org.sagebionetworks.repo.manager.table.TableRowManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ProjectSettingsDAO;
+import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
@@ -55,10 +57,13 @@ import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationSetting;
+import org.sagebionetworks.repo.model.status.StackStatus;
+import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableEntity;
+
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
@@ -111,6 +116,10 @@ public class MigrationManagerImplAutowireTest {
 
 	@Autowired
 	FileHandleManager fileHandleManager;
+	
+	@Autowired
+	StackStatusDao stackStatusDao;
+
 
 	private List<String> toDelete;
 	private UserInfo adminUser;
@@ -263,10 +272,21 @@ public class MigrationManagerImplAutowireTest {
 	
 	@Test
 	public void testGetChecksumForType() {
-		MigrationTypeChecksum mtc = migrationManager.getChecksumForType(adminUser, MigrationType.FILE_HANDLE);
-		assertNotNull(mtc);
-		assertNotNull(mtc.getChecksum());
-		assertEquals(MigrationType.FILE_HANDLE, mtc.getType());
+		try {
+			StackStatus sStatus = new StackStatus();
+			sStatus.setStatus(StatusEnum.READ_ONLY);
+			sStatus.setCurrentMessage("Stack in read-only mode");
+			stackStatusDao.updateStatus(sStatus);
+			MigrationTypeChecksum mtc = migrationManager.getChecksumForType(adminUser, MigrationType.FILE_HANDLE);
+			assertNotNull(mtc);
+			assertNotNull(mtc.getChecksum());
+			assertEquals(MigrationType.FILE_HANDLE, mtc.getType());
+		} finally {
+			StackStatus sStatus = new StackStatus();
+			sStatus.setStatus(StatusEnum.READ_WRITE);
+			sStatus.setCurrentMessage("Stack in read/write mode");
+			stackStatusDao.updateStatus(sStatus);
+		}
 	}
  	
 	@Test
