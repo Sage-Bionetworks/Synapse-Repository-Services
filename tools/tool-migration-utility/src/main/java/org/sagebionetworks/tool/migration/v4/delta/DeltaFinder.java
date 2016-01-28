@@ -106,7 +106,7 @@ public class DeltaFinder {
 		MigrationRangeChecksum srcCrc32 = srcClient.getChecksumForIdRange(type, salt, minId, maxId);
 		MigrationRangeChecksum destCrc32 = destClient.getChecksumForIdRange(type, salt, minId, maxId);
 		log.info("Computed range checksums from " + minId + " to " + maxId + ": (" + srcCrc32 + ", " + destCrc32 + ").");
-		if (srcCrc32.getChecksum().equals(destCrc32.getChecksum())) {
+		if (srcCrc32.equals(destCrc32)) {
 			return l;
 		} else {
 			if (maxId - minId < batchSize) {
