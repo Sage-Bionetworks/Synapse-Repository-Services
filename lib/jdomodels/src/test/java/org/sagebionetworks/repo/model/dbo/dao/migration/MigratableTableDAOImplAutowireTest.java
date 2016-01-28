@@ -537,4 +537,11 @@ public class MigratableTableDAOImplAutowireTest {
 		assertFalse(checksum1.equals(checksum2));
 		
 	}
+	
+	@Test
+	public void testAllMigrationTypesRegistered() {
+		for (MigrationType t: MigrationType.values()) {
+			assertTrue(migratableTableDAO.isMigrationTypeRegistered(t));
+		}
+	}
 }

@@ -4,10 +4,12 @@ import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Callable;
 
 import org.apache.logging.log4j.LogManager;
@@ -110,6 +112,8 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	private Map<MigrationType, RowMapper<RowMetadata>> rowMetadataMappers = new HashMap<MigrationType, RowMapper<RowMetadata>>();
 	
 	private List<MigrationType> rootTypes = new LinkedList<MigrationType>();
+	
+	private Set<MigrationType> registeredMigrationTypes = new HashSet<MigrationType>();
 	
 	/**
 	 * We cache the mapping for each object type.
@@ -219,6 +223,9 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		if(isRoot){
 			this.rootTypes.add(type);
 		}
+		
+		registeredMigrationTypes.add(dbo.getMigratableTableType());
+
 	}
 	
 	/**
@@ -572,6 +579,11 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		MigrationTypeCount mtc = jdbcTemplate.queryForObject(sql, mapper);
 		mtc.setType(type);
 		return mtc;
+	}
+
+	@Override
+	public boolean isMigrationTypeRegistered(MigrationType type) {
+		return this.registeredMigrationTypes.contains(type);
 	}
 	
 	
