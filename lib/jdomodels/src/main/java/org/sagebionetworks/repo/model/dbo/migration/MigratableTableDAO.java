@@ -68,11 +68,13 @@ public interface MigratableTableDAO {
 	 * This means metadata must be listed in dependency order.  For example, if row 'b' depends on row 'a' 
 	 * then row 'a' must be listed before row 'b'.  For this example, row 'a' would be migrated before row 'b'.
 	 *    
+	 * @param minId
+	 * @param maxId
 	 * @param limit
 	 * @param offset
 	 * @return
 	 */
-	RowMetadataResult listRowMetadataByRange(MigrationType type, long minId, long maxId);
+	RowMetadataResult listRowMetadataByRange(MigrationType type, long minId, long maxId, long limit, long offset);
 	
 	/**
 	 * Given a list of ID return the RowMetadata for each row that exist in the table.
