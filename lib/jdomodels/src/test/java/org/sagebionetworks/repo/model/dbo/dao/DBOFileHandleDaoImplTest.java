@@ -590,6 +590,7 @@ public class DBOFileHandleDaoImplTest {
 		pfh.setCreatedBy(creatorUserGroupId);
 		pfh = fileHandleDao.createFile(pfh);
 		assertNotNull(pfh);
+		toDelete.add(pfh.getId());
 		ProxyFileHandle clone = (ProxyFileHandle) fileHandleDao.get(pfh.getId());
 		assertEquals(pfh, clone);
 	}
