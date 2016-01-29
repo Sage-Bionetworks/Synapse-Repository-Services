@@ -47,8 +47,10 @@ import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
+import org.sagebionetworks.repo.model.file.ProxyFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
+import org.sagebionetworks.repo.model.project.ProxyStorageLocationSettings;
 import org.sagebionetworks.repo.model.project.S3StorageLocationSetting;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
@@ -457,6 +459,45 @@ public class FileHandleManagerImplTest {
 		verify(mockS3Client).generatePresignedUrl(gpuRequest.capture());
 		assertEquals("attachment; filename=foo.txt", 
 				gpuRequest.getValue().getResponseHeaders().getContentDisposition());
+	}
+	
+	@Test
+	public void testProxyPresignedUrl(){
+		Long locationId = 123L;
+		ProxyFileHandle proxyHandle = new ProxyFileHandle();
+		proxyHandle.setFileName("foo.txt");
+		proxyHandle.setFilePath("/path/root/child");
+		proxyHandle.setProxyHost("host.org");
+		proxyHandle.setStorageLocationId(locationId);
+		
+		ProxyStorageLocationSettings proxyLocation = new ProxyStorageLocationSettings();
+		proxyLocation.setStorageLocationId(locationId);
+		proxyLocation.setProxyHost(proxyHandle.getProxyHost());
+		proxyLocation.setSecretKey("Super Secret key to sign URLs with.");
+		
+		when(mockStorageLocationDao.get(locationId)).thenReturn(proxyLocation);
+		
+		// call under test
+		String url = manager.getURLForFileHandle(proxyHandle, null);
+		assertNotNull(url);
+		assertTrue(url.startsWith("https://host.org/path/root/child?"));
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testProxyPresignedUrlWrongStorageType(){
+		Long locationId = 123L;
+		ProxyFileHandle proxyHandle = new ProxyFileHandle();
+		proxyHandle.setFileName("foo.txt");
+		proxyHandle.setFilePath("/path/root/child");
+		proxyHandle.setProxyHost("host.org");
+		proxyHandle.setStorageLocationId(locationId);
+		// wrong storage location type.
+		S3StorageLocationSetting location = new S3StorageLocationSetting();
+		
+		when(mockStorageLocationDao.get(locationId)).thenReturn(location);
+		
+		// call under test
+		manager.getURLForFileHandle(proxyHandle, null);
 	}
 		
 	@Test
