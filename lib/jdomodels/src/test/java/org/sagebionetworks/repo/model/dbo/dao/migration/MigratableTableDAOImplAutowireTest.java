@@ -324,6 +324,7 @@ public class MigratableTableDAOImplAutowireTest {
 		assertEquals(expectedPrimaryTypes, primary);
 	}
 	
+	@Deprecated
 	@Test
 	public void testGetMigrationTypeCount() throws Exception {
 		long startCount = fileHandleDao.getCount();
@@ -335,6 +336,33 @@ public class MigratableTableDAOImplAutowireTest {
 		assertEquals(startCount+1, migratableTableDAO.getCount(MigrationType.FILE_HANDLE));
 		fileHandleDao.delete(handle.getId());
 		assertEquals(startCount, migratableTableDAO.getCount(MigrationType.FILE_HANDLE));
+	}
+	
+	@Test
+	public void testGetMigrationTypeCountForType() {
+		long startCount = fileHandleDao.getCount();
+		assertEquals(startCount, migratableTableDAO.getMigrationTypeCount(MigrationType.FILE_HANDLE).getCount().longValue());
+		S3FileHandle handle = TestUtils.createS3FileHandle(creatorUserGroupId);
+		handle.setFileName("handle");
+		handle = fileHandleDao.createFile(handle);
+		filesToDelete.add(handle.getId());
+		assertEquals(startCount+1, migratableTableDAO.getMigrationTypeCount(MigrationType.FILE_HANDLE).getCount().longValue());
+		fileHandleDao.delete(handle.getId());
+		assertEquals(startCount, migratableTableDAO.getMigrationTypeCount(MigrationType.FILE_HANDLE).getCount().longValue());
+	}
+	
+	@Test
+	public void testGetMigrationTypeCountForTypeNoData() {
+		MigrationTypeCount mtc = migratableTableDAO.getMigrationTypeCount(MigrationType.VERIFICATION_SUBMISSION);
+		assertNotNull(mtc);
+		assertNotNull(mtc.getCount());
+		assertEquals(0L, mtc.getCount().longValue());
+		assertNotNull(mtc.getMaxid());
+		assertEquals(0L, mtc.getMaxid().longValue());
+		assertNotNull(mtc.getMinid());
+		assertEquals(0L, mtc.getMinid().longValue());
+		assertNotNull(mtc.getType());
+		assertEquals(MigrationType.VERIFICATION_SUBMISSION, mtc.getType());
 	}
 	
 	@Test

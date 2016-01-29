@@ -45,8 +45,8 @@ public class DeltaFinderTest {
 		TypeToMigrateMetadata meta = new TypeToMigrateMetadata();
 		meta.setType(MigrationType.FILE_HANDLE);
 		meta.setSrcCount(0L);
-		meta.setSrcMinId(null);
-		meta.setSrcMaxId(null);
+		meta.setSrcMinId(0L);
+		meta.setSrcMaxId(0L);
 		meta.setDestCount(1345L);
 		meta.setDestMinId(1000L);
 		meta.setDestMaxId(2344L);
@@ -73,8 +73,8 @@ public class DeltaFinderTest {
 		meta.setSrcMinId(2000L);
 		meta.setSrcMaxId(3344L);
 		meta.setDestCount(0L);
-		meta.setDestMinId(null);
-		meta.setDestMaxId(null);
+		meta.setDestMinId(0L);
+		meta.setDestMaxId(0L);
 		DeltaFinder finder = new DeltaFinder(meta, mockSrcClient, mockDestClient, "salt", batchSize);
 		DeltaRanges ranges = finder.findDeltaRanges();
 		assertEquals(MigrationType.FILE_HANDLE, ranges.getMigrationType());
