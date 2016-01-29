@@ -65,6 +65,7 @@ import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.HasPreviewId;
+import org.sagebionetworks.repo.model.file.ProxyFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandleInterface;
 import org.sagebionetworks.repo.model.file.S3UploadDestination;
@@ -76,6 +77,7 @@ import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
+import org.sagebionetworks.repo.model.project.ProxyStorageLocationSettings;
 import org.sagebionetworks.repo.model.project.S3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
@@ -457,6 +459,14 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		if (handle instanceof ExternalFileHandle) {
 			ExternalFileHandle efh = (ExternalFileHandle) handle;
 			return efh.getExternalURL();
+		} else if(handle instanceof ProxyFileHandle){
+			ProxyFileHandle proxyHandle = (ProxyFileHandle) handle;
+			StorageLocationSetting storage = this.storageLocationDAO.get(proxyHandle.getStorageLocationId());
+			if(!(storage instanceof ProxyStorageLocationSettings)){
+				throw new IllegalArgumentException("ProxyFileHandle.storageLocation is not of type"+ProxyStorageLocationSettings.class.getName());
+			}
+			ProxyStorageLocationSettings proxyStorage = (ProxyStorageLocationSettings) storage;
+			return ProxyUrlSignerUtils.generatePresignedUrl(proxyHandle, proxyStorage, new Date(System.currentTimeMillis() + PRESIGNED_URL_EXPIRE_TIME_MS));
 		} else if (handle instanceof S3FileHandleInterface) {
 			S3FileHandleInterface s3File = (S3FileHandleInterface) handle;
 			// Create a pre-signed url

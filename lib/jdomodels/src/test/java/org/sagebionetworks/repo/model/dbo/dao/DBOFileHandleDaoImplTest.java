@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
+import org.sagebionetworks.repo.model.file.ProxyFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -575,5 +576,22 @@ public class DBOFileHandleDaoImplTest {
 		handle = fileHandleDao.createFile(handle, false);
 		toDelete.add(handle.getId());
 		assertEquals(handle.getId(), handle.getPreviewId());
+	}
+	
+	@Test
+	public void testProxyFileHandle(){
+		ProxyFileHandle pfh = new ProxyFileHandle();
+		pfh.setContentType("text/plain");
+		pfh.setContentMd5("md5");
+		pfh.setContentSize(123L);
+		pfh.setProxyHost("host.org");
+		pfh.setFilePath("/foo/bar/text.txt");
+		pfh.setFileName("text.txt");
+		pfh.setCreatedBy(creatorUserGroupId);
+		pfh = fileHandleDao.createFile(pfh);
+		assertNotNull(pfh);
+		toDelete.add(pfh.getId());
+		ProxyFileHandle clone = (ProxyFileHandle) fileHandleDao.get(pfh.getId());
+		assertEquals(pfh, clone);
 	}
 }

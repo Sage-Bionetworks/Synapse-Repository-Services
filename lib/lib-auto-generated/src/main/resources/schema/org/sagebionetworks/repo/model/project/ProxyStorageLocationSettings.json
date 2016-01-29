@@ -1,0 +1,18 @@
+{
+	"description": "A storage location that uses a HTTPS proxy for all upload and download operations.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.project.StorageLocationSetting"
+		}
+	],
+	"properties": {
+		"proxyHost": {
+			"type": "string",
+			"description": "The HTTP host name of the proxy used for upload an download."
+		},
+		"secretKey": {
+			"type": "string",
+			"description": "The encryption key used to sign all pre-signed URLs used to communicate with the proxy."
+		}
+	}
+}

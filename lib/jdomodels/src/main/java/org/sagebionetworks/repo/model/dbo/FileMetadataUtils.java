@@ -11,6 +11,7 @@ import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.HasPreviewId;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
+import org.sagebionetworks.repo.model.file.ProxyFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandleInterface;
 import org.sagebionetworks.util.ValidateArgument;
@@ -41,7 +42,9 @@ public class FileMetadataUtils {
 			dbo.setMetadataType(MetadataType.S3);
 		} else if (fileHandle instanceof PreviewFileHandle) {
 			dbo.setMetadataType(MetadataType.PREVIEW);
-		} else {
+		} else if (fileHandle instanceof ProxyFileHandle) {
+			dbo.setMetadataType(MetadataType.PROXY);
+		}else {
 			throw new IllegalArgumentException("Unhandled file handle type: " + fileHandle.getClass().getName());
 		}
 
@@ -51,6 +54,9 @@ public class FileMetadataUtils {
 		}
 		if (fileHandle instanceof S3FileHandleInterface) {
 			createDBOFromDTO(dbo, (S3FileHandleInterface) fileHandle);
+		}
+		if(fileHandle instanceof ProxyFileHandle){
+			createDBOFromDTO(dbo, (ProxyFileHandle) fileHandle);
 		}
 
 		return dbo;
@@ -72,6 +78,7 @@ public class FileMetadataUtils {
 		dbo.setName(fileHandle.getFileName());
 		dbo.setStorageLocationId(fileHandle.getStorageLocationId());
 		dbo.setContentType(fileHandle.getContentType());
+		dbo.setContentSize(fileHandle.getContentSize());
 		dbo.setContentMD5(fileHandle.getContentMd5());
 	}
 
@@ -90,6 +97,12 @@ public class FileMetadataUtils {
 	private static void createDBOFromDTO(DBOFileHandle dbo, S3FileHandleInterface fileHandle) {
 		dbo.setBucketName(fileHandle.getBucketName());
 		dbo.setKey(fileHandle.getKey());
+		dbo.setContentSize(fileHandle.getContentSize());
+	}
+	
+	private static void createDBOFromDTO(DBOFileHandle dbo, ProxyFileHandle fileHandle) {
+		dbo.setBucketName(fileHandle.getProxyHost());
+		dbo.setKey(fileHandle.getFilePath());
 		dbo.setContentSize(fileHandle.getContentSize());
 	}
 
@@ -115,6 +128,10 @@ public class FileMetadataUtils {
 			// preview
 			fileHandle = new PreviewFileHandle();
 			break;
+		case PROXY:
+			// preview
+			fileHandle = new ProxyFileHandle();
+			break;
 		default:
 			throw new IllegalArgumentException("Must be External, S3 or Preview but was: " + dbo.getMetadataTypeEnum());
 		}
@@ -129,6 +146,9 @@ public class FileMetadataUtils {
 		}
 		if (fileHandle instanceof S3FileHandleInterface) {
 			createDTOFromDBO((S3FileHandleInterface) fileHandle, dbo);
+		}
+		if (fileHandle instanceof ProxyFileHandle) {
+			createDTOFromDBO((ProxyFileHandle) fileHandle, dbo);
 		}
 		return fileHandle;
 	}
@@ -145,6 +165,7 @@ public class FileMetadataUtils {
 		fileHandle.setStorageLocationId(dbo.getStorageLocationId());
 		fileHandle.setContentType(dbo.getContentType());
 		fileHandle.setContentMd5(dbo.getContentMD5());
+		fileHandle.setContentSize(dbo.getContentSize());
 		fileHandle.setFileName(dbo.getName());
 	}
 
@@ -162,6 +183,12 @@ public class FileMetadataUtils {
 	private static void createDTOFromDBO(S3FileHandleInterface fileHandle, DBOFileHandle dbo) {
 		fileHandle.setBucketName(dbo.getBucketName());
 		fileHandle.setKey(dbo.getKey());
+		fileHandle.setContentSize(dbo.getContentSize());
+	}
+	
+	private static void createDTOFromDBO(ProxyFileHandle fileHandle, DBOFileHandle dbo) {
+		fileHandle.setProxyHost(dbo.getBucketName());
+		fileHandle.setFilePath(dbo.getKey());
 		fileHandle.setContentSize(dbo.getContentSize());
 	}
 

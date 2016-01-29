@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle.MetadataType
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
+import org.sagebionetworks.repo.model.file.ProxyFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 
 public class FileMetadataUtilsTest {
@@ -30,6 +31,30 @@ public class FileMetadataUtilsTest {
 		meta.setEtag("etag");
 		meta.setFileName("fileName");
 		meta.setContentType("text/plain");
+		// PLFM-3466
+		meta.setContentSize(12345L);
+		System.out.println(meta);
+		// Convert to dbo
+		DBOFileHandle dbo = FileMetadataUtils.createDBOFromDTO(meta);
+		assertNotNull(dbo);
+		FileHandle clone = FileMetadataUtils.createDTOFromDBO(dbo);
+		assertEquals(meta, clone);
+	}
+	
+	@Test
+	public void testExternalFileMetadataRoundTripSizeNull() throws MalformedURLException{
+		// External
+		ExternalFileHandle meta = new ExternalFileHandle();
+		meta.setCreatedBy("456");
+		meta.setCreatedOn(new Date());
+		meta.setExternalURL("http://google.com");
+		meta.setId("987");
+		meta.setPreviewId("456");
+		meta.setEtag("etag");
+		meta.setFileName("fileName");
+		meta.setContentType("text/plain");
+		// PLFM-3466
+		meta.setContentSize(null);
 		System.out.println(meta);
 		// Convert to dbo
 		DBOFileHandle dbo = FileMetadataUtils.createDBOFromDTO(meta);
@@ -133,6 +158,27 @@ public class FileMetadataUtilsTest {
 		DBOFileHandle clone = FileMetadataUtils.createDBOFromBackup(backup);
 		assertNotNull(clone);
 		assertEquals(dbo, clone);
+	}
+	
+	@Test
+	public void testProxyFileHandleRoundTrip(){
+		ProxyFileHandle proxy = new ProxyFileHandle();
+		proxy.setProxyHost("host.org");
+		proxy.setFilePath("/foo/bar/cat.txt");
+		proxy.setCreatedBy("456");
+		proxy.setCreatedOn(new Date());
+		proxy.setId("987");
+		proxy.setContentMd5("md5");
+		proxy.setContentSize(123l);
+		proxy.setContentType("contentType");
+		proxy.setPreviewId("9999");
+		proxy.setEtag("etag");
+		proxy.setFileName("cat.txt");
+		
+		DBOFileHandle dbo = FileMetadataUtils.createDBOFromDTO(proxy);
+		assertNotNull(dbo);
+		FileHandle clone = FileMetadataUtils.createDTOFromDBO(dbo);
+		assertEquals(proxy, clone);
 	}
 
 

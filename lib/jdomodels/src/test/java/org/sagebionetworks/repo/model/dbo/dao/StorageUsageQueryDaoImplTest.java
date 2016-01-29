@@ -51,6 +51,7 @@ public class StorageUsageQueryDaoImplTest {
 		userIdString = userId.toString();
 
 		toDelete = new ArrayList<String>();
+		
 	}
 
 	@After
