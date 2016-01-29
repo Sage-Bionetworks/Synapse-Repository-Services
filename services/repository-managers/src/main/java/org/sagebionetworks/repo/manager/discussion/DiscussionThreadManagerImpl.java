@@ -29,6 +29,7 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
+	public static final String ANONYMOUS_ACCESS_DENIED_REASON = "Anonymous cannot perform this action. Please login and try again.";
 	@Autowired
 	private DiscussionThreadDAO threadDao;
 	@Autowired
@@ -52,6 +53,9 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		ValidateArgument.required(createThread.getMessageMarkdown(), "CreateDiscussionThread.messageMarkdown");
 		UserInfo.validateUserInfo(userInfo);
 		String projectId = forumDao.getForum(Long.parseLong(createThread.getForumId())).getProjectId();
+		if (authorizationManager.isAnonymousUser(userInfo)){
+			throw new UnauthorizedException(ANONYMOUS_ACCESS_DENIED_REASON);
+		}
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ));
 		Long id = idGenerator.generateNewId(TYPE.DISCUSSION_THREAD_ID);

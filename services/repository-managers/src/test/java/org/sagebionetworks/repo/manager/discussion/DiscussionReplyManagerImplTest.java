@@ -83,6 +83,7 @@ public class DiscussionReplyManagerImplTest {
 		userInfo.setId(765L);
 		bundle.setCreatedBy(userInfo.getId().toString());
 		Mockito.when(mockReplyDao.getReply(Mockito.anyLong())).thenReturn(bundle);
+		Mockito.when(mockAuthorizationManager.isAnonymousUser(userInfo)).thenReturn(false);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -117,6 +118,15 @@ public class DiscussionReplyManagerImplTest {
 		createReply.setThreadId(threadId);
 		createReply.setMessageMarkdown("messageMarkdown");
 		Mockito.when(mockThreadManager.getThread(userInfo, threadId)).thenThrow(new UnauthorizedException());
+		replyManager.createReply(userInfo, createReply);
+	}
+
+	@Test (expected = UnauthorizedException.class)
+	public void testCreateReplyByAnonymous() throws IOException {
+		Mockito.when(mockAuthorizationManager.isAnonymousUser(userInfo)).thenReturn(true);
+		CreateDiscussionReply createReply = new CreateDiscussionReply();
+		createReply.setThreadId(threadId);
+		createReply.setMessageMarkdown("messageMarkdown");
 		replyManager.createReply(userInfo, createReply);
 	}
 
