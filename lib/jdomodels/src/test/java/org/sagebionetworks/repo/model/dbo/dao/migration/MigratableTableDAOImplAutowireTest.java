@@ -357,10 +357,8 @@ public class MigratableTableDAOImplAutowireTest {
 		assertNotNull(mtc);
 		assertNotNull(mtc.getCount());
 		assertEquals(0L, mtc.getCount().longValue());
-		assertNotNull(mtc.getMaxid());
-		assertEquals(0L, mtc.getMaxid().longValue());
-		assertNotNull(mtc.getMinid());
-		assertEquals(0L, mtc.getMinid().longValue());
+		assertNull(mtc.getMaxid());
+		assertNull(mtc.getMinid());
 		assertNotNull(mtc.getType());
 		assertEquals(MigrationType.VERIFICATION_SUBMISSION, mtc.getType());
 	}
@@ -564,6 +562,12 @@ public class MigratableTableDAOImplAutowireTest {
 		assertFalse(etag1.equals(etag2));
 		assertFalse(checksum1.equals(checksum2));
 		
+	}
+	
+	@Test
+	public void testGetChecksumForRangeNoData() {
+		String checksum = migratableTableDAO.getChecksumForIdRange(MigrationType.VERIFICATION_SUBMISSION, "salt", 0, 10);
+		assertNull(checksum);
 	}
 	
 	@Test

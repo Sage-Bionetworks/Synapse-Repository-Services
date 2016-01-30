@@ -42,16 +42,16 @@ public class DeltaFinder {
 		List<IdRange> delRanges = new LinkedList<IdRange>();
 		
 		// Source is empty
-		if (typeToMigrateMeta.getSrcMinId() == 0L) {
+		if (typeToMigrateMeta.getSrcMinId() == null) {
 			// Delete everything at destination if not empty
-			if (typeToMigrateMeta.getDestMinId() != 0L) {
+			if (typeToMigrateMeta.getDestMinId() != null) {
 				IdRange r = new IdRange(typeToMigrateMeta.getDestMinId(), typeToMigrateMeta.getDestMaxId());
 				delRanges.add(r);
 				log.info("Source is empty for " + typeToMigrateMeta.getType() + ", added range " + r + " to delRanges.");
 			}
 		} else { // Source is not empty
 			// Insert everything from destination if empty
-			if (typeToMigrateMeta.getDestMinId() == 0L) {
+			if (typeToMigrateMeta.getDestMinId() == null) {
 				IdRange r = new IdRange(typeToMigrateMeta.getSrcMinId(), typeToMigrateMeta.getSrcMaxId());
 				insRanges.add(r);
 				log.info("Destination is empty for " + typeToMigrateMeta.getType() + ", added range " + r + " to insRanges.");
