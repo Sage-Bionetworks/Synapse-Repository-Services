@@ -17,7 +17,7 @@ public class TypeToMigrateMetadata {
 		
 	};
 	
-	public TypeToMigrateMetadata(MigrationType t, long sMin, long sMax, long sCnt, long dMin, long dMax, long dCnt) {
+	public TypeToMigrateMetadata(MigrationType t, Long sMin, Long sMax, Long sCnt, Long dMin, Long dMax, Long dCnt) {
 		this.setType(t);
 		this.setSrcMinId(sMin);
 		this.setSrcMaxId(sMax);
