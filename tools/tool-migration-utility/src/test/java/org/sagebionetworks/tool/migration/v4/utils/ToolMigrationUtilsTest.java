@@ -90,6 +90,41 @@ public class ToolMigrationUtilsTest {
 	}
 	
 	@Test
+	public void testBuildTypesToMigrateMetadataNullValue() {
+		srcTypeCounts.get(0).setCount(0L);
+		srcTypeCounts.get(0).setMaxid(null);
+		srcTypeCounts.get(0).setMinid(null);
+		destTypeCounts.get(0).setCount(0L);
+		destTypeCounts.get(0).setMaxid(null);
+		destTypeCounts.get(0).setMinid(null);
+		List<TypeToMigrateMetadata> expectedMetadata = new LinkedList<TypeToMigrateMetadata>();
+		int idx = 0;
+		for (MigrationType t: typesToMigrate.getList()) {
+			TypeToMigrateMetadata d = new TypeToMigrateMetadata();
+			if (idx == 0) {
+				d.setDestCount(0L);
+				d.setDestMaxId(null);
+				d.setDestMinId(null);
+				d.setSrcCount(0L);
+				d.setSrcMaxId(null);
+				d.setSrcMinId(null);
+			} else {
+				d.setDestMaxId(destTypeCounts.get(idx).getMaxid());
+				d.setDestMinId(destTypeCounts.get(idx).getMinid());
+				d.setDestCount(destTypeCounts.get(idx).getCount());
+				d.setSrcCount(srcTypeCounts.get(idx).getCount());
+				d.setSrcMaxId(srcTypeCounts.get(idx).getMaxid());
+				d.setSrcMinId(srcTypeCounts.get(idx).getMinid());
+			}
+			d.setType(t);
+			expectedMetadata.add(d);
+			idx++;
+		}
+		List<TypeToMigrateMetadata> l = ToolMigrationUtils.buildTypeToMigrateMetadata(srcTypeCounts, destTypeCounts, typesToMigrate.getList());
+		assertEquals(expectedMetadata, l);
+	}
+	
+	@Test
 	public void testMigrationOutcomeGetDelta() {
 		MigrationTypeCountDiff outcome = new MigrationTypeCountDiff(MigrationType.ACCESS_APPROVAL, null, null);
 		Long delta = outcome.getDelta();
