@@ -94,6 +94,7 @@ public class DiscussionThreadManagerImplTest {
 		messageUrl.setMessageUrl("messageUrl");
 		Mockito.when(mockUploadDao.getThreadUrl(messageKey)).thenReturn(messageUrl);
 		Mockito.when(mockReplyDao.getReplyCount(Mockito.anyLong())).thenReturn(0L);
+		Mockito.when(mockAuthorizationManager.isAnonymousUser(userInfo)).thenReturn(false);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -128,6 +129,12 @@ public class DiscussionThreadManagerImplTest {
 	public void testCreateAccessDenied() throws Exception {
 		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
 				.thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+		threadManager.createThread(userInfo, createDto);
+	}
+
+	@Test (expected = UnauthorizedException.class)
+	public void testCreateByAnonymous() throws Exception {
+		Mockito.when(mockAuthorizationManager.isAnonymousUser(userInfo)).thenReturn(true);
 		threadManager.createThread(userInfo, createDto);
 	}
 
