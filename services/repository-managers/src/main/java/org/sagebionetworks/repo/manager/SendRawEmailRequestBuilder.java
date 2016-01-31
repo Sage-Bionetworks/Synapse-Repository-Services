@@ -251,7 +251,9 @@ public class SendRawEmailRequestBuilder {
 						ContentType.TEXT_HTML.getMimeType());
 			} else if (contentType.getMimeType().equals(ContentType.TEXT_PLAIN.getMimeType())) {
 				StringBuilder sb = new StringBuilder("<html>\n<body>\n");
+				sb.append("<div style=\"white-space: pre-wrap;\">\n");
 				sb.append(EmailUtils.createEmailBodyFromHtml(messageBodyString, unsubscribeLink));
+				sb.append("\n</div>");
 				sb.append("\n</body>\n</html>\n");
 				part.setContent(sb.toString(), ContentType.TEXT_HTML.getMimeType());
 			} else {
