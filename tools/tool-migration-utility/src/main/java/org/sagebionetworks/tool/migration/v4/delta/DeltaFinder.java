@@ -2,18 +2,14 @@ package org.sagebionetworks.tool.migration.v4.delta;
 
 import java.util.LinkedList;
 import java.util.List;
-import java.util.UUID;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.commons.net.bsd.RLoginClient;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationType;
-import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.sagebionetworks.tool.migration.v4.MigrationClient;
 import org.sagebionetworks.tool.migration.v4.utils.TypeToMigrateMetadata;
 
 public class DeltaFinder {
@@ -51,39 +47,48 @@ public class DeltaFinder {
 			if (typeToMigrateMeta.getDestMinId() != null) {
 				IdRange r = new IdRange(typeToMigrateMeta.getDestMinId(), typeToMigrateMeta.getDestMaxId());
 				delRanges.add(r);
+				log.info("Source is empty for " + typeToMigrateMeta.getType() + ", added range " + r + " to delRanges.");
 			}
 		} else { // Source is not empty
 			// Insert everything from destination if empty
 			if (typeToMigrateMeta.getDestMinId() == null) {
 				IdRange r = new IdRange(typeToMigrateMeta.getSrcMinId(), typeToMigrateMeta.getSrcMaxId());
 				insRanges.add(r);
+				log.info("Destination is empty for " + typeToMigrateMeta.getType() + ", added range " + r + " to insRanges.");
 			} else { // Normal case
 				Long updatesMinId = Math.max(typeToMigrateMeta.getSrcMinId(), typeToMigrateMeta.getDestMinId());
 				Long updatesMaxId = Math.min(typeToMigrateMeta.getSrcMaxId(), typeToMigrateMeta.getDestMaxId());
+				log.info("Update box from " + updatesMinId + " to " + updatesMaxId);
 				
 				if (updatesMinId > updatesMaxId) { // Disjoint
 					IdRange r = new IdRange(typeToMigrateMeta.getSrcMinId(), typeToMigrateMeta.getSrcMaxId());
 					insRanges.add(r);
+					log.info("Added range " + r + " to insRanges.");
 					r = new IdRange(typeToMigrateMeta.getDestMinId(), typeToMigrateMeta.getDestMaxId());
 					delRanges.add(r);
+					log.info("Added range " + r + " to delRanges.");
 				} else {
 					// Inserts and deletes ranges (these are ranges that do not overlap between source and destination
 					// so either insert or delete depending where they occur
 					if (typeToMigrateMeta.getSrcMinId() < updatesMinId) {
 						IdRange r = new IdRange(typeToMigrateMeta.getSrcMinId(), updatesMinId-1);
 						insRanges.add(r);
+						log.info("Added range " + r + " to insRanges.");
 					}
 					if (typeToMigrateMeta.getSrcMaxId() > updatesMaxId) {
 						IdRange r = new IdRange(updatesMaxId+1, typeToMigrateMeta.getSrcMaxId());
 						insRanges.add(r);
+						log.info("Added range " + r + " to insRanges.");
 					}
 					if (typeToMigrateMeta.getDestMinId() < updatesMinId) {
 						IdRange r = new IdRange(typeToMigrateMeta.getDestMinId(), updatesMinId-1);
 						delRanges.add(r);
+						log.info("Added range " + r + " to delRanges.");
 					}
 					if (typeToMigrateMeta.getDestMaxId() > updatesMaxId) {
 						IdRange r = new IdRange(updatesMaxId+1, typeToMigrateMeta.getDestMaxId());
 						delRanges.add(r);
+						log.info("Added range " + r + " to delRanges.");
 					}
 					
 					// Update ranges
@@ -105,8 +110,8 @@ public class DeltaFinder {
 		List<IdRange> l = new LinkedList<IdRange>();
 		MigrationRangeChecksum srcCrc32 = srcClient.getChecksumForIdRange(type, salt, minId, maxId);
 		MigrationRangeChecksum destCrc32 = destClient.getChecksumForIdRange(type, salt, minId, maxId);
-		log.info("Computed range checksums from " + minId + " to " + maxId + ": (" + srcCrc32 + ", " + destCrc32 + ").");
-		if (srcCrc32.getChecksum().equals(destCrc32.getChecksum())) {
+		//log.info("Computed range checksums from " + minId + " to " + maxId + ": (" + srcCrc32.getChecksum() + ", " + destCrc32.getChecksum() + ").");
+		if (srcCrc32.equals(destCrc32)) {
 			return l;
 		} else {
 			if (maxId - minId < batchSize) {

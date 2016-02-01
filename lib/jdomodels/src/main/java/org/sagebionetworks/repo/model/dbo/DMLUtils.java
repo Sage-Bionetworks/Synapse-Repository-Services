@@ -416,6 +416,7 @@ public class DMLUtils {
 		builder.append(mapping.getTableName());
 		buildWhereBackupIdInRange(mapping, builder);
 		buildBackupOrderBy(mapping, builder, true);
+		builder.append(" LIMIT ? OFFSET ?");
 		return builder.toString();
 	}
 	
@@ -618,14 +619,24 @@ public class DMLUtils {
 		};
 	}
 	
+	/**
+	 * Row mapper for select min(id), max(id), count(*) from table
+	 * If empty (count == 0) set the minId and maxId to null
+	 * @return
+	 */
 	public static RowMapper<MigrationTypeCount> getMigrationTypeCountResultMapper() {
 		return new RowMapper<MigrationTypeCount>() {
 			@Override
 			public MigrationTypeCount mapRow(ResultSet rs, int rowNum) throws SQLException {
 				MigrationTypeCount mtc = new MigrationTypeCount();
-				mtc.setMinid(rs.getLong(1));
-				mtc.setMaxid(rs.getLong(2));
 				mtc.setCount(rs.getLong(3));
+				if (mtc.getCount() == 0L) {
+					mtc.setMinid(null);
+					mtc.setMaxid(null);
+				} else {
+					mtc.setMinid(rs.getLong(1));
+					mtc.setMaxid(rs.getLong(2));
+				}
 				return mtc;
 			}
 		};

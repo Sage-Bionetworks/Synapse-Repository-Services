@@ -15,7 +15,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 
-import org.apache.commons.lang.RandomStringUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -40,11 +39,8 @@ import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.table.CurrentVersionCacheDao;
 import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
-import org.sagebionetworks.repo.model.file.ExternalUploadDestination;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.file.UploadDestination;
-import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationType;
@@ -311,7 +307,7 @@ public class MigrationManagerImplAutowireTest {
 	public void testListRowMetadataByRange() {
 		long minId = migrationManager.getMinId(adminUser, MigrationType.FILE_HANDLE);
 		long maxId = migrationManager.getMaxId(adminUser, MigrationType.FILE_HANDLE);
-		RowMetadataResult result = migrationManager.getRowMetadataByRangeForType(adminUser, MigrationType.FILE_HANDLE, startId, maxId);
+		RowMetadataResult result = migrationManager.getRowMetadataByRangeForType(adminUser, MigrationType.FILE_HANDLE, startId, maxId, maxId - startId + 1, 0);
 		assertNotNull(result);
 		assertEquals(new Long(startCount+2), result.getTotalCount());
 		assertNotNull(result.getList());
@@ -434,4 +430,5 @@ public class MigrationManagerImplAutowireTest {
 			}
 		}
 	}
+
 }

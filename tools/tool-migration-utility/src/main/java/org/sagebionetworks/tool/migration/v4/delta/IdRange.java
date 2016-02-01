@@ -26,4 +26,14 @@ public class IdRange {
 		this.maxId = maxId;
 	}
 
+	@Override
+	public String toString() {
+		StringBuilder builder = new StringBuilder();
+		builder.append("[");
+		builder.append(this.minId);
+		builder.append(", ");
+		builder.append(this.maxId);
+		builder.append("]");
+		return builder.toString();
+	}
 }
