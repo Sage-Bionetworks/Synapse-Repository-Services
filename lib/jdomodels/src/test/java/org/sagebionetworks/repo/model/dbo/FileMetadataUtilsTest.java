@@ -163,7 +163,6 @@ public class FileMetadataUtilsTest {
 	@Test
 	public void testProxyFileHandleRoundTrip(){
 		ProxyFileHandle proxy = new ProxyFileHandle();
-		proxy.setProxyHost("host.org");
 		proxy.setFilePath("/foo/bar/cat.txt");
 		proxy.setCreatedBy("456");
 		proxy.setCreatedOn(new Date());

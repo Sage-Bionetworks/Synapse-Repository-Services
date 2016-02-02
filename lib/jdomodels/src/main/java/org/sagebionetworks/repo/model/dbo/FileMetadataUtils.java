@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.model.dbo;
 
 import java.net.MalformedURLException;
-import java.net.URL;
 import java.sql.Timestamp;
 
 import org.sagebionetworks.repo.model.backup.FileHandleBackup;
@@ -37,7 +36,7 @@ public class FileMetadataUtils {
 
 		if (fileHandle instanceof ExternalFileHandle) {
 			dbo.setMetadataType(MetadataType.EXTERNAL);
-			createDBOFromDTO(dbo, (ExternalFileHandle) fileHandle);
+			updateDBOFromDTO(dbo, (ExternalFileHandle) fileHandle);
 		} else if (fileHandle instanceof S3FileHandle) {
 			dbo.setMetadataType(MetadataType.S3);
 		} else if (fileHandle instanceof PreviewFileHandle) {
@@ -48,21 +47,21 @@ public class FileMetadataUtils {
 			throw new IllegalArgumentException("Unhandled file handle type: " + fileHandle.getClass().getName());
 		}
 
-		createDBOFromDTO(dbo, fileHandle);
+		updateDBOFromDTO(dbo, fileHandle);
 		if (fileHandle instanceof HasPreviewId) {
-			createDBOFromDTO(dbo, (HasPreviewId) fileHandle);
+			updateDBOFromDTO(dbo, (HasPreviewId) fileHandle);
 		}
 		if (fileHandle instanceof S3FileHandleInterface) {
-			createDBOFromDTO(dbo, (S3FileHandleInterface) fileHandle);
+			updateDBOFromDTO(dbo, (S3FileHandleInterface) fileHandle);
 		}
 		if(fileHandle instanceof ProxyFileHandle){
-			createDBOFromDTO(dbo, (ProxyFileHandle) fileHandle);
+			updateDBOFromDTO(dbo, (ProxyFileHandle) fileHandle);
 		}
 
 		return dbo;
 	}
 
-	private static void createDBOFromDTO(DBOFileHandle dbo, FileHandle fileHandle) {
+	private static void updateDBOFromDTO(DBOFileHandle dbo, FileHandle fileHandle) {
 		dbo.setEtag(fileHandle.getEtag());
 		if (fileHandle.getCreatedBy() != null) {
 			dbo.setCreatedBy(Long.parseLong(fileHandle.getCreatedBy()));
@@ -82,26 +81,25 @@ public class FileMetadataUtils {
 		dbo.setContentMD5(fileHandle.getContentMd5());
 	}
 
-	private static void createDBOFromDTO(DBOFileHandle dbo, HasPreviewId fileHandle) {
+	private static void updateDBOFromDTO(DBOFileHandle dbo, HasPreviewId fileHandle) {
 		if (fileHandle.getPreviewId() != null) {
 			dbo.setPreviewId(Long.parseLong(fileHandle.getPreviewId()));
 		}
 	}
 
-	private static void createDBOFromDTO(DBOFileHandle dbo, ExternalFileHandle fileHandle) {
+	private static void updateDBOFromDTO(DBOFileHandle dbo, ExternalFileHandle fileHandle) {
 		// Validate the URL
 		ValidateArgument.validUrl(fileHandle.getExternalURL());
 		dbo.setKey(fileHandle.getExternalURL());
 	}
 
-	private static void createDBOFromDTO(DBOFileHandle dbo, S3FileHandleInterface fileHandle) {
+	private static void updateDBOFromDTO(DBOFileHandle dbo, S3FileHandleInterface fileHandle) {
 		dbo.setBucketName(fileHandle.getBucketName());
 		dbo.setKey(fileHandle.getKey());
 		dbo.setContentSize(fileHandle.getContentSize());
 	}
 	
-	private static void createDBOFromDTO(DBOFileHandle dbo, ProxyFileHandle fileHandle) {
-		dbo.setBucketName(fileHandle.getProxyHost());
+	private static void updateDBOFromDTO(DBOFileHandle dbo, ProxyFileHandle fileHandle) {
 		dbo.setKey(fileHandle.getFilePath());
 		dbo.setContentSize(fileHandle.getContentSize());
 	}
@@ -137,23 +135,23 @@ public class FileMetadataUtils {
 		}
 
 		// now fill in the information
-		createDTOFromDBO(fileHandle, dbo);
+		updateDTOFromDBO(fileHandle, dbo);
 		if (fileHandle instanceof HasPreviewId) {
-			createDTOFromDBO((HasPreviewId) fileHandle, dbo);
+			updateDTOFromDBO((HasPreviewId) fileHandle, dbo);
 		}
 		if (fileHandle instanceof ExternalFileHandle) {
-			createDTOFromDBO((ExternalFileHandle) fileHandle, dbo);
+			updateDTOFromDBO((ExternalFileHandle) fileHandle, dbo);
 		}
 		if (fileHandle instanceof S3FileHandleInterface) {
-			createDTOFromDBO((S3FileHandleInterface) fileHandle, dbo);
+			updateDTOFromDBO((S3FileHandleInterface) fileHandle, dbo);
 		}
 		if (fileHandle instanceof ProxyFileHandle) {
-			createDTOFromDBO((ProxyFileHandle) fileHandle, dbo);
+			updateDTOFromDBO((ProxyFileHandle) fileHandle, dbo);
 		}
 		return fileHandle;
 	}
 
-	private static void createDTOFromDBO(FileHandle fileHandle, DBOFileHandle dbo) {
+	private static void updateDTOFromDBO(FileHandle fileHandle, DBOFileHandle dbo) {
 		if (dbo.getCreatedBy() != null) {
 			fileHandle.setCreatedBy(dbo.getCreatedBy().toString());
 		}
@@ -169,27 +167,25 @@ public class FileMetadataUtils {
 		fileHandle.setFileName(dbo.getName());
 	}
 
-	private static void createDTOFromDBO(HasPreviewId fileHandle, DBOFileHandle dbo) {
+	private static void updateDTOFromDBO(HasPreviewId fileHandle, DBOFileHandle dbo) {
 		if (dbo.getPreviewId() != null) {
 			fileHandle.setPreviewId(dbo.getPreviewId().toString());
 		}
 
 	}
 
-	private static void createDTOFromDBO(ExternalFileHandle fileHandle, DBOFileHandle dbo) {
+	private static void updateDTOFromDBO(ExternalFileHandle fileHandle, DBOFileHandle dbo) {
 		fileHandle.setExternalURL(dbo.getKey());
 	}
 
-	private static void createDTOFromDBO(S3FileHandleInterface fileHandle, DBOFileHandle dbo) {
+	private static void updateDTOFromDBO(S3FileHandleInterface fileHandle, DBOFileHandle dbo) {
 		fileHandle.setBucketName(dbo.getBucketName());
 		fileHandle.setKey(dbo.getKey());
 		fileHandle.setContentSize(dbo.getContentSize());
 	}
 	
-	private static void createDTOFromDBO(ProxyFileHandle fileHandle, DBOFileHandle dbo) {
-		fileHandle.setProxyHost(dbo.getBucketName());
+	private static void updateDTOFromDBO(ProxyFileHandle fileHandle, DBOFileHandle dbo) {
 		fileHandle.setFilePath(dbo.getKey());
-		fileHandle.setContentSize(dbo.getContentSize());
 	}
 
 	/**

@@ -584,7 +584,6 @@ public class DBOFileHandleDaoImplTest {
 		pfh.setContentType("text/plain");
 		pfh.setContentMd5("md5");
 		pfh.setContentSize(123L);
-		pfh.setProxyHost("host.org");
 		pfh.setFilePath("/foo/bar/text.txt");
 		pfh.setFileName("text.txt");
 		pfh.setCreatedBy(creatorUserGroupId);
