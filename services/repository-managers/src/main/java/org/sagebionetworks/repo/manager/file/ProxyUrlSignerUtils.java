@@ -9,6 +9,7 @@ import org.sagebionetworks.repo.model.project.ProxyStorageLocationSettings;
 import org.sagebionetworks.url.HttpMethod;
 import org.sagebionetworks.url.UrlData;
 import org.sagebionetworks.url.UrlSignerUtils;
+import org.sagebionetworks.util.ValidateArgument;
 
 public class ProxyUrlSignerUtils {
 
@@ -21,6 +22,11 @@ public class ProxyUrlSignerUtils {
 	 */
 	public static String generatePresignedUrl(ProxyFileHandle proxyHandle,
 			ProxyStorageLocationSettings proxyStorage, Date expires) {
+		ValidateArgument.required(proxyHandle, "ProxyFileHandle");
+		ValidateArgument.required(proxyHandle.getFilePath(), "ProxyFileHandle.filePath");
+		ValidateArgument.required(proxyStorage, "ProxyStorageLocationSettings");
+		ValidateArgument.required(proxyStorage.getProxyHost(), "ProxyStorageLocationSettings.proxyHost");
+		ValidateArgument.required(proxyStorage.getUploadType(), "ProxyStorageLocationSettings.uploadType");
 		// Generate the
 		try {
 			StringBuilder path = new StringBuilder();

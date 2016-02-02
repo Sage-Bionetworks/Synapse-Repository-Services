@@ -115,7 +115,7 @@ public class ProxyUrlSignerUtilsTest {
 	@Test
 	public void testGeneratePresignedPathNoSlash() {
 		// path does not start with slash and needs a trim.
-		proxyHandle.setFilePath(" path/root/child\n");;
+		proxyHandle.setFilePath(" path/root/child\n");
 		// Call under test
 		String url = ProxyUrlSignerUtils.generatePresignedUrl(proxyHandle,
 				proxyLocation, expiration);
@@ -127,6 +127,46 @@ public class ProxyUrlSignerUtilsTest {
 				+ "&expiration=123"
 				+ "&hmacSignature=4047296002a817e44205bedf127bbc02da51f3a4",
 				url);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGeneratePresignedHandleNull() {
+		proxyHandle = null;
+		// Call under test
+		ProxyUrlSignerUtils.generatePresignedUrl(proxyHandle,
+				proxyLocation, expiration);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGeneratePresignedPathNull() {
+		proxyHandle.setFilePath(null);
+		// Call under test
+		ProxyUrlSignerUtils.generatePresignedUrl(proxyHandle,
+				proxyLocation, expiration);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGeneratePresignedSettingsNull() {
+		proxyLocation = null;
+		// Call under test
+		ProxyUrlSignerUtils.generatePresignedUrl(proxyHandle,
+				proxyLocation, expiration);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGeneratePresignedSettingsHostNull() {
+		proxyLocation.setProxyHost(null);
+		// Call under test
+		ProxyUrlSignerUtils.generatePresignedUrl(proxyHandle,
+				proxyLocation, expiration);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGeneratePresignedSettingsTypeNull() {
+		proxyLocation.setUploadType(null);
+		// Call under test
+		ProxyUrlSignerUtils.generatePresignedUrl(proxyHandle,
+				proxyLocation, expiration);
 	}
 
 }
