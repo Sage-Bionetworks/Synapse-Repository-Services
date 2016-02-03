@@ -159,21 +159,36 @@ public class MigrationClient {
 		// If final sync (source is in read-only mode) then do a table checksum
 		// Note: Destination is always in read-only during migration
 		if (source.getCurrentStackStatus().getStatus() == StatusEnum.READ_ONLY) {
-			log.info("Final migration, checking table checksums");
-			boolean isChecksumDiff = false;
-			for (TypeToMigrateMetadata t: typesToMigrateMetadata) {
-				String srcTableChecksum = source.getChecksumForType(t.getType()).getChecksum();
-				String destTableChecksum =destination.getChecksumForType(t.getType()).getChecksum();
-				if (! srcTableChecksum.equals(destTableChecksum)) {
-					isChecksumDiff = true;
-					log.info("Table checksum difference for type: " + t);
-				}
-			}
-			if (isChecksumDiff) {
-				throw new RuntimeException("Table checksum differences in final sync.");
-			}
+			doChecksumForMigratedTypes(source, destination, typesToMigrateMetadata);
 		}
 		
+	}
+
+	private void doChecksumForMigratedTypes(SynapseAdminClient source,
+			SynapseAdminClient destination,
+			List<TypeToMigrateMetadata> typesToMigrateMetadata)
+			throws SynapseException, JSONObjectAdapterException,
+			RuntimeException {
+		log.info("Final migration, checking table checksums");
+		boolean isChecksumDiff = false;
+		for (TypeToMigrateMetadata t: typesToMigrateMetadata) {
+			String srcTableChecksum = source.getChecksumForType(t.getType()).getChecksum();
+			String destTableChecksum = destination.getChecksumForType(t.getType()).getChecksum();
+			StringBuilder sb = new StringBuilder();
+			sb.append("Migration type: ");
+			sb.append(t.getType());
+			sb.append(": ");
+			if (! srcTableChecksum.equals(destTableChecksum)) {
+				isChecksumDiff = true;
+				sb.append("Found table checksum difference.");
+			} else {
+				sb.append("Table checksums identical.");
+			}
+			log.info(sb.toString());
+		}
+		if (isChecksumDiff) {
+			throw new RuntimeException("Table checksum differences in final sync.");
+		}
 	}
 
 	/**
