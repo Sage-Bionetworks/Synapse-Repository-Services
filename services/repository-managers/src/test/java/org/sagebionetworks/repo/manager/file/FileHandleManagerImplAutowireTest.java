@@ -661,6 +661,7 @@ public class FileHandleManagerImplAutowireTest {
 		ProxyStorageLocationSettings proxy = new ProxyStorageLocationSettings();
 		proxy.setProxyHost("host.org");
 		proxy.setSecretKey(UUID.randomUUID().toString());
+		proxy.setUploadType(UploadType.SFTP);
 		//call under test
 		ProxyStorageLocationSettings result = projectSettingsManager.createStorageLocationSetting(userInfo, proxy);
 		assertNotNull(result);
@@ -674,6 +675,7 @@ public class FileHandleManagerImplAutowireTest {
 		ProxyStorageLocationSettings proxy = new ProxyStorageLocationSettings();
 		proxy.setProxyHost(null);
 		proxy.setSecretKey(UUID.randomUUID().toString());
+		proxy.setUploadType(UploadType.SFTP);
 		// call under test
 		projectSettingsManager.createStorageLocationSetting(userInfo, proxy);
 	}
@@ -683,6 +685,17 @@ public class FileHandleManagerImplAutowireTest {
 		ProxyStorageLocationSettings proxy = new ProxyStorageLocationSettings();
 		proxy.setProxyHost("host.org");
 		proxy.setSecretKey(null);
+		proxy.setUploadType(UploadType.SFTP);
+		// call under test
+		projectSettingsManager.createStorageLocationSetting(userInfo, proxy);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testProxyStorageLocationSettingsTypeNull() throws DatastoreException, NotFoundException, IOException{
+		ProxyStorageLocationSettings proxy = new ProxyStorageLocationSettings();
+		proxy.setProxyHost("host.org");
+		proxy.setSecretKey(UUID.randomUUID().toString());
+		proxy.setUploadType(null);
 		// call under test
 		projectSettingsManager.createStorageLocationSetting(userInfo, proxy);
 	}

@@ -7,6 +7,7 @@ import java.util.Date;
 import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.file.ProxyFileHandle;
+import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.project.ProxyStorageLocationSettings;
 
 public class ProxyUrlSignerUtilsTest {
@@ -21,7 +22,6 @@ public class ProxyUrlSignerUtilsTest {
 		proxyHandle = new ProxyFileHandle();
 		proxyHandle.setFileName("foo.txt");
 		proxyHandle.setFilePath("/path/root/child");
-		proxyHandle.setProxyHost("host.org");
 		proxyHandle.setContentType("text/plain; charset=us-ascii");
 		proxyHandle.setContentMd5("md5");
 		proxyHandle.setContentSize(987L);
@@ -29,8 +29,9 @@ public class ProxyUrlSignerUtilsTest {
 
 		proxyLocation = new ProxyStorageLocationSettings();
 		proxyLocation.setStorageLocationId(locationId);
-		proxyLocation.setProxyHost(proxyHandle.getProxyHost());
+		proxyLocation.setProxyHost("host.org");
 		proxyLocation.setSecretKey("Super Secret key to sign URLs with.");
+		proxyLocation.setUploadType(UploadType.SFTP);
 
 		expiration = new Date(123);
 	}
@@ -40,10 +41,14 @@ public class ProxyUrlSignerUtilsTest {
 		// Call under test
 		String url = ProxyUrlSignerUtils.generatePresignedUrl(proxyHandle,
 				proxyLocation, expiration);
-		assertEquals("https://host.org/path/root/child" + "?fileName=foo.txt"
+		assertEquals(
+				"https://host.org/sftp/path/root/child"
+				+ "?fileName=foo.txt"
 				+ "&contentType=text%2Fplain%3B+charset%3Dus-ascii"
-				+ "&contentMD5=md5" + "&contentSize=987" + "&expiration=123"
-				+ "&hmacSignature=1fbd9816a8a54f1db2e937a0c00a46051a1f38d6",
+				+ "&contentMD5=md5"
+				+ "&contentSize=987"
+				+ "&expiration=123"
+				+ "&hmacSignature=4047296002a817e44205bedf127bbc02da51f3a4",
 				url);
 	}
 
@@ -53,10 +58,12 @@ public class ProxyUrlSignerUtilsTest {
 		// Call under test
 		String url = ProxyUrlSignerUtils.generatePresignedUrl(proxyHandle,
 				proxyLocation, expiration);
-		assertEquals("https://host.org/path/root/child"
+		assertEquals("https://host.org/sftp/path/root/child"
 				+ "?contentType=text%2Fplain%3B+charset%3Dus-ascii"
-				+ "&contentMD5=md5" + "&contentSize=987" + "&expiration=123"
-				+ "&hmacSignature=bc6a45921db91baf5878a4d7437a8afbb9e11965",
+				+ "&contentMD5=md5"
+				+ "&contentSize=987"
+				+ "&expiration=123"
+				+ "&hmacSignature=e5f6f70ce59a16c9137702c54b7473b06ef689d0",
 				url);
 	}
 
@@ -66,9 +73,12 @@ public class ProxyUrlSignerUtilsTest {
 		// Call under test
 		String url = ProxyUrlSignerUtils.generatePresignedUrl(proxyHandle,
 				proxyLocation, expiration);
-		assertEquals("https://host.org/path/root/child" + "?fileName=foo.txt"
-				+ "&contentMD5=md5" + "&contentSize=987" + "&expiration=123"
-				+ "&hmacSignature=ab10dd19178a980c0fccee0a31964a76e4862463",
+		assertEquals("https://host.org/sftp/path/root/child"
+				+ "?fileName=foo.txt"
+				+ "&contentMD5=md5"
+				+ "&contentSize=987"
+				+ "&expiration=123"
+				+ "&hmacSignature=500ed37e40d9b10f6ae449ad735a67ea8ba979bc",
 				url);
 	}
 
@@ -78,10 +88,12 @@ public class ProxyUrlSignerUtilsTest {
 		// Call under test
 		String url = ProxyUrlSignerUtils.generatePresignedUrl(proxyHandle,
 				proxyLocation, expiration);
-		assertEquals("https://host.org/path/root/child" + "?fileName=foo.txt"
+		assertEquals("https://host.org/sftp/path/root/child"
+				+ "?fileName=foo.txt"
 				+ "&contentType=text%2Fplain%3B+charset%3Dus-ascii"
-				+ "&contentSize=987" + "&expiration=123"
-				+ "&hmacSignature=107f9824d1d1ca4db10e8cf9a6c4bf2c082a0729",
+				+ "&contentSize=987"
+				+ "&expiration=123"
+				+ "&hmacSignature=689eae59c63a8c9f083417697cdd502db90bc069",
 				url);
 	}
 
@@ -91,11 +103,70 @@ public class ProxyUrlSignerUtilsTest {
 		// Call under test
 		String url = ProxyUrlSignerUtils.generatePresignedUrl(proxyHandle,
 				proxyLocation, expiration);
-		assertEquals("https://host.org/path/root/child" + "?fileName=foo.txt"
+		assertEquals("https://host.org/sftp/path/root/child"
+				+ "?fileName=foo.txt"
 				+ "&contentType=text%2Fplain%3B+charset%3Dus-ascii"
-				+ "&contentMD5=md5" + "&expiration=123"
-				+ "&hmacSignature=41b47c63904bf6b2287bd391cc057cea6de30df1",
+				+ "&contentMD5=md5"
+				+ "&expiration=123"
+				+ "&hmacSignature=8f199e9c0bc0470ef0ea8a5cd3f7a878373cb4a6",
 				url);
+	}
+	
+	@Test
+	public void testGeneratePresignedPathNoSlash() {
+		// path does not start with slash and needs a trim.
+		proxyHandle.setFilePath(" path/root/child\n");
+		// Call under test
+		String url = ProxyUrlSignerUtils.generatePresignedUrl(proxyHandle,
+				proxyLocation, expiration);
+		assertEquals("https://host.org/sftp/path/root/child"
+				+ "?fileName=foo.txt"
+				+ "&contentType=text%2Fplain%3B+charset%3Dus-ascii"
+				+ "&contentMD5=md5"
+				+ "&contentSize=987"
+				+ "&expiration=123"
+				+ "&hmacSignature=4047296002a817e44205bedf127bbc02da51f3a4",
+				url);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGeneratePresignedHandleNull() {
+		proxyHandle = null;
+		// Call under test
+		ProxyUrlSignerUtils.generatePresignedUrl(proxyHandle,
+				proxyLocation, expiration);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGeneratePresignedPathNull() {
+		proxyHandle.setFilePath(null);
+		// Call under test
+		ProxyUrlSignerUtils.generatePresignedUrl(proxyHandle,
+				proxyLocation, expiration);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGeneratePresignedSettingsNull() {
+		proxyLocation = null;
+		// Call under test
+		ProxyUrlSignerUtils.generatePresignedUrl(proxyHandle,
+				proxyLocation, expiration);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGeneratePresignedSettingsHostNull() {
+		proxyLocation.setProxyHost(null);
+		// Call under test
+		ProxyUrlSignerUtils.generatePresignedUrl(proxyHandle,
+				proxyLocation, expiration);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGeneratePresignedSettingsTypeNull() {
+		proxyLocation.setUploadType(null);
+		// Call under test
+		ProxyUrlSignerUtils.generatePresignedUrl(proxyHandle,
+				proxyLocation, expiration);
 	}
 
 }
