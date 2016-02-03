@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
+import org.sagebionetworks.repo.model.file.ProxyFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
 import org.sagebionetworks.repo.model.file.UploadDestination;
@@ -386,4 +387,13 @@ public interface FileHandleManager {
 
 	String getRedirectURLForFileHandle(UserInfo userInfo, String fileHandleId,
 			FileHandleAssociateType fileAssociateType, String fileAssociateId);
+
+	/**
+	 * Create an external ProxyFileHandle.
+	 * @param userInfo
+	 * @param fileHandle
+	 * @return
+	 */
+	ProxyFileHandle createExternalProxyFileHandle(UserInfo userInfo,
+			ProxyFileHandle fileHandle);
 }

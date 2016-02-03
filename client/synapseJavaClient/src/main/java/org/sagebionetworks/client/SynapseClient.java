@@ -103,6 +103,7 @@ import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
+import org.sagebionetworks.repo.model.file.ProxyFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileCopyResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
@@ -642,6 +643,17 @@ public interface SynapseClient extends BaseClient {
 			throws SynapseException;
 
 	public ExternalFileHandle createExternalFileHandle(ExternalFileHandle efh)
+			throws JSONObjectAdapterException, SynapseException;
+	
+	/**
+	 * Create a new ProxyFileHandle. Note: ProxyFileHandle.storageLocationsId
+	 * must be set to reference a valid ProxyStorageLocationSettings.
+	 * @param handle
+	 * @return
+	 * @throws JSONObjectAdapterException
+	 * @throws SynapseException
+	 */
+	ProxyFileHandle createExternalProxyFileHandle(ProxyFileHandle handle)
 			throws JSONObjectAdapterException, SynapseException;
 	
 	/**
