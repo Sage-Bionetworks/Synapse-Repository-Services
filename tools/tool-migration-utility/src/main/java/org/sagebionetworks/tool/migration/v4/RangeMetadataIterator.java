@@ -46,6 +46,7 @@ public class RangeMetadataIterator implements Iterator<RowMetadata> {
 		this.maxId = maxId;
 		this.batchSize = batchSize;
 		this.progress = progress;
+		this.progress.setCurrent(0);
 		currentIterator = null;
 		offset = 0;
 		isLastPage = false;
@@ -102,6 +103,7 @@ public class RangeMetadataIterator implements Iterator<RowMetadata> {
 			return true;
 		} else if (isLastPage) {
 			// Current page is out of data and no more pages
+			progress.setDone();
 			return false;
 		} else {
 			// Current page out of data but there might be more pages
@@ -122,6 +124,7 @@ public class RangeMetadataIterator implements Iterator<RowMetadata> {
 			// Last page
 			isLastPage = true;
 		}
+		logger.info("Getting data for type: " + this.type + ", fetched a total of " + progress.getCurrent() + " rows.");
 		return page.iterator();
 	}
 

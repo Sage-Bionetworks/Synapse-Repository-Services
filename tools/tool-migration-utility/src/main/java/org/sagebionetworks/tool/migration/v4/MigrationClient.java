@@ -70,6 +70,7 @@ public class MigrationClient {
 			this.migrateAllTypes(batchSize, timeoutMS, retryDenominator);
 		} catch (Exception e) {
 			log.error("Migration failed", e);
+			failed = true;
 		} finally {
 			// After migration is complete, re-enable read/write
 			setDestinationStatus(StatusEnum.READ_WRITE, "Synapse is ready for read/write");
@@ -113,7 +114,7 @@ public class MigrationClient {
 		destStatus.setCurrentMessage(message);
 		destStatus = client.updateCurrentStackStatus(destStatus);
 	}
-	
+
 	/**
 	 * Migrate all types.
 	 * @param batchSize - Max batch size
@@ -154,6 +155,24 @@ public class MigrationClient {
 		List<MigrationTypeCount> endDestCounts = ToolMigrationUtils.getTypeCounts(destination);
 		log.info("Ending diffs in  counts:");
 		printDiffsInCounts(endSourceCounts, endDestCounts);
+		
+		// If final sync (source is in read-only mode) then do a table checksum
+		// Note: Destination is always in read-only during migration
+		if (source.getCurrentStackStatus().getStatus() == StatusEnum.READ_ONLY) {
+			log.info("Final migration, checking table checksums");
+			boolean isChecksumDiff = false;
+			for (TypeToMigrateMetadata t: typesToMigrateMetadata) {
+				String srcTableChecksum = source.getChecksumForType(t.getType()).getChecksum();
+				String destTableChecksum =destination.getChecksumForType(t.getType()).getChecksum();
+				if (! srcTableChecksum.equals(destTableChecksum)) {
+					isChecksumDiff = true;
+					log.info("Table checksum difference for type: " + t);
+				}
+			}
+			if (isChecksumDiff) {
+				throw new RuntimeException("Table checksum differences in final sync.");
+			}
+		}
 		
 	}
 
