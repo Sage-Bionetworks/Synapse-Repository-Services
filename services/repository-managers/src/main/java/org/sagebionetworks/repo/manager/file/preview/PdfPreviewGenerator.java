@@ -1,11 +1,21 @@
 package org.sagebionetworks.repo.manager.file.preview;
 
+import java.awt.image.BufferedImage;
+import java.io.BufferedInputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.List;
 import java.util.Set;
 
+import javax.imageio.ImageIO;
+
+import org.apache.commons.io.IOUtils;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.util.PDFImageWriter;
 import org.im4java.core.ConvertCmd;
 import org.im4java.core.IM4JavaException;
 import org.im4java.core.IMOperation;
@@ -28,38 +38,17 @@ public class PdfPreviewGenerator implements PreviewGenerator {
 
 	@Override
 	public PreviewOutputMetadata generatePreview(InputStream from, OutputStream to) throws IOException {
-		IMOperation op = new IMOperation();
-
-		Pipe pipeIn = new Pipe(from, null);
-		Pipe pipeOut = new Pipe(null, to);
-		ConvertCmd convert = new ConvertCmd();
-
-		convert.setSearchPath(IMAGE_MAGICK_SEARCH_PATH);
-		convert.setInputProvider(pipeIn);
-		convert.setOutputConsumer(pipeOut);
-
-		op.resize(StackConfiguration.getMaximumPreviewWidthPixels(), StackConfiguration.getMaximumPreviewHeightPixels());
-		// this forces imagemagick to turn off unsupported transparent color which breaks resizing otherwise
-		op.flatten();
-		op.addImage("-[0]", "gif:-");
-
-		try {
-			convert.run(op);
-		} catch (InterruptedException e) {
-			throw new RuntimeException("ImageMagick convert interrupted: " + e.getMessage(), e);
-		} catch (IM4JavaException e) {
-			throw new RuntimeException("ImageMagick convert failed: " + e.getMessage(), e);
-		}
-
-		PreviewOutputMetadata metadata = new PreviewOutputMetadata("image/gif", ".gif");
+        PDDocument document = PDDocument.load(from);
+		List<PDPage> list = document.getDocumentCatalog().getAllPages();
+		PDPage firstPage = list.get(0);
+		BufferedImage image =firstPage.convertToImage();
+		ImageIO.write(image, "png", to);
+        PreviewOutputMetadata metadata = new PreviewOutputMetadata("image/png", ".png");
 		return metadata;
 	}
 
 	@Override
 	public boolean supportsContentType(String contentType, String extension) {
-		if(!StackConfiguration.singleton().getOpenOfficeImageMagicePreviewsEnabled()){
-			return false;
-		}
 		return PDF_MIME_TYPES.contains(contentType);
 	}
 

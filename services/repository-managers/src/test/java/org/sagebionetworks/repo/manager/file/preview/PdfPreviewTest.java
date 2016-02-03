@@ -30,11 +30,6 @@ public class PdfPreviewTest {
 
 	private PdfPreviewGenerator pdfPreviewGenerator;
 
-	@BeforeClass
-	public static void beforeClass() throws IOException {
-		checkInstalled();
-	}
-
 	public static void checkInstalled() throws IOException {
 		ConvertCmd convert = new ConvertCmd();
 		try {
@@ -43,7 +38,7 @@ public class PdfPreviewTest {
 			Assume.assumeNoException(e);
 		}
 	}
-
+	
 	@Before
 	public void before() throws IOException, ServiceUnavailableException {
 		pdfPreviewGenerator = new PdfPreviewGenerator();
@@ -56,8 +51,22 @@ public class PdfPreviewTest {
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		PreviewOutputMetadata metaData = pdfPreviewGenerator.generatePreview(in, baos);
 		baos.close();
-		assertEquals("image/gif", metaData.getContentType());
-		assertEquals(".gif", metaData.getExtension());
+		assertEquals("image/png", metaData.getContentType());
+		assertEquals(".png", metaData.getExtension());
 		assertTrue(baos.toByteArray().length > 0);
+	}
+	
+	@Test
+	public void testSupportsContentType() {
+		assertTrue(pdfPreviewGenerator.supportsContentType("text/pdf", null));
+		assertTrue(pdfPreviewGenerator.supportsContentType("text/x-pdf", null));
+		assertTrue(pdfPreviewGenerator.supportsContentType("application/pdf", null));
+		assertTrue(pdfPreviewGenerator.supportsContentType("text/pdf", "any"));
+		assertTrue(pdfPreviewGenerator.supportsContentType("text/x-pdf", "any"));
+		assertTrue(pdfPreviewGenerator.supportsContentType("application/pdf", "any"));
+		assertFalse(pdfPreviewGenerator.supportsContentType(null, null));
+		assertFalse(pdfPreviewGenerator.supportsContentType(null, "any"));
+		assertFalse(pdfPreviewGenerator.supportsContentType("any", "any"));
+		assertFalse(pdfPreviewGenerator.supportsContentType("any", null));
 	}
 }

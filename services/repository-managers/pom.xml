@@ -200,7 +200,15 @@
 			<artifactId>json</artifactId>
 			<version>${org.json.version}</version>
 		</dependency>
-			</dependencies>
+		
+        <!-- Convert .pdf to .png -->
+        <dependency>
+          <groupId>org.apache.pdfbox</groupId>
+          <artifactId>pdfbox</artifactId>
+          <version>1.8.10</version>
+        </dependency>
+        
+	</dependencies>
 
 	<build>
 		<resources>
