@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.file.preview;
 
+import java.awt.Image;
 import java.awt.image.BufferedImage;
 import java.io.BufferedInputStream;
 import java.io.File;
@@ -41,8 +42,13 @@ public class PdfPreviewGenerator implements PreviewGenerator {
         PDDocument document = PDDocument.load(from);
 		List<PDPage> list = document.getDocumentCatalog().getAllPages();
 		PDPage firstPage = list.get(0);
-		BufferedImage image =firstPage.convertToImage();
-		ImageIO.write(image, "png", to);
+		BufferedImage image = firstPage.convertToImage();
+		Image thumbnail = image.getScaledInstance(StackConfiguration.getMaximumPreviewWidthPixels(), StackConfiguration.getMaximumPreviewHeightPixels(), Image.SCALE_SMOOTH);
+		BufferedImage bufferedThumbnail = new BufferedImage(thumbnail.getWidth(null),
+                thumbnail.getHeight(null),
+                BufferedImage.TYPE_INT_RGB);
+		bufferedThumbnail.getGraphics().drawImage(thumbnail, 0, 0, null);
+		ImageIO.write(bufferedThumbnail, "png", to);
         PreviewOutputMetadata metadata = new PreviewOutputMetadata("image/png", ".png");
 		return metadata;
 	}
@@ -57,4 +63,5 @@ public class PdfPreviewGenerator implements PreviewGenerator {
 		// whole file is read into memory pretty much
 		return contentSize * 2;
 	}
+
 }
