@@ -30,6 +30,7 @@ import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
+import org.sagebionetworks.repo.model.file.ProxyFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
 import org.sagebionetworks.repo.model.file.UploadDestination;
@@ -203,6 +204,13 @@ public class FileUploadServiceImpl implements FileUploadService {
 			S3FileHandle fileHandle) {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return fileUploadManager.createExternalS3FileHandle(userInfo, fileHandle);
+	}
+	
+	@Override
+	public ProxyFileHandle createExternalProxyFileHandle(Long userId,
+			ProxyFileHandle fileHandle) {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return fileUploadManager.createExternalProxyFileHandle(userInfo, fileHandle);
 	}
 
 	@Override

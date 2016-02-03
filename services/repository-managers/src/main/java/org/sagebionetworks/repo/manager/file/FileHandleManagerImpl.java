@@ -1116,6 +1116,29 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		// Save the file metadata to the DB.
 		return fileHandleDao.createFile(fileHandle);
 	}
+	
+	@Override
+	public ProxyFileHandle createExternalProxyFileHandle(UserInfo userInfo,
+			ProxyFileHandle proxyFileHandle) {
+		ValidateArgument.required(userInfo, "UserInfo");
+		ValidateArgument.required(proxyFileHandle, "ProxyFileHandle");
+		ValidateArgument.required(proxyFileHandle.getContentMd5(), "ProxyFileHandle.contentMd5");
+		ValidateArgument.required(proxyFileHandle.getContentSize(), "ProxyFileHandle.contentSize");
+		ValidateArgument.required(proxyFileHandle.getContentType(), "ProxyFileHandle.contentType");
+		ValidateArgument.required(proxyFileHandle.getFileName(), "ProxyFileHandle.fileName");
+		ValidateArgument.required(proxyFileHandle.getFilePath(), "ProxyFileHandle.filePath");
+		ValidateArgument.required(proxyFileHandle.getStorageLocationId(), "ProxyFileHandle.storageLocationId");
+		StorageLocationSetting sls = storageLocationDAO.get(proxyFileHandle.getStorageLocationId());
+		if(!(sls instanceof ProxyStorageLocationSettings)){
+			throw new IllegalArgumentException("ProxyFileHandle.storageLocationId must refer to a valid ProxyStorageLocationSettings.");
+		}
+		// set this user as the creator of the file
+		proxyFileHandle.setCreatedBy(getUserId(userInfo));
+		proxyFileHandle.setCreatedOn(new Date());
+		proxyFileHandle.setEtag(UUID.randomUUID().toString());
+		// Save the file metadata to the DB.
+		return fileHandleDao.createFile(proxyFileHandle);
+	}
 
 	@Override
 	public S3FileHandle createS3FileHandleCopy(UserInfo userInfo, String handleIdToCopyFrom, String fileName, String contentType) {

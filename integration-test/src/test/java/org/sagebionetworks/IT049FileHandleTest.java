@@ -47,6 +47,7 @@ import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
+import org.sagebionetworks.repo.model.file.ProxyFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.S3UploadDestination;
 import org.sagebionetworks.repo.model.file.UploadDestination;
@@ -57,6 +58,7 @@ import org.sagebionetworks.repo.model.project.ExternalStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalSyncSetting;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
+import org.sagebionetworks.repo.model.project.ProxyStorageLocationSettings;
 import org.sagebionetworks.repo.model.project.S3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
@@ -392,6 +394,33 @@ public class IT049FileHandleTest {
 		externalS3 = synapse.createExternalS3FileHandle(externalS3);
 		assertNotNull(externalS3);
 		assertNotNull(externalS3.getId());
+	}
+	
+	@Test
+	public void testProxyFileHandleRoundTrip() throws SynapseException, JSONObjectAdapterException, IOException{
+		ProxyStorageLocationSettings storageLocation = new ProxyStorageLocationSettings();
+		storageLocation.setSecretKey("Super secret key that must be fairly long");
+		storageLocation.setProxyHost("host.org");
+		storageLocation.setUploadType(UploadType.SFTP);
+		// create the storage location
+		storageLocation = synapse.createStorageLocationSetting(storageLocation);
+		
+		// Create a ProxyFileHandle
+		ProxyFileHandle handle = new ProxyFileHandle();
+		handle.setContentMd5("md5");
+		handle.setContentSize(123L);
+		handle.setContentType("text/plain");
+		handle.setFileName("barFoo.txt");
+		handle.setFilePath("pathParent/pathChild");
+		handle.setStorageLocationId(storageLocation.getStorageLocationId());
+		handle = synapse.createExternalProxyFileHandle(handle);
+		
+		// get a pre-signed url for this object
+		URL preSigned = synapse.getFileHandleTemporaryUrl(handle.getId());
+		assertNotNull(preSigned);
+		assertEquals(storageLocation.getProxyHost(), preSigned.getHost());
+		String expectedPath = "/sftp/"+handle.getFilePath();
+		assertEquals(expectedPath, preSigned.getPath());
 	}
 
 	@Test
