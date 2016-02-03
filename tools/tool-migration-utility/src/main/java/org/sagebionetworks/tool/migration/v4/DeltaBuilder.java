@@ -19,7 +19,7 @@ import com.google.common.collect.Ranges;
 
 public class DeltaBuilder {
 	
-	static private Log log = LogFactory.getLog(DeltaBuilder.class);
+	static private Log logger = LogFactory.getLog(DeltaBuilder.class);
 
 	private RowWriter<RowMetadata> toCreate;
 	private RowWriter<RowMetadata> toUpdate;

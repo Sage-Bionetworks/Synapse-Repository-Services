@@ -34,6 +34,7 @@ import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
+import org.sagebionetworks.repo.model.file.ProxyFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileCopyRequest;
 import org.sagebionetworks.repo.model.file.S3FileCopyResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -401,6 +402,33 @@ public class UploadController extends BaseController {
 			NotFoundException {
 		// Pass it along
 		return fileService.createExternalS3FileHandle(userId, fileHandle);
+	}
+	
+	/**
+	 * Create a ProxyFileHandle to represent a File in a user's file
+	 * repository.
+	 * <p>
+	 * All ProxyFileHandle must have a storageLocationId set to an existing
+	 * <a href=
+	 * "${org.sagebionetworks.repo.model.project.ProxyStorageLocationSettings}"
+	 * >ProxyStorageLocationSettings</a>.
+	 * </p>
+	 * 
+	 * @param userId
+	 * @param fileHandle
+	 *            The ProxyFileHandle to create
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = "/externalFileHandle/proxy", method = RequestMethod.POST)
+	public @ResponseBody ProxyFileHandle createExternalFileHandle(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody ProxyFileHandle fileHandle) throws DatastoreException,
+			NotFoundException {
+		// Pass it along
+		return fileService.createExternalProxyFileHandle(userId, fileHandle);
 	}
 
 	/**

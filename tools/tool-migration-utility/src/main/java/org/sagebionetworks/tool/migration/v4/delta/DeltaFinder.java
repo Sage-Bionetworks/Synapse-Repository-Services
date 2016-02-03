@@ -14,7 +14,7 @@ import org.sagebionetworks.tool.migration.v4.utils.TypeToMigrateMetadata;
 
 public class DeltaFinder {
 
-	static private Log log = LogFactory.getLog(DeltaFinder.class);
+	static private Log logger = LogFactory.getLog(DeltaFinder.class);
 
 	private SynapseAdminClient sourceClient;
 	private SynapseAdminClient destinationClient;
@@ -47,48 +47,48 @@ public class DeltaFinder {
 			if (typeToMigrateMeta.getDestMinId() != null) {
 				IdRange r = new IdRange(typeToMigrateMeta.getDestMinId(), typeToMigrateMeta.getDestMaxId());
 				delRanges.add(r);
-				log.info("Source is empty for " + typeToMigrateMeta.getType() + ", added range " + r + " to delRanges.");
+				logger.debug("Source is empty for " + typeToMigrateMeta.getType() + ", added range " + r + " to delRanges.");
 			}
 		} else { // Source is not empty
 			// Insert everything from destination if empty
 			if (typeToMigrateMeta.getDestMinId() == null) {
 				IdRange r = new IdRange(typeToMigrateMeta.getSrcMinId(), typeToMigrateMeta.getSrcMaxId());
 				insRanges.add(r);
-				log.info("Destination is empty for " + typeToMigrateMeta.getType() + ", added range " + r + " to insRanges.");
+				logger.debug("Destination is empty for " + typeToMigrateMeta.getType() + ", added range " + r + " to insRanges.");
 			} else { // Normal case
 				Long updatesMinId = Math.max(typeToMigrateMeta.getSrcMinId(), typeToMigrateMeta.getDestMinId());
 				Long updatesMaxId = Math.min(typeToMigrateMeta.getSrcMaxId(), typeToMigrateMeta.getDestMaxId());
-				log.info("Update box from " + updatesMinId + " to " + updatesMaxId);
+				logger.debug("Update box from " + updatesMinId + " to " + updatesMaxId);
 				
 				if (updatesMinId > updatesMaxId) { // Disjoint
 					IdRange r = new IdRange(typeToMigrateMeta.getSrcMinId(), typeToMigrateMeta.getSrcMaxId());
 					insRanges.add(r);
-					log.info("Added range " + r + " to insRanges.");
+					logger.debug("Added range " + r + " to insRanges.");
 					r = new IdRange(typeToMigrateMeta.getDestMinId(), typeToMigrateMeta.getDestMaxId());
 					delRanges.add(r);
-					log.info("Added range " + r + " to delRanges.");
+					logger.debug("Added range " + r + " to delRanges.");
 				} else {
 					// Inserts and deletes ranges (these are ranges that do not overlap between source and destination
 					// so either insert or delete depending where they occur
 					if (typeToMigrateMeta.getSrcMinId() < updatesMinId) {
 						IdRange r = new IdRange(typeToMigrateMeta.getSrcMinId(), updatesMinId-1);
 						insRanges.add(r);
-						log.info("Added range " + r + " to insRanges.");
+						logger.debug("Added range " + r + " to insRanges.");
 					}
 					if (typeToMigrateMeta.getSrcMaxId() > updatesMaxId) {
 						IdRange r = new IdRange(updatesMaxId+1, typeToMigrateMeta.getSrcMaxId());
 						insRanges.add(r);
-						log.info("Added range " + r + " to insRanges.");
+						logger.debug("Added range " + r + " to insRanges.");
 					}
 					if (typeToMigrateMeta.getDestMinId() < updatesMinId) {
 						IdRange r = new IdRange(typeToMigrateMeta.getDestMinId(), updatesMinId-1);
 						delRanges.add(r);
-						log.info("Added range " + r + " to delRanges.");
+						logger.debug("Added range " + r + " to delRanges.");
 					}
 					if (typeToMigrateMeta.getDestMaxId() > updatesMaxId) {
 						IdRange r = new IdRange(updatesMaxId+1, typeToMigrateMeta.getDestMaxId());
 						delRanges.add(r);
-						log.info("Added range " + r + " to delRanges.");
+						logger.debug("Added range " + r + " to delRanges.");
 					}
 					
 					// Update ranges

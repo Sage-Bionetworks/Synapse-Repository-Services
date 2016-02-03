@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
+import org.sagebionetworks.repo.model.file.ProxyFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
 import org.sagebionetworks.repo.model.file.UploadDestination;
@@ -224,6 +225,14 @@ public interface FileUploadService {
 	 * @return
 	 */
 	S3FileHandle createExternalS3FileHandle(Long userId, S3FileHandle fileHandle);
+	
+	/**
+	 * Create an external ProxyFileHandle.
+	 * @param userId
+	 * @param fileHandle
+	 * @return
+	 */
+	ProxyFileHandle createExternalProxyFileHandle(Long userId, ProxyFileHandle fileHandle);
 
 	/**
 	 * Create a new file handle pointing to an existing s3 file
