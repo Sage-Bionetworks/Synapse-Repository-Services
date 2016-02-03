@@ -43,7 +43,7 @@ public class PdfPreviewGenerator implements PreviewGenerator {
 		List<PDPage> list = document.getDocumentCatalog().getAllPages();
 		PDPage firstPage = list.get(0);
 		BufferedImage image = firstPage.convertToImage();
-		Image thumbnail = image.getScaledInstance(StackConfiguration.getMaximumPreviewWidthPixels(), StackConfiguration.getMaximumPreviewHeightPixels(), Image.SCALE_SMOOTH);
+		Image thumbnail = image.getScaledInstance(StackConfiguration.getMaximumPreviewWidthPixels(), -1, Image.SCALE_SMOOTH);
 		BufferedImage bufferedThumbnail = new BufferedImage(thumbnail.getWidth(null),
                 thumbnail.getHeight(null),
                 BufferedImage.TYPE_INT_RGB);
