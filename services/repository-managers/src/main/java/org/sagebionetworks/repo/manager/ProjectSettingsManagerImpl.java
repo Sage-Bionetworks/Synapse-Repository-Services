@@ -208,6 +208,7 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 			ProxyStorageLocationSettings proxySettings = (ProxyStorageLocationSettings)storageLocationSetting;
 			ValidateArgument.required(proxySettings.getProxyHost(), "proxyHost");
 			ValidateArgument.required(proxySettings.getSecretKey(), "secretKey");
+			ValidateArgument.required(proxySettings.getUploadType(), "uploadType");
 			if(proxySettings.getSecretKey().length() < MIN_SECRET_KEY_CHARS){
 				throw new IllegalArgumentException("SecretKey must be at least: "+MIN_SECRET_KEY_CHARS+" characters but was: "+proxySettings.getSecretKey().length());
 			}

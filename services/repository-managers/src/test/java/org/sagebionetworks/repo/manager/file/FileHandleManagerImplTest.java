@@ -49,6 +49,7 @@ import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.ProxyFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ProxyStorageLocationSettings;
 import org.sagebionetworks.repo.model.project.S3StorageLocationSetting;
@@ -467,20 +468,20 @@ public class FileHandleManagerImplTest {
 		ProxyFileHandle proxyHandle = new ProxyFileHandle();
 		proxyHandle.setFileName("foo.txt");
 		proxyHandle.setFilePath("/path/root/child");
-		proxyHandle.setProxyHost("host.org");
 		proxyHandle.setStorageLocationId(locationId);
 		
 		ProxyStorageLocationSettings proxyLocation = new ProxyStorageLocationSettings();
 		proxyLocation.setStorageLocationId(locationId);
-		proxyLocation.setProxyHost(proxyHandle.getProxyHost());
+		proxyLocation.setProxyHost("host.org");
 		proxyLocation.setSecretKey("Super Secret key to sign URLs with.");
+		proxyLocation.setUploadType(UploadType.SFTP);
 		
 		when(mockStorageLocationDao.get(locationId)).thenReturn(proxyLocation);
 		
 		// call under test
 		String url = manager.getURLForFileHandle(proxyHandle, null);
 		assertNotNull(url);
-		assertTrue(url.startsWith("https://host.org/path/root/child?"));
+		assertTrue(url.startsWith("https://host.org/sftp/path/root/child?"));
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -489,7 +490,6 @@ public class FileHandleManagerImplTest {
 		ProxyFileHandle proxyHandle = new ProxyFileHandle();
 		proxyHandle.setFileName("foo.txt");
 		proxyHandle.setFilePath("/path/root/child");
-		proxyHandle.setProxyHost("host.org");
 		proxyHandle.setStorageLocationId(locationId);
 		// wrong storage location type.
 		S3StorageLocationSetting location = new S3StorageLocationSetting();

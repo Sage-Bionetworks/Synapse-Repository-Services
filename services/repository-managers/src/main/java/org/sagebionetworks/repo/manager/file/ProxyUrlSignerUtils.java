@@ -9,6 +9,7 @@ import org.sagebionetworks.repo.model.project.ProxyStorageLocationSettings;
 import org.sagebionetworks.url.HttpMethod;
 import org.sagebionetworks.url.UrlData;
 import org.sagebionetworks.url.UrlSignerUtils;
+import org.sagebionetworks.util.ValidateArgument;
 
 public class ProxyUrlSignerUtils {
 
@@ -21,10 +22,25 @@ public class ProxyUrlSignerUtils {
 	 */
 	public static String generatePresignedUrl(ProxyFileHandle proxyHandle,
 			ProxyStorageLocationSettings proxyStorage, Date expires) {
+		ValidateArgument.required(proxyHandle, "ProxyFileHandle");
+		ValidateArgument.required(proxyHandle.getFilePath(), "ProxyFileHandle.filePath");
+		ValidateArgument.required(proxyStorage, "ProxyStorageLocationSettings");
+		ValidateArgument.required(proxyStorage.getProxyHost(), "ProxyStorageLocationSettings.proxyHost");
+		ValidateArgument.required(proxyStorage.getUploadType(), "ProxyStorageLocationSettings.uploadType");
 		// Generate the
 		try {
+			StringBuilder path = new StringBuilder();
+			path.append("/");
+			path.append(proxyStorage.getUploadType().name().toLowerCase());
+			path.append("/");
+			String proxyPath = proxyHandle.getFilePath().trim();
+			if(proxyPath.startsWith("/")){
+				path.append(proxyPath.substring(1));
+			}else{
+				path.append(proxyPath);
+			}
 			// Build a URL using all of the data from the fileHandle
-			String unsignedUrl = new URL("https", proxyHandle.getProxyHost(), -1, proxyHandle.getFilePath()).toString();
+			String unsignedUrl = new URL("https", proxyStorage.getProxyHost(), -1, path.toString()).toString();
 			UrlData unsignedData = new UrlData(unsignedUrl);
 			if(proxyHandle.getFileName() != null){
 				unsignedData.getQueryParameters().put("fileName", proxyHandle.getFileName());

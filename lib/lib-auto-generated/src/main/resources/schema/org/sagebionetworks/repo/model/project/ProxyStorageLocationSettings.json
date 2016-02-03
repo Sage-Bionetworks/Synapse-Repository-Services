@@ -8,7 +8,7 @@
 	"properties": {
 		"proxyHost": {
 			"type": "string",
-			"description": "The HTTP host name of the proxy used for upload an download."
+			"description": "The HTTP host name of the proxy used for upload and download."
 		},
 		"secretKey": {
 			"type": "string",
