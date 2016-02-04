@@ -39,8 +39,15 @@ public class ProxyUrlSignerUtils {
 			}else{
 				path.append(proxyPath);
 			}
+			// The Porxy host might contain both the host and port.
+			String[] hostSplit = proxyStorage.getProxyHost().split(":");
+			int port = -1;
+			String host = hostSplit[0];
+			if(hostSplit.length > 1){
+				port = Integer.parseInt(hostSplit[1]);
+			}
 			// Build a URL using all of the data from the fileHandle
-			String unsignedUrl = new URL("https", proxyStorage.getProxyHost(), -1, path.toString()).toString();
+			String unsignedUrl = new URL("https", host, port, path.toString()).toString();
 			UrlData unsignedData = new UrlData(unsignedUrl);
 			if(proxyHandle.getFileName() != null){
 				unsignedData.getQueryParameters().put("fileName", proxyHandle.getFileName());

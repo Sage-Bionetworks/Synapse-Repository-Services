@@ -168,5 +168,23 @@ public class ProxyUrlSignerUtilsTest {
 		ProxyUrlSignerUtils.generatePresignedUrl(proxyHandle,
 				proxyLocation, expiration);
 	}
+	
+	@Test
+	public void testGeneratePresignedHostPort() {
+		// path does not start with slash and needs a trim.
+		proxyLocation.setProxyHost("hocalhost:8080");
+		// Call under test
+		String url = ProxyUrlSignerUtils.generatePresignedUrl(proxyHandle,
+				proxyLocation, expiration);
+		assertEquals(
+				"https://hocalhost:8080/sftp/path/root/child"
+				+ "?fileName=foo.txt"
+				+ "&contentType=text%2Fplain%3B+charset%3Dus-ascii"
+				+ "&contentMD5=md5"
+				+ "&contentSize=987"
+				+ "&expiration=123"
+				+ "&hmacSignature=c1fa675fe9d6b5886371f209244f95fb3b6b6433",
+				url);
+	}
 
 }
