@@ -59,18 +59,29 @@ public class MigrationClient {
 
 	/**
 	 * Migrate all data from the source to destination.
+	 * @throws JSONObjectAdapterException 
+	 * @throws SynapseException 
 	 * 
 	 * @throws Exception 
 	 */
-	public boolean migrate(int maxRetries, long batchSize, long timeoutMS, int retryDenominator) throws Exception {
+	public boolean migrate(int maxRetries, long batchSize, long timeoutMS, int retryDenominator) throws SynapseException, JSONObjectAdapterException {
 		boolean failed = false;
 		try {
 			// First set the destination stack status to down
 			setDestinationStatus(StatusEnum.READ_ONLY, "Staging is down for data migration");
-			this.migrateAllTypes(batchSize, timeoutMS, retryDenominator);
-		} catch (Exception e) {
-			log.error("Migration failed", e);
-			failed = true;
+			for (int i = 0; i < maxRetries; i++) {
+				try {
+					this.migrateAllTypes(batchSize, timeoutMS, retryDenominator);
+					// Exit on 1st success
+					failed = false;
+				} catch (Exception e) {
+					failed = true;
+					log.error("Failed at attempt: " + i + " with error " + e.getMessage(), e);
+				}
+				if (! failed) {
+					break;
+				}
+			}
 		} finally {
 			// After migration is complete, re-enable read/write
 			setDestinationStatus(StatusEnum.READ_WRITE, "Synapse is ready for read/write");
@@ -159,21 +170,36 @@ public class MigrationClient {
 		// If final sync (source is in read-only mode) then do a table checksum
 		// Note: Destination is always in read-only during migration
 		if (source.getCurrentStackStatus().getStatus() == StatusEnum.READ_ONLY) {
-			log.info("Final migration, checking table checksums");
-			boolean isChecksumDiff = false;
-			for (TypeToMigrateMetadata t: typesToMigrateMetadata) {
-				String srcTableChecksum = source.getChecksumForType(t.getType()).getChecksum();
-				String destTableChecksum =destination.getChecksumForType(t.getType()).getChecksum();
-				if (! srcTableChecksum.equals(destTableChecksum)) {
-					isChecksumDiff = true;
-					log.info("Table checksum difference for type: " + t);
-				}
-			}
-			if (isChecksumDiff) {
-				throw new RuntimeException("Table checksum differences in final sync.");
-			}
+			doChecksumForMigratedTypes(source, destination, typesToMigrateMetadata);
 		}
 		
+	}
+
+	private void doChecksumForMigratedTypes(SynapseAdminClient source,
+			SynapseAdminClient destination,
+			List<TypeToMigrateMetadata> typesToMigrateMetadata)
+			throws SynapseException, JSONObjectAdapterException,
+			RuntimeException {
+		log.info("Final migration, checking table checksums");
+		boolean isChecksumDiff = false;
+		for (TypeToMigrateMetadata t: typesToMigrateMetadata) {
+			String srcTableChecksum = source.getChecksumForType(t.getType()).getChecksum();
+			String destTableChecksum = destination.getChecksumForType(t.getType()).getChecksum();
+			StringBuilder sb = new StringBuilder();
+			sb.append("Migration type: ");
+			sb.append(t.getType());
+			sb.append(": ");
+			if (! srcTableChecksum.equals(destTableChecksum)) {
+				isChecksumDiff = true;
+				sb.append("Found table checksum difference.");
+			} else {
+				sb.append("Table checksums identical.");
+			}
+			log.info(sb.toString());
+		}
+		if (isChecksumDiff) {
+			throw new RuntimeException("Table checksum differences in final sync.");
+		}
 	}
 
 	/**
