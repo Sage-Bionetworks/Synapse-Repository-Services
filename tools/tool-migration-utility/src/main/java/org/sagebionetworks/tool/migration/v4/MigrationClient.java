@@ -59,18 +59,29 @@ public class MigrationClient {
 
 	/**
 	 * Migrate all data from the source to destination.
+	 * @throws JSONObjectAdapterException 
+	 * @throws SynapseException 
 	 * 
 	 * @throws Exception 
 	 */
-	public boolean migrate(int maxRetries, long batchSize, long timeoutMS, int retryDenominator) throws Exception {
+	public boolean migrate(int maxRetries, long batchSize, long timeoutMS, int retryDenominator) throws SynapseException, JSONObjectAdapterException {
 		boolean failed = false;
 		try {
 			// First set the destination stack status to down
 			setDestinationStatus(StatusEnum.READ_ONLY, "Staging is down for data migration");
-			this.migrateAllTypes(batchSize, timeoutMS, retryDenominator);
-		} catch (Exception e) {
-			log.error("Migration failed", e);
-			failed = true;
+			for (int i = 0; i < maxRetries; i++) {
+				try {
+					this.migrateAllTypes(batchSize, timeoutMS, retryDenominator);
+					// Exit on 1st success
+					failed = false;
+				} catch (Exception e) {
+					failed = true;
+					log.error("Failed at attempt: " + i + " with error " + e.getMessage(), e);
+				}
+				if (! failed) {
+					break;
+				}
+			}
 		} finally {
 			// After migration is complete, re-enable read/write
 			setDestinationStatus(StatusEnum.READ_WRITE, "Synapse is ready for read/write");
