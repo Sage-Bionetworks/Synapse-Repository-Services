@@ -405,7 +405,7 @@ public class UploadController extends BaseController {
 	}
 	
 	/**
-	 * Create an ProxyFileHandle to represent an File in a user's file
+	 * Create a ProxyFileHandle to represent a File in a user's file
 	 * repository.
 	 * <p>
 	 * All ProxyFileHandle must have a storageLocationId set to an existing
