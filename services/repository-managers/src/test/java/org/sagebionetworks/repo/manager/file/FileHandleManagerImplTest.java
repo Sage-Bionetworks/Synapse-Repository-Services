@@ -491,7 +491,7 @@ public class FileHandleManagerImplTest {
 		
 		ProxyStorageLocationSettings proxyLocation = new ProxyStorageLocationSettings();
 		proxyLocation.setStorageLocationId(locationId);
-		proxyLocation.setProxyHost("host.org");
+		proxyLocation.setProxyUrl("https://host.org/");
 		proxyLocation.setSecretKey("Super Secret key to sign URLs with.");
 		proxyLocation.setUploadType(UploadType.SFTP);
 		
