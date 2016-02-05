@@ -25,30 +25,22 @@ public class ProxyUrlSignerUtils {
 		ValidateArgument.required(proxyHandle, "ProxyFileHandle");
 		ValidateArgument.required(proxyHandle.getFilePath(), "ProxyFileHandle.filePath");
 		ValidateArgument.required(proxyStorage, "ProxyStorageLocationSettings");
-		ValidateArgument.required(proxyStorage.getProxyHost(), "ProxyStorageLocationSettings.proxyHost");
+		ValidateArgument.required(proxyStorage.getProxyUrl(), "ProxyStorageLocationSettings.proxyUrl");
 		ValidateArgument.required(proxyStorage.getUploadType(), "ProxyStorageLocationSettings.uploadType");
 		// Generate the
 		try {
-			StringBuilder path = new StringBuilder();
-			path.append("/");
-			path.append(proxyStorage.getUploadType().name().toLowerCase());
-			path.append("/");
+			String startUrl = proxyStorage.getProxyUrl().trim();
+			StringBuilder url = new StringBuilder(startUrl);
+			if(!startUrl.endsWith("/")){
+				url.append("/");
+			}
+			url.append(proxyStorage.getUploadType().name().toLowerCase());
 			String proxyPath = proxyHandle.getFilePath().trim();
-			if(proxyPath.startsWith("/")){
-				path.append(proxyPath.substring(1));
-			}else{
-				path.append(proxyPath);
+			if(!proxyPath.startsWith("/")){
+				url.append("/");
 			}
-			// The Porxy host might contain both the host and port.
-			String[] hostSplit = proxyStorage.getProxyHost().split(":");
-			int port = -1;
-			String host = hostSplit[0];
-			if(hostSplit.length > 1){
-				port = Integer.parseInt(hostSplit[1]);
-			}
-			// Build a URL using all of the data from the fileHandle
-			String unsignedUrl = new URL("https", host, port, path.toString()).toString();
-			UrlData unsignedData = new UrlData(unsignedUrl);
+			url.append(proxyPath);
+			UrlData unsignedData = new UrlData(url.toString());
 			if(proxyHandle.getFileName() != null){
 				unsignedData.getQueryParameters().put("fileName", proxyHandle.getFileName());
 			}
@@ -61,7 +53,7 @@ public class ProxyUrlSignerUtils {
 			if(proxyHandle.getContentSize() != null){
 				unsignedData.getQueryParameters().put("contentSize", ""+proxyHandle.getContentSize());
 			}
-			unsignedUrl = unsignedData.toURL().toString();
+			String unsignedUrl = unsignedData.toURL().toString();
 			
 			URL signedUrl = UrlSignerUtils.generatePreSignedURL(HttpMethod.GET, unsignedUrl, expires, proxyStorage.getSecretKey());
 			return signedUrl.toString();

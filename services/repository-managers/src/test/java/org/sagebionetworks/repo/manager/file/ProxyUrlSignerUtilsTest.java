@@ -29,7 +29,7 @@ public class ProxyUrlSignerUtilsTest {
 
 		proxyLocation = new ProxyStorageLocationSettings();
 		proxyLocation.setStorageLocationId(locationId);
-		proxyLocation.setProxyHost("host.org");
+		proxyLocation.setProxyUrl("https://host.org:8080/prefix");
 		proxyLocation.setSecretKey("Super Secret key to sign URLs with.");
 		proxyLocation.setUploadType(UploadType.SFTP);
 
@@ -42,14 +42,31 @@ public class ProxyUrlSignerUtilsTest {
 		String url = ProxyUrlSignerUtils.generatePresignedUrl(proxyHandle,
 				proxyLocation, expiration);
 		assertEquals(
-				"https://host.org/sftp/path/root/child"
+				"https://host.org:8080/prefix/sftp/path/root/child"
 				+ "?fileName=foo.txt"
 				+ "&contentType=text%2Fplain%3B+charset%3Dus-ascii"
-				+ "&contentMD5=md5"
-				+ "&contentSize=987"
+				+ "&contentMD5=md5&contentSize=987"
 				+ "&expiration=123"
-				+ "&hmacSignature=4047296002a817e44205bedf127bbc02da51f3a4",
+				+ "&hmacSignature=91c52bb9b92a9067ded0434e81768be2f7720b9d",
 				url);
+	}
+	
+	@Test
+	public void testGeneratePresignedUrlWithSlash() {
+		proxyLocation.setProxyUrl("http://host.org/prefix/");
+		// Call under test
+		String url = ProxyUrlSignerUtils.generatePresignedUrl(proxyHandle,
+				proxyLocation, expiration);
+		assertTrue(url.startsWith("http://host.org/prefix/sftp/path/root/child"));
+	}
+	
+	@Test
+	public void testGeneratePresignedPathWithNoSlash() {
+		proxyHandle.setFilePath("path/root/child");
+		// Call under test
+		String url = ProxyUrlSignerUtils.generatePresignedUrl(proxyHandle,
+				proxyLocation, expiration);
+		assertTrue(url.startsWith("https://host.org:8080/prefix/sftp/path/root/child"));
 	}
 
 	@Test
@@ -58,12 +75,13 @@ public class ProxyUrlSignerUtilsTest {
 		// Call under test
 		String url = ProxyUrlSignerUtils.generatePresignedUrl(proxyHandle,
 				proxyLocation, expiration);
-		assertEquals("https://host.org/sftp/path/root/child"
+		assertEquals(
+				"https://host.org:8080/prefix/sftp/path/root/child"
 				+ "?contentType=text%2Fplain%3B+charset%3Dus-ascii"
 				+ "&contentMD5=md5"
 				+ "&contentSize=987"
 				+ "&expiration=123"
-				+ "&hmacSignature=e5f6f70ce59a16c9137702c54b7473b06ef689d0",
+				+ "&hmacSignature=38f70cf072d3f237c97b33495eff3e99a8cc8b52",
 				url);
 	}
 
@@ -73,12 +91,13 @@ public class ProxyUrlSignerUtilsTest {
 		// Call under test
 		String url = ProxyUrlSignerUtils.generatePresignedUrl(proxyHandle,
 				proxyLocation, expiration);
-		assertEquals("https://host.org/sftp/path/root/child"
+		assertEquals(
+				"https://host.org:8080/prefix/sftp/path/root/child"
 				+ "?fileName=foo.txt"
 				+ "&contentMD5=md5"
 				+ "&contentSize=987"
 				+ "&expiration=123"
-				+ "&hmacSignature=500ed37e40d9b10f6ae449ad735a67ea8ba979bc",
+				+ "&hmacSignature=fbf220fb0aad4edc6b389776415684c3a3f5ab74",
 				url);
 	}
 
@@ -88,12 +107,12 @@ public class ProxyUrlSignerUtilsTest {
 		// Call under test
 		String url = ProxyUrlSignerUtils.generatePresignedUrl(proxyHandle,
 				proxyLocation, expiration);
-		assertEquals("https://host.org/sftp/path/root/child"
+		assertEquals(
+				"https://host.org:8080/prefix/sftp/path/root/child"
 				+ "?fileName=foo.txt"
-				+ "&contentType=text%2Fplain%3B+charset%3Dus-ascii"
-				+ "&contentSize=987"
+				+ "&contentType=text%2Fplain%3B+charset%3Dus-ascii&contentSize=987"
 				+ "&expiration=123"
-				+ "&hmacSignature=689eae59c63a8c9f083417697cdd502db90bc069",
+				+ "&hmacSignature=336a52d1cc801856b16b8074791efa0710bd3ae5",
 				url);
 	}
 
@@ -103,12 +122,12 @@ public class ProxyUrlSignerUtilsTest {
 		// Call under test
 		String url = ProxyUrlSignerUtils.generatePresignedUrl(proxyHandle,
 				proxyLocation, expiration);
-		assertEquals("https://host.org/sftp/path/root/child"
+		assertEquals(
+				"https://host.org:8080/prefix/sftp/path/root/child"
 				+ "?fileName=foo.txt"
 				+ "&contentType=text%2Fplain%3B+charset%3Dus-ascii"
 				+ "&contentMD5=md5"
-				+ "&expiration=123"
-				+ "&hmacSignature=8f199e9c0bc0470ef0ea8a5cd3f7a878373cb4a6",
+				+ "&expiration=123&hmacSignature=f9857d219d86cb98b505419f30b5bb4461377dd0",
 				url);
 	}
 	
@@ -119,14 +138,7 @@ public class ProxyUrlSignerUtilsTest {
 		// Call under test
 		String url = ProxyUrlSignerUtils.generatePresignedUrl(proxyHandle,
 				proxyLocation, expiration);
-		assertEquals("https://host.org/sftp/path/root/child"
-				+ "?fileName=foo.txt"
-				+ "&contentType=text%2Fplain%3B+charset%3Dus-ascii"
-				+ "&contentMD5=md5"
-				+ "&contentSize=987"
-				+ "&expiration=123"
-				+ "&hmacSignature=4047296002a817e44205bedf127bbc02da51f3a4",
-				url);
+		assertTrue(url.startsWith("https://host.org:8080/prefix/sftp/path/root/child"));
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -155,7 +167,7 @@ public class ProxyUrlSignerUtilsTest {
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testGeneratePresignedSettingsHostNull() {
-		proxyLocation.setProxyHost(null);
+		proxyLocation.setProxyUrl(null);
 		// Call under test
 		ProxyUrlSignerUtils.generatePresignedUrl(proxyHandle,
 				proxyLocation, expiration);
@@ -172,19 +184,11 @@ public class ProxyUrlSignerUtilsTest {
 	@Test
 	public void testGeneratePresignedHostPort() {
 		// path does not start with slash and needs a trim.
-		proxyLocation.setProxyHost("hocalhost:8080");
+		proxyLocation.setProxyUrl("https://hocalhost:8080");
 		// Call under test
 		String url = ProxyUrlSignerUtils.generatePresignedUrl(proxyHandle,
 				proxyLocation, expiration);
-		assertEquals(
-				"https://hocalhost:8080/sftp/path/root/child"
-				+ "?fileName=foo.txt"
-				+ "&contentType=text%2Fplain%3B+charset%3Dus-ascii"
-				+ "&contentMD5=md5"
-				+ "&contentSize=987"
-				+ "&expiration=123"
-				+ "&hmacSignature=c1fa675fe9d6b5886371f209244f95fb3b6b6433",
-				url);
+		assertTrue(url.startsWith("https://hocalhost:8080/sftp/path/root/child"));
 	}
 
 }

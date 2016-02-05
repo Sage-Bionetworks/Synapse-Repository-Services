@@ -400,7 +400,7 @@ public class IT049FileHandleTest {
 	public void testProxyFileHandleRoundTrip() throws SynapseException, JSONObjectAdapterException, IOException{
 		ProxyStorageLocationSettings storageLocation = new ProxyStorageLocationSettings();
 		storageLocation.setSecretKey("Super secret key that must be fairly long");
-		storageLocation.setProxyHost("host.org");
+		storageLocation.setProxyUrl("https://host.org");
 		storageLocation.setUploadType(UploadType.SFTP);
 		// create the storage location
 		storageLocation = synapse.createStorageLocationSetting(storageLocation);
@@ -418,7 +418,7 @@ public class IT049FileHandleTest {
 		// get a pre-signed url for this object
 		URL preSigned = synapse.getFileHandleTemporaryUrl(handle.getId());
 		assertNotNull(preSigned);
-		assertEquals(storageLocation.getProxyHost(), preSigned.getHost());
+		assertEquals("host.org", preSigned.getHost());
 		String expectedPath = "/sftp/"+handle.getFilePath();
 		assertEquals(expectedPath, preSigned.getPath());
 	}
