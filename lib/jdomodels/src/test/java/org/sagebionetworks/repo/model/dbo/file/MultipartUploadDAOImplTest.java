@@ -2,6 +2,8 @@ package org.sagebionetworks.repo.model.dbo.file;
 
 import static org.junit.Assert.*;
 
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 
 import org.junit.After;
@@ -309,6 +311,17 @@ public class MultipartUploadDAOImplTest {
 		partMD5s = multipartUplaodDAO.getAddedPartMD5s(uploadId);
 		assertNotNull(partMD5s);
 		assertEquals("Setting an upload complete should clear all part state.",0, partMD5s.size());
+	}
+	
+	@Test
+	public void testPLFM3737() {
+		CompositeMultipartUploadStatus composite = multipartUplaodDAO.createUploadStatus(createRequest);
+		assertNotNull(composite);
+		Date d = composite.getMultipartUploadStatus().getStartedOn();
+		Calendar c = Calendar.getInstance();
+		c.setTime(d);
+		// Test will fail if run at 12:00:00am
+		assertFalse((c.get(Calendar.SECOND) == 0) && (c.get(Calendar.MINUTE) == 0) && (c.get(Calendar.HOUR) == 0));
 	}
 	
 }
