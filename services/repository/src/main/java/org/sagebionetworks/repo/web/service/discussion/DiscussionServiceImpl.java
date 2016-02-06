@@ -121,4 +121,20 @@ public class DiscussionServiceImpl implements DiscussionService{
 		UserInfo user = userManager.getUserInfo(userId);
 		return replyManager.getMessageUrl(user, messageKey);
 	}
+
+	@Override
+	public PaginatedResults<DiscussionThreadBundle> getAvailableThreads(
+			Long userId, String forumId, Long limit, Long offset,
+			DiscussionThreadOrder order, Boolean ascending) {
+		UserInfo user = userManager.getUserInfo(userId);
+		return threadManager.getAvailableThreadsForForum(user, forumId, limit, offset, order, ascending);
+	}
+
+	@Override
+	public PaginatedResults<DiscussionThreadBundle> getDeletedThreads(
+			Long userId, String forumId, Long limit, Long offset,
+			DiscussionThreadOrder order, Boolean ascending) {
+		UserInfo user = userManager.getUserInfo(userId);
+		return threadManager.getDeletedThreadsForForum(user, forumId, limit, offset, order, ascending);
+	}
 }

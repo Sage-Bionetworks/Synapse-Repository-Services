@@ -97,6 +97,56 @@ public class DiscussionController extends BaseController {
 	}
 
 	/**
+	 * This API is used to get N number of non-deleted threads for a given forum ID.
+	 * <br/>
+	 * Target users: anyone who has READ permission to the project.
+	 * 
+	 * @param userId - The ID of the user who is making the request
+	 * @param limit - Limits the size of the page returned. For example, a page size of 10 require limit = 10. The maximum Limit for this call is 100.
+	 * @param offset - The index of the pagination offset. For a page size of 10, the first page would be at offset = 0, and the second page would be at offset = 10.
+	 * @param sort - The field to sort the resulting threads on
+	 * @param ascending - The direction of sort: true for ascending, and false for descending
+	 * @param forumId - The forum ID to which the returning threads belong
+	 * @return
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.FORUM_FORUM_ID_AVAILABLE_THREADS, method = RequestMethod.GET)
+	public @ResponseBody PaginatedResults<DiscussionThreadBundle> getAvailableThreadsForForum(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM) Long limit,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM) Long offset,
+			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false) DiscussionThreadOrder order,
+			@RequestParam(value = ServiceConstants.ASCENDING_PARAM, required = false) Boolean ascending,
+			@PathVariable String forumId) {
+		return serviceProvider.getDiscussionService().getAvailableThreads(userId, forumId, limit, offset, order, ascending);
+	}
+
+	/**
+	 * This API is used to get N number of deleted threads for a given forum ID.
+	 * <br/>
+	 * Target users: anyone who has READ permission to the project.
+	 * 
+	 * @param userId - The ID of the user who is making the request
+	 * @param limit - Limits the size of the page returned. For example, a page size of 10 require limit = 10. The maximum Limit for this call is 100.
+	 * @param offset - The index of the pagination offset. For a page size of 10, the first page would be at offset = 0, and the second page would be at offset = 10.
+	 * @param sort - The field to sort the resulting threads on
+	 * @param ascending - The direction of sort: true for ascending, and false for descending
+	 * @param forumId - The forum ID to which the returning threads belong
+	 * @return
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.FORUM_FORUM_ID_DELETED_THREADS, method = RequestMethod.GET)
+	public @ResponseBody PaginatedResults<DiscussionThreadBundle> getDeletedThreadsForForum(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM) Long limit,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM) Long offset,
+			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false) DiscussionThreadOrder order,
+			@RequestParam(value = ServiceConstants.ASCENDING_PARAM, required = false) Boolean ascending,
+			@PathVariable String forumId) {
+		return serviceProvider.getDiscussionService().getDeletedThreads(userId, forumId, limit, offset, order, ascending);
+	}
+
+	/**
 	 * This API is used to create a new thread in a forum.
 	 * <br/>
 	 * Target users: anyone who has READ permission to the project.

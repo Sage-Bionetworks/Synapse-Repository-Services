@@ -95,6 +95,21 @@ public class DiscussionControllerAutowiredTest extends AbstractAutowiredControll
 	}
 
 	@Test
+	public void testGetAvailableThreadsAndDeletedThreads() throws Exception {
+		Forum forum = servletTestHelper.getForumMetadata(dispatchServlet, project.getId(), adminUserId);
+		createThread.setForumId(forum.getId());
+		DiscussionThreadBundle bundle1 = servletTestHelper.createThread(dispatchServlet, adminUserId, createThread);
+		DiscussionThreadBundle bundle2 = servletTestHelper.createThread(dispatchServlet, adminUserId, createThread);
+		servletTestHelper.markThreadAsDeleted(dispatchServlet, adminUserId, bundle1.getId());
+		PaginatedResults<DiscussionThreadBundle> deleted = servletTestHelper.getDeletedThreads(dispatchServlet, adminUserId, forum.getId(), 10L, 0L, DiscussionThreadOrder.LAST_ACTIVITY, true);
+		assertEquals(1L, deleted.getTotalNumberOfResults());
+		assertEquals(bundle1.getId(), deleted.getResults().get(0).getId());
+		PaginatedResults<DiscussionThreadBundle> available = servletTestHelper.getAvailableThreads(dispatchServlet, adminUserId, forum.getId(), 10L, 0L, DiscussionThreadOrder.LAST_ACTIVITY, true);
+		assertEquals(1L, available.getTotalNumberOfResults());
+		assertEquals(bundle2.getId(), available.getResults().get(0).getId());
+	}
+
+	@Test
 	public void testUpdateThreadTitle() throws Exception {
 		Forum dto = servletTestHelper.getForumMetadata(dispatchServlet, project.getId(), adminUserId);
 		createThread.setForumId(dto.getId());
