@@ -3,6 +3,8 @@ package org.sagebionetworks.repo.manager;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
@@ -206,11 +208,19 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 			ValidateArgument.validUrl(externalStorageLocationSetting.getUrl());
 		}else if (storageLocationSetting instanceof ProxyStorageLocationSettings){
 			ProxyStorageLocationSettings proxySettings = (ProxyStorageLocationSettings)storageLocationSetting;
-			ValidateArgument.required(proxySettings.getProxyHost(), "proxyHost");
+			ValidateArgument.required(proxySettings.getProxyUrl(), "proxyUrl");
 			ValidateArgument.required(proxySettings.getSecretKey(), "secretKey");
 			ValidateArgument.required(proxySettings.getUploadType(), "uploadType");
 			if(proxySettings.getSecretKey().length() < MIN_SECRET_KEY_CHARS){
 				throw new IllegalArgumentException("SecretKey must be at least: "+MIN_SECRET_KEY_CHARS+" characters but was: "+proxySettings.getSecretKey().length());
+			}
+			try {
+				URL proxyUrl = new URL(proxySettings.getProxyUrl());
+				if(!"https".equals(proxyUrl.getProtocol())){
+					throw new IllegalArgumentException("proxyUrl protocol must be be HTTPS");
+				}
+			} catch (MalformedURLException e) {
+				throw new IllegalArgumentException("porxyUrl is malformed: "+e.getMessage());
 			}
 		}
 
