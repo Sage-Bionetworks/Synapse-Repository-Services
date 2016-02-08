@@ -146,11 +146,15 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 			+" LEFT OUTER JOIN "+TABLE_DISCUSSION_THREAD_STATS
 			+" ON "+TABLE_DISCUSSION_THREAD+"."+COL_DISCUSSION_THREAD_ID
 			+" = "+COL_DISCUSSION_THREAD_STATS_THREAD_ID;
+	private static final String NON_DELETED_CONDITION = " AND "+COL_DISCUSSION_THREAD_IS_DELETED+" = FALSE";
+	private static final String DELETED_CONDITION = " AND "+COL_DISCUSSION_THREAD_IS_DELETED+" = TRUE";
 	private static final String SQL_SELECT_THREAD_BY_ID = SELECT_THREAD_BUNDLE
 			+" WHERE "+TABLE_DISCUSSION_THREAD+"."+COL_DISCUSSION_THREAD_ID+" = ?";
 	private static final String SQL_SELECT_THREAD_COUNT = "SELECT COUNT(*)"
 			+" FROM "+TABLE_DISCUSSION_THREAD
 			+" WHERE "+COL_DISCUSSION_THREAD_FORUM_ID+" = ?";
+	private static final String SQL_SELECT_AVAILABLE_THREAD_COUNT = SQL_SELECT_THREAD_COUNT + NON_DELETED_CONDITION;
+	private static final String SQL_SELECT_DELETED_THREAD_COUNT = SQL_SELECT_THREAD_COUNT + DELETED_CONDITION;
 	private static final String SQL_SELECT_THREADS_BY_FORUM_ID = SELECT_THREAD_BUNDLE
 			+" WHERE "+COL_DISCUSSION_THREAD_FORUM_ID+" = ?";
 	private static final String ORDER_BY_LAST_ACTIVITY = " ORDER BY "+COL_DISCUSSION_THREAD_STATS_LAST_ACTIVITY;
@@ -229,45 +233,7 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 	@Override
 	public PaginatedResults<DiscussionThreadBundle> getThreads(long forumId,
 			Long limit, Long offset, DiscussionThreadOrder order, Boolean ascending) {
-		ValidateArgument.required(limit,"limit");
-		ValidateArgument.required(offset,"offset");
-		ValidateArgument.requirement(limit >= 0 && offset >= 0 && limit <= MAX_LIMIT,
-					"Limit and offset must be greater than 0, and limit must be smaller than or equal to "+MAX_LIMIT);
-		ValidateArgument.requirement((order == null && ascending == null)
-				|| (order != null && ascending != null),"order and ascending must be both null or not null");
-
-		PaginatedResults<DiscussionThreadBundle> threads = new PaginatedResults<DiscussionThreadBundle>();
-		List<DiscussionThreadBundle> results = new ArrayList<DiscussionThreadBundle>();
-		long threadCount = getThreadCount(forumId);
-		threads.setTotalNumberOfResults(threadCount);
-
-		if (threadCount > 0) {
-			String query = SQL_SELECT_THREADS_BY_FORUM_ID;
-			if (order != null) {
-				switch (order) {
-					case NUMBER_OF_REPLIES:
-						query += ORDER_BY_NUMBER_OF_REPLIES;
-						break;
-					case NUMBER_OF_VIEWS:
-						query += ORDER_BY_NUMBER_OF_VIEWS;
-						break;
-					case LAST_ACTIVITY:
-						query += ORDER_BY_LAST_ACTIVITY;
-						break;
-					default:
-						throw new IllegalArgumentException("Unsupported order "+order);
-				}
-				if (!ascending) {
-					query += DESC;
-				}
-			}
-
-			query += " LIMIT "+limit+" OFFSET "+offset;
-			results = jdbcTemplate.query(query, DISCUSSION_THREAD_BUNDLE_ROW_MAPPER, forumId);
-		}
-
-		threads.setResults(results);
-		return threads;
+		return doGetThreads(forumId, limit, offset, order, ascending, null, getThreadCount(forumId));
 	}
 
 	@WriteTransactionReadCommitted
@@ -304,6 +270,16 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 	@Override
 	public long getThreadCount(long forumId) {
 		return jdbcTemplate.queryForLong(SQL_SELECT_THREAD_COUNT, forumId);
+	}
+
+	@Override
+	public long getAvailableThreadCount(long forumId) {
+		return jdbcTemplate.queryForLong(SQL_SELECT_AVAILABLE_THREAD_COUNT, forumId);
+	}
+
+	@Override
+	public long getDeletedThreadCount(long forumId) {
+		return jdbcTemplate.queryForLong(SQL_SELECT_DELETED_THREAD_COUNT, forumId);
 	}
 
 	@WriteTransactionReadCommitted
@@ -413,5 +389,65 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 				return rs.getLong(COL_DISCUSSION_THREAD_ID);
 			}
 		}, limit, offset);
+	}
+
+	@Override
+	public PaginatedResults<DiscussionThreadBundle> getAvailableThreads(
+			long forumId, Long limit, Long offset,
+			DiscussionThreadOrder order, Boolean ascending) {
+		return doGetThreads(forumId, limit, offset, order, ascending, NON_DELETED_CONDITION, getAvailableThreadCount(forumId));
+	}
+
+	@Override
+	public PaginatedResults<DiscussionThreadBundle> getDeletedThreads(
+			long forumId, Long limit, Long offset,
+			DiscussionThreadOrder order, Boolean ascending) {
+		return doGetThreads(forumId, limit, offset, order, ascending, DELETED_CONDITION, getDeletedThreadCount(forumId));
+	}
+
+	private PaginatedResults<DiscussionThreadBundle> doGetThreads(long forumId,
+			Long limit, Long offset, DiscussionThreadOrder order,
+			Boolean ascending, String extraCondition, long count) {
+		ValidateArgument.required(limit,"limit");
+		ValidateArgument.required(offset,"offset");
+		ValidateArgument.requirement(limit >= 0 && offset >= 0 && limit <= MAX_LIMIT,
+					"Limit and offset must be greater than 0, and limit must be smaller than or equal to "+MAX_LIMIT);
+		ValidateArgument.requirement((order == null && ascending == null)
+				|| (order != null && ascending != null),"order and ascending must be both null or not null");
+
+		PaginatedResults<DiscussionThreadBundle> threads = new PaginatedResults<DiscussionThreadBundle>();
+		List<DiscussionThreadBundle> results = new ArrayList<DiscussionThreadBundle>();
+		threads.setTotalNumberOfResults(count);
+
+		if (count > 0) {
+			String query = SQL_SELECT_THREADS_BY_FORUM_ID;
+			if (extraCondition != null) {
+				query += extraCondition;
+			}
+			if (order != null) {
+				switch (order) {
+					case NUMBER_OF_REPLIES:
+						query += ORDER_BY_NUMBER_OF_REPLIES;
+						break;
+					case NUMBER_OF_VIEWS:
+						query += ORDER_BY_NUMBER_OF_VIEWS;
+						break;
+					case LAST_ACTIVITY:
+						query += ORDER_BY_LAST_ACTIVITY;
+						break;
+					default:
+						throw new IllegalArgumentException("Unsupported order "+order);
+				}
+				if (!ascending) {
+					query += DESC;
+				}
+			}
+
+			query += " LIMIT "+limit+" OFFSET "+offset;
+			results = jdbcTemplate.query(query, DISCUSSION_THREAD_BUNDLE_ROW_MAPPER, forumId);
+		}
+
+		threads.setResults(results);
+		return threads;
 	}
 }

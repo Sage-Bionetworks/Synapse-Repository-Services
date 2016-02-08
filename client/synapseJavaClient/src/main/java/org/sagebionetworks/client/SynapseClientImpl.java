@@ -485,6 +485,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String FORUM = "/forum";
 	private static final String THREAD = "/thread";
 	private static final String THREADS = "/threads";
+	private static final String AVAILABLE_THREADS = "/availableThreads";
+	private static final String DELETED_THREADS = "/deletedThreads";
 	private static final String THREAD_TITLE = "/title";
 	private static final String DISCUSSION_MESSAGE = "/message";
 	private static final String REPLY = "/reply";
@@ -7331,10 +7333,31 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public PaginatedResults<DiscussionThreadBundle> getThreadsForForum(
 			String forumId, Long limit, Long offset, DiscussionThreadOrder order,
 			Boolean ascending) throws SynapseException {
+		return doGetThreads(forumId, limit, offset, order, ascending, THREADS);
+	}
+
+	@Override
+	public PaginatedResults<DiscussionThreadBundle> getAvailableThreadsForForum(
+			String forumId, Long limit, Long offset, DiscussionThreadOrder order,
+			Boolean ascending) throws SynapseException {
+		return doGetThreads(forumId, limit, offset, order, ascending, AVAILABLE_THREADS);
+	}
+
+	@Override
+	public PaginatedResults<DiscussionThreadBundle> getDeletedThreadsForForum(
+			String forumId, Long limit, Long offset, DiscussionThreadOrder order,
+			Boolean ascending) throws SynapseException {
+		return doGetThreads(forumId, limit, offset, order, ascending, DELETED_THREADS);
+	}
+
+	private PaginatedResults<DiscussionThreadBundle> doGetThreads(
+			String forumId, Long limit, Long offset,
+			DiscussionThreadOrder order, Boolean ascending, String threadType)
+			throws SynapseException, SynapseClientException {
 		ValidateArgument.required(forumId, "forumId");
 		ValidateArgument.required(limit, "limit");
 		ValidateArgument.required(offset, "offset");
-		String url = FORUM+"/"+forumId+THREADS
+		String url = FORUM+"/"+forumId+threadType
 				+"?"+LIMIT+"="+limit+"&"+OFFSET+"="+offset;
 		if (order != null) {
 			url += "&sort="+order.name();

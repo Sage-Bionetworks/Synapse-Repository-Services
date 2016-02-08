@@ -163,4 +163,30 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		threadDao.updateThreadView(threadIdLong, userInfo.getId());
 		return uploadDao.getThreadUrl(thread.getMessageKey());
 	}
+
+	@Override
+	public PaginatedResults<DiscussionThreadBundle> getAvailableThreadsForForum(
+			UserInfo userInfo, String forumId, Long limit, Long offset,
+			DiscussionThreadOrder order, Boolean ascending) {
+		ValidateArgument.required(forumId, "forumId");
+		UserInfo.validateUserInfo(userInfo);
+		String projectId = forumDao.getForum(Long.parseLong(forumId)).getProjectId();
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+				authorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ));
+		PaginatedResults<DiscussionThreadBundle> threads = threadDao.getAvailableThreads(Long.parseLong(forumId), limit, offset, order, ascending);
+		return updateNumberOfReplies(threads);
+	}
+
+	@Override
+	public PaginatedResults<DiscussionThreadBundle> getDeletedThreadsForForum(
+			UserInfo userInfo, String forumId, Long limit, Long offset,
+			DiscussionThreadOrder order, Boolean ascending) {
+		ValidateArgument.required(forumId, "forumId");
+		UserInfo.validateUserInfo(userInfo);
+		String projectId = forumDao.getForum(Long.parseLong(forumId)).getProjectId();
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+				authorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ));
+		PaginatedResults<DiscussionThreadBundle> threads = threadDao.getDeletedThreads(Long.parseLong(forumId), limit, offset, order, ascending);
+		return updateNumberOfReplies(threads);
+	}
 }

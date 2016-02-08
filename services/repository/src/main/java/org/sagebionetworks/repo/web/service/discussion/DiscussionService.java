@@ -159,4 +159,34 @@ public interface DiscussionService {
 	 * @return
 	 */
 	public MessageURL getReplyUrl(Long userId, String messageKey);
+
+	/**
+	 * Get limit number of non-deleted threads starting at offset for a given forum
+	 * 
+	 * @param userId
+	 * @param forumId
+	 * @param limit
+	 * @param offset
+	 * @param order
+	 * @param ascending
+	 * @return
+	 */
+	public PaginatedResults<DiscussionThreadBundle> getAvailableThreads(
+			Long userId, String forumId, Long limit, Long offset,
+			DiscussionThreadOrder order, Boolean ascending);
+
+	/**
+	 * Get limit number of deleted threads starting at offset for a given forum
+	 * 
+	 * @param userId
+	 * @param forumId
+	 * @param limit
+	 * @param offset
+	 * @param order
+	 * @param ascending
+	 * @return
+	 */
+	public PaginatedResults<DiscussionThreadBundle> getDeletedThreads(
+			Long userId, String forumId, Long limit, Long offset,
+			DiscussionThreadOrder order, Boolean ascending);
 }

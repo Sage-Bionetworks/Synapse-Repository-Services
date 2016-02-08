@@ -2040,6 +2040,28 @@ public class ServletTestHelper {
 			Boolean ascending) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, "/repo/v1", UrlHelpers.FORUM+"/"+forumId+"/threads", userId, null);
+		return doGetThreads(dispatchServlet, limit, offset, order, ascending, request);
+	}
+
+	public PaginatedResults<DiscussionThreadBundle> getAvailableThreads(DispatcherServlet dispatchServlet,
+			Long userId, String forumId, Long limit, Long offset, DiscussionThreadOrder order,
+			Boolean ascending) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, "/repo/v1", UrlHelpers.FORUM+"/"+forumId+"/availableThreads", userId, null);
+		return doGetThreads(dispatchServlet, limit, offset, order, ascending, request);
+	}
+
+	public PaginatedResults<DiscussionThreadBundle> getDeletedThreads(DispatcherServlet dispatchServlet,
+			Long userId, String forumId, Long limit, Long offset, DiscussionThreadOrder order,
+			Boolean ascending) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, "/repo/v1", UrlHelpers.FORUM+"/"+forumId+"/deletedThreads", userId, null);
+		return doGetThreads(dispatchServlet, limit, offset, order, ascending, request);
+	}
+
+	private PaginatedResults<DiscussionThreadBundle> doGetThreads(DispatcherServlet dispatchServlet,
+			Long limit, Long offset, DiscussionThreadOrder order, Boolean ascending,
+			MockHttpServletRequest request) throws Exception {
 		request.addParameter("limit", limit.toString());
 		request.addParameter("offset", offset.toString());
 		if (order != null) {

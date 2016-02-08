@@ -138,4 +138,50 @@ public interface DiscussionThreadDAO {
 	 * @return
 	 */
 	public List<Long> getAllThreadId(Long limit, Long offset);
+
+	/**
+	 * Get a paginated list of non-deleted discussion thread for a forum given forumId,
+	 * the order of the discussion thread, limit and offset
+	 * 
+	 * @param forumId
+	 * @param limit
+	 * @param offset
+	 * @param order
+	 * @param ascending
+	 * @return
+	 */
+	public PaginatedResults<DiscussionThreadBundle> getAvailableThreads(
+			long forumId, Long limit, Long offset,
+			DiscussionThreadOrder order, Boolean ascending);
+
+	/**
+	 * Get a paginated list of deleted discussion thread for a forum given forumId,
+	 * the order of the discussion thread, limit and offset
+	 * 
+	 * @param forumId
+	 * @param limit
+	 * @param offset
+	 * @param order
+	 * @param ascending
+	 * @return
+	 */
+	public PaginatedResults<DiscussionThreadBundle> getDeletedThreads(
+			long forumId, Long limit, Long offset,
+			DiscussionThreadOrder order, Boolean ascending);
+
+	/**
+	 * Get the number of non-deleted discussion thread in a given forum
+	 * 
+	 * @param forumId
+	 * @return
+	 */
+	public long getAvailableThreadCount(long forumId);
+
+	/**
+	 * Get the number of deleted discussion thread in a given forum
+	 * 
+	 * @param forumId
+	 * @return
+	 */
+	long getDeletedThreadCount(long forumId);
 }

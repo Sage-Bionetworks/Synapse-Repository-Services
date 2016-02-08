@@ -890,6 +890,10 @@ public class UrlHelpers {
 	public static final String URL = "/messageUrl";
 	public static final String THREAD_URL = THREAD+URL;
 	public static final String REPLY_URL = REPLY+URL;
+	public static final String AVAILABLE_THREADS = "/availableThreads";
+	public static final String DELETED_THREADS = "/deletedThreads";
+	public static final String FORUM_FORUM_ID_AVAILABLE_THREADS = FORUM+FORUM_ID+AVAILABLE_THREADS;
+	public static final String FORUM_FORUM_ID_DELETED_THREADS = FORUM+FORUM_ID+DELETED_THREADS;
 
 	/**
 	 * APIs for DynamoDB related operations.

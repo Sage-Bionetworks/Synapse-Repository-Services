@@ -75,6 +75,32 @@ public interface DiscussionThreadManager {
 	public PaginatedResults<DiscussionThreadBundle> getThreadsForForum(UserInfo userInfo, String forumId, Long limit, Long offset, DiscussionThreadOrder order, Boolean ascending );
 
 	/**
+	 * Get non-deleted threads of a forumId
+	 * 
+	 * @param userInfo
+	 * @param forumId
+	 * @param limit
+	 * @param offset
+	 * @param order
+	 * @param ascending
+	 * @return
+	 */
+	public PaginatedResults<DiscussionThreadBundle> getAvailableThreadsForForum(UserInfo userInfo, String forumId, Long limit, Long offset, DiscussionThreadOrder order, Boolean ascending );
+
+	/**
+	 * Get deleted threads of a forumId
+	 * 
+	 * @param userInfo
+	 * @param forumId
+	 * @param limit
+	 * @param offset
+	 * @param order
+	 * @param ascending
+	 * @return
+	 */
+	public PaginatedResults<DiscussionThreadBundle> getDeletedThreadsForForum(UserInfo userInfo, String forumId, Long limit, Long offset, DiscussionThreadOrder order, Boolean ascending );
+
+	/**
 	 * Get message Url for a thread
 	 * 
 	 * @param user

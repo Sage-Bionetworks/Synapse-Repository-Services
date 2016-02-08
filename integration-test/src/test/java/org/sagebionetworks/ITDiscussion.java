@@ -111,12 +111,23 @@ public class ITDiscussion {
 		assertEquals(updateThreadMessage.getId(), threadId);
 		assertTrue(updateThreadMessage.getIsEdited());
 
+		PaginatedResults<DiscussionThreadBundle> availableThreads = synapse.getAvailableThreadsForForum(forumId, 100L, 0L, null, null);
+		assertEquals(1, availableThreads.getTotalNumberOfResults());
+		assertEquals(availableThreads.getResults().get(0).getId(), bundle.getId());
+
 		// delete
 		synapse.markThreadAsDeleted(threadId);
 		DiscussionThreadBundle deleted = synapse.getThread(threadId);
 		assertFalse(deleted.equals(updateThreadMessage));
 		assertEquals(deleted.getId(), threadId);
 		assertTrue(deleted.getIsDeleted());
+
+		PaginatedResults<DiscussionThreadBundle> deletedThreads = synapse.getDeletedThreadsForForum(forumId, 100L, 0L, null, null);
+		assertEquals(1, deletedThreads.getTotalNumberOfResults());
+		assertEquals(deletedThreads.getResults().get(0).getId(), bundle.getId());
+
+		availableThreads = synapse.getAvailableThreadsForForum(forumId, 100L, 0L, null, null);
+		assertEquals(0, availableThreads.getTotalNumberOfResults());
 
 		// create a reply
 		CreateDiscussionReply replyToCreate = new CreateDiscussionReply();

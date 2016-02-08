@@ -9,6 +9,7 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 import java.util.UUID;
 
 import org.junit.After;
@@ -18,6 +19,7 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -418,5 +420,23 @@ public class DBODiscussionThreadDAOImplTest {
 
 		assertEquals(new HashSet<Long>(Arrays.asList(threadId, threadId2)),
 				new HashSet<Long>(threadDao.getAllThreadId(10L, 0L)));
+	}
+
+	@Test
+	public void testGetDeletedAndNonDeletedThreads() throws InterruptedException{
+		List<DiscussionThreadBundle> createdThreads = createListOfThreads(3);
+		threadDao.markThreadAsDeleted(Long.parseLong(createdThreads.get(1).getId()));
+
+		PaginatedResults<DiscussionThreadBundle> deleted = threadDao.getDeletedThreads(forumIdLong, MAX_LIMIT, 0L, DiscussionThreadOrder.LAST_ACTIVITY, true);
+		PaginatedResults<DiscussionThreadBundle> available = threadDao.getAvailableThreads(forumIdLong, MAX_LIMIT, 0L, DiscussionThreadOrder.LAST_ACTIVITY, true);
+		assertEquals(1, deleted.getTotalNumberOfResults());
+		assertEquals(2, available.getTotalNumberOfResults());
+		assertEquals(createdThreads.get(1).getId(), deleted.getResults().get(0).getId());
+
+		Set<String> availableThreads = new HashSet<String>();
+		availableThreads.add(available.getResults().get(0).getId());
+		availableThreads.add(available.getResults().get(1).getId());
+		assertTrue(availableThreads.contains(createdThreads.get(0).getId()));
+		assertTrue(availableThreads.contains(createdThreads.get(2).getId()));
 	}
 }

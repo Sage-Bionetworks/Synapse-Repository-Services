@@ -140,6 +140,22 @@ public class DiscussionServiceImplTest {
 	}
 
 	@Test
+	public void testGetAvailableThreads() {
+		PaginatedResults<DiscussionThreadBundle> threads = new PaginatedResults<DiscussionThreadBundle>();
+		threads.setResults(Arrays.asList(threadBundle));
+		Mockito.when(mockThreadManager.getAvailableThreadsForForum(userInfo, forumId, 10L, 0L, null, true)).thenReturn(threads);
+		assertEquals(threads, discussionServices.getAvailableThreads(userId, forumId, 10L, 0L, null, true));
+	}
+
+	@Test
+	public void testGetDeletedThreads() {
+		PaginatedResults<DiscussionThreadBundle> threads = new PaginatedResults<DiscussionThreadBundle>();
+		threads.setResults(Arrays.asList(threadBundle));
+		Mockito.when(mockThreadManager.getDeletedThreadsForForum(userInfo, forumId, 10L, 0L, null, true)).thenReturn(threads);
+		assertEquals(threads, discussionServices.getDeletedThreads(userId, forumId, 10L, 0L, null, true));
+	}
+
+	@Test
 	public void testCreateReply() throws Exception {
 		Mockito.when(mockReplyManager.createReply(userInfo, createReply)).thenReturn(replyBundle);
 		assertEquals(replyBundle, discussionServices.createReply(userId, createReply));

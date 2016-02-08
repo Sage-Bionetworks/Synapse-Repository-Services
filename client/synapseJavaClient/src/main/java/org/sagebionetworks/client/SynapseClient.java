@@ -2513,6 +2513,32 @@ public interface SynapseClient extends BaseClient {
 	PaginatedResults<DiscussionThreadBundle> getThreadsForForum(String forumId, Long limit, Long offset, DiscussionThreadOrder order, Boolean ascending) throws SynapseException;
 
 	/**
+	 * Get non-deleted threads for a given forum
+	 * 
+	 * @param forumId
+	 * @param limit
+	 * @param offset
+	 * @param order
+	 * @param ascending
+	 * @return
+	 * @throws SynapseException
+	 */
+	PaginatedResults<DiscussionThreadBundle> getAvailableThreadsForForum(String forumId, Long limit, Long offset, DiscussionThreadOrder order, Boolean ascending) throws SynapseException;
+
+	/**
+	 * Get deleted threads for a given forum
+	 * 
+	 * @param forumId
+	 * @param limit
+	 * @param offset
+	 * @param order
+	 * @param ascending
+	 * @return
+	 * @throws SynapseException
+	 */
+	PaginatedResults<DiscussionThreadBundle> getDeletedThreadsForForum(String forumId, Long limit, Long offset, DiscussionThreadOrder order, Boolean ascending) throws SynapseException;
+
+	/**
 	 * Update the title of an existing thread
 	 * 
 	 * @param threadId

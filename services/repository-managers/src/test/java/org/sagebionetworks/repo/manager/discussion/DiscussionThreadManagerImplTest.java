@@ -250,6 +250,40 @@ public class DiscussionThreadManagerImplTest {
 		Mockito.verify(mockReplyDao).getReplyCount(threadId);
 	}
 
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetAvailableThreadsForForumWithNullForumId() {
+		threadManager.getAvailableThreadsForForum(userInfo, null, 2L, 0L, DiscussionThreadOrder.LAST_ACTIVITY, false);
+	}
+
+	@Test
+	public void testGetAvailableThreadsForForum() {
+		PaginatedResults<DiscussionThreadBundle> threads = new PaginatedResults<DiscussionThreadBundle>();
+		threads.setResults(Arrays.asList(dto));
+		Mockito.when(mockThreadDao.getAvailableThreads(Mockito.anyLong(), Mockito.anyLong(), Mockito.anyLong(), (DiscussionThreadOrder) Mockito.any(), Mockito.anyBoolean()))
+				.thenReturn(threads);
+		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
+				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		assertEquals(threads, threadManager.getAvailableThreadsForForum(userInfo, forumId.toString(), 2L, 0L, DiscussionThreadOrder.LAST_ACTIVITY, true));
+		Mockito.verify(mockReplyDao).getReplyCount(threadId);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetDeletedThreadsForForumWithNullForumId() {
+		threadManager.getDeletedThreadsForForum(userInfo, null, 2L, 0L, DiscussionThreadOrder.LAST_ACTIVITY, false);
+	}
+
+	@Test
+	public void testGetDeletedThreadsForForum() {
+		PaginatedResults<DiscussionThreadBundle> threads = new PaginatedResults<DiscussionThreadBundle>();
+		threads.setResults(Arrays.asList(dto));
+		Mockito.when(mockThreadDao.getDeletedThreads(Mockito.anyLong(), Mockito.anyLong(), Mockito.anyLong(), (DiscussionThreadOrder) Mockito.any(), Mockito.anyBoolean()))
+				.thenReturn(threads);
+		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
+				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		assertEquals(threads, threadManager.getDeletedThreadsForForum(userInfo, forumId.toString(), 2L, 0L, DiscussionThreadOrder.LAST_ACTIVITY, true));
+		Mockito.verify(mockReplyDao).getReplyCount(threadId);
+	}
+
 	@Test (expected = UnauthorizedException.class)
 	public void testGetThreadURLUnauthorized() {
 		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
