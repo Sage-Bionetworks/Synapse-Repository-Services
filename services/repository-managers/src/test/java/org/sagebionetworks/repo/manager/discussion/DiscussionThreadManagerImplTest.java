@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.discussion;
 
+import static org.sagebionetworks.repo.manager.discussion.DiscussionThreadManagerImpl.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
@@ -93,7 +94,7 @@ public class DiscussionThreadManagerImplTest {
 		Mockito.when(mockIdGenerator.generateNewId(TYPE.DISCUSSION_THREAD_ID)).thenReturn(threadId);
 		messageUrl.setMessageUrl("messageUrl");
 		Mockito.when(mockUploadDao.getThreadUrl(messageKey)).thenReturn(messageUrl);
-		Mockito.when(mockReplyDao.getReplyCount(Mockito.anyLong())).thenReturn(0L);
+		Mockito.when(mockReplyDao.getReplyCount(Mockito.anyLong(), Mockito.anyBoolean())).thenReturn(0L);
 		Mockito.when(mockAuthorizationManager.isAnonymousUser(userInfo)).thenReturn(false);
 	}
 
@@ -149,7 +150,7 @@ public class DiscussionThreadManagerImplTest {
 		DiscussionThreadBundle createdThread = threadManager.createThread(userInfo, createDto);
 		assertNotNull(createdThread);
 		assertEquals(createdThread, dto);
-		Mockito.verify(mockReplyDao).getReplyCount(Long.parseLong(createdThread.getId()));
+		Mockito.verify(mockReplyDao).getReplyCount(Long.parseLong(createdThread.getId()), INCLUDE_DELETED_REPLIES_DEFAULT);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -170,7 +171,7 @@ public class DiscussionThreadManagerImplTest {
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		assertEquals(dto, threadManager.getThread(userInfo, threadId.toString()));
 		Mockito.verify(mockThreadDao).updateThreadView(Mockito.anyLong(), Mockito.anyLong());
-		Mockito.verify(mockReplyDao).getReplyCount(threadId);
+		Mockito.verify(mockReplyDao).getReplyCount(threadId, INCLUDE_DELETED_REPLIES_DEFAULT);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -192,7 +193,7 @@ public class DiscussionThreadManagerImplTest {
 		Mockito.when(mockThreadDao.updateTitle(Mockito.anyLong(), Mockito.anyString())).thenReturn(dto);
 
 		assertEquals(dto, threadManager.updateTitle(userInfo, threadId.toString(), newTitle));
-		Mockito.verify(mockReplyDao).getReplyCount(threadId);
+		Mockito.verify(mockReplyDao).getReplyCount(threadId, INCLUDE_DELETED_REPLIES_DEFAULT);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -215,7 +216,7 @@ public class DiscussionThreadManagerImplTest {
 				.thenReturn("newMessage");
 		Mockito.when(mockThreadDao.updateMessageKey(Mockito.anyLong(), Mockito.anyString())).thenReturn(dto);
 		assertEquals(dto, threadManager.updateMessage(userInfo, threadId.toString(), newMessage));
-		Mockito.verify(mockReplyDao).getReplyCount(threadId);
+		Mockito.verify(mockReplyDao).getReplyCount(threadId, INCLUDE_DELETED_REPLIES_DEFAULT);
 	}
 
 	@Test (expected = UnauthorizedException.class)
@@ -247,7 +248,7 @@ public class DiscussionThreadManagerImplTest {
 		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		assertEquals(threads, threadManager.getThreadsForForum(userInfo, forumId.toString(), 2L, 0L, DiscussionThreadOrder.LAST_ACTIVITY, true));
-		Mockito.verify(mockReplyDao).getReplyCount(threadId);
+		Mockito.verify(mockReplyDao).getReplyCount(threadId, INCLUDE_DELETED_REPLIES_DEFAULT);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -264,7 +265,7 @@ public class DiscussionThreadManagerImplTest {
 		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		assertEquals(threads, threadManager.getAvailableThreadsForForum(userInfo, forumId.toString(), 2L, 0L, DiscussionThreadOrder.LAST_ACTIVITY, true));
-		Mockito.verify(mockReplyDao).getReplyCount(threadId);
+		Mockito.verify(mockReplyDao).getReplyCount(threadId, INCLUDE_DELETED_REPLIES_DEFAULT);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -281,7 +282,7 @@ public class DiscussionThreadManagerImplTest {
 		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		assertEquals(threads, threadManager.getDeletedThreadsForForum(userInfo, forumId.toString(), 2L, 0L, DiscussionThreadOrder.LAST_ACTIVITY, true));
-		Mockito.verify(mockReplyDao).getReplyCount(threadId);
+		Mockito.verify(mockReplyDao).getReplyCount(threadId, INCLUDE_DELETED_REPLIES_DEFAULT);
 	}
 
 	@Test (expected = UnauthorizedException.class)

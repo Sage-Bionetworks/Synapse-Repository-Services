@@ -105,6 +105,7 @@ public class DBODiscussionReplyDAOImpl implements DiscussionReplyDAO{
 			+" AND "+COL_DISCUSSION_THREAD_FORUM_ID+" = "+TABLE_FORUM+"."+COL_FORUM_ID;
 	private static final String SQL_GET_REPLY_BY_ID = SQL_SELECT_REPLY_BUNDLE
 			+" AND "+TABLE_DISCUSSION_REPLY+"."+COL_DISCUSSION_REPLY_ID+" = ?";
+	private static final String NON_DELETED_CONDITION = " AND "+TABLE_DISCUSSION_REPLY+"."+COL_DISCUSSION_REPLY_IS_DELETED+" = FALSE";
 	private static final String SQL_GET_REPLIES_BY_THREAD_ID = SQL_SELECT_REPLY_BUNDLE
 			+" AND "+COL_DISCUSSION_REPLY_THREAD_ID+" = ?";
 	private static final String ORDER_BY_CREATED_ON = " ORDER BY "+COL_DISCUSSION_REPLY_CREATED_ON;
@@ -153,7 +154,7 @@ public class DBODiscussionReplyDAOImpl implements DiscussionReplyDAO{
 	@Override
 	public PaginatedResults<DiscussionReplyBundle> getRepliesForThread(
 			Long threadId, Long limit, Long offset, DiscussionReplyOrder order,
-			Boolean ascending) {
+			Boolean ascending, Boolean includeDeleted) {
 		ValidateArgument.required(threadId, "threadId");
 		ValidateArgument.required(limit, "limit");
 		ValidateArgument.required(offset, "offset");
@@ -164,24 +165,12 @@ public class DBODiscussionReplyDAOImpl implements DiscussionReplyDAO{
 
 		PaginatedResults<DiscussionReplyBundle> results = new PaginatedResults<DiscussionReplyBundle>();
 		List<DiscussionReplyBundle> replies = new ArrayList<DiscussionReplyBundle>();
-		long replyCount = getReplyCount(threadId);
+		long replyCount = getReplyCount(threadId, includeDeleted);
 		results.setTotalNumberOfResults(replyCount);
 
 		if (replyCount > 0) {
-			String query = SQL_GET_REPLIES_BY_THREAD_ID;
-			if (order != null) {
-				switch (order) {
-					case CREATED_ON:
-						query += ORDER_BY_CREATED_ON;
-						break;
-					default:
-						throw new IllegalArgumentException("Unsupported order "+order);
-				}
-				if (!ascending) {
-					query += DESC;
-				}
-			}
-			query += LIMIT+limit+OFFSET+offset;
+			String query = buildGetRepliesQuery(limit, offset, order,
+					ascending, includeDeleted);
 			replies = jdbcTemplate.query(query,  DISCUSSION_REPLY_BUNDLE_ROW_MAPPER, threadId);
 		}
 
@@ -189,9 +178,35 @@ public class DBODiscussionReplyDAOImpl implements DiscussionReplyDAO{
 		return results;
 	}
 
+	protected static String buildGetRepliesQuery(Long limit, Long offset,
+			DiscussionReplyOrder order, Boolean ascending, Boolean includeDeleted) {
+		String query = SQL_GET_REPLIES_BY_THREAD_ID;
+		if (!includeDeleted) {
+			query += NON_DELETED_CONDITION;
+		}
+		if (order != null) {
+			switch (order) {
+				case CREATED_ON:
+					query += ORDER_BY_CREATED_ON;
+					break;
+				default:
+					throw new IllegalArgumentException("Unsupported order "+order);
+			}
+			if (!ascending) {
+				query += DESC;
+			}
+		}
+		query += LIMIT+limit+OFFSET+offset;
+		return query;
+	}
+
 	@Override
-	public long getReplyCount(long threadId) {
-		return jdbcTemplate.queryForLong(SQL_SELECT_REPLY_COUNT, threadId);
+	public long getReplyCount(long threadId, Boolean includeDeleted) {
+		String query = SQL_SELECT_REPLY_COUNT;
+		if (!includeDeleted) {
+			query += NON_DELETED_CONDITION;
+		}
+		return jdbcTemplate.queryForLong(query, threadId);
 	}
 
 	@WriteTransactionReadCommitted

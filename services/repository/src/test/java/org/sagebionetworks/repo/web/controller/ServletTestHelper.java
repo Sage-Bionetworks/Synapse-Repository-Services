@@ -2094,7 +2094,7 @@ public class ServletTestHelper {
 
 	public PaginatedResults<DiscussionReplyBundle> getReplies(DispatcherServlet dispatchServlet,
 			Long userId, String threadId, Long limit, Long offset, DiscussionReplyOrder order,
-			Boolean ascending) throws Exception {
+			Boolean ascending, Boolean includeDeleted) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, "/repo/v1", UrlHelpers.THREAD+"/"+threadId+"/replies", userId, null);
 		request.addParameter("limit", limit.toString());
@@ -2105,6 +2105,7 @@ public class ServletTestHelper {
 		if (ascending != null) {
 			request.addParameter("ascending", ascending.toString());
 		}
+		request.addParameter("includeDeleted", includeDeleted.toString());
 		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.OK);
 		return ServletTestHelperUtils.readResponsePaginatedResults(response, DiscussionReplyBundle.class);

@@ -104,10 +104,10 @@ public class DiscussionServiceImpl implements DiscussionService{
 
 	@Override
 	public PaginatedResults<DiscussionReplyBundle> getReplies(Long userId,
-			String threadId, Long limit, Long offset,
-			DiscussionReplyOrder order, Boolean ascending) {
+			String threadId, Long limit, Long offset, DiscussionReplyOrder order,
+			Boolean ascending, Boolean includeDeleted) {
 		UserInfo user = userManager.getUserInfo(userId);
-		return replyManager.getRepliesForThread(user, threadId, limit, offset, order, ascending);
+		return replyManager.getRepliesForThread(user, threadId, limit, offset, order, ascending, includeDeleted);
 	}
 
 	@Override

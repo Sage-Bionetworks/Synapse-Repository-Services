@@ -186,9 +186,13 @@ public class DiscussionControllerAutowiredTest extends AbstractAutowiredControll
 		createReply.setThreadId(threadBundle.getId());
 		DiscussionReplyBundle replyBundle1 = servletTestHelper.createReply(dispatchServlet, adminUserId, createReply);
 		DiscussionReplyBundle replyBundle2 = servletTestHelper.createReply(dispatchServlet, adminUserId, createReply);
-		PaginatedResults<DiscussionReplyBundle> results = servletTestHelper.getReplies(dispatchServlet, adminUserId, threadBundle.getId(), 1L, 1L, DiscussionReplyOrder.CREATED_ON, true);
+		PaginatedResults<DiscussionReplyBundle> results = servletTestHelper.getReplies(dispatchServlet, adminUserId, threadBundle.getId(), 1L, 1L, DiscussionReplyOrder.CREATED_ON, true, true);
 		assertEquals(replyBundle2, results.getResults().get(0));
 		assertEquals(2L, results.getTotalNumberOfResults());
+		servletTestHelper.markReplyAsDeleted(dispatchServlet, adminUserId, replyBundle1.getId());
+		results = servletTestHelper.getReplies(dispatchServlet, adminUserId, threadBundle.getId(), 1L, 0L, DiscussionReplyOrder.CREATED_ON, true, false);
+		assertEquals(replyBundle2, results.getResults().get(0));
+		assertEquals(1L, results.getTotalNumberOfResults());
 	}
 
 	@Test

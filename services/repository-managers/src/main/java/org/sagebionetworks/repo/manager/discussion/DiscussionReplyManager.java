@@ -59,9 +59,12 @@ public interface DiscussionReplyManager {
 	 * @param offset
 	 * @param order
 	 * @param ascending
+	 * @param includeDeleted 
 	 * @return
 	 */
-	public PaginatedResults<DiscussionReplyBundle> getRepliesForThread(UserInfo userInfo, String threadId, Long limit, Long offset, DiscussionReplyOrder order, Boolean ascending);
+	public PaginatedResults<DiscussionReplyBundle> getRepliesForThread(UserInfo userInfo,
+			String threadId, Long limit, Long offset, DiscussionReplyOrder order,
+			Boolean ascending, Boolean includeDeleted);
 
 	/**
 	 * Get message Url for a reply

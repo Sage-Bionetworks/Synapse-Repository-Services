@@ -98,13 +98,14 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 	@Override
 	public PaginatedResults<DiscussionReplyBundle> getRepliesForThread(
 			UserInfo userInfo, String threadId, Long limit, Long offset,
-			DiscussionReplyOrder order, Boolean ascending) {
+			DiscussionReplyOrder order, Boolean ascending, Boolean includeDeleted) {
 		UserInfo.validateUserInfo(userInfo);
 		ValidateArgument.required(threadId, "threadId");
 		ValidateArgument.required(limit, "limit");
 		ValidateArgument.required(offset, "offset");
+		ValidateArgument.required(includeDeleted, "includeDeleted");
 		threadManager.getThread(userInfo, threadId);
-		return replyDao.getRepliesForThread(Long.parseLong(threadId), limit, offset, order, ascending);
+		return replyDao.getRepliesForThread(Long.parseLong(threadId), limit, offset, order, ascending, includeDeleted);
 	}
 
 	@Override

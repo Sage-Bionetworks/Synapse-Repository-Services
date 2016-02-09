@@ -7420,7 +7420,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public PaginatedResults<DiscussionReplyBundle> getRepliesForThread(
 			String threadId, Long limit, Long offset,
-			DiscussionReplyOrder order, Boolean ascending)
+			DiscussionReplyOrder order, Boolean ascending, Boolean includeDeleted)
 			throws SynapseException {
 		ValidateArgument.required(threadId, "threadId");
 		ValidateArgument.required(limit, "limit");
@@ -7433,6 +7433,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		if (ascending != null) {
 			url += "&ascending="+ascending;
 		}
+		url += "&includeDeleted="+includeDeleted;
 		JSONObject jsonObj = getEntity(url);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
 		PaginatedResults<DiscussionReplyBundle> results =

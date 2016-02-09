@@ -261,4 +261,8 @@ public class ServiceConstants {
 	public static final String SKIP_TRASH_CAN_PARAM = "skipTrashCan";
 	
 	public static final String PRINCIPAL_ID = "principalId";
+
+	public static final String INCLUDE_DELETED = "includeDeleted";
+
+	public static final String DEFAULT_INCLUDE_DELETED_PARAM = "false";
 }

@@ -349,8 +349,9 @@ public class DiscussionController extends BaseController {
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM) Long offset,
 			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false) DiscussionReplyOrder order,
 			@RequestParam(value = ServiceConstants.ASCENDING_PARAM, required = false) Boolean ascending,
+			@RequestParam(value = ServiceConstants.INCLUDE_DELETED, required = false, defaultValue = ServiceConstants.DEFAULT_INCLUDE_DELETED_PARAM) Boolean includeDeleted,
 			@PathVariable String threadId) {
-		return serviceProvider.getDiscussionService().getReplies(userId, threadId, limit, offset, order, ascending);
+		return serviceProvider.getDiscussionService().getReplies(userId, threadId, limit, offset, order, ascending, includeDeleted);
 	}
 
 	/**

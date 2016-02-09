@@ -2450,10 +2450,11 @@ public interface SynapseClient extends BaseClient {
 	 * @param offset
 	 * @param order
 	 * @param ascending
+	 * @param includeDeleted
 	 * @return
 	 * @throws SynapseException
 	 */
-	PaginatedResults<DiscussionReplyBundle> getRepliesForThread(String threadId, Long limit, Long offset, DiscussionReplyOrder order, Boolean ascending) throws SynapseException;
+	PaginatedResults<DiscussionReplyBundle> getRepliesForThread(String threadId, Long limit, Long offset, DiscussionReplyOrder order, Boolean ascending, Boolean includeDeleted) throws SynapseException;
 
 	/**
 	 * Update the message of an existing reply

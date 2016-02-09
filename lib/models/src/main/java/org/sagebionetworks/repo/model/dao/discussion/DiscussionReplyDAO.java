@@ -30,25 +30,32 @@ public interface DiscussionReplyDAO {
 	public DiscussionReplyBundle getReply(long replyId);
 
 	/**
-	 * Get replies for a given thread
+	 * Get replies for a given thread.
+	 * If includeDeleted is true, returns all replies found;
+	 * otherwise, only returns non-deleted replies.
 	 * 
 	 * @param threadId
 	 * @param limit
 	 * @param offset
 	 * @param order
 	 * @param ascending
+	 * @param includeDeleted 
 	 * @return
 	 */
 	public PaginatedResults<DiscussionReplyBundle> getRepliesForThread(Long threadId,
-			Long limit, Long offset, DiscussionReplyOrder order, Boolean ascending);
+			Long limit, Long offset, DiscussionReplyOrder order, Boolean ascending,
+			Boolean includeDeleted);
 
 	/**
-	 * Get the number of replies for a given thread
+	 * Get the number of replies for a given thread.
+	 * If includeDeleted is true, returns count of all replies found;
+	 * otherwise, only returns count of non-deleted replies.
 	 * 
 	 * @param threadId
+	 * @param includeDeleted
 	 * @return
 	 */
-	public long getReplyCount(long threadId);
+	public long getReplyCount(long threadId, Boolean includeDeleted);
 
 	/**
 	 * Mark a given reply as deleted

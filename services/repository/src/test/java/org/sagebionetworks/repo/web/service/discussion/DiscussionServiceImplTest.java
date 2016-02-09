@@ -186,8 +186,8 @@ public class DiscussionServiceImplTest {
 	public void testGetReplies() {
 		PaginatedResults<DiscussionReplyBundle> replies = new PaginatedResults<DiscussionReplyBundle>();
 		replies.setResults(Arrays.asList(replyBundle));
-		Mockito.when(mockReplyManager.getRepliesForThread(userInfo, threadId, 10L, 0L, null, true)).thenReturn(replies);
-		assertEquals(replies, discussionServices.getReplies(userId, threadId, 10L, 0L, null, true));
+		Mockito.when(mockReplyManager.getRepliesForThread(userInfo, threadId, 10L, 0L, null, true, false)).thenReturn(replies);
+		assertEquals(replies, discussionServices.getReplies(userId, threadId, 10L, 0L, null, true, false));
 	}
 
 	@Test

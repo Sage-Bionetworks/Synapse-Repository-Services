@@ -30,6 +30,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 	public static final String ANONYMOUS_ACCESS_DENIED_REASON = "Anonymous cannot perform this action. Please login and try again.";
+	public static final Boolean INCLUDE_DELETED_REPLIES_DEFAULT = false;
 	@Autowired
 	private DiscussionThreadDAO threadDao;
 	@Autowired
@@ -61,11 +62,11 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		Long id = idGenerator.generateNewId(TYPE.DISCUSSION_THREAD_ID);
 		String messageKey = uploadDao.uploadThreadMessage(createThread.getMessageMarkdown(), createThread.getForumId(), id.toString());
 		DiscussionThreadBundle thread = threadDao.createThread(createThread.getForumId(), id.toString(), createThread.getTitle(), messageKey, userInfo.getId());
-		return updateNumberOfReplies(thread);
+		return updateNumberOfReplies(thread, INCLUDE_DELETED_REPLIES_DEFAULT);
 	}
 
-	private DiscussionThreadBundle updateNumberOfReplies(DiscussionThreadBundle thread) {
-		thread.setNumberOfReplies(replyDao.getReplyCount(Long.parseLong(thread.getId())));
+	private DiscussionThreadBundle updateNumberOfReplies(DiscussionThreadBundle thread, boolean countDeleted) {
+		thread.setNumberOfReplies(replyDao.getReplyCount(Long.parseLong(thread.getId()), countDeleted));
 		return thread;
 	}
 
@@ -78,7 +79,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canAccess(userInfo, thread.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
 		threadDao.updateThreadView(threadIdLong, userInfo.getId());
-		return updateNumberOfReplies(thread);
+		return updateNumberOfReplies(thread, INCLUDE_DELETED_REPLIES_DEFAULT);
 	}
 
 	@WriteTransactionReadCommitted
@@ -92,7 +93,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		DiscussionThreadBundle thread = threadDao.getThread(threadIdLong);
 		if (authorizationManager.isUserCreatorOrAdmin(userInfo, thread.getCreatedBy())) {
 			thread = threadDao.updateTitle(threadIdLong, newTitle.getTitle());
-			return updateNumberOfReplies(thread);
+			return updateNumberOfReplies(thread, INCLUDE_DELETED_REPLIES_DEFAULT);
 		} else {
 			throw new UnauthorizedException("Only the user that created the thread can modify it.");
 		}
@@ -111,7 +112,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		if (authorizationManager.isUserCreatorOrAdmin(userInfo, thread.getCreatedBy())) {
 			String messageKey = uploadDao.uploadThreadMessage(newMessage.getMessageMarkdown(), thread.getForumId(), thread.getId());
 			thread = threadDao.updateMessageKey(threadIdLong, messageKey);
-			return updateNumberOfReplies(thread);
+			return updateNumberOfReplies(thread, INCLUDE_DELETED_REPLIES_DEFAULT);
 		} else {
 			throw new UnauthorizedException("Only the user that created the thread can modify it.");
 		}
@@ -146,7 +147,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 			PaginatedResults<DiscussionThreadBundle> threads) {
 		List<DiscussionThreadBundle> list = new ArrayList<DiscussionThreadBundle>();
 		for (DiscussionThreadBundle thread : threads.getResults()) {
-			list.add(updateNumberOfReplies(thread));
+			list.add(updateNumberOfReplies(thread, INCLUDE_DELETED_REPLIES_DEFAULT));
 		}
 		threads.setResults(list);
 		return threads;

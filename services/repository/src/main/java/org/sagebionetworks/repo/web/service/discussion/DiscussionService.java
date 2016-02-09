@@ -136,11 +136,12 @@ public interface DiscussionService {
 	 * @param offset
 	 * @param order
 	 * @param ascending
+	 * @param includeDeleted 
 	 * @return
 	 */
 	public PaginatedResults<DiscussionReplyBundle> getReplies(Long userId,
-			String threadId, Long limit, Long offset,
-			DiscussionReplyOrder order, Boolean ascending);
+			String threadId, Long limit, Long offset, DiscussionReplyOrder order,
+			Boolean ascending, Boolean includeDeleted);
 
 	/**
 	 * Get the message Url of a thread
