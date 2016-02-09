@@ -13,6 +13,10 @@
 		"secretKey": {
 			"type": "string",
 			"description": "The encryption key used to sign all pre-signed URLs used to communicate with the proxy."
+		},
+		"benefactorId ": {
+			"type": "string",
+			"description": "By default, only the creator of a ProxyStorageLocationSettings can use its storage location ID to create ProxyFileHandles. When this field is set with an Entity ID (such as a Project ID), any user with the 'create' permission on the given benefactorId will be allowed to create ProxyFileHandle using its storage location ID."
 		}
 	}
 }
