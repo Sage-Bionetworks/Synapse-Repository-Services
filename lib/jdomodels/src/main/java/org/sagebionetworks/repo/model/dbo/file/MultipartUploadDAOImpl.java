@@ -128,8 +128,8 @@ public class MultipartUploadDAOImpl implements MultipartUploadDAO {
 			MultipartUploadStatus mus = new MultipartUploadStatus();
 			mus.setUploadId(rs.getString(COL_MULTIPART_UPLOAD_ID));
 			mus.setStartedBy(rs.getString(COL_MULTIPART_STARTED_BY));
-			mus.setStartedOn(rs.getDate(COL_MULTIPART_STARTED_ON));
-			mus.setUpdatedOn(rs.getDate(COL_MULTIPART_UPDATED_ON));
+			mus.setStartedOn(new Date(rs.getTimestamp(COL_MULTIPART_STARTED_ON).getTime()));
+			mus.setUpdatedOn(new Date(rs.getTimestamp(COL_MULTIPART_UPDATED_ON).getTime()));
 			mus.setResultFileHandleId(rs
 					.getString(COL_MULTIPART_FILE_HANDLE_ID));
 			mus.setState(MultipartUploadState.valueOf(rs
