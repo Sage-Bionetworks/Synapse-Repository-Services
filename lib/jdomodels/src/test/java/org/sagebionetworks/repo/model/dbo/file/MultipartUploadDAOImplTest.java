@@ -314,14 +314,23 @@ public class MultipartUploadDAOImplTest {
 	}
 	
 	@Test
-	public void testPLFM3737() {
+	public void testPLFM3737() throws InterruptedException {
+		Calendar c = setupPLFM3737();
+		// In case we really ran at midnight...
+		if ((c.get(Calendar.SECOND) == 0) && (c.get(Calendar.MINUTE) == 0) && (c.get(Calendar.HOUR) == 0)) {
+			Thread.sleep(1234L);
+			c = setupPLFM3737();
+		}
+		assertFalse((c.get(Calendar.SECOND) == 0) && (c.get(Calendar.MINUTE) == 0) && (c.get(Calendar.HOUR) == 0));
+	}
+	
+	private Calendar setupPLFM3737() {
 		CompositeMultipartUploadStatus composite = multipartUplaodDAO.createUploadStatus(createRequest);
 		assertNotNull(composite);
 		Date d = composite.getMultipartUploadStatus().getStartedOn();
 		Calendar c = Calendar.getInstance();
 		c.setTime(d);
-		// Test will fail if run at 12:00:00am
-		assertFalse((c.get(Calendar.SECOND) == 0) && (c.get(Calendar.MINUTE) == 0) && (c.get(Calendar.HOUR) == 0));
+		return c;
 	}
 	
 }
