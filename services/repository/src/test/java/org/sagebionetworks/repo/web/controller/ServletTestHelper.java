@@ -2049,7 +2049,7 @@ public class ServletTestHelper {
 		if (ascending != null) {
 			request.addParameter("ascending", ascending.toString());
 		}
-		request.addParameter("filter", filter.toString());
+		request.addParameter("filter", filter.name());
 		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.OK);
 		return ServletTestHelperUtils.readResponsePaginatedResults(response, DiscussionThreadBundle.class);
@@ -2085,7 +2085,7 @@ public class ServletTestHelper {
 		if (ascending != null) {
 			request.addParameter("ascending", ascending.toString());
 		}
-		request.addParameter("filter", filter.toString());
+		request.addParameter("filter", filter.name());
 		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.OK);
 		return ServletTestHelperUtils.readResponsePaginatedResults(response, DiscussionReplyBundle.class);
