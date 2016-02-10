@@ -14,7 +14,6 @@ import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
-import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
@@ -113,25 +112,6 @@ public class ITDiscussion {
 		assertEquals(updateThreadMessage.getId(), threadId);
 		assertTrue(updateThreadMessage.getIsEdited());
 
-		PaginatedResults<DiscussionThreadBundle> availableThreads = synapse.getThreadsForForum(forumId, 100L, 0L, null, null, DiscussionFilter.NOT_DELETED_ONLY);
-		assertEquals(1, availableThreads.getTotalNumberOfResults());
-		assertEquals(availableThreads.getResults().get(0).getId(), bundle.getId());
-
-		// delete
-		synapse.markThreadAsDeleted(threadId);
-		try {
-			synapse.getThread(threadId);
-		} catch (SynapseNotFoundException e) {
-			// expected
-		}
-
-		PaginatedResults<DiscussionThreadBundle> deletedThreads = synapse.getThreadsForForum(forumId, 100L, 0L, null, null, DiscussionFilter.DELETED_ONLY);
-		assertEquals(1, deletedThreads.getTotalNumberOfResults());
-		assertEquals(deletedThreads.getResults().get(0).getId(), bundle.getId());
-
-		availableThreads = synapse.getThreadsForForum(forumId, 100L, 0L, null, null, DiscussionFilter.NOT_DELETED_ONLY);
-		assertEquals(0, availableThreads.getTotalNumberOfResults());
-
 		// create a reply
 		CreateDiscussionReply replyToCreate = new CreateDiscussionReply();
 		replyToCreate.setThreadId(threadId);
@@ -159,11 +139,31 @@ public class ITDiscussion {
 		assertEquals(updatedReply.getId(), replyId);
 		assertTrue(updatedReply.getIsEdited());
 
-		// delete
-		try {
-			synapse.markReplyAsDeleted(replyId);
-		} catch (SynapseNotFoundException e) {
-			// expected
-		}
+		PaginatedResults<DiscussionReplyBundle> availableReplies = synapse.getRepliesForThread(threadId, 100L, 0L, null, null, DiscussionFilter.NOT_DELETED_ONLY);
+		assertEquals(1, availableReplies.getTotalNumberOfResults());
+		assertEquals(availableReplies.getResults().get(0).getId(), bundle.getId());
+
+		// delete reply
+		synapse.markReplyAsDeleted(replyId);
+		PaginatedResults<DiscussionReplyBundle> deletedReplies = synapse.getRepliesForThread(threadId, 100L, 0L, null, null, DiscussionFilter.DELETED_ONLY);
+		assertEquals(1, deletedReplies.getTotalNumberOfResults());
+		assertEquals(deletedReplies.getResults().get(0).getId(), replyId);
+
+		availableReplies = synapse.getRepliesForThread(threadId, 100L, 0L, null, null, DiscussionFilter.NOT_DELETED_ONLY);
+		assertEquals(0, availableReplies.getTotalNumberOfResults());
+
+		PaginatedResults<DiscussionThreadBundle> availableThreads = synapse.getThreadsForForum(forumId, 100L, 0L, null, null, DiscussionFilter.NOT_DELETED_ONLY);
+		assertEquals(1, availableThreads.getTotalNumberOfResults());
+		assertEquals(availableThreads.getResults().get(0).getId(), bundle.getId());
+
+		// delete thread
+		synapse.markThreadAsDeleted(threadId);
+
+		PaginatedResults<DiscussionThreadBundle> deletedThreads = synapse.getThreadsForForum(forumId, 100L, 0L, null, null, DiscussionFilter.DELETED_ONLY);
+		assertEquals(1, deletedThreads.getTotalNumberOfResults());
+		assertEquals(deletedThreads.getResults().get(0).getId(), bundle.getId());
+
+		availableThreads = synapse.getThreadsForForum(forumId, 100L, 0L, null, null, DiscussionFilter.NOT_DELETED_ONLY);
+		assertEquals(0, availableThreads.getTotalNumberOfResults());
 	}
 }
