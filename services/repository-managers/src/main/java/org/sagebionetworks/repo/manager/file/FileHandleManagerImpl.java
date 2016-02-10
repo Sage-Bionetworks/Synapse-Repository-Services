@@ -43,8 +43,10 @@ import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.manager.file.transfer.FileTransferStrategy;
 import org.sagebionetworks.repo.manager.file.transfer.TransferRequest;
 import org.sagebionetworks.repo.manager.file.transfer.TransferUtils;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -90,18 +92,15 @@ import org.sagebionetworks.utils.ContentTypeUtil;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.amazonaws.AmazonClientException;
-import com.amazonaws.AmazonServiceException;
 import com.amazonaws.HttpMethod;
 import com.amazonaws.event.ProgressListener;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.BucketCrossOriginConfiguration;
 import com.amazonaws.services.s3.model.CORSRule;
-import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
 import com.amazonaws.services.s3.model.CORSRule.AllowedMethods;
+import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.ResponseHeaderOverrides;
-import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.amazonaws.util.BinaryUtils;
 import com.google.common.collect.Lists;
 
@@ -113,6 +112,8 @@ import com.google.common.collect.Lists;
  */
 public class FileHandleManagerImpl implements FileHandleManager {
 
+	public static final String UNAUTHORIZED_PROXY_FILE_HANDLE_MSG = "Only the creator of the ProxyStorageLocationSettings or a user with the 'create' permission on ProxyStorageLocationSettings.benefactorId can create a ProxyFileHandle using this storage location ID.";
+	
 	public static final long PRESIGNED_URL_EXPIRE_TIME_MS = 30 * 1000; // 30
 																		// secs
 
@@ -1131,6 +1132,18 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		StorageLocationSetting sls = storageLocationDAO.get(proxyFileHandle.getStorageLocationId());
 		if(!(sls instanceof ProxyStorageLocationSettings)){
 			throw new IllegalArgumentException("ProxyFileHandle.storageLocationId must refer to a valid ProxyStorageLocationSettings.");
+		}
+		ProxyStorageLocationSettings proxyLocation = (ProxyStorageLocationSettings) sls;
+		// If the user is not the creator of the location they must have 'create' on the benefactor.
+		if (!userInfo.getId().equals(proxyLocation.getCreatedBy())) {
+			// If the benefactor is not set.
+			if (proxyLocation.getBenefactorId() == null
+					|| !authorizationManager.canAccess(userInfo,
+							proxyLocation.getBenefactorId(), ObjectType.ENTITY,
+							ACCESS_TYPE.CREATE).getAuthorized()) {
+				throw new UnauthorizedException(
+						UNAUTHORIZED_PROXY_FILE_HANDLE_MSG);
+			}
 		}
 		// set this user as the creator of the file
 		proxyFileHandle.setCreatedBy(getUserId(userInfo));

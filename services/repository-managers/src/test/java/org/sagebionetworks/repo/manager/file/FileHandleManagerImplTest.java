@@ -35,9 +35,12 @@ import org.mockito.Mockito;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
+import org.sagebionetworks.repo.manager.AuthorizationStatus;
 import org.sagebionetworks.repo.manager.file.transfer.FileTransferStrategy;
 import org.sagebionetworks.repo.manager.file.transfer.TransferRequest;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -176,6 +179,7 @@ public class FileHandleManagerImplTest {
 		// proxy storage location setup.
 		proxyStorageLocationSettings = new ProxyStorageLocationSettings();
 		proxyStorageLocationSettings.setStorageLocationId(5555L);
+		proxyStorageLocationSettings.setCreatedBy(mockUser.getId());
 		when(mockStorageLocationDao.get(proxyStorageLocationSettings.getStorageLocationId())).thenReturn(proxyStorageLocationSettings);
 		
 		externalProxyFileHandle = new ProxyFileHandle();
@@ -723,7 +727,45 @@ public class FileHandleManagerImplTest {
 		assertEquals(""+mockUser.getId(), pfh.getCreatedBy());
 		assertNotNull(pfh.getCreatedOn());
 		assertNotNull(pfh.getEtag());
-	} 
+	}
+	
+	@Test (expected=UnauthorizedException.class)
+	public void testCreateExternalProxyFileHandleNotCreatorBenefactorNull() {
+		// The user did not create the proxyStorageLocationSettings and no benefactor is set.
+		proxyStorageLocationSettings.setCreatedBy(mockUser.getId()+1);
+		proxyStorageLocationSettings.setBenefactorId(null);
+		// call under test
+		manager.createExternalProxyFileHandle(mockUser, externalProxyFileHandle);
+	}
+	
+	@Test (expected=UnauthorizedException.class)
+	public void testCreateExternalProxyFileHandleNotCreatorBenefactorNotAuthroized() {
+		// The user did not create the proxyStorageLocationSettings and no benefactor is set.
+		proxyStorageLocationSettings.setCreatedBy(mockUser.getId()+1);
+		String benefactorId = "syn99999";
+		proxyStorageLocationSettings.setBenefactorId(benefactorId);
+		// user lacks create on the benefactor
+		when(mockAuthorizationManager.canAccess(mockUser, benefactorId, ObjectType.ENTITY, ACCESS_TYPE.CREATE)).thenReturn(new AuthorizationStatus(false, "No"));
+		// call under test
+		manager.createExternalProxyFileHandle(mockUser, externalProxyFileHandle);
+	}
+	
+	@Test
+	public void testCreateExternalProxyFileHandleNotCreatorBenefactorAuthroized() {
+		// The user did not create the proxyStorageLocationSettings and no benefactor is set.
+		proxyStorageLocationSettings.setCreatedBy(mockUser.getId()+1);
+		String benefactorId = "syn99999";
+		proxyStorageLocationSettings.setBenefactorId(benefactorId);
+		// user has create on benefactor.
+		when(mockAuthorizationManager.canAccess(mockUser, benefactorId, ObjectType.ENTITY, ACCESS_TYPE.CREATE)).thenReturn(new AuthorizationStatus(true, null));
+		// call under test
+		ProxyFileHandle pfh = manager.createExternalProxyFileHandle(mockUser, externalProxyFileHandle);
+		assertNotNull(pfh);
+		assertEquals(""+mockUser.getId(), pfh.getCreatedBy());
+		assertNotNull(pfh.getCreatedOn());
+		assertNotNull(pfh.getEtag());
+	}
+	
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testCreateExternalProxyFileHandleWrongStorageLocation() {
