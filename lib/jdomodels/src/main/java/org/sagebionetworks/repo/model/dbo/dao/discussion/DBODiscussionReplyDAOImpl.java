@@ -106,8 +106,8 @@ public class DBODiscussionReplyDAOImpl implements DiscussionReplyDAO{
 			+" AND "+COL_DISCUSSION_THREAD_FORUM_ID+" = "+TABLE_FORUM+"."+COL_FORUM_ID;
 	private static final String SQL_GET_REPLY_BY_ID = SQL_SELECT_REPLY_BUNDLE
 			+" AND "+TABLE_DISCUSSION_REPLY+"."+COL_DISCUSSION_REPLY_ID+" = ?";
-	private static final String NOT_DELETED_CONDITION = " AND "+TABLE_DISCUSSION_REPLY+"."+COL_DISCUSSION_REPLY_IS_DELETED+" = FALSE";
-	private static final String DELETED_CONDITION = " AND "+TABLE_DISCUSSION_REPLY+"."+COL_DISCUSSION_REPLY_IS_DELETED+" = TRUE";
+	public static final String NOT_DELETED_CONDITION = " AND "+TABLE_DISCUSSION_REPLY+"."+COL_DISCUSSION_REPLY_IS_DELETED+" = FALSE";
+	public static final String DELETED_CONDITION = " AND "+TABLE_DISCUSSION_REPLY+"."+COL_DISCUSSION_REPLY_IS_DELETED+" = TRUE";
 	private static final String SQL_GET_REPLIES_BY_THREAD_ID = SQL_SELECT_REPLY_BUNDLE
 			+" AND "+COL_DISCUSSION_REPLY_THREAD_ID+" = ?";
 	private static final String ORDER_BY_CREATED_ON = " ORDER BY "+COL_DISCUSSION_REPLY_CREATED_ON;
@@ -129,6 +129,7 @@ public class DBODiscussionReplyDAOImpl implements DiscussionReplyDAO{
 			+COL_DISCUSSION_REPLY_ETAG+" = ?, "
 			+COL_DISCUSSION_REPLY_MODIFIED_ON+" =? "
 			+" WHERE "+COL_DISCUSSION_REPLY_ID+" = ?";
+	public static final DiscussionFilter DEFAULT_FILTER = DiscussionFilter.NO_FILTER;
 
 	@WriteTransactionReadCommitted
 	@Override
@@ -141,12 +142,13 @@ public class DBODiscussionReplyDAOImpl implements DiscussionReplyDAO{
 		String etag = UUID.randomUUID().toString();
 		DBODiscussionReply dbo = DiscussionReplyUtils.createDBO(threadId, messageKey, userId, id, etag);
 		basicDao.createNew(dbo);
-		return getReply(id);
+		return getReply(id, DEFAULT_FILTER);
 	}
 
 	@Override
-	public DiscussionReplyBundle getReply(long replyId) {
-		List<DiscussionReplyBundle> results = jdbcTemplate.query(SQL_GET_REPLY_BY_ID, DISCUSSION_REPLY_BUNDLE_ROW_MAPPER, replyId);
+	public DiscussionReplyBundle getReply(long replyId, DiscussionFilter filter) {
+		String query = addCondition(SQL_GET_REPLY_BY_ID, filter);
+		List<DiscussionReplyBundle> results = jdbcTemplate.query(query, DISCUSSION_REPLY_BUNDLE_ROW_MAPPER, replyId);
 		if (results.size() != 1) {
 			throw new NotFoundException();
 		}
@@ -241,7 +243,7 @@ public class DBODiscussionReplyDAOImpl implements DiscussionReplyDAO{
 		String etag = UUID.randomUUID().toString();
 		Timestamp modifiedOn = new Timestamp(new Date().getTime());
 		jdbcTemplate.update(SQL_UPDATE_MESSAGE_KEY, newKey, etag, modifiedOn, replyId);
-		return getReply(replyId);
+		return getReply(replyId, DEFAULT_FILTER);
 	}
 
 	@WriteTransactionReadCommitted

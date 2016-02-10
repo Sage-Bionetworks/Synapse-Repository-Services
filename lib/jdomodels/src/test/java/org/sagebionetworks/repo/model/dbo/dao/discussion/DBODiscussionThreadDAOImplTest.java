@@ -1,7 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.dao.discussion;
 
+import static org.sagebionetworks.repo.model.dbo.dao.discussion.DBODiscussionThreadDAOImpl.*;
 import static org.junit.Assert.*;
-import static org.sagebionetworks.repo.model.dbo.dao.discussion.DBODiscussionThreadDAOImpl.MAX_LIMIT;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -34,10 +34,10 @@ import org.sagebionetworks.repo.model.discussion.DiscussionThreadReplyStat;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadViewStat;
 import org.sagebionetworks.repo.model.discussion.Forum;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class DBODiscussionThreadDAOImplTest {
@@ -120,7 +120,7 @@ public class DBODiscussionThreadDAOImplTest {
 		assertEquals("check default active authors", dto.getActiveAuthors(), Arrays.asList(dto.getCreatedBy()));
 
 		long threadId = Long.parseLong(dto.getId());
-		assertEquals("getThread() should return the created one", dto, threadDao.getThread(threadId));
+		assertEquals("getThread() should return the created one", dto, threadDao.getThread(threadId, DEFAULT_FILTER));
 	}
 
 	@Test
@@ -142,7 +142,7 @@ public class DBODiscussionThreadDAOImplTest {
 		String newMessageKey = UUID.randomUUID().toString();
 		dto.setMessageKey(newMessageKey);
 		threadDao.updateMessageKey(threadId, newMessageKey);
-		DiscussionThreadBundle returnedDto = threadDao.getThread(threadId);
+		DiscussionThreadBundle returnedDto = threadDao.getThread(threadId, DEFAULT_FILTER);
 		assertFalse("after updating message key, modifiedOn should be different",
 				dto.getModifiedOn().equals(returnedDto.getModifiedOn()));
 		assertFalse("after updating message key, lastActivity should be different",
@@ -164,7 +164,7 @@ public class DBODiscussionThreadDAOImplTest {
 		dto.setIsEdited(true);
 		dto.setTitle(newTitle);
 		threadDao.updateTitle(threadId, newTitle);
-		DiscussionThreadBundle returnedDto = threadDao.getThread(threadId);
+		DiscussionThreadBundle returnedDto = threadDao.getThread(threadId, DEFAULT_FILTER);
 		assertFalse("after updating title, etag should be different",
 				dto.getEtag().equals(returnedDto.getEtag()));
 		dto.setModifiedOn(returnedDto.getModifiedOn());
@@ -180,13 +180,23 @@ public class DBODiscussionThreadDAOImplTest {
 
 		dto.setIsDeleted(true);
 		threadDao.markThreadAsDeleted(threadId);
-		DiscussionThreadBundle returnedDto = threadDao.getThread(threadId);
+		DiscussionThreadBundle returnedDto = threadDao.getThread(threadId, DEFAULT_FILTER);
 		assertFalse("after marking thread as deleted, etag should be different",
 				dto.getEtag().equals(returnedDto.getEtag()));
 		dto.setModifiedOn(returnedDto.getModifiedOn());
 		dto.setLastActivity(returnedDto.getLastActivity());
 		dto.setEtag(returnedDto.getEtag());
 		assertEquals(dto, returnedDto);
+	}
+
+	@Test (expected = NotFoundException.class)
+	public void testDeleteWithFilter(){
+		DiscussionThreadBundle dto = threadDao.createThread(forumId, threadId.toString(), "title", "messageKey", userId);
+		long threadId = Long.parseLong(dto.getId());
+
+		dto.setIsDeleted(true);
+		threadDao.markThreadAsDeleted(threadId);
+		threadDao.getThread(threadId, DiscussionFilter.NOT_DELETED_ONLY);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -383,7 +393,7 @@ public class DBODiscussionThreadDAOImplTest {
 		threadDao.updateThreadAuthorStat(Arrays.asList(stat));
 		dto.setActiveAuthors(Arrays.asList(dto.getCreatedBy(), "123456"));
 		assertEquals(new HashSet<String>(dto.getActiveAuthors()),
-				new HashSet<String>(threadDao.getThread(threadId).getActiveAuthors()));
+				new HashSet<String>(threadDao.getThread(threadId, DEFAULT_FILTER).getActiveAuthors()));
 	}
 
 	@Test
@@ -451,9 +461,9 @@ public class DBODiscussionThreadDAOImplTest {
 		String query = "";
 		assertEquals("no filter", "", 
 				DBODiscussionThreadDAOImpl.addCondition(query, DiscussionFilter.NO_FILTER));
-		assertEquals("deleted only", " AND IS_DELETED = TRUE", 
+		assertEquals("deleted only", DELETED_CONDITION,
 				DBODiscussionThreadDAOImpl.addCondition(query, DiscussionFilter.DELETED_ONLY));
-		assertEquals("not deleted only", " AND IS_DELETED = FALSE", 
+		assertEquals("not deleted only", NOT_DELETED_CONDITION,
 				DBODiscussionThreadDAOImpl.addCondition(query, DiscussionFilter.NOT_DELETED_ONLY));
 	}
 

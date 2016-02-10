@@ -29,9 +29,10 @@ public interface DiscussionThreadDAO {
 	 * Get a discussion thread
 	 * 
 	 * @param threadId
+	 * @param filter
 	 * @return
 	 */
-	public DiscussionThreadBundle getThread(long threadId);
+	public DiscussionThreadBundle getThread(long threadId, DiscussionFilter filter);
 
 	/**
 	 * Get the number of discussion thread in a given forum

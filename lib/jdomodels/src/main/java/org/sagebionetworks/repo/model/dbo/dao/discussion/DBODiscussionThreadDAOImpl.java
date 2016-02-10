@@ -147,8 +147,8 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 			+" LEFT OUTER JOIN "+TABLE_DISCUSSION_THREAD_STATS
 			+" ON "+TABLE_DISCUSSION_THREAD+"."+COL_DISCUSSION_THREAD_ID
 			+" = "+COL_DISCUSSION_THREAD_STATS_THREAD_ID;
-	private static final String NOT_DELETED_CONDITION = " AND "+COL_DISCUSSION_THREAD_IS_DELETED+" = FALSE";
-	private static final String DELETED_CONDITION = " AND "+COL_DISCUSSION_THREAD_IS_DELETED+" = TRUE";
+	public static final String NOT_DELETED_CONDITION = " AND "+COL_DISCUSSION_THREAD_IS_DELETED+" = FALSE";
+	public static final String DELETED_CONDITION = " AND "+COL_DISCUSSION_THREAD_IS_DELETED+" = TRUE";
 	private static final String SQL_SELECT_THREAD_BY_ID = SELECT_THREAD_BUNDLE
 			+" WHERE "+TABLE_DISCUSSION_THREAD+"."+COL_DISCUSSION_THREAD_ID+" = ?";
 	private static final String SQL_SELECT_THREAD_COUNT = "SELECT COUNT(*)"
@@ -200,6 +200,7 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 			+COL_DISCUSSION_THREAD_STATS_LAST_ACTIVITY+" ) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE "
 			+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_REPLIES+" = ?, "
 			+COL_DISCUSSION_THREAD_STATS_LAST_ACTIVITY+" = ? ";
+	public static final DiscussionFilter DEFAULT_FILTER = DiscussionFilter.NO_FILTER;
 
 	@WriteTransactionReadCommitted
 	@Override
@@ -210,12 +211,13 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 		String etag = UUID.randomUUID().toString();
 		DBODiscussionThread dbo = DiscussionThreadUtils.createDBO(forumId, title, messageKey, userId, threadId, etag);
 		basicDao.createNew(dbo);
-		return getThread(Long.parseLong(threadId));
+		return getThread(Long.parseLong(threadId), DEFAULT_FILTER);
 	}
 
 	@Override
-	public DiscussionThreadBundle getThread(long threadId) {
-		List<DiscussionThreadBundle> results = jdbcTemplate.query(SQL_SELECT_THREAD_BY_ID, DISCUSSION_THREAD_BUNDLE_ROW_MAPPER, threadId);
+	public DiscussionThreadBundle getThread(long threadId, DiscussionFilter filter) {
+		String query = addCondition(SQL_SELECT_THREAD_BY_ID, filter);
+		List<DiscussionThreadBundle> results = jdbcTemplate.query(query, DISCUSSION_THREAD_BUNDLE_ROW_MAPPER, threadId);
 		if (results.size() != 1) {
 			throw new NotFoundException();
 		}
@@ -316,7 +318,7 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 		String etag = UUID.randomUUID().toString();
 		Timestamp modifiedOn = new Timestamp(new Date().getTime());
 		jdbcTemplate.update(SQL_UPDATE_MESSAGE_KEY, newMessageKey, etag, modifiedOn, threadId);
-		return getThread(threadId);
+		return getThread(threadId, DEFAULT_FILTER);
 	}
 
 	@WriteTransactionReadCommitted
@@ -328,7 +330,7 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 		String etag = UUID.randomUUID().toString();
 		Timestamp modifiedOn = new Timestamp(new Date().getTime());
 		jdbcTemplate.update(SQL_UPDATE_TITLE, title, etag, modifiedOn, threadId);
-		return getThread(threadId);
+		return getThread(threadId, DEFAULT_FILTER);
 	}
 
 	public long getThreadCount(long forumId, DiscussionFilter filter) {

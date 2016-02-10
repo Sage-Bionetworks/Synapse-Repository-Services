@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.dao.discussion;
 
+import static org.sagebionetworks.repo.model.dbo.dao.discussion.DBODiscussionReplyDAOImpl.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -36,6 +37,7 @@ import org.sagebionetworks.repo.model.discussion.DiscussionThreadAuthorStat;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadReplyStat;
 import org.sagebionetworks.repo.model.discussion.Forum;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -133,7 +135,7 @@ public class DBODiscussionReplyDAOImplTest {
 		assertNotNull(dto.getId());
 		assertNotNull(dto.getEtag());
 		Long replyId = Long.parseLong(dto.getId());
-		assertEquals(dto, replyDao.getReply(replyId));
+		assertEquals(dto, replyDao.getReply(replyId, DEFAULT_FILTER));
 	}
 
 	@Test
@@ -283,12 +285,22 @@ public class DBODiscussionReplyDAOImplTest {
 
 		dto.setIsDeleted(true);
 		replyDao.markReplyAsDeleted(replyId);
-		DiscussionReplyBundle returnedDto = replyDao.getReply(replyId);
+		DiscussionReplyBundle returnedDto = replyDao.getReply(replyId, DEFAULT_FILTER);
 		assertFalse("after marking reply as deleted, etag should be different",
 				dto.getEtag().equals(returnedDto.getEtag()));
 		dto.setModifiedOn(returnedDto.getModifiedOn());
 		dto.setEtag(returnedDto.getEtag());
 		assertEquals(dto, returnedDto);
+	}
+
+	@Test (expected = NotFoundException.class)
+	public void testDeleteWithFilter(){
+		DiscussionReplyBundle dto = replyDao.createReply(threadId, replyId, "messageKey", userId);
+		long replyId = Long.parseLong(dto.getId());
+
+		dto.setIsDeleted(true);
+		replyDao.markReplyAsDeleted(replyId);
+		replyDao.getReply(replyId, DiscussionFilter.NOT_DELETED_ONLY);
 	}
 
 	@Test
@@ -301,7 +313,7 @@ public class DBODiscussionReplyDAOImplTest {
 		String newMessageKey = UUID.randomUUID().toString();
 		dto.setMessageKey(newMessageKey);
 		replyDao.updateMessageKey(replyId, newMessageKey);
-		DiscussionReplyBundle returnedDto = replyDao.getReply(replyId);
+		DiscussionReplyBundle returnedDto = replyDao.getReply(replyId, DEFAULT_FILTER);
 		assertFalse("after updating message key, modifiedOn should be different",
 				dto.getModifiedOn().equals(returnedDto.getModifiedOn()));
 		assertFalse("after updating message key, etag should be different",
@@ -470,5 +482,16 @@ public class DBODiscussionReplyDAOImplTest {
 				+ " ORDER BY CREATED_ON DESC"
 				+ " LIMIT 10 OFFSET 3",
 				DBODiscussionReplyDAOImpl.buildGetRepliesQuery(10L, 3L, DiscussionReplyOrder.CREATED_ON, false, DiscussionFilter.NO_FILTER));
+	}
+
+	@Test
+	public void testAddCondition() {
+		String query = "";
+		assertEquals("no filter", "", 
+				DBODiscussionReplyDAOImpl.addCondition(query, DiscussionFilter.NO_FILTER));
+		assertEquals("deleted only", DELETED_CONDITION, 
+				DBODiscussionReplyDAOImpl.addCondition(query, DiscussionFilter.DELETED_ONLY));
+		assertEquals("not deleted only", NOT_DELETED_CONDITION, 
+				DBODiscussionReplyDAOImpl.addCondition(query, DiscussionFilter.NOT_DELETED_ONLY));
 	}
 }

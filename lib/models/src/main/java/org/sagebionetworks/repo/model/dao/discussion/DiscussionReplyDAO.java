@@ -26,9 +26,10 @@ public interface DiscussionReplyDAO {
 	 * Get a reply given its ID
 	 * 
 	 * @param replyId
+	 * @param filter
 	 * @return
 	 */
-	public DiscussionReplyBundle getReply(long replyId);
+	public DiscussionReplyBundle getReply(long replyId, DiscussionFilter filter);
 
 	/**
 	 * Get replies for a given thread.
