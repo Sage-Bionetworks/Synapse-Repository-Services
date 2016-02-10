@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.dao.discussion;
 import java.util.List;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadAuthorStat;
@@ -25,30 +26,38 @@ public interface DiscussionReplyDAO {
 	 * Get a reply given its ID
 	 * 
 	 * @param replyId
+	 * @param filter
 	 * @return
 	 */
-	public DiscussionReplyBundle getReply(long replyId);
+	public DiscussionReplyBundle getReply(long replyId, DiscussionFilter filter);
 
 	/**
-	 * Get replies for a given thread
+	 * Get replies for a given thread.
+	 * If includeDeleted is true, returns all replies found;
+	 * otherwise, only returns non-deleted replies.
 	 * 
 	 * @param threadId
 	 * @param limit
 	 * @param offset
 	 * @param order
 	 * @param ascending
+	 * @param filter 
 	 * @return
 	 */
 	public PaginatedResults<DiscussionReplyBundle> getRepliesForThread(Long threadId,
-			Long limit, Long offset, DiscussionReplyOrder order, Boolean ascending);
+			Long limit, Long offset, DiscussionReplyOrder order, Boolean ascending,
+			DiscussionFilter filter);
 
 	/**
-	 * Get the number of replies for a given thread
+	 * Get the number of replies for a given thread.
+	 * If includeDeleted is true, returns count of all replies found;
+	 * otherwise, only returns count of non-deleted replies.
 	 * 
 	 * @param threadId
+	 * @param filter
 	 * @return
 	 */
-	public long getReplyCount(long threadId);
+	public long getReplyCount(long threadId, DiscussionFilter filter);
 
 	/**
 	 * Mark a given reply as deleted

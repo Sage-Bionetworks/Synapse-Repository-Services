@@ -5,6 +5,7 @@ import java.io.IOException;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
+import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
 import org.sagebionetworks.repo.model.discussion.MessageURL;
@@ -59,9 +60,12 @@ public interface DiscussionReplyManager {
 	 * @param offset
 	 * @param order
 	 * @param ascending
+	 * @param filter 
 	 * @return
 	 */
-	public PaginatedResults<DiscussionReplyBundle> getRepliesForThread(UserInfo userInfo, String threadId, Long limit, Long offset, DiscussionReplyOrder order, Boolean ascending);
+	public PaginatedResults<DiscussionReplyBundle> getRepliesForThread(UserInfo userInfo,
+			String threadId, Long limit, Long offset, DiscussionReplyOrder order,
+			Boolean ascending, DiscussionFilter filter);
 
 	/**
 	 * Get message Url for a reply

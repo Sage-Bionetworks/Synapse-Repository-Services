@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.model.dao.discussion.DiscussionReplyDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.discussion.DBODiscussionReply;
 import org.sagebionetworks.repo.model.dbo.persistence.discussion.DiscussionReplyUtils;
+import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadAuthorStat;
@@ -105,6 +106,8 @@ public class DBODiscussionReplyDAOImpl implements DiscussionReplyDAO{
 			+" AND "+COL_DISCUSSION_THREAD_FORUM_ID+" = "+TABLE_FORUM+"."+COL_FORUM_ID;
 	private static final String SQL_GET_REPLY_BY_ID = SQL_SELECT_REPLY_BUNDLE
 			+" AND "+TABLE_DISCUSSION_REPLY+"."+COL_DISCUSSION_REPLY_ID+" = ?";
+	public static final String NOT_DELETED_CONDITION = " AND "+TABLE_DISCUSSION_REPLY+"."+COL_DISCUSSION_REPLY_IS_DELETED+" = FALSE";
+	public static final String DELETED_CONDITION = " AND "+TABLE_DISCUSSION_REPLY+"."+COL_DISCUSSION_REPLY_IS_DELETED+" = TRUE";
 	private static final String SQL_GET_REPLIES_BY_THREAD_ID = SQL_SELECT_REPLY_BUNDLE
 			+" AND "+COL_DISCUSSION_REPLY_THREAD_ID+" = ?";
 	private static final String ORDER_BY_CREATED_ON = " ORDER BY "+COL_DISCUSSION_REPLY_CREATED_ON;
@@ -126,6 +129,7 @@ public class DBODiscussionReplyDAOImpl implements DiscussionReplyDAO{
 			+COL_DISCUSSION_REPLY_ETAG+" = ?, "
 			+COL_DISCUSSION_REPLY_MODIFIED_ON+" =? "
 			+" WHERE "+COL_DISCUSSION_REPLY_ID+" = ?";
+	public static final DiscussionFilter DEFAULT_FILTER = DiscussionFilter.NO_FILTER;
 
 	@WriteTransactionReadCommitted
 	@Override
@@ -138,12 +142,13 @@ public class DBODiscussionReplyDAOImpl implements DiscussionReplyDAO{
 		String etag = UUID.randomUUID().toString();
 		DBODiscussionReply dbo = DiscussionReplyUtils.createDBO(threadId, messageKey, userId, id, etag);
 		basicDao.createNew(dbo);
-		return getReply(id);
+		return getReply(id, DEFAULT_FILTER);
 	}
 
 	@Override
-	public DiscussionReplyBundle getReply(long replyId) {
-		List<DiscussionReplyBundle> results = jdbcTemplate.query(SQL_GET_REPLY_BY_ID, DISCUSSION_REPLY_BUNDLE_ROW_MAPPER, replyId);
+	public DiscussionReplyBundle getReply(long replyId, DiscussionFilter filter) {
+		String query = addCondition(SQL_GET_REPLY_BY_ID, filter);
+		List<DiscussionReplyBundle> results = jdbcTemplate.query(query, DISCUSSION_REPLY_BUNDLE_ROW_MAPPER, replyId);
 		if (results.size() != 1) {
 			throw new NotFoundException();
 		}
@@ -153,10 +158,11 @@ public class DBODiscussionReplyDAOImpl implements DiscussionReplyDAO{
 	@Override
 	public PaginatedResults<DiscussionReplyBundle> getRepliesForThread(
 			Long threadId, Long limit, Long offset, DiscussionReplyOrder order,
-			Boolean ascending) {
+			Boolean ascending, DiscussionFilter filter) {
 		ValidateArgument.required(threadId, "threadId");
 		ValidateArgument.required(limit, "limit");
 		ValidateArgument.required(offset, "offset");
+		ValidateArgument.required(filter, "filter");
 		ValidateArgument.requirement(limit >= 0 && offset >= 0 && limit <= MAX_LIMIT,
 				"Limit and offset must be greater than 0, and limit must be smaller than or equal to "+MAX_LIMIT);
 		ValidateArgument.requirement((order == null && ascending == null)
@@ -164,24 +170,11 @@ public class DBODiscussionReplyDAOImpl implements DiscussionReplyDAO{
 
 		PaginatedResults<DiscussionReplyBundle> results = new PaginatedResults<DiscussionReplyBundle>();
 		List<DiscussionReplyBundle> replies = new ArrayList<DiscussionReplyBundle>();
-		long replyCount = getReplyCount(threadId);
+		long replyCount = getReplyCount(threadId, filter);
 		results.setTotalNumberOfResults(replyCount);
 
 		if (replyCount > 0) {
-			String query = SQL_GET_REPLIES_BY_THREAD_ID;
-			if (order != null) {
-				switch (order) {
-					case CREATED_ON:
-						query += ORDER_BY_CREATED_ON;
-						break;
-					default:
-						throw new IllegalArgumentException("Unsupported order "+order);
-				}
-				if (!ascending) {
-					query += DESC;
-				}
-			}
-			query += LIMIT+limit+OFFSET+offset;
+			String query = buildGetRepliesQuery(limit, offset, order, ascending, filter);
 			replies = jdbcTemplate.query(query,  DISCUSSION_REPLY_BUNDLE_ROW_MAPPER, threadId);
 		}
 
@@ -189,9 +182,51 @@ public class DBODiscussionReplyDAOImpl implements DiscussionReplyDAO{
 		return results;
 	}
 
+	protected static String buildGetRepliesQuery(Long limit, Long offset,
+			DiscussionReplyOrder order, Boolean ascending, DiscussionFilter filter) {
+		String query = SQL_GET_REPLIES_BY_THREAD_ID;
+		query = addCondition(query, filter);
+		if (order != null) {
+			switch (order) {
+				case CREATED_ON:
+					query += ORDER_BY_CREATED_ON;
+					break;
+				default:
+					throw new IllegalArgumentException("Unsupported order "+order);
+			}
+			if (!ascending) {
+				query += DESC;
+			}
+		}
+		query += LIMIT+limit+OFFSET+offset;
+		return query;
+	}
+
+	/**
+	 * Add condition part to the input query based on the filter.
+	 * 
+	 * @param query
+	 * @param filter
+	 * @return
+	 */
+	protected static String addCondition(String query, DiscussionFilter filter) {
+		switch (filter) {
+			case NO_FILTER:
+				break;
+			case DELETED_ONLY:
+				query += DELETED_CONDITION;
+				break;
+			case NOT_DELETED_ONLY:
+				query += NOT_DELETED_CONDITION;
+				break;
+		}
+		return query;
+	}
+
 	@Override
-	public long getReplyCount(long threadId) {
-		return jdbcTemplate.queryForLong(SQL_SELECT_REPLY_COUNT, threadId);
+	public long getReplyCount(long threadId, DiscussionFilter filter) {
+		String query = SQL_SELECT_REPLY_COUNT;
+		return jdbcTemplate.queryForLong(addCondition(query, filter), threadId);
 	}
 
 	@WriteTransactionReadCommitted
@@ -208,7 +243,7 @@ public class DBODiscussionReplyDAOImpl implements DiscussionReplyDAO{
 		String etag = UUID.randomUUID().toString();
 		Timestamp modifiedOn = new Timestamp(new Date().getTime());
 		jdbcTemplate.update(SQL_UPDATE_MESSAGE_KEY, newKey, etag, modifiedOn, replyId);
-		return getReply(replyId);
+		return getReply(replyId, DEFAULT_FILTER);
 	}
 
 	@WriteTransactionReadCommitted

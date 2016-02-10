@@ -17,6 +17,7 @@ import org.sagebionetworks.repo.manager.discussion.ForumManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
+import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.MessageURL;
@@ -135,24 +136,8 @@ public class DiscussionServiceImplTest {
 	public void testGetThreads() {
 		PaginatedResults<DiscussionThreadBundle> threads = new PaginatedResults<DiscussionThreadBundle>();
 		threads.setResults(Arrays.asList(threadBundle));
-		Mockito.when(mockThreadManager.getThreadsForForum(userInfo, forumId, 10L, 0L, null, true)).thenReturn(threads);
-		assertEquals(threads, discussionServices.getThreads(userId, forumId, 10L, 0L, null, true));
-	}
-
-	@Test
-	public void testGetAvailableThreads() {
-		PaginatedResults<DiscussionThreadBundle> threads = new PaginatedResults<DiscussionThreadBundle>();
-		threads.setResults(Arrays.asList(threadBundle));
-		Mockito.when(mockThreadManager.getAvailableThreadsForForum(userInfo, forumId, 10L, 0L, null, true)).thenReturn(threads);
-		assertEquals(threads, discussionServices.getAvailableThreads(userId, forumId, 10L, 0L, null, true));
-	}
-
-	@Test
-	public void testGetDeletedThreads() {
-		PaginatedResults<DiscussionThreadBundle> threads = new PaginatedResults<DiscussionThreadBundle>();
-		threads.setResults(Arrays.asList(threadBundle));
-		Mockito.when(mockThreadManager.getDeletedThreadsForForum(userInfo, forumId, 10L, 0L, null, true)).thenReturn(threads);
-		assertEquals(threads, discussionServices.getDeletedThreads(userId, forumId, 10L, 0L, null, true));
+		Mockito.when(mockThreadManager.getThreadsForForum(userInfo, forumId, 10L, 0L, null, true, DiscussionFilter.NO_FILTER)).thenReturn(threads);
+		assertEquals(threads, discussionServices.getThreads(userId, forumId, 10L, 0L, null, true, DiscussionFilter.NO_FILTER));
 	}
 
 	@Test
@@ -186,8 +171,8 @@ public class DiscussionServiceImplTest {
 	public void testGetReplies() {
 		PaginatedResults<DiscussionReplyBundle> replies = new PaginatedResults<DiscussionReplyBundle>();
 		replies.setResults(Arrays.asList(replyBundle));
-		Mockito.when(mockReplyManager.getRepliesForThread(userInfo, threadId, 10L, 0L, null, true)).thenReturn(replies);
-		assertEquals(replies, discussionServices.getReplies(userId, threadId, 10L, 0L, null, true));
+		Mockito.when(mockReplyManager.getRepliesForThread(userInfo, threadId, 10L, 0L, null, true, DiscussionFilter.NO_FILTER)).thenReturn(replies);
+		assertEquals(replies, discussionServices.getReplies(userId, threadId, 10L, 0L, null, true, DiscussionFilter.NO_FILTER));
 	}
 
 	@Test

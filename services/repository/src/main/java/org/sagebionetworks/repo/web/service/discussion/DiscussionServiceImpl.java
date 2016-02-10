@@ -10,6 +10,7 @@ import org.sagebionetworks.repo.manager.discussion.ForumManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
+import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
@@ -73,9 +74,9 @@ public class DiscussionServiceImpl implements DiscussionService{
 	@Override
 	public PaginatedResults<DiscussionThreadBundle> getThreads(Long userId,
 			String forumId, Long limit, Long offset, DiscussionThreadOrder order,
-			Boolean ascending) {
+			Boolean ascending, DiscussionFilter filter) {
 		UserInfo user = userManager.getUserInfo(userId);
-		return threadManager.getThreadsForForum(user, forumId, limit, offset, order, ascending);
+		return threadManager.getThreadsForForum(user, forumId, limit, offset, order, ascending, filter);
 	}
 
 	@Override
@@ -104,10 +105,10 @@ public class DiscussionServiceImpl implements DiscussionService{
 
 	@Override
 	public PaginatedResults<DiscussionReplyBundle> getReplies(Long userId,
-			String threadId, Long limit, Long offset,
-			DiscussionReplyOrder order, Boolean ascending) {
+			String threadId, Long limit, Long offset, DiscussionReplyOrder order,
+			Boolean ascending, DiscussionFilter filter) {
 		UserInfo user = userManager.getUserInfo(userId);
-		return replyManager.getRepliesForThread(user, threadId, limit, offset, order, ascending);
+		return replyManager.getRepliesForThread(user, threadId, limit, offset, order, ascending, filter);
 	}
 
 	@Override
@@ -120,21 +121,5 @@ public class DiscussionServiceImpl implements DiscussionService{
 	public MessageURL getReplyUrl(Long userId, String messageKey) {
 		UserInfo user = userManager.getUserInfo(userId);
 		return replyManager.getMessageUrl(user, messageKey);
-	}
-
-	@Override
-	public PaginatedResults<DiscussionThreadBundle> getAvailableThreads(
-			Long userId, String forumId, Long limit, Long offset,
-			DiscussionThreadOrder order, Boolean ascending) {
-		UserInfo user = userManager.getUserInfo(userId);
-		return threadManager.getAvailableThreadsForForum(user, forumId, limit, offset, order, ascending);
-	}
-
-	@Override
-	public PaginatedResults<DiscussionThreadBundle> getDeletedThreads(
-			Long userId, String forumId, Long limit, Long offset,
-			DiscussionThreadOrder order, Boolean ascending) {
-		UserInfo user = userManager.getUserInfo(userId);
-		return threadManager.getDeletedThreadsForForum(user, forumId, limit, offset, order, ascending);
 	}
 }

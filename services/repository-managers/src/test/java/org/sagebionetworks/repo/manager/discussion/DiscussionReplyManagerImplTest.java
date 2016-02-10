@@ -23,11 +23,13 @@ import org.sagebionetworks.repo.model.UploadContentToS3DAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.discussion.DiscussionReplyDAO;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
+import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.MessageURL;
 import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
 
 public class DiscussionReplyManagerImplTest {
@@ -82,7 +84,7 @@ public class DiscussionReplyManagerImplTest {
 		bundle.setMessageKey(messageKey);
 		userInfo.setId(765L);
 		bundle.setCreatedBy(userInfo.getId().toString());
-		Mockito.when(mockReplyDao.getReply(Mockito.anyLong())).thenReturn(bundle);
+		Mockito.when(mockReplyDao.getReply(Mockito.anyLong(), Mockito.any(DiscussionFilter.class))).thenReturn(bundle);
 		Mockito.when(mockAuthorizationManager.isAnonymousUser(userInfo)).thenReturn(false);
 	}
 
@@ -159,6 +161,15 @@ public class DiscussionReplyManagerImplTest {
 		assertEquals(bundle, reply);
 	}
 
+	@Test (expected = NotFoundException.class)
+	public void testGetDeletedReply() {
+		Mockito.when(mockReplyDao.getReply(Mockito.anyLong(), Mockito.any(DiscussionFilter.class)))
+				.thenThrow(new NotFoundException());
+		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
+				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		replyManager.getReply(userInfo, replyId.toString());
+	}
+
 	@Test (expected = IllegalArgumentException.class)
 	public void testUpdateReplyMessageWithNullMessageMarkdown() throws IOException {
 		Mockito.when(mockAuthorizationManager.isUserCreatorOrAdmin(userInfo, replyId.toString())).thenReturn(false);
@@ -204,20 +215,29 @@ public class DiscussionReplyManagerImplTest {
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testGetRepliesForThreadWithNullThreadId() {
-		replyManager.getRepliesForThread(userInfo, null, 2L, 0L, DiscussionReplyOrder.CREATED_ON, false);
+		replyManager.getRepliesForThread(userInfo, null, 2L, 0L, DiscussionReplyOrder.CREATED_ON, false, DiscussionFilter.NO_FILTER);
+	}
+
+	@Test (expected = UnauthorizedException.class)
+	public void testGetRepliesForThreadUnauthorized() {
+		PaginatedResults<DiscussionReplyBundle> replies = new PaginatedResults<DiscussionReplyBundle>();
+		replies.setResults(Arrays.asList(bundle));
+		Mockito.when(mockThreadManager.getThread(userInfo, threadId))
+				.thenThrow(new UnauthorizedException());
+		replyManager.getRepliesForThread(userInfo, threadId, 2L, 0L, DiscussionReplyOrder.CREATED_ON, true, DiscussionFilter.NO_FILTER);
 	}
 
 	@Test
-	public void testGetThreadsForForum() {
+	public void testGetRepliesForThread() {
 		PaginatedResults<DiscussionReplyBundle> replies = new PaginatedResults<DiscussionReplyBundle>();
 		replies.setResults(Arrays.asList(bundle));
-		Mockito.when(mockReplyDao.getRepliesForThread(Mockito.anyLong(), Mockito.anyLong(), Mockito.anyLong(), (DiscussionReplyOrder) Mockito.any(), Mockito.anyBoolean()))
-				.thenReturn(replies);
+		Mockito.when(mockReplyDao.getRepliesForThread(Mockito.anyLong(), Mockito.anyLong(),
+				Mockito.anyLong(), (DiscussionReplyOrder) Mockito.any(), Mockito.anyBoolean(),
+				Mockito.any(DiscussionFilter.class))).thenReturn(replies);
 		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		assertEquals(replies, replyManager.getRepliesForThread(userInfo, threadId, 2L, 0L, DiscussionReplyOrder.CREATED_ON, true));
+		assertEquals(replies, replyManager.getRepliesForThread(userInfo, threadId, 2L, 0L, DiscussionReplyOrder.CREATED_ON, true, DiscussionFilter.NO_FILTER));
 	}
-
 
 	@Test (expected = UnauthorizedException.class)
 	public void testGetReplyUrlUnauthorized() {

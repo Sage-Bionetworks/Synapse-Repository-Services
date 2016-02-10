@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.dao.discussion;
 import java.util.List;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadAuthorStat;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
@@ -28,17 +29,19 @@ public interface DiscussionThreadDAO {
 	 * Get a discussion thread
 	 * 
 	 * @param threadId
+	 * @param filter
 	 * @return
 	 */
-	public DiscussionThreadBundle getThread(long threadId);
+	public DiscussionThreadBundle getThread(long threadId, DiscussionFilter filter);
 
 	/**
 	 * Get the number of discussion thread in a given forum
 	 * 
 	 * @param forumId
+	 * @param filter
 	 * @return
 	 */
-	public long getThreadCount(long forumId);
+	public long getThreadCount(long forumId, DiscussionFilter filter);
 
 	/**
 	 * Get a paginated list of discussion thread for a forum given forumId,
@@ -49,10 +52,12 @@ public interface DiscussionThreadDAO {
 	 * @param offset
 	 * @param order
 	 * @param ascending
+	 * @param filter 
 	 * @return
 	 */
 	public PaginatedResults<DiscussionThreadBundle> getThreads(long forumId,
-			Long limit, Long offset, DiscussionThreadOrder order, Boolean ascending);
+			Long limit, Long offset, DiscussionThreadOrder order, Boolean ascending,
+			DiscussionFilter filter);
 
 	/**
 	 * Mark a discussion thread as deleted
@@ -138,50 +143,4 @@ public interface DiscussionThreadDAO {
 	 * @return
 	 */
 	public List<Long> getAllThreadId(Long limit, Long offset);
-
-	/**
-	 * Get a paginated list of non-deleted discussion thread for a forum given forumId,
-	 * the order of the discussion thread, limit and offset
-	 * 
-	 * @param forumId
-	 * @param limit
-	 * @param offset
-	 * @param order
-	 * @param ascending
-	 * @return
-	 */
-	public PaginatedResults<DiscussionThreadBundle> getAvailableThreads(
-			long forumId, Long limit, Long offset,
-			DiscussionThreadOrder order, Boolean ascending);
-
-	/**
-	 * Get a paginated list of deleted discussion thread for a forum given forumId,
-	 * the order of the discussion thread, limit and offset
-	 * 
-	 * @param forumId
-	 * @param limit
-	 * @param offset
-	 * @param order
-	 * @param ascending
-	 * @return
-	 */
-	public PaginatedResults<DiscussionThreadBundle> getDeletedThreads(
-			long forumId, Long limit, Long offset,
-			DiscussionThreadOrder order, Boolean ascending);
-
-	/**
-	 * Get the number of non-deleted discussion thread in a given forum
-	 * 
-	 * @param forumId
-	 * @return
-	 */
-	public long getAvailableThreadCount(long forumId);
-
-	/**
-	 * Get the number of deleted discussion thread in a given forum
-	 * 
-	 * @param forumId
-	 * @return
-	 */
-	long getDeletedThreadCount(long forumId);
 }

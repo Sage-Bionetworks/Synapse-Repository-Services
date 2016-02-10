@@ -1,0 +1,10 @@
+{
+    "description":"The filter that helps determine what threads/ replies to return.",
+    "name": "DiscussionFilter",
+    "type":"string",
+    "enum":[
+        "NO_FILTER",
+        "DELETED_ONLY",
+        "NOT_DELETED_ONLY"
+    ]
+}

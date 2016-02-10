@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
+import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
@@ -23,6 +24,7 @@ import org.sagebionetworks.repo.model.discussion.MessageURL;
 import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
+import org.sagebionetworks.repo.web.NotFoundException;
 
 public class DiscussionControllerAutowiredTest extends AbstractAutowiredControllerTestBase{
 
@@ -89,7 +91,7 @@ public class DiscussionControllerAutowiredTest extends AbstractAutowiredControll
 		createThread.setForumId(forum.getId());
 		DiscussionThreadBundle bundle1 = servletTestHelper.createThread(dispatchServlet, adminUserId, createThread);
 		DiscussionThreadBundle bundle2 = servletTestHelper.createThread(dispatchServlet, adminUserId, createThread);
-		PaginatedResults<DiscussionThreadBundle> results = servletTestHelper.getThreads(dispatchServlet, adminUserId, forum.getId(), 1L, 1L, DiscussionThreadOrder.LAST_ACTIVITY, true);
+		PaginatedResults<DiscussionThreadBundle> results = servletTestHelper.getThreads(dispatchServlet, adminUserId, forum.getId(), 1L, 1L, DiscussionThreadOrder.LAST_ACTIVITY, true, DiscussionFilter.NO_FILTER);
 		assertEquals(bundle2, results.getResults().get(0));
 		assertEquals(2L, results.getTotalNumberOfResults());
 	}
@@ -101,10 +103,10 @@ public class DiscussionControllerAutowiredTest extends AbstractAutowiredControll
 		DiscussionThreadBundle bundle1 = servletTestHelper.createThread(dispatchServlet, adminUserId, createThread);
 		DiscussionThreadBundle bundle2 = servletTestHelper.createThread(dispatchServlet, adminUserId, createThread);
 		servletTestHelper.markThreadAsDeleted(dispatchServlet, adminUserId, bundle1.getId());
-		PaginatedResults<DiscussionThreadBundle> deleted = servletTestHelper.getDeletedThreads(dispatchServlet, adminUserId, forum.getId(), 10L, 0L, DiscussionThreadOrder.LAST_ACTIVITY, true);
+		PaginatedResults<DiscussionThreadBundle> deleted = servletTestHelper.getThreads(dispatchServlet, adminUserId, forum.getId(), 10L, 0L, DiscussionThreadOrder.LAST_ACTIVITY, true, DiscussionFilter.DELETED_ONLY);
 		assertEquals(1L, deleted.getTotalNumberOfResults());
 		assertEquals(bundle1.getId(), deleted.getResults().get(0).getId());
-		PaginatedResults<DiscussionThreadBundle> available = servletTestHelper.getAvailableThreads(dispatchServlet, adminUserId, forum.getId(), 10L, 0L, DiscussionThreadOrder.LAST_ACTIVITY, true);
+		PaginatedResults<DiscussionThreadBundle> available = servletTestHelper.getThreads(dispatchServlet, adminUserId, forum.getId(), 10L, 0L, DiscussionThreadOrder.LAST_ACTIVITY, true, DiscussionFilter.NOT_DELETED_ONLY);
 		assertEquals(1L, available.getTotalNumberOfResults());
 		assertEquals(bundle2.getId(), available.getResults().get(0).getId());
 	}
@@ -135,16 +137,13 @@ public class DiscussionControllerAutowiredTest extends AbstractAutowiredControll
 		assertTrue(bundle2.getIsEdited());
 	}
 
-	@Test
+	@Test (expected = NotFoundException.class)
 	public void testMarkThreadAsDeleted() throws Exception {
 		Forum dto = servletTestHelper.getForumMetadata(dispatchServlet, project.getId(), adminUserId);
 		createThread.setForumId(dto.getId());
 		DiscussionThreadBundle bundle = servletTestHelper.createThread(dispatchServlet, adminUserId, createThread);
 		servletTestHelper.markThreadAsDeleted(dispatchServlet, adminUserId, bundle.getId());
-		DiscussionThreadBundle bundle2 = servletTestHelper.getThread(dispatchServlet, adminUserId, bundle.getId());
-		assertFalse(bundle.equals(bundle2));
-		assertEquals(bundle2.getId(), bundle.getId());
-		assertTrue(bundle2.getIsDeleted());
+		servletTestHelper.getThread(dispatchServlet, adminUserId, bundle.getId());
 	}
 
 	@Test
@@ -186,9 +185,30 @@ public class DiscussionControllerAutowiredTest extends AbstractAutowiredControll
 		createReply.setThreadId(threadBundle.getId());
 		DiscussionReplyBundle replyBundle1 = servletTestHelper.createReply(dispatchServlet, adminUserId, createReply);
 		DiscussionReplyBundle replyBundle2 = servletTestHelper.createReply(dispatchServlet, adminUserId, createReply);
-		PaginatedResults<DiscussionReplyBundle> results = servletTestHelper.getReplies(dispatchServlet, adminUserId, threadBundle.getId(), 1L, 1L, DiscussionReplyOrder.CREATED_ON, true);
+		PaginatedResults<DiscussionReplyBundle> results = servletTestHelper.getReplies(dispatchServlet, adminUserId, threadBundle.getId(), 1L, 1L, DiscussionReplyOrder.CREATED_ON, true, DiscussionFilter.NO_FILTER);
 		assertEquals(replyBundle2, results.getResults().get(0));
 		assertEquals(2L, results.getTotalNumberOfResults());
+		servletTestHelper.markReplyAsDeleted(dispatchServlet, adminUserId, replyBundle1.getId());
+		results = servletTestHelper.getReplies(dispatchServlet, adminUserId, threadBundle.getId(), 1L, 0L, DiscussionReplyOrder.CREATED_ON, true, DiscussionFilter.NOT_DELETED_ONLY);
+		assertEquals(replyBundle2, results.getResults().get(0));
+		assertEquals(1L, results.getTotalNumberOfResults());
+	}
+
+	@Test
+	public void testGetAvailableThreadsAndDeletedReplies() throws Exception {
+		Forum forum = servletTestHelper.getForumMetadata(dispatchServlet, project.getId(), adminUserId);
+		createThread.setForumId(forum.getId());
+		DiscussionThreadBundle threadBundle = servletTestHelper.createThread(dispatchServlet, adminUserId, createThread);
+		createReply.setThreadId(threadBundle.getId());
+		DiscussionReplyBundle replyBundle1 = servletTestHelper.createReply(dispatchServlet, adminUserId, createReply);
+		DiscussionReplyBundle replyBundle2 = servletTestHelper.createReply(dispatchServlet, adminUserId, createReply);
+		servletTestHelper.markReplyAsDeleted(dispatchServlet, adminUserId, replyBundle1.getId());
+		PaginatedResults<DiscussionReplyBundle> deleted = servletTestHelper.getReplies(dispatchServlet, adminUserId, threadBundle.getId(), 10L, 0L, DiscussionReplyOrder.CREATED_ON, true, DiscussionFilter.DELETED_ONLY);
+		assertEquals(1L, deleted.getTotalNumberOfResults());
+		assertEquals(replyBundle1.getId(), deleted.getResults().get(0).getId());
+		PaginatedResults<DiscussionReplyBundle> available = servletTestHelper.getReplies(dispatchServlet, adminUserId, threadBundle.getId(), 10L, 0L, DiscussionReplyOrder.CREATED_ON, true, DiscussionFilter.NOT_DELETED_ONLY);
+		assertEquals(1L, available.getTotalNumberOfResults());
+		assertEquals(replyBundle2.getId(), available.getResults().get(0).getId());
 	}
 
 	@Test
@@ -206,7 +226,7 @@ public class DiscussionControllerAutowiredTest extends AbstractAutowiredControll
 		assertTrue(bundle2.getIsEdited());
 	}
 
-	@Test
+	@Test (expected = NotFoundException.class)
 	public void testMarkReplyAsDeleted() throws Exception {
 		Forum dto = servletTestHelper.getForumMetadata(dispatchServlet, project.getId(), adminUserId);
 		createThread.setForumId(dto.getId());
@@ -214,10 +234,7 @@ public class DiscussionControllerAutowiredTest extends AbstractAutowiredControll
 		createReply.setThreadId(threadBundle.getId());
 		DiscussionReplyBundle replyBundle = servletTestHelper.createReply(dispatchServlet, adminUserId, createReply);
 		servletTestHelper.markReplyAsDeleted(dispatchServlet, adminUserId, replyBundle.getId());
-		DiscussionReplyBundle bundle2 = servletTestHelper.getReply(dispatchServlet, adminUserId, replyBundle.getId());
-		assertFalse(replyBundle.equals(bundle2));
-		assertEquals(bundle2.getId(), replyBundle.getId());
-		assertTrue(bundle2.getIsDeleted());
+		servletTestHelper.getReply(dispatchServlet, adminUserId, replyBundle.getId());
 	}
 
 	@Test
