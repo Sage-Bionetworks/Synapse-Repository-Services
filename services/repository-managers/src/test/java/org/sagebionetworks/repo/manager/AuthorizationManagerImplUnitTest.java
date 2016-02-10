@@ -6,10 +6,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.*;
 
 import java.util.ArrayList;
@@ -49,6 +45,7 @@ import org.sagebionetworks.repo.model.VerificationDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.discussion.DiscussionThreadDAO;
 import org.sagebionetworks.repo.model.dao.discussion.ForumDAO;
+import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.Forum;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
@@ -158,7 +155,7 @@ public class AuthorizationManagerImplUnitTest {
 		forum = new Forum();
 		forum.setId(forumId);
 		forum.setProjectId(projectId);
-		when(mockThreadDao.getThread(Mockito.anyLong())).thenReturn(bundle);
+		when(mockThreadDao.getThread(Mockito.anyLong(), Mockito.any(DiscussionFilter.class))).thenReturn(bundle);
 		when(mockForumDao.getForum(1L)).thenReturn(forum);
 	}
 

@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.discussion.MessageURL;
 import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
+import org.sagebionetworks.repo.web.NotFoundException;
 
 public class DiscussionControllerAutowiredTest extends AbstractAutowiredControllerTestBase{
 
@@ -136,16 +137,13 @@ public class DiscussionControllerAutowiredTest extends AbstractAutowiredControll
 		assertTrue(bundle2.getIsEdited());
 	}
 
-	@Test
+	@Test (expected = NotFoundException.class)
 	public void testMarkThreadAsDeleted() throws Exception {
 		Forum dto = servletTestHelper.getForumMetadata(dispatchServlet, project.getId(), adminUserId);
 		createThread.setForumId(dto.getId());
 		DiscussionThreadBundle bundle = servletTestHelper.createThread(dispatchServlet, adminUserId, createThread);
 		servletTestHelper.markThreadAsDeleted(dispatchServlet, adminUserId, bundle.getId());
-		DiscussionThreadBundle bundle2 = servletTestHelper.getThread(dispatchServlet, adminUserId, bundle.getId());
-		assertFalse(bundle.equals(bundle2));
-		assertEquals(bundle2.getId(), bundle.getId());
-		assertTrue(bundle2.getIsDeleted());
+		servletTestHelper.getThread(dispatchServlet, adminUserId, bundle.getId());
 	}
 
 	@Test
@@ -228,7 +226,7 @@ public class DiscussionControllerAutowiredTest extends AbstractAutowiredControll
 		assertTrue(bundle2.getIsEdited());
 	}
 
-	@Test
+	@Test (expected = NotFoundException.class)
 	public void testMarkReplyAsDeleted() throws Exception {
 		Forum dto = servletTestHelper.getForumMetadata(dispatchServlet, project.getId(), adminUserId);
 		createThread.setForumId(dto.getId());
@@ -236,10 +234,7 @@ public class DiscussionControllerAutowiredTest extends AbstractAutowiredControll
 		createReply.setThreadId(threadBundle.getId());
 		DiscussionReplyBundle replyBundle = servletTestHelper.createReply(dispatchServlet, adminUserId, createReply);
 		servletTestHelper.markReplyAsDeleted(dispatchServlet, adminUserId, replyBundle.getId());
-		DiscussionReplyBundle bundle2 = servletTestHelper.getReply(dispatchServlet, adminUserId, replyBundle.getId());
-		assertFalse(replyBundle.equals(bundle2));
-		assertEquals(bundle2.getId(), replyBundle.getId());
-		assertTrue(bundle2.getIsDeleted());
+		servletTestHelper.getReply(dispatchServlet, adminUserId, replyBundle.getId());
 	}
 
 	@Test

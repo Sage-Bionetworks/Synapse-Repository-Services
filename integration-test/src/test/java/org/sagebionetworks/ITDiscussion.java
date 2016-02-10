@@ -14,6 +14,7 @@ import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
@@ -118,10 +119,11 @@ public class ITDiscussion {
 
 		// delete
 		synapse.markThreadAsDeleted(threadId);
-		DiscussionThreadBundle deleted = synapse.getThread(threadId);
-		assertFalse(deleted.equals(updateThreadMessage));
-		assertEquals(deleted.getId(), threadId);
-		assertTrue(deleted.getIsDeleted());
+		try {
+			synapse.getThread(threadId);
+		} catch (SynapseNotFoundException e) {
+			// expected
+		}
 
 		PaginatedResults<DiscussionThreadBundle> deletedThreads = synapse.getThreadsForForum(forumId, 100L, 0L, null, null, DiscussionFilter.DELETED_ONLY);
 		assertEquals(1, deletedThreads.getTotalNumberOfResults());
@@ -158,10 +160,10 @@ public class ITDiscussion {
 		assertTrue(updatedReply.getIsEdited());
 
 		// delete
-		synapse.markReplyAsDeleted(replyId);
-		DiscussionReplyBundle deletedReply = synapse.getReply(replyId);
-		assertFalse(deletedReply.equals(updatedReply));
-		assertEquals(deletedReply.getId(), replyId);
-		assertTrue(deletedReply.getIsDeleted());
+		try {
+			synapse.markReplyAsDeleted(replyId);
+		} catch (SynapseNotFoundException e) {
+			// expected
+		}
 	}
 }
