@@ -27,6 +27,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 	public static final String ANONYMOUS_ACCESS_DENIED_REASON = "Anonymous cannot perform this action. Please login and try again.";
+	private static final DiscussionFilter DEFAULT_FILTER = DiscussionFilter.NO_FILTER;
 	@Autowired
 	private DiscussionThreadManager threadManager;
 	@Autowired
@@ -60,7 +61,7 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 	public DiscussionReplyBundle getReply(UserInfo userInfo, String replyId) {
 		UserInfo.validateUserInfo(userInfo);
 		ValidateArgument.required(replyId, "replyId");
-		DiscussionReplyBundle reply = replyDao.getReply(Long.parseLong(replyId));
+		DiscussionReplyBundle reply = replyDao.getReply(Long.parseLong(replyId), DiscussionFilter.NOT_DELETED_ONLY);
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canAccess(userInfo, reply.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
 		return reply;
@@ -75,7 +76,7 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 		ValidateArgument.required(newMessage, "newMessage");
 		ValidateArgument.required(newMessage.getMessageMarkdown(), "UpdateReplyMessage.messageMarkdown");
 		Long replyIdLong = Long.parseLong(replyId);
-		DiscussionReplyBundle reply = replyDao.getReply(replyIdLong);
+		DiscussionReplyBundle reply = replyDao.getReply(replyIdLong, DEFAULT_FILTER);
 		if (authorizationManager.isUserCreatorOrAdmin(userInfo, reply.getCreatedBy())) {
 			String messageKey = uploadDao.uploadReplyMessage(newMessage.getMessageMarkdown(), reply.getForumId(), reply.getThreadId(), reply.getId());
 			return replyDao.updateMessageKey(replyIdLong, messageKey);
@@ -90,7 +91,7 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 		UserInfo.validateUserInfo(userInfo);
 		ValidateArgument.required(replyId, "replyId");
 		Long replyIdLong = Long.parseLong(replyId);
-		DiscussionReplyBundle reply = replyDao.getReply(replyIdLong);
+		DiscussionReplyBundle reply = replyDao.getReply(replyIdLong, DEFAULT_FILTER);
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canAccess(userInfo, reply.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.MODERATE));
 		replyDao.markReplyAsDeleted(replyIdLong);
@@ -114,7 +115,7 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 		UserInfo.validateUserInfo(userInfo);
 		ValidateArgument.required(messageKey, "messageKey");
 		String replyId = MessageKeyUtils.getReplyId(messageKey);
-		DiscussionReplyBundle reply = replyDao.getReply(Long.parseLong(replyId));
+		DiscussionReplyBundle reply = replyDao.getReply(Long.parseLong(replyId), DEFAULT_FILTER);
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canAccess(userInfo, reply.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
 		return uploadDao.getReplyUrl(reply.getMessageKey());

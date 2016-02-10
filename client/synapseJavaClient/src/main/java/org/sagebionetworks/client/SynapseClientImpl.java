@@ -7335,6 +7335,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		ValidateArgument.required(forumId, "forumId");
 		ValidateArgument.required(limit, "limit");
 		ValidateArgument.required(offset, "offset");
+		ValidateArgument.required(filter, "filter");
 		String url = FORUM+"/"+forumId+THREADS
 				+"?"+LIMIT+"="+limit+"&"+OFFSET+"="+offset;
 		if (order != null) {
@@ -7404,6 +7405,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		ValidateArgument.required(threadId, "threadId");
 		ValidateArgument.required(limit, "limit");
 		ValidateArgument.required(offset, "offset");
+		ValidateArgument.required(filter, "filter");
 		String url = THREAD+"/"+threadId+REPLIES
 				+"?"+LIMIT+"="+limit+"&"+OFFSET+"="+offset;
 		if (order != null) {

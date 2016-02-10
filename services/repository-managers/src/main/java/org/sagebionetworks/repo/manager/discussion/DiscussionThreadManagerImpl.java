@@ -31,6 +31,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 	public static final String ANONYMOUS_ACCESS_DENIED_REASON = "Anonymous cannot perform this action. Please login and try again.";
+	private static final DiscussionFilter DEFAULT_FILTER = DiscussionFilter.NO_FILTER;
 	@Autowired
 	private DiscussionThreadDAO threadDao;
 	@Autowired
@@ -74,12 +75,13 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 	public DiscussionThreadBundle getThread(UserInfo userInfo, String threadId) {
 		ValidateArgument.required(threadId, "threadId");
 		UserInfo.validateUserInfo(userInfo);
+		DiscussionFilter filter = DiscussionFilter.NOT_DELETED_ONLY;
 		Long threadIdLong = Long.parseLong(threadId);
-		DiscussionThreadBundle thread = threadDao.getThread(threadIdLong);
+		DiscussionThreadBundle thread = threadDao.getThread(threadIdLong, filter);
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canAccess(userInfo, thread.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
 		threadDao.updateThreadView(threadIdLong, userInfo.getId());
-		return updateNumberOfReplies(thread, DiscussionFilter.NOT_DELETED_ONLY);
+		return updateNumberOfReplies(thread, filter);
 	}
 
 	@WriteTransactionReadCommitted
@@ -90,7 +92,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		ValidateArgument.required(newTitle.getTitle(), "UpdateThreadTitle.title");
 		UserInfo.validateUserInfo(userInfo);
 		Long threadIdLong = Long.parseLong(threadId);
-		DiscussionThreadBundle thread = threadDao.getThread(threadIdLong);
+		DiscussionThreadBundle thread = threadDao.getThread(threadIdLong, DEFAULT_FILTER);
 		if (authorizationManager.isUserCreatorOrAdmin(userInfo, thread.getCreatedBy())) {
 			thread = threadDao.updateTitle(threadIdLong, newTitle.getTitle());
 			return updateNumberOfReplies(thread, DiscussionFilter.NO_FILTER);
@@ -108,7 +110,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		ValidateArgument.required(newMessage.getMessageMarkdown(), "UpdateThreadMessage.messageMarkdown");
 		UserInfo.validateUserInfo(userInfo);
 		Long threadIdLong = Long.parseLong(threadId);
-		DiscussionThreadBundle thread = threadDao.getThread(threadIdLong);
+		DiscussionThreadBundle thread = threadDao.getThread(threadIdLong, DEFAULT_FILTER);
 		if (authorizationManager.isUserCreatorOrAdmin(userInfo, thread.getCreatedBy())) {
 			String messageKey = uploadDao.uploadThreadMessage(newMessage.getMessageMarkdown(), thread.getForumId(), thread.getId());
 			thread = threadDao.updateMessageKey(threadIdLong, messageKey);
@@ -124,7 +126,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		ValidateArgument.required(threadId, "threadId");
 		UserInfo.validateUserInfo(userInfo);
 		Long threadIdLong = Long.parseLong(threadId);
-		DiscussionThreadBundle thread = threadDao.getThread(threadIdLong);
+		DiscussionThreadBundle thread = threadDao.getThread(threadIdLong, DEFAULT_FILTER);
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canAccess(userInfo, thread.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.MODERATE));
 		threadDao.markThreadAsDeleted(threadIdLong);
@@ -164,7 +166,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		ValidateArgument.required(messageKey, "messageKey");
 		UserInfo.validateUserInfo(userInfo);
 		Long threadIdLong = Long.parseLong(MessageKeyUtils.getThreadId(messageKey));
-		DiscussionThreadBundle thread = threadDao.getThread(threadIdLong);
+		DiscussionThreadBundle thread = threadDao.getThread(threadIdLong, DEFAULT_FILTER);
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canAccess(userInfo, thread.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
 		threadDao.updateThreadView(threadIdLong, userInfo.getId());
