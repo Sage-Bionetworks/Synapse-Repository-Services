@@ -26,6 +26,7 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dao.discussion.DiscussionThreadDAO;
 import org.sagebionetworks.repo.model.dao.discussion.ForumDAO;
+import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadAuthorStat;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
@@ -202,7 +203,7 @@ public class DBODiscussionThreadDAOImplTest {
 	public void testGetThreadsWithZeroExistingThreads() {
 		assertEquals("empty threads",
 				new ArrayList<DiscussionThreadBundle>(),
-				threadDao.getThreads(forumIdLong, MAX_LIMIT, 0L, null, null).getResults());
+				threadDao.getThreads(forumIdLong, MAX_LIMIT, 0L, null, null, DiscussionFilter.NO_FILTER).getResults());
 	}
 
 	@Test
@@ -210,62 +211,67 @@ public class DBODiscussionThreadDAOImplTest {
 		List<DiscussionThreadBundle> createdThreads = createListOfThreads(3);
 		assertEquals(createdThreads.size(), 3);
 
-		assertEquals(3, threadDao.getThreadCount(forumIdLong));
+		assertEquals(3, threadDao.getThreadCount(forumIdLong, DiscussionFilter.NO_FILTER));
 
 		assertEquals("non order",
 				new HashSet<DiscussionThreadBundle>(createdThreads),
-				new HashSet<DiscussionThreadBundle>(threadDao.getThreads(forumIdLong, MAX_LIMIT, 0L, null, null).getResults()));
+				new HashSet<DiscussionThreadBundle>(threadDao.getThreads(forumIdLong, MAX_LIMIT, 0L, null, null, DiscussionFilter.NO_FILTER).getResults()));
 
 		assertEquals("order, all",
 				createdThreads,
-				threadDao.getThreads(forumIdLong, MAX_LIMIT, 0L, DiscussionThreadOrder.LAST_ACTIVITY, true).getResults());
+				threadDao.getThreads(forumIdLong, MAX_LIMIT, 0L, DiscussionThreadOrder.LAST_ACTIVITY, true, DiscussionFilter.NO_FILTER).getResults());
 		assertEquals("order, second the third",
 				Arrays.asList(createdThreads.get(1), createdThreads.get(2)),
-				threadDao.getThreads(forumIdLong, 2L, 1L, DiscussionThreadOrder.LAST_ACTIVITY, true).getResults());
+				threadDao.getThreads(forumIdLong, 2L, 1L, DiscussionThreadOrder.LAST_ACTIVITY, true, DiscussionFilter.NO_FILTER).getResults());
 		assertEquals("order, last",
 				Arrays.asList(createdThreads.get(2)),
-				threadDao.getThreads(forumIdLong, 2L, 2L, DiscussionThreadOrder.LAST_ACTIVITY, true).getResults());
+				threadDao.getThreads(forumIdLong, 2L, 2L, DiscussionThreadOrder.LAST_ACTIVITY, true, DiscussionFilter.NO_FILTER).getResults());
 		assertEquals("order, out of range",
 				Arrays.asList(),
-				threadDao.getThreads(forumIdLong, 2L, 3L, DiscussionThreadOrder.LAST_ACTIVITY, true).getResults());
+				threadDao.getThreads(forumIdLong, 2L, 3L, DiscussionThreadOrder.LAST_ACTIVITY, true, DiscussionFilter.NO_FILTER).getResults());
 		assertEquals("order, on limit",
 				Arrays.asList(createdThreads.get(1), createdThreads.get(2)),
-				threadDao.getThreads(forumIdLong, DBODiscussionThreadDAOImpl.MAX_LIMIT, 1L, DiscussionThreadOrder.LAST_ACTIVITY, true).getResults());
+				threadDao.getThreads(forumIdLong, DBODiscussionThreadDAOImpl.MAX_LIMIT, 1L, DiscussionThreadOrder.LAST_ACTIVITY, true, DiscussionFilter.NO_FILTER).getResults());
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testNegativeOffset() {
-		threadDao.getThreads(forumIdLong, 2L, -3L, DiscussionThreadOrder.LAST_ACTIVITY, true);
+		threadDao.getThreads(forumIdLong, 2L, -3L, DiscussionThreadOrder.LAST_ACTIVITY, true, DiscussionFilter.NO_FILTER);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testNegativeLimit() {
-		threadDao.getThreads(forumIdLong, -2L, 3L, DiscussionThreadOrder.LAST_ACTIVITY, true);
+		threadDao.getThreads(forumIdLong, -2L, 3L, DiscussionThreadOrder.LAST_ACTIVITY, true, DiscussionFilter.NO_FILTER);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testOverLimit() {
-		threadDao.getThreads(forumIdLong, DBODiscussionThreadDAOImpl.MAX_LIMIT+1, 3L, DiscussionThreadOrder.LAST_ACTIVITY, true);
+		threadDao.getThreads(forumIdLong, DBODiscussionThreadDAOImpl.MAX_LIMIT+1, 3L, DiscussionThreadOrder.LAST_ACTIVITY, true, DiscussionFilter.NO_FILTER);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testNullOffset() {
-		threadDao.getThreads(forumIdLong, 2L, null, DiscussionThreadOrder.LAST_ACTIVITY, true);
+		threadDao.getThreads(forumIdLong, 2L, null, DiscussionThreadOrder.LAST_ACTIVITY, true, DiscussionFilter.NO_FILTER);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testNullLimit() {
-		threadDao.getThreads(forumIdLong, null, 2L, DiscussionThreadOrder.LAST_ACTIVITY, true);
+		threadDao.getThreads(forumIdLong, null, 2L, DiscussionThreadOrder.LAST_ACTIVITY, true, DiscussionFilter.NO_FILTER);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testNullOrderNotNullAscending() {
-		threadDao.getThreads(forumIdLong, 2L, 2L, null, true);
+		threadDao.getThreads(forumIdLong, 2L, 2L, null, true, DiscussionFilter.NO_FILTER);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testNotNullOrderNullAscending() {
-		threadDao.getThreads(forumIdLong, 2L, 2L, DiscussionThreadOrder.LAST_ACTIVITY, null);
+		threadDao.getThreads(forumIdLong, 2L, 2L, DiscussionThreadOrder.LAST_ACTIVITY, null, DiscussionFilter.NO_FILTER);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testNotNullOrderNullFilter() {
+		threadDao.getThreads(forumIdLong, 2L, 2L, null, null, null);
 	}
 
 	@Test
@@ -286,12 +292,12 @@ public class DBODiscussionThreadDAOImplTest {
 		List<DiscussionThreadBundle> expected = Arrays.asList(createdThreads.get(0), createdThreads.get(2), createdThreads.get(1));
 		assertEquals("sorted by number of views",
 				expected,
-				threadDao.getThreads(forumIdLong, MAX_LIMIT, 0L, DiscussionThreadOrder.NUMBER_OF_VIEWS, true).getResults());
+				threadDao.getThreads(forumIdLong, MAX_LIMIT, 0L, DiscussionThreadOrder.NUMBER_OF_VIEWS, true, DiscussionFilter.NO_FILTER).getResults());
 
 		expected = Arrays.asList(createdThreads.get(1), createdThreads.get(2), createdThreads.get(0));
 		assertEquals("sorted by number of views desc",
 				expected,
-				threadDao.getThreads(forumIdLong, MAX_LIMIT, 0L, DiscussionThreadOrder.NUMBER_OF_VIEWS, false).getResults());
+				threadDao.getThreads(forumIdLong, MAX_LIMIT, 0L, DiscussionThreadOrder.NUMBER_OF_VIEWS, false, DiscussionFilter.NO_FILTER).getResults());
 	}
 
 	@Test
@@ -314,13 +320,13 @@ public class DBODiscussionThreadDAOImplTest {
 		expected.addAll(Arrays.asList(createdThreads.get(0), createdThreads.get(2), createdThreads.get(1)));
 		assertEquals("sorted by number of replies",
 				expected.toString(),
-				threadDao.getThreads(forumIdLong, MAX_LIMIT, 0L, DiscussionThreadOrder.NUMBER_OF_REPLIES, true).getResults().toString());
+				threadDao.getThreads(forumIdLong, MAX_LIMIT, 0L, DiscussionThreadOrder.NUMBER_OF_REPLIES, true, DiscussionFilter.NO_FILTER).getResults().toString());
 
 		expected.clear();
 		expected.addAll(Arrays.asList(createdThreads.get(1), createdThreads.get(2), createdThreads.get(0)));
 		assertEquals("sorted by number of replies desc",
 				expected.toString(),
-				threadDao.getThreads(forumIdLong, MAX_LIMIT, 0L, DiscussionThreadOrder.NUMBER_OF_REPLIES, false).getResults().toString());
+				threadDao.getThreads(forumIdLong, MAX_LIMIT, 0L, DiscussionThreadOrder.NUMBER_OF_REPLIES, false, DiscussionFilter.NO_FILTER).getResults().toString());
 	}
 
 	@Test
@@ -346,13 +352,13 @@ public class DBODiscussionThreadDAOImplTest {
 		expected.addAll(Arrays.asList(createdThreads.get(0), createdThreads.get(2), createdThreads.get(1)));
 		assertEquals("sorted by last activity",
 				expected,
-				threadDao.getThreads(forumIdLong, MAX_LIMIT, 0L, DiscussionThreadOrder.LAST_ACTIVITY, true).getResults());
+				threadDao.getThreads(forumIdLong, MAX_LIMIT, 0L, DiscussionThreadOrder.LAST_ACTIVITY, true, DiscussionFilter.NO_FILTER).getResults());
 
 		expected.clear();
 		expected.addAll(Arrays.asList(createdThreads.get(1), createdThreads.get(2), createdThreads.get(0)));
 		assertEquals("sorted by last activity desc",
 				expected,
-				threadDao.getThreads(forumIdLong, MAX_LIMIT, 0L, DiscussionThreadOrder.LAST_ACTIVITY, false).getResults());
+				threadDao.getThreads(forumIdLong, MAX_LIMIT, 0L, DiscussionThreadOrder.LAST_ACTIVITY, false, DiscussionFilter.NO_FILTER).getResults());
 	}
 
 	private List<DiscussionThreadBundle> createListOfThreads(int numberOfThreads) throws InterruptedException {
@@ -427,8 +433,8 @@ public class DBODiscussionThreadDAOImplTest {
 		List<DiscussionThreadBundle> createdThreads = createListOfThreads(3);
 		threadDao.markThreadAsDeleted(Long.parseLong(createdThreads.get(1).getId()));
 
-		PaginatedResults<DiscussionThreadBundle> deleted = threadDao.getDeletedThreads(forumIdLong, MAX_LIMIT, 0L, DiscussionThreadOrder.LAST_ACTIVITY, true);
-		PaginatedResults<DiscussionThreadBundle> available = threadDao.getAvailableThreads(forumIdLong, MAX_LIMIT, 0L, DiscussionThreadOrder.LAST_ACTIVITY, true);
+		PaginatedResults<DiscussionThreadBundle> deleted = threadDao.getThreads(forumIdLong, MAX_LIMIT, 0L, DiscussionThreadOrder.LAST_ACTIVITY, true, DiscussionFilter.DELETED_ONLY);
+		PaginatedResults<DiscussionThreadBundle> available = threadDao.getThreads(forumIdLong, MAX_LIMIT, 0L, DiscussionThreadOrder.LAST_ACTIVITY, true, DiscussionFilter.NOT_DELETED_ONLY);
 		assertEquals(1, deleted.getTotalNumberOfResults());
 		assertEquals(2, available.getTotalNumberOfResults());
 		assertEquals(createdThreads.get(1).getId(), deleted.getResults().get(0).getId());
@@ -438,5 +444,67 @@ public class DBODiscussionThreadDAOImplTest {
 		availableThreads.add(available.getResults().get(1).getId());
 		assertTrue(availableThreads.contains(createdThreads.get(0).getId()));
 		assertTrue(availableThreads.contains(createdThreads.get(2).getId()));
+	}
+
+	@Test
+	public void testAddCondition() {
+		String query = "";
+		assertEquals("no filter", "", 
+				DBODiscussionThreadDAOImpl.addCondition(query, DiscussionFilter.NO_FILTER));
+		assertEquals("deleted only", " AND IS_DELETED = TRUE", 
+				DBODiscussionThreadDAOImpl.addCondition(query, DiscussionFilter.DELETED_ONLY));
+		assertEquals("not deleted only", " AND IS_DELETED = FALSE", 
+				DBODiscussionThreadDAOImpl.addCondition(query, DiscussionFilter.NOT_DELETED_ONLY));
+	}
+
+	@Test
+	public void testBuildGetQuery() {
+		assertEquals("not ordered","SELECT DISCUSSION_THREAD.ID AS ID, FORUM_ID, PROJECT_ID,"
+				+ " TITLE, CREATED_ON, CREATED_BY, MODIFIED_ON, ETAG, MESSAGE_KEY, IS_EDITED,"
+				+ " IS_DELETED, NUMBER_OF_VIEWS, NUMBER_OF_REPLIES,"
+				+ " IFNULL(LAST_ACTIVITY, MODIFIED_ON) AS LAST_ACTIVITY, ACTIVE_AUTHORS"
+				+ " FROM DISCUSSION_THREAD JOIN FORUM ON FORUM_ID = FORUM.ID"
+				+ " LEFT OUTER JOIN DISCUSSION_THREAD_STATS ON DISCUSSION_THREAD.ID = THREAD_ID"
+				+ " WHERE FORUM_ID = ?"
+				+ " LIMIT 10 OFFSET 0",
+				DBODiscussionThreadDAOImpl.buildGetQuery(10L, 0L, null, null, DiscussionFilter.NO_FILTER));
+		assertEquals("ordered","SELECT DISCUSSION_THREAD.ID AS ID, FORUM_ID, PROJECT_ID,"
+				+ " TITLE, CREATED_ON, CREATED_BY, MODIFIED_ON, ETAG, MESSAGE_KEY, IS_EDITED,"
+				+ " IS_DELETED, NUMBER_OF_VIEWS, NUMBER_OF_REPLIES,"
+				+ " IFNULL(LAST_ACTIVITY, MODIFIED_ON) AS LAST_ACTIVITY, ACTIVE_AUTHORS"
+				+ " FROM DISCUSSION_THREAD JOIN FORUM ON FORUM_ID = FORUM.ID"
+				+ " LEFT OUTER JOIN DISCUSSION_THREAD_STATS ON DISCUSSION_THREAD.ID = THREAD_ID"
+				+ " WHERE FORUM_ID = ?"
+				+ " ORDER BY LAST_ACTIVITY"
+				+ " LIMIT 10 OFFSET 0",
+				DBODiscussionThreadDAOImpl.buildGetQuery(10L, 0L, DiscussionThreadOrder.LAST_ACTIVITY, true, DiscussionFilter.NO_FILTER));
+		assertEquals("limit","SELECT DISCUSSION_THREAD.ID AS ID, FORUM_ID, PROJECT_ID,"
+				+ " TITLE, CREATED_ON, CREATED_BY, MODIFIED_ON, ETAG, MESSAGE_KEY, IS_EDITED,"
+				+ " IS_DELETED, NUMBER_OF_VIEWS, NUMBER_OF_REPLIES,"
+				+ " IFNULL(LAST_ACTIVITY, MODIFIED_ON) AS LAST_ACTIVITY, ACTIVE_AUTHORS"
+				+ " FROM DISCUSSION_THREAD JOIN FORUM ON FORUM_ID = FORUM.ID"
+				+ " LEFT OUTER JOIN DISCUSSION_THREAD_STATS ON DISCUSSION_THREAD.ID = THREAD_ID"
+				+ " WHERE FORUM_ID = ?"
+				+ " LIMIT 100 OFFSET 0",
+				DBODiscussionThreadDAOImpl.buildGetQuery(100L, 0L, null, null, DiscussionFilter.NO_FILTER));
+		assertEquals("offset","SELECT DISCUSSION_THREAD.ID AS ID, FORUM_ID, PROJECT_ID,"
+				+ " TITLE, CREATED_ON, CREATED_BY, MODIFIED_ON, ETAG, MESSAGE_KEY, IS_EDITED,"
+				+ " IS_DELETED, NUMBER_OF_VIEWS, NUMBER_OF_REPLIES,"
+				+ " IFNULL(LAST_ACTIVITY, MODIFIED_ON) AS LAST_ACTIVITY, ACTIVE_AUTHORS"
+				+ " FROM DISCUSSION_THREAD JOIN FORUM ON FORUM_ID = FORUM.ID"
+				+ " LEFT OUTER JOIN DISCUSSION_THREAD_STATS ON DISCUSSION_THREAD.ID = THREAD_ID"
+				+ " WHERE FORUM_ID = ?"
+				+ " LIMIT 10 OFFSET 2",
+				DBODiscussionThreadDAOImpl.buildGetQuery(10L, 2L, null, null, DiscussionFilter.NO_FILTER));
+		assertEquals("filtered","SELECT DISCUSSION_THREAD.ID AS ID, FORUM_ID, PROJECT_ID,"
+				+ " TITLE, CREATED_ON, CREATED_BY, MODIFIED_ON, ETAG, MESSAGE_KEY, IS_EDITED,"
+				+ " IS_DELETED, NUMBER_OF_VIEWS, NUMBER_OF_REPLIES,"
+				+ " IFNULL(LAST_ACTIVITY, MODIFIED_ON) AS LAST_ACTIVITY, ACTIVE_AUTHORS"
+				+ " FROM DISCUSSION_THREAD JOIN FORUM ON FORUM_ID = FORUM.ID"
+				+ " LEFT OUTER JOIN DISCUSSION_THREAD_STATS ON DISCUSSION_THREAD.ID = THREAD_ID"
+				+ " WHERE FORUM_ID = ?"
+				+ " AND IS_DELETED = TRUE"
+				+ " LIMIT 10 OFFSET 0",
+				DBODiscussionThreadDAOImpl.buildGetQuery(10L, 0L, null, null, DiscussionFilter.DELETED_ONLY));
 	}
 }

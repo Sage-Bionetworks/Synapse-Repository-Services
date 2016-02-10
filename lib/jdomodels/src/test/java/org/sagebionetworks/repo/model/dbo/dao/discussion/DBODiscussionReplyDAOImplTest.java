@@ -29,6 +29,7 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dao.discussion.DiscussionReplyDAO;
 import org.sagebionetworks.repo.model.dao.discussion.DiscussionThreadDAO;
 import org.sagebionetworks.repo.model.dao.discussion.ForumDAO;
+import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadAuthorStat;
@@ -137,62 +138,63 @@ public class DBODiscussionReplyDAOImplTest {
 
 	@Test
 	public void testGetReplyCount() {
-		assertEquals(0L, replyDao.getReplyCount(threadIdLong, false));
+		assertEquals(0L, replyDao.getReplyCount(threadIdLong, DiscussionFilter.NO_FILTER));
 		replyDao.createReply(threadId, replyId, "messageKey", userId);
-		assertEquals(1L, replyDao.getReplyCount(threadIdLong, false));
+		assertEquals(1L, replyDao.getReplyCount(threadIdLong, DiscussionFilter.NO_FILTER));
 	}
 
 	@Test
 	public void testGetReplyCountWithDeletedReplies() {
-		assertEquals(0L, replyDao.getReplyCount(threadIdLong, true));
+		assertEquals(0L, replyDao.getReplyCount(threadIdLong, DiscussionFilter.NO_FILTER));
 		replyDao.createReply(threadId, replyId, "messageKey", userId);
 		replyDao.markReplyAsDeleted(replyIdLong);
-		assertEquals(1L, replyDao.getReplyCount(threadIdLong, true));
-		assertEquals(0L, replyDao.getReplyCount(threadIdLong, false));
+		assertEquals(1L, replyDao.getReplyCount(threadIdLong, DiscussionFilter.NO_FILTER));
+		assertEquals(0L, replyDao.getReplyCount(threadIdLong, DiscussionFilter.NOT_DELETED_ONLY));
+		assertEquals(1L, replyDao.getReplyCount(threadIdLong, DiscussionFilter.DELETED_ONLY));
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testGetRepliesForThreadWithNullThreadId() {
-		replyDao.getRepliesForThread(null, 1L, 0L, null, null, false);
+		replyDao.getRepliesForThread(null, 1L, 0L, null, null, DiscussionFilter.NO_FILTER);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testGetRepliesForThreadWithNullLimit() {
-		replyDao.getRepliesForThread(threadIdLong, null, 0L, null, null, false);
+		replyDao.getRepliesForThread(threadIdLong, null, 0L, null, null, DiscussionFilter.NO_FILTER);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testGetRepliesForThreadWithNullOffset() {
-		replyDao.getRepliesForThread(threadIdLong, 1L, null, null, null, false);
+		replyDao.getRepliesForThread(threadIdLong, 1L, null, null, null, DiscussionFilter.NO_FILTER);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testGetRepliesForThreadWithNegativeLimit() {
-		replyDao.getRepliesForThread(threadIdLong, -1L, 0l, null, null, false);
+		replyDao.getRepliesForThread(threadIdLong, -1L, 0l, null, null, DiscussionFilter.NO_FILTER);
 	}
 	@Test (expected = IllegalArgumentException.class)
 	public void testGetRepliesForThreadWithNegativeOffset() {
-		replyDao.getRepliesForThread(threadIdLong, 1L, -1l, null, null, false);
+		replyDao.getRepliesForThread(threadIdLong, 1L, -1l, null, null, DiscussionFilter.NO_FILTER);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testGetRepliesForThreadWithLimitOverMax() {
-		replyDao.getRepliesForThread(threadIdLong, MAX_LIMIT+1, 0l, null, null, false);
+		replyDao.getRepliesForThread(threadIdLong, MAX_LIMIT+1, 0l, null, null, DiscussionFilter.NO_FILTER);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testGetRepliesForThreadWithNullOrderNotNullAscending() {
-		replyDao.getRepliesForThread(threadIdLong, 1L, 0l, null, true, false);
+		replyDao.getRepliesForThread(threadIdLong, 1L, 0l, null, true, DiscussionFilter.NO_FILTER);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testGetRepliesForThreadWithNotNullOrderNullAscending() {
-		replyDao.getRepliesForThread(threadIdLong, 1L, 0l, DiscussionReplyOrder.CREATED_ON, null, false);
+		replyDao.getRepliesForThread(threadIdLong, 1L, 0l, DiscussionReplyOrder.CREATED_ON, null, DiscussionFilter.NO_FILTER);
 	}
 
 	@Test
 	public void testGetRepliesForThreadWithZeroExistingReplies() {
-		PaginatedResults<DiscussionReplyBundle> results = replyDao.getRepliesForThread(threadIdLong, MAX_LIMIT, 0L, null, null, false);
+		PaginatedResults<DiscussionReplyBundle> results = replyDao.getRepliesForThread(threadIdLong, MAX_LIMIT, 0L, null, null, DiscussionFilter.NO_FILTER);
 		assertNotNull(results);
 		assertEquals(0L, results.getTotalNumberOfResults());
 		assertTrue(results.getResults().isEmpty());
@@ -203,22 +205,22 @@ public class DBODiscussionReplyDAOImplTest {
 		int numberOfReplies = 3;
 		List<DiscussionReplyBundle> createdReplies = createReplies(numberOfReplies, threadId);
 
-		PaginatedResults<DiscussionReplyBundle> results = replyDao.getRepliesForThread(threadIdLong, MAX_LIMIT, 0L, null, null, false);
+		PaginatedResults<DiscussionReplyBundle> results = replyDao.getRepliesForThread(threadIdLong, MAX_LIMIT, 0L, null, null, DiscussionFilter.NO_FILTER);
 		assertNotNull(results);
 		assertEquals("unordered replies", numberOfReplies, results.getTotalNumberOfResults());
 		assertEquals("unordered replies",
 				new HashSet<DiscussionReplyBundle>(results.getResults()),
 				new HashSet<DiscussionReplyBundle>(createdReplies));
 
-		results = replyDao.getRepliesForThread(threadIdLong, MAX_LIMIT, 0L, DiscussionReplyOrder.CREATED_ON, true, false);
+		results = replyDao.getRepliesForThread(threadIdLong, MAX_LIMIT, 0L, DiscussionReplyOrder.CREATED_ON, true, DiscussionFilter.NO_FILTER);
 		assertEquals("ordered replies", numberOfReplies, results.getTotalNumberOfResults());
 		assertEquals("ordered replies", createdReplies, results.getResults());
 
-		results = replyDao.getRepliesForThread(threadIdLong, 1L, 1L, DiscussionReplyOrder.CREATED_ON, true, false);
+		results = replyDao.getRepliesForThread(threadIdLong, 1L, 1L, DiscussionReplyOrder.CREATED_ON, true, DiscussionFilter.NO_FILTER);
 		assertEquals("middle element", numberOfReplies, results.getTotalNumberOfResults());
 		assertEquals("middle element", createdReplies.get(1), results.getResults().get(0));
 
-		results = replyDao.getRepliesForThread(threadIdLong, MAX_LIMIT, 3L, DiscussionReplyOrder.CREATED_ON, true, false);
+		results = replyDao.getRepliesForThread(threadIdLong, MAX_LIMIT, 3L, DiscussionReplyOrder.CREATED_ON, true, DiscussionFilter.NO_FILTER);
 		assertEquals("out of range", numberOfReplies, results.getTotalNumberOfResults());
 		assertTrue("out of range", results.getResults().isEmpty());
 	}
@@ -229,7 +231,7 @@ public class DBODiscussionReplyDAOImplTest {
 		List<DiscussionReplyBundle> createdReplies = createReplies(numberOfReplies, threadId);
 
 		PaginatedResults<DiscussionReplyBundle> results =
-				replyDao.getRepliesForThread(threadIdLong, MAX_LIMIT, 0L, DiscussionReplyOrder.CREATED_ON, false, false);
+				replyDao.getRepliesForThread(threadIdLong, MAX_LIMIT, 0L, DiscussionReplyOrder.CREATED_ON, false, DiscussionFilter.NO_FILTER);
 		assertEquals("ordered desc replies", numberOfReplies, results.getTotalNumberOfResults());
 		Collections.reverse(createdReplies);
 		assertEquals("ordered desc replies", createdReplies, results.getResults());
@@ -240,14 +242,14 @@ public class DBODiscussionReplyDAOImplTest {
 		int numberOfReplies = 3;
 		List<DiscussionReplyBundle> createdReplies = createReplies(numberOfReplies, threadId);
 
-		PaginatedResults<DiscussionReplyBundle> nonDeletedReplies = replyDao.getRepliesForThread(threadIdLong, MAX_LIMIT, 0L, null, null, false);
-		PaginatedResults<DiscussionReplyBundle> includedeletedReplies = replyDao.getRepliesForThread(threadIdLong, MAX_LIMIT, 0L, null, null, true);
+		PaginatedResults<DiscussionReplyBundle> nonDeletedReplies = replyDao.getRepliesForThread(threadIdLong, MAX_LIMIT, 0L, null, null, DiscussionFilter.NO_FILTER);
+		PaginatedResults<DiscussionReplyBundle> includedeletedReplies = replyDao.getRepliesForThread(threadIdLong, MAX_LIMIT, 0L, null, null, DiscussionFilter.NO_FILTER);
 		assertEquals(nonDeletedReplies, includedeletedReplies);
 
 		replyDao.markReplyAsDeleted(Long.parseLong(createdReplies.get(1).getId()));
 
-		nonDeletedReplies = replyDao.getRepliesForThread(threadIdLong, MAX_LIMIT, 0L, null, null, false);
-		includedeletedReplies = replyDao.getRepliesForThread(threadIdLong, MAX_LIMIT, 0L, null, null, true);
+		nonDeletedReplies = replyDao.getRepliesForThread(threadIdLong, MAX_LIMIT, 0L, null, null, DiscussionFilter.NOT_DELETED_ONLY);
+		includedeletedReplies = replyDao.getRepliesForThread(threadIdLong, MAX_LIMIT, 0L, null, null, DiscussionFilter.NO_FILTER);
 		assertFalse(nonDeletedReplies.equals(includedeletedReplies));
 		assertEquals(nonDeletedReplies.getTotalNumberOfResults(), 2);
 		assertEquals(includedeletedReplies.getTotalNumberOfResults(), 3);
@@ -402,7 +404,7 @@ public class DBODiscussionReplyDAOImplTest {
 				+ " AND FORUM_ID = FORUM.ID"
 				+ " AND THREAD_ID = ?"
 				+ " LIMIT 10 OFFSET 0",
-				DBODiscussionReplyDAOImpl.buildGetRepliesQuery(10L, 0L, null, null, true));
+				DBODiscussionReplyDAOImpl.buildGetRepliesQuery(10L, 0L, null, null, DiscussionFilter.NO_FILTER));
 		assertEquals("only non deleted replies",
 				"SELECT DISCUSSION_REPLY.ID AS ID , THREAD_ID, FORUM_ID, PROJECT_ID,"
 				+ " DISCUSSION_REPLY.MESSAGE_KEY AS MESSAGE_KEY , DISCUSSION_REPLY.CREATED_BY AS CREATED_BY,"
@@ -415,7 +417,7 @@ public class DBODiscussionReplyDAOImplTest {
 				+ " AND THREAD_ID = ?"
 				+ " AND DISCUSSION_REPLY.IS_DELETED = FALSE"
 				+ " LIMIT 10 OFFSET 0",
-				DBODiscussionReplyDAOImpl.buildGetRepliesQuery(10L, 0L, null, null, false));
+				DBODiscussionReplyDAOImpl.buildGetRepliesQuery(10L, 0L, null, null, DiscussionFilter.NOT_DELETED_ONLY));
 		assertEquals("order ascending",
 				"SELECT DISCUSSION_REPLY.ID AS ID , THREAD_ID, FORUM_ID, PROJECT_ID,"
 				+ " DISCUSSION_REPLY.MESSAGE_KEY AS MESSAGE_KEY , DISCUSSION_REPLY.CREATED_BY AS CREATED_BY,"
@@ -428,7 +430,7 @@ public class DBODiscussionReplyDAOImplTest {
 				+ " AND THREAD_ID = ?"
 				+ " ORDER BY CREATED_ON"
 				+ " LIMIT 10 OFFSET 0",
-				DBODiscussionReplyDAOImpl.buildGetRepliesQuery(10L, 0L, DiscussionReplyOrder.CREATED_ON, true, true));
+				DBODiscussionReplyDAOImpl.buildGetRepliesQuery(10L, 0L, DiscussionReplyOrder.CREATED_ON, true, DiscussionFilter.NO_FILTER));
 		assertEquals("order descending",
 				"SELECT DISCUSSION_REPLY.ID AS ID , THREAD_ID, FORUM_ID, PROJECT_ID,"
 				+ " DISCUSSION_REPLY.MESSAGE_KEY AS MESSAGE_KEY , DISCUSSION_REPLY.CREATED_BY AS CREATED_BY,"
@@ -441,7 +443,7 @@ public class DBODiscussionReplyDAOImplTest {
 				+ " AND THREAD_ID = ?"
 				+ " ORDER BY CREATED_ON DESC"
 				+ " LIMIT 10 OFFSET 0",
-				DBODiscussionReplyDAOImpl.buildGetRepliesQuery(10L, 0L, DiscussionReplyOrder.CREATED_ON, false, true));
+				DBODiscussionReplyDAOImpl.buildGetRepliesQuery(10L, 0L, DiscussionReplyOrder.CREATED_ON, false, DiscussionFilter.NO_FILTER));
 		assertEquals("limit",
 				"SELECT DISCUSSION_REPLY.ID AS ID , THREAD_ID, FORUM_ID, PROJECT_ID,"
 				+ " DISCUSSION_REPLY.MESSAGE_KEY AS MESSAGE_KEY , DISCUSSION_REPLY.CREATED_BY AS CREATED_BY,"
@@ -454,7 +456,7 @@ public class DBODiscussionReplyDAOImplTest {
 				+ " AND THREAD_ID = ?"
 				+ " ORDER BY CREATED_ON DESC"
 				+ " LIMIT 2 OFFSET 0",
-				DBODiscussionReplyDAOImpl.buildGetRepliesQuery(2L, 0L, DiscussionReplyOrder.CREATED_ON, false, true));
+				DBODiscussionReplyDAOImpl.buildGetRepliesQuery(2L, 0L, DiscussionReplyOrder.CREATED_ON, false, DiscussionFilter.NO_FILTER));
 		assertEquals("offset",
 				"SELECT DISCUSSION_REPLY.ID AS ID , THREAD_ID, FORUM_ID, PROJECT_ID,"
 				+ " DISCUSSION_REPLY.MESSAGE_KEY AS MESSAGE_KEY , DISCUSSION_REPLY.CREATED_BY AS CREATED_BY,"
@@ -467,6 +469,6 @@ public class DBODiscussionReplyDAOImplTest {
 				+ " AND THREAD_ID = ?"
 				+ " ORDER BY CREATED_ON DESC"
 				+ " LIMIT 10 OFFSET 3",
-				DBODiscussionReplyDAOImpl.buildGetRepliesQuery(10L, 3L, DiscussionReplyOrder.CREATED_ON, false, true));
+				DBODiscussionReplyDAOImpl.buildGetRepliesQuery(10L, 3L, DiscussionReplyOrder.CREATED_ON, false, DiscussionFilter.NO_FILTER));
 	}
 }

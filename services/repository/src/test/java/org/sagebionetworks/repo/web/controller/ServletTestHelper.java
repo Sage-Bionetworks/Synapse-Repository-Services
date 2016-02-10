@@ -54,6 +54,7 @@ import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
+import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
@@ -2037,31 +2038,9 @@ public class ServletTestHelper {
 
 	public PaginatedResults<DiscussionThreadBundle> getThreads(DispatcherServlet dispatchServlet,
 			Long userId, String forumId, Long limit, Long offset, DiscussionThreadOrder order,
-			Boolean ascending) throws Exception {
+			Boolean ascending, DiscussionFilter filter) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, "/repo/v1", UrlHelpers.FORUM+"/"+forumId+"/threads", userId, null);
-		return doGetThreads(dispatchServlet, limit, offset, order, ascending, request);
-	}
-
-	public PaginatedResults<DiscussionThreadBundle> getAvailableThreads(DispatcherServlet dispatchServlet,
-			Long userId, String forumId, Long limit, Long offset, DiscussionThreadOrder order,
-			Boolean ascending) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, "/repo/v1", UrlHelpers.FORUM+"/"+forumId+"/availableThreads", userId, null);
-		return doGetThreads(dispatchServlet, limit, offset, order, ascending, request);
-	}
-
-	public PaginatedResults<DiscussionThreadBundle> getDeletedThreads(DispatcherServlet dispatchServlet,
-			Long userId, String forumId, Long limit, Long offset, DiscussionThreadOrder order,
-			Boolean ascending) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, "/repo/v1", UrlHelpers.FORUM+"/"+forumId+"/deletedThreads", userId, null);
-		return doGetThreads(dispatchServlet, limit, offset, order, ascending, request);
-	}
-
-	private PaginatedResults<DiscussionThreadBundle> doGetThreads(DispatcherServlet dispatchServlet,
-			Long limit, Long offset, DiscussionThreadOrder order, Boolean ascending,
-			MockHttpServletRequest request) throws Exception {
 		request.addParameter("limit", limit.toString());
 		request.addParameter("offset", offset.toString());
 		if (order != null) {
@@ -2070,6 +2049,7 @@ public class ServletTestHelper {
 		if (ascending != null) {
 			request.addParameter("ascending", ascending.toString());
 		}
+		request.addParameter("filter", filter.toString());
 		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.OK);
 		return ServletTestHelperUtils.readResponsePaginatedResults(response, DiscussionThreadBundle.class);
@@ -2094,7 +2074,7 @@ public class ServletTestHelper {
 
 	public PaginatedResults<DiscussionReplyBundle> getReplies(DispatcherServlet dispatchServlet,
 			Long userId, String threadId, Long limit, Long offset, DiscussionReplyOrder order,
-			Boolean ascending, Boolean includeDeleted) throws Exception {
+			Boolean ascending, DiscussionFilter filter) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, "/repo/v1", UrlHelpers.THREAD+"/"+threadId+"/replies", userId, null);
 		request.addParameter("limit", limit.toString());
@@ -2105,7 +2085,7 @@ public class ServletTestHelper {
 		if (ascending != null) {
 			request.addParameter("ascending", ascending.toString());
 		}
-		request.addParameter("includeDeleted", includeDeleted.toString());
+		request.addParameter("filter", filter.toString());
 		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.OK);
 		return ServletTestHelperUtils.readResponsePaginatedResults(response, DiscussionReplyBundle.class);

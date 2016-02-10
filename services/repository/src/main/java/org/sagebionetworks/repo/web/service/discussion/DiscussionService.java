@@ -5,6 +5,7 @@ import java.io.IOException;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
+import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
@@ -83,10 +84,12 @@ public interface DiscussionService {
 	 * @param offset
 	 * @param order
 	 * @param ascending
+	 * @param filter 
 	 * @return
 	 */
 	public PaginatedResults<DiscussionThreadBundle> getThreads(Long userId,
-			String forumId, Long limit, Long offset, DiscussionThreadOrder order, Boolean ascending);
+			String forumId, Long limit, Long offset, DiscussionThreadOrder order,
+			Boolean ascending, DiscussionFilter filter);
 
 	/**
 	 * Create a new reply
@@ -136,12 +139,12 @@ public interface DiscussionService {
 	 * @param offset
 	 * @param order
 	 * @param ascending
-	 * @param includeDeleted 
+	 * @param filter 
 	 * @return
 	 */
 	public PaginatedResults<DiscussionReplyBundle> getReplies(Long userId,
 			String threadId, Long limit, Long offset, DiscussionReplyOrder order,
-			Boolean ascending, Boolean includeDeleted);
+			Boolean ascending, DiscussionFilter filter);
 
 	/**
 	 * Get the message Url of a thread
@@ -160,34 +163,4 @@ public interface DiscussionService {
 	 * @return
 	 */
 	public MessageURL getReplyUrl(Long userId, String messageKey);
-
-	/**
-	 * Get limit number of non-deleted threads starting at offset for a given forum
-	 * 
-	 * @param userId
-	 * @param forumId
-	 * @param limit
-	 * @param offset
-	 * @param order
-	 * @param ascending
-	 * @return
-	 */
-	public PaginatedResults<DiscussionThreadBundle> getAvailableThreads(
-			Long userId, String forumId, Long limit, Long offset,
-			DiscussionThreadOrder order, Boolean ascending);
-
-	/**
-	 * Get limit number of deleted threads starting at offset for a given forum
-	 * 
-	 * @param userId
-	 * @param forumId
-	 * @param limit
-	 * @param offset
-	 * @param order
-	 * @param ascending
-	 * @return
-	 */
-	public PaginatedResults<DiscussionThreadBundle> getDeletedThreads(
-			Long userId, String forumId, Long limit, Long offset,
-			DiscussionThreadOrder order, Boolean ascending);
 }

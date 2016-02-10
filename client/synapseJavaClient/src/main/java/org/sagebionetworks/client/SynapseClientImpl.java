@@ -114,6 +114,7 @@ import org.sagebionetworks.repo.model.auth.Username;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
+import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
@@ -485,8 +486,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String FORUM = "/forum";
 	private static final String THREAD = "/thread";
 	private static final String THREADS = "/threads";
-	private static final String AVAILABLE_THREADS = "/availableThreads";
-	private static final String DELETED_THREADS = "/deletedThreads";
 	private static final String THREAD_TITLE = "/title";
 	private static final String DISCUSSION_MESSAGE = "/message";
 	private static final String REPLY = "/reply";
@@ -7332,32 +7331,11 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public PaginatedResults<DiscussionThreadBundle> getThreadsForForum(
 			String forumId, Long limit, Long offset, DiscussionThreadOrder order,
-			Boolean ascending) throws SynapseException {
-		return doGetThreads(forumId, limit, offset, order, ascending, THREADS);
-	}
-
-	@Override
-	public PaginatedResults<DiscussionThreadBundle> getAvailableThreadsForForum(
-			String forumId, Long limit, Long offset, DiscussionThreadOrder order,
-			Boolean ascending) throws SynapseException {
-		return doGetThreads(forumId, limit, offset, order, ascending, AVAILABLE_THREADS);
-	}
-
-	@Override
-	public PaginatedResults<DiscussionThreadBundle> getDeletedThreadsForForum(
-			String forumId, Long limit, Long offset, DiscussionThreadOrder order,
-			Boolean ascending) throws SynapseException {
-		return doGetThreads(forumId, limit, offset, order, ascending, DELETED_THREADS);
-	}
-
-	private PaginatedResults<DiscussionThreadBundle> doGetThreads(
-			String forumId, Long limit, Long offset,
-			DiscussionThreadOrder order, Boolean ascending, String threadType)
-			throws SynapseException, SynapseClientException {
+			Boolean ascending, DiscussionFilter filter) throws SynapseException {
 		ValidateArgument.required(forumId, "forumId");
 		ValidateArgument.required(limit, "limit");
 		ValidateArgument.required(offset, "offset");
-		String url = FORUM+"/"+forumId+threadType
+		String url = FORUM+"/"+forumId+THREADS
 				+"?"+LIMIT+"="+limit+"&"+OFFSET+"="+offset;
 		if (order != null) {
 			url += "&sort="+order.name();
@@ -7365,6 +7343,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		if (ascending != null) {
 			url += "&ascending="+ascending;
 		}
+		url += "&filter="+filter.toString();
 		JSONObject jsonObj = getEntity(url);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
 		PaginatedResults<DiscussionThreadBundle> results =
@@ -7420,7 +7399,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public PaginatedResults<DiscussionReplyBundle> getRepliesForThread(
 			String threadId, Long limit, Long offset,
-			DiscussionReplyOrder order, Boolean ascending, Boolean includeDeleted)
+			DiscussionReplyOrder order, Boolean ascending, DiscussionFilter filter)
 			throws SynapseException {
 		ValidateArgument.required(threadId, "threadId");
 		ValidateArgument.required(limit, "limit");
@@ -7433,7 +7412,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		if (ascending != null) {
 			url += "&ascending="+ascending;
 		}
-		url += "&includeDeleted="+includeDeleted;
+		url += "&filter="+filter;
 		JSONObject jsonObj = getEntity(url);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
 		PaginatedResults<DiscussionReplyBundle> results =

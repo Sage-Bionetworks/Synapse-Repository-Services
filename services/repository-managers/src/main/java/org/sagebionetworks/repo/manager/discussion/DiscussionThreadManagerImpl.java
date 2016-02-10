@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.model.dao.discussion.DiscussionReplyDAO;
 import org.sagebionetworks.repo.model.dao.discussion.DiscussionThreadDAO;
 import org.sagebionetworks.repo.model.dao.discussion.ForumDAO;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
+import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.MessageURL;
@@ -30,7 +31,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 	public static final String ANONYMOUS_ACCESS_DENIED_REASON = "Anonymous cannot perform this action. Please login and try again.";
-	public static final Boolean INCLUDE_DELETED_REPLIES_DEFAULT = false;
 	@Autowired
 	private DiscussionThreadDAO threadDao;
 	@Autowired
@@ -62,11 +62,11 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		Long id = idGenerator.generateNewId(TYPE.DISCUSSION_THREAD_ID);
 		String messageKey = uploadDao.uploadThreadMessage(createThread.getMessageMarkdown(), createThread.getForumId(), id.toString());
 		DiscussionThreadBundle thread = threadDao.createThread(createThread.getForumId(), id.toString(), createThread.getTitle(), messageKey, userInfo.getId());
-		return updateNumberOfReplies(thread, INCLUDE_DELETED_REPLIES_DEFAULT);
+		return updateNumberOfReplies(thread, DiscussionFilter.NO_FILTER);
 	}
 
-	private DiscussionThreadBundle updateNumberOfReplies(DiscussionThreadBundle thread, boolean countDeleted) {
-		thread.setNumberOfReplies(replyDao.getReplyCount(Long.parseLong(thread.getId()), countDeleted));
+	private DiscussionThreadBundle updateNumberOfReplies(DiscussionThreadBundle thread, DiscussionFilter filter) {
+		thread.setNumberOfReplies(replyDao.getReplyCount(Long.parseLong(thread.getId()), filter));
 		return thread;
 	}
 
@@ -79,7 +79,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canAccess(userInfo, thread.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
 		threadDao.updateThreadView(threadIdLong, userInfo.getId());
-		return updateNumberOfReplies(thread, INCLUDE_DELETED_REPLIES_DEFAULT);
+		return updateNumberOfReplies(thread, DiscussionFilter.NOT_DELETED_ONLY);
 	}
 
 	@WriteTransactionReadCommitted
@@ -93,7 +93,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		DiscussionThreadBundle thread = threadDao.getThread(threadIdLong);
 		if (authorizationManager.isUserCreatorOrAdmin(userInfo, thread.getCreatedBy())) {
 			thread = threadDao.updateTitle(threadIdLong, newTitle.getTitle());
-			return updateNumberOfReplies(thread, INCLUDE_DELETED_REPLIES_DEFAULT);
+			return updateNumberOfReplies(thread, DiscussionFilter.NO_FILTER);
 		} else {
 			throw new UnauthorizedException("Only the user that created the thread can modify it.");
 		}
@@ -112,7 +112,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		if (authorizationManager.isUserCreatorOrAdmin(userInfo, thread.getCreatedBy())) {
 			String messageKey = uploadDao.uploadThreadMessage(newMessage.getMessageMarkdown(), thread.getForumId(), thread.getId());
 			thread = threadDao.updateMessageKey(threadIdLong, messageKey);
-			return updateNumberOfReplies(thread, INCLUDE_DELETED_REPLIES_DEFAULT);
+			return updateNumberOfReplies(thread, DiscussionFilter.NO_FILTER);
 		} else {
 			throw new UnauthorizedException("Only the user that created the thread can modify it.");
 		}
@@ -133,21 +133,27 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 	@Override
 	public PaginatedResults<DiscussionThreadBundle> getThreadsForForum(
 			UserInfo userInfo, String forumId, Long limit, Long offset,
-			DiscussionThreadOrder order, Boolean ascending) {
+			DiscussionThreadOrder order, Boolean ascending, DiscussionFilter filter) {
 		ValidateArgument.required(forumId, "forumId");
+		ValidateArgument.required(filter, "filter");
 		UserInfo.validateUserInfo(userInfo);
 		String projectId = forumDao.getForum(Long.parseLong(forumId)).getProjectId();
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ));
-		PaginatedResults<DiscussionThreadBundle> threads = threadDao.getThreads(Long.parseLong(forumId), limit, offset, order, ascending);
-		return updateNumberOfReplies(threads);
+		if (filter.equals(DiscussionFilter.NOT_DELETED_ONLY)) {
+			AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+					authorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ));
+		} else {
+			AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+					authorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.MODERATE));
+		}
+		PaginatedResults<DiscussionThreadBundle> threads = threadDao.getThreads(Long.parseLong(forumId), limit, offset, order, ascending, filter);
+		return updateNumberOfReplies(threads, filter);
 	}
 
 	private PaginatedResults<DiscussionThreadBundle> updateNumberOfReplies(
-			PaginatedResults<DiscussionThreadBundle> threads) {
+			PaginatedResults<DiscussionThreadBundle> threads, DiscussionFilter filter) {
 		List<DiscussionThreadBundle> list = new ArrayList<DiscussionThreadBundle>();
 		for (DiscussionThreadBundle thread : threads.getResults()) {
-			list.add(updateNumberOfReplies(thread, INCLUDE_DELETED_REPLIES_DEFAULT));
+			list.add(updateNumberOfReplies(thread, filter));
 		}
 		threads.setResults(list);
 		return threads;
@@ -163,31 +169,5 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 				authorizationManager.canAccess(userInfo, thread.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
 		threadDao.updateThreadView(threadIdLong, userInfo.getId());
 		return uploadDao.getThreadUrl(thread.getMessageKey());
-	}
-
-	@Override
-	public PaginatedResults<DiscussionThreadBundle> getAvailableThreadsForForum(
-			UserInfo userInfo, String forumId, Long limit, Long offset,
-			DiscussionThreadOrder order, Boolean ascending) {
-		ValidateArgument.required(forumId, "forumId");
-		UserInfo.validateUserInfo(userInfo);
-		String projectId = forumDao.getForum(Long.parseLong(forumId)).getProjectId();
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ));
-		PaginatedResults<DiscussionThreadBundle> threads = threadDao.getAvailableThreads(Long.parseLong(forumId), limit, offset, order, ascending);
-		return updateNumberOfReplies(threads);
-	}
-
-	@Override
-	public PaginatedResults<DiscussionThreadBundle> getDeletedThreadsForForum(
-			UserInfo userInfo, String forumId, Long limit, Long offset,
-			DiscussionThreadOrder order, Boolean ascending) {
-		ValidateArgument.required(forumId, "forumId");
-		UserInfo.validateUserInfo(userInfo);
-		String projectId = forumDao.getForum(Long.parseLong(forumId)).getProjectId();
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ));
-		PaginatedResults<DiscussionThreadBundle> threads = threadDao.getDeletedThreads(Long.parseLong(forumId), limit, offset, order, ascending);
-		return updateNumberOfReplies(threads);
 	}
 }

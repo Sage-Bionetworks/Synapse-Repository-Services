@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.dao.discussion;
 import java.util.List;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadAuthorStat;
@@ -39,12 +40,12 @@ public interface DiscussionReplyDAO {
 	 * @param offset
 	 * @param order
 	 * @param ascending
-	 * @param includeDeleted 
+	 * @param filter 
 	 * @return
 	 */
 	public PaginatedResults<DiscussionReplyBundle> getRepliesForThread(Long threadId,
 			Long limit, Long offset, DiscussionReplyOrder order, Boolean ascending,
-			Boolean includeDeleted);
+			DiscussionFilter filter);
 
 	/**
 	 * Get the number of replies for a given thread.
@@ -52,10 +53,10 @@ public interface DiscussionReplyDAO {
 	 * otherwise, only returns count of non-deleted replies.
 	 * 
 	 * @param threadId
-	 * @param includeDeleted
+	 * @param filter
 	 * @return
 	 */
-	public long getReplyCount(long threadId, Boolean includeDeleted);
+	public long getReplyCount(long threadId, DiscussionFilter filter);
 
 	/**
 	 * Mark a given reply as deleted

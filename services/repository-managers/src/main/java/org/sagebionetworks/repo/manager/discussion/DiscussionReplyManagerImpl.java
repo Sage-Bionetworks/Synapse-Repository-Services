@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.model.UploadContentToS3DAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.discussion.DiscussionReplyDAO;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
+import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
@@ -98,14 +99,14 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 	@Override
 	public PaginatedResults<DiscussionReplyBundle> getRepliesForThread(
 			UserInfo userInfo, String threadId, Long limit, Long offset,
-			DiscussionReplyOrder order, Boolean ascending, Boolean includeDeleted) {
+			DiscussionReplyOrder order, Boolean ascending, DiscussionFilter filter) {
 		UserInfo.validateUserInfo(userInfo);
 		ValidateArgument.required(threadId, "threadId");
 		ValidateArgument.required(limit, "limit");
 		ValidateArgument.required(offset, "offset");
-		ValidateArgument.required(includeDeleted, "includeDeleted");
+		ValidateArgument.required(filter, "filter");
 		threadManager.getThread(userInfo, threadId);
-		return replyDao.getRepliesForThread(Long.parseLong(threadId), limit, offset, order, ascending, includeDeleted);
+		return replyDao.getRepliesForThread(Long.parseLong(threadId), limit, offset, order, ascending, filter);
 	}
 
 	@Override

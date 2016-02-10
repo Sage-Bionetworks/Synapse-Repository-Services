@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.model.dao.discussion.DiscussionReplyDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.discussion.DBODiscussionReply;
 import org.sagebionetworks.repo.model.dbo.persistence.discussion.DiscussionReplyUtils;
+import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadAuthorStat;
@@ -105,7 +106,8 @@ public class DBODiscussionReplyDAOImpl implements DiscussionReplyDAO{
 			+" AND "+COL_DISCUSSION_THREAD_FORUM_ID+" = "+TABLE_FORUM+"."+COL_FORUM_ID;
 	private static final String SQL_GET_REPLY_BY_ID = SQL_SELECT_REPLY_BUNDLE
 			+" AND "+TABLE_DISCUSSION_REPLY+"."+COL_DISCUSSION_REPLY_ID+" = ?";
-	private static final String NON_DELETED_CONDITION = " AND "+TABLE_DISCUSSION_REPLY+"."+COL_DISCUSSION_REPLY_IS_DELETED+" = FALSE";
+	private static final String NOT_DELETED_CONDITION = " AND "+TABLE_DISCUSSION_REPLY+"."+COL_DISCUSSION_REPLY_IS_DELETED+" = FALSE";
+	private static final String DELETED_CONDITION = " AND "+TABLE_DISCUSSION_REPLY+"."+COL_DISCUSSION_REPLY_IS_DELETED+" = TRUE";
 	private static final String SQL_GET_REPLIES_BY_THREAD_ID = SQL_SELECT_REPLY_BUNDLE
 			+" AND "+COL_DISCUSSION_REPLY_THREAD_ID+" = ?";
 	private static final String ORDER_BY_CREATED_ON = " ORDER BY "+COL_DISCUSSION_REPLY_CREATED_ON;
@@ -154,10 +156,11 @@ public class DBODiscussionReplyDAOImpl implements DiscussionReplyDAO{
 	@Override
 	public PaginatedResults<DiscussionReplyBundle> getRepliesForThread(
 			Long threadId, Long limit, Long offset, DiscussionReplyOrder order,
-			Boolean ascending, Boolean includeDeleted) {
+			Boolean ascending, DiscussionFilter filter) {
 		ValidateArgument.required(threadId, "threadId");
 		ValidateArgument.required(limit, "limit");
 		ValidateArgument.required(offset, "offset");
+		ValidateArgument.required(filter, "filter");
 		ValidateArgument.requirement(limit >= 0 && offset >= 0 && limit <= MAX_LIMIT,
 				"Limit and offset must be greater than 0, and limit must be smaller than or equal to "+MAX_LIMIT);
 		ValidateArgument.requirement((order == null && ascending == null)
@@ -165,12 +168,11 @@ public class DBODiscussionReplyDAOImpl implements DiscussionReplyDAO{
 
 		PaginatedResults<DiscussionReplyBundle> results = new PaginatedResults<DiscussionReplyBundle>();
 		List<DiscussionReplyBundle> replies = new ArrayList<DiscussionReplyBundle>();
-		long replyCount = getReplyCount(threadId, includeDeleted);
+		long replyCount = getReplyCount(threadId, filter);
 		results.setTotalNumberOfResults(replyCount);
 
 		if (replyCount > 0) {
-			String query = buildGetRepliesQuery(limit, offset, order,
-					ascending, includeDeleted);
+			String query = buildGetRepliesQuery(limit, offset, order, ascending, filter);
 			replies = jdbcTemplate.query(query,  DISCUSSION_REPLY_BUNDLE_ROW_MAPPER, threadId);
 		}
 
@@ -179,11 +181,9 @@ public class DBODiscussionReplyDAOImpl implements DiscussionReplyDAO{
 	}
 
 	protected static String buildGetRepliesQuery(Long limit, Long offset,
-			DiscussionReplyOrder order, Boolean ascending, Boolean includeDeleted) {
+			DiscussionReplyOrder order, Boolean ascending, DiscussionFilter filter) {
 		String query = SQL_GET_REPLIES_BY_THREAD_ID;
-		if (!includeDeleted) {
-			query += NON_DELETED_CONDITION;
-		}
+		query = addCondition(query, filter);
 		if (order != null) {
 			switch (order) {
 				case CREATED_ON:
@@ -200,13 +200,31 @@ public class DBODiscussionReplyDAOImpl implements DiscussionReplyDAO{
 		return query;
 	}
 
-	@Override
-	public long getReplyCount(long threadId, Boolean includeDeleted) {
-		String query = SQL_SELECT_REPLY_COUNT;
-		if (!includeDeleted) {
-			query += NON_DELETED_CONDITION;
+	/**
+	 * Add condition part to the input query based on the filter.
+	 * 
+	 * @param query
+	 * @param filter
+	 * @return
+	 */
+	protected static String addCondition(String query, DiscussionFilter filter) {
+		switch (filter) {
+			case NO_FILTER:
+				break;
+			case DELETED_ONLY:
+				query += DELETED_CONDITION;
+				break;
+			case NOT_DELETED_ONLY:
+				query += NOT_DELETED_CONDITION;
+				break;
 		}
-		return jdbcTemplate.queryForLong(query, threadId);
+		return query;
+	}
+
+	@Override
+	public long getReplyCount(long threadId, DiscussionFilter filter) {
+		String query = SQL_SELECT_REPLY_COUNT;
+		return jdbcTemplate.queryForLong(addCondition(query, filter), threadId);
 	}
 
 	@WriteTransactionReadCommitted

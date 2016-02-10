@@ -8,6 +8,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
+import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
@@ -81,6 +82,7 @@ public class DiscussionController extends BaseController {
 	 * @param offset - The index of the pagination offset. For a page size of 10, the first page would be at offset = 0, and the second page would be at offset = 10.
 	 * @param sort - The field to sort the resulting threads on
 	 * @param ascending - The direction of sort: true for ascending, and false for descending
+	 * @param filter - Filter deleted/ not deleted threads
 	 * @param forumId - The forum ID to which the returning threads belong
 	 * @return
 	 */
@@ -92,58 +94,9 @@ public class DiscussionController extends BaseController {
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM) Long offset,
 			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false) DiscussionThreadOrder order,
 			@RequestParam(value = ServiceConstants.ASCENDING_PARAM, required = false) Boolean ascending,
+			@RequestParam(value = ServiceConstants.ASCENDING_PARAM) DiscussionFilter filter,
 			@PathVariable String forumId) {
-		return serviceProvider.getDiscussionService().getThreads(userId, forumId, limit, offset, order, ascending);
-	}
-
-	/**
-	 * This API is used to get N number of non-deleted threads for a given forum ID.
-	 * <br/>
-	 * Target users: anyone who has READ permission to the project.
-	 * 
-	 * @param userId - The ID of the user who is making the request
-	 * @param limit - Limits the size of the page returned. For example, a page size of 10 require limit = 10. The maximum Limit for this call is 100.
-	 * @param offset - The index of the pagination offset. For a page size of 10, the first page would be at offset = 0, and the second page would be at offset = 10.
-	 * @param sort - The field to sort the resulting threads on
-	 * @param ascending - The direction of sort: true for ascending, and false for descending
-	 * @param forumId - The forum ID to which the returning threads belong
-	 * @return
-	 */
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.FORUM_FORUM_ID_AVAILABLE_THREADS, method = RequestMethod.GET)
-	public @ResponseBody PaginatedResults<DiscussionThreadBundle> getAvailableThreadsForForum(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM) Long limit,
-			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM) Long offset,
-			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false) DiscussionThreadOrder order,
-			@RequestParam(value = ServiceConstants.ASCENDING_PARAM, required = false) Boolean ascending,
-			@PathVariable String forumId) {
-		return serviceProvider.getDiscussionService().getAvailableThreads(userId, forumId, limit, offset, order, ascending);
-	}
-
-	/**
-	 * This API is used to get N number of deleted threads for a given forum ID.
-	 * <br/>
-	 * Target users: anyone who has READ permission to the project.
-	 * 
-	 * @param userId - The ID of the user who is making the request
-	 * @param limit - Limits the size of the page returned. For example, a page size of 10 require limit = 10. The maximum Limit for this call is 100.
-	 * @param offset - The index of the pagination offset. For a page size of 10, the first page would be at offset = 0, and the second page would be at offset = 10.
-	 * @param sort - The field to sort the resulting threads on
-	 * @param ascending - The direction of sort: true for ascending, and false for descending
-	 * @param forumId - The forum ID to which the returning threads belong
-	 * @return
-	 */
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.FORUM_FORUM_ID_DELETED_THREADS, method = RequestMethod.GET)
-	public @ResponseBody PaginatedResults<DiscussionThreadBundle> getDeletedThreadsForForum(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM) Long limit,
-			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM) Long offset,
-			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false) DiscussionThreadOrder order,
-			@RequestParam(value = ServiceConstants.ASCENDING_PARAM, required = false) Boolean ascending,
-			@PathVariable String forumId) {
-		return serviceProvider.getDiscussionService().getDeletedThreads(userId, forumId, limit, offset, order, ascending);
+		return serviceProvider.getDiscussionService().getThreads(userId, forumId, limit, offset, order, ascending, filter);
 	}
 
 	/**
@@ -338,6 +291,7 @@ public class DiscussionController extends BaseController {
 	 * @param offset - The index of the pagination offset. For a page size of 10, the first page would be at offset = 0, and the second page would be at offset = 10.
 	 * @param sort - The field to sort the resulting threads on
 	 * @param ascending - The direction of sort: true for ascending, and false for descending
+	 * @param filter - Filter deleted/ not deleted replies
 	 * @param threadId - The thread ID to which the returning replies belong
 	 * @return
 	 */
@@ -349,9 +303,9 @@ public class DiscussionController extends BaseController {
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM) Long offset,
 			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false) DiscussionReplyOrder order,
 			@RequestParam(value = ServiceConstants.ASCENDING_PARAM, required = false) Boolean ascending,
-			@RequestParam(value = ServiceConstants.INCLUDE_DELETED, required = false, defaultValue = ServiceConstants.DEFAULT_INCLUDE_DELETED_PARAM) Boolean includeDeleted,
+			@RequestParam(value = ServiceConstants.ASCENDING_PARAM) DiscussionFilter filter,
 			@PathVariable String threadId) {
-		return serviceProvider.getDiscussionService().getReplies(userId, threadId, limit, offset, order, ascending, includeDeleted);
+		return serviceProvider.getDiscussionService().getReplies(userId, threadId, limit, offset, order, ascending, filter);
 	}
 
 	/**

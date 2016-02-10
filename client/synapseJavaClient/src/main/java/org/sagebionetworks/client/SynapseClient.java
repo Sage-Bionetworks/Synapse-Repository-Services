@@ -76,6 +76,7 @@ import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
+import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
@@ -2450,11 +2451,11 @@ public interface SynapseClient extends BaseClient {
 	 * @param offset
 	 * @param order
 	 * @param ascending
-	 * @param includeDeleted
+	 * @param filter
 	 * @return
 	 * @throws SynapseException
 	 */
-	PaginatedResults<DiscussionReplyBundle> getRepliesForThread(String threadId, Long limit, Long offset, DiscussionReplyOrder order, Boolean ascending, Boolean includeDeleted) throws SynapseException;
+	PaginatedResults<DiscussionReplyBundle> getRepliesForThread(String threadId, Long limit, Long offset, DiscussionReplyOrder order, Boolean ascending, DiscussionFilter filter) throws SynapseException;
 
 	/**
 	 * Update the message of an existing reply
@@ -2508,36 +2509,11 @@ public interface SynapseClient extends BaseClient {
 	 * @param offset
 	 * @param order
 	 * @param ascending
+	 * @param filter
 	 * @return
 	 * @throws SynapseException
 	 */
-	PaginatedResults<DiscussionThreadBundle> getThreadsForForum(String forumId, Long limit, Long offset, DiscussionThreadOrder order, Boolean ascending) throws SynapseException;
-
-	/**
-	 * Get non-deleted threads for a given forum
-	 * 
-	 * @param forumId
-	 * @param limit
-	 * @param offset
-	 * @param order
-	 * @param ascending
-	 * @return
-	 * @throws SynapseException
-	 */
-	PaginatedResults<DiscussionThreadBundle> getAvailableThreadsForForum(String forumId, Long limit, Long offset, DiscussionThreadOrder order, Boolean ascending) throws SynapseException;
-
-	/**
-	 * Get deleted threads for a given forum
-	 * 
-	 * @param forumId
-	 * @param limit
-	 * @param offset
-	 * @param order
-	 * @param ascending
-	 * @return
-	 * @throws SynapseException
-	 */
-	PaginatedResults<DiscussionThreadBundle> getDeletedThreadsForForum(String forumId, Long limit, Long offset, DiscussionThreadOrder order, Boolean ascending) throws SynapseException;
+	PaginatedResults<DiscussionThreadBundle> getThreadsForForum(String forumId, Long limit, Long offset, DiscussionThreadOrder order, Boolean ascending, DiscussionFilter filter) throws SynapseException;
 
 	/**
 	 * Update the title of an existing thread

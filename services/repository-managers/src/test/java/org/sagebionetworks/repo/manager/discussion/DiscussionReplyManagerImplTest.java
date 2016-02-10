@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.model.UploadContentToS3DAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.discussion.DiscussionReplyDAO;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
+import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
@@ -204,7 +205,7 @@ public class DiscussionReplyManagerImplTest {
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testGetRepliesForThreadWithNullThreadId() {
-		replyManager.getRepliesForThread(userInfo, null, 2L, 0L, DiscussionReplyOrder.CREATED_ON, false, false);
+		replyManager.getRepliesForThread(userInfo, null, 2L, 0L, DiscussionReplyOrder.CREATED_ON, false, DiscussionFilter.NO_FILTER);
 	}
 
 	@Test
@@ -213,10 +214,10 @@ public class DiscussionReplyManagerImplTest {
 		replies.setResults(Arrays.asList(bundle));
 		Mockito.when(mockReplyDao.getRepliesForThread(Mockito.anyLong(), Mockito.anyLong(),
 				Mockito.anyLong(), (DiscussionReplyOrder) Mockito.any(), Mockito.anyBoolean(),
-				Mockito.anyBoolean())).thenReturn(replies);
+				Mockito.any(DiscussionFilter.class))).thenReturn(replies);
 		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		assertEquals(replies, replyManager.getRepliesForThread(userInfo, threadId, 2L, 0L, DiscussionReplyOrder.CREATED_ON, true, false));
+		assertEquals(replies, replyManager.getRepliesForThread(userInfo, threadId, 2L, 0L, DiscussionReplyOrder.CREATED_ON, true, DiscussionFilter.NO_FILTER));
 	}
 
 

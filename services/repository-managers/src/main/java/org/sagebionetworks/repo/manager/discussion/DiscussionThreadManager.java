@@ -5,6 +5,7 @@ import java.io.IOException;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
+import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.MessageURL;
@@ -70,35 +71,10 @@ public interface DiscussionThreadManager {
 	 * @param offset
 	 * @param order
 	 * @param ascending
+	 * @param filter 
 	 * @return
 	 */
-	public PaginatedResults<DiscussionThreadBundle> getThreadsForForum(UserInfo userInfo, String forumId, Long limit, Long offset, DiscussionThreadOrder order, Boolean ascending );
-
-	/**
-	 * Get non-deleted threads of a forumId
-	 * 
-	 * @param userInfo
-	 * @param forumId
-	 * @param limit
-	 * @param offset
-	 * @param order
-	 * @param ascending
-	 * @return
-	 */
-	public PaginatedResults<DiscussionThreadBundle> getAvailableThreadsForForum(UserInfo userInfo, String forumId, Long limit, Long offset, DiscussionThreadOrder order, Boolean ascending );
-
-	/**
-	 * Get deleted threads of a forumId
-	 * 
-	 * @param userInfo
-	 * @param forumId
-	 * @param limit
-	 * @param offset
-	 * @param order
-	 * @param ascending
-	 * @return
-	 */
-	public PaginatedResults<DiscussionThreadBundle> getDeletedThreadsForForum(UserInfo userInfo, String forumId, Long limit, Long offset, DiscussionThreadOrder order, Boolean ascending );
+	public PaginatedResults<DiscussionThreadBundle> getThreadsForForum(UserInfo userInfo, String forumId, Long limit, Long offset, DiscussionThreadOrder order, Boolean ascending, DiscussionFilter filter );
 
 	/**
 	 * Get message Url for a thread
