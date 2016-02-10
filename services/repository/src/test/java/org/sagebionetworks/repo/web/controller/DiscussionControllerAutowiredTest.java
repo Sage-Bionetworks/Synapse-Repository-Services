@@ -205,10 +205,10 @@ public class DiscussionControllerAutowiredTest extends AbstractAutowiredControll
 		DiscussionReplyBundle replyBundle1 = servletTestHelper.createReply(dispatchServlet, adminUserId, createReply);
 		DiscussionReplyBundle replyBundle2 = servletTestHelper.createReply(dispatchServlet, adminUserId, createReply);
 		servletTestHelper.markReplyAsDeleted(dispatchServlet, adminUserId, replyBundle1.getId());
-		PaginatedResults<DiscussionReplyBundle> deleted = servletTestHelper.getReplies(dispatchServlet, adminUserId, forum.getId(), 10L, 0L, DiscussionReplyOrder.CREATED_ON, true, DiscussionFilter.DELETED_ONLY);
+		PaginatedResults<DiscussionReplyBundle> deleted = servletTestHelper.getReplies(dispatchServlet, adminUserId, threadBundle.getId(), 10L, 0L, DiscussionReplyOrder.CREATED_ON, true, DiscussionFilter.DELETED_ONLY);
 		assertEquals(1L, deleted.getTotalNumberOfResults());
 		assertEquals(replyBundle1.getId(), deleted.getResults().get(0).getId());
-		PaginatedResults<DiscussionReplyBundle> available = servletTestHelper.getReplies(dispatchServlet, adminUserId, forum.getId(), 10L, 0L, DiscussionReplyOrder.CREATED_ON, true, DiscussionFilter.NOT_DELETED_ONLY);
+		PaginatedResults<DiscussionReplyBundle> available = servletTestHelper.getReplies(dispatchServlet, adminUserId, threadBundle.getId(), 10L, 0L, DiscussionReplyOrder.CREATED_ON, true, DiscussionFilter.NOT_DELETED_ONLY);
 		assertEquals(1L, available.getTotalNumberOfResults());
 		assertEquals(replyBundle2.getId(), available.getResults().get(0).getId());
 	}

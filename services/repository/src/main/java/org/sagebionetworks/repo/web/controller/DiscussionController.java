@@ -94,7 +94,7 @@ public class DiscussionController extends BaseController {
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM) Long offset,
 			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false) DiscussionThreadOrder order,
 			@RequestParam(value = ServiceConstants.ASCENDING_PARAM, required = false) Boolean ascending,
-			@RequestParam(value = ServiceConstants.ASCENDING_PARAM) DiscussionFilter filter,
+			@RequestParam(value = ServiceConstants.DISCUSSION_FILTER_PARAM) DiscussionFilter filter,
 			@PathVariable String forumId) {
 		return serviceProvider.getDiscussionService().getThreads(userId, forumId, limit, offset, order, ascending, filter);
 	}
@@ -303,7 +303,7 @@ public class DiscussionController extends BaseController {
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM) Long offset,
 			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false) DiscussionReplyOrder order,
 			@RequestParam(value = ServiceConstants.ASCENDING_PARAM, required = false) Boolean ascending,
-			@RequestParam(value = ServiceConstants.ASCENDING_PARAM) DiscussionFilter filter,
+			@RequestParam(value = ServiceConstants.DISCUSSION_FILTER_PARAM) DiscussionFilter filter,
 			@PathVariable String threadId) {
 		return serviceProvider.getDiscussionService().getReplies(userId, threadId, limit, offset, order, ascending, filter);
 	}

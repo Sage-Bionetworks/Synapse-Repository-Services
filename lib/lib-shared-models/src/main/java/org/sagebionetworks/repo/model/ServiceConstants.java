@@ -262,7 +262,5 @@ public class ServiceConstants {
 	
 	public static final String PRINCIPAL_ID = "principalId";
 
-	public static final String INCLUDE_DELETED = "includeDeleted";
-
-	public static final String DEFAULT_INCLUDE_DELETED_PARAM = "false";
+	public static final String DISCUSSION_FILTER_PARAM = "filter";
 }
