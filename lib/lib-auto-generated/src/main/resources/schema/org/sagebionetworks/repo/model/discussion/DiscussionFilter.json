@@ -5,6 +5,6 @@
     "enum":[
         "NO_FILTER",
         "DELETED_ONLY",
-        "NOT_DELETED_ONLY"
+        "EXCLUDE_DELETED"
     ]
 }

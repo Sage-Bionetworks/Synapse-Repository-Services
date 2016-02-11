@@ -295,7 +295,7 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 			case DELETED_ONLY:
 				query += DELETED_CONDITION;
 				break;
-			case NOT_DELETED_ONLY:
+			case EXCLUDE_DELETED:
 				query += NOT_DELETED_CONDITION;
 				break;
 		}

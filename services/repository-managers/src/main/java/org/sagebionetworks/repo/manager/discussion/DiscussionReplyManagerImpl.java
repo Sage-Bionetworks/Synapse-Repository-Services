@@ -61,7 +61,7 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 	public DiscussionReplyBundle getReply(UserInfo userInfo, String replyId) {
 		UserInfo.validateUserInfo(userInfo);
 		ValidateArgument.required(replyId, "replyId");
-		DiscussionReplyBundle reply = replyDao.getReply(Long.parseLong(replyId), DiscussionFilter.NOT_DELETED_ONLY);
+		DiscussionReplyBundle reply = replyDao.getReply(Long.parseLong(replyId), DiscussionFilter.EXCLUDE_DELETED);
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canAccess(userInfo, reply.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
 		return reply;

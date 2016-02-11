@@ -75,7 +75,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 	public DiscussionThreadBundle getThread(UserInfo userInfo, String threadId) {
 		ValidateArgument.required(threadId, "threadId");
 		UserInfo.validateUserInfo(userInfo);
-		DiscussionFilter filter = DiscussionFilter.NOT_DELETED_ONLY;
+		DiscussionFilter filter = DiscussionFilter.EXCLUDE_DELETED;
 		Long threadIdLong = Long.parseLong(threadId);
 		DiscussionThreadBundle thread = threadDao.getThread(threadIdLong, filter);
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
@@ -140,7 +140,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		ValidateArgument.required(filter, "filter");
 		UserInfo.validateUserInfo(userInfo);
 		String projectId = forumDao.getForum(Long.parseLong(forumId)).getProjectId();
-		if (filter.equals(DiscussionFilter.NOT_DELETED_ONLY)) {
+		if (filter.equals(DiscussionFilter.EXCLUDE_DELETED)) {
 			AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 					authorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ));
 		} else {

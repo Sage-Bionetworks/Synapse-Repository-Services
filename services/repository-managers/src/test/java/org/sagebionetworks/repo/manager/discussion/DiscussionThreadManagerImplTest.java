@@ -92,7 +92,7 @@ public class DiscussionThreadManagerImplTest {
 
 		Mockito.when(mockForumDao.getForum(Long.parseLong(createDto.getForumId()))).thenReturn(forum);
 		Mockito.when(mockThreadDao.getThread(threadId, DiscussionFilter.NO_FILTER)).thenReturn(dto);
-		Mockito.when(mockThreadDao.getThread(threadId, DiscussionFilter.NOT_DELETED_ONLY)).thenReturn(dto);
+		Mockito.when(mockThreadDao.getThread(threadId, DiscussionFilter.EXCLUDE_DELETED)).thenReturn(dto);
 		Mockito.when(mockIdGenerator.generateNewId(TYPE.DISCUSSION_THREAD_ID)).thenReturn(threadId);
 		messageUrl.setMessageUrl("messageUrl");
 		Mockito.when(mockUploadDao.getThreadUrl(messageKey)).thenReturn(messageUrl);
@@ -173,14 +173,14 @@ public class DiscussionThreadManagerImplTest {
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		assertEquals(dto, threadManager.getThread(userInfo, threadId.toString()));
 		Mockito.verify(mockThreadDao).updateThreadView(Mockito.anyLong(), Mockito.anyLong());
-		Mockito.verify(mockReplyDao).getReplyCount(threadId, DiscussionFilter.NOT_DELETED_ONLY);
+		Mockito.verify(mockReplyDao).getReplyCount(threadId, DiscussionFilter.EXCLUDE_DELETED);
 	}
 
 	@Test (expected = NotFoundException.class)
 	public void testGetThreadDeleted() {
 		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		Mockito.when(mockThreadDao.getThread(threadId, DiscussionFilter.NOT_DELETED_ONLY)).thenThrow(new NotFoundException());
+		Mockito.when(mockThreadDao.getThread(threadId, DiscussionFilter.EXCLUDE_DELETED)).thenThrow(new NotFoundException());
 		threadManager.getThread(userInfo, threadId.toString());
 	}
 
@@ -268,7 +268,7 @@ public class DiscussionThreadManagerImplTest {
 				.thenReturn(threads);
 		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
 				.thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
-		threadManager.getThreadsForForum(userInfo, forumId.toString(), 2L, 0L, DiscussionThreadOrder.LAST_ACTIVITY, true, DiscussionFilter.NOT_DELETED_ONLY);
+		threadManager.getThreadsForForum(userInfo, forumId.toString(), 2L, 0L, DiscussionThreadOrder.LAST_ACTIVITY, true, DiscussionFilter.EXCLUDE_DELETED);
 	}
 
 	@Test
