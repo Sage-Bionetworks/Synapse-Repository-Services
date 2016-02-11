@@ -154,14 +154,14 @@ public class ITDiscussion {
 
 		PaginatedResults<DiscussionThreadBundle> availableThreads = synapse.getThreadsForForum(forumId, 100L, 0L, null, null, DiscussionFilter.EXCLUDE_DELETED);
 		assertEquals(1, availableThreads.getTotalNumberOfResults());
-		assertEquals(availableThreads.getResults().get(0).getId(), replyId);
+		assertEquals(availableThreads.getResults().get(0).getId(), threadId);
 
 		// delete thread
 		synapse.markThreadAsDeleted(threadId);
 
 		PaginatedResults<DiscussionThreadBundle> deletedThreads = synapse.getThreadsForForum(forumId, 100L, 0L, null, null, DiscussionFilter.DELETED_ONLY);
 		assertEquals(1, deletedThreads.getTotalNumberOfResults());
-		assertEquals(deletedThreads.getResults().get(0).getId(), bundle.getId());
+		assertEquals(deletedThreads.getResults().get(0).getId(), threadId);
 
 		availableThreads = synapse.getThreadsForForum(forumId, 100L, 0L, null, null, DiscussionFilter.EXCLUDE_DELETED);
 		assertEquals(0, availableThreads.getTotalNumberOfResults());
