@@ -139,7 +139,7 @@ public class ITDiscussion {
 		assertEquals(updatedReply.getId(), replyId);
 		assertTrue(updatedReply.getIsEdited());
 
-		PaginatedResults<DiscussionReplyBundle> availableReplies = synapse.getRepliesForThread(threadId, 100L, 0L, null, null, DiscussionFilter.NOT_DELETED_ONLY);
+		PaginatedResults<DiscussionReplyBundle> availableReplies = synapse.getRepliesForThread(threadId, 100L, 0L, null, null, DiscussionFilter.EXCLUDE_DELETED);
 		assertEquals(1, availableReplies.getTotalNumberOfResults());
 		assertEquals(availableReplies.getResults().get(0).getId(), bundle.getId());
 
@@ -149,10 +149,10 @@ public class ITDiscussion {
 		assertEquals(1, deletedReplies.getTotalNumberOfResults());
 		assertEquals(deletedReplies.getResults().get(0).getId(), replyId);
 
-		availableReplies = synapse.getRepliesForThread(threadId, 100L, 0L, null, null, DiscussionFilter.NOT_DELETED_ONLY);
+		availableReplies = synapse.getRepliesForThread(threadId, 100L, 0L, null, null, DiscussionFilter.EXCLUDE_DELETED);
 		assertEquals(0, availableReplies.getTotalNumberOfResults());
 
-		PaginatedResults<DiscussionThreadBundle> availableThreads = synapse.getThreadsForForum(forumId, 100L, 0L, null, null, DiscussionFilter.NOT_DELETED_ONLY);
+		PaginatedResults<DiscussionThreadBundle> availableThreads = synapse.getThreadsForForum(forumId, 100L, 0L, null, null, DiscussionFilter.EXCLUDE_DELETED);
 		assertEquals(1, availableThreads.getTotalNumberOfResults());
 		assertEquals(availableThreads.getResults().get(0).getId(), bundle.getId());
 
@@ -163,7 +163,7 @@ public class ITDiscussion {
 		assertEquals(1, deletedThreads.getTotalNumberOfResults());
 		assertEquals(deletedThreads.getResults().get(0).getId(), bundle.getId());
 
-		availableThreads = synapse.getThreadsForForum(forumId, 100L, 0L, null, null, DiscussionFilter.NOT_DELETED_ONLY);
+		availableThreads = synapse.getThreadsForForum(forumId, 100L, 0L, null, null, DiscussionFilter.EXCLUDE_DELETED);
 		assertEquals(0, availableThreads.getTotalNumberOfResults());
 	}
 }

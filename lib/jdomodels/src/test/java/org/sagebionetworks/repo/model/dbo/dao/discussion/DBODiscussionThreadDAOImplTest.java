@@ -196,7 +196,7 @@ public class DBODiscussionThreadDAOImplTest {
 
 		dto.setIsDeleted(true);
 		threadDao.markThreadAsDeleted(threadId);
-		threadDao.getThread(threadId, DiscussionFilter.NOT_DELETED_ONLY);
+		threadDao.getThread(threadId, DiscussionFilter.EXCLUDE_DELETED);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -444,7 +444,7 @@ public class DBODiscussionThreadDAOImplTest {
 		threadDao.markThreadAsDeleted(Long.parseLong(createdThreads.get(1).getId()));
 
 		PaginatedResults<DiscussionThreadBundle> deleted = threadDao.getThreads(forumIdLong, MAX_LIMIT, 0L, DiscussionThreadOrder.LAST_ACTIVITY, true, DiscussionFilter.DELETED_ONLY);
-		PaginatedResults<DiscussionThreadBundle> available = threadDao.getThreads(forumIdLong, MAX_LIMIT, 0L, DiscussionThreadOrder.LAST_ACTIVITY, true, DiscussionFilter.NOT_DELETED_ONLY);
+		PaginatedResults<DiscussionThreadBundle> available = threadDao.getThreads(forumIdLong, MAX_LIMIT, 0L, DiscussionThreadOrder.LAST_ACTIVITY, true, DiscussionFilter.EXCLUDE_DELETED);
 		assertEquals(1, deleted.getTotalNumberOfResults());
 		assertEquals(2, available.getTotalNumberOfResults());
 		assertEquals(createdThreads.get(1).getId(), deleted.getResults().get(0).getId());
@@ -464,7 +464,7 @@ public class DBODiscussionThreadDAOImplTest {
 		assertEquals("deleted only", DELETED_CONDITION,
 				DBODiscussionThreadDAOImpl.addCondition(query, DiscussionFilter.DELETED_ONLY));
 		assertEquals("not deleted only", NOT_DELETED_CONDITION,
-				DBODiscussionThreadDAOImpl.addCondition(query, DiscussionFilter.NOT_DELETED_ONLY));
+				DBODiscussionThreadDAOImpl.addCondition(query, DiscussionFilter.EXCLUDE_DELETED));
 	}
 
 	@Test

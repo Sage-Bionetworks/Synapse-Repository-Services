@@ -151,7 +151,7 @@ public class DBODiscussionReplyDAOImplTest {
 		replyDao.createReply(threadId, replyId, "messageKey", userId);
 		replyDao.markReplyAsDeleted(replyIdLong);
 		assertEquals(1L, replyDao.getReplyCount(threadIdLong, DiscussionFilter.NO_FILTER));
-		assertEquals(0L, replyDao.getReplyCount(threadIdLong, DiscussionFilter.NOT_DELETED_ONLY));
+		assertEquals(0L, replyDao.getReplyCount(threadIdLong, DiscussionFilter.EXCLUDE_DELETED));
 		assertEquals(1L, replyDao.getReplyCount(threadIdLong, DiscussionFilter.DELETED_ONLY));
 	}
 
@@ -250,7 +250,7 @@ public class DBODiscussionReplyDAOImplTest {
 
 		replyDao.markReplyAsDeleted(Long.parseLong(createdReplies.get(1).getId()));
 
-		nonDeletedReplies = replyDao.getRepliesForThread(threadIdLong, MAX_LIMIT, 0L, null, null, DiscussionFilter.NOT_DELETED_ONLY);
+		nonDeletedReplies = replyDao.getRepliesForThread(threadIdLong, MAX_LIMIT, 0L, null, null, DiscussionFilter.EXCLUDE_DELETED);
 		includedeletedReplies = replyDao.getRepliesForThread(threadIdLong, MAX_LIMIT, 0L, null, null, DiscussionFilter.NO_FILTER);
 		assertFalse(nonDeletedReplies.equals(includedeletedReplies));
 		assertEquals(nonDeletedReplies.getTotalNumberOfResults(), 2);
@@ -300,7 +300,7 @@ public class DBODiscussionReplyDAOImplTest {
 
 		dto.setIsDeleted(true);
 		replyDao.markReplyAsDeleted(replyId);
-		replyDao.getReply(replyId, DiscussionFilter.NOT_DELETED_ONLY);
+		replyDao.getReply(replyId, DiscussionFilter.EXCLUDE_DELETED);
 	}
 
 	@Test
@@ -429,7 +429,7 @@ public class DBODiscussionReplyDAOImplTest {
 				+ " AND THREAD_ID = ?"
 				+ " AND DISCUSSION_REPLY.IS_DELETED = FALSE"
 				+ " LIMIT 10 OFFSET 0",
-				DBODiscussionReplyDAOImpl.buildGetRepliesQuery(10L, 0L, null, null, DiscussionFilter.NOT_DELETED_ONLY));
+				DBODiscussionReplyDAOImpl.buildGetRepliesQuery(10L, 0L, null, null, DiscussionFilter.EXCLUDE_DELETED));
 		assertEquals("order ascending",
 				"SELECT DISCUSSION_REPLY.ID AS ID , THREAD_ID, FORUM_ID, PROJECT_ID,"
 				+ " DISCUSSION_REPLY.MESSAGE_KEY AS MESSAGE_KEY , DISCUSSION_REPLY.CREATED_BY AS CREATED_BY,"
@@ -492,6 +492,6 @@ public class DBODiscussionReplyDAOImplTest {
 		assertEquals("deleted only", DELETED_CONDITION, 
 				DBODiscussionReplyDAOImpl.addCondition(query, DiscussionFilter.DELETED_ONLY));
 		assertEquals("not deleted only", NOT_DELETED_CONDITION, 
-				DBODiscussionReplyDAOImpl.addCondition(query, DiscussionFilter.NOT_DELETED_ONLY));
+				DBODiscussionReplyDAOImpl.addCondition(query, DiscussionFilter.EXCLUDE_DELETED));
 	}
 }
