@@ -7319,11 +7319,11 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 	@Override
 	public DiscussionThreadBundle getThread(String threadId)
-			throws SynapseException {
+			throws SynapseException{
 		try {
 			ValidateArgument.required(threadId, "threadId");
 			return getJSONEntity(THREAD+"/"+threadId, DiscussionThreadBundle.class);
-		} catch (Exception e) {
+		} catch (JSONObjectAdapterException e) {
 			throw new SynapseClientException(e);
 		}
 	}
@@ -7392,7 +7392,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		try {
 			ValidateArgument.required(replyId, "replyId");
 			return getJSONEntity(REPLY+"/"+replyId, DiscussionReplyBundle.class);
-		} catch (Exception e) {
+		} catch (JSONObjectAdapterException e) {
 			throw new SynapseClientException(e);
 		}
 	}
@@ -7508,7 +7508,9 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		try {
 			ValidateArgument.required(messageKey, "messageKey");
 			return new URL(getJSONEntity(REPLY+URL+"?messageKey="+messageKey, MessageURL.class).getMessageUrl());
-		} catch (Exception e) {
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		} catch (MalformedURLException e) {
 			throw new SynapseClientException(e);
 		}
 	}
@@ -7518,7 +7520,9 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		try {
 			ValidateArgument.required(messageKey, "messageKey");
 			return new URL(getJSONEntity(THREAD+URL+"?messageKey="+messageKey, MessageURL.class).getMessageUrl());
-		} catch (Exception e) {
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		} catch (MalformedURLException e) {
 			throw new SynapseClientException(e);
 		}
 	}
