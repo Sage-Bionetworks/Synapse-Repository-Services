@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -7,6 +8,7 @@ import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.Callback;
 
 
 /**
@@ -436,5 +438,36 @@ public interface NodeDAO {
 	 * @return
 	 */
 	int updateProjectForAllChildren(String nodeId, String projectId);
+
+	/**
+	 * Get the IDs of all container nodes within the hierarchy of the given
+	 * parent.  This method will make one database call per level of
+	 * hierarchy.
+	 * 
+	 * @param parentId
+	 * @return The returned List is the IDs of each container within the
+	 *         hierarchy. The passed parent ID is the first element. IDs are in
+	 *         in ascending order starting with the direct children followed by
+	 *         grandchildren etc
+	 */
+	List<Long> getAllContainerIds(Long parentId);
+	
+
+	/**
+	 * Stream over all Nodes contained within the passed hierarchy in order of node ID.
+	 * Note: This method involves streaming over the results of a single query.  The
+	 * results will not be kept in memory.
+	 * 
+	 * @param containers must be the full list of container node ID (projects and folders). See: {@link #getAllContainerIds(Long)}
+	 * @param callback hierarchy data of each node within the containers.
+	 */
+	void streamOverHierarchy(List<Long> containers, Callback<NodeHierarchy> callback);
+	
+	/**
+	 * Batch update a given hierarchy.
+	 * 
+	 * @param batch
+	 */
+	void batchUpdateHierarchy(ArrayList<NodeHierarchy> batch);
 
 }

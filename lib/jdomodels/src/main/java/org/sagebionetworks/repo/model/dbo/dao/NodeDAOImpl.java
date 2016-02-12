@@ -38,8 +38,10 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_REVISI
 
 import java.io.IOException;
 import java.sql.Blob;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -72,6 +74,7 @@ import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.NodeHierarchy;
 import org.sagebionetworks.repo.model.NodeParentRelation;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ProjectHeader;
@@ -95,14 +98,18 @@ import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.query.jdo.QueryUtils;
 import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.Callback;
 import org.sagebionetworks.util.SerializationUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.BadSqlGrammarException;
+import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -121,10 +128,13 @@ import com.google.common.collect.Sets;
  */
 public class NodeDAOImpl implements NodeDAO, InitializingBean {
 
+	private static final String SQL_BATCH_UPDATE_HIERARCHY = "UPDATE "+TABLE_NODE+" SET "+COL_NODE_ETAG+" = UUID(), "+COL_NODE_PARENT_ID+" = ?, "+COL_NODE_BENEFACTOR_ID+" = ?, "+COL_NODE_PROJECT_ID +" = ? WHERE "+COL_NODE_ID+" = ?";
 	private static final String SQL_UPDATE_PARENT_ID = "UPDATE "+TABLE_NODE+" SET "+COL_NODE_PARENT_ID+" = ?, "+COL_NODE_ETAG+" = UUID() WHERE "+COL_NODE_ID+" = ?";
 	private static final String SELECT_ENTITY_HEADERS_FOR_ENTITY_IDS = "SELECT "+COL_NODE_ID+", "+COL_NODE_NAME+", "+COL_NODE_TYPE+", "+COL_CURRENT_REV+", "+COL_NODE_BENEFACTOR_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" IN (:nodeIds)";
 	private static final String USER_ID_PARAM_NAME = "user_id_param";
 	private static final String IDS_PARAM_NAME = "ids_param";
+	private static final String SQL_SELECT_HIERARCHY_FOR_PARENTS_IN = "SELECT "+COL_NODE_ID+", "+COL_NODE_PARENT_ID+", "+COL_NODE_BENEFACTOR_ID+", "+COL_NODE_PROJECT_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_PARENT_ID+" IN (:"+IDS_PARAM_NAME+") ORDER BY "+COL_NODE_ID+" ASC";
+	private static final String SQL_SELECT_CONTAINERS_WITH_PARENT_IDS_IN_CLAUSE = "SELECT "+COL_NODE_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_PARENT_ID+" IN (:"+IDS_PARAM_NAME+") AND "+COL_NODE_TYPE+" IN ('"+EntityType.folder.name()+"', '"+EntityType.project.name()+"') ORDER BY "+COL_NODE_ID+" ASC";
 	private static final String PROJECT_ID_PARAM_NAME = "project_id_param";
 
 	private static final String SQL_SELECT_REV_FILE_HANDLE_ID = "SELECT "+COL_REVISION_FILE_HANDLE_ID+" FROM "+TABLE_REVISION+" WHERE "+COL_REVISION_OWNER_NODE+" = ? AND "+COL_REVISION_NUMBER+" = ?";
@@ -1547,5 +1557,110 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		}
 		return etags;
 	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see org.sagebionetworks.repo.model.NodeDAO#lockAllContainers(java.lang.Long)
+	 */
+	@Override
+	public List<Long> getAllContainerIds(Long parentId) {
+		ValidateArgument.required(parentId, "parentId");
+		List<Long> parents = new LinkedList<Long>();
+		parents.add(parentId);
+		Map<String, List<Long>> parameters = new HashMap<String, List<Long>>(1);
+		parameters.put(IDS_PARAM_NAME, parents);
+		List<Long> results = new LinkedList<Long>();
+		results.add(parentId);
+		while(true){
+			// Get all children at this level.
+			List<Long> childern = namedParameterJdbcTemplate.queryForList(SQL_SELECT_CONTAINERS_WITH_PARENT_IDS_IN_CLAUSE, parameters, Long.class);
+			if(childern.isEmpty()){
+				// done
+				return results;
+			}
+			results.addAll(childern);
+			// Children become the parents
+			parameters.put(IDS_PARAM_NAME, childern);
+		}
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see org.sagebionetworks.repo.model.NodeDAO#streamOverHierarchy(java.util.List, org.sagebionetworks.util.Callback)
+	 */
+	@Override
+	public void streamOverHierarchy(final List<Long> containers,
+			final Callback<NodeHierarchy> callback) {
+		ValidateArgument.required(containers, "containers");
+		ValidateArgument.required(callback, "callback");
+		if(containers.isEmpty()){
+			// nothing to do if the containers are empty.
+			return;
+		}
+		Map<String, List<Long>> parameters = new HashMap<String, List<Long>>(1);
+		parameters.put(IDS_PARAM_NAME, containers);
+		namedParameterJdbcTemplate.query(SQL_SELECT_HIERARCHY_FOR_PARENTS_IN, parameters, new RowCallbackHandler() {
+			@Override
+			public void processRow(ResultSet rs) throws SQLException {
+				NodeHierarchy hierarchy = new NodeHierarchy();
+				hierarchy.setNodeId(rs.getLong(COL_NODE_ID));
+				hierarchy.setParentId(rs.getLong(COL_NODE_PARENT_ID));
+				hierarchy.setBenefectorId(rs.getLong(COL_NODE_BENEFACTOR_ID));
+				hierarchy.setProjectId(rs.getLong(COL_NODE_PROJECT_ID));
+				// pass along this row.
+				callback.invoke(hierarchy);
+			}
+		});
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see org.sagebionetworks.repo.model.NodeDAO#batchUpdateHierarchy(java.util.ArrayList)
+	 */
+	@WriteTransactionReadCommitted
+	@Override
+	public void batchUpdateHierarchy(final ArrayList<NodeHierarchy> batch) {
+		ValidateArgument.required(batch, "batch");
+		if(batch.isEmpty()){
+			// nothing to do if the batch is empty.
+			return;
+		}
+		jdbcTemplate.batchUpdate(SQL_BATCH_UPDATE_HIERARCHY, new BatchPreparedStatementSetter() {
+			
+			@Override
+			public void setValues(PreparedStatement ps, int i) throws SQLException {
+				NodeHierarchy update = batch.get(i);
+				setPreparedStatement(ps, 1, update.getParentId());
+				setPreparedStatement(ps, 2, update.getBenefectorId());
+				setPreparedStatement(ps, 3, update.getProjectId());
+				// nodeId cannot be null
+				ValidateArgument.required(update.getNodeId(), "update.nodeId()");
+				ps.setLong(4, update.getNodeId());
+			}
+			
+			@Override
+			public int getBatchSize() {
+				return batch.size();
+			}
+			
+			/**
+			 * Helper setting PreparedStatement when the value can be nulls.
+			 * @param ps
+			 * @param index
+			 * @param value
+			 * @throws SQLException
+			 */
+			private void setPreparedStatement(PreparedStatement ps, int index, Long value) throws SQLException{
+				if(value != null){
+					ps.setLong(index, value);
+				}else{
+					ps.setNull(index, Types.BIGINT);
+				}
+			}
+		});
+		
+	}
+	
+
 
 }
