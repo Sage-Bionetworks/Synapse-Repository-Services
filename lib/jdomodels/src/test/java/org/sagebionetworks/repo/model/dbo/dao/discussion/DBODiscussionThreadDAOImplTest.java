@@ -117,7 +117,7 @@ public class DBODiscussionThreadDAOImplTest {
 		assertEquals("check default number of views", dto.getNumberOfViews(), (Long) 0L);
 		assertEquals("check default number of replies", dto.getNumberOfReplies(), (Long) 0L);
 		assertEquals("check default last activity", dto.getLastActivity(), dto.getModifiedOn());
-		assertEquals("check default active authors", dto.getActiveAuthors(), Arrays.asList(dto.getCreatedBy()));
+		assertEquals("check default active authors", dto.getActiveAuthors(), new ArrayList<String>());
 
 		long threadId = Long.parseLong(dto.getId());
 		assertEquals("getThread() should return the created one", dto, threadDao.getThread(threadId, DEFAULT_FILTER));

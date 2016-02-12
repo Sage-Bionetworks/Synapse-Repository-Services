@@ -9,7 +9,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
@@ -84,7 +83,7 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 			}
 			String listString = rs.getString(COL_DISCUSSION_THREAD_STATS_ACTIVE_AUTHORS);
 			if (rs.wasNull()) {
-				dto.setActiveAuthors(Arrays.asList(dto.getCreatedBy()));
+				dto.setActiveAuthors(new ArrayList<String>());
 			} else {
 				dto.setActiveAuthors(DiscussionThreadUtils.toList(listString));
 			}
