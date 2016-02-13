@@ -32,7 +32,7 @@
 								<property name="semaphoreLockKey" value="searchIndexWorker" />
 								<property name="semaphoreMaxLockCount" value="4" />
 								<property name="semaphoreLockAndMessageVisibilityTimeoutSec"
-									value="300" />
+									value="600" />
 								<property name="queueName"
 									ref="stackConfiguration.searchUpdateQueueName" />
 								<property name="topicNamesToSubscribe">
@@ -43,7 +43,7 @@
 								</property>
 								<property name="deadLetterQueueName"
 									ref="stackConfiguration.searchUpdateDeadLetterQueueName" />
-								<property name="deadLetterMaxFailureCount" value="5" />
+								<property name="deadLetterMaxFailureCount" value="250" />
 								<property name="gate">
 									<bean class="org.sagebionetworks.worker.utils.StackStatusGate" />
 								</property>
