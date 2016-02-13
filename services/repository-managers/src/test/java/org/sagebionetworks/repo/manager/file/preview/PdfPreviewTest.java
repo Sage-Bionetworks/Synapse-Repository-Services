@@ -46,6 +46,7 @@ public class PdfPreviewTest {
 
 	@Test
 	public void testGeneratePreview() throws IOException {
+		Assume.assumeTrue(pdfPreviewGenerator.supportsContentType("application/pdf", "any"));
 		InputStream in = PdfPreviewGenerator.class.getClassLoader().getResourceAsStream(TEST_PDF_NAME);
 		assertNotNull("Failed to find a test file on the classpath: " + TEST_PDF_NAME, in);
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -58,12 +59,12 @@ public class PdfPreviewTest {
 	
 	@Test
 	public void testSupportsContentType() {
-		assertTrue(pdfPreviewGenerator.supportsContentType("text/pdf", null));
-		assertTrue(pdfPreviewGenerator.supportsContentType("text/x-pdf", null));
-		assertTrue(pdfPreviewGenerator.supportsContentType("application/pdf", null));
-		assertTrue(pdfPreviewGenerator.supportsContentType("text/pdf", "any"));
-		assertTrue(pdfPreviewGenerator.supportsContentType("text/x-pdf", "any"));
-		assertTrue(pdfPreviewGenerator.supportsContentType("application/pdf", "any"));
+		assertFalse(pdfPreviewGenerator.supportsContentType("text/pdf", null));
+		assertFalse(pdfPreviewGenerator.supportsContentType("text/x-pdf", null));
+		assertFalse(pdfPreviewGenerator.supportsContentType("application/pdf", null));
+		assertFalse(pdfPreviewGenerator.supportsContentType("text/pdf", "any"));
+		assertFalse(pdfPreviewGenerator.supportsContentType("text/x-pdf", "any"));
+		assertFalse(pdfPreviewGenerator.supportsContentType("application/pdf", "any"));
 		assertFalse(pdfPreviewGenerator.supportsContentType(null, null));
 		assertFalse(pdfPreviewGenerator.supportsContentType(null, "any"));
 		assertFalse(pdfPreviewGenerator.supportsContentType("any", "any"));
