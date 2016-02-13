@@ -124,7 +124,7 @@ public class RangeMetadataIterator implements Iterator<RowMetadata> {
 			// Last page
 			isLastPage = true;
 		}
-		logger.info("Getting data for type: " + this.type + ", fetched a total of " + progress.getCurrent() + " rows.");
+		logger.info("Getting data for type: " + this.type + ", fetched a total of " + offset + " rows.");
 		return page.iterator();
 	}
 
