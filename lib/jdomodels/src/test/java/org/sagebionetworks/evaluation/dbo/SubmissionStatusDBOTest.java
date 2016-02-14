@@ -142,5 +142,33 @@ public class SubmissionStatusDBOTest {
         boolean result = dboBasicDao.deleteObjectByPrimaryKey(SubmissionStatusDBO.class,  params);
         assertTrue("Failed to delete the entry created", result); 
     }
+    
+    // PLFM-3751
+    @Test
+    public void testNullScore() {
+        // Initialize a new SubmissionStatus object for submissionId with null score
+        SubmissionStatusDBO status = new SubmissionStatusDBO();
+        status.setId(submissionId);
+        status.seteTag(eTag);
+        status.setVersion(1L);
+        status.setModifiedOn(System.currentTimeMillis());
+        status.setStatusEnum(SubmissionStatusEnum.RECEIVED);
+        status.setSerializedEntity("foo".getBytes());
+        
+        // Create it
+        SubmissionStatusDBO clone = dboBasicDao.createNew(status);
+        assertNotNull(clone);
+        assertEquals(status, clone);
+        
+        // Fetch it
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("id",submissionId);
+        SubmissionStatusDBO clone2 = dboBasicDao.getObjectByPrimaryKey(SubmissionStatusDBO.class, params);
+        assertEquals(status, clone2);
+        
+    	// Delete it
+        boolean result = dboBasicDao.deleteObjectByPrimaryKey(SubmissionStatusDBO.class,  params);
+        assertTrue("Failed to delete the entry created", result); 
+    }
  
 }
