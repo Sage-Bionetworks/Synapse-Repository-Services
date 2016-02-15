@@ -349,6 +349,21 @@ public class DBODiscussionReplyDAOImplTest {
 	}
 
 	@Test
+	public void testGetThreadReplyStatsWithDeletedReply() throws InterruptedException {
+		int numberOfReplies = 2;
+		// create 2 replies for each thread
+		List<DiscussionReplyBundle> replies = createReplies(numberOfReplies, threadId);
+		replyDao.markReplyAsDeleted(Long.parseLong(replies.get(0).getId()));
+
+		List<DiscussionThreadReplyStat> stats = replyDao.getThreadReplyStat(10L, 0L);
+		assertNotNull(stats);
+		assertEquals(stats.size(), 1);
+		DiscussionThreadReplyStat stat = stats.get(0);
+		assertEquals(stat.getThreadId(), threadIdLong);
+		assertEquals(stat.getNumberOfReplies(), (Long) 1L);
+	}
+
+	@Test
 	public void testGetThreadAuthorStats() throws InterruptedException {
 		DiscussionThreadAuthorStat stat = replyDao.getDiscussionThreadAuthorStat(threadIdLong);
 		assertNotNull(stat);
@@ -388,6 +403,49 @@ public class DBODiscussionReplyDAOImplTest {
 		assertEquals(new HashSet<String>(stat.getActiveAuthors()),
 				new HashSet<String>(Arrays.asList(users.get(0).toString(),
 						users.get(1).toString(), users.get(2).toString(),
+						users.get(3).toString(), users.get(4).toString())));
+
+		usersToDelete.addAll(users);
+	}
+
+	@Test
+	public void testGetThreadAuthorStatsWithDeletedReply() throws InterruptedException {
+		DiscussionThreadAuthorStat stat = replyDao.getDiscussionThreadAuthorStat(threadIdLong);
+		assertNotNull(stat);
+		assertEquals(stat.getThreadId(), threadIdLong);
+		assertTrue(stat.getActiveAuthors().isEmpty());
+
+		List<Long> users = createUsers(6);
+		replyDao.createReply(threadId, idGenerator.generateNewId(TYPE.DISCUSSION_REPLY_ID).toString(),
+				UUID.randomUUID().toString(), users.get(0));
+		replyDao.createReply(threadId, idGenerator.generateNewId(TYPE.DISCUSSION_REPLY_ID).toString(),
+				UUID.randomUUID().toString(), users.get(0));
+		replyDao.createReply(threadId, idGenerator.generateNewId(TYPE.DISCUSSION_REPLY_ID).toString(),
+				UUID.randomUUID().toString(), users.get(1));
+		replyDao.createReply(threadId, idGenerator.generateNewId(TYPE.DISCUSSION_REPLY_ID).toString(),
+				UUID.randomUUID().toString(), users.get(1));
+		DiscussionReplyBundle reply = replyDao.createReply(threadId, idGenerator.generateNewId(TYPE.DISCUSSION_REPLY_ID).toString(),
+				UUID.randomUUID().toString(), users.get(2));
+		replyDao.createReply(threadId, idGenerator.generateNewId(TYPE.DISCUSSION_REPLY_ID).toString(),
+				UUID.randomUUID().toString(), users.get(2));
+		replyDao.createReply(threadId, idGenerator.generateNewId(TYPE.DISCUSSION_REPLY_ID).toString(),
+				UUID.randomUUID().toString(), users.get(3));
+		replyDao.createReply(threadId, idGenerator.generateNewId(TYPE.DISCUSSION_REPLY_ID).toString(),
+				UUID.randomUUID().toString(), users.get(3));
+		replyDao.createReply(threadId, idGenerator.generateNewId(TYPE.DISCUSSION_REPLY_ID).toString(),
+				UUID.randomUUID().toString(), users.get(4));
+		replyDao.createReply(threadId, idGenerator.generateNewId(TYPE.DISCUSSION_REPLY_ID).toString(),
+				UUID.randomUUID().toString(), users.get(4));
+		replyDao.createReply(threadId, idGenerator.generateNewId(TYPE.DISCUSSION_REPLY_ID).toString(),
+				UUID.randomUUID().toString(), users.get(5));
+		replyDao.createReply(threadId, idGenerator.generateNewId(TYPE.DISCUSSION_REPLY_ID).toString(),
+				UUID.randomUUID().toString(), users.get(5));
+		replyDao.markReplyAsDeleted(Long.parseLong(reply.getId()));
+
+		stat = replyDao.getDiscussionThreadAuthorStat(threadIdLong);
+		assertEquals(new HashSet<String>(stat.getActiveAuthors()),
+				new HashSet<String>(Arrays.asList(users.get(0).toString(),
+						users.get(1).toString(), users.get(5).toString(),
 						users.get(3).toString(), users.get(4).toString())));
 
 		usersToDelete.addAll(users);
