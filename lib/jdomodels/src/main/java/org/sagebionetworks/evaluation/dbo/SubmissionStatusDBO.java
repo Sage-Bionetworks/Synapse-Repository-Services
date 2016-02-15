@@ -61,7 +61,8 @@ public class SubmissionStatusDBO implements MigratableDatabaseObject<SubmissionS
 				sub.setVersion(rs.getLong(COL_SUBSTATUS_VERSION));
 				sub.setModifiedOn(rs.getLong(COL_SUBSTATUS_MODIFIED_ON));
 				sub.setStatus(rs.getInt(COL_SUBSTATUS_STATUS));
-				sub.setScore(rs.getDouble(COL_SUBSTATUS_SCORE));
+				Double score = rs.getDouble(COL_SUBSTATUS_SCORE);
+				sub.setScore(rs.wasNull() ? null : score);
 				java.sql.Blob blob = rs.getBlob(COL_SUBSTATUS_SERIALIZED_ENTITY);
 				if(blob != null){
 					sub.setSerializedEntity(blob.getBytes(1, (int) blob.length()));
