@@ -9,6 +9,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.audit.dao.ObjectRecordDAO;
 import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
+import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Team;
@@ -18,7 +19,6 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserProfile;
-import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.audit.ObjectRecord;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
@@ -31,7 +31,7 @@ public class PrincipalObjectRecordWriter implements ObjectRecordWriter {
 	@Autowired
 	private UserGroupDAO userGroupDAO;
 	@Autowired
-	private UserProfileDAO userProfileDAO;
+	private UserProfileManager userProfileManager;
 	@Autowired
 	private TeamDAO teamDAO;
 	@Autowired
@@ -42,10 +42,10 @@ public class PrincipalObjectRecordWriter implements ObjectRecordWriter {
 	PrincipalObjectRecordWriter(){}
 	
 	// for unit test only
-	PrincipalObjectRecordWriter(UserGroupDAO userGroupDAO, UserProfileDAO userProfileDAO, 
+	PrincipalObjectRecordWriter(UserGroupDAO userGroupDAO, UserProfileManager userProfileManager, 
 			TeamDAO teamDAO, GroupMembersDAO groupMembersDAO, ObjectRecordDAO objectRecordDAO) {
 		this.userGroupDAO = userGroupDAO;
-		this.userProfileDAO = userProfileDAO;
+		this.userProfileManager = userProfileManager;
 		this.teamDAO = teamDAO;
 		this.objectRecordDAO = objectRecordDAO;
 		this.groupMembersDAO = groupMembersDAO;
@@ -66,7 +66,7 @@ public class PrincipalObjectRecordWriter implements ObjectRecordWriter {
 			if(userGroup.getIsIndividual()){
 				// User
 				try {
-					UserProfile profile = userProfileDAO.get(message.getObjectId());
+					UserProfile profile = userProfileManager.getUserProfile(message.getObjectId());
 					profile.setSummary(null);
 					ObjectRecord upRecord = ObjectRecordBuilderUtils.buildObjectRecord(profile, message.getTimestamp().getTime());
 					objectRecordDAO.saveBatch(Arrays.asList(upRecord), upRecord.getJsonClassName());
