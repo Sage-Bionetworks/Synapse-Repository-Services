@@ -14,6 +14,7 @@ import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.audit.dao.ObjectRecordDAO;
 import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
+import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Team;
@@ -22,7 +23,6 @@ import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserProfile;
-import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.audit.ObjectRecord;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
@@ -33,7 +33,7 @@ public class PrincipalObjectRecordWriterTest {
 	
 	private PrincipalObjectRecordWriter writer;
 	@Mock
-	private UserProfileDAO mockUserProfileDAO;
+	private UserProfileManager mockUserProfileManager;
 	@Mock
 	private UserGroupDAO mockUserGroupDAO;
 	@Mock
@@ -58,7 +58,7 @@ public class PrincipalObjectRecordWriterTest {
 	public void setup() {
 		MockitoAnnotations.initMocks(this);
 
-		writer = new PrincipalObjectRecordWriter(mockUserGroupDAO, mockUserProfileDAO,
+		writer = new PrincipalObjectRecordWriter(mockUserGroupDAO, mockUserProfileManager,
 				mockTeamDAO, mockGroupMembersDao, mockObjectRecordDao);	
 
 		ug = new UserGroup();
@@ -106,7 +106,7 @@ public class PrincipalObjectRecordWriterTest {
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
 		writer.buildAndWriteRecord(changeMessage);
 		Mockito.verify(mockUserGroupDAO).get(principalID);
-		Mockito.verify(mockUserProfileDAO, Mockito.never()).get(Mockito.anyString());
+		Mockito.verify(mockUserProfileManager, Mockito.never()).getUserProfile(Mockito.anyString());
 		Mockito.verify(mockTeamDAO).get(principalID.toString());
 		Mockito.verify(mockTeamDAO, Mockito.never()).getMember(Mockito.anyString(), Mockito.anyString());
 	}
@@ -127,7 +127,7 @@ public class PrincipalObjectRecordWriterTest {
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
 		writer.buildAndWriteRecord(changeMessage);
 		Mockito.verify(mockUserGroupDAO).get(principalID);
-		Mockito.verify(mockUserProfileDAO, Mockito.never()).get(Mockito.anyString());
+		Mockito.verify(mockUserProfileManager, Mockito.never()).getUserProfile(Mockito.anyString());
 		Mockito.verify(mockTeamDAO).get(principalID.toString());
 		Mockito.verify(mockTeamDAO, Mockito.never()).getMember(Mockito.anyString(), Mockito.anyString());
 	}
@@ -136,14 +136,14 @@ public class PrincipalObjectRecordWriterTest {
 	public void createUserProfileTest() throws IOException {
 		ug.setIsIndividual(true);
 		Mockito.when(mockUserGroupDAO.get(principalID)).thenReturn(ug);
-		Mockito.when(mockUserProfileDAO.get(principalID.toString())).thenReturn(up);
+		Mockito.when(mockUserProfileManager.getUserProfile(principalID.toString())).thenReturn(up);
 		Message message = MessageUtils.buildMessage(ChangeType.CREATE, principalID.toString(), ObjectType.PRINCIPAL, etag, timestamp);
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
 		ObjectRecord ugr = ObjectRecordBuilderUtils.buildObjectRecord(ug, timestamp);
 		ObjectRecord upr = ObjectRecordBuilderUtils.buildObjectRecord(up, timestamp);
 		writer.buildAndWriteRecord(changeMessage);
 		Mockito.verify(mockUserGroupDAO).get(principalID);
-		Mockito.verify(mockUserProfileDAO).get(principalID.toString());
+		Mockito.verify(mockUserProfileManager).getUserProfile(principalID.toString());
 		Mockito.verify(mockTeamDAO, Mockito.never()).get(Mockito.anyString());
 		Mockito.verify(mockTeamDAO, Mockito.never()).getMember(Mockito.anyString(), Mockito.anyString());
 		Mockito.verify(mockObjectRecordDao).saveBatch(Mockito.eq(Arrays.asList(ugr)), Mockito.eq(ugr.getJsonClassName()));
@@ -154,12 +154,12 @@ public class PrincipalObjectRecordWriterTest {
 	public void updateUserProfileTest() throws IOException {
 		ug.setIsIndividual(true);
 		Mockito.when(mockUserGroupDAO.get(principalID)).thenReturn(ug);
-		Mockito.when(mockUserProfileDAO.get(principalID.toString())).thenReturn(up);
+		Mockito.when(mockUserProfileManager.getUserProfile(principalID.toString())).thenReturn(up);
 		Message message = MessageUtils.buildMessage(ChangeType.UPDATE, principalID.toString(), ObjectType.PRINCIPAL, etag, timestamp);
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
 		writer.buildAndWriteRecord(changeMessage);
 		Mockito.verify(mockUserGroupDAO).get(principalID);
-		Mockito.verify(mockUserProfileDAO).get(principalID.toString());
+		Mockito.verify(mockUserProfileManager).getUserProfile(principalID.toString());
 		Mockito.verify(mockTeamDAO, Mockito.never()).get(Mockito.anyString());
 		Mockito.verify(mockTeamDAO, Mockito.never()).getMember(Mockito.anyString(), Mockito.anyString());
 	}
