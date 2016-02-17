@@ -118,7 +118,7 @@ public class RangeMetadataIterator implements Iterator<RowMetadata> {
 	 * @return
 	 */
 	private Iterator<RowMetadata> fetchNextPage() {
-		logger.info("Type: " + type + ", range [" + minId + ", " + maxId + "]:  Fetching " + batchSize + " rows at offset " + offset + ".");
+		logger.info("Fetching rows at offset " + offset + ".");
 		List<RowMetadata> page = this.getNextPageWithBackupoff(type, minId, maxId, batchSize, offset);
 		offset += batchSize;
 		if (page.size() < batchSize) {
