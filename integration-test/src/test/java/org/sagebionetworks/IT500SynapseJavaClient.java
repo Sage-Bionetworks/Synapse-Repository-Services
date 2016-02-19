@@ -1557,7 +1557,7 @@ public class IT500SynapseJavaClient {
 		assertFalse(inviteeUserProfile.getNotificationSettings().getSendEmailNotifications());
 		
 		// finally, the invitER should have been notified that the invitEE joined the team
-		assertTrue(EmailValidationUtil.doesFileExist(inviterNotification, 600000L));
+		assertTrue(EmailValidationUtil.doesFileExist(inviterNotification, 1000000L));
 		EmailValidationUtil.deleteFile(inviterNotification);
 	}
 
