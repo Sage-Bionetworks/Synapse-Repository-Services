@@ -403,7 +403,7 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 				if (page.getTitle() != null) {
 					builder.append("\n");
 					builder.append(page.getTitle());
-				}
+			}
 				String markdownString = wikiPageDao.getMarkdown(key, null);
 				markdownString = SynapseMarkdownProcessor.getInstance().markdown2Html(markdownString, false, null);
 				markdownString = Jsoup.parse(markdownString).text();

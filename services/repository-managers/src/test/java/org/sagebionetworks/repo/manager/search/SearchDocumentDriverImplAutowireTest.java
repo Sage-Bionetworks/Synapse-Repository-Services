@@ -341,6 +341,13 @@ public class SearchDocumentDriverImplAutowireTest {
 		assertTrue(!actualResult.contains("==&gt;"));
 		assertTrue(!actualResult.contains("&quot;&gt;"));
 		assertTrue(!actualResult.contains("&lt;'"));
+		
+		// clean up
+		String markdownHandleId = escapeControlCharSubPage.getMarkdownFileHandleId();
+		S3FileHandle markdownHandle = (S3FileHandle) fileMetadataDao.get(markdownHandleId);
+		s3Client.deleteObject(markdownHandle.getBucketName(), markdownHandle.getKey());
+		fileMetadataDao.delete(markdownHandleId);
+		wikiPageDao.delete(escapeControlCharSubPageKey);
 	}
 	
 	@Test
@@ -357,6 +364,13 @@ public class SearchDocumentDriverImplAutowireTest {
 		assertTrue(!actualResult.contains("<table>"));
 		assertTrue(!actualResult.contains("<iframe>"));
 		assertTrue(!actualResult.contains("<embed>"));
+		
+		
+		String markdownHandleId = htmlSubpage.getMarkdownFileHandleId();
+		S3FileHandle markdownHandle = (S3FileHandle) fileMetadataDao.get(markdownHandleId);
+		s3Client.deleteObject(markdownHandle.getBucketName(), markdownHandle.getKey());
+		fileMetadataDao.delete(markdownHandleId);
+		wikiPageDao.delete(htmlSubPageKey);
 	}	
 
 	// http://stackoverflow.com/questions/326390/how-to-create-a-java-string-from-the-contents-of-a-file
