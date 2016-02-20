@@ -12,6 +12,20 @@
 
 	<dependencies>
 
+		<!-- For parsing Markdown -->
+		<dependency>
+			<!-- jsoup HTML parser library @ http://jsoup.org/ -->
+			<groupId>org.jsoup</groupId>
+			<artifactId>jsoup</artifactId>
+			<version>1.7.3</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>markdown</artifactId>
+			<version>2015-06-22-6486f39-16</version>
+		</dependency>
+	
 		<!-- Sage Bionetworks Dependencies -->
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
@@ -81,6 +95,7 @@
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>url-signer</artifactId>
 		</dependency>
+		
 		<!-- Oauth support -->
 		<dependency>
 			<groupId>org.scribe</groupId>
@@ -200,14 +215,12 @@
 			<artifactId>json</artifactId>
 			<version>${org.json.version}</version>
 		</dependency>
-		
-        <!-- Convert .pdf to .png -->
+		<!-- Convert .pdf to .png -->
         <dependency>
-          <groupId>org.apache.pdfbox</groupId>
-          <artifactId>pdfbox</artifactId>
-          <version>1.8.10</version>
+        	<groupId>org.apache.pdfbox</groupId>
+        	<artifactId>pdfbox</artifactId>
+        	<version>1.8.10</version>
         </dependency>
-        
 	</dependencies>
 
 	<build>
