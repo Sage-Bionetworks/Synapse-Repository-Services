@@ -1080,16 +1080,6 @@ public class TableRowManagerImpl implements TableRowManager {
 		return repsonse;
 	}
 
-	@Override
-	public void updateLatestVersionCache(String tableId, ProgressCallback<Long> progressCallback) throws IOException {
-		tableRowTruthDao.updateLatestVersionCache(tableId, progressCallback);
-	}
-
-	@Override
-	public void removeCaches(String tableId) throws IOException {
-		tableRowTruthDao.removeCaches(KeyFactory.stringToKey(tableId));
-	}
-
 	TableUnavilableException createTableUnavilableException(String tableId){
 		// When this occurs we need to lookup the status of the table and pass that to the caller
 		try {

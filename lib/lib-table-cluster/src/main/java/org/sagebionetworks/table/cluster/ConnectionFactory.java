@@ -1,9 +1,5 @@
 package org.sagebionetworks.table.cluster;
 
-import org.sagebionetworks.repo.model.dao.table.CurrentRowCacheDao;
-import org.sagebionetworks.repo.model.dao.table.CurrentVersionCacheDao;
-
-
 /**
  * The connection factory provides database connections to the cluster of database used to support the Table feature.
  * @author jmhill
@@ -19,30 +15,6 @@ public interface ConnectionFactory {
 	 */
 	TableIndexDAO getConnection(String tableId);
 	
-	/**
-	 * Get a connection used for interacting with a given tables current version cache.
-	 * 
-	 * @param tableId
-	 * @return
-	 */
-	CurrentVersionCacheDao getCurrentVersionCacheConnection(Long tableId);
-
-	/**
-	 * Get a connection used for interacting with a given tables current row cache.
-	 * 
-	 * @param tableId
-	 * @return
-	 */
-	CurrentRowCacheDao getCurrentRowCacheConnection(Long tableId);
-
-	/**
-	 * Get all unique connections used for interacting current tables
-	 * 
-	 * @param tableId
-	 * @return
-	 */
-	Iterable<CurrentVersionCacheDao> getCurrentVersionCacheConnections();
-
 	/**
 	 * Drop all tables in every database connectoin.
 	 * 

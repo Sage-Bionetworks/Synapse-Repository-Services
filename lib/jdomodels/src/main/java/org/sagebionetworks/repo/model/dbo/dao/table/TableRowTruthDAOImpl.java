@@ -56,6 +56,8 @@ import org.springframework.jdbc.core.RowMapper;
 
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.S3Object;
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -66,7 +68,7 @@ import com.google.common.collect.Sets;
  * @author John
  * 
  */
-public abstract class TableRowTruthDAOImpl implements TableRowTruthDAO {
+public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	private static Logger log = LogManager.getLogger(TableRowTruthDAOImpl.class);
 
 	private static final String SQL_SELECT_VERSION_FOR_ETAG = "SELECT "
@@ -685,16 +687,6 @@ public abstract class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		return TableModelUtils.convertToSchemaAndMerge(allSets, resultSchema, ref.getTableId(), etag);
 	}
 
-	@Override
-	public void updateLatestVersionCache(String tableId, ProgressCallback<Long> progressCallback) throws IOException {
-		// do nothing here, only caching version needs to do anything
-	}
-
-	@Override
-	public void removeCaches(Long tableId) throws IOException {
-		// do nothing here, only caching version needs to do anything
-	}
-
 	public String getS3Bucket() {
 		return s3Bucket;
 	}
@@ -711,5 +703,50 @@ public abstract class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	protected void throwUpdateConflict(Long rowId) {
 		throw new ConflictingUpdateException("Row id: " + rowId
 				+ " has been changed since last read.  Please get the latest value for this row and then attempt to update it again.");
+	}
+	
+	/**
+	 * Check for a row level conflicts in the passed change sets, by scanning each row of each change set and looking
+	 * for the intersection with the passed row Ids.
+	 * 
+	 * @param tableId
+	 * @param delta
+	 * @param coutToReserver
+	 * @throws ConflictingUpdateException when a conflict is found
+	 */
+	@Override
+	public void checkForRowLevelConflict(String tableIdString, RawRowSet delta, long minVersion) throws IOException {
+		Iterable<Row> updatingRows = Iterables.filter(delta.getRows(), new Predicate<Row>() {
+			@Override
+			public boolean apply(Row row) {
+				return !TableModelUtils.isNullOrInvalid(row.getRowId());
+			}
+		});
+
+		Map<Long, Long> rowIdToRowVersionNumberFromUpdate = TableModelUtils.getDistictValidRowIds(updatingRows);
+		Map<Long, Long> rowIdLatestVersions = getLatestVersions(tableIdString, rowIdToRowVersionNumberFromUpdate.keySet(), minVersion);
+
+		if (delta.getEtag() != null) {
+			long versionOfEtag = getVersionForEtag(tableIdString, delta.getEtag());
+
+			for (Map.Entry<Long, Long> entry : rowIdLatestVersions.entrySet()) {
+				if (entry.getValue().longValue() > versionOfEtag) {
+					throwUpdateConflict(entry.getKey());
+				}
+			}
+		} else {
+			// we didn't get passed in an etag. That means we have to check each row and version individually to make
+			// sure they are the latest version
+			for (Map.Entry<Long, Long> entry : rowIdLatestVersions.entrySet()) {
+				Long latestVersionOfRow = entry.getValue();
+				Long lastVersionOfUpdateRow = rowIdToRowVersionNumberFromUpdate.get(entry.getKey());
+				if(lastVersionOfUpdateRow == null){
+					throw new IllegalArgumentException("Passed a null row version number for rowId = "+latestVersionOfRow);
+				}
+				if (latestVersionOfRow.longValue() > lastVersionOfUpdateRow.longValue()) {
+					throwUpdateConflict(entry.getKey());
+				}
+			}
+		}
 	}
 }

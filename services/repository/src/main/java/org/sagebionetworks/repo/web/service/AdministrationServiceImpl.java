@@ -283,7 +283,6 @@ public class AdministrationServiceImpl implements AdministrationService  {
 		if (!userInfo.isAdmin())
 			throw new UnauthorizedException("Only an administrator may access this service.");
 		// purge
-		tableRowManager.removeCaches(tableId);
 		TableIndexDAO indexDao = tableConnectionFactory.getConnection(tableId);
 		if (indexDao != null) {
 			indexDao.deleteTable(tableId);
