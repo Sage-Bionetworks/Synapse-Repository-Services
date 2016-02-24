@@ -1713,6 +1713,10 @@ public class TableWorkerIntegrationTest {
 		List<ColumnModel> columnModels = TableModelTestUtils.createOneOfEachType();
 		schema = new LinkedList<ColumnModel>();
 		for (ColumnModel cm : columnModels) {
+			// skip files 
+			if(ColumnType.FILEHANDLEID.equals(cm.getColumnType())){
+				continue;
+			}
 			cm = columnManager.createColumnModel(adminUserInfo, cm);
 			schema.add(cm);
 		}

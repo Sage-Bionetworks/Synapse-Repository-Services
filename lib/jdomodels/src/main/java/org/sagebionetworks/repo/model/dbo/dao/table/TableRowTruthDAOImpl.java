@@ -578,13 +578,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 				}
 			}, rowChange);
 		}
-
-		return new RowSetAccessor() {
-			@Override
-			public Map<Long, RowAccessor> getRowIdToRowMap() {
-				return rowIdToRowMap;
-			}
-		};
+		return new RowSetAccessor(rowIdToRowMap);
 	}
 
 	@Override

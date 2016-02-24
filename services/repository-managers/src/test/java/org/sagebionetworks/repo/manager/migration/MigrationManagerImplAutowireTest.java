@@ -366,8 +366,6 @@ public class MigrationManagerImplAutowireTest {
 			assertEquals(0, indexDao.getRowCountForTable(tableId).intValue());
 
 			migrationManager.deleteObjectsById(adminUser, MigrationType.TABLE_SEQUENCE, Lists.newArrayList(KeyFactory.stringToKey(tableId)));
-
-			assertNull(indexDao.getRowCountForTable(tableId));
 		}
 	}
 	

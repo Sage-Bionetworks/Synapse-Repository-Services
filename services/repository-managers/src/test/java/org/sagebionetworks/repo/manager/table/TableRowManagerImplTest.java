@@ -12,6 +12,7 @@ import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.*;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -32,6 +33,8 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
+import org.sagebionetworks.repo.manager.AuthorizationStatus;
+import org.sagebionetworks.repo.manager.file.FileHandleAuthorizationStatus;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -47,6 +50,7 @@ import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.exception.ReadOnlyException;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.model.table.ColumnMapper;
@@ -113,6 +117,7 @@ public class TableRowManagerImplTest {
 	long rowIdSequence;
 	long rowVersionSequence;
 	int maxBytesPerRequest;
+	List<FileHandleAuthorizationStatus> fileAuthResults;
 	
 	@SuppressWarnings("unchecked")
 	@Before
@@ -258,6 +263,14 @@ public class TableRowManagerImplTest {
 						return results;
 					}
 				});
+		
+		
+		// Results of the auth check.
+		fileAuthResults = Lists.newArrayList(
+				new FileHandleAuthorizationStatus("1", new AuthorizationStatus(true, null)),
+				new FileHandleAuthorizationStatus("5", new AuthorizationStatus(true, null))
+		);
+		when(mockAuthManager.canDownloadFile(any(UserInfo.class), any(List.class), anyString(), any(FileHandleAssociateType.class))).thenReturn(fileAuthResults);
 	}
 	
 	@Test (expected=UnauthorizedException.class)
@@ -502,6 +515,51 @@ public class TableRowManagerImplTest {
 	}
 	
 	@Test
+	public void testValidateFileHandlesAuthorized(){
+		List<SelectColumn> cols = new ArrayList<SelectColumn>();
+		cols.add(TableModelTestUtils.createSelectColumn(1L, "a", ColumnType.FILEHANDLEID));
+		
+		List<Row> rows = new ArrayList<Row>();
+		rows.add(TableModelTestUtils.createRow(1L, 0L, "1"));
+		rows.add(TableModelTestUtils.createRow(1L, 0L, "5"));
+		// The file ID to be extracted from the set.
+		List<String> fileIds = Lists.newArrayList("1","5");
+		
+		RowSet rowset = new RowSet();
+		rowset.setHeaders(cols);
+		rowset.setRows(rows);
+		
+		// call under test
+		manager.validateFileHandles(user, tableId, rowset);
+		// Should do a download check of both files.
+		verify(mockAuthManager).canDownloadFile(user, fileIds, tableId, FileHandleAssociateType.TableEntity);
+	}
+	
+	@Test (expected=UnauthorizedException.class)
+	public void testValidateFileHandlesUnAuthorized(){
+		List<SelectColumn> cols = new ArrayList<SelectColumn>();
+		cols.add(TableModelTestUtils.createSelectColumn(1L, "a", ColumnType.FILEHANDLEID));
+		
+		List<Row> rows = new ArrayList<Row>();
+		rows.add(TableModelTestUtils.createRow(1L, 0L, "1"));
+		rows.add(TableModelTestUtils.createRow(1L, 0L, "5"));
+		
+		RowSet rowset = new RowSet();
+		rowset.setHeaders(cols);
+		rowset.setRows(rows);
+		
+		// setup failed results.
+		fileAuthResults = Lists.newArrayList(
+				new FileHandleAuthorizationStatus("1", new AuthorizationStatus(true, null)),
+				new FileHandleAuthorizationStatus("5", new AuthorizationStatus(false, "No access for you"))
+		);
+		when(mockAuthManager.canDownloadFile(any(UserInfo.class), any(List.class), anyString(), any(FileHandleAssociateType.class))).thenReturn(fileAuthResults);
+		
+		// call under test
+		manager.validateFileHandles(user, tableId, rowset);
+	}
+	
+	@Test
 	public void testChangeFileHandles() throws DatastoreException, NotFoundException, IOException {
 		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 
@@ -528,25 +586,14 @@ public class TableRowManagerImplTest {
 		when(originalAccessor.getRow(2L)).thenReturn(row2Accessor);
 		when(row2Accessor.getCellById(Long.parseLong(models.get(ColumnType.FILEHANDLEID.ordinal()).getId()))).thenReturn("505002");
 
-		doAnswer(new Answer<Void>() {
-			@SuppressWarnings("unchecked")
-			@Override
-			public Void answer(InvocationOnMock invocation) throws Throwable {
-				((Set<String>) invocation.getArguments()[2]).add("3333");
-				((Set<String>) invocation.getArguments()[3]).add("505002");
-				return null;
-			}
-		}).when(mockAuthManager).canAccessRawFileHandlesByIds(user, Lists.newArrayList("3333", "505002"), Sets.<String> newHashSet(),
-				Sets.<String> newHashSet());
 		when(mockTruthDao.getLatestVersionsWithRowData(tableId, Sets.newHashSet(2L), 0L, mapper)).thenReturn(originalAccessor);
+		// call under test
 		manager.appendRows(user, tableId, mapper, replace, mockProgressCallback);
 
 		verify(mockTruthDao).appendRowSetToTable(anyString(), anyString(), any(ColumnMapper.class), any(RawRowSet.class));
-		verify(mockTruthDao).getLatestVersionsWithRowData(tableId, Sets.newHashSet(2L), 0L, mapper);
 		verify(mockAuthManager).canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE);
 		verify(mockAuthManager).canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPLOAD);
-		verify(mockAuthManager).canAccessRawFileHandlesByIds(user, Lists.newArrayList("3333", "505002"), Sets.<String> newHashSet("3333"),
-				Sets.<String> newHashSet("505002"));
+		verify(mockAuthManager).canDownloadFile(user, Lists.newArrayList("505002", "3333"), tableId, FileHandleAssociateType.TableEntity);
 		verifyNoMoreInteractions(mockAuthManager, mockTruthDao);
 	}
 
@@ -568,102 +615,13 @@ public class TableRowManagerImplTest {
 		updateRows.get(1).getValues().set(ColumnType.FILEHANDLEID.ordinal(), null);
 		replace.setRows(updateRows);
 
-		doAnswer(new Answer<Void>() {
-			@SuppressWarnings("unchecked")
-			@Override
-			public Void answer(InvocationOnMock invocation) throws Throwable {
-				((Set<String>) invocation.getArguments()[2]).add("3333");
-				return null;
-			}
-		}).when(mockAuthManager).canAccessRawFileHandlesByIds(user, Lists.newArrayList("3333"), Sets.<String> newHashSet(),
-				Sets.<String> newHashSet());
 		manager.appendRows(user, tableId, TableModelUtils.createColumnModelColumnMapper(models, false), replace, mockProgressCallback);
 
 		verify(mockTruthDao).appendRowSetToTable(anyString(), anyString(), any(ColumnMapper.class), any(RawRowSet.class));
 		verify(mockAuthManager).canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE);
 		verify(mockAuthManager).canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPLOAD);
-		verify(mockAuthManager).canAccessRawFileHandlesByIds(user, Lists.newArrayList("3333"), Sets.<String> newHashSet("3333"),
-				Sets.<String> newHashSet());
+		verify(mockAuthManager).canDownloadFile(user, Lists.newArrayList("3333"), tableId, FileHandleAssociateType.TableEntity);
 		verifyNoMoreInteractions(mockAuthManager, mockTruthDao);
-	}
-
-	@Test(expected = IllegalArgumentException.class)
-	public void testAddFileHandlesFails() throws DatastoreException, NotFoundException, IOException {
-		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-
-		ColumnModel model = new ColumnModel();
-		model.setColumnType(ColumnType.FILEHANDLEID);
-		model.setId("33");
-		List<ColumnModel> models = Collections.singletonList(model);
-
-		RowSet replace = new RowSet();
-		replace.setTableId(tableId);
-		ColumnMapper mapper = TableModelUtils.createColumnModelColumnMapper(models, false);
-		replace.setHeaders(mapper.getSelectColumns());
-		replace.setEtag("etag");
-
-		Row row = new Row();
-		row.setRowId(0L);
-		// different unowned filehandle
-		row.setValues(Lists.newArrayList("3333"));
-		replace.setRows(Lists.newArrayList(row));
-
-		RowSetAccessor originalAccessor = mock(RowSetAccessor.class);
-		RowAccessor row0Accessor = mock(RowAccessor.class);
-		when(originalAccessor.getRow(0L)).thenReturn(row0Accessor);
-		when(row0Accessor.getCellById(Long.parseLong(models.get(0).getId()))).thenReturn("5002");
-
-		doAnswer(new Answer<Void>() {
-			@SuppressWarnings("unchecked")
-			@Override
-			public Void answer(InvocationOnMock invocation) throws Throwable {
-				((Set<String>) invocation.getArguments()[3]).add("3333");
-				return null;
-			}
-		}).when(mockAuthManager).canAccessRawFileHandlesByIds(user, Lists.newArrayList("3333"), Sets.<String> newHashSet(),
-				Sets.<String> newHashSet());
-		when(mockTruthDao.getLatestVersionsWithRowData(eq(tableId), eq(Sets.newHashSet(0L)), eq(0L), any(ColumnMapper.class))).thenReturn(
-				originalAccessor);
-		manager.appendRows(user, tableId, TableModelUtils.createColumnModelColumnMapper(models, false), replace, mockProgressCallback);
-	}
-
-	@Test(expected = IllegalArgumentException.class)
-	public void testChangeFileHandlesFails() throws DatastoreException, NotFoundException, IOException {
-		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-
-		ColumnModel model = new ColumnModel();
-		model.setColumnType(ColumnType.FILEHANDLEID);
-		model.setId("33");
-		List<ColumnModel> models = Collections.singletonList(model);
-
-		RowSet replace = new RowSet();
-		replace.setTableId(tableId);
-		ColumnMapper mapper = TableModelUtils.createColumnModelColumnMapper(models, false);
-		replace.setHeaders(mapper.getSelectColumns());
-		replace.setEtag("etag");
-
-		Row row = new Row();
-		row.setRowId(0L);
-		// different unowned filehandle
-		row.setValues(Lists.newArrayList("3333"));
-		replace.setRows(Lists.newArrayList(row));
-
-		RowSetAccessor originalAccessor = mock(RowSetAccessor.class);
-		RowAccessor row0Accessor = mock(RowAccessor.class);
-		when(originalAccessor.getRow(0L)).thenReturn(row0Accessor);
-		when(row0Accessor.getCellById(Long.parseLong(models.get(0).getId()))).thenReturn("5002");
-
-		doAnswer(new Answer<Void>() {
-			@SuppressWarnings("unchecked")
-			@Override
-			public Void answer(InvocationOnMock invocation) throws Throwable {
-				((Set<String>) invocation.getArguments()[3]).add("3333");
-				return null;
-			}
-		}).when(mockAuthManager).canAccessRawFileHandlesByIds(user, Lists.newArrayList("3333"), Sets.<String> newHashSet(),
-				Sets.<String> newHashSet());
-		when(mockTruthDao.getLatestVersionsWithRowData(tableId, Sets.newHashSet(0L), 0L, mapper)).thenReturn(originalAccessor);
-		manager.appendRows(user, tableId, mapper, replace, mockProgressCallback);
 	}
 
 	@Test

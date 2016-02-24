@@ -3,7 +3,16 @@ package org.sagebionetworks.repo.model.dao.table;
 import java.util.Map;
 import java.util.Set;
 
-public abstract class RowSetAccessor {
+import org.sagebionetworks.util.ValidateArgument;
+
+public class RowSetAccessor {
+	
+	Map<Long, RowAccessor> rowIdToRowMap;
+
+	public RowSetAccessor(Map<Long, RowAccessor> rowIdToRowMap) {
+		ValidateArgument.required(rowIdToRowMap, "rowIdToRowMap");
+		this.rowIdToRowMap = rowIdToRowMap;
+	}
 
 	public RowAccessor getRow(Long rowId) {
 		return getRowIdToRowMap().get(rowId);
@@ -17,5 +26,7 @@ public abstract class RowSetAccessor {
 		return getRowIdToRowMap().keySet();
 	}
 
-	public abstract Map<Long, RowAccessor> getRowIdToRowMap();
+	public Map<Long, RowAccessor> getRowIdToRowMap(){
+		return rowIdToRowMap;
+	}
 }

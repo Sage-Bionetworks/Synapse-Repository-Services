@@ -62,30 +62,22 @@ public class TableRowTruthDAOImplTest {
 
 	protected String creatorUserGroupId;
 
-	Object oldStackConfiguration;
 	
 	List<String> fileHandleIds;
 
-	@SuppressWarnings("unchecked")
 	@Before
 	public void before() throws Exception {
 		creatorUserGroupId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString();
 		assertNotNull(creatorUserGroupId);
-		oldStackConfiguration = ReflectionStaticTestUtils.getField(ReflectionStaticTestUtils.getField(tableRowTruthDao, "tableRowCache"),
-				"stackConfiguration");
 		StackConfiguration mockStackConfiguration = mock(StackConfiguration.class);
 		when(mockStackConfiguration.getTableEnabled()).thenReturn(false);
-		ReflectionStaticTestUtils.setField(ReflectionStaticTestUtils.getField(tableRowTruthDao, "tableRowCache"), "stackConfiguration",
-				mockStackConfiguration);
 		fileHandleIds = new LinkedList<String>();		
 	}
 	
 	@After
 	public void after() throws Exception {
 		if(tableRowTruthDao != null) tableRowTruthDao.truncateAllRowData();
-		ReflectionStaticTestUtils.setField(ReflectionStaticTestUtils.getField(tableRowTruthDao, "tableRowCache"), "stackConfiguration",
-				oldStackConfiguration);
-		
+
 		if(fileHandleIds != null){
 			for(String id: fileHandleIds){
 				try {
