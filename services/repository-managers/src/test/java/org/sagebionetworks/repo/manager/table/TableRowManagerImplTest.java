@@ -6,6 +6,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
@@ -14,10 +15,11 @@ import static org.mockito.Mockito.*;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -25,7 +27,9 @@ import org.apache.commons.lang.StringUtils;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.StackConfiguration;
@@ -42,6 +46,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.RowAccessor;
 import org.sagebionetworks.repo.model.dao.table.RowAndHeaderHandler;
@@ -93,20 +98,36 @@ import com.google.common.collect.Sets;
 
 public class TableRowManagerImplTest {
 	
+	@Mock
 	ProgressCallback<Long> mockProgressCallback;
+	@Mock
 	StackStatusDao mockStackStatusDao;
+	@Mock
 	TableRowTruthDAO mockTruthDao;
+	@Mock
 	AuthorizationManager mockAuthManager;
+	@Mock
 	TableStatusDAO mockTableStatusDAO;
+	@Mock
 	NodeDAO mockNodeDAO;
-	TableRowManagerImpl manager;
+	@Mock
 	ColumnModelDAO mockColumnModelDAO;
+	@Mock
 	ConnectionFactory mockTableConnectionFactory;
+	@Mock
 	TableIndexDAO mockTableIndexDAO;
-	WriteReadSemaphoreRunner mockWriteReadSemaphoreRunner;
-	List<ColumnModel> models;
+	@Mock
 	ProgressCallback<Object> mockProgressCallback2;
+	@Mock
 	ProgressCallback<Void> mockProgressCallbackVoid;
+	@Mock
+	WriteReadSemaphoreRunner mockWriteReadSemaphoreRunner;
+	@Mock
+	FileHandleDao mockFileDao;
+	
+	List<ColumnModel> models;
+	
+	TableRowManagerImpl manager;
 	UserInfo user;
 	String tableId;
 	RowSet set;
@@ -123,18 +144,18 @@ public class TableRowManagerImplTest {
 	@Before
 	public void before() throws Exception {
 		Assume.assumeTrue(StackConfiguration.singleton().getTableEnabled());
-		mockTruthDao = Mockito.mock(TableRowTruthDAO.class);
-		mockAuthManager = Mockito.mock(AuthorizationManager.class);
-		mockTableStatusDAO = Mockito.mock(TableStatusDAO.class);
-		mockNodeDAO = Mockito.mock(NodeDAO.class);
-		mockColumnModelDAO = Mockito.mock(ColumnModelDAO.class);
-		mockTableConnectionFactory = Mockito.mock(ConnectionFactory.class);
-		mockTableIndexDAO = Mockito.mock(TableIndexDAO.class);
-		mockWriteReadSemaphoreRunner = Mockito.mock(WriteReadSemaphoreRunner.class);
-		mockStackStatusDao = Mockito.mock(StackStatusDao.class);
-		mockProgressCallback = Mockito.mock(ProgressCallback.class);
-		mockProgressCallback2 = Mockito.mock(ProgressCallback.class);
-		mockProgressCallbackVoid = Mockito.mock(ProgressCallback.class);
+		MockitoAnnotations.initMocks(this);
+		
+		manager = new TableRowManagerImpl();
+		ReflectionTestUtils.setField(manager, "stackStatusDao", mockStackStatusDao);
+		ReflectionTestUtils.setField(manager, "tableRowTruthDao", mockTruthDao);
+		ReflectionTestUtils.setField(manager, "authorizationManager", mockAuthManager);
+		ReflectionTestUtils.setField(manager, "tableStatusDAO", mockTableStatusDAO);
+		ReflectionTestUtils.setField(manager, "nodeDao", mockNodeDAO);
+		ReflectionTestUtils.setField(manager, "columnModelDAO", mockColumnModelDAO);
+		ReflectionTestUtils.setField(manager, "tableConnectionFactory", mockTableConnectionFactory);
+		ReflectionTestUtils.setField(manager, "writeReadSemaphoreRunner", mockWriteReadSemaphoreRunner);
+		ReflectionTestUtils.setField(manager, "fileHandleDao", mockFileDao);
 
 		// Just call the caller.
 		stub(mockWriteReadSemaphoreRunner.tryRunWithReadLock(any(ProgressCallback.class),anyString(), anyInt(), any(ProgressingCallable.class))).toAnswer(new Answer<Object>() {
@@ -150,7 +171,6 @@ public class TableRowManagerImplTest {
 			}
 		});
 		
-		manager = new TableRowManagerImpl();
 		maxBytesPerRequest = 10000000;
 		manager.setMaxBytesPerRequest(maxBytesPerRequest);
 		manager.setMaxBytesPerChangeSet(1000000000);
@@ -221,14 +241,7 @@ public class TableRowManagerImplTest {
 		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPLOAD)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD)).thenReturn(
 				AuthorizationManagerUtil.AUTHORIZED);
-		ReflectionTestUtils.setField(manager, "stackStatusDao", mockStackStatusDao);
-		ReflectionTestUtils.setField(manager, "tableRowTruthDao", mockTruthDao);
-		ReflectionTestUtils.setField(manager, "authorizationManager", mockAuthManager);
-		ReflectionTestUtils.setField(manager, "tableStatusDAO", mockTableStatusDAO);
-		ReflectionTestUtils.setField(manager, "nodeDao", mockNodeDAO);
-		ReflectionTestUtils.setField(manager, "columnModelDAO", mockColumnModelDAO);
-		ReflectionTestUtils.setField(manager, "tableConnectionFactory", mockTableConnectionFactory);
-		ReflectionTestUtils.setField(manager, "writeReadSemaphoreRunner", mockWriteReadSemaphoreRunner);
+
 		// read-write be default.
 		when(mockStackStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_WRITE);
 		rowIdSequence = 0;
@@ -264,13 +277,20 @@ public class TableRowManagerImplTest {
 					}
 				});
 		
-		
-		// Results of the auth check.
-		fileAuthResults = Lists.newArrayList(
-				new FileHandleAuthorizationStatus("1", new AuthorizationStatus(true, null)),
-				new FileHandleAuthorizationStatus("5", new AuthorizationStatus(true, null))
-		);
-		when(mockAuthManager.canDownloadFile(any(UserInfo.class), any(List.class), anyString(), any(FileHandleAssociateType.class))).thenReturn(fileAuthResults);
+		// By default set the user as the creator of all files handles
+		doAnswer(new Answer<Set<String>>() {
+
+			@Override
+			public Set<String> answer(InvocationOnMock invocation)
+					throws Throwable {
+				// returning all passed files
+				List<String> input = (List<String>) invocation.getArguments()[1];
+				if(input != null){
+					return new HashSet<String>(input);
+				}
+				return null;
+			}
+		}).when(mockFileDao).getFileHandleIdsCreatedByUser(anyLong(), any(List.class));
 	}
 	
 	@Test (expected=UnauthorizedException.class)
@@ -515,24 +535,53 @@ public class TableRowManagerImplTest {
 	}
 	
 	@Test
-	public void testValidateFileHandlesAuthorized(){
+	public void testValidateFileHandlesAuthorizedCreatedBy(){
 		List<SelectColumn> cols = new ArrayList<SelectColumn>();
 		cols.add(TableModelTestUtils.createSelectColumn(1L, "a", ColumnType.FILEHANDLEID));
 		
 		List<Row> rows = new ArrayList<Row>();
 		rows.add(TableModelTestUtils.createRow(1L, 0L, "1"));
 		rows.add(TableModelTestUtils.createRow(1L, 0L, "5"));
-		// The file ID to be extracted from the set.
-		List<String> fileIds = Lists.newArrayList("1","5");
 		
 		RowSet rowset = new RowSet();
 		rowset.setHeaders(cols);
 		rowset.setRows(rows);
 		
+		// Setup the user as the creator of the files handles
+		when(mockFileDao.getFileHandleIdsCreatedByUser(anyLong(), any(List.class))).thenReturn(Sets.newHashSet("1", "5"));
+		
 		// call under test
 		manager.validateFileHandles(user, tableId, rowset);
-		// Should do a download check of both files.
-		verify(mockAuthManager).canDownloadFile(user, fileIds, tableId, FileHandleAssociateType.TableEntity);
+		// should check the files created by the user.
+		verify(mockFileDao).getFileHandleIdsCreatedByUser(user.getId(), Lists.newArrayList("1","5"));
+		// since all of the files were created by the user there is no need to lookup the associated files.
+		verify(mockTableIndexDAO, never()).getFileHandleIdsAssociatedWithTable(any(Set.class), anyString());
+	}
+	
+	@Test
+	public void testValidateFileHandlesAuthorizedCreatedByAndAssociated(){
+		List<SelectColumn> cols = new ArrayList<SelectColumn>();
+		cols.add(TableModelTestUtils.createSelectColumn(1L, "a", ColumnType.FILEHANDLEID));
+		
+		List<Row> rows = new ArrayList<Row>();
+		rows.add(TableModelTestUtils.createRow(1L, 0L, "1"));
+		rows.add(TableModelTestUtils.createRow(1L, 0L, "5"));
+		
+		RowSet rowset = new RowSet();
+		rowset.setHeaders(cols);
+		rowset.setRows(rows);
+		
+		// Setup 1 to be created by.
+		when(mockFileDao.getFileHandleIdsCreatedByUser(anyLong(), any(List.class))).thenReturn(Sets.newHashSet("1"));
+		// setup 5 to be associated with.
+		when(mockTableIndexDAO.getFileHandleIdsAssociatedWithTable(any(Set.class), anyString())).thenReturn(Sets.newHashSet( 5L ));
+		
+		// call under test
+		manager.validateFileHandles(user, tableId, rowset);
+		// should check the files created by the user.
+		verify(mockFileDao).getFileHandleIdsCreatedByUser(user.getId(), Lists.newArrayList("1","5"));
+		// since 1 was created by the user only 5 should be tested for association.
+		verify(mockTableIndexDAO).getFileHandleIdsAssociatedWithTable(Sets.newHashSet( 5L ), tableId);
 	}
 	
 	@Test (expected=UnauthorizedException.class)
@@ -548,12 +597,10 @@ public class TableRowManagerImplTest {
 		rowset.setHeaders(cols);
 		rowset.setRows(rows);
 		
-		// setup failed results.
-		fileAuthResults = Lists.newArrayList(
-				new FileHandleAuthorizationStatus("1", new AuthorizationStatus(true, null)),
-				new FileHandleAuthorizationStatus("5", new AuthorizationStatus(false, "No access for you"))
-		);
-		when(mockAuthManager.canDownloadFile(any(UserInfo.class), any(List.class), anyString(), any(FileHandleAssociateType.class))).thenReturn(fileAuthResults);
+		// Setup 1 to be created by.
+		when(mockFileDao.getFileHandleIdsCreatedByUser(anyLong(), any(List.class))).thenReturn(Sets.newHashSet("1"));
+		// setup 5 to be not associated with.
+		when(mockTableIndexDAO.getFileHandleIdsAssociatedWithTable(any(Set.class), anyString())).thenReturn(new HashSet<Long>());
 		
 		// call under test
 		manager.validateFileHandles(user, tableId, rowset);
@@ -593,7 +640,7 @@ public class TableRowManagerImplTest {
 		verify(mockTruthDao).appendRowSetToTable(anyString(), anyString(), any(ColumnMapper.class), any(RawRowSet.class));
 		verify(mockAuthManager).canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE);
 		verify(mockAuthManager).canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPLOAD);
-		verify(mockAuthManager).canDownloadFile(user, Lists.newArrayList("505002", "3333"), tableId, FileHandleAssociateType.TableEntity);
+		verify(mockFileDao).getFileHandleIdsCreatedByUser(anyLong(), any(List.class));
 		verifyNoMoreInteractions(mockAuthManager, mockTruthDao);
 	}
 
@@ -620,7 +667,7 @@ public class TableRowManagerImplTest {
 		verify(mockTruthDao).appendRowSetToTable(anyString(), anyString(), any(ColumnMapper.class), any(RawRowSet.class));
 		verify(mockAuthManager).canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE);
 		verify(mockAuthManager).canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPLOAD);
-		verify(mockAuthManager).canDownloadFile(user, Lists.newArrayList("3333"), tableId, FileHandleAssociateType.TableEntity);
+		verify(mockFileDao).getFileHandleIdsCreatedByUser(anyLong(), any(List.class));
 		verifyNoMoreInteractions(mockAuthManager, mockTruthDao);
 	}
 

@@ -32,6 +32,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.RowAccessor;
 import org.sagebionetworks.repo.model.dao.table.RowAndHeaderHandler;
@@ -130,6 +131,8 @@ public class TableRowManagerImpl implements TableRowManager {
 	NodeDAO nodeDao;
 	@Autowired
 	StackStatusDao stackStatusDao;
+	@Autowired
+	FileHandleDao fileHandleDao;
 	
 	
 	/**
@@ -1151,13 +1154,28 @@ public class TableRowManagerImpl implements TableRowManager {
 		Set<Long> filesHandleIds = TableModelUtils.getFileHandleIdsInRowSet(rowSet);
 		if(!filesHandleIds.isEmpty()){
 			// convert the longs to strings.
-			List<String> fileHandesStrings = new LinkedList<String>();
-			TableModelUtils.convertLongToString(filesHandleIds, fileHandesStrings);
-			// The user must have the download permission for every file handle in the change set.
-			List<FileHandleAuthorizationStatus> resutls = authorizationManager.canDownloadFile(user, fileHandesStrings, tableId, FileHandleAssociateType.TableEntity);
-			for(FileHandleAuthorizationStatus status: resutls){
-				if(!status.getStatus().getAuthorized()){
-					throw new UnauthorizedException("Cannot access file: "+status.getFileHandleId());
+			List<String> fileHandesToCheck = new LinkedList<String>();
+			TableModelUtils.convertLongToString(filesHandleIds, fileHandesToCheck);
+			// Which files were created by the user?
+			Set<String> filesCreatedByUser = fileHandleDao.getFileHandleIdsCreatedByUser(user.getId(), fileHandesToCheck);
+			// build up the set of files not created by the user.
+			Set<Long> remainingFilesToCheck = new HashSet<Long>();
+			for(String fileString: fileHandesToCheck){
+				if(!filesCreatedByUser.contains(fileString)){
+					remainingFilesToCheck.add(Long.parseLong(fileString));
+				}
+			}
+			// are there any more files to check?
+			if(!remainingFilesToCheck.isEmpty()){
+				// The remaining files were not created by the user so they must already be associated with the table.
+				TableIndexDAO indexDao = tableConnectionFactory.getConnection(tableId);
+				// Get the sub-set of files associated with the table.
+				Set<Long> filesAssociatedWithTable = indexDao.getFileHandleIdsAssociatedWithTable(new HashSet<Long>(remainingFilesToCheck), tableId);
+				// remove all files associated with the table
+				remainingFilesToCheck.removeAll(filesAssociatedWithTable);
+				// Any files remaining in the set are not created by the user and are not associated with the table.
+				if(!remainingFilesToCheck.isEmpty()){
+					throw new UnauthorizedException("Cannot access files: "+remainingFilesToCheck.toString());
 				}
 			}
 		}
@@ -1257,7 +1275,6 @@ public class TableRowManagerImpl implements TableRowManager {
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
-
 	}
 
 }
