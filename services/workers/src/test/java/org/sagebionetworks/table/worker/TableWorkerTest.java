@@ -1,16 +1,24 @@
 package org.sagebionetworks.table.worker;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.contains;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.stub;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.Callable;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -56,7 +64,7 @@ public class TableWorkerTest {
 	ChangeMessage two;
 	String tableId;
 	String resetToken;
-	TableStatus status;
+//	TableStatus status;
 	List<ColumnModel> currentSchema;
 	RowSet rowSet1;
 	RowSet rowSet2;
@@ -108,11 +116,8 @@ public class TableWorkerTest {
 		
 		tableId = "456";
 		resetToken = "reset-token";
-		status = new TableStatus();
-		status.setResetToken(resetToken);
 		currentSchema = Lists.newArrayList();
 		when(mockTableRowManager.getColumnModelsForTable(tableId)).thenReturn(currentSchema);
-		when(mockTableRowManager.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
 		TableRowChange trc1 = new TableRowChange();
 		trc1.setEtag("etag");
 		trc1.setRowVersion(0L);
@@ -131,6 +136,8 @@ public class TableWorkerTest {
 		rowSet2 = new RowSet();
 		rowSet2.setRows(Collections.singletonList(TableModelTestUtils.createRow(0L, 1L, "3")));
 		when(mockTableRowManager.getRowSet(eq(tableId), eq(1L), any(ColumnMapper.class))).thenReturn(rowSet2);
+		
+		when(mockTableRowManager.startTableProcessing(tableId)).thenReturn(resetToken);
 	}
 	
 	
@@ -206,6 +213,8 @@ public class TableWorkerTest {
 		two.setObjectEtag(resetToken);
 		// call under test
 		worker.run(mockProgressCallback, two);
+		// The worker should ensure the table is processing.
+		verify(mockTableRowManager, times(1)).startTableProcessing(tableId);
 		// The connection factory should be called
 		verify(mockConnectionFactory, times(1)).connectToTableIndex(tableId);
 		// The status should get set to available
@@ -327,32 +336,6 @@ public class TableWorkerTest {
 	}
 	
 	/**
-	 * When the reset-tokens do not match, the table has been updated since the message was sent.
-	 * When this occurs the status cannot be set to AVAILABLE
-	 * @throws Exception
-	 */
-	@Test
-	public void testResetTokenDoesNotMatch() throws Exception{
-		String tableId = "456";
-		String resetToken1 = "reset-token1";
-		String resetToken2 = "reset-token2";
-		TableStatus status = new TableStatus();
-		// Set the current token to be different than the token in the message
-		status.setResetToken(resetToken2);
-		when(mockTableRowManager.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
-		two.setObjectType(ObjectType.TABLE);
-		two.setChangeType(ChangeType.UPDATE);
-		two.setObjectEtag(resetToken1);
-		// call under test
-		worker.run(mockProgressCallback, two);
-		// The connection factory should never be called
-		verifyZeroInteractions(mockTableIndexManager);
-		verify(mockTableRowManager, never()).attemptToSetTableStatusToAvailable(anyString(), anyString(), anyString());
-		// The token must be checked before we acquire the lock
-		verify(mockTableRowManager, never()).tryRunWithTableExclusiveLock(any(ProgressCallback.class),anyString(), anyInt(), any(ProgressingCallable.class));
-	}
-	
-	/**
 	 * When a NotFoundException is thrown the table no longer exists and the message should be removed from the queue.
 	 * @throws Exception
 	 */
@@ -362,7 +345,7 @@ public class TableWorkerTest {
 		String resetToken = "reset-token";
 		TableStatus status = new TableStatus();
 		status.setResetToken(resetToken);
-		when(mockTableRowManager.getTableStatusOrCreateIfNotExists(tableId)).thenThrow(new NotFoundException("This table does not exist"));
+		when(mockTableRowManager.startTableProcessing(tableId)).thenThrow(new NotFoundException("This table does not exist"));
 		two.setObjectType(ObjectType.TABLE);
 		two.setChangeType(ChangeType.UPDATE);
 		two.setObjectEtag(resetToken);

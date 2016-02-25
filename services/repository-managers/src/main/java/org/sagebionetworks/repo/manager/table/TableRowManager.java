@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.manager.table;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
@@ -465,4 +464,13 @@ public interface TableRowManager {
 	 * @param objectId
 	 */
 	public Set<String> getFileHandleIdsAssociatedWithTable(String tableId, List<String> toTest) throws TemporarilyUnavailableException;
+
+	/**
+	 * Called by the worker when it starts to process a table.
+	 * 
+	 * @param tableId
+	 * @return
+	 */
+	public String startTableProcessing(String tableId);
+
 }

@@ -1294,4 +1294,14 @@ public class TableRowManagerImplTest {
 		assertEquals(expected, out);
 	}
 	
+	@Test
+	public void testStartTableProcessing(){
+		String token = "a unique token";
+		// the change should not be broadcast.
+		boolean broadcastChange = false;
+		when(mockTableStatusDAO.resetTableStatusToProcessing(tableId, broadcastChange)).thenReturn(token);
+		// call under test
+		String resultToken = manager.startTableProcessing(tableId);
+		assertEquals(token, resultToken);
+	}
 }

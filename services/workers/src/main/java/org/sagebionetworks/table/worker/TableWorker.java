@@ -99,8 +99,7 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 					return;
 				}
 				// this method does the real work.
-				State state = createOrUpdateTable(progressCallback, tableId, indexManager,
-						change.getObjectEtag(), change);
+				State state = createOrUpdateTable(progressCallback, tableId, indexManager, change);
 				if (State.RECOVERABLE_FAILURE.equals(state)) {
 					throw new RecoverableMessageException();
 				}
@@ -117,20 +116,16 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 	 */
 	public State createOrUpdateTable(
 			ProgressCallback<ChangeMessage> progressCallback,
-			final String tableId, final TableIndexManager tableIndexManger, final String tableResetToken,
+			final String tableId, final TableIndexManager tableIndexManger,
 			final ChangeMessage change) {
 		// Attempt to run with
 		try {
-			// If the passed token does not match the current token then this
-			// is an old message that should be removed from the queue.
-			// See PLFM-2641. We must check message before we acquire the lock.
-			TableStatus status = tableRowManager
-					.getTableStatusOrCreateIfNotExists(tableId);
-			// If the reset-tokens do not match this message should be ignored
-			if (!tableResetToken.equals(status.getResetToken())) {
-				// This is an old message so we ignore it
-				return State.SUCCESS;
-			}
+			/*
+			 * Before we start working on the table make sure it is in the processing mode.
+			 * This will generate a new reset token and will not broadcast the change.
+			 */
+			final String tableResetToken = tableRowManager.startTableProcessing(tableId);
+
 			// Run with the exclusive lock on the table if we can get it.
 			return tableRowManager.tryRunWithTableExclusiveLock(progressCallback,tableId,
 					lockTimeoutSec,

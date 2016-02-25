@@ -22,6 +22,14 @@ public interface TableStatusDAO {
 	 * @return The new reset-token for this table status.
 	 */
 	public String resetTableStatusToProcessing(String tableId);
+	
+	/**
+	 * See: {@link #resetTableStatusToProcessing(String)}
+	 * @param tableId
+	 * @param broadcastChange When true, change messages will be broadcast.
+	 * @return
+	 */
+	public String resetTableStatusToProcessing(String tableId, boolean broadcastChange);
 
 	/**
 	 * Attempt to set the table status to AVIALABLE. The state will be changed
