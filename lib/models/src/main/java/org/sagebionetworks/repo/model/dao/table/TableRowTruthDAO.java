@@ -145,31 +145,6 @@ public interface TableRowTruthDAO {
 			throws IOException, NotFoundException;
 
 	/**
-	 * Get all the latest versions of the rows specified by the rowIds
-	 * 
-	 * @param tableId
-	 * @param rowIdsInOut the set of row ids to find
-	 * @param minVersion only check with versions equal or greater than the minVersion
-	 * @return
-	 * @throws IOException
-	 * @throws NotFoundException
-	 */
-	public Map<Long, Long> getLatestVersions(String tableId, Set<Long> rowIds, long minVersion) throws IOException, NotFoundException;
-
-	/**
-	 * Get all the latest versions for this table
-	 * 
-	 * @param tableId
-	 * @param minVersion only return rows that have a version equal or greater than this
-	 * @return
-	 * @throws IOException
-	 * @throws NotFoundException
-	 * @throws TableUnavilableException
-	 */
-	public Map<Long, Long> getLatestVersions(String tableId, long minVersion, long rowIdOffset, long limit) throws IOException,
-			NotFoundException, TableUnavilableException;
-
-	/**
 	 * List the keys of all change sets applied to a table.
 	 * 
 	 * This can be used to synch the "truth" store with secondary stores. This is the full history of the table.
@@ -227,12 +202,11 @@ public interface TableRowTruthDAO {
 	 * 
 	 * @param tableId
 	 * @param delta
-	 * @param coutToReserver
 	 * @throws IOException 
 	 * @throws ConflictingUpdateException
 	 *             when a conflict is found
 	 */
-	public void checkForRowLevelConflict(String tableId, RawRowSet delta, long minVersion) throws IOException;
+	public void checkForRowLevelConflict(String tableId, RawRowSet delta) throws IOException;
 
 	/**
 	 * Scan over a given changeset

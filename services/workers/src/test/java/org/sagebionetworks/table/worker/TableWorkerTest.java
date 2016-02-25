@@ -442,7 +442,6 @@ public class TableWorkerTest {
 		// simulate the ConflictingUpdateException
 		doThrow(new ConflictingUpdateException("Cannot get a lock at this time")).when(mockTableRowManager).attemptToSetTableStatusToAvailable(anyString(), anyString(), anyString());
 		when(mockTableRowManager.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
-		when(mockTableRowManager.getCurrentRowVersions(tableId, 1L, 0L, 16000L)).thenReturn(Collections.<Long, Long> emptyMap());
 		two.setObjectId(tableId);
 		two.setObjectType(ObjectType.TABLE);
 		two.setChangeType(ChangeType.UPDATE);

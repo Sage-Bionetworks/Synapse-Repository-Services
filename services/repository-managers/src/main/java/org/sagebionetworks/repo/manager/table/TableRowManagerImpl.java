@@ -44,7 +44,6 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.PartialRow;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
@@ -96,7 +95,6 @@ import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionCallback;
 
 import com.google.common.base.Function;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -467,12 +465,6 @@ public class TableRowManagerImpl implements TableRowManager {
 	public RowSet getRowSet(String tableId, Long rowVersion, ColumnMapper columnMapper) throws IOException,
 			NotFoundException {
 		return tableRowTruthDao.getRowSet(tableId, rowVersion, columnMapper);
-	}
-
-	@Override
-	public Map<Long, Long> getCurrentRowVersions(String tableId, Long minVersion, long rowIdOffset, long limit) throws IOException,
-			NotFoundException, TableUnavilableException {
-		return tableRowTruthDao.getLatestVersions(tableId, minVersion, rowIdOffset, limit);
 	}
 
 	@Override

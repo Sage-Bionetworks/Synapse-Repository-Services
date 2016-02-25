@@ -201,7 +201,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		// Are any rows being updated?
 		if (coutToReserver < delta.getRows().size()) {
 			// Validate that this update does not contain any row level conflicts.
-			checkForRowLevelConflict(tableId, delta, 0);
+			checkForRowLevelConflict(tableId, delta);
 		}
 		// Now assign the rowIds and set the version number
 		TableModelUtils.assignRowIdsAndVersionNumbers(delta, range);
@@ -581,59 +581,6 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		return new RowSetAccessor(rowIdToRowMap);
 	}
 
-	@Override
-	public Map<Long, Long> getLatestVersions(String tableId, Set<Long> rowIds, long minVersion) throws IOException {
-		final Map<Long, Long> rowVersions = Maps.newHashMap();
-
-		List<TableRowChange> rowChanges = listRowSetsKeysForTableGreaterThanVersion(tableId, minVersion - 1);
-
-		final Set<Long> rowsToFind = Sets.newHashSet(rowIds);
-		// we are scanning backwards through the row changes.
-		// For each version of the table (starting at the last one)
-		for (final TableRowChange rowChange : Lists.reverse(rowChanges)) {
-			if (rowsToFind.isEmpty()) {
-				// we found all the rows that we need to find
-				break;
-			}
-
-			// Scan over the delta
-			scanChange(new RowHandler() {
-				@Override
-				public void nextRow(final Row row) {
-					// if we still needed it, we no longer need to find this one
-					if (rowsToFind.remove(row.getRowId())) {
-						rowVersions.put(row.getRowId(), row.getVersionNumber());
-					}
-				}
-			}, rowChange);
-		}
-
-		return rowVersions;
-	}
-
-	@Override
-	public Map<Long, Long> getLatestVersions(String tableId, final long minVersion, final long rowIdOffset, final long limit)
-			throws IOException, NotFoundException, TableUnavilableException {
-		final Map<Long, Long> rowVersions = Maps.newHashMap();
-
-		List<TableRowChange> rowChanges = listRowSetsKeysForTableGreaterThanVersion(tableId, minVersion - 1);
-
-		// scan forward (rowChanges is ordered lowest version first)
-		for (final TableRowChange rowChange : rowChanges) {
-			scanChange(new RowHandler() {
-				@Override
-				public void nextRow(final Row row) {
-					if (row.getRowId() >= rowIdOffset && row.getRowId() < rowIdOffset + limit) {
-						// since we are iterating forward, we can just overwrite previous values here
-						rowVersions.put(row.getRowId(), row.getVersionNumber());
-					}
-				}
-			}, rowChange);
-		}
-
-		return rowVersions;
-	}
-
 	protected void appendRowDataToMap(final Map<Long, RowAccessor> rowIdToRowMap, final List<Long> rowChangeColumnIds, final Row row) {
 		if (TableModelUtils.isDeletedRow(row)) {
 			rowIdToRowMap.remove(row.getRowId());
@@ -709,38 +656,35 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	 * @throws ConflictingUpdateException when a conflict is found
 	 */
 	@Override
-	public void checkForRowLevelConflict(String tableIdString, RawRowSet delta, long minVersion) throws IOException {
-		Iterable<Row> updatingRows = Iterables.filter(delta.getRows(), new Predicate<Row>() {
-			@Override
-			public boolean apply(Row row) {
-				return !TableModelUtils.isNullOrInvalid(row.getRowId());
+	public void checkForRowLevelConflict(String tableIdString, RawRowSet delta) throws IOException {
+		// Map each valid row to its version number
+		Map<Long, Long> rowIdToRowVersionNumberFromUpdate = TableModelUtils.getDistictValidRowIds(delta.getRows());
+		long versionOfDelta = -1;
+		for(Long versionNumber: rowIdToRowVersionNumberFromUpdate.values()){
+			if(versionNumber == null){
+				throw new IllegalArgumentException("Row version number cannot be null");
 			}
-		});
-
-		Map<Long, Long> rowIdToRowVersionNumberFromUpdate = TableModelUtils.getDistictValidRowIds(updatingRows);
-		Map<Long, Long> rowIdLatestVersions = getLatestVersions(tableIdString, rowIdToRowVersionNumberFromUpdate.keySet(), minVersion);
-
-		if (delta.getEtag() != null) {
+			versionOfDelta = Math.max(versionOfDelta, versionNumber);
+		}
+		// If we were given an etag we can use it to determine the version used to create the delta.
+		if(delta.getEtag() != null){
 			long versionOfEtag = getVersionForEtag(tableIdString, delta.getEtag());
-
-			for (Map.Entry<Long, Long> entry : rowIdLatestVersions.entrySet()) {
-				if (entry.getValue().longValue() > versionOfEtag) {
-					throwUpdateConflict(entry.getKey());
+			versionOfDelta = Math.max(versionOfDelta, versionOfEtag);
+		}
+		final Set<Long> deltaRowIds = rowIdToRowVersionNumberFromUpdate.keySet();
+		// Need to check all changes that have been applied since the version of the delta?
+		List<TableRowChange> rowChanges = listRowSetsKeysForTableGreaterThanVersion(tableIdString, versionOfDelta);
+		// scan all changes greater than this row.
+		for (final TableRowChange rowChange : rowChanges) {
+			// Scan all recent updates
+			scanChange(new RowHandler() {
+				@Override
+				public void nextRow(final Row row) {
+					if(deltaRowIds.contains(row.getRowId())){
+						throwUpdateConflict(row.getRowId());
+					}
 				}
-			}
-		} else {
-			// we didn't get passed in an etag. That means we have to check each row and version individually to make
-			// sure they are the latest version
-			for (Map.Entry<Long, Long> entry : rowIdLatestVersions.entrySet()) {
-				Long latestVersionOfRow = entry.getValue();
-				Long lastVersionOfUpdateRow = rowIdToRowVersionNumberFromUpdate.get(entry.getKey());
-				if(lastVersionOfUpdateRow == null){
-					throw new IllegalArgumentException("Passed a null row version number for rowId = "+latestVersionOfRow);
-				}
-				if (latestVersionOfRow.longValue() > lastVersionOfUpdateRow.longValue()) {
-					throwUpdateConflict(entry.getKey());
-				}
-			}
+			}, rowChange);
 		}
 	}
 }

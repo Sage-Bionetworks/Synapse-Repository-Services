@@ -165,19 +165,6 @@ public interface TableRowManager {
 			throws IOException, NotFoundException;
 
 	/**
-	 * Get all the rows and their current versions
-	 * 
-	 * @param tableId
-	 * @param minVersion
-	 * @return
-	 * @throws IOException
-	 * @throws NotFoundException
-	 * @throws TableUnavilableException
-	 */
-	public Map<Long, Long> getCurrentRowVersions(String tableId, Long minVersion, long rowIdOffset, long limit) throws IOException,
-			NotFoundException, TableUnavilableException;
-
-	/**
 	 * Get the last table row change
 	 * 
 	 * @param tableId

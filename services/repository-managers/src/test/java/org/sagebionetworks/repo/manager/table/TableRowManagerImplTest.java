@@ -940,38 +940,6 @@ public class TableRowManagerImplTest {
 		assertEquals(selectColumns, bundle.getSelectColumns().toString());
 		assertEquals(maxRowsPerPage, bundle.getMaxRowsPerPage());
 	}
-
-	@Test
-	public void testGetCurrentRowVersionsOneBatch() throws Exception {
-		Map<Long, Long> map1 = Collections.singletonMap(1L, 1L);
-		when(mockTruthDao.getLatestVersions(tableId, 0L, 0L, 11L)).thenReturn(map1);
-		Map<Long, Long> currentRowVersions = manager.getCurrentRowVersions(tableId, 0L, 0L, 11L);
-		assertEquals(map1, currentRowVersions);
-	}
-
-	@Test
-	public void testGetCurrentRowVersionsOneBatchAfterVersion() throws Exception {
-		Map<Long, Long> map1 = Collections.singletonMap(1L, 1L);
-		when(mockTruthDao.getLatestVersions(tableId, 4L, 0L, 11L)).thenReturn(map1);
-		Map<Long, Long> currentRowVersions = manager.getCurrentRowVersions(tableId, 4L, 0L, 11L);
-		assertEquals(map1, currentRowVersions);
-	}
-
-	@Test
-	public void testGetCurrentRowVersionsZeroEntries() throws Exception {
-		Map<Long, Long> map1 = Collections.emptyMap();
-		when(mockTruthDao.getLatestVersions(tableId, 0L, 0L, 10)).thenReturn(map1);
-		Map<Long, Long> currentRowVersions = manager.getCurrentRowVersions(tableId, 0L, 0L, 10L);
-		assertEquals(map1, currentRowVersions);
-	}
-
-	@Test
-	public void testGetCurrentRowVersionsSecondBatch() throws Exception {
-		Map<Long, Long> map2 = Collections.singletonMap(2L, 2L);
-		when(mockTruthDao.getLatestVersions(tableId, 0L, 16000L, 16000L)).thenReturn(map2);
-		Map<Long, Long> currentRowVersions = manager.getCurrentRowVersions(tableId, 0L, 16000L, 16000L);
-		assertEquals(map2, currentRowVersions);
-	}
 	
 	@Test
 	public void testGetMaxRowsPerPage(){

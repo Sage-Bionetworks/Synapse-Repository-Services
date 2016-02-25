@@ -40,7 +40,6 @@ import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
-import org.sagebionetworks.util.ReflectionStaticTestUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -531,49 +530,18 @@ public class TableRowTruthDAOImplTest {
 			rowVersions.put(ref.getRowId(), ref.getVersionNumber());
 		}
 
-		// call all latest versions before cache is up to date
-		Map<Long, Long> latestVersionsMap = tableRowTruthDao.getLatestVersions(tableId, 0, 0L, 1000L);
-		assertEquals(rowVersions, latestVersionsMap);
-
 		assertEquals(7, rowVersions.size());
 		RowSetAccessor latestVersions = tableRowTruthDao.getLatestVersionsWithRowData(tableId, rowVersions.keySet(), 0L, mapper);
 		assertEquals(7, Iterables.size(latestVersions.getRows()));
 		for (RowAccessor row : latestVersions.getRows()) {
 			assertEquals(row.getVersionNumber(), rowVersions.get(row.getRowId()));
-		}
-
-		// call all latest versions after cache is up to date
-		latestVersionsMap = tableRowTruthDao.getLatestVersions(tableId, 0, 0L, 1000L);
-		assertEquals(rowVersions, latestVersionsMap);
-
+		} 
 		assertEquals(7, rowVersions.size());
 		latestVersions = tableRowTruthDao.getLatestVersionsWithRowData(tableId, rowVersions.keySet(), 0L, mapper);
 		assertEquals(7, Iterables.size(latestVersions.getRows()));
 		for (RowAccessor row : latestVersions.getRows()) {
 			assertEquals(row.getVersionNumber(), rowVersions.get(row.getRowId()));
 		}
-	}
-
-	@Test
-	public void testCacheBehindCheck() throws Exception {
-		Map<Long, Long> rowVersions = Maps.newHashMap();
-		// Create some test column models
-		ColumnMapper mapper = TableModelTestUtils.createMapperForOneOfEachType();
-		// create some test rows.
-		String tableId = "syn123";
-		// Append this change set
-		for (int i = 0; i < 3; i++) {
-			RawRowSet set = new RawRowSet(TableModelUtils.getIds(mapper.getColumnModels()), null, tableId,
-					TableModelTestUtils.createRows(mapper.getColumnModels(), 5));
-			RowReferenceSet refSet = tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, mapper, set);
-			for (RowReference ref : refSet.getRows()) {
-				rowVersions.put(ref.getRowId(), ref.getVersionNumber());
-			}
-		}
-
-		// call all latest versions before cache is up to date
-		Map<Long, Long> latestVersionsMap = tableRowTruthDao.getLatestVersions(tableId, 0, 0L, 1000L);
-		assertEquals(rowVersions, latestVersionsMap);
 	}
 
 	@Test
@@ -832,6 +800,7 @@ public class TableRowTruthDAOImplTest {
 		// Create a row with an ID that is beyond the current max ID for the table
 		Row toAdd = TableModelTestUtils.createRows(mapper.getColumnModels(), 1).get(0);
 		toAdd.setRowId(toUpdateOne.getRows().get(0).getRowId()+1);
+		toAdd.setVersionNumber(0L);
 		toUpdateOne.getRows().add(toAdd);
 		RawRowSet toUpdateOneRaw = new RawRowSet(TableModelTestUtils.getIdsFromSelectColumns(toUpdateOne.getHeaders()),
 				toUpdateOne.getEtag(), toUpdateOne.getTableId(), toUpdateOne.getRows());
@@ -868,6 +837,69 @@ public class TableRowTruthDAOImplTest {
 			} catch (NotFoundException e) {
 			}
 		}
+	}
+	
+	@Test
+	public void testCheckForRowLevelConflict() throws IOException{
+		// Create some test column models
+		ColumnMapper mapper = TableModelTestUtils.createMapperForOneOfEachType();
+		// create some test rows.
+		List<Row> rows = TableModelTestUtils.createRows(mapper.getColumnModels(), 5, false);
+		String tableId = "syn123";
+		RawRowSet set = new RawRowSet(TableModelUtils.getIds(mapper.getColumnModels()), null, tableId, rows);
+		// Append this change set
+		RowReferenceSet refSet = tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, mapper, set);
+		// Fetch the rows back.
+		List<RawRowSet> rawList = tableRowTruthDao.getRowSetOriginals(refSet, mapper);
+		assertNotNull(rawList);
+		assertEquals(1, rawList.size());
+		RawRowSet updatedSet = rawList.get(0);
+		RawRowSet updatedSetNoEtag = new RawRowSet(updatedSet.getIds(), null, tableId, updatedSet.getRows());
+		// should pass since all match. 
+		tableRowTruthDao.checkForRowLevelConflict(tableId, updatedSet);
+		// It should also work without the etag
+		tableRowTruthDao.checkForRowLevelConflict(tableId, updatedSetNoEtag);
+		// Append the same changes to the table again
+		refSet = tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, mapper, set);
+		 // Now if we try to use the original set it should fail with a conflict
+		try {
+			tableRowTruthDao.checkForRowLevelConflict(tableId, updatedSet);
+			fail("Should have failed as there are conflicts.");
+		} catch (ConflictingUpdateException e) {
+			// expected
+		}
+		// Should also fail without an etag
+		try {
+			tableRowTruthDao.checkForRowLevelConflict(tableId, updatedSetNoEtag);
+			fail("Should have failed as there are conflicts.");
+		} catch (ConflictingUpdateException e) {
+			// expected
+		}
+	}
+	
+	/**
+	 * This is a test for PLFM-3355
+	 * @throws IOException
+	 */
+	@Test (expected=IllegalArgumentException.class)
+	public void testCheckForRowLevelConflictNullVersionNumber() throws IOException{
+		// Create some test column models
+		ColumnMapper mapper = TableModelTestUtils.createMapperForOneOfEachType();
+		// create some test rows.
+		List<Row> rows = TableModelTestUtils.createRows(mapper.getColumnModels(), 1, false);
+		String tableId = "syn123";
+		RawRowSet set = new RawRowSet(TableModelUtils.getIds(mapper.getColumnModels()), null, tableId, rows);
+		// Append this change set
+		RowReferenceSet refSet = tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, mapper, set);
+		// Fetch the rows back.
+		List<RawRowSet> rawList = tableRowTruthDao.getRowSetOriginals(refSet, mapper);
+		assertNotNull(rawList);
+		assertEquals(1, rawList.size());
+		RawRowSet updatedSet = rawList.get(0);
+		RawRowSet updatedSetNoEtag = new RawRowSet(updatedSet.getIds(), null, tableId, updatedSet.getRows());
+		updatedSetNoEtag.getRows().get(0).setVersionNumber(null);
+		// This should fail as a null version number is passed in. 
+		tableRowTruthDao.checkForRowLevelConflict(tableId, updatedSetNoEtag);
 	}
 
 }
