@@ -1148,6 +1148,9 @@ public class TableRowManagerImpl implements TableRowManager {
 	 */
 	public void validateFileHandles(UserInfo user, String tableId,
 			RowSet rowSet) {
+		if(user.isAdmin()){
+			return;
+		}
 		// Extract the files handles from the change set.
 		Set<Long> filesHandleIds = TableModelUtils.getFileHandleIdsInRowSet(rowSet);
 		if(!filesHandleIds.isEmpty()){
