@@ -55,6 +55,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 
 import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.model.AmazonS3Exception;
+import com.amazonaws.services.s3.model.Bucket;
 import com.amazonaws.services.s3.model.S3Object;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -185,7 +187,16 @@ public abstract class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	 */
 	public void initialize() {
 		// Create the bucket as needed
-		s3Client.createBucket(s3Bucket);
+		try {
+			s3Client.createBucket(s3Bucket);
+		} catch (AmazonS3Exception e) {
+			try {
+				Thread.sleep(1000L);
+				s3Client.createBucket(s3Bucket);
+			} catch (InterruptedException e1) {
+				e1.printStackTrace();
+			}
+		}
 	}
 
 	@WriteTransaction
