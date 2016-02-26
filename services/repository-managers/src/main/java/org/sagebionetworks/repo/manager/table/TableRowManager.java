@@ -472,5 +472,29 @@ public interface TableRowManager {
 	 * @return
 	 */
 	public String startTableProcessing(String tableId);
+	
+	/**
+	 * Get the version of the last change applied to a table.
+	 * 
+	 * @param tableId
+	 * @return returns -1 if there are no changes applied to the table.
+	 */
+	public long getVersionOfLastTableChange(String tableId);
+	
+	/**
+	 * Is the table's index synchronized with the truth data?
+	 * 
+	 * @param tableId
+	 * @return
+	 */
+	public boolean isIndexSynchronizedWithTruth(String tableId);
+	
+	/**
+	 * Index work is required if the index is out-of-synch with the truth
+	 * or the current state is processing.
+	 * @param tableId
+	 * @return
+	 */
+	public boolean isIndexWorkRequired(String tableId);
 
 }

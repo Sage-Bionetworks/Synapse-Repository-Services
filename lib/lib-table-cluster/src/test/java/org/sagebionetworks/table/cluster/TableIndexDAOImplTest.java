@@ -262,6 +262,24 @@ public class TableIndexDAOImplTest {
 
 		tableIndexDAO.deleteSecondayTables(tableId);
 	}
+	
+	@Test
+	public void testGetSchemaHashForTable(){
+		tableIndexDAO.createSecondaryTables(tableId);
+		// Before the table exists the max version should be -1L
+		String hash = tableIndexDAO.getCurrentSchemaMD5Hex(tableId);
+		assertEquals("DEFAULT", hash);
+		
+		hash = "some hash";
+		tableIndexDAO.setCurrentSchemaMD5Hex(tableId, hash);
+		String returnHash = tableIndexDAO.getCurrentSchemaMD5Hex(tableId);
+		assertEquals(hash, returnHash);
+		// setting the version should not change the hash
+		tableIndexDAO.setMaxCurrentCompleteVersionForTable(tableId, 4L);
+		// did it change?
+		returnHash = tableIndexDAO.getCurrentSchemaMD5Hex(tableId);
+		assertEquals(hash, returnHash);
+	}
 
 	@Test
 	public void testSimpleQuery() throws ParseException {

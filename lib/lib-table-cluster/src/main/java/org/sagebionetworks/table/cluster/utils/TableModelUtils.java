@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.security.MessageDigest;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -20,6 +21,7 @@ import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
+import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang.StringUtils;
 import org.sagebionetworks.collections.Transform;
 import org.sagebionetworks.repo.model.dao.table.RowAccessor;
@@ -691,9 +693,11 @@ public class TableModelUtils {
 		Map<Long, Long> distictRowIds = Maps.newHashMap();
 		for (Row ref : rows) {
 			if (!isNullOrInvalid(ref.getRowId())) {
-				if (distictRowIds.put(ref.getRowId(), ref.getVersionNumber()) != null) {
-					// the row id is found twice int the same rowset
-					throw new IllegalArgumentException("The row id " + ref.getRowId() + " is included more than once in the rowset");
+				if(ref.getValues() != null){
+					if (distictRowIds.put(ref.getRowId(), ref.getVersionNumber()) != null) {
+						// the row id is found twice int the same rowset
+						throw new IllegalArgumentException("The row id " + ref.getRowId() + " is included more than once in the rowset");
+					}
 				}
 			}
 		}
@@ -1401,6 +1405,37 @@ public class TableModelUtils {
 					throw new IllegalArgumentException(e);
 				}
 			}
+		}
+	}
+	
+	/**
+	 * Create the MD5 Hex string of the given column models.
+	 * @param schema
+	 * @return
+	 */
+	public static String createSchemaMD5HexCM(List<ColumnModel> schema){
+		List<Long> ids = TableModelUtils.getIds(schema);
+		return createSchemaMD5Hex(ids);
+	}
+	
+	/**
+	 * Create the MD5 hex string of the given column model IDs.
+	 * @param currentSchema
+	 * @return
+	 */
+	public static String createSchemaMD5Hex(List<Long> columnIds){
+		StringBuilder builder = new StringBuilder();
+		builder.append("DEFAULT");
+		for(Long id : columnIds){
+			builder.append("+");
+			builder.append(id);
+		}
+		try {
+			MessageDigest digest = MessageDigest.getInstance("MD5");
+			digest.update(builder.toString().getBytes("UTF-8"));
+			return new String(Hex.encodeHex(digest.digest()));
+		} catch (Exception e) {
+			throw new RuntimeException(e);
 		}
 	}
 

@@ -69,6 +69,7 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
+import org.sagebionetworks.table.cluster.IndexState;
 import org.sagebionetworks.table.cluster.SQLTranslatorUtils;
 import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
@@ -208,11 +209,7 @@ public class TableRowManagerImpl implements TableRowManager {
 			if (partialRow.getRowId() != null) {
 				row = new Row();
 				row.setRowId(partialRow.getRowId());
-				if (partialRow.getValues() == null) {
-					// no values specified, this is a row deletion
-				} else {
-					rowsToUpdate.put(partialRow.getRowId(), Pair.create(partialRow, row));
-				}
+				rowsToUpdate.put(partialRow.getRowId(), Pair.create(partialRow, row));
 			} else {
 				row = resolveInsertValues(partialRow, columnMapper);
 			}
@@ -277,23 +274,27 @@ public class TableRowManagerImpl implements TableRowManager {
 			PartialRow partialRow = rowToUpdate.getValue().getFirst();
 			Row row = rowToUpdate.getValue().getSecond();
 			RowAccessor currentRow = currentRowData.getRow(rowId);
-
-			List<String> values = Lists.newArrayListWithCapacity(columnMapper.selectColumnCount());
-			for (SelectColumnAndModel model : columnMapper.getSelectColumnAndModels()) {
-				String value = null;
-				if (model.getColumnModel() != null) {
-					if (partialRow.getValues().containsKey(model.getColumnModel().getId())) {
-						value = partialRow.getValues().get(model.getColumnModel().getId());
-					} else {
-						value = currentRow.getCellById(Long.parseLong(model.getColumnModel().getId()));
+			row.setVersionNumber(currentRow.getVersionNumber());
+			if(partialRow.getValues() == null){
+				row.setValues(null);
+			}else{
+				List<String> values = Lists.newArrayListWithCapacity(columnMapper.selectColumnCount());
+				for (SelectColumnAndModel model : columnMapper.getSelectColumnAndModels()) {
+					String value = null;
+					if (model.getColumnModel() != null) {
+						if (partialRow.getValues().containsKey(model.getColumnModel().getId())) {
+							value = partialRow.getValues().get(model.getColumnModel().getId());
+						} else {
+							value = currentRow.getCellById(Long.parseLong(model.getColumnModel().getId()));
+						}
+						if (value == null) {
+							value = model.getColumnModel().getDefaultValue();
+						}
 					}
-					if (value == null) {
-						value = model.getColumnModel().getDefaultValue();
-					}
+					values.add(value);
 				}
-				values.add(value);
+				row.setValues(values);
 			}
-			row.setValues(values);
 		}
 	}
 
@@ -518,24 +519,20 @@ public class TableRowManagerImpl implements TableRowManager {
 	public TableStatus getTableStatusOrCreateIfNotExists(String tableId) throws NotFoundException, IOException {
 		try {
 			TableStatus status = tableStatusDAO.getTableStatus(tableId);
-			if(!TableState.AVAILABLE.equals(status.getState())){
-				return status;
-			}
-			// We need to validate the table is really AVAILABLE
-			TableRowChange lastChange = getLastTableRowChange(tableId);
-			if(lastChange == null){
-				if(status.getLastTableChangeEtag() == null){
-					// there are not changes and status etag is null then the table is empty and AVAILABLE.
+			boolean isIndexSynchronizedWithTruth = isIndexSynchronizedWithTruth(tableId);
+			if(TableState.AVAILABLE.equals(status.getState())){
+				// available
+				if(isIndexSynchronizedWithTruth){
+					// available and Synchronized
 					return status;
 				}
 			}else{
-				// We have at least one change on the table, does the status etag match the change etag?
-				if(lastChange.getEtag().equals(status.getLastTableChangeEtag())){
-					// the table is up-to-date
+				// processing or failed
+				if(!isIndexSynchronizedWithTruth){
 					return status;
 				}
 			}
-			// the table status and last change do not match. Set the table to processing an trigger an update.
+			// need to trigger the worker again.
 			return setTableToProcessingAndTriggerUpdate(tableId);
 			
 		} catch (NotFoundException e) {
@@ -1283,6 +1280,47 @@ public class TableRowManagerImpl implements TableRowManager {
 		// Since this is called from the worker do not broadcast the change.
 		boolean broadcastChange = false;
 		return tableStatusDAO.resetTableStatusToProcessing(tableId, broadcastChange);
+	}
+
+
+	@Override
+	public boolean isIndexSynchronizedWithTruth(String tableId) {
+		// Get the state of the index
+		IndexState indexState = this.tableConnectionFactory.getConnection(tableId).getIndexState(tableId);
+		// Get the truth schema
+		List<ColumnModel> truthSchema = this.columnModelDAO.getColumnModelsForObject(tableId);
+		String truthSchemaMD5Hex = TableModelUtils.createSchemaMD5HexCM(truthSchema);
+		// get the truth version
+		long truthLastVersion = getVersionOfLastTableChange(tableId);
+		// compare the truth with the index.
+		IndexState truthState = new IndexState(truthLastVersion, truthSchemaMD5Hex);
+		return truthState.equals(indexState);
+	}
+
+
+	@Override
+	public long getVersionOfLastTableChange(String tableId) {
+		TableRowChange change = this.tableRowTruthDao.getLastTableRowChange(tableId);
+		if(change != null){
+			return change.getRowVersion();
+		}else{
+			return -1;
+		}
+	}
+
+
+	@Override
+	public boolean isIndexWorkRequired(String tableId) {
+		if(!nodeDao.doesNodeExist(KeyFactory.stringToKey(tableId))){
+			return false;
+		}
+		// work is needed if the index is out-of-sych.
+		if(!isIndexSynchronizedWithTruth(tableId)){
+			return true;
+		}
+		// work is needed if the current state is processing.
+		TableStatus status = tableStatusDAO.getTableStatus(tableId);
+		return TableState.PROCESSING.equals(status.getState());
 	}
 
 }

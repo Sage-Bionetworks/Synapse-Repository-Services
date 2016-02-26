@@ -1,21 +1,24 @@
 package org.sagebionetworks.repo.manager.table;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.stub;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -37,7 +40,6 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
-import org.sagebionetworks.repo.manager.AuthorizationStatus;
 import org.sagebionetworks.repo.manager.file.FileHandleAuthorizationStatus;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -55,7 +57,6 @@ import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.exception.ReadOnlyException;
-import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.model.table.ColumnMapper;
@@ -82,6 +83,7 @@ import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
+import org.sagebionetworks.table.cluster.IndexState;
 import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
@@ -126,6 +128,7 @@ public class TableRowManagerImplTest {
 	FileHandleDao mockFileDao;
 	
 	List<ColumnModel> models;
+	String schemaMD5Hex;
 	
 	TableRowManagerImpl manager;
 	UserInfo user;
@@ -176,6 +179,7 @@ public class TableRowManagerImplTest {
 		manager.setMaxBytesPerChangeSet(1000000000);
 		user = new UserInfo(false, 7L);
 		models = TableModelTestUtils.createOneOfEachType(true);
+		schemaMD5Hex = TableModelUtils.createSchemaMD5HexCM(models);
 		tableId = "syn123";
 		List<Row> rows = TableModelTestUtils.createRows(models, 10);
 		set = new RowSet();
@@ -1048,6 +1052,10 @@ public class TableRowManagerImplTest {
 	
 	@Test
 	public void testGetTableStatusOrCreateIfNotExistsNoRows() throws Exception {
+		long currentVersion = -1;
+		// setup a mismatch
+		IndexState indexState = new IndexState(currentVersion, this.schemaMD5Hex);
+		when(mockTableIndexDAO.getIndexState(tableId)).thenReturn(indexState);
 		// Since there are now rows this should return null.
 		when(mockTruthDao.getLastTableRowChange(tableId)).thenReturn(null);
 		
@@ -1066,9 +1074,14 @@ public class TableRowManagerImplTest {
 	
 	@Test
 	public void testGetTableStatusOrCreateIfNotExistsWithRowsAndUpToDate() throws Exception {
+		long currentVersion = 123L;
+		// setup a mismatch
+		IndexState indexState = new IndexState(currentVersion, this.schemaMD5Hex);
+		when(mockTableIndexDAO.getIndexState(tableId)).thenReturn(indexState);
 		// setup the last change to this table.
 		TableRowChange lastChange = new TableRowChange();
 		lastChange.setEtag("etagOfLastChange");
+		lastChange.setRowVersion(currentVersion);
 		// There are no table changes for this case.
 		when(mockTruthDao.getLastTableRowChange(tableId)).thenReturn(lastChange);
 		
@@ -1094,9 +1107,15 @@ public class TableRowManagerImplTest {
 	 */
 	@Test
 	public void testGetTableStatusOrCreateIfNotExistsAVAILABLEButNotUpToDate() throws Exception {
+		long currentVersion = 123L;
+		// setup a mismatch
+		IndexState indexState = new IndexState(currentVersion, this.schemaMD5Hex+1);
+		when(mockTableIndexDAO.getIndexState(tableId)).thenReturn(indexState);
 		// setup the last change to this table.
 		TableRowChange lastChange = new TableRowChange();
 		lastChange.setEtag("etagOfLastChange");
+		lastChange.setRowVersion(currentVersion);
+		
 		// There are no table changes for this case.
 		when(mockTruthDao.getLastTableRowChange(tableId)).thenReturn(lastChange);
 		
@@ -1133,7 +1152,6 @@ public class TableRowManagerImplTest {
 		TableStatus result = manager.getTableStatusOrCreateIfNotExists(tableId);
 		assertEquals(status, result);
 		// The last row should only be checked for for AVAILABLE tables.
-		verify(mockTruthDao, never()).getLastTableRowChange(tableId);
 		verify(mockTableStatusDAO, never()).resetTableStatusToProcessing(tableId);
 	}
 	
@@ -1304,4 +1322,126 @@ public class TableRowManagerImplTest {
 		String resultToken = manager.startTableProcessing(tableId);
 		assertEquals(token, resultToken);
 	}
+	
+	@Test
+	public void testIsIndexSynchronizedWithTruthHappy(){
+		long currentVersion = 123L;
+		// setup a mismatch
+		IndexState indexState = new IndexState(currentVersion, this.schemaMD5Hex);
+		when(mockTableIndexDAO.getIndexState(tableId)).thenReturn(indexState);
+		
+		TableRowChange lastChange = new TableRowChange();
+		lastChange.setRowVersion(currentVersion);
+		when(mockTruthDao.getLastTableRowChange(tableId)).thenReturn(lastChange);
+		
+		assertTrue(manager.isIndexSynchronizedWithTruth(tableId));
+	}
+	
+	@Test
+	public void testIsIndexSynchronizedWithTruthVersionMismatch(){
+		long currentVersion = 123L;
+		// setup a mismatch
+		IndexState indexState = new IndexState(currentVersion+1, this.schemaMD5Hex);
+		when(mockTableIndexDAO.getIndexState(tableId)).thenReturn(indexState);
+		
+		TableRowChange lastChange = new TableRowChange();
+		lastChange.setRowVersion(currentVersion);
+		when(mockTruthDao.getLastTableRowChange(tableId)).thenReturn(lastChange);
+		
+		assertFalse(manager.isIndexSynchronizedWithTruth(tableId));
+	}
+	
+	@Test
+	public void testIsIndexSynchronizedWithTruthLastVersionNull(){
+		long currentVersion = -1L;
+		// setup a mismatch
+		IndexState indexState = new IndexState(currentVersion, this.schemaMD5Hex);
+		when(mockTableIndexDAO.getIndexState(tableId)).thenReturn(indexState);
+		
+		when(mockTruthDao.getLastTableRowChange(tableId)).thenReturn(null);
+		
+		assertTrue(manager.isIndexSynchronizedWithTruth(tableId));
+	}
+	
+	@Test
+	public void testGetVersionOfLastTableChangeNull() throws NotFoundException, IOException{
+		// no last version
+		when(mockTruthDao.getLastTableRowChange(tableId)).thenReturn(null);
+		//call under test
+		assertEquals(-1, manager.getVersionOfLastTableChange(tableId));
+	}
+	
+	@Test
+	public void testGetVersionOfLastTableChange() throws NotFoundException, IOException{
+		long currentVersion = 123L;
+		TableRowChange lastChange = new TableRowChange();
+		lastChange.setRowVersion(currentVersion);
+		when(mockTruthDao.getLastTableRowChange(tableId)).thenReturn(lastChange);
+		// call under test
+		assertEquals(currentVersion, manager.getVersionOfLastTableChange(tableId));
+	}
+	
+	/**
+	 * No work is needed when the index is in-synch and the table is available.
+	 */
+	@Test
+	public void testIsIndexWorkRequiredInSynchAndAvailable(){
+		// setup in-sych
+		long currentVersion = 123L;
+		// setup a mismatch
+		IndexState indexState = new IndexState(currentVersion, this.schemaMD5Hex);
+		when(mockTableIndexDAO.getIndexState(tableId)).thenReturn(indexState);
+		
+		TableRowChange lastChange = new TableRowChange();
+		lastChange.setRowVersion(currentVersion);
+		when(mockTruthDao.getLastTableRowChange(tableId)).thenReturn(lastChange);
+		
+		TableStatus status = new TableStatus();
+		status.setState(TableState.AVAILABLE);
+		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
+		
+		assertFalse(manager.isIndexWorkRequired(tableId));
+	}
+	
+	/**
+	 * Work is needed when the index is in-synch and the table is processing.
+	 */
+	@Test
+	public void testIsIndexWorkRequiredInSynchAndProcessing(){
+		// setup in-sych
+		long currentVersion = 123L;
+		// setup a mismatch
+		IndexState indexState = new IndexState(currentVersion, this.schemaMD5Hex);
+		when(mockTableIndexDAO.getIndexState(tableId)).thenReturn(indexState);
+		
+		TableRowChange lastChange = new TableRowChange();
+		lastChange.setRowVersion(currentVersion);
+		when(mockTruthDao.getLastTableRowChange(tableId)).thenReturn(lastChange);
+		
+		TableStatus status = new TableStatus();
+		status.setState(TableState.PROCESSING);
+		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
+		
+		assertTrue(manager.isIndexWorkRequired(tableId));
+	}
+	
+	@Test
+	public void testIsIndexWorkRequiredNotInSynchAndAvailable(){
+		// setup out-of-synch
+		long currentVersion = 123L;
+		// setup a mismatch
+		IndexState indexState = new IndexState(currentVersion, this.schemaMD5Hex+1);
+		when(mockTableIndexDAO.getIndexState(tableId)).thenReturn(indexState);
+		
+		TableRowChange lastChange = new TableRowChange();
+		lastChange.setRowVersion(currentVersion);
+		when(mockTruthDao.getLastTableRowChange(tableId)).thenReturn(lastChange);
+		
+		TableStatus status = new TableStatus();
+		status.setState(TableState.AVAILABLE);
+		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
+		
+		assertTrue(manager.isIndexWorkRequired(tableId));
+	}
+
 }

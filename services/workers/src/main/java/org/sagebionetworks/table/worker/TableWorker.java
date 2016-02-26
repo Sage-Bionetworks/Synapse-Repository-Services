@@ -26,7 +26,6 @@ import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableRowChange;
-import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
@@ -120,6 +119,12 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 			final ChangeMessage change) {
 		// Attempt to run with
 		try {
+			// Only proceed if work is needed.
+			if(!tableRowManager.isIndexWorkRequired(tableId)){
+				log.info("No work needed for table "+tableId);
+				return State.SUCCESS;
+			}
+			
 			/*
 			 * Before we start working on the table make sure it is in the processing mode.
 			 * This will generate a new reset token and will not broadcast the change.

@@ -9,12 +9,9 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.Collection;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -46,7 +43,6 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
-import org.springframework.transaction.TransactionException;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.DefaultTransactionDefinition;
 import org.springframework.transaction.support.TransactionCallback;
@@ -303,7 +299,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		String sql = SQLUtils.getStatusMaxVersionSQL(tableId);
 		try {
 			return template.queryForObject(sql, new SingleColumnRowMapper<Long>());
-		} catch (EmptyResultDataAccessException e) {
+		} catch (Exception e) {
 			// Spring throws this when the table is empty
 			return -1L;
 		}
@@ -312,7 +308,24 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	@Override
 	public void setMaxCurrentCompleteVersionForTable(String tableId, Long version) {
 		String createOrUpdateStatusSql = SQLUtils.buildCreateOrUpdateStatusSQL(tableId);
-		template.update(createOrUpdateStatusSql, version);
+		template.update(createOrUpdateStatusSql, version, version);
+	}
+	
+	@Override
+	public void setCurrentSchemaMD5Hex(String tableId, String schemaMD5Hex) {
+		String createOrUpdateStatusSql = SQLUtils.buildCreateOrUpdateStatusHashSQL(tableId);
+		template.update(createOrUpdateStatusSql, schemaMD5Hex, schemaMD5Hex);
+	}
+
+	@Override
+	public String getCurrentSchemaMD5Hex(String tableId) {
+		String sql = SQLUtils.getSchemaHashSQL(tableId);
+		try {
+			return template.queryForObject(sql, new SingleColumnRowMapper<String>());
+		} catch (Exception e) {
+			// Spring throws this when the table is empty
+			return "DEFAULT";
+		}
 	}
 
 	@Override
@@ -494,4 +507,12 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			return new HashSet<Long>(0);
 		}
 	}
+	
+	@Override
+	public IndexState getIndexState(String tableId) {
+		long version = this.getMaxCurrentCompleteVersionForTable(tableId);
+		String md5 = this.getCurrentSchemaMD5Hex(tableId);
+		return new IndexState(version, md5);
+	}
+
 }

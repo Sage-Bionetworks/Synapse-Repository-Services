@@ -3,6 +3,8 @@ package org.sagebionetworks.table.cluster;
 import static org.sagebionetworks.repo.model.table.TableConstants.FILE_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
+import static org.sagebionetworks.repo.model.table.TableConstants.SCHEMA_HASH;
+import static org.sagebionetworks.repo.model.table.TableConstants.SINGLE_KEY;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -71,10 +73,6 @@ public class SQLUtils {
 		 * The status table that tracks the current state of the index table
 		 */
 		STATUS("S"),
-		/**
-		 * the current row table that holds the current versions for each row in a table
-		 */
-		CURRENT_ROW("CR"),
 		/**
 		 * Table tracking filehandles bound to a given table.
 		 */
@@ -184,13 +182,9 @@ public class SQLUtils {
 		StringBuilder columnDefinitions = new StringBuilder();
 		switch (type) {
 		case STATUS:
-			columnDefinitions.append("single_key ENUM('') NOT NULL PRIMARY KEY, ");
-			columnDefinitions.append(ROW_VERSION).append(" bigint(20) NOT NULL");
-			break;
-		case CURRENT_ROW:
-			columnDefinitions.append(ROW_ID).append(" bigint(20) NOT NULL PRIMARY KEY, ");
-			columnDefinitions.append(ROW_VERSION).append(" bigint(20) NOT NULL, ");
-			columnDefinitions.append("INDEX `" + getTableNameForId(tableId, type) + "_VERSION_INDEX` (" + ROW_VERSION + ") ");
+			columnDefinitions.append("single_key ENUM('1') NOT NULL PRIMARY KEY, ");
+			columnDefinitions.append(ROW_VERSION).append(" bigint(20) NOT NULL,");
+			columnDefinitions.append(SCHEMA_HASH).append(" CHAR(35) NOT NULL");
 			break;
 		case FILE_IDS:
 			columnDefinitions.append(FILE_ID).append(" bigint(20) NOT NULL PRIMARY KEY");
@@ -755,11 +749,31 @@ public class SQLUtils {
 		if (tableId == null)
 			throw new IllegalArgumentException("TableID cannot be null");
 		StringBuilder builder = new StringBuilder();
-		builder.append("REPLACE INTO ");
+		builder.append("INSERT INTO ");
 		builder.append(getTableNameForId(tableId, TableType.STATUS));
 		builder.append(" ( ");
+		builder.append(SINGLE_KEY);
+		builder.append(",");
 		builder.append(ROW_VERSION);
-		builder.append(" ) VALUES ( ? )");
+		builder.append(",");
+		builder.append(SCHEMA_HASH);
+		builder.append(" ) VALUES ('1', ?, 'DEFAULT' ) ON DUPLICATE KEY UPDATE "+ROW_VERSION+" = ? ");
+		return builder.toString();
+	}
+	
+	public static String buildCreateOrUpdateStatusHashSQL(String tableId) {
+		if (tableId == null)
+			throw new IllegalArgumentException("TableID cannot be null");
+		StringBuilder builder = new StringBuilder();
+		builder.append("INSERT INTO ");
+		builder.append(getTableNameForId(tableId, TableType.STATUS));
+		builder.append(" ( ");
+		builder.append(SINGLE_KEY);
+		builder.append(",");
+		builder.append(ROW_VERSION);
+		builder.append(",");
+		builder.append(SCHEMA_HASH);
+		builder.append(" ) VALUES ('1', -1, ? ) ON DUPLICATE KEY UPDATE "+SCHEMA_HASH+" = ? ");
 		return builder.toString();
 	}
 
@@ -894,29 +908,15 @@ public class SQLUtils {
 		return "SELECT " + ROW_VERSION + " FROM " + getTableNameForId(tableId, TableType.STATUS);
 	}
 
-	public static String selectCurrentRowVersionsForRowRange(Long tableId) {
-		return "SELECT " + ROW_ID + "," + ROW_VERSION + " FROM " + getTableNameForId(tableId, TableType.CURRENT_ROW) + " WHERE " + ROW_ID
-				+ " >= ? AND " + ROW_ID + " < ?";
+	/**
+	 * Create SQL used to get the current schema hash of a table.
+	 * @param tableId
+	 * @return
+	 */
+	public static String getSchemaHashSQL(String tableId) {
+		return "SELECT " + SCHEMA_HASH + " FROM " + getTableNameForId(tableId, TableType.STATUS);
 	}
-
-	public static String selectCurrentRowVersionsForInRows(Long tableId) {
-		return "SELECT " + ROW_ID + "," + ROW_VERSION + " FROM " + getTableNameForId(tableId, TableType.CURRENT_ROW) + " WHERE " + ROW_ID
-				+ " IN ( :" + ROW_ID_BIND + " )";
-	}
-
-	public static String selectCurrentRowVersionOfRow(Long tableId) {
-		return "SELECT " + ROW_VERSION + " FROM " + getTableNameForId(tableId, TableType.CURRENT_ROW) + " WHERE " + ROW_ID + " = ?";
-	}
-
-	public static String updateCurrentRowSQL(Long tableId) {
-		return "INSERT INTO " + getTableNameForId(tableId, TableType.CURRENT_ROW) + " (" + ROW_ID + ", " + ROW_VERSION
-				+ ") VALUES (?, ?) ON DUPLICATE KEY UPDATE " + ROW_VERSION + " = VALUES(" + ROW_VERSION + ")";
-	}
-
-	public static String selectCurrentRowMaxVersion(Long tableId) {
-		return "SELECT MAX(" + ROW_VERSION + ") FROM " + getTableNameForId(tableId, TableType.CURRENT_ROW);
-	}
-
+	
 	public static String selectRowValuesForRowId(Long tableId) {
 		return "SELECT * FROM " + getTableNameForId(tableId, TableType.INDEX) + " WHERE " + ROW_ID + " IN ( :" + ROW_ID_BIND + " )";
 	}

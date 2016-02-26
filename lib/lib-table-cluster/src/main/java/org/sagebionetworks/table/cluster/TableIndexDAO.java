@@ -101,6 +101,21 @@ public interface TableIndexDAO {
 	 * @param highestVersion
 	 */
 	public void setMaxCurrentCompleteVersionForTable(String tableId, Long highestVersion);
+	
+	/**
+	 * Set the MD5 hex of the table's current schema.
+	 * 
+	 * @param tableId
+	 * @param schemaMD5Hex
+	 */
+	public void setCurrentSchemaMD5Hex(String tableId, String schemaMD5Hex);
+	
+	/**
+	 * Get the MD5 hex of the table's current schema.
+	 * @param tableId
+	 * @return
+	 */
+	public String getCurrentSchemaMD5Hex(String tableId);
 
 	/**
 	 * Delete all of the secondary tables used for an index if they exist.
@@ -170,4 +185,10 @@ public interface TableIndexDAO {
 	 */
 	public Set<Long> getFileHandleIdsAssociatedWithTable(
 			Set<Long> toTest, String tableId);
+	
+	/**
+	 * Get the current state of the table's Index.
+	 * @return
+	 */
+	public IndexState getIndexState(String tableId);
 }
