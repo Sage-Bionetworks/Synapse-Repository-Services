@@ -135,7 +135,7 @@ public class IT101Administration {
 	@Test
 	public void testPublishMessages() throws SynapseException, JSONObjectAdapterException{
 		StackConfiguration config = new StackConfiguration();
-		PublishResults results = adminSynapse.publishChangeMessages(config.getRdsUpdateQueueName(), 0L,  ObjectType.ENTITY, 1l);
+		PublishResults results = adminSynapse.publishChangeMessages(config.getEntityAnnotationsUpdateQueueName(), 0L,  ObjectType.ENTITY, 1l);
 		assertNotNull(results);
 		assertNotNull(results.getList());
 		assertEquals(1, results.getList().size());

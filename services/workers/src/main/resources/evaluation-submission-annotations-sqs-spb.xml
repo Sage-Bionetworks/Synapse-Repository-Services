@@ -36,7 +36,7 @@
 								<property name="semaphoreLockAndMessageVisibilityTimeoutSec"
 									value="300" />
 								<property name="queueName"
-									ref="stackConfiguration.annotationsUpdateQueueName" />
+									ref="stackConfiguration.submissionAnnotationsUpdateQueueName" />
 								<property name="topicNamesToSubscribe">
 									<list>
 										<ref

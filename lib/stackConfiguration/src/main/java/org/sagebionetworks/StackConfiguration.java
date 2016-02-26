@@ -960,8 +960,8 @@ public class StackConfiguration {
 	 * 
 	 * @return
 	 */
-	public String getRdsUpdateQueueName() {
-		return String.format(StackConstants.RDS_QUEUE_NAME_TEMPLATE,
+	public String getEntityAnnotationsUpdateQueueName() {
+		return String.format(StackConstants.ENTITY_ANNOTATIONS_QUEUE_NAME_TEMPLATE,
 				singleton().getStack(),
 				StackConfiguration.getStackInstance());
 	}
@@ -1004,8 +1004,8 @@ public class StackConfiguration {
 	 * 
 	 * @return
 	 */
-	public String getAnnotationsUpdateQueueName() {
-		return String.format(StackConstants.ANNOTATIONS_QUEUE_NAME_TEMPLATE,
+	public String getSubmissionAnnotationsUpdateQueueName() {
+		return String.format(StackConstants.SUBMISSION_ANNOTATIONS_QUEUE_NAME_TEMPLATE,
 				singleton().getStack(),
 				StackConfiguration.getStackInstance());
 	}

@@ -86,7 +86,7 @@ public class EvaluationSubmissionAnnotationsWorkerIntegrationTest {
 	    userInfo = new UserInfo(true);
 	    userInfo.setId(userId);
 		semphoreManager.releaseAllLocksAsAdmin(userInfo);
-		queueCleaner.purgeQueue(StackConfiguration.singleton().getAnnotationsUpdateQueueName());
+		queueCleaner.purgeQueue(StackConfiguration.singleton().getSubmissionAnnotationsUpdateQueueName());
 		
 		// create a node
   		Node node = new Node();
