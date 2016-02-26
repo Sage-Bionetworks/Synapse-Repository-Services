@@ -33,7 +33,7 @@
 								<property name="semaphoreLockAndMessageVisibilityTimeoutSec"
 									value="30" />
 								<property name="queueName"
-									ref="stackConfiguration.rdsUpdateQueueName" />
+									ref="stackConfiguration.entityAnnotationsUpdateQueueName" />
 								<property name="topicNamesToSubscribe">
 									<list>
 										<ref

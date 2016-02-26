@@ -60,7 +60,7 @@ public class StackConstants {
 	/**
 	 * Template used for the name of the AWS SQS where search updates are pushed.
 	 */
-	public static final String RDS_QUEUE_NAME_TEMPLATE = "%1$s-%2$s-rds-update-queue";
+	public static final String ENTITY_ANNOTATIONS_QUEUE_NAME_TEMPLATE = "%1$s-%2$s-entity-annotations-update-queue";
 	
 	/**
 	 * Template used for the name of the AWS SQS where message (to user) updates are pushed.
@@ -81,7 +81,7 @@ public class StackConstants {
 	/**
 	 * Template used for the name of the AWS SQS where annotations updates are pushed.
 	 */
-	public static final String ANNOTATIONS_QUEUE_NAME_TEMPLATE = "%1$s-%2$s-annotations-update-queue";
+	public static final String SUBMISSION_ANNOTATIONS_QUEUE_NAME_TEMPLATE = "%1$s-%2$s-submission-annotations-update-queue";
 	
 	/**
 	 * Template used for the name of the AWS SQS where ranges of change messages are pushed.
