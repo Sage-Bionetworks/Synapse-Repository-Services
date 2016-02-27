@@ -30,7 +30,6 @@ import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.ValidateArgument;
-import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.dao.InvalidDataAccessResourceUsageException;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
@@ -508,11 +507,15 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		}
 	}
 	
+
 	@Override
-	public IndexState getIndexState(String tableId) {
-		long version = this.getMaxCurrentCompleteVersionForTable(tableId);
-		String md5 = this.getCurrentSchemaMD5Hex(tableId);
-		return new IndexState(version, md5);
+	public boolean doesIndexStateMatch(String tableId, long versionNumber, String schemaMD5Hex) {
+		long indexVersion = getMaxCurrentCompleteVersionForTable(tableId);
+		if(indexVersion != versionNumber){
+			return false;
+		}
+		String indexMD5Hex = getCurrentSchemaMD5Hex(tableId);
+		return indexMD5Hex.equals(schemaMD5Hex);
 	}
 
 }

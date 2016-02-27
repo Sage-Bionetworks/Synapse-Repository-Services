@@ -69,7 +69,6 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
-import org.sagebionetworks.table.cluster.IndexState;
 import org.sagebionetworks.table.cluster.SQLTranslatorUtils;
 import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
@@ -86,6 +85,7 @@ import org.sagebionetworks.table.query.model.visitors.GetTableNameVisitor;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 import org.sagebionetworks.util.Closer;
 import org.sagebionetworks.util.Pair;
+import org.sagebionetworks.util.TimeoutUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
@@ -113,6 +113,8 @@ public class TableRowManagerImpl implements TableRowManager {
 	public static final long BUNDLE_MASK_QUERY_COLUMN_MODELS = 0x10;
 
 	public static final int READ_LOCK_TIMEOUT_SEC = 60;
+
+	public static final long TABLE_PROCESSING_TIMEOUT_MS = 1000*10; // 10 mins
 	
 	@Autowired
 	AuthorizationManager authorizationManager;
@@ -132,7 +134,8 @@ public class TableRowManagerImpl implements TableRowManager {
 	StackStatusDao stackStatusDao;
 	@Autowired
 	FileHandleDao fileHandleDao;
-	
+	@Autowired
+	TimeoutUtils timeoutUtils;
 	
 	/**
 	 * Injected via spring
@@ -519,25 +522,29 @@ public class TableRowManagerImpl implements TableRowManager {
 	public TableStatus getTableStatusOrCreateIfNotExists(String tableId) throws NotFoundException, IOException {
 		try {
 			TableStatus status = tableStatusDAO.getTableStatus(tableId);
-			boolean isIndexSynchronizedWithTruth = isIndexSynchronizedWithTruth(tableId);
-			if(TableState.AVAILABLE.equals(status.getState())){
-				// available
-				if(isIndexSynchronizedWithTruth){
-					// available and Synchronized
-					return status;
-				}
-			}else{
-				// processing or failed
-				if(!isIndexSynchronizedWithTruth){
+			if(!TableState.AVAILABLE.equals(status.getState())){
+				// Processing or Failed.
+				// Is progress being made?
+				if(timeoutUtils.hasExpired(TABLE_PROCESSING_TIMEOUT_MS, status.getChangedOn().getTime())){
+					// progress has not been made so trigger another update
+					return setTableToProcessingAndTriggerUpdate(tableId);
+				}else{
+					// progress has been made so just return the status
 					return status;
 				}
 			}
-			// need to trigger the worker again.
-			return setTableToProcessingAndTriggerUpdate(tableId);
+			// Status is Available, is the index synchronized with the truth?
+			if(isIndexSynchronizedWithTruth(tableId)){
+				// Available and synchronized.
+				return status;
+			}else{
+				// Available but not synchronized, so change the state to processing.
+				return setTableToProcessingAndTriggerUpdate(tableId);
+			}
 			
 		} catch (NotFoundException e) {
 			// make sure the table exists
-			if (!nodeDao.doesNodeExist(KeyFactory.stringToKey(tableId))) {
+			if (!nodeDao.isNodeAvailable(KeyFactory.stringToKey(tableId))) {
 				throw new NotFoundException("Table " + tableId + " not found");
 			}
 			return setTableToProcessingAndTriggerUpdate(tableId);
@@ -1285,16 +1292,13 @@ public class TableRowManagerImpl implements TableRowManager {
 
 	@Override
 	public boolean isIndexSynchronizedWithTruth(String tableId) {
-		// Get the state of the index
-		IndexState indexState = this.tableConnectionFactory.getConnection(tableId).getIndexState(tableId);
 		// Get the truth schema
 		List<ColumnModel> truthSchema = this.columnModelDAO.getColumnModelsForObject(tableId);
 		String truthSchemaMD5Hex = TableModelUtils.createSchemaMD5HexCM(truthSchema);
 		// get the truth version
 		long truthLastVersion = getVersionOfLastTableChange(tableId);
 		// compare the truth with the index.
-		IndexState truthState = new IndexState(truthLastVersion, truthSchemaMD5Hex);
-		return truthState.equals(indexState);
+		return this.tableConnectionFactory.getConnection(tableId).doesIndexStateMatch(tableId, truthLastVersion, truthSchemaMD5Hex);
 	}
 
 
@@ -1311,7 +1315,8 @@ public class TableRowManagerImpl implements TableRowManager {
 
 	@Override
 	public boolean isIndexWorkRequired(String tableId) {
-		if(!nodeDao.doesNodeExist(KeyFactory.stringToKey(tableId))){
+		// Does the table exist and not in the trash?
+		if(!nodeDao.isNodeAvailable(KeyFactory.stringToKey(tableId))){
 			return false;
 		}
 		// work is needed if the index is out-of-sych.

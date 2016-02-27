@@ -1024,4 +1024,38 @@ public class TableIndexDAOImplTest {
 		assertNotNull(results);
 		assertTrue(results.isEmpty());
 	}
+	
+	@Test
+	public void testDoesIndexStateMatch(){
+		// ensure the secondary tables for this index exist
+		this.tableIndexDAO.createSecondaryTables(tableId);
+		
+		String md5 = "md5hex";
+		this.tableIndexDAO.setCurrentSchemaMD5Hex(tableId, md5);
+		long version = 123;
+		this.tableIndexDAO.setMaxCurrentCompleteVersionForTable(tableId, version);
+		// call under test
+		boolean match = this.tableIndexDAO.doesIndexStateMatch(tableId, version, md5);
+		assertTrue(match);
+		
+		// call under test
+		match = this.tableIndexDAO.doesIndexStateMatch(tableId, version+1, md5);
+		assertFalse(match);
+		
+		// call under test
+		match = this.tableIndexDAO.doesIndexStateMatch(tableId, version, md5+1);
+		assertFalse(match);
+	}
+	
+	@Test
+	public void testDoesIndexStateMatchTableDoesNotExist(){
+		// ensure the secondary tables for this index exist
+		this.tableIndexDAO.createSecondaryTables(tableId);
+		// the status table does not exist for this case.
+		String md5 = "md5hex";
+		long version = 123;
+		// call under test
+		boolean match = this.tableIndexDAO.doesIndexStateMatch(tableId, version, md5);
+		assertFalse(match);
+	}
 }

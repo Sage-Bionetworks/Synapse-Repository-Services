@@ -12,7 +12,6 @@ import org.sagebionetworks.asynchronous.workers.changes.ChangeMessageDrivenRunne
 import org.sagebionetworks.asynchronous.workers.changes.LockTimeoutAware;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
-import org.sagebionetworks.repo.manager.NodeInheritanceManager;
 import org.sagebionetworks.repo.manager.table.TableIndexConnectionFactory;
 import org.sagebionetworks.repo.manager.table.TableIndexConnectionUnavailableException;
 import org.sagebionetworks.repo.manager.table.TableIndexManager;
@@ -56,8 +55,6 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 	@Autowired
 	StackConfiguration configuration;
 	@Autowired
-	NodeInheritanceManager nodeInheritanceManager;
-	@Autowired
 	TableIndexConnectionFactory connectionFactory;
 	
 	Integer lockTimeoutSec;
@@ -87,16 +84,6 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 				indexManager.deleteTableIndex();
 				return;
 			} else {
-				// Create or update.
-				// make sure the table is not in the trash
-				try {
-					if (nodeInheritanceManager.isNodeInTrash(tableId)) {
-						return;
-					}
-				} catch (NotFoundException e) {
-					// if the table no longer exists, we want to stop trying
-					return;
-				}
 				// this method does the real work.
 				State state = createOrUpdateTable(progressCallback, tableId, indexManager, change);
 				if (State.RECOVERABLE_FAILURE.equals(state)) {

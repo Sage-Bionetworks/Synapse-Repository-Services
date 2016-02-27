@@ -233,6 +233,9 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private static final String UPDATE_PROJECT_IDS = "UPDATE " + TABLE_NODE + " SET " + COL_NODE_PROJECT_ID + " = :" + PROJECT_ID_PARAM_NAME +", "+COL_NODE_ETAG+" = UUID()"
 			+ " WHERE " + COL_NODE_ID + " IN (:" + IDS_PARAM_NAME + ")";
 
+	// Track the trash folder.
+	public static final Long TRASH_FOLDER_ID = Long.parseLong(StackConfiguration.getTrashFolderEntityIdStatic());
+	
 	private static final RowMapper<EntityHeader> ENTITY_HEADER_ROWMAPPER = new RowMapper<EntityHeader>() {
 		@Override
 		public EntityHeader mapRow(ResultSet rs, int rowNum) throws SQLException {
@@ -863,6 +866,21 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		try{
 			long count = namedParameterJdbcTemplate.queryForObject(SQL_COUNT_NODE_ID, parameters, Long.class);
 			return count > 0;
+		}catch(Exception e){
+			// Can occur when the schema does not exist.
+			return false;
+		}
+	}
+	
+	@Override
+	public boolean isNodeAvailable(Long nodeId) {
+		try{
+			Long benefactorId = this.jdbcTemplate.queryForObject("SELECT "+COL_NODE_BENEFACTOR_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" = ?", Long.class, nodeId);
+			if(benefactorId == null){
+				return false;
+			}
+			// node is available if it is not in the trash.
+			return !TRASH_FOLDER_ID.equals(benefactorId);
 		}catch(Exception e){
 			// Can occur when the schema does not exist.
 			return false;
@@ -1660,7 +1678,5 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		});
 		
 	}
-	
-
 
 }

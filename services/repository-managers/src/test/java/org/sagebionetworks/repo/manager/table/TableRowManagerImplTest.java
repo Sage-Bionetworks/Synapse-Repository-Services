@@ -1,6 +1,11 @@
 package org.sagebionetworks.repo.manager.table;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyLong;
@@ -20,6 +25,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -83,11 +89,11 @@ import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
-import org.sagebionetworks.table.cluster.IndexState;
 import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.Pair;
+import org.sagebionetworks.util.TimeoutUtils;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.sagebionetworks.workers.util.semaphore.WriteReadSemaphoreRunner;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -126,6 +132,8 @@ public class TableRowManagerImplTest {
 	WriteReadSemaphoreRunner mockWriteReadSemaphoreRunner;
 	@Mock
 	FileHandleDao mockFileDao;
+	@Mock
+	TimeoutUtils mockTimeoutUtils;
 	
 	List<ColumnModel> models;
 	String schemaMD5Hex;
@@ -133,6 +141,7 @@ public class TableRowManagerImplTest {
 	TableRowManagerImpl manager;
 	UserInfo user;
 	String tableId;
+	Long tableIdLong;
 	RowSet set;
 	RawRowSet rawSet;
 	PartialRowSet partialSet;
@@ -142,6 +151,7 @@ public class TableRowManagerImplTest {
 	long rowVersionSequence;
 	int maxBytesPerRequest;
 	List<FileHandleAuthorizationStatus> fileAuthResults;
+	TableStatus status;
 	
 	@SuppressWarnings("unchecked")
 	@Before
@@ -159,6 +169,7 @@ public class TableRowManagerImplTest {
 		ReflectionTestUtils.setField(manager, "tableConnectionFactory", mockTableConnectionFactory);
 		ReflectionTestUtils.setField(manager, "writeReadSemaphoreRunner", mockWriteReadSemaphoreRunner);
 		ReflectionTestUtils.setField(manager, "fileHandleDao", mockFileDao);
+		ReflectionTestUtils.setField(manager, "timeoutUtils", mockTimeoutUtils);
 
 		// Just call the caller.
 		stub(mockWriteReadSemaphoreRunner.tryRunWithReadLock(any(ProgressCallback.class),anyString(), anyInt(), any(ProgressingCallable.class))).toAnswer(new Answer<Object>() {
@@ -181,6 +192,7 @@ public class TableRowManagerImplTest {
 		models = TableModelTestUtils.createOneOfEachType(true);
 		schemaMD5Hex = TableModelUtils.createSchemaMD5HexCM(models);
 		tableId = "syn123";
+		tableIdLong = KeyFactory.stringToKey(tableId);
 		List<Row> rows = TableModelTestUtils.createRows(models, 10);
 		set = new RowSet();
 		set.setTableId(tableId);
@@ -295,6 +307,14 @@ public class TableRowManagerImplTest {
 				return null;
 			}
 		}).when(mockFileDao).getFileHandleIdsCreatedByUser(anyLong(), any(List.class));
+		
+		status = new TableStatus();
+		status.setTableId(tableId);
+		status.setState(TableState.PROCESSING);
+		status.setChangedOn(new Date(123));
+		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
+		
+		when(mockNodeDAO.isNodeAvailable(anyLong())).thenReturn(true);
 	}
 	
 	@Test (expected=UnauthorizedException.class)
@@ -817,8 +837,6 @@ public class TableRowManagerImplTest {
 	@Test
 	public void testQueryIsConsistentTrueNotAvailable() throws Exception {
 		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		TableStatus status = new TableStatus();
-		status.setTableId(tableId);
 		status.setState(TableState.PROCESSING);
 		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
 		try{
@@ -839,8 +857,6 @@ public class TableRowManagerImplTest {
 	@Test
 	public void testQueryIsConsistentTrueNotFound() throws Exception {
 		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		TableStatus status = new TableStatus();
-		status.setTableId(tableId);
 		status.setState(TableState.PROCESSING);
 		when(mockTableStatusDAO.getTableStatus(tableId)).thenThrow(new NotFoundException("fake")).thenReturn(status);
 		when(mockTruthDao.getLastTableRowChange(tableId)).thenReturn(new TableRowChange());
@@ -854,7 +870,7 @@ public class TableRowManagerImplTest {
 		}
 		verify(mockTableStatusDAO, times(2)).getTableStatus(tableId);
 		verify(mockTableStatusDAO).resetTableStatusToProcessing(tableId);
-		verify(mockNodeDAO).doesNodeExist(123L);
+		verify(mockNodeDAO).isNodeAvailable(123L);
 
 	}
 
@@ -1050,137 +1066,140 @@ public class TableRowManagerImplTest {
 		verify(mockProgressCallback, times(2)).progressMade(anyLong());
 	}
 	
+	/**
+	 * For this case the table status is available and the index is synchronized with the truth.
+	 * The available status should be returned for this case.
+	 * @throws Exception
+	 */
 	@Test
-	public void testGetTableStatusOrCreateIfNotExistsNoRows() throws Exception {
-		long currentVersion = -1;
-		// setup a mismatch
-		IndexState indexState = new IndexState(currentVersion, this.schemaMD5Hex);
-		when(mockTableIndexDAO.getIndexState(tableId)).thenReturn(indexState);
-		// Since there are now rows this should return null.
-		when(mockTruthDao.getLastTableRowChange(tableId)).thenReturn(null);
-		
-		TableStatus status = new TableStatus();
+	public void testGetTableStatusOrCreateIfNotExistsAvailableSynchronized() throws Exception {
+		// Available
 		status.setState(TableState.AVAILABLE);
-		// this is null when there are no change sets applied to the table.
-		status.setLastTableChangeEtag(null);
 		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
-
+		// synchronized
+		when(mockTableIndexDAO.doesIndexStateMatch(anyString(), anyLong(), anyString())).thenReturn(true);
+		// not expired
+		when(mockTimeoutUtils.hasExpired(anyLong(), anyLong())).thenReturn(false);
+		// table exists
+		when(mockNodeDAO.isNodeAvailable(tableIdLong)).thenReturn(true);
 		// call under test
 		TableStatus result = manager.getTableStatusOrCreateIfNotExists(tableId);
-		assertEquals(status, result);
-		verify(mockTruthDao).getLastTableRowChange(tableId);
-		verify(mockTableStatusDAO, never()).resetTableStatusToProcessing(tableId);
-	}
-	
-	@Test
-	public void testGetTableStatusOrCreateIfNotExistsWithRowsAndUpToDate() throws Exception {
-		long currentVersion = 123L;
-		// setup a mismatch
-		IndexState indexState = new IndexState(currentVersion, this.schemaMD5Hex);
-		when(mockTableIndexDAO.getIndexState(tableId)).thenReturn(indexState);
-		// setup the last change to this table.
-		TableRowChange lastChange = new TableRowChange();
-		lastChange.setEtag("etagOfLastChange");
-		lastChange.setRowVersion(currentVersion);
-		// There are no table changes for this case.
-		when(mockTruthDao.getLastTableRowChange(tableId)).thenReturn(lastChange);
-		
-		// This table is available and up-to-date.
-		TableStatus status = new TableStatus();
-		status.setState(TableState.AVAILABLE);
-		// Set the status to match the last change.
-		status.setLastTableChangeEtag(lastChange.getEtag());
-		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
-
-		// call under test.
-		TableStatus result = manager.getTableStatusOrCreateIfNotExists(tableId);
-		assertEquals(status, result);
-		verify(mockTruthDao).getLastTableRowChange(tableId);
+		assertNotNull(result);
 		verify(mockTableStatusDAO, never()).resetTableStatusToProcessing(tableId);
 	}
 	
 	/**
-	 * This is a test PLFM-3383 and PLFM-3379 where a table's status is marked as 
-	 * AVAILABLE but the index is not up-to-date with the table row changes.
-	 * For this case, the table status must be rest to to PROCESSING.
+	 * This is a test case for PLFM-3383, PLFM-3379, and PLFM-3762.  In all cases the table 
+	 * status was available but the index was not synchronized with the truth.
 	 * @throws Exception
 	 */
 	@Test
-	public void testGetTableStatusOrCreateIfNotExistsAVAILABLEButNotUpToDate() throws Exception {
-		long currentVersion = 123L;
-		// setup a mismatch
-		IndexState indexState = new IndexState(currentVersion, this.schemaMD5Hex+1);
-		when(mockTableIndexDAO.getIndexState(tableId)).thenReturn(indexState);
-		// setup the last change to this table.
-		TableRowChange lastChange = new TableRowChange();
-		lastChange.setEtag("etagOfLastChange");
-		lastChange.setRowVersion(currentVersion);
-		
-		// There are no table changes for this case.
-		when(mockTruthDao.getLastTableRowChange(tableId)).thenReturn(lastChange);
-		
-		// This table status is available but not up-to-date.
-		TableStatus startStatus = new TableStatus();
-		startStatus.setState(TableState.AVAILABLE);
-		// Set the status to not match the last table change.
-		startStatus.setLastTableChangeEtag("not the etag of the last change");
-		
-		// This is the status for the second call to getTableStatus()
-		TableStatus processingStatus = new TableStatus();
-		processingStatus.setState(TableState.PROCESSING);
-		processingStatus.setLastTableChangeEtag("not the etag of the last change");
-		// setup both the start (AVAILABLE) and the processing status.
-		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(startStatus, processingStatus);
-
-		// call under test.
+	public void testGetTableStatusOrCreateIfNotExistsAvailableNotSynchronized() throws Exception {
+		// Available
+		status.setState(TableState.AVAILABLE);
+		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
+		// Not synchronized
+		when(mockTableIndexDAO.doesIndexStateMatch(anyString(), anyLong(), anyString())).thenReturn(false);
+		// not expired
+		when(mockTimeoutUtils.hasExpired(anyLong(), anyLong())).thenReturn(false);
+		// table exists
+		when(mockNodeDAO.isNodeAvailable(tableIdLong)).thenReturn(true);
+		// call under test
 		TableStatus result = manager.getTableStatusOrCreateIfNotExists(tableId);
-		// The processing status should be returned.
-		assertEquals(processingStatus, result);
-		verify(mockTruthDao).getLastTableRowChange(tableId);
-		// The table status must get rest here.
+		assertNotNull(result);
+		// must trigger processing
 		verify(mockTableStatusDAO).resetTableStatusToProcessing(tableId);
 	}
 	
+	/**
+	 * This is a case where the table status does not exist but the table exits.
+	 * The table must be be set to processing for this case.
+	 * @throws Exception
+	 */
 	@Test
-	public void testGetTableStatusOrCreateIfNotExistsProcessing() throws Exception {
-		// This table is processing
-		TableStatus status = new TableStatus();
-		status.setState(TableState.PROCESSING);
-		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
-
-		// call under test.
-		TableStatus result = manager.getTableStatusOrCreateIfNotExists(tableId);
-		assertEquals(status, result);
-		// The last row should only be checked for for AVAILABLE tables.
-		verify(mockTableStatusDAO, never()).resetTableStatusToProcessing(tableId);
-	}
-	
-	@Test
-	public void testGetTableStatusOrCreateIfNotExistsNotFound() throws Exception {
-		TableStatus status = new TableStatus();
+	public void testGetTableStatusOrCreateIfNotExistsStatusNotFoundTableExits() throws Exception {
+		// Available
 		status.setState(TableState.PROCESSING);
 		// Setup a case where the first time the status does not exists, but does exist the second call.
 		when(mockTableStatusDAO.getTableStatus(tableId)).thenThrow(new NotFoundException("No status for this table.")).thenReturn(status);
-		// The table exists
-		when(mockNodeDAO.doesNodeExist(KeyFactory.stringToKey(tableId))).thenReturn(true);
+		// synchronized
+		when(mockTableIndexDAO.doesIndexStateMatch(anyString(), anyLong(), anyString())).thenReturn(true);
+		// not expired
+		when(mockTimeoutUtils.hasExpired(anyLong(), anyLong())).thenReturn(false);
+		// table exists
+		when(mockNodeDAO.isNodeAvailable(tableIdLong)).thenReturn(true);
+		// call under test
 		TableStatus result = manager.getTableStatusOrCreateIfNotExists(tableId);
-		assertEquals(status, result);
-		verify(mockTruthDao, never()).getLastTableRowChange(tableId);
-		// The status should be set to processing in this case.
+		assertNotNull(result);
 		verify(mockTableStatusDAO).resetTableStatusToProcessing(tableId);
+		verify(mockNodeDAO).isNodeAvailable(tableIdLong);
 	}
 	
+	/**
+	 * This is a case where the table status does not exist and the table does not exist.
+	 * Should result in a NotFoundException
+	 * @throws Exception
+	 */
 	@Test (expected=NotFoundException.class)
-	public void testGetTableStatusOrCreateIfNotExistsTableDoesNotExist() throws Exception {
-		TableStatus status = new TableStatus();
+	public void testGetTableStatusOrCreateIfNotExistsStatusNotFoundTableDoesNotExist() throws Exception {
+		// Available
 		status.setState(TableState.PROCESSING);
 		// Setup a case where the first time the status does not exists, but does exist the second call.
-		when(mockTableStatusDAO.getTableStatus(tableId)).thenThrow(new NotFoundException("No status for this table."));
-		// The table does not exists
-		when(mockNodeDAO.doesNodeExist(KeyFactory.stringToKey(tableId))).thenReturn(false);
-		// This should fail as the table does not exist
-		manager.getTableStatusOrCreateIfNotExists(tableId);
+		when(mockTableStatusDAO.getTableStatus(tableId)).thenThrow(new NotFoundException("No status for this table.")).thenReturn(status);
+		// synchronized
+		when(mockTableIndexDAO.doesIndexStateMatch(anyString(), anyLong(), anyString())).thenReturn(true);
+		// not expired
+		when(mockTimeoutUtils.hasExpired(anyLong(), anyLong())).thenReturn(false);
+		// table does not exists
+		when(mockNodeDAO.isNodeAvailable(tableIdLong)).thenReturn(false);
+		// call under test
+		TableStatus result = manager.getTableStatusOrCreateIfNotExists(tableId);
 	}
+	
+	/**
+	 * For this case the table is processing and making progress (not expired).
+	 * So the processing status should be returned without resetting.
+	 * @throws Exception
+	 */
+	@Test
+	public void testGetTableStatusOrCreateIfNotExistsProcessingNotExpired() throws Exception {
+		// Available
+		status.setState(TableState.PROCESSING);
+		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
+		// synchronized
+		when(mockTableIndexDAO.doesIndexStateMatch(anyString(), anyLong(), anyString())).thenReturn(true);
+		// not expired
+		when(mockTimeoutUtils.hasExpired(anyLong(), anyLong())).thenReturn(false);
+		// table exists
+		when(mockNodeDAO.isNodeAvailable(tableIdLong)).thenReturn(true);
+		// call under test
+		TableStatus result = manager.getTableStatusOrCreateIfNotExists(tableId);
+		assertNotNull(result);
+		verify(mockTableStatusDAO, never()).resetTableStatusToProcessing(tableId);
+	}
+	
+	/**
+	 * For this case the table is processing and not making progress .
+	 * The status must be rest to processing to trigger another try.
+	 * @throws Exception
+	 */
+	@Test
+	public void testGetTableStatusOrCreateIfNotExistsProcessingExpired() throws Exception {
+		// Available
+		status.setState(TableState.PROCESSING);
+		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
+		// synchronized
+		when(mockTableIndexDAO.doesIndexStateMatch(anyString(), anyLong(), anyString())).thenReturn(true);
+		//expired
+		when(mockTimeoutUtils.hasExpired(anyLong(), anyLong())).thenReturn(true);
+		// table exists
+		when(mockNodeDAO.isNodeAvailable(tableIdLong)).thenReturn(true);
+		// call under test
+		TableStatus result = manager.getTableStatusOrCreateIfNotExists(tableId);
+		assertNotNull(result);
+		verify(mockTableStatusDAO).resetTableStatusToProcessing(tableId);
+	}
+
 
 	@Test
 	public void testNextPageToken() throws Exception {
@@ -1327,8 +1346,7 @@ public class TableRowManagerImplTest {
 	public void testIsIndexSynchronizedWithTruthHappy(){
 		long currentVersion = 123L;
 		// setup a mismatch
-		IndexState indexState = new IndexState(currentVersion, this.schemaMD5Hex);
-		when(mockTableIndexDAO.getIndexState(tableId)).thenReturn(indexState);
+		when(mockTableIndexDAO.doesIndexStateMatch(tableId, currentVersion, schemaMD5Hex)).thenReturn(true);
 		
 		TableRowChange lastChange = new TableRowChange();
 		lastChange.setRowVersion(currentVersion);
@@ -1337,31 +1355,6 @@ public class TableRowManagerImplTest {
 		assertTrue(manager.isIndexSynchronizedWithTruth(tableId));
 	}
 	
-	@Test
-	public void testIsIndexSynchronizedWithTruthVersionMismatch(){
-		long currentVersion = 123L;
-		// setup a mismatch
-		IndexState indexState = new IndexState(currentVersion+1, this.schemaMD5Hex);
-		when(mockTableIndexDAO.getIndexState(tableId)).thenReturn(indexState);
-		
-		TableRowChange lastChange = new TableRowChange();
-		lastChange.setRowVersion(currentVersion);
-		when(mockTruthDao.getLastTableRowChange(tableId)).thenReturn(lastChange);
-		
-		assertFalse(manager.isIndexSynchronizedWithTruth(tableId));
-	}
-	
-	@Test
-	public void testIsIndexSynchronizedWithTruthLastVersionNull(){
-		long currentVersion = -1L;
-		// setup a mismatch
-		IndexState indexState = new IndexState(currentVersion, this.schemaMD5Hex);
-		when(mockTableIndexDAO.getIndexState(tableId)).thenReturn(indexState);
-		
-		when(mockTruthDao.getLastTableRowChange(tableId)).thenReturn(null);
-		
-		assertTrue(manager.isIndexSynchronizedWithTruth(tableId));
-	}
 	
 	@Test
 	public void testGetVersionOfLastTableChangeNull() throws NotFoundException, IOException{
@@ -1382,66 +1375,77 @@ public class TableRowManagerImplTest {
 	}
 	
 	/**
-	 * No work is needed when the index is in-synch and the table is available.
+	 * The node is available, the table status is available and the index is synchronized.
 	 */
 	@Test
-	public void testIsIndexWorkRequiredInSynchAndAvailable(){
-		// setup in-sych
-		long currentVersion = 123L;
-		// setup a mismatch
-		IndexState indexState = new IndexState(currentVersion, this.schemaMD5Hex);
-		when(mockTableIndexDAO.getIndexState(tableId)).thenReturn(indexState);
-		
-		TableRowChange lastChange = new TableRowChange();
-		lastChange.setRowVersion(currentVersion);
-		when(mockTruthDao.getLastTableRowChange(tableId)).thenReturn(lastChange);
-		
+	public void testIsIndexWorkRequiredFalse(){
+		// node exists
+		when(mockNodeDAO.isNodeAvailable(tableIdLong)).thenReturn(true);
+		// synchronized
+		when(mockTableIndexDAO.doesIndexStateMatch(anyString(), anyLong(), anyString())).thenReturn(true);
+		// available
 		TableStatus status = new TableStatus();
 		status.setState(TableState.AVAILABLE);
 		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
-		
-		assertFalse(manager.isIndexWorkRequired(tableId));
+		// call under test
+		boolean workRequired = manager.isIndexWorkRequired(tableId);
+		assertFalse(workRequired);
 	}
 	
 	/**
-	 * Work is needed when the index is in-synch and the table is processing.
+	 * The node is missing, the table status is available and the index is synchronized.
 	 */
 	@Test
-	public void testIsIndexWorkRequiredInSynchAndProcessing(){
-		// setup in-sych
-		long currentVersion = 123L;
-		// setup a mismatch
-		IndexState indexState = new IndexState(currentVersion, this.schemaMD5Hex);
-		when(mockTableIndexDAO.getIndexState(tableId)).thenReturn(indexState);
-		
-		TableRowChange lastChange = new TableRowChange();
-		lastChange.setRowVersion(currentVersion);
-		when(mockTruthDao.getLastTableRowChange(tableId)).thenReturn(lastChange);
-		
+	public void testIsIndexWorkRequiredNodeMissing(){
+		// node is missing
+		when(mockNodeDAO.isNodeAvailable(tableIdLong)).thenReturn(false);
+		// not synchronized
+		when(mockTableIndexDAO.doesIndexStateMatch(anyString(), anyLong(), anyString())).thenReturn(false);
+		// failed
 		TableStatus status = new TableStatus();
-		status.setState(TableState.PROCESSING);
+		status.setState(TableState.PROCESSING_FAILED);
 		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
-		
-		assertTrue(manager.isIndexWorkRequired(tableId));
+		// call under test
+		boolean workRequired = manager.isIndexWorkRequired(tableId);
+		assertFalse(workRequired);
 	}
 	
+	/**
+	 * The node is available, the table status is available and the index is not synchronized.
+	 * Processing is needed to bring the index up-to-date.
+	 */
 	@Test
-	public void testIsIndexWorkRequiredNotInSynchAndAvailable(){
-		// setup out-of-synch
-		long currentVersion = 123L;
-		// setup a mismatch
-		IndexState indexState = new IndexState(currentVersion, this.schemaMD5Hex+1);
-		when(mockTableIndexDAO.getIndexState(tableId)).thenReturn(indexState);
-		
-		TableRowChange lastChange = new TableRowChange();
-		lastChange.setRowVersion(currentVersion);
-		when(mockTruthDao.getLastTableRowChange(tableId)).thenReturn(lastChange);
-		
+	public void testIsIndexWorkRequiredNotSynched(){
+		// node exists
+		when(mockNodeDAO.isNodeAvailable(tableIdLong)).thenReturn(true);
+		// not synchronized
+		when(mockTableIndexDAO.doesIndexStateMatch(anyString(), anyLong(), anyString())).thenReturn(false);
+		// available
 		TableStatus status = new TableStatus();
 		status.setState(TableState.AVAILABLE);
 		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
-		
-		assertTrue(manager.isIndexWorkRequired(tableId));
+		// call under test
+		boolean workRequired = manager.isIndexWorkRequired(tableId);
+		assertTrue(workRequired);
 	}
-
+	
+	/**
+	 * The node is available, the table status is processing and the index is synchronized.
+	 * Processing is needed to make the table available.
+	 */
+	@Test
+	public void testIsIndexWorkRequiredStatusProcessing(){
+		// node exists
+		when(mockNodeDAO.isNodeAvailable(tableIdLong)).thenReturn(true);
+		// synchronized
+		when(mockTableIndexDAO.doesIndexStateMatch(anyString(), anyLong(), anyString())).thenReturn(true);
+		// available
+		TableStatus status = new TableStatus();
+		status.setState(TableState.PROCESSING);
+		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
+		// call under test
+		boolean workRequired = manager.isIndexWorkRequired(tableId);
+		assertTrue(workRequired);
+	}
+	
 }

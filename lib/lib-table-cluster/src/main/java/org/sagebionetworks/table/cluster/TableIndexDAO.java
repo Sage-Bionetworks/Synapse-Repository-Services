@@ -187,8 +187,12 @@ public interface TableIndexDAO {
 			Set<Long> toTest, String tableId);
 	
 	/**
-	 * Get the current state of the table's Index.
+	 * Does the state of the index match the given data?
+	 * 
+	 * @param tableId
+	 * @param versionNumber
+	 * @param schemaMD5Hex
 	 * @return
 	 */
-	public IndexState getIndexState(String tableId);
+	public boolean doesIndexStateMatch(String tableId, long versionNumber, String schemaMD5Hex);
 }
