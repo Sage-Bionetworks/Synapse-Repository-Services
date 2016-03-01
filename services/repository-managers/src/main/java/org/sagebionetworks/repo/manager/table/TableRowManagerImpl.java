@@ -114,7 +114,7 @@ public class TableRowManagerImpl implements TableRowManager {
 
 	public static final int READ_LOCK_TIMEOUT_SEC = 60;
 
-	public static final long TABLE_PROCESSING_TIMEOUT_MS = 1000*10; // 10 mins
+	public static final long TABLE_PROCESSING_TIMEOUT_MS = 1000*60*10; // 10 mins
 	
 	@Autowired
 	AuthorizationManager authorizationManager;
