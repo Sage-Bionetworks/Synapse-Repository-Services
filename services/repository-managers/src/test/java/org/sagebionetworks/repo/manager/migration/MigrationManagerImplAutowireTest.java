@@ -20,7 +20,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
-
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.EntityManager;
@@ -36,7 +35,6 @@ import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
-import org.sagebionetworks.repo.model.dao.table.CurrentVersionCacheDao;
 import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
@@ -48,18 +46,12 @@ import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
-import org.sagebionetworks.repo.model.project.ExternalUploadDestinationSetting;
-import org.sagebionetworks.repo.model.project.ProjectSetting;
-import org.sagebionetworks.repo.model.project.ProjectSettingsType;
-import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
-import org.sagebionetworks.repo.model.project.UploadDestinationSetting;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableEntity;
-
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
@@ -364,11 +356,6 @@ public class MigrationManagerImplAutowireTest {
 			List<ColumnModel> currentSchema = tableRowManager.getColumnModelsForTable(tableId);
 			TableIndexDAO indexDao = tableConnectionFactory.getConnection(tableId);
 			indexDao.createOrUpdateTable(currentSchema, tableId);
-			tableRowManager.updateLatestVersionCache(tableId, new ProgressCallback<Long>() {
-				@Override
-				public void progressMade(Long version) {
-				}
-			});
 			List<ColumnModel> models = columnManager.getColumnModelsForTable(adminUser, tableId);
 			RowReferenceSet rowRefs = new RowReferenceSet();
 			rowRefs.setRows(Collections.singletonList(TableModelTestUtils.createRowReference(0L, 0L)));
@@ -377,14 +364,8 @@ public class MigrationManagerImplAutowireTest {
 			tableRowManager.getCellValues(adminUser, tableId, rowRefs, TableModelUtils.createColumnModelColumnMapper(models, false));
 
 			assertEquals(0, indexDao.getRowCountForTable(tableId).intValue());
-			CurrentVersionCacheDao currentRowCacheDao = connectionFactory.getCurrentVersionCacheConnection(KeyFactory.stringToKey(tableId));
-			assertEquals(2, currentRowCacheDao.getCurrentVersions(KeyFactory.stringToKey(tableId), 0L, 10L).size());
 
 			migrationManager.deleteObjectsById(adminUser, MigrationType.TABLE_SEQUENCE, Lists.newArrayList(KeyFactory.stringToKey(tableId)));
-
-			assertNull(indexDao.getRowCountForTable(tableId));
-			currentRowCacheDao = connectionFactory.getCurrentVersionCacheConnection(KeyFactory.stringToKey(tableId));
-			assertEquals(0, currentRowCacheDao.getCurrentVersions(KeyFactory.stringToKey(tableId), 0L, 10L).size());
 		}
 	}
 	

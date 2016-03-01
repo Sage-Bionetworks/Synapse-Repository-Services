@@ -6,7 +6,6 @@ import java.util.Map;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
 
 public class TableConstants {
 
@@ -22,6 +21,8 @@ public class TableConstants {
 	 * The reserved column name for row version.
 	 */
 	public static final String ROW_VERSION = "ROW_VERSION";
+	public static final String SINGLE_KEY = "SINGLE_KEY";
+	public static final String SCHEMA_HASH = "SCHEMA_HASH";
 	/**
 	 * FileHandle IDs 
 	 */

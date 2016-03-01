@@ -15,7 +15,8 @@ import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -49,13 +50,21 @@ import com.amazonaws.util.StringInputStream;
  */
 public class TableCSVAppenderWorkerTest {
 	
+	@Mock
 	ProgressCallback<Message> mockProgressCallback;
+	@Mock
 	AsynchJobStatusManager mockAasynchJobStatusManager;
+	@Mock
 	TableRowManager mockTableRowManager;
+	@Mock
 	FileHandleManager  mockFileHandleManger;
+	@Mock
 	UserManager mockUserManager;
+	@Mock
 	AmazonS3Client mockS3Client;
+	@Mock
 	AsynchronousJobStatus status;
+	
 	TableCSVAppenderWorker worker;
 	S3FileHandle fileHandle;
 	UserInfo user;
@@ -66,12 +75,7 @@ public class TableCSVAppenderWorkerTest {
 	
 	@Before
 	public void before() throws Exception {
-		mockProgressCallback = Mockito.mock(ProgressCallback.class);
-		mockAasynchJobStatusManager = Mockito.mock(AsynchJobStatusManager.class);
-		mockTableRowManager = Mockito.mock(TableRowManager.class);
-		mockFileHandleManger = Mockito.mock(FileHandleManager.class);
-		mockUserManager = Mockito.mock(UserManager.class);
-		mockS3Client = Mockito.mock(AmazonS3Client.class);
+		MockitoAnnotations.initMocks(this);
 		// User
 		user = new UserInfo(false);
 		user.setId(999L);

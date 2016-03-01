@@ -116,7 +116,9 @@ public class TableIndexManagerImpl implements TableIndexManager {
 			// We have a schema so create or update the table
 			tableIndexDao.createOrUpdateTable(currentSchema, tableId);
 		}
-
+		// Save the hash of the new schema
+		String schemaMD5Hex = TableModelUtils. createSchemaMD5HexCM(currentSchema);
+		tableIndexDao.setCurrentSchemaMD5Hex(tableId, schemaMD5Hex);
 	}
 
 	@Override
@@ -124,6 +126,11 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		// delete all tables for this index.
 		tableIndexDao.deleteTable(tableId);
 		tableIndexDao.deleteSecondayTables(tableId);
-	}	
-
+	}
+	
+	@Override
+	public String getCurrentSchemaMD5Hex() {
+		return tableIndexDao.getCurrentSchemaMD5Hex(tableId);
+	}
+	
 }

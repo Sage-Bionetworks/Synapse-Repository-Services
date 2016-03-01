@@ -5,7 +5,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -15,7 +14,6 @@ import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.After;
@@ -23,17 +21,13 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
-import org.sagebionetworks.repo.model.dao.table.CurrentVersionCacheDao;
 import org.sagebionetworks.repo.model.dao.table.RowAccessor;
 import org.sagebionetworks.repo.model.dao.table.RowSetAccessor;
-import org.sagebionetworks.repo.model.dao.table.TableRowCache;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -45,9 +39,7 @@ import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
-import org.sagebionetworks.util.ReflectionStaticTestUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -60,47 +52,31 @@ import com.google.common.collect.Sets;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class TableRowTruthDAOImplTest {
-	
-	@Autowired
-	ConnectionFactory connectionFactory;
 
 	@Autowired
 	private TableRowTruthDAO tableRowTruthDao;
-
-	@Autowired
-	private TableRowCache tableRowCache;
 	
 	@Autowired
 	FileHandleDao fileHandleDao;
 
 	protected String creatorUserGroupId;
 
-	Object oldStackConfiguration;
 	
 	List<String> fileHandleIds;
 
-	@SuppressWarnings("unchecked")
 	@Before
 	public void before() throws Exception {
 		creatorUserGroupId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString();
 		assertNotNull(creatorUserGroupId);
-		oldStackConfiguration = ReflectionStaticTestUtils.getField(ReflectionStaticTestUtils.getField(tableRowTruthDao, "tableRowCache"),
-				"stackConfiguration");
 		StackConfiguration mockStackConfiguration = mock(StackConfiguration.class);
 		when(mockStackConfiguration.getTableEnabled()).thenReturn(false);
-		ReflectionStaticTestUtils.setField(ReflectionStaticTestUtils.getField(tableRowTruthDao, "tableRowCache"), "stackConfiguration",
-				mockStackConfiguration);
-		((ConnectionFactoryStub) connectionFactory).isEnabled = false;
 		fileHandleIds = new LinkedList<String>();		
 	}
 	
 	@After
 	public void after() throws Exception {
 		if(tableRowTruthDao != null) tableRowTruthDao.truncateAllRowData();
-		ReflectionStaticTestUtils.setField(ReflectionStaticTestUtils.getField(tableRowTruthDao, "tableRowCache"), "stackConfiguration",
-				oldStackConfiguration);
-		((ConnectionFactoryStub) connectionFactory).isEnabled = false;
-		
+
 		if(fileHandleIds != null){
 			for(String id: fileHandleIds){
 				try {
@@ -528,17 +504,7 @@ public class TableRowTruthDAOImplTest {
 		TableModelTestUtils.updateRow(mapper.getColumnModels(), toUpdate.getRows().get(1), 18);
 
 		final AtomicInteger count = new AtomicInteger(0);// abusing atomic integer as a reference to an int
-		tableRowTruthDao.updateLatestVersionCache(tableId, new ProgressCallback<Long>() {
-			@Override
-			public void progressMade(Long message) {
-				assertEquals(0L, message.longValue());
-				count.incrementAndGet();
-			}
-		});
-		CurrentVersionCacheDao currentRowCacheDao = connectionFactory.getCurrentVersionCacheConnection(KeyFactory.stringToKey(tableId));
-		if (((CurrentVersionCacheDaoStub) currentRowCacheDao).isEnabled) {
-			assertEquals(1, count.get());
-		}
+
 
 		// create some new rows
 		rows = TableModelTestUtils.createRows(mapper.getColumnModels(), 2);
@@ -550,17 +516,6 @@ public class TableRowTruthDAOImplTest {
 		assertNotNull(refSet);
 		for (RowReference ref : refSet.getRows()) {
 			rowVersions.put(ref.getRowId(), ref.getVersionNumber());
-		}
-
-		tableRowTruthDao.updateLatestVersionCache(tableId, new ProgressCallback<Long>() {
-			@Override
-			public void progressMade(Long message) {
-				assertEquals(1L, message.longValue());
-				count.incrementAndGet();
-			}
-		});
-		if (((CurrentVersionCacheDaoStub) currentRowCacheDao).isEnabled) {
-			assertEquals(2, count.get());
 		}
 
 		toUpdate = tableRowTruthDao.getRowSet(tableId, 1l, mapper);
@@ -575,60 +530,18 @@ public class TableRowTruthDAOImplTest {
 			rowVersions.put(ref.getRowId(), ref.getVersionNumber());
 		}
 
-		// call all latest versions before cache is up to date
-		Map<Long, Long> latestVersionsMap = tableRowTruthDao.getLatestVersions(tableId, 0, 0L, 1000L);
-		assertEquals(rowVersions, latestVersionsMap);
-
 		assertEquals(7, rowVersions.size());
 		RowSetAccessor latestVersions = tableRowTruthDao.getLatestVersionsWithRowData(tableId, rowVersions.keySet(), 0L, mapper);
 		assertEquals(7, Iterables.size(latestVersions.getRows()));
 		for (RowAccessor row : latestVersions.getRows()) {
 			assertEquals(row.getVersionNumber(), rowVersions.get(row.getRowId()));
-		}
-
-		tableRowTruthDao.updateLatestVersionCache(tableId, new ProgressCallback<Long>() {
-			@Override
-			public void progressMade(Long message) {
-				assertEquals(2L, message.longValue());
-				count.incrementAndGet();
-			}
-		});
-		if (((CurrentVersionCacheDaoStub) currentRowCacheDao).isEnabled) {
-			assertEquals(3, count.get());
-		}
-
-		// call all latest versions after cache is up to date
-		latestVersionsMap = tableRowTruthDao.getLatestVersions(tableId, 0, 0L, 1000L);
-		assertEquals(rowVersions, latestVersionsMap);
-
+		} 
 		assertEquals(7, rowVersions.size());
 		latestVersions = tableRowTruthDao.getLatestVersionsWithRowData(tableId, rowVersions.keySet(), 0L, mapper);
 		assertEquals(7, Iterables.size(latestVersions.getRows()));
 		for (RowAccessor row : latestVersions.getRows()) {
 			assertEquals(row.getVersionNumber(), rowVersions.get(row.getRowId()));
 		}
-	}
-
-	@Test
-	public void testCacheBehindCheck() throws Exception {
-		Map<Long, Long> rowVersions = Maps.newHashMap();
-		// Create some test column models
-		ColumnMapper mapper = TableModelTestUtils.createMapperForOneOfEachType();
-		// create some test rows.
-		String tableId = "syn123";
-		// Append this change set
-		for (int i = 0; i < 3; i++) {
-			RawRowSet set = new RawRowSet(TableModelUtils.getIds(mapper.getColumnModels()), null, tableId,
-					TableModelTestUtils.createRows(mapper.getColumnModels(), 5));
-			RowReferenceSet refSet = tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, mapper, set);
-			for (RowReference ref : refSet.getRows()) {
-				rowVersions.put(ref.getRowId(), ref.getVersionNumber());
-			}
-		}
-
-		// call all latest versions before cache is up to date
-		Map<Long, Long> latestVersionsMap = tableRowTruthDao.getLatestVersions(tableId, 0, 0L, 1000L);
-		assertEquals(rowVersions, latestVersionsMap);
 	}
 
 	@Test
@@ -721,7 +634,6 @@ public class TableRowTruthDAOImplTest {
 		// Append this change set
 		RowReferenceSet refSet = tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, mapper, set);
 		assertNotNull(refSet);
-		tableRowTruthDao.updateLatestVersionCache(tableId, null);
 		// Now fetch the rows for an update
 		RowSet toUpdateOne = tableRowTruthDao.getRowSet(tableId, 0l, mapper);
 		RowSet toUpdateTwo = tableRowTruthDao.getRowSet(tableId, 0l, mapper);
@@ -775,7 +687,6 @@ public class TableRowTruthDAOImplTest {
 		// Append this change set
 		RowReferenceSet refSet = tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, mapper, set);
 		assertNotNull(refSet);
-		tableRowTruthDao.updateLatestVersionCache(tableId, null);
 		// Now fetch the rows for an update
 		RowSet toUpdateOne = tableRowTruthDao.getRowSet(tableId, 0l, mapper);
 		RowSet toUpdateTwo = tableRowTruthDao.getRowSet(tableId, 0l, mapper);
@@ -889,6 +800,7 @@ public class TableRowTruthDAOImplTest {
 		// Create a row with an ID that is beyond the current max ID for the table
 		Row toAdd = TableModelTestUtils.createRows(mapper.getColumnModels(), 1).get(0);
 		toAdd.setRowId(toUpdateOne.getRows().get(0).getRowId()+1);
+		toAdd.setVersionNumber(0L);
 		toUpdateOne.getRows().add(toAdd);
 		RawRowSet toUpdateOneRaw = new RawRowSet(TableModelTestUtils.getIdsFromSelectColumns(toUpdateOne.getHeaders()),
 				toUpdateOne.getEtag(), toUpdateOne.getTableId(), toUpdateOne.getRows());
@@ -925,6 +837,69 @@ public class TableRowTruthDAOImplTest {
 			} catch (NotFoundException e) {
 			}
 		}
+	}
+	
+	@Test
+	public void testCheckForRowLevelConflict() throws IOException{
+		// Create some test column models
+		ColumnMapper mapper = TableModelTestUtils.createMapperForOneOfEachType();
+		// create some test rows.
+		List<Row> rows = TableModelTestUtils.createRows(mapper.getColumnModels(), 5, false);
+		String tableId = "syn123";
+		RawRowSet set = new RawRowSet(TableModelUtils.getIds(mapper.getColumnModels()), null, tableId, rows);
+		// Append this change set
+		RowReferenceSet refSet = tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, mapper, set);
+		// Fetch the rows back.
+		List<RawRowSet> rawList = tableRowTruthDao.getRowSetOriginals(refSet, mapper);
+		assertNotNull(rawList);
+		assertEquals(1, rawList.size());
+		RawRowSet updatedSet = rawList.get(0);
+		RawRowSet updatedSetNoEtag = new RawRowSet(updatedSet.getIds(), null, tableId, updatedSet.getRows());
+		// should pass since all match. 
+		tableRowTruthDao.checkForRowLevelConflict(tableId, updatedSet);
+		// It should also work without the etag
+		tableRowTruthDao.checkForRowLevelConflict(tableId, updatedSetNoEtag);
+		// Append the same changes to the table again
+		refSet = tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, mapper, set);
+		 // Now if we try to use the original set it should fail with a conflict
+		try {
+			tableRowTruthDao.checkForRowLevelConflict(tableId, updatedSet);
+			fail("Should have failed as there are conflicts.");
+		} catch (ConflictingUpdateException e) {
+			// expected
+		}
+		// Should also fail without an etag
+		try {
+			tableRowTruthDao.checkForRowLevelConflict(tableId, updatedSetNoEtag);
+			fail("Should have failed as there are conflicts.");
+		} catch (ConflictingUpdateException e) {
+			// expected
+		}
+	}
+	
+	/**
+	 * This is a test for PLFM-3355
+	 * @throws IOException
+	 */
+	@Test (expected=IllegalArgumentException.class)
+	public void testCheckForRowLevelConflictNullVersionNumber() throws IOException{
+		// Create some test column models
+		ColumnMapper mapper = TableModelTestUtils.createMapperForOneOfEachType();
+		// create some test rows.
+		List<Row> rows = TableModelTestUtils.createRows(mapper.getColumnModels(), 1, false);
+		String tableId = "syn123";
+		RawRowSet set = new RawRowSet(TableModelUtils.getIds(mapper.getColumnModels()), null, tableId, rows);
+		// Append this change set
+		RowReferenceSet refSet = tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, mapper, set);
+		// Fetch the rows back.
+		List<RawRowSet> rawList = tableRowTruthDao.getRowSetOriginals(refSet, mapper);
+		assertNotNull(rawList);
+		assertEquals(1, rawList.size());
+		RawRowSet updatedSet = rawList.get(0);
+		RawRowSet updatedSetNoEtag = new RawRowSet(updatedSet.getIds(), null, tableId, updatedSet.getRows());
+		updatedSetNoEtag.getRows().get(0).setVersionNumber(null);
+		// This should fail as a null version number is passed in. 
+		tableRowTruthDao.checkForRowLevelConflict(tableId, updatedSetNoEtag);
 	}
 
 }

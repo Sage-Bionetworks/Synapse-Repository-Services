@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.List;
-import java.util.concurrent.Callable;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -13,7 +12,6 @@ import org.sagebionetworks.asynchronous.workers.changes.ChangeMessageDrivenRunne
 import org.sagebionetworks.asynchronous.workers.changes.LockTimeoutAware;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
-import org.sagebionetworks.repo.manager.NodeInheritanceManager;
 import org.sagebionetworks.repo.manager.table.TableIndexConnectionFactory;
 import org.sagebionetworks.repo.manager.table.TableIndexConnectionUnavailableException;
 import org.sagebionetworks.repo.manager.table.TableIndexManager;
@@ -27,7 +25,6 @@ import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableRowChange;
-import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
@@ -35,8 +32,6 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.beans.factory.annotation.Autowired;
-
-import com.amazonaws.services.route53.model.Change;
 
 /**
  * This worker updates the index used to support the tables features. It will
@@ -59,8 +54,6 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 	TableRowManager tableRowManager;
 	@Autowired
 	StackConfiguration configuration;
-	@Autowired
-	NodeInheritanceManager nodeInheritanceManager;
 	@Autowired
 	TableIndexConnectionFactory connectionFactory;
 	
@@ -91,19 +84,8 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 				indexManager.deleteTableIndex();
 				return;
 			} else {
-				// Create or update.
-				// make sure the table is not in the trash
-				try {
-					if (nodeInheritanceManager.isNodeInTrash(tableId)) {
-						return;
-					}
-				} catch (NotFoundException e) {
-					// if the table no longer exists, we want to stop trying
-					return;
-				}
 				// this method does the real work.
-				State state = createOrUpdateTable(progressCallback, tableId, indexManager,
-						change.getObjectEtag(), change);
+				State state = createOrUpdateTable(progressCallback, tableId, indexManager, change);
 				if (State.RECOVERABLE_FAILURE.equals(state)) {
 					throw new RecoverableMessageException();
 				}
@@ -120,20 +102,22 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 	 */
 	public State createOrUpdateTable(
 			ProgressCallback<ChangeMessage> progressCallback,
-			final String tableId, final TableIndexManager tableIndexManger, final String tableResetToken,
+			final String tableId, final TableIndexManager tableIndexManger,
 			final ChangeMessage change) {
 		// Attempt to run with
 		try {
-			// If the passed token does not match the current token then this
-			// is an old message that should be removed from the queue.
-			// See PLFM-2641. We must check message before we acquire the lock.
-			TableStatus status = tableRowManager
-					.getTableStatusOrCreateIfNotExists(tableId);
-			// If the reset-tokens do not match this message should be ignored
-			if (!tableResetToken.equals(status.getResetToken())) {
-				// This is an old message so we ignore it
+			// Only proceed if work is needed.
+			if(!tableRowManager.isIndexWorkRequired(tableId)){
+				log.info("No work needed for table "+tableId);
 				return State.SUCCESS;
 			}
+			
+			/*
+			 * Before we start working on the table make sure it is in the processing mode.
+			 * This will generate a new reset token and will not broadcast the change.
+			 */
+			final String tableResetToken = tableRowManager.startTableProcessing(tableId);
+
 			// Run with the exclusive lock on the table if we can get it.
 			return tableRowManager.tryRunWithTableExclusiveLock(progressCallback,tableId,
 					lockTimeoutSec,

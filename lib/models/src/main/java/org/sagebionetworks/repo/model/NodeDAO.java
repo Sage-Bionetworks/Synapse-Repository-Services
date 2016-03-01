@@ -194,10 +194,19 @@ public interface NodeDAO {
 	
 	/**
 	 * Does a given node exist?
+	 * Note: If a node is in the trash, this will still return true.
+	 * Use {@link #isNodeAvailable()} to find nodes that exist and are not
+	 * in the trash.
 	 * @param nodeId
 	 * @return whether or not the node exists
 	 */
 	public boolean doesNodeExist(Long nodeId);
+	
+	/**
+	 * True if the node exits and is not in the trash.
+	 * @return
+	 */
+	public boolean isNodeAvailable(Long nodeId);
 	
 	/**
 	 * Get the header information for an entity.

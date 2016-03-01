@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.manager.table;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
@@ -36,8 +35,6 @@ import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
-
-import com.amazonaws.services.sqs.model.Message;
 
 /**
  * Abstraction for Table Row management.
@@ -165,19 +162,6 @@ public interface TableRowManager {
 	 */
 	public RowSet getRowSet(String tableId, Long rowVersion, ColumnMapper schema)
 			throws IOException, NotFoundException;
-
-	/**
-	 * Get all the rows and their current versions
-	 * 
-	 * @param tableId
-	 * @param minVersion
-	 * @return
-	 * @throws IOException
-	 * @throws NotFoundException
-	 * @throws TableUnavilableException
-	 */
-	public Map<Long, Long> getCurrentRowVersions(String tableId, Long minVersion, long rowIdOffset, long limit) throws IOException,
-			NotFoundException, TableUnavilableException;
 
 	/**
 	 * Get the last table row change
@@ -441,13 +425,6 @@ public interface TableRowManager {
 			boolean includeRowIdAndVersion, boolean writeHeader) throws TableUnavilableException, NotFoundException, TableFailedException;
 
 	/**
-	 * Update the current version cache if enabled
-	 */
-	void updateLatestVersionCache(String tableId, ProgressCallback<Long> progressCallback) throws IOException;
-
-	void removeCaches(String tableId) throws IOException;
-
-	/**
 	 * Get the maximum number of rows allowed for a single page (get, put, or query) for the given columns.
 	 * @param models
 	 * @return
@@ -487,4 +464,37 @@ public interface TableRowManager {
 	 * @param objectId
 	 */
 	public Set<String> getFileHandleIdsAssociatedWithTable(String tableId, List<String> toTest) throws TemporarilyUnavailableException;
+
+	/**
+	 * Called by the worker when it starts to process a table.
+	 * 
+	 * @param tableId
+	 * @return
+	 */
+	public String startTableProcessing(String tableId);
+	
+	/**
+	 * Get the version of the last change applied to a table.
+	 * 
+	 * @param tableId
+	 * @return returns -1 if there are no changes applied to the table.
+	 */
+	public long getVersionOfLastTableChange(String tableId);
+	
+	/**
+	 * Is the table's index synchronized with the truth data?
+	 * 
+	 * @param tableId
+	 * @return
+	 */
+	public boolean isIndexSynchronizedWithTruth(String tableId);
+	
+	/**
+	 * Index work is required if the index is out-of-synch with the truth
+	 * or the current state is processing.
+	 * @param tableId
+	 * @return
+	 */
+	public boolean isIndexWorkRequired(String tableId);
+
 }
