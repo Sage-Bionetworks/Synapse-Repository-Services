@@ -1,22 +1,34 @@
 package org.sagebionetworks.repo.manager.table;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.stub;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -24,7 +36,9 @@ import org.apache.commons.lang.StringUtils;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.StackConfiguration;
@@ -32,6 +46,7 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
+import org.sagebionetworks.repo.manager.file.FileHandleAuthorizationStatus;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -39,6 +54,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.RowAccessor;
 import org.sagebionetworks.repo.model.dao.table.RowAndHeaderHandler;
@@ -77,6 +93,7 @@ import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.Pair;
+import org.sagebionetworks.util.TimeoutUtils;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.sagebionetworks.workers.util.semaphore.WriteReadSemaphoreRunner;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -89,22 +106,42 @@ import com.google.common.collect.Sets;
 
 public class TableRowManagerImplTest {
 	
+	@Mock
 	ProgressCallback<Long> mockProgressCallback;
+	@Mock
 	StackStatusDao mockStackStatusDao;
+	@Mock
 	TableRowTruthDAO mockTruthDao;
+	@Mock
 	AuthorizationManager mockAuthManager;
+	@Mock
 	TableStatusDAO mockTableStatusDAO;
+	@Mock
 	NodeDAO mockNodeDAO;
-	TableRowManagerImpl manager;
+	@Mock
 	ColumnModelDAO mockColumnModelDAO;
+	@Mock
 	ConnectionFactory mockTableConnectionFactory;
+	@Mock
 	TableIndexDAO mockTableIndexDAO;
-	WriteReadSemaphoreRunner mockWriteReadSemaphoreRunner;
-	List<ColumnModel> models;
+	@Mock
 	ProgressCallback<Object> mockProgressCallback2;
+	@Mock
 	ProgressCallback<Void> mockProgressCallbackVoid;
+	@Mock
+	WriteReadSemaphoreRunner mockWriteReadSemaphoreRunner;
+	@Mock
+	FileHandleDao mockFileDao;
+	@Mock
+	TimeoutUtils mockTimeoutUtils;
+	
+	List<ColumnModel> models;
+	String schemaMD5Hex;
+	
+	TableRowManagerImpl manager;
 	UserInfo user;
 	String tableId;
+	Long tableIdLong;
 	RowSet set;
 	RawRowSet rawSet;
 	PartialRowSet partialSet;
@@ -113,23 +150,26 @@ public class TableRowManagerImplTest {
 	long rowIdSequence;
 	long rowVersionSequence;
 	int maxBytesPerRequest;
+	List<FileHandleAuthorizationStatus> fileAuthResults;
+	TableStatus status;
 	
 	@SuppressWarnings("unchecked")
 	@Before
 	public void before() throws Exception {
 		Assume.assumeTrue(StackConfiguration.singleton().getTableEnabled());
-		mockTruthDao = Mockito.mock(TableRowTruthDAO.class);
-		mockAuthManager = Mockito.mock(AuthorizationManager.class);
-		mockTableStatusDAO = Mockito.mock(TableStatusDAO.class);
-		mockNodeDAO = Mockito.mock(NodeDAO.class);
-		mockColumnModelDAO = Mockito.mock(ColumnModelDAO.class);
-		mockTableConnectionFactory = Mockito.mock(ConnectionFactory.class);
-		mockTableIndexDAO = Mockito.mock(TableIndexDAO.class);
-		mockWriteReadSemaphoreRunner = Mockito.mock(WriteReadSemaphoreRunner.class);
-		mockStackStatusDao = Mockito.mock(StackStatusDao.class);
-		mockProgressCallback = Mockito.mock(ProgressCallback.class);
-		mockProgressCallback2 = Mockito.mock(ProgressCallback.class);
-		mockProgressCallbackVoid = Mockito.mock(ProgressCallback.class);
+		MockitoAnnotations.initMocks(this);
+		
+		manager = new TableRowManagerImpl();
+		ReflectionTestUtils.setField(manager, "stackStatusDao", mockStackStatusDao);
+		ReflectionTestUtils.setField(manager, "tableRowTruthDao", mockTruthDao);
+		ReflectionTestUtils.setField(manager, "authorizationManager", mockAuthManager);
+		ReflectionTestUtils.setField(manager, "tableStatusDAO", mockTableStatusDAO);
+		ReflectionTestUtils.setField(manager, "nodeDao", mockNodeDAO);
+		ReflectionTestUtils.setField(manager, "columnModelDAO", mockColumnModelDAO);
+		ReflectionTestUtils.setField(manager, "tableConnectionFactory", mockTableConnectionFactory);
+		ReflectionTestUtils.setField(manager, "writeReadSemaphoreRunner", mockWriteReadSemaphoreRunner);
+		ReflectionTestUtils.setField(manager, "fileHandleDao", mockFileDao);
+		ReflectionTestUtils.setField(manager, "timeoutUtils", mockTimeoutUtils);
 
 		// Just call the caller.
 		stub(mockWriteReadSemaphoreRunner.tryRunWithReadLock(any(ProgressCallback.class),anyString(), anyInt(), any(ProgressingCallable.class))).toAnswer(new Answer<Object>() {
@@ -145,13 +185,14 @@ public class TableRowManagerImplTest {
 			}
 		});
 		
-		manager = new TableRowManagerImpl();
 		maxBytesPerRequest = 10000000;
 		manager.setMaxBytesPerRequest(maxBytesPerRequest);
 		manager.setMaxBytesPerChangeSet(1000000000);
 		user = new UserInfo(false, 7L);
 		models = TableModelTestUtils.createOneOfEachType(true);
+		schemaMD5Hex = TableModelUtils.createSchemaMD5HexCM(models);
 		tableId = "syn123";
+		tableIdLong = KeyFactory.stringToKey(tableId);
 		List<Row> rows = TableModelTestUtils.createRows(models, 10);
 		set = new RowSet();
 		set.setTableId(tableId);
@@ -216,14 +257,7 @@ public class TableRowManagerImplTest {
 		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPLOAD)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD)).thenReturn(
 				AuthorizationManagerUtil.AUTHORIZED);
-		ReflectionTestUtils.setField(manager, "stackStatusDao", mockStackStatusDao);
-		ReflectionTestUtils.setField(manager, "tableRowTruthDao", mockTruthDao);
-		ReflectionTestUtils.setField(manager, "authorizationManager", mockAuthManager);
-		ReflectionTestUtils.setField(manager, "tableStatusDAO", mockTableStatusDAO);
-		ReflectionTestUtils.setField(manager, "nodeDao", mockNodeDAO);
-		ReflectionTestUtils.setField(manager, "columnModelDAO", mockColumnModelDAO);
-		ReflectionTestUtils.setField(manager, "tableConnectionFactory", mockTableConnectionFactory);
-		ReflectionTestUtils.setField(manager, "writeReadSemaphoreRunner", mockWriteReadSemaphoreRunner);
+
 		// read-write be default.
 		when(mockStackStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_WRITE);
 		rowIdSequence = 0;
@@ -258,6 +292,29 @@ public class TableRowManagerImplTest {
 						return results;
 					}
 				});
+		
+		// By default set the user as the creator of all files handles
+		doAnswer(new Answer<Set<String>>() {
+
+			@Override
+			public Set<String> answer(InvocationOnMock invocation)
+					throws Throwable {
+				// returning all passed files
+				List<String> input = (List<String>) invocation.getArguments()[1];
+				if(input != null){
+					return new HashSet<String>(input);
+				}
+				return null;
+			}
+		}).when(mockFileDao).getFileHandleIdsCreatedByUser(anyLong(), any(List.class));
+		
+		status = new TableStatus();
+		status.setTableId(tableId);
+		status.setState(TableState.PROCESSING);
+		status.setChangedOn(new Date(123));
+		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
+		
+		when(mockNodeDAO.isNodeAvailable(anyLong())).thenReturn(true);
 	}
 	
 	@Test (expected=UnauthorizedException.class)
@@ -502,6 +559,78 @@ public class TableRowManagerImplTest {
 	}
 	
 	@Test
+	public void testValidateFileHandlesAuthorizedCreatedBy(){
+		List<SelectColumn> cols = new ArrayList<SelectColumn>();
+		cols.add(TableModelTestUtils.createSelectColumn(1L, "a", ColumnType.FILEHANDLEID));
+		
+		List<Row> rows = new ArrayList<Row>();
+		rows.add(TableModelTestUtils.createRow(1L, 0L, "1"));
+		rows.add(TableModelTestUtils.createRow(1L, 0L, "5"));
+		
+		RowSet rowset = new RowSet();
+		rowset.setHeaders(cols);
+		rowset.setRows(rows);
+		
+		// Setup the user as the creator of the files handles
+		when(mockFileDao.getFileHandleIdsCreatedByUser(anyLong(), any(List.class))).thenReturn(Sets.newHashSet("1", "5"));
+		
+		// call under test
+		manager.validateFileHandles(user, tableId, rowset);
+		// should check the files created by the user.
+		verify(mockFileDao).getFileHandleIdsCreatedByUser(user.getId(), Lists.newArrayList("1","5"));
+		// since all of the files were created by the user there is no need to lookup the associated files.
+		verify(mockTableIndexDAO, never()).getFileHandleIdsAssociatedWithTable(any(Set.class), anyString());
+	}
+	
+	@Test
+	public void testValidateFileHandlesAuthorizedCreatedByAndAssociated(){
+		List<SelectColumn> cols = new ArrayList<SelectColumn>();
+		cols.add(TableModelTestUtils.createSelectColumn(1L, "a", ColumnType.FILEHANDLEID));
+		
+		List<Row> rows = new ArrayList<Row>();
+		rows.add(TableModelTestUtils.createRow(1L, 0L, "1"));
+		rows.add(TableModelTestUtils.createRow(1L, 0L, "5"));
+		
+		RowSet rowset = new RowSet();
+		rowset.setHeaders(cols);
+		rowset.setRows(rows);
+		
+		// Setup 1 to be created by.
+		when(mockFileDao.getFileHandleIdsCreatedByUser(anyLong(), any(List.class))).thenReturn(Sets.newHashSet("1"));
+		// setup 5 to be associated with.
+		when(mockTableIndexDAO.getFileHandleIdsAssociatedWithTable(any(Set.class), anyString())).thenReturn(Sets.newHashSet( 5L ));
+		
+		// call under test
+		manager.validateFileHandles(user, tableId, rowset);
+		// should check the files created by the user.
+		verify(mockFileDao).getFileHandleIdsCreatedByUser(user.getId(), Lists.newArrayList("1","5"));
+		// since 1 was created by the user only 5 should be tested for association.
+		verify(mockTableIndexDAO).getFileHandleIdsAssociatedWithTable(Sets.newHashSet( 5L ), tableId);
+	}
+	
+	@Test (expected=UnauthorizedException.class)
+	public void testValidateFileHandlesUnAuthorized(){
+		List<SelectColumn> cols = new ArrayList<SelectColumn>();
+		cols.add(TableModelTestUtils.createSelectColumn(1L, "a", ColumnType.FILEHANDLEID));
+		
+		List<Row> rows = new ArrayList<Row>();
+		rows.add(TableModelTestUtils.createRow(1L, 0L, "1"));
+		rows.add(TableModelTestUtils.createRow(1L, 0L, "5"));
+		
+		RowSet rowset = new RowSet();
+		rowset.setHeaders(cols);
+		rowset.setRows(rows);
+		
+		// Setup 1 to be created by.
+		when(mockFileDao.getFileHandleIdsCreatedByUser(anyLong(), any(List.class))).thenReturn(Sets.newHashSet("1"));
+		// setup 5 to be not associated with.
+		when(mockTableIndexDAO.getFileHandleIdsAssociatedWithTable(any(Set.class), anyString())).thenReturn(new HashSet<Long>());
+		
+		// call under test
+		manager.validateFileHandles(user, tableId, rowset);
+	}
+	
+	@Test
 	public void testChangeFileHandles() throws DatastoreException, NotFoundException, IOException {
 		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 
@@ -528,25 +657,14 @@ public class TableRowManagerImplTest {
 		when(originalAccessor.getRow(2L)).thenReturn(row2Accessor);
 		when(row2Accessor.getCellById(Long.parseLong(models.get(ColumnType.FILEHANDLEID.ordinal()).getId()))).thenReturn("505002");
 
-		doAnswer(new Answer<Void>() {
-			@SuppressWarnings("unchecked")
-			@Override
-			public Void answer(InvocationOnMock invocation) throws Throwable {
-				((Set<String>) invocation.getArguments()[2]).add("3333");
-				((Set<String>) invocation.getArguments()[3]).add("505002");
-				return null;
-			}
-		}).when(mockAuthManager).canAccessRawFileHandlesByIds(user, Lists.newArrayList("3333", "505002"), Sets.<String> newHashSet(),
-				Sets.<String> newHashSet());
 		when(mockTruthDao.getLatestVersionsWithRowData(tableId, Sets.newHashSet(2L), 0L, mapper)).thenReturn(originalAccessor);
+		// call under test
 		manager.appendRows(user, tableId, mapper, replace, mockProgressCallback);
 
 		verify(mockTruthDao).appendRowSetToTable(anyString(), anyString(), any(ColumnMapper.class), any(RawRowSet.class));
-		verify(mockTruthDao).getLatestVersionsWithRowData(tableId, Sets.newHashSet(2L), 0L, mapper);
 		verify(mockAuthManager).canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE);
 		verify(mockAuthManager).canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPLOAD);
-		verify(mockAuthManager).canAccessRawFileHandlesByIds(user, Lists.newArrayList("3333", "505002"), Sets.<String> newHashSet("3333"),
-				Sets.<String> newHashSet("505002"));
+		verify(mockFileDao).getFileHandleIdsCreatedByUser(anyLong(), any(List.class));
 		verifyNoMoreInteractions(mockAuthManager, mockTruthDao);
 	}
 
@@ -568,102 +686,13 @@ public class TableRowManagerImplTest {
 		updateRows.get(1).getValues().set(ColumnType.FILEHANDLEID.ordinal(), null);
 		replace.setRows(updateRows);
 
-		doAnswer(new Answer<Void>() {
-			@SuppressWarnings("unchecked")
-			@Override
-			public Void answer(InvocationOnMock invocation) throws Throwable {
-				((Set<String>) invocation.getArguments()[2]).add("3333");
-				return null;
-			}
-		}).when(mockAuthManager).canAccessRawFileHandlesByIds(user, Lists.newArrayList("3333"), Sets.<String> newHashSet(),
-				Sets.<String> newHashSet());
 		manager.appendRows(user, tableId, TableModelUtils.createColumnModelColumnMapper(models, false), replace, mockProgressCallback);
 
 		verify(mockTruthDao).appendRowSetToTable(anyString(), anyString(), any(ColumnMapper.class), any(RawRowSet.class));
 		verify(mockAuthManager).canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE);
 		verify(mockAuthManager).canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPLOAD);
-		verify(mockAuthManager).canAccessRawFileHandlesByIds(user, Lists.newArrayList("3333"), Sets.<String> newHashSet("3333"),
-				Sets.<String> newHashSet());
+		verify(mockFileDao).getFileHandleIdsCreatedByUser(anyLong(), any(List.class));
 		verifyNoMoreInteractions(mockAuthManager, mockTruthDao);
-	}
-
-	@Test(expected = IllegalArgumentException.class)
-	public void testAddFileHandlesFails() throws DatastoreException, NotFoundException, IOException {
-		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-
-		ColumnModel model = new ColumnModel();
-		model.setColumnType(ColumnType.FILEHANDLEID);
-		model.setId("33");
-		List<ColumnModel> models = Collections.singletonList(model);
-
-		RowSet replace = new RowSet();
-		replace.setTableId(tableId);
-		ColumnMapper mapper = TableModelUtils.createColumnModelColumnMapper(models, false);
-		replace.setHeaders(mapper.getSelectColumns());
-		replace.setEtag("etag");
-
-		Row row = new Row();
-		row.setRowId(0L);
-		// different unowned filehandle
-		row.setValues(Lists.newArrayList("3333"));
-		replace.setRows(Lists.newArrayList(row));
-
-		RowSetAccessor originalAccessor = mock(RowSetAccessor.class);
-		RowAccessor row0Accessor = mock(RowAccessor.class);
-		when(originalAccessor.getRow(0L)).thenReturn(row0Accessor);
-		when(row0Accessor.getCellById(Long.parseLong(models.get(0).getId()))).thenReturn("5002");
-
-		doAnswer(new Answer<Void>() {
-			@SuppressWarnings("unchecked")
-			@Override
-			public Void answer(InvocationOnMock invocation) throws Throwable {
-				((Set<String>) invocation.getArguments()[3]).add("3333");
-				return null;
-			}
-		}).when(mockAuthManager).canAccessRawFileHandlesByIds(user, Lists.newArrayList("3333"), Sets.<String> newHashSet(),
-				Sets.<String> newHashSet());
-		when(mockTruthDao.getLatestVersionsWithRowData(eq(tableId), eq(Sets.newHashSet(0L)), eq(0L), any(ColumnMapper.class))).thenReturn(
-				originalAccessor);
-		manager.appendRows(user, tableId, TableModelUtils.createColumnModelColumnMapper(models, false), replace, mockProgressCallback);
-	}
-
-	@Test(expected = IllegalArgumentException.class)
-	public void testChangeFileHandlesFails() throws DatastoreException, NotFoundException, IOException {
-		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-
-		ColumnModel model = new ColumnModel();
-		model.setColumnType(ColumnType.FILEHANDLEID);
-		model.setId("33");
-		List<ColumnModel> models = Collections.singletonList(model);
-
-		RowSet replace = new RowSet();
-		replace.setTableId(tableId);
-		ColumnMapper mapper = TableModelUtils.createColumnModelColumnMapper(models, false);
-		replace.setHeaders(mapper.getSelectColumns());
-		replace.setEtag("etag");
-
-		Row row = new Row();
-		row.setRowId(0L);
-		// different unowned filehandle
-		row.setValues(Lists.newArrayList("3333"));
-		replace.setRows(Lists.newArrayList(row));
-
-		RowSetAccessor originalAccessor = mock(RowSetAccessor.class);
-		RowAccessor row0Accessor = mock(RowAccessor.class);
-		when(originalAccessor.getRow(0L)).thenReturn(row0Accessor);
-		when(row0Accessor.getCellById(Long.parseLong(models.get(0).getId()))).thenReturn("5002");
-
-		doAnswer(new Answer<Void>() {
-			@SuppressWarnings("unchecked")
-			@Override
-			public Void answer(InvocationOnMock invocation) throws Throwable {
-				((Set<String>) invocation.getArguments()[3]).add("3333");
-				return null;
-			}
-		}).when(mockAuthManager).canAccessRawFileHandlesByIds(user, Lists.newArrayList("3333"), Sets.<String> newHashSet(),
-				Sets.<String> newHashSet());
-		when(mockTruthDao.getLatestVersionsWithRowData(tableId, Sets.newHashSet(0L), 0L, mapper)).thenReturn(originalAccessor);
-		manager.appendRows(user, tableId, mapper, replace, mockProgressCallback);
 	}
 
 	@Test
@@ -808,8 +837,6 @@ public class TableRowManagerImplTest {
 	@Test
 	public void testQueryIsConsistentTrueNotAvailable() throws Exception {
 		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		TableStatus status = new TableStatus();
-		status.setTableId(tableId);
 		status.setState(TableState.PROCESSING);
 		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
 		try{
@@ -830,8 +857,6 @@ public class TableRowManagerImplTest {
 	@Test
 	public void testQueryIsConsistentTrueNotFound() throws Exception {
 		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		TableStatus status = new TableStatus();
-		status.setTableId(tableId);
 		status.setState(TableState.PROCESSING);
 		when(mockTableStatusDAO.getTableStatus(tableId)).thenThrow(new NotFoundException("fake")).thenReturn(status);
 		when(mockTruthDao.getLastTableRowChange(tableId)).thenReturn(new TableRowChange());
@@ -845,7 +870,7 @@ public class TableRowManagerImplTest {
 		}
 		verify(mockTableStatusDAO, times(2)).getTableStatus(tableId);
 		verify(mockTableStatusDAO).resetTableStatusToProcessing(tableId);
-		verify(mockNodeDAO).doesNodeExist(123L);
+		verify(mockNodeDAO).isNodeAvailable(123L);
 
 	}
 
@@ -982,38 +1007,6 @@ public class TableRowManagerImplTest {
 		assertEquals(selectColumns, bundle.getSelectColumns().toString());
 		assertEquals(maxRowsPerPage, bundle.getMaxRowsPerPage());
 	}
-
-	@Test
-	public void testGetCurrentRowVersionsOneBatch() throws Exception {
-		Map<Long, Long> map1 = Collections.singletonMap(1L, 1L);
-		when(mockTruthDao.getLatestVersions(tableId, 0L, 0L, 11L)).thenReturn(map1);
-		Map<Long, Long> currentRowVersions = manager.getCurrentRowVersions(tableId, 0L, 0L, 11L);
-		assertEquals(map1, currentRowVersions);
-	}
-
-	@Test
-	public void testGetCurrentRowVersionsOneBatchAfterVersion() throws Exception {
-		Map<Long, Long> map1 = Collections.singletonMap(1L, 1L);
-		when(mockTruthDao.getLatestVersions(tableId, 4L, 0L, 11L)).thenReturn(map1);
-		Map<Long, Long> currentRowVersions = manager.getCurrentRowVersions(tableId, 4L, 0L, 11L);
-		assertEquals(map1, currentRowVersions);
-	}
-
-	@Test
-	public void testGetCurrentRowVersionsZeroEntries() throws Exception {
-		Map<Long, Long> map1 = Collections.emptyMap();
-		when(mockTruthDao.getLatestVersions(tableId, 0L, 0L, 10)).thenReturn(map1);
-		Map<Long, Long> currentRowVersions = manager.getCurrentRowVersions(tableId, 0L, 0L, 10L);
-		assertEquals(map1, currentRowVersions);
-	}
-
-	@Test
-	public void testGetCurrentRowVersionsSecondBatch() throws Exception {
-		Map<Long, Long> map2 = Collections.singletonMap(2L, 2L);
-		when(mockTruthDao.getLatestVersions(tableId, 0L, 16000L, 16000L)).thenReturn(map2);
-		Map<Long, Long> currentRowVersions = manager.getCurrentRowVersions(tableId, 0L, 16000L, 16000L);
-		assertEquals(map2, currentRowVersions);
-	}
 	
 	@Test
 	public void testGetMaxRowsPerPage(){
@@ -1073,123 +1066,140 @@ public class TableRowManagerImplTest {
 		verify(mockProgressCallback, times(2)).progressMade(anyLong());
 	}
 	
+	/**
+	 * For this case the table status is available and the index is synchronized with the truth.
+	 * The available status should be returned for this case.
+	 * @throws Exception
+	 */
 	@Test
-	public void testGetTableStatusOrCreateIfNotExistsNoRows() throws Exception {
-		// Since there are now rows this should return null.
-		when(mockTruthDao.getLastTableRowChange(tableId)).thenReturn(null);
-		
-		TableStatus status = new TableStatus();
+	public void testGetTableStatusOrCreateIfNotExistsAvailableSynchronized() throws Exception {
+		// Available
 		status.setState(TableState.AVAILABLE);
-		// this is null when there are no change sets applied to the table.
-		status.setLastTableChangeEtag(null);
 		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
-
+		// synchronized
+		when(mockTableIndexDAO.doesIndexStateMatch(anyString(), anyLong(), anyString())).thenReturn(true);
+		// not expired
+		when(mockTimeoutUtils.hasExpired(anyLong(), anyLong())).thenReturn(false);
+		// table exists
+		when(mockNodeDAO.isNodeAvailable(tableIdLong)).thenReturn(true);
 		// call under test
 		TableStatus result = manager.getTableStatusOrCreateIfNotExists(tableId);
-		assertEquals(status, result);
-		verify(mockTruthDao).getLastTableRowChange(tableId);
-		verify(mockTableStatusDAO, never()).resetTableStatusToProcessing(tableId);
-	}
-	
-	@Test
-	public void testGetTableStatusOrCreateIfNotExistsWithRowsAndUpToDate() throws Exception {
-		// setup the last change to this table.
-		TableRowChange lastChange = new TableRowChange();
-		lastChange.setEtag("etagOfLastChange");
-		// There are no table changes for this case.
-		when(mockTruthDao.getLastTableRowChange(tableId)).thenReturn(lastChange);
-		
-		// This table is available and up-to-date.
-		TableStatus status = new TableStatus();
-		status.setState(TableState.AVAILABLE);
-		// Set the status to match the last change.
-		status.setLastTableChangeEtag(lastChange.getEtag());
-		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
-
-		// call under test.
-		TableStatus result = manager.getTableStatusOrCreateIfNotExists(tableId);
-		assertEquals(status, result);
-		verify(mockTruthDao).getLastTableRowChange(tableId);
+		assertNotNull(result);
 		verify(mockTableStatusDAO, never()).resetTableStatusToProcessing(tableId);
 	}
 	
 	/**
-	 * This is a test PLFM-3383 and PLFM-3379 where a table's status is marked as 
-	 * AVAILABLE but the index is not up-to-date with the table row changes.
-	 * For this case, the table status must be rest to to PROCESSING.
+	 * This is a test case for PLFM-3383, PLFM-3379, and PLFM-3762.  In all cases the table 
+	 * status was available but the index was not synchronized with the truth.
 	 * @throws Exception
 	 */
 	@Test
-	public void testGetTableStatusOrCreateIfNotExistsAVAILABLEButNotUpToDate() throws Exception {
-		// setup the last change to this table.
-		TableRowChange lastChange = new TableRowChange();
-		lastChange.setEtag("etagOfLastChange");
-		// There are no table changes for this case.
-		when(mockTruthDao.getLastTableRowChange(tableId)).thenReturn(lastChange);
-		
-		// This table status is available but not up-to-date.
-		TableStatus startStatus = new TableStatus();
-		startStatus.setState(TableState.AVAILABLE);
-		// Set the status to not match the last table change.
-		startStatus.setLastTableChangeEtag("not the etag of the last change");
-		
-		// This is the status for the second call to getTableStatus()
-		TableStatus processingStatus = new TableStatus();
-		processingStatus.setState(TableState.PROCESSING);
-		processingStatus.setLastTableChangeEtag("not the etag of the last change");
-		// setup both the start (AVAILABLE) and the processing status.
-		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(startStatus, processingStatus);
-
-		// call under test.
+	public void testGetTableStatusOrCreateIfNotExistsAvailableNotSynchronized() throws Exception {
+		// Available
+		status.setState(TableState.AVAILABLE);
+		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
+		// Not synchronized
+		when(mockTableIndexDAO.doesIndexStateMatch(anyString(), anyLong(), anyString())).thenReturn(false);
+		// not expired
+		when(mockTimeoutUtils.hasExpired(anyLong(), anyLong())).thenReturn(false);
+		// table exists
+		when(mockNodeDAO.isNodeAvailable(tableIdLong)).thenReturn(true);
+		// call under test
 		TableStatus result = manager.getTableStatusOrCreateIfNotExists(tableId);
-		// The processing status should be returned.
-		assertEquals(processingStatus, result);
-		verify(mockTruthDao).getLastTableRowChange(tableId);
-		// The table status must get rest here.
+		assertNotNull(result);
+		// must trigger processing
 		verify(mockTableStatusDAO).resetTableStatusToProcessing(tableId);
 	}
 	
+	/**
+	 * This is a case where the table status does not exist but the table exits.
+	 * The table must be be set to processing for this case.
+	 * @throws Exception
+	 */
 	@Test
-	public void testGetTableStatusOrCreateIfNotExistsProcessing() throws Exception {
-		// This table is processing
-		TableStatus status = new TableStatus();
-		status.setState(TableState.PROCESSING);
-		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
-
-		// call under test.
-		TableStatus result = manager.getTableStatusOrCreateIfNotExists(tableId);
-		assertEquals(status, result);
-		// The last row should only be checked for for AVAILABLE tables.
-		verify(mockTruthDao, never()).getLastTableRowChange(tableId);
-		verify(mockTableStatusDAO, never()).resetTableStatusToProcessing(tableId);
-	}
-	
-	@Test
-	public void testGetTableStatusOrCreateIfNotExistsNotFound() throws Exception {
-		TableStatus status = new TableStatus();
+	public void testGetTableStatusOrCreateIfNotExistsStatusNotFoundTableExits() throws Exception {
+		// Available
 		status.setState(TableState.PROCESSING);
 		// Setup a case where the first time the status does not exists, but does exist the second call.
 		when(mockTableStatusDAO.getTableStatus(tableId)).thenThrow(new NotFoundException("No status for this table.")).thenReturn(status);
-		// The table exists
-		when(mockNodeDAO.doesNodeExist(KeyFactory.stringToKey(tableId))).thenReturn(true);
+		// synchronized
+		when(mockTableIndexDAO.doesIndexStateMatch(anyString(), anyLong(), anyString())).thenReturn(true);
+		// not expired
+		when(mockTimeoutUtils.hasExpired(anyLong(), anyLong())).thenReturn(false);
+		// table exists
+		when(mockNodeDAO.isNodeAvailable(tableIdLong)).thenReturn(true);
+		// call under test
 		TableStatus result = manager.getTableStatusOrCreateIfNotExists(tableId);
-		assertEquals(status, result);
-		verify(mockTruthDao, never()).getLastTableRowChange(tableId);
-		// The status should be set to processing in this case.
+		assertNotNull(result);
 		verify(mockTableStatusDAO).resetTableStatusToProcessing(tableId);
+		verify(mockNodeDAO).isNodeAvailable(tableIdLong);
 	}
 	
+	/**
+	 * This is a case where the table status does not exist and the table does not exist.
+	 * Should result in a NotFoundException
+	 * @throws Exception
+	 */
 	@Test (expected=NotFoundException.class)
-	public void testGetTableStatusOrCreateIfNotExistsTableDoesNotExist() throws Exception {
-		TableStatus status = new TableStatus();
+	public void testGetTableStatusOrCreateIfNotExistsStatusNotFoundTableDoesNotExist() throws Exception {
+		// Available
 		status.setState(TableState.PROCESSING);
 		// Setup a case where the first time the status does not exists, but does exist the second call.
-		when(mockTableStatusDAO.getTableStatus(tableId)).thenThrow(new NotFoundException("No status for this table."));
-		// The table does not exists
-		when(mockNodeDAO.doesNodeExist(KeyFactory.stringToKey(tableId))).thenReturn(false);
-		// This should fail as the table does not exist
-		manager.getTableStatusOrCreateIfNotExists(tableId);
+		when(mockTableStatusDAO.getTableStatus(tableId)).thenThrow(new NotFoundException("No status for this table.")).thenReturn(status);
+		// synchronized
+		when(mockTableIndexDAO.doesIndexStateMatch(anyString(), anyLong(), anyString())).thenReturn(true);
+		// not expired
+		when(mockTimeoutUtils.hasExpired(anyLong(), anyLong())).thenReturn(false);
+		// table does not exists
+		when(mockNodeDAO.isNodeAvailable(tableIdLong)).thenReturn(false);
+		// call under test
+		TableStatus result = manager.getTableStatusOrCreateIfNotExists(tableId);
 	}
+	
+	/**
+	 * For this case the table is processing and making progress (not expired).
+	 * So the processing status should be returned without resetting.
+	 * @throws Exception
+	 */
+	@Test
+	public void testGetTableStatusOrCreateIfNotExistsProcessingNotExpired() throws Exception {
+		// Available
+		status.setState(TableState.PROCESSING);
+		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
+		// synchronized
+		when(mockTableIndexDAO.doesIndexStateMatch(anyString(), anyLong(), anyString())).thenReturn(true);
+		// not expired
+		when(mockTimeoutUtils.hasExpired(anyLong(), anyLong())).thenReturn(false);
+		// table exists
+		when(mockNodeDAO.isNodeAvailable(tableIdLong)).thenReturn(true);
+		// call under test
+		TableStatus result = manager.getTableStatusOrCreateIfNotExists(tableId);
+		assertNotNull(result);
+		verify(mockTableStatusDAO, never()).resetTableStatusToProcessing(tableId);
+	}
+	
+	/**
+	 * For this case the table is processing and not making progress .
+	 * The status must be rest to processing to trigger another try.
+	 * @throws Exception
+	 */
+	@Test
+	public void testGetTableStatusOrCreateIfNotExistsProcessingExpired() throws Exception {
+		// Available
+		status.setState(TableState.PROCESSING);
+		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
+		// synchronized
+		when(mockTableIndexDAO.doesIndexStateMatch(anyString(), anyLong(), anyString())).thenReturn(true);
+		//expired
+		when(mockTimeoutUtils.hasExpired(anyLong(), anyLong())).thenReturn(true);
+		// table exists
+		when(mockNodeDAO.isNodeAvailable(tableIdLong)).thenReturn(true);
+		// call under test
+		TableStatus result = manager.getTableStatusOrCreateIfNotExists(tableId);
+		assertNotNull(result);
+		verify(mockTableStatusDAO).resetTableStatusToProcessing(tableId);
+	}
+
 
 	@Test
 	public void testNextPageToken() throws Exception {
@@ -1319,6 +1329,123 @@ public class TableRowManagerImplTest {
 		Set<String> out = manager.getFileHandleIdsAssociatedWithTable(tableId, input);
 		Set<String> expected = Sets.newHashSet("1","2");
 		assertEquals(expected, out);
+	}
+	
+	@Test
+	public void testStartTableProcessing(){
+		String token = "a unique token";
+		// the change should not be broadcast.
+		boolean broadcastChange = false;
+		when(mockTableStatusDAO.resetTableStatusToProcessing(tableId, broadcastChange)).thenReturn(token);
+		// call under test
+		String resultToken = manager.startTableProcessing(tableId);
+		assertEquals(token, resultToken);
+	}
+	
+	@Test
+	public void testIsIndexSynchronizedWithTruthHappy(){
+		long currentVersion = 123L;
+		// setup a mismatch
+		when(mockTableIndexDAO.doesIndexStateMatch(tableId, currentVersion, schemaMD5Hex)).thenReturn(true);
+		
+		TableRowChange lastChange = new TableRowChange();
+		lastChange.setRowVersion(currentVersion);
+		when(mockTruthDao.getLastTableRowChange(tableId)).thenReturn(lastChange);
+		
+		assertTrue(manager.isIndexSynchronizedWithTruth(tableId));
+	}
+	
+	
+	@Test
+	public void testGetVersionOfLastTableChangeNull() throws NotFoundException, IOException{
+		// no last version
+		when(mockTruthDao.getLastTableRowChange(tableId)).thenReturn(null);
+		//call under test
+		assertEquals(-1, manager.getVersionOfLastTableChange(tableId));
+	}
+	
+	@Test
+	public void testGetVersionOfLastTableChange() throws NotFoundException, IOException{
+		long currentVersion = 123L;
+		TableRowChange lastChange = new TableRowChange();
+		lastChange.setRowVersion(currentVersion);
+		when(mockTruthDao.getLastTableRowChange(tableId)).thenReturn(lastChange);
+		// call under test
+		assertEquals(currentVersion, manager.getVersionOfLastTableChange(tableId));
+	}
+	
+	/**
+	 * The node is available, the table status is available and the index is synchronized.
+	 */
+	@Test
+	public void testIsIndexWorkRequiredFalse(){
+		// node exists
+		when(mockNodeDAO.isNodeAvailable(tableIdLong)).thenReturn(true);
+		// synchronized
+		when(mockTableIndexDAO.doesIndexStateMatch(anyString(), anyLong(), anyString())).thenReturn(true);
+		// available
+		TableStatus status = new TableStatus();
+		status.setState(TableState.AVAILABLE);
+		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
+		// call under test
+		boolean workRequired = manager.isIndexWorkRequired(tableId);
+		assertFalse(workRequired);
+	}
+	
+	/**
+	 * The node is missing, the table status is available and the index is synchronized.
+	 */
+	@Test
+	public void testIsIndexWorkRequiredNodeMissing(){
+		// node is missing
+		when(mockNodeDAO.isNodeAvailable(tableIdLong)).thenReturn(false);
+		// not synchronized
+		when(mockTableIndexDAO.doesIndexStateMatch(anyString(), anyLong(), anyString())).thenReturn(false);
+		// failed
+		TableStatus status = new TableStatus();
+		status.setState(TableState.PROCESSING_FAILED);
+		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
+		// call under test
+		boolean workRequired = manager.isIndexWorkRequired(tableId);
+		assertFalse(workRequired);
+	}
+	
+	/**
+	 * The node is available, the table status is available and the index is not synchronized.
+	 * Processing is needed to bring the index up-to-date.
+	 */
+	@Test
+	public void testIsIndexWorkRequiredNotSynched(){
+		// node exists
+		when(mockNodeDAO.isNodeAvailable(tableIdLong)).thenReturn(true);
+		// not synchronized
+		when(mockTableIndexDAO.doesIndexStateMatch(anyString(), anyLong(), anyString())).thenReturn(false);
+		// available
+		TableStatus status = new TableStatus();
+		status.setState(TableState.AVAILABLE);
+		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
+		// call under test
+		boolean workRequired = manager.isIndexWorkRequired(tableId);
+		assertTrue(workRequired);
+	}
+	
+	/**
+	 * The node is available, the table status is processing and the index is synchronized.
+	 * Processing is needed to make the table available.
+	 */
+	@Test
+	public void testIsIndexWorkRequiredStatusProcessing(){
+		// node exists
+		when(mockNodeDAO.isNodeAvailable(tableIdLong)).thenReturn(true);
+		// synchronized
+		when(mockTableIndexDAO.doesIndexStateMatch(anyString(), anyLong(), anyString())).thenReturn(true);
+		// available
+		TableStatus status = new TableStatus();
+		status.setState(TableState.PROCESSING);
+		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
+		// call under test
+		boolean workRequired = manager.isIndexWorkRequired(tableId);
+		assertTrue(workRequired);
 	}
 	
 }

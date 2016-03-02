@@ -41,6 +41,12 @@ public interface TableIndexManager {
 	 * @return
 	 */
 	public long getCurrentVersionOfIndex();
+	
+	/**
+	 * The MD5 Hex string of the current schema.
+	 * @return
+	 */
+	public String getCurrentSchemaMD5Hex();
 
 	/**
 	 * Has the change set represented by the given version number already been

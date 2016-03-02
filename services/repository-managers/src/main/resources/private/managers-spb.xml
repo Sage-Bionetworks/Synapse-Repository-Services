@@ -238,7 +238,6 @@
             ref="stackConfiguration.migrationBackupBatchMax" />
         <property name="migrationListeners" >
             <list>
-				<bean id="tableCacheInvalidationMigrationListener" class="org.sagebionetworks.repo.manager.migration.TableCacheInvalidationMigrationListener" />
             </list>
         </property>
     </bean>
@@ -301,6 +300,8 @@
 		<constructor-arg index="1"><bean class="org.sagebionetworks.common.util.ClockImpl"/>
 		</constructor-arg>
 	</bean>
+	
+	<bean id="timeoutUtils" class="org.sagebionetworks.util.TimeoutUtils"/>
 		
 	<bean id="tableRowManager" class="org.sagebionetworks.repo.manager.table.TableRowManagerImpl" scope="singleton" >
        	<property name="maxBytesPerRequest" ref="stackConfiguration.tableMaxBytesPerRequest"/>

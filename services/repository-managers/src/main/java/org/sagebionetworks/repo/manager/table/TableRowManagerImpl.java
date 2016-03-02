@@ -31,6 +31,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.RowAccessor;
 import org.sagebionetworks.repo.model.dao.table.RowAndHeaderHandler;
@@ -42,7 +43,6 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.PartialRow;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
@@ -85,6 +85,7 @@ import org.sagebionetworks.table.query.model.visitors.GetTableNameVisitor;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 import org.sagebionetworks.util.Closer;
 import org.sagebionetworks.util.Pair;
+import org.sagebionetworks.util.TimeoutUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
@@ -94,7 +95,6 @@ import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionCallback;
 
 import com.google.common.base.Function;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -113,6 +113,8 @@ public class TableRowManagerImpl implements TableRowManager {
 	public static final long BUNDLE_MASK_QUERY_COLUMN_MODELS = 0x10;
 
 	public static final int READ_LOCK_TIMEOUT_SEC = 60;
+
+	public static final long TABLE_PROCESSING_TIMEOUT_MS = 1000*60*10; // 10 mins
 	
 	@Autowired
 	AuthorizationManager authorizationManager;
@@ -130,7 +132,10 @@ public class TableRowManagerImpl implements TableRowManager {
 	NodeDAO nodeDao;
 	@Autowired
 	StackStatusDao stackStatusDao;
-	
+	@Autowired
+	FileHandleDao fileHandleDao;
+	@Autowired
+	TimeoutUtils timeoutUtils;
 	
 	/**
 	 * Injected via spring
@@ -207,11 +212,7 @@ public class TableRowManagerImpl implements TableRowManager {
 			if (partialRow.getRowId() != null) {
 				row = new Row();
 				row.setRowId(partialRow.getRowId());
-				if (partialRow.getValues() == null) {
-					// no values specified, this is a row deletion
-				} else {
-					rowsToUpdate.put(partialRow.getRowId(), Pair.create(partialRow, row));
-				}
+				rowsToUpdate.put(partialRow.getRowId(), Pair.create(partialRow, row));
 			} else {
 				row = resolveInsertValues(partialRow, columnMapper);
 			}
@@ -251,7 +252,7 @@ public class TableRowManagerImpl implements TableRowManager {
 		}
 	}
 
-	private Row resolveInsertValues(PartialRow partialRow, ColumnMapper columnMapper) {
+	private static Row resolveInsertValues(PartialRow partialRow, ColumnMapper columnMapper) {
 		List<String> values = Lists.newArrayListWithCapacity(columnMapper.selectColumnCount());
 		for (SelectColumnAndModel model : columnMapper.getSelectColumnAndModels()) {
 			String value = null;
@@ -276,23 +277,27 @@ public class TableRowManagerImpl implements TableRowManager {
 			PartialRow partialRow = rowToUpdate.getValue().getFirst();
 			Row row = rowToUpdate.getValue().getSecond();
 			RowAccessor currentRow = currentRowData.getRow(rowId);
-
-			List<String> values = Lists.newArrayListWithCapacity(columnMapper.selectColumnCount());
-			for (SelectColumnAndModel model : columnMapper.getSelectColumnAndModels()) {
-				String value = null;
-				if (model.getColumnModel() != null) {
-					if (partialRow.getValues().containsKey(model.getColumnModel().getId())) {
-						value = partialRow.getValues().get(model.getColumnModel().getId());
-					} else {
-						value = currentRow.getCellById(Long.parseLong(model.getColumnModel().getId()));
+			row.setVersionNumber(currentRow.getVersionNumber());
+			if(partialRow.getValues() == null){
+				row.setValues(null);
+			}else{
+				List<String> values = Lists.newArrayListWithCapacity(columnMapper.selectColumnCount());
+				for (SelectColumnAndModel model : columnMapper.getSelectColumnAndModels()) {
+					String value = null;
+					if (model.getColumnModel() != null) {
+						if (partialRow.getValues().containsKey(model.getColumnModel().getId())) {
+							value = partialRow.getValues().get(model.getColumnModel().getId());
+						} else {
+							value = currentRow.getCellById(Long.parseLong(model.getColumnModel().getId()));
+						}
+						if (value == null) {
+							value = model.getColumnModel().getDefaultValue();
+						}
 					}
-					if (value == null) {
-						value = model.getColumnModel().getDefaultValue();
-					}
+					values.add(value);
 				}
-				values.add(value);
+				row.setValues(values);
 			}
-			row.setValues(values);
 		}
 	}
 
@@ -468,12 +473,6 @@ public class TableRowManagerImpl implements TableRowManager {
 	}
 
 	@Override
-	public Map<Long, Long> getCurrentRowVersions(String tableId, Long minVersion, long rowIdOffset, long limit) throws IOException,
-			NotFoundException, TableUnavilableException {
-		return tableRowTruthDao.getLatestVersions(tableId, minVersion, rowIdOffset, limit);
-	}
-
-	@Override
 	public TableRowChange getLastTableRowChange(String tableId) throws IOException, NotFoundException {
 		return tableRowTruthDao.getLastTableRowChange(tableId);
 	}
@@ -524,28 +523,28 @@ public class TableRowManagerImpl implements TableRowManager {
 		try {
 			TableStatus status = tableStatusDAO.getTableStatus(tableId);
 			if(!TableState.AVAILABLE.equals(status.getState())){
+				// Processing or Failed.
+				// Is progress being made?
+				if(timeoutUtils.hasExpired(TABLE_PROCESSING_TIMEOUT_MS, status.getChangedOn().getTime())){
+					// progress has not been made so trigger another update
+					return setTableToProcessingAndTriggerUpdate(tableId);
+				}else{
+					// progress has been made so just return the status
+					return status;
+				}
+			}
+			// Status is Available, is the index synchronized with the truth?
+			if(isIndexSynchronizedWithTruth(tableId)){
+				// Available and synchronized.
 				return status;
-			}
-			// We need to validate the table is really AVAILABLE
-			TableRowChange lastChange = getLastTableRowChange(tableId);
-			if(lastChange == null){
-				if(status.getLastTableChangeEtag() == null){
-					// there are not changes and status etag is null then the table is empty and AVAILABLE.
-					return status;
-				}
 			}else{
-				// We have at least one change on the table, does the status etag match the change etag?
-				if(lastChange.getEtag().equals(status.getLastTableChangeEtag())){
-					// the table is up-to-date
-					return status;
-				}
+				// Available but not synchronized, so change the state to processing.
+				return setTableToProcessingAndTriggerUpdate(tableId);
 			}
-			// the table status and last change do not match. Set the table to processing an trigger an update.
-			return setTableToProcessingAndTriggerUpdate(tableId);
 			
 		} catch (NotFoundException e) {
 			// make sure the table exists
-			if (!nodeDao.doesNodeExist(KeyFactory.stringToKey(tableId))) {
+			if (!nodeDao.isNodeAvailable(KeyFactory.stringToKey(tableId))) {
 				throw new NotFoundException("Table " + tableId + " not found");
 			}
 			return setTableToProcessingAndTriggerUpdate(tableId);
@@ -1080,16 +1079,6 @@ public class TableRowManagerImpl implements TableRowManager {
 		return repsonse;
 	}
 
-	@Override
-	public void updateLatestVersionCache(String tableId, ProgressCallback<Long> progressCallback) throws IOException {
-		tableRowTruthDao.updateLatestVersionCache(tableId, progressCallback);
-	}
-
-	@Override
-	public void removeCaches(String tableId) throws IOException {
-		tableRowTruthDao.removeCaches(KeyFactory.stringToKey(tableId));
-	}
-
 	TableUnavilableException createTableUnavilableException(String tableId){
 		// When this occurs we need to lookup the status of the table and pass that to the caller
 		try {
@@ -1136,139 +1125,69 @@ public class TableRowManagerImpl implements TableRowManager {
 		this.maxBytesPerRequest = maxBytesPerRequest;
 	}
 
-	private void validateFileHandles(UserInfo user, String tableId, ColumnMapper columnMapper, List<Row> rows)
+	/**
+	 * Can the user download all FileHandles in the passed set of rows.
+	 * @param user
+	 * @param tableId
+	 * @param columnMapper
+	 * @param rows
+	 * @throws IOException
+	 * @throws NotFoundException
+	 */
+	public void validateFileHandles(UserInfo user, String tableId, ColumnMapper columnMapper, List<Row> rows)
 			throws IOException,
 			NotFoundException {
-
-		List<Long> fileHandleColumnIds = Lists.newArrayList();
-		for (ColumnModel cm : columnMapper.getColumnModels()) {
-			if (cm.getColumnType() == ColumnType.FILEHANDLEID) {
-				fileHandleColumnIds.add(Long.parseLong(cm.getId()));
-			}
-		}
-
-		if (fileHandleColumnIds.isEmpty()) {
-			// no filehandles: success!
-			return;
-		}
-
-		RowSetAccessor fileHandlesToCheckAccessor = TableModelUtils.getRowSetAccessor(rows, columnMapper);
-
-		// eliminate all file handles that are owned by current user
-		Set<String> ownedFileHandles = Sets.newHashSet();
-		Set<String> unownedFileHandles = Sets.newHashSet();
-
-		// first handle all new rows
-		List<String> fileHandles = Lists.newLinkedList();
-		for (Iterator<RowAccessor> rowIter = fileHandlesToCheckAccessor.getRows().iterator(); rowIter.hasNext();) {
-			RowAccessor row = rowIter.next();
-			if (TableModelUtils.isNullOrInvalid(row.getRowId())) {
-				getFileHandles(row, fileHandleColumnIds, user, fileHandles);
-				rowIter.remove();
-			}
-		}
-
-		// check the file handles?
-		if (!fileHandles.isEmpty()) {
-			authorizationManager.canAccessRawFileHandlesByIds(user, fileHandles, ownedFileHandles, unownedFileHandles);
-
-			if (!unownedFileHandles.isEmpty()) {
-				// this is a new row and the user is trying to add a file handle they do not own
-				throw new IllegalArgumentException("You cannot add new file ids that you do not own");
-			}
-		}
-
-		if (Iterables.isEmpty(fileHandlesToCheckAccessor.getRows())) {
-			// all new rows and all file handles owned by user or null: success!
-			return;
-		}
-
-		// now all we have left is rows that are updated
-
-		// collect all file handles
-		fileHandles.clear();
-		for (RowAccessor row : fileHandlesToCheckAccessor.getRows()) {
-			getFileHandles(row, fileHandleColumnIds, user, fileHandles);
-		}
-		// check all file handles for access
-		authorizationManager.canAccessRawFileHandlesByIds(user, fileHandles, ownedFileHandles, unownedFileHandles);
-
-		for (Iterator<RowAccessor> rowIter = fileHandlesToCheckAccessor.getRows().iterator(); rowIter.hasNext();) {
-			RowAccessor row = rowIter.next();
-			String unownedFileHandle = checkRowForUnownedFileHandle(user, row, fileHandleColumnIds, ownedFileHandles, unownedFileHandles);
-			if (unownedFileHandle == null) {
-				// No unowned file handles, so no need to check previous values
-				rowIter.remove();
-			}
-		}
-
-		if (Iterables.isEmpty(fileHandlesToCheckAccessor.getRows())) {
-			// all file handles null or owned by calling user: success!
-			return;
-		}
-
-		RowSetAccessor latestVersions = tableRowTruthDao.getLatestVersionsWithRowData(tableId, fileHandlesToCheckAccessor.getRowIds(), 0,
-				columnMapper);
-
-		// now we need to check if any of the unowned filehandles are changing with this request
-		for (RowAccessor row : fileHandlesToCheckAccessor.getRows()) {
-			RowAccessor lastRowVersion = latestVersions.getRow(row.getRowId());
-			for (Long fileHandleColumn : fileHandleColumnIds) {
-				String newFileHandleId = row.getCellById(fileHandleColumn);
-				if (newFileHandleId == null) {
-					// erasing a file handle id is always allowed
-					continue;
-				}
-				if (ownedFileHandles.contains(newFileHandleId)) {
-					// we already checked. We own this one
-					continue;
-				}
-				String oldFileHandleId = lastRowVersion.getCellById(fileHandleColumn);
-				if (!oldFileHandleId.equals(newFileHandleId) && !ownedFileHandles.contains(newFileHandleId)) {
-					throw new IllegalArgumentException("You cannot change a file id to a new file id that you do not own: rowId="
-							+ row.getRowId() + ", old file handle=" + oldFileHandleId + ", new file handle=" + newFileHandleId);
-				}
-			}
-		}
+		
+		RowSet rowSet = new RowSet();
+		rowSet.setRows(rows);
+		rowSet.setHeaders(columnMapper.getSelectColumns());
+		validateFileHandles(user, tableId, rowSet);
 	}
 
-	private void getFileHandles(RowAccessor row, List<Long> fileHandleColumnIds, UserInfo user, List<String> fileHandles) {
-		for (Long fileHandleColumn : fileHandleColumnIds) {
-			String fileHandleId = row.getCellById(fileHandleColumn);
-			if (fileHandleId != null) {
-				fileHandles.add(fileHandleId);
+	/**
+	 * 
+	 * @param user
+	 * @param tableId
+	 * @param rowSet
+	 */
+	public void validateFileHandles(UserInfo user, String tableId,
+			RowSet rowSet) {
+		if(user.isAdmin()){
+			return;
+		}
+		// Extract the files handles from the change set.
+		Set<Long> filesHandleIds = TableModelUtils.getFileHandleIdsInRowSet(rowSet);
+		if(!filesHandleIds.isEmpty()){
+			// convert the longs to strings.
+			List<String> fileHandesToCheck = new LinkedList<String>();
+			TableModelUtils.convertLongToString(filesHandleIds, fileHandesToCheck);
+			// Which files were created by the user?
+			Set<String> filesCreatedByUser = fileHandleDao.getFileHandleIdsCreatedByUser(user.getId(), fileHandesToCheck);
+			// build up the set of files not created by the user.
+			Set<Long> remainingFilesToCheck = new HashSet<Long>();
+			for(String fileString: fileHandesToCheck){
+				if(!filesCreatedByUser.contains(fileString)){
+					remainingFilesToCheck.add(Long.parseLong(fileString));
+				}
+			}
+			// are there any more files to check?
+			if(!remainingFilesToCheck.isEmpty()){
+				// The remaining files were not created by the user so they must already be associated with the table.
+				TableIndexDAO indexDao = tableConnectionFactory.getConnection(tableId);
+				// Get the sub-set of files associated with the table.
+				Set<Long> filesAssociatedWithTable = indexDao.getFileHandleIdsAssociatedWithTable(new HashSet<Long>(remainingFilesToCheck), tableId);
+				// remove all files associated with the table
+				remainingFilesToCheck.removeAll(filesAssociatedWithTable);
+				// Any files remaining in the set are not created by the user and are not associated with the table.
+				if(!remainingFilesToCheck.isEmpty()){
+					throw new UnauthorizedException("Cannot access files: "+remainingFilesToCheck.toString());
+				}
 			}
 		}
-	}
-
-	private String checkRowForUnownedFileHandle(UserInfo userInfo, RowAccessor row, List<Long> fileHandleColumns,
-			Set<String> ownedFileHandles, Set<String> unownedFileHandles) throws NotFoundException {
-		for (Long fileHandleColumn : fileHandleColumns) {
-			String fileHandleId = row.getCellById(fileHandleColumn);
-			if (fileHandleId == null) {
-				// erasing a file handle id is always allowed
-				continue;
-			}
-			if (ownedFileHandles.contains(fileHandleId)) {
-				// We own this one
-				continue;
-			}
-			if (unownedFileHandles.contains(fileHandleId)) {
-				// We don't own this one.
-				return fileHandleId;
-			}
-			// somehow didn't show up in owned or unowned. Run separate access check
-			if (authorizationManager.canAccessRawFileHandleById(userInfo, fileHandleId).getAuthorized()) {
-				continue;
-			} else {
-				return fileHandleId;
-			}
-		}
-		return null;
 	}
 	
 	/**
-	 * Thows an exception if the table feature is disabled.
+	 * Throws an exception if the table feature is disabled.
 	 */
 	public void validateFeatureEnabled(){
 		if(!StackConfiguration.singleton().getTableEnabled()){
@@ -1361,7 +1280,52 @@ public class TableRowManagerImpl implements TableRowManager {
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
+	}
 
+	@Override
+	public String startTableProcessing(String tableId) {
+		// Since this is called from the worker do not broadcast the change.
+		boolean broadcastChange = false;
+		return tableStatusDAO.resetTableStatusToProcessing(tableId, broadcastChange);
+	}
+
+
+	@Override
+	public boolean isIndexSynchronizedWithTruth(String tableId) {
+		// Get the truth schema
+		List<ColumnModel> truthSchema = this.columnModelDAO.getColumnModelsForObject(tableId);
+		String truthSchemaMD5Hex = TableModelUtils.createSchemaMD5HexCM(truthSchema);
+		// get the truth version
+		long truthLastVersion = getVersionOfLastTableChange(tableId);
+		// compare the truth with the index.
+		return this.tableConnectionFactory.getConnection(tableId).doesIndexStateMatch(tableId, truthLastVersion, truthSchemaMD5Hex);
+	}
+
+
+	@Override
+	public long getVersionOfLastTableChange(String tableId) {
+		TableRowChange change = this.tableRowTruthDao.getLastTableRowChange(tableId);
+		if(change != null){
+			return change.getRowVersion();
+		}else{
+			return -1;
+		}
+	}
+
+
+	@Override
+	public boolean isIndexWorkRequired(String tableId) {
+		// Does the table exist and not in the trash?
+		if(!nodeDao.isNodeAvailable(KeyFactory.stringToKey(tableId))){
+			return false;
+		}
+		// work is needed if the index is out-of-sych.
+		if(!isIndexSynchronizedWithTruth(tableId)){
+			return true;
+		}
+		// work is needed if the current state is processing.
+		TableStatus status = tableStatusDAO.getTableStatus(tableId);
+		return TableState.PROCESSING.equals(status.getState());
 	}
 
 }

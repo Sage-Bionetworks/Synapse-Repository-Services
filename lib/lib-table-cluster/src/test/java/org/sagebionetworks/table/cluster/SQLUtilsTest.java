@@ -444,7 +444,6 @@ public class SQLUtilsTest {
 	public void testGetTableNameForId(){
 		assertEquals("T123", SQLUtils.getTableNameForId("syn123", TableType.INDEX));
 		assertEquals("T123S", SQLUtils.getTableNameForId("syn123", TableType.STATUS));
-		assertEquals("T123CR", SQLUtils.getTableNameForId("syn123", TableType.CURRENT_ROW));
 	}
 	
 	@Test

@@ -5,8 +5,9 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.stub;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 
@@ -30,9 +31,7 @@ import org.mockito.Mockito;
 import org.sagebionetworks.ImmutablePropertyAccessor;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.repo.model.dao.table.CurrentRowCacheDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.IdRange;
@@ -65,7 +64,6 @@ public class TableIndexDAOImplTest {
 	StackConfiguration config;
 	// These are not a bean
 	TableIndexDAO tableIndexDAO;
-	CurrentRowCacheDao currentRowCacheDao;
 	
 	ProgressCallback<Void> mockProgressCallback;
 
@@ -79,8 +77,6 @@ public class TableIndexDAOImplTest {
 		tableId = "syn" + new Random().nextInt(Integer.MAX_VALUE);
 		// First get a connection for this table
 		tableIndexDAO = tableConnectionFactory.getConnection(tableId);
-		currentRowCacheDao = tableConnectionFactory
-				.getCurrentRowCacheConnection(KeyFactory.stringToKey(tableId));
 	}
 
 	@After
@@ -265,6 +261,24 @@ public class TableIndexDAOImplTest {
 		assertEquals(4L, maxVersion.longValue());
 
 		tableIndexDAO.deleteSecondayTables(tableId);
+	}
+	
+	@Test
+	public void testGetSchemaHashForTable(){
+		tableIndexDAO.createSecondaryTables(tableId);
+		// Before the table exists the max version should be -1L
+		String hash = tableIndexDAO.getCurrentSchemaMD5Hex(tableId);
+		assertEquals("DEFAULT", hash);
+		
+		hash = "some hash";
+		tableIndexDAO.setCurrentSchemaMD5Hex(tableId, hash);
+		String returnHash = tableIndexDAO.getCurrentSchemaMD5Hex(tableId);
+		assertEquals(hash, returnHash);
+		// setting the version should not change the hash
+		tableIndexDAO.setMaxCurrentCompleteVersionForTable(tableId, 4L);
+		// did it change?
+		returnHash = tableIndexDAO.getCurrentSchemaMD5Hex(tableId);
+		assertEquals(hash, returnHash);
 	}
 
 	@Test
@@ -1009,5 +1023,39 @@ public class TableIndexDAOImplTest {
 		Set<Long> results = this.tableIndexDAO.getFileHandleIdsAssociatedWithTable(toTest, tableId);
 		assertNotNull(results);
 		assertTrue(results.isEmpty());
+	}
+	
+	@Test
+	public void testDoesIndexStateMatch(){
+		// ensure the secondary tables for this index exist
+		this.tableIndexDAO.createSecondaryTables(tableId);
+		
+		String md5 = "md5hex";
+		this.tableIndexDAO.setCurrentSchemaMD5Hex(tableId, md5);
+		long version = 123;
+		this.tableIndexDAO.setMaxCurrentCompleteVersionForTable(tableId, version);
+		// call under test
+		boolean match = this.tableIndexDAO.doesIndexStateMatch(tableId, version, md5);
+		assertTrue(match);
+		
+		// call under test
+		match = this.tableIndexDAO.doesIndexStateMatch(tableId, version+1, md5);
+		assertFalse(match);
+		
+		// call under test
+		match = this.tableIndexDAO.doesIndexStateMatch(tableId, version, md5+1);
+		assertFalse(match);
+	}
+	
+	@Test
+	public void testDoesIndexStateMatchTableDoesNotExist(){
+		// ensure the secondary tables for this index exist
+		this.tableIndexDAO.createSecondaryTables(tableId);
+		// the status table does not exist for this case.
+		String md5 = "md5hex";
+		long version = 123;
+		// call under test
+		boolean match = this.tableIndexDAO.doesIndexStateMatch(tableId, version, md5);
+		assertFalse(match);
 	}
 }

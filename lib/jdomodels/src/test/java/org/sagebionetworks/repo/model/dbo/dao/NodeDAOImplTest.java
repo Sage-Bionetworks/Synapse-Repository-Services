@@ -6,6 +6,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.sagebionetworks.repo.model.dbo.dao.NodeDAOImpl.TRASH_FOLDER_ID;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -298,6 +299,73 @@ public class NodeDAOImplTest {
 		// Since this node has no parent, it should be its own benefactor.
 		String benefactorId = nodeInheritanceDAO.getBenefactor(id);
 		assertEquals(id, benefactorId);
+	}
+	
+	@Test
+	public void testDoesNodeExistInvalid(){
+		// call under test.
+		boolean exists = nodeDao.doesNodeExist(-123L);
+		assertFalse(exists);
+	}
+	
+	@Test
+	public void testDoesNodeExist(){
+		Node toCreate = privateCreateNewDistinctModifier("exists");
+		String id = nodeDao.createNew(toCreate);
+		toDelete.add(id);
+		Long nodeId = KeyFactory.stringToKey(id);
+		// call under test.
+		boolean exists = nodeDao.doesNodeExist(nodeId);
+		assertTrue(exists);
+	}
+	
+	@Test
+	public void testDoesNodeExistAndInTrash(){
+		Node toCreate = privateCreateNewDistinctModifier("exists");
+		// put the node in the trash
+		String id = nodeDao.createNew(toCreate);
+		toDelete.add(id);
+		// put the node in the trash
+		nodeInheritanceDAO.addBeneficiary(id, ""+TRASH_FOLDER_ID);
+		Long nodeId = KeyFactory.stringToKey(id);
+		// call under test.
+		boolean exists = nodeDao.doesNodeExist(nodeId);
+		// the node should still exist even though it is in the trash.
+		assertTrue(exists);
+	}
+	
+	@Test
+	public void testIsNodeAvailableInvalid(){
+		// call under test.
+		boolean avaiable = nodeDao.isNodeAvailable(-123L);
+		assertFalse(avaiable);
+	}
+	
+	@Test
+	public void testIsNodeAvailable(){
+		Node toCreate = privateCreateNewDistinctModifier("available");
+		String id = nodeDao.createNew(toCreate);
+		toDelete.add(id);
+		Long nodeId = KeyFactory.stringToKey(id);
+		// call under test.
+		boolean avaiable = nodeDao.isNodeAvailable(nodeId);
+		assertTrue(avaiable);
+	}
+	
+	@Test
+	public void testIsNodeAvailableAndInTrash(){
+		Node toCreate = privateCreateNewDistinctModifier("available");
+		String id = nodeDao.createNew(toCreate);
+		toDelete.add(id);
+		// put the node in the trash
+		nodeInheritanceDAO.addBeneficiary(id, ""+TRASH_FOLDER_ID);
+		Long nodeId = KeyFactory.stringToKey(id);
+		// call under test.
+		boolean avaiable = nodeDao.isNodeAvailable(nodeId);
+		// the node should still exist even though it is in the trash.
+		assertFalse(avaiable);
+		// the node should exist
+		assertTrue(nodeDao.doesNodeExist(nodeId));
 	}
 	
 	@Test (expected=IllegalArgumentException.class)

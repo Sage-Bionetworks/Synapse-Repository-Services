@@ -903,49 +903,4 @@ public class NodeInheritanceManagerImplAutowireTest {
 		nodeToCheck = null;
 	}
 
-	@Test
-	public void testTrashedFolderIsIdentified() throws Exception {
-		Node nextNode = new Node();
-		String rootFolderId = null;
-		String folderTwoId = null;
-		String folderThreeId = null;
-
-		nextNode.setName("rootFolder");
-		nextNode.setNodeType(EntityType.folder);
-		rootFolderId = nodeManager.createNewNode(nextNode, adminUserInfo);
-		nodeInheritanceManager.setNodeToInheritFromItself(rootFolderId);
-		nodesToDelete.add(rootFolderId);
-
-		nextNode = new Node();
-		nextNode.setName("folderTwo");
-		nextNode.setNodeType(EntityType.folder);
-		nextNode.setParentId(rootFolderId);
-		folderTwoId = nodeManager.createNewNode(nextNode, adminUserInfo);
-		nodeInheritanceManager.setNodeToInheritFromNearestParent(folderTwoId);
-		nodesToDelete.add(folderTwoId);
-
-		nextNode = new Node();
-		nextNode.setName("folderThree");
-		nextNode.setNodeType(EntityType.folder);
-		nextNode.setParentId(folderTwoId);
-		folderThreeId = nodeManager.createNewNode(nextNode, adminUserInfo);
-		nodeInheritanceManager.setNodeToInheritFromNearestParent(folderThreeId);
-		nodesToDelete.add(folderThreeId);
-
-		assertFalse(nodeInheritanceManager.isNodeInTrash(rootFolderId));
-		assertFalse(nodeInheritanceManager.isNodeInTrash(folderTwoId));
-		assertFalse(nodeInheritanceManager.isNodeInTrash(folderThreeId));
-
-		trashManager.moveToTrash(adminUserInfo, rootFolderId);
-
-		assertTrue(nodeInheritanceManager.isNodeInTrash(rootFolderId));
-		assertTrue(nodeInheritanceManager.isNodeInTrash(folderTwoId));
-		assertTrue(nodeInheritanceManager.isNodeInTrash(folderThreeId));
-
-		trashManager.restoreFromTrash(adminUserInfo, rootFolderId, null);
-
-		assertFalse(nodeInheritanceManager.isNodeInTrash(rootFolderId));
-		assertFalse(nodeInheritanceManager.isNodeInTrash(folderTwoId));
-		assertFalse(nodeInheritanceManager.isNodeInTrash(folderThreeId));
-	}
 }

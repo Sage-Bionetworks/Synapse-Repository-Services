@@ -56,6 +56,8 @@ import org.springframework.jdbc.core.RowMapper;
 
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.S3Object;
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -66,7 +68,7 @@ import com.google.common.collect.Sets;
  * @author John
  * 
  */
-public abstract class TableRowTruthDAOImpl implements TableRowTruthDAO {
+public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	private static Logger log = LogManager.getLogger(TableRowTruthDAOImpl.class);
 
 	private static final String SQL_SELECT_VERSION_FOR_ETAG = "SELECT "
@@ -199,7 +201,7 @@ public abstract class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		// Are any rows being updated?
 		if (coutToReserver < delta.getRows().size()) {
 			// Validate that this update does not contain any row level conflicts.
-			checkForRowLevelConflict(tableId, delta, 0);
+			checkForRowLevelConflict(tableId, delta);
 		}
 		// Now assign the rowIds and set the version number
 		TableModelUtils.assignRowIdsAndVersionNumbers(delta, range);
@@ -576,66 +578,7 @@ public abstract class TableRowTruthDAOImpl implements TableRowTruthDAO {
 				}
 			}, rowChange);
 		}
-
-		return new RowSetAccessor() {
-			@Override
-			public Map<Long, RowAccessor> getRowIdToRowMap() {
-				return rowIdToRowMap;
-			}
-		};
-	}
-
-	@Override
-	public Map<Long, Long> getLatestVersions(String tableId, Set<Long> rowIds, long minVersion) throws IOException {
-		final Map<Long, Long> rowVersions = Maps.newHashMap();
-
-		List<TableRowChange> rowChanges = listRowSetsKeysForTableGreaterThanVersion(tableId, minVersion - 1);
-
-		final Set<Long> rowsToFind = Sets.newHashSet(rowIds);
-		// we are scanning backwards through the row changes.
-		// For each version of the table (starting at the last one)
-		for (final TableRowChange rowChange : Lists.reverse(rowChanges)) {
-			if (rowsToFind.isEmpty()) {
-				// we found all the rows that we need to find
-				break;
-			}
-
-			// Scan over the delta
-			scanChange(new RowHandler() {
-				@Override
-				public void nextRow(final Row row) {
-					// if we still needed it, we no longer need to find this one
-					if (rowsToFind.remove(row.getRowId())) {
-						rowVersions.put(row.getRowId(), row.getVersionNumber());
-					}
-				}
-			}, rowChange);
-		}
-
-		return rowVersions;
-	}
-
-	@Override
-	public Map<Long, Long> getLatestVersions(String tableId, final long minVersion, final long rowIdOffset, final long limit)
-			throws IOException, NotFoundException, TableUnavilableException {
-		final Map<Long, Long> rowVersions = Maps.newHashMap();
-
-		List<TableRowChange> rowChanges = listRowSetsKeysForTableGreaterThanVersion(tableId, minVersion - 1);
-
-		// scan forward (rowChanges is ordered lowest version first)
-		for (final TableRowChange rowChange : rowChanges) {
-			scanChange(new RowHandler() {
-				@Override
-				public void nextRow(final Row row) {
-					if (row.getRowId() >= rowIdOffset && row.getRowId() < rowIdOffset + limit) {
-						// since we are iterating forward, we can just overwrite previous values here
-						rowVersions.put(row.getRowId(), row.getVersionNumber());
-					}
-				}
-			}, rowChange);
-		}
-
-		return rowVersions;
+		return new RowSetAccessor(rowIdToRowMap);
 	}
 
 	protected void appendRowDataToMap(final Map<Long, RowAccessor> rowIdToRowMap, final List<Long> rowChangeColumnIds, final Row row) {
@@ -685,16 +628,6 @@ public abstract class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		return TableModelUtils.convertToSchemaAndMerge(allSets, resultSchema, ref.getTableId(), etag);
 	}
 
-	@Override
-	public void updateLatestVersionCache(String tableId, ProgressCallback<Long> progressCallback) throws IOException {
-		// do nothing here, only caching version needs to do anything
-	}
-
-	@Override
-	public void removeCaches(Long tableId) throws IOException {
-		// do nothing here, only caching version needs to do anything
-	}
-
 	public String getS3Bucket() {
 		return s3Bucket;
 	}
@@ -711,5 +644,47 @@ public abstract class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	protected void throwUpdateConflict(Long rowId) {
 		throw new ConflictingUpdateException("Row id: " + rowId
 				+ " has been changed since last read.  Please get the latest value for this row and then attempt to update it again.");
+	}
+	
+	/**
+	 * Check for a row level conflicts in the passed change sets, by scanning each row of each change set and looking
+	 * for the intersection with the passed row Ids.
+	 * 
+	 * @param tableId
+	 * @param delta
+	 * @param coutToReserver
+	 * @throws ConflictingUpdateException when a conflict is found
+	 */
+	@Override
+	public void checkForRowLevelConflict(String tableIdString, RawRowSet delta) throws IOException {
+		// Map each valid row to its version number
+		Map<Long, Long> rowIdToRowVersionNumberFromUpdate = TableModelUtils.getDistictValidRowIds(delta.getRows());
+		long versionOfDelta = -1;
+		for(Long versionNumber: rowIdToRowVersionNumberFromUpdate.values()){
+			if(versionNumber == null){
+				throw new IllegalArgumentException("Row version number cannot be null");
+			}
+			versionOfDelta = Math.max(versionOfDelta, versionNumber);
+		}
+		// If we were given an etag we can use it to determine the version used to create the delta.
+		if(delta.getEtag() != null){
+			long versionOfEtag = getVersionForEtag(tableIdString, delta.getEtag());
+			versionOfDelta = Math.max(versionOfDelta, versionOfEtag);
+		}
+		final Set<Long> deltaRowIds = rowIdToRowVersionNumberFromUpdate.keySet();
+		// Need to check all changes that have been applied since the version of the delta?
+		List<TableRowChange> rowChanges = listRowSetsKeysForTableGreaterThanVersion(tableIdString, versionOfDelta);
+		// scan all changes greater than this row.
+		for (final TableRowChange rowChange : rowChanges) {
+			// Scan all recent updates
+			scanChange(new RowHandler() {
+				@Override
+				public void nextRow(final Row row) {
+					if(deltaRowIds.contains(row.getRowId())){
+						throwUpdateConflict(row.getRowId());
+					}
+				}
+			}, rowChange);
+		}
 	}
 }

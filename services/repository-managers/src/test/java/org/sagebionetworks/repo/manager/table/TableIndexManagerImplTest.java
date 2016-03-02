@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.manager.table;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyList;
 import static org.mockito.Matchers.anyLong;
@@ -32,6 +31,7 @@ import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionCallback;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 public class TableIndexManagerImplTest {

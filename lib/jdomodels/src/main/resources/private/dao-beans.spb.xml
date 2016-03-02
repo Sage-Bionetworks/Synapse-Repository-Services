@@ -241,14 +241,9 @@
 	</bean>
 	
 	<bean id="tableRowTruthDao"
-		class="org.sagebionetworks.repo.model.dbo.dao.table.CachingTableRowTruthDAOImpl"
+		class="org.sagebionetworks.repo.model.dbo.dao.table.TableRowTruthDAOImpl"
 		scope="singleton" init-method="initialize">
 		<property name="s3Bucket" ref="stackConfiguration.tableRowChangeBucketName"/>
-	</bean>
-	
-	<bean id="tableRowCacheDao"
-		class="org.sagebionetworks.repo.model.dbo.dao.table.TableRowCacheImpl"
-		scope="singleton">
 	</bean>
 	
 	<bean id="tableStatusDAO"

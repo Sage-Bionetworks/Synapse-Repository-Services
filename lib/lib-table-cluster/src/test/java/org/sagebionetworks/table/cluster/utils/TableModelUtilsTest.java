@@ -724,11 +724,15 @@ public class TableModelUtilsTest {
 		Row ref = new Row();
 		ref.setRowId(100l);
 		ref.setVersionNumber(500L);
+		ref.setValues(new LinkedList<String>());
 		refs.add(ref);
+		
 		ref = new Row();
 		ref.setRowId(101l);
 		ref.setVersionNumber(501L);
+		ref.setValues(new LinkedList<String>());
 		refs.add(ref);
+		
 		ref = new Row();
 		ref.setRowId(null);
 		refs.add(ref);
@@ -747,15 +751,21 @@ public class TableModelUtilsTest {
 		Row ref = new Row();
 		ref.setRowId(100l);
 		ref.setVersionNumber(500L);
+		ref.setValues(new LinkedList<String>());
 		refs.add(ref);
+		
 		ref = new Row();
 		ref.setRowId(101l);
 		ref.setVersionNumber(501L);
+		ref.setValues(new LinkedList<String>());
 		refs.add(ref);
+		
 		ref = new Row();
 		ref.setRowId(100l);
 		ref.setVersionNumber(600L);
+		ref.setValues(new LinkedList<String>());
 		refs.add(ref);
+		
 		ref = new Row();
 		ref.setRowId(null);
 		refs.add(ref);
@@ -1189,6 +1199,20 @@ public class TableModelUtilsTest {
 		Set<Long> out = Sets.newHashSet();
 		// should fail.
 		TableModelUtils.convertStringToLong(in, out);
+	}
+	
+	@Test
+	public void testCreateSchemaMD5Hex(){
+		List<Long> ids = Lists.newArrayList(1L,2L,3L);
+		String md5Hex = TableModelUtils.createSchemaMD5Hex(ids);
+		assertEquals("c6fc24807df697dd54e1b891a432fe94", md5Hex);
+	}
+	
+	@Test
+	public void testCreateSchemaMD5HexCM(){
+		List<ColumnModel> models = TableModelTestUtils.createOneOfEachType();
+		String md5Hex = TableModelUtils.createSchemaMD5HexCM(models);
+		assertEquals("0f8cecc5a263e72726513a2d719c9d53", md5Hex);
 	}
 	
 }

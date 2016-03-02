@@ -87,6 +87,32 @@ public class TableStatusDAOImplTest {
 	}
 	
 	@Test
+	public void testResetTableStatusToPendingNoBroadcast() throws NotFoundException{
+		long startNumber = changeDAO.getCurrentChangeNumber();
+		String tableId = "syn123";
+		// Before we start the status should not exist
+		try{
+			tableStatusDAO.getTableStatus(tableId);
+			fail("The status for this table should not exist yet");
+		}catch(NotFoundException e){
+			// expected
+		}
+		// This should insert a row for this table.
+		boolean broadcastChange = false;
+		String resetToken = tableStatusDAO.resetTableStatusToProcessing("syn123", broadcastChange);
+		assertNotNull(resetToken);
+		// We should now have a status for this table
+		TableStatus status = tableStatusDAO.getTableStatus(tableId);
+		assertNotNull(status);
+		assertEquals("123", status.getTableId());
+		assertEquals(TableState.PROCESSING, status.getState());
+		
+		// no changes should have been sent
+		long endChangeNumber = changeDAO.getCurrentChangeNumber();
+		assertEquals(startNumber, endChangeNumber);
+	}
+	
+	@Test
 	public void testAttemptToSetTableStatusToAvailableHappy() throws NotFoundException{
 		String tableId = "syn123";
 		// This should insert a row for this table.

@@ -1,6 +1,18 @@
 package org.sagebionetworks.repo.model.dbo.dao.table;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_LAST_TABLE_CHANGE_ETAG;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_STATUS_CHANGE_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_STATUS_ERROR_DETAILS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_STATUS_ERROR_MESSAGE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_STATUS_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_STATUS_PROGRESS_CURRENT;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_STATUS_PROGRESS_MESSAGE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_STATUS_PROGRESS_TOTAL;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_STATUS_RESET_TOKEN;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_STATUS_RUNTIME_MS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_STATUS_STARTED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_STATUS_STATE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_STATUS;
 
 import java.util.UUID;
 
@@ -18,15 +30,13 @@ import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
-import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-
-import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 /**
  * A very basic DAO to tack table status.
@@ -66,6 +76,15 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 	@WriteTransaction
 	@Override
 	public String resetTableStatusToProcessing(String tableIdString) {
+		// by default changes should be broadcast.
+		boolean broadcastChange = true;
+		return resetTableStatusToProcessing(tableIdString, broadcastChange);
+	}
+	
+	@WriteTransaction
+	@Override
+	public String resetTableStatusToProcessing(String tableIdString,
+			boolean broadcastChange) {
 		if(tableIdString == null) throw new IllegalArgumentException("TableId cannot be null");
 		Long tableId = KeyFactory.stringToKey(tableIdString);
 		String state = TableState.PROCESSING.name();
@@ -73,9 +92,11 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 		long now = System.currentTimeMillis();
 		// We are not unconditionally replacing this row.  Instead we are only setting the columns that we wish to change.
 		jdbcTemplate.update(SQL_RESET_TO_PENDING, tableId, state,resetToken, now, now, state, resetToken, now, now);
-		// Fire a change event
-		transactionalMessenger.sendMessageAfterCommit(tableId.toString(), ObjectType.TABLE, resetToken, ChangeType.UPDATE);
-		transactionalMessenger.sendModificationMessageAfterCommit(tableIdString, ObjectType.ENTITY);
+		if(broadcastChange){
+			// Fire a change event
+			transactionalMessenger.sendMessageAfterCommit(tableId.toString(), ObjectType.TABLE, resetToken, ChangeType.UPDATE);
+			transactionalMessenger.sendModificationMessageAfterCommit(tableIdString, ObjectType.ENTITY);
+		}
 		return resetToken;
 	}
 
@@ -174,4 +195,5 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 	public void deleteTableStatus(String tableId) {
 		jdbcTemplate.update(SQL_DELETE_TABLE_STATUS, KeyFactory.stringToKey(tableId));
 	}
+
 }

@@ -31,7 +31,6 @@ import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
-import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
@@ -284,12 +283,12 @@ public class IT099AsynchronousJobTest {
 			try{
 				// this duplicates the first file upload but adds the row id
 				// Write the header
-				csv.writeNext(new String[]{"ROW_ID", cm1.getName(), cm2.getName()}); // TODO add ROW_VERSION???
+				csv.writeNext(new String[]{"ROW_ID", "ROW_VERSION",cm1.getName(), cm2.getName()});
 				// Write some rows
 				for(int i=0; i<rowCount; i++){
 					Row row = results.getRows().get(i);
 					long j = rowCount-i;
-					csv.writeNext(new String[]{row.getRowId().toString(), ""+j, "data"+j});
+					csv.writeNext(new String[]{row.getRowId().toString(), row.getVersionNumber().toString(),""+j, "data"+j});
 				}
 			}finally{
 				csv.flush();

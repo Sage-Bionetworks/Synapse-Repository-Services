@@ -61,21 +61,21 @@ public class CachingTableRowTruthDAOImplTest {
 		RawRowSet updatedSet = rawList.get(0);
 		RawRowSet updatedSetNoEtag = new RawRowSet(updatedSet.getIds(), null, tableId, updatedSet.getRows());
 		// should pass since all match. 
-		tableRowTruthDao.checkForRowLevelConflict(tableId, updatedSet, 0);
+		tableRowTruthDao.checkForRowLevelConflict(tableId, updatedSet);
 		// It should also work without the etag
-		tableRowTruthDao.checkForRowLevelConflict(tableId, updatedSetNoEtag, 0);
+		tableRowTruthDao.checkForRowLevelConflict(tableId, updatedSetNoEtag);
 		// Append the same changes to the table again
 		refSet = tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, mapper, set);
 		 // Now if we try to use the original set it should fail with a conflict
 		try {
-			tableRowTruthDao.checkForRowLevelConflict(tableId, updatedSet, 0);
+			tableRowTruthDao.checkForRowLevelConflict(tableId, updatedSet);
 			fail("Should have failed as there are conflicts.");
 		} catch (ConflictingUpdateException e) {
 			// expected
 		}
 		// Should also fail without an etag
 		try {
-			tableRowTruthDao.checkForRowLevelConflict(tableId, updatedSetNoEtag, 0);
+			tableRowTruthDao.checkForRowLevelConflict(tableId, updatedSetNoEtag);
 			fail("Should have failed as there are conflicts.");
 		} catch (ConflictingUpdateException e) {
 			// expected
@@ -104,7 +104,7 @@ public class CachingTableRowTruthDAOImplTest {
 		RawRowSet updatedSetNoEtag = new RawRowSet(updatedSet.getIds(), null, tableId, updatedSet.getRows());
 		updatedSetNoEtag.getRows().get(0).setVersionNumber(null);
 		// This should fail as a null version number is passed in. 
-		tableRowTruthDao.checkForRowLevelConflict(tableId, updatedSetNoEtag, 0);
+		tableRowTruthDao.checkForRowLevelConflict(tableId, updatedSetNoEtag);
 	}
 	
 }
