@@ -64,6 +64,7 @@
         "DISCUSSION_THREAD",
         "DISCUSSION_THREAD_VIEW",
         "DISCUSSION_REPLY",
+        "SUBSCRIPTION",
         "CHANGE"
     ]
 }

@@ -16,7 +16,7 @@ public class SubscriptionUtils {
 		dbo.setId(subscriptionId);
 		dbo.setSubscriberId(Long.parseLong(subscriberId));
 		dbo.setObjectId(Long.parseLong(objectId));
-		dbo.setObjectType(objectType);
+		dbo.setObjectType(objectType.name());
 		dbo.setCreatedOn(createdOn);
 		return dbo;
 	}

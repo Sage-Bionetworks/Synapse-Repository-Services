@@ -28,7 +28,7 @@ public class DBOSubscription implements MigratableDatabaseObject<DBOSubscription
 	private Long id;
 	private Long subscriberId;
 	private Long objectId;
-	private SubscriptionObjectType objectType;
+	private String objectType;
 	private Date createdOn;
 
 	@Override
@@ -112,11 +112,11 @@ public class DBOSubscription implements MigratableDatabaseObject<DBOSubscription
 		this.objectId = objectId;
 	}
 
-	public SubscriptionObjectType getObjectType() {
+	public String getObjectType() {
 		return objectType;
 	}
 
-	public void setObjectType(SubscriptionObjectType objectType) {
+	public void setObjectType(String objectType) {
 		this.objectType = objectType;
 	}
 
@@ -138,7 +138,7 @@ public class DBOSubscription implements MigratableDatabaseObject<DBOSubscription
 				dbo.setId(rs.getLong(COL_SUBSCRIPTION_ID));
 				dbo.setSubscriberId(rs.getLong(COL_SUBSCRIPTION_SUBSCRIBER_ID));
 				dbo.setObjectId(rs.getLong(COL_SUBSCRIPTION_OBJECT_ID));
-				dbo.setObjectType(SubscriptionObjectType.valueOf(rs.getString(COL_SUBSCRIPTION_OBJECT_TYPE)));
+				dbo.setObjectType(rs.getString(COL_SUBSCRIPTION_OBJECT_TYPE));
 				dbo.setCreatedOn(new Date(rs.getLong(COL_SUBSCRIPTION_SUBSCRIBER_ID)));
 				return dbo;
 			}

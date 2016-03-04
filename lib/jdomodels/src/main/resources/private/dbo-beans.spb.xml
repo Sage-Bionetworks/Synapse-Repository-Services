@@ -113,6 +113,8 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.discussion.DBODiscussionThreadStats" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.discussion.DBODiscussionThreadView" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.discussion.DBODiscussionReply" />
+
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.subscription.DBOSubscription" />
 			</list>
 		</property>
 	</bean>
@@ -170,6 +172,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.discussion.DBODiscussionThread" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.discussion.DBODiscussionThreadView" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.discussion.DBODiscussionReply" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.subscription.DBOSubscription" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOChange" />
 			</list>
 		</property>
