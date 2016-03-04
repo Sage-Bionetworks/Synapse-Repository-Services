@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.sagebionetworks.repo.manager.AuthorizationManagerImpl.ANONYMOUS_ACCESS_DENIED_REASON;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -37,6 +38,7 @@ import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.sagebionetworks.repo.model.provenance.Activity;
+import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -91,6 +93,8 @@ public class AuthorizationManagerImplTest {
 	private UserGroup publicGroup;
 	
 	private Random rand = null;
+
+	private String forumId;
 	
 	private List<String> activitiesToDelete;
 	
@@ -157,6 +161,8 @@ public class AuthorizationManagerImplTest {
 		activitiesToDelete = new ArrayList<String>();
 		
 		nodeList.add(nodeCreatedByTestUser);
+
+		forumId = "1";
 	}
 
 	@After
@@ -638,5 +644,11 @@ public class AuthorizationManagerImplTest {
 		assertNotNull(anonInfo);
 		assertTrue(authorizationManager.isAnonymousUser(anonInfo));
 		assertFalse(authorizationManager.isAnonymousUser(userInfo));
+	}
+
+	@Test
+	public void testCanSubscribeAnonymous() {
+		assertEquals(AuthorizationManagerUtil.accessDenied(ANONYMOUS_ACCESS_DENIED_REASON),
+				authorizationManager.canSubscribe(anonInfo, forumId, SubscriptionObjectType.FORUM));
 	}
 }

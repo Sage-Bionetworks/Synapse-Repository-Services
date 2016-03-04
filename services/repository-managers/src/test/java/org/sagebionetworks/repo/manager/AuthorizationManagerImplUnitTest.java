@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.manager;
 
+import static org.sagebionetworks.repo.manager.AuthorizationManagerImpl.*;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -42,6 +44,7 @@ import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VerificationDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.discussion.DiscussionThreadDAO;
 import org.sagebionetworks.repo.model.dao.discussion.ForumDAO;
@@ -52,6 +55,7 @@ import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociationManager;
 import org.sagebionetworks.repo.model.provenance.Activity;
+import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -126,7 +130,6 @@ public class AuthorizationManagerImplUnitTest {
 		ReflectionTestUtils.setField(authorizationManager, "forumDao", mockForumDao);
 
 		userInfo = new UserInfo(false, USER_PRINCIPAL_ID);
-
 		adminUser = new UserInfo(true, 456L);
 
 		evaluation = new Evaluation();
@@ -678,5 +681,19 @@ public class AuthorizationManagerImplUnitTest {
 		Set<Long> results = authorizationManager.getAccessibleBenefactors(userInfo, benefactors);
 		assertNotNull(results);
 		assertEquals(0, results.size());
+	}
+
+	@Test
+	public void testCanSubscribeForumUnauthorized() {
+		when(mockEntityPermissionsManager.hasAccess(forumId, ACCESS_TYPE.READ, userInfo)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+		assertEquals(AuthorizationManagerUtil.ACCESS_DENIED,
+				authorizationManager.canSubscribe(userInfo, forumId, SubscriptionObjectType.FORUM));
+	}
+
+	@Test
+	public void testCanSubscribeForumAuthorized() {
+		when(mockEntityPermissionsManager.hasAccess(forumId, ACCESS_TYPE.READ, userInfo)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		assertEquals(AuthorizationManagerUtil.AUTHORIZED,
+				authorizationManager.canSubscribe(userInfo, forumId, SubscriptionObjectType.FORUM));
 	}
 }
