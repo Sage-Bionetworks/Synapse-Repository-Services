@@ -4,7 +4,6 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Date;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
@@ -12,7 +11,6 @@ import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
-import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 
 public class DBOSubscription implements MigratableDatabaseObject<DBOSubscription, DBOSubscription>{
 
@@ -29,7 +27,7 @@ public class DBOSubscription implements MigratableDatabaseObject<DBOSubscription
 	private Long subscriberId;
 	private Long objectId;
 	private String objectType;
-	private Date createdOn;
+	private Long createdOn;
 
 	@Override
 	public String toString() {
@@ -120,11 +118,11 @@ public class DBOSubscription implements MigratableDatabaseObject<DBOSubscription
 		this.objectType = objectType;
 	}
 
-	public Date getCreatedOn() {
+	public Long getCreatedOn() {
 		return createdOn;
 	}
 
-	public void setCreatedOn(Date createdOn) {
+	public void setCreatedOn(Long createdOn) {
 		this.createdOn = createdOn;
 	}
 
@@ -139,7 +137,7 @@ public class DBOSubscription implements MigratableDatabaseObject<DBOSubscription
 				dbo.setSubscriberId(rs.getLong(COL_SUBSCRIPTION_SUBSCRIBER_ID));
 				dbo.setObjectId(rs.getLong(COL_SUBSCRIPTION_OBJECT_ID));
 				dbo.setObjectType(rs.getString(COL_SUBSCRIPTION_OBJECT_TYPE));
-				dbo.setCreatedOn(new Date(rs.getLong(COL_SUBSCRIPTION_SUBSCRIBER_ID)));
+				dbo.setCreatedOn(rs.getLong(COL_SUBSCRIPTION_SUBSCRIBER_ID));
 				return dbo;
 			}
 

@@ -41,6 +41,6 @@ public class SubscriptionUtilsTest {
 		assertEquals(subscriberId, dbo.getSubscriberId().toString());
 		assertEquals(objectId, dbo.getObjectId().toString());
 		assertEquals(objectType.name(), dbo.getObjectType());
-		assertEquals(createdOn, dbo.getCreatedOn());
+		assertEquals((Long) createdOn.getTime(), dbo.getCreatedOn());
 	}
 }
