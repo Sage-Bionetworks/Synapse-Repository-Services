@@ -83,6 +83,7 @@ import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.discussion.DiscussionReplyDAO;
 import org.sagebionetworks.repo.model.dao.discussion.DiscussionThreadDAO;
 import org.sagebionetworks.repo.model.dao.discussion.ForumDAO;
+import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
@@ -115,6 +116,7 @@ import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.quiz.PassingRecord;
 import org.sagebionetworks.repo.model.quiz.QuizResponse;
+import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.RawRowSet;
@@ -242,6 +244,8 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 	@Autowired
 	private DiscussionReplyDAO replyDao;
 	@Autowired
+	private SubscriptionDAO subscriptionDao;
+	@Autowired
 	private IdGenerator idGenerator;
 	
 	@Autowired
@@ -329,6 +333,7 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		createThreadView();
 		createReply();
 		createMultipartUpload();
+		createSubscription();
 	}
 	
 	private void createMultipartUpload(){
@@ -364,6 +369,10 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 	private void createReply() {
 		String replyId = idGenerator.generateNewId(TYPE.DISCUSSION_REPLY_ID).toString();
 		replyDao.createReply(threadId, replyId, "messageKey", adminUserId);
+	}
+
+	private void createSubscription() {
+		subscriptionDao.create(adminUserIdString, threadId, SubscriptionObjectType.DISCUSSION_THREAD);
 	}
 
 	private void createVerificationSubmission() {

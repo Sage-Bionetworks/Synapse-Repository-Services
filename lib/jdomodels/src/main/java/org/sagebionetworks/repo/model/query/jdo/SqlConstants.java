@@ -768,6 +768,15 @@ public class SqlConstants {
 	public static final String COL_DISCUSSION_REPLY_IS_DELETED = "IS_DELETED";
 	public static final String DDL_DISCUSSION_REPLY = "schema/DiscussionReply-ddl.sql";
 
+	// Subscription table
+	public static final String TABLE_SUBSCRIPTION = "SUBSCRIPTION";
+	public static final String COL_SUBSCRIPTION_ID = "ID";
+	public static final String COL_SUBSCRIPTION_SUBSCRIBER_ID = "SUBSCRIBER_ID";
+	public static final String COL_SUBSCRIPTION_OBJECT_ID = "OBJECT_ID";
+	public static final String COL_SUBSCRIPTION_OBJECT_TYPE = "OBJECT_TYPE";
+	public static final String COL_SUBSCRIPTION_CREATED_ON = "CREATED_ON";
+	public static final String DDL_SUBSCRIPTION = "schema/Subscription-ddl.sql";
+
 	// This seems to be the name of the id column for all tables.
 	public static final String COLUMN_ID		= "id";
 	

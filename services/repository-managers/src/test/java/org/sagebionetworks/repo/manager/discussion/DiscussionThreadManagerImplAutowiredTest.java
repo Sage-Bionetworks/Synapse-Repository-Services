@@ -95,7 +95,6 @@ public class DiscussionThreadManagerImplAutowiredTest {
 		URL url = new URL(messageUrl.getMessageUrl());
 		HttpURLConnection con = (HttpURLConnection) url.openConnection();
 		con.setRequestMethod("GET");
-		con.setRequestProperty("Content-Type", "text/plain; charset=utf-8");
 		assertEquals(con.getResponseCode(), 200);
 		BufferedReader in = new BufferedReader(new InputStreamReader(
 				new GZIPInputStream(con.getInputStream())));

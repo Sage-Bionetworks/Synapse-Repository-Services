@@ -323,6 +323,11 @@
 	<bean id="discussionReplyDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.discussion.DBODiscussionReplyDAOImpl" />
 
+	<!--  DAO for Subscription -->
+	<bean id="subscriptionDao"
+		class="org.sagebionetworks.repo.model.dbo.dao.subscription.DBOSubscriptionDAOImpl" />
+	
+
 	<!-- Misc beans -->
 	<bean id="countingSemaphore"
 		class="org.sagebionetworks.database.semaphore.CountingSemaphoreImpl">
