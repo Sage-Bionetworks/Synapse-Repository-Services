@@ -1,14 +1,17 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.sagebionetworks.repo.manager.AuthorizationManagerImpl.*;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -44,10 +47,8 @@ import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VerificationDAO;
-import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.discussion.DiscussionThreadDAO;
-import org.sagebionetworks.repo.model.dao.discussion.ForumDAO;
 import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.Forum;
@@ -88,7 +89,6 @@ public class AuthorizationManagerImplUnitTest {
 	private Evaluation evaluation;
 	private NodeDAO mockNodeDao;
 	private DiscussionThreadDAO mockThreadDao;
-	private ForumDAO mockForumDao;
 	private String threadId;
 	private String forumId;
 	private String projectId;
@@ -111,7 +111,6 @@ public class AuthorizationManagerImplUnitTest {
 		mockFileHandleAssociationManager = Mockito.mock(FileHandleAssociationManager.class);
 		mockVerificationDao = Mockito.mock(VerificationDAO.class);
 		mockThreadDao = Mockito.mock(DiscussionThreadDAO.class);
-		mockForumDao = Mockito.mock(ForumDAO.class);
 
 		authorizationManager = new AuthorizationManagerImpl();
 		ReflectionTestUtils.setField(authorizationManager, "accessRequirementDAO", mockAccessRequirementDAO);
@@ -127,7 +126,6 @@ public class AuthorizationManagerImplUnitTest {
 		ReflectionTestUtils.setField(authorizationManager, "fileHandleAssociationSwitch", mockFileHandleAssociationManager);
 		ReflectionTestUtils.setField(authorizationManager, "verificationDao", mockVerificationDao);
 		ReflectionTestUtils.setField(authorizationManager, "threadDao", mockThreadDao);
-		ReflectionTestUtils.setField(authorizationManager, "forumDao", mockForumDao);
 
 		userInfo = new UserInfo(false, USER_PRINCIPAL_ID);
 		adminUser = new UserInfo(true, 456L);
@@ -159,7 +157,6 @@ public class AuthorizationManagerImplUnitTest {
 		forum.setId(forumId);
 		forum.setProjectId(projectId);
 		when(mockThreadDao.getThread(Mockito.anyLong(), Mockito.any(DiscussionFilter.class))).thenReturn(bundle);
-		when(mockForumDao.getForum(1L)).thenReturn(forum);
 	}
 
 	private PaginatedResults<Reference> generateQueryResults(int numResults, int total) {
