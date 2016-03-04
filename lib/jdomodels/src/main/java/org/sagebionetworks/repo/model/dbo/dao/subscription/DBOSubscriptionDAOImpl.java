@@ -59,7 +59,7 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 	public static final char QUOTE = '"';
 	private static final char LEFT_PAREN = '(';
 	private static final char RIGHT_PAREN = ')';
-	private static final String COMMA_SPACE = ", ";
+	private static final String TOPIC_FORMAT = "(%1$s, \"%2$s\")";
 
 	private static final RowMapper<Subscription> ROW_MAPPER = new RowMapper<Subscription>(){
 
@@ -146,7 +146,7 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 			results.setResults(new ArrayList<Subscription>(0));
 			results.setTotalNumberOfResults(0L);
 		} else {
-			String query = SQL_GET_ALL + buildCondition(listOfTopic);
+			String query = SQL_GET_ALL + buildTopicCondition(listOfTopic);
 			List<Subscription> subscriptions = jdbcTemplate.query(query, ROW_MAPPER, subscriberId);
 			results.setResults(subscriptions);
 			results.setTotalNumberOfResults((long) subscriptions.size());
@@ -154,13 +154,13 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 		return results;
 	}
 
-	public static String buildCondition(List<Topic> listOfTopic) {
+	public static String buildTopicCondition(List<Topic> listOfTopic) {
 		String condition = TOPIC_CONDITION + LEFT_PAREN;
-		condition += LEFT_PAREN+listOfTopic.get(0).getObjectId()+COMMA_SPACE+QUOTE+listOfTopic.get(0).getObjectType()+QUOTE+RIGHT_PAREN;
+		condition += String.format(TOPIC_FORMAT, listOfTopic.get(0).getObjectId(), listOfTopic.get(0).getObjectType());
 		for (int i = 1; i < listOfTopic.size(); i++) {
-			condition += COMMA_SPACE+LEFT_PAREN+listOfTopic.get(i).getObjectId()+COMMA_SPACE+QUOTE+listOfTopic.get(i).getObjectType()+QUOTE+RIGHT_PAREN;
+			condition += ", "+String.format(TOPIC_FORMAT, listOfTopic.get(i).getObjectId(), listOfTopic.get(i).getObjectType());
 		}
-		return condition + ")";
+		return condition + RIGHT_PAREN;
 	}
 
 	@WriteTransactionReadCommitted

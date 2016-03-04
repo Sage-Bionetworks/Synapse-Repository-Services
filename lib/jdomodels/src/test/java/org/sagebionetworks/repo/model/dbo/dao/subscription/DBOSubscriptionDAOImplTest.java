@@ -1,7 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.dao.subscription;
 
-import static org.sagebionetworks.repo.model.dbo.dao.subscription.DBOSubscriptionDAOImpl.*;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -216,7 +216,7 @@ public class DBOSubscriptionDAOImplTest {
 		topic.setObjectId("123");
 		topic.setObjectType(SubscriptionObjectType.FORUM);
 		assertEquals(" AND (OBJECT_ID, OBJECT_TYPE) IN ((123, \"FORUM\"))",
-				DBOSubscriptionDAOImpl.buildCondition(Arrays.asList(topic)));
+				DBOSubscriptionDAOImpl.buildTopicCondition(Arrays.asList(topic)));
 	}
 
 	@Test
@@ -228,6 +228,6 @@ public class DBOSubscriptionDAOImplTest {
 		topic2.setObjectId("456");
 		topic2.setObjectType(SubscriptionObjectType.DISCUSSION_THREAD);
 		assertEquals(" AND (OBJECT_ID, OBJECT_TYPE) IN ((123, \"FORUM\"), (456, \"DISCUSSION_THREAD\"))",
-				DBOSubscriptionDAOImpl.buildCondition(Arrays.asList(topic1, topic2)));
+				DBOSubscriptionDAOImpl.buildTopicCondition(Arrays.asList(topic1, topic2)));
 	}
 }
