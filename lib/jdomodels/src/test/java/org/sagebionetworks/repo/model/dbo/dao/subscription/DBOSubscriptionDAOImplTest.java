@@ -16,7 +16,6 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
 import org.sagebionetworks.repo.model.subscription.Subscription;
-import org.sagebionetworks.repo.model.subscription.SubscriptionObjectId;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.SubscriptionPagedResults;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -36,7 +35,7 @@ public class DBOSubscriptionDAOImplTest {
 	private IdGenerator idGenerator;
 
 	private String userId = null;
-	private SubscriptionObjectId objectId;
+	private String objectId;
 	private SubscriptionObjectType objectType;
 	private List<String> usersToDelete;
 	private List<String> subscriptionIdToDelete;
@@ -52,8 +51,7 @@ public class DBOSubscriptionDAOImplTest {
 		userId = userGroupDAO.create(user).toString();
 		usersToDelete.add(userId);
 
-		objectId = new SubscriptionObjectId();
-		objectId.setId("123");
+		objectId = "123";
 		objectType = SubscriptionObjectType.DISCUSSION_THREAD;
 	}
 
@@ -147,12 +145,12 @@ public class DBOSubscriptionDAOImplTest {
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testGetListWithNullSubscriberId() {
-		subscriptionDao.getSubscriptionList(null, SubscriptionObjectType.FORUM, new ArrayList<SubscriptionObjectId>(0));
+		subscriptionDao.getSubscriptionList(null, SubscriptionObjectType.FORUM, new ArrayList<Long>(0));
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testGetListWithNullObjectType() {
-		subscriptionDao.getSubscriptionList(userId, null, new ArrayList<SubscriptionObjectId>(0));
+		subscriptionDao.getSubscriptionList(userId, null, new ArrayList<Long>(0));
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -163,7 +161,7 @@ public class DBOSubscriptionDAOImplTest {
 	@Test
 	public void testGetListWithEmptyTopicList() {
 		Subscription dto = subscriptionDao.create(userId, objectId, objectType);
-		SubscriptionPagedResults results = subscriptionDao.getSubscriptionList(userId, SubscriptionObjectType.FORUM, new ArrayList<SubscriptionObjectId>(0));
+		SubscriptionPagedResults results = subscriptionDao.getSubscriptionList(userId, SubscriptionObjectType.FORUM, new ArrayList<Long>(0));
 		assertEquals((Long) 0L, results.getTotalNumberOfResults());
 		assertEquals(new ArrayList<Subscription>(0), results.getResults());
 		subscriptionIdToDelete.add(dto.getSubscriptionId());
@@ -172,14 +170,13 @@ public class DBOSubscriptionDAOImplTest {
 	@Test
 	public void testGetList() {
 		Subscription dto = subscriptionDao.create(userId, objectId, objectType);
-		ArrayList<SubscriptionObjectId> list = new ArrayList<SubscriptionObjectId>();
-		list.add(objectId);
+		ArrayList<Long> list = new ArrayList<Long>();
+		list.add(Long.parseLong(objectId));
 		SubscriptionPagedResults results = subscriptionDao.getSubscriptionList(userId, objectType, list);
 		assertEquals((Long) 1L, results.getTotalNumberOfResults());
 		assertEquals(dto, results.getResults().get(0));
 
-		SubscriptionObjectId id2 = new SubscriptionObjectId();
-		id2.setId("456");
+		Long id2 = 456L;
 		list.add(id2);
 		results = subscriptionDao.getSubscriptionList(userId, objectType, list);
 		assertEquals((Long) 1L, results.getTotalNumberOfResults());
@@ -215,14 +212,13 @@ public class DBOSubscriptionDAOImplTest {
 	@Test
 	public void testBuildConditionWithOneElement() {
 		assertEquals(" AND (OBJECT_ID) IN (123)",
-				DBOSubscriptionDAOImpl.buildTopicCondition(Arrays.asList(objectId)));
+				DBOSubscriptionDAOImpl.buildTopicCondition(Arrays.asList(Long.parseLong(objectId))));
 	}
 
 	@Test
 	public void testBuildConditionWithTwoElements() {
-		SubscriptionObjectId id2 = new SubscriptionObjectId();
-		id2.setId("456");
+		Long id2 = 456L;
 		assertEquals(" AND (OBJECT_ID) IN (123, 456)",
-				DBOSubscriptionDAOImpl.buildTopicCondition(Arrays.asList(objectId, id2)));
+				DBOSubscriptionDAOImpl.buildTopicCondition(Arrays.asList(Long.parseLong(objectId), id2)));
 	}
 }

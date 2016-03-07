@@ -6,13 +6,12 @@ import java.util.Date;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.sagebionetworks.repo.model.subscription.SubscriptionObjectId;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 
 public class SubscriptionUtilsTest {
 	private long subscriptionId;
 	private String subscriberId;
-	private SubscriptionObjectId objectId;
+	private String objectId;
 	private SubscriptionObjectType objectType;
 	private Date createdOn;
 
@@ -20,8 +19,7 @@ public class SubscriptionUtilsTest {
 	public void before() {
 		subscriptionId = 1L;
 		subscriberId = "2";
-		objectId = new SubscriptionObjectId();
-		objectId.setId("3");
+		objectId = "3";
 		objectType = SubscriptionObjectType.FORUM;
 		createdOn = new Date();
 	}
@@ -51,7 +49,7 @@ public class SubscriptionUtilsTest {
 		DBOSubscription dbo = SubscriptionUtils.createDBO(subscriptionId, subscriberId, objectId, objectType, createdOn);
 		assertEquals((Long) subscriptionId, dbo.getId());
 		assertEquals(subscriberId, dbo.getSubscriberId().toString());
-		assertEquals(objectId.getId(), dbo.getObjectId().toString());
+		assertEquals(objectId, dbo.getObjectId().toString());
 		assertEquals(objectType.name(), dbo.getObjectType());
 		assertEquals((Long) createdOn.getTime(), dbo.getCreatedOn());
 	}

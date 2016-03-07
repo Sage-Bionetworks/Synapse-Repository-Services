@@ -1,9 +1,0 @@
-{
-    "description": "JSON schema for SubscriptionObjectId",
-    "properties": {
-        "id": {
-            "type": "string",
-            "description": "The id of a subscribable object."
-        }
-    }
-}

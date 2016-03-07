@@ -2,9 +2,7 @@
 	"description": "The model object represents a topic of subscription.",
 	"properties": {
 		"objectId": {
-			"type": "object",
-			"name": "SubscriptionObjectId",
-			"$ref": "org.sagebionetworks.repo.model.subscription.SubscriptionObjectId",
+			"type": "string",
 			"description": "The ID of the object that could be subscribed"
 		},
 		"objectType": {

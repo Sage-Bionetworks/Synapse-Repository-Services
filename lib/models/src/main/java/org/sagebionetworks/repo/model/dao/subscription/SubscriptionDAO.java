@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.model.dao.subscription;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.subscription.Subscription;
-import org.sagebionetworks.repo.model.subscription.SubscriptionObjectId;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.SubscriptionPagedResults;
 
@@ -17,7 +16,7 @@ public interface SubscriptionDAO {
 	 * @param objectType
 	 * @return
 	 */
-	public Subscription create(String subscriberId, SubscriptionObjectId objectId, SubscriptionObjectType objectType);
+	public Subscription create(String subscriberId, String objectId, SubscriptionObjectType objectType);
 
 	/**
 	 * Get a subscription given its ID
@@ -57,7 +56,7 @@ public interface SubscriptionDAO {
 	 * @return
 	 */
 	public SubscriptionPagedResults getSubscriptionList(String string,
-			SubscriptionObjectType objectType, List<SubscriptionObjectId> objectIds);
+			SubscriptionObjectType objectType, List<Long> objectIds);
 
 	/**
 	 * Delete a subscription

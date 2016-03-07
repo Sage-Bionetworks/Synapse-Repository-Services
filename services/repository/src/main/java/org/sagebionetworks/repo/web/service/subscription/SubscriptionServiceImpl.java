@@ -6,7 +6,6 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.subscription.SubscriptionManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.subscription.Subscription;
-import org.sagebionetworks.repo.model.subscription.SubscriptionObjectId;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.SubscriptionPagedResults;
 import org.sagebionetworks.repo.model.subscription.Topic;
@@ -31,7 +30,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 	}
 
 	@Override
-	public SubscriptionPagedResults getList(Long userId, SubscriptionObjectType objectType, List<SubscriptionObjectId> objectIds) {
+	public SubscriptionPagedResults getList(Long userId, SubscriptionObjectType objectType, List<Long> objectIds) {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return subscriptionManager.getList(userInfo, objectType, objectIds);
 	}

@@ -15,7 +15,6 @@ import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.subscription.DBOSubscription;
 import org.sagebionetworks.repo.model.dbo.persistence.subscription.SubscriptionUtils;
 import org.sagebionetworks.repo.model.subscription.Subscription;
-import org.sagebionetworks.repo.model.subscription.SubscriptionObjectId;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.SubscriptionPagedResults;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
@@ -66,9 +65,7 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 			Subscription subscription = new Subscription();
 			subscription.setSubscriptionId(""+rs.getLong(COL_SUBSCRIPTION_ID));
 			subscription.setSubscriberId(""+rs.getLong(COL_SUBSCRIPTION_SUBSCRIBER_ID));
-			SubscriptionObjectId objectId = new SubscriptionObjectId();
-			objectId.setId(""+rs.getLong(COL_SUBSCRIPTION_OBJECT_ID));
-			subscription.setObjectId(objectId);
+			subscription.setObjectId(""+rs.getLong(COL_SUBSCRIPTION_OBJECT_ID));
 			subscription.setObjectType(SubscriptionObjectType.valueOf(rs.getString(COL_SUBSCRIPTION_OBJECT_TYPE)));
 			subscription.setCreatedOn(new Date(rs.getLong(COL_SUBSCRIPTION_SUBSCRIBER_ID)));
 			return subscription;
@@ -77,7 +74,7 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 
 	@WriteTransactionReadCommitted
 	@Override
-	public Subscription create(String subscriberId, SubscriptionObjectId objectId,
+	public Subscription create(String subscriberId, String objectId,
 			SubscriptionObjectType objectType) {
 		ValidateArgument.required(subscriberId, "subscriberId");
 		ValidateArgument.required(objectId, "objectId");
@@ -138,7 +135,7 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 
 	@Override
 	public SubscriptionPagedResults getSubscriptionList(String subscriberId,
-			SubscriptionObjectType objectType, List<SubscriptionObjectId> ids) {
+			SubscriptionObjectType objectType, List<Long> ids) {
 		ValidateArgument.required(subscriberId, "subscriberId");
 		ValidateArgument.required(objectType, "objectType");
 		ValidateArgument.required(ids, "ids");
@@ -155,11 +152,11 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 		return results;
 	}
 
-	public static String buildTopicCondition(List<SubscriptionObjectId> ids) {
+	public static String buildTopicCondition(List<Long> ids) {
 		String condition = TOPIC_CONDITION + LEFT_PAREN;
-		condition += ids.get(0).getId();
+		condition += ids.get(0);
 		for (int i = 1; i < ids.size(); i++) {
-			condition += ", " + ids.get(i).getId();
+			condition += ", " + ids.get(i);
 		}
 		return condition + RIGHT_PAREN;
 	}

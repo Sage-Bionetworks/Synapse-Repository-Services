@@ -8,7 +8,6 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
 import org.sagebionetworks.repo.model.subscription.Subscription;
-import org.sagebionetworks.repo.model.subscription.SubscriptionObjectId;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.SubscriptionPagedResults;
 import org.sagebionetworks.repo.model.subscription.Topic;
@@ -34,7 +33,7 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
 	}
 
 	@Override
-	public SubscriptionPagedResults getList(UserInfo userInfo, SubscriptionObjectType objectType, List<SubscriptionObjectId> objectIds) {
+	public SubscriptionPagedResults getList(UserInfo userInfo, SubscriptionObjectType objectType, List<Long> objectIds) {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(objectType, "objectType");
 		ValidateArgument.required(objectIds, "objectIds");

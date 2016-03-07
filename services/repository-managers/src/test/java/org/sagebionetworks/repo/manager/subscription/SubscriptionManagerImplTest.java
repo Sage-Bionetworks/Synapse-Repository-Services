@@ -17,7 +17,6 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
 import org.sagebionetworks.repo.model.subscription.Subscription;
-import org.sagebionetworks.repo.model.subscription.SubscriptionObjectId;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.SubscriptionPagedResults;
 import org.sagebionetworks.repo.model.subscription.Topic;
@@ -31,8 +30,7 @@ public class SubscriptionManagerImplTest {
 	private SubscriptionDAO mockDao;
 	private SubscriptionManagerImpl manager;
 	private Topic topic;
-	private String forumId;
-	private SubscriptionObjectId objectId;
+	private String objectId;
 	private UserInfo userInfo;
 	private Long userId;
 	private Long anotherUser;
@@ -46,9 +44,7 @@ public class SubscriptionManagerImplTest {
 		ReflectionTestUtils.setField(manager, "authorizationManager", mockAuthorizationManager);
 		ReflectionTestUtils.setField(manager, "subscriptionDao", mockDao);
 
-		forumId = "1";
-		objectId = new SubscriptionObjectId();
-		objectId.setId(forumId);
+		objectId = "1";
 		topic = new Topic();
 		topic.setObjectId(objectId);
 		topic.setObjectType(SubscriptionObjectType.FORUM);
@@ -110,12 +106,12 @@ public class SubscriptionManagerImplTest {
 
 	@Test (expected=IllegalArgumentException.class)
 	public void testGetListInvalidUserInfo() {
-		manager.getList(null, SubscriptionObjectType.FORUM, new ArrayList<SubscriptionObjectId>(0));
+		manager.getList(null, SubscriptionObjectType.FORUM, new ArrayList<Long>(0));
 	}
 
 	@Test (expected=IllegalArgumentException.class)
 	public void testGetListInvalidObjectType() {
-		manager.getList(userInfo, null, new ArrayList<SubscriptionObjectId>(0));
+		manager.getList(userInfo, null, new ArrayList<Long>(0));
 	}
 
 	@Test (expected=IllegalArgumentException.class)
@@ -125,8 +121,8 @@ public class SubscriptionManagerImplTest {
 
 	@Test
 	public void testGetList() {
-		List<SubscriptionObjectId> ids = new ArrayList<SubscriptionObjectId>(1);
-		ids.add(objectId);
+		List<Long> ids = new ArrayList<Long>(1);
+		ids.add(Long.parseLong(objectId));
 		SubscriptionPagedResults results = new SubscriptionPagedResults();
 		when(mockDao.getSubscriptionList(userId.toString(), SubscriptionObjectType.FORUM, ids)).thenReturn(results);
 		assertEquals(results, manager.getList(userInfo, SubscriptionObjectType.FORUM, ids));

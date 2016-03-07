@@ -11,7 +11,6 @@ import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.subscription.SubscriptionManager;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.subscription.SubscriptionObjectId;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.Topic;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -47,7 +46,7 @@ public class SubscriptionServiceImplTest {
 	@Test
 	public void testGetList() {
 		SubscriptionObjectType objectType = SubscriptionObjectType.FORUM;
-		ArrayList<SubscriptionObjectId> objectIds = new ArrayList<SubscriptionObjectId>(0);
+		ArrayList<Long> objectIds = new ArrayList<Long>(0);
 		service.getList(userId, objectType, objectIds);
 		verify(mockUserManager).getUserInfo(userId);
 		verify(mockSubscriptionManager).getList(any(UserInfo.class), eq(objectType), eq(objectIds));

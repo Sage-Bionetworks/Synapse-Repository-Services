@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.web.service.subscription;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.subscription.Subscription;
-import org.sagebionetworks.repo.model.subscription.SubscriptionObjectId;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.SubscriptionPagedResults;
 import org.sagebionetworks.repo.model.subscription.Topic;
@@ -39,7 +38,7 @@ public interface SubscriptionService {
 	 * @return
 	 */
 	public SubscriptionPagedResults getList(Long userId,
-			SubscriptionObjectType objectType, List<SubscriptionObjectId> objectIds);
+			SubscriptionObjectType objectType, List<Long> objectIds);
 
 	/**
 	 * unsubscribe to a topic
