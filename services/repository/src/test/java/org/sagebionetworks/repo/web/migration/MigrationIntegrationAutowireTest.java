@@ -116,7 +116,6 @@ import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.quiz.PassingRecord;
 import org.sagebionetworks.repo.model.quiz.QuizResponse;
-import org.sagebionetworks.repo.model.subscription.SubscriptionObjectId;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -373,9 +372,7 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 	}
 
 	private void createSubscription() {
-		SubscriptionObjectId objectId = new SubscriptionObjectId();
-		objectId.setId(threadId);
-		subscriptionDao.create(adminUserIdString, objectId, SubscriptionObjectType.DISCUSSION_THREAD);
+		subscriptionDao.create(adminUserIdString, threadId, SubscriptionObjectType.DISCUSSION_THREAD);
 	}
 
 	private void createVerificationSubmission() {
