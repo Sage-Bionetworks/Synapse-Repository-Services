@@ -38,7 +38,6 @@ import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.sagebionetworks.repo.model.provenance.Activity;
-import org.sagebionetworks.repo.model.subscription.SubscriptionObjectId;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -649,9 +648,7 @@ public class AuthorizationManagerImplTest {
 
 	@Test
 	public void testCanSubscribeAnonymous() {
-		SubscriptionObjectId objectId = new SubscriptionObjectId();
-		objectId.setId(forumId);
 		assertEquals(AuthorizationManagerUtil.accessDenied(ANONYMOUS_ACCESS_DENIED_REASON),
-				authorizationManager.canSubscribe(anonInfo, objectId, SubscriptionObjectType.FORUM));
+				authorizationManager.canSubscribe(anonInfo, forumId, SubscriptionObjectType.FORUM));
 	}
 }

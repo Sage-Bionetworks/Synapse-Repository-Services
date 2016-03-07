@@ -57,7 +57,6 @@ import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociationManager;
 import org.sagebionetworks.repo.model.provenance.Activity;
-import org.sagebionetworks.repo.model.subscription.SubscriptionObjectId;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -687,21 +686,17 @@ public class AuthorizationManagerImplUnitTest {
 
 	@Test
 	public void testCanSubscribeForumUnauthorized() {
-		SubscriptionObjectId objectId = new SubscriptionObjectId();
-		objectId.setId(forumId);
 		when(mockEntityPermissionsManager.hasAccess(projectId, ACCESS_TYPE.READ, userInfo)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		when(mockForumDao.getForum(Long.parseLong(forumId))).thenReturn(forum);
 		assertEquals(AuthorizationManagerUtil.ACCESS_DENIED,
-				authorizationManager.canSubscribe(userInfo, objectId, SubscriptionObjectType.FORUM));
+				authorizationManager.canSubscribe(userInfo, forumId, SubscriptionObjectType.FORUM));
 	}
 
 	@Test
 	public void testCanSubscribeForumAuthorized() {
-		SubscriptionObjectId objectId = new SubscriptionObjectId();
-		objectId.setId(forumId);
 		when(mockEntityPermissionsManager.hasAccess(projectId, ACCESS_TYPE.READ, userInfo)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		when(mockForumDao.getForum(Long.parseLong(forumId))).thenReturn(forum);
 		assertEquals(AuthorizationManagerUtil.AUTHORIZED,
-				authorizationManager.canSubscribe(userInfo, objectId, SubscriptionObjectType.FORUM));
+				authorizationManager.canSubscribe(userInfo, forumId, SubscriptionObjectType.FORUM));
 	}
 }
