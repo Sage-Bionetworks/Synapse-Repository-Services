@@ -4,15 +4,27 @@ import static org.junit.Assert.*;
 
 import java.util.Date;
 
+import org.junit.Before;
 import org.junit.Test;
+import org.sagebionetworks.repo.model.subscription.SubscriptionObjectId;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 
 public class SubscriptionUtilsTest {
-	private final long subscriptionId = 1L;
-	private final String subscriberId = "2";
-	private final String objectId = "3";
-	private final SubscriptionObjectType objectType = SubscriptionObjectType.FORUM;
-	private final Date createdOn = new Date();
+	private long subscriptionId;
+	private String subscriberId;
+	private SubscriptionObjectId objectId;
+	private SubscriptionObjectType objectType;
+	private Date createdOn;
+
+	@Before
+	public void before() {
+		subscriptionId = 1L;
+		subscriberId = "2";
+		objectId = new SubscriptionObjectId();
+		objectId.setId("3");
+		objectType = SubscriptionObjectType.FORUM;
+		createdOn = new Date();
+	}
 
 	@Test (expected=IllegalArgumentException.class)
 	public void testcreateDBOWithNullSubscriberId() {
@@ -39,7 +51,7 @@ public class SubscriptionUtilsTest {
 		DBOSubscription dbo = SubscriptionUtils.createDBO(subscriptionId, subscriberId, objectId, objectType, createdOn);
 		assertEquals((Long) subscriptionId, dbo.getId());
 		assertEquals(subscriberId, dbo.getSubscriberId().toString());
-		assertEquals(objectId, dbo.getObjectId().toString());
+		assertEquals(objectId.getId(), dbo.getObjectId().toString());
 		assertEquals(objectType.name(), dbo.getObjectType());
 		assertEquals((Long) createdOn.getTime(), dbo.getCreatedOn());
 	}

@@ -10,7 +10,9 @@
 			"description": "The ID of the user who created this subscription"
 		},
 		"objectId": {
-			"type": "string",
+			"type": "object",
+			"name": "SubscriptionObjectId",
+			"$ref": "org.sagebionetworks.repo.model.subscription.SubscriptionObjectId",
 			"description": "The ID of the object that being subscribed"
 		},
 		"objectType": {

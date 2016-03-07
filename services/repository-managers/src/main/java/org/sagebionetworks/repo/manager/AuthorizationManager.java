@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
+import org.sagebionetworks.repo.model.subscription.SubscriptionObjectId;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -213,7 +214,7 @@ public interface AuthorizationManager {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public AuthorizationStatus canSubscribe(UserInfo userInfo, String objectId,
+	public AuthorizationStatus canSubscribe(UserInfo userInfo, SubscriptionObjectId objectId,
 			SubscriptionObjectType objectType) throws DatastoreException,
 			NotFoundException;
 

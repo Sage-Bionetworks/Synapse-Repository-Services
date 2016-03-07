@@ -15,9 +15,9 @@ import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.subscription.DBOSubscription;
 import org.sagebionetworks.repo.model.dbo.persistence.subscription.SubscriptionUtils;
 import org.sagebionetworks.repo.model.subscription.Subscription;
+import org.sagebionetworks.repo.model.subscription.SubscriptionObjectId;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.SubscriptionPagedResults;
-import org.sagebionetworks.repo.model.subscription.Topic;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
@@ -47,8 +47,7 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 			+ "WHERE "+COL_SUBSCRIPTION_SUBSCRIBER_ID+" = ?";
 
 	public static final String OBJECT_TYPE_CONDITION = " AND "+COL_SUBSCRIPTION_OBJECT_TYPE+" = ";
-	private static final String TOPIC_CONDITION = " AND ("+COL_SUBSCRIPTION_OBJECT_ID
-			+", "+COL_SUBSCRIPTION_OBJECT_TYPE+") IN ";
+	private static final String TOPIC_CONDITION = " AND ("+COL_SUBSCRIPTION_OBJECT_ID+") IN ";
 
 	private static final String LIMIT = " limit ";
 	private static final String OFFSET = " offset ";
@@ -59,7 +58,6 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 	public static final char QUOTE = '"';
 	private static final char LEFT_PAREN = '(';
 	private static final char RIGHT_PAREN = ')';
-	private static final String TOPIC_FORMAT = "(%1$s, \"%2$s\")";
 
 	private static final RowMapper<Subscription> ROW_MAPPER = new RowMapper<Subscription>(){
 
@@ -68,7 +66,9 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 			Subscription subscription = new Subscription();
 			subscription.setSubscriptionId(""+rs.getLong(COL_SUBSCRIPTION_ID));
 			subscription.setSubscriberId(""+rs.getLong(COL_SUBSCRIPTION_SUBSCRIBER_ID));
-			subscription.setObjectId(""+rs.getLong(COL_SUBSCRIPTION_OBJECT_ID));
+			SubscriptionObjectId objectId = new SubscriptionObjectId();
+			objectId.setId(""+rs.getLong(COL_SUBSCRIPTION_OBJECT_ID));
+			subscription.setObjectId(objectId);
 			subscription.setObjectType(SubscriptionObjectType.valueOf(rs.getString(COL_SUBSCRIPTION_OBJECT_TYPE)));
 			subscription.setCreatedOn(new Date(rs.getLong(COL_SUBSCRIPTION_SUBSCRIBER_ID)));
 			return subscription;
@@ -77,7 +77,7 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 
 	@WriteTransactionReadCommitted
 	@Override
-	public Subscription create(String subscriberId, String objectId,
+	public Subscription create(String subscriberId, SubscriptionObjectId objectId,
 			SubscriptionObjectType objectType) {
 		ValidateArgument.required(subscriberId, "subscriberId");
 		ValidateArgument.required(objectId, "objectId");
@@ -138,15 +138,16 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 
 	@Override
 	public SubscriptionPagedResults getSubscriptionList(String subscriberId,
-			List<Topic> listOfTopic) {
+			SubscriptionObjectType objectType, List<SubscriptionObjectId> ids) {
 		ValidateArgument.required(subscriberId, "subscriberId");
-		ValidateArgument.required(listOfTopic, "listOfTopic");
+		ValidateArgument.required(objectType, "objectType");
+		ValidateArgument.required(ids, "ids");
 		SubscriptionPagedResults results = new SubscriptionPagedResults();
-		if (listOfTopic.isEmpty()) {
+		if (ids.isEmpty()) {
 			results.setResults(new ArrayList<Subscription>(0));
 			results.setTotalNumberOfResults(0L);
 		} else {
-			String query = SQL_GET_ALL + buildTopicCondition(listOfTopic);
+			String query = addCondition(SQL_GET_ALL, objectType) + " " + buildTopicCondition(ids);
 			List<Subscription> subscriptions = jdbcTemplate.query(query, ROW_MAPPER, subscriberId);
 			results.setResults(subscriptions);
 			results.setTotalNumberOfResults((long) subscriptions.size());
@@ -154,11 +155,11 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 		return results;
 	}
 
-	public static String buildTopicCondition(List<Topic> listOfTopic) {
+	public static String buildTopicCondition(List<SubscriptionObjectId> ids) {
 		String condition = TOPIC_CONDITION + LEFT_PAREN;
-		condition += String.format(TOPIC_FORMAT, listOfTopic.get(0).getObjectId(), listOfTopic.get(0).getObjectType());
-		for (int i = 1; i < listOfTopic.size(); i++) {
-			condition += ", "+String.format(TOPIC_FORMAT, listOfTopic.get(i).getObjectId(), listOfTopic.get(i).getObjectType());
+		condition += ids.get(0).getId();
+		for (int i = 1; i < ids.size(); i++) {
+			condition += ", " + ids.get(i).getId();
 		}
 		return condition + RIGHT_PAREN;
 	}

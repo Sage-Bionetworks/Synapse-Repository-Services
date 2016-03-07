@@ -43,6 +43,7 @@ import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociationManager;
 import org.sagebionetworks.repo.model.provenance.Activity;
+import org.sagebionetworks.repo.model.subscription.SubscriptionObjectId;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -433,17 +434,18 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	}
 
 	@Override
-	public AuthorizationStatus canSubscribe(UserInfo userInfo, String objectId,
+	public AuthorizationStatus canSubscribe(UserInfo userInfo, SubscriptionObjectId objectId,
 			SubscriptionObjectType objectType)
 			throws DatastoreException, NotFoundException {
 		if (isAnonymousUser(userInfo)) {
 			return AuthorizationManagerUtil.accessDenied(ANONYMOUS_ACCESS_DENIED_REASON);
 		}
+		String id = objectId.getId();
 		switch (objectType) {
 			case FORUM:
-				return canAccess(userInfo, objectId, ObjectType.ENTITY, ACCESS_TYPE.READ);
+				return canAccess(userInfo, id, ObjectType.ENTITY, ACCESS_TYPE.READ);
 			case DISCUSSION_THREAD:
-				DiscussionThreadBundle threadBundle = threadDao.getThread(Long.parseLong(objectId), DiscussionFilter.EXCLUDE_DELETED);
+				DiscussionThreadBundle threadBundle = threadDao.getThread(Long.parseLong(id), DiscussionFilter.EXCLUDE_DELETED);
 				return canAccess(userInfo, threadBundle.getForumId(), ObjectType.ENTITY, ACCESS_TYPE.READ);
 		}
 		return AuthorizationManagerUtil.accessDenied("The objectType is unsubscribable.");
