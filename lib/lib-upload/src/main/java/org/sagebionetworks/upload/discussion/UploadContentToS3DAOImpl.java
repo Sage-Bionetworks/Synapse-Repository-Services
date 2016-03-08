@@ -91,7 +91,7 @@ public class UploadContentToS3DAOImpl implements UploadContentToS3DAO {
 		GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(
 				bucketName, key).withMethod(HttpMethod.GET).withExpiration(
 				new Date(System.currentTimeMillis()
-				+ PRE_SIGNED_URL_EXPIRATION_MS));
+				+ PRE_SIGNED_URL_EXPIRATION_MS)).withContentType(TEXT_PLAIN_CHARSET_UTF_8);
 		url.setMessageUrl(s3Client.generatePresignedUrl(request).toString());
 		return url;
 	}
@@ -103,7 +103,7 @@ public class UploadContentToS3DAOImpl implements UploadContentToS3DAO {
 		GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(
 				bucketName, key).withMethod(HttpMethod.GET).withExpiration(
 				new Date(System.currentTimeMillis()
-				+ PRE_SIGNED_URL_EXPIRATION_MS));
+				+ PRE_SIGNED_URL_EXPIRATION_MS)).withContentType(TEXT_PLAIN_CHARSET_UTF_8);
 		url.setMessageUrl(s3Client.generatePresignedUrl(request).toString());
 		return url;
 	}

@@ -194,6 +194,10 @@ public class DiscussionController extends BaseController {
 	 * the URL to download the file which contains the thread message.
 	 * <br/>
 	 * Target users: anyone who has READ permission to the project.
+	 * <p>
+ 	 * The resulting URL will be signed with Content-Type ="text/plain; charset=utf-8";
+ 	 * therefore, this header must be included with the GET on the URL.
+ 	 * </p>
 	 * 
 	 * @param userId - the ID of the user who is making the request
 	 * @param threadId - DiscussionThreadBundle.messageKey
@@ -309,6 +313,10 @@ public class DiscussionController extends BaseController {
 	 * the URL to download the file which contains the reply message.
 	 * <br/>
 	 * Target users: anyone who has READ permission to the project.
+	 * <p>
+ 	 * The resulting URL will be signed with Content-Type ="text/plain; charset=utf-8";
+ 	 * therefore, this header must be included with the GET on the URL.
+ 	 * </p>
 	 * 
 	 * @param userId - the ID of the user who is making the request
 	 * @param messageKey - DiscussionReplyBundle.messageKey
