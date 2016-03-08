@@ -54,6 +54,9 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 	private static final String SQL_DELETE = "DELETE FROM "+TABLE_SUBSCRIPTION+" "
 			+ "WHERE "+COL_SUBSCRIPTION_ID+" = ?";
 
+	private static final String SQL_DELETE_ALL = "DELETE FROM "+TABLE_SUBSCRIPTION+" "
+			+ "WHERE "+COL_SUBSCRIPTION_SUBSCRIBER_ID+" = ?";
+
 	public static final char QUOTE = '"';
 	private static final char LEFT_PAREN = '(';
 	private static final char RIGHT_PAREN = ')';
@@ -165,6 +168,12 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 	@Override
 	public void delete(long subscriptionId) {
 		jdbcTemplate.update(SQL_DELETE, subscriptionId);
+	}
+
+	@WriteTransactionReadCommitted
+	@Override
+	public void deleteAll(Long userId) {
+		jdbcTemplate.update(SQL_DELETE_ALL, userId);
 	}
 
 }

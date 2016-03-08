@@ -64,4 +64,11 @@ public interface SubscriptionDAO {
 	 * @param subscriptionId
 	 */
 	public void delete(long subscriptionId);
+
+	/**
+	 * Delete all subscriptions this user has
+	 * 
+	 * @param userId
+	 */
+	public void deleteAll(Long userId);
 }

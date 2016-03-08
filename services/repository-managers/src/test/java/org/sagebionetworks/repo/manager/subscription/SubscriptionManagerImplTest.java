@@ -176,4 +176,15 @@ public class SubscriptionManagerImplTest {
 		manager.delete(userInfo, subscriptionId.toString());
 		verify(mockDao).delete(subscriptionId);
 	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testDeleteAllInvalidUserInfo() {
+		manager.deleteAll(null);
+	}
+
+	@Test
+	public void testDeleteAll() {
+		manager.deleteAll(userInfo);
+		verify(mockDao).deleteAll(userInfo.getId());
+	}
 }

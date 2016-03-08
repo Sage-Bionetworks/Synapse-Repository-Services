@@ -60,4 +60,10 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
 		}
 		subscriptionDao.delete(id);
 	}
+
+	@Override
+	public void deleteAll(UserInfo userInfo) {
+		ValidateArgument.required(userInfo, "userInfo");
+		subscriptionDao.deleteAll(userInfo.getId());
+	}
 }

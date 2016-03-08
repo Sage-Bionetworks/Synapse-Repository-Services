@@ -69,4 +69,11 @@ public class SubscriptionServiceImplTest {
 		verify(mockUserManager).getUserInfo(userId);
 		verify(mockSubscriptionManager).delete(any(UserInfo.class), eq(subscriptionId));
 	}
+
+	@Test
+	public void testDeleteAll() {
+		service.deleteAll(userId);
+		verify(mockUserManager).getUserInfo(userId);
+		verify(mockSubscriptionManager).deleteAll(any(UserInfo.class));
+	}
 }

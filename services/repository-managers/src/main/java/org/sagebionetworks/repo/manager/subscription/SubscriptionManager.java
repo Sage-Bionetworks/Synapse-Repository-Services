@@ -49,4 +49,11 @@ public interface SubscriptionManager {
 	 */
 	public void delete(UserInfo userInfo, String subscriptionId);
 
+	/**
+	 * Delete all subscriptions one has
+	 * 
+	 * @param userInfo
+	 */
+	public void deleteAll(UserInfo userInfo);
+
 }

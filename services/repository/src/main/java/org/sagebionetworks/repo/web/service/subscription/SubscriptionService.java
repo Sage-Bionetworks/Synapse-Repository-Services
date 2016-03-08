@@ -47,4 +47,11 @@ public interface SubscriptionService {
 	 * @param subscriptionId
 	 */
 	public void delete(Long userId, String subscriptionId);
+
+	/**
+	 * unsubscribe to all topic
+	 * 
+	 * @param userId
+	 */
+	public void deleteAll(Long userId);
 }
