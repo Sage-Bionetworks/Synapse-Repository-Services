@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.manager.subscription;
 
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
-import static org.sagebionetworks.repo.manager.AuthorizationManagerImpl.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -77,22 +76,6 @@ public class SubscriptionManagerImplTest {
 		manager.create(userInfo, topic);
 	}
 
-	@Test (expected=UnauthorizedException.class)
-	public void testCreateAnonymous(){
-		when(mockAuthorizationManager
-				.canSubscribe(userInfo, objectId, SubscriptionObjectType.FORUM))
-				.thenReturn(AuthorizationManagerUtil.accessDenied(ANONYMOUS_ACCESS_DENIED_REASON));
-		manager.create(userInfo, topic);
-	}
-
-	@Test (expected=UnauthorizedException.class)
-	public void testCreateAccessDenied(){
-		when(mockAuthorizationManager
-				.canSubscribe(userInfo, objectId, SubscriptionObjectType.FORUM))
-				.thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
-		manager.create(userInfo, topic);
-	}
-
 	@Test
 	public void testCreateAuthorized(){
 		when(mockAuthorizationManager
@@ -102,6 +85,7 @@ public class SubscriptionManagerImplTest {
 				.create(userId.toString(), objectId, SubscriptionObjectType.FORUM))
 				.thenReturn(sub);
 		assertEquals(sub, manager.create(userInfo, topic));
+		verify(mockAuthorizationManager).canSubscribe(userInfo, objectId, SubscriptionObjectType.FORUM);
 	}
 
 	@Test (expected=IllegalArgumentException.class)

@@ -157,6 +157,7 @@ public class AuthorizationManagerImplUnitTest {
 		projectId = "syn123";
 		bundle = new DiscussionThreadBundle();
 		bundle.setForumId(forumId);
+		bundle.setProjectId(projectId);
 		forum = new Forum();
 		forum.setId(forumId);
 		forum.setProjectId(projectId);
@@ -698,5 +699,21 @@ public class AuthorizationManagerImplUnitTest {
 		when(mockForumDao.getForum(Long.parseLong(forumId))).thenReturn(forum);
 		assertEquals(AuthorizationManagerUtil.AUTHORIZED,
 				authorizationManager.canSubscribe(userInfo, forumId, SubscriptionObjectType.FORUM));
+	}
+
+	@Test
+	public void testCanSubscribeThreadUnauthorized() {
+		when(mockEntityPermissionsManager.hasAccess(projectId, ACCESS_TYPE.READ, userInfo)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+		when(mockThreadDao.getThread(Long.parseLong(threadId), DiscussionFilter.NO_FILTER)).thenReturn(bundle);
+		assertEquals(AuthorizationManagerUtil.ACCESS_DENIED,
+				authorizationManager.canSubscribe(userInfo, threadId, SubscriptionObjectType.DISCUSSION_THREAD));
+	}
+
+	@Test
+	public void testCanSubscribeThreadAuthorized() {
+		when(mockEntityPermissionsManager.hasAccess(projectId, ACCESS_TYPE.READ, userInfo)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(mockThreadDao.getThread(Long.parseLong(threadId), DiscussionFilter.NO_FILTER)).thenReturn(bundle);
+		assertEquals(AuthorizationManagerUtil.AUTHORIZED,
+				authorizationManager.canSubscribe(userInfo, threadId, SubscriptionObjectType.DISCUSSION_THREAD));
 	}
 }
