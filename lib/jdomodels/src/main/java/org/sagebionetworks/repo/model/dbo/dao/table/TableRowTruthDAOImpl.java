@@ -189,12 +189,7 @@ public abstract class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		try {
 			s3Client.createBucket(s3Bucket);
 		} catch (AmazonS3Exception e) {
-			try {
-				Thread.sleep(1000L);
-				s3Client.createBucket(s3Bucket);
-			} catch (InterruptedException e1) {
-				e1.printStackTrace();
-			}
+			log.info("S3 error creating bucket: " + e.getStackTrace());
 		}
 	}
 
