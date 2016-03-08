@@ -23,6 +23,8 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 
@@ -37,29 +39,27 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 			+ "FROM "+TABLE_SUBSCRIPTION+" "
 			+ "WHERE "+COL_SUBSCRIPTION_ID+" = ?";
 
-	private static final String SQL_GET_ALL = "SELECT * "
+	private static final String SQL_GET_ALL = "SELECT SQL_CALC_FOUND_ROWS * "
 			+ "FROM "+TABLE_SUBSCRIPTION+" "
-			+ "WHERE "+COL_SUBSCRIPTION_SUBSCRIBER_ID+" = ?";
+			+ "WHERE "+COL_SUBSCRIPTION_SUBSCRIBER_ID+" = ? ";
 
-	private static final String SQL_COUNT = "SELECT COUNT(*) "
+	private static final String OBJECT_TYPE_CONDITION = "AND "+COL_SUBSCRIPTION_OBJECT_TYPE+" = ? ";
+
+	private static final String LIMIT_OFFSET = "LIMIT ? OFFSET ?";
+
+	private static final String SQL_FOUND_ROWS = "SELECT FOUND_ROWS()";
+
+	private static final String SQL_GET_LIST = "SELECT * "
 			+ "FROM "+TABLE_SUBSCRIPTION+" "
-			+ "WHERE "+COL_SUBSCRIPTION_SUBSCRIBER_ID+" = ?";
-
-	public static final String OBJECT_TYPE_CONDITION = " AND "+COL_SUBSCRIPTION_OBJECT_TYPE+" = ";
-	private static final String TOPIC_CONDITION = " AND ("+COL_SUBSCRIPTION_OBJECT_ID+") IN ";
-
-	private static final String LIMIT = " limit ";
-	private static final String OFFSET = " offset ";
+			+ "WHERE "+COL_SUBSCRIPTION_SUBSCRIBER_ID+" = :subscriberId "
+			+ "AND "+COL_SUBSCRIPTION_OBJECT_TYPE+" = :objectType "
+			+ "AND "+COL_SUBSCRIPTION_OBJECT_ID+" IN ( :ids )";
 
 	private static final String SQL_DELETE = "DELETE FROM "+TABLE_SUBSCRIPTION+" "
 			+ "WHERE "+COL_SUBSCRIPTION_ID+" = ?";
 
 	private static final String SQL_DELETE_ALL = "DELETE FROM "+TABLE_SUBSCRIPTION+" "
 			+ "WHERE "+COL_SUBSCRIPTION_SUBSCRIBER_ID+" = ?";
-
-	public static final char QUOTE = '"';
-	private static final char LEFT_PAREN = '(';
-	private static final char RIGHT_PAREN = ')';
 
 	private static final RowMapper<Subscription> ROW_MAPPER = new RowMapper<Subscription>(){
 
@@ -104,36 +104,14 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 		ValidateArgument.required(limit, "limit");
 		ValidateArgument.required(offset, "offset");
 		SubscriptionPagedResults results = new SubscriptionPagedResults();
-		long count = getSubscriptionCount(subscriberId, objectType);
-		results.setTotalNumberOfResults(count);
-		if (count > 0) {
-			String query = buildGetQuery(limit, offset, objectType);
-			results.setResults(jdbcTemplate.query(query, ROW_MAPPER, subscriberId));
+		if (objectType == null) {
+			results.setResults(jdbcTemplate.query(SQL_GET_ALL+LIMIT_OFFSET, ROW_MAPPER, subscriberId, limit, offset));
 		} else {
-			results.setResults(new ArrayList<Subscription>(0));
+			results.setResults(jdbcTemplate.query(SQL_GET_ALL+OBJECT_TYPE_CONDITION+LIMIT_OFFSET,
+					ROW_MAPPER, subscriberId, objectType.name(), limit, offset));
 		}
+		results.setTotalNumberOfResults(jdbcTemplate.queryForLong(SQL_FOUND_ROWS));
 		return results;
-	}
-
-	public static String buildGetQuery(Long limit, Long offset, SubscriptionObjectType objectType) {
-		String query = SQL_GET_ALL;
-		query = addCondition(query, objectType);
-		query += LIMIT + limit + OFFSET + offset;
-		return query;
-	}
-
-	public static String addCondition(String query, SubscriptionObjectType objectType) {
-		if (objectType != null) {
-			query += OBJECT_TYPE_CONDITION + QUOTE + objectType.name() + QUOTE;
-		}
-		return query;
-	}
-
-	@Override
-	public long getSubscriptionCount(String subscriberId,
-			SubscriptionObjectType objectType) {
-		String query = addCondition(SQL_COUNT, objectType);
-		return jdbcTemplate.queryForLong(query, subscriberId);
 	}
 
 	@Override
@@ -147,21 +125,15 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 			results.setResults(new ArrayList<Subscription>(0));
 			results.setTotalNumberOfResults(0L);
 		} else {
-			String query = addCondition(SQL_GET_ALL, objectType) + " " + buildTopicCondition(ids);
-			List<Subscription> subscriptions = jdbcTemplate.query(query, ROW_MAPPER, subscriberId);
+			MapSqlParameterSource parameters = new MapSqlParameterSource("ids", ids);
+			parameters.addValue("subscriberId", subscriberId);
+			parameters.addValue("objectType", objectType.name());
+			NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
+			List<Subscription> subscriptions = namedTemplate.query(SQL_GET_LIST, parameters, ROW_MAPPER);
 			results.setResults(subscriptions);
 			results.setTotalNumberOfResults((long) subscriptions.size());
 		}
 		return results;
-	}
-
-	public static String buildTopicCondition(List<Long> ids) {
-		String condition = TOPIC_CONDITION + LEFT_PAREN;
-		condition += ids.get(0);
-		for (int i = 1; i < ids.size(); i++) {
-			condition += ", " + ids.get(i);
-		}
-		return condition + RIGHT_PAREN;
 	}
 
 	@WriteTransactionReadCommitted

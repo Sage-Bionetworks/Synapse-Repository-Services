@@ -39,15 +39,6 @@ public interface SubscriptionDAO {
 			Long offset, SubscriptionObjectType objectType);
 
 	/**
-	 * Get the number of subscription for a given subscriber.
-	 * 
-	 * @param subscriberId
-	 * @param objectType - optional
-	 * @return
-	 */
-	public long getSubscriptionCount(String subscriberId, SubscriptionObjectType objectType);
-
-	/**
 	 * Get subscriptions for a subscriber limited by a given list of topic.
 	 * 
 	 * @param subscriberId

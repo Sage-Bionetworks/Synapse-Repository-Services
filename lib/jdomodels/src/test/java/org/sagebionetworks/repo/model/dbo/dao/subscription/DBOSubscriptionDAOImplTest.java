@@ -4,7 +4,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import org.junit.After;
@@ -190,35 +189,5 @@ public class DBOSubscriptionDAOImplTest {
 		long id = Long.parseLong(dto.getSubscriptionId());
 		subscriptionDao.delete(id);
 		subscriptionDao.get(id);
-	}
-
-	@Test
-	public void testAddConditionWithNullObjectType() {
-		assertEquals("query", DBOSubscriptionDAOImpl.addCondition("query", null));
-	}
-
-	@Test
-	public void testAddCondition() {
-		assertEquals("query AND OBJECT_TYPE = \"FORUM\"",
-				DBOSubscriptionDAOImpl.addCondition("query", SubscriptionObjectType.FORUM));
-	}
-
-	@Test
-	public void testBuildGetQuery() {
-		assertEquals("SELECT * FROM SUBSCRIPTION WHERE SUBSCRIBER_ID = ? AND OBJECT_TYPE = \"FORUM\" limit 10 offset 0",
-				DBOSubscriptionDAOImpl.buildGetQuery(10L, 0L, SubscriptionObjectType.FORUM));
-	}
-
-	@Test
-	public void testBuildConditionWithOneElement() {
-		assertEquals(" AND (OBJECT_ID) IN (123)",
-				DBOSubscriptionDAOImpl.buildTopicCondition(Arrays.asList(Long.parseLong(objectId))));
-	}
-
-	@Test
-	public void testBuildConditionWithTwoElements() {
-		Long id2 = 456L;
-		assertEquals(" AND (OBJECT_ID) IN (123, 456)",
-				DBOSubscriptionDAOImpl.buildTopicCondition(Arrays.asList(Long.parseLong(objectId), id2)));
 	}
 }
