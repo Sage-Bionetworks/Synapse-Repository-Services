@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.discussion;
 
+import static org.sagebionetworks.repo.manager.AuthorizationManagerImpl.*;
 import java.io.IOException;
 
 import org.sagebionetworks.ids.IdGenerator;
@@ -26,7 +27,6 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
-	public static final String ANONYMOUS_ACCESS_DENIED_REASON = "Anonymous cannot perform this action. Please login and try again.";
 	private static final DiscussionFilter DEFAULT_FILTER = DiscussionFilter.NO_FILTER;
 	@Autowired
 	private DiscussionThreadManager threadManager;

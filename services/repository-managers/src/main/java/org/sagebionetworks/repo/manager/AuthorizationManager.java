@@ -14,7 +14,7 @@ import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
-import org.sagebionetworks.repo.model.file.FileHandleAssociation;
+import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface AuthorizationManager {
@@ -201,4 +201,20 @@ public interface AuthorizationManager {
 	 */
 	public Set<Long> getAccessibleBenefactors(UserInfo userInfo,
 			Set<Long> originalBenefactors);
+
+	/**
+	 * Check user access to an subscribable object
+	 * 
+	 * @param userInfo
+	 * @param objectId
+	 * @param objectType
+	 * @param accessType
+	 * @return whether access is granted and, if not, a String giving the reason why
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	public AuthorizationStatus canSubscribe(UserInfo userInfo, String objectId,
+			SubscriptionObjectType objectType) throws DatastoreException,
+			NotFoundException;
+
 }

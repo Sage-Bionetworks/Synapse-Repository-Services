@@ -336,6 +336,11 @@
 		class="org.sagebionetworks.repo.manager.discussion.DiscussionReplyManagerImpl"
 		scope ="singleton" />
 
+	<!-- The Subscription managers -->
+	<bean id="subscriptionManager"
+		class="org.sagebionetworks.repo.manager.subscription.SubscriptionManagerImpl"
+		scope ="singleton" />
+
 	<!-- The thread pool used by the backup/restore daemons -->
 	<bean id="backupDaemonThreadPool"
 		class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">

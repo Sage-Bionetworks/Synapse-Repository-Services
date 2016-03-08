@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.manager;
 
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -38,11 +37,13 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VerificationDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.discussion.DiscussionThreadDAO;
-import org.sagebionetworks.repo.model.dao.discussion.ForumDAO;
+import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
+import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociationManager;
 import org.sagebionetworks.repo.model.provenance.Activity;
+import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -55,6 +56,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 			StackConfiguration.getTrashFolderEntityIdStatic());
 
 	private static final String FILE_HANDLE_UNAUTHORIZED_TEMPLATE = "Only the creator of a FileHandle can assign it to an Entity.  FileHandleId = '%1$s', UserId = '%2$s'";
+	public static final String ANONYMOUS_ACCESS_DENIED_REASON = "Anonymous cannot perform this action. Please login and try again.";
 
 	@Autowired
 	private NodeDAO nodeDao;
@@ -80,8 +82,6 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	private AccessControlListDAO aclDAO;
 	@Autowired
 	private VerificationDAO verificationDao;
-	@Autowired
-	private ForumDAO forumDao;
 	@Autowired
 	private DiscussionThreadDAO threadDao;
 	@Autowired
@@ -431,5 +431,21 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		results.remove(TRASH_FOLDER_ID);
 		return results;
 	}
-	
+
+	@Override
+	public AuthorizationStatus canSubscribe(UserInfo userInfo, String objectId,
+			SubscriptionObjectType objectType)
+			throws DatastoreException, NotFoundException {
+		if (isAnonymousUser(userInfo)) {
+			return AuthorizationManagerUtil.accessDenied(ANONYMOUS_ACCESS_DENIED_REASON);
+		}
+		switch (objectType) {
+			case FORUM:
+				return canAccess(userInfo, objectId, ObjectType.ENTITY, ACCESS_TYPE.READ);
+			case DISCUSSION_THREAD:
+				DiscussionThreadBundle threadBundle = threadDao.getThread(Long.parseLong(objectId), DiscussionFilter.EXCLUDE_DELETED);
+				return canAccess(userInfo, threadBundle.getForumId(), ObjectType.ENTITY, ACCESS_TYPE.READ);
+		}
+		return AuthorizationManagerUtil.accessDenied("The objectType is unsubscribable.");
+	}
 }

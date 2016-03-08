@@ -1,0 +1,28 @@
+{
+	"description": "The model object represents a single Subscription.",
+	"properties": {
+		"subscriptionId": {
+			"type": "string",
+			"description": "The ID of this subscription"
+		},
+		"subscriberId": {
+			"type": "string",
+			"description": "The ID of the user who created this subscription"
+		},
+		"objectId": {
+			"type": "string",
+			"description": "The ID of the object that being subscribed"
+		},
+		"objectType": {
+			"type": "object",
+			"name": "SubscriptionObjectType",
+			"$ref": "org.sagebionetworks.repo.model.subscription.SubscriptionObjectType",
+			"description": "The type of the object that being subscribed"
+		},
+		"createdOn": {
+			"type": "string",
+			"format":"date-time",
+			"description":"The timestamp when this subscription was created"
+		}
+	}
+}

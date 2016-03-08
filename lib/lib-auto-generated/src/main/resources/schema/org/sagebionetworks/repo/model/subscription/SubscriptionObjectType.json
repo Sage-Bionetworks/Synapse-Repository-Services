@@ -1,0 +1,9 @@
+{
+    "description":"The types of object that can be subscribed.",
+    "name": "SubscriptionObjectType",
+    "type":"string",
+    "enum":[
+        "FORUM",
+        "DISCUSSION_THREAD"
+    ]
+}
