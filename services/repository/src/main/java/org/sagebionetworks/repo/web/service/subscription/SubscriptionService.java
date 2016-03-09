@@ -1,10 +1,9 @@
 package org.sagebionetworks.repo.web.service.subscription;
 
-import java.util.List;
-
 import org.sagebionetworks.repo.model.subscription.Subscription;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.SubscriptionPagedResults;
+import org.sagebionetworks.repo.model.subscription.SubscriptionRequest;
 import org.sagebionetworks.repo.model.subscription.Topic;
 
 public interface SubscriptionService {
@@ -33,12 +32,10 @@ public interface SubscriptionService {
 	 * retrieve subscriptions one has based on a list of provided topics
 	 * 
 	 * @param userId
-	 * @param objectType
-	 * @param objectIds
+	 * @param request
 	 * @return
 	 */
-	public SubscriptionPagedResults getList(Long userId,
-			SubscriptionObjectType objectType, List<Long> objectIds);
+	public SubscriptionPagedResults getList(Long userId, SubscriptionRequest request);
 
 	/**
 	 * unsubscribe to a topic

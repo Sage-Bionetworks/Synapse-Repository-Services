@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.model.discussion.Forum;
 import org.sagebionetworks.repo.model.subscription.Subscription;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.SubscriptionPagedResults;
+import org.sagebionetworks.repo.model.subscription.SubscriptionRequest;
 import org.sagebionetworks.repo.model.subscription.Topic;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
@@ -72,8 +73,10 @@ public class ITSubscription {
 		assertEquals((Long) 1L, results.getTotalNumberOfResults());
 		assertEquals(sub, results.getResults().get(0));
 
-		results = synapse.listSubscriptions(SubscriptionObjectType.FORUM,
-				Arrays.asList(Long.parseLong(forumId)));
+		SubscriptionRequest request = new SubscriptionRequest();
+		request.setObjectType(SubscriptionObjectType.FORUM);
+		request.setIdList(Arrays.asList(Long.parseLong(forumId)));
+		results = synapse.listSubscriptions(request);
 		assertNotNull(results);
 		assertEquals((Long) 1L, results.getTotalNumberOfResults());
 		assertEquals(sub, results.getResults().get(0));

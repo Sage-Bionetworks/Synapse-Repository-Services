@@ -11,7 +11,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
@@ -19,6 +18,7 @@ import org.sagebionetworks.repo.model.discussion.Forum;
 import org.sagebionetworks.repo.model.subscription.Subscription;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.SubscriptionPagedResults;
+import org.sagebionetworks.repo.model.subscription.SubscriptionRequest;
 import org.sagebionetworks.repo.model.subscription.Topic;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -99,9 +99,10 @@ public class SubscriptionControllerAutowiredTest extends AbstractAutowiredContro
 	@Test
 	public void testGetList() throws Exception {
 		Subscription subscription = servletTestHelper.subscribe(dispatchServlet, adminUserId, toSubscribe);
-		IdList idList = new IdList();
-		idList.setList(Arrays.asList(Long.parseLong(toSubscribe.getObjectId())));
-		SubscriptionPagedResults results = servletTestHelper.getSubscriptionList(dispatchServlet, adminUserId, toSubscribe.getObjectType(), idList);
+		SubscriptionRequest request = new SubscriptionRequest();
+		request.setObjectType(toSubscribe.getObjectType());
+		request.setIdList(Arrays.asList(Long.parseLong(toSubscribe.getObjectId())));
+		SubscriptionPagedResults results = servletTestHelper.getSubscriptionList(dispatchServlet, adminUserId, request);
 		assertNotNull(results);
 		assertEquals((Long) 1L, results.getTotalNumberOfResults());
 		List<Subscription> subscriptions = results.getResults();

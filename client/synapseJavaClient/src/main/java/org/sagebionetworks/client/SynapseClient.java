@@ -142,6 +142,7 @@ import org.sagebionetworks.repo.model.storage.StorageUsageSummaryList;
 import org.sagebionetworks.repo.model.subscription.Subscription;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.SubscriptionPagedResults;
+import org.sagebionetworks.repo.model.subscription.SubscriptionRequest;
 import org.sagebionetworks.repo.model.subscription.Topic;
 import org.sagebionetworks.repo.model.table.AppendableRowSet;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -2638,12 +2639,11 @@ public interface SynapseClient extends BaseClient {
 	/**
 	 * List all subscriptions one has based on a list of topic
 	 * 
-	 * @param objectType
-	 * @param ids
+	 * @param request
 	 * @return
 	 * @throws SynapseException 
 	 */
-	SubscriptionPagedResults listSubscriptions(SubscriptionObjectType objectType, List<Long> ids) throws SynapseException;
+	SubscriptionPagedResults listSubscriptions(SubscriptionRequest request) throws SynapseException;
 
 	/**
 	 * Unsubscribe to a topic
