@@ -15,6 +15,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.subscription.SubscriptionManager;
 import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
@@ -43,6 +44,8 @@ public class DiscussionThreadManagerImplAutowiredTest {
 	public ForumManager forumManager;
 	@Autowired
 	public DiscussionThreadManager threadManager;
+	@Autowired
+	public SubscriptionManager subscriptionManager;
 
 	private UserInfo adminUserInfo;
 	private UserInfo userInfo;
@@ -83,6 +86,7 @@ public class DiscussionThreadManagerImplAutowiredTest {
 	@After
 	public void cleanup() {
 		nodeManager.delete(adminUserInfo, projectId);
+		subscriptionManager.deleteAll(userInfo);
 		userManager.deletePrincipal(adminUserInfo, userInfo.getId());
 	}
 
