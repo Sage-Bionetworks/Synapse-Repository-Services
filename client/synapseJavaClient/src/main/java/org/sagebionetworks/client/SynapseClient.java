@@ -139,6 +139,10 @@ import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.storage.StorageUsageDimension;
 import org.sagebionetworks.repo.model.storage.StorageUsageSummaryList;
+import org.sagebionetworks.repo.model.subscription.Subscription;
+import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
+import org.sagebionetworks.repo.model.subscription.SubscriptionPagedResults;
+import org.sagebionetworks.repo.model.subscription.Topic;
 import org.sagebionetworks.repo.model.table.AppendableRowSet;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
@@ -2611,4 +2615,48 @@ public interface SynapseClient extends BaseClient {
 	 */
 	S3FileHandle multipartUpload(File file, Long storageLocationId, Boolean generatePreview, Boolean forceRestart) throws SynapseException, FileNotFoundException, IOException;
 
+	/**
+	 * Subscribe to a topic
+	 * 
+	 * @param toSubscribe
+	 * @return
+	 * @throws SynapseException 
+	 */
+	Subscription subscribe(Topic toSubscribe) throws SynapseException;
+
+	/**
+	 * Retrieve all subscriptions one has
+	 * 
+	 * @param objectType
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws SynapseException 
+	 */
+	SubscriptionPagedResults getAllSubscriptions(SubscriptionObjectType objectType, Long limit, Long offset) throws SynapseException;
+
+	/**
+	 * List all subscriptions one has based on a list of topic
+	 * 
+	 * @param objectType
+	 * @param ids
+	 * @return
+	 * @throws SynapseException 
+	 */
+	SubscriptionPagedResults listSubscriptions(SubscriptionObjectType objectType, List<Long> ids) throws SynapseException;
+
+	/**
+	 * Unsubscribe to a topic
+	 * 
+	 * @param subscriptionId
+	 * @throws SynapseException 
+	 */
+	void unsubscribe(Long subscriptionId) throws SynapseException;
+
+	/**
+	 * Unsubscribe to all topics
+	 * @throws SynapseException 
+	 * 
+	 */
+	void unsubscribeAll() throws SynapseException;
 }

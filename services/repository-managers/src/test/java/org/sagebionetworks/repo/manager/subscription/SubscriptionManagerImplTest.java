@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.manager.subscription;
 
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
-import static org.sagebionetworks.repo.manager.AuthorizationManagerImpl.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -30,7 +29,7 @@ public class SubscriptionManagerImplTest {
 	private SubscriptionDAO mockDao;
 	private SubscriptionManagerImpl manager;
 	private Topic topic;
-	private String forumId;
+	private String objectId;
 	private UserInfo userInfo;
 	private Long userId;
 	private Long anotherUser;
@@ -44,9 +43,9 @@ public class SubscriptionManagerImplTest {
 		ReflectionTestUtils.setField(manager, "authorizationManager", mockAuthorizationManager);
 		ReflectionTestUtils.setField(manager, "subscriptionDao", mockDao);
 
-		forumId = "1";
+		objectId = "1";
 		topic = new Topic();
-		topic.setObjectId(forumId);
+		topic.setObjectId(objectId);
 		topic.setObjectType(SubscriptionObjectType.FORUM);
 		userId = 2L;
 		anotherUser = 4L;
@@ -77,50 +76,40 @@ public class SubscriptionManagerImplTest {
 		manager.create(userInfo, topic);
 	}
 
-	@Test (expected=UnauthorizedException.class)
-	public void testCreateAnonymous(){
-		when(mockAuthorizationManager
-				.canSubscribe(userInfo, forumId, SubscriptionObjectType.FORUM))
-				.thenReturn(AuthorizationManagerUtil.accessDenied(ANONYMOUS_ACCESS_DENIED_REASON));
-		manager.create(userInfo, topic);
-	}
-
-	@Test (expected=UnauthorizedException.class)
-	public void testCreateAccessDenied(){
-		when(mockAuthorizationManager
-				.canSubscribe(userInfo, forumId, SubscriptionObjectType.FORUM))
-				.thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
-		manager.create(userInfo, topic);
-	}
-
 	@Test
 	public void testCreateAuthorized(){
 		when(mockAuthorizationManager
-				.canSubscribe(userInfo, forumId, SubscriptionObjectType.FORUM))
+				.canSubscribe(userInfo, objectId, SubscriptionObjectType.FORUM))
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		when(mockDao
-				.create(userId.toString(), forumId, SubscriptionObjectType.FORUM))
+				.create(userId.toString(), objectId, SubscriptionObjectType.FORUM))
 				.thenReturn(sub);
 		assertEquals(sub, manager.create(userInfo, topic));
+		verify(mockAuthorizationManager).canSubscribe(userInfo, objectId, SubscriptionObjectType.FORUM);
 	}
 
 	@Test (expected=IllegalArgumentException.class)
 	public void testGetListInvalidUserInfo() {
-		manager.getList(null, new ArrayList<Topic>(0));
+		manager.getList(null, SubscriptionObjectType.FORUM, new ArrayList<Long>(0));
+	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetListInvalidObjectType() {
+		manager.getList(userInfo, null, new ArrayList<Long>(0));
 	}
 
 	@Test (expected=IllegalArgumentException.class)
 	public void testGetListInvalidTopics() {
-		manager.create(userInfo, null);
+		manager.getList(userInfo, SubscriptionObjectType.FORUM, null);
 	}
 
 	@Test
 	public void testGetList() {
-		List<Topic> listOfTopic = new ArrayList<Topic>(1);
-		listOfTopic.add(topic);
+		List<Long> ids = new ArrayList<Long>(1);
+		ids.add(Long.parseLong(objectId));
 		SubscriptionPagedResults results = new SubscriptionPagedResults();
-		when(mockDao.getSubscriptionList(userId.toString(), listOfTopic)).thenReturn(results);
-		assertEquals(results, manager.getList(userInfo, listOfTopic));
+		when(mockDao.getSubscriptionList(userId.toString(), SubscriptionObjectType.FORUM, ids)).thenReturn(results);
+		assertEquals(results, manager.getList(userInfo, SubscriptionObjectType.FORUM, ids));
 	}
 
 	@Test (expected=IllegalArgumentException.class)
@@ -170,5 +159,16 @@ public class SubscriptionManagerImplTest {
 		when(mockDao.get(subscriptionId)).thenReturn(sub);
 		manager.delete(userInfo, subscriptionId.toString());
 		verify(mockDao).delete(subscriptionId);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testDeleteAllInvalidUserInfo() {
+		manager.deleteAll(null);
+	}
+
+	@Test
+	public void testDeleteAll() {
+		manager.deleteAll(userInfo);
+		verify(mockDao).deleteAll(userInfo.getId());
 	}
 }

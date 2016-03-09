@@ -23,10 +23,12 @@ public interface SubscriptionManager {
 	 * Get subscriptions for a user based on a list of topics
 	 * 
 	 * @param userInfo
-	 * @param topics
+	 * @param objectType
+	 * @param objectIds
 	 * @return
 	 */
-	public SubscriptionPagedResults getList(UserInfo userInfo, List<Topic> topics);
+	public SubscriptionPagedResults getList(UserInfo userInfo,
+			SubscriptionObjectType objectType, List<Long> objectIds);
 
 	/**
 	 * Get all subscriptions for a user
@@ -46,4 +48,12 @@ public interface SubscriptionManager {
 	 * @param subscriptionId
 	 */
 	public void delete(UserInfo userInfo, String subscriptionId);
+
+	/**
+	 * Delete all subscriptions one has
+	 * 
+	 * @param userInfo
+	 */
+	public void deleteAll(UserInfo userInfo);
+
 }

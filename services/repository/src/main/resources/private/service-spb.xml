@@ -116,6 +116,9 @@
 	<!-- The Discussion Service -->
 	<bean id="discussionService" class="org.sagebionetworks.repo.web.service.discussion.DiscussionServiceImpl" />
 
+	<!-- The Subscription Service -->
+	<bean id="subscriptionService" class="org.sagebionetworks.repo.web.service.subscription.SubscriptionServiceImpl" />
+
 		
 		<!-- The Location helper -->
 	<bean id="locationHelper" class="org.sagebionetworks.repo.util.LocationHelpersImpl" />

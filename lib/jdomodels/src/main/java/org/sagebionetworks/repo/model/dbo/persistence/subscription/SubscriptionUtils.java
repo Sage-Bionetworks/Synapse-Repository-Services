@@ -7,7 +7,8 @@ import org.sagebionetworks.util.ValidateArgument;
 
 public class SubscriptionUtils {
 
-	public static DBOSubscription createDBO(long subscriptionId, String subscriberId, String objectId, SubscriptionObjectType objectType, Date createdOn) {
+	public static DBOSubscription createDBO(long subscriptionId, String subscriberId,
+			String objectId, SubscriptionObjectType objectType, Date createdOn) {
 		ValidateArgument.required(subscriberId, "subscriberId");
 		ValidateArgument.required(objectId, "objectId");
 		ValidateArgument.required(objectType, "objectType");

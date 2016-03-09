@@ -85,6 +85,10 @@ import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.storage.StorageUsage;
 import org.sagebionetworks.repo.model.storage.StorageUsageSummaryList;
+import org.sagebionetworks.repo.model.subscription.Subscription;
+import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
+import org.sagebionetworks.repo.model.subscription.SubscriptionPagedResults;
+import org.sagebionetworks.repo.model.subscription.Topic;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.RowReference;
@@ -2125,5 +2129,52 @@ public class ServletTestHelper {
 		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.OK);
 		return objectMapper.readValue(response.getContentAsString(), MessageURL.class);
+	}
+
+	public Subscription subscribe(DispatcherServlet dispatchServlet,
+			Long userId, Topic toSubscribe) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.POST, "/repo/v1", UrlHelpers.SUBSCRIPTION, userId, toSubscribe);
+		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
+				HttpStatus.CREATED);
+		return objectMapper.readValue(response.getContentAsString(), Subscription.class);
+	}
+
+	public SubscriptionPagedResults getAllSubscriptions(
+			DispatcherServlet dispatchServlet, Long userId, Long limit,
+			Long offset, SubscriptionObjectType objectType) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, "/repo/v1", UrlHelpers.SUBSCRIPTION_ALL, userId, null);
+		request.setParameter("limit", limit.toString());
+		request.setParameter("offset", offset.toString());
+		if (objectType != null) {
+			request.setParameter("objectType", objectType.name());
+		}
+		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
+				HttpStatus.OK);
+		return objectMapper.readValue(response.getContentAsString(), SubscriptionPagedResults.class);
+	}
+
+	public void unsubscribe(DispatcherServlet dispatchServlet, Long userId,
+			String subscriptionId) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.DELETE, "/repo/v1", UrlHelpers.SUBSCRIPTION+"/"+subscriptionId, userId, null);
+		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request, HttpStatus.NO_CONTENT);
+	}
+
+	public void unsubscribeAll(DispatcherServlet dispatchServlet, Long userId) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.DELETE, "/repo/v1", UrlHelpers.SUBSCRIPTION_ALL, userId, null);
+		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request, HttpStatus.NO_CONTENT);
+	}
+
+	public SubscriptionPagedResults getSubscriptionList(DispatcherServlet dispatchServlet,
+			Long userId, SubscriptionObjectType objectType, IdList ids) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.POST, "/repo/v1", UrlHelpers.SUBSCRIPTION_LIST, userId, ids);
+		request.setParameter("objectType", objectType.name());
+		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
+				HttpStatus.OK);
+		return objectMapper.readValue(response.getContentAsString(), SubscriptionPagedResults.class);
 	}
 }

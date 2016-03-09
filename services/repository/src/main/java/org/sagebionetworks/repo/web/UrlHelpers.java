@@ -891,6 +891,13 @@ public class UrlHelpers {
 	public static final String THREAD_URL = THREAD+URL;
 	public static final String REPLY_URL = REPLY+URL;
 
+	// Subscription Services
+	public static final String SUBSCRIPTION = "/subscription";
+	public static final String LIST = "/list";
+	public static final String SUBSCRIPTION_LIST = SUBSCRIPTION + LIST;
+	public static final String SUBSCRIPTION_ALL = SUBSCRIPTION + ALL;
+	public static final String SUBSCRIPTION_ID = SUBSCRIPTION + ID;
+
 	/**
 	 * APIs for DynamoDB related operations.
 	 */

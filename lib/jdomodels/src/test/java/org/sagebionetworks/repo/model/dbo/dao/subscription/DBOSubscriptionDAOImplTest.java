@@ -4,7 +4,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import org.junit.After;
@@ -18,7 +17,6 @@ import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
 import org.sagebionetworks.repo.model.subscription.Subscription;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.SubscriptionPagedResults;
-import org.sagebionetworks.repo.model.subscription.Topic;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -146,18 +144,23 @@ public class DBOSubscriptionDAOImplTest {
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testGetListWithNullSubscriberId() {
-		subscriptionDao.getSubscriptionList(null, new ArrayList<Topic>(0));
+		subscriptionDao.getSubscriptionList(null, SubscriptionObjectType.FORUM, new ArrayList<Long>(0));
 	}
 
 	@Test (expected = IllegalArgumentException.class)
-	public void testGetListWithNullTopicList() {
-		subscriptionDao.getSubscriptionList(userId, null);
+	public void testGetListWithNullObjectType() {
+		subscriptionDao.getSubscriptionList(userId, null, new ArrayList<Long>(0));
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetListWithNullIdList() {
+		subscriptionDao.getSubscriptionList(userId, SubscriptionObjectType.FORUM, null);
 	}
 
 	@Test
 	public void testGetListWithEmptyTopicList() {
 		Subscription dto = subscriptionDao.create(userId, objectId, objectType);
-		SubscriptionPagedResults results = subscriptionDao.getSubscriptionList(userId, new ArrayList<Topic>(0));
+		SubscriptionPagedResults results = subscriptionDao.getSubscriptionList(userId, SubscriptionObjectType.FORUM, new ArrayList<Long>(0));
 		assertEquals((Long) 0L, results.getTotalNumberOfResults());
 		assertEquals(new ArrayList<Subscription>(0), results.getResults());
 		subscriptionIdToDelete.add(dto.getSubscriptionId());
@@ -166,20 +169,15 @@ public class DBOSubscriptionDAOImplTest {
 	@Test
 	public void testGetList() {
 		Subscription dto = subscriptionDao.create(userId, objectId, objectType);
-		ArrayList<Topic> list = new ArrayList<Topic>();
-		Topic topic = new Topic();
-		topic.setObjectId(objectId);
-		topic.setObjectType(objectType);
-		list.add(topic);
-		SubscriptionPagedResults results = subscriptionDao.getSubscriptionList(userId, list);
+		ArrayList<Long> list = new ArrayList<Long>();
+		list.add(Long.parseLong(objectId));
+		SubscriptionPagedResults results = subscriptionDao.getSubscriptionList(userId, objectType, list);
 		assertEquals((Long) 1L, results.getTotalNumberOfResults());
 		assertEquals(dto, results.getResults().get(0));
 
-		Topic topic2 = new Topic();
-		topic2.setObjectId("456");
-		topic2.setObjectType(SubscriptionObjectType.FORUM);
-		list.add(topic2);
-		results = subscriptionDao.getSubscriptionList(userId, list);
+		Long id2 = 456L;
+		list.add(id2);
+		results = subscriptionDao.getSubscriptionList(userId, objectType, list);
 		assertEquals((Long) 1L, results.getTotalNumberOfResults());
 		assertEquals(dto, results.getResults().get(0));
 		subscriptionIdToDelete.add(dto.getSubscriptionId());
@@ -191,43 +189,5 @@ public class DBOSubscriptionDAOImplTest {
 		long id = Long.parseLong(dto.getSubscriptionId());
 		subscriptionDao.delete(id);
 		subscriptionDao.get(id);
-	}
-
-	@Test
-	public void testAddConditionWithNullObjectType() {
-		assertEquals("query", DBOSubscriptionDAOImpl.addCondition("query", null));
-	}
-
-	@Test
-	public void testAddCondition() {
-		assertEquals("query AND OBJECT_TYPE = \"FORUM\"",
-				DBOSubscriptionDAOImpl.addCondition("query", SubscriptionObjectType.FORUM));
-	}
-
-	@Test
-	public void testBuildGetQuery() {
-		assertEquals("SELECT * FROM SUBSCRIPTION WHERE SUBSCRIBER_ID = ? AND OBJECT_TYPE = \"FORUM\" limit 10 offset 0",
-				DBOSubscriptionDAOImpl.buildGetQuery(10L, 0L, SubscriptionObjectType.FORUM));
-	}
-
-	@Test
-	public void testBuildConditionWithOneElement() {
-		Topic topic = new Topic();
-		topic.setObjectId("123");
-		topic.setObjectType(SubscriptionObjectType.FORUM);
-		assertEquals(" AND (OBJECT_ID, OBJECT_TYPE) IN ((123, \"FORUM\"))",
-				DBOSubscriptionDAOImpl.buildTopicCondition(Arrays.asList(topic)));
-	}
-
-	@Test
-	public void testBuildConditionWithTwoElements() {
-		Topic topic1 = new Topic();
-		topic1.setObjectId("123");
-		topic1.setObjectType(SubscriptionObjectType.FORUM);
-		Topic topic2 = new Topic();
-		topic2.setObjectId("456");
-		topic2.setObjectType(SubscriptionObjectType.DISCUSSION_THREAD);
-		assertEquals(" AND (OBJECT_ID, OBJECT_TYPE) IN ((123, \"FORUM\"), (456, \"DISCUSSION_THREAD\"))",
-				DBOSubscriptionDAOImpl.buildTopicCondition(Arrays.asList(topic1, topic2)));
 	}
 }

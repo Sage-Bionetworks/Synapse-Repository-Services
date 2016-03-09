@@ -4,15 +4,25 @@ import static org.junit.Assert.*;
 
 import java.util.Date;
 
+import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 
 public class SubscriptionUtilsTest {
-	private final long subscriptionId = 1L;
-	private final String subscriberId = "2";
-	private final String objectId = "3";
-	private final SubscriptionObjectType objectType = SubscriptionObjectType.FORUM;
-	private final Date createdOn = new Date();
+	private long subscriptionId;
+	private String subscriberId;
+	private String objectId;
+	private SubscriptionObjectType objectType;
+	private Date createdOn;
+
+	@Before
+	public void before() {
+		subscriptionId = 1L;
+		subscriberId = "2";
+		objectId = "3";
+		objectType = SubscriptionObjectType.FORUM;
+		createdOn = new Date();
+	}
 
 	@Test (expected=IllegalArgumentException.class)
 	public void testcreateDBOWithNullSubscriberId() {

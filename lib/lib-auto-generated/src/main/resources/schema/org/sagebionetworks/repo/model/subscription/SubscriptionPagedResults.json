@@ -2,7 +2,7 @@
     "description":"A paginated list of Subscription objects",
     "properties":{
 		"results": {
-		    "description":"The list of results for this page",
+			"description":"The list of results for this page",
 			"type": "array",
 			"items": {
 				"type": "object",

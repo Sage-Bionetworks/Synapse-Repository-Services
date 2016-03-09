@@ -37,8 +37,10 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VerificationDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.discussion.DiscussionThreadDAO;
+import org.sagebionetworks.repo.model.dao.discussion.ForumDAO;
 import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
+import org.sagebionetworks.repo.model.discussion.Forum;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociationManager;
@@ -82,6 +84,8 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	private AccessControlListDAO aclDAO;
 	@Autowired
 	private VerificationDAO verificationDao;
+	@Autowired
+	private ForumDAO forumDao;
 	@Autowired
 	private DiscussionThreadDAO threadDao;
 	@Autowired
@@ -441,10 +445,11 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		}
 		switch (objectType) {
 			case FORUM:
-				return canAccess(userInfo, objectId, ObjectType.ENTITY, ACCESS_TYPE.READ);
+				Forum forum = forumDao.getForum(Long.parseLong(objectId));
+				return canAccess(userInfo, forum.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ);
 			case DISCUSSION_THREAD:
 				DiscussionThreadBundle threadBundle = threadDao.getThread(Long.parseLong(objectId), DiscussionFilter.EXCLUDE_DELETED);
-				return canAccess(userInfo, threadBundle.getForumId(), ObjectType.ENTITY, ACCESS_TYPE.READ);
+				return canAccess(userInfo, threadBundle.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ);
 		}
 		return AuthorizationManagerUtil.accessDenied("The objectType is unsubscribable.");
 	}

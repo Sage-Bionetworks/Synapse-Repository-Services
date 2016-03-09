@@ -5,7 +5,6 @@ import java.util.List;
 import org.sagebionetworks.repo.model.subscription.Subscription;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.SubscriptionPagedResults;
-import org.sagebionetworks.repo.model.subscription.Topic;
 
 public interface SubscriptionDAO {
 
@@ -40,22 +39,15 @@ public interface SubscriptionDAO {
 			Long offset, SubscriptionObjectType objectType);
 
 	/**
-	 * Get the number of subscription for a given subscriber.
-	 * 
-	 * @param subscriberId
-	 * @param objectType - optional
-	 * @return
-	 */
-	public long getSubscriptionCount(String subscriberId, SubscriptionObjectType objectType);
-
-	/**
 	 * Get subscriptions for a subscriber limited by a given list of topic.
 	 * 
 	 * @param subscriberId
-	 * @param listOfTopic
+	 * @param objectType
+	 * @param objectIds
 	 * @return
 	 */
-	public SubscriptionPagedResults getSubscriptionList(String subscriberId, List<Topic> listOfTopic);
+	public SubscriptionPagedResults getSubscriptionList(String string,
+			SubscriptionObjectType objectType, List<Long> objectIds);
 
 	/**
 	 * Delete a subscription
@@ -63,4 +55,11 @@ public interface SubscriptionDAO {
 	 * @param subscriptionId
 	 */
 	public void delete(long subscriptionId);
+
+	/**
+	 * Delete all subscriptions this user has
+	 * 
+	 * @param userId
+	 */
+	public void deleteAll(Long userId);
 }

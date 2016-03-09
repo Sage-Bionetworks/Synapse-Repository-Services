@@ -33,10 +33,11 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
 	}
 
 	@Override
-	public SubscriptionPagedResults getList(UserInfo userInfo, List<Topic> topics) {
+	public SubscriptionPagedResults getList(UserInfo userInfo, SubscriptionObjectType objectType, List<Long> objectIds) {
 		ValidateArgument.required(userInfo, "userInfo");
-		ValidateArgument.required(topics, "topics");
-		return subscriptionDao.getSubscriptionList(userInfo.getId().toString(), topics);
+		ValidateArgument.required(objectType, "objectType");
+		ValidateArgument.required(objectIds, "objectIds");
+		return subscriptionDao.getSubscriptionList(userInfo.getId().toString(), objectType, objectIds);
 	}
 
 	@Override
@@ -58,5 +59,11 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
 			throw new UnauthorizedException("Only the user who created this subscription can perform this action.");
 		}
 		subscriptionDao.delete(id);
+	}
+
+	@Override
+	public void deleteAll(UserInfo userInfo) {
+		ValidateArgument.required(userInfo, "userInfo");
+		subscriptionDao.deleteAll(userInfo.getId());
 	}
 }
