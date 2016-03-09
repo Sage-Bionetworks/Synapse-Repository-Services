@@ -146,12 +146,12 @@ public class DBOSubscriptionDAOImplTest {
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testGetListWithNullSubscriberId() {
-		subscriptionDao.getSubscriptionList(null, SubscriptionObjectType.FORUM, new ArrayList<Long>(0));
+		subscriptionDao.getSubscriptionList(null, SubscriptionObjectType.FORUM, new ArrayList<String>(0));
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testGetListWithNullObjectType() {
-		subscriptionDao.getSubscriptionList(userId, null, new ArrayList<Long>(0));
+		subscriptionDao.getSubscriptionList(userId, null, new ArrayList<String>(0));
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -162,7 +162,7 @@ public class DBOSubscriptionDAOImplTest {
 	@Test
 	public void testGetListWithEmptyTopicList() {
 		Subscription dto = subscriptionDao.create(userId, objectId, objectType);
-		SubscriptionPagedResults results = subscriptionDao.getSubscriptionList(userId, SubscriptionObjectType.FORUM, new ArrayList<Long>(0));
+		SubscriptionPagedResults results = subscriptionDao.getSubscriptionList(userId, SubscriptionObjectType.FORUM, new ArrayList<String>(0));
 		assertEquals((Long) 0L, results.getTotalNumberOfResults());
 		assertEquals(new ArrayList<Subscription>(0), results.getResults());
 		subscriptionIdToDelete.add(dto.getSubscriptionId());
@@ -171,13 +171,13 @@ public class DBOSubscriptionDAOImplTest {
 	@Test
 	public void testGetList() {
 		Subscription dto = subscriptionDao.create(userId, objectId, objectType);
-		ArrayList<Long> list = new ArrayList<Long>();
-		list.add(Long.parseLong(objectId));
+		ArrayList<String> list = new ArrayList<String>();
+		list.add(objectId);
 		SubscriptionPagedResults results = subscriptionDao.getSubscriptionList(userId, objectType, list);
 		assertEquals((Long) 1L, results.getTotalNumberOfResults());
 		assertEquals(dto, results.getResults().get(0));
 
-		Long id2 = 456L;
+		String id2 = "456";
 		list.add(id2);
 		results = subscriptionDao.getSubscriptionList(userId, objectType, list);
 		assertEquals((Long) 1L, results.getTotalNumberOfResults());

@@ -47,7 +47,7 @@ public interface SubscriptionDAO {
 	 * @return
 	 */
 	public SubscriptionPagedResults getSubscriptionList(String string,
-			SubscriptionObjectType objectType, List<Long> objectIds);
+			SubscriptionObjectType objectType, List<String> objectIds);
 
 	/**
 	 * Delete a subscription

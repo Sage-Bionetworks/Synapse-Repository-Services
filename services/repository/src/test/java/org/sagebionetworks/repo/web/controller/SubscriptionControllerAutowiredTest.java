@@ -101,7 +101,7 @@ public class SubscriptionControllerAutowiredTest extends AbstractAutowiredContro
 		Subscription subscription = servletTestHelper.subscribe(dispatchServlet, adminUserId, toSubscribe);
 		SubscriptionRequest request = new SubscriptionRequest();
 		request.setObjectType(toSubscribe.getObjectType());
-		request.setIdList(Arrays.asList(Long.parseLong(toSubscribe.getObjectId())));
+		request.setIdList(Arrays.asList(toSubscribe.getObjectId()));
 		SubscriptionPagedResults results = servletTestHelper.getSubscriptionList(dispatchServlet, adminUserId, request);
 		assertNotNull(results);
 		assertEquals((Long) 1L, results.getTotalNumberOfResults());

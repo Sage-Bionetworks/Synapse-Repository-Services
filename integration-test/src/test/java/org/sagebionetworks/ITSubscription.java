@@ -75,7 +75,7 @@ public class ITSubscription {
 
 		SubscriptionRequest request = new SubscriptionRequest();
 		request.setObjectType(SubscriptionObjectType.FORUM);
-		request.setIdList(Arrays.asList(Long.parseLong(forumId)));
+		request.setIdList(Arrays.asList(forumId));
 		results = synapse.listSubscriptions(request);
 		assertNotNull(results);
 		assertEquals((Long) 1L, results.getTotalNumberOfResults());

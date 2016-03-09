@@ -138,7 +138,7 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 
 	@Override
 	public SubscriptionPagedResults getSubscriptionList(String subscriberId,
-			SubscriptionObjectType objectType, List<Long> ids) {
+			SubscriptionObjectType objectType, List<String> ids) {
 		ValidateArgument.required(subscriberId, "subscriberId");
 		ValidateArgument.required(objectType, "objectType");
 		ValidateArgument.required(ids, "ids");

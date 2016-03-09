@@ -93,7 +93,7 @@ public class SubscriptionManagerImplTest {
 	public void testGetListInvalidUserInfo() {
 		SubscriptionRequest request = new SubscriptionRequest();
 		request.setObjectType(SubscriptionObjectType.FORUM);
-		request.setIdList(new ArrayList<Long>(0));
+		request.setIdList(new ArrayList<String>(0));
 		manager.getList(null, request);
 	}
 
@@ -101,7 +101,7 @@ public class SubscriptionManagerImplTest {
 	public void testGetListInvalidObjectType() {
 		SubscriptionRequest request = new SubscriptionRequest();
 		request.setObjectType(null);
-		request.setIdList(new ArrayList<Long>(0));
+		request.setIdList(new ArrayList<String>(0));
 		manager.getList(userInfo, request);
 	}
 
@@ -117,8 +117,8 @@ public class SubscriptionManagerImplTest {
 	public void testGetList() {
 		SubscriptionRequest request = new SubscriptionRequest();
 		request.setObjectType(SubscriptionObjectType.FORUM);
-		List<Long> ids = new ArrayList<Long>(1);
-		ids.add(Long.parseLong(objectId));
+		List<String> ids = new ArrayList<String>(1);
+		ids.add(objectId);
 		request.setIdList(ids);
 		SubscriptionPagedResults results = new SubscriptionPagedResults();
 		when(mockDao.getSubscriptionList(userId.toString(), SubscriptionObjectType.FORUM, ids)).thenReturn(results);
