@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.discussion.DiscussionReplyDAO;
 import org.sagebionetworks.repo.model.dao.discussion.DiscussionThreadDAO;
 import org.sagebionetworks.repo.model.dao.discussion.ForumDAO;
+import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
 import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
@@ -26,6 +27,7 @@ import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.MessageURL;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
+import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.upload.discussion.MessageKeyUtils;
 import org.sagebionetworks.util.ValidateArgument;
@@ -42,6 +44,8 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 	private ForumDAO forumDao;
 	@Autowired
 	private UploadContentToS3DAO uploadDao;
+	@Autowired
+	private SubscriptionDAO subscriptionDao;
 	@Autowired
 	private AuthorizationManager authorizationManager;
 	@Autowired
@@ -65,6 +69,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		Long id = idGenerator.generateNewId(TYPE.DISCUSSION_THREAD_ID);
 		String messageKey = uploadDao.uploadThreadMessage(createThread.getMessageMarkdown(), createThread.getForumId(), id.toString());
 		DiscussionThreadBundle thread = threadDao.createThread(createThread.getForumId(), id.toString(), createThread.getTitle(), messageKey, userInfo.getId());
+		subscriptionDao.create(userInfo.getId().toString(), thread.getId(), SubscriptionObjectType.DISCUSSION_THREAD);
 		return updateNumberOfReplies(thread, DiscussionFilter.NO_FILTER);
 	}
 
