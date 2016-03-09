@@ -5,7 +5,8 @@
     "enum":[
 		"S3",
 		"SFTP",
-		"HTTPS"
+		"HTTPS",
+		"PROXYLOCAL"
 	]
 }
     
