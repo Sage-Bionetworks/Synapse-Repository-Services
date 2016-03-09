@@ -422,6 +422,33 @@ public class IT049FileHandleTest {
 		String expectedPath = "/sftp/"+handle.getFilePath();
 		assertEquals(expectedPath, preSigned.getPath());
 	}
+	
+	@Test
+	public void testProxyLocalFileHandleRoundTrip() throws SynapseException, JSONObjectAdapterException, IOException{
+		ProxyStorageLocationSettings storageLocation = new ProxyStorageLocationSettings();
+		storageLocation.setSecretKey("Super secret key that must be fairly long");
+		storageLocation.setProxyUrl("https://host.org");
+		storageLocation.setUploadType(UploadType.PROXYLOCAL);
+		// create the storage location
+		storageLocation = synapse.createStorageLocationSetting(storageLocation);
+		
+		// Create a ProxyFileHandle
+		ProxyFileHandle handle = new ProxyFileHandle();
+		handle.setContentMd5("md5");
+		handle.setContentSize(123L);
+		handle.setContentType("text/plain");
+		handle.setFileName("barFoo.txt");
+		handle.setFilePath("pathParent/pathChild");
+		handle.setStorageLocationId(storageLocation.getStorageLocationId());
+		handle = synapse.createExternalProxyFileHandle(handle);
+		
+		// get a pre-signed url for this object
+		URL preSigned = synapse.getFileHandleTemporaryUrl(handle.getId());
+		assertNotNull(preSigned);
+		assertEquals("host.org", preSigned.getHost());
+		String expectedPath = "/proxylocal/"+handle.getFilePath();
+		assertEquals(expectedPath, preSigned.getPath());
+	}
 
 	@Test
 	public void testExternalUploadDestinationChoice() throws SynapseException, IOException, InterruptedException {
