@@ -185,6 +185,10 @@ import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.storage.StorageUsageDimension;
 import org.sagebionetworks.repo.model.storage.StorageUsageSummaryList;
+import org.sagebionetworks.repo.model.subscription.Subscription;
+import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
+import org.sagebionetworks.repo.model.subscription.SubscriptionPagedResults;
+import org.sagebionetworks.repo.model.subscription.Topic;
 import org.sagebionetworks.repo.model.table.AppendableRowSet;
 import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -491,6 +495,10 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String REPLY = "/reply";
 	private static final String REPLIES = "/replies";
 	private static final String URL = "/messageUrl";
+
+	private static final String SUBSCRIPTION = "/subscription";
+	private static final String LIST = "/list";
+	private static final String OBJECT_TYPE_PARAM = "objectType";
 
 	private static final String PRINCIPAL_ID_REQUEST_PARAM = "principalId";
 
@@ -7525,5 +7533,49 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		} catch (MalformedURLException e) {
 			throw new SynapseClientException(e);
 		}
+	}
+
+	@Override
+	public Subscription subscribe(Topic toSubscribe) throws SynapseException {
+		ValidateArgument.required(toSubscribe, "toSubscribe");
+		return asymmetricalPost(repoEndpoint, SUBSCRIPTION, toSubscribe, Subscription.class, null);
+	}
+
+	@Override
+	public SubscriptionPagedResults getAllSubscriptions(
+			SubscriptionObjectType objectType, Long limit, Long offset) throws SynapseException {
+		try {
+			ValidateArgument.required(limit, "limit");
+			ValidateArgument.required(offset, "offset");
+			String url = SUBSCRIPTION+ALL+"?"+LIMIT+"="+limit+"&"+OFFSET+"="+offset;
+			if (objectType != null) {
+				url += "&"+OBJECT_TYPE_PARAM+"="+objectType.name();
+			}
+			return getJSONEntity(url, SubscriptionPagedResults.class);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
+	}
+
+	@Override
+	public SubscriptionPagedResults listSubscriptions(
+			SubscriptionObjectType objectType, List<Long> ids) throws SynapseException {
+		ValidateArgument.required(objectType, "objectType");
+		ValidateArgument.required(ids, "ids");
+		String url = SUBSCRIPTION+LIST+"?"+OBJECT_TYPE_PARAM+"="+objectType.name();
+		IdList idList = new IdList();
+		idList.setList(ids);
+		return asymmetricalPost(repoEndpoint, url, idList, SubscriptionPagedResults.class, null);
+	}
+
+	@Override
+	public void unsubscribe(Long subscriptionId) throws SynapseException {
+		ValidateArgument.required(subscriptionId, "subscriptionId");
+		getSharedClientConnection().deleteUri(repoEndpoint, SUBSCRIPTION+"/"+subscriptionId, getUserAgent());
+	}
+
+	@Override
+	public void unsubscribeAll() throws SynapseException {
+		getSharedClientConnection().deleteUri(repoEndpoint, SUBSCRIPTION+ALL, getUserAgent());
 	}
 }

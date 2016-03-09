@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.model.subscription.Subscription;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.SubscriptionPagedResults;
 import org.sagebionetworks.repo.model.subscription.Topic;
+import org.sagebionetworks.repo.web.NotFoundException;
 
 public class SubscriptionControllerAutowiredTest extends AbstractAutowiredControllerTestBase{
 
@@ -80,18 +81,19 @@ public class SubscriptionControllerAutowiredTest extends AbstractAutowiredContro
 		assertEquals(subscription, subscriptions.get(0));
 	}
 
-	@Test
+	@Test (expected = NotFoundException.class)
 	public void testDelete() throws Exception {
 		Subscription subscription = servletTestHelper.subscribe(dispatchServlet, adminUserId, toSubscribe);
-		servletTestHelper.unsubscribe(dispatchServlet, adminUserId, subscription.getSubscriptionId());
-		subscription = null;
+		String subscriptionId = subscription.getSubscriptionId();
 		Long limit = 10L;
 		Long offset = 0L;
 		SubscriptionPagedResults results = servletTestHelper.getAllSubscriptions(dispatchServlet, adminUserId, limit, offset, toSubscribe.getObjectType());
-		assertNotNull(results);
-		assertEquals((Long) 0L, results.getTotalNumberOfResults());
-		List<Subscription> subscriptions = results.getResults();
-		assertEquals(0L, subscriptions.size());
+		assertTrue(results.getResults().contains(subscription));
+		servletTestHelper.unsubscribe(dispatchServlet, adminUserId, subscriptionId);
+		subscription = null;
+		results = servletTestHelper.getAllSubscriptions(dispatchServlet, adminUserId, limit, offset, toSubscribe.getObjectType());
+		assertFalse(results.getResults().contains(subscription));
+		servletTestHelper.unsubscribe(dispatchServlet, adminUserId, subscriptionId);
 	}
 
 	@Test
