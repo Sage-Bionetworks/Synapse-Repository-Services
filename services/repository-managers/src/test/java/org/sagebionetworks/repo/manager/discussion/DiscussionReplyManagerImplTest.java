@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UploadContentToS3DAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.discussion.DiscussionReplyDAO;
+import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
 import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
@@ -29,6 +30,7 @@ import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.MessageURL;
 import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
+import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -39,6 +41,8 @@ public class DiscussionReplyManagerImplTest {
 	private DiscussionReplyDAO mockReplyDao;
 	@Mock
 	private UploadContentToS3DAO mockUploadDao;
+	@Mock
+	private SubscriptionDAO mockSubscriptionDao;
 	@Mock
 	private AuthorizationManager mockAuthorizationManager;
 	@Mock
@@ -66,10 +70,12 @@ public class DiscussionReplyManagerImplTest {
 		ReflectionTestUtils.setField(replyManager, "uploadDao", mockUploadDao);
 		ReflectionTestUtils.setField(replyManager, "authorizationManager", mockAuthorizationManager);
 		ReflectionTestUtils.setField(replyManager, "idGenerator", mockIdGenerator);
+		ReflectionTestUtils.setField(replyManager, "subscriptionDao", mockSubscriptionDao);
 
 		Mockito.when(mockThreadManager.getThread(userInfo, threadId)).thenReturn(mockThread);
 		Mockito.when(mockThread.getProjectId()).thenReturn(projectId);
 		Mockito.when(mockThread.getForumId()).thenReturn(forumId);
+		Mockito.when(mockThread.getId()).thenReturn(threadId);
 		messageUrl.setMessageUrl("messageUrl");
 		Mockito.when(mockUploadDao.getReplyUrl(Mockito.anyString())).thenReturn(messageUrl);
 
@@ -80,6 +86,7 @@ public class DiscussionReplyManagerImplTest {
 		bundle.setForumId(forumId);
 		bundle.setProjectId(projectId);
 		bundle.setId(replyId.toString());
+		bundle.setThreadId(threadId);
 		messageKey = forumId + "/" + threadId + "/" + replyId +"/" + UUID.randomUUID().toString();
 		bundle.setMessageKey(messageKey);
 		userInfo.setId(765L);
@@ -144,6 +151,7 @@ public class DiscussionReplyManagerImplTest {
 				.thenReturn(bundle);
 		DiscussionReplyBundle reply = replyManager.createReply(userInfo, createReply);
 		assertEquals(bundle, reply);
+		Mockito.verify(mockSubscriptionDao).create(userInfo.getId().toString(), reply.getThreadId(), SubscriptionObjectType.DISCUSSION_THREAD);
 	}
 
 	@Test (expected = UnauthorizedException.class)

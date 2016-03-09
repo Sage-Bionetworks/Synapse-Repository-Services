@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.discussion;
 
 import static org.sagebionetworks.repo.manager.AuthorizationManagerImpl.*;
+
 import java.io.IOException;
 
 import org.sagebionetworks.ids.IdGenerator;
@@ -14,6 +15,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UploadContentToS3DAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.discussion.DiscussionReplyDAO;
+import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
 import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
@@ -21,6 +23,7 @@ import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.MessageURL;
 import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
+import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.upload.discussion.MessageKeyUtils;
 import org.sagebionetworks.util.ValidateArgument;
@@ -36,6 +39,8 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 	private AuthorizationManager authorizationManager;
 	@Autowired
 	private DiscussionReplyDAO replyDao;
+	@Autowired
+	private SubscriptionDAO subscriptionDao;
 	@Autowired
 	private IdGenerator idGenerator;
 
@@ -54,7 +59,9 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 		DiscussionThreadBundle thread = threadManager.getThread(userInfo, threadId);
 		String replyId = idGenerator.generateNewId(TYPE.DISCUSSION_REPLY_ID).toString();
 		String messageKey = uploadDao.uploadReplyMessage(createReply.getMessageMarkdown(), thread.getForumId(), threadId, replyId);
-		return replyDao.createReply(threadId, replyId, messageKey, userInfo.getId());
+		DiscussionReplyBundle reply = replyDao.createReply(threadId, replyId, messageKey, userInfo.getId());
+		subscriptionDao.create(userInfo.getId().toString(), thread.getId(), SubscriptionObjectType.DISCUSSION_THREAD);
+		return reply;
 	}
 
 	@Override
