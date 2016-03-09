@@ -188,6 +188,7 @@ import org.sagebionetworks.repo.model.storage.StorageUsageSummaryList;
 import org.sagebionetworks.repo.model.subscription.Subscription;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.SubscriptionPagedResults;
+import org.sagebionetworks.repo.model.subscription.SubscriptionRequest;
 import org.sagebionetworks.repo.model.subscription.Topic;
 import org.sagebionetworks.repo.model.table.AppendableRowSet;
 import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
@@ -7558,14 +7559,11 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public SubscriptionPagedResults listSubscriptions(
-			SubscriptionObjectType objectType, List<Long> ids) throws SynapseException {
-		ValidateArgument.required(objectType, "objectType");
-		ValidateArgument.required(ids, "ids");
-		String url = SUBSCRIPTION+LIST+"?"+OBJECT_TYPE_PARAM+"="+objectType.name();
-		IdList idList = new IdList();
-		idList.setList(ids);
-		return asymmetricalPost(repoEndpoint, url, idList, SubscriptionPagedResults.class, null);
+	public SubscriptionPagedResults listSubscriptions(SubscriptionRequest request) throws SynapseException {
+		ValidateArgument.required(request, "request");
+		ValidateArgument.required(request.getObjectType(), "SubscriptionRequest.objectType");
+		ValidateArgument.required(request.getIdList(), "SubscriptionRequest.idList");
+		return asymmetricalPost(repoEndpoint, SUBSCRIPTION+LIST, request, SubscriptionPagedResults.class, null);
 	}
 
 	@Override

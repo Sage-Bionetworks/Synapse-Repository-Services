@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.discussion.DiscussionReplyDAO;
 import org.sagebionetworks.repo.model.dao.discussion.DiscussionThreadDAO;
 import org.sagebionetworks.repo.model.dao.discussion.ForumDAO;
+import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
 import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
@@ -31,6 +32,7 @@ import org.sagebionetworks.repo.model.discussion.Forum;
 import org.sagebionetworks.repo.model.discussion.MessageURL;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
+import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -43,6 +45,8 @@ public class DiscussionThreadManagerImplTest {
 	private ForumDAO mockForumDao;
 	@Mock
 	private UploadContentToS3DAO mockUploadDao;
+	@Mock
+	private SubscriptionDAO mockSubscriptionDao;
 	@Mock
 	private AuthorizationManager mockAuthorizationManager;
 	@Mock
@@ -73,6 +77,7 @@ public class DiscussionThreadManagerImplTest {
 		ReflectionTestUtils.setField(threadManager, "authorizationManager", mockAuthorizationManager);
 		ReflectionTestUtils.setField(threadManager, "idGenerator", mockIdGenerator);
 		ReflectionTestUtils.setField(threadManager, "replyDao", mockReplyDao);
+		ReflectionTestUtils.setField(threadManager, "subscriptionDao", mockSubscriptionDao);
 
 		createDto = new CreateDiscussionThread();
 		createDto.setForumId(forumId.toString());
@@ -153,6 +158,7 @@ public class DiscussionThreadManagerImplTest {
 		assertNotNull(createdThread);
 		assertEquals(createdThread, dto);
 		Mockito.verify(mockReplyDao).getReplyCount(Long.parseLong(createdThread.getId()), DiscussionFilter.NO_FILTER);
+		Mockito.verify(mockSubscriptionDao).create(userId.toString(), dto.getId(), SubscriptionObjectType.DISCUSSION_THREAD);
 	}
 
 	@Test (expected = IllegalArgumentException.class)

@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.subscription.SubscriptionManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
+import org.sagebionetworks.repo.model.subscription.SubscriptionRequest;
 import org.sagebionetworks.repo.model.subscription.Topic;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -45,11 +46,12 @@ public class SubscriptionServiceImplTest {
 
 	@Test
 	public void testGetList() {
-		SubscriptionObjectType objectType = SubscriptionObjectType.FORUM;
-		ArrayList<Long> objectIds = new ArrayList<Long>(0);
-		service.getList(userId, objectType, objectIds);
+		SubscriptionRequest request = new SubscriptionRequest();
+		request.setObjectType(SubscriptionObjectType.FORUM);
+		request.setIdList(new ArrayList<String>(0));
+		service.getList(userId, request);
 		verify(mockUserManager).getUserInfo(userId);
-		verify(mockSubscriptionManager).getList(any(UserInfo.class), eq(objectType), eq(objectIds));
+		verify(mockSubscriptionManager).getList(any(UserInfo.class), eq(request));
 	}
 
 	@Test

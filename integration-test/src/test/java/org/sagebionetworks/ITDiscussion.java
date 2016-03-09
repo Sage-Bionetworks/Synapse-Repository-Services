@@ -59,6 +59,7 @@ public class ITDiscussion {
 	@After
 	public void cleanup() throws SynapseException, JSONObjectAdapterException {
 		if (project != null) adminSynapse.deleteEntity(project, true);
+		synapse.unsubscribeAll();
 		if (userToDelete != null) adminSynapse.deleteUser(userToDelete);
 	}
 

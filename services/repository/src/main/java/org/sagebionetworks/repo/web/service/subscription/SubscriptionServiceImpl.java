@@ -1,13 +1,12 @@
 package org.sagebionetworks.repo.web.service.subscription;
 
-import java.util.List;
-
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.subscription.SubscriptionManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.subscription.Subscription;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.SubscriptionPagedResults;
+import org.sagebionetworks.repo.model.subscription.SubscriptionRequest;
 import org.sagebionetworks.repo.model.subscription.Topic;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -30,9 +29,9 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 	}
 
 	@Override
-	public SubscriptionPagedResults getList(Long userId, SubscriptionObjectType objectType, List<Long> objectIds) {
+	public SubscriptionPagedResults getList(Long userId, SubscriptionRequest request) {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return subscriptionManager.getList(userInfo, objectType, objectIds);
+		return subscriptionManager.getList(userInfo, request);
 	}
 
 	@Override

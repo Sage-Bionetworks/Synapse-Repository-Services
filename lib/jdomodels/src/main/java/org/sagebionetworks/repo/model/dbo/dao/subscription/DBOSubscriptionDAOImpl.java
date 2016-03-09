@@ -12,8 +12,6 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
-import org.sagebionetworks.repo.model.dbo.persistence.subscription.DBOSubscription;
-import org.sagebionetworks.repo.model.dbo.persistence.subscription.SubscriptionUtils;
 import org.sagebionetworks.repo.model.subscription.Subscription;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.SubscriptionPagedResults;
@@ -21,6 +19,7 @@ import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -35,9 +34,24 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 	@Autowired
 	private IdGenerator idGenerator;
 
+	private static final String SQL_INSERT_IGNORE = "INSERT IGNORE INTO "
+			+ TABLE_SUBSCRIPTION + " ( "
+			+ COL_SUBSCRIPTION_ID + ", "
+			+ COL_SUBSCRIPTION_SUBSCRIBER_ID + ", "
+			+ COL_SUBSCRIPTION_OBJECT_ID + ", "
+			+ COL_SUBSCRIPTION_OBJECT_TYPE + ", "
+			+ COL_SUBSCRIPTION_CREATED_ON + ") "
+			+ " VALUES (?, ?, ?, ?, ?)";
+
 	private static final String SQL_GET = "SELECT * "
 			+ "FROM "+TABLE_SUBSCRIPTION+" "
 			+ "WHERE "+COL_SUBSCRIPTION_ID+" = ?";
+
+	private static final String SQL_GET_BY_PRIMARY_KEY = "SELECT * "
+			+ "FROM "+TABLE_SUBSCRIPTION+" "
+			+ "WHERE "+COL_SUBSCRIPTION_SUBSCRIBER_ID+" = ? "
+			+ "AND "+COL_SUBSCRIPTION_OBJECT_ID+" = ? "
+			+ "AND "+COL_SUBSCRIPTION_OBJECT_TYPE+" = ?";
 
 	private static final String SQL_GET_ALL = "SELECT SQL_CALC_FOUND_ROWS * "
 			+ "FROM "+TABLE_SUBSCRIPTION+" "
@@ -70,7 +84,7 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 			subscription.setSubscriberId(""+rs.getLong(COL_SUBSCRIPTION_SUBSCRIBER_ID));
 			subscription.setObjectId(""+rs.getLong(COL_SUBSCRIPTION_OBJECT_ID));
 			subscription.setObjectType(SubscriptionObjectType.valueOf(rs.getString(COL_SUBSCRIPTION_OBJECT_TYPE)));
-			subscription.setCreatedOn(new Date(rs.getLong(COL_SUBSCRIPTION_SUBSCRIBER_ID)));
+			subscription.setCreatedOn(new Date(rs.getLong(COL_SUBSCRIPTION_CREATED_ON)));
 			return subscription;
 		}
 	};
@@ -83,18 +97,26 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 		ValidateArgument.required(objectId, "objectId");
 		ValidateArgument.required(objectType, "objectType");
 		long subscriptionId = idGenerator.generateNewId(TYPE.SUBSCRIPTION_ID);
-		DBOSubscription dbo = SubscriptionUtils.createDBO(subscriptionId, subscriberId, objectId, objectType, new Date());
-		basicDao.createNew(dbo);
-		return get(subscriptionId);
+		jdbcTemplate.update(SQL_INSERT_IGNORE, subscriptionId, subscriberId, objectId, objectType.name(), new Date().getTime());
+		return get(subscriberId, objectId, objectType);
+	}
+
+	private Subscription get(String subscriberId, String objectId,
+			SubscriptionObjectType objectType) {
+		try {
+			return jdbcTemplate.queryForObject(SQL_GET_BY_PRIMARY_KEY, new Object[]{subscriberId, objectId, objectType.name()}, ROW_MAPPER);
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException(e.getMessage());
+		}
 	}
 
 	@Override
 	public Subscription get(long subscriptionId) {
-		List<Subscription> results = jdbcTemplate.query(SQL_GET, ROW_MAPPER, subscriptionId);
-		if (results.size() != 1) {
-			throw new NotFoundException();
+		try {
+			return jdbcTemplate.queryForObject(SQL_GET, new Object[]{subscriptionId}, ROW_MAPPER);
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException(e.getMessage());
 		}
-		return results.get(0);
 	}
 
 	@Override
@@ -116,7 +138,7 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 
 	@Override
 	public SubscriptionPagedResults getSubscriptionList(String subscriberId,
-			SubscriptionObjectType objectType, List<Long> ids) {
+			SubscriptionObjectType objectType, List<String> ids) {
 		ValidateArgument.required(subscriberId, "subscriberId");
 		ValidateArgument.required(objectType, "objectType");
 		ValidateArgument.required(ids, "ids");

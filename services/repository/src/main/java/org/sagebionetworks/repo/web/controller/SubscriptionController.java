@@ -1,11 +1,11 @@
 package org.sagebionetworks.repo.web.controller;
 
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.subscription.Subscription;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.SubscriptionPagedResults;
+import org.sagebionetworks.repo.model.subscription.SubscriptionRequest;
 import org.sagebionetworks.repo.model.subscription.Topic;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
@@ -60,17 +60,15 @@ public class SubscriptionController extends BaseController{
 	 * Target users: all Synapse users.
 	 * 
 	 * @param userId - The ID of the user who is making the request
-	 * @param objectType - The type of the subscribable objects
-	 * @param objectIds - The list of subscribable objectId
+	 * @param request - This object defines what topics the user is asking for
 	 * @return
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.SUBSCRIPTION_LIST, method = RequestMethod.POST)
 	public @ResponseBody SubscriptionPagedResults getList(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestParam(value = ServiceConstants.SUBSCRIPTION_OBJECT_TYPE_PARAM) SubscriptionObjectType objectType,
-			@RequestBody IdList objectIds) {
-		return serviceProvider.getSubscriptionService().getList(userId, objectType, objectIds.getList());
+			@RequestBody SubscriptionRequest request) {
+		return serviceProvider.getSubscriptionService().getList(userId, request);
 	}
 
 	/**

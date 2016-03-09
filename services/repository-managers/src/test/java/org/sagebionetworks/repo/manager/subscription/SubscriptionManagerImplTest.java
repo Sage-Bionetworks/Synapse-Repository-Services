@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
 import org.sagebionetworks.repo.model.subscription.Subscription;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.SubscriptionPagedResults;
+import org.sagebionetworks.repo.model.subscription.SubscriptionRequest;
 import org.sagebionetworks.repo.model.subscription.Topic;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -90,26 +91,38 @@ public class SubscriptionManagerImplTest {
 
 	@Test (expected=IllegalArgumentException.class)
 	public void testGetListInvalidUserInfo() {
-		manager.getList(null, SubscriptionObjectType.FORUM, new ArrayList<Long>(0));
+		SubscriptionRequest request = new SubscriptionRequest();
+		request.setObjectType(SubscriptionObjectType.FORUM);
+		request.setIdList(new ArrayList<String>(0));
+		manager.getList(null, request);
 	}
 
 	@Test (expected=IllegalArgumentException.class)
 	public void testGetListInvalidObjectType() {
-		manager.getList(userInfo, null, new ArrayList<Long>(0));
+		SubscriptionRequest request = new SubscriptionRequest();
+		request.setObjectType(null);
+		request.setIdList(new ArrayList<String>(0));
+		manager.getList(userInfo, request);
 	}
 
 	@Test (expected=IllegalArgumentException.class)
 	public void testGetListInvalidTopics() {
-		manager.getList(userInfo, SubscriptionObjectType.FORUM, null);
+		SubscriptionRequest request = new SubscriptionRequest();
+		request.setObjectType(SubscriptionObjectType.FORUM);
+		request.setIdList(null);
+		manager.getList(userInfo, request);
 	}
 
 	@Test
 	public void testGetList() {
-		List<Long> ids = new ArrayList<Long>(1);
-		ids.add(Long.parseLong(objectId));
+		SubscriptionRequest request = new SubscriptionRequest();
+		request.setObjectType(SubscriptionObjectType.FORUM);
+		List<String> ids = new ArrayList<String>(1);
+		ids.add(objectId);
+		request.setIdList(ids);
 		SubscriptionPagedResults results = new SubscriptionPagedResults();
 		when(mockDao.getSubscriptionList(userId.toString(), SubscriptionObjectType.FORUM, ids)).thenReturn(results);
-		assertEquals(results, manager.getList(userInfo, SubscriptionObjectType.FORUM, ids));
+		assertEquals(results, manager.getList(userInfo, request));
 	}
 
 	@Test (expected=IllegalArgumentException.class)
