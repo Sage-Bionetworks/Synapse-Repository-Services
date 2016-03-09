@@ -88,6 +88,8 @@ public class DBOSubscriptionDAOImplTest {
 		assertEquals(objectId, dto.getObjectId());
 		assertEquals(objectType, dto.getObjectType());
 		assertEquals(dto, subscriptionDao.get(Long.parseLong(dto.getSubscriptionId())));
+		Subscription dto2 = subscriptionDao.create(userId, objectId, objectType);
+		assertEquals(dto, dto2);
 		subscriptionIdToDelete.add(dto.getSubscriptionId());
 	}
 
