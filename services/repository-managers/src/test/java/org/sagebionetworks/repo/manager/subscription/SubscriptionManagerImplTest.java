@@ -90,6 +90,33 @@ public class SubscriptionManagerImplTest {
 	}
 
 	@Test (expected=IllegalArgumentException.class)
+	public void testGetInvalidUserInfo() {
+		manager.get(null, "1");
+	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetInvalidSubscriptionId() {
+		manager.get(userInfo, null);
+	}
+
+	@Test (expected=UnauthorizedException.class)
+	public void testGetUnauthorized() {
+		Long subscriptionId = 3L;
+		sub.setSubscriberId(anotherUser.toString());
+		when(mockDao.get(subscriptionId)).thenReturn(sub);
+		manager.get(userInfo, subscriptionId.toString());
+	}
+
+	@Test
+	public void testGetAuthorized() {
+		Long subscriptionId = 3L;
+		sub.setSubscriberId(userId.toString());
+		when(mockDao.get(subscriptionId)).thenReturn(sub);
+		assertEquals(sub, manager.get(userInfo, subscriptionId.toString()));
+	}
+
+
+	@Test (expected=IllegalArgumentException.class)
 	public void testGetListInvalidUserInfo() {
 		SubscriptionRequest request = new SubscriptionRequest();
 		request.setObjectType(SubscriptionObjectType.FORUM);

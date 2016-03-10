@@ -2177,4 +2177,12 @@ public class ServletTestHelper {
 				HttpStatus.OK);
 		return objectMapper.readValue(response.getContentAsString(), SubscriptionPagedResults.class);
 	}
+
+	public Subscription get(DispatcherServlet dispatchServlet, Long userId,
+			String subscriptionId) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, "/repo/v1", UrlHelpers.SUBSCRIPTION+"/"+subscriptionId, userId, null);
+		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+		return objectMapper.readValue(response.getContentAsString(), Subscription.class);
+	}
 }

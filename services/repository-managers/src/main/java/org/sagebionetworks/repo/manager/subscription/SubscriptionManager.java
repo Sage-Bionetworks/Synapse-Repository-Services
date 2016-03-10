@@ -53,4 +53,13 @@ public interface SubscriptionManager {
 	 */
 	public void deleteAll(UserInfo userInfo);
 
+	/**
+	 * Retrieve a subscription given its ID
+	 * 
+	 * @param userInfo
+	 * @param id
+	 * @return
+	 */
+	public Subscription get(UserInfo userInfo, String id);
+
 }

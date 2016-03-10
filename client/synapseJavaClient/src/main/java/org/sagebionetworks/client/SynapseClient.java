@@ -2659,4 +2659,12 @@ public interface SynapseClient extends BaseClient {
 	 * 
 	 */
 	void unsubscribeAll() throws SynapseException;
+
+	/**
+	 * Retrieve a subscription given its ID
+	 * 
+	 * @param subscriptionId
+	 * @throws SynapseException 
+	 */
+	Subscription get(String subscriptionId) throws SynapseException;
 }

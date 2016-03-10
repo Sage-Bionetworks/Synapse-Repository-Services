@@ -7576,4 +7576,14 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public void unsubscribeAll() throws SynapseException {
 		getSharedClientConnection().deleteUri(repoEndpoint, SUBSCRIPTION+ALL, getUserAgent());
 	}
+
+	@Override
+	public Subscription get(String subscriptionId) throws SynapseException {
+		try {
+			ValidateArgument.required(subscriptionId, "subscriptionId");
+			return getJSONEntity(SUBSCRIPTION+"/"+subscriptionId, Subscription.class);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
+	}
 }

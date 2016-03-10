@@ -68,6 +68,8 @@ public class ITSubscription {
 		assertEquals(SubscriptionObjectType.FORUM, sub.getObjectType());
 		assertEquals(userToDelete.toString(), sub.getSubscriberId());
 
+		assertEquals(sub, synapse.get(sub.getSubscriptionId()));
+
 		SubscriptionPagedResults results = synapse.getAllSubscriptions(null, 10L, 0L);
 		assertNotNull(results);
 		assertEquals((Long) 1L, results.getTotalNumberOfResults());

@@ -69,6 +69,12 @@ public class SubscriptionControllerAutowiredTest extends AbstractAutowiredContro
 	}
 
 	@Test
+	public void testGet() throws Exception {
+		Subscription subscription = servletTestHelper.subscribe(dispatchServlet, adminUserId, toSubscribe);
+		assertEquals(subscription, servletTestHelper.get(dispatchServlet, adminUserId, subscription.getSubscriptionId()));
+	}
+
+	@Test
 	public void testGetAll() throws Exception {
 		Subscription subscription = servletTestHelper.subscribe(dispatchServlet, adminUserId, toSubscribe);
 		Long limit = 10L;

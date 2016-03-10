@@ -46,4 +46,10 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 		subscriptionManager.deleteAll(userInfo);
 	}
 
+	@Override
+	public Subscription get(Long userId, String id) {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return subscriptionManager.get(userInfo, id);
+	}
+
 }

@@ -70,4 +70,16 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
 		ValidateArgument.required(userInfo, "userInfo");
 		subscriptionDao.deleteAll(userInfo.getId());
 	}
+
+	@Override
+	public Subscription get(UserInfo userInfo, String subscriptionId) {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(subscriptionId, "subscriptionId");
+		Long id = Long.parseLong(subscriptionId);
+		Subscription sub = subscriptionDao.get(id);
+		if (!sub.getSubscriberId().equals(userInfo.getId().toString())) {
+			throw new UnauthorizedException("Only the user who created this subscription can perform this action.");
+		}
+		return sub;
+	}
 }
