@@ -39,18 +39,22 @@ public class ForumManagerImpl implements ForumManager {
 		}
 	}
 
-	@WriteTransaction
 	@Override
-	public Forum getForumMetadata(UserInfo user, String projectId) {
+	public Forum getForumByProjectId(UserInfo user, String projectId) {
 		validateProjectIdAndThrowException(projectId);
 		UserInfo.validateUserInfo(user);
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canAccess(user, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ));
-		try {
-			return forumDao.getForumByProjectId(projectId);
-		} catch (NotFoundException e) {
-			return createForum(user, projectId);
-		}
+		return forumDao.getForumByProjectId(projectId);
 	}
 
+	@Override
+	public Forum getForum(UserInfo user, String forumId) {
+		ValidateArgument.required(forumId, "forumId");
+		UserInfo.validateUserInfo(user);
+		Forum forum = forumDao.getForum(Long.parseLong(forumId));
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+				authorizationManager.canAccess(user, forum.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
+		return forum;
+	}
 }

@@ -21,5 +21,14 @@ public interface ForumManager {
 	 * @param projectId
 	 * @return
 	 */
-	public Forum getForumMetadata(UserInfo user, String projectId);
+	public Forum getForumByProjectId(UserInfo user, String projectId);
+
+	/**
+	 * create forum for a given ID
+	 * 
+	 * @param user
+	 * @param forumId
+	 * @return
+	 */
+	public Forum getForum(UserInfo user, String forumId);
 }

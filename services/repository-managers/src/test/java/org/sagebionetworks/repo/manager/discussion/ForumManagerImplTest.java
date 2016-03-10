@@ -50,23 +50,11 @@ public class ForumManagerImplTest {
 		forumManager.createForum(userInfo, null);
 	}
 
-	@Test (expected=IllegalArgumentException.class)
-	public void testGetWithNullProjectId() {
-		forumManager.getForumMetadata(userInfo, null);
-	}
-
 	@Test (expected=NotFoundException.class)
 	public void testCreateWithNonExistingProjectId() {
 		Mockito.when(mockNodeDao.doesNodeExist(KeyFactory.stringToKey(projectId)))
 				.thenReturn(false);
 		forumManager.createForum(userInfo, projectId);
-	}
-
-	@Test (expected=NotFoundException.class)
-	public void testGetWithNonExistingProjectId() {
-		Mockito.when(mockNodeDao.doesNodeExist(KeyFactory.stringToKey(projectId)))
-				.thenReturn(false);
-		forumManager.getForumMetadata(userInfo, projectId);
 	}
 
 	@Test (expected=IllegalArgumentException.class)
@@ -76,13 +64,6 @@ public class ForumManagerImplTest {
 		forumManager.createForum(null, projectId);
 	}
 
-	@Test (expected=IllegalArgumentException.class)
-	public void testGetWithNullUserInfo() {
-		Mockito.when(mockNodeDao.doesNodeExist(KeyFactory.stringToKey(projectId)))
-				.thenReturn(true);
-		forumManager.getForumMetadata(null, projectId);
-	}
-
 	@Test (expected=UnauthorizedException.class)
 	public void testCreateUnauthorized() {
 		Mockito.when(mockNodeDao.doesNodeExist(KeyFactory.stringToKey(projectId)))
@@ -90,15 +71,6 @@ public class ForumManagerImplTest {
 		Mockito.when(mockAuthManager.canAccess(
 				userInfo, projectId, ENTITY_TYPE, READ_ACCESS)).thenReturn(FAILED);
 		forumManager.createForum(userInfo, projectId);
-	}
-
-	@Test (expected=UnauthorizedException.class)
-	public void testGetUnauthorized() {
-		Mockito.when(mockNodeDao.doesNodeExist(KeyFactory.stringToKey(projectId)))
-				.thenReturn(true);
-		Mockito.when(mockAuthManager.canAccess(
-				userInfo, projectId, ENTITY_TYPE, READ_ACCESS)).thenReturn(FAILED);
-		forumManager.getForumMetadata(userInfo, projectId);
 	}
 
 	@Test
@@ -111,24 +83,78 @@ public class ForumManagerImplTest {
 		assertEquals(forumManager.createForum(userInfo, projectId), dto);
 	}
 
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetForumByProjectIdWithNullUserInfo() {
+		Mockito.when(mockNodeDao.doesNodeExist(KeyFactory.stringToKey(projectId)))
+				.thenReturn(true);
+		forumManager.getForumByProjectId(null, projectId);
+	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetForumByProjectIdWithNullProjectId() {
+		forumManager.getForumByProjectId(userInfo, null);
+	}
+
+	@Test (expected=NotFoundException.class)
+	public void testGetForumByProjectIdWithNonExistingProjectId() {
+		Mockito.when(mockNodeDao.doesNodeExist(KeyFactory.stringToKey(projectId)))
+				.thenReturn(false);
+		forumManager.getForumByProjectId(userInfo, projectId);
+	}
+
+	@Test (expected=UnauthorizedException.class)
+	public void testGetForumByProjectIdUnauthorized() {
+		Mockito.when(mockNodeDao.doesNodeExist(KeyFactory.stringToKey(projectId)))
+				.thenReturn(true);
+		Mockito.when(mockAuthManager.canAccess(
+				userInfo, projectId, ENTITY_TYPE, READ_ACCESS)).thenReturn(FAILED);
+		forumManager.getForumByProjectId(userInfo, projectId);
+	}
+
 	@Test
-	public void testGetAuthorized() {
+	public void testGetForumByProjectIdAuthorized() {
 		Mockito.when(mockNodeDao.doesNodeExist(KeyFactory.stringToKey(projectId)))
 				.thenReturn(true);
 		Mockito.when(mockAuthManager.canAccess(
 				userInfo, projectId, ENTITY_TYPE, READ_ACCESS)).thenReturn(SUCCESS);
 		Mockito.when(mockForumDao.getForumByProjectId(projectId)).thenReturn(dto);
-		assertEquals(forumManager.getForumMetadata(userInfo, projectId), dto);
+		assertEquals(forumManager.getForumByProjectId(userInfo, projectId), dto);
+	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetForumWithNullUserInfo() {
+		forumManager.getForum(null, dto.getId());
+	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetForumWithNullForumId() {
+		forumManager.getForum(userInfo, null);
+	}
+
+	@Test (expected=NotFoundException.class)
+	public void testGetForumWithNonExistingProjectId() {
+		Mockito.when(mockAuthManager.canAccess(userInfo, projectId, ENTITY_TYPE, READ_ACCESS))
+				.thenThrow(new NotFoundException());
+		String forumId = dto.getId();
+		Mockito.when(mockForumDao.getForum(Long.parseLong(forumId))).thenReturn(dto);
+		forumManager.getForum(userInfo, forumId);
+	}
+
+	@Test (expected=UnauthorizedException.class)
+	public void testGetForumUnauthorized() {
+		Mockito.when(mockAuthManager.canAccess(
+				userInfo, projectId, ENTITY_TYPE, READ_ACCESS)).thenReturn(FAILED);
+		String forumId = dto.getId();
+		Mockito.when(mockForumDao.getForum(Long.parseLong(forumId))).thenReturn(dto);
+		forumManager.getForum(userInfo, forumId);
 	}
 
 	@Test
-	public void testGetForumDoesNotExist() {
-		Mockito.when(mockNodeDao.doesNodeExist(KeyFactory.stringToKey(projectId)))
-				.thenReturn(true);
+	public void testGetForum() {
 		Mockito.when(mockAuthManager.canAccess(
 				userInfo, projectId, ENTITY_TYPE, READ_ACCESS)).thenReturn(SUCCESS);
-		Mockito.when(mockForumDao.getForumByProjectId(projectId)).thenThrow(new NotFoundException());
-		Mockito.when(mockForumDao.createForum(projectId)).thenReturn(dto);
-		assertEquals(forumManager.getForumMetadata(userInfo, projectId), dto);
+		String forumId = dto.getId();
+		Mockito.when(mockForumDao.getForum(Long.parseLong(forumId))).thenReturn(dto);
+		assertEquals(forumManager.getForum(userInfo, forumId), dto);
 	}
 }

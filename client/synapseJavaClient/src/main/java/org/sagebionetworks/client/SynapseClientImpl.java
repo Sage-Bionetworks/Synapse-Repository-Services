@@ -488,6 +488,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String CERTIFIED_USER_PASSING_RECORDS = "/certifiedUserPassingRecords";
 	private static final String CERTIFIED_USER_STATUS = "/certificationStatus";
 
+	private static final String PROJECT = "/project";
 	private static final String FORUM = "/forum";
 	private static final String THREAD = "/thread";
 	private static final String THREADS = "/threads";
@@ -7310,10 +7311,20 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public Forum getForumMetadata(String projectId) throws SynapseException {
+	public Forum getForumByProjectId(String projectId) throws SynapseException {
 		try {
 			ValidateArgument.required(projectId, "projectId");
-			return getJSONEntity(FORUM+"/"+projectId, Forum.class);
+			return getJSONEntity(PROJECT+"/"+projectId+FORUM, Forum.class);
+		} catch (Exception e) {
+			throw new SynapseClientException(e);
+		}
+	}
+
+	@Override
+	public Forum getForum(String forumId) throws SynapseException {
+		try {
+			ValidateArgument.required(forumId, "forumId");
+			return getJSONEntity(FORUM+"/"+forumId, Forum.class);
 		} catch (Exception e) {
 			throw new SynapseClientException(e);
 		}

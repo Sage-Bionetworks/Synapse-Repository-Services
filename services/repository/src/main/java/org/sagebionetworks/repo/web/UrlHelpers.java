@@ -870,8 +870,10 @@ public class UrlHelpers {
 	// Discussion Services
 	public static final String FORUM = "/forum";
 	public static final String PROJECT_ID = "/{projectId}";
-	public static final String FORUM_PROJECT_ID = FORUM+PROJECT_ID;
+	public static final String PROJECT = "/project";
+	public static final String PROJECT_PROJECT_ID_FORUM = PROJECT+PROJECT_ID+FORUM;
 	public static final String FORUM_ID = "/{forumId}";
+	public static final String FORUM_FORUM_ID = FORUM+FORUM_ID;
 	public static final String THREADS = "/threads";
 	public static final String FORUM_FORUM_ID_THREADS = FORUM+FORUM_ID+THREADS;
 	public static final String THREAD = "/thread";

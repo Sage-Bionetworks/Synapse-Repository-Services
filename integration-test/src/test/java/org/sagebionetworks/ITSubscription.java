@@ -48,7 +48,7 @@ public class ITSubscription {
 		project = synapse.createEntity(project);
 		assertNotNull(project);
 		projectId = project.getId();
-		forum = synapse.getForumMetadata(projectId);
+		forum = synapse.getForumByProjectId(projectId);
 	}
 
 	@After
