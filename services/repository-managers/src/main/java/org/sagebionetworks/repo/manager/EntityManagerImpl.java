@@ -7,8 +7,9 @@ import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.repo.manager.NodeManager.FileHandleReason;
-import org.sagebionetworks.repo.manager.file.MultipartManagerImpl;
+import org.sagebionetworks.repo.manager.discussion.ForumManager;
 import org.sagebionetworks.repo.manager.file.MultipartUtils;
+import org.sagebionetworks.repo.manager.subscription.SubscriptionManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -27,7 +28,10 @@ import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VersionInfo;
+import org.sagebionetworks.repo.model.discussion.Forum;
 import org.sagebionetworks.repo.model.provenance.Activity;
+import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
+import org.sagebionetworks.repo.model.subscription.Topic;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,6 +47,10 @@ public class EntityManagerImpl implements EntityManager {
 	private EntityPermissionsManager entityPermissionsManager;
 	@Autowired
 	UserManager userManager;
+	@Autowired
+	ForumManager forumManager;
+	@Autowired
+	SubscriptionManager subscriptionManager;
 	
 	boolean allowCreationOfOldEntities = true;
 	
@@ -75,15 +83,27 @@ public class EntityManagerImpl implements EntityManager {
 		// First create a node the represent the entity
 		Node node = NodeTranslationUtils.createFromEntity(newEntity);
 		// Set the type for this object
-		node.setNodeType(EntityTypeUtils.getEntityTypeForClass(newEntity.getClass()));
+		EntityType type = EntityTypeUtils.getEntityTypeForClass(newEntity.getClass());
+		node.setNodeType(type);
 		node.setActivityId(activityId);
 		NamedAnnotations annos = new NamedAnnotations();
 		// Now add all of the annotations and references from the entity
 		NodeTranslationUtils.updateNodeSecondaryFieldsFromObject(newEntity, annos.getPrimaryAnnotations());
 		// We are ready to create this node
 		String nodeId = nodeManager.createNewNode(node, annos, userInfo);
+		if (type == EntityType.project) {
+			createForumAndSubscribe(userInfo, nodeId);
+		}
 		// Return the id of the newly created entity
 		return nodeId;
+	}
+
+	private void createForumAndSubscribe(UserInfo userInfo, String nodeId) {
+		Forum forum = forumManager.createForum(userInfo, nodeId);
+		Topic toSubscribe = new Topic();
+		toSubscribe.setObjectId(forum.getId());
+		toSubscribe.setObjectType(SubscriptionObjectType.FORUM);
+		subscriptionManager.create(userInfo, toSubscribe);
 	}
 
 	@Override
