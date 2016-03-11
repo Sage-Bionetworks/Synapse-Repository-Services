@@ -199,6 +199,27 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 
 	@Override
 	public List<String> getAllSubscribers(String objectId, SubscriptionObjectType objectType) {
+		ValidateArgument.required(objectId, "objectId");
+		ValidateArgument.required(objectType, "objectType");
 		return jdbcTemplate.queryForList(SQL_GET_SUBSCRIBERS, new Object[]{objectId, objectType.name()}, String.class);
+	}
+
+	@Override
+	public void subscribeAll(final String userId, List<String> idList, final SubscriptionObjectType objectType) {
+		ValidateArgument.required(userId, "userId");
+		ValidateArgument.required(idList, "idList");
+		ValidateArgument.required(objectType, "objectType");
+		jdbcTemplate.batchUpdate(SQL_INSERT_IGNORE, idList, idList.size(), new ParameterizedPreparedStatementSetter<String>(){
+
+			@Override
+			public void setValues(PreparedStatement ps, String objectId)
+					throws SQLException {
+				ps.setLong(1, Long.parseLong(idGenerator.generateNewId(TYPE.SUBSCRIPTION_ID).toString()));
+				ps.setLong(2, Long.parseLong(userId));
+				ps.setLong(3, Long.parseLong(objectId));
+				ps.setString(4, objectType.name());
+				ps.setLong(5, new Date().getTime());
+			}
+		});
 	}
 }

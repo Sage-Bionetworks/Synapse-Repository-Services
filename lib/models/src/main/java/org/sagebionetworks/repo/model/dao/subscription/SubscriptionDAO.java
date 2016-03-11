@@ -80,4 +80,13 @@ public interface SubscriptionDAO {
 	 */
 	public List<String> getAllSubscribers(String objectId,
 			SubscriptionObjectType objectType);
+
+	/**
+	 * Subscribe a user to all topics listed
+	 * 
+	 * @param userId
+	 * @param idList
+	 * @param objectType
+	 */
+	public void subscribeAll(String userId, List<String> idList, SubscriptionObjectType objectType);
 }
