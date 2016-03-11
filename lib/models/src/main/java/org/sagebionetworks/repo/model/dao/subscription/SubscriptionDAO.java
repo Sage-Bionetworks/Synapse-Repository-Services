@@ -62,4 +62,22 @@ public interface SubscriptionDAO {
 	 * @param userId
 	 */
 	public void deleteAll(Long userId);
+
+	/**
+	 * Subscribe all forum's subscriber to a new thread
+	 * 
+	 * @param forumId
+	 * @param threadId
+	 */
+	public void subscribeForumSubscriberToThread(String forumId, String threadId);
+
+	/**
+	 * List all subscribers for a given topic
+	 * 
+	 * @param objectId
+	 * @param objectType
+	 * @return
+	 */
+	public List<String> getAllSubscribers(String objectId,
+			SubscriptionObjectType objectType);
 }

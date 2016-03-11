@@ -192,4 +192,34 @@ public class DBOSubscriptionDAOImplTest {
 		subscriptionDao.delete(id);
 		subscriptionDao.get(id);
 	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testSubscribeForumSubscriberToThreadWithNullForumId(){
+		subscriptionDao.subscribeForumSubscriberToThread(null, objectId);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testSubscribeForumSubscriberToThreadWithNullThreadId(){
+		subscriptionDao.subscribeForumSubscriberToThread(objectId, null);
+	}
+
+	@Test
+	public void testSubscribeForumSubscriberToThread(){
+		String forumId = "123";
+		String threadId = "456";
+		subscriptionDao.subscribeForumSubscriberToThread(forumId, threadId);
+		List<String> forumSubscribers = subscriptionDao.getAllSubscribers(forumId, SubscriptionObjectType.FORUM);
+		List<String> threadSubscribers = subscriptionDao.getAllSubscribers(threadId, SubscriptionObjectType.DISCUSSION_THREAD);
+		assertTrue(forumSubscribers.isEmpty());
+		assertTrue(threadSubscribers.isEmpty());
+
+		subscriptionDao.create(userId, forumId, SubscriptionObjectType.FORUM);
+		subscriptionDao.subscribeForumSubscriberToThread(forumId, threadId);
+		forumSubscribers = subscriptionDao.getAllSubscribers(forumId, SubscriptionObjectType.FORUM);
+		threadSubscribers = subscriptionDao.getAllSubscribers(threadId, SubscriptionObjectType.DISCUSSION_THREAD);
+		assertEquals(1L, forumSubscribers.size());
+		assertEquals(1L, threadSubscribers.size());
+		assertTrue(forumSubscribers.contains(userId));
+		assertTrue(threadSubscribers.contains(userId));
+	}
 }
