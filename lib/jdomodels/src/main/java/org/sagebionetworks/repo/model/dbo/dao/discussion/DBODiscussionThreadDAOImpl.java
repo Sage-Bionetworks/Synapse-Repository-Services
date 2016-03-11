@@ -165,6 +165,10 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 			+" FROM "+TABLE_DISCUSSION_THREAD
 			+" LIMIT ? OFFSET ?";
 
+	public static final String SQL_SELECT_ALL_THREAD_ID_FOR_FORUM = "SELECT "+COL_DISCUSSION_THREAD_ID
+			+" FROM "+TABLE_DISCUSSION_THREAD
+			+" WHERE "+COL_DISCUSSION_THREAD_FORUM_ID+" = ?";
+
 	private static final String SQL_UPDATE_THREAD_VIEW_TABLE = "INSERT IGNORE INTO "
 			+TABLE_DISCUSSION_THREAD_VIEW+" ("
 			+COL_DISCUSSION_THREAD_VIEW_ID+","
@@ -444,5 +448,11 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 				return rs.getLong(COL_DISCUSSION_THREAD_ID);
 			}
 		}, limit, offset);
+	}
+
+	@Override
+	public List<String> getAllThreadIdForForum(String forumId) {
+		ValidateArgument.required(forumId, "forumId");
+		return jdbcTemplate.queryForList(SQL_SELECT_ALL_THREAD_ID_FOR_FORUM, new Object[]{forumId}, String.class);
 	}
 }
