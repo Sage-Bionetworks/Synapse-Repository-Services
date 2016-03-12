@@ -32,6 +32,8 @@ import org.sagebionetworks.repo.model.discussion.Forum;
 import org.sagebionetworks.repo.model.discussion.MessageURL;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
+import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -51,6 +53,8 @@ public class DiscussionThreadManagerImplTest {
 	private AuthorizationManager mockAuthorizationManager;
 	@Mock
 	private IdGenerator mockIdGenerator;
+	@Mock
+	private TransactionalMessenger mockTransactionalMessenger;
 
 	private DiscussionThreadManager threadManager;
 	private UserInfo userInfo = new UserInfo(false /*not admin*/);
@@ -78,6 +82,7 @@ public class DiscussionThreadManagerImplTest {
 		ReflectionTestUtils.setField(threadManager, "idGenerator", mockIdGenerator);
 		ReflectionTestUtils.setField(threadManager, "replyDao", mockReplyDao);
 		ReflectionTestUtils.setField(threadManager, "subscriptionDao", mockSubscriptionDao);
+		ReflectionTestUtils.setField(threadManager, "transactionalMessenger", mockTransactionalMessenger);
 
 		createDto = new CreateDiscussionThread();
 		createDto.setForumId(forumId.toString());
@@ -90,6 +95,7 @@ public class DiscussionThreadManagerImplTest {
 		dto.setProjectId(projectId);
 		dto.setMessageKey(messageKey);
 		dto.setId(threadId.toString());
+		dto.setEtag("etag");
 		userInfo.setId(userId);
 
 		newTitle.setTitle("newTitle");
@@ -159,6 +165,7 @@ public class DiscussionThreadManagerImplTest {
 		assertEquals(createdThread, dto);
 		Mockito.verify(mockReplyDao).getReplyCount(Long.parseLong(createdThread.getId()), DiscussionFilter.NO_FILTER);
 		Mockito.verify(mockSubscriptionDao).create(userId.toString(), dto.getId(), SubscriptionObjectType.DISCUSSION_THREAD);
+		Mockito.verify(mockTransactionalMessenger).sendMessageAfterCommit(createdThread.getId(), ObjectType.THREAD, dto.getEtag(), ChangeType.CREATE);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -210,6 +217,7 @@ public class DiscussionThreadManagerImplTest {
 
 		assertEquals(dto, threadManager.updateTitle(userInfo, threadId.toString(), newTitle));
 		Mockito.verify(mockReplyDao).getReplyCount(threadId, DiscussionFilter.NO_FILTER);
+		Mockito.verify(mockTransactionalMessenger).sendMessageAfterCommit(threadId.toString(), ObjectType.THREAD, dto.getEtag(), ChangeType.UPDATE);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -233,6 +241,7 @@ public class DiscussionThreadManagerImplTest {
 		Mockito.when(mockThreadDao.updateMessageKey(Mockito.anyLong(), Mockito.anyString())).thenReturn(dto);
 		assertEquals(dto, threadManager.updateMessage(userInfo, threadId.toString(), newMessage));
 		Mockito.verify(mockReplyDao).getReplyCount(threadId, DiscussionFilter.NO_FILTER);
+		Mockito.verify(mockTransactionalMessenger).sendMessageAfterCommit(threadId.toString(), ObjectType.THREAD, dto.getEtag(), ChangeType.UPDATE);
 	}
 
 	@Test (expected = UnauthorizedException.class)
@@ -248,6 +257,7 @@ public class DiscussionThreadManagerImplTest {
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		threadManager.markThreadAsDeleted(userInfo, threadId.toString());
 		Mockito.verify(mockThreadDao).markThreadAsDeleted(threadId);
+		Mockito.verify(mockTransactionalMessenger).sendMessageAfterCommit(threadId.toString(), ObjectType.THREAD, ChangeType.DELETE);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
