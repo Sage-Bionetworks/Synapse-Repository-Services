@@ -76,7 +76,7 @@ public class DiscussionThreadManagerImplAutowiredTest {
 		Project project = new Project();
 		project.setName("project");
 		projectId = entityManager.createEntity(userInfo, project, null);
-		forum = forumManager.getForumByProjectId(userInfo, projectId);
+		forum = forumManager.createForum(userInfo, projectId);
 
 		createThread = new CreateDiscussionThread();
 		createThread.setForumId(forum.getId());
