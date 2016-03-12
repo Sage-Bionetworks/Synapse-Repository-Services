@@ -47,7 +47,7 @@ public class ForumManagerImpl implements ForumManager {
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canAccess(user, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ));
 		try {
-				return forumDao.getForumByProjectId(projectId);
+			return forumDao.getForumByProjectId(projectId);
 		} catch (NotFoundException e) {
 			return createForum(user, projectId);
 		}
