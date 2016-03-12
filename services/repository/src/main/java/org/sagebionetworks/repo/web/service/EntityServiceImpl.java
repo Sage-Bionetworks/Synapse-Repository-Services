@@ -50,6 +50,8 @@ import org.sagebionetworks.repo.web.service.metadata.EntityProvider;
 import org.sagebionetworks.repo.web.service.metadata.EntityValidator;
 import org.sagebionetworks.repo.web.service.metadata.EventType;
 import org.sagebionetworks.repo.web.service.metadata.MetadataProviderFactory;
+import org.sagebionetworks.repo.web.service.metadata.TypeSpecificCreateProvider;
+import org.sagebionetworks.repo.web.service.metadata.TypeSpecificGetProvider;
 import org.sagebionetworks.repo.web.service.metadata.TypeSpecificDeleteProvider;
 import org.sagebionetworks.repo.web.service.metadata.TypeSpecificMetadataProvider;
 import org.sagebionetworks.repo.web.service.metadata.TypeSpecificVersionDeleteProvider;
@@ -164,9 +166,32 @@ public class EntityServiceImpl implements EntityService {
 		// Determine the object type from the url.
 		EntityType type = EntityTypeUtils.getEntityTypeForClass(clazz);
 		T entity = entityManager.getEntity(info, id, clazz);
+		fireBeforeGetEntityEvent(info, entity, type);
 		// Do all of the type specific stuff.
 		this.doAddServiceSpecificMetadata(info, entity, type, request, eventType);
 		return entity;
+	}
+
+	/**
+	 * Fire an before an entity is returned.
+	 * @param userInfo
+	 * @param eventType
+	 * @param entity
+	 * @param type
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws InvalidModelException
+	 */
+	private void fireBeforeGetEntityEvent(UserInfo userInfo, Entity entity, EntityType type) throws NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException{
+		List<EntityProvider<Entity>> providers = metadataProviderFactory.getMetadataProvider(type);
+		if(providers != null) {
+			for (EntityProvider<Entity> provider : providers) {
+				if (provider instanceof EntityValidator) {
+					((TypeSpecificGetProvider) provider).beforeGet(userInfo, entity.getId());
+				}
+			}
+		}
 	}
 	
 	/**
@@ -251,8 +276,31 @@ public class EntityServiceImpl implements EntityService {
 		// Fire the event
 		fireValidateEvent(userInfo, eventType, newEntity, type);
 		String id = entityManager.createEntity(userInfo, newEntity, activityId);
+		fireAfterCreateEntityEvent(userInfo, newEntity, type);
 		// Return the resulting entity.
 		return getEntity(userInfo, id, request, clazz, eventType);
+	}
+
+	/**
+	 * Fire an after create event.
+	 * @param userInfo
+	 * @param eventType
+	 * @param entity
+	 * @param type
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws InvalidModelException
+	 */
+	private void fireAfterCreateEntityEvent(UserInfo userInfo, Entity entity, EntityType type) throws NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException{
+		List<EntityProvider<Entity>> providers = metadataProviderFactory.getMetadataProvider(type);
+		if(providers != null) {
+			for (EntityProvider<Entity> provider : providers) {
+				if (provider instanceof EntityValidator) {
+					((TypeSpecificCreateProvider) provider).entityCreated(userInfo, entity.getId());
+				}
+			}
+		}
 	}
 	
 	/**
