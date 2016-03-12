@@ -7,31 +7,21 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.eq;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.repo.manager.discussion.ForumManager;
-import org.sagebionetworks.repo.manager.subscription.SubscriptionManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.discussion.Forum;
-import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
-import org.sagebionetworks.repo.model.subscription.Topic;
 import org.sagebionetworks.repo.util.LocationHelper;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.util.ReflectionTestUtils;
 
 public class EntityManagerImplUnitTest {
 
@@ -42,8 +32,6 @@ public class EntityManagerImplUnitTest {
 	private NodeManager mockNodeManager;
 	private IdGenerator mocIdGenerator;
 	private LocationHelper mocKLocationHelper;
-	private ForumManager mockForumManager;
-	private SubscriptionManager mockSubscriptionManager;
 	Long userId = 007L;
 	
 	@Before
@@ -54,13 +42,8 @@ public class EntityManagerImplUnitTest {
 		mockNodeManager = Mockito.mock(NodeManager.class);
 		mocIdGenerator = Mockito.mock(IdGenerator.class);
 		mocKLocationHelper = Mockito.mock(LocationHelper.class);
-		mockForumManager = Mockito.mock(ForumManager.class);
-		mockSubscriptionManager = Mockito.mock(SubscriptionManager.class);
-		mockUser = Mockito.mock(UserInfo.class);
-		when(mockUser.getId()).thenReturn(userId);
+		mockUser = new UserInfo(false);
 		entityManager = new EntityManagerImpl(mockNodeManager, mockPermissionsManager, mockUserManager);
-		ReflectionTestUtils.setField(entityManager, "forumManager", mockForumManager);
-		ReflectionTestUtils.setField(entityManager, "subscriptionManager", mockSubscriptionManager);
 	}
 
 	@Test (expected=UnauthorizedException.class)
@@ -182,23 +165,5 @@ public class EntityManagerImplUnitTest {
 		entityManager.updateEntity(mockUser, entity, true, activityId);		
 		verify(node).setActivityId(activityId);
 		reset(node);
-	}
-
-	@Test
-	public void testForumAndSubscribeWhenProjectCreated() {
-		String projectId = "123";
-		Entity newEntity = new Project();
-		newEntity.setId(projectId);
-		newEntity.setName("new project");
-		String forumId = "456";
-		Forum forum = new Forum();
-		forum.setId(forumId);
-		when(mockForumManager.createForum(eq(mockUser), anyString())).thenReturn(forum);
-		entityManager.createEntity(mockUser, newEntity, null);
-		ArgumentCaptor<Topic> ac = new ArgumentCaptor<Topic>();
-		verify(mockSubscriptionManager).create(eq(mockUser), ac.capture());
-		Topic topic = ac.getValue();
-		assertEquals(forumId, topic.getObjectId());
-		assertEquals(SubscriptionObjectType.FORUM, topic.getObjectType());
 	}
 }
