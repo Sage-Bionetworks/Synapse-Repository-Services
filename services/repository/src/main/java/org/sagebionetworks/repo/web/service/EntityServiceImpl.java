@@ -272,7 +272,7 @@ public class EntityServiceImpl implements EntityService {
 		List<EntityProvider<Entity>> providers = metadataProviderFactory.getMetadataProvider(type);
 		if(providers != null) {
 			for (EntityProvider<Entity> provider : providers) {
-				if (provider instanceof EntityValidator) {
+				if (provider instanceof TypeSpecificCreateProvider) {
 					((TypeSpecificCreateProvider) provider).entityCreated(userInfo, entity.getId());
 				}
 			}
