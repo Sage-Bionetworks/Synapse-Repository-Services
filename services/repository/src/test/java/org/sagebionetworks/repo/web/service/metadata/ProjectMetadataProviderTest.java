@@ -17,7 +17,6 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.discussion.Forum;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.Topic;
-import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.service.metadata.EventType;
 import org.sagebionetworks.repo.web.service.metadata.ProjectMetadataProvider;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -83,21 +82,5 @@ public class ProjectMetadataProviderTest {
 		topic.setObjectId(forumId);
 		topic.setObjectType(SubscriptionObjectType.FORUM);
 		verify(mockSubscriptionManager).create(userInfo, topic);
-	}
-
-	@Test
-	public void testBeforeGetWithoutForum() {
-		when(mockForumManager.getForumByProjectId(userInfo, projectId)).thenThrow(new NotFoundException());
-		provider.beforeGet(userInfo, projectId);
-		verify(mockForumManager).getForumByProjectId(userInfo, projectId);
-		verify(mockForumManager).createForum(userInfo, projectId);
-	}
-
-	@Test
-	public void testBeforeGetWithForum() {
-		when(mockForumManager.getForumByProjectId(userInfo, projectId)).thenReturn(forum);
-		provider.beforeGet(userInfo, projectId);
-		verify(mockForumManager).getForumByProjectId(userInfo, projectId);
-		verify(mockForumManager, never()).createForum(userInfo, projectId);
 	}
 }

@@ -15,7 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 /**
  *
  */
-public class ProjectMetadataProvider implements TypeSpecificMetadataProvider<Project>, TypeSpecificCreateProvider<Project>, TypeSpecificGetProvider<Project> {
+public class ProjectMetadataProvider implements TypeSpecificMetadataProvider<Project>, TypeSpecificCreateProvider<Project> {
 
 	@Autowired
 	ForumManager forumManager;
@@ -35,14 +35,5 @@ public class ProjectMetadataProvider implements TypeSpecificMetadataProvider<Pro
 		toSubscribe.setObjectId(forum.getId());
 		toSubscribe.setObjectType(SubscriptionObjectType.FORUM);
 		subscriptionManager.create(userInfo, toSubscribe);
-	}
-
-	@Override
-	public void beforeGet(UserInfo userInfo, String entityId) {
-		try {
-			forumManager.getForumByProjectId(userInfo, entityId);
-		} catch (NotFoundException e) {
-			forumManager.createForum(userInfo, entityId);
-		}
 	}
 }
