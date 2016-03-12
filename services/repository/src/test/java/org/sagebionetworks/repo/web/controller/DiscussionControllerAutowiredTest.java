@@ -59,16 +59,17 @@ public class DiscussionControllerAutowiredTest extends AbstractAutowiredControll
 	}
 
 	@Test
-	public void testGetForumMetadata() throws Exception {
-		Forum dto = servletTestHelper.getForumMetadata(dispatchServlet, project.getId(), adminUserId);
+	public void testGetForum() throws Exception {
+		Forum dto = servletTestHelper.getForumByProjectId(dispatchServlet, project.getId(), adminUserId);
 		assertNotNull(dto);
 		assertNotNull(dto.getId());
 		assertEquals(dto.getProjectId(), project.getId());
+		assertEquals(dto, servletTestHelper.getForum(dispatchServlet, dto.getId(), adminUserId));
 	}
 
 	@Test
 	public void testCreateThread() throws Exception {
-		Forum dto = servletTestHelper.getForumMetadata(dispatchServlet, project.getId(), adminUserId);
+		Forum dto = servletTestHelper.getForumByProjectId(dispatchServlet, project.getId(), adminUserId);
 		createThread.setForumId(dto.getId());
 		DiscussionThreadBundle bundle = servletTestHelper.createThread(dispatchServlet, adminUserId, createThread);
 		assertNotNull(bundle);
@@ -78,7 +79,7 @@ public class DiscussionControllerAutowiredTest extends AbstractAutowiredControll
 
 	@Test
 	public void testGetThread() throws Exception {
-		Forum dto = servletTestHelper.getForumMetadata(dispatchServlet, project.getId(), adminUserId);
+		Forum dto = servletTestHelper.getForumByProjectId(dispatchServlet, project.getId(), adminUserId);
 		createThread.setForumId(dto.getId());
 		DiscussionThreadBundle bundle = servletTestHelper.createThread(dispatchServlet, adminUserId, createThread);
 		DiscussionThreadBundle bundle2 = servletTestHelper.getThread(dispatchServlet, adminUserId, bundle.getId());
@@ -87,7 +88,7 @@ public class DiscussionControllerAutowiredTest extends AbstractAutowiredControll
 
 	@Test
 	public void testGetThreads() throws Exception {
-		Forum forum = servletTestHelper.getForumMetadata(dispatchServlet, project.getId(), adminUserId);
+		Forum forum = servletTestHelper.getForumByProjectId(dispatchServlet, project.getId(), adminUserId);
 		createThread.setForumId(forum.getId());
 		DiscussionThreadBundle bundle1 = servletTestHelper.createThread(dispatchServlet, adminUserId, createThread);
 		DiscussionThreadBundle bundle2 = servletTestHelper.createThread(dispatchServlet, adminUserId, createThread);
@@ -98,7 +99,7 @@ public class DiscussionControllerAutowiredTest extends AbstractAutowiredControll
 
 	@Test
 	public void testGetAvailableThreadsAndDeletedThreads() throws Exception {
-		Forum forum = servletTestHelper.getForumMetadata(dispatchServlet, project.getId(), adminUserId);
+		Forum forum = servletTestHelper.getForumByProjectId(dispatchServlet, project.getId(), adminUserId);
 		createThread.setForumId(forum.getId());
 		DiscussionThreadBundle bundle1 = servletTestHelper.createThread(dispatchServlet, adminUserId, createThread);
 		DiscussionThreadBundle bundle2 = servletTestHelper.createThread(dispatchServlet, adminUserId, createThread);
@@ -113,7 +114,7 @@ public class DiscussionControllerAutowiredTest extends AbstractAutowiredControll
 
 	@Test
 	public void testUpdateThreadTitle() throws Exception {
-		Forum dto = servletTestHelper.getForumMetadata(dispatchServlet, project.getId(), adminUserId);
+		Forum dto = servletTestHelper.getForumByProjectId(dispatchServlet, project.getId(), adminUserId);
 		createThread.setForumId(dto.getId());
 		DiscussionThreadBundle bundle = servletTestHelper.createThread(dispatchServlet, adminUserId, createThread);
 		UpdateThreadTitle newTitle = new UpdateThreadTitle();
@@ -126,7 +127,7 @@ public class DiscussionControllerAutowiredTest extends AbstractAutowiredControll
 
 	@Test
 	public void testUpdateThreadMessage() throws Exception {
-		Forum dto = servletTestHelper.getForumMetadata(dispatchServlet, project.getId(), adminUserId);
+		Forum dto = servletTestHelper.getForumByProjectId(dispatchServlet, project.getId(), adminUserId);
 		createThread.setForumId(dto.getId());
 		DiscussionThreadBundle bundle = servletTestHelper.createThread(dispatchServlet, adminUserId, createThread);
 		UpdateThreadMessage newMessage = new UpdateThreadMessage();
@@ -139,7 +140,7 @@ public class DiscussionControllerAutowiredTest extends AbstractAutowiredControll
 
 	@Test (expected = NotFoundException.class)
 	public void testMarkThreadAsDeleted() throws Exception {
-		Forum dto = servletTestHelper.getForumMetadata(dispatchServlet, project.getId(), adminUserId);
+		Forum dto = servletTestHelper.getForumByProjectId(dispatchServlet, project.getId(), adminUserId);
 		createThread.setForumId(dto.getId());
 		DiscussionThreadBundle bundle = servletTestHelper.createThread(dispatchServlet, adminUserId, createThread);
 		servletTestHelper.markThreadAsDeleted(dispatchServlet, adminUserId, bundle.getId());
@@ -148,7 +149,7 @@ public class DiscussionControllerAutowiredTest extends AbstractAutowiredControll
 
 	@Test
 	public void testGetThreadUrl() throws Exception {
-		Forum dto = servletTestHelper.getForumMetadata(dispatchServlet, project.getId(), adminUserId);
+		Forum dto = servletTestHelper.getForumByProjectId(dispatchServlet, project.getId(), adminUserId);
 		createThread.setForumId(dto.getId());
 		DiscussionThreadBundle bundle = servletTestHelper.createThread(dispatchServlet, adminUserId, createThread);
 		MessageURL url = servletTestHelper.getThreadUrl(dispatchServlet, adminUserId, bundle.getMessageKey());
@@ -158,7 +159,7 @@ public class DiscussionControllerAutowiredTest extends AbstractAutowiredControll
 
 	@Test
 	public void testCreateReply() throws Exception {
-		Forum dto = servletTestHelper.getForumMetadata(dispatchServlet, project.getId(), adminUserId);
+		Forum dto = servletTestHelper.getForumByProjectId(dispatchServlet, project.getId(), adminUserId);
 		createThread.setForumId(dto.getId());
 		DiscussionThreadBundle threadBundle = servletTestHelper.createThread(dispatchServlet, adminUserId, createThread);
 		createReply.setThreadId(threadBundle.getId());
@@ -169,7 +170,7 @@ public class DiscussionControllerAutowiredTest extends AbstractAutowiredControll
 
 	@Test
 	public void testGetReply() throws Exception {
-		Forum dto = servletTestHelper.getForumMetadata(dispatchServlet, project.getId(), adminUserId);
+		Forum dto = servletTestHelper.getForumByProjectId(dispatchServlet, project.getId(), adminUserId);
 		createThread.setForumId(dto.getId());
 		DiscussionThreadBundle threadBundle = servletTestHelper.createThread(dispatchServlet, adminUserId, createThread);
 		createReply.setThreadId(threadBundle.getId());
@@ -179,7 +180,7 @@ public class DiscussionControllerAutowiredTest extends AbstractAutowiredControll
 
 	@Test
 	public void testGetReplies() throws Exception {
-		Forum forum = servletTestHelper.getForumMetadata(dispatchServlet, project.getId(), adminUserId);
+		Forum forum = servletTestHelper.getForumByProjectId(dispatchServlet, project.getId(), adminUserId);
 		createThread.setForumId(forum.getId());
 		DiscussionThreadBundle threadBundle = servletTestHelper.createThread(dispatchServlet, adminUserId, createThread);
 		createReply.setThreadId(threadBundle.getId());
@@ -196,7 +197,7 @@ public class DiscussionControllerAutowiredTest extends AbstractAutowiredControll
 
 	@Test
 	public void testGetAvailableThreadsAndDeletedReplies() throws Exception {
-		Forum forum = servletTestHelper.getForumMetadata(dispatchServlet, project.getId(), adminUserId);
+		Forum forum = servletTestHelper.getForumByProjectId(dispatchServlet, project.getId(), adminUserId);
 		createThread.setForumId(forum.getId());
 		DiscussionThreadBundle threadBundle = servletTestHelper.createThread(dispatchServlet, adminUserId, createThread);
 		createReply.setThreadId(threadBundle.getId());
@@ -213,7 +214,7 @@ public class DiscussionControllerAutowiredTest extends AbstractAutowiredControll
 
 	@Test
 	public void testUpdateReplyMessage() throws Exception {
-		Forum dto = servletTestHelper.getForumMetadata(dispatchServlet, project.getId(), adminUserId);
+		Forum dto = servletTestHelper.getForumByProjectId(dispatchServlet, project.getId(), adminUserId);
 		createThread.setForumId(dto.getId());
 		DiscussionThreadBundle threadBundle = servletTestHelper.createThread(dispatchServlet, adminUserId, createThread);
 		createReply.setThreadId(threadBundle.getId());
@@ -228,7 +229,7 @@ public class DiscussionControllerAutowiredTest extends AbstractAutowiredControll
 
 	@Test (expected = NotFoundException.class)
 	public void testMarkReplyAsDeleted() throws Exception {
-		Forum dto = servletTestHelper.getForumMetadata(dispatchServlet, project.getId(), adminUserId);
+		Forum dto = servletTestHelper.getForumByProjectId(dispatchServlet, project.getId(), adminUserId);
 		createThread.setForumId(dto.getId());
 		DiscussionThreadBundle threadBundle = servletTestHelper.createThread(dispatchServlet, adminUserId, createThread);
 		createReply.setThreadId(threadBundle.getId());
@@ -239,7 +240,7 @@ public class DiscussionControllerAutowiredTest extends AbstractAutowiredControll
 
 	@Test
 	public void testGetReplyUrl() throws Exception {
-		Forum dto = servletTestHelper.getForumMetadata(dispatchServlet, project.getId(), adminUserId);
+		Forum dto = servletTestHelper.getForumByProjectId(dispatchServlet, project.getId(), adminUserId);
 		createThread.setForumId(dto.getId());
 		DiscussionThreadBundle threadBundle = servletTestHelper.createThread(dispatchServlet, adminUserId, createThread);
 		createReply.setThreadId(threadBundle.getId());

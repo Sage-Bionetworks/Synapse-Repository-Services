@@ -48,7 +48,7 @@ public class ITSubscription {
 		project = synapse.createEntity(project);
 		assertNotNull(project);
 		projectId = project.getId();
-		forum = synapse.getForumMetadata(projectId);
+		forum = synapse.getForumByProjectId(projectId);
 	}
 
 	@After
@@ -67,6 +67,8 @@ public class ITSubscription {
 		assertEquals(forumId, sub.getObjectId());
 		assertEquals(SubscriptionObjectType.FORUM, sub.getObjectType());
 		assertEquals(userToDelete.toString(), sub.getSubscriberId());
+
+		assertEquals(sub, synapse.get(sub.getSubscriptionId()));
 
 		SubscriptionPagedResults results = synapse.getAllSubscriptions(null, 10L, 0L);
 		assertNotNull(results);

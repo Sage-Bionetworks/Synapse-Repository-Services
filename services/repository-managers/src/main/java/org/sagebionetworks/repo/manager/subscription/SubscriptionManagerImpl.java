@@ -1,9 +1,12 @@
 package org.sagebionetworks.repo.manager.subscription;
 
+import java.util.List;
+
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dao.discussion.DiscussionThreadDAO;
 import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
 import org.sagebionetworks.repo.model.subscription.Subscription;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
@@ -19,6 +22,8 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
 	@Autowired
 	private SubscriptionDAO subscriptionDao;
 	@Autowired
+	private DiscussionThreadDAO threadDao;
+	@Autowired
 	private AuthorizationManager authorizationManager;
 
 	@WriteTransactionReadCommitted
@@ -30,7 +35,16 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
 		ValidateArgument.required(toSubscribe.getObjectType(), "Topic.objectType");
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canSubscribe(userInfo, toSubscribe.getObjectId(), toSubscribe.getObjectType()));
-		return subscriptionDao.create(userInfo.getId().toString(), toSubscribe.getObjectId(), toSubscribe.getObjectType());
+		Subscription sub = subscriptionDao.create(userInfo.getId().toString(), toSubscribe.getObjectId(), toSubscribe.getObjectType());
+		if (toSubscribe.getObjectType() == SubscriptionObjectType.FORUM) {
+			subscribeToAllExistingThreads(userInfo.getId().toString(), toSubscribe.getObjectId());
+		}
+		return sub;
+	}
+
+	private void subscribeToAllExistingThreads(String userId, String forumId) {
+		List<String> threadIdList = threadDao.getAllThreadIdForForum(forumId);
+		subscriptionDao.subscribeAll(userId, threadIdList, SubscriptionObjectType.DISCUSSION_THREAD);
 	}
 
 	@Override
@@ -69,5 +83,17 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
 	public void deleteAll(UserInfo userInfo) {
 		ValidateArgument.required(userInfo, "userInfo");
 		subscriptionDao.deleteAll(userInfo.getId());
+	}
+
+	@Override
+	public Subscription get(UserInfo userInfo, String subscriptionId) {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(subscriptionId, "subscriptionId");
+		Long id = Long.parseLong(subscriptionId);
+		Subscription sub = subscriptionDao.get(id);
+		if (!sub.getSubscriberId().equals(userInfo.getId().toString())) {
+			throw new UnauthorizedException("Only the user who created this subscription can perform this action.");
+		}
+		return sub;
 	}
 }

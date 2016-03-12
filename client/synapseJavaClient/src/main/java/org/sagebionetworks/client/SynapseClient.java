@@ -2428,7 +2428,16 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
-	Forum getForumMetadata(String projectId) throws SynapseException;
+	Forum getForumByProjectId(String projectId) throws SynapseException;
+
+	/**
+	 * Get the forum metadata for a given ID
+	 * 
+	 * @param projectId
+	 * @return
+	 * @throws SynapseException
+	 */
+	Forum getForum(String forumId) throws SynapseException;
 
 	/**
 	 * Create a new Discussion Reply
@@ -2659,4 +2668,12 @@ public interface SynapseClient extends BaseClient {
 	 * 
 	 */
 	void unsubscribeAll() throws SynapseException;
+
+	/**
+	 * Retrieve a subscription given its ID
+	 * 
+	 * @param subscriptionId
+	 * @throws SynapseException 
+	 */
+	Subscription get(String subscriptionId) throws SynapseException;
 }

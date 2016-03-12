@@ -4,6 +4,7 @@ import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.junit.Before;
@@ -14,6 +15,7 @@ import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dao.discussion.DiscussionThreadDAO;
 import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
 import org.sagebionetworks.repo.model.subscription.Subscription;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
@@ -26,6 +28,8 @@ public class SubscriptionManagerImplTest {
 
 	@Mock
 	private AuthorizationManager mockAuthorizationManager;
+	@Mock
+	private DiscussionThreadDAO mockThreadDao;
 	@Mock
 	private SubscriptionDAO mockDao;
 	private SubscriptionManagerImpl manager;
@@ -43,6 +47,7 @@ public class SubscriptionManagerImplTest {
 		manager = new SubscriptionManagerImpl();
 		ReflectionTestUtils.setField(manager, "authorizationManager", mockAuthorizationManager);
 		ReflectionTestUtils.setField(manager, "subscriptionDao", mockDao);
+		ReflectionTestUtils.setField(manager, "threadDao", mockThreadDao);
 
 		objectId = "1";
 		topic = new Topic();
@@ -53,6 +58,7 @@ public class SubscriptionManagerImplTest {
 		userInfo = new UserInfo(false);
 		userInfo.setId(userId);
 		sub = new Subscription();
+		sub.setObjectId(objectId);
 	}
 
 	@Test (expected=IllegalArgumentException.class)
@@ -78,16 +84,63 @@ public class SubscriptionManagerImplTest {
 	}
 
 	@Test
-	public void testCreateAuthorized(){
+	public void testCreateForumSubscription(){
 		when(mockAuthorizationManager
 				.canSubscribe(userInfo, objectId, SubscriptionObjectType.FORUM))
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		when(mockDao
 				.create(userId.toString(), objectId, SubscriptionObjectType.FORUM))
 				.thenReturn(sub);
+		List<String> threadIdList = Arrays.asList("1");
+		when(mockThreadDao.getAllThreadIdForForum(objectId)).thenReturn(threadIdList);
 		assertEquals(sub, manager.create(userInfo, topic));
 		verify(mockAuthorizationManager).canSubscribe(userInfo, objectId, SubscriptionObjectType.FORUM);
+		verify(mockThreadDao).getAllThreadIdForForum(objectId);
+		verify(mockDao).subscribeAll(userId.toString(), threadIdList, SubscriptionObjectType.DISCUSSION_THREAD);
 	}
+
+	@SuppressWarnings("unchecked")
+	@Test
+	public void testCreateThreadSubscription(){
+		when(mockAuthorizationManager
+				.canSubscribe(userInfo, objectId, SubscriptionObjectType.DISCUSSION_THREAD))
+				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(mockDao
+				.create(userId.toString(), objectId, SubscriptionObjectType.DISCUSSION_THREAD))
+				.thenReturn(sub);
+		topic.setObjectType(SubscriptionObjectType.DISCUSSION_THREAD);
+		assertEquals(sub, manager.create(userInfo, topic));
+		verify(mockAuthorizationManager).canSubscribe(userInfo, objectId, SubscriptionObjectType.DISCUSSION_THREAD);
+		verify(mockThreadDao, never()).getAllThreadIdForForum(anyString());
+		verify(mockDao, never()).subscribeAll(anyString(), any(List.class), any(SubscriptionObjectType.class));
+	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetInvalidUserInfo() {
+		manager.get(null, "1");
+	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetInvalidSubscriptionId() {
+		manager.get(userInfo, null);
+	}
+
+	@Test (expected=UnauthorizedException.class)
+	public void testGetUnauthorized() {
+		Long subscriptionId = 3L;
+		sub.setSubscriberId(anotherUser.toString());
+		when(mockDao.get(subscriptionId)).thenReturn(sub);
+		manager.get(userInfo, subscriptionId.toString());
+	}
+
+	@Test
+	public void testGetAuthorized() {
+		Long subscriptionId = 3L;
+		sub.setSubscriberId(userId.toString());
+		when(mockDao.get(subscriptionId)).thenReturn(sub);
+		assertEquals(sub, manager.get(userInfo, subscriptionId.toString()));
+	}
+
 
 	@Test (expected=IllegalArgumentException.class)
 	public void testGetListInvalidUserInfo() {

@@ -51,4 +51,13 @@ public interface SubscriptionService {
 	 * @param userId
 	 */
 	public void deleteAll(Long userId);
+
+	/**
+	 * retrieve a subscription given its ID
+	 * 
+	 * @param userId
+	 * @param id
+	 * @return
+	 */
+	public Subscription get(Long userId, String id);
 }
