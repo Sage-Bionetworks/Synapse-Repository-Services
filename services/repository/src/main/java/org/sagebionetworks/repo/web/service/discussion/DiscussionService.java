@@ -25,7 +25,16 @@ public interface DiscussionService {
 	 * @param projectId
 	 * @return
 	 */
-	public Forum getForumMetadata(Long userId, String projectId);
+	public Forum getForumByProjectId(Long userId, String projectId);
+
+	/**
+	 * get forum metadata for the given ID
+	 * 
+	 * @param userId
+	 * @param forumId
+	 * @return
+	 */
+	public Forum getForum(Long userId, String forumId);
 
 	/**
 	 * Create a new thread

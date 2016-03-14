@@ -166,6 +166,7 @@ public class DiscussionThreadManagerImplTest {
 		Mockito.verify(mockReplyDao).getReplyCount(Long.parseLong(createdThread.getId()), DiscussionFilter.NO_FILTER);
 		Mockito.verify(mockSubscriptionDao).create(userId.toString(), dto.getId(), SubscriptionObjectType.DISCUSSION_THREAD);
 		Mockito.verify(mockTransactionalMessenger).sendMessageAfterCommit(createdThread.getId(), ObjectType.THREAD, dto.getEtag(), ChangeType.CREATE);
+		Mockito.verify(mockSubscriptionDao).subscribeForumSubscriberToThread(dto.getForumId(), dto.getId());
 	}
 
 	@Test (expected = IllegalArgumentException.class)

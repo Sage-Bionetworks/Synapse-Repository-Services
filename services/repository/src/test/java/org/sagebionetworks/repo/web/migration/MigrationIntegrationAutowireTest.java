@@ -328,7 +328,6 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		createQuizResponse();
 		createChallengeAndRegisterTeam();
 		createVerificationSubmission();
-		createForum();
 		createThread();
 		createThreadView();
 		createReply();
@@ -351,10 +350,6 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		int partNumber =1;
 		String partMD5Hex = "548c050497fb361742b85e0712b0cc96";
 		multipartUploadDAO.addPartToUpload(composite.getMultipartUploadStatus().getUploadId(), partNumber, partMD5Hex);
-	}
-	
-	private void createForum() {
-		forumId = forumDao.createForum(project.getId()).getId();
 	}
 
 	private void createThread() {
@@ -604,6 +599,8 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		project.setName("MigrationIntegrationAutowireTest.Project");
 		project.setEntityType(Project.class.getName());
 		project = serviceProvider.getEntityService().createEntity(adminUserId, project, null, mockRequest);
+
+		forumId = forumDao.getForumByProjectId(project.getId()).getId();
 
 		// Create a file entity
 		fileEntity = new FileEntity();

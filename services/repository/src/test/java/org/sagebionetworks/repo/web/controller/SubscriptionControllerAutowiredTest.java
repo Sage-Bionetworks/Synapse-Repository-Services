@@ -40,7 +40,7 @@ public class SubscriptionControllerAutowiredTest extends AbstractAutowiredContro
 		createThread.setTitle("title");
 		createThread.setMessageMarkdown("messageMarkdown");
 
-		forum = servletTestHelper.getForumMetadata(dispatchServlet, project.getId(), adminUserId);
+		forum = servletTestHelper.getForumByProjectId(dispatchServlet, project.getId(), adminUserId);
 
 		toSubscribe = new Topic();
 		toSubscribe.setObjectType(SubscriptionObjectType.FORUM);
@@ -66,6 +66,12 @@ public class SubscriptionControllerAutowiredTest extends AbstractAutowiredContro
 		assertEquals(toSubscribe.getObjectId(), subscription.getObjectId());
 		assertEquals(toSubscribe.getObjectType(), subscription.getObjectType());
 		assertEquals(adminUserId.toString(), subscription.getSubscriberId());
+	}
+
+	@Test
+	public void testGet() throws Exception {
+		Subscription subscription = servletTestHelper.subscribe(dispatchServlet, adminUserId, toSubscribe);
+		assertEquals(subscription, servletTestHelper.get(dispatchServlet, adminUserId, subscription.getSubscriptionId()));
 	}
 
 	@Test

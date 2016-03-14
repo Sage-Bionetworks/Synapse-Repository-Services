@@ -73,9 +73,14 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		Long id = idGenerator.generateNewId(TYPE.DISCUSSION_THREAD_ID);
 		String messageKey = uploadDao.uploadThreadMessage(createThread.getMessageMarkdown(), createThread.getForumId(), id.toString());
 		DiscussionThreadBundle thread = threadDao.createThread(createThread.getForumId(), id.toString(), createThread.getTitle(), messageKey, userInfo.getId());
-		subscriptionDao.create(userInfo.getId().toString(), thread.getId(), SubscriptionObjectType.DISCUSSION_THREAD);
 		transactionalMessenger.sendMessageAfterCommit(""+id, ObjectType.THREAD, thread.getEtag(),  ChangeType.CREATE);
+		handleSubscription(userInfo.getId().toString(), thread.getId(), thread.getForumId());
 		return updateNumberOfReplies(thread, DiscussionFilter.NO_FILTER);
+	}
+
+	private void handleSubscription(String userId, String threadId, String forumId) {
+		subscriptionDao.create(userId, threadId, SubscriptionObjectType.DISCUSSION_THREAD);
+		subscriptionDao.subscribeForumSubscriberToThread(forumId, threadId);
 	}
 
 	private DiscussionThreadBundle updateNumberOfReplies(DiscussionThreadBundle thread, DiscussionFilter filter) {

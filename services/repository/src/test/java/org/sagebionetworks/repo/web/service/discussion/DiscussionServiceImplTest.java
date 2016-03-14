@@ -90,10 +90,10 @@ public class DiscussionServiceImplTest {
 	}
 
 	@Test
-	public void testGetForumMetadata() {
-		discussionServices.getForumMetadata(userId, projectId);
+	public void testGetForumByProjectId() {
+		discussionServices.getForumByProjectId(userId, projectId);
 		Mockito.verify(mockUserManager).getUserInfo(userId);
-		Mockito.verify(mockForumManager).getForumMetadata(userInfo, projectId);
+		Mockito.verify(mockForumManager).getForumByProjectId(userInfo, projectId);
 	}
 
 	@Test

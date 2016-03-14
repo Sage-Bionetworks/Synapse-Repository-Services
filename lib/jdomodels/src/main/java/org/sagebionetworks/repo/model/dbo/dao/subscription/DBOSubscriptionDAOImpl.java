@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.dbo.dao.subscription;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -21,6 +22,7 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.ParameterizedPreparedStatementSetter;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -74,6 +76,11 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 
 	private static final String SQL_DELETE_ALL = "DELETE FROM "+TABLE_SUBSCRIPTION+" "
 			+ "WHERE "+COL_SUBSCRIPTION_SUBSCRIBER_ID+" = ?";
+
+	private static final String SQL_GET_SUBSCRIBERS = "SELECT "+COL_SUBSCRIPTION_SUBSCRIBER_ID+" "
+			+ "FROM "+TABLE_SUBSCRIPTION+" "
+			+ "WHERE "+COL_SUBSCRIPTION_OBJECT_ID+" = ? "
+			+ "AND "+COL_SUBSCRIPTION_OBJECT_TYPE+" = ?";
 
 	private static final RowMapper<Subscription> ROW_MAPPER = new RowMapper<Subscription>(){
 
@@ -170,4 +177,49 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 		jdbcTemplate.update(SQL_DELETE_ALL, userId);
 	}
 
+	@WriteTransactionReadCommitted
+	@Override
+	public void subscribeForumSubscriberToThread(String forumId, final String threadId) {
+		ValidateArgument.required(forumId, "forumId");
+		ValidateArgument.required(threadId, "threadId");
+		List<String> forumSubscribers = getAllSubscribers(forumId, SubscriptionObjectType.FORUM);
+		jdbcTemplate.batchUpdate(SQL_INSERT_IGNORE, forumSubscribers, forumSubscribers.size(), new ParameterizedPreparedStatementSetter<String>(){
+
+			@Override
+			public void setValues(PreparedStatement ps, String subscriberId)
+					throws SQLException {
+				ps.setLong(1, Long.parseLong(idGenerator.generateNewId(TYPE.SUBSCRIPTION_ID).toString()));
+				ps.setLong(2, Long.parseLong(subscriberId));
+				ps.setLong(3, Long.parseLong(threadId));
+				ps.setString(4, SubscriptionObjectType.DISCUSSION_THREAD.name());
+				ps.setLong(5, new Date().getTime());
+			}
+		});
+	}
+
+	@Override
+	public List<String> getAllSubscribers(String objectId, SubscriptionObjectType objectType) {
+		ValidateArgument.required(objectId, "objectId");
+		ValidateArgument.required(objectType, "objectType");
+		return jdbcTemplate.queryForList(SQL_GET_SUBSCRIBERS, new Object[]{objectId, objectType.name()}, String.class);
+	}
+
+	@Override
+	public void subscribeAll(final String userId, List<String> idList, final SubscriptionObjectType objectType) {
+		ValidateArgument.required(userId, "userId");
+		ValidateArgument.required(idList, "idList");
+		ValidateArgument.required(objectType, "objectType");
+		jdbcTemplate.batchUpdate(SQL_INSERT_IGNORE, idList, idList.size(), new ParameterizedPreparedStatementSetter<String>(){
+
+			@Override
+			public void setValues(PreparedStatement ps, String objectId)
+					throws SQLException {
+				ps.setLong(1, Long.parseLong(idGenerator.generateNewId(TYPE.SUBSCRIPTION_ID).toString()));
+				ps.setLong(2, Long.parseLong(userId));
+				ps.setLong(3, Long.parseLong(objectId));
+				ps.setString(4, objectType.name());
+				ps.setLong(5, new Date().getTime());
+			}
+		});
+	}
 }

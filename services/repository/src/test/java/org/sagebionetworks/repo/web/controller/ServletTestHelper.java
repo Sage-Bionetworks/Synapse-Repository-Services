@@ -1989,10 +1989,19 @@ public class ServletTestHelper {
 		return response.getContentAsString();
 	}
 
-	public Forum getForumMetadata(DispatcherServlet dispatchServlet, String projectId,
+	public Forum getForumByProjectId(DispatcherServlet dispatchServlet, String projectId,
 			Long userId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, "/repo/v1", UrlHelpers.FORUM+"/"+projectId, userId, null);
+				HTTPMODE.GET, "/repo/v1", UrlHelpers.PROJECT+"/"+projectId+UrlHelpers.FORUM, userId, null);
+		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
+				HttpStatus.OK);
+		return objectMapper.readValue(response.getContentAsString(), Forum.class);
+	}
+
+	public Forum getForum(DispatcherServlet dispatchServlet, String forumId,
+			Long userId) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, "/repo/v1", UrlHelpers.FORUM+"/"+forumId, userId, null);
 		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.OK);
 		return objectMapper.readValue(response.getContentAsString(), Forum.class);
@@ -2176,5 +2185,13 @@ public class ServletTestHelper {
 		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.OK);
 		return objectMapper.readValue(response.getContentAsString(), SubscriptionPagedResults.class);
+	}
+
+	public Subscription get(DispatcherServlet dispatchServlet, Long userId,
+			String subscriptionId) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, "/repo/v1", UrlHelpers.SUBSCRIPTION+"/"+subscriptionId, userId, null);
+		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+		return objectMapper.readValue(response.getContentAsString(), Subscription.class);
 	}
 }

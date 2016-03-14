@@ -66,11 +66,12 @@ public class ITDiscussion {
 	@Test
 	public void test() throws SynapseException {
 		// create a forum
-		Forum forum = synapse.getForumMetadata(projectId);
+		Forum forum = synapse.getForumByProjectId(projectId);
 		assertNotNull(forum);
 		String forumId = forum.getId();
 		assertNotNull(forumId);
 		assertEquals(forum.getProjectId(), projectId);
+		assertEquals(forum, synapse.getForum(forumId));
 
 		// get all threads in the forum
 		PaginatedResults<DiscussionThreadBundle> threads = synapse.getThreadsForForum(forumId, 100L, 0L, null, null, DiscussionFilter.NO_FILTER);

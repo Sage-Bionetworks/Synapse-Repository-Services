@@ -72,6 +72,23 @@ public class SubscriptionController extends BaseController{
 	}
 
 	/**
+	 * This API is used to retrieve a subscription given its ID
+	 * <br/>
+	 * Target users: Synapse user who created this subscription.
+	 * 
+	 * @param userId - The ID of the user who is making the request
+	 * @param id - the ID of the subscription that is created when the user subscribed to the topic
+	  * @return
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.SUBSCRIPTION_ID, method = RequestMethod.GET)
+	public @ResponseBody Subscription get(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String id) {
+		return serviceProvider.getSubscriptionService().get(userId, id);
+	}
+
+	/**
 	 * This API is used to retrieve all subscriptions one has.
 	 * <br/>
 	 * Target users: all Synapse users.
@@ -95,7 +112,7 @@ public class SubscriptionController extends BaseController{
 	/**
 	 * This API is used to unsubscribe to a topic.
 	 * <br/>
-	 * Target users: Synapse users who subscribed to this topic.
+	 * Target users: Synapse user who created this subscription.
 	 * 
 	 * @param userId - the ID of the user who is making the request
 	 * @param id - the ID of the subscription that is created when the user subscribed to the topic

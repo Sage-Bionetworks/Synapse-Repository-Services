@@ -33,9 +33,15 @@ public class DiscussionServiceImpl implements DiscussionService{
 	private DiscussionReplyManager replyManager;
 
 	@Override
-	public Forum getForumMetadata(Long userId, String projectId) {
+	public Forum getForumByProjectId(Long userId, String projectId) {
 		UserInfo user = userManager.getUserInfo(userId);
-		return forumManager.getForumMetadata(user, projectId);
+		return forumManager.getForumByProjectId(user, projectId);
+	}
+
+	@Override
+	public Forum getForum(Long userId, String forumId) {
+		UserInfo user = userManager.getUserInfo(userId);
+		return forumManager.getForum(user, forumId);
 	}
 
 	@Override

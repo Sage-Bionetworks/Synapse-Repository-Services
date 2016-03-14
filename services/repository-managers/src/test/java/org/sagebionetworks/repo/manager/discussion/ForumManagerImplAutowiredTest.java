@@ -68,7 +68,7 @@ public class ForumManagerImplAutowiredTest {
 
 	@Test
 	public void testGetNonExistingForum() {
-		Forum dto = forumManager.getForumMetadata(userInfo, projectId);
+		Forum dto = forumManager.getForumByProjectId(userInfo, projectId);
 		assertNotNull(dto);
 		assertNotNull(dto.getId());
 		assertEquals(dto.getProjectId(), projectId);

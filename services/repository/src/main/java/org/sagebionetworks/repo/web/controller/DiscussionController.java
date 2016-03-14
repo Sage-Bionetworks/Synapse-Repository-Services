@@ -65,11 +65,30 @@ public class DiscussionController extends BaseController {
 	 * @throws NotFoundException
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.FORUM_PROJECT_ID, method = RequestMethod.GET)
-	public @ResponseBody Forum getForumMetadata(
+	@RequestMapping(value = UrlHelpers.PROJECT_PROJECT_ID_FORUM, method = RequestMethod.GET)
+	public @ResponseBody Forum getForumByProjectId(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String projectId) throws DatastoreException, NotFoundException {
-		return serviceProvider.getDiscussionService().getForumMetadata(userId, projectId);
+		return serviceProvider.getDiscussionService().getForumByProjectId(userId, projectId);
+	}
+
+	/**
+	 * This API is used to get the Forum's metadata for a given its ID.
+	 * <br/>
+	 * Target users: anyone who has READ permission to the project.
+	 * 
+	 * @param userId - The ID of the user who is making the request.
+	 * @param forumId - The ID of the forum.
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.FORUM_FORUM_ID, method = RequestMethod.GET)
+	public @ResponseBody Forum getForumByProject(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String forumId) throws DatastoreException, NotFoundException {
+		return serviceProvider.getDiscussionService().getForum(userId, forumId);
 	}
 
 	/**

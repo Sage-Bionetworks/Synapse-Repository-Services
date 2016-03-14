@@ -24,7 +24,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
 import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
-import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -70,7 +69,7 @@ public class BeanTest implements ApplicationContextAware {
 	}
 
 	private static final List<String> readMethodPrefixes = Lists.newArrayList("check", "get");
-	private static final List<String> exceptions = Lists.newArrayList("checkSessionToken", "getSessionToken", "getEtagForUpdate", "getForumMetadata");
+	private static final List<String> exceptions = Lists.newArrayList("checkSessionToken", "getSessionToken", "getEtagForUpdate", "getForumByProjectId");
 
 	@Test
 	public void testNoGetterWriteTransactions() {

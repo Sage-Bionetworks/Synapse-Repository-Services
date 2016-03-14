@@ -13,12 +13,12 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.subscription.SubscriptionManager;
 import org.sagebionetworks.repo.model.DomainType;
-import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.auth.NewUser;
@@ -38,6 +38,8 @@ public class DiscussionThreadManagerImplAutowiredTest {
 
 	@Autowired
 	public NodeManager nodeManager;
+	@Autowired
+	public EntityManager entityManager;
 	@Autowired
 	public UserManager userManager;
 	@Autowired
@@ -71,11 +73,10 @@ public class DiscussionThreadManagerImplAutowiredTest {
 		userInfo = userManager.createUser(adminUserInfo, nu, cred, tou);
 		userInfo.getGroups().add(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
 
-		Node newNode = new Node();
-		newNode.setName("project");
-		newNode.setNodeType(EntityType.project);
-		projectId = nodeManager.createNewNode(newNode, userInfo);
-		forum = forumManager.getForumMetadata(userInfo, projectId);
+		Project project = new Project();
+		project.setName("project");
+		projectId = entityManager.createEntity(userInfo, project, null);
+		forum = forumManager.createForum(userInfo, projectId);
 
 		createThread = new CreateDiscussionThread();
 		createThread.setForumId(forum.getId());
