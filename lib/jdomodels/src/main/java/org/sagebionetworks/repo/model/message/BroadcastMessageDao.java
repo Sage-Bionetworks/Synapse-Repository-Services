@@ -8,7 +8,7 @@ public interface BroadcastMessageDao {
 	 * @param changeNumber
 	 * @return
 	 */
-	public boolean hasBroadcast(Long changeNumber);
+	public boolean wasBroadcast(Long changeNumber);
 	
 	/**
 	 * Set that the given change number was broadcast using the given message ID.

@@ -16,10 +16,14 @@ import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
+/**
+ * This table tacks change message events that have been broadcast to users via email.
+ *
+ */
 public class DBOBroadcastMessage implements MigratableDatabaseObject<DBOBroadcastMessage, DBOBroadcastMessage> {
 	
 	private static final FieldColumn[] FIELDS = new FieldColumn[] {
-		new FieldColumn("changeNumber", COL_BROADCAST_MESSAGE_CHANGE_NUMBER).withIsBackupId(true),
+		new FieldColumn("changeNumber", COL_BROADCAST_MESSAGE_CHANGE_NUMBER, true).withIsBackupId(true),
 		new FieldColumn("messageId", COL_BROADCAST_MESSAGE_MESSAGE_ID),
 		new FieldColumn("sentOn", COL_BROADCAST_MESSAGE_SENT_ON),
 	};
