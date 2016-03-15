@@ -412,6 +412,13 @@ public class SqlConstants {
 	public static final String COL_WIKI_MARKDOWN			= "MARKDOWN";
 	public static final String DDL_FILE_WIKI_PAGE = "schema/WikiPage-ddl.sql";
 	
+	// Tracks changes messages that were broadcast by email.
+	public static final String TABLE_BROADCAST_MESSAGE				= "MESSAGE_BROADCAST";
+	public static final String COL_BROADCAST_MESSAGE_CHANGE_NUMBER	= "CHANGE_NUMBER";
+	public static final String COL_BROADCAST_MESSAGE_MESSAGE_ID		= "MESSAGE_ID";
+	public static final String COL_BROADCAST_MESSAGE_SENT_ON		= "SENT_ON";
+	public static final String DDL_BROADCAST_MESSAGE = "schema/BroadcastMessage-ddl.sql";
+	
 	// The column model table
 	public static final String TABLE_COLUMN_MODEL			= "COLUMN_MODEL";
 	public static final String COL_CM_ID					= "ID";
