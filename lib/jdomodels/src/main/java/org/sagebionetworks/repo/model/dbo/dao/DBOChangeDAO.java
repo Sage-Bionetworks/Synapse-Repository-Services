@@ -124,4 +124,11 @@ public interface DBOChangeDAO extends ProcessedMessageDAO {
 	 * @return
 	 */
 	public Long getMaxSentChangeNumber(Long lessThanOrEqual);
+	
+	/**
+	 * Does the given change number exist?
+	 * @param changeNumber
+	 * @return
+	 */
+	public boolean doesChangeNumberExist(Long changeNumber);
 }

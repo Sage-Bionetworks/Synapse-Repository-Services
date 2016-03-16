@@ -37,6 +37,7 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeMessageUtils;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.Clock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -44,7 +45,6 @@ import org.springframework.dao.TransientDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.SingleColumnRowMapper;
-import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 
 /**
@@ -54,6 +54,8 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
  */
 public class DBOChangeDAOImpl implements DBOChangeDAO {
 	
+	public static final String SQL_COUNT_CHANGE_NUMBER = "SELECT COUNT("+COL_CHANGES_CHANGE_NUM+") FROM "+TABLE_CHANGES+" WHERE "+COL_CHANGES_CHANGE_NUM+" = ?";
+
 	private static final String SQL_CHANGE_CHECK_SUM_FOR_RANGE = "SELECT SUM(CRC32("+COL_CHANGES_CHANGE_NUM+")) FROM "+TABLE_CHANGES+" WHERE "+COL_CHANGES_CHANGE_NUM+" >= ? AND "+COL_CHANGES_CHANGE_NUM+" <= ?";
 
 	private static final String SQL_SENT_CHECK_SUM_FOR_RANGE = "SELECT SUM(CRC32("+COL_SENT_MESSAGES_CHANGE_NUM+")) FROM "+TABLE_SENT_MESSAGES+" WHERE "+COL_SENT_MESSAGES_CHANGE_NUM+" >= ? AND "+COL_SENT_MESSAGES_CHANGE_NUM+" <= ?";
@@ -345,6 +347,12 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 			}
 		}
 		return sentCheckSum.equals(changeCheckSum);
+	}
+
+	@Override
+	public boolean doesChangeNumberExist(Long changeNumber) {
+		long count = jdbcTemplate.queryForObject(SQL_COUNT_CHANGE_NUMBER, Long.class, changeNumber);
+		return count == 1;
 	}
 
 }
