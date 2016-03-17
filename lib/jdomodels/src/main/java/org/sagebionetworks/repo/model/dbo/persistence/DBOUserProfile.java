@@ -10,7 +10,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 
+import org.sagebionetworks.repo.model.UserPreference;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
@@ -18,6 +20,7 @@ import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.dao.UserProfileUtils;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
+import org.sagebionetworks.repo.model.message.Settings;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
 /**
@@ -29,6 +32,9 @@ public class DBOUserProfile implements MigratableDatabaseObject<DBOUserProfile, 
 	private byte[] properties;
 	private String eTag;
 	private Long pictureId;
+	private boolean emailNotification;
+	private String firstName;
+	private String lastName;
 	
 	public static final String OWNER_ID_FIELD_NAME = "ownerId";
 
@@ -36,7 +42,10 @@ public class DBOUserProfile implements MigratableDatabaseObject<DBOUserProfile, 
 		new FieldColumn(OWNER_ID_FIELD_NAME, COL_USER_PROFILE_ID, true).withIsBackupId(true),
 		new FieldColumn("properties", COL_USER_PROFILE_PROPS_BLOB),
 		new FieldColumn("eTag", COL_USER_PROFILE_ETAG).withIsEtag(true),
-		new FieldColumn("pictureId", COL_USER_PROFILE_PICTURE_ID)
+		new FieldColumn("pictureId", COL_USER_PROFILE_PICTURE_ID),
+		new FieldColumn("emailNotification", COL_USER_PROFILE_EMAIL_NOTIFICATION),
+		new FieldColumn("firstName", COL_USER_PROFILE_FIRST_NAME),
+		new FieldColumn("lastName", COL_USER_PROFILE_LAST_NAME)
 		};
 
 
@@ -57,6 +66,9 @@ public class DBOUserProfile implements MigratableDatabaseObject<DBOUserProfile, 
 				if(rs.wasNull()){
 					up.setPictureId(null);
 				}
+				up.setEmailNotification(rs.getBoolean(COL_USER_PROFILE_EMAIL_NOTIFICATION));
+				up.setFirstName(rs.getString(COL_USER_PROFILE_FIRST_NAME));
+				up.setLastName(rs.getString(COL_USER_PROFILE_LAST_NAME));
 				return up;
 			}
 
@@ -82,6 +94,34 @@ public class DBOUserProfile implements MigratableDatabaseObject<DBOUserProfile, 
 		};
 	}
 
+	
+	public String getFirstName() {
+		return firstName;
+	}
+
+
+	public void setFirstName(String firstName) {
+		this.firstName = firstName;
+	}
+
+
+	public String getLastName() {
+		return lastName;
+	}
+
+
+	public void setLastName(String lastName) {
+		this.lastName = lastName;
+	}
+
+
+	public boolean isEmailNotification() {
+		return emailNotification;
+	}
+
+	public void setEmailNotification(boolean emailNotification) {
+		this.emailNotification = emailNotification;
+	}
 
 	/**
 	 * @return the properties
@@ -207,6 +247,14 @@ public class DBOUserProfile implements MigratableDatabaseObject<DBOUserProfile, 
 				} catch (IOException e) {
 					throw new RuntimeException(e);
 				}
+				// Ensure the email notification is in the DB.
+				backup.setEmailNotification(true);
+				Settings settings = up.getNotificationSettings();
+				if(settings != null && settings.getSendEmailNotifications() != null){
+					backup.setEmailNotification(settings.getSendEmailNotifications());
+				}
+				backup.setFirstName(up.getFirstName());
+				backup.setLastName(up.getLastName());
 				return backup;
 			}
 

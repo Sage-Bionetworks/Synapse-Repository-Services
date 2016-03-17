@@ -1,9 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -24,6 +21,7 @@ import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
+import org.sagebionetworks.repo.model.message.Settings;
 import org.sagebionetworks.repo.model.principal.BootstrapPrincipal;
 import org.sagebionetworks.repo.model.principal.BootstrapUser;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -93,6 +91,102 @@ public class DBOUserProfileDAOImplTest {
 		individualGroupsToDelete.clear();
 	}
 	
+	/**
+	 * Helper to create a new profile using the first user.
+	 * @return
+	 */
+	private UserProfile createUserProfile(){
+		UserProfile userProfile = new UserProfile();
+		userProfile.setOwnerId(individualGroup.getId());
+		userProfile.setFirstName("foo");
+		userProfile.setLastName("bar");
+		userProfile.setRStudioUrl("http://rstudio.com");
+		userProfile.setEtag(NodeConstants.ZERO_E_TAG);
+		return userProfile;
+	}
+	
+	@Test
+	public void testCreateNoSettings() throws Exception{
+		// Create a new user profile without settings
+		UserProfile userProfile = createUserProfile();
+		// Create it
+		String id = userProfileDAO.create(userProfile);
+		assertNotNull(id);
+		
+		// Fetch it
+		UserProfile clone = userProfileDAO.get(id);
+		assertNotNull(clone);
+		assertNotNull(clone.getNotificationSettings());
+		// should default to true.
+		assertTrue(clone.getNotificationSettings().getSendEmailNotifications());
+	}
+	
+	@Test
+	public void testCreateNoEmail() throws Exception{
+		// Create a new user profile with settings
+		UserProfile userProfile = createUserProfile();
+		userProfile.setNotificationSettings(new Settings());
+		userProfile.getNotificationSettings().setSendEmailNotifications(false);
+		// Create it
+		String id = userProfileDAO.create(userProfile);
+		assertNotNull(id);
+		
+		// Fetch it
+		UserProfile clone = userProfileDAO.get(id);
+		assertNotNull(clone);
+		assertNotNull(clone.getNotificationSettings());
+		assertFalse(clone.getNotificationSettings().getSendEmailNotifications());
+	}
+	
+	@Test
+	public void testUpdateWithNullSettings() throws Exception{
+		// Create a new user profile without settings
+		UserProfile userProfile = createUserProfile();
+		// Create it
+		String id = userProfileDAO.create(userProfile);
+		assertNotNull(id);
+		
+		// Fetch it
+		UserProfile clone = userProfileDAO.get(id);
+		assertNotNull(clone);
+		assertNotNull(clone.getNotificationSettings());
+		// should default to true.
+		assertTrue(clone.getNotificationSettings().getSendEmailNotifications());
+		
+		// clear the settings
+		clone.setNotificationSettings(null);
+		userProfileDAO.update(clone);
+		// should default back to true
+		clone = userProfileDAO.get(id);
+		assertNotNull(clone.getNotificationSettings());
+		assertTrue(clone.getNotificationSettings().getSendEmailNotifications());
+	}
+	
+	@Test
+	public void testUpdateWithEmailFalse() throws Exception{
+		// Create a new user profile without settings
+		UserProfile userProfile = createUserProfile();
+		// Create it
+		String id = userProfileDAO.create(userProfile);
+		assertNotNull(id);
+		
+		// Fetch it
+		UserProfile clone = userProfileDAO.get(id);
+		assertNotNull(clone);
+		assertNotNull(clone.getNotificationSettings());
+		// should default to true.
+		assertTrue(clone.getNotificationSettings().getSendEmailNotifications());
+		
+		// clear the settings
+		assertNotNull(clone.getNotificationSettings());
+		clone.getNotificationSettings().setSendEmailNotifications(false);
+		userProfileDAO.update(clone);
+		// should updated the value.
+		clone = userProfileDAO.get(id);
+		assertNotNull(clone.getNotificationSettings());
+		assertFalse(clone.getNotificationSettings().getSendEmailNotifications());
+	}
+	
 	@Test
 	public void testCRUD() throws Exception{
 		List<UserProfile> userProfiles = new ArrayList<UserProfile>();
@@ -107,6 +201,8 @@ public class DBOUserProfileDAOImplTest {
 			userProfile.setRStudioUrl("http://rstudio.com");
 			userProfile.setEtag(NodeConstants.ZERO_E_TAG);
 			userProfiles.add(userProfile);
+			userProfile.setNotificationSettings(new Settings());
+			userProfile.getNotificationSettings().setSendEmailNotifications(true);
 			// Create it
 			String id = userProfileDAO.create(userProfile);
 			assertNotNull(id);
@@ -158,12 +254,7 @@ public class DBOUserProfileDAOImplTest {
 	@Test
 	public void testGetPictureFileHandleIdNotFound(){
 		// Create a new type
-		UserProfile userProfile = new UserProfile();
-		userProfile.setOwnerId(individualGroup.getId());
-		userProfile.setFirstName("foo");
-		userProfile.setLastName("bar");
-		userProfile.setRStudioUrl("http://rstudio.com");
-		userProfile.setEtag(NodeConstants.ZERO_E_TAG);
+		UserProfile userProfile = createUserProfile();
 		// Create it
 		String id = userProfileDAO.create(userProfile);
 		assertNotNull(id);
@@ -186,12 +277,7 @@ public class DBOUserProfileDAOImplTest {
 		ef = fileHandleDao.createFile(ef);
 		fileHandlesToDelete.add(ef.getId());
 		// Create a new type
-		UserProfile userProfile = new UserProfile();
-		userProfile.setOwnerId(individualGroup.getId());
-		userProfile.setFirstName("foo");
-		userProfile.setLastName("bar");
-		userProfile.setRStudioUrl("http://rstudio.com");
-		userProfile.setEtag(NodeConstants.ZERO_E_TAG);
+		UserProfile userProfile = createUserProfile();
 		userProfile.setProfilePicureFileHandleId(ef.getId());
 		// Create it
 		String id = userProfileDAO.create(userProfile);

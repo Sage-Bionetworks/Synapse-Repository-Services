@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOFavorite;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserProfile;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.message.Settings;
 import org.sagebionetworks.schema.ObjectSchema;
 
 public class UserProfileUtils {
@@ -37,6 +38,12 @@ public class UserProfileUtils {
 		} else {
 			dbo.setPictureId(Long.parseLong(profilePictureFileHandleId));
 		}
+		dbo.setEmailNotification(true);
+		if(dto.getNotificationSettings() != null && dto.getNotificationSettings().getSendEmailNotifications() != null){
+			dbo.setEmailNotification(dto.getNotificationSettings().getSendEmailNotifications());
+		}
+		dbo.setFirstName(dto.getFirstName());
+		dbo.setLastName(dto.getLastName());
 	}
 	
 	public static UserProfile deserialize(byte[] b) {
@@ -72,6 +79,12 @@ public class UserProfileUtils {
 		if(dbo.getPictureId() != null){
 			dto.setProfilePicureFileHandleId(dbo.getPictureId().toString());
 		}
+		if(dto.getNotificationSettings() == null){
+			dto.setNotificationSettings(new Settings());
+		}
+		dto.getNotificationSettings().setSendEmailNotifications(dbo.isEmailNotification());
+		dto.setFirstName(dbo.getFirstName());
+		dto.setLastName(dbo.getLastName());
 		return dto;
 	}
 	

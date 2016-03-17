@@ -1,9 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -92,6 +89,8 @@ public class UserProfileUtilsTest {
 		dto.setSummary("My summary");
 		dto.setTeamName("Team A");
 		dto.setUrl("http://link.to.my.page/");
+		dto.setNotificationSettings(new Settings());
+		dto.getNotificationSettings().setSendEmailNotifications(false);
 		AttachmentData picData = new AttachmentData();
 		picData.setName("Fake name");
 		picData.setTokenId("Fake token ID");
@@ -190,6 +189,11 @@ public class UserProfileUtilsTest {
 		DBOUserProfile dbo = new DBOUserProfile();
 		UserProfileUtils.copyDtoToDbo(dto, dbo);
 		UserProfile dto2 = UserProfileUtils.convertDboToDto(dbo);
+		// Notification setting should be added
+		assertNotNull(dto2.getNotificationSettings());
+		// default to send email.
+		assertTrue(dto2.getNotificationSettings().getSendEmailNotifications());
+		dto2.setNotificationSettings(null);
 		assertEquals(dto, dto2);
 	}
 	
