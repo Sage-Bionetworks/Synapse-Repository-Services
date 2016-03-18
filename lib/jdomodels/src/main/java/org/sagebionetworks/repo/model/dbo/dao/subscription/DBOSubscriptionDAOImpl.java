@@ -55,7 +55,7 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 			+ "AND "+COL_SUBSCRIPTION_OBJECT_ID+" = ? "
 			+ "AND "+COL_SUBSCRIPTION_OBJECT_TYPE+" = ?";
 
-	private static final String SQL_GET_ALL = "SELECT SQL_CALC_FOUND_ROWS * "
+	private static final String SQL_GET_ALL = "SELECT * "
 			+ "FROM "+TABLE_SUBSCRIPTION+" "
 			+ "WHERE "+COL_SUBSCRIPTION_SUBSCRIBER_ID+" = ? ";
 
@@ -63,7 +63,9 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 
 	private static final String LIMIT_OFFSET = "LIMIT ? OFFSET ?";
 
-	private static final String SQL_FOUND_ROWS = "SELECT FOUND_ROWS()";
+	private static final String SQL_COUNT = "SELECT COUNT(*)"
+			+ "FROM "+TABLE_SUBSCRIPTION+" "
+			+ "WHERE "+COL_SUBSCRIPTION_SUBSCRIBER_ID+" = ? ";
 
 	private static final String SQL_GET_LIST = "SELECT * "
 			+ "FROM "+TABLE_SUBSCRIPTION+" "
@@ -135,11 +137,12 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 		SubscriptionPagedResults results = new SubscriptionPagedResults();
 		if (objectType == null) {
 			results.setResults(jdbcTemplate.query(SQL_GET_ALL+LIMIT_OFFSET, ROW_MAPPER, subscriberId, limit, offset));
+			results.setTotalNumberOfResults(jdbcTemplate.queryForLong(SQL_COUNT, subscriberId));
 		} else {
 			results.setResults(jdbcTemplate.query(SQL_GET_ALL+OBJECT_TYPE_CONDITION+LIMIT_OFFSET,
 					ROW_MAPPER, subscriberId, objectType.name(), limit, offset));
+			results.setTotalNumberOfResults(jdbcTemplate.queryForLong(SQL_COUNT+OBJECT_TYPE_CONDITION, subscriberId, objectType.name()));
 		}
-		results.setTotalNumberOfResults(jdbcTemplate.queryForLong(SQL_FOUND_ROWS));
 		return results;
 	}
 
