@@ -38,6 +38,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 
 	private static final DiscussionFilter DEFAULT_FILTER = DiscussionFilter.NO_FILTER;
+	public static final int MAX_TITLE_LENGTH = 140;
 	@Autowired
 	private DiscussionThreadDAO threadDao;
 	@Autowired
@@ -55,7 +56,6 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 	@Autowired
 	private TransactionalMessenger transactionalMessenger;
 
-
 	@WriteTransactionReadCommitted
 	@Override
 	public DiscussionThreadBundle createThread(UserInfo userInfo, CreateDiscussionThread createThread) throws IOException {
@@ -63,6 +63,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		ValidateArgument.required(createThread.getForumId(), "CreateDiscussionThread.forumId");
 		ValidateArgument.required(createThread.getTitle(), "CreateDiscussionThread.title");
 		ValidateArgument.required(createThread.getMessageMarkdown(), "CreateDiscussionThread.messageMarkdown");
+		ValidateArgument.required(createThread.getTitle().length() <= MAX_TITLE_LENGTH, "Title cannot exceed "+MAX_TITLE_LENGTH+" characters.");
 		UserInfo.validateUserInfo(userInfo);
 		String projectId = forumDao.getForum(Long.parseLong(createThread.getForumId())).getProjectId();
 		if (authorizationManager.isAnonymousUser(userInfo)){
