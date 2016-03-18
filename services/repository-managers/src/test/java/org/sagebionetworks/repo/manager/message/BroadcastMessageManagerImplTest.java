@@ -1,21 +1,23 @@
 package org.sagebionetworks.repo.manager.message;
 
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyLong;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.http.entity.ContentType;
 import org.junit.Before;
 import org.junit.Test;
-
-import static org.mockito.Mockito.*;
-
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.sagebionetworks.repo.manager.MessageToUserAndBody;
-import org.sagebionetworks.repo.manager.NotificationManager;
+import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.repo.manager.principal.SynapseEmailService;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -24,12 +26,13 @@ import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.message.BroadcastMessageDao;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.repo.model.message.MessageToUser;
+import org.sagebionetworks.repo.model.subscription.Subscriber;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.Topic;
 import org.sagebionetworks.util.TimeoutUtils;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
 import com.google.common.collect.Lists;
 
 public class BroadcastMessageManagerImplTest {
@@ -43,22 +46,23 @@ public class BroadcastMessageManagerImplTest {
 	@Mock
 	DBOChangeDAO mockChangeDao;
 	@Mock
-	TimeoutUtils mockTimeoutUtils;
+	SynapseEmailService mockSesClient;
 	@Mock
-	NotificationManager mockNotificationManager;
+	TimeoutUtils mockTimeoutUtils;
 	@Mock
 	BroadcastMessageBuilder mockBroadcastMessageBuilder;
 	@Mock
+	MessageBuilderFactory mockFactory;
+	@Mock
 	UserInfo mockUser;
+	@Mock
+	ProgressCallback<ChangeMessage> mockCallback;
 	
 	BroadcastMessageManagerImpl manager;
 	
 	ChangeMessage change;
-	
-	Long messageToUserId;
-	MessageToUser messageToUser;
-	BroadcastMessage broadcastMessage;
-	List<String> subscribers;
+
+	List<Subscriber> subscribers;
 
 	@Before
 	public void before(){
@@ -69,11 +73,11 @@ public class BroadcastMessageManagerImplTest {
 		ReflectionTestUtils.setField(manager, "broadcastMessageDao", mockBroadcastMessageDao);
 		ReflectionTestUtils.setField(manager, "changeDao", mockChangeDao);
 		ReflectionTestUtils.setField(manager, "timeoutUtils", mockTimeoutUtils);
-		ReflectionTestUtils.setField(manager, "notificationManager", mockNotificationManager);
+		ReflectionTestUtils.setField(manager, "sesClient", mockSesClient);
 		
-		Map<ObjectType, BroadcastMessageBuilder> builderMap = new HashMap<ObjectType, BroadcastMessageBuilder>();
-		builderMap.put(ObjectType.REPLY, mockBroadcastMessageBuilder);
-		manager.setBuilderMap(builderMap);
+		Map<ObjectType, MessageBuilderFactory> factoryMap = new HashMap<ObjectType, MessageBuilderFactory>();
+		factoryMap.put(ObjectType.REPLY, mockFactory);
+		manager.setFactoryMap(factoryMap);
 		
 		// default setup
 		change = new ChangeMessage();
@@ -83,47 +87,43 @@ public class BroadcastMessageManagerImplTest {
 		change.setObjectType(ObjectType.REPLY);
 		change.setTimestamp(new Date(123000L));
 		
-		subscribers = Lists.newArrayList("801", "802");
-		
-		broadcastMessage = new BroadcastMessage();
 		Topic topic = new Topic();
 		topic.setObjectId("5555");
 		topic.setObjectType(SubscriptionObjectType.DISCUSSION_THREAD);
-		broadcastMessage.setTopic(topic);
-		broadcastMessage.setBody("The email body");
-		broadcastMessage.setContentType(ContentType.TEXT_HTML);
-		broadcastMessage.setSubject("subject");
+
 		
 		when(mockUser.isAdmin()).thenReturn(true);
 		when(mockTimeoutUtils.hasExpired(anyLong(), anyLong())).thenReturn(false);
 		when(mockBroadcastMessageDao.wasBroadcast(change.getChangeNumber())).thenReturn(false);
 		when(mockChangeDao.doesChangeNumberExist(change.getChangeNumber())).thenReturn(true);
 		
-		when(mockBroadcastMessageBuilder.buildMessage(change.getObjectId(), change.getChangeType())).thenReturn(broadcastMessage);
+		when(mockFactory.createMessageBuilder(change.getObjectId(), change.getChangeType())).thenReturn(mockBroadcastMessageBuilder);
+
+		when(mockBroadcastMessageBuilder.getBroadcastTopic()).thenReturn(topic);
 		
-		messageToUserId = 999L;
-		messageToUser = new MessageToUser();
-		messageToUser.setId(messageToUserId.toString());
-		when(mockNotificationManager.sendNotification(any(UserInfo.class), any(MessageToUserAndBody.class))).thenReturn(messageToUser);
+		
+		Subscriber sub1 = new Subscriber();
+		sub1.setSubscriptionId("1");
+		Subscriber sub2 = new Subscriber();
+		sub2.setSubscriptionId("2");
+		subscribers = Lists.newArrayList(sub1, sub2);
+		
+		when(mockSubscriptionDAO.getAllEmailSubscribers(topic.getObjectId(), topic.getObjectType())).thenReturn(subscribers);
+		when(mockBroadcastMessageBuilder.buildEmailForSubscriber(any(Subscriber.class))).thenReturn(new SendRawEmailRequest());
 		
 	}
 	
 	
 	@Test
 	public void testHappyBroadcast(){
-		// All of the data that should be sent in the message.
-		MessageToUser expectedMessageToUser = new MessageToUser();
-		expectedMessageToUser.setRecipients(new HashSet<String>(subscribers));
-		expectedMessageToUser.setSubject(broadcastMessage.getSubject());
-		MessageToUserAndBody expectedMessageToUserAndBody = new MessageToUserAndBody();
-		expectedMessageToUserAndBody.setBody(broadcastMessage.getBody());
-		expectedMessageToUserAndBody.setMimeType(broadcastMessage.getContentType().getMimeType());
-		
 		// call under test
-		manager.broadcastMessage(mockUser, change);
-		verify(mockNotificationManager).sendNotification(mockUser, expectedMessageToUserAndBody);
+		manager.broadcastMessage(mockUser, mockCallback, change);
 		// The message state should be sent.
-		verify(mockBroadcastMessageDao).setBroadcast(change.getChangeNumber(), messageToUserId);
+		verify(mockBroadcastMessageDao).setBroadcast(change.getChangeNumber());
+		// progress should be made for each subscriber
+		verify(mockCallback, times(2)).progressMade(change);
+		// two messages should be sent
+		verify(mockSesClient, times(2)).sendRawEmail(any(SendRawEmailRequest.class));
 	}
 	
 	@Test (expected=UnauthorizedException.class)
@@ -131,7 +131,7 @@ public class BroadcastMessageManagerImplTest {
 		// not an adim.
 		when(mockUser.isAdmin()).thenReturn(false);
 		// call under test
-		manager.broadcastMessage(mockUser, change);
+		manager.broadcastMessage(mockUser, mockCallback, change);
 	}
 	
 	@Test
@@ -139,10 +139,9 @@ public class BroadcastMessageManagerImplTest {
 		// setup expired
 		when(mockTimeoutUtils.hasExpired(anyLong(), anyLong())).thenReturn(true);
 		// call under test
-		manager.broadcastMessage(mockUser, change);
+		manager.broadcastMessage(mockUser, mockCallback, change);
 		// should be ignored
-		verify(mockNotificationManager, never()).sendNotification(any(UserInfo.class), any(MessageToUserAndBody.class));
-		verify(mockBroadcastMessageDao, never()).setBroadcast(anyLong(), anyLong());
+		verify(mockBroadcastMessageDao, never()).setBroadcast(anyLong());
 	}
 	
 	@Test
@@ -150,10 +149,9 @@ public class BroadcastMessageManagerImplTest {
 		// change number does not exist
 		when(mockChangeDao.doesChangeNumberExist(change.getChangeNumber())).thenReturn(false);
 		// call under test
-		manager.broadcastMessage(mockUser, change);
+		manager.broadcastMessage(mockUser, mockCallback, change);
 		// should be ignored
-		verify(mockNotificationManager, never()).sendNotification(any(UserInfo.class), any(MessageToUserAndBody.class));
-		verify(mockBroadcastMessageDao, never()).setBroadcast(anyLong(), anyLong());
+		verify(mockBroadcastMessageDao, never()).setBroadcast(anyLong());
 	}
 	
 	@Test
@@ -161,10 +159,9 @@ public class BroadcastMessageManagerImplTest {
 		// already broadcast.
 		when(mockBroadcastMessageDao.wasBroadcast(change.getChangeNumber())).thenReturn(true);
 		// call under test
-		manager.broadcastMessage(mockUser, change);
+		manager.broadcastMessage(mockUser, mockCallback, change);
 		// should be ignored
-		verify(mockNotificationManager, never()).sendNotification(any(UserInfo.class), any(MessageToUserAndBody.class));
-		verify(mockBroadcastMessageDao, never()).setBroadcast(anyLong(), anyLong());
+		verify(mockBroadcastMessageDao, never()).setBroadcast(anyLong());
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -172,9 +169,8 @@ public class BroadcastMessageManagerImplTest {
 		// there is no builder for this type.
 		change.setObjectType(ObjectType.TABLE);
 		// call under test
-		manager.broadcastMessage(mockUser, change);
+		manager.broadcastMessage(mockUser, mockCallback, change);
 		// should be ignored
-		verify(mockNotificationManager, never()).sendNotification(any(UserInfo.class), any(MessageToUserAndBody.class));
-		verify(mockBroadcastMessageDao, never()).setBroadcast(anyLong(), anyLong());
+		verify(mockBroadcastMessageDao, never()).setBroadcast(anyLong());
 	}
 }

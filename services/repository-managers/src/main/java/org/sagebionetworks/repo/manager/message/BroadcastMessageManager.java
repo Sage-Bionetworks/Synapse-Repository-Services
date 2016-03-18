@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.message;
 
+import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 
@@ -15,5 +16,8 @@ public interface BroadcastMessageManager {
 	 * @param user
 	 * @param changeMessage
 	 */
-	public void broadcastMessage(UserInfo user, ChangeMessage changeMessage);
+	public void broadcastMessage(UserInfo user,
+			ProgressCallback<ChangeMessage> progressCallback,
+			ChangeMessage changeMessage);
+
 }

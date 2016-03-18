@@ -1,28 +1,20 @@
 package org.sagebionetworks.repo.model.message;
 
-import static org.junit.Assert.*;
-
-import java.util.Date;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.repo.model.MessageDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
-import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
-import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageRecipient;
-import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-
-import com.google.common.collect.Sets;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
@@ -33,17 +25,10 @@ public class BroadcastMessageDaoImplTest {
 	@Autowired
 	DBOChangeDAO changeDao;
 	@Autowired
-	private MessageDAO messageDAO;
-	@Autowired
 	private UserGroupDAO userGroupDAO;
-	@Autowired
-	private FileHandleDao fileDAO;
 	
 	UserGroup user;
-	String fileHandleId;
-	MessageToUser messageToUser;
 	ChangeMessage changeMessage;
-	Long messageId;
 	
 	@Before
 	public void before(){
@@ -51,20 +36,6 @@ public class BroadcastMessageDaoImplTest {
 		user = new UserGroup();
 		user.setIsIndividual(true);
 		user.setId(userGroupDAO.create(user).toString());
-		
-		S3FileHandle handle = TestUtils.createS3FileHandle(user.getId());
-		handle = fileDAO.createFile(handle);
-		fileHandleId = handle.getId();
-		
-		messageToUser = new MessageToUser();
-		messageToUser.setFileHandleId(fileHandleId);
-		messageToUser.setCreatedBy(user.getId());
-		messageToUser.setCreatedOn(new Date());
-		messageToUser.setSubject("A Test");
-		messageToUser.setRecipients(Sets.newHashSet(user.getId()));
-		
-		messageToUser = messageDAO.createMessage(messageToUser);
-		messageId = Long.parseLong(messageToUser.getId());
 		
 		changeDao.deleteAllChanges();
 		
@@ -78,12 +49,6 @@ public class BroadcastMessageDaoImplTest {
 	
 	@After
 	public void after(){
-		if(messageToUser != null && messageToUser.getId() != null){
-			messageDAO.deleteMessage(messageToUser.getId());
-		}
-		if(fileHandleId != null){
-			fileDAO.delete(fileHandleId);
-		}
 		changeDao.deleteAllChanges();
 		if(user != null){
 			userGroupDAO.delete(user.getId());
@@ -103,7 +68,7 @@ public class BroadcastMessageDaoImplTest {
 		// should not be broadcast yet.
 		assertFalse(broadcastMessageDao.wasBroadcast(changeMessage.getChangeNumber()));
 		// call under test.
-		broadcastMessageDao.setBroadcast(changeMessage.getChangeNumber(), messageId);
+		broadcastMessageDao.setBroadcast(changeMessage.getChangeNumber());
 		// should be broadcast
 		assertTrue(broadcastMessageDao.wasBroadcast(changeMessage.getChangeNumber()));
 	}
@@ -112,13 +77,7 @@ public class BroadcastMessageDaoImplTest {
 	public void setBroadcastChangeDoesNotExist(){
 		Long changeDoesNotExist = -1L;
 		// call under test.
-		broadcastMessageDao.setBroadcast(changeDoesNotExist, messageId);
+		broadcastMessageDao.setBroadcast(changeDoesNotExist);
 	}
 
-	@Test (expected=NotFoundException.class)
-	public void setBroadcastMessageDoesNotExist(){
-		Long messageDoesNotExist = -1L;
-		// call under test.
-		broadcastMessageDao.setBroadcast(changeMessage.getChangeNumber(), messageDoesNotExist);
-	}
 }

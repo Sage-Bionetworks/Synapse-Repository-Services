@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.model.message;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_BROADCAST_MESSAGE_CHANGE_NUMBER;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_BROADCAST_MESSAGE_MESSAGE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_BROADCAST_MESSAGE_SENT_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_BROADCAST_MESSAGE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_BROADCAST_MESSAGE;
@@ -24,12 +23,10 @@ public class DBOBroadcastMessage implements MigratableDatabaseObject<DBOBroadcas
 	
 	private static final FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("changeNumber", COL_BROADCAST_MESSAGE_CHANGE_NUMBER, true).withIsBackupId(true),
-		new FieldColumn("messageId", COL_BROADCAST_MESSAGE_MESSAGE_ID),
 		new FieldColumn("sentOn", COL_BROADCAST_MESSAGE_SENT_ON),
 	};
 	
 	private Long changeNumber;
-	private Long messageId;
 	private Long sentOn;
 
 	public Long getChangeNumber() {
@@ -40,17 +37,6 @@ public class DBOBroadcastMessage implements MigratableDatabaseObject<DBOBroadcas
 	public void setChangeNumber(Long changeNumber) {
 		this.changeNumber = changeNumber;
 	}
-
-
-	public Long getMessageId() {
-		return messageId;
-	}
-
-
-	public void setMessageId(Long messageId) {
-		this.messageId = messageId;
-	}
-
 
 	public Long getSentOn() {
 		return sentOn;
@@ -72,7 +58,6 @@ public class DBOBroadcastMessage implements MigratableDatabaseObject<DBOBroadcas
 					throws SQLException {
 				DBOBroadcastMessage dbo = new DBOBroadcastMessage();
 				dbo.setChangeNumber(rs.getLong(COL_BROADCAST_MESSAGE_CHANGE_NUMBER));
-				dbo.setMessageId(rs.getLong(COL_BROADCAST_MESSAGE_MESSAGE_ID));
 				dbo.setSentOn(rs.getLong(COL_BROADCAST_MESSAGE_SENT_ON));
 				return dbo;
 			}

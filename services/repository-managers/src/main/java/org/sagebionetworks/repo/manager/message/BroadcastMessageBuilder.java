@@ -1,15 +1,25 @@
 package org.sagebionetworks.repo.manager.message;
 
-import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.subscription.Subscriber;
+import org.sagebionetworks.repo.model.subscription.Topic;
+
+import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
 
 public interface BroadcastMessageBuilder {
 
 	/**
-	 * Build an email message for the given objectId and changeType.
-	 * @param objectId
-	 * @param changeType
+	 * Get the topic that the messages should be broadcast too.
+	 * 
 	 * @return
 	 */
-	BroadcastMessage buildMessage(String objectId, ChangeType changeType);
+	Topic getBroadcastTopic();
+	
+	/**
+	 * Build an email request for a given subscriber.
+	 * 
+	 * @param subscriber
+	 * @return
+	 */
+	SendRawEmailRequest buildEmailForSubscriber(Subscriber subscriber);
 
 }

@@ -1,0 +1,29 @@
+{
+	"description": "The model object represents a single subscriber to a subscription.",
+	"properties": {
+		"subscriptionId": {
+			"type": "string",
+			"description": "The ID of this subscription"
+		},
+		"subscriberId": {
+			"type": "string",
+			"description": "The ID of the user who created this subscription"
+		},
+		"firstName": {
+			"type": "string",
+			"description": "The first name of the subscriber"
+		},
+		"lastName": {
+			"type": "string",
+			"description": "The last name of the subscriber"
+		},
+		"notificationEmail": {
+			"type": "string",
+			"description": "The notification email address of the subscriber."
+		},
+		"username": {
+			"type": "string",
+			"description": "The username of the subscriber."
+		}		
+	}
+}

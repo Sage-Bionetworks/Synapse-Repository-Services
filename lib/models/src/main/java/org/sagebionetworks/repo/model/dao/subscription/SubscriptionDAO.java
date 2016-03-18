@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.dao.subscription;
 
 import java.util.List;
 
+import org.sagebionetworks.repo.model.subscription.Subscriber;
 import org.sagebionetworks.repo.model.subscription.Subscription;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.SubscriptionPagedResults;
@@ -79,6 +80,16 @@ public interface SubscriptionDAO {
 	 * @return
 	 */
 	public List<String> getAllSubscribers(String objectId,
+			SubscriptionObjectType objectType);
+	/**
+	 * Get all email subscribers that want to receive email notifications.
+	 * 
+	 * @param objectId
+	 * @param objectType
+	 * 
+	 * @return
+	 */
+	public List<Subscriber> getAllEmailSubscribers(String objectId,
 			SubscriptionObjectType objectType);
 
 	/**

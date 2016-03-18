@@ -1,14 +1,12 @@
 package org.sagebionetworks.repo.manager.message;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.lang.Validate;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.sagebionetworks.repo.manager.MessageToUserAndBody;
-import org.sagebionetworks.repo.manager.NotificationManager;
+import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.repo.manager.principal.SynapseEmailService;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -16,11 +14,13 @@ import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.message.BroadcastMessageDao;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
-import org.sagebionetworks.repo.model.message.MessageToUser;
-import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
+import org.sagebionetworks.repo.model.subscription.Subscriber;
+import org.sagebionetworks.repo.model.subscription.Topic;
 import org.sagebionetworks.util.TimeoutUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
 
 public class BroadcastMessageManagerImpl implements BroadcastMessageManager {
 	
@@ -31,23 +31,22 @@ public class BroadcastMessageManagerImpl implements BroadcastMessageManager {
 	 */
 	public static final long MESSAGE_EXPIRATION_MS = 1000*60*60*24; // 24 hours
 	
-	// Maps ObjectTypes to builders. Injected (IoC).
-	Map<ObjectType, BroadcastMessageBuilder> builderMap;
+	// Maps ObjectTypes to factory. Injected (IoC).
+	Map<ObjectType, MessageBuilderFactory> factoryMap;
 
 	@Autowired
 	SubscriptionDAO subscriptionDAO;
 	@Autowired
 	BroadcastMessageDao broadcastMessageDao;
 	@Autowired
+	SynapseEmailService sesClient;
+	@Autowired
 	DBOChangeDAO changeDao;
 	@Autowired
 	TimeoutUtils timeoutUtils;
-	@Autowired
-	NotificationManager notificationManager;
 
-	@WriteTransactionReadCommitted
 	@Override
-	public void broadcastMessage(UserInfo user,	ChangeMessage changeMessage) {
+	public void broadcastMessage(UserInfo user,	ProgressCallback<ChangeMessage> progressCallback, ChangeMessage changeMessage) {
 		ValidateArgument.required(user, "user");
 		ValidateArgument.required(changeMessage, "changeMessage");
 		if(!user.isAdmin()){
@@ -74,49 +73,45 @@ public class BroadcastMessageManagerImpl implements BroadcastMessageManager {
 			}
 			return;
 		}
-		// Lookup the builder for this type.
-		BroadcastMessageBuilder builder = builderMap.get(changeMessage.getObjectType());
-		if(builder == null){
-			throw new IllegalArgumentException("No builder found for object type: "+changeMessage.getObjectType());
+		// Record this message as sent to prevent the messages from being sent again.
+		broadcastMessageDao.setBroadcast(changeMessage.getChangeNumber());
+		// Lookup the factory for this type.
+		MessageBuilderFactory factory = factoryMap.get(changeMessage.getObjectType());
+		if(factory == null){
+			throw new IllegalArgumentException("No factory found for object type: "+changeMessage.getObjectType());
 		}
 		// The builder creates the email.
-		BroadcastMessage message = builder.buildMessage(changeMessage.getObjectId(), changeMessage.getChangeType());
-		validateBroadcastMessage(message);
-		// Get the uses subscribed to this topic
-		List<String> subscribers = subscriptionDAO.getAllSubscribers(message.getTopic().getObjectId(), message.getTopic().getObjectType());
-		// Put it all together and send it out
-		MessageToUser messageToUser = new MessageToUser();
-		messageToUser.setRecipients(new HashSet<String>(subscribers));
-		messageToUser.setSubject(message.getSubject());
-		MessageToUserAndBody messageAndBody = new MessageToUserAndBody();
-		messageAndBody.setBody(message.getBody());
-		messageAndBody.setMimeType(message.getContentType().getMimeType());
-		// Send it out
-		messageToUser = notificationManager.sendNotification(user, messageAndBody);
-		// Record this message as sent
-		broadcastMessageDao.setBroadcast(changeMessage.getChangeNumber(), Long.parseLong(messageToUser.getId()));
-	}
-
-	/**
-	 * IoC.
-	 * @param builderMap
-	 */
-	public void setBuilderMap(Map<ObjectType, BroadcastMessageBuilder> builderMap) {
-		this.builderMap = builderMap;
+		BroadcastMessageBuilder builder = factory.createMessageBuilder(changeMessage.getObjectId(), changeMessage.getChangeType());
+		Topic topic = builder.getBroadcastTopic();
+		valdiateTopic(topic);
+		// Get all of the email subscribers for this topic.
+		List<Subscriber> subscribers = subscriptionDAO.getAllEmailSubscribers(topic.getObjectId(), topic.getObjectType());
+		// The builder will prepare an email for each subscriber
+		for(Subscriber subscriber: subscribers){
+			// progress between each message
+			progressCallback.progressMade(changeMessage);
+			SendRawEmailRequest emailRequest = builder.buildEmailForSubscriber(subscriber);
+			sesClient.sendRawEmail(emailRequest);
+		}
 	}
 	
 	/**
 	 * Validate the given BroadcastMessage message.
 	 * @param message
 	 */
-	public void validateBroadcastMessage(BroadcastMessage message){
-		ValidateArgument.required(message, "message");
-		ValidateArgument.required(message.getTopic(), "message.Topic");
-		ValidateArgument.required(message.getTopic().getObjectId(), "message.Topic.ObjectId");
-		ValidateArgument.required(message.getTopic().getObjectType(), "message.Topic.ObjectType");
-		ValidateArgument.required(message.getBody(), "message.Body");
-		ValidateArgument.required(message.getSubject(), "message.Subject");
-		ValidateArgument.required(message.getContentType(), "message.ContentType");
+	public static void valdiateTopic(Topic topic){
+		ValidateArgument.required(topic, "topic");
+		ValidateArgument.required(topic.getObjectId(), "topic.ObjectId");
+		ValidateArgument.required(topic.getObjectType(), "topic.ObjectType");
+	}
+
+	/**
+	 * IoC.
+	 * 
+	 * @param factoryMap
+	 */
+	public void setFactoryMap(Map<ObjectType, MessageBuilderFactory> factoryMap) {
+		this.factoryMap = factoryMap;
 	}
 	
 	

@@ -29,13 +29,11 @@ public class BroadcastMessageDaoImpl implements BroadcastMessageDao {
 
 	@WriteTransactionReadCommitted
 	@Override
-	public void setBroadcast(Long changeNumber, Long messageId) {
+	public void setBroadcast(Long changeNumber) {
 		ValidateArgument.required(changeNumber, "changeNumber");
-		ValidateArgument.required(messageId, "messageId");
 		long now = System.currentTimeMillis();
 		DBOBroadcastMessage dbo = new DBOBroadcastMessage();
 		dbo.setChangeNumber(changeNumber);
-		dbo.setMessageId(messageId);
 		dbo.setSentOn(now);
 		try {
 			basicDao.createNew(dbo);
@@ -43,9 +41,7 @@ public class BroadcastMessageDaoImpl implements BroadcastMessageDao {
 			if(e.getMessage().contains(BROAD_CHANGE_NUM_FK)){
 				throw new NotFoundException("Change number does not exist: "+changeNumber);
 			}
-			if(e.getMessage().contains(BROAD_MESSAGE_ID_FK)){
-				throw new NotFoundException("Message ID does not exist: "+messageId);
-			}
+			throw e;
 		}
 	}
 

@@ -11,11 +11,11 @@ public interface BroadcastMessageDao {
 	public boolean wasBroadcast(Long changeNumber);
 	
 	/**
-	 * Set that the given change number was broadcast using the given message ID.
+	 * Set that the given change number was broadcast.
 	 * 
 	 * @param changeNumber
 	 * @param messageId
 	 */
-	public void setBroadcast(Long changeNumber, Long messageId);
+	public void setBroadcast(Long changeNumber);
 
 }

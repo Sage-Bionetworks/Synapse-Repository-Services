@@ -188,6 +188,38 @@ public class DBOUserProfileDAOImplTest {
 	}
 	
 	@Test
+	public void testNullNames(){
+		UserProfile userProfile = createUserProfile();
+		userProfile.setFirstName(null);
+		userProfile.setLastName(null);
+		// Create it
+		String id = userProfileDAO.create(userProfile);
+		assertNotNull(id);
+		
+		// Fetch it
+		UserProfile clone = userProfileDAO.get(id);
+		assertNotNull(clone);
+		assertEquals(userProfile.getFirstName(), clone.getFirstName());
+		assertEquals(userProfile.getLastName(), clone.getLastName());
+	}
+	
+	@Test
+	public void testUnicodeNames(){
+		UserProfile userProfile = createUserProfile();
+		userProfile.setFirstName("बंदर बट");
+		userProfile.setLastName("Völlerei lässt grüßen");
+		// Create it
+		String id = userProfileDAO.create(userProfile);
+		assertNotNull(id);
+		
+		// Fetch it
+		UserProfile clone = userProfileDAO.get(id);
+		assertNotNull(clone);
+		assertEquals(userProfile.getFirstName(), clone.getFirstName());
+		assertEquals(userProfile.getLastName(), clone.getLastName());
+	}
+	
+	@Test
 	public void testCRUD() throws Exception{
 		List<UserProfile> userProfiles = new ArrayList<UserProfile>();
 		long initialCount = userProfileDAO.getCount();

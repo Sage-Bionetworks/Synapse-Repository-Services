@@ -346,8 +346,7 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 	
 	private void createBroadcastMessage() {
 		long currentChangeNumber = changeDao.getCurrentChangeNumber();
-		long messageToUserId = Long.parseLong(messageToUser.getId());
-		broadcastMessageDao.setBroadcast(currentChangeNumber, messageToUserId);
+		broadcastMessageDao.setBroadcast(currentChangeNumber);
 	}
 
 	private void createMultipartUpload(){

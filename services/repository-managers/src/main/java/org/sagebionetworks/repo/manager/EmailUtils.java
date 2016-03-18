@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken;
 import org.sagebionetworks.repo.model.message.Settings;
 import org.sagebionetworks.repo.util.SignedTokenUtil;
 import org.sagebionetworks.util.SerializationUtils;
+import org.sagebionetworks.util.ValidateArgument;
 
 public class EmailUtils {
 	//////////////////////////////////////////
@@ -60,6 +61,10 @@ public class EmailUtils {
 	public static String getDisplayName(UserProfile userProfile) {
 		String firstName = userProfile.getFirstName();
 		String lastName = userProfile.getLastName();
+		return getDisplayName(firstName, lastName);
+	}
+
+	public static String getDisplayName(String firstName, String lastName) {
 		if (firstName==null && lastName==null) return null;
 		StringBuilder displayName = new StringBuilder();
 		if (firstName!=null) displayName.append(firstName);
@@ -102,7 +107,27 @@ public class EmailUtils {
 		try {
 			InputStream is = MessageManagerImpl.class.getClassLoader().getResourceAsStream(filename);
 			if (is==null) throw new RuntimeException("Could not find file "+filename);
-			BufferedReader br = new BufferedReader(new InputStreamReader(is));
+			try {
+				return readMailTemplate(is, fieldValues);
+			} finally {
+				is.close();
+			}
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
+	
+	/**
+	 * Read a resource into a string.
+	 * @param input
+	 * @param fieldValues
+	 * @return
+	 */
+	public static String readMailTemplate(InputStream input, Map<String,String> fieldValues) {
+		ValidateArgument.required(input, "input");
+		ValidateArgument.required(fieldValues, "fieldValues");
+		try {
+			BufferedReader br = new BufferedReader(new InputStreamReader(input));
 			StringBuilder sb = new StringBuilder();
 			try {
 				String s = br.readLine();
@@ -111,19 +136,29 @@ public class EmailUtils {
 					s = br.readLine();
 				}
 				String template = sb.toString();
-				for (String fieldMarker : fieldValues.keySet()) {
-					template = template.replaceAll(fieldMarker, fieldValues.get(fieldMarker));
-				}
-				return template;
+				return buildMailFromTemplate(template, fieldValues);
 			} finally {
 				br.close();
-				is.close();
 			}
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
 	}
 	
+	/**
+	 * Build a message from the given template
+	 * @param template
+	 * @param fieldValues
+	 * @return
+	 */
+	public static String buildMailFromTemplate(String template, Map<String,String> fieldValues) {
+		ValidateArgument.required(template, "input");
+		ValidateArgument.required(fieldValues, "fieldValues");
+		for (String fieldMarker : fieldValues.keySet()) {
+			template = template.replaceAll(fieldMarker, fieldValues.get(fieldMarker));
+		}
+		return template;
+	}
 	
 	public static void validateSynapsePortalHost(String urlString) {
 		URL url = null;
