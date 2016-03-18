@@ -22,11 +22,13 @@ import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.model.message.Settings;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import com.amazonaws.auth.profile.internal.Profile;
 import com.amazonaws.services.s3.AmazonS3Client;
 
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -87,6 +89,9 @@ public class UserProfileManagerImplTest {
 			profile.setLastName("Bond");
 			profile.setOwnerId(this.userId.toString());
 			profile.setUserName(USER_NAME);
+			Settings settings = new Settings();
+			settings.setSendEmailNotifications(true);
+			profile.setNotificationSettings(settings);
 			// Create the profile
 			created = this.userProfileManager.createUserProfile(profile);
 			// the changed fields are etag and emails (which are ignored)

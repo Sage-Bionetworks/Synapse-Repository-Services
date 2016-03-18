@@ -1547,7 +1547,7 @@ public class IT500SynapseJavaClient {
 		assertTrue(tms.getIsMember());
 		
 		// I should also be able to use the email-unsubscribe link
-		assertNull(inviteeUserProfile.getNotificationSettings());
+//		assertNull(inviteeUserProfile.getNotificationSettings());
 		
 		m = synapseTwo.updateNotificationSettings(notificationSettingsSignedToken);
 		assertNotNull(m.getMessage());
@@ -1676,7 +1676,7 @@ public class IT500SynapseJavaClient {
 		assertTrue(tms.getIsMember());
 		
 		// admin should also be able to use the email-unsubscribe link
-		assertNull(adminUserProfile.getNotificationSettings());
+//		assertNull(adminUserProfile.getNotificationSettings());
 		
 		m = synapseOne.updateNotificationSettings(notificationSettingsSignedToken);
 		assertNotNull(m.getMessage());
