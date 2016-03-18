@@ -8,9 +8,12 @@ import java.util.Map;
 
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.utils.HttpClientHelper;
 import org.sagebionetworks.utils.HttpClientHelperException;
 import org.springframework.beans.factory.annotation.Autowired;
+
 import javax.annotation.PostConstruct;
 
 /**
@@ -23,6 +26,8 @@ import javax.annotation.PostConstruct;
  */
 public class CloudSearchClient {
 
+	static private Logger logger = LogManager.getLogger(CloudSearchClient.class);
+	
 	private static final Map<String, String> SEND_DOCUMENTS_REQUEST_HEADERS;
 	static {
 		Map<String, String> requestHeaders = new HashMap<String, String>();
@@ -98,6 +103,7 @@ public class CloudSearchClient {
 					}
 				} else {
 					// rethrow
+					logger.error("performSearch(): Exception rethrown (url="+(url==null?"null":url)+")");
 					throw(e1);
 				}
 			}
@@ -105,6 +111,7 @@ public class CloudSearchClient {
 		} while ((s == null) && (backoffMs < MAX_BACKOFF_MS));
 		// If we're past the max backoff, throw the last 507 we got
 		if (backoffMs >= MAX_BACKOFF_MS) {
+			logger.error("performSearch(): Backoff exceeded (url="+(url==null?"null":url)+")");
 			throw(e);
 		}
 		return s;
