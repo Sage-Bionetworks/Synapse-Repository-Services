@@ -48,7 +48,7 @@ public class CloudSearchClientTest {
 	@Test
 	public void testPLFM2968NoError() throws Exception {
 		//when(mockHttpClient.execute(any(HttpRequestBase.class))).thenThrow(new RuntimeException());
-		StatusLine status = new BasicStatusLine(new ProtocolVersion("HTTP", 1, 1), 200, "SomeReason");
+		StatusLine status = new BasicStatusLine(new ProtocolVersion("HTTP", 1, 1), 200, "OK");
 		HttpResponse resp = new BasicHttpResponse(status);
 		when(mockHttpClient.execute(any(HttpRequestBase.class))).thenReturn(resp);
 		cloudSearchClient.performSearch("aQuery");
@@ -68,6 +68,21 @@ public class CloudSearchClientTest {
 		} finally {
 			// Should have retried 6 times (100, 200, 400, 800, 1600, 3200)
 			verify(mockHttpClient, times(6)).execute(any(HttpRequestBase.class));
+		}
+	}
+
+	@Test
+	public void testPLFM3777() throws Exception {
+		//when(mockHttpClient.execute(any(HttpRequestBase.class))).thenThrow(new RuntimeException());
+		StatusLine status = new BasicStatusLine(new ProtocolVersion("HTTP", 1, 1), 504, "SomeReason");
+		HttpResponse resp = new BasicHttpResponse(status);
+		when(mockHttpClient.execute(any(HttpRequestBase.class))).thenReturn(resp);
+		try {
+			cloudSearchClient.performSearch("aQuery");
+		} catch (HttpClientHelperException e) {
+			assertEquals(504, e.getHttpStatus());
+		} finally {
+			verify(mockHttpClient).execute(any(HttpRequestBase.class));
 		}
 	}
 
