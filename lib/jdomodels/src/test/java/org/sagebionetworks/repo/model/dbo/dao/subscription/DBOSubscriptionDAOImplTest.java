@@ -123,6 +123,7 @@ public class DBOSubscriptionDAOImplTest {
 		Subscription forumSub = subscriptionDao.create(userId, objectId, SubscriptionObjectType.FORUM);
 		SubscriptionPagedResults results = subscriptionDao.getAll(userId, 10L, 0L, null);
 		assertEquals(2L, results.getResults().size());
+		assertEquals((Long)2L, results.getTotalNumberOfResults());
 		assertTrue(results.getResults().contains(threadSub));
 		assertTrue(results.getResults().contains(forumSub));
 		results = subscriptionDao.getAll(userId, 10L, 0L, SubscriptionObjectType.DISCUSSION_THREAD);

@@ -1,10 +1,12 @@
 package org.sagebionetworks.repo.manager.discussion;
 
+import static org.sagebionetworks.repo.manager.discussion.DiscussionThreadManagerImpl.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import java.util.Arrays;
 
+import org.apache.commons.lang.RandomStringUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -137,6 +139,13 @@ public class DiscussionThreadManagerImplTest {
 	@Test (expected = IllegalArgumentException.class)
 	public void testCreateWithNulluserInfo() throws Exception {
 		threadManager.createThread(null, new CreateDiscussionThread());
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testCreateWithLongTitle() throws Exception {
+		CreateDiscussionThread createThread = new CreateDiscussionThread();
+		createThread.setTitle(RandomStringUtils.randomAlphanumeric(MAX_TITLE_LENGTH+1));
+		threadManager.createThread(null, createThread);
 	}
 
 	@Test (expected = UnauthorizedException.class)
