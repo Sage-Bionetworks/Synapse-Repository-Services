@@ -63,7 +63,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		ValidateArgument.required(createThread.getForumId(), "CreateDiscussionThread.forumId");
 		ValidateArgument.required(createThread.getTitle(), "CreateDiscussionThread.title");
 		ValidateArgument.required(createThread.getMessageMarkdown(), "CreateDiscussionThread.messageMarkdown");
-		ValidateArgument.required(createThread.getTitle().length() <= MAX_TITLE_LENGTH, "Title cannot exceed "+MAX_TITLE_LENGTH+" characters.");
+		ValidateArgument.requirement(createThread.getTitle().length() <= MAX_TITLE_LENGTH, "Title cannot exceed "+MAX_TITLE_LENGTH+" characters.");
 		UserInfo.validateUserInfo(userInfo);
 		String projectId = forumDao.getForum(Long.parseLong(createThread.getForumId())).getProjectId();
 		if (authorizationManager.isAnonymousUser(userInfo)){
