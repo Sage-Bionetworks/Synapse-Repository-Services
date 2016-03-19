@@ -4,6 +4,7 @@ import static org.junit.Assert.*;
 
 import java.io.IOException;
 
+import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.ProtocolVersion;
 import org.apache.http.StatusLine;
@@ -11,6 +12,7 @@ import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpRequestBase;
+import org.apache.http.entity.StringEntity;
 import org.apache.http.message.BasicHttpResponse;
 import org.apache.http.message.BasicStatusLine;
 import org.junit.Before;
@@ -44,12 +46,14 @@ public class CloudSearchClientTest {
 		cloudSearchClient = new CloudSearchClient(mockHttpClientProvider, "https://svc.endpoint.com", "https://doc.endpoint.com")
 	;}
 	
-	@Ignore
+	
 	@Test
 	public void testPLFM2968NoError() throws Exception {
 		//when(mockHttpClient.execute(any(HttpRequestBase.class))).thenThrow(new RuntimeException());
 		StatusLine status = new BasicStatusLine(new ProtocolVersion("HTTP", 1, 1), 200, "OK");
+		HttpEntity entity = new StringEntity("s");
 		HttpResponse resp = new BasicHttpResponse(status);
+		resp.setEntity(entity);
 		when(mockHttpClient.execute(any(HttpRequestBase.class))).thenReturn(resp);
 		cloudSearchClient.performSearch("aQuery");
 		verify(mockHttpClient).execute(any(HttpRequestBase.class));
