@@ -286,9 +286,8 @@ public class MigrationClient {
 			// Missing at source
 			if (d.getDelta() == null) {
 				log.info("\t" + d.getType().name() + "\tNA\t" + d.getDestinationCount());
-			}
-			if (d.getDelta() != 0L) {
-				log.info("\t" + d.getType().name() + ":\t" + d.getDelta() + "\t" + d.getSourceCount() + "\t" + d.getDestinationCount());
+			} else if (d.getDelta() != 0L) {
+					log.info("\t" + d.getType().name() + ":\t" + d.getDelta() + "\t" + d.getSourceCount() + "\t" + d.getDestinationCount());
 			}
 		}
 	}
