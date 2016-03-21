@@ -13,7 +13,9 @@ public interface BroadcastMessageManager {
 
 	/**
 	 * Main entry point to broadcast a given change message.
-	 * @param user
+	 * Only Synapse Admin can use this method.
+	 * 
+	 * @param user - admin user
 	 * @param changeMessage
 	 */
 	public void broadcastMessage(UserInfo user,
