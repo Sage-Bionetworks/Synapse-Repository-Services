@@ -2,11 +2,9 @@ package org.sagebionetworks.repo.manager.message;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
 import java.util.Map;
 
 import org.apache.commons.io.IOUtils;
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.EmailUtils;
 import org.sagebionetworks.repo.manager.SendRawEmailRequestBuilder;
 import org.sagebionetworks.repo.manager.SendRawEmailRequestBuilder.BodyType;
@@ -20,14 +18,11 @@ import org.sagebionetworks.repo.model.subscription.Topic;
 import org.sagebionetworks.util.ValidateArgument;
 
 import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
-import com.amazonaws.util.StringInputStream;
 import com.google.common.collect.Maps;
 
 public class ReplyBroadcastMessageBuilder implements BroadcastMessageBuilder {
 	
 	public static final String THREAD_REPLY_TEMPLATE = "message/threadReplyTemplate.html";
-	
-	public static String SUBJECT_TEMPLATE = "Synapse Notification: New reply in %1$s thread ";
 	
 	DiscussionReplyBundle replyBundle;
 	DiscussionThreadBundle threadBundle;

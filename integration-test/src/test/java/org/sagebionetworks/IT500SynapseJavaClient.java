@@ -1546,9 +1546,6 @@ public class IT500SynapseJavaClient {
 		TeamMembershipStatus tms = synapseTwo.getTeamMembershipStatus(createdTeam.getId(), inviteePrincipalId);
 		assertTrue(tms.getIsMember());
 		
-		// I should also be able to use the email-unsubscribe link
-//		assertNull(inviteeUserProfile.getNotificationSettings());
-		
 		m = synapseTwo.updateNotificationSettings(notificationSettingsSignedToken);
 		assertNotNull(m.getMessage());
 		
@@ -1674,9 +1671,6 @@ public class IT500SynapseJavaClient {
 		// now requester should be in the team
 		TeamMembershipStatus tms = synapseTwo.getTeamMembershipStatus(createdTeam.getId(), requesterPrincipalId);
 		assertTrue(tms.getIsMember());
-		
-		// admin should also be able to use the email-unsubscribe link
-//		assertNull(adminUserProfile.getNotificationSettings());
 		
 		m = synapseOne.updateNotificationSettings(notificationSettingsSignedToken);
 		assertNotNull(m.getMessage());
