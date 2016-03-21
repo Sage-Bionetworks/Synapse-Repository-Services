@@ -13,6 +13,8 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.principal.AliasType;
+import org.sagebionetworks.repo.model.subscription.Subscriber;
 import org.sagebionetworks.repo.model.subscription.Subscription;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.SubscriptionPagedResults;
@@ -35,6 +37,27 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 	private DBOBasicDao basicDao;
 	@Autowired
 	private IdGenerator idGenerator;
+	
+	private static final String SQL_GET_EMAIL_SUBSCRIBERS = "SELECT S."
+			+ COL_SUBSCRIPTION_ID + ", S." + COL_SUBSCRIPTION_SUBSCRIBER_ID
+			+ ", U." + COL_USER_PROFILE_FIRST_NAME + ", U."
+			+ COL_USER_PROFILE_LAST_NAME + ", A1." + COL_BOUND_ALIAS_DISPLAY
+			+ " AS 'EMAIL', A2." + COL_BOUND_ALIAS_DISPLAY
+			+ " AS 'USERNAME' FROM " + TABLE_SUBSCRIPTION + " S, "
+			+ TABLE_USER_PROFILE + " U, " + TABLE_NOTIFICATION_EMAIL + " N, "
+			+ TABLE_PRINCIPAL_ALIAS + " A1, " + TABLE_PRINCIPAL_ALIAS
+			+ " A2 WHERE S." + COL_SUBSCRIPTION_OBJECT_ID + " = ? AND S."
+			+ COL_SUBSCRIPTION_OBJECT_TYPE + " = ? AND S."
+			+ COL_SUBSCRIPTION_SUBSCRIBER_ID + " = U." + COL_USER_PROFILE_ID
+			+ " AND U." + COL_USER_PROFILE_EMAIL_NOTIFICATION
+			+ " = true AND A1." + COL_PRINCIPAL_ALIAS_PRINCIPAL_ID + " = S."
+			+ COL_SUBSCRIPTION_SUBSCRIBER_ID + " AND N."
+			+ COL_NOTIFICATION_EMAIL_ALIAS_ID + " = A1."
+			+ COL_PRINCIPAL_ALIAS_ID + " AND A2."
+			+ COL_PRINCIPAL_ALIAS_PRINCIPAL_ID + " = S."
+			+ COL_SUBSCRIPTION_SUBSCRIBER_ID + " AND A2."
+			+ COL_PRINCIPAL_ALIAS_TYPE + " = '" + AliasType.USER_NAME.name()
+			+ "'";
 
 	private static final String SQL_INSERT_IGNORE = "INSERT IGNORE INTO "
 			+ TABLE_SUBSCRIPTION + " ( "
@@ -224,5 +247,26 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 				ps.setLong(5, new Date().getTime());
 			}
 		});
+	}
+
+	@Override
+	public List<Subscriber> getAllEmailSubscribers(String objectId,
+			SubscriptionObjectType objectType) {
+		ValidateArgument.required(objectId, "objectId");
+		ValidateArgument.required(objectType, "objectType");
+		return jdbcTemplate.query(SQL_GET_EMAIL_SUBSCRIBERS, new RowMapper<Subscriber>(){
+
+			@Override
+			public Subscriber mapRow(ResultSet rs, int rowNum)
+					throws SQLException {
+				Subscriber sub = new Subscriber();
+				sub.setFirstName(rs.getString(COL_USER_PROFILE_FIRST_NAME));
+				sub.setLastName(rs.getString(COL_USER_PROFILE_LAST_NAME));
+				sub.setSubscriberId(rs.getString(COL_SUBSCRIPTION_SUBSCRIBER_ID));
+				sub.setSubscriptionId(rs.getString(COL_SUBSCRIPTION_ID));
+				sub.setNotificationEmail(rs.getString("EMAIL"));
+				sub.setUsername(rs.getString("USERNAME"));
+				return sub;
+			}},objectId, objectType.name());
 	}
 }

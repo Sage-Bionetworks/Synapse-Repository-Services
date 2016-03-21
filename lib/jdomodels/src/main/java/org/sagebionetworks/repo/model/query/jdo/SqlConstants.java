@@ -72,6 +72,9 @@ public class SqlConstants {
 	public static final String COL_USER_PROFILE_ETAG			= "ETAG";
 	public static final String COL_USER_PROFILE_PROPS_BLOB		= "PROPERTIES";
 	public static final String COL_USER_PROFILE_PICTURE_ID		= "PICTURE_ID";
+	public static final String COL_USER_PROFILE_EMAIL_NOTIFICATION	= "SEND_EMAIL_NOTIFICATION";
+	public static final String COL_USER_PROFILE_FIRST_NAME		= "FIRST_NAME";
+	public static final String COL_USER_PROFILE_LAST_NAME		= "LAST_NAME";
 	public static final String DDL_FILE_USER_PROFILE			= "schema/UserProfile-ddl.sql";
 
 	// The Project Settings table
@@ -411,6 +414,12 @@ public class SqlConstants {
 	public static final String COL_WIKI_ROOT_ID				= "ROOT_ID";
 	public static final String COL_WIKI_MARKDOWN			= "MARKDOWN";
 	public static final String DDL_FILE_WIKI_PAGE = "schema/WikiPage-ddl.sql";
+	
+	// Tracks changes messages that were broadcast by email.
+	public static final String TABLE_BROADCAST_MESSAGE				= "MESSAGE_BROADCAST";
+	public static final String COL_BROADCAST_MESSAGE_CHANGE_NUMBER	= "CHANGE_NUMBER";
+	public static final String COL_BROADCAST_MESSAGE_SENT_ON		= "SENT_ON";
+	public static final String DDL_BROADCAST_MESSAGE = "schema/BroadcastMessage-ddl.sql";
 	
 	// The column model table
 	public static final String TABLE_COLUMN_MODEL			= "COLUMN_MODEL";

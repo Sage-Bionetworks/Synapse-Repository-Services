@@ -87,6 +87,7 @@ import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.dbo.file.CompositeMultipartUploadStatus;
 import org.sagebionetworks.repo.model.dbo.file.CreateMultipartRequest;
@@ -99,6 +100,7 @@ import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.message.BroadcastMessageDao;
 import org.sagebionetworks.repo.model.message.Comment;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.migration.ListBucketProvider;
@@ -246,6 +248,10 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 	@Autowired
 	private SubscriptionDAO subscriptionDao;
 	@Autowired
+	private BroadcastMessageDao broadcastMessageDao;
+	@Autowired
+	DBOChangeDAO changeDao;
+	@Autowired
 	private IdGenerator idGenerator;
 	
 	@Autowired
@@ -292,6 +298,8 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 
 	private String forumId;
 	private String threadId;
+	
+	private MessageToUser messageToUser;
 
 	@Before
 	public void before() throws Exception {
@@ -333,8 +341,14 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		createReply();
 		createMultipartUpload();
 		createSubscription();
+		createBroadcastMessage();
 	}
 	
+	private void createBroadcastMessage() {
+		long currentChangeNumber = changeDao.getCurrentChangeNumber();
+		broadcastMessageDao.setBroadcast(currentChangeNumber);
+	}
+
 	private void createMultipartUpload(){
 		CreateMultipartRequest request = new CreateMultipartRequest();
 		request.setBucket("someBucket");
@@ -737,6 +751,8 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		// Note: InReplyToRoot is calculated by the DAO
 
 		dto = messageDAO.createMessage(dto);
+		
+		messageToUser = dto;
 
 		messageDAO.createMessageStatus_NewTransaction(dto.getId(), group.getId(), null);
 

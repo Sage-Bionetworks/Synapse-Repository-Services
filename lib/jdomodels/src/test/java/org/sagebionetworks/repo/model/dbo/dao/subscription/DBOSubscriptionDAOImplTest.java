@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.dao.subscription;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
@@ -13,7 +14,15 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.UserProfileDAO;
+import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
+import org.sagebionetworks.repo.model.message.Settings;
+import org.sagebionetworks.repo.model.principal.AliasType;
+import org.sagebionetworks.repo.model.principal.PrincipalAlias;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
+import org.sagebionetworks.repo.model.subscription.Subscriber;
 import org.sagebionetworks.repo.model.subscription.Subscription;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.SubscriptionPagedResults;
@@ -31,6 +40,13 @@ public class DBOSubscriptionDAOImplTest {
 	@Autowired
 	private UserGroupDAO userGroupDAO;
 	@Autowired
+	private UserProfileDAO userProfileDao;
+	@Autowired
+	private PrincipalAliasDAO principalAliasDAO;
+	@Autowired
+	private NotificationEmailDAO notificationEmailDAO;
+
+	@Autowired
 	private IdGenerator idGenerator;
 
 	private String userId = null;
@@ -38,6 +54,8 @@ public class DBOSubscriptionDAOImplTest {
 	private SubscriptionObjectType objectType;
 	private List<String> usersToDelete;
 	private List<String> subscriptionIdToDelete;
+	
+	Subscriber subscriber;
 
 	@Before
 	public void before() {
@@ -49,6 +67,35 @@ public class DBOSubscriptionDAOImplTest {
 		user.setIsIndividual(true);
 		userId = userGroupDAO.create(user).toString();
 		usersToDelete.add(userId);
+		
+		subscriber = new Subscriber();
+		subscriber.setFirstName("foo");
+		subscriber.setLastName("bar");
+		subscriber.setNotificationEmail("foo.bar@domain.org");
+		subscriber.setUsername("someUsername");
+		
+		UserProfile profile = new UserProfile();
+		profile.setFirstName(subscriber.getFirstName());
+		profile.setLastName(subscriber.getLastName());
+		profile.setOwnerId(userId);
+		Settings settings = new Settings();
+		settings.setSendEmailNotifications(true);
+		profile.setNotificationSettings(settings);
+		userProfileDao.create(profile);
+		
+		// username
+		PrincipalAlias alias = new PrincipalAlias();
+		alias.setAlias(subscriber.getUsername());
+		alias.setPrincipalId(Long.parseLong(userId));
+		alias.setType(AliasType.USER_NAME);
+		principalAliasDAO.bindAliasToPrincipal(alias);
+		// email
+		alias = new PrincipalAlias();
+		alias.setAlias(subscriber.getNotificationEmail());
+		alias.setPrincipalId(Long.parseLong(userId));
+		alias.setType(AliasType.USER_EMAIL);
+		PrincipalAlias pa = principalAliasDAO.bindAliasToPrincipal(alias);
+		notificationEmailDAO.create(pa);
 
 		objectId = "123";
 		objectType = SubscriptionObjectType.DISCUSSION_THREAD;
@@ -232,6 +279,28 @@ public class DBOSubscriptionDAOImplTest {
 		assertEquals(1L, threadSubscribers.size());
 		assertTrue(forumSubscribers.contains(userId));
 		assertTrue(threadSubscribers.contains(userId));
+	}
+	
+	@Test
+	public void testGetAllEmailSubscribers(){
+		String forumId = "123";
+		String threadId = "456";
+		subscriptionDao.subscribeForumSubscriberToThread(forumId, threadId);
+		List<Subscriber> forumSubscribers = subscriptionDao.getAllEmailSubscribers(forumId, SubscriptionObjectType.FORUM);
+		assertTrue(forumSubscribers.isEmpty());
+
+		subscriptionDao.create(userId, forumId, SubscriptionObjectType.FORUM);
+		subscriptionDao.subscribeForumSubscriberToThread(forumId, threadId);
+		forumSubscribers = subscriptionDao.getAllEmailSubscribers(forumId, SubscriptionObjectType.FORUM);
+		assertEquals(1L, forumSubscribers.size());
+		Subscriber sub = forumSubscribers.get(0);
+		
+		assertEquals(userId, sub.getSubscriberId());
+		assertNotNull(sub.getSubscriberId());
+		assertEquals(subscriber.getFirstName(), sub.getFirstName());
+		assertEquals(subscriber.getLastName(), sub.getLastName());
+		assertEquals(subscriber.getNotificationEmail(), sub.getNotificationEmail());
+		assertEquals(subscriber.getUsername(), sub.getUsername());
 	}
 
 	@Test (expected = IllegalArgumentException.class)

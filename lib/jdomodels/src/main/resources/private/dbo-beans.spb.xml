@@ -13,7 +13,8 @@
 
 
 	<bean id="ddlUtils" class="org.sagebionetworks.repo.model.dbo.DDLUtilsImpl" />
-
+	
+	<!--Register of all database objects (DBOs) that use BasicDao.  -->
 	<bean id="dboBasicDao" class="org.sagebionetworks.repo.model.dbo.DBOBasicDaoImpl">
 		<property name="databaseObjectRegister">
 			<list>
@@ -115,6 +116,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.discussion.DBODiscussionReply" />
 
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.subscription.DBOSubscription" />
+				<bean class="org.sagebionetworks.repo.model.message.DBOBroadcastMessage" />
 			</list>
 		</property>
 	</bean>
@@ -173,6 +175,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.discussion.DBODiscussionThreadView" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.discussion.DBODiscussionReply" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.subscription.DBOSubscription" />
+				<bean class="org.sagebionetworks.repo.model.message.DBOBroadcastMessage" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOChange" />
 			</list>
 		</property>

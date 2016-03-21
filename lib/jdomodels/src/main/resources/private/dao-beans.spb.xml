@@ -315,6 +315,8 @@
 	<bean id="verificationDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOVerificationDAOImpl" />
 
+	<bean id="broadcastMessageDao" class="org.sagebionetworks.repo.model.message.BroadcastMessageDaoImpl"/>
+	
 	<!-- DAO for Discussion -->
 	<bean id="forumDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.discussion.DBOForumDAOImpl" />

@@ -20,7 +20,6 @@ import java.util.concurrent.Future;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -76,6 +75,14 @@ public class DBOChangeDAOImplAutowiredTest {
 	}
 	
 	@Test
+	public void testDoesChangeNumberExistNot(){
+		long doesNotExist = -1;
+		// call under test
+		boolean exists = changeDAO.doesChangeNumberExist(doesNotExist);
+		assertFalse(exists);
+	}
+	
+	@Test
 	public void testReplace(){
 		ChangeMessage change = new ChangeMessage();
 		change.setObjectId("syn123");
@@ -87,6 +94,8 @@ public class DBOChangeDAOImplAutowiredTest {
 		System.out.println(clone);
 		assertNotNull(clone.getChangeNumber());
 		assertNotNull(clone.getTimestamp());
+		// The change number should exist
+		assertTrue(changeDAO.doesChangeNumberExist(clone.getChangeNumber()));
 		long firstChangeNumber = clone.getChangeNumber();
 		assertEquals(change.getObjectId(), clone.getObjectId());
 		assertEquals(change.getObjectEtag(), clone.getObjectEtag());

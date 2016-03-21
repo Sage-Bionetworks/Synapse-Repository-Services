@@ -7,6 +7,7 @@ import java.util.List;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -29,19 +30,23 @@ public class NotificationManagerImpl implements NotificationManager {
 
 	@Override
 	public void sendNotifications(UserInfo userInfo, List<MessageToUserAndBody> messages) throws NotFoundException {
-
 		for (MessageToUserAndBody message : messages) {
-			if (message.getMetadata().getRecipients().isEmpty()) continue;
-			try {
-				FileHandle fileHandle = fileHandleManager.createCompressedFileFromString(
-						userInfo.getId().toString(), new Date(), message.getBody(), message.getMimeType());
+			sendNotification(userInfo, message);
+		}
+	}
+	
+	@Override
+	public MessageToUser sendNotification(UserInfo userInfo, MessageToUserAndBody message){
+		try {
+			if (message.getMetadata().getRecipients().isEmpty()) return null;
+			FileHandle fileHandle = fileHandleManager.createCompressedFileFromString(
+					userInfo.getId().toString(), new Date(), message.getBody(), message.getMimeType());
 
-				message.getMetadata().setFileHandleId(fileHandle.getId());
+			message.getMetadata().setFileHandleId(fileHandle.getId());
 
-				messageManager.createMessage(userInfo, message.getMetadata());
-			} catch (IOException e) {
-				throw new RuntimeException(e);
-			}
+			return messageManager.createMessage(userInfo, message.getMetadata());
+		} catch (IOException e) {
+			throw new RuntimeException(e);
 		}
 	}
 

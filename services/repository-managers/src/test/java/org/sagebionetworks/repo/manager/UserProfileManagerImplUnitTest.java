@@ -29,6 +29,7 @@ import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.dbo.dao.UserProfileUtils;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserProfile;
+import org.sagebionetworks.repo.model.message.Settings;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
@@ -87,6 +88,9 @@ public class UserProfileManagerImplUnitTest {
 		userProfile.setLocation("I'm guessing this is private");
 		userProfile.setOpenIds(Collections.singletonList(USER_OPEN_ID));
 		userProfile.setEmails(Collections.singletonList(USER_EMAIL));
+		Settings settings = new Settings();
+		settings.setSendEmailNotifications(true);
+		userProfile.setNotificationSettings(settings);
 		
 		// UserProfileDAO should return a copy of the mock UserProfile when getting
 		Mockito.doAnswer(new Answer<UserProfile>() {

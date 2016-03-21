@@ -137,4 +137,10 @@ public class StubDBOChangeDAO implements DBOChangeDAO {
 		return null;
 	}
 
+	@Override
+	public boolean doesChangeNumberExist(Long changeNumber) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
 }
