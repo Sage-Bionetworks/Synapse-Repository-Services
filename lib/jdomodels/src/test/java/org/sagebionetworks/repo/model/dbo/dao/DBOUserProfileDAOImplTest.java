@@ -122,7 +122,7 @@ public class DBOUserProfileDAOImplTest {
 	}
 	
 	@Test
-	public void testCreateNoEmail() throws Exception{
+	public void testCreateWithEmailFalse() throws Exception{
 		// Create a new user profile with settings
 		UserProfile userProfile = createUserProfile();
 		userProfile.setNotificationSettings(new Settings());
