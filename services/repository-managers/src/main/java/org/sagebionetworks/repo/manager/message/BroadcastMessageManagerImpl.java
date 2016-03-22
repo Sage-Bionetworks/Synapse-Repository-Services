@@ -96,8 +96,8 @@ public class BroadcastMessageManagerImpl implements BroadcastMessageManager {
 	}
 	
 	/**
-	 * Validate the given BroadcastMessage message.
-	 * @param message
+	 * Validate the given topic.
+	 * @param topic
 	 */
 	public static void valdiateTopic(Topic topic){
 		ValidateArgument.required(topic, "topic");
