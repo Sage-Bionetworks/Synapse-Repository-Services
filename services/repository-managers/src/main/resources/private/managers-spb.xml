@@ -336,10 +336,35 @@
 		class="org.sagebionetworks.repo.manager.discussion.DiscussionReplyManagerImpl"
 		scope ="singleton" />
 
-	<!-- The Subscription managers -->
+	<!-- The Subscription manager -->
 	<bean id="subscriptionManager"
 		class="org.sagebionetworks.repo.manager.subscription.SubscriptionManagerImpl"
 		scope ="singleton" />
+		
+	<!-- Message builder factory -->
+	<bean id="replyMessageBuilderFactory"
+		class="org.sagebionetworks.repo.manager.message.ReplyMessageBuilderFactory"
+		scope ="singleton" />
+		
+	<bean id="threadMessageBuilderFactory"
+		class="org.sagebionetworks.repo.manager.message.ThreadMessageBuilderFactory"
+		scope ="singleton" />
+
+	<!-- The Broadcast Message manager -->
+	<bean id="broadcastMessageManager"
+		class="org.sagebionetworks.repo.manager.message.BroadcastMessageManagerImpl"
+		scope ="singleton">
+		<property name="FactoryMap">
+			<map>
+				<entry key="THREAD">
+					<ref bean="threadMessageBuilderFactory" />
+				</entry>
+				<entry key="REPLY">
+					<ref bean="replyMessageBuilderFactory" />
+				</entry>
+			</map>
+		</property>
+	</bean>		
 
 	<!-- The thread pool used by the backup/restore daemons -->
 	<bean id="backupDaemonThreadPool"

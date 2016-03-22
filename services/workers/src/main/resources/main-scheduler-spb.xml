@@ -51,6 +51,7 @@
     <import resource="classpath:principal-prefix-sqs-spb.xml"/>
     <import resource="classpath:file-bulk-download-spb.xml"/>
     <import resource="classpath:discussion-thread-stat-spb.xml"/>
+    <import resource="classpath:broadcast-message-worker-sqs-spb.xml"/>
 
 	<bean id="mainScheduler"
 			class="org.springframework.scheduling.quartz.SchedulerFactoryBean"
@@ -87,6 +88,7 @@
 				<ref bean="threadViewStatsWorkerTrigger"/>
 				<ref bean="threadReplyStatsWorkerTrigger"/>
 				<ref bean="threadAuthorStatsWorkerTrigger"/>
+				<ref bean="broadcastMessageQueueMessageReveiverTrigger"/>
 				<!-- others -->
 				<ref bean="changeSentMessageSynchTrigger" />
 				<ref bean="stackConfigurationReloadTrigger" />
