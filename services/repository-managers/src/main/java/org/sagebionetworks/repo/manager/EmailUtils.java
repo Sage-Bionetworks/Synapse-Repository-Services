@@ -76,6 +76,7 @@ public class EmailUtils {
 	}
 
 	public static String getDisplayNameWithUsername(String firstName, String lastName, String userName) {
+		ValidateArgument.required(userName, "userName");
 		String displayName = getDisplayName(firstName, lastName);
 		if (displayName!=null) {
 			displayName = displayName+" ("+userName+")";
@@ -86,15 +87,7 @@ public class EmailUtils {
 	}
 
 	public static String getDisplayNameWithUsername(UserProfile userProfile) {
-		String userName = userProfile.getUserName();
-		if (userName==null) throw new IllegalArgumentException("userName is required");
-		String displayName = getDisplayName(userProfile);
-		if (displayName!=null) {
-			displayName = displayName+" ("+userName+")";
-		} else {
-			displayName = userName;
-		}
-		return displayName;
+		return getDisplayNameWithUsername(userProfile.getFirstName(), userProfile.getLastName(), userProfile.getUserName());
 	}
 	
 	public static String getEmailAddressForPrincipalName(String principalAlias) {
