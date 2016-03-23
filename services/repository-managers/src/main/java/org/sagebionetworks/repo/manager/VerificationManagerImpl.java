@@ -225,7 +225,7 @@ public class VerificationManagerImpl implements VerificationManager {
 			String notificationUnsubscribeEndpoint) {
 		Map<String,String> fieldValues = new HashMap<String,String>();
 		UserProfile submitterUserProfile = userProfileManager.getUserProfile(verificationSubmission.getCreatedBy());
-		String submitterDisplayName = EmailUtils.getDisplayNameWithUserName(submitterUserProfile);
+		String submitterDisplayName = EmailUtils.getDisplayNameWithUsername(submitterUserProfile);
 		fieldValues.put(TEMPLATE_KEY_DISPLAY_NAME, submitterDisplayName);
 		fieldValues.put(TEMPLATE_KEY_USER_ID, verificationSubmission.getCreatedBy());
 		String recipient = TeamConstants.ACT_TEAM_ID.toString();
@@ -251,7 +251,7 @@ public class VerificationManagerImpl implements VerificationManager {
 		String submitterId = new Long(verificationDao.getVerificationSubmitter(verificationSubmissionId)).toString();
 		Map<String,String> fieldValues = new HashMap<String,String>();
 		UserProfile submitterUserProfile = userProfileManager.getUserProfile(submitterId);
-		String submitterDisplayName = EmailUtils.getDisplayNameWithUserName(submitterUserProfile);
+		String submitterDisplayName = EmailUtils.getDisplayNameWithUsername(submitterUserProfile);
 		fieldValues.put(TEMPLATE_KEY_DISPLAY_NAME, submitterDisplayName);
 		fieldValues.put(TEMPLATE_KEY_USER_ID, submitterId);
 		fieldValues.put(TEMPLATE_KEY_REASON, newState.getReason());

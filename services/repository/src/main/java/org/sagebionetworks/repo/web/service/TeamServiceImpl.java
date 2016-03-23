@@ -230,11 +230,11 @@ public class TeamServiceImpl implements TeamService {
 		String responseMessageText;
 		if (memberAdded) {
 			responseMessageText = "User "+
-					EmailUtils.getDisplayNameWithUserName(userProfile)+
+					EmailUtils.getDisplayNameWithUsername(userProfile)+
 					" has been added to team "+team.getName()+".";
 		} else {
 			responseMessageText = "User "+
-					EmailUtils.getDisplayNameWithUserName(userProfile)+
+					EmailUtils.getDisplayNameWithUsername(userProfile)+
 					" is already in team "+team.getName()+".";
 		}
 		responseMessage.setMessage(responseMessageText);

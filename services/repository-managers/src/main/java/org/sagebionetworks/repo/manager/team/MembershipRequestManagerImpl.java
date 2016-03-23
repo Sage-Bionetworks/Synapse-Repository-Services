@@ -131,7 +131,7 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 		List<MessageToUserAndBody> result = new ArrayList<MessageToUserAndBody>();
 		if (acceptRequestEndpoint==null || notificationUnsubscribeEndpoint==null) return result;
 		UserProfile userProfile = userProfileManager.getUserProfile(mrs.getCreatedBy());
-		String displayName = EmailUtils.getDisplayNameWithUserName(userProfile);
+		String displayName = EmailUtils.getDisplayNameWithUsername(userProfile);
 		Map<String,String> fieldValues = new HashMap<String,String>();
 		fieldValues.put(TEMPLATE_KEY_DISPLAY_NAME, displayName);
 		fieldValues.put(TEMPLATE_KEY_TEAM_NAME, teamDAO.get(mrs.getTeamId()).getName());
