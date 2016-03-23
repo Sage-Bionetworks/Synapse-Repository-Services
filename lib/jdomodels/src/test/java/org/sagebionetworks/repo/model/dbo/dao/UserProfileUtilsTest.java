@@ -277,8 +277,8 @@ public class UserProfileUtilsTest {
 		backup.setProperties(JDOSecondaryPropertyUtils.compressObject(hasAllData));
 		// translate
 		DBOUserProfile translated = new DBOUserProfile().getTranslator().createDatabaseObjectFromBackup(backup);
-		assertEquals(hasAllData.getFirstName(), translated.getFirstName());
-		assertEquals(hasAllData.getLastName(), translated.getLastName());
+		assertEquals(hasAllData.getFirstName(), new String(translated.getFirstName(), "UTF-8"));
+		assertEquals(hasAllData.getLastName(), new String(translated.getLastName(), "UTF-8"));
 		assertTrue(translated.isEmailNotification());
 	}
 	
@@ -294,8 +294,8 @@ public class UserProfileUtilsTest {
 		backup.setProperties(JDOSecondaryPropertyUtils.compressObject(hasAllData));
 		// translate
 		DBOUserProfile translated = new DBOUserProfile().getTranslator().createDatabaseObjectFromBackup(backup);
-		assertEquals(hasAllData.getFirstName(), translated.getFirstName());
-		assertEquals(hasAllData.getLastName(), translated.getLastName());
+		assertNull(translated.getFirstName());
+		assertNull(translated.getLastName());
 		// should default to true
 		assertTrue(translated.isEmailNotification());
 	}

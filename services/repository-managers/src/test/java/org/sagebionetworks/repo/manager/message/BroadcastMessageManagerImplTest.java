@@ -170,7 +170,5 @@ public class BroadcastMessageManagerImplTest {
 		change.setObjectType(ObjectType.TABLE);
 		// call under test
 		manager.broadcastMessage(mockUser, mockCallback, change);
-		// should be ignored
-		verify(mockBroadcastMessageDao, never()).setBroadcast(anyLong());
 	}
 }

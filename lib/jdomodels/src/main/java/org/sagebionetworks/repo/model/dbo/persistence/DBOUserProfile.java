@@ -14,6 +14,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_USE
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_PROFILE;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
@@ -39,8 +40,8 @@ public class DBOUserProfile implements MigratableDatabaseObject<DBOUserProfile, 
 	private String eTag;
 	private Long pictureId;
 	private boolean emailNotification;
-	private String firstName;
-	private String lastName;
+	private byte[] firstName;
+	private byte[] lastName;
 	
 	public static final String OWNER_ID_FIELD_NAME = "ownerId";
 
@@ -73,8 +74,14 @@ public class DBOUserProfile implements MigratableDatabaseObject<DBOUserProfile, 
 					up.setPictureId(null);
 				}
 				up.setEmailNotification(rs.getBoolean(COL_USER_PROFILE_EMAIL_NOTIFICATION));
-				up.setFirstName(rs.getString(COL_USER_PROFILE_FIRST_NAME));
-				up.setLastName(rs.getString(COL_USER_PROFILE_LAST_NAME));
+				blob = rs.getBlob(COL_USER_PROFILE_FIRST_NAME);
+				if (blob != null){
+					up.setFirstName(blob.getBytes(1, (int) blob.length()));
+				}
+				blob = rs.getBlob(COL_USER_PROFILE_LAST_NAME);
+				if (blob != null){
+					up.setLastName(blob.getBytes(1, (int) blob.length()));
+				}
 				return up;
 			}
 
@@ -101,22 +108,22 @@ public class DBOUserProfile implements MigratableDatabaseObject<DBOUserProfile, 
 	}
 
 	
-	public String getFirstName() {
+	public byte[] getFirstName() {
 		return firstName;
 	}
 
 
-	public void setFirstName(String firstName) {
+	public void setFirstName(byte[] firstName) {
 		this.firstName = firstName;
 	}
 
 
-	public String getLastName() {
+	public byte[] getLastName() {
 		return lastName;
 	}
 
 
-	public void setLastName(String lastName) {
+	public void setLastName(byte[] lastName) {
 		this.lastName = lastName;
 	}
 
@@ -259,8 +266,16 @@ public class DBOUserProfile implements MigratableDatabaseObject<DBOUserProfile, 
 				if(settings != null && settings.getSendEmailNotifications() != null){
 					backup.setEmailNotification(settings.getSendEmailNotifications());
 				}
-				backup.setFirstName(up.getFirstName());
-				backup.setLastName(up.getLastName());
+				try {
+					if (up.getFirstName() != null) {
+						backup.setFirstName(up.getFirstName().getBytes("UTF-8"));
+					}
+					if (up.getLastName() != null) {
+						backup.setLastName(up.getLastName().getBytes("UTF-8"));
+					}
+				} catch (UnsupportedEncodingException e) {
+					throw new RuntimeException(e);
+				}
 				return backup;
 			}
 

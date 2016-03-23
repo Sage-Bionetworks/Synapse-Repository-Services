@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.sql.Blob;
 import java.sql.SQLException;
 import java.util.Date;
@@ -42,8 +43,16 @@ public class UserProfileUtils {
 		if(dto.getNotificationSettings() != null && dto.getNotificationSettings().getSendEmailNotifications() != null){
 			dbo.setEmailNotification(dto.getNotificationSettings().getSendEmailNotifications());
 		}
-		dbo.setFirstName(dto.getFirstName());
-		dbo.setLastName(dto.getLastName());
+		try {
+			if (dto.getFirstName() != null) {
+				dbo.setFirstName(dto.getFirstName().getBytes("UTF-8"));
+			}
+			if (dto.getLastName() != null) {
+				dbo.setLastName(dto.getLastName().getBytes("UTF-8"));
+			}
+		} catch (UnsupportedEncodingException e) {
+			throw new RuntimeException(e);
+		}
 	}
 	
 	public static UserProfile deserialize(byte[] b) {
@@ -83,8 +92,16 @@ public class UserProfileUtils {
 			dto.setNotificationSettings(new Settings());
 		}
 		dto.getNotificationSettings().setSendEmailNotifications(dbo.isEmailNotification());
-		dto.setFirstName(dbo.getFirstName());
-		dto.setLastName(dbo.getLastName());
+		try {
+			if (dbo.getFirstName() != null) {
+				dto.setFirstName(new String(dbo.getFirstName(), "UTF-8"));
+			}
+			if (dbo.getLastName() != null) {
+				dto.setLastName(new String(dbo.getLastName(), "UTF-8"));
+			}
+		} catch (UnsupportedEncodingException e) {
+			throw new RuntimeException(e);
+		}
 		return dto;
 	}
 	

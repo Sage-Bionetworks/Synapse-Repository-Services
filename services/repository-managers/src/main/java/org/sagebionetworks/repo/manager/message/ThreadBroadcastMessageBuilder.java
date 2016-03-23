@@ -9,7 +9,6 @@ import org.sagebionetworks.repo.manager.EmailUtils;
 import org.sagebionetworks.repo.manager.SendRawEmailRequestBuilder;
 import org.sagebionetworks.repo.manager.SendRawEmailRequestBuilder.BodyType;
 import org.sagebionetworks.repo.model.EntityHeader;
-import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.subscription.Subscriber;
@@ -20,35 +19,32 @@ import org.sagebionetworks.util.ValidateArgument;
 import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
 import com.google.common.collect.Maps;
 
-public class ReplyBroadcastMessageBuilder implements BroadcastMessageBuilder {
+public class ThreadBroadcastMessageBuilder implements BroadcastMessageBuilder {
 	
-	public static final String THREAD_REPLY_TEMPLATE = "message/threadReplyTemplate.html";
-	
-	DiscussionReplyBundle replyBundle;
+	public static final String THREAD_TEMPLATE = "message/threadTemplate.html";
+
 	DiscussionThreadBundle threadBundle;
 	EntityHeader projectHeader;
 	ChangeType changeType;
-	String replyCreatedBy;
+	String threadCreatedBy;
 	String subject;
 	String emailTemplate;
 	String threadTitleTruncated;
 	
 
-	public ReplyBroadcastMessageBuilder(DiscussionReplyBundle replyBundle,
-			DiscussionThreadBundle threadBundle, EntityHeader projectHeader, ChangeType changeType, String replyCreatedBy) {
-		ValidateArgument.required(replyBundle, "replyBundle");
+	public ThreadBroadcastMessageBuilder(DiscussionThreadBundle threadBundle,
+			EntityHeader projectHeader, ChangeType changeType, String threadCreatedBy) {
 		ValidateArgument.required(threadBundle, "threadBundle");
 		ValidateArgument.required(projectHeader, "projectHeader");
 		ValidateArgument.required(changeType, "changeType");
-		this.replyBundle = replyBundle;
 		this.threadBundle = threadBundle;
 		this.projectHeader = projectHeader;
 		this.changeType = changeType;
-		this.replyCreatedBy = replyCreatedBy;
+		this.threadCreatedBy = threadCreatedBy;
 		this.subject = buildSubject(threadBundle.getTitle(), changeType);
 		this.threadTitleTruncated = truncateString(threadBundle.getTitle(), 50);
 		// Load the template file
-		emailTemplate = loadTemplateFile(THREAD_REPLY_TEMPLATE);
+		emailTemplate = loadTemplateFile(THREAD_TEMPLATE);
 	}
 
 
@@ -85,10 +81,10 @@ public class ReplyBroadcastMessageBuilder implements BroadcastMessageBuilder {
 		// Setup the map for this email
 		Map<String,String> fieldValues = Maps.newHashMap();
 		// display name
-		String displayName = EmailUtils.getDisplayName(subscriber.getFirstName(), subscriber.getLastName());
+		String displayName = EmailUtils.getDisplayNameWithUserName(subscriber.getFirstName(), subscriber.getLastName(), subscriber.getUsername());
 		fieldValues.put("#displayName#", displayName);
 		
-		fieldValues.put("#replyCreator#", replyCreatedBy);
+		fieldValues.put("#threadCreator#", threadCreatedBy);
 		fieldValues.put("#projectId#", projectHeader.getId());
 		fieldValues.put("#threadId#", threadBundle.getId());
 		fieldValues.put("#threadName#", threadTitleTruncated);
@@ -107,13 +103,12 @@ public class ReplyBroadcastMessageBuilder implements BroadcastMessageBuilder {
 		StringBuilder builder = new StringBuilder();
 		builder.append("Synapse Notification: ");
 		if(ChangeType.CREATE == changeType){
-			builder.append("New reply");
+			builder.append("New thread: ");
 		}else if(ChangeType.UPDATE == changeType){
-			builder.append("Reply updated");
+			builder.append("Thread updated: ");
 		}else{
-			builder.append("Reply removed");
+			builder.append("Thread removed: ");
 		}
-		builder.append(" in thread '");
 		builder.append(truncateString(threadTitle, 50));
 		builder.append("'");
 		return builder.toString();
@@ -139,7 +134,7 @@ public class ReplyBroadcastMessageBuilder implements BroadcastMessageBuilder {
 	 * @return
 	 */
 	public static String loadTemplateFile(String filePath){
-		InputStream is = ReplyBroadcastMessageBuilder.class.getClassLoader().getResourceAsStream(filePath);
+		InputStream is = ThreadBroadcastMessageBuilder.class.getClassLoader().getResourceAsStream(filePath);
 		if (is==null){
 			throw new IllegalStateException("Could not find file "+filePath);
 		}
