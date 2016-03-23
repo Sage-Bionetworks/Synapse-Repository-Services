@@ -87,7 +87,7 @@ public class ReplyBroadcastMessageBuilderTest {
 	public void testBuildBody(){
 		String body = builder.buildBody(subscriber);
 		assertNotNull(body);
-		assertTrue(body.contains("subscriberFirstName subscriberLastName"));
+		assertTrue(body.contains("subscriberFirstName subscriberLastName (subscriberUsername)"));
 		assertTrue(body.contains("reply-username"));
 		assertTrue(body.contains(threadBundle.getTitle()));
 		assertTrue(body.contains(projectHeader.getName()));
