@@ -75,6 +75,16 @@ public class EmailUtils {
 		return displayName.toString();
 	}
 
+	public static String getDisplayNameWithUserName(String firstName, String lastName, String userName) {
+		String displayName = getDisplayName(firstName, lastName);
+		if (displayName!=null) {
+			displayName = displayName+" ("+userName+")";
+		} else {
+			displayName = userName;
+		}
+		return displayName;
+	}
+
 	public static String getDisplayNameWithUserName(UserProfile userProfile) {
 		String userName = userProfile.getUserName();
 		if (userName==null) throw new IllegalArgumentException("userName is required");
@@ -252,7 +262,4 @@ public class EmailUtils {
     	bodyWithFooter.append(createTextUnsubscribeFooter(unsubscribeLink));
     	return bodyWithFooter.toString();
 	}
-	
-
-
 }
