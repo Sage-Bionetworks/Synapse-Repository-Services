@@ -91,6 +91,7 @@ public class BroadcastMessageManagerImpl implements BroadcastMessageManager {
 			// progress between each message
 			progressCallback.progressMade(changeMessage);
 			SendRawEmailRequest emailRequest = builder.buildEmailForSubscriber(subscriber);
+			log.debug("sending email to "+subscriber.getNotificationEmail());
 			sesClient.sendRawEmail(emailRequest);
 		}
 	}
