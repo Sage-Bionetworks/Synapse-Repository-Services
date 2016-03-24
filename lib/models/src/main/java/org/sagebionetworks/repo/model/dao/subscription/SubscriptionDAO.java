@@ -47,7 +47,7 @@ public interface SubscriptionDAO {
 	 * @param objectIds
 	 * @return
 	 */
-	public SubscriptionPagedResults getSubscriptionList(String string,
+	public SubscriptionPagedResults getSubscriptionList(String subscriberId,
 			SubscriptionObjectType objectType, List<String> objectIds);
 
 	/**
@@ -100,4 +100,13 @@ public interface SubscriptionDAO {
 	 * @param objectType
 	 */
 	public void subscribeAll(String userId, List<String> idList, SubscriptionObjectType objectType);
+
+	/**
+	 * Unsubscribe from a list of topics
+	 * 
+	 * @param userId
+	 * @param idList
+	 * @param objectType
+	 */
+	public void deleteList(String userId, List<String> idList, SubscriptionObjectType objectType);
 }

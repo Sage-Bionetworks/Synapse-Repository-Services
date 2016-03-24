@@ -11,7 +11,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserProfile;
@@ -45,9 +44,6 @@ public class DBOSubscriptionDAOImplTest {
 	private PrincipalAliasDAO principalAliasDAO;
 	@Autowired
 	private NotificationEmailDAO notificationEmailDAO;
-
-	@Autowired
-	private IdGenerator idGenerator;
 
 	private String userId = null;
 	private String objectId;
@@ -335,5 +331,43 @@ public class DBOSubscriptionDAOImplTest {
 		assertEquals(objectId, sub.getObjectId());
 		assertEquals(SubscriptionObjectType.DISCUSSION_THREAD, sub.getObjectType());
 		assertEquals(userId, sub.getSubscriberId());
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testDeleteListWithNullUserId() {
+		subscriptionDao.deleteList(null, new ArrayList<String>(0), SubscriptionObjectType.DISCUSSION_THREAD);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testDeleteListWithNullIdList() {
+		subscriptionDao.deleteList(userId, null, SubscriptionObjectType.DISCUSSION_THREAD);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testDeleteListWithNullObjectType() {
+		subscriptionDao.deleteList(userId, new ArrayList<String>(0), null);
+	}
+
+	@Test
+	public void testDeleteListWithEmptyIdList() {
+		List<String> idList = new ArrayList<String>();
+		idList.add(objectId);
+		subscriptionDao.subscribeAll(userId, idList , SubscriptionObjectType.DISCUSSION_THREAD);
+		subscriptionDao.deleteList(userId, new ArrayList<String>(0), SubscriptionObjectType.DISCUSSION_THREAD);
+		List<Subscription> subs = subscriptionDao.getAll(userId, 10L, 0L, SubscriptionObjectType.DISCUSSION_THREAD).getResults();
+		assertEquals(1L, subs.size());
+		Subscription sub = subs.get(0);
+		assertEquals(objectId, sub.getObjectId());
+		assertEquals(SubscriptionObjectType.DISCUSSION_THREAD, sub.getObjectType());
+		assertEquals(userId, sub.getSubscriberId());
+	}
+
+	@Test
+	public void testDeleteList() {
+		List<String> idList = new ArrayList<String>();
+		idList.add(objectId);
+		subscriptionDao.subscribeAll(userId, idList , SubscriptionObjectType.DISCUSSION_THREAD);
+		subscriptionDao.deleteList(userId, idList , SubscriptionObjectType.DISCUSSION_THREAD);
+		assertTrue(subscriptionDao.getAll(userId, 10L, 0L, SubscriptionObjectType.DISCUSSION_THREAD).getResults().isEmpty());
 	}
 }
