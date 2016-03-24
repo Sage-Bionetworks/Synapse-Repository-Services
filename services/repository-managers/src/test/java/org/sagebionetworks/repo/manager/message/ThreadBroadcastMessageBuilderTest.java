@@ -5,29 +5,24 @@ import static org.junit.Assert.*;
 import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.EntityHeader;
-import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.subscription.Subscriber;
 
 import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
 
-public class ReplyBroadcastMessageBuilderTest {
-	
-	
-	DiscussionReplyBundle replyBundle;
+public class ThreadBroadcastMessageBuilderTest {
+
 	DiscussionThreadBundle threadBundle;
 	EntityHeader projectHeader;
 	ChangeType changeType;
-	String replyUsername;
+	String threadUsername;
 	Subscriber subscriber;
 	
-	ReplyBroadcastMessageBuilder builder;
-	
+	ThreadBroadcastMessageBuilder builder;
 	
 	@Before
 	public void before(){
-		replyBundle = new DiscussionReplyBundle();
 		threadBundle = new DiscussionThreadBundle();
 		threadBundle.setId("333");
 		threadBundle.setTitle("thread-title");
@@ -35,8 +30,8 @@ public class ReplyBroadcastMessageBuilderTest {
 		projectHeader.setId("syn8888");
 		projectHeader.setName("projectName");
 		changeType = ChangeType.CREATE;
-		replyUsername = "reply-username";
-		
+		threadUsername = "thread-username";
+	
 		subscriber = new Subscriber();
 		subscriber.setFirstName("subscriberFirstName");
 		subscriber.setLastName("subscriberLastName");
@@ -45,7 +40,7 @@ public class ReplyBroadcastMessageBuilderTest {
 		subscriber.setUsername("subscriberUsername");
 		subscriber.setSubscriptionId("999");
 	
-		builder = new ReplyBroadcastMessageBuilder(replyBundle, threadBundle, projectHeader, changeType, replyUsername);
+		builder = new ThreadBroadcastMessageBuilder(threadBundle, projectHeader, changeType, threadUsername);
 	}
 	
 	@Test
@@ -88,7 +83,7 @@ public class ReplyBroadcastMessageBuilderTest {
 		String body = builder.buildBody(subscriber);
 		assertNotNull(body);
 		assertTrue(body.contains("subscriberFirstName subscriberLastName (subscriberUsername)"));
-		assertTrue(body.contains("reply-username"));
+		assertTrue(body.contains("thread-username"));
 		assertTrue(body.contains(threadBundle.getTitle()));
 		assertTrue(body.contains(projectHeader.getName()));
 		assertTrue(body.contains("https://www.synapse.org/#!Subscription:subscriptionID=999"));

@@ -85,7 +85,7 @@ public class ReplyBroadcastMessageBuilder implements BroadcastMessageBuilder {
 		// Setup the map for this email
 		Map<String,String> fieldValues = Maps.newHashMap();
 		// display name
-		String displayName = EmailUtils.getDisplayName(subscriber.getFirstName(), subscriber.getLastName());
+		String displayName = EmailUtils.getDisplayNameWithUsername(subscriber.getFirstName(), subscriber.getLastName(), subscriber.getUsername());
 		fieldValues.put("#displayName#", displayName);
 		
 		fieldValues.put("#replyCreator#", replyCreatedBy);

@@ -504,7 +504,7 @@ public class TeamManagerImpl implements TeamManager {
 		fieldValues.put(TEMPLATE_KEY_TEAM_WEB_LINK, teamUrl);
 		if (userJoiningTeamIsSelf) {
 			UserProfile memberUserProfile = userProfileManager.getUserProfile(memberInfo.getId().toString());
-			String memberDisplayName = EmailUtils.getDisplayNameWithUserName(memberUserProfile);
+			String memberDisplayName = EmailUtils.getDisplayNameWithUsername(memberUserProfile);
 			fieldValues.put(TEMPLATE_KEY_DISPLAY_NAME, memberDisplayName);
 			for (String recipient : getInviters(Long.parseLong(teamId), memberInfo.getId())) {
 				MessageToUser mtu = new MessageToUser();
@@ -516,7 +516,7 @@ public class TeamManagerImpl implements TeamManager {
 			}
 		} else {
 			UserProfile joinerUserProfile = userProfileManager.getUserProfile(joinerInfo.getId().toString());
-			String joinerDisplayName = EmailUtils.getDisplayNameWithUserName(joinerUserProfile);
+			String joinerDisplayName = EmailUtils.getDisplayNameWithUsername(joinerUserProfile);
 			fieldValues.put(TEMPLATE_KEY_DISPLAY_NAME, joinerDisplayName);
 			String recipient = memberInfo.getId().toString();
 			String messageContent = EmailUtils.readMailTemplate(ADMIN_HAS_ADDED_USER_TEMPLATE, fieldValues);

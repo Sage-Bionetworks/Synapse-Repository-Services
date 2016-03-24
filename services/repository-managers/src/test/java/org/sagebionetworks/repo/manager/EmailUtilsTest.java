@@ -40,15 +40,15 @@ public class EmailUtilsTest {
 		up.setUserName("jh");
 		
 		assertNull(EmailUtils.getDisplayName(up));
-		assertEquals("jh", EmailUtils.getDisplayNameWithUserName(up));
+		assertEquals("jh", EmailUtils.getDisplayNameWithUsername(up));
 		
 		up.setFirstName("J");
 		assertEquals("J", EmailUtils.getDisplayName(up));
-		assertEquals("J (jh)", EmailUtils.getDisplayNameWithUserName(up));
+		assertEquals("J (jh)", EmailUtils.getDisplayNameWithUsername(up));
 		
 		up.setLastName("H");
 		assertEquals("J H", EmailUtils.getDisplayName(up));
-		assertEquals("J H (jh)", EmailUtils.getDisplayNameWithUserName(up));
+		assertEquals("J H (jh)", EmailUtils.getDisplayNameWithUsername(up));
 	}
 	
 	@Test

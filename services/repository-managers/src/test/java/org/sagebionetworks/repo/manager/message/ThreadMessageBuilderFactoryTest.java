@@ -13,52 +13,40 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.dao.discussion.DiscussionReplyDAO;
 import org.sagebionetworks.repo.model.dao.discussion.DiscussionThreadDAO;
 import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
-import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.springframework.test.util.ReflectionTestUtils;
 
-public class ReplyMessageBuilderFactoryTest {
+public class ThreadMessageBuilderFactoryTest {
 
-	
-	@Mock
-	private DiscussionReplyDAO mockReplyDao;
 	@Mock
 	private DiscussionThreadDAO mockThreadDao;
 	@Mock
 	private NodeDAO mockNodeDao;
 	@Mock
 	private PrincipalAliasDAO mockPrincipalAliasDAO;
-	
-	DiscussionReplyBundle replyBundle;
+
 	DiscussionThreadBundle threadBundle;
 	EntityHeader projectHeader;
 	
-	ReplyMessageBuilderFactory factory;
+	ThreadMessageBuilderFactory factory;
 	
 	@Before
 	public void before(){
 		MockitoAnnotations.initMocks(this);
-		
-		factory = new ReplyMessageBuilderFactory();
-		ReflectionTestUtils.setField(factory, "replyDao", mockReplyDao);
+
+		factory = new ThreadMessageBuilderFactory();
 		ReflectionTestUtils.setField(factory, "threadDao", mockThreadDao);
 		ReflectionTestUtils.setField(factory, "nodeDao", mockNodeDao);
 		ReflectionTestUtils.setField(factory, "principalAliasDAO", mockPrincipalAliasDAO);
-		
-		replyBundle = new DiscussionReplyBundle();
-		replyBundle.setId("222");
-		replyBundle.setThreadId("333");
-		replyBundle.setCreatedBy("555");
-		when(mockReplyDao.getReply(anyLong(), any(DiscussionFilter.class))).thenReturn(replyBundle);
-		
+
 		threadBundle = new DiscussionThreadBundle();
 		threadBundle.setProjectId("444");
 		threadBundle.setTitle("title");
+		threadBundle.setCreatedBy("987");
 		when(mockThreadDao.getThread(anyLong(), any(DiscussionFilter.class))).thenReturn(threadBundle);
 		
 		projectHeader = new EntityHeader();

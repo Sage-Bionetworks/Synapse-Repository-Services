@@ -134,7 +134,7 @@ public class CloudMailInManagerImpl implements CloudMailInManager {
 				errorMessage.setNotificationUnsubscribeEndpoint(notificationUnsubscribeEndpoint);
 				Map<String,String> fieldValues = new HashMap<String,String>();
 				UserProfile fromUserProfile = userProfileManager.getUserProfile(fromPrincipalId.toString());
-				fieldValues.put(TEMPLATE_KEY_DISPLAY_NAME, EmailUtils.getDisplayNameWithUserName(fromUserProfile));
+				fieldValues.put(TEMPLATE_KEY_DISPLAY_NAME, EmailUtils.getDisplayNameWithUsername(fromUserProfile));
 				fieldValues.put(TEMPLATE_KEY_EMAIL, invalidEmails.toString());
 				String originalMessage = StringUtils.isEmpty(message.getHtml()) ? message.getPlain() : message.getHtml();
 				fieldValues.put(TEMPLATE_KEY_ORIGINAL_EMAIL, originalMessage);

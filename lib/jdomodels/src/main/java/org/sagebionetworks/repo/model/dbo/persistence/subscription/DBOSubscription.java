@@ -137,7 +137,7 @@ public class DBOSubscription implements MigratableDatabaseObject<DBOSubscription
 				dbo.setSubscriberId(rs.getLong(COL_SUBSCRIPTION_SUBSCRIBER_ID));
 				dbo.setObjectId(rs.getLong(COL_SUBSCRIPTION_OBJECT_ID));
 				dbo.setObjectType(rs.getString(COL_SUBSCRIPTION_OBJECT_TYPE));
-				dbo.setCreatedOn(rs.getLong(COL_SUBSCRIPTION_SUBSCRIBER_ID));
+				dbo.setCreatedOn(rs.getLong(COL_SUBSCRIPTION_CREATED_ON));
 				return dbo;
 			}
 

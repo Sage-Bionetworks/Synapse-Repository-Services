@@ -81,7 +81,7 @@ public class ThreadBroadcastMessageBuilder implements BroadcastMessageBuilder {
 		// Setup the map for this email
 		Map<String,String> fieldValues = Maps.newHashMap();
 		// display name
-		String displayName = EmailUtils.getDisplayNameWithUserName(subscriber.getFirstName(), subscriber.getLastName(), subscriber.getUsername());
+		String displayName = EmailUtils.getDisplayNameWithUsername(subscriber.getFirstName(), subscriber.getLastName(), subscriber.getUsername());
 		fieldValues.put("#displayName#", displayName);
 		
 		fieldValues.put("#threadCreator#", threadCreatedBy);
@@ -103,11 +103,11 @@ public class ThreadBroadcastMessageBuilder implements BroadcastMessageBuilder {
 		StringBuilder builder = new StringBuilder();
 		builder.append("Synapse Notification: ");
 		if(ChangeType.CREATE == changeType){
-			builder.append("New thread: ");
+			builder.append("New thread '");
 		}else if(ChangeType.UPDATE == changeType){
-			builder.append("Thread updated: ");
+			builder.append("Thread updated '");
 		}else{
-			builder.append("Thread removed: ");
+			builder.append("Thread removed '");
 		}
 		builder.append(truncateString(threadTitle, 50));
 		builder.append("'");
