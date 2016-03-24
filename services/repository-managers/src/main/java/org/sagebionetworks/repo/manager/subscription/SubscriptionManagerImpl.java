@@ -75,7 +75,15 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
 		if (!sub.getSubscriberId().equals(userInfo.getId().toString())) {
 			throw new UnauthorizedException("Only the user who created this subscription can perform this action.");
 		}
+		if (sub.getObjectType() == SubscriptionObjectType.FORUM) {
+			unsubscribeToAllExistingThreads(userInfo.getId().toString(), sub.getObjectId());
+		}
 		subscriptionDao.delete(id);
+	}
+
+	private void unsubscribeToAllExistingThreads(String userId, String forumId) {
+		List<String> threadIdList = threadDao.getAllThreadIdForForum(forumId);
+		subscriptionDao.deleteList(userId, threadIdList, SubscriptionObjectType.DISCUSSION_THREAD);
 	}
 
 	@WriteTransactionReadCommitted

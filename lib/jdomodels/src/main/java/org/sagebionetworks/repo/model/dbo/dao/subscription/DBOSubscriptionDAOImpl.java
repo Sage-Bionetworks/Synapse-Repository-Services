@@ -1,6 +1,23 @@
 package org.sagebionetworks.repo.model.dbo.dao.subscription;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_BOUND_ALIAS_DISPLAY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NOTIFICATION_EMAIL_ALIAS_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_PRINCIPAL_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBSCRIPTION_CREATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBSCRIPTION_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBSCRIPTION_OBJECT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBSCRIPTION_OBJECT_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBSCRIPTION_SUBSCRIBER_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_EMAIL_NOTIFICATION;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_FIRST_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_LAST_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NOTIFICATION_EMAIL;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_PRINCIPAL_ALIAS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_SUBSCRIPTION;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_PROFILE;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -12,7 +29,6 @@ import java.util.List;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
-import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.subscription.Subscriber;
 import org.sagebionetworks.repo.model.subscription.Subscription;
@@ -33,8 +49,6 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
-	@Autowired
-	private DBOBasicDao basicDao;
 	@Autowired
 	private IdGenerator idGenerator;
 	
@@ -101,6 +115,11 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 
 	private static final String SQL_DELETE_ALL = "DELETE FROM "+TABLE_SUBSCRIPTION+" "
 			+ "WHERE "+COL_SUBSCRIPTION_SUBSCRIBER_ID+" = ?";
+
+	private static final String SQL_DELETE_LIST = "DELETE FROM "+TABLE_SUBSCRIPTION+" "
+			+ "WHERE "+COL_SUBSCRIPTION_SUBSCRIBER_ID+" = :subscriberId "
+			+ "AND "+COL_SUBSCRIPTION_OBJECT_TYPE+" = :objectType "
+			+ "AND "+COL_SUBSCRIPTION_OBJECT_ID+" IN ( :ids )";
 
 	private static final String SQL_GET_SUBSCRIBERS = "SELECT "+COL_SUBSCRIPTION_SUBSCRIBER_ID+" "
 			+ "FROM "+TABLE_SUBSCRIPTION+" "
@@ -268,5 +287,20 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 				sub.setUsername(rs.getString("USERNAME"));
 				return sub;
 			}},objectId, objectType.name());
+	}
+
+	@Override
+	public void deleteList(String userId, List<String> idList, SubscriptionObjectType objectType) {
+		ValidateArgument.required(userId, "userId");
+		ValidateArgument.required(idList, "idList");
+		ValidateArgument.required(objectType, "objectType");
+		if (idList.isEmpty()) {
+			return;
+		}
+		MapSqlParameterSource parameters = new MapSqlParameterSource("ids", idList);
+		parameters.addValue("subscriberId", userId);
+		parameters.addValue("objectType", objectType.name());
+		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
+		namedTemplate.update(SQL_DELETE_LIST, parameters);
 	}
 }

@@ -218,13 +218,31 @@ public class SubscriptionManagerImplTest {
 		manager.delete(userInfo, subscriptionId.toString());
 	}
 
+	@SuppressWarnings("unchecked")
 	@Test
-	public void testDeleteAuthorized() {
+	public void testDeleteThreadSubscription() {
 		Long subscriptionId = 3L;
 		sub.setSubscriberId(userId.toString());
+		sub.setObjectType(SubscriptionObjectType.DISCUSSION_THREAD);
 		when(mockDao.get(subscriptionId)).thenReturn(sub);
 		manager.delete(userInfo, subscriptionId.toString());
 		verify(mockDao).delete(subscriptionId);
+		verify(mockThreadDao, never()).getAllThreadIdForForum(anyString());
+		verify(mockDao, never()).deleteList(anyString(), any(List.class), any(SubscriptionObjectType.class));
+	}
+
+	@Test
+	public void testDeleteForumSubscription() {
+		Long subscriptionId = 3L;
+		sub.setSubscriberId(userId.toString());
+		sub.setObjectType(SubscriptionObjectType.FORUM);
+		when(mockDao.get(subscriptionId)).thenReturn(sub);
+		List<String> threadIdList = Arrays.asList("1");
+		when(mockThreadDao.getAllThreadIdForForum(objectId)).thenReturn(threadIdList);
+		manager.delete(userInfo, subscriptionId.toString());
+		verify(mockDao).delete(subscriptionId);
+		verify(mockThreadDao).getAllThreadIdForForum(anyString());
+		verify(mockDao).deleteList(userId.toString(), threadIdList, SubscriptionObjectType.DISCUSSION_THREAD);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
