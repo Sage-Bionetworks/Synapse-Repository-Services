@@ -30,4 +30,10 @@ public interface ForumDAO {
 	 * @param id
 	 */
 	public int deleteForum(long id);
+
+	/**
+	 * change the etag
+	 * @param id
+	 */
+	public void touch(long id);
 }

@@ -21,6 +21,7 @@
     	"PROJECT_SETTING",
     	"VERIFICATION_SUBMISSION",
     	"CERTIFIED_USER_PASSING_RECORD",
+        "FORUM",
     	"THREAD",
     	"REPLY"
     ]

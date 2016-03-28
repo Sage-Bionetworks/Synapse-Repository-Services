@@ -26,6 +26,7 @@ public class ForumUtils {
 		Forum dto = new Forum();
 		dto.setId(dbo.getId().toString());
 		dto.setProjectId(KeyFactory.keyToString(dbo.getProjectId()));
+		dto.setEtag(dbo.getEtag());
 		return dto;
 	}
 }
