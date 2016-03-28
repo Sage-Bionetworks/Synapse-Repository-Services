@@ -13,8 +13,10 @@ import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.discussion.Forum;
+import org.sagebionetworks.repo.model.subscription.Etag;
 import org.sagebionetworks.repo.model.subscription.Subscription;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.SubscriptionPagedResults;
@@ -68,7 +70,7 @@ public class ITSubscription {
 		assertEquals(SubscriptionObjectType.FORUM, sub.getObjectType());
 		assertEquals(userToDelete.toString(), sub.getSubscriberId());
 
-		assertEquals(sub, synapse.get(sub.getSubscriptionId()));
+		assertEquals(sub, synapse.getSubscription(sub.getSubscriptionId()));
 
 		SubscriptionPagedResults results = synapse.getAllSubscriptions(null, 10L, 0L);
 		assertNotNull(results);
@@ -86,6 +88,13 @@ public class ITSubscription {
 		synapse.unsubscribe(Long.parseLong(sub.getSubscriptionId()));
 		results = synapse.getAllSubscriptions(null, 10L, 0L);
 		assertFalse(results.getResults().contains(sub));
+	}
+
+	@Test
+	public void testGetEtag() throws SynapseException {
+		Etag etag = synapse.getEtag(forum.getId(), ObjectType.FORUM);
+		assertNotNull(etag);
+		assertNotNull(etag.getEtag());
 	}
 
 }
