@@ -14,6 +14,7 @@ public class ForumUtils {
 		DBOForum dbo = new DBOForum();
 		dbo.setId(Long.parseLong(dto.getId()));
 		dbo.setProjectId(KeyFactory.stringToKey(dto.getProjectId()));
+		dbo.setEtag(dto.getEtag());
 		return dbo;
 	}
 
