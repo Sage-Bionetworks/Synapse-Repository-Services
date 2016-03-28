@@ -1,6 +1,8 @@
 package org.sagebionetworks.repo.manager.subscription;
 
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.subscription.Etag;
 import org.sagebionetworks.repo.model.subscription.Subscription;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.SubscriptionPagedResults;
@@ -61,5 +63,15 @@ public interface SubscriptionManager {
 	 * @return
 	 */
 	public Subscription get(UserInfo userInfo, String id);
+
+	/**
+	 * Retrieve the etag of the given object
+	 * 
+	 * @param userInfo
+	 * @param objectId
+	 * @param objectType
+	 * @return
+	 */
+	public Etag getEtag(UserInfo userInfo, String objectId, ObjectType objectType);
 
 }

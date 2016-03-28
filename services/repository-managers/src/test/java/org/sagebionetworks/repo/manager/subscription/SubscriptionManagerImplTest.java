@@ -13,10 +13,12 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.discussion.DiscussionThreadDAO;
 import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
+import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.subscription.Subscription;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.SubscriptionPagedResults;
@@ -30,6 +32,8 @@ public class SubscriptionManagerImplTest {
 	private AuthorizationManager mockAuthorizationManager;
 	@Mock
 	private DiscussionThreadDAO mockThreadDao;
+	@Mock
+	private DBOChangeDAO mockChangeDao;
 	@Mock
 	private SubscriptionDAO mockDao;
 	private SubscriptionManagerImpl manager;
@@ -48,6 +52,7 @@ public class SubscriptionManagerImplTest {
 		ReflectionTestUtils.setField(manager, "authorizationManager", mockAuthorizationManager);
 		ReflectionTestUtils.setField(manager, "subscriptionDao", mockDao);
 		ReflectionTestUtils.setField(manager, "threadDao", mockThreadDao);
+		ReflectionTestUtils.setField(manager, "changeDao", mockChangeDao);
 
 		objectId = "1";
 		topic = new Topic();
@@ -254,5 +259,51 @@ public class SubscriptionManagerImplTest {
 	public void testDeleteAll() {
 		manager.deleteAll(userInfo);
 		verify(mockDao).deleteAll(userInfo.getId());
+	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetEtagInvalidUserInfo() {
+		manager.getEtag(null, objectId, ObjectType.FORUM);
+	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetEtagInvalidObjectId() {
+		manager.getEtag(userInfo, null, ObjectType.FORUM);
+	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetEtagInvalidObjectType() {
+		manager.getEtag(userInfo, objectId, null);
+	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetEtagUnsupportedObjectType() {
+		manager.getEtag(userInfo, objectId, ObjectType.ENTITY);
+	}
+
+	@Test
+	public void testGetEtagForumSubscription(){
+		when(mockAuthorizationManager
+				.canSubscribe(userInfo, objectId, SubscriptionObjectType.FORUM))
+				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		String etag = "etag";
+		when(mockChangeDao
+				.getEtag(Long.parseLong(objectId), ObjectType.FORUM))
+				.thenReturn(etag);
+		assertEquals(etag, manager.getEtag(userInfo, objectId, ObjectType.FORUM).getEtag());
+		verify(mockAuthorizationManager).canSubscribe(userInfo, objectId, SubscriptionObjectType.FORUM);
+	}
+
+	@Test
+	public void testGetEtagThreadSubscription(){
+		when(mockAuthorizationManager
+				.canSubscribe(userInfo, objectId, SubscriptionObjectType.DISCUSSION_THREAD))
+				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		String etag = "etag";
+		when(mockChangeDao
+				.getEtag(Long.parseLong(objectId), ObjectType.THREAD))
+				.thenReturn(etag);
+		assertEquals(etag, manager.getEtag(userInfo, objectId, ObjectType.THREAD).getEtag());
+		verify(mockAuthorizationManager).canSubscribe(userInfo, objectId, SubscriptionObjectType.DISCUSSION_THREAD);
 	}
 }

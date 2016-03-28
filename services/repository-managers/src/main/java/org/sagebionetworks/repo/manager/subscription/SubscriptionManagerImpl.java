@@ -4,10 +4,13 @@ import java.util.List;
 
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.discussion.DiscussionThreadDAO;
 import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
+import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
+import org.sagebionetworks.repo.model.subscription.Etag;
 import org.sagebionetworks.repo.model.subscription.Subscription;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.SubscriptionPagedResults;
@@ -25,6 +28,8 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
 	private DiscussionThreadDAO threadDao;
 	@Autowired
 	private AuthorizationManager authorizationManager;
+	@Autowired
+	private DBOChangeDAO changeDao;
 
 	@WriteTransactionReadCommitted
 	@Override
@@ -103,5 +108,27 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
 			throw new UnauthorizedException("Only the user who created this subscription can perform this action.");
 		}
 		return sub;
+	}
+
+	@Override
+	public Etag getEtag(UserInfo userInfo, String objectId, ObjectType objectType) {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(objectId, "objectId");
+		ValidateArgument.required(objectType, "objectType");
+		switch (objectType){
+			case FORUM:
+				AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+						authorizationManager.canSubscribe(userInfo, objectId, SubscriptionObjectType.FORUM));
+				break;
+			case THREAD:
+				AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+						authorizationManager.canSubscribe(userInfo, objectId, SubscriptionObjectType.DISCUSSION_THREAD));
+				break;
+			default:
+				throw new IllegalArgumentException("ObjectType " + objectType +" is not supported.");
+		}
+		Etag etag = new Etag();
+		etag.setEtag(changeDao.getEtag(Long.parseLong(objectId), objectType));
+		return etag;
 	}
 }
