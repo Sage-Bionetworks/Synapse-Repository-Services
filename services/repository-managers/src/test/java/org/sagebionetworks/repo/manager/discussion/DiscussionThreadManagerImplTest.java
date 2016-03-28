@@ -98,6 +98,7 @@ public class DiscussionThreadManagerImplTest {
 		dto.setMessageKey(messageKey);
 		dto.setId(threadId.toString());
 		dto.setEtag("etag");
+		dto.setForumId(forumId.toString());
 		userInfo.setId(userId);
 
 		newTitle.setTitle("newTitle");
@@ -176,6 +177,7 @@ public class DiscussionThreadManagerImplTest {
 		Mockito.verify(mockSubscriptionDao).create(userId.toString(), dto.getId(), SubscriptionObjectType.DISCUSSION_THREAD);
 		Mockito.verify(mockTransactionalMessenger).sendMessageAfterCommit(createdThread.getId(), ObjectType.THREAD, dto.getEtag(), ChangeType.CREATE);
 		Mockito.verify(mockSubscriptionDao).subscribeForumSubscriberToThread(dto.getForumId(), dto.getId());
+		Mockito.verify(mockForumDao).touch(forumId);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -228,6 +230,7 @@ public class DiscussionThreadManagerImplTest {
 		assertEquals(dto, threadManager.updateTitle(userInfo, threadId.toString(), newTitle));
 		Mockito.verify(mockReplyDao).getReplyCount(threadId, DiscussionFilter.NO_FILTER);
 		Mockito.verify(mockTransactionalMessenger).sendMessageAfterCommit(threadId.toString(), ObjectType.THREAD, dto.getEtag(), ChangeType.UPDATE);
+		Mockito.verify(mockForumDao).touch(forumId);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -252,6 +255,7 @@ public class DiscussionThreadManagerImplTest {
 		assertEquals(dto, threadManager.updateMessage(userInfo, threadId.toString(), newMessage));
 		Mockito.verify(mockReplyDao).getReplyCount(threadId, DiscussionFilter.NO_FILTER);
 		Mockito.verify(mockTransactionalMessenger).sendMessageAfterCommit(threadId.toString(), ObjectType.THREAD, dto.getEtag(), ChangeType.UPDATE);
+		Mockito.verify(mockForumDao).touch(forumId);
 	}
 
 	@Test (expected = UnauthorizedException.class)
@@ -268,6 +272,7 @@ public class DiscussionThreadManagerImplTest {
 		threadManager.markThreadAsDeleted(userInfo, threadId.toString());
 		Mockito.verify(mockThreadDao).markThreadAsDeleted(threadId);
 		Mockito.verify(mockTransactionalMessenger).sendMessageAfterCommit(threadId.toString(), ObjectType.THREAD, ChangeType.DELETE);
+		Mockito.verify(mockForumDao).touch(forumId);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -324,5 +329,17 @@ public class DiscussionThreadManagerImplTest {
 		assertNotNull(url);
 		assertNotNull(url.getMessageUrl());
 		Mockito.verify(mockThreadDao).updateThreadView(threadId, userId);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testTouchWithNullId() {
+		threadManager.touch(null);
+	}
+
+	@Test
+	public void testTouch() {
+		threadManager.touch(threadId);
+		Mockito.verify(mockThreadDao).touch(threadId);
+		Mockito.verify(mockForumDao).touch(forumId);
 	}
 }
