@@ -64,7 +64,7 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 		String replyId = idGenerator.generateNewId(TYPE.DISCUSSION_REPLY_ID).toString();
 		String messageKey = uploadDao.uploadReplyMessage(createReply.getMessageMarkdown(), thread.getForumId(), threadId, replyId);
 		DiscussionReplyBundle reply = replyDao.createReply(threadId, replyId, messageKey, userInfo.getId());
-		subscriptionDao.create(userInfo.getId().toString(), thread.getId(), SubscriptionObjectType.DISCUSSION_THREAD);
+		subscriptionDao.create(userInfo.getId().toString(), thread.getId(), SubscriptionObjectType.THREAD);
 		threadManager.touch(Long.parseLong(threadId));
 		transactionalMessenger.sendMessageAfterCommit(replyId, ObjectType.REPLY, reply.getEtag(), ChangeType.CREATE);
 		return reply;

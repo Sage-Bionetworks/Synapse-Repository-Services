@@ -157,7 +157,7 @@ public class DiscussionReplyManagerImplTest {
 				.thenReturn(bundle);
 		DiscussionReplyBundle reply = replyManager.createReply(userInfo, createReply);
 		assertEquals(bundle, reply);
-		Mockito.verify(mockSubscriptionDao).create(userInfo.getId().toString(), reply.getThreadId(), SubscriptionObjectType.DISCUSSION_THREAD);
+		Mockito.verify(mockSubscriptionDao).create(userInfo.getId().toString(), reply.getThreadId(), SubscriptionObjectType.THREAD);
 		Mockito.verify(mockTransactionalMessenger).sendMessageAfterCommit(replyId.toString(), ObjectType.REPLY, bundle.getEtag(), ChangeType.CREATE);
 		Mockito.verify(mockThreadManager).touch(Long.parseLong(threadId));
 	}

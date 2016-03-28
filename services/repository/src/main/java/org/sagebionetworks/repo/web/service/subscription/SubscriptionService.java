@@ -66,10 +66,9 @@ public interface SubscriptionService {
 	/**
 	 * retrieve the current etag of the given topic's object
 	 * 
-	 * @param userId
 	 * @param objectId
 	 * @param objectType
 	 * @return
 	 */
-	public Etag getEtag(Long userId, String objectId, ObjectType objectType);
+	public Etag getEtag(String objectId, ObjectType objectType);
 }

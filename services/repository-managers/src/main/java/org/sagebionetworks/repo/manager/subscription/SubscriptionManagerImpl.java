@@ -49,7 +49,7 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
 
 	private void subscribeToAllExistingThreads(String userId, String forumId) {
 		List<String> threadIdList = threadDao.getAllThreadIdForForum(forumId);
-		subscriptionDao.subscribeAll(userId, threadIdList, SubscriptionObjectType.DISCUSSION_THREAD);
+		subscriptionDao.subscribeAll(userId, threadIdList, SubscriptionObjectType.THREAD);
 	}
 
 	@Override
@@ -88,7 +88,7 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
 
 	private void unsubscribeToAllExistingThreads(String userId, String forumId) {
 		List<String> threadIdList = threadDao.getAllThreadIdForForum(forumId);
-		subscriptionDao.deleteList(userId, threadIdList, SubscriptionObjectType.DISCUSSION_THREAD);
+		subscriptionDao.deleteList(userId, threadIdList, SubscriptionObjectType.THREAD);
 	}
 
 	@WriteTransactionReadCommitted
@@ -111,22 +111,9 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
 	}
 
 	@Override
-	public Etag getEtag(UserInfo userInfo, String objectId, ObjectType objectType) {
-		ValidateArgument.required(userInfo, "userInfo");
+	public Etag getEtag(String objectId, ObjectType objectType) {
 		ValidateArgument.required(objectId, "objectId");
 		ValidateArgument.required(objectType, "objectType");
-		switch (objectType){
-			case FORUM:
-				AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-						authorizationManager.canSubscribe(userInfo, objectId, SubscriptionObjectType.FORUM));
-				break;
-			case THREAD:
-				AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-						authorizationManager.canSubscribe(userInfo, objectId, SubscriptionObjectType.DISCUSSION_THREAD));
-				break;
-			default:
-				throw new IllegalArgumentException("ObjectType " + objectType +" is not supported.");
-		}
 		Etag etag = new Etag();
 		etag.setEtag(changeDao.getEtag(Long.parseLong(objectId), objectType));
 		return etag;

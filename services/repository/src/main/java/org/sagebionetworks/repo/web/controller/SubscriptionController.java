@@ -144,10 +144,7 @@ public class SubscriptionController extends BaseController{
 	/**
 	 * This API is used to retrieve the etag of a subscribable object.
 	 * The client could use this method to check if an object has changed.
-	 * <br/>
-	 * Target users: all Synapse users who has READ permission to the object.
 	 * 
-	 * @param userId - The ID of the user who is making the request
 	 * @param objectId - The ID of the given object
 	 * @param objectType - The type of the given object
 	 * @return
@@ -155,9 +152,8 @@ public class SubscriptionController extends BaseController{
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.OBJECT_ID_TYPE_ETAG, method = RequestMethod.GET)
 	public @ResponseBody Etag getEtag(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String objectId,
 			@PathVariable String objectType) {
-		return serviceProvider.getSubscriptionService().getEtag(userId, objectId, ObjectType.valueOf(objectType));
+		return serviceProvider.getSubscriptionService().getEtag(objectId, ObjectType.valueOf(objectType));
 	}
 }

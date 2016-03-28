@@ -55,9 +55,8 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 	}
 
 	@Override
-	public Etag getEtag(Long userId, String objectId, ObjectType objectType) {
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		return subscriptionManager.getEtag(userInfo, objectId, objectType);
+	public Etag getEtag(String objectId, ObjectType objectType) {
+		return subscriptionManager.getEtag(objectId, objectType);
 	}
 
 }

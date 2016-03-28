@@ -67,11 +67,10 @@ public interface SubscriptionManager {
 	/**
 	 * Retrieve the etag of the given object
 	 * 
-	 * @param userInfo
 	 * @param objectId
 	 * @param objectType
 	 * @return
 	 */
-	public Etag getEtag(UserInfo userInfo, String objectId, ObjectType objectType);
+	public Etag getEtag(String objectId, ObjectType objectType);
 
 }

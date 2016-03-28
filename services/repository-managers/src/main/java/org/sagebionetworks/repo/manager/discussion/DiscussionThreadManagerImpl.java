@@ -81,7 +81,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 	}
 
 	private void handleSubscription(String userId, String threadId, String forumId) {
-		subscriptionDao.create(userId, threadId, SubscriptionObjectType.DISCUSSION_THREAD);
+		subscriptionDao.create(userId, threadId, SubscriptionObjectType.THREAD);
 		subscriptionDao.subscribeForumSubscriberToThread(forumId, threadId);
 	}
 

@@ -89,7 +89,7 @@ public class BroadcastMessageManagerImplTest {
 		
 		Topic topic = new Topic();
 		topic.setObjectId("5555");
-		topic.setObjectType(SubscriptionObjectType.DISCUSSION_THREAD);
+		topic.setObjectType(SubscriptionObjectType.THREAD);
 
 		
 		when(mockUser.isAdmin()).thenReturn(true);

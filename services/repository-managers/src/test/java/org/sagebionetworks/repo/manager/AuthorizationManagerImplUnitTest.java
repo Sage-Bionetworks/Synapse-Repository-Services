@@ -706,7 +706,7 @@ public class AuthorizationManagerImplUnitTest {
 		when(mockEntityPermissionsManager.hasAccess(projectId, ACCESS_TYPE.READ, userInfo)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		when(mockThreadDao.getThread(Long.parseLong(threadId), DiscussionFilter.NO_FILTER)).thenReturn(bundle);
 		assertEquals(AuthorizationManagerUtil.ACCESS_DENIED,
-				authorizationManager.canSubscribe(userInfo, threadId, SubscriptionObjectType.DISCUSSION_THREAD));
+				authorizationManager.canSubscribe(userInfo, threadId, SubscriptionObjectType.THREAD));
 	}
 
 	@Test
@@ -714,6 +714,6 @@ public class AuthorizationManagerImplUnitTest {
 		when(mockEntityPermissionsManager.hasAccess(projectId, ACCESS_TYPE.READ, userInfo)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		when(mockThreadDao.getThread(Long.parseLong(threadId), DiscussionFilter.NO_FILTER)).thenReturn(bundle);
 		assertEquals(AuthorizationManagerUtil.AUTHORIZED,
-				authorizationManager.canSubscribe(userInfo, threadId, SubscriptionObjectType.DISCUSSION_THREAD));
+				authorizationManager.canSubscribe(userInfo, threadId, SubscriptionObjectType.THREAD));
 	}
 }
