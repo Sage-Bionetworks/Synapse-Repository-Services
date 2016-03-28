@@ -143,4 +143,10 @@ public class StubDBOChangeDAO implements DBOChangeDAO {
 		return false;
 	}
 
+	@Override
+	public String getEtag(Long objectId, ObjectType objectType) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 }
