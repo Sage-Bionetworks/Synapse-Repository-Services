@@ -899,6 +899,11 @@ public class UrlHelpers {
 	public static final String SUBSCRIPTION_LIST = SUBSCRIPTION + LIST;
 	public static final String SUBSCRIPTION_ALL = SUBSCRIPTION + ALL;
 	public static final String SUBSCRIPTION_ID = SUBSCRIPTION + ID;
+	public static final String OBJECT = "/object";
+	public static final String OBJECT_ID = "/{objectId}";
+	public static final String OBJECT_TYPE = "/{objectType}";
+	public static final String ETAG = "/etag";
+	public static final String OBJECT_ID_TYPE_ETAG = OBJECT+OBJECT_ID+OBJECT_TYPE+ETAG;
 
 	/**
 	 * APIs for DynamoDB related operations.

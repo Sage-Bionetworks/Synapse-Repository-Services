@@ -57,8 +57,10 @@ public class DBOForumDAOImpl implements ForumDAO {
 		DBOForum dbo = new DBOForum();
 		dbo.setId(id);
 		dbo.setProjectId(KeyFactory.stringToKey(projectId));
-		dbo.setEtag(UUID.randomUUID().toString());
+		String etag = UUID.randomUUID().toString();
+		dbo.setEtag(etag);
 		basicDao.createNew(dbo);
+		transactionalMessenger.sendMessageAfterCommit(""+id, ObjectType.FORUM, etag, ChangeType.UPDATE);
 		return getForum(id);
 	}
 
