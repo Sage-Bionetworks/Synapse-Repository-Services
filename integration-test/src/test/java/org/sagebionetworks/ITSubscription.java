@@ -60,7 +60,7 @@ public class ITSubscription {
 	}
 
 	@AfterClass
-	public void afterClass() throws Exception {
+	public static void afterClass() throws Exception {
 		if (userToDelete != null) adminSynapse.deleteUser(userToDelete);
 	}
 	@Test
