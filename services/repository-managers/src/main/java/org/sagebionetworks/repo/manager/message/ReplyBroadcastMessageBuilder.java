@@ -87,16 +87,26 @@ public class ReplyBroadcastMessageBuilder implements BroadcastMessageBuilder {
 		// display name
 		String displayName = EmailUtils.getDisplayNameWithUsername(subscriber.getFirstName(), subscriber.getLastName(), subscriber.getUsername());
 		fieldValues.put("#displayName#", displayName);
-		
 		fieldValues.put("#replyCreator#", replyCreatedBy);
 		fieldValues.put("#projectId#", projectHeader.getId());
 		fieldValues.put("#threadId#", threadBundle.getId());
 		fieldValues.put("#threadName#", threadTitleTruncated);
 		fieldValues.put("#projectName#", projectHeader.getName());
 		fieldValues.put("#subscriptionID#", subscriber.getSubscriptionId());
+		fieldValues.put("#action#", getAction(changeType));
 		return EmailUtils.buildMailFromTemplate(emailTemplate, fieldValues);
 	}
 	
+	public static String getAction(ChangeType changeType) {
+		if(ChangeType.CREATE == changeType){
+			return "replied";
+		}else if(ChangeType.UPDATE == changeType){
+			return "updated a reply";
+		}else{
+			return "removed a reply";
+		}
+	}
+
 	/**
 	 * Builder a subject from the title and type.
 	 * @param threadTitle
