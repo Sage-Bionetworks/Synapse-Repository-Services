@@ -72,12 +72,5 @@ public class BroadcastMessageDaoImplTest {
 		// should be broadcast
 		assertTrue(broadcastMessageDao.wasBroadcast(changeMessage.getChangeNumber()));
 	}
-	
-	@Test (expected=NotFoundException.class)
-	public void setBroadcastChangeDoesNotExist(){
-		Long changeDoesNotExist = -1L;
-		// call under test.
-		broadcastMessageDao.setBroadcast(changeDoesNotExist);
-	}
 
 }

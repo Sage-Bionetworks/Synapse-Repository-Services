@@ -83,14 +83,24 @@ public class ThreadBroadcastMessageBuilder implements BroadcastMessageBuilder {
 		// display name
 		String displayName = EmailUtils.getDisplayNameWithUsername(subscriber.getFirstName(), subscriber.getLastName(), subscriber.getUsername());
 		fieldValues.put("#displayName#", displayName);
-		
 		fieldValues.put("#threadCreator#", threadCreatedBy);
 		fieldValues.put("#projectId#", projectHeader.getId());
 		fieldValues.put("#threadId#", threadBundle.getId());
 		fieldValues.put("#threadName#", threadTitleTruncated);
 		fieldValues.put("#projectName#", projectHeader.getName());
 		fieldValues.put("#subscriptionID#", subscriber.getSubscriptionId());
+		fieldValues.put("#action#", getAction(changeType));
 		return EmailUtils.buildMailFromTemplate(emailTemplate, fieldValues);
+	}
+
+	public static String getAction(ChangeType changeType) {
+		if(ChangeType.CREATE == changeType){
+			return "created";
+		}else if(ChangeType.UPDATE == changeType){
+			return "updated";
+		}else{
+			return "removed";
+		}
 	}
 	
 	/**
