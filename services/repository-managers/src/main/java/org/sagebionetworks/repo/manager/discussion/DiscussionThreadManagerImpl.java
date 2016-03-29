@@ -198,6 +198,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		return uploadDao.getThreadUrl(thread.getMessageKey());
 	}
 
+	@WriteTransactionReadCommitted
 	@Override
 	public void touch(Long threadId) {
 		ValidateArgument.required(threadId, "threadId");
