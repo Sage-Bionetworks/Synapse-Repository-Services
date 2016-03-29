@@ -11,10 +11,12 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
 import org.sagebionetworks.repo.model.discussion.Forum;
+import org.sagebionetworks.repo.model.subscription.Etag;
 import org.sagebionetworks.repo.model.subscription.Subscription;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.SubscriptionPagedResults;
@@ -114,5 +116,12 @@ public class SubscriptionControllerAutowiredTest extends AbstractAutowiredContro
 		List<Subscription> subscriptions = results.getResults();
 		assertEquals(1L, subscriptions.size());
 		assertEquals(subscription, subscriptions.get(0));
+	}
+
+	@Test
+	public void testGetEtag() throws Exception {
+		Etag etag = servletTestHelper.getEtag(dispatchServlet, adminUserId, forum.getId(), ObjectType.FORUM);
+		assertNotNull(etag);
+		assertNotNull(etag.getEtag());
 	}
 }

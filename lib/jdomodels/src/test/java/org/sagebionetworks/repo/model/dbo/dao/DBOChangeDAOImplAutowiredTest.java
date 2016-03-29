@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.model.ProcessedMessageDAO;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeMessageUtils;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DeadlockLoserDataAccessException;
 import org.springframework.test.context.ContextConfiguration;
@@ -669,5 +670,21 @@ public class DBOChangeDAOImplAutowiredTest {
 		change.setChangeType(ChangeType.UPDATE);
 		change.setObjectType(type);
 		return change;
+	}
+
+	@Test (expected = NotFoundException.class)
+	public void testGetEtagDoesNotExist() {
+		changeDAO.getEtag(123L, ObjectType.FORUM);
+	}
+
+	@Test
+	public void testGetEtag() {
+		ChangeMessage change = new ChangeMessage();
+		change.setObjectId("123");
+		change.setObjectEtag("myEtag");
+		change.setChangeType(ChangeType.CREATE);
+		change.setObjectType(ObjectType.FORUM);
+		ChangeMessage clone = changeDAO.replaceChange(change);
+		assertEquals(clone.getObjectEtag(), changeDAO.getEtag(123L, ObjectType.FORUM));
 	}
 }

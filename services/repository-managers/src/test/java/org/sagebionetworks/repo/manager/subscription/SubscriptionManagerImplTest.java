@@ -13,10 +13,12 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.discussion.DiscussionThreadDAO;
 import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
+import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.subscription.Subscription;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.SubscriptionPagedResults;
@@ -30,6 +32,8 @@ public class SubscriptionManagerImplTest {
 	private AuthorizationManager mockAuthorizationManager;
 	@Mock
 	private DiscussionThreadDAO mockThreadDao;
+	@Mock
+	private DBOChangeDAO mockChangeDao;
 	@Mock
 	private SubscriptionDAO mockDao;
 	private SubscriptionManagerImpl manager;
@@ -48,6 +52,7 @@ public class SubscriptionManagerImplTest {
 		ReflectionTestUtils.setField(manager, "authorizationManager", mockAuthorizationManager);
 		ReflectionTestUtils.setField(manager, "subscriptionDao", mockDao);
 		ReflectionTestUtils.setField(manager, "threadDao", mockThreadDao);
+		ReflectionTestUtils.setField(manager, "changeDao", mockChangeDao);
 
 		objectId = "1";
 		topic = new Topic();
@@ -96,21 +101,21 @@ public class SubscriptionManagerImplTest {
 		assertEquals(sub, manager.create(userInfo, topic));
 		verify(mockAuthorizationManager).canSubscribe(userInfo, objectId, SubscriptionObjectType.FORUM);
 		verify(mockThreadDao).getAllThreadIdForForum(objectId);
-		verify(mockDao).subscribeAll(userId.toString(), threadIdList, SubscriptionObjectType.DISCUSSION_THREAD);
+		verify(mockDao).subscribeAll(userId.toString(), threadIdList, SubscriptionObjectType.THREAD);
 	}
 
 	@SuppressWarnings("unchecked")
 	@Test
 	public void testCreateThreadSubscription(){
 		when(mockAuthorizationManager
-				.canSubscribe(userInfo, objectId, SubscriptionObjectType.DISCUSSION_THREAD))
+				.canSubscribe(userInfo, objectId, SubscriptionObjectType.THREAD))
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		when(mockDao
-				.create(userId.toString(), objectId, SubscriptionObjectType.DISCUSSION_THREAD))
+				.create(userId.toString(), objectId, SubscriptionObjectType.THREAD))
 				.thenReturn(sub);
-		topic.setObjectType(SubscriptionObjectType.DISCUSSION_THREAD);
+		topic.setObjectType(SubscriptionObjectType.THREAD);
 		assertEquals(sub, manager.create(userInfo, topic));
-		verify(mockAuthorizationManager).canSubscribe(userInfo, objectId, SubscriptionObjectType.DISCUSSION_THREAD);
+		verify(mockAuthorizationManager).canSubscribe(userInfo, objectId, SubscriptionObjectType.THREAD);
 		verify(mockThreadDao, never()).getAllThreadIdForForum(anyString());
 		verify(mockDao, never()).subscribeAll(anyString(), any(List.class), any(SubscriptionObjectType.class));
 	}
@@ -223,7 +228,7 @@ public class SubscriptionManagerImplTest {
 	public void testDeleteThreadSubscription() {
 		Long subscriptionId = 3L;
 		sub.setSubscriberId(userId.toString());
-		sub.setObjectType(SubscriptionObjectType.DISCUSSION_THREAD);
+		sub.setObjectType(SubscriptionObjectType.THREAD);
 		when(mockDao.get(subscriptionId)).thenReturn(sub);
 		manager.delete(userInfo, subscriptionId.toString());
 		verify(mockDao).delete(subscriptionId);
@@ -242,7 +247,7 @@ public class SubscriptionManagerImplTest {
 		manager.delete(userInfo, subscriptionId.toString());
 		verify(mockDao).delete(subscriptionId);
 		verify(mockThreadDao).getAllThreadIdForForum(anyString());
-		verify(mockDao).deleteList(userId.toString(), threadIdList, SubscriptionObjectType.DISCUSSION_THREAD);
+		verify(mockDao).deleteList(userId.toString(), threadIdList, SubscriptionObjectType.THREAD);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -254,5 +259,24 @@ public class SubscriptionManagerImplTest {
 	public void testDeleteAll() {
 		manager.deleteAll(userInfo);
 		verify(mockDao).deleteAll(userInfo.getId());
+	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetEtagInvalidObjectId() {
+		manager.getEtag(null, ObjectType.FORUM);
+	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetEtagInvalidObjectType() {
+		manager.getEtag(objectId, null);
+	}
+
+	@Test
+	public void testGetEtag(){
+		String etag = "etag";
+		when(mockChangeDao
+				.getEtag(Long.parseLong(objectId), ObjectType.FORUM))
+				.thenReturn(etag);
+		assertEquals(etag, manager.getEtag(objectId, ObjectType.FORUM).getEtag());
 	}
 }

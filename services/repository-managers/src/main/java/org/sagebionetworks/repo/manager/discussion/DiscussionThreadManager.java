@@ -83,4 +83,10 @@ public interface DiscussionThreadManager {
 	 * @param messageKey
 	 */
 	public MessageURL getMessageUrl(UserInfo user, String messageKey);
+
+	/**
+	 * change the thread's etag and its forum's etag
+	 * @param threadId
+	 */
+	public void touch(Long threadId);
 }

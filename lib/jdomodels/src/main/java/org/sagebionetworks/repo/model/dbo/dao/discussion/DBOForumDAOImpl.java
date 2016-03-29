@@ -2,19 +2,24 @@ package org.sagebionetworks.repo.model.dbo.dao.discussion;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORUM_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORUM_PROJECT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORUM_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FORUM;
 
 import java.util.List;
+import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.discussion.ForumDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.discussion.DBOForum;
 import org.sagebionetworks.repo.model.dbo.persistence.discussion.ForumUtils;
 import org.sagebionetworks.repo.model.discussion.Forum;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
+import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,6 +34,9 @@ public class DBOForumDAOImpl implements ForumDAO {
 			+TABLE_FORUM+" WHERE "+COL_FORUM_ID+" = ?";
 	private static final String SQL_SELECT_FORUM_BY_PROJECT_ID = "SELECT * FROM "
 			+TABLE_FORUM+" WHERE "+COL_FORUM_PROJECT_ID+" = ?";
+	private static final String SQL_UPDATE_ETAG = "UPDATE "+TABLE_FORUM
+			+" SET "+COL_FORUM_ETAG+" = ?"
+			+" WHERE "+COL_FORUM_ID+" = ?";
 
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
@@ -36,10 +44,12 @@ public class DBOForumDAOImpl implements ForumDAO {
 	private DBOBasicDao basicDao;
 	@Autowired
 	private IdGenerator idGenerator;
+	@Autowired
+	private TransactionalMessenger transactionalMessenger;
 
 	private static RowMapper<DBOForum> ROW_MAPPER = new DBOForum().getTableMapping();
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public Forum createForum(String projectId) {
 		ValidateArgument.required(projectId, "projectId");
@@ -47,7 +57,10 @@ public class DBOForumDAOImpl implements ForumDAO {
 		DBOForum dbo = new DBOForum();
 		dbo.setId(id);
 		dbo.setProjectId(KeyFactory.stringToKey(projectId));
+		String etag = UUID.randomUUID().toString();
+		dbo.setEtag(etag);
 		basicDao.createNew(dbo);
+		transactionalMessenger.sendMessageAfterCommit(""+id, ObjectType.FORUM, etag, ChangeType.UPDATE);
 		return getForum(id);
 	}
 
@@ -71,9 +84,17 @@ public class DBOForumDAOImpl implements ForumDAO {
 		return ForumUtils.createDTOFromDBO(results.get(0));
 	}
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public int deleteForum(long id) {
 		return jdbcTemplate.update(SQL_DELETE_FORUM, id);
+	}
+
+	@WriteTransactionReadCommitted
+	@Override
+	public void touch(long id) {
+		String etag = UUID.randomUUID().toString();
+		jdbcTemplate.update(SQL_UPDATE_ETAG, etag, id);
+		transactionalMessenger.sendMessageAfterCommit(""+id, ObjectType.FORUM, etag, ChangeType.UPDATE);
 	}
 }

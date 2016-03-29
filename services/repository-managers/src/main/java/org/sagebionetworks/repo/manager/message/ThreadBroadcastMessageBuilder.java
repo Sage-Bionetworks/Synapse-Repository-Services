@@ -54,7 +54,7 @@ public class ThreadBroadcastMessageBuilder implements BroadcastMessageBuilder {
 		// The topic for a reply is its owner thread.
 		Topic topic = new Topic();
 		topic.setObjectId(threadBundle.getId());
-		topic.setObjectType(SubscriptionObjectType.DISCUSSION_THREAD);
+		topic.setObjectType(SubscriptionObjectType.THREAD);
 		return topic;
 	}
 

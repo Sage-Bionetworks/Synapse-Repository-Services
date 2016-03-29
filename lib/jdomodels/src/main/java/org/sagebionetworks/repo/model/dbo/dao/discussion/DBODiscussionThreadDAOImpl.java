@@ -16,6 +16,7 @@ import java.util.UUID;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.discussion.DiscussionThreadDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.discussion.DBODiscussionThread;
@@ -27,6 +28,8 @@ import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadReplyStat;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadViewStat;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
@@ -43,6 +46,8 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 	private DBOBasicDao basicDao;
 	@Autowired
 	private IdGenerator idGenerator;
+	@Autowired
+	private TransactionalMessenger transactionalMessenger;
 
 	public static final Charset UTF8 = Charset.forName("UTF-8");
 	private RowMapper<DiscussionThreadBundle> DISCUSSION_THREAD_BUNDLE_ROW_MAPPER = new RowMapper<DiscussionThreadBundle>(){
@@ -124,28 +129,28 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 			+" WHERE "+COL_DISCUSSION_THREAD_ID+" = ?";
 
 	private static final String SELECT_THREAD_BUNDLE = "SELECT "
-			+TABLE_DISCUSSION_THREAD+"."+COL_DISCUSSION_THREAD_ID+" AS ID, "
-			+COL_DISCUSSION_THREAD_FORUM_ID+", "
-			+COL_FORUM_PROJECT_ID+", "
-			+COL_DISCUSSION_THREAD_TITLE+", "
-			+COL_DISCUSSION_THREAD_CREATED_ON+", "
-			+COL_DISCUSSION_THREAD_CREATED_BY+", "
-			+COL_DISCUSSION_THREAD_MODIFIED_ON+", "
-			+COL_DISCUSSION_THREAD_ETAG+", "
-			+COL_DISCUSSION_THREAD_MESSAGE_KEY+", "
-			+COL_DISCUSSION_THREAD_IS_EDITED+", "
-			+COL_DISCUSSION_THREAD_IS_DELETED+", "
-			+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_VIEWS+", "
-			+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_REPLIES+", "
+			+TABLE_DISCUSSION_THREAD+"."+COL_DISCUSSION_THREAD_ID+" AS "+COL_DISCUSSION_THREAD_ID+", "
+			+TABLE_DISCUSSION_THREAD+"."+COL_DISCUSSION_THREAD_FORUM_ID+" AS "+COL_DISCUSSION_THREAD_FORUM_ID+", "
+			+TABLE_FORUM+"."+COL_FORUM_PROJECT_ID+" AS "+COL_FORUM_PROJECT_ID+", "
+			+TABLE_DISCUSSION_THREAD+"."+COL_DISCUSSION_THREAD_TITLE+" AS "+COL_DISCUSSION_THREAD_TITLE+", "
+			+TABLE_DISCUSSION_THREAD+"."+COL_DISCUSSION_THREAD_CREATED_ON+" AS "+COL_DISCUSSION_THREAD_CREATED_ON+", "
+			+TABLE_DISCUSSION_THREAD+"."+COL_DISCUSSION_THREAD_CREATED_BY+" AS "+COL_DISCUSSION_THREAD_CREATED_BY+", "
+			+TABLE_DISCUSSION_THREAD+"."+COL_DISCUSSION_THREAD_MODIFIED_ON+" AS "+COL_DISCUSSION_THREAD_MODIFIED_ON+", "
+			+TABLE_DISCUSSION_THREAD+"."+COL_DISCUSSION_THREAD_ETAG+" AS "+COL_DISCUSSION_THREAD_ETAG+", "
+			+TABLE_DISCUSSION_THREAD+"."+COL_DISCUSSION_THREAD_MESSAGE_KEY+" AS "+COL_DISCUSSION_THREAD_MESSAGE_KEY+", "
+			+TABLE_DISCUSSION_THREAD+"."+COL_DISCUSSION_THREAD_IS_EDITED+" AS "+COL_DISCUSSION_THREAD_IS_EDITED+", "
+			+TABLE_DISCUSSION_THREAD+"."+COL_DISCUSSION_THREAD_IS_DELETED+" AS "+COL_DISCUSSION_THREAD_IS_DELETED+", "
+			+TABLE_DISCUSSION_THREAD_STATS+"."+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_VIEWS+" AS "+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_VIEWS+", "
+			+TABLE_DISCUSSION_THREAD_STATS+"."+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_REPLIES+" AS "+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_REPLIES+", "
 			+"IFNULL("+COL_DISCUSSION_THREAD_STATS_LAST_ACTIVITY+", "+COL_DISCUSSION_THREAD_MODIFIED_ON+") AS "+COL_DISCUSSION_THREAD_STATS_LAST_ACTIVITY+", "
-			+COL_DISCUSSION_THREAD_STATS_ACTIVE_AUTHORS
+			+TABLE_DISCUSSION_THREAD_STATS+"."+COL_DISCUSSION_THREAD_STATS_ACTIVE_AUTHORS+" AS "+COL_DISCUSSION_THREAD_STATS_ACTIVE_AUTHORS
 			+" FROM "+TABLE_DISCUSSION_THREAD
 			+" JOIN "+TABLE_FORUM
-			+" ON "+COL_DISCUSSION_THREAD_FORUM_ID
+			+" ON "+TABLE_DISCUSSION_THREAD+"."+COL_DISCUSSION_THREAD_FORUM_ID
 			+" = "+TABLE_FORUM+"."+COL_FORUM_ID
 			+" LEFT OUTER JOIN "+TABLE_DISCUSSION_THREAD_STATS
 			+" ON "+TABLE_DISCUSSION_THREAD+"."+COL_DISCUSSION_THREAD_ID
-			+" = "+COL_DISCUSSION_THREAD_STATS_THREAD_ID;
+			+" = "+TABLE_DISCUSSION_THREAD_STATS+"."+COL_DISCUSSION_THREAD_STATS_THREAD_ID;
 	public static final String NOT_DELETED_CONDITION = " AND "+COL_DISCUSSION_THREAD_IS_DELETED+" = FALSE";
 	public static final String DELETED_CONDITION = " AND "+COL_DISCUSSION_THREAD_IS_DELETED+" = TRUE";
 	private static final String SQL_SELECT_THREAD_BY_ID = SELECT_THREAD_BUNDLE
@@ -204,6 +209,10 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 			+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_REPLIES+" = ?, "
 			+COL_DISCUSSION_THREAD_STATS_LAST_ACTIVITY+" = ? ";
 	public static final DiscussionFilter DEFAULT_FILTER = DiscussionFilter.NO_FILTER;
+
+	private static final String SQL_UPDATE_ETAG = "UPDATE "+TABLE_DISCUSSION_THREAD
+			+" SET "+COL_DISCUSSION_THREAD_ETAG+" = ? "
+			+" WHERE "+COL_DISCUSSION_THREAD_ID+" = ?";
 
 	@WriteTransactionReadCommitted
 	@Override
@@ -454,5 +463,13 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 	public List<String> getAllThreadIdForForum(String forumId) {
 		ValidateArgument.required(forumId, "forumId");
 		return jdbcTemplate.queryForList(SQL_SELECT_ALL_THREAD_ID_FOR_FORUM, new Object[]{forumId}, String.class);
+	}
+
+	@WriteTransactionReadCommitted
+	@Override
+	public void touch(long id) {
+		String etag = UUID.randomUUID().toString();
+		jdbcTemplate.update(SQL_UPDATE_ETAG, etag, id);
+		transactionalMessenger.sendMessageAfterCommit(""+id, ObjectType.THREAD, etag, ChangeType.UPDATE);
 	}
 }

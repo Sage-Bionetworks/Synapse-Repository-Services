@@ -381,7 +381,7 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 	}
 
 	private void createSubscription() {
-		subscriptionDao.create(adminUserIdString, threadId, SubscriptionObjectType.DISCUSSION_THREAD);
+		subscriptionDao.create(adminUserIdString, threadId, SubscriptionObjectType.THREAD);
 	}
 
 	private void createVerificationSubmission() {

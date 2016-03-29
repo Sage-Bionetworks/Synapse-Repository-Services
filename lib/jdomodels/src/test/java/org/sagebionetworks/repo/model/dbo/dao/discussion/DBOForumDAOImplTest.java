@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.dao.discussion;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.fail;
 
 import java.util.Random;
@@ -106,5 +107,15 @@ public class DBOForumDAOImplTest {
 	@Test (expected = IllegalArgumentException.class)
 	public void createGetNullProjectId() {
 		forumDao.getForumByProjectId(null);
+	}
+
+	@Test
+	public void testTouch() {
+		Forum dto = forumDao.createForum(KeyFactory.stringToKey(projectId).toString());
+		Long id = Long.parseLong(dto.getId());
+		forumDao.touch(id);
+		Forum dto2 = forumDao.getForum(id);
+		assertEquals(dto.getProjectId(), dto2.getProjectId());
+		assertFalse(dto.equals(dto2));
 	}
 }
