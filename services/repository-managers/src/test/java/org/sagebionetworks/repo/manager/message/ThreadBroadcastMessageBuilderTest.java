@@ -89,11 +89,19 @@ public class ThreadBroadcastMessageBuilderTest {
 		assertTrue(body.contains("https://www.synapse.org/#!Subscription:subscriptionID=999"));
 		assertTrue(body.contains("https://www.synapse.org/#!Synapse:syn8888/discussion/threadId=333"));
 		assertTrue(body.contains("https://www.synapse.org/#!Synapse:syn8888"));
+		assertTrue(body.contains("created"));
 	}
 	
 	@Test
 	public void testBuildEmailForSubscriber(){
 		SendRawEmailRequest request = builder.buildEmailForSubscriber(subscriber);
 		assertNotNull(request);
+	}
+
+	@Test
+	public void testGetAction() {
+		assertEquals("created", ThreadBroadcastMessageBuilder.getAction(ChangeType.CREATE));
+		assertEquals("updated", ThreadBroadcastMessageBuilder.getAction(ChangeType.UPDATE));
+		assertEquals("removed", ThreadBroadcastMessageBuilder.getAction(ChangeType.DELETE));
 	}
 }
