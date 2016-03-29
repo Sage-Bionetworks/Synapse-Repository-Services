@@ -35,6 +35,7 @@ import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ServiceConstants;
@@ -85,6 +86,7 @@ import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.storage.StorageUsage;
 import org.sagebionetworks.repo.model.storage.StorageUsageSummaryList;
+import org.sagebionetworks.repo.model.subscription.Etag;
 import org.sagebionetworks.repo.model.subscription.Subscription;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.SubscriptionPagedResults;
@@ -2193,5 +2195,12 @@ public class ServletTestHelper {
 				HTTPMODE.GET, "/repo/v1", UrlHelpers.SUBSCRIPTION+"/"+subscriptionId, userId, null);
 		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
 		return objectMapper.readValue(response.getContentAsString(), Subscription.class);
+	}
+
+	public Etag getEtag(DispatcherServlet dispatchServlet, Long userId, String objectId, ObjectType objectType) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, "/repo/v1", UrlHelpers.OBJECT+"/"+objectId+"/"+objectType.name()+UrlHelpers.ETAG, userId, null);
+		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+		return objectMapper.readValue(response.getContentAsString(), Etag.class);
 	}
 }

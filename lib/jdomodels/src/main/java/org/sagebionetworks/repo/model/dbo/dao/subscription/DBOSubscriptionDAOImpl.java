@@ -112,7 +112,7 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 			+ "WHERE "+TABLE_SUBSCRIPTION+"."+COL_SUBSCRIPTION_OBJECT_ID+" = "+TABLE_DISCUSSION_THREAD+"."+COL_DISCUSSION_THREAD_ID+" "
 			+ "AND "+TABLE_DISCUSSION_THREAD+"."+COL_DISCUSSION_THREAD_IS_DELETED+" = "+Boolean.FALSE.toString()+" "
 			+ "AND "+TABLE_SUBSCRIPTION+"."+COL_SUBSCRIPTION_SUBSCRIBER_ID+" = ? "
-			+ "AND "+TABLE_SUBSCRIPTION+"."+COL_SUBSCRIPTION_OBJECT_TYPE+" = \""+SubscriptionObjectType.DISCUSSION_THREAD.toString()+"\" ";
+			+ "AND "+TABLE_SUBSCRIPTION+"."+COL_SUBSCRIPTION_OBJECT_TYPE+" = \""+SubscriptionObjectType.THREAD.toString()+"\" ";
 
 	private static final String LIMIT_OFFSET = "LIMIT ? OFFSET ?";
 
@@ -216,7 +216,7 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 		switch (objectType) {
 			case FORUM:
 				return SQL_GET_ALL_FORUM_SUB;
-			case DISCUSSION_THREAD:
+			case THREAD:
 				return SQL_GET_ALL_THREAD_SUB;
 			default:
 				throw new RuntimeException("Unsopported type "+objectType.name());
@@ -251,7 +251,7 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 		switch (objectType) {
 			case FORUM:
 				return SQL_GET_FORUM_SUB_LIST;
-			case DISCUSSION_THREAD:
+			case THREAD:
 				return SQL_GET_THREAD_SUB_LIST;
 			default:
 				throw new RuntimeException("Unsopported type "+objectType.name());
@@ -284,7 +284,7 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 				ps.setLong(1, Long.parseLong(idGenerator.generateNewId(TYPE.SUBSCRIPTION_ID).toString()));
 				ps.setLong(2, Long.parseLong(subscriberId));
 				ps.setLong(3, Long.parseLong(threadId));
-				ps.setString(4, SubscriptionObjectType.DISCUSSION_THREAD.name());
+				ps.setString(4, SubscriptionObjectType.THREAD.name());
 				ps.setLong(5, new Date().getTime());
 			}
 		});

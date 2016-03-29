@@ -185,6 +185,7 @@ import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.storage.StorageUsageDimension;
 import org.sagebionetworks.repo.model.storage.StorageUsageSummaryList;
+import org.sagebionetworks.repo.model.subscription.Etag;
 import org.sagebionetworks.repo.model.subscription.Subscription;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.SubscriptionPagedResults;
@@ -501,6 +502,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String SUBSCRIPTION = "/subscription";
 	private static final String LIST = "/list";
 	private static final String OBJECT_TYPE_PARAM = "objectType";
+	private static final String OBJECT = "/object";	
 
 	private static final String PRINCIPAL_ID_REQUEST_PARAM = "principalId";
 
@@ -7589,10 +7591,21 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public Subscription get(String subscriptionId) throws SynapseException {
+	public Subscription getSubscription(String subscriptionId) throws SynapseException {
 		try {
 			ValidateArgument.required(subscriptionId, "subscriptionId");
 			return getJSONEntity(SUBSCRIPTION+"/"+subscriptionId, Subscription.class);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
+	}
+
+	@Override
+	public Etag getEtag(String objectId, ObjectType objectType) throws SynapseException {
+		try {
+			ValidateArgument.required(objectId, "objectId");
+			ValidateArgument.required(objectType, "objectType");
+			return getJSONEntity(OBJECT+"/"+objectId+"/"+objectType.name()+"/"+ETAG, Etag.class);
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseClientException(e);
 		}

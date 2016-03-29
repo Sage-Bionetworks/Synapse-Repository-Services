@@ -447,7 +447,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 			case FORUM:
 				Forum forum = forumDao.getForum(Long.parseLong(objectId));
 				return canAccess(userInfo, forum.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ);
-			case DISCUSSION_THREAD:
+			case THREAD:
 				DiscussionThreadBundle threadBundle = threadDao.getThread(Long.parseLong(objectId), DiscussionFilter.EXCLUDE_DELETED);
 				return canAccess(userInfo, threadBundle.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ);
 		}

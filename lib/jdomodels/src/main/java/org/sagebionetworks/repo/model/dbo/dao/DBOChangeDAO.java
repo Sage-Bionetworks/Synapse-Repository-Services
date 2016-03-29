@@ -131,4 +131,11 @@ public interface DBOChangeDAO extends ProcessedMessageDAO {
 	 * @return
 	 */
 	public boolean doesChangeNumberExist(Long changeNumber);
+
+	/**
+	 * Look up object's etag
+	 * @param objectId
+	 * @param objectType
+	 */
+	public String getEtag(Long objectId, ObjectType objectType);
 }

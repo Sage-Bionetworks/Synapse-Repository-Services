@@ -732,6 +732,7 @@ public class SqlConstants {
 	public static final String TABLE_FORUM = "FORUM";
 	public static final String COL_FORUM_ID = "ID";
 	public static final String COL_FORUM_PROJECT_ID = "PROJECT_ID";
+	public static final String COL_FORUM_ETAG = "ETAG";
 	public static final String DDL_FORUM = "schema/Forum-ddl.sql";
 
 	// Discussion Thread table
