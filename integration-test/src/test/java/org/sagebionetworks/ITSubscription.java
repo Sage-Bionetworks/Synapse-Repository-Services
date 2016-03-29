@@ -5,6 +5,7 @@ import static org.junit.Assert.*;
 import java.util.Arrays;
 
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -54,8 +55,12 @@ public class ITSubscription {
 	}
 
 	@After
-	public void cleanup() throws SynapseException, JSONObjectAdapterException {
+	public void cleanup() throws Exception {
 		if (project != null) adminSynapse.deleteEntity(project, true);
+	}
+
+	@AfterClass
+	public void afterClass() throws Exception {
 		if (userToDelete != null) adminSynapse.deleteUser(userToDelete);
 	}
 	@Test
