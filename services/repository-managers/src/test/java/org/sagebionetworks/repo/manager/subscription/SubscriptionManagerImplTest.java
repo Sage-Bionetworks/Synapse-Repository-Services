@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.discussion.DiscussionThreadDAO;
 import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.subscription.Subscription;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.SubscriptionPagedResults;
@@ -271,8 +272,22 @@ public class SubscriptionManagerImplTest {
 		manager.getEtag(objectId, null);
 	}
 
+	@Test (expected=NumberFormatException.class)
+	public void testGetEtagWithObjectIdNaN(){
+		manager.getEtag("syn"+objectId, ObjectType.FORUM).getEtag();
+	}
+
 	@Test
-	public void testGetEtag(){
+	public void testGetEtagForEntity(){
+		String etag = "etag";
+		when(mockChangeDao
+				.getEtag(KeyFactory.stringToKey(objectId), ObjectType.ENTITY))
+				.thenReturn(etag);
+		assertEquals(etag, manager.getEtag("syn"+objectId, ObjectType.ENTITY).getEtag());
+	}
+
+	@Test
+	public void testGetEtagForNonEntity(){
 		String etag = "etag";
 		when(mockChangeDao
 				.getEtag(Long.parseLong(objectId), ObjectType.FORUM))
