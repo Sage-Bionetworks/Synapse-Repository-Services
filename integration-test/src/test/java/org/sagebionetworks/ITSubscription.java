@@ -57,6 +57,7 @@ public class ITSubscription {
 	@After
 	public void cleanup() throws Exception {
 		if (project != null) adminSynapse.deleteEntity(project, true);
+		synapse.unsubscribeAll();
 	}
 
 	@AfterClass
