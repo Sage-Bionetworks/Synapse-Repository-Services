@@ -10,6 +10,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.discussion.DiscussionThreadDAO;
 import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.subscription.Etag;
 import org.sagebionetworks.repo.model.subscription.Subscription;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
@@ -114,8 +115,14 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
 	public Etag getEtag(String objectId, ObjectType objectType) {
 		ValidateArgument.required(objectId, "objectId");
 		ValidateArgument.required(objectType, "objectType");
+		Long objectIdLong = null;
+		if (objectType == ObjectType.ENTITY) {
+			objectIdLong = KeyFactory.stringToKey(objectId);
+		} else {
+			objectIdLong = Long.parseLong(objectId);
+		}
 		Etag etag = new Etag();
-		etag.setEtag(changeDao.getEtag(Long.parseLong(objectId), objectType));
+		etag.setEtag(changeDao.getEtag(objectIdLong, objectType));
 		return etag;
 	}
 }
