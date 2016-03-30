@@ -11,6 +11,7 @@ import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
+import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 
 public class DBOSubscription implements MigratableDatabaseObject<DBOSubscription, DBOSubscription>{
 
@@ -174,14 +175,19 @@ public class DBOSubscription implements MigratableDatabaseObject<DBOSubscription
 
 			@Override
 			public DBOSubscription createDatabaseObjectFromBackup(DBOSubscription backup) {
+				if (backup.getObjectType().equals(SubscriptionObjectType.DISCUSSION_THREAD.name())){
+					backup.setObjectType(SubscriptionObjectType.THREAD.name());
+				}
 				return backup;
 			}
 
 			@Override
 			public DBOSubscription createBackupFromDatabaseObject(DBOSubscription dbo) {
+				if (dbo.getObjectType().equals(SubscriptionObjectType.DISCUSSION_THREAD.name())){
+					dbo.setObjectType(SubscriptionObjectType.THREAD.name());
+				}
 				return dbo;
 			}
-			
 		};
 	}
 

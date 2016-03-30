@@ -143,6 +143,9 @@ public class DBOForum implements MigratableDatabaseObject<DBOForum, DBOForum>{
 
 			@Override
 			public DBOForum createDatabaseObjectFromBackup(DBOForum backup) {
+				if (backup.getEtag() == null) {
+					backup.setEtag(UUID.randomUUID().toString());
+				}
 				return backup;
 			}
 
