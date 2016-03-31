@@ -433,5 +433,5 @@ public interface EntityManager {
 	 * @param alias
 	 * @return
 	 */
-	public String getEntityIdForAlais(String alias);
+	public String getEntityIdForAlias(String alias);
 }

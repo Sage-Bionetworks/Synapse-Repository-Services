@@ -643,7 +643,7 @@ public class EntityManagerImpl implements EntityManager {
 	}
 
 	@Override
-	public String getEntityIdForAlais(String alias) {
+	public String getEntityIdForAlias(String alias) {
 		return nodeManager.getEntityIdForAlias(alias);
 	}
 

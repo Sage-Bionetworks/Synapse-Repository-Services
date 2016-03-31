@@ -756,7 +756,7 @@ public class EntityServiceImpl implements EntityService {
 
 	@Override
 	public EntityId getEntityIdForAlias(String alias) {
-		String entityId = entityManager.getEntityIdForAlais(alias);
+		String entityId = entityManager.getEntityIdForAlias(alias);
 		EntityId id = new EntityId();
 		id.setId(entityId);
 		return id;
