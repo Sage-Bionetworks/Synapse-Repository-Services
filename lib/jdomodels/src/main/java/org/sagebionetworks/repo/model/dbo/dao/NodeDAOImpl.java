@@ -105,6 +105,7 @@ import org.sagebionetworks.util.SerializationUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataAccessException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
@@ -1677,6 +1678,17 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			}
 		});
 		
+	}
+
+	@Override
+	public String getNodeIdByAlias(String alias) {
+		ValidateArgument.required(alias, "alias");
+		try {
+			long id = this.jdbcTemplate.queryForObject("", Long.class, alias);
+			return KeyFactory.keyToString(id);
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException("Did not find a match for alias: "+alias);
+		}
 	}
 
 }

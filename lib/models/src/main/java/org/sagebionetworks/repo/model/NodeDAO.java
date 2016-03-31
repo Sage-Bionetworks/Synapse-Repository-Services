@@ -478,5 +478,12 @@ public interface NodeDAO {
 	 * @param batch
 	 */
 	void batchUpdateHierarchy(ArrayList<NodeHierarchy> batch);
+	
+	/**
+	 * Lookup a nodeId using its alias.
+	 * @param alias
+	 * @return
+	 */
+	String getNodeIdByAlias(String alias);
 
 }

@@ -2762,6 +2762,11 @@ public class NodeDAOImplTest {
 		// should be its own benefactor
 		assertEquals("syn0", benefactor);
 	}
+	
+	@Test
+	public void testGetNodeIdByAlias(){
+		ff
+	}
 		
 
 	/**
