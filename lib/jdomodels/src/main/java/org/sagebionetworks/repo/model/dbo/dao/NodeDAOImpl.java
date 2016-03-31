@@ -5,6 +5,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CURRENT_
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_MD5;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_SIZE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ALIAS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_BENEFACTOR_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CREATED_ON;
@@ -27,8 +28,8 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_NUMBER;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_OWNER_NODE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_REF_BLOB;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.CONSTRAINT_UNIQUE_CHILD_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.CONSTRAINT_UNIQUE_ALIAS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.CONSTRAINT_UNIQUE_CHILD_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FILES;
@@ -128,6 +129,7 @@ import com.google.common.collect.Sets;
  */
 public class NodeDAOImpl implements NodeDAO, InitializingBean {
 
+	private static final String SQL_SELECT_NODE_ID_BY_ALIAS = "SELECT "+COL_NODE_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ALIAS+" = ?";
 	private static final String SQL_BATCH_UPDATE_HIERARCHY = "UPDATE "+TABLE_NODE+" SET "+COL_NODE_ETAG+" = UUID(), "+COL_NODE_PARENT_ID+" = ?, "+COL_NODE_BENEFACTOR_ID+" = ?, "+COL_NODE_PROJECT_ID +" = ? WHERE "+COL_NODE_ID+" = ?";
 	private static final String SQL_UPDATE_PARENT_ID = "UPDATE "+TABLE_NODE+" SET "+COL_NODE_PARENT_ID+" = ?, "+COL_NODE_ETAG+" = UUID() WHERE "+COL_NODE_ID+" = ?";
 	private static final String SELECT_ENTITY_HEADERS_FOR_ENTITY_IDS = "SELECT "+COL_NODE_ID+", "+COL_NODE_NAME+", "+COL_NODE_TYPE+", "+COL_CURRENT_REV+", "+COL_NODE_BENEFACTOR_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" IN (:nodeIds)";
@@ -1677,6 +1679,17 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			}
 		});
 		
+	}
+
+	@Override
+	public String getNodeIdByAlias(String alias) {
+		ValidateArgument.required(alias, "alias");
+		try {
+			long id = this.jdbcTemplate.queryForObject(SQL_SELECT_NODE_ID_BY_ALIAS, Long.class, alias);
+			return KeyFactory.keyToString(id);
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException("Did not find a match for alias: "+alias);
+		}
 	}
 
 }

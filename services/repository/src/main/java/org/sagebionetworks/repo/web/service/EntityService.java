@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -724,5 +725,12 @@ public interface EntityService {
 	 * @throws DatastoreException 
 	 */
 	public FileHandleResults getEntityFileHandlesForVersion(Long userId, String entityId, Long versionNumber) throws DatastoreException, NotFoundException;
+
+	/**
+	 * Lookup an Entity ID using an alias.
+	 * @param alias
+	 * @return
+	 */
+	public EntityId getEntityIdForAlias(String alias);
 
 }

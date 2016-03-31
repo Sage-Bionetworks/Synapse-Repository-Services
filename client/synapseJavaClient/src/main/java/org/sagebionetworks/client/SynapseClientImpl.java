@@ -69,6 +69,7 @@ import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityBundleCreate;
 import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.EntityInstanceFactory;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.IdList;
@@ -7606,6 +7607,16 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			ValidateArgument.required(objectId, "objectId");
 			ValidateArgument.required(objectType, "objectType");
 			return getJSONEntity(OBJECT+"/"+objectId+"/"+objectType.name()+"/"+ETAG, Etag.class);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
+	}
+
+	@Override
+	public EntityId getEntityIdByAlias(String alias) throws SynapseException {
+		ValidateArgument.required(alias, "alias");
+		try {
+			return getJSONEntity(ENTITY+"/alias/"+alias, EntityId.class);
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseClientException(e);
 		}

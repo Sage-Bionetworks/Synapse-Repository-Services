@@ -42,6 +42,7 @@ import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityBundleCreate;
 import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.JoinTeamSignedToken;
 import org.sagebionetworks.repo.model.LogEntry;
@@ -2687,4 +2688,13 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	Etag getEtag(String objectId, ObjectType objectType) throws SynapseException;
+	
+	/**
+	 * Get the entity ID assigned to a given alias.
+	 * 
+	 * @param alias
+	 * @return
+	 * @throws SynapseException
+	 */
+	EntityId getEntityIdByAlias(String alias) throws SynapseException;
 }

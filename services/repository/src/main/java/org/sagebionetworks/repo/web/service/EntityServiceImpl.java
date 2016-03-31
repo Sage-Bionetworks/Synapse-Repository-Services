@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.FileEntity;
@@ -751,5 +752,13 @@ public class EntityServiceImpl implements EntityService {
 		List<String> idsList = new LinkedList<String>();
 		idsList.add(fileHandleId);
 		return fileHandleManager.getAllFileHandles(idsList, true);
+	}
+
+	@Override
+	public EntityId getEntityIdForAlias(String alias) {
+		String entityId = entityManager.getEntityIdForAlias(alias);
+		EntityId id = new EntityId();
+		id.setId(entityId);
+		return id;
 	}
 }

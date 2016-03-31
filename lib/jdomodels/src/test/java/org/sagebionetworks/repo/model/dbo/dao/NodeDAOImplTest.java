@@ -2762,6 +2762,28 @@ public class NodeDAOImplTest {
 		// should be its own benefactor
 		assertEquals("syn0", benefactor);
 	}
+	
+	@Test
+	public void testGetNodeIdByAlias(){
+		Node node = privateCreateNew("testGetNodeIdByAlias");
+		String alias = UUID.randomUUID().toString();
+		node.setAlias(alias);
+		node.setVersionComment("v1");
+		node.setVersionLabel("1");
+		String id = nodeDao.createNew(node);
+		toDelete.add(id);
+		assertNotNull(id);
+		// call under test
+		String lookupId = nodeDao.getNodeIdByAlias(alias);
+		assertEquals(id, lookupId);
+	}
+	
+	@Test (expected=NotFoundException.class)
+	public void testGetNodeIdByAliasNotFound(){
+		String alias = "doesNotExist";
+		// call under test
+		nodeDao.getNodeIdByAlias(alias);
+	}
 		
 
 	/**

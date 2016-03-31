@@ -818,4 +818,9 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 			removeBenefactorAcl(child);
 		}
 	}
+
+	@Override
+	public String getEntityIdForAlias(String alias) {
+		return nodeDao.getNodeIdByAlias(alias);
+	}
 }
