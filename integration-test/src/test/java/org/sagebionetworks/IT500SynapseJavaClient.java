@@ -60,6 +60,7 @@ import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityBundleCreate;
 import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.FileEntity;
@@ -1899,5 +1900,15 @@ public class IT500SynapseJavaClient {
 				assertEquals("no transaction: " + exceptionClassName, test.statusCode, result);
 			}
 		}
+	}
+	
+	@Test
+	public void testGetEntityIdByAlais() throws SynapseException{
+		// Set an alias for the project
+		project.setAlias(UUID.randomUUID().toString().replaceAll("-", "_"));
+		synapseOne.putEntity(project);
+		EntityId lookupId = synapseOne.getEntityIdByAlias(project.getAlias());
+		assertNotNull(lookupId);
+		assertEquals(project.getId(), lookupId.getId());
 	}
 }

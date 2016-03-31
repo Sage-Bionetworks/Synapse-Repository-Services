@@ -642,6 +642,11 @@ public class EntityManagerImpl implements EntityManager {
 		return nodeManager.getCurrentRevisionNumbers(entityIds);
 	}
 
+	@Override
+	public String getEntityIdForAlais(String alias) {
+		return nodeManager.getEntityIdForAlias(alias);
+	}
+
 
 
 }

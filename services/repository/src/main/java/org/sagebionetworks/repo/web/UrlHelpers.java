@@ -190,6 +190,8 @@ public class UrlHelpers {
 
 	public static final String ENTITY_MD5 = ENTITY + "/md5" + "/{md5}";
 
+	public static final String ENTITY_ALIAS = ENTITY + "/alias" + "/{alias}";
+	
 	public static final String ENTITY_BUNDLE = ENTITY+BUNDLE;
 	public static final String ENTITY_ID_BUNDLE = ENTITY_ID+BUNDLE;
 	public static final String ENTITY_ID_ACL = ENTITY_ID+ACL;

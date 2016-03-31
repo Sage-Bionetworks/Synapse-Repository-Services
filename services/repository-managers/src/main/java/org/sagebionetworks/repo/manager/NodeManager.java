@@ -353,4 +353,11 @@ public interface NodeManager {
 	List<EntityHeader> filterUnauthorizedHeaders(UserInfo userInfo,
 			List<EntityHeader> toFilter);
 
+	/**
+	 * Lookup an Entity ID using an alias.
+	 * @param alias
+	 * @return
+	 */
+	public String getEntityIdForAlias(String alias);
+
 }

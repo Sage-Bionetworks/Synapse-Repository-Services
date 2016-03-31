@@ -427,4 +427,11 @@ public interface EntityManager {
 	 */
 	<T extends Entity> T getEntitySecondaryFieldsForVersion(UserInfo user, String entityId, Long versionNumber, Class<T> type)
 			throws DatastoreException, UnauthorizedException, NotFoundException;
+
+	/**
+	 * Lookup an Entity ID using an alias.
+	 * @param alias
+	 * @return
+	 */
+	public String getEntityIdForAlais(String alias);
 }

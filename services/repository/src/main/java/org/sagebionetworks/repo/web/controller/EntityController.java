@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Reference;
@@ -1496,4 +1497,18 @@ public class EntityController extends BaseController {
 		return results;
 	}
 
+	/**
+	 * Lookup an Entity ID using an alias.
+	 * 
+	 * @param alias
+	 * @throws NotFoundException
+	 *             If the given alias is not assigned to an entity.
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.ENTITY_ALIAS }, method = RequestMethod.GET)
+	public @ResponseBody
+	EntityId getEntityIdByAlias(
+			@PathVariable String alias) throws NotFoundException{
+		return serviceProvider.getEntityService().getEntityIdForAlias(alias);
+	}
 }
