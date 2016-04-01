@@ -152,22 +152,6 @@ public interface TableIndexDAO {
 	public <T> T executeInWriteTransaction(TransactionCallback<T> callable);
 
 	/**
-	 * add indexes to all columns in table
-	 * 
-	 * @param tableId
-	 */
-	public void addIndexes(String tableId);
-
-	/**
-	 * remove indexes from all columns in table
-	 * 
-	 * @param tableId
-	 */
-	public void removeIndexes(String tableId);
-
-	public void addIndex(String tableId, ColumnModel columnModel);
-
-	/**
 	 * Apply the passed set of file handle Ids to the given table index.
 	 * 
 	 * @param tableId

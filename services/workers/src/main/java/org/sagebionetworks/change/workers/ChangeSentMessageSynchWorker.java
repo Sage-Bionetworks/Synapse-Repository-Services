@@ -154,7 +154,7 @@ public class ChangeSentMessageSynchWorker implements ProgressingRunner<Void> {
 				return;
 			}
 			// Sleep between pages to keep from overloading the database.
-			clock.sleepNoInterrupt(configuration.getChangeSynchWorkerSleepTimeMS().get());
+			clock.sleepNoInterrupt(configuration.getChangeSynchWorkerSleepTimeMS());
 		}
 
 	}
@@ -197,6 +197,6 @@ public class ChangeSentMessageSynchWorker implements ProgressingRunner<Void> {
 	 * @return
 	 */
 	public int getMinimumPageSize() {
-		return configuration.getChangeSynchWorkerMinPageSize().get();
+		return configuration.getChangeSynchWorkerMinPageSize();
 	}
 }

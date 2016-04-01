@@ -28,7 +28,6 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
-import org.sagebionetworks.ImmutablePropertyAccessor;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
@@ -183,7 +182,7 @@ public class TableIndexDAOImplTest {
 		// We should be able to update all of the rows
 		rows.get(4).setValues(
 				Arrays.asList("update", "99.99", "3", "false", "123", "123",
-						"syn123.3", "link2"));
+						"syn123.3", "link2", "largeText"));
 		rows.get(4).setVersionNumber(5L);
 		// This should not fail
 		tableIndexDAO.createOrUpdateOrDeleteRows(set, allTypes);
@@ -205,6 +204,7 @@ public class TableIndexDAOImplTest {
 		assertEquals(123L, row.get("_C4_"));
 		assertEquals(123L, row.get("_C5_"));
 		assertEquals("syn123.3", row.get("_C6_"));
+		assertEquals("largeText", row.get("_C8_"));
 	}
 
 	@Test
@@ -318,7 +318,7 @@ public class TableIndexDAOImplTest {
 		assertEquals(new Long(3), row.getVersionNumber());
 		List<String> expectedValues = Arrays.asList("string0", "341003.12",
 				"203000", "false", "404000", "505000", "syn606000.607000",
-				"link708000");
+				"link708000", "largeText804000");
 		assertEquals(expectedValues, row.getValues());
 		// Second row
 		row = results.getRows().get(1);
@@ -326,7 +326,7 @@ public class TableIndexDAOImplTest {
 		assertEquals(new Long(101), row.getRowId());
 		assertEquals(new Long(3), row.getVersionNumber());
 		expectedValues = Arrays.asList("string1", "341006.53", "203001",
-				"true", "404001", "505001", "syn606001.607001", "link708001");
+				"true", "404001", "505001", "syn606001.607001", "link708001", "largeText804001");
 		assertEquals(expectedValues, row.getValues());
 		// progress should be made for each row.
 		verify(mockProgressCallback, times(2)).progressMade(null);
@@ -342,9 +342,8 @@ public class TableIndexDAOImplTest {
 		oldStackConfiguration = StackConfiguration.singleton();
 		StackConfiguration mockedStackConfiguration = Mockito
 				.spy(oldStackConfiguration);
-		stub(mockedStackConfiguration.getTableAllIndexedEnabled()).toReturn(
-				new ImmutablePropertyAccessor<Boolean>(!oldStackConfiguration
-						.getTableAllIndexedEnabled().get()));
+		stub(mockedStackConfiguration.getTableAllIndexedEnabled()).toReturn(!oldStackConfiguration
+						.getTableAllIndexedEnabled());
 		ReflectionTestUtils.setField(StackConfiguration.singleton(),
 				"singleton", mockedStackConfiguration);
 
@@ -424,8 +423,7 @@ public class TableIndexDAOImplTest {
 		runTest(allTypes, endgoal, distinctCount, times);
 
 		System.err.println("All indexes: "
-				+ StackConfiguration.singleton().getTableAllIndexedEnabled()
-						.get());
+				+ StackConfiguration.singleton().getTableAllIndexedEnabled());
 		// System.err.println("Just in time indexes: " +
 		// StackConfiguration.singleton().getTableJustInTimeIndexedEnabled().get());
 		for (int i = 0; i < times.size(); i += 2) {
@@ -647,7 +645,7 @@ public class TableIndexDAOImplTest {
 		assertEquals(new Long(100), row.getRowId());
 		assertEquals(new Long(3), row.getVersionNumber());
 		List<String> expectedValues = Arrays.asList(null, null, null, null,
-				null, null, null, null);
+				null, null, null, null,  null);
 		assertEquals(expectedValues, row.getValues());
 		// Second row
 		row = results.getRows().get(1);
@@ -655,7 +653,7 @@ public class TableIndexDAOImplTest {
 		assertEquals(new Long(101), row.getRowId());
 		assertEquals(new Long(3), row.getVersionNumber());
 		expectedValues = Arrays.asList(null, null, null, null, null, null,
-				null, null);
+				null, null, null);
 		assertEquals(expectedValues, row.getValues());
 	}
 
@@ -814,41 +812,6 @@ public class TableIndexDAOImplTest {
 	}
 
 	@Test
-	public void testAddingRemovingIndexes() throws Exception {
-		ColumnModel foo = new ColumnModel();
-		foo.setColumnType(ColumnType.STRING);
-		foo.setName("foo");
-		foo.setId("111");
-		foo.setMaximumSize(1000L);
-		ColumnModel bar = new ColumnModel();
-		bar.setColumnType(ColumnType.INTEGER);
-		bar.setId("222");
-		bar.setName("bar");
-		List<ColumnModel> schema = new LinkedList<ColumnModel>();
-		schema.add(foo);
-		schema.add(bar);
-		// Create the table.
-		tableIndexDAO.createOrUpdateTable(schema, tableId);
-
-		tableIndexDAO.removeIndexes(tableId);
-
-		checkIndexes(tableId, "ROW_ID");
-
-		tableIndexDAO.addIndexes(tableId);
-		checkIndexes(tableId, "ROW_ID",
-				SQLUtils.getColumnNameForId(foo.getId()),
-				SQLUtils.getColumnNameForId(bar.getId()));
-		tableIndexDAO.addIndexes(tableId);
-		checkIndexes(tableId, "ROW_ID",
-				SQLUtils.getColumnNameForId(foo.getId()),
-				SQLUtils.getColumnNameForId(bar.getId()));
-		tableIndexDAO.removeIndexes(tableId);
-		checkIndexes(tableId, "ROW_ID");
-		tableIndexDAO.removeIndexes(tableId);
-		checkIndexes(tableId, "ROW_ID");
-	}
-
-	@Test
 	public void testTooManyColumns() throws Exception {
 		List<ColumnModel> schema = Lists.newArrayList();
 		List<String> indexes = Lists.newArrayList();
@@ -867,18 +830,9 @@ public class TableIndexDAOImplTest {
 
 		// Create the table.
 		tableIndexDAO.createOrUpdateTable(schema, tableId);
-		if (StackConfiguration.singleton().getTableAllIndexedEnabled().get()) {
+		if (StackConfiguration.singleton().getTableAllIndexedEnabled()) {
 			checkIndexes(tableId, indexes.toArray(new String[0]));
 		}
-
-		tableIndexDAO.removeIndexes(tableId);
-		checkIndexes(tableId, "ROW_ID");
-
-		tableIndexDAO.addIndexes(tableId);
-		checkIndexes(tableId, indexes.toArray(new String[0]));
-
-		tableIndexDAO.removeIndexes(tableId);
-		checkIndexes(tableId, "ROW_ID");
 	}
 
 	@Test
@@ -900,7 +854,7 @@ public class TableIndexDAOImplTest {
 
 		// Create the table.
 		tableIndexDAO.createOrUpdateTable(schema, tableId);
-		if (StackConfiguration.singleton().getTableAllIndexedEnabled().get()) {
+		if (StackConfiguration.singleton().getTableAllIndexedEnabled()) {
 			checkIndexes(tableId, indexes.toArray(new String[0]));
 		}
 
@@ -912,7 +866,7 @@ public class TableIndexDAOImplTest {
 		}
 
 		tableIndexDAO.createOrUpdateTable(schema, tableId);
-		if (StackConfiguration.singleton().getTableAllIndexedEnabled().get()) {
+		if (StackConfiguration.singleton().getTableAllIndexedEnabled()) {
 			checkIndexes(tableId, indexes.toArray(new String[0]));
 		}
 
@@ -934,7 +888,7 @@ public class TableIndexDAOImplTest {
 			}
 		}
 		tableIndexDAO.createOrUpdateTable(schema, tableId);
-		if (StackConfiguration.singleton().getTableAllIndexedEnabled().get()) {
+		if (StackConfiguration.singleton().getTableAllIndexedEnabled()) {
 			checkIndexes(tableId, indexes.toArray(new String[0]));
 		}
 	}

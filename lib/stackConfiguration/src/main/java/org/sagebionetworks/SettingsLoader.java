@@ -67,7 +67,9 @@ public class SettingsLoader {
 				while(propIt.hasNext()){
 					Element prop = (Element) propIt.next();
 					props.setProperty(prop.getName(), prop.getValue());
-					log.debug(prop.getName()+"="+prop.getValue());
+					if(log.isTraceEnabled()){
+						log.trace(prop.getName()+"="+prop.getValue());
+					}
 				}
 			}else{
 				findProperties(child, props);

@@ -89,27 +89,17 @@ public class TemplatedConfigurationImpl implements TemplatedConfiguration {
 		}
 	}
 
-	@Override
 	public String getProperty(String propertyName) {
-		return getProperty(propertyName, true);
-	}
-
-	@Override
-	public String getPropertyRepeatedly(String propertyName) {
-		return getProperty(propertyName, false);
-	}
-
-	private String getProperty(String propertyName, boolean logit) {
 		String propertyValue = null;
 		if (stackPropertyOverrides.containsKey(propertyName)) {
 			propertyValue = stackPropertyOverrides.getProperty(propertyName);
-			if (logit) {
-				log.debug(propertyName + "=" + propertyValue + " from stack property overrides " + propertyFileUrl);
+			if (log.isTraceEnabled()) {
+				log.trace(propertyName + "=" + propertyValue + " from stack property overrides " + propertyFileUrl);
 			}
 		} else {
 			propertyValue = defaultStackProperties.getProperty(propertyName);
-			if (logit) {
-				log.debug(propertyName + "=" + propertyValue + " from default stack properties " + defaultPropertiesFilename);
+			if (log.isTraceEnabled()) {
+				log.trace(propertyName + "=" + propertyValue + " from default stack properties " + defaultPropertiesFilename);
 			}
 		}
 		// NullPointerExceptions further downstream are not very helpful, throw

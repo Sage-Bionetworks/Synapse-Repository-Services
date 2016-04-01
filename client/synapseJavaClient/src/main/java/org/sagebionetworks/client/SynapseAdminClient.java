@@ -244,24 +244,6 @@ public interface SynapseAdminClient extends SynapseClient {
 	public void rebuildTableCacheAndIndex(String tableId) throws SynapseException, JSONObjectAdapterException;
 
 	/**
-	 * add indices to all table columns
-	 * 
-	 * @param tableId
-	 * @throws SynapseException
-	 * @throws JSONObjectAdapterException
-	 */
-	public void addTableColumnIndexes(String tableId) throws SynapseException, JSONObjectAdapterException;
-
-	/**
-	 * remove indices from all table columns
-	 * 
-	 * @param tableId
-	 * @throws SynapseException
-	 * @throws JSONObjectAdapterException
-	 */
-	public void removeTableColumnIndexes(String tableId) throws SynapseException, JSONObjectAdapterException;
-
-	/**
 	 * Clear all semaphore locks.
 	 * 
 	 * @throws SynapseException

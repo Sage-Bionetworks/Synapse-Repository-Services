@@ -16,7 +16,6 @@ import java.util.Random;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.sagebionetworks.ImmutablePropertyAccessor;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.cloudwatch.ProfileData;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
@@ -26,7 +25,6 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
-import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.util.TestClock;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -64,8 +62,8 @@ public class ChangeSentMessageSynchWorkerUnitTest {
 		ReflectionTestUtils.setField(worker, "workerLogger", mockLogger);
 		ReflectionTestUtils.setField(worker, "random", mockRandom);
 		when(mockStatusDao.isStackReadWrite()).thenReturn(true);
-		when(mockConfiguration.getChangeSynchWorkerMinPageSize()).thenReturn(new ImmutablePropertyAccessor(pageSize));
-		when(mockConfiguration.getChangeSynchWorkerSleepTimeMS()).thenReturn(new ImmutablePropertyAccessor(1000L));
+		when(mockConfiguration.getChangeSynchWorkerMinPageSize()).thenReturn(pageSize);
+		when(mockConfiguration.getChangeSynchWorkerSleepTimeMS()).thenReturn(1000L);
 		when(mockRandom.nextInt(anyInt())).thenReturn(1);
 		
 		one = new ChangeMessage();
