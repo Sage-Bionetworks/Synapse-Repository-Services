@@ -62,6 +62,7 @@ import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
 import org.sagebionetworks.repo.model.discussion.Forum;
 import org.sagebionetworks.repo.model.discussion.MessageURL;
+import org.sagebionetworks.repo.model.discussion.ThreadCount;
 import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
@@ -2202,5 +2203,16 @@ public class ServletTestHelper {
 				HTTPMODE.GET, "/repo/v1", UrlHelpers.OBJECT+"/"+objectId+"/"+objectType.name()+UrlHelpers.ETAG, userId, null);
 		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
 		return objectMapper.readValue(response.getContentAsString(), Etag.class);
+	}
+
+	public ThreadCount getThreadCount(DispatcherServlet dispatchServlet, Long userId, String forumId,
+			DiscussionFilter filter) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, "/repo/v1", UrlHelpers.FORUM+"/"+forumId+UrlHelpers.THREAD_COUNT, userId, null);
+		request.addParameter("filter", filter.name());
+		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
+				HttpStatus.OK);
+		return objectMapper.readValue(response.getContentAsString(), ThreadCount.class);
+
 	}
 }

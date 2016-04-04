@@ -107,9 +107,12 @@ public class DiscussionControllerAutowiredTest extends AbstractAutowiredControll
 		PaginatedResults<DiscussionThreadBundle> deleted = servletTestHelper.getThreads(dispatchServlet, adminUserId, forum.getId(), 10L, 0L, DiscussionThreadOrder.LAST_ACTIVITY, true, DiscussionFilter.DELETED_ONLY);
 		assertEquals(1L, deleted.getTotalNumberOfResults());
 		assertEquals(bundle1.getId(), deleted.getResults().get(0).getId());
+		assertEquals((Long)1L, servletTestHelper.getThreadCount(dispatchServlet, adminUserId, forum.getId(), DiscussionFilter.DELETED_ONLY).getCount());
 		PaginatedResults<DiscussionThreadBundle> available = servletTestHelper.getThreads(dispatchServlet, adminUserId, forum.getId(), 10L, 0L, DiscussionThreadOrder.LAST_ACTIVITY, true, DiscussionFilter.EXCLUDE_DELETED);
 		assertEquals(1L, available.getTotalNumberOfResults());
 		assertEquals(bundle2.getId(), available.getResults().get(0).getId());
+		assertEquals((Long)1L, servletTestHelper.getThreadCount(dispatchServlet, adminUserId, forum.getId(), DiscussionFilter.EXCLUDE_DELETED).getCount());
+		assertEquals((Long)2L, servletTestHelper.getThreadCount(dispatchServlet, adminUserId, forum.getId(), DiscussionFilter.NO_FILTER).getCount());
 	}
 
 	@Test
