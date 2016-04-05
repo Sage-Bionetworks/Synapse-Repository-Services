@@ -113,6 +113,18 @@ public class DiscussionControllerAutowiredTest extends AbstractAutowiredControll
 	}
 
 	@Test
+	public void testGetThreadCount() throws Exception {
+		Forum forum = servletTestHelper.getForumByProjectId(dispatchServlet, project.getId(), adminUserId);
+		createThread.setForumId(forum.getId());
+		DiscussionThreadBundle bundle1 = servletTestHelper.createThread(dispatchServlet, adminUserId, createThread);
+		DiscussionThreadBundle bundle2 = servletTestHelper.createThread(dispatchServlet, adminUserId, createThread);
+		servletTestHelper.markThreadAsDeleted(dispatchServlet, adminUserId, bundle1.getId());
+		assertEquals((Long)1L, servletTestHelper.getThreadCount(dispatchServlet, adminUserId, forum.getId(), DiscussionFilter.DELETED_ONLY).getCount());
+		assertEquals((Long)1L, servletTestHelper.getThreadCount(dispatchServlet, adminUserId, forum.getId(), DiscussionFilter.EXCLUDE_DELETED).getCount());
+		assertEquals((Long)2L, servletTestHelper.getThreadCount(dispatchServlet, adminUserId, forum.getId(), DiscussionFilter.NO_FILTER).getCount());
+	}
+
+	@Test
 	public void testUpdateThreadTitle() throws Exception {
 		Forum dto = servletTestHelper.getForumByProjectId(dispatchServlet, project.getId(), adminUserId);
 		createThread.setForumId(dto.getId());
@@ -196,7 +208,7 @@ public class DiscussionControllerAutowiredTest extends AbstractAutowiredControll
 	}
 
 	@Test
-	public void testGetAvailableThreadsAndDeletedReplies() throws Exception {
+	public void testGetAvailableRepliesAndDeletedReplies() throws Exception {
 		Forum forum = servletTestHelper.getForumByProjectId(dispatchServlet, project.getId(), adminUserId);
 		createThread.setForumId(forum.getId());
 		DiscussionThreadBundle threadBundle = servletTestHelper.createThread(dispatchServlet, adminUserId, createThread);
@@ -210,6 +222,20 @@ public class DiscussionControllerAutowiredTest extends AbstractAutowiredControll
 		PaginatedResults<DiscussionReplyBundle> available = servletTestHelper.getReplies(dispatchServlet, adminUserId, threadBundle.getId(), 10L, 0L, DiscussionReplyOrder.CREATED_ON, true, DiscussionFilter.EXCLUDE_DELETED);
 		assertEquals(1L, available.getTotalNumberOfResults());
 		assertEquals(replyBundle2.getId(), available.getResults().get(0).getId());
+	}
+
+	@Test
+	public void testGetReplyCount() throws Exception {
+		Forum forum = servletTestHelper.getForumByProjectId(dispatchServlet, project.getId(), adminUserId);
+		createThread.setForumId(forum.getId());
+		DiscussionThreadBundle threadBundle = servletTestHelper.createThread(dispatchServlet, adminUserId, createThread);
+		createReply.setThreadId(threadBundle.getId());
+		DiscussionReplyBundle replyBundle1 = servletTestHelper.createReply(dispatchServlet, adminUserId, createReply);
+		DiscussionReplyBundle replyBundle2 = servletTestHelper.createReply(dispatchServlet, adminUserId, createReply);
+		servletTestHelper.markReplyAsDeleted(dispatchServlet, adminUserId, replyBundle1.getId());
+		assertEquals((Long)1L, servletTestHelper.getReplyCount(dispatchServlet, adminUserId, threadBundle.getId(), DiscussionFilter.DELETED_ONLY).getCount());
+		assertEquals((Long)1L, servletTestHelper.getReplyCount(dispatchServlet, adminUserId, threadBundle.getId(), DiscussionFilter.EXCLUDE_DELETED).getCount());
+		assertEquals((Long)2L, servletTestHelper.getReplyCount(dispatchServlet, adminUserId, threadBundle.getId(), DiscussionFilter.NO_FILTER).getCount());
 	}
 
 	@Test

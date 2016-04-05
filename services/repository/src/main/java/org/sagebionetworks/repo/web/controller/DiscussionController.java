@@ -15,6 +15,8 @@ import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.Forum;
 import org.sagebionetworks.repo.model.discussion.MessageURL;
+import org.sagebionetworks.repo.model.discussion.ReplyCount;
+import org.sagebionetworks.repo.model.discussion.ThreadCount;
 import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
@@ -346,5 +348,43 @@ public class DiscussionController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(required = true) String messageKey) {
 		return serviceProvider.getDiscussionService().getReplyUrl(userId, messageKey);
+	}
+
+	/**
+	 * This API is used to get the total number of threads for a given forum ID.
+	 * <br/>
+	 * Target users: anyone who has READ permission to the project.
+	 * 
+	 * @param userId - The ID of the user who is making the request
+	 * @param filter - Filter deleted/ not deleted threads
+	 * @param forumId - The forum ID to which the returning threads belong
+	 * @return
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.FORUM_FORUM_ID_THREAD_COUNT, method = RequestMethod.GET)
+	public @ResponseBody ThreadCount getThreadCountForForum(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam(value = ServiceConstants.DISCUSSION_FILTER_PARAM) DiscussionFilter filter,
+			@PathVariable String forumId) {
+		return serviceProvider.getDiscussionService().getThreadCount(userId, forumId, filter);
+	}
+
+	/**
+	 * This API is used to get the total number of replies for a given thread ID.
+	 * <br/>
+	 * Target users: anyone who has READ permission to the project.
+	 * 
+	 * @param userId - The ID of the user who is making the request
+	 * @param filter - Filter deleted/ not deleted threads
+	 * @param threadId - The thread ID to which the returning replies belong
+	 * @return
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.THREAD_THREAD_ID_REPLY_COUNT, method = RequestMethod.GET)
+	public @ResponseBody ReplyCount getReplyCountForThread(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam(value = ServiceConstants.DISCUSSION_FILTER_PARAM) DiscussionFilter filter,
+			@PathVariable String threadId) {
+		return serviceProvider.getDiscussionService().getReplyCount(userId, threadId, filter);
 	}
 }

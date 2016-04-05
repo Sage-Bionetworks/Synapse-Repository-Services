@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.MessageURL;
+import org.sagebionetworks.repo.model.discussion.ReplyCount;
 import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
@@ -136,6 +137,17 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canAccess(userInfo, reply.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
 		return uploadDao.getReplyUrl(reply.getMessageKey());
+	}
+
+	@Override
+	public ReplyCount getReplyCountForThread(UserInfo userInfo, String threadId, DiscussionFilter filter) {
+		ValidateArgument.required(threadId, "threadId");
+		ValidateArgument.required(filter, "filter");
+		UserInfo.validateUserInfo(userInfo);
+		threadManager.getThread(userInfo, threadId);
+		ReplyCount count = new ReplyCount();
+		count.setCount(replyDao.getReplyCount(Long.parseLong(threadId), filter));
+		return count;
 	}
 
 }

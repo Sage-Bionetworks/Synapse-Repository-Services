@@ -25,6 +25,7 @@ import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.MessageURL;
+import org.sagebionetworks.repo.model.discussion.ThreadCount;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
 import org.sagebionetworks.repo.model.message.ChangeType;
@@ -205,5 +206,18 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		threadDao.touch(threadId);
 		Long forumId = Long.parseLong(threadDao.getThread(threadId, DEFAULT_FILTER).getForumId());
 		forumDao.touch(forumId);
+	}
+
+	@Override
+	public ThreadCount getThreadCountForForum(UserInfo userInfo, String forumId, DiscussionFilter filter) {
+		ValidateArgument.required(forumId, "forumId");
+		ValidateArgument.required(filter, "filter");
+		UserInfo.validateUserInfo(userInfo);
+		String projectId = forumDao.getForum(Long.parseLong(forumId)).getProjectId();
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+				authorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ));
+		ThreadCount count = new ThreadCount();
+		count.setCount(threadDao.getThreadCount(Long.parseLong(forumId), filter));
+		return count;
 	}
 }

@@ -12,6 +12,8 @@ import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.Forum;
 import org.sagebionetworks.repo.model.discussion.MessageURL;
+import org.sagebionetworks.repo.model.discussion.ReplyCount;
+import org.sagebionetworks.repo.model.discussion.ThreadCount;
 import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
@@ -172,4 +174,24 @@ public interface DiscussionService {
 	 * @return
 	 */
 	public MessageURL getReplyUrl(Long userId, String messageKey);
+
+	/**
+	 * Get the total number of threads for a given fourmId
+	 * 
+	 * @param userId
+	 * @param forumId
+	 * @param filter
+	 * @return
+	 */
+	public ThreadCount getThreadCount(Long userId, String forumId, DiscussionFilter filter);
+
+	/**
+	 * Get the total number of replies for a given threadId
+	 * 
+	 * @param userId
+	 * @param threadId
+	 * @param filter
+	 * @return
+	 */
+	public ReplyCount getReplyCount(Long userId, String threadId, DiscussionFilter filter);
 }
