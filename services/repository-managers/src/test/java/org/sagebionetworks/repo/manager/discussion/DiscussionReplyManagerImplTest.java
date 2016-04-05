@@ -159,7 +159,6 @@ public class DiscussionReplyManagerImplTest {
 		assertEquals(bundle, reply);
 		Mockito.verify(mockSubscriptionDao).create(userInfo.getId().toString(), reply.getThreadId(), SubscriptionObjectType.THREAD);
 		Mockito.verify(mockTransactionalMessenger).sendMessageAfterCommit(replyId.toString(), ObjectType.REPLY, bundle.getEtag(), ChangeType.CREATE);
-		Mockito.verify(mockThreadManager).touch(Long.parseLong(threadId));
 	}
 
 	@Test (expected = UnauthorizedException.class)
@@ -212,7 +211,6 @@ public class DiscussionReplyManagerImplTest {
 		replyManager.updateReplyMessage(userInfo, replyId.toString(), newMessage);
 		Mockito.verify(mockReplyDao).updateMessageKey(replyId, messageKey);
 		Mockito.verify(mockTransactionalMessenger).sendMessageAfterCommit(replyId.toString(), ObjectType.REPLY, bundle.getEtag(), ChangeType.UPDATE);
-		Mockito.verify(mockThreadManager).touch(Long.parseLong(threadId));
 	}
 
 	@Test (expected = UnauthorizedException.class)
@@ -230,7 +228,6 @@ public class DiscussionReplyManagerImplTest {
 		replyManager.markReplyAsDeleted(userInfo, replyId.toString());
 		Mockito.verify(mockReplyDao).markReplyAsDeleted(replyId);
 		Mockito.verify(mockTransactionalMessenger).sendMessageAfterCommit(replyId.toString(), ObjectType.REPLY, ChangeType.DELETE);
-		Mockito.verify(mockThreadManager).touch(Long.parseLong(threadId));
 	}
 
 	@Test (expected = IllegalArgumentException.class)
