@@ -83,6 +83,7 @@ import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.Forum;
+import org.sagebionetworks.repo.model.discussion.ReplyCount;
 import org.sagebionetworks.repo.model.discussion.ThreadCount;
 import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
@@ -2473,6 +2474,16 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	PaginatedResults<DiscussionReplyBundle> getRepliesForThread(String threadId, Long limit, Long offset, DiscussionReplyOrder order, Boolean ascending, DiscussionFilter filter) throws SynapseException;
+
+	/**
+	 * Get total number of replies for a given threadID
+	 * 
+	 * @param threadId
+	 * @param filter
+	 * @return
+	 * @throws SynapseException
+	 */
+	ReplyCount getReplyCountForThread(String threadId, DiscussionFilter filter) throws SynapseException;
 
 	/**
 	 * Update the message of an existing reply

@@ -17,6 +17,7 @@ import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.Forum;
 import org.sagebionetworks.repo.model.discussion.MessageURL;
+import org.sagebionetworks.repo.model.discussion.ReplyCount;
 import org.sagebionetworks.repo.model.discussion.ThreadCount;
 import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
@@ -134,5 +135,11 @@ public class DiscussionServiceImpl implements DiscussionService{
 	public ThreadCount getThreadCount(Long userId, String forumId, DiscussionFilter filter) {
 		UserInfo user = userManager.getUserInfo(userId);
 		return threadManager.getThreadCountForForum(user, forumId, filter);
+	}
+
+	@Override
+	public ReplyCount getReplyCount(Long userId, String threadId, DiscussionFilter filter) {
+		UserInfo user = userManager.getUserInfo(userId);
+		return replyManager.getReplyCountForThread(user, threadId, filter);
 	}
 }
