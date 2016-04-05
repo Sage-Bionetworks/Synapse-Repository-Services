@@ -31,6 +31,7 @@ import org.sagebionetworks.utils.HttpClientHelperException;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.cloudsearch.AmazonCloudSearchClient;
+import com.amazonaws.services.cloudsearch.model.DomainStatus;
 
 /**
  * Implementation of the Search DAO.
@@ -296,7 +297,16 @@ public class SearchDaoImpl implements SearchDao {
 	private CloudSearchClient validateSearchAvailable() throws ServiceUnavailableException {
 		validateSearchEnabled();
 		if ((cloudHttpClient.getSearchServiceEndpoint() == null) || (cloudHttpClient.getDocumentServiceEndpoint() == null)) {
-			throw new ServiceUnavailableException("Search service not initialized...");
+			DomainStatus status = searchDomainSetup.getDomainStatus();
+			if (status == null) {
+				throw new ServiceUnavailableException("Search service not initialized...");
+			} else { 
+				cloudHttpClient.setSearchServiceEndpoint(searchDomainSetup.getSearchEndpoint());
+				cloudHttpClient.setDocumentServiceEndpoint(searchDomainSetup.getDocumentEndpoint());
+				if (status.isProcessing()) {
+					throw new ServiceUnavailableException("Search service processing...");
+				}
+			}
 		}
 		return cloudHttpClient;
 	}
