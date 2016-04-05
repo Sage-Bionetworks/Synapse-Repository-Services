@@ -878,6 +878,8 @@ public class UrlHelpers {
 	public static final String FORUM_FORUM_ID = FORUM+FORUM_ID;
 	public static final String THREADS = "/threads";
 	public static final String FORUM_FORUM_ID_THREADS = FORUM+FORUM_ID+THREADS;
+	public static final String THREAD_COUNT = "/threadcount";
+	public static final String FORUM_FORUM_ID_THREAD_COUNT = FORUM+FORUM_ID+THREAD_COUNT;
 	public static final String THREAD = "/thread";
 	public static final String THREAD_ID = "/{threadId}";
 	public static final String THREAD_THREAD_ID = THREAD+THREAD_ID;

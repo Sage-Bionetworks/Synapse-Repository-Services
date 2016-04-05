@@ -77,6 +77,7 @@ public class ITDiscussion {
 		PaginatedResults<DiscussionThreadBundle> threads = synapse.getThreadsForForum(forumId, 100L, 0L, null, null, DiscussionFilter.NO_FILTER);
 		assertTrue(threads.getResults().isEmpty());
 		assertEquals(0L, threads.getTotalNumberOfResults());
+		assertEquals((Long)0L, synapse.getThreadCountForForum(forumId, DiscussionFilter.NO_FILTER).getCount());
 
 		// create a thread
 		CreateDiscussionThread toCreate = new CreateDiscussionThread();
@@ -97,7 +98,8 @@ public class ITDiscussion {
 		assertTrue(threads.getResults().size() == 1);
 		assertEquals(threads.getResults().get(0), bundle);
 		assertEquals(1L, threads.getTotalNumberOfResults());
-	
+		assertEquals((Long)1L, synapse.getThreadCountForForum(forumId, DiscussionFilter.NO_FILTER).getCount());
+
 		assertNotNull(synapse.getThreadUrl(bundle.getMessageKey()));
 
 		// update title
@@ -169,6 +171,7 @@ public class ITDiscussion {
 
 		availableThreads = synapse.getThreadsForForum(forumId, 100L, 0L, null, null, DiscussionFilter.EXCLUDE_DELETED);
 		assertEquals(0, availableThreads.getTotalNumberOfResults());
+		assertEquals((Long)1L, synapse.getThreadCountForForum(forumId, DiscussionFilter.NO_FILTER).getCount());
 
 		try {
 			synapse.getThread(threadId);

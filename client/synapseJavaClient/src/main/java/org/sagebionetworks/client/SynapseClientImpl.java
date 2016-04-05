@@ -122,6 +122,7 @@ import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
 import org.sagebionetworks.repo.model.discussion.Forum;
 import org.sagebionetworks.repo.model.discussion.MessageURL;
+import org.sagebionetworks.repo.model.discussion.ThreadCount;
 import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
@@ -494,6 +495,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String FORUM = "/forum";
 	private static final String THREAD = "/thread";
 	private static final String THREADS = "/threads";
+	private static final String THREAD_COUNT = "/threadcount";
 	private static final String THREAD_TITLE = "/title";
 	private static final String DISCUSSION_MESSAGE = "/message";
 	private static final String REPLY = "/reply";
@@ -7617,6 +7619,19 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		ValidateArgument.required(alias, "alias");
 		try {
 			return getJSONEntity(ENTITY+"/alias/"+alias, EntityId.class);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
+	}
+
+	@Override
+	public ThreadCount getThreadCountForForum(String forumId, DiscussionFilter filter) throws SynapseException {
+		ValidateArgument.required(forumId, "forumId");
+		ValidateArgument.required(filter, "filter");
+		String url = FORUM+"/"+forumId+THREAD_COUNT;
+		url += "?filter="+filter;
+		try {
+			return getJSONEntity(url, ThreadCount.class);
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseClientException(e);
 		}

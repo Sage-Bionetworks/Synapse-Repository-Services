@@ -9,6 +9,7 @@ import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.MessageURL;
+import org.sagebionetworks.repo.model.discussion.ThreadCount;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
 
@@ -74,7 +75,18 @@ public interface DiscussionThreadManager {
 	 * @param filter 
 	 * @return
 	 */
-	public PaginatedResults<DiscussionThreadBundle> getThreadsForForum(UserInfo userInfo, String forumId, Long limit, Long offset, DiscussionThreadOrder order, Boolean ascending, DiscussionFilter filter );
+	public PaginatedResults<DiscussionThreadBundle> getThreadsForForum(UserInfo userInfo, String forumId, Long limit, Long offset, DiscussionThreadOrder order, Boolean ascending, DiscussionFilter filter);
+
+	/**
+	 * Get number of threads a forum has
+	 * 
+	 * @param userInfo
+	 * @param forumId
+	 * @param filter 
+	 * @return
+	 */
+	public ThreadCount getThreadCountForForum(UserInfo userInfo, String forumId, DiscussionFilter filter);
+
 
 	/**
 	 * Get message Url for a thread
