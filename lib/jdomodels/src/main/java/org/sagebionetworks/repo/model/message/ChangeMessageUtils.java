@@ -91,6 +91,7 @@ public class ChangeMessageUtils {
 		dto.setTimestamp(dbo.getTimeStamp());
 		dto.setObjectEtag(dbo.getObjectEtag());
 		dto.setObjectType(dbo.getObjectType());
+		dto.setUserId(dbo.getUserId());
 		if(ObjectType.ENTITY == dbo.getObjectType()){
 			// Entities get an 'syn' prefix
 			dto.setObjectId(KeyFactory.keyToString(dbo.getObjectId()));
