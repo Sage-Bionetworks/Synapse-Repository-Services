@@ -16,7 +16,6 @@ import java.util.UUID;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.reflection.model.PaginatedResults;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.discussion.DiscussionThreadDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.discussion.DBODiscussionThread;
@@ -28,8 +27,6 @@ import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadReplyStat;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadViewStat;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
@@ -46,8 +43,6 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 	private DBOBasicDao basicDao;
 	@Autowired
 	private IdGenerator idGenerator;
-	@Autowired
-	private TransactionalMessenger transactionalMessenger;
 
 	public static final Charset UTF8 = Charset.forName("UTF-8");
 	private RowMapper<DiscussionThreadBundle> DISCUSSION_THREAD_BUNDLE_ROW_MAPPER = new RowMapper<DiscussionThreadBundle>(){
@@ -209,10 +204,6 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 			+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_REPLIES+" = ?, "
 			+COL_DISCUSSION_THREAD_STATS_LAST_ACTIVITY+" = ? ";
 	public static final DiscussionFilter DEFAULT_FILTER = DiscussionFilter.NO_FILTER;
-
-	private static final String SQL_UPDATE_ETAG = "UPDATE "+TABLE_DISCUSSION_THREAD
-			+" SET "+COL_DISCUSSION_THREAD_ETAG+" = ? "
-			+" WHERE "+COL_DISCUSSION_THREAD_ID+" = ?";
 
 	@WriteTransactionReadCommitted
 	@Override
@@ -463,13 +454,5 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 	public List<String> getAllThreadIdForForum(String forumId) {
 		ValidateArgument.required(forumId, "forumId");
 		return jdbcTemplate.queryForList(SQL_SELECT_ALL_THREAD_ID_FOR_FORUM, new Object[]{forumId}, String.class);
-	}
-
-	@WriteTransactionReadCommitted
-	@Override
-	public void touch(long id) {
-		String etag = UUID.randomUUID().toString();
-		jdbcTemplate.update(SQL_UPDATE_ETAG, etag, id);
-		transactionalMessenger.sendMessageAfterCommit(""+id, ObjectType.THREAD, etag, ChangeType.UPDATE);
 	}
 }

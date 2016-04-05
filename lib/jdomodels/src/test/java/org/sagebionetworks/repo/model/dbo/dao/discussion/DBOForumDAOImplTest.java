@@ -1,8 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.dao.discussion;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.Random;
@@ -14,11 +12,9 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dao.discussion.ForumDAO;
-import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.discussion.Forum;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
@@ -34,8 +30,6 @@ public class DBOForumDAOImplTest {
 	private ForumDAO forumDao;
 	@Autowired
 	private UserGroupDAO userGroupDAO;
-	@Autowired
-	private DBOChangeDAO changeDao;
 	@Autowired
 	private NodeDAO nodeDao;
 
@@ -112,18 +106,5 @@ public class DBOForumDAOImplTest {
 	@Test (expected = IllegalArgumentException.class)
 	public void createGetNullProjectId() {
 		forumDao.getForumByProjectId(null);
-	}
-
-	@Test
-	public void testTouch() {
-		long start = changeDao.getCurrentChangeNumber();
-		Forum dto = forumDao.createForum(KeyFactory.stringToKey(projectId).toString());
-		Long id = Long.parseLong(dto.getId());
-		forumDao.touch(id);
-		Forum dto2 = forumDao.getForum(id);
-		assertEquals(dto.getProjectId(), dto2.getProjectId());
-		assertFalse(dto.equals(dto2));
-		assertTrue(changeDao.getCurrentChangeNumber() > start);
-		assertEquals(dto2.getEtag(), changeDao.getEtag(id, ObjectType.FORUM));
 	}
 }
