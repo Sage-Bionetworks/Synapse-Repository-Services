@@ -913,7 +913,7 @@ public class TableRowManagerImplTest {
 		selectStarResult.setQueryResults(selectStar);
 
 		runQueryBundleTest("select * from " + tableId, selectStar, 10L, TableModelUtils.createColumnModelColumnMapper(models, false)
-				.getSelectColumns().toString(), 24154L);
+				.getSelectColumns().toString(), 2929L);
 	}
 
 	@Test
@@ -929,7 +929,7 @@ public class TableRowManagerImplTest {
 
 		runQueryBundleTest("select " + StringUtils.join(Lists.transform(models, TableModelTestUtils.convertToNameFunction), ",") + " from "
 				+ tableId, selectStar, 10L, TableModelUtils.createColumnModelColumnMapper(models, false).getSelectColumns().toString(),
-				24154L);
+				2929L);
 	}
 
 	@Test

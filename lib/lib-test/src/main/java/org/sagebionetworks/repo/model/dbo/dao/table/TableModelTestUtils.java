@@ -147,9 +147,8 @@ public class TableModelTestUtils {
 					defaultValue = "1.3";
 					break;
 				case FILEHANDLEID:
-					defaultValue = null;
-					break;
 				case ENTITYID:
+				case LARGETEXT:
 					defaultValue = null;
 					break;
 				case INTEGER:
