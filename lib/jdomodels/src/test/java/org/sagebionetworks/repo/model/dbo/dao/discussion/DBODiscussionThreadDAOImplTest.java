@@ -22,12 +22,10 @@ import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dao.discussion.DiscussionThreadDAO;
 import org.sagebionetworks.repo.model.dao.discussion.ForumDAO;
-import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadAuthorStat;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
@@ -52,8 +50,6 @@ public class DBODiscussionThreadDAOImplTest {
 	private NodeDAO nodeDao;
 	@Autowired
 	private DiscussionThreadDAO threadDao;
-	@Autowired
-	private DBOChangeDAO changeDao;
 	@Autowired
 	private IdGenerator idGenerator;
 
@@ -564,19 +560,5 @@ public class DBODiscussionThreadDAOImplTest {
 		List<String> ids = threadDao.getAllThreadIdForForum(forumId);
 		assertEquals(1L, ids.size());
 		assertEquals(threadId.toString(), ids.get(0));
-	}
-
-	@Test
-	public void testTouch() {
-		long start = changeDao.getCurrentChangeNumber();
-		DiscussionThreadBundle dto = threadDao.createThread(forumId, threadId.toString(), "title", "messageKey", userId);
-		Long id = Long.parseLong(dto.getId());
-		threadDao.touch(id);
-		DiscussionThreadBundle dto2 = threadDao.getThread(id, DEFAULT_FILTER);
-		assertFalse(dto.equals(dto2));
-		dto.setEtag(dto2.getEtag());
-		assertEquals(dto, dto2);
-		assertTrue(changeDao.getCurrentChangeNumber() > start);
-		assertEquals(dto2.getEtag(), changeDao.getEtag(id, ObjectType.THREAD));
 	}
 }
