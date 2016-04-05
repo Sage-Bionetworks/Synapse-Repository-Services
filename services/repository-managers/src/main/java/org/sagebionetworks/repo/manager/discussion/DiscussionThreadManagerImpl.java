@@ -219,6 +219,5 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		ThreadCount count = new ThreadCount();
 		count.setCount(threadDao.getThreadCount(Long.parseLong(forumId), filter));
 		return count;
-
 	}
 }

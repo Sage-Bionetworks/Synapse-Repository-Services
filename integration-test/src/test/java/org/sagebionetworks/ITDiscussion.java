@@ -135,6 +135,7 @@ public class ITDiscussion {
 		assertTrue(replies.getResults().size() == 1);
 		assertEquals(replies.getResults().get(0), replyBundle);
 		assertEquals(1L, replies.getTotalNumberOfResults());
+		assertEquals((Long)1L, synapse.getReplyCountForThread(threadId, DiscussionFilter.NO_FILTER).getCount());
 
 		assertNotNull(synapse.getReplyUrl(replyBundle.getMessageKey()));
 
@@ -157,10 +158,12 @@ public class ITDiscussion {
 
 		availableReplies = synapse.getRepliesForThread(threadId, 100L, 0L, null, null, DiscussionFilter.EXCLUDE_DELETED);
 		assertEquals(0, availableReplies.getTotalNumberOfResults());
+		assertEquals((Long)0L, synapse.getReplyCountForThread(threadId, DiscussionFilter.EXCLUDE_DELETED).getCount());
 
 		PaginatedResults<DiscussionThreadBundle> availableThreads = synapse.getThreadsForForum(forumId, 100L, 0L, null, null, DiscussionFilter.EXCLUDE_DELETED);
 		assertEquals(1, availableThreads.getTotalNumberOfResults());
 		assertEquals(availableThreads.getResults().get(0).getId(), threadId);
+		assertEquals((Long)1L, synapse.getReplyCountForThread(threadId, DiscussionFilter.NO_FILTER).getCount());
 
 		// delete thread
 		synapse.markThreadAsDeleted(threadId);

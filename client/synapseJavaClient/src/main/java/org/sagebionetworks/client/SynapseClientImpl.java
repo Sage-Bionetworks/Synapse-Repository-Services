@@ -122,6 +122,7 @@ import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
 import org.sagebionetworks.repo.model.discussion.Forum;
 import org.sagebionetworks.repo.model.discussion.MessageURL;
+import org.sagebionetworks.repo.model.discussion.ReplyCount;
 import org.sagebionetworks.repo.model.discussion.ThreadCount;
 import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
@@ -500,6 +501,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String DISCUSSION_MESSAGE = "/message";
 	private static final String REPLY = "/reply";
 	private static final String REPLIES = "/replies";
+	private static final String REPLY_COUNT = "/replycount";
 	private static final String URL = "/messageUrl";
 
 	private static final String SUBSCRIPTION = "/subscription";
@@ -7632,6 +7634,19 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		url += "?filter="+filter;
 		try {
 			return getJSONEntity(url, ThreadCount.class);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
+	}
+
+	@Override
+	public ReplyCount getReplyCountForThread(String threadId, DiscussionFilter filter) throws SynapseException {
+		ValidateArgument.required(threadId, "threadId");
+		ValidateArgument.required(filter, "filter");
+		String url = THREAD+"/"+threadId+REPLY_COUNT;
+		url += "?filter="+filter;
+		try {
+			return getJSONEntity(url, ReplyCount.class);
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseClientException(e);
 		}

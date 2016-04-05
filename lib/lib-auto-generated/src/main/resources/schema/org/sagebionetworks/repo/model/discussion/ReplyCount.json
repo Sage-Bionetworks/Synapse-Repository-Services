@@ -1,0 +1,8 @@
+{
+	"properties": {
+		"count": {
+			"type": "integer",
+			"description": "The total number of replies."
+		}
+	}
+}

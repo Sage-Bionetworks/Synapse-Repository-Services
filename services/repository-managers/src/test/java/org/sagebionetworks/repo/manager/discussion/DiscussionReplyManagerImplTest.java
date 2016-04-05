@@ -234,14 +234,17 @@ public class DiscussionReplyManagerImplTest {
 	}
 
 	@Test (expected = IllegalArgumentException.class)
+	public void testGetRepliesForThreadWithNullUserInfo() {
+		replyManager.getRepliesForThread(null, threadId, 2L, 0L, DiscussionReplyOrder.CREATED_ON, false, DiscussionFilter.NO_FILTER);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
 	public void testGetRepliesForThreadWithNullThreadId() {
 		replyManager.getRepliesForThread(userInfo, null, 2L, 0L, DiscussionReplyOrder.CREATED_ON, false, DiscussionFilter.NO_FILTER);
 	}
 
 	@Test (expected = UnauthorizedException.class)
 	public void testGetRepliesForThreadUnauthorized() {
-		PaginatedResults<DiscussionReplyBundle> replies = new PaginatedResults<DiscussionReplyBundle>();
-		replies.setResults(Arrays.asList(bundle));
 		Mockito.when(mockThreadManager.getThread(userInfo, threadId))
 				.thenThrow(new UnauthorizedException());
 		replyManager.getRepliesForThread(userInfo, threadId, 2L, 0L, DiscussionReplyOrder.CREATED_ON, true, DiscussionFilter.NO_FILTER);
@@ -273,5 +276,31 @@ public class DiscussionReplyManagerImplTest {
 		MessageURL url = replyManager.getMessageUrl(userInfo, messageKey);
 		assertNotNull(url);
 		assertNotNull(url.getMessageUrl());
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetReplyCountForThreadWithNullUserInfo() {
+		replyManager.getReplyCountForThread(null, threadId, DiscussionFilter.NO_FILTER);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetReplyCountForThreadWithNullThreadId() {
+		replyManager.getReplyCountForThread(userInfo, null, DiscussionFilter.NO_FILTER);
+	}
+
+	@Test (expected = UnauthorizedException.class)
+	public void testGetReplyCountForThreadUnauthorized() {
+		Mockito.when(mockThreadManager.getThread(userInfo, threadId))
+				.thenThrow(new UnauthorizedException());
+		replyManager.getReplyCountForThread(userInfo, threadId, DiscussionFilter.NO_FILTER);
+	}
+
+	@Test
+	public void testGetReplyCountForThread() {
+		Long count = 3L;
+		Mockito.when(mockReplyDao.getReplyCount(Mockito.anyLong(), Mockito.any(DiscussionFilter.class))).thenReturn(count);
+		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
+				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		assertEquals((Long)3L, replyManager.getReplyCountForThread(userInfo, threadId, DiscussionFilter.NO_FILTER).getCount());
 	}
 }
