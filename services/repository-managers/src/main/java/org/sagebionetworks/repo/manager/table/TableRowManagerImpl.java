@@ -355,15 +355,15 @@ public class TableRowManagerImpl implements TableRowManager {
 		columnModelDAO.lockOnOwner(tableId);
 		
 		List<Long> ids = Transform.toList(columnMapper.getColumnModels(), TableModelUtils.COLUMN_MODEL_TO_ID);
-		// Calculate the size per row
-		int maxBytesPerRow = TableModelUtils.calculateMaxRowSize(columnMapper.getColumnModels());
 		List<Row> batch = new LinkedList<Row>();
 		int batchSizeBytes = 0;
 		int count = 0;
 		RawRowSet delta = new RawRowSet(ids, etag, tableId, batch);
 		while(rowStream.hasNext()){
-			batch.add(rowStream.next());
-			batchSizeBytes += maxBytesPerRow;
+			Row row = rowStream.next();
+			batch.add(row);
+			// batch using the actual size of the row.
+			batchSizeBytes += TableModelUtils.calculateActualRowSize(row);
 			if(batchSizeBytes >= maxBytesPerChangeSet){
 				// Validate there aren't any illegal file handle replaces
 				validateFileHandles(user, tableId, columnMapper, delta.getRows());
@@ -373,7 +373,9 @@ public class TableRowManagerImpl implements TableRowManager {
 				count += batch.size();
 				batch.clear();
 				batchSizeBytes = 0;
-				log.info("Appended: "+count+" rows to table: "+tableId);
+				if(log.isTraceEnabled()){
+					log.trace("Appended: "+count+" rows to table: "+tableId);
+				}
 			}
 		}
 		// Send the last batch is there are any rows

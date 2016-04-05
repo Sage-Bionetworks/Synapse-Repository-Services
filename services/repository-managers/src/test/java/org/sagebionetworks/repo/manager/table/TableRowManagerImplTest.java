@@ -485,14 +485,14 @@ public class TableRowManagerImplTest {
 	public void testAppendRowsAsStreamMultipleBatches() throws DatastoreException, NotFoundException, IOException{
 		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		when(mockAuthManager.canAccessRawFileHandleById(eq(user), anyString())).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		int maxBytesPerRow = TableModelUtils.calculateMaxRowSize(TableModelUtils.createColumnModelColumnMapper(models, false)
-				.getColumnModels());
-		// With a batch size of three, a total of ten rows should end up in 4 batches (3,3,3,1).	
-		manager.setMaxBytesPerChangeSet(maxBytesPerRow*3);
+		// calculate the actual size of the first row
+		int actualSizeFristRowBytes = TableModelUtils.calculateActualRowSize(set.getRows().get(0));
+		// With this max, there should be three batches (4,8,2)
+		manager.setMaxBytesPerChangeSet(actualSizeFristRowBytes*3);
 		RowReferenceSet results = new RowReferenceSet();
 		String etag = manager.appendRowsAsStream(user, tableId, TableModelUtils.createColumnModelColumnMapper(models, false), set.getRows()
 				.iterator(), "etag", results, mockProgressCallback);
-		assertEquals("etag3", etag);
+		assertEquals("etag2", etag);
 		assertEquals(tableId, results.getTableId());
 		assertEquals(etag, results.getEtag());
 		// All ten rows should be referenced
@@ -500,12 +500,11 @@ public class TableRowManagerImplTest {
 		assertEquals(10, results.getRows().size());
 		// Each batch should be assigned its own version number
 		assertEquals(new Long(0), results.getRows().get(0).getVersionNumber());
-		assertEquals(new Long(1), results.getRows().get(3).getVersionNumber());
-		assertEquals(new Long(2), results.getRows().get(6).getVersionNumber());
-		assertEquals(new Long(3), results.getRows().get(9).getVersionNumber());
+		assertEquals(new Long(1), results.getRows().get(5).getVersionNumber());
+		assertEquals(new Long(2), results.getRows().get(9).getVersionNumber());
 		// verify the table status was set
 		verify(mockTableStatusDAO, times(1)).resetTableStatusToProcessing(tableId);
-		verify(mockProgressCallback, times(4)).progressMade(anyLong());
+		verify(mockProgressCallback, times(3)).progressMade(anyLong());
 	}
 
 	@Test(expected = IllegalArgumentException.class)
@@ -1038,15 +1037,14 @@ public class TableRowManagerImplTest {
 		when(mockStackStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_WRITE, StatusEnum.READ_WRITE, StatusEnum.READ_ONLY);
 		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		when(mockAuthManager.canAccessRawFileHandleById(eq(user), anyString())).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		int maxBytesPerRow = TableModelUtils.calculateMaxRowSize(TableModelUtils.createColumnModelColumnMapper(models, false)
-				.getColumnModels());
-		// With a batch size of three, a total of ten rows should end up in 4 batches (3,3,3,1).	
-		manager.setMaxBytesPerChangeSet(maxBytesPerRow*3);
+
+		// three batches with this size
+		manager.setMaxBytesPerChangeSet(300);
 		RowReferenceSet results = new RowReferenceSet();
 		manager.appendRowsAsStream(user, tableId, TableModelUtils.createColumnModelColumnMapper(models, false), set.getRows().iterator(),
 				"etag",
 				results, mockProgressCallback);
-		verify(mockProgressCallback, times(2)).progressMade(anyLong());
+		verify(mockProgressCallback, times(3)).progressMade(anyLong());
 	}
 	
 	@Test (expected=ReadOnlyException.class)
@@ -1055,15 +1053,13 @@ public class TableRowManagerImplTest {
 		when(mockStackStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_WRITE, StatusEnum.READ_WRITE, StatusEnum.DOWN);
 		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		when(mockAuthManager.canAccessRawFileHandleById(eq(user), anyString())).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		int maxBytesPerRow = TableModelUtils.calculateMaxRowSize(TableModelUtils.createColumnModelColumnMapper(models, false)
-				.getColumnModels());
-		// With a batch size of three, a total of ten rows should end up in 4 batches (3,3,3,1).	
-		manager.setMaxBytesPerChangeSet(maxBytesPerRow*3);
+		// three batches with this size
+		manager.setMaxBytesPerChangeSet(300);
 		RowReferenceSet results = new RowReferenceSet();
 		manager.appendRowsAsStream(user, tableId, TableModelUtils.createColumnModelColumnMapper(models, false), set.getRows().iterator(),
 				"etag",
 				results, mockProgressCallback);
-		verify(mockProgressCallback, times(2)).progressMade(anyLong());
+		verify(mockProgressCallback, times(3)).progressMade(anyLong());
 	}
 	
 	/**

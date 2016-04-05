@@ -962,7 +962,29 @@ public class TableModelUtilsTest {
 			TableModelUtils.calculateMaxSizeForType(ct, maxSize);
 		}
 	}
+	
+	@Test
+	public void testCalculateActualRowSize(){
+		Row row = new Row();
+		row.setRowId(123L);
+		row.setVersionNumber(456L);
+		row.setValues(Lists.newArrayList("one",null,"muchLonger"));
+		int expectedBytes = 79;
+		int actualBytes = TableModelUtils.calculateActualRowSize(row);
+		assertEquals(expectedBytes, actualBytes);
+	}
 
+	@Test
+	public void testCalculateActualRowSizeNullValues(){
+		Row row = new Row();
+		row.setRowId(123L);
+		row.setVersionNumber(456L);
+		row.setValues(null);
+		int expectedBytes = 40;
+		int actualBytes = TableModelUtils.calculateActualRowSize(row);
+		assertEquals(expectedBytes, actualBytes);
+	}
+	
 	@Test
 	public void testCalculateMaxRowSize() {
 		ColumnMapper all = TableModelTestUtils.createMapperForOneOfEachType();

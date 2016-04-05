@@ -856,6 +856,25 @@ public class TableModelUtils {
 		throw new IllegalArgumentException("Unknown ColumnType: " + type);
 	}
 	
+	
+	/**
+	 * Calculate the actual size of a row.
+	 * @param row
+	 * @return
+	 */
+	public static int calculateActualRowSize(Row row){
+		// row ID + row version.
+		int bytes = ColumnConstants.MAX_INTEGER_BYTES_AS_STRING*2;
+		if(row.getValues() != null){
+			for(String value: row.getValues()){
+				if(value != null){
+					bytes += value.length() * ColumnConstants.MAX_BYTES_PER_CHAR_UTF_8;
+				}
+			}
+		}
+		return bytes;
+	}
+	
 	/**
 	 * Is a request within the maximum number of bytes per request?
 	 * 
