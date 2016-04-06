@@ -19,7 +19,9 @@ public interface TransactionalMessenger {
 	public void sendMessageAfterCommit(String objectId, ObjectType objectType, ChangeType changeType);
 	public void sendMessageAfterCommit(String objectId, ObjectType objectType, String etag, ChangeType changeType);
 	public void sendMessageAfterCommit(String objectId, ObjectType objectType, String etag, String parentId, ChangeType changeType);
-	
+	public void sendMessageAfterCommit(String objectId, ObjectType objectType, String etag, ChangeType changeType, Long userId);
+	public void sendMessageAfterCommit(String objectId, ObjectType objectType, ChangeType changeType, Long userId);
+
 	/**
 	 * Send a change message fashioned after the passed entity
 	 * after the current transaction commits.
@@ -79,5 +81,4 @@ public interface TransactionalMessenger {
 	 * @return
 	 */
 	public List<ChangeMessage> listUnsentMessages(long limit);
-
 }
