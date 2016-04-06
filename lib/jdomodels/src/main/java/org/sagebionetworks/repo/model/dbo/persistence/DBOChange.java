@@ -8,19 +8,18 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHANGES_
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHANGES_PARENT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHANGES_TIME_STAMP;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHANGES_USER_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_CHANGES;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_CHANGES;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.List;
 
-import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.dbo.AutoTableMapping;
-import org.sagebionetworks.repo.model.dbo.Field;
+import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
-import org.sagebionetworks.repo.model.dbo.Table;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
-import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
 /**
@@ -29,34 +28,27 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
  * @author jmhill
  *
  */
-@Table(name =TABLE_CHANGES, constraints="UNIQUE KEY (`"+COL_CHANGES_CHANGE_NUM+"`)")
 public class DBOChange implements MigratableDatabaseObject<DBOChange, DBOChange>  {
-	
-	private TableMapping<DBOChange> tableMapping = AutoTableMapping.create(DBOChange.class);
-	
-	@Field(name = COL_CHANGES_CHANGE_NUM, nullable = false, primary=false, backupId = true)
-	private Long changeNumber;
-	
-	@Field(name = COL_CHANGES_TIME_STAMP, nullable = false)
-	private Timestamp timeStamp;
-	
-	@Field(name = COL_CHANGES_OBJECT_ID, nullable = false, primary=true)
-    private Long objectId;
-	
-	@Field(name = COL_CHANGES_PARENT_ID, nullable = true)
-    private Long parentId;
-	
-	@Field(name = COL_CHANGES_OBJECT_TYPE, nullable = false, primary=true)
-    private ObjectType objectType;
-	
-	@Field(name = COL_CHANGES_OBJECT_ETAG, nullable = true, varchar=36)
-    private String objectEtag;
-	
-	@Field(name = COL_CHANGES_CHANGE_TYPE, nullable = true)
-    private ChangeType changeType;
 
-	@Field(name = COL_CHANGES_USER_ID, nullable = true)
-    private String userId;
+	private static final FieldColumn[] FIELDS = new FieldColumn[] {
+		new FieldColumn("changeNumber", COL_CHANGES_CHANGE_NUM).withIsBackupId(true),
+		new FieldColumn("timeStamp", COL_CHANGES_TIME_STAMP),
+		new FieldColumn("objectId", COL_CHANGES_OBJECT_ID, true),
+		new FieldColumn("parentId", COL_CHANGES_PARENT_ID),
+		new FieldColumn("objectType", COL_CHANGES_OBJECT_TYPE, true),
+		new FieldColumn("objectEtag", COL_CHANGES_OBJECT_ETAG).withIsEtag(true),
+		new FieldColumn("changeType", COL_CHANGES_CHANGE_TYPE),
+		new FieldColumn("userId", COL_CHANGES_USER_ID),
+	};
+
+	private Long changeNumber;
+	private Timestamp timeStamp;
+	private Long objectId;
+	private Long parentId;
+	private String objectType;
+	private String objectEtag;
+	private String changeType;
+	private Long userId;
 
 	/**
 	 * The timestamp when this change was made
@@ -91,19 +83,19 @@ public class DBOChange implements MigratableDatabaseObject<DBOChange, DBOChange>
 		this.objectEtag = objectEtag;
 	}
 
-	public ObjectType getObjectType() {
+	public String getObjectType() {
 		return objectType;
 	}
 
-	public void setObjectType(ObjectType objectType) {
+	public void setObjectType(String objectType) {
 		this.objectType = objectType;
 	}
 
-	public ChangeType getChangeType() {
+	public String getChangeType() {
 		return changeType;
 	}
 
-	public void setChangeType(ChangeType changeType) {
+	public void setChangeType(String changeType) {
 		this.changeType = changeType;
 	}
 
@@ -153,11 +145,11 @@ public class DBOChange implements MigratableDatabaseObject<DBOChange, DBOChange>
 		this.parentId = parentId;
 	}
 
-	public String getUserId() {
+	public Long getUserId() {
 		return userId;
 	}
 
-	public void setUserId(String userId) {
+	public void setUserId(Long userId) {
 		this.userId = userId;
 	}
 
@@ -231,7 +223,54 @@ public class DBOChange implements MigratableDatabaseObject<DBOChange, DBOChange>
 
 	@Override
 	public TableMapping<DBOChange> getTableMapping() {
-		return this.tableMapping;
+		return new TableMapping<DBOChange>(){
+
+			@Override
+			public DBOChange mapRow(ResultSet rs, int rowNum) throws SQLException {
+				DBOChange dbo = new DBOChange();
+				dbo.setChangeNumber(rs.getLong(COL_CHANGES_CHANGE_NUM));
+				dbo.setTimeStamp(rs.getTimestamp(COL_CHANGES_TIME_STAMP));
+				dbo.setObjectId(rs.getLong(COL_CHANGES_OBJECT_ID));
+				dbo.setObjectType(rs.getString(COL_CHANGES_OBJECT_TYPE));
+				Long userId = rs.getLong(COL_CHANGES_USER_ID);
+				if (!rs.wasNull()) {
+					dbo.setUserId(userId);
+				}
+				Long parentId = rs.getLong(COL_CHANGES_PARENT_ID);
+				if (!rs.wasNull()) {
+					dbo.setParentId(parentId);
+				}
+				String etag = rs.getString(COL_CHANGES_OBJECT_ETAG);
+				if (!rs.wasNull()) {
+					dbo.setObjectEtag(etag);
+				}
+				String changeType = rs.getString(COL_CHANGES_CHANGE_TYPE);
+				if (!rs.wasNull()) {
+					dbo.setChangeType(changeType);
+				}
+				return dbo;
+			}
+
+			@Override
+			public String getTableName() {
+				return TABLE_CHANGES;
+			}
+
+			@Override
+			public String getDDLFileName() {
+				return DDL_CHANGES;
+			}
+
+			@Override
+			public FieldColumn[] getFieldColumns() {
+				return FIELDS;
+			}
+
+			@Override
+			public Class<? extends DBOChange> getDBOClass() {
+				return DBOChange.class;
+			}
+		};
 	}
 
 	@Override

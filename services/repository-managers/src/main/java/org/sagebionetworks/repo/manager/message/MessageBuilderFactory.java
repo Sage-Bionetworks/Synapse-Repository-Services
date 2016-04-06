@@ -16,5 +16,5 @@ public interface MessageBuilderFactory {
 	 * @param userId
 	 * @return
 	 */
-	BroadcastMessageBuilder createMessageBuilder(String objectId, ChangeType changeType, String userId);
+	BroadcastMessageBuilder createMessageBuilder(String objectId, ChangeType changeType, Long userId);
 }

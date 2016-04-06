@@ -25,7 +25,7 @@ public class ReplyMessageBuilderFactory implements MessageBuilderFactory {
 
 	@Override
 	public BroadcastMessageBuilder createMessageBuilder(String objectId,
-			ChangeType changeType, String userId) {
+			ChangeType changeType, Long userId) {
 		ValidateArgument.required(objectId, "objectId");
 		ValidateArgument.required(changeType, "changeType");
 		Long replyId = Long.parseLong(objectId);
@@ -36,7 +36,7 @@ public class ReplyMessageBuilderFactory implements MessageBuilderFactory {
 		// Lookup the project
 		EntityHeader projectHeader = nodeDao.getEntityHeader(threadBundle.getProjectId(), null);
 		// Lookup the user name of the actor
-		String actor = principalAliasDAO.getUserName(Long.parseLong(userId));
+		String actor = principalAliasDAO.getUserName(userId);
 		return new ReplyBroadcastMessageBuilder(replyBundle, threadBundle, projectHeader, changeType, actor);
 	}
 

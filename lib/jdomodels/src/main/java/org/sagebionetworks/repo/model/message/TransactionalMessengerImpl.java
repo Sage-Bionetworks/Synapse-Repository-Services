@@ -129,7 +129,7 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 		message.setObjectType(objectType);
 		message.setObjectId(objectId);
 		message.setObjectEtag(etag);
-		message.setUserId(""+userId);
+		message.setUserId(userId);
 		sendMessageAfterCommit(message);
 	}
 

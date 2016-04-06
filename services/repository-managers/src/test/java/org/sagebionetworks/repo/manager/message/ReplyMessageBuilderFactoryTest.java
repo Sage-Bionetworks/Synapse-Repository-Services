@@ -71,8 +71,8 @@ public class ReplyMessageBuilderFactoryTest {
 	public void testBuild(){
 		String objectId = "123";
 		ChangeType type = ChangeType.CREATE;
-		String actor = "actor";
-		BroadcastMessageBuilder bulider = factory.createMessageBuilder(objectId, type, actor );
+		Long actor = 456L;
+		BroadcastMessageBuilder bulider = factory.createMessageBuilder(objectId, type, actor);
 		assertNotNull(bulider);
 		verify(mockNodeDao).getEntityHeader("444", null);
 	}

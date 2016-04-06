@@ -31,7 +31,7 @@
 			]
 		},
 		"userId": {
-			"type": "string",
+			"type": "integer",
 			"description": "The ID of the user who created this change message"
 		}
 	}
