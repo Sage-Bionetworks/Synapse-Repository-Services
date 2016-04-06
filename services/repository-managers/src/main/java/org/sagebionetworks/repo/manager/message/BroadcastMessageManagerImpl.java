@@ -88,6 +88,10 @@ public class BroadcastMessageManagerImpl implements BroadcastMessageManager {
 		List<Subscriber> subscribers = subscriptionDAO.getAllEmailSubscribers(topic.getObjectId(), topic.getObjectType());
 		// The builder will prepare an email for each subscriber
 		for(Subscriber subscriber: subscribers){
+			if (subscriber.getSubscriberId().equals(changeMessage.getUserId().toString())) {
+				// do not send an email to the user who created this change
+				continue;
+			}
 			// progress between each message
 			progressCallback.progressMade(changeMessage);
 			SendRawEmailRequest emailRequest = builder.buildEmailForSubscriber(subscriber);
