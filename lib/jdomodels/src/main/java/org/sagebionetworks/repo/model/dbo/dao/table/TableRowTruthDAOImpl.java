@@ -104,8 +104,6 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 			+ COL_TABLE_ROW_VERSION + " ASC";
 	private static final String SQL_SELECT_ALL_ROW_CHANGES_FOR_TABLE_GREATER_VERSION = "SELECT * "
 			+ SQL_ALL_ROW_CHANGES_FOR_TABLE_GREATER_VERSION_BASE;
-	private static final String SQL_COUNT_ALL_ROW_CHANGES_FOR_TABLE_GREATER_VERSION = "SELECT COUNT(*) "
-			+ SQL_ALL_ROW_CHANGES_FOR_TABLE_GREATER_VERSION_BASE;
 	private static final String SQL_DELETE_ROW_DATA_FOR_TABLE = "DELETE FROM " + TABLE_TABLE_ID_SEQUENCE + " WHERE "
 			+ COL_ID_SEQUENCE_TABLE_ID
 			+ " = ?";
@@ -345,14 +343,6 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 				SQL_SELECT_ALL_ROW_CHANGES_FOR_TABLE_GREATER_VERSION,
 				rowChangeMapper, tableId, versionNumber);
 		return TableRowChangeUtils.ceateDTOFromDBO(dboList);
-	}
-
-	@Override
-	public int countRowSetsForTableGreaterThanVersion(String tableIdString, long versionNumber) {
-		ValidateArgument.required(tableIdString, "TableId");
-		long tableId = KeyFactory.stringToKey(tableIdString);
-		int count = jdbcTemplate.queryForObject(SQL_COUNT_ALL_ROW_CHANGES_FOR_TABLE_GREATER_VERSION, Integer.class, tableId, versionNumber);
-		return count;
 	}
 
 	@Override

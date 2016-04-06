@@ -156,15 +156,6 @@ public interface TableRowTruthDAO {
 	 * @return
 	 */
 	public List<TableRowChange> listRowSetsKeysForTableGreaterThanVersion(String tableId, long version);
-	
-	/**
-	 * Count all changes for a table with a version number greater than the given value (exclusive).
-	 * 
-	 * @param tableId
-	 * @param version
-	 * @return
-	 */
-	public int countRowSetsForTableGreaterThanVersion(String tableId, long version);
 
 	/**
 	 * Get the TableRowChange for a given tableId and row version number.
