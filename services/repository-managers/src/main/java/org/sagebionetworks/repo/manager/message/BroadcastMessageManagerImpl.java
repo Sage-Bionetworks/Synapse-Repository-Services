@@ -81,7 +81,7 @@ public class BroadcastMessageManagerImpl implements BroadcastMessageManager {
 			throw new IllegalArgumentException("No factory found for object type: "+changeMessage.getObjectType());
 		}
 		// The builder creates the email.
-		BroadcastMessageBuilder builder = factory.createMessageBuilder(changeMessage.getObjectId(), changeMessage.getChangeType());
+		BroadcastMessageBuilder builder = factory.createMessageBuilder(changeMessage.getObjectId(), changeMessage.getChangeType(), changeMessage.getUserId());
 		Topic topic = builder.getBroadcastTopic();
 		valdiateTopic(topic);
 		// Get all of the email subscribers for this topic.

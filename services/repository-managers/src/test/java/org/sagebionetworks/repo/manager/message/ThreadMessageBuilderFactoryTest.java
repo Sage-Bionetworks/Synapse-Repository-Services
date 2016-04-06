@@ -59,7 +59,8 @@ public class ThreadMessageBuilderFactoryTest {
 	public void testBuild(){
 		String objectId = "123";
 		ChangeType type = ChangeType.CREATE;
-		BroadcastMessageBuilder bulider = factory.createMessageBuilder(objectId, type);
+		String actor = "actor";
+		BroadcastMessageBuilder bulider = factory.createMessageBuilder(objectId, type, actor);
 		assertNotNull(bulider);
 		verify(mockNodeDao).getEntityHeader("444", null);
 	}

@@ -97,7 +97,7 @@ public class BroadcastMessageManagerImplTest {
 		when(mockBroadcastMessageDao.wasBroadcast(change.getChangeNumber())).thenReturn(false);
 		when(mockChangeDao.doesChangeNumberExist(change.getChangeNumber())).thenReturn(true);
 		
-		when(mockFactory.createMessageBuilder(change.getObjectId(), change.getChangeType())).thenReturn(mockBroadcastMessageBuilder);
+		when(mockFactory.createMessageBuilder(change.getObjectId(), change.getChangeType(), change.getUserId())).thenReturn(mockBroadcastMessageBuilder);
 
 		when(mockBroadcastMessageBuilder.getBroadcastTopic()).thenReturn(topic);
 		
