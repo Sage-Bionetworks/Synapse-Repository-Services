@@ -240,14 +240,8 @@ public class DBOChange implements MigratableDatabaseObject<DBOChange, DBOChange>
 				if (!rs.wasNull()) {
 					dbo.setParentId(parentId);
 				}
-				String etag = rs.getString(COL_CHANGES_OBJECT_ETAG);
-				if (!rs.wasNull()) {
-					dbo.setObjectEtag(etag);
-				}
-				String changeType = rs.getString(COL_CHANGES_CHANGE_TYPE);
-				if (!rs.wasNull()) {
-					dbo.setChangeType(changeType);
-				}
+				dbo.setObjectEtag(rs.getString(COL_CHANGES_OBJECT_ETAG));
+				dbo.setChangeType(rs.getString(COL_CHANGES_CHANGE_TYPE));
 				return dbo;
 			}
 
