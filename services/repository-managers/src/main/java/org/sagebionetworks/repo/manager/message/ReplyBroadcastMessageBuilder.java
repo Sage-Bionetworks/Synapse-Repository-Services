@@ -23,7 +23,6 @@ import com.google.common.collect.Maps;
 public class ReplyBroadcastMessageBuilder implements BroadcastMessageBuilder {
 	
 	public static final String REPLY_TEMPLATE = "message/replyTemplate.html";
-	public static final String REPLY_DELETE_TEMPLATE = "message/replyDeleteTemplate.html";
 	public static final String REPLY_CREATED_TITLE = "Synapse Notification: New reply created in thread '%1$s'";
 	public static final String REPLY_UPDATED_TITLE = "Synapse Notification: A reply has been updated in thread '%1$s'";
 	public static final String REPLY_DELETED_TITLE = "Synapse Notification: A reply has been removed in thread '%1$s'";
@@ -52,15 +51,7 @@ public class ReplyBroadcastMessageBuilder implements BroadcastMessageBuilder {
 		this.subject = buildSubject(threadBundle.getTitle(), changeType);
 		this.threadTitleTruncated = BroadcastMessageBuilderUtil.truncateString(threadBundle.getTitle(), 50);
 		// Load the template file
-		switch (changeType) {
-			case CREATE:
-			case UPDATE:
-				emailTemplate = loadTemplateFile(REPLY_TEMPLATE);
-				break;
-			case DELETE:
-				emailTemplate = loadTemplateFile(REPLY_DELETE_TEMPLATE);
-				break;
-		}
+		emailTemplate = loadTemplateFile(REPLY_TEMPLATE);
 	}
 
 	@Override
