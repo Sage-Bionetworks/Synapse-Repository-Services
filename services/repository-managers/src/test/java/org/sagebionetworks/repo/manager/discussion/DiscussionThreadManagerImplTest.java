@@ -229,7 +229,6 @@ public class DiscussionThreadManagerImplTest {
 
 		assertEquals(dto, threadManager.updateTitle(userInfo, threadId.toString(), newTitle));
 		Mockito.verify(mockReplyDao).getReplyCount(threadId, DiscussionFilter.NO_FILTER);
-		Mockito.verify(mockTransactionalMessenger).sendMessageAfterCommit(threadId.toString(), ObjectType.THREAD, dto.getEtag(), ChangeType.UPDATE, userInfo.getId());
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -253,7 +252,6 @@ public class DiscussionThreadManagerImplTest {
 		Mockito.when(mockThreadDao.updateMessageKey(Mockito.anyLong(), Mockito.anyString())).thenReturn(dto);
 		assertEquals(dto, threadManager.updateMessage(userInfo, threadId.toString(), newMessage));
 		Mockito.verify(mockReplyDao).getReplyCount(threadId, DiscussionFilter.NO_FILTER);
-		Mockito.verify(mockTransactionalMessenger).sendMessageAfterCommit(threadId.toString(), ObjectType.THREAD, dto.getEtag(), ChangeType.UPDATE, userInfo.getId());
 	}
 
 	@Test (expected = UnauthorizedException.class)
@@ -269,7 +267,6 @@ public class DiscussionThreadManagerImplTest {
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		threadManager.markThreadAsDeleted(userInfo, threadId.toString());
 		Mockito.verify(mockThreadDao).markThreadAsDeleted(threadId);
-		Mockito.verify(mockTransactionalMessenger).sendMessageAfterCommit(threadId.toString(), ObjectType.THREAD, ChangeType.DELETE, userInfo.getId());
 	}
 
 	@Test (expected = IllegalArgumentException.class)
