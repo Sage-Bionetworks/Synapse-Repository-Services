@@ -27,7 +27,8 @@
 				"DATE",
 				"FILEHANDLEID",
 				"ENTITYID",
-				"LINK"
+				"LINK",
+				"LARGETEXT"
 			]
 		},
         "maximumSize":{

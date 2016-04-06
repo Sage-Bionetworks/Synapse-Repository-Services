@@ -208,7 +208,7 @@ public class TableRowTruthDAOImplTest {
 		RowSet results = tableRowTruthDao.getRowSet(refSet, mapper);
 		assertEquals(5, results.getRows().size());
 		// The first value should be an empty string, the rest of the columns should be null
-		assertEquals(Arrays.asList("", null, null, null, null, null, null, ""), results.getRows().get(0).getValues());
+		assertEquals(Arrays.asList("", null, null, null, null, null, null, "",""), results.getRows().get(0).getValues());
 	}
 
 	@Test(expected = IllegalArgumentException.class)

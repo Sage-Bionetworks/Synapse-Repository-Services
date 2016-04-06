@@ -13,7 +13,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.sagebionetworks.ImmutablePropertyAccessor;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -85,6 +84,30 @@ public class SQLUtilsTest {
 	}
 	
 	@Test
+	public void testcreateColumnIndexDefinition(){
+		Long maxSize = null;
+		String expected = "INDEX `_C123_idx_` (`_C123_`)";
+		String index = SQLUtils.createColumnIndexDefinition("_C123_", maxSize);
+		assertEquals(expected, index);
+	}
+	
+	@Test
+	public void testcreateColumnIndexDefinitionMaxSizeUnder(){
+		Long maxSize = SQLUtils.MAX_MYSQL_VARCHAR_INDEX_LENGTH-1;
+		String expected = "INDEX `_C123_idx_` (`_C123_`)";
+		String index = SQLUtils.createColumnIndexDefinition("_C123_", maxSize);
+		assertEquals(expected, index);
+	}
+	
+	@Test
+	public void testcreateColumnIndexDefinitionMaxSizeOver(){
+		Long maxSize = SQLUtils.MAX_MYSQL_VARCHAR_INDEX_LENGTH+1;
+		String expected = "INDEX `_C123_idx_` (`_C123_`(255))";
+		String index = SQLUtils.createColumnIndexDefinition("_C123_", maxSize);
+		assertEquals(expected, index);
+	}
+	
+	@Test
 	public void testCreateTableSQL(){
 		// Build the create DDL for this table
 		String sql = SQLUtils.createTableSQL(simpleSchema, "syn123");
@@ -92,7 +115,7 @@ public class SQLUtilsTest {
 		String index1 = "";
 		String index2 = "";
 		String index3 = "";
-		if (StackConfiguration.singleton().getTableAllIndexedEnabled().get()) {
+		if (StackConfiguration.singleton().getTableAllIndexedEnabled()) {
 			index1 = ", INDEX `_C456_idx_` (`_C456_`)";
 			index2 = ", INDEX `_C789_idx_` (`_C789_`(255))";
 			index3 = ", INDEX `_C123_idx_` (`_C123_`)";
@@ -104,13 +127,30 @@ public class SQLUtilsTest {
 				+ ", `_C123_` varchar(150) CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT NULL" + index3 + ", PRIMARY KEY (ROW_ID) )";
 		assertEquals(expected, sql);
 	}
+	
+	@Test
+	public void testCreateTableSQLLargeText(){
+		ColumnModel cm = TableModelTestUtils.createColumn(444L, "large Text", ColumnType.LARGETEXT);
+		List<ColumnModel> types = Lists.newArrayList(cm);
+		// call under test
+		String sql = SQLUtils.createTableSQL(types, "syn123");
+		
+		String index1 = "";
+		if (StackConfiguration.singleton().getTableAllIndexedEnabled()) {
+			index1 = ", INDEX `_C444_idx_` (`_C444_`(255))";
+		}
+		
+		String expected = "CREATE TABLE IF NOT EXISTS `T123` ( ROW_ID bigint(20) NOT NULL, ROW_VERSION bigint(20) NOT NULL"
+				+ ", `_C444_` mediumtext CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT NULL"
+				+ index1 + ", PRIMARY KEY (ROW_ID) )";
+		assertEquals(expected, sql);
+	}
 
 	@Test
 	public void testCreateTableSQLInvertAllIndexes() {
 		oldStackConfiguration = StackConfiguration.singleton();
 		StackConfiguration mockedStackConfiguration = Mockito.spy(oldStackConfiguration);
-		stub(mockedStackConfiguration.getTableAllIndexedEnabled()).toReturn(
-				new ImmutablePropertyAccessor<Boolean>(!oldStackConfiguration.getTableAllIndexedEnabled().get()));
+		stub(mockedStackConfiguration.getTableAllIndexedEnabled()).toReturn(!oldStackConfiguration.getTableAllIndexedEnabled());
 		ReflectionTestUtils.setField(StackConfiguration.singleton(), "singleton", mockedStackConfiguration);
 		testCreateTableSQL();
 	}
@@ -161,6 +201,13 @@ public class SQLUtilsTest {
 	public void testGetSQLTypeForColumnTypeBoolean(){
 		String expected = "boolean";
 		String sql = SQLUtils.getSQLTypeForColumnType(ColumnType.BOOLEAN, null);
+		assertEquals(expected, sql);
+	}
+	
+	@Test
+	public void testGetSQLTypeForColumnTypeLargeText(){
+		String expected = "mediumtext CHARACTER SET utf8 COLLATE utf8_general_ci";
+		String sql = SQLUtils.getSQLTypeForColumnType(ColumnType.LARGETEXT, null);
 		assertEquals(expected, sql);
 	}
 	 
@@ -232,6 +279,13 @@ public class SQLUtilsTest {
 	public void testparseValueForDBBooleanFalse(){
 		Boolean expected = new Boolean(false);
 		Object objectValue = SQLUtils.parseValueForDB(ColumnType.BOOLEAN, "false");
+		assertEquals(expected, objectValue);
+	}
+	
+	@Test
+	public void testparseValueForDBLargeText(){
+		String expected = "this is some text";
+		Object objectValue = SQLUtils.parseValueForDB(ColumnType.LARGETEXT, "this is some text");
 		assertEquals(expected, objectValue);
 	}
 	
@@ -320,8 +374,9 @@ public class SQLUtilsTest {
 		List<ColumnModel> allTypes = TableModelTestUtils.createOneOfEachType();
 		String sql = SQLUtils.createTableSQL(allTypes, "syn123");
 		assertNotNull(sql);
-		System.out.println(sql);
 	}
+	
+
 	
 	@Test
 	public void testCalculateColumnsToAddOverlap(){
@@ -423,7 +478,7 @@ public class SQLUtilsTest {
 		String sql = SQLUtils.alterTableSql(oldSchema, newSchema, "syn999");
 		assertNotNull(sql);
 		String index = "";
-		if (StackConfiguration.singleton().getTableAllIndexedEnabled().get()) {
+		if (StackConfiguration.singleton().getTableAllIndexedEnabled()) {
 			index = ",ADD INDEX `_C0_idx_` (`_C0_`),ADD INDEX `_C4_idx_` (`_C4_`)";
 		}
 		String expected = "ALTER TABLE `T999` DROP COLUMN `_C1_`, DROP COLUMN `_C3_`, ADD COLUMN `_C0_` bigint(20) DEFAULT NULL, ADD COLUMN `_C4_` bigint(20) DEFAULT NULL"

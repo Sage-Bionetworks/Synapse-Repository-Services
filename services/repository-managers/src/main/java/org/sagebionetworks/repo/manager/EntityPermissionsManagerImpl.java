@@ -13,7 +13,6 @@ import static org.sagebionetworks.repo.model.ACCESS_TYPE.MODERATE;
 import java.util.List;
 
 import org.apache.commons.lang.BooleanUtils;
-import org.sagebionetworks.PropertyAccessor;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -190,10 +189,10 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	}
 	
 	private boolean isCertifiedUserOrFeatureDisabled(UserInfo userInfo) {
-		PropertyAccessor<Boolean> pa = configuration.getDisableCertifiedUser();
+		Boolean pa = configuration.getDisableCertifiedUser();
 		Boolean featureIsDisabled = false;
 		try {
-			featureIsDisabled = pa.get();
+			featureIsDisabled = pa;
 		} catch (NullPointerException npe) {
 			featureIsDisabled = false;
 		}

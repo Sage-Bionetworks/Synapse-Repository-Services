@@ -147,9 +147,8 @@ public class TableModelTestUtils {
 					defaultValue = "1.3";
 					break;
 				case FILEHANDLEID:
-					defaultValue = null;
-					break;
 				case ENTITYID:
+				case LARGETEXT:
 					defaultValue = null;
 					break;
 				case INTEGER:
@@ -385,6 +384,8 @@ public class TableModelTestUtils {
 			return "" + (i * 3.41 + 3.12 + (isUpdate ? 10000 : 0));
 		case LINK:
 			return (isUpdate ? "updatelink" : "link") + (8000 + i);
+		case LARGETEXT:
+			return (isUpdate ? "updateLargeText" : "largeText") + (4000 + i);	
 		}
 		throw new IllegalArgumentException("Unknown ColumnType: " + cm.getColumnType());
 	}

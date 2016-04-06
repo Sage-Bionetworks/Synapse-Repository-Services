@@ -12,7 +12,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.sagebionetworks.PropertyAccessor;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
@@ -78,9 +77,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		
 		ReflectionStaticTestUtils.mockAutowire(this, entityPermissionsManager);
     	
-    	when(mockStackConfiguration.getDisableCertifiedUser()).thenReturn(new PropertyAccessor<Boolean>(){
-			@Override public Boolean get() {return false;}}
-    	);
+    	when(mockStackConfiguration.getDisableCertifiedUser()).thenReturn(false);
     	
     	when(mockAuthenticationManager.hasUserAcceptedTermsOfUse(nonCertifiedUserInfo.getId(), DomainType.SYNAPSE)).thenReturn(true);
     	when(mockAuthenticationManager.hasUserAcceptedTermsOfUse(certifiedUserInfo.getId(), DomainType.SYNAPSE)).thenReturn(true);

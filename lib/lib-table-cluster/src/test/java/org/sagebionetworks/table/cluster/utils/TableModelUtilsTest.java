@@ -492,6 +492,31 @@ public class TableModelUtilsTest {
 		cm.setMaximumSize(555L);
 		assertEquals("", TableModelUtils.validateRowValue("", cm, 0, 0));
 	}
+	
+	@Test
+	public void testValidateLargTextColumn() {
+		ColumnModel cm = new ColumnModel();
+		cm.setColumnType(ColumnType.LARGETEXT);
+		assertEquals("", TableModelUtils.validateRowValue("", cm, 0, 0));
+		assertEquals(null, TableModelUtils.validateRowValue(null, cm, 0, 0));
+		assertEquals("basic", TableModelUtils.validateRowValue("basic", cm, 0, 0));
+	}
+	
+	@Test
+	public void testValidateLargTextColumnTooBig() {
+		ColumnModel cm = new ColumnModel();
+		cm.setColumnType(ColumnType.LARGETEXT);
+		char[] chars = new char[(int) (ColumnConstants.MAX_LARGE_TEXT_CHARACTERS+1)];
+		Arrays.fill(chars, 'a');
+		String valueTooBig = new String(chars);
+		// call under test
+		try {
+			TableModelUtils.validateRowValue(valueTooBig, cm, 0, 0);
+			fail("should fail");
+		} catch (IllegalArgumentException e) {
+			assertEquals("Value at [0,0] was not a valid LARGETEXT. Exceeds the maximum number of characters: 349525", e.getMessage());
+		}
+	}
 
 	@Test
 	public void testValidateNonColumnEmptyString() {
@@ -501,6 +526,8 @@ public class TableModelUtilsTest {
 			if (ColumnType.STRING.equals(type))
 				continue;
 			if (ColumnType.LINK.equals(type))
+				continue;
+			if (ColumnType.LARGETEXT.equals(type))
 				continue;
 			cm.setColumnType(type);
 			cm.setMaximumSize(555L);
@@ -911,6 +938,15 @@ public class TableModelUtilsTest {
 				.getBytes("UTF-8").length;
 		assertEquals(expected, TableModelUtils.calculateMaxSizeForType(ColumnType.ENTITYID, null));
 	}
+	
+	@Test
+	public void testCalculateMaxSizeForTypeLargeText() throws UnsupportedEncodingException {
+		long maxSize = 1000;
+		char[] array = new char[(int) maxSize];
+		Arrays.fill(array, Character.MAX_VALUE);
+		int expected = new String(array).getBytes("UTF-8").length;
+		assertEquals(expected, TableModelUtils.calculateMaxSizeForType(ColumnType.LARGETEXT, null));
+	}
 
 	@Test
 	public void testCalculateMaxSizeForTypeAll() throws UnsupportedEncodingException {
@@ -926,12 +962,34 @@ public class TableModelUtilsTest {
 			TableModelUtils.calculateMaxSizeForType(ct, maxSize);
 		}
 	}
+	
+	@Test
+	public void testCalculateActualRowSize(){
+		Row row = new Row();
+		row.setRowId(123L);
+		row.setVersionNumber(456L);
+		row.setValues(Lists.newArrayList("one",null,"muchLonger"));
+		int expectedBytes = 79;
+		int actualBytes = TableModelUtils.calculateActualRowSize(row);
+		assertEquals(expectedBytes, actualBytes);
+	}
 
+	@Test
+	public void testCalculateActualRowSizeNullValues(){
+		Row row = new Row();
+		row.setRowId(123L);
+		row.setVersionNumber(456L);
+		row.setValues(null);
+		int expectedBytes = 40;
+		int actualBytes = TableModelUtils.calculateActualRowSize(row);
+		assertEquals(expectedBytes, actualBytes);
+	}
+	
 	@Test
 	public void testCalculateMaxRowSize() {
 		ColumnMapper all = TableModelTestUtils.createMapperForOneOfEachType();
 		int allBytes = TableModelUtils.calculateMaxRowSizeForColumnModels(all);
-		assertEquals(414, allBytes);
+		assertEquals(3414, allBytes);
 	}
 
 	@Test
@@ -1212,7 +1270,7 @@ public class TableModelUtilsTest {
 	public void testCreateSchemaMD5HexCM(){
 		List<ColumnModel> models = TableModelTestUtils.createOneOfEachType();
 		String md5Hex = TableModelUtils.createSchemaMD5HexCM(models);
-		assertEquals("0f8cecc5a263e72726513a2d719c9d53", md5Hex);
+		assertEquals("e01b96910d0eb4b107ebc34eae2bc44c", md5Hex);
 	}
 	
 }

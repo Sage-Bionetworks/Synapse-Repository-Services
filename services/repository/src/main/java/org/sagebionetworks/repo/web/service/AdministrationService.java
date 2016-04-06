@@ -166,24 +166,6 @@ public interface AdministrationService {
 	public void rebuildTable(Long userId, String tableId) throws NotFoundException, IOException;
 
 	/**
-	 * add indexes to all table columns
-	 * 
-	 * @param userId
-	 * @param tableId
-	 * @throws IOException
-	 */
-	public void addIndexesToTable(Long userId, String tableId) throws NotFoundException, IOException;
-
-	/**
-	 * remove indexes from all table columns
-	 * 
-	 * @param userId
-	 * @param tableId
-	 * @throws IOException
-	 */
-	public void removeIndexesFromTable(Long userId, String tableId) throws NotFoundException, IOException;
-
-	/**
 	 * Clear all locks.
 	 * 
 	 * @param userId

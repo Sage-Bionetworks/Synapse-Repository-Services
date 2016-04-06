@@ -303,29 +303,6 @@ public class AdministrationServiceImpl implements AdministrationService  {
 	}
 
 	@Override
-	public void addIndexesToTable(Long userId, String tableId) throws NotFoundException, IOException {
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		if (!userInfo.isAdmin())
-			throw new UnauthorizedException("Only an administrator may access this service.");
-		// purge
-		TableIndexDAO indexDao = tableConnectionFactory.getConnection(tableId);
-		if (indexDao != null) {
-			indexDao.addIndexes(tableId);
-		}
-	}
-
-	public void removeIndexesFromTable(Long userId, String tableId) throws NotFoundException, IOException {
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		if (!userInfo.isAdmin())
-			throw new UnauthorizedException("Only an administrator may access this service.");
-		// purge
-		TableIndexDAO indexDao = tableConnectionFactory.getConnection(tableId);
-		if (indexDao != null) {
-			indexDao.removeIndexes(tableId);
-		}
-	}
-
-	@Override
 	public void clearAllLocks(Long userId) throws NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		// Ony an admin can make this call

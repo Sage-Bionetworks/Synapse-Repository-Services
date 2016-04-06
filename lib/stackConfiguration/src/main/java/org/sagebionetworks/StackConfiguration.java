@@ -20,71 +20,6 @@ import org.apache.logging.log4j.Logger;
  */
 public class StackConfiguration {
 
-	private class StackConfigurationStringPropertyAccessor implements PropertyAccessor<String> {
-		private final String name;
-
-		private StackConfigurationStringPropertyAccessor(String name) {
-			this.name = name;
-		}
-
-		@Override
-		public String get() {
-			return dynamicConfiguration.getPropertyRepeatedly(this.name);
-		}
-	}
-
-	private class StackConfigurationLongPropertyAccessor implements PropertyAccessor<Long> {
-		private final String name;
-
-		private StackConfigurationLongPropertyAccessor(String name) {
-			this.name = name;
-		}
-
-		@Override
-		public Long get() {
-			return Long.parseLong(dynamicConfiguration.getPropertyRepeatedly(this.name));
-		}
-	}
-
-	private class StackConfigurationIntegerPropertyAccessor implements PropertyAccessor<Integer> {
-		private final String name;
-
-		private StackConfigurationIntegerPropertyAccessor(String name) {
-			this.name = name;
-		}
-
-		@Override
-		public Integer get() {
-			return Integer.parseInt(dynamicConfiguration.getPropertyRepeatedly(this.name));
-		}
-	}
-
-	private class StackConfigurationDoublePropertyAccessor implements PropertyAccessor<Double> {
-		private final String name;
-
-		private StackConfigurationDoublePropertyAccessor(String name) {
-			this.name = name;
-		}
-
-		@Override
-		public Double get() {
-			return Double.parseDouble(dynamicConfiguration.getPropertyRepeatedly(this.name));
-		}
-	}
-
-	private class StackConfigurationBooleanPropertyAccessor implements PropertyAccessor<Boolean> {
-		private final String name;
-
-		private StackConfigurationBooleanPropertyAccessor(String name) {
-			this.name = name;
-		}
-
-		@Override
-		public Boolean get() {
-			return Boolean.parseBoolean(dynamicConfiguration.getPropertyRepeatedly(this.name));
-		}
-	}
-
 	private static final String PROD = "prod";
 	private static final String DEV = "dev";
 	private static final String HUDSON = "hud";
@@ -681,7 +616,7 @@ public class StackConfiguration {
 	 * @return
 	 */
 	public boolean getTableEnabled(){
-		return Boolean.parseBoolean(configuration.getPropertyRepeatedly("org.sagebionetworks.table.enabled"));
+		return Boolean.parseBoolean(configuration.getProperty("org.sagebionetworks.table.enabled"));
 	}
 	
 	/**
@@ -689,7 +624,7 @@ public class StackConfiguration {
 	 * @return
 	 */
 	public boolean getOpenOfficeImageMagicePreviewsEnabled(){
-		return Boolean.parseBoolean(configuration.getPropertyRepeatedly("org.sagebionetworks.preview.open.office.enabled"));
+		return Boolean.parseBoolean(configuration.getProperty("org.sagebionetworks.preview.open.office.enabled"));
 	}
 
 	/**
@@ -697,8 +632,8 @@ public class StackConfiguration {
 	 * 
 	 * @return
 	 */
-	public PropertyAccessor<Boolean> getTableAllIndexedEnabled() {
-		return new StackConfigurationBooleanPropertyAccessor("org.sagebionetworks.table.allindexed.enabled");
+	public boolean getTableAllIndexedEnabled() {
+		return Boolean.parseBoolean(configuration.getProperty("org.sagebionetworks.table.allindexed.enabled"));
 	}
 
 	/**
@@ -1430,24 +1365,27 @@ public class StackConfiguration {
 				.getProperty("org.sagebionetworks.table.read.timeout.ms"));
 	}
 
-	public PropertyAccessor<Integer> getMaxConcurrentRepoConnections() {
-		return new StackConfigurationIntegerPropertyAccessor("org.sagebionetworks.max.concurrent.repo.connections");
+	public Integer getMaxConcurrentRepoConnections() {
+		return Integer.parseInt(configuration
+				.getProperty("org.sagebionetworks.max.concurrent.repo.connections"));
 	}
 
 	/**
 	 * The amount of time (MS) the ChangeSentMessageSynchWorker sleeps between pages.
 	 * @return
 	 */
-	public PropertyAccessor<Long> getChangeSynchWorkerSleepTimeMS() {
-		return new StackConfigurationLongPropertyAccessor("org.sagebionetworks.worker.change.synch.sleep.ms");
+	public Long getChangeSynchWorkerSleepTimeMS() {
+		return Long.parseLong(configuration
+				.getProperty("org.sagebionetworks.worker.change.synch.sleep.ms"));
 	}
 	
 	/**
 	 * The minium page size used by ChangeSentMessageSynchWorker.
 	 * @return
 	 */
-	public PropertyAccessor<Integer> getChangeSynchWorkerMinPageSize() {
-		return new StackConfigurationIntegerPropertyAccessor("org.sagebionetworks.worker.change.synch.min.page.size");
+	public Integer getChangeSynchWorkerMinPageSize() {
+		return Integer.parseInt(configuration
+				.getProperty("org.sagebionetworks.worker.change.synch.min.page.size"));
 	}
 	
 	/**
@@ -1559,8 +1497,8 @@ public class StackConfiguration {
 	 * 
 	 * @return if missing or false then certified user restrictions are in effect.  Setting to true disables.
 	 */
-	public PropertyAccessor<Boolean> getDisableCertifiedUser() {
-		return new StackConfigurationBooleanPropertyAccessor("org.sagebionetworks.disable.certified.user");
+	public Boolean getDisableCertifiedUser() {
+		return Boolean.parseBoolean(configuration.getProperty("org.sagebionetworks.notification.portal.endpoint"));
 	}
 
 

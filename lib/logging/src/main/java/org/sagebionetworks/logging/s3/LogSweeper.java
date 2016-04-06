@@ -54,7 +54,9 @@ public class LogSweeper {
 		File lock = new File(logDir, ".sweep.lock");
 		try {
 			if (lock.createNewFile()) {
-				log.debug("Acquired directory lock: "+lock.getAbsolutePath());
+				if(log.isTraceEnabled()){
+					log.trace("Acquired directory lock: "+lock.getAbsolutePath());
+				}
 				// we are the lock holder.
 				try {
 					// we can now sweep.
@@ -64,7 +66,10 @@ public class LogSweeper {
 					lock.delete();
 				}
 			} else {
-				log.debug("Directory lock already held");
+				if(log.isTraceEnabled()){
+					log.trace("Directory lock already held");
+				}
+
 				// If here then the lock file already exists. Has the lock
 				// expired?
 				long heldForMS = System.currentTimeMillis()	- lock.lastModified();

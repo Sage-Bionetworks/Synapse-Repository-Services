@@ -17,7 +17,6 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
-import org.sagebionetworks.ImmutablePropertyAccessor;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
@@ -76,8 +75,8 @@ public class ChangeSentMessageSynchWorkerIntegrationTest {
 		Random mockRandom = Mockito.mock(Random.class);
 		when(mockRandom.nextInt()).thenReturn(new Integer(0));
 		StackConfiguration mockConfiguration = Mockito.mock(StackConfiguration.class);
-		when(mockConfiguration.getChangeSynchWorkerMinPageSize()).thenReturn(new ImmutablePropertyAccessor(10));
-		when(mockConfiguration.getChangeSynchWorkerSleepTimeMS()).thenReturn(new ImmutablePropertyAccessor(0L));
+		when(mockConfiguration.getChangeSynchWorkerMinPageSize()).thenReturn(10);
+		when(mockConfiguration.getChangeSynchWorkerSleepTimeMS()).thenReturn(0L);
 		ReflectionTestUtils.setField(changeSentMessageSynchWorker, "configuration", mockConfiguration);
 		ReflectionTestUtils.setField(changeSentMessageSynchWorker, "random", mockRandom);
 		ReflectionTestUtils.setField(changeSentMessageSynchWorker, "clock", new DefaultClock() {
@@ -151,13 +150,13 @@ public class ChangeSentMessageSynchWorkerIntegrationTest {
 	
 	@Test
 	public void testGetChangeSynchWorkerSleepTimeMS(){
-		long sleepMS = configuration.getChangeSynchWorkerSleepTimeMS().get();
+		long sleepMS = configuration.getChangeSynchWorkerSleepTimeMS();
 		assertTrue(sleepMS > 500);
 	}
 	
 	@Test
 	public void testGetChangeSynchWorkerMinPageSize(){
-		int pageSize = configuration.getChangeSynchWorkerMinPageSize().get();
+		int pageSize = configuration.getChangeSynchWorkerMinPageSize();
 		assertTrue(pageSize > 5000);
 	}
 	

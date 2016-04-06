@@ -46,6 +46,7 @@ import com.google.common.collect.Sets;
 public class SQLUtils {
 
 
+	public static final String CHARACTER_SET_UTF8_COLLATE_UTF8_GENERAL_CI = "CHARACTER SET utf8 COLLATE utf8_general_ci";
 	public static final String FILE_ID_BIND = "bFIds";
 	public static final String ROW_ID_BIND = "bRI";
 	public static final String ROW_VERSION_BIND = "bRV";
@@ -60,7 +61,7 @@ public class SQLUtils {
 	private static final String DOUBLE_ENUM_CLAUSE = " ENUM ('" + DOUBLE_NAN + "', '" + DOUBLE_POSITIVE_INFINITY + "', '"
 			+ DOUBLE_NEGATIVE_INFINITY + "') DEFAULT null";
 
-	private static final int MAX_MYSQL_VARCHAR_INDEX_LENGTH = 255; // from docs, max length is 767 bytes, 767/3 = 255
+	public static final long MAX_MYSQL_VARCHAR_INDEX_LENGTH = 255; // from docs, max length is 767 bytes, 767/3 = 255
 																	// characters
 	private static final int MAX_MYSQL_SECONDARY_INDEX_COUNT = 63; // mysql only supports a max of 64 secondary indexes
 
@@ -227,6 +228,7 @@ public class SQLUtils {
 	static void appendColumnDefinitionsToBuilder(List<String> columns, List<String> indexes, ColumnModel newSchema, boolean justNames,
 			int indexCount) {
 		String columnName = getColumnNameForId(newSchema.getId());
+		Long maxSize = newSchema.getMaximumSize();
 		switch (newSchema.getColumnType()) {
 		case DOUBLE:
 			if (justNames) {
@@ -238,6 +240,8 @@ public class SQLUtils {
 				columns.add("`" + TableConstants.DOUBLE_PREFIX + columnName + "` " + DOUBLE_ENUM_CLAUSE);
 			}
 			break;
+		case LARGETEXT:
+			maxSize = MAX_MYSQL_VARCHAR_INDEX_LENGTH;
 		default:
 			if (justNames) {
 				columns.add(columnName);
@@ -248,22 +252,23 @@ public class SQLUtils {
 			break;
 		}
 		if (indexes != null && !justNames && indexCount < MAX_MYSQL_SECONDARY_INDEX_COUNT) {
-			boolean allIndexedEnabled = StackConfiguration.singleton().getTableAllIndexedEnabled().get();
+			boolean allIndexedEnabled = StackConfiguration.singleton().getTableAllIndexedEnabled();
 			if (allIndexedEnabled) {
-				appendColumnIndexDefinition(columnName, newSchema.getMaximumSize(), indexes);
+				String index = createColumnIndexDefinition(columnName, maxSize);
+				indexes.add(index);
 			}
 		}
 	}
 
-	static void appendColumnIndexDefinition(String columnName, Long maximumSize, List<String> indexes) {
+	static String createColumnIndexDefinition(String columnName, Long maximumSize) {
 		String prefixLength = "";
 		if (maximumSize != null) {
 			long columnSize = maximumSize.longValue();
-			if (columnSize > MAX_MYSQL_VARCHAR_INDEX_LENGTH) {
+			if (columnSize >= MAX_MYSQL_VARCHAR_INDEX_LENGTH) {
 				prefixLength = "(" + MAX_MYSQL_VARCHAR_INDEX_LENGTH + ")";
 			}
 		}
-		indexes.add("INDEX `" + getColumnIndexName(columnName) + "` (`" + columnName + "`" + prefixLength + ")");
+		return "INDEX `" + getColumnIndexName(columnName) + "` (`" + columnName + "`" + prefixLength + ")";
 	}
 
 	static String getColumnIndexName(String columnName) {
@@ -286,17 +291,19 @@ public class SQLUtils {
 		case DATE:
 			return "bigint(20)";
 		case ENTITYID:
-			return "varchar(" + ColumnConstants.MAX_ENTITY_ID_BYTES_AS_STRING + ") CHARACTER SET utf8 COLLATE utf8_general_ci";
+			return "varchar(" + ColumnConstants.MAX_ENTITY_ID_BYTES_AS_STRING + ") "+CHARACTER_SET_UTF8_COLLATE_UTF8_GENERAL_CI;
 		case LINK:
 		case STRING:
 			// Strings and links must have a size
 			if (maxSize == null)
 				throw new IllegalArgumentException("Cannot create a string column without a max size.");
-			return "varchar(" + maxSize + ") CHARACTER SET utf8 COLLATE utf8_general_ci";
+			return "varchar(" + maxSize + ") "+CHARACTER_SET_UTF8_COLLATE_UTF8_GENERAL_CI;
 		case DOUBLE:
 			return "double";
 		case BOOLEAN:
 			return "boolean";
+		case LARGETEXT:
+			return "mediumtext "+CHARACTER_SET_UTF8_COLLATE_UTF8_GENERAL_CI;
 		}
 		throw new IllegalArgumentException("Unknown type: " + type.name());
 	}
@@ -315,6 +322,7 @@ public class SQLUtils {
 			case STRING:
 			case ENTITYID:
 			case LINK:
+			case LARGETEXT:
 				return value;
 			case DOUBLE:
 				return Double.parseDouble(value);

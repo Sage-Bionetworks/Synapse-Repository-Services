@@ -168,7 +168,9 @@ public class LogCollateWorker implements ProgressingRunner<Void>{
 					}
 					long elapse = System.currentTimeMillis()-data.startMs;
 					long msPerfile = elapse/data.mergedKeys.size();
-					log.info("Merged: "+data.mergedKeys.size()+" files into new file: "+newFileKey+" in "+elapse+" ms rate of: "+msPerfile+" ms/file");
+					if(log.isTraceEnabled()){
+						log.trace("Merged: "+data.mergedKeys.size()+" files into new file: "+newFileKey+" in "+elapse+" ms rate of: "+msPerfile+" ms/file");
+					}
 				} catch (IOException e) {
 					log.error("Worker failed", e);
 				}

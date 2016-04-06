@@ -293,7 +293,7 @@ public class TableModelUtils {
 					"ColumnModel.columnType cannot be null");
 		
 		// Only strings can have a value that is an empty string. See PLFM-2657
-		if ("".equals(value) && !(cm.getColumnType() == ColumnType.STRING || cm.getColumnType() == ColumnType.LINK)) {
+		if ("".equals(value) && !(cm.getColumnType() == ColumnType.STRING || cm.getColumnType() == ColumnType.LINK || cm.getColumnType() == ColumnType.LARGETEXT)) {
 			value = null;
 		}
 		
@@ -384,7 +384,14 @@ public class TableModelUtils {
 			}
 			checkStringEnum(value, cm);
 			return value;
+		case LARGETEXT:
+			if (value.length() > ColumnConstants.MAX_LARGE_TEXT_CHARACTERS) {
+				throw new IllegalArgumentException("Exceeds the maximum number of characters: "+ColumnConstants.MAX_LARGE_TEXT_CHARACTERS);
+			}
+			checkStringEnum(value, cm);
+			return value;	
 		}
+		
 		throw new IllegalArgumentException("Unknown ColumModel type: " + cm.getColumnType());
 	}
 
@@ -832,6 +839,8 @@ public class TableModelUtils {
 				throw new IllegalArgumentException("maxSize cannot be null for String types");
 			}
 			return (int) (ColumnConstants.MAX_BYTES_PER_CHAR_UTF_8 * maxSize);
+		case LARGETEXT:
+			return ColumnConstants.DEFAULT_LARGE_TEXT_BYTES;	
 		case BOOLEAN:
 			return ColumnConstants.MAX_BOOLEAN_BYTES_AS_STRING;
 		case INTEGER:
@@ -845,6 +854,25 @@ public class TableModelUtils {
 			return ColumnConstants.MAX_ENTITY_ID_BYTES_AS_STRING;
 		}
 		throw new IllegalArgumentException("Unknown ColumnType: " + type);
+	}
+	
+	
+	/**
+	 * Calculate the actual size of a row.
+	 * @param row
+	 * @return
+	 */
+	public static int calculateActualRowSize(Row row){
+		// row ID + row version.
+		int bytes = ColumnConstants.MAX_INTEGER_BYTES_AS_STRING*2;
+		if(row.getValues() != null){
+			for(String value: row.getValues()){
+				if(value != null){
+					bytes += value.length() * ColumnConstants.MAX_BYTES_PER_CHAR_UTF_8;
+				}
+			}
+		}
+		return bytes;
 	}
 	
 	/**

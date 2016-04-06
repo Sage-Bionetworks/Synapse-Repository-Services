@@ -276,20 +276,6 @@ public class AdministrationController extends BaseController {
 			@PathVariable(value = "id") String tableId) throws NotFoundException, IOException {
 		serviceProvider.getAdministrationService().rebuildTable(userId, tableId);
 	}
-	
-	@RequestMapping(value = { UrlHelpers.ADMIN_TABLE_ADD_INDEXES }, method = RequestMethod.GET)
-	@ResponseStatus(HttpStatus.NO_CONTENT)
-	public void addIndexesToTable(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable(value = "id") String tableId) throws NotFoundException, IOException {
-		serviceProvider.getAdministrationService().addIndexesToTable(userId, tableId);
-	}
-
-	@RequestMapping(value = { UrlHelpers.ADMIN_TABLE_REMOVE_INDEXES }, method = RequestMethod.GET)
-	@ResponseStatus(HttpStatus.NO_CONTENT)
-	public void removeIndexesFromTable(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable(value = "id") String tableId) throws NotFoundException, IOException {
-		serviceProvider.getAdministrationService().removeIndexesFromTable(userId, tableId);
-	}
 
 	@RequestMapping(value = {UrlHelpers.ADMIN_CLEAR_LOCKS}, method = RequestMethod.DELETE)
 	@ResponseStatus(HttpStatus.NO_CONTENT)

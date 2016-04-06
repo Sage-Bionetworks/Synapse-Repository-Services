@@ -393,18 +393,6 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	}
 
 	@Override
-	public void addTableColumnIndexes(String tableId) throws SynapseException, JSONObjectAdapterException {
-		String url = ADMIN + "/entity/" + tableId + "/table/addindexes";
-		getSharedClientConnection().getJson(repoEndpoint, url, getUserAgent(), null);
-	}
-
-	@Override
-	public void removeTableColumnIndexes(String tableId) throws SynapseException, JSONObjectAdapterException {
-		String url = ADMIN + "/entity/" + tableId + "/table/removeindexes";
-		getSharedClientConnection().getJson(repoEndpoint, url, getUserAgent(), null);
-	}
-
-	@Override
 	public void clearAllLocks() throws SynapseException{
 		getSharedClientConnection().deleteUri(repoEndpoint, ADMIN_CLEAR_LOCKS, getUserAgent());
 	}
