@@ -49,6 +49,7 @@ public class BroadcastMessageManagerImpl implements BroadcastMessageManager {
 	public void broadcastMessage(UserInfo user,	ProgressCallback<ChangeMessage> progressCallback, ChangeMessage changeMessage) {
 		ValidateArgument.required(user, "user");
 		ValidateArgument.required(changeMessage, "changeMessage");
+		ValidateArgument.required(changeMessage.getUserId(), "ChangeMessage.userId");
 		if(!user.isAdmin()){
 			throw new UnauthorizedException("Only an Administrator may call this method");
 		}

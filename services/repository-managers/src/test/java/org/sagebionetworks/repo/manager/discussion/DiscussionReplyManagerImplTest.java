@@ -210,7 +210,6 @@ public class DiscussionReplyManagerImplTest {
 		newMessage.setMessageMarkdown("messageMarkdown");
 		replyManager.updateReplyMessage(userInfo, replyId.toString(), newMessage);
 		Mockito.verify(mockReplyDao).updateMessageKey(replyId, messageKey);
-		Mockito.verify(mockTransactionalMessenger).sendMessageAfterCommit(replyId.toString(), ObjectType.REPLY, bundle.getEtag(), ChangeType.UPDATE, userInfo.getId());
 	}
 
 	@Test (expected = UnauthorizedException.class)
@@ -227,7 +226,6 @@ public class DiscussionReplyManagerImplTest {
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		replyManager.markReplyAsDeleted(userInfo, replyId.toString());
 		Mockito.verify(mockReplyDao).markReplyAsDeleted(replyId);
-		Mockito.verify(mockTransactionalMessenger).sendMessageAfterCommit(replyId.toString(), ObjectType.REPLY, ChangeType.DELETE, userInfo.getId());
 	}
 
 	@Test (expected = IllegalArgumentException.class)
