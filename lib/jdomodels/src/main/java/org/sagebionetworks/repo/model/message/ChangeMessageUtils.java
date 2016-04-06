@@ -45,8 +45,8 @@ public class ChangeMessageUtils {
 		if(dto.getTimestamp() != null){
 			dbo.setTimeStamp(new Timestamp(dto.getTimestamp().getTime()));
 		}
-		dbo.setObjectType(dto.getObjectType());
-		dbo.setChangeType(dto.getChangeType());
+		dbo.setObjectType(dto.getObjectType().name());
+		dbo.setChangeType(dto.getChangeType().name());
 		dbo.setObjectEtag(dto.getObjectEtag());
 		String dtoParentId = dto.getParentId();
 		if(ObjectType.ENTITY == dto.getObjectType()){
@@ -61,6 +61,9 @@ public class ChangeMessageUtils {
 			if (dtoParentId != null) {
 				dbo.setParentId(Long.parseLong(dtoParentId));
 			}
+		}
+		if (dto.getUserId() != null) {
+			dbo.setUserId(dto.getUserId());
 		}
 		return dbo;
 	}
@@ -90,8 +93,8 @@ public class ChangeMessageUtils {
 		dto.setChangeNumber(dbo.getChangeNumber());
 		dto.setTimestamp(dbo.getTimeStamp());
 		dto.setObjectEtag(dbo.getObjectEtag());
-		dto.setObjectType(dbo.getObjectType());
-		if(ObjectType.ENTITY == dbo.getObjectType()){
+		dto.setObjectType(ObjectType.valueOf(dbo.getObjectType()));
+		if(ObjectType.ENTITY == dto.getObjectType()){
 			// Entities get an 'syn' prefix
 			dto.setObjectId(KeyFactory.keyToString(dbo.getObjectId()));
 			dto.setParentId(KeyFactory.keyToString(dbo.getParentId()));
@@ -103,7 +106,10 @@ public class ChangeMessageUtils {
 				dto.setParentId(parentId.toString());
 			}
 		}
-		dto.setChangeType(dbo.getChangeType());
+		dto.setChangeType(ChangeType.valueOf(dbo.getChangeType()));
+		if (dbo.getUserId() != null) {
+			dto.setUserId(dbo.getUserId());
+		}
 		return dto;
 	}
 	

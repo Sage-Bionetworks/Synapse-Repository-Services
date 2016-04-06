@@ -62,7 +62,6 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup;
-import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TeamModificationMessage;
 import org.sagebionetworks.repo.model.message.TeamModificationType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
@@ -619,7 +618,6 @@ public class TeamManagerImplTest {
 		verify(mockGroupMembersDAO, never()).addMembers(TEAM_ID, Arrays.asList(new String[]{principalId}));
 		verify(mockMembershipInvtnSubmissionDAO).deleteByTeamAndUser(Long.parseLong(TEAM_ID), Long.parseLong(principalId));
 		verify(mockMembershipRqstSubmissionDAO).deleteByTeamAndRequester(Long.parseLong(TEAM_ID), Long.parseLong(principalId));
-		verify(mockTransactionalMessenger, never()).sendMessageAfterCommit(Mockito.anyString(), (ObjectType) any(), Mockito.anyString(), Mockito.anyString(), (ChangeType) any());
 	}
 	
 	private static List<UserGroup> ugList(String[] pids) {
@@ -720,7 +718,6 @@ public class TeamManagerImplTest {
 		teamManagerImpl.removeMember(userInfo, TEAM_ID, memberPrincipalId);
 		verify(mockGroupMembersDAO, times(0)).removeMembers(TEAM_ID, Arrays.asList(new String[]{memberPrincipalId}));
 		verify(mockAclDAO, times(0)).update((AccessControlList)any(), eq(ObjectType.TEAM));		
-		verify(mockTransactionalMessenger, never()).sendMessageAfterCommit(Mockito.anyString(), (ObjectType) any(), Mockito.anyString(), Mockito.anyString(), (ChangeType) any());
 	}
 	
 	@Test

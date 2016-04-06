@@ -86,6 +86,7 @@ public class BroadcastMessageManagerImplTest {
 		change.setObjectId("456");
 		change.setObjectType(ObjectType.REPLY);
 		change.setTimestamp(new Date(123000L));
+		change.setUserId(789L);
 		
 		Topic topic = new Topic();
 		topic.setObjectId("5555");
@@ -97,15 +98,17 @@ public class BroadcastMessageManagerImplTest {
 		when(mockBroadcastMessageDao.wasBroadcast(change.getChangeNumber())).thenReturn(false);
 		when(mockChangeDao.doesChangeNumberExist(change.getChangeNumber())).thenReturn(true);
 		
-		when(mockFactory.createMessageBuilder(change.getObjectId(), change.getChangeType())).thenReturn(mockBroadcastMessageBuilder);
+		when(mockFactory.createMessageBuilder(change.getObjectId(), change.getChangeType(), change.getUserId())).thenReturn(mockBroadcastMessageBuilder);
 
 		when(mockBroadcastMessageBuilder.getBroadcastTopic()).thenReturn(topic);
 		
 		
 		Subscriber sub1 = new Subscriber();
 		sub1.setSubscriptionId("1");
+		sub1.setSubscriberId("1");
 		Subscriber sub2 = new Subscriber();
 		sub2.setSubscriptionId("2");
+		sub2.setSubscriberId("2");
 		subscribers = Lists.newArrayList(sub1, sub2);
 		
 		when(mockSubscriptionDAO.getAllEmailSubscribers(topic.getObjectId(), topic.getObjectType())).thenReturn(subscribers);

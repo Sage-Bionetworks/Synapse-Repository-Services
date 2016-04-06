@@ -13,7 +13,8 @@ public interface MessageBuilderFactory {
 	 * 
 	 * @param objectId
 	 * @param changeType
+	 * @param userId
 	 * @return
 	 */
-	BroadcastMessageBuilder createMessageBuilder(String objectId, ChangeType changeType);
+	BroadcastMessageBuilder createMessageBuilder(String objectId, ChangeType changeType, Long userId);
 }
