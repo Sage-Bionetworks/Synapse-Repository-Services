@@ -852,7 +852,7 @@ public class IT500SynapseJavaClient {
 	public URL waitForProfilePreview(SynapseClient client, String userId) throws Exception{
 		long start = System.currentTimeMillis();
 		while(true){
-			if(System.currentTimeMillis()-start > 30000){
+			if(System.currentTimeMillis()-start > 60000){
 				fail("Timed out wait for a profile preview: "+userId);
 			}
 			try {

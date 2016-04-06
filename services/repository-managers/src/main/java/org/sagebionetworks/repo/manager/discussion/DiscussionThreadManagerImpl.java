@@ -75,7 +75,6 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		Long id = idGenerator.generateNewId(TYPE.DISCUSSION_THREAD_ID);
 		String messageKey = uploadDao.uploadThreadMessage(createThread.getMessageMarkdown(), createThread.getForumId(), id.toString());
 		DiscussionThreadBundle thread = threadDao.createThread(createThread.getForumId(), id.toString(), createThread.getTitle(), messageKey, userInfo.getId());
-		forumDao.touch(Long.parseLong(thread.getForumId()));
 		transactionalMessenger.sendMessageAfterCommit(""+id, ObjectType.THREAD, thread.getEtag(),  ChangeType.CREATE, userInfo.getId());
 		handleSubscription(userInfo.getId().toString(), thread.getId(), thread.getForumId());
 		return updateNumberOfReplies(thread, DiscussionFilter.NO_FILTER);
@@ -115,7 +114,6 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		DiscussionThreadBundle thread = threadDao.getThread(threadIdLong, DEFAULT_FILTER);
 		if (authorizationManager.isUserCreatorOrAdmin(userInfo, thread.getCreatedBy())) {
 			thread = threadDao.updateTitle(threadIdLong, newTitle.getTitle());
-			forumDao.touch(Long.parseLong(thread.getForumId()));
 			transactionalMessenger.sendMessageAfterCommit(""+threadIdLong, ObjectType.THREAD, thread.getEtag(), ChangeType.UPDATE, userInfo.getId());
 			return updateNumberOfReplies(thread, DiscussionFilter.NO_FILTER);
 		} else {
@@ -136,7 +134,6 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		if (authorizationManager.isUserCreatorOrAdmin(userInfo, thread.getCreatedBy())) {
 			String messageKey = uploadDao.uploadThreadMessage(newMessage.getMessageMarkdown(), thread.getForumId(), thread.getId());
 			thread = threadDao.updateMessageKey(threadIdLong, messageKey);
-			forumDao.touch(Long.parseLong(thread.getForumId()));
 			transactionalMessenger.sendMessageAfterCommit(""+threadIdLong, ObjectType.THREAD, thread.getEtag(), ChangeType.UPDATE, userInfo.getId());
 			return updateNumberOfReplies(thread, DiscussionFilter.NO_FILTER);
 		} else {
@@ -154,7 +151,6 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canAccess(userInfo, thread.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.MODERATE));
 		threadDao.markThreadAsDeleted(threadIdLong);
-		forumDao.touch(Long.parseLong(thread.getForumId()));
 		transactionalMessenger.sendMessageAfterCommit(""+threadIdLong, ObjectType.THREAD, ChangeType.DELETE, userInfo.getId());
 	}
 
@@ -197,15 +193,6 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 				authorizationManager.canAccess(userInfo, thread.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
 		threadDao.updateThreadView(threadIdLong, userInfo.getId());
 		return uploadDao.getThreadUrl(thread.getMessageKey());
-	}
-
-	@WriteTransactionReadCommitted
-	@Override
-	public void touch(Long threadId) {
-		ValidateArgument.required(threadId, "threadId");
-		threadDao.touch(threadId);
-		Long forumId = Long.parseLong(threadDao.getThread(threadId, DEFAULT_FILTER).getForumId());
-		forumDao.touch(forumId);
 	}
 
 	@Override

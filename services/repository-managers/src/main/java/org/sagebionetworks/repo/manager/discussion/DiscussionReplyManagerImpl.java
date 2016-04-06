@@ -66,7 +66,6 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 		String messageKey = uploadDao.uploadReplyMessage(createReply.getMessageMarkdown(), thread.getForumId(), threadId, replyId);
 		DiscussionReplyBundle reply = replyDao.createReply(threadId, replyId, messageKey, userInfo.getId());
 		subscriptionDao.create(userInfo.getId().toString(), thread.getId(), SubscriptionObjectType.THREAD);
-		threadManager.touch(Long.parseLong(threadId));
 		transactionalMessenger.sendMessageAfterCommit(replyId, ObjectType.REPLY, reply.getEtag(), ChangeType.CREATE, userInfo.getId());
 		return reply;
 	}
@@ -93,7 +92,6 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 		DiscussionReplyBundle reply = replyDao.getReply(replyIdLong, DEFAULT_FILTER);
 		if (authorizationManager.isUserCreatorOrAdmin(userInfo, reply.getCreatedBy())) {
 			String messageKey = uploadDao.uploadReplyMessage(newMessage.getMessageMarkdown(), reply.getForumId(), reply.getThreadId(), reply.getId());
-			threadManager.touch(Long.parseLong(reply.getThreadId()));
 			transactionalMessenger.sendMessageAfterCommit(replyId, ObjectType.REPLY, reply.getEtag(), ChangeType.UPDATE, userInfo.getId());
 			return replyDao.updateMessageKey(replyIdLong, messageKey);
 		} else {
@@ -111,7 +109,6 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canAccess(userInfo, reply.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.MODERATE));
 		replyDao.markReplyAsDeleted(replyIdLong);
-		threadManager.touch(Long.parseLong(reply.getThreadId()));
 		transactionalMessenger.sendMessageAfterCommit(replyId, ObjectType.REPLY, ChangeType.DELETE, userInfo.getId());
 	}
 
@@ -149,5 +146,4 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 		count.setCount(replyDao.getReplyCount(Long.parseLong(threadId), filter));
 		return count;
 	}
-
 }

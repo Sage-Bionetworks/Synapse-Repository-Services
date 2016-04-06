@@ -151,10 +151,4 @@ public interface DiscussionThreadDAO {
 	 * @return
 	 */
 	public List<String> getAllThreadIdForForum(String forumId);
-
-	/**
-	 * change the etag
-	 * @param id
-	 */
-	public void touch(long id);
 }
