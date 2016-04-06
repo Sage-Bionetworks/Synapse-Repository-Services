@@ -22,27 +22,29 @@ import com.google.common.collect.Maps;
 public class ThreadBroadcastMessageBuilder implements BroadcastMessageBuilder {
 	
 	public static final String THREAD_TEMPLATE = "message/threadTemplate.html";
+	public static final String THREAD_CREATED_TITLE = "Synapse Notification: New thread '%1$s'";
+	public static final String THREAD_UPDATED_TITLE = "Synapse Notification: '%1$s' thread has been updated";
+	public static final String THREAD_DELETED_TITLE = "Synapse Notification: '%1$s' thread has been removed";
 
 	DiscussionThreadBundle threadBundle;
 	EntityHeader projectHeader;
 	ChangeType changeType;
-	String threadCreatedBy;
+	String actor;
 	String subject;
 	String emailTemplate;
 	String threadTitleTruncated;
-	
 
 	public ThreadBroadcastMessageBuilder(DiscussionThreadBundle threadBundle,
-			EntityHeader projectHeader, ChangeType changeType, String threadCreatedBy) {
+			EntityHeader projectHeader, ChangeType changeType, String actor) {
 		ValidateArgument.required(threadBundle, "threadBundle");
 		ValidateArgument.required(projectHeader, "projectHeader");
 		ValidateArgument.required(changeType, "changeType");
 		this.threadBundle = threadBundle;
 		this.projectHeader = projectHeader;
 		this.changeType = changeType;
-		this.threadCreatedBy = threadCreatedBy;
+		this.actor = actor;
 		this.subject = buildSubject(threadBundle.getTitle(), changeType);
-		this.threadTitleTruncated = truncateString(threadBundle.getTitle(), 50);
+		this.threadTitleTruncated = BroadcastMessageBuilderUtil.truncateString(threadBundle.getTitle(), 50);
 		// Load the template file
 		emailTemplate = loadTemplateFile(THREAD_TEMPLATE);
 	}
@@ -63,7 +65,6 @@ public class ThreadBroadcastMessageBuilder implements BroadcastMessageBuilder {
 	public SendRawEmailRequest buildEmailForSubscriber(Subscriber subscriber) {
 		// build the email body
 		String body = buildBody(subscriber);
-		
 		return new SendRawEmailRequestBuilder()
 		.withSubject(subject)
 		.withBody(body, BodyType.HTML)
@@ -83,26 +84,16 @@ public class ThreadBroadcastMessageBuilder implements BroadcastMessageBuilder {
 		// display name
 		String displayName = EmailUtils.getDisplayNameWithUsername(subscriber.getFirstName(), subscriber.getLastName(), subscriber.getUsername());
 		fieldValues.put("#displayName#", displayName);
-		fieldValues.put("#threadCreator#", threadCreatedBy);
+		fieldValues.put("#actor#", actor);
 		fieldValues.put("#projectId#", projectHeader.getId());
 		fieldValues.put("#threadId#", threadBundle.getId());
 		fieldValues.put("#threadName#", threadTitleTruncated);
 		fieldValues.put("#projectName#", projectHeader.getName());
 		fieldValues.put("#subscriptionID#", subscriber.getSubscriptionId());
-		fieldValues.put("#action#", getAction(changeType));
+		fieldValues.put("#action#", BroadcastMessageBuilderUtil.getAction(changeType));
 		return EmailUtils.buildMailFromTemplate(emailTemplate, fieldValues);
 	}
 
-	public static String getAction(ChangeType changeType) {
-		if(ChangeType.CREATE == changeType){
-			return "created";
-		}else if(ChangeType.UPDATE == changeType){
-			return "updated";
-		}else{
-			return "removed";
-		}
-	}
-	
 	/**
 	 * Builder a subject from the title and type.
 	 * @param threadTitle
@@ -110,32 +101,15 @@ public class ThreadBroadcastMessageBuilder implements BroadcastMessageBuilder {
 	 * @return
 	 */
 	public static String buildSubject(String threadTitle, ChangeType changeType){
-		StringBuilder builder = new StringBuilder();
-		builder.append("Synapse Notification: ");
-		if(ChangeType.CREATE == changeType){
-			builder.append("New thread '");
-		}else if(ChangeType.UPDATE == changeType){
-			builder.append("Thread updated '");
-		}else{
-			builder.append("Thread removed '");
+		switch(changeType) {
+			case CREATE:
+				return String.format(THREAD_CREATED_TITLE, BroadcastMessageBuilderUtil.truncateString(threadTitle, 50));
+			case UPDATE:
+				return String.format(THREAD_UPDATED_TITLE, BroadcastMessageBuilderUtil.truncateString(threadTitle, 50));
+			case DELETE:
+				return String.format(THREAD_DELETED_TITLE, BroadcastMessageBuilderUtil.truncateString(threadTitle, 50));
 		}
-		builder.append(truncateString(threadTitle, 50));
-		builder.append("'");
-		return builder.toString();
-	}
-	
-	/**
-	 * Truncate a string to the given max length if needed.
-	 * @param toTruncate
-	 * @param maxLength
-	 * @return
-	 */
-	public static String truncateString(String toTruncate, int maxLength){
-		if(toTruncate.length() <= maxLength){
-			return toTruncate;
-		}else{
-			return toTruncate.substring(0, maxLength)+"...";
-		}
+		throw new IllegalArgumentException("Change type: "+changeType+" is not supported.");
 	}
 	
 	/**

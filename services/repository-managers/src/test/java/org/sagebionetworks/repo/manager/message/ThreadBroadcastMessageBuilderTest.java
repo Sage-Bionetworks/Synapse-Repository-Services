@@ -44,38 +44,24 @@ public class ThreadBroadcastMessageBuilderTest {
 	}
 	
 	@Test
-	public void testTruncateStringOver(){
-		String input = "123456789";
-		String truncate = ReplyBroadcastMessageBuilder.truncateString(input, 4);
-		assertEquals("1234...", truncate);
-	}
-
-	@Test
-	public void testTruncateStringUnder(){
-		String input = "123456789";
-		String truncate = ReplyBroadcastMessageBuilder.truncateString(input, input.length());
-		assertEquals(input, truncate);
-	}
-	
-	@Test
 	public void testSubjectCreate(){
 		String title = "A-title-that-is-too-long-to-show-so-we-truncate-it-to-a-much-smaller-string";
-		String subject = ReplyBroadcastMessageBuilder.buildSubject(title, ChangeType.CREATE);
-		assertEquals("Synapse Notification: New reply in thread 'A-title-that-is-too-long-to-show-so-we-truncate-it...'", subject);
+		String subject = ThreadBroadcastMessageBuilder.buildSubject(title, ChangeType.CREATE);
+		assertEquals("Synapse Notification: New thread 'A-title-that-is-too-long-to-show-so-we-truncate-it...'", subject);
 	}
 	
 	@Test
 	public void testSubjectUpdate(){
 		String title = "A-title";
-		String subject = ReplyBroadcastMessageBuilder.buildSubject(title, ChangeType.UPDATE);
-		assertEquals("Synapse Notification: Reply updated in thread 'A-title'", subject);
+		String subject = ThreadBroadcastMessageBuilder.buildSubject(title, ChangeType.UPDATE);
+		assertEquals("Synapse Notification: 'A-title' thread has been updated", subject);
 	}
 	
 	@Test
 	public void testSubjectDelete(){
 		String title = "A-title";
-		String subject = ReplyBroadcastMessageBuilder.buildSubject(title, ChangeType.DELETE);
-		assertEquals("Synapse Notification: Reply removed in thread 'A-title'", subject);
+		String subject = ThreadBroadcastMessageBuilder.buildSubject(title, ChangeType.DELETE);
+		assertEquals("Synapse Notification: 'A-title' thread has been removed", subject);
 	}
 	
 	@Test
@@ -98,10 +84,4 @@ public class ThreadBroadcastMessageBuilderTest {
 		assertNotNull(request);
 	}
 
-	@Test
-	public void testGetAction() {
-		assertEquals("created", ThreadBroadcastMessageBuilder.getAction(ChangeType.CREATE));
-		assertEquals("updated", ThreadBroadcastMessageBuilder.getAction(ChangeType.UPDATE));
-		assertEquals("removed", ThreadBroadcastMessageBuilder.getAction(ChangeType.DELETE));
-	}
 }

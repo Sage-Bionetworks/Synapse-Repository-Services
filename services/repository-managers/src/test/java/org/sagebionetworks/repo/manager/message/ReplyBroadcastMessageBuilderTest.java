@@ -47,40 +47,26 @@ public class ReplyBroadcastMessageBuilderTest {
 	
 		builder = new ReplyBroadcastMessageBuilder(replyBundle, threadBundle, projectHeader, changeType, replyUsername);
 	}
-	
-	@Test
-	public void testTruncateStringOver(){
-		String input = "123456789";
-		String truncate = ReplyBroadcastMessageBuilder.truncateString(input, 4);
-		assertEquals("1234...", truncate);
-	}
 
-	@Test
-	public void testTruncateStringUnder(){
-		String input = "123456789";
-		String truncate = ReplyBroadcastMessageBuilder.truncateString(input, input.length());
-		assertEquals(input, truncate);
-	}
-	
 	@Test
 	public void testSubjectCreate(){
 		String title = "A-title-that-is-too-long-to-show-so-we-truncate-it-to-a-much-smaller-string";
 		String subject = ReplyBroadcastMessageBuilder.buildSubject(title, ChangeType.CREATE);
-		assertEquals("Synapse Notification: New reply in thread 'A-title-that-is-too-long-to-show-so-we-truncate-it...'", subject);
+		assertEquals("Synapse Notification: New reply created in thread 'A-title-that-is-too-long-to-show-so-we-truncate-it...'", subject);
 	}
 	
 	@Test
 	public void testSubjectUpdate(){
 		String title = "A-title";
 		String subject = ReplyBroadcastMessageBuilder.buildSubject(title, ChangeType.UPDATE);
-		assertEquals("Synapse Notification: Reply updated in thread 'A-title'", subject);
+		assertEquals("Synapse Notification: A reply has been updated in thread 'A-title'", subject);
 	}
 	
 	@Test
 	public void testSubjectDelete(){
 		String title = "A-title";
 		String subject = ReplyBroadcastMessageBuilder.buildSubject(title, ChangeType.DELETE);
-		assertEquals("Synapse Notification: Reply removed in thread 'A-title'", subject);
+		assertEquals("Synapse Notification: A reply has been removed in thread 'A-title'", subject);
 	}
 	
 	@Test
@@ -94,19 +80,12 @@ public class ReplyBroadcastMessageBuilderTest {
 		assertTrue(body.contains("https://www.synapse.org/#!Subscription:subscriptionID=999"));
 		assertTrue(body.contains("https://www.synapse.org/#!Synapse:syn8888/discussion/threadId=333"));
 		assertTrue(body.contains("https://www.synapse.org/#!Synapse:syn8888"));
-		assertTrue(body.contains("replied"));
+		assertTrue(body.contains("created a reply"));
 	}
 	
 	@Test
 	public void testBuildEmailForSubscriber(){
 		SendRawEmailRequest request = builder.buildEmailForSubscriber(subscriber);
 		assertNotNull(request);
-	}
-
-	@Test
-	public void testGetAction() {
-		assertEquals("replied", ReplyBroadcastMessageBuilder.getAction(ChangeType.CREATE));
-		assertEquals("updated a reply", ReplyBroadcastMessageBuilder.getAction(ChangeType.UPDATE));
-		assertEquals("removed a reply", ReplyBroadcastMessageBuilder.getAction(ChangeType.DELETE));
 	}
 }
