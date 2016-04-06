@@ -29,6 +29,10 @@
 				"UPDATE",
 				"DELETE"
 			]
+		},
+		"userId": {
+			"type": "integer",
+			"description": "The ID of the user who created this change message"
 		}
 	}
 }

@@ -66,7 +66,7 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 		String messageKey = uploadDao.uploadReplyMessage(createReply.getMessageMarkdown(), thread.getForumId(), threadId, replyId);
 		DiscussionReplyBundle reply = replyDao.createReply(threadId, replyId, messageKey, userInfo.getId());
 		subscriptionDao.create(userInfo.getId().toString(), thread.getId(), SubscriptionObjectType.THREAD);
-		transactionalMessenger.sendMessageAfterCommit(replyId, ObjectType.REPLY, reply.getEtag(), ChangeType.CREATE);
+		transactionalMessenger.sendMessageAfterCommit(replyId, ObjectType.REPLY, reply.getEtag(), ChangeType.CREATE, userInfo.getId());
 		return reply;
 	}
 
@@ -92,7 +92,7 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 		DiscussionReplyBundle reply = replyDao.getReply(replyIdLong, DEFAULT_FILTER);
 		if (authorizationManager.isUserCreatorOrAdmin(userInfo, reply.getCreatedBy())) {
 			String messageKey = uploadDao.uploadReplyMessage(newMessage.getMessageMarkdown(), reply.getForumId(), reply.getThreadId(), reply.getId());
-			transactionalMessenger.sendMessageAfterCommit(replyId, ObjectType.REPLY, reply.getEtag(), ChangeType.UPDATE);
+			transactionalMessenger.sendMessageAfterCommit(replyId, ObjectType.REPLY, reply.getEtag(), ChangeType.UPDATE, userInfo.getId());
 			return replyDao.updateMessageKey(replyIdLong, messageKey);
 		} else {
 			throw new UnauthorizedException("Only the user that created the thread can modify it.");
@@ -109,7 +109,7 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canAccess(userInfo, reply.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.MODERATE));
 		replyDao.markReplyAsDeleted(replyIdLong);
-		transactionalMessenger.sendMessageAfterCommit(replyId, ObjectType.REPLY, ChangeType.DELETE);
+		transactionalMessenger.sendMessageAfterCommit(replyId, ObjectType.REPLY, ChangeType.DELETE, userInfo.getId());
 	}
 
 	@Override

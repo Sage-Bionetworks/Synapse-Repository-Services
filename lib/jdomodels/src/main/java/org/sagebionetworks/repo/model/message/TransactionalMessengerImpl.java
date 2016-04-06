@@ -85,9 +85,10 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 	
 	@Override
 	public void sendMessageAfterCommit(String objectId, ObjectType objectType, String etag, ChangeType changeType) {
-		sendMessageAfterCommit(objectId, objectType, etag, null, changeType);
+		sendMessageAfterCommit(objectId, objectType, etag, changeType, null);
 	}
-	
+
+	@Deprecated
 	@Override
 	public void sendMessageAfterCommit(String objectId, ObjectType objectType, String etag, String parentId, ChangeType changeType) {
 		ChangeMessage message = new ChangeMessage();
@@ -96,7 +97,6 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 		message.setObjectId(objectId);
 		message.setParentId(parentId);
 		message.setObjectEtag(etag);
-		
 		sendMessageAfterCommit(message);
 	}
 	
@@ -108,7 +108,6 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 		message.setObjectId(entity.getIdString());
 		message.setParentId(entity.getParentIdString());
 		message.setObjectEtag(entity.getEtag());
-		
 		sendMessageAfterCommit(message);
 	}
 	
@@ -116,6 +115,22 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 	public void sendMessageAfterCommit(ChangeMessage message) {
 		if(message == null) throw new IllegalArgumentException("Message cannot be null");
 		appendToBoundMessages(message);
+	}
+
+	@Override
+	public void sendMessageAfterCommit(String objectId, ObjectType objectType, ChangeType changeType, Long userId) {
+		sendMessageAfterCommit(objectId, objectType, null, changeType, userId);
+	}
+
+	@Override
+	public void sendMessageAfterCommit(String objectId, ObjectType objectType, String etag, ChangeType changeType, Long userId) {
+		ChangeMessage message = new ChangeMessage();
+		message.setChangeType(changeType);
+		message.setObjectType(objectType);
+		message.setObjectId(objectId);
+		message.setObjectEtag(etag);
+		message.setUserId(userId);
+		sendMessageAfterCommit(message);
 	}
 
 	@Override
@@ -295,5 +310,4 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 	public List<ChangeMessage> listUnsentMessages(long limit) {
 		return this.changeDAO.listUnsentMessages(limit);
 	}
-
 }

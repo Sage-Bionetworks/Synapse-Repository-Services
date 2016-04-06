@@ -81,13 +81,17 @@ public class BroadcastMessageManagerImpl implements BroadcastMessageManager {
 			throw new IllegalArgumentException("No factory found for object type: "+changeMessage.getObjectType());
 		}
 		// The builder creates the email.
-		BroadcastMessageBuilder builder = factory.createMessageBuilder(changeMessage.getObjectId(), changeMessage.getChangeType());
+		BroadcastMessageBuilder builder = factory.createMessageBuilder(changeMessage.getObjectId(), changeMessage.getChangeType(), changeMessage.getUserId());
 		Topic topic = builder.getBroadcastTopic();
 		valdiateTopic(topic);
 		// Get all of the email subscribers for this topic.
 		List<Subscriber> subscribers = subscriptionDAO.getAllEmailSubscribers(topic.getObjectId(), topic.getObjectType());
 		// The builder will prepare an email for each subscriber
 		for(Subscriber subscriber: subscribers){
+			if (subscriber.getSubscriberId().equals(changeMessage.getUserId().toString())) {
+				// do not send an email to the user who created this change
+				continue;
+			}
 			// progress between each message
 			progressCallback.progressMade(changeMessage);
 			SendRawEmailRequest emailRequest = builder.buildEmailForSubscriber(subscriber);
