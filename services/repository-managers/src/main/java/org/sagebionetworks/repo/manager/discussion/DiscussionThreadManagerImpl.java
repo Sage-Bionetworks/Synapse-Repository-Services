@@ -76,7 +76,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		String messageKey = uploadDao.uploadThreadMessage(createThread.getMessageMarkdown(), createThread.getForumId(), id.toString());
 		DiscussionThreadBundle thread = threadDao.createThread(createThread.getForumId(), id.toString(), createThread.getTitle(), messageKey, userInfo.getId());
 		forumDao.touch(Long.parseLong(thread.getForumId()));
-		transactionalMessenger.sendMessageAfterCommit(""+id, ObjectType.THREAD, thread.getEtag(),  ChangeType.CREATE);
+		transactionalMessenger.sendMessageAfterCommit(""+id, ObjectType.THREAD, thread.getEtag(),  ChangeType.CREATE, userInfo.getId());
 		handleSubscription(userInfo.getId().toString(), thread.getId(), thread.getForumId());
 		return updateNumberOfReplies(thread, DiscussionFilter.NO_FILTER);
 	}
@@ -116,7 +116,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		if (authorizationManager.isUserCreatorOrAdmin(userInfo, thread.getCreatedBy())) {
 			thread = threadDao.updateTitle(threadIdLong, newTitle.getTitle());
 			forumDao.touch(Long.parseLong(thread.getForumId()));
-			transactionalMessenger.sendMessageAfterCommit(""+threadIdLong, ObjectType.THREAD, thread.getEtag(),  ChangeType.UPDATE);
+			transactionalMessenger.sendMessageAfterCommit(""+threadIdLong, ObjectType.THREAD, thread.getEtag(), ChangeType.UPDATE, userInfo.getId());
 			return updateNumberOfReplies(thread, DiscussionFilter.NO_FILTER);
 		} else {
 			throw new UnauthorizedException("Only the user that created the thread can modify it.");
@@ -137,7 +137,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 			String messageKey = uploadDao.uploadThreadMessage(newMessage.getMessageMarkdown(), thread.getForumId(), thread.getId());
 			thread = threadDao.updateMessageKey(threadIdLong, messageKey);
 			forumDao.touch(Long.parseLong(thread.getForumId()));
-			transactionalMessenger.sendMessageAfterCommit(""+threadIdLong, ObjectType.THREAD, thread.getEtag(),  ChangeType.UPDATE);
+			transactionalMessenger.sendMessageAfterCommit(""+threadIdLong, ObjectType.THREAD, thread.getEtag(), ChangeType.UPDATE, userInfo.getId());
 			return updateNumberOfReplies(thread, DiscussionFilter.NO_FILTER);
 		} else {
 			throw new UnauthorizedException("Only the user that created the thread can modify it.");
@@ -155,7 +155,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 				authorizationManager.canAccess(userInfo, thread.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.MODERATE));
 		threadDao.markThreadAsDeleted(threadIdLong);
 		forumDao.touch(Long.parseLong(thread.getForumId()));
-		transactionalMessenger.sendMessageAfterCommit(""+threadIdLong, ObjectType.THREAD, ChangeType.DELETE);
+		transactionalMessenger.sendMessageAfterCommit(""+threadIdLong, ObjectType.THREAD, ChangeType.DELETE, userInfo.getId());
 	}
 
 	@Override

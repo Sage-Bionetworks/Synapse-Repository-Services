@@ -158,7 +158,7 @@ public class DiscussionReplyManagerImplTest {
 		DiscussionReplyBundle reply = replyManager.createReply(userInfo, createReply);
 		assertEquals(bundle, reply);
 		Mockito.verify(mockSubscriptionDao).create(userInfo.getId().toString(), reply.getThreadId(), SubscriptionObjectType.THREAD);
-		Mockito.verify(mockTransactionalMessenger).sendMessageAfterCommit(replyId.toString(), ObjectType.REPLY, bundle.getEtag(), ChangeType.CREATE);
+		Mockito.verify(mockTransactionalMessenger).sendMessageAfterCommit(replyId.toString(), ObjectType.REPLY, bundle.getEtag(), ChangeType.CREATE, userInfo.getId());
 		Mockito.verify(mockThreadManager).touch(Long.parseLong(threadId));
 	}
 
@@ -211,7 +211,7 @@ public class DiscussionReplyManagerImplTest {
 		newMessage.setMessageMarkdown("messageMarkdown");
 		replyManager.updateReplyMessage(userInfo, replyId.toString(), newMessage);
 		Mockito.verify(mockReplyDao).updateMessageKey(replyId, messageKey);
-		Mockito.verify(mockTransactionalMessenger).sendMessageAfterCommit(replyId.toString(), ObjectType.REPLY, bundle.getEtag(), ChangeType.UPDATE);
+		Mockito.verify(mockTransactionalMessenger).sendMessageAfterCommit(replyId.toString(), ObjectType.REPLY, bundle.getEtag(), ChangeType.UPDATE, userInfo.getId());
 		Mockito.verify(mockThreadManager).touch(Long.parseLong(threadId));
 	}
 
@@ -229,7 +229,7 @@ public class DiscussionReplyManagerImplTest {
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		replyManager.markReplyAsDeleted(userInfo, replyId.toString());
 		Mockito.verify(mockReplyDao).markReplyAsDeleted(replyId);
-		Mockito.verify(mockTransactionalMessenger).sendMessageAfterCommit(replyId.toString(), ObjectType.REPLY, ChangeType.DELETE);
+		Mockito.verify(mockTransactionalMessenger).sendMessageAfterCommit(replyId.toString(), ObjectType.REPLY, ChangeType.DELETE, userInfo.getId());
 		Mockito.verify(mockThreadManager).touch(Long.parseLong(threadId));
 	}
 
