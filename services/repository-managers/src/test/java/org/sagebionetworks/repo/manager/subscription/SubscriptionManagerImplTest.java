@@ -5,7 +5,9 @@ import static org.mockito.Mockito.*;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -13,6 +15,8 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -37,6 +41,8 @@ public class SubscriptionManagerImplTest {
 	private DBOChangeDAO mockChangeDao;
 	@Mock
 	private SubscriptionDAO mockDao;
+	@Mock
+	private AccessControlListDAO mockAclDao;
 	private SubscriptionManagerImpl manager;
 	private Topic topic;
 	private String objectId;
@@ -54,6 +60,7 @@ public class SubscriptionManagerImplTest {
 		ReflectionTestUtils.setField(manager, "subscriptionDao", mockDao);
 		ReflectionTestUtils.setField(manager, "threadDao", mockThreadDao);
 		ReflectionTestUtils.setField(manager, "changeDao", mockChangeDao);
+		ReflectionTestUtils.setField(manager, "aclDao", mockAclDao);
 
 		objectId = "1";
 		topic = new Topic();
@@ -63,6 +70,9 @@ public class SubscriptionManagerImplTest {
 		anotherUser = 4L;
 		userInfo = new UserInfo(false);
 		userInfo.setId(userId);
+		Set<Long> groups = new HashSet<Long>();
+		groups.add(userId);
+		userInfo.setGroups(groups);
 		sub = new Subscription();
 		sub.setObjectId(objectId);
 	}
@@ -190,20 +200,28 @@ public class SubscriptionManagerImplTest {
 	}
 
 	@Test (expected=IllegalArgumentException.class)
-	public void testGetListInvalidLimit() {
+	public void testGetAllInvalidLimit() {
 		manager.getAll(userInfo, null, 0L, null);
 	}
 
 	@Test (expected=IllegalArgumentException.class)
-	public void testGetListInvalidOffset() {
+	public void testGetAllInvalidOffset() {
 		manager.getAll(userInfo, 10L, null, null);
+	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetAllInvalidObjectType() {
+		manager.getAll(userInfo, 10L, 0L, null);
 	}
 
 	@Test
 	public void testGetAll() {
 		SubscriptionPagedResults results = new SubscriptionPagedResults();
-		when(mockDao.getAll(userId.toString(), 10L, 0L, null)).thenReturn(results);
-		assertEquals(results, manager.getAll(userInfo, 10L, 0L, null));
+		Set<Long> projectIds = new HashSet<Long>();
+		when(mockDao.getAll(userId.toString(), 10L, 0L, SubscriptionObjectType.DISCUSSION_THREAD, projectIds )).thenReturn(results);
+		when(mockDao.getAllProjects(userId.toString(), SubscriptionObjectType.DISCUSSION_THREAD)).thenReturn(projectIds);
+		when(mockAclDao.getAccessibleBenefactors(userInfo.getGroups(), projectIds, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(projectIds);
+		assertEquals(results, manager.getAll(userInfo, 10L, 0L, SubscriptionObjectType.DISCUSSION_THREAD));
 	}
 
 	@Test (expected=IllegalArgumentException.class)
