@@ -107,7 +107,7 @@ public class SubscriptionController extends BaseController{
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM) Long limit,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM) Long offset,
-			@RequestParam(value = ServiceConstants.SUBSCRIPTION_OBJECT_TYPE_PARAM, required = false) SubscriptionObjectType objectType) {
+			@RequestParam(value = ServiceConstants.SUBSCRIPTION_OBJECT_TYPE_PARAM) SubscriptionObjectType objectType) {
 		return serviceProvider.getSubscriptionService().getAll(userId, limit, offset, objectType);
 	}
 

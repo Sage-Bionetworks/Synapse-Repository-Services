@@ -1,9 +1,12 @@
 package org.sagebionetworks.repo.manager.subscription;
 
 import java.util.List;
+import java.util.Set;
 
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -31,6 +34,8 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
 	private AuthorizationManager authorizationManager;
 	@Autowired
 	private DBOChangeDAO changeDao;
+	@Autowired
+	private AccessControlListDAO aclDao;
 
 	@WriteTransactionReadCommitted
 	@Override
@@ -68,7 +73,10 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(limit, "limit");
 		ValidateArgument.required(offset, "offset");
-		return subscriptionDao.getAll(userInfo.getId().toString(), limit, offset, objectType);
+		ValidateArgument.required(objectType, "objectType");
+		Set<Long> projectIds = subscriptionDao.getAllProjects(userInfo.getId().toString(), objectType);
+		projectIds = aclDao.getAccessibleBenefactors(userInfo.getGroups(), projectIds, ObjectType.ENTITY, ACCESS_TYPE.READ);
+		return subscriptionDao.getAll(userInfo.getId().toString(), limit, offset, objectType, projectIds);
 	}
 
 	@WriteTransactionReadCommitted
