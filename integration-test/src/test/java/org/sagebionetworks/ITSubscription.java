@@ -78,7 +78,7 @@ public class ITSubscription {
 
 		assertEquals(sub, synapse.getSubscription(sub.getSubscriptionId()));
 
-		SubscriptionPagedResults results = synapse.getAllSubscriptions(null, 10L, 0L);
+		SubscriptionPagedResults results = synapse.getAllSubscriptions(SubscriptionObjectType.FORUM, 10L, 0L);
 		assertNotNull(results);
 		assertEquals((Long) 1L, results.getTotalNumberOfResults());
 		assertEquals(sub, results.getResults().get(0));
@@ -92,7 +92,7 @@ public class ITSubscription {
 		assertEquals(sub, results.getResults().get(0));
 
 		synapse.unsubscribe(Long.parseLong(sub.getSubscriptionId()));
-		results = synapse.getAllSubscriptions(null, 10L, 0L);
+		results = synapse.getAllSubscriptions(SubscriptionObjectType.FORUM, 10L, 0L);
 		assertFalse(results.getResults().contains(sub));
 	}
 

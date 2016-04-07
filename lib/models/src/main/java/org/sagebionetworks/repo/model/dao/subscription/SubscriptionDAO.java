@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dao.subscription;
 
 import java.util.List;
+import java.util.Set;
 
 import org.sagebionetworks.repo.model.subscription.Subscriber;
 import org.sagebionetworks.repo.model.subscription.Subscription;
@@ -33,11 +34,12 @@ public interface SubscriptionDAO {
 	 * @param subscriberId
 	 * @param limit
 	 * @param offset
-	 * @param objectType - optional
+	 * @param objectType
+	 * @param projectIds
 	 * @return
 	 */
 	public SubscriptionPagedResults getAll(String subscriberId, Long limit,
-			Long offset, SubscriptionObjectType objectType);
+			Long offset, SubscriptionObjectType objectType, Set<Long> projectIds);
 
 	/**
 	 * Get subscriptions for a subscriber limited by a given list of topic.
@@ -109,4 +111,13 @@ public interface SubscriptionDAO {
 	 * @param objectType
 	 */
 	public void deleteList(String userId, List<String> idList, SubscriptionObjectType objectType);
+
+	/**
+	 * Retrieve all projects that a user has subscriptions to
+	 * 
+	 * @param userId
+	 * @param objectType
+	 * @return
+	 */
+	public Set<Long> getAllProjects(String userId, SubscriptionObjectType objectType);
 }
