@@ -7566,10 +7566,9 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		try {
 			ValidateArgument.required(limit, "limit");
 			ValidateArgument.required(offset, "offset");
+			ValidateArgument.required(objectType, "objectType");
 			String url = SUBSCRIPTION+ALL+"?"+LIMIT+"="+limit+"&"+OFFSET+"="+offset;
-			if (objectType != null) {
-				url += "&"+OBJECT_TYPE_PARAM+"="+objectType.name();
-			}
+			url += "&"+OBJECT_TYPE_PARAM+"="+objectType.name();
 			return getJSONEntity(url, SubscriptionPagedResults.class);
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseClientException(e);
