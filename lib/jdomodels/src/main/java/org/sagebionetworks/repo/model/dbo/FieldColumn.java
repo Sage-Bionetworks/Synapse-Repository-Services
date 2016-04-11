@@ -5,6 +5,8 @@ package org.sagebionetworks.repo.model.dbo;
  * 
  * This object is immutable.
  * 
+ * https://sagebionetworks.jira.com/wiki/pages/viewpage.action?pageId=21168197
+ * 
  * @author jmhill
  *
  */
@@ -87,7 +89,6 @@ public class FieldColumn {
 	/**
 	 * Is this column the etag?
 	 * This is only used for MigratableDatabaseObject.
-	 * https://sagebionetworks.jira.com/wiki/pages/viewpage.action?pageId=21168197
 	 * @param isEtag
 	 * @return
 	 */
