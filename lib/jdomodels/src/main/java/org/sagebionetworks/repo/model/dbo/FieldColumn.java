@@ -87,6 +87,7 @@ public class FieldColumn {
 	/**
 	 * Is this column the etag?
 	 * This is only used for MigratableDatabaseObject.
+	 * https://sagebionetworks.jira.com/wiki/pages/viewpage.action?pageId=21168197
 	 * @param isEtag
 	 * @return
 	 */
