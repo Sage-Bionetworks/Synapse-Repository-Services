@@ -36,7 +36,7 @@ public class DBOChange implements MigratableDatabaseObject<DBOChange, DBOChange>
 		new FieldColumn("objectId", COL_CHANGES_OBJECT_ID, true),
 		new FieldColumn("parentId", COL_CHANGES_PARENT_ID),
 		new FieldColumn("objectType", COL_CHANGES_OBJECT_TYPE, true),
-		new FieldColumn("objectEtag", COL_CHANGES_OBJECT_ETAG).withIsEtag(true),
+		new FieldColumn("objectEtag", COL_CHANGES_OBJECT_ETAG),
 		new FieldColumn("changeType", COL_CHANGES_CHANGE_TYPE),
 		new FieldColumn("userId", COL_CHANGES_USER_ID),
 	};

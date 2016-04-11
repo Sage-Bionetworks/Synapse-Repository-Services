@@ -5,6 +5,8 @@ package org.sagebionetworks.repo.model.dbo;
  * 
  * This object is immutable.
  * 
+ * https://sagebionetworks.jira.com/wiki/pages/viewpage.action?pageId=21168197
+ * 
  * @author jmhill
  *
  */
