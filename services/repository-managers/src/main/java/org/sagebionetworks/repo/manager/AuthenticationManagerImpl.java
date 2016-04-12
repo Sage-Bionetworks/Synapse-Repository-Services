@@ -9,11 +9,14 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.securitytools.PBKDF2Utils;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class AuthenticationManagerImpl implements AuthenticationManager {
+
+	public static final int PASSWORD_MIN_LENGTH = 8;
 
 	@Autowired
 	private AuthenticationDAO authDAO;
@@ -82,6 +85,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	@Override
 	@WriteTransaction
 	public void changePassword(Long principalId, String password) {
+		ValidateArgument.requirement(password.length() >= PASSWORD_MIN_LENGTH, "Password must contain "+PASSWORD_MIN_LENGTH+" or more characters .");
 		String passHash = PBKDF2Utils.hashPassword(password, null);
 		authDAO.changePassword(principalId, passHash);
 	}
