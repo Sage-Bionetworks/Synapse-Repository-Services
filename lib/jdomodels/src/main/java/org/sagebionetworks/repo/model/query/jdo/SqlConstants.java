@@ -450,6 +450,13 @@ public class SqlConstants {
 	public static final String COL_TABLE_ROW_COUNT			= "ROW_COUNT";
 	public static final String DDL_TABLE_ROW_CHANGE = "schema/TableRowChange-ddl.sql";
 	
+	// Tracks view scope.
+	public static final String TABLE_VIEW_SCOPE				= "VIEW_SCOPE";
+	public static final String COL_VIEW_SCOPE_ID			= "ID";
+	public static final String COL_VIEW_SCOPE_VIEW_ID		= "VIEW_ID";
+	public static final String COL_VIEW_SCOPE_CONTAINER_ID	= "CONTAINER_ID";
+	public static final String DDL_VIEW_SCOPE = "schema/ViewScope-ddl.sql";
+	
 	
 	public static final String TABLE_BOUND_COLUMN_OWNER		= "BOUND_COLUMN_OWNER";
 	public static final String COL_BOUND_OWNER_OBJECT_ID	= "OBJECT_ID";

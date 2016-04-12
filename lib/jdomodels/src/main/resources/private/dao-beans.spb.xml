@@ -328,6 +328,10 @@
 	<!--  DAO for Subscription -->
 	<bean id="subscriptionDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.subscription.DBOSubscriptionDAOImpl" />
+		
+		<!--  DAO for Subscription -->
+	<bean id="viewScopeDao"
+		class="org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDaoImpl" />	
 	
 
 	<!-- Misc beans -->
