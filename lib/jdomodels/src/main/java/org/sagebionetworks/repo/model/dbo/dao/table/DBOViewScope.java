@@ -23,6 +23,76 @@ public class DBOViewScope  implements MigratableDatabaseObject<DBOViewScope, DBO
 		new FieldColumn("viewId", COL_VIEW_SCOPE_VIEW_ID),
 		new FieldColumn("containerId", COL_VIEW_SCOPE_CONTAINER_ID),
 	};
+	
+	Long id;
+	Long viewId;
+	Long containerId;
+	
+	
+
+	public Long getId() {
+		return id;
+	}
+
+	public void setId(Long id) {
+		this.id = id;
+	}
+
+	public Long getViewId() {
+		return viewId;
+	}
+
+	public void setViewId(Long viewId) {
+		this.viewId = viewId;
+	}
+
+	public Long getContainerId() {
+		return containerId;
+	}
+
+	public void setContainerId(Long containerId) {
+		this.containerId = containerId;
+	}
+
+	
+	
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result
+				+ ((containerId == null) ? 0 : containerId.hashCode());
+		result = prime * result + ((id == null) ? 0 : id.hashCode());
+		result = prime * result + ((viewId == null) ? 0 : viewId.hashCode());
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		DBOViewScope other = (DBOViewScope) obj;
+		if (containerId == null) {
+			if (other.containerId != null)
+				return false;
+		} else if (!containerId.equals(other.containerId))
+			return false;
+		if (id == null) {
+			if (other.id != null)
+				return false;
+		} else if (!id.equals(other.id))
+			return false;
+		if (viewId == null) {
+			if (other.viewId != null)
+				return false;
+		} else if (!viewId.equals(other.viewId))
+			return false;
+		return true;
+	}
 
 	@Override
 	public TableMapping<DBOViewScope> getTableMapping() {
@@ -32,7 +102,9 @@ public class DBOViewScope  implements MigratableDatabaseObject<DBOViewScope, DBO
 			public DBOViewScope mapRow(ResultSet rs, int rowNum)
 					throws SQLException {
 				DBOViewScope dto = new DBOViewScope();
-		
+				dto.setId(rs.getLong(COL_VIEW_SCOPE_ID));
+				dto.setViewId(rs.getLong(COL_VIEW_SCOPE_VIEW_ID));
+				dto.setContainerId(rs.getLong(COL_VIEW_SCOPE_CONTAINER_ID));
 				return dto;
 			}
 

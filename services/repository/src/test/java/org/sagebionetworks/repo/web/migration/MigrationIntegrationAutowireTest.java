@@ -89,6 +89,7 @@ import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
+import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
 import org.sagebionetworks.repo.model.dbo.file.CompositeMultipartUploadStatus;
 import org.sagebionetworks.repo.model.dbo.file.CreateMultipartRequest;
 import org.sagebionetworks.repo.model.dbo.file.MultipartUploadDAO;
@@ -136,6 +137,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.annotation.DirtiesContext;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 /**
  * This is an integration test to test the migration of all tables from start to finish.
@@ -257,6 +259,9 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 	@Autowired
 	private MultipartUploadDAO multipartUploadDAO;
 	
+	@Autowired
+	private ViewScopeDao viewScopeDao;
+	
 	private Team team;
 
 	private Long adminUserId;
@@ -342,8 +347,14 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		createMultipartUpload();
 		createSubscription();
 		createBroadcastMessage();
+		createViewScope();
 	}
 	
+	private void createViewScope() {
+		viewScopeDao.truncateAll();
+		viewScopeDao.setViewScope(123L, Sets.newHashSet(456L,789L));
+	}
+
 	private void createBroadcastMessage() {
 		long currentChangeNumber = changeDao.getCurrentChangeNumber();
 		broadcastMessageDao.setBroadcast(currentChangeNumber);
