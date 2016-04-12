@@ -3,12 +3,16 @@ package org.sagebionetworks.repo.manager;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.eq;
+import static org.mockito.Matchers.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.sagebionetworks.repo.manager.AuthenticationManagerImpl.*;
+
+import org.apache.commons.lang.RandomStringUtils;
+
 import junit.framework.Assert;
 
 import org.junit.Before;
@@ -117,5 +121,18 @@ public class AuthenticationManagerImplUnitTest {
 	@Test(expected=IllegalArgumentException.class) 
 	public void testUnseeTermsOfUse() throws Exception {
 		authManager.setTermsOfUseAcceptance(userId, DomainType.SYNAPSE, null);
+	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testChangePasswordWithInvalidPassword() {
+		String invalidPassword = RandomStringUtils.randomAlphanumeric(PASSWORD_MIN_LENGTH-1);
+		authManager.changePassword(userId, invalidPassword);
+	}
+
+	@Test
+	public void testChangePasswordWithValidPassword() {
+		String invalidPassword = RandomStringUtils.randomAlphanumeric(PASSWORD_MIN_LENGTH);
+		authManager.changePassword(userId, invalidPassword);
+		verify(authDAO).changePassword(anyLong(), anyString());
 	}
 }
