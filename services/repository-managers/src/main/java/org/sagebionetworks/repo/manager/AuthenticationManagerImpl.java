@@ -4,6 +4,7 @@ import org.sagebionetworks.repo.model.AuthenticationDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.TermsOfUseException;
+import org.sagebionetworks.repo.model.TooManyRequestsException;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
@@ -49,7 +50,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 			usernameThrottleGate.releaseLock(""+principalId, lockToken);
 			return getSessionToken(principalId, domain);
 		} else {
-			throw new RuntimeException(AuthorizationConstants.REASON_TOO_MANY_CONCURRENT_REQUESTS);
+			throw new TooManyRequestsException(AuthorizationConstants.REASON_TOO_MANY_CONCURRENT_REQUESTS);
 		}
 	}
 	
