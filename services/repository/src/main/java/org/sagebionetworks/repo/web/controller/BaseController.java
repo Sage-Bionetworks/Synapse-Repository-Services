@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ErrorResponse;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.LockedException;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.NotReadyException;
 import org.sagebionetworks.repo.model.TermsOfUseException;
@@ -785,5 +786,15 @@ public abstract class BaseController {
 		return handleException(ex, request, false);
 	}
 
-
+	/**
+	 * This is thrown when the requested object is being locked
+	 */
+	@ExceptionHandler(LockedException.class)
+	@ResponseStatus(HttpStatus.LOCKED)
+	public @ResponseBody
+	ErrorResponse handleLockedException(LockedException ex,
+			HttpServletRequest request,
+			HttpServletResponse response) {
+		return handleException(ex, request, false);
+	}
 }
