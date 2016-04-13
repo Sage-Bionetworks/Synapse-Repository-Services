@@ -24,7 +24,6 @@ import java.util.UUID;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.dao.table.RowAccessor;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
@@ -44,11 +43,9 @@ import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableRowChange;
-import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
-import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -57,8 +54,6 @@ import org.springframework.jdbc.core.RowMapper;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.S3Object;
-import com.google.common.base.Predicate;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -103,8 +98,6 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 			+ " > ? ORDER BY "
 			+ COL_TABLE_ROW_VERSION + " ASC";
 	private static final String SQL_SELECT_ALL_ROW_CHANGES_FOR_TABLE_GREATER_VERSION = "SELECT * "
-			+ SQL_ALL_ROW_CHANGES_FOR_TABLE_GREATER_VERSION_BASE;
-	private static final String SQL_COUNT_ALL_ROW_CHANGES_FOR_TABLE_GREATER_VERSION = "SELECT COUNT(*) "
 			+ SQL_ALL_ROW_CHANGES_FOR_TABLE_GREATER_VERSION_BASE;
 	private static final String SQL_DELETE_ROW_DATA_FOR_TABLE = "DELETE FROM " + TABLE_TABLE_ID_SEQUENCE + " WHERE "
 			+ COL_ID_SEQUENCE_TABLE_ID
@@ -345,14 +338,6 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 				SQL_SELECT_ALL_ROW_CHANGES_FOR_TABLE_GREATER_VERSION,
 				rowChangeMapper, tableId, versionNumber);
 		return TableRowChangeUtils.ceateDTOFromDBO(dboList);
-	}
-
-	@Override
-	public int countRowSetsForTableGreaterThanVersion(String tableIdString, long versionNumber) {
-		ValidateArgument.required(tableIdString, "TableId");
-		long tableId = KeyFactory.stringToKey(tableIdString);
-		int count = jdbcTemplate.queryForObject(SQL_COUNT_ALL_ROW_CHANGES_FOR_TABLE_GREATER_VERSION, Integer.class, tableId, versionNumber);
-		return count;
 	}
 
 	@Override

@@ -1,0 +1,25 @@
+{
+    "title":"Table",
+    "description":"A FileView is a materialized view of file metadata.",
+    "implements":[
+        {
+            "$ref":"org.sagebionetworks.repo.model.Versionable"
+        }
+    ],
+    "properties":{
+		"containerScope": {
+		    "description":"The list of container IDs (projects or folders) that define the scope of this view.",
+			"type": "array",
+			"items": {
+				"type": "string"
+			}
+		},    
+		"columnIds": {
+		    "description":"The list of ColumnModel IDs that define the schema for this view.",
+			"type": "array",
+			"items": {
+				"type": "string"
+			}
+		}
+    }
+}
