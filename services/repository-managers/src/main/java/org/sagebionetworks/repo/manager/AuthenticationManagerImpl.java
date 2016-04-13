@@ -21,11 +21,11 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 
 	public static final int PASSWORD_MIN_LENGTH = 8;
 
-	public static final long LOCK_TIMOUTE_SEC = 60*60*1000;
+	public static final long LOCK_TIMOUTE_SEC = 5*60*1000;
 
 	public static final int MAX_CONCURRENT_LOCKS = 10;
 
-	public static final String ACCOUNT_LOCKED_MESSAGE = "This account has been locked. Reason: too many requests. Please try again in an hour.";
+	public static final String ACCOUNT_LOCKED_MESSAGE = "This account has been locked. Reason: too many requests. Please try again in five minutes.";
 
 	@Autowired
 	private AuthenticationDAO authDAO;
