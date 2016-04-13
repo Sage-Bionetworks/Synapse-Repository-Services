@@ -25,6 +25,8 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 
 	public static final int MAX_CONCURRENT_LOCKS = 10;
 
+	public static final String ACCOUNT_LOCKED_MESSAGE = "This account has been locked. Reason: too many requests. Please try again in an hour.";
+
 	@Autowired
 	private AuthenticationDAO authDAO;
 	@Autowired
@@ -50,7 +52,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 			usernameThrottleGate.releaseLock(""+principalId, lockToken);
 			return getSessionToken(principalId, domain);
 		} else {
-			throw new LockedException(AuthorizationConstants.REASON_TOO_MANY_CONCURRENT_REQUESTS);
+			throw new LockedException(ACCOUNT_LOCKED_MESSAGE);
 		}
 	}
 	
