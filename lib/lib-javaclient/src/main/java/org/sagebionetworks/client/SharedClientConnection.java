@@ -38,6 +38,7 @@ import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseConflictingUpdateException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
+import org.sagebionetworks.client.exceptions.SynapseLockedException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseServerException;
 import org.sagebionetworks.client.exceptions.SynapseTermsOfUseException;
@@ -325,9 +326,11 @@ public class SharedClientConnection {
 			throw new SynapseNotFoundException(reasonStr);
 		} else if (statusCode == HttpStatus.SC_BAD_REQUEST) {
 			throw new SynapseBadRequestException(reasonStr);
+		} else if (statusCode == HttpStatus.SC_LOCKED) {
+			throw new SynapseLockedException(reasonStr);
 		} else if (statusCode == HttpStatus.SC_PRECONDITION_FAILED) {
 			throw new SynapseConflictingUpdateException(reasonStr);
-		}  else {
+		} else {
 			throw new SynapseServerException(statusCode, reasonStr);
 		}
 	}

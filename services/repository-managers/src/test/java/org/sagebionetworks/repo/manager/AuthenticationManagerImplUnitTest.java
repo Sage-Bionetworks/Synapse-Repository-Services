@@ -20,8 +20,8 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.repo.model.AuthenticationDAO;
 import org.sagebionetworks.repo.model.DomainType;
+import org.sagebionetworks.repo.model.LockedException;
 import org.sagebionetworks.repo.model.TermsOfUseException;
-import org.sagebionetworks.repo.model.TooManyRequestsException;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
@@ -93,7 +93,7 @@ public class AuthenticationManagerImplUnitTest {
 		}
 	}
 
-	@Test (expected=TooManyRequestsException.class)
+	@Test (expected=LockedException.class)
 	public void testAuthenticateThrottleWithOverLimitAttempts() throws Exception {
 		when(mockUsernameThrottleGate.attemptToAcquireLock(anyString(), anyLong(), anyInt())).thenReturn("0","1","2","3","4","5","6","7","8","9", null);
 		for (int i = 0; i < MAX_CONCURRENT_LOCKS+1; i++) {
