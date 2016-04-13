@@ -1,12 +1,15 @@
 package org.sagebionetworks.repo.manager;
 
 import org.sagebionetworks.repo.model.AuthenticationDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DomainType;
+import org.sagebionetworks.repo.model.LockedException;
 import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.auth.Session;
+import org.sagebionetworks.repo.model.semaphore.MemoryCountingSemaphore;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.securitytools.PBKDF2Utils;
 import org.sagebionetworks.util.ValidateArgument;
@@ -18,33 +21,39 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 
 	public static final int PASSWORD_MIN_LENGTH = 8;
 
+	public static final long LOCK_TIMOUTE_SEC = 60*60*1000;
+
+	public static final int MAX_CONCURRENT_LOCKS = 10;
+
+	public static final String ACCOUNT_LOCKED_MESSAGE = "This account has been locked. Reason: too many requests. Please try again in an hour.";
+
 	@Autowired
 	private AuthenticationDAO authDAO;
-	
 	@Autowired
 	private UserGroupDAO userGroupDAO;
+	@Autowired
+	private MemoryCountingSemaphore usernameThrottleGate;
 	
 	public AuthenticationManagerImpl() { }
-	
-	/**
-	 * For unit testing
-	 */
-	public AuthenticationManagerImpl(AuthenticationDAO authDAO, UserGroupDAO userGroupDAO) {
-		this.authDAO = authDAO;
-		this.userGroupDAO = userGroupDAO;
-	}
-	
+
 	@Override
 	@WriteTransaction
 	public Session authenticate(long principalId, String password, DomainType domain) throws NotFoundException {
-		// Check the username password combination
-		// This will throw an UnauthorizedException if invalid
-		if (password != null) {
-			byte[] salt = authDAO.getPasswordSalt(principalId);
-			String passHash = PBKDF2Utils.hashPassword(password, salt);
-			authDAO.checkUserCredentials(principalId, passHash);
+		// acquire a lock for throttling password attacks
+		String lockToken = usernameThrottleGate.attemptToAcquireLock(""+principalId, LOCK_TIMOUTE_SEC, MAX_CONCURRENT_LOCKS);
+		if (lockToken != null) {
+			// Check the username password combination
+			// This will throw an UnauthorizedException if invalid
+			if (password != null) {
+				byte[] salt = authDAO.getPasswordSalt(principalId);
+				String passHash = PBKDF2Utils.hashPassword(password, salt);
+				authDAO.checkUserCredentials(principalId, passHash);
+			}
+			usernameThrottleGate.releaseLock(""+principalId, lockToken);
+			return getSessionToken(principalId, domain);
+		} else {
+			throw new LockedException(ACCOUNT_LOCKED_MESSAGE);
 		}
-		return getSessionToken(principalId, domain);
 	}
 	
 	@Override
