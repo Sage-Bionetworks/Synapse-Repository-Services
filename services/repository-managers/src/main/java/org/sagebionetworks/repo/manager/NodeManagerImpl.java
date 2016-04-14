@@ -76,8 +76,6 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	private ActivityManager activityManager;
 	@Autowired
 	ProjectSettingsManager projectSettingsManager;
-	@Autowired
-	private TransactionalMessenger transactionalMessenger;
 
 	/**
 	 * This is used for unit test.
@@ -192,9 +190,6 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		if(log.isDebugEnabled()){
 			log.debug("username: "+userInfo.getId().toString()+" created node: "+id);
 		}
-		
-		// Notify all listeners that a new entity was created.
-		transactionalMessenger.sendMessageAfterCommit(newNode.getId(), ObjectType.ENTITY, newNode.getETag(), ChangeType.CREATE, userInfo.getId());
 		return newNode;
 	}
 

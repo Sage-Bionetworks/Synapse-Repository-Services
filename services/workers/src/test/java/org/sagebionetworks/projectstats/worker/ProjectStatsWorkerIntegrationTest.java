@@ -86,10 +86,11 @@ public class ProjectStatsWorkerIntegrationTest {
 	@Autowired
 	private AccessControlListDAO accessControlListDAO;
 
+	private static final ThreadLocal<Long> currentUserIdThreadLocal = ThreadLocalProvider.getInstance(AuthorizationConstants.USER_ID_PARAM, Long.class);
+
 	private UserInfo adminUserInfo;
 	private List<String> toDelete = Lists.newArrayList();
 	private Long userId;
-	private UserInfo userInfo;
 	private Long[] userIds = new Long[4];
 	private String teamId;
 	private S3FileHandle handleOne;
@@ -104,17 +105,18 @@ public class ProjectStatsWorkerIntegrationTest {
 		user.setUserName(UUID.randomUUID().toString());
 		user.setEmail(user.getUserName() + "@xx.com");
 		userId = userManager.createUser(user);
-		userInfo = new UserInfo(false, userId);
 		for (int i = 0; i < userIds.length; i++) {
 			user = new NewUser();
 			user.setUserName(UUID.randomUUID().toString());
 			user.setEmail(user.getUserName() + "@xx.com");
 			userIds[i] = userManager.createUser(user);
 		}
+		currentUserIdThreadLocal.set(null);
 	}
 
 	@After
 	public void after() throws Exception {
+		currentUserIdThreadLocal.set(null);
 		if (adminUserInfo != null) {
 			for (String id : toDelete) {
 				try {
@@ -151,10 +153,12 @@ public class ProjectStatsWorkerIntegrationTest {
 		// Create a project
 		assertEquals(0, projectStatsDAO.getProjectStatsForUser(userId).size());
 
+		currentUserIdThreadLocal.set(userId);
+
 		Project project = new Project();
 		project.setName(UUID.randomUUID().toString());
-		String id = entityManager.createEntity(userInfo, project, null);
-		project = entityManager.getEntity(userInfo, id, Project.class);
+		String id = entityManager.createEntity(adminUserInfo, project, null);
+		project = entityManager.getEntity(adminUserInfo, id, Project.class);
 		toDelete.add(project.getId());
 
 		// Wait for the project stat to be added
@@ -356,6 +360,8 @@ public class ProjectStatsWorkerIntegrationTest {
 	private ProjectStat setupProject() throws NotFoundException, Exception {
 		// Create a project
 		assertEquals(0, projectStatsDAO.getProjectStatsForUser(userId).size());
+
+		currentUserIdThreadLocal.set(userId);
 
 		Project project = new Project();
 		project.setName(UUID.randomUUID().toString());

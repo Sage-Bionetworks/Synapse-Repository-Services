@@ -114,6 +114,10 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 	@Override
 	public void sendMessageAfterCommit(ChangeMessage message) {
 		if(message == null) throw new IllegalArgumentException("Message cannot be null");
+		if(message.getUserId() == null){
+			// If the userId was not provided attempt to the current user from the thread local.
+			message.setUserId(currentUserIdThreadLocal.get());
+		}
 		appendToBoundMessages(message);
 	}
 
