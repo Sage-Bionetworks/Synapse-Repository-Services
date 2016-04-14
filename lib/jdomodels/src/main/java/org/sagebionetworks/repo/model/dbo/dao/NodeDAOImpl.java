@@ -287,9 +287,17 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			+ COL_REVISION_NUMBER+ ") FROM " + TABLE_REVISION + " WHERE "
 			+ COL_REVISION_OWNER_NODE + " = ?";
 
+	
 	@WriteTransaction
 	@Override
 	public String createNew(Node dto) throws NotFoundException, DatastoreException, InvalidModelException {
+		Node node = createNewNode(dto);
+		return node.getId();
+	}
+	
+	@WriteTransaction
+	@Override
+	public Node createNewNode(Node dto) throws NotFoundException, DatastoreException, InvalidModelException {
 		if(dto == null) throw new IllegalArgumentException("Node cannot be null");
 		DBORevision rev = new DBORevision();
 		// Set the default label
@@ -356,7 +364,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			checkExceptionDetails(node.getName(), node.getAlias(), KeyFactory.keyToString(node.getParentId()), e);
 		}
 		dboBasicDao.createNew(rev);		
-		return KeyFactory.keyToString(node.getId());
+		return getNode(""+node.getId());
 	}
 
 	/**
