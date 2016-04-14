@@ -134,14 +134,6 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 	}
 
 	@Override
-	public void sendModificationMessageAfterCommit(String objectId, ObjectType objectType) {
-		DefaultModificationMessage message = new DefaultModificationMessage();
-		message.setObjectId(objectId);
-		message.setObjectType(objectType);
-		sendModificationMessageAfterCommit(message);
-	}
-
-	@Override
 	public void sendModificationMessageAfterCommit(ModificationMessage message) {
 		ValidateArgument.required(message.getObjectId(), "objectId");
 		ValidateArgument.required(message.getObjectType(), "objectType");

@@ -2784,6 +2784,27 @@ public class NodeDAOImplTest {
 		// call under test
 		nodeDao.getNodeIdByAlias(alias);
 	}
+	
+	@Test
+	public void testGetProjectId(){
+		Node project = NodeTestUtils.createNew("Project", creatorUserGroupId);
+		project.setNodeType(EntityType.project);
+		String id = nodeDao.createNew(project);
+		toDelete.add(id);
+		project = nodeDao.getNode(id);
+		assertNotNull(project);
+		assertEquals(id, project.getProjectId());
+		// call under test
+		String projectId = nodeDao.getProjectId(id);
+		assertEquals(project.getProjectId(), projectId);
+	}
+	
+	@Test (expected=NotFoundException.class)
+	public void testGetProjectIdNotFound(){
+		String doesNotExist = "syn9999999";
+		// call under test
+		nodeDao.getProjectId(doesNotExist);
+	}
 		
 
 	/**

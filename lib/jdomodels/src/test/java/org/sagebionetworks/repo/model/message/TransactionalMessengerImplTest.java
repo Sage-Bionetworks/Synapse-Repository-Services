@@ -17,7 +17,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -249,43 +248,4 @@ public class TransactionalMessengerImplTest {
 		
 	}
 
-	@Test
-	public void testSendModificationMessageNothingHappensWithoutId() {
-		// Send the message
-		messenger.sendModificationMessageAfterCommit("123", ObjectType.ENTITY);
-		assertNotNull(stubProxy.getSynchronizations());
-		assertEquals(0, stubProxy.getSynchronizations().size());
-	}
-
-	@Test
-	public void testSendModificationMessageNothingHappensWithAnonymous() {
-		ThreadLocalProvider.getInstance(AuthorizationConstants.USER_ID_PARAM, Long.class).set(
-				BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
-		// Send the message
-		messenger.sendModificationMessageAfterCommit("123", ObjectType.ENTITY);
-		assertNotNull(stubProxy.getSynchronizations());
-		assertEquals(0, stubProxy.getSynchronizations().size());
-	}
-
-	@Test
-	public void testSendModificationMessage() {
-		ThreadLocalProvider.getInstance(AuthorizationConstants.USER_ID_PARAM, Long.class).set(100L);
-		// Send the message
-		messenger.sendModificationMessageAfterCommit("123", ObjectType.ENTITY);
-		assertNotNull(stubProxy.getSynchronizations());
-		assertEquals(1, stubProxy.getSynchronizations().size());
-		// Simulate the before commit
-		stubProxy.getSynchronizations().get(0).beforeCommit(true);
-		ModificationMessage message = new DefaultModificationMessage();
-		message.setObjectId("123");
-		message.setObjectType(ObjectType.ENTITY);
-		message.setTimestamp(testClock.now());
-		message.setUserId(100L);
-		// Simulate the after commit
-		stubProxy.getSynchronizations().get(0).afterCommit();
-		// Verify that the one message was fired.
-		verify(mockObserver, times(1)).fireModificationMessage(message);
-		// It should only be called once total!
-		verify(mockObserver, times(1)).fireModificationMessage(any(ModificationMessage.class));
-	}
 }

@@ -36,11 +36,6 @@ public interface TransactionalMessenger {
 	/**
 	 * Send a modification message after the current transaction commits
 	 */
-	public void sendModificationMessageAfterCommit(String objectId, ObjectType objectType);
-
-	/**
-	 * Send a modification message after the current transaction commits
-	 */
 	public void sendModificationMessageAfterCommit(ModificationMessage message);
 
 	/**

@@ -26,6 +26,7 @@
 	<bean name="stackConfiguration.asyncQueueName[S3_FILE_COPY]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean name="stackConfiguration.asyncQueueName[BULK_FILE_DOWNLOAD]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean name="stackConfiguration.asyncQueueName[BROADCAST]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	<bean name="stackConfiguration.asyncQueueName[PROJECT_STATS_V2]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 
 	<bean name="stackConfiguration.workerQueueName[ProjectStatsWorker]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean name="stackConfiguration.workerQueueName[SyncFolderWorker]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />

@@ -486,4 +486,11 @@ public interface NodeDAO {
 	 */
 	String getNodeIdByAlias(String alias);
 
+	/**
+	 * Get the project for the given Entity.
+	 * @param objectId
+	 * @return
+	 */
+	public String getProjectId(String objectId);
+
 }
