@@ -82,5 +82,7 @@ public class ExceptionHandlers {
 				new ExceptionType("org.springframework.web.util.NestedServletException", false),
 				new ExceptionType(Exception.class.getName(), false)),
 		new TestEntry(429,
-				new ExceptionType("org.sagebionetworks.repo.model.TooManyRequestsException", true)) };
+				new ExceptionType("org.sagebionetworks.repo.model.TooManyRequestsException", true)),
+		new TestEntry(423,
+				new ExceptionType("org.sagebionetworks.repo.model.LockedException", true)) };
 }
