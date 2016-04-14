@@ -81,9 +81,9 @@ public class EntityManagerImpl implements EntityManager {
 		// Now add all of the annotations and references from the entity
 		NodeTranslationUtils.updateNodeSecondaryFieldsFromObject(newEntity, annos.getPrimaryAnnotations());
 		// We are ready to create this node
-		String nodeId = nodeManager.createNewNode(node, annos, userInfo);
+		node = nodeManager.createNewNode(node, annos, userInfo);
 		// Return the id of the newly created entity
-		return nodeId;
+		return node.getId();
 	}
 
 	@Override

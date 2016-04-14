@@ -38,6 +38,7 @@ import org.sagebionetworks.repo.model.jdo.EntityNameValidation;
 import org.sagebionetworks.repo.model.jdo.FieldTypeCache;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.RequesterPaysSetting;
 import org.sagebionetworks.repo.model.provenance.Activity;
@@ -50,7 +51,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * The Sage business logic for node management.
- * @author jmhill
  *
  */
 public class NodeManagerImpl implements NodeManager, InitializingBean {
@@ -103,12 +103,25 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	public NodeManagerImpl(){
 	}
 	
+	/*
+	 * (non-Javadoc)
+	 * @see org.sagebionetworks.repo.manager.NodeManager#createNewNode(org.sagebionetworks.repo.model.Node, org.sagebionetworks.repo.model.UserInfo)
+	 */
+	@WriteTransaction
+	@Override
+	@Deprecated
+	public String createNewNode(Node newNode, UserInfo userInfo)  throws DatastoreException,
+			InvalidModelException, NotFoundException, UnauthorizedException {
+		newNode = createNode(newNode, userInfo);
+		return newNode.getId();
+	}
+	
 	/**
 	 * Create a new node
 	 */
 	@WriteTransaction
 	@Override
-	public String createNewNode(Node newNode, UserInfo userInfo)  throws DatastoreException,
+	public Node createNode(Node newNode, UserInfo userInfo)  throws DatastoreException,
 			InvalidModelException, NotFoundException, UnauthorizedException {
 		// First valid the node
 		NodeManagerImpl.validateNode(newNode);
@@ -155,8 +168,8 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		canConnectToActivity(newNode.getActivityId(), userInfo);
 
 		// If they are allowed then let them create the node
-		String id = nodeDao.createNew(newNode);
-		newNode.setId(id);
+		newNode = nodeDao.createNewNode(newNode);
+		String id = newNode.getId();
 		
 		// Setup the ACL for this node.
 		if(ACL_SCHEME.INHERIT_FROM_PARENT == aclScheme){
@@ -177,7 +190,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		if(log.isDebugEnabled()){
 			log.debug("username: "+userInfo.getId().toString()+" created node: "+id);
 		}
-		return id;
+		return newNode;
 	}
 
 	/**
@@ -574,17 +587,17 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 
 	@WriteTransaction
 	@Override
-	public String createNewNode(Node newNode, NamedAnnotations newAnnotations, UserInfo userInfo) throws DatastoreException,
+	public Node createNewNode(Node newNode, NamedAnnotations newAnnotations, UserInfo userInfo) throws DatastoreException,
 			InvalidModelException, NotFoundException, UnauthorizedException {
 		// First create the node
-		String id = createNewNode(newNode, userInfo);
+		newNode = createNode(newNode, userInfo);
 		// The eTag really has no meaning yet because nobody has access to this id until we return.
-		newAnnotations.setEtag(id);
-		newAnnotations.setId(id);
+		newAnnotations.setEtag(newNode.getETag());
+		newAnnotations.setId(newNode.getId());
 		validateAnnotations(newAnnotations);
 		// Since we just created this node we do not need to lock.
-		nodeDao.updateAnnotations(id, newAnnotations);
-		return id;
+		nodeDao.updateAnnotations(newNode.getId(), newAnnotations);
+		return newNode;
 	}
 
 	@Override

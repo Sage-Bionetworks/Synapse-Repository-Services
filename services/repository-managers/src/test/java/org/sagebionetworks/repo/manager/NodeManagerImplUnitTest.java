@@ -172,7 +172,8 @@ public class NodeManagerImplUnitTest {
 		
 		// Sure the mock is ready.
 		ArgumentCaptor<Node> argument = ArgumentCaptor.forClass(Node.class);
-		when(mockNodeDao.createNew(argument.capture())).thenReturn("101");
+		newNode.setId("101");
+		when(mockNodeDao.createNewNode(argument.capture())).thenReturn(newNode);
 		UserInfo userInfo = anonUserInfo;
 		when(mockAuthManager.canCreate(eq(userInfo), (Node)any())).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		// Make the actual call
@@ -201,7 +202,8 @@ public class NodeManagerImplUnitTest {
 		
 		// make sure the mock is ready
 		ArgumentCaptor<Node> argument = ArgumentCaptor.forClass(Node.class);
-		when(mockNodeDao.createNew(argument.capture())).thenReturn("101");
+		newNode.setId("101");
+		when(mockNodeDao.createNewNode(argument.capture())).thenReturn(newNode);
 		UserInfo userInfo = anonUserInfo;
 		when(mockAuthManager.canCreate(eq(userInfo), (Node)any())).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		when(mockAuthManager.canAccessRawFileHandleById(userInfo, fileHandleId)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
@@ -228,7 +230,8 @@ public class NodeManagerImplUnitTest {
 		
 		// make sure the mock is ready
 		ArgumentCaptor<Node> argument = ArgumentCaptor.forClass(Node.class);
-		when(mockNodeDao.createNew(argument.capture())).thenReturn(nodeId);
+		newNode.setId(nodeId);
+		when(mockNodeDao.createNewNode(argument.capture())).thenReturn(newNode);
 		UserInfo userInfo = anonUserInfo;
 		when(mockAuthManager.canCreate(eq(userInfo), (Node)any())).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		when(mockAuthManager.canAccess(userInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
@@ -281,9 +284,10 @@ public class NodeManagerImplUnitTest {
 		when(mockActivityManager.doesActivityExist(activityId)).thenReturn(true);
 		when(mockAuthManager.canAccessActivity(mockUserInfo, activityId)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		when(mockAuthManager.canCreate(eq(mockUserInfo), (Node)any())).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		when(mockNodeDao.createNew(any(Node.class))).thenReturn("101");
+		newNode.setId("101");
+		when(mockNodeDao.createNewNode(any(Node.class))).thenReturn(newNode);
 		nodeManager.createNewNode(newNode, mockUserInfo);		
-		verify(mockNodeDao).createNew(newNode);
+		verify(mockNodeDao).createNewNode(newNode);
 	}
 	
 	@Test
@@ -311,9 +315,10 @@ public class NodeManagerImplUnitTest {
 		reset(mockAuthManager);
 		when(mockAuthManager.canAccessActivity(mockUserInfo, activityId)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		when(mockAuthManager.canCreate(eq(mockUserInfo), (Node)any())).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		when(mockNodeDao.createNew(any(Node.class))).thenReturn("101");
+		newNode.setId("101");
+		when(mockNodeDao.createNewNode(any(Node.class))).thenReturn(newNode);
 		nodeManager.createNewNode(newNode, mockUserInfo);		
-		verify(mockNodeDao).createNew(newNode);
+		verify(mockNodeDao).createNewNode(newNode);
 	} 
 		
 	@Test

@@ -241,7 +241,6 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		
 		// Send the create message
 		transactionalMessenger.sendMessageAfterCommit(dbo, ChangeType.CREATE);
-		transactionalMessenger.sendModificationMessageAfterCommit(ownerId, ObjectType.ENTITY);
 		
 		return get(WikiPageKeyHelper.createWikiPageKey(ownerId, ownerType, dbo.getId().toString()), null);
 	}
@@ -316,7 +315,6 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		
 		// Send the change message
 		transactionalMessenger.sendMessageAfterCommit(newDbo, ChangeType.UPDATE);
-		transactionalMessenger.sendModificationMessageAfterCommit(ownerId, ObjectType.ENTITY);
 		// Return the results.
 		return get(WikiPageKeyHelper.createWikiPageKey(ownerId, ownerType, wikiPage.getId().toString()), null);
 	}

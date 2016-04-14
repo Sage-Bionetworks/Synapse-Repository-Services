@@ -129,6 +129,7 @@ import com.google.common.collect.Sets;
  */
 public class NodeDAOImpl implements NodeDAO, InitializingBean {
 
+	private static final String SQL_SELECT_PROJECT_ID = "SELECT "+COL_NODE_PROJECT_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" = ?";
 	private static final String SQL_SELECT_NODE_ID_BY_ALIAS = "SELECT "+COL_NODE_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ALIAS+" = ?";
 	private static final String SQL_BATCH_UPDATE_HIERARCHY = "UPDATE "+TABLE_NODE+" SET "+COL_NODE_ETAG+" = UUID(), "+COL_NODE_PARENT_ID+" = ?, "+COL_NODE_BENEFACTOR_ID+" = ?, "+COL_NODE_PROJECT_ID +" = ? WHERE "+COL_NODE_ID+" = ?";
 	private static final String SQL_UPDATE_PARENT_ID = "UPDATE "+TABLE_NODE+" SET "+COL_NODE_PARENT_ID+" = ?, "+COL_NODE_ETAG+" = UUID() WHERE "+COL_NODE_ID+" = ?";
@@ -151,7 +152,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private static final String UPDATE_ETAG_SQL = "UPDATE "+TABLE_NODE+" SET "+COL_NODE_ETAG+" = ? WHERE "+COL_NODE_ID+" = ?";
 	private static final String SQL_SELECT_PARENT_TYPE_NAME = "SELECT "+COL_NODE_ID+", "+COL_NODE_PARENT_ID+", "+COL_NODE_TYPE+", "+COL_NODE_NAME+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" = ?";
 	private static final String SQL_GET_ALL_CHILDREN_IDS = "SELECT "+COL_NODE_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_PARENT_ID+" = ? ORDER BY "+COL_NODE_ID;
-	private static final String SQL_SELECT_VERSION_LABEL = "SELECT "+COL_REVISION_LABEL+" FROM "+TABLE_REVISION+" WHERE "+COL_REVISION_OWNER_NODE+" = ? AND "+ COL_REVISION_NUMBER +" = ?";
 	private static final String NODE_IDS_LIST_PARAM_NAME = "NODE_IDS";
 	private static final String SQL_GET_CURRENT_VERSIONS = "SELECT "+COL_NODE_ID+","+COL_CURRENT_REV+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" IN ( :"+NODE_IDS_LIST_PARAM_NAME + " )";
 	private static final String OWNER_ID_PARAM_NAME = "OWNER_ID";
@@ -287,9 +287,17 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			+ COL_REVISION_NUMBER+ ") FROM " + TABLE_REVISION + " WHERE "
 			+ COL_REVISION_OWNER_NODE + " = ?";
 
+	
 	@WriteTransaction
 	@Override
 	public String createNew(Node dto) throws NotFoundException, DatastoreException, InvalidModelException {
+		Node node = createNewNode(dto);
+		return node.getId();
+	}
+	
+	@WriteTransaction
+	@Override
+	public Node createNewNode(Node dto) throws NotFoundException, DatastoreException, InvalidModelException {
 		if(dto == null) throw new IllegalArgumentException("Node cannot be null");
 		DBORevision rev = new DBORevision();
 		// Set the default label
@@ -346,7 +354,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		// Start it with a new e-tag
 		node.seteTag(UUID.randomUUID().toString());
 		transactionalMessenger.sendMessageAfterCommit(node, ChangeType.CREATE);
-		transactionalMessenger.sendModificationMessageAfterCommit(KeyFactory.keyToString(node.getId()), ObjectType.ENTITY);
 
 		// Now create the revision
 		rev.setOwner(node.getId());
@@ -357,7 +364,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			checkExceptionDetails(node.getName(), node.getAlias(), KeyFactory.keyToString(node.getParentId()), e);
 		}
 		dboBasicDao.createNew(rev);		
-		return KeyFactory.keyToString(node.getId());
+		return getNode(""+node.getId());
 	}
 
 	/**
@@ -685,8 +692,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		DBONode node = getNodeById(longId);
 		node.seteTag(UUID.randomUUID().toString());
 		transactionalMessenger.sendMessageAfterCommit(node, changeType);
-		transactionalMessenger.sendModificationMessageAfterCommit(KeyFactory.keyToString(node.getId()), ObjectType.ENTITY);
-		currentTag = node.getEtag();
+		currentTag = node.geteTag();
 		// Update the e-tag
 		int updated = jdbcTemplate.update(UPDATE_ETAG_SQL, currentTag, longId);
 		if(updated != 1) throw new ConflictingUpdateException("Failed to lock Node: "+longId);
@@ -1689,6 +1695,17 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			return KeyFactory.keyToString(id);
 		} catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException("Did not find a match for alias: "+alias);
+		}
+	}
+
+	@Override
+	public String getProjectId(String nodeId) {
+		ValidateArgument.required(nodeId, "nodeId");
+		try {
+			long id = this.jdbcTemplate.queryForObject(SQL_SELECT_PROJECT_ID, Long.class, KeyFactory.stringToKey(nodeId));
+			return KeyFactory.keyToString(id);
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException("Did not find an Entity for ID: "+nodeId);
 		}
 	}
 

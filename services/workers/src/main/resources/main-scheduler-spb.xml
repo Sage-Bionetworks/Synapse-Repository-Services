@@ -52,6 +52,7 @@
     <import resource="classpath:file-bulk-download-spb.xml"/>
     <import resource="classpath:discussion-thread-stat-spb.xml"/>
     <import resource="classpath:broadcast-message-worker-sqs-spb.xml"/>
+    <import resource="classpath:project-stats-v2-sqs-spb.xml"/>
 
 	<bean id="mainScheduler"
 			class="org.springframework.scheduling.quartz.SchedulerFactoryBean"
@@ -82,6 +83,7 @@
 				<ref bean="tableQueryQueueMessageReveiverTrigger" />
 				<ref bean="tableQueryNextPageQueueMessageReveiverTrigger" />
 				<ref bean="projectStatsQueueMessageReveiverTrigger" />
+				<ref bean="projectStatsWorkerV2QueueMessageReveiverTrigger"/>
 				<ref bean="objectQueueMessageReveiverTrigger"/>
 				<ref bean="s3FileCopyMessageReveiverTrigger"/>
 				<ref bean="fileBulkDownloadMessageReveiverTrigger"/>

@@ -27,13 +27,23 @@ public interface NodeManager {
 	}
 
 	/**
-	 * Create a new no
-	 * @param userId
-	 * @param newNode
-	 * @return
+	 * Use: {@link #createNode(Node, UserInfo)}
 	 */
+	@Deprecated
 	public String createNewNode(Node newNode, UserInfo userInfo) throws DatastoreException,
 			InvalidModelException, NotFoundException, UnauthorizedException;
+	
+	/**
+	 * Create a new node.
+	 * @param newNode
+	 * @param userInfo
+	 * @return
+	 * @throws DatastoreException
+	 * @throws InvalidModelException
+	 * @throws NotFoundException
+	 * @throws UnauthorizedException
+	 */
+	public Node createNode(Node newNode, UserInfo userInfo) throws DatastoreException,InvalidModelException, NotFoundException, UnauthorizedException;
 	
 	/**
 	 * Create a new node with annotations.
@@ -46,7 +56,7 @@ public interface NodeManager {
 	 * @throws NotFoundException
 	 * @throws UnauthorizedException
 	 */
-	public String createNewNode(Node newNode, NamedAnnotations annos, UserInfo userInfo) throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException;
+	public Node createNewNode(Node newNode, NamedAnnotations annos, UserInfo userInfo) throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException;
 	
 	/**
 	 * Delete a node using its id.

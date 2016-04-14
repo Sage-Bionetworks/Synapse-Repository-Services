@@ -26,14 +26,20 @@ public interface NodeDAO {
 	public static String DELETE_ACTIVITY_VALUE = "-1";
 	
 	/**
+	 * use: {@link #createNewNode(Node)}
+	 */
+	@Deprecated 
+	public String createNew(Node node) throws NotFoundException, DatastoreException, InvalidModelException;
+	
+	/**
 	 * Create a new node.
 	 * @param node
-	 * @return the new node's id
-	 * @throws NotFoundException 
-	 * @throws DatastoreException 
-	 * @throws NumberFormatException 
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 * @throws InvalidModelException
 	 */
-	public String createNew(Node node) throws NotFoundException, DatastoreException, InvalidModelException;
+	public Node createNewNode(Node node) throws NotFoundException, DatastoreException, InvalidModelException;
 	
 	/**
 	 * Create a new version of an existing node.
@@ -485,5 +491,12 @@ public interface NodeDAO {
 	 * @return
 	 */
 	String getNodeIdByAlias(String alias);
+
+	/**
+	 * Get the project for the given Entity.
+	 * @param objectId
+	 * @return
+	 */
+	public String getProjectId(String objectId);
 
 }

@@ -1,5 +1,10 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_STAT_PROJECT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_STAT_USER_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_PROJECT_STAT;
+
+import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
@@ -9,17 +14,14 @@ import org.sagebionetworks.repo.model.ProjectStatsDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOProjectStat;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
-
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 
 public class DBOProjectStatsDAOImpl implements ProjectStatsDAO {
 
@@ -73,4 +75,5 @@ public class DBOProjectStatsDAOImpl implements ProjectStatsDAO {
 			}
 		});
 	}
+
 }

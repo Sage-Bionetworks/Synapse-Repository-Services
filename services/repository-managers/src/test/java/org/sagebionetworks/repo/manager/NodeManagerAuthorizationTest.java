@@ -111,9 +111,10 @@ public class NodeManagerAuthorizationTest {
 		when(mockNode.getFileHandleId()).thenReturn(fileHandleId);
 		when(mockEntityBootstrapper.getChildAclSchemeForPath(any(String.class))).thenReturn(ACL_SCHEME.INHERIT_FROM_PARENT);
 		when(mockAuthDao.canAccess(mockUserInfo, mockNode.getId(), ObjectType.ENTITY, ACCESS_TYPE.UPLOAD)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(mockNodeDao.createNewNode(mockNode)).thenReturn(mockNode);
 		// Should fail
 		nodeManager.createNewNode(mockNode, mockUserInfo);
-		verify(mockNodeDao).createNew(mockNode);
+		verify(mockNodeDao).createNewNode(mockNode);
 	}
 	
 	/**
