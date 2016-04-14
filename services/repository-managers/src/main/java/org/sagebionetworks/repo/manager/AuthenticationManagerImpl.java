@@ -39,16 +39,16 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	@Override
 	@WriteTransaction
 	public Session authenticate(long principalId, String password, DomainType domain) throws NotFoundException {
+		ValidateArgument.required(password, "password");
+		ValidateArgument.required(domain, "domain");
 		// acquire a lock for throttling password attacks
 		String lockToken = usernameThrottleGate.attemptToAcquireLock(""+principalId, LOCK_TIMOUTE_SEC, MAX_CONCURRENT_LOCKS);
 		if (lockToken != null) {
 			// Check the username password combination
 			// This will throw an UnauthorizedException if invalid
-			if (password != null) {
-				byte[] salt = authDAO.getPasswordSalt(principalId);
-				String passHash = PBKDF2Utils.hashPassword(password, salt);
-				authDAO.checkUserCredentials(principalId, passHash);
-			}
+			byte[] salt = authDAO.getPasswordSalt(principalId);
+			String passHash = PBKDF2Utils.hashPassword(password, salt);
+			authDAO.checkUserCredentials(principalId, passHash);
 			usernameThrottleGate.releaseLock(""+principalId, lockToken);
 			return getSessionToken(principalId, domain);
 		} else {
