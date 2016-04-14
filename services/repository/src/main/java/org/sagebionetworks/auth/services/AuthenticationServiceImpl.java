@@ -134,7 +134,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		}
 		
 		// Get the user's session token (which is refreshed)
-		String sessionToken = authManager.authenticate(principalId, null, domain).getSessionToken();
+		String sessionToken = authManager.getSessionToken(principalId, domain).getSessionToken();
 		
 		// Send the email
 		messageManager.sendPasswordResetEmail(principalId, domain, sessionToken);
@@ -239,7 +239,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 			throw new NotFoundException("Failed to find a user with OpenId: "+info.getIdentifier());
 		}
 		// Open ID is successful
-		Session sesion = authManager.authenticate(alias.getPrincipalId(), null, domain);
+		Session sesion = authManager.getSessionToken(alias.getPrincipalId(), domain);
 		
 		/**
 		 * Binding the OpenID here is temporary and should be removed when PLFM-2437 is resolved.

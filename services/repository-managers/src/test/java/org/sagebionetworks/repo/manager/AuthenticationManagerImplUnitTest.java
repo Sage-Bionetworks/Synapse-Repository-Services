@@ -75,21 +75,21 @@ public class AuthenticationManagerImplUnitTest {
 		verify(mockAuthDAO, times(1)).checkUserCredentials(eq(userId), eq(passHash));
 	}
 
-	@Test
+	@Test (expected=IllegalArgumentException.class)
 	public void testAuthenticateWithoutPassword() throws Exception {
-		when(mockUsernameThrottleGate.attemptToAcquireLock(anyString(), anyLong(), anyInt())).thenReturn("fake token");
-		Session session = authManager.authenticate(userId, null, DomainType.SYNAPSE);
-		Assert.assertEquals(synapseSessionToken, session.getSessionToken());
-		
-		verify(mockAuthDAO, never()).getPasswordSalt(userId);
-		verify(mockAuthDAO, never()).checkUserCredentials(userId, null);
+		authManager.authenticate(userId, null, DomainType.SYNAPSE);
+	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testAuthenticateWithoutDomain() throws Exception {
+		authManager.authenticate(userId, "password", null);
 	}
 
 	@Test
 	public void testAuthenticateThrottleWithLimitAttempts() throws Exception {
 		when(mockUsernameThrottleGate.attemptToAcquireLock(anyString(), anyLong(), anyInt())).thenReturn("0","1","2","3","4","5","6","7","8","9", null);
 		for (int i = 0; i < MAX_CONCURRENT_LOCKS; i++) {
-			authManager.authenticate(userId, null, DomainType.SYNAPSE);
+			authManager.authenticate(userId, "password", DomainType.SYNAPSE);
 		}
 	}
 
@@ -97,7 +97,7 @@ public class AuthenticationManagerImplUnitTest {
 	public void testAuthenticateThrottleWithOverLimitAttempts() throws Exception {
 		when(mockUsernameThrottleGate.attemptToAcquireLock(anyString(), anyLong(), anyInt())).thenReturn("0","1","2","3","4","5","6","7","8","9", null);
 		for (int i = 0; i < MAX_CONCURRENT_LOCKS+1; i++) {
-			authManager.authenticate(userId, null, DomainType.SYNAPSE);
+			authManager.authenticate(userId, "password", DomainType.SYNAPSE);
 		}
 	}
 
