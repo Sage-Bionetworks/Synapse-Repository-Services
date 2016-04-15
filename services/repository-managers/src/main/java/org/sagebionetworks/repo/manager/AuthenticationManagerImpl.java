@@ -21,7 +21,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 
 	public static final int PASSWORD_MIN_LENGTH = 8;
 
-	public static final long LOCK_TIMOUTE_SEC = 5*60*1000;
+	public static final long LOCK_TIMOUTE_SEC = 5*60;
 
 	public static final int MAX_CONCURRENT_LOCKS = 10;
 
