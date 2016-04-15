@@ -40,6 +40,8 @@ import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.exception.ReadOnlyException;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -66,6 +68,7 @@ import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
@@ -136,6 +139,10 @@ public class TableRowManagerImpl implements TableRowManager {
 	FileHandleDao fileHandleDao;
 	@Autowired
 	TimeoutUtils timeoutUtils;
+	@Autowired
+	ColumnModelManager columModelManager;
+	@Autowired
+	TransactionalMessenger transactionalMessenger;
 	
 	/**
 	 * Injected via spring
@@ -328,6 +335,8 @@ public class TableRowManagerImpl implements TableRowManager {
 		RowReferenceSet result = tableRowTruthDao.appendRowSetToTable(user.getId().toString(), tableId, mapper, rowSetToDelete);
 		// The table has change so we must reset the state.
 		tableStatusDAO.resetTableStatusToProcessing(tableId);
+		// notify all listeners.
+		transactionalMessenger.sendMessageAfterCommit(tableId, ObjectType.TABLE, "", ChangeType.UPDATE, user.getId());
 		return result;
 	}
 
@@ -386,6 +395,8 @@ public class TableRowManagerImpl implements TableRowManager {
 		}
 		// The table has change so we must reset the state.
 		tableStatusDAO.resetTableStatusToProcessing(tableId);
+		// notify all listeners.
+		transactionalMessenger.sendMessageAfterCommit(tableId, ObjectType.TABLE, "", ChangeType.UPDATE, user.getId());
 		return etag;
 	}
 
@@ -562,6 +573,8 @@ public class TableRowManagerImpl implements TableRowManager {
 		// we get here, if the index for this table is not (yet?) being build. We need to kick off the
 		// building of the index and report the table as unavailable
 		tableStatusDAO.resetTableStatusToProcessing(tableId);
+		// notify all listeners.
+		transactionalMessenger.sendMessageAfterCommit(tableId, ObjectType.TABLE, "", ChangeType.UPDATE);
 		// status should exist now
 		return tableStatusDAO.getTableStatus(tableId);
 	}
@@ -1286,9 +1299,7 @@ public class TableRowManagerImpl implements TableRowManager {
 
 	@Override
 	public String startTableProcessing(String tableId) {
-		// Since this is called from the worker do not broadcast the change.
-		boolean broadcastChange = false;
-		return tableStatusDAO.resetTableStatusToProcessing(tableId, broadcastChange);
+		return tableStatusDAO.resetTableStatusToProcessing(tableId);
 	}
 
 
@@ -1328,6 +1339,23 @@ public class TableRowManagerImpl implements TableRowManager {
 		// work is needed if the current state is processing.
 		TableStatus status = tableStatusDAO.getTableStatus(tableId);
 		return TableState.PROCESSING.equals(status.getState());
+	}
+
+
+	@WriteTransactionReadCommitted
+	@Override
+	public void setTableSchema(UserInfo userInfo, List<String> columnIds,
+			String id) {
+		columModelManager.bindColumnToObject(userInfo, columnIds, id);
+		setTableToProcessingAndTriggerUpdate(id);
+	}
+
+	@WriteTransactionReadCommitted
+	@Override
+	public void deleteTable(String deletedId) {
+		columModelManager.unbindAllColumnsAndOwnerFromObject(deletedId);
+		deleteAllRows(deletedId);
+		transactionalMessenger.sendMessageAfterCommit(deletedId, ObjectType.TABLE, ChangeType.DELETE);
 	}
 
 }

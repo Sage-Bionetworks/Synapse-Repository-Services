@@ -1,10 +1,6 @@
 package org.sagebionetworks.repo.model.table;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.mockito.Mockito.times;
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -26,7 +22,6 @@ import org.sagebionetworks.repo.model.PaginatedIds;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
-import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -43,19 +38,16 @@ public class ColumnModelManagerTest {
 	ColumnModelDAO mockColumnModelDAO;
 	AuthorizationManager mockauthorizationManager;
 	ColumnModelManagerImpl columnModelManager;
-	TableStatusDAO mockTableStatusDao;
 	UserInfo user;
 	
 	@Before
 	public void before(){
 		mockColumnModelDAO = Mockito.mock(ColumnModelDAO.class);
 		mockauthorizationManager = Mockito.mock(AuthorizationManager.class);
-		mockTableStatusDao = Mockito.mock(TableStatusDAO.class);
 		columnModelManager = new ColumnModelManagerImpl();
 		user = new UserInfo(false, 123L);
 		ReflectionTestUtils.setField(columnModelManager, "columnModelDao", mockColumnModelDAO);
 		ReflectionTestUtils.setField(columnModelManager, "authorizationManager", mockauthorizationManager);
-		ReflectionTestUtils.setField(columnModelManager, "tableStatusDAO", mockTableStatusDao);
 	}
 	
 	@Test
@@ -245,9 +237,7 @@ public class ColumnModelManagerTest {
 		List<String> ids = new LinkedList<String>();
 		ids.add("123");
 		when(mockColumnModelDAO.bindColumnToObject(ids, objectId)).thenReturn(1);
-		assertTrue(columnModelManager.bindColumnToObject(user, ids, objectId, false));
-		// Validate that the table status gets changed
-		verify(mockTableStatusDao, times(1)).resetTableStatusToProcessing(objectId);
+		assertTrue(columnModelManager.bindColumnToObject(user, ids, objectId));
 	}
 	
 	/**
@@ -263,9 +253,7 @@ public class ColumnModelManagerTest {
 		List<String> ids = new LinkedList<String>();
 		ids.add("123");
 		when(mockColumnModelDAO.bindColumnToObject(ids, objectId)).thenReturn(0);
-		assertTrue("Binding null columns should trigger a rest for a new object",columnModelManager.bindColumnToObject(user, ids, objectId, true));
-		// Validate that the table status gets changed
-		verify(mockTableStatusDao, times(1)).resetTableStatusToProcessing(objectId);
+		assertFalse("Binding null columns should trigger a rest for a new object",columnModelManager.bindColumnToObject(user, ids, objectId));
 	}
 	
 	
@@ -352,7 +340,7 @@ public class ColumnModelManagerTest {
 		}
 		when(mockColumnModelDAO.getColumnModel(scheamIds, false)).thenReturn(schema);
 		//call under test
-		columnModelManager.bindColumnToObject(user, scheamIds, objectId, true);
+		columnModelManager.bindColumnToObject(user, scheamIds, objectId);
 	}
 	
 	/**
@@ -372,6 +360,6 @@ public class ColumnModelManagerTest {
 		}
 		when(mockColumnModelDAO.getColumnModel(scheamIds, false)).thenReturn(schema);
 		//call under test
-		columnModelManager.bindColumnToObject(user, scheamIds, objectId, true);
+		columnModelManager.bindColumnToObject(user, scheamIds, objectId);
 	}
 }

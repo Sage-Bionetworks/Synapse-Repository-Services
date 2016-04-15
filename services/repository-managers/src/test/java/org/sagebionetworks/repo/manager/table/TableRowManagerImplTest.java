@@ -64,6 +64,8 @@ import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.exception.ReadOnlyException;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -134,6 +136,10 @@ public class TableRowManagerImplTest {
 	FileHandleDao mockFileDao;
 	@Mock
 	TimeoutUtils mockTimeoutUtils;
+	@Mock
+	ColumnModelManager mockColumModelManager;
+	@Mock
+	TransactionalMessenger mockTransactionalMessenger;
 	
 	List<ColumnModel> models;
 	String schemaMD5Hex;
@@ -170,6 +176,8 @@ public class TableRowManagerImplTest {
 		ReflectionTestUtils.setField(manager, "writeReadSemaphoreRunner", mockWriteReadSemaphoreRunner);
 		ReflectionTestUtils.setField(manager, "fileHandleDao", mockFileDao);
 		ReflectionTestUtils.setField(manager, "timeoutUtils", mockTimeoutUtils);
+		ReflectionTestUtils.setField(manager, "columModelManager", mockColumModelManager);
+		ReflectionTestUtils.setField(manager, "transactionalMessenger", mockTransactionalMessenger);
 
 		// Just call the caller.
 		stub(mockWriteReadSemaphoreRunner.tryRunWithReadLock(any(ProgressCallback.class),anyString(), anyInt(), any(ProgressingCallable.class))).toAnswer(new Answer<Object>() {
@@ -454,6 +462,7 @@ public class TableRowManagerImplTest {
 		// verify the table status was set
 		verify(mockTableStatusDAO, times(1)).resetTableStatusToProcessing(tableId);
 		verify(mockProgressCallback).progressMade(anyLong());
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(tableId, ObjectType.TABLE, "", ChangeType.UPDATE, user.getId());
 	}
 	
 	@Test
@@ -555,6 +564,7 @@ public class TableRowManagerImplTest {
 		verify(mockTruthDao).appendRowSetToTable(eq(user.getId().toString()), eq(tableId), any(ColumnMapper.class), eq(rawSet));
 		// verify the table status was set
 		verify(mockTableStatusDAO, times(1)).resetTableStatusToProcessing(tableId);
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(tableId, ObjectType.TABLE, "", ChangeType.UPDATE, user.getId());
 	}
 	
 	@Test
@@ -1082,6 +1092,7 @@ public class TableRowManagerImplTest {
 		TableStatus result = manager.getTableStatusOrCreateIfNotExists(tableId);
 		assertNotNull(result);
 		verify(mockTableStatusDAO, never()).resetTableStatusToProcessing(tableId);
+		verify(mockTransactionalMessenger, never()).sendMessageAfterCommit(tableId, ObjectType.TABLE, "", ChangeType.UPDATE);
 	}
 	
 	/**
@@ -1105,6 +1116,7 @@ public class TableRowManagerImplTest {
 		assertNotNull(result);
 		// must trigger processing
 		verify(mockTableStatusDAO).resetTableStatusToProcessing(tableId);
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(tableId, ObjectType.TABLE, "", ChangeType.UPDATE);
 	}
 	
 	/**
@@ -1129,6 +1141,7 @@ public class TableRowManagerImplTest {
 		assertNotNull(result);
 		verify(mockTableStatusDAO).resetTableStatusToProcessing(tableId);
 		verify(mockNodeDAO).isNodeAvailable(tableIdLong);
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(tableId, ObjectType.TABLE, "", ChangeType.UPDATE);
 	}
 	
 	/**
@@ -1172,6 +1185,7 @@ public class TableRowManagerImplTest {
 		TableStatus result = manager.getTableStatusOrCreateIfNotExists(tableId);
 		assertNotNull(result);
 		verify(mockTableStatusDAO, never()).resetTableStatusToProcessing(tableId);
+		verify(mockTransactionalMessenger, never()).sendMessageAfterCommit(tableId, ObjectType.TABLE, "", ChangeType.UPDATE);
 	}
 	
 	/**
@@ -1194,6 +1208,7 @@ public class TableRowManagerImplTest {
 		TableStatus result = manager.getTableStatusOrCreateIfNotExists(tableId);
 		assertNotNull(result);
 		verify(mockTableStatusDAO).resetTableStatusToProcessing(tableId);
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(tableId, ObjectType.TABLE, "", ChangeType.UPDATE);
 	}
 
 
@@ -1330,9 +1345,7 @@ public class TableRowManagerImplTest {
 	@Test
 	public void testStartTableProcessing(){
 		String token = "a unique token";
-		// the change should not be broadcast.
-		boolean broadcastChange = false;
-		when(mockTableStatusDAO.resetTableStatusToProcessing(tableId, broadcastChange)).thenReturn(token);
+		when(mockTableStatusDAO.resetTableStatusToProcessing(tableId)).thenReturn(token);
 		// call under test
 		String resultToken = manager.startTableProcessing(tableId);
 		assertEquals(token, resultToken);
@@ -1444,4 +1457,24 @@ public class TableRowManagerImplTest {
 		assertTrue(workRequired);
 	}
 	
+	@Test
+	public void testSetTableSchema(){
+		// mock an update
+		when(mockColumModelManager.bindColumnToObject(any(UserInfo.class), any(List.class), anyString())).thenReturn(true);
+		List<String> schema = Lists.newArrayList("111","222");
+		// call under test.
+		manager.setTableSchema(user, schema, tableId);
+		verify(mockColumModelManager).bindColumnToObject(user, schema, tableId);
+		verify(mockTableStatusDAO).resetTableStatusToProcessing(tableId);
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(tableId, ObjectType.TABLE, "", ChangeType.UPDATE);
+	}
+	
+	@Test
+	public void testDeleteTable(){
+		// call under test
+		manager.deleteTable(tableId);
+		verify(mockColumModelManager).unbindAllColumnsAndOwnerFromObject(tableId);
+		verify(mockTruthDao).deleteAllRowDataForTable(tableId);
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(tableId, ObjectType.TABLE, ChangeType.DELETE);
+	}
 }

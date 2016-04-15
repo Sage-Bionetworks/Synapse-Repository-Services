@@ -1,6 +1,9 @@
 package org.sagebionetworks.repo.model.dbo.dao.table;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 
 import java.util.List;
 import java.util.UUID;
@@ -97,9 +100,7 @@ public class TableStatusDAOImplTest {
 		}catch(NotFoundException e){
 			// expected
 		}
-		// This should insert a row for this table.
-		boolean broadcastChange = false;
-		String resetToken = tableStatusDAO.resetTableStatusToProcessing("syn123", broadcastChange);
+		String resetToken = tableStatusDAO.resetTableStatusToProcessing("syn123");
 		assertNotNull(resetToken);
 		// We should now have a status for this table
 		TableStatus status = tableStatusDAO.getTableStatus(tableId);
