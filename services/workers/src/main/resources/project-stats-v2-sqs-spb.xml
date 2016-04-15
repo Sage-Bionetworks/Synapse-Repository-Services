@@ -39,6 +39,7 @@
 									<list>
 										<ref bean="stackConfiguration.repositoryChangeTopic[ENTITY]" />
 										<ref bean="stackConfiguration.repositoryChangeTopic[WIKI]" />
+										<ref bean="stackConfiguration.repositoryChangeTopic[TABLE]" />
 									</list>
 								</property>
 								<property name="gate">
