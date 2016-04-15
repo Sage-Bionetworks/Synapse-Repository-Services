@@ -148,7 +148,7 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 	 * @param change
 	 * @return
 	 */
-	public ChangeMessage attemptReplaceChange(ChangeMessage change) {
+	private ChangeMessage attemptReplaceChange(ChangeMessage change) {
 		DBOChange changeDbo = ChangeMessageUtils.createDBO(change);
 		/*
 		 * Clear the time stamp so that we get a new one automatically. Note:

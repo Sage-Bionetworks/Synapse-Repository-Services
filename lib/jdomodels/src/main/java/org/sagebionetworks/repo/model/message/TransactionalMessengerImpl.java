@@ -119,7 +119,6 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 			// If the userId was not provided attempt to the current user from the thread local.
 			message.setUserId(currentUserIdThreadLocal.get());
 		}
-		message.setObjectId(""+KeyFactory.stringToKey(message.getObjectId()));
 		appendToBoundMessages(message);
 	}
 

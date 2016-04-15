@@ -334,9 +334,7 @@ public class TableRowManagerImpl implements TableRowManager {
 		RawRowSet rowSetToDelete = new RawRowSet(TableModelUtils.getIds(mapper.getColumnModels()), rowsToDelete.getEtag(), tableId, rows);
 		RowReferenceSet result = tableRowTruthDao.appendRowSetToTable(user.getId().toString(), tableId, mapper, rowSetToDelete);
 		// The table has change so we must reset the state.
-		tableStatusDAO.resetTableStatusToProcessing(tableId);
-		// notify all listeners.
-		transactionalMessenger.sendMessageAfterCommit(tableId, ObjectType.TABLE, "", ChangeType.UPDATE, user.getId());
+		setTableToProcessingAndTriggerUpdate(tableId);
 		return result;
 	}
 
@@ -394,9 +392,7 @@ public class TableRowManagerImpl implements TableRowManager {
 			etag = appendBatchOfRowsToTable(user, columnMapper, delta, results, progressCallback);
 		}
 		// The table has change so we must reset the state.
-		tableStatusDAO.resetTableStatusToProcessing(tableId);
-		// notify all listeners.
-		transactionalMessenger.sendMessageAfterCommit(tableId, ObjectType.TABLE, "", ChangeType.UPDATE, user.getId());
+		setTableToProcessingAndTriggerUpdate(tableId);
 		return etag;
 	}
 

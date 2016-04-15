@@ -462,7 +462,7 @@ public class TableRowManagerImplTest {
 		// verify the table status was set
 		verify(mockTableStatusDAO, times(1)).resetTableStatusToProcessing(tableId);
 		verify(mockProgressCallback).progressMade(anyLong());
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(tableId, ObjectType.TABLE, "", ChangeType.UPDATE, user.getId());
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(tableId, ObjectType.TABLE, "", ChangeType.UPDATE);
 	}
 	
 	@Test
@@ -564,7 +564,7 @@ public class TableRowManagerImplTest {
 		verify(mockTruthDao).appendRowSetToTable(eq(user.getId().toString()), eq(tableId), any(ColumnMapper.class), eq(rawSet));
 		// verify the table status was set
 		verify(mockTableStatusDAO, times(1)).resetTableStatusToProcessing(tableId);
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(tableId, ObjectType.TABLE, "", ChangeType.UPDATE, user.getId());
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(tableId, ObjectType.TABLE, "", ChangeType.UPDATE);
 	}
 	
 	@Test
