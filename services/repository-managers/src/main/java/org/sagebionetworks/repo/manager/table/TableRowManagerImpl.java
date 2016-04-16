@@ -413,7 +413,7 @@ public class TableRowManagerImpl implements TableRowManager {
 	 * 
 	 * @param tableId
 	 * @param columnMapper
-	 * @param etag
+	 * @param ETAG
 	 * @param results
 	 * @param headers
 	 * @param batch
