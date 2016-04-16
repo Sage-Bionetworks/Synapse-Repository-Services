@@ -5,7 +5,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 
-import java.util.List;
 import java.util.UUID;
 
 import org.junit.After;
@@ -13,11 +12,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
-import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
-import org.sagebionetworks.repo.model.message.ChangeMessage;
-import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -31,13 +26,10 @@ public class TableStatusDAOImplTest {
 
 	@Autowired
 	TableStatusDAO tableStatusDAO;
-	@Autowired
-	DBOChangeDAO changeDAO;
 	
 	@Before
 	public void before(){
 		tableStatusDAO.clearAllTableState();
-		changeDAO.deleteAllChanges();
 	}
 	
 	@After
@@ -47,7 +39,6 @@ public class TableStatusDAOImplTest {
 	
 	@Test
 	public void testResetTableStatusToPending() throws NotFoundException{
-		long startNumber = changeDAO.getCurrentChangeNumber();
 		String tableId = "syn123";
 		// Before we start the status should not exist
 		try{
@@ -76,22 +67,10 @@ public class TableStatusDAOImplTest {
 		String newResetToken = tableStatusDAO.resetTableStatusToProcessing("123");
 		assertNotNull(newResetToken);
 		assertFalse(newResetToken.equals(resetToken));
-		
-		// Did a message get sent?
-		List<ChangeMessage> changes = changeDAO.listChanges(startNumber+1, ObjectType.TABLE, Long.MAX_VALUE);
-		assertNotNull(changes);
-		assertEquals("Changing the column binding of a table did not fire a change message",1, changes.size());
-		ChangeMessage message = changes.get(0);
-		assertNotNull(message);
-		assertEquals("123", message.getObjectId());
-		assertEquals(ChangeType.UPDATE, message.getChangeType());
-		assertEquals(ObjectType.TABLE, message.getObjectType());
-		assertEquals(newResetToken, message.getObjectEtag());
 	}
 	
 	@Test
 	public void testResetTableStatusToPendingNoBroadcast() throws NotFoundException{
-		long startNumber = changeDAO.getCurrentChangeNumber();
 		String tableId = "syn123";
 		// Before we start the status should not exist
 		try{
@@ -108,9 +87,6 @@ public class TableStatusDAOImplTest {
 		assertEquals("123", status.getTableId());
 		assertEquals(TableState.PROCESSING, status.getState());
 		
-		// no changes should have been sent
-		long endChangeNumber = changeDAO.getCurrentChangeNumber();
-		assertEquals(startNumber, endChangeNumber);
 	}
 	
 	@Test

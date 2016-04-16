@@ -67,7 +67,6 @@ import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
-import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
@@ -163,7 +162,7 @@ public class TableRowManagerImpl implements TableRowManager {
 	}
 
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public RowReferenceSet appendRows(UserInfo user, String tableId, ColumnMapper columnMapper, RowSet delta, ProgressCallback<Long> progressCallback)
 			throws DatastoreException, NotFoundException, IOException {
@@ -179,6 +178,7 @@ public class TableRowManagerImpl implements TableRowManager {
 		return results;
 	}
 	
+	@WriteTransactionReadCommitted
 	@Override
 	public RowReferenceSet appendPartialRows(UserInfo user, String tableId, ColumnMapper columnMapper,
 			PartialRowSet rowsToAppendOrUpdateOrDelete, ProgressCallback<Long> progressCallback)
@@ -308,7 +308,7 @@ public class TableRowManagerImpl implements TableRowManager {
 		}
 	}
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public RowReferenceSet deleteRows(UserInfo user, String tableId, RowSelection rowsToDelete) throws DatastoreException, NotFoundException,
 			IOException {
@@ -338,14 +338,14 @@ public class TableRowManagerImpl implements TableRowManager {
 		return result;
 	}
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public void deleteAllRows(String tableId) {
 		Validate.required(tableId, "tableId");
 		tableRowTruthDao.deleteAllRowDataForTable(tableId);
 	}
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public String appendRowsAsStream(UserInfo user, String tableId, ColumnMapper columnMapper, Iterator<Row> rowStream, String etag,
 			RowReferenceSet results, ProgressCallback<Long> progressCallback) throws DatastoreException, NotFoundException, IOException {
@@ -506,6 +506,7 @@ public class TableRowManagerImpl implements TableRowManager {
 		return tableRowTruthDao.getRowSet(rowRefs, resultSchema);
 	}
 
+	@WriteTransactionReadCommitted
 	@Override
 	public <R,T> R tryRunWithTableExclusiveLock(ProgressCallback<T> callback,
 			String tableId, int timeoutSec, ProgressingCallable<R, T> callable)
@@ -515,6 +516,7 @@ public class TableRowManagerImpl implements TableRowManager {
 		return writeReadSemaphoreRunner.tryRunWithWriteLock(callback, key, timeoutSec, callable);
 	}
 
+	@WriteTransactionReadCommitted
 	@Override
 	public <R,T> R tryRunWithTableNonexclusiveLock(ProgressCallback<T> callback, String tableId, int lockTimeoutSec, ProgressingCallable<R, T> callable)
 			throws Exception {
@@ -527,6 +529,7 @@ public class TableRowManagerImpl implements TableRowManager {
 	 * (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.table.TableRowManager#getTableStatusOrCreateIfNotExists(java.lang.String)
 	 */
+	@WriteTransactionReadCommitted
 	@Override
 	public TableStatus getTableStatusOrCreateIfNotExists(String tableId) throws NotFoundException, IOException {
 		try {
@@ -596,6 +599,7 @@ public class TableRowManagerImpl implements TableRowManager {
 		tableStatusDAO.attemptToUpdateTableProgress(tableId, resetToken, progressMessage, currentProgress, totalProgress);
 	}
 
+	@WriteTransactionReadCommitted
 	@Override
 	public Pair<QueryResult, Long> query(ProgressCallback<Void> progressCallback, UserInfo user, String query, List<SortItem> sortList, Long offset, Long limit, boolean runQuery,
 			boolean runCount, boolean isConsistent) throws DatastoreException, NotFoundException, TableUnavilableException,
@@ -603,6 +607,7 @@ public class TableRowManagerImpl implements TableRowManager {
 		return query(progressCallback, user, createQuery(query, sortList), offset, limit, runQuery, runCount, isConsistent);
 	}
 
+	@WriteTransactionReadCommitted
 	@Override
 	public Pair<QueryResult, Long> query(ProgressCallback<Void> progressCallback, UserInfo user, SqlQuery query, Long offset, Long limit, boolean runQuery,
 			boolean runCount, boolean isConsistent) throws DatastoreException, NotFoundException, TableUnavilableException,
@@ -1046,6 +1051,7 @@ public class TableRowManagerImpl implements TableRowManager {
 	 * @throws NotFoundException
 	 * @throws TableFailedException
 	 */
+	@WriteTransactionReadCommitted
 	@Override
 	public DownloadFromTableResult runConsistentQueryAsStream(ProgressCallback<Void> progressCallback, UserInfo user, String sql, List<SortItem> sortList,
 			final CSVWriterStream writer, boolean includeRowIdAndVersion, final boolean writeHeader) throws TableUnavilableException,
