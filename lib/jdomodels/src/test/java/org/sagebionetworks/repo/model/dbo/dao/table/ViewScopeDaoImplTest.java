@@ -49,16 +49,16 @@ public class ViewScopeDaoImplTest {
 		// change the values
 		containers = Sets.newHashSet(555L,777L);
 		viewScopeDao.setViewScope(viewId1, containers);
-		// The 444 container should no longer intersect.
+		// The 444 container should no longer intersect with view 123
 		Set<Long> intersection = viewScopeDao.findViewScopeIntersectionWithPath(Sets.newHashSet(444L));
 		assertNotNull(intersection);
 		assertEquals(0, intersection.size());
-		// should intersect with 555
+		// view 123 should intersect with 555
 		intersection = viewScopeDao.findViewScopeIntersectionWithPath(Sets.newHashSet(555L));
 		assertNotNull(intersection);
 		assertEquals(1, intersection.size());
 		assertTrue(intersection.contains(viewId1));
-		// should intersect with 777
+		// view 123 should intersect with 777
 		intersection = viewScopeDao.findViewScopeIntersectionWithPath(Sets.newHashSet(777L));
 		assertNotNull(intersection);
 		assertEquals(1, intersection.size());
@@ -73,13 +73,13 @@ public class ViewScopeDaoImplTest {
 		viewScopeDao.setViewScope(viewId1, Sets.newHashSet(444L,555L));
 		// two
 		viewScopeDao.setViewScope(viewId2, Sets.newHashSet(555L,888L));
-		// 555 should match both
+		// 555 should intersect with views 123 and 456
 		Set<Long> results = viewScopeDao.findViewScopeIntersectionWithPath(Sets.newHashSet(555L));
 		assertEquals(Sets.newHashSet(viewId1, viewId2), results);
-		// 444 should match one
+		// 444 should intersect with view 123
 		results = viewScopeDao.findViewScopeIntersectionWithPath(Sets.newHashSet(444L));
 		assertEquals(Sets.newHashSet(viewId1), results);
-		// 888 should match one
+		// 888 should intersect with view 456
 		results = viewScopeDao.findViewScopeIntersectionWithPath(Sets.newHashSet(888L));
 		assertEquals(Sets.newHashSet(viewId2), results);
 		

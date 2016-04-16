@@ -48,7 +48,6 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 	
 	private static final String SQL_UPDATE_TABLE_PROGRESS = "UPDATE "+TABLE_STATUS+" SET "+COL_TABLE_STATUS_CHANGE_ON+" = ?, "+COL_TABLE_STATUS_PROGRESS_MESSAGE+" = ?, "+COL_TABLE_STATUS_PROGRESS_CURRENT+" = ?, "+COL_TABLE_STATUS_PROGRESS_TOTAL+" = ?, "+COL_TABLE_STATUS_RUNTIME_MS+" = ? WHERE "+COL_TABLE_STATUS_ID+" = ?";
 	private static final String CONFLICT_MESSAGE = "The passed reset-token was invalid. The table's status was reset after the passed reset-token was acquired.";
-	private static final String SQL_UPDATE_END_STATE = "UPDATE "+TABLE_STATUS+" SET "+COL_TABLE_STATUS_STATE+" = ?, "+COL_TABLE_STATUS_CHANGE_ON+" = ?, "+COL_TABLE_STATUS_PROGRESS_MESSAGE+" = ?, "+COL_TABLE_STATUS_PROGRESS_CURRENT+" = ?, "+COL_TABLE_STATUS_ERROR_MESSAGE+" = ?, "+COL_TABLE_STATUS_ERROR_DETAILS+" = ?, "+COL_TABLE_STATUS_RUNTIME_MS+" = ?, "+COL_TABLE_LAST_TABLE_CHANGE_ETAG+" = ? WHERE "+COL_TABLE_STATUS_ID+" = ?";
 	private static final String SQL_SELECT_STATUS_FOR_UPDATE = "SELECT * FROM "+TABLE_STATUS+" WHERE "+COL_TABLE_STATUS_ID+" = ? FOR UPDATE";
 	private static final String SQL_DELETE_ALL_STATE = "DELETE FROM "+TABLE_STATUS+" WHERE "+COL_TABLE_STATUS_ID+" > -1";
 	private static final String SQL_RESET_TO_PENDING = "INSERT INTO "+TABLE_STATUS+" ("+COL_TABLE_STATUS_ID+", "+COL_TABLE_STATUS_STATE+", "+COL_TABLE_STATUS_RESET_TOKEN+", "+COL_TABLE_STATUS_STARTED_ON+", "+COL_TABLE_STATUS_CHANGE_ON+") VALUES (?,?,?,?,?) ON DUPLICATE KEY UPDATE "+COL_TABLE_STATUS_STATE+" = ?, "+COL_TABLE_STATUS_RESET_TOKEN+" = ?, "+COL_TABLE_STATUS_STARTED_ON+" = ?, "+COL_TABLE_STATUS_CHANGE_ON+" = ?";
@@ -61,8 +60,6 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
-	@Autowired
-	TransactionalMessenger transactionalMessenger;
 	
 	@Override
 	public TableStatus getTableStatus(String tableIdString) throws DatastoreException, NotFoundException {
@@ -72,19 +69,10 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 		DBOTableStatus dbo =  basicDao.getObjectByPrimaryKey(DBOTableStatus.class, param);
 		return TableStatusUtils.createDTOFromDBO(dbo);
 	}
-
-	@WriteTransaction
-	@Override
-	public String resetTableStatusToProcessing(String tableIdString) {
-		// by default changes should be broadcast.
-		boolean broadcastChange = true;
-		return resetTableStatusToProcessing(tableIdString, broadcastChange);
-	}
 	
 	@WriteTransaction
 	@Override
-	public String resetTableStatusToProcessing(String tableIdString,
-			boolean broadcastChange) {
+	public String resetTableStatusToProcessing(String tableIdString) {
 		if(tableIdString == null) throw new IllegalArgumentException("TableId cannot be null");
 		Long tableId = KeyFactory.stringToKey(tableIdString);
 		String state = TableState.PROCESSING.name();
@@ -92,10 +80,6 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 		long now = System.currentTimeMillis();
 		// We are not unconditionally replacing this row.  Instead we are only setting the columns that we wish to change.
 		jdbcTemplate.update(SQL_RESET_TO_PENDING, tableId, state,resetToken, now, now, state, resetToken, now, now);
-		if(broadcastChange){
-			// Fire a change event
-			transactionalMessenger.sendMessageAfterCommit(tableId.toString(), ObjectType.TABLE, resetToken, ChangeType.UPDATE);
-		}
 		return resetToken;
 	}
 

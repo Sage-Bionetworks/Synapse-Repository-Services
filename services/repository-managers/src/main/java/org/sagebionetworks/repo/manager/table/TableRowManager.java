@@ -497,4 +497,19 @@ public interface TableRowManager {
 	 */
 	public boolean isIndexWorkRequired(String tableId);
 
+	/**
+	 * Set the schema of the table.
+	 * @param userInfo
+	 * @param columnIds
+	 * @param id
+	 */
+	public void setTableSchema(UserInfo userInfo, List<String> columnIds,
+			String id);
+
+	/**
+	 * Delete the table.
+	 * @param deletedId
+	 */
+	public void deleteTable(String deletedId);
+
 }

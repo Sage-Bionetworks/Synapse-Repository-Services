@@ -1,7 +1,9 @@
 package org.sagebionetworks.projectstats.worker;
 
 import java.util.Date;
+
 import static org.mockito.Mockito.*;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -12,6 +14,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.util.TimeoutUtils;
+import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.test.util.ReflectionTestUtils;
 
 public class ProjectStatsWorkerV2Test {
@@ -58,6 +61,13 @@ public class ProjectStatsWorkerV2Test {
 	public void testRunExpired() throws Exception{
 		// setup expired
 		when(mockTimeoutUtils.hasExpired(anyLong(), anyLong())).thenReturn(true);
+		worker.run(mockProgressCallback, message);
+		verify(mockProjectStatsManager, never()).updateProjectStats(anyLong(), anyString(), any(ObjectType.class), any(Date.class));
+	}
+	
+	@Test
+	public void testIgnoreMissingUserId() throws RecoverableMessageException, Exception{
+		message.setUserId(null);
 		worker.run(mockProgressCallback, message);
 		verify(mockProjectStatsManager, never()).updateProjectStats(anyLong(), anyString(), any(ObjectType.class), any(Date.class));
 	}

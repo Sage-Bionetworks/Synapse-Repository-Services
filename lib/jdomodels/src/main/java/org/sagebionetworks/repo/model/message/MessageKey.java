@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.message;
 
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 
 /**
  * The change key is a composite of the object type and the object id.
@@ -11,7 +12,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 class MessageKey {
 	
 	private ObjectType type;
-	private String objectId;
+	private Long objectId;
 	private Class<? extends Message> messageType;
 	
 	public MessageKey(Message message) {
@@ -22,7 +23,7 @@ class MessageKey {
 		if (message.getObjectType() == null)
 			throw new IllegalArgumentException("Message.getObjectType() cannot be null");
 		this.type = message.getObjectType();
-		this.objectId = message.getObjectId();
+		this.objectId = KeyFactory.stringToKey(message.getObjectId());
 		this.messageType = message.getClass();
 	}
 

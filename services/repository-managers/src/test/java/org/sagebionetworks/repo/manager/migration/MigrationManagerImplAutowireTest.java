@@ -168,7 +168,7 @@ public class MigrationManagerImplAutowireTest {
 			table.setName(UUID.randomUUID().toString());
 			table.setColumnIds(Lists.transform(headers, TableModelUtils.LONG_TO_STRING));
 			tableId = entityManager.createEntity(adminUser, table, null);
-			columnManager.bindColumnToObject(adminUser, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId, true);
+			tableRowManager.setTableSchema(adminUser, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
 
 			// Now add some data
 			RowSet rowSet = new RowSet();

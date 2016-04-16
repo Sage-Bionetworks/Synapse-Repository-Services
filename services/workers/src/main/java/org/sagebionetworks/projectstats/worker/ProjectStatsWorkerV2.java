@@ -29,6 +29,12 @@ public class ProjectStatsWorkerV2 implements ChangeMessageDrivenRunner {
 			ChangeMessage message) throws RecoverableMessageException,
 			Exception {
 		
+		if(message.getUserId() == null){
+			if(log.isTraceEnabled()){
+				log.trace("Ignoring change message: "+message.getChangeNumber()+" since userId is null");
+			}
+			return;
+		}
 		// ignore all old messages.
 		if(timeoutUtils.hasExpired(MAX_MESSAGE_TIMEOUT_MS, message.getTimestamp().getTime())){
 			if(log.isTraceEnabled()){

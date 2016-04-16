@@ -40,6 +40,8 @@ import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.exception.ReadOnlyException;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -65,7 +67,7 @@ import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
-import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
@@ -136,6 +138,10 @@ public class TableRowManagerImpl implements TableRowManager {
 	FileHandleDao fileHandleDao;
 	@Autowired
 	TimeoutUtils timeoutUtils;
+	@Autowired
+	ColumnModelManager columModelManager;
+	@Autowired
+	TransactionalMessenger transactionalMessenger;
 	
 	/**
 	 * Injected via spring
@@ -156,7 +162,7 @@ public class TableRowManagerImpl implements TableRowManager {
 	}
 
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public RowReferenceSet appendRows(UserInfo user, String tableId, ColumnMapper columnMapper, RowSet delta, ProgressCallback<Long> progressCallback)
 			throws DatastoreException, NotFoundException, IOException {
@@ -172,6 +178,7 @@ public class TableRowManagerImpl implements TableRowManager {
 		return results;
 	}
 	
+	@WriteTransactionReadCommitted
 	@Override
 	public RowReferenceSet appendPartialRows(UserInfo user, String tableId, ColumnMapper columnMapper,
 			PartialRowSet rowsToAppendOrUpdateOrDelete, ProgressCallback<Long> progressCallback)
@@ -301,7 +308,7 @@ public class TableRowManagerImpl implements TableRowManager {
 		}
 	}
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public RowReferenceSet deleteRows(UserInfo user, String tableId, RowSelection rowsToDelete) throws DatastoreException, NotFoundException,
 			IOException {
@@ -327,18 +334,18 @@ public class TableRowManagerImpl implements TableRowManager {
 		RawRowSet rowSetToDelete = new RawRowSet(TableModelUtils.getIds(mapper.getColumnModels()), rowsToDelete.getEtag(), tableId, rows);
 		RowReferenceSet result = tableRowTruthDao.appendRowSetToTable(user.getId().toString(), tableId, mapper, rowSetToDelete);
 		// The table has change so we must reset the state.
-		tableStatusDAO.resetTableStatusToProcessing(tableId);
+		setTableToProcessingAndTriggerUpdate(tableId);
 		return result;
 	}
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public void deleteAllRows(String tableId) {
 		Validate.required(tableId, "tableId");
 		tableRowTruthDao.deleteAllRowDataForTable(tableId);
 	}
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public String appendRowsAsStream(UserInfo user, String tableId, ColumnMapper columnMapper, Iterator<Row> rowStream, String etag,
 			RowReferenceSet results, ProgressCallback<Long> progressCallback) throws DatastoreException, NotFoundException, IOException {
@@ -385,7 +392,7 @@ public class TableRowManagerImpl implements TableRowManager {
 			etag = appendBatchOfRowsToTable(user, columnMapper, delta, results, progressCallback);
 		}
 		// The table has change so we must reset the state.
-		tableStatusDAO.resetTableStatusToProcessing(tableId);
+		setTableToProcessingAndTriggerUpdate(tableId);
 		return etag;
 	}
 
@@ -499,6 +506,7 @@ public class TableRowManagerImpl implements TableRowManager {
 		return tableRowTruthDao.getRowSet(rowRefs, resultSchema);
 	}
 
+	@WriteTransactionReadCommitted
 	@Override
 	public <R,T> R tryRunWithTableExclusiveLock(ProgressCallback<T> callback,
 			String tableId, int timeoutSec, ProgressingCallable<R, T> callable)
@@ -508,6 +516,7 @@ public class TableRowManagerImpl implements TableRowManager {
 		return writeReadSemaphoreRunner.tryRunWithWriteLock(callback, key, timeoutSec, callable);
 	}
 
+	@WriteTransactionReadCommitted
 	@Override
 	public <R,T> R tryRunWithTableNonexclusiveLock(ProgressCallback<T> callback, String tableId, int lockTimeoutSec, ProgressingCallable<R, T> callable)
 			throws Exception {
@@ -520,6 +529,7 @@ public class TableRowManagerImpl implements TableRowManager {
 	 * (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.table.TableRowManager#getTableStatusOrCreateIfNotExists(java.lang.String)
 	 */
+	@WriteTransactionReadCommitted
 	@Override
 	public TableStatus getTableStatusOrCreateIfNotExists(String tableId) throws NotFoundException, IOException {
 		try {
@@ -562,6 +572,8 @@ public class TableRowManagerImpl implements TableRowManager {
 		// we get here, if the index for this table is not (yet?) being build. We need to kick off the
 		// building of the index and report the table as unavailable
 		tableStatusDAO.resetTableStatusToProcessing(tableId);
+		// notify all listeners.
+		transactionalMessenger.sendMessageAfterCommit(tableId, ObjectType.TABLE, "", ChangeType.UPDATE);
 		// status should exist now
 		return tableStatusDAO.getTableStatus(tableId);
 	}
@@ -587,6 +599,7 @@ public class TableRowManagerImpl implements TableRowManager {
 		tableStatusDAO.attemptToUpdateTableProgress(tableId, resetToken, progressMessage, currentProgress, totalProgress);
 	}
 
+	@WriteTransactionReadCommitted
 	@Override
 	public Pair<QueryResult, Long> query(ProgressCallback<Void> progressCallback, UserInfo user, String query, List<SortItem> sortList, Long offset, Long limit, boolean runQuery,
 			boolean runCount, boolean isConsistent) throws DatastoreException, NotFoundException, TableUnavilableException,
@@ -594,6 +607,7 @@ public class TableRowManagerImpl implements TableRowManager {
 		return query(progressCallback, user, createQuery(query, sortList), offset, limit, runQuery, runCount, isConsistent);
 	}
 
+	@WriteTransactionReadCommitted
 	@Override
 	public Pair<QueryResult, Long> query(ProgressCallback<Void> progressCallback, UserInfo user, SqlQuery query, Long offset, Long limit, boolean runQuery,
 			boolean runCount, boolean isConsistent) throws DatastoreException, NotFoundException, TableUnavilableException,
@@ -1037,6 +1051,7 @@ public class TableRowManagerImpl implements TableRowManager {
 	 * @throws NotFoundException
 	 * @throws TableFailedException
 	 */
+	@WriteTransactionReadCommitted
 	@Override
 	public DownloadFromTableResult runConsistentQueryAsStream(ProgressCallback<Void> progressCallback, UserInfo user, String sql, List<SortItem> sortList,
 			final CSVWriterStream writer, boolean includeRowIdAndVersion, final boolean writeHeader) throws TableUnavilableException,
@@ -1286,9 +1301,7 @@ public class TableRowManagerImpl implements TableRowManager {
 
 	@Override
 	public String startTableProcessing(String tableId) {
-		// Since this is called from the worker do not broadcast the change.
-		boolean broadcastChange = false;
-		return tableStatusDAO.resetTableStatusToProcessing(tableId, broadcastChange);
+		return tableStatusDAO.resetTableStatusToProcessing(tableId);
 	}
 
 
@@ -1328,6 +1341,23 @@ public class TableRowManagerImpl implements TableRowManager {
 		// work is needed if the current state is processing.
 		TableStatus status = tableStatusDAO.getTableStatus(tableId);
 		return TableState.PROCESSING.equals(status.getState());
+	}
+
+
+	@WriteTransactionReadCommitted
+	@Override
+	public void setTableSchema(UserInfo userInfo, List<String> columnIds,
+			String id) {
+		columModelManager.bindColumnToObject(userInfo, columnIds, id);
+		setTableToProcessingAndTriggerUpdate(id);
+	}
+
+	@WriteTransactionReadCommitted
+	@Override
+	public void deleteTable(String deletedId) {
+		columModelManager.unbindAllColumnsAndOwnerFromObject(deletedId);
+		deleteAllRows(deletedId);
+		transactionalMessenger.sendMessageAfterCommit(deletedId, ObjectType.TABLE, ChangeType.DELETE);
 	}
 
 }
