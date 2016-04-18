@@ -21,7 +21,7 @@ public class DBOAuthenticationReceipt implements MigratableDatabaseObject<DBOAut
 	private static final FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("id", COL_AUTHENTICATION_RECEIPT_ID, true).withIsBackupId(true),
 		new FieldColumn("userId", COL_AUTHENTICATION_RECEIPT_USER_ID),
-		new FieldColumn("receipt", COL_AUTHENTICATION_RECEIPT_RECEIPT)
+		new FieldColumn("receipt", COL_AUTHENTICATION_RECEIPT_RECEIPT).withIsEtag(true)
 	};
 
 	private Long id;
