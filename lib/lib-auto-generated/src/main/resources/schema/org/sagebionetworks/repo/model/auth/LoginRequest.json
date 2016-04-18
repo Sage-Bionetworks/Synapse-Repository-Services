@@ -1,5 +1,5 @@
 {
-	"title": "V2LoginCredentials", 
+	"title": "LoginRequest", 
 	"description": "Used to login via username, password, and previous authentication receipt.",
 	"properties": {
 		"username": {
