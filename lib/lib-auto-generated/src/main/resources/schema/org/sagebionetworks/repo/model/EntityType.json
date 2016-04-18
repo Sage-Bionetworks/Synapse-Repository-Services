@@ -5,6 +5,7 @@
 		"folder",
 		"file",
 		"table",
-		"link"
+		"link",
+		"fileview"
     ]
 }

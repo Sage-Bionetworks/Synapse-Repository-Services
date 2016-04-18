@@ -2,8 +2,11 @@ package org.sagebionetworks.repo.model.jdo;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
+import java.util.LinkedList;
+import java.util.List;
 
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.util.ValidateArgument;
 
 /**
  * This particular implementation of KeyFactory expects string keys from the
@@ -50,6 +53,23 @@ public class KeyFactory {
 		} catch (NumberFormatException e) {
 			throw new DatastoreException(e);
 		}
+	}
+	
+	/**
+	 * Converts a String-representation of a Long into the Long instance it
+	 * represents.
+	 * 
+	 * @param id
+	 * @return the decoded key
+	 * @throws DatastoreException
+	 */
+	public static List<Long> stringToKey(List<String> ids) throws DatastoreException {
+		ValidateArgument.required(ids, "ids");
+		List<Long> resutls = new LinkedList<Long>();
+		for(String key: ids){
+			resutls.add(stringToKey(key));
+		}
+		return resutls;
 	}
 
 	/**

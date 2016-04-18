@@ -2,8 +2,12 @@ package org.sagebionetworks.repo.model.jdo;
 
 import static org.junit.Assert.assertEquals;
 
+import java.util.List;
+
 import org.junit.Test;
 import org.sagebionetworks.repo.model.DatastoreException;
+
+import com.google.common.collect.Lists;
 
 
 /**
@@ -49,5 +53,19 @@ public class KeyFactoryTest {
 	@Test(expected=DatastoreException.class)
 	public void testStringToKeyNonNumericCharacters() throws Exception {
 		KeyFactory.stringToKey("syn/123");
+	}
+	
+	@Test
+	public void testStringToKeyList(){
+		List<String> in = Lists.newArrayList("syn123","456");
+		List<Long> expected = Lists.newArrayList(123L, 456L);
+		// call under test
+		List<Long> results = KeyFactory.stringToKey(in);
+		assertEquals(expected, results);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testStringToKeyListNull(){
+		KeyFactory.stringToKey((List<String>)null);
 	}
 }

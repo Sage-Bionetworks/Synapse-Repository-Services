@@ -1,16 +1,9 @@
 package org.sagebionetworks.repo.web.service.metadata;
 
-import java.util.List;
-
-import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.TableRowManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,7 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class TableEntityMetadataProvider implements EntityValidator<TableEntity>, TypeSpecificDeleteProvider<TableEntity> {
 	
 	@Autowired
-	TableRowManager tableRowManager;
+	TableRowManager tableRowManager;		
 
 	@Override
 	public void validateEntity(TableEntity entity, EntityEvent event) throws InvalidModelException, NotFoundException,
