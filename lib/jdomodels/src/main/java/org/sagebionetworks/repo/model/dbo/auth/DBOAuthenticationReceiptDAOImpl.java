@@ -14,7 +14,7 @@ import org.springframework.jdbc.core.RowMapper;
 
 public class DBOAuthenticationReceiptDAOImpl implements AuthenticationReceiptDAO{
 
-	private static final String SQL_SELECT = "SELECT *"
+	private static final String SQL_SELECT = "SELECT "+COL_AUTHENTICATION_RECEIPT_USER_ID
 			+" FROM "+TABLE_AUTHENTICATION_RECEIPT
 			+" WHERE "+COL_AUTHENTICATION_RECEIPT_USER_ID+" = ?"
 			+" AND "+COL_AUTHENTICATION_RECEIPT_RECEIPT+" = ?";
