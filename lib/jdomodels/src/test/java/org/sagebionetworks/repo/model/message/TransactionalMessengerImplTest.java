@@ -115,6 +115,21 @@ public class TransactionalMessengerImplTest {
 	}
 	
 	@Test
+	public void testMessageKeyEqualsEntity() {
+		ChangeMessage message = new ChangeMessage();
+		message.setObjectId("syn123");
+		message.setObjectType(ObjectType.ENTITY);
+		// Create the first key
+		MessageKey one = new MessageKey(message);
+		// Create the second key
+		message = new ChangeMessage();
+		message.setObjectId("123");
+		message.setObjectType(ObjectType.ENTITY);
+		MessageKey two = new MessageKey(message);
+		assertEquals("Keys should be the same with or without the syn",one, two);
+	}
+	
+	@Test
 	public void testSendMessage(){
 		ChangeMessage message = new ChangeMessage();
 		message.setChangeNumber(new Long(123));
