@@ -115,7 +115,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-@Ignore
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class TableWorkerIntegrationTest {
@@ -659,6 +658,7 @@ public class TableWorkerIntegrationTest {
 	/**
 	 * Test if things work if the table index is not being build, which can happen for example after a migration
 	 */
+	@Ignore
 	@Test
 	public void testRoundTripAfterMigrate() throws Exception {
 		schema = new LinkedList<ColumnModel>();
