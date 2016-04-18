@@ -117,8 +117,10 @@
 
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.subscription.DBOSubscription" />
 				<bean class="org.sagebionetworks.repo.model.message.DBOBroadcastMessage" />
-				
+
 				<bean class="org.sagebionetworks.repo.model.dbo.dao.table.DBOViewScope" />
+
+				<bean class="org.sagebionetworks.repo.model.dbo.auth.DBOAuthenticationReceipt" />
 			</list>
 		</property>
 	</bean>
@@ -179,6 +181,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.subscription.DBOSubscription" />
 				<bean class="org.sagebionetworks.repo.model.message.DBOBroadcastMessage" />
 				<bean class="org.sagebionetworks.repo.model.dbo.dao.table.DBOViewScope" />
+				<bean class="org.sagebionetworks.repo.model.dbo.auth.DBOAuthenticationReceipt" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOChange" />
 			</list>
 		</property>

@@ -87,6 +87,7 @@ import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.dbo.auth.AuthenticationReceiptDAO;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
@@ -252,6 +253,8 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 	@Autowired
 	private BroadcastMessageDao broadcastMessageDao;
 	@Autowired
+	private AuthenticationReceiptDAO authReceiptDao;
+	@Autowired
 	DBOChangeDAO changeDao;
 	@Autowired
 	private IdGenerator idGenerator;
@@ -348,6 +351,7 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		createSubscription();
 		createBroadcastMessage();
 		createViewScope();
+		createAuthenticationReceipt();
 	}
 	
 	private void createViewScope() {
@@ -393,6 +397,10 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 
 	private void createSubscription() {
 		subscriptionDao.create(adminUserIdString, threadId, SubscriptionObjectType.THREAD);
+	}
+
+	private void createAuthenticationReceipt() {
+		authReceiptDao.createNewReceipt(adminUserId);
 	}
 
 	private void createVerificationSubmission() {

@@ -328,11 +328,14 @@
 	<!--  DAO for Subscription -->
 	<bean id="subscriptionDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.subscription.DBOSubscriptionDAOImpl" />
-		
-		<!--  DAO for Subscription -->
+
+	<!--  DAO for View Scope -->
 	<bean id="viewScopeDao"
-		class="org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDaoImpl" />	
-	
+		class="org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDaoImpl" />
+
+	<!--  DAO for Authentication Receipt -->
+	<bean id="authReceiptDao"
+		class="org.sagebionetworks.repo.model.dbo.auth.DBOAuthenticationReceiptDAOImpl" />
 
 	<!-- Misc beans -->
 	<bean id="countingSemaphore"

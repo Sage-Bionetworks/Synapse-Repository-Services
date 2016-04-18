@@ -795,6 +795,13 @@ public class SqlConstants {
 	public static final String COL_SUBSCRIPTION_CREATED_ON = "CREATED_ON";
 	public static final String DDL_SUBSCRIPTION = "schema/Subscription-ddl.sql";
 
+	// AuthenticationReceipt table
+	public static final String TABLE_AUTHENTICATION_RECEIPT = "AUTHENTICATION_RECEIPT";
+	public static final String COL_AUTHENTICATION_RECEIPT_ID = "ID";
+	public static final String COL_AUTHENTICATION_RECEIPT_USER_ID = "USER_ID";
+	public static final String COL_AUTHENTICATION_RECEIPT_RECEIPT = "RECEIPT";
+	public static final String DDL_AUTHENTICATION_RECEIPT = "schema/AuthenticationReceipt-ddl.sql";
+
 	// This seems to be the name of the id column for all tables.
 	public static final String COLUMN_ID		= "id";
 	
