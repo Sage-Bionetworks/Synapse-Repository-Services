@@ -14,6 +14,8 @@ import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import com.google.common.collect.Sets;
+
 public class TableViewManagerImpl implements TableViewManager {
 	
 	private static final String ETAG = "";
@@ -35,7 +37,10 @@ public class TableViewManagerImpl implements TableViewManager {
 	public void setViewSchemaAndScope(UserInfo userInfo, List<String> schema,
 			List<String> scope, String viewIdString) {
 		Long viewId = KeyFactory.stringToKey(viewIdString);
-		Set<Long> scopeIds = new HashSet<Long>(KeyFactory.stringToKey(scope));
+		Set<Long> scopeIds = null;
+		if(scope != null){
+			scopeIds = new HashSet<Long>(KeyFactory.stringToKey(scope));
+		}
 		// Define the scope of this view.
 		viewScopeDao.setViewScope(viewId, scopeIds);
 		// Define the schema of this view.

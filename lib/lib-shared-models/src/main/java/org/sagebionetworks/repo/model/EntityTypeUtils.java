@@ -10,6 +10,7 @@ import java.util.Set;
 
 import org.sagebionetworks.repo.model.registry.EntityRegistry;
 import org.sagebionetworks.repo.model.registry.EntityTypeMetadata;
+import org.sagebionetworks.repo.model.table.FileView;
 import org.sagebionetworks.repo.model.table.TableEntity;
 
 
@@ -47,7 +48,9 @@ public class EntityTypeUtils {
 				// table
 				buildMetadata(EntityType.table, Arrays.asList("DEFAULT",Project.class.getName(), Folder.class.getName()), TableEntity.class, "Table"),
 				// link
-				buildMetadata(EntityType.link, Arrays.asList("DEFAULT",Project.class.getName(), Folder.class.getName()), Link.class, "Link")
+				buildMetadata(EntityType.link, Arrays.asList("DEFAULT",Project.class.getName(), Folder.class.getName()), Link.class, "Link"),
+				// fileview
+				buildMetadata(EntityType.fileview, Arrays.asList("DEFAULT",Project.class.getName(), Folder.class.getName()), FileView.class, "FileView"),
 		};
 
 		className = new HashMap<String, Class<? extends Entity>>();
@@ -56,6 +59,7 @@ public class EntityTypeUtils {
 		className.put(Folder.class.getName(), Folder.class);
 		className.put(TableEntity.class.getName(), TableEntity.class);
 		className.put(Link.class.getName(), Link.class);
+		className.put(FileView.class.getName(), FileView.class);
 	}
 
 	/**

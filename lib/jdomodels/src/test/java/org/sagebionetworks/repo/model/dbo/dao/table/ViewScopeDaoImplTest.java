@@ -28,7 +28,7 @@ public class ViewScopeDaoImplTest {
 	}
 	
 	@Test
-	public void testViewScopeHappy(){
+	public void testSetViewScopeAndFind(){
 		long viewId1 = 123L;
 		Set<Long> containers = Sets.newHashSet(444L,555L);
 		// one
@@ -83,5 +83,27 @@ public class ViewScopeDaoImplTest {
 		results = viewScopeDao.findViewScopeIntersectionWithPath(Sets.newHashSet(888L));
 		assertEquals(Sets.newHashSet(viewId2), results);
 		
+	}
+	
+	@Test
+	public void testSetViewScopeNull(){
+		long viewId1 = 123L;
+		Set<Long> containers = Sets.newHashSet(444L,555L);
+		// one
+		viewScopeDao.setViewScope(viewId1, containers);
+		// find the intersection
+		Set<Long> intersection = viewScopeDao.findViewScopeIntersectionWithPath(containers);
+		assertNotNull(intersection);
+		assertEquals(1, intersection.size());
+		assertTrue(intersection.contains(viewId1));
+		
+		// set the scope null
+		containers = null;
+		viewScopeDao.setViewScope(viewId1, containers);
+		
+		// No intersection should be found
+		intersection = viewScopeDao.findViewScopeIntersectionWithPath(Sets.newHashSet(444L,555L));
+		assertNotNull(intersection);
+		assertEquals(0, intersection.size());
 	}
 }

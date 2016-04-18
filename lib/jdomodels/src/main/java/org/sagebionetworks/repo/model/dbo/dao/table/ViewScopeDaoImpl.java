@@ -38,12 +38,11 @@ public class ViewScopeDaoImpl implements ViewScopeDao {
 	@Override
 	public void setViewScope(Long viewId, Set<Long> containerIds) {
 		ValidateArgument.required(viewId, "viewId");
-		ValidateArgument.required(containerIds, "containerId");
 		// clear any existing scope for this view
 		jdbcTemplate.update(SQL_DELETE_ALL_FOR_VIEW_ID, viewId);
 		
 		// add the containers
-		if(!containerIds.isEmpty()){
+		if(containerIds != null){
 			Iterator<Long> it = containerIds.iterator();
 			while(it.hasNext()){
 				Long containerId = it.next();

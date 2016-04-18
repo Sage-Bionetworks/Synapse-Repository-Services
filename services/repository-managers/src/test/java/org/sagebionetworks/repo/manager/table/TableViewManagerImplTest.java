@@ -1,27 +1,8 @@
 package org.sagebionetworks.repo.manager.table;
 
-import java.util.List;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyInt;
-import static org.mockito.Matchers.anyLong;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.reset;
-import static org.mockito.Mockito.stub;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.when;
+
+import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -78,6 +59,28 @@ public class TableViewManagerImplTest {
 		// call under test
 		manager.setViewSchemaAndScope(userInfo, schema, scope, viewId);
 		verify(viewScopeDao).setViewScope(555L, Sets.newHashSet(123L, 456L));
+		verify(columnModelManager).bindColumnToObject(userInfo, schema, viewId);
+		verify(tableStatusDAO).resetTableStatusToProcessing(viewId);
+		verify(transactionalMessenger).sendMessageAfterCommit(viewId, ObjectType.FILE_VIEW, "", ChangeType.UPDATE, userInfo.getId());
+	}
+	
+	@Test
+	public void testSetViewSchemaAndScopeWithNullSchema(){
+		schema = null;
+		// call under test
+		manager.setViewSchemaAndScope(userInfo, schema, scope, viewId);
+		verify(viewScopeDao).setViewScope(555L, Sets.newHashSet(123L, 456L));
+		verify(columnModelManager).bindColumnToObject(userInfo, null, viewId);
+		verify(tableStatusDAO).resetTableStatusToProcessing(viewId);
+		verify(transactionalMessenger).sendMessageAfterCommit(viewId, ObjectType.FILE_VIEW, "", ChangeType.UPDATE, userInfo.getId());
+	}
+	
+	@Test
+	public void testSetViewSchemaAndScopeWithNullScope(){
+		scope = null;
+		// call under test
+		manager.setViewSchemaAndScope(userInfo, schema, scope, viewId);
+		verify(viewScopeDao).setViewScope(555L, null);
 		verify(columnModelManager).bindColumnToObject(userInfo, schema, viewId);
 		verify(tableStatusDAO).resetTableStatusToProcessing(viewId);
 		verify(transactionalMessenger).sendMessageAfterCommit(viewId, ObjectType.FILE_VIEW, "", ChangeType.UPDATE, userInfo.getId());
