@@ -67,6 +67,7 @@
         "SUBSCRIPTION",
         "BROADCAST_MESSAGE",
         "VIEW_SCOPE",
+        "AUTHENTICATION_RECEIPT",
         "CHANGE"
     ]
 }

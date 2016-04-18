@@ -1,0 +1,18 @@
+{
+	"title": "V2LoginCredentials", 
+	"description": "Used to login via username, password, and previous authentication receipt.",
+	"properties": {
+		"username": {
+			"type": "string",
+			"description": "The user's username"
+		}, 
+		"password": {
+			"type": "string",
+			"description": "The user's password"
+		},
+		"authenticationReceipt": {
+			"type": "string",
+			"description": "The most recent authentication receipt given to the last success login from this machine, using this client"
+		}
+	}
+}

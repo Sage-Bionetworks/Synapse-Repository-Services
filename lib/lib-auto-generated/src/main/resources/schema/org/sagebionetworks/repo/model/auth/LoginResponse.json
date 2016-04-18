@@ -1,0 +1,18 @@
+{
+	"title": "Session", 
+	"description": "Holds a session token used for short-term authentication with Synapse",
+	"properties": {
+		"sessionToken": {
+			"type": "string",
+			"description": "A token that identifies the user"
+		}, 
+		"acceptsTermsOfUse": {
+			"type": "boolean",
+			"description": "Does the user accept the terms of use?"
+		},
+		"authenticationReceipt": {
+			"type": "string",
+			"description": "The authentication receipt that can be used to bypass throttling next time the user login using the same client on the same machine"
+		}
+	}
+}
