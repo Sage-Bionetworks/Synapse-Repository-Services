@@ -1,5 +1,5 @@
 {
-	"title": "Session", 
+	"title": "LoginResponse", 
 	"description": "Holds a session token used for short-term authentication with Synapse",
 	"properties": {
 		"sessionToken": {
