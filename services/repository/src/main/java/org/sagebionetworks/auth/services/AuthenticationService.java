@@ -7,6 +7,8 @@ import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.auth.ChangePasswordRequest;
 import org.sagebionetworks.repo.model.auth.LoginCredentials;
+import org.sagebionetworks.repo.model.auth.LoginRequest;
+import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
@@ -126,4 +128,13 @@ public interface AuthenticationService {
 	public PrincipalAlias bindExternalID(Long userId, OAuthValidationRequest validationRequest);
 
 	void unbindExternalID(Long userId, OAuthProvider provider, String aliasName);
+
+	/**
+	 * Authenticates username and password combination
+	 * User can use an authentication receipt from previous login to skip extra security checks
+	 * 
+	 * @return a session token if valid
+	 * @throws UnauthorizedException If the credentials are incorrect
+	 */
+	public LoginResponse login(LoginRequest request) throws NotFoundException;
 }
