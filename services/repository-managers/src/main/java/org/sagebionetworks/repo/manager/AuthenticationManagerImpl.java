@@ -1,14 +1,15 @@
 package org.sagebionetworks.repo.manager;
 
 import org.sagebionetworks.repo.model.AuthenticationDAO;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.LockedException;
 import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.Session;
+import org.sagebionetworks.repo.model.dbo.auth.AuthenticationReceiptDAO;
 import org.sagebionetworks.repo.model.semaphore.MemoryCountingSemaphore;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.securitytools.PBKDF2Utils;
@@ -16,8 +17,10 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 
 public class AuthenticationManagerImpl implements AuthenticationManager {
+	public static final Long AUTHENTICATION_RECEIPT_LIMIT = 100L;
 
 	public static final int PASSWORD_MIN_LENGTH = 8;
 
@@ -32,6 +35,8 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	@Autowired
 	private UserGroupDAO userGroupDAO;
 	@Autowired
+	private AuthenticationReceiptDAO authReceiptDAO;
+	@Autowired
 	private MemoryCountingSemaphore usernameThrottleGate;
 	
 	public AuthenticationManagerImpl() { }
@@ -44,11 +49,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		// acquire a lock for throttling password attacks
 		String lockToken = usernameThrottleGate.attemptToAcquireLock(""+principalId, LOCK_TIMOUTE_SEC, MAX_CONCURRENT_LOCKS);
 		if (lockToken != null) {
-			// Check the username password combination
-			// This will throw an UnauthorizedException if invalid
-			byte[] salt = authDAO.getPasswordSalt(principalId);
-			String passHash = PBKDF2Utils.hashPassword(password, salt);
-			authDAO.checkUserCredentials(principalId, passHash);
+			authenticateAndThrowException(principalId, password);
 			usernameThrottleGate.releaseLock(""+principalId, lockToken);
 			return getSessionToken(principalId, domain);
 		} else {
@@ -157,5 +158,67 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 			throw new IllegalArgumentException("Cannot \"unsee\" the terms of use");
 		}
 		authDAO.setTermsOfUseAcceptance(principalId, domain, acceptance);
+	}
+
+	@WriteTransactionReadCommitted
+	@Override
+	public LoginResponse login(Long principalId, String password, String authenticationReceipt) {
+		authReceiptDAO.deleteExpiredReceipts(principalId, System.currentTimeMillis());
+
+		Boolean hasValidReceipt = false;
+		String lockToken = null;
+		if (authenticationReceipt == null || !authReceiptDAO.isValidReceipt(principalId, authenticationReceipt)) {
+			lockToken = usernameThrottleGate.attemptToAcquireLock(""+principalId, LOCK_TIMOUTE_SEC, MAX_CONCURRENT_LOCKS);
+			if (lockToken == null) {
+				throw new LockedException(ACCOUNT_LOCKED_MESSAGE);
+			}
+		} else {
+			hasValidReceipt = true;
+		}
+
+		authenticateAndThrowException(principalId, password);
+		Session session = getSessionToken(principalId, DomainType.SYNAPSE);
+
+		String newReceipt = null;
+		if (authReceiptDAO.countReceipts(principalId) < AUTHENTICATION_RECEIPT_LIMIT) {
+			if (hasValidReceipt) {
+				newReceipt = authReceiptDAO.replaceReceipt(principalId, authenticationReceipt);
+			} else {
+				newReceipt = authReceiptDAO.createNewReceipt(principalId);
+			}
+		}
+
+		if (lockToken != null) {
+			usernameThrottleGate.releaseLock(""+principalId, lockToken);
+		}
+
+		return createLoginResponse(session, newReceipt);
+	}
+
+	/**
+	 * Create a login response from the session and the new authentication receipt
+	 * 
+	 * @param session
+	 * @param newReceipt
+	 * @return
+	 */
+	private LoginResponse createLoginResponse(Session session, String newReceipt) {
+		LoginResponse response = new LoginResponse();
+		response.setSessionToken(session.getSessionToken());
+		response.setAcceptsTermsOfUse(session.getAcceptsTermsOfUse());
+		response.setAuthenticationReceipt(newReceipt);
+		return response;
+	}
+
+	/**
+	 * Check username, password combination
+	 * 
+	 * @param principalId
+	 * @param password
+	 */
+	private void authenticateAndThrowException(Long principalId, String password) {
+		byte[] salt = authDAO.getPasswordSalt(principalId);
+		String passHash = PBKDF2Utils.hashPassword(password, salt);
+		authDAO.checkUserCredentials(principalId, passHash);
 	}
 }

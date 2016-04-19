@@ -12,7 +12,7 @@
 		},
 		"authenticationReceipt": {
 			"type": "string",
-			"description": "The authentication receipt that can be used to bypass throttling next time the user login using the same client on the same machine"
+			"description": "A valid receipt allows the user to skip extra security checks."
 		}
 	}
 }

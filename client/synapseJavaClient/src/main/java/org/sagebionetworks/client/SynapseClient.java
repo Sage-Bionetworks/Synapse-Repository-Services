@@ -71,6 +71,8 @@ import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
+import org.sagebionetworks.repo.model.auth.LoginRequest;
+import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
@@ -316,7 +318,16 @@ public interface SynapseClient extends BaseClient {
 	 */
 	public Session login(String username, String password)
 			throws SynapseException;
-	
+
+	/**
+	 * Log into Synapse
+	 * 
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	LoginResponse login(LoginRequest request) throws SynapseException;
+
 	/**
 	 * Log out of Synapse
 	 */

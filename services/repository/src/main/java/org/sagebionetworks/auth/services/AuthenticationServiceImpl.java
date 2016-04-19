@@ -10,7 +10,6 @@ import org.sagebionetworks.repo.manager.MessageManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.oauth.AliasAndType;
 import org.sagebionetworks.repo.manager.oauth.OAuthManager;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DomainType;
@@ -19,6 +18,8 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.ChangePasswordRequest;
 import org.sagebionetworks.repo.model.auth.LoginCredentials;
+import org.sagebionetworks.repo.model.auth.LoginRequest;
+import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
@@ -32,6 +33,7 @@ import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.ForbiddenException;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class AuthenticationServiceImpl implements AuthenticationService {
@@ -64,6 +66,10 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		this.oauthManager = oauthManager;
 	}
 
+	/**
+	 * @see {{@link #login(LoginRequest)}
+	 */
+	@Deprecated
 	@Override
 	@WriteTransaction
 	public Session authenticate(LoginCredentials credential, DomainType domain) throws NotFoundException {
@@ -323,5 +329,18 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		if (AuthorizationUtils.isUserAnonymous(userId)) throw new UnauthorizedException("User ID is required.");
 		AliasType aliasType = oauthManager.getAliasTypeForProvider(provider);
 		userManager.unbindAlias(aliasName, aliasType, userId);
+	}
+
+	@Override
+	public LoginResponse login(LoginRequest request) throws NotFoundException {
+		ValidateArgument.required(request, "request");
+		ValidateArgument.required(request.getUsername(), "LoginRequest.username");
+		ValidateArgument.required(request.getPassword(), "LoginRequest.password");
+		// Lookup the user.
+		PrincipalAlias pa = lookupUserForAuthentication(request.getUsername());
+		if(pa == null) throw new NotFoundException("Did not find a user with alias: "+request.getUsername());;
+
+		// Fetch the user's session token
+		return authManager.login(pa.getPrincipalId(), request.getPassword(), request.getAuthenticationReceipt());
 	}
 }

@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager;
 import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -67,4 +68,13 @@ public interface AuthenticationManager {
 	 * Sets whether the user has accepted or rejected the terms of use
 	 */
 	public void setTermsOfUseAcceptance(Long principalId, DomainType domain, Boolean acceptance);
+
+	/**
+	 * 
+	 * @param principalId
+	 * @param password
+	 * @param authenticationReceipt
+	 * @return
+	 */
+	public LoginResponse login(Long principalId, String password, String authenticationReceipt);
 }

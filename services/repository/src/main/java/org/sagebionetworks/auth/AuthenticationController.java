@@ -10,6 +10,8 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.auth.ChangePasswordRequest;
 import org.sagebionetworks.repo.model.auth.LoginCredentials;
+import org.sagebionetworks.repo.model.auth.LoginRequest;
+import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.SecretKey;
 import org.sagebionetworks.repo.model.auth.Session;
@@ -78,6 +80,18 @@ public class AuthenticationController extends BaseController {
 			throws NotFoundException {
 		DomainType domain = DomainTypeUtils.valueOf(client);
 		return authenticationService.authenticate(credentials, domain);
+	}
+
+	/**
+	 * Retrieve a session token that will be usable for 24 hours or until
+	 * invalidated. The user must accept the terms of use before a session token
+	 * is issued.
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.AUTH_LOGIN, method = RequestMethod.POST)
+	public @ResponseBody
+	LoginResponse login(@RequestBody LoginRequest request) throws NotFoundException {
+		return authenticationService.login(request);
 	}
 
 	/**

@@ -5,6 +5,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AUTHENTI
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AUTHENTICATION_RECEIPT_RECEIPT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_AUTHENTICATION_RECEIPT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_AUTHENTICATION_RECEIPT;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AUTHENTICATION_RECEIPT_EXPIRATION;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -21,22 +22,26 @@ public class DBOAuthenticationReceipt implements MigratableDatabaseObject<DBOAut
 	private static final FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("id", COL_AUTHENTICATION_RECEIPT_ID, true).withIsBackupId(true),
 		new FieldColumn("userId", COL_AUTHENTICATION_RECEIPT_USER_ID),
-		new FieldColumn("receipt", COL_AUTHENTICATION_RECEIPT_RECEIPT)
+		new FieldColumn("receipt", COL_AUTHENTICATION_RECEIPT_RECEIPT).withIsEtag(true),
+		new FieldColumn("expiration", COL_AUTHENTICATION_RECEIPT_EXPIRATION)
 	};
 
 	private Long id;
 	private Long userId;
 	private String receipt;
+	private Long expiration;
 
 	@Override
 	public String toString() {
-		return "DBOAuthenticationReceipt [id=" + id + ", userId=" + userId + ", receipt=" + receipt + "]";
+		return "DBOAuthenticationReceipt [id=" + id + ", userId=" + userId + ", receipt=" + receipt + ", createdOn="
+				+ expiration + "]";
 	}
 
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
+		result = prime * result + ((expiration == null) ? 0 : expiration.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result + ((receipt == null) ? 0 : receipt.hashCode());
 		result = prime * result + ((userId == null) ? 0 : userId.hashCode());
@@ -52,6 +57,11 @@ public class DBOAuthenticationReceipt implements MigratableDatabaseObject<DBOAut
 		if (getClass() != obj.getClass())
 			return false;
 		DBOAuthenticationReceipt other = (DBOAuthenticationReceipt) obj;
+		if (expiration == null) {
+			if (other.expiration != null)
+				return false;
+		} else if (!expiration.equals(other.expiration))
+			return false;
 		if (id == null) {
 			if (other.id != null)
 				return false;
@@ -94,6 +104,14 @@ public class DBOAuthenticationReceipt implements MigratableDatabaseObject<DBOAut
 		this.receipt = receipt;
 	}
 
+	public Long getExpiration() {
+		return expiration;
+	}
+
+	public void setExpiration(Long expiration) {
+		this.expiration = expiration;
+	}
+
 	@Override
 	public TableMapping<DBOAuthenticationReceipt> getTableMapping() {
 		return new TableMapping<DBOAuthenticationReceipt>(){
@@ -104,6 +122,7 @@ public class DBOAuthenticationReceipt implements MigratableDatabaseObject<DBOAut
 				dbo.setId(rs.getLong(COL_AUTHENTICATION_RECEIPT_ID));
 				dbo.setUserId(rs.getLong(COL_AUTHENTICATION_RECEIPT_USER_ID));
 				dbo.setReceipt(rs.getString(COL_AUTHENTICATION_RECEIPT_RECEIPT));
+				dbo.setExpiration(rs.getLong(COL_AUTHENTICATION_RECEIPT_EXPIRATION));
 				return dbo;
 			}
 

@@ -20,13 +20,9 @@ import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.client.utils.URIBuilder;
-import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.entity.ContentType;
-import org.apache.http.entity.StringEntity;
 import org.apache.http.util.EntityUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -48,6 +44,8 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.auth.LoginCredentials;
+import org.sagebionetworks.repo.model.auth.LoginRequest;
+import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
@@ -242,6 +240,19 @@ public class SharedClientConnection {
 		defaultPOSTPUTHeaders.put(SESSION_TOKEN_HEADER, session.getSessionToken());
 		
 		return session;		
+	}
+
+	public LoginResponse login(LoginRequest request, String userAgent) throws SynapseException {
+		LoginResponse response = null;
+		try {
+			JSONObject obj = postJson(authEndpoint, "/login", EntityFactory.createJSONObjectForEntity(request).toString(), userAgent, null, null);
+			response = EntityFactory.createEntityFromJSONObject(obj, LoginResponse.class);
+			defaultGETDELETEHeaders.put(SESSION_TOKEN_HEADER, response.getSessionToken());
+			defaultPOSTPUTHeaders.put(SESSION_TOKEN_HEADER, response.getSessionToken());
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
+		return response;
 	}
 
 	public void logout(String userAgent) throws SynapseException {
