@@ -17,6 +17,7 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 
 public class AuthenticationManagerImpl implements AuthenticationManager {
 	public static final Long AUTHENTICATION_RECEIPT_LIMIT = 100L;
@@ -159,6 +160,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		authDAO.setTermsOfUseAcceptance(principalId, domain, acceptance);
 	}
 
+	@WriteTransactionReadCommitted
 	@Override
 	public LoginResponse login(Long principalId, String password, String authenticationReceipt) {
 		authReceiptDAO.deleteExpiredReceipts(principalId, System.currentTimeMillis());

@@ -66,6 +66,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		this.oauthManager = oauthManager;
 	}
 
+	/**
+	 * @see {{@link #login(LoginRequest)}
+	 */
 	@Deprecated
 	@Override
 	@WriteTransaction
