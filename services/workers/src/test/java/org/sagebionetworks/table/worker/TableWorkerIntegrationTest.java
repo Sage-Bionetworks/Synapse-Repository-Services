@@ -658,7 +658,6 @@ public class TableWorkerIntegrationTest {
 	/**
 	 * Test if things work if the table index is not being build, which can happen for example after a migration
 	 */
-	@Ignore
 	@Test
 	public void testRoundTripAfterMigrate() throws Exception {
 		schema = new LinkedList<ColumnModel>();
