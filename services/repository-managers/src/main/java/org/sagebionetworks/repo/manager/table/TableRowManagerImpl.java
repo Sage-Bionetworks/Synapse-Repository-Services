@@ -413,7 +413,7 @@ public class TableRowManagerImpl implements TableRowManager {
 	 * 
 	 * @param tableId
 	 * @param columnMapper
-	 * @param etag
+	 * @param ETAG
 	 * @param results
 	 * @param headers
 	 * @param batch
@@ -599,7 +599,6 @@ public class TableRowManagerImpl implements TableRowManager {
 		tableStatusDAO.attemptToUpdateTableProgress(tableId, resetToken, progressMessage, currentProgress, totalProgress);
 	}
 
-	@WriteTransactionReadCommitted
 	@Override
 	public Pair<QueryResult, Long> query(ProgressCallback<Void> progressCallback, UserInfo user, String query, List<SortItem> sortList, Long offset, Long limit, boolean runQuery,
 			boolean runCount, boolean isConsistent) throws DatastoreException, NotFoundException, TableUnavilableException,
@@ -607,7 +606,6 @@ public class TableRowManagerImpl implements TableRowManager {
 		return query(progressCallback, user, createQuery(query, sortList), offset, limit, runQuery, runCount, isConsistent);
 	}
 
-	@WriteTransactionReadCommitted
 	@Override
 	public Pair<QueryResult, Long> query(ProgressCallback<Void> progressCallback, UserInfo user, SqlQuery query, Long offset, Long limit, boolean runQuery,
 			boolean runCount, boolean isConsistent) throws DatastoreException, NotFoundException, TableUnavilableException,

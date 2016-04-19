@@ -158,6 +158,7 @@ public class TableRowManagerImplTest {
 	int maxBytesPerRequest;
 	List<FileHandleAuthorizationStatus> fileAuthResults;
 	TableStatus status;
+	String ETAG;
 	
 	@SuppressWarnings("unchecked")
 	@Before
@@ -323,6 +324,7 @@ public class TableRowManagerImplTest {
 		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
 		
 		when(mockNodeDAO.isNodeAvailable(anyLong())).thenReturn(true);
+		ETAG = "";
 	}
 	
 	@Test (expected=UnauthorizedException.class)
@@ -462,7 +464,7 @@ public class TableRowManagerImplTest {
 		// verify the table status was set
 		verify(mockTableStatusDAO, times(1)).resetTableStatusToProcessing(tableId);
 		verify(mockProgressCallback).progressMade(anyLong());
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(tableId, ObjectType.TABLE, "", ChangeType.UPDATE);
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(tableId, ObjectType.TABLE, ETAG, ChangeType.UPDATE);
 	}
 	
 	@Test
@@ -564,7 +566,7 @@ public class TableRowManagerImplTest {
 		verify(mockTruthDao).appendRowSetToTable(eq(user.getId().toString()), eq(tableId), any(ColumnMapper.class), eq(rawSet));
 		// verify the table status was set
 		verify(mockTableStatusDAO, times(1)).resetTableStatusToProcessing(tableId);
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(tableId, ObjectType.TABLE, "", ChangeType.UPDATE);
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(tableId, ObjectType.TABLE, ETAG, ChangeType.UPDATE);
 	}
 	
 	@Test
@@ -1092,7 +1094,7 @@ public class TableRowManagerImplTest {
 		TableStatus result = manager.getTableStatusOrCreateIfNotExists(tableId);
 		assertNotNull(result);
 		verify(mockTableStatusDAO, never()).resetTableStatusToProcessing(tableId);
-		verify(mockTransactionalMessenger, never()).sendMessageAfterCommit(tableId, ObjectType.TABLE, "", ChangeType.UPDATE);
+		verify(mockTransactionalMessenger, never()).sendMessageAfterCommit(tableId, ObjectType.TABLE, ETAG, ChangeType.UPDATE);
 	}
 	
 	/**
@@ -1116,7 +1118,7 @@ public class TableRowManagerImplTest {
 		assertNotNull(result);
 		// must trigger processing
 		verify(mockTableStatusDAO).resetTableStatusToProcessing(tableId);
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(tableId, ObjectType.TABLE, "", ChangeType.UPDATE);
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(tableId, ObjectType.TABLE, ETAG, ChangeType.UPDATE);
 	}
 	
 	/**
@@ -1141,7 +1143,7 @@ public class TableRowManagerImplTest {
 		assertNotNull(result);
 		verify(mockTableStatusDAO).resetTableStatusToProcessing(tableId);
 		verify(mockNodeDAO).isNodeAvailable(tableIdLong);
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(tableId, ObjectType.TABLE, "", ChangeType.UPDATE);
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(tableId, ObjectType.TABLE, ETAG, ChangeType.UPDATE);
 	}
 	
 	/**
@@ -1185,7 +1187,7 @@ public class TableRowManagerImplTest {
 		TableStatus result = manager.getTableStatusOrCreateIfNotExists(tableId);
 		assertNotNull(result);
 		verify(mockTableStatusDAO, never()).resetTableStatusToProcessing(tableId);
-		verify(mockTransactionalMessenger, never()).sendMessageAfterCommit(tableId, ObjectType.TABLE, "", ChangeType.UPDATE);
+		verify(mockTransactionalMessenger, never()).sendMessageAfterCommit(tableId, ObjectType.TABLE, ETAG, ChangeType.UPDATE);
 	}
 	
 	/**
@@ -1208,7 +1210,7 @@ public class TableRowManagerImplTest {
 		TableStatus result = manager.getTableStatusOrCreateIfNotExists(tableId);
 		assertNotNull(result);
 		verify(mockTableStatusDAO).resetTableStatusToProcessing(tableId);
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(tableId, ObjectType.TABLE, "", ChangeType.UPDATE);
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(tableId, ObjectType.TABLE, ETAG, ChangeType.UPDATE);
 	}
 
 
@@ -1459,14 +1461,12 @@ public class TableRowManagerImplTest {
 	
 	@Test
 	public void testSetTableSchema(){
-		// mock an update
-		when(mockColumModelManager.bindColumnToObject(any(UserInfo.class), any(List.class), anyString())).thenReturn(true);
 		List<String> schema = Lists.newArrayList("111","222");
 		// call under test.
 		manager.setTableSchema(user, schema, tableId);
 		verify(mockColumModelManager).bindColumnToObject(user, schema, tableId);
 		verify(mockTableStatusDAO).resetTableStatusToProcessing(tableId);
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(tableId, ObjectType.TABLE, "", ChangeType.UPDATE);
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(tableId, ObjectType.TABLE, ETAG, ChangeType.UPDATE);
 	}
 	
 	@Test

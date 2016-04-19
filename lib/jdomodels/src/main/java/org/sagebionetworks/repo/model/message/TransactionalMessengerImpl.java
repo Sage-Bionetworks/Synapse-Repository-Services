@@ -12,8 +12,8 @@ import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ObservableEntity;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.ThreadLocalProvider;
 import org.sagebionetworks.util.ValidateArgument;
@@ -79,16 +79,19 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 	 */
 	private List<TransactionalMessengerObserver> observers = new LinkedList<TransactionalMessengerObserver>();
 	
+	@WriteTransactionReadCommitted
 	@Override
 	public void sendMessageAfterCommit(String objectId, ObjectType objectType, ChangeType changeType) {
 		sendMessageAfterCommit(objectId, objectType, null, changeType);
 	}
 	
+	@WriteTransactionReadCommitted
 	@Override
 	public void sendMessageAfterCommit(String objectId, ObjectType objectType, String etag, ChangeType changeType) {
 		sendMessageAfterCommit(objectId, objectType, etag, changeType, null);
 	}
 
+	@WriteTransactionReadCommitted
 	@Deprecated
 	@Override
 	public void sendMessageAfterCommit(String objectId, ObjectType objectType, String etag, String parentId, ChangeType changeType) {
@@ -101,6 +104,7 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 		sendMessageAfterCommit(message);
 	}
 	
+	@WriteTransactionReadCommitted
 	@Override
 	public void sendMessageAfterCommit(ObservableEntity entity, ChangeType changeType) {
 		ChangeMessage message = new ChangeMessage();
@@ -112,6 +116,7 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 		sendMessageAfterCommit(message);
 	}
 	
+	@WriteTransactionReadCommitted
 	@Override
 	public void sendMessageAfterCommit(ChangeMessage message) {
 		if(message == null) throw new IllegalArgumentException("Message cannot be null");
@@ -122,11 +127,13 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 		appendToBoundMessages(message);
 	}
 
+	@WriteTransactionReadCommitted
 	@Override
 	public void sendMessageAfterCommit(String objectId, ObjectType objectType, ChangeType changeType, Long userId) {
 		sendMessageAfterCommit(objectId, objectType, null, changeType, userId);
 	}
 
+	@WriteTransactionReadCommitted
 	@Override
 	public void sendMessageAfterCommit(String objectId, ObjectType objectType, String etag, ChangeType changeType, Long userId) {
 		ChangeMessage message = new ChangeMessage();

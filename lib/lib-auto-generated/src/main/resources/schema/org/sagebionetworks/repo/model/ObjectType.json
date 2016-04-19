@@ -23,6 +23,7 @@
     	"CERTIFIED_USER_PASSING_RECORD",
         "FORUM",
     	"THREAD",
-    	"REPLY"
+    	"REPLY",
+    	"FILE_VIEW"
     ]
 }
