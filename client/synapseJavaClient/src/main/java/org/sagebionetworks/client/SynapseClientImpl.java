@@ -107,6 +107,8 @@ import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.auth.ChangePasswordRequest;
+import org.sagebionetworks.repo.model.auth.LoginRequest;
+import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.SecretKey;
 import org.sagebionetworks.repo.model.auth.Session;
@@ -735,11 +737,18 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		getSharedClientConnection().setApiKey(apiKey);
 	}
 
+	@Deprecated
 	@Override
 	public Session login(String username, String password)
 			throws SynapseException {
 		return getSharedClientConnection().login(username, password,
 				getUserAgent());
+	}
+
+	@Override
+	public LoginResponse login(LoginRequest request)
+			throws SynapseException {
+		return getSharedClientConnection().login(request, getUserAgent());
 	}
 
 	@Override

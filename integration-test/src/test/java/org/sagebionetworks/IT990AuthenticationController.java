@@ -17,13 +17,14 @@ import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
-import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseTermsOfUseException;
 import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
 import org.sagebionetworks.client.exceptions.SynapseServerException;
+import org.sagebionetworks.repo.model.auth.LoginRequest;
+import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Session;
@@ -76,6 +77,16 @@ public class IT990AuthenticationController {
 	@AfterClass
 	public static void afterClass() throws Exception {
 		adminSynapse.deleteUser(userToDelete);
+	}
+
+	@Test
+	public void testLoginWithReceipt() throws Exception {
+		LoginRequest request = new LoginRequest();
+		request.setUsername(username);
+		request.setPassword(PASSWORD);
+		LoginResponse response = synapse.login(request);
+		assertNotNull(response);
+		assertNotNull(response.getAuthenticationReceipt());
 	}
 
 	@Test
