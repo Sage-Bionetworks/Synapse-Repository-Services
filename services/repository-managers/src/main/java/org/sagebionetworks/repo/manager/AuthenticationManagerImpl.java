@@ -177,6 +177,10 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		}
 
 		authenticateAndThrowException(principalId, password);
+		if (lockToken != null) {
+			usernameThrottleGate.releaseLock(""+principalId, lockToken);
+		}
+
 		Session session = getSessionToken(principalId, DomainType.SYNAPSE);
 
 		String newReceipt = null;
@@ -186,10 +190,6 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 			} else {
 				newReceipt = authReceiptDAO.createNewReceipt(principalId);
 			}
-		}
-
-		if (lockToken != null) {
-			usernameThrottleGate.releaseLock(""+principalId, lockToken);
 		}
 
 		return createLoginResponse(session, newReceipt);
