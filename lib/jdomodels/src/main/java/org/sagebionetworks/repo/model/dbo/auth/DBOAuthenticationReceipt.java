@@ -9,7 +9,6 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AUTHENTI
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Date;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
@@ -30,7 +29,7 @@ public class DBOAuthenticationReceipt implements MigratableDatabaseObject<DBOAut
 	private Long id;
 	private Long userId;
 	private String receipt;
-	private Date expiration;
+	private Long expiration;
 
 	@Override
 	public String toString() {
@@ -105,11 +104,11 @@ public class DBOAuthenticationReceipt implements MigratableDatabaseObject<DBOAut
 		this.receipt = receipt;
 	}
 
-	public Date getExpiration() {
+	public Long getExpiration() {
 		return expiration;
 	}
 
-	public void setExpiration(Date expiration) {
+	public void setExpiration(Long expiration) {
 		this.expiration = expiration;
 	}
 
@@ -123,7 +122,7 @@ public class DBOAuthenticationReceipt implements MigratableDatabaseObject<DBOAut
 				dbo.setId(rs.getLong(COL_AUTHENTICATION_RECEIPT_ID));
 				dbo.setUserId(rs.getLong(COL_AUTHENTICATION_RECEIPT_USER_ID));
 				dbo.setReceipt(rs.getString(COL_AUTHENTICATION_RECEIPT_RECEIPT));
-				dbo.setExpiration(new Date(rs.getLong(COL_AUTHENTICATION_RECEIPT_EXPIRATION)));
+				dbo.setExpiration(rs.getLong(COL_AUTHENTICATION_RECEIPT_EXPIRATION));
 				return dbo;
 			}
 
