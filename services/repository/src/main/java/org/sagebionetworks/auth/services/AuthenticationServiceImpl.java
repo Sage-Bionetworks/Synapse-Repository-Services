@@ -31,7 +31,6 @@ import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
-import org.sagebionetworks.repo.web.ForbiddenException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -67,7 +66,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	}
 
 	/**
-	 * @see {{@link #login(LoginRequest)}
+	 * Use {{@link #login(LoginRequest)}
 	 */
 	@Deprecated
 	@Override

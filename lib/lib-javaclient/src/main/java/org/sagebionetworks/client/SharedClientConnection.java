@@ -249,10 +249,10 @@ public class SharedClientConnection {
 			response = EntityFactory.createEntityFromJSONObject(obj, LoginResponse.class);
 			defaultGETDELETEHeaders.put(SESSION_TOKEN_HEADER, response.getSessionToken());
 			defaultPOSTPUTHeaders.put(SESSION_TOKEN_HEADER, response.getSessionToken());
+			return response;
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseClientException(e);
 		}
-		return response;
 	}
 
 	public void logout(String userAgent) throws SynapseException {
