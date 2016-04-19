@@ -31,6 +31,7 @@ import org.sagebionetworks.utils.HttpClientHelperException;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.cloudsearch.AmazonCloudSearchClient;
+import com.amazonaws.services.cloudsearch.model.DomainStatus;
 
 /**
  * Implementation of the Search DAO.
@@ -84,32 +85,26 @@ public class SearchDaoImpl implements SearchDao {
 	 * thread.
 	 */
 	public void initialize(){
-		Thread thread = new Thread(new Runnable() {
-			
-			@Override
-			public void run() {
-				try{
-					/*
-					 * Since each machine in the cluster will call this method and we only 
-					 * want one machine to initialize the search index, we randomly stagger
-					 * the start for each machine.
-					 */
-					Random random = new Random();
-					// random sleep time from zero to 1 mins.
-					long randomSleepMS = random.nextInt(1000*60);
-					log.info("Random wait to start search index: "+randomSleepMS+" MS");
-					Thread.sleep(randomSleepMS);
-					// wait for postInitialize() to finish
-					while(!postInitialize()){
-						log.info("Waiting for search index to finish initializing...");
-						Thread.sleep(5000);
-					}
-				}catch(Exception e){
-					log.error("Unexcpeted exception while starting the search index", e);
-				}
+		try {
+			/*
+			 * Since each machine in the cluster will call this method and we only 
+			 * want one machine to initialize the search index, we randomly stagger
+			 * the start for each machine.
+			 */
+			Random random = new Random();
+			// random sleep time from zero to 1 sec.
+			long randomSleepMS = random.nextInt(1000);
+			log.info("Random wait to start search index: "+randomSleepMS+" MS");
+			Thread.sleep(randomSleepMS);
+			// wait for postInitialize() to finish
+			if (!postInitialize()) {
+				log.info("Search index not finished initializing...");
+			} else {
+				log.info("Search index initialized.");
 			}
-		});
-		thread.start();
+		} catch(Exception e) {
+			log.error("Unexpected exception while starting the search index", e);
+		}
 	}
 
 	/**
@@ -301,8 +296,17 @@ public class SearchDaoImpl implements SearchDao {
 
 	private CloudSearchClient validateSearchAvailable() throws ServiceUnavailableException {
 		validateSearchEnabled();
-		if (cloudHttpClient == null) {
-			throw new ServiceUnavailableException("Search service still initializing...");
+		if ((cloudHttpClient.getSearchServiceEndpoint() == null) || (cloudHttpClient.getDocumentServiceEndpoint() == null)) {
+			DomainStatus status = searchDomainSetup.getDomainStatus();
+			if (status == null) {
+				throw new ServiceUnavailableException("Search service not initialized...");
+			} else { 
+				cloudHttpClient.setSearchServiceEndpoint(searchDomainSetup.getSearchEndpoint());
+				cloudHttpClient.setDocumentServiceEndpoint(searchDomainSetup.getDocumentEndpoint());
+				if (status.isProcessing()) {
+					throw new ServiceUnavailableException("Search service processing...");
+				}
+			}
 		}
 		return cloudHttpClient;
 	}

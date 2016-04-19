@@ -69,9 +69,17 @@ public class CloudSearchClient {
 	public void setSearchServiceEndpoint(String endpoint) {
 		this.searchServiceEndpoint = endpoint;
 	}
+	
+	public String getSearchServiceEndpoint() {
+		return this.searchServiceEndpoint;
+	}
 
 	public void setDocumentServiceEndpoint(String endpoint) {
 		this.documentServiceEndpoint = endpoint;
+	}
+	
+	public String getDocumentServiceEndpoint() {
+		return this.documentServiceEndpoint;
 	}
 
 	public void sendDocuments(String documents) throws ClientProtocolException,
