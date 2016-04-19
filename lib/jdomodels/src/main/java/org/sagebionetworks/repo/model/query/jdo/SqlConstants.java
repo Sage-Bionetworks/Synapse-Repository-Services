@@ -800,6 +800,7 @@ public class SqlConstants {
 	public static final String COL_AUTHENTICATION_RECEIPT_ID = "ID";
 	public static final String COL_AUTHENTICATION_RECEIPT_USER_ID = "USER_ID";
 	public static final String COL_AUTHENTICATION_RECEIPT_RECEIPT = "RECEIPT";
+	public static final String COL_AUTHENTICATION_RECEIPT_EXPIRATION = "EXPIRATION";
 	public static final String DDL_AUTHENTICATION_RECEIPT = "schema/AuthenticationReceipt-ddl.sql";
 
 	// This seems to be the name of the id column for all tables.

@@ -1,8 +1,11 @@
 package org.sagebionetworks.repo.model.dbo.auth;
 
+import static org.sagebionetworks.repo.model.dbo.auth.DBOAuthenticationReceiptDAOImpl.*;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -26,6 +29,11 @@ public class DBOAuthenticationReceiptDAOImplTest {
 		receipt = "receipt";
 	}
 
+	@After
+	public void after() {
+		authReceiptDao.truncateAll();
+	}
+
 	@Test
 	public void testReceiptInvalid() {
 		assertFalse(authReceiptDao.isValidReceipt(userId, receipt));
@@ -44,5 +52,23 @@ public class DBOAuthenticationReceiptDAOImplTest {
 		assertFalse(receipt.equals(newReceipt));
 		assertFalse(authReceiptDao.isValidReceipt(userId, receipt));
 		assertTrue(authReceiptDao.isValidReceipt(userId, newReceipt));
+	}
+
+	@Test
+	public void testCount(){
+		assertEquals(0L, authReceiptDao.countReceipts(userId));
+		authReceiptDao.createNewReceipt(userId);
+		assertEquals(1L, authReceiptDao.countReceipts(userId));
+		authReceiptDao.replaceReceipt(userId, receipt);
+		assertEquals(1L, authReceiptDao.countReceipts(userId));
+	}
+
+	@Test
+	public void testDelete(){
+		receipt = authReceiptDao.createNewReceipt(userId);
+		authReceiptDao.deleteExpiredReceipts(userId, System.currentTimeMillis());
+		assertTrue(authReceiptDao.isValidReceipt(userId, receipt));
+		authReceiptDao.deleteExpiredReceipts(userId, System.currentTimeMillis()+EXPIRATION_PERIOD);
+		assertFalse(authReceiptDao.isValidReceipt(userId, receipt));
 	}
 }

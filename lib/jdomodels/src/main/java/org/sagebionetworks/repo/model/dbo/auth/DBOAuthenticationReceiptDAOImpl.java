@@ -10,24 +10,32 @@ import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.RowMapper;
 
 public class DBOAuthenticationReceiptDAOImpl implements AuthenticationReceiptDAO{
+	public static final Long EXPIRATION_PERIOD = 3*24*60*60*1000L;
 
-	private static final String SQL_SELECT = "SELECT "+COL_AUTHENTICATION_RECEIPT_USER_ID
+	private static final String SQL_SELECT = "SELECT "+COL_AUTHENTICATION_RECEIPT_ID
 			+" FROM "+TABLE_AUTHENTICATION_RECEIPT
 			+" WHERE "+COL_AUTHENTICATION_RECEIPT_USER_ID+" = ?"
 			+" AND "+COL_AUTHENTICATION_RECEIPT_RECEIPT+" = ?";
 	private static final String SQL_INSERT = "INSERT INTO "+TABLE_AUTHENTICATION_RECEIPT+"( "
 			+COL_AUTHENTICATION_RECEIPT_ID+", "
 			+COL_AUTHENTICATION_RECEIPT_USER_ID+", "
-			+COL_AUTHENTICATION_RECEIPT_RECEIPT+") VALUES (?,?,?)";
+			+COL_AUTHENTICATION_RECEIPT_RECEIPT+", "
+			+COL_AUTHENTICATION_RECEIPT_EXPIRATION+") VALUES (?,?,?,?)";
 	private static final String SQL_UPDATE = "UPDATE "+TABLE_AUTHENTICATION_RECEIPT
-			+" SET "+COL_AUTHENTICATION_RECEIPT_RECEIPT+" = ? "
+			+" SET "+COL_AUTHENTICATION_RECEIPT_RECEIPT+" = ?, "
+			+COL_AUTHENTICATION_RECEIPT_EXPIRATION+" = ?"
 			+" WHERE "+COL_AUTHENTICATION_RECEIPT_USER_ID+" = ?"
 			+" AND "+COL_AUTHENTICATION_RECEIPT_RECEIPT+" = ?";
-
-	private static RowMapper<DBOAuthenticationReceipt> ROW_MAPPER = new DBOAuthenticationReceipt().getTableMapping();
+	private static final String SQL_COUNT = "SELECT COUNT(*)"
+			+" FROM "+TABLE_AUTHENTICATION_RECEIPT
+			+" WHERE "+COL_AUTHENTICATION_RECEIPT_USER_ID+" = ?";
+	private static final String SQL_DELETE_EXPIRED = "DELETE"
+			+" FROM "+TABLE_AUTHENTICATION_RECEIPT
+			+" WHERE "+COL_AUTHENTICATION_RECEIPT_USER_ID+" = ?"
+			+" AND "+COL_AUTHENTICATION_RECEIPT_EXPIRATION+" < ?";
+	private static final String SQL_TRUNCATE = "TRUNCATE "+TABLE_AUTHENTICATION_RECEIPT;
 
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
@@ -36,7 +44,7 @@ public class DBOAuthenticationReceiptDAOImpl implements AuthenticationReceiptDAO
 
 	@Override
 	public boolean isValidReceipt(long userId, String receipt) {
-		List<DBOAuthenticationReceipt> results = jdbcTemplate.query(SQL_SELECT, ROW_MAPPER, userId, receipt);
+		List<String> results = jdbcTemplate.queryForList(SQL_SELECT, String.class, userId, receipt);
 		return results.size() == 1;
 	}
 
@@ -45,7 +53,7 @@ public class DBOAuthenticationReceiptDAOImpl implements AuthenticationReceiptDAO
 	public String createNewReceipt(long userId) {
 		Long id = idGenerator.generateNewId(TYPE.AUTHENTICATION_RECEIPT_ID);
 		String receipt = UUID.randomUUID().toString();
-		jdbcTemplate.update(SQL_INSERT, id, userId, receipt);
+		jdbcTemplate.update(SQL_INSERT, id, userId, receipt, System.currentTimeMillis()+EXPIRATION_PERIOD);
 		return receipt;
 	}
 
@@ -53,8 +61,24 @@ public class DBOAuthenticationReceiptDAOImpl implements AuthenticationReceiptDAO
 	@Override
 	public String replaceReceipt(long userId, String oldReceipt) {
 		String receipt = UUID.randomUUID().toString();
-		jdbcTemplate.update(SQL_UPDATE, receipt, userId, oldReceipt);
+		jdbcTemplate.update(SQL_UPDATE, receipt, System.currentTimeMillis()+EXPIRATION_PERIOD, userId, oldReceipt);
 		return receipt;
 	}
 
+	@Override
+	public long countReceipts(long userId) {
+		return jdbcTemplate.queryForLong(SQL_COUNT, userId);
+	}
+
+	@WriteTransactionReadCommitted
+	@Override
+	public void deleteExpiredReceipts(long userId, long expirationTime) {
+		jdbcTemplate.update(SQL_DELETE_EXPIRED, userId, expirationTime);
+	}
+
+	@WriteTransactionReadCommitted
+	@Override
+	public void truncateAll() {
+		jdbcTemplate.update(SQL_TRUNCATE);
+	}
 }

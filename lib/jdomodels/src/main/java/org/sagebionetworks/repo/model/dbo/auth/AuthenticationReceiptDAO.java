@@ -27,4 +27,25 @@ public interface AuthenticationReceiptDAO {
 	 * @return the new receipt
 	 */
 	public String replaceReceipt(long userId, String oldReceipt);
+
+	/**
+	 * Get the number of receipts a user has
+	 * 
+	 * @param userId
+	 * @return
+	 */
+	public long countReceipts(long userId);
+
+	/**
+	 * Remove all receipts that is older than expirationTime
+	 * 
+	 * @param expirationTime
+	 */
+	public void deleteExpiredReceipts(long userId, long expirationTime);
+
+	/**
+	 * Remove all data from AuthenticationReceip table.
+	 * Only use this for testing.
+	 */
+	public void truncateAll();
 }
