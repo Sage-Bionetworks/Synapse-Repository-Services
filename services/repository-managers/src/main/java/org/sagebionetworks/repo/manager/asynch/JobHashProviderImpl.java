@@ -1,11 +1,10 @@
 package org.sagebionetworks.repo.manager.asynch;
 
-import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 
 import org.apache.commons.codec.binary.Hex;
-import org.sagebionetworks.repo.manager.table.TableRowManager;
 import org.sagebionetworks.repo.manager.table.TableRowManagerImpl;
+import org.sagebionetworks.repo.manager.table.TableStatusManager;
 import org.sagebionetworks.repo.model.asynch.CacheableRequestBody;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.Query;
@@ -24,7 +23,7 @@ public class JobHashProviderImpl implements JobHashProvider {
 	
 	private static final String NULL = "NULL";
 	@Autowired
-	TableRowManager tableRowManager;
+	TableStatusManager tableStatusManager;
 
 	@Override
 	public String getJobHash(CacheableRequestBody body) {
@@ -122,11 +121,7 @@ public class JobHashProviderImpl implements JobHashProvider {
 	 */
 	private String getTableEtag(String tableId){
 		// Base the etag on the table status
-		try {
-			TableStatus status = tableRowManager.getTableStatusOrCreateIfNotExists(tableId);
-			return status.getLastTableChangeEtag() + status.getResetToken();
-		}  catch (IOException e) {
-			throw new RuntimeException(e);
-		}
+		TableStatus status = tableStatusManager.getTableStatusOrCreateIfNotExists(tableId);
+		return status.getLastTableChangeEtag() + status.getResetToken();
 	}
 }
