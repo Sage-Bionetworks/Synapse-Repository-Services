@@ -57,7 +57,7 @@ public class SearchDaoImplAutowireTest {
 	public void before(){
 		// Only run these tests if search is enabled
 		org.junit.Assume.assumeTrue(searchDomainSetup.isSearchEnabled());
-		assertTrue(TimeUtils.waitFor(20000, 500, null, new Predicate<Void>() {
+		assertTrue(TimeUtils.waitFor(20000, 2000, null, new Predicate<Void>() {
 			@Override
 			public boolean apply(Void input) {
 				try {
