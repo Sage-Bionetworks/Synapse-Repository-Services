@@ -1,5 +1,10 @@
 package org.sagebionetworks.repo.manager;
 
+import java.util.Collections;
+import java.util.Date;
+
+import org.sagebionetworks.cloudwatch.Consumer;
+import org.sagebionetworks.cloudwatch.ProfileData;
 import org.sagebionetworks.repo.model.AuthenticationDAO;
 import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.LockedException;
@@ -20,6 +25,12 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 
 public class AuthenticationManagerImpl implements AuthenticationManager {
+	public static final String LOGIN_FAIL_ATTEMPT_METRIC_UNIT = "Count";
+
+	public static final double LOGIN_FAIL_ATTEMPT_METRIC_DEFAULT_VALUE = 1.0;
+
+	public static final String LOGIN_FAIL_ATTEMPT_METRIC_NAME = "LoginFailAttemptExceedLimit";
+
 	public static final Long AUTHENTICATION_RECEIPT_LIMIT = 100L;
 
 	public static final int PASSWORD_MIN_LENGTH = 8;
@@ -38,6 +49,8 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	private AuthenticationReceiptDAO authReceiptDAO;
 	@Autowired
 	private MemoryCountingSemaphore usernameThrottleGate;
+	@Autowired
+	private Consumer consumer;
 	
 	public AuthenticationManagerImpl() { }
 
@@ -53,8 +66,20 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 			usernameThrottleGate.releaseLock(""+principalId, lockToken);
 			return getSessionToken(principalId, domain);
 		} else {
+			logAttemptAfterAccountIsLocked(principalId);
 			throw new LockedException(ACCOUNT_LOCKED_MESSAGE);
 		}
+	}
+
+	private void logAttemptAfterAccountIsLocked(long principalId) {
+		ProfileData loginFailAttemptExceedLimit = new ProfileData();
+		loginFailAttemptExceedLimit.setNamespace(this.getClass().getName());
+		loginFailAttemptExceedLimit.setName(LOGIN_FAIL_ATTEMPT_METRIC_NAME);
+		loginFailAttemptExceedLimit.setValue(LOGIN_FAIL_ATTEMPT_METRIC_DEFAULT_VALUE);
+		loginFailAttemptExceedLimit.setUnit(LOGIN_FAIL_ATTEMPT_METRIC_UNIT);
+		loginFailAttemptExceedLimit.setTimestamp(new Date());
+		loginFailAttemptExceedLimit.setDimension(Collections.singletonMap("UserId", ""+principalId));
+		consumer.addProfileData(loginFailAttemptExceedLimit);
 	}
 	
 	@Override
@@ -170,6 +195,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		if (authenticationReceipt == null || !authReceiptDAO.isValidReceipt(principalId, authenticationReceipt)) {
 			lockToken = usernameThrottleGate.attemptToAcquireLock(""+principalId, LOCK_TIMOUTE_SEC, MAX_CONCURRENT_LOCKS);
 			if (lockToken == null) {
+				logAttemptAfterAccountIsLocked(principalId);
 				throw new LockedException(ACCOUNT_LOCKED_MESSAGE);
 			}
 		} else {
