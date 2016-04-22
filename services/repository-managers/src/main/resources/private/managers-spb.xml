@@ -309,6 +309,10 @@
     </bean>
  
 	<bean id="tableViewManager" class="org.sagebionetworks.repo.manager.table.TableViewManagerImpl" scope="singleton" />
+	
+	<bean id="tableStatusManager" class="org.sagebionetworks.repo.manager.table.TableStatusManagerImpl" scope="singleton" />
+	
+	<bean id="tableTruthManager" class="org.sagebionetworks.repo.manager.table.TableTruthManagerImpl" scope="singleton" />
     
     <bean id="tableIndexConnectionFactory" class="org.sagebionetworks.repo.manager.table.TableIndexConnectionFactoryImpl" scope="singleton" >
     </bean>

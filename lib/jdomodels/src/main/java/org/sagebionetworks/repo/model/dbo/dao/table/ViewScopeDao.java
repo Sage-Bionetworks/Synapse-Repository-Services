@@ -29,6 +29,14 @@ public interface ViewScopeDao {
 	 * Clear all data in the table.
 	 */
 	public void truncateAll();
+
+	/**
+	 * Get the scope for the given view.
+	 * 
+	 * @param viewId
+	 * @return
+	 */
+	public Set<Long> getViewScope(Long viewId);
 	
 
 }

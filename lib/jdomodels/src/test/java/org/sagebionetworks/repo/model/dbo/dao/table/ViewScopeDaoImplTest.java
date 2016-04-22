@@ -28,6 +28,17 @@ public class ViewScopeDaoImplTest {
 	}
 	
 	@Test
+	public void testSetViewScopeGetViewScoped(){
+		long viewId1 = 123L;
+		Set<Long> containers = Sets.newHashSet(444L,555L);
+		// one
+		viewScopeDao.setViewScope(viewId1, containers);
+		// find the intersection
+		Set<Long> fetched = viewScopeDao.getViewScope(viewId1);
+		assertEquals(containers, fetched);
+	}
+	
+	@Test
 	public void testSetViewScopeAndFind(){
 		long viewId1 = 123L;
 		Set<Long> containers = Sets.newHashSet(444L,555L);

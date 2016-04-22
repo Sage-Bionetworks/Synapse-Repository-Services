@@ -923,7 +923,7 @@ public class TableRowManagerImpl implements TableRowManager {
 				}
 			});
 		} catch (LockUnavilableException e) {
-			throw new TemporarilyUnavailableException(e);
+			throw new TableUnavilableException(tableStatusManager.getTableStatusOrCreateIfNotExists(tableId));
 		} catch(TableUnavilableException e){
 			throw e;
 		} catch (TableFailedException e) {
@@ -945,7 +945,6 @@ public class TableRowManagerImpl implements TableRowManager {
 	 * @throws NotFoundException
 	 * @throws TableFailedException
 	 */
-	@WriteTransactionReadCommitted
 	@Override
 	public DownloadFromTableResult runConsistentQueryAsStream(ProgressCallback<Void> progressCallback, UserInfo user, String sql, List<SortItem> sortList,
 			final CSVWriterStream writer, boolean includeRowIdAndVersion, final boolean writeHeader) throws TableUnavilableException,

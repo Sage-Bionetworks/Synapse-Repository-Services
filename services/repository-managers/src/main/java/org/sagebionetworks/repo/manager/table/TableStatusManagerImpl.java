@@ -1,13 +1,10 @@
 package org.sagebionetworks.repo.manager.table;
 
-import java.util.List;
-
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
-import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
@@ -15,7 +12,6 @@ import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
-import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.TimeoutUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -72,21 +68,25 @@ public class TableStatusManagerImpl implements TableStatusManager {
 		}
 	}
 	
-	/**
-	 * Set the table's status to be PROCESSING, fire a table update and return the table's status.
-	 * @param tableId
-	 * @return
+	/*
+	 * (non-Javadoc)
+	 * @see org.sagebionetworks.repo.manager.table.TableStatusManager#setTableToProcessingAndTriggerUpdate(java.lang.String)
 	 */
+	@WriteTransactionReadCommitted
+	@Override
 	public TableStatus setTableToProcessingAndTriggerUpdate(String tableId) {
 		// we get here, if the index for this table is not (yet?) being build. We need to kick off the
 		// building of the index and report the table as unavailable
-		tableStatusDAO.resetTableStatusToProcessing(tableId);
+		String token = tableStatusDAO.resetTableStatusToProcessing(tableId);
+		// lookup the table type.
+		ObjectType tableType = tableTruthManager.getTableType(tableId);
 		// notify all listeners.
-		transactionalMessenger.sendMessageAfterCommit(tableId, ObjectType.TABLE, "", ChangeType.UPDATE);
+		transactionalMessenger.sendMessageAfterCommit(tableId, tableType, token, ChangeType.UPDATE);
 		// status should exist now
 		return tableStatusDAO.getTableStatus(tableId);
 	}
 
+	@WriteTransactionReadCommitted
 	@Override
 	public void attemptToSetTableStatusToAvailable(String tableId,
 			String resetToken, String tableChangeEtag) throws ConflictingUpdateException,
@@ -94,6 +94,7 @@ public class TableStatusManagerImpl implements TableStatusManager {
 		tableStatusDAO.attemptToSetTableStatusToAvailable(tableId, resetToken, tableChangeEtag);
 	}
 
+	@WriteTransactionReadCommitted
 	@Override
 	public void attemptToSetTableStatusToFailed(String tableId,
 			String resetToken, String errorMessage, String errorDetails)
@@ -101,6 +102,7 @@ public class TableStatusManagerImpl implements TableStatusManager {
 		tableStatusDAO.attemptToSetTableStatusToFailed(tableId, resetToken, errorMessage, errorDetails);
 	}
 
+	@WriteTransactionReadCommitted
 	@Override
 	public void attemptToUpdateTableProgress(String tableId, String resetToken,
 			String progressMessage, Long currentProgress, Long totalProgress)
@@ -108,24 +110,34 @@ public class TableStatusManagerImpl implements TableStatusManager {
 		tableStatusDAO.attemptToUpdateTableProgress(tableId, resetToken, progressMessage, currentProgress, totalProgress);
 	}
 	
+	/*
+	 * (non-Javadoc)
+	 * @see org.sagebionetworks.repo.manager.table.TableStatusManager#startTableProcessing(java.lang.String)
+	 */
+	@WriteTransactionReadCommitted
 	@Override
 	public String startTableProcessing(String tableId) {
 		return tableStatusDAO.resetTableStatusToProcessing(tableId);
 	}
 
-
+	/*
+	 * (non-Javadoc)
+	 * @see org.sagebionetworks.repo.manager.table.TableStatusManager#isIndexSynchronizedWithTruth(java.lang.String)
+	 */
 	@Override
 	public boolean isIndexSynchronizedWithTruth(String tableId) {
-		// Get the truth schema
-		List<ColumnModel> truthSchema = tableTruthManager.getColumnModelsForObject(tableId);
-		String truthSchemaMD5Hex = TableModelUtils.createSchemaMD5HexCM(truthSchema);
+		// MD5 of the table's schema
+		String truthSchemaMD5Hex = tableTruthManager.getSchemaMD5Hex(tableId);
 		// get the truth version
 		long truthLastVersion = tableTruthManager.getTableVersion(tableId);
 		// compare the truth with the index.
 		return this.tableConnectionFactory.getConnection(tableId).doesIndexStateMatch(tableId, truthLastVersion, truthSchemaMD5Hex);
 	}
 	
-
+	/*
+	 * (non-Javadoc)
+	 * @see org.sagebionetworks.repo.manager.table.TableStatusManager#isIndexWorkRequired(java.lang.String)
+	 */
 	@Override
 	public boolean isIndexWorkRequired(String tableId) {
 		// Does the table exist and not in the trash?
@@ -141,11 +153,21 @@ public class TableStatusManagerImpl implements TableStatusManager {
 		return TableState.PROCESSING.equals(status.getState());
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * @see org.sagebionetworks.repo.manager.table.TableStatusManager#setTableDeleted(java.lang.String)
+	 */
+	@WriteTransactionReadCommitted
 	@Override
 	public void setTableDeleted(String deletedId) {
-		transactionalMessenger.sendMessageAfterCommit(deletedId, ObjectType.TABLE, ChangeType.DELETE);
+		ObjectType tableType = tableTruthManager.getTableType(deletedId);
+		transactionalMessenger.sendMessageAfterCommit(deletedId, tableType, ChangeType.DELETE);
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * @see org.sagebionetworks.repo.manager.table.TableStatusManager#validateTableIsAvailable(java.lang.String)
+	 */
 	@Override
 	public TableStatus validateTableIsAvailable(String tableId) throws NotFoundException, TableUnavilableException, TableFailedException {
 		final TableStatus status = getTableStatusOrCreateIfNotExists(tableId);

@@ -305,9 +305,11 @@ public class TableRowManagerImplTest {
 		status.setTableId(tableId);
 		status.setState(TableState.PROCESSING);
 		status.setChangedOn(new Date(123));
+		status.setLastTableChangeEtag("etag");
 		ETAG = "";
 		
 		when(mockTableStatusManager.validateTableIsAvailable(tableId)).thenReturn(status);
+		when(mockTableStatusManager.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
 	}
 	
 	@Test (expected=UnauthorizedException.class)
@@ -373,8 +375,7 @@ public class TableRowManagerImplTest {
 		} catch (IllegalArgumentException e) {
 			assertEquals("PartialRow.value.key: 'foo' is not a valid column ID for row ID: null", e.getMessage());
 		}
-		// verify the table status was set
-		verify(mockTableStatusManager, times(1)).setTableToProcessingAndTriggerUpdate(tableId);
+		verify(mockTableStatusManager, never()).setTableToProcessingAndTriggerUpdate(tableId);
 	}
 	
 	@Test
@@ -831,7 +832,7 @@ public class TableRowManagerImplTest {
 	public void testQueryIsConsistentTrueNotFound() throws Exception {
 		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		status.setState(TableState.PROCESSING);
-		when(mockTableStatusManager.validateTableIsAvailable(tableId)).thenThrow(new NotFoundException("fake")).thenReturn(status);
+		when(mockTableStatusManager.validateTableIsAvailable(tableId)).thenThrow(new TableUnavilableException(status));
 		when(mockTruthDao.getLastTableRowChange(tableId)).thenReturn(new TableRowChange());
 		try{
 			manager.query(mockProgressCallbackVoid, user, "select * from " + tableId + " limit 1", null, null, null, true, false, true);

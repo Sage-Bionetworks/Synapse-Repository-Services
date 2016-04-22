@@ -1,7 +1,5 @@
 package org.sagebionetworks.repo.manager.table;
 
-import java.io.IOException;
-
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableStatus;
@@ -9,20 +7,22 @@ import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface TableStatusManager {
-	
+
 	/**
-	 * Get the status of a table. This method is guaranteed to return a table's status if the table exists.
-	 * Note: Calling this method can trigger a table to update if the table's status is out-of-date
-	 * for any reason. If an update is triggered, the returned table status will be set to PROCESSING.
-	 * The returned table status will only be AVAIABLE if the table's index is up-to-date (see PLFM-3383).
+	 * Get the status of a table. This method is guaranteed to return a table's
+	 * status if the table exists. Note: Calling this method can trigger a table
+	 * to update if the table's status is out-of-date for any reason. If an
+	 * update is triggered, the returned table status will be set to PROCESSING.
+	 * The returned table status will only be AVAIABLE if the table's index is
+	 * up-to-date (see PLFM-3383).
 	 * 
 	 * @param tableId
 	 * @return the status
-	 * @throws NotFoundException if the table does not exist
+	 * @throws NotFoundException
+	 *             if the table does not exist
 	 */
-	public TableStatus getTableStatusOrCreateIfNotExists(String tableId) throws NotFoundException;
-	
-
+	public TableStatus getTableStatusOrCreateIfNotExists(String tableId)
+			throws NotFoundException;
 
 	/**
 	 * Attempt to set the table status to AVIALABLE. The state will be changed
@@ -81,9 +81,10 @@ public interface TableStatusManager {
 	public void attemptToUpdateTableProgress(String tableId, String resetToken,
 			String progressMessage, Long currentProgress, Long totalProgress)
 			throws ConflictingUpdateException, NotFoundException;
-	
+
 	/**
-	 * Called by the worker when it starts to process a table.
+	 * Called by the worker when it starts to process a table. This method will
+	 * change the state to processing without notifying listeners.
 	 * 
 	 * @param tableId
 	 * @return
@@ -97,10 +98,11 @@ public interface TableStatusManager {
 	 * @return
 	 */
 	public boolean isIndexSynchronizedWithTruth(String tableId);
-	
+
 	/**
-	 * Index work is required if the index is out-of-synch with the truth
-	 * or the current state is processing.
+	 * Index work is required if the index is out-of-synch with the truth or the
+	 * current state is processing.
+	 * 
 	 * @param tableId
 	 * @return
 	 */
@@ -108,12 +110,14 @@ public interface TableStatusManager {
 
 	/**
 	 * Set the table to processing and send an update message.
+	 * 
 	 * @param tableId
 	 */
 	public TableStatus setTableToProcessingAndTriggerUpdate(String tableId);
-	
+
 	/**
 	 * Set the table to be deleted.
+	 * 
 	 * @param deletedId
 	 */
 	public void setTableDeleted(String deletedId);
@@ -123,10 +127,15 @@ public interface TableStatusManager {
 	 * 
 	 * @param tableId
 	 * @return
-	 * @throws NotFoundException If the table does not exist
-	 * @throws TableUnavilableException If the table exists but is currently processing.
-	 * @throws TableFailedException If the table exists but processing failed.
+	 * @throws NotFoundException
+	 *             If the table does not exist
+	 * @throws TableUnavilableException
+	 *             If the table exists but is currently processing.
+	 * @throws TableFailedException
+	 *             If the table exists but processing failed.
 	 */
-	public TableStatus validateTableIsAvailable(String tableId) throws NotFoundException, TableUnavilableException, TableFailedException;
+	public TableStatus validateTableIsAvailable(String tableId)
+			throws NotFoundException, TableUnavilableException,
+			TableFailedException;
 
 }
