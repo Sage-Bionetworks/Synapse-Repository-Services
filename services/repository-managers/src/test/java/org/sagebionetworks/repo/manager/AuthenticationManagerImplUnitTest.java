@@ -16,8 +16,11 @@ import junit.framework.Assert;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.sagebionetworks.cloudwatch.Consumer;
+import org.sagebionetworks.cloudwatch.ProfileData;
 import org.sagebionetworks.repo.model.AuthenticationDAO;
 import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.LockedException;
@@ -42,6 +45,8 @@ public class AuthenticationManagerImplUnitTest {
 	private MemoryCountingSemaphore mockUsernameThrottleGate;
 	@Mock
 	private AuthenticationReceiptDAO mockAuthReceiptDAO;
+	@Mock
+	private Consumer mockConsumer;
 	
 	final Long userId = 12345L;
 //	final String username = "AuthManager@test.org";
@@ -66,6 +71,7 @@ public class AuthenticationManagerImplUnitTest {
 		ReflectionTestUtils.setField(authManager, "userGroupDAO", mockUserGroupDAO);
 		ReflectionTestUtils.setField(authManager, "usernameThrottleGate", mockUsernameThrottleGate);
 		ReflectionTestUtils.setField(authManager, "authReceiptDAO", mockAuthReceiptDAO);
+		ReflectionTestUtils.setField(authManager, "consumer", mockConsumer);
 	}
 
 	@Test
@@ -103,6 +109,18 @@ public class AuthenticationManagerImplUnitTest {
 		for (int i = 0; i < MAX_CONCURRENT_LOCKS+1; i++) {
 			authManager.authenticate(userId, "password", DomainType.SYNAPSE);
 		}
+		ArgumentCaptor<ProfileData> captor = ArgumentCaptor.forClass(ProfileData.class);
+		verify(mockConsumer).addProfileData(captor.capture());
+		validateLoginFailAttemptMetricData(captor, userId);
+	}
+
+	private void validateLoginFailAttemptMetricData(ArgumentCaptor<ProfileData> captor, Long userId) {
+		ProfileData arg = captor.getValue();
+		assertEquals(AuthenticationManagerImpl.class.getName(), arg.getNamespace());
+		assertEquals(LOGIN_FAIL_ATTEMPT_METRIC_UNIT, arg.getUnit());
+		assertEquals((Double)LOGIN_FAIL_ATTEMPT_METRIC_DEFAULT_VALUE, arg.getValue());
+		assertEquals(LOGIN_FAIL_ATTEMPT_METRIC_NAME, arg.getName());
+		assertEquals(userId, arg.getDimension().get("UserId"));
 	}
 
 	@Test
@@ -208,7 +226,7 @@ public class AuthenticationManagerImplUnitTest {
 	}
 
 	@Test
-	public void testLoginWithInvalidReceiptAndOverLimit(){
+	public void testLoginWithInvalidReceiptAndOverReceiptLimit(){
 		when(mockUsernameThrottleGate.attemptToAcquireLock(anyString(), anyLong(), anyInt())).thenReturn("lock");
 		when(mockAuthReceiptDAO.countReceipts(userId)).thenReturn(AUTHENTICATION_RECEIPT_LIMIT);
 		String receipt = "receipt";
@@ -233,5 +251,37 @@ public class AuthenticationManagerImplUnitTest {
 		verify(mockAuthReceiptDAO, never()).createNewReceipt(userId);
 		verify(mockUsernameThrottleGate, never()).releaseLock(anyString(), anyString());
 		verify(mockAuthReceiptDAO, never()).replaceReceipt(userId, receipt);
+	}
+
+	@Test (expected=LockedException.class)
+	public void testLoginWithInvalidReceiptAndOverFailAttemptLimit(){
+		when(mockUsernameThrottleGate.attemptToAcquireLock(anyString(), anyLong(), anyInt())).thenReturn(null);
+		when(mockAuthReceiptDAO.countReceipts(userId)).thenReturn(AUTHENTICATION_RECEIPT_LIMIT);
+		String receipt = "receipt";
+		when(mockAuthReceiptDAO.isValidReceipt(userId, receipt)).thenReturn(false);
+		authManager.login(userId, "fake password", receipt);
+		verify(mockAuthReceiptDAO).deleteExpiredReceipts(eq(userId), anyLong());
+		verify(mockUsernameThrottleGate).attemptToAcquireLock(""+userId, LOCK_TIMOUTE_SEC, MAX_CONCURRENT_LOCKS);
+		verify(mockAuthReceiptDAO, never()).createNewReceipt(userId);
+		verify(mockUsernameThrottleGate, never()).releaseLock(anyString(), anyString());
+		verify(mockAuthReceiptDAO, never()).replaceReceipt(userId, receipt);
+		ArgumentCaptor<ProfileData> captor = ArgumentCaptor.forClass(ProfileData.class);
+		verify(mockConsumer).addProfileData(captor.capture());
+		validateLoginFailAttemptMetricData(captor, userId);
+	}
+
+	@Test
+	public void testLoginWithValidReceiptAndOverFailAttemptLimit(){
+		when(mockUsernameThrottleGate.attemptToAcquireLock(anyString(), anyLong(), anyInt())).thenReturn(null);
+		when(mockAuthReceiptDAO.countReceipts(userId)).thenReturn(AUTHENTICATION_RECEIPT_LIMIT);
+		String receipt = "receipt";
+		when(mockAuthReceiptDAO.isValidReceipt(userId, receipt)).thenReturn(true);
+		authManager.login(userId, "fake password", receipt);
+		verify(mockAuthReceiptDAO).deleteExpiredReceipts(eq(userId), anyLong());
+		verify(mockUsernameThrottleGate, never()).attemptToAcquireLock(""+userId, LOCK_TIMOUTE_SEC, MAX_CONCURRENT_LOCKS);
+		verify(mockAuthReceiptDAO, never()).createNewReceipt(userId);
+		verify(mockUsernameThrottleGate, never()).releaseLock(anyString(), anyString());
+		verify(mockAuthReceiptDAO, never()).replaceReceipt(userId, receipt);
+		verify(mockConsumer, never()).addProfileData(any(ProfileData.class));
 	}
 }
