@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.table;
 
+import java.io.IOException;
 import java.util.List;
 
 import org.junit.Before;
@@ -13,6 +14,7 @@ import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.TableRowChange;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -101,6 +103,24 @@ public class TableTruthManagerImplTest {
 		// call under test
 		Long version = manager.getTableVersion(tableId);
 		assertEquals(lastChange.getRowVersion(), version);
+	}
+	
+	@Test
+	public void testGetVersionOfLastTableChangeNull() throws NotFoundException, IOException{
+		// no last version
+		when(mockTableTruthDao.getLastTableRowChange(tableId)).thenReturn(null);
+		//call under test
+		assertEquals(-1, manager.getVersionOfLastTableChange(tableId));
+	}
+	
+	@Test
+	public void testGetVersionOfLastTableChange() throws NotFoundException, IOException{
+		long currentVersion = 123L;
+		TableRowChange lastChange = new TableRowChange();
+		lastChange.setRowVersion(currentVersion);
+		when(mockTableTruthDao.getLastTableRowChange(tableId)).thenReturn(lastChange);
+		// call under test
+		assertEquals(currentVersion, manager.getVersionOfLastTableChange(tableId));
 	}
 
 }

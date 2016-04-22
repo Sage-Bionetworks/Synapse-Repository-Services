@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.table;
 
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
@@ -114,6 +115,14 @@ public interface TableStatusManager {
 	 * @param tableId
 	 */
 	public TableStatus setTableToProcessingAndTriggerUpdate(String tableId);
+	
+	/**
+	 * 
+	 * @param tableId
+	 * @param tableType
+	 * @return
+	 */
+	public TableStatus setTableToProcessingAndTriggerUpdate(String tableId, ObjectType tableType);
 
 	/**
 	 * Set the table to be deleted.

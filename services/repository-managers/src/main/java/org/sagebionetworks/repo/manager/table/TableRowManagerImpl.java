@@ -1182,23 +1182,12 @@ public class TableRowManagerImpl implements TableRowManager {
 		}
 	}
 
-
-	@Override
-	public long getVersionOfLastTableChange(String tableId) {
-		TableRowChange change = this.tableRowTruthDao.getLastTableRowChange(tableId);
-		if(change != null){
-			return change.getRowVersion();
-		}else{
-			return -1;
-		}
-	}
-
 	@WriteTransactionReadCommitted
 	@Override
 	public void setTableSchema(UserInfo userInfo, List<String> columnIds,
 			String id) {
 		columModelManager.bindColumnToObject(userInfo, columnIds, id);
-		tableStatusManager.setTableToProcessingAndTriggerUpdate(id);
+		tableStatusManager.setTableToProcessingAndTriggerUpdate(id, ObjectType.TABLE);
 	}
 
 	@WriteTransactionReadCommitted

@@ -613,4 +613,5 @@ public class TableQueryParserTest {
 		String sql = toSQL(element);
 		assertEquals("SELECT doesNotExist, isIn, string, sAnd, sNot, WeLikeIt FROM SyN456 LIMIT 1 OFFSET 2", sql);
 	}
+	
 }

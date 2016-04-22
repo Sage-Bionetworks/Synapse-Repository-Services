@@ -1149,30 +1149,12 @@ public class TableRowManagerImplTest {
 	}
 	
 	@Test
-	public void testGetVersionOfLastTableChangeNull() throws NotFoundException, IOException{
-		// no last version
-		when(mockTruthDao.getLastTableRowChange(tableId)).thenReturn(null);
-		//call under test
-		assertEquals(-1, manager.getVersionOfLastTableChange(tableId));
-	}
-	
-	@Test
-	public void testGetVersionOfLastTableChange() throws NotFoundException, IOException{
-		long currentVersion = 123L;
-		TableRowChange lastChange = new TableRowChange();
-		lastChange.setRowVersion(currentVersion);
-		when(mockTruthDao.getLastTableRowChange(tableId)).thenReturn(lastChange);
-		// call under test
-		assertEquals(currentVersion, manager.getVersionOfLastTableChange(tableId));
-	}
-	
-	@Test
 	public void testSetTableSchema(){
 		List<String> schema = Lists.newArrayList("111","222");
 		// call under test.
 		manager.setTableSchema(user, schema, tableId);
 		verify(mockColumModelManager).bindColumnToObject(user, schema, tableId);
-		verify(mockTableStatusManager).setTableToProcessingAndTriggerUpdate(tableId);
+		verify(mockTableStatusManager).setTableToProcessingAndTriggerUpdate(tableId, ObjectType.TABLE);
 	}
 	
 	@Test

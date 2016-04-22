@@ -9,6 +9,7 @@ import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -35,9 +36,24 @@ public class TableTruthManagerImpl implements TableTruthManager {
 		switch (type) {
 		case TABLE:
 			// For tables the version of the last change set is used.
-			return tableTruthDao.getLastTableRowChange(tableId).getRowVersion();
+			return getVersionOfLastTableChange(tableId);
 		}
 		throw new IllegalArgumentException("unknown table type: " + type);
+	}
+
+	/**
+	 * Get the version of the last change applied to a table.
+	 * 
+	 * @param tableId
+	 * @return returns -1 if there are no changes applied to the table.
+	 */
+	long getVersionOfLastTableChange(String tableId) {
+		TableRowChange change = tableTruthDao.getLastTableRowChange(tableId);
+		if (change != null) {
+			return change.getRowVersion();
+		} else {
+			return -1;
+		}
 	}
 
 	@Override

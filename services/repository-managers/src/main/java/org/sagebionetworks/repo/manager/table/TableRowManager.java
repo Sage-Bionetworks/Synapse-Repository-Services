@@ -390,14 +390,6 @@ public interface TableRowManager {
 	 * @param objectId
 	 */
 	public Set<String> getFileHandleIdsAssociatedWithTable(String tableId, List<String> toTest) throws TemporarilyUnavailableException;
-	
-	/**
-	 * Get the version of the last change applied to a table.
-	 * 
-	 * @param tableId
-	 * @return returns -1 if there are no changes applied to the table.
-	 */
-	public long getVersionOfLastTableChange(String tableId);
 
 	/**
 	 * Set the schema of the table.

@@ -4,6 +4,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -38,7 +39,7 @@ public class TableViewManagerImpl implements TableViewManager {
 		// Define the schema of this view.
 		columModelManager.bindColumnToObject(userInfo, schema, viewIdString);
 		// trigger an update
-		tableStatusManager.setTableToProcessingAndTriggerUpdate(viewIdString);
+		tableStatusManager.setTableToProcessingAndTriggerUpdate(viewIdString, ObjectType.FILE_VIEW);
 	}
 
 
