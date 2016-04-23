@@ -16,7 +16,7 @@ import org.sagebionetworks.repo.manager.table.TableIndexConnectionFactory;
 import org.sagebionetworks.repo.manager.table.TableIndexConnectionUnavailableException;
 import org.sagebionetworks.repo.manager.table.TableIndexManager;
 import org.sagebionetworks.repo.manager.table.TableRowManager;
-import org.sagebionetworks.repo.manager.table.TableStatusManager;
+import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -54,7 +54,7 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 	@Autowired
 	TableRowManager tableRowManager;
 	@Autowired
-	TableStatusManager tableStatusManager;
+	TableManagerSupport tableStatusManager;
 	@Autowired
 	StackConfiguration configuration;
 	@Autowired

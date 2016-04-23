@@ -8,7 +8,7 @@ import org.sagebionetworks.repo.model.UserInfo;
  * Business logic for materialized table views.
  *
  */
-public interface TableViewManager {
+public interface FileViewManager {
 
 	/**
 	 * Set the schema and scope for a file view.

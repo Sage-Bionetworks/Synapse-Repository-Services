@@ -126,7 +126,7 @@ public class TableRowManagerImplTest {
 	@Mock
 	ColumnModelManager mockColumModelManager;
 	@Mock
-	TableStatusManager mockTableStatusManager;
+	TableManagerSupport mockTableManagerSupport;
 	
 	List<ColumnModel> models;
 	String schemaMD5Hex;
@@ -162,7 +162,7 @@ public class TableRowManagerImplTest {
 		ReflectionTestUtils.setField(manager, "writeReadSemaphoreRunner", mockWriteReadSemaphoreRunner);
 		ReflectionTestUtils.setField(manager, "fileHandleDao", mockFileDao);
 		ReflectionTestUtils.setField(manager, "columModelManager", mockColumModelManager);
-		ReflectionTestUtils.setField(manager, "tableStatusManager", mockTableStatusManager);
+		ReflectionTestUtils.setField(manager, "tableStatusManager", mockTableManagerSupport);
 
 		// Just call the caller.
 		stub(mockWriteReadSemaphoreRunner.tryRunWithReadLock(any(ProgressCallback.class),anyString(), anyInt(), any(ProgressingCallable.class))).toAnswer(new Answer<Object>() {
@@ -308,8 +308,8 @@ public class TableRowManagerImplTest {
 		status.setLastTableChangeEtag("etag");
 		ETAG = "";
 		
-		when(mockTableStatusManager.validateTableIsAvailable(tableId)).thenReturn(status);
-		when(mockTableStatusManager.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
+		when(mockTableManagerSupport.validateTableIsAvailable(tableId)).thenReturn(status);
+		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
 	}
 	
 	@Test (expected=UnauthorizedException.class)
@@ -335,7 +335,7 @@ public class TableRowManagerImplTest {
 		RowReferenceSet results = manager.appendRows(user, tableId, mapper, set, mockProgressCallback);
 		assertEquals(refSet, results);
 		// verify the table status was set
-		verify(mockTableStatusManager, times(1)).setTableToProcessingAndTriggerUpdate(tableId);
+		verify(mockTableManagerSupport, times(1)).setTableToProcessingAndTriggerUpdate(tableId);
 	}
 	
 	@Test
@@ -347,7 +347,7 @@ public class TableRowManagerImplTest {
 		RowReferenceSet results = manager.appendPartialRows(user, tableId, mapper, partialSet, mockProgressCallback);
 		assertEquals(refSet, results);
 		// verify the table status was set
-		verify(mockTableStatusManager, times(1)).setTableToProcessingAndTriggerUpdate(tableId);
+		verify(mockTableManagerSupport, times(1)).setTableToProcessingAndTriggerUpdate(tableId);
 	}
 	
 	/**
@@ -375,7 +375,7 @@ public class TableRowManagerImplTest {
 		} catch (IllegalArgumentException e) {
 			assertEquals("PartialRow.value.key: 'foo' is not a valid column ID for row ID: null", e.getMessage());
 		}
-		verify(mockTableStatusManager, never()).setTableToProcessingAndTriggerUpdate(tableId);
+		verify(mockTableManagerSupport, never()).setTableToProcessingAndTriggerUpdate(tableId);
 	}
 	
 	@Test
@@ -446,9 +446,9 @@ public class TableRowManagerImplTest {
 		assertEquals(refSet, results);
 		assertEquals(refSet.getEtag(), etag);
 		// verify the table status was set
-		verify(mockTableStatusManager, times(1)).setTableToProcessingAndTriggerUpdate(tableId);
+		verify(mockTableManagerSupport, times(1)).setTableToProcessingAndTriggerUpdate(tableId);
 		verify(mockProgressCallback).progressMade(anyLong());
-		verify(mockTableStatusManager).setTableToProcessingAndTriggerUpdate(tableId);
+		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(tableId);
 	}
 	
 	@Test
@@ -498,7 +498,7 @@ public class TableRowManagerImplTest {
 		assertEquals(new Long(1), results.getRows().get(5).getVersionNumber());
 		assertEquals(new Long(2), results.getRows().get(9).getVersionNumber());
 		// verify the table status was set
-		verify(mockTableStatusManager, times(1)).setTableToProcessingAndTriggerUpdate(tableId);
+		verify(mockTableManagerSupport, times(1)).setTableToProcessingAndTriggerUpdate(tableId);
 		verify(mockProgressCallback, times(3)).progressMade(anyLong());
 	}
 
@@ -549,7 +549,7 @@ public class TableRowManagerImplTest {
 		// verify the correct row set was generated
 		verify(mockTruthDao).appendRowSetToTable(eq(user.getId().toString()), eq(tableId), any(ColumnMapper.class), eq(rawSet));
 		// verify the table status was set
-		verify(mockTableStatusManager, times(1)).setTableToProcessingAndTriggerUpdate(tableId);
+		verify(mockTableManagerSupport, times(1)).setTableToProcessingAndTriggerUpdate(tableId);
 	}
 	
 	@Test
@@ -754,7 +754,7 @@ public class TableRowManagerImplTest {
 				results.getFirst().getQueryResults().getEtag());
 		assertEquals(expected, results.getFirst().getQueryResults());
 		// The table status should not be checked for this case
-		verify(mockTableStatusManager, never()).setTableToProcessingAndTriggerUpdate(tableId);
+		verify(mockTableManagerSupport, never()).setTableToProcessingAndTriggerUpdate(tableId);
 	}
 	
 	@Test
@@ -812,7 +812,7 @@ public class TableRowManagerImplTest {
 	public void testQueryIsConsistentTrueNotAvailable() throws Exception {
 		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		status.setState(TableState.PROCESSING);
-		when(mockTableStatusManager.validateTableIsAvailable(tableId)).thenThrow(new TableUnavilableException(status));
+		when(mockTableManagerSupport.validateTableIsAvailable(tableId)).thenThrow(new TableUnavilableException(status));
 		try{
 			manager.query(mockProgressCallbackVoid, user, "select * from " + tableId + " limit 1", null, null, null, true, false, true);
 			fail("should have failed");
@@ -820,7 +820,7 @@ public class TableRowManagerImplTest {
 			// expected
 			assertEquals(status, e.getStatus());
 		}
-		verify(mockTableStatusManager, times(1)).validateTableIsAvailable(tableId);
+		verify(mockTableManagerSupport, times(1)).validateTableIsAvailable(tableId);
 	}
 	
 	/**
@@ -832,7 +832,7 @@ public class TableRowManagerImplTest {
 	public void testQueryIsConsistentTrueNotFound() throws Exception {
 		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		status.setState(TableState.PROCESSING);
-		when(mockTableStatusManager.validateTableIsAvailable(tableId)).thenThrow(new TableUnavilableException(status));
+		when(mockTableManagerSupport.validateTableIsAvailable(tableId)).thenThrow(new TableUnavilableException(status));
 		when(mockTruthDao.getLastTableRowChange(tableId)).thenReturn(new TableRowChange());
 		try{
 			manager.query(mockProgressCallbackVoid, user, "select * from " + tableId + " limit 1", null, null, null, true, false, true);
@@ -841,7 +841,7 @@ public class TableRowManagerImplTest {
 			// expected
 			assertEquals(status, e.getStatus());
 		}
-		verify(mockTableStatusManager, times(1)).validateTableIsAvailable(tableId);
+		verify(mockTableManagerSupport, times(1)).validateTableIsAvailable(tableId);
 	}
 
 	/**
@@ -1154,7 +1154,7 @@ public class TableRowManagerImplTest {
 		// call under test.
 		manager.setTableSchema(user, schema, tableId);
 		verify(mockColumModelManager).bindColumnToObject(user, schema, tableId);
-		verify(mockTableStatusManager).setTableToProcessingAndTriggerUpdate(tableId, ObjectType.TABLE);
+		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(tableId, ObjectType.TABLE);
 	}
 	
 	@Test
@@ -1163,6 +1163,6 @@ public class TableRowManagerImplTest {
 		manager.deleteTable(tableId);
 		verify(mockColumModelManager).unbindAllColumnsAndOwnerFromObject(tableId);
 		verify(mockTruthDao).deleteAllRowDataForTable(tableId);
-		verify(mockTableStatusManager).setTableDeleted(tableId);
+		verify(mockTableManagerSupport).setTableDeleted(tableId);
 	}
 }

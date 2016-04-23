@@ -3,7 +3,7 @@ package org.sagebionetworks.table.worker;
 import org.sagebionetworks.asynchronous.workers.changes.ChangeMessageDrivenRunner;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.table.TableIndexConnectionFactory;
-import org.sagebionetworks.repo.manager.table.TableViewManager;
+import org.sagebionetworks.repo.manager.table.FileViewManager;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
@@ -20,7 +20,7 @@ public class FileViewWorker implements ChangeMessageDrivenRunner {
 	public static final String FILE_VIEW_WORKER = "fileViewWorker";
 
 	@Autowired
-	TableViewManager tableViewManager;
+	FileViewManager tableViewManager;
 	
 	@Autowired
 	TableIndexConnectionFactory connectionFactory;

@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.web.service.metadata;
 
-import org.sagebionetworks.repo.manager.table.TableViewManager;
+import org.sagebionetworks.repo.manager.table.FileViewManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -12,7 +12,7 @@ public class FileViewMetadataProvider implements EntityValidator<FileView> {
 
 	
 	@Autowired
-	TableViewManager tableVeiwManager;
+	FileViewManager tableVeiwManager;
 
 
 	@Override

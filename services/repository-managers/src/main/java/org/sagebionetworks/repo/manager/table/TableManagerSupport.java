@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.manager.table;
 
+import java.util.Set;
+
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.table.TableFailedException;
@@ -7,7 +9,12 @@ import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 
-public interface TableStatusManager {
+/**
+ * Low-level support for all of the table managers. Contains low-level
+ * business logic common to all table managers.
+ *
+ */
+public interface TableManagerSupport {
 
 	/**
 	 * Get the status of a table. This method is guaranteed to return a table's
@@ -115,14 +122,15 @@ public interface TableStatusManager {
 	 * @param tableId
 	 */
 	public TableStatus setTableToProcessingAndTriggerUpdate(String tableId);
-	
+
 	/**
 	 * 
 	 * @param tableId
 	 * @param tableType
 	 * @return
 	 */
-	public TableStatus setTableToProcessingAndTriggerUpdate(String tableId, ObjectType tableType);
+	public TableStatus setTableToProcessingAndTriggerUpdate(String tableId,
+			ObjectType tableType);
 
 	/**
 	 * Set the table to be deleted.
@@ -146,5 +154,65 @@ public interface TableStatusManager {
 	public TableStatus validateTableIsAvailable(String tableId)
 			throws NotFoundException, TableUnavilableException,
 			TableFailedException;
+	
+	
+	/**
+	 * The MD5 hex of a table's schema.
+	 * 
+	 * @param tableId
+	 * @return
+	 */
+	String getSchemaMD5Hex(String tableId);
+
+	/**
+	 * Get the version of the given table. This is can be different for each
+	 * table type. The value is used to indicate the current state of a table's
+	 * truth.
+	 * 
+	 * @param tableId
+	 * @return
+	 */
+	long getTableVersion(String tableId);
+
+	/**
+	 * Is the given table available.
+	 * 
+	 * @param tableId
+	 * @return
+	 */
+	boolean isTableAvailable(String tableId);
+
+	/**
+	 * Lookup the object type for this table.
+	 * 
+	 * @param tableId
+	 * @return
+	 */
+	ObjectType getTableType(String tableId);
+	
+	/**
+	 * Calculate a Cyclic Redundancy Check (CRC) of a TableView.
+	 * The CRC is calculated as SUM(CRC23(CONCAT(ID, '-', ETAG)))
+	 * given the ID and ETAG of each entity within the view's scope.
+	 * 
+	 * Warning this call is not cheap.
+	 * 
+	 * @param table
+	 * @return
+	 */
+	public Long calculateFileViewCRC32(String table);
+	
+	/**
+	 * Get the set of container ids (Projects and Folders) for a view's scope.
+	 * The resulting set will include the scope containers plus all folders
+	 * contained within each scope.
+	 * 
+	 * All FileEntities within the the given view will have a parentId from the
+	 * returned set.
+	 * 
+	 * @param viewId
+	 * @return
+	 */
+	public Set<Long> getAllContainerIdsForViewScope(String viewId);
 
 }

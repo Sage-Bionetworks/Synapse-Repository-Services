@@ -6,7 +6,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.sagebionetworks.repo.manager.table.TableViewManager;
+import org.sagebionetworks.repo.manager.table.FileViewManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.table.FileView;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -16,7 +16,7 @@ import com.google.common.collect.Lists;
 public class FileViewMetadataProviderTest {
 	
 	@Mock
-	TableViewManager tableVeiwManager;
+	FileViewManager tableVeiwManager;
 
 	FileViewMetadataProvider provider;
 	

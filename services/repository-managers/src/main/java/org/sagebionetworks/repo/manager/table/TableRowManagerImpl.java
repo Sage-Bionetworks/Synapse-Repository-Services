@@ -125,7 +125,7 @@ public class TableRowManagerImpl implements TableRowManager {
 	@Autowired
 	ColumnModelManager columModelManager;
 	@Autowired
-	TableStatusManager tableStatusManager;
+	TableManagerSupport tableStatusManager;
 	
 	/**
 	 * Injected via spring

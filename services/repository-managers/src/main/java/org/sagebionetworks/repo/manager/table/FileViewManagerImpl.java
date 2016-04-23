@@ -11,7 +11,7 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.springframework.beans.factory.annotation.Autowired;
 
-public class TableViewManagerImpl implements TableViewManager {
+public class FileViewManagerImpl implements FileViewManager {
 	
 
 	@Autowired
@@ -19,7 +19,7 @@ public class TableViewManagerImpl implements TableViewManager {
 	@Autowired
 	ColumnModelManager columModelManager;
 	@Autowired
-	TableStatusManager tableStatusManager;
+	TableManagerSupport tableStatusManager;
 	
 	/*
 	 * (non-Javadoc)
@@ -39,7 +39,7 @@ public class TableViewManagerImpl implements TableViewManager {
 		// Define the schema of this view.
 		columModelManager.bindColumnToObject(userInfo, schema, viewIdString);
 		// trigger an update
-		tableStatusManager.setTableToProcessingAndTriggerUpdate(viewIdString, ObjectType.FILE_VIEW);
+		tableStatusManager.setTableToProcessingAndTriggerUpdate(viewIdString);
 	}
 
 

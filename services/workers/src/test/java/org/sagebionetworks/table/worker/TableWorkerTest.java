@@ -32,7 +32,7 @@ import org.sagebionetworks.repo.manager.table.TableIndexConnectionFactory;
 import org.sagebionetworks.repo.manager.table.TableIndexConnectionUnavailableException;
 import org.sagebionetworks.repo.manager.table.TableIndexManager;
 import org.sagebionetworks.repo.manager.table.TableRowManager;
-import org.sagebionetworks.repo.manager.table.TableStatusManager;
+import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
@@ -64,7 +64,7 @@ public class TableWorkerTest {
 	@Mock
 	StackConfiguration mockConfiguration;
 	@Mock
-	TableStatusManager mockTableStatusManager;
+	TableManagerSupport mockTableStatusManager;
 
 	TableWorker worker;
 	ChangeMessage one;

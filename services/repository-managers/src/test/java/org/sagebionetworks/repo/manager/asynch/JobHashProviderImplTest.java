@@ -11,7 +11,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.manager.table.TableRowManagerImpl;
-import org.sagebionetworks.repo.manager.table.TableStatusManager;
+import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
@@ -22,13 +22,13 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 public class JobHashProviderImplTest {
 	
-	TableStatusManager mockTableStatusManager;
+	TableManagerSupport mockTableStatusManager;
 	JobHashProvider provider;
 	TableStatus tableStatus;
 	
 	@Before
 	public void before() throws NotFoundException, IOException{
-		mockTableStatusManager = Mockito.mock(TableStatusManager.class);
+		mockTableStatusManager = Mockito.mock(TableManagerSupport.class);
 		provider = new JobHashProviderImpl();
 		ReflectionTestUtils.setField(provider, "tableStatusManager", mockTableStatusManager);
 		

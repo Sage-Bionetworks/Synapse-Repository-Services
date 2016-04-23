@@ -4,7 +4,7 @@ import java.io.UnsupportedEncodingException;
 
 import org.apache.commons.codec.binary.Hex;
 import org.sagebionetworks.repo.manager.table.TableRowManagerImpl;
-import org.sagebionetworks.repo.manager.table.TableStatusManager;
+import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.model.asynch.CacheableRequestBody;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.Query;
@@ -23,7 +23,7 @@ public class JobHashProviderImpl implements JobHashProvider {
 	
 	private static final String NULL = "NULL";
 	@Autowired
-	TableStatusManager tableStatusManager;
+	TableManagerSupport tableStatusManager;
 
 	@Override
 	public String getJobHash(CacheableRequestBody body) {

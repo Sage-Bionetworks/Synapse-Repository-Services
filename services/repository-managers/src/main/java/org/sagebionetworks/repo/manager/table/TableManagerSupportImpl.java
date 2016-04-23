@@ -1,22 +1,35 @@
 package org.sagebionetworks.repo.manager.table;
 
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
+import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
+import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
+import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
+import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.TableFailedException;
+import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
+import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.TimeoutUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
-public class TableStatusManagerImpl implements TableStatusManager {
+public class TableManagerSupportImpl implements TableManagerSupport {
 	
 	public static final long TABLE_PROCESSING_TIMEOUT_MS = 1000*60*10; // 10 mins
 
@@ -29,7 +42,13 @@ public class TableStatusManagerImpl implements TableStatusManager {
 	@Autowired
 	ConnectionFactory tableConnectionFactory;
 	@Autowired
-	TableTruthManager tableTruthManager;
+	ColumnModelDAO columnModelDao;
+	@Autowired
+	NodeDAO nodeDao;
+	@Autowired
+	TableRowTruthDAO tableTruthDao;
+	@Autowired
+	ViewScopeDao viewScopeDao;
 	
 	/*
 	 * (non-Javadoc)
@@ -62,7 +81,7 @@ public class TableStatusManagerImpl implements TableStatusManager {
 			
 		} catch (NotFoundException e) {
 			// make sure the table exists
-			if (!tableTruthManager.isTableAvailable(tableId)) {
+			if (!isTableAvailable(tableId)) {
 				throw new NotFoundException("Table " + tableId + " not found");
 			}
 			return setTableToProcessingAndTriggerUpdate(tableId);
@@ -77,7 +96,7 @@ public class TableStatusManagerImpl implements TableStatusManager {
 	@Override
 	public TableStatus setTableToProcessingAndTriggerUpdate(String tableId) {
 		// lookup the table type.
-		ObjectType tableType = tableTruthManager.getTableType(tableId);
+		ObjectType tableType = getTableType(tableId);
 		return setTableToProcessingAndTriggerUpdate(tableId, tableType);
 	}
 	/*
@@ -140,9 +159,9 @@ public class TableStatusManagerImpl implements TableStatusManager {
 	@Override
 	public boolean isIndexSynchronizedWithTruth(String tableId) {
 		// MD5 of the table's schema
-		String truthSchemaMD5Hex = tableTruthManager.getSchemaMD5Hex(tableId);
+		String truthSchemaMD5Hex = getSchemaMD5Hex(tableId);
 		// get the truth version
-		long truthLastVersion = tableTruthManager.getTableVersion(tableId);
+		long truthLastVersion = getTableVersion(tableId);
 		// compare the truth with the index.
 		return this.tableConnectionFactory.getConnection(tableId).doesIndexStateMatch(tableId, truthLastVersion, truthSchemaMD5Hex);
 	}
@@ -154,7 +173,7 @@ public class TableStatusManagerImpl implements TableStatusManager {
 	@Override
 	public boolean isIndexWorkRequired(String tableId) {
 		// Does the table exist and not in the trash?
-		if(!tableTruthManager.isTableAvailable(tableId)){
+		if(!isTableAvailable(tableId)){
 			return false;
 		}
 		// work is needed if the index is out-of-sych.
@@ -173,7 +192,7 @@ public class TableStatusManagerImpl implements TableStatusManager {
 	@WriteTransactionReadCommitted
 	@Override
 	public void setTableDeleted(String deletedId) {
-		ObjectType tableType = tableTruthManager.getTableType(deletedId);
+		ObjectType tableType = getTableType(deletedId);
 		transactionalMessenger.sendMessageAfterCommit(deletedId, tableType, ChangeType.DELETE);
 	}
 
@@ -197,6 +216,107 @@ public class TableStatusManagerImpl implements TableStatusManager {
 			// table in this exception.
 			throw new TableFailedException(status);
 		}
+	}
+	
+	/*
+	 * (non-Javadoc)
+	 * @see org.sagebionetworks.repo.manager.table.TableManagerSupport#getSchemaMD5Hex(java.lang.String)
+	 */
+	@Override
+	public String getSchemaMD5Hex(String tableId) {
+		List<ColumnModel> truthSchema = columnModelDao
+				.getColumnModelsForObject(tableId);
+		return TableModelUtils.createSchemaMD5HexCM(truthSchema);
+	}
+
+	/**
+	 * Get the version of the last change applied to a table entity.
+	 * 
+	 * @param tableId
+	 * @return returns -1 if there are no changes applied to the table.
+	 */
+	long getVersionOfLastTableEntityChange(String tableId) {
+		TableRowChange change = tableTruthDao.getLastTableRowChange(tableId);
+		if (change != null) {
+			return change.getRowVersion();
+		} else {
+			return -1;
+		}
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see org.sagebionetworks.repo.manager.table.TableManagerSupport#isTableAvailable(java.lang.String)
+	 */
+	@Override
+	public boolean isTableAvailable(String tableId) {
+		return nodeDao.isNodeAvailable(KeyFactory.stringToKey(tableId));
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see org.sagebionetworks.repo.manager.table.TableManagerSupport#getTableType(java.lang.String)
+	 */
+	@Override
+	public ObjectType getTableType(String tableId) {
+		EntityType type = nodeDao.getNodeTypeById(tableId);
+		switch (type) {
+		case table:
+			return ObjectType.TABLE;
+		case fileview:
+			return ObjectType.FILE_VIEW;
+		}
+		throw new IllegalArgumentException("unknown table type: " + type);
+	}
+	
+	/*
+	 * (non-Javadoc)
+	 * @see org.sagebionetworks.repo.manager.table.TableManagerSupport#calculateFileViewCRC32(java.lang.String)
+	 */
+	@Override
+	public Long calculateFileViewCRC32(String tableId) {
+		// Start with all container IDs that define the view's scope
+		Set<Long> viewContainers = getAllContainerIdsForViewScope(tableId);
+		// Calculate the crc for the containers.
+		return nodeDao.calculateCRCForAllFilesWithinContainers(viewContainers);
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see org.sagebionetworks.repo.manager.table.TableViewTruthManager#getAllContainerIdsForViewScope(java.lang.String)
+	 */
+	@Override
+	public Set<Long> getAllContainerIdsForViewScope(String viewIdString) {
+		ValidateArgument.required(viewIdString, "viewId");
+		Long viewId = KeyFactory.stringToKey(viewIdString);
+		// Lookup the scope for this view.
+		Set<Long> scope = viewScopeDao.getViewScope(viewId);
+		// Add all containers from the given scope
+		Set<Long> allContainersInScope = new HashSet<Long>(scope);
+		for(Long container: scope){
+			List<Long> containers = nodeDao.getAllContainerIds(container);
+			allContainersInScope.addAll(containers);
+		}
+		return allContainersInScope;
+	}
+	
+	/*
+	 * (non-Javadoc)
+	 * @see org.sagebionetworks.repo.manager.table.TableManagerSupport#getTableVersion(java.lang.String)
+	 */
+	@Override
+	public long getTableVersion(String tableId) {
+		// Determine the type of able
+		ObjectType type = getTableType(tableId);
+		switch (type) {
+		case TABLE:
+			// For TableEntity the version of the last change set is used.
+			return getVersionOfLastTableEntityChange(tableId);
+		case FILE_VIEW:
+			// For FileViews the CRC of all files in the view is used.
+			return calculateFileViewCRC32(tableId);
+		}
+		throw new IllegalArgumentException("unknown table type: " + type);
 	}
 
 }

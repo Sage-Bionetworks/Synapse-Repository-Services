@@ -10,7 +10,10 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.io.IOException;
 import java.util.Date;
+import java.util.List;
+import java.util.Set;
 
 import org.junit.Assume;
 import org.junit.Before;
@@ -18,21 +21,33 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
+import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
+import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
+import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.TableFailedException;
+import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
+import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.TimeoutUtils;
 import org.springframework.test.util.ReflectionTestUtils;
 
-public class TableStatusManagerTest {
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+
+public class TableManagerSupportTest {
 
 	@Mock
 	TableStatusDAO mockTableStatusDAO;
@@ -45,31 +60,42 @@ public class TableStatusManagerTest {
 	@Mock
 	TransactionalMessenger mockTransactionalMessenger;
 	@Mock
-	TableTruthManager mockTableTruthManager;
+	ColumnModelDAO mockColumnModelDao;
+	@Mock
+	NodeDAO mockNodeDao;
+	@Mock
+	TableRowTruthDAO mockTableTruthDao;
+	@Mock
+	ViewScopeDao mockViewScopeDao;
 	
 	String schemaMD5Hex;
 	
-	TableStatusManagerImpl manager;
+	TableManagerSupportImpl manager;
 	String tableId;
+	Long tableIdLong;
 	TableStatus status;
 	String etag;
+	Set<Long> scope;
+	Set<Long> containersInScope;
 	
 	@Before
 	public void before() throws Exception {
 		Assume.assumeTrue(StackConfiguration.singleton().getTableEnabled());
 		MockitoAnnotations.initMocks(this);
 		
-		manager = new TableStatusManagerImpl();
+		manager = new TableManagerSupportImpl();
 		ReflectionTestUtils.setField(manager, "tableStatusDAO", mockTableStatusDAO);
 		ReflectionTestUtils.setField(manager, "tableConnectionFactory", mockTableConnectionFactory);
 		ReflectionTestUtils.setField(manager, "timeoutUtils", mockTimeoutUtils);
 		ReflectionTestUtils.setField(manager, "transactionalMessenger", mockTransactionalMessenger);
-		ReflectionTestUtils.setField(manager, "tableTruthManager", mockTableTruthManager);
+		ReflectionTestUtils.setField(manager, "columnModelDao",
+				mockColumnModelDao);
+		ReflectionTestUtils.setField(manager, "nodeDao", mockNodeDao);
+		ReflectionTestUtils.setField(manager, "tableTruthDao", mockTableTruthDao);
+		ReflectionTestUtils.setField(manager, "viewScopeDao", mockViewScopeDao);
 		
-		schemaMD5Hex = "md5Hex";
 		tableId = "syn123";
-		
-		when(mockTableTruthManager.getSchemaMD5Hex(tableId)).thenReturn(schemaMD5Hex);
+		tableIdLong = KeyFactory.stringToKey(tableId);
 		
 		when(mockTableConnectionFactory.getConnection(tableId)).thenReturn(mockTableIndexDAO);
 		
@@ -81,13 +107,25 @@ public class TableStatusManagerTest {
 		status.setChangedOn(new Date(123));
 		status.setResetToken(etag);
 		
-		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
-		
-		when(mockTableTruthManager.isTableAvailable(anyString())).thenReturn(true);
-		
-		when(mockTableTruthManager.getTableType(tableId)).thenReturn(ObjectType.TABLE);
-		
+		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);		
 		when(mockTableStatusDAO.resetTableStatusToProcessing(tableId)).thenReturn(etag);
+		
+		ColumnModel cm = new ColumnModel();
+		cm.setId("444");
+		List<ColumnModel> columns = Lists.newArrayList(cm);
+		when(mockColumnModelDao.getColumnModelsForObject(tableId)).thenReturn(
+				columns);
+		schemaMD5Hex = TableModelUtils.createSchemaMD5HexCM(columns);
+
+		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.table);
+		
+		// setup the view scope
+		Set<Long> scope = Sets.newHashSet(222L,333L);
+		when(mockViewScopeDao.getViewScope(tableIdLong)).thenReturn(scope);
+		when(mockNodeDao.getAllContainerIds(222L)).thenReturn(Lists.newArrayList(20L,21L));
+		when(mockNodeDao.getAllContainerIds(333L)).thenReturn(Lists.newArrayList(30L,31L));
+		
+		containersInScope = Sets.newHashSet(222L,333L,20L,21L,30L,31L);
 	}
 	
 	
@@ -106,7 +144,7 @@ public class TableStatusManagerTest {
 		// not expired
 		when(mockTimeoutUtils.hasExpired(anyLong(), anyLong())).thenReturn(false);
 		// table exists
-		when(mockTableTruthManager.isTableAvailable(tableId)).thenReturn(true);
+		when(mockNodeDao.isNodeAvailable(tableIdLong)).thenReturn(true);
 		// call under test
 		TableStatus result = manager.getTableStatusOrCreateIfNotExists(tableId);
 		assertNotNull(result);
@@ -129,7 +167,7 @@ public class TableStatusManagerTest {
 		// not expired
 		when(mockTimeoutUtils.hasExpired(anyLong(), anyLong())).thenReturn(false);
 		// table exists
-		when(mockTableTruthManager.isTableAvailable(tableId)).thenReturn(true);
+		when(mockNodeDao.isNodeAvailable(tableIdLong)).thenReturn(true);
 		// call under test
 		TableStatus result = manager.getTableStatusOrCreateIfNotExists(tableId);
 		assertNotNull(result);
@@ -154,12 +192,12 @@ public class TableStatusManagerTest {
 		// not expired
 		when(mockTimeoutUtils.hasExpired(anyLong(), anyLong())).thenReturn(false);
 		// table exists
-		when(mockTableTruthManager.isTableAvailable(tableId)).thenReturn(true);
+		when(mockNodeDao.isNodeAvailable(tableIdLong)).thenReturn(true);
 		// call under test
 		TableStatus result = manager.getTableStatusOrCreateIfNotExists(tableId);
 		assertNotNull(result);
 		verify(mockTableStatusDAO).resetTableStatusToProcessing(tableId);
-		verify(mockTableTruthManager).isTableAvailable(tableId);
+		verify(mockNodeDao).isNodeAvailable(tableIdLong);
 		verify(mockTransactionalMessenger).sendMessageAfterCommit(tableId, ObjectType.TABLE, etag, ChangeType.UPDATE);
 	}
 	
@@ -179,7 +217,7 @@ public class TableStatusManagerTest {
 		// not expired
 		when(mockTimeoutUtils.hasExpired(anyLong(), anyLong())).thenReturn(false);
 		// table does not exists
-		when(mockTableTruthManager.isTableAvailable(tableId)).thenReturn(false);
+		when(mockNodeDao.isNodeAvailable(tableIdLong)).thenReturn(false);
 		// call under test
 		manager.getTableStatusOrCreateIfNotExists(tableId);
 	}
@@ -199,7 +237,7 @@ public class TableStatusManagerTest {
 		// not expired
 		when(mockTimeoutUtils.hasExpired(anyLong(), anyLong())).thenReturn(false);
 		// table exists
-		when(mockTableTruthManager.isTableAvailable(tableId)).thenReturn(true);
+		when(mockNodeDao.isNodeAvailable(tableIdLong)).thenReturn(true);
 		// call under test
 		TableStatus result = manager.getTableStatusOrCreateIfNotExists(tableId);
 		assertNotNull(result);
@@ -222,7 +260,7 @@ public class TableStatusManagerTest {
 		//expired
 		when(mockTimeoutUtils.hasExpired(anyLong(), anyLong())).thenReturn(true);
 		// table exists
-		when(mockTableTruthManager.isTableAvailable(tableId)).thenReturn(true);
+		when(mockNodeDao.isNodeAvailable(tableIdLong)).thenReturn(true);
 		// call under test
 		TableStatus result = manager.getTableStatusOrCreateIfNotExists(tableId);
 		assertNotNull(result);
@@ -244,9 +282,12 @@ public class TableStatusManagerTest {
 	@Test
 	public void testIsIndexSynchronizedWithTruth(){
 		long currentVersion = 123L;
-		// setup a mismatch
+
+		TableRowChange lastChange = new TableRowChange();
+		lastChange.setRowVersion(currentVersion);
+		when(mockTableTruthDao.getLastTableRowChange(tableId)).thenReturn(lastChange);
+		// setup a match
 		when(mockTableIndexDAO.doesIndexStateMatch(tableId, currentVersion, schemaMD5Hex)).thenReturn(true);
-		when(mockTableTruthManager.getTableVersion(tableId)).thenReturn(currentVersion);
 		
 		assertTrue(manager.isIndexSynchronizedWithTruth(tableId));
 	}
@@ -258,7 +299,7 @@ public class TableStatusManagerTest {
 	@Test
 	public void testIsIndexWorkRequiredFalse(){
 		// node exists
-		when(mockTableTruthManager.isTableAvailable(tableId)).thenReturn(true);
+		when(mockNodeDao.isNodeAvailable(tableIdLong)).thenReturn(true);
 		// synchronized
 		when(mockTableIndexDAO.doesIndexStateMatch(anyString(), anyLong(), anyString())).thenReturn(true);
 		// available
@@ -276,7 +317,7 @@ public class TableStatusManagerTest {
 	@Test
 	public void testIsIndexWorkRequiredNodeMissing(){
 		// node is missing
-		when(mockTableTruthManager.isTableAvailable(tableId)).thenReturn(false);
+		when(mockNodeDao.isNodeAvailable(tableIdLong)).thenReturn(false);
 		// not synchronized
 		when(mockTableIndexDAO.doesIndexStateMatch(anyString(), anyLong(), anyString())).thenReturn(false);
 		// failed
@@ -295,7 +336,7 @@ public class TableStatusManagerTest {
 	@Test
 	public void testIsIndexWorkRequiredNotSynched(){
 		// node exists
-		when(mockTableTruthManager.isTableAvailable(tableId)).thenReturn(true);
+		when(mockNodeDao.isNodeAvailable(tableIdLong)).thenReturn(true);
 		// not synchronized
 		when(mockTableIndexDAO.doesIndexStateMatch(anyString(), anyLong(), anyString())).thenReturn(false);
 		// available
@@ -314,7 +355,7 @@ public class TableStatusManagerTest {
 	@Test
 	public void testIsIndexWorkRequiredStatusProcessing(){
 		// node exists
-		when(mockTableTruthManager.isTableAvailable(tableId)).thenReturn(true);
+		when(mockNodeDao.isNodeAvailable(tableIdLong)).thenReturn(true);
 		// synchronized
 		when(mockTableIndexDAO.doesIndexStateMatch(anyString(), anyLong(), anyString())).thenReturn(true);
 		// available
@@ -350,5 +391,100 @@ public class TableStatusManagerTest {
 		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
 		// call under test
 		manager.validateTableIsAvailable(tableId);
+	}
+	
+	@Test
+	public void testGetSchemaMD5Hex() {
+		String md5 = manager.getSchemaMD5Hex(tableId);
+		assertEquals(schemaMD5Hex, md5);
+	}
+
+	@Test
+	public void testGetTableTypeTable() {
+		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.table);
+		// call under test
+		ObjectType type = manager.getTableType(tableId);
+		assertEquals(ObjectType.TABLE, type);
+	}
+
+	@Test
+	public void testGetTableTypeFileView() {
+		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(
+				EntityType.fileview);
+		// call under test
+		ObjectType type = manager.getTableType(tableId);
+		assertEquals(ObjectType.FILE_VIEW, type);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testGetTableTypeUnknown() {
+		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(
+				EntityType.project);
+		// call under test
+		ObjectType type = manager.getTableType(tableId);
+		assertEquals(ObjectType.FILE_VIEW, type);
+	}
+	
+	@Test
+	public void testGetVersionOfLastTableChangeNull() throws NotFoundException, IOException{
+		// no last version
+		when(mockTableTruthDao.getLastTableRowChange(tableId)).thenReturn(null);
+		//call under test
+		assertEquals(-1, manager.getVersionOfLastTableEntityChange(tableId));
+	}
+	
+	@Test
+	public void testGetVersionOfLastTableChange() throws NotFoundException, IOException{
+		long currentVersion = 123L;
+		TableRowChange lastChange = new TableRowChange();
+		lastChange.setRowVersion(currentVersion);
+		when(mockTableTruthDao.getLastTableRowChange(tableId)).thenReturn(lastChange);
+		// call under test
+		assertEquals(currentVersion, manager.getVersionOfLastTableEntityChange(tableId));
+	}
+	
+	@Test
+	public void testGetAllContainerIdsForViewScope(){
+		// call under test.
+		Set<Long> containers = manager.getAllContainerIdsForViewScope(tableId);
+		assertEquals(containersInScope, containers);
+	}
+	
+	@Test
+	public void calculateFileViewCRC32(){
+		Long crc32 = 45678L;
+		when(mockNodeDao.calculateCRCForAllFilesWithinContainers(containersInScope)).thenReturn(crc32);
+		
+		Long crcResult = manager.calculateFileViewCRC32(tableId);
+		assertEquals(crc32, crcResult);
+	}
+	
+	@Test
+	public void testGetTableVersionForTableEntity() {
+		TableRowChange lastChange = new TableRowChange();
+		lastChange.setRowVersion(999L);
+		when(mockTableTruthDao.getLastTableRowChange(tableId)).thenReturn(
+				lastChange);
+		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.table);
+		// call under test
+		Long version = manager.getTableVersion(tableId);
+		assertEquals(lastChange.getRowVersion(), version);
+	}
+	
+	@Test
+	public void testGetTableVersionForFileView() {
+		Long crc32 = 45678L;
+		when(mockNodeDao.calculateCRCForAllFilesWithinContainers(containersInScope)).thenReturn(crc32);
+		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.fileview);
+		// call under test
+		Long version = manager.getTableVersion(tableId);
+		assertEquals(crc32, version);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetTableVersionForUnknown() {
+		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.folder);
+		// call under test
+		manager.getTableVersion(tableId);
 	}
 }
