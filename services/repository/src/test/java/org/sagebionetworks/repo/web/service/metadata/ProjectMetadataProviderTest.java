@@ -76,7 +76,7 @@ public class ProjectMetadataProviderTest {
 
 	@Test
 	public void testEntityCreated() {
-		provider.entityCreated(userInfo, projectId);
+		provider.entityCreated(userInfo, project);
 		verify(mockForumManager).createForum(userInfo, projectId);
 		Topic topic = new Topic();
 		topic.setObjectId(forumId);

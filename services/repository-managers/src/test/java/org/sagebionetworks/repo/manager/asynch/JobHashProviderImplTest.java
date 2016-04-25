@@ -10,8 +10,8 @@ import java.io.IOException;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.sagebionetworks.repo.manager.table.TableRowManager;
 import org.sagebionetworks.repo.manager.table.TableRowManagerImpl;
+import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
@@ -22,20 +22,20 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 public class JobHashProviderImplTest {
 	
-	TableRowManager mockTableRowManager;
+	TableManagerSupport mockTableStatusManager;
 	JobHashProvider provider;
 	TableStatus tableStatus;
 	
 	@Before
 	public void before() throws NotFoundException, IOException{
-		mockTableRowManager = Mockito.mock(TableRowManager.class);
+		mockTableStatusManager = Mockito.mock(TableManagerSupport.class);
 		provider = new JobHashProviderImpl();
-		ReflectionTestUtils.setField(provider, "tableRowManager", mockTableRowManager);
+		ReflectionTestUtils.setField(provider, "tableStatusManager", mockTableStatusManager);
 		
 		tableStatus = new TableStatus();
 		tableStatus.setLastTableChangeEtag("someEtag");
 		tableStatus.setResetToken("someResetToken");
-		when(mockTableRowManager.getTableStatusOrCreateIfNotExists(anyString())).thenReturn(tableStatus);
+		when(mockTableStatusManager.getTableStatusOrCreateIfNotExists(anyString())).thenReturn(tableStatus);
 	}
 	
 	@Test
@@ -86,7 +86,7 @@ public class JobHashProviderImplTest {
 		
 		// an empty table will have a null lastTableChangeEtag
 		tableStatus.setLastTableChangeEtag(null);
-		when(mockTableRowManager.getTableStatusOrCreateIfNotExists(body1.getEntityId())).thenReturn(tableStatus);
+		when(mockTableStatusManager.getTableStatusOrCreateIfNotExists(body1.getEntityId())).thenReturn(tableStatus);
 		// call under test
 		String etag = provider.getJobHash(body1);
 		assertEquals("172bcd947ddd904155e4cc35e06a410d", etag);

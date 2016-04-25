@@ -1,68 +1,95 @@
 package org.sagebionetworks.repo.web;
 
+import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.*;
+
+import java.util.ArrayList;
+import java.util.List;
+
 import javax.servlet.http.HttpServletRequest;
 
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
-import static org.junit.Assert.*;
-import org.mockito.Mockito;
-
-import static org.mockito.Mockito.*;
-
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.manager.EntityManager;
-import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.NodeManager.FileHandleReason;
+import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
+import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.FileEntity;
+import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.service.EntityService;
 import org.sagebionetworks.repo.web.service.EntityServiceImpl;
+import org.sagebionetworks.repo.web.service.metadata.AllTypesValidator;
+import org.sagebionetworks.repo.web.service.metadata.EntityProvider;
+import org.sagebionetworks.repo.web.service.metadata.MetadataProviderFactory;
+import org.sagebionetworks.repo.web.service.metadata.TypeSpecificCreateProvider;
+import org.sagebionetworks.repo.web.service.metadata.TypeSpecificUpdateProvider;
+import org.springframework.test.util.ReflectionTestUtils;
 
 public class EntityServiceImplUnitTest {
 	
+	@Mock
 	EntityService entityService;
-	EntityManager mockEntityManager = null;
-	HttpServletRequest mockRequest = null;
-	UserManager mockUserManager = null;
-	FileHandleManager mockFileHandleManager = null;
+	@Mock
+	EntityManager mockEntityManager;
+	@Mock
+	HttpServletRequest mockRequest;
+	@Mock
+	UserManager mockUserManager;
+	@Mock
+	FileHandleManager mockFileHandleManager;
+	@Mock
+	IdGenerator mockIdGenerator;
+	@Mock
+	AllTypesValidator mockAllTypesValidator;
+	@Mock
+	MetadataProviderFactory mockMetadataProviderFactory;
+	@Mock
+	TypeSpecificUpdateProvider<Project> mockProjectUpdateProvider;
+	@Mock
+	TypeSpecificCreateProvider<Project> mockProjectCreateProvider;
+	
+	List<EntityProvider<? extends Entity>> projectProviders;
+	
 	static final Long PRINCIPAL_ID = 101L;
 	UserInfo userInfo = null;
 	
+	Project project;
+	
 	@Before
 	public void before(){
-		mockEntityManager = Mockito.mock(EntityManager.class);
-		mockUserManager = Mockito.mock(UserManager.class);
-		mockFileHandleManager = Mockito.mock(FileHandleManager.class);
-		mockRequest = Mockito.mock(HttpServletRequest.class);
-		entityService = new EntityServiceImpl(mockUserManager, mockEntityManager, mockFileHandleManager);
+		MockitoAnnotations.initMocks(this);
+		
+		projectProviders = new ArrayList<EntityProvider<?>>();
+		projectProviders.add(mockProjectUpdateProvider);
+		projectProviders.add(mockProjectCreateProvider);
+		
+		entityService = new EntityServiceImpl();
+		
+		ReflectionTestUtils.setField(entityService, "entityManager", mockEntityManager);
+		ReflectionTestUtils.setField(entityService, "userManager", mockUserManager);
+		ReflectionTestUtils.setField(entityService, "fileHandleManager", mockFileHandleManager);
+		ReflectionTestUtils.setField(entityService, "metadataProviderFactory", mockMetadataProviderFactory);
+		ReflectionTestUtils.setField(entityService, "idGenerator", mockIdGenerator);
+		ReflectionTestUtils.setField(entityService, "allTypesValidator", mockAllTypesValidator);
 		
 		userInfo = new UserInfo(false);
 		userInfo.setId(PRINCIPAL_ID);
 		when(mockUserManager.getUserInfo(PRINCIPAL_ID)).thenReturn(userInfo);
-	}
-	
-	//TODO can this test be deleted or should it be replaced with an equivalent test?
-	@Ignore
-	@Test
-	public void testAggregateUpdate() throws Exception{
-	/*  
-		List<String> idList = new ArrayList<String>();
-		idList.add("201");
-//		idList.add("301");
-//		idList.add("401");
-		String userId = "someUser";
-		String parentId = "0";
-		Collection<Location> toUpdate = new ArrayList<Location>();
-		when(mockEntityManager.aggregateEntityUpdate((UserInfo)any(),eq(parentId), eq(toUpdate))).thenReturn(idList);
-		Location existingLocation = new Location();
-		existingLocation.setId("201");
-		existingLocation.setMd5sum("9ca4d9623b655ba970e7b8173066b58f");
-		existingLocation.setPath("somePath");
-		when(mockEntityManager.getEntity((UserInfo)any(), eq("201"), eq(Location.class))).thenReturn(existingLocation);
-		// Now make the call
-		controller.aggregateEntityUpdate(userId, parentId, toUpdate, mockRequest);
-    */
+		
+		when(mockMetadataProviderFactory.getMetadataProvider(EntityType.project)).thenReturn(projectProviders);
+		
+		project = new Project();
+		project.setId("syn123");
+		when(mockEntityManager.getEntity(any(UserInfo.class), anyString(), any(Class.class))).thenReturn(project);
+		
+		when(mockRequest.getServletPath()).thenReturn("path");
+
 	}
 	
 	@Test
@@ -99,6 +126,23 @@ public class EntityServiceImplUnitTest {
 		String url = "http://foo.bar";
 		when(mockFileHandleManager.getRedirectURLForFileHandle(fileHandleId, "foo.txt")).thenReturn(url);
 		assertEquals(url, entityService.getFileRedirectURLForVersion(PRINCIPAL_ID, entityId, version));
+	}
+	
+	@Test
+	public void testFireCreate(){
+		// Call under test.
+		entityService.createEntity(userInfo.getId(), project, null, mockRequest);
+		verify(mockProjectCreateProvider).entityCreated(userInfo, project);
+		verify(mockProjectUpdateProvider, never()).entityUpdated(userInfo, project);
+	}
+	
+	@Test
+	public void testFireUpdate(){
+		boolean newVersion = true;
+		// Call under test.
+		entityService.updateEntity(userInfo.getId(), project, newVersion, null, mockRequest);
+		verify(mockProjectCreateProvider, never()).entityCreated(userInfo, project);
+		verify(mockProjectUpdateProvider).entityUpdated(userInfo, project);
 	}
 	
 }

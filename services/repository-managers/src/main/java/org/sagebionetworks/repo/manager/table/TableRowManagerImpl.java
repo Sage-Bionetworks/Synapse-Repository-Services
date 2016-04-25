@@ -24,9 +24,7 @@ import org.sagebionetworks.manager.util.Validate;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -37,11 +35,7 @@ import org.sagebionetworks.repo.model.dao.table.RowAccessor;
 import org.sagebionetworks.repo.model.dao.table.RowAndHeaderHandler;
 import org.sagebionetworks.repo.model.dao.table.RowSetAccessor;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
-import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.exception.ReadOnlyException;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -64,7 +58,6 @@ import org.sagebionetworks.repo.model.table.SelectColumnAndModel;
 import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableRowChange;
-import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
@@ -87,7 +80,6 @@ import org.sagebionetworks.table.query.model.visitors.GetTableNameVisitor;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 import org.sagebionetworks.util.Closer;
 import org.sagebionetworks.util.Pair;
-import org.sagebionetworks.util.TimeoutUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
@@ -115,15 +107,11 @@ public class TableRowManagerImpl implements TableRowManager {
 	public static final long BUNDLE_MASK_QUERY_COLUMN_MODELS = 0x10;
 
 	public static final int READ_LOCK_TIMEOUT_SEC = 60;
-
-	public static final long TABLE_PROCESSING_TIMEOUT_MS = 1000*60*10; // 10 mins
 	
 	@Autowired
 	AuthorizationManager authorizationManager;
 	@Autowired
 	TableRowTruthDAO tableRowTruthDao;
-	@Autowired
-	TableStatusDAO tableStatusDAO;
 	@Autowired
 	ColumnModelDAO columnModelDAO;
 	@Autowired
@@ -131,17 +119,13 @@ public class TableRowManagerImpl implements TableRowManager {
 	@Autowired
 	ConnectionFactory tableConnectionFactory;
 	@Autowired
-	NodeDAO nodeDao;
-	@Autowired
 	StackStatusDao stackStatusDao;
 	@Autowired
 	FileHandleDao fileHandleDao;
 	@Autowired
-	TimeoutUtils timeoutUtils;
-	@Autowired
 	ColumnModelManager columModelManager;
 	@Autowired
-	TransactionalMessenger transactionalMessenger;
+	TableManagerSupport tableStatusManager;
 	
 	/**
 	 * Injected via spring
@@ -334,7 +318,7 @@ public class TableRowManagerImpl implements TableRowManager {
 		RawRowSet rowSetToDelete = new RawRowSet(TableModelUtils.getIds(mapper.getColumnModels()), rowsToDelete.getEtag(), tableId, rows);
 		RowReferenceSet result = tableRowTruthDao.appendRowSetToTable(user.getId().toString(), tableId, mapper, rowSetToDelete);
 		// The table has change so we must reset the state.
-		setTableToProcessingAndTriggerUpdate(tableId);
+		tableStatusManager.setTableToProcessingAndTriggerUpdate(tableId);
 		return result;
 	}
 
@@ -392,7 +376,7 @@ public class TableRowManagerImpl implements TableRowManager {
 			etag = appendBatchOfRowsToTable(user, columnMapper, delta, results, progressCallback);
 		}
 		// The table has change so we must reset the state.
-		setTableToProcessingAndTriggerUpdate(tableId);
+		tableStatusManager.setTableToProcessingAndTriggerUpdate(tableId);
 		return etag;
 	}
 
@@ -523,80 +507,6 @@ public class TableRowManagerImpl implements TableRowManager {
 		String key = TableModelUtils.getTableSemaphoreKey(tableId);
 		// The semaphore runner does all of the lock work.
 		return writeReadSemaphoreRunner.tryRunWithReadLock(callback, key, lockTimeoutSec, callable);
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * @see org.sagebionetworks.repo.manager.table.TableRowManager#getTableStatusOrCreateIfNotExists(java.lang.String)
-	 */
-	@WriteTransactionReadCommitted
-	@Override
-	public TableStatus getTableStatusOrCreateIfNotExists(String tableId) throws NotFoundException, IOException {
-		try {
-			TableStatus status = tableStatusDAO.getTableStatus(tableId);
-			if(!TableState.AVAILABLE.equals(status.getState())){
-				// Processing or Failed.
-				// Is progress being made?
-				if(timeoutUtils.hasExpired(TABLE_PROCESSING_TIMEOUT_MS, status.getChangedOn().getTime())){
-					// progress has not been made so trigger another update
-					return setTableToProcessingAndTriggerUpdate(tableId);
-				}else{
-					// progress has been made so just return the status
-					return status;
-				}
-			}
-			// Status is Available, is the index synchronized with the truth?
-			if(isIndexSynchronizedWithTruth(tableId)){
-				// Available and synchronized.
-				return status;
-			}else{
-				// Available but not synchronized, so change the state to processing.
-				return setTableToProcessingAndTriggerUpdate(tableId);
-			}
-			
-		} catch (NotFoundException e) {
-			// make sure the table exists
-			if (!nodeDao.isNodeAvailable(KeyFactory.stringToKey(tableId))) {
-				throw new NotFoundException("Table " + tableId + " not found");
-			}
-			return setTableToProcessingAndTriggerUpdate(tableId);
-		}
-	}
-
-	/**
-	 * Set the table's status to be PROCESSING, fire a table update and return the table's status.
-	 * @param tableId
-	 * @return
-	 */
-	private TableStatus setTableToProcessingAndTriggerUpdate(String tableId) {
-		// we get here, if the index for this table is not (yet?) being build. We need to kick off the
-		// building of the index and report the table as unavailable
-		tableStatusDAO.resetTableStatusToProcessing(tableId);
-		// notify all listeners.
-		transactionalMessenger.sendMessageAfterCommit(tableId, ObjectType.TABLE, "", ChangeType.UPDATE);
-		// status should exist now
-		return tableStatusDAO.getTableStatus(tableId);
-	}
-
-	@Override
-	public void attemptToSetTableStatusToAvailable(String tableId,
-			String resetToken, String tableChangeEtag) throws ConflictingUpdateException,
-			NotFoundException {
-		tableStatusDAO.attemptToSetTableStatusToAvailable(tableId, resetToken, tableChangeEtag);
-	}
-
-	@Override
-	public void attemptToSetTableStatusToFailed(String tableId,
-			String resetToken, String errorMessage, String errorDetails)
-			throws ConflictingUpdateException, NotFoundException {
-		tableStatusDAO.attemptToSetTableStatusToFailed(tableId, resetToken, errorMessage, errorDetails);
-	}
-
-	@Override
-	public void attemptToUpdateTableProgress(String tableId, String resetToken,
-			String progressMessage, Long currentProgress, Long totalProgress)
-			throws ConflictingUpdateException, NotFoundException {
-		tableStatusDAO.attemptToUpdateTableProgress(tableId, resetToken, progressMessage, currentProgress, totalProgress);
 	}
 
 	@Override
@@ -992,20 +902,7 @@ public class TableRowManagerImpl implements TableRowManager {
 				@Override
 				public String call(final ProgressCallback<Void> callback) throws Exception {
 					// We can only run this query if the table is available.
-					final TableStatus status = getTableStatusOrCreateIfNotExists(tableId);
-					switch(status.getState()){
-					case AVAILABLE:
-						break;
-					case PROCESSING:
-						// When the table is not available, we communicate the current status of the
-						// table in this exception.
-						throw new TableUnavilableException(status);
-					default:
-					case PROCESSING_FAILED:
-						// When the table is in a failed state, we communicate the current status of the
-						// table in this exception.
-						throw new TableFailedException(status);
-					}
+					final TableStatus status = tableStatusManager.validateTableIsAvailable(tableId);
 					// We can only run this
 					final TableIndexDAO indexDao = tableConnectionFactory.getConnection(tableId);
 					indexDao.executeInReadTransaction(new TransactionCallback<Void>() {
@@ -1026,8 +923,7 @@ public class TableRowManagerImpl implements TableRowManager {
 				}
 			});
 		} catch (LockUnavilableException e) {
-			TableUnavilableException e1 = createTableUnavilableException(tableId);
-			throw e1;
+			throw new TableUnavilableException(tableStatusManager.getTableStatusOrCreateIfNotExists(tableId));
 		} catch(TableUnavilableException e){
 			throw e;
 		} catch (TableFailedException e) {
@@ -1049,7 +945,6 @@ public class TableRowManagerImpl implements TableRowManager {
 	 * @throws NotFoundException
 	 * @throws TableFailedException
 	 */
-	@WriteTransactionReadCommitted
 	@Override
 	public DownloadFromTableResult runConsistentQueryAsStream(ProgressCallback<Void> progressCallback, UserInfo user, String sql, List<SortItem> sortList,
 			final CSVWriterStream writer, boolean includeRowIdAndVersion, final boolean writeHeader) throws TableUnavilableException,
@@ -1092,16 +987,6 @@ public class TableRowManagerImpl implements TableRowManager {
 			}
 		})));
 		return repsonse;
-	}
-
-	TableUnavilableException createTableUnavilableException(String tableId){
-		// When this occurs we need to lookup the status of the table and pass that to the caller
-		try {
-			TableStatus status = tableStatusDAO.getTableStatus(tableId);
-			return new TableUnavilableException(status);
-		} catch (NotFoundException e1) {
-			throw new RuntimeException(e1);
-		}
 	}
 	
 	/**
@@ -1297,57 +1182,12 @@ public class TableRowManagerImpl implements TableRowManager {
 		}
 	}
 
-	@Override
-	public String startTableProcessing(String tableId) {
-		return tableStatusDAO.resetTableStatusToProcessing(tableId);
-	}
-
-
-	@Override
-	public boolean isIndexSynchronizedWithTruth(String tableId) {
-		// Get the truth schema
-		List<ColumnModel> truthSchema = this.columnModelDAO.getColumnModelsForObject(tableId);
-		String truthSchemaMD5Hex = TableModelUtils.createSchemaMD5HexCM(truthSchema);
-		// get the truth version
-		long truthLastVersion = getVersionOfLastTableChange(tableId);
-		// compare the truth with the index.
-		return this.tableConnectionFactory.getConnection(tableId).doesIndexStateMatch(tableId, truthLastVersion, truthSchemaMD5Hex);
-	}
-
-
-	@Override
-	public long getVersionOfLastTableChange(String tableId) {
-		TableRowChange change = this.tableRowTruthDao.getLastTableRowChange(tableId);
-		if(change != null){
-			return change.getRowVersion();
-		}else{
-			return -1;
-		}
-	}
-
-
-	@Override
-	public boolean isIndexWorkRequired(String tableId) {
-		// Does the table exist and not in the trash?
-		if(!nodeDao.isNodeAvailable(KeyFactory.stringToKey(tableId))){
-			return false;
-		}
-		// work is needed if the index is out-of-sych.
-		if(!isIndexSynchronizedWithTruth(tableId)){
-			return true;
-		}
-		// work is needed if the current state is processing.
-		TableStatus status = tableStatusDAO.getTableStatus(tableId);
-		return TableState.PROCESSING.equals(status.getState());
-	}
-
-
 	@WriteTransactionReadCommitted
 	@Override
 	public void setTableSchema(UserInfo userInfo, List<String> columnIds,
 			String id) {
 		columModelManager.bindColumnToObject(userInfo, columnIds, id);
-		setTableToProcessingAndTriggerUpdate(id);
+		tableStatusManager.setTableToProcessingAndTriggerUpdate(id);
 	}
 
 	@WriteTransactionReadCommitted
@@ -1355,7 +1195,7 @@ public class TableRowManagerImpl implements TableRowManager {
 	public void deleteTable(String deletedId) {
 		columModelManager.unbindAllColumnsAndOwnerFromObject(deletedId);
 		deleteAllRows(deletedId);
-		transactionalMessenger.sendMessageAfterCommit(deletedId, ObjectType.TABLE, ChangeType.DELETE);
+		tableStatusManager.setTableDeleted(deletedId, ObjectType.TABLE);
 	}
 
 }

@@ -32,6 +32,7 @@ import org.sagebionetworks.repo.manager.table.TableIndexConnectionFactory;
 import org.sagebionetworks.repo.manager.table.TableIndexConnectionUnavailableException;
 import org.sagebionetworks.repo.manager.table.TableIndexManager;
 import org.sagebionetworks.repo.manager.table.TableRowManager;
+import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
@@ -62,6 +63,8 @@ public class TableWorkerTest {
 	TableIndexConnectionFactory mockConnectionFactory;
 	@Mock
 	StackConfiguration mockConfiguration;
+	@Mock
+	TableManagerSupport mockTableStatusManager;
 
 	TableWorker worker;
 	ChangeMessage one;
@@ -95,6 +98,7 @@ public class TableWorkerTest {
 		ReflectionTestUtils.setField(worker, "connectionFactory", mockConnectionFactory);
 		ReflectionTestUtils.setField(worker, "tableRowManager", mockTableRowManager);
 		ReflectionTestUtils.setField(worker, "configuration", mockConfiguration);
+		ReflectionTestUtils.setField(worker, "tableStatusManager", mockTableStatusManager);
 		worker.setTimeoutSeconds(1200L);
 		
 		one = new ChangeMessage();
@@ -133,9 +137,9 @@ public class TableWorkerTest {
 		rowSet2.setRows(Collections.singletonList(TableModelTestUtils.createRow(0L, 1L, "3")));
 		when(mockTableRowManager.getRowSet(eq(tableId), eq(1L), any(ColumnMapper.class))).thenReturn(rowSet2);
 		
-		when(mockTableRowManager.startTableProcessing(tableId)).thenReturn(resetToken);
+		when(mockTableStatusManager.startTableProcessing(tableId)).thenReturn(resetToken);
 		
-		when(mockTableRowManager.isIndexWorkRequired(tableId)).thenReturn(true);
+		when(mockTableStatusManager.isIndexWorkRequired(tableId)).thenReturn(true);
 	}
 	
 	
@@ -211,12 +215,12 @@ public class TableWorkerTest {
 		// call under test
 		worker.run(mockProgressCallback, two);
 		// The worker should ensure the table is processing.
-		verify(mockTableRowManager, times(1)).startTableProcessing(tableId);
+		verify(mockTableStatusManager, times(1)).startTableProcessing(tableId);
 		// The connection factory should be called
 		verify(mockConnectionFactory, times(1)).connectToTableIndex(tableId);
 		// The status should get set to available
-		verify(mockTableRowManager, times(1)).attemptToSetTableStatusToAvailable(tableId, resetToken, "etag2");
-		verify(mockTableRowManager, times(4)).attemptToUpdateTableProgress(eq(tableId), eq(resetToken), anyString(), anyLong(), anyLong());
+		verify(mockTableStatusManager, times(1)).attemptToSetTableStatusToAvailable(tableId, resetToken, "etag2");
+		verify(mockTableStatusManager, times(4)).attemptToUpdateTableProgress(eq(tableId), eq(resetToken), anyString(), anyLong(), anyLong());
 		
 		verify(mockTableIndexManager).applyChangeSetToIndex(rowSet1, currentSchema, 0L);
 		verify(mockTableIndexManager).applyChangeSetToIndex(rowSet2, currentSchema, 1L);
@@ -256,7 +260,7 @@ public class TableWorkerTest {
 		status.setResetToken(resetToken);
 		List<ColumnModel> currentSchema = Lists.newArrayList();
 		when(mockTableRowManager.getColumnModelsForTable(tableId)).thenReturn(currentSchema);
-		when(mockTableRowManager.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
+		when(mockTableStatusManager.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
 		TableRowChange trc = new TableRowChange();
 		trc.setEtag("etag");
 		trc.setRowVersion(3L);
@@ -274,7 +278,7 @@ public class TableWorkerTest {
 		// The connection factory should be called
 		verify(mockConnectionFactory, times(1)).connectToTableIndex(tableId);
 		// The status should get set to available
-		verify(mockTableRowManager, times(1)).attemptToSetTableStatusToAvailable(tableId, resetToken, "etag");
+		verify(mockTableStatusManager, times(1)).attemptToSetTableStatusToAvailable(tableId, resetToken, "etag");
 		
 		verify(mockTableIndexManager).applyChangeSetToIndex(rowSet, currentSchema, trc.getRowVersion());
 	}
@@ -289,7 +293,7 @@ public class TableWorkerTest {
 		String resetToken = "reset-token";
 		TableStatus status = new TableStatus();
 		status.setResetToken(resetToken);
-		when(mockTableRowManager.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
+		when(mockTableStatusManager.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
 		// This should trigger a failure
 		RuntimeException error = new RuntimeException("Something went horribly wrong!");
 		when(mockTableRowManager.getColumnModelsForTable(tableId)).thenThrow(error);
@@ -301,7 +305,7 @@ public class TableWorkerTest {
 		// The connection factory should be called
 		verify(mockConnectionFactory, times(1)).connectToTableIndex(tableId);
 		// The status should get set to failed
-		verify(mockTableRowManager, times(1)).attemptToSetTableStatusToFailed(anyString(), anyString(), anyString(), anyString());
+		verify(mockTableStatusManager, times(1)).attemptToSetTableStatusToFailed(anyString(), anyString(), anyString(), anyString());
 	}
 	
 	/**
@@ -316,7 +320,7 @@ public class TableWorkerTest {
 		String resetToken = "reset-token";
 		TableStatus status = new TableStatus();
 		status.setResetToken(resetToken);
-		when(mockTableRowManager.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
+		when(mockTableStatusManager.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
 		// Without a connection the message should go back to the queue
 		when(mockConnectionFactory.connectToTableIndex(tableId)).thenThrow(new TableIndexConnectionUnavailableException("Not now"));
 		two.setObjectType(ObjectType.TABLE);
@@ -342,7 +346,7 @@ public class TableWorkerTest {
 		String resetToken = "reset-token";
 		TableStatus status = new TableStatus();
 		status.setResetToken(resetToken);
-		when(mockTableRowManager.startTableProcessing(tableId)).thenThrow(new NotFoundException("This table does not exist"));
+		when(mockTableStatusManager.startTableProcessing(tableId)).thenThrow(new NotFoundException("This table does not exist"));
 		two.setObjectType(ObjectType.TABLE);
 		two.setChangeType(ChangeType.UPDATE);
 		two.setObjectEtag(resetToken);
@@ -363,7 +367,7 @@ public class TableWorkerTest {
 		String resetToken = "reset-token";
 		TableStatus status = new TableStatus();
 		status.setResetToken(resetToken);
-		when(mockTableRowManager.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
+		when(mockTableStatusManager.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
 		// Simulate a failure to get the lock
 		when(mockTableRowManager.tryRunWithTableExclusiveLock(any(ProgressCallback.class),anyString(), anyInt(), any(ProgressingCallable.class))).thenThrow(new LockUnavilableException("Cannot get a lock at this time"));
 		two.setObjectType(ObjectType.TABLE);
@@ -391,7 +395,7 @@ public class TableWorkerTest {
 		String resetToken = "reset-token";
 		TableStatus status = new TableStatus();
 		status.setResetToken(resetToken);
-		when(mockTableRowManager.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
+		when(mockTableStatusManager.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
 		// Simulate a failure to get the lock
 		when(mockTableRowManager.tryRunWithTableExclusiveLock(any(ProgressCallback.class),anyString(), anyInt(), any(ProgressingCallable.class))).thenThrow(new InterruptedException("Sop!!!"));
 		two.setObjectType(ObjectType.TABLE);
@@ -420,8 +424,8 @@ public class TableWorkerTest {
 		TableStatus status = new TableStatus();
 		status.setResetToken(resetToken);
 		// simulate the ConflictingUpdateException
-		doThrow(new ConflictingUpdateException("Cannot get a lock at this time")).when(mockTableRowManager).attemptToSetTableStatusToAvailable(anyString(), anyString(), anyString());
-		when(mockTableRowManager.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
+		doThrow(new ConflictingUpdateException("Cannot get a lock at this time")).when(mockTableStatusManager).attemptToSetTableStatusToAvailable(anyString(), anyString(), anyString());
+		when(mockTableStatusManager.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
 		two.setObjectId(tableId);
 		two.setObjectType(ObjectType.TABLE);
 		two.setChangeType(ChangeType.UPDATE);
@@ -429,7 +433,7 @@ public class TableWorkerTest {
 		// call under test
 		worker.run(mockProgressCallback, two);
 		// The connection factory should never be called
-		verify(mockTableRowManager).attemptToSetTableStatusToAvailable(anyString(), anyString(), anyString());
+		verify(mockTableStatusManager).attemptToSetTableStatusToAvailable(anyString(), anyString(), anyString());
 	}
 	
 	/**
@@ -450,8 +454,8 @@ public class TableWorkerTest {
 		// The connection factory should be called
 		verify(mockConnectionFactory, times(1)).connectToTableIndex(tableId);
 		// The status should get set to available
-		verify(mockTableRowManager, times(1)).attemptToSetTableStatusToAvailable(tableId, resetToken, "etag2");
-		verify(mockTableRowManager, times(4)).attemptToUpdateTableProgress(eq(tableId), eq(resetToken), anyString(), anyLong(), anyLong());
+		verify(mockTableStatusManager, times(1)).attemptToSetTableStatusToAvailable(tableId, resetToken, "etag2");
+		verify(mockTableStatusManager, times(4)).attemptToUpdateTableProgress(eq(tableId), eq(resetToken), anyString(), anyLong(), anyLong());
 
 		verify(mockTableIndexManager).applyChangeSetToIndex(rowSet2, currentSchema, 1L);
 		// Progress should be made for each result
@@ -479,7 +483,7 @@ public class TableWorkerTest {
 		verify(mockTableIndexManager).applyChangeSetToIndex(rowSet1, currentSchema, 0L);
 		
 		// The status should get set to failed
-		verify(mockTableRowManager, times(1)).attemptToSetTableStatusToFailed(anyString(), anyString(), anyString(), anyString());
+		verify(mockTableStatusManager, times(1)).attemptToSetTableStatusToFailed(anyString(), anyString(), anyString(), anyString());
 	}
 	
 	/**
@@ -504,13 +508,13 @@ public class TableWorkerTest {
 		verify(mockTableIndexManager).applyChangeSetToIndex(rowSet1, currentSchema, 0L);
 		
 		// The status should get set to failed
-		verify(mockTableRowManager, times(1)).attemptToSetTableStatusToFailed(anyString(), anyString(), contains(error2.getMessage()), anyString());
+		verify(mockTableStatusManager, times(1)).attemptToSetTableStatusToFailed(anyString(), anyString(), contains(error2.getMessage()), anyString());
 	}
 	
 	@Test
 	public void testNoWork() throws Exception {
 		// setup no work
-		when(mockTableRowManager.isIndexWorkRequired(tableId)).thenReturn(false);
+		when(mockTableStatusManager.isIndexWorkRequired(tableId)).thenReturn(false);
 		two.setObjectType(ObjectType.TABLE);
 		two.setChangeType(ChangeType.UPDATE);
 		two.setObjectEtag(resetToken);

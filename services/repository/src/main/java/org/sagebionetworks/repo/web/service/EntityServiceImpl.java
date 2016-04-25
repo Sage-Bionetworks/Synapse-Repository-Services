@@ -54,6 +54,7 @@ import org.sagebionetworks.repo.web.service.metadata.MetadataProviderFactory;
 import org.sagebionetworks.repo.web.service.metadata.TypeSpecificCreateProvider;
 import org.sagebionetworks.repo.web.service.metadata.TypeSpecificDeleteProvider;
 import org.sagebionetworks.repo.web.service.metadata.TypeSpecificMetadataProvider;
+import org.sagebionetworks.repo.web.service.metadata.TypeSpecificUpdateProvider;
 import org.sagebionetworks.repo.web.service.metadata.TypeSpecificVersionDeleteProvider;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -83,27 +84,13 @@ public class EntityServiceImpl implements EntityService {
 	@Autowired
 	UserManager userManager;
 	@Autowired
-	private MetadataProviderFactory metadataProviderFactory;
+	MetadataProviderFactory metadataProviderFactory;
 	@Autowired
-	private IdGenerator idGenerator;
+	IdGenerator idGenerator;
 	@Autowired
-	private AllTypesValidator allTypesValidator;
+	AllTypesValidator allTypesValidator;
 	@Autowired
 	FileHandleManager fileHandleManager;
-	
-	public EntityServiceImpl(){}
-
-	/**
-	 * Provided for tests
-	 * @param entitiesAccessor
-	 * @param entityManager
-	 */
-	public EntityServiceImpl(UserManager userManager, EntityManager entityManager, FileHandleManager fileHandleManager) {
-		super();
-		this.userManager = userManager;
-		this.entityManager = entityManager;
-		this.fileHandleManager=fileHandleManager;
-	}
 
 	@Override
 	public <T extends Entity> PaginatedResults<T> getEntities(Long userId, PaginatedParameters paging,
@@ -185,13 +172,13 @@ public class EntityServiceImpl implements EntityService {
 	 */
 	private <T extends Entity> void doAddServiceSpecificMetadata(UserInfo info, T entity, EntityType type, HttpServletRequest request, EventType eventType) throws DatastoreException, NotFoundException, UnauthorizedException{
 		// Fetch the provider that will validate this entity.
-		List<EntityProvider<Entity>> providers = metadataProviderFactory.getMetadataProvider(type);
+		List<EntityProvider<? extends Entity>> providers = metadataProviderFactory.getMetadataProvider(type);
 
 		// Add the type specific metadata that is common to all objects.
 		addServiceSpecificMetadata(entity, request);
 		// Add the type specific metadata
 		if(providers != null) {
-			for (EntityProvider<Entity> provider : providers) {
+			for (EntityProvider<? extends Entity> provider : providers) {
 				if (provider instanceof TypeSpecificMetadataProvider) {
 					((TypeSpecificMetadataProvider) provider).addTypeSpecificMetadata(entity, request, info, eventType);
 				}
@@ -259,7 +246,7 @@ public class EntityServiceImpl implements EntityService {
 	}
 
 	/**
-	 * Fire an after create event.
+	 * Fire an after a create event.
 	 * @param userInfo
 	 * @param eventType
 	 * @param entity
@@ -270,11 +257,33 @@ public class EntityServiceImpl implements EntityService {
 	 * @throws InvalidModelException
 	 */
 	private void fireAfterCreateEntityEvent(UserInfo userInfo, Entity entity, EntityType type) throws NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException{
-		List<EntityProvider<Entity>> providers = metadataProviderFactory.getMetadataProvider(type);
+		List<EntityProvider<? extends Entity>> providers = metadataProviderFactory.getMetadataProvider(type);
 		if(providers != null) {
-			for (EntityProvider<Entity> provider : providers) {
+			for (EntityProvider<? extends Entity> provider : providers) {
 				if (provider instanceof TypeSpecificCreateProvider) {
-					((TypeSpecificCreateProvider) provider).entityCreated(userInfo, entity.getId());
+					((TypeSpecificCreateProvider) provider).entityCreated(userInfo, entity);
+				}
+			}
+		}
+	}
+	
+	/**
+	 * Fire an after an update event.
+	 * @param userInfo
+	 * @param eventType
+	 * @param entity
+	 * @param type
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws InvalidModelException
+	 */
+	private void fireAfterUpdateEntityEvent(UserInfo userInfo, Entity entity, EntityType type) throws NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException{
+		List<EntityProvider<? extends Entity>> providers = metadataProviderFactory.getMetadataProvider(type);
+		if(providers != null) {
+			for (EntityProvider<? extends Entity> provider : providers) {
+				if (provider instanceof TypeSpecificUpdateProvider) {
+					((TypeSpecificUpdateProvider) provider).entityUpdated(userInfo, entity);
 				}
 			}
 		}
@@ -301,10 +310,10 @@ public class EntityServiceImpl implements EntityService {
 		// First apply validation that is common to all types.
 		allTypesValidator.validateEntity(entity, event);
 		// Now validate for a specific type.
-		List<EntityProvider<Entity>> providers = metadataProviderFactory.getMetadataProvider(type);
+		List<EntityProvider<? extends Entity>> providers = metadataProviderFactory.getMetadataProvider(type);
 		// Validate the entity
 		if(providers != null) {
-			for (EntityProvider<Entity> provider : providers) {
+			for (EntityProvider<? extends Entity> provider : providers) {
 				if (provider instanceof EntityValidator) {
 					((EntityValidator) provider).validateEntity(entity, event);
 				}
@@ -333,6 +342,7 @@ public class EntityServiceImpl implements EntityService {
 		String entityId = updatedEntity.getId();
 		// Now do the update
 		entityManager.updateEntity(userInfo, updatedEntity, newVersion, activityId);
+		fireAfterUpdateEntityEvent(userInfo, updatedEntity, type);
 		// Return the updated entity
 		return getEntity(userInfo, entityId, request, clazz, eventType);
 	}
@@ -359,11 +369,11 @@ public class EntityServiceImpl implements EntityService {
 		// First get the entity we are deleting
 		EntityType type = EntityTypeUtils.getEntityTypeForClass(clazz);
 		// Fetch the provider that will validate this entity.
-		List<EntityProvider<Entity>> providers = metadataProviderFactory.getMetadataProvider(type);
+		List<EntityProvider<? extends Entity>> providers = metadataProviderFactory.getMetadataProvider(type);
 		entityManager.deleteEntity(userInfo, entityId);
 		// Do extra cleanup as needed.
 		if(providers != null) {
-			for(EntityProvider<Entity> provider : providers) {
+			for(EntityProvider<? extends Entity> provider : providers) {
 				if (provider instanceof TypeSpecificDeleteProvider) {
 					((TypeSpecificDeleteProvider) provider).entityDeleted(entityId);
 				}
@@ -392,11 +402,11 @@ public class EntityServiceImpl implements EntityService {
 		// First get the entity we are deleting
 		EntityType type = EntityTypeUtils.getEntityTypeForClass(classForType);
 		// Fetch the provider that will validate this entity.
-		List<EntityProvider<Entity>> providers = metadataProviderFactory.getMetadataProvider(type);
+		List<EntityProvider<? extends Entity>> providers = metadataProviderFactory.getMetadataProvider(type);
 		entityManager.deleteEntityVersion(userInfo, id, versionNumber);
 		// Do extra cleanup as needed.
 		if(providers != null) {
-			for (EntityProvider<Entity> provider : providers) {
+			for (EntityProvider<? extends Entity> provider : providers) {
 				if (provider instanceof TypeSpecificVersionDeleteProvider) {
 					((TypeSpecificVersionDeleteProvider) provider).entityVersionDeleted(id, versionNumber);
 				}

@@ -1,164 +1,69 @@
 package org.sagebionetworks.repo.web.service.metadata;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.mockito.Mockito.verify;
 
-import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
 
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.manager.table.ColumnModelManager;
-import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.EntityTypeUtils;
-import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.PaginatedIds;
-import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.sagebionetworks.repo.manager.table.TableRowManager;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.TableEntity;
-import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.web.controller.AbstractAutowiredControllerTestBase;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.util.ReflectionTestUtils;
 
-public class TableEntityMetadataProviderTest extends AbstractAutowiredControllerTestBase {
+import com.google.common.collect.Lists;
+
+public class TableEntityMetadataProviderTest  {
 	
-	@Autowired
-	private MetadataProviderFactory metadataProviderFactory;
-	private EntityValidator<Entity> tableEntityMetadataProvider;
+	@Mock
+	TableRowManager tableRowManager;
 	
-	@Autowired
-	private ColumnModelManager columnModelManager;
+	TableEntityMetadataProvider provider;
 	
-	@Autowired
-	private UserManager userManager;
+	String entityId;
+	TableEntity table;
+	List<String> columnIds;
 	
-	private UserInfo adminUserInfo;
-	private ColumnModel one;
+	UserInfo userInfo;	
 	
 	@Before
-	public void before() throws Exception {
-		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+	public void before(){
+		MockitoAnnotations.initMocks(this);
 		
-		List<EntityProvider<Entity>> types = metadataProviderFactory.getMetadataProvider(EntityTypeUtils.getEntityTypeForClass(TableEntity.class));
-		assertNotNull(types);
-		tableEntityMetadataProvider = (EntityValidator) types.get(0);
-		// Create some columns
-		one = new ColumnModel();
-		one.setName("TableEntityMetadataProviderTest");
-		one.setColumnType(ColumnType.STRING);
-		one = columnModelManager.createColumnModel(adminUserInfo, one);
-	}
-	
-	@After
-	public void after(){
-		columnModelManager.truncateAllColumnData(new UserInfo(true));
-	}
-	
+		provider = new TableEntityMetadataProvider();
+		ReflectionTestUtils.setField(provider, "tableRowManager", tableRowManager);
 		
-	@Test (expected=IllegalArgumentException.class)
-	public void testCreateNull() throws Exception {
-		EntityEvent event = new EntityEvent(EventType.CREATE, null, null);
-		TableEntity table = new TableEntity();
-		table.setColumnIds(null);
-		tableEntityMetadataProvider.validateEntity(table, event);
-	}
-
-	@Test (expected=IllegalArgumentException.class)
-	public void testUpdateNull() throws Exception {
-		EntityEvent event = new EntityEvent(EventType.UPDATE, null, null);
-		TableEntity table = new TableEntity();
-		table.setColumnIds(null);
-		tableEntityMetadataProvider.validateEntity(table, event);
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testNewVersionNull() throws Exception {
-		EntityEvent event = new EntityEvent(EventType.NEW_VERSION, null, null);
-		TableEntity table = new TableEntity();
-		table.setColumnIds(null);
-		tableEntityMetadataProvider.validateEntity(table, event);
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testCreateEmpty() throws Exception {
-		EntityEvent event = new EntityEvent(EventType.CREATE, null, null);
-		TableEntity table = new TableEntity();
-		table.setColumnIds(new LinkedList<String>());
-		tableEntityMetadataProvider.validateEntity(table, event);
-	}
-
-	@Test (expected=IllegalArgumentException.class)
-	public void testUpdateEmpty() throws Exception {
-		EntityEvent event = new EntityEvent(EventType.UPDATE, null, null);
-		TableEntity table = new TableEntity();
-		table.setColumnIds(new LinkedList<String>());
-		tableEntityMetadataProvider.validateEntity(table, event);
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testNewVersionEmpty() throws Exception {
-		EntityEvent event = new EntityEvent(EventType.NEW_VERSION, null, null);
-		TableEntity table = new TableEntity();
-		table.setColumnIds(new LinkedList<String>());
-		tableEntityMetadataProvider.validateEntity(table, event);
+		columnIds = Lists.newArrayList("123");
+		
+		entityId = "syn123";
+		table = new TableEntity();
+		table.setId(entityId);
+		table.setColumnIds(columnIds);
+		
+		userInfo = new UserInfo(false, 55L);
 	}
 	
 	@Test
-	public void testCreateHappy() throws InvalidModelException, DatastoreException, UnauthorizedException, NotFoundException{
-		// Before we start nothing should be bound to the column one
-		Set<String> columnIds = new HashSet<String>();
-		columnIds.add(one.getId());
-		PaginatedIds results = columnModelManager.listObjectsBoundToColumn(adminUserInfo, columnIds, false, 100, 0);
-		assertNotNull(results);
-		assertEquals(new Long(0), results.getTotalNumberOfResults());
-		// Create a table entity
-		EntityEvent event = new EntityEvent(EventType.CREATE, null, adminUserInfo);
-		TableEntity table = new TableEntity();
-		table.setId("syn123");
-		table.setColumnIds(new LinkedList<String>());
-		table.getColumnIds().add(one.getId());
-		// Validate that we could create this table
-		tableEntityMetadataProvider.validateEntity(table, event);
-		// Now this table should be listed as bound to the column\
-		List<String> expectedIds = new LinkedList<String>();
-		expectedIds.add("syn123");
-		results = columnModelManager.listObjectsBoundToColumn(adminUserInfo, columnIds, false, 100, 0);
-		assertNotNull(results);
-		assertEquals(new Long(1), results.getTotalNumberOfResults());
-		assertEquals(expectedIds, results.getResults());
+	public void testDeleteEntity(){
+		// call under test
+		provider.entityDeleted(entityId);
+		verify(tableRowManager).deleteTable(entityId);
 	}
 	
 	@Test
-	public void testUpdateHappy() throws InvalidModelException, DatastoreException, UnauthorizedException, NotFoundException{
-		// Before we start nothing should be bound to the column one
-		Set<String> columnIds = new HashSet<String>();
-		columnIds.add(one.getId());
-		PaginatedIds results = columnModelManager.listObjectsBoundToColumn(adminUserInfo, columnIds, false, 100, 0);
-		assertNotNull(results);
-		assertEquals(new Long(0), results.getTotalNumberOfResults());
-		// Create a table entity
-		EntityEvent event = new EntityEvent(EventType.UPDATE, null, adminUserInfo);
-		TableEntity table = new TableEntity();
-		table.setId("syn123");
-		table.setColumnIds(new LinkedList<String>());
-		table.getColumnIds().add(one.getId());
-		// Validate that we could create this table
-		tableEntityMetadataProvider.validateEntity(table, event);
-		// Now this table should be listed as bound to the column\
-		List<String> expectedIds = new LinkedList<String>();
-		expectedIds.add("syn123");
-		results = columnModelManager.listObjectsBoundToColumn(adminUserInfo, columnIds, false, 100, 0);
-		assertNotNull(results);
-		assertEquals(new Long(1), results.getTotalNumberOfResults());
-		assertEquals(expectedIds, results.getResults());
+	public void testCreate(){
+		// call under test
+		provider.entityCreated(userInfo, table);
+		verify(tableRowManager).setTableSchema(userInfo, columnIds, entityId);
 	}
 	
+	@Test
+	public void testUpdate(){
+		// call under test
+		provider.entityUpdated(userInfo, table);
+		verify(tableRowManager).setTableSchema(userInfo, columnIds, entityId);
+	}
+
 }

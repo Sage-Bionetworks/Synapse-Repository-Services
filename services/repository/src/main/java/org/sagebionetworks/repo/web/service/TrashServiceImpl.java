@@ -98,7 +98,7 @@ public class TrashServiceImpl implements TrashService {
 	}
 
 	private class TrashPurgeCallback implements PurgeCallback {
-		private List<EntityProvider<Entity>> providers = null;
+		private List<EntityProvider<? extends Entity>> providers = null;
 		private String entityId = null;
 
 		public TrashPurgeCallback() {
@@ -122,7 +122,7 @@ public class TrashServiceImpl implements TrashService {
 		public void endPurge() {
 			// Do extra cleanup as needed.
 			if (entityId != null && providers != null) {
-				for (EntityProvider<Entity> provider : providers) {
+				for (EntityProvider<? extends Entity> provider : providers) {
 					if (provider instanceof TypeSpecificDeleteProvider) {
 						((TypeSpecificDeleteProvider<Entity>) provider).entityDeleted(entityId);
 					}

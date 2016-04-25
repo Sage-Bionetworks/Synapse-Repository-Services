@@ -1,6 +1,9 @@
 package org.sagebionetworks.repo.web;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.when;
 
 import java.util.Date;
@@ -14,7 +17,6 @@ import org.apache.commons.lang.math.RandomUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -30,8 +32,6 @@ import org.sagebionetworks.repo.web.controller.AbstractAutowiredControllerTestBa
 import org.sagebionetworks.repo.web.service.EntityService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 
 public class EntityServiceImplAutowiredTestNew extends AbstractAutowiredControllerTestBase {

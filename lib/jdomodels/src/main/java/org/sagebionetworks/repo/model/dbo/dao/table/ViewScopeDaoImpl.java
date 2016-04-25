@@ -5,6 +5,8 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VIEW_SCO
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VIEW_SCOPE_VIEW_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_VIEW_SCOPE;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -17,10 +19,13 @@ import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 public class ViewScopeDaoImpl implements ViewScopeDao {
 	
+	private static final String SQL_SELECT_CONTAINERS_FOR_VIEW = "SELECT "+COL_VIEW_SCOPE_CONTAINER_ID+" FROM "+TABLE_VIEW_SCOPE+" WHERE "+COL_VIEW_SCOPE_VIEW_ID+" = ?";
+
 	private static final String SQL_SELECT_DISTINCT_VIEW_IDS_FOR_PATH = "SELECT DISTINCT "+COL_VIEW_SCOPE_VIEW_ID+" FROM "+TABLE_VIEW_SCOPE+" WHERE "+COL_VIEW_SCOPE_CONTAINER_ID+" IN (:pathIds)";
 
 	private static final String SQL_INSERT_VIEW_SCOPE = "INSERT INTO "+TABLE_VIEW_SCOPE+" ("+COL_VIEW_SCOPE_ID+", "+COL_VIEW_SCOPE_VIEW_ID+", "+COL_VIEW_SCOPE_CONTAINER_ID+") VALUES (?,?,?)";
@@ -65,5 +70,11 @@ public class ViewScopeDaoImpl implements ViewScopeDao {
 	@WriteTransactionReadCommitted
 	public void truncateAll(){
 		jdbcTemplate.update("TRUNCATE TABLE "+TABLE_VIEW_SCOPE);
+	}
+
+	@Override
+	public Set<Long> getViewScope(Long viewId) {
+		List<Long> list = jdbcTemplate.queryForList(SQL_SELECT_CONTAINERS_FOR_VIEW, Long.class, viewId);
+		return new HashSet<Long>(list);
 	}
 }

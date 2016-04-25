@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.manager.table;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -30,7 +29,6 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
-import java.util.UUID;
 
 import org.apache.commons.lang.StringUtils;
 import org.junit.Assume;
@@ -49,7 +47,6 @@ import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.file.FileHandleAuthorizationStatus;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -60,12 +57,9 @@ import org.sagebionetworks.repo.model.dao.table.RowAccessor;
 import org.sagebionetworks.repo.model.dao.table.RowAndHeaderHandler;
 import org.sagebionetworks.repo.model.dao.table.RowSetAccessor;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
-import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.exception.ReadOnlyException;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -95,7 +89,6 @@ import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.Pair;
-import org.sagebionetworks.util.TimeoutUtils;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.sagebionetworks.workers.util.semaphore.WriteReadSemaphoreRunner;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -117,10 +110,6 @@ public class TableRowManagerImplTest {
 	@Mock
 	AuthorizationManager mockAuthManager;
 	@Mock
-	TableStatusDAO mockTableStatusDAO;
-	@Mock
-	NodeDAO mockNodeDAO;
-	@Mock
 	ColumnModelDAO mockColumnModelDAO;
 	@Mock
 	ConnectionFactory mockTableConnectionFactory;
@@ -135,11 +124,9 @@ public class TableRowManagerImplTest {
 	@Mock
 	FileHandleDao mockFileDao;
 	@Mock
-	TimeoutUtils mockTimeoutUtils;
-	@Mock
 	ColumnModelManager mockColumModelManager;
 	@Mock
-	TransactionalMessenger mockTransactionalMessenger;
+	TableManagerSupport mockTableManagerSupport;
 	
 	List<ColumnModel> models;
 	String schemaMD5Hex;
@@ -170,15 +157,12 @@ public class TableRowManagerImplTest {
 		ReflectionTestUtils.setField(manager, "stackStatusDao", mockStackStatusDao);
 		ReflectionTestUtils.setField(manager, "tableRowTruthDao", mockTruthDao);
 		ReflectionTestUtils.setField(manager, "authorizationManager", mockAuthManager);
-		ReflectionTestUtils.setField(manager, "tableStatusDAO", mockTableStatusDAO);
-		ReflectionTestUtils.setField(manager, "nodeDao", mockNodeDAO);
 		ReflectionTestUtils.setField(manager, "columnModelDAO", mockColumnModelDAO);
 		ReflectionTestUtils.setField(manager, "tableConnectionFactory", mockTableConnectionFactory);
 		ReflectionTestUtils.setField(manager, "writeReadSemaphoreRunner", mockWriteReadSemaphoreRunner);
 		ReflectionTestUtils.setField(manager, "fileHandleDao", mockFileDao);
-		ReflectionTestUtils.setField(manager, "timeoutUtils", mockTimeoutUtils);
 		ReflectionTestUtils.setField(manager, "columModelManager", mockColumModelManager);
-		ReflectionTestUtils.setField(manager, "transactionalMessenger", mockTransactionalMessenger);
+		ReflectionTestUtils.setField(manager, "tableStatusManager", mockTableManagerSupport);
 
 		// Just call the caller.
 		stub(mockWriteReadSemaphoreRunner.tryRunWithReadLock(any(ProgressCallback.class),anyString(), anyInt(), any(ProgressingCallable.class))).toAnswer(new Answer<Object>() {
@@ -321,10 +305,11 @@ public class TableRowManagerImplTest {
 		status.setTableId(tableId);
 		status.setState(TableState.PROCESSING);
 		status.setChangedOn(new Date(123));
-		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
-		
-		when(mockNodeDAO.isNodeAvailable(anyLong())).thenReturn(true);
+		status.setLastTableChangeEtag("etag");
 		ETAG = "";
+		
+		when(mockTableManagerSupport.validateTableIsAvailable(tableId)).thenReturn(status);
+		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
 	}
 	
 	@Test (expected=UnauthorizedException.class)
@@ -350,7 +335,7 @@ public class TableRowManagerImplTest {
 		RowReferenceSet results = manager.appendRows(user, tableId, mapper, set, mockProgressCallback);
 		assertEquals(refSet, results);
 		// verify the table status was set
-		verify(mockTableStatusDAO, times(1)).resetTableStatusToProcessing(tableId);
+		verify(mockTableManagerSupport, times(1)).setTableToProcessingAndTriggerUpdate(tableId);
 	}
 	
 	@Test
@@ -362,7 +347,7 @@ public class TableRowManagerImplTest {
 		RowReferenceSet results = manager.appendPartialRows(user, tableId, mapper, partialSet, mockProgressCallback);
 		assertEquals(refSet, results);
 		// verify the table status was set
-		verify(mockTableStatusDAO, times(1)).resetTableStatusToProcessing(tableId);
+		verify(mockTableManagerSupport, times(1)).setTableToProcessingAndTriggerUpdate(tableId);
 	}
 	
 	/**
@@ -390,8 +375,7 @@ public class TableRowManagerImplTest {
 		} catch (IllegalArgumentException e) {
 			assertEquals("PartialRow.value.key: 'foo' is not a valid column ID for row ID: null", e.getMessage());
 		}
-		// verify the table status was set
-		verify(mockTableStatusDAO, never()).resetTableStatusToProcessing(tableId);
+		verify(mockTableManagerSupport, never()).setTableToProcessingAndTriggerUpdate(tableId);
 	}
 	
 	@Test
@@ -462,9 +446,9 @@ public class TableRowManagerImplTest {
 		assertEquals(refSet, results);
 		assertEquals(refSet.getEtag(), etag);
 		// verify the table status was set
-		verify(mockTableStatusDAO, times(1)).resetTableStatusToProcessing(tableId);
+		verify(mockTableManagerSupport, times(1)).setTableToProcessingAndTriggerUpdate(tableId);
 		verify(mockProgressCallback).progressMade(anyLong());
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(tableId, ObjectType.TABLE, ETAG, ChangeType.UPDATE);
+		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(tableId);
 	}
 	
 	@Test
@@ -514,7 +498,7 @@ public class TableRowManagerImplTest {
 		assertEquals(new Long(1), results.getRows().get(5).getVersionNumber());
 		assertEquals(new Long(2), results.getRows().get(9).getVersionNumber());
 		// verify the table status was set
-		verify(mockTableStatusDAO, times(1)).resetTableStatusToProcessing(tableId);
+		verify(mockTableManagerSupport, times(1)).setTableToProcessingAndTriggerUpdate(tableId);
 		verify(mockProgressCallback, times(3)).progressMade(anyLong());
 	}
 
@@ -565,8 +549,7 @@ public class TableRowManagerImplTest {
 		// verify the correct row set was generated
 		verify(mockTruthDao).appendRowSetToTable(eq(user.getId().toString()), eq(tableId), any(ColumnMapper.class), eq(rawSet));
 		// verify the table status was set
-		verify(mockTableStatusDAO, times(1)).resetTableStatusToProcessing(tableId);
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(tableId, ObjectType.TABLE, ETAG, ChangeType.UPDATE);
+		verify(mockTableManagerSupport, times(1)).setTableToProcessingAndTriggerUpdate(tableId);
 	}
 	
 	@Test
@@ -771,17 +754,12 @@ public class TableRowManagerImplTest {
 				results.getFirst().getQueryResults().getEtag());
 		assertEquals(expected, results.getFirst().getQueryResults());
 		// The table status should not be checked for this case
-		verify(mockTableStatusDAO, never()).getTableStatus(tableId);
+		verify(mockTableManagerSupport, never()).setTableToProcessingAndTriggerUpdate(tableId);
 	}
 	
 	@Test
 	public void testQueryHappyCaseIsConsistentTrue() throws Exception {
 		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		TableStatus status = new TableStatus();
-		status.setTableId(tableId);
-		status.setState(TableState.AVAILABLE);
-		status.setLastTableChangeEtag(UUID.randomUUID().toString());
-		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
 		Pair<QueryResult, Long> results = manager.query(mockProgressCallbackVoid, user, "select * from " + tableId + " limit 1", null, null, null, true, false, true);
 		// The etag should be set
 		assertEquals(status.getLastTableChangeEtag(), results.getFirst().getQueryResults().getEtag());
@@ -793,11 +771,6 @@ public class TableRowManagerImplTest {
 	@Test
 	public void testQueryCountHappyCaseIsConsistentTrue() throws Exception {
 		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		TableStatus status = new TableStatus();
-		status.setTableId(tableId);
-		status.setState(TableState.AVAILABLE);
-		status.setLastTableChangeEtag(UUID.randomUUID().toString());
-		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
 		Pair<QueryResult, Long> results = manager.query(mockProgressCallbackVoid, user, "select * from " + tableId + " limit 1", null, null, null, true, true, true);
 		// The etag should be set
 		assertEquals(status.getLastTableChangeEtag(), results.getFirst().getQueryResults().getEtag());
@@ -810,11 +783,6 @@ public class TableRowManagerImplTest {
 	@Test
 	public void testQueryAndCountHappyCaseIsConsistentTrue() throws Exception {
 		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		TableStatus status = new TableStatus();
-		status.setTableId(tableId);
-		status.setState(TableState.AVAILABLE);
-		status.setLastTableChangeEtag(UUID.randomUUID().toString());
-		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
 		Pair<QueryResult, Long> results = manager.query(mockProgressCallbackVoid, user, "select * from " + tableId + " limit 1", null, null, null, true, false, true);
 		// The etag should be set
 		assertEquals(status.getLastTableChangeEtag(), results.getFirst().getQueryResults().getEtag());
@@ -828,11 +796,6 @@ public class TableRowManagerImplTest {
 		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		// Return no columns
 		when(mockColumnModelDAO.getColumnModelsForObject(tableId)).thenReturn(new LinkedList<ColumnModel>());
-		TableStatus status = new TableStatus();
-		status.setTableId(tableId);
-		status.setState(TableState.AVAILABLE);
-		status.setLastTableChangeEtag(UUID.randomUUID().toString());
-		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
 		Pair<QueryResult, Long> results = manager.query(mockProgressCallbackVoid, user, "select * from " + tableId + " limit 1", null, null, null, true, false, true);
 		assertNotNull(results);
 		assertEquals(tableId, results.getFirst().getQueryResults().getTableId());
@@ -849,7 +812,7 @@ public class TableRowManagerImplTest {
 	public void testQueryIsConsistentTrueNotAvailable() throws Exception {
 		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		status.setState(TableState.PROCESSING);
-		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
+		when(mockTableManagerSupport.validateTableIsAvailable(tableId)).thenThrow(new TableUnavilableException(status));
 		try{
 			manager.query(mockProgressCallbackVoid, user, "select * from " + tableId + " limit 1", null, null, null, true, false, true);
 			fail("should have failed");
@@ -857,7 +820,7 @@ public class TableRowManagerImplTest {
 			// expected
 			assertEquals(status, e.getStatus());
 		}
-		verify(mockTableStatusDAO, times(1)).getTableStatus(tableId);
+		verify(mockTableManagerSupport, times(1)).validateTableIsAvailable(tableId);
 	}
 	
 	/**
@@ -869,9 +832,8 @@ public class TableRowManagerImplTest {
 	public void testQueryIsConsistentTrueNotFound() throws Exception {
 		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		status.setState(TableState.PROCESSING);
-		when(mockTableStatusDAO.getTableStatus(tableId)).thenThrow(new NotFoundException("fake")).thenReturn(status);
+		when(mockTableManagerSupport.validateTableIsAvailable(tableId)).thenThrow(new TableUnavilableException(status));
 		when(mockTruthDao.getLastTableRowChange(tableId)).thenReturn(new TableRowChange());
-		when(mockNodeDAO.doesNodeExist(123L)).thenReturn(true);
 		try{
 			manager.query(mockProgressCallbackVoid, user, "select * from " + tableId + " limit 1", null, null, null, true, false, true);
 			fail("should have failed");
@@ -879,10 +841,7 @@ public class TableRowManagerImplTest {
 			// expected
 			assertEquals(status, e.getStatus());
 		}
-		verify(mockTableStatusDAO, times(2)).getTableStatus(tableId);
-		verify(mockTableStatusDAO).resetTableStatusToProcessing(tableId);
-		verify(mockNodeDAO).isNodeAvailable(123L);
-
+		verify(mockTableManagerSupport, times(1)).validateTableIsAvailable(tableId);
 	}
 
 	/**
@@ -896,11 +855,6 @@ public class TableRowManagerImplTest {
 	@Test
 	public void testQueryIsConsistentTrueLockUnavilableException() throws Exception {
 		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		// First the status is checked show available.
-		TableStatus status = new TableStatus();
-		status.setTableId(tableId);
-		status.setState(TableState.AVAILABLE);
-		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
 		// Throw a lock LockUnavilableException
 		when(mockWriteReadSemaphoreRunner.tryRunWithReadLock(any(ProgressCallback.class),anyString(), anyInt(), any(ProgressingCallable.class))).thenThrow(new LockUnavilableException());
 		try{
@@ -971,11 +925,6 @@ public class TableRowManagerImplTest {
 		queryBundle.setQuery(query);
 
 		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		TableStatus status = new TableStatus();
-		status.setTableId(tableId);
-		status.setState(TableState.AVAILABLE);
-		status.setLastTableChangeEtag("etag");
-		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
 
 		// Request query only
 		queryBundle.setPartMask(TableRowManagerImpl.BUNDLE_MASK_QUERY_RESULTS);
@@ -1073,153 +1022,11 @@ public class TableRowManagerImplTest {
 				results, mockProgressCallback);
 		verify(mockProgressCallback, times(3)).progressMade(anyLong());
 	}
-	
-	/**
-	 * For this case the table status is available and the index is synchronized with the truth.
-	 * The available status should be returned for this case.
-	 * @throws Exception
-	 */
-	@Test
-	public void testGetTableStatusOrCreateIfNotExistsAvailableSynchronized() throws Exception {
-		// Available
-		status.setState(TableState.AVAILABLE);
-		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
-		// synchronized
-		when(mockTableIndexDAO.doesIndexStateMatch(anyString(), anyLong(), anyString())).thenReturn(true);
-		// not expired
-		when(mockTimeoutUtils.hasExpired(anyLong(), anyLong())).thenReturn(false);
-		// table exists
-		when(mockNodeDAO.isNodeAvailable(tableIdLong)).thenReturn(true);
-		// call under test
-		TableStatus result = manager.getTableStatusOrCreateIfNotExists(tableId);
-		assertNotNull(result);
-		verify(mockTableStatusDAO, never()).resetTableStatusToProcessing(tableId);
-		verify(mockTransactionalMessenger, never()).sendMessageAfterCommit(tableId, ObjectType.TABLE, ETAG, ChangeType.UPDATE);
-	}
-	
-	/**
-	 * This is a test case for PLFM-3383, PLFM-3379, and PLFM-3762.  In all cases the table 
-	 * status was available but the index was not synchronized with the truth.
-	 * @throws Exception
-	 */
-	@Test
-	public void testGetTableStatusOrCreateIfNotExistsAvailableNotSynchronized() throws Exception {
-		// Available
-		status.setState(TableState.AVAILABLE);
-		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
-		// Not synchronized
-		when(mockTableIndexDAO.doesIndexStateMatch(anyString(), anyLong(), anyString())).thenReturn(false);
-		// not expired
-		when(mockTimeoutUtils.hasExpired(anyLong(), anyLong())).thenReturn(false);
-		// table exists
-		when(mockNodeDAO.isNodeAvailable(tableIdLong)).thenReturn(true);
-		// call under test
-		TableStatus result = manager.getTableStatusOrCreateIfNotExists(tableId);
-		assertNotNull(result);
-		// must trigger processing
-		verify(mockTableStatusDAO).resetTableStatusToProcessing(tableId);
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(tableId, ObjectType.TABLE, ETAG, ChangeType.UPDATE);
-	}
-	
-	/**
-	 * This is a case where the table status does not exist but the table exits.
-	 * The table must be be set to processing for this case.
-	 * @throws Exception
-	 */
-	@Test
-	public void testGetTableStatusOrCreateIfNotExistsStatusNotFoundTableExits() throws Exception {
-		// Available
-		status.setState(TableState.PROCESSING);
-		// Setup a case where the first time the status does not exists, but does exist the second call.
-		when(mockTableStatusDAO.getTableStatus(tableId)).thenThrow(new NotFoundException("No status for this table.")).thenReturn(status);
-		// synchronized
-		when(mockTableIndexDAO.doesIndexStateMatch(anyString(), anyLong(), anyString())).thenReturn(true);
-		// not expired
-		when(mockTimeoutUtils.hasExpired(anyLong(), anyLong())).thenReturn(false);
-		// table exists
-		when(mockNodeDAO.isNodeAvailable(tableIdLong)).thenReturn(true);
-		// call under test
-		TableStatus result = manager.getTableStatusOrCreateIfNotExists(tableId);
-		assertNotNull(result);
-		verify(mockTableStatusDAO).resetTableStatusToProcessing(tableId);
-		verify(mockNodeDAO).isNodeAvailable(tableIdLong);
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(tableId, ObjectType.TABLE, ETAG, ChangeType.UPDATE);
-	}
-	
-	/**
-	 * This is a case where the table status does not exist and the table does not exist.
-	 * Should result in a NotFoundException
-	 * @throws Exception
-	 */
-	@Test (expected=NotFoundException.class)
-	public void testGetTableStatusOrCreateIfNotExistsStatusNotFoundTableDoesNotExist() throws Exception {
-		// Available
-		status.setState(TableState.PROCESSING);
-		// Setup a case where the first time the status does not exists, but does exist the second call.
-		when(mockTableStatusDAO.getTableStatus(tableId)).thenThrow(new NotFoundException("No status for this table.")).thenReturn(status);
-		// synchronized
-		when(mockTableIndexDAO.doesIndexStateMatch(anyString(), anyLong(), anyString())).thenReturn(true);
-		// not expired
-		when(mockTimeoutUtils.hasExpired(anyLong(), anyLong())).thenReturn(false);
-		// table does not exists
-		when(mockNodeDAO.isNodeAvailable(tableIdLong)).thenReturn(false);
-		// call under test
-		TableStatus result = manager.getTableStatusOrCreateIfNotExists(tableId);
-	}
-	
-	/**
-	 * For this case the table is processing and making progress (not expired).
-	 * So the processing status should be returned without resetting.
-	 * @throws Exception
-	 */
-	@Test
-	public void testGetTableStatusOrCreateIfNotExistsProcessingNotExpired() throws Exception {
-		// Available
-		status.setState(TableState.PROCESSING);
-		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
-		// synchronized
-		when(mockTableIndexDAO.doesIndexStateMatch(anyString(), anyLong(), anyString())).thenReturn(true);
-		// not expired
-		when(mockTimeoutUtils.hasExpired(anyLong(), anyLong())).thenReturn(false);
-		// table exists
-		when(mockNodeDAO.isNodeAvailable(tableIdLong)).thenReturn(true);
-		// call under test
-		TableStatus result = manager.getTableStatusOrCreateIfNotExists(tableId);
-		assertNotNull(result);
-		verify(mockTableStatusDAO, never()).resetTableStatusToProcessing(tableId);
-		verify(mockTransactionalMessenger, never()).sendMessageAfterCommit(tableId, ObjectType.TABLE, ETAG, ChangeType.UPDATE);
-	}
-	
-	/**
-	 * For this case the table is processing and not making progress .
-	 * The status must be rest to processing to trigger another try.
-	 * @throws Exception
-	 */
-	@Test
-	public void testGetTableStatusOrCreateIfNotExistsProcessingExpired() throws Exception {
-		// Available
-		status.setState(TableState.PROCESSING);
-		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
-		// synchronized
-		when(mockTableIndexDAO.doesIndexStateMatch(anyString(), anyLong(), anyString())).thenReturn(true);
-		//expired
-		when(mockTimeoutUtils.hasExpired(anyLong(), anyLong())).thenReturn(true);
-		// table exists
-		when(mockNodeDAO.isNodeAvailable(tableIdLong)).thenReturn(true);
-		// call under test
-		TableStatus result = manager.getTableStatusOrCreateIfNotExists(tableId);
-		assertNotNull(result);
-		verify(mockTableStatusDAO).resetTableStatusToProcessing(tableId);
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(tableId, ObjectType.TABLE, ETAG, ChangeType.UPDATE);
-	}
 
 
 	@Test
 	public void testNextPageToken() throws Exception {
 		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		TableStatus tableStatus = new TableStatus();
-		tableStatus.setState(TableState.AVAILABLE);
-		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(tableStatus);
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(Collections.nCopies(100000, new Row()));
 		when(mockTableIndexDAO.query(any(ProgressCallback.class), any(SqlQuery.class))).thenReturn(rowSet);
@@ -1231,9 +1038,6 @@ public class TableRowManagerImplTest {
 	@Test
 	public void testNextPageTokenEscaping() throws Exception {
 		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		TableStatus tableStatus = new TableStatus();
-		tableStatus.setState(TableState.AVAILABLE);
-		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(tableStatus);
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(Collections.nCopies(100000, new Row()));
 		when(mockTableIndexDAO.query(any(ProgressCallback.class), any(SqlQuery.class))).thenReturn(rowSet);
@@ -1345,128 +1149,12 @@ public class TableRowManagerImplTest {
 	}
 	
 	@Test
-	public void testStartTableProcessing(){
-		String token = "a unique token";
-		when(mockTableStatusDAO.resetTableStatusToProcessing(tableId)).thenReturn(token);
-		// call under test
-		String resultToken = manager.startTableProcessing(tableId);
-		assertEquals(token, resultToken);
-	}
-	
-	@Test
-	public void testIsIndexSynchronizedWithTruthHappy(){
-		long currentVersion = 123L;
-		// setup a mismatch
-		when(mockTableIndexDAO.doesIndexStateMatch(tableId, currentVersion, schemaMD5Hex)).thenReturn(true);
-		
-		TableRowChange lastChange = new TableRowChange();
-		lastChange.setRowVersion(currentVersion);
-		when(mockTruthDao.getLastTableRowChange(tableId)).thenReturn(lastChange);
-		
-		assertTrue(manager.isIndexSynchronizedWithTruth(tableId));
-	}
-	
-	
-	@Test
-	public void testGetVersionOfLastTableChangeNull() throws NotFoundException, IOException{
-		// no last version
-		when(mockTruthDao.getLastTableRowChange(tableId)).thenReturn(null);
-		//call under test
-		assertEquals(-1, manager.getVersionOfLastTableChange(tableId));
-	}
-	
-	@Test
-	public void testGetVersionOfLastTableChange() throws NotFoundException, IOException{
-		long currentVersion = 123L;
-		TableRowChange lastChange = new TableRowChange();
-		lastChange.setRowVersion(currentVersion);
-		when(mockTruthDao.getLastTableRowChange(tableId)).thenReturn(lastChange);
-		// call under test
-		assertEquals(currentVersion, manager.getVersionOfLastTableChange(tableId));
-	}
-	
-	/**
-	 * The node is available, the table status is available and the index is synchronized.
-	 */
-	@Test
-	public void testIsIndexWorkRequiredFalse(){
-		// node exists
-		when(mockNodeDAO.isNodeAvailable(tableIdLong)).thenReturn(true);
-		// synchronized
-		when(mockTableIndexDAO.doesIndexStateMatch(anyString(), anyLong(), anyString())).thenReturn(true);
-		// available
-		TableStatus status = new TableStatus();
-		status.setState(TableState.AVAILABLE);
-		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
-		// call under test
-		boolean workRequired = manager.isIndexWorkRequired(tableId);
-		assertFalse(workRequired);
-	}
-	
-	/**
-	 * The node is missing, the table status is available and the index is synchronized.
-	 */
-	@Test
-	public void testIsIndexWorkRequiredNodeMissing(){
-		// node is missing
-		when(mockNodeDAO.isNodeAvailable(tableIdLong)).thenReturn(false);
-		// not synchronized
-		when(mockTableIndexDAO.doesIndexStateMatch(anyString(), anyLong(), anyString())).thenReturn(false);
-		// failed
-		TableStatus status = new TableStatus();
-		status.setState(TableState.PROCESSING_FAILED);
-		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
-		// call under test
-		boolean workRequired = manager.isIndexWorkRequired(tableId);
-		assertFalse(workRequired);
-	}
-	
-	/**
-	 * The node is available, the table status is available and the index is not synchronized.
-	 * Processing is needed to bring the index up-to-date.
-	 */
-	@Test
-	public void testIsIndexWorkRequiredNotSynched(){
-		// node exists
-		when(mockNodeDAO.isNodeAvailable(tableIdLong)).thenReturn(true);
-		// not synchronized
-		when(mockTableIndexDAO.doesIndexStateMatch(anyString(), anyLong(), anyString())).thenReturn(false);
-		// available
-		TableStatus status = new TableStatus();
-		status.setState(TableState.AVAILABLE);
-		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
-		// call under test
-		boolean workRequired = manager.isIndexWorkRequired(tableId);
-		assertTrue(workRequired);
-	}
-	
-	/**
-	 * The node is available, the table status is processing and the index is synchronized.
-	 * Processing is needed to make the table available.
-	 */
-	@Test
-	public void testIsIndexWorkRequiredStatusProcessing(){
-		// node exists
-		when(mockNodeDAO.isNodeAvailable(tableIdLong)).thenReturn(true);
-		// synchronized
-		when(mockTableIndexDAO.doesIndexStateMatch(anyString(), anyLong(), anyString())).thenReturn(true);
-		// available
-		TableStatus status = new TableStatus();
-		status.setState(TableState.PROCESSING);
-		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
-		// call under test
-		boolean workRequired = manager.isIndexWorkRequired(tableId);
-		assertTrue(workRequired);
-	}
-	
-	@Test
 	public void testSetTableSchema(){
 		List<String> schema = Lists.newArrayList("111","222");
 		// call under test.
 		manager.setTableSchema(user, schema, tableId);
 		verify(mockColumModelManager).bindColumnToObject(user, schema, tableId);
-		verify(mockTableStatusDAO).resetTableStatusToProcessing(tableId);
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(tableId, ObjectType.TABLE, ETAG, ChangeType.UPDATE);
+		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(tableId);
 	}
 	
 	@Test
@@ -1475,6 +1163,6 @@ public class TableRowManagerImplTest {
 		manager.deleteTable(tableId);
 		verify(mockColumModelManager).unbindAllColumnsAndOwnerFromObject(tableId);
 		verify(mockTruthDao).deleteAllRowDataForTable(tableId);
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(tableId, ObjectType.TABLE, ChangeType.DELETE);
+		verify(mockTableManagerSupport).setTableDeleted(tableId, ObjectType.TABLE);
 	}
 }

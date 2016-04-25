@@ -308,7 +308,9 @@
        	<property name="maxBytesPerChangeSet" ref="stackConfiguration.tableMaxBytesPerChangeSet"/>
     </bean>
  
-	<bean id="tableViewManager" class="org.sagebionetworks.repo.manager.table.TableViewManagerImpl" scope="singleton" />
+	<bean id="fileViewManager" class="org.sagebionetworks.repo.manager.table.FileViewManagerImpl" scope="singleton" />
+	
+	<bean id="tableManagerSupport" class="org.sagebionetworks.repo.manager.table.TableManagerSupportImpl" scope="singleton" />
     
     <bean id="tableIndexConnectionFactory" class="org.sagebionetworks.repo.manager.table.TableIndexConnectionFactoryImpl" scope="singleton" >
     </bean>

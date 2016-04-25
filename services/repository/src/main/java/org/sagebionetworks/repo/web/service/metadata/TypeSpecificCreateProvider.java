@@ -10,5 +10,5 @@ public interface TypeSpecificCreateProvider<T extends Entity> extends EntityProv
 	 * @param userInfo
 	 * @param entityId
 	 */
-	public void entityCreated(UserInfo userInfo, String entityId);
+	public void entityCreated(UserInfo userInfo, T entity);
 }

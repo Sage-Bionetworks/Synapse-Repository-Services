@@ -8,6 +8,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.sagebionetworks.repo.model.dbo.dao.NodeDAOImpl.TRASH_FOLDER_ID;
 
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -19,6 +20,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
+import java.util.zip.CRC32;
 
 import org.junit.After;
 import org.junit.Before;
@@ -2804,6 +2806,36 @@ public class NodeDAOImplTest {
 		String doesNotExist = "syn9999999";
 		// call under test
 		nodeDao.getProjectId(doesNotExist);
+	}
+	
+	@Test
+	public void testCalculateCRCForAllFilesWithinContainers() throws UnsupportedEncodingException{
+		// create a project
+		Node project = NodeTestUtils.createNew("Project", creatorUserGroupId);
+		project.setNodeType(EntityType.project);
+		project = nodeDao.createNewNode(project);
+		toDelete.add(project.getId());
+		assertNotNull(project);
+		// add a file
+		Node file = NodeTestUtils.createNew("file", creatorUserGroupId);
+		file.setNodeType(EntityType.file);
+		file.setParentId(project.getId());
+		file = nodeDao.createNewNode(file);
+		
+		Long projectId = KeyFactory.stringToKey(project.getId());
+		Set<Long> containers = Sets.newHashSet(projectId);
+		//  call under test
+		long crcResults = nodeDao.calculateCRCForAllFilesWithinContainers(containers);
+		assertTrue(crcResults > 0L);
+	}
+	
+	@Test
+	public void testCalculateCRCForAllFilesWithinContainersEmpty() throws UnsupportedEncodingException{
+		// empty containers
+		Set<Long> containers = new HashSet<Long>(0);
+		//  call under test
+		long crcResults = nodeDao.calculateCRCForAllFilesWithinContainers(containers);
+		assertEquals(0, crcResults);
 	}
 		
 

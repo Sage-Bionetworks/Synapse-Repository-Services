@@ -136,6 +136,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private static final String SELECT_ENTITY_HEADERS_FOR_ENTITY_IDS = "SELECT "+COL_NODE_ID+", "+COL_NODE_NAME+", "+COL_NODE_TYPE+", "+COL_CURRENT_REV+", "+COL_NODE_BENEFACTOR_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" IN (:nodeIds)";
 	private static final String USER_ID_PARAM_NAME = "user_id_param";
 	private static final String IDS_PARAM_NAME = "ids_param";
+	private static final String SQL_SELECT_FILE_CRC32 = "SELECT SUM(CRC32(CONCAT("+COL_NODE_ID+", '-',"+COL_NODE_ETAG+"))) FROM "+TABLE_NODE+" WHERE "+COL_NODE_TYPE+" = '"+EntityType.file+"' AND "+COL_NODE_PARENT_ID+" IN (:"+IDS_PARAM_NAME+")";
 	private static final String SQL_SELECT_HIERARCHY_FOR_PARENTS_IN = "SELECT "+COL_NODE_ID+", "+COL_NODE_PARENT_ID+", "+COL_NODE_BENEFACTOR_ID+", "+COL_NODE_PROJECT_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_PARENT_ID+" IN (:"+IDS_PARAM_NAME+") ORDER BY "+COL_NODE_ID+" ASC";
 	private static final String SQL_SELECT_CONTAINERS_WITH_PARENT_IDS_IN_CLAUSE = "SELECT "+COL_NODE_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_PARENT_ID+" IN (:"+IDS_PARAM_NAME+") AND "+COL_NODE_TYPE+" IN ('"+EntityType.folder.name()+"', '"+EntityType.project.name()+"') ORDER BY "+COL_NODE_ID+" ASC";
 	private static final String PROJECT_ID_PARAM_NAME = "project_id_param";
@@ -1707,6 +1708,18 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		} catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException("Did not find an Entity for ID: "+nodeId);
 		}
+	}
+
+	@Override
+	public long calculateCRCForAllFilesWithinContainers(Set<Long> viewContainers) {
+		ValidateArgument.required(viewContainers, "viewContainers");
+		if(viewContainers.isEmpty()){
+			// a simple default for the empty case.
+			return 0;
+		}
+		Map<String, Set<Long>> parameters = new HashMap<String, Set<Long>>(1);
+		parameters.put(IDS_PARAM_NAME, viewContainers);
+		return namedParameterJdbcTemplate.queryForObject(SQL_SELECT_FILE_CRC32, parameters, Long.class);
 	}
 
 }
