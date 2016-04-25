@@ -1187,7 +1187,7 @@ public class TableRowManagerImpl implements TableRowManager {
 	public void setTableSchema(UserInfo userInfo, List<String> columnIds,
 			String id) {
 		columModelManager.bindColumnToObject(userInfo, columnIds, id);
-		tableStatusManager.setTableToProcessingAndTriggerUpdate(id, ObjectType.TABLE);
+		tableStatusManager.setTableToProcessingAndTriggerUpdate(id);
 	}
 
 	@WriteTransactionReadCommitted
@@ -1195,7 +1195,7 @@ public class TableRowManagerImpl implements TableRowManager {
 	public void deleteTable(String deletedId) {
 		columModelManager.unbindAllColumnsAndOwnerFromObject(deletedId);
 		deleteAllRows(deletedId);
-		tableStatusManager.setTableDeleted(deletedId);
+		tableStatusManager.setTableDeleted(deletedId, ObjectType.TABLE);
 	}
 
 }

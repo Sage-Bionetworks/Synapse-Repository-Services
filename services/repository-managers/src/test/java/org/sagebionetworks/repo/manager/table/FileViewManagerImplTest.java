@@ -8,7 +8,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -54,7 +53,7 @@ public class FileViewManagerImplTest {
 		manager.setViewSchemaAndScope(userInfo, schema, scope, viewId);
 		verify(viewScopeDao).setViewScope(555L, Sets.newHashSet(123L, 456L));
 		verify(columnModelManager).bindColumnToObject(userInfo, schema, viewId);
-		verify(mockTableStatusManager).setTableToProcessingAndTriggerUpdate(viewId, ObjectType.FILE_VIEW);
+		verify(mockTableStatusManager).setTableToProcessingAndTriggerUpdate(viewId);
 	}
 	
 	@Test
@@ -64,7 +63,7 @@ public class FileViewManagerImplTest {
 		manager.setViewSchemaAndScope(userInfo, schema, scope, viewId);
 		verify(viewScopeDao).setViewScope(555L, Sets.newHashSet(123L, 456L));
 		verify(columnModelManager).bindColumnToObject(userInfo, null, viewId);
-		verify(mockTableStatusManager).setTableToProcessingAndTriggerUpdate(viewId, ObjectType.FILE_VIEW);
+		verify(mockTableStatusManager).setTableToProcessingAndTriggerUpdate(viewId);
 	}
 	
 	@Test
@@ -74,7 +73,7 @@ public class FileViewManagerImplTest {
 		manager.setViewSchemaAndScope(userInfo, schema, scope, viewId);
 		verify(viewScopeDao).setViewScope(555L, null);
 		verify(columnModelManager).bindColumnToObject(userInfo, schema, viewId);
-		verify(mockTableStatusManager).setTableToProcessingAndTriggerUpdate(viewId, ObjectType.FILE_VIEW);
+		verify(mockTableStatusManager).setTableToProcessingAndTriggerUpdate(viewId);
 	}
 
 }

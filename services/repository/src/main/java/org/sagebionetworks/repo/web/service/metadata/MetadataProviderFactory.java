@@ -7,6 +7,6 @@ import org.sagebionetworks.repo.model.EntityType;
 
 public interface MetadataProviderFactory {
 	
-	public List<EntityProvider<Entity>> getMetadataProvider(EntityType type);
+	public List<EntityProvider<? extends Entity>> getMetadataProvider(EntityType type);
 
 }

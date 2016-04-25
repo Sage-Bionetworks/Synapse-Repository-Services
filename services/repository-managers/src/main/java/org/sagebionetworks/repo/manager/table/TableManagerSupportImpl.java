@@ -90,25 +90,14 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	
 	/*
 	 * (non-Javadoc)
-	 * @see org.sagebionetworks.repo.manager.table.TableStatusManager#setTableToProcessingAndTriggerUpdate(java.lang.String)
+	 * @see org.sagebionetworks.repo.manager.table.TableManagerSupport#setTableToProcessingAndTriggerUpdate(java.lang.String)
 	 */
 	@WriteTransactionReadCommitted
 	@Override
 	public TableStatus setTableToProcessingAndTriggerUpdate(String tableId) {
+		ValidateArgument.required(tableId, "tableId");
 		// lookup the table type.
 		ObjectType tableType = getTableType(tableId);
-		return setTableToProcessingAndTriggerUpdate(tableId, tableType);
-	}
-	/*
-	 * (non-Javadoc)
-	 * @see org.sagebionetworks.repo.manager.table.TableStatusManager#setTableToProcessingAndTriggerUpdate(java.lang.String, org.sagebionetworks.repo.model.ObjectType)
-	 */
-	@WriteTransactionReadCommitted
-	@Override
-	public TableStatus setTableToProcessingAndTriggerUpdate(String tableId,
-			ObjectType tableType) {
-		ValidateArgument.required(tableId, "tableId");
-		ValidateArgument.required(tableType, "tableType");
 		// we get here, if the index for this table is not (yet?) being build. We need to kick off the
 		// building of the index and report the table as unavailable
 		String token = tableStatusDAO.resetTableStatusToProcessing(tableId);
@@ -191,8 +180,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	 */
 	@WriteTransactionReadCommitted
 	@Override
-	public void setTableDeleted(String deletedId) {
-		ObjectType tableType = getTableType(deletedId);
+	public void setTableDeleted(String deletedId, ObjectType tableType) {
 		transactionalMessenger.sendMessageAfterCommit(deletedId, tableType, ChangeType.DELETE);
 	}
 

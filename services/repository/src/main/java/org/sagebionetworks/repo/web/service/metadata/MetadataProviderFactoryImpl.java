@@ -13,39 +13,39 @@ import org.springframework.beans.factory.InitializingBean;
 public class MetadataProviderFactoryImpl implements MetadataProviderFactory,
 		InitializingBean {
 
-	private Map<String, EntityProvider<Entity>> metadataProviderMap;
-	private Map<String, List<EntityProvider<Entity>>> metadataProviders;
-	private EntityProvider<Entity> locationableProvider;
+	private Map<String, EntityProvider<? extends Entity>> metadataProviderMap;
+	private Map<String, List<EntityProvider<? extends Entity>>> metadataProviders;
+	private EntityProvider<? extends Entity> locationableProvider;
 
 	/**
 	 * @param metadataProviderMap
 	 *            the metadataProviderMap to set
 	 */
-	public void setMetadataProviderMap(Map<String, EntityProvider<Entity>> metadataProviderMap) {
+	public void setMetadataProviderMap(Map<String, EntityProvider<? extends Entity>> metadataProviderMap) {
 		this.metadataProviderMap = metadataProviderMap;
 	}
 
 	@Override
-	public List<EntityProvider<Entity>> getMetadataProvider(
+	public List<EntityProvider<? extends Entity>> getMetadataProvider(
 			EntityType type) {
 
-		List<EntityProvider<Entity>> providers = metadataProviders.get(type.name());
+		List<EntityProvider<? extends Entity>> providers = metadataProviders.get(type.name());
 		return providers;
 	}
 
 	@Override
 	public void afterPropertiesSet() throws Exception {
-		metadataProviders = new HashMap<String, List<EntityProvider<Entity>>>();
+		metadataProviders = new HashMap<String, List<EntityProvider<? extends Entity>>>();
 
 		locationableProvider = this.metadataProviderMap.get("locationable");
 
-		for (Entry<String, EntityProvider<Entity>> providerEntry : metadataProviderMap
+		for (Entry<String, EntityProvider<? extends Entity>> providerEntry : metadataProviderMap
 				.entrySet()) {
 			if (providerEntry.getValue() == locationableProvider) {
 				continue;
 			}
 
-			List<EntityProvider<Entity>> allProvidersForType = new LinkedList<EntityProvider<Entity>>();
+			List<EntityProvider<? extends Entity>> allProvidersForType = new LinkedList<EntityProvider<? extends Entity>>();
 			allProvidersForType.add(providerEntry.getValue());
 
 			EntityType type = EntityType.valueOf(providerEntry.getKey());

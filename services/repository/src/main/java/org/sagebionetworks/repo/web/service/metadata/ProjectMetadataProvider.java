@@ -9,7 +9,6 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.discussion.Forum;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.Topic;
-import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -29,8 +28,8 @@ public class ProjectMetadataProvider implements TypeSpecificMetadataProvider<Pro
 	}
 
 	@Override
-	public void entityCreated(UserInfo userInfo, String entityId) {
-		Forum forum = forumManager.createForum(userInfo, entityId);
+	public void entityCreated(UserInfo userInfo, Project project) {
+		Forum forum = forumManager.createForum(userInfo, project.getId());
 		Topic toSubscribe = new Topic();
 		toSubscribe.setObjectId(forum.getId());
 		toSubscribe.setObjectType(SubscriptionObjectType.FORUM);

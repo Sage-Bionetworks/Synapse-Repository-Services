@@ -124,20 +124,11 @@ public interface TableManagerSupport {
 	public TableStatus setTableToProcessingAndTriggerUpdate(String tableId);
 
 	/**
-	 * 
-	 * @param tableId
-	 * @param tableType
-	 * @return
-	 */
-	public TableStatus setTableToProcessingAndTriggerUpdate(String tableId,
-			ObjectType tableType);
-
-	/**
 	 * Set the table to be deleted.
 	 * 
 	 * @param deletedId
 	 */
-	public void setTableDeleted(String deletedId);
+	public void setTableDeleted(String deletedId, ObjectType tableType);
 
 	/**
 	 * Validate the table is available.

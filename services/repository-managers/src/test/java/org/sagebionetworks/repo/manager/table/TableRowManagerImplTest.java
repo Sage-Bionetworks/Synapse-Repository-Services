@@ -1154,7 +1154,7 @@ public class TableRowManagerImplTest {
 		// call under test.
 		manager.setTableSchema(user, schema, tableId);
 		verify(mockColumModelManager).bindColumnToObject(user, schema, tableId);
-		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(tableId, ObjectType.TABLE);
+		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(tableId);
 	}
 	
 	@Test
@@ -1163,6 +1163,6 @@ public class TableRowManagerImplTest {
 		manager.deleteTable(tableId);
 		verify(mockColumModelManager).unbindAllColumnsAndOwnerFromObject(tableId);
 		verify(mockTruthDao).deleteAllRowDataForTable(tableId);
-		verify(mockTableManagerSupport).setTableDeleted(tableId);
+		verify(mockTableManagerSupport).setTableDeleted(tableId, ObjectType.TABLE);
 	}
 }
