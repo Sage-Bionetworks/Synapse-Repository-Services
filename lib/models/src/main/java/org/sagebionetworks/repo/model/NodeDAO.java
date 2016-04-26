@@ -510,4 +510,12 @@ public interface NodeDAO {
 	 */
 	public long calculateCRCForAllFilesWithinContainers(Set<Long> viewContainers);
 
+	/**
+	 * Return a set of fileHandleIds that associated with entityId and appear in the provided list.
+	 * 
+	 * @param fileHandleIds
+	 * @param entityId
+	 * @return
+	 */
+	public Set<Long> getFileHandleIdsAssociatedWithFileEntity(List<Long> fileHandleIds, long entityId);
 }

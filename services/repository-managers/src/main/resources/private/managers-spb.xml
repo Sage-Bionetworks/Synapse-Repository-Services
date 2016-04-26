@@ -192,6 +192,10 @@
 					<bean
 						class="org.sagebionetworks.repo.manager.VerificationFileHandleAssociationProvider" />
 				</entry>
+				<entry key="FileEntity">
+					<bean
+						class="org.sagebionetworks.repo.manager.file.FileEntityFileHandleAssociationProvider" />
+				</entry>
 			</map>
 		</property>
 	</bean>

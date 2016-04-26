@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager;
   
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -12,6 +13,7 @@ import org.apache.commons.lang.BooleanUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.sagebionetworks.manager.util.CollectionUtils;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
@@ -38,7 +40,6 @@ import org.sagebionetworks.repo.model.jdo.EntityNameValidation;
 import org.sagebionetworks.repo.model.jdo.FieldTypeCache;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.RequesterPaysSetting;
 import org.sagebionetworks.repo.model.provenance.Activity;
@@ -835,5 +836,17 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	@Override
 	public String getEntityIdForAlias(String alias) {
 		return nodeDao.getNodeIdByAlias(alias);
+	}
+
+	@Override
+	public Set<String> getFileHandleIdsAssociatedWithFileEntity(List<String> fileHandleIds, String entityId) {
+		ValidateArgument.required(fileHandleIds, "fileHandleIds");
+		ValidateArgument.required(entityId, "entityId");
+		List<Long> fileHandleIdsLong = new ArrayList<Long>();
+		CollectionUtils.convertStringToLong(fileHandleIds, fileHandleIdsLong);
+		Set<Long> returnedFileHandleIds = nodeDao.getFileHandleIdsAssociatedWithFileEntity(fileHandleIdsLong, KeyFactory.stringToKey(entityId));
+		Set<String> results = new HashSet<String>();
+		CollectionUtils.convertLongToString(returnedFileHandleIds, results);
+		return results;
 	}
 }

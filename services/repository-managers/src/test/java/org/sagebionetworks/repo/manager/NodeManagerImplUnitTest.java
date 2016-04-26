@@ -16,7 +16,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -24,6 +26,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
+import org.sagebionetworks.manager.util.CollectionUtils;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.Annotations;
@@ -772,6 +775,29 @@ public class NodeManagerImplUnitTest {
 		assertEquals(allResults.get(0), results.get(0));
 		assertEquals(allResults.get(2), results.get(1));
 	}
-	
-	
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetFileHandleIdsAssociatedWithFileEntityNullFileHandleIds(){
+		nodeManager.getFileHandleIdsAssociatedWithFileEntity(null, "syn123");
+	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetFileHandleIdsAssociatedWithFileEntityNullEntityId(){
+		nodeManager.getFileHandleIdsAssociatedWithFileEntity(new ArrayList<String>(), null);
+	}
+
+	@Test
+	public void testGetFileHandleIdsAssociatedWithFileEntity(){
+		List<String> input = Arrays.asList("1", "2", "3");
+		List<Long> inputLong = new ArrayList<Long>();
+		CollectionUtils.convertStringToLong(input, inputLong);
+		String entityId = "syn123";
+		Set<Long> output = new HashSet<Long>();
+		output.add(2L);
+		when(mockNodeDao.getFileHandleIdsAssociatedWithFileEntity(inputLong, 123L)).thenReturn(output);
+		Set<String> outputString = nodeManager.getFileHandleIdsAssociatedWithFileEntity(input, entityId);
+		assertNotNull(outputString);
+		assertEquals(1L, outputString.size());
+		assertTrue(outputString.contains("2"));
+	}
 }
