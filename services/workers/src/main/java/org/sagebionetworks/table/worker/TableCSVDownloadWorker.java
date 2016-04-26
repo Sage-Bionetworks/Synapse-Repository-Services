@@ -12,7 +12,7 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
-import org.sagebionetworks.repo.manager.table.TableEntityManager;
+import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -46,7 +46,7 @@ public class TableCSVDownloadWorker implements MessageDrivenRunner {
 	@Autowired
 	private AsynchJobStatusManager asynchJobStatusManager;
 	@Autowired
-	private TableEntityManager tableEntityManager;
+	private TableQueryManager tableQueryManger;
 	@Autowired
 	private UserManager userManger;
 	@Autowired
@@ -65,7 +65,7 @@ public class TableCSVDownloadWorker implements MessageDrivenRunner {
 			DownloadFromTableRequest request = (DownloadFromTableRequest) status.getRequestBody();
 			// Before we start determine how many rows there are.
 			ForwardingProgressCallback<Void, Message> forwardCallabck = new ForwardingProgressCallback<Void, Message>(progressCallback, message);
-			Pair<QueryResult, Long> queryResult = tableEntityManager.query(forwardCallabck, user, request.getSql(), request.getSort(), null, null, false, true,
+			Pair<QueryResult, Long> queryResult = tableQueryManger.query(forwardCallabck, user, request.getSql(), request.getSort(), null, null, false, true,
 					true);
 			long rowCount = queryResult.getSecond();
 			// Since each row must first be read from the database then uploaded to S3
@@ -86,7 +86,7 @@ public class TableCSVDownloadWorker implements MessageDrivenRunner {
 			// Execute the actual query and stream the results to the file.
 			DownloadFromTableResult result = null;
 			try{
-				result = tableEntityManager.runConsistentQueryAsStream(forwardCallabck, user, request.getSql(), request.getSort(), stream,
+				result = tableQueryManger.runConsistentQueryAsStream(forwardCallabck, user, request.getSql(), request.getSort(), stream,
 						includeRowIdAndVersion, writeHeaders);
 			}finally{
 				writer.close();

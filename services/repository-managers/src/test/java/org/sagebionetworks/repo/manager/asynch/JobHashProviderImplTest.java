@@ -12,6 +12,7 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.manager.table.TableEntityManagerImpl;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
+import org.sagebionetworks.repo.manager.table.TableQueryManagerImpl;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
@@ -116,7 +117,7 @@ public class JobHashProviderImplTest {
 	
 	@Test
 	public void testGetRequestObjectEtagQueryNextPageToken() throws NotFoundException, IOException{
-		QueryNextPageToken body1 = TableEntityManagerImpl.createNextPageToken("SELECT * FROM SYN123", 100L, 10L, true);
+		QueryNextPageToken body1 = TableQueryManagerImpl.createNextPageToken("SELECT * FROM SYN123", 100L, 10L, true);
 		// call under test
 		String hash = provider.getJobHash(body1);
 		assertEquals("c7cb5c28b91dae3fd40d6f8e4415eb75", hash);

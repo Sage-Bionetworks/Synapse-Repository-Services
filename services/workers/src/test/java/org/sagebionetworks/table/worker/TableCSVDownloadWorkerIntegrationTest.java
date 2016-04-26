@@ -30,6 +30,7 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
+import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -78,6 +79,8 @@ public class TableCSVDownloadWorkerIntegrationTest {
 	EntityManager entityManager;
 	@Autowired
 	TableEntityManager tableEntityManager;
+	@Autowired
+	TableQueryManager tableQueryManger;
 	@Autowired
 	ColumnModelManager columnManager;
 	@Autowired
@@ -308,7 +311,7 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		long start = System.currentTimeMillis();
 		while(true){
 			try {
-				return tableEntityManager.query(mockProgressCallback, adminUserInfo, sql, null, 0L, 100L, true, false, true).getFirst().getQueryResults();
+				return tableQueryManger.query(mockProgressCallback, adminUserInfo, sql, null, 0L, 100L, true, false, true).getFirst().getQueryResults();
 			} catch (TableUnavilableException e) {
 				assertTrue("Timed out waiting for table index worker to make the table available.", (System.currentTimeMillis()-start) <  MAX_WAIT_MS);
 				assertNotNull(e.getStatus());

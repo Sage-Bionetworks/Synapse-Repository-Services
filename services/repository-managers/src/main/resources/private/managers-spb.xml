@@ -311,6 +311,10 @@
        	<property name="maxBytesPerRequest" ref="stackConfiguration.tableMaxBytesPerRequest"/>
        	<property name="maxBytesPerChangeSet" ref="stackConfiguration.tableMaxBytesPerChangeSet"/>
     </bean>
+    
+    <bean id="tableQueryManager" class="org.sagebionetworks.repo.manager.table.TableQueryManagerImpl" scope="singleton" >
+       	<property name="maxBytesPerRequest" ref="stackConfiguration.tableMaxBytesPerRequest"/>
+    </bean>
  
 	<bean id="fileViewManager" class="org.sagebionetworks.repo.manager.table.FileViewManagerImpl" scope="singleton" />
 	

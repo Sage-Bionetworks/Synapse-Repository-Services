@@ -2,12 +2,18 @@ package org.sagebionetworks.repo.manager.table;
 
 import java.util.Set;
 
+import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 
 /**
  * Low-level support for all of the table managers. Contains low-level
@@ -205,5 +211,94 @@ public interface TableManagerSupport {
 	 * @return
 	 */
 	public Set<Long> getAllContainerIdsForViewScope(String viewId);
+	
+	/**
+	 * <p>
+	 * Attempt to acquire an exclusive lock on a table. If the lock is acquired,
+	 * the passed Callable will be run while holding lock. The lock will
+	 * automatically be release when the caller returns.
+	 * </p>
+	 * There are several possible conditions that can occur.
+	 * <ul>
+	 * <li>An exclusive lock has already been issued to another caller. A
+	 * LockUnavilableException will be thrown for this case.</li>
+	 * <li>One or more non-exclusive locks have been issued for this table. When
+	 * this occurs, a reserve will placed that will block all new non-exclusive
+	 * and exclusive locks. A wait loop will be started to wait for all
+	 * outstanding non-exclusive locks to be release. Once all non-exclusive
+	 * locks are release, the exclusive lock will be issued and the passed
+	 * Caller will be run.</li>
+	 * <li>Another caller has reserved the exclusive lock and is waiting for the
+	 * exclusive lock. A LockUnavilableException will be thrown for this case.</li>
+	 * <li>There are no outstanding non-exclusive locks, no executive lock
+	 * reserver, and no exclusive lock. For this case, the reserver and
+	 * exclusive lock will be acquired and the Callable will be run.</li>
+	 * </ul>
+	 * 
+	 * @param tableId
+	 * @param runner
+	 * @throws LockUnavilableException
+	 *             Thrown when an exclusive lock cannot be acquired.
+	 * 
+	 * @return
+	 * @throws Exception
+	 * @throws InterruptedException
+	 */
+	public <R, T> R tryRunWithTableExclusiveLock(ProgressCallback<T> callback, String tableId, int timeoutMS,
+			ProgressingCallable<R, T> runner) throws LockUnavilableException,
+			InterruptedException, Exception;
+
+	/**
+	 * <p>
+	 * Attempt to acquire a non-exclusive lock on a table. If the lock is
+	 * acquired, the passed Callable will be run while holding lock. The lock
+	 * will automatically be release when the caller returns.
+	 * </p>
+	 * There are several possible conditions that can occur.
+	 * <ul>
+	 * <li>An exclusive lock has already been issued to another caller. A
+	 * LockUnavilableException will be thrown for this case.</li>
+	 * <li>One or more non-exclusive locks have been issued for this table. When
+	 * this occurs another new non-exclusive lock will be acquired and the
+	 * passed Callable will be run. There is no limit to the number of
+	 * non-exclusive locks that can be issued for a single table.</li>
+	 * <li>Another caller has reserved the exclusive lock and is waiting for the
+	 * exclusive lock. A LockUnavilableException will be thrown for this case.</li>
+	 * <li>There are no outstanding locks on this table at all. A new
+	 * non-exclusive lock will be issue and the passed Callable will be run.</li>
+	 * </ul>
+	 * 
+	 * @param tableId
+	 * @param runner
+	 * @return
+	 * @throws LockUnavilableException
+	 * @throws Exception
+	 */
+	public <R, T> R tryRunWithTableNonexclusiveLock(ProgressCallback<T> callback, String tableId,
+			int timeoutMS, ProgressingCallable<R, T> runner) throws LockUnavilableException,
+			Exception;
+
+	/**
+	 * Validate the user has read access to the given table.
+	 * 
+	 * @param userInfo
+	 * @param tableId
+	 * @throws UnauthorizedException
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	void validateTableReadAccess(UserInfo userInfo, String tableId)
+			throws UnauthorizedException, DatastoreException, NotFoundException;
+
+	/**
+	 * Validate the user has write access to the given table.
+	 * @param userInfo
+	 * @param tableId
+	 * @throws UnauthorizedException
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	void validateTableWriteAccess(UserInfo userInfo, String tableId)
+			throws UnauthorizedException, DatastoreException, NotFoundException;
 
 }

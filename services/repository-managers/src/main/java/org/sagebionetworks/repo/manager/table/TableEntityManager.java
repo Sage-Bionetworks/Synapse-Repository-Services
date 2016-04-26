@@ -9,7 +9,6 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dao.table.RowAndHeaderHandler;
 import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
@@ -41,24 +40,6 @@ import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
  * 
  */
 public interface TableEntityManager {
-
-	public static class QueryHandler {
-		private final SqlQuery query;
-		private final RowAndHeaderHandler handler;
-
-		public QueryHandler(SqlQuery query, RowAndHeaderHandler handler) {
-			this.query = query;
-			this.handler = handler;
-		}
-
-		public SqlQuery getQuery() {
-			return query;
-		}
-
-		public RowAndHeaderHandler getHandler() {
-			return handler;
-		}
-	}
 
 	/**
 	 * Append a set of rows to a table.
@@ -207,163 +188,6 @@ public interface TableEntityManager {
 	public RowSet getCellValues(UserInfo userInfo, String tableId, RowReferenceSet rowRefs, ColumnMapper columnMapper)
 			throws IOException, NotFoundException;
 
-	/**
-	 * <p>
-	 * Attempt to acquire an exclusive lock on a table. If the lock is acquired,
-	 * the passed Callable will be run while holding lock. The lock will
-	 * automatically be release when the caller returns.
-	 * </p>
-	 * There are several possible conditions that can occur.
-	 * <ul>
-	 * <li>An exclusive lock has already been issued to another caller. A
-	 * LockUnavilableException will be thrown for this case.</li>
-	 * <li>One or more non-exclusive locks have been issued for this table. When
-	 * this occurs, a reserve will placed that will block all new non-exclusive
-	 * and exclusive locks. A wait loop will be started to wait for all
-	 * outstanding non-exclusive locks to be release. Once all non-exclusive
-	 * locks are release, the exclusive lock will be issued and the passed
-	 * Caller will be run.</li>
-	 * <li>Another caller has reserved the exclusive lock and is waiting for the
-	 * exclusive lock. A LockUnavilableException will be thrown for this case.</li>
-	 * <li>There are no outstanding non-exclusive locks, no executive lock
-	 * reserver, and no exclusive lock. For this case, the reserver and
-	 * exclusive lock will be acquired and the Callable will be run.</li>
-	 * </ul>
-	 * 
-	 * @param tableId
-	 * @param runner
-	 * @throws LockUnavilableException
-	 *             Thrown when an exclusive lock cannot be acquired.
-	 * 
-	 * @return
-	 * @throws Exception
-	 * @throws InterruptedException
-	 */
-	public <R, T> R tryRunWithTableExclusiveLock(ProgressCallback<T> callback, String tableId, int timeoutMS,
-			ProgressingCallable<R, T> runner) throws LockUnavilableException,
-			InterruptedException, Exception;
-
-	/**
-	 * <p>
-	 * Attempt to acquire a non-exclusive lock on a table. If the lock is
-	 * acquired, the passed Callable will be run while holding lock. The lock
-	 * will automatically be release when the caller returns.
-	 * </p>
-	 * There are several possible conditions that can occur.
-	 * <ul>
-	 * <li>An exclusive lock has already been issued to another caller. A
-	 * LockUnavilableException will be thrown for this case.</li>
-	 * <li>One or more non-exclusive locks have been issued for this table. When
-	 * this occurs another new non-exclusive lock will be acquired and the
-	 * passed Callable will be run. There is no limit to the number of
-	 * non-exclusive locks that can be issued for a single table.</li>
-	 * <li>Another caller has reserved the exclusive lock and is waiting for the
-	 * exclusive lock. A LockUnavilableException will be thrown for this case.</li>
-	 * <li>There are no outstanding locks on this table at all. A new
-	 * non-exclusive lock will be issue and the passed Callable will be run.</li>
-	 * </ul>
-	 * 
-	 * @param tableId
-	 * @param runner
-	 * @return
-	 * @throws LockUnavilableException
-	 * @throws Exception
-	 */
-	public <R, T> R tryRunWithTableNonexclusiveLock(ProgressCallback<T> callback, String tableId,
-			int timeoutMS, ProgressingCallable<R, T> runner) throws LockUnavilableException,
-			Exception;
-	/**
-	 * Execute a table query.
-	 * 
-	 * @param user
-	 * @param query
-	 * @param isConsistent
-	 * @return
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 * @throws TableUnavilableException
-	 * @throws TableFailedException
-	 */
-	public Pair<QueryResult, Long> query(ProgressCallback<Void> progressCallback, UserInfo user, String query, List<SortItem> sortList, Long offset, Long limit, boolean runQuery,
-			boolean runCount, boolean isConsistent) throws DatastoreException, NotFoundException, TableUnavilableException,
-			TableFailedException;
-
-	/**
-	 * Execute a table query.
-	 * 
-	 * @param user
-	 * @param query
-	 * @param isConsistent
-	 * @return
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 * @throws TableUnavilableException
-	 * @throws TableFailedException
-	 */
-	public Pair<QueryResult, Long> query(ProgressCallback<Void> progressCallback, UserInfo user, SqlQuery query, Long offset, Long limit, boolean runQuery, boolean runCount,
-			boolean isConsistent) throws DatastoreException, NotFoundException, TableUnavilableException, TableFailedException;
-
-	/**
-	 * get the next page of a query
-	 * 
-	 * @param user
-	 * @param queryPageToken
-	 * @return
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 * @throws TableUnavilableException
-	 * @throws TableFailedException
-	 */
-	public QueryResult queryNextPage(ProgressCallback<Void> progressCallback, UserInfo user, QueryNextPageToken nextPageToken) throws DatastoreException, NotFoundException,
-			TableUnavilableException, TableFailedException;
-
-	/**
-	 * Get a query bundle result
-	 * 
-	 * @param user
-	 * @param queryBundle
-	 * @return
-	 * @throws TableUnavilableException
-	 * @throws NotFoundException
-	 * @throws DatastoreException
-	 * @throws TableFailedException
-	 */
-	public QueryResultBundle queryBundle(ProgressCallback<Void> progressCallback, UserInfo user, QueryBundleRequest queryBundle) throws DatastoreException, NotFoundException,
-			TableUnavilableException, TableFailedException;
-
-	/**
-	 * Run the provided SQL query string and stream the results to the passed CSVWriter. This method will stream over
-	 * the rows and will not keep the row data in memory. This method can be used to stream over results sets that are
-	 * larger than the available system memory, as long as the caller does not hold the resulting rows in memory.
-	 * 
-	 * @param user
-	 * 
-	 * @param sql
-	 * @param list
-	 * @param writer
-	 * @param writeHeader
-	 * @return
-	 * @throws TableUnavilableException
-	 * @throws NotFoundException
-	 * @throws TableFailedException
-	 */
-	DownloadFromTableResult runConsistentQueryAsStream(ProgressCallback<Void> progressCallback, UserInfo user, String sql, List<SortItem> list, CSVWriterStream writer,
-			boolean includeRowIdAndVersion, boolean writeHeader) throws TableUnavilableException, NotFoundException, TableFailedException;
-
-	/**
-	 * Get the maximum number of rows allowed for a single page (get, put, or query) for the given columns.
-	 * @param models
-	 * @return
-	 */
-	public Long getMaxRowsPerPage(ColumnMapper columnMapper);
-
-	/**
-	 * Get the maximum number of rows allowed for a single page (get, put, or query) for the given columns.
-	 * 
-	 * @param models
-	 * @return
-	 */
-	public Long getMaxRowsPerPage(List<ColumnModel> models);
 
 	/**
 	 * Get the columns Models for a list of headers. Only headers that are column models ID will have a column model in

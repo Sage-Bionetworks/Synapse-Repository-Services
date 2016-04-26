@@ -141,36 +141,6 @@ public interface TableServices {
 			NotFoundException;
 
 	/**
-	 * Run a query and bundle additional information.
-	 * 
-	 * @param userId
-	 * @param query
-	 * @param isConsistent
-	 * @param partMask
-	 * @return
-	 * @throws NotFoundException
-	 * @throws DatastoreException
-	 * @throws TableUnavilableException
-	 * @throws TableFailedException
-	 */
-	public QueryResultBundle queryBundle(Long userId, QueryBundleRequest query) throws NotFoundException, DatastoreException,
-			TableUnavilableException, TableFailedException;
-
-	/**
-	 * Get the next page of a query
-	 * 
-	 * @param userId
-	 * @param queryPageToken
-	 * @return
-	 * @throws TableUnavilableException
-	 * @throws NotFoundException
-	 * @throws DatastoreException
-	 * @throws TableFailedException
-	 */
-	public QueryResult queryNextPage(Long userId, QueryNextPageToken nextPageToken) throws DatastoreException, NotFoundException,
-			TableUnavilableException, TableFailedException;
-
-	/**
 	 * Get the max number of rows allowed for a page (get, post, or query) for the given column models.
 	 * @param models
 	 * @return
