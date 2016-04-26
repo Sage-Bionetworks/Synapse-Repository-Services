@@ -31,7 +31,7 @@ import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.manager.table.TableIndexConnectionFactory;
 import org.sagebionetworks.repo.manager.table.TableIndexConnectionUnavailableException;
 import org.sagebionetworks.repo.manager.table.TableIndexManager;
-import org.sagebionetworks.repo.manager.table.TableRowManager;
+import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -56,7 +56,7 @@ public class TableWorkerTest {
 	@Mock
 	ProgressCallback<ChangeMessage> mockProgressCallback;
 	@Mock
-	TableRowManager mockTableRowManager;
+	TableEntityManager mockTableEntityManager;
 	@Mock
 	TableIndexManager mockTableIndexManager;
 	@Mock
@@ -83,7 +83,7 @@ public class TableWorkerTest {
 		when(mockConnectionFactory.connectToTableIndex(anyString())).thenReturn(mockTableIndexManager);
 		
 		// By default we want to the manager to just call the passed callable.
-		stub(mockTableRowManager.tryRunWithTableExclusiveLock(any(ProgressCallback.class),anyString(), anyInt(), any(ProgressingCallable.class))).toAnswer(new Answer<TableWorker.State>() {
+		stub(mockTableEntityManager.tryRunWithTableExclusiveLock(any(ProgressCallback.class),anyString(), anyInt(), any(ProgressingCallable.class))).toAnswer(new Answer<TableWorker.State>() {
 			@Override
 			public TableWorker.State answer(InvocationOnMock invocation) throws Throwable {
 				ProgressingCallable<TableWorker.State, ChangeMessage> callable = (ProgressingCallable<State, ChangeMessage>) invocation.getArguments()[3];
@@ -96,7 +96,7 @@ public class TableWorkerTest {
 		});
 		worker = new TableWorker();
 		ReflectionTestUtils.setField(worker, "connectionFactory", mockConnectionFactory);
-		ReflectionTestUtils.setField(worker, "tableRowManager", mockTableRowManager);
+		ReflectionTestUtils.setField(worker, "tableEntityManager", mockTableEntityManager);
 		ReflectionTestUtils.setField(worker, "configuration", mockConfiguration);
 		ReflectionTestUtils.setField(worker, "tableManagerSupport", mockTableManagerSupport);
 		worker.setTimeoutSeconds(1200L);
@@ -117,7 +117,7 @@ public class TableWorkerTest {
 		tableId = "456";
 		resetToken = "reset-token";
 		currentSchema = Lists.newArrayList();
-		when(mockTableRowManager.getColumnModelsForTable(tableId)).thenReturn(currentSchema);
+		when(mockTableEntityManager.getColumnModelsForTable(tableId)).thenReturn(currentSchema);
 		TableRowChange trc1 = new TableRowChange();
 		trc1.setEtag("etag");
 		trc1.setRowVersion(0L);
@@ -126,16 +126,16 @@ public class TableWorkerTest {
 		trc2.setEtag("etag2");
 		trc2.setRowVersion(1L);
 		trc2.setRowCount(3L);
-		when(mockTableRowManager.listRowSetsKeysForTable(tableId)).thenReturn(Arrays.asList(trc1,trc2));
+		when(mockTableEntityManager.listRowSetsKeysForTable(tableId)).thenReturn(Arrays.asList(trc1,trc2));
 		when(mockTableIndexManager.isVersionAppliedToIndex(anyLong())).thenReturn(false);
 		
 		rowSet1 = new RowSet();
 		rowSet1.setRows(Collections.singletonList(TableModelTestUtils.createRow(0L, 0L, "2")));
-		when(mockTableRowManager.getRowSet(eq(tableId), eq(0L), any(ColumnMapper.class))).thenReturn(rowSet1);
+		when(mockTableEntityManager.getRowSet(eq(tableId), eq(0L), any(ColumnMapper.class))).thenReturn(rowSet1);
 		
 		rowSet2 = new RowSet();
 		rowSet2.setRows(Collections.singletonList(TableModelTestUtils.createRow(0L, 1L, "3")));
-		when(mockTableRowManager.getRowSet(eq(tableId), eq(1L), any(ColumnMapper.class))).thenReturn(rowSet2);
+		when(mockTableEntityManager.getRowSet(eq(tableId), eq(1L), any(ColumnMapper.class))).thenReturn(rowSet2);
 		
 		when(mockTableManagerSupport.startTableProcessing(tableId)).thenReturn(resetToken);
 		
@@ -160,7 +160,7 @@ public class TableWorkerTest {
 	public void testLockTimeoutNotSet() throws Exception{
 		worker = new TableWorker();
 		ReflectionTestUtils.setField(worker, "connectionFactory", mockConnectionFactory);
-		ReflectionTestUtils.setField(worker, "tableRowManager", mockTableRowManager);
+		ReflectionTestUtils.setField(worker, "tableEntityManager", mockTableEntityManager);
 		ReflectionTestUtils.setField(worker, "configuration", mockConfiguration);
 		// call under test
 		worker.run(mockProgressCallback, one);
@@ -239,7 +239,7 @@ public class TableWorkerTest {
 		// call under test
 		worker.run(mockProgressCallback, two);
 		
-		verify(mockTableRowManager, never()).getRowSet(eq(tableId), eq(0L), any(ColumnMapper.class));
+		verify(mockTableEntityManager, never()).getRowSet(eq(tableId), eq(0L), any(ColumnMapper.class));
 		verify(mockTableIndexManager).applyChangeSetToIndex(rowSet2, currentSchema, 1L);
 		
 		// Progress should be made for each change even if there is no work.
@@ -259,17 +259,17 @@ public class TableWorkerTest {
 		TableStatus status = new TableStatus();
 		status.setResetToken(resetToken);
 		List<ColumnModel> currentSchema = Lists.newArrayList();
-		when(mockTableRowManager.getColumnModelsForTable(tableId)).thenReturn(currentSchema);
+		when(mockTableEntityManager.getColumnModelsForTable(tableId)).thenReturn(currentSchema);
 		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
 		TableRowChange trc = new TableRowChange();
 		trc.setEtag("etag");
 		trc.setRowVersion(3L);
 		trc.setRowCount(12L);
-		when(mockTableRowManager.listRowSetsKeysForTable(tableId)).thenReturn(Arrays.asList(trc));
+		when(mockTableEntityManager.listRowSetsKeysForTable(tableId)).thenReturn(Arrays.asList(trc));
 		when(mockTableIndexManager.isVersionAppliedToIndex(trc.getRowVersion())).thenReturn(false);
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(Collections.singletonList(TableModelTestUtils.createRow(0L, 3L, "2")));
-		when(mockTableRowManager.getRowSet(eq(tableId), eq(3L), any(ColumnMapper.class))).thenReturn(rowSet);
+		when(mockTableEntityManager.getRowSet(eq(tableId), eq(3L), any(ColumnMapper.class))).thenReturn(rowSet);
 		two.setObjectType(ObjectType.TABLE);
 		two.setChangeType(ChangeType.UPDATE);
 		two.setObjectEtag(resetToken);
@@ -296,7 +296,7 @@ public class TableWorkerTest {
 		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
 		// This should trigger a failure
 		RuntimeException error = new RuntimeException("Something went horribly wrong!");
-		when(mockTableRowManager.getColumnModelsForTable(tableId)).thenThrow(error);
+		when(mockTableEntityManager.getColumnModelsForTable(tableId)).thenThrow(error);
 		two.setObjectType(ObjectType.TABLE);
 		two.setChangeType(ChangeType.UPDATE);
 		two.setObjectEtag(resetToken);
@@ -369,7 +369,7 @@ public class TableWorkerTest {
 		status.setResetToken(resetToken);
 		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
 		// Simulate a failure to get the lock
-		when(mockTableRowManager.tryRunWithTableExclusiveLock(any(ProgressCallback.class),anyString(), anyInt(), any(ProgressingCallable.class))).thenThrow(new LockUnavilableException("Cannot get a lock at this time"));
+		when(mockTableEntityManager.tryRunWithTableExclusiveLock(any(ProgressCallback.class),anyString(), anyInt(), any(ProgressingCallable.class))).thenThrow(new LockUnavilableException("Cannot get a lock at this time"));
 		two.setObjectType(ObjectType.TABLE);
 		two.setChangeType(ChangeType.UPDATE);
 		two.setObjectEtag(resetToken);
@@ -397,7 +397,7 @@ public class TableWorkerTest {
 		status.setResetToken(resetToken);
 		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
 		// Simulate a failure to get the lock
-		when(mockTableRowManager.tryRunWithTableExclusiveLock(any(ProgressCallback.class),anyString(), anyInt(), any(ProgressingCallable.class))).thenThrow(new InterruptedException("Sop!!!"));
+		when(mockTableEntityManager.tryRunWithTableExclusiveLock(any(ProgressCallback.class),anyString(), anyInt(), any(ProgressingCallable.class))).thenThrow(new InterruptedException("Sop!!!"));
 		two.setObjectType(ObjectType.TABLE);
 		two.setChangeType(ChangeType.UPDATE);
 		two.setObjectEtag(resetToken);

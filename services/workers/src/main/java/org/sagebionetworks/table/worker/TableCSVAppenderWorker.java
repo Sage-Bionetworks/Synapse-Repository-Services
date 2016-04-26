@@ -7,13 +7,12 @@ import java.util.List;
 import org.apache.commons.io.input.CountingInputStream;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ThrottlingProgressCallback;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
-import org.sagebionetworks.repo.manager.table.TableRowManager;
+import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.dbo.dao.table.CSVToRowIterator;
@@ -45,7 +44,7 @@ public class TableCSVAppenderWorker implements MessageDrivenRunner {
 	@Autowired
 	private AsynchJobStatusManager asynchJobStatusManager;
 	@Autowired
-	private TableRowManager tableRowManager;
+	private TableEntityManager tableEntityManager;
 	@Autowired
 	private UserManager userManger;
 	@Autowired
@@ -79,7 +78,7 @@ public class TableCSVAppenderWorker implements MessageDrivenRunner {
 			// Get the filehandle
 			S3FileHandle fileHandle = (S3FileHandle) fileHandleManager.getRawFileHandle(user, body.getUploadFileHandleId());
 			// Get the schema for the table
-			List<ColumnModel> tableSchema = tableRowManager.getColumnModelsForTable(body.getTableId());
+			List<ColumnModel> tableSchema = tableEntityManager.getColumnModelsForTable(body.getTableId());
 			// Get the metadat for this file
 			ObjectMetadata fileMetadata = s3Client.getObjectMetadata(fileHandle.getBucketName(), fileHandle.getKey());
 			long progressCurrent = 0L;
@@ -114,7 +113,7 @@ public class TableCSVAppenderWorker implements MessageDrivenRunner {
 			ProgressingIteratorProxy iteratorProxy = new  ProgressingIteratorProxy(iterator, throttledProgressCallback);
 			// Append the data to the table
 			rowCount = 0;
-			String etag = tableRowManager.appendRowsAsStream(user, body.getTableId(),
+			String etag = tableEntityManager.appendRowsAsStream(user, body.getTableId(),
 					TableModelUtils.createColumnModelColumnMapper(tableSchema, false), iteratorProxy, body.getUpdateEtag(), null,
 					new ProgressCallback<Long>() {
 

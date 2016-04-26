@@ -45,7 +45,7 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.message.RepositoryMessagePublisher;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
-import org.sagebionetworks.repo.manager.table.TableRowManager;
+import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -130,7 +130,7 @@ public class TableWorkerIntegrationTest {
 	@Autowired
 	EntityManager entityManager;
 	@Autowired
-	TableRowManager tableRowManager;
+	TableEntityManager tableEntityManager;
 	@Autowired
 	ColumnModelManager columnManager;
 	@Autowired
@@ -187,14 +187,14 @@ public class TableWorkerIntegrationTest {
 		this.tableId = null;
 		// Start with an empty database
 		this.tableConnectionFactory.dropAllTablesForAllConnections();
-		oldMaxBytesPerRequest = (Integer) ReflectionTestUtils.getField(getTargetObject(tableRowManager), "maxBytesPerRequest");
+		oldMaxBytesPerRequest = (Integer) ReflectionTestUtils.getField(getTargetObject(tableEntityManager), "maxBytesPerRequest");
 	}
 	
 	@After
 	public void after() throws Exception {
 		if (config.getTableEnabled()) {
 			if (tableId != null) {
-				tableRowManager.deleteAllRows(tableId);
+				tableEntityManager.deleteAllRows(tableId);
 				columnManager.unbindAllColumnsAndOwnerFromObject(tableId);
 				entityManager.deleteEntity(adminUserInfo, tableId);
 			}
@@ -205,7 +205,7 @@ public class TableWorkerIntegrationTest {
 			columnManager.truncateAllColumnData(adminUserInfo);
 			// Drop all data in the index database
 			this.tableConnectionFactory.dropAllTablesForAllConnections();
-			ReflectionTestUtils.setField(getTargetObject(tableRowManager), "maxBytesPerRequest", oldMaxBytesPerRequest);
+			ReflectionTestUtils.setField(getTargetObject(tableEntityManager), "maxBytesPerRequest", oldMaxBytesPerRequest);
 			for (UserInfo user : users) {
 				try {
 					userManager.deletePrincipal(adminUserInfo, user.getId());
@@ -231,7 +231,7 @@ public class TableWorkerIntegrationTest {
 		table.setColumnIds(Lists.transform(headers, TableModelUtils.LONG_TO_STRING));
 		tableId = entityManager.createEntity(adminUserInfo, table, null);
 		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableRowManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
+		tableEntityManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
 		// Now add some data
 		List<Row> rows = TableModelTestUtils.createRows(schema, 2);
 		// Add null rows
@@ -243,7 +243,7 @@ public class TableWorkerIntegrationTest {
 		rowSet.setHeaders(TableModelUtils.createColumnModelColumnMapper(schema, false).getSelectColumns());
 		rowSet.setTableId(tableId);
 		long start = System.currentTimeMillis();
-		referenceSet = tableRowManager.appendRows(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false),
+		referenceSet = tableEntityManager.appendRows(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false),
 				rowSet, mockPprogressCallback);
 		System.out.println("Appended "+rowSet.getRows().size()+" rows in: "+(System.currentTimeMillis()-start)+" MS");
 		// Wait for the table to become available
@@ -266,7 +266,7 @@ public class TableWorkerIntegrationTest {
 		assertEquals("The etag should also match the rereferenceSet.etag", referenceSet.getEtag(), queryResult.getQueryResults().getEtag());
 
 		@SuppressWarnings("unchecked")
-		RowSet expectedRowSet = tableRowManager.getRowSet(tableId, referenceSet.getRows().get(0).getVersionNumber(),
+		RowSet expectedRowSet = tableEntityManager.getRowSet(tableId, referenceSet.getRows().get(0).getVersionNumber(),
 				TableModelUtils.createColumnModelColumnMapper(schema, false));
 		assertEquals(expectedRowSet, queryResult.getQueryResults());
 	}
@@ -286,15 +286,15 @@ public class TableWorkerIntegrationTest {
 		table.setColumnIds(Lists.transform(headers, TableModelUtils.LONG_TO_STRING));
 		tableId = entityManager.createEntity(adminUserInfo, table, null);
 		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableRowManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
+		tableEntityManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
 		// Now add some data
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(TableModelTestUtils.createRows(schema, 6));
 		rowSet.setHeaders(TableModelUtils.createColumnModelColumnMapper(schema, false).getSelectColumns());
 		rowSet.setTableId(tableId);
-		referenceSet = tableRowManager.appendRows(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false),
+		referenceSet = tableEntityManager.appendRows(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false),
 				rowSet, mockPprogressCallback);
-		rowSet = tableRowManager.getCellValues(adminUserInfo, tableId, referenceSet,
+		rowSet = tableEntityManager.getCellValues(adminUserInfo, tableId, referenceSet,
 				TableModelUtils.createColumnModelColumnMapper(schema, false));
 		// Wait for the table to become available
 		String sql = "select * from " + tableId + " order by row_id";
@@ -313,56 +313,56 @@ public class TableWorkerIntegrationTest {
 		assertNull(queryResult.getNextPageToken());
 		compareValues(rowSet, 0, 5, queryResult.getQueryResults());
 
-		queryResult = tableRowManager.query(mockProgressCallbackVoid, adminUserInfo, sql, null, 5L, 1L, true, false, true).getFirst();
+		queryResult = tableEntityManager.query(mockProgressCallbackVoid, adminUserInfo, sql, null, 5L, 1L, true, false, true).getFirst();
 		assertEquals(1, queryResult.getQueryResults().getRows().size());
 		assertNull(queryResult.getNextPageToken());
 		compareValues(rowSet, 5, 1, queryResult.getQueryResults());
 
-		queryResult = tableRowManager.query(mockProgressCallbackVoid, adminUserInfo, sql, null, 5L, 2L, true, false, true).getFirst();
+		queryResult = tableEntityManager.query(mockProgressCallbackVoid, adminUserInfo, sql, null, 5L, 2L, true, false, true).getFirst();
 		assertEquals(1, queryResult.getQueryResults().getRows().size());
 		assertNull(queryResult.getNextPageToken());
 		compareValues(rowSet, 5, 1, queryResult.getQueryResults());
 
-		queryResult = tableRowManager.query(mockProgressCallbackVoid, adminUserInfo, sql + " limit 2 offset 3", null, 0L, 8L, true,
+		queryResult = tableEntityManager.query(mockProgressCallbackVoid, adminUserInfo, sql + " limit 2 offset 3", null, 0L, 8L, true,
 				false, true).getFirst();
 		assertEquals(2, queryResult.getQueryResults().getRows().size());
 		assertNull(queryResult.getNextPageToken());
 		compareValues(rowSet, 3, 2, queryResult.getQueryResults());
 
-		queryResult = tableRowManager.query(mockProgressCallbackVoid, adminUserInfo, sql + " limit 8 offset 2", null, 2L, 2L, true,
+		queryResult = tableEntityManager.query(mockProgressCallbackVoid, adminUserInfo, sql + " limit 8 offset 2", null, 2L, 2L, true,
 				false, true).getFirst();
 		assertEquals(2, queryResult.getQueryResults().getRows().size());
 		assertNull(queryResult.getNextPageToken());
 		compareValues(rowSet, 4, 2, queryResult.getQueryResults());
 
-		queryResult = tableRowManager.query(mockProgressCallbackVoid,adminUserInfo, sql + " limit 8 offset 3", null, 2L, 2L, true,
+		queryResult = tableEntityManager.query(mockProgressCallbackVoid,adminUserInfo, sql + " limit 8 offset 3", null, 2L, 2L, true,
 				false, true).getFirst();
 		assertEquals(1, queryResult.getQueryResults().getRows().size());
 		assertNull(queryResult.getNextPageToken());
 		compareValues(rowSet, 5, 1, queryResult.getQueryResults());
 
-		ReflectionTestUtils.setField(getTargetObject(tableRowManager), "maxBytesPerRequest", TableModelUtils.calculateMaxRowSize(schema) * 2);
-		queryResult = tableRowManager.query(mockProgressCallbackVoid, adminUserInfo, sql, null, 0L, 5L, true, false, true).getFirst();
+		ReflectionTestUtils.setField(getTargetObject(tableEntityManager), "maxBytesPerRequest", TableModelUtils.calculateMaxRowSize(schema) * 2);
+		queryResult = tableEntityManager.query(mockProgressCallbackVoid, adminUserInfo, sql, null, 0L, 5L, true, false, true).getFirst();
 		assertEquals(2, queryResult.getQueryResults().getRows().size());
 		assertNotNull(queryResult.getNextPageToken());
 		compareValues(rowSet, 0, 2, queryResult.getQueryResults());
 
-		queryResult = tableRowManager.queryNextPage(mockProgressCallbackVoid, adminUserInfo, queryResult.getNextPageToken());
+		queryResult = tableEntityManager.queryNextPage(mockProgressCallbackVoid, adminUserInfo, queryResult.getNextPageToken());
 		assertEquals(2, queryResult.getQueryResults().getRows().size());
 		assertNotNull(queryResult.getNextPageToken());
 		compareValues(rowSet, 2, 2, queryResult.getQueryResults());
 
-		queryResult = tableRowManager.queryNextPage(mockProgressCallbackVoid, adminUserInfo, queryResult.getNextPageToken());
+		queryResult = tableEntityManager.queryNextPage(mockProgressCallbackVoid, adminUserInfo, queryResult.getNextPageToken());
 		assertEquals(2, queryResult.getQueryResults().getRows().size());
 		assertNull(queryResult.getNextPageToken());
 		compareValues(rowSet, 4, 2, queryResult.getQueryResults());
 
-		queryResult = tableRowManager.query(mockProgressCallbackVoid, adminUserInfo, sql + " limit 3", null, 0L, 100L, true, false, true).getFirst();
+		queryResult = tableEntityManager.query(mockProgressCallbackVoid, adminUserInfo, sql + " limit 3", null, 0L, 100L, true, false, true).getFirst();
 		assertEquals(2, queryResult.getQueryResults().getRows().size());
 		assertNotNull(queryResult.getNextPageToken());
 		compareValues(rowSet, 0, 2, queryResult.getQueryResults());
 
-		queryResult = tableRowManager.queryNextPage(mockProgressCallbackVoid, adminUserInfo, queryResult.getNextPageToken());
+		queryResult = tableEntityManager.queryNextPage(mockProgressCallbackVoid, adminUserInfo, queryResult.getNextPageToken());
 		assertEquals(1, queryResult.getQueryResults().getRows().size());
 		assertNull(queryResult.getNextPageToken());
 		compareValues(rowSet, 2, 1, queryResult.getQueryResults());
@@ -383,7 +383,7 @@ public class TableWorkerIntegrationTest {
 		table.setColumnIds(Lists.transform(headers, TableModelUtils.LONG_TO_STRING));
 		tableId = entityManager.createEntity(adminUserInfo, table, null);
 		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableRowManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
+		tableEntityManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
 		// Now add some data
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(Lists.newArrayList(TableModelTestUtils.createRow(null, null, "a", "1", "10", "3"),
@@ -391,7 +391,7 @@ public class TableWorkerIntegrationTest {
 				TableModelTestUtils.createRow(null, null, "c", "3", "11", "2")));
 		rowSet.setHeaders(TableModelUtils.createColumnModelColumnMapper(schema, false).getSelectColumns());
 		rowSet.setTableId(tableId);
-		referenceSet = tableRowManager.appendRows(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false),
+		referenceSet = tableEntityManager.appendRows(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false),
 				rowSet, mockPprogressCallback);
 
 		// Wait for the table to become available
@@ -428,7 +428,7 @@ public class TableWorkerIntegrationTest {
 		table.setColumnIds(Lists.transform(headers, TableModelUtils.LONG_TO_STRING));
 		tableId = entityManager.createEntity(adminUserInfo, table, null);
 		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableRowManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
+		tableEntityManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
 		// Now add some data
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(Lists.newArrayList(TableModelTestUtils.createRow(null, null, "1.5"), TableModelTestUtils.createRow(null, null, "2.0"),
@@ -436,7 +436,7 @@ public class TableWorkerIntegrationTest {
 				TableModelTestUtils.createRow(null, null, "2.0")));
 		rowSet.setHeaders(TableModelUtils.createColumnModelColumnMapper(schema, false).getSelectColumns());
 		rowSet.setTableId(tableId);
-		referenceSet = tableRowManager.appendRows(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false),
+		referenceSet = tableEntityManager.appendRows(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false),
 				rowSet, mockPprogressCallback);
 
 		// Wait for the table to become available
@@ -460,19 +460,19 @@ public class TableWorkerIntegrationTest {
 
 	@Test(expected = IllegalArgumentException.class)
 	public void testNullNextPageToken() throws Exception {
-		tableRowManager.queryNextPage(mockProgressCallbackVoid, adminUserInfo, null);
+		tableEntityManager.queryNextPage(mockProgressCallbackVoid, adminUserInfo, null);
 	}
 
 	@Test(expected = IllegalArgumentException.class)
 	public void testEmptyNextPageToken() throws Exception {
-		tableRowManager.queryNextPage(mockProgressCallbackVoid, adminUserInfo, new QueryNextPageToken());
+		tableEntityManager.queryNextPage(mockProgressCallbackVoid, adminUserInfo, new QueryNextPageToken());
 	}
 
 	@Test(expected = IllegalArgumentException.class)
 	public void testInvalidNextPageToken() throws Exception {
 		QueryNextPageToken token = new QueryNextPageToken();
 		token.setToken("<invalid/>");
-		tableRowManager.queryNextPage(mockProgressCallbackVoid, adminUserInfo, token);
+		tableEntityManager.queryNextPage(mockProgressCallbackVoid, adminUserInfo, token);
 	}
 
 	@Test
@@ -490,7 +490,7 @@ public class TableWorkerIntegrationTest {
 		table.setColumnIds(Lists.transform(headers, TableModelUtils.LONG_TO_STRING));
 		tableId = entityManager.createEntity(adminUserInfo, table, null);
 		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableRowManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
+		tableEntityManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
 		// Now add some data
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(TableModelTestUtils.createRows(schema, 10));
@@ -501,7 +501,7 @@ public class TableWorkerIntegrationTest {
 		rowSet.getRows().get(4).getValues().set(0, rowSet.getRows().get(0).getValues().get(0));
 		rowSet.setHeaders(TableModelUtils.createColumnModelColumnMapper(schema, false).getSelectColumns());
 		rowSet.setTableId(tableId);
-		referenceSet = tableRowManager.appendRows(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false),
+		referenceSet = tableEntityManager.appendRows(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false),
 				rowSet, mockPprogressCallback);
 
 		// Wait for the table to become available
@@ -607,13 +607,13 @@ public class TableWorkerIntegrationTest {
 		table.setColumnIds(Lists.transform(headers, TableModelUtils.LONG_TO_STRING));
 		tableId = entityManager.createEntity(adminUserInfo, table, null);
 		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableRowManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
+		tableEntityManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
 		// Now add some data
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(TableModelTestUtils.createRows(schema, 10));
 		rowSet.setHeaders(TableModelUtils.createColumnModelColumnMapper(schema, false).getSelectColumns());
 		rowSet.setTableId(tableId);
-		referenceSet = tableRowManager.appendRows(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false),
+		referenceSet = tableEntityManager.appendRows(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false),
 				rowSet, mockPprogressCallback);
 
 		// Wait for the table to become available
@@ -672,9 +672,9 @@ public class TableWorkerIntegrationTest {
 		table.setColumnIds(Lists.transform(headers, TableModelUtils.LONG_TO_STRING));
 		tableId = entityManager.createEntity(adminUserInfo, table, null);
 		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableRowManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
+		tableEntityManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
 		RowSet rowSet = createRowSet(Lists.transform(headers, TableModelUtils.LONG_TO_STRING));
-		tableRowManager.appendRows(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false), rowSet, mockPprogressCallback);
+		tableEntityManager.appendRows(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false), rowSet, mockPprogressCallback);
 		// Wait for the table to become available
 		String sql = "select * from " + tableId + " order by row_id";
 		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 8L);
@@ -707,9 +707,9 @@ public class TableWorkerIntegrationTest {
 		table.setColumnIds(Lists.transform(headers, TableModelUtils.LONG_TO_STRING));
 		tableId = entityManager.createEntity(adminUserInfo, table, null);
 		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableRowManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
+		tableEntityManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
 		RowSet rowSet = createRowSet(Lists.transform(headers, TableModelUtils.LONG_TO_STRING));
-		tableRowManager.appendRows(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false), rowSet, mockPprogressCallback);
+		tableEntityManager.appendRows(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false), rowSet, mockPprogressCallback);
 		// Wait for the table to become available
 		String sql = "select * from " + tableId + " order by row_id";
 		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 8L);
@@ -756,7 +756,7 @@ public class TableWorkerIntegrationTest {
 		table.setColumnIds(Lists.transform(headers, TableModelUtils.LONG_TO_STRING));
 		tableId = entityManager.createEntity(adminUserInfo, table, null);
 		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableRowManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
+		tableEntityManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
 		// Now add some data
 		List<Row> rows = TableModelTestUtils.createRows(schema, 10);
 		// Add null rows
@@ -767,7 +767,7 @@ public class TableWorkerIntegrationTest {
 		rowSet.setRows(rows);
 		rowSet.setHeaders(TableModelUtils.createColumnModelColumnMapper(schema, false).getSelectColumns());
 		rowSet.setTableId(tableId);
-		referenceSet = tableRowManager.appendRows(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false),
+		referenceSet = tableEntityManager.appendRows(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false),
 				rowSet, mockPprogressCallback);
 
 		// Wait for the table to become available
@@ -775,7 +775,7 @@ public class TableWorkerIntegrationTest {
 		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 100L);
 		assertEquals(16, queryResult.getQueryResults().getRows().size());
 
-		RowSet expectedRowSet = tableRowManager.getRowSet(tableId, referenceSet.getRows().get(0).getVersionNumber(),
+		RowSet expectedRowSet = tableEntityManager.getRowSet(tableId, referenceSet.getRows().get(0).getVersionNumber(),
 				TableModelUtils.createColumnModelColumnMapper(schema, false));
 
 		// apply updates to expected and actual
@@ -795,7 +795,7 @@ public class TableWorkerIntegrationTest {
 		PartialRowSet partialRowSet = new PartialRowSet();
 		partialRowSet.setRows(partialRows);
 		partialRowSet.setTableId(tableId);
-		tableRowManager
+		tableEntityManager
 				.appendPartialRows(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false), partialRowSet, mockPprogressCallback);
 
 		queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 100L);
@@ -817,14 +817,14 @@ public class TableWorkerIntegrationTest {
 		table.setName(UUID.randomUUID().toString());
 		table.setColumnIds(Lists.transform(headers, TableModelUtils.LONG_TO_STRING));
 		tableId = entityManager.createEntity(adminUserInfo, table, null);
-		tableRowManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
+		tableEntityManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
 
 		// add data
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(Lists.newArrayList(TableModelTestUtils.createRow(null, null, "a")));
 		rowSet.setHeaders(TableModelUtils.createColumnModelColumnMapper(schema, false).getSelectColumns());
 		rowSet.setTableId(tableId);
-		referenceSet = tableRowManager.appendRows(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false),
+		referenceSet = tableEntityManager.appendRows(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false),
 				rowSet, mockPprogressCallback);
 
 		// Wait for the table to become available
@@ -836,7 +836,7 @@ public class TableWorkerIntegrationTest {
 		// add new column
 		schema.add(columnManager.createColumnModel(adminUserInfo, TableModelTestUtils.createColumn(null, "col2", ColumnType.STRING)));
 		headers = TableModelUtils.getIds(schema);
-		tableRowManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
+		tableEntityManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
 		String newColumnId = ""+headers.get(headers.size()-1);
 		// set data on new column
 		
@@ -844,7 +844,7 @@ public class TableWorkerIntegrationTest {
 		PartialRowSet firstRowChange = new PartialRowSet();
 		firstRowChange.setRows(Lists.newArrayList(firstRow));
 		firstRowChange.setTableId(tableId);
-		tableRowManager.appendPartialRows(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false),
+		tableEntityManager.appendPartialRows(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false),
 				firstRowChange, mockPprogressCallback);
 
 		// wait for table to be available
@@ -856,7 +856,7 @@ public class TableWorkerIntegrationTest {
 		// remove column a
 		schema.remove(0);
 		headers = TableModelUtils.getIds(schema);
-		tableRowManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
+		tableEntityManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
 
 		// wait for table to be available
 		sql = "select * from " + tableId;
@@ -869,7 +869,7 @@ public class TableWorkerIntegrationTest {
 		firstRowChange = new PartialRowSet();
 		firstRowChange.setRows(Lists.newArrayList(firstRow));
 		firstRowChange.setTableId(tableId);
-		tableRowManager.appendPartialRows(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false),
+		tableEntityManager.appendPartialRows(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false),
 				firstRowChange, mockPprogressCallback);
 
 	}
@@ -885,7 +885,7 @@ public class TableWorkerIntegrationTest {
 		table.setColumnIds(Lists.transform(headers, TableModelUtils.LONG_TO_STRING));
 		tableId = entityManager.createEntity(adminUserInfo, table, null);
 		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableRowManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
+		tableEntityManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
 		DateFormat dateTimeInstance = new SimpleDateFormat("yyy-M-d h:mm");
 		dateTimeInstance.setTimeZone(TimeZone.getTimeZone("GMT"));
 		Date[] dates = new Date[] { dateTimeInstance.parse("2014-2-3 2:12"), dateTimeInstance.parse("2014-2-3 3:41"),
@@ -900,7 +900,7 @@ public class TableWorkerIntegrationTest {
 		rowSet.setRows(rows);
 		rowSet.setHeaders(TableModelUtils.createColumnModelColumnMapper(schema, false).getSelectColumns());
 		rowSet.setTableId(tableId);
-		referenceSet = tableRowManager.appendRows(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false),
+		referenceSet = tableEntityManager.appendRows(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false),
 				rowSet, mockPprogressCallback);
 
 		// Wait for the table to become available
@@ -931,7 +931,7 @@ public class TableWorkerIntegrationTest {
 		table.setColumnIds(Lists.transform(headers, TableModelUtils.LONG_TO_STRING));
 		tableId = entityManager.createEntity(adminUserInfo, table, null);
 		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableRowManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
+		tableEntityManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
 		Double[] doubles = { Double.NaN, null, Double.NEGATIVE_INFINITY, -Double.MAX_VALUE, -1.0, 0.0, 1.0, 3e42, Double.MAX_VALUE,
 				Double.POSITIVE_INFINITY };
 		String[] expected = { "NaN", null, "-Infinity", "-1.7976931348623157e308", "-1", "0", "1", "3e42", "1.7976931348623157e308",
@@ -947,7 +947,7 @@ public class TableWorkerIntegrationTest {
 		rowSet.setRows(rows);
 		rowSet.setHeaders(TableModelUtils.createColumnModelColumnMapper(schema, false).getSelectColumns());
 		rowSet.setTableId(tableId);
-		referenceSet = tableRowManager.appendRows(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false),
+		referenceSet = tableEntityManager.appendRows(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false),
 				rowSet, mockPprogressCallback);
 
 		// Wait for the table to become available
@@ -999,7 +999,7 @@ public class TableWorkerIntegrationTest {
 		table.setColumnIds(Lists.transform(headers, TableModelUtils.LONG_TO_STRING));
 		tableId = entityManager.createEntity(adminUserInfo, table, null);
 		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableRowManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
+		tableEntityManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
 
 		String[] booleans = new String[] { null, "", "true", "false", "True", "False", "TRUE", "FALSE", Boolean.TRUE.toString(),
 				Boolean.FALSE.toString(), Boolean.FALSE.toString() };
@@ -1017,7 +1017,7 @@ public class TableWorkerIntegrationTest {
 		rowSet.setRows(rows);
 		rowSet.setHeaders(TableModelUtils.createColumnModelColumnMapper(schema, false).getSelectColumns());
 		rowSet.setTableId(tableId);
-		referenceSet = tableRowManager.appendRows(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false),
+		referenceSet = tableEntityManager.appendRows(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false),
 				rowSet, mockPprogressCallback);
 
 		String[] failingBooleans = new String[] { "1", "0", "2", "falseish", "nottrue" };
@@ -1030,7 +1030,7 @@ public class TableWorkerIntegrationTest {
 			failRowSet.setHeaders(TableModelUtils.createColumnModelColumnMapper(schema, false).getSelectColumns());
 			failRowSet.setTableId(tableId);
 			try {
-				tableRowManager.appendRows(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false), failRowSet, mockPprogressCallback);
+				tableEntityManager.appendRows(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false), failRowSet, mockPprogressCallback);
 				fail("Should have rejected as boolean: " + failingBoolean);
 			} catch (IllegalArgumentException e) {
 			}
@@ -1095,14 +1095,14 @@ public class TableWorkerIntegrationTest {
 		table.setColumnIds(Lists.transform(headers, TableModelUtils.LONG_TO_STRING));
 		tableId = entityManager.createEntity(adminUserInfo, table, null);
 		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableRowManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
+		tableEntityManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
 		// Now add some data
 		List<Row> rows = TableModelTestUtils.createRows(schema, 4);
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(rows);
 		rowSet.setHeaders(TableModelUtils.createColumnModelColumnMapper(schema, false).getSelectColumns());
 		rowSet.setTableId(tableId);
-		referenceSet = tableRowManager.appendRows(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false),
+		referenceSet = tableEntityManager.appendRows(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false),
 				rowSet, mockPprogressCallback);
 		assertEquals(4, referenceSet.getRows().size());
 
@@ -1119,7 +1119,7 @@ public class TableWorkerIntegrationTest {
 		TableModelTestUtils.updateRow(schema, updateRows.get(1), 444);
 		TableModelTestUtils.updateRow(schema, updateRows.get(2), 555);
 		rowSet.setRows(updateRows);
-		RowReferenceSet referenceSet2 = tableRowManager.appendRows(adminUserInfo, tableId,
+		RowReferenceSet referenceSet2 = tableEntityManager.appendRows(adminUserInfo, tableId,
 				TableModelUtils.createColumnModelColumnMapper(schema, false), rowSet, mockPprogressCallback);
 		assertEquals(3, referenceSet2.getRows().size());
 
@@ -1127,7 +1127,7 @@ public class TableWorkerIntegrationTest {
 		rowsToDelete.setEtag(referenceSet2.getEtag());
 		rowsToDelete.setRowIds(Lists.newArrayList(referenceSet2.getRows().get(1).getRowId(), referenceSet.getRows().get(3).getRowId()));
 
-		referenceSet = tableRowManager.deleteRows(adminUserInfo, tableId, rowsToDelete);
+		referenceSet = tableEntityManager.deleteRows(adminUserInfo, tableId, rowsToDelete);
 		assertEquals(2, referenceSet.getRows().size());
 
 		// Wait for the table to become available
@@ -1159,7 +1159,7 @@ public class TableWorkerIntegrationTest {
 		table.setName(UUID.randomUUID().toString());
 		table.setColumnIds(Lists.transform(headers, TableModelUtils.LONG_TO_STRING));
 		tableId = entityManager.createEntity(adminUserInfo, table, null);
-		tableRowManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
+		tableEntityManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
 
 		// Now add some data
 		List<Row> rows = Lists.newArrayList();
@@ -1170,7 +1170,7 @@ public class TableWorkerIntegrationTest {
 		rowSet.setRows(rows);
 		rowSet.setHeaders(TableModelUtils.createColumnModelColumnMapper(schema, false).getSelectColumns());
 		rowSet.setTableId(tableId);
-		referenceSet = tableRowManager.appendRows(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false),
+		referenceSet = tableEntityManager.appendRows(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false),
 				rowSet, mockPprogressCallback);
 
 		// Wait for the table to become available
@@ -1229,7 +1229,7 @@ public class TableWorkerIntegrationTest {
 		partialRowSet.setTableId(tableId);
 		partialRowSet.setRows(Lists.newArrayList(partialRowAppend, partialRowAppendForDelete1, partialRowAppendForDelete2,
 				partialRowUpdateNull, partialRowUpdateNonNull, partialRowUpdateNothing, partialRowUpdateNulls));
-		tableRowManager
+		tableEntityManager
 				.appendPartialRows(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false), partialRowSet, mockPprogressCallback);
 
 		queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 100L);
@@ -1268,7 +1268,7 @@ public class TableWorkerIntegrationTest {
 		table.setName(UUID.randomUUID().toString());
 		table.setColumnIds(Lists.transform(headers, TableModelUtils.LONG_TO_STRING));
 		tableId = entityManager.createEntity(adminUserInfo, table, null);
-		tableRowManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
+		tableEntityManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
 
 		// Now add a file handle
 		ExternalFileHandle fileHandle1 = new ExternalFileHandle();
@@ -1286,7 +1286,7 @@ public class TableWorkerIntegrationTest {
 		rowSet.setRows(rows);
 		rowSet.setHeaders(TableModelUtils.createColumnModelColumnMapper(schema, false).getSelectColumns());
 		rowSet.setTableId(tableId);
-		referenceSet = tableRowManager.appendRows(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false),
+		referenceSet = tableEntityManager.appendRows(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false),
 				rowSet, mockPprogressCallback);
 
 		// Wait for the table to become available
@@ -1305,7 +1305,7 @@ public class TableWorkerIntegrationTest {
 		PartialRowSet partialRowSet = new PartialRowSet();
 		partialRowSet.setTableId(tableId);
 		partialRowSet.setRows(Lists.newArrayList(partialRowAppend));
-		tableRowManager
+		tableEntityManager
 				.appendPartialRows(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false), partialRowSet, mockPprogressCallback);
 
 		queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 100L);
@@ -1322,7 +1322,7 @@ public class TableWorkerIntegrationTest {
 		partialRowSet = new PartialRowSet();
 		partialRowSet.setTableId(tableId);
 		partialRowSet.setRows(Lists.newArrayList(partialRowAppend));
-		tableRowManager
+		tableEntityManager
 				.appendPartialRows(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false), partialRowSet, mockPprogressCallback);
 
 		queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 100L);
@@ -1356,7 +1356,7 @@ public class TableWorkerIntegrationTest {
 		table.setColumnIds(Lists.transform(headers, TableModelUtils.LONG_TO_STRING));
 		tableId = entityManager.createEntity(adminUserInfo, table, null);
 		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableRowManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
+		tableEntityManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
 		// Now add some data
 		List<Row> rows = TableModelTestUtils.createRows(schema, 500000);
 		RowSet rowSet = new RowSet();
@@ -1364,7 +1364,7 @@ public class TableWorkerIntegrationTest {
 		rowSet.setHeaders(TableModelUtils.createColumnModelColumnMapper(schema, false).getSelectColumns());
 		rowSet.setTableId(tableId);
 		long start = System.currentTimeMillis();
-		String etag = tableRowManager.appendRowsAsStream(adminUserInfo, tableId,
+		String etag = tableEntityManager.appendRowsAsStream(adminUserInfo, tableId,
 				TableModelUtils.createColumnModelColumnMapper(schema, false),
 				rowSet.getRows().iterator(), null, null, null);
 		System.out.println("Appended "+rowSet.getRows().size()+" rows in: "+(System.currentTimeMillis()-start)+" MS");
@@ -1400,7 +1400,7 @@ public class TableWorkerIntegrationTest {
 		table.setColumnIds(Lists.transform(headers, TableModelUtils.LONG_TO_STRING));
 		tableId = entityManager.createEntity(adminUserInfo, table, null);
 		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableRowManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
+		tableEntityManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
 		// Now add some data
 		List<Row> rows = TableModelTestUtils.createRows(schema, 10);
 		RowSet rowSet = new RowSet();
@@ -1408,7 +1408,7 @@ public class TableWorkerIntegrationTest {
 		rowSet.setHeaders(TableModelUtils.createColumnModelColumnMapper(schema, false).getSelectColumns());
 		rowSet.setTableId(tableId);
 		long start = System.currentTimeMillis();
-		tableRowManager.appendRowsAsStream(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false), rowSet
+		tableEntityManager.appendRowsAsStream(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false), rowSet
 				.getRows()
 				.iterator(), null, null, null);
 		System.out.println("Appended "+rowSet.getRows().size()+" rows in: "+(System.currentTimeMillis()-start)+" MS");
@@ -1474,7 +1474,7 @@ public class TableWorkerIntegrationTest {
 		table.setColumnIds(null);
 		tableId = entityManager.createEntity(adminUserInfo, table, null);
 		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableRowManager.setTableSchema(adminUserInfo, null, tableId);
+		tableEntityManager.setTableSchema(adminUserInfo, null, tableId);
 		// We should be able to query
 		String sql = "select * from " + tableId;
 		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 1L);
@@ -1508,7 +1508,7 @@ public class TableWorkerIntegrationTest {
 		table.setColumnIds(Lists.transform(headers, TableModelUtils.LONG_TO_STRING));
 		tableId = entityManager.createEntity(adminUserInfo, table, null);
 		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableRowManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
+		tableEntityManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
 		// We should be able to query
 		String sql = "select * from " + tableId;
 		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 1L);
@@ -1546,7 +1546,7 @@ public class TableWorkerIntegrationTest {
 		table.setColumnIds(Lists.transform(headers, TableModelUtils.LONG_TO_STRING));
 		tableId = entityManager.createEntity(adminUserInfo, table, null);
 		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableRowManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
+		tableEntityManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
 		// Create some CSV data
 		List<String[]> input = new ArrayList<String[]>(3);
 		input.add(new String[] { "a", "b", "c" });
@@ -1558,7 +1558,7 @@ public class TableWorkerIntegrationTest {
 		CsvNullReader reader = TableModelTestUtils.createReader(input);
 		// Write the CSV to the table
 		CSVToRowIterator iterator = new CSVToRowIterator(schema, reader, true, null);
-		tableRowManager.appendRowsAsStream(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false), iterator,
+		tableEntityManager.appendRowsAsStream(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false), iterator,
 				null, null, null);
 		// Now wait for the table index to be ready
 		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, "select * from " + tableId, null, 100L);
@@ -1609,7 +1609,7 @@ public class TableWorkerIntegrationTest {
 		reader = TableModelTestUtils.createReader(copy);
 		// Use the data to update the table
 		iterator = new CSVToRowIterator(schema, reader, true, null);
-		tableRowManager.appendRowsAsStream(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false), iterator,
+		tableEntityManager.appendRowsAsStream(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false), iterator,
 				response.getEtag(), null, null);
 		// Fetch the results again but this time without row id and version so it can be used to create a new table.
 		stringWriter = new StringWriter();
@@ -1640,14 +1640,14 @@ public class TableWorkerIntegrationTest {
 		table.setColumnIds(Lists.transform(headers, TableModelUtils.LONG_TO_STRING));
 		tableId = entityManager.createEntity(adminUserInfo, table, null);
 		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableRowManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
+		tableEntityManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
 		// Create some CSV data
 		String[][] input = { { "a", "b" }, { "A", "1" }, { "A", "2" }, { "C", "4" } };
 		// This is the starting input stream
 		CsvNullReader reader = TableModelTestUtils.createReader(Lists.newArrayList(input));
 		// Write the CSV to the table
 		CSVToRowIterator iterator = new CSVToRowIterator(schema, reader, true, null);
-		tableRowManager.appendRowsAsStream(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false), iterator,
+		tableEntityManager.appendRowsAsStream(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false), iterator,
 				null,
 				null, null);
 		// Now wait for the table index to be ready
@@ -1732,12 +1732,12 @@ public class TableWorkerIntegrationTest {
 		table.setParentId(projectId);
 		tableId = entityManager.createEntity(owner, table, null);
 		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableRowManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
-		tableRowManager.appendRows(owner, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false),
+		tableEntityManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
+		tableEntityManager.appendRows(owner, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false),
 				createRowSet(Lists.transform(headers, TableModelUtils.LONG_TO_STRING)), mockPprogressCallback);
 
 		try {
-			tableRowManager.appendRows(notOwner, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false),
+			tableEntityManager.appendRows(notOwner, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false),
 					createRowSet(Lists.transform(headers, TableModelUtils.LONG_TO_STRING)), mockPprogressCallback);
 			fail("no update permissions");
 		} catch (UnauthorizedException e) {
@@ -1763,7 +1763,7 @@ public class TableWorkerIntegrationTest {
 		acl.getResourceAccess().add(ra);
 		acl = entityPermissionsManager.updateACL(acl, adminUserInfo);
 
-		tableRowManager.appendRows(notOwner, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false),
+		tableEntityManager.appendRows(notOwner, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false),
 				createRowSet(Lists.transform(headers, TableModelUtils.LONG_TO_STRING)), mockPprogressCallback);
 		waitForConsistentQuery(notOwner, sql, null, 8L);
 
@@ -1790,7 +1790,7 @@ public class TableWorkerIntegrationTest {
 		accessApprovalManager.createAccessApproval(notOwner, aa);
 
 		waitForConsistentQuery(notOwner, sql, null, 8L);
-		tableRowManager.appendRows(notOwner, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false),
+		tableEntityManager.appendRows(notOwner, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false),
 				createRowSet(Lists.transform(headers, TableModelUtils.LONG_TO_STRING)), mockPprogressCallback);
 	}
 
@@ -1816,7 +1816,7 @@ public class TableWorkerIntegrationTest {
 		long start = System.currentTimeMillis();
 		while(true){
 			try {
-				Pair<QueryResult, Long> queryResult = tableRowManager.query(mockProgressCallbackVoid, user, sql, sortItems, 0L, limit, true, false, true);
+				Pair<QueryResult, Long> queryResult = tableEntityManager.query(mockProgressCallbackVoid, user, sql, sortItems, 0L, limit, true, false, true);
 				return queryResult.getFirst();
 			} catch (TableUnavilableException e) {
 				assertTrue("Timed out waiting for table index worker to make the table available.", (System.currentTimeMillis()-start) <  MAX_WAIT_MS);
@@ -1840,7 +1840,7 @@ public class TableWorkerIntegrationTest {
 				query.setOffset(offset);
 				query.setLimit(limit);
 				queryBundleRequest.setQuery(query);
-				QueryResultBundle queryResult = tableRowManager.queryBundle(mockProgressCallbackVoid, user, queryBundleRequest);
+				QueryResultBundle queryResult = tableEntityManager.queryBundle(mockProgressCallbackVoid, user, queryBundleRequest);
 				return queryResult;
 			} catch (TableUnavilableException e) {
 				assertTrue("Timed out waiting for table index worker to make the table available.",
@@ -1868,7 +1868,7 @@ public class TableWorkerIntegrationTest {
 		long start = System.currentTimeMillis();
 		while(true){
 			try {
-				return tableRowManager.runConsistentQueryAsStream(mockProgressCallbackVoid, adminUserInfo, sql, null, writer, includeRowIdAndVersion, writeHeader);
+				return tableEntityManager.runConsistentQueryAsStream(mockProgressCallbackVoid, adminUserInfo, sql, null, writer, includeRowIdAndVersion, writeHeader);
 			} catch (TableUnavilableException e) {
 				assertTrue("Timed out waiting for table index worker to make the table available.", (System.currentTimeMillis()-start) <  MAX_WAIT_MS);
 				assertNotNull(e.getStatus());

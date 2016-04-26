@@ -29,7 +29,7 @@ import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
-import org.sagebionetworks.repo.manager.table.TableRowManager;
+import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -77,7 +77,7 @@ public class TableCSVDownloadWorkerIntegrationTest {
 	@Autowired
 	EntityManager entityManager;
 	@Autowired
-	TableRowManager tableRowManager;
+	TableEntityManager tableEntityManager;
 	@Autowired
 	ColumnModelManager columnManager;
 	@Autowired
@@ -287,7 +287,7 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		table.setColumnIds(Lists.transform(headers, TableModelUtils.LONG_TO_STRING));
 		tableId = entityManager.createEntity(adminUserInfo, table, null);
 		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableRowManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
+		tableEntityManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
 		// Create some CSV data
 		List<String[]> input = new ArrayList<String[]>(3);
 		input.add(new String[] { "a", "b", "c" });
@@ -299,7 +299,7 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		CsvNullReader reader = TableModelTestUtils.createReader(input);
 		// Write the CSV to the table
 		CSVToRowIterator iterator = new CSVToRowIterator(schema, reader, true, null);
-		tableRowManager.appendRowsAsStream(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false), iterator,
+		tableEntityManager.appendRowsAsStream(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false), iterator,
 				null, null, null);
 		return input;
 	}
@@ -308,7 +308,7 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		long start = System.currentTimeMillis();
 		while(true){
 			try {
-				return tableRowManager.query(mockProgressCallback, adminUserInfo, sql, null, 0L, 100L, true, false, true).getFirst().getQueryResults();
+				return tableEntityManager.query(mockProgressCallback, adminUserInfo, sql, null, 0L, 100L, true, false, true).getFirst().getQueryResults();
 			} catch (TableUnavilableException e) {
 				assertTrue("Timed out waiting for table index worker to make the table available.", (System.currentTimeMillis()-start) <  MAX_WAIT_MS);
 				assertNotNull(e.getStatus());

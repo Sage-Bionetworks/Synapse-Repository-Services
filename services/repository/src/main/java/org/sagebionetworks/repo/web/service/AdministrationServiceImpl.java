@@ -20,7 +20,7 @@ import org.sagebionetworks.repo.manager.backup.daemon.BackupDaemonLauncher;
 import org.sagebionetworks.repo.manager.doi.DoiAdminManager;
 import org.sagebionetworks.repo.manager.message.MessageSyndication;
 import org.sagebionetworks.repo.manager.message.RepositoryMessagePublisher;
-import org.sagebionetworks.repo.manager.table.TableRowManager;
+import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -92,9 +92,6 @@ public class AdministrationServiceImpl implements AdministrationService  {
 	
 	@Autowired
 	SemaphoreManager semaphoreManager;
-
-	@Autowired
-	private TableRowManager tableRowManager;
 
 	@Autowired
 	private ConnectionFactory tableConnectionFactory;
