@@ -23,7 +23,7 @@ public class JobHashProviderImpl implements JobHashProvider {
 	
 	private static final String NULL = "NULL";
 	@Autowired
-	TableManagerSupport tableStatusManager;
+	TableManagerSupport tableManagerSupport;
 
 	@Override
 	public String getJobHash(CacheableRequestBody body) {
@@ -121,7 +121,7 @@ public class JobHashProviderImpl implements JobHashProvider {
 	 */
 	private String getTableEtag(String tableId){
 		// Base the etag on the table status
-		TableStatus status = tableStatusManager.getTableStatusOrCreateIfNotExists(tableId);
+		TableStatus status = tableManagerSupport.getTableStatusOrCreateIfNotExists(tableId);
 		return status.getLastTableChangeEtag() + status.getResetToken();
 	}
 }

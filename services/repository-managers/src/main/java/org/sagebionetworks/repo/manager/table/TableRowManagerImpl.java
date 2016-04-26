@@ -125,7 +125,7 @@ public class TableRowManagerImpl implements TableRowManager {
 	@Autowired
 	ColumnModelManager columModelManager;
 	@Autowired
-	TableManagerSupport tableStatusManager;
+	TableManagerSupport tableManagerSupport;
 	
 	/**
 	 * Injected via spring
@@ -318,7 +318,7 @@ public class TableRowManagerImpl implements TableRowManager {
 		RawRowSet rowSetToDelete = new RawRowSet(TableModelUtils.getIds(mapper.getColumnModels()), rowsToDelete.getEtag(), tableId, rows);
 		RowReferenceSet result = tableRowTruthDao.appendRowSetToTable(user.getId().toString(), tableId, mapper, rowSetToDelete);
 		// The table has change so we must reset the state.
-		tableStatusManager.setTableToProcessingAndTriggerUpdate(tableId);
+		tableManagerSupport.setTableToProcessingAndTriggerUpdate(tableId);
 		return result;
 	}
 
@@ -376,7 +376,7 @@ public class TableRowManagerImpl implements TableRowManager {
 			etag = appendBatchOfRowsToTable(user, columnMapper, delta, results, progressCallback);
 		}
 		// The table has change so we must reset the state.
-		tableStatusManager.setTableToProcessingAndTriggerUpdate(tableId);
+		tableManagerSupport.setTableToProcessingAndTriggerUpdate(tableId);
 		return etag;
 	}
 
@@ -902,7 +902,7 @@ public class TableRowManagerImpl implements TableRowManager {
 				@Override
 				public String call(final ProgressCallback<Void> callback) throws Exception {
 					// We can only run this query if the table is available.
-					final TableStatus status = tableStatusManager.validateTableIsAvailable(tableId);
+					final TableStatus status = tableManagerSupport.validateTableIsAvailable(tableId);
 					// We can only run this
 					final TableIndexDAO indexDao = tableConnectionFactory.getConnection(tableId);
 					indexDao.executeInReadTransaction(new TransactionCallback<Void>() {
@@ -923,7 +923,7 @@ public class TableRowManagerImpl implements TableRowManager {
 				}
 			});
 		} catch (LockUnavilableException e) {
-			throw new TableUnavilableException(tableStatusManager.getTableStatusOrCreateIfNotExists(tableId));
+			throw new TableUnavilableException(tableManagerSupport.getTableStatusOrCreateIfNotExists(tableId));
 		} catch(TableUnavilableException e){
 			throw e;
 		} catch (TableFailedException e) {
@@ -1187,7 +1187,7 @@ public class TableRowManagerImpl implements TableRowManager {
 	public void setTableSchema(UserInfo userInfo, List<String> columnIds,
 			String id) {
 		columModelManager.bindColumnToObject(userInfo, columnIds, id);
-		tableStatusManager.setTableToProcessingAndTriggerUpdate(id);
+		tableManagerSupport.setTableToProcessingAndTriggerUpdate(id);
 	}
 
 	@WriteTransactionReadCommitted
@@ -1195,7 +1195,7 @@ public class TableRowManagerImpl implements TableRowManager {
 	public void deleteTable(String deletedId) {
 		columModelManager.unbindAllColumnsAndOwnerFromObject(deletedId);
 		deleteAllRows(deletedId);
-		tableStatusManager.setTableDeleted(deletedId, ObjectType.TABLE);
+		tableManagerSupport.setTableDeleted(deletedId, ObjectType.TABLE);
 	}
 
 }

@@ -2830,6 +2830,22 @@ public class NodeDAOImplTest {
 	}
 	
 	@Test
+	public void testCalculateCRCForAllFilesWithinContainersNoChildren() throws UnsupportedEncodingException{
+		// create a project
+		Node project = NodeTestUtils.createNew("Project", creatorUserGroupId);
+		project.setNodeType(EntityType.project);
+		project = nodeDao.createNewNode(project);
+		toDelete.add(project.getId());
+		assertNotNull(project);
+		
+		Long projectId = KeyFactory.stringToKey(project.getId());
+		Set<Long> containers = Sets.newHashSet(projectId);
+		//  call under test
+		long crcResults = nodeDao.calculateCRCForAllFilesWithinContainers(containers);
+		assertEquals(0, crcResults);
+	}
+	
+	@Test
 	public void testCalculateCRCForAllFilesWithinContainersEmpty() throws UnsupportedEncodingException{
 		// empty containers
 		Set<Long> containers = new HashSet<Long>(0);

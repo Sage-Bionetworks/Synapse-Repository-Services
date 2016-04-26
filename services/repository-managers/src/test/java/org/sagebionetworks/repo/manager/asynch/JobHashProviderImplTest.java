@@ -22,20 +22,20 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 public class JobHashProviderImplTest {
 	
-	TableManagerSupport mockTableStatusManager;
+	TableManagerSupport mockTableManagerSupport;
 	JobHashProvider provider;
 	TableStatus tableStatus;
 	
 	@Before
 	public void before() throws NotFoundException, IOException{
-		mockTableStatusManager = Mockito.mock(TableManagerSupport.class);
+		mockTableManagerSupport = Mockito.mock(TableManagerSupport.class);
 		provider = new JobHashProviderImpl();
-		ReflectionTestUtils.setField(provider, "tableStatusManager", mockTableStatusManager);
+		ReflectionTestUtils.setField(provider, "tableManagerSupport", mockTableManagerSupport);
 		
 		tableStatus = new TableStatus();
 		tableStatus.setLastTableChangeEtag("someEtag");
 		tableStatus.setResetToken("someResetToken");
-		when(mockTableStatusManager.getTableStatusOrCreateIfNotExists(anyString())).thenReturn(tableStatus);
+		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(anyString())).thenReturn(tableStatus);
 	}
 	
 	@Test
@@ -86,7 +86,7 @@ public class JobHashProviderImplTest {
 		
 		// an empty table will have a null lastTableChangeEtag
 		tableStatus.setLastTableChangeEtag(null);
-		when(mockTableStatusManager.getTableStatusOrCreateIfNotExists(body1.getEntityId())).thenReturn(tableStatus);
+		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(body1.getEntityId())).thenReturn(tableStatus);
 		// call under test
 		String etag = provider.getJobHash(body1);
 		assertEquals("172bcd947ddd904155e4cc35e06a410d", etag);

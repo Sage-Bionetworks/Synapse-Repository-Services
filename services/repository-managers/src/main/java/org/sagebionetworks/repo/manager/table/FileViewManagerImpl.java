@@ -18,7 +18,7 @@ public class FileViewManagerImpl implements FileViewManager {
 	@Autowired
 	ColumnModelManager columModelManager;
 	@Autowired
-	TableManagerSupport tableStatusManager;
+	TableManagerSupport tableManagerSupport;
 	
 	/*
 	 * (non-Javadoc)
@@ -38,7 +38,7 @@ public class FileViewManagerImpl implements FileViewManager {
 		// Define the schema of this view.
 		columModelManager.bindColumnToObject(userInfo, schema, viewIdString);
 		// trigger an update
-		tableStatusManager.setTableToProcessingAndTriggerUpdate(viewIdString);
+		tableManagerSupport.setTableToProcessingAndTriggerUpdate(viewIdString);
 	}
 
 

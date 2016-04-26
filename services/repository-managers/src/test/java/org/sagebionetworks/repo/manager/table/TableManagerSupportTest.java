@@ -421,8 +421,7 @@ public class TableManagerSupportTest {
 		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(
 				EntityType.project);
 		// call under test
-		ObjectType type = manager.getTableType(tableId);
-		assertEquals(ObjectType.FILE_VIEW, type);
+		manager.getTableType(tableId);
 	}
 	
 	@Test

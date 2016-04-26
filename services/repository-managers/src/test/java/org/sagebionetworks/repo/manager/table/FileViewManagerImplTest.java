@@ -22,7 +22,7 @@ public class FileViewManagerImplTest {
 	@Mock
 	ColumnModelManager columnModelManager;
 	@Mock
-	TableManagerSupport mockTableStatusManager;
+	TableManagerSupport tableManagerSupport;
 	
 	FileViewManagerImpl manager;
 	
@@ -38,7 +38,7 @@ public class FileViewManagerImplTest {
 		manager = new FileViewManagerImpl();
 		ReflectionTestUtils.setField(manager, "viewScopeDao", viewScopeDao);
 		ReflectionTestUtils.setField(manager, "columModelManager", columnModelManager);
-		ReflectionTestUtils.setField(manager, "tableStatusManager", mockTableStatusManager);
+		ReflectionTestUtils.setField(manager, "tableManagerSupport", tableManagerSupport);
 		
 		userInfo = new UserInfo(false, 888L);
 		schema = Lists.newArrayList("1","2","3");
@@ -53,7 +53,7 @@ public class FileViewManagerImplTest {
 		manager.setViewSchemaAndScope(userInfo, schema, scope, viewId);
 		verify(viewScopeDao).setViewScope(555L, Sets.newHashSet(123L, 456L));
 		verify(columnModelManager).bindColumnToObject(userInfo, schema, viewId);
-		verify(mockTableStatusManager).setTableToProcessingAndTriggerUpdate(viewId);
+		verify(tableManagerSupport).setTableToProcessingAndTriggerUpdate(viewId);
 	}
 	
 	@Test
@@ -63,7 +63,7 @@ public class FileViewManagerImplTest {
 		manager.setViewSchemaAndScope(userInfo, schema, scope, viewId);
 		verify(viewScopeDao).setViewScope(555L, Sets.newHashSet(123L, 456L));
 		verify(columnModelManager).bindColumnToObject(userInfo, null, viewId);
-		verify(mockTableStatusManager).setTableToProcessingAndTriggerUpdate(viewId);
+		verify(tableManagerSupport).setTableToProcessingAndTriggerUpdate(viewId);
 	}
 	
 	@Test
@@ -73,7 +73,7 @@ public class FileViewManagerImplTest {
 		manager.setViewSchemaAndScope(userInfo, schema, scope, viewId);
 		verify(viewScopeDao).setViewScope(555L, null);
 		verify(columnModelManager).bindColumnToObject(userInfo, schema, viewId);
-		verify(mockTableStatusManager).setTableToProcessingAndTriggerUpdate(viewId);
+		verify(tableManagerSupport).setTableToProcessingAndTriggerUpdate(viewId);
 	}
 
 }
