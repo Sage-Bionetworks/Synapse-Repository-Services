@@ -54,7 +54,7 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 	@Autowired
 	TableRowManager tableRowManager;
 	@Autowired
-	TableManagerSupport tableStatusManager;
+	TableManagerSupport tableManagerSupport;
 	@Autowired
 	StackConfiguration configuration;
 	@Autowired
@@ -110,7 +110,7 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 		// Attempt to run with
 		try {
 			// Only proceed if work is needed.
-			if(!tableStatusManager.isIndexWorkRequired(tableId)){
+			if(!tableManagerSupport.isIndexWorkRequired(tableId)){
 				log.info("No work needed for table "+tableId);
 				return State.SUCCESS;
 			}
@@ -119,7 +119,7 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 			 * Before we start working on the table make sure it is in the processing mode.
 			 * This will generate a new reset token and will not broadcast the change.
 			 */
-			final String tableResetToken = tableStatusManager.startTableProcessing(tableId);
+			final String tableResetToken = tableManagerSupport.startTableProcessing(tableId);
 
 			// Run with the exclusive lock on the table if we can get it.
 			return tableRowManager.tryRunWithTableExclusiveLock(progressCallback,tableId,
@@ -178,12 +178,12 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 					tableId, tableResetToken, change);
 			// We are finished set the status
 			log.info("Create index " + tableId + " done");
-			tableStatusManager.attemptToSetTableStatusToAvailable(tableId,
+			tableManagerSupport.attemptToSetTableStatusToAvailable(tableId,
 					tableResetToken, lastEtag);
 			return State.SUCCESS;
 		} catch (TableUnavilableException e) {
 			// recoverable
-			tableStatusManager.attemptToUpdateTableProgress(tableId,
+			tableManagerSupport.attemptToUpdateTableProgress(tableId,
 					tableResetToken, e.getStatus().getProgressMessage(), e
 							.getStatus().getProgressCurrent(), e.getStatus()
 							.getProgressTotal());
@@ -195,7 +195,7 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 			StringWriter writer = new StringWriter();
 			e.printStackTrace(new PrintWriter(writer));
 			// Attempt to set the status to failed.
-			tableStatusManager.attemptToSetTableStatusToFailed(tableId,
+			tableManagerSupport.attemptToSetTableStatusToFailed(tableId,
 					tableResetToken, e.getMessage(), writer.toString());
 			// This is not an error we can recover from.
 			log.info("Create index " + tableId + " aborted, unrecoverable");
@@ -229,14 +229,14 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 		ColumnMapper mapper = TableModelUtils.createColumnModelColumnMapper(
 				currentSchema, false);
 		// Create or update the table with this schema.
-		tableStatusManager.attemptToUpdateTableProgress(tableId, resetToken,
+		tableManagerSupport.attemptToUpdateTableProgress(tableId, resetToken,
 				"Creating table ", 0L, 100L);
 		
 		// Setup the table's index.
 		indexManager.setIndexSchema(currentSchema);
 
 		// List all of the changes
-		tableStatusManager.attemptToUpdateTableProgress(tableId, resetToken,
+		tableManagerSupport.attemptToUpdateTableProgress(tableId, resetToken,
 				"Getting current table row versions ", 0L, 100L);
 
 		// List all change sets applied to this table.
@@ -267,7 +267,7 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 			if(!indexManager.isVersionAppliedToIndex(changeSet.getRowVersion())){
 				// This is a change that we must apply.
 				RowSet rowSet = tableRowManager.getRowSet(tableId, changeSet.getRowVersion(), mapper);
-				tableStatusManager.attemptToUpdateTableProgress(tableId,
+				tableManagerSupport.attemptToUpdateTableProgress(tableId,
 						resetToken, "Applying " + rowSet.getRows().size()
 								+ " rows for version: " + changeSet.getRowVersion(), currentProgress,
 								totalProgress);

@@ -239,6 +239,10 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	// Track the trash folder.
 	public static final Long TRASH_FOLDER_ID = Long.parseLong(StackConfiguration.getTrashFolderEntityIdStatic());
 	
+	/* The default CRC32 to use for no results.
+	 */
+	public static long DEFAULT_EMPTY_CRC = 0;
+	
 	private static final RowMapper<EntityHeader> ENTITY_HEADER_ROWMAPPER = new RowMapper<EntityHeader>() {
 		@Override
 		public EntityHeader mapRow(ResultSet rs, int rowNum) throws SQLException {
@@ -1714,12 +1718,17 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	public long calculateCRCForAllFilesWithinContainers(Set<Long> viewContainers) {
 		ValidateArgument.required(viewContainers, "viewContainers");
 		if(viewContainers.isEmpty()){
-			// a simple default for the empty case.
-			return 0;
+			// default
+			return DEFAULT_EMPTY_CRC;
 		}
 		Map<String, Set<Long>> parameters = new HashMap<String, Set<Long>>(1);
 		parameters.put(IDS_PARAM_NAME, viewContainers);
-		return namedParameterJdbcTemplate.queryForObject(SQL_SELECT_FILE_CRC32, parameters, Long.class);
+		Long result = namedParameterJdbcTemplate.queryForObject(SQL_SELECT_FILE_CRC32, parameters, Long.class);
+		if(result == null){
+			// default
+			return DEFAULT_EMPTY_CRC;
+		}
+		return result;
 	}
 
 }
