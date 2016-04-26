@@ -20,6 +20,7 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.collections.Transform;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
+import org.sagebionetworks.manager.util.CollectionUtils;
 import org.sagebionetworks.manager.util.Validate;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
@@ -1060,7 +1061,7 @@ public class TableRowManagerImpl implements TableRowManager {
 		if(!filesHandleIds.isEmpty()){
 			// convert the longs to strings.
 			List<String> fileHandesToCheck = new LinkedList<String>();
-			TableModelUtils.convertLongToString(filesHandleIds, fileHandesToCheck);
+			CollectionUtils.convertLongToString(filesHandleIds, fileHandesToCheck);
 			// Which files were created by the user?
 			Set<String> filesCreatedByUser = fileHandleDao.getFileHandleIdsCreatedByUser(user.getId(), fileHandesToCheck);
 			// build up the set of files not created by the user.
@@ -1137,10 +1138,10 @@ public class TableRowManagerImpl implements TableRowManager {
 	public Set<String> getFileHandleIdsAssociatedWithTable(String tableId,
 			List<String> toTest) {
 		Set<Long> longSet = new HashSet<Long>(toTest.size());
-		TableModelUtils.convertStringToLong(toTest, longSet);
+		CollectionUtils.convertStringToLong(toTest, longSet);
 		Set<Long> results = getFileHandleIdsAssociatedWithTable(tableId, longSet);
 		Set<String> resultString = new HashSet<String>(results.size());
-		TableModelUtils.convertLongToString(results, resultString);
+		CollectionUtils.convertLongToString(results, resultString);
 		return resultString;
 	}
 
