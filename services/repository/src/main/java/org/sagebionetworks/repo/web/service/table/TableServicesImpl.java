@@ -10,7 +10,7 @@ import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
-import org.sagebionetworks.repo.manager.table.TableRowManager;
+import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.FileHandle;
@@ -39,8 +39,6 @@ import com.google.common.collect.Lists;
 
 /**
  * Basic implementation of the TableServices.
- * 
- * @author John
  *
  */
 public class TableServicesImpl implements TableServices {
@@ -52,7 +50,7 @@ public class TableServicesImpl implements TableServices {
 	@Autowired
 	EntityManager entityManager;
 	@Autowired
-	TableRowManager tableRowManager;
+	TableEntityManager tableEntityManager;
 	@Autowired
 	FileHandleManager fileHandleManager;
 
@@ -101,7 +99,7 @@ public class TableServicesImpl implements TableServices {
 		Validate.required(rowsToDelete, "rowsToDelete");
 		Validate.required(rowsToDelete.getTableId(), "rowsToDelete.tableId");
 		UserInfo user = userManager.getUserInfo(userId);
-		return tableRowManager.deleteRows(user, rowsToDelete.getTableId(), rowsToDelete);
+		return tableEntityManager.deleteRows(user, rowsToDelete.getTableId(), rowsToDelete);
 	}
 
 	@Override
@@ -111,7 +109,7 @@ public class TableServicesImpl implements TableServices {
 		UserInfo user = userManager.getUserInfo(userId);
 		ColumnMapper columnMap = columnModelManager.getCurrentColumns(user, rowsToGet.getTableId(), rowsToGet.getHeaders());
 
-		return tableRowManager.getCellValues(user, rowsToGet.getTableId(), rowsToGet, columnMap);
+		return tableEntityManager.getCellValues(user, rowsToGet.getTableId(), rowsToGet, columnMap);
 	}
 
 	@Override
@@ -126,7 +124,7 @@ public class TableServicesImpl implements TableServices {
 				throw new IllegalArgumentException("Column " + selectColumnAndModel.getColumnModel().getId() + " is not of type FILEHANDLEID");
 			}
 		}
-		RowSet rowSet = tableRowManager.getCellValues(userInfo, fileHandlesToFind.getTableId(), fileHandlesToFind, mapper);
+		RowSet rowSet = tableEntityManager.getCellValues(userInfo, fileHandlesToFind.getTableId(), fileHandlesToFind, mapper);
 
 		// we expect there to be null entries, but the file handle manager does not
 		List<String> idsList = Lists.newArrayListWithCapacity(mapper.columnModelCount() * rowSet.getRows().size());
@@ -174,7 +172,7 @@ public class TableServicesImpl implements TableServices {
 		if (model.getColumnType() != ColumnType.FILEHANDLEID) {
 			throw new IllegalArgumentException("Column " + columnId + " is not of type FILEHANDLEID");
 		}
-		String fileHandleId = tableRowManager.getCellValue(userInfo, tableId, rowRef, model);
+		String fileHandleId = tableEntityManager.getCellValue(userInfo, tableId, rowRef, model);
 		// Use the FileHandle ID to get the URL
 		return fileHandleManager.getRedirectURLForFileHandle(fileHandleId);
 	}
@@ -191,7 +189,7 @@ public class TableServicesImpl implements TableServices {
 		if (model.getColumnType() != ColumnType.FILEHANDLEID) {
 			throw new IllegalArgumentException("Column " + columnId + " is not of type FILEHANDLEID");
 		}
-		String fileHandleId = tableRowManager.getCellValue(userInfo, tableId, rowRef, model);
+		String fileHandleId = tableEntityManager.getCellValue(userInfo, tableId, rowRef, model);
 		// Use the FileHandle ID to get the URL
 		String previewFileHandleId = fileHandleManager.getPreviewFileHandleId(fileHandleId);
 		return fileHandleManager.getRedirectURLForFileHandle(previewFileHandleId);
@@ -206,7 +204,7 @@ public class TableServicesImpl implements TableServices {
 			TableUnavilableException, TableFailedException {
 		UserInfo user = userManager.getUserInfo(userId);
 
-		return tableRowManager.queryBundle(new ProgressCallback<Void>() {
+		return tableEntityManager.queryBundle(new ProgressCallback<Void>() {
 			
 			@Override
 			public void progressMade(Void t) {
@@ -219,7 +217,7 @@ public class TableServicesImpl implements TableServices {
 	public QueryResult queryNextPage(Long userId, QueryNextPageToken nextPageToken) throws DatastoreException, NotFoundException,
 			TableUnavilableException, TableFailedException {
 		UserInfo user = userManager.getUserInfo(userId);
-		QueryResult queryResult = tableRowManager.queryNextPage(new ProgressCallback<Void>() {
+		QueryResult queryResult = tableEntityManager.queryNextPage(new ProgressCallback<Void>() {
 			
 			@Override
 			public void progressMade(Void t) {
@@ -231,7 +229,7 @@ public class TableServicesImpl implements TableServices {
 
 	@Override
 	public Long getMaxRowsPerPage(List<ColumnModel> models) {
-		return tableRowManager.getMaxRowsPerPage(models);
+		return tableEntityManager.getMaxRowsPerPage(models);
 	}
 	
 }

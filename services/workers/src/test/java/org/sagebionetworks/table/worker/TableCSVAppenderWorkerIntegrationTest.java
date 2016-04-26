@@ -24,7 +24,7 @@ import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
-import org.sagebionetworks.repo.manager.table.TableRowManager;
+import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -52,7 +52,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import au.com.bytecode.opencsv.CSVReader;
 import au.com.bytecode.opencsv.CSVWriter;
 
 import com.amazonaws.services.s3.AmazonS3Client;
@@ -73,7 +72,7 @@ public class TableCSVAppenderWorkerIntegrationTest {
 	@Autowired
 	EntityManager entityManager;
 	@Autowired
-	TableRowManager tableRowManager;
+	TableEntityManager tableEntityManager;
 	@Autowired
 	ColumnModelManager columnManager;
 	@Autowired
@@ -166,7 +165,7 @@ public class TableCSVAppenderWorkerIntegrationTest {
 		table.setName(UUID.randomUUID().toString());
 		tableId = entityManager.createEntity(adminUserInfo, table, null);
 		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableRowManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
+		tableEntityManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
 
 		// Create a CSV file to upload
 		File tempFile = File.createTempFile("TableCSVAppenderWorkerIntegrationTest", ".csv");
@@ -216,7 +215,7 @@ public class TableCSVAppenderWorkerIntegrationTest {
 		assertNotNull(response.getEtag());
 		assertEquals(new Long(rowCount), response.getRowsProcessed());
 		// There should be one change set applied to the table
-		List<TableRowChange> changes = this.tableRowManager.listRowSetsKeysForTable(tableId);
+		List<TableRowChange> changes = this.tableEntityManager.listRowSetsKeysForTable(tableId);
 		assertNotNull(changes);
 		assertEquals(1, changes.size());
 		TableRowChange change = changes.get(0);
@@ -258,7 +257,7 @@ public class TableCSVAppenderWorkerIntegrationTest {
 		table.setName(UUID.randomUUID().toString());
 		tableId = entityManager.createEntity(adminUserInfo, table, null);
 		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableRowManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
+		tableEntityManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
 
 		// Create a CSV file to upload
 		File tempFile = File.createTempFile("TableCSVAppenderWorkerIntegrationTest", ".csv");
@@ -350,7 +349,7 @@ public class TableCSVAppenderWorkerIntegrationTest {
 		status = waitForStatus(adminUserInfo, status);
 
 		// There should be two change sets applied to the table
-		List<TableRowChange> changes = this.tableRowManager.listRowSetsKeysForTable(tableId);
+		List<TableRowChange> changes = this.tableEntityManager.listRowSetsKeysForTable(tableId);
 		assertNotNull(changes);
 		assertEquals(2, changes.size());
 	}

@@ -99,7 +99,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-public class TableRowManagerImplTest {
+public class TableEntityManagerTest {
 	
 	@Mock
 	ProgressCallback<Long> mockProgressCallback;
@@ -131,7 +131,7 @@ public class TableRowManagerImplTest {
 	List<ColumnModel> models;
 	String schemaMD5Hex;
 	
-	TableRowManagerImpl manager;
+	TableEntityManagerImpl manager;
 	UserInfo user;
 	String tableId;
 	Long tableIdLong;
@@ -153,7 +153,7 @@ public class TableRowManagerImplTest {
 		Assume.assumeTrue(StackConfiguration.singleton().getTableEnabled());
 		MockitoAnnotations.initMocks(this);
 		
-		manager = new TableRowManagerImpl();
+		manager = new TableEntityManagerImpl();
 		ReflectionTestUtils.setField(manager, "stackStatusDao", mockStackStatusDao);
 		ReflectionTestUtils.setField(manager, "tableRowTruthDao", mockTruthDao);
 		ReflectionTestUtils.setField(manager, "authorizationManager", mockAuthManager);
@@ -162,7 +162,7 @@ public class TableRowManagerImplTest {
 		ReflectionTestUtils.setField(manager, "writeReadSemaphoreRunner", mockWriteReadSemaphoreRunner);
 		ReflectionTestUtils.setField(manager, "fileHandleDao", mockFileDao);
 		ReflectionTestUtils.setField(manager, "columModelManager", mockColumModelManager);
-		ReflectionTestUtils.setField(manager, "tableStatusManager", mockTableManagerSupport);
+		ReflectionTestUtils.setField(manager, "tableManagerSupport", mockTableManagerSupport);
 
 		// Just call the caller.
 		stub(mockWriteReadSemaphoreRunner.tryRunWithReadLock(any(ProgressCallback.class),anyString(), anyInt(), any(ProgressingCallable.class))).toAnswer(new Answer<Object>() {
@@ -386,7 +386,7 @@ public class TableRowManagerImplTest {
 	
 		Set<Long> columnIds = ImmutableSet.of(123l,456L);
 		try {
-			TableRowManagerImpl.validatePartialRow(partialRow, columnIds);
+			TableEntityManagerImpl.validatePartialRow(partialRow, columnIds);
 			fail("Should have failed since a column name was used and not an ID.");
 		} catch (Exception e) {
 			assertEquals("PartialRow.value.key: 'foo' is not a valid column ID for row ID: null", e.getMessage());
@@ -401,7 +401,7 @@ public class TableRowManagerImplTest {
 	
 		Set<Long> columnIds = ImmutableSet.of(123l,456L);
 		try {
-			TableRowManagerImpl.validatePartialRow(partialRow, columnIds);
+			TableEntityManagerImpl.validatePartialRow(partialRow, columnIds);
 			fail("Should have failed since a column name was used and not an ID.");
 		} catch (Exception e) {
 			assertEquals("PartialRow.value.key: '789' is not a valid column ID for row ID: 999", e.getMessage());
@@ -414,14 +414,14 @@ public class TableRowManagerImplTest {
 		partialRow.setRowId(999L);
 		partialRow.setValues(ImmutableMap.of("456", "updated value 2"));
 		Set<Long> columnIds = ImmutableSet.of(123l,456L);
-		TableRowManagerImpl.validatePartialRow(partialRow, columnIds);
+		TableEntityManagerImpl.validatePartialRow(partialRow, columnIds);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testValidatePartialRowNullRow(){
 		PartialRow partialRow = null;
 		Set<Long> columnIds = ImmutableSet.of(123l,456L);
-		TableRowManagerImpl.validatePartialRow(partialRow, columnIds);
+		TableEntityManagerImpl.validatePartialRow(partialRow, columnIds);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -430,7 +430,7 @@ public class TableRowManagerImplTest {
 		partialRow.setRowId(null);
 		partialRow.setValues(ImmutableMap.of("foo", "updated value 2"));
 		Set<Long> columnIds = null;
-		TableRowManagerImpl.validatePartialRow(partialRow, columnIds);
+		TableEntityManagerImpl.validatePartialRow(partialRow, columnIds);
 	}
 
 	@Test
@@ -927,7 +927,7 @@ public class TableRowManagerImplTest {
 		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 
 		// Request query only
-		queryBundle.setPartMask(TableRowManagerImpl.BUNDLE_MASK_QUERY_RESULTS);
+		queryBundle.setPartMask(TableEntityManagerImpl.BUNDLE_MASK_QUERY_RESULTS);
 		QueryResultBundle bundle = manager.queryBundle(mockProgressCallbackVoid, user, queryBundle);
 		assertEquals(selectResult, bundle.getQueryResult().getQueryResults());
 		assertEquals(null, bundle.getQueryCount());
@@ -935,7 +935,7 @@ public class TableRowManagerImplTest {
 		assertEquals(null, bundle.getMaxRowsPerPage());
 
 		// Count only
-		queryBundle.setPartMask(TableRowManagerImpl.BUNDLE_MASK_QUERY_COUNT);
+		queryBundle.setPartMask(TableEntityManagerImpl.BUNDLE_MASK_QUERY_COUNT);
 		bundle = manager.queryBundle(mockProgressCallbackVoid, user, queryBundle);
 		assertEquals(null, bundle.getQueryResult());
 		assertEquals(countResult, bundle.getQueryCount());
@@ -943,7 +943,7 @@ public class TableRowManagerImplTest {
 		assertEquals(null, bundle.getMaxRowsPerPage());
 
 		// select columns
-		queryBundle.setPartMask(TableRowManagerImpl.BUNDLE_MASK_QUERY_SELECT_COLUMNS);
+		queryBundle.setPartMask(TableEntityManagerImpl.BUNDLE_MASK_QUERY_SELECT_COLUMNS);
 		bundle = manager.queryBundle(mockProgressCallbackVoid, user, queryBundle);
 		assertEquals(null, bundle.getQueryResult());
 		assertEquals(null, bundle.getQueryCount());
@@ -951,7 +951,7 @@ public class TableRowManagerImplTest {
 		assertEquals(null, bundle.getMaxRowsPerPage());
 
 		// max rows per page
-		queryBundle.setPartMask(TableRowManagerImpl.BUNDLE_MASK_QUERY_MAX_ROWS_PER_PAGE);
+		queryBundle.setPartMask(TableEntityManagerImpl.BUNDLE_MASK_QUERY_MAX_ROWS_PER_PAGE);
 		bundle = manager.queryBundle(mockProgressCallbackVoid, user, queryBundle);
 		assertEquals(null, bundle.getQueryResult());
 		assertEquals(null, bundle.getQueryCount());
@@ -959,8 +959,8 @@ public class TableRowManagerImplTest {
 		assertEquals(maxRowsPerPage, bundle.getMaxRowsPerPage());
 
 		// now combine them all
-		queryBundle.setPartMask(TableRowManagerImpl.BUNDLE_MASK_QUERY_RESULTS | TableRowManagerImpl.BUNDLE_MASK_QUERY_COUNT
-				| TableRowManagerImpl.BUNDLE_MASK_QUERY_SELECT_COLUMNS | TableRowManagerImpl.BUNDLE_MASK_QUERY_MAX_ROWS_PER_PAGE);
+		queryBundle.setPartMask(TableEntityManagerImpl.BUNDLE_MASK_QUERY_RESULTS | TableEntityManagerImpl.BUNDLE_MASK_QUERY_COUNT
+				| TableEntityManagerImpl.BUNDLE_MASK_QUERY_SELECT_COLUMNS | TableEntityManagerImpl.BUNDLE_MASK_QUERY_MAX_ROWS_PER_PAGE);
 		bundle = manager.queryBundle(mockProgressCallbackVoid, user, queryBundle);
 		assertEquals(selectResult, bundle.getQueryResult().getQueryResults());
 		assertEquals(countResult, bundle.getQueryCount());

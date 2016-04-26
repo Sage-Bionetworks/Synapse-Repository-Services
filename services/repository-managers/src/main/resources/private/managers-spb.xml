@@ -303,7 +303,7 @@
 	
 	<bean id="timeoutUtils" class="org.sagebionetworks.util.TimeoutUtils"/>
 		
-	<bean id="tableRowManager" class="org.sagebionetworks.repo.manager.table.TableRowManagerImpl" scope="singleton" >
+	<bean id="tableEntityManager" class="org.sagebionetworks.repo.manager.table.TableEntityManagerImpl" scope="singleton" >
        	<property name="maxBytesPerRequest" ref="stackConfiguration.tableMaxBytesPerRequest"/>
        	<property name="maxBytesPerChangeSet" ref="stackConfiguration.tableMaxBytesPerChangeSet"/>
     </bean>

@@ -6,7 +6,7 @@ import org.sagebionetworks.common.util.progress.ForwardingProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
-import org.sagebionetworks.repo.manager.table.TableRowManager;
+import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
@@ -32,7 +32,7 @@ public class TableQueryWorker implements MessageDrivenRunner {
 	@Autowired
 	private AsynchJobStatusManager asynchJobStatusManager;
 	@Autowired
-	private TableRowManager tableRowManager;
+	private TableEntityManager tableEntityManager;
 	@Autowired
 	private UserManager userManger;
 
@@ -45,7 +45,7 @@ public class TableQueryWorker implements MessageDrivenRunner {
 			QueryBundleRequest request = (QueryBundleRequest) status
 					.getRequestBody();
 			ForwardingProgressCallback<Void, Message> forwardCallabck = new ForwardingProgressCallback<Void, Message>(progressCallback, message);
-			QueryResultBundle queryBundle = tableRowManager.queryBundle(forwardCallabck, user, request);
+			QueryResultBundle queryBundle = tableEntityManager.queryBundle(forwardCallabck, user, request);
 			asynchJobStatusManager.setComplete(status.getJobId(), queryBundle);
 		} catch (TableUnavilableException e) {
 			// This just means we cannot do this right now. We can try again

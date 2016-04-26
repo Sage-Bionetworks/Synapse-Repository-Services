@@ -24,7 +24,7 @@ import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
-import org.sagebionetworks.repo.manager.table.TableRowManager;
+import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -65,7 +65,7 @@ public class TableAppendRowSetWorkerIntegrationTest {
 	@Autowired
 	EntityManager entityManager;
 	@Autowired
-	TableRowManager tableRowManager;
+	TableEntityManager tableEntityManager;
 	@Autowired
 	ColumnModelManager columnManager;
 	@Autowired
@@ -123,7 +123,7 @@ public class TableAppendRowSetWorkerIntegrationTest {
 		table.setName(UUID.randomUUID().toString());
 		tableId = entityManager.createEntity(adminUserInfo, table, null);
 		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableRowManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
+		tableEntityManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
 
 	}
 

@@ -15,7 +15,7 @@ import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.manager.table.TableIndexConnectionFactory;
 import org.sagebionetworks.repo.manager.table.TableIndexConnectionUnavailableException;
 import org.sagebionetworks.repo.manager.table.TableIndexManager;
-import org.sagebionetworks.repo.manager.table.TableRowManager;
+import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -52,7 +52,7 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 	
 
 	@Autowired
-	TableRowManager tableRowManager;
+	TableEntityManager tableEntityManager;
 	@Autowired
 	TableManagerSupport tableManagerSupport;
 	@Autowired
@@ -122,7 +122,7 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 			final String tableResetToken = tableManagerSupport.startTableProcessing(tableId);
 
 			// Run with the exclusive lock on the table if we can get it.
-			return tableRowManager.tryRunWithTableExclusiveLock(progressCallback,tableId,
+			return tableEntityManager.tryRunWithTableExclusiveLock(progressCallback,tableId,
 					lockTimeoutSec,
 					new ProgressingCallable<State, ChangeMessage>() {
 						@Override
@@ -224,7 +224,7 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 			IOException, TableUnavilableException {
 		// The first task is to get the table schema in-synch.
 		// Get the current schema of the table.
-		List<ColumnModel> currentSchema = tableRowManager
+		List<ColumnModel> currentSchema = tableEntityManager
 				.getColumnModelsForTable(tableId);
 		ColumnMapper mapper = TableModelUtils.createColumnModelColumnMapper(
 				currentSchema, false);
@@ -240,7 +240,7 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 				"Getting current table row versions ", 0L, 100L);
 
 		// List all change sets applied to this table.
-		List<TableRowChange> changes = tableRowManager.listRowSetsKeysForTable(tableId);
+		List<TableRowChange> changes = tableEntityManager.listRowSetsKeysForTable(tableId);
 		
 		if (changes == null || changes.isEmpty()) {
 			/*
@@ -266,7 +266,7 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 			// Only apply changes sets not already applied to the index.
 			if(!indexManager.isVersionAppliedToIndex(changeSet.getRowVersion())){
 				// This is a change that we must apply.
-				RowSet rowSet = tableRowManager.getRowSet(tableId, changeSet.getRowVersion(), mapper);
+				RowSet rowSet = tableEntityManager.getRowSet(tableId, changeSet.getRowVersion(), mapper);
 				tableManagerSupport.attemptToUpdateTableProgress(tableId,
 						resetToken, "Applying " + rowSet.getRows().size()
 								+ " rows for version: " + changeSet.getRowVersion(), currentProgress,

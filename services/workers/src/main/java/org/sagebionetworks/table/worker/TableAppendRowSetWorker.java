@@ -4,13 +4,11 @@ import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.common.util.progress.ThrottlingProgressCallback;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
-import org.sagebionetworks.repo.manager.table.TableRowManager;
+import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.table.AppendableRowSet;
@@ -43,7 +41,7 @@ public class TableAppendRowSetWorker implements MessageDrivenRunner {
 	@Autowired
 	private ColumnModelManager columnModelManager;
 	@Autowired
-	private TableRowManager tableRowManager;
+	private TableEntityManager tableEntityManager;
 	@Autowired
 	private UserManager userManger;
 
@@ -98,11 +96,11 @@ public class TableAppendRowSetWorker implements MessageDrivenRunner {
 				PartialRowSet partialRowSet = (PartialRowSet) appendSet;
 				List<ColumnModel> columnModelsForTable = columnModelManager.getColumnModelsForTable(user, tableId);
 				ColumnMapper columnMap = TableModelUtils.createColumnModelColumnMapper(columnModelsForTable, false);
-				results =  tableRowManager.appendPartialRows(user, tableId, columnMap, partialRowSet, rowCallback);
+				results =  tableEntityManager.appendPartialRows(user, tableId, columnMap, partialRowSet, rowCallback);
 			}else if(appendSet instanceof RowSet){
 				RowSet rowSet = (RowSet)appendSet;
 				ColumnMapper columnMap = columnModelManager.getCurrentColumns(user, tableId, rowSet.getHeaders());
-				results = tableRowManager.appendRows(user, tableId, columnMap, rowSet, rowCallback);
+				results = tableEntityManager.appendRows(user, tableId, columnMap, rowSet, rowCallback);
 			}else{
 				throw new IllegalArgumentException("Unknown RowSet type: "+appendSet.getClass().getName());
 			}

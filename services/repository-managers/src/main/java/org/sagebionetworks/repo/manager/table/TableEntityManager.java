@@ -40,7 +40,7 @@ import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
  * @author jmhill
  * 
  */
-public interface TableRowManager {
+public interface TableEntityManager {
 
 	public static class QueryHandler {
 		private final SqlQuery query;
