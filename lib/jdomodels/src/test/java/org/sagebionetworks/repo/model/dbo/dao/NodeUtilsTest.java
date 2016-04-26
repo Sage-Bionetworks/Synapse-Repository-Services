@@ -5,7 +5,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import java.io.UnsupportedEncodingException;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
@@ -21,6 +20,8 @@ import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+
+import com.google.common.collect.Lists;
 
 /**
  * Test to convert from JDO to DTO
@@ -58,6 +59,7 @@ public class NodeUtilsTest {
 		columnIds.add("2");
 		columnIds.add("1");
 		node.setColumnModelIds(columnIds);
+		node.setScopeIds(Lists.newArrayList("8","9"));
 		// Now create a revision for this node
 		DBONode jdoNode = new DBONode();
 		DBORevision jdoRev = new DBORevision();
@@ -166,5 +168,23 @@ public class NodeUtilsTest {
 		Node node = createValidNode();
 		node.setNodeType(null);
 		assertFalse(NodeUtils.isValidNode(node));
+	}
+	
+	@Test
+	public void testIdListToBytesAndBytesToIdList(){
+		List<String> idList = Lists.newArrayList("syn123", "456");
+		byte[] bytes = NodeUtils.createByteForIdList(idList);
+		List<String> results = NodeUtils.createIdListFromBytes(bytes);
+		List<String> expected = Lists.newArrayList("123","456");
+		assertEquals(expected, results);
+	}
+	
+	@Test
+	public void testIdListToBytesAndBytesToIdListEmpty(){
+		List<String> idList = Lists.newArrayList();
+		byte[] bytes = NodeUtils.createByteForIdList(idList);
+		List<String> results = NodeUtils.createIdListFromBytes(bytes);
+		List<String> expected = Lists.newArrayList();
+		assertEquals(expected, results);
 	}
 }
