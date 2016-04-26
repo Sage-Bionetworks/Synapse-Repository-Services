@@ -12,7 +12,7 @@ public class TableFileHandleAssociationProvider implements FileHandleAssociation
 	
 
 	@Autowired
-	TableRowManager tableRowManger;
+	TableEntityManager tableEntityManager;
 	
 	/*
 	 * (non-Javadoc)
@@ -21,7 +21,7 @@ public class TableFileHandleAssociationProvider implements FileHandleAssociation
 	@Override
 	public Set<String> getFileHandleIdsAssociatedWithObject(
 			List<String> fileHandleIds, String objectId) {
-		return tableRowManger.getFileHandleIdsAssociatedWithTable(objectId, fileHandleIds);
+		return tableEntityManager.getFileHandleIdsAssociatedWithTable(objectId, fileHandleIds);
 	}
 
 	/*

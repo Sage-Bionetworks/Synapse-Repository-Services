@@ -27,7 +27,7 @@ import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
-import org.sagebionetworks.repo.manager.table.TableRowManager;
+import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ProjectSettingsDAO;
@@ -82,7 +82,7 @@ public class MigrationManagerImplAutowireTest {
 	ConnectionFactory tableConnectionFactory;
 
 	@Autowired
-	TableRowManager tableRowManager;
+	TableEntityManager tableEntityManager;
 
 	@Autowired
 	EntityManager entityManager;
@@ -168,14 +168,14 @@ public class MigrationManagerImplAutowireTest {
 			table.setName(UUID.randomUUID().toString());
 			table.setColumnIds(Lists.transform(headers, TableModelUtils.LONG_TO_STRING));
 			tableId = entityManager.createEntity(adminUser, table, null);
-			tableRowManager.setTableSchema(adminUser, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
+			tableEntityManager.setTableSchema(adminUser, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
 
 			// Now add some data
 			RowSet rowSet = new RowSet();
 			rowSet.setRows(TableModelTestUtils.createRows(schema, 2));
 			rowSet.setHeaders(TableModelUtils.createColumnModelColumnMapper(schema, false).getSelectColumns());
 			rowSet.setTableId(tableId);
-			tableRowManager.appendRows(adminUser, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false), rowSet, mockProgressCallback);
+			tableEntityManager.appendRows(adminUser, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false), rowSet, mockProgressCallback);
 		}
 		stackConfig = new StackConfiguration();
 	}
@@ -353,7 +353,7 @@ public class MigrationManagerImplAutowireTest {
 		// Do this only if table enabled
 		if (StackConfiguration.singleton().getTableEnabled()) {
 			// pretend to be worker and generate caches and index
-			List<ColumnModel> currentSchema = tableRowManager.getColumnModelsForTable(tableId);
+			List<ColumnModel> currentSchema = tableEntityManager.getColumnModelsForTable(tableId);
 			TableIndexDAO indexDao = tableConnectionFactory.getConnection(tableId);
 			indexDao.createOrUpdateTable(currentSchema, tableId);
 			List<ColumnModel> models = columnManager.getColumnModelsForTable(adminUser, tableId);
@@ -361,7 +361,7 @@ public class MigrationManagerImplAutowireTest {
 			rowRefs.setRows(Collections.singletonList(TableModelTestUtils.createRowReference(0L, 0L)));
 			rowRefs.setTableId(tableId);
 			rowRefs.setHeaders(TableModelUtils.createColumnModelColumnMapper(models, false).getSelectColumns());
-			tableRowManager.getCellValues(adminUser, tableId, rowRefs, TableModelUtils.createColumnModelColumnMapper(models, false));
+			tableEntityManager.getCellValues(adminUser, tableId, rowRefs, TableModelUtils.createColumnModelColumnMapper(models, false));
 
 			assertEquals(0, indexDao.getRowCountForTable(tableId).intValue());
 

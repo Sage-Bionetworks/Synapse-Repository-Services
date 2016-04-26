@@ -22,7 +22,7 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
-import org.sagebionetworks.repo.manager.table.TableRowManager;
+import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
@@ -55,7 +55,7 @@ public class TableCSVAppenderWorkerTest {
 	@Mock
 	AsynchJobStatusManager mockAasynchJobStatusManager;
 	@Mock
-	TableRowManager mockTableRowManager;
+	TableEntityManager tableEntityManager;
 	@Mock
 	FileHandleManager  mockFileHandleManger;
 	@Mock
@@ -103,7 +103,7 @@ public class TableCSVAppenderWorkerTest {
 		tableSchema = TableModelTestUtils.createColumsWithNames("a","b","c");
 		worker = new TableCSVAppenderWorker();
 		ReflectionTestUtils.setField(worker, "asynchJobStatusManager", mockAasynchJobStatusManager);
-		ReflectionTestUtils.setField(worker, "tableRowManager", mockTableRowManager);
+		ReflectionTestUtils.setField(worker, "tableEntityManager", tableEntityManager);
 		ReflectionTestUtils.setField(worker, "fileHandleManager", mockFileHandleManger);
 		ReflectionTestUtils.setField(worker, "userManger", mockUserManager);
 		ReflectionTestUtils.setField(worker, "s3Client", mockS3Client);
@@ -120,7 +120,7 @@ public class TableCSVAppenderWorkerTest {
 		when(mockFileHandleManger.getRawFileHandle(user, body.getUploadFileHandleId())).thenReturn(fileHandle);
 		when(mockS3Client.getObjectMetadata(fileHandle.getBucketName(), fileHandle.getKey())).thenReturn(fileMetadata);
 		when(mockS3Client.getObject(fileHandle.getBucketName(), fileHandle.getKey())).thenReturn(s3Object);
-		when(mockTableRowManager.getColumnModelsForTable(body.getTableId())).thenReturn(tableSchema);
+		when(tableEntityManager.getColumnModelsForTable(body.getTableId())).thenReturn(tableSchema);
 		when(mockAasynchJobStatusManager.lookupJobStatus(status.getJobId())).thenReturn(status);
 	}
 

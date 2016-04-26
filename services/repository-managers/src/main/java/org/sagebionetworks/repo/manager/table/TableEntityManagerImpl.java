@@ -95,11 +95,11 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.thoughtworks.xstream.XStream;
 
-public class TableRowManagerImpl implements TableRowManager {
+public class TableEntityManagerImpl implements TableEntityManager {
 	
 	private static final String PARTIAL_ROW_KEY_NOT_A_VALID = "PartialRow.value.key: '%s' is not a valid column ID for row ID: %s";
 
-	static private Log log = LogFactory.getLog(TableRowManagerImpl.class);
+	static private Log log = LogFactory.getLog(TableEntityManagerImpl.class);
 	
 	public static final long BUNDLE_MASK_QUERY_RESULTS = 0x1;
 	public static final long BUNDLE_MASK_QUERY_COUNT = 0x2;
