@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.manager.table;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
@@ -11,13 +10,13 @@ import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.stub;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
@@ -30,7 +29,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.commons.lang.StringUtils;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
@@ -42,10 +40,7 @@ import org.mockito.stubbing.Answer;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
-import org.sagebionetworks.repo.manager.AuthorizationManager;
-import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.file.FileHandleAuthorizationStatus;
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.StackStatusDao;
@@ -54,7 +49,6 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.RowAccessor;
-import org.sagebionetworks.repo.model.dao.table.RowAndHeaderHandler;
 import org.sagebionetworks.repo.model.dao.table.RowSetAccessor;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
@@ -67,10 +61,6 @@ import org.sagebionetworks.repo.model.table.ColumnModelMapper;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.PartialRow;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
-import org.sagebionetworks.repo.model.table.Query;
-import org.sagebionetworks.repo.model.table.QueryBundleRequest;
-import org.sagebionetworks.repo.model.table.QueryResult;
-import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.RawRowSet;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
@@ -81,18 +71,13 @@ import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
-import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
-import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
-import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
-import org.sagebionetworks.workers.util.semaphore.WriteReadSemaphoreRunner;
 import org.springframework.test.util.ReflectionTestUtils;
-import org.springframework.transaction.support.TransactionCallback;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -108,8 +93,6 @@ public class TableEntityManagerTest {
 	@Mock
 	TableRowTruthDAO mockTruthDao;
 	@Mock
-	AuthorizationManager mockAuthManager;
-	@Mock
 	ColumnModelDAO mockColumnModelDAO;
 	@Mock
 	ConnectionFactory mockTableConnectionFactory;
@@ -119,8 +102,6 @@ public class TableEntityManagerTest {
 	ProgressCallback<Object> mockProgressCallback2;
 	@Mock
 	ProgressCallback<Void> mockProgressCallbackVoid;
-	@Mock
-	WriteReadSemaphoreRunner mockWriteReadSemaphoreRunner;
 	@Mock
 	FileHandleDao mockFileDao;
 	@Mock
@@ -156,27 +137,11 @@ public class TableEntityManagerTest {
 		manager = new TableEntityManagerImpl();
 		ReflectionTestUtils.setField(manager, "stackStatusDao", mockStackStatusDao);
 		ReflectionTestUtils.setField(manager, "tableRowTruthDao", mockTruthDao);
-		ReflectionTestUtils.setField(manager, "authorizationManager", mockAuthManager);
 		ReflectionTestUtils.setField(manager, "columnModelDAO", mockColumnModelDAO);
 		ReflectionTestUtils.setField(manager, "tableConnectionFactory", mockTableConnectionFactory);
-		ReflectionTestUtils.setField(manager, "writeReadSemaphoreRunner", mockWriteReadSemaphoreRunner);
 		ReflectionTestUtils.setField(manager, "fileHandleDao", mockFileDao);
 		ReflectionTestUtils.setField(manager, "columModelManager", mockColumModelManager);
 		ReflectionTestUtils.setField(manager, "tableManagerSupport", mockTableManagerSupport);
-
-		// Just call the caller.
-		stub(mockWriteReadSemaphoreRunner.tryRunWithReadLock(any(ProgressCallback.class),anyString(), anyInt(), any(ProgressingCallable.class))).toAnswer(new Answer<Object>() {
-			@Override
-			public Object answer(InvocationOnMock invocation) throws Throwable {
-				if(invocation == null) return null;
-				ProgressingCallable<Object, Object> callable = (ProgressingCallable<Object, Object>) invocation.getArguments()[3];
-						if (callable != null) {
-							return callable.call(mockProgressCallback2);
-						} else {
-							return null;
-						}
-			}
-		});
 		
 		maxBytesPerRequest = 10000000;
 		manager.setMaxBytesPerRequest(maxBytesPerRequest);
@@ -209,47 +174,20 @@ public class TableEntityManagerTest {
 		
 		when(mockColumnModelDAO.getColumnModelsForObject(tableId)).thenReturn(models);
 		when(mockTableConnectionFactory.getConnection(tableId)).thenReturn(mockTableIndexDAO);
-		when(mockTableIndexDAO.query(any(ProgressCallback.class),any(SqlQuery.class))).thenReturn(set);
-		stub(mockTableIndexDAO.queryAsStream(any(ProgressCallback.class),any(SqlQuery.class), any(RowAndHeaderHandler.class))).toAnswer(new Answer<Boolean>() {
-			@Override
-			public Boolean answer(InvocationOnMock invocation) throws Throwable {
-				SqlQuery query = (SqlQuery) invocation.getArguments()[1];
-				RowAndHeaderHandler handler =  (RowAndHeaderHandler) invocation.getArguments()[2];
-				boolean isCount = false;
-				if (query.getModel().getSelectList().getColumns() != null) {
-					String sql = query.getModel().getSelectList().getColumns().get(0).toString();
-					if (sql.equals("COUNT(*)")) {
-						isCount = true;
-					} else if (sql.contains("FOUND_ROWS()")) {
-						isCount = true;
-					}
-				}
-				if (isCount) {
-					handler.writeHeader();
-					handler.nextRow(TableModelTestUtils.createRow(null, null, "10"));
-				} else {
-					// Pass all rows to the handler
-					handler.writeHeader();
-					for (Row row : set.getRows()) {
-						handler.nextRow(row);
-					}
-				}
-				return true;
-			}
-		});	
+		
 		// Just call the caller.
-		stub(mockTableIndexDAO.executeInReadTransaction(any(TransactionCallback.class))).toAnswer(new Answer<Void>() {
+		stub(mockTableManagerSupport.tryRunWithTableNonexclusiveLock(any(ProgressCallback.class),anyString(), anyInt(), any(ProgressingCallable.class))).toAnswer(new Answer<Object>() {
 			@Override
-			public Void answer(InvocationOnMock invocation) throws Throwable {
-				if (invocation == null)
-					return null;
-				TransactionCallback<Void> callable = (TransactionCallback<Void>) invocation.getArguments()[0];
-				return callable.doInTransaction(null);
+			public Object answer(InvocationOnMock invocation) throws Throwable {
+				if(invocation == null) return null;
+				ProgressingCallable<Object, Object> callable = (ProgressingCallable<Object, Object>) invocation.getArguments()[3];
+						if (callable != null) {
+							return callable.call(mockProgressCallback2);
+						} else {
+							return null;
+						}
 			}
 		});
-		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPLOAD)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD)).thenReturn(
-				AuthorizationManagerUtil.AUTHORIZED);
 
 		// read-write be default.
 		when(mockStackStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_WRITE);
@@ -314,13 +252,13 @@ public class TableEntityManagerTest {
 	
 	@Test (expected=UnauthorizedException.class)
 	public void testAppendRowsUnauthroized() throws DatastoreException, NotFoundException, IOException{
-		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+		doThrow(new UnauthorizedException()).when(mockTableManagerSupport).validateTableWriteAccess(user, tableId);
 		manager.appendRows(user, tableId, TableModelUtils.createColumnModelColumnMapper(models, false), set, mockProgressCallback);
 	}
 	
 	@Test (expected=UnauthorizedException.class)
 	public void testAppendRowsAsStreamUnauthroized() throws DatastoreException, NotFoundException, IOException{
-		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+		doThrow(new UnauthorizedException()).when(mockTableManagerSupport).validateTableWriteAccess(user, tableId);
 		manager.appendRowsAsStream(user, tableId, TableModelUtils.createColumnModelColumnMapper(models, false), set.getRows().iterator(),
 				"etag",
 				null, mockProgressCallback);
@@ -328,26 +266,24 @@ public class TableEntityManagerTest {
 	
 	@Test
 	public void testAppendRowsHappy() throws DatastoreException, NotFoundException, IOException{
-		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		when(mockAuthManager.canAccessRawFileHandleById(eq(user), anyString())).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		ColumnMapper mapper = TableModelUtils.createColumnModelColumnMapper(models, false);
 		when(mockTruthDao.appendRowSetToTable(user.getId().toString(), tableId, mapper, rawSet)).thenReturn(refSet);
 		RowReferenceSet results = manager.appendRows(user, tableId, mapper, set, mockProgressCallback);
 		assertEquals(refSet, results);
 		// verify the table status was set
 		verify(mockTableManagerSupport, times(1)).setTableToProcessingAndTriggerUpdate(tableId);
+		verify(mockTableManagerSupport).validateTableWriteAccess(user, tableId);
 	}
 	
 	@Test
 	public void testAppendPartialRowsHappy() throws DatastoreException, NotFoundException, IOException {
-		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		when(mockAuthManager.canAccessRawFileHandleById(eq(user), anyString())).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		ColumnMapper mapper = TableModelUtils.createColumnModelColumnMapper(models, false);
 		when(mockTruthDao.appendRowSetToTable(user.getId().toString(), tableId, mapper, expectedRawRows)).thenReturn(refSet);
 		RowReferenceSet results = manager.appendPartialRows(user, tableId, mapper, partialSet, mockProgressCallback);
 		assertEquals(refSet, results);
 		// verify the table status was set
 		verify(mockTableManagerSupport, times(1)).setTableToProcessingAndTriggerUpdate(tableId);
+		verify(mockTableManagerSupport).validateTableWriteAccess(user, tableId);
 	}
 	
 	/**
@@ -358,8 +294,6 @@ public class TableEntityManagerTest {
 	 */
 	@Test
 	public void testAppendPartialRowsColumnIdNotFound() throws DatastoreException, NotFoundException, IOException {
-		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		when(mockAuthManager.canAccessRawFileHandleById(eq(user), anyString())).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		ColumnMapper mapper = TableModelUtils.createColumnModelColumnMapper(models, false);
 		when(mockTruthDao.appendRowSetToTable(user.getId().toString(), tableId, mapper, expectedRawRows)).thenReturn(refSet);
 		
@@ -435,8 +369,6 @@ public class TableEntityManagerTest {
 
 	@Test
 	public void testAppendRowsAsStreamHappy() throws DatastoreException, NotFoundException, IOException{
-		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		when(mockAuthManager.canAccessRawFileHandleById(eq(user), anyString())).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		ColumnMapper mapper = TableModelUtils.createColumnModelColumnMapper(models, false);
 		Mockito.reset(mockTruthDao);
 		when(mockTruthDao.appendRowSetToTable(any(String.class), any(String.class), eq(mapper), any(RawRowSet.class)))
@@ -449,6 +381,7 @@ public class TableEntityManagerTest {
 		verify(mockTableManagerSupport, times(1)).setTableToProcessingAndTriggerUpdate(tableId);
 		verify(mockProgressCallback).progressMade(anyLong());
 		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(tableId);
+		verify(mockTableManagerSupport).validateTableWriteAccess(user, tableId);
 	}
 	
 	@Test
@@ -465,7 +398,6 @@ public class TableEntityManagerTest {
 		tooBigSet.setTableId(tableId);
 		tooBigSet.setHeaders(TableModelUtils.createColumnModelColumnMapper(models, false).getSelectColumns());
 		tooBigSet.setRows(rows);
-		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		ColumnMapper mapper = TableModelUtils.createColumnModelColumnMapper(models, false);
 		when(mockTruthDao.appendRowSetToTable(user.getId().toString(), tableId, mapper, rawSet)).thenReturn(refSet);
 		try {
@@ -478,8 +410,6 @@ public class TableEntityManagerTest {
 	
 	@Test
 	public void testAppendRowsAsStreamMultipleBatches() throws DatastoreException, NotFoundException, IOException{
-		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		when(mockAuthManager.canAccessRawFileHandleById(eq(user), anyString())).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		// calculate the actual size of the first row
 		int actualSizeFristRowBytes = TableModelUtils.calculateActualRowSize(set.getRows().get(0));
 		// With this max, there should be three batches (4,8,2)
@@ -500,6 +430,7 @@ public class TableEntityManagerTest {
 		// verify the table status was set
 		verify(mockTableManagerSupport, times(1)).setTableToProcessingAndTriggerUpdate(tableId);
 		verify(mockProgressCallback, times(3)).progressMade(anyLong());
+		verify(mockTableManagerSupport).validateTableWriteAccess(user, tableId);
 	}
 
 	@Test(expected = IllegalArgumentException.class)
@@ -508,7 +439,6 @@ public class TableEntityManagerTest {
 		emptyValueRow.setValues(null);
 		set.setRows(Collections.singletonList(emptyValueRow));
 		rawSet = new RawRowSet(rawSet.getIds(), rawSet.getEtag(), tableId, Collections.singletonList(emptyValueRow));
-		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		ColumnMapper mapper = TableModelUtils.createColumnModelColumnMapper(models, false);
 		reset(mockTruthDao);
 		when(mockTruthDao.appendRowSetToTable(user.getId().toString(), tableId, mapper, rawSet)).thenThrow(new IllegalArgumentException());
@@ -521,7 +451,6 @@ public class TableEntityManagerTest {
 		emptyValueRow.setValues(Lists.<String> newArrayList());
 		set.setRows(Collections.singletonList(emptyValueRow));
 		rawSet = new RawRowSet(rawSet.getIds(), rawSet.getEtag(), tableId, Collections.singletonList(emptyValueRow));
-		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		ColumnMapper mapper = TableModelUtils.createColumnModelColumnMapper(models, false);
 		when(mockTruthDao.appendRowSetToTable(user.getId().toString(), tableId, mapper, rawSet)).thenThrow(new IllegalArgumentException());
 		manager.appendRows(user, tableId, mapper, set, mockProgressCallback);
@@ -538,7 +467,6 @@ public class TableEntityManagerTest {
 		rowSelection.setRowIds(Lists.newArrayList(1L, 2L));
 		rowSelection.setEtag("aa");
 
-		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		Mockito.reset(mockTruthDao);
 		when(mockTruthDao.appendRowSetToTable(eq(user.getId().toString()), eq(tableId), any(ColumnMapper.class), eq(rawSet))).thenReturn(
 				refSet);
@@ -550,6 +478,7 @@ public class TableEntityManagerTest {
 		verify(mockTruthDao).appendRowSetToTable(eq(user.getId().toString()), eq(tableId), any(ColumnMapper.class), eq(rawSet));
 		// verify the table status was set
 		verify(mockTableManagerSupport, times(1)).setTableToProcessingAndTriggerUpdate(tableId);
+		verify(mockTableManagerSupport).validateTableWriteAccess(user, tableId);
 	}
 	
 	@Test
@@ -626,8 +555,6 @@ public class TableEntityManagerTest {
 	
 	@Test
 	public void testChangeFileHandles() throws DatastoreException, NotFoundException, IOException {
-		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-
 		RowSet replace = new RowSet();
 		replace.setTableId(tableId);
 		ColumnMapper mapper = TableModelUtils.createColumnModelColumnMapper(models, false);
@@ -656,16 +583,12 @@ public class TableEntityManagerTest {
 		manager.appendRows(user, tableId, mapper, replace, mockProgressCallback);
 
 		verify(mockTruthDao).appendRowSetToTable(anyString(), anyString(), any(ColumnMapper.class), any(RawRowSet.class));
-		verify(mockAuthManager).canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE);
-		verify(mockAuthManager).canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPLOAD);
 		verify(mockFileDao).getFileHandleIdsCreatedByUser(anyLong(), any(List.class));
-		verifyNoMoreInteractions(mockAuthManager, mockTruthDao);
+		verify(mockTableManagerSupport).validateTableWriteAccess(user, tableId);
 	}
 
 	@Test
 	public void testAddFileHandles() throws DatastoreException, NotFoundException, IOException {
-		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-
 		RowSet replace = new RowSet();
 		replace.setTableId(tableId);
 		replace.setHeaders(TableModelUtils.createColumnModelColumnMapper(models, false).getSelectColumns());
@@ -683,16 +606,12 @@ public class TableEntityManagerTest {
 		manager.appendRows(user, tableId, TableModelUtils.createColumnModelColumnMapper(models, false), replace, mockProgressCallback);
 
 		verify(mockTruthDao).appendRowSetToTable(anyString(), anyString(), any(ColumnMapper.class), any(RawRowSet.class));
-		verify(mockAuthManager).canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE);
-		verify(mockAuthManager).canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPLOAD);
 		verify(mockFileDao).getFileHandleIdsCreatedByUser(anyLong(), any(List.class));
-		verifyNoMoreInteractions(mockAuthManager, mockTruthDao);
+		verify(mockTableManagerSupport).validateTableWriteAccess(user, tableId);
 	}
 
 	@Test
 	public void testGetCellValues() throws DatastoreException, NotFoundException, IOException {
-		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-
 		RowReferenceSet rows = new RowReferenceSet();
 		rows.setTableId(tableId);
 		rows.setHeaders(TableModelUtils.createColumnModelColumnMapper(models, false).getSelectColumns());
@@ -705,15 +624,13 @@ public class TableEntityManagerTest {
 		RowSet result = manager.getCellValues(user, tableId, rows, mapper);
 		assertTrue(result == returnValue);
 
-		verify(mockAuthManager).canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ);
-		verify(mockAuthManager).canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD);
 		verify(mockTruthDao).getRowSet(rows, mapper);
-		verifyNoMoreInteractions(mockAuthManager, mockTruthDao);
+		verify(mockTableManagerSupport).validateTableReadAccess(user, tableId);
 	}
 
 	@Test(expected = UnauthorizedException.class)
 	public void testGetCellValuesFailNoAccess() throws DatastoreException, NotFoundException, IOException {
-		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+		doThrow(new UnauthorizedException()).when(mockTableManagerSupport).validateTableReadAccess(user, tableId);
 		manager.getCellValues(user, tableId, null, null);
 	}
 
@@ -723,264 +640,20 @@ public class TableEntityManagerTest {
 		RowReference rowRef = new RowReference();
 		Row row = new Row();
 		row.setValues(Lists.newArrayList("yy"));
-		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		reset(mockTruthDao);
 		when(mockTruthDao.getRowOriginal(eq(tableId), eq(rowRef), any(ColumnMapper.class))).thenReturn(row);
 		String result = manager.getCellValue(user, tableId, rowRef, models.get(columnIndex));
 		assertEquals("yy", result);
+		verify(mockTableManagerSupport).validateTableReadAccess(user, tableId);
 	}
 
 	@Test(expected = UnauthorizedException.class)
 	public void testGetColumnValuesFailReadAccess() throws Exception {
-		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+		doThrow(new UnauthorizedException()).when(mockTableManagerSupport).validateTableReadAccess(user, tableId);
 		manager.getCellValue(user, tableId, null, null);
 	}
 
-	@Test (expected = UnauthorizedException.class)
-	public void testQueryUnauthroized() throws Exception {
-		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
-		manager.query(mockProgressCallbackVoid, user, "select * from " + tableId, null, null, null, true, false, true);
-	}
-	
-	@Test 
-	public void testQueryHappyCaseIsConsistentFalse() throws Exception {
-		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		RowSet expected = new RowSet();
-		expected.setTableId(tableId);
-		when(mockTableIndexDAO.query(any(ProgressCallback.class),any(SqlQuery.class))).thenReturn(expected);
-		Pair<QueryResult, Long> results = manager.query(mockProgressCallbackVoid, user, "select * from " + tableId + " limit 1", null, null, null, true, false, false);
-		// The etag should be null for this case
-		assertEquals("The etag must be null for non-consistent query results.  These results cannot be used for a table update.", null,
-				results.getFirst().getQueryResults().getEtag());
-		assertEquals(expected, results.getFirst().getQueryResults());
-		// The table status should not be checked for this case
-		verify(mockTableManagerSupport, never()).setTableToProcessingAndTriggerUpdate(tableId);
-	}
-	
-	@Test
-	public void testQueryHappyCaseIsConsistentTrue() throws Exception {
-		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		Pair<QueryResult, Long> results = manager.query(mockProgressCallbackVoid, user, "select * from " + tableId + " limit 1", null, null, null, true, false, true);
-		// The etag should be set
-		assertEquals(status.getLastTableChangeEtag(), results.getFirst().getQueryResults().getEtag());
-		// Clear the etag for the test
-		results.getFirst().getQueryResults().setEtag(null);
-		assertEquals(set, results.getFirst().getQueryResults());
-	}
-	
-	@Test
-	public void testQueryCountHappyCaseIsConsistentTrue() throws Exception {
-		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		Pair<QueryResult, Long> results = manager.query(mockProgressCallbackVoid, user, "select * from " + tableId + " limit 1", null, null, null, true, true, true);
-		// The etag should be set
-		assertEquals(status.getLastTableChangeEtag(), results.getFirst().getQueryResults().getEtag());
-		// Clear the etag for the test
-		results.getFirst().getQueryResults().setEtag(null);
-		assertEquals(set, results.getFirst().getQueryResults());
-		assertEquals(1L, results.getSecond().longValue());
-	}
 
-	@Test
-	public void testQueryAndCountHappyCaseIsConsistentTrue() throws Exception {
-		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		Pair<QueryResult, Long> results = manager.query(mockProgressCallbackVoid, user, "select * from " + tableId + " limit 1", null, null, null, true, false, true);
-		// The etag should be set
-		assertEquals(status.getLastTableChangeEtag(), results.getFirst().getQueryResults().getEtag());
-		// Clear the etag for the test
-		results.getFirst().getQueryResults().setEtag(null);
-		assertEquals(set, results.getFirst().getQueryResults());
-	}
-
-	@Test 
-	public void testQueryNoColumns() throws Exception {
-		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		// Return no columns
-		when(mockColumnModelDAO.getColumnModelsForObject(tableId)).thenReturn(new LinkedList<ColumnModel>());
-		Pair<QueryResult, Long> results = manager.query(mockProgressCallbackVoid, user, "select * from " + tableId + " limit 1", null, null, null, true, false, true);
-		assertNotNull(results);
-		assertEquals(tableId, results.getFirst().getQueryResults().getTableId());
-		assertNull(results.getFirst().getQueryResults().getEtag());
-		assertNull(results.getFirst().getQueryResults().getHeaders());
-		assertNull(results.getFirst().getQueryResults().getRows());
-	}
-	
-	/**
-	 * Test for a consistent query when the table index is not available.
-	 * @throws Exception
-	 */
-	@Test
-	public void testQueryIsConsistentTrueNotAvailable() throws Exception {
-		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		status.setState(TableState.PROCESSING);
-		when(mockTableManagerSupport.validateTableIsAvailable(tableId)).thenThrow(new TableUnavilableException(status));
-		try{
-			manager.query(mockProgressCallbackVoid, user, "select * from " + tableId + " limit 1", null, null, null, true, false, true);
-			fail("should have failed");
-		}catch(TableUnavilableException e){
-			// expected
-			assertEquals(status, e.getStatus());
-		}
-		verify(mockTableManagerSupport, times(1)).validateTableIsAvailable(tableId);
-	}
-	
-	/**
-	 * Test for a consistent query when the table index is not available and not yet being build
-	 * 
-	 * @throws Exception
-	 */
-	@Test
-	public void testQueryIsConsistentTrueNotFound() throws Exception {
-		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		status.setState(TableState.PROCESSING);
-		when(mockTableManagerSupport.validateTableIsAvailable(tableId)).thenThrow(new TableUnavilableException(status));
-		when(mockTruthDao.getLastTableRowChange(tableId)).thenReturn(new TableRowChange());
-		try{
-			manager.query(mockProgressCallbackVoid, user, "select * from " + tableId + " limit 1", null, null, null, true, false, true);
-			fail("should have failed");
-		}catch(TableUnavilableException e){
-			// expected
-			assertEquals(status, e.getStatus());
-		}
-		verify(mockTableManagerSupport, times(1)).validateTableIsAvailable(tableId);
-	}
-
-	/**
-	 * Test for a consistent query when the table index worker is holding a write-lock-precursor on the index. For this
-	 * case the tryRunWithSharedLock() will throw a LockUnavilableException(), which should then be translated into a
-	 * TableUnavilableException that contains the Table's status.
-	 * 
-	 * @throws Exception
-	 */
-	@SuppressWarnings("unchecked")
-	@Test
-	public void testQueryIsConsistentTrueLockUnavilableException() throws Exception {
-		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		// Throw a lock LockUnavilableException
-		when(mockWriteReadSemaphoreRunner.tryRunWithReadLock(any(ProgressCallback.class),anyString(), anyInt(), any(ProgressingCallable.class))).thenThrow(new LockUnavilableException());
-		try{
-			manager.query(mockProgressCallbackVoid, user, "select * from " + tableId + " limit 1", null, null, null, true, false, true);
-			fail("should have failed");
-		}catch(TableUnavilableException e){
-			// expected
-			assertEquals(status, e.getStatus());
-		}
-	}
-
-	@Test
-	public void testQueryBundle() throws Exception {
-		RowSet selectStar = new RowSet();
-		selectStar.setEtag("etag");
-		selectStar.setHeaders(TableModelUtils.createColumnModelColumnMapper(models, false).getSelectColumns());
-		selectStar.setTableId(tableId);
-		selectStar.setRows(TableModelTestUtils.createRows(models, 10));
-		QueryResult selectStarResult = new QueryResult();
-		selectStarResult.setNextPageToken(null);
-		selectStarResult.setQueryResults(selectStar);
-
-		runQueryBundleTest("select * from " + tableId, selectStar, 10L, TableModelUtils.createColumnModelColumnMapper(models, false)
-				.getSelectColumns().toString(), 2929L);
-	}
-
-	@Test
-	public void testQueryBundleColumnsExpanded() throws Exception {
-		RowSet selectStar = new RowSet();
-		selectStar.setEtag("etag");
-		selectStar.setHeaders(TableModelUtils.createColumnModelColumnMapper(models, false).getSelectColumns());
-		selectStar.setTableId(tableId);
-		selectStar.setRows(TableModelTestUtils.createRows(models, 10));
-		QueryResult selectStarResult = new QueryResult();
-		selectStarResult.setNextPageToken(null);
-		selectStarResult.setQueryResults(selectStar);
-
-		runQueryBundleTest("select " + StringUtils.join(Lists.transform(models, TableModelTestUtils.convertToNameFunction), ",") + " from "
-				+ tableId, selectStar, 10L, TableModelUtils.createColumnModelColumnMapper(models, false).getSelectColumns().toString(),
-				2929L);
-	}
-
-	@Test
-	public void testQueryBundleWithAggregate() throws Exception {
-		RowSet totals = new RowSet();
-		totals.setEtag("etag");
-		totals.setHeaders(Lists.newArrayList(TableModelTestUtils.createSelectColumn(null, "COUNT(*)", ColumnType.INTEGER)));
-		totals.setTableId(tableId);
-		totals.setRows(Lists.newArrayList(TableModelTestUtils.createRow(null, null, "10")));
-		QueryResult selectStarResult = new QueryResult();
-		selectStarResult.setNextPageToken(null);
-		selectStarResult.setQueryResults(totals);
-
-		SelectColumn selectColumn = new SelectColumn();
-		selectColumn.setName("COUNT(*)");
-		selectColumn.setColumnType(ColumnType.INTEGER);
-		runQueryBundleTest("select count(*) from " + tableId, totals, 10L, "[" + selectColumn.toString() + "]", 500000L);
-	}
-
-	private void runQueryBundleTest(String sql, RowSet selectResult, Long countResult, String selectColumns, Long maxRowsPerPage)
-			throws Exception {
-		Query query = new Query();
-		query.setSql(sql);
-		query.setIsConsistent(true);
-		query.setOffset(0L);
-		query.setLimit(Long.MAX_VALUE);
-		QueryBundleRequest queryBundle = new QueryBundleRequest();
-		queryBundle.setQuery(query);
-
-		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-
-		// Request query only
-		queryBundle.setPartMask(TableEntityManagerImpl.BUNDLE_MASK_QUERY_RESULTS);
-		QueryResultBundle bundle = manager.queryBundle(mockProgressCallbackVoid, user, queryBundle);
-		assertEquals(selectResult, bundle.getQueryResult().getQueryResults());
-		assertEquals(null, bundle.getQueryCount());
-		assertEquals(null, bundle.getSelectColumns());
-		assertEquals(null, bundle.getMaxRowsPerPage());
-
-		// Count only
-		queryBundle.setPartMask(TableEntityManagerImpl.BUNDLE_MASK_QUERY_COUNT);
-		bundle = manager.queryBundle(mockProgressCallbackVoid, user, queryBundle);
-		assertEquals(null, bundle.getQueryResult());
-		assertEquals(countResult, bundle.getQueryCount());
-		assertEquals(null, bundle.getSelectColumns());
-		assertEquals(null, bundle.getMaxRowsPerPage());
-
-		// select columns
-		queryBundle.setPartMask(TableEntityManagerImpl.BUNDLE_MASK_QUERY_SELECT_COLUMNS);
-		bundle = manager.queryBundle(mockProgressCallbackVoid, user, queryBundle);
-		assertEquals(null, bundle.getQueryResult());
-		assertEquals(null, bundle.getQueryCount());
-		assertEquals(selectColumns, bundle.getSelectColumns().toString());
-		assertEquals(null, bundle.getMaxRowsPerPage());
-
-		// max rows per page
-		queryBundle.setPartMask(TableEntityManagerImpl.BUNDLE_MASK_QUERY_MAX_ROWS_PER_PAGE);
-		bundle = manager.queryBundle(mockProgressCallbackVoid, user, queryBundle);
-		assertEquals(null, bundle.getQueryResult());
-		assertEquals(null, bundle.getQueryCount());
-		assertEquals(null, bundle.getSelectColumns());
-		assertEquals(maxRowsPerPage, bundle.getMaxRowsPerPage());
-
-		// now combine them all
-		queryBundle.setPartMask(TableEntityManagerImpl.BUNDLE_MASK_QUERY_RESULTS | TableEntityManagerImpl.BUNDLE_MASK_QUERY_COUNT
-				| TableEntityManagerImpl.BUNDLE_MASK_QUERY_SELECT_COLUMNS | TableEntityManagerImpl.BUNDLE_MASK_QUERY_MAX_ROWS_PER_PAGE);
-		bundle = manager.queryBundle(mockProgressCallbackVoid, user, queryBundle);
-		assertEquals(selectResult, bundle.getQueryResult().getQueryResults());
-		assertEquals(countResult, bundle.getQueryCount());
-		assertEquals(selectColumns, bundle.getSelectColumns().toString());
-		assertEquals(maxRowsPerPage, bundle.getMaxRowsPerPage());
-	}
-	
-	@Test
-	public void testGetMaxRowsPerPage(){
-		Long maxRows = this.manager.getMaxRowsPerPage(TableModelUtils.createColumnModelColumnMapper(models, false));
-		int maxRowSize = TableModelUtils.calculateMaxRowSize(TableModelUtils.createColumnModelColumnMapper(models, false).getColumnModels());
-		Long expected = (long) (this.maxBytesPerRequest/maxRowSize);
-		assertEquals(expected, maxRows);
-	}
-	
-	@Test
-	public void testGetMaxRowsPerPageEmpty(){
-		Long maxRows = this.manager.getMaxRowsPerPage(TableModelUtils.createColumnModelColumnMapper(new LinkedList<ColumnModel>(), false));
-		assertEquals(null, maxRows);
-	}
 	
 	@Test
 	public void testGetColumnsForHeaders() throws DatastoreException, NotFoundException{
@@ -996,8 +669,6 @@ public class TableEntityManagerTest {
 	public void testPLFM_3041ReadOnly() throws Exception{
 		// Start in read-write then go to read-only
 		when(mockStackStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_WRITE, StatusEnum.READ_WRITE, StatusEnum.READ_ONLY);
-		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		when(mockAuthManager.canAccessRawFileHandleById(eq(user), anyString())).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 
 		// three batches with this size
 		manager.setMaxBytesPerChangeSet(300);
@@ -1012,8 +683,6 @@ public class TableEntityManagerTest {
 	public void testPLFM_3041Down() throws Exception{
 		// Start in read-write then go to down
 		when(mockStackStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_WRITE, StatusEnum.READ_WRITE, StatusEnum.DOWN);
-		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		when(mockAuthManager.canAccessRawFileHandleById(eq(user), anyString())).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		// three batches with this size
 		manager.setMaxBytesPerChangeSet(300);
 		RowReferenceSet results = new RowReferenceSet();
@@ -1021,41 +690,6 @@ public class TableEntityManagerTest {
 				"etag",
 				results, mockProgressCallback);
 		verify(mockProgressCallback, times(3)).progressMade(anyLong());
-	}
-
-
-	@Test
-	public void testNextPageToken() throws Exception {
-		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		RowSet rowSet = new RowSet();
-		rowSet.setRows(Collections.nCopies(100000, new Row()));
-		when(mockTableIndexDAO.query(any(ProgressCallback.class), any(SqlQuery.class))).thenReturn(rowSet);
-
-		Pair<QueryResult, Long> query = manager.query(mockProgressCallbackVoid, user, "select * from " + tableId, null, 0L, 100000L, true, false, false);
-		assertNotNull(query.getFirst().getNextPageToken());
-	}
-
-	@Test
-	public void testNextPageTokenEscaping() throws Exception {
-		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		RowSet rowSet = new RowSet();
-		rowSet.setRows(Collections.nCopies(100000, new Row()));
-		when(mockTableIndexDAO.query(any(ProgressCallback.class), any(SqlQuery.class))).thenReturn(rowSet);
-
-		// introduce escape-needed column names
-		for (int i = 0; i < models.size(); i++) {
-			String name = models.get(i).getName();
-			name = name.substring(0, 1) + "-" + name.substring(1);
-			models.get(i).setName(name);
-		}
-
-		Pair<QueryResult, Long> query = manager.query(mockProgressCallbackVoid, user, "select \"i-0\" from " + tableId, null, 0L, 100000L, true, false, false);
-		assertNotNull(query.getFirst().getNextPageToken());
-		assertTrue(query.getFirst().getNextPageToken().getToken().indexOf("&quot;i-0&quot") != -1);
-
-		query = manager.query(mockProgressCallbackVoid, user, "select * from " + tableId, null, 0L, 100000L, true, false, false);
-		assertNotNull(query.getFirst().getNextPageToken());
-		assertTrue(query.getFirst().getNextPageToken().getToken().indexOf("&quot;i-0&quot") != -1);
 	}
 	
 	@Test
@@ -1089,7 +723,7 @@ public class TableEntityManagerTest {
 	@Test (expected=TemporarilyUnavailableException.class)
 	public void testGetFileHandleIdsAssociatedWithTableLockFailed() throws LockUnavilableException, Exception{
 		// setup LockUnavilableException.
-		when(mockWriteReadSemaphoreRunner.tryRunWithReadLock(any(ProgressCallback.class),anyString(), anyInt(), any(ProgressingCallable.class))).thenThrow(new LockUnavilableException());
+		when(mockTableManagerSupport.tryRunWithTableNonexclusiveLock(any(ProgressCallback.class),anyString(), anyInt(), any(ProgressingCallable.class))).thenThrow(new LockUnavilableException());
 		TableRowChange lastChange = new TableRowChange();
 		lastChange.setRowVersion(3L);
 		when(mockTruthDao.getLastTableRowChange(tableId)).thenReturn(lastChange);

@@ -33,6 +33,7 @@ import org.sagebionetworks.repo.manager.table.TableIndexConnectionUnavailableExc
 import org.sagebionetworks.repo.manager.table.TableIndexManager;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
+import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
@@ -83,7 +84,7 @@ public class TableWorkerTest {
 		when(mockConnectionFactory.connectToTableIndex(anyString())).thenReturn(mockTableIndexManager);
 		
 		// By default we want to the manager to just call the passed callable.
-		stub(mockTableEntityManager.tryRunWithTableExclusiveLock(any(ProgressCallback.class),anyString(), anyInt(), any(ProgressingCallable.class))).toAnswer(new Answer<TableWorker.State>() {
+		stub(mockTableManagerSupport.tryRunWithTableExclusiveLock(any(ProgressCallback.class),anyString(), anyInt(), any(ProgressingCallable.class))).toAnswer(new Answer<TableWorker.State>() {
 			@Override
 			public TableWorker.State answer(InvocationOnMock invocation) throws Throwable {
 				ProgressingCallable<TableWorker.State, ChangeMessage> callable = (ProgressingCallable<State, ChangeMessage>) invocation.getArguments()[3];
@@ -369,7 +370,7 @@ public class TableWorkerTest {
 		status.setResetToken(resetToken);
 		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
 		// Simulate a failure to get the lock
-		when(mockTableEntityManager.tryRunWithTableExclusiveLock(any(ProgressCallback.class),anyString(), anyInt(), any(ProgressingCallable.class))).thenThrow(new LockUnavilableException("Cannot get a lock at this time"));
+		when(mockTableManagerSupport.tryRunWithTableExclusiveLock(any(ProgressCallback.class),anyString(), anyInt(), any(ProgressingCallable.class))).thenThrow(new LockUnavilableException("Cannot get a lock at this time"));
 		two.setObjectType(ObjectType.TABLE);
 		two.setChangeType(ChangeType.UPDATE);
 		two.setObjectEtag(resetToken);
@@ -397,7 +398,7 @@ public class TableWorkerTest {
 		status.setResetToken(resetToken);
 		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
 		// Simulate a failure to get the lock
-		when(mockTableEntityManager.tryRunWithTableExclusiveLock(any(ProgressCallback.class),anyString(), anyInt(), any(ProgressingCallable.class))).thenThrow(new InterruptedException("Sop!!!"));
+		when(mockTableManagerSupport.tryRunWithTableExclusiveLock(any(ProgressCallback.class),anyString(), anyInt(), any(ProgressingCallable.class))).thenThrow(new InterruptedException("Sop!!!"));
 		two.setObjectType(ObjectType.TABLE);
 		two.setChangeType(ChangeType.UPDATE);
 		two.setObjectEtag(resetToken);

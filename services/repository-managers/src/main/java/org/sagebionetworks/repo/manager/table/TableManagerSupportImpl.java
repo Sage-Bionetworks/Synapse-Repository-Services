@@ -4,10 +4,18 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.common.util.progress.ProgressingCallable;
+import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
@@ -27,6 +35,8 @@ import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.TimeoutUtils;
 import org.sagebionetworks.util.ValidateArgument;
+import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
+import org.sagebionetworks.workers.util.semaphore.WriteReadSemaphoreRunner;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class TableManagerSupportImpl implements TableManagerSupport {
@@ -49,6 +59,10 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	TableRowTruthDAO tableTruthDao;
 	@Autowired
 	ViewScopeDao viewScopeDao;
+	@Autowired
+	WriteReadSemaphoreRunner writeReadSemaphoreRunner;
+	@Autowired
+	AuthorizationManager authorizationManager;
 	
 	/*
 	 * (non-Javadoc)
@@ -305,6 +319,60 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 			return calculateFileViewCRC32(tableId);
 		}
 		throw new IllegalArgumentException("unknown table type: " + type);
+	}
+	
+	@WriteTransactionReadCommitted
+	@Override
+	public <R,T> R tryRunWithTableExclusiveLock(ProgressCallback<T> callback,
+			String tableId, int timeoutSec, ProgressingCallable<R, T> callable)
+			throws LockUnavilableException, InterruptedException, Exception {
+		String key = TableModelUtils.getTableSemaphoreKey(tableId);
+		// The semaphore runner does all of the lock work.
+		return writeReadSemaphoreRunner.tryRunWithWriteLock(callback, key, timeoutSec, callable);
+	}
+
+	@WriteTransactionReadCommitted
+	@Override
+	public <R,T> R tryRunWithTableNonexclusiveLock(ProgressCallback<T> callback, String tableId, int lockTimeoutSec, ProgressingCallable<R, T> callable)
+			throws Exception {
+		String key = TableModelUtils.getTableSemaphoreKey(tableId);
+		// The semaphore runner does all of the lock work.
+		return writeReadSemaphoreRunner.tryRunWithReadLock(callback, key, lockTimeoutSec, callable);
+	}
+	
+	@Override
+	public void validateTableReadAccess(UserInfo userInfo, String tableId)
+			throws UnauthorizedException, DatastoreException, NotFoundException {
+		// They must have read permission to access table content.
+		AuthorizationManagerUtil
+				.checkAuthorizationAndThrowException(authorizationManager
+						.canAccess(userInfo, tableId, ObjectType.ENTITY,
+								ACCESS_TYPE.READ));
+
+		ObjectType type = getTableType(tableId);
+		// User must have the download permission to read from a TableEntity.
+		if(ObjectType.TABLE.equals(type)){
+			// And they must have download permission to access table content.
+			AuthorizationManagerUtil
+					.checkAuthorizationAndThrowException(authorizationManager
+							.canAccess(userInfo, tableId, ObjectType.ENTITY,
+									ACCESS_TYPE.DOWNLOAD));
+		}
+	}
+	
+	@Override
+	public void validateTableWriteAccess(UserInfo userInfo, String tableId)
+			throws UnauthorizedException, DatastoreException, NotFoundException {
+		// They must have update permission to change table content
+		AuthorizationManagerUtil
+				.checkAuthorizationAndThrowException(authorizationManager
+						.canAccess(userInfo, tableId, ObjectType.ENTITY,
+								ACCESS_TYPE.UPDATE));
+		// And they must have upload permission to change table content.
+		AuthorizationManagerUtil
+				.checkAuthorizationAndThrowException(authorizationManager
+						.canAccess(userInfo, tableId, ObjectType.ENTITY,
+								ACCESS_TYPE.UPLOAD));
 	}
 
 }

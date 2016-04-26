@@ -122,7 +122,7 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 			final String tableResetToken = tableManagerSupport.startTableProcessing(tableId);
 
 			// Run with the exclusive lock on the table if we can get it.
-			return tableEntityManager.tryRunWithTableExclusiveLock(progressCallback,tableId,
+			return tableManagerSupport.tryRunWithTableExclusiveLock(progressCallback,tableId,
 					lockTimeoutSec,
 					new ProgressingCallable<State, ChangeMessage>() {
 						@Override

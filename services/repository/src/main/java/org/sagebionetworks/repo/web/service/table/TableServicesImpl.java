@@ -11,6 +11,7 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
+import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.FileHandle;
@@ -53,6 +54,8 @@ public class TableServicesImpl implements TableServices {
 	TableEntityManager tableEntityManager;
 	@Autowired
 	FileHandleManager fileHandleManager;
+	@Autowired
+	TableQueryManager tableQueryManager;
 
 	@Override
 	public ColumnModel createColumnModel(Long userId, ColumnModel columnModel) throws DatastoreException, NotFoundException {
@@ -200,36 +203,8 @@ public class TableServicesImpl implements TableServices {
 	}
 
 	@Override
-	public QueryResultBundle queryBundle(Long userId, QueryBundleRequest queryBundle) throws NotFoundException, DatastoreException,
-			TableUnavilableException, TableFailedException {
-		UserInfo user = userManager.getUserInfo(userId);
-
-		return tableEntityManager.queryBundle(new ProgressCallback<Void>() {
-			
-			@Override
-			public void progressMade(Void t) {
-				
-			}
-		}, user, queryBundle);
-	}
-
-	@Override
-	public QueryResult queryNextPage(Long userId, QueryNextPageToken nextPageToken) throws DatastoreException, NotFoundException,
-			TableUnavilableException, TableFailedException {
-		UserInfo user = userManager.getUserInfo(userId);
-		QueryResult queryResult = tableEntityManager.queryNextPage(new ProgressCallback<Void>() {
-			
-			@Override
-			public void progressMade(Void t) {
-				
-			}
-		},user, nextPageToken);
-		return queryResult;
-	}
-
-	@Override
 	public Long getMaxRowsPerPage(List<ColumnModel> models) {
-		return tableEntityManager.getMaxRowsPerPage(models);
+		return tableQueryManager.getMaxRowsPerPage(models);
 	}
 	
 }

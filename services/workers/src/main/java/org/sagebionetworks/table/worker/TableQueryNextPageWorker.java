@@ -6,7 +6,7 @@ import org.sagebionetworks.common.util.progress.ForwardingProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
-import org.sagebionetworks.repo.manager.table.TableEntityManager;
+import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.table.QueryNextPageToken;
@@ -31,7 +31,7 @@ public class TableQueryNextPageWorker implements MessageDrivenRunner {
 	@Autowired
 	private AsynchJobStatusManager asynchJobStatusManager;
 	@Autowired
-	private TableEntityManager tableEntityManager;
+	private TableQueryManager tableQueryManger;
 	@Autowired
 	private UserManager userManger;
 
@@ -43,7 +43,7 @@ public class TableQueryNextPageWorker implements MessageDrivenRunner {
 			UserInfo user = userManger.getUserInfo(status.getStartedByUserId());
 			QueryNextPageToken request = (QueryNextPageToken) status.getRequestBody();
 			ForwardingProgressCallback<Void, Message> forwardCallabck = new ForwardingProgressCallback<Void, Message>(progressCallback, message);
-			QueryResult queryResult = tableEntityManager.queryNextPage(forwardCallabck, user, request);
+			QueryResult queryResult = tableQueryManger.queryNextPage(forwardCallabck, user, request);
 			asynchJobStatusManager.setComplete(status.getJobId(), queryResult);
 		}catch (TableUnavilableException e){
 			// This just means we cannot do this right now.  We can try again later.

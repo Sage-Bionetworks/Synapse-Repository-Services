@@ -5,6 +5,7 @@ import java.io.UnsupportedEncodingException;
 import org.apache.commons.codec.binary.Hex;
 import org.sagebionetworks.repo.manager.table.TableEntityManagerImpl;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
+import org.sagebionetworks.repo.manager.table.TableQueryManagerImpl;
 import org.sagebionetworks.repo.model.asynch.CacheableRequestBody;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.Query;
@@ -70,7 +71,7 @@ public class JobHashProviderImpl implements JobHashProvider {
 	 * @return
 	 */
 	private String getTableEtag(QueryNextPageToken body){
-		Query query = TableEntityManagerImpl.createQueryFromNextPageToken(body);
+		Query query = TableQueryManagerImpl.createQueryFromNextPageToken(body);
 		String tableId = extractTableIdFromSql(query.getSql());
 		return getTableEtag(tableId);
 	}

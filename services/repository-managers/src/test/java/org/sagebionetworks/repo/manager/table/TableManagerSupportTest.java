@@ -21,9 +21,14 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.manager.AuthorizationStatus;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
@@ -67,6 +72,8 @@ public class TableManagerSupportTest {
 	TableRowTruthDAO mockTableTruthDao;
 	@Mock
 	ViewScopeDao mockViewScopeDao;
+	@Mock
+	AuthorizationManager mockAuthorizationManager;
 	
 	String schemaMD5Hex;
 	
@@ -77,6 +84,7 @@ public class TableManagerSupportTest {
 	String etag;
 	Set<Long> scope;
 	Set<Long> containersInScope;
+	UserInfo userInfo;
 	
 	@Before
 	public void before() throws Exception {
@@ -93,6 +101,9 @@ public class TableManagerSupportTest {
 		ReflectionTestUtils.setField(manager, "nodeDao", mockNodeDao);
 		ReflectionTestUtils.setField(manager, "tableTruthDao", mockTableTruthDao);
 		ReflectionTestUtils.setField(manager, "viewScopeDao", mockViewScopeDao);
+		ReflectionTestUtils.setField(manager, "authorizationManager", mockAuthorizationManager);
+		
+		userInfo = new UserInfo(false, 8L);
 		
 		tableId = "syn123";
 		tableIdLong = KeyFactory.stringToKey(tableId);
@@ -486,4 +497,82 @@ public class TableManagerSupportTest {
 		// call under test
 		manager.getTableVersion(tableId);
 	}
+	
+	@Test
+	public void testValidateTableReadAccessTableEntity(){
+		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.table);
+		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(new AuthorizationStatus(true, ""));
+		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD)).thenReturn(new AuthorizationStatus(true, ""));
+		//  call under test
+		manager.validateTableReadAccess(userInfo, tableId);
+		verify(mockAuthorizationManager).canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ);
+		verify(mockAuthorizationManager).canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD);
+	}
+	
+	@Test (expected=UnauthorizedException.class)
+	public void testValidateTableReadAccessTableEntityNoDownload(){
+		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.table);
+		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(new AuthorizationStatus(true, ""));
+		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD)).thenReturn(new AuthorizationStatus(false, ""));
+		//  call under test
+		manager.validateTableReadAccess(userInfo, tableId);
+	}
+	
+	@Test (expected=UnauthorizedException.class)
+	public void testValidateTableReadAccessTableEntityNoRead(){
+		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.table);
+		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(new AuthorizationStatus(false, ""));
+		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD)).thenReturn(new AuthorizationStatus(true, ""));
+		//  call under test
+		manager.validateTableReadAccess(userInfo, tableId);
+	}
+	
+	@Test
+	public void testValidateTableReadAccessFiewView(){
+		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.fileview);
+		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(new AuthorizationStatus(true, ""));
+		//  call under test
+		manager.validateTableReadAccess(userInfo, tableId);
+		verify(mockAuthorizationManager).canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ);
+		//  do not need download for FileView
+		verify(mockAuthorizationManager, never()).canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD);
+	}
+	
+	@Test (expected=UnauthorizedException.class)
+	public void testValidateTableReadAccessFiewViewNoRead(){
+		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.fileview);
+		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(new AuthorizationStatus(false, ""));
+		//  call under test
+		manager.validateTableReadAccess(userInfo, tableId);
+	}
+	
+	@Test
+	public void testValidateTableWriteAccessTableEntity(){
+		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.table);
+		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(new AuthorizationStatus(true, ""));
+		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPLOAD)).thenReturn(new AuthorizationStatus(true, ""));
+		//  call under test
+		manager.validateTableWriteAccess(userInfo, tableId);
+		verify(mockAuthorizationManager).canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE);
+		verify(mockAuthorizationManager).canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPLOAD);
+	}
+	
+	@Test (expected=UnauthorizedException.class)
+	public void testValidateTableWriteAccessTableEntityNoUpload(){
+		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.table);
+		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(new AuthorizationStatus(true, ""));
+		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPLOAD)).thenReturn(new AuthorizationStatus(false, ""));
+		//  call under test
+		manager.validateTableWriteAccess(userInfo, tableId);
+	}
+	
+	@Test (expected=UnauthorizedException.class)
+	public void testValidateTableWriteAccessTableEntityNoUpdate(){
+		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.table);
+		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(new AuthorizationStatus(false, ""));
+		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPLOAD)).thenReturn(new AuthorizationStatus(true, ""));
+		//  call under test
+		manager.validateTableWriteAccess(userInfo, tableId);
+	}
+	
 }
