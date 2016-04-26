@@ -2853,7 +2853,43 @@ public class NodeDAOImplTest {
 		long crcResults = nodeDao.calculateCRCForAllFilesWithinContainers(containers);
 		assertEquals(0, crcResults);
 	}
-		
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetFileHandleIdsAssociatedWithFileEntityNullFileHandleIds(){
+		nodeDao.getFileHandleIdsAssociatedWithFileEntity(null, 1L);
+	}
+
+	@Test
+	public void testGetFileHandleIdsAssociatedWithFileEntityEmptyFileHandleIds(){
+		Set<Long> fileHandleIds = nodeDao.getFileHandleIdsAssociatedWithFileEntity(new ArrayList<Long>(0), 1L);
+		assertNotNull(fileHandleIds);
+		assertTrue(fileHandleIds.isEmpty());
+	}
+
+	@Test
+	public void testGetFileHandleIdsAssociatedWithFileEntityEmptyFileHandleIdsReturned(){
+		List<Long> fileHandleIds = Arrays.asList(1L, 2L);
+		Set<Long> foundFileHandleIds = nodeDao.getFileHandleIdsAssociatedWithFileEntity(fileHandleIds, 1L);
+		assertNotNull(foundFileHandleIds);
+		assertTrue(foundFileHandleIds.isEmpty());
+	}
+
+	@Test
+	public void testGetFileHandleIdsAssociatedWithFileEntity(){
+		Node node = NodeTestUtils.createNew("testGetFileHandleIdsForFileEntity", creatorUserGroupId);
+		node.setFileHandleId(fileHandle.getId());
+		String id = nodeDao.createNew(node);
+		toDelete.add(id);
+		long fileHanldeId = Long.parseLong(fileHandle.getId());
+		List<Long> fileHandleIds = Arrays.asList(fileHanldeId, 2L);
+		Set<Long> foundFileHandleIds = nodeDao.getFileHandleIdsAssociatedWithFileEntity(fileHandleIds, KeyFactory.stringToKey(id));
+		assertNotNull(foundFileHandleIds);
+		assertEquals(1L, foundFileHandleIds.size());
+		assertTrue(foundFileHandleIds.contains(fileHanldeId));
+
+		nodeDao.delete(id);
+		fileHandleDao.delete(fileHandle.getId());
+	}
 
 	/**
 	 * Generate the following Hierarchy:

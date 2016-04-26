@@ -370,4 +370,13 @@ public interface NodeManager {
 	 */
 	public String getEntityIdForAlias(String alias);
 
+	/**
+	 * Return a set of fileHandleIds that associated with entityId and appear in the provided list.
+	 * 
+	 * @param fileHandleIds
+	 * @param entityId
+	 * @return
+	 */
+	public Set<String> getFileHandleIdsAssociatedWithFileEntity(List<String> fileHandleIds, String entityId);
+
 }

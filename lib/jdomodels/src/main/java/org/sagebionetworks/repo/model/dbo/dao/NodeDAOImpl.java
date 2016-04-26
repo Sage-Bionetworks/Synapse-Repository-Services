@@ -292,7 +292,11 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			+ COL_REVISION_NUMBER+ ") FROM " + TABLE_REVISION + " WHERE "
 			+ COL_REVISION_OWNER_NODE + " = ?";
 
-	
+	private static final String SQL_GET_FILE_HANDLE_IDS = "SELECT DISTINCT "+COL_REVISION_FILE_HANDLE_ID
+			+" FROM "+TABLE_NODE+", "+TABLE_REVISION
+			+" WHERE "+COL_NODE_ID+" = "+COL_REVISION_OWNER_NODE
+			+" AND "+COL_NODE_ID+" = ?";
+
 	@WriteTransaction
 	@Override
 	public String createNew(Node dto) throws NotFoundException, DatastoreException, InvalidModelException {
@@ -1729,6 +1733,19 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			return DEFAULT_EMPTY_CRC;
 		}
 		return result;
+	}
+
+	@Override
+	public Set<Long> getFileHandleIdsAssociatedWithFileEntity(List<Long> fileHandleIds, long entityId) {
+		ValidateArgument.required(fileHandleIds, "fileHandleIds");
+		Set<Long> results = new HashSet<Long>();
+		if (fileHandleIds.isEmpty()) {
+			return results;
+		}
+		results.addAll(fileHandleIds);
+		List<Long> foundFileHandleIds = jdbcTemplate.queryForList(SQL_GET_FILE_HANDLE_IDS, Long.class, entityId);
+		results.retainAll(foundFileHandleIds);
+		return results;
 	}
 
 }
