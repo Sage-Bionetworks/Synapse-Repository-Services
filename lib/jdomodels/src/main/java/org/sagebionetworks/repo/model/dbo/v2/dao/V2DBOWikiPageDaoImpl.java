@@ -31,8 +31,10 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.sagebionetworks.downloadtools.FileUtils;
@@ -64,6 +66,7 @@ import org.sagebionetworks.repo.model.v2.wiki.V2WikiOrderHint;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.utils.ContentTypeUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
@@ -643,13 +646,12 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 	}
 	
 	/**
-	 * Retrieves the attachments list for the given wiki
-	 * @param key
+	 * Retrieves the attachments list for the given wikiPageId
+	 * @param wikiPageId
 	 * @return
 	 */
-	private String getAttachmentsListFromMarkdownTable(WikiPageKey key) {
-		if(key == null) throw new IllegalArgumentException("Key cannot be null");
-
+	private List<String> getAttachmentsListFromMarkdownTable(String wikiPageId) {
+		ValidateArgument.required(wikiPageId, "wikiPageId");
 		List<String> attachmentsList = simpleJdbcTemplate.query(SQL_GET_WIKI_MARKDOWN_ATTACHMENT_ID_LIST, new RowMapper<String>() {
 			@Override
 			public String mapRow(ResultSet rs, int rowNum) throws SQLException {
@@ -660,8 +662,8 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 				}
 				return null;
 			}
-		}, key.getWikiPageId());
-		return attachmentsList.get(0);
+		}, wikiPageId);
+		return attachmentsList;
 	}
 
 	@Override
@@ -670,7 +672,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		String listToString;
 		if(version == null) {
 			// Get the attachments for the current wiki
-			listToString = getAttachmentsListFromMarkdownTable(key);
+			listToString = getAttachmentsListFromMarkdownTable(key.getWikiPageId()).get(0);
 		} else {
 			// Lookup the attachments for another version of the wiki
 			V2DBOWikiMarkdown markdownDbo = getWikiMarkdownDBO(Long.parseLong(key.getWikiPageId()), version);
@@ -686,7 +688,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		if(fileName == null) throw new IllegalArgumentException("fileName cannot be null");
 		String attachmentsList;
 		if(version == null) {
-			attachmentsList = getAttachmentsListFromMarkdownTable(key);
+			attachmentsList = getAttachmentsListFromMarkdownTable(key.getWikiPageId()).get(0);
 		} else {
 			// Lookup the attachments for another version of the wiki
 			V2DBOWikiMarkdown markdownDbo = getWikiMarkdownDBO(Long.parseLong(key.getWikiPageId()), version);
@@ -765,5 +767,23 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		}catch(EmptyResultDataAccessException e){
 			return false;
 		}
+	}
+
+	@Override
+	public Set<String> getFileHandleIdsAssociatedWithWiki(List<String> fileHandleIds, String wikiPageId) {
+		ValidateArgument.required(fileHandleIds, "fileHandleIds");
+		ValidateArgument.required(wikiPageId, "wikiPageId");
+		Set<String> results = new HashSet<String>();
+		if (fileHandleIds.isEmpty()) {
+			return results;
+		}
+		results.addAll(fileHandleIds);
+		List<String> foundFileHandleIds = new ArrayList<String>();
+		List<String> attachmentList = getAttachmentsListFromMarkdownTable(wikiPageId);
+		for (String attachment : attachmentList) {
+			foundFileHandleIds.addAll(V2WikiTranslationUtils.createFileHandleListFromString(attachment));
+		}
+		results.retainAll(foundFileHandleIds);
+		return results;
 	}
 }

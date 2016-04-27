@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.v2.dao;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -194,4 +195,12 @@ public interface V2WikiPageDao {
 	public WikiPageKey lookupWikiKey(String wikiId) throws NotFoundException;
 
 	long getCount() throws DatastoreException;
+
+	/**
+	 * 
+	 * @param fileHandleIds
+	 * @param wikiPageId
+	 * @return
+	 */
+	public Set<String> getFileHandleIdsAssociatedWithWiki(List<String> fileHandleIds, String wikiPageId);
 }

@@ -3,7 +3,9 @@ package org.sagebionetworks;
 import static org.junit.Assert.assertNotNull;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -18,11 +20,14 @@ import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.FileEntity;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
 import com.google.common.collect.Lists;
 
@@ -33,9 +38,12 @@ public class ITDownloadUsingFileHandleAssociationTest {
 	private static Long userToDelete;
 
 	private static final String FILE_NAME = "LittleImage.png";
+	private static String MARKDOWN_NAME = "previewtest.txt.gz";
 	private Project project;
 	private File imageFile;
 	private S3FileHandle fileHandle;
+	private S3FileHandle markdownHandle;
+	private File markdownFile;
 	private List<String> fileHandlesToDelete = Lists.newArrayList();
 
 	@BeforeClass
@@ -57,13 +65,19 @@ public class ITDownloadUsingFileHandleAssociationTest {
 		project = synapse.createEntity(project);
 		// Get the image file from the classpath.
 		URL url = IT054FileEntityTest.class.getClassLoader().getResource("images/"+FILE_NAME);
+		URL markdownUrl = ITV2WikiPageTest.class.getClassLoader().getResource("images/"+MARKDOWN_NAME);
 		imageFile = new File(url.getFile().replaceAll("%20", " "));
+		markdownFile = new File(markdownUrl.getFile().replaceAll("%20", " "));
 		// Create the image file handle
 		List<File> list = new LinkedList<File>();
 		list.add(imageFile);
+		list.add(markdownFile);
 		FileHandleResults results = synapse.createFileHandles(list, project.getId());
+
 		fileHandle = (S3FileHandle) results.getList().get(0);
+		markdownHandle = (S3FileHandle) results.getList().get(1);
 		fileHandlesToDelete.add(fileHandle.getId());
+		fileHandlesToDelete.add(markdownHandle.getId());
 	}
 
 	@After
@@ -98,6 +112,25 @@ public class ITDownloadUsingFileHandleAssociationTest {
 		fha.setAssociateObjectId(file.getId());
 		fha.setAssociateObjectType(FileHandleAssociateType.FileEntity);
 		fha.setFileHandleId(file.getDataFileHandleId());
+		URL url = synapse.getFileURL(fha);
+		assertNotNull(url);
+	}
+
+	@Test
+	public void testWikiAttachment() throws SynapseException, IOException, InterruptedException, JSONObjectAdapterException{
+		V2WikiPage wiki = new V2WikiPage();
+		wiki.setAttachmentFileHandleIds(new ArrayList<String>());
+		wiki.getAttachmentFileHandleIds().add(fileHandle.getId());
+		wiki.setMarkdownFileHandleId(markdownHandle.getId());
+		wiki.setTitle("ITV2WikiPageTest.testWikiRoundTrip");
+		// Create a V2WikiPage
+		wiki = synapse.createV2WikiPage(project.getId(), ObjectType.ENTITY, wiki);
+		assertNotNull(wiki);
+		
+		FileHandleAssociation fha = new FileHandleAssociation();
+		fha.setAssociateObjectId(wiki.getId());
+		fha.setAssociateObjectType(FileHandleAssociateType.WikiAttachment);
+		fha.setFileHandleId(fileHandle.getId());
 		URL url = synapse.getFileURL(fha);
 		assertNotNull(url);
 	}

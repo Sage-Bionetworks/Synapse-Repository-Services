@@ -251,8 +251,7 @@ public class V2WikiTranslationUtils {
 				String id = decodeForParsing(idName[0]);
 				fileNameToIdMap.put(fileName, id);
 			}
-			
-		}		
+		}
 		return fileNameToIdMap;
 	}
 	

@@ -22,7 +22,9 @@ import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.file.FileHandleAuthorizationStatus;
@@ -48,6 +50,7 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VerificationDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dao.discussion.DiscussionThreadDAO;
 import org.sagebionetworks.repo.model.dao.discussion.ForumDAO;
 import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
@@ -58,6 +61,7 @@ import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociationManager;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
+import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -68,17 +72,36 @@ import com.google.common.collect.Sets;
 
 public class AuthorizationManagerImplUnitTest {
 
+	@Mock
 	private AccessRequirementDAO  mockAccessRequirementDAO;
+	@Mock
 	private AccessApprovalDAO mockAccessApprovalDAO;
+	@Mock
 	private ActivityDAO mockActivityDAO;
+	@Mock
 	private UserGroupDAO mockUserGroupDAO;
+	@Mock
 	private FileHandleDao mockFileHandleDao;
+	@Mock
 	private EvaluationDAO mockEvaluationDAO;
+	@Mock
 	private UserManager mockUserManager;
+	@Mock
 	private EntityPermissionsManager mockEntityPermissionsManager;
+	@Mock
 	private AccessControlListDAO mockAclDAO;
+	@Mock
 	private FileHandleAssociationManager mockFileHandleAssociationManager;
+	@Mock
 	private VerificationDAO mockVerificationDao;
+	@Mock
+	private NodeDAO mockNodeDao;
+	@Mock
+	private DiscussionThreadDAO mockThreadDao;
+	@Mock
+	private ForumDAO mockForumDao;
+	@Mock
+	private V2WikiPageDao mockWikiPageDaoV2;
 
 	private static String USER_PRINCIPAL_ID = "123";
 	private static String EVAL_OWNER_PRINCIPAL_ID = "987";
@@ -88,9 +111,6 @@ public class AuthorizationManagerImplUnitTest {
 	private UserInfo userInfo;
 	private UserInfo adminUser;
 	private Evaluation evaluation;
-	private NodeDAO mockNodeDao;
-	private DiscussionThreadDAO mockThreadDao;
-	private ForumDAO mockForumDao;
 	private String threadId;
 	private String forumId;
 	private String projectId;
@@ -100,20 +120,7 @@ public class AuthorizationManagerImplUnitTest {
 	@Before
 	public void setUp() throws Exception {
 
-		mockAccessRequirementDAO = mock(AccessRequirementDAO.class);
-		mockAccessApprovalDAO = mock(AccessApprovalDAO.class);
-		mockActivityDAO = mock(ActivityDAO.class);
-		mockUserManager = mock(UserManager.class);
-		mockEntityPermissionsManager = mock(EntityPermissionsManager.class);
-		mockFileHandleDao = mock(FileHandleDao.class);
-		mockEvaluationDAO = mock(EvaluationDAO.class);
-		mockUserGroupDAO = Mockito.mock(UserGroupDAO.class);
-		mockAclDAO = Mockito.mock(AccessControlListDAO.class);
-		mockNodeDao = Mockito.mock(NodeDAO.class);
-		mockFileHandleAssociationManager = Mockito.mock(FileHandleAssociationManager.class);
-		mockVerificationDao = Mockito.mock(VerificationDAO.class);
-		mockThreadDao = Mockito.mock(DiscussionThreadDAO.class);
-		mockForumDao = Mockito.mock(ForumDAO.class);
+		MockitoAnnotations.initMocks(this);
 
 		authorizationManager = new AuthorizationManagerImpl();
 		ReflectionTestUtils.setField(authorizationManager, "accessRequirementDAO", mockAccessRequirementDAO);
@@ -130,6 +137,7 @@ public class AuthorizationManagerImplUnitTest {
 		ReflectionTestUtils.setField(authorizationManager, "verificationDao", mockVerificationDao);
 		ReflectionTestUtils.setField(authorizationManager, "threadDao", mockThreadDao);
 		ReflectionTestUtils.setField(authorizationManager, "forumDao", mockForumDao);
+		ReflectionTestUtils.setField(authorizationManager, "wikiPageDaoV2", mockWikiPageDaoV2);
 
 		userInfo = new UserInfo(false, USER_PRINCIPAL_ID);
 		adminUser = new UserInfo(true, 456L);
@@ -444,6 +452,18 @@ public class AuthorizationManagerImplUnitTest {
 		// otherwise not
 		when(mockAclDAO.canAccess(userInfo.getGroups(), teamId, ObjectType.TEAM, accessType)).thenReturn(false);
 		assertFalse(authorizationManager.canAccess(userInfo, teamId, ObjectType.TEAM, accessType).getAuthorized());
+	}
+
+	@Test
+	public void testCanAccessWiki() throws Exception {
+		String wikiId = "1";
+		String entityId = "syn123";
+		WikiPageKey key = new WikiPageKey();
+		key.setOwnerObjectId(entityId);
+		when(mockWikiPageDaoV2.lookupWikiKey(wikiId)).thenReturn(key);
+		when(mockEntityPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, userInfo))
+				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		assertTrue(authorizationManager.canAccess(userInfo, wikiId, ObjectType.WIKI, ACCESS_TYPE.DOWNLOAD).getAuthorized());
 	}
 	
 	@Test

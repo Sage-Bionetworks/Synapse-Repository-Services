@@ -15,6 +15,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.junit.After;
 import org.junit.Before;
@@ -789,5 +790,60 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		assertTrue(recordedOrderHint.getOwnerId().equals(ownerId));
 		assertTrue(recordedOrderHint.getOwnerObjectType().equals(ObjectType.EVALUATION));
 	}
-	
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetFileHandleIdsAssociateWithWikiNullFileHandleIds(){
+		wikiPageDao.getFileHandleIdsAssociatedWithWiki(null, "1");
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetFileHandleIdsAssociateWithWikiNullWikiPageId() {
+		wikiPageDao.getFileHandleIdsAssociatedWithWiki(new ArrayList<String>(0), null);
+	}
+
+	@Test
+	public void testGetFileHandleIdsAssociateWithWikiEmptyFileHandleIds() {
+		Set<String> fileHandleIds = wikiPageDao.getFileHandleIdsAssociatedWithWiki(new ArrayList<String>(0), "1");
+		assertNotNull(fileHandleIds);
+		assertTrue(fileHandleIds.isEmpty());
+	}
+
+	@Test
+	public void testGetFileHandleIdsAssociateWithWikiNoAttachments() {
+		List<String> givenFileHandleIds = Arrays.asList("1", "2");
+		Set<String> fileHandleIds = wikiPageDao.getFileHandleIdsAssociatedWithWiki(givenFileHandleIds, "1");
+		assertNotNull(fileHandleIds);
+		assertTrue(fileHandleIds.isEmpty());
+	}
+
+	@Test
+	public void testGetFileHandleIdsAssociateWithWiki() {
+		// Create a new wiki page with a single attachment
+		V2WikiPage page = new V2WikiPage();
+		String ownerId = "syn192";
+		ObjectType ownerType = ObjectType.ENTITY;
+		page.setTitle("Title");
+		page.setCreatedBy(creatorUserGroupId);
+		page.setModifiedBy(creatorUserGroupId);
+		page.setMarkdownFileHandleId(markdownOne.getId());
+		
+		// Add an attachment
+		page.setAttachmentFileHandleIds(new LinkedList<String>());
+		page.getAttachmentFileHandleIds().add(attachOne.getId());
+		Map<String, FileHandle> fileNameMap = new HashMap<String, FileHandle>();
+		fileNameMap.put(attachOne.getFileName(), attachOne);
+		List<String> newIds = new ArrayList<String>();
+		newIds.add(attachOne.getId());
+		
+		// Create it
+		V2WikiPage clone = wikiPageDao.create(page, fileNameMap, ownerId, ownerType, newIds);
+		assertNotNull(clone);
+		
+		List<String> givenFileHandleIds = Arrays.asList("1", "2", attachOne.getId());
+		Set<String> fileHandleIds = wikiPageDao.getFileHandleIdsAssociatedWithWiki(givenFileHandleIds, clone.getId());
+		assertNotNull(fileHandleIds);
+		assertEquals(1L, fileHandleIds.size());
+		assertTrue(fileHandleIds.contains(attachOne.getId()));
+	}
+
 }
