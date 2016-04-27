@@ -224,7 +224,7 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 			IOException, TableUnavilableException {
 		// The first task is to get the table schema in-synch.
 		// Get the current schema of the table.
-		List<ColumnModel> currentSchema = tableEntityManager
+		List<ColumnModel> currentSchema = tableManagerSupport
 				.getColumnModelsForTable(tableId);
 		ColumnMapper mapper = TableModelUtils.createColumnModelColumnMapper(
 				currentSchema, false);

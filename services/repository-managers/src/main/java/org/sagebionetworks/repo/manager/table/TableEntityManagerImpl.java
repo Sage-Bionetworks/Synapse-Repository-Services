@@ -267,7 +267,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 				return row;
 			}
 		});
-		ColumnMapper mapper = TableModelUtils.createColumnModelColumnMapper(getColumnModelsForTable(tableId), false);
+		ColumnMapper mapper = TableModelUtils.createColumnModelColumnMapper(tableManagerSupport.getColumnModelsForTable(tableId), false);
 		RawRowSet rowSetToDelete = new RawRowSet(TableModelUtils.getIds(mapper.getColumnModels()), rowsToDelete.getEtag(), tableId, rows);
 		RowReferenceSet result = tableRowTruthDao.appendRowSetToTable(user.getId().toString(), tableId, mapper, rowSetToDelete);
 		// The table has change so we must reset the state.
@@ -379,32 +379,6 @@ public class TableEntityManagerImpl implements TableEntityManager {
 			}
 		}
 		return rrs.getEtag();
-	}
-
-	@Override
-	public List<ColumnModel> getColumnModelsForTable(String tableId) throws DatastoreException, NotFoundException {
-		return columnModelDAO.getColumnModelsForObject(tableId);
-	}
-
-	@Override
-	public List<ColumnModel> getColumnsForHeaders(List<String> headers) throws DatastoreException, NotFoundException {
-		// Not all of the headers are columns so filter out those that are not.
-		List<String> columnIds = new LinkedList<String>();
-		for(String header: headers){
-			// Is this a columns ID
-			try {
-				Long id = Long.parseLong(header);
-				// This header is a columnId so include it
-				columnIds.add(id.toString());
-			} catch (NumberFormatException e) {
-				// expected, this just means a header was not a columnModel id so we skip it.
-			}
-		}
-		// If the columnIds is null, then none of the headers were actual column model ids.
-		if(columnIds.isEmpty()){
-			return new ArrayList<ColumnModel>(0);
-		}
-		return columnModelDAO.getColumnModel(columnIds, true);
 	}
 	
 	@Override

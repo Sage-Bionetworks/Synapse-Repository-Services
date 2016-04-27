@@ -652,18 +652,6 @@ public class TableEntityManagerTest {
 		doThrow(new UnauthorizedException()).when(mockTableManagerSupport).validateTableReadAccess(user, tableId);
 		manager.getCellValue(user, tableId, null, null);
 	}
-
-
-	
-	@Test
-	public void testGetColumnsForHeaders() throws DatastoreException, NotFoundException{
-		// Headers can be a mix of column ids and aggregate functions.  The non-column model id headers should be ignored.
-		List<String> headers = Arrays.asList("1","2","count(2)","3");
-		when(mockColumnModelDAO.getColumnModel(Arrays.asList("1","2","3"), true)).thenReturn(Arrays.asList(models.get(1),models.get(2), models.get(3)));
-		List<ColumnModel> models = manager.getColumnsForHeaders(headers);
-		assertNotNull(models);
-		assertEquals(3, models.size());
-	}
 	
 	@Test (expected=ReadOnlyException.class)
 	public void testPLFM_3041ReadOnly() throws Exception{
