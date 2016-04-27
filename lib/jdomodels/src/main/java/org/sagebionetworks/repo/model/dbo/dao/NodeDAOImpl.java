@@ -292,10 +292,10 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			+ COL_REVISION_NUMBER+ ") FROM " + TABLE_REVISION + " WHERE "
 			+ COL_REVISION_OWNER_NODE + " = ?";
 
-	private static final String SQL_GET_FILE_HANDLE_IDS = "SELECT DISTINCT "+COL_REVISION_FILE_HANDLE_ID
-			+" FROM "+TABLE_NODE+", "+TABLE_REVISION
-			+" WHERE "+COL_NODE_ID+" = "+COL_REVISION_OWNER_NODE
-			+" AND "+COL_NODE_ID+" = ?";
+	private static final String SQL_GET_FILE_HANDLE_IDS =
+			"SELECT DISTINCT "+COL_REVISION_FILE_HANDLE_ID
+			+" FROM "+TABLE_REVISION
+			+" WHERE "+COL_REVISION_OWNER_NODE+" = ?";
 
 	@WriteTransaction
 	@Override
