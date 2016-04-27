@@ -212,7 +212,7 @@
 	</bean>
 	
 	<bean id="v2wikiPageDAO"
-		class="org.sagebionetworks.repo.model.dbo.v2.dao.V2DBOWikiPageDaoImpl"
+		class="org.sagebionetworks.repo.model.dbo.wikiV2.V2DBOWikiPageDaoImpl"
 		scope="singleton">
 	</bean>
 

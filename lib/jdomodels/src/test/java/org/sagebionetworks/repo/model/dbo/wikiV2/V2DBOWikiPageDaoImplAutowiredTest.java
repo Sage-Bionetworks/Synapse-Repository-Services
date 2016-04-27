@@ -36,7 +36,7 @@ import org.sagebionetworks.repo.model.v2.wiki.V2WikiOrderHint;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
@@ -53,7 +53,7 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 	private V2WikiPageDao wikiPageDao;
 
 	@Autowired
-	private SimpleJdbcTemplate simpleJdbcTemplate;
+	private JdbcTemplate jdbcTemplate;
 
 	private List<WikiPageKey> toDelete;
 	private String creatorUserGroupId;
@@ -524,7 +524,7 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		
 		// In setRoot, passed through first branch because root == parent
 		// Root id should be set it itself
-		long rootIdForParent = simpleJdbcTemplate.queryForLong(SQL_GET_ROOT_ID, root.getId());	
+		long rootIdForParent = jdbcTemplate.queryForLong(SQL_GET_ROOT_ID, root.getId());	
 		assertEquals(String.valueOf(rootIdForParent), rootId);
 		
 		// Add add children in reverse alphabetical order.
@@ -544,7 +544,7 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		}
 		
 		// Test one child; root should be set to parent root's id
-		long rootIdForChild = simpleJdbcTemplate.queryForLong(SQL_GET_ROOT_ID, children.get(0).getId());	
+		long rootIdForChild = jdbcTemplate.queryForLong(SQL_GET_ROOT_ID, children.get(0).getId());	
 		assertEquals(String.valueOf(rootIdForChild), rootId);
 		
 		// Test getRootWiki for this hierarchy
