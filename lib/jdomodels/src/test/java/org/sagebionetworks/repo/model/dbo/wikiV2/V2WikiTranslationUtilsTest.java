@@ -1,4 +1,4 @@
-package org.sagebionetworks.evaluation.v2.dbo;
+package org.sagebionetworks.repo.model.dbo.wikiV2;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -18,11 +18,11 @@ import java.util.Map;
 
 import org.junit.Test;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.dbo.V2WikiTranslationUtils;
-import org.sagebionetworks.repo.model.dbo.v2.persistence.V2DBOWikiAttachmentReservation;
-import org.sagebionetworks.repo.model.dbo.v2.persistence.V2DBOWikiMarkdown;
-import org.sagebionetworks.repo.model.dbo.v2.persistence.V2DBOWikiOwner;
-import org.sagebionetworks.repo.model.dbo.v2.persistence.V2DBOWikiPage;
+import org.sagebionetworks.repo.model.dbo.wikiV2.V2DBOWikiAttachmentReservation;
+import org.sagebionetworks.repo.model.dbo.wikiV2.V2DBOWikiMarkdown;
+import org.sagebionetworks.repo.model.dbo.wikiV2.V2DBOWikiOwner;
+import org.sagebionetworks.repo.model.dbo.wikiV2.V2DBOWikiPage;
+import org.sagebionetworks.repo.model.dbo.wikiV2.V2WikiTranslationUtils;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiOrderHint;

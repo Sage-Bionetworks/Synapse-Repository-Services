@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.model.dbo.v2.dao;
+package org.sagebionetworks.repo.model.dbo.wikiV2;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
