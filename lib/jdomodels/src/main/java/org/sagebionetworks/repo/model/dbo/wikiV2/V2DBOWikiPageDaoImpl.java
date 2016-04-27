@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.model.dbo.v2.dao;
+package org.sagebionetworks.repo.model.dbo.wikiV2;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_ATTACHMENT_RESERVATION_FILE_HANDLE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_ATTACHMENT_RESERVATION_ID;
@@ -48,11 +48,6 @@ import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dao.WikiPageKeyHelper;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
-import org.sagebionetworks.repo.model.dbo.V2WikiTranslationUtils;
-import org.sagebionetworks.repo.model.dbo.v2.persistence.V2DBOWikiAttachmentReservation;
-import org.sagebionetworks.repo.model.dbo.v2.persistence.V2DBOWikiMarkdown;
-import org.sagebionetworks.repo.model.dbo.v2.persistence.V2DBOWikiOwner;
-import org.sagebionetworks.repo.model.dbo.v2.persistence.V2DBOWikiPage;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -182,6 +177,20 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 				versionOfMarkdown.setAttachmentFileHandleIds(null);
 			}
 			return versionOfMarkdown;
+		}
+	};
+
+	/**
+	 * Map a wiki attachment blob to a list of WikiAttachment objects
+	 */
+	private static final RowMapper<List<WikiAttachment>> WIKI_ATTACHMENT_MAPPER = new RowMapper<List<WikiAttachment>>() {
+		@Override
+		public List<WikiAttachment> mapRow(ResultSet rs, int rowNumber) throws SQLException {
+			java.sql.Blob blob = rs.getBlob(V2_COL_WIKI_MARKDOWN_ATTACHMENT_ID_LIST);
+			if(blob != null){
+				return V2WikiTranslationUtils.convertByteArrayToWikiAttachmentList(blob.getBytes(1, (int) blob.length()));
+			}
+			return null;
 		}
 	};
 	
@@ -650,7 +659,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 	 * @param wikiPageId
 	 * @return
 	 */
-	private List<String> getAttachmentsListFromMarkdownTable(String wikiPageId) {
+	private String getCurrentAttachmentsListFromMarkdownTable(String wikiPageId) {
 		ValidateArgument.required(wikiPageId, "wikiPageId");
 		List<String> attachmentsList = simpleJdbcTemplate.query(SQL_GET_WIKI_MARKDOWN_ATTACHMENT_ID_LIST, new RowMapper<String>() {
 			@Override
@@ -663,7 +672,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 				return null;
 			}
 		}, wikiPageId);
-		return attachmentsList;
+		return attachmentsList.get(0);
 	}
 
 	@Override
@@ -672,7 +681,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		String listToString;
 		if(version == null) {
 			// Get the attachments for the current wiki
-			listToString = getAttachmentsListFromMarkdownTable(key.getWikiPageId()).get(0);
+			listToString = getCurrentAttachmentsListFromMarkdownTable(key.getWikiPageId());
 		} else {
 			// Lookup the attachments for another version of the wiki
 			V2DBOWikiMarkdown markdownDbo = getWikiMarkdownDBO(Long.parseLong(key.getWikiPageId()), version);
@@ -688,7 +697,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		if(fileName == null) throw new IllegalArgumentException("fileName cannot be null");
 		String attachmentsList;
 		if(version == null) {
-			attachmentsList = getAttachmentsListFromMarkdownTable(key.getWikiPageId()).get(0);
+			attachmentsList = getCurrentAttachmentsListFromMarkdownTable(key.getWikiPageId());
 		} else {
 			// Lookup the attachments for another version of the wiki
 			V2DBOWikiMarkdown markdownDbo = getWikiMarkdownDBO(Long.parseLong(key.getWikiPageId()), version);
@@ -779,11 +788,16 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		}
 		results.addAll(fileHandleIds);
 		List<String> foundFileHandleIds = new ArrayList<String>();
-		List<String> attachmentList = getAttachmentsListFromMarkdownTable(wikiPageId);
+		List<String> attachmentList = getAllAttachmentsListFromMarkdownTable(wikiPageId);
 		for (String attachment : attachmentList) {
 			foundFileHandleIds.addAll(V2WikiTranslationUtils.createFileHandleListFromString(attachment));
 		}
 		results.retainAll(foundFileHandleIds);
 		return results;
+	}
+
+	private List<WikiAttachment> getAllAttachmentsListFromMarkdownTable(String wikiPageId) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 }

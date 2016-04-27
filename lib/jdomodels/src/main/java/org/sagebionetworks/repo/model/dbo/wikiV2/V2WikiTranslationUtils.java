@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.model.dbo;
+package org.sagebionetworks.repo.model.dbo.wikiV2;
 
 import java.io.UnsupportedEncodingException;
 import java.sql.Timestamp;
@@ -10,10 +10,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import org.sagebionetworks.repo.model.dbo.v2.persistence.V2DBOWikiAttachmentReservation;
-import org.sagebionetworks.repo.model.dbo.v2.persistence.V2DBOWikiMarkdown;
-import org.sagebionetworks.repo.model.dbo.v2.persistence.V2DBOWikiOwner;
-import org.sagebionetworks.repo.model.dbo.v2.persistence.V2DBOWikiPage;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiOrderHint;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
@@ -292,5 +288,37 @@ public class V2WikiTranslationUtils {
 			}
 		}
 		return fileHandleIds;
+	}
+
+	/**
+	 * This method converts a byte array into a list of attachments.
+	 * 
+	 * @param bytes
+	 * @return
+	 */
+	public static List<WikiAttachment> convertByteArrayToWikiAttachmentList(byte[] bytes) {
+		try {
+			String attachmentList = new String(bytes, "UTF-8");
+			List<WikiAttachment> wikiAttachmentList = new ArrayList<WikiAttachment>();
+			if(attachmentList == null || attachmentList.length() == 0) {
+				return wikiAttachmentList;
+			}
+			String[] attachments = attachmentList.split(",");
+			for(String attachment: attachments) {
+				if (attachment == null || attachment.length() == 0) {
+					continue;
+				}
+				String[] idName = attachment.split(":");
+				if (idName.length != 2) {
+					throw new IllegalArgumentException("Wrong format for wiki attachment string: "+attachment);
+				}
+				String fileName = decodeForParsing(idName[1]);
+				String id = decodeForParsing(idName[0]);
+				wikiAttachmentList.add(new WikiAttachment(id, fileName));
+			}
+			return wikiAttachmentList;
+		} catch (UnsupportedEncodingException e) {
+			throw new RuntimeException(e);
+		}
 	}
 }
