@@ -367,4 +367,39 @@ public class TransactionSettingsTest {
 		});
 		stepper.run();
 	}
+	
+	@Test
+	public void validateRequiresNewReadCommitted() throws Exception {
+		final Long idOne = 4l;
+		final Long idTwo = 5l;
+		try{
+			// Start a transaction
+			transactionValidator.writeReadCommitted(new Callable<String>() {
+				
+				@Override
+				public String call() throws Exception {
+					// Change the value within this transaction.
+					transactionValidator.setStringNoTransaction(idOne, "shouldRollback");
+					// Change the value in a new transaction
+					transactionValidator.requiresNewReadCommitted(new Callable<String>() {
+						
+						@Override
+						public String call() throws Exception {
+							// This should not rollback.
+							transactionValidator.setStringNoTransaction(idTwo, "shouldNotRollback");
+							return null;
+						}
+					});
+					// trigger the rollback of the outer transaction
+					throw new IllegalArgumentException("Thrown to trigger a rollback");
+				}
+			});
+			fail("Should have thrown an exception");
+		}catch(IllegalArgumentException e){
+			// expected
+		}
+		// id two should be committed.
+		String result = transactionValidator.getString(idTwo);
+		assertEquals("shouldNotRollback", result);
+	}
 }

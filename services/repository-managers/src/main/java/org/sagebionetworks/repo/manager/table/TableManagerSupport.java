@@ -134,24 +134,7 @@ public interface TableManagerSupport {
 	 * 
 	 * @param deletedId
 	 */
-	public void setTableDeleted(String deletedId, ObjectType tableType);
-
-	/**
-	 * Validate the table is available.
-	 * 
-	 * @param tableId
-	 * @return
-	 * @throws NotFoundException
-	 *             If the table does not exist
-	 * @throws TableUnavilableException
-	 *             If the table exists but is currently processing.
-	 * @throws TableFailedException
-	 *             If the table exists but processing failed.
-	 */
-	public TableStatus validateTableIsAvailable(String tableId)
-			throws NotFoundException, TableUnavilableException,
-			TableFailedException;
-	
+	public void setTableDeleted(String deletedId, ObjectType tableType);	
 	
 	/**
 	 * The MD5 hex of a table's schema.

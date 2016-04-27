@@ -47,9 +47,11 @@ import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
+import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
@@ -102,14 +104,13 @@ public class TableQueryManagerImplTest {
 		
 		status = new TableStatus();
 		status.setTableId(tableId);
-		status.setState(TableState.PROCESSING);
+		status.setState(TableState.AVAILABLE);
 		status.setChangedOn(new Date(123));
 		status.setLastTableChangeEtag("etag");
 		ETAG = "";
 		
 		models = TableModelTestUtils.createOneOfEachType(true);
 		
-		when(mockTableManagerSupport.validateTableIsAvailable(tableId)).thenReturn(status);
 		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
 		
 		// Just call the caller.
@@ -252,7 +253,6 @@ public class TableQueryManagerImplTest {
 	@Test
 	public void testQueryIsConsistentTrueNotAvailable() throws Exception {
 		status.setState(TableState.PROCESSING);
-		when(mockTableManagerSupport.validateTableIsAvailable(tableId)).thenThrow(new TableUnavilableException(status));
 		try{
 			manager.query(mockProgressCallbackVoid, user, "select * from " + tableId + " limit 1", null, null, null, true, false, true);
 			fail("should have failed");
@@ -260,7 +260,7 @@ public class TableQueryManagerImplTest {
 			// expected
 			assertEquals(status, e.getStatus());
 		}
-		verify(mockTableManagerSupport, times(1)).validateTableIsAvailable(tableId);
+		verify(mockTableManagerSupport, times(1)).getTableStatusOrCreateIfNotExists(tableId);
 	}
 	
 	/**
@@ -271,7 +271,6 @@ public class TableQueryManagerImplTest {
 	@Test
 	public void testQueryIsConsistentTrueNotFound() throws Exception {
 		status.setState(TableState.PROCESSING);
-		when(mockTableManagerSupport.validateTableIsAvailable(tableId)).thenThrow(new TableUnavilableException(status));
 		try{
 			manager.query(mockProgressCallbackVoid, user, "select * from " + tableId + " limit 1", null, null, null, true, false, true);
 			fail("should have failed");
@@ -279,7 +278,7 @@ public class TableQueryManagerImplTest {
 			// expected
 			assertEquals(status, e.getStatus());
 		}
-		verify(mockTableManagerSupport, times(1)).validateTableIsAvailable(tableId);
+		verify(mockTableManagerSupport, times(1)).getTableStatusOrCreateIfNotExists(tableId);
 	}
 
 	/**
@@ -449,5 +448,31 @@ public class TableQueryManagerImplTest {
 		assertNotNull(query.getFirst().getNextPageToken());
 		assertTrue(query.getFirst().getNextPageToken().getToken().indexOf("&quot;i-0&quot") != -1);
 		verify(mockTableManagerSupport, times(2)).validateTableReadAccess(user, tableId);
+	}
+	
+	@Test
+	public void testValidateTableIsAvailableWithStateAvailable() throws NotFoundException, TableUnavilableException, TableFailedException{
+		status.setState(TableState.AVAILABLE);
+		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
+		// call under test
+		TableStatus resultsStatus = manager.validateTableIsAvailable(tableId);
+		assertNotNull(resultsStatus);
+		assertEquals(status, resultsStatus);
+	}
+	
+	@Test (expected=TableUnavilableException.class)
+	public void testValidateTableIsAvailableWithStateProcessing() throws NotFoundException, TableUnavilableException, TableFailedException{
+		status.setState(TableState.PROCESSING);
+		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
+		// call under test
+		manager.validateTableIsAvailable(tableId);
+	}
+	
+	@Test (expected=TableFailedException.class)
+	public void testValidateTableIsAvailableWithStateFailed() throws NotFoundException, TableUnavilableException, TableFailedException{
+		status.setState(TableState.PROCESSING_FAILED);
+		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
+		// call under test
+		manager.validateTableIsAvailable(tableId);
 	}
 }

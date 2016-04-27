@@ -476,7 +476,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 				@Override
 				public String call(final ProgressCallback<Void> callback) throws Exception {
 					// We can only run this query if the table is available.
-					final TableStatus status = tableManagerSupport.validateTableIsAvailable(tableId);
+					final TableStatus status = validateTableIsAvailable(tableId);
 					// We can only run this
 					final TableIndexDAO indexDao = tableConnectionFactory.getConnection(tableId);
 					indexDao.executeInReadTransaction(new TransactionCallback<Void>() {
@@ -607,4 +607,25 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	}
 	
 	
+	/*
+	 * (non-Javadoc)
+	 * @see org.sagebionetworks.repo.manager.table.TableStatusManager#validateTableIsAvailable(java.lang.String)
+	 */
+	@Override
+	public TableStatus validateTableIsAvailable(String tableId) throws NotFoundException, TableUnavilableException, TableFailedException {
+		final TableStatus status = tableManagerSupport.getTableStatusOrCreateIfNotExists(tableId);
+		switch(status.getState()){
+		case AVAILABLE:
+			return status;
+		case PROCESSING:
+			// When the table is not available, we communicate the current status of the
+			// table in this exception.
+			throw new TableUnavilableException(status);
+		default:
+		case PROCESSING_FAILED:
+			// When the table is in a failed state, we communicate the current status of the
+			// table in this exception.
+			throw new TableFailedException(status);
+		}
+	}
 }
