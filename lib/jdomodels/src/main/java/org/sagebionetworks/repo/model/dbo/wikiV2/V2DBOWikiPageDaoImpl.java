@@ -748,11 +748,8 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 			return results;
 		}
 		results.addAll(fileHandleIds);
-		List<String> foundFileHandleIds = new ArrayList<String>();
 		List<WikiAttachment> attachmentList = getAllAttachmentsListFromMarkdownTable(wikiPageId);
-		for (WikiAttachment attachment : attachmentList) {
-			foundFileHandleIds.add(attachment.getFileHandleId());
-		}
+		List<String> foundFileHandleIds = V2WikiTranslationUtils.getFileHandleIdList(attachmentList);
 		results.retainAll(foundFileHandleIds);
 		return results;
 	}
