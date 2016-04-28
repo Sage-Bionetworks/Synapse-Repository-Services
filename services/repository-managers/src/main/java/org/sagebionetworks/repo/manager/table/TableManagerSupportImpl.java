@@ -24,11 +24,10 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
-import org.sagebionetworks.repo.model.table.TableUnavilableException;
+import org.sagebionetworks.repo.transactions.RequiresNewReadCommitted;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
@@ -68,7 +67,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	 * (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.table.TableRowManager#getTableStatusOrCreateIfNotExists(java.lang.String)
 	 */
-	@WriteTransactionReadCommitted
+	@RequiresNewReadCommitted
 	@Override
 	public TableStatus getTableStatusOrCreateIfNotExists(String tableId) throws NotFoundException {
 		try {
@@ -121,7 +120,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		return tableStatusDAO.getTableStatus(tableId);
 	}
 
-	@WriteTransactionReadCommitted
+	@RequiresNewReadCommitted
 	@Override
 	public void attemptToSetTableStatusToAvailable(String tableId,
 			String resetToken, String tableChangeEtag) throws ConflictingUpdateException,
@@ -129,7 +128,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		tableStatusDAO.attemptToSetTableStatusToAvailable(tableId, resetToken, tableChangeEtag);
 	}
 
-	@WriteTransactionReadCommitted
+	@RequiresNewReadCommitted
 	@Override
 	public void attemptToSetTableStatusToFailed(String tableId,
 			String resetToken, String errorMessage, String errorDetails)
@@ -137,7 +136,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		tableStatusDAO.attemptToSetTableStatusToFailed(tableId, resetToken, errorMessage, errorDetails);
 	}
 
-	@WriteTransactionReadCommitted
+	@RequiresNewReadCommitted
 	@Override
 	public void attemptToUpdateTableProgress(String tableId, String resetToken,
 			String progressMessage, Long currentProgress, Long totalProgress)
@@ -149,7 +148,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	 * (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.table.TableStatusManager#startTableProcessing(java.lang.String)
 	 */
-	@WriteTransactionReadCommitted
+	@RequiresNewReadCommitted
 	@Override
 	public String startTableProcessing(String tableId) {
 		return tableStatusDAO.resetTableStatusToProcessing(tableId);
@@ -192,32 +191,9 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	 * (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.table.TableStatusManager#setTableDeleted(java.lang.String)
 	 */
-	@WriteTransactionReadCommitted
 	@Override
 	public void setTableDeleted(String deletedId, ObjectType tableType) {
 		transactionalMessenger.sendMessageAfterCommit(deletedId, tableType, ChangeType.DELETE);
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * @see org.sagebionetworks.repo.manager.table.TableStatusManager#validateTableIsAvailable(java.lang.String)
-	 */
-	@Override
-	public TableStatus validateTableIsAvailable(String tableId) throws NotFoundException, TableUnavilableException, TableFailedException {
-		final TableStatus status = getTableStatusOrCreateIfNotExists(tableId);
-		switch(status.getState()){
-		case AVAILABLE:
-			return status;
-		case PROCESSING:
-			// When the table is not available, we communicate the current status of the
-			// table in this exception.
-			throw new TableUnavilableException(status);
-		default:
-		case PROCESSING_FAILED:
-			// When the table is in a failed state, we communicate the current status of the
-			// table in this exception.
-			throw new TableFailedException(status);
-		}
 	}
 	
 	/*
@@ -321,7 +297,6 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		throw new IllegalArgumentException("unknown table type: " + type);
 	}
 	
-	@WriteTransactionReadCommitted
 	@Override
 	public <R,T> R tryRunWithTableExclusiveLock(ProgressCallback<T> callback,
 			String tableId, int timeoutSec, ProgressingCallable<R, T> callable)
@@ -331,7 +306,6 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		return writeReadSemaphoreRunner.tryRunWithWriteLock(callback, key, timeoutSec, callable);
 	}
 
-	@WriteTransactionReadCommitted
 	@Override
 	public <R,T> R tryRunWithTableNonexclusiveLock(ProgressCallback<T> callback, String tableId, int lockTimeoutSec, ProgressingCallable<R, T> callable)
 			throws Exception {

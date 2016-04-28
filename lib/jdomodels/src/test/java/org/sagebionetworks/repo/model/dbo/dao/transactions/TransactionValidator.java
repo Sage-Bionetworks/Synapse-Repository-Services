@@ -39,5 +39,7 @@ interface TransactionValidator {
 	
 	public String writeReadCommitted(Callable<String> callable) throws Exception;
 
+	public String requiresNewReadCommitted(Callable<String> callable) throws Exception;
+
 
 }

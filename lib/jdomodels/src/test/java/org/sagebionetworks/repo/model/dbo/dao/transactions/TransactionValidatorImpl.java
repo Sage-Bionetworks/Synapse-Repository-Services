@@ -9,6 +9,7 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.dbo.DDLUtilsImpl;
 import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
 import org.sagebionetworks.repo.transactions.NewWriteTransaction;
+import org.sagebionetworks.repo.transactions.RequiresNewReadCommitted;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -104,6 +105,13 @@ public class TransactionValidatorImpl implements TransactionValidator {
 	@WriteTransactionReadCommitted
 	@Override
 	public String writeReadCommitted(Callable<String> callable)
+			throws Exception {
+		return callable.call();
+	}
+	
+	@RequiresNewReadCommitted
+	@Override
+	public String requiresNewReadCommitted(Callable<String> callable)
 			throws Exception {
 		return callable.call();
 	}
