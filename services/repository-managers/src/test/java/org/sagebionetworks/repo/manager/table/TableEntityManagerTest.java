@@ -246,7 +246,6 @@ public class TableEntityManagerTest {
 		status.setLastTableChangeEtag("etag");
 		ETAG = "";
 		
-		when(mockTableManagerSupport.validateTableIsAvailable(tableId)).thenReturn(status);
 		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
 	}
 	

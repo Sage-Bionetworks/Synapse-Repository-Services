@@ -379,32 +379,6 @@ public class TableManagerSupportTest {
 	}
 	
 	@Test
-	public void testValidateTableIsAvailableWithStateAvailable() throws NotFoundException, TableUnavilableException, TableFailedException{
-		status.setState(TableState.AVAILABLE);
-		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
-		// call under test
-		TableStatus resultsStatus = manager.validateTableIsAvailable(tableId);
-		assertNotNull(resultsStatus);
-		assertEquals(status, resultsStatus);
-	}
-	
-	@Test (expected=TableUnavilableException.class)
-	public void testValidateTableIsAvailableWithStateProcessing() throws NotFoundException, TableUnavilableException, TableFailedException{
-		status.setState(TableState.PROCESSING);
-		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
-		// call under test
-		manager.validateTableIsAvailable(tableId);
-	}
-	
-	@Test (expected=TableFailedException.class)
-	public void testValidateTableIsAvailableWithStateFailed() throws NotFoundException, TableUnavilableException, TableFailedException{
-		status.setState(TableState.PROCESSING_FAILED);
-		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
-		// call under test
-		manager.validateTableIsAvailable(tableId);
-	}
-	
-	@Test
 	public void testGetSchemaMD5Hex() {
 		String md5 = manager.getSchemaMD5Hex(tableId);
 		assertEquals(schemaMD5Hex, md5);
