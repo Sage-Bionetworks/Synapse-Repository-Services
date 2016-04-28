@@ -5,7 +5,6 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -13,6 +12,8 @@ import java.util.Map;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiOrderHint;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
+import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.ValidateArgument;
 /**
  * Utility for translating to/from V2 DTO/DBO
  * (Derived from org.sagebionetworks.repo.model.dbo.WikiTranslationUtils)
@@ -228,29 +229,6 @@ public class V2WikiTranslationUtils {
 		return dbo;
 	}
 
-	/**
-	 * Process the list into a mapping of file names to file handle ids
-	 * @param attachmentIdList
-	 * @return
-	 */
-	public static Map<String, String> getFileNameAndHandleIdPairs(String attachmentIdList) {
-		if(attachmentIdList == null) throw new IllegalArgumentException("attachmentIdList cannot be null for parsing");
-		Map<String, String> fileNameToIdMap = new HashMap<String, String>();
-		if(attachmentIdList.length() > 0) {
-			// attachmentIdList string should be escaped and ready to split with delimiters
-			String[] attachments = attachmentIdList.split(",");
-
-			for(String attachment: attachments) {
-				String[] idName = attachment.split(":");
-				//should only be length 2
-				String fileName = decodeForParsing(idName[1]);
-				String id = decodeForParsing(idName[0]);
-				fileNameToIdMap.put(fileName, id);
-			}
-		}
-		return fileNameToIdMap;
-	}
-	
 	private static String encodeForDatabase(String str) {
 		String encoded = str.replaceAll(COLON, ENCODED_COLON);
 		encoded = encoded.replaceAll(COMMA, ENCODED_COMMA);
@@ -261,33 +239,6 @@ public class V2WikiTranslationUtils {
 		String decoded = str.replaceAll(ENCODED_COLON, COLON);
 		decoded = decoded.replaceAll(ENCODED_COMMA, COMMA);
 		return decoded;
-	}
-	
-	public static String getStringFromByteArray(byte[] array) {
-		String listToString;
-		try {
-			listToString = new String(array, "UTF-8");	
-		} catch (UnsupportedEncodingException e) {
-			throw new RuntimeException(e);
-		}
-		return listToString;
-	}
-	
-	/**
-	 * Parses the attachment list and returns a list of the file handle ids
-	 * @param attachmentsList
-	 * @return
-	 */
-	public static List<String> createFileHandleListFromString(String attachmentsList) {
-		List<String> fileHandleIds = new ArrayList<String>();
-		if(attachmentsList != null) {
-			// Process the list of attachments into a map for easy searching
-			Map<String, String> fileNameToIdMap = V2WikiTranslationUtils.getFileNameAndHandleIdPairs(attachmentsList);
-			for(String fileName: fileNameToIdMap.keySet()) {
-				fileHandleIds.add(fileNameToIdMap.get(fileName));
-			}
-		}
-		return fileHandleIds;
 	}
 
 	/**
@@ -320,5 +271,41 @@ public class V2WikiTranslationUtils {
 		} catch (UnsupportedEncodingException e) {
 			throw new RuntimeException(e);
 		}
+	}
+
+	/**
+	 * Get a list of file handle id from the given attachment list
+	 * 
+	 * @param attachmentList
+	 * @return
+	 */
+	public static List<String> getFileHandleIdList(List<WikiAttachment> attachmentList) {
+		ValidateArgument.required(attachmentList, "attachmentList");
+		List<String> fileHandleIdList = new ArrayList<String>();
+		for (WikiAttachment attachment : attachmentList) {
+			fileHandleIdList.add(attachment.getFileHandleId());
+		}
+		return fileHandleIdList;
+	}
+
+	/**
+	 * Look up and return file handle Id for file Name.
+	 * 
+	 * @param attachmentList
+	 * @param fileName
+	 * @param notFoundException if the fileName does not appear in the list
+	 * @return
+	 */
+	public static String lookupFileHandleIdAndThrowException(List<WikiAttachment> attachmentList, String fileName,
+			NotFoundException notFoundException) {
+		ValidateArgument.required(attachmentList, "attachmentList");
+		ValidateArgument.required(fileName, "fileName");
+		ValidateArgument.required(notFoundException, "notFoundException");
+		for (WikiAttachment attachment : attachmentList) {
+			if (attachment.getFileName().equals(fileName)) {
+				return attachment.getFileHandleId();
+			}
+		}
+		throw notFoundException;
 	}
 }

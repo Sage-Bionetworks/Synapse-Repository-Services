@@ -37,8 +37,8 @@ public class ITDownloadUsingFileHandleAssociationTest {
 	private static SynapseClient synapse;
 	private static Long userToDelete;
 
-	private static final String FILE_NAME = "LittleImage.png";
-	private static String MARKDOWN_NAME = "previewtest.txt.gz";
+	private static final String FILE_NAME = "SmallTextFiles/TinyFile.txt";
+	private static String MARKDOWN_NAME = "SmallTextFiles/markdown.txt";
 	private Project project;
 	private File imageFile;
 	private S3FileHandle fileHandle;
@@ -64,8 +64,8 @@ public class ITDownloadUsingFileHandleAssociationTest {
 		project = new Project();
 		project = synapse.createEntity(project);
 		// Get the image file from the classpath.
-		URL url = IT054FileEntityTest.class.getClassLoader().getResource("images/"+FILE_NAME);
-		URL markdownUrl = ITV2WikiPageTest.class.getClassLoader().getResource("images/"+MARKDOWN_NAME);
+		URL url = IT054FileEntityTest.class.getClassLoader().getResource(FILE_NAME);
+		URL markdownUrl = ITV2WikiPageTest.class.getClassLoader().getResource(MARKDOWN_NAME);
 		imageFile = new File(url.getFile().replaceAll("%20", " "));
 		markdownFile = new File(markdownUrl.getFile().replaceAll("%20", " "));
 		// Create the image file handle

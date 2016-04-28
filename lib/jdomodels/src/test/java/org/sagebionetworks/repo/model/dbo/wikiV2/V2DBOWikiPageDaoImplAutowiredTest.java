@@ -223,7 +223,6 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 
         WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(ownerId, ownerType, clone.getId());
         toDelete.add(key);
-        String startEtag = clone.getEtag();
         Long startModifiedOn = clone.getModifiedOn().getTime();
         
         List<Long> reservationIdsBeforeUpdate = wikiPageDao.getFileHandleReservationForWiki(key);
@@ -262,7 +261,7 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 
         clone2.setMarkdownFileHandleId(markdownTwo.getId());
         // Update with same fileNameMap
-        V2WikiPage clone3 = wikiPageDao.updateWikiPage(clone2, fileNameMap, ownerId, ownerType, new ArrayList<String>());                
+        wikiPageDao.updateWikiPage(clone2, fileNameMap, ownerId, ownerType, new ArrayList<String>());                
         List<Long> reservationIds2 = wikiPageDao.getFileHandleReservationForWiki(key);                
         // the toInsert list of attachments should be 0 and the archive should still be size 2
         assertTrue(reservationIds2.size() == 2);
@@ -838,6 +837,8 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		// Create it
 		V2WikiPage clone = wikiPageDao.create(page, fileNameMap, ownerId, ownerType, newIds);
 		assertNotNull(clone);
+		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(ownerId, ownerType, clone.getId());
+		toDelete.add(key);
 		
 		List<String> givenFileHandleIds = Arrays.asList("1", "2", attachOne.getId());
 		Set<String> fileHandleIds = wikiPageDao.getFileHandleIdsAssociatedWithWiki(givenFileHandleIds, clone.getId());
