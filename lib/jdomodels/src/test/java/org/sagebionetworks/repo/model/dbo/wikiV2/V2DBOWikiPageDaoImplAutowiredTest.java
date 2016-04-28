@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.model.dbo.v2.dao;
+package org.sagebionetworks.repo.model.dbo.wikiV2;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -15,6 +15,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.junit.After;
 import org.junit.Before;
@@ -35,7 +36,7 @@ import org.sagebionetworks.repo.model.v2.wiki.V2WikiOrderHint;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
@@ -52,7 +53,7 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 	private V2WikiPageDao wikiPageDao;
 
 	@Autowired
-	private SimpleJdbcTemplate simpleJdbcTemplate;
+	private JdbcTemplate jdbcTemplate;
 
 	private List<WikiPageKey> toDelete;
 	private String creatorUserGroupId;
@@ -222,7 +223,6 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 
         WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(ownerId, ownerType, clone.getId());
         toDelete.add(key);
-        String startEtag = clone.getEtag();
         Long startModifiedOn = clone.getModifiedOn().getTime();
         
         List<Long> reservationIdsBeforeUpdate = wikiPageDao.getFileHandleReservationForWiki(key);
@@ -261,7 +261,7 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 
         clone2.setMarkdownFileHandleId(markdownTwo.getId());
         // Update with same fileNameMap
-        V2WikiPage clone3 = wikiPageDao.updateWikiPage(clone2, fileNameMap, ownerId, ownerType, new ArrayList<String>());                
+        wikiPageDao.updateWikiPage(clone2, fileNameMap, ownerId, ownerType, new ArrayList<String>());                
         List<Long> reservationIds2 = wikiPageDao.getFileHandleReservationForWiki(key);                
         // the toInsert list of attachments should be 0 and the archive should still be size 2
         assertTrue(reservationIds2.size() == 2);
@@ -523,7 +523,7 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		
 		// In setRoot, passed through first branch because root == parent
 		// Root id should be set it itself
-		long rootIdForParent = simpleJdbcTemplate.queryForLong(SQL_GET_ROOT_ID, root.getId());	
+		long rootIdForParent = jdbcTemplate.queryForLong(SQL_GET_ROOT_ID, root.getId());	
 		assertEquals(String.valueOf(rootIdForParent), rootId);
 		
 		// Add add children in reverse alphabetical order.
@@ -543,7 +543,7 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		}
 		
 		// Test one child; root should be set to parent root's id
-		long rootIdForChild = simpleJdbcTemplate.queryForLong(SQL_GET_ROOT_ID, children.get(0).getId());	
+		long rootIdForChild = jdbcTemplate.queryForLong(SQL_GET_ROOT_ID, children.get(0).getId());	
 		assertEquals(String.valueOf(rootIdForChild), rootId);
 		
 		// Test getRootWiki for this hierarchy
@@ -789,5 +789,62 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		assertTrue(recordedOrderHint.getOwnerId().equals(ownerId));
 		assertTrue(recordedOrderHint.getOwnerObjectType().equals(ObjectType.EVALUATION));
 	}
-	
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetFileHandleIdsAssociateWithWikiNullFileHandleIds(){
+		wikiPageDao.getFileHandleIdsAssociatedWithWiki(null, "1");
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetFileHandleIdsAssociateWithWikiNullWikiPageId() {
+		wikiPageDao.getFileHandleIdsAssociatedWithWiki(new ArrayList<String>(0), null);
+	}
+
+	@Test
+	public void testGetFileHandleIdsAssociateWithWikiEmptyFileHandleIds() {
+		Set<String> fileHandleIds = wikiPageDao.getFileHandleIdsAssociatedWithWiki(new ArrayList<String>(0), "1");
+		assertNotNull(fileHandleIds);
+		assertTrue(fileHandleIds.isEmpty());
+	}
+
+	@Test
+	public void testGetFileHandleIdsAssociateWithWikiNoAttachments() {
+		List<String> givenFileHandleIds = Arrays.asList("1", "2");
+		Set<String> fileHandleIds = wikiPageDao.getFileHandleIdsAssociatedWithWiki(givenFileHandleIds, "1");
+		assertNotNull(fileHandleIds);
+		assertTrue(fileHandleIds.isEmpty());
+	}
+
+	@Test
+	public void testGetFileHandleIdsAssociateWithWiki() {
+		// Create a new wiki page with a single attachment
+		V2WikiPage page = new V2WikiPage();
+		String ownerId = "syn192";
+		ObjectType ownerType = ObjectType.ENTITY;
+		page.setTitle("Title");
+		page.setCreatedBy(creatorUserGroupId);
+		page.setModifiedBy(creatorUserGroupId);
+		page.setMarkdownFileHandleId(markdownOne.getId());
+		
+		// Add an attachment
+		page.setAttachmentFileHandleIds(new LinkedList<String>());
+		page.getAttachmentFileHandleIds().add(attachOne.getId());
+		Map<String, FileHandle> fileNameMap = new HashMap<String, FileHandle>();
+		fileNameMap.put(attachOne.getFileName(), attachOne);
+		List<String> newIds = new ArrayList<String>();
+		newIds.add(attachOne.getId());
+		
+		// Create it
+		V2WikiPage clone = wikiPageDao.create(page, fileNameMap, ownerId, ownerType, newIds);
+		assertNotNull(clone);
+		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(ownerId, ownerType, clone.getId());
+		toDelete.add(key);
+		
+		List<String> givenFileHandleIds = Arrays.asList("1", "2", attachOne.getId());
+		Set<String> fileHandleIds = wikiPageDao.getFileHandleIdsAssociatedWithWiki(givenFileHandleIds, clone.getId());
+		assertNotNull(fileHandleIds);
+		assertEquals(1L, fileHandleIds.size());
+		assertTrue(fileHandleIds.contains(attachOne.getId()));
+	}
+
 }

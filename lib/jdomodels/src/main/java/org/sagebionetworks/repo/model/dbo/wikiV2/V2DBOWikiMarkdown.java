@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.model.dbo.v2.persistence;
+package org.sagebionetworks.repo.model.dbo.wikiV2;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_MARKDOWN_ATTACHMENT_ID_LIST;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_MARKDOWN_FILE_HANDLE_ID;

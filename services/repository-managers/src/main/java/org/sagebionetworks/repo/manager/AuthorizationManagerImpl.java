@@ -36,6 +36,7 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VerificationDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dao.discussion.DiscussionThreadDAO;
 import org.sagebionetworks.repo.model.dao.discussion.ForumDAO;
 import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
@@ -46,6 +47,7 @@ import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociationManager;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
+import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -90,6 +92,8 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	private DiscussionThreadDAO threadDao;
 	@Autowired
 	private FileHandleAssociationManager fileHandleAssociationSwitch;
+	@Autowired
+	private V2WikiPageDao wikiPageDaoV2;
 	
 	@Override
 	public AuthorizationStatus canAccess(UserInfo userInfo, String objectId, ObjectType objectType, ACCESS_TYPE accessType)
@@ -143,6 +147,10 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 				} else {
 					return AuthorizationManagerUtil.accessDenied("Unexpected access type "+accessType);
 				}
+			case WIKI:{
+				WikiPageKey key = wikiPageDaoV2.lookupWikiKey(objectId);
+				return canAccess(userInfo, key.getOwnerObjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ);
+			}
 			default:
 				throw new IllegalArgumentException("Unknown ObjectType: "+objectType);
 		}

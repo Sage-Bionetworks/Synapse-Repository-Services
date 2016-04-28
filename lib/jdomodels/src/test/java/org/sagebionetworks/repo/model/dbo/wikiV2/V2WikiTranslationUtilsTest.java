@@ -1,4 +1,4 @@
-package org.sagebionetworks.evaluation.v2.dbo;
+package org.sagebionetworks.repo.model.dbo.wikiV2;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -18,15 +18,16 @@ import java.util.Map;
 
 import org.junit.Test;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.dbo.V2WikiTranslationUtils;
-import org.sagebionetworks.repo.model.dbo.v2.persistence.V2DBOWikiAttachmentReservation;
-import org.sagebionetworks.repo.model.dbo.v2.persistence.V2DBOWikiMarkdown;
-import org.sagebionetworks.repo.model.dbo.v2.persistence.V2DBOWikiOwner;
-import org.sagebionetworks.repo.model.dbo.v2.persistence.V2DBOWikiPage;
+import org.sagebionetworks.repo.model.dbo.wikiV2.V2DBOWikiAttachmentReservation;
+import org.sagebionetworks.repo.model.dbo.wikiV2.V2DBOWikiMarkdown;
+import org.sagebionetworks.repo.model.dbo.wikiV2.V2DBOWikiOwner;
+import org.sagebionetworks.repo.model.dbo.wikiV2.V2DBOWikiPage;
+import org.sagebionetworks.repo.model.dbo.wikiV2.V2WikiTranslationUtils;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiOrderHint;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
+import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
  * Test for V2WikiTranslationUtils.
@@ -53,50 +54,21 @@ public class V2WikiTranslationUtilsTest {
 		
 		V2DBOWikiMarkdown markdownDbo = V2WikiTranslationUtils.createDBOWikiMarkdownFromDTO(fileNameMap, wikiId, markdownFileHandleId, wikiTitle);
 		byte[] list = markdownDbo.getAttachmentIdList();
-		String listToString;
-		try {
-			listToString = new String(list, "UTF-8");
-		} catch (UnsupportedEncodingException e) {
-			throw new RuntimeException(e);
-		}
-		assertTrue(list.length > 0);
-		System.out.println("Constructed list: " + listToString);
+		List<WikiAttachment> attachmentList = V2WikiTranslationUtils.convertByteArrayToWikiAttachmentList(list);
 		
 		//Order of id:name pairs varies because it is constructed from a set
-		assertTrue(listToString.equals("19&#44;74:f&#58;oo.bar,19&#44;75:ba&#58;r.txt,") || listToString.equals("19&#44;75:ba&#58;r.txt,19&#44;74:f&#58;oo.bar,"));
-		Map<String, String> fileNameToIdMap = V2WikiTranslationUtils.getFileNameAndHandleIdPairs(listToString);
-		for(String name: fileNameToIdMap.keySet()) {
-			System.out.println("FileName: " + name + ", Id: " + fileNameToIdMap.get(name));
-		}
+		WikiAttachment attachment1 = new WikiAttachment("19,74", "f:oo.bar");
+		WikiAttachment attachment2 = new WikiAttachment("19,75", "ba:r.txt");
+		assertEquals(2, attachmentList.size());
+		assertTrue(attachmentList.contains(attachment1));
+		assertTrue(attachmentList.contains(attachment2));
 		
 		// Send in an empty map == no attachments
 		fileNameMap.clear();
 		V2DBOWikiMarkdown markdownDbo2 = V2WikiTranslationUtils.createDBOWikiMarkdownFromDTO(fileNameMap, wikiId, markdownFileHandleId, wikiTitle + "2");
 		assertTrue(markdownDbo2.getAttachmentIdList().length == 0);
 	}
-	
-	@Test
-	public void testGetFileNameAndHandleIdPairs() {
-		try {
-			V2WikiTranslationUtils.getFileNameAndHandleIdPairs(null);
-			fail("Null string should not be allowed for parsing");
-		} catch(IllegalArgumentException e) {
-			// expected
-		}
-		
-		String attachmentIdList = "19&#44;74:f&#58;oo.bar,19&#44;75:ba&#58;r.txt,";
-		Map<String, String> map = V2WikiTranslationUtils.getFileNameAndHandleIdPairs(attachmentIdList);
-		String fileNameOne = "f:oo.bar";
-		String fileIdOne = "19,74";
-		String fileNameTwo = "ba:r.txt";
-		String fileIdTwo = "19,75";
-		assertTrue(map.size() == 2);
-		assertTrue(map.containsKey(fileNameOne));
-		assertTrue(map.get(fileNameOne).equals(fileIdOne));
-		assertTrue(map.containsKey(fileNameTwo));
-		assertTrue(map.get(fileNameTwo).equals(fileIdTwo));
-	}
-	
+
 	@Test
 	public void testCreateDBOAttachmentReservationFromDTO() {
 		Long wikiId = new Long(123);
@@ -341,6 +313,61 @@ public class V2WikiTranslationUtilsTest {
 		assertTrue(dto.getOwnerId().equals(newDTO.getOwnerId()));
 		assertTrue(dto.getOwnerObjectType().equals(newDTO.getOwnerObjectType()));
 		assertTrue(Arrays.equals(dto.getIdList().toArray(), newDTO.getIdList().toArray()));
-		
 	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetFileHandleIdListNullAttachmentList() {
+		V2WikiTranslationUtils.getFileHandleIdList(null);
+	}
+
+	@Test
+	public void testGetFileHandleIdListEmptyAttachmentList() {
+		List<String> fileHandleIdList = V2WikiTranslationUtils.getFileHandleIdList(new ArrayList<WikiAttachment>(0));
+		assertNotNull(fileHandleIdList);
+		assertTrue(fileHandleIdList.isEmpty());
+	}
+
+	@Test
+	public void testGetFileHandleIdList() {
+		WikiAttachment attachment1 = new WikiAttachment("1", "file1");
+		WikiAttachment attachment2 = new WikiAttachment("2", "file2");
+		List<String> fileHandleIdList = V2WikiTranslationUtils.getFileHandleIdList(Arrays.asList(attachment1, attachment2));
+		assertNotNull(fileHandleIdList);
+		assertEquals(2, fileHandleIdList.size());
+		assertTrue(fileHandleIdList.contains(attachment1.getFileHandleId()));
+		assertTrue(fileHandleIdList.contains(attachment2.getFileHandleId()));
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testLookupFileHandleIdAndThrowExceptionNullList() {
+		V2WikiTranslationUtils.lookupFileHandleIdAndThrowException(null, "fileName", new NotFoundException());
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testLookupFileHandleIdAndThrowExceptionNullFileName() {
+		V2WikiTranslationUtils.lookupFileHandleIdAndThrowException(new ArrayList<WikiAttachment>(0), null, new NotFoundException());
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testLookupFileHandleIdAndThrowExceptionNullException() {
+		V2WikiTranslationUtils.lookupFileHandleIdAndThrowException(new ArrayList<WikiAttachment>(0), "fileName", null);
+	}
+
+	@Test (expected = NotFoundException.class)
+	public void testLookupFileHandleIdAndThrowExceptionEmptyList() {
+		V2WikiTranslationUtils.lookupFileHandleIdAndThrowException(new ArrayList<WikiAttachment>(0), "fileName", new NotFoundException());
+	}
+
+	@Test (expected = NotFoundException.class)
+	public void testLookupFileHandleIdAndThrowExceptionNotFound() {
+		V2WikiTranslationUtils.lookupFileHandleIdAndThrowException(Arrays.asList(new WikiAttachment("1", "file1")), "fileName", new NotFoundException());
+	}
+
+	@Test
+	public void testLookupFileHandleIdAndThrowExceptionFound() {
+		assertEquals("1", V2WikiTranslationUtils.lookupFileHandleIdAndThrowException(Arrays.asList(new WikiAttachment("1", "file1")), "file1", new NotFoundException()));
+	}
+
+/*	@Test
+	public void testConvertByteArrayToWikiAttachmentList*/
 }

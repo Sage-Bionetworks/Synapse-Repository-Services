@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.model.dbo.v2.dao;
+package org.sagebionetworks.repo.model.dbo.wikiV2;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_ATTACHMENT_RESERVATION_FILE_HANDLE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_ATTACHMENT_RESERVATION_ID;
@@ -31,8 +31,10 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.sagebionetworks.downloadtools.FileUtils;
@@ -46,11 +48,6 @@ import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dao.WikiPageKeyHelper;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
-import org.sagebionetworks.repo.model.dbo.V2WikiTranslationUtils;
-import org.sagebionetworks.repo.model.dbo.v2.persistence.V2DBOWikiAttachmentReservation;
-import org.sagebionetworks.repo.model.dbo.v2.persistence.V2DBOWikiMarkdown;
-import org.sagebionetworks.repo.model.dbo.v2.persistence.V2DBOWikiOwner;
-import org.sagebionetworks.repo.model.dbo.v2.persistence.V2DBOWikiPage;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -64,14 +61,14 @@ import org.sagebionetworks.repo.model.v2.wiki.V2WikiOrderHint;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.utils.ContentTypeUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
-import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.S3Object;
 
@@ -95,7 +92,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 	private DBOBasicDao basicDao;
 	
 	@Autowired
-	private SimpleJdbcTemplate simpleJdbcTemplate;
+	private JdbcTemplate jdbcTemplate;
 	
 	@Autowired
 	private AmazonS3Client s3Client;
@@ -112,8 +109,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 	private static final String SQL_SELECT_WIKI_OWNER_USING_ROOT_WIKI_ID = "SELECT * FROM "+V2_TABLE_WIKI_OWNERS+" WHERE "+V2_COL_WIKI_ONWERS_ROOT_WIKI_ID+" = ?";
 	private static final String SQL_SELECT_WIKI_USING_ID_AND_ROOT = "SELECT * FROM "+V2_TABLE_WIKI_PAGE+" WHERE "+V2_COL_WIKI_ID+" = ? AND "+V2_COL_WIKI_ROOT_ID+" = ?";
 	private static final String SQL_SELECT_WIKI_VERSION_USING_ID_AND_ROOT = "SELECT "+V2_COL_WIKI_MARKDOWN_VERSION+" FROM "+V2_TABLE_WIKI_PAGE+" WHERE "+V2_COL_WIKI_ID+" = ? AND "+V2_COL_WIKI_ROOT_ID+" = ?";
-	private static final String SQL_SELECT_WIKI_ATTACHMENT = "SELECT * FROM "+V2_TABLE_WIKI_ATTACHMENT_RESERVATION+" WHERE "+V2_COL_WIKI_ATTACHMENT_RESERVATION_ID+" = ? AND "+V2_COL_WIKI_ATTACHMENT_RESERVATION_FILE_HANDLE_ID+" = ?";
-	private static final String SQL_GET_WIKI_MARKDOWN_ATTACHMENT_ID_LIST = "SELECT WM."+V2_COL_WIKI_MARKDOWN_ATTACHMENT_ID_LIST+" FROM "+V2_TABLE_WIKI_MARKDOWN+" WM, "+V2_TABLE_WIKI_PAGE+" WP WHERE WP."+V2_COL_WIKI_ID+" = ? AND WM."+V2_COL_WIKI_MARKDOWN_ID+" = WP."+V2_COL_WIKI_ID+" AND WP."+V2_COL_WIKI_MARKDOWN_VERSION+" = WM."+V2_COL_WIKI_MARKDOWN_VERSION_NUM;
+	private static final String SQL_GET_CURRENT_WIKI_MARKDOWN_ATTACHMENT_LIST = "SELECT WM."+V2_COL_WIKI_MARKDOWN_ATTACHMENT_ID_LIST+" FROM "+V2_TABLE_WIKI_MARKDOWN+" WM, "+V2_TABLE_WIKI_PAGE+" WP WHERE WP."+V2_COL_WIKI_ID+" = ? AND WM."+V2_COL_WIKI_MARKDOWN_ID+" = WP."+V2_COL_WIKI_ID+" AND WP."+V2_COL_WIKI_MARKDOWN_VERSION+" = WM."+V2_COL_WIKI_MARKDOWN_VERSION_NUM;
 	private static final String SQL_DELETE_USING_ID_AND_ROOT = "DELETE FROM "+V2_TABLE_WIKI_PAGE+" WHERE "+V2_COL_WIKI_ID+" = ? AND "+V2_COL_WIKI_ROOT_ID+" = ?";
 	private static final String WIKI_HEADER_SELECT = V2_COL_WIKI_ID+", "+V2_COL_WIKI_TITLE+", "+V2_COL_WIKI_PARENT_ID;
 	private static final String SQL_SELECT_CHILDREN_HEADERS = "SELECT "+WIKI_HEADER_SELECT+" FROM "+V2_TABLE_WIKI_PAGE+" WHERE "+V2_COL_WIKI_ROOT_ID+" = ? ORDER BY "+V2_COL_WIKI_PARENT_ID+", "+V2_COL_WIKI_TITLE;
@@ -125,8 +121,11 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 	private static final String SQL_GET_WIKI_HISTORY = "SELECT WM."+V2_COL_WIKI_MARKDOWN_VERSION_NUM+", WM."+V2_COL_WIKI_MARKDOWN_MODIFIED_ON+", WM."+V2_COL_WIKI_MARKDOWN_MODIFIED_BY+" FROM "+V2_TABLE_WIKI_MARKDOWN+" WM WHERE WM."+V2_COL_WIKI_MARKDOWN_ID+" = ? ORDER BY "+V2_COL_WIKI_MARKDOWN_VERSION_NUM+" DESC LIMIT ?, ?";
 	private static final String SQL_GET_MARKDOWN_IDS = "SELECT DISTINCT "+V2_COL_WIKI_MARKDOWN_FILE_HANDLE_ID+" FROM "+V2_TABLE_WIKI_MARKDOWN+" WHERE "+V2_COL_WIKI_MARKDOWN_ID+" = ?";
 	private static final String SQL_GET_CONTENT_FOR_VERSION = "SELECT "+V2_COL_WIKI_MARKDOWN_VERSION_NUM+", "+V2_COL_WIKI_MARKDOWN_TITLE+", "+V2_COL_WIKI_MARKDOWN_ATTACHMENT_ID_LIST+", "+V2_COL_WIKI_MARKDOWN_FILE_HANDLE_ID+" FROM "+V2_TABLE_WIKI_MARKDOWN+" WHERE "+V2_COL_WIKI_MARKDOWN_ID+" = ? AND "+V2_COL_WIKI_MARKDOWN_VERSION_NUM+" = ?";
-	
-	private static final TableMapping<V2DBOWikiAttachmentReservation> ATTACHMENT_ROW_MAPPER = new V2DBOWikiAttachmentReservation().getTableMapping();
+	private static final String SQL_GET_ALL_WIKI_MARKDOWN_ATTACHMENT_LIST = 
+			"SELECT "+V2_COL_WIKI_MARKDOWN_ATTACHMENT_ID_LIST
+			+" FROM "+V2_TABLE_WIKI_MARKDOWN
+			+" WHERE "+V2_COL_WIKI_MARKDOWN_ID+" = ?";
+
 	private static final TableMapping<V2DBOWikiMarkdown> WIKI_MARKDOWN_ROW_MAPPER = new V2DBOWikiMarkdown().getTableMapping();
 	private static final TableMapping<V2DBOWikiPage> WIKI_PAGE_ROW_MAPPER = new V2DBOWikiPage().getTableMapping();
 	private static final TableMapping<V2DBOWikiOwner> WIKI_OWNER_ROW_MAPPER = new V2DBOWikiOwner().getTableMapping();
@@ -172,13 +171,27 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 			// Extract the attachment list in byte[] state
 			java.sql.Blob blob = rs.getBlob(V2_COL_WIKI_MARKDOWN_ATTACHMENT_ID_LIST);
 			if(blob != null){
-				String listAsString = V2WikiTranslationUtils.getStringFromByteArray(blob.getBytes(1, (int) blob.length()));
-				List<String> fileHandleIds = V2WikiTranslationUtils.createFileHandleListFromString(listAsString);
+				List<WikiAttachment> attachmentList = V2WikiTranslationUtils.convertByteArrayToWikiAttachmentList(blob.getBytes(1, (int) blob.length()));
+				List<String> fileHandleIds = V2WikiTranslationUtils.getFileHandleIdList(attachmentList);
 				versionOfMarkdown.setAttachmentFileHandleIds(fileHandleIds);
 			} else {
 				versionOfMarkdown.setAttachmentFileHandleIds(null);
 			}
 			return versionOfMarkdown;
+		}
+	};
+
+	/**
+	 * Map a wiki attachment blob to a list of WikiAttachment objects
+	 */
+	private static final RowMapper<List<WikiAttachment>> WIKI_ATTACHMENT_MAPPER = new RowMapper<List<WikiAttachment>>() {
+		@Override
+		public List<WikiAttachment> mapRow(ResultSet rs, int rowNumber) throws SQLException {
+			java.sql.Blob blob = rs.getBlob(V2_COL_WIKI_MARKDOWN_ATTACHMENT_ID_LIST);
+			if(blob != null){
+				return V2WikiTranslationUtils.convertByteArrayToWikiAttachmentList(blob.getBytes(1, (int) blob.length()));
+			}
+			return null;
 		}
 	};
 	
@@ -361,7 +374,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 	
 	@Override
 	public List<Long> getFileHandleReservationForWiki(WikiPageKey key) {
-		return simpleJdbcTemplate.query(SQL_GET_RESERVATION_OF_ATTACHMENT_IDS, new RowMapper<Long>() {
+		return jdbcTemplate.query(SQL_GET_RESERVATION_OF_ATTACHMENT_IDS, new RowMapper<Long>() {
 			@Override
 			public Long mapRow(ResultSet rs, int rowNum) throws SQLException {
 				Long id = rs.getLong(V2_COL_WIKI_ATTACHMENT_RESERVATION_FILE_HANDLE_ID);
@@ -372,7 +385,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 	
 	@Override
 	public List<Long> getMarkdownFileHandleIdsForWiki(WikiPageKey key) {
-		return simpleJdbcTemplate.query(SQL_GET_MARKDOWN_IDS, new RowMapper<Long>() {
+		return jdbcTemplate.query(SQL_GET_MARKDOWN_IDS, new RowMapper<Long>() {
 			@Override
 			public Long mapRow(ResultSet rs, int rowNum) throws SQLException {
 				Long id = rs.getLong(V2_COL_WIKI_MARKDOWN_FILE_HANDLE_ID);
@@ -408,7 +421,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 	 */
 	private Long getRootWiki(Long ownerId, ObjectType ownerType) throws NotFoundException {
 		try{
-			return simpleJdbcTemplate.queryForLong(SQL_SELECT_WIKI_ROOT_USING_OWNER_ID_AND_TYPE, ownerId, ownerType.name());
+			return jdbcTemplate.queryForLong(SQL_SELECT_WIKI_ROOT_USING_OWNER_ID_AND_TYPE, ownerId, ownerType.name());
 		}catch(DataAccessException e){
 			throw new NotFoundException("A root wiki does not exist for ownerId: "+ownerId+" and ownerType: "+ownerType);
 		}
@@ -454,8 +467,8 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		} else {
 			markdownDbo = getWikiMarkdownDBO(dbo.getId(), version); 
 		}
-		String listToString = V2WikiTranslationUtils.getStringFromByteArray(markdownDbo.getAttachmentIdList());
-		List<String> fileHandleIds = V2WikiTranslationUtils.createFileHandleListFromString(listToString);
+		List<WikiAttachment> wikiAttachmentList = V2WikiTranslationUtils.convertByteArrayToWikiAttachmentList(markdownDbo.getAttachmentIdList());
+		List<String> fileHandleIds = V2WikiTranslationUtils.getFileHandleIdList(wikiAttachmentList);
 		return V2WikiTranslationUtils.createDTOfromDBO(dbo, fileHandleIds, markdownDbo);
 	}
 	
@@ -502,7 +515,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 			version = getCurrentWikiVersion(key.getOwnerObjectId(), key.getOwnerObjectType(), key.getWikiPageId());
 		}
 		String wikiId = key.getWikiPageId();
-		List<V2WikiMarkdownVersion> versionOfContent = simpleJdbcTemplate.query(SQL_GET_CONTENT_FOR_VERSION, WIKI_MARKDOWN_VERSION_MAPPER, wikiId, version);
+		List<V2WikiMarkdownVersion> versionOfContent = jdbcTemplate.query(SQL_GET_CONTENT_FOR_VERSION, WIKI_MARKDOWN_VERSION_MAPPER, wikiId, version);
 		if(versionOfContent.size() > 1) throw new DatastoreException("More than one Wiki page found with the id: " + wikiId + " and version: " + version);
 		if(versionOfContent.size() < 1) throw new NotFoundException("No wiki page found with id: " + wikiId + " and version: " + version);
 		return versionOfContent.get(0);
@@ -519,7 +532,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 	private Long getCurrentWikiVersion(String ownerId, ObjectType ownerType, String wikiId) throws NotFoundException {
 		Long root = getRootWiki(ownerId, ownerType);
 		try{
-			return simpleJdbcTemplate.queryForLong(SQL_SELECT_WIKI_VERSION_USING_ID_AND_ROOT, new Long(wikiId), root);
+			return jdbcTemplate.queryForLong(SQL_SELECT_WIKI_VERSION_USING_ID_AND_ROOT, new Long(wikiId), root);
 		}catch(DataAccessException e){
 			throw new NotFoundException("A wiki does not exist for id: "+wikiId);
 		}
@@ -547,14 +560,14 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		// If the root does not exist then the wiki does not exist.
 		Long root = getRootWiki(ownerId, ownerType);
 		// We use the root in addition to the primary key (id) to enforce they are not out of sych.
-		List<V2DBOWikiPage> list = simpleJdbcTemplate.query(SQL_SELECT_WIKI_USING_ID_AND_ROOT, WIKI_PAGE_ROW_MAPPER, new Long(wikiId), root);
+		List<V2DBOWikiPage> list = jdbcTemplate.query(SQL_SELECT_WIKI_USING_ID_AND_ROOT, WIKI_PAGE_ROW_MAPPER, new Long(wikiId), root);
 		if(list.size() > 1) throw new DatastoreException("More than one Wiki page found with the id: " + wikiId);
 		if(list.size() < 1) throw new NotFoundException("No wiki page found with id: " + wikiId);
 		return list.get(0);
 	}
 	
 	private V2DBOWikiOwner getWikiOwnerDBO(String rootWikiId) throws NotFoundException {
-		List<V2DBOWikiOwner> list = simpleJdbcTemplate.query(SQL_SELECT_WIKI_OWNER_USING_ROOT_WIKI_ID, WIKI_OWNER_ROW_MAPPER, Long.parseLong(rootWikiId));
+		List<V2DBOWikiOwner> list = jdbcTemplate.query(SQL_SELECT_WIKI_OWNER_USING_ROOT_WIKI_ID, WIKI_OWNER_ROW_MAPPER, Long.parseLong(rootWikiId));
 		if(list.size() > 1) throw new DatastoreException("More than one Wiki owner found with the root wiki ID: " + rootWikiId);
 		if(list.size() < 1) throw new NotFoundException("No wiki page found with the root wiki ID: " + rootWikiId);
 		return list.get(0);
@@ -569,7 +582,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 	private V2DBOWikiMarkdown getWikiMarkdownDBO(Long wikiId, Long version) throws NotFoundException {
 		if(wikiId == null) throw new IllegalArgumentException("Wiki id cannot be null");
 		if(version == null) throw new IllegalArgumentException("Markdown version cannot be null");
-		List<V2DBOWikiMarkdown> list = simpleJdbcTemplate.query(SQL_SELECT_WIKI_MARKDOWN_USING_ID_AND_VERSION, WIKI_MARKDOWN_ROW_MAPPER, wikiId, version);
+		List<V2DBOWikiMarkdown> list = jdbcTemplate.query(SQL_SELECT_WIKI_MARKDOWN_USING_ID_AND_VERSION, WIKI_MARKDOWN_ROW_MAPPER, wikiId, version);
 		if(list.size() > 1) throw new DatastoreException("Wiki page has multiple versions of number: " + version);
 		if(list.size() < 1) throw new NotFoundException("Wiki page of id: " + wikiId + " was not found with version: " + version);
 		return list.get(0);
@@ -580,7 +593,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		if(key == null) throw new IllegalArgumentException("WikiPage key cannot be null");
 		if(doesExist(key.getWikiPageId())) {
 			// Get all versions of a wiki page
-			List<V2WikiHistorySnapshot> history = simpleJdbcTemplate.query(SQL_GET_WIKI_HISTORY, WIKI_HISTORY_SNAPSHOT_MAPPER, key.getWikiPageId(), offset, limit);
+			List<V2WikiHistorySnapshot> history = jdbcTemplate.query(SQL_GET_WIKI_HISTORY, WIKI_HISTORY_SNAPSHOT_MAPPER, key.getWikiPageId(), offset, limit);
 
 			if(history.size() < 1) throw new DatastoreException("No history is found for a wiki page of id: " + key.getWikiPageId());
 			return history;
@@ -605,7 +618,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		try{
 			Long rootId = getRootWiki(key.getOwnerObjectId(), key.getOwnerObjectType());
 			// Delete the wiki using both the root and the id 
-			simpleJdbcTemplate.update(SQL_DELETE_USING_ID_AND_ROOT, new Long(key.getWikiPageId()), rootId);
+			jdbcTemplate.update(SQL_DELETE_USING_ID_AND_ROOT, new Long(key.getWikiPageId()), rootId);
 		}catch(NotFoundException e){
 			// Nothing to do if the wiki does not exist.
 		}
@@ -617,7 +630,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		// First look up the root for this owner
 		Long root = getRootWiki(ownerId, ownerType);
 		// Now use the root to the the full tree
-		return simpleJdbcTemplate.query(SQL_SELECT_CHILDREN_HEADERS, WIKI_HEADER_ROW_MAPPER, root);
+		return jdbcTemplate.query(SQL_SELECT_CHILDREN_HEADERS, WIKI_HEADER_ROW_MAPPER, root);
 	}
 	
 	/**
@@ -628,7 +641,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 	@Override																	
 	public String lockForUpdate(String wikiId) {
 		// Lock the wiki row and return current Etag.
-		return simpleJdbcTemplate.queryForObject(SQL_LOCK_FOR_UPDATE, String.class, new Long(wikiId));
+		return jdbcTemplate.queryForObject(SQL_LOCK_FOR_UPDATE, String.class, new Long(wikiId));
 	}
 	
 	/**
@@ -639,70 +652,53 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 	@Override									
 	public String lockWikiOwnersForUpdate(String rootWikiId) {
 		// Lock the wiki owner row and return current Etag.
-		return simpleJdbcTemplate.queryForObject(SQL_LOCK_OWNERS_FOR_UPDATE, String.class, Long.parseLong(rootWikiId));
+		return jdbcTemplate.queryForObject(SQL_LOCK_OWNERS_FOR_UPDATE, String.class, Long.parseLong(rootWikiId));
 	}
 	
 	/**
-	 * Retrieves the attachments list for the given wiki
-	 * @param key
+	 * Retrieves the current attachments list for the given wikiPageId
+	 * @param wikiPageId
 	 * @return
 	 */
-	private String getAttachmentsListFromMarkdownTable(WikiPageKey key) {
-		if(key == null) throw new IllegalArgumentException("Key cannot be null");
-
-		List<String> attachmentsList = simpleJdbcTemplate.query(SQL_GET_WIKI_MARKDOWN_ATTACHMENT_ID_LIST, new RowMapper<String>() {
-			@Override
-			public String mapRow(ResultSet rs, int rowNum) throws SQLException {
-				// Extract the attachment list in byte[] state
-				java.sql.Blob blob = rs.getBlob(V2_COL_WIKI_MARKDOWN_ATTACHMENT_ID_LIST);
-				if(blob != null){
-					return V2WikiTranslationUtils.getStringFromByteArray(blob.getBytes(1, (int) blob.length()));
-				}
-				return null;
-			}
-		}, key.getWikiPageId());
-		return attachmentsList.get(0);
+	private List<WikiAttachment> getCurrentAttachmentsListFromMarkdownTable(String wikiPageId) {
+		ValidateArgument.required(wikiPageId, "wikiPageId");
+		List<List<WikiAttachment>> queryResult = jdbcTemplate.query(SQL_GET_CURRENT_WIKI_MARKDOWN_ATTACHMENT_LIST, WIKI_ATTACHMENT_MAPPER, wikiPageId);
+		if (queryResult.size() != 1) {
+			throw new NotFoundException();
+		}
+		return queryResult.get(0);
 	}
 
 	@Override
 	public List<String> getWikiFileHandleIds(WikiPageKey key, Long version) throws NotFoundException {
-		if(key == null) throw new IllegalArgumentException("Key cannot be null");
-		String listToString;
+		ValidateArgument.required(key, "key");
+		List<WikiAttachment> attachmentList;
 		if(version == null) {
 			// Get the attachments for the current wiki
-			listToString = getAttachmentsListFromMarkdownTable(key);
+			attachmentList = getCurrentAttachmentsListFromMarkdownTable(key.getWikiPageId());
 		} else {
 			// Lookup the attachments for another version of the wiki
 			V2DBOWikiMarkdown markdownDbo = getWikiMarkdownDBO(Long.parseLong(key.getWikiPageId()), version);
-			listToString = V2WikiTranslationUtils.getStringFromByteArray(markdownDbo.getAttachmentIdList());
+			attachmentList = V2WikiTranslationUtils.convertByteArrayToWikiAttachmentList(markdownDbo.getAttachmentIdList());
 		}
-		return V2WikiTranslationUtils.createFileHandleListFromString(listToString);
+		return V2WikiTranslationUtils.getFileHandleIdList(attachmentList);
 	}
 
 	@Override
 	public String getWikiAttachmentFileHandleForFileName(WikiPageKey key,
 			String fileName, Long version) throws NotFoundException {
-		if(key == null) throw new IllegalArgumentException("Key cannot be null");
-		if(fileName == null) throw new IllegalArgumentException("fileName cannot be null");
-		String attachmentsList;
+		ValidateArgument.required(key, "key");
+		ValidateArgument.required(fileName, "fileName");
+		List<WikiAttachment> attachmentList;
 		if(version == null) {
-			attachmentsList = getAttachmentsListFromMarkdownTable(key);
+			attachmentList = getCurrentAttachmentsListFromMarkdownTable(key.getWikiPageId());
 		} else {
 			// Lookup the attachments for another version of the wiki
 			V2DBOWikiMarkdown markdownDbo = getWikiMarkdownDBO(Long.parseLong(key.getWikiPageId()), version);
-			attachmentsList = V2WikiTranslationUtils.getStringFromByteArray(markdownDbo.getAttachmentIdList());
+			attachmentList = V2WikiTranslationUtils.convertByteArrayToWikiAttachmentList(markdownDbo.getAttachmentIdList());
 		}
-		if(attachmentsList != null) {
-			// Process the list of attachments into a map for easy searching
-			Map<String, String> fileNameToIdMap = V2WikiTranslationUtils.getFileNameAndHandleIdPairs(attachmentsList);
-			// Return the associated file handle id if filename exists
-			String fileHandleId = fileNameToIdMap.get(fileName);
-			if(fileHandleId != null) {
-				return fileHandleId;
-			}
-		}
-		// No attachment with the file name exists for this wiki page
-		throw new NotFoundException("Cannot find a wiki attachment for OwnerID: "+key.getOwnerObjectId()+", ObjectType: "+key.getOwnerObjectType()+", WikiPageId: "+key.getWikiPageId()+", fileName: "+fileName);
+		return V2WikiTranslationUtils.lookupFileHandleIdAndThrowException(attachmentList, fileName, 
+				new NotFoundException("Cannot find a wiki attachment for OwnerID: "+key.getOwnerObjectId()+", ObjectType: "+key.getOwnerObjectType()+", WikiPageId: "+key.getWikiPageId()+", fileName: "+fileName));
 	}
 
 	@Override
@@ -710,7 +706,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		if(wikiId == null) throw new IllegalArgumentException("wikiId cannot be null");
 		long id = Long.parseLong(wikiId);
 		try{
-			return this.simpleJdbcTemplate.queryForObject(SQL_LOOKUP_WIKI_PAGE_KEY, new RowMapper<WikiPageKey>() {
+			return this.jdbcTemplate.queryForObject(SQL_LOOKUP_WIKI_PAGE_KEY, new RowMapper<WikiPageKey>() {
 				@Override
 				public WikiPageKey mapRow(ResultSet rs, int rowNum) throws SQLException {
 					String owner = rs.getString(V2_COL_WIKI_ONWERS_OWNER_ID);
@@ -729,41 +725,47 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 
 	@Override
 	public long getCount() throws DatastoreException {
-		return simpleJdbcTemplate.queryForLong(SQL_COUNT_ALL_WIKIPAGES);
+		return jdbcTemplate.queryForLong(SQL_COUNT_ALL_WIKIPAGES);
 	}
-	
-	/**
-	 * Get a list of attachment DBOs for a given wiki
-	 * @param wikiId
-	 * @param key
-	 * @return
-	 * @throws NotFoundException 
-	 */
-	private List<V2DBOWikiAttachmentReservation> getAttachmentDbos(Long wikiId, String attachmentList) throws NotFoundException{
-		if(attachmentList == null) throw new IllegalArgumentException("The WikiPageKey cannot be null");
-		// Process which file handle ids this wiki needs
-		Map<String, String> fileNameToIdMap = V2WikiTranslationUtils.getFileNameAndHandleIdPairs(attachmentList);
-		List<V2DBOWikiAttachmentReservation> results = new ArrayList<V2DBOWikiAttachmentReservation>();
-		
-		// For each file handle id, query the attachment archive with the wiki id and file handle id
-		for(String fileName: fileNameToIdMap.keySet()) {
-			String fileHandleId = fileNameToIdMap.get(fileName);
-			List<V2DBOWikiAttachmentReservation> attachment = simpleJdbcTemplate.query(SQL_SELECT_WIKI_ATTACHMENT, ATTACHMENT_ROW_MAPPER, wikiId, fileHandleId);
-			if(attachment.size() > 1) throw new DatastoreException("More than one attachment was found with the file handle id: " + fileHandleId + ", for the wiki page id: " + wikiId);
-			if(attachment.size() < 1) throw new NotFoundException("No attachment was found for the file handle id: " + fileHandleId + ", for the wiki page id: " + wikiId);
-			results.add(attachment.get(0));
-		}
-		return results;
-	}
-	
+
 	private boolean doesExist(String id) {
 		if(id == null) throw new IllegalArgumentException("Id cannot be null");
 		try{
 			// Is this in the database.
-			simpleJdbcTemplate.queryForLong(SQL_DOES_EXIST, id);
+			jdbcTemplate.queryForLong(SQL_DOES_EXIST, id);
 			return true;
 		}catch(EmptyResultDataAccessException e){
 			return false;
 		}
+	}
+
+	@Override
+	public Set<String> getFileHandleIdsAssociatedWithWiki(List<String> fileHandleIds, String wikiPageId) {
+		ValidateArgument.required(fileHandleIds, "fileHandleIds");
+		ValidateArgument.required(wikiPageId, "wikiPageId");
+		Set<String> results = new HashSet<String>();
+		if (fileHandleIds.isEmpty()) {
+			return results;
+		}
+		results.addAll(fileHandleIds);
+		List<WikiAttachment> attachmentList = getAllAttachmentsListFromMarkdownTable(wikiPageId);
+		List<String> foundFileHandleIds = V2WikiTranslationUtils.getFileHandleIdList(attachmentList);
+		results.retainAll(foundFileHandleIds);
+		return results;
+	}
+
+	/**
+	 * Get all attachments that associate with a wikiPageId
+	 * 
+	 * @param wikiPageId
+	 * @return
+	 */
+	private List<WikiAttachment> getAllAttachmentsListFromMarkdownTable(String wikiPageId) {
+		List<WikiAttachment> allAttachments = new ArrayList<WikiAttachment>();
+		List<List<WikiAttachment>> queryResult = jdbcTemplate.query(SQL_GET_ALL_WIKI_MARKDOWN_ATTACHMENT_LIST, WIKI_ATTACHMENT_MAPPER, wikiPageId);
+		for(List<WikiAttachment> list: queryResult) {
+			allAttachments.addAll(list);
+		}
+		return allAttachments;
 	}
 }
