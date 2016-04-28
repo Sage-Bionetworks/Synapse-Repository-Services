@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.model.table.QueryResult;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.repo.model.table.TableFailedException;
+import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.SqlQuery;
@@ -118,4 +119,20 @@ public interface TableQueryManager {
 	 * @return
 	 */
 	public Long getMaxRowsPerPage(List<ColumnModel> models);
+	
+	/**
+	 * Validate the table is available.
+	 * 
+	 * @param tableId
+	 * @return
+	 * @throws NotFoundException
+	 *             If the table does not exist
+	 * @throws TableUnavilableException
+	 *             If the table exists but is currently processing.
+	 * @throws TableFailedException
+	 *             If the table exists but processing failed.
+	 */
+	public TableStatus validateTableIsAvailable(String tableId)
+			throws NotFoundException, TableUnavilableException,
+			TableFailedException;
 }
