@@ -6,6 +6,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -119,10 +120,9 @@ public class ITDownloadUsingFileHandleAssociationTest {
 	@Test
 	public void testWikiAttachment() throws SynapseException, IOException, InterruptedException, JSONObjectAdapterException{
 		V2WikiPage wiki = new V2WikiPage();
-		wiki.setAttachmentFileHandleIds(new ArrayList<String>());
-		wiki.getAttachmentFileHandleIds().add(fileHandle.getId());
+		wiki.setAttachmentFileHandleIds(Arrays.asList(fileHandle.getId()));
 		wiki.setMarkdownFileHandleId(markdownHandle.getId());
-		wiki.setTitle("ITV2WikiPageTest.testWikiRoundTrip");
+		wiki.setTitle("ITDownloadUsingFileHandleAssociation.testWikiAttachment");
 		// Create a V2WikiPage
 		wiki = synapse.createV2WikiPage(project.getId(), ObjectType.ENTITY, wiki);
 		assertNotNull(wiki);
