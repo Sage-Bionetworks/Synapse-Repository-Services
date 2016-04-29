@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
@@ -39,6 +40,16 @@ public class FileViewManagerImpl implements FileViewManager {
 		columModelManager.bindColumnToObject(userInfo, schema, viewIdString);
 		// trigger an update
 		tableManagerSupport.setTableToProcessingAndTriggerUpdate(viewIdString);
+	}
+
+	@Override
+	public void streamOverAllFilesInView(String tableIdString, RowHandler handler) {
+		long tableId = KeyFactory.stringToKey(tableIdString);
+		// Lookup the scope for this view
+		Set<Long> allContainersInScope  = tableManagerSupport.getAllContainerIdsForViewScope(tableIdString);
+		// Lookup the containers for this scope
+		
+		
 	}
 
 

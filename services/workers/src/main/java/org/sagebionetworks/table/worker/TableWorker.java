@@ -12,10 +12,10 @@ import org.sagebionetworks.asynchronous.workers.changes.ChangeMessageDrivenRunne
 import org.sagebionetworks.asynchronous.workers.changes.LockTimeoutAware;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
+import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.manager.table.TableIndexConnectionFactory;
 import org.sagebionetworks.repo.manager.table.TableIndexConnectionUnavailableException;
 import org.sagebionetworks.repo.manager.table.TableIndexManager;
-import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -224,7 +224,7 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 			IOException, TableUnavilableException {
 		// The first task is to get the table schema in-synch.
 		// Get the current schema of the table.
-		List<ColumnModel> currentSchema = tableEntityManager
+		List<ColumnModel> currentSchema = tableManagerSupport
 				.getColumnModelsForTable(tableId);
 		ColumnMapper mapper = TableModelUtils.createColumnModelColumnMapper(
 				currentSchema, false);

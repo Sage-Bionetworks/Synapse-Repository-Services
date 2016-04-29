@@ -32,7 +32,7 @@ public class DDLUtilsImpl implements DDLUtils{
 	
 	/**
 	 * If the given table does not already exist, then create it using the provided SQL file
-	 * @param tableName
+	 * @param databaseTableName
 	 * @param DDLSqlFileName
 	 * @throws IOException 
 	 */

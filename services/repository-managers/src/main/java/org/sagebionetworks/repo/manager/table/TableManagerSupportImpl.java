@@ -348,5 +348,15 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 						.canAccess(userInfo, tableId, ObjectType.ENTITY,
 								ACCESS_TYPE.UPLOAD));
 	}
+	
+	@Override
+	public List<ColumnModel> getColumnModelsForTable(String tableId) throws DatastoreException, NotFoundException {
+		return columnModelDao.getColumnModelsForObject(tableId);
+	}
+
+	@Override
+	public void lockOnTableId(String tableId) {
+		columnModelDao.lockOnOwner(tableId);
+	}
 
 }

@@ -112,17 +112,6 @@ public interface TableEntityManager {
 			RowReferenceSet results, ProgressCallback<Long> progressCallback) throws DatastoreException, NotFoundException, IOException;
 
 	/**
-	 * Get the current ColumnModel list for a table.
-	 * 
-	 * @param tableId
-	 * @return
-	 * @throws NotFoundException
-	 * @throws DatastoreException
-	 */
-	public List<ColumnModel> getColumnModelsForTable(String tableId)
-			throws DatastoreException, NotFoundException;
-
-	/**
 	 * List the changes that have been applied to a table.
 	 * 
 	 * @param tableId
@@ -187,18 +176,6 @@ public interface TableEntityManager {
 	 */
 	public RowSet getCellValues(UserInfo userInfo, String tableId, RowReferenceSet rowRefs, ColumnMapper columnMapper)
 			throws IOException, NotFoundException;
-
-
-	/**
-	 * Get the columns Models for a list of headers. Only headers that are column models ID will have a column model in
-	 * the result. None column model id headers will be ignored.
-	 * 
-	 * @param headers
-	 * @return
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 */
-	public List<ColumnModel> getColumnsForHeaders(List<String> headers) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Given a set of FileHandleIds and a talbeId, get the sub-set of

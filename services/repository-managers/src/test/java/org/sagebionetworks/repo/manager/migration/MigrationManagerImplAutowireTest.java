@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.manager.migration;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
@@ -28,6 +27,7 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
+import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ProjectSettingsDAO;
@@ -83,6 +83,9 @@ public class MigrationManagerImplAutowireTest {
 
 	@Autowired
 	TableEntityManager tableEntityManager;
+	
+	@Autowired
+	TableManagerSupport tableManagerSupport;
 
 	@Autowired
 	EntityManager entityManager;
@@ -353,7 +356,7 @@ public class MigrationManagerImplAutowireTest {
 		// Do this only if table enabled
 		if (StackConfiguration.singleton().getTableEnabled()) {
 			// pretend to be worker and generate caches and index
-			List<ColumnModel> currentSchema = tableEntityManager.getColumnModelsForTable(tableId);
+			List<ColumnModel> currentSchema = tableManagerSupport.getColumnModelsForTable(tableId);
 			TableIndexDAO indexDao = tableConnectionFactory.getConnection(tableId);
 			indexDao.createOrUpdateTable(currentSchema, tableId);
 			List<ColumnModel> models = columnManager.getColumnModelsForTable(adminUser, tableId);
