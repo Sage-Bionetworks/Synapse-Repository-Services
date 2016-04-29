@@ -58,7 +58,7 @@ public class TableCSVAppenderWorkerTest {
 	@Mock
 	TableEntityManager tableEntityManager;
 	@Mock
-	TableManagerSupport tableManagerSupport;
+	TableManagerSupport mockTableManagerSupport;
 	@Mock
 	FileHandleManager  mockFileHandleManger;
 	@Mock
@@ -107,7 +107,7 @@ public class TableCSVAppenderWorkerTest {
 		worker = new TableCSVAppenderWorker();
 		ReflectionTestUtils.setField(worker, "asynchJobStatusManager", mockAasynchJobStatusManager);
 		ReflectionTestUtils.setField(worker, "tableEntityManager", tableEntityManager);
-		ReflectionTestUtils.setField(worker, "tableManagerSupport", tableManagerSupport);
+		ReflectionTestUtils.setField(worker, "tableManagerSupport", mockTableManagerSupport);
 		ReflectionTestUtils.setField(worker, "fileHandleManager", mockFileHandleManger);
 		ReflectionTestUtils.setField(worker, "userManger", mockUserManager);
 		ReflectionTestUtils.setField(worker, "s3Client", mockS3Client);
@@ -124,7 +124,7 @@ public class TableCSVAppenderWorkerTest {
 		when(mockFileHandleManger.getRawFileHandle(user, body.getUploadFileHandleId())).thenReturn(fileHandle);
 		when(mockS3Client.getObjectMetadata(fileHandle.getBucketName(), fileHandle.getKey())).thenReturn(fileMetadata);
 		when(mockS3Client.getObject(fileHandle.getBucketName(), fileHandle.getKey())).thenReturn(s3Object);
-		when(tableManagerSupport.getColumnModelsForTable(body.getTableId())).thenReturn(tableSchema);
+		when(mockTableManagerSupport.getColumnModelsForTable(body.getTableId())).thenReturn(tableSchema);
 		when(mockAasynchJobStatusManager.lookupJobStatus(status.getJobId())).thenReturn(status);
 	}
 
