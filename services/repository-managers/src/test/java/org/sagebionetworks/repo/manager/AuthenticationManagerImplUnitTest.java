@@ -69,7 +69,7 @@ public class AuthenticationManagerImplUnitTest {
 		authManager = new AuthenticationManagerImpl();
 		ReflectionTestUtils.setField(authManager, "authDAO", mockAuthDAO);
 		ReflectionTestUtils.setField(authManager, "userGroupDAO", mockUserGroupDAO);
-		ReflectionTestUtils.setField(authManager, "usernameThrottleGate", mockUsernameThrottleGate);
+		ReflectionTestUtils.setField(authManager, "authenticationThrottleMemoryCountingSemaphore", mockUsernameThrottleGate);
 		ReflectionTestUtils.setField(authManager, "authReceiptDAO", mockAuthReceiptDAO);
 		ReflectionTestUtils.setField(authManager, "consumer", mockConsumer);
 	}
