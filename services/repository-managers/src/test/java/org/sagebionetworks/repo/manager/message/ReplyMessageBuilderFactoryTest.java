@@ -13,6 +13,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.UploadContentToS3DAO;
 import org.sagebionetworks.repo.model.dao.discussion.DiscussionReplyDAO;
 import org.sagebionetworks.repo.model.dao.discussion.DiscussionThreadDAO;
 import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
@@ -33,10 +34,14 @@ public class ReplyMessageBuilderFactoryTest {
 	private NodeDAO mockNodeDao;
 	@Mock
 	private PrincipalAliasDAO mockPrincipalAliasDAO;
+	@Mock
+	private UploadContentToS3DAO mockUploadDao;
 	
 	DiscussionReplyBundle replyBundle;
 	DiscussionThreadBundle threadBundle;
 	EntityHeader projectHeader;
+	String message;
+	String key;
 	
 	ReplyMessageBuilderFactory factory;
 	
@@ -49,11 +54,15 @@ public class ReplyMessageBuilderFactoryTest {
 		ReflectionTestUtils.setField(factory, "threadDao", mockThreadDao);
 		ReflectionTestUtils.setField(factory, "nodeDao", mockNodeDao);
 		ReflectionTestUtils.setField(factory, "principalAliasDAO", mockPrincipalAliasDAO);
+		ReflectionTestUtils.setField(factory, "uploadDao", mockUploadDao);
 		
+		key = "key";
+		message = "message";
 		replyBundle = new DiscussionReplyBundle();
 		replyBundle.setId("222");
 		replyBundle.setThreadId("333");
 		replyBundle.setCreatedBy("555");
+		replyBundle.setMessageKey(key);
 		when(mockReplyDao.getReply(anyLong(), any(DiscussionFilter.class))).thenReturn(replyBundle);
 		
 		threadBundle = new DiscussionThreadBundle();
@@ -64,7 +73,8 @@ public class ReplyMessageBuilderFactoryTest {
 		projectHeader = new EntityHeader();
 		projectHeader.setName("project name");
 		when(mockNodeDao.getEntityHeader(anyString(),  anyLong())).thenReturn(projectHeader);
-		
+
+		when(mockUploadDao.getMessage(key)).thenReturn(message);
 	}
 	
 	@Test
@@ -75,6 +85,7 @@ public class ReplyMessageBuilderFactoryTest {
 		BroadcastMessageBuilder bulider = factory.createMessageBuilder(objectId, type, actor);
 		assertNotNull(bulider);
 		verify(mockNodeDao).getEntityHeader("444", null);
+		verify(mockUploadDao).getMessage(key);
 	}
 	
 }

@@ -18,6 +18,7 @@ public class ThreadBroadcastMessageBuilderTest {
 	ChangeType changeType;
 	String threadUsername;
 	Subscriber subscriber;
+	String message;
 	
 	ThreadBroadcastMessageBuilder builder;
 	
@@ -31,6 +32,7 @@ public class ThreadBroadcastMessageBuilderTest {
 		projectHeader.setName("projectName");
 		changeType = ChangeType.CREATE;
 		threadUsername = "thread-username";
+		message = "message";
 	
 		subscriber = new Subscriber();
 		subscriber.setFirstName("subscriberFirstName");
@@ -40,7 +42,7 @@ public class ThreadBroadcastMessageBuilderTest {
 		subscriber.setUsername("subscriberUsername");
 		subscriber.setSubscriptionId("999");
 	
-		builder = new ThreadBroadcastMessageBuilder(threadBundle, projectHeader, changeType, threadUsername);
+		builder = new ThreadBroadcastMessageBuilder(threadBundle, projectHeader, changeType, threadUsername, message);
 	}
 	
 	@Test

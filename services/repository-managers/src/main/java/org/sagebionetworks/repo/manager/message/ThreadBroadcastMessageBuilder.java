@@ -33,9 +33,11 @@ public class ThreadBroadcastMessageBuilder implements BroadcastMessageBuilder {
 	String subject;
 	String emailTemplate;
 	String threadTitleTruncated;
+	String messageMarkdown;
 
 	public ThreadBroadcastMessageBuilder(DiscussionThreadBundle threadBundle,
-			EntityHeader projectHeader, ChangeType changeType, String actor) {
+			EntityHeader projectHeader, ChangeType changeType, String actor,
+			String messageMarkdown) {
 		ValidateArgument.required(threadBundle, "threadBundle");
 		ValidateArgument.required(projectHeader, "projectHeader");
 		ValidateArgument.required(changeType, "changeType");
@@ -43,6 +45,7 @@ public class ThreadBroadcastMessageBuilder implements BroadcastMessageBuilder {
 		this.projectHeader = projectHeader;
 		this.changeType = changeType;
 		this.actor = actor;
+		this.messageMarkdown = messageMarkdown;
 		this.subject = buildSubject(threadBundle.getTitle(), changeType);
 		this.threadTitleTruncated = BroadcastMessageBuilderUtil.truncateString(threadBundle.getTitle(), 50);
 		// Load the template file
@@ -91,6 +94,7 @@ public class ThreadBroadcastMessageBuilder implements BroadcastMessageBuilder {
 		fieldValues.put("#projectName#", projectHeader.getName());
 		fieldValues.put("#subscriptionID#", subscriber.getSubscriptionId());
 		fieldValues.put("#action#", BroadcastMessageBuilderUtil.getAction(changeType));
+		fieldValues.put("#content#", messageMarkdown);
 		return EmailUtils.buildMailFromTemplate(emailTemplate, fieldValues);
 	}
 

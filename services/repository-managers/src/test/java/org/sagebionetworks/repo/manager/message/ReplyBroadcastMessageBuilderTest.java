@@ -13,18 +13,17 @@ import org.sagebionetworks.repo.model.subscription.Subscriber;
 import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
 
 public class ReplyBroadcastMessageBuilderTest {
-	
-	
+
 	DiscussionReplyBundle replyBundle;
 	DiscussionThreadBundle threadBundle;
 	EntityHeader projectHeader;
 	ChangeType changeType;
 	String replyUsername;
 	Subscriber subscriber;
-	
+	String message;
+
 	ReplyBroadcastMessageBuilder builder;
-	
-	
+
 	@Before
 	public void before(){
 		replyBundle = new DiscussionReplyBundle();
@@ -36,6 +35,7 @@ public class ReplyBroadcastMessageBuilderTest {
 		projectHeader.setName("projectName");
 		changeType = ChangeType.CREATE;
 		replyUsername = "reply-username";
+		message = "message";
 		
 		subscriber = new Subscriber();
 		subscriber.setFirstName("subscriberFirstName");
@@ -45,7 +45,7 @@ public class ReplyBroadcastMessageBuilderTest {
 		subscriber.setUsername("subscriberUsername");
 		subscriber.setSubscriptionId("999");
 	
-		builder = new ReplyBroadcastMessageBuilder(replyBundle, threadBundle, projectHeader, changeType, replyUsername);
+		builder = new ReplyBroadcastMessageBuilder(replyBundle, threadBundle, projectHeader, changeType, replyUsername, message);
 	}
 
 	@Test

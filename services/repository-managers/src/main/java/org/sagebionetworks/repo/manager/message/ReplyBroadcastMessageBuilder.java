@@ -27,7 +27,6 @@ public class ReplyBroadcastMessageBuilder implements BroadcastMessageBuilder {
 	public static final String REPLY_UPDATED_TITLE = "Synapse Notification: A reply has been updated in thread '%1$s'";
 	public static final String REPLY_DELETED_TITLE = "Synapse Notification: A reply has been removed in thread '%1$s'";
 
-	
 	DiscussionReplyBundle replyBundle;
 	DiscussionThreadBundle threadBundle;
 	EntityHeader projectHeader;
@@ -36,9 +35,11 @@ public class ReplyBroadcastMessageBuilder implements BroadcastMessageBuilder {
 	String subject;
 	String emailTemplate;
 	String threadTitleTruncated;
+	String messageMarkdown;
 
 	public ReplyBroadcastMessageBuilder(DiscussionReplyBundle replyBundle,
-			DiscussionThreadBundle threadBundle, EntityHeader projectHeader, ChangeType changeType, String actor) {
+			DiscussionThreadBundle threadBundle, EntityHeader projectHeader,
+			ChangeType changeType, String actor, String messageMarkdown) {
 		ValidateArgument.required(replyBundle, "replyBundle");
 		ValidateArgument.required(threadBundle, "threadBundle");
 		ValidateArgument.required(projectHeader, "projectHeader");
@@ -48,6 +49,7 @@ public class ReplyBroadcastMessageBuilder implements BroadcastMessageBuilder {
 		this.projectHeader = projectHeader;
 		this.changeType = changeType;
 		this.actor = actor;
+		this.messageMarkdown = messageMarkdown;
 		this.subject = buildSubject(threadBundle.getTitle(), changeType);
 		this.threadTitleTruncated = BroadcastMessageBuilderUtil.truncateString(threadBundle.getTitle(), 50);
 		// Load the template file
@@ -62,7 +64,6 @@ public class ReplyBroadcastMessageBuilder implements BroadcastMessageBuilder {
 		topic.setObjectType(SubscriptionObjectType.THREAD);
 		return topic;
 	}
-
 
 	@Override
 	public SendRawEmailRequest buildEmailForSubscriber(Subscriber subscriber) {
@@ -95,6 +96,7 @@ public class ReplyBroadcastMessageBuilder implements BroadcastMessageBuilder {
 		fieldValues.put("#projectName#", projectHeader.getName());
 		fieldValues.put("#subscriptionID#", subscriber.getSubscriptionId());
 		fieldValues.put("#action#", BroadcastMessageBuilderUtil.getAction(changeType)+" a reply");
+		fieldValues.put("#content#", messageMarkdown);
 		return EmailUtils.buildMailFromTemplate(emailTemplate, fieldValues);
 	}
 

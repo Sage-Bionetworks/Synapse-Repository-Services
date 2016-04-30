@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.message;
 
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.UploadContentToS3DAO;
 import org.sagebionetworks.repo.model.dao.discussion.DiscussionReplyDAO;
 import org.sagebionetworks.repo.model.dao.discussion.DiscussionThreadDAO;
 import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
@@ -22,6 +23,8 @@ public class ReplyMessageBuilderFactory implements MessageBuilderFactory {
 	private NodeDAO nodeDao;
 	@Autowired
 	private PrincipalAliasDAO principalAliasDAO;
+	@Autowired
+	private UploadContentToS3DAO uploadDao;
 
 	@Override
 	public BroadcastMessageBuilder createMessageBuilder(String objectId,
@@ -37,7 +40,9 @@ public class ReplyMessageBuilderFactory implements MessageBuilderFactory {
 		EntityHeader projectHeader = nodeDao.getEntityHeader(threadBundle.getProjectId(), null);
 		// Lookup the user name of the actor
 		String actor = principalAliasDAO.getUserName(userId);
-		return new ReplyBroadcastMessageBuilder(replyBundle, threadBundle, projectHeader, changeType, actor);
+		String markdown = null;
+		markdown = uploadDao.getMessage(replyBundle.getMessageKey());
+		return new ReplyBroadcastMessageBuilder(replyBundle, threadBundle, projectHeader, changeType, actor, markdown);
 	}
 
 }

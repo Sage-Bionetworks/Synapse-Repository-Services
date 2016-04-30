@@ -4,6 +4,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import static org.mockito.Mockito.*;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 
@@ -18,11 +22,15 @@ import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.BucketCrossOriginConfiguration;
 import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
 import com.amazonaws.services.s3.model.PutObjectRequest;
+import com.amazonaws.services.s3.model.S3Object;
+import com.amazonaws.services.s3.model.S3ObjectInputStream;
 
 public class UploadContentToS3DAOImplTest {
 
 	@Mock
 	private AmazonS3Client mockS3Client;
+	@Mock
+	private S3Object mockS3Object;
 	private String bucketName = "bucket";
 	private UploadContentToS3DAOImpl dao;
 	private URL url;
@@ -40,14 +48,14 @@ public class UploadContentToS3DAOImplTest {
 	@Test
 	public void testUploadThreadMessage() throws Exception {
 		dao.initialize();
-		Mockito.verify(mockS3Client).createBucket(Mockito.anyString());
-		Mockito.verify(mockS3Client).setBucketCrossOriginConfiguration(Mockito.anyString(), (BucketCrossOriginConfiguration) Mockito.any());
+		verify(mockS3Client).createBucket(Mockito.anyString());
+		verify(mockS3Client).setBucketCrossOriginConfiguration(Mockito.anyString(), (BucketCrossOriginConfiguration) Mockito.any());
 
 		String content = "this is a message";
 		String forumId = "1";
 		String threadId = "2";
 		String key = dao.uploadThreadMessage(content, forumId, threadId);
-		Mockito.verify(mockS3Client).putObject((PutObjectRequest) Mockito.any());
+		verify(mockS3Client).putObject((PutObjectRequest) Mockito.any());
 		assertNotNull(key);
 		String[] parts = key.split("/");
 		assertTrue(parts.length == 3);
@@ -58,15 +66,15 @@ public class UploadContentToS3DAOImplTest {
 	@Test
 	public void testUploadReplyMessage() throws Exception {
 		dao.initialize();
-		Mockito.verify(mockS3Client).createBucket(Mockito.anyString());
-		Mockito.verify(mockS3Client).setBucketCrossOriginConfiguration(Mockito.anyString(), (BucketCrossOriginConfiguration) Mockito.any());
+		verify(mockS3Client).createBucket(Mockito.anyString());
+		verify(mockS3Client).setBucketCrossOriginConfiguration(Mockito.anyString(), (BucketCrossOriginConfiguration) Mockito.any());
 
 		String content = "this is a message";
 		String forumId = "1";
 		String threadId = "2";
 		String replyId = "3";
 		String key = dao.uploadReplyMessage(content, forumId, threadId, replyId);
-		Mockito.verify(mockS3Client).putObject((PutObjectRequest) Mockito.any());
+		verify(mockS3Client).putObject((PutObjectRequest) Mockito.any());
 		assertNotNull(key);
 		String[] parts = key.split("/");
 		assertTrue(parts.length == 4);
@@ -87,7 +95,7 @@ public class UploadContentToS3DAOImplTest {
 
 	@Test
 	public void testGetThreadUrl() {
-		Mockito.when(mockS3Client.generatePresignedUrl(Mockito.any(GeneratePresignedUrlRequest.class)))
+		when(mockS3Client.generatePresignedUrl(Mockito.any(GeneratePresignedUrlRequest.class)))
 				.thenReturn(url);
 		String url = dao.getThreadUrl("1/2/key").getMessageUrl();
 		assertNotNull(url);
@@ -105,9 +113,22 @@ public class UploadContentToS3DAOImplTest {
 
 	@Test
 	public void testGetReplyUrl() {
-		Mockito.when(mockS3Client.generatePresignedUrl(Mockito.any(GeneratePresignedUrlRequest.class)))
+		when(mockS3Client.generatePresignedUrl(Mockito.any(GeneratePresignedUrlRequest.class)))
 				.thenReturn(url);
 		String url = dao.getReplyUrl("1/2/3/key").getMessageUrl();
 		assertNotNull(url);
 	}
+
+	@Test
+	public void testGetMessage() throws IOException {
+		byte[] compressedBytes = UploadContentToS3DAOImpl.compress("message");
+		ByteArrayInputStream in = new ByteArrayInputStream(compressedBytes);
+		S3ObjectInputStream s3ObjectInputStream = new S3ObjectInputStream(in, null);
+		when(mockS3Client.getObject(anyString(), anyString())).thenReturn(mockS3Object);
+		when(mockS3Object.getObjectContent()).thenReturn(s3ObjectInputStream);
+		String key = "key";
+		dao.getMessage(key);
+		verify(mockS3Client).getObject(anyString(), eq(key));
+	}
+	
 }

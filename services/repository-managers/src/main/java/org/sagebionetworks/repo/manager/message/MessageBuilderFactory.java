@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.manager.message;
 
+import java.io.IOException;
+
 import org.sagebionetworks.repo.model.message.ChangeType;
 
 /**
