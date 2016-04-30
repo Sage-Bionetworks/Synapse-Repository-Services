@@ -1,15 +1,35 @@
 package org.sagebionetworks.repo.model.dbo.dao.table;
 
-import static org.sagebionetworks.repo.model.dbo.dao.table.FileEntityFields.*;
+import static org.sagebionetworks.repo.model.dbo.dao.table.FileEntityFields.currentVersion;
+import static org.sagebionetworks.repo.model.dbo.dao.table.FileEntityFields.dataFileHandleId;
+import static org.sagebionetworks.repo.model.dbo.dao.table.FileEntityFields.id;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CURRENT_REV;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_PARENT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ANNOS_BLOB;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_NUMBER;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_OWNER_NODE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_REVISION;
 
+import java.io.IOException;
+import java.sql.Blob;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
-
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.NamedAnnotations;
+import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.util.ValidateArgument;
 
 /**
@@ -45,24 +65,23 @@ public class FileViewUtils {
 		boolean joinRevision = false;
 		String nodeAlias = id.getTableAlias();
 		String revAlias = dataFileHandleId.getTableAlias();
-		// add the rest of the columns
-		for(ColumnModel cm: schema){
-			try {
-				FileEntityFields field = FileEntityFields.valueOf(cm.getName());
-				if(!added.contains(field)){
-					isFirst = false;
-					appendColumn(builder, field, isFirst);
-					added.add(field);
-					if(TABLE_REVISION.equals(field.getDatabaseTableName())){
-						joinRevision = true;
-					}
+		// Add all primary columns
+		List<FileEntityFields> primaryColumns = FileViewUtils.getFileEntityFields(schema);
+		for(FileEntityFields field: primaryColumns){
+			if(!added.contains(field)){
+				isFirst = false;
+				appendColumn(builder, field, isFirst);
+				added.add(field);
+				if(TABLE_REVISION.equals(field.getDatabaseTableName())){
+					joinRevision = true;
 				}
-			} catch (IllegalArgumentException e) {
-				// This is an annotation column
-				// annotation blob is selected form revision
-				joinRevision = true;
-				builder.append(", ").append(revAlias).append(".").append(COL_REVISION_ANNOS_BLOB);
 			}
+		}
+		// Add annotations if needed
+		List<ColumnModel> annotations = FileViewUtils.getNonFileEntityFieldColumns(schema);
+		if(!annotations.isEmpty()){
+			joinRevision = true;
+			builder.append(", ").append(revAlias).append(".").append(COL_REVISION_ANNOS_BLOB);
 		}
 	
 		builder.append(" FROM ").append(id.getDatabaseTableName()).append(" ").append(id.getTableAlias());
@@ -103,6 +122,169 @@ public class FileViewUtils {
 		builder.append(field.getTableAlias()).append(".").append(field.getDatabaseColumnName()).append(" as '").append(field.name()).append("'");
 	}
 	
+	/**
+	 * Get the sub-set of FileEntityFields that match the given ColumnModels.
+	 * If a given ColumnModel does not match a FileEntityField, then a result will 
+	 * not be returned for that ColumnModel.
+	 * 
+	 * This is used to identity "primary" columns.
+	 * 
+	 * @param models
+	 * @return
+	 */
+	public static List<FileEntityFields> getFileEntityFields(List<ColumnModel> models){
+		ValidateArgument.required(models, "models");
+		List<FileEntityFields> results = new LinkedList<FileEntityFields>();
+		for(ColumnModel cm: models){
+			try{
+				results.add(FileEntityFields.valueOf(cm.getName()));
+			}catch (IllegalArgumentException e){
+				// thrown when match cannot be found.
+			}
+		}
+		return results;
+	}
+	
+	/**
+	 * Get the sub-set of ColumnModes that do not match FileEntityFields.
+	 * If a given ColumnModel matches a FileEntityField, then a result
+	 * will not be returned for that ColumnModel.
+	 * 
+	 * This is used to identity "annotation" Columns.
+	 * @param models
+	 * @return
+	 */
+	public static List<ColumnModel> getNonFileEntityFieldColumns(List<ColumnModel> models){
+		ValidateArgument.required(models, "models");
+		List<ColumnModel> results = new LinkedList<ColumnModel>();
+		for(ColumnModel cm: models){
+			try{
+				FileEntityFields.valueOf(cm.getName());
+			}catch (IllegalArgumentException e){
+				results.add(cm);
+			}
+		}
+		return results;
+	}
+	
+	/**
+	 * Extract the given annotations from the raw byes.
+	 * 
+	 * @param annotationKeys
+	 * @param rawBytes
+	 * @return
+	 */
+	public static Map<String, String> extractAnnotations(List<ColumnModel> annotationColumns, byte[] rawBytes){
+		try {
+			NamedAnnotations annos = JDOSecondaryPropertyUtils.decompressedAnnotations(rawBytes);
+			return extractAnnotations(annotationColumns, annos);
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
 
+	/**
+	 * Extract the given annotations from the NameedAnnotations.
+	 * 
+	 * @param annotationKeys
+	 * @param annos
+	 * @return
+	 */
+	public static Map<String, String> extractAnnotations(
+			List<ColumnModel> annotationColumns, NamedAnnotations annos) {
+		Map<String, String> results = new HashMap<String, String>();
+		if (annos.getAdditionalAnnotations() != null) {
+			// Seek each value
+			for (ColumnModel column : annotationColumns) {
+				// Lookup the value
+				String valueString = null;
+				switch (column.getColumnType()) {
+				case STRING:
+					List<String> stringList = annos.getAdditionalAnnotations()
+							.getStringAnnotations().get(column.getName());
+					if (stringList != null && !stringList.isEmpty()) {
+						valueString = stringList.get(0);
+					}
+					break;
+				case DATE:
+					List<Date> dateList = annos.getAdditionalAnnotations()
+							.getDateAnnotations().get(column.getName());
+					if (dateList != null && !dateList.isEmpty()) {
+						Date date = dateList.get(0);
+						if (date != null) {
+							valueString = Long.toString(date.getTime());
+						}
+					}
+					break;
+				case DOUBLE:
+					List<Double> doubleList = annos.getAdditionalAnnotations()
+							.getDoubleAnnotations().get(column.getName());
+					if (doubleList != null && !doubleList.isEmpty()) {
+						Double dValue = doubleList.get(0);
+						if (dValue != null) {
+							valueString = dValue.toString();
+						}
+					}
+					break;
+				case INTEGER:
+					List<Long> longList = annos.getAdditionalAnnotations()
+							.getLongAnnotations().get(column.getName());
+					if (longList != null && !longList.isEmpty()) {
+						Long lValue = longList.get(0);
+						if (lValue != null) {
+							valueString = lValue.toString();
+						}
+					}
+					break;
+				default:
+					valueString = null;
+					break;
+				}
+				results.put(column.getName(), valueString);
+			}
+		}
+		return results;
+	}
+	
+	/**
+	 * Extract a Row from a RowSet given the schema and annotation columns.
+	 * @param schema
+	 * @param annotationNames
+	 * @param rs
+	 * @return
+	 * @throws SQLException
+	 */
+	public static Row extractRow(List<ColumnModel> schema, List<ColumnModel> annotationColumns, ResultSet rs) throws SQLException{
+		// Map to a Row
+		Row row = new Row();
+		// rowId and version are part of every query.
+		row.setRowId(rs.getLong(FileEntityFields.id.name()));
+		row.setVersionNumber(rs.getLong(FileEntityFields.currentVersion.name()));
+		Map<String, String> annotationsMap = null;
+		
+		// Read the annotations blob if there are annotations
+		if(!annotationColumns.isEmpty()){
+			Blob annosBlob = rs.getBlob(COL_REVISION_ANNOS_BLOB);
+			if(annosBlob != null){
+				byte[] bytes = annosBlob.getBytes(1, (int) annosBlob.length());
+				annotationsMap = FileViewUtils.extractAnnotations(annotationColumns, bytes);
+			}
+		}
+		// Create the results
+		List<String> values = new LinkedList<String>();
+		for(ColumnModel column: schema){
+			String value = null;
+			if(annotationsMap != null && annotationsMap.containsKey(column.getName())){
+				// annotation
+				value = annotationsMap.get(column.getName());
+			}else{
+				// primary
+				value = rs.getString(column.getName());
+			}
+			values.add(value);
+		}
+		row.setValues(values);
+		return row;
+	}
 
 }
