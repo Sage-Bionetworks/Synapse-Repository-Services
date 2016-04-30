@@ -34,6 +34,9 @@
 
 	<bean id="nodeDao" class="org.sagebionetworks.repo.model.dbo.dao.NodeDAOImpl"
 		depends-on="idGenerator" />
+		
+	<bean id="fileViewDao" class="org.sagebionetworks.repo.model.dbo.dao.table.FileViewDaoImpl"
+		scope="singleton" />	
 
 	<bean id="activityDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOActivityDAOImpl"

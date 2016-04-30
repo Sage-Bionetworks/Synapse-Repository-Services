@@ -2807,52 +2807,6 @@ public class NodeDAOImplTest {
 		// call under test
 		nodeDao.getProjectId(doesNotExist);
 	}
-	
-	@Test
-	public void testCalculateCRCForAllFilesWithinContainers() throws UnsupportedEncodingException{
-		// create a project
-		Node project = NodeTestUtils.createNew("Project", creatorUserGroupId);
-		project.setNodeType(EntityType.project);
-		project = nodeDao.createNewNode(project);
-		toDelete.add(project.getId());
-		assertNotNull(project);
-		// add a file
-		Node file = NodeTestUtils.createNew("file", creatorUserGroupId);
-		file.setNodeType(EntityType.file);
-		file.setParentId(project.getId());
-		file = nodeDao.createNewNode(file);
-		
-		Long projectId = KeyFactory.stringToKey(project.getId());
-		Set<Long> containers = Sets.newHashSet(projectId);
-		//  call under test
-		long crcResults = nodeDao.calculateCRCForAllFilesWithinContainers(containers);
-		assertTrue(crcResults > 0L);
-	}
-	
-	@Test
-	public void testCalculateCRCForAllFilesWithinContainersNoChildren() throws UnsupportedEncodingException{
-		// create a project
-		Node project = NodeTestUtils.createNew("Project", creatorUserGroupId);
-		project.setNodeType(EntityType.project);
-		project = nodeDao.createNewNode(project);
-		toDelete.add(project.getId());
-		assertNotNull(project);
-		
-		Long projectId = KeyFactory.stringToKey(project.getId());
-		Set<Long> containers = Sets.newHashSet(projectId);
-		//  call under test
-		long crcResults = nodeDao.calculateCRCForAllFilesWithinContainers(containers);
-		assertEquals(0, crcResults);
-	}
-	
-	@Test
-	public void testCalculateCRCForAllFilesWithinContainersEmpty() throws UnsupportedEncodingException{
-		// empty containers
-		Set<Long> containers = new HashSet<Long>(0);
-		//  call under test
-		long crcResults = nodeDao.calculateCRCForAllFilesWithinContainers(containers);
-		assertEquals(0, crcResults);
-	}
 
 	@Test (expected=IllegalArgumentException.class)
 	public void testGetFileHandleIdsAssociatedWithFileEntityNullFileHandleIds(){
