@@ -76,6 +76,12 @@
 		<bean class="org.sagebionetworks.common.util.ClockImpl"/>
 		</constructor-arg>
 	</bean>
+
+	<bean name="authenticationThrottleMemoryCountingSemaphore" class="org.sagebionetworks.repo.model.semaphore.MemoryCountingSemaphoreImpl" scope="singleton">
+		<constructor-arg index="0">
+		<bean class="org.sagebionetworks.common.util.ClockImpl"/>
+		</constructor-arg>
+	</bean>	
 	
 	<bean id="semaphoreManager" class="org.sagebionetworks.repo.manager.SemaphoreManagerImpl" />
 	

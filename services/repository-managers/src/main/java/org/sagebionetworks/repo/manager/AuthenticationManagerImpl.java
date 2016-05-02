@@ -48,7 +48,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	@Autowired
 	private AuthenticationReceiptDAO authReceiptDAO;
 	@Autowired
-	private MemoryCountingSemaphore usernameThrottleGate;
+	private MemoryCountingSemaphore authenticationThrottleMemoryCountingSemaphore;
 	@Autowired
 	private Consumer consumer;
 	
@@ -60,10 +60,10 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		ValidateArgument.required(password, "password");
 		ValidateArgument.required(domain, "domain");
 		// acquire a lock for throttling password attacks
-		String lockToken = usernameThrottleGate.attemptToAcquireLock(""+principalId, LOCK_TIMOUTE_SEC, MAX_CONCURRENT_LOCKS);
+		String lockToken = authenticationThrottleMemoryCountingSemaphore.attemptToAcquireLock(""+principalId, LOCK_TIMOUTE_SEC, MAX_CONCURRENT_LOCKS);
 		if (lockToken != null) {
 			authenticateAndThrowException(principalId, password);
-			usernameThrottleGate.releaseLock(""+principalId, lockToken);
+			authenticationThrottleMemoryCountingSemaphore.releaseLock(""+principalId, lockToken);
 			return getSessionToken(principalId, domain);
 		} else {
 			logAttemptAfterAccountIsLocked(principalId);
@@ -193,7 +193,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		Boolean hasValidReceipt = false;
 		String lockToken = null;
 		if (authenticationReceipt == null || !authReceiptDAO.isValidReceipt(principalId, authenticationReceipt)) {
-			lockToken = usernameThrottleGate.attemptToAcquireLock(""+principalId, LOCK_TIMOUTE_SEC, MAX_CONCURRENT_LOCKS);
+			lockToken = authenticationThrottleMemoryCountingSemaphore.attemptToAcquireLock(""+principalId, LOCK_TIMOUTE_SEC, MAX_CONCURRENT_LOCKS);
 			if (lockToken == null) {
 				logAttemptAfterAccountIsLocked(principalId);
 				throw new LockedException(ACCOUNT_LOCKED_MESSAGE);
@@ -204,7 +204,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 
 		authenticateAndThrowException(principalId, password);
 		if (lockToken != null) {
-			usernameThrottleGate.releaseLock(""+principalId, lockToken);
+			authenticationThrottleMemoryCountingSemaphore.releaseLock(""+principalId, lockToken);
 		}
 
 		Session session = getSessionToken(principalId, DomainType.SYNAPSE);

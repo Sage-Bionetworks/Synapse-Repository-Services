@@ -33,7 +33,7 @@ public class UserThrottleFilterTest {
 	public void setupFilter() throws Exception {
 		userThrottleGate = mock(MemoryCountingSemaphore.class);
 		filter = new UserThrottleFilter();
-		ReflectionTestUtils.setField(filter, "userThrottleGate", userThrottleGate);
+		ReflectionTestUtils.setField(filter, "userThrottleMemoryCountingSemaphore", userThrottleGate);
 	}
 
 	@Test
