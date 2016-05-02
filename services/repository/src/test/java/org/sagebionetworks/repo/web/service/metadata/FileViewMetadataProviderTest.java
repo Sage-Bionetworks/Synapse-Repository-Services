@@ -31,7 +31,7 @@ public class FileViewMetadataProviderTest {
 		
 		view = new FileView();
 		view.setColumnIds(Lists.newArrayList("111","222"));
-		view.setContainerScope(Lists.newArrayList("syn444"));
+		view.setScopeIds(Lists.newArrayList("syn444"));
 		view.setId("syn888");
 		
 		user = new UserInfo(false, 55L);
@@ -40,13 +40,13 @@ public class FileViewMetadataProviderTest {
 	@Test
 	public void testValidateEntityCreate(){
 		provider.entityCreated(user, view);
-		verify(fileViewManager).setViewSchemaAndScope(user, view.getColumnIds(), view.getContainerScope(), view.getId());
+		verify(fileViewManager).setViewSchemaAndScope(user, view.getColumnIds(), view.getScopeIds(), view.getId());
 	}
 
 	@Test
 	public void testValidateEntityUpdate(){
 		provider.entityUpdated(user, view);
-		verify(fileViewManager).setViewSchemaAndScope(user, view.getColumnIds(), view.getContainerScope(), view.getId());
+		verify(fileViewManager).setViewSchemaAndScope(user, view.getColumnIds(), view.getScopeIds(), view.getId());
 	}
 	
 }

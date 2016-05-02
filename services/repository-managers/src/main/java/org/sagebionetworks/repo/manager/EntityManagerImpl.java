@@ -7,7 +7,6 @@ import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.repo.manager.NodeManager.FileHandleReason;
-import org.sagebionetworks.repo.manager.file.MultipartManagerImpl;
 import org.sagebionetworks.repo.manager.file.MultipartUtils;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.Annotations;

@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.table;
 
+import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
@@ -9,9 +10,8 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.table.TableFailedException;
+import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.TableStatus;
-import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 
@@ -283,5 +283,24 @@ public interface TableManagerSupport {
 	 */
 	void validateTableWriteAccess(UserInfo userInfo, String tableId)
 			throws UnauthorizedException, DatastoreException, NotFoundException;
+	
+	/**
+	 * Get the current ColumnModel list for a table.
+	 * 
+	 * @param tableId
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 */
+	public List<ColumnModel> getColumnModelsForTable(String tableId)
+			throws DatastoreException, NotFoundException;
+
+	/**
+	 * Blocking lock on the given table ID.
+	 * 
+	 * @param tableId
+	 */
+	public void lockOnTableId(String tableId);
+
 
 }

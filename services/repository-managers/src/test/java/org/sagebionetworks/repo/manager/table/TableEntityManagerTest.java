@@ -47,7 +47,6 @@ import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
-import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.RowAccessor;
 import org.sagebionetworks.repo.model.dao.table.RowSetAccessor;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
@@ -93,8 +92,6 @@ public class TableEntityManagerTest {
 	@Mock
 	TableRowTruthDAO mockTruthDao;
 	@Mock
-	ColumnModelDAO mockColumnModelDAO;
-	@Mock
 	ConnectionFactory mockTableConnectionFactory;
 	@Mock
 	TableIndexDAO mockTableIndexDAO;
@@ -137,7 +134,6 @@ public class TableEntityManagerTest {
 		manager = new TableEntityManagerImpl();
 		ReflectionTestUtils.setField(manager, "stackStatusDao", mockStackStatusDao);
 		ReflectionTestUtils.setField(manager, "tableRowTruthDao", mockTruthDao);
-		ReflectionTestUtils.setField(manager, "columnModelDAO", mockColumnModelDAO);
 		ReflectionTestUtils.setField(manager, "tableConnectionFactory", mockTableConnectionFactory);
 		ReflectionTestUtils.setField(manager, "fileHandleDao", mockFileDao);
 		ReflectionTestUtils.setField(manager, "columModelManager", mockColumModelManager);
@@ -172,7 +168,7 @@ public class TableEntityManagerTest {
 		refSet.setRows(new LinkedList<RowReference>());
 		refSet.setEtag("etag123");
 		
-		when(mockColumnModelDAO.getColumnModelsForObject(tableId)).thenReturn(models);
+		when(mockTableManagerSupport.getColumnModelsForTable(tableId)).thenReturn(models);
 		when(mockTableConnectionFactory.getConnection(tableId)).thenReturn(mockTableIndexDAO);
 		
 		// Just call the caller.
@@ -650,18 +646,6 @@ public class TableEntityManagerTest {
 	public void testGetColumnValuesFailReadAccess() throws Exception {
 		doThrow(new UnauthorizedException()).when(mockTableManagerSupport).validateTableReadAccess(user, tableId);
 		manager.getCellValue(user, tableId, null, null);
-	}
-
-
-	
-	@Test
-	public void testGetColumnsForHeaders() throws DatastoreException, NotFoundException{
-		// Headers can be a mix of column ids and aggregate functions.  The non-column model id headers should be ignored.
-		List<String> headers = Arrays.asList("1","2","count(2)","3");
-		when(mockColumnModelDAO.getColumnModel(Arrays.asList("1","2","3"), true)).thenReturn(Arrays.asList(models.get(1),models.get(2), models.get(3)));
-		List<ColumnModel> models = manager.getColumnsForHeaders(headers);
-		assertNotNull(models);
-		assertEquals(3, models.size());
 	}
 	
 	@Test (expected=ReadOnlyException.class)

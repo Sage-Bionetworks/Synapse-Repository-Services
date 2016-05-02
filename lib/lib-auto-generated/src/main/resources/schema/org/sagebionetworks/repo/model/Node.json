@@ -63,6 +63,13 @@
             	"type":"string"
             }
         },
+        "scopeIds":{
+        	"description":"For FileVeiws, the list of IDs the define the scope of the view.",
+            "type":"array",
+            "items":{
+            	"type":"string"
+            }
+        },
         "reference":{
             "type":"object",
             "$ref":"org.sagebionetworks.repo.model.Reference"
