@@ -91,6 +91,7 @@ public class DBODiscussionReplyDAOImpl implements DiscussionReplyDAO{
 	private static final String SQL_SELECT_REPLY_COUNT = "SELECT COUNT(*)"
 			+" FROM "+TABLE_DISCUSSION_REPLY
 			+" WHERE "+COL_DISCUSSION_REPLY_THREAD_ID+" = ?";
+
 	private static final String SQL_SELECT_REPLY_BUNDLE = "SELECT "
 			+TABLE_DISCUSSION_REPLY+"."+COL_DISCUSSION_REPLY_ID+" AS "+COL_DISCUSSION_REPLY_ID+" , "
 			+COL_DISCUSSION_REPLY_THREAD_ID+", "
@@ -132,6 +133,13 @@ public class DBODiscussionReplyDAOImpl implements DiscussionReplyDAO{
 			+COL_DISCUSSION_REPLY_MODIFIED_ON+" =? "
 			+" WHERE "+COL_DISCUSSION_REPLY_ID+" = ?";
 	public static final DiscussionFilter DEFAULT_FILTER = DiscussionFilter.NO_FILTER;
+
+	public static final String SQL_SELECT_PROJECT_ID = "SELECT "
+			+TABLE_FORUM+"."+COL_FORUM_PROJECT_ID
+			+" FROM "+TABLE_DISCUSSION_THREAD+", "+TABLE_FORUM+", "+TABLE_DISCUSSION_REPLY
+			+" WHERE "+TABLE_DISCUSSION_THREAD+"."+COL_DISCUSSION_THREAD_FORUM_ID+" = "+TABLE_FORUM+"."+COL_FORUM_ID
+			+ " AND "+TABLE_DISCUSSION_THREAD+"."+COL_DISCUSSION_THREAD_ID+" = "+TABLE_DISCUSSION_REPLY+"."+COL_DISCUSSION_REPLY_THREAD_ID
+			+" AND "+TABLE_DISCUSSION_REPLY+"."+COL_DISCUSSION_REPLY_ID+" = ?";
 
 	@WriteTransactionReadCommitted
 	@Override
@@ -287,6 +295,20 @@ public class DBODiscussionReplyDAOImpl implements DiscussionReplyDAO{
 		}, threadId);
 		dto.setActiveAuthors(authors);
 		return dto;
+	}
+
+	@Override
+	public String getProjectId(String replyId) {
+		List<String> queryResult = jdbcTemplate.query(SQL_SELECT_PROJECT_ID, new RowMapper<String>(){
+			@Override
+			public String mapRow(ResultSet rs, int rowNum) throws SQLException {
+				return KeyFactory.keyToString(rs.getLong(COL_FORUM_PROJECT_ID));
+			}
+		}, replyId);
+		if (queryResult.size() != 1) {
+			throw new NotFoundException();
+		}
+		return queryResult.get(0);
 	}
 
 }

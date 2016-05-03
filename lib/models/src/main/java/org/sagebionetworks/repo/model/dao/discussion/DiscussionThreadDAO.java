@@ -164,4 +164,12 @@ public interface DiscussionThreadDAO {
 	 * @param threadId
 	 */
 	public void unpinThread(long threadId);
+
+	/**
+	 * Return the projectID that this thread belong to
+	 * 
+	 * @param threadId
+	 * @return
+	 */
+	public String getProjectId(String threadId);
 }

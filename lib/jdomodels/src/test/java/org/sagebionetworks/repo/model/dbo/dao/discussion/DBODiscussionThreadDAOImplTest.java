@@ -125,6 +125,17 @@ public class DBODiscussionThreadDAOImplTest {
 	}
 
 	@Test
+	public void testGetProjectId() {
+		DiscussionThreadBundle dto = threadDao.createThread(forumId, threadId.toString(), "title", "messageKey", userId);
+		assertEquals(projectId, threadDao.getProjectId(dto.getId()));
+	}
+
+	@Test (expected=NotFoundException.class)
+	public void testGetProjectIdNotFound() {
+		threadDao.getProjectId("-1");
+	}
+
+	@Test
 	public void testGetEtag(){
 		DiscussionThreadBundle dto = threadDao.createThread(forumId, threadId.toString(), "title", "messageKey", userId);
 		long threadId = Long.parseLong(dto.getId());
