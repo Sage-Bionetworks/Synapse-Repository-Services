@@ -114,12 +114,10 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 	public PaginatedResults<DiscussionReplyBundle> getRepliesForThread(
 			UserInfo userInfo, String threadId, Long limit, Long offset,
 			DiscussionReplyOrder order, Boolean ascending, DiscussionFilter filter) {
-		UserInfo.validateUserInfo(userInfo);
-		ValidateArgument.required(threadId, "threadId");
+		threadManager.checkPermission(userInfo, threadId, ACCESS_TYPE.READ);
 		ValidateArgument.required(limit, "limit");
 		ValidateArgument.required(offset, "offset");
 		ValidateArgument.required(filter, "filter");
-		threadManager.checkReadPermission(userInfo, threadId);
 		return replyDao.getRepliesForThread(Long.parseLong(threadId), limit, offset, order, ascending, filter);
 	}
 
@@ -136,10 +134,8 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 
 	@Override
 	public ReplyCount getReplyCountForThread(UserInfo userInfo, String threadId, DiscussionFilter filter) {
-		ValidateArgument.required(threadId, "threadId");
+		threadManager.checkPermission(userInfo, threadId, ACCESS_TYPE.READ);
 		ValidateArgument.required(filter, "filter");
-		UserInfo.validateUserInfo(userInfo);
-		threadManager.checkReadPermission(userInfo, threadId);
 		ReplyCount count = new ReplyCount();
 		count.setCount(replyDao.getReplyCount(Long.parseLong(threadId), filter));
 		return count;

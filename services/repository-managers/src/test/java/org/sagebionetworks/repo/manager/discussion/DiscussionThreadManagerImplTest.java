@@ -202,22 +202,29 @@ public class DiscussionThreadManagerImplTest {
 	}
 
 	@Test (expected = IllegalArgumentException.class)
+	public void testCheckPermissionWithNullUserInfo() {
+		threadManager.checkPermission(null, threadId.toString(), ACCESS_TYPE.READ);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
 	public void testCheckPermissionWithNullThreadId() {
-		threadManager.checkReadPermission(userInfo, null);
+		threadManager.checkPermission(userInfo, null, ACCESS_TYPE.READ);
 	}
 
 	@Test (expected = UnauthorizedException.class)
 	public void testCheckPermissionUnauthorized() {
+		Mockito.when(mockThreadDao.getProjectId(threadId.toString())).thenReturn(projectId);
 		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
 				.thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
-		threadManager.checkReadPermission(userInfo, threadId.toString());
+		threadManager.checkPermission(userInfo, threadId.toString(), ACCESS_TYPE.READ);
 	}
 
 	@Test
 	public void testCheckPermissionAuthorized() {
+		Mockito.when(mockThreadDao.getProjectId(threadId.toString())).thenReturn(projectId);
 		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		threadManager.checkReadPermission(userInfo, threadId.toString());
+		threadManager.checkPermission(userInfo, threadId.toString(), ACCESS_TYPE.READ);
 		Mockito.verify(mockThreadDao, Mockito.never()).updateThreadView(Mockito.anyLong(), Mockito.anyLong());
 	}
 
@@ -276,6 +283,7 @@ public class DiscussionThreadManagerImplTest {
 
 	@Test (expected = UnauthorizedException.class)
 	public void testDeleteUnauthorized() {
+		Mockito.when(mockThreadDao.getProjectId(threadId.toString())).thenReturn(projectId);
 		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.MODERATE))
 				.thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		threadManager.markThreadAsDeleted(userInfo, threadId.toString());
@@ -283,6 +291,7 @@ public class DiscussionThreadManagerImplTest {
 
 	@Test
 	public void testDeleteAuthorized() {
+		Mockito.when(mockThreadDao.getProjectId(threadId.toString())).thenReturn(projectId);
 		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.MODERATE))
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		threadManager.markThreadAsDeleted(userInfo, threadId.toString());
@@ -291,6 +300,7 @@ public class DiscussionThreadManagerImplTest {
 
 	@Test (expected = UnauthorizedException.class)
 	public void testPinThreadUnauthorized() {
+		Mockito.when(mockThreadDao.getProjectId(threadId.toString())).thenReturn(projectId);
 		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.MODERATE))
 				.thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		threadManager.pinThread(userInfo, threadId.toString());
@@ -298,6 +308,7 @@ public class DiscussionThreadManagerImplTest {
 
 	@Test
 	public void testPinThreadAuthorized() {
+		Mockito.when(mockThreadDao.getProjectId(threadId.toString())).thenReturn(projectId);
 		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.MODERATE))
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		threadManager.pinThread(userInfo, threadId.toString());
@@ -306,6 +317,7 @@ public class DiscussionThreadManagerImplTest {
 
 	@Test (expected = UnauthorizedException.class)
 	public void testUnpinThreadUnauthorized() {
+		Mockito.when(mockThreadDao.getProjectId(threadId.toString())).thenReturn(projectId);
 		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.MODERATE))
 				.thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		threadManager.unpinThread(userInfo, threadId.toString());
@@ -313,6 +325,7 @@ public class DiscussionThreadManagerImplTest {
 
 	@Test
 	public void testUnpinThreadAuthorized() {
+		Mockito.when(mockThreadDao.getProjectId(threadId.toString())).thenReturn(projectId);
 		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.MODERATE))
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		threadManager.unpinThread(userInfo, threadId.toString());

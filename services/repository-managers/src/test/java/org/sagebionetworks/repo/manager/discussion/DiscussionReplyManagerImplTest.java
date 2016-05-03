@@ -241,7 +241,7 @@ public class DiscussionReplyManagerImplTest {
 
 	@Test (expected = UnauthorizedException.class)
 	public void testGetRepliesForThreadUnauthorized() {
-		Mockito.doThrow(new UnauthorizedException()).when(mockThreadManager).checkReadPermission(userInfo, threadId);
+		Mockito.doThrow(new UnauthorizedException()).when(mockThreadManager).checkPermission(userInfo, threadId, ACCESS_TYPE.READ);
 		replyManager.getRepliesForThread(userInfo, threadId, 2L, 0L, DiscussionReplyOrder.CREATED_ON, true, DiscussionFilter.NO_FILTER);
 	}
 
@@ -285,7 +285,7 @@ public class DiscussionReplyManagerImplTest {
 
 	@Test (expected = UnauthorizedException.class)
 	public void testGetReplyCountForThreadUnauthorized() {
-		Mockito.doThrow(new UnauthorizedException()).when(mockThreadManager).checkReadPermission(userInfo, threadId);
+		Mockito.doThrow(new UnauthorizedException()).when(mockThreadManager).checkPermission(userInfo, threadId, ACCESS_TYPE.READ);
 		replyManager.getReplyCountForThread(userInfo, threadId, DiscussionFilter.NO_FILTER);
 	}
 

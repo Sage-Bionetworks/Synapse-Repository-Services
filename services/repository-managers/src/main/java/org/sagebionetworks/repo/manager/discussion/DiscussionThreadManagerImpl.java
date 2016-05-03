@@ -104,14 +104,13 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 	}
 
 	@Override
-	public void checkReadPermission(UserInfo userInfo, String threadId) {
+	public void checkPermission(UserInfo userInfo, String threadId, ACCESS_TYPE accessType) {
 		ValidateArgument.required(threadId, "threadId");
+		ValidateArgument.required(accessType, "accessType");
 		UserInfo.validateUserInfo(userInfo);
-		DiscussionFilter filter = DiscussionFilter.EXCLUDE_DELETED;
-		Long threadIdLong = Long.parseLong(threadId);
-		DiscussionThreadBundle thread = threadDao.getThread(threadIdLong, filter);
+		String projectId = threadDao.getProjectId(threadId);
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccess(userInfo, thread.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
+				authorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, accessType));
 	}
 
 	@WriteTransactionReadCommitted
@@ -122,9 +121,9 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		ValidateArgument.required(newTitle.getTitle(), "UpdateThreadTitle.title");
 		UserInfo.validateUserInfo(userInfo);
 		Long threadIdLong = Long.parseLong(threadId);
-		DiscussionThreadBundle thread = threadDao.getThread(threadIdLong, DEFAULT_FILTER);
-		if (authorizationManager.isUserCreatorOrAdmin(userInfo, thread.getCreatedBy())) {
-			thread = threadDao.updateTitle(threadIdLong, newTitle.getTitle());
+		String author = threadDao.getAuthor(threadId);
+		if (authorizationManager.isUserCreatorOrAdmin(userInfo, author)) {
+			DiscussionThreadBundle thread = threadDao.updateTitle(threadIdLong, newTitle.getTitle());
 			return updateNumberOfReplies(thread, DiscussionFilter.NO_FILTER);
 		} else {
 			throw new UnauthorizedException("Only the user that created the thread can modify it.");
@@ -153,37 +152,22 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 	@WriteTransactionReadCommitted
 	@Override
 	public void markThreadAsDeleted(UserInfo userInfo, String threadId) {
-		ValidateArgument.required(threadId, "threadId");
-		UserInfo.validateUserInfo(userInfo);
-		Long threadIdLong = Long.parseLong(threadId);
-		DiscussionThreadBundle thread = threadDao.getThread(threadIdLong, DEFAULT_FILTER);
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccess(userInfo, thread.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.MODERATE));
-		threadDao.markThreadAsDeleted(threadIdLong);
+		checkPermission(userInfo, threadId, ACCESS_TYPE.MODERATE);
+		threadDao.markThreadAsDeleted(Long.parseLong(threadId));
 	}
 
 	@WriteTransactionReadCommitted
 	@Override
 	public void pinThread(UserInfo userInfo, String threadId) {
-		ValidateArgument.required(threadId, "threadId");
-		UserInfo.validateUserInfo(userInfo);
-		Long threadIdLong = Long.parseLong(threadId);
-		DiscussionThreadBundle thread = threadDao.getThread(threadIdLong, DEFAULT_FILTER);
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccess(userInfo, thread.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.MODERATE));
-		threadDao.pinThread(threadIdLong);
+		checkPermission(userInfo, threadId, ACCESS_TYPE.MODERATE);
+		threadDao.pinThread(Long.parseLong(threadId));
 	}
 
 	@WriteTransactionReadCommitted
 	@Override
 	public void unpinThread(UserInfo userInfo, String threadId) {
-		ValidateArgument.required(threadId, "threadId");
-		UserInfo.validateUserInfo(userInfo);
-		Long threadIdLong = Long.parseLong(threadId);
-		DiscussionThreadBundle thread = threadDao.getThread(threadIdLong, DEFAULT_FILTER);
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccess(userInfo, thread.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.MODERATE));
-		threadDao.unpinThread(threadIdLong);
+		checkPermission(userInfo, threadId, ACCESS_TYPE.MODERATE);
+		threadDao.unpinThread(Long.parseLong(threadId));
 	}
 
 	@Override
