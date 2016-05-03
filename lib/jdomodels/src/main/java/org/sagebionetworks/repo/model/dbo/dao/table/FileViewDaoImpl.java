@@ -24,11 +24,12 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 public class FileViewDaoImpl implements FileViewDao {
 
-	/* The default CRC32 to use for no results.
+	/*
+	 * The default CRC32 to use for no results.
 	 */
 	public static long DEFAULT_EMPTY_CRC = 0;
 	private static final String IDS_PARAM_NAME = "ids_param";
-	
+
 	private static final String SQL_SELECT_FILE_CRC32 = "SELECT SUM(CRC32(CONCAT("
 			+ COL_NODE_ID
 			+ ", '-',"
@@ -44,18 +45,19 @@ public class FileViewDaoImpl implements FileViewDao {
 
 	@Autowired
 	private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
-	
+
 	@Override
 	public long calculateCRCForAllFilesWithinContainers(Set<Long> viewContainers) {
 		ValidateArgument.required(viewContainers, "viewContainers");
-		if(viewContainers.isEmpty()){
+		if (viewContainers.isEmpty()) {
 			// default
 			return DEFAULT_EMPTY_CRC;
 		}
 		Map<String, Set<Long>> parameters = new HashMap<String, Set<Long>>(1);
 		parameters.put(IDS_PARAM_NAME, viewContainers);
-		Long result = namedParameterJdbcTemplate.queryForObject(SQL_SELECT_FILE_CRC32, parameters, Long.class);
-		if(result == null){
+		Long result = namedParameterJdbcTemplate.queryForObject(
+				SQL_SELECT_FILE_CRC32, parameters, Long.class);
+		if (result == null) {
 			// default
 			return DEFAULT_EMPTY_CRC;
 		}
@@ -91,6 +93,5 @@ public class FileViewDaoImpl implements FileViewDao {
 					}
 				});
 	}
-	
-	
+
 }
