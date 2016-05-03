@@ -101,13 +101,8 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 	@WriteTransactionReadCommitted
 	@Override
 	public void markReplyAsDeleted(UserInfo userInfo, String replyId) {
-		UserInfo.validateUserInfo(userInfo);
-		ValidateArgument.required(replyId, "replyId");
-		Long replyIdLong = Long.parseLong(replyId);
-		DiscussionReplyBundle reply = replyDao.getReply(replyIdLong, DEFAULT_FILTER);
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccess(userInfo, reply.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.MODERATE));
-		replyDao.markReplyAsDeleted(replyIdLong);
+		checkPermission(userInfo, replyId, ACCESS_TYPE.MODERATE);
+		replyDao.markReplyAsDeleted(Long.parseLong(replyId));
 	}
 
 	@Override
@@ -123,13 +118,21 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 
 	@Override
 	public MessageURL getMessageUrl(UserInfo userInfo, String messageKey) {
-		UserInfo.validateUserInfo(userInfo);
 		ValidateArgument.required(messageKey, "messageKey");
 		String replyId = MessageKeyUtils.getReplyId(messageKey);
-		DiscussionReplyBundle reply = replyDao.getReply(Long.parseLong(replyId), DEFAULT_FILTER);
+		checkPermission(userInfo, replyId, ACCESS_TYPE.READ);
+		return uploadDao.getReplyUrl(messageKey);
+	}
+
+	@Override
+	public void checkPermission(UserInfo userInfo, String replyId, ACCESS_TYPE accessType){
+		ValidateArgument.required(replyId, "replyId");
+		ValidateArgument.required(accessType, "accessType");
+		UserInfo.validateUserInfo(userInfo);
+		String projectId = replyDao.getProjectId(replyId);
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccess(userInfo, reply.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
-		return uploadDao.getReplyUrl(reply.getMessageKey());
+				authorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, accessType));
+		
 	}
 
 	@Override

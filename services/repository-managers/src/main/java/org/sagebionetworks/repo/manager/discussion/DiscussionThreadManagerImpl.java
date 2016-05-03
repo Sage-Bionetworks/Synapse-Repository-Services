@@ -202,13 +202,10 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 	@Override
 	public MessageURL getMessageUrl(UserInfo userInfo, String messageKey) {
 		ValidateArgument.required(messageKey, "messageKey");
-		UserInfo.validateUserInfo(userInfo);
-		Long threadIdLong = Long.parseLong(MessageKeyUtils.getThreadId(messageKey));
-		DiscussionThreadBundle thread = threadDao.getThread(threadIdLong, DEFAULT_FILTER);
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccess(userInfo, thread.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
-		threadDao.updateThreadView(threadIdLong, userInfo.getId());
-		return uploadDao.getThreadUrl(thread.getMessageKey());
+		String threadId = MessageKeyUtils.getThreadId(messageKey);
+		checkPermission(userInfo, threadId, ACCESS_TYPE.READ);
+		threadDao.updateThreadView(Long.parseLong(threadId), userInfo.getId());
+		return uploadDao.getThreadUrl(messageKey);
 	}
 
 	@Override

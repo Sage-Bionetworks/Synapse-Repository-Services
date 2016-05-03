@@ -215,6 +215,7 @@ public class DiscussionReplyManagerImplTest {
 
 	@Test (expected = UnauthorizedException.class)
 	public void testMarkReplyAsDeletedUnauthorized() {
+		Mockito.when(mockReplyDao.getProjectId(replyId.toString())).thenReturn(projectId);
 		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.MODERATE))
 				.thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		replyManager.markReplyAsDeleted(userInfo, replyId.toString());
@@ -223,6 +224,7 @@ public class DiscussionReplyManagerImplTest {
 
 	@Test
 	public void testMarkReplyAsDeletedAuthorized() {
+		Mockito.when(mockReplyDao.getProjectId(replyId.toString())).thenReturn(projectId);
 		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.MODERATE))
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		replyManager.markReplyAsDeleted(userInfo, replyId.toString());
@@ -231,6 +233,7 @@ public class DiscussionReplyManagerImplTest {
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testGetRepliesForThreadWithNullUserInfo() {
+		Mockito.doThrow(new IllegalArgumentException()).when(mockThreadManager).checkPermission(null, threadId, ACCESS_TYPE.READ);
 		replyManager.getRepliesForThread(null, threadId, 2L, 0L, DiscussionReplyOrder.CREATED_ON, false, DiscussionFilter.NO_FILTER);
 	}
 
@@ -259,6 +262,7 @@ public class DiscussionReplyManagerImplTest {
 
 	@Test (expected = UnauthorizedException.class)
 	public void testGetReplyUrlUnauthorized() {
+		Mockito.when(mockReplyDao.getProjectId(replyId.toString())).thenReturn(projectId);
 		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
 				.thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		replyManager.getMessageUrl(userInfo, messageKey);
@@ -266,6 +270,7 @@ public class DiscussionReplyManagerImplTest {
 
 	@Test
 	public void testGetReplyUrlAuthorized() {
+		Mockito.when(mockReplyDao.getProjectId(replyId.toString())).thenReturn(projectId);
 		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		MessageURL url = replyManager.getMessageUrl(userInfo, messageKey);
@@ -275,6 +280,7 @@ public class DiscussionReplyManagerImplTest {
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testGetReplyCountForThreadWithNullUserInfo() {
+		Mockito.doThrow(new IllegalArgumentException()).when(mockThreadManager).checkPermission(null, threadId, ACCESS_TYPE.READ);
 		replyManager.getReplyCountForThread(null, threadId, DiscussionFilter.NO_FILTER);
 	}
 

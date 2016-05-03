@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.discussion;
 import java.io.IOException;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
 import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
@@ -85,4 +86,13 @@ public interface DiscussionReplyManager {
 	 * @param messageKey
 	 */
 	public MessageURL getMessageUrl(UserInfo user, String messageKey);
+
+	/**
+	 * Check to see if the user has the permission accessType on this replyId
+	 * 
+	 * @param userInfo
+	 * @param replyId
+	 * @param accessType
+	 */
+	public void checkPermission(UserInfo userInfo, String replyId, ACCESS_TYPE accessType);
 }
