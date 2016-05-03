@@ -219,7 +219,6 @@ public class DiscussionThreadManagerImplTest {
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		threadManager.checkReadPermission(userInfo, threadId.toString());
 		Mockito.verify(mockThreadDao, Mockito.never()).updateThreadView(Mockito.anyLong(), Mockito.anyLong());
-		Mockito.verify(mockReplyDao, Mockito.never()).getReplyCount(threadId, DiscussionFilter.EXCLUDE_DELETED);
 	}
 
 	@Test (expected = NotFoundException.class)
