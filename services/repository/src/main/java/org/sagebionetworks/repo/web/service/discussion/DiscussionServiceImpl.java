@@ -142,4 +142,16 @@ public class DiscussionServiceImpl implements DiscussionService{
 		UserInfo user = userManager.getUserInfo(userId);
 		return replyManager.getReplyCountForThread(user, threadId, filter);
 	}
+
+	@Override
+	public void pinThread(Long userId, String threadId) {
+		UserInfo user = userManager.getUserInfo(userId);
+		threadManager.pinThread(user, threadId);
+	}
+
+	@Override
+	public void unpinThread(Long userId, String threadId) {
+		UserInfo user = userManager.getUserInfo(userId);
+		threadManager.unpinThread(user, threadId);
+	}
 }

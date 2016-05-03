@@ -883,6 +883,10 @@ public class UrlHelpers {
 	public static final String THREAD = "/thread";
 	public static final String THREAD_ID = "/{threadId}";
 	public static final String THREAD_THREAD_ID = THREAD+THREAD_ID;
+	public static final String PIN = "/pin";
+	public static final String UNPIN = "/unpin";
+	public static final String THREAD_THREAD_ID_PIN = THREAD_THREAD_ID+PIN;
+	public static final String THREAD_THREAD_ID_UNPIN = THREAD_THREAD_ID+UNPIN;
 	public static final String TITLE = "/title";
 	public static final String THREAD_THREAD_ID_TITLE = THREAD_THREAD_ID+TITLE;
 	public static final String DISCUSSION_MESSAGE = "/message";

@@ -211,6 +211,38 @@ public class DiscussionController extends BaseController {
 	}
 
 	/**
+	 * This API is used to mark a thread as pinned.
+	 * <br/>
+	 * Target users: only forum's moderator can mark a thread as pinned.
+	 * 
+	 * @param userId - the ID of the user who is making the request
+	 * @param threadId - the ID of the thread being marked as pinned
+	 */
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	@RequestMapping(value = UrlHelpers.THREAD_THREAD_ID_PIN, method = RequestMethod.PUT)
+	public void pinThread(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String threadId) {
+		serviceProvider.getDiscussionService().pinThread(userId, threadId);
+	}
+
+	/**
+	 * This API is used to unpin a thread.
+	 * <br/>
+	 * Target users: only forum's moderator can unpin a thread.
+	 * 
+	 * @param userId - the ID of the user who is making the request
+	 * @param threadId - the ID of the thread being unpinned
+	 */
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	@RequestMapping(value = UrlHelpers.THREAD_THREAD_ID_UNPIN, method = RequestMethod.PUT)
+	public void unpinThread(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String threadId) {
+		serviceProvider.getDiscussionService().unpinThread(userId, threadId);
+	}
+
+	/**
 	 * This API is used to get the message URL of a thread. The message URL is
 	 * the URL to download the file which contains the thread message.
 	 * <br/>

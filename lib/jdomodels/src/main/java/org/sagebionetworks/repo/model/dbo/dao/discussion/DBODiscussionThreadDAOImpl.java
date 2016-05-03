@@ -63,6 +63,7 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 			dto.setMessageKey(rs.getString(COL_DISCUSSION_THREAD_MESSAGE_KEY));
 			dto.setIsEdited(rs.getBoolean(COL_DISCUSSION_THREAD_IS_EDITED));
 			dto.setIsDeleted(rs.getBoolean(COL_DISCUSSION_THREAD_IS_DELETED));
+			dto.setIsPinned(rs.getBoolean(COL_DISCUSSION_THREAD_IS_PINNED));
 			long numberOfViews = rs.getLong(COL_DISCUSSION_THREAD_STATS_NUMBER_OF_VIEWS);
 			if (rs.wasNull()) {
 				dto.setNumberOfViews(0L);
@@ -110,6 +111,14 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 			+" SET "+COL_DISCUSSION_THREAD_IS_DELETED+" = TRUE, "
 			+COL_DISCUSSION_THREAD_ETAG+" = ? "
 			+" WHERE "+COL_DISCUSSION_THREAD_ID+" = ?";
+	private static final String SQL_PIN_THREAD = "UPDATE "+TABLE_DISCUSSION_THREAD
+			+" SET "+COL_DISCUSSION_THREAD_IS_PINNED+" = TRUE, "
+			+COL_DISCUSSION_THREAD_ETAG+" = ? "
+			+" WHERE "+COL_DISCUSSION_THREAD_ID+" = ?";
+	private static final String SQL_UNPIN_THREAD = "UPDATE "+TABLE_DISCUSSION_THREAD
+			+" SET "+COL_DISCUSSION_THREAD_IS_PINNED+" = FALSE, "
+			+COL_DISCUSSION_THREAD_ETAG+" = ? "
+			+" WHERE "+COL_DISCUSSION_THREAD_ID+" = ?";
 	private static final String SQL_UPDATE_TITLE = "UPDATE "+TABLE_DISCUSSION_THREAD
 			+" SET "+COL_DISCUSSION_THREAD_TITLE+" = ?, "
 			+COL_DISCUSSION_THREAD_IS_EDITED+" = TRUE, "
@@ -135,6 +144,7 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 			+TABLE_DISCUSSION_THREAD+"."+COL_DISCUSSION_THREAD_MESSAGE_KEY+" AS "+COL_DISCUSSION_THREAD_MESSAGE_KEY+", "
 			+TABLE_DISCUSSION_THREAD+"."+COL_DISCUSSION_THREAD_IS_EDITED+" AS "+COL_DISCUSSION_THREAD_IS_EDITED+", "
 			+TABLE_DISCUSSION_THREAD+"."+COL_DISCUSSION_THREAD_IS_DELETED+" AS "+COL_DISCUSSION_THREAD_IS_DELETED+", "
+			+TABLE_DISCUSSION_THREAD+"."+COL_DISCUSSION_THREAD_IS_PINNED+" AS "+COL_DISCUSSION_THREAD_IS_PINNED+", "
 			+TABLE_DISCUSSION_THREAD_STATS+"."+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_VIEWS+" AS "+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_VIEWS+", "
 			+TABLE_DISCUSSION_THREAD_STATS+"."+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_REPLIES+" AS "+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_REPLIES+", "
 			+"IFNULL("+COL_DISCUSSION_THREAD_STATS_LAST_ACTIVITY+", "+COL_DISCUSSION_THREAD_MODIFIED_ON+") AS "+COL_DISCUSSION_THREAD_STATS_LAST_ACTIVITY+", "
@@ -155,6 +165,8 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 			+" WHERE "+COL_DISCUSSION_THREAD_FORUM_ID+" = ?";
 	private static final String SQL_SELECT_THREADS_BY_FORUM_ID = SELECT_THREAD_BUNDLE
 			+" WHERE "+COL_DISCUSSION_THREAD_FORUM_ID+" = ?";
+	private static final String ORDER_BY_PINNED_AND_LAST_ACTIVITY = " ORDER BY "+COL_DISCUSSION_THREAD_IS_PINNED+" DESC, "
+			+COL_DISCUSSION_THREAD_STATS_LAST_ACTIVITY;
 	private static final String ORDER_BY_LAST_ACTIVITY = " ORDER BY "+COL_DISCUSSION_THREAD_STATS_LAST_ACTIVITY;
 	private static final String ORDER_BY_NUMBER_OF_VIEWS = " ORDER BY "+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_VIEWS;
 	private static final String ORDER_BY_NUMBER_OF_REPLIES = " ORDER BY "+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_REPLIES;
@@ -273,6 +285,9 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 				case LAST_ACTIVITY:
 					query += ORDER_BY_LAST_ACTIVITY;
 					break;
+				case PINNED_AND_LAST_ACTIVITY:
+					query += ORDER_BY_PINNED_AND_LAST_ACTIVITY;
+					break;
 				default:
 					throw new IllegalArgumentException("Unsupported order "+order);
 			}
@@ -310,6 +325,20 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 	public void markThreadAsDeleted(long threadId) {
 		String etag = UUID.randomUUID().toString();
 		jdbcTemplate.update(SQL_MARK_THREAD_AS_DELETED, etag, threadId);
+	}
+
+	@WriteTransactionReadCommitted
+	@Override
+	public void pinThread(long threadId) {
+		String etag = UUID.randomUUID().toString();
+		jdbcTemplate.update(SQL_PIN_THREAD, etag, threadId);
+	}
+
+	@WriteTransactionReadCommitted
+	@Override
+	public void unpinThread(long threadId) {
+		String etag = UUID.randomUUID().toString();
+		jdbcTemplate.update(SQL_UNPIN_THREAD, etag, threadId);
 	}
 
 	@WriteTransactionReadCommitted

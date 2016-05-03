@@ -114,6 +114,7 @@ public class DBODiscussionThreadDAOImplTest {
 		assertEquals(dto.getCreatedBy(), userId.toString());
 		assertEquals(dto.getIsEdited(), false);
 		assertEquals(dto.getIsDeleted(), false);
+		assertEquals(dto.getIsPinned(), false);
 		assertEquals("check default number of views", dto.getNumberOfViews(), (Long) 0L);
 		assertEquals("check default number of replies", dto.getNumberOfReplies(), (Long) 0L);
 		assertEquals("check default last activity", dto.getLastActivity(), dto.getModifiedOn());
@@ -166,6 +167,32 @@ public class DBODiscussionThreadDAOImplTest {
 		threadDao.updateTitle(threadId, newTitle);
 		DiscussionThreadBundle returnedDto = threadDao.getThread(threadId, DEFAULT_FILTER);
 		assertFalse("after updating title, etag should be different",
+				dto.getEtag().equals(returnedDto.getEtag()));
+		dto.setModifiedOn(returnedDto.getModifiedOn());
+		dto.setLastActivity(returnedDto.getLastActivity());
+		dto.setEtag(returnedDto.getEtag());
+		assertEquals(dto, returnedDto);
+	}
+
+	@Test
+	public void testPinning(){
+		DiscussionThreadBundle dto = threadDao.createThread(forumId, threadId.toString(), "title", "messageKey", userId);
+		long threadId = Long.parseLong(dto.getId());
+
+		dto.setIsPinned(true);
+		threadDao.pinThread(threadId);
+		DiscussionThreadBundle returnedDto = threadDao.getThread(threadId, DEFAULT_FILTER);
+		assertFalse("after pinning a thread, etag should be different",
+				dto.getEtag().equals(returnedDto.getEtag()));
+		dto.setModifiedOn(returnedDto.getModifiedOn());
+		dto.setLastActivity(returnedDto.getLastActivity());
+		dto.setEtag(returnedDto.getEtag());
+		assertEquals(dto, returnedDto);
+
+		dto.setIsPinned(false);
+		threadDao.unpinThread(threadId);
+		returnedDto = threadDao.getThread(threadId, DEFAULT_FILTER);
+		assertFalse("after unpinning a thread, etag should be different",
 				dto.getEtag().equals(returnedDto.getEtag()));
 		dto.setModifiedOn(returnedDto.getModifiedOn());
 		dto.setLastActivity(returnedDto.getLastActivity());
@@ -475,6 +502,7 @@ public class DBODiscussionThreadDAOImplTest {
 				+ " DISCUSSION_THREAD.CREATED_BY AS CREATED_BY, DISCUSSION_THREAD.MODIFIED_ON AS MODIFIED_ON,"
 				+ " DISCUSSION_THREAD.ETAG AS ETAG, DISCUSSION_THREAD.MESSAGE_KEY AS MESSAGE_KEY,"
 				+ " DISCUSSION_THREAD.IS_EDITED AS IS_EDITED, DISCUSSION_THREAD.IS_DELETED AS IS_DELETED,"
+				+ " DISCUSSION_THREAD.IS_PINNED AS IS_PINNED,"
 				+ " DISCUSSION_THREAD_STATS.NUMBER_OF_VIEWS AS NUMBER_OF_VIEWS,"
 				+ " DISCUSSION_THREAD_STATS.NUMBER_OF_REPLIES AS NUMBER_OF_REPLIES,"
 				+ " IFNULL(LAST_ACTIVITY, MODIFIED_ON) AS LAST_ACTIVITY,"
@@ -490,6 +518,7 @@ public class DBODiscussionThreadDAOImplTest {
 				+ " DISCUSSION_THREAD.CREATED_BY AS CREATED_BY, DISCUSSION_THREAD.MODIFIED_ON AS MODIFIED_ON,"
 				+ " DISCUSSION_THREAD.ETAG AS ETAG, DISCUSSION_THREAD.MESSAGE_KEY AS MESSAGE_KEY,"
 				+ " DISCUSSION_THREAD.IS_EDITED AS IS_EDITED, DISCUSSION_THREAD.IS_DELETED AS IS_DELETED,"
+				+ " DISCUSSION_THREAD.IS_PINNED AS IS_PINNED,"
 				+ " DISCUSSION_THREAD_STATS.NUMBER_OF_VIEWS AS NUMBER_OF_VIEWS,"
 				+ " DISCUSSION_THREAD_STATS.NUMBER_OF_REPLIES AS NUMBER_OF_REPLIES,"
 				+ " IFNULL(LAST_ACTIVITY, MODIFIED_ON) AS LAST_ACTIVITY,"
@@ -500,12 +529,30 @@ public class DBODiscussionThreadDAOImplTest {
 				+ " ORDER BY LAST_ACTIVITY"
 				+ " LIMIT 10 OFFSET 0",
 				DBODiscussionThreadDAOImpl.buildGetQuery(10L, 0L, DiscussionThreadOrder.LAST_ACTIVITY, true, DiscussionFilter.NO_FILTER));
+		assertEquals("ordered by pinned and last activity","SELECT DISCUSSION_THREAD.ID AS ID,"
+				+ " DISCUSSION_THREAD.FORUM_ID AS FORUM_ID, FORUM.PROJECT_ID AS PROJECT_ID,"
+				+ " DISCUSSION_THREAD.TITLE AS TITLE, DISCUSSION_THREAD.CREATED_ON AS CREATED_ON,"
+				+ " DISCUSSION_THREAD.CREATED_BY AS CREATED_BY, DISCUSSION_THREAD.MODIFIED_ON AS MODIFIED_ON,"
+				+ " DISCUSSION_THREAD.ETAG AS ETAG, DISCUSSION_THREAD.MESSAGE_KEY AS MESSAGE_KEY,"
+				+ " DISCUSSION_THREAD.IS_EDITED AS IS_EDITED, DISCUSSION_THREAD.IS_DELETED AS IS_DELETED,"
+				+ " DISCUSSION_THREAD.IS_PINNED AS IS_PINNED,"
+				+ " DISCUSSION_THREAD_STATS.NUMBER_OF_VIEWS AS NUMBER_OF_VIEWS,"
+				+ " DISCUSSION_THREAD_STATS.NUMBER_OF_REPLIES AS NUMBER_OF_REPLIES,"
+				+ " IFNULL(LAST_ACTIVITY, MODIFIED_ON) AS LAST_ACTIVITY,"
+				+ " DISCUSSION_THREAD_STATS.ACTIVE_AUTHORS AS ACTIVE_AUTHORS"
+				+ " FROM DISCUSSION_THREAD JOIN FORUM ON DISCUSSION_THREAD.FORUM_ID = FORUM.ID"
+				+ " LEFT OUTER JOIN DISCUSSION_THREAD_STATS ON DISCUSSION_THREAD.ID = DISCUSSION_THREAD_STATS.THREAD_ID"
+				+ " WHERE FORUM_ID = ?"
+				+ " ORDER BY IS_PINNED DESC, LAST_ACTIVITY"
+				+ " LIMIT 10 OFFSET 0",
+				DBODiscussionThreadDAOImpl.buildGetQuery(10L, 0L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true, DiscussionFilter.NO_FILTER));
 		assertEquals("limit","SELECT DISCUSSION_THREAD.ID AS ID,"
 				+ " DISCUSSION_THREAD.FORUM_ID AS FORUM_ID, FORUM.PROJECT_ID AS PROJECT_ID,"
 				+ " DISCUSSION_THREAD.TITLE AS TITLE, DISCUSSION_THREAD.CREATED_ON AS CREATED_ON,"
 				+ " DISCUSSION_THREAD.CREATED_BY AS CREATED_BY, DISCUSSION_THREAD.MODIFIED_ON AS MODIFIED_ON,"
 				+ " DISCUSSION_THREAD.ETAG AS ETAG, DISCUSSION_THREAD.MESSAGE_KEY AS MESSAGE_KEY,"
 				+ " DISCUSSION_THREAD.IS_EDITED AS IS_EDITED, DISCUSSION_THREAD.IS_DELETED AS IS_DELETED,"
+				+ " DISCUSSION_THREAD.IS_PINNED AS IS_PINNED,"
 				+ " DISCUSSION_THREAD_STATS.NUMBER_OF_VIEWS AS NUMBER_OF_VIEWS,"
 				+ " DISCUSSION_THREAD_STATS.NUMBER_OF_REPLIES AS NUMBER_OF_REPLIES,"
 				+ " IFNULL(LAST_ACTIVITY, MODIFIED_ON) AS LAST_ACTIVITY,"
@@ -521,6 +568,7 @@ public class DBODiscussionThreadDAOImplTest {
 				+ " DISCUSSION_THREAD.CREATED_BY AS CREATED_BY, DISCUSSION_THREAD.MODIFIED_ON AS MODIFIED_ON,"
 				+ " DISCUSSION_THREAD.ETAG AS ETAG, DISCUSSION_THREAD.MESSAGE_KEY AS MESSAGE_KEY,"
 				+ " DISCUSSION_THREAD.IS_EDITED AS IS_EDITED, DISCUSSION_THREAD.IS_DELETED AS IS_DELETED,"
+				+ " DISCUSSION_THREAD.IS_PINNED AS IS_PINNED,"
 				+ " DISCUSSION_THREAD_STATS.NUMBER_OF_VIEWS AS NUMBER_OF_VIEWS,"
 				+ " DISCUSSION_THREAD_STATS.NUMBER_OF_REPLIES AS NUMBER_OF_REPLIES,"
 				+ " IFNULL(LAST_ACTIVITY, MODIFIED_ON) AS LAST_ACTIVITY,"
@@ -536,6 +584,7 @@ public class DBODiscussionThreadDAOImplTest {
 				+ " DISCUSSION_THREAD.CREATED_BY AS CREATED_BY, DISCUSSION_THREAD.MODIFIED_ON AS MODIFIED_ON,"
 				+ " DISCUSSION_THREAD.ETAG AS ETAG, DISCUSSION_THREAD.MESSAGE_KEY AS MESSAGE_KEY,"
 				+ " DISCUSSION_THREAD.IS_EDITED AS IS_EDITED, DISCUSSION_THREAD.IS_DELETED AS IS_DELETED,"
+				+ " DISCUSSION_THREAD.IS_PINNED AS IS_PINNED,"
 				+ " DISCUSSION_THREAD_STATS.NUMBER_OF_VIEWS AS NUMBER_OF_VIEWS,"
 				+ " DISCUSSION_THREAD_STATS.NUMBER_OF_REPLIES AS NUMBER_OF_REPLIES,"
 				+ " IFNULL(LAST_ACTIVITY, MODIFIED_ON) AS LAST_ACTIVITY,"

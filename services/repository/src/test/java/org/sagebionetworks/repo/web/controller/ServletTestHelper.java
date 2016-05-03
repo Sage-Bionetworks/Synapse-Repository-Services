@@ -2054,6 +2054,20 @@ public class ServletTestHelper {
 		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request, HttpStatus.NO_CONTENT);
 	}
 
+	public void pinThread(DispatcherServlet dispatchServlet,
+			Long userId, String threadId) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.PUT, "/repo/v1", UrlHelpers.THREAD+"/"+threadId+UrlHelpers.PIN, userId, null);
+		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request, HttpStatus.NO_CONTENT);
+	}
+
+	public void unpinThread(DispatcherServlet dispatchServlet,
+			Long userId, String threadId) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.PUT, "/repo/v1", UrlHelpers.THREAD+"/"+threadId+UrlHelpers.UNPIN, userId, null);
+		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request, HttpStatus.NO_CONTENT);
+	}
+
 	public PaginatedResults<DiscussionThreadBundle> getThreads(DispatcherServlet dispatchServlet,
 			Long userId, String forumId, Long limit, Long offset, DiscussionThreadOrder order,
 			Boolean ascending, DiscussionFilter filter) throws Exception {

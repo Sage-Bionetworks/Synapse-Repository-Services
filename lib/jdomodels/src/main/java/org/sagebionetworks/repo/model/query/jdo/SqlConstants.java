@@ -756,6 +756,7 @@ public class SqlConstants {
 	public static final String COL_DISCUSSION_THREAD_MESSAGE_KEY = "MESSAGE_KEY";
 	public static final String COL_DISCUSSION_THREAD_IS_EDITED = "IS_EDITED";
 	public static final String COL_DISCUSSION_THREAD_IS_DELETED = "IS_DELETED";
+	public static final String COL_DISCUSSION_THREAD_IS_PINNED = "IS_PINNED";
 	public static final String DDL_DISCUSSION_THREAD = "schema/DiscussionThread-ddl.sql";
 
 	// Discussion Thread Stats table

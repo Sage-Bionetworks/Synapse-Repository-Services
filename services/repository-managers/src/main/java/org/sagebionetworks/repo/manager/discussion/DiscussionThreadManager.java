@@ -96,4 +96,20 @@ public interface DiscussionThreadManager {
 	 */
 	public MessageURL getMessageUrl(UserInfo user, String messageKey);
 
+	/**
+	 * Pin a thread
+	 * 
+	 * @param userInfo
+	 * @param threadId
+	 */
+	public void pinThread(UserInfo userInfo, String threadId);
+
+	/**
+	 * unpin a thread
+	 * 
+	 * @param userInfo
+	 * @param threadId
+	 */
+	public void unpinThread(UserInfo userInfo, String threadId);
+
 }

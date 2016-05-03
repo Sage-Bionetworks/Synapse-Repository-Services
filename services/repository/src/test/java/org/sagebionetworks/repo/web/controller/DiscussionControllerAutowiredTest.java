@@ -160,6 +160,18 @@ public class DiscussionControllerAutowiredTest extends AbstractAutowiredControll
 	}
 
 	@Test
+	public void testPinning() throws Exception {
+		Forum dto = servletTestHelper.getForumByProjectId(dispatchServlet, project.getId(), adminUserId);
+		createThread.setForumId(dto.getId());
+		DiscussionThreadBundle bundle = servletTestHelper.createThread(dispatchServlet, adminUserId, createThread);
+		assertFalse(servletTestHelper.getThread(dispatchServlet, adminUserId, bundle.getId()).getIsPinned());
+		servletTestHelper.pinThread(dispatchServlet, adminUserId, bundle.getId());
+		assertTrue(servletTestHelper.getThread(dispatchServlet, adminUserId, bundle.getId()).getIsPinned());
+		servletTestHelper.unpinThread(dispatchServlet, adminUserId, bundle.getId());
+		assertFalse(servletTestHelper.getThread(dispatchServlet, adminUserId, bundle.getId()).getIsPinned());
+	}
+
+	@Test
 	public void testGetThreadUrl() throws Exception {
 		Forum dto = servletTestHelper.getForumByProjectId(dispatchServlet, project.getId(), adminUserId);
 		createThread.setForumId(dto.getId());
