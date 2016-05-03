@@ -103,6 +103,17 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		return updateNumberOfReplies(thread, filter);
 	}
 
+	@Override
+	public void checkReadPermission(UserInfo userInfo, String threadId) {
+		ValidateArgument.required(threadId, "threadId");
+		UserInfo.validateUserInfo(userInfo);
+		DiscussionFilter filter = DiscussionFilter.EXCLUDE_DELETED;
+		Long threadIdLong = Long.parseLong(threadId);
+		DiscussionThreadBundle thread = threadDao.getThread(threadIdLong, filter);
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+				authorizationManager.canAccess(userInfo, thread.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
+	}
+
 	@WriteTransactionReadCommitted
 	@Override
 	public DiscussionThreadBundle updateTitle(UserInfo userInfo, String threadId, UpdateThreadTitle newTitle) {

@@ -119,7 +119,7 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 		ValidateArgument.required(limit, "limit");
 		ValidateArgument.required(offset, "offset");
 		ValidateArgument.required(filter, "filter");
-		threadManager.getThread(userInfo, threadId);
+		threadManager.checkReadPermission(userInfo, threadId);
 		return replyDao.getRepliesForThread(Long.parseLong(threadId), limit, offset, order, ascending, filter);
 	}
 
@@ -139,7 +139,7 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 		ValidateArgument.required(threadId, "threadId");
 		ValidateArgument.required(filter, "filter");
 		UserInfo.validateUserInfo(userInfo);
-		threadManager.getThread(userInfo, threadId);
+		threadManager.checkReadPermission(userInfo, threadId);
 		ReplyCount count = new ReplyCount();
 		count.setCount(replyDao.getReplyCount(Long.parseLong(threadId), filter));
 		return count;

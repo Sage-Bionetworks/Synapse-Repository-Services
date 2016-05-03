@@ -201,6 +201,27 @@ public class DiscussionThreadManagerImplTest {
 		Mockito.verify(mockReplyDao).getReplyCount(threadId, DiscussionFilter.EXCLUDE_DELETED);
 	}
 
+	@Test (expected = IllegalArgumentException.class)
+	public void testCheckPermissionWithNullThreadId() {
+		threadManager.checkReadPermission(userInfo, null);
+	}
+
+	@Test (expected = UnauthorizedException.class)
+	public void testCheckPermissionUnauthorized() {
+		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
+				.thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+		threadManager.checkReadPermission(userInfo, threadId.toString());
+	}
+
+	@Test
+	public void testCheckPermissionAuthorized() {
+		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
+				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		threadManager.checkReadPermission(userInfo, threadId.toString());
+		Mockito.verify(mockThreadDao, Mockito.never()).updateThreadView(Mockito.anyLong(), Mockito.anyLong());
+		Mockito.verify(mockReplyDao, Mockito.never()).getReplyCount(threadId, DiscussionFilter.EXCLUDE_DELETED);
+	}
+
 	@Test (expected = NotFoundException.class)
 	public void testGetThreadDeleted() {
 		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))

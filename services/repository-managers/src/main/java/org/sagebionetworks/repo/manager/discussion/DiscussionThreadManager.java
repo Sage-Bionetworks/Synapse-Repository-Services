@@ -112,4 +112,12 @@ public interface DiscussionThreadManager {
 	 */
 	public void unpinThread(UserInfo userInfo, String threadId);
 
+	/**
+	 * Check to see if the user has read permission on this thread
+	 * 
+	 * @param userInfo
+	 * @param threadId
+	 */
+	public void checkReadPermission(UserInfo userInfo, String threadId);
+
 }

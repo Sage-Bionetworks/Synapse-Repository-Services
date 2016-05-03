@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.discussion;
 
 import static org.junit.Assert.*;
+import static org.mockito.Mockito.*;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -240,8 +241,7 @@ public class DiscussionReplyManagerImplTest {
 
 	@Test (expected = UnauthorizedException.class)
 	public void testGetRepliesForThreadUnauthorized() {
-		Mockito.when(mockThreadManager.getThread(userInfo, threadId))
-				.thenThrow(new UnauthorizedException());
+		Mockito.doThrow(new UnauthorizedException()).when(mockThreadManager).checkReadPermission(userInfo, threadId);
 		replyManager.getRepliesForThread(userInfo, threadId, 2L, 0L, DiscussionReplyOrder.CREATED_ON, true, DiscussionFilter.NO_FILTER);
 	}
 
@@ -285,8 +285,7 @@ public class DiscussionReplyManagerImplTest {
 
 	@Test (expected = UnauthorizedException.class)
 	public void testGetReplyCountForThreadUnauthorized() {
-		Mockito.when(mockThreadManager.getThread(userInfo, threadId))
-				.thenThrow(new UnauthorizedException());
+		Mockito.doThrow(new UnauthorizedException()).when(mockThreadManager).checkReadPermission(userInfo, threadId);
 		replyManager.getReplyCountForThread(userInfo, threadId, DiscussionFilter.NO_FILTER);
 	}
 
