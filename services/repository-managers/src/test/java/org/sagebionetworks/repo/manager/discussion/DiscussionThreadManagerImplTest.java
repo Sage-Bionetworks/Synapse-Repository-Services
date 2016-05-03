@@ -269,6 +269,36 @@ public class DiscussionThreadManagerImplTest {
 		Mockito.verify(mockThreadDao).markThreadAsDeleted(threadId);
 	}
 
+	@Test (expected = UnauthorizedException.class)
+	public void testPinThreadUnauthorized() {
+		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.MODERATE))
+				.thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+		threadManager.pinThread(userInfo, threadId.toString());
+	}
+
+	@Test
+	public void testPinThreadAuthorized() {
+		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.MODERATE))
+				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		threadManager.pinThread(userInfo, threadId.toString());
+		Mockito.verify(mockThreadDao).pinThread(threadId);
+	}
+
+	@Test (expected = UnauthorizedException.class)
+	public void testUnpinThreadUnauthorized() {
+		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.MODERATE))
+				.thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+		threadManager.unpinThread(userInfo, threadId.toString());
+	}
+
+	@Test
+	public void testUnpinThreadAuthorized() {
+		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.MODERATE))
+				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		threadManager.unpinThread(userInfo, threadId.toString());
+		Mockito.verify(mockThreadDao).unpinThread(threadId);
+	}
+
 	@Test (expected = IllegalArgumentException.class)
 	public void testGetThreadsForForumWithNullForumId() {
 		threadManager.getThreadsForForum(userInfo, null, 2L, 0L, DiscussionThreadOrder.LAST_ACTIVITY, null, DiscussionFilter.NO_FILTER);

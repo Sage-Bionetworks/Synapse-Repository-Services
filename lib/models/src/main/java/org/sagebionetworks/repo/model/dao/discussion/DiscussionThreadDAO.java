@@ -151,4 +151,17 @@ public interface DiscussionThreadDAO {
 	 * @return
 	 */
 	public List<String> getAllThreadIdForForum(String forumId);
+
+	/**
+	 * Pin a thread
+	 * 
+	 * @param threadId
+	 */
+	public void pinThread(long threadId);
+
+	/**
+	 * Unpin a thread
+	 * @param threadId
+	 */
+	public void unpinThread(long threadId);
 }

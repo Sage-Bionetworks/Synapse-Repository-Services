@@ -66,6 +66,10 @@
 		"isDeleted": {
 			"type": "boolean",
 			"description": "Has this Thread been deleted?"
+		},
+		"isPinned": {
+			"type": "boolean",
+			"description": "Has this Thread been pinned?"
 		}
 	}
 }

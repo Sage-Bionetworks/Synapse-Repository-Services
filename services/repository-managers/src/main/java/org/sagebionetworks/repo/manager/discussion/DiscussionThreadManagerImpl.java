@@ -151,6 +151,30 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		threadDao.markThreadAsDeleted(threadIdLong);
 	}
 
+	@WriteTransactionReadCommitted
+	@Override
+	public void pinThread(UserInfo userInfo, String threadId) {
+		ValidateArgument.required(threadId, "threadId");
+		UserInfo.validateUserInfo(userInfo);
+		Long threadIdLong = Long.parseLong(threadId);
+		DiscussionThreadBundle thread = threadDao.getThread(threadIdLong, DEFAULT_FILTER);
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+				authorizationManager.canAccess(userInfo, thread.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.MODERATE));
+		threadDao.pinThread(threadIdLong);
+	}
+
+	@WriteTransactionReadCommitted
+	@Override
+	public void unpinThread(UserInfo userInfo, String threadId) {
+		ValidateArgument.required(threadId, "threadId");
+		UserInfo.validateUserInfo(userInfo);
+		Long threadIdLong = Long.parseLong(threadId);
+		DiscussionThreadBundle thread = threadDao.getThread(threadIdLong, DEFAULT_FILTER);
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+				authorizationManager.canAccess(userInfo, thread.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.MODERATE));
+		threadDao.unpinThread(threadIdLong);
+	}
+
 	@Override
 	public PaginatedResults<DiscussionThreadBundle> getThreadsForForum(
 			UserInfo userInfo, String forumId, Long limit, Long offset,
