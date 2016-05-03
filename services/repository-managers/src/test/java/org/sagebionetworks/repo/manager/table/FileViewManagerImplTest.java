@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.table;
 
-import static org.mockito.Mockito.verify;
+import static org.junit.Assert.*;
+import static org.mockito.Mockito.*;
 
 import java.util.List;
 
@@ -9,7 +10,10 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
+import org.sagebionetworks.repo.model.dbo.dao.table.FileEntityFields;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
+import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
@@ -23,6 +27,8 @@ public class FileViewManagerImplTest {
 	ColumnModelManager columnModelManager;
 	@Mock
 	TableManagerSupport tableManagerSupport;
+	@Mock
+	ColumnModelDAO columnModelDao;
 	
 	FileViewManagerImpl manager;
 	
@@ -39,6 +45,7 @@ public class FileViewManagerImplTest {
 		ReflectionTestUtils.setField(manager, "viewScopeDao", viewScopeDao);
 		ReflectionTestUtils.setField(manager, "columModelManager", columnModelManager);
 		ReflectionTestUtils.setField(manager, "tableManagerSupport", tableManagerSupport);
+		ReflectionTestUtils.setField(manager, "columnModelDao", columnModelDao);
 		
 		userInfo = new UserInfo(false, 888L);
 		schema = Lists.newArrayList("1","2","3");
@@ -74,6 +81,15 @@ public class FileViewManagerImplTest {
 		verify(viewScopeDao).setViewScope(555L, null);
 		verify(columnModelManager).bindColumnToObject(userInfo, schema, viewId);
 		verify(tableManagerSupport).setTableToProcessingAndTriggerUpdate(viewId);
+	}
+	
+	@Test
+	public void testGetColumModel(){
+		ColumnModel cm = new ColumnModel();
+		cm.setId("123");
+		when(columnModelDao.createColumnModel(any(ColumnModel.class))).thenReturn(cm);
+		ColumnModel result = manager.getColumModel(FileEntityFields.id);
+		assertEquals(cm, result);
 	}
 
 }

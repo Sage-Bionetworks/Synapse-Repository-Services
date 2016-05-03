@@ -287,4 +287,20 @@ public class FileViewUtils {
 		return row;
 	}
 
+	/**
+	 * Does the given schema contain the benefactor column?
+	 * 
+	 * @param currentSchema
+	 * @return
+	 */
+	public static boolean containsBenefactor(List<ColumnModel> schema) {
+		ValidateArgument.required(schema, "schema");
+		for(ColumnModel cm: schema){
+			if(FileEntityFields.benefactorId.name().equals(cm.getName())){
+				return true;
+			}
+		}
+		return false;
+	}
+
 }

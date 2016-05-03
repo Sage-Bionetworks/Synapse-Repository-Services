@@ -13,6 +13,8 @@ import org.sagebionetworks.repo.manager.table.TableIndexConnectionUnavailableExc
 import org.sagebionetworks.repo.manager.table.TableIndexManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.dbo.dao.table.FileEntityFields;
+import org.sagebionetworks.repo.model.dbo.dao.table.FileViewUtils;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -119,6 +121,10 @@ public class FileViewWorker implements ChangeMessageDrivenRunner {
 		indexManager.deleteTableIndex();
 		// Lookup the table's schema
 		List<ColumnModel> currentSchema = tableManagerSupport.getColumnModelsForTable(tableId);
+		// we need to ensure the benefactor column in included in all tables for the authorization filter.
+		if(!FileViewUtils.containsBenefactor(currentSchema)){
+			currentSchema.add(tableViewManager.getColumModel(FileEntityFields.benefactorId));
+		}
 		// create the table
 		indexManager.setIndexSchema(currentSchema);
 		
