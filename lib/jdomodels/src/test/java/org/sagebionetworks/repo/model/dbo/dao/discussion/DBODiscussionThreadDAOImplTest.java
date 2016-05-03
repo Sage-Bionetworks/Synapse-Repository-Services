@@ -136,6 +136,17 @@ public class DBODiscussionThreadDAOImplTest {
 	}
 
 	@Test
+	public void testGetAuthor() {
+		DiscussionThreadBundle dto = threadDao.createThread(forumId, threadId.toString(), "title", "messageKey", userId);
+		assertEquals(userId.toString(), threadDao.getAuthor(dto.getId()));
+	}
+
+	@Test (expected=NotFoundException.class)
+	public void testGetAuthorNotFound() {
+		threadDao.getAuthor("-1");
+	}
+
+	@Test
 	public void testGetEtag(){
 		DiscussionThreadBundle dto = threadDao.createThread(forumId, threadId.toString(), "title", "messageKey", userId);
 		long threadId = Long.parseLong(dto.getId());

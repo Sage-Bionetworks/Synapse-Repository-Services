@@ -172,4 +172,12 @@ public interface DiscussionThreadDAO {
 	 * @return
 	 */
 	public String getProjectId(String threadId);
+
+	/**
+	 * Return the author of the thread
+	 * 
+	 * @param threadId
+	 * @return
+	 */
+	public String getAuthor(String threadId);
 }

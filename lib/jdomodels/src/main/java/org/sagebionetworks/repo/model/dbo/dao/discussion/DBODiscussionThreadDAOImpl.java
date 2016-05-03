@@ -139,6 +139,10 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 			+" = "+TABLE_FORUM+"."+COL_FORUM_ID
 			+ " AND "+TABLE_DISCUSSION_THREAD+"."+COL_DISCUSSION_THREAD_ID+" = ?";
 
+	private static final String SELECT_AUTHOR = "SELECT "+COL_DISCUSSION_THREAD_CREATED_BY
+			+" FROM "+TABLE_DISCUSSION_THREAD
+			+" WHERE "+COL_DISCUSSION_THREAD_ID+" = ?";
+
 	private static final String SELECT_THREAD_BUNDLE = "SELECT "
 			+TABLE_DISCUSSION_THREAD+"."+COL_DISCUSSION_THREAD_ID+" AS "+COL_DISCUSSION_THREAD_ID+", "
 			+TABLE_DISCUSSION_THREAD+"."+COL_DISCUSSION_THREAD_FORUM_ID+" AS "+COL_DISCUSSION_THREAD_FORUM_ID+", "
@@ -494,6 +498,20 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 			@Override
 			public String mapRow(ResultSet rs, int rowNum) throws SQLException {
 				return KeyFactory.keyToString(rs.getLong(COL_FORUM_PROJECT_ID));
+			}
+		}, threadId);
+		if (queryResult.size() != 1) {
+			throw new NotFoundException();
+		}
+		return queryResult.get(0);
+	}
+
+	@Override
+	public String getAuthor(String threadId) {
+		List<String> queryResult = jdbcTemplate.query(SELECT_AUTHOR, new RowMapper<String>(){
+			@Override
+			public String mapRow(ResultSet rs, int rowNum) throws SQLException {
+				return rs.getString(COL_DISCUSSION_THREAD_CREATED_BY);
 			}
 		}, threadId);
 		if (queryResult.size() != 1) {
