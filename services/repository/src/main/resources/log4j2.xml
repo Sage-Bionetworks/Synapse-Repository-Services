@@ -51,6 +51,10 @@
 			level="debug" additivity="false">
 			<appender-ref ref="performanceProfiling" />
 		</logger>
+		<logger name="org.sagebionetworks.spring"
+			level="info" additivity="false">
+			<appender-ref ref="performanceProfiling" />
+		</logger>
 		<logger name="org.sagebionetworks" level="all" additivity="true">
 			<appender-ref ref="repository" />
 		</logger>
