@@ -321,21 +321,21 @@ public class DiscussionThreadManagerImplTest {
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testGetThreadsForForumWithNullForumId() {
-		threadManager.getThreadsForForum(userInfo, null, 2L, 0L, DiscussionThreadOrder.LAST_ACTIVITY, null, DiscussionFilter.NO_FILTER);
+		threadManager.getThreadsForForum(userInfo, null, 2L, 0L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, null, DiscussionFilter.NO_FILTER);
 	}
 
 	@Test (expected = UnauthorizedException.class)
 	public void testGetThreadsForForumUnauthorizedWithNoFilter() {
 		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.MODERATE))
 				.thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
-		threadManager.getThreadsForForum(userInfo, forumId.toString(), 2L, 0L, DiscussionThreadOrder.LAST_ACTIVITY, true, DiscussionFilter.NO_FILTER);
+		threadManager.getThreadsForForum(userInfo, forumId.toString(), 2L, 0L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true, DiscussionFilter.NO_FILTER);
 	}
 
 	@Test (expected = UnauthorizedException.class)
 	public void testGetThreadsForForumUnauthorized() {
 		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
 				.thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
-		threadManager.getThreadsForForum(userInfo, forumId.toString(), 2L, 0L, DiscussionThreadOrder.LAST_ACTIVITY, true, DiscussionFilter.EXCLUDE_DELETED);
+		threadManager.getThreadsForForum(userInfo, forumId.toString(), 2L, 0L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true, DiscussionFilter.EXCLUDE_DELETED);
 	}
 
 	@Test
@@ -346,7 +346,7 @@ public class DiscussionThreadManagerImplTest {
 				.thenReturn(threads);
 		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.MODERATE))
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		assertEquals(threads, threadManager.getThreadsForForum(userInfo, forumId.toString(), 2L, 0L, DiscussionThreadOrder.LAST_ACTIVITY, true, DiscussionFilter.NO_FILTER));
+		assertEquals(threads, threadManager.getThreadsForForum(userInfo, forumId.toString(), 2L, 0L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true, DiscussionFilter.NO_FILTER));
 		Mockito.verify(mockReplyDao).getReplyCount(threadId, DiscussionFilter.NO_FILTER);
 	}
 

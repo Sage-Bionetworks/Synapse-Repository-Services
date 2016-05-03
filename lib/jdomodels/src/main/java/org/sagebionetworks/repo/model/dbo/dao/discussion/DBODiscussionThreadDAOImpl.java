@@ -167,7 +167,6 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 			+" WHERE "+COL_DISCUSSION_THREAD_FORUM_ID+" = ?";
 	private static final String ORDER_BY_PINNED_AND_LAST_ACTIVITY = " ORDER BY "+COL_DISCUSSION_THREAD_IS_PINNED+" DESC, "
 			+COL_DISCUSSION_THREAD_STATS_LAST_ACTIVITY;
-	private static final String ORDER_BY_LAST_ACTIVITY = " ORDER BY "+COL_DISCUSSION_THREAD_STATS_LAST_ACTIVITY;
 	private static final String ORDER_BY_NUMBER_OF_VIEWS = " ORDER BY "+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_VIEWS;
 	private static final String ORDER_BY_NUMBER_OF_REPLIES = " ORDER BY "+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_REPLIES;
 	private static final String DESC = " DESC ";
@@ -281,9 +280,6 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 					break;
 				case NUMBER_OF_VIEWS:
 					query += ORDER_BY_NUMBER_OF_VIEWS;
-					break;
-				case LAST_ACTIVITY:
-					query += ORDER_BY_LAST_ACTIVITY;
 					break;
 				case PINNED_AND_LAST_ACTIVITY:
 					query += ORDER_BY_PINNED_AND_LAST_ACTIVITY;
