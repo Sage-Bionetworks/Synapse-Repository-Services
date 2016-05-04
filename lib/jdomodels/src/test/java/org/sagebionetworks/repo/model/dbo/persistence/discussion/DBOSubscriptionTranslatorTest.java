@@ -14,7 +14,7 @@ public class DBOSubscriptionTranslatorTest {
 		DBOSubscription dbo = new DBOSubscription();
 		dbo.setId(1L);
 		dbo.setObjectId(2L);
-		dbo.setObjectType(SubscriptionObjectType.DISCUSSION_THREAD.name());
+		dbo.setObjectType(SubscriptionObjectType.THREAD.name());
 		dbo.setSubscriberId(3L);
 		dbo.setCreatedOn(4L);
 		MigratableTableTranslation<DBOSubscription, DBOSubscription> translator = dbo.getTranslator();
@@ -27,7 +27,7 @@ public class DBOSubscriptionTranslatorTest {
 		DBOSubscription dbo = new DBOSubscription();
 		dbo.setId(1L);
 		dbo.setObjectId(2L);
-		dbo.setObjectType(SubscriptionObjectType.DISCUSSION_THREAD.name());
+		dbo.setObjectType(SubscriptionObjectType.THREAD.name());
 		dbo.setSubscriberId(3L);
 		dbo.setCreatedOn(4L);
 		MigratableTableTranslation<DBOSubscription, DBOSubscription> translator = dbo.getTranslator();

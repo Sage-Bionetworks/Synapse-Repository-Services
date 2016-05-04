@@ -218,10 +218,10 @@ public class SubscriptionManagerImplTest {
 	public void testGetAll() {
 		SubscriptionPagedResults results = new SubscriptionPagedResults();
 		Set<Long> projectIds = new HashSet<Long>();
-		when(mockDao.getAll(userId.toString(), 10L, 0L, SubscriptionObjectType.DISCUSSION_THREAD, projectIds )).thenReturn(results);
-		when(mockDao.getAllProjects(userId.toString(), SubscriptionObjectType.DISCUSSION_THREAD)).thenReturn(projectIds);
+		when(mockDao.getAll(userId.toString(), 10L, 0L, SubscriptionObjectType.THREAD, projectIds )).thenReturn(results);
+		when(mockDao.getAllProjects(userId.toString(), SubscriptionObjectType.THREAD)).thenReturn(projectIds);
 		when(mockAclDao.getAccessibleBenefactors(userInfo.getGroups(), projectIds, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(projectIds);
-		assertEquals(results, manager.getAll(userInfo, 10L, 0L, SubscriptionObjectType.DISCUSSION_THREAD));
+		assertEquals(results, manager.getAll(userInfo, 10L, 0L, SubscriptionObjectType.THREAD));
 	}
 
 	@Test (expected=IllegalArgumentException.class)
