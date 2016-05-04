@@ -13,11 +13,14 @@ import org.sagebionetworks.repo.manager.table.TableIndexConnectionUnavailableExc
 import org.sagebionetworks.repo.manager.table.TableIndexManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.dbo.dao.table.FileEntityFields;
-import org.sagebionetworks.repo.model.dbo.dao.table.FileViewUtils;
+import org.sagebionetworks.repo.model.dao.table.RowBatchHandler;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,9 +32,12 @@ import org.springframework.beans.factory.annotation.Autowired;
  */
 public class FileViewWorker implements ChangeMessageDrivenRunner {
 	
+	private static final String DEFAULT_ETAG = "DEFAULT";
+
 	static private Logger log = LogManager.getLogger(FileViewWorker.class);
 	
 	public static int TIMEOUT_MS = 1000*60*10;
+	public static int BATCH_SIZE_BYTES = 1024*1024*5; // 5 MBs
 
 	@Autowired
 	FileViewManager tableViewManager;
@@ -57,7 +63,7 @@ public class FileViewWorker implements ChangeMessageDrivenRunner {
 					return;
 				}else{
 					// create or update the index
-					createOrUpdateIndex(tableId, indexManager, progressCallback);
+					createOrUpdateIndex(tableId, indexManager, progressCallback, message);
 				}
 			} catch (TableIndexConnectionUnavailableException e) {
 				// try again later.
@@ -73,7 +79,7 @@ public class FileViewWorker implements ChangeMessageDrivenRunner {
 	 * @param indexManager
 	 * @throws RecoverableMessageException 
 	 */
-	public void createOrUpdateIndex(final String tableId, final TableIndexManager indexManager, ProgressCallback<ChangeMessage> outerCallback) throws RecoverableMessageException{
+	public void createOrUpdateIndex(final String tableId, final TableIndexManager indexManager, ProgressCallback<ChangeMessage> outerCallback, final ChangeMessage message) throws RecoverableMessageException{
 		// get the exclusive lock to update the table
 		try {
 			tableManagerSupport.tryRunWithTableExclusiveLock(outerCallback, tableId, TIMEOUT_MS, new ProgressingCallable<Void, ChangeMessage>() {
@@ -82,7 +88,7 @@ public class FileViewWorker implements ChangeMessageDrivenRunner {
 				public Void call(ProgressCallback<ChangeMessage> innerCallback)
 						throws Exception {
 					// next level.
-					createOrUpdateIndexHoldingLock(tableId, indexManager, innerCallback);
+					createOrUpdateIndexHoldingLock(tableId, indexManager, innerCallback, message);
 					return null;
 				}
 
@@ -105,30 +111,46 @@ public class FileViewWorker implements ChangeMessageDrivenRunner {
 	 * @param indexManager
 	 * @param callback
 	 */
-	public void createOrUpdateIndexHoldingLock(String tableId, TableIndexManager indexManager, ProgressCallback<ChangeMessage> callback){
+	public void createOrUpdateIndexHoldingLock(final String tableId, final TableIndexManager indexManager, final ProgressCallback<ChangeMessage> callback, final ChangeMessage message){
 		// Is the index out-of-synch?
 		if(tableManagerSupport.isIndexSynchronizedWithTruth(tableId)){
 			// nothing to do
 			return;
 		}
 		// Start the worker
-		String token = tableManagerSupport.startTableProcessing(tableId);
-		long currentProgress = 0L;
-		long totalProgress = 100L;
-		
-		tableManagerSupport.attemptToUpdateTableProgress(tableId, token, "Creating view...", currentProgress, totalProgress);
+		final String token = tableManagerSupport.startTableProcessing(tableId);
+
 		// Since this worker re-builds the index, start by deleting it.
 		indexManager.deleteTableIndex();
 		// Lookup the table's schema
-		List<ColumnModel> currentSchema = tableManagerSupport.getColumnModelsForTable(tableId);
-		// we need to ensure the benefactor column in included in all tables for the authorization filter.
-		if(!FileViewUtils.containsBenefactor(currentSchema)){
-			currentSchema.add(tableViewManager.getColumModel(FileEntityFields.benefactorId));
-		}
-		// create the table
-		indexManager.setIndexSchema(currentSchema);
-		
-		
-	}
+		final List<ColumnModel> currentSchema = tableViewManager.getViewSchema(tableId);
+		ColumnMapper columnMapper = TableModelUtils.createColumnModelColumnMapper(currentSchema, false);
 
+		// create the table in the index.
+		indexManager.setIndexSchema(currentSchema);
+		// Calculate the number of rows per bath based on the current schema
+		final int rowsPerBatch = BATCH_SIZE_BYTES/TableModelUtils.calculateMaxRowSize(currentSchema);
+		final RowSet rowSetBatch = new RowSet();
+		rowSetBatch.setHeaders(columnMapper.getSelectColumns());
+		rowSetBatch.setTableId(tableId);
+		// Stream all of the file data into the index.
+		Long viewCRC = tableViewManager.streamOverAllFilesInViewAsBatch(tableId, currentSchema, rowsPerBatch, new RowBatchHandler() {
+			
+			@Override
+			public void nextBatch(List<Row> batch, long currentProgress,
+					long totalProgress) {
+				// apply the batch to index.
+				rowSetBatch.setRows(batch);
+				indexManager.applyChangeSetToIndex(rowSetBatch, currentSchema);
+				// report progress for each batch
+				callback.progressMade(message);
+				tableManagerSupport.attemptToUpdateTableProgress(tableId, token, "Building view...", currentProgress, totalProgress);
+			}
+		});
+		
+		indexManager.setIndexVersion(viewCRC);
+		// Attempt to set the table to complete.
+		tableManagerSupport.attemptToSetTableStatusToAvailable(tableId, token, DEFAULT_ETAG);
+	}	
+	
 }

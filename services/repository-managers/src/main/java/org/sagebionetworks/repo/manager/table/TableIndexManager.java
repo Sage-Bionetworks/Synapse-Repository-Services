@@ -81,6 +81,15 @@ public interface TableIndexManager {
 	 */
 	public void applyChangeSetToIndex(RowSet rowset, List<ColumnModel> currentSchema,
 			long changeSetVersionNumber);
+	
+	/**
+	 * Apply the given change set to the table's index.
+	 * This signature is used for the creation of a FileView and should not be used
+	 * for TableEntity.
+	 * @param rowset
+	 * @param currentSchema
+	 */
+	public void applyChangeSetToIndex(RowSet rowset, List<ColumnModel> currentSchema);
 
 	/**
 	 * Set the current schema of a table's index.
@@ -93,5 +102,11 @@ public interface TableIndexManager {
 	 * Delete the index for this table.
 	 */
 	public void deleteTableIndex();
+
+	/**
+	 * Set current version of the index.
+	 * @param viewCRC
+	 */
+	public void setIndexVersion(Long viewCRC);
 
 }

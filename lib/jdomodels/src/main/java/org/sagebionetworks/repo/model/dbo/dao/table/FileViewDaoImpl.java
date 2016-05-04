@@ -29,19 +29,8 @@ public class FileViewDaoImpl implements FileViewDao {
 	 */
 	public static long DEFAULT_EMPTY_CRC = 0;
 	private static final String IDS_PARAM_NAME = "ids_param";
-
-	private static final String SQL_SELECT_FILE_CRC32 = "SELECT SUM(CRC32(CONCAT("
-			+ COL_NODE_ID
-			+ ", '-',"
-			+ COL_NODE_ETAG
-			+ "))) FROM "
-			+ TABLE_NODE
-			+ " WHERE "
-			+ COL_NODE_TYPE
-			+ " = '"
-			+ EntityType.file
-			+ "' AND "
-			+ COL_NODE_PARENT_ID + " IN (:" + IDS_PARAM_NAME + ")";
+	private static final String SQL_COUNT_FILES_IN_CONTAINERS = "SELECT COUNT("+COL_NODE_ID+") FROM "+TABLE_NODE+" WHERE "+COL_NODE_TYPE+" = '"+EntityType.file.name()+"' AND "+COL_NODE_PARENT_ID+" IN (:"+IDS_PARAM_NAME+")";
+	private static final String SQL_SELECT_FILE_CRC32 = "SELECT SUM(CRC32(CONCAT("+ COL_NODE_ID+", '-',"+ COL_NODE_ETAG+ "))) FROM "+ TABLE_NODE+ " WHERE "+ COL_NODE_TYPE+ " = '"+ EntityType.file+ "' AND "+ COL_NODE_PARENT_ID + " IN (:" + IDS_PARAM_NAME + ")";
 
 	@Autowired
 	private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
@@ -92,6 +81,13 @@ public class FileViewDaoImpl implements FileViewDao {
 						rowHandler.nextRow(row);
 					}
 				});
+	}
+
+	@Override
+	public long countAllFilesInView(Set<Long> allContainersInScope) {
+		Map<String, Set<Long>> parameters = new HashMap<String, Set<Long>>(1);
+		parameters.put(IDS_PARAM_NAME, allContainersInScope);
+		return namedParameterJdbcTemplate.queryForObject(SQL_COUNT_FILES_IN_CONTAINERS, parameters, Long.class);
 	}
 
 }

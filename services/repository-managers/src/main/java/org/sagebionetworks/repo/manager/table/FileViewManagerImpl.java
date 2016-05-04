@@ -7,11 +7,15 @@ import java.util.Set;
 
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
+import org.sagebionetworks.repo.model.dao.table.RowBatchHandler;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.dbo.dao.table.FileEntityFields;
+import org.sagebionetworks.repo.model.dbo.dao.table.FileViewDao;
+import org.sagebionetworks.repo.model.dbo.dao.table.FileViewUtils;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +30,8 @@ public class FileViewManagerImpl implements FileViewManager {
 	TableManagerSupport tableManagerSupport;
 	@Autowired
 	ColumnModelDAO columnModelDao;
+	@Autowired
+	FileViewDao fileViewDao;
 	
 	/*
 	 * (non-Javadoc)
@@ -46,16 +52,6 @@ public class FileViewManagerImpl implements FileViewManager {
 		columModelManager.bindColumnToObject(userInfo, schema, viewIdString);
 		// trigger an update
 		tableManagerSupport.setTableToProcessingAndTriggerUpdate(viewIdString);
-	}
-
-	@Override
-	public void streamOverAllFilesInView(String tableIdString, RowHandler handler) {
-		long tableId = KeyFactory.stringToKey(tableIdString);
-		// Lookup the scope for this view
-		Set<Long> allContainersInScope  = tableManagerSupport.getAllContainerIdsForViewScope(tableIdString);
-		// Lookup the containers for this scope
-		
-		
 	}
 
 	/*
@@ -81,5 +77,58 @@ public class FileViewManagerImpl implements FileViewManager {
 		return list;
 	}
 
+	@Override
+	public  List<ColumnModel> getViewSchema(String viewId){
+		final List<ColumnModel> currentSchema = tableManagerSupport.getColumnModelsForTable(viewId);
+		// we need to ensure the benefactor column in included in all tables for the authorization filter.
+		if(!FileViewUtils.containsBenefactor(currentSchema)){
+			currentSchema.add(getColumModel(FileEntityFields.benefactorId));
+		}
+		return currentSchema;
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see org.sagebionetworks.repo.manager.table.FileViewManager#streamOverAllFilesInViewAsBatch(java.lang.String, java.util.List, org.sagebionetworks.repo.model.dao.table.RowBatchHandler, int)
+	 */
+	@Override
+	public Long streamOverAllFilesInViewAsBatch(String tableId,
+			List<ColumnModel> currentSchema, final int rowsPerBatch, final RowBatchHandler rowBatchHandler) {
+		
+		// Get the containers for this view.
+		Set<Long> allContainersInScope  = tableManagerSupport.getAllContainerIdsForViewScope(tableId);
+		
+		// Count the number of expected rows for progress.
+		final long totalProgress = fileViewDao.countAllFilesInView(allContainersInScope);
+		
+		// This CRC represents the current state of the view.
+		Long viewCRC = fileViewDao.calculateCRCForAllFilesWithinContainers(allContainersInScope);
+		// This will contain the batch of rows.
+		final List<Row> batchRows = new LinkedList<Row>();
+		// copy all FileEntity data to the table
+		fileViewDao.streamOverFileEntities(allContainersInScope, currentSchema, new RowHandler() {
+			
+			long currentProgresss = 0;
+			
+			@Override
+			public void nextRow(Row row) {
+				currentProgresss++;
+				batchRows.add(row);
+				// is the batch read?
+				if(batchRows.size() > rowsPerBatch){
+					// send the batch
+					rowBatchHandler.nextBatch(new LinkedList<Row>(batchRows), currentProgresss, totalProgress);
+					batchRows.clear();
+				}
+			}
+		});
+		
+		// If there are any rows remaining send them as a batch
+		if(!batchRows.isEmpty()){
+			// send the last batch with progress done.
+			rowBatchHandler.nextBatch(new LinkedList<Row>(batchRows), totalProgress, totalProgress);
+		}
+		return viewCRC;
+	}
 
 }
