@@ -78,7 +78,7 @@ public class FileViewManagerImpl implements FileViewManager {
 	}
 
 	@Override
-	public  List<ColumnModel> getViewSchema(String viewId){
+	public  List<ColumnModel> getViewSchemaWithBenefactor(String viewId){
 		final List<ColumnModel> currentSchema = tableManagerSupport.getColumnModelsForTable(viewId);
 		// we need to ensure the benefactor column in included in all tables for the authorization filter.
 		if(!FileViewUtils.containsBenefactor(currentSchema)){

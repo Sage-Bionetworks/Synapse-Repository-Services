@@ -123,7 +123,7 @@ public class FileViewWorker implements ChangeMessageDrivenRunner {
 		// Since this worker re-builds the index, start by deleting it.
 		indexManager.deleteTableIndex();
 		// Lookup the table's schema
-		final List<ColumnModel> currentSchema = tableViewManager.getViewSchema(tableId);
+		final List<ColumnModel> currentSchema = tableViewManager.getViewSchemaWithBenefactor(tableId);
 		ColumnMapper columnMapper = TableModelUtils.createColumnModelColumnMapper(currentSchema, false);
 
 		// create the table in the index.
