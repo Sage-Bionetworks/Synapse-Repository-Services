@@ -505,6 +505,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String REPLIES = "/replies";
 	private static final String REPLY_COUNT = "/replycount";
 	private static final String URL = "/messageUrl";
+	private static final String PIN = "/pin";
+	private static final String UNPIN = "/unpin";
 
 	private static final String SUBSCRIPTION = "/subscription";
 	private static final String LIST = "/list";
@@ -7658,5 +7660,15 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseClientException(e);
 		}
+	}
+
+	@Override
+	public void pinThread(String threadId) throws SynapseException {
+		getSharedClientConnection().putUri(repoEndpoint, THREAD+"/"+threadId+PIN, getUserAgent());
+	}
+
+	@Override
+	public void unpinThread(String threadId) throws SynapseException {
+		getSharedClientConnection().putUri(repoEndpoint, THREAD+"/"+threadId+UNPIN, getUserAgent());
 	}
 }
