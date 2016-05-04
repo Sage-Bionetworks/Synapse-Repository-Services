@@ -31,4 +31,11 @@ public interface FileViewDao {
 	void streamOverFileEntities(Set<Long> containers, List<ColumnModel> schema,
 			RowHandler rowHandler);
 
+	/**
+	 * Count the number of files contained within the given containers.
+	 * 
+	 * @param allContainersInScope
+	 */
+	public long countAllFilesInView(Set<Long> allContainersInScope);
+
 }

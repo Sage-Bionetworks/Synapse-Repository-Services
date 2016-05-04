@@ -258,6 +258,11 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	public Long calculateFileViewCRC32(String tableId) {
 		// Start with all container IDs that define the view's scope
 		Set<Long> viewContainers = getAllContainerIdsForViewScope(tableId);
+		return calculateFileViewCRC32(viewContainers);
+	}
+	
+	@Override
+	public Long calculateFileViewCRC32(Set<Long> viewContainers) {
 		// Calculate the crc for the containers.
 		return fileViewDao.calculateCRCForAllFilesWithinContainers(viewContainers);
 	}
