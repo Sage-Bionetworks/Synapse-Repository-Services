@@ -577,6 +577,16 @@ public class SharedClientConnection {
 		ResponseBodyAndStatusCode response = signAndDispatchSynapseRequest(endpoint, uri, "DELETE", null, defaultGETDELETEHeaders, userAgent, null, null);
 		convertHttpResponseToException(response.getStatusCode(), response.getResponseBody());
 	}
+
+	/**
+	 * Call Update on any URI
+	 * @param userAgent 
+	 */
+	public void putUri(String endpoint, String uri, String userAgent) throws SynapseException {
+		if (null == uri) throw new IllegalArgumentException("must provide uri");		
+		ResponseBodyAndStatusCode response = signAndDispatchSynapseRequest(endpoint, uri, "PUT", null, defaultGETDELETEHeaders, userAgent, null, null);
+		convertHttpResponseToException(response.getStatusCode(), response.getResponseBody());
+	}
 	
 	public void deleteUri(String endpoint, String uri, String userAgent, Map<String, String> parameters) throws SynapseException {
 		if (null == uri) throw new IllegalArgumentException("must provide uri");		
