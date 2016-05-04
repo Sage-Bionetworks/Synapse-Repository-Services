@@ -125,6 +125,28 @@ public class DBODiscussionThreadDAOImplTest {
 	}
 
 	@Test
+	public void testGetProjectId() {
+		DiscussionThreadBundle dto = threadDao.createThread(forumId, threadId.toString(), "title", "messageKey", userId);
+		assertEquals(projectId, threadDao.getProjectId(dto.getId()));
+	}
+
+	@Test (expected=NotFoundException.class)
+	public void testGetProjectIdNotFound() {
+		threadDao.getProjectId("-1");
+	}
+
+	@Test
+	public void testGetAuthor() {
+		DiscussionThreadBundle dto = threadDao.createThread(forumId, threadId.toString(), "title", "messageKey", userId);
+		assertEquals(userId.toString(), threadDao.getAuthor(dto.getId()));
+	}
+
+	@Test (expected=NotFoundException.class)
+	public void testGetAuthorNotFound() {
+		threadDao.getAuthor("-1");
+	}
+
+	@Test
 	public void testGetEtag(){
 		DiscussionThreadBundle dto = threadDao.createThread(forumId, threadId.toString(), "title", "messageKey", userId);
 		long threadId = Long.parseLong(dto.getId());
@@ -256,44 +278,44 @@ public class DBODiscussionThreadDAOImplTest {
 
 		assertEquals("order, all",
 				createdThreads,
-				threadDao.getThreads(forumIdLong, MAX_LIMIT, 0L, DiscussionThreadOrder.LAST_ACTIVITY, true, DiscussionFilter.NO_FILTER).getResults());
+				threadDao.getThreads(forumIdLong, MAX_LIMIT, 0L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true, DiscussionFilter.NO_FILTER).getResults());
 		assertEquals("order, second the third",
 				Arrays.asList(createdThreads.get(1), createdThreads.get(2)),
-				threadDao.getThreads(forumIdLong, 2L, 1L, DiscussionThreadOrder.LAST_ACTIVITY, true, DiscussionFilter.NO_FILTER).getResults());
+				threadDao.getThreads(forumIdLong, 2L, 1L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true, DiscussionFilter.NO_FILTER).getResults());
 		assertEquals("order, last",
 				Arrays.asList(createdThreads.get(2)),
-				threadDao.getThreads(forumIdLong, 2L, 2L, DiscussionThreadOrder.LAST_ACTIVITY, true, DiscussionFilter.NO_FILTER).getResults());
+				threadDao.getThreads(forumIdLong, 2L, 2L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true, DiscussionFilter.NO_FILTER).getResults());
 		assertEquals("order, out of range",
 				Arrays.asList(),
-				threadDao.getThreads(forumIdLong, 2L, 3L, DiscussionThreadOrder.LAST_ACTIVITY, true, DiscussionFilter.NO_FILTER).getResults());
+				threadDao.getThreads(forumIdLong, 2L, 3L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true, DiscussionFilter.NO_FILTER).getResults());
 		assertEquals("order, on limit",
 				Arrays.asList(createdThreads.get(1), createdThreads.get(2)),
-				threadDao.getThreads(forumIdLong, DBODiscussionThreadDAOImpl.MAX_LIMIT, 1L, DiscussionThreadOrder.LAST_ACTIVITY, true, DiscussionFilter.NO_FILTER).getResults());
+				threadDao.getThreads(forumIdLong, DBODiscussionThreadDAOImpl.MAX_LIMIT, 1L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true, DiscussionFilter.NO_FILTER).getResults());
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testNegativeOffset() {
-		threadDao.getThreads(forumIdLong, 2L, -3L, DiscussionThreadOrder.LAST_ACTIVITY, true, DiscussionFilter.NO_FILTER);
+		threadDao.getThreads(forumIdLong, 2L, -3L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true, DiscussionFilter.NO_FILTER);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testNegativeLimit() {
-		threadDao.getThreads(forumIdLong, -2L, 3L, DiscussionThreadOrder.LAST_ACTIVITY, true, DiscussionFilter.NO_FILTER);
+		threadDao.getThreads(forumIdLong, -2L, 3L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true, DiscussionFilter.NO_FILTER);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testOverLimit() {
-		threadDao.getThreads(forumIdLong, DBODiscussionThreadDAOImpl.MAX_LIMIT+1, 3L, DiscussionThreadOrder.LAST_ACTIVITY, true, DiscussionFilter.NO_FILTER);
+		threadDao.getThreads(forumIdLong, DBODiscussionThreadDAOImpl.MAX_LIMIT+1, 3L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true, DiscussionFilter.NO_FILTER);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testNullOffset() {
-		threadDao.getThreads(forumIdLong, 2L, null, DiscussionThreadOrder.LAST_ACTIVITY, true, DiscussionFilter.NO_FILTER);
+		threadDao.getThreads(forumIdLong, 2L, null, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true, DiscussionFilter.NO_FILTER);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testNullLimit() {
-		threadDao.getThreads(forumIdLong, null, 2L, DiscussionThreadOrder.LAST_ACTIVITY, true, DiscussionFilter.NO_FILTER);
+		threadDao.getThreads(forumIdLong, null, 2L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true, DiscussionFilter.NO_FILTER);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -303,7 +325,7 @@ public class DBODiscussionThreadDAOImplTest {
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testNotNullOrderNullAscending() {
-		threadDao.getThreads(forumIdLong, 2L, 2L, DiscussionThreadOrder.LAST_ACTIVITY, null, DiscussionFilter.NO_FILTER);
+		threadDao.getThreads(forumIdLong, 2L, 2L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, null, DiscussionFilter.NO_FILTER);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -389,13 +411,13 @@ public class DBODiscussionThreadDAOImplTest {
 		expected.addAll(Arrays.asList(createdThreads.get(0), createdThreads.get(2), createdThreads.get(1)));
 		assertEquals("sorted by last activity",
 				expected,
-				threadDao.getThreads(forumIdLong, MAX_LIMIT, 0L, DiscussionThreadOrder.LAST_ACTIVITY, true, DiscussionFilter.NO_FILTER).getResults());
+				threadDao.getThreads(forumIdLong, MAX_LIMIT, 0L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true, DiscussionFilter.NO_FILTER).getResults());
 
 		expected.clear();
 		expected.addAll(Arrays.asList(createdThreads.get(1), createdThreads.get(2), createdThreads.get(0)));
 		assertEquals("sorted by last activity desc",
 				expected,
-				threadDao.getThreads(forumIdLong, MAX_LIMIT, 0L, DiscussionThreadOrder.LAST_ACTIVITY, false, DiscussionFilter.NO_FILTER).getResults());
+				threadDao.getThreads(forumIdLong, MAX_LIMIT, 0L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, false, DiscussionFilter.NO_FILTER).getResults());
 	}
 
 	private List<DiscussionThreadBundle> createListOfThreads(int numberOfThreads) throws InterruptedException {
@@ -470,8 +492,8 @@ public class DBODiscussionThreadDAOImplTest {
 		List<DiscussionThreadBundle> createdThreads = createListOfThreads(3);
 		threadDao.markThreadAsDeleted(Long.parseLong(createdThreads.get(1).getId()));
 
-		PaginatedResults<DiscussionThreadBundle> deleted = threadDao.getThreads(forumIdLong, MAX_LIMIT, 0L, DiscussionThreadOrder.LAST_ACTIVITY, true, DiscussionFilter.DELETED_ONLY);
-		PaginatedResults<DiscussionThreadBundle> available = threadDao.getThreads(forumIdLong, MAX_LIMIT, 0L, DiscussionThreadOrder.LAST_ACTIVITY, true, DiscussionFilter.EXCLUDE_DELETED);
+		PaginatedResults<DiscussionThreadBundle> deleted = threadDao.getThreads(forumIdLong, MAX_LIMIT, 0L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true, DiscussionFilter.DELETED_ONLY);
+		PaginatedResults<DiscussionThreadBundle> available = threadDao.getThreads(forumIdLong, MAX_LIMIT, 0L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true, DiscussionFilter.EXCLUDE_DELETED);
 		assertEquals(1, deleted.getTotalNumberOfResults());
 		assertEquals(2, available.getTotalNumberOfResults());
 		assertEquals(createdThreads.get(1).getId(), deleted.getResults().get(0).getId());
@@ -512,23 +534,6 @@ public class DBODiscussionThreadDAOImplTest {
 				+ " WHERE FORUM_ID = ?"
 				+ " LIMIT 10 OFFSET 0",
 				DBODiscussionThreadDAOImpl.buildGetQuery(10L, 0L, null, null, DiscussionFilter.NO_FILTER));
-		assertEquals("ordered","SELECT DISCUSSION_THREAD.ID AS ID,"
-				+ " DISCUSSION_THREAD.FORUM_ID AS FORUM_ID, FORUM.PROJECT_ID AS PROJECT_ID,"
-				+ " DISCUSSION_THREAD.TITLE AS TITLE, DISCUSSION_THREAD.CREATED_ON AS CREATED_ON,"
-				+ " DISCUSSION_THREAD.CREATED_BY AS CREATED_BY, DISCUSSION_THREAD.MODIFIED_ON AS MODIFIED_ON,"
-				+ " DISCUSSION_THREAD.ETAG AS ETAG, DISCUSSION_THREAD.MESSAGE_KEY AS MESSAGE_KEY,"
-				+ " DISCUSSION_THREAD.IS_EDITED AS IS_EDITED, DISCUSSION_THREAD.IS_DELETED AS IS_DELETED,"
-				+ " DISCUSSION_THREAD.IS_PINNED AS IS_PINNED,"
-				+ " DISCUSSION_THREAD_STATS.NUMBER_OF_VIEWS AS NUMBER_OF_VIEWS,"
-				+ " DISCUSSION_THREAD_STATS.NUMBER_OF_REPLIES AS NUMBER_OF_REPLIES,"
-				+ " IFNULL(LAST_ACTIVITY, MODIFIED_ON) AS LAST_ACTIVITY,"
-				+ " DISCUSSION_THREAD_STATS.ACTIVE_AUTHORS AS ACTIVE_AUTHORS"
-				+ " FROM DISCUSSION_THREAD JOIN FORUM ON DISCUSSION_THREAD.FORUM_ID = FORUM.ID"
-				+ " LEFT OUTER JOIN DISCUSSION_THREAD_STATS ON DISCUSSION_THREAD.ID = DISCUSSION_THREAD_STATS.THREAD_ID"
-				+ " WHERE FORUM_ID = ?"
-				+ " ORDER BY LAST_ACTIVITY"
-				+ " LIMIT 10 OFFSET 0",
-				DBODiscussionThreadDAOImpl.buildGetQuery(10L, 0L, DiscussionThreadOrder.LAST_ACTIVITY, true, DiscussionFilter.NO_FILTER));
 		assertEquals("ordered by pinned and last activity","SELECT DISCUSSION_THREAD.ID AS ID,"
 				+ " DISCUSSION_THREAD.FORUM_ID AS FORUM_ID, FORUM.PROJECT_ID AS PROJECT_ID,"
 				+ " DISCUSSION_THREAD.TITLE AS TITLE, DISCUSSION_THREAD.CREATED_ON AS CREATED_ON,"

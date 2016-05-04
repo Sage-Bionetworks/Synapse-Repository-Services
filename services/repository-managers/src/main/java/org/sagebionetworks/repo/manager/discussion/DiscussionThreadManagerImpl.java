@@ -103,6 +103,16 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		return updateNumberOfReplies(thread, filter);
 	}
 
+	@Override
+	public void checkPermission(UserInfo userInfo, String threadId, ACCESS_TYPE accessType) {
+		ValidateArgument.required(threadId, "threadId");
+		ValidateArgument.required(accessType, "accessType");
+		UserInfo.validateUserInfo(userInfo);
+		String projectId = threadDao.getProjectId(threadId);
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+				authorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, accessType));
+	}
+
 	@WriteTransactionReadCommitted
 	@Override
 	public DiscussionThreadBundle updateTitle(UserInfo userInfo, String threadId, UpdateThreadTitle newTitle) {
@@ -111,9 +121,9 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		ValidateArgument.required(newTitle.getTitle(), "UpdateThreadTitle.title");
 		UserInfo.validateUserInfo(userInfo);
 		Long threadIdLong = Long.parseLong(threadId);
-		DiscussionThreadBundle thread = threadDao.getThread(threadIdLong, DEFAULT_FILTER);
-		if (authorizationManager.isUserCreatorOrAdmin(userInfo, thread.getCreatedBy())) {
-			thread = threadDao.updateTitle(threadIdLong, newTitle.getTitle());
+		String author = threadDao.getAuthor(threadId);
+		if (authorizationManager.isUserCreatorOrAdmin(userInfo, author)) {
+			DiscussionThreadBundle thread = threadDao.updateTitle(threadIdLong, newTitle.getTitle());
 			return updateNumberOfReplies(thread, DiscussionFilter.NO_FILTER);
 		} else {
 			throw new UnauthorizedException("Only the user that created the thread can modify it.");
@@ -142,37 +152,22 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 	@WriteTransactionReadCommitted
 	@Override
 	public void markThreadAsDeleted(UserInfo userInfo, String threadId) {
-		ValidateArgument.required(threadId, "threadId");
-		UserInfo.validateUserInfo(userInfo);
-		Long threadIdLong = Long.parseLong(threadId);
-		DiscussionThreadBundle thread = threadDao.getThread(threadIdLong, DEFAULT_FILTER);
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccess(userInfo, thread.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.MODERATE));
-		threadDao.markThreadAsDeleted(threadIdLong);
+		checkPermission(userInfo, threadId, ACCESS_TYPE.MODERATE);
+		threadDao.markThreadAsDeleted(Long.parseLong(threadId));
 	}
 
 	@WriteTransactionReadCommitted
 	@Override
 	public void pinThread(UserInfo userInfo, String threadId) {
-		ValidateArgument.required(threadId, "threadId");
-		UserInfo.validateUserInfo(userInfo);
-		Long threadIdLong = Long.parseLong(threadId);
-		DiscussionThreadBundle thread = threadDao.getThread(threadIdLong, DEFAULT_FILTER);
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccess(userInfo, thread.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.MODERATE));
-		threadDao.pinThread(threadIdLong);
+		checkPermission(userInfo, threadId, ACCESS_TYPE.MODERATE);
+		threadDao.pinThread(Long.parseLong(threadId));
 	}
 
 	@WriteTransactionReadCommitted
 	@Override
 	public void unpinThread(UserInfo userInfo, String threadId) {
-		ValidateArgument.required(threadId, "threadId");
-		UserInfo.validateUserInfo(userInfo);
-		Long threadIdLong = Long.parseLong(threadId);
-		DiscussionThreadBundle thread = threadDao.getThread(threadIdLong, DEFAULT_FILTER);
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccess(userInfo, thread.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.MODERATE));
-		threadDao.unpinThread(threadIdLong);
+		checkPermission(userInfo, threadId, ACCESS_TYPE.MODERATE);
+		threadDao.unpinThread(Long.parseLong(threadId));
 	}
 
 	@Override
@@ -207,13 +202,10 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 	@Override
 	public MessageURL getMessageUrl(UserInfo userInfo, String messageKey) {
 		ValidateArgument.required(messageKey, "messageKey");
-		UserInfo.validateUserInfo(userInfo);
-		Long threadIdLong = Long.parseLong(MessageKeyUtils.getThreadId(messageKey));
-		DiscussionThreadBundle thread = threadDao.getThread(threadIdLong, DEFAULT_FILTER);
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccess(userInfo, thread.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
-		threadDao.updateThreadView(threadIdLong, userInfo.getId());
-		return uploadDao.getThreadUrl(thread.getMessageKey());
+		String threadId = MessageKeyUtils.getThreadId(messageKey);
+		checkPermission(userInfo, threadId, ACCESS_TYPE.READ);
+		threadDao.updateThreadView(Long.parseLong(threadId), userInfo.getId());
+		return uploadDao.getThreadUrl(messageKey);
 	}
 
 	@Override

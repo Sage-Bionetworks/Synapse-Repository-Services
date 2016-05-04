@@ -34,6 +34,7 @@ import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadAuthorStat;
+import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadReplyStat;
 import org.sagebionetworks.repo.model.discussion.Forum;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
@@ -136,6 +137,17 @@ public class DBODiscussionReplyDAOImplTest {
 		assertNotNull(dto.getEtag());
 		Long replyId = Long.parseLong(dto.getId());
 		assertEquals(dto, replyDao.getReply(replyId, DEFAULT_FILTER));
+	}
+
+	@Test
+	public void testGetProjectId() {
+		DiscussionReplyBundle dto = replyDao.createReply(threadId, replyId, "messageKey", userId);
+		assertEquals(projectId, replyDao.getProjectId(dto.getId()));
+	}
+
+	@Test (expected=NotFoundException.class)
+	public void testGetProjectIdNotFound() {
+		replyDao.getProjectId("-1");
 	}
 
 	@Test

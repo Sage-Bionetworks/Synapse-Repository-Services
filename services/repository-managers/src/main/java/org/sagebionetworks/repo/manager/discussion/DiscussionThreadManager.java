@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.discussion;
 import java.io.IOException;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
 import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
@@ -111,5 +112,14 @@ public interface DiscussionThreadManager {
 	 * @param threadId
 	 */
 	public void unpinThread(UserInfo userInfo, String threadId);
+
+	/**
+	 * Check to see if the user has read permission on this thread
+	 * 
+	 * @param userInfo
+	 * @param threadId
+	 * @param accessType
+	 */
+	void checkPermission(UserInfo userInfo, String threadId, ACCESS_TYPE accessType);
 
 }
