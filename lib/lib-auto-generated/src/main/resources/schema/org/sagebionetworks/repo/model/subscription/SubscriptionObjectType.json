@@ -4,7 +4,6 @@
     "type":"string",
     "enum":[
         "FORUM",
-        "DISCUSSION_THREAD",
         "THREAD"
     ]
 }
