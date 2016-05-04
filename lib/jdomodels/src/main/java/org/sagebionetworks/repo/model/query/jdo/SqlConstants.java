@@ -770,7 +770,6 @@ public class SqlConstants {
 
 	// Discussion Thread View table
 	public static final String TABLE_DISCUSSION_THREAD_VIEW = "DISCUSSION_THREAD_VIEW";
-	public static final String COL_DISCUSSION_THREAD_VIEW_ID = "ID";
 	public static final String COL_DISCUSSION_THREAD_VIEW_THREAD_ID = "THREAD_ID";
 	public static final String COL_DISCUSSION_THREAD_VIEW_USER_ID = "USER_ID";
 	public static final String DDL_DISCUSSION_THREAD_VIEW = "schema/DiscussionThreadView-ddl.sql";

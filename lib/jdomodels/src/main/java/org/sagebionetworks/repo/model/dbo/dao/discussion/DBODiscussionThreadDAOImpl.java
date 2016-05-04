@@ -13,8 +13,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
-import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.dao.discussion.DiscussionThreadDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
@@ -41,8 +39,6 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 	private JdbcTemplate jdbcTemplate;
 	@Autowired
 	private DBOBasicDao basicDao;
-	@Autowired
-	private IdGenerator idGenerator;
 
 	public static final Charset UTF8 = Charset.forName("UTF-8");
 	private RowMapper<DiscussionThreadBundle> DISCUSSION_THREAD_BUNDLE_ROW_MAPPER = new RowMapper<DiscussionThreadBundle>(){
@@ -193,10 +189,9 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 
 	private static final String SQL_UPDATE_THREAD_VIEW_TABLE = "INSERT IGNORE INTO "
 			+TABLE_DISCUSSION_THREAD_VIEW+" ("
-			+COL_DISCUSSION_THREAD_VIEW_ID+","
 			+COL_DISCUSSION_THREAD_VIEW_THREAD_ID+","
 			+COL_DISCUSSION_THREAD_VIEW_USER_ID
-			+") VALUES (?,?,?)";
+			+") VALUES (?,?)";
 	private static final String SQL_SELECT_THREAD_VIEW_COUNT = "SELECT COUNT(*)"
 			+" FROM "+TABLE_DISCUSSION_THREAD_VIEW
 			+" WHERE "+COL_DISCUSSION_THREAD_VIEW_THREAD_ID+" = ?";
@@ -252,8 +247,7 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 	@WriteTransactionReadCommitted
 	@Override
 	public void updateThreadView(long threadId, long userId) {
-		long id = idGenerator.generateNewId(TYPE.DISCUSSION_THREAD_VIEW_ID);
-		jdbcTemplate.update(SQL_UPDATE_THREAD_VIEW_TABLE, id, threadId, userId);
+		jdbcTemplate.update(SQL_UPDATE_THREAD_VIEW_TABLE, threadId, userId);
 	}
 
 	@Override
