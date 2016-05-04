@@ -2730,4 +2730,20 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	EntityId getEntityIdByAlias(String alias) throws SynapseException;
+
+	/**
+	 * Pin a thread
+	 * 
+	 * @param threadId
+	 * @throws SynapseException
+	 */
+	void pinThread(String threadId) throws SynapseException;
+
+	/**
+	 * Remove pinning from a thread
+	 * 
+	 * @param threadId
+	 * @throws SynapseException
+	 */
+	void unpinThread(String threadId) throws SynapseException;
 }
