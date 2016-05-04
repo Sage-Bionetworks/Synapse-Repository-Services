@@ -365,6 +365,7 @@ public class DiscussionThreadManagerImplTest {
 
 	@Test (expected = UnauthorizedException.class)
 	public void testGetThreadURLUnauthorized() {
+		Mockito.when(mockThreadDao.getProjectId(threadId.toString())).thenReturn(projectId);
 		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
 				.thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		threadManager.getMessageUrl(userInfo, messageKey);
@@ -372,6 +373,7 @@ public class DiscussionThreadManagerImplTest {
 
 	@Test
 	public void testGetThreadURLAuthorized() {
+		Mockito.when(mockThreadDao.getProjectId(threadId.toString())).thenReturn(projectId);
 		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		MessageURL url = threadManager.getMessageUrl(userInfo, messageKey);
