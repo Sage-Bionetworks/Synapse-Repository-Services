@@ -32,7 +32,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  */
 public class FileViewWorker implements ChangeMessageDrivenRunner {
 	
-	private static final String DEFAULT_ETAG = "DEFAULT";
+	public static final String DEFAULT_ETAG = "DEFAULT";
 
 	static private Logger log = LogManager.getLogger(FileViewWorker.class);
 	

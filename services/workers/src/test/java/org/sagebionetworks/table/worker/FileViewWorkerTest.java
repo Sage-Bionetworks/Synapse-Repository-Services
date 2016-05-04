@@ -1,12 +1,10 @@
 package org.sagebionetworks.table.worker;
 
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyInt;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Matchers.*;
+import static org.mockito.Mockito.*;
+
+import java.util.LinkedList;
+import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -22,11 +20,18 @@ import org.sagebionetworks.repo.manager.table.TableIndexConnectionUnavailableExc
 import org.sagebionetworks.repo.manager.table.TableIndexManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.dao.table.RowBatchHandler;
+import org.sagebionetworks.repo.model.dbo.dao.table.FileEntityFields;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.test.util.ReflectionTestUtils;
+
+import com.google.common.collect.Lists;
 
 public class FileViewWorkerTest {
 
@@ -48,6 +53,11 @@ public class FileViewWorkerTest {
 	String tableId;
 	ChangeMessage change;
 	String token;
+	
+	List<ColumnModel> schema;
+	Long viewCRC;
+	long rowCount;
+	List<Row> rows;
 
 	@SuppressWarnings("unchecked")
 	@Before
@@ -94,7 +104,31 @@ public class FileViewWorkerTest {
 		}).when(tableManagerSupport).tryRunWithTableExclusiveLock(
 				any(ProgressCallback.class), anyString(), anyInt(),
 				any(ProgressingCallable.class));
+		
+		schema = FileEntityFields.getAllColumnModels();
+		// Add an ID to each column.
+		for(int i=0; i<schema.size(); i++){
+			ColumnModel cm = schema.get(i);
+			cm.setId(""+i);
+		}
+		
+		rowCount = 1;
+		rows = new LinkedList<Row>();
+		for(long i=0; i<rowCount; i++){
+			Row row = new Row();
+			row.setRowId(i);
+			rows.add(row);
+		}
 
+		when(tableViewManager.getViewSchema(tableId)).thenReturn(schema);
+		viewCRC = 888L;
+		doAnswer(new Answer<Long>(){
+			@Override
+			public Long answer(InvocationOnMock invocation) throws Throwable {
+				RowBatchHandler handler = (RowBatchHandler) invocation.getArguments()[3];
+				handler.nextBatch(rows, 0, rowCount);
+				return viewCRC;
+			}}).when(tableViewManager).streamOverAllFilesInViewAsBatch(anyString(),  anyListOf(ColumnModel.class), anyInt(), any(RowBatchHandler.class));
 	}
 
 	@Test
@@ -167,6 +201,20 @@ public class FileViewWorkerTest {
 		worker.run(outerCallback, change);
 		// progress should start for this case
 		verify(tableManagerSupport).startTableProcessing(tableId);
+	}
+	
+	@Test
+	public void testCreateOrUpdateIndexHoldingLock() throws RecoverableMessageException{
+		// call under test
+		worker.createOrUpdateIndexHoldingLock(tableId, indexManager, innerCallback, change);
+		
+		verify(indexManager).deleteTableIndex();
+		verify(indexManager).setIndexSchema(schema);
+		verify(innerCallback, times(1)).progressMade(change);
+		verify(tableManagerSupport, times(1)).attemptToUpdateTableProgress(tableId, token, "Building view...", 0L, 1L);
+		verify(indexManager, times(1)).applyChangeSetToIndex(any(RowSet.class), anyListOf(ColumnModel.class));
+		verify(indexManager).setIndexVersion(viewCRC);
+		verify(tableManagerSupport).attemptToSetTableStatusToAvailable(tableId, token, FileViewWorker.DEFAULT_ETAG);
 	}
 
 }
