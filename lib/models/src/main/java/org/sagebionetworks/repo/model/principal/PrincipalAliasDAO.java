@@ -114,4 +114,13 @@ public interface PrincipalAliasDAO {
 	 * @throw NotFoundException if no user name
 	 */
 	public String getUserName(Long principalId) throws NotFoundException;
+
+	/**
+	 * Get the principal ID for the given alias and alias type
+	 * 
+	 * @param alias
+	 * @param type
+	 * @return
+	 */
+	public long lookupPrincipalID(String alias, AliasType type);
 }

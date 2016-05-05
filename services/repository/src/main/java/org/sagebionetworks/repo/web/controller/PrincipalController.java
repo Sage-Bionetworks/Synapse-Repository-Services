@@ -10,7 +10,8 @@ import org.sagebionetworks.repo.model.principal.AccountSetupInfo;
 import org.sagebionetworks.repo.model.principal.AddEmailInfo;
 import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
 import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
-import org.sagebionetworks.repo.model.principal.PrincipalAlias;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasRequest;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasResponse;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
@@ -226,16 +227,17 @@ public class PrincipalController extends BaseController {
 	}
 
 	/**
-	 * Lookup a PrincipalAlias using an alias.
+	 * Lookup a principal ID using an alias and alias type.
 	 * 
 	 * @param alias
 	 * @throws NotFoundException
 	 *             If the given alias is not assigned to a principal.
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = { UrlHelpers.PRINCIPAL_ALIAS }, method = RequestMethod.GET)
+	@RequestMapping(value = { UrlHelpers.PRINCIPAL_ALIAS }, method = RequestMethod.POST)
 	public @ResponseBody
-	PrincipalAlias getPrincipalAlias(@PathVariable String alias) throws NotFoundException{
-		return serviceProvider.getPrincipalService().getPrincipalAlias(alias);
+	PrincipalAliasResponse getPrincipalAlias(
+			@RequestBody PrincipalAliasRequest request) throws NotFoundException{
+		return serviceProvider.getPrincipalService().getPrincipalAlias(request);
 	}
 }

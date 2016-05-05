@@ -36,9 +36,12 @@ import org.sagebionetworks.repo.model.principal.AliasEnum;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasRequest;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasResponse;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.securitytools.HMACUtils;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.simpleemail.model.SendEmailRequest;
@@ -460,6 +463,17 @@ public class PrincipalManagerImpl implements PrincipalManager {
 		Username dto = new Username();
 		dto.setEmail(email);
 		return dto;
+	}
+
+	@Override
+	public PrincipalAliasResponse lookupPrincipalId(PrincipalAliasRequest request) {
+		ValidateArgument.required(request, "request");
+		ValidateArgument.required(request.getAlias(), "PrincipalAliasRequest.alias");
+		ValidateArgument.required(request.getType(), "PrincipalAliasRequest.type");
+		long principalId = principalAliasDAO.lookupPrincipalID(request.getAlias(), request.getType());
+		PrincipalAliasResponse response = new PrincipalAliasResponse();
+		response.setPrincipalId(principalId);
+		return response;
 	}
 
 }

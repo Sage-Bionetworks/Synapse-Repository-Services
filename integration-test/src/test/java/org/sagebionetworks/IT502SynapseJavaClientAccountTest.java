@@ -18,6 +18,7 @@ import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.principal.AccountSetupInfo;
@@ -25,7 +26,8 @@ import org.sagebionetworks.repo.model.principal.AddEmailInfo;
 import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
 import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
 import org.sagebionetworks.repo.model.principal.AliasType;
-import org.sagebionetworks.repo.model.principal.PrincipalAlias;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasRequest;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasResponse;
 
 public class IT502SynapseJavaClientAccountTest {
 	private static SynapseAdminClient adminSynapse;
@@ -156,10 +158,12 @@ public class IT502SynapseJavaClientAccountTest {
 
 	@Test
 	public void testGetPrincipalAlias() throws Exception {
-		PrincipalAlias pa = synapseOne.getPrincipalAlias("anonymous");
-		assertNotNull(pa);
-		assertEquals("anonymous", pa.getAlias());
-		assertEquals(AliasType.USER_NAME, pa.getType());
+		PrincipalAliasRequest request = new PrincipalAliasRequest();
+		request.setAlias("anonymous");
+		request.setType(AliasType.USER_NAME);
+		PrincipalAliasResponse response = synapseOne.getPrincipalAlias(request);
+		assertNotNull(response);
+		assertEquals(response.getPrincipalId(), BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 	}
 
 }

@@ -6,10 +6,12 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
 import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
 import org.sagebionetworks.repo.model.principal.AliasType;
-import org.sagebionetworks.repo.model.principal.PrincipalAlias;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasRequest;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasResponse;
 
 public class PrincipalControllerAutowireTest extends AbstractAutowiredControllerTestBase {
 
@@ -28,9 +30,11 @@ public class PrincipalControllerAutowireTest extends AbstractAutowiredController
 
 	@Test
 	public void testGetPrincipalAlias() throws Exception {
-		PrincipalAlias pa = servletTestHelper.getPrincipalAlias(dispatchServlet, "anonymous");
-		assertNotNull(pa);
-		assertEquals(pa.getAlias(), "anonymous");
-		assertEquals(AliasType.USER_NAME, pa.getType());
+		PrincipalAliasRequest request = new PrincipalAliasRequest();
+		request.setAlias("anonymous");
+		request.setType(AliasType.USER_NAME);
+		PrincipalAliasResponse response = servletTestHelper.getPrincipalAlias(dispatchServlet, request);
+		assertNotNull(response);
+		assertEquals(response.getPrincipalId(), BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 	}
 }

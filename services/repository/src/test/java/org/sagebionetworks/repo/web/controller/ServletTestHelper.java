@@ -82,7 +82,8 @@ import org.sagebionetworks.repo.model.ontology.Concept;
 import org.sagebionetworks.repo.model.ontology.ConceptResponsePage;
 import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
 import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
-import org.sagebionetworks.repo.model.principal.PrincipalAlias;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasRequest;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasResponse;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
@@ -2241,11 +2242,11 @@ public class ServletTestHelper {
 		return objectMapper.readValue(response.getContentAsString(), ReplyCount.class);
 	}
 
-	public PrincipalAlias getPrincipalAlias(DispatcherServlet dispatchServlet, String alias) throws Exception {
+	public PrincipalAliasResponse getPrincipalAlias(DispatcherServlet dispatchServlet, PrincipalAliasRequest principalAliasRequest) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, "/repo/v1", UrlHelpers.PRINCIPAL+"/alias/"+alias, userId, null);
+				HTTPMODE.POST, "/repo/v1", UrlHelpers.PRINCIPAL+"/alias", userId, principalAliasRequest);
 		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.OK);
-		return objectMapper.readValue(response.getContentAsString(), PrincipalAlias.class);
+		return objectMapper.readValue(response.getContentAsString(), PrincipalAliasResponse.class);
 	}
 }
