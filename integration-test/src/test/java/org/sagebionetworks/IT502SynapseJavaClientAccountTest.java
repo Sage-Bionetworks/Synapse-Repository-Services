@@ -158,7 +158,7 @@ public class IT502SynapseJavaClientAccountTest {
 	public void testGetPrincipalAlias() throws Exception {
 		PrincipalAlias pa = synapseOne.getPrincipalAlias("anonymous");
 		assertNotNull(pa);
-		assertEquals("anonynous", pa.getAlias());
+		assertEquals("anonymous", pa.getAlias());
 		assertEquals(AliasType.USER_NAME, pa.getType());
 	}
 
