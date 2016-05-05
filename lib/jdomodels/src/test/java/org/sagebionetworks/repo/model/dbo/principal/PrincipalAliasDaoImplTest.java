@@ -444,7 +444,7 @@ public class PrincipalAliasDaoImplTest {
 		alias.setAlias(username);
 		alias.setType(AliasType.USER_NAME);
 		alias.setPrincipalId(principalId);
-		String toLookup = principalAliasDao.bindAliasToPrincipal(alias).getAlias();
+		String toLookup = principalAliasDao.bindAliasToPrincipal(alias).getAlias()+" ";
 		assertEquals(principalId, (Long)principalAliasDao.lookupPrincipalID(toLookup, AliasType.USER_NAME));
 	}
 }

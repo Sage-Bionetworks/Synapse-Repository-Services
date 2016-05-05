@@ -67,7 +67,7 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 	private static final String SQL_LIST_ALIASES_FROM_SET_OF_PRINCIPAL_IDS = "SELECT * FROM "+TABLE_PRINCIPAL_ALIAS+" WHERE "+COL_PRINCIPAL_ALIAS_PRINCIPAL_ID+" IN (:"+SET_BIND_VAR+") ORDER BY "+COL_PRINCIPAL_ALIAS_PRINCIPAL_ID;
 	private static final String SQL_GET_PRINCIPAL_ID = "SELECT "+COL_PRINCIPAL_ALIAS_PRINCIPAL_ID
 			+" FROM "+TABLE_PRINCIPAL_ALIAS
-			+" WHERE "+COL_BOUND_ALIAS_DISPLAY+" = ? "
+			+" WHERE "+COL_PRINCIPAL_ALIAS_UNIQUE+" = ? "
 			+" AND "+COL_PRINCIPAL_ALIAS_TYPE+" = ?";
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
@@ -307,7 +307,7 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 			public Long mapRow(ResultSet rs, int rowNum) throws SQLException {
 				return rs.getLong(COL_PRINCIPAL_ALIAS_PRINCIPAL_ID);
 			}
-		}, alias, type.name());
+		}, AliasUtils.getUniqueAliasName(alias), type.name());
 		if (queryResult.size() != 1) {
 			throw new NotFoundException();
 		}
