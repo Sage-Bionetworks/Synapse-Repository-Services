@@ -2746,4 +2746,13 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	void unpinThread(String threadId) throws SynapseException;
+
+	/**
+	 * Return the PrincipalAlias for a given alias
+	 * 
+	 * @param alias
+	 * @return
+	 * @throws SynapseException
+	 */
+	PrincipalAlias getPrincipalAlias(String alias) throws SynapseException;
 }

@@ -10,6 +10,7 @@ import org.sagebionetworks.repo.model.principal.AccountSetupInfo;
 import org.sagebionetworks.repo.model.principal.AddEmailInfo;
 import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
 import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
+import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
@@ -224,4 +225,17 @@ public class PrincipalController extends BaseController {
 		return serviceProvider.getPrincipalService().getNotificationEmail(userId);
 	}
 
+	/**
+	 * Lookup a PrincipalAlias using an alias.
+	 * 
+	 * @param alias
+	 * @throws NotFoundException
+	 *             If the given alias is not assigned to a principal.
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.PRINCIPAL_ALIAS }, method = RequestMethod.GET)
+	public @ResponseBody
+	PrincipalAlias getPrincipalAlias(@PathVariable String alias) throws NotFoundException{
+		return serviceProvider.getPrincipalService().getPrincipalAlias(alias);
+	}
 }

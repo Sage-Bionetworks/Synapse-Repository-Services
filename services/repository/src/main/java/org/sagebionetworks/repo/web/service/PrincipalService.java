@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.web.service;
 
 import org.sagebionetworks.repo.model.DomainType;
-import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.Username;
@@ -9,6 +8,7 @@ import org.sagebionetworks.repo.model.principal.AccountSetupInfo;
 import org.sagebionetworks.repo.model.principal.AddEmailInfo;
 import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
 import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
+import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
@@ -91,5 +91,13 @@ public interface PrincipalService {
 	 * @return the email address
 	 */
 	Username getNotificationEmail(Long userId) throws NotFoundException;
+
+	/**
+	 * Get the principal alias for a given alias
+	 * 
+	 * @param alias
+	 * @return
+	 */
+	PrincipalAlias getPrincipalAlias(String alias);
 
 }

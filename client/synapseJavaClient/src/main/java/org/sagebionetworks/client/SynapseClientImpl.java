@@ -7671,4 +7671,13 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public void unpinThread(String threadId) throws SynapseException {
 		getSharedClientConnection().putUri(repoEndpoint, THREAD+"/"+threadId+UNPIN, getUserAgent());
 	}
+
+	@Override
+	public PrincipalAlias getPrincipalAlias(String alias) throws SynapseException {
+		try {
+			return getJSONEntity(PRINCIPAL+"/alias/"+alias, PrincipalAlias.class);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
+	}
 }
