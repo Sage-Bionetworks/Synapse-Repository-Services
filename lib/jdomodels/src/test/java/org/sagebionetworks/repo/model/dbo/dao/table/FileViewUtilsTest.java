@@ -1,10 +1,10 @@
 package org.sagebionetworks.repo.model.dbo.dao.table;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 import static  org.mockito.Mockito.*;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ANNOS_BLOB;
+
+
 
 
 import java.io.IOException;
@@ -17,6 +17,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.io.filefilter.FileFilterUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -389,6 +390,17 @@ public class FileViewUtilsTest {
 		}
 		row.setValues(values);
 		return row;
+	}
+	
+	@Test
+	public void testContainsBenefactor(){
+		List<ColumnModel> all = FileEntityFields.getAllColumnModels();
+		// all under test
+		assertTrue(FileViewUtils.containsBenefactor(all));
+		// remove benefactor from the list.
+		all.remove(FileEntityFields.benefactorId.getColumnModel());
+		// call under test
+		assertFalse(FileViewUtils.containsBenefactor(all));
 	}
 	
 }

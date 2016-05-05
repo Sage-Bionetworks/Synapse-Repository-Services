@@ -118,6 +118,13 @@ public class FileViewDaoImplTest {
 		project = nodeDao.createNewNode(project);
 		toDelete.add(project.getId());
 		assertNotNull(project);
+		
+		Long projectId = KeyFactory.stringToKey(project.getId());
+		Set<Long> containers = Sets.newHashSet(projectId);
+		// There should no files yet
+		long count = fileViewDao.countAllFilesInView(containers);
+		assertEquals(0, count);
+		
 		// add a file
 		Node file = NodeTestUtils.createNew("file", creatorUserGroupId);
 		file.setNodeType(EntityType.file);
@@ -131,9 +138,6 @@ public class FileViewDaoImplTest {
 		annos.setCreatedBy(file.getCreatedByPrincipalId());
 		annos.setCreationDate(new Date());
 		nodeDao.updateAnnotations(file.getId(), annos);
-		
-		Long projectId = KeyFactory.stringToKey(project.getId());
-		Set<Long> containers = Sets.newHashSet(projectId);
 		
 		// Setup the schema to fetch
 		List<ColumnModel> schema = new LinkedList<ColumnModel>();
@@ -166,6 +170,10 @@ public class FileViewDaoImplTest {
 		List<String> values = row.getValues();
 		List<String> expectedValeus = Lists.newArrayList(""+fileId,file.getName(),file.getETag(),"555");
 		assertEquals(expectedValeus, values);
+		
+		// there should now be one file.
+		count = fileViewDao.countAllFilesInView(containers);
+		assertEquals(1, count);
 	}
 
 }
