@@ -470,6 +470,7 @@ public class PrincipalManagerImpl implements PrincipalManager {
 		ValidateArgument.required(request, "request");
 		ValidateArgument.required(request.getAlias(), "PrincipalAliasRequest.alias");
 		ValidateArgument.required(request.getType(), "PrincipalAliasRequest.type");
+		ValidateArgument.requirement(request.getType() == AliasType.USER_NAME, "Unsupported alias type "+request.getType());
 		long principalId = principalAliasDAO.lookupPrincipalID(request.getAlias(), request.getType());
 		PrincipalAliasResponse response = new PrincipalAliasResponse();
 		response.setPrincipalId(principalId);

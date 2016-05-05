@@ -678,7 +678,7 @@ public class PrincipalManagerImplUnitTest {
 	@Test (expected=IllegalArgumentException.class)
 	public void testGetPrincipalIDWithNullAlias() {
 		PrincipalAliasRequest request = new PrincipalAliasRequest();
-		request.setType(AliasType.TEAM_NAME);
+		request.setType(AliasType.USER_NAME);
 		manager.lookupPrincipalId(request);
 	}
 
@@ -689,10 +689,18 @@ public class PrincipalManagerImplUnitTest {
 		manager.lookupPrincipalId(request);
 	}
 
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetPrincipalIDWithUnsupoortedType() {
+		PrincipalAliasRequest request = new PrincipalAliasRequest();
+		request.setAlias("alias");
+		request.setType(AliasType.TEAM_NAME);
+		manager.lookupPrincipalId(request);
+	}
+
 	@Test
 	public void testGetPrincipalID() {
 		String alias = "alias";
-		AliasType type = AliasType.TEAM_NAME;
+		AliasType type = AliasType.USER_NAME;
 		Long id = 1L;
 		when(mockPrincipalAliasDAO.lookupPrincipalID(alias, type)).thenReturn(id);
 		PrincipalAliasRequest request = new PrincipalAliasRequest();
