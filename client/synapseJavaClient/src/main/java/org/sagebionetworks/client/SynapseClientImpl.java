@@ -176,6 +176,8 @@ import org.sagebionetworks.repo.model.principal.AddEmailInfo;
 import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
 import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasRequest;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasResponse;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
@@ -7670,5 +7672,10 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public void unpinThread(String threadId) throws SynapseException {
 		getSharedClientConnection().putUri(repoEndpoint, THREAD+"/"+threadId+UNPIN, getUserAgent());
+	}
+
+	@Override
+	public PrincipalAliasResponse getPrincipalAlias(PrincipalAliasRequest request) throws SynapseException {
+		return asymmetricalPost(repoEndpoint, PRINCIPAL+"/alias/", request, PrincipalAliasResponse.class, null);
 	}
 }

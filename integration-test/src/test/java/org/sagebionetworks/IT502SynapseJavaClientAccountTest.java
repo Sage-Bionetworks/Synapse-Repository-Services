@@ -5,8 +5,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.UUID;
 
 import org.junit.After;
@@ -19,8 +17,8 @@ import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
-import org.sagebionetworks.repo.manager.S3TestUtils;
 import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.principal.AccountSetupInfo;
@@ -28,6 +26,8 @@ import org.sagebionetworks.repo.model.principal.AddEmailInfo;
 import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
 import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
 import org.sagebionetworks.repo.model.principal.AliasType;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasRequest;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasResponse;
 
 public class IT502SynapseJavaClientAccountTest {
 	private static SynapseAdminClient adminSynapse;
@@ -155,6 +155,15 @@ public class IT502SynapseJavaClientAccountTest {
 		assertTrue(response.getValid());
 		assertFalse("The 'public' group name should already have this alias so it cannot be available!",response.getAvailable());
 	}
-	
+
+	@Test
+	public void testGetPrincipalAlias() throws Exception {
+		PrincipalAliasRequest request = new PrincipalAliasRequest();
+		request.setAlias("anonymous");
+		request.setType(AliasType.USER_NAME);
+		PrincipalAliasResponse response = synapseOne.getPrincipalAlias(request);
+		assertNotNull(response);
+		assertEquals(response.getPrincipalId(), BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+	}
 
 }

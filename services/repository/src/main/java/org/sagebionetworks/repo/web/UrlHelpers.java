@@ -167,6 +167,7 @@ public class UrlHelpers {
 	public static final String ACCOUNT_ID_EMAIL_VALIDATION = ACCOUNT+ID+EMAIL_VALIDATION;
 	public static final String EMAIL = "/email";
 	public static final String NOTIFICATION_EMAIL = "/notificationEmail";
+	public static final String PRINCIPAL_ALIAS = PRINCIPAL + "/alias";
 	/**
 	 * All of the base URLs for Synapse object batch requests
 	 */

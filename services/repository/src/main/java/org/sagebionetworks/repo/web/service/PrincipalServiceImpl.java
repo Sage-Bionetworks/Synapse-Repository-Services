@@ -11,6 +11,8 @@ import org.sagebionetworks.repo.model.principal.AccountSetupInfo;
 import org.sagebionetworks.repo.model.principal.AddEmailInfo;
 import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
 import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasRequest;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasResponse;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -126,6 +128,11 @@ public class PrincipalServiceImpl implements PrincipalService {
 	public Username getNotificationEmail(Long userId) throws NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return principalManager.getNotificationEmail(userInfo);
+	}
+
+	@Override
+	public PrincipalAliasResponse getPrincipalAlias(PrincipalAliasRequest request) {
+		return principalManager.lookupPrincipalId(request);
 	}
 
 }

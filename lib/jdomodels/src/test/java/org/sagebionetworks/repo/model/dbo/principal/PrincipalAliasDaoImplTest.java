@@ -421,5 +421,30 @@ public class PrincipalAliasDaoImplTest {
 			}
 		}
 	}
-	
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testGetPrincipalIdWithNullAlias() {
+		principalAliasDao.lookupPrincipalID(null, AliasType.USER_NAME);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testGetPrincipalIdWithEmptyAlias() {
+		principalAliasDao.lookupPrincipalID("", AliasType.USER_NAME);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testGetPrincipalIdWithNullType() {
+		principalAliasDao.lookupPrincipalID("anonymous", null);
+	}
+
+	@Test
+	public void testGetPrincipalId() {
+		String username = UUID.randomUUID().toString();
+		PrincipalAlias alias = new PrincipalAlias();
+		alias.setAlias(username);
+		alias.setType(AliasType.USER_NAME);
+		alias.setPrincipalId(principalId);
+		String toLookup = principalAliasDao.bindAliasToPrincipal(alias).getAlias()+" ";
+		assertEquals(principalId, (Long)principalAliasDao.lookupPrincipalID(toLookup, AliasType.USER_NAME));
+	}
 }

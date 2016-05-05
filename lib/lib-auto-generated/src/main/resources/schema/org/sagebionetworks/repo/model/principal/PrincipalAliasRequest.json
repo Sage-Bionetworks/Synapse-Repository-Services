@@ -1,0 +1,13 @@
+{
+	"description": "The request to look a principal alias up",
+	"properties": {
+		"alias": {
+			"type": "string",
+			"description": "The alias to bind to the principal"
+		},
+		"type": {
+			"$ref": "org.sagebionetworks.repo.model.principal.AliasType",
+			"description": "The type of alias being bound"
+		}
+	}
+}

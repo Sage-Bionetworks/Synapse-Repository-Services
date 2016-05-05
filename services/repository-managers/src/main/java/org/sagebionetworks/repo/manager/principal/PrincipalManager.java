@@ -8,6 +8,8 @@ import org.sagebionetworks.repo.model.auth.Username;
 import org.sagebionetworks.repo.model.principal.AccountSetupInfo;
 import org.sagebionetworks.repo.model.principal.AddEmailInfo;
 import org.sagebionetworks.repo.model.principal.AliasType;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasRequest;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasResponse;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface PrincipalManager {
@@ -94,4 +96,12 @@ public interface PrincipalManager {
 	 * @throws NotFoundException
 	 */
 	Username getNotificationEmail(UserInfo userInfo) throws NotFoundException;
+
+	/**
+	 * Get the principalId for the given alias and alias type
+	 * 
+	 * @param alias
+	 * @return
+	 */
+	PrincipalAliasResponse lookupPrincipalId(PrincipalAliasRequest alias);
 }
