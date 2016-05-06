@@ -55,4 +55,17 @@ public class DerivedColumnTest {
 		DerivedColumn element = SqlElementUntils.createDerivedColumn("1.23");
 		assertEquals("1.23", element.getColumnName());
 	}
+	
+	@Test
+	public void testGetNameWithAs() throws ParseException{
+		DerivedColumn element = SqlElementUntils.createDerivedColumn("'bar' as foo");
+		assertEquals("foo", element.getColumnName());
+	}
+	
+	@Test
+	public void testGetNameWithAsAndFunction() throws ParseException{
+		DerivedColumn element = SqlElementUntils.createDerivedColumn("count(bar) as foo");
+		assertEquals("foo", element.getColumnName());
+	}
+	
 }

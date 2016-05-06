@@ -50,8 +50,6 @@ public class AsClause extends SQLElement {
 
 	@Override
 	<T extends Element> void addElements(List<T> elements, Class<T> type) {
-		if(type.isInstance(columnName)){
-			elements.add((T) columnName);
-		}
+		checkElement(elements, type, columnName);
 	}
 }
