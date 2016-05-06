@@ -1,5 +1,7 @@
 package org.sagebionetworks.table.query.model;
 
+import java.util.List;
+
 import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor;
 import org.sagebionetworks.table.query.model.visitors.Visitor;
 
@@ -55,5 +57,24 @@ public class BetweenPredicate extends SQLElement {
 		visitor.append(" AND ");
 		visit(andRowValueConstructorRHS, visitor);
 		visitor.setLHSColumn(null);
+	}
+
+	@Override
+	public void toSql(StringBuilder builder) {
+		columnReferenceLHS.toSql(builder);
+		if(not != null){
+			builder.append(" NOT");
+		}
+		builder.append(" BETWEEN ");
+		betweenRowValueConstructor.toSql(builder);
+		builder.append(" AND ");
+		andRowValueConstructorRHS.toSql(builder);
+	}
+
+	@Override
+	<T extends Element> void addElements(List<T> elements, Class<T> type) {
+		checkElement(elements, type, columnReferenceLHS);
+		checkElement(elements, type, betweenRowValueConstructor);
+		checkElement(elements, type, andRowValueConstructorRHS);
 	}
 }

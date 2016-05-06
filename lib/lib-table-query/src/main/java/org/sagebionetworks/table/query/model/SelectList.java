@@ -56,4 +56,29 @@ public class SelectList extends SQLElement {
 		}
 		visitor.popCurrentClause(SQLClause.SELECT);
 	}
+
+	@Override
+	public void toSql(StringBuilder builder) {
+		if(asterisk != null){
+			builder.append("*");
+		}else{
+			boolean first = true;
+			for(DerivedColumn dc: columns){
+				if(!first){
+					builder.append(", ");
+				}
+				dc.toSql(builder);
+				first = false;
+			}
+		}
+	}
+
+	@Override
+	<T extends Element> void addElements(List<T> elements, Class<T> type) {
+		if(columns != null){
+			for(DerivedColumn dc: columns){
+				checkElement(elements, type, dc);
+			}
+		}
+	}
 }

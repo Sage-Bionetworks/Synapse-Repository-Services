@@ -1,5 +1,7 @@
 package org.sagebionetworks.table.query.model;
 
+import java.util.List;
+
 import org.sagebionetworks.table.query.model.visitors.GetTableNameVisitor;
 import org.sagebionetworks.table.query.model.visitors.IsAggregateVisitor;
 import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor;
@@ -8,7 +10,7 @@ import org.sagebionetworks.table.query.model.visitors.Visitor;
 /**
  * This matches &lttable expression&gt   in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
  */
-public class TableExpression extends SQLElement {
+public class TableExpression extends SQLElement implements HasAggregate {
 
 	FromClause fromClause;
 	WhereClause whereClause;
@@ -80,13 +82,42 @@ public class TableExpression extends SQLElement {
 		}
 	}
 
-	public void visit(IsAggregateVisitor visitor) {
-		if (groupByClause != null) {
-			visitor.setIsAggregate();
+	public void visit(GetTableNameVisitor visitor) {
+		visit(fromClause, visitor);
+	}
+
+	@Override
+	public void toSql(StringBuilder builder) {
+		fromClause.toSql(builder);
+		if(whereClause != null){
+			builder.append(" ");
+			whereClause.toSql(builder);
+		}
+		if(groupByClause != null){
+			builder.append(" ");
+			groupByClause.toSql(builder);
+		}
+		if(orderByClause != null){
+			builder.append(" ");
+			orderByClause.toSql(builder);
+		}
+		if(pagination != null){
+			builder.append(" ");
+			pagination.toSql(builder);
 		}
 	}
 
-	public void visit(GetTableNameVisitor visitor) {
-		visit(fromClause, visitor);
+	@Override
+	<T extends Element> void addElements(List<T> elements, Class<T> type) {
+		checkElement(elements, type, fromClause);
+		checkElement(elements, type, whereClause);
+		checkElement(elements, type, groupByClause);
+		checkElement(elements, type, orderByClause);
+		checkElement(elements, type, pagination);
+	}
+
+	@Override
+	public boolean isAggregate() {
+		return groupByClause != null;
 	}
 }

@@ -1,5 +1,7 @@
 package org.sagebionetworks.table.query.model;
 
+import java.util.List;
+
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.table.query.model.visitors.ColumnTypeVisitor;
 import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor;
@@ -10,7 +12,7 @@ import org.sagebionetworks.table.query.model.visitors.Visitor;
 /**
  * This matches &lt;signed literal&gt; in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
  */
-public class SignedLiteral extends SQLElement {
+public class SignedLiteral extends SQLElement implements HasUnquotedValue {
 
 	String signedNumericLiteral;
 	String generalLiteral;
@@ -67,4 +69,31 @@ public class SignedLiteral extends SQLElement {
 			visitor.setColumnType(ColumnType.STRING);
 		}
 	}
+
+	@Override
+	public void toSql(StringBuilder builder) {
+		if (signedNumericLiteral != null) {
+			builder.append(signedNumericLiteral);
+		} else {
+			// General literals have single quotes
+			builder.append("'");
+			builder.append(this.generalLiteral.replaceAll("'", "''"));
+			builder.append("'");
+		}
+	}
+
+	@Override
+	public String getUnquotedValue() {
+		if (signedNumericLiteral != null) {
+			return signedNumericLiteral;
+		} else {
+			return generalLiteral;
+		}
+	}
+
+	@Override
+	<T extends Element> void addElements(List<T> elements, Class<T> type) {
+		// this element does not contain any SQLElements
+	}
+	
 }

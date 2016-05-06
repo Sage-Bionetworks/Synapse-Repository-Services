@@ -69,7 +69,7 @@ public class SQLTranslatorUtils {
 			List<SelectColumnAndModel> selectColumnModels = Lists.newArrayListWithCapacity(selectList.getColumns().size());
 			for (DerivedColumn dc : selectList.getColumns()) {
 				SelectColumn selectColumn = new SelectColumn();
-				selectColumn.setName(dc.doVisit(new ToNameStringVisitor()).getName());
+				selectColumn.setName(dc.getColumnName());
 
 				ColumnTypeVisitor visitor = new ColumnTypeVisitor(columnNameToModelMap, isAggregatedResult);
 				dc.doVisit(visitor);

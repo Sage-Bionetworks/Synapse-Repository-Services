@@ -1,5 +1,7 @@
 package org.sagebionetworks.table.query.model;
 
+import java.util.List;
+
 import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor;
 import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor.SQLClause;
 import org.sagebionetworks.table.query.model.visitors.Visitor;
@@ -26,5 +28,16 @@ public class OrderByClause extends SQLElement {
 		visitor.pushCurrentClause(SQLClause.ORDER_BY);
 		visit(sortSpecificationList, visitor);
 		visitor.popCurrentClause(SQLClause.ORDER_BY);
+	}
+
+	@Override
+	public void toSql(StringBuilder builder) {
+		builder.append("ORDER BY ");
+		sortSpecificationList.toSql(builder);
+	}
+
+	@Override
+	<T extends Element> void addElements(List<T> elements, Class<T> type) {
+		checkElement(elements, type, sortSpecificationList);
 	}
 }

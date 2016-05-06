@@ -1,5 +1,7 @@
 package org.sagebionetworks.table.query.model;
 
+import java.util.List;
+
 import org.sagebionetworks.table.query.model.visitors.Visitor;
 
 /**
@@ -19,5 +21,15 @@ public class GroupingColumnReference extends SQLElement {
 
 	public void visit(Visitor visitor) {
 		visit(columnReference, visitor);
+	}
+
+	@Override
+	public void toSql(StringBuilder builder) {
+		columnReference.toSql(builder);
+	}
+
+	@Override
+	<T extends Element> void addElements(List<T> elements, Class<T> type) {
+		checkElement(elements, type, columnReference);
 	}
 }

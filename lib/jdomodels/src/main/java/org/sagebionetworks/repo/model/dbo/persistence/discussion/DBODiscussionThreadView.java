@@ -15,28 +15,18 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
 public class DBODiscussionThreadView implements MigratableDatabaseObject<DBODiscussionThreadView, DBODiscussionThreadView>{
 
 	private static final FieldColumn[] FIELDS = new FieldColumn[] {
-		new FieldColumn("id", COL_DISCUSSION_THREAD_VIEW_ID, false).withIsBackupId(true),
-		new FieldColumn("threadId", COL_DISCUSSION_THREAD_VIEW_THREAD_ID, true),
+		new FieldColumn("threadId", COL_DISCUSSION_THREAD_VIEW_THREAD_ID, true).withIsBackupId(true),
 		new FieldColumn("userId", COL_DISCUSSION_THREAD_VIEW_USER_ID, true),
 	};
 
-	private Long id;
 	private Long threadId;
 	private Long userId;
-
-	@Override
-	public String toString() {
-		return "DBODiscussionThreadView [id=" + id + ", threadId=" + threadId
-				+ ", userId=" + userId + "]";
-	}
 
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + ((id == null) ? 0 : id.hashCode());
-		result = prime * result
-				+ ((threadId == null) ? 0 : threadId.hashCode());
+		result = prime * result + ((threadId == null) ? 0 : threadId.hashCode());
 		result = prime * result + ((userId == null) ? 0 : userId.hashCode());
 		return result;
 	}
@@ -50,11 +40,6 @@ public class DBODiscussionThreadView implements MigratableDatabaseObject<DBODisc
 		if (getClass() != obj.getClass())
 			return false;
 		DBODiscussionThreadView other = (DBODiscussionThreadView) obj;
-		if (id == null) {
-			if (other.id != null)
-				return false;
-		} else if (!id.equals(other.id))
-			return false;
 		if (threadId == null) {
 			if (other.threadId != null)
 				return false;
@@ -68,12 +53,9 @@ public class DBODiscussionThreadView implements MigratableDatabaseObject<DBODisc
 		return true;
 	}
 
-	public Long getId() {
-		return id;
-	}
-
-	public void setId(Long id) {
-		this.id = id;
+	@Override
+	public String toString() {
+		return "DBODiscussionThreadView [threadId=" + threadId + ", userId=" + userId + "]";
 	}
 
 	public Long getThreadId() {
@@ -100,7 +82,6 @@ public class DBODiscussionThreadView implements MigratableDatabaseObject<DBODisc
 			public DBODiscussionThreadView mapRow(ResultSet rs, int rowNum)
 					throws SQLException {
 				DBODiscussionThreadView dbo = new DBODiscussionThreadView();
-				dbo.setId(rs.getLong(COL_DISCUSSION_THREAD_VIEW_ID));
 				dbo.setThreadId(rs.getLong(COL_DISCUSSION_THREAD_VIEW_THREAD_ID));
 				dbo.setUserId(rs.getLong(COL_DISCUSSION_THREAD_VIEW_USER_ID));
 				return dbo;

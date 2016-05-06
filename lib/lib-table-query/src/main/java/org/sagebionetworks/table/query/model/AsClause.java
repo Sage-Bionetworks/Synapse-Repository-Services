@@ -1,5 +1,7 @@
 package org.sagebionetworks.table.query.model;
 
+import java.util.List;
+
 import org.sagebionetworks.table.query.model.visitors.ToNameStringVisitor;
 import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor;
 import org.sagebionetworks.table.query.model.visitors.ToTranslatedSqlVisitor;
@@ -38,5 +40,18 @@ public class AsClause extends SQLElement {
 
 	public void visit(ToNameStringVisitor visitor) {
 		visit(this.columnName, visitor);
+	}
+
+	@Override
+	public void toSql(StringBuilder builder) {
+		builder.append("AS ");
+		columnName.toSql(builder);
+	}
+
+	@Override
+	<T extends Element> void addElements(List<T> elements, Class<T> type) {
+		if(type.isInstance(columnName)){
+			elements.add((T) columnName);
+		}
 	}
 }

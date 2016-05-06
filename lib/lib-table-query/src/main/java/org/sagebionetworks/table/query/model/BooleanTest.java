@@ -1,5 +1,7 @@
 package org.sagebionetworks.table.query.model;
 
+import java.util.List;
+
 import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor;
 import org.sagebionetworks.table.query.model.visitors.Visitor;
 
@@ -52,5 +54,22 @@ public class BooleanTest extends SQLElement {
 			}
 			visitor.append(this.truthValue.name());
 		}
+	}
+
+	@Override
+	public void toSql(StringBuilder builder) {
+		booleanPrimary.toSql(builder);
+		if(is != null){
+			builder.append(" IS ");
+			if(not != null){
+				builder.append("NOT ");
+			}
+			builder.append(this.truthValue.name());
+		}
+	}
+
+	@Override
+	<T extends Element> void addElements(List<T> elements, Class<T> type) {
+		checkElement(elements, type, booleanPrimary);
 	}
 }

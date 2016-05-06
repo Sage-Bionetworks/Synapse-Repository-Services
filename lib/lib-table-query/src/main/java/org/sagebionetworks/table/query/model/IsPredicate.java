@@ -39,4 +39,14 @@ public abstract class IsPredicate extends SQLElement {
 		}
 		visitor.append(getCompareValue());
 	}
+	
+	@Override
+	public void toSql(StringBuilder builder) {
+		columnReferenceLHS.toSql(builder);
+		builder.append(" IS ");
+		if (not != null) {
+			builder.append("NOT ");
+		}
+		builder.append(getCompareValue());
+	}
 }

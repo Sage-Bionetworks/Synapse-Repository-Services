@@ -314,7 +314,6 @@ public class MigratableTableDAOImplAutowireTest {
 		expectedPrimaryTypes.add(MigrationType.VERIFICATION_STATE);
 		expectedPrimaryTypes.add(MigrationType.FORUM);
 		expectedPrimaryTypes.add(MigrationType.DISCUSSION_THREAD);
-		expectedPrimaryTypes.add(MigrationType.DISCUSSION_THREAD_VIEW);
 		expectedPrimaryTypes.add(MigrationType.DISCUSSION_REPLY);
 		expectedPrimaryTypes.add(MigrationType.SUBSCRIPTION);
 		expectedPrimaryTypes.add(MigrationType.BROADCAST_MESSAGE);

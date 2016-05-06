@@ -46,4 +46,23 @@ public class SortSpecificationList extends SQLElement {
 			first = false;
 		}
 	}
+
+	@Override
+	public void toSql(StringBuilder builder) {
+		boolean first = true;
+		for(SortSpecification sortSpecification: sortSpecifications){
+			if(!first){
+				builder.append(", ");
+			}
+			sortSpecification.toSql(builder);
+			first = false;
+		}
+	}
+
+	@Override
+	<T extends Element> void addElements(List<T> elements, Class<T> type) {
+		for(SortSpecification sortSpecification: sortSpecifications){
+			checkElement(elements, type, sortSpecification);
+		}
+	}
 }
