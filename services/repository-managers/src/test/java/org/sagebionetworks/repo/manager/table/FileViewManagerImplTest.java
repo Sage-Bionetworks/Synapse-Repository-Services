@@ -54,6 +54,7 @@ public class FileViewManagerImplTest {
 	Set<Long> scopeIds;
 	long rowCount;
 	List<Row> rows;
+	long viewCRC;
 
 	@Before
 	public void before(){
@@ -81,7 +82,7 @@ public class FileViewManagerImplTest {
 		
 		when(tableManagerSupport.getAllContainerIdsForViewScope(viewId)).thenReturn(scopeIds);
 		
-		rowCount = 100;
+		rowCount = 13;
 		rows = new LinkedList<Row>();
 		for(long i=0; i<rowCount; i++){
 			Row row = new Row();
@@ -99,6 +100,10 @@ public class FileViewManagerImplTest {
 				}
 				return null;
 			}}).when(fileViewDao).streamOverFileEntities(any(Set.class), any(List.class), any(RowHandler.class));
+		
+		viewCRC = 999L;
+		when(fileViewDao.countAllFilesInView(any(Set.class))).thenReturn(rowCount);
+		when(fileViewDao.calculateCRCForAllFilesWithinContainers(any(Set.class))).thenReturn(viewCRC);
 		
 	}
 	
@@ -147,7 +152,7 @@ public class FileViewManagerImplTest {
 		// the results should contain both ID and benefactor.
 		List<ColumnModel> expected = Lists.newArrayList(FileEntityFields.id.getColumnModel(), FileEntityFields.benefactorId.getColumnModel());
 		// call under test
-		List<ColumnModel> results = manager.getViewSchema(viewId);
+		List<ColumnModel> results = manager.getViewSchemaWithBenefactor(viewId);
 		assertEquals(expected, results);
 	}
 	
@@ -158,17 +163,61 @@ public class FileViewManagerImplTest {
 		// the results should contain both ID and benefactor.
 		List<ColumnModel> expected = Lists.newArrayList(FileEntityFields.id.getColumnModel(), FileEntityFields.benefactorId.getColumnModel());
 		// call under test
-		List<ColumnModel> results = manager.getViewSchema(viewId);
+		List<ColumnModel> results = manager.getViewSchemaWithBenefactor(viewId);
 		assertEquals(expected, results);
 	}
 	
 	@Test
-	public void testStreamOverAllFilesInViewAsBatch(){
+	public void testStreamOverAllFilesInViewAsBatchRowsLessThanBatch(){
 		List<ColumnModel> schema = FileEntityFields.getAllColumnModels();
-		long viewCRC = 999L;
-		when(fileViewDao.countAllFilesInView(any(Set.class))).thenReturn(rowCount);
-		when(fileViewDao.calculateCRCForAllFilesWithinContainers(any(Set.class))).thenReturn(viewCRC);
-		final int rowsPerBatch = 3;
+
+		final int rowsPerBatch = (int)(rowCount-1);
+		final List<Row> gatheredRows = new LinkedList<Row>();
+		// call under test
+		long crcResult = manager.streamOverAllFilesInViewAsBatch(viewId, schema, rowsPerBatch, new RowBatchHandler() {
+			
+			long count = 0;
+			@Override
+			public void nextBatch(List<Row> batch, long currentProgress,
+					long totalProgress) {
+				gatheredRows.addAll(batch);
+				count += batch.size();
+				assertEquals(count, currentProgress);
+				assertEquals(rowCount, totalProgress);
+			}
+		});
+		assertEquals(viewCRC, crcResult);
+		//  all row should be gathered
+		assertEquals(rows, gatheredRows);
+	}
+	
+	@Test
+	public void testStreamOverAllFilesInViewAsBatchRowsGreaterThanBatch(){
+		List<ColumnModel> schema = FileEntityFields.getAllColumnModels();
+		final int rowsPerBatch = (int) (rowCount+1);
+		final List<Row> gatheredRows = new LinkedList<Row>();
+		// call under test
+		long crcResult = manager.streamOverAllFilesInViewAsBatch(viewId, schema, rowsPerBatch, new RowBatchHandler() {
+			
+			long count = 0;
+			@Override
+			public void nextBatch(List<Row> batch, long currentProgress,
+					long totalProgress) {
+				gatheredRows.addAll(batch);
+				count += batch.size();
+				assertEquals(count, currentProgress);
+				assertEquals(rowCount, totalProgress);
+			}
+		});
+		assertEquals(viewCRC, crcResult);
+		//  all row should be gathered
+		assertEquals(rows, gatheredRows);
+	}
+	
+	@Test
+	public void testStreamOverAllFilesInViewAsBatchRowsEqualsToBatch(){
+		List<ColumnModel> schema = FileEntityFields.getAllColumnModels();
+		final int rowsPerBatch = (int) (rowCount);
 		final List<Row> gatheredRows = new LinkedList<Row>();
 		// call under test
 		long crcResult = manager.streamOverAllFilesInViewAsBatch(viewId, schema, rowsPerBatch, new RowBatchHandler() {

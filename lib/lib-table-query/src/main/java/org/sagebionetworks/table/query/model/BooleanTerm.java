@@ -45,4 +45,23 @@ public class BooleanTerm extends SQLElement {
 			isFirst = false;
 		}
 	}
+
+	@Override
+	public void toSql(StringBuilder builder) {
+		boolean isFirst = true;
+		for(BooleanFactor booleanFactor: andBooleanFactors){
+			if (!isFirst) {
+				builder.append(" AND ");
+			}
+			booleanFactor.toSql(builder);
+			isFirst = false;
+		}
+	}
+
+	@Override
+	<T extends Element> void addElements(List<T> elements, Class<T> type) {
+		for(BooleanFactor booleanFactor: andBooleanFactors){
+			checkElement(elements, type, booleanFactor);
+		}
+	}
 }

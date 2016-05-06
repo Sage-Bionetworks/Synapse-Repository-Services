@@ -50,9 +50,7 @@ public class ToTranslatedSqlVisitorImpl extends ToTranslatedSqlVisitor {
 	 */
 	@Override
 	public void convertColumn(ColumnReference columnReference) {
-		ToNameStringVisitor nameVisitor = new ToNameStringVisitor();
-		columnReference.getNameRHS().doVisit(nameVisitor);
-		String columnName = nameVisitor.getName();
+		String columnName = columnReference.getNameRHS().getUnquotedValue();
 		// Is this a reserved column name like ROW_ID or ROW_VERSION?
 		if (TableConstants.isReservedColumnName(columnName)) {
 			// use the returned reserve name in destination SQL.
@@ -71,9 +69,7 @@ public class ToTranslatedSqlVisitorImpl extends ToTranslatedSqlVisitor {
 			} else {
 				String subName = "";
 				if (columnReference.getNameLHS() != null) {
-					ToNameStringVisitor leftNameVisitor = new ToNameStringVisitor();
-					columnReference.getNameLHS().doVisit(leftNameVisitor);
-					subName = leftNameVisitor.getName();
+					subName = columnReference.getNameLHS().getUnquotedValue();
 					// Remove double quotes if they are included.
 					subName = subName.replaceAll("\"", "") + "_";
 				}
@@ -98,9 +94,7 @@ public class ToTranslatedSqlVisitorImpl extends ToTranslatedSqlVisitor {
 	 */
 	@Override
 	public void handleFunction(BooleanFunction booleanFunction, ColumnReference columnReference) {
-		ToNameStringVisitor nameVisitor = new ToNameStringVisitor();
-		columnReference.getNameRHS().doVisit(nameVisitor);
-		String columnName = nameVisitor.getName();
+		String columnName = columnReference.getNameRHS().getUnquotedValue();
 		// Is this a reserved column name like ROW_ID or ROW_VERSION?
 		if (TableConstants.isReservedColumnName(columnName)) {
 			throw new IllegalArgumentException("Cannot apply " + booleanFunction + " on reserved column " + columnName);
@@ -117,9 +111,7 @@ public class ToTranslatedSqlVisitorImpl extends ToTranslatedSqlVisitor {
 
 		String subName = "";
 		if (columnReference.getNameLHS() != null) {
-			ToNameStringVisitor leftNameVisitor = new ToNameStringVisitor();
-			columnReference.getNameLHS().doVisit(leftNameVisitor);
-			subName = leftNameVisitor.getName();
+			subName = columnReference.getNameLHS().getUnquotedValue();
 			// Remove double quotes if they are included.
 			subName = subName.replaceAll("\"", "") + "_";
 		}
@@ -152,9 +144,7 @@ public class ToTranslatedSqlVisitorImpl extends ToTranslatedSqlVisitor {
 		if (columnReferenceLHS == null) {
 			this.columnModelLHS = null;
 		} else {
-			ToNameStringVisitor nameVisitor = new ToNameStringVisitor();
-			columnReferenceLHS.getNameRHS().doVisit(nameVisitor);
-			String columnName = nameVisitor.getName();
+			String columnName = columnReferenceLHS.getNameRHS().getUnquotedValue();
 			// Is this a reserved column name like ROW_ID or ROW_VERSION?
 			if (TableConstants.isReservedColumnName(columnName)) {
 				this.columnModelLHS = null;
@@ -173,9 +163,7 @@ public class ToTranslatedSqlVisitorImpl extends ToTranslatedSqlVisitor {
 	 */
 	@Override
 	public void addAsColumn(ColumnName columnName) {
-		ToNameStringVisitor nameVisitor = new ToNameStringVisitor();
-		columnName.doVisit(nameVisitor);
-		asColumns.add(nameVisitor.getName());
+		asColumns.add(columnName.getUnquotedValue());
 	}
 
 	/**

@@ -120,7 +120,7 @@ public class FileViewWorkerTest {
 			rows.add(row);
 		}
 
-		when(tableViewManager.getViewSchema(tableId)).thenReturn(schema);
+		when(tableViewManager.getViewSchemaWithBenefactor(tableId)).thenReturn(schema);
 		viewCRC = 888L;
 		doAnswer(new Answer<Long>(){
 			@Override

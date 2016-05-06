@@ -1,11 +1,13 @@
 package org.sagebionetworks.table.query.model;
 
+import java.util.List;
+
 import org.sagebionetworks.table.query.model.visitors.Visitor;
 
 /**
  * This matches &lt;signed value specification&gt; in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
  */
-public class SignedValueSpecification extends SQLElement {
+public class SignedValueSpecification extends SQLElement implements HasUnquotedValue {
 
 	SignedLiteral signedLiteral;
 
@@ -20,5 +22,20 @@ public class SignedValueSpecification extends SQLElement {
 
 	public void visit(Visitor visitor) {
 		visit(this.signedLiteral, visitor);
+	}
+
+	@Override
+	public void toSql(StringBuilder builder) {
+		signedLiteral.toSql(builder);
+	}
+
+	@Override
+	public String getUnquotedValue() {
+		return signedLiteral.getUnquotedValue();
+	}
+
+	@Override
+	<T extends Element> void addElements(List<T> elements, Class<T> type) {
+		checkElement(elements, type, signedLiteral);
 	}
 }

@@ -1,5 +1,7 @@
 package org.sagebionetworks.table.query.model;
 
+import java.util.List;
+
 import org.sagebionetworks.table.query.model.visitors.ToNameStringVisitor;
 import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor;
 import org.sagebionetworks.table.query.model.visitors.Visitor;
@@ -48,4 +50,44 @@ public class DerivedColumn extends SQLElement {
 			visit(valueExpression, visitor);
 		}
 	}
+
+	@Override
+	public void toSql(StringBuilder builder) {
+		valueExpression.toSql(builder);
+		if(asClause!= null){
+			builder.append(" ");
+			asClause.toSql(builder);
+		}
+	}
+
+	@Override
+	<T extends Element> void addElements(List<T> elements, Class<T> type) {
+		checkElement(elements, type, asClause);
+		checkElement(elements, type, valueExpression);
+	}
+
+	/**
+	 * Get the name of this column.
+	 * 
+	 * @return
+	 */
+	public String getColumnName() {
+		if(asClause != null){
+			return asClause.getFirstElementOfType(ActualIdentifier.class).getUnquotedValue();
+		}
+		// For any aggregate without an as, use the function SQL.
+		if(isAggregateElement()){
+			return toSql();
+		}
+		// If this has a string literal, then we need the unquoted value.
+		SignedLiteral signedLiteral = getFirstElementOfType(SignedLiteral.class);
+		if(signedLiteral != null){
+			// For columns with signedLiterals the name is the unquoted value.
+			return signedLiteral.getUnquotedValue();
+		}else{
+			// For all all others the name is just the SQL.
+			return toSql();
+		}
+	}
+	
 }

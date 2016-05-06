@@ -1,5 +1,7 @@
 package org.sagebionetworks.table.query.model;
 
+import java.util.List;
+
 import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor;
 import org.sagebionetworks.table.query.model.visitors.Visitor;
 
@@ -33,5 +35,17 @@ public class SortSpecification extends SQLElement {
 			visitor.append(" ");
 			visitor.append(orderingSpecification.name());
 		}
+	}
+	@Override
+	public void toSql(StringBuilder builder) {
+		sortKey.toSql(builder);
+		if(orderingSpecification != null){
+			builder.append(" ");
+			builder.append(orderingSpecification.name());
+		}
+	}
+	@Override
+	<T extends Element> void addElements(List<T> elements, Class<T> type) {
+		checkElement(elements, type, sortKey);
 	}
 }

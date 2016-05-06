@@ -46,4 +46,23 @@ public class SearchCondition extends SQLElement {
 			isFirst = false;
 		}
 	}
+
+	@Override
+	public void toSql(StringBuilder builder) {
+		boolean isFirst = true;
+		for (BooleanTerm booleanTerm : orBooleanTerms) {
+			if (!isFirst) {
+				builder.append(" OR ");
+			}
+			booleanTerm.toSql(builder);
+			isFirst = false;
+		}
+	}
+
+	@Override
+	<T extends Element> void addElements(List<T> elements, Class<T> type) {
+		for (BooleanTerm booleanTerm : orBooleanTerms) {
+			checkElement(elements, type, booleanTerm);
+		}
+	}
 }

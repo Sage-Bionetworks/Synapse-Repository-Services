@@ -1,5 +1,7 @@
 package org.sagebionetworks.table.query.model;
 
+import java.util.List;
+
 import org.sagebionetworks.table.query.model.visitors.Visitor;
 
 /**
@@ -33,4 +35,20 @@ public class ValueExpression extends SQLElement {
 			visit(this.numericValueExpression, visitor);
 		}
 	}
+
+	@Override
+	public void toSql(StringBuilder builder) {
+		if (this.stringValueExpression != null) {
+			stringValueExpression.toSql(builder);
+		} else {
+			numericValueExpression.toSql(builder);
+		}
+	}
+
+	@Override
+	<T extends Element> void addElements(List<T> elements, Class<T> type) {
+		checkElement(elements, type, stringValueExpression);
+		checkElement(elements, type, numericValueExpression);
+	}
+
 }

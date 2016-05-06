@@ -131,13 +131,11 @@ public class SqlQuery {
 					this.model.getTableExpression());
 		}
 
-		IsAggregateVisitor visitor = new IsAggregateVisitor();
-		model.doVisit(visitor);
-		this.isAggregatedResult = visitor.isAggregate();
+		this.isAggregatedResult = model.isAggregateElement();
 
 		QuerySpecification expandedSelectList = this.model;
 		if (!this.isAggregatedResult) {
-			// we need to add the row count and row version colums
+			// we need to add the row count and row version columns
 			SelectList selectList = expandedSelectList.getSelectList();
 			List<DerivedColumn> selectColumns = Lists.newArrayListWithCapacity(selectList.getColumns().size() + 2);
 			selectColumns.addAll(selectList.getColumns());

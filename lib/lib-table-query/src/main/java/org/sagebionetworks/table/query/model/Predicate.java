@@ -1,5 +1,7 @@
 package org.sagebionetworks.table.query.model;
 
+import java.util.List;
+
 import org.sagebionetworks.table.query.model.visitors.Visitor;
 
 /**
@@ -78,5 +80,34 @@ public class Predicate extends SQLElement {
 		} else {
 			throw new IllegalArgumentException("no predicate defined");
 		}
+	}
+
+	@Override
+	public void toSql(StringBuilder builder) {
+		if (comparisonPredicate != null) {
+			comparisonPredicate.toSql(builder);
+		} else if (betweenPredicate != null) {
+			betweenPredicate.toSql(builder);
+		} else if (inPredicate != null) {
+			inPredicate.toSql(builder);
+		} else if (likePredicate != null) {
+			likePredicate.toSql(builder);
+		} else if (isPredicate != null) {
+			isPredicate.toSql(builder);
+		} else if (booleanFunctionPredicate != null) {
+			booleanFunctionPredicate.toSql(builder);
+		} else {
+			throw new IllegalArgumentException("no predicate defined");
+		}
+	}
+
+	@Override
+	<T extends Element> void addElements(List<T> elements, Class<T> type) {
+		checkElement(elements, type, comparisonPredicate);
+		checkElement(elements, type, betweenPredicate);
+		checkElement(elements, type, inPredicate);
+		checkElement(elements, type, likePredicate);
+		checkElement(elements, type, isPredicate);
+		checkElement(elements, type, booleanFunctionPredicate);
 	}
 }

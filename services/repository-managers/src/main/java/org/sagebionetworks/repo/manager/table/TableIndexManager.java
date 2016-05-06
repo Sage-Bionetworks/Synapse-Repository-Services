@@ -70,6 +70,8 @@ public interface TableIndexManager {
 	 * tracked and only newer versions will actually be applied to the index
 	 * when called.
 	 * 
+	 * This method should only be used for TableEntities and not FileViews.
+	 * 
 	 * @param rowset
 	 *            Rowset to apply.
 	 * @param currentSchema

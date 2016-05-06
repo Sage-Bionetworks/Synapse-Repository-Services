@@ -60,7 +60,7 @@ public interface FileViewManager {
 	 * @param viewId
 	 * @return
 	 */
-	 List<ColumnModel> getViewSchema(String viewId);
+	 List<ColumnModel> getViewSchemaWithBenefactor(String viewId);
 
 
 }
