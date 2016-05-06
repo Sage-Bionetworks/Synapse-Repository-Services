@@ -78,4 +78,16 @@ public class QuerySpecificationTest {
 		assertEquals("SELECT FOUND_ROWS() FROM syn123", element.toString());
 		assertEquals("syn123", element.doVisit(new GetTableNameVisitor()).getTableName());
 	}
+	
+	@Test
+	public void testIsAggregateNoDistinct() throws ParseException{
+		QuerySpecification element = new TableQueryParser("select * from syn123").querySpecification();
+		assertFalse(element.isAggregate());
+	}
+	
+	@Test
+	public void testIsAggregateDistinct() throws ParseException{
+		QuerySpecification element = new TableQueryParser("select distinct three, four from syn123").querySpecification();
+		assertTrue(element.isAggregate());
+	}
 }

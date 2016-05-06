@@ -1,5 +1,7 @@
 package org.sagebionetworks.table.query.model;
 
+import java.util.List;
+
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.table.query.model.visitors.ColumnTypeVisitor;
 import org.sagebionetworks.table.query.model.visitors.IsAggregateVisitor;
@@ -10,7 +12,7 @@ import org.sagebionetworks.table.query.model.visitors.Visitor;
 /**
  * This matches &ltset function specification&gt   in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
  */
-public class SetFunctionSpecification extends SQLElement {
+public class SetFunctionSpecification extends SQLElement implements HasAggregate {
 	
 	Boolean countAsterisk;
 	SetFunctionType setFunctionType;
@@ -66,10 +68,6 @@ public class SetFunctionSpecification extends SQLElement {
 		}
 	}
 
-	public void visit(IsAggregateVisitor visitor) {
-		visitor.setIsAggregate();
-	}
-
 	public void visit(ColumnTypeVisitor visitor) {
 		if (countAsterisk != null) {
 			visitor.setColumnType(ColumnType.INTEGER);
@@ -100,5 +98,31 @@ public class SetFunctionSpecification extends SQLElement {
 				throw new IllegalArgumentException("unhandled set function type");
 			}
 		}
+	}
+
+	@Override
+	public void toSql(StringBuilder builder) {
+		if (countAsterisk != null) {
+			builder.append("COUNT(*)");
+		} else {
+			builder.append(setFunctionType.name());
+			builder.append("(");
+			if (setQuantifier != null) {
+				builder.append(setQuantifier.name());
+				builder.append(" ");
+			}
+			valueExpression.toSql(builder);
+			builder.append(")");
+		}
+	}
+
+	@Override
+	<T extends Element> void addElements(List<T> elements, Class<T> type) {
+		checkElement(elements, type, valueExpression);
+	}
+
+	@Override
+	public boolean isAggregate() {
+		return true;
 	}
 }

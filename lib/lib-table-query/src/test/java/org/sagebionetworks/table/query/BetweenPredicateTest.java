@@ -1,6 +1,8 @@
 package org.sagebionetworks.table.query;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
+
+import java.util.Iterator;
 
 import org.junit.Test;
 import org.sagebionetworks.table.query.model.BetweenPredicate;

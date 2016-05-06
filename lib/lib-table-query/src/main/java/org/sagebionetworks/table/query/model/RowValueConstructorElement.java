@@ -1,5 +1,7 @@
 package org.sagebionetworks.table.query.model;
 
+import java.util.List;
+
 import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor;
 import org.sagebionetworks.table.query.model.visitors.Visitor;
 
@@ -57,5 +59,21 @@ public class RowValueConstructorElement extends SQLElement {
 		}else{
 			visitor.append("DEFAULT");
 		}
+	}
+	@Override
+	public void toSql(StringBuilder builder) {
+		if(valueExpression != null){
+			valueExpression.toSql(builder);
+		}else if(nullSpecification != null){
+			builder.append("NULL");
+		} else if (truthSpecification != null) {
+			builder.append(truthSpecification.name());
+		}else{
+			builder.append("DEFAULT");
+		}
+	}
+	@Override
+	<T extends Element> void addElements(List<T> elements, Class<T> type) {
+		checkElement(elements, type, valueExpression);
 	}
 }

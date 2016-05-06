@@ -1,5 +1,7 @@
 package org.sagebionetworks.table.query.model;
 
+import java.util.List;
+
 import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor;
 import org.sagebionetworks.table.query.model.visitors.Visitor;
 
@@ -44,5 +46,20 @@ public class ComparisonPredicate extends SQLElement {
 		visitor.append(" ");
 		visit(rowValueConstructorRHS, visitor);
 		visitor.setLHSColumn(null);
+	}
+
+	@Override
+	public void toSql(StringBuilder builder) {
+		columnReferenceLHS.toSql(builder);
+		builder.append(" ");
+		builder.append(compOp.toSQL());
+		builder.append(" ");
+		rowValueConstructorRHS.toSql(builder);
+	}
+
+	@Override
+	<T extends Element> void addElements(List<T> elements, Class<T> type) {
+		checkElement(elements, type, columnReferenceLHS);
+		checkElement(elements, type, rowValueConstructorRHS);
 	}
 }

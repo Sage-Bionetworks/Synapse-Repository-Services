@@ -1,6 +1,7 @@
 package org.sagebionetworks.table.query;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 import org.sagebionetworks.table.query.model.SetFunctionSpecification;
@@ -33,4 +34,9 @@ public class SetFunctionSpecificationTest {
 		assertEquals("COUNT(DISTINCT foo)", element.toString());
 	}
 	
+	@Test
+	public void testIsAggregate() throws ParseException{
+		SetFunctionSpecification element = new TableQueryParser("COUNT(one)").generalSetFunction();
+		assertTrue(element.isAggregate());
+	}
 }

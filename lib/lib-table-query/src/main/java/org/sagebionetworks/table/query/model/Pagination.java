@@ -1,5 +1,7 @@
 package org.sagebionetworks.table.query.model;
 
+import java.util.List;
+
 import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor;
 import org.sagebionetworks.table.query.model.visitors.ToTranslatedSqlVisitor;
 import org.sagebionetworks.table.query.model.visitors.Visitor;
@@ -53,5 +55,20 @@ public class Pagination extends SQLElement {
 			visitor.append(" OFFSET ");
 			visitor.convertParam(offset);
 		}
+	}
+
+	@Override
+	public void toSql(StringBuilder builder) {
+		builder.append("LIMIT ");
+		builder.append(limit.toString());
+		if (offset != null) {
+			builder.append(" OFFSET ");
+			builder.append(offset.toString());
+		}
+	}
+
+	@Override
+	<T extends Element> void addElements(List<T> elements, Class<T> type) {
+		// this element does not contain any SQLElements
 	}
 }

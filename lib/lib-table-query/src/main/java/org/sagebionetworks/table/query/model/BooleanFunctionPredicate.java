@@ -1,5 +1,7 @@
 package org.sagebionetworks.table.query.model;
 
+import java.util.List;
+
 import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor;
 import org.sagebionetworks.table.query.model.visitors.ToTranslatedSqlVisitor;
 import org.sagebionetworks.table.query.model.visitors.Visitor;
@@ -36,5 +38,18 @@ public class BooleanFunctionPredicate extends SQLElement {
 
 	public void visit(ToTranslatedSqlVisitor visitor) {
 		visitor.handleFunction(booleanFunction, columnReference);
+	}
+
+	@Override
+	public void toSql(StringBuilder builder) {
+		builder.append(booleanFunction.name());
+		builder.append("(");
+		columnReference.toSql(builder);
+		builder.append(")");
+	}
+
+	@Override
+	<T extends Element> void addElements(List<T> elements, Class<T> type) {
+		checkElement(elements, type, columnReference);
 	}
 }

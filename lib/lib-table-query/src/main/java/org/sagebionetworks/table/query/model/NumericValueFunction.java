@@ -1,5 +1,7 @@
 package org.sagebionetworks.table.query.model;
 
+import java.util.List;
+
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.table.query.model.visitors.ColumnTypeVisitor;
 import org.sagebionetworks.table.query.model.visitors.IsAggregateVisitor;
@@ -7,7 +9,7 @@ import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor;
 import org.sagebionetworks.table.query.model.visitors.Visitor;
 
 
-public class NumericValueFunction extends SQLElement {
+public class NumericValueFunction extends SQLElement implements HasAggregate {
 
 	private MysqlFunction mysqlFunction;
 
@@ -37,7 +39,19 @@ public class NumericValueFunction extends SQLElement {
 		}
 	}
 
-	public void visit(IsAggregateVisitor visitor) {
-		visitor.setIsAggregate();
+	@Override
+	public void toSql(StringBuilder builder) {
+		builder.append(mysqlFunction.name());
+		builder.append("()");
+	}
+
+	@Override
+	<T extends Element> void addElements(List<T> elements, Class<T> type) {
+		// this element does not contain any SQLElements
+	}
+
+	@Override
+	public boolean isAggregate() {
+		return true;
 	}
 }

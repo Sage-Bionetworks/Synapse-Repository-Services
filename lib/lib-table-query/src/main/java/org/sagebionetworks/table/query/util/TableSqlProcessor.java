@@ -90,9 +90,7 @@ public class TableSqlProcessor {
 			 */
 			ValueExpressionPrimary primary = new TableQueryParser(columnName)
 					.valueExpressionPrimary();
-			IsAggregateVisitor visitor = new IsAggregateVisitor();
-			primary.visit(visitor);
-			if (visitor.isAggregate()) {
+			if (primary.isAggregateElement()) {
 				return new SortKey(primary);
 			} else {
 				// Put non-aggregate column names in quotes.

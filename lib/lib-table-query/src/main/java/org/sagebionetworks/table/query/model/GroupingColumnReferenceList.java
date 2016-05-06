@@ -46,4 +46,23 @@ public class GroupingColumnReferenceList extends SQLElement {
 			first = false;
 		}
 	}
+
+	@Override
+	public void toSql(StringBuilder builder) {
+		boolean first = true;
+		for(GroupingColumnReference groupingColumnReference: groupingColumnReferences){
+			if(!first){
+				builder.append(", ");
+			}
+			groupingColumnReference.toSql(builder);
+			first = false;
+		}
+	}
+
+	@Override
+	<T extends Element> void addElements(List<T> elements, Class<T> type) {
+		for(GroupingColumnReference groupingColumnReference: groupingColumnReferences){
+			checkElement(elements, type, groupingColumnReference);
+		}
+	}
 }

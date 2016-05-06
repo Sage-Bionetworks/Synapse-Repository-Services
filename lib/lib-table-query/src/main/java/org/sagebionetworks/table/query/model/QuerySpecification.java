@@ -1,5 +1,7 @@
 package org.sagebionetworks.table.query.model;
 
+import java.util.List;
+
 import org.sagebionetworks.table.query.model.visitors.GetTableNameVisitor;
 import org.sagebionetworks.table.query.model.visitors.IsAggregateVisitor;
 import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor;
@@ -8,7 +10,7 @@ import org.sagebionetworks.table.query.model.visitors.Visitor;
 /**
  * This matches &ltquery specification&gt in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
  */
-public class QuerySpecification extends SQLElement {
+public class QuerySpecification extends SQLElement implements HasAggregate {
 
 	SetQuantifier setQuantifier;
 	SqlDirective sqlDirective;
@@ -64,19 +66,39 @@ public class QuerySpecification extends SQLElement {
 		}
 	}
 
-	public void visit(IsAggregateVisitor visitor) {
-		if (setQuantifier == SetQuantifier.DISTINCT) {
-			visitor.setIsAggregate();
-		}
-		if (tableExpression != null) {
-			visit(tableExpression, visitor);
-		}
-		visit(selectList, visitor);
-	}
-
 	public void visit(GetTableNameVisitor visitor) {
 		if (tableExpression != null) {
 			visit(tableExpression, visitor);
 		}
+	}
+
+	@Override
+	public void toSql(StringBuilder builder) {
+		builder.append("SELECT");
+		if (sqlDirective != null) {
+			builder.append(" ");
+			builder.append(sqlDirective.name());
+		}
+		if (setQuantifier != null) {
+			builder.append(" ");
+			builder.append(setQuantifier.name());
+		}
+		builder.append(" ");
+		selectList.toSql(builder);
+		if (tableExpression != null) {
+			builder.append(" ");
+			tableExpression.toSql(builder);
+		}
+	}
+
+	@Override
+	<T extends Element> void addElements(List<T> elements, Class<T> type) {
+		checkElement(elements, type, selectList);
+		checkElement(elements, type, tableExpression);
+	}
+
+	@Override
+	public boolean isAggregate() {
+		return setQuantifier == SetQuantifier.DISTINCT;
 	}
 }
