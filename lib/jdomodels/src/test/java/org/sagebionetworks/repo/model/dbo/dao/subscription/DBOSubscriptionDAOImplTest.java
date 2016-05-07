@@ -1,8 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.dao.subscription;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -292,16 +290,6 @@ public class DBOSubscriptionDAOImplTest {
 	}
 
 	@Test (expected = IllegalArgumentException.class)
-	public void testSubscribeForumSubscriberToThreadWithNullForumId(){
-		subscriptionDao.subscribeForumSubscriberToThread(null, threadId);
-	}
-
-	@Test (expected = IllegalArgumentException.class)
-	public void testSubscribeForumSubscriberToThreadWithNullThreadId(){
-		subscriptionDao.subscribeForumSubscriberToThread(threadId, null);
-	}
-
-	@Test (expected = IllegalArgumentException.class)
 	public void testGetAllSubscribersWithNullObjectId() {
 		subscriptionDao.getAllSubscribers(null, SubscriptionObjectType.FORUM);
 	}
@@ -311,40 +299,49 @@ public class DBOSubscriptionDAOImplTest {
 		subscriptionDao.getAllSubscribers("123", null);
 	}
 
-	@Test
-	public void testSubscribeForumSubscriberToThread(){
-		String forumId = "123";
-		String threadId = "456";
-		subscriptionDao.subscribeForumSubscriberToThread(forumId, threadId);
-		List<String> forumSubscribers = subscriptionDao.getAllSubscribers(forumId, SubscriptionObjectType.FORUM);
-		List<String> threadSubscribers = subscriptionDao.getAllSubscribers(threadId, SubscriptionObjectType.THREAD);
-		assertTrue(forumSubscribers.isEmpty());
-		assertTrue(threadSubscribers.isEmpty());
-
-		subscriptionDao.create(userId, forumId, SubscriptionObjectType.FORUM);
-		subscriptionDao.subscribeForumSubscriberToThread(forumId, threadId);
-		forumSubscribers = subscriptionDao.getAllSubscribers(forumId, SubscriptionObjectType.FORUM);
-		threadSubscribers = subscriptionDao.getAllSubscribers(threadId, SubscriptionObjectType.THREAD);
-		assertEquals(1L, forumSubscribers.size());
-		assertEquals(1L, threadSubscribers.size());
-		assertTrue(forumSubscribers.contains(userId));
-		assertTrue(threadSubscribers.contains(userId));
+	@Test (expected = IllegalArgumentException.class)
+	public void testSubscribeAllUsersWithNullSubscribers(){
+		subscriptionDao.subscribeAllUsers(null, threadId, SubscriptionObjectType.THREAD);
 	}
-	
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testSubscribeAllUsersWithNullObjectId(){
+		subscriptionDao.subscribeAllUsers(new HashSet<String>(0), null, SubscriptionObjectType.THREAD);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testSubscribeAllUsersWithNullObjectType(){
+		subscriptionDao.subscribeAllUsers(new HashSet<String>(0), threadId, null);
+	}
+
+	@Test
+	public void testSubscribeAllUsersWithEmptySubscribers(){
+		List<String> currentSubscribers = subscriptionDao.getAllSubscribers(threadId, SubscriptionObjectType.THREAD);
+		subscriptionDao.subscribeAllUsers(new HashSet<String>(0), threadId, SubscriptionObjectType.THREAD);
+		assertEquals(currentSubscribers, subscriptionDao.getAllSubscribers(threadId, SubscriptionObjectType.THREAD));
+	}
+
+	@Test
+	public void testSubscribeAllUsers(){
+		List<String> before = subscriptionDao.getAllSubscribers(threadId, SubscriptionObjectType.THREAD);
+		Set<String> subscribers = new HashSet<String>();
+		subscribers.add(userId);
+		subscriptionDao.subscribeAllUsers(subscribers , threadId, SubscriptionObjectType.THREAD);
+		List<String> after = subscriptionDao.getAllSubscribers(threadId, SubscriptionObjectType.THREAD);
+		assertFalse(before.equals(after));
+		assertEquals(1, after.size() - before.size());
+	}
+
 	@Test
 	public void testGetAllEmailSubscribers(){
-		String forumId = "123";
-		String threadId = "456";
-		subscriptionDao.subscribeForumSubscriberToThread(forumId, threadId);
-		List<Subscriber> forumSubscribers = subscriptionDao.getAllEmailSubscribers(forumId, SubscriptionObjectType.FORUM);
+		List<Subscriber> forumSubscribers = subscriptionDao.getAllEmailSubscribers(threadId, SubscriptionObjectType.THREAD);
 		assertTrue(forumSubscribers.isEmpty());
 
-		subscriptionDao.create(userId, forumId, SubscriptionObjectType.FORUM);
-		subscriptionDao.subscribeForumSubscriberToThread(forumId, threadId);
-		forumSubscribers = subscriptionDao.getAllEmailSubscribers(forumId, SubscriptionObjectType.FORUM);
+		subscriptionDao.create(userId, threadId, SubscriptionObjectType.THREAD);
+		forumSubscribers = subscriptionDao.getAllEmailSubscribers(threadId, SubscriptionObjectType.THREAD);
 		assertEquals(1L, forumSubscribers.size());
 		Subscriber sub = forumSubscribers.get(0);
-		
+
 		assertEquals(userId, sub.getSubscriberId());
 		assertNotNull(sub.getSubscriberId());
 		assertEquals(subscriber.getFirstName(), sub.getFirstName());
@@ -355,22 +352,22 @@ public class DBOSubscriptionDAOImplTest {
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testSubscribeAllWithNullUserId() {
-		subscriptionDao.subscribeAll(null, new ArrayList<String>(0), SubscriptionObjectType.THREAD);
+		subscriptionDao.subscribeAllTopic(null, new ArrayList<String>(0), SubscriptionObjectType.THREAD);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testSubscribeAllWithNullIdList() {
-		subscriptionDao.subscribeAll(userId, null, SubscriptionObjectType.THREAD);
+		subscriptionDao.subscribeAllTopic(userId, null, SubscriptionObjectType.THREAD);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testSubscribeAllWithNullObjectType() {
-		subscriptionDao.subscribeAll(userId, new ArrayList<String>(0), null);
+		subscriptionDao.subscribeAllTopic(userId, new ArrayList<String>(0), null);
 	}
 
 	@Test
 	public void testSubscribeAllWithEmptyIdList() {
-		subscriptionDao.subscribeAll(userId, new ArrayList<String>(0), SubscriptionObjectType.THREAD);
+		subscriptionDao.subscribeAllTopic(userId, new ArrayList<String>(0), SubscriptionObjectType.THREAD);
 		assertTrue(subscriptionDao.getAll(userId, 10L, 0L, SubscriptionObjectType.THREAD, projectIds).getResults().isEmpty());
 	}
 
@@ -378,7 +375,7 @@ public class DBOSubscriptionDAOImplTest {
 	public void testSubscribeAll() {
 		List<String> idList = new ArrayList<String>();
 		idList.add(threadId);
-		subscriptionDao.subscribeAll(userId, idList , SubscriptionObjectType.THREAD);
+		subscriptionDao.subscribeAllTopic(userId, idList , SubscriptionObjectType.THREAD);
 		List<Subscription> subs = subscriptionDao.getAll(userId, 10L, 0L, SubscriptionObjectType.THREAD, projectIds).getResults();
 		assertEquals(1L, subs.size());
 		Subscription sub = subs.get(0);
@@ -406,7 +403,7 @@ public class DBOSubscriptionDAOImplTest {
 	public void testDeleteListWithEmptyIdList() {
 		List<String> idList = new ArrayList<String>();
 		idList.add(threadId);
-		subscriptionDao.subscribeAll(userId, idList , SubscriptionObjectType.THREAD);
+		subscriptionDao.subscribeAllTopic(userId, idList , SubscriptionObjectType.THREAD);
 		subscriptionDao.deleteList(userId, new ArrayList<String>(0), SubscriptionObjectType.THREAD);
 		List<Subscription> subs = subscriptionDao.getAll(userId, 10L, 0L, SubscriptionObjectType.THREAD, projectIds).getResults();
 		assertEquals(1L, subs.size());
@@ -420,7 +417,7 @@ public class DBOSubscriptionDAOImplTest {
 	public void testDeleteList() {
 		List<String> idList = new ArrayList<String>();
 		idList.add(threadId);
-		subscriptionDao.subscribeAll(userId, idList , SubscriptionObjectType.THREAD);
+		subscriptionDao.subscribeAllTopic(userId, idList , SubscriptionObjectType.THREAD);
 		subscriptionDao.deleteList(userId, idList , SubscriptionObjectType.THREAD);
 		assertTrue(subscriptionDao.getAll(userId, 10L, 0L, SubscriptionObjectType.THREAD, projectIds).getResults().isEmpty());
 	}

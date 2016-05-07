@@ -296,19 +296,22 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 
 	@WriteTransactionReadCommitted
 	@Override
-	public void subscribeForumSubscriberToThread(String forumId, final String threadId) {
-		ValidateArgument.required(forumId, "forumId");
-		ValidateArgument.required(threadId, "threadId");
-		List<String> forumSubscribers = getAllSubscribers(forumId, SubscriptionObjectType.FORUM);
-		jdbcTemplate.batchUpdate(SQL_INSERT_IGNORE, forumSubscribers, forumSubscribers.size(), new ParameterizedPreparedStatementSetter<String>(){
+	public void subscribeAllUsers(Set<String> subscribers, final String objectId, final SubscriptionObjectType objectType) {
+		ValidateArgument.required(subscribers, "subscribers");
+		ValidateArgument.required(objectId, "objectId");
+		ValidateArgument.required(objectType, "objectType");
+		if (subscribers.isEmpty()) {
+			return;
+		}
+		jdbcTemplate.batchUpdate(SQL_INSERT_IGNORE, subscribers, subscribers.size(), new ParameterizedPreparedStatementSetter<String>(){
 
 			@Override
 			public void setValues(PreparedStatement ps, String subscriberId)
 					throws SQLException {
 				ps.setLong(1, Long.parseLong(idGenerator.generateNewId(TYPE.SUBSCRIPTION_ID).toString()));
 				ps.setLong(2, Long.parseLong(subscriberId));
-				ps.setLong(3, Long.parseLong(threadId));
-				ps.setString(4, SubscriptionObjectType.THREAD.name());
+				ps.setLong(3, Long.parseLong(objectId));
+				ps.setString(4, objectType.name());
 				ps.setLong(5, new Date().getTime());
 			}
 		});
@@ -322,7 +325,7 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 	}
 
 	@Override
-	public void subscribeAll(final String userId, List<String> idList, final SubscriptionObjectType objectType) {
+	public void subscribeAllTopic(final String userId, List<String> idList, final SubscriptionObjectType objectType) {
 		ValidateArgument.required(userId, "userId");
 		ValidateArgument.required(idList, "idList");
 		ValidateArgument.required(objectType, "objectType");
