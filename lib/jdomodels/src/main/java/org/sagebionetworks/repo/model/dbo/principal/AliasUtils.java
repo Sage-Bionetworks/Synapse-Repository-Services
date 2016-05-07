@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.principal;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -8,6 +9,7 @@ import java.util.regex.Pattern;
 import org.sagebionetworks.repo.model.principal.AliasEnum;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
+import org.sagebionetworks.util.ValidateArgument;
 
 /**
  * Utilities for alias.
@@ -95,5 +97,19 @@ public class AliasUtils {
 		return m.replaceAll("");
 	}
 
+	/**
+	 * Get the list of unique alias for the given alias list
+	 * 
+	 * @param inputNameList
+	 * @return
+	 */
+	public static List<String> getUniqueAliasName(List<String> inputNameList) {
+		ValidateArgument.required(inputNameList, "inputNameList");
+		List<String> result = new ArrayList<String>();
+		for (String inputName : inputNameList) {
+			result.add(getUniqueAliasName(inputName));
+		}
+		return result;
+	}
 
 }
