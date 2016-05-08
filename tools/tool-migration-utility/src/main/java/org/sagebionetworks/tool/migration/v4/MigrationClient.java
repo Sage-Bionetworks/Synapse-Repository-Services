@@ -5,6 +5,7 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -183,15 +184,15 @@ public class MigrationClient {
 		log.info("Final migration, checking table checksums");
 		boolean isChecksumDiff = false;
 		for (TypeToMigrateMetadata t: typesToMigrateMetadata) {
-			String srcTableChecksum = source.getChecksumForType(t.getType()).getChecksum();
-			String destTableChecksum = destination.getChecksumForType(t.getType()).getChecksum();
+			String srcTableChecksum = doChecksumForTypeWithOneRetry(source, t.getType());
+			String destTableChecksum = doChecksumForTypeWithOneRetry(destination, t.getType());
 			StringBuilder sb = new StringBuilder();
 			sb.append("Migration type: ");
 			sb.append(t.getType());
 			sb.append(": ");
 			if (! srcTableChecksum.equals(destTableChecksum)) {
 				isChecksumDiff = true;
-				sb.append("Found table checksum difference.");
+				sb.append("\n*** Found table checksum difference. ***\n");
 			} else {
 				sb.append("Table checksums identical.");
 			}
@@ -200,6 +201,20 @@ public class MigrationClient {
 		if (isChecksumDiff) {
 			throw new RuntimeException("Table checksum differences in final sync.");
 		}
+	}
+	
+	private String doChecksumForTypeWithOneRetry(SynapseAdminClient client, MigrationType t) throws SynapseException, JSONObjectAdapterException {
+		String checksum = null;
+		try {
+			checksum = client.getChecksumForType(t).getChecksum();
+		} catch (SynapseException e) {
+			if (e.getCause() instanceof SocketTimeoutException) {
+				checksum = client.getChecksumForType(t).getChecksum();
+			} else {
+				throw e;
+			}
+		}
+		return checksum;
 	}
 
 	/**
