@@ -34,6 +34,7 @@ import org.sagebionetworks.repo.model.discussion.MessageURL;
 import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -55,6 +56,8 @@ public class DiscussionReplyManagerImplTest {
 	private IdGenerator mockIdGenerator;
 	@Mock
 	private TransactionalMessenger mockTransactionalMessenger;
+	@Mock
+	private PrincipalAliasDAO mockPrincipalAliasDao;
 
 	private DiscussionReplyManager replyManager;
 	private UserInfo userInfo = new UserInfo(false /*not admin*/);
@@ -78,6 +81,7 @@ public class DiscussionReplyManagerImplTest {
 		ReflectionTestUtils.setField(replyManager, "idGenerator", mockIdGenerator);
 		ReflectionTestUtils.setField(replyManager, "subscriptionDao", mockSubscriptionDao);
 		ReflectionTestUtils.setField(replyManager, "transactionalMessenger", mockTransactionalMessenger);
+		ReflectionTestUtils.setField(replyManager, "principalAliasDao", mockPrincipalAliasDao);
 
 		Mockito.when(mockThreadManager.getThread(userInfo, threadId)).thenReturn(mockThread);
 		Mockito.when(mockThread.getProjectId()).thenReturn(projectId);
