@@ -5,6 +5,7 @@ import static org.sagebionetworks.repo.manager.AuthorizationManagerImpl.*;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
@@ -30,6 +31,7 @@ import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.upload.discussion.MessageKeyUtils;
@@ -56,6 +58,8 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 	private IdGenerator idGenerator;
 	@Autowired
 	private TransactionalMessenger transactionalMessenger;
+	@Autowired
+	private PrincipalAliasDAO principalAliasDao;
 
 	@WriteTransactionReadCommitted
 	@Override
@@ -76,13 +80,28 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		String messageKey = uploadDao.uploadThreadMessage(createThread.getMessageMarkdown(), createThread.getForumId(), id.toString());
 		DiscussionThreadBundle thread = threadDao.createThread(createThread.getForumId(), id.toString(), createThread.getTitle(), messageKey, userInfo.getId());
 		transactionalMessenger.sendMessageAfterCommit(""+id, ObjectType.THREAD, thread.getEtag(),  ChangeType.CREATE, userInfo.getId());
-		handleSubscription(userInfo.getId().toString(), thread.getId(), thread.getForumId());
+		handleSubscription(userInfo.getId().toString(), thread.getId(), thread.getForumId(), createThread.getMessageMarkdown());
 		return updateNumberOfReplies(thread, DiscussionFilter.NO_FILTER);
 	}
 
-	private void handleSubscription(String userId, String threadId, String forumId) {
-		subscriptionDao.create(userId, threadId, SubscriptionObjectType.THREAD);
-		subscriptionDao.subscribeForumSubscriberToThread(forumId, threadId);
+	/**
+	 * Subscribe the userId, all forum subscribers and all mentioned user to this thread
+	 * 
+	 * @param userId
+	 * @param threadId
+	 * @param forumId
+	 * @param markdown
+	 */
+	private void handleSubscription(String userId, String threadId, String forumId, String markdown) {
+		List<String> usernameList = DiscussionUtils.getMentionedUsername(markdown);
+		Set<String> subscribers = principalAliasDao.lookupPrincipalIds(usernameList);
+		if (userId != null) {
+			subscribers.add(userId);
+		}
+		if (forumId != null) {
+			subscribers.addAll(subscriptionDao.getAllSubscribers(forumId, SubscriptionObjectType.FORUM));
+		}
+		subscriptionDao.subscribeAllUsers(subscribers, threadId, SubscriptionObjectType.THREAD);
 	}
 
 	private DiscussionThreadBundle updateNumberOfReplies(DiscussionThreadBundle thread, DiscussionFilter filter) {
@@ -143,6 +162,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		if (authorizationManager.isUserCreatorOrAdmin(userInfo, thread.getCreatedBy())) {
 			String messageKey = uploadDao.uploadThreadMessage(newMessage.getMessageMarkdown(), thread.getForumId(), thread.getId());
 			thread = threadDao.updateMessageKey(threadIdLong, messageKey);
+			handleSubscription(null, threadId, null, newMessage.getMessageMarkdown());
 			return updateNumberOfReplies(thread, DiscussionFilter.NO_FILTER);
 		} else {
 			throw new UnauthorizedException("Only the user that created the thread can modify it.");

@@ -6,6 +6,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
@@ -446,5 +448,30 @@ public class PrincipalAliasDaoImplTest {
 		alias.setPrincipalId(principalId);
 		String toLookup = principalAliasDao.bindAliasToPrincipal(alias).getAlias()+" ";
 		assertEquals(principalId, (Long)principalAliasDao.lookupPrincipalID(toLookup, AliasType.USER_NAME));
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testLookupPrincipalIdsWithNullUsernameList() {
+		principalAliasDao.lookupPrincipalIds(null);
+	}
+
+	@Test
+	public void testLookupPrincipalIdsWithEmptyUsernameList() {
+		assertEquals(new HashSet<String>(), principalAliasDao.lookupPrincipalIds(new ArrayList<String>(0)));
+	}
+
+	@Test
+	public void testLookupPrincipalIds() {
+		String username = UUID.randomUUID().toString();
+		PrincipalAlias alias = new PrincipalAlias();
+		alias.setAlias(username);
+		alias.setType(AliasType.USER_NAME);
+		alias.setPrincipalId(principalId);
+		principalAliasDao.bindAliasToPrincipal(alias);
+		Set<String> expected = new HashSet<String>();
+		expected.add(principalId.toString());
+		List<String> toLookup = Arrays.asList(username, "notExist");
+		assertEquals(expected, principalAliasDao.lookupPrincipalIds(toLookup));
+
 	}
 }

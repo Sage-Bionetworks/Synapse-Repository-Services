@@ -40,6 +40,7 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 
@@ -69,6 +70,11 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 			+" FROM "+TABLE_PRINCIPAL_ALIAS
 			+" WHERE "+COL_PRINCIPAL_ALIAS_UNIQUE+" = ? "
 			+" AND "+COL_PRINCIPAL_ALIAS_TYPE+" = ?";
+	private static final String SQL_GET_PRINCIPAL_ID_LIST = "SELECT "+COL_PRINCIPAL_ALIAS_PRINCIPAL_ID
+			+" FROM "+TABLE_PRINCIPAL_ALIAS
+			+" WHERE "+COL_PRINCIPAL_ALIAS_UNIQUE+" IN (:uniqueAliasList) "
+			+" AND "+COL_PRINCIPAL_ALIAS_TYPE+" = :type";;
+
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
 	@Autowired
@@ -77,6 +83,8 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 	private DBOBasicDao basicDao;
 	@Autowired
 	private UserGroupDAO userGroupDAO;
+	@Autowired
+	private NamedParameterJdbcTemplate namedTemplate;
 	
 	private static RowMapper<DBOPrincipalAlias> principalAliasMapper = new DBOPrincipalAlias().getTableMapping();
 
@@ -312,5 +320,26 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 			throw new NotFoundException();
 		}
 		return queryResult.get(0);
+	}
+
+	@Override
+	public Set<String> lookupPrincipalIds(List<String> usernameList) {
+		ValidateArgument.required(usernameList, "usernameList");
+		Set<String> principalIds = new HashSet<String>();
+		if (usernameList.isEmpty()) {
+			return principalIds;
+		}
+		List<String> uniqueAliasList = AliasUtils.getUniqueAliasName(usernameList);
+		MapSqlParameterSource parameters = new MapSqlParameterSource("uniqueAliasList", uniqueAliasList);
+		parameters.addValue("type", AliasType.USER_NAME.name());
+		List<String> queryResult = namedTemplate.query(SQL_GET_PRINCIPAL_ID_LIST, parameters, new RowMapper<String>(){
+
+			@Override
+			public String mapRow(ResultSet rs, int rowNum) throws SQLException {
+				return rs.getString(COL_PRINCIPAL_ALIAS_PRINCIPAL_ID);
+			}
+		});
+		principalIds.addAll(queryResult);
+		return principalIds;
 	}
 }

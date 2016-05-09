@@ -5,6 +5,7 @@ import static org.mockito.Mockito.*;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Set;
 import java.util.UUID;
 
 import org.junit.Before;
@@ -33,6 +34,7 @@ import org.sagebionetworks.repo.model.discussion.MessageURL;
 import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -54,6 +56,8 @@ public class DiscussionReplyManagerImplTest {
 	private IdGenerator mockIdGenerator;
 	@Mock
 	private TransactionalMessenger mockTransactionalMessenger;
+	@Mock
+	private PrincipalAliasDAO mockPrincipalAliasDao;
 
 	private DiscussionReplyManager replyManager;
 	private UserInfo userInfo = new UserInfo(false /*not admin*/);
@@ -77,6 +81,7 @@ public class DiscussionReplyManagerImplTest {
 		ReflectionTestUtils.setField(replyManager, "idGenerator", mockIdGenerator);
 		ReflectionTestUtils.setField(replyManager, "subscriptionDao", mockSubscriptionDao);
 		ReflectionTestUtils.setField(replyManager, "transactionalMessenger", mockTransactionalMessenger);
+		ReflectionTestUtils.setField(replyManager, "principalAliasDao", mockPrincipalAliasDao);
 
 		Mockito.when(mockThreadManager.getThread(userInfo, threadId)).thenReturn(mockThread);
 		Mockito.when(mockThread.getProjectId()).thenReturn(projectId);
@@ -158,7 +163,7 @@ public class DiscussionReplyManagerImplTest {
 				.thenReturn(bundle);
 		DiscussionReplyBundle reply = replyManager.createReply(userInfo, createReply);
 		assertEquals(bundle, reply);
-		Mockito.verify(mockSubscriptionDao).create(userInfo.getId().toString(), reply.getThreadId(), SubscriptionObjectType.THREAD);
+		Mockito.verify(mockSubscriptionDao).subscribeAllUsers(any(Set.class), eq(reply.getThreadId()), eq(SubscriptionObjectType.THREAD));
 		Mockito.verify(mockTransactionalMessenger).sendMessageAfterCommit(replyId.toString(), ObjectType.REPLY, bundle.getEtag(), ChangeType.CREATE, userInfo.getId());
 	}
 
@@ -211,6 +216,7 @@ public class DiscussionReplyManagerImplTest {
 		newMessage.setMessageMarkdown("messageMarkdown");
 		replyManager.updateReplyMessage(userInfo, replyId.toString(), newMessage);
 		Mockito.verify(mockReplyDao).updateMessageKey(replyId, messageKey);
+		Mockito.verify(mockSubscriptionDao).subscribeAllUsers(any(Set.class), eq(threadId), eq(SubscriptionObjectType.THREAD));
 	}
 
 	@Test (expected = UnauthorizedException.class)

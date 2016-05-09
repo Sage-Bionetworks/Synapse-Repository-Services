@@ -123,4 +123,12 @@ public interface PrincipalAliasDAO {
 	 * @return
 	 */
 	public long lookupPrincipalID(String alias, AliasType type);
+
+	/**
+	 * Get a set of principal ID for the given list of username
+	 * 
+	 * @param usernameList
+	 * @return
+	 */
+	public Set<String> lookupPrincipalIds(List<String> usernameList);
 }
