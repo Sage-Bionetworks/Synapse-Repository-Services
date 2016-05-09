@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.manager.discussion;
 import static org.sagebionetworks.repo.manager.AuthorizationManagerImpl.*;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.ids.IdGenerator;
@@ -82,8 +81,11 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 	 * @param threadId
 	 * @param markdown
 	 */
-	private void handleSubscription(String userId, String threadId, String markdown) {
-		List<String> usernameList = DiscussionUtils.getMentionedUsername(markdown);
+	@Override
+	public void handleSubscription(String userId, String threadId, String markdown) {
+		ValidateArgument.required(markdown, "markdown");
+		ValidateArgument.required(threadId, "threadId");
+		Set<String> usernameList = DiscussionUtils.getMentionedUsername(markdown);
 		Set<String> subscribers = principalAliasDao.lookupPrincipalIds(usernameList);
 		if (userId != null) {
 			subscribers.add(userId);

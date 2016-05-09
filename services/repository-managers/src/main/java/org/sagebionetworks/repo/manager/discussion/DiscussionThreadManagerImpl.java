@@ -92,8 +92,11 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 	 * @param forumId
 	 * @param markdown
 	 */
-	private void handleSubscription(String userId, String threadId, String forumId, String markdown) {
-		List<String> usernameList = DiscussionUtils.getMentionedUsername(markdown);
+	@Override
+	public void handleSubscription(String userId, String threadId, String forumId, String markdown) {
+		ValidateArgument.required(markdown, "markdown");
+		ValidateArgument.required(threadId, "threadId");
+		Set<String> usernameList = DiscussionUtils.getMentionedUsername(markdown);
 		Set<String> subscribers = principalAliasDao.lookupPrincipalIds(usernameList);
 		if (userId != null) {
 			subscribers.add(userId);

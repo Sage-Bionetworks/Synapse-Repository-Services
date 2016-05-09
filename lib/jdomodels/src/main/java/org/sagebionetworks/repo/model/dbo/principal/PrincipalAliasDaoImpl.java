@@ -73,7 +73,7 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 	private static final String SQL_GET_PRINCIPAL_ID_LIST = "SELECT "+COL_PRINCIPAL_ALIAS_PRINCIPAL_ID
 			+" FROM "+TABLE_PRINCIPAL_ALIAS
 			+" WHERE "+COL_PRINCIPAL_ALIAS_UNIQUE+" IN (:uniqueAliasList) "
-			+" AND "+COL_PRINCIPAL_ALIAS_TYPE+" = :type";;
+			+" AND "+COL_PRINCIPAL_ALIAS_TYPE+" = :type";
 
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
@@ -323,13 +323,13 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 	}
 
 	@Override
-	public Set<String> lookupPrincipalIds(List<String> usernameList) {
+	public Set<String> lookupPrincipalIds(Set<String> usernameList) {
 		ValidateArgument.required(usernameList, "usernameList");
 		Set<String> principalIds = new HashSet<String>();
 		if (usernameList.isEmpty()) {
 			return principalIds;
 		}
-		List<String> uniqueAliasList = AliasUtils.getUniqueAliasName(usernameList);
+		Set<String> uniqueAliasList = AliasUtils.getUniqueAliasName(usernameList);
 		MapSqlParameterSource parameters = new MapSqlParameterSource("uniqueAliasList", uniqueAliasList);
 		parameters.addValue("type", AliasType.USER_NAME.name());
 		List<String> queryResult = namedTemplate.query(SQL_GET_PRINCIPAL_ID_LIST, parameters, new RowMapper<String>(){

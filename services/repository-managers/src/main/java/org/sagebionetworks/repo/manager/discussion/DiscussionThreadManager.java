@@ -122,4 +122,14 @@ public interface DiscussionThreadManager {
 	 */
 	void checkPermission(UserInfo userInfo, String threadId, ACCESS_TYPE accessType);
 
+	/**
+	 * Find and subscribe all subscribers to this thread
+	 * 
+	 * @param userId
+	 * @param threadId
+	 * @param forumId
+	 * @param markdown
+	 */
+	void handleSubscription(String userId, String threadId, String forumId, String markdown);
+
 }

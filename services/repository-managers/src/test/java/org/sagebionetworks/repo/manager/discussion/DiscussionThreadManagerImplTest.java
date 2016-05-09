@@ -7,6 +7,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.mockito.Mockito.*;
 
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Set;
 
 import org.apache.commons.lang.RandomStringUtils;
@@ -419,5 +420,44 @@ public class DiscussionThreadManagerImplTest {
 		ThreadCount tc = threadManager.getThreadCountForForum(userInfo, forumId.toString(), DiscussionFilter.NO_FILTER);
 		assertNotNull(tc);
 		assertEquals(count, tc.getCount());
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testHandleSubscriptionWithNullMarkdown() {
+		threadManager.handleSubscription(userId.toString(), threadId.toString(), forumId.toString(), null);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testHandleSubscriptionWithNullThreadId() {
+		threadManager.handleSubscription(userId.toString(), null, forumId.toString(), "");
+	}
+
+	@Test
+	public void testHandleSubscriptionWithNulluserId() {
+		threadManager.handleSubscription(null, threadId.toString(), forumId.toString(), "");
+		verify(mockPrincipalAliasDao).lookupPrincipalIds(any(Set.class));
+		verify(mockSubscriptionDao).getAllSubscribers(forumId.toString(), SubscriptionObjectType.FORUM);
+		verify(mockSubscriptionDao).subscribeAllUsers(any(Set.class), eq(threadId.toString()), eq(SubscriptionObjectType.THREAD));
+	}
+
+	@Test
+	public void testHandleSubscriptionWithNullForumId() {
+		threadManager.handleSubscription(userId.toString(), threadId.toString(), null, "");
+		verify(mockPrincipalAliasDao).lookupPrincipalIds(any(Set.class));
+		verify(mockSubscriptionDao, never()).getAllSubscribers(forumId.toString(), SubscriptionObjectType.FORUM);
+		verify(mockSubscriptionDao).subscribeAllUsers(any(Set.class), eq(threadId.toString()), eq(SubscriptionObjectType.THREAD));
+	}
+
+	@Test
+	public void testHandleSubscription() {
+		String anonymous = "-1";
+		Set<String> toSubscribe = new HashSet<String>();
+		toSubscribe.add(anonymous);
+		when(mockPrincipalAliasDao.lookupPrincipalIds(any(Set.class))).thenReturn(toSubscribe);
+		toSubscribe.add(userId.toString());
+		threadManager.handleSubscription(userId.toString(), threadId.toString(), forumId.toString(), "@anonymous");
+		verify(mockPrincipalAliasDao).lookupPrincipalIds(any(Set.class));
+		verify(mockSubscriptionDao).getAllSubscribers(forumId.toString(), SubscriptionObjectType.FORUM);
+		verify(mockSubscriptionDao).subscribeAllUsers(toSubscribe, threadId.toString(), SubscriptionObjectType.THREAD);
 	}
 }

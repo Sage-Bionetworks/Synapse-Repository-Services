@@ -1,8 +1,9 @@
 package org.sagebionetworks.repo.model.dbo.principal;
 
-import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -103,9 +104,9 @@ public class AliasUtils {
 	 * @param inputNameList
 	 * @return
 	 */
-	public static List<String> getUniqueAliasName(List<String> inputNameList) {
+	public static Set<String> getUniqueAliasName(Set<String> inputNameList) {
 		ValidateArgument.required(inputNameList, "inputNameList");
-		List<String> result = new ArrayList<String>();
+		Set<String> result = new HashSet<String>();
 		for (String inputName : inputNameList) {
 			result.add(getUniqueAliasName(inputName));
 		}
