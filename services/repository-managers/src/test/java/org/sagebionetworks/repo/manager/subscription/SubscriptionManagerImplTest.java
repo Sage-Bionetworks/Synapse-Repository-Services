@@ -112,7 +112,7 @@ public class SubscriptionManagerImplTest {
 		assertEquals(sub, manager.create(userInfo, topic));
 		verify(mockAuthorizationManager).canSubscribe(userInfo, objectId, SubscriptionObjectType.FORUM);
 		verify(mockThreadDao).getAllThreadIdForForum(objectId);
-		verify(mockDao).subscribeAll(userId.toString(), threadIdList, SubscriptionObjectType.THREAD);
+		verify(mockDao).subscribeAllTopic(userId.toString(), threadIdList, SubscriptionObjectType.THREAD);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -128,7 +128,7 @@ public class SubscriptionManagerImplTest {
 		assertEquals(sub, manager.create(userInfo, topic));
 		verify(mockAuthorizationManager).canSubscribe(userInfo, objectId, SubscriptionObjectType.THREAD);
 		verify(mockThreadDao, never()).getAllThreadIdForForum(anyString());
-		verify(mockDao, never()).subscribeAll(anyString(), any(List.class), any(SubscriptionObjectType.class));
+		verify(mockDao, never()).subscribeAllTopic(anyString(), any(List.class), any(SubscriptionObjectType.class));
 	}
 
 	@Test (expected=IllegalArgumentException.class)

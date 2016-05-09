@@ -5,6 +5,7 @@ import static org.mockito.Mockito.*;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Set;
 import java.util.UUID;
 
 import org.junit.Before;
@@ -158,7 +159,7 @@ public class DiscussionReplyManagerImplTest {
 				.thenReturn(bundle);
 		DiscussionReplyBundle reply = replyManager.createReply(userInfo, createReply);
 		assertEquals(bundle, reply);
-		Mockito.verify(mockSubscriptionDao).create(userInfo.getId().toString(), reply.getThreadId(), SubscriptionObjectType.THREAD);
+		Mockito.verify(mockSubscriptionDao).subscribeAllUsers(any(Set.class), eq(reply.getThreadId()), eq(SubscriptionObjectType.THREAD));
 		Mockito.verify(mockTransactionalMessenger).sendMessageAfterCommit(replyId.toString(), ObjectType.REPLY, bundle.getEtag(), ChangeType.CREATE, userInfo.getId());
 	}
 
@@ -211,6 +212,7 @@ public class DiscussionReplyManagerImplTest {
 		newMessage.setMessageMarkdown("messageMarkdown");
 		replyManager.updateReplyMessage(userInfo, replyId.toString(), newMessage);
 		Mockito.verify(mockReplyDao).updateMessageKey(replyId, messageKey);
+		Mockito.verify(mockSubscriptionDao).subscribeAllUsers(any(Set.class), eq(threadId), eq(SubscriptionObjectType.THREAD));
 	}
 
 	@Test (expected = UnauthorizedException.class)

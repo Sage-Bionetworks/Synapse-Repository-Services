@@ -55,7 +55,7 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
 
 	private void subscribeToAllExistingThreads(String userId, String forumId) {
 		List<String> threadIdList = threadDao.getAllThreadIdForForum(forumId);
-		subscriptionDao.subscribeAll(userId, threadIdList, SubscriptionObjectType.THREAD);
+		subscriptionDao.subscribeAllTopic(userId, threadIdList, SubscriptionObjectType.THREAD);
 	}
 
 	@Override
