@@ -6,8 +6,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
@@ -457,7 +455,7 @@ public class PrincipalAliasDaoImplTest {
 
 	@Test
 	public void testLookupPrincipalIdsWithEmptyUsernameList() {
-		assertEquals(new HashSet<String>(), principalAliasDao.lookupPrincipalIds(new ArrayList<String>(0)));
+		assertEquals(new HashSet<String>(), principalAliasDao.lookupPrincipalIds(new HashSet<String>()));
 	}
 
 	@Test
@@ -470,7 +468,9 @@ public class PrincipalAliasDaoImplTest {
 		principalAliasDao.bindAliasToPrincipal(alias);
 		Set<String> expected = new HashSet<String>();
 		expected.add(principalId.toString());
-		List<String> toLookup = Arrays.asList(username, "notExist");
+		Set<String> toLookup = new HashSet<String>();
+		toLookup.add(username);
+		toLookup.add("notExist");
 		assertEquals(expected, principalAliasDao.lookupPrincipalIds(toLookup));
 
 	}

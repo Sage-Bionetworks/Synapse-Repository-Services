@@ -1,10 +1,13 @@
 package org.sagebionetworks.repo.manager.discussion;
 
 import static org.junit.Assert.*;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.*;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
@@ -308,5 +311,35 @@ public class DiscussionReplyManagerImplTest {
 		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		assertEquals((Long)3L, replyManager.getReplyCountForThread(userInfo, threadId, DiscussionFilter.NO_FILTER).getCount());
+	}
+
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testHandleSubscriptionWithNullMarkdown() {
+		replyManager.handleSubscription(userInfo.getId().toString(), threadId.toString(), null);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testHandleSubscriptionWithNullThreadId() {
+		replyManager.handleSubscription(userInfo.getId().toString(), null, "");
+	}
+
+	@Test
+	public void testHandleSubscriptionWithNulluserId() {
+		replyManager.handleSubscription(null, threadId.toString(), "");
+		verify(mockPrincipalAliasDao).lookupPrincipalIds(any(Set.class));
+		verify(mockSubscriptionDao).subscribeAllUsers(any(Set.class), eq(threadId.toString()), eq(SubscriptionObjectType.THREAD));
+	}
+
+	@Test
+	public void testHandleSubscription() {
+		String anonymous = "-1";
+		Set<String> toSubscribe = new HashSet<String>();
+		toSubscribe.add(anonymous);
+		when(mockPrincipalAliasDao.lookupPrincipalIds(any(Set.class))).thenReturn(toSubscribe);
+		toSubscribe.add(userInfo.getId().toString());
+		replyManager.handleSubscription(userInfo.getId().toString(), threadId.toString(), "@anonymous");
+		verify(mockPrincipalAliasDao).lookupPrincipalIds(any(Set.class));
+		verify(mockSubscriptionDao).subscribeAllUsers(toSubscribe, threadId.toString(), SubscriptionObjectType.THREAD);
 	}
 }

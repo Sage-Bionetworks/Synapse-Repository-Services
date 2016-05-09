@@ -125,10 +125,10 @@ public interface PrincipalAliasDAO {
 	public long lookupPrincipalID(String alias, AliasType type);
 
 	/**
-	 * Get a set of principal ID for the given list of username
+	 * Get a set of principal ID for the given set of username
 	 * 
 	 * @param usernameList
 	 * @return
 	 */
-	public Set<String> lookupPrincipalIds(List<String> usernameList);
+	public Set<String> lookupPrincipalIds(Set<String> usernameList);
 }
