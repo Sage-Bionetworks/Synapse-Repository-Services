@@ -17,8 +17,6 @@ import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.DerivedColumn;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.SelectList;
-import org.sagebionetworks.table.query.model.visitors.GetTableNameVisitor;
-import org.sagebionetworks.table.query.model.visitors.IsAggregateVisitor;
 import org.sagebionetworks.util.ValidateArgument;
 
 import com.google.common.base.Function;
@@ -87,7 +85,7 @@ public class SqlQuery {
 	public SqlQuery(String sql, List<ColumnModel> tableSchema) throws ParseException {
 		if(sql == null) throw new IllegalArgumentException("The input SQL cannot be null");
 		QuerySpecification parsedQuery = TableQueryParser.parserQuery(sql);
-		init(parsedQuery, tableSchema, parsedQuery.doVisit(new GetTableNameVisitor()).getTableName());
+		init(parsedQuery, tableSchema, parsedQuery.getTableName());
 	}
 	
 	/**
@@ -131,7 +129,7 @@ public class SqlQuery {
 					this.model.getTableExpression());
 		}
 
-		this.isAggregatedResult = model.isAggregateElement();
+		this.isAggregatedResult = model.hasAnyAggregateElements();
 
 		QuerySpecification expandedSelectList = this.model;
 		if (!this.isAggregatedResult) {

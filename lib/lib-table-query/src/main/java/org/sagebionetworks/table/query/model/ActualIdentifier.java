@@ -2,7 +2,6 @@ package org.sagebionetworks.table.query.model;
 
 import java.util.List;
 
-import org.sagebionetworks.table.query.model.visitors.ToNameStringVisitor;
 import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor;
 import org.sagebionetworks.table.query.model.visitors.Visitor;
 
@@ -43,13 +42,6 @@ public class ActualIdentifier extends SQLElement implements HasUnquotedValue {
 		}
 	}
 
-	public void visit(ToNameStringVisitor visitor) {
-		if (regularIdentifier != null) {
-			visitor.append(regularIdentifier);
-		} else {
-			visitor.append(delimitedIdentifier);
-		}
-	}
 	@Override
 	public void toSql(StringBuilder builder) {
 		if(regularIdentifier != null){

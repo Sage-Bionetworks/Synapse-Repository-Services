@@ -6,7 +6,6 @@ import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.table.query.model.visitors.ColumnTypeVisitor;
 import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor;
 import org.sagebionetworks.table.query.model.visitors.ToTranslatedSqlVisitor;
-import org.sagebionetworks.table.query.model.visitors.ToUnquotedStringVisitor;
 import org.sagebionetworks.table.query.model.visitors.Visitor;
 
 /**
@@ -43,14 +42,6 @@ public class SignedLiteral extends SQLElement implements HasUnquotedValue {
 			visitor.append("'");
 			visitor.append(this.generalLiteral.replaceAll("'", "''"));
 			visitor.append("'");
-		}
-	}
-
-	public void visit(ToUnquotedStringVisitor visitor) {
-		if (signedNumericLiteral != null) {
-			visitor.append(signedNumericLiteral);
-		} else {
-			visitor.append(this.generalLiteral);
 		}
 	}
 

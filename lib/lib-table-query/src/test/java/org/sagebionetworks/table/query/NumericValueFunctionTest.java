@@ -10,7 +10,7 @@ public class NumericValueFunctionTest {
 	@Test
 	public void testIsAggregate() throws ParseException{
 		NumericValueFunction function = new TableQueryParser("FOUND_ROWS()").numericValueFunction();
-		assertTrue(function.isAggregate());
+		assertTrue(function.isElementAggregate());
 	}
 
 }

@@ -1,33 +1,38 @@
 package org.sagebionetworks.table.cluster;
 
-import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
-import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
-
 import java.util.LinkedHashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
-import org.apache.commons.lang.BooleanUtils;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.ColumnModelMapper;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.SelectColumnAndModel;
-import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
-import org.sagebionetworks.table.query.model.*;
+import org.sagebionetworks.table.query.model.CharacterFactor;
+import org.sagebionetworks.table.query.model.CharacterPrimary;
+import org.sagebionetworks.table.query.model.CharacterValueExpression;
+import org.sagebionetworks.table.query.model.ColumnName;
+import org.sagebionetworks.table.query.model.ColumnReference;
+import org.sagebionetworks.table.query.model.DerivedColumn;
+import org.sagebionetworks.table.query.model.Factor;
+import org.sagebionetworks.table.query.model.Identifier;
+import org.sagebionetworks.table.query.model.MysqlFunction;
+import org.sagebionetworks.table.query.model.NumericPrimary;
+import org.sagebionetworks.table.query.model.NumericValueExpression;
+import org.sagebionetworks.table.query.model.NumericValueFunction;
+import org.sagebionetworks.table.query.model.QuerySpecification;
+import org.sagebionetworks.table.query.model.SelectList;
+import org.sagebionetworks.table.query.model.StringValueExpression;
+import org.sagebionetworks.table.query.model.Term;
+import org.sagebionetworks.table.query.model.ValueExpression;
+import org.sagebionetworks.table.query.model.ValueExpressionPrimary;
 import org.sagebionetworks.table.query.model.visitors.ColumnTypeVisitor;
-import org.sagebionetworks.table.query.model.visitors.ToNameStringVisitor;
 import org.sagebionetworks.table.query.model.visitors.ToTranslatedSqlVisitor;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
-import org.sagebionetworks.util.TimeUtils;
 import org.sagebionetworks.util.ValidateArgument;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 
 /**
  * Helper methods to translate table SQL queries.

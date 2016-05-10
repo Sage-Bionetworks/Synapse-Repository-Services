@@ -4,7 +4,6 @@ import java.util.List;
 
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.table.query.model.visitors.ColumnTypeVisitor;
-import org.sagebionetworks.table.query.model.visitors.IsAggregateVisitor;
 import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor;
 import org.sagebionetworks.table.query.model.visitors.Visitor;
 
@@ -51,7 +50,7 @@ public class NumericValueFunction extends SQLElement implements HasAggregate {
 	}
 
 	@Override
-	public boolean isAggregate() {
+	public boolean isElementAggregate() {
 		return true;
 	}
 }

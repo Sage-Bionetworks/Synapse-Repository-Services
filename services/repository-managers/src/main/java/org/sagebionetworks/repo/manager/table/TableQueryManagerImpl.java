@@ -43,7 +43,6 @@ import org.sagebionetworks.table.query.model.Pagination;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.model.SqlDirective;
-import org.sagebionetworks.table.query.model.visitors.GetTableNameVisitor;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 import org.sagebionetworks.util.Closer;
 import org.sagebionetworks.util.Pair;
@@ -366,7 +365,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			model = SqlElementUntils.convertToSortedQuery(model, sortList);
 		}
 
-		String tableId = model.doVisit(new GetTableNameVisitor()).getTableName();
+		String tableId = model.getTableName();
 		if (tableId == null) {
 			throw new IllegalArgumentException("Could not parse the table name in the sql expression: " + sql);
 		}

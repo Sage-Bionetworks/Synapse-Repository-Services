@@ -2,7 +2,6 @@ package org.sagebionetworks.table.query.model;
 
 import java.util.List;
 
-import org.sagebionetworks.table.query.model.visitors.ToNameStringVisitor;
 import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor;
 import org.sagebionetworks.table.query.model.visitors.Visitor;
 
@@ -43,14 +42,6 @@ public class DerivedColumn extends SQLElement {
 		}
 	}
 
-	public void visit(ToNameStringVisitor visitor) {
-		if (asClause != null) {
-			visit(asClause, visitor);
-		} else {
-			visit(valueExpression, visitor);
-		}
-	}
-
 	@Override
 	public void toSql(StringBuilder builder) {
 		valueExpression.toSql(builder);
@@ -76,7 +67,7 @@ public class DerivedColumn extends SQLElement {
 			return asClause.getFirstElementOfType(ActualIdentifier.class).getUnquotedValue();
 		}
 		// For any aggregate without an as, use the function SQL.
-		if(isAggregateElement()){
+		if(hasAnyAggregateElements()){
 			return toSql();
 		}
 		// If this has a string literal, then we need the unquoted value.

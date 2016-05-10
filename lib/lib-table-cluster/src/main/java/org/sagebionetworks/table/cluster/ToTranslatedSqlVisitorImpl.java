@@ -10,7 +10,6 @@ import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.query.model.BooleanFunction;
 import org.sagebionetworks.table.query.model.ColumnName;
 import org.sagebionetworks.table.query.model.ColumnReference;
-import org.sagebionetworks.table.query.model.visitors.ToNameStringVisitor;
 import org.sagebionetworks.table.query.model.visitors.ToTranslatedSqlVisitor;
 import org.sagebionetworks.util.TimeUtils;
 

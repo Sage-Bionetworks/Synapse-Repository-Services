@@ -1,6 +1,9 @@
 package org.sagebionetworks.table.query;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import java.util.List;
 
@@ -18,7 +21,6 @@ import org.sagebionetworks.table.query.model.SqlDirective;
 import org.sagebionetworks.table.query.model.TableExpression;
 import org.sagebionetworks.table.query.model.Term;
 import org.sagebionetworks.table.query.model.ValueExpression;
-import org.sagebionetworks.table.query.model.visitors.GetTableNameVisitor;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 
 import com.google.common.collect.Lists;
@@ -58,7 +60,7 @@ public class QuerySpecificationTest {
 		SelectList selectList = new SelectList(columns);
 		QuerySpecification element = new QuerySpecification(null, null, selectList, null);
 		assertEquals("SELECT FOUND_ROWS()", element.toString());
-		assertNull(element.doVisit(new GetTableNameVisitor()).getTableName());
+		assertNull(element.getTableName());
 	}
 
 	@Test
@@ -76,18 +78,25 @@ public class QuerySpecificationTest {
 		TableExpression tableExpression = SqlElementUntils.createTableExpression("from syn123");
 		QuerySpecification element = new QuerySpecification(null, null, selectList, tableExpression);
 		assertEquals("SELECT FOUND_ROWS() FROM syn123", element.toString());
-		assertEquals("syn123", element.doVisit(new GetTableNameVisitor()).getTableName());
+		assertEquals("syn123", element.getTableName());
 	}
 	
 	@Test
 	public void testIsAggregateNoDistinct() throws ParseException{
 		QuerySpecification element = new TableQueryParser("select * from syn123").querySpecification();
-		assertFalse(element.isAggregate());
+		assertFalse(element.isElementAggregate());
 	}
 	
 	@Test
 	public void testIsAggregateDistinct() throws ParseException{
 		QuerySpecification element = new TableQueryParser("select distinct three, four from syn123").querySpecification();
-		assertTrue(element.isAggregate());
+		assertTrue(element.isElementAggregate());
 	}
+	
+	@Test
+	public void testGetTableName() throws ParseException{
+		QuerySpecification element = new TableQueryParser("select distinct three, four from syn123").querySpecification();
+		assertEquals("syn123", element.getTableName());
+	}
+	
 }

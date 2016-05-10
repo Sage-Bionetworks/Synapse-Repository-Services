@@ -37,6 +37,6 @@ public class SetFunctionSpecificationTest {
 	@Test
 	public void testIsAggregate() throws ParseException{
 		SetFunctionSpecification element = new TableQueryParser("COUNT(one)").generalSetFunction();
-		assertTrue(element.isAggregate());
+		assertTrue(element.isElementAggregate());
 	}
 }
