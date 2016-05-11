@@ -85,31 +85,7 @@ public class TableModelTestUtils {
 				return Transform.toList(oneOfEachType, new Function<ColumnModel, SelectColumnAndModel>() {
 					@Override
 					public SelectColumnAndModel apply(final ColumnModel input) {
-						return new SelectColumnAndModel() {
-							@Override
-							public String getName() {
-								return input.getName();
-							}
-
-							@Override
-							public ColumnType getColumnType() {
-								return input.getColumnType();
-							}
-
-							@Override
-							public SelectColumn getSelectColumn() {
-								SelectColumn selectColumn = new SelectColumn();
-								selectColumn.setName(input.getName());
-								selectColumn.setColumnType(input.getColumnType());
-								selectColumn.setId(input.getId());
-								return selectColumn;
-							}
-
-							@Override
-							public ColumnModel getColumnModel() {
-								return input;
-							}
-						};
+						return new SelectColumnAndModel(input);
 					}
 				});
 			}

@@ -192,14 +192,14 @@ public class IT100TableControllerTest {
 		RowSet set = new RowSet();
 		List<Row> rows = TableModelTestUtils.createRows(columns, 2);
 		set.setRows(rows);
-		set.setHeaders(TableModelUtils.createColumnModelColumnMapper(columns, false).getSelectColumns());
+		set.setHeaders(TableModelUtils.createColumnModelColumnMapper(columns).getSelectColumns());
 		set.setTableId(table.getId());
 		RowReferenceSet results1 = synapse.appendRowsToTable(set, MAX_APPEND_TIMEOUT, tableId);
 		assertNotNull(results1);
 		assertNotNull(results1.getRows());
 		assertEquals(2, results1.getRows().size());
 		assertEquals(table.getId(), results1.getTableId());
-		assertEquals(TableModelUtils.createColumnModelColumnMapper(columns, false).getSelectColumns(), results1.getHeaders());
+		assertEquals(TableModelUtils.createColumnModelColumnMapper(columns).getSelectColumns(), results1.getHeaders());
 		
 		// Now attempt to query for the table results
 		RowSet queryResults = waitForQueryResults("select * from " + table.getId(), null, null, table.getId());
@@ -309,7 +309,7 @@ public class IT100TableControllerTest {
 
 		RowSet set = new RowSet();
 		set.setRows(rows);
-		set.setHeaders(Lists.reverse(TableModelUtils.createColumnModelColumnMapper(columns, false).getSelectColumns()));
+		set.setHeaders(Lists.reverse(TableModelUtils.createColumnModelColumnMapper(columns).getSelectColumns()));
 		set.setTableId(table.getId());
 		RowReferenceSet newRows = synapse.appendRowsToTable(set, MAX_APPEND_TIMEOUT, table.getId());
 
@@ -321,7 +321,7 @@ public class IT100TableControllerTest {
 		// get in original order
 		RowReferenceSet toGet = new RowReferenceSet();
 		toGet.setTableId(table.getId());
-		toGet.setHeaders(TableModelUtils.createColumnModelColumnMapper(columns, false).getSelectColumns());
+		toGet.setHeaders(TableModelUtils.createColumnModelColumnMapper(columns).getSelectColumns());
 		toGet.setRows(newRows.getRows());
 		RowSet rowsFromTable = synapse.getRowsFromTable(toGet);
 		assertEquals(toGet.getHeaders(), rowsFromTable.getHeaders());
@@ -348,7 +348,7 @@ public class IT100TableControllerTest {
 		}
 
 		// get in reverse order
-		toGet.setHeaders(Lists.reverse(TableModelUtils.createColumnModelColumnMapper(columns, false).getSelectColumns()));
+		toGet.setHeaders(Lists.reverse(TableModelUtils.createColumnModelColumnMapper(columns).getSelectColumns()));
 		toGet.setRows(newRows.getRows());
 		rowsFromTable = synapse.getRowsFromTable(toGet);
 		assertEquals(toGet.getHeaders(), rowsFromTable.getHeaders());
@@ -380,7 +380,7 @@ public class IT100TableControllerTest {
 				TableModelTestUtils.createRow(null, null, "-.2"), TableModelTestUtils.createRow(null, null, ".2"),
 				TableModelTestUtils.createRow(null, null, "1.2"));
 		set.setRows(rows);
-		set.setHeaders(TableModelUtils.createColumnModelColumnMapper(columns, false).getSelectColumns());
+		set.setHeaders(TableModelUtils.createColumnModelColumnMapper(columns).getSelectColumns());
 		set.setTableId(table.getId());
 		synapse.appendRowsToTable(set, MAX_APPEND_TIMEOUT, table.getId());
 
@@ -431,7 +431,7 @@ public class IT100TableControllerTest {
 		for (int i = 0; i < 10; i++) {
 			RowSet set = new RowSet();
 			set.setRows(TableModelTestUtils.createRows(columns, 4));
-			set.setHeaders(TableModelUtils.createColumnModelColumnMapper(columns, false).getSelectColumns());
+			set.setHeaders(TableModelUtils.createColumnModelColumnMapper(columns).getSelectColumns());
 			set.setTableId(table.getId());
 			synapse.appendRowsToTable(set, MAX_APPEND_TIMEOUT, table.getId());
 		}
@@ -534,7 +534,7 @@ public class IT100TableControllerTest {
 		RowSet set = new RowSet();
 		List<Row> rows = Collections.singletonList(TableModelTestUtils.createRow(null, null, fileHandle.getId()));
 		set.setRows(rows);
-		set.setHeaders(TableModelUtils.createColumnModelColumnMapper(columns, false).getSelectColumns());
+		set.setHeaders(TableModelUtils.createColumnModelColumnMapper(columns).getSelectColumns());
 		set.setTableId(table.getId());
 		RowReferenceSet results = synapse.appendRowsToTable(set, MAX_APPEND_TIMEOUT, table.getId());
 
@@ -622,7 +622,7 @@ public class IT100TableControllerTest {
 		RowSet set = new RowSet();
 		List<Row> rows = TableModelTestUtils.createRows(columns, 2);
 		set.setRows(rows);
-		set.setHeaders(TableModelUtils.createColumnModelColumnMapper(columns, false).getSelectColumns());
+		set.setHeaders(TableModelUtils.createColumnModelColumnMapper(columns).getSelectColumns());
 		set.setTableId(table.getId());
 		synapse.appendRowsToTable(set, MAX_APPEND_TIMEOUT, table.getId());
 		// Query for the results
@@ -662,7 +662,7 @@ public class IT100TableControllerTest {
 		List<Row> rows = Lists.newArrayList(TableModelTestUtils.createRow(null, null, "test"),
 				TableModelTestUtils.createRow(null, null, "test"));
 		set.setRows(rows);
-		set.setHeaders(TableModelUtils.createColumnModelColumnMapper(columns, false).getSelectColumns());
+		set.setHeaders(TableModelUtils.createColumnModelColumnMapper(columns).getSelectColumns());
 		set.setTableId(table.getId());
 		synapse.appendRowsToTable(set, MAX_APPEND_TIMEOUT, table.getId());
 
@@ -739,7 +739,7 @@ public class IT100TableControllerTest {
 		}
 		for (int i = 0; i < rowsNeeded; i += rows.size()) {
 			set.setRows(rows);
-			set.setHeaders(TableModelUtils.createColumnModelColumnMapper(columns, false).getSelectColumns());
+			set.setHeaders(TableModelUtils.createColumnModelColumnMapper(columns).getSelectColumns());
 			set.setTableId(table.getId());
 			synapse.appendRowsToTable(set, MAX_APPEND_TIMEOUT, table.getId());
 		}

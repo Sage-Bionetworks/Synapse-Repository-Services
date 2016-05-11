@@ -17,6 +17,7 @@ import org.sagebionetworks.util.IntrospectionUtils;
  */
 public abstract class SQLElement implements Element {
 
+	private static final String EMPTY = "";
 	private static final String REGEX_QUOTES = "[',\"]";
 
 	/**
@@ -185,7 +186,19 @@ public abstract class SQLElement implements Element {
 	 * @return
 	 */
 	public String toSqlWithoutQuotes(){
-		return this.toSql().replaceAll(REGEX_QUOTES, "");
+		return this.toSql().replaceAll(REGEX_QUOTES, EMPTY);
+	}
+	
+	/**
+	 * Get the first unquoted value in this element.
+	 * @return
+	 */
+	public String getFirstUnquotedValue(){
+		HasQuoteValue element = getFirstElementOfType(HasQuoteValue.class);
+		if(element != null){
+			return element.getValueWithoutQuotes();
+		}
+		return null;
 	}
 	
 }

@@ -227,7 +227,7 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 		List<ColumnModel> currentSchema = tableManagerSupport
 				.getColumnModelsForTable(tableId);
 		ColumnMapper mapper = TableModelUtils.createColumnModelColumnMapper(
-				currentSchema, false);
+				currentSchema);
 		// Create or update the table with this schema.
 		tableManagerSupport.attemptToUpdateTableProgress(tableId, resetToken,
 				"Creating table ", 0L, 100L);

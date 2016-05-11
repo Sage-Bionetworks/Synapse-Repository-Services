@@ -11,7 +11,7 @@ import org.sagebionetworks.table.query.model.visitors.Visitor;
 /**
  * This matches &ltset function specification&gt   in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
  */
-public class SetFunctionSpecification extends SQLElement implements HasAggregate {
+public class SetFunctionSpecification extends SQLElement implements HasAggregate, HasFunctionType {
 	
 	Boolean countAsterisk;
 	SetFunctionType setFunctionType;
@@ -123,5 +123,27 @@ public class SetFunctionSpecification extends SQLElement implements HasAggregate
 	@Override
 	public boolean isElementAggregate() {
 		return true;
+	}
+
+	@Override
+	public FunctionType getFunctionType() {
+		if(countAsterisk != null){
+			return FunctionType.COUNT;
+		}
+		// Switch by type.
+		switch (setFunctionType) {
+		case COUNT:
+			return FunctionType.COUNT;
+		case MAX:
+			return FunctionType.MAX;
+		case MIN:
+			return FunctionType.MIN;
+		case SUM:
+			return FunctionType.SUM;
+		case AVG:
+			return FunctionType.AVG;
+		default:
+			throw new IllegalArgumentException("unhandled set function type");
+		}
 	}
 }

@@ -8,7 +8,7 @@ import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor;
 import org.sagebionetworks.table.query.model.visitors.Visitor;
 
 
-public class NumericValueFunction extends SQLElement implements HasAggregate {
+public class NumericValueFunction extends SQLElement implements HasAggregate, HasFunctionType {
 
 	private MysqlFunction mysqlFunction;
 
@@ -52,5 +52,15 @@ public class NumericValueFunction extends SQLElement implements HasAggregate {
 	@Override
 	public boolean isElementAggregate() {
 		return true;
+	}
+
+	@Override
+	public FunctionType getFunctionType() {
+		switch (mysqlFunction) {
+		case FOUND_ROWS:
+			return FunctionType.FOUND_ROWS;
+		default:
+			throw new IllegalArgumentException("unexpected mysqlFuntion");
+		}
 	}
 }

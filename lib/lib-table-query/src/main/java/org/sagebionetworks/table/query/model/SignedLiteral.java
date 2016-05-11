@@ -11,7 +11,7 @@ import org.sagebionetworks.table.query.model.visitors.Visitor;
 /**
  * This matches &lt;signed literal&gt; in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
  */
-public class SignedLiteral extends SQLElement implements HasUnquotedValue {
+public class SignedLiteral extends SQLElement implements HasQuoteValue {
 
 	String signedNumericLiteral;
 	String generalLiteral;
@@ -74,7 +74,7 @@ public class SignedLiteral extends SQLElement implements HasUnquotedValue {
 	}
 
 	@Override
-	public String getUnquotedValue() {
+	public String getValueWithoutQuotes() {
 		if (signedNumericLiteral != null) {
 			return signedNumericLiteral;
 		} else {
@@ -85,6 +85,11 @@ public class SignedLiteral extends SQLElement implements HasUnquotedValue {
 	@Override
 	<T extends Element> void addElements(List<T> elements, Class<T> type) {
 		// this element does not contain any SQLElements
+	}
+
+	@Override
+	public boolean isSurrounedeWithQuotes() {
+		return generalLiteral != null;
 	}
 	
 }

@@ -209,7 +209,7 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 			if (columnModel == null) {
 				throw new IllegalArgumentException("column header " + selectColumn + " is not a known column for this table");
 			}
-			SelectColumnAndModel selectColumnAndModel = TableModelUtils.createSelectColumnAndModel(selectColumn, columnModel);
+			SelectColumnAndModel selectColumnAndModel = new SelectColumnAndModel(selectColumn, columnModel);
 			nameToColumnMap.put(selectColumn.getName(), selectColumnAndModel);
 			idToColumnMap.put(Long.parseLong(selectColumn.getId()), selectColumnAndModel);
 		}

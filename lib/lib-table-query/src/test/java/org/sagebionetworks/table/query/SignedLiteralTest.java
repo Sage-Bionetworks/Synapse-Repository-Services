@@ -1,6 +1,6 @@
 package org.sagebionetworks.table.query;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 
 import org.junit.Test;
 import org.sagebionetworks.table.query.model.SignedLiteral;
@@ -41,6 +41,20 @@ public class SignedLiteralTest {
 	public void testGeneralToSQL(){
 		SignedLiteral ai = new SignedLiteral(null, "has'quote");
 		assertEquals("'has''quote'", ai.toString());
+	}
+	
+	@Test
+	public void testValueWithQuotes() throws ParseException{
+		SignedLiteral element = new TableQueryParser("'foo'").signedLiteral();
+		assertEquals("foo", element.getFirstUnquotedValue());
+		assertTrue(element.isSurrounedeWithQuotes());		
+	}
+	
+	@Test
+	public void testValueWithoutQuotes() throws ParseException{
+		SignedLiteral element = new TableQueryParser("123").signedLiteral();
+		assertEquals("123", element.getFirstUnquotedValue());
+		assertFalse(element.isSurrounedeWithQuotes());		
 	}
 
 }

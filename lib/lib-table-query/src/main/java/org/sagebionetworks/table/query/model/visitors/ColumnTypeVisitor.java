@@ -35,7 +35,7 @@ public class ColumnTypeVisitor implements Visitor {
 	}
 
 	public void setColumnReference(ColumnName nameRHS) {
-		ColumnModel foundColumnModel = columnNameToModelMap.get(nameRHS.getUnquotedValue());
+		ColumnModel foundColumnModel = columnNameToModelMap.get(nameRHS.getFirstUnquotedValue());
 		if (foundColumnModel != null) {
 			setColumnType(foundColumnModel.getColumnType());
 			if (!isAggregatedResult) {

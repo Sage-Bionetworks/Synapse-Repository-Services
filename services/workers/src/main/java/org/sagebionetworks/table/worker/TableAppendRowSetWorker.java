@@ -95,7 +95,7 @@ public class TableAppendRowSetWorker implements MessageDrivenRunner {
 			if(appendSet instanceof PartialRowSet){
 				PartialRowSet partialRowSet = (PartialRowSet) appendSet;
 				List<ColumnModel> columnModelsForTable = columnModelManager.getColumnModelsForTable(user, tableId);
-				ColumnMapper columnMap = TableModelUtils.createColumnModelColumnMapper(columnModelsForTable, false);
+				ColumnMapper columnMap = TableModelUtils.createColumnModelColumnMapper(columnModelsForTable);
 				results =  tableEntityManager.appendPartialRows(user, tableId, columnMap, partialRowSet, rowCallback);
 			}else if(appendSet instanceof RowSet){
 				RowSet rowSet = (RowSet)appendSet;

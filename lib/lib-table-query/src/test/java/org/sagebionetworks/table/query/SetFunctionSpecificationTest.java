@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
+import org.sagebionetworks.table.query.model.FunctionType;
 import org.sagebionetworks.table.query.model.SetFunctionSpecification;
 import org.sagebionetworks.table.query.model.SetFunctionType;
 import org.sagebionetworks.table.query.model.SetQuantifier;
@@ -38,5 +39,41 @@ public class SetFunctionSpecificationTest {
 	public void testIsAggregate() throws ParseException{
 		SetFunctionSpecification element = new TableQueryParser("COUNT(one)").generalSetFunction();
 		assertTrue(element.isElementAggregate());
+	}
+	
+	@Test
+	public void testGetFunctionTypeCountStart() throws ParseException{
+		SetFunctionSpecification element = new TableQueryParser("count(*)").setFunctionSpecification();
+		assertEquals(FunctionType.COUNT, element.getFunctionType());
+	}
+	
+	@Test
+	public void testGetFunctionTypeCount() throws ParseException{
+		SetFunctionSpecification element = new TableQueryParser("count(foo)").setFunctionSpecification();
+		assertEquals(FunctionType.COUNT, element.getFunctionType());
+	}
+	
+	@Test
+	public void testGetFunctionTypeMax() throws ParseException{
+		SetFunctionSpecification element = new TableQueryParser("MAX(foo)").setFunctionSpecification();
+		assertEquals(FunctionType.MAX, element.getFunctionType());
+	}
+	
+	@Test
+	public void testGetFunctionTypeMin() throws ParseException{
+		SetFunctionSpecification element = new TableQueryParser("min(foo)").setFunctionSpecification();
+		assertEquals(FunctionType.MIN, element.getFunctionType());
+	}
+	
+	@Test
+	public void testGetFunctionTypeSum() throws ParseException{
+		SetFunctionSpecification element = new TableQueryParser("sum(foo)").setFunctionSpecification();
+		assertEquals(FunctionType.SUM, element.getFunctionType());
+	}
+	
+	@Test
+	public void testGetFunctionTypeAvg() throws ParseException{
+		SetFunctionSpecification element = new TableQueryParser("avg(foo)").setFunctionSpecification();
+		assertEquals(FunctionType.AVG, element.getFunctionType());
 	}
 }

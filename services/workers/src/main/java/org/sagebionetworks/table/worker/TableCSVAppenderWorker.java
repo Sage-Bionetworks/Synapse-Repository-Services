@@ -117,7 +117,7 @@ public class TableCSVAppenderWorker implements MessageDrivenRunner {
 			// Append the data to the table
 			rowCount = 0;
 			String etag = tableEntityManager.appendRowsAsStream(user, body.getTableId(),
-					TableModelUtils.createColumnModelColumnMapper(tableSchema, false), iteratorProxy, body.getUpdateEtag(), null,
+					TableModelUtils.createColumnModelColumnMapper(tableSchema), iteratorProxy, body.getUpdateEtag(), null,
 					new ProgressCallback<Long>() {
 
 				@Override

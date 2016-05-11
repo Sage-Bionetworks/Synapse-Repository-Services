@@ -6,8 +6,10 @@ import java.util.Map;
 
 import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.SelectColumnAndModel;
+import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.model.CharacterFactor;
 import org.sagebionetworks.table.query.model.CharacterPrimary;
@@ -16,6 +18,8 @@ import org.sagebionetworks.table.query.model.ColumnName;
 import org.sagebionetworks.table.query.model.ColumnReference;
 import org.sagebionetworks.table.query.model.DerivedColumn;
 import org.sagebionetworks.table.query.model.Factor;
+import org.sagebionetworks.table.query.model.FunctionType;
+import org.sagebionetworks.table.query.model.HasQuoteValue;
 import org.sagebionetworks.table.query.model.Identifier;
 import org.sagebionetworks.table.query.model.MysqlFunction;
 import org.sagebionetworks.table.query.model.NumericPrimary;
@@ -37,7 +41,6 @@ import com.google.common.collect.Lists;
 /**
  * Helper methods to translate table SQL queries.
  * 
- * @author jmhill
  *
  */
 public class SQLTranslatorUtils {
@@ -74,7 +77,7 @@ public class SQLTranslatorUtils {
 			List<SelectColumnAndModel> selectColumnModels = Lists.newArrayListWithCapacity(selectList.getColumns().size());
 			for (DerivedColumn dc : selectList.getColumns()) {
 				SelectColumn selectColumn = new SelectColumn();
-				selectColumn.setName(dc.getColumnName());
+				selectColumn.setName(dc.getDisplayName());
 
 				ColumnTypeVisitor visitor = new ColumnTypeVisitor(columnNameToModelMap, isAggregatedResult);
 				dc.doVisit(visitor);
@@ -83,11 +86,126 @@ public class SQLTranslatorUtils {
 				if (columnModel != null) {
 					selectColumn.setId(columnModel.getId());
 				}
-				selectColumnModels.add(TableModelUtils.createSelectColumnAndModel(selectColumn, columnModel));
+				selectColumnModels.add(new SelectColumnAndModel(selectColumn, columnModel));
 			}
 			return TableModelUtils.createColumnMapper(selectColumnModels);
 		}
 	}
+	
+	/**
+	 * Given a DerivedColumn extract all data about both the SelectColumn and ColumnModel.
+	 * 
+	 * @param derivedColumn
+	 * @param columnMap
+	 * @return
+	 */
+	public static SelectColumnAndModel getSelectColumns(DerivedColumn derivedColumn, Map<String, ColumnModel> columnMap){
+		// Extract data about this column.
+		String displayName = derivedColumn.getDisplayName();
+		// lookup the column referenced by this select.
+		HasQuoteValue referencedColumn = derivedColumn.getReferencedColumn();
+		// If element has a function get its name.
+		FunctionType functionType = derivedColumn.getFunctionType();
+		// Select defines the selection
+		SelectColumn selectColumn = new SelectColumn();
+		selectColumn.setName(displayName);
+		
+		ColumnModel model = null;
+		if(referencedColumn != null){
+			// Does the reference match an actual column name?
+			model = columnMap.get(referencedColumn.getValueWithoutQuotes());
+		}
+		// Lookup the base type starting only with the column referenced.
+		ColumnType columnType = getBaseColulmnType(referencedColumn);
+		if(model != null){
+			// If we have a column model the base type is defined by it.
+			columnType = model.getColumnType();
+			selectColumn.setId(model.getId());
+		}
+		// If there is a function it can change the type
+		if(functionType != null){
+			columnType = getColumnTypeForFunction(functionType, columnType);
+		}
+		selectColumn.setColumnType(columnType);
+		// done
+		return new SelectColumnAndModel(selectColumn, model);
+	}
+	
+	/**
+	 * Get the base column type for a 
+	 * @param derivedColumn
+	 * @return
+	 */
+	public static ColumnType getBaseColulmnType(HasQuoteValue referencedColumn){
+		if(referencedColumn == null){
+			return null;
+		}
+		// Get the upper case column name without quotes.
+		String columnNameUpper = referencedColumn.getValueWithoutQuotes().toUpperCase();
+		if(TableConstants.ROW_ID.equals(columnNameUpper)){
+			return ColumnType.INTEGER;
+		}
+		if(TableConstants.ROW_VERSION.equals(columnNameUpper)){
+			return ColumnType.INTEGER;
+		}
+		if(!referencedColumn.isSurrounedeWithQuotes()){
+			return ColumnType.DOUBLE;
+		}
+		return ColumnType.STRING;
+	}
+	
+	/**
+	 * Determine SelectColumn type for a given FunctionType and base ColumnType.
+	 * @param derivedColumn
+	 * @param model
+	 * @return
+	 */
+	public static ColumnType getColumnTypeForFunction(FunctionType functionType, ColumnType baseType){
+		ValidateArgument.required(functionType, "functionType");
+		switch(functionType) {
+		case COUNT:
+		case FOUND_ROWS:
+			return ColumnType.INTEGER;
+		case AVG:
+			if(!isNumericType(baseType)){
+				throw new IllegalArgumentException("Cannot calculate "+functionType.name()+" for type: "+baseType);
+			}
+			// average is always double.
+			return ColumnType.DOUBLE;
+		case SUM:
+			if(!isNumericType(baseType)){
+				throw new IllegalArgumentException("Cannot calculate "+functionType.name()+" for type: "+baseType);
+			}
+			// sum returns the same type as the numeric column.
+			return baseType;
+		case MAX:
+		case MIN:
+			ValidateArgument.required(baseType, "columnType");
+			// min and max return the same type as the column.
+			return baseType;
+		default:
+			throw new IllegalArgumentException("Unknown type: "+functionType.name());
+		}
+	}
+	
+	/**
+	 * Is the given ColumnType numeric?
+	 * @param columnType
+	 * @return
+	 */
+	public static boolean isNumericType(ColumnType columnType){
+		ValidateArgument.required(columnType, "columnType");
+		switch(columnType){
+		case INTEGER:
+		case DOUBLE:
+		case DATE:
+		case FILEHANDLEID:
+			return true;
+		default:
+			return false;
+		}
+	}
+	
 
 	public static DerivedColumn createDerivedColumn(String columnName) {
 		return new DerivedColumn(new ValueExpression(new StringValueExpression(new CharacterValueExpression(new CharacterFactor(

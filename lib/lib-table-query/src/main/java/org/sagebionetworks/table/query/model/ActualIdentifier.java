@@ -9,7 +9,7 @@ import org.sagebionetworks.table.query.model.visitors.Visitor;
 /**
  * This matches &ltactual identifier&gt   in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
  */
-public class ActualIdentifier extends SQLElement implements HasUnquotedValue {
+public class ActualIdentifier extends SQLElement implements HasQuoteValue {
 	
 	private final String regularIdentifier;
 	private final String delimitedIdentifier;
@@ -56,7 +56,7 @@ public class ActualIdentifier extends SQLElement implements HasUnquotedValue {
 		}
 	}
 	@Override
-	public String getUnquotedValue() {
+	public String getValueWithoutQuotes() {
 		if (regularIdentifier != null) {
 			return regularIdentifier;
 		} else {
@@ -66,5 +66,10 @@ public class ActualIdentifier extends SQLElement implements HasUnquotedValue {
 	@Override
 	<T extends Element> void addElements(List<T> elements, Class<T> type) {
 		// this element does not contain any SQLElements
+	}
+	
+	@Override
+	public boolean isSurrounedeWithQuotes() {
+		return delimitedIdentifier != null;
 	}
 }
