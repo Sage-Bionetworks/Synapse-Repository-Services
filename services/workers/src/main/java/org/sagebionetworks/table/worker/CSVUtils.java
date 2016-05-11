@@ -2,12 +2,12 @@ package org.sagebionetworks.table.worker;
 
 import java.io.Reader;
 
+import org.sagebionetworks.csv.utils.CSVReader;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
-import org.sagebionetworks.util.csv.CsvNullReader;
 
 public class CSVUtils {
 	
@@ -17,17 +17,17 @@ public class CSVUtils {
 	public static final ColumnType[] typesToCheck = new ColumnType[]{ColumnType.BOOLEAN, ColumnType.INTEGER, ColumnType.DOUBLE, ColumnType.DATE, ColumnType.ENTITYID, ColumnType.STRING};
 
 	/**
-	 * Create CsvNullReader with the correct parameters using the provided parameters or default values.
+	 * Create CSVReader with the correct parameters using the provided parameters or default values.
 	 * @param reader
 	 * @param body
 	 * @param contentType
 	 * @return
 	 */
-	public static CsvNullReader createCSVReader(Reader reader, CsvTableDescriptor descriptor, Long linesToSkip) {
-		char separator = CsvNullReader.DEFAULT_SEPARATOR;
-		char quotechar = CsvNullReader.DEFAULT_QUOTE_CHARACTER;
-		char escape = CsvNullReader.DEFAULT_ESCAPE_CHARACTER;
-		int skipLines = CsvNullReader.DEFAULT_SKIP_LINES;
+	public static CSVReader createCSVReader(Reader reader, CsvTableDescriptor descriptor, Long linesToSkip) {
+		char separator = CSVReader.DEFAULT_SEPARATOR;
+		char quotechar = CSVReader.DEFAULT_QUOTE_CHARACTER;
+		char escape = CSVReader.DEFAULT_ESCAPE_CHARACTER;
+		int skipLines = CSVReader.DEFAULT_SKIP_LINES;
 		if(descriptor != null){
 			if (descriptor.getSeparator() != null) {
 				if (descriptor.getSeparator().length() != 1) {
@@ -57,7 +57,7 @@ public class CSVUtils {
 			skipLines = linesToSkip.intValue();
 		}
 		// Create the reader.
-		return new CsvNullReader(reader, separator, quotechar, escape, skipLines);
+		return new CSVReader(reader, separator, quotechar, escape, skipLines);
 	}
 	
 	/**

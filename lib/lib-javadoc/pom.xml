@@ -39,8 +39,8 @@
 			<artifactId>spring-web</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>net.sf.opencsv</groupId>
-			<artifactId>opencsv</artifactId>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>csv-utilities</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.mockito</groupId>

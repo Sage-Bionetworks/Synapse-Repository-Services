@@ -56,6 +56,11 @@
 			<scope>compile</scope>
 		</dependency>
 
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>csv-utilities</artifactId>
+		</dependency>
+
 		<!-- MySQL dependencies -->
 		<dependency>
 			<groupId>mysql</groupId>

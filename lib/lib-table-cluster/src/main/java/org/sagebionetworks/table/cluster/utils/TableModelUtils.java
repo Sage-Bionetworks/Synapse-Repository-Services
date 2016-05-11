@@ -24,6 +24,8 @@ import java.util.zip.GZIPOutputStream;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang.StringUtils;
 import org.sagebionetworks.collections.Transform;
+import org.sagebionetworks.csv.utils.CSVReader;
+import org.sagebionetworks.csv.utils.CSVWriter;
 import org.sagebionetworks.repo.model.dao.table.RowAccessor;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.dao.table.RowSetAccessor;
@@ -45,10 +47,6 @@ import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.util.TimeUtils;
 import org.sagebionetworks.util.ValidateArgument;
-import org.sagebionetworks.util.csv.CsvNullReader;
-
-import au.com.bytecode.opencsv.CSVWriter;
-
 import com.google.common.base.Function;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
@@ -505,7 +503,7 @@ public class TableModelUtils {
 	 * @return
 	 * @throws IOException
 	 */
-	public static List<Row> readFromCSV(CsvNullReader reader) throws IOException {
+	public static List<Row> readFromCSV(CSVReader reader) throws IOException {
 		if (reader == null)
 			throw new IllegalArgumentException("CsvNullReader cannot be null");
 		final List<Row> rows = new LinkedList<Row>();
@@ -527,7 +525,7 @@ public class TableModelUtils {
 	 * @return
 	 * @throws IOException
 	 */
-	public static void scanFromCSV(CsvNullReader reader, RowHandler handler) throws IOException {
+	public static void scanFromCSV(CSVReader reader, RowHandler handler) throws IOException {
 		if (reader == null)
 			throw new IllegalArgumentException("CsvNullReader cannot be null");
 		String[] rowArray = null;
@@ -559,11 +557,11 @@ public class TableModelUtils {
 	public static List<Row> readFromCSVgzStream(InputStream zippedStream) throws IOException {
 		GZIPInputStream zipIn = null;
 		InputStreamReader isr = null;
-		CsvNullReader csvReader = null;
+		CSVReader csvReader = null;
 		try{
 			zipIn = new GZIPInputStream(zippedStream);
 			isr = new InputStreamReader(zipIn);
-			csvReader = new CsvNullReader(isr);
+			csvReader = new CSVReader(isr);
 			return readFromCSV(csvReader);
 		}finally{
 			if(csvReader != null){
@@ -583,11 +581,11 @@ public class TableModelUtils {
 	public static void scanFromCSVgzStream(InputStream zippedStream, RowHandler handler) throws IOException{
 		GZIPInputStream zipIn = null;
 		InputStreamReader isr = null;
-		CsvNullReader csvReader = null;
+		CSVReader csvReader = null;
 		try{
 			zipIn = new GZIPInputStream(zippedStream);
 			isr = new InputStreamReader(zipIn);
-			csvReader = new CsvNullReader(isr);
+			csvReader = new CSVReader(isr);
 			scanFromCSV(csvReader, handler);
 		}finally{
 			if(csvReader != null){

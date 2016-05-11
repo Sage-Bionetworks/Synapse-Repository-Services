@@ -17,6 +17,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.csv.utils.CSVReader;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -29,7 +30,6 @@ import static org.sagebionetworks.repo.model.table.TableConstants.*;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewResult;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
-import org.sagebionetworks.util.csv.CsvNullReader;
 
 public class UploadPreviewBuilderTest {
 	
@@ -98,7 +98,7 @@ public class UploadPreviewBuilderTest {
 		expectedRows.add(row);
 		
 		StringReader sReader = new StringReader(eachTypeCSV);
-		CsvNullReader reader = new CsvNullReader(sReader);
+		CSVReader reader = new CSVReader(sReader);
 		UploadPreviewBuilder builder = new UploadPreviewBuilder(reader, mockProgressCallback, request);
 		UploadToTablePreviewResult result = builder.buildResult();
 		assertNotNull(result);
@@ -143,7 +143,7 @@ public class UploadPreviewBuilderTest {
 		expectedRows.add(row);
 		
 		StringReader sReader = new StringReader(eachTypeCSV);
-		CsvNullReader reader = new CsvNullReader(sReader);
+		CSVReader reader = new CSVReader(sReader);
 		UploadPreviewBuilder builder = new UploadPreviewBuilder(reader, mockProgressCallback, request);
 		UploadToTablePreviewResult result = builder.buildResult();
 		assertNotNull(result);
@@ -194,7 +194,7 @@ public class UploadPreviewBuilderTest {
 		expectedRows.add(row);
 		
 		StringReader sReader = new StringReader(eachTypeCSV);
-		CsvNullReader reader = new CsvNullReader(sReader);
+		CSVReader reader = new CSVReader(sReader);
 		UploadPreviewBuilder builder = new UploadPreviewBuilder(reader, mockProgressCallback, request);
 		UploadToTablePreviewResult result = builder.buildResult();
 		assertNotNull(result);
@@ -218,7 +218,7 @@ public class UploadPreviewBuilderTest {
 		request.setDoFullFileScan(true);
 		
 		StringReader sReader = new StringReader(eachTypeCSV);
-		CsvNullReader reader = new CsvNullReader(sReader);
+		CSVReader reader = new CSVReader(sReader);
 		UploadPreviewBuilder builder = new UploadPreviewBuilder(reader, mockProgressCallback, request);
 		// Set the max beyond the number of rows we have.
 		builder.setMaxRowsInpartialScan(input.size()+1);
@@ -242,7 +242,7 @@ public class UploadPreviewBuilderTest {
 		request.setDoFullFileScan(false);
 		
 		StringReader sReader = new StringReader(eachTypeCSV);
-		CsvNullReader reader = new CsvNullReader(sReader);
+		CSVReader reader = new CSVReader(sReader);
 		UploadPreviewBuilder builder = new UploadPreviewBuilder(reader, mockProgressCallback, request);
 		// Set the max beyond the number of rows we have.
 		builder.setMaxRowsInpartialScan(input.size()-1);
@@ -269,7 +269,7 @@ public class UploadPreviewBuilderTest {
 		request.setCsvTableDescriptor(descriptor);
 		request.setDoFullFileScan(true);
 		StringReader sReader = new StringReader(eachTypeCSV);
-		CsvNullReader reader = new CsvNullReader(sReader);
+		CSVReader reader = new CSVReader(sReader);
 		UploadPreviewBuilder builder = new UploadPreviewBuilder(reader, mockProgressCallback, request);
 		// Set the max beyond the number of rows we have.
 		builder.setMaxRowsInpartialScan(input.size()-1);
@@ -298,7 +298,7 @@ public class UploadPreviewBuilderTest {
 		request.setDoFullFileScan(true);
 		
 		StringReader sReader = new StringReader(eachTypeCSV);
-		CsvNullReader reader = new CsvNullReader(sReader);
+		CSVReader reader = new CSVReader(sReader);
 		UploadPreviewBuilder builder = new UploadPreviewBuilder(reader, mockProgressCallback, request);
 		// Set the max beyond the number of rows we have.
 		builder.setMaxRowsInpartialScan(input.size()-1);
@@ -326,7 +326,7 @@ public class UploadPreviewBuilderTest {
 		request.setDoFullFileScan(true);
 		
 		StringReader sReader = new StringReader(eachTypeCSV);
-		CsvNullReader reader = new CsvNullReader(sReader);
+		CSVReader reader = new CSVReader(sReader);
 		UploadPreviewBuilder builder = new UploadPreviewBuilder(reader, mockProgressCallback, request);
 		// Set the max beyond the number of rows we have.
 		builder.setMaxRowsInpartialScan(input.size()-1);
@@ -351,7 +351,7 @@ public class UploadPreviewBuilderTest {
 		request.setDoFullFileScan(true);
 		
 		StringReader sReader = new StringReader(eachTypeCSV);
-		CsvNullReader reader = new CsvNullReader(sReader);
+		CSVReader reader = new CSVReader(sReader);
 		UploadPreviewBuilder builder = new UploadPreviewBuilder(reader, mockProgressCallback, request);
 		// Set the max beyond the number of rows we have.
 		builder.setMaxRowsInpartialScan(input.size()-1);
@@ -376,7 +376,7 @@ public class UploadPreviewBuilderTest {
 		request.setDoFullFileScan(true);
 		
 		StringReader sReader = new StringReader(eachTypeCSV);
-		CsvNullReader reader = new CsvNullReader(sReader);
+		CSVReader reader = new CSVReader(sReader);
 		UploadPreviewBuilder builder = new UploadPreviewBuilder(reader, mockProgressCallback, request);
 		// Set the max beyond the number of rows we have.
 		builder.setMaxRowsInpartialScan(input.size()-1);
@@ -402,7 +402,7 @@ public class UploadPreviewBuilderTest {
 		request.setDoFullFileScan(true);
 		
 		StringReader sReader = new StringReader(eachTypeCSV);
-		CsvNullReader reader = new CsvNullReader(sReader);
+		CSVReader reader = new CSVReader(sReader);
 		UploadPreviewBuilder builder = new UploadPreviewBuilder(reader, mockProgressCallback, request);
 		// Set the max beyond the number of rows we have.
 		builder.setMaxRowsInpartialScan(input.size()-1);

@@ -7,9 +7,7 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
-
-
-import au.com.bytecode.opencsv.CSVReader;
+import org.sagebionetworks.csv.utils.CSVReader;
 
 /**
  * Provides a list of SQLExamples that can be used for documentation an testing.

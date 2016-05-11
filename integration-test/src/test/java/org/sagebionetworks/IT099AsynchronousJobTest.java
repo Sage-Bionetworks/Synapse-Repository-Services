@@ -25,6 +25,8 @@ import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseResultNotReadyException;
+import org.sagebionetworks.csv.utils.CSVReader;
+import org.sagebionetworks.csv.utils.CSVWriter;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
@@ -41,9 +43,6 @@ import org.sagebionetworks.repo.model.table.UploadToTablePreviewResult;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
 import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.TimeUtils;
-import org.sagebionetworks.util.csv.CsvNullReader;
-
-import au.com.bytecode.opencsv.CSVWriter;
 
 import com.google.common.collect.Lists;
 
@@ -249,11 +248,11 @@ public class IT099AsynchronousJobTest {
 			URL url = synapse.getFileHandleTemporaryUrl(downloadResult.getResultsFileHandleId());
 			assertNotNull(url);
 			File temp2 = File.createTempFile("downloadTemp", ".csv");
-			CsvNullReader reader = null;
+			CSVReader reader = null;
 			List<String[]> downloadCSV = null;
 			try {
 				synapse.downloadFromFileHandleTemporaryUrl(downloadResult.getResultsFileHandleId(), temp2);
-				reader = new CsvNullReader(new FileReader(temp2));
+				reader = new CSVReader(new FileReader(temp2));
 				downloadCSV = reader.readAll();
 			} finally {
 				if (reader != null) {

@@ -9,6 +9,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.common.util.progress.ForwardingProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.csv.utils.CSVWriter;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
@@ -27,8 +28,6 @@ import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
-
-import au.com.bytecode.opencsv.CSVWriter;
 
 import com.amazonaws.services.sqs.model.Message;
 
