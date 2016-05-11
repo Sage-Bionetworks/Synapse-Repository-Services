@@ -1,18 +1,22 @@
 package org.sagebionetworks.table.cluster;
 
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.when;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
-import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.SelectColumnAndModel;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
@@ -20,17 +24,40 @@ import org.sagebionetworks.table.query.model.DerivedColumn;
 import org.sagebionetworks.table.query.model.FunctionType;
 import org.sagebionetworks.table.query.model.HasQuoteValue;
 
+import com.google.common.collect.Lists;
+
 public class SQLTranslatorUtilsTest {
 	
 	@Mock
 	HasQuoteValue mockHasQuoteValue;
 	
-	Map<String, ColumnModel> columnMap = new HashMap<String, ColumnModel>(1);
+	Map<String, ColumnModel> columnMap;
 	
+	ColumnModel columnFoo;
+	ColumnModel columnHasSpace;
+	ColumnModel columnBar;
+	ColumnModel columnId;
+	ColumnModel columnSpecial;
+	
+	List<ColumnModel> schema;
 	
 	@Before
 	public void before(){
 		MockitoAnnotations.initMocks(this);
+
+		columnFoo = TableModelTestUtils.createColumn(111L, "foo", ColumnType.STRING);
+		columnHasSpace = TableModelTestUtils.createColumn(222L, "has space", ColumnType.STRING);
+		columnBar = TableModelTestUtils.createColumn(333L, "bar", ColumnType.STRING);
+		columnId = TableModelTestUtils.createColumn(444L, "id", ColumnType.INTEGER);
+		String specialChars = "Specialchars~!@#$%^^&*()_+|}{:?></.,;'[]\'";
+		columnSpecial = TableModelTestUtils.createColumn(555L, specialChars, ColumnType.DOUBLE);
+		
+		schema = Lists.newArrayList(columnFoo, columnHasSpace, columnBar, columnId, columnSpecial);
+		// setup the map
+		columnMap = new HashMap<String, ColumnModel>(schema.size());
+		for(ColumnModel cm: schema){
+			columnMap.put(cm.getName(), cm);
+		}
 	}
 
 	
@@ -242,16 +269,236 @@ public class SQLTranslatorUtilsTest {
 	}
 	
 	@Test
-	public void testGetSelectColumns() throws ParseException{
-		Map<String, ColumnModel> columnMap = new HashMap<String, ColumnModel>(1);
-		
-		DerivedColumn derivedColumn = new TableQueryParser("").derivedColumn();
-		
+	public void testGetSelectColumnsConstantString() throws ParseException{
+		DerivedColumn derivedColumn = new TableQueryParser("'constant'").derivedColumn();
+		// call under test
 		SelectColumnAndModel results = SQLTranslatorUtils.getSelectColumns(derivedColumn, columnMap);
 		assertNotNull(results);
-		assertEquals("", results.getName());
-		assertEquals(ColumnType.BOOLEAN, results.getColumnType());
-		
-		
+		assertNotNull(results.getSelectColumn());
+		assertEquals("constant", results.getSelectColumn().getName());
+		assertEquals(ColumnType.STRING, results.getSelectColumn().getColumnType());
+		assertEquals(null, results.getSelectColumn().getId());
+		assertEquals(null, results.getColumnModel());
+	}
+	
+	@Test
+	public void testGetSelectColumnsConstantDouble() throws ParseException{
+		DerivedColumn derivedColumn = new TableQueryParser("1.23").derivedColumn();
+		// call under test
+		SelectColumnAndModel results = SQLTranslatorUtils.getSelectColumns(derivedColumn, columnMap);
+		assertNotNull(results);
+		assertNotNull(results.getSelectColumn());
+		assertEquals("1.23", results.getSelectColumn().getName());
+		assertEquals(ColumnType.DOUBLE, results.getSelectColumn().getColumnType());
+		assertEquals(null, results.getSelectColumn().getId());
+		assertEquals(null, results.getColumnModel());
+	}
+	
+	@Test
+	public void testGetSelectColumnsRowIdLower() throws ParseException{
+		DerivedColumn derivedColumn = new TableQueryParser("row_id").derivedColumn();
+		// call under test
+		SelectColumnAndModel results = SQLTranslatorUtils.getSelectColumns(derivedColumn, columnMap);
+		assertNotNull(results);
+		assertNotNull(results.getSelectColumn());
+		assertEquals("row_id", results.getSelectColumn().getName());
+		assertEquals(ColumnType.INTEGER, results.getSelectColumn().getColumnType());
+		assertEquals(null, results.getSelectColumn().getId());
+		assertEquals(null, results.getColumnModel());
+	}
+	
+	@Test
+	public void testGetSelectColumnsRowIdUpper() throws ParseException{
+		DerivedColumn derivedColumn = new TableQueryParser("ROW_ID").derivedColumn();
+		// call under test
+		SelectColumnAndModel results = SQLTranslatorUtils.getSelectColumns(derivedColumn, columnMap);
+		assertNotNull(results);
+		assertNotNull(results.getSelectColumn());
+		assertEquals("ROW_ID", results.getSelectColumn().getName());
+		assertEquals(ColumnType.INTEGER, results.getSelectColumn().getColumnType());
+		assertEquals(null, results.getSelectColumn().getId());
+		assertEquals(null, results.getColumnModel());
+	}
+	
+	@Test
+	public void testGetSelectColumnsCountRowId() throws ParseException{
+		DerivedColumn derivedColumn = new TableQueryParser("count(row_id)").derivedColumn();
+		// call under test
+		SelectColumnAndModel results = SQLTranslatorUtils.getSelectColumns(derivedColumn, columnMap);
+		assertNotNull(results);
+		assertNotNull(results.getSelectColumn());
+		assertEquals("COUNT(row_id)", results.getSelectColumn().getName());
+		assertEquals(ColumnType.INTEGER, results.getSelectColumn().getColumnType());
+		assertEquals(null, results.getSelectColumn().getId());
+		assertEquals(null, results.getColumnModel());
+	}
+	
+	@Test
+	public void testGetSelectColumnsRowVersionLower() throws ParseException{
+		DerivedColumn derivedColumn = new TableQueryParser("row_version").derivedColumn();
+		// call under test
+		SelectColumnAndModel results = SQLTranslatorUtils.getSelectColumns(derivedColumn, columnMap);
+		assertNotNull(results);
+		assertNotNull(results.getSelectColumn());
+		assertEquals("row_version", results.getSelectColumn().getName());
+		assertEquals(ColumnType.INTEGER, results.getSelectColumn().getColumnType());
+		assertEquals(null, results.getSelectColumn().getId());
+		assertEquals(null, results.getColumnModel());
+	}
+	
+	@Test
+	public void testGetSelectColumnsRowVersionUpper() throws ParseException{
+		DerivedColumn derivedColumn = new TableQueryParser("ROW_VERSION").derivedColumn();
+		// call under test
+		SelectColumnAndModel results = SQLTranslatorUtils.getSelectColumns(derivedColumn, columnMap);
+		assertNotNull(results);
+		assertNotNull(results.getSelectColumn());
+		assertEquals("ROW_VERSION", results.getSelectColumn().getName());
+		assertEquals(ColumnType.INTEGER, results.getSelectColumn().getColumnType());
+		assertEquals(null, results.getSelectColumn().getId());
+		assertEquals(null, results.getColumnModel());
+	}
+	
+	@Test
+	public void testGetSelectColumnsCountStar() throws ParseException{
+		DerivedColumn derivedColumn = new TableQueryParser("count(*)").derivedColumn();
+		// call under test
+		SelectColumnAndModel results = SQLTranslatorUtils.getSelectColumns(derivedColumn, columnMap);
+		assertNotNull(results);
+		assertNotNull(results.getSelectColumn());
+		assertEquals("COUNT(*)", results.getSelectColumn().getName());
+		assertEquals(ColumnType.INTEGER, results.getSelectColumn().getColumnType());
+		assertEquals(null, results.getSelectColumn().getId());
+		assertEquals(null, results.getColumnModel());
+	}
+	
+	@Test
+	public void testGetSelectColumnsCountStarAs() throws ParseException{
+		DerivedColumn derivedColumn = new TableQueryParser("count(*) as \"has space\"").derivedColumn();
+		// call under test
+		SelectColumnAndModel results = SQLTranslatorUtils.getSelectColumns(derivedColumn, columnMap);
+		assertNotNull(results);
+		assertNotNull(results.getSelectColumn());
+		assertEquals("has space", results.getSelectColumn().getName());
+		assertEquals(ColumnType.INTEGER, results.getSelectColumn().getColumnType());
+		assertEquals(null, results.getSelectColumn().getId());
+		assertEquals(null, results.getColumnModel());
+	}
+	
+	@Test
+	public void testGetSelectColumnsCountNoMatch() throws ParseException{
+		DerivedColumn derivedColumn = new TableQueryParser("count(no_match)").derivedColumn();
+		// call under test
+		SelectColumnAndModel results = SQLTranslatorUtils.getSelectColumns(derivedColumn, columnMap);
+		assertNotNull(results);
+		assertNotNull(results.getSelectColumn());
+		assertEquals("COUNT(no_match)", results.getSelectColumn().getName());
+		assertEquals(ColumnType.INTEGER, results.getSelectColumn().getColumnType());
+		assertEquals(null, results.getSelectColumn().getId());
+		assertEquals(null, results.getColumnModel());
+	}
+	
+	@Test
+	public void testGetSelectColumnsCountMatch() throws ParseException{
+		DerivedColumn derivedColumn = new TableQueryParser("count('has space')").derivedColumn();
+		// call under test
+		SelectColumnAndModel results = SQLTranslatorUtils.getSelectColumns(derivedColumn, columnMap);
+		assertNotNull(results);
+		assertNotNull(results.getSelectColumn());
+		assertEquals("COUNT('has space')", results.getSelectColumn().getName());
+		assertEquals(ColumnType.INTEGER, results.getSelectColumn().getColumnType());
+		assertEquals(null, results.getSelectColumn().getId());
+		assertEquals(columnHasSpace, results.getColumnModel());
+	}
+	
+	@Test
+	public void testGetSelectColumnsCountMatchAs() throws ParseException{
+		DerivedColumn derivedColumn = new TableQueryParser("count('has space') as bar").derivedColumn();
+		// call under test
+		SelectColumnAndModel results = SQLTranslatorUtils.getSelectColumns(derivedColumn, columnMap);
+		assertNotNull(results);
+		assertNotNull(results.getSelectColumn());
+		assertEquals("bar", results.getSelectColumn().getName());
+		assertEquals(ColumnType.INTEGER, results.getSelectColumn().getColumnType());
+		assertEquals(null, results.getSelectColumn().getId());
+		assertEquals(columnHasSpace, results.getColumnModel());
+	}
+	
+	@Test
+	public void testGetSelectColumnsSimpleMatch() throws ParseException{
+		DerivedColumn derivedColumn = new TableQueryParser("foo").derivedColumn();
+		// call under test
+		SelectColumnAndModel results = SQLTranslatorUtils.getSelectColumns(derivedColumn, columnMap);
+		assertNotNull(results);
+		assertNotNull(results.getSelectColumn());
+		assertEquals("foo", results.getSelectColumn().getName());
+		assertEquals(columnFoo.getColumnType(), results.getSelectColumn().getColumnType());
+		assertEquals(columnFoo.getId(), results.getSelectColumn().getId());
+		assertEquals(columnFoo, results.getColumnModel());
+	}
+	
+	@Test
+	public void testGetSelectColumnsMatchAs() throws ParseException{
+		DerivedColumn derivedColumn = new TableQueryParser("bar as foo").derivedColumn();
+		// call under test
+		SelectColumnAndModel results = SQLTranslatorUtils.getSelectColumns(derivedColumn, columnMap);
+		assertNotNull(results);
+		assertNotNull(results.getSelectColumn());
+		assertEquals("foo", results.getSelectColumn().getName());
+		assertEquals(columnBar.getColumnType(), results.getSelectColumn().getColumnType());
+		assertEquals(null, results.getSelectColumn().getId());
+		assertEquals(columnBar, results.getColumnModel());
+	}
+	
+	@Test
+	public void testGetSelectColumnsSum() throws ParseException{
+		DerivedColumn derivedColumn = new TableQueryParser("sum( id )").derivedColumn();
+		// call under test
+		SelectColumnAndModel results = SQLTranslatorUtils.getSelectColumns(derivedColumn, columnMap);
+		assertNotNull(results);
+		assertNotNull(results.getSelectColumn());
+		assertEquals("SUM(id)", results.getSelectColumn().getName());
+		assertEquals(columnId.getColumnType(), results.getSelectColumn().getColumnType());
+		assertEquals(null, results.getSelectColumn().getId());
+		assertEquals(columnId, results.getColumnModel());
+	}
+	
+	@Test
+	public void testGetSelectColumnsMax() throws ParseException{
+		DerivedColumn derivedColumn = new TableQueryParser("max( bar )").derivedColumn();
+		// call under test
+		SelectColumnAndModel results = SQLTranslatorUtils.getSelectColumns(derivedColumn, columnMap);
+		assertNotNull(results);
+		assertNotNull(results.getSelectColumn());
+		assertEquals("MAX(bar)", results.getSelectColumn().getName());
+		assertEquals(columnBar.getColumnType(), results.getSelectColumn().getColumnType());
+		assertEquals(null, results.getSelectColumn().getId());
+		assertEquals(columnBar, results.getColumnModel());
+	}
+	
+	@Test
+	public void testGetSelectColumnsAvg() throws ParseException{
+		DerivedColumn derivedColumn = new TableQueryParser("avg( id )").derivedColumn();
+		// call under test
+		SelectColumnAndModel results = SQLTranslatorUtils.getSelectColumns(derivedColumn, columnMap);
+		assertNotNull(results);
+		assertNotNull(results.getSelectColumn());
+		assertEquals("AVG(id)", results.getSelectColumn().getName());
+		assertEquals(ColumnType.DOUBLE, results.getSelectColumn().getColumnType());
+		assertEquals(null, results.getSelectColumn().getId());
+		assertEquals(columnId, results.getColumnModel());
+	}
+	
+	@Test
+	public void testGetSelectColumnsSpecial() throws ParseException{
+		DerivedColumn derivedColumn = new TableQueryParser("\""+columnSpecial.getName()+"\"").derivedColumn();
+		// call under test
+		SelectColumnAndModel results = SQLTranslatorUtils.getSelectColumns(derivedColumn, columnMap);
+		assertNotNull(results);
+		assertNotNull(results.getSelectColumn());
+		assertEquals(columnSpecial.getName(), results.getSelectColumn().getName());
+		assertEquals(ColumnType.DOUBLE, results.getSelectColumn().getColumnType());
+		assertEquals(columnSpecial.getId(), results.getSelectColumn().getId());
+		assertEquals(columnSpecial, results.getColumnModel());
 	}
 }

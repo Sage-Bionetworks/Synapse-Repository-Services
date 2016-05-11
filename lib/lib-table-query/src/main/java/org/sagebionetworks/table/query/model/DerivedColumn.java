@@ -73,10 +73,10 @@ public class DerivedColumn extends SQLElement {
 			return toSql();
 		}
 		// If this has a string literal, then we need the unquoted value.
-		SignedLiteral signedLiteral = getFirstElementOfType(SignedLiteral.class);
-		if(signedLiteral != null){
+		HasQuoteValue hasQuotes = getFirstElementOfType(HasQuoteValue.class);
+		if(hasQuotes != null){
 			// For columns with signedLiterals the name is the unquoted value.
-			return signedLiteral.getValueWithoutQuotes();
+			return hasQuotes.getValueWithoutQuotes();
 		}else{
 			// For all all others the name is just the SQL.
 			return toSql();

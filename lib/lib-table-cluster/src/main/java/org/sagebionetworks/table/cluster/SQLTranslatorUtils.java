@@ -31,7 +31,6 @@ import org.sagebionetworks.table.query.model.StringValueExpression;
 import org.sagebionetworks.table.query.model.Term;
 import org.sagebionetworks.table.query.model.ValueExpression;
 import org.sagebionetworks.table.query.model.ValueExpressionPrimary;
-import org.sagebionetworks.table.query.model.visitors.ColumnTypeVisitor;
 import org.sagebionetworks.table.query.model.visitors.ToTranslatedSqlVisitor;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 import org.sagebionetworks.util.ValidateArgument;
@@ -76,18 +75,14 @@ public class SQLTranslatorUtils {
 		} else {
 			List<SelectColumnAndModel> selectColumnModels = Lists.newArrayListWithCapacity(selectList.getColumns().size());
 			for (DerivedColumn dc : selectList.getColumns()) {
-				SelectColumn selectColumn = new SelectColumn();
-				selectColumn.setName(dc.getDisplayName());
-
-				ColumnTypeVisitor visitor = new ColumnTypeVisitor(columnNameToModelMap, isAggregatedResult);
-				dc.doVisit(visitor);
-				ColumnModel columnModel = visitor.getColumnModel();
-				selectColumn.setColumnType(visitor.getColumnType());
-				if (columnModel != null) {
-					selectColumn.setId(columnModel.getId());
+				SelectColumnAndModel model = getSelectColumns(dc, columnNameToModelMap);
+				if(isAggregatedResult){
+					// never pass an ID for an aggregate query.
+					model.getSelectColumn().setId(null);
 				}
-				selectColumnModels.add(new SelectColumnAndModel(selectColumn, columnModel));
+				selectColumnModels.add(model);
 			}
+			
 			return TableModelUtils.createColumnMapper(selectColumnModels);
 		}
 	}
@@ -120,13 +115,16 @@ public class SQLTranslatorUtils {
 		if(model != null){
 			// If we have a column model the base type is defined by it.
 			columnType = model.getColumnType();
-			selectColumn.setId(model.getId());
 		}
 		// If there is a function it can change the type
 		if(functionType != null){
 			columnType = getColumnTypeForFunction(functionType, columnType);
 		}
 		selectColumn.setColumnType(columnType);
+		// We only set the id on the select column when the display name match the column name.
+		if(model != null && model.getName().equals(displayName)){
+			selectColumn.setId(model.getId());
+		}
 		// done
 		return new SelectColumnAndModel(selectColumn, model);
 	}

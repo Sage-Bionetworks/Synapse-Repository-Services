@@ -75,6 +75,12 @@ public class DerivedColumnTest {
 	}
 	
 	@Test
+	public void testGetNameWithDoubleQuotes() throws ParseException{
+		DerivedColumn element = SqlElementUntils.createDerivedColumn("\"has space\"");
+		assertEquals("has space", element.getDisplayName());
+	}
+	
+	@Test
 	public void testGetFunctionTypeNoFunctionCount() throws ParseException{
 		DerivedColumn element = SqlElementUntils.createDerivedColumn("foo as bar");
 		assertEquals(null, element.getFunctionType());

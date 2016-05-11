@@ -2,8 +2,6 @@ package org.sagebionetworks.table.query.model;
 
 import java.util.List;
 
-import org.sagebionetworks.repo.model.table.ColumnType;
-import org.sagebionetworks.table.query.model.visitors.ColumnTypeVisitor;
 import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor;
 import org.sagebionetworks.table.query.model.visitors.ToTranslatedSqlVisitor;
 import org.sagebionetworks.table.query.model.visitors.Visitor;
@@ -50,14 +48,6 @@ public class SignedLiteral extends SQLElement implements HasQuoteValue {
 			visitor.convertNumberParam(signedNumericLiteral);
 		} else {
 			visitor.convertParam(generalLiteral);
-		}
-	}
-
-	public void visit(ColumnTypeVisitor visitor) {
-		if (signedNumericLiteral != null) {
-			visitor.setColumnType(ColumnType.DOUBLE);
-		} else {
-			visitor.setColumnType(ColumnType.STRING);
 		}
 	}
 

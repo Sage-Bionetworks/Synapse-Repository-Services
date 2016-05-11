@@ -811,14 +811,14 @@ public class TableModelUtils {
 	public static int calculateMaxRowSizeForColumnModels(ColumnMapper columnMapper) {
 		int size = 0;
 		for (SelectColumnAndModel scm : columnMapper.getSelectColumnAndModels()) {
-			if (scm.getColumnType() == null) {
+			if (scm.getSelectColumn().getColumnType() == null) {
 				// we don't know the type, now what?
 				size += 64;
 			} else if (scm.getColumnModel() != null) {
-				size += calculateMaxSizeForType(scm.getColumnType(), scm.getColumnModel().getMaximumSize());
+				size += calculateMaxSizeForType(scm.getSelectColumn().getColumnType(), scm.getColumnModel().getMaximumSize());
 			} else {
 				// we don't know the max size, now what?
-				size += calculateMaxSizeForType(scm.getColumnType(), MAX_ALLOWED_STRING_SIZE);
+				size += calculateMaxSizeForType(scm.getSelectColumn().getColumnType(), MAX_ALLOWED_STRING_SIZE);
 			}
 		}
 		return size;

@@ -8,8 +8,6 @@ import org.sagebionetworks.util.ValidateArgument;
  */
 public final class SelectColumnAndModel {
 	
-	String name;
-	ColumnType columnType;
 	SelectColumn selectColumn;
 	ColumnModel columnModel;
 	
@@ -20,8 +18,6 @@ public final class SelectColumnAndModel {
 	 */
 	public SelectColumnAndModel(ColumnModel columnModel){
 		ValidateArgument.required(columnModel, "columnModel");
-		this.name = columnModel.getName();
-		this.columnType = columnModel.getColumnType();
 		this.columnModel = columnModel;
 		this.selectColumn = new SelectColumn();
 		selectColumn.setName(columnModel.getName());
@@ -38,18 +34,10 @@ public final class SelectColumnAndModel {
 	 */
 	public SelectColumnAndModel(SelectColumn selectColumn, ColumnModel columnModel){
 		ValidateArgument.required(selectColumn, "selectColumn");
-		this.name = selectColumn.getName();
-		this.columnType = selectColumn.getColumnType();
 		this.selectColumn = selectColumn;
 		this.columnModel = columnModel;
 	}
 	
-	public String getName() {
-		return name;
-	}
-	public ColumnType getColumnType() {
-		return columnType;
-	}
 	public SelectColumn getSelectColumn() {
 		return selectColumn;
 	}
@@ -63,9 +51,6 @@ public final class SelectColumnAndModel {
 		int result = 1;
 		result = prime * result
 				+ ((columnModel == null) ? 0 : columnModel.hashCode());
-		result = prime * result
-				+ ((columnType == null) ? 0 : columnType.hashCode());
-		result = prime * result + ((name == null) ? 0 : name.hashCode());
 		result = prime * result
 				+ ((selectColumn == null) ? 0 : selectColumn.hashCode());
 		return result;
@@ -85,13 +70,6 @@ public final class SelectColumnAndModel {
 				return false;
 		} else if (!columnModel.equals(other.columnModel))
 			return false;
-		if (columnType != other.columnType)
-			return false;
-		if (name == null) {
-			if (other.name != null)
-				return false;
-		} else if (!name.equals(other.name))
-			return false;
 		if (selectColumn == null) {
 			if (other.selectColumn != null)
 				return false;
@@ -102,9 +80,8 @@ public final class SelectColumnAndModel {
 
 	@Override
 	public String toString() {
-		return "SelectColumnAndModel [name=" + name + ", columnType="
-				+ columnType + ", selectColumn=" + selectColumn
+		return "SelectColumnAndModel [selectColumn=" + selectColumn
 				+ ", columnModel=" + columnModel + "]";
 	}
-	
+
 }
