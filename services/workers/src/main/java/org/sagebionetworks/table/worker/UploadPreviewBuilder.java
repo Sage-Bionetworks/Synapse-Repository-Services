@@ -9,13 +9,13 @@ import java.util.Map;
 import java.util.regex.Pattern;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.csv.utils.CSVReader;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewResult;
-import org.sagebionetworks.util.csv.CsvNullReader;
 
 /**
  * Builds a CSV upload preview for a file.
@@ -27,7 +27,7 @@ public class UploadPreviewBuilder {
 
 	public static final int MAX_ROWS_IN_PARTIAL_SCAN = 1000;
 	public static final int MAX_ROWS_IN_PREVIEW = 5;
-	CsvNullReader reader;
+	CSVReader reader;
 	ProgressCallback<Integer> progressCallback;
 	boolean isFirstLineHeader;
 	List<String[]> startingRow;
@@ -39,7 +39,7 @@ public class UploadPreviewBuilder {
 	int rowsScanned;
 	List<ColumnModel> suggestedColumns;
 
-	public UploadPreviewBuilder(CsvNullReader reader,
+	public UploadPreviewBuilder(CSVReader reader,
 			ProgressCallback<Integer> progressCallback, UploadToTablePreviewRequest request) {
 		this.reader = reader;
 		this.progressCallback = progressCallback;

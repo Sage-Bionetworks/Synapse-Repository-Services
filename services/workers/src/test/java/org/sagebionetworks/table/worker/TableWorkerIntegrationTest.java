@@ -33,6 +33,8 @@ import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.csv.utils.CSVReader;
+import org.sagebionetworks.csv.utils.CSVWriter;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.manager.AccessApprovalManager;
 import org.sagebionetworks.repo.manager.AccessRequirementManager;
@@ -100,15 +102,12 @@ import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.TimeUtils;
 import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.sagebionetworks.util.csv.CSVWriterStreamProxy;
-import org.sagebionetworks.util.csv.CsvNullReader;
 import org.springframework.aop.framework.Advised;
 import org.springframework.aop.support.AopUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.util.ReflectionTestUtils;
-
-import au.com.bytecode.opencsv.CSVWriter;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableMap;
@@ -1558,7 +1557,7 @@ public class TableWorkerIntegrationTest {
 		input.add(new String[] { "AAA", "4", null });
 		input.add(new String[] { "ZZZ", null, "1.3" });
 		// This is the starting input stream
-		CsvNullReader reader = TableModelTestUtils.createReader(input);
+		CSVReader reader = TableModelTestUtils.createReader(input);
 		// Write the CSV to the table
 		CSVToRowIterator iterator = new CSVToRowIterator(schema, reader, true, null);
 		tableEntityManager.appendRowsAsStream(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false), iterator,
@@ -1576,7 +1575,7 @@ public class TableWorkerIntegrationTest {
 		assertNotNull(response);
 		assertNotNull(response.getEtag());
 		// Read the results
-		CsvNullReader copyReader = new CsvNullReader(new StringReader(stringWriter.toString()));
+		CSVReader copyReader = new CSVReader(new StringReader(stringWriter.toString()));
 		List<String[]> copy = copyReader.readAll();
 		assertNotNull(copy);
 		// the results should include a header.
@@ -1596,7 +1595,7 @@ public class TableWorkerIntegrationTest {
 		assertNotNull(response);
 		assertNotNull(response.getEtag());
 		// Read the results
-		copyReader = new CsvNullReader(new StringReader(stringWriter.toString()));
+		copyReader = new CSVReader(new StringReader(stringWriter.toString()));
 		List<String[]> counts = copyReader.readAll();
 		assertNotNull(counts);
 		// the first two columns should include the rowId can verionNumber
@@ -1621,7 +1620,7 @@ public class TableWorkerIntegrationTest {
 		includeRowIdAndVersion = false;
 		response = waitForConsistentStreamQuery("select c, a, b from " + tableId, proxy, includeRowIdAndVersion, true);
 		// read the results
-		copyReader = new CsvNullReader(new StringReader(stringWriter.toString()));
+		copyReader = new CSVReader(new StringReader(stringWriter.toString()));
 		copy = copyReader.readAll();
 		assertNotNull(copy);
 		// As long as the updated data does not includes rowIds and row version we can use it to create a new table.
@@ -1647,7 +1646,7 @@ public class TableWorkerIntegrationTest {
 		// Create some CSV data
 		String[][] input = { { "a", "b" }, { "A", "1" }, { "A", "2" }, { "C", "4" } };
 		// This is the starting input stream
-		CsvNullReader reader = TableModelTestUtils.createReader(Lists.newArrayList(input));
+		CSVReader reader = TableModelTestUtils.createReader(Lists.newArrayList(input));
 		// Write the CSV to the table
 		CSVToRowIterator iterator = new CSVToRowIterator(schema, reader, true, null);
 		tableEntityManager.appendRowsAsStream(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false), iterator,
@@ -1682,7 +1681,7 @@ public class TableWorkerIntegrationTest {
 		assertNotNull(response);
 		assertNotNull(response.getEtag());
 		// Read the results
-		CsvNullReader copyReader = new CsvNullReader(new StringReader(stringWriter.toString()));
+		CSVReader copyReader = new CSVReader(new StringReader(stringWriter.toString()));
 		List<String[]> copy = copyReader.readAll();
 		copyReader.close();
 		assertNotNull(copy);

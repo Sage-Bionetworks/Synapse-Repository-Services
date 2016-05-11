@@ -19,6 +19,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.csv.utils.CSVReader;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
@@ -33,7 +34,6 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.util.csv.CsvNullReader;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.amazonaws.services.s3.AmazonS3Client;
@@ -154,12 +154,12 @@ public class TableCSVAppenderWorkerTest {
 		// an empty body should result in all of the default values.
 		UploadToTableRequest body = new UploadToTableRequest();
 		StringReader reader = new StringReader("1,2,3");
-		CsvNullReader csvReader = CSVUtils.createCSVReader(reader, body.getCsvTableDescriptor(), body.getLinesToSkip());
+		CSVReader csvReader = CSVUtils.createCSVReader(reader, body.getCsvTableDescriptor(), body.getLinesToSkip());
 		assertNotNull(csvReader);
-		assertEquals(CsvNullReader.DEFAULT_SEPARATOR, csvReader.getSeparator());
-		assertEquals(CsvNullReader.DEFAULT_ESCAPE_CHARACTER, csvReader.getEscape());
-		assertEquals(CsvNullReader.DEFAULT_QUOTE_CHARACTER, csvReader.getQuotechar());
-		assertEquals(CsvNullReader.DEFAULT_SKIP_LINES, csvReader.getSkipLines());
+		assertEquals(CSVReader.DEFAULT_SEPARATOR, csvReader.getSeparator());
+		assertEquals(CSVReader.DEFAULT_ESCAPE_CHARACTER, csvReader.getEscape());
+		assertEquals(CSVReader.DEFAULT_QUOTE_CHARACTER, csvReader.getQuotechar());
+		assertEquals(CSVReader.DEFAULT_SKIP_LINES, csvReader.getSkipLines());
 	}
 	
 	@Test
@@ -169,12 +169,12 @@ public class TableCSVAppenderWorkerTest {
 		body.setCsvTableDescriptor(new CsvTableDescriptor());
 		body.getCsvTableDescriptor().setSeparator("\t");
 		StringReader reader = new StringReader("1,2,3");
-		CsvNullReader csvReader = CSVUtils.createCSVReader(reader, body.getCsvTableDescriptor(), body.getLinesToSkip());
+		CSVReader csvReader = CSVUtils.createCSVReader(reader, body.getCsvTableDescriptor(), body.getLinesToSkip());
 		assertNotNull(csvReader);
 		assertEquals('\t', csvReader.getSeparator());
-		assertEquals(CsvNullReader.DEFAULT_ESCAPE_CHARACTER, csvReader.getEscape());
-		assertEquals(CsvNullReader.DEFAULT_QUOTE_CHARACTER, csvReader.getQuotechar());
-		assertEquals(CsvNullReader.DEFAULT_SKIP_LINES, csvReader.getSkipLines());
+		assertEquals(CSVReader.DEFAULT_ESCAPE_CHARACTER, csvReader.getEscape());
+		assertEquals(CSVReader.DEFAULT_QUOTE_CHARACTER, csvReader.getQuotechar());
+		assertEquals(CSVReader.DEFAULT_SKIP_LINES, csvReader.getSkipLines());
 	}
 	
 	@Test
@@ -184,12 +184,12 @@ public class TableCSVAppenderWorkerTest {
 		body.setCsvTableDescriptor(new CsvTableDescriptor());
 		body.getCsvTableDescriptor().setEscapeCharacter("\n");
 		StringReader reader = new StringReader("1,2,3");
-		CsvNullReader csvReader = CSVUtils.createCSVReader(reader, body.getCsvTableDescriptor(), body.getLinesToSkip());
+		CSVReader csvReader = CSVUtils.createCSVReader(reader, body.getCsvTableDescriptor(), body.getLinesToSkip());
 		assertNotNull(csvReader);
-		assertEquals(CsvNullReader.DEFAULT_SEPARATOR, csvReader.getSeparator());
+		assertEquals(CSVReader.DEFAULT_SEPARATOR, csvReader.getSeparator());
 		assertEquals('\n', csvReader.getEscape());
-		assertEquals(CsvNullReader.DEFAULT_QUOTE_CHARACTER, csvReader.getQuotechar());
-		assertEquals(CsvNullReader.DEFAULT_SKIP_LINES, csvReader.getSkipLines());
+		assertEquals(CSVReader.DEFAULT_QUOTE_CHARACTER, csvReader.getQuotechar());
+		assertEquals(CSVReader.DEFAULT_SKIP_LINES, csvReader.getSkipLines());
 	}
 	
 	@Test
@@ -199,12 +199,12 @@ public class TableCSVAppenderWorkerTest {
 		body.setCsvTableDescriptor(new CsvTableDescriptor());
 		body.getCsvTableDescriptor().setQuoteCharacter("'");
 		StringReader reader = new StringReader("1,2,3");
-		CsvNullReader csvReader = CSVUtils.createCSVReader(reader, body.getCsvTableDescriptor(), body.getLinesToSkip());
+		CSVReader csvReader = CSVUtils.createCSVReader(reader, body.getCsvTableDescriptor(), body.getLinesToSkip());
 		assertNotNull(csvReader);
-		assertEquals(CsvNullReader.DEFAULT_SEPARATOR, csvReader.getSeparator());
-		assertEquals(CsvNullReader.DEFAULT_ESCAPE_CHARACTER, csvReader.getEscape());
+		assertEquals(CSVReader.DEFAULT_SEPARATOR, csvReader.getSeparator());
+		assertEquals(CSVReader.DEFAULT_ESCAPE_CHARACTER, csvReader.getEscape());
 		assertEquals('\'', csvReader.getQuotechar());
-		assertEquals(CsvNullReader.DEFAULT_SKIP_LINES, csvReader.getSkipLines());
+		assertEquals(CSVReader.DEFAULT_SKIP_LINES, csvReader.getSkipLines());
 	}
 	
 	@Test
@@ -213,11 +213,11 @@ public class TableCSVAppenderWorkerTest {
 		UploadToTableRequest body = new UploadToTableRequest();
 		body.setLinesToSkip(101L);
 		StringReader reader = new StringReader("1,2,3");
-		CsvNullReader csvReader = CSVUtils.createCSVReader(reader, body.getCsvTableDescriptor(), body.getLinesToSkip());
+		CSVReader csvReader = CSVUtils.createCSVReader(reader, body.getCsvTableDescriptor(), body.getLinesToSkip());
 		assertNotNull(csvReader);
-		assertEquals(CsvNullReader.DEFAULT_SEPARATOR, csvReader.getSeparator());
-		assertEquals(CsvNullReader.DEFAULT_ESCAPE_CHARACTER, csvReader.getEscape());
-		assertEquals(CsvNullReader.DEFAULT_QUOTE_CHARACTER, csvReader.getQuotechar());
+		assertEquals(CSVReader.DEFAULT_SEPARATOR, csvReader.getSeparator());
+		assertEquals(CSVReader.DEFAULT_ESCAPE_CHARACTER, csvReader.getEscape());
+		assertEquals(CSVReader.DEFAULT_QUOTE_CHARACTER, csvReader.getQuotechar());
 		assertEquals(101, csvReader.getSkipLines());
 	}
 	
@@ -231,7 +231,7 @@ public class TableCSVAppenderWorkerTest {
 		body.getCsvTableDescriptor().setQuoteCharacter(":");
 		body.setLinesToSkip(12L);
 		StringReader reader = new StringReader("1,2,3");
-		CsvNullReader csvReader = CSVUtils.createCSVReader(reader, body.getCsvTableDescriptor(), body.getLinesToSkip());
+		CSVReader csvReader = CSVUtils.createCSVReader(reader, body.getCsvTableDescriptor(), body.getLinesToSkip());
 		assertNotNull(csvReader);
 		assertEquals('-', csvReader.getSeparator());
 		assertEquals('?', csvReader.getEscape());

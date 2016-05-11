@@ -26,6 +26,8 @@ import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.sagebionetworks.csv.utils.CSVReader;
+import org.sagebionetworks.csv.utils.CSVWriter;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -36,9 +38,6 @@ import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
-import org.sagebionetworks.util.csv.CsvNullReader;
-
-import au.com.bytecode.opencsv.CSVWriter;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -224,7 +223,7 @@ public class TableModelUtilsTest {
 		System.out.println(csv);
 		StringReader reader = new StringReader(csv);
 		// There should be two rows
-		CsvNullReader in = new CsvNullReader(reader);
+		CSVReader in = new CSVReader(reader);
 		List<String[]> results = in.readAll();
 		in.close();
 		assertNotNull(results);
@@ -241,7 +240,7 @@ public class TableModelUtilsTest {
 		String csv = outWritter.toString();
 		StringReader reader = new StringReader(csv);
 		// There should be two rows
-		CsvNullReader in = new CsvNullReader(reader);
+		CSVReader in = new CSVReader(reader);
 		List<String[]> results = in.readAll();
 		in.close();
 		assertNotNull(results);
@@ -258,7 +257,7 @@ public class TableModelUtilsTest {
 		System.out.println(csv);
 		StringReader reader = new StringReader(csv);
 		// There should be two rows
-		CsvNullReader in = new CsvNullReader(reader);
+		CSVReader in = new CSVReader(reader);
 		List<String[]> results = in.readAll();
 		in.close();
 		assertNotNull(results);
@@ -275,7 +274,7 @@ public class TableModelUtilsTest {
 		System.out.println(csv);
 		StringReader reader = new StringReader(csv);
 		// There should be two rows
-		CsvNullReader in = new CsvNullReader(reader);
+		CSVReader in = new CSVReader(reader);
 		List<String[]> results = in.readAll();
 		in.close();
 		assertNotNull(results);
@@ -681,7 +680,7 @@ public class TableModelUtilsTest {
 		CSVWriter csvWriter = new CSVWriter(writer);
 		TableModelUtils.validateAndWriteToCSV(validModel, validRowSet2, csvWriter);
 		StringReader reader = new StringReader(writer.toString());
-		CsvNullReader csvReader = new CsvNullReader(reader);
+		CSVReader csvReader = new CSVReader(reader);
 		List<Row> cloneRows = TableModelUtils.readFromCSV(csvReader);
 		assertNotNull(cloneRows);
 		assertEquals(validRowSet2.getRows(), cloneRows);

@@ -10,13 +10,12 @@ import java.util.Map;
 
 import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.velocity.context.Context;
+import org.sagebionetworks.csv.utils.CSVReader;
 import org.sagebionetworks.javadoc.velocity.ClassContext;
 import org.sagebionetworks.javadoc.velocity.ClassContextGenerator;
 import org.sagebionetworks.javadoc.velocity.ContextFactory;
 import org.sagebionetworks.javadoc.velocity.controller.ControllerUtils;
 import org.sagebionetworks.javadoc.web.services.FilterUtils;
-
-import au.com.bytecode.opencsv.CSVReader;
 
 import com.sun.javadoc.ClassDoc;
 import com.sun.javadoc.RootDoc;

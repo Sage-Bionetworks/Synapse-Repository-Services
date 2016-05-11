@@ -44,10 +44,7 @@
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-models</artifactId>
 		</dependency>
-		<dependency>
-			<groupId>net.sf.opencsv</groupId>
-			<artifactId>opencsv</artifactId>
-		</dependency>
+
 		<dependency>
 			<groupId>org.mockito</groupId>
 			<artifactId>mockito-all</artifactId>

@@ -15,6 +15,8 @@ import java.util.Map;
 import java.util.TimeZone;
 
 import org.sagebionetworks.collections.Transform;
+import org.sagebionetworks.csv.utils.CSVReader;
+import org.sagebionetworks.csv.utils.CSVWriter;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.table.AbstractColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnMapper;
@@ -28,10 +30,6 @@ import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.SelectColumnAndModel;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.util.csv.CsvNullReader;
-
-import au.com.bytecode.opencsv.CSVWriter;
-
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -488,10 +486,10 @@ public class TableModelTestUtils {
 	 * @return
 	 * @throws IOException
 	 */
-	public static CsvNullReader createReader(List<String[]> input) throws IOException {
+	public static CSVReader createReader(List<String[]> input) throws IOException {
 		String csv = createCSVString(input);
 		StringReader reader = new StringReader(csv);
-		return new CsvNullReader(reader);
+		return new CSVReader(reader);
 	}
 
 	/**

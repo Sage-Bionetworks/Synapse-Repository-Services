@@ -9,6 +9,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ThrottlingProgressCallback;
+import org.sagebionetworks.csv.utils.CSVReader;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
@@ -23,7 +24,6 @@ import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
-import org.sagebionetworks.util.csv.CsvNullReader;
 import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -74,7 +74,7 @@ public class TableCSVAppenderWorker implements MessageDrivenRunner {
 	 */
 	public void processStatus(final ProgressCallback<Message> progressCallback, final Message message) throws Throwable {
 		final AsynchronousJobStatus status = extractStatus(message);
-		CsvNullReader reader = null;
+		CSVReader reader = null;
 		try{
 			UserInfo user = userManger.getUserInfo(status.getStartedByUserId());
 			UploadToTableRequest body = (UploadToTableRequest) status.getRequestBody();

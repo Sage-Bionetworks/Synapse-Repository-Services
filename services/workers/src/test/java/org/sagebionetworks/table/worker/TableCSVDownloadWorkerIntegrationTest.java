@@ -24,6 +24,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.csv.utils.CSVReader;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -53,7 +54,6 @@ import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
-import org.sagebionetworks.util.csv.CsvNullReader;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -249,7 +249,7 @@ public class TableCSVDownloadWorkerIntegrationTest {
 
 	private void checkResults(S3FileHandle fileHandle, List<String[]> input, boolean includeRowAndVersion) throws IOException,
 			FileNotFoundException {
-		CsvNullReader csvReader;
+		CSVReader csvReader;
 		List<String[]> results;
 		assertEquals("text/csv", fileHandle.getContentType());
 		assertNotNull(fileHandle.getFileName());
@@ -258,7 +258,7 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		tempFile = File.createTempFile("DownloadCSV", ".csv");
 		s3Client.getObject(new GetObjectRequest(fileHandle.getBucketName(), fileHandle.getKey()), tempFile);
 		// Load the CSV data
-		csvReader = new CsvNullReader(new FileReader(tempFile));
+		csvReader = new CSVReader(new FileReader(tempFile));
 		results = null;
 		try {
 			results = csvReader.readAll();
@@ -299,7 +299,7 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		input.add(new String[] { "FFF", "4", null });
 		input.add(new String[] { "ZZZ", null, "1.3" });
 		// This is the starting input stream
-		CsvNullReader reader = TableModelTestUtils.createReader(input);
+		CSVReader reader = TableModelTestUtils.createReader(input);
 		// Write the CSV to the table
 		CSVToRowIterator iterator = new CSVToRowIterator(schema, reader, true, null);
 		tableEntityManager.appendRowsAsStream(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false), iterator,
