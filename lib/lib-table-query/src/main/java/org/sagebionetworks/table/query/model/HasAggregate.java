@@ -8,7 +8,8 @@ public interface HasAggregate extends Element {
 
 	/**
 	 * Does this element represent an aggregate function?
+	 * Note: This method is not recursive an will only answer the question for this element.
 	 * @return
 	 */
-	public boolean isAggregate();
+	boolean isElementAggregate();
 }

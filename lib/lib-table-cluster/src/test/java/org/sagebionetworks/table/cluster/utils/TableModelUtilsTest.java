@@ -839,7 +839,7 @@ public class TableModelUtilsTest {
 		newOrder.add(models.get(1));
 		List<RawRowSet> all = Lists.newArrayList(v1Set, v2Set);
 		// Now get a single result set that contains all data in this new form
-		RowSet converted = TableModelUtils.convertToSchemaAndMerge(all, TableModelUtils.createColumnModelColumnMapper(newOrder, false),
+		RowSet converted = TableModelUtils.convertToSchemaAndMerge(all, TableModelUtils.createColumnModelColumnMapper(newOrder),
 				"syn123", null);
 		// System.out.println(converted.toString());
 		// This is what we expect to come back

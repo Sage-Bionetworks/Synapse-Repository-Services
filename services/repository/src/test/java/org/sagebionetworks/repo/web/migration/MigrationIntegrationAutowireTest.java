@@ -473,7 +473,7 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		for (ColumnModel cm : start) {
 			models.add(columnModelDao.createColumnModel(cm));
 		}
-		ColumnMapper mapper = TableModelUtils.createColumnModelColumnMapper(models, false);
+		ColumnMapper mapper = TableModelUtils.createColumnModelColumnMapper(models);
 
 		List<Long> headers = TableModelUtils.getIds(models);
 		// bind the columns to the entity

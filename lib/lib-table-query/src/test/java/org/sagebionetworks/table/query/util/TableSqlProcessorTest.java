@@ -19,56 +19,6 @@ import org.sagebionetworks.table.query.model.ValueExpressionPrimary;
 
 public class TableSqlProcessorTest {
 	
-	@Test
-	public void testGetName() throws ParseException{
-		Identifier a = new TableQueryParser("foo").identifier();
-		Identifier b = new TableQueryParser("\"foo\"").identifier();
-		// They should have the same string value even though one is in quotes.
-		assertEquals(TableSqlProcessor.getName(a), TableSqlProcessor.getName(b));
-	}
-	
-	@Test
-	public void testGetNameFunction() throws ParseException{
-		ValueExpressionPrimary a = new TableQueryParser("count(*)").valueExpressionPrimary();
-		ValueExpressionPrimary b = new TableQueryParser("COUNT(*)").valueExpressionPrimary();
-		// They should have the same string value even though one is in quotes.
-		assertEquals(TableSqlProcessor.getName(a), TableSqlProcessor.getName(b));
-	}
-	
-	@Test
-	public void testGetNameFunction2() throws ParseException{
-		ValueExpressionPrimary a = new TableQueryParser("foo").valueExpressionPrimary();
-		ValueExpressionPrimary b = new TableQueryParser("\"foo\"").valueExpressionPrimary();
-		// They should have the same string value even though one is in quotes.
-		assertEquals(TableSqlProcessor.getName(a), TableSqlProcessor.getName(b));
-	}
-	
-	@Test
-	public void testNameEqualsSortKeyTrue() throws ParseException{
-		SortKey a = new TableQueryParser("foo").sortKey();
-		SortKey b = new TableQueryParser("\"foo\"").sortKey();
-		assertTrue(TableSqlProcessor.nameEquals(a, b));
-	}
-	
-	@Test
-	public void testNameEqualsDerivedColumn() throws ParseException{
-		DerivedColumn a = new TableQueryParser("count(foo)").derivedColumn();
-		DerivedColumn b = new TableQueryParser("COUNT( \"foo\" )").derivedColumn();
-		assertTrue(TableSqlProcessor.nameEquals(a, b));
-	}
-	@Test
-	public void testNameEqualsSortKeyFalse() throws ParseException{
-		SortKey a = new TableQueryParser("bar").sortKey();
-		SortKey b = new TableQueryParser("\"foo\"").sortKey();
-		assertFalse(TableSqlProcessor.nameEquals(a, b));
-	}
-	
-	@Test
-	public void testNameEqualsSortSpecification() throws ParseException{
-		SortKey a = new TableQueryParser("foo asc").sortKey();
-		SortKey b = new TableQueryParser("\"foo\" DESC").sortKey();
-		assertTrue(TableSqlProcessor.nameEquals(a, b));
-	}
 	
 	@Test
 	public void testToggleSortNoSort() throws ParseException{
@@ -134,6 +84,15 @@ public class TableSqlProcessorTest {
 		String expected = "SELECT bar, COUNT(foo) FROM syn123 GROUP BY bar ORDER BY COUNT(foo) ASC";
 		// call under test.
 		String results = TableSqlProcessor.toggleSort(sql, "count(foo)");
+		assertEquals(expected, results);
+	}
+	
+	@Test
+	public void testToggleSortAggregateAlias() throws ParseException{
+		String sql = "select bar, count(foo) as b from syn123 group by bar";
+		String expected = "SELECT bar, COUNT(foo) AS b FROM syn123 GROUP BY bar ORDER BY \"b\" ASC";
+		// call under test.
+		String results = TableSqlProcessor.toggleSort(sql, "b");
 		assertEquals(expected, results);
 	}
 	

@@ -17,6 +17,9 @@ import org.sagebionetworks.util.IntrospectionUtils;
  */
 public abstract class SQLElement implements Element {
 
+	private static final String EMPTY = "";
+	private static final String REGEX_QUOTES = "[',\"]";
+
 	/**
 	 * override this method for the default tree crawl. Override this method with more specific visitors for alternate
 	 * tree crawl behaviours
@@ -138,19 +141,64 @@ public abstract class SQLElement implements Element {
 	}
 
 	/**
-	 * Is this an aggregate element?
+	 * Does this tree have any aggregate elements? This method will do a
+	 * recursive walk of the tree and return true if any element in the tree is
+	 * an aggregate.
+	 * 
+	 * Note: This method is Recursive.
 	 * 
 	 * @return
 	 */
-	public boolean isAggregateElement(){
+	public boolean hasAnyAggregateElements(){
 		// Iterate over all elements that HasAggregate to find the first aggregate.
 		for(HasAggregate has: createIterable(HasAggregate.class)){
-			if(has.isAggregate()){
+			if(has.isElementAggregate()){
 				return true;
 			}
 		}
 		// none of the elements are aggregates.
 		return false;
+	}
+	
+	/**
+	 * Is this element equivalent to the the given element.
+	 * Two elements are equivalent if they are of the same type and the SQL
+	 * of each element is equivalent.  For example,
+	 * 'count(foo)' is equivalent to to 'COUNT( "foo" ).
+	 * 
+	 * @param other
+	 * @return
+	 */
+	public boolean equivalent(SQLElement other){
+		if(other == null){
+			return false;
+		}
+		if(!this.getClass().isInstance(other)){
+			return false;
+		}
+		String thisSQL = this.toSqlWithoutQuotes();
+		String otherSQL = other.toSqlWithoutQuotes();
+		return thisSQL.equals(otherSQL);
+	}
+	
+	/**
+	 * Get the SQL for this element without quotes.
+	 * @return
+	 */
+	public String toSqlWithoutQuotes(){
+		return this.toSql().replaceAll(REGEX_QUOTES, EMPTY);
+	}
+	
+	/**
+	 * Get the first unquoted value in this element.
+	 * @return
+	 */
+	public String getFirstUnquotedValue(){
+		HasQuoteValue element = getFirstElementOfType(HasQuoteValue.class);
+		if(element != null){
+			return element.getValueWithoutQuotes();
+		}
+		return null;
 	}
 	
 }

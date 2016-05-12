@@ -2,8 +2,6 @@ package org.sagebionetworks.table.query.model;
 
 import java.util.List;
 
-import org.sagebionetworks.table.query.model.visitors.GetTableNameVisitor;
-import org.sagebionetworks.table.query.model.visitors.IsAggregateVisitor;
 import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor;
 import org.sagebionetworks.table.query.model.visitors.Visitor;
 
@@ -66,11 +64,7 @@ public class QuerySpecification extends SQLElement implements HasAggregate {
 		}
 	}
 
-	public void visit(GetTableNameVisitor visitor) {
-		if (tableExpression != null) {
-			visit(tableExpression, visitor);
-		}
-	}
+
 
 	@Override
 	public void toSql(StringBuilder builder) {
@@ -98,7 +92,21 @@ public class QuerySpecification extends SQLElement implements HasAggregate {
 	}
 
 	@Override
-	public boolean isAggregate() {
+	public boolean isElementAggregate() {
 		return setQuantifier == SetQuantifier.DISTINCT;
+	}
+	
+	/**
+	 * Get the name of this table.
+	 * @return
+	 */
+	public String getTableName() {
+		if(tableExpression != null){
+			return tableExpression
+					.getFirstElementOfType(TableReference.class)
+					.getTableName();
+		}
+		return null;
+
 	}
 }

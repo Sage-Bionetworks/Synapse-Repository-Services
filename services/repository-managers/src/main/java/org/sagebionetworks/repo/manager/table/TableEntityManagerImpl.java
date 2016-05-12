@@ -265,7 +265,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 				return row;
 			}
 		});
-		ColumnMapper mapper = TableModelUtils.createColumnModelColumnMapper(tableManagerSupport.getColumnModelsForTable(tableId), false);
+		ColumnMapper mapper = TableModelUtils.createColumnModelColumnMapper(tableManagerSupport.getColumnModelsForTable(tableId));
 		RawRowSet rowSetToDelete = new RawRowSet(TableModelUtils.getIds(mapper.getColumnModels()), rowsToDelete.getEtag(), tableId, rows);
 		RowReferenceSet result = tableRowTruthDao.appendRowSetToTable(user.getId().toString(), tableId, mapper, rowSetToDelete);
 		// The table has change so we must reset the state.

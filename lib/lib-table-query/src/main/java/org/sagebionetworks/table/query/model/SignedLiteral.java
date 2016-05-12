@@ -2,17 +2,14 @@ package org.sagebionetworks.table.query.model;
 
 import java.util.List;
 
-import org.sagebionetworks.repo.model.table.ColumnType;
-import org.sagebionetworks.table.query.model.visitors.ColumnTypeVisitor;
 import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor;
 import org.sagebionetworks.table.query.model.visitors.ToTranslatedSqlVisitor;
-import org.sagebionetworks.table.query.model.visitors.ToUnquotedStringVisitor;
 import org.sagebionetworks.table.query.model.visitors.Visitor;
 
 /**
  * This matches &lt;signed literal&gt; in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
  */
-public class SignedLiteral extends SQLElement implements HasUnquotedValue {
+public class SignedLiteral extends SQLElement implements HasQuoteValue {
 
 	String signedNumericLiteral;
 	String generalLiteral;
@@ -46,27 +43,11 @@ public class SignedLiteral extends SQLElement implements HasUnquotedValue {
 		}
 	}
 
-	public void visit(ToUnquotedStringVisitor visitor) {
-		if (signedNumericLiteral != null) {
-			visitor.append(signedNumericLiteral);
-		} else {
-			visitor.append(this.generalLiteral);
-		}
-	}
-
 	public void visit(ToTranslatedSqlVisitor visitor) {
 		if (signedNumericLiteral != null) {
 			visitor.convertNumberParam(signedNumericLiteral);
 		} else {
 			visitor.convertParam(generalLiteral);
-		}
-	}
-
-	public void visit(ColumnTypeVisitor visitor) {
-		if (signedNumericLiteral != null) {
-			visitor.setColumnType(ColumnType.DOUBLE);
-		} else {
-			visitor.setColumnType(ColumnType.STRING);
 		}
 	}
 
@@ -83,7 +64,7 @@ public class SignedLiteral extends SQLElement implements HasUnquotedValue {
 	}
 
 	@Override
-	public String getUnquotedValue() {
+	public String getValueWithoutQuotes() {
 		if (signedNumericLiteral != null) {
 			return signedNumericLiteral;
 		} else {
@@ -94,6 +75,11 @@ public class SignedLiteral extends SQLElement implements HasUnquotedValue {
 	@Override
 	<T extends Element> void addElements(List<T> elements, Class<T> type) {
 		// this element does not contain any SQLElements
+	}
+
+	@Override
+	public boolean isSurrounedeWithQuotes() {
+		return generalLiteral != null;
 	}
 	
 }

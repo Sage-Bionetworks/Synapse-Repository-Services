@@ -7,7 +7,7 @@ import org.sagebionetworks.table.query.model.visitors.Visitor;
 /**
  * This matches &ltcolumn name&gt   in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
  */
-public class ColumnName extends SQLElement implements HasUnquotedValue {
+public class ColumnName extends SQLElement {
 
 	Identifier identifier;
 
@@ -26,11 +26,6 @@ public class ColumnName extends SQLElement implements HasUnquotedValue {
 	@Override
 	public void toSql(StringBuilder builder) {
 		identifier.toSql(builder);
-	}
-
-	@Override
-	public String getUnquotedValue() {
-		return identifier.getUnquotedValue();
 	}
 
 	@Override

@@ -809,14 +809,14 @@ public class TableModelUtils {
 	public static int calculateMaxRowSizeForColumnModels(ColumnMapper columnMapper) {
 		int size = 0;
 		for (SelectColumnAndModel scm : columnMapper.getSelectColumnAndModels()) {
-			if (scm.getColumnType() == null) {
+			if (scm.getSelectColumn().getColumnType() == null) {
 				// we don't know the type, now what?
 				size += 64;
 			} else if (scm.getColumnModel() != null) {
-				size += calculateMaxSizeForType(scm.getColumnType(), scm.getColumnModel().getMaximumSize());
+				size += calculateMaxSizeForType(scm.getSelectColumn().getColumnType(), scm.getColumnModel().getMaximumSize());
 			} else {
 				// we don't know the max size, now what?
-				size += calculateMaxSizeForType(scm.getColumnType(), MAX_ALLOWED_STRING_SIZE);
+				size += calculateMaxSizeForType(scm.getSelectColumn().getColumnType(), MAX_ALLOWED_STRING_SIZE);
 			}
 		}
 		return size;
@@ -1175,132 +1175,15 @@ public class TableModelUtils {
 		return createSelectColumn(model.getName(), model.getColumnType(), isAggregate ? null : model.getId());
 	}
 
-	public static SelectColumnAndModel createSelectColumnAndModel(final SelectColumn selectColumn, final ColumnModel columnModel) {
-		ValidateArgument.requirement(selectColumn != null || columnModel != null, "At least one of selectColumn or columnModel is required");
-		return new SelectColumnAndModel() {
-
-			@Override
-			public SelectColumn getSelectColumn() {
-				return selectColumn;
-			}
-
-			@Override
-			public ColumnModel getColumnModel() {
-				return columnModel;
-			}
-
-			@Override
-			public String getName() {
-				return selectColumn != null ? selectColumn.getName() : columnModel.getName();
-			}
-
-			@Override
-			public ColumnType getColumnType() {
-				return selectColumn != null ? selectColumn.getColumnType() : columnModel.getColumnType();
-			}
-
-			@Override
-			public int hashCode() {
-				final int prime = 31;
-				int result = 1;
-				result = prime * result + ((selectColumn == null) ? 0 : selectColumn.hashCode());
-				result = prime * result + ((columnModel == null) ? 0 : columnModel.hashCode());
-				return result;
-			}
-
-			@Override
-			public boolean equals(Object obj) {
-				if (this == obj)
-					return true;
-				if (obj == null)
-					return false;
-				if (getClass() != obj.getClass())
-					return false;
-				SelectColumnAndModel other = (SelectColumnAndModel) obj;
-				if (selectColumn == null) {
-					if (other.getSelectColumn() != null)
-						return false;
-				} else if (!selectColumn.equals(other.getSelectColumn()))
-					return false;
-				if (columnModel == null) {
-					if (other.getColumnModel() != null)
-						return false;
-				} else if (!columnModel.equals(other.getColumnModel()))
-					return false;
-				return true;
-			}
-		};
-	}
-
-	public static SelectColumnAndModel createSelectColumnAndModel(final ColumnModel columnModel, final boolean isAggregate) {
-		ValidateArgument.required(columnModel, "columnModel");
-		return new SelectColumnAndModel() {
-			SelectColumn selectColumn = null;
-
-			@Override
-			public SelectColumn getSelectColumn() {
-				if (selectColumn == null) {
-					selectColumn = createSelectColumn(columnModel, isAggregate);
-				}
-				return selectColumn;
-			}
-
-			@Override
-			public ColumnModel getColumnModel() {
-				return columnModel;
-			}
-
-			@Override
-			public String getName() {
-				return columnModel.getName();
-			}
-
-			@Override
-			public ColumnType getColumnType() {
-				return columnModel.getColumnType();
-			}
-
-			@Override
-			public int hashCode() {
-				final int prime = 31;
-				int result = 1;
-				result = prime * result + ((columnModel == null) ? 0 : columnModel.hashCode());
-				return result;
-			}
-
-			@Override
-			public boolean equals(Object obj) {
-				if (this == obj)
-					return true;
-				if (obj == null)
-					return false;
-				if (getClass() != obj.getClass())
-					return false;
-				SelectColumnAndModel other = (SelectColumnAndModel) obj;
-				if (getSelectColumn() == null) {
-					if (other.getSelectColumn() != null)
-						return false;
-				} else if (!getSelectColumn().equals(other.getSelectColumn()))
-					return false;
-				if (columnModel == null) {
-					if (other.getColumnModel() != null)
-						return false;
-				} else if (!columnModel.equals(other.getColumnModel()))
-					return false;
-				return true;
-			}
-		};
-	}
-
 	public static ColumnModelMapper createSingleColumnColumnMapper(ColumnModel column, boolean isAggregate) {
-		return createColumnModelColumnMapper(Collections.<ColumnModel> singletonList(column), isAggregate);
+		return createColumnModelColumnMapper(Collections.<ColumnModel> singletonList(column));
 	}
 
-	public static ColumnMapper createColumnModelColumnMapper(final List<ColumnModel> columnModels, boolean isAggregate) {
+	public static ColumnMapper createColumnModelColumnMapper(final List<ColumnModel> columnModels) {
 		LinkedHashMap<String, SelectColumnAndModel> columnNameMap = Maps.newLinkedHashMap();
 		Map<Long, SelectColumnAndModel> columnIdMap = Maps.newHashMap();
 		for (ColumnModel columnModel : columnModels) {
-			SelectColumnAndModel selectColumnAndModel = createSelectColumnAndModel(columnModel, isAggregate);
+			SelectColumnAndModel selectColumnAndModel = new SelectColumnAndModel(columnModel);
 			columnNameMap.put(columnModel.getName(), selectColumnAndModel);
 			columnIdMap.put(Long.parseLong(columnModel.getId()), selectColumnAndModel);
 		}

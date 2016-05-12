@@ -2,14 +2,11 @@ package org.sagebionetworks.table.query.model;
 
 import java.util.List;
 
-import org.sagebionetworks.repo.model.table.ColumnType;
-import org.sagebionetworks.table.query.model.visitors.ColumnTypeVisitor;
-import org.sagebionetworks.table.query.model.visitors.IsAggregateVisitor;
 import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor;
 import org.sagebionetworks.table.query.model.visitors.Visitor;
 
 
-public class NumericValueFunction extends SQLElement implements HasAggregate {
+public class NumericValueFunction extends SQLElement implements HasAggregate, HasFunctionType {
 
 	private MysqlFunction mysqlFunction;
 
@@ -29,16 +26,6 @@ public class NumericValueFunction extends SQLElement implements HasAggregate {
 		visitor.append("()");
 	}
 
-	public void visit(ColumnTypeVisitor visitor) {
-		switch (mysqlFunction) {
-		case FOUND_ROWS:
-			visitor.setColumnType(ColumnType.INTEGER);
-			break;
-		default:
-			throw new IllegalArgumentException("unexpected mysqlFuntion");
-		}
-	}
-
 	@Override
 	public void toSql(StringBuilder builder) {
 		builder.append(mysqlFunction.name());
@@ -51,7 +38,17 @@ public class NumericValueFunction extends SQLElement implements HasAggregate {
 	}
 
 	@Override
-	public boolean isAggregate() {
+	public boolean isElementAggregate() {
 		return true;
+	}
+
+	@Override
+	public FunctionType getFunctionType() {
+		switch (mysqlFunction) {
+		case FOUND_ROWS:
+			return FunctionType.FOUND_ROWS;
+		default:
+			throw new IllegalArgumentException("unexpected mysqlFuntion");
+		}
 	}
 }

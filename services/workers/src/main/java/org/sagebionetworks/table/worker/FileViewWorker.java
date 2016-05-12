@@ -124,7 +124,7 @@ public class FileViewWorker implements ChangeMessageDrivenRunner {
 		indexManager.deleteTableIndex();
 		// Lookup the table's schema
 		final List<ColumnModel> currentSchema = tableViewManager.getViewSchemaWithBenefactor(tableId);
-		ColumnMapper columnMapper = TableModelUtils.createColumnModelColumnMapper(currentSchema, false);
+		ColumnMapper columnMapper = TableModelUtils.createColumnModelColumnMapper(currentSchema);
 
 		// create the table in the index.
 		indexManager.setIndexSchema(currentSchema);

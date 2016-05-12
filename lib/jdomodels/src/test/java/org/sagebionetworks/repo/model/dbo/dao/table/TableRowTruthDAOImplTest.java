@@ -230,7 +230,7 @@ public class TableRowTruthDAOImplTest {
 	public void testDoubles() throws IOException, NotFoundException {
 		List<ColumnModel> models = Lists.newArrayList(TableModelTestUtils.createColumn(0L, "col1", ColumnType.DOUBLE),
 				TableModelTestUtils.createColumn(1L, "col2", ColumnType.STRING));
-		ColumnMapper mapper = TableModelUtils.createColumnModelColumnMapper(models, false);
+		ColumnMapper mapper = TableModelUtils.createColumnModelColumnMapper(models);
 		// create some test rows.
 		String tableId = "syn123";
 		List<Row> rows = Lists.newArrayList();
@@ -428,7 +428,7 @@ public class TableRowTruthDAOImplTest {
 		assertNotNull(refSet);
 		// Get the rows for this set
 		Row back = tableRowTruthDao.getRowOriginal(tableId, refSet.getRows().get(3), TableModelUtils.createColumnModelColumnMapper(Lists
-.newArrayList(mapper.getColumnModels().get(3), mapper.getColumnModels().get(0)), false));
+.newArrayList(mapper.getColumnModels().get(3), mapper.getColumnModels().get(0))));
 		assertNotNull(back);
 		assertEquals(2, back.getValues().size());
 		assertEquals(rows.get(3).getValues().get(3), back.getValues().get(0));
