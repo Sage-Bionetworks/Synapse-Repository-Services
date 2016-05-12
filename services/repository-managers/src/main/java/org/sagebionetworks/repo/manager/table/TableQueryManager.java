@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.model.table.QueryBundleRequest;
 import org.sagebionetworks.repo.model.table.QueryNextPageToken;
 import org.sagebionetworks.repo.model.table.QueryResult;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
+import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableStatus;
@@ -135,4 +136,6 @@ public interface TableQueryManager {
 	public TableStatus validateTableIsAvailable(String tableId)
 			throws NotFoundException, TableUnavilableException,
 			TableFailedException;
+
+	Long getMaxRowsPerPageSelectColumns(List<SelectColumn> models);
 }

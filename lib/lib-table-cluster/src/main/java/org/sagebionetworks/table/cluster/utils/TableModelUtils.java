@@ -23,12 +23,10 @@ import java.util.zip.GZIPOutputStream;
 
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang.StringUtils;
-import org.sagebionetworks.collections.Transform;
 import org.sagebionetworks.csv.utils.CSVReader;
 import org.sagebionetworks.csv.utils.CSVWriter;
 import org.sagebionetworks.repo.model.dao.table.RowAccessor;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
-import org.sagebionetworks.repo.model.dao.table.RowSetAccessor;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.AbstractColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnMapper;
@@ -42,14 +40,13 @@ import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.SelectColumnAndModel;
-import org.sagebionetworks.repo.model.table.SelectColumnMapper;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.util.TimeUtils;
 import org.sagebionetworks.util.ValidateArgument;
+
 import com.google.common.base.Function;
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
@@ -722,7 +719,7 @@ public class TableModelUtils {
 		RowSet out = new RowSet();
 		out.setTableId(tableId);
 		out.setRows(new LinkedList<Row>());
-		out.setHeaders(resultSchema.getSelectColumns());
+		out.setHeaders(TableModelUtils.getSelectColumns(resultSchema.getColumnModels(), false));
 		out.setEtag(etag);
 		// Transform each
 		for (RawRowSet set : sets) {
@@ -806,17 +803,15 @@ public class TableModelUtils {
 	 * @param collection
 	 * @return
 	 */
-	public static int calculateMaxRowSizeForColumnModels(ColumnMapper columnMapper) {
+	public static int calculateMaxRowSizeForSelectColumn(List<SelectColumn> columns) {
 		int size = 0;
-		for (SelectColumnAndModel scm : columnMapper.getSelectColumnAndModels()) {
-			if (scm.getSelectColumn().getColumnType() == null) {
+		for (SelectColumn scm : columns) {
+			if (scm.getColumnType() == null) {
 				// we don't know the type, now what?
 				size += 64;
-			} else if (scm.getColumnModel() != null) {
-				size += calculateMaxSizeForType(scm.getSelectColumn().getColumnType(), scm.getColumnModel().getMaximumSize());
-			} else {
+			}else {
 				// we don't know the max size, now what?
-				size += calculateMaxSizeForType(scm.getSelectColumn().getColumnType(), MAX_ALLOWED_STRING_SIZE);
+				size += calculateMaxSizeForType(scm.getColumnType(), MAX_ALLOWED_STRING_SIZE);
 			}
 		}
 		return size;
@@ -882,7 +877,7 @@ public class TableModelUtils {
 	 */
 	public static boolean isRequestWithinMaxBytePerRequest(ColumnMapper columnMapper, int rowCount, int maxBytesPerRequest){
 		// What is the size per row
-		int maxBytesPerRow = calculateMaxRowSizeForColumnModels(columnMapper);
+		int maxBytesPerRow = calculateMaxRowSize(columnMapper.getColumnModels());
 		int neededBytes = rowCount*maxBytesPerRow;
 		return neededBytes <= maxBytesPerRequest;
 	}
@@ -1154,15 +1149,6 @@ public class TableModelUtils {
 		return new NodeIdAndVersion(id, version);
 	}
 
-	public static List<SelectColumn> getSelectColumnsFromColumnIds(List<Long> columnIds, final SelectColumnMapper schema) {
-		return Transform.toList(columnIds, new Function<Long, SelectColumn>() {
-			@Override
-			public SelectColumn apply(Long columnId) {
-				return schema.getSelectColumnById(columnId);
-			}
-		});
-	}
-
 	public static SelectColumn createSelectColumn(String name, ColumnType columnType, String id) {
 		SelectColumn newSelectColumn = new SelectColumn();
 		newSelectColumn.setName(name);
@@ -1207,26 +1193,6 @@ public class TableModelUtils {
 			@Override
 			protected List<SelectColumnAndModel> createSelectColumnAndModelList() {
 				return Lists.newArrayList(columnNameMap.values());
-			}
-		};
-		return columnMapper;
-	}
-
-	public static ColumnMapper createColumnMapper(final List<SelectColumnAndModel> columnList) {
-		ColumnMapper columnMapper = new AbstractColumnMapper() {
-			@Override
-			protected LinkedHashMap<String, SelectColumnAndModel> createNameToModelMap() {
-				return Transform.toOrderedIdMap(columnList, SELECT_COLUMN_AND_MODEL_TO_NAME);
-			}
-
-			@Override
-			protected Map<Long, SelectColumnAndModel> createIdToModelMap() {
-				return Transform.toIdMap(columnList, SELECT_COLUMN_AND_MODEL_TO_ID);
-			}
-
-			@Override
-			protected List<SelectColumnAndModel> createSelectColumnAndModelList() {
-				return columnList;
 			}
 		};
 		return columnMapper;

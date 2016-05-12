@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.model.table.QueryResult;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.table.cluster.SqlQuery;
+import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.springframework.test.util.ReflectionTestUtils;
 
 /**
@@ -64,7 +65,7 @@ public class TableServicesImplTest {
 		userInfo = new UserInfo(false, userId);
 		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo);
 		mapper = TableModelTestUtils.createMapperForOneOfEachType();
-		headers = mapper.getSelectColumns();
+		headers = TableModelUtils.getSelectColumns(mapper.getColumnModels(), false);
 		tableId = "syn456";
 		selectStar = new RowSet();
 		selectStar.setEtag("etag");

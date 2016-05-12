@@ -113,7 +113,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		Long maxRowsPerPage = null;
 		boolean oneRowWasAdded = false;
 		if (runQuery || (runCount && query.isAggregatedResult())) {
-			maxRowsPerPage = getMaxRowsPerPage(query.getTableSchema());
+			maxRowsPerPage = getMaxRowsPerPageSelectColumns(query.getSelectColumns());
 			if (maxRowsPerPage == null || maxRowsPerPage == 0) {
 				maxRowsPerPage = 100L;
 			}
@@ -294,7 +294,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		}
 		// Max rows per column
 		if ((partMask & BUNDLE_MASK_QUERY_MAX_ROWS_PER_PAGE) > 0) {
-			bundle.setMaxRowsPerPage(getMaxRowsPerPage(sqlQuery.getTableSchema()));
+			bundle.setMaxRowsPerPage(getMaxRowsPerPageSelectColumns(sqlQuery.getSelectColumns()));
 		}
 		return bundle;
 	}
@@ -590,7 +590,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	@Override
 	public Long getMaxRowsPerPage(ColumnMapper columnMapper) {
 		// Calculate the size
-		int maxRowSizeBytes = TableModelUtils.calculateMaxRowSizeForColumnModels(columnMapper);
+		int maxRowSizeBytes = TableModelUtils.calculateMaxRowSize(columnMapper.getColumnModels());
 		if (maxRowSizeBytes < 1)
 			return null;
 		return (long) (this.maxBytesPerRequest / maxRowSizeBytes);
@@ -600,6 +600,15 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	public Long getMaxRowsPerPage(List<ColumnModel> models) {
 		// Calculate the size
 		int maxRowSizeBytes = TableModelUtils.calculateMaxRowSize(models);
+		if (maxRowSizeBytes < 1)
+			return null;
+		return (long) (this.maxBytesPerRequest / maxRowSizeBytes);
+	}
+	
+	@Override
+	public Long getMaxRowsPerPageSelectColumns(List<SelectColumn> models) {
+		// Calculate the size
+		int maxRowSizeBytes = TableModelUtils.calculateMaxRowSizeForSelectColumn(models);
 		if (maxRowSizeBytes < 1)
 			return null;
 		return (long) (this.maxBytesPerRequest / maxRowSizeBytes);

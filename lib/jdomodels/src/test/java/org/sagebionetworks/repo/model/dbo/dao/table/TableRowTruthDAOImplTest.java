@@ -37,6 +37,7 @@ import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
@@ -148,6 +149,7 @@ public class TableRowTruthDAOImplTest {
 	public void testAppendRows() throws Exception {
 		// Create some test column models
 		ColumnMapper mapper = TableModelTestUtils.createMapperForOneOfEachType();
+		List<SelectColumn> select = TableModelUtils.getSelectColumns(mapper.getColumnModels(), false);
 		// create some test rows.
 		List<Row> rows = TableModelTestUtils.createRows(mapper.getColumnModels(), 5, false);
 		String tableId = "syn123";
@@ -156,7 +158,7 @@ public class TableRowTruthDAOImplTest {
 		RowReferenceSet refSet = tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, mapper, set);
 		assertNotNull(refSet);
 		// Validate each row has an ID
-		assertEquals(mapper.getSelectColumns(), refSet.getHeaders());
+		assertEquals(select, refSet.getHeaders());
 		assertEquals(tableId, refSet.getTableId());
 		assertNotNull(refSet.getRows());
 		assertEquals(set.getRows().size(), refSet.getRows().size());
@@ -168,7 +170,7 @@ public class TableRowTruthDAOImplTest {
 			expectedId++;
 		}
 		RowSet expected = new RowSet();
-		expected.setHeaders(mapper.getSelectColumns());
+		expected.setHeaders(select);
 		expected.setEtag(refSet.getEtag());
 		expected.setTableId(tableId);
 		expected.setRows(rows);
@@ -187,7 +189,7 @@ public class TableRowTruthDAOImplTest {
 		// Append this change set
 		RowReferenceSet refSet = tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, mapper, set);
 		RowSet expected = new RowSet();
-		expected.setHeaders(mapper.getSelectColumns());
+		expected.setHeaders(TableModelUtils.getSelectColumns(mapper.getColumnModels(), false));
 		expected.setEtag(refSet.getEtag());
 		expected.setTableId(tableId);
 		expected.setRows(rows);
@@ -321,7 +323,7 @@ public class TableRowTruthDAOImplTest {
 		// Get the rows back
 		RowSet fetched = tableRowTruthDao.getRowSet(tableId, 0l, mapper);
 		assertNotNull(fetched);
-		assertEquals(mapper.getSelectColumns(), fetched.getHeaders());
+		assertEquals(TableModelUtils.getSelectColumns(mapper.getColumnModels(), false), fetched.getHeaders());
 		assertEquals(tableId, fetched.getTableId());
 		assertNotNull(fetched.getRows());
 		assertNotNull(fetched.getEtag());
@@ -369,7 +371,7 @@ public class TableRowTruthDAOImplTest {
 		// Get the rows for this set
 		RowSet back = tableRowTruthDao.getRowSet(refSet, mapper);
 		assertNotNull(back);
-		assertEquals(mapper.getSelectColumns(), back.getHeaders());
+		assertEquals(TableModelUtils.getSelectColumns(mapper.getColumnModels(), false), back.getHeaders());
 		assertEquals(tableId, back.getTableId());
 		assertNotNull(back.getRows());;
 		assertEquals(set.getRows().size(), back.getRows().size());

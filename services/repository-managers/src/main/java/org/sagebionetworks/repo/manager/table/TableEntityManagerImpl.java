@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.manager.table;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -23,7 +22,6 @@ import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
-import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.RowAccessor;
 import org.sagebionetworks.repo.model.dao.table.RowSetAccessor;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
@@ -39,7 +37,6 @@ import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
-import org.sagebionetworks.repo.model.table.SelectColumnAndModel;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -143,7 +140,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		RowSet result = new RowSet();
 		TableRowChange lastTableRowChange = tableRowTruthDao.getLastTableRowChange(tableId);
 		result.setEtag(lastTableRowChange == null ? null : lastTableRowChange.getEtag());
-		result.setHeaders(columnMapper.getSelectColumns());
+		result.setHeaders(TableModelUtils.getSelectColumns(columnMapper.getColumnModels(), false));
 		result.setTableId(tableId);
 		List<Row> rows = Lists.newArrayListWithCapacity(rowsToAppendOrUpdateOrDelete.getRows().size());
 		Set<Long> columnIdSet = Transform.toSet(result.getHeaders(), TableModelUtils.SELECT_COLUMN_TO_ID);
@@ -195,13 +192,13 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	}
 
 	private static Row resolveInsertValues(PartialRow partialRow, ColumnMapper columnMapper) {
-		List<String> values = Lists.newArrayListWithCapacity(columnMapper.selectColumnCount());
-		for (SelectColumnAndModel model : columnMapper.getSelectColumnAndModels()) {
+		List<String> values = Lists.newArrayListWithCapacity(columnMapper.getColumnModels().size());
+		for (ColumnModel model : columnMapper.getColumnModels()) {
 			String value = null;
-			if (model.getColumnModel() != null) {
-				value = partialRow.getValues().get(model.getColumnModel().getId());
+			if (model != null) {
+				value = partialRow.getValues().get(model.getId());
 				if (value == null) {
-					value = model.getColumnModel().getDefaultValue();
+					value = model.getDefaultValue();
 				}
 			}
 			values.add(value);
@@ -223,17 +220,17 @@ public class TableEntityManagerImpl implements TableEntityManager {
 			if(partialRow.getValues() == null){
 				row.setValues(null);
 			}else{
-				List<String> values = Lists.newArrayListWithCapacity(columnMapper.selectColumnCount());
-				for (SelectColumnAndModel model : columnMapper.getSelectColumnAndModels()) {
+				List<String> values = Lists.newArrayListWithCapacity(columnMapper.getColumnModels().size());
+				for (ColumnModel model : columnMapper.getColumnModels()) {
 					String value = null;
-					if (model.getColumnModel() != null) {
-						if (partialRow.getValues().containsKey(model.getColumnModel().getId())) {
-							value = partialRow.getValues().get(model.getColumnModel().getId());
+					if (model!= null) {
+						if (partialRow.getValues().containsKey(model.getId())) {
+							value = partialRow.getValues().get(model.getId());
 						} else {
-							value = currentRow.getCellById(Long.parseLong(model.getColumnModel().getId()));
+							value = currentRow.getCellById(Long.parseLong(model.getId()));
 						}
 						if (value == null) {
-							value = model.getColumnModel().getDefaultValue();
+							value = model.getDefaultValue();
 						}
 					}
 					values.add(value);
@@ -367,7 +364,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		}
 		if(results != null){
 			results.setEtag(rrs.getEtag());
-			results.setHeaders(columnMapper.getSelectColumns());
+			results.setHeaders(TableModelUtils.getSelectColumns(columnMapper.getColumnModels(), false));
 			results.setTableId(delta.getTableId());
 			if(results.getRows() == null){
 				results.setRows(new LinkedList<RowReference>());
@@ -443,7 +440,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(rows);
-		rowSet.setHeaders(columnMapper.getSelectColumns());
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(columnMapper.getColumnModels(), false));
 		validateFileHandles(user, tableId, rowSet);
 	}
 

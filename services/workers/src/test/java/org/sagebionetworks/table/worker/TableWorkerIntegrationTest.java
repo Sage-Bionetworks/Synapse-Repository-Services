@@ -242,7 +242,7 @@ public class TableWorkerIntegrationTest {
 		rows.addAll(TableModelTestUtils.createEmptyRows(schema, 2));
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(rows);
-		rowSet.setHeaders(TableModelUtils.createColumnModelColumnMapper(schema).getSelectColumns());
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema, false));
 		rowSet.setTableId(tableId);
 		long start = System.currentTimeMillis();
 		referenceSet = tableEntityManager.appendRows(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema),
@@ -292,7 +292,7 @@ public class TableWorkerIntegrationTest {
 		// Now add some data
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(TableModelTestUtils.createRows(schema, 6));
-		rowSet.setHeaders(TableModelUtils.createColumnModelColumnMapper(schema).getSelectColumns());
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema, false));
 		rowSet.setTableId(tableId);
 		referenceSet = tableEntityManager.appendRows(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema),
 				rowSet, mockPprogressCallback);
@@ -391,7 +391,7 @@ public class TableWorkerIntegrationTest {
 		rowSet.setRows(Lists.newArrayList(TableModelTestUtils.createRow(null, null, "a", "1", "10", "3"),
 				TableModelTestUtils.createRow(null, null, "b", "2", "11", "1"),
 				TableModelTestUtils.createRow(null, null, "c", "3", "11", "2")));
-		rowSet.setHeaders(TableModelUtils.createColumnModelColumnMapper(schema).getSelectColumns());
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema, false));
 		rowSet.setTableId(tableId);
 		referenceSet = tableEntityManager.appendRows(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema),
 				rowSet, mockPprogressCallback);
@@ -436,7 +436,7 @@ public class TableWorkerIntegrationTest {
 		rowSet.setRows(Lists.newArrayList(TableModelTestUtils.createRow(null, null, "1.5"), TableModelTestUtils.createRow(null, null, "2.0"),
 				TableModelTestUtils.createRow(null, null, "2.0"), TableModelTestUtils.createRow(null, null, "4.5"),
 				TableModelTestUtils.createRow(null, null, "2.0")));
-		rowSet.setHeaders(TableModelUtils.createColumnModelColumnMapper(schema).getSelectColumns());
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema, false));
 		rowSet.setTableId(tableId);
 		referenceSet = tableEntityManager.appendRows(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema),
 				rowSet, mockPprogressCallback);
@@ -501,7 +501,7 @@ public class TableWorkerIntegrationTest {
 		rowSet.getRows().get(0).getValues().set(0, "!!" + rowSet.getRows().get(0).getValues().get(0));
 		// and make grouping return 9 rows
 		rowSet.getRows().get(4).getValues().set(0, rowSet.getRows().get(0).getValues().get(0));
-		rowSet.setHeaders(TableModelUtils.createColumnModelColumnMapper(schema).getSelectColumns());
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema, false));
 		rowSet.setTableId(tableId);
 		referenceSet = tableEntityManager.appendRows(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema),
 				rowSet, mockPprogressCallback);
@@ -613,7 +613,7 @@ public class TableWorkerIntegrationTest {
 		// Now add some data
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(TableModelTestUtils.createRows(schema, 10));
-		rowSet.setHeaders(TableModelUtils.createColumnModelColumnMapper(schema).getSelectColumns());
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema, false));
 		rowSet.setTableId(tableId);
 		referenceSet = tableEntityManager.appendRows(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema),
 				rowSet, mockPprogressCallback);
@@ -767,7 +767,7 @@ public class TableWorkerIntegrationTest {
 		rows.addAll(TableModelTestUtils.createEmptyRows(schema, 3));
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(rows);
-		rowSet.setHeaders(TableModelUtils.createColumnModelColumnMapper(schema).getSelectColumns());
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema, false));
 		rowSet.setTableId(tableId);
 		referenceSet = tableEntityManager.appendRows(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema),
 				rowSet, mockPprogressCallback);
@@ -824,7 +824,7 @@ public class TableWorkerIntegrationTest {
 		// add data
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(Lists.newArrayList(TableModelTestUtils.createRow(null, null, "a")));
-		rowSet.setHeaders(TableModelUtils.createColumnModelColumnMapper(schema).getSelectColumns());
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema, false));
 		rowSet.setTableId(tableId);
 		referenceSet = tableEntityManager.appendRows(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema),
 				rowSet, mockPprogressCallback);
@@ -900,7 +900,7 @@ public class TableWorkerIntegrationTest {
 
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(rows);
-		rowSet.setHeaders(TableModelUtils.createColumnModelColumnMapper(schema).getSelectColumns());
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema, false));
 		rowSet.setTableId(tableId);
 		referenceSet = tableEntityManager.appendRows(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema),
 				rowSet, mockPprogressCallback);
@@ -947,7 +947,7 @@ public class TableWorkerIntegrationTest {
 
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(rows);
-		rowSet.setHeaders(TableModelUtils.createColumnModelColumnMapper(schema).getSelectColumns());
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema, false));
 		rowSet.setTableId(tableId);
 		referenceSet = tableEntityManager.appendRows(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema),
 				rowSet, mockPprogressCallback);
@@ -1017,7 +1017,7 @@ public class TableWorkerIntegrationTest {
 
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(rows);
-		rowSet.setHeaders(TableModelUtils.createColumnModelColumnMapper(schema).getSelectColumns());
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema, false));
 		rowSet.setTableId(tableId);
 		referenceSet = tableEntityManager.appendRows(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema),
 				rowSet, mockPprogressCallback);
@@ -1029,7 +1029,7 @@ public class TableWorkerIntegrationTest {
 
 			RowSet failRowSet = new RowSet();
 			failRowSet.setRows(failRow);
-			failRowSet.setHeaders(TableModelUtils.createColumnModelColumnMapper(schema).getSelectColumns());
+			failRowSet.setHeaders(TableModelUtils.getSelectColumns(schema, false));
 			failRowSet.setTableId(tableId);
 			try {
 				tableEntityManager.appendRows(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema), failRowSet, mockPprogressCallback);
@@ -1102,7 +1102,7 @@ public class TableWorkerIntegrationTest {
 		List<Row> rows = TableModelTestUtils.createRows(schema, 4);
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(rows);
-		rowSet.setHeaders(TableModelUtils.createColumnModelColumnMapper(schema).getSelectColumns());
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema, false));
 		rowSet.setTableId(tableId);
 		referenceSet = tableEntityManager.appendRows(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema),
 				rowSet, mockPprogressCallback);
@@ -1170,7 +1170,7 @@ public class TableWorkerIntegrationTest {
 		}
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(rows);
-		rowSet.setHeaders(TableModelUtils.createColumnModelColumnMapper(schema).getSelectColumns());
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema, false));
 		rowSet.setTableId(tableId);
 		referenceSet = tableEntityManager.appendRows(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema),
 				rowSet, mockPprogressCallback);
@@ -1286,7 +1286,7 @@ public class TableWorkerIntegrationTest {
 				fileHandle1.getId(), null, null));
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(rows);
-		rowSet.setHeaders(TableModelUtils.createColumnModelColumnMapper(schema).getSelectColumns());
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema, false));
 		rowSet.setTableId(tableId);
 		referenceSet = tableEntityManager.appendRows(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema),
 				rowSet, mockPprogressCallback);
@@ -1363,7 +1363,7 @@ public class TableWorkerIntegrationTest {
 		List<Row> rows = TableModelTestUtils.createRows(schema, 500000);
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(rows);
-		rowSet.setHeaders(TableModelUtils.createColumnModelColumnMapper(schema).getSelectColumns());
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema, false));
 		rowSet.setTableId(tableId);
 		long start = System.currentTimeMillis();
 		String etag = tableEntityManager.appendRowsAsStream(adminUserInfo, tableId,
@@ -1407,7 +1407,7 @@ public class TableWorkerIntegrationTest {
 		List<Row> rows = TableModelTestUtils.createRows(schema, 10);
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(rows);
-		rowSet.setHeaders(TableModelUtils.createColumnModelColumnMapper(schema).getSelectColumns());
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema, false));
 		rowSet.setTableId(tableId);
 		long start = System.currentTimeMillis();
 		tableEntityManager.appendRowsAsStream(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema), rowSet
@@ -1799,7 +1799,7 @@ public class TableWorkerIntegrationTest {
 	private RowSet createRowSet(List<String> headers) {
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(TableModelTestUtils.createRows(schema, 2));
-		rowSet.setHeaders(TableModelUtils.createColumnModelColumnMapper(schema).getSelectColumns());
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema, false));
 		rowSet.setTableId(tableId);
 		return rowSet;
 	}

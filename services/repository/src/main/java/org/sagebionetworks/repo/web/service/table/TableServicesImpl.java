@@ -121,10 +121,10 @@ public class TableServicesImpl implements TableServices {
 		Validate.required(fileHandlesToFind.getTableId(), "fileHandlesToFind.tableId");
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		ColumnMapper mapper = columnModelManager.getCurrentColumns(userInfo, fileHandlesToFind.getTableId(), fileHandlesToFind.getHeaders());
-		for (SelectColumnAndModel selectColumnAndModel : mapper.getSelectColumnAndModels()) {
-			if (selectColumnAndModel.getColumnModel() != null
-					&& selectColumnAndModel.getColumnModel().getColumnType() != ColumnType.FILEHANDLEID) {
-				throw new IllegalArgumentException("Column " + selectColumnAndModel.getColumnModel().getId() + " is not of type FILEHANDLEID");
+		for (ColumnModel selectColumnAndModel : mapper.getColumnModels()) {
+			if (selectColumnAndModel != null
+					&& selectColumnAndModel.getColumnType() != ColumnType.FILEHANDLEID) {
+				throw new IllegalArgumentException("Column " + selectColumnAndModel.getId() + " is not of type FILEHANDLEID");
 			}
 		}
 		RowSet rowSet = tableEntityManager.getCellValues(userInfo, fileHandlesToFind.getTableId(), fileHandlesToFind, mapper);

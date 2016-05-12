@@ -150,7 +150,7 @@ public class TableEntityManagerTest {
 		List<Row> rows = TableModelTestUtils.createRows(models, 10);
 		set = new RowSet();
 		set.setTableId(tableId);
-		set.setHeaders(TableModelUtils.createColumnModelColumnMapper(models).getSelectColumns());
+		set.setHeaders(TableModelUtils.getSelectColumns(models, false));
 		set.setRows(rows);
 		rawSet = new RawRowSet(TableModelUtils.getIds(models), null, tableId, Lists.newArrayList(rows));
 
@@ -164,7 +164,7 @@ public class TableEntityManagerTest {
 		
 		refSet = new RowReferenceSet();
 		refSet.setTableId(tableId);
-		refSet.setHeaders(TableModelUtils.createColumnModelColumnMapper(models).getSelectColumns());
+		refSet.setHeaders(TableModelUtils.getSelectColumns(models, false));
 		refSet.setRows(new LinkedList<RowReference>());
 		refSet.setEtag("etag123");
 		
@@ -391,7 +391,7 @@ public class TableEntityManagerTest {
 		List<Row> rows = TableModelTestUtils.createRows(models, tooManyRows);
 		RowSet tooBigSet = new RowSet();
 		tooBigSet.setTableId(tableId);
-		tooBigSet.setHeaders(TableModelUtils.createColumnModelColumnMapper(models).getSelectColumns());
+		tooBigSet.setHeaders(TableModelUtils.getSelectColumns(models, false));
 		tooBigSet.setRows(rows);
 		ColumnMapper mapper = TableModelUtils.createColumnModelColumnMapper(models);
 		when(mockTruthDao.appendRowSetToTable(user.getId().toString(), tableId, mapper, rawSet)).thenReturn(refSet);
@@ -553,7 +553,7 @@ public class TableEntityManagerTest {
 		RowSet replace = new RowSet();
 		replace.setTableId(tableId);
 		ColumnMapper mapper = TableModelUtils.createColumnModelColumnMapper(models);
-		replace.setHeaders(mapper.getSelectColumns());
+		replace.setHeaders(TableModelUtils.getSelectColumns(models, false));
 		replace.setEtag("etag");
 
 		List<Row> replaceRows = TableModelTestUtils.createRows(models, 3);
@@ -586,7 +586,7 @@ public class TableEntityManagerTest {
 	public void testAddFileHandles() throws DatastoreException, NotFoundException, IOException {
 		RowSet replace = new RowSet();
 		replace.setTableId(tableId);
-		replace.setHeaders(TableModelUtils.createColumnModelColumnMapper(models).getSelectColumns());
+		replace.setHeaders(TableModelUtils.getSelectColumns(models, false));
 
 		List<Row> updateRows = TableModelTestUtils.createRows(models, 2);
 		for (int i = 0; i < 2; i++) {
@@ -609,7 +609,7 @@ public class TableEntityManagerTest {
 	public void testGetCellValues() throws DatastoreException, NotFoundException, IOException {
 		RowReferenceSet rows = new RowReferenceSet();
 		rows.setTableId(tableId);
-		rows.setHeaders(TableModelUtils.createColumnModelColumnMapper(models).getSelectColumns());
+		rows.setHeaders(TableModelUtils.getSelectColumns(models, false));
 		rows.setEtag("444");
 		rows.setRows(Lists.newArrayList(TableModelTestUtils.createRowReference(1L, 2L), TableModelTestUtils.createRowReference(3L, 4L)));
 

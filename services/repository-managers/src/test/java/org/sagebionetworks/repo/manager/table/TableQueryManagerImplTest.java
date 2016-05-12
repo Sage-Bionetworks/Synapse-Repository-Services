@@ -133,7 +133,7 @@ public class TableQueryManagerImplTest {
 		List<Row> rows = TableModelTestUtils.createRows(models, 10);
 		set = new RowSet();
 		set.setTableId(tableId);
-		set.setHeaders(TableModelUtils.createColumnModelColumnMapper(models).getSelectColumns());
+		set.setHeaders(TableModelUtils.getSelectColumns(models, false));
 		set.setRows(rows);
 		
 		when(mockColumnModelDAO.getColumnModelsForObject(tableId)).thenReturn(models);
@@ -306,22 +306,21 @@ public class TableQueryManagerImplTest {
 	public void testQueryBundle() throws Exception {
 		RowSet selectStar = new RowSet();
 		selectStar.setEtag("etag");
-		selectStar.setHeaders(TableModelUtils.createColumnModelColumnMapper(models).getSelectColumns());
+		selectStar.setHeaders(TableModelUtils.getSelectColumns(models, false));
 		selectStar.setTableId(tableId);
 		selectStar.setRows(TableModelTestUtils.createRows(models, 10));
 		QueryResult selectStarResult = new QueryResult();
 		selectStarResult.setNextPageToken(null);
 		selectStarResult.setQueryResults(selectStar);
 
-		runQueryBundleTest("select * from " + tableId, selectStar, 10L, TableModelUtils.createColumnModelColumnMapper(models)
-				.getSelectColumns().toString(), 2929L);
+		runQueryBundleTest("select * from " + tableId, selectStar, 10L, TableModelUtils.getSelectColumns(models, false).toString(), 1095L);
 	}
 
 	@Test
 	public void testQueryBundleColumnsExpanded() throws Exception {
 		RowSet selectStar = new RowSet();
 		selectStar.setEtag("etag");
-		selectStar.setHeaders(TableModelUtils.createColumnModelColumnMapper(models).getSelectColumns());
+		selectStar.setHeaders(TableModelUtils.getSelectColumns(models, false));
 		selectStar.setTableId(tableId);
 		selectStar.setRows(TableModelTestUtils.createRows(models, 10));
 		QueryResult selectStarResult = new QueryResult();
@@ -329,8 +328,8 @@ public class TableQueryManagerImplTest {
 		selectStarResult.setQueryResults(selectStar);
 
 		runQueryBundleTest("select " + StringUtils.join(Lists.transform(models, TableModelTestUtils.convertToNameFunction), ",") + " from "
-				+ tableId, selectStar, 10L, TableModelUtils.createColumnModelColumnMapper(models).getSelectColumns().toString(),
-				2929L);
+				+ tableId, selectStar, 10L, TableModelUtils.getSelectColumns(models, false).toString(),
+				1095L);
 	}
 
 	@Test
@@ -347,7 +346,7 @@ public class TableQueryManagerImplTest {
 		SelectColumn selectColumn = new SelectColumn();
 		selectColumn.setName("COUNT(*)");
 		selectColumn.setColumnType(ColumnType.INTEGER);
-		runQueryBundleTest("select count(*) from " + tableId, totals, 10L, "[" + selectColumn.toString() + "]", 2929L);
+		runQueryBundleTest("select count(*) from " + tableId, totals, 10L, "[" + selectColumn.toString() + "]", 500000L);
 	}
 
 	private void runQueryBundleTest(String sql, RowSet selectResult, Long countResult, String selectColumns, Long maxRowsPerPage)

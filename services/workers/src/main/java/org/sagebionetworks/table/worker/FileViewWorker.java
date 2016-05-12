@@ -124,14 +124,13 @@ public class FileViewWorker implements ChangeMessageDrivenRunner {
 		indexManager.deleteTableIndex();
 		// Lookup the table's schema
 		final List<ColumnModel> currentSchema = tableViewManager.getViewSchemaWithBenefactor(tableId);
-		ColumnMapper columnMapper = TableModelUtils.createColumnModelColumnMapper(currentSchema);
 
 		// create the table in the index.
 		indexManager.setIndexSchema(currentSchema);
 		// Calculate the number of rows per bath based on the current schema
 		final int rowsPerBatch = BATCH_SIZE_BYTES/TableModelUtils.calculateMaxRowSize(currentSchema);
 		final RowSet rowSetBatch = new RowSet();
-		rowSetBatch.setHeaders(columnMapper.getSelectColumns());
+		rowSetBatch.setHeaders(TableModelUtils.getSelectColumns(currentSchema, false));
 		rowSetBatch.setTableId(tableId);
 		// Stream all of the file data into the index.
 		Long viewCRC = tableViewManager.streamOverAllFilesInViewAsBatch(tableId, currentSchema, rowsPerBatch, new RowBatchHandler() {

@@ -987,14 +987,14 @@ public class TableModelUtilsTest {
 	@Test
 	public void testCalculateMaxRowSize() {
 		ColumnMapper all = TableModelTestUtils.createMapperForOneOfEachType();
-		int allBytes = TableModelUtils.calculateMaxRowSizeForColumnModels(all);
+		int allBytes = TableModelUtils.calculateMaxRowSize(all.getColumnModels());
 		assertEquals(3414, allBytes);
 	}
 
 	@Test
 	public void testIsRequestWithinMaxBytePerRequest() {
 		ColumnMapper all = TableModelTestUtils.createMapperForOneOfEachType();
-		int allBytes = TableModelUtils.calculateMaxRowSizeForColumnModels(all);
+		int allBytes = TableModelUtils.calculateMaxRowSize(all.getColumnModels());
 		// Set the max to be 100 rows
 		int maxBytes = allBytes * 100;
 		// So 100 rows should be within limit but not 101;
