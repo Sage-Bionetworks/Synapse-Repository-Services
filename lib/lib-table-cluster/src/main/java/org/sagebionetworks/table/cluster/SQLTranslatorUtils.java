@@ -66,24 +66,23 @@ public class SQLTranslatorUtils {
 	 * @param isAggregatedResult
 	 * @return
 	 */
-	public static ColumnMapper getSelectColumns(SelectList selectList, LinkedHashMap<String, ColumnModel> columnNameToModelMap,
+	public static List<SelectColumn> getSelectColumns(SelectList selectList, LinkedHashMap<String, ColumnModel> columnNameToModelMap,
 			boolean isAggregatedResult) {
 		ValidateArgument.required(columnNameToModelMap, "all columns");
 		ValidateArgument.required(selectList, "selectList");
 		if (selectList.getAsterisk() != null) {
 			throw new IllegalStateException("The columns should have been expanded before getting here");
 		} else {
-			List<SelectColumnAndModel> selectColumnModels = Lists.newArrayListWithCapacity(selectList.getColumns().size());
+			List<SelectColumn> select = Lists.newArrayListWithCapacity(selectList.getColumns().size());
 			for (DerivedColumn dc : selectList.getColumns()) {
-				SelectColumnAndModel model = getSelectColumns(dc, columnNameToModelMap);
+				SelectColumn model = getSelectColumns(dc, columnNameToModelMap);
 				if(isAggregatedResult){
 					// never pass an ID for an aggregate query.
-					model.getSelectColumn().setId(null);
+					model.setId(null);
 				}
-				selectColumnModels.add(model);
+				select.add(model);
 			}
-			
-			return TableModelUtils.createColumnMapper(selectColumnModels);
+			return select;
 		}
 	}
 	
@@ -94,7 +93,7 @@ public class SQLTranslatorUtils {
 	 * @param columnMap
 	 * @return
 	 */
-	public static SelectColumnAndModel getSelectColumns(DerivedColumn derivedColumn, Map<String, ColumnModel> columnMap){
+	public static SelectColumn getSelectColumns(DerivedColumn derivedColumn, Map<String, ColumnModel> columnMap){
 		// Extract data about this column.
 		String displayName = derivedColumn.getDisplayName();
 		// lookup the column referenced by this select.
@@ -126,7 +125,7 @@ public class SQLTranslatorUtils {
 			selectColumn.setId(model.getId());
 		}
 		// done
-		return new SelectColumnAndModel(selectColumn, model);
+		return selectColumn;
 	}
 	
 	/**

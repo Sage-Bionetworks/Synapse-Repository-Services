@@ -347,7 +347,7 @@ public class TableQueryManagerImplTest {
 		SelectColumn selectColumn = new SelectColumn();
 		selectColumn.setName("COUNT(*)");
 		selectColumn.setColumnType(ColumnType.INTEGER);
-		runQueryBundleTest("select count(*) from " + tableId, totals, 10L, "[" + selectColumn.toString() + "]", 500000L);
+		runQueryBundleTest("select count(*) from " + tableId, totals, 10L, "[" + selectColumn.toString() + "]", 2929L);
 	}
 
 	private void runQueryBundleTest(String sql, RowSet selectResult, Long countResult, String selectColumns, Long maxRowsPerPage)
@@ -443,6 +443,10 @@ public class TableQueryManagerImplTest {
 		Pair<QueryResult, Long> query = manager.query(mockProgressCallbackVoid, user, "select \"i-0\" from " + tableId, null, 0L, 100000L, true, false, false);
 		assertNotNull(query.getFirst().getNextPageToken());
 		assertTrue(query.getFirst().getNextPageToken().getToken().indexOf("&quot;i-0&quot") != -1);
+		
+		rowSet = new RowSet();
+		rowSet.setRows(Collections.nCopies(100000, new Row()));
+		when(mockTableIndexDAO.query(any(ProgressCallback.class), any(SqlQuery.class))).thenReturn(rowSet);
 
 		query = manager.query(mockProgressCallbackVoid, user, "select * from " + tableId, null, 0L, 100000L, true, false, false);
 		assertNotNull(query.getFirst().getNextPageToken());

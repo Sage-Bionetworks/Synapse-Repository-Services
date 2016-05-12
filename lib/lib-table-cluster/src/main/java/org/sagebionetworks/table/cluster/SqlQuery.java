@@ -11,6 +11,7 @@ import java.util.Map;
 import org.apache.commons.lang.BooleanUtils;
 import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
@@ -72,7 +73,7 @@ public class SqlQuery {
 	/**
 	 * The list of all columns referenced in the select column.
 	 */
-	ColumnMapper selectColumnModels;
+	List<SelectColumn> selectColumns;
 	
 	
 	/**
@@ -145,7 +146,7 @@ public class SqlQuery {
 		}
 
 		this.outputSQL = SQLTranslatorUtils.translate(expandedSelectList, this.parameters, this.columnNameToModelMap);
-		this.selectColumnModels = SQLTranslatorUtils.getSelectColumns(this.model.getSelectList(), columnNameToModelMap, isAggregatedResult);
+		this.selectColumns = SQLTranslatorUtils.getSelectColumns(this.model.getSelectList(), columnNameToModelMap, isAggregatedResult);
 	}
 
 	/**
@@ -206,8 +207,8 @@ public class SqlQuery {
 	 * The list of column models from the select clause.
 	 * @return
 	 */
-	public ColumnMapper getSelectColumnModels() {
-		return selectColumnModels;
+	public List<SelectColumn> getSelectColumns() {
+		return selectColumns;
 	}
 
 	/**

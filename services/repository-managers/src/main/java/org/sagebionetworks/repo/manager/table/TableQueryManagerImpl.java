@@ -113,7 +113,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		Long maxRowsPerPage = null;
 		boolean oneRowWasAdded = false;
 		if (runQuery || (runCount && query.isAggregatedResult())) {
-			maxRowsPerPage = getMaxRowsPerPage(query.getSelectColumnModels());
+			maxRowsPerPage = getMaxRowsPerPage(query.getTableSchema());
 			if (maxRowsPerPage == null || maxRowsPerPage == 0) {
 				maxRowsPerPage = 100L;
 			}
@@ -165,7 +165,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 				if (BooleanUtils.isTrue(paginatedQuery.getModel().getSelectList().getAsterisk())) {
 					// bug in mysql, SQL_CALC_FOUND_ROWS does not work when the select is '*'. Expand to the known
 					// columns
-					paginatedSelectList = new SelectList(Lists.transform(paginatedQuery.getSelectColumnModels().getSelectColumns(),
+					paginatedSelectList = new SelectList(Lists.transform(paginatedQuery.getSelectColumns(),
 							new Function<SelectColumn, DerivedColumn>() {
 								@Override
 								public DerivedColumn apply(SelectColumn input) {
@@ -286,7 +286,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		}
 		// select columns must be fetched for for the select columns or max rows per page.
 		if ((partMask & BUNDLE_MASK_QUERY_SELECT_COLUMNS) > 0) {
-			bundle.setSelectColumns(sqlQuery.getSelectColumnModels().getSelectColumns());
+			bundle.setSelectColumns(sqlQuery.getSelectColumns());
 		}
 		// all schema columns
 		if ((partMask & BUNDLE_MASK_QUERY_MAX_ROWS_PER_PAGE) > 0) {
@@ -294,7 +294,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		}
 		// Max rows per column
 		if ((partMask & BUNDLE_MASK_QUERY_MAX_ROWS_PER_PAGE) > 0) {
-			bundle.setMaxRowsPerPage(getMaxRowsPerPage(sqlQuery.getSelectColumnModels()));
+			bundle.setMaxRowsPerPage(getMaxRowsPerPage(sqlQuery.getTableSchema()));
 		}
 		return bundle;
 	}
@@ -411,7 +411,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 
 				@Override
 				public void writeHeader() {
-					results.setHeaders(query.getSelectColumnModels().getSelectColumns());
+					results.setHeaders(query.getSelectColumns());
 				}
 
 				@Override
@@ -536,13 +536,13 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		final DownloadFromTableResult repsonse = new DownloadFromTableResult();
 		final boolean includeRowIdAndVersionFinal = includeRowIdAndVersion;
 		repsonse.setTableId(query.getTableId());
-		repsonse.setHeaders(query.getSelectColumnModels().getSelectColumns());
+		repsonse.setHeaders(query.getSelectColumns());
 
 		runConsistentQueryAsStream(progressCallback, Collections.singletonList(new QueryHandler(query, new RowAndHeaderHandler() {
 			@Override
 			public void writeHeader() {
 				if (writeHeader) {
-					String[] csvHeaders = TableModelUtils.createColumnNameHeader(query.getSelectColumnModels().getSelectColumns(),
+					String[] csvHeaders = TableModelUtils.createColumnNameHeader(query.getSelectColumns(),
 							includeRowIdAndVersionFinal);
 					writer.writeNext(csvHeaders);
 				}
