@@ -14,7 +14,6 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.RowAndHeaderHandler;
-import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.Query;
@@ -585,15 +584,6 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		} catch (ParseException e) {
 			throw new IllegalArgumentException(e);
 		}
-	}
-	
-	@Override
-	public Long getMaxRowsPerPage(ColumnMapper columnMapper) {
-		// Calculate the size
-		int maxRowSizeBytes = TableModelUtils.calculateMaxRowSize(columnMapper.getColumnModels());
-		if (maxRowSizeBytes < 1)
-			return null;
-		return (long) (this.maxBytesPerRequest / maxRowSizeBytes);
 	}
 
 	@Override

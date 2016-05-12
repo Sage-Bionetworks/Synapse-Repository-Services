@@ -27,7 +27,6 @@ import org.sagebionetworks.repo.model.dao.table.RowSetAccessor;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.exception.ReadOnlyException;
 import org.sagebionetworks.repo.model.status.StatusEnum;
-import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PartialRow;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
@@ -96,35 +95,35 @@ public class TableEntityManagerImpl implements TableEntityManager {
 
 	@WriteTransactionReadCommitted
 	@Override
-	public RowReferenceSet appendRows(UserInfo user, String tableId, ColumnMapper columnMapper, RowSet delta, ProgressCallback<Long> progressCallback)
+	public RowReferenceSet appendRows(UserInfo user, String tableId, List<ColumnModel> columns, RowSet delta, ProgressCallback<Long> progressCallback)
 			throws DatastoreException, NotFoundException, IOException {
 		ValidateArgument.required(user, "User");
 		ValidateArgument.required(tableId, "TableId");
-		ValidateArgument.required(columnMapper, "columnMapper");
+		ValidateArgument.required(columns, "columns");
 		ValidateArgument.required(delta, "RowSet");
 		// Validate the request is under the max bytes per requested
-		validateRequestSize(columnMapper, delta.getRows().size());
+		validateRequestSize(columns, delta.getRows().size());
 		// For this case we want to capture the resulting RowReferenceSet
 		RowReferenceSet results = new RowReferenceSet();
-		appendRowsAsStream(user, tableId, columnMapper, delta.getRows().iterator(), delta.getEtag(), results, progressCallback);
+		appendRowsAsStream(user, tableId, columns, delta.getRows().iterator(), delta.getEtag(), results, progressCallback);
 		return results;
 	}
 	
 	@WriteTransactionReadCommitted
 	@Override
-	public RowReferenceSet appendPartialRows(UserInfo user, String tableId, ColumnMapper columnMapper,
+	public RowReferenceSet appendPartialRows(UserInfo user, String tableId, List<ColumnModel> columns,
 			PartialRowSet rowsToAppendOrUpdateOrDelete, ProgressCallback<Long> progressCallback)
 			throws DatastoreException, NotFoundException, IOException {
 		Validate.required(user, "User");
 		Validate.required(tableId, "TableId");
-		Validate.required(columnMapper, "columnMapper");
+		Validate.required(columns, "columns");
 		Validate.required(rowsToAppendOrUpdateOrDelete, "RowsToAppendOrUpdate");
 		// Validate the request is under the max bytes per requested
-		validateRequestSize(columnMapper, rowsToAppendOrUpdateOrDelete.getRows().size());
+		validateRequestSize(columns, rowsToAppendOrUpdateOrDelete.getRows().size());
 		// For this case we want to capture the resulting RowReferenceSet
 		RowReferenceSet results = new RowReferenceSet();
-		RowSet fullRowsToAppendOrUpdateOrDelete = mergeWithLastVersion(tableId, rowsToAppendOrUpdateOrDelete, columnMapper);
-		appendRowsAsStream(user, tableId, columnMapper, fullRowsToAppendOrUpdateOrDelete.getRows().iterator(),
+		RowSet fullRowsToAppendOrUpdateOrDelete = mergeWithLastVersion(tableId, rowsToAppendOrUpdateOrDelete, columns);
+		appendRowsAsStream(user, tableId, columns, fullRowsToAppendOrUpdateOrDelete.getRows().iterator(),
 				fullRowsToAppendOrUpdateOrDelete.getEtag(), results, progressCallback);
 		return results;
 	}
@@ -134,13 +133,13 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	 * will find the most current version, and any column not present as a key in the map will be replaced with the most
 	 * recent value. For inserts, this will replace null cell values with their defaults.
 	 */
-	private RowSet mergeWithLastVersion(String tableId, PartialRowSet rowsToAppendOrUpdateOrDelete, ColumnMapper columnMapper)
+	private RowSet mergeWithLastVersion(String tableId, PartialRowSet rowsToAppendOrUpdateOrDelete, List<ColumnModel> columns)
 			throws IOException,
 			NotFoundException {
 		RowSet result = new RowSet();
 		TableRowChange lastTableRowChange = tableRowTruthDao.getLastTableRowChange(tableId);
 		result.setEtag(lastTableRowChange == null ? null : lastTableRowChange.getEtag());
-		result.setHeaders(TableModelUtils.getSelectColumns(columnMapper.getColumnModels(), false));
+		result.setHeaders(TableModelUtils.getSelectColumns(columns, false));
 		result.setTableId(tableId);
 		List<Row> rows = Lists.newArrayListWithCapacity(rowsToAppendOrUpdateOrDelete.getRows().size());
 		Set<Long> columnIdSet = Transform.toSet(result.getHeaders(), TableModelUtils.SELECT_COLUMN_TO_ID);
@@ -153,11 +152,11 @@ public class TableEntityManagerImpl implements TableEntityManager {
 				row.setRowId(partialRow.getRowId());
 				rowsToUpdate.put(partialRow.getRowId(), Pair.create(partialRow, row));
 			} else {
-				row = resolveInsertValues(partialRow, columnMapper);
+				row = resolveInsertValues(partialRow, columns);
 			}
 			rows.add(row);
 		}
-		resolveUpdateValues(tableId, rowsToUpdate, columnMapper);
+		resolveUpdateValues(tableId, rowsToUpdate, columns);
 		result.setRows(rows);
 		return result;
 	}
@@ -191,9 +190,9 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		}
 	}
 
-	private static Row resolveInsertValues(PartialRow partialRow, ColumnMapper columnMapper) {
-		List<String> values = Lists.newArrayListWithCapacity(columnMapper.getColumnModels().size());
-		for (ColumnModel model : columnMapper.getColumnModels()) {
+	private static Row resolveInsertValues(PartialRow partialRow, List<ColumnModel> columns) {
+		List<String> values = Lists.newArrayListWithCapacity(columns.size());
+		for (ColumnModel model : columns) {
 			String value = null;
 			if (model != null) {
 				value = partialRow.getValues().get(model.getId());
@@ -208,9 +207,9 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		return row;
 	}
 
-	private void resolveUpdateValues(String tableId, Map<Long, Pair<PartialRow, Row>> rowsToUpdate, ColumnMapper columnMapper)
+	private void resolveUpdateValues(String tableId, Map<Long, Pair<PartialRow, Row>> rowsToUpdate, List<ColumnModel> columns)
 			throws IOException, NotFoundException {
-		RowSetAccessor currentRowData = tableRowTruthDao.getLatestVersionsWithRowData(tableId, rowsToUpdate.keySet(), 0L, columnMapper);
+		RowSetAccessor currentRowData = tableRowTruthDao.getLatestVersionsWithRowData(tableId, rowsToUpdate.keySet(), 0L, columns);
 		for (Map.Entry<Long, Pair<PartialRow, Row>> rowToUpdate : rowsToUpdate.entrySet()) {
 			Long rowId = rowToUpdate.getKey();
 			PartialRow partialRow = rowToUpdate.getValue().getFirst();
@@ -220,8 +219,8 @@ public class TableEntityManagerImpl implements TableEntityManager {
 			if(partialRow.getValues() == null){
 				row.setValues(null);
 			}else{
-				List<String> values = Lists.newArrayListWithCapacity(columnMapper.getColumnModels().size());
-				for (ColumnModel model : columnMapper.getColumnModels()) {
+				List<String> values = Lists.newArrayListWithCapacity(columns.size());
+				for (ColumnModel model : columns) {
 					String value = null;
 					if (model!= null) {
 						if (partialRow.getValues().containsKey(model.getId())) {
@@ -262,9 +261,9 @@ public class TableEntityManagerImpl implements TableEntityManager {
 				return row;
 			}
 		});
-		ColumnMapper mapper = TableModelUtils.createColumnModelColumnMapper(tableManagerSupport.getColumnModelsForTable(tableId));
-		RawRowSet rowSetToDelete = new RawRowSet(TableModelUtils.getIds(mapper.getColumnModels()), rowsToDelete.getEtag(), tableId, rows);
-		RowReferenceSet result = tableRowTruthDao.appendRowSetToTable(user.getId().toString(), tableId, mapper, rowSetToDelete);
+		List<ColumnModel> columns = tableManagerSupport.getColumnModelsForTable(tableId);
+		RawRowSet rowSetToDelete = new RawRowSet(TableModelUtils.getIds(columns), rowsToDelete.getEtag(), tableId, rows);
+		RowReferenceSet result = tableRowTruthDao.appendRowSetToTable(user.getId().toString(), tableId, columns, rowSetToDelete);
 		// The table has change so we must reset the state.
 		tableManagerSupport.setTableToProcessingAndTriggerUpdate(tableId);
 		return result;
@@ -279,11 +278,11 @@ public class TableEntityManagerImpl implements TableEntityManager {
 
 	@WriteTransactionReadCommitted
 	@Override
-	public String appendRowsAsStream(UserInfo user, String tableId, ColumnMapper columnMapper, Iterator<Row> rowStream, String etag,
+	public String appendRowsAsStream(UserInfo user, String tableId, List<ColumnModel> columns, Iterator<Row> rowStream, String etag,
 			RowReferenceSet results, ProgressCallback<Long> progressCallback) throws DatastoreException, NotFoundException, IOException {
 		ValidateArgument.required(user, "User");
 		ValidateArgument.required(tableId, "TableId");
-		ValidateArgument.required(columnMapper, "columnMapper");
+		ValidateArgument.required(columns, "columns");
 		validateFeatureEnabled();
 
 		// Validate the user has permission to edit the table
@@ -293,7 +292,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		// serially by locking on the table's Id.
 		tableManagerSupport.lockOnTableId(tableId);
 		
-		List<Long> ids = Transform.toList(columnMapper.getColumnModels(), TableModelUtils.COLUMN_MODEL_TO_ID);
+		List<Long> ids = Transform.toList(columns, TableModelUtils.COLUMN_MODEL_TO_ID);
 		List<Row> batch = new LinkedList<Row>();
 		int batchSizeBytes = 0;
 		int count = 0;
@@ -305,9 +304,9 @@ public class TableEntityManagerImpl implements TableEntityManager {
 			batchSizeBytes += TableModelUtils.calculateActualRowSize(row);
 			if(batchSizeBytes >= maxBytesPerChangeSet){
 				// Validate there aren't any illegal file handle replaces
-				validateFileHandles(user, tableId, columnMapper, delta.getRows());
+				validateFileHandles(user, tableId, columns, delta.getRows());
 				// Send this batch and keep the etag.
-				etag = appendBatchOfRowsToTable(user, columnMapper, delta, results, progressCallback);
+				etag = appendBatchOfRowsToTable(user, columns, delta, results, progressCallback);
 				// Clear the batch
 				count += batch.size();
 				batch.clear();
@@ -320,8 +319,8 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		// Send the last batch is there are any rows
 		if(!batch.isEmpty()){
 			// Validate there aren't any illegal file handle replaces
-			validateFileHandles(user, tableId, columnMapper, delta.getRows());
-			etag = appendBatchOfRowsToTable(user, columnMapper, delta, results, progressCallback);
+			validateFileHandles(user, tableId, columns, delta.getRows());
+			etag = appendBatchOfRowsToTable(user, columns, delta, results, progressCallback);
 		}
 		// The table has change so we must reset the state.
 		tableManagerSupport.setTableToProcessingAndTriggerUpdate(tableId);
@@ -353,18 +352,18 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	 * @throws IOException
 	 * @throws ReadOnlyException If the stack status is anything other than READ_WRITE
 	 */
-	private String appendBatchOfRowsToTable(UserInfo user, ColumnMapper columnMapper, RawRowSet delta, RowReferenceSet results,
+	private String appendBatchOfRowsToTable(UserInfo user, List<ColumnModel> columns, RawRowSet delta, RowReferenceSet results,
 			ProgressCallback<Long> progressCallback)
 			throws IOException, ReadOnlyException {
 		// See PLFM-3041
 		checkStackWiteStatus();
-		RowReferenceSet rrs = tableRowTruthDao.appendRowSetToTable(user.getId().toString(), delta.getTableId(), columnMapper, delta);
+		RowReferenceSet rrs = tableRowTruthDao.appendRowSetToTable(user.getId().toString(), delta.getTableId(), columns, delta);
 		if(progressCallback != null){
 			progressCallback.progressMade(new Long(rrs.getRows().size()));
 		}
 		if(results != null){
 			results.setEtag(rrs.getEtag());
-			results.setHeaders(TableModelUtils.getSelectColumns(columnMapper.getColumnModels(), false));
+			results.setHeaders(TableModelUtils.getSelectColumns(columns, false));
 			results.setTableId(delta.getTableId());
 			if(results.getRows() == null){
 				results.setRows(new LinkedList<RowReference>());
@@ -382,9 +381,9 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	}
 
 	@Override
-	public RowSet getRowSet(String tableId, Long rowVersion, ColumnMapper columnMapper) throws IOException,
+	public RowSet getRowSet(String tableId, Long rowVersion, List<ColumnModel> columns) throws IOException,
 			NotFoundException {
-		return tableRowTruthDao.getRowSet(tableId, rowVersion, columnMapper);
+		return tableRowTruthDao.getRowSet(tableId, rowVersion, columns);
 	}
 
 	@Override
@@ -401,22 +400,22 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	public String getCellValue(UserInfo userInfo, String tableId, RowReference rowRef, ColumnModel column) throws IOException,
 			NotFoundException {
 		tableManagerSupport.validateTableReadAccess(userInfo, tableId);
-		Row row = tableRowTruthDao.getRowOriginal(tableId, rowRef, TableModelUtils.createSingleColumnColumnMapper(column, false));
+		Row row = tableRowTruthDao.getRowOriginal(tableId, rowRef, Lists.newArrayList(column));
 		return row.getValues().get(0);
 	}
 
 	@Override
-	public RowSet getCellValues(UserInfo userInfo, String tableId, RowReferenceSet rowRefs, ColumnMapper resultSchema)
+	public RowSet getCellValues(UserInfo userInfo, String tableId, RowReferenceSet rowRefs, List<ColumnModel> columns)
 			throws IOException, NotFoundException {
 		tableManagerSupport.validateTableReadAccess(userInfo, tableId);
-		return tableRowTruthDao.getRowSet(rowRefs, resultSchema);
+		return tableRowTruthDao.getRowSet(rowRefs, columns);
 	}
 
 
 	
-	private void validateRequestSize(ColumnMapper columnMapper, int rowCount) {
+	private void validateRequestSize(List<ColumnModel> columns, int rowCount) {
 		// Validate the request is under the max bytes per requested
-		if (!TableModelUtils.isRequestWithinMaxBytePerRequest(columnMapper, rowCount, this.maxBytesPerRequest)) {
+		if (!TableModelUtils.isRequestWithinMaxBytePerRequest(columns, rowCount, this.maxBytesPerRequest)) {
 			throw new IllegalArgumentException("Request exceed the maximum number of bytes per request.  Maximum : "+this.maxBytesPerRequest+" bytes");
 		}
 	}
@@ -434,13 +433,13 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	 * @throws IOException
 	 * @throws NotFoundException
 	 */
-	public void validateFileHandles(UserInfo user, String tableId, ColumnMapper columnMapper, List<Row> rows)
+	public void validateFileHandles(UserInfo user, String tableId, List<ColumnModel> columns, List<Row> rows)
 			throws IOException,
 			NotFoundException {
 		
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(rows);
-		rowSet.setHeaders(TableModelUtils.getSelectColumns(columnMapper.getColumnModels(), false));
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(columns, false));
 		validateFileHandles(user, tableId, rowSet);
 	}
 

@@ -8,7 +8,6 @@ import java.util.Set;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.Row;
@@ -38,7 +37,7 @@ public interface TableEntityManager {
 	 * @throws DatastoreException
 	 * @throws IOException
 	 */
-	public RowReferenceSet appendRows(UserInfo user, String tableId, ColumnMapper columnMapper, RowSet delta, ProgressCallback<Long> progressCallback)
+	public RowReferenceSet appendRows(UserInfo user, String tableId, List<ColumnModel> columns, RowSet delta, ProgressCallback<Long> progressCallback)
 			throws DatastoreException, NotFoundException, IOException;
 
 	/**
@@ -53,7 +52,7 @@ public interface TableEntityManager {
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 */
-	public RowReferenceSet appendPartialRows(UserInfo user, String tableId, ColumnMapper columnMapper,
+	public RowReferenceSet appendPartialRows(UserInfo user, String tableId, List<ColumnModel> columns,
 			PartialRowSet rowsToAppendOrUpdateOrDelete, ProgressCallback<Long> progressCallback) throws DatastoreException, NotFoundException, IOException;
 
 	/**
@@ -95,7 +94,7 @@ public interface TableEntityManager {
 	 * @throws NotFoundException
 	 * @throws IOException
 	 */
-	String appendRowsAsStream(UserInfo user, String tableId, ColumnMapper columnMapper, Iterator<Row> rowStream, String etag,
+	String appendRowsAsStream(UserInfo user, String tableId, List<ColumnModel> columns, Iterator<Row> rowStream, String etag,
 			RowReferenceSet results, ProgressCallback<Long> progressCallback) throws DatastoreException, NotFoundException, IOException;
 
 	/**
@@ -115,7 +114,7 @@ public interface TableEntityManager {
 	 * @throws NotFoundException
 	 * @throws IOException
 	 */
-	public RowSet getRowSet(String tableId, Long rowVersion, ColumnMapper schema)
+	public RowSet getRowSet(String tableId, Long rowVersion, List<ColumnModel> columns)
 			throws IOException, NotFoundException;
 
 	/**
@@ -161,7 +160,7 @@ public interface TableEntityManager {
 	 * @throws NotFoundException
 	 * @throws IOException
 	 */
-	public RowSet getCellValues(UserInfo userInfo, String tableId, RowReferenceSet rowRefs, ColumnMapper columnMapper)
+	public RowSet getCellValues(UserInfo userInfo, String tableId, RowReferenceSet rowRefs, List<ColumnModel> columns)
 			throws IOException, NotFoundException;
 	
 	/**

@@ -5,7 +5,6 @@ import java.util.List;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
@@ -105,13 +104,6 @@ public interface TableQueryManager {
 	DownloadFromTableResult runConsistentQueryAsStream(ProgressCallback<Void> progressCallback, UserInfo user, String sql, List<SortItem> list, CSVWriterStream writer,
 			boolean includeRowIdAndVersion, boolean writeHeader) throws TableUnavilableException, NotFoundException, TableFailedException;
 
-
-	/**
-	 * Get the maximum number of rows allowed for a single page (get, put, or query) for the given columns.
-	 * @param models
-	 * @return
-	 */
-	public Long getMaxRowsPerPage(ColumnMapper columnMapper);
 
 	/**
 	 * Get the maximum number of rows allowed for a single page (get, put, or query) for the given columns.

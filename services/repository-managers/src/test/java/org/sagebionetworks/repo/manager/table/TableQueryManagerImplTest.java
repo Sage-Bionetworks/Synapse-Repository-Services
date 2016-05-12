@@ -403,15 +403,15 @@ public class TableQueryManagerImplTest {
 	
 	@Test
 	public void testGetMaxRowsPerPage(){
-		Long maxRows = this.manager.getMaxRowsPerPage(TableModelUtils.createColumnModelColumnMapper(models));
-		int maxRowSize = TableModelUtils.calculateMaxRowSize(TableModelUtils.createColumnModelColumnMapper(models).getColumnModels());
+		Long maxRows = this.manager.getMaxRowsPerPage(models);
+		int maxRowSize = TableModelUtils.calculateMaxRowSize(models);
 		Long expected = (long) (this.maxBytesPerRequest/maxRowSize);
 		assertEquals(expected, maxRows);
 	}
 	
 	@Test
 	public void testGetMaxRowsPerPageEmpty(){
-		Long maxRows = this.manager.getMaxRowsPerPage(TableModelUtils.createColumnModelColumnMapper(new LinkedList<ColumnModel>()));
+		Long maxRows = this.manager.getMaxRowsPerPage(new LinkedList<ColumnModel>());
 		assertEquals(null, maxRows);
 	}
 	

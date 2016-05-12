@@ -5,8 +5,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
-import org.sagebionetworks.repo.model.table.ColumnMapper;
-import org.sagebionetworks.repo.model.table.ColumnModelMapper;
+import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.IdRange;
 import org.sagebionetworks.repo.model.table.RawRowSet;
 import org.sagebionetworks.repo.model.table.Row;
@@ -65,7 +64,7 @@ public interface TableRowTruthDAO {
 	 * @return
 	 * @throws IOException
 	 */
-	public RowReferenceSet appendRowSetToTable(String userId, String tableId, ColumnModelMapper models, RawRowSet delta)
+	public RowReferenceSet appendRowSetToTable(String userId, String tableId, List<ColumnModel> columns, RawRowSet delta)
 			throws IOException;
 		
 	/**
@@ -77,7 +76,7 @@ public interface TableRowTruthDAO {
 	 * @throws IOException
 	 * @throws NotFoundException
 	 */
-	public RowSet getRowSet(String tableId, long rowVersion, ColumnModelMapper schema) throws IOException,
+	public RowSet getRowSet(String tableId, long rowVersion, List<ColumnModel> columns) throws IOException,
 			NotFoundException;
 	
 	/**
@@ -99,7 +98,7 @@ public interface TableRowTruthDAO {
 	 * @throws IOException 
 	 * @throws NotFoundException 
 	 */
-	public RowSet getRowSet(RowReferenceSet ref, ColumnModelMapper columnMapper) throws IOException, NotFoundException;
+	public RowSet getRowSet(RowReferenceSet ref, List<ColumnModel> columns) throws IOException, NotFoundException;
 	
 	/**
 	 * Get all the rows referenced in their unmodified form.
@@ -110,7 +109,7 @@ public interface TableRowTruthDAO {
 	 * @throws IOException
 	 * @throws NotFoundException 
 	 */
-	public List<RawRowSet> getRowSetOriginals(RowReferenceSet ref, ColumnModelMapper columnMapper) throws IOException, NotFoundException;
+	public List<RawRowSet> getRowSetOriginals(RowReferenceSet ref, List<ColumnModel> columns) throws IOException, NotFoundException;
 
 	/**
 	 * Get a rows referenced in its unmodified form.
@@ -122,7 +121,7 @@ public interface TableRowTruthDAO {
 	 * @throws IOException
 	 * @throws NotFoundException
 	 */
-	public Row getRowOriginal(String tableId, RowReference ref, ColumnModelMapper columnMapper) throws IOException, NotFoundException;
+	public Row getRowOriginal(String tableId, RowReference ref, List<ColumnModel> columns) throws IOException, NotFoundException;
 	
 	/**
 	 * Get all the latest versions of the rows specified by the rowIds
@@ -135,7 +134,7 @@ public interface TableRowTruthDAO {
 	 * @throws IOException
 	 * @throws NotFoundException
 	 */
-	public RowSetAccessor getLatestVersionsWithRowData(String tableId, Set<Long> rowIds, long minVersion, ColumnMapper columnMapper)
+	public RowSetAccessor getLatestVersionsWithRowData(String tableId, Set<Long> rowIds, long minVersion, List<ColumnModel> columns)
 			throws IOException, NotFoundException;
 
 	/**

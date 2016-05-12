@@ -22,13 +22,11 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
@@ -226,8 +224,6 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 		// Get the current schema of the table.
 		List<ColumnModel> currentSchema = tableManagerSupport
 				.getColumnModelsForTable(tableId);
-		ColumnMapper mapper = TableModelUtils.createColumnModelColumnMapper(
-				currentSchema);
 		// Create or update the table with this schema.
 		tableManagerSupport.attemptToUpdateTableProgress(tableId, resetToken,
 				"Creating table ", 0L, 100L);
@@ -266,7 +262,7 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 			// Only apply changes sets not already applied to the index.
 			if(!indexManager.isVersionAppliedToIndex(changeSet.getRowVersion())){
 				// This is a change that we must apply.
-				RowSet rowSet = tableEntityManager.getRowSet(tableId, changeSet.getRowVersion(), mapper);
+				RowSet rowSet = tableEntityManager.getRowSet(tableId, changeSet.getRowVersion(), currentSchema);
 				tableManagerSupport.attemptToUpdateTableProgress(tableId,
 						resetToken, "Applying " + rowSet.getRows().size()
 								+ " rows for version: " + changeSet.getRowVersion(), currentProgress,

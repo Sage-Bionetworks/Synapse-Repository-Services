@@ -13,7 +13,7 @@ import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
-import org.sagebionetworks.repo.model.table.ColumnMapper;
+import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
 import org.sagebionetworks.repo.model.table.QueryResult;
 import org.sagebionetworks.repo.model.table.RowSet;
@@ -39,7 +39,7 @@ public class TableServicesImplTest {
 	Long userId;
 	UserInfo userInfo;
 	QueryBundleRequest queryBundle;
-	ColumnMapper mapper;
+	List<ColumnModel> columns;
 	List<SelectColumn> headers;
 	RowSet selectStar;
 	QueryResult selectStarResult;
@@ -64,18 +64,18 @@ public class TableServicesImplTest {
 		userId = 123L;
 		userInfo = new UserInfo(false, userId);
 		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo);
-		mapper = TableModelTestUtils.createMapperForOneOfEachType();
-		headers = TableModelUtils.getSelectColumns(mapper.getColumnModels(), false);
+		columns = TableModelTestUtils.createOneOfEachType();
+		headers = TableModelUtils.getSelectColumns(columns, false);
 		tableId = "syn456";
 		selectStar = new RowSet();
 		selectStar.setEtag("etag");
 		selectStar.setHeaders(headers);
 		selectStar.setTableId(tableId);
-		selectStar.setRows(TableModelTestUtils.createRows(mapper.getColumnModels(), 4));
+		selectStar.setRows(TableModelTestUtils.createRows(columns, 4));
 		selectStarResult = new QueryResult();
 		selectStarResult.setNextPageToken(null);
 		selectStarResult.setQueryResults(selectStar);
 
-		sqlQuery = new SqlQuery("select * from " + tableId, mapper.getColumnModels());
+		sqlQuery = new SqlQuery("select * from " + tableId, columns);
 	}
 }

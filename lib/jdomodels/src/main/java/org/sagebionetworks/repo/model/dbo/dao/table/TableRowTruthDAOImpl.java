@@ -33,9 +33,7 @@ import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableIdSequence;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableRowChange;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.ColumnModelMapper;
 import org.sagebionetworks.repo.model.table.IdRange;
 import org.sagebionetworks.repo.model.table.RawRowSet;
 import org.sagebionetworks.repo.model.table.Row;
@@ -190,7 +188,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 
 	@WriteTransaction
 	@Override
-	public RowReferenceSet appendRowSetToTable(String userId, String tableId, ColumnModelMapper models, RawRowSet delta)
+	public RowReferenceSet appendRowSetToTable(String userId, String tableId, List<ColumnModel> columns, RawRowSet delta)
 			throws IOException {
 		// Now set the row version numbers and ID.
 		int coutToReserver = TableModelUtils.countEmptyOrInvalidRowIds(delta);
@@ -204,13 +202,13 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		// Now assign the rowIds and set the version number
 		TableModelUtils.assignRowIdsAndVersionNumbers(delta, range);
 		// We are ready to convert the file to a CSV and save it to S3.
-		String key = saveCSVToS3(models.getColumnModels(), delta);
+		String key = saveCSVToS3(columns, delta);
 		// record the change
 		DBOTableRowChange changeDBO = new DBOTableRowChange();
 		changeDBO.setTableId(KeyFactory.stringToKey(tableId));
 		changeDBO.setRowVersion(range.getVersionNumber());
 		changeDBO.setEtag(range.getEtag());
-		changeDBO.setColumnIds(TableModelUtils.createDelimitedColumnModelIdString(Lists.transform(models.getColumnModels(),
+		changeDBO.setColumnIds(TableModelUtils.createDelimitedColumnModelIdString(Lists.transform(columns,
 				TableModelUtils.COLUMN_MODEL_TO_ID)));
 		changeDBO.setCreatedBy(Long.parseLong(userId));
 		changeDBO.setCreatedOn(System.currentTimeMillis());
@@ -221,7 +219,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 
 		// Prepare the results
 		RowReferenceSet results = new RowReferenceSet();
-		results.setHeaders(TableModelUtils.getSelectColumns(models.getColumnModels(), false));
+		results.setHeaders(TableModelUtils.getSelectColumns(columns, false));
 		results.setTableId(tableId);
 		results.setEtag(changeDBO.getEtag());
 		List<RowReference> refs = new LinkedList<RowReference>();
@@ -364,7 +362,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	 * @throws NotFoundException
 	 */
 	@Override
-	public RowSet getRowSet(String tableId, long rowVersion, ColumnModelMapper schema)
+	public RowSet getRowSet(String tableId, long rowVersion, List<ColumnModel> columns)
 			throws IOException, NotFoundException {
 		TableRowChange dto = getTableRowChange(tableId, rowVersion);
 		// Downlaod the file from S3
@@ -373,7 +371,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 			RowSet set = new RowSet();
 			List<Row> rows = TableModelUtils.readFromCSVgzStream(object.getObjectContent());
 			set.setTableId(tableId);
-			set.setHeaders(TableModelUtils.getSelectColumns(schema.getColumnModels(), false));
+			set.setHeaders(TableModelUtils.getSelectColumns(columns, false));
 			set.setRows(rows);
 			set.setEtag(dto.getEtag());
 			return set;
@@ -470,7 +468,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	 * @throws NotFoundException
 	 */
 	@Override
-	public List<RawRowSet> getRowSetOriginals(RowReferenceSet ref, ColumnModelMapper columnMapper)
+	public List<RawRowSet> getRowSetOriginals(RowReferenceSet ref, List<ColumnModel> columns)
 			throws IOException, NotFoundException {
 		if (ref == null)
 			throw new IllegalArgumentException("RowReferenceSet cannot be null");
@@ -517,7 +515,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	 * @throws NotFoundException
 	 */
 	@Override
-	public Row getRowOriginal(String tableId, final RowReference ref, ColumnModelMapper resultSchema) throws IOException, NotFoundException {
+	public Row getRowOriginal(String tableId, final RowReference ref, List<ColumnModel> columns) throws IOException, NotFoundException {
 		if (ref == null)
 			throw new IllegalArgumentException("RowReferenceSet cannot be null");
 		if (tableId == null)
@@ -537,11 +535,11 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 			throw new NotFoundException("Row not found, row=" + ref.getRowId() + ", version=" + ref.getVersionNumber());
 		}
 		Map<Long, Integer> columnIndexMap = TableModelUtils.createColumnIdToIndexMap(trc);
-		return TableModelUtils.convertToSchemaAndMerge(results.get(0), columnIndexMap, resultSchema);
+		return TableModelUtils.convertToSchemaAndMerge(results.get(0), columnIndexMap, columns);
 	}
 
 	@Override
-	public RowSetAccessor getLatestVersionsWithRowData(String tableId, Set<Long> rowIds, long minVersion, ColumnMapper columnMapper)
+	public RowSetAccessor getLatestVersionsWithRowData(String tableId, Set<Long> rowIds, long minVersion, List<ColumnModel> columns)
 			throws IOException {
 		final Map<Long, RowAccessor> rowIdToRowMap = Maps.newHashMap();
 
@@ -604,10 +602,10 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	}
 
 	@Override
-	public RowSet getRowSet(RowReferenceSet ref, ColumnModelMapper resultSchema)
+	public RowSet getRowSet(RowReferenceSet ref, List<ColumnModel> columns)
 			throws IOException, NotFoundException {
 		// Get all of the data in the raw form.
-		List<RawRowSet> allSets = getRowSetOriginals(ref, resultSchema);
+		List<RawRowSet> allSets = getRowSetOriginals(ref, columns);
 		// the list of rowsets is sorted by version number. The highest version (last rowset) is the most recent for all
 		// rows. We return that as the etag
 		String etag = null;
@@ -615,7 +613,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 			etag = allSets.get(allSets.size() - 1).getEtag();
 		}
 		// Convert and merge all data into the requested form
-		return TableModelUtils.convertToSchemaAndMerge(allSets, resultSchema, ref.getTableId(), etag);
+		return TableModelUtils.convertToSchemaAndMerge(allSets, columns, ref.getTableId(), etag);
 	}
 
 	public String getS3Bucket() {

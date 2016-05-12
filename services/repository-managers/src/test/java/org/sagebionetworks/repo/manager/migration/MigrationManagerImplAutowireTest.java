@@ -178,7 +178,7 @@ public class MigrationManagerImplAutowireTest {
 			rowSet.setRows(TableModelTestUtils.createRows(schema, 2));
 			rowSet.setHeaders(TableModelUtils.getSelectColumns(schema, false));
 			rowSet.setTableId(tableId);
-			tableEntityManager.appendRows(adminUser, tableId, TableModelUtils.createColumnModelColumnMapper(schema), rowSet, mockProgressCallback);
+			tableEntityManager.appendRows(adminUser, tableId, schema, rowSet, mockProgressCallback);
 		}
 		stackConfig = new StackConfiguration();
 	}
@@ -364,7 +364,7 @@ public class MigrationManagerImplAutowireTest {
 			rowRefs.setRows(Collections.singletonList(TableModelTestUtils.createRowReference(0L, 0L)));
 			rowRefs.setTableId(tableId);
 			rowRefs.setHeaders(TableModelUtils.getSelectColumns(models, false));
-			tableEntityManager.getCellValues(adminUser, tableId, rowRefs, TableModelUtils.createColumnModelColumnMapper(models));
+			tableEntityManager.getCellValues(adminUser, tableId, rowRefs, models);
 
 			assertEquals(0, indexDao.getRowCountForTable(tableId).intValue());
 
