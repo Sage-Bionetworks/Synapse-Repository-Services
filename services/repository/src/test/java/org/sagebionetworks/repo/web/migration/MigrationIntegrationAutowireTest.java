@@ -472,7 +472,6 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		for (ColumnModel cm : start) {
 			models.add(columnModelDao.createColumnModel(cm));
 		}
-		List<ColumnModel> columns = TableModelTestUtils.createOneOfEachType();
 
 		List<Long> headers = TableModelUtils.getIds(models);
 		// bind the columns to the entity
@@ -482,11 +481,11 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		List<Row> rows = TableModelTestUtils.createRows(models, 5);
 		RawRowSet set = new RawRowSet(TableModelUtils.getIds(models), null, tableId, rows);
 		// Append the rows to the table
-		tableRowTruthDao.appendRowSetToTable(adminUserIdString, tableId, columns, set);
+		tableRowTruthDao.appendRowSetToTable(adminUserIdString, tableId, models, set);
 		// Append some more rows
 		rows = TableModelTestUtils.createRows(models, 6);
 		set = new RawRowSet(TableModelUtils.getIds(models), null, tableId, rows);
-		tableRowTruthDao.appendRowSetToTable(adminUserIdString, tableId, columns, set);
+		tableRowTruthDao.appendRowSetToTable(adminUserIdString, tableId, models, set);
 	}
 
 	public void createNewUser() throws NotFoundException {
