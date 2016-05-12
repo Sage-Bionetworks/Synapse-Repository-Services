@@ -14,7 +14,7 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
-import org.sagebionetworks.repo.model.table.ColumnMapper;
+import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.RawRowSet;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
@@ -47,15 +47,15 @@ public class CachingTableRowTruthDAOImplTest {
 	@Test
 	public void testCheckForRowLevelConflict() throws IOException{
 		// Create some test column models
-		ColumnMapper mapper = TableModelTestUtils.createMapperForOneOfEachType();
+		List<ColumnModel> columns = TableModelTestUtils.createOneOfEachType();
 		// create some test rows.
-		List<Row> rows = TableModelTestUtils.createRows(mapper.getColumnModels(), 5, false);
+		List<Row> rows = TableModelTestUtils.createRows(columns, 5, false);
 		String tableId = "syn123";
-		RawRowSet set = new RawRowSet(TableModelUtils.getIds(mapper.getColumnModels()), null, tableId, rows);
+		RawRowSet set = new RawRowSet(TableModelUtils.getIds(columns), null, tableId, rows);
 		// Append this change set
-		RowReferenceSet refSet = tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, mapper, set);
+		RowReferenceSet refSet = tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, columns, set);
 		// Fetch the rows back.
-		List<RawRowSet> rawList = tableRowTruthDao.getRowSetOriginals(refSet, mapper);
+		List<RawRowSet> rawList = tableRowTruthDao.getRowSetOriginals(refSet, columns);
 		assertNotNull(rawList);
 		assertEquals(1, rawList.size());
 		RawRowSet updatedSet = rawList.get(0);
@@ -65,7 +65,7 @@ public class CachingTableRowTruthDAOImplTest {
 		// It should also work without the etag
 		tableRowTruthDao.checkForRowLevelConflict(tableId, updatedSetNoEtag);
 		// Append the same changes to the table again
-		refSet = tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, mapper, set);
+		refSet = tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, columns, set);
 		 // Now if we try to use the original set it should fail with a conflict
 		try {
 			tableRowTruthDao.checkForRowLevelConflict(tableId, updatedSet);
@@ -89,15 +89,15 @@ public class CachingTableRowTruthDAOImplTest {
 	@Test (expected=IllegalArgumentException.class)
 	public void testCheckForRowLevelConflictNullVersionNumber() throws IOException{
 		// Create some test column models
-		ColumnMapper mapper = TableModelTestUtils.createMapperForOneOfEachType();
+		List<ColumnModel> columns = TableModelTestUtils.createOneOfEachType();
 		// create some test rows.
-		List<Row> rows = TableModelTestUtils.createRows(mapper.getColumnModels(), 1, false);
+		List<Row> rows = TableModelTestUtils.createRows(columns, 1, false);
 		String tableId = "syn123";
-		RawRowSet set = new RawRowSet(TableModelUtils.getIds(mapper.getColumnModels()), null, tableId, rows);
+		RawRowSet set = new RawRowSet(TableModelUtils.getIds(columns), null, tableId, rows);
 		// Append this change set
-		RowReferenceSet refSet = tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, mapper, set);
+		RowReferenceSet refSet = tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, columns, set);
 		// Fetch the rows back.
-		List<RawRowSet> rawList = tableRowTruthDao.getRowSetOriginals(refSet, mapper);
+		List<RawRowSet> rawList = tableRowTruthDao.getRowSetOriginals(refSet, columns);
 		assertNotNull(rawList);
 		assertEquals(1, rawList.size());
 		RawRowSet updatedSet = rawList.get(0);

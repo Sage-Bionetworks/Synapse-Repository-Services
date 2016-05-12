@@ -7,7 +7,6 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.security.MessageDigest;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -23,17 +22,12 @@ import java.util.zip.GZIPOutputStream;
 
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang.StringUtils;
-import org.sagebionetworks.collections.Transform;
 import org.sagebionetworks.csv.utils.CSVReader;
 import org.sagebionetworks.csv.utils.CSVWriter;
 import org.sagebionetworks.repo.model.dao.table.RowAccessor;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
-import org.sagebionetworks.repo.model.dao.table.RowSetAccessor;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.table.AbstractColumnMapper;
-import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.ColumnModelMapper;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.IdRange;
 import org.sagebionetworks.repo.model.table.RawRowSet;
@@ -41,15 +35,13 @@ import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
-import org.sagebionetworks.repo.model.table.SelectColumnAndModel;
-import org.sagebionetworks.repo.model.table.SelectColumnMapper;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.util.TimeUtils;
 import org.sagebionetworks.util.ValidateArgument;
+
 import com.google.common.base.Function;
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
@@ -106,20 +98,6 @@ public class TableModelUtils {
 		@Override
 		public Long apply(SelectColumn sc) {
 			return Long.parseLong(sc.getId());
-		}
-	};
-
-	public static final Function<SelectColumnAndModel, String> SELECT_COLUMN_AND_MODEL_TO_NAME = new Function<SelectColumnAndModel, String>() {
-		@Override
-		public String apply(SelectColumnAndModel sc) {
-			return sc.getSelectColumn().getName();
-		}
-	};
-
-	public static final Function<SelectColumnAndModel, Long> SELECT_COLUMN_AND_MODEL_TO_ID = new Function<SelectColumnAndModel, Long>() {
-		@Override
-		public Long apply(SelectColumnAndModel sc) {
-			return Long.parseLong(sc.getSelectColumn().getId());
 		}
 	};
 
@@ -716,18 +694,18 @@ public class TableModelUtils {
 	 * @param restultForm
 	 * @return
 	 */
-	public static RowSet convertToSchemaAndMerge(List<RawRowSet> sets, ColumnModelMapper resultSchema, String tableId,
+	public static RowSet convertToSchemaAndMerge(List<RawRowSet> sets, List<ColumnModel> columns, String tableId,
 			String etag) {
 		// Prepare the final set
 		RowSet out = new RowSet();
 		out.setTableId(tableId);
 		out.setRows(new LinkedList<Row>());
-		out.setHeaders(resultSchema.getSelectColumns());
+		out.setHeaders(TableModelUtils.getSelectColumns(columns, false));
 		out.setEtag(etag);
 		// Transform each
 		for (RawRowSet set : sets) {
 			// Transform each and merge the results
-			convertToSchemaAndMerge(set, resultSchema, out);
+			convertToSchemaAndMerge(set, columns, out);
 		}
 		return out;
 	}
@@ -739,7 +717,7 @@ public class TableModelUtils {
 	 * @param restultForm
 	 * @param sets
 	 */
-	public static void convertToSchemaAndMerge(RawRowSet in, ColumnModelMapper resultSchema, RowSet out) {
+	public static void convertToSchemaAndMerge(RawRowSet in, List<ColumnModel> columns, RowSet out) {
 		Map<Long, Integer> columnIndexMap = createColumnIdToIndexMap(in);
 		// Now convert each row into the requested format.
 		// Process each row
@@ -748,7 +726,7 @@ public class TableModelUtils {
 			if (row.getValues() == null) {
 				continue;
 			}
-			Row newRow = convertToSchemaAndMerge(row, columnIndexMap, resultSchema);
+			Row newRow = convertToSchemaAndMerge(row, columnIndexMap, columns);
 			// add the new row to the out set
 			out.getRows().add(newRow);
 		}
@@ -760,16 +738,16 @@ public class TableModelUtils {
 	 * @param resultSchema
 	 * @param sets
 	 */
-	public static Row convertToSchemaAndMerge(Row row, Map<Long, Integer> columnIndexMap, ColumnModelMapper resultSchema) {
+	public static Row convertToSchemaAndMerge(Row row, Map<Long, Integer> columnIndexMap, List<ColumnModel> columns) {
 		// Create the new row
 		Row newRow = new Row();
 		newRow.setRowId(row.getRowId());
 		newRow.setVersionNumber(row.getVersionNumber());
-		List<String> newValues = Lists.newArrayListWithCapacity(resultSchema.columnModelCount());
+		List<String> newValues = Lists.newArrayListWithCapacity(columns.size());
 		newRow.setValues(newValues);
 
 		// Now process all of the columns as defined by the schema
-		for (ColumnModel model : resultSchema.getColumnModels()) {
+		for (ColumnModel model : columns) {
 			String value = null;
 			Integer valueIndex = columnIndexMap.get(Long.parseLong(model.getId()));
 			if (valueIndex == null) {
@@ -806,17 +784,15 @@ public class TableModelUtils {
 	 * @param collection
 	 * @return
 	 */
-	public static int calculateMaxRowSizeForColumnModels(ColumnMapper columnMapper) {
+	public static int calculateMaxRowSizeForSelectColumn(List<SelectColumn> columns) {
 		int size = 0;
-		for (SelectColumnAndModel scm : columnMapper.getSelectColumnAndModels()) {
-			if (scm.getSelectColumn().getColumnType() == null) {
+		for (SelectColumn scm : columns) {
+			if (scm.getColumnType() == null) {
 				// we don't know the type, now what?
 				size += 64;
-			} else if (scm.getColumnModel() != null) {
-				size += calculateMaxSizeForType(scm.getSelectColumn().getColumnType(), scm.getColumnModel().getMaximumSize());
-			} else {
+			}else {
 				// we don't know the max size, now what?
-				size += calculateMaxSizeForType(scm.getSelectColumn().getColumnType(), MAX_ALLOWED_STRING_SIZE);
+				size += calculateMaxSizeForType(scm.getColumnType(), MAX_ALLOWED_STRING_SIZE);
 			}
 		}
 		return size;
@@ -880,9 +856,9 @@ public class TableModelUtils {
 	 * @param rowCount - The number of rows requested.
 	 * @param maxBytesPerRequest - The limit of the maximum number of bytes per request.
 	 */
-	public static boolean isRequestWithinMaxBytePerRequest(ColumnMapper columnMapper, int rowCount, int maxBytesPerRequest){
+	public static boolean isRequestWithinMaxBytePerRequest(List<ColumnModel> columns, int rowCount, int maxBytesPerRequest){
 		// What is the size per row
-		int maxBytesPerRow = calculateMaxRowSizeForColumnModels(columnMapper);
+		int maxBytesPerRow = calculateMaxRowSize(columns);
 		int neededBytes = rowCount*maxBytesPerRow;
 		return neededBytes <= maxBytesPerRequest;
 	}
@@ -1154,15 +1130,6 @@ public class TableModelUtils {
 		return new NodeIdAndVersion(id, version);
 	}
 
-	public static List<SelectColumn> getSelectColumnsFromColumnIds(List<Long> columnIds, final SelectColumnMapper schema) {
-		return Transform.toList(columnIds, new Function<Long, SelectColumn>() {
-			@Override
-			public SelectColumn apply(Long columnId) {
-				return schema.getSelectColumnById(columnId);
-			}
-		});
-	}
-
 	public static SelectColumn createSelectColumn(String name, ColumnType columnType, String id) {
 		SelectColumn newSelectColumn = new SelectColumn();
 		newSelectColumn.setName(name);
@@ -1173,63 +1140,6 @@ public class TableModelUtils {
 
 	public static SelectColumn createSelectColumn(ColumnModel model, boolean isAggregate) {
 		return createSelectColumn(model.getName(), model.getColumnType(), isAggregate ? null : model.getId());
-	}
-
-	public static ColumnModelMapper createSingleColumnColumnMapper(ColumnModel column, boolean isAggregate) {
-		return createColumnModelColumnMapper(Collections.<ColumnModel> singletonList(column));
-	}
-
-	public static ColumnMapper createColumnModelColumnMapper(final List<ColumnModel> columnModels) {
-		LinkedHashMap<String, SelectColumnAndModel> columnNameMap = Maps.newLinkedHashMap();
-		Map<Long, SelectColumnAndModel> columnIdMap = Maps.newHashMap();
-		for (ColumnModel columnModel : columnModels) {
-			SelectColumnAndModel selectColumnAndModel = new SelectColumnAndModel(columnModel);
-			columnNameMap.put(columnModel.getName(), selectColumnAndModel);
-			columnIdMap.put(Long.parseLong(columnModel.getId()), selectColumnAndModel);
-		}
-		return createColumnMapper(columnNameMap, columnIdMap);
-	}
-
-	public static ColumnMapper createColumnMapper(final LinkedHashMap<String, SelectColumnAndModel> columnNameMap,
-			final Map<Long, SelectColumnAndModel> columnIdMap) {
-		AbstractColumnMapper columnMapper = new AbstractColumnMapper() {
-
-			@Override
-			protected LinkedHashMap<String, SelectColumnAndModel> createNameToModelMap() {
-				return columnNameMap;
-			}
-
-			@Override
-			protected Map<Long, SelectColumnAndModel> createIdToModelMap() {
-				return columnIdMap;
-			}
-
-			@Override
-			protected List<SelectColumnAndModel> createSelectColumnAndModelList() {
-				return Lists.newArrayList(columnNameMap.values());
-			}
-		};
-		return columnMapper;
-	}
-
-	public static ColumnMapper createColumnMapper(final List<SelectColumnAndModel> columnList) {
-		ColumnMapper columnMapper = new AbstractColumnMapper() {
-			@Override
-			protected LinkedHashMap<String, SelectColumnAndModel> createNameToModelMap() {
-				return Transform.toOrderedIdMap(columnList, SELECT_COLUMN_AND_MODEL_TO_NAME);
-			}
-
-			@Override
-			protected Map<Long, SelectColumnAndModel> createIdToModelMap() {
-				return Transform.toIdMap(columnList, SELECT_COLUMN_AND_MODEL_TO_ID);
-			}
-
-			@Override
-			protected List<SelectColumnAndModel> createSelectColumnAndModelList() {
-				return columnList;
-			}
-		};
-		return columnMapper;
 	}
 	
 	/**

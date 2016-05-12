@@ -5,13 +5,13 @@ import java.util.List;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
 import org.sagebionetworks.repo.model.table.QueryNextPageToken;
 import org.sagebionetworks.repo.model.table.QueryResult;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
+import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableStatus;
@@ -107,13 +107,6 @@ public interface TableQueryManager {
 
 	/**
 	 * Get the maximum number of rows allowed for a single page (get, put, or query) for the given columns.
-	 * @param models
-	 * @return
-	 */
-	public Long getMaxRowsPerPage(ColumnMapper columnMapper);
-
-	/**
-	 * Get the maximum number of rows allowed for a single page (get, put, or query) for the given columns.
 	 * 
 	 * @param models
 	 * @return
@@ -135,4 +128,6 @@ public interface TableQueryManager {
 	public TableStatus validateTableIsAvailable(String tableId)
 			throws NotFoundException, TableUnavilableException,
 			TableFailedException;
+
+	Long getMaxRowsPerPageSelectColumns(List<SelectColumn> models);
 }

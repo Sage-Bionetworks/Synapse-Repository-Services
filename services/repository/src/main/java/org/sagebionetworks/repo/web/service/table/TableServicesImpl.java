@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.manager.util.Validate;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -16,23 +15,15 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
-import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
-import org.sagebionetworks.repo.model.table.QueryBundleRequest;
-import org.sagebionetworks.repo.model.table.QueryNextPageToken;
-import org.sagebionetworks.repo.model.table.QueryResult;
-import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
-import org.sagebionetworks.repo.model.table.SelectColumnAndModel;
-import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
-import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -110,9 +101,9 @@ public class TableServicesImpl implements TableServices {
 		Validate.required(rowsToGet, "rowsToGet");
 		Validate.required(rowsToGet.getTableId(), "rowsToGet.tableId");
 		UserInfo user = userManager.getUserInfo(userId);
-		ColumnMapper columnMap = columnModelManager.getCurrentColumns(user, rowsToGet.getTableId(), rowsToGet.getHeaders());
+		List<ColumnModel> columns = columnModelManager.getCurrentColumns(user, rowsToGet.getTableId(), rowsToGet.getHeaders());
 
-		return tableEntityManager.getCellValues(user, rowsToGet.getTableId(), rowsToGet, columnMap);
+		return tableEntityManager.getCellValues(user, rowsToGet.getTableId(), rowsToGet, columns);
 	}
 
 	@Override
@@ -120,17 +111,17 @@ public class TableServicesImpl implements TableServices {
 		Validate.required(fileHandlesToFind, "fileHandlesToFind");
 		Validate.required(fileHandlesToFind.getTableId(), "fileHandlesToFind.tableId");
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		ColumnMapper mapper = columnModelManager.getCurrentColumns(userInfo, fileHandlesToFind.getTableId(), fileHandlesToFind.getHeaders());
-		for (SelectColumnAndModel selectColumnAndModel : mapper.getSelectColumnAndModels()) {
-			if (selectColumnAndModel.getColumnModel() != null
-					&& selectColumnAndModel.getColumnModel().getColumnType() != ColumnType.FILEHANDLEID) {
-				throw new IllegalArgumentException("Column " + selectColumnAndModel.getColumnModel().getId() + " is not of type FILEHANDLEID");
+		List<ColumnModel> columns = columnModelManager.getCurrentColumns(userInfo, fileHandlesToFind.getTableId(), fileHandlesToFind.getHeaders());
+		for (ColumnModel cm : columns) {
+			if (cm != null
+					&& cm.getColumnType() != ColumnType.FILEHANDLEID) {
+				throw new IllegalArgumentException("Column " + cm.getId() + " is not of type FILEHANDLEID");
 			}
 		}
-		RowSet rowSet = tableEntityManager.getCellValues(userInfo, fileHandlesToFind.getTableId(), fileHandlesToFind, mapper);
+		RowSet rowSet = tableEntityManager.getCellValues(userInfo, fileHandlesToFind.getTableId(), fileHandlesToFind, columns);
 
 		// we expect there to be null entries, but the file handle manager does not
-		List<String> idsList = Lists.newArrayListWithCapacity(mapper.columnModelCount() * rowSet.getRows().size());
+		List<String> idsList = Lists.newArrayListWithCapacity(columns.size() * rowSet.getRows().size());
 		for (Row row : rowSet.getRows()) {
 			for (String id : row.getValues()) {
 				if (id != null) {
@@ -149,7 +140,7 @@ public class TableServicesImpl implements TableServices {
 		// insert the file handles in order. Null ids will give null file handles
 		for (Row row : rowSet.getRows()) {
 			FileHandleResults rowHandles = new FileHandleResults();
-			rowHandles.setList(Lists.<FileHandle> newArrayListWithCapacity(mapper.columnModelCount()));
+			rowHandles.setList(Lists.<FileHandle> newArrayListWithCapacity(columns.size()));
 			for (String id : row.getValues()) {
 				FileHandle fh;
 				if (id != null) {

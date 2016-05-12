@@ -29,7 +29,6 @@ import org.junit.Test;
 import org.sagebionetworks.csv.utils.CSVReader;
 import org.sagebionetworks.csv.utils.CSVWriter;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
-import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.IdRange;
@@ -839,7 +838,7 @@ public class TableModelUtilsTest {
 		newOrder.add(models.get(1));
 		List<RawRowSet> all = Lists.newArrayList(v1Set, v2Set);
 		// Now get a single result set that contains all data in this new form
-		RowSet converted = TableModelUtils.convertToSchemaAndMerge(all, TableModelUtils.createColumnModelColumnMapper(newOrder),
+		RowSet converted = TableModelUtils.convertToSchemaAndMerge(all, newOrder,
 				"syn123", null);
 		// System.out.println(converted.toString());
 		// This is what we expect to come back
@@ -986,15 +985,15 @@ public class TableModelUtilsTest {
 	
 	@Test
 	public void testCalculateMaxRowSize() {
-		ColumnMapper all = TableModelTestUtils.createMapperForOneOfEachType();
-		int allBytes = TableModelUtils.calculateMaxRowSizeForColumnModels(all);
+		List<ColumnModel> all = TableModelTestUtils.createOneOfEachType();
+		int allBytes = TableModelUtils.calculateMaxRowSize(all);
 		assertEquals(3414, allBytes);
 	}
 
 	@Test
 	public void testIsRequestWithinMaxBytePerRequest() {
-		ColumnMapper all = TableModelTestUtils.createMapperForOneOfEachType();
-		int allBytes = TableModelUtils.calculateMaxRowSizeForColumnModels(all);
+		List<ColumnModel> all = TableModelTestUtils.createOneOfEachType();
+		int allBytes = TableModelUtils.calculateMaxRowSize(all);
 		// Set the max to be 100 rows
 		int maxBytes = allBytes * 100;
 		// So 100 rows should be within limit but not 101;
