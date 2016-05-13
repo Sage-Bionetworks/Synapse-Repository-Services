@@ -7,7 +7,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
-import org.sagebionetworks.csv.utils.CSVReader;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.TableConstants;
@@ -15,6 +14,8 @@ import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.springframework.util.CollectionUtils;
 
 import com.google.common.collect.Lists;
+
+import au.com.bytecode.opencsv.CSVReader;
 
 /**
  * Provides an Iterator<Row> abstraction over a raw CSV reader.

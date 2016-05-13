@@ -10,7 +10,6 @@ import java.util.Map;
 
 import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.velocity.context.Context;
-import org.sagebionetworks.csv.utils.CSVReader;
 import org.sagebionetworks.javadoc.velocity.ClassContext;
 import org.sagebionetworks.javadoc.velocity.ClassContextGenerator;
 import org.sagebionetworks.javadoc.velocity.ContextFactory;
@@ -19,6 +18,8 @@ import org.sagebionetworks.javadoc.web.services.FilterUtils;
 
 import com.sun.javadoc.ClassDoc;
 import com.sun.javadoc.RootDoc;
+
+import au.com.bytecode.opencsv.CSVReader;
 
 /**
  * This Generator creates static example HTML page from input CSV files for any

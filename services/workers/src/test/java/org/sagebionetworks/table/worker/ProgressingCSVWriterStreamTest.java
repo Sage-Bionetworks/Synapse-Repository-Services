@@ -11,11 +11,12 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.csv.utils.CSVWriter;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.util.Clock;
 
 import com.amazonaws.services.sqs.model.Message;
+
+import au.com.bytecode.opencsv.CSVWriter;
 
 public class ProgressingCSVWriterStreamTest {
 	CSVWriter mockWriter;

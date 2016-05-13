@@ -1,6 +1,6 @@
 package org.sagebionetworks.util.csv;
 
-import org.sagebionetworks.csv.utils.CSVWriter;
+import au.com.bytecode.opencsv.CSVWriter;
 
 /**
  * A basic implementation CSVWriterStream that is a proxy for an actual CSVWriter;
