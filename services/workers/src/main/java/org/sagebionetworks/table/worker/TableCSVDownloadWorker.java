@@ -28,9 +28,10 @@ import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import au.com.bytecode.opencsv.CSVWriter;
-
 import com.amazonaws.services.sqs.model.Message;
+
+import au.com.bytecode.opencsv.CSVWriter;
+import au.com.bytecode.opencsv.Constants;
 
 /**
  * This worker will stream the results of a table SQL query to a local CSV file and upload the file
@@ -159,10 +160,10 @@ public class TableCSVDownloadWorker implements MessageDrivenRunner {
 	public static CSVWriter createCSVWriter(Writer writer, DownloadFromTableRequest request) {
 		if (request == null)
 			throw new IllegalArgumentException("DownloadFromTableRequest cannot be null");
-		char separator = CSVWriter.DEFAULT_SEPARATOR;
-		char quotechar = CSVWriter.DEFAULT_QUOTE_CHARACTER;
-		char escape = CSVWriter.DEFAULT_ESCAPE_CHARACTER;
-		String lineEnd = CSVWriter.DEFAULT_LINE_END;
+		char separator = Constants.DEFAULT_SEPARATOR;
+		char quotechar = Constants.DEFAULT_QUOTE_CHARACTER;
+		char escape = Constants.DEFAULT_ESCAPE_CHARACTER;
+		String lineEnd = Constants.DEFAULT_LINE_END;
 		if (request.getCsvTableDescriptor() != null) {
 			if (request.getCsvTableDescriptor().getSeparator() != null) {
 				if (request.getCsvTableDescriptor().getSeparator().length() != 1) {

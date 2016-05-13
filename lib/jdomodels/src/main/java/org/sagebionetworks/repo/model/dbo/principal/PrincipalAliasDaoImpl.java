@@ -9,6 +9,8 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GRO
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_PRINCIPAL_ALIAS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_GROUP;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -32,10 +34,13 @@ import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 
@@ -61,6 +66,15 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 	private static final String SQL_IS_ALIAS_AVAILABLE = "SELECT COUNT(*) FROM "+TABLE_PRINCIPAL_ALIAS+" WHERE "+COL_PRINCIPAL_ALIAS_UNIQUE+" = ?";
 	private static final String SET_BIND_VAR = "principalIdSet";
 	private static final String SQL_LIST_ALIASES_FROM_SET_OF_PRINCIPAL_IDS = "SELECT * FROM "+TABLE_PRINCIPAL_ALIAS+" WHERE "+COL_PRINCIPAL_ALIAS_PRINCIPAL_ID+" IN (:"+SET_BIND_VAR+") ORDER BY "+COL_PRINCIPAL_ALIAS_PRINCIPAL_ID;
+	private static final String SQL_GET_PRINCIPAL_ID = "SELECT "+COL_PRINCIPAL_ALIAS_PRINCIPAL_ID
+			+" FROM "+TABLE_PRINCIPAL_ALIAS
+			+" WHERE "+COL_PRINCIPAL_ALIAS_UNIQUE+" = ? "
+			+" AND "+COL_PRINCIPAL_ALIAS_TYPE+" = ?";
+	private static final String SQL_GET_PRINCIPAL_ID_LIST = "SELECT "+COL_PRINCIPAL_ALIAS_PRINCIPAL_ID
+			+" FROM "+TABLE_PRINCIPAL_ALIAS
+			+" WHERE "+COL_PRINCIPAL_ALIAS_UNIQUE+" IN (:uniqueAliasList) "
+			+" AND "+COL_PRINCIPAL_ALIAS_TYPE+" = :type";
+
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
 	@Autowired
@@ -69,6 +83,8 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 	private DBOBasicDao basicDao;
 	@Autowired
 	private UserGroupDAO userGroupDAO;
+	@Autowired
+	private NamedParameterJdbcTemplate namedTemplate;
 	
 	private static RowMapper<DBOPrincipalAlias> principalAliasMapper = new DBOPrincipalAlias().getTableMapping();
 
@@ -288,4 +304,42 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 		return aliases.get(0).getAlias();
 	}
 
+	@Override
+	public long lookupPrincipalID(String alias, AliasType type) {
+		ValidateArgument.required(alias, "alias");
+		ValidateArgument.required(type, "type");
+		ValidateArgument.requirement(alias != "", "alias must not be empty");
+		List<Long> queryResult = simpleJdbcTemplate.query(SQL_GET_PRINCIPAL_ID, new RowMapper<Long>(){
+
+			@Override
+			public Long mapRow(ResultSet rs, int rowNum) throws SQLException {
+				return rs.getLong(COL_PRINCIPAL_ALIAS_PRINCIPAL_ID);
+			}
+		}, AliasUtils.getUniqueAliasName(alias), type.name());
+		if (queryResult.size() != 1) {
+			throw new NotFoundException();
+		}
+		return queryResult.get(0);
+	}
+
+	@Override
+	public Set<String> lookupPrincipalIds(Set<String> usernameList) {
+		ValidateArgument.required(usernameList, "usernameList");
+		Set<String> principalIds = new HashSet<String>();
+		if (usernameList.isEmpty()) {
+			return principalIds;
+		}
+		Set<String> uniqueAliasList = AliasUtils.getUniqueAliasName(usernameList);
+		MapSqlParameterSource parameters = new MapSqlParameterSource("uniqueAliasList", uniqueAliasList);
+		parameters.addValue("type", AliasType.USER_NAME.name());
+		List<String> queryResult = namedTemplate.query(SQL_GET_PRINCIPAL_ID_LIST, parameters, new RowMapper<String>(){
+
+			@Override
+			public String mapRow(ResultSet rs, int rowNum) throws SQLException {
+				return rs.getString(COL_PRINCIPAL_ALIAS_PRINCIPAL_ID);
+			}
+		});
+		principalIds.addAll(queryResult);
+		return principalIds;
+	}
 }

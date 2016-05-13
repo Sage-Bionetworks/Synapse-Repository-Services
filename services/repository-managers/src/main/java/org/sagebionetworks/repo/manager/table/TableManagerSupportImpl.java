@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
+import org.sagebionetworks.repo.model.dbo.dao.table.FileViewDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
@@ -54,6 +55,8 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	ColumnModelDAO columnModelDao;
 	@Autowired
 	NodeDAO nodeDao;
+	@Autowired
+	FileViewDao fileViewDao;
 	@Autowired
 	TableRowTruthDAO tableTruthDao;
 	@Autowired
@@ -255,8 +258,13 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	public Long calculateFileViewCRC32(String tableId) {
 		// Start with all container IDs that define the view's scope
 		Set<Long> viewContainers = getAllContainerIdsForViewScope(tableId);
+		return calculateFileViewCRC32(viewContainers);
+	}
+	
+	@Override
+	public Long calculateFileViewCRC32(Set<Long> viewContainers) {
 		// Calculate the crc for the containers.
-		return nodeDao.calculateCRCForAllFilesWithinContainers(viewContainers);
+		return fileViewDao.calculateCRCForAllFilesWithinContainers(viewContainers);
 	}
 
 	/*
@@ -347,6 +355,16 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 				.checkAuthorizationAndThrowException(authorizationManager
 						.canAccess(userInfo, tableId, ObjectType.ENTITY,
 								ACCESS_TYPE.UPLOAD));
+	}
+	
+	@Override
+	public List<ColumnModel> getColumnModelsForTable(String tableId) throws DatastoreException, NotFoundException {
+		return columnModelDao.getColumnModelsForObject(tableId);
+	}
+
+	@Override
+	public void lockOnTableId(String tableId) {
+		columnModelDao.lockOnOwner(tableId);
 	}
 
 }

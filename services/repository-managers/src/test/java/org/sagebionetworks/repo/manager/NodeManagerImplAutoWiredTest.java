@@ -53,6 +53,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import com.google.common.collect.Lists;
+
 
 /**
  * This is an integration test for the NodeManagerImpl.  Most of the testing should occur
@@ -692,7 +694,8 @@ public class NodeManagerImplAutoWiredTest {
 		
 		
 		// create with activity id
-		String nodeId = nodeManager.createNewNode(newNode, adminUserInfo);
+		newNode = nodeManager.createNode(newNode, adminUserInfo);
+		String nodeId = newNode.getId();
 		assertNotNull(nodeId);
 		nodesToDelete.add(nodeId);
 		Node createdNode = nodeManager.get(adminUserInfo, nodeId);

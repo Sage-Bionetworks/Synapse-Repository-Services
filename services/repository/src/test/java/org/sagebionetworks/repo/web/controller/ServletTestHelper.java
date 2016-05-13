@@ -82,6 +82,8 @@ import org.sagebionetworks.repo.model.ontology.Concept;
 import org.sagebionetworks.repo.model.ontology.ConceptResponsePage;
 import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
 import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasRequest;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasResponse;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
@@ -2054,6 +2056,20 @@ public class ServletTestHelper {
 		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request, HttpStatus.NO_CONTENT);
 	}
 
+	public void pinThread(DispatcherServlet dispatchServlet,
+			Long userId, String threadId) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.PUT, "/repo/v1", UrlHelpers.THREAD+"/"+threadId+UrlHelpers.PIN, userId, null);
+		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request, HttpStatus.NO_CONTENT);
+	}
+
+	public void unpinThread(DispatcherServlet dispatchServlet,
+			Long userId, String threadId) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.PUT, "/repo/v1", UrlHelpers.THREAD+"/"+threadId+UrlHelpers.UNPIN, userId, null);
+		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request, HttpStatus.NO_CONTENT);
+	}
+
 	public PaginatedResults<DiscussionThreadBundle> getThreads(DispatcherServlet dispatchServlet,
 			Long userId, String forumId, Long limit, Long offset, DiscussionThreadOrder order,
 			Boolean ascending, DiscussionFilter filter) throws Exception {
@@ -2224,5 +2240,13 @@ public class ServletTestHelper {
 		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.OK);
 		return objectMapper.readValue(response.getContentAsString(), ReplyCount.class);
+	}
+
+	public PrincipalAliasResponse getPrincipalAlias(DispatcherServlet dispatchServlet, PrincipalAliasRequest principalAliasRequest) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.POST, "/repo/v1", UrlHelpers.PRINCIPAL+"/alias", userId, principalAliasRequest);
+		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
+				HttpStatus.OK);
+		return objectMapper.readValue(response.getContentAsString(), PrincipalAliasResponse.class);
 	}
 }

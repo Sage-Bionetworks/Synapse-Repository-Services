@@ -9,16 +9,14 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.lang.BooleanUtils;
-import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.DerivedColumn;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.SelectList;
-import org.sagebionetworks.table.query.model.visitors.GetTableNameVisitor;
-import org.sagebionetworks.table.query.model.visitors.IsAggregateVisitor;
 import org.sagebionetworks.util.ValidateArgument;
 
 import com.google.common.base.Function;
@@ -74,7 +72,7 @@ public class SqlQuery {
 	/**
 	 * The list of all columns referenced in the select column.
 	 */
-	ColumnMapper selectColumnModels;
+	List<SelectColumn> selectColumns;
 	
 	
 	/**
@@ -87,7 +85,7 @@ public class SqlQuery {
 	public SqlQuery(String sql, List<ColumnModel> tableSchema) throws ParseException {
 		if(sql == null) throw new IllegalArgumentException("The input SQL cannot be null");
 		QuerySpecification parsedQuery = TableQueryParser.parserQuery(sql);
-		init(parsedQuery, tableSchema, parsedQuery.doVisit(new GetTableNameVisitor()).getTableName());
+		init(parsedQuery, tableSchema, parsedQuery.getTableName());
 	}
 	
 	/**
@@ -131,13 +129,11 @@ public class SqlQuery {
 					this.model.getTableExpression());
 		}
 
-		IsAggregateVisitor visitor = new IsAggregateVisitor();
-		model.doVisit(visitor);
-		this.isAggregatedResult = visitor.isAggregate();
+		this.isAggregatedResult = model.hasAnyAggregateElements();
 
 		QuerySpecification expandedSelectList = this.model;
 		if (!this.isAggregatedResult) {
-			// we need to add the row count and row version colums
+			// we need to add the row count and row version columns
 			SelectList selectList = expandedSelectList.getSelectList();
 			List<DerivedColumn> selectColumns = Lists.newArrayListWithCapacity(selectList.getColumns().size() + 2);
 			selectColumns.addAll(selectList.getColumns());
@@ -149,7 +145,7 @@ public class SqlQuery {
 		}
 
 		this.outputSQL = SQLTranslatorUtils.translate(expandedSelectList, this.parameters, this.columnNameToModelMap);
-		this.selectColumnModels = SQLTranslatorUtils.getSelectColumns(this.model.getSelectList(), columnNameToModelMap, isAggregatedResult);
+		this.selectColumns = SQLTranslatorUtils.getSelectColumns(this.model.getSelectList(), columnNameToModelMap, isAggregatedResult);
 	}
 
 	/**
@@ -210,8 +206,8 @@ public class SqlQuery {
 	 * The list of column models from the select clause.
 	 * @return
 	 */
-	public ColumnMapper getSelectColumnModels() {
-		return selectColumnModels;
+	public List<SelectColumn> getSelectColumns() {
+		return selectColumns;
 	}
 
 	/**

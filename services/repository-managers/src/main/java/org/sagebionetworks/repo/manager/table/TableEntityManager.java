@@ -6,32 +6,18 @@ import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
-import org.sagebionetworks.repo.model.table.QueryBundleRequest;
-import org.sagebionetworks.repo.model.table.QueryNextPageToken;
-import org.sagebionetworks.repo.model.table.QueryResult;
-import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
-import org.sagebionetworks.repo.model.table.SortItem;
-import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableRowChange;
-import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
-import org.sagebionetworks.table.cluster.SqlQuery;
-import org.sagebionetworks.util.Pair;
-import org.sagebionetworks.util.csv.CSVWriterStream;
-import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 
 /**
  * Abstraction for Table Row management.
@@ -51,7 +37,7 @@ public interface TableEntityManager {
 	 * @throws DatastoreException
 	 * @throws IOException
 	 */
-	public RowReferenceSet appendRows(UserInfo user, String tableId, ColumnMapper columnMapper, RowSet delta, ProgressCallback<Long> progressCallback)
+	public RowReferenceSet appendRows(UserInfo user, String tableId, List<ColumnModel> columns, RowSet delta, ProgressCallback<Long> progressCallback)
 			throws DatastoreException, NotFoundException, IOException;
 
 	/**
@@ -66,7 +52,7 @@ public interface TableEntityManager {
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 */
-	public RowReferenceSet appendPartialRows(UserInfo user, String tableId, ColumnMapper columnMapper,
+	public RowReferenceSet appendPartialRows(UserInfo user, String tableId, List<ColumnModel> columns,
 			PartialRowSet rowsToAppendOrUpdateOrDelete, ProgressCallback<Long> progressCallback) throws DatastoreException, NotFoundException, IOException;
 
 	/**
@@ -108,19 +94,8 @@ public interface TableEntityManager {
 	 * @throws NotFoundException
 	 * @throws IOException
 	 */
-	String appendRowsAsStream(UserInfo user, String tableId, ColumnMapper columnMapper, Iterator<Row> rowStream, String etag,
+	String appendRowsAsStream(UserInfo user, String tableId, List<ColumnModel> columns, Iterator<Row> rowStream, String etag,
 			RowReferenceSet results, ProgressCallback<Long> progressCallback) throws DatastoreException, NotFoundException, IOException;
-
-	/**
-	 * Get the current ColumnModel list for a table.
-	 * 
-	 * @param tableId
-	 * @return
-	 * @throws NotFoundException
-	 * @throws DatastoreException
-	 */
-	public List<ColumnModel> getColumnModelsForTable(String tableId)
-			throws DatastoreException, NotFoundException;
 
 	/**
 	 * List the changes that have been applied to a table.
@@ -139,7 +114,7 @@ public interface TableEntityManager {
 	 * @throws NotFoundException
 	 * @throws IOException
 	 */
-	public RowSet getRowSet(String tableId, Long rowVersion, ColumnMapper schema)
+	public RowSet getRowSet(String tableId, Long rowVersion, List<ColumnModel> columns)
 			throws IOException, NotFoundException;
 
 	/**
@@ -185,20 +160,8 @@ public interface TableEntityManager {
 	 * @throws NotFoundException
 	 * @throws IOException
 	 */
-	public RowSet getCellValues(UserInfo userInfo, String tableId, RowReferenceSet rowRefs, ColumnMapper columnMapper)
+	public RowSet getCellValues(UserInfo userInfo, String tableId, RowReferenceSet rowRefs, List<ColumnModel> columns)
 			throws IOException, NotFoundException;
-
-
-	/**
-	 * Get the columns Models for a list of headers. Only headers that are column models ID will have a column model in
-	 * the result. None column model id headers will be ignored.
-	 * 
-	 * @param headers
-	 * @return
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 */
-	public List<ColumnModel> getColumnsForHeaders(List<String> headers) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Given a set of FileHandleIds and a talbeId, get the sub-set of

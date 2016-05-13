@@ -27,7 +27,6 @@ import java.util.Set;
 import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
-import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.IdRange;
@@ -36,13 +35,13 @@ import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
-import org.sagebionetworks.util.csv.CsvNullReader;
-
-import au.com.bytecode.opencsv.CSVWriter;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+
+import au.com.bytecode.opencsv.CSVReader;
+import au.com.bytecode.opencsv.CSVWriter;
 
 /**
  * 
@@ -224,7 +223,7 @@ public class TableModelUtilsTest {
 		System.out.println(csv);
 		StringReader reader = new StringReader(csv);
 		// There should be two rows
-		CsvNullReader in = new CsvNullReader(reader);
+		CSVReader in = new CSVReader(reader);
 		List<String[]> results = in.readAll();
 		in.close();
 		assertNotNull(results);
@@ -241,7 +240,7 @@ public class TableModelUtilsTest {
 		String csv = outWritter.toString();
 		StringReader reader = new StringReader(csv);
 		// There should be two rows
-		CsvNullReader in = new CsvNullReader(reader);
+		CSVReader in = new CSVReader(reader);
 		List<String[]> results = in.readAll();
 		in.close();
 		assertNotNull(results);
@@ -258,7 +257,7 @@ public class TableModelUtilsTest {
 		System.out.println(csv);
 		StringReader reader = new StringReader(csv);
 		// There should be two rows
-		CsvNullReader in = new CsvNullReader(reader);
+		CSVReader in = new CSVReader(reader);
 		List<String[]> results = in.readAll();
 		in.close();
 		assertNotNull(results);
@@ -275,7 +274,7 @@ public class TableModelUtilsTest {
 		System.out.println(csv);
 		StringReader reader = new StringReader(csv);
 		// There should be two rows
-		CsvNullReader in = new CsvNullReader(reader);
+		CSVReader in = new CSVReader(reader);
 		List<String[]> results = in.readAll();
 		in.close();
 		assertNotNull(results);
@@ -681,7 +680,7 @@ public class TableModelUtilsTest {
 		CSVWriter csvWriter = new CSVWriter(writer);
 		TableModelUtils.validateAndWriteToCSV(validModel, validRowSet2, csvWriter);
 		StringReader reader = new StringReader(writer.toString());
-		CsvNullReader csvReader = new CsvNullReader(reader);
+		CSVReader csvReader = new CSVReader(reader);
 		List<Row> cloneRows = TableModelUtils.readFromCSV(csvReader);
 		assertNotNull(cloneRows);
 		assertEquals(validRowSet2.getRows(), cloneRows);
@@ -840,7 +839,7 @@ public class TableModelUtilsTest {
 		newOrder.add(models.get(1));
 		List<RawRowSet> all = Lists.newArrayList(v1Set, v2Set);
 		// Now get a single result set that contains all data in this new form
-		RowSet converted = TableModelUtils.convertToSchemaAndMerge(all, TableModelUtils.createColumnModelColumnMapper(newOrder, false),
+		RowSet converted = TableModelUtils.convertToSchemaAndMerge(all, newOrder,
 				"syn123", null);
 		// System.out.println(converted.toString());
 		// This is what we expect to come back
@@ -987,15 +986,15 @@ public class TableModelUtilsTest {
 	
 	@Test
 	public void testCalculateMaxRowSize() {
-		ColumnMapper all = TableModelTestUtils.createMapperForOneOfEachType();
-		int allBytes = TableModelUtils.calculateMaxRowSizeForColumnModels(all);
+		List<ColumnModel> all = TableModelTestUtils.createOneOfEachType();
+		int allBytes = TableModelUtils.calculateMaxRowSize(all);
 		assertEquals(3414, allBytes);
 	}
 
 	@Test
 	public void testIsRequestWithinMaxBytePerRequest() {
-		ColumnMapper all = TableModelTestUtils.createMapperForOneOfEachType();
-		int allBytes = TableModelUtils.calculateMaxRowSizeForColumnModels(all);
+		List<ColumnModel> all = TableModelTestUtils.createOneOfEachType();
+		int allBytes = TableModelUtils.calculateMaxRowSize(all);
 		// Set the max to be 100 rows
 		int maxBytes = allBytes * 100;
 		// So 100 rows should be within limit but not 101;

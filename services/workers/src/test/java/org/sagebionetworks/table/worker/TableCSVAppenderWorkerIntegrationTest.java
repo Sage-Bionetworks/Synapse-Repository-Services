@@ -47,16 +47,16 @@ import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
-import org.sagebionetworks.util.csv.CsvNullReader;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import au.com.bytecode.opencsv.CSVWriter;
-
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.google.common.collect.Lists;
+
+import au.com.bytecode.opencsv.CSVReader;
+import au.com.bytecode.opencsv.CSVWriter;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -309,7 +309,7 @@ public class TableCSVAppenderWorkerIntegrationTest {
 		tempFiles.add(tempFile);
 		s3Client.getObject(new GetObjectRequest(resultFile.getBucketName(), resultFile.getKey()), tempFile);
 		// Load the CSV data
-		CsvNullReader csvReader = new CsvNullReader(new FileReader(tempFile));
+		CSVReader csvReader = new CSVReader(new FileReader(tempFile));
 		List<String[]> results = csvReader.readAll();
 		csvReader.close();
 

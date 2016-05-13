@@ -10,15 +10,12 @@ import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.OrderByClause;
 import org.sagebionetworks.table.query.model.OrderingSpecification;
 import org.sagebionetworks.table.query.model.QuerySpecification;
-import org.sagebionetworks.table.query.model.SQLElement;
 import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.model.SortKey;
 import org.sagebionetworks.table.query.model.SortSpecification;
 import org.sagebionetworks.table.query.model.SortSpecificationList;
 import org.sagebionetworks.table.query.model.TableExpression;
 import org.sagebionetworks.table.query.model.ValueExpressionPrimary;
-import org.sagebionetworks.table.query.model.visitors.IsAggregateVisitor;
-import org.sagebionetworks.table.query.model.visitors.ToNameStringVisitor;
 import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor;
 
 /**
@@ -90,9 +87,7 @@ public class TableSqlProcessor {
 			 */
 			ValueExpressionPrimary primary = new TableQueryParser(columnName)
 					.valueExpressionPrimary();
-			IsAggregateVisitor visitor = new IsAggregateVisitor();
-			primary.visit(visitor);
-			if (visitor.isAggregate()) {
+			if (primary.hasAnyAggregateElements()) {
 				return new SortKey(primary);
 			} else {
 				// Put non-aggregate column names in quotes.
@@ -145,7 +140,7 @@ public class TableSqlProcessor {
 				for (SortSpecification sort : original
 						.getSortSpecificationList().getSortSpecifications()) {
 					// Add this column as long as it is not the exclude.
-					if (!nameEquals(sort, exclude)) {
+					if (!sort.getSortKey().equivalent(exclude.getSortKey())) {
 						newClause.getSortSpecificationList()
 								.addSortSpecification(sort);
 					}
@@ -169,7 +164,7 @@ public class TableSqlProcessor {
 					&& obc.getSortSpecificationList().getSortSpecifications() != null) {
 				for (SortSpecification sort : obc.getSortSpecificationList()
 						.getSortSpecifications()) {
-					if (nameEquals(sort.getSortKey(), columnNameKey)) {
+					if (sort.getSortKey().equivalent(columnNameKey)) {
 						return sort.getOrderingSpecification();
 					}
 				}
@@ -205,9 +200,7 @@ public class TableSqlProcessor {
 			if (list != null && list.getSortSpecifications() != null) {
 				for (SortSpecification sort : list.getSortSpecifications()) {
 					SortItem item = new SortItem();
-					ToNameStringVisitor nameVisitor = new ToNameStringVisitor();
-					sort.getSortKey().visit(nameVisitor);
-					item.setColumn(nameVisitor.getName());
+					item.setColumn(sort.getSortKey().toSqlWithoutQuotes());
 					if (OrderingSpecification.ASC.equals(sort
 							.getOrderingSpecification())) {
 						item.setDirection(SortDirection.ASC);
@@ -221,26 +214,4 @@ public class TableSqlProcessor {
 		return results;
 	}
 
-	/**
-	 * Do the two elements have the same name?
-	 * 
-	 * @param other
-	 *            The other element to compare the name to.
-	 * @return
-	 */
-	public static boolean nameEquals(SQLElement one, SQLElement two) {
-		return getName(one).equals(getName(two));
-	}
-
-	/**
-	 * Get the name of the element.
-	 * 
-	 * @param element
-	 * @return
-	 */
-	public static String getName(SQLElement element) {
-		ToNameStringVisitor visitor = new ToNameStringVisitor();
-		element.visit(visitor);
-		return visitor.getName();
-	}
 }

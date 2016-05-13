@@ -4,7 +4,11 @@ import static org.sagebionetworks.repo.manager.discussion.DiscussionThreadManage
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
+import static org.mockito.Mockito.*;
+
 import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.apache.commons.lang.RandomStringUtils;
 import org.junit.Before;
@@ -37,6 +41,7 @@ import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -58,6 +63,8 @@ public class DiscussionThreadManagerImplTest {
 	private IdGenerator mockIdGenerator;
 	@Mock
 	private TransactionalMessenger mockTransactionalMessenger;
+	@Mock
+	private PrincipalAliasDAO mockPrincipalAliasDao;
 
 	private DiscussionThreadManager threadManager;
 	private UserInfo userInfo = new UserInfo(false /*not admin*/);
@@ -86,6 +93,7 @@ public class DiscussionThreadManagerImplTest {
 		ReflectionTestUtils.setField(threadManager, "replyDao", mockReplyDao);
 		ReflectionTestUtils.setField(threadManager, "subscriptionDao", mockSubscriptionDao);
 		ReflectionTestUtils.setField(threadManager, "transactionalMessenger", mockTransactionalMessenger);
+		ReflectionTestUtils.setField(threadManager, "principalAliasDao", mockPrincipalAliasDao);
 
 		createDto = new CreateDiscussionThread();
 		createDto.setForumId(forumId.toString());
@@ -175,9 +183,9 @@ public class DiscussionThreadManagerImplTest {
 		assertNotNull(createdThread);
 		assertEquals(createdThread, dto);
 		Mockito.verify(mockReplyDao).getReplyCount(Long.parseLong(createdThread.getId()), DiscussionFilter.NO_FILTER);
-		Mockito.verify(mockSubscriptionDao).create(userId.toString(), dto.getId(), SubscriptionObjectType.THREAD);
 		Mockito.verify(mockTransactionalMessenger).sendMessageAfterCommit(createdThread.getId(), ObjectType.THREAD, dto.getEtag(), ChangeType.CREATE, userInfo.getId());
-		Mockito.verify(mockSubscriptionDao).subscribeForumSubscriberToThread(dto.getForumId(), dto.getId());
+		Mockito.verify(mockSubscriptionDao).getAllSubscribers(eq(dto.getForumId()), eq(SubscriptionObjectType.FORUM));
+		Mockito.verify(mockSubscriptionDao).subscribeAllUsers(any(Set.class), eq(dto.getId()), eq(SubscriptionObjectType.THREAD));
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -199,6 +207,33 @@ public class DiscussionThreadManagerImplTest {
 		assertEquals(dto, threadManager.getThread(userInfo, threadId.toString()));
 		Mockito.verify(mockThreadDao).updateThreadView(Mockito.anyLong(), Mockito.anyLong());
 		Mockito.verify(mockReplyDao).getReplyCount(threadId, DiscussionFilter.EXCLUDE_DELETED);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testCheckPermissionWithNullUserInfo() {
+		threadManager.checkPermission(null, threadId.toString(), ACCESS_TYPE.READ);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testCheckPermissionWithNullThreadId() {
+		threadManager.checkPermission(userInfo, null, ACCESS_TYPE.READ);
+	}
+
+	@Test (expected = UnauthorizedException.class)
+	public void testCheckPermissionUnauthorized() {
+		Mockito.when(mockThreadDao.getProjectId(threadId.toString())).thenReturn(projectId);
+		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
+				.thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+		threadManager.checkPermission(userInfo, threadId.toString(), ACCESS_TYPE.READ);
+	}
+
+	@Test
+	public void testCheckPermissionAuthorized() {
+		Mockito.when(mockThreadDao.getProjectId(threadId.toString())).thenReturn(projectId);
+		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
+				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		threadManager.checkPermission(userInfo, threadId.toString(), ACCESS_TYPE.READ);
+		Mockito.verify(mockThreadDao, Mockito.never()).updateThreadView(Mockito.anyLong(), Mockito.anyLong());
 	}
 
 	@Test (expected = NotFoundException.class)
@@ -252,10 +287,12 @@ public class DiscussionThreadManagerImplTest {
 		Mockito.when(mockThreadDao.updateMessageKey(Mockito.anyLong(), Mockito.anyString())).thenReturn(dto);
 		assertEquals(dto, threadManager.updateMessage(userInfo, threadId.toString(), newMessage));
 		Mockito.verify(mockReplyDao).getReplyCount(threadId, DiscussionFilter.NO_FILTER);
+		Mockito.verify(mockSubscriptionDao).subscribeAllUsers(any(Set.class), eq(dto.getId()), eq(SubscriptionObjectType.THREAD));
 	}
 
 	@Test (expected = UnauthorizedException.class)
 	public void testDeleteUnauthorized() {
+		Mockito.when(mockThreadDao.getProjectId(threadId.toString())).thenReturn(projectId);
 		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.MODERATE))
 				.thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		threadManager.markThreadAsDeleted(userInfo, threadId.toString());
@@ -263,29 +300,64 @@ public class DiscussionThreadManagerImplTest {
 
 	@Test
 	public void testDeleteAuthorized() {
+		Mockito.when(mockThreadDao.getProjectId(threadId.toString())).thenReturn(projectId);
 		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.MODERATE))
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		threadManager.markThreadAsDeleted(userInfo, threadId.toString());
 		Mockito.verify(mockThreadDao).markThreadAsDeleted(threadId);
 	}
 
+	@Test (expected = UnauthorizedException.class)
+	public void testPinThreadUnauthorized() {
+		Mockito.when(mockThreadDao.getProjectId(threadId.toString())).thenReturn(projectId);
+		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.MODERATE))
+				.thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+		threadManager.pinThread(userInfo, threadId.toString());
+	}
+
+	@Test
+	public void testPinThreadAuthorized() {
+		Mockito.when(mockThreadDao.getProjectId(threadId.toString())).thenReturn(projectId);
+		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.MODERATE))
+				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		threadManager.pinThread(userInfo, threadId.toString());
+		Mockito.verify(mockThreadDao).pinThread(threadId);
+	}
+
+	@Test (expected = UnauthorizedException.class)
+	public void testUnpinThreadUnauthorized() {
+		Mockito.when(mockThreadDao.getProjectId(threadId.toString())).thenReturn(projectId);
+		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.MODERATE))
+				.thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+		threadManager.unpinThread(userInfo, threadId.toString());
+	}
+
+	@Test
+	public void testUnpinThreadAuthorized() {
+		Mockito.when(mockThreadDao.getProjectId(threadId.toString())).thenReturn(projectId);
+		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.MODERATE))
+				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		threadManager.unpinThread(userInfo, threadId.toString());
+		Mockito.verify(mockThreadDao).unpinThread(threadId);
+	}
+
 	@Test (expected = IllegalArgumentException.class)
 	public void testGetThreadsForForumWithNullForumId() {
-		threadManager.getThreadsForForum(userInfo, null, 2L, 0L, DiscussionThreadOrder.LAST_ACTIVITY, null, DiscussionFilter.NO_FILTER);
+		threadManager.getThreadsForForum(userInfo, null, 2L, 0L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, null, DiscussionFilter.NO_FILTER);
 	}
 
 	@Test (expected = UnauthorizedException.class)
 	public void testGetThreadsForForumUnauthorizedWithNoFilter() {
 		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.MODERATE))
 				.thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
-		threadManager.getThreadsForForum(userInfo, forumId.toString(), 2L, 0L, DiscussionThreadOrder.LAST_ACTIVITY, true, DiscussionFilter.NO_FILTER);
+		threadManager.getThreadsForForum(userInfo, forumId.toString(), 2L, 0L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true, DiscussionFilter.NO_FILTER);
 	}
 
 	@Test (expected = UnauthorizedException.class)
 	public void testGetThreadsForForumUnauthorized() {
 		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
 				.thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
-		threadManager.getThreadsForForum(userInfo, forumId.toString(), 2L, 0L, DiscussionThreadOrder.LAST_ACTIVITY, true, DiscussionFilter.EXCLUDE_DELETED);
+		threadManager.getThreadsForForum(userInfo, forumId.toString(), 2L, 0L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true, DiscussionFilter.EXCLUDE_DELETED);
 	}
 
 	@Test
@@ -296,12 +368,13 @@ public class DiscussionThreadManagerImplTest {
 				.thenReturn(threads);
 		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.MODERATE))
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		assertEquals(threads, threadManager.getThreadsForForum(userInfo, forumId.toString(), 2L, 0L, DiscussionThreadOrder.LAST_ACTIVITY, true, DiscussionFilter.NO_FILTER));
+		assertEquals(threads, threadManager.getThreadsForForum(userInfo, forumId.toString(), 2L, 0L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true, DiscussionFilter.NO_FILTER));
 		Mockito.verify(mockReplyDao).getReplyCount(threadId, DiscussionFilter.NO_FILTER);
 	}
 
 	@Test (expected = UnauthorizedException.class)
 	public void testGetThreadURLUnauthorized() {
+		Mockito.when(mockThreadDao.getProjectId(threadId.toString())).thenReturn(projectId);
 		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
 				.thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		threadManager.getMessageUrl(userInfo, messageKey);
@@ -309,6 +382,7 @@ public class DiscussionThreadManagerImplTest {
 
 	@Test
 	public void testGetThreadURLAuthorized() {
+		Mockito.when(mockThreadDao.getProjectId(threadId.toString())).thenReturn(projectId);
 		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		MessageURL url = threadManager.getMessageUrl(userInfo, messageKey);
@@ -346,5 +420,44 @@ public class DiscussionThreadManagerImplTest {
 		ThreadCount tc = threadManager.getThreadCountForForum(userInfo, forumId.toString(), DiscussionFilter.NO_FILTER);
 		assertNotNull(tc);
 		assertEquals(count, tc.getCount());
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testHandleSubscriptionWithNullMarkdown() {
+		threadManager.handleSubscription(userId.toString(), threadId.toString(), forumId.toString(), null);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testHandleSubscriptionWithNullThreadId() {
+		threadManager.handleSubscription(userId.toString(), null, forumId.toString(), "");
+	}
+
+	@Test
+	public void testHandleSubscriptionWithNulluserId() {
+		threadManager.handleSubscription(null, threadId.toString(), forumId.toString(), "");
+		verify(mockPrincipalAliasDao).lookupPrincipalIds(any(Set.class));
+		verify(mockSubscriptionDao).getAllSubscribers(forumId.toString(), SubscriptionObjectType.FORUM);
+		verify(mockSubscriptionDao).subscribeAllUsers(any(Set.class), eq(threadId.toString()), eq(SubscriptionObjectType.THREAD));
+	}
+
+	@Test
+	public void testHandleSubscriptionWithNullForumId() {
+		threadManager.handleSubscription(userId.toString(), threadId.toString(), null, "");
+		verify(mockPrincipalAliasDao).lookupPrincipalIds(any(Set.class));
+		verify(mockSubscriptionDao, never()).getAllSubscribers(forumId.toString(), SubscriptionObjectType.FORUM);
+		verify(mockSubscriptionDao).subscribeAllUsers(any(Set.class), eq(threadId.toString()), eq(SubscriptionObjectType.THREAD));
+	}
+
+	@Test
+	public void testHandleSubscription() {
+		String anonymous = "-1";
+		Set<String> toSubscribe = new HashSet<String>();
+		toSubscribe.add(anonymous);
+		when(mockPrincipalAliasDao.lookupPrincipalIds(any(Set.class))).thenReturn(toSubscribe);
+		toSubscribe.add(userId.toString());
+		threadManager.handleSubscription(userId.toString(), threadId.toString(), forumId.toString(), "@anonymous");
+		verify(mockPrincipalAliasDao).lookupPrincipalIds(any(Set.class));
+		verify(mockSubscriptionDao).getAllSubscribers(forumId.toString(), SubscriptionObjectType.FORUM);
+		verify(mockSubscriptionDao).subscribeAllUsers(toSubscribe, threadId.toString(), SubscriptionObjectType.THREAD);
 	}
 }

@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.discussion;
 import static org.sagebionetworks.repo.manager.AuthorizationManagerImpl.*;
 
 import java.io.IOException;
+import java.util.Set;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
@@ -26,6 +27,7 @@ import org.sagebionetworks.repo.model.discussion.ReplyCount;
 import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.upload.discussion.MessageKeyUtils;
@@ -48,6 +50,8 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 	private IdGenerator idGenerator;
 	@Autowired
 	private TransactionalMessenger transactionalMessenger;
+	@Autowired
+	private PrincipalAliasDAO principalAliasDao;
 
 	@WriteTransactionReadCommitted
 	@Override
@@ -65,9 +69,28 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 		String replyId = idGenerator.generateNewId(TYPE.DISCUSSION_REPLY_ID).toString();
 		String messageKey = uploadDao.uploadReplyMessage(createReply.getMessageMarkdown(), thread.getForumId(), threadId, replyId);
 		DiscussionReplyBundle reply = replyDao.createReply(threadId, replyId, messageKey, userInfo.getId());
-		subscriptionDao.create(userInfo.getId().toString(), thread.getId(), SubscriptionObjectType.THREAD);
+		handleSubscription(userInfo.getId().toString(), thread.getId(), createReply.getMessageMarkdown());
 		transactionalMessenger.sendMessageAfterCommit(replyId, ObjectType.REPLY, reply.getEtag(), ChangeType.CREATE, userInfo.getId());
 		return reply;
+	}
+
+	/**
+	 * Subscribe the userId, and all mentioned user to the thread
+	 * 
+	 * @param userId
+	 * @param threadId
+	 * @param markdown
+	 */
+	@Override
+	public void handleSubscription(String userId, String threadId, String markdown) {
+		ValidateArgument.required(markdown, "markdown");
+		ValidateArgument.required(threadId, "threadId");
+		Set<String> usernameList = DiscussionUtils.getMentionedUsername(markdown);
+		Set<String> subscribers = principalAliasDao.lookupPrincipalIds(usernameList);
+		if (userId != null) {
+			subscribers.add(userId);
+		}
+		subscriptionDao.subscribeAllUsers(subscribers, threadId, SubscriptionObjectType.THREAD);
 	}
 
 	@Override
@@ -92,7 +115,9 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 		DiscussionReplyBundle reply = replyDao.getReply(replyIdLong, DEFAULT_FILTER);
 		if (authorizationManager.isUserCreatorOrAdmin(userInfo, reply.getCreatedBy())) {
 			String messageKey = uploadDao.uploadReplyMessage(newMessage.getMessageMarkdown(), reply.getForumId(), reply.getThreadId(), reply.getId());
-			return replyDao.updateMessageKey(replyIdLong, messageKey);
+			reply = replyDao.updateMessageKey(replyIdLong, messageKey);
+			handleSubscription(userInfo.getId().toString(), reply.getThreadId(), newMessage.getMessageMarkdown());
+			return reply;
 		} else {
 			throw new UnauthorizedException("Only the user that created the thread can modify it.");
 		}
@@ -101,45 +126,44 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 	@WriteTransactionReadCommitted
 	@Override
 	public void markReplyAsDeleted(UserInfo userInfo, String replyId) {
-		UserInfo.validateUserInfo(userInfo);
-		ValidateArgument.required(replyId, "replyId");
-		Long replyIdLong = Long.parseLong(replyId);
-		DiscussionReplyBundle reply = replyDao.getReply(replyIdLong, DEFAULT_FILTER);
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccess(userInfo, reply.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.MODERATE));
-		replyDao.markReplyAsDeleted(replyIdLong);
+		checkPermission(userInfo, replyId, ACCESS_TYPE.MODERATE);
+		replyDao.markReplyAsDeleted(Long.parseLong(replyId));
 	}
 
 	@Override
 	public PaginatedResults<DiscussionReplyBundle> getRepliesForThread(
 			UserInfo userInfo, String threadId, Long limit, Long offset,
 			DiscussionReplyOrder order, Boolean ascending, DiscussionFilter filter) {
-		UserInfo.validateUserInfo(userInfo);
-		ValidateArgument.required(threadId, "threadId");
+		threadManager.checkPermission(userInfo, threadId, ACCESS_TYPE.READ);
 		ValidateArgument.required(limit, "limit");
 		ValidateArgument.required(offset, "offset");
 		ValidateArgument.required(filter, "filter");
-		threadManager.getThread(userInfo, threadId);
 		return replyDao.getRepliesForThread(Long.parseLong(threadId), limit, offset, order, ascending, filter);
 	}
 
 	@Override
 	public MessageURL getMessageUrl(UserInfo userInfo, String messageKey) {
-		UserInfo.validateUserInfo(userInfo);
 		ValidateArgument.required(messageKey, "messageKey");
 		String replyId = MessageKeyUtils.getReplyId(messageKey);
-		DiscussionReplyBundle reply = replyDao.getReply(Long.parseLong(replyId), DEFAULT_FILTER);
+		checkPermission(userInfo, replyId, ACCESS_TYPE.READ);
+		return uploadDao.getReplyUrl(messageKey);
+	}
+
+	@Override
+	public void checkPermission(UserInfo userInfo, String replyId, ACCESS_TYPE accessType){
+		ValidateArgument.required(replyId, "replyId");
+		ValidateArgument.required(accessType, "accessType");
+		UserInfo.validateUserInfo(userInfo);
+		String projectId = replyDao.getProjectId(replyId);
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccess(userInfo, reply.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
-		return uploadDao.getReplyUrl(reply.getMessageKey());
+				authorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, accessType));
+		
 	}
 
 	@Override
 	public ReplyCount getReplyCountForThread(UserInfo userInfo, String threadId, DiscussionFilter filter) {
-		ValidateArgument.required(threadId, "threadId");
+		threadManager.checkPermission(userInfo, threadId, ACCESS_TYPE.READ);
 		ValidateArgument.required(filter, "filter");
-		UserInfo.validateUserInfo(userInfo);
-		threadManager.getThread(userInfo, threadId);
 		ReplyCount count = new ReplyCount();
 		count.setCount(replyDao.getReplyCount(Long.parseLong(threadId), filter));
 		return count;

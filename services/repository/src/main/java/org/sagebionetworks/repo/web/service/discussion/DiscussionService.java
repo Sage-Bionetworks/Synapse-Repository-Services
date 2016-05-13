@@ -194,4 +194,18 @@ public interface DiscussionService {
 	 * @return
 	 */
 	public ReplyCount getReplyCount(Long userId, String threadId, DiscussionFilter filter);
+
+	/**
+	 * Pin a thread 
+	 * @param userId
+	 * @param threadId
+	 */
+	public void pinThread(Long userId, String threadId);
+
+	/**
+	 * Unpin a thread
+	 * @param userId
+	 * @param threadId
+	 */
+	public void unpinThread(Long userId, String threadId);
 }

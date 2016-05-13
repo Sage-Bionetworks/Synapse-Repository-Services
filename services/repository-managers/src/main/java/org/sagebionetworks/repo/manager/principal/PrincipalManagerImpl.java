@@ -17,7 +17,6 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.EmailUtils;
 import org.sagebionetworks.repo.manager.SendEmailRequestBuilder;
-import org.sagebionetworks.repo.manager.SendRawEmailRequestBuilder;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -37,9 +36,12 @@ import org.sagebionetworks.repo.model.principal.AliasEnum;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasRequest;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasResponse;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.securitytools.HMACUtils;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.simpleemail.model.SendEmailRequest;
@@ -461,6 +463,18 @@ public class PrincipalManagerImpl implements PrincipalManager {
 		Username dto = new Username();
 		dto.setEmail(email);
 		return dto;
+	}
+
+	@Override
+	public PrincipalAliasResponse lookupPrincipalId(PrincipalAliasRequest request) {
+		ValidateArgument.required(request, "request");
+		ValidateArgument.required(request.getAlias(), "PrincipalAliasRequest.alias");
+		ValidateArgument.required(request.getType(), "PrincipalAliasRequest.type");
+		ValidateArgument.requirement(request.getType() == AliasType.USER_NAME, "Unsupported alias type "+request.getType());
+		long principalId = principalAliasDAO.lookupPrincipalID(request.getAlias(), request.getType());
+		PrincipalAliasResponse response = new PrincipalAliasResponse();
+		response.setPrincipalId(principalId);
+		return response;
 	}
 
 }

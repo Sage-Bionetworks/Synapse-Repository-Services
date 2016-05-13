@@ -1,5 +1,7 @@
 package org.sagebionetworks.table.query.model;
 
+import java.util.List;
+
 import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor;
 import org.sagebionetworks.table.query.model.visitors.Visitor;
 
@@ -42,5 +44,20 @@ public class BooleanPrimary extends SQLElement {
 			visit(searchCondition, visitor);
 			visitor.append(" )");
 		}
+	}
+	@Override
+	public void toSql(StringBuilder builder) {
+		if(predicate != null){
+			predicate.toSql(builder);
+		}else{
+			builder.append("( ");
+			searchCondition.toSql(builder);
+			builder.append(" )");
+		}
+	}
+	@Override
+	<T extends Element> void addElements(List<T> elements, Class<T> type) {
+		checkElement(elements, type, predicate);
+		checkElement(elements, type, searchCondition);
 	}
 }

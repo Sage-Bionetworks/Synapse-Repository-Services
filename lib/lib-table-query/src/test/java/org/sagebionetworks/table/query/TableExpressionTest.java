@@ -1,6 +1,6 @@
 package org.sagebionetworks.table.query;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 
 import org.junit.Test;
 import org.sagebionetworks.table.query.model.TableExpression;
@@ -66,6 +66,18 @@ public class TableExpressionTest {
 	public void testTableExpressionWithAll() throws ParseException{
 		TableExpression element = SqlElementUntils.createTableExpression("from syn123 where foo = 100 group by foo order by bar desc limit 100 offset 9999");
 		assertEquals("FROM syn123 WHERE foo = 100 GROUP BY foo ORDER BY bar DESC LIMIT 100 OFFSET 9999", element.toString());
+	}
+	
+	@Test
+	public void testTableExpressionIsAggregateNoGroupBy() throws ParseException{
+		TableExpression element = SqlElementUntils.createTableExpression("from syn123 where foo = 100 order by bar desc limit 100 offset 9999");
+		assertFalse(element.isElementAggregate());
+	}
+	
+	@Test
+	public void testTableExpressionIsAggregateGroupBy() throws ParseException{
+		TableExpression element = SqlElementUntils.createTableExpression("from syn123 group by one");
+		assertTrue(element.isElementAggregate());
 	}
 
 }

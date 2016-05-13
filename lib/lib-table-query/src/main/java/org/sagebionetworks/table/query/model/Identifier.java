@@ -1,5 +1,7 @@
 package org.sagebionetworks.table.query.model;
 
+import java.util.List;
+
 import org.sagebionetworks.table.query.model.visitors.Visitor;
 
 /**
@@ -9,6 +11,7 @@ public class Identifier extends SQLElement {
 
 
 	ActualIdentifier actualIdentifier;
+	
 	public Identifier(ActualIdentifier actualIdentifier) {
 		this.actualIdentifier = actualIdentifier;
 	}
@@ -19,6 +22,16 @@ public class Identifier extends SQLElement {
 
 	public void visit(Visitor visitor) {
 		visit(actualIdentifier, visitor);
+	}
+
+	@Override
+	public void toSql(StringBuilder builder) {
+		actualIdentifier.toSql(builder);		
+	}
+
+	@Override
+	<T extends Element> void addElements(List<T> elements, Class<T> type) {
+		checkElement(elements, type, actualIdentifier);
 	}
 	
 }

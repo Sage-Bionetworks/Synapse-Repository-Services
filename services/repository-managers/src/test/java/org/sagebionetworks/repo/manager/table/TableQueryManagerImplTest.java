@@ -133,7 +133,7 @@ public class TableQueryManagerImplTest {
 		List<Row> rows = TableModelTestUtils.createRows(models, 10);
 		set = new RowSet();
 		set.setTableId(tableId);
-		set.setHeaders(TableModelUtils.createColumnModelColumnMapper(models, false).getSelectColumns());
+		set.setHeaders(TableModelUtils.getSelectColumns(models, false));
 		set.setRows(rows);
 		
 		when(mockColumnModelDAO.getColumnModelsForObject(tableId)).thenReturn(models);
@@ -306,22 +306,21 @@ public class TableQueryManagerImplTest {
 	public void testQueryBundle() throws Exception {
 		RowSet selectStar = new RowSet();
 		selectStar.setEtag("etag");
-		selectStar.setHeaders(TableModelUtils.createColumnModelColumnMapper(models, false).getSelectColumns());
+		selectStar.setHeaders(TableModelUtils.getSelectColumns(models, false));
 		selectStar.setTableId(tableId);
 		selectStar.setRows(TableModelTestUtils.createRows(models, 10));
 		QueryResult selectStarResult = new QueryResult();
 		selectStarResult.setNextPageToken(null);
 		selectStarResult.setQueryResults(selectStar);
 
-		runQueryBundleTest("select * from " + tableId, selectStar, 10L, TableModelUtils.createColumnModelColumnMapper(models, false)
-				.getSelectColumns().toString(), 2929L);
+		runQueryBundleTest("select * from " + tableId, selectStar, 10L, TableModelUtils.getSelectColumns(models, false).toString(), 1095L);
 	}
 
 	@Test
 	public void testQueryBundleColumnsExpanded() throws Exception {
 		RowSet selectStar = new RowSet();
 		selectStar.setEtag("etag");
-		selectStar.setHeaders(TableModelUtils.createColumnModelColumnMapper(models, false).getSelectColumns());
+		selectStar.setHeaders(TableModelUtils.getSelectColumns(models, false));
 		selectStar.setTableId(tableId);
 		selectStar.setRows(TableModelTestUtils.createRows(models, 10));
 		QueryResult selectStarResult = new QueryResult();
@@ -329,8 +328,8 @@ public class TableQueryManagerImplTest {
 		selectStarResult.setQueryResults(selectStar);
 
 		runQueryBundleTest("select " + StringUtils.join(Lists.transform(models, TableModelTestUtils.convertToNameFunction), ",") + " from "
-				+ tableId, selectStar, 10L, TableModelUtils.createColumnModelColumnMapper(models, false).getSelectColumns().toString(),
-				2929L);
+				+ tableId, selectStar, 10L, TableModelUtils.getSelectColumns(models, false).toString(),
+				1095L);
 	}
 
 	@Test
@@ -404,15 +403,15 @@ public class TableQueryManagerImplTest {
 	
 	@Test
 	public void testGetMaxRowsPerPage(){
-		Long maxRows = this.manager.getMaxRowsPerPage(TableModelUtils.createColumnModelColumnMapper(models, false));
-		int maxRowSize = TableModelUtils.calculateMaxRowSize(TableModelUtils.createColumnModelColumnMapper(models, false).getColumnModels());
+		Long maxRows = this.manager.getMaxRowsPerPage(models);
+		int maxRowSize = TableModelUtils.calculateMaxRowSize(models);
 		Long expected = (long) (this.maxBytesPerRequest/maxRowSize);
 		assertEquals(expected, maxRows);
 	}
 	
 	@Test
 	public void testGetMaxRowsPerPageEmpty(){
-		Long maxRows = this.manager.getMaxRowsPerPage(TableModelUtils.createColumnModelColumnMapper(new LinkedList<ColumnModel>(), false));
+		Long maxRows = this.manager.getMaxRowsPerPage(new LinkedList<ColumnModel>());
 		assertEquals(null, maxRows);
 	}
 	
@@ -443,6 +442,10 @@ public class TableQueryManagerImplTest {
 		Pair<QueryResult, Long> query = manager.query(mockProgressCallbackVoid, user, "select \"i-0\" from " + tableId, null, 0L, 100000L, true, false, false);
 		assertNotNull(query.getFirst().getNextPageToken());
 		assertTrue(query.getFirst().getNextPageToken().getToken().indexOf("&quot;i-0&quot") != -1);
+		
+		rowSet = new RowSet();
+		rowSet.setRows(Collections.nCopies(100000, new Row()));
+		when(mockTableIndexDAO.query(any(ProgressCallback.class), any(SqlQuery.class))).thenReturn(rowSet);
 
 		query = manager.query(mockProgressCallbackVoid, user, "select * from " + tableId, null, 0L, 100000L, true, false, false);
 		assertNotNull(query.getFirst().getNextPageToken());

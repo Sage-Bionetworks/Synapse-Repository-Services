@@ -1,5 +1,7 @@
 package org.sagebionetworks.table.query.model;
 
+import java.util.List;
+
 import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor;
 import org.sagebionetworks.table.query.model.visitors.Visitor;
 
@@ -54,5 +56,26 @@ public class LikePredicate extends SQLElement {
 			visitor.append(" ESCAPE ");
 			visit(escapeCharacter, visitor);
 		}
+	}
+
+	@Override
+	public void toSql(StringBuilder builder) {
+		columnReferenceLHS.toSql(builder);
+		if (not != null) {
+			builder.append(" NOT");
+		}
+		builder.append(" LIKE ");
+		pattern.toSql(builder);
+		if (escapeCharacter != null) {
+			builder.append(" ESCAPE ");
+			escapeCharacter.toSql(builder);
+		}
+	}
+
+	@Override
+	<T extends Element> void addElements(List<T> elements, Class<T> type) {
+		checkElement(elements, type, columnReferenceLHS);
+		checkElement(elements, type, pattern);
+		checkElement(elements, type, escapeCharacter);
 	}
 }

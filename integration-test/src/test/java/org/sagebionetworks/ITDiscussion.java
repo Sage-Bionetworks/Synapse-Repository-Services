@@ -118,6 +118,16 @@ public class ITDiscussion {
 		assertEquals(updateThreadMessage.getId(), threadId);
 		assertTrue(updateThreadMessage.getIsEdited());
 
+		// Pin the thread
+		synapse.pinThread(threadId);
+		DiscussionThreadBundle pinned = synapse.getThread(threadId);
+		assertTrue(pinned.getIsPinned());
+
+		// Unpin the thread
+		synapse.unpinThread(threadId);
+		DiscussionThreadBundle unpinned = synapse.getThread(threadId);
+		assertFalse(unpinned.getIsPinned());
+
 		// create a reply
 		CreateDiscussionReply replyToCreate = new CreateDiscussionReply();
 		replyToCreate.setThreadId(threadId);

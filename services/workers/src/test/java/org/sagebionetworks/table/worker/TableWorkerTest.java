@@ -3,6 +3,7 @@ package org.sagebionetworks.table.worker;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
+import static org.mockito.Matchers.anyListOf;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.contains;
@@ -28,18 +29,16 @@ import org.mockito.stubbing.Answer;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
+import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.manager.table.TableIndexConnectionFactory;
 import org.sagebionetworks.repo.manager.table.TableIndexConnectionUnavailableException;
 import org.sagebionetworks.repo.manager.table.TableIndexManager;
-import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
-import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableRowChange;
@@ -118,7 +117,7 @@ public class TableWorkerTest {
 		tableId = "456";
 		resetToken = "reset-token";
 		currentSchema = Lists.newArrayList();
-		when(mockTableEntityManager.getColumnModelsForTable(tableId)).thenReturn(currentSchema);
+		when(mockTableManagerSupport.getColumnModelsForTable(tableId)).thenReturn(currentSchema);
 		TableRowChange trc1 = new TableRowChange();
 		trc1.setEtag("etag");
 		trc1.setRowVersion(0L);
@@ -132,11 +131,11 @@ public class TableWorkerTest {
 		
 		rowSet1 = new RowSet();
 		rowSet1.setRows(Collections.singletonList(TableModelTestUtils.createRow(0L, 0L, "2")));
-		when(mockTableEntityManager.getRowSet(eq(tableId), eq(0L), any(ColumnMapper.class))).thenReturn(rowSet1);
+		when(mockTableEntityManager.getRowSet(eq(tableId), eq(0L), anyListOf(ColumnModel.class))).thenReturn(rowSet1);
 		
 		rowSet2 = new RowSet();
 		rowSet2.setRows(Collections.singletonList(TableModelTestUtils.createRow(0L, 1L, "3")));
-		when(mockTableEntityManager.getRowSet(eq(tableId), eq(1L), any(ColumnMapper.class))).thenReturn(rowSet2);
+		when(mockTableEntityManager.getRowSet(eq(tableId), eq(1L), anyListOf(ColumnModel.class))).thenReturn(rowSet2);
 		
 		when(mockTableManagerSupport.startTableProcessing(tableId)).thenReturn(resetToken);
 		
@@ -240,7 +239,7 @@ public class TableWorkerTest {
 		// call under test
 		worker.run(mockProgressCallback, two);
 		
-		verify(mockTableEntityManager, never()).getRowSet(eq(tableId), eq(0L), any(ColumnMapper.class));
+		verify(mockTableEntityManager, never()).getRowSet(eq(tableId), eq(0L), anyListOf(ColumnModel.class));
 		verify(mockTableIndexManager).applyChangeSetToIndex(rowSet2, currentSchema, 1L);
 		
 		// Progress should be made for each change even if there is no work.
@@ -260,7 +259,7 @@ public class TableWorkerTest {
 		TableStatus status = new TableStatus();
 		status.setResetToken(resetToken);
 		List<ColumnModel> currentSchema = Lists.newArrayList();
-		when(mockTableEntityManager.getColumnModelsForTable(tableId)).thenReturn(currentSchema);
+		when(mockTableManagerSupport.getColumnModelsForTable(tableId)).thenReturn(currentSchema);
 		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
 		TableRowChange trc = new TableRowChange();
 		trc.setEtag("etag");
@@ -270,7 +269,7 @@ public class TableWorkerTest {
 		when(mockTableIndexManager.isVersionAppliedToIndex(trc.getRowVersion())).thenReturn(false);
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(Collections.singletonList(TableModelTestUtils.createRow(0L, 3L, "2")));
-		when(mockTableEntityManager.getRowSet(eq(tableId), eq(3L), any(ColumnMapper.class))).thenReturn(rowSet);
+		when(mockTableEntityManager.getRowSet(eq(tableId), eq(3L), anyListOf(ColumnModel.class))).thenReturn(rowSet);
 		two.setObjectType(ObjectType.TABLE);
 		two.setChangeType(ChangeType.UPDATE);
 		two.setObjectEtag(resetToken);
@@ -297,7 +296,7 @@ public class TableWorkerTest {
 		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
 		// This should trigger a failure
 		RuntimeException error = new RuntimeException("Something went horribly wrong!");
-		when(mockTableEntityManager.getColumnModelsForTable(tableId)).thenThrow(error);
+		when(mockTableManagerSupport.getColumnModelsForTable(tableId)).thenThrow(error);
 		two.setObjectType(ObjectType.TABLE);
 		two.setChangeType(ChangeType.UPDATE);
 		two.setObjectEtag(resetToken);

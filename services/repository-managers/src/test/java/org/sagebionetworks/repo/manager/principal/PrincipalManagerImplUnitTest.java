@@ -1,8 +1,6 @@
 package org.sagebionetworks.repo.manager.principal;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -33,6 +31,8 @@ import org.sagebionetworks.repo.model.principal.AddEmailInfo;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasRequest;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasResponse;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -670,5 +670,44 @@ public class PrincipalManagerImplUnitTest {
 		manager.removeEmail(userInfo, "bogus@email.com");
 	}
 
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetPrincipalIDWithNullRequest() {
+		manager.lookupPrincipalId(null);
+	}
 
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetPrincipalIDWithNullAlias() {
+		PrincipalAliasRequest request = new PrincipalAliasRequest();
+		request.setType(AliasType.USER_NAME);
+		manager.lookupPrincipalId(request);
+	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetPrincipalIDWithNullType() {
+		PrincipalAliasRequest request = new PrincipalAliasRequest();
+		request.setAlias("alias");
+		manager.lookupPrincipalId(request);
+	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetPrincipalIDWithUnsupoortedType() {
+		PrincipalAliasRequest request = new PrincipalAliasRequest();
+		request.setAlias("alias");
+		request.setType(AliasType.TEAM_NAME);
+		manager.lookupPrincipalId(request);
+	}
+
+	@Test
+	public void testGetPrincipalID() {
+		String alias = "alias";
+		AliasType type = AliasType.USER_NAME;
+		Long id = 1L;
+		when(mockPrincipalAliasDAO.lookupPrincipalID(alias, type)).thenReturn(id);
+		PrincipalAliasRequest request = new PrincipalAliasRequest();
+		request.setAlias(alias);
+		request.setType(type);
+		PrincipalAliasResponse response = manager.lookupPrincipalId(request);
+		assertNotNull(response);
+		assertEquals(id, response.getPrincipalId());
+	}
 }

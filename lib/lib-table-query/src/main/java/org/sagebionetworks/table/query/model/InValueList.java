@@ -46,4 +46,23 @@ public class InValueList extends SQLElement {
 			first = false;
 		}
 	}
+
+	@Override
+	public void toSql(StringBuilder builder) {
+		boolean first = true;
+		for(ValueExpression valueExpression: valueExpressions){
+			if(!first){
+				builder.append(", ");
+			}
+			valueExpression.toSql(builder);
+			first = false;
+		}
+	}
+
+	@Override
+	<T extends Element> void addElements(List<T> elements, Class<T> type) {
+		for(ValueExpression valueExpression: valueExpressions){
+			checkElement(elements, type, valueExpression);
+		}
+	}
 }

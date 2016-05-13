@@ -99,4 +99,12 @@ public interface DiscussionReplyDAO {
 	 * @return
 	 */
 	public DiscussionThreadAuthorStat getDiscussionThreadAuthorStat(long threadId);
+
+	/**
+	 * Get the projectID which this reply belongs to
+	 * 
+	 * @param replyId
+	 * @return
+	 */
+	public String getProjectId(String replyId);
 }

@@ -1,16 +1,17 @@
 package org.sagebionetworks.repo.web.controller;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import javax.servlet.ServletException;
-
 import org.junit.Test;
-import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
 import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
 import org.sagebionetworks.repo.model.principal.AliasType;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasRequest;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasResponse;
 
 public class PrincipalControllerAutowireTest extends AbstractAutowiredControllerTestBase {
 
@@ -25,5 +26,15 @@ public class PrincipalControllerAutowireTest extends AbstractAutowiredController
 		assertNotNull(response);
 		assertTrue(response.getValid());
 		assertFalse("The 'anonymous' users should already have this alias so it cannot be available!",response.getAvailable());
+	}
+
+	@Test
+	public void testGetPrincipalAlias() throws Exception {
+		PrincipalAliasRequest request = new PrincipalAliasRequest();
+		request.setAlias("anonymous");
+		request.setType(AliasType.USER_NAME);
+		PrincipalAliasResponse response = servletTestHelper.getPrincipalAlias(dispatchServlet, request);
+		assertNotNull(response);
+		assertEquals(response.getPrincipalId(), BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 	}
 }

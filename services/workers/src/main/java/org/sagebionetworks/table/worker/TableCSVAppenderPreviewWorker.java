@@ -18,7 +18,6 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewResult;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.sagebionetworks.util.csv.CsvNullReader;
 import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,6 +26,8 @@ import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.sqs.model.Message;
+
+import au.com.bytecode.opencsv.CSVReader;
 /**
  * This worker reads CSV files from S3 and appends the data to a given TableEntity.
  * 
@@ -68,7 +69,7 @@ public class TableCSVAppenderPreviewWorker implements MessageDrivenRunner {
 	 */
 	public void processStatus(final ProgressCallback<Message> progressCallback, final Message message) throws Throwable {
 		final AsynchronousJobStatus status = extractStatus(message);
-		CsvNullReader reader = null;
+		CSVReader reader = null;
 		try{
 			UserInfo user = userManger.getUserInfo(status.getStartedByUserId());
 			UploadToTablePreviewRequest body = (UploadToTablePreviewRequest) status.getRequestBody();

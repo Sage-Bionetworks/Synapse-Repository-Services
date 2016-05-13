@@ -138,12 +138,6 @@
 				<artifactId>jackson-core-asl</artifactId>
 				<version>${jackson.version}</version>
 			</dependency>
-			<!-- CSV reader and parser -->
-			<dependency>
-				<groupId>net.sf.opencsv</groupId>
-				<artifactId>opencsv</artifactId>
-				<version>2.0</version>
-			</dependency>
 
 			<dependency>
 				<groupId>org.codehaus.jackson</groupId>
@@ -546,7 +540,7 @@
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
 				<artifactId>csv-utilities</artifactId>
-				<version>1.0.1</version>
+				<version>1.0.3</version>
 			</dependency>
 			<dependency>
 				<groupId>com.google.gwt</groupId>

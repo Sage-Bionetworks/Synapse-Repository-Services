@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.discussion;
 import java.io.IOException;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
 import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
@@ -95,5 +96,40 @@ public interface DiscussionThreadManager {
 	 * @param messageKey
 	 */
 	public MessageURL getMessageUrl(UserInfo user, String messageKey);
+
+	/**
+	 * Pin a thread
+	 * 
+	 * @param userInfo
+	 * @param threadId
+	 */
+	public void pinThread(UserInfo userInfo, String threadId);
+
+	/**
+	 * unpin a thread
+	 * 
+	 * @param userInfo
+	 * @param threadId
+	 */
+	public void unpinThread(UserInfo userInfo, String threadId);
+
+	/**
+	 * Check to see if the user has read permission on this thread
+	 * 
+	 * @param userInfo
+	 * @param threadId
+	 * @param accessType
+	 */
+	void checkPermission(UserInfo userInfo, String threadId, ACCESS_TYPE accessType);
+
+	/**
+	 * Find and subscribe all subscribers to this thread
+	 * 
+	 * @param userId
+	 * @param threadId
+	 * @param forumId
+	 * @param markdown
+	 */
+	void handleSubscription(String userId, String threadId, String forumId, String markdown);
 
 }

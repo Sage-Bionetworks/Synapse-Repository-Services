@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.manager.table;
 
-import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -14,12 +14,9 @@ import org.sagebionetworks.repo.model.PaginatedIds;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
-import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
-import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.SelectColumn;
-import org.sagebionetworks.repo.model.table.SelectColumnAndModel;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -27,7 +24,6 @@ import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 
 /**
  * Basic implementation of the ColumnModelManager.
@@ -195,25 +191,22 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 	}
 
 	@Override
-	public ColumnMapper getCurrentColumns(UserInfo user, String tableId,
+	public List<ColumnModel> getCurrentColumns(UserInfo user, String tableId,
 			List<SelectColumn> selectColumns) throws DatastoreException, NotFoundException {
-		LinkedHashMap<String, SelectColumnAndModel> nameToColumnMap = Maps.newLinkedHashMap();
-		Map<Long, SelectColumnAndModel> idToColumnMap = Maps.newHashMap();
 		List<ColumnModel> columns = getColumnModelsForTable(user, tableId);
 		Map<String, ColumnModel> columnIdToModelMap = TableModelUtils.createStringIDtoColumnModelMap(columns);
+		List<ColumnModel> results = new LinkedList<ColumnModel>();
 		for (SelectColumn selectColumn : selectColumns) {
 			if (selectColumn.getId() == null) {
 				throw new IllegalArgumentException("column header " + selectColumn + " is not a valid column for this table");
 			}
 			ColumnModel columnModel = columnIdToModelMap.get(selectColumn.getId());
+			results.add(columnModel);
 			if (columnModel == null) {
 				throw new IllegalArgumentException("column header " + selectColumn + " is not a known column for this table");
 			}
-			SelectColumnAndModel selectColumnAndModel = TableModelUtils.createSelectColumnAndModel(selectColumn, columnModel);
-			nameToColumnMap.put(selectColumn.getName(), selectColumnAndModel);
-			idToColumnMap.put(Long.parseLong(selectColumn.getId()), selectColumnAndModel);
 		}
-		return TableModelUtils.createColumnMapper(nameToColumnMap, idToColumnMap);
+		return results;
 	}
 	
 }

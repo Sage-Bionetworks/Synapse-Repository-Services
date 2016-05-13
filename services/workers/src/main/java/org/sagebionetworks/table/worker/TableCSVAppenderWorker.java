@@ -13,6 +13,7 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
+import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.dbo.dao.table.CSVToRowIterator;
@@ -22,7 +23,6 @@ import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
-import org.sagebionetworks.util.csv.CsvNullReader;
 import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,6 +31,8 @@ import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.sqs.model.Message;
+
+import au.com.bytecode.opencsv.CSVReader;
 /**
  * This worker reads CSV files from S3 and appends the data to a given TableEntity.
  * 
@@ -45,6 +47,8 @@ public class TableCSVAppenderWorker implements MessageDrivenRunner {
 	private AsynchJobStatusManager asynchJobStatusManager;
 	@Autowired
 	private TableEntityManager tableEntityManager;
+	@Autowired
+	private TableManagerSupport tableManagerSupport;
 	@Autowired
 	private UserManager userManger;
 	@Autowired
@@ -71,14 +75,14 @@ public class TableCSVAppenderWorker implements MessageDrivenRunner {
 	 */
 	public void processStatus(final ProgressCallback<Message> progressCallback, final Message message) throws Throwable {
 		final AsynchronousJobStatus status = extractStatus(message);
-		CsvNullReader reader = null;
+		CSVReader reader = null;
 		try{
 			UserInfo user = userManger.getUserInfo(status.getStartedByUserId());
 			UploadToTableRequest body = (UploadToTableRequest) status.getRequestBody();
 			// Get the filehandle
 			S3FileHandle fileHandle = (S3FileHandle) fileHandleManager.getRawFileHandle(user, body.getUploadFileHandleId());
 			// Get the schema for the table
-			List<ColumnModel> tableSchema = tableEntityManager.getColumnModelsForTable(body.getTableId());
+			List<ColumnModel> tableSchema = tableManagerSupport.getColumnModelsForTable(body.getTableId());
 			// Get the metadat for this file
 			ObjectMetadata fileMetadata = s3Client.getObjectMetadata(fileHandle.getBucketName(), fileHandle.getKey());
 			long progressCurrent = 0L;
@@ -114,7 +118,7 @@ public class TableCSVAppenderWorker implements MessageDrivenRunner {
 			// Append the data to the table
 			rowCount = 0;
 			String etag = tableEntityManager.appendRowsAsStream(user, body.getTableId(),
-					TableModelUtils.createColumnModelColumnMapper(tableSchema, false), iteratorProxy, body.getUpdateEtag(), null,
+					tableSchema, iteratorProxy, body.getUpdateEtag(), null,
 					new ProgressCallback<Long>() {
 
 				@Override

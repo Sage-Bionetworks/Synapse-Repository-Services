@@ -79,9 +79,11 @@ class NodeUtils {
 		}
 		
 		if(dto.getColumnModelIds() != null){
-			rev.setColumnModelIds(createColumnModelBytesFromList(dto.getColumnModelIds()));
+			rev.setColumnModelIds(createByteForIdList(dto.getColumnModelIds()));
 		}
-		
+		if(dto.getScopeIds() != null){
+			rev.setScopeIds(createByteForIdList(dto.getScopeIds()));
+		}
 		try {
 			rev.setReference(JDOSecondaryPropertyUtils.compressReference(dto.getReference()));
 		} catch (IOException e) {
@@ -91,19 +93,19 @@ class NodeUtils {
 	
 	/**
 	 * Create the bytes for a given list of ColumnModel IDs
-	 * @param columnModelIds
+	 * @param idList
 	 * @return
 	 */
-	private static byte[] createColumnModelBytesFromList(List<String> columnModelIds) {
-		if(columnModelIds == null) throw new IllegalArgumentException("columnModelIds cannot be null");
+	public static byte[] createByteForIdList(List<String> idList) {
+		if(idList == null) throw new IllegalArgumentException("idList cannot be null");
 		StringBuilder builder = new StringBuilder();
 		int count = 0;
-		for(String id: columnModelIds){
+		for(String id: idList){
 			if(count >0){
 				builder.append(COLUMN_ID_DELIMITER);
 			}
 			// the value must be a long
-			long value = Long.parseLong(id);
+			long value = KeyFactory.stringToKey(id);
 			builder.append(value);
 			count++;
 		}
@@ -116,14 +118,14 @@ class NodeUtils {
 	
 	/**
 	 * Create a the list of column model ID from bytes.
-	 * @param columnModelIds
+	 * @param idListBytes
 	 * @return
 	 */
-	private static List<String> createColumnModelListFromBytes(byte[] columnModelIds) {
-		if(columnModelIds == null) throw new IllegalArgumentException("columnModelIds cannot be null");
+	public static List<String> createIdListFromBytes(byte[] idListBytes) {
+		if(idListBytes == null) throw new IllegalArgumentException("idListBytes cannot be null");
 		try {
 			List<String> result = new LinkedList<String>();
-			String string = new String(columnModelIds, "UTF-8");
+			String string = new String(idListBytes, "UTF-8");
 			if (string.isEmpty()) {
 				return result;
 			}
@@ -195,7 +197,10 @@ class NodeUtils {
 			throw new IllegalArgumentException(e);
 		}
 		if(rev.getColumnModelIds() != null){
-			dto.setColumnModelIds(createColumnModelListFromBytes(rev.getColumnModelIds()));
+			dto.setColumnModelIds(createIdListFromBytes(rev.getColumnModelIds()));
+		}
+		if(rev.getScopeIds() != null){
+			dto.setScopeIds(createIdListFromBytes(rev.getScopeIds()));
 		}
 		return dto;
 	}

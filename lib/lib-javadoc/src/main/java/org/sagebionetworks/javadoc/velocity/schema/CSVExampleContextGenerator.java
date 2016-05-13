@@ -16,10 +16,10 @@ import org.sagebionetworks.javadoc.velocity.ContextFactory;
 import org.sagebionetworks.javadoc.velocity.controller.ControllerUtils;
 import org.sagebionetworks.javadoc.web.services.FilterUtils;
 
-import au.com.bytecode.opencsv.CSVReader;
-
 import com.sun.javadoc.ClassDoc;
 import com.sun.javadoc.RootDoc;
+
+import au.com.bytecode.opencsv.CSVReader;
 
 /**
  * This Generator creates static example HTML page from input CSV files for any

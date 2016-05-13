@@ -1,5 +1,7 @@
 package org.sagebionetworks.table.query.model;
 
+import java.util.List;
+
 import org.sagebionetworks.table.query.model.visitors.Visitor;
 
 /**
@@ -19,5 +21,15 @@ public class SortKey extends SQLElement {
 
 	public void visit(Visitor visitor) {
 		visit(valueExpressionPrimary, visitor);
+	}
+
+	@Override
+	public void toSql(StringBuilder builder) {
+		valueExpressionPrimary.toSql(builder);
+	}
+
+	@Override
+	<T extends Element> void addElements(List<T> elements, Class<T> type) {
+		checkElement(elements, type, valueExpressionPrimary);
 	}
 }

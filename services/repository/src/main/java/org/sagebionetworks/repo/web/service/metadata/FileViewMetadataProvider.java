@@ -13,12 +13,12 @@ public class FileViewMetadataProvider implements TypeSpecificCreateProvider<File
 
 	@Override
 	public void entityUpdated(UserInfo userInfo, FileView fileView) {
-		fileViewManager.setViewSchemaAndScope(userInfo, fileView.getColumnIds(), fileView.getContainerScope(), fileView.getId());
+		fileViewManager.setViewSchemaAndScope(userInfo, fileView.getColumnIds(), fileView.getScopeIds(), fileView.getId());
 	}
 
 	@Override
 	public void entityCreated(UserInfo userInfo, FileView fileView) {
-		fileViewManager.setViewSchemaAndScope(userInfo, fileView.getColumnIds(), fileView.getContainerScope(), fileView.getId());
+		fileViewManager.setViewSchemaAndScope(userInfo, fileView.getColumnIds(), fileView.getScopeIds(), fileView.getId());
 	}
 
 

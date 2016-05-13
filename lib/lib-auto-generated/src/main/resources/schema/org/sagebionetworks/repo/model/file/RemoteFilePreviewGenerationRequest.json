@@ -1,0 +1,13 @@
+{
+	"description": "Request remote preview generation from an S3 file handle into an S3 file handle.",
+	"properties": {
+		"source": {
+			"description": "The s3 file handle to copy from.",
+			"$ref": "org.sagebionetworks.repo.model.file.S3FileHandle"
+		},
+		"destination": {
+			"description": "The S3 file handle to copy to.",
+			"$ref": "org.sagebionetworks.repo.model.file.S3FileHandle"
+		}
+	}
+}

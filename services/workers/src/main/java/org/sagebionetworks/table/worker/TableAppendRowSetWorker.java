@@ -13,14 +13,12 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.table.AppendableRowSet;
 import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
-import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowReferenceSetResults;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -95,12 +93,11 @@ public class TableAppendRowSetWorker implements MessageDrivenRunner {
 			if(appendSet instanceof PartialRowSet){
 				PartialRowSet partialRowSet = (PartialRowSet) appendSet;
 				List<ColumnModel> columnModelsForTable = columnModelManager.getColumnModelsForTable(user, tableId);
-				ColumnMapper columnMap = TableModelUtils.createColumnModelColumnMapper(columnModelsForTable, false);
-				results =  tableEntityManager.appendPartialRows(user, tableId, columnMap, partialRowSet, rowCallback);
+				results =  tableEntityManager.appendPartialRows(user, tableId, columnModelsForTable, partialRowSet, rowCallback);
 			}else if(appendSet instanceof RowSet){
 				RowSet rowSet = (RowSet)appendSet;
-				ColumnMapper columnMap = columnModelManager.getCurrentColumns(user, tableId, rowSet.getHeaders());
-				results = tableEntityManager.appendRows(user, tableId, columnMap, rowSet, rowCallback);
+				List<ColumnModel> columns = columnModelManager.getCurrentColumns(user, tableId, rowSet.getHeaders());
+				results = tableEntityManager.appendRows(user, tableId, columns, rowSet, rowCallback);
 			}else{
 				throw new IllegalArgumentException("Unknown RowSet type: "+appendSet.getClass().getName());
 			}

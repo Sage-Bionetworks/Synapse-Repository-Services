@@ -131,6 +131,8 @@ import org.sagebionetworks.repo.model.principal.AddEmailInfo;
 import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
 import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasRequest;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasResponse;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
@@ -2730,4 +2732,29 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	EntityId getEntityIdByAlias(String alias) throws SynapseException;
+
+	/**
+	 * Pin a thread
+	 * 
+	 * @param threadId
+	 * @throws SynapseException
+	 */
+	void pinThread(String threadId) throws SynapseException;
+
+	/**
+	 * Remove pinning from a thread
+	 * 
+	 * @param threadId
+	 * @throws SynapseException
+	 */
+	void unpinThread(String threadId) throws SynapseException;
+
+	/**
+	 * Return the PrincipalID for a given alias and alias type
+	 * 
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	PrincipalAliasResponse getPrincipalAlias(PrincipalAliasRequest request) throws SynapseException;
 }

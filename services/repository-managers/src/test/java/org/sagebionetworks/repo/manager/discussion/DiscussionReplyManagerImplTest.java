@@ -1,9 +1,14 @@
 package org.sagebionetworks.repo.manager.discussion;
 
 import static org.junit.Assert.*;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.*;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 import org.junit.Before;
@@ -32,6 +37,7 @@ import org.sagebionetworks.repo.model.discussion.MessageURL;
 import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -53,6 +59,8 @@ public class DiscussionReplyManagerImplTest {
 	private IdGenerator mockIdGenerator;
 	@Mock
 	private TransactionalMessenger mockTransactionalMessenger;
+	@Mock
+	private PrincipalAliasDAO mockPrincipalAliasDao;
 
 	private DiscussionReplyManager replyManager;
 	private UserInfo userInfo = new UserInfo(false /*not admin*/);
@@ -76,6 +84,7 @@ public class DiscussionReplyManagerImplTest {
 		ReflectionTestUtils.setField(replyManager, "idGenerator", mockIdGenerator);
 		ReflectionTestUtils.setField(replyManager, "subscriptionDao", mockSubscriptionDao);
 		ReflectionTestUtils.setField(replyManager, "transactionalMessenger", mockTransactionalMessenger);
+		ReflectionTestUtils.setField(replyManager, "principalAliasDao", mockPrincipalAliasDao);
 
 		Mockito.when(mockThreadManager.getThread(userInfo, threadId)).thenReturn(mockThread);
 		Mockito.when(mockThread.getProjectId()).thenReturn(projectId);
@@ -157,7 +166,7 @@ public class DiscussionReplyManagerImplTest {
 				.thenReturn(bundle);
 		DiscussionReplyBundle reply = replyManager.createReply(userInfo, createReply);
 		assertEquals(bundle, reply);
-		Mockito.verify(mockSubscriptionDao).create(userInfo.getId().toString(), reply.getThreadId(), SubscriptionObjectType.THREAD);
+		Mockito.verify(mockSubscriptionDao).subscribeAllUsers(any(Set.class), eq(reply.getThreadId()), eq(SubscriptionObjectType.THREAD));
 		Mockito.verify(mockTransactionalMessenger).sendMessageAfterCommit(replyId.toString(), ObjectType.REPLY, bundle.getEtag(), ChangeType.CREATE, userInfo.getId());
 	}
 
@@ -210,10 +219,12 @@ public class DiscussionReplyManagerImplTest {
 		newMessage.setMessageMarkdown("messageMarkdown");
 		replyManager.updateReplyMessage(userInfo, replyId.toString(), newMessage);
 		Mockito.verify(mockReplyDao).updateMessageKey(replyId, messageKey);
+		Mockito.verify(mockSubscriptionDao).subscribeAllUsers(any(Set.class), eq(threadId), eq(SubscriptionObjectType.THREAD));
 	}
 
 	@Test (expected = UnauthorizedException.class)
 	public void testMarkReplyAsDeletedUnauthorized() {
+		Mockito.when(mockReplyDao.getProjectId(replyId.toString())).thenReturn(projectId);
 		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.MODERATE))
 				.thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		replyManager.markReplyAsDeleted(userInfo, replyId.toString());
@@ -222,6 +233,7 @@ public class DiscussionReplyManagerImplTest {
 
 	@Test
 	public void testMarkReplyAsDeletedAuthorized() {
+		Mockito.when(mockReplyDao.getProjectId(replyId.toString())).thenReturn(projectId);
 		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.MODERATE))
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		replyManager.markReplyAsDeleted(userInfo, replyId.toString());
@@ -230,6 +242,7 @@ public class DiscussionReplyManagerImplTest {
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testGetRepliesForThreadWithNullUserInfo() {
+		Mockito.doThrow(new IllegalArgumentException()).when(mockThreadManager).checkPermission(null, threadId, ACCESS_TYPE.READ);
 		replyManager.getRepliesForThread(null, threadId, 2L, 0L, DiscussionReplyOrder.CREATED_ON, false, DiscussionFilter.NO_FILTER);
 	}
 
@@ -240,8 +253,7 @@ public class DiscussionReplyManagerImplTest {
 
 	@Test (expected = UnauthorizedException.class)
 	public void testGetRepliesForThreadUnauthorized() {
-		Mockito.when(mockThreadManager.getThread(userInfo, threadId))
-				.thenThrow(new UnauthorizedException());
+		Mockito.doThrow(new UnauthorizedException()).when(mockThreadManager).checkPermission(userInfo, threadId, ACCESS_TYPE.READ);
 		replyManager.getRepliesForThread(userInfo, threadId, 2L, 0L, DiscussionReplyOrder.CREATED_ON, true, DiscussionFilter.NO_FILTER);
 	}
 
@@ -259,6 +271,7 @@ public class DiscussionReplyManagerImplTest {
 
 	@Test (expected = UnauthorizedException.class)
 	public void testGetReplyUrlUnauthorized() {
+		Mockito.when(mockReplyDao.getProjectId(replyId.toString())).thenReturn(projectId);
 		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
 				.thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		replyManager.getMessageUrl(userInfo, messageKey);
@@ -266,6 +279,7 @@ public class DiscussionReplyManagerImplTest {
 
 	@Test
 	public void testGetReplyUrlAuthorized() {
+		Mockito.when(mockReplyDao.getProjectId(replyId.toString())).thenReturn(projectId);
 		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		MessageURL url = replyManager.getMessageUrl(userInfo, messageKey);
@@ -275,6 +289,7 @@ public class DiscussionReplyManagerImplTest {
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testGetReplyCountForThreadWithNullUserInfo() {
+		Mockito.doThrow(new IllegalArgumentException()).when(mockThreadManager).checkPermission(null, threadId, ACCESS_TYPE.READ);
 		replyManager.getReplyCountForThread(null, threadId, DiscussionFilter.NO_FILTER);
 	}
 
@@ -285,8 +300,7 @@ public class DiscussionReplyManagerImplTest {
 
 	@Test (expected = UnauthorizedException.class)
 	public void testGetReplyCountForThreadUnauthorized() {
-		Mockito.when(mockThreadManager.getThread(userInfo, threadId))
-				.thenThrow(new UnauthorizedException());
+		Mockito.doThrow(new UnauthorizedException()).when(mockThreadManager).checkPermission(userInfo, threadId, ACCESS_TYPE.READ);
 		replyManager.getReplyCountForThread(userInfo, threadId, DiscussionFilter.NO_FILTER);
 	}
 
@@ -297,5 +311,35 @@ public class DiscussionReplyManagerImplTest {
 		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		assertEquals((Long)3L, replyManager.getReplyCountForThread(userInfo, threadId, DiscussionFilter.NO_FILTER).getCount());
+	}
+
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testHandleSubscriptionWithNullMarkdown() {
+		replyManager.handleSubscription(userInfo.getId().toString(), threadId.toString(), null);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testHandleSubscriptionWithNullThreadId() {
+		replyManager.handleSubscription(userInfo.getId().toString(), null, "");
+	}
+
+	@Test
+	public void testHandleSubscriptionWithNulluserId() {
+		replyManager.handleSubscription(null, threadId.toString(), "");
+		verify(mockPrincipalAliasDao).lookupPrincipalIds(any(Set.class));
+		verify(mockSubscriptionDao).subscribeAllUsers(any(Set.class), eq(threadId.toString()), eq(SubscriptionObjectType.THREAD));
+	}
+
+	@Test
+	public void testHandleSubscription() {
+		String anonymous = "-1";
+		Set<String> toSubscribe = new HashSet<String>();
+		toSubscribe.add(anonymous);
+		when(mockPrincipalAliasDao.lookupPrincipalIds(any(Set.class))).thenReturn(toSubscribe);
+		toSubscribe.add(userInfo.getId().toString());
+		replyManager.handleSubscription(userInfo.getId().toString(), threadId.toString(), "@anonymous");
+		verify(mockPrincipalAliasDao).lookupPrincipalIds(any(Set.class));
+		verify(mockSubscriptionDao).subscribeAllUsers(toSubscribe, threadId.toString(), SubscriptionObjectType.THREAD);
 	}
 }

@@ -1,6 +1,7 @@
 package org.sagebionetworks.table.query.model;
 
-import org.sagebionetworks.table.query.model.visitors.GetTableNameVisitor;
+import java.util.List;
+
 import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor;
 import org.sagebionetworks.table.query.model.visitors.ToTranslatedSqlVisitor;
 import org.sagebionetworks.table.query.model.visitors.Visitor;
@@ -31,7 +32,13 @@ public class TableReference extends SQLElement {
 		visitor.convertTableName(tableName);
 	}
 
-	public void visit(GetTableNameVisitor visitor) {
-		visitor.setTableName(tableName);
+	@Override
+	public void toSql(StringBuilder builder) {
+		builder.append(tableName);
+	}
+
+	@Override
+	<T extends Element> void addElements(List<T> elements, Class<T> type) {
+		// this element does not contain any SQLElements
 	}
 }

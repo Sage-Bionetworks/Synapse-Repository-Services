@@ -1,0 +1,9 @@
+{
+	"description": "The response of a principal alias lookup request",
+	"properties": {
+		"principalId": {
+			"type": "integer",
+			"description": "The ID of the principal to bind the alias too."
+		}
+	}
+}

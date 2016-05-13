@@ -13,8 +13,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
-import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.dao.discussion.DiscussionThreadDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
@@ -41,8 +39,6 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 	private JdbcTemplate jdbcTemplate;
 	@Autowired
 	private DBOBasicDao basicDao;
-	@Autowired
-	private IdGenerator idGenerator;
 
 	public static final Charset UTF8 = Charset.forName("UTF-8");
 	private RowMapper<DiscussionThreadBundle> DISCUSSION_THREAD_BUNDLE_ROW_MAPPER = new RowMapper<DiscussionThreadBundle>(){
@@ -63,6 +59,7 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 			dto.setMessageKey(rs.getString(COL_DISCUSSION_THREAD_MESSAGE_KEY));
 			dto.setIsEdited(rs.getBoolean(COL_DISCUSSION_THREAD_IS_EDITED));
 			dto.setIsDeleted(rs.getBoolean(COL_DISCUSSION_THREAD_IS_DELETED));
+			dto.setIsPinned(rs.getBoolean(COL_DISCUSSION_THREAD_IS_PINNED));
 			long numberOfViews = rs.getLong(COL_DISCUSSION_THREAD_STATS_NUMBER_OF_VIEWS);
 			if (rs.wasNull()) {
 				dto.setNumberOfViews(0L);
@@ -110,6 +107,14 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 			+" SET "+COL_DISCUSSION_THREAD_IS_DELETED+" = TRUE, "
 			+COL_DISCUSSION_THREAD_ETAG+" = ? "
 			+" WHERE "+COL_DISCUSSION_THREAD_ID+" = ?";
+	private static final String SQL_PIN_THREAD = "UPDATE "+TABLE_DISCUSSION_THREAD
+			+" SET "+COL_DISCUSSION_THREAD_IS_PINNED+" = TRUE, "
+			+COL_DISCUSSION_THREAD_ETAG+" = ? "
+			+" WHERE "+COL_DISCUSSION_THREAD_ID+" = ?";
+	private static final String SQL_UNPIN_THREAD = "UPDATE "+TABLE_DISCUSSION_THREAD
+			+" SET "+COL_DISCUSSION_THREAD_IS_PINNED+" = FALSE, "
+			+COL_DISCUSSION_THREAD_ETAG+" = ? "
+			+" WHERE "+COL_DISCUSSION_THREAD_ID+" = ?";
 	private static final String SQL_UPDATE_TITLE = "UPDATE "+TABLE_DISCUSSION_THREAD
 			+" SET "+COL_DISCUSSION_THREAD_TITLE+" = ?, "
 			+COL_DISCUSSION_THREAD_IS_EDITED+" = TRUE, "
@@ -121,6 +126,17 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 			+COL_DISCUSSION_THREAD_IS_EDITED+" = TRUE, "
 			+COL_DISCUSSION_THREAD_ETAG+" = ?, "
 			+COL_DISCUSSION_THREAD_MODIFIED_ON+" = ? "
+			+" WHERE "+COL_DISCUSSION_THREAD_ID+" = ?";
+
+	private static final String SELECT_PROJECT_ID = "SELECT "
+			+TABLE_FORUM+"."+COL_FORUM_PROJECT_ID
+			+" FROM "+TABLE_DISCUSSION_THREAD+", "+TABLE_FORUM
+			+" WHERE "+TABLE_DISCUSSION_THREAD+"."+COL_DISCUSSION_THREAD_FORUM_ID
+			+" = "+TABLE_FORUM+"."+COL_FORUM_ID
+			+ " AND "+TABLE_DISCUSSION_THREAD+"."+COL_DISCUSSION_THREAD_ID+" = ?";
+
+	private static final String SELECT_AUTHOR = "SELECT "+COL_DISCUSSION_THREAD_CREATED_BY
+			+" FROM "+TABLE_DISCUSSION_THREAD
 			+" WHERE "+COL_DISCUSSION_THREAD_ID+" = ?";
 
 	private static final String SELECT_THREAD_BUNDLE = "SELECT "
@@ -135,6 +151,7 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 			+TABLE_DISCUSSION_THREAD+"."+COL_DISCUSSION_THREAD_MESSAGE_KEY+" AS "+COL_DISCUSSION_THREAD_MESSAGE_KEY+", "
 			+TABLE_DISCUSSION_THREAD+"."+COL_DISCUSSION_THREAD_IS_EDITED+" AS "+COL_DISCUSSION_THREAD_IS_EDITED+", "
 			+TABLE_DISCUSSION_THREAD+"."+COL_DISCUSSION_THREAD_IS_DELETED+" AS "+COL_DISCUSSION_THREAD_IS_DELETED+", "
+			+TABLE_DISCUSSION_THREAD+"."+COL_DISCUSSION_THREAD_IS_PINNED+" AS "+COL_DISCUSSION_THREAD_IS_PINNED+", "
 			+TABLE_DISCUSSION_THREAD_STATS+"."+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_VIEWS+" AS "+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_VIEWS+", "
 			+TABLE_DISCUSSION_THREAD_STATS+"."+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_REPLIES+" AS "+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_REPLIES+", "
 			+"IFNULL("+COL_DISCUSSION_THREAD_STATS_LAST_ACTIVITY+", "+COL_DISCUSSION_THREAD_MODIFIED_ON+") AS "+COL_DISCUSSION_THREAD_STATS_LAST_ACTIVITY+", "
@@ -155,7 +172,8 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 			+" WHERE "+COL_DISCUSSION_THREAD_FORUM_ID+" = ?";
 	private static final String SQL_SELECT_THREADS_BY_FORUM_ID = SELECT_THREAD_BUNDLE
 			+" WHERE "+COL_DISCUSSION_THREAD_FORUM_ID+" = ?";
-	private static final String ORDER_BY_LAST_ACTIVITY = " ORDER BY "+COL_DISCUSSION_THREAD_STATS_LAST_ACTIVITY;
+	private static final String ORDER_BY_PINNED_AND_LAST_ACTIVITY = " ORDER BY "+COL_DISCUSSION_THREAD_IS_PINNED+" DESC, "
+			+COL_DISCUSSION_THREAD_STATS_LAST_ACTIVITY;
 	private static final String ORDER_BY_NUMBER_OF_VIEWS = " ORDER BY "+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_VIEWS;
 	private static final String ORDER_BY_NUMBER_OF_REPLIES = " ORDER BY "+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_REPLIES;
 	private static final String DESC = " DESC ";
@@ -171,10 +189,9 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 
 	private static final String SQL_UPDATE_THREAD_VIEW_TABLE = "INSERT IGNORE INTO "
 			+TABLE_DISCUSSION_THREAD_VIEW+" ("
-			+COL_DISCUSSION_THREAD_VIEW_ID+","
 			+COL_DISCUSSION_THREAD_VIEW_THREAD_ID+","
 			+COL_DISCUSSION_THREAD_VIEW_USER_ID
-			+") VALUES (?,?,?)";
+			+") VALUES (?,?)";
 	private static final String SQL_SELECT_THREAD_VIEW_COUNT = "SELECT COUNT(*)"
 			+" FROM "+TABLE_DISCUSSION_THREAD_VIEW
 			+" WHERE "+COL_DISCUSSION_THREAD_VIEW_THREAD_ID+" = ?";
@@ -230,8 +247,7 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 	@WriteTransactionReadCommitted
 	@Override
 	public void updateThreadView(long threadId, long userId) {
-		long id = idGenerator.generateNewId(TYPE.DISCUSSION_THREAD_VIEW_ID);
-		jdbcTemplate.update(SQL_UPDATE_THREAD_VIEW_TABLE, id, threadId, userId);
+		jdbcTemplate.update(SQL_UPDATE_THREAD_VIEW_TABLE, threadId, userId);
 	}
 
 	@Override
@@ -270,8 +286,8 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 				case NUMBER_OF_VIEWS:
 					query += ORDER_BY_NUMBER_OF_VIEWS;
 					break;
-				case LAST_ACTIVITY:
-					query += ORDER_BY_LAST_ACTIVITY;
+				case PINNED_AND_LAST_ACTIVITY:
+					query += ORDER_BY_PINNED_AND_LAST_ACTIVITY;
 					break;
 				default:
 					throw new IllegalArgumentException("Unsupported order "+order);
@@ -310,6 +326,20 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 	public void markThreadAsDeleted(long threadId) {
 		String etag = UUID.randomUUID().toString();
 		jdbcTemplate.update(SQL_MARK_THREAD_AS_DELETED, etag, threadId);
+	}
+
+	@WriteTransactionReadCommitted
+	@Override
+	public void pinThread(long threadId) {
+		String etag = UUID.randomUUID().toString();
+		jdbcTemplate.update(SQL_PIN_THREAD, etag, threadId);
+	}
+
+	@WriteTransactionReadCommitted
+	@Override
+	public void unpinThread(long threadId) {
+		String etag = UUID.randomUUID().toString();
+		jdbcTemplate.update(SQL_UNPIN_THREAD, etag, threadId);
 	}
 
 	@WriteTransactionReadCommitted
@@ -454,5 +484,33 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 	public List<String> getAllThreadIdForForum(String forumId) {
 		ValidateArgument.required(forumId, "forumId");
 		return jdbcTemplate.queryForList(SQL_SELECT_ALL_THREAD_ID_FOR_FORUM, new Object[]{forumId}, String.class);
+	}
+
+	@Override
+	public String getProjectId(String threadId) {
+		List<String> queryResult = jdbcTemplate.query(SELECT_PROJECT_ID, new RowMapper<String>(){
+			@Override
+			public String mapRow(ResultSet rs, int rowNum) throws SQLException {
+				return KeyFactory.keyToString(rs.getLong(COL_FORUM_PROJECT_ID));
+			}
+		}, threadId);
+		if (queryResult.size() != 1) {
+			throw new NotFoundException();
+		}
+		return queryResult.get(0);
+	}
+
+	@Override
+	public String getAuthor(String threadId) {
+		List<String> queryResult = jdbcTemplate.query(SELECT_AUTHOR, new RowMapper<String>(){
+			@Override
+			public String mapRow(ResultSet rs, int rowNum) throws SQLException {
+				return rs.getString(COL_DISCUSSION_THREAD_CREATED_BY);
+			}
+		}, threadId);
+		if (queryResult.size() != 1) {
+			throw new NotFoundException();
+		}
+		return queryResult.get(0);
 	}
 }

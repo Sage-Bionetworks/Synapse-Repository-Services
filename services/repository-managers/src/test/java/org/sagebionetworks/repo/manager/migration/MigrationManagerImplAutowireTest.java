@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.manager.migration;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
@@ -28,6 +27,7 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
+import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ProjectSettingsDAO;
@@ -83,6 +83,9 @@ public class MigrationManagerImplAutowireTest {
 
 	@Autowired
 	TableEntityManager tableEntityManager;
+	
+	@Autowired
+	TableManagerSupport tableManagerSupport;
 
 	@Autowired
 	EntityManager entityManager;
@@ -173,9 +176,9 @@ public class MigrationManagerImplAutowireTest {
 			// Now add some data
 			RowSet rowSet = new RowSet();
 			rowSet.setRows(TableModelTestUtils.createRows(schema, 2));
-			rowSet.setHeaders(TableModelUtils.createColumnModelColumnMapper(schema, false).getSelectColumns());
+			rowSet.setHeaders(TableModelUtils.getSelectColumns(schema, false));
 			rowSet.setTableId(tableId);
-			tableEntityManager.appendRows(adminUser, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false), rowSet, mockProgressCallback);
+			tableEntityManager.appendRows(adminUser, tableId, schema, rowSet, mockProgressCallback);
 		}
 		stackConfig = new StackConfiguration();
 	}
@@ -353,15 +356,15 @@ public class MigrationManagerImplAutowireTest {
 		// Do this only if table enabled
 		if (StackConfiguration.singleton().getTableEnabled()) {
 			// pretend to be worker and generate caches and index
-			List<ColumnModel> currentSchema = tableEntityManager.getColumnModelsForTable(tableId);
+			List<ColumnModel> currentSchema = tableManagerSupport.getColumnModelsForTable(tableId);
 			TableIndexDAO indexDao = tableConnectionFactory.getConnection(tableId);
 			indexDao.createOrUpdateTable(currentSchema, tableId);
 			List<ColumnModel> models = columnManager.getColumnModelsForTable(adminUser, tableId);
 			RowReferenceSet rowRefs = new RowReferenceSet();
 			rowRefs.setRows(Collections.singletonList(TableModelTestUtils.createRowReference(0L, 0L)));
 			rowRefs.setTableId(tableId);
-			rowRefs.setHeaders(TableModelUtils.createColumnModelColumnMapper(models, false).getSelectColumns());
-			tableEntityManager.getCellValues(adminUser, tableId, rowRefs, TableModelUtils.createColumnModelColumnMapper(models, false));
+			rowRefs.setHeaders(TableModelUtils.getSelectColumns(models, false));
+			tableEntityManager.getCellValues(adminUser, tableId, rowRefs, models);
 
 			assertEquals(0, indexDao.getRowCountForTable(tableId).intValue());
 

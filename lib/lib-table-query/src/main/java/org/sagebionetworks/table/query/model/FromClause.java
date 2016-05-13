@@ -1,5 +1,7 @@
 package org.sagebionetworks.table.query.model;
 
+import java.util.List;
+
 import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor;
 import org.sagebionetworks.table.query.model.visitors.Visitor;
 
@@ -27,5 +29,16 @@ public class FromClause extends SQLElement {
 	public void visit(ToSimpleSqlVisitor visitor) {
 		visitor.append("FROM ");
 		visit(tableReference, visitor);
+	}
+
+	@Override
+	public void toSql(StringBuilder builder) {
+		builder.append("FROM ");
+		tableReference.toSql(builder);
+	}
+
+	@Override
+	<T extends Element> void addElements(List<T> elements, Class<T> type) {
+		checkElement(elements, type, tableReference);
 	}
 }

@@ -1,6 +1,7 @@
 package org.sagebionetworks.table.query.model;
 
-import org.sagebionetworks.table.query.model.visitors.ColumnTypeVisitor;
+import java.util.List;
+
 import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor;
 import org.sagebionetworks.table.query.model.visitors.ToTranslatedSqlVisitor;
 import org.sagebionetworks.table.query.model.visitors.Visitor;
@@ -50,7 +51,18 @@ public class ColumnReference extends SQLElement {
 		visitor.convertColumn(this);
 	}
 
-	public void visit(ColumnTypeVisitor visitor) {
-		visitor.setColumnReference(nameRHS);
+	@Override
+	public void toSql(StringBuilder builder) {
+		if (nameLHS != null) {
+			nameLHS.toSql(builder);
+			builder.append(".");
+		}
+		nameRHS.toSql(builder);
+	}
+
+	@Override
+	<T extends Element> void addElements(List<T> elements, Class<T> type) {
+		checkElement(elements, type, nameLHS);
+		checkElement(elements, type, nameRHS);
 	}
 }

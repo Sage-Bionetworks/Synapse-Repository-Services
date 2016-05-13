@@ -14,7 +14,6 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.RowAndHeaderHandler;
-import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.Query;
@@ -43,7 +42,6 @@ import org.sagebionetworks.table.query.model.Pagination;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.model.SqlDirective;
-import org.sagebionetworks.table.query.model.visitors.GetTableNameVisitor;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 import org.sagebionetworks.util.Closer;
 import org.sagebionetworks.util.Pair;
@@ -114,7 +112,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		Long maxRowsPerPage = null;
 		boolean oneRowWasAdded = false;
 		if (runQuery || (runCount && query.isAggregatedResult())) {
-			maxRowsPerPage = getMaxRowsPerPage(query.getSelectColumnModels());
+			maxRowsPerPage = getMaxRowsPerPageSelectColumns(query.getSelectColumns());
 			if (maxRowsPerPage == null || maxRowsPerPage == 0) {
 				maxRowsPerPage = 100L;
 			}
@@ -166,7 +164,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 				if (BooleanUtils.isTrue(paginatedQuery.getModel().getSelectList().getAsterisk())) {
 					// bug in mysql, SQL_CALC_FOUND_ROWS does not work when the select is '*'. Expand to the known
 					// columns
-					paginatedSelectList = new SelectList(Lists.transform(paginatedQuery.getSelectColumnModels().getSelectColumns(),
+					paginatedSelectList = new SelectList(Lists.transform(paginatedQuery.getSelectColumns(),
 							new Function<SelectColumn, DerivedColumn>() {
 								@Override
 								public DerivedColumn apply(SelectColumn input) {
@@ -287,7 +285,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		}
 		// select columns must be fetched for for the select columns or max rows per page.
 		if ((partMask & BUNDLE_MASK_QUERY_SELECT_COLUMNS) > 0) {
-			bundle.setSelectColumns(sqlQuery.getSelectColumnModels().getSelectColumns());
+			bundle.setSelectColumns(sqlQuery.getSelectColumns());
 		}
 		// all schema columns
 		if ((partMask & BUNDLE_MASK_QUERY_MAX_ROWS_PER_PAGE) > 0) {
@@ -295,7 +293,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		}
 		// Max rows per column
 		if ((partMask & BUNDLE_MASK_QUERY_MAX_ROWS_PER_PAGE) > 0) {
-			bundle.setMaxRowsPerPage(getMaxRowsPerPage(sqlQuery.getSelectColumnModels()));
+			bundle.setMaxRowsPerPage(getMaxRowsPerPageSelectColumns(sqlQuery.getSelectColumns()));
 		}
 		return bundle;
 	}
@@ -366,7 +364,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			model = SqlElementUntils.convertToSortedQuery(model, sortList);
 		}
 
-		String tableId = model.doVisit(new GetTableNameVisitor()).getTableName();
+		String tableId = model.getTableName();
 		if (tableId == null) {
 			throw new IllegalArgumentException("Could not parse the table name in the sql expression: " + sql);
 		}
@@ -412,7 +410,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 
 				@Override
 				public void writeHeader() {
-					results.setHeaders(query.getSelectColumnModels().getSelectColumns());
+					results.setHeaders(query.getSelectColumns());
 				}
 
 				@Override
@@ -537,13 +535,13 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		final DownloadFromTableResult repsonse = new DownloadFromTableResult();
 		final boolean includeRowIdAndVersionFinal = includeRowIdAndVersion;
 		repsonse.setTableId(query.getTableId());
-		repsonse.setHeaders(query.getSelectColumnModels().getSelectColumns());
+		repsonse.setHeaders(query.getSelectColumns());
 
 		runConsistentQueryAsStream(progressCallback, Collections.singletonList(new QueryHandler(query, new RowAndHeaderHandler() {
 			@Override
 			public void writeHeader() {
 				if (writeHeader) {
-					String[] csvHeaders = TableModelUtils.createColumnNameHeader(query.getSelectColumnModels().getSelectColumns(),
+					String[] csvHeaders = TableModelUtils.createColumnNameHeader(query.getSelectColumns(),
 							includeRowIdAndVersionFinal);
 					writer.writeNext(csvHeaders);
 				}
@@ -587,20 +585,20 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			throw new IllegalArgumentException(e);
 		}
 	}
-	
-	@Override
-	public Long getMaxRowsPerPage(ColumnMapper columnMapper) {
-		// Calculate the size
-		int maxRowSizeBytes = TableModelUtils.calculateMaxRowSizeForColumnModels(columnMapper);
-		if (maxRowSizeBytes < 1)
-			return null;
-		return (long) (this.maxBytesPerRequest / maxRowSizeBytes);
-	}
 
 	@Override
 	public Long getMaxRowsPerPage(List<ColumnModel> models) {
 		// Calculate the size
 		int maxRowSizeBytes = TableModelUtils.calculateMaxRowSize(models);
+		if (maxRowSizeBytes < 1)
+			return null;
+		return (long) (this.maxBytesPerRequest / maxRowSizeBytes);
+	}
+	
+	@Override
+	public Long getMaxRowsPerPageSelectColumns(List<SelectColumn> models) {
+		// Calculate the size
+		int maxRowSizeBytes = TableModelUtils.calculateMaxRowSizeForSelectColumn(models);
 		if (maxRowSizeBytes < 1)
 			return null;
 		return (long) (this.maxBytesPerRequest / maxRowSizeBytes);

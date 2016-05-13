@@ -8,16 +8,12 @@ import java.io.StringWriter;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 
-import org.sagebionetworks.collections.Transform;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.table.AbstractColumnMapper;
-import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.IdRange;
@@ -26,15 +22,14 @@ import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
-import org.sagebionetworks.repo.model.table.SelectColumnAndModel;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.util.csv.CsvNullReader;
-
-import au.com.bytecode.opencsv.CSVWriter;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+
+import au.com.bytecode.opencsv.CSVReader;
+import au.com.bytecode.opencsv.CSVWriter;
 
 /**
  * Utilities for working with Tables and Row data.
@@ -53,67 +48,6 @@ public class TableModelTestUtils {
 	 */
 	public static List<ColumnModel> createOneOfEachType() {
 		return createOneOfEachType(false);
-	}
-
-	public static ColumnMapper createMapperForOneOfEachType() {
-		return new AbstractColumnMapper() {
-			@Override
-			protected LinkedHashMap<String, SelectColumnAndModel> createNameToModelMap() {
-				List<SelectColumnAndModel> selectColumnAndModels = createSelectColumnAndModelList();
-				return Transform.toOrderedIdMap(selectColumnAndModels, new Function<SelectColumnAndModel, String>() {
-					@Override
-					public String apply(SelectColumnAndModel input) {
-						return input.getColumnModel().getName();
-					}
-				});
-			}
-
-			@Override
-			protected Map<Long, SelectColumnAndModel> createIdToModelMap() {
-				List<SelectColumnAndModel> selectColumnAndModels = createSelectColumnAndModelList();
-				return Transform.toIdMap(selectColumnAndModels, new Function<SelectColumnAndModel, Long>() {
-					@Override
-					public Long apply(SelectColumnAndModel input) {
-						return Long.parseLong(input.getColumnModel().getId());
-					}
-				});
-			}
-
-			@Override
-			protected List<SelectColumnAndModel> createSelectColumnAndModelList() {
-				List<ColumnModel> oneOfEachType = createOneOfEachType(false);
-				return Transform.toList(oneOfEachType, new Function<ColumnModel, SelectColumnAndModel>() {
-					@Override
-					public SelectColumnAndModel apply(final ColumnModel input) {
-						return new SelectColumnAndModel() {
-							@Override
-							public String getName() {
-								return input.getName();
-							}
-
-							@Override
-							public ColumnType getColumnType() {
-								return input.getColumnType();
-							}
-
-							@Override
-							public SelectColumn getSelectColumn() {
-								SelectColumn selectColumn = new SelectColumn();
-								selectColumn.setName(input.getName());
-								selectColumn.setColumnType(input.getColumnType());
-								selectColumn.setId(input.getId());
-								return selectColumn;
-							}
-
-							@Override
-							public ColumnModel getColumnModel() {
-								return input;
-							}
-						};
-					}
-				});
-			}
-		};
 	}
 
 	public static final Function<ColumnModel, String> convertToNameFunction = new Function<ColumnModel, String>() {
@@ -488,10 +422,10 @@ public class TableModelTestUtils {
 	 * @return
 	 * @throws IOException
 	 */
-	public static CsvNullReader createReader(List<String[]> input) throws IOException {
+	public static CSVReader createReader(List<String[]> input) throws IOException {
 		String csv = createCSVString(input);
 		StringReader reader = new StringReader(csv);
-		return new CsvNullReader(reader);
+		return new CSVReader(reader);
 	}
 
 	/**

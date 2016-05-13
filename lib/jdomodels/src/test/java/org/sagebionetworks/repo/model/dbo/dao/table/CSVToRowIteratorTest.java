@@ -21,9 +21,10 @@ import org.junit.runners.Parameterized.Parameters;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Row;
-import org.sagebionetworks.util.csv.CsvNullReader;
 
 import com.google.common.collect.Lists;
+
+import au.com.bytecode.opencsv.CSVReader;
 
 /**
  * Tests for CSVToRowIterator.
@@ -52,7 +53,7 @@ public class CSVToRowIteratorTest {
 		input.add(new String[] { "AAA", "2", "true" });
 		input.add(new String[] { "CCC", "3", "false" });
 		input.add(new String[] { "FFF", "4", "true" });
-		CsvNullReader reader = TableModelTestUtils.createReader(input);
+		CSVReader reader = TableModelTestUtils.createReader(input);
 		// Create some columns
 		List<ColumnModel> columns = TableModelTestUtils.createColumsWithNames(
 				"a", "b", "c");
@@ -92,7 +93,7 @@ public class CSVToRowIteratorTest {
 		input.add(new String[] { "AAA", "2", "true" });
 		input.add(new String[] { "CCC", "3", "false" });
 		input.add(new String[] { "FFF", "4", "true" });
-		CsvNullReader reader = TableModelTestUtils.createReader(input);
+		CSVReader reader = TableModelTestUtils.createReader(input);
 		// Create some columns
 		List<ColumnModel> columns = TableModelTestUtils.createColumsWithNames(
 				"a", "b", "c");
@@ -130,7 +131,7 @@ public class CSVToRowIteratorTest {
 		input.add(new String[] { "AAA", "2", "true" });
 		input.add(new String[] { "CCC", "3", "false" });
 		input.add(new String[] { "FFF", "4", "true" });
-		CsvNullReader reader = TableModelTestUtils.createReader(input);
+		CSVReader reader = TableModelTestUtils.createReader(input);
 		// Create some columns
 		List<ColumnModel> columns = TableModelTestUtils.createColumsWithNames("a", "b", "c");
 		columns.get(0).setColumnType(ColumnType.STRING);
@@ -165,7 +166,7 @@ public class CSVToRowIteratorTest {
 		input.add(new String[] { "AAA", "2", "true" });
 		input.add(new String[] { "CCC", "3", "false" });
 		input.add(new String[] { "FFF", "4", "true" });
-		CsvNullReader reader = TableModelTestUtils.createReader(input);
+		CSVReader reader = TableModelTestUtils.createReader(input);
 		// Create some columns
 		List<ColumnModel> columns = TableModelTestUtils.createColumsWithNames(
 				"a", "b", "c");
@@ -184,7 +185,7 @@ public class CSVToRowIteratorTest {
 		input.add(new String[] { "AAA", "2", "true" });
 		input.add(new String[] { "CCC", "3", "false" });
 		input.add(new String[] { "FFF", "4", "true" });
-		CsvNullReader reader = TableModelTestUtils.createReader(input);
+		CSVReader reader = TableModelTestUtils.createReader(input);
 		// Create some columns
 		List<ColumnModel> columns = TableModelTestUtils.createColumsWithNames("a", "b", "c");
 		columns.get(0).setColumnType(ColumnType.STRING);
@@ -206,7 +207,7 @@ public class CSVToRowIteratorTest {
 		input.add(new String[] { "AAA", "2", "true" });
 		input.add(new String[] { "CCC", "3", "false" });
 		input.add(new String[] { "FFF", "4", "true" });
-		CsvNullReader reader = TableModelTestUtils.createReader(input);
+		CSVReader reader = TableModelTestUtils.createReader(input);
 		// Create some columns
 		List<ColumnModel> columns = TableModelTestUtils.createColumsWithNames(
 				"c", "b", "a");
@@ -249,7 +250,7 @@ public class CSVToRowIteratorTest {
 		input.add(new String[] { "AAA", "2", null, "1", "11" });
 		input.add(new String[] { "CCC", "3", "false", null, null });
 		input.add(new String[] { "FFF", null, "true", "3", "10" });
-		CsvNullReader reader = TableModelTestUtils.createReader(input);
+		CSVReader reader = TableModelTestUtils.createReader(input);
 		// Create some columns
 		List<ColumnModel> columns = TableModelTestUtils.createColumsWithNames(
 				"c", "b", "a");
@@ -298,7 +299,7 @@ public class CSVToRowIteratorTest {
 			"1,11,AAA,2,\n" +
 			",,CCC,3,false\n" +
 			"3,10\n";
-		CsvNullReader reader = new CsvNullReader(new StringReader(csv));
+		CSVReader reader = new CSVReader(new StringReader(csv));
 		// Create some columns
 		List<ColumnModel> columns = TableModelTestUtils.createColumsWithNames("a", "b", "c");
 		// Create the iterator.
@@ -321,7 +322,7 @@ public class CSVToRowIteratorTest {
 			"1,11,AAA,\n" +
 			",,CCC,false\n" +
 			"3,10\n";
-		CsvNullReader reader = new CsvNullReader(new StringReader(csv));
+		CSVReader reader = new CSVReader(new StringReader(csv));
 		// Create some columns
 		List<ColumnModel> columns = TableModelTestUtils.createColumsWithNames("a", "b", "c");
 		// Create the iterator.
@@ -343,7 +344,7 @@ public class CSVToRowIteratorTest {
 			"1,11,AAA,2,\n" +
 			",,CCC,3,false\n" +
 			"3,10\n";
-		CsvNullReader reader = new CsvNullReader(new StringReader(csv));
+		CSVReader reader = new CSVReader(new StringReader(csv));
 		// Create some columns
 		List<ColumnModel> columns = TableModelTestUtils.createColumsWithNames("a", "b", "c");
 		// Create the iterator.
@@ -365,7 +366,7 @@ public class CSVToRowIteratorTest {
 			"1,11,AAA,2,\n"+
 			",,CCC,3,false\n" +
 			"3,10\n";
-		CsvNullReader reader = new CsvNullReader(new StringReader(csv));
+		CSVReader reader = new CSVReader(new StringReader(csv));
 		// Create some columns
 		List<ColumnModel> columns = TableModelTestUtils.createColumsWithNames("c", "b", "a");
 		// Create the iterator.

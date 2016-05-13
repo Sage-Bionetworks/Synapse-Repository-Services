@@ -11,10 +11,11 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
-import org.sagebionetworks.util.csv.CsvNullReader;
 import org.springframework.util.CollectionUtils;
 
 import com.google.common.collect.Lists;
+
+import au.com.bytecode.opencsv.CSVReader;
 
 /**
  * Provides an Iterator<Row> abstraction over a raw CSV reader.
@@ -24,7 +25,7 @@ import com.google.common.collect.Lists;
  */
 public class CSVToRowIterator implements Iterator<Row> {
 
-	private final CsvNullReader reader;
+	private final CSVReader reader;
 	private final Map<Long, Integer> columnIdToCsvColumnIndexMap;
 	private final List<ColumnModel> resultSchema;
 
@@ -41,7 +42,7 @@ public class CSVToRowIterator implements Iterator<Row> {
 	 * @param progressReporter
 	 * @throws IOException
 	 */
-	public CSVToRowIterator(List<ColumnModel> resultSchema, CsvNullReader reader, boolean isFirstLineHeader, List<String> columnIds)
+	public CSVToRowIterator(List<ColumnModel> resultSchema, CSVReader reader, boolean isFirstLineHeader, List<String> columnIds)
 			throws IOException {
 		this.resultSchema = resultSchema;
 		this.reader = reader;

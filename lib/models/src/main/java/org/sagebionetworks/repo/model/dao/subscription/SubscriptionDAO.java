@@ -67,14 +67,6 @@ public interface SubscriptionDAO {
 	public void deleteAll(Long userId);
 
 	/**
-	 * Subscribe all forum's subscriber to a new thread
-	 * 
-	 * @param forumId
-	 * @param threadId
-	 */
-	public void subscribeForumSubscriberToThread(String forumId, String threadId);
-
-	/**
 	 * List all subscribers for a given topic
 	 * 
 	 * @param objectId
@@ -101,7 +93,7 @@ public interface SubscriptionDAO {
 	 * @param idList
 	 * @param objectType
 	 */
-	public void subscribeAll(String userId, List<String> idList, SubscriptionObjectType objectType);
+	public void subscribeAllTopic(String userId, List<String> idList, SubscriptionObjectType objectType);
 
 	/**
 	 * Unsubscribe from a list of topics
@@ -120,4 +112,15 @@ public interface SubscriptionDAO {
 	 * @return
 	 */
 	public Set<Long> getAllProjects(String userId, SubscriptionObjectType objectType);
+
+	/**
+	 * Create a batch of new Subscriptions to a single topic
+	 * 
+	 * @param subscriberIds
+	 * @param objectId
+	 * @param objectType
+	 * @return
+	 */
+	public void subscribeAllUsers(Set<String> subscriberIds, String objectId, SubscriptionObjectType objectType);
+
 }

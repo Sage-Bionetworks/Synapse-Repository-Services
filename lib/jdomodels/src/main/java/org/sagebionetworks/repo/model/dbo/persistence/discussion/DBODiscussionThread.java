@@ -7,6 +7,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.LinkedList;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
@@ -31,6 +32,7 @@ public class DBODiscussionThread  implements MigratableDatabaseObject<DBODiscuss
 		new FieldColumn("messageKey", COL_DISCUSSION_THREAD_MESSAGE_KEY),
 		new FieldColumn("isEdited", COL_DISCUSSION_THREAD_IS_EDITED),
 		new FieldColumn("isDeleted", COL_DISCUSSION_THREAD_IS_DELETED),
+		new FieldColumn("isPinned", COL_DISCUSSION_THREAD_IS_PINNED),
 		new FieldColumn("createdOn", COL_DISCUSSION_THREAD_CREATED_ON),
 		new FieldColumn("modifiedOn", COL_DISCUSSION_THREAD_MODIFIED_ON)
 	};
@@ -43,38 +45,32 @@ public class DBODiscussionThread  implements MigratableDatabaseObject<DBODiscuss
 	private String messageKey;
 	private Boolean isEdited;
 	private Boolean isDeleted;
+	private Boolean isPinned;
 	private Date createdOn;
 	private Date modifiedOn;
 
 	@Override
 	public String toString() {
-		return "DBODiscussionThread [id=" + id + ", forumId=" + forumId
-				+ ", title=" + Arrays.toString(title) + ", etag=" + etag
-				+ ", createdBy=" + createdBy + ", messageKey=" + messageKey
-				+ ", isEdited=" + isEdited + ", isDeleted=" + isDeleted
-				+ ", createdOn=" + createdOn + ", modifiedOn=" + modifiedOn
-				+ "]";
+		return "DBODiscussionThread [id=" + id + ", forumId=" + forumId + ", title=" + Arrays.toString(title)
+				+ ", etag=" + etag + ", createdBy=" + createdBy + ", messageKey=" + messageKey + ", isEdited="
+				+ isEdited + ", isDeleted=" + isDeleted + ", isPinned=" + isPinned + ", createdOn=" + createdOn
+				+ ", modifiedOn=" + modifiedOn + "]";
 	}
 
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result
-				+ ((createdBy == null) ? 0 : createdBy.hashCode());
-		result = prime * result
-				+ ((createdOn == null) ? 0 : createdOn.hashCode());
+		result = prime * result + ((createdBy == null) ? 0 : createdBy.hashCode());
+		result = prime * result + ((createdOn == null) ? 0 : createdOn.hashCode());
 		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
 		result = prime * result + ((forumId == null) ? 0 : forumId.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
-		result = prime * result
-				+ ((isDeleted == null) ? 0 : isDeleted.hashCode());
-		result = prime * result
-				+ ((isEdited == null) ? 0 : isEdited.hashCode());
-		result = prime * result
-				+ ((messageKey == null) ? 0 : messageKey.hashCode());
-		result = prime * result
-				+ ((modifiedOn == null) ? 0 : modifiedOn.hashCode());
+		result = prime * result + ((isDeleted == null) ? 0 : isDeleted.hashCode());
+		result = prime * result + ((isEdited == null) ? 0 : isEdited.hashCode());
+		result = prime * result + ((isPinned == null) ? 0 : isPinned.hashCode());
+		result = prime * result + ((messageKey == null) ? 0 : messageKey.hashCode());
+		result = prime * result + ((modifiedOn == null) ? 0 : modifiedOn.hashCode());
 		result = prime * result + Arrays.hashCode(title);
 		return result;
 	}
@@ -123,6 +119,11 @@ public class DBODiscussionThread  implements MigratableDatabaseObject<DBODiscuss
 				return false;
 		} else if (!isEdited.equals(other.isEdited))
 			return false;
+		if (isPinned == null) {
+			if (other.isPinned != null)
+				return false;
+		} else if (!isPinned.equals(other.isPinned))
+			return false;
 		if (messageKey == null) {
 			if (other.messageKey != null)
 				return false;
@@ -136,6 +137,14 @@ public class DBODiscussionThread  implements MigratableDatabaseObject<DBODiscuss
 		if (!Arrays.equals(title, other.title))
 			return false;
 		return true;
+	}
+
+	public Boolean getIsPinned() {
+		return isPinned;
+	}
+
+	public void setIsPinned(Boolean isPinned) {
+		this.isPinned = isPinned;
 	}
 
 	public Long getId() {
@@ -234,6 +243,7 @@ public class DBODiscussionThread  implements MigratableDatabaseObject<DBODiscuss
 				dbo.setMessageKey(rs.getString(COL_DISCUSSION_THREAD_MESSAGE_KEY));
 				dbo.setIsEdited(rs.getBoolean(COL_DISCUSSION_THREAD_IS_EDITED));
 				dbo.setIsDeleted(rs.getBoolean(COL_DISCUSSION_THREAD_IS_DELETED));
+				dbo.setIsPinned(rs.getBoolean(COL_DISCUSSION_THREAD_IS_PINNED));
 				dbo.setCreatedOn(new Date(rs.getTimestamp(COL_DISCUSSION_THREAD_CREATED_ON).getTime()));
 				dbo.setModifiedOn(new Date(rs.getTimestamp(COL_DISCUSSION_THREAD_MODIFIED_ON).getTime()));
 				return dbo;
@@ -272,11 +282,17 @@ public class DBODiscussionThread  implements MigratableDatabaseObject<DBODiscuss
 
 			@Override
 			public DBODiscussionThread createDatabaseObjectFromBackup(DBODiscussionThread backup) {
+				if (backup.getIsPinned() == null) {
+					backup.setIsPinned(false);
+				}
 				return backup;
 			}
 
 			@Override
 			public DBODiscussionThread createBackupFromDatabaseObject(DBODiscussionThread dbo) {
+				if (dbo.getIsPinned() == null) {
+					dbo.setIsPinned(false);
+				}
 				return dbo;
 			}
 		};
@@ -294,7 +310,9 @@ public class DBODiscussionThread  implements MigratableDatabaseObject<DBODiscuss
 
 	@Override
 	public List<MigratableDatabaseObject<?, ?>> getSecondaryTypes() {
-		return null;
+		List<MigratableDatabaseObject<?,?>> list = new LinkedList<MigratableDatabaseObject<?,?>>();
+		list.add(new DBODiscussionThreadView());
+		return list;
 	}
 
 }

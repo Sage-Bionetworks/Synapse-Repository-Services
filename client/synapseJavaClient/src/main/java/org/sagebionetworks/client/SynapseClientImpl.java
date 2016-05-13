@@ -176,6 +176,8 @@ import org.sagebionetworks.repo.model.principal.AddEmailInfo;
 import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
 import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasRequest;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasResponse;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
@@ -505,6 +507,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String REPLIES = "/replies";
 	private static final String REPLY_COUNT = "/replycount";
 	private static final String URL = "/messageUrl";
+	private static final String PIN = "/pin";
+	private static final String UNPIN = "/unpin";
 
 	private static final String SUBSCRIPTION = "/subscription";
 	private static final String LIST = "/list";
@@ -7658,5 +7662,20 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseClientException(e);
 		}
+	}
+
+	@Override
+	public void pinThread(String threadId) throws SynapseException {
+		getSharedClientConnection().putUri(repoEndpoint, THREAD+"/"+threadId+PIN, getUserAgent());
+	}
+
+	@Override
+	public void unpinThread(String threadId) throws SynapseException {
+		getSharedClientConnection().putUri(repoEndpoint, THREAD+"/"+threadId+UNPIN, getUserAgent());
+	}
+
+	@Override
+	public PrincipalAliasResponse getPrincipalAlias(PrincipalAliasRequest request) throws SynapseException {
+		return asymmetricalPost(repoEndpoint, PRINCIPAL+"/alias/", request, PrincipalAliasResponse.class, null);
 	}
 }

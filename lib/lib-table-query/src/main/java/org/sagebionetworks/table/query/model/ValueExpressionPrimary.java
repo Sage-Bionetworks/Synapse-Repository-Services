@@ -1,5 +1,7 @@
 package org.sagebionetworks.table.query.model;
 
+import java.util.List;
+
 import org.sagebionetworks.table.query.model.visitors.Visitor;
 
 /**
@@ -43,6 +45,26 @@ public class ValueExpressionPrimary extends SQLElement {
 			visit(setFunctionSpecification, visitor);
 		}
 	}
+
+	@Override
+	public void toSql(StringBuilder builder) {
+		// only one element at a time will be no null
+		if (signedValueSpecification != null) {
+			signedValueSpecification.toSql(builder);
+		} else if (columnReference != null) {
+			columnReference.toSql(builder);
+		} else {
+			setFunctionSpecification.toSql(builder);
+		}
+	}
+
+	@Override
+	<T extends Element> void addElements(List<T> elements, Class<T> type) {
+		checkElement(elements, type, signedValueSpecification);
+		checkElement(elements, type, columnReference);
+		checkElement(elements, type, setFunctionSpecification);
+	}
+
 	
 	
 }

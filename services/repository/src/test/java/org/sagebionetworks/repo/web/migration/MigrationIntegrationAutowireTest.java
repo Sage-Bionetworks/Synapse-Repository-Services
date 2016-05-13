@@ -121,7 +121,6 @@ import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.quiz.PassingRecord;
 import org.sagebionetworks.repo.model.quiz.QuizResponse;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
-import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.RawRowSet;
 import org.sagebionetworks.repo.model.table.Row;
@@ -473,7 +472,6 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		for (ColumnModel cm : start) {
 			models.add(columnModelDao.createColumnModel(cm));
 		}
-		ColumnMapper mapper = TableModelUtils.createColumnModelColumnMapper(models, false);
 
 		List<Long> headers = TableModelUtils.getIds(models);
 		// bind the columns to the entity
@@ -483,11 +481,11 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		List<Row> rows = TableModelTestUtils.createRows(models, 5);
 		RawRowSet set = new RawRowSet(TableModelUtils.getIds(models), null, tableId, rows);
 		// Append the rows to the table
-		tableRowTruthDao.appendRowSetToTable(adminUserIdString, tableId, mapper, set);
+		tableRowTruthDao.appendRowSetToTable(adminUserIdString, tableId, models, set);
 		// Append some more rows
 		rows = TableModelTestUtils.createRows(models, 6);
 		set = new RawRowSet(TableModelUtils.getIds(models), null, tableId, rows);
-		tableRowTruthDao.appendRowSetToTable(adminUserIdString, tableId, mapper, set);
+		tableRowTruthDao.appendRowSetToTable(adminUserIdString, tableId, models, set);
 	}
 
 	public void createNewUser() throws NotFoundException {

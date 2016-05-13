@@ -44,6 +44,7 @@ public class SqlConstants {
 	public static final String COL_REVISION_MODIFIED_ON		= "MODIFIED_ON";
 	public static final String COL_REVISION_FILE_HANDLE_ID	= "FILE_HANDLE_ID";
 	public static final String COL_REVISION_COLUMN_MODEL_IDS= "COLUMN_MODEL_IDS";
+	public static final String COL_REVISION_SCOPE_IDS		= "SCOPE_IDS";
 	public static final String DDL_FILE_REVISION			="schema/Revision-ddl.sql";
 
 	// The Reference table
@@ -755,6 +756,7 @@ public class SqlConstants {
 	public static final String COL_DISCUSSION_THREAD_MESSAGE_KEY = "MESSAGE_KEY";
 	public static final String COL_DISCUSSION_THREAD_IS_EDITED = "IS_EDITED";
 	public static final String COL_DISCUSSION_THREAD_IS_DELETED = "IS_DELETED";
+	public static final String COL_DISCUSSION_THREAD_IS_PINNED = "IS_PINNED";
 	public static final String DDL_DISCUSSION_THREAD = "schema/DiscussionThread-ddl.sql";
 
 	// Discussion Thread Stats table
@@ -768,7 +770,6 @@ public class SqlConstants {
 
 	// Discussion Thread View table
 	public static final String TABLE_DISCUSSION_THREAD_VIEW = "DISCUSSION_THREAD_VIEW";
-	public static final String COL_DISCUSSION_THREAD_VIEW_ID = "ID";
 	public static final String COL_DISCUSSION_THREAD_VIEW_THREAD_ID = "THREAD_ID";
 	public static final String COL_DISCUSSION_THREAD_VIEW_USER_ID = "USER_ID";
 	public static final String DDL_DISCUSSION_THREAD_VIEW = "schema/DiscussionThreadView-ddl.sql";
