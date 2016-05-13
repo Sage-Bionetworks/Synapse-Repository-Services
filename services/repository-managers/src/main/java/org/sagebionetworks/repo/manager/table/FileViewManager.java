@@ -1,13 +1,10 @@
 package org.sagebionetworks.repo.manager.table;
 
 import java.util.List;
-import java.util.Set;
 
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.RowBatchHandler;
-import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.dbo.dao.table.FileEntityFields;
-import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 
 /**

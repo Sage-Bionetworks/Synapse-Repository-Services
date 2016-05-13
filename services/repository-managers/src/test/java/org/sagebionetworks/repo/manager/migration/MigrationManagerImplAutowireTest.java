@@ -176,9 +176,9 @@ public class MigrationManagerImplAutowireTest {
 			// Now add some data
 			RowSet rowSet = new RowSet();
 			rowSet.setRows(TableModelTestUtils.createRows(schema, 2));
-			rowSet.setHeaders(TableModelUtils.createColumnModelColumnMapper(schema).getSelectColumns());
+			rowSet.setHeaders(TableModelUtils.getSelectColumns(schema, false));
 			rowSet.setTableId(tableId);
-			tableEntityManager.appendRows(adminUser, tableId, TableModelUtils.createColumnModelColumnMapper(schema), rowSet, mockProgressCallback);
+			tableEntityManager.appendRows(adminUser, tableId, schema, rowSet, mockProgressCallback);
 		}
 		stackConfig = new StackConfiguration();
 	}
@@ -363,8 +363,8 @@ public class MigrationManagerImplAutowireTest {
 			RowReferenceSet rowRefs = new RowReferenceSet();
 			rowRefs.setRows(Collections.singletonList(TableModelTestUtils.createRowReference(0L, 0L)));
 			rowRefs.setTableId(tableId);
-			rowRefs.setHeaders(TableModelUtils.createColumnModelColumnMapper(models).getSelectColumns());
-			tableEntityManager.getCellValues(adminUser, tableId, rowRefs, TableModelUtils.createColumnModelColumnMapper(models));
+			rowRefs.setHeaders(TableModelUtils.getSelectColumns(models, false));
+			tableEntityManager.getCellValues(adminUser, tableId, rowRefs, models);
 
 			assertEquals(0, indexDao.getRowCountForTable(tableId).intValue());
 

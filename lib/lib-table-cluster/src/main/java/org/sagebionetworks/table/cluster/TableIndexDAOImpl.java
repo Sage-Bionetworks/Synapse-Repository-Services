@@ -293,7 +293,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		final List<Row> rows = new LinkedList<Row>();
 		final RowSet rowSet = new RowSet();
 		rowSet.setRows(rows);
-		rowSet.setHeaders(query.getSelectColumnModels().getSelectColumns());
+		rowSet.setHeaders(query.getSelectColumns());
 		// Stream over the results and save the results in a a list
 		queryAsStream(callback, query, new RowAndHeaderHandler() {
 			@Override
@@ -337,7 +337,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				// ROW_ID and ROW_VERSION are always appended to the list of columns
 				int selectModelIndex = 0;
 				int columnCount = metadata.getColumnCount();
-				List<SelectColumn> selectColumns = query.getSelectColumnModels().getSelectColumns();
+				List<SelectColumn> selectColumns = query.getSelectColumns();
 				// result sets use 1-base indexing
 				for (int i = 1; i <= columnCount; i++) {
 					String name = metadata.getColumnName(i);
