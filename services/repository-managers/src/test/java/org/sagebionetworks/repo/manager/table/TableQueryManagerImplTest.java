@@ -133,7 +133,7 @@ public class TableQueryManagerImplTest {
 		List<Row> rows = TableModelTestUtils.createRows(models, 10);
 		set = new RowSet();
 		set.setTableId(tableId);
-		set.setHeaders(TableModelUtils.getSelectColumns(models, false));
+		set.setHeaders(TableModelUtils.getSelectColumns(models));
 		set.setRows(rows);
 		
 		when(mockColumnModelDAO.getColumnModelsForObject(tableId)).thenReturn(models);
@@ -306,21 +306,21 @@ public class TableQueryManagerImplTest {
 	public void testQueryBundle() throws Exception {
 		RowSet selectStar = new RowSet();
 		selectStar.setEtag("etag");
-		selectStar.setHeaders(TableModelUtils.getSelectColumns(models, false));
+		selectStar.setHeaders(TableModelUtils.getSelectColumns(models));
 		selectStar.setTableId(tableId);
 		selectStar.setRows(TableModelTestUtils.createRows(models, 10));
 		QueryResult selectStarResult = new QueryResult();
 		selectStarResult.setNextPageToken(null);
 		selectStarResult.setQueryResults(selectStar);
 
-		runQueryBundleTest("select * from " + tableId, selectStar, 10L, TableModelUtils.getSelectColumns(models, false).toString(), 1095L);
+		runQueryBundleTest("select * from " + tableId, selectStar, 10L, TableModelUtils.getSelectColumns(models).toString(), 1095L);
 	}
 
 	@Test
 	public void testQueryBundleColumnsExpanded() throws Exception {
 		RowSet selectStar = new RowSet();
 		selectStar.setEtag("etag");
-		selectStar.setHeaders(TableModelUtils.getSelectColumns(models, false));
+		selectStar.setHeaders(TableModelUtils.getSelectColumns(models));
 		selectStar.setTableId(tableId);
 		selectStar.setRows(TableModelTestUtils.createRows(models, 10));
 		QueryResult selectStarResult = new QueryResult();
@@ -328,7 +328,7 @@ public class TableQueryManagerImplTest {
 		selectStarResult.setQueryResults(selectStar);
 
 		runQueryBundleTest("select " + StringUtils.join(Lists.transform(models, TableModelTestUtils.convertToNameFunction), ",") + " from "
-				+ tableId, selectStar, 10L, TableModelUtils.getSelectColumns(models, false).toString(),
+				+ tableId, selectStar, 10L, TableModelUtils.getSelectColumns(models).toString(),
 				1095L);
 	}
 
@@ -427,7 +427,7 @@ public class TableQueryManagerImplTest {
 	}
 
 	@Test
-	public void testNextPageTokenEscaping() throws Exception {
+	public void testNextPageTokenEscapingSingle() throws Exception {
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(Collections.nCopies(100000, new Row()));
 		when(mockTableIndexDAO.query(any(ProgressCallback.class), any(SqlQuery.class))).thenReturn(rowSet);
@@ -443,14 +443,27 @@ public class TableQueryManagerImplTest {
 		assertNotNull(query.getFirst().getNextPageToken());
 		assertTrue(query.getFirst().getNextPageToken().getToken().indexOf("&quot;i-0&quot") != -1);
 		
-		rowSet = new RowSet();
+		verify(mockTableManagerSupport).validateTableReadAccess(user, tableId);
+	}
+	
+	@Test
+	public void testNextPageTokenEscapingStart() throws Exception {
+		RowSet rowSet = new RowSet();
 		rowSet.setRows(Collections.nCopies(100000, new Row()));
 		when(mockTableIndexDAO.query(any(ProgressCallback.class), any(SqlQuery.class))).thenReturn(rowSet);
 
-		query = manager.query(mockProgressCallbackVoid, user, "select * from " + tableId, null, 0L, 100000L, true, false, false);
+		// introduce escape-needed column names
+		for (int i = 0; i < models.size(); i++) {
+			String name = models.get(i).getName();
+			name = name.substring(0, 1) + "-" + name.substring(1);
+			models.get(i).setName(name);
+		}
+
+		Pair<QueryResult, Long> query = manager.query(mockProgressCallbackVoid, user, "select * from " + tableId, null, 0L, 100000L, true, false, false);
 		assertNotNull(query.getFirst().getNextPageToken());
 		assertTrue(query.getFirst().getNextPageToken().getToken().indexOf("&quot;i-0&quot") != -1);
-		verify(mockTableManagerSupport, times(2)).validateTableReadAccess(user, tableId);
+		
+		verify(mockTableManagerSupport).validateTableReadAccess(user, tableId);
 	}
 	
 	@Test

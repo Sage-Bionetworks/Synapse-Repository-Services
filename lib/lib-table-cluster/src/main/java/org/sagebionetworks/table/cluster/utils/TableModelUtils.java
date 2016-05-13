@@ -612,11 +612,11 @@ public class TableModelUtils {
 	 * @param models
 	 * @return
 	 */
-	public static List<SelectColumn> getSelectColumns(Collection<ColumnModel> models, boolean isAggregate) {
+	public static List<SelectColumn> getSelectColumns(Collection<ColumnModel> models) {
 		ValidateArgument.required(models, "models");
 		List<SelectColumn> result = Lists.newArrayListWithCapacity(models.size());
 		for (ColumnModel model : models) {
-			result.add(createSelectColumn(model, isAggregate));
+			result.add(createSelectColumn(model));
 		}
 		return result;
 	}
@@ -700,7 +700,7 @@ public class TableModelUtils {
 		RowSet out = new RowSet();
 		out.setTableId(tableId);
 		out.setRows(new LinkedList<Row>());
-		out.setHeaders(TableModelUtils.getSelectColumns(columns, false));
+		out.setHeaders(TableModelUtils.getSelectColumns(columns));
 		out.setEtag(etag);
 		// Transform each
 		for (RawRowSet set : sets) {
@@ -1138,8 +1138,8 @@ public class TableModelUtils {
 		return newSelectColumn;
 	}
 
-	public static SelectColumn createSelectColumn(ColumnModel model, boolean isAggregate) {
-		return createSelectColumn(model.getName(), model.getColumnType(), isAggregate ? null : model.getId());
+	public static SelectColumn createSelectColumn(ColumnModel model) {
+		return createSelectColumn(model.getName(), model.getColumnType(), model.getId());
 	}
 	
 	/**

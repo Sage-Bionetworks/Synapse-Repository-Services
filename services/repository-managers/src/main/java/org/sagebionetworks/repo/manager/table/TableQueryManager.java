@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.SqlQuery;
+import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.csv.CSVWriterStream;
 
@@ -37,10 +38,11 @@ public interface TableQueryManager {
 	 * @throws NotFoundException
 	 * @throws TableUnavilableException
 	 * @throws TableFailedException
+	 * @throws ParseException 
 	 */
 	public Pair<QueryResult, Long> query(ProgressCallback<Void> progressCallback, UserInfo user, String query, List<SortItem> sortList, Long offset, Long limit, boolean runQuery,
 			boolean runCount, boolean isConsistent) throws DatastoreException, NotFoundException, TableUnavilableException,
-			TableFailedException;
+			TableFailedException, ParseException;
 
 	/**
 	 * Execute a table query.
@@ -53,9 +55,10 @@ public interface TableQueryManager {
 	 * @throws NotFoundException
 	 * @throws TableUnavilableException
 	 * @throws TableFailedException
+	 * @throws ParseException 
 	 */
 	public Pair<QueryResult, Long> query(ProgressCallback<Void> progressCallback, UserInfo user, SqlQuery query, Long offset, Long limit, boolean runQuery, boolean runCount,
-			boolean isConsistent) throws DatastoreException, NotFoundException, TableUnavilableException, TableFailedException;
+			boolean isConsistent) throws DatastoreException, NotFoundException, TableUnavilableException, TableFailedException, ParseException;
 
 	/**
 	 * get the next page of a query
@@ -67,9 +70,10 @@ public interface TableQueryManager {
 	 * @throws NotFoundException
 	 * @throws TableUnavilableException
 	 * @throws TableFailedException
+	 * @throws ParseException 
 	 */
 	public QueryResult queryNextPage(ProgressCallback<Void> progressCallback, UserInfo user, QueryNextPageToken nextPageToken) throws DatastoreException, NotFoundException,
-			TableUnavilableException, TableFailedException;
+			TableUnavilableException, TableFailedException, ParseException;
 
 	/**
 	 * Get a query bundle result
@@ -81,9 +85,10 @@ public interface TableQueryManager {
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 * @throws TableFailedException
+	 * @throws ParseException 
 	 */
 	public QueryResultBundle queryBundle(ProgressCallback<Void> progressCallback, UserInfo user, QueryBundleRequest queryBundle) throws DatastoreException, NotFoundException,
-			TableUnavilableException, TableFailedException;
+			TableUnavilableException, TableFailedException, ParseException;
 
 	/**
 	 * Run the provided SQL query string and stream the results to the passed CSVWriter. This method will stream over

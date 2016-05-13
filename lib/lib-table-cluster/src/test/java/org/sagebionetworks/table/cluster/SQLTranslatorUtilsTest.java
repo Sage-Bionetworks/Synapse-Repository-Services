@@ -23,6 +23,7 @@ import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.DerivedColumn;
 import org.sagebionetworks.table.query.model.FunctionType;
 import org.sagebionetworks.table.query.model.HasQuoteValue;
+import org.sagebionetworks.table.query.model.SelectList;
 
 import com.google.common.collect.Lists;
 
@@ -219,7 +220,7 @@ public class SQLTranslatorUtilsTest {
 	 * should work for each type without an error
 	 */
 	@Test
-	public void testGetColumnTypeForFunctionAllTypes(){
+	public void testGetColumnTypeForAllFunctionsBaseTypeInteger(){
 		ColumnType baseType = ColumnType.INTEGER;
 		for(FunctionType functionType: FunctionType.values()){
 			SQLTranslatorUtils.getColumnTypeForFunction(functionType, baseType);
@@ -465,5 +466,121 @@ public class SQLTranslatorUtilsTest {
 		assertEquals(columnSpecial.getName(), results.getName());
 		assertEquals(ColumnType.DOUBLE, results.getColumnType());
 		assertEquals(columnSpecial.getId(), results.getId());
+	}
+	
+	@Test
+	public void testCreateSelectListFromSchema(){
+		// call under test.
+		SelectList results = SQLTranslatorUtils.createSelectListFromSchema(Lists.newArrayList(columnFoo, columnHasSpace));
+		assertNotNull(results);
+		assertEquals("foo, \"has space\"", results.toSql());
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCreateSelectListFromSchemaNull(){
+		// call under test.
+		SQLTranslatorUtils.createSelectListFromSchema(null);
+	}
+	
+	@Test(expected=IllegalStateException.class)
+	public void testGetSelectColumnsSelectStar() throws ParseException{
+		boolean isAggregate = false;
+		SelectList element = new TableQueryParser("*").selectList();
+		//  call under test.
+		SQLTranslatorUtils.getSelectColumns(element, columnMap, isAggregate);
+	}
+	
+	@Test
+	public void testGetSelectColumnsSelectActualColumnsAggregate() throws ParseException{
+		boolean isAggregate = true;
+		SelectList element = new TableQueryParser("foo, bar").selectList();
+		//  call under test.
+		List<SelectColumn> results = SQLTranslatorUtils.getSelectColumns(element, columnMap, isAggregate);
+		assertNotNull(results);
+		assertEquals(2, results.size());
+		for (SelectColumn select : results) {
+			assertEquals(
+					"This is an aggregate so all column ids must be null.",
+					null, select.getId());
+		}
+	}
+	
+	@Test
+	public void testGetSelectColumnsSelectActualColumnsNotAggregate() throws ParseException{
+		boolean isAggregate = false;
+		SelectList element = new TableQueryParser("foo, bar").selectList();
+		//  call under test.
+		List<SelectColumn> results = SQLTranslatorUtils.getSelectColumns(element, columnMap, isAggregate);
+		assertNotNull(results);
+		assertEquals(2, results.size());
+		for (SelectColumn select : results) {
+			assertNotNull(
+					"This is not an aggregate, and all selects match the schema so all columns should have a column ID.",
+					select.getId());
+		}
+	}
+	
+	@Test
+	public void testGetSelectColumnsSelectConstantNotAggregate() throws ParseException{
+		boolean isAggregate = false;
+		SelectList element = new TableQueryParser("foo, 'some constant'").selectList();
+		//  call under test.
+		List<SelectColumn> results = SQLTranslatorUtils.getSelectColumns(element, columnMap, isAggregate);
+		assertNotNull(results);
+		assertEquals(2, results.size());
+		for (SelectColumn select : results) {
+			assertEquals(
+					"This is not an aggregate but since one select does not match the schema, all column Ids should be null.",
+					null, select.getId());
+		}
+	}
+	
+	@Test
+	public void testGetSelectColumnsSelectConstantAggregate() throws ParseException{
+		boolean isAggregate = true;
+		SelectList element = new TableQueryParser("foo, 'some constant'").selectList();
+		//  call under test.
+		List<SelectColumn> results = SQLTranslatorUtils.getSelectColumns(element, columnMap, isAggregate);
+		assertNotNull(results);
+		assertEquals(2, results.size());
+		for (SelectColumn select : results) {
+			assertEquals(
+					"This is an aggregate and one select does not match the schema so all column Ids should be null.",
+					null, select.getId());
+		}
+	}
+	
+	@Test
+	public void testAddRowIdAndVersionToSelect() throws ParseException{
+		SelectList element = new TableQueryParser("foo, 'has space'").selectList();
+		SelectList results = SQLTranslatorUtils.addRowIdAndVersionToSelect(element);
+		assertNotNull(results);
+		assertEquals("foo, 'has space', ROW_ID, ROW_VERSION", results.toSql());
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testDoAllSelectMatchSchemaNullNull(){
+		// call under test
+		assertFalse(SQLTranslatorUtils.doAllSelectMatchSchema(null));
+	}
+	
+	@Test
+	public void testDoAllSelectMatchSchemaTrue(){
+		SelectColumn one = new SelectColumn();
+		one.setId("123");
+		SelectColumn two = new SelectColumn();
+		two.setId("456");
+		// call under test
+		assertTrue(SQLTranslatorUtils.doAllSelectMatchSchema(Lists.newArrayList(one, two)));
+	}
+	
+	@Test
+	public void testDoAllSelectMatchSchemaFalse(){
+		SelectColumn one = new SelectColumn();
+		one.setId("123");
+		SelectColumn two = new SelectColumn();
+		two.setId(null);
+		// call under test
+		assertFalse(SQLTranslatorUtils.doAllSelectMatchSchema(Lists.newArrayList(one, two)));
 	}
 }

@@ -1,8 +1,5 @@
 package org.sagebionetworks.table.cluster;
 
-import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
-import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
-
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -14,14 +11,9 @@ import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
-import org.sagebionetworks.table.query.model.DerivedColumn;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.util.ValidateArgument;
-
-import com.google.common.base.Function;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 
 /**
  * Represents a SQL query for a table.
@@ -36,6 +28,13 @@ public class SqlQuery {
 	 * 
 	 */
 	QuerySpecification model;
+	
+	/**
+	 * This model starts off as a copy of the input model,
+	 * it is then transformed to be compatible with the actual
+	 * database table. 
+	 */
+	QuerySpecification transformedModel;
 	
 	/**
 	 * The full list of all of the columns of this table
@@ -61,6 +60,11 @@ public class SqlQuery {
 	 * The Id of the table.
 	 */
 	String tableId;
+	
+	/**
+	 * Does this query include ROW_ID and ROW_VERSION?
+	 */
+	boolean includesRowIdAndVersion;
 	
 	/**
 	 * Aggregated results are queries that included one or more aggregation functions in the select clause.
@@ -113,39 +117,52 @@ public class SqlQuery {
 		this.tableSchema = tableSchema;
 		this.model = parsedModel;
 		this.tableId = tableId;
+		
+		if(tableSchema.isEmpty()){
+			// There is nothing to do if the tables does not have a schema.
+			return;
+		}
 
 		// This map will contain all of the 
 		this.parameters = new HashMap<String, Object>();	
 		this.columnNameToModelMap = TableModelUtils.createColumnNameToModelMap(tableSchema);
+		// SELECT * is replaced with a select including each column in the schema.
 		if (BooleanUtils.isTrue(this.model.getSelectList().getAsterisk())) {
-			SelectList expandedSelectList = new SelectList(Lists.newArrayList(Iterables.transform(tableSchema,
-					new Function<ColumnModel, DerivedColumn>() {
-						@Override
-						public DerivedColumn apply(ColumnModel cm) {
-							return SQLTranslatorUtils.createDerivedColumn(cm.getName());
-						}
-					})));
-			this.model = new QuerySpecification(this.model.getSqlDirective(), this.model.getSetQuantifier(), expandedSelectList,
-					this.model.getTableExpression());
+			SelectList expandedSelectList = SQLTranslatorUtils.createSelectListFromSchema(tableSchema);
+			this.model.replaceSelectList(expandedSelectList);
 		}
-
+		// Track if this is an aggregate query.
 		this.isAggregatedResult = model.hasAnyAggregateElements();
+		// Build headers that describe how the client should read the results of this query.
+		this.selectColumns = SQLTranslatorUtils.getSelectColumns(this.model.getSelectList(), columnNameToModelMap, this.isAggregatedResult);
 
-		QuerySpecification expandedSelectList = this.model;
-		if (!this.isAggregatedResult) {
+		// Create a copy of the original model.
+		try {
+			transformedModel = new TableQueryParser(model.toSql()).querySpecification();
+		} catch (ParseException e) {
+			throw new IllegalArgumentException(e);
+		}
+		// Add ROW_ID and ROW_VERSION only if all columns have an Id.
+		if (SQLTranslatorUtils.doAllSelectMatchSchema(selectColumns)) {
 			// we need to add the row count and row version columns
-			SelectList selectList = expandedSelectList.getSelectList();
-			List<DerivedColumn> selectColumns = Lists.newArrayListWithCapacity(selectList.getColumns().size() + 2);
-			selectColumns.addAll(selectList.getColumns());
-			selectColumns.add(SQLTranslatorUtils.createDerivedColumn(ROW_ID));
-			selectColumns.add(SQLTranslatorUtils.createDerivedColumn(ROW_VERSION));
-			selectList = new SelectList(selectColumns);
-			expandedSelectList = new QuerySpecification(expandedSelectList.getSetQuantifier(), selectList,
-					expandedSelectList.getTableExpression());
+			SelectList expandedSelectList = SQLTranslatorUtils.addRowIdAndVersionToSelect(this.model.getSelectList());
+			transformedModel.replaceSelectList(expandedSelectList);
+			this.includesRowIdAndVersion = true;
+		}else{
+			this.includesRowIdAndVersion = false;
 		}
 
-		this.outputSQL = SQLTranslatorUtils.translate(expandedSelectList, this.parameters, this.columnNameToModelMap);
-		this.selectColumns = SQLTranslatorUtils.getSelectColumns(this.model.getSelectList(), columnNameToModelMap, isAggregatedResult);
+		this.outputSQL = SQLTranslatorUtils.translate(transformedModel, this.parameters, this.columnNameToModelMap);
+
+	}
+	
+	/**
+	 * Does this query include ROW_ID and ROW_VERSION
+	 * 
+	 * @return
+	 */
+	public boolean includesRowIdAndVersion(){
+		return this.includesRowIdAndVersion;
 	}
 
 	/**
