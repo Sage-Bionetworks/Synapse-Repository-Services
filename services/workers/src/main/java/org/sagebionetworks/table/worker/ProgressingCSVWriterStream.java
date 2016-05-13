@@ -2,12 +2,13 @@ package org.sagebionetworks.table.worker;
 
 import org.sagebionetworks.asynchronous.workers.sqs.WorkerProgress;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.csv.utils.CSVWriter;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.csv.CSVWriterStream;
 
 import com.amazonaws.services.sqs.model.Message;
+
+import au.com.bytecode.opencsv.CSVWriter;
 
 /**
  * This implementation of CSVWriterStream will notify that progress is made for

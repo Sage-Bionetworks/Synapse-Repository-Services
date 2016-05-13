@@ -19,7 +19,6 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.csv.utils.CSVReader;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
@@ -42,6 +41,9 @@ import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectInputStream;
 import com.amazonaws.services.sqs.model.Message;
 import com.amazonaws.util.StringInputStream;
+
+import au.com.bytecode.opencsv.CSVReader;
+import au.com.bytecode.opencsv.Constants;
 
 /**
  * Unit test for the TableCSVAppenderWorker.
@@ -156,10 +158,10 @@ public class TableCSVAppenderWorkerTest {
 		StringReader reader = new StringReader("1,2,3");
 		CSVReader csvReader = CSVUtils.createCSVReader(reader, body.getCsvTableDescriptor(), body.getLinesToSkip());
 		assertNotNull(csvReader);
-		assertEquals(CSVReader.DEFAULT_SEPARATOR, csvReader.getSeparator());
-		assertEquals(CSVReader.DEFAULT_ESCAPE_CHARACTER, csvReader.getEscape());
-		assertEquals(CSVReader.DEFAULT_QUOTE_CHARACTER, csvReader.getQuotechar());
-		assertEquals(CSVReader.DEFAULT_SKIP_LINES, csvReader.getSkipLines());
+		assertEquals(Constants.DEFAULT_SEPARATOR, csvReader.getSeparator());
+		assertEquals(Constants.DEFAULT_ESCAPE_CHARACTER, csvReader.getEscape());
+		assertEquals(Constants.DEFAULT_QUOTE_CHARACTER, csvReader.getQuoteChar());
+		assertEquals(0, csvReader.getSkipLines());
 	}
 	
 	@Test
@@ -172,9 +174,9 @@ public class TableCSVAppenderWorkerTest {
 		CSVReader csvReader = CSVUtils.createCSVReader(reader, body.getCsvTableDescriptor(), body.getLinesToSkip());
 		assertNotNull(csvReader);
 		assertEquals('\t', csvReader.getSeparator());
-		assertEquals(CSVReader.DEFAULT_ESCAPE_CHARACTER, csvReader.getEscape());
-		assertEquals(CSVReader.DEFAULT_QUOTE_CHARACTER, csvReader.getQuotechar());
-		assertEquals(CSVReader.DEFAULT_SKIP_LINES, csvReader.getSkipLines());
+		assertEquals(Constants.DEFAULT_ESCAPE_CHARACTER, csvReader.getEscape());
+		assertEquals(Constants.DEFAULT_QUOTE_CHARACTER, csvReader.getQuoteChar());
+		assertEquals(0, csvReader.getSkipLines());
 	}
 	
 	@Test
@@ -186,10 +188,10 @@ public class TableCSVAppenderWorkerTest {
 		StringReader reader = new StringReader("1,2,3");
 		CSVReader csvReader = CSVUtils.createCSVReader(reader, body.getCsvTableDescriptor(), body.getLinesToSkip());
 		assertNotNull(csvReader);
-		assertEquals(CSVReader.DEFAULT_SEPARATOR, csvReader.getSeparator());
+		assertEquals(Constants.DEFAULT_SEPARATOR, csvReader.getSeparator());
 		assertEquals('\n', csvReader.getEscape());
-		assertEquals(CSVReader.DEFAULT_QUOTE_CHARACTER, csvReader.getQuotechar());
-		assertEquals(CSVReader.DEFAULT_SKIP_LINES, csvReader.getSkipLines());
+		assertEquals(Constants.DEFAULT_QUOTE_CHARACTER, csvReader.getQuoteChar());
+		assertEquals(0, csvReader.getSkipLines());
 	}
 	
 	@Test
@@ -201,10 +203,10 @@ public class TableCSVAppenderWorkerTest {
 		StringReader reader = new StringReader("1,2,3");
 		CSVReader csvReader = CSVUtils.createCSVReader(reader, body.getCsvTableDescriptor(), body.getLinesToSkip());
 		assertNotNull(csvReader);
-		assertEquals(CSVReader.DEFAULT_SEPARATOR, csvReader.getSeparator());
-		assertEquals(CSVReader.DEFAULT_ESCAPE_CHARACTER, csvReader.getEscape());
-		assertEquals('\'', csvReader.getQuotechar());
-		assertEquals(CSVReader.DEFAULT_SKIP_LINES, csvReader.getSkipLines());
+		assertEquals(Constants.DEFAULT_SEPARATOR, csvReader.getSeparator());
+		assertEquals(Constants.DEFAULT_ESCAPE_CHARACTER, csvReader.getEscape());
+		assertEquals('\'', csvReader.getQuoteChar());
+		assertEquals(0, csvReader.getSkipLines());
 	}
 	
 	@Test
@@ -215,9 +217,9 @@ public class TableCSVAppenderWorkerTest {
 		StringReader reader = new StringReader("1,2,3");
 		CSVReader csvReader = CSVUtils.createCSVReader(reader, body.getCsvTableDescriptor(), body.getLinesToSkip());
 		assertNotNull(csvReader);
-		assertEquals(CSVReader.DEFAULT_SEPARATOR, csvReader.getSeparator());
-		assertEquals(CSVReader.DEFAULT_ESCAPE_CHARACTER, csvReader.getEscape());
-		assertEquals(CSVReader.DEFAULT_QUOTE_CHARACTER, csvReader.getQuotechar());
+		assertEquals(Constants.DEFAULT_SEPARATOR, csvReader.getSeparator());
+		assertEquals(Constants.DEFAULT_ESCAPE_CHARACTER, csvReader.getEscape());
+		assertEquals(Constants.DEFAULT_QUOTE_CHARACTER, csvReader.getQuoteChar());
 		assertEquals(101, csvReader.getSkipLines());
 	}
 	
@@ -235,7 +237,7 @@ public class TableCSVAppenderWorkerTest {
 		assertNotNull(csvReader);
 		assertEquals('-', csvReader.getSeparator());
 		assertEquals('?', csvReader.getEscape());
-		assertEquals(':', csvReader.getQuotechar());
+		assertEquals(':', csvReader.getQuoteChar());
 		assertEquals(12, csvReader.getSkipLines());
 	}
 }

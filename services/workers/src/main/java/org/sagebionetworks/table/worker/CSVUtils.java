@@ -2,12 +2,14 @@ package org.sagebionetworks.table.worker;
 
 import java.io.Reader;
 
-import org.sagebionetworks.csv.utils.CSVReader;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
+
+import au.com.bytecode.opencsv.CSVReader;
+import au.com.bytecode.opencsv.Constants;
 
 public class CSVUtils {
 	
@@ -24,10 +26,10 @@ public class CSVUtils {
 	 * @return
 	 */
 	public static CSVReader createCSVReader(Reader reader, CsvTableDescriptor descriptor, Long linesToSkip) {
-		char separator = CSVReader.DEFAULT_SEPARATOR;
-		char quotechar = CSVReader.DEFAULT_QUOTE_CHARACTER;
-		char escape = CSVReader.DEFAULT_ESCAPE_CHARACTER;
-		int skipLines = CSVReader.DEFAULT_SKIP_LINES;
+		char separator = Constants.DEFAULT_SEPARATOR;
+		char quotechar = Constants.DEFAULT_QUOTE_CHARACTER;
+		char escape = Constants.DEFAULT_ESCAPE_CHARACTER;
+		int skipLines = 0;
 		if(descriptor != null){
 			if (descriptor.getSeparator() != null) {
 				if (descriptor.getSeparator().length() != 1) {

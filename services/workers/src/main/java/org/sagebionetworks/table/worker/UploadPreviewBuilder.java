@@ -9,13 +9,14 @@ import java.util.Map;
 import java.util.regex.Pattern;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.csv.utils.CSVReader;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewResult;
+
+import au.com.bytecode.opencsv.CSVReader;
 
 /**
  * Builds a CSV upload preview for a file.
@@ -141,25 +142,23 @@ public class UploadPreviewBuilder {
 	private void scanRows() throws IOException {
 		rowsScanned = 0;
 		// Read the Entire file.
-		while (reader.isHasNext()) {
-			String[] row = reader.readNext();
-			if (row != null) {
-				if (schema == null) {
-					schema = new ColumnModel[row.length];
-				}
-				// Check the schema from this row
-				CSVUtils.checkTypes(row, schema);
-				rowsScanned++;
-				progressCallback.progressMade(rowsScanned);
-				// Keep the first few rows
-				if (rowsScanned <= MAX_ROWS_IN_PREVIEW) {
-					startingRow.add(row);
-				}
-				// break out if we are not doing a full scan
-				if (!this.fullScan) {
-					if (rowsScanned >= maxRowsInpartialScan) {
-						break;
-					}
+		String[] row;
+		while ((row = reader.readNext()) != null) {
+			if (schema == null) {
+				schema = new ColumnModel[row.length];
+			}
+			// Check the schema from this row
+			CSVUtils.checkTypes(row, schema);
+			rowsScanned++;
+			progressCallback.progressMade(rowsScanned);
+			// Keep the first few rows
+			if (rowsScanned <= MAX_ROWS_IN_PREVIEW) {
+				startingRow.add(row);
+			}
+			// break out if we are not doing a full scan
+			if (!this.fullScan) {
+				if (rowsScanned >= maxRowsInpartialScan) {
+					break;
 				}
 			}
 		}
