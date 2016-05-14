@@ -1528,4 +1528,11 @@ public class StackConfiguration {
 	public static StackConfiguration singleton(){
 		return singleton;
 	}
+
+	/**
+	 * @return the markdown service endpoint
+	 */
+	public String getMarkdownServiceEndpoint() {
+		return StackConstants.MARKDOWN_SERVICE_ENDPOINT;
+	}
 }

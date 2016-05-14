@@ -137,4 +137,6 @@ public class StackConstants {
 	 * External S3 location test bucket.
 	 */
 	public static final String EXTERNAL_S3_TEST_BUCKET = "%1$s.external.s3.test.sagebase.org";
+
+	public static final String MARKDOWN_SERVICE_ENDPOINT = "http://markdownit.prod.sagebase.org";
 }

@@ -1,0 +1,73 @@
+package org.sagebionetworks.markdown;
+
+import java.io.IOException;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.ParseException;
+import org.apache.http.client.HttpClient;
+import org.apache.http.util.EntityUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.utils.HttpClientHelper;
+import org.springframework.beans.factory.annotation.Autowired;
+
+public class MarkdownClient {
+	private static Logger log = LogManager.getLogger(MarkdownClient.class);
+
+	@Autowired
+	private MarkdownHttpClientProvider markdownHttpClientProvider;
+	private HttpClient httpClient;
+	private String markdownServiceEndpoint;
+	private static final Map<String, String> DEFAULT_REQUEST_HEADERS;
+
+	public static final String MARKDOWN_TO_HTML = "/markdown2html";
+	static {
+		Map<String, String> requestHeaders = new HashMap<String, String>();
+		requestHeaders.put("Content-Type", "application/json");
+		DEFAULT_REQUEST_HEADERS = Collections.unmodifiableMap(requestHeaders);
+	}
+
+	public void _init() {
+		if (markdownHttpClientProvider == null) {
+			throw new RuntimeException("MarkdownHttpClientProvider is null in MarkdownClient._init()");
+		}
+		this.httpClient = markdownHttpClientProvider.getHttpClient();
+	}
+
+	/**
+	 * Takes a json string requestContent (ex. {"markdown":"## a heading"})
+	 * Makes a call to the markdown server to convert the raw markdown to html
+	 * Return the json string representation of the response (ex. {"html":"<h2 toc=\"true\">a heading</h2>\n"})
+	 * 
+	 * @param requestContent
+	 * @return
+	 * @throws ParseException
+	 * @throws IOException
+	 */
+	public String requestMarkdownConversion(String requestContent) throws ParseException, IOException{
+		String url = markdownServiceEndpoint+MARKDOWN_TO_HTML;
+		HttpResponse response = HttpClientHelper.performRequest(httpClient, url, "POST", requestContent, DEFAULT_REQUEST_HEADERS);
+		int statusCode = response.getStatusLine().getStatusCode();
+		if (statusCode == 200) {
+			HttpEntity responseEntity = response.getEntity();
+			if (responseEntity != null) {
+				return EntityUtils.toString(responseEntity);
+			}
+		} else {
+			log.info("Fail to request markdown conversion for request: "+requestContent+". Response: "+response.toString());
+		}
+		return null;
+	}
+
+	public String getMarkdownServiceEndpoint() {
+		return markdownServiceEndpoint;
+	}
+
+	public void setMarkdownServiceEndpoint(String markdownServiceEndpoint) {
+		this.markdownServiceEndpoint = markdownServiceEndpoint;
+	}
+}
