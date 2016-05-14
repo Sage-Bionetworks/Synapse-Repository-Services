@@ -273,6 +273,53 @@ public class TableWorkerIntegrationTest {
 				schema);
 		assertEquals(expectedRowSet, queryResult.getQueryResults());
 	}
+	
+	/**
+	 * Must be able to run a query: 'SELECT ROW_ID FROM SYN123'
+	 * @throws Exception
+	 */
+	@Test
+	public void testPLFM_3674() throws Exception {
+		// Create one column of each type
+		List<ColumnModel> columnModels = TableModelTestUtils.createColumsWithNames("one");
+		schema = new LinkedList<ColumnModel>();
+		for(ColumnModel cm: columnModels){
+			cm = columnManager.createColumnModel(adminUserInfo, cm);
+			schema.add(cm);
+		}
+		List<Long> headers = TableModelUtils.getIds(schema);
+		// Create the table.
+		TableEntity table = new TableEntity();
+		table.setName(UUID.randomUUID().toString());
+		table.setColumnIds(Lists.transform(headers, TableModelUtils.LONG_TO_STRING));
+		tableId = entityManager.createEntity(adminUserInfo, table, null);
+		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
+		tableEntityManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
+		// add a row
+		List<Row> rows = TableModelTestUtils.createRows(schema, 1);
+		RowSet rowSet = new RowSet();
+		rowSet.setRows(rows);
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
+		rowSet.setTableId(tableId);
+		referenceSet = tableEntityManager.appendRows(adminUserInfo, tableId, schema,
+				rowSet, mockPprogressCallback);
+		// Wait for the table to become available
+		String sql = "select row_id from " + tableId;
+		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 8L);
+		// Progress should have been made
+		verify(mockProgressCallbackVoid, times(1)).progressMade(null);
+		System.out.println("testRoundTrip");
+		System.out.println(queryResult);
+		assertNotNull(queryResult);
+		assertNotNull(queryResult.getQueryResults());
+		assertEquals(1, queryResult.getQueryResults().getRows().size());
+		Row row = queryResult.getQueryResults().getRows().get(0);
+		assertEquals(null, row.getRowId());
+		assertEquals(null, row.getVersionNumber());
+		assertNotNull(row.getValues());
+		assertEquals("0", row.getValues().get(0));
+	}
+
 
 	@Test
 	public void testLimitOffset() throws Exception {
@@ -646,17 +693,6 @@ public class TableWorkerIntegrationTest {
 			partialRow.setRowId(row.getRowId());
 			deleteRows.add(partialRow);
 		}
-		// PLFM-2965 removing all rows means query result headers is not filled out
-		// rowsToDelete.setRows(deleteRows);
-		// tableRowManager.appendPartialRows(adminUserInfo, tableId, schema, rowsToDelete);
-		// sql = "select * from " + tableId;
-		// queryResultBundle = waitForConsistentQueryBundle(adminUserInfo, sql, null, null);
-		// assertEquals(0, queryResultBundle.getQueryResult().getQueryResults().getRows().size());
-		// for (int i = 0; i < queryResultBundle.getSelectColumns().size(); i++) {
-		// assertEquals(schema.get(i), queryResultBundle.getSelectColumns().get(i));
-		// assertEquals(schema.get(i).getId(),
-		// queryResultBundle.getQueryResult().getQueryResults().getHeaders().get(i));
-		// }
 	}
 
 	/**

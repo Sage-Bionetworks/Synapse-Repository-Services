@@ -327,35 +327,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			public void processRow(ResultSet rs) throws SQLException {
 				// refresh the lock.
 				callback.progressMade(null);
-
-				ResultSetMetaData metadata = rs.getMetaData();
-
-				Row row = new Row();
-				List<String> values = new LinkedList<String>();
-				row.setValues(values);
-
-				// ROW_ID and ROW_VERSION are always appended to the list of columns
-				int selectModelIndex = 0;
-				int columnCount = metadata.getColumnCount();
-				List<SelectColumn> selectColumns = query.getSelectColumns();
-				// result sets use 1-base indexing
-				for (int i = 1; i <= columnCount; i++) {
-					String name = metadata.getColumnName(i);
-					if (ROW_ID.equals(name)) {
-						row.setRowId(rs.getLong(i));
-					} else if (ROW_VERSION.equals(name)) {
-						row.setVersionNumber(rs.getLong(i));
-					} else {
-						SelectColumn selectColumn = selectColumns.get(selectModelIndex++);
-						String value = rs.getString(i);
-						value = TableModelUtils.translateRowValueFromQuery(value, selectColumn.getColumnType());
-						values.add(value);
-					}
-				}
-				if (selectModelIndex != selectColumns.size()) {
-					throw new IllegalStateException("The number of columns returned (" + selectModelIndex
-							+ ") is not the same as the number expected (" + selectColumns.size() + ")");
-				}
+				Row row = SQLTranslatorUtils.readRow(rs, query.includesRowIdAndVersion(), query.getSelectColumns());
 				handler.nextRow(row);
 			}
 		});

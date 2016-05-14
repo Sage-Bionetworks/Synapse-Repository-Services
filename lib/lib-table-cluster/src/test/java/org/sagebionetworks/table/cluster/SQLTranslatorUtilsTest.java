@@ -5,7 +5,11 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -17,6 +21,7 @@ import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
@@ -31,6 +36,8 @@ public class SQLTranslatorUtilsTest {
 	
 	@Mock
 	HasQuoteValue mockHasQuoteValue;
+	@Mock
+	ResultSet mockResultSet;
 	
 	Map<String, ColumnModel> columnMap;
 	
@@ -582,5 +589,62 @@ public class SQLTranslatorUtilsTest {
 		two.setId(null);
 		// call under test
 		assertFalse(SQLTranslatorUtils.doAllSelectMatchSchema(Lists.newArrayList(one, two)));
+	}
+	
+	@Test
+	public void testReadRow() throws SQLException{
+		
+		boolean includesRowIdAndVersion = true;
+		
+		SelectColumn one = new SelectColumn();
+		one.setColumnType(ColumnType.STRING);
+		SelectColumn two = new SelectColumn();
+		two.setColumnType(ColumnType.BOOLEAN);
+		
+		List<SelectColumn> selectList = Lists.newArrayList(one, two);
+		
+		Long rowId = 123L;
+		Long rowVersion = 2L;
+		// Setup the result set
+		when(mockResultSet.getLong(ROW_ID)).thenReturn(rowId);
+		when(mockResultSet.getLong(ROW_VERSION)).thenReturn(rowVersion);
+		when(mockResultSet.getString(1)).thenReturn("aString");
+		when(mockResultSet.getString(2)).thenReturn("1");
+		// call under test.
+		Row result = SQLTranslatorUtils.readRow(mockResultSet, includesRowIdAndVersion, selectList);
+		assertNotNull(result);
+		assertEquals(rowId, result.getRowId());
+		assertEquals(rowVersion, result.getVersionNumber());
+		assertNotNull(result.getValues());
+		assertEquals(2, result.getValues().size());
+		assertEquals("aString", result.getValues().get(0));
+		assertEquals(Boolean.TRUE.toString(), result.getValues().get(1));
+		
+	}
+	
+	@Test
+	public void testReadRowNoRowId() throws SQLException{
+		
+		boolean includesRowIdAndVersion = false;
+		
+		SelectColumn one = new SelectColumn();
+		one.setColumnType(ColumnType.STRING);
+		SelectColumn two = new SelectColumn();
+		two.setColumnType(ColumnType.BOOLEAN);
+		
+		List<SelectColumn> selectList = Lists.newArrayList(one, two);
+
+		when(mockResultSet.getString(1)).thenReturn("aString");
+		when(mockResultSet.getString(2)).thenReturn("0");
+		// call under test.
+		Row result = SQLTranslatorUtils.readRow(mockResultSet, includesRowIdAndVersion, selectList);
+		assertNotNull(result);
+		assertEquals(null, result.getRowId());
+		assertEquals(null, result.getVersionNumber());
+		assertNotNull(result.getValues());
+		assertEquals(2, result.getValues().size());
+		assertEquals("aString", result.getValues().get(0));
+		assertEquals(Boolean.FALSE.toString(), result.getValues().get(1));
+		
 	}
 }

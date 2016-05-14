@@ -30,13 +30,6 @@ public class SqlQuery {
 	QuerySpecification model;
 	
 	/**
-	 * This model starts off as a copy of the input model,
-	 * it is then transformed to be compatible with the actual
-	 * database table. 
-	 */
-	QuerySpecification transformedModel;
-	
-	/**
 	 * The full list of all of the columns of this table
 	 */
 	List<ColumnModel> tableSchema;
@@ -117,11 +110,6 @@ public class SqlQuery {
 		this.tableSchema = tableSchema;
 		this.model = parsedModel;
 		this.tableId = tableId;
-		
-		if(tableSchema.isEmpty()){
-			// There is nothing to do if the tables does not have a schema.
-			return;
-		}
 
 		// This map will contain all of the 
 		this.parameters = new HashMap<String, Object>();	
@@ -137,16 +125,12 @@ public class SqlQuery {
 		this.selectColumns = SQLTranslatorUtils.getSelectColumns(this.model.getSelectList(), columnNameToModelMap, this.isAggregatedResult);
 
 		// Create a copy of the original model.
-		try {
-			transformedModel = new TableQueryParser(model.toSql()).querySpecification();
-		} catch (ParseException e) {
-			throw new IllegalArgumentException(e);
-		}
+		QuerySpecification transformedModel = model;
 		// Add ROW_ID and ROW_VERSION only if all columns have an Id.
 		if (SQLTranslatorUtils.doAllSelectMatchSchema(selectColumns)) {
 			// we need to add the row count and row version columns
 			SelectList expandedSelectList = SQLTranslatorUtils.addRowIdAndVersionToSelect(this.model.getSelectList());
-			transformedModel.replaceSelectList(expandedSelectList);
+			transformedModel = new QuerySpecification(model.getSqlDirective(), model.getSetQuantifier(), expandedSelectList, model.getTableExpression());
 			this.includesRowIdAndVersion = true;
 		}else{
 			this.includesRowIdAndVersion = false;

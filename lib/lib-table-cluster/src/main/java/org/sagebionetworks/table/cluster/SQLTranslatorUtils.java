@@ -266,18 +266,18 @@ public class SQLTranslatorUtils {
 	 * @return
 	 * @throws SQLException
 	 */
-	public static Row readRow(ResultSet rs, SqlQuery query) throws SQLException{
+	public static Row readRow(ResultSet rs, boolean includesRowIdAndVersion, List<SelectColumn> selectColumn) throws SQLException{
 		Row row = new Row();
 		List<String> values = new LinkedList<String>();
 		row.setValues(values);
-		if(query.includesRowIdAndVersion()){
+		if(includesRowIdAndVersion){
 			row.setRowId(rs.getLong(ROW_ID));
 			row.setVersionNumber(rs.getLong(ROW_VERSION));
 		}
 		// Read the select columns.
-		List<SelectColumn> selectColumn = query.getSelectColumns();
-		for(SelectColumn select: selectColumn){
-			String value = rs.getString(select.getName());
+		for(int i=0; i < selectColumn.size(); i++){
+			SelectColumn select = selectColumn.get(i);
+			String value = rs.getString(i+1);
 			value = TableModelUtils.translateRowValueFromQuery(value, select.getColumnType());
 			values.add(value);
 		}
