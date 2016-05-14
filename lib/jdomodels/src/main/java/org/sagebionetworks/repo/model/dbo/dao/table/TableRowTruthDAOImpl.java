@@ -219,7 +219,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 
 		// Prepare the results
 		RowReferenceSet results = new RowReferenceSet();
-		results.setHeaders(TableModelUtils.getSelectColumns(columns, false));
+		results.setHeaders(TableModelUtils.getSelectColumns(columns));
 		results.setTableId(tableId);
 		results.setEtag(changeDBO.getEtag());
 		List<RowReference> refs = new LinkedList<RowReference>();
@@ -371,7 +371,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 			RowSet set = new RowSet();
 			List<Row> rows = TableModelUtils.readFromCSVgzStream(object.getObjectContent());
 			set.setTableId(tableId);
-			set.setHeaders(TableModelUtils.getSelectColumns(columns, false));
+			set.setHeaders(TableModelUtils.getSelectColumns(columns));
 			set.setRows(rows);
 			set.setEtag(dto.getEtag());
 			return set;

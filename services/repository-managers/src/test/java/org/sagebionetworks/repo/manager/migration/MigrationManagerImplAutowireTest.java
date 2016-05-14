@@ -176,7 +176,7 @@ public class MigrationManagerImplAutowireTest {
 			// Now add some data
 			RowSet rowSet = new RowSet();
 			rowSet.setRows(TableModelTestUtils.createRows(schema, 2));
-			rowSet.setHeaders(TableModelUtils.getSelectColumns(schema, false));
+			rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 			rowSet.setTableId(tableId);
 			tableEntityManager.appendRows(adminUser, tableId, schema, rowSet, mockProgressCallback);
 		}
@@ -363,7 +363,7 @@ public class MigrationManagerImplAutowireTest {
 			RowReferenceSet rowRefs = new RowReferenceSet();
 			rowRefs.setRows(Collections.singletonList(TableModelTestUtils.createRowReference(0L, 0L)));
 			rowRefs.setTableId(tableId);
-			rowRefs.setHeaders(TableModelUtils.getSelectColumns(models, false));
+			rowRefs.setHeaders(TableModelUtils.getSelectColumns(models));
 			tableEntityManager.getCellValues(adminUser, tableId, rowRefs, models);
 
 			assertEquals(0, indexDao.getRowCountForTable(tableId).intValue());

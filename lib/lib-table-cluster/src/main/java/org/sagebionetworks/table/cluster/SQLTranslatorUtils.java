@@ -1,13 +1,21 @@
 package org.sagebionetworks.table.cluster;
 
-import java.util.LinkedHashMap;
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.TableConstants;
+import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.model.CharacterFactor;
 import org.sagebionetworks.table.query.model.CharacterPrimary;
 import org.sagebionetworks.table.query.model.CharacterValueExpression;
@@ -56,31 +64,53 @@ public class SQLTranslatorUtils {
 	}
 
 	/**
-	 * Get the list of column IDs that are referenced in the select calsue.
+	 * Get the list of column IDs that are referenced in the select clause.
 	 * 
 	 * @param allColumns
 	 * @param selectList
 	 * @param isAggregatedResult
 	 * @return
 	 */
-	public static List<SelectColumn> getSelectColumns(SelectList selectList, LinkedHashMap<String, ColumnModel> columnNameToModelMap,
-			boolean isAggregatedResult) {
+	public static List<SelectColumn> getSelectColumns(SelectList selectList, Map<String, ColumnModel> columnNameToModelMap, boolean isAggregate) {
 		ValidateArgument.required(columnNameToModelMap, "all columns");
 		ValidateArgument.required(selectList, "selectList");
 		if (selectList.getAsterisk() != null) {
 			throw new IllegalStateException("The columns should have been expanded before getting here");
-		} else {
-			List<SelectColumn> select = Lists.newArrayListWithCapacity(selectList.getColumns().size());
-			for (DerivedColumn dc : selectList.getColumns()) {
-				SelectColumn model = getSelectColumns(dc, columnNameToModelMap);
-				if(isAggregatedResult){
-					// never pass an ID for an aggregate query.
-					model.setId(null);
-				}
-				select.add(model);
+		} 
+		List<SelectColumn> selects = Lists.newArrayListWithCapacity(selectList.getColumns().size());
+		boolean isAtLeastOneColumnIdNull = false;
+		for (DerivedColumn dc : selectList.getColumns()) {
+			SelectColumn model = getSelectColumns(dc, columnNameToModelMap);
+			selects.add(model);
+			if(model.getId() == null){
+				isAtLeastOneColumnIdNull = true;
 			}
-			return select;
 		}
+		
+		// All columnIds should be null if one column has a null ID or this is an aggregate query.
+		if(isAtLeastOneColumnIdNull || isAggregate){
+			// clear all columnIds.
+			for(SelectColumn select: selects){
+				select.setId(null);
+			}
+		}
+		return selects;
+	}
+	
+	/**
+	 * All select elements match the schema if all elements have a column ID.
+	 * 
+	 * @param list
+	 * @return
+	 */
+	public static boolean doAllSelectMatchSchema(List<SelectColumn> selectList){
+		ValidateArgument.required(selectList, "selectList");
+		for(SelectColumn select: selectList){
+			if(select.getId() == null){
+				return false;
+			}
+		}
+		return true;
 	}
 	
 	/**
@@ -126,7 +156,8 @@ public class SQLTranslatorUtils {
 	}
 	
 	/**
-	 * Get the base column type for a 
+	 * Given a referenced column, attempt to determine the type of the column using only
+	 * the SQL.
 	 * @param derivedColumn
 	 * @return
 	 */
@@ -198,6 +229,59 @@ public class SQLTranslatorUtils {
 		default:
 			return false;
 		}
+	}
+	
+	/**
+	 * Create a select list from a given table schema.
+	 * @param schema
+	 * @return
+	 */
+	public static SelectList createSelectListFromSchema(List<ColumnModel> schema){
+		ValidateArgument.required(schema, "schema");
+		List<DerivedColumn> columns = new ArrayList<DerivedColumn>(schema.size());
+		for(ColumnModel cm: schema){
+			columns.add(createDerivedColumn(cm.getName()));
+		}
+		return new SelectList(columns);
+	}
+	
+	/**
+	 * Create a new SelectList that includes ROW_ID and ROW_VERSION.
+	 * 
+	 * @param selectList
+	 * @return
+	 */
+	public static SelectList addRowIdAndVersionToSelect(SelectList selectList){
+		List<DerivedColumn> selectColumns = Lists.newArrayListWithCapacity(selectList.getColumns().size() + 2);
+		selectColumns.addAll(selectList.getColumns());
+		selectColumns.add(SQLTranslatorUtils.createDerivedColumn(ROW_ID));
+		selectColumns.add(SQLTranslatorUtils.createDerivedColumn(ROW_VERSION));
+		return new SelectList(selectColumns);
+	}
+	
+	/**
+	 * Read a Row from a ResultSet that was produced with the given query.
+	 * @param rs
+	 * @param query
+	 * @return
+	 * @throws SQLException
+	 */
+	public static Row readRow(ResultSet rs, boolean includesRowIdAndVersion, List<SelectColumn> selectColumn) throws SQLException{
+		Row row = new Row();
+		List<String> values = new LinkedList<String>();
+		row.setValues(values);
+		if(includesRowIdAndVersion){
+			row.setRowId(rs.getLong(ROW_ID));
+			row.setVersionNumber(rs.getLong(ROW_VERSION));
+		}
+		// Read the select columns.
+		for(int i=0; i < selectColumn.size(); i++){
+			SelectColumn select = selectColumn.get(i);
+			String value = rs.getString(i+1);
+			value = TableModelUtils.translateRowValueFromQuery(value, select.getColumnType());
+			values.add(value);
+		}
+		return row;
 	}
 	
 

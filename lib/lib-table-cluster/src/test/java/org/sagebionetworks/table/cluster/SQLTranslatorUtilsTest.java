@@ -5,7 +5,11 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -17,12 +21,14 @@ import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.DerivedColumn;
 import org.sagebionetworks.table.query.model.FunctionType;
 import org.sagebionetworks.table.query.model.HasQuoteValue;
+import org.sagebionetworks.table.query.model.SelectList;
 
 import com.google.common.collect.Lists;
 
@@ -30,6 +36,8 @@ public class SQLTranslatorUtilsTest {
 	
 	@Mock
 	HasQuoteValue mockHasQuoteValue;
+	@Mock
+	ResultSet mockResultSet;
 	
 	Map<String, ColumnModel> columnMap;
 	
@@ -219,7 +227,7 @@ public class SQLTranslatorUtilsTest {
 	 * should work for each type without an error
 	 */
 	@Test
-	public void testGetColumnTypeForFunctionAllTypes(){
+	public void testGetColumnTypeForAllFunctionsBaseTypeInteger(){
 		ColumnType baseType = ColumnType.INTEGER;
 		for(FunctionType functionType: FunctionType.values()){
 			SQLTranslatorUtils.getColumnTypeForFunction(functionType, baseType);
@@ -465,5 +473,178 @@ public class SQLTranslatorUtilsTest {
 		assertEquals(columnSpecial.getName(), results.getName());
 		assertEquals(ColumnType.DOUBLE, results.getColumnType());
 		assertEquals(columnSpecial.getId(), results.getId());
+	}
+	
+	@Test
+	public void testCreateSelectListFromSchema(){
+		// call under test.
+		SelectList results = SQLTranslatorUtils.createSelectListFromSchema(Lists.newArrayList(columnFoo, columnHasSpace));
+		assertNotNull(results);
+		assertEquals("foo, \"has space\"", results.toSql());
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCreateSelectListFromSchemaNull(){
+		// call under test.
+		SQLTranslatorUtils.createSelectListFromSchema(null);
+	}
+	
+	@Test(expected=IllegalStateException.class)
+	public void testGetSelectColumnsSelectStar() throws ParseException{
+		boolean isAggregate = false;
+		SelectList element = new TableQueryParser("*").selectList();
+		//  call under test.
+		SQLTranslatorUtils.getSelectColumns(element, columnMap, isAggregate);
+	}
+	
+	@Test
+	public void testGetSelectColumnsSelectActualColumnsAggregate() throws ParseException{
+		boolean isAggregate = true;
+		SelectList element = new TableQueryParser("foo, bar").selectList();
+		//  call under test.
+		List<SelectColumn> results = SQLTranslatorUtils.getSelectColumns(element, columnMap, isAggregate);
+		assertNotNull(results);
+		assertEquals(2, results.size());
+		for (SelectColumn select : results) {
+			assertEquals(
+					"This is an aggregate so all column ids must be null.",
+					null, select.getId());
+		}
+	}
+	
+	@Test
+	public void testGetSelectColumnsSelectActualColumnsNotAggregate() throws ParseException{
+		boolean isAggregate = false;
+		SelectList element = new TableQueryParser("foo, bar").selectList();
+		//  call under test.
+		List<SelectColumn> results = SQLTranslatorUtils.getSelectColumns(element, columnMap, isAggregate);
+		assertNotNull(results);
+		assertEquals(2, results.size());
+		for (SelectColumn select : results) {
+			assertNotNull(
+					"This is not an aggregate, and all selects match the schema so all columns should have a column ID.",
+					select.getId());
+		}
+	}
+	
+	@Test
+	public void testGetSelectColumnsSelectConstantNotAggregate() throws ParseException{
+		boolean isAggregate = false;
+		SelectList element = new TableQueryParser("foo, 'some constant'").selectList();
+		//  call under test.
+		List<SelectColumn> results = SQLTranslatorUtils.getSelectColumns(element, columnMap, isAggregate);
+		assertNotNull(results);
+		assertEquals(2, results.size());
+		for (SelectColumn select : results) {
+			assertEquals(
+					"This is not an aggregate but since one select does not match the schema, all column Ids should be null.",
+					null, select.getId());
+		}
+	}
+	
+	@Test
+	public void testGetSelectColumnsSelectConstantAggregate() throws ParseException{
+		boolean isAggregate = true;
+		SelectList element = new TableQueryParser("foo, 'some constant'").selectList();
+		//  call under test.
+		List<SelectColumn> results = SQLTranslatorUtils.getSelectColumns(element, columnMap, isAggregate);
+		assertNotNull(results);
+		assertEquals(2, results.size());
+		for (SelectColumn select : results) {
+			assertEquals(
+					"This is an aggregate and one select does not match the schema so all column Ids should be null.",
+					null, select.getId());
+		}
+	}
+	
+	@Test
+	public void testAddRowIdAndVersionToSelect() throws ParseException{
+		SelectList element = new TableQueryParser("foo, 'has space'").selectList();
+		SelectList results = SQLTranslatorUtils.addRowIdAndVersionToSelect(element);
+		assertNotNull(results);
+		assertEquals("foo, 'has space', ROW_ID, ROW_VERSION", results.toSql());
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testDoAllSelectMatchSchemaNullNull(){
+		// call under test
+		assertFalse(SQLTranslatorUtils.doAllSelectMatchSchema(null));
+	}
+	
+	@Test
+	public void testDoAllSelectMatchSchemaTrue(){
+		SelectColumn one = new SelectColumn();
+		one.setId("123");
+		SelectColumn two = new SelectColumn();
+		two.setId("456");
+		// call under test
+		assertTrue(SQLTranslatorUtils.doAllSelectMatchSchema(Lists.newArrayList(one, two)));
+	}
+	
+	@Test
+	public void testDoAllSelectMatchSchemaFalse(){
+		SelectColumn one = new SelectColumn();
+		one.setId("123");
+		SelectColumn two = new SelectColumn();
+		two.setId(null);
+		// call under test
+		assertFalse(SQLTranslatorUtils.doAllSelectMatchSchema(Lists.newArrayList(one, two)));
+	}
+	
+	@Test
+	public void testReadRow() throws SQLException{
+		
+		boolean includesRowIdAndVersion = true;
+		
+		SelectColumn one = new SelectColumn();
+		one.setColumnType(ColumnType.STRING);
+		SelectColumn two = new SelectColumn();
+		two.setColumnType(ColumnType.BOOLEAN);
+		
+		List<SelectColumn> selectList = Lists.newArrayList(one, two);
+		
+		Long rowId = 123L;
+		Long rowVersion = 2L;
+		// Setup the result set
+		when(mockResultSet.getLong(ROW_ID)).thenReturn(rowId);
+		when(mockResultSet.getLong(ROW_VERSION)).thenReturn(rowVersion);
+		when(mockResultSet.getString(1)).thenReturn("aString");
+		when(mockResultSet.getString(2)).thenReturn("1");
+		// call under test.
+		Row result = SQLTranslatorUtils.readRow(mockResultSet, includesRowIdAndVersion, selectList);
+		assertNotNull(result);
+		assertEquals(rowId, result.getRowId());
+		assertEquals(rowVersion, result.getVersionNumber());
+		assertNotNull(result.getValues());
+		assertEquals(2, result.getValues().size());
+		assertEquals("aString", result.getValues().get(0));
+		assertEquals(Boolean.TRUE.toString(), result.getValues().get(1));
+		
+	}
+	
+	@Test
+	public void testReadRowNoRowId() throws SQLException{
+		
+		boolean includesRowIdAndVersion = false;
+		
+		SelectColumn one = new SelectColumn();
+		one.setColumnType(ColumnType.STRING);
+		SelectColumn two = new SelectColumn();
+		two.setColumnType(ColumnType.BOOLEAN);
+		
+		List<SelectColumn> selectList = Lists.newArrayList(one, two);
+
+		when(mockResultSet.getString(1)).thenReturn("aString");
+		when(mockResultSet.getString(2)).thenReturn("0");
+		// call under test.
+		Row result = SQLTranslatorUtils.readRow(mockResultSet, includesRowIdAndVersion, selectList);
+		assertNotNull(result);
+		assertEquals(null, result.getRowId());
+		assertEquals(null, result.getVersionNumber());
+		assertNotNull(result.getValues());
+		assertEquals(2, result.getValues().size());
+		assertEquals("aString", result.getValues().get(0));
+		assertEquals(Boolean.FALSE.toString(), result.getValues().get(1));
+		
 	}
 }

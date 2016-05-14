@@ -129,7 +129,7 @@ public class FileViewWorker implements ChangeMessageDrivenRunner {
 		// Calculate the number of rows per bath based on the current schema
 		final int rowsPerBatch = BATCH_SIZE_BYTES/TableModelUtils.calculateMaxRowSize(currentSchema);
 		final RowSet rowSetBatch = new RowSet();
-		rowSetBatch.setHeaders(TableModelUtils.getSelectColumns(currentSchema, false));
+		rowSetBatch.setHeaders(TableModelUtils.getSelectColumns(currentSchema));
 		rowSetBatch.setTableId(tableId);
 		// Stream all of the file data into the index.
 		Long viewCRC = tableViewManager.streamOverAllFilesInViewAsBatch(tableId, currentSchema, rowsPerBatch, new RowBatchHandler() {

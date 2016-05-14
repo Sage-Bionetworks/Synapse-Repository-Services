@@ -151,7 +151,7 @@ public class TableIndexDAOImplTest {
 		List<Row> rows = TableModelTestUtils.createRows(allTypes, 5);
 		RowSet set = new RowSet();
 		set.setRows(rows);
-		set.setHeaders(TableModelUtils.getSelectColumns(allTypes, false));
+		set.setHeaders(TableModelUtils.getSelectColumns(allTypes));
 		set.setTableId(tableId);
 		IdRange range = new IdRange();
 		range.setMinimumId(100L);
@@ -225,7 +225,7 @@ public class TableIndexDAOImplTest {
 		List<Row> rows = TableModelTestUtils.createRows(allTypes, 4);
 		RowSet set = new RowSet();
 		set.setRows(rows);
-		set.setHeaders(TableModelUtils.getSelectColumns(allTypes, false));
+		set.setHeaders(TableModelUtils.getSelectColumns(allTypes));
 		set.setTableId(tableId);
 		IdRange range = new IdRange();
 		range.setMinimumId(100L);
@@ -290,8 +290,7 @@ public class TableIndexDAOImplTest {
 		List<Row> rows = TableModelTestUtils.createRows(allTypes, 2);
 		RowSet set = new RowSet();
 		set.setRows(rows);
-		List<SelectColumn> headers = TableModelUtils.getSelectColumns(allTypes,
-				false);
+		List<SelectColumn> headers = TableModelUtils.getSelectColumns(allTypes);
 		set.setHeaders(headers);
 		set.setTableId(tableId);
 		IdRange range = new IdRange();
@@ -388,8 +387,7 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.createOrUpdateTable(allTypes, tableId);
 		// Now add some data
 		long startTime = System.currentTimeMillis();
-		List<SelectColumn> headers = TableModelUtils.getSelectColumns(allTypes,
-				false);
+		List<SelectColumn> headers = TableModelUtils.getSelectColumns(allTypes);
 		final int endgoal = 10000000;
 		final int batchsize = 100000;
 		final int distinctCount = 100;
@@ -539,8 +537,7 @@ public class TableIndexDAOImplTest {
 		rows.get(4).getValues().set(0, "-Infinity");
 		RowSet set = new RowSet();
 		set.setRows(rows);
-		List<SelectColumn> headers = TableModelUtils.getSelectColumns(
-				doubleColumn, false);
+		List<SelectColumn> headers = TableModelUtils.getSelectColumns(doubleColumn);
 		set.setHeaders(headers);
 		set.setTableId(tableId);
 		IdRange range = new IdRange();
@@ -578,8 +575,7 @@ public class TableIndexDAOImplTest {
 		rows.add(deletion);
 		RowSet set = new RowSet();
 		set.setRows(rows);
-		List<SelectColumn> headers = TableModelUtils.getSelectColumns(allTypes,
-				false);
+		List<SelectColumn> headers = TableModelUtils.getSelectColumns(allTypes);
 		set.setHeaders(headers);
 		set.setTableId(tableId);
 		IdRange range = new IdRange();
@@ -619,8 +615,7 @@ public class TableIndexDAOImplTest {
 		List<Row> rows = TableModelTestUtils.createNullRows(allTypes, 2);
 		RowSet set = new RowSet();
 		set.setRows(rows);
-		List<SelectColumn> headers = TableModelUtils.getSelectColumns(allTypes,
-				false);
+		List<SelectColumn> headers = TableModelUtils.getSelectColumns(allTypes);
 		set.setHeaders(headers);
 		set.setTableId(tableId);
 		IdRange range = new IdRange();
@@ -670,8 +665,7 @@ public class TableIndexDAOImplTest {
 		List<Row> rows = TableModelTestUtils.createRows(allTypes, 2);
 		RowSet set = new RowSet();
 		set.setRows(rows);
-		List<SelectColumn> headers = TableModelUtils.getSelectColumns(allTypes,
-				false);
+		List<SelectColumn> headers = TableModelUtils.getSelectColumns(allTypes);
 		set.setHeaders(headers);
 		set.setTableId(tableId);
 		IdRange range = new IdRange();
@@ -725,8 +719,7 @@ public class TableIndexDAOImplTest {
 		List<Row> rows = TableModelTestUtils.createRows(schema, 100);
 		RowSet set = new RowSet();
 		set.setRows(rows);
-		List<SelectColumn> headers = TableModelUtils.getSelectColumns(schema,
-				false);
+		List<SelectColumn> headers = TableModelUtils.getSelectColumns(schema);
 		set.setHeaders(headers);
 		set.setTableId(tableId);
 		IdRange range = new IdRange();
@@ -745,8 +738,8 @@ public class TableIndexDAOImplTest {
 		// Now query for the results
 		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
 		assertNotNull(results);
-		assertEquals(TableModelUtils.getSelectColumns(schema, true),
-				results.getHeaders());
+		assertEquals(schema.size(),
+				results.getHeaders().size());
 		assertNotNull(results.getRows());
 		assertEquals(tableId, results.getTableId());
 		assertEquals(1, results.getRows().size());
@@ -781,8 +774,7 @@ public class TableIndexDAOImplTest {
 		List<Row> rows = TableModelTestUtils.createRows(schema, 100);
 		RowSet set = new RowSet();
 		set.setRows(rows);
-		List<SelectColumn> headers = TableModelUtils.getSelectColumns(schema,
-				false);
+		List<SelectColumn> headers = TableModelUtils.getSelectColumns(schema);
 		set.setHeaders(headers);
 		set.setTableId(tableId);
 		IdRange range = new IdRange();

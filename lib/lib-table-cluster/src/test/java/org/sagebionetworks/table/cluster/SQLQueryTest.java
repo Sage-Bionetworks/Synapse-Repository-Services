@@ -9,6 +9,7 @@ import static org.junit.Assert.fail;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -127,13 +128,20 @@ public class SQLQueryTest {
 	}
 	
 	@Test
+	public void testSelectStarEmtpySchema() throws ParseException{
+		tableSchema = new LinkedList<ColumnModel>();
+		SqlQuery translator = new SqlQuery("select * from syn123", tableSchema);
+		assertEquals(tableSchema, translator.getTableSchema());
+	}
+	
+	@Test
 	public void testSelectStar() throws ParseException{
 		SqlQuery translator = new SqlQuery("select * from syn123", tableSchema);
 		assertEquals("SELECT " + STAR_COLUMNS + ", ROW_ID, ROW_VERSION FROM T123", translator.getOutputSQL());
 		assertFalse(translator.isAggregatedResult());
 		assertNotNull(translator.getSelectColumns());
 		assertEquals(translator.getSelectColumns().size(), 9);
-		assertEquals(TableModelUtils.getSelectColumns(this.tableSchema, false), translator.getSelectColumns());
+		assertEquals(TableModelUtils.getSelectColumns(this.tableSchema), translator.getSelectColumns());
 	}
 
 	@Test
@@ -152,7 +160,7 @@ public class SQLQueryTest {
 		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123", translator.getOutputSQL());
 		assertFalse(translator.isAggregatedResult());
 		List<ColumnModel> expectedSelect = Arrays.asList(columnNameToModelMap.get("foo"));
-		assertEquals(TableModelUtils.getSelectColumns(expectedSelect, false), translator.getSelectColumns());
+		assertEquals(TableModelUtils.getSelectColumns(expectedSelect), translator.getSelectColumns());
 	}
 	
 	@Test
@@ -161,7 +169,7 @@ public class SQLQueryTest {
 		assertEquals("SELECT _C111_, _C333_, ROW_ID, ROW_VERSION FROM T123", translator.getOutputSQL());
 		assertFalse(translator.isAggregatedResult());
 		List<ColumnModel> expectedSelect = Arrays.asList(columnNameToModelMap.get("foo"), columnNameToModelMap.get("bar"));
-		assertEquals(TableModelUtils.getSelectColumns(expectedSelect, false), translator.getSelectColumns());
+		assertEquals(TableModelUtils.getSelectColumns(expectedSelect), translator.getSelectColumns());
 	}
 	
 	@Test
@@ -177,7 +185,7 @@ public class SQLQueryTest {
 	@Test
 	public void testSelectConstant() throws ParseException {
 		SqlQuery translator = new SqlQuery("select 'not a foo' from syn123", tableSchema);
-		assertEquals("SELECT 'not a foo', ROW_ID, ROW_VERSION FROM T123", translator.getOutputSQL());
+		assertEquals("SELECT 'not a foo' FROM T123", translator.getOutputSQL());
 		assertEquals(Lists.newArrayList(TableModelUtils.createSelectColumn("not a foo", ColumnType.STRING, null)), translator
 				.getSelectColumns());
 		assertEquals("not a foo", translator.getSelectColumns().get(0).getName());
