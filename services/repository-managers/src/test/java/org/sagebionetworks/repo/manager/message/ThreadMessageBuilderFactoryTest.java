@@ -36,6 +36,8 @@ public class ThreadMessageBuilderFactoryTest {
 	EntityHeader projectHeader;
 	String message;
 	String key;
+	Long actorUserId;
+	String actorUsername;
 	
 	ThreadMessageBuilderFactory factory;
 	
@@ -52,6 +54,7 @@ public class ThreadMessageBuilderFactoryTest {
 		key = "key";
 		message = "message";
 		threadBundle = new DiscussionThreadBundle();
+		threadBundle.setId("333");
 		threadBundle.setProjectId("444");
 		threadBundle.setTitle("title");
 		threadBundle.setCreatedBy("987");
@@ -63,14 +66,17 @@ public class ThreadMessageBuilderFactoryTest {
 		when(mockNodeDao.getEntityHeader(anyString(),  anyLong())).thenReturn(projectHeader);
 
 		when(mockUploadDao.getMessage(key)).thenReturn(message);
+
+		actorUserId = 456L;
+		actorUsername = "someone";
+		when(mockPrincipalAliasDAO.getUserName(actorUserId)).thenReturn(actorUsername);
 	}
 	
 	@Test
 	public void testBuild(){
 		String objectId = "123";
 		ChangeType type = ChangeType.CREATE;
-		Long actor = 456L;
-		BroadcastMessageBuilder bulider = factory.createMessageBuilder(objectId, type, actor);
+		BroadcastMessageBuilder bulider = factory.createMessageBuilder(objectId, type, actorUserId);
 		assertNotNull(bulider);
 		verify(mockNodeDao).getEntityHeader("444", null);
 		verify(mockUploadDao).getMessage(key);

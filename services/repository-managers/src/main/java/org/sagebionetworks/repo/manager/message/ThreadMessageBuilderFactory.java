@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.manager.message;
 
-import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UploadContentToS3DAO;
 import org.sagebionetworks.repo.model.dao.discussion.DiscussionThreadDAO;
@@ -12,6 +11,8 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class ThreadMessageBuilderFactory implements MessageBuilderFactory {
+	public static final String THREAD_TEMPLATE = "message/threadTemplate.txt";
+	public static final String THREAD_CREATED_TITLE = "Synapse Notification: New thread '%1$s'";
 
 	@Autowired
 	private DiscussionThreadDAO threadDao;
@@ -31,12 +32,14 @@ public class ThreadMessageBuilderFactory implements MessageBuilderFactory {
 		// Lookup the thread
 		DiscussionThreadBundle threadBundle = threadDao.getThread(threadId, DiscussionFilter.NO_FILTER);
 		// Lookup the project
-		EntityHeader projectHeader = nodeDao.getEntityHeader(threadBundle.getProjectId(), null);
+		String projectName = nodeDao.getEntityHeader(threadBundle.getProjectId(), null).getName();
 		// Lookup the user name of the actor
 		String actor = principalAliasDAO.getUserName(userId);
 		String markdown = null;
 		markdown = uploadDao.getMessage(threadBundle.getMessageKey());
-		return new ThreadBroadcastMessageBuilder(threadBundle, projectHeader, changeType, actor, markdown);
+		return new DiscussionBroadcastMessageBuilder(actor, userId.toString(), threadBundle.getTitle(),
+				threadBundle.getId(), threadBundle.getProjectId(), projectName, markdown,
+				THREAD_TEMPLATE, THREAD_CREATED_TITLE);
 	}
 
 }
