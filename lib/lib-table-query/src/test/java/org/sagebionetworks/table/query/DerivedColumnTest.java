@@ -199,10 +199,4 @@ public class DerivedColumnTest {
 		assertFalse(element.isReferencedColumnSurroundedWithQuotes());
 	}
 	
-	@Test
-	public void testGetNameWithDoubleQuotes() throws ParseException{
-		DerivedColumn element = SqlElementUntils.createDerivedColumn("\"has space\"");
-		assertEquals("has space", element.getColumnName());
-	}
-	
 }

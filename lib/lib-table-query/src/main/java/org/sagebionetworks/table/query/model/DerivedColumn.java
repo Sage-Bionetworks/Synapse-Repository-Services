@@ -72,12 +72,6 @@ public class DerivedColumn extends SQLElement {
 		if(hasAnyAggregateElements()){
 			return toSql();
 		}
-		// Hack that will be removed
-		ActualIdentifier actual = getFirstElementOfType(ActualIdentifier.class);
-		if(actual != null){
-			return actual.getUnquotedValue();
-		}
-		
 		// If this has a string literal, then we need the unquoted value.
 		HasQuoteValue hasQuotes = getFirstElementOfType(HasQuoteValue.class);
 		if(hasQuotes != null){
