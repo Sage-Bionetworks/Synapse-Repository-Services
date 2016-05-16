@@ -40,7 +40,7 @@ public interface TableQueryManager {
 	 * @throws TableFailedException
 	 * @throws ParseException 
 	 */
-	public Pair<QueryResult, Long> query(ProgressCallback<Void> progressCallback, UserInfo user, String query, List<SortItem> sortList, Long offset, Long limit, boolean runQuery,
+	public QueryResultWithCount query(ProgressCallback<Void> progressCallback, UserInfo user, String query, List<SortItem> sortList, Long offset, Long limit, boolean runQuery,
 			boolean runCount, boolean isConsistent) throws DatastoreException, NotFoundException, TableUnavilableException,
 			TableFailedException, ParseException;
 
@@ -57,7 +57,7 @@ public interface TableQueryManager {
 	 * @throws TableFailedException
 	 * @throws ParseException 
 	 */
-	public Pair<QueryResult, Long> query(ProgressCallback<Void> progressCallback, UserInfo user, SqlQuery query, Long offset, Long limit, boolean runQuery, boolean runCount,
+	public QueryResultWithCount query(ProgressCallback<Void> progressCallback, UserInfo user, SqlQuery query, Long offset, Long limit, boolean runQuery, boolean runCount,
 			boolean isConsistent) throws DatastoreException, NotFoundException, TableUnavilableException, TableFailedException, ParseException;
 
 	/**

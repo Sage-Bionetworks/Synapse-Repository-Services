@@ -83,31 +83,33 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	}
 
 	@Override
-	public Pair<QueryResult, Long> query(ProgressCallback<Void> progressCallback, UserInfo user, String query, List<SortItem> sortList, Long offset, Long limit, boolean runQuery,
+	public QueryResultWithCount query(ProgressCallback<Void> progressCallback, UserInfo user, String query, List<SortItem> sortList, Long offset, Long limit, boolean runQuery,
 			boolean runCount, boolean isConsistent) throws DatastoreException, NotFoundException, TableUnavilableException,
 			TableFailedException {
-		return query(progressCallback, user, createQuery(query, sortList), offset, limit, runQuery, runCount, isConsistent);
+		SqlQuery sqlQuery;
+		try {
+			sqlQuery = createQuery(query, sortList);
+			return query(progressCallback, user, sqlQuery, offset, limit, runQuery, runCount, isConsistent);
+		} catch (EmptySchemaException e) {
+			QueryResult result = new QueryResult();
+			RowSet emptyRowSet = new RowSet();
+			emptyRowSet.setTableId(e.getTableId());
+			result.setQueryResults(emptyRowSet);
+			return new QueryResultWithCount(runQuery ? result : null, runCount ? 0L : null);
+		}
 	}
 
 	@Override
-	public Pair<QueryResult, Long> query(ProgressCallback<Void> progressCallback, UserInfo user, SqlQuery query, Long offset, Long limit, boolean runQuery,
+	public QueryResultWithCount query(ProgressCallback<Void> progressCallback, UserInfo user, SqlQuery query, Long offset, Long limit, boolean runQuery,
 			boolean runCount, boolean isConsistent) throws DatastoreException, NotFoundException, TableUnavilableException,
 			TableFailedException {
 		ValidateArgument.required(user, "UserInfo");
 		ValidateArgument.required(query, "SqlQuery");
+		ValidateArgument.required(query.getTableSchema(), "query.tableSchema");
+		ValidateArgument.required(query.getTableSchema().isEmpty(), "query.tableSchema cannot be empty");
 		// Validate the user has read access on this object
 		tableManagerSupport.validateTableReadAccess(user, query.getTableId());
-		// Does this table exist?
-		if(query.getTableSchema() == null || query.getTableSchema().isEmpty()){
-			// there are no columns for this table so the table does not actually exist.
-			// for this case the caller expects an empty result set.  See PLFM-2636
-			QueryResult result = new QueryResult();
-			RowSet emptyRowSet = new RowSet();
-			emptyRowSet.setTableId(query.getTableId());
-			result.setQueryResults(emptyRowSet);
-			return Pair.create(runQuery ? result : null, runCount ? 0L : null);
-		}
-
+		
 		SqlQuery paginatedQuery = null;
 		Long maxRowsPerPage = null;
 		boolean oneRowWasAdded = false;
@@ -248,16 +250,16 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			}
 		}
 
-		return Pair.create(queryResult, count);
+		return new QueryResultWithCount(queryResult, count);
 	}
 	
 	@Override
 	public QueryResult queryNextPage(ProgressCallback<Void> progressCallback, UserInfo user, QueryNextPageToken nextPageToken) throws DatastoreException, NotFoundException,
 			TableUnavilableException, TableFailedException {
 		Query query = createQueryFromNextPageToken(nextPageToken);
-		Pair<QueryResult, Long> queryResult = query(progressCallback, user, query.getSql(), null, query.getOffset(), query.getLimit(), true,
+		QueryResultWithCount queryResult = query(progressCallback, user, query.getSql(), null, query.getOffset(), query.getLimit(), true,
 				false, query.getIsConsistent());
-		return queryResult.getFirst();
+		return queryResult.getQueryResult();
 	}
 
 	@Override
@@ -268,34 +270,55 @@ public class TableQueryManagerImpl implements TableQueryManager {
 
 		QueryResultBundle bundle = new QueryResultBundle();
 		// The SQL query is need for the actual query, select columns, and max rows per page.
-		SqlQuery sqlQuery = createQuery(queryBundle.getQuery().getSql(), queryBundle.getQuery().getSort());
+		SqlQuery sqlQuery;
+		try {
+			sqlQuery = createQuery(queryBundle.getQuery().getSql(), queryBundle
+					.getQuery().getSort());
 
-		// query
-		long partMask = -1L; // default all
-		if (queryBundle.getPartMask() != null) {
-			partMask = queryBundle.getPartMask();
+			// query
+			long partMask = -1L; // default all
+			if (queryBundle.getPartMask() != null) {
+				partMask = queryBundle.getPartMask();
+			}
+			boolean runQuery = ((partMask & BUNDLE_MASK_QUERY_RESULTS) != 0);
+			boolean runCount = ((partMask & BUNDLE_MASK_QUERY_COUNT) != 0);
+			if (runQuery || runCount) {
+				QueryResultWithCount queryResult = query(progressCallback,
+						user, sqlQuery, queryBundle.getQuery().getOffset(),
+						queryBundle.getQuery().getLimit(), runQuery, runCount,
+						BooleanUtils.isNotFalse(queryBundle.getQuery()
+								.getIsConsistent()));
+				bundle.setQueryResult(queryResult.getQueryResult());
+				bundle.setQueryCount(queryResult.getCount());
+			}
+			// select columns must be fetched for for the select columns or max
+			// rows per page.
+			if ((partMask & BUNDLE_MASK_QUERY_SELECT_COLUMNS) > 0) {
+				bundle.setSelectColumns(sqlQuery.getSelectColumns());
+			}
+			// all schema columns
+			if ((partMask & BUNDLE_MASK_QUERY_MAX_ROWS_PER_PAGE) > 0) {
+				bundle.setColumnModels(sqlQuery.getTableSchema());
+			}
+			// Max rows per column
+			if ((partMask & BUNDLE_MASK_QUERY_MAX_ROWS_PER_PAGE) > 0) {
+				bundle.setMaxRowsPerPage(getMaxRowsPerPageSelectColumns(sqlQuery
+						.getSelectColumns()));
+			}
+			return bundle;
+		} catch (EmptySchemaException e) {
+			// return an empty result.
+			QueryResult result = new QueryResult();
+			RowSet emptyRowSet = new RowSet();
+			emptyRowSet.setTableId(e.getTableId());
+			result.setQueryResults(emptyRowSet);
+			bundle.setQueryResult(result);
+			bundle.setQueryCount(0L);
+			bundle.setColumnModels(new LinkedList<ColumnModel>());
+			bundle.setMaxRowsPerPage(1L);
+			bundle.setSelectColumns(new LinkedList<SelectColumn>());
+			return bundle;
 		}
-		boolean runQuery = ((partMask & BUNDLE_MASK_QUERY_RESULTS) != 0);
-		boolean runCount = ((partMask & BUNDLE_MASK_QUERY_COUNT) != 0);
-		if (runQuery || runCount) {
-			Pair<QueryResult, Long> queryResult = query(progressCallback, user, sqlQuery, queryBundle.getQuery().getOffset(),
-					queryBundle.getQuery().getLimit(), runQuery, runCount, BooleanUtils.isNotFalse(queryBundle.getQuery().getIsConsistent()));
-			bundle.setQueryResult(queryResult.getFirst());
-			bundle.setQueryCount(queryResult.getSecond());
-		}
-		// select columns must be fetched for for the select columns or max rows per page.
-		if ((partMask & BUNDLE_MASK_QUERY_SELECT_COLUMNS) > 0) {
-			bundle.setSelectColumns(sqlQuery.getSelectColumns());
-		}
-		// all schema columns
-		if ((partMask & BUNDLE_MASK_QUERY_MAX_ROWS_PER_PAGE) > 0) {
-			bundle.setColumnModels(sqlQuery.getTableSchema());
-		}
-		// Max rows per column
-		if ((partMask & BUNDLE_MASK_QUERY_MAX_ROWS_PER_PAGE) > 0) {
-			bundle.setMaxRowsPerPage(getMaxRowsPerPageSelectColumns(sqlQuery.getSelectColumns()));
-		}
-		return bundle;
 	}
 
 	public static final Charset UTF8 = Charset.forName("UTF-8");
@@ -356,7 +379,13 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		}
 	}
 
-	private SqlQuery createQuery(String sql, List<SortItem> sortList) {
+	/**
+	 * Create Query from SQL and a sort list.
+	 * @param sql
+	 * @param sortList
+	 * @return
+	 */
+	public SqlQuery createQuery(String sql, List<SortItem> sortList) throws EmptySchemaException {
 		// First parse the SQL
 		QuerySpecification model = parserQuery(sql);
 		if (sortList != null && !sortList.isEmpty()) {
@@ -370,19 +399,20 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		}
 		// Lookup the column models for this table
 		List<ColumnModel> columnModels = columnModelDAO.getColumnModelsForObject(tableId);
+		if(columnModels.isEmpty()){
+			throw new EmptySchemaException("Table schema is empty for: "+tableId, tableId);
+		}
 		return new SqlQuery(model, columnModels, tableId);
 	}
 
-	private SqlQuery createPaginatedQuery(SqlQuery query, Long offset, Long limit) {
+	public SqlQuery createPaginatedQuery(SqlQuery query, Long offset, Long limit) {
 		QuerySpecification model;
 		try {
 			model = SqlElementUntils.convertToPaginatedQuery(query.getModel(), offset, limit);
 		} catch (ParseException e) {
 			throw new IllegalArgumentException(e.getMessage(), e);
 		}
-		// Lookup the column models for this table
-		List<ColumnModel> columnModels = columnModelDAO.getColumnModelsForObject(query.getTableId());
-		return new SqlQuery(model, columnModels, query.getTableId());
+		return new SqlQuery(model, query.getTableSchema(), query.getTableId());
 	}
 
 	/**
@@ -518,47 +548,61 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @throws TableFailedException
 	 */
 	@Override
-	public DownloadFromTableResult runConsistentQueryAsStream(ProgressCallback<Void> progressCallback, UserInfo user, String sql, List<SortItem> sortList,
-			final CSVWriterStream writer, boolean includeRowIdAndVersion, final boolean writeHeader) throws TableUnavilableException,
-			NotFoundException, TableFailedException {
+	public DownloadFromTableResult runConsistentQueryAsStream(
+			ProgressCallback<Void> progressCallback, UserInfo user, String sql,
+			List<SortItem> sortList, final CSVWriterStream writer,
+			boolean includeRowIdAndVersion, final boolean writeHeader)
+			throws TableUnavilableException, NotFoundException,
+			TableFailedException {
 		// Convert to a query.
-		final SqlQuery query = createQuery(sql, sortList);
+		try {
+			final SqlQuery query = createQuery(sql, sortList);
 
-		// Validate the user has read access on this object
-		tableManagerSupport.validateTableReadAccess(user, query.getTableId());
+			// Validate the user has read access on this object
+			tableManagerSupport.validateTableReadAccess(user,
+					query.getTableId());
 
-		if(includeRowIdAndVersion && query.isAggregatedResult()){
-			// PLFM-2993: in the case of an aggregated result, we cannot return row id and row versions. Just don't
-			// return them if it is an aggregated query
-			includeRowIdAndVersion = false;
+			if (includeRowIdAndVersion && !query.includesRowIdAndVersion()) {
+				// PLFM-2993: in the case of an aggregated result, we cannot
+				// return row id and row versions. Just don't
+				// return them if it is an aggregated query
+				includeRowIdAndVersion = false;
+			}
+			final DownloadFromTableResult repsonse = new DownloadFromTableResult();
+			final boolean includeRowIdAndVersionFinal = includeRowIdAndVersion;
+			repsonse.setTableId(query.getTableId());
+			repsonse.setHeaders(query.getSelectColumns());
+
+			runConsistentQueryAsStream(progressCallback,
+					Collections.singletonList(new QueryHandler(query,
+							new RowAndHeaderHandler() {
+								@Override
+								public void writeHeader() {
+									if (writeHeader) {
+										String[] csvHeaders = TableModelUtils.createColumnNameHeader(
+												query.getSelectColumns(),
+												includeRowIdAndVersionFinal);
+										writer.writeNext(csvHeaders);
+									}
+								}
+
+								@Override
+								public void nextRow(Row row) {
+									String[] array = TableModelUtils
+											.writeRowToStringArray(row,
+													includeRowIdAndVersionFinal);
+									writer.writeNext(array);
+								}
+
+								@Override
+								public void setEtag(String etag) {
+									repsonse.setEtag(etag);
+								}
+							})));
+			return repsonse;
+		} catch (EmptySchemaException e) {
+			throw new IllegalArgumentException("Table "+e.getTableId()+" has an empty schema");
 		}
-		final DownloadFromTableResult repsonse = new DownloadFromTableResult();
-		final boolean includeRowIdAndVersionFinal = includeRowIdAndVersion;
-		repsonse.setTableId(query.getTableId());
-		repsonse.setHeaders(query.getSelectColumns());
-
-		runConsistentQueryAsStream(progressCallback, Collections.singletonList(new QueryHandler(query, new RowAndHeaderHandler() {
-			@Override
-			public void writeHeader() {
-				if (writeHeader) {
-					String[] csvHeaders = TableModelUtils.createColumnNameHeader(query.getSelectColumns(),
-							includeRowIdAndVersionFinal);
-					writer.writeNext(csvHeaders);
-				}
-			}
-
-			@Override
-			public void nextRow(Row row) {
-				String[] array = TableModelUtils.writeRowToStringArray(row, includeRowIdAndVersionFinal);
-				writer.writeNext(array);
-			}
-
-			@Override
-			public void setEtag(String etag) {
-				repsonse.setEtag(etag);
-			}
-		})));
-		return repsonse;
 	}
 	
 	/**

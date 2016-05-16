@@ -311,7 +311,7 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		long start = System.currentTimeMillis();
 		while(true){
 			try {
-				return tableQueryManger.query(mockProgressCallback, adminUserInfo, sql, null, 0L, 100L, true, false, true).getFirst().getQueryResults();
+				return tableQueryManger.query(mockProgressCallback, adminUserInfo, sql, null, 0L, 100L, true, false, true).getQueryResult().getQueryResults();
 			} catch (TableUnavilableException e) {
 				assertTrue("Timed out waiting for table index worker to make the table available.", (System.currentTimeMillis()-start) <  MAX_WAIT_MS);
 				assertNotNull(e.getStatus());

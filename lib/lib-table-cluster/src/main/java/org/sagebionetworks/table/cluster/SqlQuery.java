@@ -107,6 +107,9 @@ public class SqlQuery {
 	public void init(QuerySpecification parsedModel, List<ColumnModel> tableSchema, String tableId) {
 		ValidateArgument.required(tableSchema, "TableSchema");
 		ValidateArgument.required(tableId, "tableId");
+		if(tableSchema.isEmpty()){
+			throw new IllegalArgumentException("Table schema cannot be empty");
+		}
 		this.tableSchema = tableSchema;
 		this.model = parsedModel;
 		this.tableId = tableId;

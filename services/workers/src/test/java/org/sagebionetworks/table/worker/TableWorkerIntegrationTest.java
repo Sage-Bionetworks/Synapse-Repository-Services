@@ -47,6 +47,7 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.message.RepositoryMessagePublisher;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
+import org.sagebionetworks.repo.manager.table.QueryResultWithCount;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -99,7 +100,6 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
-import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.TimeUtils;
 import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.sagebionetworks.util.csv.CSVWriterStreamProxy;
@@ -363,37 +363,37 @@ public class TableWorkerIntegrationTest {
 		assertNull(queryResult.getNextPageToken());
 		compareValues(rowSet, 0, 5, queryResult.getQueryResults());
 
-		queryResult = tableQueryManger.query(mockProgressCallbackVoid, adminUserInfo, sql, null, 5L, 1L, true, false, true).getFirst();
+		queryResult = tableQueryManger.query(mockProgressCallbackVoid, adminUserInfo, sql, null, 5L, 1L, true, false, true).getQueryResult();
 		assertEquals(1, queryResult.getQueryResults().getRows().size());
 		assertNull(queryResult.getNextPageToken());
 		compareValues(rowSet, 5, 1, queryResult.getQueryResults());
 
-		queryResult = tableQueryManger.query(mockProgressCallbackVoid, adminUserInfo, sql, null, 5L, 2L, true, false, true).getFirst();
+		queryResult = tableQueryManger.query(mockProgressCallbackVoid, adminUserInfo, sql, null, 5L, 2L, true, false, true).getQueryResult();
 		assertEquals(1, queryResult.getQueryResults().getRows().size());
 		assertNull(queryResult.getNextPageToken());
 		compareValues(rowSet, 5, 1, queryResult.getQueryResults());
 
 		queryResult = tableQueryManger.query(mockProgressCallbackVoid, adminUserInfo, sql + " limit 2 offset 3", null, 0L, 8L, true,
-				false, true).getFirst();
+				false, true).getQueryResult();
 		assertEquals(2, queryResult.getQueryResults().getRows().size());
 		assertNull(queryResult.getNextPageToken());
 		compareValues(rowSet, 3, 2, queryResult.getQueryResults());
 
 		queryResult = tableQueryManger.query(mockProgressCallbackVoid, adminUserInfo, sql + " limit 8 offset 2", null, 2L, 2L, true,
-				false, true).getFirst();
+				false, true).getQueryResult();
 		assertEquals(2, queryResult.getQueryResults().getRows().size());
 		assertNull(queryResult.getNextPageToken());
 		compareValues(rowSet, 4, 2, queryResult.getQueryResults());
 
 		queryResult = tableQueryManger.query(mockProgressCallbackVoid,adminUserInfo, sql + " limit 8 offset 3", null, 2L, 2L, true,
-				false, true).getFirst();
+				false, true).getQueryResult();
 		assertEquals(1, queryResult.getQueryResults().getRows().size());
 		assertNull(queryResult.getNextPageToken());
 		compareValues(rowSet, 5, 1, queryResult.getQueryResults());
 
 		List<SelectColumn> select = TableModelUtils.getSelectColumns(schema);
 		ReflectionTestUtils.setField(getTargetObject(tableQueryManger), "maxBytesPerRequest", TableModelUtils.calculateMaxRowSizeForSelectColumn(select) * 2);
-		queryResult = tableQueryManger.query(mockProgressCallbackVoid, adminUserInfo, sql, null, 0L, 5L, true, false, true).getFirst();
+		queryResult = tableQueryManger.query(mockProgressCallbackVoid, adminUserInfo, sql, null, 0L, 5L, true, false, true).getQueryResult();
 		assertEquals(2, queryResult.getQueryResults().getRows().size());
 		assertNotNull(queryResult.getNextPageToken());
 		compareValues(rowSet, 0, 2, queryResult.getQueryResults());
@@ -408,7 +408,7 @@ public class TableWorkerIntegrationTest {
 		assertNull(queryResult.getNextPageToken());
 		compareValues(rowSet, 4, 2, queryResult.getQueryResults());
 
-		queryResult = tableQueryManger.query(mockProgressCallbackVoid, adminUserInfo, sql + " limit 3", null, 0L, 100L, true, false, true).getFirst();
+		queryResult = tableQueryManger.query(mockProgressCallbackVoid, adminUserInfo, sql + " limit 3", null, 0L, 100L, true, false, true).getQueryResult();
 		assertEquals(2, queryResult.getQueryResults().getRows().size());
 		assertNotNull(queryResult.getNextPageToken());
 		compareValues(rowSet, 0, 2, queryResult.getQueryResults());
@@ -1856,8 +1856,8 @@ public class TableWorkerIntegrationTest {
 		long start = System.currentTimeMillis();
 		while(true){
 			try {
-				Pair<QueryResult, Long> queryResult = tableQueryManger.query(mockProgressCallbackVoid, user, sql, sortItems, 0L, limit, true, false, true);
-				return queryResult.getFirst();
+				QueryResultWithCount queryResult = tableQueryManger.query(mockProgressCallbackVoid, user, sql, sortItems, 0L, limit, true, false, true);
+				return queryResult.getQueryResult();
 			} catch (TableUnavilableException e) {
 				assertTrue("Timed out waiting for table index worker to make the table available.", (System.currentTimeMillis()-start) <  MAX_WAIT_MS);
 				assertNotNull(e.getStatus());

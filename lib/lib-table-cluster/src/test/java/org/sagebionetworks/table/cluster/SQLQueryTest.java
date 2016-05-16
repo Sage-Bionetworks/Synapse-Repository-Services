@@ -127,7 +127,7 @@ public class SQLQueryTest {
 		assertEquals("ROW_VERSION", visitor.getSql());
 	}
 	
-	@Test
+	@Test (expected=IllegalArgumentException.class)
 	public void testSelectStarEmtpySchema() throws ParseException{
 		tableSchema = new LinkedList<ColumnModel>();
 		SqlQuery translator = new SqlQuery("select * from syn123", tableSchema);
