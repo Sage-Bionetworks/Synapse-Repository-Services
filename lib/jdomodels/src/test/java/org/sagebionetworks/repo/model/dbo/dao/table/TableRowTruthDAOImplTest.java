@@ -148,7 +148,7 @@ public class TableRowTruthDAOImplTest {
 	public void testAppendRows() throws Exception {
 		// Create some test column models
 		List<ColumnModel> columns = TableModelTestUtils.createOneOfEachType();
-		List<SelectColumn> select = TableModelUtils.getSelectColumns(columns, false);
+		List<SelectColumn> select = TableModelUtils.getSelectColumns(columns);
 		// create some test rows.
 		List<Row> rows = TableModelTestUtils.createRows(columns, 5, false);
 		String tableId = "syn123";
@@ -188,7 +188,7 @@ public class TableRowTruthDAOImplTest {
 		// Append this change set
 		RowReferenceSet refSet = tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, columns, set);
 		RowSet expected = new RowSet();
-		expected.setHeaders(TableModelUtils.getSelectColumns(columns, false));
+		expected.setHeaders(TableModelUtils.getSelectColumns(columns));
 		expected.setEtag(refSet.getEtag());
 		expected.setTableId(tableId);
 		expected.setRows(rows);
@@ -321,7 +321,7 @@ public class TableRowTruthDAOImplTest {
 		// Get the rows back
 		RowSet fetched = tableRowTruthDao.getRowSet(tableId, 0l, columns);
 		assertNotNull(fetched);
-		assertEquals(TableModelUtils.getSelectColumns(columns, false), fetched.getHeaders());
+		assertEquals(TableModelUtils.getSelectColumns(columns), fetched.getHeaders());
 		assertEquals(tableId, fetched.getTableId());
 		assertNotNull(fetched.getRows());
 		assertNotNull(fetched.getEtag());
@@ -369,7 +369,7 @@ public class TableRowTruthDAOImplTest {
 		// Get the rows for this set
 		RowSet back = tableRowTruthDao.getRowSet(refSet, columns);
 		assertNotNull(back);
-		assertEquals(TableModelUtils.getSelectColumns(columns, false), back.getHeaders());
+		assertEquals(TableModelUtils.getSelectColumns(columns), back.getHeaders());
 		assertEquals(tableId, back.getTableId());
 		assertNotNull(back.getRows());;
 		assertEquals(set.getRows().size(), back.getRows().size());
@@ -407,7 +407,7 @@ public class TableRowTruthDAOImplTest {
 		// combine
 		RowReferenceSet ref = new RowReferenceSet();
 		ref.setTableId(tableId);
-		ref.setHeaders(TableModelUtils.getSelectColumns(columns, false));
+		ref.setHeaders(TableModelUtils.getSelectColumns(columns));
 		ref.setRows(Lists.newArrayList(TableModelTestUtils.createRowReference(0L, 2L), TableModelTestUtils.createRowReference(1L, 0L),
 				TableModelTestUtils.createRowReference(2L, 0L), TableModelTestUtils.createRowReference(3L, 1L)));
 		RowSet combined = tableRowTruthDao.getRowSet(ref, columns);

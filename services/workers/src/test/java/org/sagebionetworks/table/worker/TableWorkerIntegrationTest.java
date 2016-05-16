@@ -244,7 +244,7 @@ public class TableWorkerIntegrationTest {
 		rows.addAll(TableModelTestUtils.createEmptyRows(schema, 2));
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(rows);
-		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema, false));
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 		rowSet.setTableId(tableId);
 		long start = System.currentTimeMillis();
 		referenceSet = tableEntityManager.appendRows(adminUserInfo, tableId, schema,
@@ -274,6 +274,53 @@ public class TableWorkerIntegrationTest {
 				schema);
 		assertEquals(expectedRowSet, queryResult.getQueryResults());
 	}
+	
+	/**
+	 * Must be able to run a query: 'SELECT ROW_ID FROM SYN123'
+	 * @throws Exception
+	 */
+	@Test
+	public void testPLFM_3674() throws Exception {
+		// Create one column of each type
+		List<ColumnModel> columnModels = TableModelTestUtils.createColumsWithNames("one");
+		schema = new LinkedList<ColumnModel>();
+		for(ColumnModel cm: columnModels){
+			cm = columnManager.createColumnModel(adminUserInfo, cm);
+			schema.add(cm);
+		}
+		List<Long> headers = TableModelUtils.getIds(schema);
+		// Create the table.
+		TableEntity table = new TableEntity();
+		table.setName(UUID.randomUUID().toString());
+		table.setColumnIds(Lists.transform(headers, TableModelUtils.LONG_TO_STRING));
+		tableId = entityManager.createEntity(adminUserInfo, table, null);
+		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
+		tableEntityManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
+		// add a row
+		List<Row> rows = TableModelTestUtils.createRows(schema, 1);
+		RowSet rowSet = new RowSet();
+		rowSet.setRows(rows);
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
+		rowSet.setTableId(tableId);
+		referenceSet = tableEntityManager.appendRows(adminUserInfo, tableId, schema,
+				rowSet, mockPprogressCallback);
+		// Wait for the table to become available
+		String sql = "select row_id from " + tableId;
+		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 8L);
+		// Progress should have been made
+		verify(mockProgressCallbackVoid, times(1)).progressMade(null);
+		System.out.println("testRoundTrip");
+		System.out.println(queryResult);
+		assertNotNull(queryResult);
+		assertNotNull(queryResult.getQueryResults());
+		assertEquals(1, queryResult.getQueryResults().getRows().size());
+		Row row = queryResult.getQueryResults().getRows().get(0);
+		assertEquals(null, row.getRowId());
+		assertEquals(null, row.getVersionNumber());
+		assertNotNull(row.getValues());
+		assertEquals("0", row.getValues().get(0));
+	}
+
 
 	@Test
 	public void testLimitOffset() throws Exception {
@@ -294,7 +341,7 @@ public class TableWorkerIntegrationTest {
 		// Now add some data
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(TableModelTestUtils.createRows(schema, 6));
-		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema, false));
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 		rowSet.setTableId(tableId);
 		referenceSet = tableEntityManager.appendRows(adminUserInfo, tableId, schema,
 				rowSet, mockPprogressCallback);
@@ -345,7 +392,7 @@ public class TableWorkerIntegrationTest {
 		assertNull(queryResult.getNextPageToken());
 		compareValues(rowSet, 5, 1, queryResult.getQueryResults());
 
-		List<SelectColumn> select = TableModelUtils.getSelectColumns(schema, false);
+		List<SelectColumn> select = TableModelUtils.getSelectColumns(schema);
 		ReflectionTestUtils.setField(getTargetObject(tableQueryManger), "maxBytesPerRequest", TableModelUtils.calculateMaxRowSizeForSelectColumn(select) * 2);
 		queryResult = tableQueryManger.query(mockProgressCallbackVoid, adminUserInfo, sql, null, 0L, 5L, true, false, true).getFirst();
 		assertEquals(2, queryResult.getQueryResults().getRows().size());
@@ -394,7 +441,7 @@ public class TableWorkerIntegrationTest {
 		rowSet.setRows(Lists.newArrayList(TableModelTestUtils.createRow(null, null, "a", "1", "10", "3"),
 				TableModelTestUtils.createRow(null, null, "b", "2", "11", "1"),
 				TableModelTestUtils.createRow(null, null, "c", "3", "11", "2")));
-		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema, false));
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 		rowSet.setTableId(tableId);
 		referenceSet = tableEntityManager.appendRows(adminUserInfo, tableId, schema,
 				rowSet, mockPprogressCallback);
@@ -439,7 +486,7 @@ public class TableWorkerIntegrationTest {
 		rowSet.setRows(Lists.newArrayList(TableModelTestUtils.createRow(null, null, "1.5"), TableModelTestUtils.createRow(null, null, "2.0"),
 				TableModelTestUtils.createRow(null, null, "2.0"), TableModelTestUtils.createRow(null, null, "4.5"),
 				TableModelTestUtils.createRow(null, null, "2.0")));
-		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema, false));
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 		rowSet.setTableId(tableId);
 		referenceSet = tableEntityManager.appendRows(adminUserInfo, tableId, schema,
 				rowSet, mockPprogressCallback);
@@ -504,7 +551,7 @@ public class TableWorkerIntegrationTest {
 		rowSet.getRows().get(0).getValues().set(0, "!!" + rowSet.getRows().get(0).getValues().get(0));
 		// and make grouping return 9 rows
 		rowSet.getRows().get(4).getValues().set(0, rowSet.getRows().get(0).getValues().get(0));
-		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema, false));
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 		rowSet.setTableId(tableId);
 		referenceSet = tableEntityManager.appendRows(adminUserInfo, tableId, schema,
 				rowSet, mockPprogressCallback);
@@ -616,7 +663,7 @@ public class TableWorkerIntegrationTest {
 		// Now add some data
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(TableModelTestUtils.createRows(schema, 10));
-		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema, false));
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 		rowSet.setTableId(tableId);
 		referenceSet = tableEntityManager.appendRows(adminUserInfo, tableId, schema,
 				rowSet, mockPprogressCallback);
@@ -647,17 +694,6 @@ public class TableWorkerIntegrationTest {
 			partialRow.setRowId(row.getRowId());
 			deleteRows.add(partialRow);
 		}
-		// PLFM-2965 removing all rows means query result headers is not filled out
-		// rowsToDelete.setRows(deleteRows);
-		// tableRowManager.appendPartialRows(adminUserInfo, tableId, schema, rowsToDelete);
-		// sql = "select * from " + tableId;
-		// queryResultBundle = waitForConsistentQueryBundle(adminUserInfo, sql, null, null);
-		// assertEquals(0, queryResultBundle.getQueryResult().getQueryResults().getRows().size());
-		// for (int i = 0; i < queryResultBundle.getSelectColumns().size(); i++) {
-		// assertEquals(schema.get(i), queryResultBundle.getSelectColumns().get(i));
-		// assertEquals(schema.get(i).getId(),
-		// queryResultBundle.getQueryResult().getQueryResults().getHeaders().get(i));
-		// }
 	}
 
 	/**
@@ -770,7 +806,7 @@ public class TableWorkerIntegrationTest {
 		rows.addAll(TableModelTestUtils.createEmptyRows(schema, 3));
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(rows);
-		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema, false));
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 		rowSet.setTableId(tableId);
 		referenceSet = tableEntityManager.appendRows(adminUserInfo, tableId, schema,
 				rowSet, mockPprogressCallback);
@@ -827,7 +863,7 @@ public class TableWorkerIntegrationTest {
 		// add data
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(Lists.newArrayList(TableModelTestUtils.createRow(null, null, "a")));
-		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema, false));
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 		rowSet.setTableId(tableId);
 		referenceSet = tableEntityManager.appendRows(adminUserInfo, tableId, schema,
 				rowSet, mockPprogressCallback);
@@ -903,7 +939,7 @@ public class TableWorkerIntegrationTest {
 
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(rows);
-		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema, false));
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 		rowSet.setTableId(tableId);
 		referenceSet = tableEntityManager.appendRows(adminUserInfo, tableId, schema,
 				rowSet, mockPprogressCallback);
@@ -950,7 +986,7 @@ public class TableWorkerIntegrationTest {
 
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(rows);
-		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema, false));
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 		rowSet.setTableId(tableId);
 		referenceSet = tableEntityManager.appendRows(adminUserInfo, tableId, schema,
 				rowSet, mockPprogressCallback);
@@ -1020,7 +1056,7 @@ public class TableWorkerIntegrationTest {
 
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(rows);
-		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema, false));
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 		rowSet.setTableId(tableId);
 		referenceSet = tableEntityManager.appendRows(adminUserInfo, tableId, schema,
 				rowSet, mockPprogressCallback);
@@ -1032,7 +1068,7 @@ public class TableWorkerIntegrationTest {
 
 			RowSet failRowSet = new RowSet();
 			failRowSet.setRows(failRow);
-			failRowSet.setHeaders(TableModelUtils.getSelectColumns(schema, false));
+			failRowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 			failRowSet.setTableId(tableId);
 			try {
 				tableEntityManager.appendRows(adminUserInfo, tableId, schema, failRowSet, mockPprogressCallback);
@@ -1105,7 +1141,7 @@ public class TableWorkerIntegrationTest {
 		List<Row> rows = TableModelTestUtils.createRows(schema, 4);
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(rows);
-		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema, false));
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 		rowSet.setTableId(tableId);
 		referenceSet = tableEntityManager.appendRows(adminUserInfo, tableId, schema,
 				rowSet, mockPprogressCallback);
@@ -1173,7 +1209,7 @@ public class TableWorkerIntegrationTest {
 		}
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(rows);
-		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema, false));
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 		rowSet.setTableId(tableId);
 		referenceSet = tableEntityManager.appendRows(adminUserInfo, tableId, schema,
 				rowSet, mockPprogressCallback);
@@ -1289,7 +1325,7 @@ public class TableWorkerIntegrationTest {
 				fileHandle1.getId(), null, null));
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(rows);
-		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema, false));
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 		rowSet.setTableId(tableId);
 		referenceSet = tableEntityManager.appendRows(adminUserInfo, tableId, schema,
 				rowSet, mockPprogressCallback);
@@ -1366,7 +1402,7 @@ public class TableWorkerIntegrationTest {
 		List<Row> rows = TableModelTestUtils.createRows(schema, 500000);
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(rows);
-		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema, false));
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 		rowSet.setTableId(tableId);
 		long start = System.currentTimeMillis();
 		String etag = tableEntityManager.appendRowsAsStream(adminUserInfo, tableId,
@@ -1410,7 +1446,7 @@ public class TableWorkerIntegrationTest {
 		List<Row> rows = TableModelTestUtils.createRows(schema, 10);
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(rows);
-		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema, false));
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 		rowSet.setTableId(tableId);
 		long start = System.currentTimeMillis();
 		tableEntityManager.appendRowsAsStream(adminUserInfo, tableId, schema, rowSet
@@ -1459,7 +1495,7 @@ public class TableWorkerIntegrationTest {
 		assertNotNull(queryResult.getQueryResults());
 		assertEquals(2, queryResult.getQueryResults().getHeaders().size());
 		assertEquals(null, queryResult.getQueryResults().getHeaders().get(1).getId());
-		assertEquals(headers.get(2).toString(), queryResult.getQueryResults().getHeaders().get(0).getId());
+		assertEquals(null, queryResult.getQueryResults().getHeaders().get(0).getId());
 		assertEquals("string200000", queryResult.getQueryResults().getRows().get(0).getValues().get(0));
 		assertEquals("string0", queryResult.getQueryResults().getRows().get(0).getValues().get(1));
 	}
@@ -1802,7 +1838,7 @@ public class TableWorkerIntegrationTest {
 	private RowSet createRowSet(List<String> headers) {
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(TableModelTestUtils.createRows(schema, 2));
-		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema, false));
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 		rowSet.setTableId(tableId);
 		return rowSet;
 	}

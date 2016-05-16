@@ -35,6 +35,15 @@ public class QuerySpecification extends SQLElement implements HasAggregate {
 	public SelectList getSelectList() {
 		return selectList;
 	}
+	
+	/**
+	 * Replace the select list with the given list.
+	 * @param selectList
+	 */
+	public void replaceSelectList(SelectList selectList){
+		this.selectList = selectList;
+	}
+	
 	public TableExpression getTableExpression() {
 		return tableExpression;
 	}

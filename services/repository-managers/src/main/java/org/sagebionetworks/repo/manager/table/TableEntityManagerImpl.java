@@ -139,7 +139,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		RowSet result = new RowSet();
 		TableRowChange lastTableRowChange = tableRowTruthDao.getLastTableRowChange(tableId);
 		result.setEtag(lastTableRowChange == null ? null : lastTableRowChange.getEtag());
-		result.setHeaders(TableModelUtils.getSelectColumns(columns, false));
+		result.setHeaders(TableModelUtils.getSelectColumns(columns));
 		result.setTableId(tableId);
 		List<Row> rows = Lists.newArrayListWithCapacity(rowsToAppendOrUpdateOrDelete.getRows().size());
 		Set<Long> columnIdSet = Transform.toSet(result.getHeaders(), TableModelUtils.SELECT_COLUMN_TO_ID);
@@ -363,7 +363,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		}
 		if(results != null){
 			results.setEtag(rrs.getEtag());
-			results.setHeaders(TableModelUtils.getSelectColumns(columns, false));
+			results.setHeaders(TableModelUtils.getSelectColumns(columns));
 			results.setTableId(delta.getTableId());
 			if(results.getRows() == null){
 				results.setRows(new LinkedList<RowReference>());
@@ -439,7 +439,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(rows);
-		rowSet.setHeaders(TableModelUtils.getSelectColumns(columns, false));
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(columns));
 		validateFileHandles(user, tableId, rowSet);
 	}
 

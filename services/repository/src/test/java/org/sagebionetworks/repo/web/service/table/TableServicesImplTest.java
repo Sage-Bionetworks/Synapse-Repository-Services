@@ -65,7 +65,7 @@ public class TableServicesImplTest {
 		userInfo = new UserInfo(false, userId);
 		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo);
 		columns = TableModelTestUtils.createOneOfEachType();
-		headers = TableModelUtils.getSelectColumns(columns, false);
+		headers = TableModelUtils.getSelectColumns(columns);
 		tableId = "syn456";
 		selectStar = new RowSet();
 		selectStar.setEtag("etag");
