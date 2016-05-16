@@ -7,5 +7,7 @@
 	<import resource="classpath:private/managers-spb.xml" />
 	<!-- Load the single cloudwatch consumer -->
 	<import resource="classpath:cloudwatch-spb.xml" />
+	<!-- Markdown service -->
+	<import resource="classpath:markdown-dao.spb.xml" />
 
 </beans>

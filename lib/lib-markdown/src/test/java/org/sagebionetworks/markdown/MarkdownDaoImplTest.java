@@ -39,7 +39,7 @@ public class MarkdownDaoImplTest {
 	public void testConvertMarkdown() throws Exception {
 		String rawMarkdown = "## a heading";
 		String outputType = "html";
-		String request = "{\"markdown\":\"## a heading\"}";
+		String request = "{\"markdown\":\"## a heading\",\"output\":\"html\"}";
 		String result = "<h2 toc=\"true\">a heading</h2>\n";
 		String response = "{\"result\":\"<h2 toc=\\\"true\\\">a heading</h2>\\n\"}";
 		when(mockMarkdownClient.requestMarkdownConversion(request)).thenReturn(response);
