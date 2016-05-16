@@ -79,6 +79,12 @@ public class DerivedColumn extends SQLElement {
 		if(isAggregateElement()){
 			return toSql();
 		}
+		// Hack that will be removed
+		ActualIdentifier actual = getFirstElementOfType(ActualIdentifier.class);
+		if(actual != null){
+			return actual.getUnquotedValue();
+		}
+		
 		// If this has a string literal, then we need the unquoted value.
 		SignedLiteral signedLiteral = getFirstElementOfType(SignedLiteral.class);
 		if(signedLiteral != null){
