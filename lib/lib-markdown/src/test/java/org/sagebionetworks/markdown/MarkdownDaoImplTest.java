@@ -23,25 +23,26 @@ public class MarkdownDaoImplTest {
 	}
 
 	@Test (expected = IllegalArgumentException.class)
-	public void testConvertToHtmlWithNullMarkdown() {
-		dao.convertToHtml(null);
+	public void testConvertMarkdownWithNullMarkdown() {
+		dao.convertMarkdown(null, null);
 	}
 
 	@Test
-	public void testConvertToHtmlWithNullResponse() throws Exception {
+	public void testConvertMarkdownWithNullResponse() throws Exception {
 		String rawMarkdown = "## a heading";
 		String request = "{\"markdown\":\"## a heading\"}";
 		when(mockMarkdownClient.requestMarkdownConversion(request)).thenReturn(null);
-		assertNull(dao.convertToHtml(rawMarkdown));
+		assertNull(dao.convertMarkdown(rawMarkdown, null));
 	}
 
 	@Test
-	public void testConvertToHtml() throws Exception {
+	public void testConvertMarkdown() throws Exception {
 		String rawMarkdown = "## a heading";
+		String outputType = "html";
 		String request = "{\"markdown\":\"## a heading\"}";
-		String html = "<h2 toc=\"true\">a heading</h2>\n";
-		String response = "{\"html\":\"<h2 toc=\\\"true\\\">a heading</h2>\\n\"}";
+		String result = "<h2 toc=\"true\">a heading</h2>\n";
+		String response = "{\"result\":\"<h2 toc=\\\"true\\\">a heading</h2>\\n\"}";
 		when(mockMarkdownClient.requestMarkdownConversion(request)).thenReturn(response);
-		assertEquals(html, dao.convertToHtml(rawMarkdown));
+		assertEquals(result, dao.convertMarkdown(rawMarkdown, outputType));
 	}
 }

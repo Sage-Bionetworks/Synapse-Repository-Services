@@ -18,10 +18,9 @@ public class MarkdownDaoImplIntegrationTest {
 	@Test
 	public void test() {
 		String rawMarkdown = "## a heading";
-		String html = "<h2 toc=\"true\" style=\"word-wrap: break-word; margin-top: 10px;"
-				+ " font-weight: 200; color: #000000; font-size: 32px; line-height: 40px;"
-				+ " margin-bottom: 10px;\">a heading</h2>\n";
-		assertEquals(html, dao.convertToHtml(rawMarkdown));
+		String outputType = "html";
+		String result = "<h2 toc=\"true\">a heading</h2>\n";
+		assertEquals(result, dao.convertMarkdown(rawMarkdown, outputType));
 	}
 
 }

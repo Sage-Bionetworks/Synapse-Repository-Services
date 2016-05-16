@@ -9,8 +9,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class MarkdownDaoImpl implements MarkdownDao{
 
 	public static final String MARKDOWN = "markdown";
-
-	public static final String HTML = "html";
+	public static final String OUTPUT = "output";
+	public static final String RESULT = "result";
 
 	static private Logger log = LogManager.getLogger(MarkdownDaoImpl.class);
 
@@ -18,14 +18,17 @@ public class MarkdownDaoImpl implements MarkdownDao{
 	MarkdownClient markdownClient;
 
 	@Override
-	public String convertToHtml(String rawMarkdown) {
+	public String convertMarkdown(String rawMarkdown, String outputType) {
 		ValidateArgument.required(rawMarkdown, "rawMarkdown");
 		try {
 			JSONObject request = new JSONObject();
 			request.put(MARKDOWN, rawMarkdown);
+			if (outputType != null) {
+				request.put(OUTPUT, outputType);
+			}
 			JSONObject response = new JSONObject(markdownClient.requestMarkdownConversion(request.toString()));
-			if (response.has(HTML)) {
-				return response.getString(HTML);
+			if (response.has(RESULT)) {
+				return response.getString(RESULT);
 			}
 		} catch (Exception e) {
 			log.info("Error converting markdown to html for: "+rawMarkdown+". Exception: "+e.getMessage());
