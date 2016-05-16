@@ -9,7 +9,6 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.markdown.MarkdownDao;
 import org.sagebionetworks.repo.model.subscription.Subscriber;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
 
@@ -50,8 +49,8 @@ public class DiscussionBroadcastMessageBuilderTest {
 	
 		builder = new DiscussionBroadcastMessageBuilder(actorUsername, actorUserId,
 				threadTitle, threadId, projectId, projectName, markdown,
-				ThreadMessageBuilderFactory.THREAD_TEMPLATE, ThreadMessageBuilderFactory.THREAD_CREATED_TITLE);
-		ReflectionTestUtils.setField(builder, "markdownDao", mockMarkdownDao);
+				ThreadMessageBuilderFactory.THREAD_TEMPLATE, ThreadMessageBuilderFactory.THREAD_CREATED_TITLE,
+				mockMarkdownDao);
 	}
 
 	@Test

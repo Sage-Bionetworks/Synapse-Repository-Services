@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.message;
 
+import org.sagebionetworks.markdown.MarkdownDao;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UploadContentToS3DAO;
 import org.sagebionetworks.repo.model.dao.discussion.DiscussionReplyDAO;
@@ -26,6 +27,8 @@ public class ReplyMessageBuilderFactory implements MessageBuilderFactory {
 	private PrincipalAliasDAO principalAliasDAO;
 	@Autowired
 	private UploadContentToS3DAO uploadDao;
+	@Autowired
+	private MarkdownDao markdownDao;
 
 	@Override
 	public BroadcastMessageBuilder createMessageBuilder(String objectId,
@@ -45,7 +48,7 @@ public class ReplyMessageBuilderFactory implements MessageBuilderFactory {
 		markdown = uploadDao.getMessage(replyBundle.getMessageKey());
 		return new DiscussionBroadcastMessageBuilder(actor, userId.toString(),
 				threadBundle.getTitle(), threadBundle.getId(), threadBundle.getProjectId(),
-				projectName, markdown, REPLY_TEMPLATE, REPLY_CREATED_TITLE);
+				projectName, markdown, REPLY_TEMPLATE, REPLY_CREATED_TITLE, markdownDao);
 	}
 
 }

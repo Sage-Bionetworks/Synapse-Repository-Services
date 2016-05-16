@@ -19,7 +19,6 @@ import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
 import com.google.common.collect.Maps;
 
 public class DiscussionBroadcastMessageBuilder implements BroadcastMessageBuilder {
-	@Autowired
 	MarkdownDao markdownDao;
 	String actorUsername;
 	String actorUserId;
@@ -33,7 +32,7 @@ public class DiscussionBroadcastMessageBuilder implements BroadcastMessageBuilde
 
 	public DiscussionBroadcastMessageBuilder(String actorUsername, String actorUserId,
 			String threadTitle, String threadId, String projectId, String projectName,
-			String markdown, String templatePath, String emailTitle) {
+			String markdown, String templatePath, String emailTitle, MarkdownDao markdownDao) {
 		ValidateArgument.required(actorUsername, "actorUsername");
 		ValidateArgument.required(actorUserId, "actorUserId");
 		ValidateArgument.required(threadTitle, "threadTitle");
@@ -41,6 +40,9 @@ public class DiscussionBroadcastMessageBuilder implements BroadcastMessageBuilde
 		ValidateArgument.required(projectId, "projectId");
 		ValidateArgument.required(projectName, "projectName");
 		ValidateArgument.required(markdown, "markdown");
+		ValidateArgument.required(templatePath, "templatePath");
+		ValidateArgument.required(emailTitle, "emailTitle");
+		ValidateArgument.required(markdownDao, "markdownDao");
 		this.actorUsername = actorUsername;
 		this.actorUserId = actorUserId;
 		this.threadId = threadId;
@@ -51,6 +53,7 @@ public class DiscussionBroadcastMessageBuilder implements BroadcastMessageBuilde
 		this.subject = String.format(emailTitle, threadTitleTruncated);
 		// Load the template file
 		emailTemplate = loadTemplateFile(templatePath);
+		this.markdownDao = markdownDao;
 	}
 
 	@Override
