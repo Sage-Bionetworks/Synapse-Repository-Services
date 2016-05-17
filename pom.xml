@@ -514,6 +514,12 @@
 
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
+				<artifactId>lib-markdown</artifactId>
+				<version>${project.version}</version>
+			</dependency>			
+
+			<dependency>
+				<groupId>org.sagebionetworks</groupId>
 				<artifactId>common-utilities</artifactId>
 				<version>1.0.2</version>
 			</dependency>

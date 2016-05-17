@@ -152,6 +152,9 @@
 	<!-- Discussion -->
 	<bean id="stackConfiguration.discussionBucketName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 
+	<!-- Markdown Service -->
+	<bean id="stackConfiguration.markdownServiceEndpoint" class="org.springframework.beans.factory.config.PropertyPathFactoryBean"/>
+
 	<!-- Logging -->
 	<bean id="stackConfiguration.logBucketName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	

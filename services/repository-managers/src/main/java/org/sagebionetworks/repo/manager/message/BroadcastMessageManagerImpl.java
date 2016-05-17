@@ -1,10 +1,13 @@
 package org.sagebionetworks.repo.manager.message;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.http.client.ClientProtocolException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.json.JSONException;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.principal.SynapseEmailService;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -18,6 +21,7 @@ import org.sagebionetworks.repo.model.subscription.Subscriber;
 import org.sagebionetworks.repo.model.subscription.Topic;
 import org.sagebionetworks.util.TimeoutUtils;
 import org.sagebionetworks.util.ValidateArgument;
+import org.sagebionetworks.utils.HttpClientHelperException;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
@@ -46,7 +50,7 @@ public class BroadcastMessageManagerImpl implements BroadcastMessageManager {
 	TimeoutUtils timeoutUtils;
 
 	@Override
-	public void broadcastMessage(UserInfo user,	ProgressCallback<ChangeMessage> progressCallback, ChangeMessage changeMessage) {
+	public void broadcastMessage(UserInfo user,	ProgressCallback<ChangeMessage> progressCallback, ChangeMessage changeMessage) throws ClientProtocolException, JSONException, IOException, HttpClientHelperException {
 		ValidateArgument.required(user, "user");
 		ValidateArgument.required(changeMessage, "changeMessage");
 		ValidateArgument.required(changeMessage.getUserId(), "ChangeMessage.userId");

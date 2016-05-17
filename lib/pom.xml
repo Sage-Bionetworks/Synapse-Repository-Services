@@ -35,6 +35,7 @@
 		<module>lib-table-query</module>
 		<module>lib-test</module>
 		<module>lib-upload</module>
+		<module>lib-markdown</module>
 	</modules>
 
 </project>

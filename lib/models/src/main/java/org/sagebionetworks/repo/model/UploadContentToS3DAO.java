@@ -43,4 +43,12 @@ public interface UploadContentToS3DAO {
 	 * @return
 	 */
 	public MessageURL getThreadUrl(String key);
+
+	/**
+	 * get the actual message in the given key
+	 * 
+	 * @param key
+	 * @return
+	 */
+	public String getMessage(String key);
 }
