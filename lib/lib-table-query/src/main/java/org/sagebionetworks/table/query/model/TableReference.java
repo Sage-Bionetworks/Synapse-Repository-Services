@@ -41,4 +41,12 @@ public class TableReference extends SQLElement {
 	<T extends Element> void addElements(List<T> elements, Class<T> type) {
 		// this element does not contain any SQLElements
 	}
+	
+	/**
+	 * Replace the table name.
+	 * @param tableName
+	 */
+	public void replaceTableName(String tableName){
+		this.tableName = tableName;
+	}
 }

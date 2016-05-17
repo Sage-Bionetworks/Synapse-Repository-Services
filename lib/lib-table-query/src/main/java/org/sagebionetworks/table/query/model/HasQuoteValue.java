@@ -18,4 +18,10 @@ public interface HasQuoteValue extends Element {
 	 * @return
 	 */
 	public boolean isSurrounedeWithQuotes();
+	
+	/**
+	 * Replace the unquoted value.
+	 * @param newValue
+	 */
+	public void replaceUnquoted(String newValue);
 }

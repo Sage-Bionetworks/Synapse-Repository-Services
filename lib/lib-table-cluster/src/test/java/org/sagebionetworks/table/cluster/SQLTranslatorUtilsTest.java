@@ -29,6 +29,7 @@ import org.sagebionetworks.table.query.model.DerivedColumn;
 import org.sagebionetworks.table.query.model.FunctionType;
 import org.sagebionetworks.table.query.model.HasQuoteValue;
 import org.sagebionetworks.table.query.model.SelectList;
+import org.sagebionetworks.table.query.model.TableReference;
 
 import com.google.common.collect.Lists;
 
@@ -46,6 +47,7 @@ public class SQLTranslatorUtilsTest {
 	ColumnModel columnBar;
 	ColumnModel columnId;
 	ColumnModel columnSpecial;
+	ColumnModel columnDouble;
 	
 	List<ColumnModel> schema;
 	
@@ -59,6 +61,7 @@ public class SQLTranslatorUtilsTest {
 		columnId = TableModelTestUtils.createColumn(444L, "id", ColumnType.INTEGER);
 		String specialChars = "Specialchars~!@#$%^^&*()_+|}{:?></.,;'[]\'";
 		columnSpecial = TableModelTestUtils.createColumn(555L, specialChars, ColumnType.DOUBLE);
+		columnDouble = TableModelTestUtils.createColumn(777L, "aDouble", ColumnType.DOUBLE);
 		
 		schema = Lists.newArrayList(columnFoo, columnHasSpace, columnBar, columnId, columnSpecial);
 		// setup the map
@@ -646,5 +649,47 @@ public class SQLTranslatorUtilsTest {
 		assertEquals("aString", result.getValues().get(0));
 		assertEquals(Boolean.FALSE.toString(), result.getValues().get(1));
 		
+	}
+	
+	@Test
+	public void testTranslateTableReference(){
+		TableReference element = new TableReference("syn123");
+		SQLTranslatorUtils.translate(element);
+		assertEquals("T123",element.getTableName());
+	}
+	
+	@Test
+	public void testTranslateDerivedColumnSimple() throws ParseException{
+		DerivedColumn column = new TableQueryParser("foo").derivedColumn();
+		SQLTranslatorUtils.translate(column, columnMap);
+		assertEquals("_C111_", column.toSql());
+	}
+	
+	@Test
+	public void testTranslateDerivedColumnSimpleAs() throws ParseException{
+		DerivedColumn column = new TableQueryParser("foo as bar").derivedColumn();
+		SQLTranslatorUtils.translate(column, columnMap);
+		assertEquals("_C111_ AS bar", column.toSql());
+	}
+	
+	@Test
+	public void testTranslateDerivedColumnRowId() throws ParseException{
+		DerivedColumn column = new TableQueryParser("row_id").derivedColumn();
+		SQLTranslatorUtils.translate(column, columnMap);
+		assertEquals("row_id", column.toSql());
+	}
+	
+	@Test
+	public void testTranslateDerivedColumnConstant() throws ParseException{
+		DerivedColumn column = new TableQueryParser("'constant'").derivedColumn();
+		SQLTranslatorUtils.translate(column, columnMap);
+		assertEquals("'constant'", column.toSql());
+	}
+	
+	@Test
+	public void testTranslateDerivedColumnDouble() throws ParseException{
+		DerivedColumn column = new TableQueryParser("'aDouble'").derivedColumn();
+		SQLTranslatorUtils.translate(column, columnMap);
+		assertEquals("'constant'", column.toSql());
 	}
 }

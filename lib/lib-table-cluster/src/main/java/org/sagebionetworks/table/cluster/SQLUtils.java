@@ -586,15 +586,15 @@ public class SQLUtils {
 		};
 	}
 
-	public static void appendColumnName(String subName, ColumnModel column, StringBuilder builder) {
-		appendColumnName(null, subName, column, builder);
+	public static void appendColumnName(String subName, String columnId, StringBuilder builder) {
+		appendColumnName(null, subName, columnId, builder);
 	}
 
-	private static void appendColumnName(String prefix, String subName, ColumnModel column, StringBuilder builder) {
+	private static void appendColumnName(String prefix, String subName, String columnId, StringBuilder builder) {
 		if (prefix != null) {
 			builder.append(prefix);
 		}
-		builder.append(subName).append(COLUMN_PREFIX).append(column.getId()).append(COLUMN_POSTFIX);
+		builder.append(subName).append(COLUMN_PREFIX).append(columnId).append(COLUMN_POSTFIX);
 	}
 
 	/**
@@ -611,26 +611,26 @@ public class SQLUtils {
 	 * @param subName
 	 * @param builder
 	 */
-	public static void appendDoubleCase(ColumnModel column, String subName, String tableName, boolean isSelectClause, boolean needsAsName,
+	public static void appendDoubleCase(String columnId, String subName, String tableName, boolean isSelectClause, boolean needsAsName,
 			StringBuilder builder) {
 		if (isSelectClause) {
 			builder.append("CASE WHEN ");
-			appendColumnName(TableConstants.DOUBLE_PREFIX, subName, column, builder);
+			appendColumnName(TableConstants.DOUBLE_PREFIX, subName, columnId, builder);
 			builder.append(" IS NULL THEN ");
-			appendColumnName(subName, column, builder);
+			appendColumnName(subName, columnId, builder);
 			builder.append(" ELSE ");
-			appendColumnName(TableConstants.DOUBLE_PREFIX, subName, column, builder);
+			appendColumnName(TableConstants.DOUBLE_PREFIX, subName, columnId, builder);
 			builder.append(" END");
 			if (needsAsName) {
 				builder.append(" AS ");
-				appendColumnName(subName, column, builder);
+				appendColumnName(subName, columnId, builder);
 			}
 		} else {
 			if (tableName == null) {
 				throw new IllegalStateException("Table name should be available at this point");
 			}
 			builder.append(tableName).append(".");
-			appendColumnName(subName, column, builder);
+			appendColumnName(subName, columnId, builder);
 		}
 	}
 
@@ -647,11 +647,11 @@ public class SQLUtils {
 	 * @param subName
 	 * @param builder
 	 */
-	public static void appendIsNan(ColumnModel column, String subName, StringBuilder builder) {
+	public static void appendIsNan(String columnId, String subName, StringBuilder builder) {
 		builder.append("(");
-		appendColumnName(TableConstants.DOUBLE_PREFIX, subName, column, builder);
+		appendColumnName(TableConstants.DOUBLE_PREFIX, subName, columnId, builder);
 		builder.append(" IS NOT NULL AND ");
-		appendColumnName(TableConstants.DOUBLE_PREFIX, subName, column, builder);
+		appendColumnName(TableConstants.DOUBLE_PREFIX, subName, columnId, builder);
 		builder.append(" = '").append(DOUBLE_NAN).append("')");
 	}
 
@@ -666,11 +666,11 @@ public class SQLUtils {
 	 * @param subName
 	 * @param builder
 	 */
-	public static void appendIsInfinity(ColumnModel column, String subName, StringBuilder builder) {
+	public static void appendIsInfinity(String columnId, String subName, StringBuilder builder) {
 		builder.append("(");
-		appendColumnName(TableConstants.DOUBLE_PREFIX, subName, column, builder);
+		appendColumnName(TableConstants.DOUBLE_PREFIX, subName, columnId, builder);
 		builder.append(" IS NOT NULL AND ");
-		appendColumnName(TableConstants.DOUBLE_PREFIX, subName, column, builder);
+		appendColumnName(TableConstants.DOUBLE_PREFIX, subName, columnId, builder);
 		builder.append(" IN ('").append(DOUBLE_NEGATIVE_INFINITY).append("', '").append(DOUBLE_POSITIVE_INFINITY).append("'))");
 	}
 

@@ -6,10 +6,12 @@ import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Row;
@@ -33,10 +35,12 @@ import org.sagebionetworks.table.query.model.NumericValueFunction;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.model.StringValueExpression;
+import org.sagebionetworks.table.query.model.TableReference;
 import org.sagebionetworks.table.query.model.Term;
 import org.sagebionetworks.table.query.model.ValueExpression;
 import org.sagebionetworks.table.query.model.ValueExpressionPrimary;
 import org.sagebionetworks.table.query.model.visitors.ToTranslatedSqlVisitor;
+import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor.SQLClause;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 import org.sagebionetworks.util.ValidateArgument;
 
@@ -294,5 +298,71 @@ public class SQLTranslatorUtils {
 	public static DerivedColumn createDerivedColumn(MysqlFunction mysqlFunction) {
 		return new DerivedColumn(new ValueExpression(new NumericValueExpression(new Term(new Factor(new NumericPrimary(
 				new NumericValueFunction(mysqlFunction)))))), null);
+	}
+
+	/**
+	 * Translate this query into a form that can be executed against the actaul table index.
+	 * @param transformedModel
+	 * @param parameters
+	 * @param columnNameToModelMap
+	 */
+	public static void translateModel(QuerySpecification transformedModel,
+			Map<String, Object> parameters,
+			Map<String, ColumnModel> columnNameToModelMap) {
+		// First change the table name
+		TableReference tableReference = transformedModel.getFirstElementOfType(TableReference.class);
+		translate(tableReference);
+		// Select columns
+		List<DerivedColumn> selectColumns = transformedModel.getSelectList().getColumns();
+		translate(selectColumns, columnNameToModelMap);
+	}
+
+	/**
+	 * Translate the select columns.
+	 * @param selectColumns
+	 * @param columnNameToModelMap
+	 */
+	public static void translate(List<DerivedColumn> selectColumns,
+			Map<String, ColumnModel> columnNameToModelMap) {
+		for(DerivedColumn column: selectColumns){
+			translate(column, columnNameToModelMap);
+		}
+	}
+
+	/**
+	 * Translate a single column.
+	 * @param column
+	 * @param columnNameToModelMap
+	 */
+	public static void translate(DerivedColumn column,
+			Map<String, ColumnModel> columnNameToModelMap) {
+		HasQuoteValue hasQuoteValue = column.getReferencedColumn();
+		if(hasQuoteValue != null){
+			String unquotedName = hasQuoteValue.getValueWithoutQuotes();
+			ColumnModel model = columnNameToModelMap.get(unquotedName);
+			String newName = null;
+			if(model != null){
+				switch (model.getColumnType()) {
+				case DOUBLE:
+					String tempName = SQLUtils.getColumnNameForId(model.getId());
+					break;
+				default:
+					newName = SQLUtils.getColumnNameForId(model.getId());
+					break;
+				}
+			}
+			if(newName != null){
+				hasQuoteValue.replaceUnquoted(newName);
+			}
+		}
+	}
+
+	/**
+	 * Translate the table name.
+	 * @param tableReference
+	 */
+	public static void translate(TableReference tableReference) {
+		Long tableId = KeyFactory.stringToKey(tableReference.getTableName());
+		tableReference.replaceTableName(SQLUtils.TABLE_PREFIX + tableId);
 	}
 }
