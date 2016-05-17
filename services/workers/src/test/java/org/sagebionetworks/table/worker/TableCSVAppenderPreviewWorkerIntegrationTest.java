@@ -52,7 +52,7 @@ import com.amazonaws.services.s3.AmazonS3Client;
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class TableCSVAppenderPreviewWorkerIntegrationTest {
 	
-	public static final int MAX_WAIT_MS = 1000*60;
+	public static final int MAX_WAIT_MS = 1000 * 60 * 10;
 	@Autowired
 	AsynchJobStatusManager asynchJobStatusManager;
 	@Autowired
