@@ -40,6 +40,7 @@ import org.sagebionetworks.repo.model.dao.table.RowAndHeaderHandler;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
 import org.sagebionetworks.repo.model.table.QueryResult;
@@ -57,6 +58,7 @@ import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
+import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.support.TransactionCallback;
@@ -87,6 +89,8 @@ public class TableQueryManagerImplTest {
 	TableStatus status;
 	String ETAG;
 	int maxBytesPerRequest;
+	CSVWriterStream writer;
+	List<String[]> writtenLines;
 	
 	
 	@Before
@@ -176,6 +180,15 @@ public class TableQueryManagerImplTest {
 				return callable.doInTransaction(null);
 			}
 		});
+		
+		// Writer that captures lines
+		writtenLines = new LinkedList<String[]>();
+		writer = new CSVWriterStream(){
+
+			@Override
+			public void writeNext(String[] nextLine) {
+				writtenLines.add(nextLine);
+			}};
 	}
 
 	@Test (expected = UnauthorizedException.class)
@@ -529,7 +542,32 @@ public class TableQueryManagerImplTest {
 	}
 	
 	@Test
-	public void testRunConsistentQueryAsStream(){
+	public void testRunConsistentQueryAsStream() throws NotFoundException, TableUnavilableException, TableFailedException{
+		String sql = "select * from "+tableId;
+		List<SortItem> sortList = null;
+		boolean includeRowIdAndVersion = false;
+		boolean writeHeader = true;
+		// call under test
+		DownloadFromTableResult results = manager.runConsistentQueryAsStream(
+				mockProgressCallbackVoid, user, sql, sortList, writer,
+				includeRowIdAndVersion, writeHeader);
+		assertNotNull(results);
 		
+		verify(mockTableManagerSupport).validateTableReadAccess(user, tableId);
+		assertEquals(11, writtenLines.size());
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testRunConsistentQueryAsStreamEmpty() throws NotFoundException, TableUnavilableException, TableFailedException{
+		// setup an empty schema.
+		when(mockColumnModelDAO.getColumnModelsForObject(tableId)).thenReturn(new LinkedList<ColumnModel>());
+		String sql = "select * from "+tableId;
+		List<SortItem> sortList = null;
+		boolean includeRowIdAndVersion = false;
+		boolean writeHeader = true;
+		// call under test
+		manager.runConsistentQueryAsStream(
+				mockProgressCallbackVoid, user, sql, sortList, writer,
+				includeRowIdAndVersion, writeHeader);
 	}
 }

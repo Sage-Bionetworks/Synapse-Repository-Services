@@ -44,7 +44,6 @@ import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.model.SqlDirective;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 import org.sagebionetworks.util.Closer;
-import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
@@ -195,9 +194,11 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		if (isConsistent) {
 			// A consistent query is only run if the table index is available and up-to-date
 			// with the table state. A read-lock on the index will be held while the query is run.
-			Pair<RowSet, Long> result = runConsistentQuery(progressCallback, paginatedQuery, countQuery);
-			rowSet = result.getFirst();
-			count = result.getSecond();
+			QueryResultWithCount result = runConsistentQuery(progressCallback, paginatedQuery, countQuery);
+			if(result.getQueryResult() != null){
+				rowSet = result.getQueryResult().getQueryResults();
+			}
+			count = result.getCount();
 		} else {
 			// This path queries the table index regardless of the state of the index and without a
 			// read-lock.
@@ -425,7 +426,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @throws NotFoundException
 	 * @throws TableFailedException
 	 */
-	private Pair<RowSet, Long> runConsistentQuery(ProgressCallback<Void> progressCallback, final SqlQuery query, final SqlQuery countQuery) throws TableUnavilableException,
+	private QueryResultWithCount runConsistentQuery(ProgressCallback<Void> progressCallback, final SqlQuery query, final SqlQuery countQuery) throws TableUnavilableException,
 			NotFoundException, TableFailedException {
 		List<QueryHandler> queryHandlers = Lists.newArrayList();
 		final Object[] output = { null, null };
@@ -477,8 +478,15 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		}
 
 		runConsistentQueryAsStream(progressCallback, queryHandlers);
-
-		return Pair.create((RowSet) output[0], (Long) output[1]);
+		
+		QueryResult qr = null;
+		RowSet rowSet = (RowSet) output[0];
+		if(rowSet != null){
+			qr = new QueryResult();
+			qr.setQueryResults(rowSet);
+		}
+		Long count = (Long) output[1];
+		return new QueryResultWithCount(qr, count);
 	}
 	
 	/**
