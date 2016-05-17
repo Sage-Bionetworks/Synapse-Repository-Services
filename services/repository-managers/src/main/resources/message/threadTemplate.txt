@@ -1,7 +1,0 @@
-<html><body><div>
-Hello #recipientName#,
-**[#actorUsername#](https://www.synapse.org/#!Profile:#actorUserId#)** created thread [#threadName#](https://www.synapse.org/#!Synapse:#projectId#/discussion/threadId=#threadId#) in [#projectName#](https://www.synapse.org/#!Synapse:#projectId#) forum.
->#content#
-
-[Unsubscribe to the thread](https://www.synapse.org/#!Subscription:subscriptionID=#subscriptionID#)
-</div></body></html>

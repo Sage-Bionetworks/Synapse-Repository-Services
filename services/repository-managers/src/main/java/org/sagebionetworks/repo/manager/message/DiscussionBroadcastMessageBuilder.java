@@ -1,10 +1,5 @@
 package org.sagebionetworks.repo.manager.message;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Map;
-
-import org.apache.commons.io.IOUtils;
 import org.sagebionetworks.markdown.MarkdownDao;
 import org.sagebionetworks.repo.manager.EmailUtils;
 import org.sagebionetworks.repo.manager.SendRawEmailRequestBuilder;
@@ -13,12 +8,12 @@ import org.sagebionetworks.repo.model.subscription.Subscriber;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.Topic;
 import org.sagebionetworks.util.ValidateArgument;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
-import com.google.common.collect.Maps;
 
 public class DiscussionBroadcastMessageBuilder implements BroadcastMessageBuilder {
+	public static final String GREETING = "Hello %1$s,\n\n";
+	public static final String UNSUBSCRIBE = "[Unsubscribe to the thread](https://www.synapse.org/#!Subscription:subscriptionID=%1$s)\n";
 	MarkdownDao markdownDao;
 	String actorUsername;
 	String actorUserId;
@@ -32,7 +27,7 @@ public class DiscussionBroadcastMessageBuilder implements BroadcastMessageBuilde
 
 	public DiscussionBroadcastMessageBuilder(String actorUsername, String actorUserId,
 			String threadTitle, String threadId, String projectId, String projectName,
-			String markdown, String templatePath, String emailTitle, MarkdownDao markdownDao) {
+			String markdown, String emailTemplate, String emailTitle, MarkdownDao markdownDao) {
 		ValidateArgument.required(actorUsername, "actorUsername");
 		ValidateArgument.required(actorUserId, "actorUserId");
 		ValidateArgument.required(threadTitle, "threadTitle");
@@ -40,7 +35,7 @@ public class DiscussionBroadcastMessageBuilder implements BroadcastMessageBuilde
 		ValidateArgument.required(projectId, "projectId");
 		ValidateArgument.required(projectName, "projectName");
 		ValidateArgument.required(markdown, "markdown");
-		ValidateArgument.required(templatePath, "templatePath");
+		ValidateArgument.required(emailTemplate, "emailTemplate");
 		ValidateArgument.required(emailTitle, "emailTitle");
 		ValidateArgument.required(markdownDao, "markdownDao");
 		this.actorUsername = actorUsername;
@@ -49,10 +44,9 @@ public class DiscussionBroadcastMessageBuilder implements BroadcastMessageBuilde
 		this.threadTitleTruncated = truncateString(threadTitle, 50);
 		this.projectId = projectId;
 		this.projectName = projectName;
-		this.markdown = markdown;
+		this.markdown = markdown.replace("\n", "\n>");
 		this.subject = String.format(emailTitle, threadTitleTruncated);
-		// Load the template file
-		emailTemplate = loadTemplateFile(templatePath);
+		this.emailTemplate = emailTemplate;
 		this.markdownDao = markdownDao;
 	}
 
@@ -82,40 +76,13 @@ public class DiscussionBroadcastMessageBuilder implements BroadcastMessageBuilde
 	 * @return
 	 */
 	public String buildRawBody(Subscriber subscriber){
-		// Setup the map for this email
-		Map<String,String> fieldValues = Maps.newHashMap();
+		StringBuilder sb = new StringBuilder();
 		String recipientName = EmailUtils.getDisplayNameWithUsername(subscriber.getFirstName(), subscriber.getLastName(), subscriber.getUsername());
-		fieldValues.put("#recipientName#", recipientName);
-		fieldValues.put("#actorUsername#", actorUsername);
-		fieldValues.put("#actorUserId#", actorUserId);
-		fieldValues.put("#threadId#", threadId);
-		fieldValues.put("#threadName#", threadTitleTruncated);
-		fieldValues.put("#projectId#", projectId);
-		fieldValues.put("#projectName#", projectName);
-		fieldValues.put("#subscriptionID#", subscriber.getSubscriptionId());
-		fieldValues.put("#content#", markdown);
-		return EmailUtils.buildMailFromTemplate(emailTemplate, fieldValues);
-	}
-
-	/**
-	 * Load a template file into memory.
-	 * @param filePath
-	 * @return
-	 */
-	public static String loadTemplateFile(String filePath){
-		InputStream is = DiscussionBroadcastMessageBuilder.class.getClassLoader().getResourceAsStream(filePath);
-		if (is==null){
-			throw new IllegalStateException("Could not find file "+filePath);
-		}
-		try{
-			try {
-				return IOUtils.toString(is);
-			} catch (IOException e) {
-				throw new java.lang.RuntimeException(e);
-			}
-		}finally{
-			IOUtils.closeQuietly(is);
-		}
+		sb.append(String.format(GREETING, recipientName));
+		sb.append(String.format(emailTemplate, actorUsername, actorUserId, threadTitleTruncated, projectId, threadId, projectName));
+		sb.append(markdown+"\n\n");
+		sb.append(String.format(UNSUBSCRIBE, subscriber.getSubscriptionId()));
+		return sb.toString();
 	}
 
 	/**
