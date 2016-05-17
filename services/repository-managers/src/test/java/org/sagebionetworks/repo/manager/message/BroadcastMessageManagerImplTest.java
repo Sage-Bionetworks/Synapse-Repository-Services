@@ -30,6 +30,7 @@ import org.sagebionetworks.repo.model.subscription.Subscriber;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.Topic;
 import org.sagebionetworks.util.TimeoutUtils;
+import org.sagebionetworks.utils.HttpClientHelperException;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
@@ -65,7 +66,7 @@ public class BroadcastMessageManagerImplTest {
 	List<Subscriber> subscribers;
 
 	@Before
-	public void before(){
+	public void before() throws Exception{
 		MockitoAnnotations.initMocks(this);
 		
 		manager = new BroadcastMessageManagerImpl();
@@ -116,9 +117,8 @@ public class BroadcastMessageManagerImplTest {
 		
 	}
 	
-	
 	@Test
-	public void testHappyBroadcast(){
+	public void testHappyBroadcast() throws Exception{
 		// call under test
 		manager.broadcastMessage(mockUser, mockCallback, change);
 		// The message state should be sent.
@@ -128,9 +128,15 @@ public class BroadcastMessageManagerImplTest {
 		// two messages should be sent
 		verify(mockSesClient, times(2)).sendRawEmail(any(SendRawEmailRequest.class));
 	}
+
+	@Test (expected = HttpClientHelperException.class)
+	public void testBroadcastFailToBuildMessage() throws Exception{
+		when(mockBroadcastMessageBuilder.buildEmailForSubscriber(any(Subscriber.class))).thenThrow(new HttpClientHelperException("", 500, ""));
+		manager.broadcastMessage(mockUser, mockCallback, change);
+	}
 	
 	@Test (expected=UnauthorizedException.class)
-	public void testBroadcastMessageUnauthorized(){
+	public void testBroadcastMessageUnauthorized() throws Exception{
 		// not an adim.
 		when(mockUser.isAdmin()).thenReturn(false);
 		// call under test
@@ -138,7 +144,7 @@ public class BroadcastMessageManagerImplTest {
 	}
 	
 	@Test
-	public void testBroadcastMessageExpired(){
+	public void testBroadcastMessageExpired() throws Exception{
 		// setup expired
 		when(mockTimeoutUtils.hasExpired(anyLong(), anyLong())).thenReturn(true);
 		// call under test
@@ -148,7 +154,7 @@ public class BroadcastMessageManagerImplTest {
 	}
 	
 	@Test
-	public void testBroadcastMessageChangeDoesNotExist(){
+	public void testBroadcastMessageChangeDoesNotExist() throws Exception{
 		// change number does not exist
 		when(mockChangeDao.doesChangeNumberExist(change.getChangeNumber())).thenReturn(false);
 		// call under test
@@ -158,7 +164,7 @@ public class BroadcastMessageManagerImplTest {
 	}
 	
 	@Test
-	public void testBroadcastMessageAlreadyBroadcast(){
+	public void testBroadcastMessageAlreadyBroadcast() throws Exception{
 		// already broadcast.
 		when(mockBroadcastMessageDao.wasBroadcast(change.getChangeNumber())).thenReturn(true);
 		// call under test
@@ -168,7 +174,7 @@ public class BroadcastMessageManagerImplTest {
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
-	public void testBroadcastMessageNoBuilder(){
+	public void testBroadcastMessageNoBuilder() throws Exception{
 		// there is no builder for this type.
 		change.setObjectType(ObjectType.TABLE);
 		// call under test

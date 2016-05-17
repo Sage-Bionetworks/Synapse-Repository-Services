@@ -16,7 +16,7 @@ public class MarkdownDaoImplIntegrationTest {
 	MarkdownDao dao;
 
 	@Test
-	public void test() {
+	public void test() throws Exception {
 		String rawMarkdown = "## a heading";
 		String outputType = "html";
 		String result = "<h2 toc=\"true\">a heading</h2>\n";

@@ -1,8 +1,13 @@
 package org.sagebionetworks.repo.manager.message;
 
+import java.io.IOException;
+
+import org.apache.http.client.ClientProtocolException;
+import org.json.JSONException;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
+import org.sagebionetworks.utils.HttpClientHelperException;
 
 /**
  * The Broadcast manager is responsible for sending an email to users subscribed to certain events.
@@ -17,9 +22,13 @@ public interface BroadcastMessageManager {
 	 * 
 	 * @param user - admin user
 	 * @param changeMessage
+	 * @throws HttpClientHelperException 
+	 * @throws IOException 
+	 * @throws JSONException 
+	 * @throws ClientProtocolException 
 	 */
 	public void broadcastMessage(UserInfo user,
 			ProgressCallback<ChangeMessage> progressCallback,
-			ChangeMessage changeMessage);
+			ChangeMessage changeMessage) throws ClientProtocolException, JSONException, IOException, HttpClientHelperException;
 
 }

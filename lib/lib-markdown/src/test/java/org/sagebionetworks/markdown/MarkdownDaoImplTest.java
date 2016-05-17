@@ -1,12 +1,13 @@
 package org.sagebionetworks.markdown;
 
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
+import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.when;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.sagebionetworks.utils.HttpClientHelperException;
 import org.springframework.test.util.ReflectionTestUtils;
 
 public class MarkdownDaoImplTest {
@@ -23,16 +24,16 @@ public class MarkdownDaoImplTest {
 	}
 
 	@Test (expected = IllegalArgumentException.class)
-	public void testConvertMarkdownWithNullMarkdown() {
+	public void testConvertMarkdownWithNullMarkdown() throws Exception {
 		dao.convertMarkdown(null, null);
 	}
 
-	@Test
+	@Test (expected = HttpClientHelperException.class)
 	public void testConvertMarkdownWithNullResponse() throws Exception {
 		String rawMarkdown = "## a heading";
 		String request = "{\"markdown\":\"## a heading\"}";
-		when(mockMarkdownClient.requestMarkdownConversion(request)).thenReturn(null);
-		assertNull(dao.convertMarkdown(rawMarkdown, null));
+		when(mockMarkdownClient.requestMarkdownConversion(request)).thenThrow(new HttpClientHelperException("",500,""));
+		dao.convertMarkdown(rawMarkdown, null);
 	}
 
 	@Test

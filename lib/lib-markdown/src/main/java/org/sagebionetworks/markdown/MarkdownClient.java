@@ -7,16 +7,14 @@ import java.util.Map;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
-import org.apache.http.ParseException;
+import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.util.EntityUtils;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.utils.HttpClientHelper;
+import org.sagebionetworks.utils.HttpClientHelperException;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class MarkdownClient {
-	private static Logger log = LogManager.getLogger(MarkdownClient.class);
 
 	@Autowired
 	private MarkdownHttpClientProvider markdownHttpClientProvider;
@@ -41,26 +39,26 @@ public class MarkdownClient {
 	/**
 	 * Takes a json string requestContent (ex. {"markdown":"## a heading"})
 	 * Makes a call to the markdown server to convert the raw markdown to html
-	 * Return the json string representation of the response (ex. {"html":"<h2 toc=\"true\">a heading</h2>\n"})
+	 * Return the json string representation of the response (ex. {"result":"<h2 toc=\"true\">a heading</h2>\n"})
 	 * 
 	 * @param requestContent
 	 * @return
-	 * @throws ParseException
+	 * @throws ClientProtocolException 
 	 * @throws IOException
+	 * @throws HttpClientHelperException 
 	 */
-	public String requestMarkdownConversion(String requestContent) throws ParseException, IOException{
+	public String requestMarkdownConversion(String requestContent) throws ClientProtocolException, IOException, HttpClientHelperException {
 		String url = markdownServiceEndpoint+MARKDOWN_TO_HTML;
 		HttpResponse response = HttpClientHelper.performRequest(httpClient, url, "POST", requestContent, DEFAULT_REQUEST_HEADERS);
 		int statusCode = response.getStatusLine().getStatusCode();
+		HttpEntity responseEntity = response.getEntity();
+		String result = EntityUtils.toString(responseEntity);
 		if (statusCode == 200) {
-			HttpEntity responseEntity = response.getEntity();
-			if (responseEntity != null) {
-				return EntityUtils.toString(responseEntity);
-			}
+			return result;
 		} else {
-			log.info("Fail to request markdown conversion for request: "+requestContent+". Response: "+response.toString());
+			String message = "Fail to request markdown conversion for request: "+requestContent;
+			throw new HttpClientHelperException(message, statusCode, result);
 		}
-		return null;
 	}
 
 	public String getMarkdownServiceEndpoint() {

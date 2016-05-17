@@ -1,5 +1,9 @@
 package org.sagebionetworks.repo.manager.message;
 
+import java.io.IOException;
+
+import org.apache.http.client.ClientProtocolException;
+import org.json.JSONException;
 import org.sagebionetworks.markdown.MarkdownDao;
 import org.sagebionetworks.repo.manager.EmailUtils;
 import org.sagebionetworks.repo.manager.SendRawEmailRequestBuilder;
@@ -8,6 +12,7 @@ import org.sagebionetworks.repo.model.subscription.Subscriber;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.Topic;
 import org.sagebionetworks.util.ValidateArgument;
+import org.sagebionetworks.utils.HttpClientHelperException;
 
 import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
 
@@ -59,7 +64,7 @@ public class DiscussionBroadcastMessageBuilder implements BroadcastMessageBuilde
 	}
 
 	@Override
-	public SendRawEmailRequest buildEmailForSubscriber(Subscriber subscriber) {
+	public SendRawEmailRequest buildEmailForSubscriber(Subscriber subscriber) throws ClientProtocolException, JSONException, IOException, HttpClientHelperException {
 		// build the email body
 		String body = buildRawBody(subscriber);
 		return new SendRawEmailRequestBuilder()
