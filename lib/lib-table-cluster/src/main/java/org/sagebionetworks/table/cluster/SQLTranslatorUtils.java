@@ -327,13 +327,19 @@ public class SQLTranslatorUtils {
 	public static void translateModel(QuerySpecification transformedModel,
 			Map<String, Object> parameters,
 			Map<String, ColumnModel> columnNameToModelMap) {
-		TableExpression tableExpression = transformedModel.getTableExpression();
-		// First change the table name
-		TableReference tableReference = tableExpression.getFromClause().getTableReference();
-		translate(tableReference);
 		// Select columns
 		Iterable<HasReferencedColumn> selectColumns = transformedModel.getSelectList().createIterable(HasReferencedColumn.class);
 		translate(selectColumns, columnNameToModelMap);
+		
+		TableExpression tableExpression = transformedModel.getTableExpression();
+		if(tableExpression == null){
+			// nothing else to do.
+			return;
+		}
+		// First change the table name
+		TableReference tableReference = tableExpression.getFromClause().getTableReference();
+		translate(tableReference);
+		
 		// Translate where
 		WhereClause whereClause = tableExpression.getWhereClause();
 		if(whereClause != null){

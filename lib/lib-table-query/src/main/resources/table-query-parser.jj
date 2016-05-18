@@ -131,6 +131,7 @@ TOKEN [IGNORE_CASE]: {
 | < current_date: "CURRENT_DATE">
 | < current_time: "CURRENT_TIME">
 | < distinct: "DISTINCT">
+| < sql_calc__found_rows: "SQL_CALC_FOUND_ROWS">
 | < default_specification: "DEFAULT" > 
 | < escape: "ESCAPE">
 | < _false: "FALSE">
@@ -353,13 +354,14 @@ ColumnReference columnReference():
 }
 QuerySpecification querySpecification():
 {
+	SqlDirective sqlDirective = null;
 	SetQuantifier setQuantifier = null;
 	SelectList selectList = null;
 	TableExpression tableExpression = null;
 }
 {
-	<select> [ setQuantifier = setQuantifier()] selectList = selectList() tableExpression = tableExpression() <EOF>
-	{ return new QuerySpecification(setQuantifier, selectList, tableExpression); }
+	<select> [ sqlDirective = setSqlDirective()] [ setQuantifier = setQuantifier()] selectList = selectList() [ tableExpression = tableExpression() ] <EOF>
+	{ return new QuerySpecification(sqlDirective, setQuantifier, selectList, tableExpression); }
 }
 SelectList selectList():
 {
@@ -435,6 +437,11 @@ ColumnName columnName():
 }
 {
 	identifier = identifier() {return new ColumnName(identifier); }
+}
+SqlDirective setSqlDirective():
+{}
+{
+	<sql_calc__found_rows> { return SqlDirective.SQL_CALC_FOUND_ROWS;}
 }
 SetQuantifier setQuantifier():
 {}

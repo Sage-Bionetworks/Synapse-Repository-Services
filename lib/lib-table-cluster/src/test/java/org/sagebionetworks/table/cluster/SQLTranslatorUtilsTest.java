@@ -1062,4 +1062,13 @@ public class SQLTranslatorUtilsTest {
 		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
 		assertEquals("SELECT _C111_ FROM T123 ORDER BY MIN(CASE WHEN _DBL_C777_ IS NULL THEN _C777_ ELSE _DBL_C777_ END)",element.toSql());
 	}
+	
+	@Test
+	public void testTranslateModelSelectFoundRows() throws ParseException{
+		QuerySpecification element = new TableQueryParser("select FOUND_ROWS()").querySpecification();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
+		assertEquals("SELECT FOUND_ROWS()",element.toSql());
+	}
+
 }
