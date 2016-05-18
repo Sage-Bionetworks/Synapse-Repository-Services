@@ -42,7 +42,7 @@ public class SQLQueryTest {
 	
 	private static final String DOUBLE_COLUMN = "CASE WHEN _DBL_C777_ IS NULL THEN _C777_ ELSE _DBL_C777_ END";
 	private static final String STAR_COLUMNS = "_C111_, _C222_, _C333_, _C444_, _C555_, _C666_, " + DOUBLE_COLUMN
-			+ " AS _C777_, _C888_, _C999_";
+			+ ", _C888_, _C999_";
 
 	@Before
 	public void before(){
@@ -450,7 +450,7 @@ public class SQLQueryTest {
 	}
 	
 	@Test
-	public void testWhereDouble() throws ParseException {
+	public void testWhereDoubleFunction() throws ParseException {
 		SqlQuery translator = new SqlQuery("select * from syn123 where isNaN(doubletype) or isInfinity(DOUBLETYPE)", tableSchema);
 		// The value should be bound in the SQL
 		assertEquals(
@@ -458,6 +458,17 @@ public class SQLQueryTest {
 						+ STAR_COLUMNS
 						+ ", ROW_ID, ROW_VERSION FROM T123 WHERE (_DBL_C777_ IS NOT NULL AND _DBL_C777_ = 'NaN') OR (_DBL_C777_ IS NOT NULL AND _DBL_C777_ IN ('-Infinity', 'Infinity'))",
 				translator.getOutputSQL());
+	}
+	
+	@Test
+	public void testWhereDouble() throws ParseException {
+		SqlQuery translator = new SqlQuery("select foo from syn123 where doubletype between 1.0 and 2.0", tableSchema);
+		// The value should be bound in the SQL
+		assertEquals(
+				"SELECT _C111_, ROW_ID, ROW_VERSION FROM T123 WHERE _C777_ BETWEEN :b0 AND :b1",
+				translator.getOutputSQL());
+		assertEquals("1.0", translator.getParameters().get("b0"));
+		assertEquals("2.0", translator.getParameters().get("b1"));
 	}
 
 	@Test
@@ -529,9 +540,9 @@ public class SQLQueryTest {
 	
 	@Test
 	public void testOrderByDouble() throws ParseException {
-		SqlQuery translator = new SqlQuery("select * from syn123 order by doubletype desc", tableSchema);
+		SqlQuery translator = new SqlQuery("select foo from syn123 order by doubletype desc", tableSchema);
 		// The value should be bound in the SQL
-		assertEquals("SELECT " + STAR_COLUMNS + ", ROW_ID, ROW_VERSION FROM T123 ORDER BY T123._C777_ DESC", translator.getOutputSQL());
+		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123 ORDER BY "+DOUBLE_COLUMN+" DESC", translator.getOutputSQL());
 	}
 	
 	@Test
@@ -650,5 +661,57 @@ public class SQLQueryTest {
 				.get(3));
 		assertEquals(TableModelUtils.createSelectColumn("COUNT(doubletype)", ColumnType.INTEGER, null), translator.getSelectColumns()
 				.get(4));
+	}
+		
+	@Test
+	public void testPLFM_3864() throws Exception{
+		SqlQuery translator = new SqlQuery(
+				"select doubletype as f1 from syn123", tableSchema);
+		assertEquals("SELECT"
+				+ " CASE WHEN _DBL_C777_ IS NULL THEN _C777_ ELSE _DBL_C777_ END AS f1 "
+				+ "FROM T123", translator.getOutputSQL());
+	}
+	
+	@Test
+	public void testPLFM_3864withOrderBy() throws Exception{
+		SqlQuery translator = new SqlQuery(
+				"select doubletype as f1 from syn123 order by f1", tableSchema);
+		assertEquals("SELECT"
+				+ " CASE WHEN _DBL_C777_ IS NULL THEN _C777_ ELSE _DBL_C777_ END AS f1 "
+				+ "FROM T123 ORDER BY f1", translator.getOutputSQL());
+	}
+	
+	@Test
+	public void testPLFM_3865() throws Exception{
+		SqlQuery translator = new SqlQuery(
+				"select max(doubletype), min(doubletype) from syn123 order by min(doubletype)", tableSchema);
+		assertEquals("SELECT"
+				+ " MAX(CASE WHEN _DBL_C777_ IS NULL THEN _C777_ ELSE _DBL_C777_ END)"
+				+ ", MIN(CASE WHEN _DBL_C777_ IS NULL THEN _C777_ ELSE _DBL_C777_ END) "
+				+ "FROM T123 "
+				+ "ORDER BY MIN(CASE WHEN _DBL_C777_ IS NULL THEN _C777_ ELSE _DBL_C777_ END)", translator.getOutputSQL());
+	}
+	
+	@Test
+	public void testPLFM_3865andPLFM_3864() throws Exception{
+		SqlQuery translator = new SqlQuery(
+				"select max(doubletype) as f1, min(doubletype) as f2 from syn123 order by f2", tableSchema);
+		assertEquals("SELECT"
+				+ " MAX(CASE WHEN _DBL_C777_ IS NULL THEN _C777_ ELSE _DBL_C777_ END) AS f1"
+				+ ", MIN(CASE WHEN _DBL_C777_ IS NULL THEN _C777_ ELSE _DBL_C777_ END) AS f2 "
+				+ "FROM T123 "
+				+ "ORDER BY f2", translator.getOutputSQL());
+	}
+	
+	@Test
+	public void testPLFM_3866() throws ParseException{
+		SqlQuery translator = new SqlQuery("select foo from syn123 where foo in (\"a\")", tableSchema);
+		assertEquals("", translator.getOutputSQL());
+	}
+	
+	@Test
+	public void testPLFM_3867() throws ParseException{
+		SqlQuery translator = new SqlQuery("select foo from syn123 where foo = \"a\"", tableSchema);
+		assertEquals("", translator.getOutputSQL());
 	}
 }

@@ -156,5 +156,13 @@ public class DerivedColumn extends SQLElement {
 		}
 		return null;
 	}
+
+	/**
+	 * Replace the AS clause with a new value.
+	 * @param asName
+	 */
+	public void replaceAs(String asName) {
+		asClause = new AsClause(new ColumnName(new Identifier(new ActualIdentifier(asName, null))));	
+	}
 	
 }

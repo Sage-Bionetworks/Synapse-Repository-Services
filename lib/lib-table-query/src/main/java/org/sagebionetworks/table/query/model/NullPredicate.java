@@ -7,7 +7,7 @@ import org.sagebionetworks.table.query.model.visitors.Visitor;
 /**
  * This matches &ltnull predicate&gt  in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
  */
-public class NullPredicate extends IsPredicate {
+public class NullPredicate extends IsPredicate  {
 	
 	ColumnReference columnReferenceLHS;
 	Boolean not;
@@ -29,4 +29,5 @@ public class NullPredicate extends IsPredicate {
 	<T extends Element> void addElements(List<T> elements, Class<T> type) {
 		checkElement(elements, type, columnReferenceLHS);
 	}
+	
 }

@@ -633,6 +633,19 @@ public class SQLUtils {
 			appendColumnName(subName, columnId, builder);
 		}
 	}
+	
+	/**
+	 * Create a double clause.
+	 * @param columnId
+	 * @return
+	 */
+	public static String createDoubleCluase(String columnId){
+		boolean isSelect = true;
+		boolean needsAs = false;
+		StringBuilder builder = new StringBuilder();
+		appendDoubleCase(columnId, "", null, isSelect, needsAs, builder);
+		return builder.toString();
+	}
 
 
 		/**

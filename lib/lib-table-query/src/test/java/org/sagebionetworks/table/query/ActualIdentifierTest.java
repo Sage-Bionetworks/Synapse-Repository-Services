@@ -39,4 +39,10 @@ public class ActualIdentifierTest {
 		assertFalse(element.isSurrounedeWithQuotes());
 	}
 
+	@Test
+	public void testValueUnderscore() throws ParseException{
+		ActualIdentifier element = new TableQueryParser("_foo_").actualIdentifier();
+		assertEquals("_foo_", element.getValueWithoutQuotes());
+		assertFalse(element.isSurrounedeWithQuotes());
+	}
 }

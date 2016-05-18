@@ -9,7 +9,7 @@ import org.sagebionetworks.table.query.model.visitors.Visitor;
 /**
  * This matches &ltin predicate&gt  in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
  */
-public class InPredicate extends SQLElement {
+public class InPredicate extends SQLElement implements HasPredicate {
 
 	ColumnReference columnReferenceLHS;
 	Boolean not;
@@ -68,5 +68,15 @@ public class InPredicate extends SQLElement {
 	<T extends Element> void addElements(List<T> elements, Class<T> type) {
 		checkElement(elements, type, columnReferenceLHS);
 		checkElement(elements, type, inPredicateValue);
+	}
+
+	@Override
+	public ColumnReference getLeftHandSide() {
+		return columnReferenceLHS;
+	}
+
+	@Override
+	public Iterable<HasQuoteValue> getRightHandSideValues() {
+		return inPredicateValue.createIterable(HasQuoteValue.class);
 	}
 }

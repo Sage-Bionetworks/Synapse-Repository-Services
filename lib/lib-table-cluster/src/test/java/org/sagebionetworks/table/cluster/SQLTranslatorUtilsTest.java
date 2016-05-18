@@ -25,11 +25,16 @@ import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
+import org.sagebionetworks.table.query.model.ActualIdentifier;
+import org.sagebionetworks.table.query.model.BooleanPrimary;
 import org.sagebionetworks.table.query.model.DerivedColumn;
 import org.sagebionetworks.table.query.model.FunctionType;
 import org.sagebionetworks.table.query.model.HasQuoteValue;
+import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.SelectList;
+import org.sagebionetworks.table.query.model.SignedLiteral;
 import org.sagebionetworks.table.query.model.TableReference;
+import org.springframework.expression.spel.ast.StringLiteral;
 
 import com.google.common.collect.Lists;
 
@@ -48,6 +53,7 @@ public class SQLTranslatorUtilsTest {
 	ColumnModel columnId;
 	ColumnModel columnSpecial;
 	ColumnModel columnDouble;
+	ColumnModel columnDate;
 	
 	List<ColumnModel> schema;
 	
@@ -62,8 +68,9 @@ public class SQLTranslatorUtilsTest {
 		String specialChars = "Specialchars~!@#$%^^&*()_+|}{:?></.,;'[]\'";
 		columnSpecial = TableModelTestUtils.createColumn(555L, specialChars, ColumnType.DOUBLE);
 		columnDouble = TableModelTestUtils.createColumn(777L, "aDouble", ColumnType.DOUBLE);
+		columnDate = TableModelTestUtils.createColumn(777L, "aDouble", ColumnType.DATE);
 		
-		schema = Lists.newArrayList(columnFoo, columnHasSpace, columnBar, columnId, columnSpecial);
+		schema = Lists.newArrayList(columnFoo, columnHasSpace, columnBar, columnId, columnSpecial, columnDouble);
 		// setup the map
 		columnMap = new HashMap<String, ColumnModel>(schema.size());
 		for(ColumnModel cm: schema){
@@ -688,8 +695,209 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testTranslateDerivedColumnDouble() throws ParseException{
-		DerivedColumn column = new TableQueryParser("'aDouble'").derivedColumn();
+		DerivedColumn column = new TableQueryParser("aDouble").derivedColumn();
 		SQLTranslatorUtils.translate(column, columnMap);
-		assertEquals("'constant'", column.toSql());
+		assertEquals("CASE WHEN _DBL_C777_ IS NULL THEN _C777_ ELSE _DBL_C777_ END", column.toSql());
+	}
+	
+	@Test
+	public void testTranslateDerivedColumnDoubleAs() throws ParseException{
+		DerivedColumn column = new TableQueryParser("'aDouble' as foo").derivedColumn();
+		SQLTranslatorUtils.translate(column, columnMap);
+		assertEquals("CASE WHEN _DBL_C777_ IS NULL THEN _C777_ ELSE _DBL_C777_ END AS foo", column.toSql());
+	}
+	
+	@Test
+	public void testReplaceBooleanFunctionIsNaN() throws ParseException{
+		BooleanPrimary element = new TableQueryParser("isNaN(aDouble)").booleanPrimary();
+		SQLTranslatorUtils.replaceBooleanFunction(element, columnMap);
+		assertEquals("( _DBL_C777_ IS NOT NULL AND _DBL_C777_ = 'NaN' )", element.toSql());
+	}
+	
+	@Test
+	public void testReplaceBooleanFunctionIsInfinity() throws ParseException{
+		BooleanPrimary element = new TableQueryParser("isInfinity(aDouble)").booleanPrimary();
+		SQLTranslatorUtils.replaceBooleanFunction(element, columnMap);
+		assertEquals("( _DBL_C777_ IS NOT NULL AND _DBL_C777_ IN ( '-Infinity', 'Infinity' ) )", element.toSql());
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testReplaceBooleanFunctionNonDoubleColumn() throws ParseException{
+		BooleanPrimary element = new TableQueryParser("isInfinity(id)").booleanPrimary();
+		SQLTranslatorUtils.replaceBooleanFunction(element, columnMap);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testReplaceBooleanFunctionUnknownColumn() throws ParseException{
+		BooleanPrimary element = new TableQueryParser("isInfinity(someUnknown)").booleanPrimary();
+		SQLTranslatorUtils.replaceBooleanFunction(element, columnMap);
+	}
+	
+	@Test
+	public void testReplaceBooleanFunctionNotBooleanFunction() throws ParseException{
+		BooleanPrimary element = new TableQueryParser("id = 123").booleanPrimary();
+		SQLTranslatorUtils.replaceBooleanFunction(element, columnMap);
+		assertEquals("Non-BooleanFunctions should not be changed by this method.","id = 123", element.toSql());
+	}
+	
+	@Test
+	public void testReplaceBooleanFunctionSearchCondition() throws ParseException{
+		BooleanPrimary element = new TableQueryParser("(id = 123 OR id = 456)").booleanPrimary();
+		SQLTranslatorUtils.replaceBooleanFunction(element, columnMap);
+		assertEquals("SearchConditions should not be changed by this method.","( id = 123 OR id = 456 )", element.toSql());
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testTranslateRightHandeSideNullElement(){
+		ActualIdentifier element = null;
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateRightHandeSide(element, columnFoo, parameters);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testTranslateRightHandeSideNullParameters() throws ParseException{
+		ActualIdentifier element = new TableQueryParser("aString").actualIdentifier();
+		Map<String, Object> parameters = null;
+		SQLTranslatorUtils.translateRightHandeSide(element, columnFoo, parameters);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testTranslateRightHandeSideNullColumn() throws ParseException{
+		ActualIdentifier element = new TableQueryParser("aString").actualIdentifier();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateRightHandeSide(element, null, parameters);
+	}
+	
+	@Test
+	public void testTranslateRightHandeSideString() throws ParseException{
+		ActualIdentifier element = new TableQueryParser("aString").actualIdentifier();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateRightHandeSide(element, columnFoo, parameters);
+		assertEquals(":b0", element.getValueWithoutQuotes());
+		assertEquals("aString", parameters.get("b0"));
+	}
+	
+	@Test
+	public void testTranslateRightHandeSideStringQuotes() throws ParseException{
+		ActualIdentifier element = new TableQueryParser("\"aString\"").actualIdentifier();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateRightHandeSide(element, columnFoo, parameters);
+		assertEquals(":b0", element.getValueWithoutQuotes());
+		assertEquals("aString", parameters.get("b0"));
+	}
+	
+	@Test
+	public void testTranslateRightHandeSideInteger() throws ParseException{
+		SignedLiteral element = new TableQueryParser("123456").signedLiteral();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateRightHandeSide(element, columnId, parameters);
+		assertEquals(":b0", element.getValueWithoutQuotes());
+		assertEquals("123456", parameters.get("b0"));
+	}
+	
+	@Test
+	public void testTranslateRightHandeSideDouble() throws ParseException{
+		SignedLiteral element = new TableQueryParser("1.45").signedLiteral();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateRightHandeSide(element, columnDouble, parameters);
+		assertEquals(":b0", element.getValueWithoutQuotes());
+		assertEquals("1.45", parameters.get("b0"));
+	}
+	
+	@Test
+	public void testTranslateRightHandeSideDateString() throws ParseException{
+		ActualIdentifier element = new TableQueryParser("\"16-01-29 13:55:33.999\"").actualIdentifier();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateRightHandeSide(element, columnDate, parameters);
+		assertEquals(":b0", element.getValueWithoutQuotes());
+		assertEquals("1454075733999", parameters.get("b0"));
+	}
+	
+	@Test
+	public void testTranslateRightHandeSideDateEpoch() throws ParseException{
+		SignedLiteral element = new TableQueryParser("1454075733999").signedLiteral();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateRightHandeSide(element, columnDate, parameters);
+		assertEquals(":b0", element.getValueWithoutQuotes());
+		assertEquals("1454075733999", parameters.get("b0"));
+	}
+	
+	@Test
+	public void testTranslateModelSimple() throws ParseException{
+		QuerySpecification element = new TableQueryParser("select foo from syn123").querySpecification();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
+		assertEquals("SELECT _C111_ FROM T123",element.toSql());
+	}
+	
+	@Test
+	public void testTranslateModelWhere() throws ParseException{
+		QuerySpecification element = new TableQueryParser("select foo from syn123 where id > 2").querySpecification();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
+		assertEquals("SELECT _C111_ FROM T123 WHERE _C444_ > :b0",element.toSql());
+		assertEquals("2", parameters.get("b0"));
+	}
+	
+	@Test
+	public void testTranslateModelWhereBetween() throws ParseException{
+		QuerySpecification element = new TableQueryParser("select foo from syn123 where id between '1' and \"2\"").querySpecification();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
+		assertEquals("SELECT _C111_ FROM T123 WHERE _C444_ BETWEEN :b0 AND :b1",element.toSql());
+		assertEquals("1", parameters.get("b0"));
+		assertEquals("2", parameters.get("b1"));
+	}
+	
+	@Test
+	public void testTranslateModelWhereIn() throws ParseException{
+		QuerySpecification element = new TableQueryParser("select foo from syn123 where id in ('1',\"2\",3)").querySpecification();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
+		assertEquals("SELECT _C111_ FROM T123 WHERE _C444_ IN ( :b0, :b1, :b2 )",element.toSql());
+		assertEquals("1", parameters.get("b0"));
+		assertEquals("2", parameters.get("b1"));
+		assertEquals("3", parameters.get("b2"));
+	}
+	
+	@Test
+	public void testTranslateModelWhereLike() throws ParseException{
+		QuerySpecification element = new TableQueryParser("select foo from syn123 where id like '%3'").querySpecification();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
+		assertEquals("SELECT _C111_ FROM T123 WHERE _C444_ LIKE :b0",element.toSql());
+		assertEquals("%3", parameters.get("b0"));
+	}
+	
+	@Test
+	public void testTranslateModelWhereNull() throws ParseException{
+		QuerySpecification element = new TableQueryParser("select foo from syn123 where id is not null").querySpecification();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
+		assertEquals("SELECT _C111_ FROM T123 WHERE _C444_ IS NOT NULL",element.toSql());
+	}
+	
+	@Test
+	public void testTranslateModelWhereIsTrue() throws ParseException{
+		QuerySpecification element = new TableQueryParser("select foo from syn123 where id is true").querySpecification();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
+		assertEquals("SELECT _C111_ FROM T123 WHERE _C444_ IS TRUE",element.toSql());
+	}
+	
+	@Test
+	public void testTranslateModelWhereIsNaN() throws ParseException{
+		QuerySpecification element = new TableQueryParser("select foo from syn123 where isNaN(aDouble)").querySpecification();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
+		assertEquals("SELECT _C111_ FROM T123 WHERE ( _DBL_C777_ IS NOT NULL AND _DBL_C777_ = 'NaN' )",element.toSql());
+	}
+	
+	@Test
+	public void testTranslateModelWhereIsInfinity() throws ParseException{
+		QuerySpecification element = new TableQueryParser("select foo from syn123 where isInfinity(aDouble)").querySpecification();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
+		assertEquals("SELECT _C111_ FROM T123 WHERE ( _DBL_C777_ IS NOT NULL AND _DBL_C777_ IN ( '-Infinity', 'Infinity' ) )",element.toSql());
 	}
 }

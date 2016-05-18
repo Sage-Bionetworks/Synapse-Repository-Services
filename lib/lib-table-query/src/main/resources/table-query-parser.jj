@@ -162,7 +162,7 @@ TOKEN [IGNORE_CASE]: {
 
 TOKEN [IGNORE_CASE]: {
   < entity_id: "SYN"(["0"-"9"])*>
-| < regular_identifier: ["a"-"z","A"-"Z"](["a"-"z","A"-"Z","0"-"9","_"])*>
+| < regular_identifier: ["a"-"z","A"-"Z","_"](["a"-"z","A"-"Z","0"-"9","_"])*>
 }
 
 /* Symbols and punctuation */
