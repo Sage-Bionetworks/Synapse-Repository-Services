@@ -12,28 +12,51 @@ import org.sagebionetworks.util.ValidateArgument;
  */
 public class Pagination extends SQLElement {
 
-	Long limit;
-	Long offset;
+	String limit;
+	String offset;
 
 	public Pagination(String limit, String offset) {
 		ValidateArgument.required(limit, "limit");
-		this.limit = Long.parseLong(limit);
+		this.limit = limit;
 		if (offset != null) {
-			this.offset = Long.parseLong(offset);
+			this.offset = offset;
 		}
 	}
 
 	public Pagination(Long limit, Long offset) {
-		this.limit = limit;
-		this.offset = offset;
+		this.limit = limit.toString();
+		if(offset != null){
+			this.offset = offset.toString();
+		}else{
+			this.offset = null;
+		}
 	}
 
-	public Long getLimit() {
+	public Long getLimitLong() {
+		return Long.parseLong(limit);
+	}
+
+	public Long getOffsetLong() {
+		if(offset == null){
+			return null;
+		}
+		return Long.parseLong(offset);
+	}
+
+	public String getLimit() {
 		return limit;
 	}
 
-	public Long getOffset() {
+	public void setLimit(String limit) {
+		this.limit = limit;
+	}
+
+	public String getOffset() {
 		return offset;
+	}
+
+	public void setOffset(String offset) {
+		this.offset = offset;
 	}
 
 	public void visit(Visitor visitor) {

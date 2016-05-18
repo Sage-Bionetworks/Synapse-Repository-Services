@@ -130,11 +130,11 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			
 			Pagination pagination = query.getModel().getTableExpression().getPagination();
 			if (pagination != null) {
-				if (pagination.getLimit() != null) {
-					limitFromQuery = pagination.getLimit();
+				if (pagination.getLimitLong() != null) {
+					limitFromQuery = pagination.getLimitLong();
 				}
-				if (pagination.getOffset() != null) {
-					offsetFromQuery = pagination.getOffset();
+				if (pagination.getOffsetLong() != null) {
+					offsetFromQuery = pagination.getOffsetLong();
 				}
 			}
 			
@@ -240,12 +240,12 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		if (runCount && count != null) {
 			Pagination pagination = query.getModel().getTableExpression().getPagination();
 			if (pagination != null) {
-				if (pagination.getOffset() != null) {
-					long offsetForCount = pagination.getOffset();
+				if (pagination.getOffsetLong() != null) {
+					long offsetForCount = pagination.getOffsetLong();
 					count = Math.max(0, count - offsetForCount);
 				}
-				if (pagination.getLimit() != null) {
-					long limitForCount = pagination.getLimit();
+				if (pagination.getLimitLong() != null) {
+					long limitForCount = pagination.getLimitLong();
 					count = Math.min(limitForCount, count);
 				}
 			}

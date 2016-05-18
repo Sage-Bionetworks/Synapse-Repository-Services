@@ -148,10 +148,9 @@ public class SqlQuery {
 			this.includesRowIdAndVersion = false;
 		}
 
-		this.outputSQL = SQLTranslatorUtils.translate(transformedModel, this.parameters, this.columnNameToModelMap);
-//		SQLTranslatorUtils.translateModel(transformedModel, parameters, columnNameToModelMap);
-//		this.outputSQL = transformedModel.toSql();
-
+//		this.outputSQL = SQLTranslatorUtils.translate(transformedModel, this.parameters, this.columnNameToModelMap);
+		SQLTranslatorUtils.translateModel(transformedModel, parameters, columnNameToModelMap);
+		this.outputSQL = transformedModel.toSql();
 	}
 	
 	/**

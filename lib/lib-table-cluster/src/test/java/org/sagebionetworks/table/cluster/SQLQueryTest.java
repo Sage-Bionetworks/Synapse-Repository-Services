@@ -451,12 +451,14 @@ public class SQLQueryTest {
 	
 	@Test
 	public void testWhereDoubleFunction() throws ParseException {
-		SqlQuery translator = new SqlQuery("select * from syn123 where isNaN(doubletype) or isInfinity(DOUBLETYPE)", tableSchema);
+		SqlQuery translator = new SqlQuery("select * from syn123 where isNaN(doubletype) or isInfinity(doubletype)", tableSchema);
 		// The value should be bound in the SQL
 		assertEquals(
 				"SELECT "
 						+ STAR_COLUMNS
-						+ ", ROW_ID, ROW_VERSION FROM T123 WHERE (_DBL_C777_ IS NOT NULL AND _DBL_C777_ = 'NaN') OR (_DBL_C777_ IS NOT NULL AND _DBL_C777_ IN ('-Infinity', 'Infinity'))",
+						+ ", ROW_ID, ROW_VERSION FROM T123 WHERE"
+						+ " ( _DBL_C777_ IS NOT NULL AND _DBL_C777_ = 'NaN' ) "
+						+ "OR ( _DBL_C777_ IS NOT NULL AND _DBL_C777_ IN ( '-Infinity', 'Infinity' ) )",
 				translator.getOutputSQL());
 	}
 	
@@ -467,8 +469,8 @@ public class SQLQueryTest {
 		assertEquals(
 				"SELECT _C111_, ROW_ID, ROW_VERSION FROM T123 WHERE _C777_ BETWEEN :b0 AND :b1",
 				translator.getOutputSQL());
-		assertEquals("1.0", translator.getParameters().get("b0"));
-		assertEquals("2.0", translator.getParameters().get("b1"));
+		assertEquals(new Double(1.0), translator.getParameters().get("b0"));
+		assertEquals(new Double(2.0), translator.getParameters().get("b1"));
 	}
 
 	@Test
@@ -706,12 +708,14 @@ public class SQLQueryTest {
 	@Test
 	public void testPLFM_3866() throws ParseException{
 		SqlQuery translator = new SqlQuery("select foo from syn123 where foo in (\"a\")", tableSchema);
-		assertEquals("", translator.getOutputSQL());
+		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123 WHERE _C111_ IN ( :b0 )", translator.getOutputSQL());
+		assertEquals("a", translator.getParameters().get("b0"));
 	}
 	
 	@Test
 	public void testPLFM_3867() throws ParseException{
 		SqlQuery translator = new SqlQuery("select foo from syn123 where foo = \"a\"", tableSchema);
-		assertEquals("", translator.getOutputSQL());
+		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123 WHERE _C111_ = :b0", translator.getOutputSQL());
+		assertEquals("a", translator.getParameters().get("b0"));
 	}
 }
