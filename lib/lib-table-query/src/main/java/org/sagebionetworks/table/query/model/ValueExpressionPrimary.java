@@ -82,6 +82,11 @@ public class ValueExpressionPrimary extends SQLElement implements HasReferencedC
 		}
 	}
 
+	@Override
+	public boolean isReferenceInFunction() {
+		return setFunctionSpecification != null;
+	}
+
 	
 	
 }

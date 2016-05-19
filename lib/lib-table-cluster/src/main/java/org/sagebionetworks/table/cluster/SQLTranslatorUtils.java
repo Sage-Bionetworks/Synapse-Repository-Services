@@ -329,7 +329,9 @@ public class SQLTranslatorUtils {
 			Map<String, ColumnModel> columnNameToModelMap) {
 		// Select columns
 		Iterable<HasReferencedColumn> selectColumns = transformedModel.getSelectList().createIterable(HasReferencedColumn.class);
-		translate(selectColumns, columnNameToModelMap);
+		for(HasReferencedColumn hasReference: selectColumns){
+			translateSelect(hasReference, columnNameToModelMap);
+		}
 		
 		TableExpression tableExpression = transformedModel.getTableExpression();
 		if(tableExpression == null){
@@ -363,7 +365,9 @@ public class SQLTranslatorUtils {
 		OrderByClause orderByClause = tableExpression.getOrderByClause();
 		if(orderByClause != null){
 			Iterable<HasReferencedColumn> orderByReferences = orderByClause.createIterable(HasReferencedColumn.class);
-			translate(orderByReferences, columnNameToModelMap);
+			for(HasReferencedColumn hasReference: orderByReferences){
+				translateOrderBy(hasReference, columnNameToModelMap);
+			}
 		}
 		// translate Pagination
 		Pagination pagination = tableExpression.getPagination();
@@ -516,26 +520,13 @@ public class SQLTranslatorUtils {
 			}
 		}
 	}
-	
-	
-	/**
-	 * Translate multiple HasReferencedColumn.
-	 * @param columns
-	 * @param columnNameToModelMap
-	 */
-	public static void translate(Iterable<HasReferencedColumn> columns,
-			Map<String, ColumnModel> columnNameToModelMap){
-		for(HasReferencedColumn column: columns){
-			translate(column, columnNameToModelMap);
-		}
-	}
 
 	/**
-	 * Translate a HasReferencedColumn.
+	 * Translate a HasReferencedColumn for the select clause.
 	 * @param column
 	 * @param columnNameToModelMap
 	 */
-	public static void translate(HasReferencedColumn column,
+	public static void translateSelect(HasReferencedColumn column,
 			Map<String, ColumnModel> columnNameToModelMap) {
 		HasQuoteValue hasQuoteValue = column.getReferencedColumn();
 		if(hasQuoteValue != null){
@@ -543,16 +534,33 @@ public class SQLTranslatorUtils {
 			ColumnModel model = columnNameToModelMap.get(unquotedName);
 			String newName = null;
 			if(model != null){
-				switch (model.getColumnType()) {
-				case DOUBLE:
-					 newName = SQLUtils.createDoubleCluase(model.getId());
-					break;
-				default:
+				if(!column.isReferenceInFunction() && ColumnType.DOUBLE.equals(model.getColumnType())){
+					// non-function doubles are translated into a switch between the enum an double column.
+					newName = SQLUtils.createDoubleCluase(model.getId());
+				}else{
 					newName = SQLUtils.getColumnNameForId(model.getId());
-					break;
 				}
 			}
 			if(newName != null){
+				hasQuoteValue.replaceUnquoted(newName);
+			}
+		}
+	}
+	
+	/**
+	 * Translate HasReferencedColumn for order by clause.
+	 * @param column
+	 * @param columnNameToModelMap
+	 */
+	public static void translateOrderBy(HasReferencedColumn column,
+			Map<String, ColumnModel> columnNameToModelMap) {
+		HasQuoteValue hasQuoteValue = column.getReferencedColumn();
+		if(hasQuoteValue != null){
+			String unquotedName = hasQuoteValue.getValueWithoutQuotes();
+			ColumnModel model = columnNameToModelMap.get(unquotedName);
+			String newName = null;
+			if(model != null){
+				newName = SQLUtils.getColumnNameForId(model.getId());
 				hasQuoteValue.replaceUnquoted(newName);
 			}
 		}

@@ -670,31 +670,87 @@ public class SQLTranslatorUtilsTest {
 	}
 	
 	@Test
-	public void testTranslateHasReferencedColumnSimple() throws ParseException{
+	public void testTranslateSelectSimple() throws ParseException{
 		ValueExpressionPrimary column = new TableQueryParser("foo").valueExpressionPrimary();
-		SQLTranslatorUtils.translate(column, columnMap);
+		SQLTranslatorUtils.translateSelect(column, columnMap);
 		assertEquals("_C111_", column.toSql());
 	}
 	
 	@Test
-	public void testTranslateHasReferencedColumnRowId() throws ParseException{
+	public void testTranslateSelectFunction() throws ParseException{
+		ValueExpressionPrimary column = new TableQueryParser("max(foo)").valueExpressionPrimary();
+		SQLTranslatorUtils.translateSelect(column, columnMap);
+		assertEquals("MAX(_C111_)", column.toSql());
+	}
+	
+	@Test
+	public void testTranslateSelectRowId() throws ParseException{
 		ValueExpressionPrimary column = new TableQueryParser("row_id").valueExpressionPrimary();
-		SQLTranslatorUtils.translate(column, columnMap);
+		SQLTranslatorUtils.translateSelect(column, columnMap);
 		assertEquals("row_id", column.toSql());
 	}
 	
 	@Test
-	public void testTranslateHasReferencedColumnConstant() throws ParseException{
+	public void testTranslateSelectConstant() throws ParseException{
 		ValueExpressionPrimary column = new TableQueryParser("'constant'").valueExpressionPrimary();
-		SQLTranslatorUtils.translate(column, columnMap);
+		SQLTranslatorUtils.translateSelect(column, columnMap);
 		assertEquals("'constant'", column.toSql());
 	}
 	
 	@Test
-	public void testTranslateHasReferencedColumnDouble() throws ParseException{
+	public void testTranslateSelectDouble() throws ParseException{
 		ValueExpressionPrimary column = new TableQueryParser("aDouble").valueExpressionPrimary();
-		SQLTranslatorUtils.translate(column, columnMap);
+		SQLTranslatorUtils.translateSelect(column, columnMap);
 		assertEquals("CASE WHEN _DBL_C777_ IS NULL THEN _C777_ ELSE _DBL_C777_ END", column.toSql());
+	}
+	
+	@Test
+	public void testTranslateSelectDoubleFunction() throws ParseException{
+		ValueExpressionPrimary column = new TableQueryParser("sum(aDouble)").valueExpressionPrimary();
+		SQLTranslatorUtils.translateSelect(column, columnMap);
+		assertEquals("SUM(_C777_)", column.toSql());
+	}
+	
+	@Test
+	public void testTranslateOrderBySimple() throws ParseException{
+		ValueExpressionPrimary column = new TableQueryParser("foo").valueExpressionPrimary();
+		SQLTranslatorUtils.translateOrderBy(column, columnMap);
+		assertEquals("_C111_", column.toSql());
+	}
+	
+	@Test
+	public void testTranslateOrderByFunction() throws ParseException{
+		ValueExpressionPrimary column = new TableQueryParser("max(foo)").valueExpressionPrimary();
+		SQLTranslatorUtils.translateOrderBy(column, columnMap);
+		assertEquals("MAX(_C111_)", column.toSql());
+	}
+	
+	@Test
+	public void testTranslateOrderByRowId() throws ParseException{
+		ValueExpressionPrimary column = new TableQueryParser("row_id").valueExpressionPrimary();
+		SQLTranslatorUtils.translateOrderBy(column, columnMap);
+		assertEquals("row_id", column.toSql());
+	}
+	
+	@Test
+	public void testTranslateOrderByConstant() throws ParseException{
+		ValueExpressionPrimary column = new TableQueryParser("'constant'").valueExpressionPrimary();
+		SQLTranslatorUtils.translateOrderBy(column, columnMap);
+		assertEquals("'constant'", column.toSql());
+	}
+	
+	@Test
+	public void testTranslateOrderByDouble() throws ParseException{
+		ValueExpressionPrimary column = new TableQueryParser("aDouble").valueExpressionPrimary();
+		SQLTranslatorUtils.translateOrderBy(column, columnMap);
+		assertEquals("_C777_", column.toSql());
+	}
+	
+	@Test
+	public void testTranslateSelectOrderByFunction() throws ParseException{
+		ValueExpressionPrimary column = new TableQueryParser("sum(aDouble)").valueExpressionPrimary();
+		SQLTranslatorUtils.translateOrderBy(column, columnMap);
+		assertEquals("SUM(_C777_)", column.toSql());
 	}
 	
 	@Test
@@ -945,6 +1001,31 @@ public class SQLTranslatorUtilsTest {
 	}
 	
 	@Test
+	public void testTranslateModelSelectFunction() throws ParseException{
+		QuerySpecification element = new TableQueryParser("select sum(foo) from syn123").querySpecification();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
+		assertEquals("SELECT SUM(_C111_) FROM T123",element.toSql());
+	}
+	
+	@Test
+	public void testTranslateModelSelectDouble() throws ParseException{
+		QuerySpecification element = new TableQueryParser("select aDouble from syn123").querySpecification();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
+		assertEquals("SELECT CASE WHEN _DBL_C777_ IS NULL THEN _C777_ ELSE _DBL_C777_ END FROM T123",element.toSql());
+	}
+	
+	@Test
+	public void testTranslateModelSelectDoubleFunction() throws ParseException{
+		QuerySpecification element = new TableQueryParser("select sum(aDouble) from syn123").querySpecification();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
+		assertEquals("SELECT SUM(_C777_) FROM T123",element.toSql());
+	}
+
+	
+	@Test
 	public void testTranslateModelWhere() throws ParseException{
 		QuerySpecification element = new TableQueryParser("select foo from syn123 where id > 2").querySpecification();
 		Map<String, Object> parameters = new HashMap<String, Object>();
@@ -1044,7 +1125,7 @@ public class SQLTranslatorUtilsTest {
 		QuerySpecification element = new TableQueryParser("select foo from syn123 order by aDouble").querySpecification();
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
-		assertEquals("SELECT _C111_ FROM T123 ORDER BY CASE WHEN _DBL_C777_ IS NULL THEN _C777_ ELSE _DBL_C777_ END",element.toSql());
+		assertEquals("SELECT _C111_ FROM T123 ORDER BY _C777_",element.toSql());
 	}
 	
 	@Test
@@ -1060,7 +1141,7 @@ public class SQLTranslatorUtilsTest {
 		QuerySpecification element = new TableQueryParser("select foo from syn123 order by min(aDouble)").querySpecification();
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
-		assertEquals("SELECT _C111_ FROM T123 ORDER BY MIN(CASE WHEN _DBL_C777_ IS NULL THEN _C777_ ELSE _DBL_C777_ END)",element.toSql());
+		assertEquals("SELECT _C111_ FROM T123 ORDER BY MIN(_C777_)",element.toSql());
 	}
 	
 	@Test

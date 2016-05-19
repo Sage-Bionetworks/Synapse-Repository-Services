@@ -12,7 +12,8 @@ public class ValueExpressionPrimaryTest {
 	public void testGetReferencedColumnCountStar() throws ParseException{
 		ValueExpressionPrimary element = new TableQueryParser("count(*)").valueExpressionPrimary();
 		HasQuoteValue referencedColumn = element.getReferencedColumn();
-		assertEquals("There is no rferenced column for count(*)",null, referencedColumn);
+		assertEquals("There is no referenced column for count(*)",null, referencedColumn);
+		assertTrue(element.isReferenceInFunction());
 	}
 	
 	@Test
@@ -21,6 +22,7 @@ public class ValueExpressionPrimaryTest {
 		HasQuoteValue referencedColumn = element.getReferencedColumn();
 		assertNotNull(referencedColumn);
 		assertEquals("foo", referencedColumn.getValueWithoutQuotes());
+		assertTrue(element.isReferenceInFunction());
 	}
 	
 	@Test
@@ -29,6 +31,7 @@ public class ValueExpressionPrimaryTest {
 		HasQuoteValue referencedColumn = element.getReferencedColumn();
 		assertNotNull(referencedColumn);
 		assertEquals("foo", referencedColumn.getValueWithoutQuotes());
+		assertTrue(element.isReferenceInFunction());
 	}
 	
 	@Test
@@ -37,6 +40,7 @@ public class ValueExpressionPrimaryTest {
 		HasQuoteValue referencedColumn = element.getReferencedColumn();
 		assertNotNull(referencedColumn);
 		assertEquals("foo", referencedColumn.getValueWithoutQuotes());
+		assertTrue(element.isReferenceInFunction());
 	}
 	
 	@Test
@@ -45,6 +49,7 @@ public class ValueExpressionPrimaryTest {
 		HasQuoteValue referencedColumn = element.getReferencedColumn();
 		assertNotNull(referencedColumn);
 		assertEquals("foo", referencedColumn.getValueWithoutQuotes());
+		assertFalse(element.isReferenceInFunction());
 	}
 	
 	@Test
@@ -53,6 +58,7 @@ public class ValueExpressionPrimaryTest {
 		HasQuoteValue referencedColumn = element.getReferencedColumn();
 		assertNotNull(referencedColumn);
 		assertEquals("foo", referencedColumn.getValueWithoutQuotes());
+		assertFalse(element.isReferenceInFunction());
 	}
 	
 	@Test
@@ -61,6 +67,7 @@ public class ValueExpressionPrimaryTest {
 		HasQuoteValue referencedColumn = element.getReferencedColumn();
 		assertNotNull(referencedColumn);
 		assertEquals("foo", referencedColumn.getValueWithoutQuotes());
+		assertFalse(element.isReferenceInFunction());
 	}
 	
 	@Test
@@ -69,6 +76,7 @@ public class ValueExpressionPrimaryTest {
 		HasQuoteValue referencedColumn = element.getReferencedColumn();
 		assertNotNull(referencedColumn);
 		assertEquals("foo", referencedColumn.getValueWithoutQuotes());
+		assertFalse(element.isReferenceInFunction());
 	}
 	
 	@Test
@@ -77,6 +85,7 @@ public class ValueExpressionPrimaryTest {
 		HasQuoteValue referencedColumn = element.getReferencedColumn();
 		assertNotNull(referencedColumn);
 		assertEquals("foo", referencedColumn.getValueWithoutQuotes());
+		assertFalse(element.isReferenceInFunction());
 	}
 	
 	@Test
@@ -85,6 +94,7 @@ public class ValueExpressionPrimaryTest {
 		HasQuoteValue referencedColumn = element.getReferencedColumn();
 		assertNotNull(referencedColumn);
 		assertEquals("foo", referencedColumn.getValueWithoutQuotes());
+		assertFalse(element.isReferenceInFunction());
 	}
 	
 	

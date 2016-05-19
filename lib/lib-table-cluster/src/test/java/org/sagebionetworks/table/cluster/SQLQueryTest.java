@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -544,7 +545,7 @@ public class SQLQueryTest {
 	public void testOrderByDouble() throws ParseException {
 		SqlQuery translator = new SqlQuery("select foo from syn123 order by doubletype desc", tableSchema);
 		// The value should be bound in the SQL
-		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123 ORDER BY "+DOUBLE_COLUMN+" DESC", translator.getOutputSQL());
+		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123 ORDER BY _C777_ DESC", translator.getOutputSQL());
 	}
 	
 	@Test
@@ -651,8 +652,7 @@ public class SQLQueryTest {
 	public void testTypeSetFunctionDoubles() throws Exception {
 		SqlQuery translator = new SqlQuery(
 				"select min(doubletype), max(doubletype), sum(doubletype), avg(doubletype), count(doubletype) from syn123", tableSchema);
-		assertEquals("SELECT MIN(" + DOUBLE_COLUMN + "), MAX(" + DOUBLE_COLUMN + "), SUM(" + DOUBLE_COLUMN + "), AVG(" + DOUBLE_COLUMN
-				+ "), COUNT(" + DOUBLE_COLUMN + ") FROM T123", translator.getOutputSQL());
+		assertEquals("SELECT MIN(_C777_), MAX(_C777_), SUM(_C777_), AVG(_C777_), COUNT(_C777_) FROM T123", translator.getOutputSQL());
 		assertEquals(TableModelUtils.createSelectColumn("MIN(doubletype)", ColumnType.DOUBLE, null), translator.getSelectColumns()
 				.get(0));
 		assertEquals(TableModelUtils.createSelectColumn("MAX(doubletype)", ColumnType.DOUBLE, null), translator.getSelectColumns()
@@ -688,10 +688,10 @@ public class SQLQueryTest {
 		SqlQuery translator = new SqlQuery(
 				"select max(doubletype), min(doubletype) from syn123 order by min(doubletype)", tableSchema);
 		assertEquals("SELECT"
-				+ " MAX(CASE WHEN _DBL_C777_ IS NULL THEN _C777_ ELSE _DBL_C777_ END)"
-				+ ", MIN(CASE WHEN _DBL_C777_ IS NULL THEN _C777_ ELSE _DBL_C777_ END) "
+				+ " MAX(_C777_)"
+				+ ", MIN(_C777_) "
 				+ "FROM T123 "
-				+ "ORDER BY MIN(CASE WHEN _DBL_C777_ IS NULL THEN _C777_ ELSE _DBL_C777_ END)", translator.getOutputSQL());
+				+ "ORDER BY MIN(_C777_)", translator.getOutputSQL());
 	}
 	
 	@Test
@@ -699,8 +699,8 @@ public class SQLQueryTest {
 		SqlQuery translator = new SqlQuery(
 				"select max(doubletype) as f1, min(doubletype) as f2 from syn123 order by f2", tableSchema);
 		assertEquals("SELECT"
-				+ " MAX(CASE WHEN _DBL_C777_ IS NULL THEN _C777_ ELSE _DBL_C777_ END) AS f1"
-				+ ", MIN(CASE WHEN _DBL_C777_ IS NULL THEN _C777_ ELSE _DBL_C777_ END) AS f2 "
+				+ " MAX(_C777_) AS f1"
+				+ ", MIN(_C777_) AS f2 "
 				+ "FROM T123 "
 				+ "ORDER BY f2", translator.getOutputSQL());
 	}
@@ -714,7 +714,45 @@ public class SQLQueryTest {
 	
 	@Test
 	public void testPLFM_3867() throws ParseException{
+		SqlQuery translator = new SqlQuery("select foo from syn123 where foo = \"a\"", tableSchema);
 		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123 WHERE _C111_ = :b0", translator.getOutputSQL());
 		assertEquals("a", translator.getParameters().get("b0"));
+	}
+	
+	@Test
+	public void testTranslateNotNaN() throws ParseException{
+		SqlQuery translator = new SqlQuery("select foo from syn123 where not isNaN(doubletype)", tableSchema);
+		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123 WHERE NOT ( _DBL_C777_ IS NOT NULL AND _DBL_C777_ = 'NaN' )", translator.getOutputSQL());
+	}
+	
+	@Test
+	public void testPLFM_3869() throws ParseException{
+		tableSchema = Lists.newArrayList(TableModelTestUtils.createColumn(123L, "aDouble", ColumnType.DOUBLE));
+		SqlQuery translator = new SqlQuery("select * from syn123 where not isNaN(aDouble)", tableSchema);
+		assertEquals("SELECT "
+				+ "CASE WHEN _DBL_C123_ IS NULL THEN _C123_ ELSE _DBL_C123_ END,"
+				+ " ROW_ID, ROW_VERSION"
+				+ " FROM T123 WHERE NOT ( _DBL_C123_ IS NOT NULL AND _DBL_C123_ = 'NaN' )", translator.getOutputSQL());
+	}
+	
+	/**
+	 * The casue of PLFM-3870 was double columns functions were translated as
+	 * SUM(CASE WHEN _DBL_C777_ IS NULL THEN _C777_ ELSE _DBL_C777_ END)
+	 * Therefore, the string 'NaN' was passed to the function and treated as '1'.
+	 * To fix the issue we simply use the origial double column for aggregate function, for example
+	 * SUM(_C777_)
+	 * @throws ParseException
+	 */
+	@Test
+	public void testPLFM_3870() throws ParseException{
+		SqlQuery translator = new SqlQuery("select sum(doubletype) from syn123", tableSchema);
+		assertEquals("SELECT SUM(_C777_) FROM T123", translator.getOutputSQL());
+	}
+	
+	@Ignore // not sure if we are going to suppor this yet.
+	@Test
+	public void testTranslateRightHandSideNaN() throws ParseException{
+		SqlQuery translator = new SqlQuery("select foo from syn123 where aDouble <> 'NaN'", tableSchema);
+		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123 WHERE (_DBL_C123_ IS NULL OR _DBL_C123_ <> 'NaN')", translator.getOutputSQL());
 	}
 }

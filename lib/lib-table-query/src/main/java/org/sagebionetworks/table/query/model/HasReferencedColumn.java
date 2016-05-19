@@ -15,4 +15,11 @@ public interface HasReferencedColumn extends Element {
 	 */
 	public HasQuoteValue getReferencedColumn();
 	
+	/**
+	 * Is the reference in a function?
+	 * 
+	 * @return
+	 */
+	boolean isReferenceInFunction();
+	
 }
