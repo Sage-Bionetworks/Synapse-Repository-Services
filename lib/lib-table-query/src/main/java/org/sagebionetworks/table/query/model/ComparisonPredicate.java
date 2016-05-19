@@ -9,7 +9,7 @@ import org.sagebionetworks.table.query.model.visitors.Visitor;
 /**
  * This matches &ltcomparison predicate&gt   in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
  */
-public class ComparisonPredicate extends SQLElement {
+public class ComparisonPredicate extends SQLElement implements HasPredicate {
 
 	ColumnReference columnReferenceLHS;
 	CompOp compOp;
@@ -61,5 +61,15 @@ public class ComparisonPredicate extends SQLElement {
 	<T extends Element> void addElements(List<T> elements, Class<T> type) {
 		checkElement(elements, type, columnReferenceLHS);
 		checkElement(elements, type, rowValueConstructorRHS);
+	}
+
+	@Override
+	public ColumnReference getLeftHandSide() {
+		return columnReferenceLHS;
+	}
+
+	@Override
+	public Iterable<HasQuoteValue> getRightHandSideValues() {
+		return rowValueConstructorRHS.createIterable(HasQuoteValue.class);
 	}
 }

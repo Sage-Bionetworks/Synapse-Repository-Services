@@ -60,4 +60,15 @@ public class BooleanPrimary extends SQLElement {
 		checkElement(elements, type, predicate);
 		checkElement(elements, type, searchCondition);
 	}
+	
+	/**
+	 * Replace contents with the given search condition.
+	 * 
+	 * @param searchCondition
+	 */
+	public void replaceSearchCondition(SearchCondition searchCondition) {
+		this.predicate = null;
+		this.searchCondition = searchCondition;
+		
+	}
 }

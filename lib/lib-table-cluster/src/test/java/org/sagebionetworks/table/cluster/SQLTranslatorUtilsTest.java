@@ -25,10 +25,20 @@ import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
+import org.sagebionetworks.table.query.model.ActualIdentifier;
+import org.sagebionetworks.table.query.model.BooleanPrimary;
 import org.sagebionetworks.table.query.model.DerivedColumn;
 import org.sagebionetworks.table.query.model.FunctionType;
+import org.sagebionetworks.table.query.model.GroupByClause;
+import org.sagebionetworks.table.query.model.HasPredicate;
 import org.sagebionetworks.table.query.model.HasQuoteValue;
+import org.sagebionetworks.table.query.model.Pagination;
+import org.sagebionetworks.table.query.model.Predicate;
+import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.SelectList;
+import org.sagebionetworks.table.query.model.SignedLiteral;
+import org.sagebionetworks.table.query.model.TableReference;
+import org.sagebionetworks.table.query.model.ValueExpressionPrimary;
 
 import com.google.common.collect.Lists;
 
@@ -46,6 +56,8 @@ public class SQLTranslatorUtilsTest {
 	ColumnModel columnBar;
 	ColumnModel columnId;
 	ColumnModel columnSpecial;
+	ColumnModel columnDouble;
+	ColumnModel columnDate;
 	
 	List<ColumnModel> schema;
 	
@@ -59,8 +71,10 @@ public class SQLTranslatorUtilsTest {
 		columnId = TableModelTestUtils.createColumn(444L, "id", ColumnType.INTEGER);
 		String specialChars = "Specialchars~!@#$%^^&*()_+|}{:?></.,;'[]\'";
 		columnSpecial = TableModelTestUtils.createColumn(555L, specialChars, ColumnType.DOUBLE);
+		columnDouble = TableModelTestUtils.createColumn(777L, "aDouble", ColumnType.DOUBLE);
+		columnDate = TableModelTestUtils.createColumn(777L, "aDouble", ColumnType.DATE);
 		
-		schema = Lists.newArrayList(columnFoo, columnHasSpace, columnBar, columnId, columnSpecial);
+		schema = Lists.newArrayList(columnFoo, columnHasSpace, columnBar, columnId, columnSpecial, columnDouble);
 		// setup the map
 		columnMap = new HashMap<String, ColumnModel>(schema.size());
 		for(ColumnModel cm: schema){
@@ -647,4 +661,495 @@ public class SQLTranslatorUtilsTest {
 		assertEquals(Boolean.FALSE.toString(), result.getValues().get(1));
 		
 	}
+	
+	@Test
+	public void testTranslateTableReference(){
+		TableReference element = new TableReference("syn123");
+		SQLTranslatorUtils.translate(element);
+		assertEquals("T123",element.getTableName());
+	}
+	
+	@Test
+	public void testTranslateSelectSimple() throws ParseException{
+		ValueExpressionPrimary column = new TableQueryParser("foo").valueExpressionPrimary();
+		SQLTranslatorUtils.translateSelect(column, columnMap);
+		assertEquals("_C111_", column.toSql());
+	}
+	
+	@Test
+	public void testTranslateSelectFunction() throws ParseException{
+		ValueExpressionPrimary column = new TableQueryParser("max(foo)").valueExpressionPrimary();
+		SQLTranslatorUtils.translateSelect(column, columnMap);
+		assertEquals("MAX(_C111_)", column.toSql());
+	}
+	
+	@Test
+	public void testTranslateSelectRowId() throws ParseException{
+		ValueExpressionPrimary column = new TableQueryParser("row_id").valueExpressionPrimary();
+		SQLTranslatorUtils.translateSelect(column, columnMap);
+		assertEquals("row_id", column.toSql());
+	}
+	
+	@Test
+	public void testTranslateSelectConstant() throws ParseException{
+		ValueExpressionPrimary column = new TableQueryParser("'constant'").valueExpressionPrimary();
+		SQLTranslatorUtils.translateSelect(column, columnMap);
+		assertEquals("'constant'", column.toSql());
+	}
+	
+	@Test
+	public void testTranslateSelectDouble() throws ParseException{
+		ValueExpressionPrimary column = new TableQueryParser("aDouble").valueExpressionPrimary();
+		SQLTranslatorUtils.translateSelect(column, columnMap);
+		assertEquals("CASE WHEN _DBL_C777_ IS NULL THEN _C777_ ELSE _DBL_C777_ END", column.toSql());
+	}
+	
+	@Test
+	public void testTranslateSelectDoubleFunction() throws ParseException{
+		ValueExpressionPrimary column = new TableQueryParser("sum(aDouble)").valueExpressionPrimary();
+		SQLTranslatorUtils.translateSelect(column, columnMap);
+		assertEquals("SUM(_C777_)", column.toSql());
+	}
+	
+	@Test
+	public void testTranslateOrderBySimple() throws ParseException{
+		ValueExpressionPrimary column = new TableQueryParser("foo").valueExpressionPrimary();
+		SQLTranslatorUtils.translateOrderBy(column, columnMap);
+		assertEquals("_C111_", column.toSql());
+	}
+	
+	@Test
+	public void testTranslateOrderByFunction() throws ParseException{
+		ValueExpressionPrimary column = new TableQueryParser("max(foo)").valueExpressionPrimary();
+		SQLTranslatorUtils.translateOrderBy(column, columnMap);
+		assertEquals("MAX(_C111_)", column.toSql());
+	}
+	
+	@Test
+	public void testTranslateOrderByRowId() throws ParseException{
+		ValueExpressionPrimary column = new TableQueryParser("row_id").valueExpressionPrimary();
+		SQLTranslatorUtils.translateOrderBy(column, columnMap);
+		assertEquals("row_id", column.toSql());
+	}
+	
+	@Test
+	public void testTranslateOrderByConstant() throws ParseException{
+		ValueExpressionPrimary column = new TableQueryParser("'constant'").valueExpressionPrimary();
+		SQLTranslatorUtils.translateOrderBy(column, columnMap);
+		assertEquals("'constant'", column.toSql());
+	}
+	
+	@Test
+	public void testTranslateOrderByDouble() throws ParseException{
+		ValueExpressionPrimary column = new TableQueryParser("aDouble").valueExpressionPrimary();
+		SQLTranslatorUtils.translateOrderBy(column, columnMap);
+		assertEquals("_C777_", column.toSql());
+	}
+	
+	@Test
+	public void testTranslateSelectOrderByFunction() throws ParseException{
+		ValueExpressionPrimary column = new TableQueryParser("sum(aDouble)").valueExpressionPrimary();
+		SQLTranslatorUtils.translateOrderBy(column, columnMap);
+		assertEquals("SUM(_C777_)", column.toSql());
+	}
+	
+	@Test
+	public void testReplaceBooleanFunctionIsNaN() throws ParseException{
+		BooleanPrimary element = new TableQueryParser("isNaN(aDouble)").booleanPrimary();
+		SQLTranslatorUtils.replaceBooleanFunction(element, columnMap);
+		assertEquals("( _DBL_C777_ IS NOT NULL AND _DBL_C777_ = 'NaN' )", element.toSql());
+	}
+	
+	@Test
+	public void testReplaceBooleanFunctionIsInfinity() throws ParseException{
+		BooleanPrimary element = new TableQueryParser("isInfinity(aDouble)").booleanPrimary();
+		SQLTranslatorUtils.replaceBooleanFunction(element, columnMap);
+		assertEquals("( _DBL_C777_ IS NOT NULL AND _DBL_C777_ IN ( '-Infinity', 'Infinity' ) )", element.toSql());
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testReplaceBooleanFunctionNonDoubleColumn() throws ParseException{
+		BooleanPrimary element = new TableQueryParser("isInfinity(id)").booleanPrimary();
+		SQLTranslatorUtils.replaceBooleanFunction(element, columnMap);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testReplaceBooleanFunctionUnknownColumn() throws ParseException{
+		BooleanPrimary element = new TableQueryParser("isInfinity(someUnknown)").booleanPrimary();
+		SQLTranslatorUtils.replaceBooleanFunction(element, columnMap);
+	}
+	
+	@Test
+	public void testReplaceBooleanFunctionNotBooleanFunction() throws ParseException{
+		BooleanPrimary element = new TableQueryParser("id = 123").booleanPrimary();
+		SQLTranslatorUtils.replaceBooleanFunction(element, columnMap);
+		assertEquals("Non-BooleanFunctions should not be changed by this method.","id = 123", element.toSql());
+	}
+	
+	@Test
+	public void testReplaceBooleanFunctionSearchCondition() throws ParseException{
+		BooleanPrimary element = new TableQueryParser("(id = 123 OR id = 456)").booleanPrimary();
+		SQLTranslatorUtils.replaceBooleanFunction(element, columnMap);
+		assertEquals("SearchConditions should not be changed by this method.","( id = 123 OR id = 456 )", element.toSql());
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testTranslateRightHandeSideNullElement(){
+		ActualIdentifier element = null;
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateRightHandeSide(element, columnFoo, parameters);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testTranslateRightHandeSideNullParameters() throws ParseException{
+		ActualIdentifier element = new TableQueryParser("aString").actualIdentifier();
+		Map<String, Object> parameters = null;
+		SQLTranslatorUtils.translateRightHandeSide(element, columnFoo, parameters);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testTranslateRightHandeSideNullColumn() throws ParseException{
+		ActualIdentifier element = new TableQueryParser("aString").actualIdentifier();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateRightHandeSide(element, null, parameters);
+	}
+	
+	@Test
+	public void testTranslateRightHandeSideString() throws ParseException{
+		ActualIdentifier element = new TableQueryParser("aString").actualIdentifier();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateRightHandeSide(element, columnFoo, parameters);
+		assertEquals(":b0", element.getValueWithoutQuotes());
+		assertEquals("aString", parameters.get("b0"));
+	}
+	
+	@Test
+	public void testTranslateRightHandeSideStringQuotes() throws ParseException{
+		ActualIdentifier element = new TableQueryParser("\"aString\"").actualIdentifier();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateRightHandeSide(element, columnFoo, parameters);
+		assertEquals(":b0", element.getValueWithoutQuotes());
+		assertEquals("aString", parameters.get("b0"));
+	}
+	
+	@Test
+	public void testTranslateRightHandeSideInteger() throws ParseException{
+		SignedLiteral element = new TableQueryParser("123456").signedLiteral();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateRightHandeSide(element, columnId, parameters);
+		assertEquals(":b0", element.getValueWithoutQuotes());
+		assertEquals(new Long(123456), parameters.get("b0"));
+	}
+	
+	@Test
+	public void testTranslateRightHandeSideIntegerLikeValue() throws ParseException{
+		SignedLiteral element = new TableQueryParser("'12345%'").signedLiteral();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateRightHandeSide(element, columnId, parameters);
+		assertEquals(":b0", element.getValueWithoutQuotes());
+		assertEquals("12345%", parameters.get("b0"));
+	}
+	
+	@Test
+	public void testTranslateRightHandeSideDouble() throws ParseException{
+		SignedLiteral element = new TableQueryParser("1.45").signedLiteral();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateRightHandeSide(element, columnDouble, parameters);
+		assertEquals(":b0", element.getValueWithoutQuotes());
+		assertEquals(new Double(1.45), parameters.get("b0"));
+	}
+	
+	@Test
+	public void testTranslateRightHandeSideDateString() throws ParseException{
+		ActualIdentifier element = new TableQueryParser("\"16-01-29 13:55:33.999\"").actualIdentifier();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateRightHandeSide(element, columnDate, parameters);
+		assertEquals(":b0", element.getValueWithoutQuotes());
+		assertEquals(new Long(1454075733999L), parameters.get("b0"));
+	}
+	
+	@Test
+	public void testTranslateRightHandeSideDateEpoch() throws ParseException{
+		SignedLiteral element = new TableQueryParser("1454075733999").signedLiteral();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateRightHandeSide(element, columnDate, parameters);
+		assertEquals(":b0", element.getValueWithoutQuotes());
+		assertEquals(new Long(1454075733999L), parameters.get("b0"));
+	}
+	
+	@Test
+	public void testTranslateGroupByMultiple() throws ParseException{
+		GroupByClause element = new TableQueryParser("group by foo, id").groupByClause();
+		SQLTranslatorUtils.translate(element, columnMap);
+		assertEquals("GROUP BY _C111_, _C444_", element.toSql());
+	}
+	
+	@Test
+	public void testTranslateGroupByDouble() throws ParseException{
+		GroupByClause element = new TableQueryParser("group by aDouble").groupByClause();
+		SQLTranslatorUtils.translate(element, columnMap);
+		assertEquals("GROUP BY _C777_", element.toSql());
+	}
+	
+	@Test
+	public void testTranslateGroupByQuotes() throws ParseException{
+		GroupByClause element = new TableQueryParser("group by \""+columnSpecial.getName()+"\"").groupByClause();
+		SQLTranslatorUtils.translate(element, columnMap);
+		assertEquals("GROUP BY _C555_", element.toSql());
+	}
+	
+	@Test
+	public void testTranslateGroupByUnknown() throws ParseException{
+		GroupByClause element = new TableQueryParser("group by doesNotExist").groupByClause();
+		SQLTranslatorUtils.translate(element, columnMap);
+		assertEquals("GROUP BY doesNotExist", element.toSql());
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testTranslateGroupByNull() throws ParseException{
+		GroupByClause element = null;
+		SQLTranslatorUtils.translate(element, columnMap);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testTranslateGroupByMapNull() throws ParseException{
+		GroupByClause element = new TableQueryParser("group by doesNotExist").groupByClause();
+		SQLTranslatorUtils.translate(element, null);
+	}
+	
+	@Test
+	public void testTranslateHasPredicate() throws ParseException{
+		Predicate element = new TableQueryParser("id <> 3").predicate();
+		HasPredicate hasPredicate = element.getFirstElementOfType(HasPredicate.class);
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translate(hasPredicate, parameters, columnMap);
+		assertEquals("_C444_ <> :b0",element.toSql());
+		assertEquals(new Long(3), parameters.get("b0"));
+	}
+	
+	@Test
+	public void testTranslateHasPredicateUnknownColumn() throws ParseException{
+		Predicate element = new TableQueryParser("_D999_ IS NOT NULL").predicate();
+		HasPredicate hasPredicate = element.getFirstElementOfType(HasPredicate.class);
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translate(hasPredicate, parameters, columnMap);
+		assertEquals("_D999_ IS NOT NULL",element.toSql());
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testTranslateHasPredicateNullElement() throws ParseException{
+		HasPredicate hasPredicate = null;
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translate(hasPredicate, parameters, columnMap);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testTranslateHasPredicateNullParameters() throws ParseException{
+		Predicate element = new TableQueryParser("id <> 3").predicate();
+		HasPredicate hasPredicate = element.getFirstElementOfType(HasPredicate.class);
+		Map<String, Object> parameters = null;
+		SQLTranslatorUtils.translate(hasPredicate, parameters, columnMap);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testTranslateHasPredicateNullMap() throws ParseException{
+		Predicate element = new TableQueryParser("id <> 3").predicate();
+		HasPredicate hasPredicate = element.getFirstElementOfType(HasPredicate.class);
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translate(hasPredicate, parameters, null);
+	}
+	
+	@Test
+	public void testTranslatePagination() throws ParseException{
+		Pagination element = new TableQueryParser("limit 1 offset 9").pagination();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translate(element, parameters);
+		assertEquals("LIMIT :b0 OFFSET :b1", element.toSql());
+		assertEquals(new Long(1), parameters.get("b0"));
+		assertEquals(new Long(9), parameters.get("b1"));
+	}
+	
+	@Test
+	public void testTranslatePaginationNoOffset() throws ParseException{
+		Pagination element = new TableQueryParser("limit 1").pagination();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translate(element, parameters);
+		assertEquals("LIMIT :b0", element.toSql());
+		assertEquals(new Long(1), parameters.get("b0"));
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testTranslatePaginationNull() throws ParseException{
+		Pagination element = null;
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translate(element, parameters);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testTranslatePaginationParametersNull() throws ParseException{
+		Pagination element = new TableQueryParser("limit 1").pagination();
+		Map<String, Object> parameters = null;
+		SQLTranslatorUtils.translate(element, parameters);
+	}
+	
+	@Test
+	public void testTranslateModelSimple() throws ParseException{
+		QuerySpecification element = new TableQueryParser("select foo from syn123").querySpecification();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
+		assertEquals("SELECT _C111_ FROM T123",element.toSql());
+	}
+	
+	@Test
+	public void testTranslateModelSelectFunction() throws ParseException{
+		QuerySpecification element = new TableQueryParser("select sum(foo) from syn123").querySpecification();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
+		assertEquals("SELECT SUM(_C111_) FROM T123",element.toSql());
+	}
+	
+	@Test
+	public void testTranslateModelSelectDouble() throws ParseException{
+		QuerySpecification element = new TableQueryParser("select aDouble from syn123").querySpecification();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
+		assertEquals("SELECT CASE WHEN _DBL_C777_ IS NULL THEN _C777_ ELSE _DBL_C777_ END FROM T123",element.toSql());
+	}
+	
+	@Test
+	public void testTranslateModelSelectDoubleFunction() throws ParseException{
+		QuerySpecification element = new TableQueryParser("select sum(aDouble) from syn123").querySpecification();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
+		assertEquals("SELECT SUM(_C777_) FROM T123",element.toSql());
+	}
+
+	
+	@Test
+	public void testTranslateModelWhere() throws ParseException{
+		QuerySpecification element = new TableQueryParser("select foo from syn123 where id > 2").querySpecification();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
+		assertEquals("SELECT _C111_ FROM T123 WHERE _C444_ > :b0",element.toSql());
+		assertEquals(new Long(2), parameters.get("b0"));
+	}
+	
+	@Test
+	public void testTranslateModelWhereBetween() throws ParseException{
+		QuerySpecification element = new TableQueryParser("select foo from syn123 where id between '1' and \"2\"").querySpecification();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
+		assertEquals("SELECT _C111_ FROM T123 WHERE _C444_ BETWEEN :b0 AND :b1",element.toSql());
+		assertEquals(new Long(1), parameters.get("b0"));
+		assertEquals(new Long(2), parameters.get("b1"));
+	}
+	
+	@Test
+	public void testTranslateModelWhereIn() throws ParseException{
+		QuerySpecification element = new TableQueryParser("select foo from syn123 where id in ('1',\"2\",3)").querySpecification();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
+		assertEquals("SELECT _C111_ FROM T123 WHERE _C444_ IN ( :b0, :b1, :b2 )",element.toSql());
+		assertEquals(new Long(1), parameters.get("b0"));
+		assertEquals(new Long(2), parameters.get("b1"));
+		assertEquals(new Long(3), parameters.get("b2"));
+	}
+	
+	@Test
+	public void testTranslateModelWhereLike() throws ParseException{
+		QuerySpecification element = new TableQueryParser("select foo from syn123 where id like '%3'").querySpecification();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
+		assertEquals("SELECT _C111_ FROM T123 WHERE _C444_ LIKE :b0",element.toSql());
+		assertEquals("%3", parameters.get("b0"));
+	}
+	
+	@Test
+	public void testTranslateModelWhereNull() throws ParseException{
+		QuerySpecification element = new TableQueryParser("select foo from syn123 where id is not null").querySpecification();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
+		assertEquals("SELECT _C111_ FROM T123 WHERE _C444_ IS NOT NULL",element.toSql());
+	}
+	
+	@Test
+	public void testTranslateModelWhereIsTrue() throws ParseException{
+		QuerySpecification element = new TableQueryParser("select foo from syn123 where id is true").querySpecification();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
+		assertEquals("SELECT _C111_ FROM T123 WHERE _C444_ IS TRUE",element.toSql());
+	}
+	
+	@Test
+	public void testTranslateModelWhereIsNaN() throws ParseException{
+		QuerySpecification element = new TableQueryParser("select foo from syn123 where isNaN(aDouble)").querySpecification();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
+		assertEquals("SELECT _C111_ FROM T123 WHERE ( _DBL_C777_ IS NOT NULL AND _DBL_C777_ = 'NaN' )",element.toSql());
+	}
+	
+	@Test
+	public void testTranslateModelWhereIsInfinity() throws ParseException{
+		QuerySpecification element = new TableQueryParser("select foo from syn123 where isInfinity(aDouble)").querySpecification();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
+		assertEquals("SELECT _C111_ FROM T123 WHERE ( _DBL_C777_ IS NOT NULL AND _DBL_C777_ IN ( '-Infinity', 'Infinity' ) )",element.toSql());
+	}
+	
+	@Test
+	public void testTranslateModelGroupBy() throws ParseException{
+		QuerySpecification element = new TableQueryParser("select bar, count(foo) from syn123 group by bar").querySpecification();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
+		assertEquals("SELECT _C333_, COUNT(_C111_) FROM T123 GROUP BY _C333_",element.toSql());
+	}
+	
+	@Test
+	public void testTranslateModelOrderBy() throws ParseException{
+		QuerySpecification element = new TableQueryParser("select foo from syn123 order by bar").querySpecification();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
+		assertEquals("SELECT _C111_ FROM T123 ORDER BY _C333_",element.toSql());
+	}
+	
+	@Test
+	public void testTranslateModelOrderByFunction() throws ParseException{
+		QuerySpecification element = new TableQueryParser("select foo from syn123 order by max(bar)").querySpecification();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
+		assertEquals("SELECT _C111_ FROM T123 ORDER BY MAX(_C333_)",element.toSql());
+	}
+	
+	@Test
+	public void testTranslateModelOrderDouble() throws ParseException{
+		QuerySpecification element = new TableQueryParser("select foo from syn123 order by aDouble").querySpecification();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
+		assertEquals("SELECT _C111_ FROM T123 ORDER BY _C777_",element.toSql());
+	}
+	
+	@Test
+	public void testTranslateModelOrderDoubleAs() throws ParseException{
+		QuerySpecification element = new TableQueryParser("select aDouble as f1 from syn123 order by f1").querySpecification();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
+		assertEquals("SELECT CASE WHEN _DBL_C777_ IS NULL THEN _C777_ ELSE _DBL_C777_ END AS f1 FROM T123 ORDER BY f1",element.toSql());
+	}
+	
+	@Test
+	public void testTranslateModelOrderFunctionDouble() throws ParseException{
+		QuerySpecification element = new TableQueryParser("select foo from syn123 order by min(aDouble)").querySpecification();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
+		assertEquals("SELECT _C111_ FROM T123 ORDER BY MIN(_C777_)",element.toSql());
+	}
+	
+	@Test
+	public void testTranslateModelSelectFoundRows() throws ParseException{
+		QuerySpecification element = new TableQueryParser("select FOUND_ROWS()").querySpecification();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
+		assertEquals("SELECT FOUND_ROWS()",element.toSql());
+	}
+
 }

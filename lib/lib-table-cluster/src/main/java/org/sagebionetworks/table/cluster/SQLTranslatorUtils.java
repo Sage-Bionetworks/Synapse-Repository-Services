@@ -10,34 +10,53 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
+import org.sagebionetworks.table.query.ParseException;
+import org.sagebionetworks.table.query.TableQueryParser;
+import org.sagebionetworks.table.query.model.ActualIdentifier;
+import org.sagebionetworks.table.query.model.BooleanFunction;
+import org.sagebionetworks.table.query.model.BooleanFunctionPredicate;
+import org.sagebionetworks.table.query.model.BooleanPrimary;
 import org.sagebionetworks.table.query.model.CharacterFactor;
 import org.sagebionetworks.table.query.model.CharacterPrimary;
 import org.sagebionetworks.table.query.model.CharacterValueExpression;
 import org.sagebionetworks.table.query.model.ColumnName;
 import org.sagebionetworks.table.query.model.ColumnReference;
+import org.sagebionetworks.table.query.model.ComparisonPredicate;
 import org.sagebionetworks.table.query.model.DerivedColumn;
 import org.sagebionetworks.table.query.model.Factor;
 import org.sagebionetworks.table.query.model.FunctionType;
+import org.sagebionetworks.table.query.model.GroupByClause;
+import org.sagebionetworks.table.query.model.HasPredicate;
 import org.sagebionetworks.table.query.model.HasQuoteValue;
+import org.sagebionetworks.table.query.model.HasReferencedColumn;
 import org.sagebionetworks.table.query.model.Identifier;
 import org.sagebionetworks.table.query.model.MysqlFunction;
 import org.sagebionetworks.table.query.model.NumericPrimary;
 import org.sagebionetworks.table.query.model.NumericValueExpression;
 import org.sagebionetworks.table.query.model.NumericValueFunction;
+import org.sagebionetworks.table.query.model.OrderByClause;
+import org.sagebionetworks.table.query.model.Pagination;
+import org.sagebionetworks.table.query.model.Predicate;
 import org.sagebionetworks.table.query.model.QuerySpecification;
+import org.sagebionetworks.table.query.model.SearchCondition;
 import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.model.StringValueExpression;
+import org.sagebionetworks.table.query.model.TableExpression;
+import org.sagebionetworks.table.query.model.TableReference;
 import org.sagebionetworks.table.query.model.Term;
 import org.sagebionetworks.table.query.model.ValueExpression;
 import org.sagebionetworks.table.query.model.ValueExpressionPrimary;
+import org.sagebionetworks.table.query.model.WhereClause;
 import org.sagebionetworks.table.query.model.visitors.ToTranslatedSqlVisitor;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
+import org.sagebionetworks.util.TimeUtils;
 import org.sagebionetworks.util.ValidateArgument;
 
 import com.google.common.collect.Lists;
@@ -48,6 +67,9 @@ import com.google.common.collect.Lists;
  *
  */
 public class SQLTranslatorUtils {
+
+	private static final String COLON = ":";
+	public static final String BIND_PREFIX = "b";
 
 	/**
 	 * Translate the passed query model into output SQL.
@@ -294,5 +316,262 @@ public class SQLTranslatorUtils {
 	public static DerivedColumn createDerivedColumn(MysqlFunction mysqlFunction) {
 		return new DerivedColumn(new ValueExpression(new NumericValueExpression(new Term(new Factor(new NumericPrimary(
 				new NumericValueFunction(mysqlFunction)))))), null);
+	}
+
+	/**
+	 * Translate this query into a form that can be executed against the actual table index.
+	 * @param transformedModel
+	 * @param parameters
+	 * @param columnNameToModelMap
+	 */
+	public static void translateModel(QuerySpecification transformedModel,
+			Map<String, Object> parameters,
+			Map<String, ColumnModel> columnNameToModelMap) {
+		// Select columns
+		Iterable<HasReferencedColumn> selectColumns = transformedModel.getSelectList().createIterable(HasReferencedColumn.class);
+		for(HasReferencedColumn hasReference: selectColumns){
+			translateSelect(hasReference, columnNameToModelMap);
+		}
+		
+		TableExpression tableExpression = transformedModel.getTableExpression();
+		if(tableExpression == null){
+			// nothing else to do.
+			return;
+		}
+		// First change the table name
+		TableReference tableReference = tableExpression.getFromClause().getTableReference();
+		translate(tableReference);
+		
+		// Translate where
+		WhereClause whereClause = tableExpression.getWhereClause();
+		if(whereClause != null){
+			// First we need to replace any boolean functions.
+			Iterable<BooleanPrimary> booleanPrimaries = whereClause.createIterable(BooleanPrimary.class);
+			for(BooleanPrimary booleanPrimary: booleanPrimaries){
+				replaceBooleanFunction(booleanPrimary, columnNameToModelMap);
+			}
+			// Translate all predicates
+			Iterable<HasPredicate> hasPredicates = whereClause.createIterable(HasPredicate.class);
+			for(HasPredicate predicate: hasPredicates){
+				translate(predicate, parameters, columnNameToModelMap);
+			}
+		}
+		// translate the group by
+		GroupByClause groupByClause = tableExpression.getGroupByClause();
+		if(groupByClause != null){
+			translate(groupByClause, columnNameToModelMap);
+		}
+		// translate the order by
+		OrderByClause orderByClause = tableExpression.getOrderByClause();
+		if(orderByClause != null){
+			Iterable<HasReferencedColumn> orderByReferences = orderByClause.createIterable(HasReferencedColumn.class);
+			for(HasReferencedColumn hasReference: orderByReferences){
+				translateOrderBy(hasReference, columnNameToModelMap);
+			}
+		}
+		// translate Pagination
+		Pagination pagination = tableExpression.getPagination();
+		if(pagination != null){
+			translate(pagination, parameters);
+		}
+	}
+
+	/**
+	 * Translate pagination.
+	 * 
+	 * @param pagination
+	 * @param parameters
+	 */
+	public static void translate(Pagination pagination,
+			Map<String, Object> parameters) {
+		ValidateArgument.required(pagination, "pagination");
+		ValidateArgument.required(parameters, "parameters");
+		// limit
+		if(pagination.getLimit() != null){
+			String key = BIND_PREFIX+parameters.size();
+			Long value = pagination.getLimitLong();
+			parameters.put(key, value);
+			pagination.setLimit(COLON+key);
+		}
+		// offset
+		if(pagination.getOffset() != null){
+			String key = BIND_PREFIX+parameters.size();
+			Long value = pagination.getOffsetLong();
+			parameters.put(key, value);
+			pagination.setOffset(COLON+key);
+		}
+	}
+
+	/**
+	 * Translate a GroupByClause.
+	 * 
+	 * @param groupByClause
+	 * @param columnNameToModelMap
+	 */
+	public static void translate(GroupByClause groupByClause,
+			Map<String, ColumnModel> columnNameToModelMap) {
+		ValidateArgument.required(groupByClause, "groupByClause");
+		ValidateArgument.required(columnNameToModelMap, "columnNameToModelMap");
+		Iterable<HasQuoteValue> hasQuotes = groupByClause.createIterable(HasQuoteValue.class);
+		if(hasQuotes != null){
+			for(HasQuoteValue hasQuoteValue: hasQuotes){
+				// Lookup the column
+				ColumnModel model = columnNameToModelMap.get(hasQuoteValue.getValueWithoutQuotes());
+				if(model != null){
+					String newName = SQLUtils.getColumnNameForId(model.getId());
+					hasQuoteValue.replaceUnquoted(newName);
+				}
+			}
+		}
+	}
+
+	/**
+	 * Translate a predicate.
+	 * 
+	 * @param predicate
+	 * @param parameters
+	 * @param columnNameToModelMap
+	 */
+	public static void translate(HasPredicate predicate,
+			Map<String, Object> parameters,
+			Map<String, ColumnModel> columnNameToModelMap) {
+		ValidateArgument.required(predicate, "predicate");
+		ValidateArgument.required(parameters, "parameters");
+		ValidateArgument.required(columnNameToModelMap, "columnNameToModelMap");
+		// Translate the left-hand-side
+		ColumnReference leftHandSide = predicate.getLeftHandSide();
+		// lookup the column name
+		ActualIdentifier actualIdentifier = leftHandSide.getNameRHS().getFirstElementOfType(ActualIdentifier.class);
+		ColumnModel model = columnNameToModelMap.get(actualIdentifier.getValueWithoutQuotes());
+		if(model != null){
+			String newName = SQLUtils.getColumnNameForId(model.getId());
+			actualIdentifier.replaceUnquoted(newName);
+			// handle the right-hand-side
+			Iterable<HasQuoteValue> rightHandSide = predicate.getRightHandSideValues();
+			if(rightHandSide != null){
+				for(HasQuoteValue hasQuoteValue: rightHandSide){
+					translateRightHandeSide(hasQuoteValue, model, parameters);
+				}
+			}
+		}
+	}
+	
+	/**
+	 * Translate the right-hand-side of a predicate.
+	 * @param hasQuoteValue
+	 * @param model
+	 * @param parameters
+	 */
+	public static void translateRightHandeSide(HasQuoteValue hasQuoteValue,
+			ColumnModel model, Map<String, Object> parameters) {
+		ValidateArgument.required(hasQuoteValue, "hasQuoteValue");
+		ValidateArgument.required(model, "model");
+		ValidateArgument.required(parameters, "parameters");
+		
+		String key = BIND_PREFIX+parameters.size();
+		String value = hasQuoteValue.getValueWithoutQuotes();
+		Object valueObject = null;
+		try{
+			valueObject = SQLUtils.parseValueForDB(model.getColumnType(), value);
+		}catch (IllegalArgumentException e){
+			// thrown for number format exception.
+			valueObject = value;
+		}
+
+		parameters.put(key, valueObject);
+		hasQuoteValue.replaceUnquoted(COLON+key);
+	}
+
+	/**
+	 * Replace any BooleanFunctionPredicate with a search condition.
+	 * For example: 'isInfinity(DOUBLETYPE)' will be replaced with (_DBL_C777_ IS NOT NULL AND _DBL_C777_ IN ('-Infinity', 'Infinity'))'
+	 * @param booleanPrimary
+	 * @param columnNameToModelMap
+	 */
+	public static void replaceBooleanFunction(BooleanPrimary booleanPrimary, Map<String, ColumnModel> columnNameToModelMap){
+		if(booleanPrimary.getPredicate() != null && booleanPrimary.getPredicate().getBooleanFunctionPredicate() != null){
+			BooleanFunctionPredicate bfp = booleanPrimary.getPredicate().getBooleanFunctionPredicate();
+			String columnName = bfp.getColumnReference().getFirstUnquotedValue();
+			ColumnModel cm = columnNameToModelMap.get(columnName);
+			if(cm == null){
+				throw new IllegalArgumentException("Function: "+bfp.getBooleanFunction()+" has unknown reference: "+columnName);
+			}
+			if(!ColumnType.DOUBLE.equals(cm.getColumnType())){
+				throw new IllegalArgumentException("Function: "+bfp.getBooleanFunction()+" can only be used with a column of type DOUBLE.");
+			}
+			StringBuilder builder = new StringBuilder();
+			// Is this a boolean function
+			switch(bfp.getBooleanFunction()){
+			case ISINFINITY:
+				SQLUtils.appendIsInfinity(cm.getId(), "", builder);
+				break;
+			case ISNAN:
+				SQLUtils.appendIsNan(cm.getId(), "", builder);
+				break;
+			default:
+				throw new IllegalArgumentException("Unknown boolean function: "+bfp.getBooleanFunction());
+			}
+			
+			try {
+				BooleanPrimary newPrimary = new TableQueryParser(builder.toString()).booleanPrimary();
+				booleanPrimary.replaceSearchCondition(newPrimary.getSearchCondition());
+			} catch (ParseException e) {
+				throw new IllegalArgumentException(e);
+			}
+		}
+	}
+
+	/**
+	 * Translate a HasReferencedColumn for the select clause.
+	 * @param column
+	 * @param columnNameToModelMap
+	 */
+	public static void translateSelect(HasReferencedColumn column,
+			Map<String, ColumnModel> columnNameToModelMap) {
+		HasQuoteValue hasQuoteValue = column.getReferencedColumn();
+		if(hasQuoteValue != null){
+			String unquotedName = hasQuoteValue.getValueWithoutQuotes();
+			ColumnModel model = columnNameToModelMap.get(unquotedName);
+			String newName = null;
+			if(model != null){
+				if(!column.isReferenceInFunction() && ColumnType.DOUBLE.equals(model.getColumnType())){
+					// non-function doubles are translated into a switch between the enum an double column.
+					newName = SQLUtils.createDoubleCluase(model.getId());
+				}else{
+					newName = SQLUtils.getColumnNameForId(model.getId());
+				}
+			}
+			if(newName != null){
+				hasQuoteValue.replaceUnquoted(newName);
+			}
+		}
+	}
+	
+	/**
+	 * Translate HasReferencedColumn for order by clause.
+	 * @param column
+	 * @param columnNameToModelMap
+	 */
+	public static void translateOrderBy(HasReferencedColumn column,
+			Map<String, ColumnModel> columnNameToModelMap) {
+		HasQuoteValue hasQuoteValue = column.getReferencedColumn();
+		if(hasQuoteValue != null){
+			String unquotedName = hasQuoteValue.getValueWithoutQuotes();
+			ColumnModel model = columnNameToModelMap.get(unquotedName);
+			String newName = null;
+			if(model != null){
+				newName = SQLUtils.getColumnNameForId(model.getId());
+				hasQuoteValue.replaceUnquoted(newName);
+			}
+		}
+	}
+
+	/**
+	 * Translate the table name.
+	 * @param tableReference
+	 */
+	public static void translate(TableReference tableReference) {
+		Long tableId = KeyFactory.stringToKey(tableReference.getTableName());
+		tableReference.replaceTableName(SQLUtils.TABLE_PREFIX + tableId);
 	}
 }

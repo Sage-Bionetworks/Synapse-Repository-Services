@@ -29,4 +29,5 @@ public class BooleanPredicate extends IsPredicate {
 	<T extends Element> void addElements(List<T> elements, Class<T> type) {
 		checkElement(elements, type, columnReferenceLHS);
 	}
+
 }

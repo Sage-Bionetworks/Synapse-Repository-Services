@@ -30,6 +30,11 @@ public class SqlQuery {
 	QuerySpecification model;
 	
 	/**
+	 * The model transformed to execute against the actual table.
+	 */
+	QuerySpecification transformedModel;
+	
+	/**
 	 * The full list of all of the columns of this table
 	 */
 	List<ColumnModel> tableSchema;
@@ -107,6 +112,9 @@ public class SqlQuery {
 	public void init(QuerySpecification parsedModel, List<ColumnModel> tableSchema, String tableId) {
 		ValidateArgument.required(tableSchema, "TableSchema");
 		ValidateArgument.required(tableId, "tableId");
+		if(tableSchema.isEmpty()){
+			throw new IllegalArgumentException("Table schema cannot be empty");
+		}
 		this.tableSchema = tableSchema;
 		this.model = parsedModel;
 		this.tableId = tableId;
@@ -125,19 +133,23 @@ public class SqlQuery {
 		this.selectColumns = SQLTranslatorUtils.getSelectColumns(this.model.getSelectList(), columnNameToModelMap, this.isAggregatedResult);
 
 		// Create a copy of the original model.
-		QuerySpecification transformedModel = model;
+		try {
+			transformedModel = new TableQueryParser(model.toSql()).querySpecification();
+		} catch (ParseException e) {
+			throw new IllegalArgumentException(e);
+		}
 		// Add ROW_ID and ROW_VERSION only if all columns have an Id.
 		if (SQLTranslatorUtils.doAllSelectMatchSchema(selectColumns)) {
 			// we need to add the row count and row version columns
-			SelectList expandedSelectList = SQLTranslatorUtils.addRowIdAndVersionToSelect(this.model.getSelectList());
-			transformedModel = new QuerySpecification(model.getSqlDirective(), model.getSetQuantifier(), expandedSelectList, model.getTableExpression());
+			SelectList expandedSelectList = SQLTranslatorUtils.addRowIdAndVersionToSelect(this.transformedModel.getSelectList());
+			transformedModel.replaceSelectList(expandedSelectList);
 			this.includesRowIdAndVersion = true;
 		}else{
 			this.includesRowIdAndVersion = false;
 		}
-
-		this.outputSQL = SQLTranslatorUtils.translate(transformedModel, this.parameters, this.columnNameToModelMap);
-
+//		this.outputSQL = SQLTranslatorUtils.translate(transformedModel, this.parameters, this.columnNameToModelMap);
+		SQLTranslatorUtils.translateModel(transformedModel, parameters, columnNameToModelMap);
+		this.outputSQL = transformedModel.toSql();
 	}
 	
 	/**

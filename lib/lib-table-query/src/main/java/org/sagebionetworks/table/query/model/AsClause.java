@@ -47,4 +47,5 @@ public class AsClause extends SQLElement {
 	<T extends Element> void addElements(List<T> elements, Class<T> type) {
 		checkElement(elements, type, columnName);
 	}
+	
 }

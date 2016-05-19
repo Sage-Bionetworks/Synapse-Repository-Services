@@ -1,13 +1,21 @@
 package org.sagebionetworks.table.query;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+
+import java.util.List;
 
 import org.junit.Test;
+import org.sagebionetworks.table.query.model.BetweenPredicate;
 import org.sagebionetworks.table.query.model.ColumnReference;
 import org.sagebionetworks.table.query.model.EscapeCharacter;
+import org.sagebionetworks.table.query.model.HasQuoteValue;
 import org.sagebionetworks.table.query.model.LikePredicate;
 import org.sagebionetworks.table.query.model.Pattern;
+import org.sagebionetworks.table.query.model.Predicate;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
+
+import com.google.common.collect.Lists;
 
 public class LikePredicateTest {
 
@@ -40,5 +48,16 @@ public class LikePredicateTest {
 		EscapeCharacter escapeCharacter = SqlElementUntils.createEscapeCharacter("'$$'");
 		LikePredicate element = new LikePredicate(columnReferenceLHS, not, pattern, escapeCharacter);
 		assertEquals("foo NOT LIKE '%middle%' ESCAPE '$$'", element.toString());
+	}
+	
+	@Test
+	public void testHasPredicate() throws ParseException{
+		Predicate predicate = new TableQueryParser("foo like '%aa%'").predicate();
+		LikePredicate element = predicate.getLikePredicate();
+		assertEquals("foo", element.getLeftHandSide().toSql());
+		List<HasQuoteValue> values = Lists.newArrayList(element.getRightHandSideValues());
+		assertNotNull(values);
+		assertEquals(1, values.size());
+		assertEquals("%aa%", values.get(0).getValueWithoutQuotes());
 	}
 }

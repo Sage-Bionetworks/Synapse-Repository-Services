@@ -106,20 +106,11 @@ public class DerivedColumn extends SQLElement {
 	 * @return
 	 */
 	public HasQuoteValue getReferencedColumn(){
-		// Handle functions first
-		SetFunctionSpecification function = valueExpression.getFirstElementOfType(SetFunctionSpecification.class);
-		if(function != null){
-			if(function.getCountAsterisk() != null){
-				// count(*) does not reference a column
-				return null;
-			}else{
-				// first unquoted value starting at the value expression.
-				return function.getValueExpression().getFirstElementOfType(HasQuoteValue.class);
-			}
-		}else{
-			// This is not a function so get the first unquoted.
-			return valueExpression.getFirstElementOfType(HasQuoteValue.class);
+		HasReferencedColumn hasReferencedColumn = valueExpression.getFirstElementOfType(HasReferencedColumn.class);
+		if(hasReferencedColumn != null){
+			return hasReferencedColumn.getReferencedColumn();
 		}
+		return null;
 	}
 	
 	/**

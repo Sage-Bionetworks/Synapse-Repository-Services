@@ -74,11 +74,11 @@ public class ToTranslatedSqlVisitorImpl extends ToTranslatedSqlVisitor {
 				}
 				switch (column.getColumnType()) {
 				case DOUBLE:
-					SQLUtils.appendDoubleCase(column, subName, currentTableName, currentClauses.contains(SQLClause.SELECT),
+					SQLUtils.appendDoubleCase(column.getId(), subName, currentTableName, currentClauses.contains(SQLClause.SELECT),
 							!currentClauses.contains(SQLClause.FUNCTION_PARAMETER), getBuilder());
 					break;
 				default:
-					SQLUtils.appendColumnName(subName, column, getBuilder());
+					SQLUtils.appendColumnName(subName, column.getId(), getBuilder());
 					break;
 				}
 			}
@@ -118,10 +118,10 @@ public class ToTranslatedSqlVisitorImpl extends ToTranslatedSqlVisitor {
 		case DOUBLE:
 			switch (booleanFunction) {
 			case ISNAN:
-				SQLUtils.appendIsNan(column, subName, getBuilder());
+				SQLUtils.appendIsNan(column.getId(), subName, getBuilder());
 				break;
 			case ISINFINITY:
-				SQLUtils.appendIsInfinity(column, subName, getBuilder());
+				SQLUtils.appendIsInfinity(column.getId(), subName, getBuilder());
 				break;
 			default:
 				throw new IllegalArgumentException("function " + booleanFunction + " not yet supported");

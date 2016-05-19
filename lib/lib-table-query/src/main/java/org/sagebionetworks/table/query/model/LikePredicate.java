@@ -9,7 +9,7 @@ import org.sagebionetworks.table.query.model.visitors.Visitor;
 /**
  * This matches &ltlike predicate&gt  in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
  */
-public class LikePredicate extends SQLElement {
+public class LikePredicate extends SQLElement implements HasPredicate {
 	
 	ColumnReference columnReferenceLHS;
 	Boolean not;
@@ -77,5 +77,15 @@ public class LikePredicate extends SQLElement {
 		checkElement(elements, type, columnReferenceLHS);
 		checkElement(elements, type, pattern);
 		checkElement(elements, type, escapeCharacter);
+	}
+
+	@Override
+	public ColumnReference getLeftHandSide() {
+		return columnReferenceLHS;
+	}
+
+	@Override
+	public Iterable<HasQuoteValue> getRightHandSideValues() {
+		return pattern.createIterable(HasQuoteValue.class);
 	}
 }

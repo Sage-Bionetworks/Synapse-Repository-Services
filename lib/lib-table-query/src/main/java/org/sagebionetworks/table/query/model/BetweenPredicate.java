@@ -1,5 +1,6 @@
 package org.sagebionetworks.table.query.model;
 
+import java.util.LinkedList;
 import java.util.List;
 
 import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor;
@@ -9,7 +10,7 @@ import org.sagebionetworks.table.query.model.visitors.Visitor;
 /**
  * This matches &ltbetween predicate&gt  in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
  */ 
-public class BetweenPredicate extends SQLElement {
+public class BetweenPredicate extends SQLElement implements HasPredicate {
 	
 	ColumnReference columnReferenceLHS;
 	Boolean not;
@@ -76,5 +77,22 @@ public class BetweenPredicate extends SQLElement {
 		checkElement(elements, type, columnReferenceLHS);
 		checkElement(elements, type, betweenRowValueConstructor);
 		checkElement(elements, type, andRowValueConstructorRHS);
+	}
+
+	@Override
+	public ColumnReference getLeftHandSide() {
+		return columnReferenceLHS;
+	}
+
+	@Override
+	public Iterable<HasQuoteValue> getRightHandSideValues() {
+		List<HasQuoteValue> results = new LinkedList<HasQuoteValue>();
+		for(HasQuoteValue value: betweenRowValueConstructor.createIterable(HasQuoteValue.class)){
+			results.add(value);
+		}
+		for(HasQuoteValue value: andRowValueConstructorRHS.createIterable(HasQuoteValue.class)){
+			results.add(value);
+		}
+		return results;
 	}
 }

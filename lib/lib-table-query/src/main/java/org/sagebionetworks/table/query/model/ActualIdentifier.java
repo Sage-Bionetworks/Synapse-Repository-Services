@@ -11,8 +11,8 @@ import org.sagebionetworks.table.query.model.visitors.Visitor;
  */
 public class ActualIdentifier extends SQLElement implements HasQuoteValue {
 	
-	private final String regularIdentifier;
-	private final String delimitedIdentifier;
+	private String regularIdentifier;
+	private String delimitedIdentifier;
 	public ActualIdentifier(String regularIdentifier, String delimitedIdentifier) {
 		if(regularIdentifier != null && delimitedIdentifier != null) throw new IllegalArgumentException("An actual identifier must be either a regular-identifier or a delimited-identifier but not both"); 
 		this.regularIdentifier = regularIdentifier;
@@ -71,5 +71,10 @@ public class ActualIdentifier extends SQLElement implements HasQuoteValue {
 	@Override
 	public boolean isSurrounedeWithQuotes() {
 		return delimitedIdentifier != null;
+	}
+	@Override
+	public void replaceUnquoted(String newValue) {
+		regularIdentifier = newValue;
+		delimitedIdentifier = null;
 	}
 }

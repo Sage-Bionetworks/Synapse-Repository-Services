@@ -24,4 +24,5 @@ public class BooleanPrimaryTest {
 		BooleanPrimary element = new BooleanPrimary(searchCondition);
 		assertEquals("( bar = 1 )", element.toString());
 	}
+	
 }

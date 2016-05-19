@@ -81,5 +81,11 @@ public class SignedLiteral extends SQLElement implements HasQuoteValue {
 	public boolean isSurrounedeWithQuotes() {
 		return generalLiteral != null;
 	}
+
+	@Override
+	public void replaceUnquoted(String newValue) {
+		signedNumericLiteral = newValue;
+		generalLiteral = null;
+	}
 	
 }

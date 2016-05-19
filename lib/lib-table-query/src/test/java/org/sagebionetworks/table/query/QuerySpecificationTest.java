@@ -62,6 +62,19 @@ public class QuerySpecificationTest {
 		assertEquals("SELECT FOUND_ROWS()", element.toString());
 		assertNull(element.getTableName());
 	}
+	
+	@Test
+	public void testSQL_CALC_FOUND_ROWS() throws ParseException{
+		QuerySpecification element = new TableQueryParser("SELECT SQL_CALC_FOUND_ROWS count(*) from syn123").querySpecification();
+		assertEquals(SqlDirective.SQL_CALC_FOUND_ROWS, element.getSqlDirective());
+		assertEquals("SELECT SQL_CALC_FOUND_ROWS COUNT(*) FROM syn123", element.toSql());
+	}
+	
+	@Test
+	public void testFoundRows() throws ParseException{
+		QuerySpecification element = new TableQueryParser("SELECT FOUND_ROWS()").querySpecification();
+		assertEquals("SELECT FOUND_ROWS()", element.toSql());
+	}
 
 	@Test
 	public void testQuerySpecificationToSQLWithSetQuantifier() throws ParseException{
