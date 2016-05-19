@@ -714,7 +714,6 @@ public class SQLQueryTest {
 	
 	@Test
 	public void testPLFM_3867() throws ParseException{
-		SqlQuery translator = new SqlQuery("select foo from syn123 where foo = \"a\"", tableSchema);
 		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123 WHERE _C111_ = :b0", translator.getOutputSQL());
 		assertEquals("a", translator.getParameters().get("b0"));
 	}
