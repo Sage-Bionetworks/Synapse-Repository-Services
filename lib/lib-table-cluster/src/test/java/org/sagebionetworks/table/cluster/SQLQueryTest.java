@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.model.ColumnReference;
+import org.sagebionetworks.table.query.model.HasPredicate;
 import org.sagebionetworks.table.query.model.Predicate;
 import org.sagebionetworks.table.query.model.visitors.ToTranslatedSqlVisitor;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
@@ -59,75 +60,7 @@ public class SQLQueryTest {
 		columnNameToModelMap.put("has-hyphen", TableModelTestUtils.createColumn(999L, "has-hyphen", ColumnType.STRING));
 		tableSchema = new ArrayList<ColumnModel>(columnNameToModelMap.values());
 	}
-	
-	@Test
-	public void testTranslateColumnReferenceNoRightHandSide() throws ParseException{
-		ColumnReference columnReference = SqlElementUntils.createColumnReference("foo");
-		ToTranslatedSqlVisitor visitor = new ToTranslatedSqlVisitorImpl(null, columnNameToModelMap);
-		columnReference.doVisit(visitor);
-		assertEquals("_C111_", visitor.getSql());
-	}
-	
-	@Test
-	public void testTranslateColumnReferenceCaseSensitive() throws ParseException{
-		ColumnReference columnReference = SqlElementUntils.createColumnReference("Foo");
-		ToTranslatedSqlVisitor visitor = new ToTranslatedSqlVisitorImpl(null, columnNameToModelMap);
-		columnReference.doVisit(visitor);
-		assertEquals("_C555_", visitor.getSql());
-	}
-	
-	@Test
-	public void testTranslateColumnReferenceTrim() throws ParseException{
-		ColumnReference columnReference = SqlElementUntils.createColumnReference("Foo ");
-		ToTranslatedSqlVisitor visitor = new ToTranslatedSqlVisitorImpl(null, columnNameToModelMap);
-		columnReference.doVisit(visitor);
-		assertEquals("_C555_", visitor.getSql());
-	}
-	
-	@Test 
-	public void testTranslateColumnReferenceUnknownColumn() throws ParseException{
-		try{
-			ColumnReference columnReference = SqlElementUntils.createColumnReference("fake");
-			ToTranslatedSqlVisitor visitor = new ToTranslatedSqlVisitorImpl(null, columnNameToModelMap);
-			columnReference.doVisit(visitor);
-			fail("this column does not exist so it should have failed.");
-		}catch(IllegalArgumentException e){
-			assertTrue(e.getMessage().contains("fake"));
-		}
-	}
-	
-	@Test
-	public void testTranslateColumnReferenceWithRightHandSide() throws ParseException{
-		ColumnReference columnReference = SqlElementUntils.createColumnReference("foo.bar");
-		ToTranslatedSqlVisitor visitor = new ToTranslatedSqlVisitorImpl(null, columnNameToModelMap);
-		columnReference.doVisit(visitor);
-		assertEquals("foo__C333_", visitor.getSql());
-	}
-	
-	@Test
-	public void testTranslateColumnReferenceWithQuotes() throws ParseException{
-		ColumnReference columnReference = SqlElementUntils.createColumnReference("\"has space\"");
-		ToTranslatedSqlVisitor visitor = new ToTranslatedSqlVisitorImpl(null, columnNameToModelMap);
-		columnReference.doVisit(visitor);
-		assertEquals("_C222_", visitor.getSql());
-	}
-	
-	@Test
-	public void testTranslateColumnReferenceRowId() throws ParseException{
-		ColumnReference columnReference = SqlElementUntils.createColumnReference("ROW_ID");
-		ToTranslatedSqlVisitor visitor = new ToTranslatedSqlVisitorImpl(null, columnNameToModelMap);
-		columnReference.doVisit(visitor);
-		assertEquals("ROW_ID", visitor.getSql());
-	}
-	
-	@Test
-	public void testTranslateColumnReferenceRowVersionIgnoreCase() throws ParseException{
-		ColumnReference columnReference = SqlElementUntils.createColumnReference("row_version");
-		ToTranslatedSqlVisitor visitor = new ToTranslatedSqlVisitorImpl(null, columnNameToModelMap);
-		columnReference.doVisit(visitor);
-		assertEquals("ROW_VERSION", visitor.getSql());
-	}
-	
+		
 	@Test (expected=IllegalArgumentException.class)
 	public void testSelectStarEmtpySchema() throws ParseException{
 		tableSchema = new LinkedList<ColumnModel>();
@@ -249,9 +182,9 @@ public class SQLQueryTest {
 	public void testComparisonPredicate() throws ParseException{
 		Predicate predicate = SqlElementUntils.createPredicate("foo <> 1");
 		HashMap<String, Object> parameters = new HashMap<String, Object>();
-		ToTranslatedSqlVisitor visitor = new ToTranslatedSqlVisitorImpl(parameters, columnNameToModelMap);
-		predicate.doVisit(visitor);
-		assertEquals("_C111_ <> :b0", visitor.getSql());
+		HasPredicate hasPredicate = predicate.getFirstElementOfType(HasPredicate.class);
+		SQLTranslatorUtils.translate(hasPredicate, parameters, columnNameToModelMap);
+		assertEquals("_C111_ <> :b0", predicate.toSql());
 		assertEquals("1", parameters.get("b0"));
 	}
 	
@@ -259,9 +192,9 @@ public class SQLQueryTest {
 	public void testStringComparisonPredicate() throws ParseException {
 		Predicate predicate = SqlElementUntils.createPredicate("foo <> 'aaa'");
 		HashMap<String, Object> parameters = new HashMap<String, Object>();
-		ToTranslatedSqlVisitor visitor = new ToTranslatedSqlVisitorImpl(parameters, columnNameToModelMap);
-		predicate.doVisit(visitor);
-		assertEquals("_C111_ <> :b0", visitor.getSql());
+		HasPredicate hasPredicate = predicate.getFirstElementOfType(HasPredicate.class);
+		SQLTranslatorUtils.translate(hasPredicate, parameters, columnNameToModelMap);
+		assertEquals("_C111_ <> :b0", predicate.toSql());
 		assertEquals("aaa", parameters.get("b0"));
 	}
 
@@ -269,9 +202,9 @@ public class SQLQueryTest {
 	public void testStringComparisonBooleanPredicate() throws ParseException {
 		Predicate predicate = SqlElementUntils.createPredicate("foo = true");
 		HashMap<String, Object> parameters = new HashMap<String, Object>();
-		ToTranslatedSqlVisitor visitor = new ToTranslatedSqlVisitorImpl(parameters, columnNameToModelMap);
-		predicate.doVisit(visitor);
-		assertEquals("_C111_ = TRUE", visitor.getSql());
+		HasPredicate hasPredicate = predicate.getFirstElementOfType(HasPredicate.class);
+		SQLTranslatorUtils.translate(hasPredicate, parameters, columnNameToModelMap);
+		assertEquals("_C111_ = TRUE", predicate.toSql());
 		assertEquals(0, parameters.size());
 	}
 
@@ -279,20 +212,20 @@ public class SQLQueryTest {
 	public void testComparisonPredicateDateNumber() throws ParseException {
 		Predicate predicate = SqlElementUntils.createPredicate("datetype <> 1");
 		HashMap<String, Object> parameters = new HashMap<String, Object>();
-		ToTranslatedSqlVisitor visitor = new ToTranslatedSqlVisitorImpl(parameters, columnNameToModelMap);
-		predicate.doVisit(visitor);
-		assertEquals("_C666_ <> :b0", visitor.getSql());
-		assertEquals("1", parameters.get("b0"));
+		HasPredicate hasPredicate = predicate.getFirstElementOfType(HasPredicate.class);
+		SQLTranslatorUtils.translate(hasPredicate, parameters, columnNameToModelMap);
+		assertEquals("_C666_ <> :b0", predicate.toSql());
+		assertEquals(new Long(1), parameters.get("b0"));
 	}
 
 	@Test
 	public void testComparisonPredicateDateString() throws ParseException {
 		Predicate predicate = SqlElementUntils.createPredicate("datetype <> '2011-11-11'");
 		HashMap<String, Object> parameters = new HashMap<String, Object>();
-		ToTranslatedSqlVisitor visitor = new ToTranslatedSqlVisitorImpl(parameters, columnNameToModelMap);
-		predicate.doVisit(visitor);
-		assertEquals("_C666_ <> :b0", visitor.getSql());
-		assertEquals(DATE1TIME, parameters.get("b0"));
+		HasPredicate hasPredicate = predicate.getFirstElementOfType(HasPredicate.class);
+		SQLTranslatorUtils.translate(hasPredicate, parameters, columnNameToModelMap);
+		assertEquals("_C666_ <> :b0", predicate.toSql());
+		assertEquals(Long.parseLong(DATE1TIME), parameters.get("b0"));
 	}
 
 	@Test
@@ -301,26 +234,29 @@ public class SQLQueryTest {
 				"2011-11-11 0:00:00.00", "2011-11-11 0:00:00.000" }) {
 			HashMap<String, Object> parameters = new HashMap<String, Object>();
 
-			ToTranslatedSqlVisitor visitor = new ToTranslatedSqlVisitorImpl(parameters, columnNameToModelMap);
-			SqlElementUntils.createPredicate("datetype <> '" + date + "'").doVisit(visitor);
-			assertEquals("_C666_ <> :b0", visitor.getSql());
-			assertEquals(DATE1TIME, parameters.get("b0"));
+			Predicate predicate =  SqlElementUntils.createPredicate("datetype <> '" + date + "'");
+			HasPredicate hasPredicate = predicate.getFirstElementOfType(HasPredicate.class);
+			SQLTranslatorUtils.translate(hasPredicate, parameters, columnNameToModelMap);
+			assertEquals("_C666_ <> :b0", predicate.toSql());
+			assertEquals(Long.parseLong(DATE1TIME), parameters.get("b0"));
 		}
 		for (String date : new String[] { "2001-01-01", "2001-01-01", "2001-1-1", "2001-1-01", "2001-01-1" }) {
 			HashMap<String, Object> parameters = new HashMap<String, Object>();
 
-			ToTranslatedSqlVisitor visitor = new ToTranslatedSqlVisitorImpl(parameters, columnNameToModelMap);
-			SqlElementUntils.createPredicate("datetype <> '" + date + "'").doVisit(visitor);
-			assertEquals("_C666_ <> :b0", visitor.getSql());
-			assertEquals("978307200000", parameters.get("b0"));
+			Predicate predicate =  SqlElementUntils.createPredicate("datetype <> '" + date + "'");
+			HasPredicate hasPredicate = predicate.getFirstElementOfType(HasPredicate.class);
+			SQLTranslatorUtils.translate(hasPredicate, parameters, columnNameToModelMap);
+			assertEquals("_C666_ <> :b0", predicate.toSql());
+			assertEquals(Long.parseLong("978307200000"), parameters.get("b0"));
 		}
 		for (String date : new String[] { "2011-11-11 01:01:01.001", "2011-11-11 1:01:1.001", "2011-11-11 1:1:1.001" }) {
 			HashMap<String, Object> parameters = new HashMap<String, Object>();
 
-			ToTranslatedSqlVisitor visitor = new ToTranslatedSqlVisitorImpl(parameters, columnNameToModelMap);
-			SqlElementUntils.createPredicate("datetype <> '" + date + "'").doVisit(visitor);
-			assertEquals("_C666_ <> :b0", visitor.getSql());
-			assertEquals("1320973261001", parameters.get("b0"));
+			Predicate predicate =  SqlElementUntils.createPredicate("datetype <> '" + date + "'");
+			HasPredicate hasPredicate = predicate.getFirstElementOfType(HasPredicate.class);
+			SQLTranslatorUtils.translate(hasPredicate, parameters, columnNameToModelMap);
+			assertEquals("_C666_ <> :b0", predicate.toSql());
+			assertEquals(Long.parseLong("1320973261001"), parameters.get("b0"));
 		}
 	}
 
@@ -328,9 +264,9 @@ public class SQLQueryTest {
 	public void testInPredicateOne() throws ParseException{
 		Predicate predicate = SqlElementUntils.createPredicate("foo in(1)");
 		HashMap<String, Object> parameters = new HashMap<String, Object>();
-		ToTranslatedSqlVisitor visitor = new ToTranslatedSqlVisitorImpl(parameters, columnNameToModelMap);
-		predicate.doVisit(visitor);
-		assertEquals("_C111_ IN ( :b0 )", visitor.getSql());
+		HasPredicate hasPredicate = predicate.getFirstElementOfType(HasPredicate.class);
+		SQLTranslatorUtils.translate(hasPredicate, parameters, columnNameToModelMap);
+		assertEquals("_C111_ IN ( :b0 )", predicate.toSql());
 		assertEquals("1", parameters.get("b0"));
 	}
 	
@@ -338,9 +274,9 @@ public class SQLQueryTest {
 	public void testInPredicateMore() throws ParseException{
 		Predicate predicate = SqlElementUntils.createPredicate("foo in(1,2,3)");
 		HashMap<String, Object> parameters = new HashMap<String, Object>();
-		ToTranslatedSqlVisitor visitor = new ToTranslatedSqlVisitorImpl(parameters, columnNameToModelMap);
-		predicate.doVisit(visitor);
-		assertEquals("_C111_ IN ( :b0, :b1, :b2 )", visitor.getSql());
+		HasPredicate hasPredicate = predicate.getFirstElementOfType(HasPredicate.class);
+		SQLTranslatorUtils.translate(hasPredicate, parameters, columnNameToModelMap);
+		assertEquals("_C111_ IN ( :b0, :b1, :b2 )", predicate.toSql());
 		assertEquals("1", parameters.get("b0"));
 		assertEquals("2", parameters.get("b1"));
 		assertEquals("3", parameters.get("b2"));
@@ -350,20 +286,20 @@ public class SQLQueryTest {
 	public void testInPredicateDate() throws ParseException {
 		Predicate predicate = SqlElementUntils.createPredicate("datetype in('" + DATE1 + "','" + DATE2 + "')");
 		HashMap<String, Object> parameters = new HashMap<String, Object>();
-		ToTranslatedSqlVisitor visitor = new ToTranslatedSqlVisitorImpl(parameters, columnNameToModelMap);
-		predicate.doVisit(visitor);
-		assertEquals("_C666_ IN ( :b0, :b1 )", visitor.getSql());
-		assertEquals(DATE1TIME, parameters.get("b0"));
-		assertEquals(DATE2TIME, parameters.get("b1"));
+		HasPredicate hasPredicate = predicate.getFirstElementOfType(HasPredicate.class);
+		SQLTranslatorUtils.translate(hasPredicate, parameters, columnNameToModelMap);
+		assertEquals("_C666_ IN ( :b0, :b1 )", predicate.toSql());
+		assertEquals(Long.parseLong(DATE1TIME), parameters.get("b0"));
+		assertEquals(Long.parseLong(DATE2TIME), parameters.get("b1"));
 	}
 
 	@Test
 	public void testBetweenPredicate() throws ParseException{
 		Predicate predicate = SqlElementUntils.createPredicate("foo between 1 and 2");
 		HashMap<String, Object> parameters = new HashMap<String, Object>();
-		ToTranslatedSqlVisitor visitor = new ToTranslatedSqlVisitorImpl(parameters, columnNameToModelMap);
-		predicate.doVisit(visitor);
-		assertEquals("_C111_ BETWEEN :b0 AND :b1", visitor.getSql());
+		HasPredicate hasPredicate = predicate.getFirstElementOfType(HasPredicate.class);
+		SQLTranslatorUtils.translate(hasPredicate, parameters, columnNameToModelMap);
+		assertEquals("_C111_ BETWEEN :b0 AND :b1", predicate.toSql());
 		assertEquals("1", parameters.get("b0"));
 		assertEquals("2", parameters.get("b1"));
 	}
@@ -372,9 +308,9 @@ public class SQLQueryTest {
 	public void testBetweenPredicateDate() throws ParseException {
 		Predicate predicate = SqlElementUntils.createPredicate("datetype between '" + DATE1 + "' and '" + DATE2 + "'");
 		HashMap<String, Object> parameters = new HashMap<String, Object>();
-		ToTranslatedSqlVisitor visitor = new ToTranslatedSqlVisitorImpl(parameters, columnNameToModelMap);
-		predicate.doVisit(visitor);
-		assertEquals("_C666_ BETWEEN :b0 AND :b1", visitor.getSql());
+		HasPredicate hasPredicate = predicate.getFirstElementOfType(HasPredicate.class);
+		SQLTranslatorUtils.translate(hasPredicate, parameters, columnNameToModelMap);
+		assertEquals("_C666_ BETWEEN :b0 AND :b1", predicate.toSql());
 		assertEquals(DATE1TIME, parameters.get("b0"));
 		assertEquals(DATE2TIME, parameters.get("b1"));
 	}
@@ -383,9 +319,9 @@ public class SQLQueryTest {
 	public void testBetweenPredicateNot() throws ParseException{
 		Predicate predicate = SqlElementUntils.createPredicate("foo not between 1 and 2");
 		HashMap<String, Object> parameters = new HashMap<String, Object>();
-		ToTranslatedSqlVisitor visitor = new ToTranslatedSqlVisitorImpl(parameters, columnNameToModelMap);
-		predicate.doVisit(visitor);
-		assertEquals("_C111_ NOT BETWEEN :b0 AND :b1", visitor.getSql());
+		HasPredicate hasPredicate = predicate.getFirstElementOfType(HasPredicate.class);
+		SQLTranslatorUtils.translate(hasPredicate, parameters, columnNameToModelMap);
+		assertEquals("_C111_ NOT BETWEEN :b0 AND :b1", predicate.toSql());
 		assertEquals("1", parameters.get("b0"));
 		assertEquals("2", parameters.get("b1"));
 	}
@@ -394,9 +330,9 @@ public class SQLQueryTest {
 	public void testLikePredicate() throws ParseException{
 		Predicate predicate = SqlElementUntils.createPredicate("foo like 'bar%'");
 		HashMap<String, Object> parameters = new HashMap<String, Object>();
-		ToTranslatedSqlVisitor visitor = new ToTranslatedSqlVisitorImpl(parameters, columnNameToModelMap);
-		predicate.doVisit(visitor);
-		assertEquals("_C111_ LIKE :b0", visitor.getSql());
+		HasPredicate hasPredicate = predicate.getFirstElementOfType(HasPredicate.class);
+		SQLTranslatorUtils.translate(hasPredicate, parameters, columnNameToModelMap);
+		assertEquals("_C111_ LIKE :b0", predicate.toSql());
 		assertEquals("bar%",parameters.get("b0"));
 	}
 	
@@ -404,9 +340,9 @@ public class SQLQueryTest {
 	public void testLikePredicateEscape() throws ParseException{
 		Predicate predicate = SqlElementUntils.createPredicate("foo like 'bar|_' escape '|'");
 		HashMap<String, Object> parameters = new HashMap<String, Object>();
-		ToTranslatedSqlVisitor visitor = new ToTranslatedSqlVisitorImpl(parameters, columnNameToModelMap);
-		predicate.doVisit(visitor);
-		assertEquals("_C111_ LIKE :b0 ESCAPE :b1", visitor.getSql());
+		HasPredicate hasPredicate = predicate.getFirstElementOfType(HasPredicate.class);
+		SQLTranslatorUtils.translate(hasPredicate, parameters, columnNameToModelMap);
+		assertEquals("_C111_ LIKE :b0 ESCAPE :b1", predicate.toSql());
 		assertEquals("bar|_",parameters.get("b0"));
 		assertEquals("|",parameters.get("b1"));
 	}
@@ -415,9 +351,9 @@ public class SQLQueryTest {
 	public void testLikePredicateNot() throws ParseException{
 		Predicate predicate = SqlElementUntils.createPredicate("foo not like 'bar%'");
 		HashMap<String, Object> parameters = new HashMap<String, Object>();
-		ToTranslatedSqlVisitor visitor = new ToTranslatedSqlVisitorImpl(parameters, columnNameToModelMap);
-		predicate.doVisit(visitor);
-		assertEquals("_C111_ NOT LIKE :b0", visitor.getSql());
+		HasPredicate hasPredicate = predicate.getFirstElementOfType(HasPredicate.class);
+		SQLTranslatorUtils.translate(hasPredicate, parameters, columnNameToModelMap);
+		assertEquals("_C111_ NOT LIKE :b0", predicate.toSql());
 		assertEquals("bar%",parameters.get("b0"));
 	}
 	
@@ -425,18 +361,18 @@ public class SQLQueryTest {
 	public void testNullPredicate() throws ParseException{
 		Predicate predicate = SqlElementUntils.createPredicate("foo is null");
 		HashMap<String, Object> parameters = new HashMap<String, Object>();
-		ToTranslatedSqlVisitor visitor = new ToTranslatedSqlVisitorImpl(parameters, columnNameToModelMap);
-		predicate.doVisit(visitor);
-		assertEquals("_C111_ IS NULL", visitor.getSql());
+		HasPredicate hasPredicate = predicate.getFirstElementOfType(HasPredicate.class);
+		SQLTranslatorUtils.translate(hasPredicate, parameters, columnNameToModelMap);
+		assertEquals("_C111_ IS NULL", predicate.toSql());
 	}
 	
 	@Test
 	public void testNullPredicateNot() throws ParseException{
 		Predicate predicate = SqlElementUntils.createPredicate("foo is not null");
 		HashMap<String, Object> parameters = new HashMap<String, Object>();
-		ToTranslatedSqlVisitor visitor = new ToTranslatedSqlVisitorImpl(parameters, columnNameToModelMap);
-		predicate.doVisit(visitor);
-		assertEquals("_C111_ IS NOT NULL", visitor.getSql());
+		HasPredicate hasPredicate = predicate.getFirstElementOfType(HasPredicate.class);
+		SQLTranslatorUtils.translate(hasPredicate, parameters, columnNameToModelMap);
+		assertEquals("_C111_ IS NOT NULL", predicate.toSql());
 	}
 	
 	@Test

@@ -16,7 +16,7 @@ import org.sagebionetworks.util.TimeUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-public class ToTranslatedSqlVisitorImpl extends ToTranslatedSqlVisitor {
+public class ToTranslatedSqlVisitorImpl  {
 	private final Map<String, Object> parameters;
 	private final Map<String, ColumnModel> columnNameToModelMap;
 
