@@ -1246,4 +1246,38 @@ public class TableModelUtilsTest {
 		assertEquals("e01b96910d0eb4b107ebc34eae2bc44c", md5Hex);
 	}
 	
+	@Test
+	public void testGetSelectColumnsFromColumnIdsSingle(){
+		ColumnModel cm = TableModelTestUtils.createColumn(12);
+		List<Long> columnIds = Lists.newArrayList(12L);
+		List<ColumnModel> schema  = Lists.newArrayList(cm);
+		// call under test
+		List<SelectColumn> results = TableModelUtils.getSelectColumnsFromColumnIds(columnIds, schema);
+		assertNotNull(results);
+		assertEquals(1, results.size());
+		SelectColumn select = results.get(0);
+		assertEquals(cm.getId(), select.getId());
+		assertEquals(cm.getName(), select.getName());
+		assertEquals(cm.getColumnType(), select.getColumnType());
+	}
+	
+	@Test
+	public void testGetSelectColumnsFromColumnIdsMultipleWithMissing(){
+		ColumnModel one = TableModelTestUtils.createColumn(1);
+		ColumnModel two = TableModelTestUtils.createColumn(2);
+		// This controls the order of the results.
+		List<Long> columnIds = Lists.newArrayList(2L,4L,1L);
+		List<ColumnModel> schema  = Lists.newArrayList(one, two);
+		// call under test
+		List<SelectColumn> results = TableModelUtils.getSelectColumnsFromColumnIds(columnIds, schema);
+		assertNotNull(results);
+		assertEquals(3, results.size());
+		// first should match two
+		assertEquals(two.getId(), results.get(0).getId());
+		// no match for 4L should result in a null
+		assertEquals(null, results.get(1));
+		// last should match one
+		assertEquals(one.getId(), results.get(2).getId());
+	}
+	
 }
