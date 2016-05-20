@@ -611,27 +611,15 @@ public class SQLUtils {
 	 * @param subName
 	 * @param builder
 	 */
-	public static void appendDoubleCase(String columnId, String subName, String tableName, boolean isSelectClause, boolean needsAsName,
-			StringBuilder builder) {
-		if (isSelectClause) {
-			builder.append("CASE WHEN ");
-			appendColumnName(TableConstants.DOUBLE_PREFIX, subName, columnId, builder);
-			builder.append(" IS NULL THEN ");
-			appendColumnName(subName, columnId, builder);
-			builder.append(" ELSE ");
-			appendColumnName(TableConstants.DOUBLE_PREFIX, subName, columnId, builder);
-			builder.append(" END");
-			if (needsAsName) {
-				builder.append(" AS ");
-				appendColumnName(subName, columnId, builder);
-			}
-		} else {
-			if (tableName == null) {
-				throw new IllegalStateException("Table name should be available at this point");
-			}
-			builder.append(tableName).append(".");
-			appendColumnName(subName, columnId, builder);
-		}
+	public static void appendDoubleCase(String columnId, StringBuilder builder) {
+		String subName = "";
+		builder.append("CASE WHEN ");
+		appendColumnName(TableConstants.DOUBLE_PREFIX, subName, columnId, builder);
+		builder.append(" IS NULL THEN ");
+		appendColumnName(subName, columnId, builder);
+		builder.append(" ELSE ");
+		appendColumnName(TableConstants.DOUBLE_PREFIX, subName, columnId, builder);
+		builder.append(" END");
 	}
 	
 	/**
@@ -640,10 +628,8 @@ public class SQLUtils {
 	 * @return
 	 */
 	public static String createDoubleCluase(String columnId){
-		boolean isSelect = true;
-		boolean needsAs = false;
 		StringBuilder builder = new StringBuilder();
-		appendDoubleCase(columnId, "", null, isSelect, needsAs, builder);
+		appendDoubleCase(columnId, builder);
 		return builder.toString();
 	}
 

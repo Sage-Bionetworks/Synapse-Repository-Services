@@ -2,10 +2,6 @@ package org.sagebionetworks.table.query.model;
 
 import java.util.List;
 
-import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor;
-import org.sagebionetworks.table.query.model.visitors.ToTranslatedSqlVisitor;
-import org.sagebionetworks.table.query.model.visitors.Visitor;
-
 
 public class BooleanFunctionPredicate extends SQLElement {
 
@@ -23,21 +19,6 @@ public class BooleanFunctionPredicate extends SQLElement {
 
 	public ColumnReference getColumnReference() {
 		return columnReference;
-	}
-
-	public void visit(Visitor visitor) {
-		visit(columnReference, visitor);
-	}
-
-	public void visit(ToSimpleSqlVisitor visitor) {
-		visitor.append(booleanFunction.name());
-		visitor.append("(");
-		visit(columnReference, visitor);
-		visitor.append(")");
-	}
-
-	public void visit(ToTranslatedSqlVisitor visitor) {
-		visitor.handleFunction(booleanFunction, columnReference);
 	}
 
 	@Override

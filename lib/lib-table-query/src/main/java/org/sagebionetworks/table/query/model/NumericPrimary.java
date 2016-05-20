@@ -2,8 +2,6 @@ package org.sagebionetworks.table.query.model;
 
 import java.util.List;
 
-import org.sagebionetworks.table.query.model.visitors.Visitor;
-
 
 public class NumericPrimary extends SQLElement {
 
@@ -24,15 +22,6 @@ public class NumericPrimary extends SQLElement {
 
 	public ValueExpressionPrimary getValueExpressionPrimary() {
 		return valueExpressionPrimary;
-	}
-
-	@Override
-	public void visit(Visitor visitor) {
-		if (valueExpressionPrimary != null) {
-			visit(valueExpressionPrimary, visitor);
-		} else {
-			visit(numericValueFunction, visitor);
-		}
 	}
 
 	@Override

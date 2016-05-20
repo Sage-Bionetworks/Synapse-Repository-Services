@@ -2,8 +2,6 @@ package org.sagebionetworks.table.query.model;
 
 import java.util.List;
 
-import org.sagebionetworks.table.query.model.visitors.Visitor;
-
 public class NumericValueExpression extends SQLElement {
 
 	private Term term;
@@ -14,10 +12,6 @@ public class NumericValueExpression extends SQLElement {
 
 	public Term getTerm() {
 		return term;
-	}
-
-	public void visit(Visitor visitor) {
-		visit(this.term, visitor);
 	}
 
 	@Override

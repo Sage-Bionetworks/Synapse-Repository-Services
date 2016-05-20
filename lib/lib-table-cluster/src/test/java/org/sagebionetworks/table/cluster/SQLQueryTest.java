@@ -4,7 +4,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -22,10 +21,8 @@ import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
-import org.sagebionetworks.table.query.model.ColumnReference;
 import org.sagebionetworks.table.query.model.HasPredicate;
 import org.sagebionetworks.table.query.model.Predicate;
-import org.sagebionetworks.table.query.model.visitors.ToTranslatedSqlVisitor;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 
 import com.google.common.collect.Lists;
@@ -311,8 +308,8 @@ public class SQLQueryTest {
 		HasPredicate hasPredicate = predicate.getFirstElementOfType(HasPredicate.class);
 		SQLTranslatorUtils.translate(hasPredicate, parameters, columnNameToModelMap);
 		assertEquals("_C666_ BETWEEN :b0 AND :b1", predicate.toSql());
-		assertEquals(DATE1TIME, parameters.get("b0"));
-		assertEquals(DATE2TIME, parameters.get("b1"));
+		assertEquals(Long.parseLong(DATE1TIME), parameters.get("b0"));
+		assertEquals(Long.parseLong(DATE2TIME), parameters.get("b1"));
 	}
 
 	@Test

@@ -1,7 +1,5 @@
 package org.sagebionetworks.table.query.model;
 
-import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor;
-import org.sagebionetworks.table.query.model.visitors.Visitor;
 
 
 /**
@@ -27,19 +25,6 @@ public abstract class IsPredicate extends SQLElement implements HasPredicate {
 
 	public abstract String getCompareValue();
 
-	public void visit(Visitor visitor) {
-		visit(columnReferenceLHS, visitor);
-	}
-
-	public void visit(ToSimpleSqlVisitor visitor) {
-		visit(columnReferenceLHS, visitor);
-		visitor.append(" IS ");
-		if (not != null) {
-			visitor.append("NOT ");
-		}
-		visitor.append(getCompareValue());
-	}
-	
 	@Override
 	public void toSql(StringBuilder builder) {
 		columnReferenceLHS.toSql(builder);

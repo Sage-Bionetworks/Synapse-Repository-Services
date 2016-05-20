@@ -1,9 +1,7 @@
 package org.sagebionetworks.table.query.model;
 
+import java.util.LinkedList;
 import java.util.List;
-
-import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor;
-import org.sagebionetworks.table.query.model.visitors.Visitor;
 
 
 /**
@@ -37,27 +35,6 @@ public class LikePredicate extends SQLElement implements HasPredicate {
 		return columnReferenceLHS;
 	}
 
-	public void visit(Visitor visitor) {
-		visit(columnReferenceLHS, visitor);
-		visit(pattern, visitor);
-		if (escapeCharacter != null) {
-			visit(escapeCharacter, visitor);
-		}
-	}
-
-	public void visit(ToSimpleSqlVisitor visitor) {
-		visit(columnReferenceLHS, visitor);
-		if (not != null) {
-			visitor.append(" NOT");
-		}
-		visitor.append(" LIKE ");
-		visit(pattern, visitor);
-		if (escapeCharacter != null) {
-			visitor.append(" ESCAPE ");
-			visit(escapeCharacter, visitor);
-		}
-	}
-
 	@Override
 	public void toSql(StringBuilder builder) {
 		columnReferenceLHS.toSql(builder);
@@ -86,6 +63,15 @@ public class LikePredicate extends SQLElement implements HasPredicate {
 
 	@Override
 	public Iterable<HasQuoteValue> getRightHandSideValues() {
-		return pattern.createIterable(HasQuoteValue.class);
+		List<HasQuoteValue> results = new LinkedList<HasQuoteValue>();
+		for(HasQuoteValue value: pattern.createIterable(HasQuoteValue.class)){
+			results.add(value);
+		}
+		if(escapeCharacter != null){
+			for(HasQuoteValue value: escapeCharacter.createIterable(HasQuoteValue.class)){
+				results.add(value);
+			}
+		}
+		return results;
 	}
 }

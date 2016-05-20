@@ -2,8 +2,6 @@ package org.sagebionetworks.table.query.model;
 
 import java.util.List;
 
-import org.sagebionetworks.table.query.model.visitors.Visitor;
-
 public class Factor extends SQLElement {
 
 	private NumericPrimary numericPrimary;
@@ -14,10 +12,6 @@ public class Factor extends SQLElement {
 
 	public NumericPrimary getNumericPrimary() {
 		return numericPrimary;
-	}
-
-	public void visit(Visitor visitor) {
-		visit(this.numericPrimary, visitor);
 	}
 
 	@Override

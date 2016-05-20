@@ -60,4 +60,16 @@ public class LikePredicateTest {
 		assertEquals(1, values.size());
 		assertEquals("%aa%", values.get(0).getValueWithoutQuotes());
 	}
+	
+	@Test
+	public void testHasPredicateEscape() throws ParseException{
+		Predicate predicate = new TableQueryParser("foo like '%aa%' ESCAPE '@'").predicate();
+		LikePredicate element = predicate.getLikePredicate();
+		assertEquals("foo", element.getLeftHandSide().toSql());
+		List<HasQuoteValue> values = Lists.newArrayList(element.getRightHandSideValues());
+		assertNotNull(values);
+		assertEquals(2, values.size());
+		assertEquals("%aa%", values.get(0).getValueWithoutQuotes());
+		assertEquals("@", values.get(1).getValueWithoutQuotes());
+	}
 }
