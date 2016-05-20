@@ -84,6 +84,9 @@ public class ValueExpressionPrimary extends SQLElement implements HasReferencedC
 
 	@Override
 	public boolean isReferenceInFunction() {
+		if(setFunctionSpecification != null && setFunctionSpecification.getCountAsterisk() != null){
+			throw new IllegalArgumentException("COUNT(*) does not have a column reference");
+		}
 		return setFunctionSpecification != null;
 	}
 

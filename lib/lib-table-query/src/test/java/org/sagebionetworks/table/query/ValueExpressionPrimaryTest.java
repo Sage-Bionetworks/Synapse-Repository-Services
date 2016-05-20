@@ -13,6 +13,11 @@ public class ValueExpressionPrimaryTest {
 		ValueExpressionPrimary element = new TableQueryParser("count(*)").valueExpressionPrimary();
 		HasQuoteValue referencedColumn = element.getReferencedColumn();
 		assertEquals("There is no referenced column for count(*)",null, referencedColumn);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testIsReferenceInFunctioCountStar() throws ParseException{
+		ValueExpressionPrimary element = new TableQueryParser("count(*)").valueExpressionPrimary();
 		assertTrue(element.isReferenceInFunction());
 	}
 	

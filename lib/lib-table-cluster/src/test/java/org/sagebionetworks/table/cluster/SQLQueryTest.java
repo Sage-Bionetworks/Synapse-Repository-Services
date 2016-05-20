@@ -132,7 +132,6 @@ public class SQLQueryTest {
 	public void testSelectStarEmtpySchema() throws ParseException{
 		tableSchema = new LinkedList<ColumnModel>();
 		SqlQuery translator = new SqlQuery("select * from syn123", tableSchema);
-		assertEquals(tableSchema, translator.getTableSchema());
 	}
 	
 	@Test
@@ -664,7 +663,11 @@ public class SQLQueryTest {
 		assertEquals(TableModelUtils.createSelectColumn("COUNT(doubletype)", ColumnType.INTEGER, null), translator.getSelectColumns()
 				.get(4));
 	}
-		
+	
+	/**
+	 * @see <a href="https://sagebionetworks.jira.com/browse/PLFM-3864">3864</a>
+	 * @throws Exception
+	 */
 	@Test
 	public void testPLFM_3864() throws Exception{
 		SqlQuery translator = new SqlQuery(
@@ -674,6 +677,10 @@ public class SQLQueryTest {
 				+ "FROM T123", translator.getOutputSQL());
 	}
 	
+	/**
+	 * @see <a href="https://sagebionetworks.jira.com/browse/PLFM-3864">3864</a>
+	 * @throws Exception
+	 */
 	@Test
 	public void testPLFM_3864withOrderBy() throws Exception{
 		SqlQuery translator = new SqlQuery(
@@ -683,6 +690,10 @@ public class SQLQueryTest {
 				+ "FROM T123 ORDER BY f1", translator.getOutputSQL());
 	}
 	
+	/**
+	 * @see <a href="https://sagebionetworks.jira.com/browse/PLFM-3865">3865</a>
+	 * @throws Exception
+	 */
 	@Test
 	public void testPLFM_3865() throws Exception{
 		SqlQuery translator = new SqlQuery(
@@ -694,6 +705,11 @@ public class SQLQueryTest {
 				+ "ORDER BY MIN(_C777_)", translator.getOutputSQL());
 	}
 	
+	/**
+	 * @see <a href="https://sagebionetworks.jira.com/browse/PLFM-3865">3865</a>
+	 * @see <a href="https://sagebionetworks.jira.com/browse/PLFM-3864">3864</a>
+	 * @throws Exception
+	 */
 	@Test
 	public void testPLFM_3865andPLFM_3864() throws Exception{
 		SqlQuery translator = new SqlQuery(
@@ -705,6 +721,10 @@ public class SQLQueryTest {
 				+ "ORDER BY f2", translator.getOutputSQL());
 	}
 	
+	/**
+	 * @see <a href="https://sagebionetworks.jira.com/browse/PLFM-3866">3866</a>
+	 * @throws Exception
+	 */
 	@Test
 	public void testPLFM_3866() throws ParseException{
 		SqlQuery translator = new SqlQuery("select foo from syn123 where foo in (\"a\")", tableSchema);
@@ -712,6 +732,10 @@ public class SQLQueryTest {
 		assertEquals("a", translator.getParameters().get("b0"));
 	}
 	
+	/**
+	 * @see <a href="https://sagebionetworks.jira.com/browse/PLFM-3867">3867</a>
+	 * @throws Exception
+	 */
 	@Test
 	public void testPLFM_3867() throws ParseException{
 		SqlQuery translator = new SqlQuery("select foo from syn123 where foo = \"a\"", tableSchema);
@@ -720,11 +744,15 @@ public class SQLQueryTest {
 	}
 	
 	@Test
-	public void testTranslateNotNaN() throws ParseException{
+	public void testTranslateNotIsNaN() throws ParseException{
 		SqlQuery translator = new SqlQuery("select foo from syn123 where not isNaN(doubletype)", tableSchema);
 		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123 WHERE NOT ( _DBL_C777_ IS NOT NULL AND _DBL_C777_ = 'NaN' )", translator.getOutputSQL());
 	}
 	
+	/**
+	 * @see <a href="https://sagebionetworks.jira.com/browse/PLFM-3869">3869</a>
+	 * @throws Exception
+	 */
 	@Test
 	public void testPLFM_3869() throws ParseException{
 		tableSchema = Lists.newArrayList(TableModelTestUtils.createColumn(123L, "aDouble", ColumnType.DOUBLE));
@@ -741,6 +769,9 @@ public class SQLQueryTest {
 	 * Therefore, the string 'NaN' was passed to the function and treated as '1'.
 	 * To fix the issue we simply use the origial double column for aggregate function, for example
 	 * SUM(_C777_)
+	 * 
+	 * @see <a href="https://sagebionetworks.jira.com/browse/PLFM-3870">3870</a>
+	 * 
 	 * @throws ParseException
 	 */
 	@Test

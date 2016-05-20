@@ -62,8 +62,8 @@ import org.sagebionetworks.util.ValidateArgument;
 import com.google.common.collect.Lists;
 
 /**
- * Helper methods to translate table SQL queries.
- * 
+ * Helper methods to translate user generated queries
+ * to queries that run against the actual database.
  *
  */
 public class SQLTranslatorUtils {
@@ -73,6 +73,9 @@ public class SQLTranslatorUtils {
 
 	/**
 	 * Translate the passed query model into output SQL.
+	 * 
+	 * Translate user generated queries to queries that can
+	 * run against the actual database.
 	 * 
 	 * @param model The model representing a query.
 	 * @param outputBuilder
@@ -320,6 +323,10 @@ public class SQLTranslatorUtils {
 
 	/**
 	 * Translate this query into a form that can be executed against the actual table index.
+	 * 
+	 * Translate user generated queries to queries that can
+	 * run against the actual database.
+	 * 
 	 * @param transformedModel
 	 * @param parameters
 	 * @param columnNameToModelMap
@@ -379,6 +386,9 @@ public class SQLTranslatorUtils {
 	/**
 	 * Translate pagination.
 	 * 
+	 * Translate user generated queries to queries that can
+	 * run against the actual database.
+	 * 
 	 * @param pagination
 	 * @param parameters
 	 */
@@ -405,6 +415,9 @@ public class SQLTranslatorUtils {
 	/**
 	 * Translate a GroupByClause.
 	 * 
+	 * Translate user generated queries to queries that can
+	 * run against the actual database.
+	 * 
 	 * @param groupByClause
 	 * @param columnNameToModelMap
 	 */
@@ -427,6 +440,9 @@ public class SQLTranslatorUtils {
 
 	/**
 	 * Translate a predicate.
+	 * 
+	 * Translate user generated queries to queries that can
+	 * run against the actual database.
 	 * 
 	 * @param predicate
 	 * @param parameters
@@ -458,6 +474,10 @@ public class SQLTranslatorUtils {
 	
 	/**
 	 * Translate the right-hand-side of a predicate.
+	 * 
+	 * Translate user generated queries to queries that can
+	 * run against the actual database.
+	 * 
 	 * @param hasQuoteValue
 	 * @param model
 	 * @param parameters
@@ -523,6 +543,10 @@ public class SQLTranslatorUtils {
 
 	/**
 	 * Translate a HasReferencedColumn for the select clause.
+	 * 
+	 * Translate user generated queries to queries that can
+	 * run against the actual database.
+	 * 
 	 * @param column
 	 * @param columnNameToModelMap
 	 */
@@ -549,6 +573,10 @@ public class SQLTranslatorUtils {
 	
 	/**
 	 * Translate HasReferencedColumn for order by clause.
+	 * 
+	 * Translate user generated queries to queries that can
+	 * run against the actual database.
+	 * 
 	 * @param column
 	 * @param columnNameToModelMap
 	 */
@@ -568,6 +596,10 @@ public class SQLTranslatorUtils {
 
 	/**
 	 * Translate the table name.
+	 * 
+	 * Translate user generated queries to queries that can
+	 * run against the actual database.
+	 * 
 	 * @param tableReference
 	 */
 	public static void translate(TableReference tableReference) {
