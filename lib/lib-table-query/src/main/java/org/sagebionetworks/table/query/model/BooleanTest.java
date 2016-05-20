@@ -2,9 +2,6 @@ package org.sagebionetworks.table.query.model;
 
 import java.util.List;
 
-import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor;
-import org.sagebionetworks.table.query.model.visitors.Visitor;
-
 
 /**
  * This matches &ltboolean test&gt   in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
@@ -40,22 +37,7 @@ public class BooleanTest extends SQLElement {
 	public TruthValue getTruthValue() {
 		return truthValue;
 	}
-
-	public void visit(Visitor visitor) {
-		visit(this.booleanPrimary, visitor);
-	}
-
-	public void visit(ToSimpleSqlVisitor visitor) {
-		visit(this.booleanPrimary, visitor);
-		if(is != null){
-			visitor.append(" IS ");
-			if(not != null){
-				visitor.append("NOT ");
-			}
-			visitor.append(this.truthValue.name());
-		}
-	}
-
+	
 	@Override
 	public void toSql(StringBuilder builder) {
 		booleanPrimary.toSql(builder);

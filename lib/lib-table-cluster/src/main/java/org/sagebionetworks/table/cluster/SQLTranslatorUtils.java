@@ -20,7 +20,6 @@ import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.ActualIdentifier;
-import org.sagebionetworks.table.query.model.BooleanFunction;
 import org.sagebionetworks.table.query.model.BooleanFunctionPredicate;
 import org.sagebionetworks.table.query.model.BooleanPrimary;
 import org.sagebionetworks.table.query.model.CharacterFactor;
@@ -28,7 +27,6 @@ import org.sagebionetworks.table.query.model.CharacterPrimary;
 import org.sagebionetworks.table.query.model.CharacterValueExpression;
 import org.sagebionetworks.table.query.model.ColumnName;
 import org.sagebionetworks.table.query.model.ColumnReference;
-import org.sagebionetworks.table.query.model.ComparisonPredicate;
 import org.sagebionetworks.table.query.model.DerivedColumn;
 import org.sagebionetworks.table.query.model.Factor;
 import org.sagebionetworks.table.query.model.FunctionType;
@@ -43,9 +41,7 @@ import org.sagebionetworks.table.query.model.NumericValueExpression;
 import org.sagebionetworks.table.query.model.NumericValueFunction;
 import org.sagebionetworks.table.query.model.OrderByClause;
 import org.sagebionetworks.table.query.model.Pagination;
-import org.sagebionetworks.table.query.model.Predicate;
 import org.sagebionetworks.table.query.model.QuerySpecification;
-import org.sagebionetworks.table.query.model.SearchCondition;
 import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.model.StringValueExpression;
 import org.sagebionetworks.table.query.model.TableExpression;
@@ -54,36 +50,20 @@ import org.sagebionetworks.table.query.model.Term;
 import org.sagebionetworks.table.query.model.ValueExpression;
 import org.sagebionetworks.table.query.model.ValueExpressionPrimary;
 import org.sagebionetworks.table.query.model.WhereClause;
-import org.sagebionetworks.table.query.model.visitors.ToTranslatedSqlVisitor;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
-import org.sagebionetworks.util.TimeUtils;
 import org.sagebionetworks.util.ValidateArgument;
 
 import com.google.common.collect.Lists;
 
 /**
- * Helper methods to translate table SQL queries.
- * 
+ * Helper methods to translate user generated queries
+ * to queries that run against the actual database.
  *
  */
 public class SQLTranslatorUtils {
 
 	private static final String COLON = ":";
 	public static final String BIND_PREFIX = "b";
-
-	/**
-	 * Translate the passed query model into output SQL.
-	 * 
-	 * @param model The model representing a query.
-	 * @param outputBuilder
-	 * @param parameters
-	 */
-	public static String translate(QuerySpecification model, final Map<String, Object> parameters,
-			final Map<String, ColumnModel> columnNameToModelMap) {
-		ToTranslatedSqlVisitor visitor = new ToTranslatedSqlVisitorImpl(parameters, columnNameToModelMap);
-		model.doVisit(visitor);
-		return visitor.getSql();
-	}
 
 	/**
 	 * Get the list of column IDs that are referenced in the select clause.
@@ -320,6 +300,10 @@ public class SQLTranslatorUtils {
 
 	/**
 	 * Translate this query into a form that can be executed against the actual table index.
+	 * 
+	 * Translate user generated queries to queries that can
+	 * run against the actual database.
+	 * 
 	 * @param transformedModel
 	 * @param parameters
 	 * @param columnNameToModelMap
@@ -379,6 +363,9 @@ public class SQLTranslatorUtils {
 	/**
 	 * Translate pagination.
 	 * 
+	 * Translate user generated queries to queries that can
+	 * run against the actual database.
+	 * 
 	 * @param pagination
 	 * @param parameters
 	 */
@@ -405,6 +392,9 @@ public class SQLTranslatorUtils {
 	/**
 	 * Translate a GroupByClause.
 	 * 
+	 * Translate user generated queries to queries that can
+	 * run against the actual database.
+	 * 
 	 * @param groupByClause
 	 * @param columnNameToModelMap
 	 */
@@ -427,6 +417,9 @@ public class SQLTranslatorUtils {
 
 	/**
 	 * Translate a predicate.
+	 * 
+	 * Translate user generated queries to queries that can
+	 * run against the actual database.
 	 * 
 	 * @param predicate
 	 * @param parameters
@@ -458,6 +451,10 @@ public class SQLTranslatorUtils {
 	
 	/**
 	 * Translate the right-hand-side of a predicate.
+	 * 
+	 * Translate user generated queries to queries that can
+	 * run against the actual database.
+	 * 
 	 * @param hasQuoteValue
 	 * @param model
 	 * @param parameters
@@ -523,6 +520,10 @@ public class SQLTranslatorUtils {
 
 	/**
 	 * Translate a HasReferencedColumn for the select clause.
+	 * 
+	 * Translate user generated queries to queries that can
+	 * run against the actual database.
+	 * 
 	 * @param column
 	 * @param columnNameToModelMap
 	 */
@@ -549,6 +550,10 @@ public class SQLTranslatorUtils {
 	
 	/**
 	 * Translate HasReferencedColumn for order by clause.
+	 * 
+	 * Translate user generated queries to queries that can
+	 * run against the actual database.
+	 * 
 	 * @param column
 	 * @param columnNameToModelMap
 	 */
@@ -568,6 +573,10 @@ public class SQLTranslatorUtils {
 
 	/**
 	 * Translate the table name.
+	 * 
+	 * Translate user generated queries to queries that can
+	 * run against the actual database.
+	 * 
 	 * @param tableReference
 	 */
 	public static void translate(TableReference tableReference) {

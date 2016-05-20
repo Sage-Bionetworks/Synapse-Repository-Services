@@ -2,9 +2,6 @@ package org.sagebionetworks.table.query.model;
 
 import java.util.List;
 
-import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor;
-import org.sagebionetworks.table.query.model.visitors.Visitor;
-
 
 public class NumericValueFunction extends SQLElement implements HasAggregate, HasFunctionType {
 
@@ -17,15 +14,7 @@ public class NumericValueFunction extends SQLElement implements HasAggregate, Ha
 	public MysqlFunction getMysqlFunction() {
 		return mysqlFunction;
 	}
-
-	public void visit(Visitor visitor) {
-	}
-
-	public void visit(ToSimpleSqlVisitor visitor) {
-		visitor.append(mysqlFunction.name());
-		visitor.append("()");
-	}
-
+	
 	@Override
 	public void toSql(StringBuilder builder) {
 		builder.append(mysqlFunction.name());

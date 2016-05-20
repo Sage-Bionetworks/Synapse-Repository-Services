@@ -2,8 +2,6 @@ package org.sagebionetworks.table.query.model;
 
 import java.util.List;
 
-import org.sagebionetworks.table.query.model.visitors.Visitor;
-
 /**
  * This matches &ltpredicate&gt in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
  */
@@ -62,24 +60,6 @@ public class Predicate extends SQLElement {
 
 	public BooleanFunctionPredicate getBooleanFunctionPredicate() {
 		return booleanFunctionPredicate;
-	}
-
-	public void visit(Visitor visitor) {
-		if (comparisonPredicate != null) {
-			visit(comparisonPredicate, visitor);
-		} else if (betweenPredicate != null) {
-			visit(betweenPredicate, visitor);
-		} else if (inPredicate != null) {
-			visit(inPredicate, visitor);
-		} else if (likePredicate != null) {
-			visit(likePredicate, visitor);
-		} else if (isPredicate != null) {
-			visit(isPredicate, visitor);
-		} else if (booleanFunctionPredicate != null) {
-			visit(booleanFunctionPredicate, visitor);
-		} else {
-			throw new IllegalArgumentException("no predicate defined");
-		}
 	}
 
 	@Override

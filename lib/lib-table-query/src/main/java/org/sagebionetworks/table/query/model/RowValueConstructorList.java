@@ -3,9 +3,6 @@ package org.sagebionetworks.table.query.model;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor;
-import org.sagebionetworks.table.query.model.visitors.Visitor;
-
 /**
  * This matches &ltrow value constructor list&gt  in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
  */
@@ -27,23 +24,6 @@ public class RowValueConstructorList extends SQLElement {
 
 	public List<RowValueConstructorElement> getRowValueConstructorElements() {
 		return rowValueConstructorElements;
-	}
-
-	public void visit(Visitor visitor) {
-		for (RowValueConstructorElement element : rowValueConstructorElements) {
-			visit(element, visitor);
-		}
-	}
-
-	public void visit(ToSimpleSqlVisitor visitor) {
-		boolean isFrist = true;
-		for(RowValueConstructorElement element: rowValueConstructorElements){
-			if(!isFrist){
-				visitor.append(", ");
-			}
-			visit(element, visitor);
-			isFrist = false;
-		}
 	}
 
 	@Override

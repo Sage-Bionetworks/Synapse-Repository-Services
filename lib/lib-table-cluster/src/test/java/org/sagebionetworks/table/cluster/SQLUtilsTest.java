@@ -530,36 +530,8 @@ public class SQLUtilsTest {
 	@Test
 	public void testAppendDoubleCase() {
 		StringBuilder sb = new StringBuilder();
-		SQLUtils.appendDoubleCase("3", "", null, true, true, sb);
-		assertEquals("CASE WHEN _DBL_C3_ IS NULL THEN _C3_ ELSE _DBL_C3_ END AS _C3_", sb.toString());
-	}
-
-	@Test
-	public void testAppendDoubleCaseNoAs() {
-		StringBuilder sb = new StringBuilder();
-		SQLUtils.appendDoubleCase("3", "", null, true, false, sb);
+		SQLUtils.appendDoubleCase("3", sb);
 		assertEquals("CASE WHEN _DBL_C3_ IS NULL THEN _C3_ ELSE _DBL_C3_ END", sb.toString());
-	}
-
-	@Test
-	public void testAppendDoubleCaseWithSubname() {
-		StringBuilder sb = new StringBuilder();
-		SQLUtils.appendDoubleCase("3", "sub_", null, true, true, sb);
-		assertEquals("CASE WHEN _DBLsub__C3_ IS NULL THEN sub__C3_ ELSE _DBLsub__C3_ END AS sub__C3_", sb.toString());
-	}
-
-	@Test
-	public void testAppendDoubleCaseInOrderBy() {
-		StringBuilder sb = new StringBuilder();
-		SQLUtils.appendDoubleCase("3", "", "table", false, true, sb);
-		assertEquals("table._C3_", sb.toString());
-	}
-
-	@Test
-	public void testAppendDoubleWithSubnameCaseInOrderBy() {
-		StringBuilder sb = new StringBuilder();
-		SQLUtils.appendDoubleCase("3", "sub_", "table", false, true, sb);
-		assertEquals("table.sub__C3_", sb.toString());
 	}
 
 	@Test

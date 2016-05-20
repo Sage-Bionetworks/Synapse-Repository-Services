@@ -2,8 +2,6 @@ package org.sagebionetworks.table.query.model;
 
 import java.util.List;
 
-import org.sagebionetworks.table.query.model.visitors.Visitor;
-
 public class Term extends SQLElement {
 
 	private Factor factor;
@@ -14,10 +12,6 @@ public class Term extends SQLElement {
 
 	public Factor getFactor() {
 		return factor;
-	}
-
-	public void visit(Visitor visitor) {
-		visit(this.factor, visitor);
 	}
 
 	@Override

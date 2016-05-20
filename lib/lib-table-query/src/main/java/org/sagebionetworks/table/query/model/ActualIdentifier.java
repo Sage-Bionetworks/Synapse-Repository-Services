@@ -2,9 +2,6 @@ package org.sagebionetworks.table.query.model;
 
 import java.util.List;
 
-import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor;
-import org.sagebionetworks.table.query.model.visitors.Visitor;
-
 
 /**
  * This matches &ltactual identifier&gt   in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
@@ -23,23 +20,6 @@ public class ActualIdentifier extends SQLElement implements HasQuoteValue {
 	}
 	public String getDelimitedIdentifier() {
 		return delimitedIdentifier;
-	}
-
-	public void visit(Visitor visitor) {
-	}
-
-	public void visit(ToSimpleSqlVisitor visitor) {
-		// We do not
-		if(regularIdentifier != null){
-			// Regular identifiers can be written without modification.
-			visitor.append(regularIdentifier);
-		}else{
-			// Delimited identifiers must be within double quotes.
-			// And double quote characters must be escaped with another double quote.
-			visitor.append("\"");
-			visitor.append(delimitedIdentifier.replaceAll("\"", "\"\""));
-			visitor.append("\"");
-		}
 	}
 
 	@Override

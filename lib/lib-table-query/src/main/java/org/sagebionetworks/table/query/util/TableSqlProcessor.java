@@ -16,7 +16,6 @@ import org.sagebionetworks.table.query.model.SortSpecification;
 import org.sagebionetworks.table.query.model.SortSpecificationList;
 import org.sagebionetworks.table.query.model.TableExpression;
 import org.sagebionetworks.table.query.model.ValueExpressionPrimary;
-import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor;
 
 /**
  * A utility for processing table SQL strings. This class is part of the table
@@ -117,9 +116,7 @@ public class TableSqlProcessor {
 				model.getSetQuantifier(), selectList, new TableExpression(
 						te.getFromClause(), te.getWhereClause(),
 						te.getGroupByClause(), newCluase, te.getPagination()));
-		ToSimpleSqlVisitor visitor = new ToSimpleSqlVisitor();
-		newQuery.visit(visitor);
-		return visitor.getSql();
+		return newQuery.toSql();
 	}
 
 	/**
