@@ -17,6 +17,7 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.spring.transaction.StreamingJdbcTemplate;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowCallbackHandler;
@@ -31,9 +32,9 @@ public class FileViewDaoImpl implements FileViewDao {
 	private static final String IDS_PARAM_NAME = "ids_param";
 	private static final String SQL_COUNT_FILES_IN_CONTAINERS = "SELECT COUNT("+COL_NODE_ID+") FROM "+TABLE_NODE+" WHERE "+COL_NODE_TYPE+" = '"+EntityType.file.name()+"' AND "+COL_NODE_PARENT_ID+" IN (:"+IDS_PARAM_NAME+")";
 	private static final String SQL_SELECT_FILE_CRC32 = "SELECT SUM(CRC32(CONCAT("+ COL_NODE_ID+", '-',"+ COL_NODE_ETAG+ "))) FROM "+ TABLE_NODE+ " WHERE "+ COL_NODE_TYPE+ " = '"+ EntityType.file+ "' AND "+ COL_NODE_PARENT_ID + " IN (:" + IDS_PARAM_NAME + ")";
-
+	
 	@Autowired
-	private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
+	private StreamingJdbcTemplate streamingJdbcTemplate;
 
 	@Override
 	public long calculateCRCForAllFilesWithinContainers(Set<Long> viewContainers) {
@@ -44,6 +45,7 @@ public class FileViewDaoImpl implements FileViewDao {
 		}
 		Map<String, Set<Long>> parameters = new HashMap<String, Set<Long>>(1);
 		parameters.put(IDS_PARAM_NAME, viewContainers);
+		NamedParameterJdbcTemplate namedParameterJdbcTemplate = new NamedParameterJdbcTemplate(streamingJdbcTemplate);
 		Long result = namedParameterJdbcTemplate.queryForObject(
 				SQL_SELECT_FILE_CRC32, parameters, Long.class);
 		if (result == null) {
@@ -69,7 +71,7 @@ public class FileViewDaoImpl implements FileViewDao {
 		Map<String, Set<Long>> parameters = new HashMap<String, Set<Long>>(1);
 		parameters.put(IDS_PARAM_NAME, containers);
 		String query = FileViewUtils.createSQLForSchema(schema);
-
+		NamedParameterJdbcTemplate namedParameterJdbcTemplate = new NamedParameterJdbcTemplate(streamingJdbcTemplate);
 		namedParameterJdbcTemplate.query(query, parameters,
 				new RowCallbackHandler() {
 
@@ -87,6 +89,7 @@ public class FileViewDaoImpl implements FileViewDao {
 	public long countAllFilesInView(Set<Long> allContainersInScope) {
 		Map<String, Set<Long>> parameters = new HashMap<String, Set<Long>>(1);
 		parameters.put(IDS_PARAM_NAME, allContainersInScope);
+		NamedParameterJdbcTemplate namedParameterJdbcTemplate = new NamedParameterJdbcTemplate(streamingJdbcTemplate);
 		return namedParameterJdbcTemplate.queryForObject(SQL_COUNT_FILES_IN_CONTAINERS, parameters, Long.class);
 	}
 

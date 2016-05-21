@@ -19,18 +19,18 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 public class StreamingJdbcTemplateTest {
 
 	@Autowired
-	JdbcTemplate jdbcTemplate;
+	JdbcTemplate streamingJdbcTemplate;
 
 	@Test
 	public void testStreamingJdbcTemplate() {
-		assertTrue(jdbcTemplate instanceof StreamingJdbcTemplate);
+		assertTrue(streamingJdbcTemplate instanceof StreamingJdbcTemplate);
 	}
 
 	@Test
 	public void testStreamingConfiguration() {
 		// Use a StatementCallback to gain access to how the Statement is
 		// configured.
-		jdbcTemplate.execute(new StatementCallback<Void>() {
+		streamingJdbcTemplate.execute(new StatementCallback<Void>() {
 
 			@Override
 			public Void doInStatement(Statement stmt) throws SQLException,
