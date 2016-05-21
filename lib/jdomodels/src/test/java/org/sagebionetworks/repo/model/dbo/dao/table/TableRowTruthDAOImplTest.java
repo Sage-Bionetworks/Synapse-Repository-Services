@@ -1,10 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.dao.table;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -352,6 +348,40 @@ public class TableRowTruthDAOImplTest {
 		}catch (NotFoundException e){
 			// expected;
 		}
+	}
+	
+	/**
+	 * Test for getting a RowSet with a schema that does not match the current schema.
+	 * 
+	 *  @see <a href="https://sagebionetworks.jira.com/browse/PLFM-3872">PLFM-3872</a>
+	 *  
+	 * @throws IOException
+	 * @throws NotFoundException
+	 */
+	@Test
+	public void testGetRowSetDoesNotMatchCurrentSchema() throws IOException, NotFoundException{
+		List<ColumnModel> columns = TableModelTestUtils.createOneOfEachType();
+		// create some test rows.
+		List<Row> rows = TableModelTestUtils.createRows(columns, 5, false);
+		String tableId = "syn123";
+		RawRowSet set = new RawRowSet(TableModelUtils.getIds(columns), null, tableId, rows);
+		// Append this change set
+		RowReferenceSet refSet = tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, columns, set);
+		assertNotNull(refSet);
+		// The current schema only includes two of the original columns.
+		List<ColumnModel> currentSchema = Lists.newArrayList(columns.get(2),columns.get(0));
+		// Get the rows back
+		RowSet fetched = tableRowTruthDao.getRowSet(tableId, 0l, currentSchema);
+		assertNotNull(fetched);
+		assertNotNull(fetched.getHeaders());
+		// The headers should be the same size as the original schema even though some columns are expected to be null.
+		assertEquals(columns.size(), fetched.getHeaders().size());
+		assertNotNull(fetched.getHeaders().get(0));
+		assertEquals(columns.get(0).getId(), fetched.getHeaders().get(0).getId());
+		assertNull("The current schema does not include this column so its header should be null",fetched.getHeaders().get(1));
+		assertNotNull(fetched.getHeaders().get(2));
+		assertEquals(columns.get(2).getId(), fetched.getHeaders().get(2).getId());
+		assertNull("The current schema does not include this column so its header should be null", fetched.getHeaders().get(3));
 	}
 	
 	

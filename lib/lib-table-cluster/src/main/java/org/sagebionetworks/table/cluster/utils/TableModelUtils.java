@@ -1217,5 +1217,31 @@ public class TableModelUtils {
 			throw new RuntimeException(e);
 		}
 	}
+	
+	/**
+	 * Create a List of SelectColumn in the same order as the passed list of column model IDs.
+	 * Each SelectColumn is derived from the provided schema according to ID.  A null value
+	 * will be added to the result list for any column model ID that does not match the given schema.
+	 * 
+	 * @param columnIds
+	 * @param schema
+	 * @return
+	 */
+	public static List<SelectColumn> getSelectColumnsFromColumnIds(List<Long> columnIds, final List<ColumnModel> schema) {
+		Map<Long, ColumnModel> schemaMap = new HashMap<Long, ColumnModel>(schema.size());
+		for(ColumnModel cm: schema){
+			schemaMap.put(Long.parseLong(cm.getId()), cm);
+		}
+		List<SelectColumn> results = new LinkedList<SelectColumn>();
+		for(Long id: columnIds){
+			SelectColumn select = null;
+			ColumnModel cm = schemaMap.get(id);
+			if(cm != null){
+				select = createSelectColumn(cm);
+			}
+			results.add(select);
+		}
+		return results;
+	}
 
 }
