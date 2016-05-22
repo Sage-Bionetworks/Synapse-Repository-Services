@@ -371,7 +371,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 			RowSet set = new RowSet();
 			List<Row> rows = TableModelUtils.readFromCSVgzStream(object.getObjectContent());
 			set.setTableId(tableId);
-			set.setHeaders(TableModelUtils.getSelectColumns(columns));
+			set.setHeaders(TableModelUtils.getSelectColumnsFromColumnIds(dto.getIds(), columns));
 			set.setRows(rows);
 			set.setEtag(dto.getEtag());
 			return set;
