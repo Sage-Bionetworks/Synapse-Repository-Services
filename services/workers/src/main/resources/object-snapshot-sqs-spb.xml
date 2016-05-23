@@ -78,7 +78,7 @@
 									<bean class="org.sagebionetworks.object.snapshot.worker.ObjectSnapshotWorker" />
 								</property>
 								<property name="semaphoreLockKey" value="objectSnapshotWorker" />
-								<property name="semaphoreMaxLockCount" value="1" />
+								<property name="semaphoreMaxLockCount" value="4" />
 								<property name="semaphoreLockAndMessageVisibilityTimeoutSec"
 									value="120" />
 								<property name="queueName"
