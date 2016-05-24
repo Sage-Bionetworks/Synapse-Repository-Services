@@ -36,7 +36,7 @@ import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
-import org.sagebionetworks.repo.model.dao.table.RowAndHeaderHandler;
+import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -143,11 +143,11 @@ public class TableQueryManagerImplTest {
 		when(mockColumnModelDAO.getColumnModelsForObject(tableId)).thenReturn(models);
 		when(mockTableConnectionFactory.getConnection(tableId)).thenReturn(mockTableIndexDAO);
 		when(mockTableIndexDAO.query(any(ProgressCallback.class),any(SqlQuery.class))).thenReturn(set);
-		stub(mockTableIndexDAO.queryAsStream(any(ProgressCallback.class),any(SqlQuery.class), any(RowAndHeaderHandler.class))).toAnswer(new Answer<Boolean>() {
+		stub(mockTableIndexDAO.queryAsStream(any(ProgressCallback.class),any(SqlQuery.class), any(RowHandler.class))).toAnswer(new Answer<Boolean>() {
 			@Override
 			public Boolean answer(InvocationOnMock invocation) throws Throwable {
 				SqlQuery query = (SqlQuery) invocation.getArguments()[1];
-				RowAndHeaderHandler handler =  (RowAndHeaderHandler) invocation.getArguments()[2];
+				RowHandler handler =  (RowHandler) invocation.getArguments()[2];
 				boolean isCount = false;
 				if (query.getModel().getSelectList().getColumns() != null) {
 					String sql = query.getModel().getSelectList().getColumns().get(0).toString();
@@ -158,11 +158,9 @@ public class TableQueryManagerImplTest {
 					}
 				}
 				if (isCount) {
-					handler.writeHeader();
 					handler.nextRow(TableModelTestUtils.createRow(null, null, "10"));
 				} else {
 					// Pass all rows to the handler
-					handler.writeHeader();
 					for (Row row : set.getRows()) {
 						handler.nextRow(row);
 					}
@@ -542,7 +540,7 @@ public class TableQueryManagerImplTest {
 	}
 	
 	@Test
-	public void testRunConsistentQueryAsStream() throws NotFoundException, TableUnavilableException, TableFailedException{
+	public void testRunConsistentQueryAsStreamDownload() throws NotFoundException, TableUnavilableException, TableFailedException{
 		String sql = "select * from "+tableId;
 		List<SortItem> sortList = null;
 		boolean includeRowIdAndVersion = false;
@@ -555,10 +553,11 @@ public class TableQueryManagerImplTest {
 		
 		verify(mockTableManagerSupport).validateTableReadAccess(user, tableId);
 		assertEquals(11, writtenLines.size());
+		verify(mockProgressCallbackVoid, times(1)).progressMade(null);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
-	public void testRunConsistentQueryAsStreamEmpty() throws NotFoundException, TableUnavilableException, TableFailedException{
+	public void testRunConsistentQueryAsStreamEmptyDownload() throws NotFoundException, TableUnavilableException, TableFailedException{
 		// setup an empty schema.
 		when(mockColumnModelDAO.getColumnModelsForObject(tableId)).thenReturn(new LinkedList<ColumnModel>());
 		String sql = "select * from "+tableId;
@@ -570,4 +569,5 @@ public class TableQueryManagerImplTest {
 				mockProgressCallbackVoid, user, sql, sortList, writer,
 				includeRowIdAndVersion, writeHeader);
 	}
+	
 }

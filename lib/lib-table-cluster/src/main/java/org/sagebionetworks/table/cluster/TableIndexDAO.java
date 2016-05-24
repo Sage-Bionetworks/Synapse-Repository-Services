@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.repo.model.dao.table.RowAndHeaderHandler;
+import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.RowSet;
@@ -75,7 +75,7 @@ public interface TableIndexDAO {
 	 * @param handler
 	 * @return
 	 */
-	public boolean queryAsStream(ProgressCallback<Void> callback, SqlQuery query, RowAndHeaderHandler handler);
+	public boolean queryAsStream(ProgressCallback<Void> callback, SqlQuery query, RowHandler handler);
 	
 	/**
 	 * Get the row count for this table.

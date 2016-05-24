@@ -1,14 +1,14 @@
 package org.sagebionetworks.repo.manager.table;
 
-import org.sagebionetworks.repo.model.dao.table.RowAndHeaderHandler;
+import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.table.cluster.SqlQuery;
 
 public class QueryHandler {
 	
 	private final SqlQuery query;
-	private final RowAndHeaderHandler handler;
+	private final RowHandler handler;
 
-	public QueryHandler(SqlQuery query, RowAndHeaderHandler handler) {
+	public QueryHandler(SqlQuery query, RowHandler handler) {
 		this.query = query;
 		this.handler = handler;
 	}
@@ -17,7 +17,7 @@ public class QueryHandler {
 		return query;
 	}
 
-	public RowAndHeaderHandler getHandler() {
+	public RowHandler getHandler() {
 		return handler;
 	}
 }

@@ -254,7 +254,7 @@ public class TableWorkerIntegrationTest {
 		String sql = "select * from " + tableId + " order by row_id";
 		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 8L);
 		// Progress should have been made
-		verify(mockProgressCallbackVoid, times(1)).progressMade(null);
+		verify(mockProgressCallbackVoid, times(2)).progressMade(null);
 		System.out.println("testRoundTrip");
 		System.out.println(queryResult);
 		assertNotNull(queryResult);
@@ -308,7 +308,7 @@ public class TableWorkerIntegrationTest {
 		String sql = "select row_id from " + tableId;
 		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 8L);
 		// Progress should have been made
-		verify(mockProgressCallbackVoid, times(1)).progressMade(null);
+		verify(mockProgressCallbackVoid, times(2)).progressMade(null);
 		System.out.println("testRoundTrip");
 		System.out.println(queryResult);
 		assertNotNull(queryResult);
@@ -1909,6 +1909,7 @@ public class TableWorkerIntegrationTest {
 		long start = System.currentTimeMillis();
 		while(true){
 			try {
+				tableQueryManger.validateTableIsAvailable(tableId);
 				return tableQueryManger.runConsistentQueryAsStream(mockProgressCallbackVoid, adminUserInfo, sql, null, writer, includeRowIdAndVersion, writeHeader);
 			} catch (TableUnavilableException e) {
 				assertTrue("Timed out waiting for table index worker to make the table available.", (System.currentTimeMillis()-start) <  MAX_WAIT_MS);

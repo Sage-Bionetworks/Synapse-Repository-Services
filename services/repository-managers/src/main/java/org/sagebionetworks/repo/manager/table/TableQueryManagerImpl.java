@@ -13,7 +13,7 @@ import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
-import org.sagebionetworks.repo.model.dao.table.RowAndHeaderHandler;
+import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.Query;
@@ -436,33 +436,19 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			final List<Row> rows = new LinkedList<Row>();
 			results.setRows(rows);
 			results.setTableId(query.getTableId());
+			results.setHeaders(query.getSelectColumns());
 			// Stream the results but keep them in memory.
-			queryHandlers.add(new QueryHandler(query, new RowAndHeaderHandler() {
-
-				@Override
-				public void writeHeader() {
-					results.setHeaders(query.getSelectColumns());
-				}
+			queryHandlers.add(new QueryHandler(query, new RowHandler() {
 
 				@Override
 				public void nextRow(Row row) {
 					rows.add(row);
 				}
-
-				@Override
-				public void setEtag(String etag) {
-					results.setEtag(etag);
-				}
 			}));
 		}
 
 		if (countQuery != null) {
-			queryHandlers.add(new QueryHandler(countQuery, new RowAndHeaderHandler() {
-
-				@Override
-				public void writeHeader() {
-					// no-op
-				}
+			queryHandlers.add(new QueryHandler(countQuery, new RowHandler() {
 
 				@Override
 				public void nextRow(Row row) {
@@ -470,18 +456,15 @@ public class TableQueryManagerImpl implements TableQueryManager {
 						output[1] = Long.parseLong(row.getValues().get(0));
 					}
 				}
-
-				@Override
-				public void setEtag(String etag) {
-				}
 			}));
 		}
 
-		runConsistentQueryAsStream(progressCallback, queryHandlers);
+		String etag = runConsistentQueryAsStream(progressCallback, queryHandlers);
 		
 		QueryResult qr = null;
 		RowSet rowSet = (RowSet) output[0];
 		if(rowSet != null){
+			rowSet.setEtag(etag);
 			qr = new QueryResult();
 			qr.setQueryResults(rowSet);
 		}
@@ -499,16 +482,16 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @throws NotFoundException
 	 * @throws TableFailedException
 	 */
-	private void runConsistentQueryAsStream(ProgressCallback<Void> progressCallback, final List<QueryHandler> queryHandlers) throws TableUnavilableException, NotFoundException,
+	public String runConsistentQueryAsStream(final ProgressCallback<Void> progressCallback, final List<QueryHandler> queryHandlers) throws TableUnavilableException, NotFoundException,
 			TableFailedException {
 		if (queryHandlers.isEmpty()) {
-			return;
+			return null;
 		}
 
 		final String tableId = queryHandlers.get(0).getQuery().getTableId();
 		try {
 			// Run with a read lock.
-			tableManagerSupport.tryRunWithTableNonexclusiveLock(progressCallback, tableId, READ_LOCK_TIMEOUT_SEC, new ProgressingCallable<String, Void>() {
+			return tableManagerSupport.tryRunWithTableNonexclusiveLock(progressCallback, tableId, READ_LOCK_TIMEOUT_SEC, new ProgressingCallable<String, Void>() {
 				@Override
 				public String call(final ProgressCallback<Void> callback) throws Exception {
 					// We can only run this query if the table is available.
@@ -523,13 +506,13 @@ public class TableQueryManagerImpl implements TableQueryManager {
 									throw new IllegalArgumentException("All queries should be on the same table, but " + tableId + " and "
 											+ queryHandler.getQuery().getTableId());
 								}
+								progressCallback.progressMade(null);
 								indexDao.queryAsStream(callback, queryHandler.getQuery(), queryHandler.getHandler());
-								queryHandler.getHandler().setEtag(status.getLastTableChangeEtag());
 							}
 							return null;
 						}
 					});
-					return null;
+					return status.getLastTableChangeEtag();
 				}
 			});
 		} catch (LockUnavilableException e) {
@@ -580,19 +563,17 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			final boolean includeRowIdAndVersionFinal = includeRowIdAndVersion;
 			repsonse.setTableId(query.getTableId());
 			repsonse.setHeaders(query.getSelectColumns());
+			
+			if (writeHeader) {
+				String[] csvHeaders = TableModelUtils.createColumnNameHeader(
+						query.getSelectColumns(),
+						includeRowIdAndVersionFinal);
+				writer.writeNext(csvHeaders);
+			}
 
-			runConsistentQueryAsStream(progressCallback,
+			String etag = runConsistentQueryAsStream(progressCallback,
 					Collections.singletonList(new QueryHandler(query,
-							new RowAndHeaderHandler() {
-								@Override
-								public void writeHeader() {
-									if (writeHeader) {
-										String[] csvHeaders = TableModelUtils.createColumnNameHeader(
-												query.getSelectColumns(),
-												includeRowIdAndVersionFinal);
-										writer.writeNext(csvHeaders);
-									}
-								}
+							new RowHandler() {
 
 								@Override
 								public void nextRow(Row row) {
@@ -602,11 +583,8 @@ public class TableQueryManagerImpl implements TableQueryManager {
 									writer.writeNext(array);
 								}
 
-								@Override
-								public void setEtag(String etag) {
-									repsonse.setEtag(etag);
-								}
 							})));
+			repsonse.setEtag(etag);
 			return repsonse;
 		} catch (EmptySchemaException e) {
 			throw new IllegalArgumentException("Table "+e.getTableId()+" has an empty schema");
