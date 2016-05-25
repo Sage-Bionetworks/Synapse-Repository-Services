@@ -17,9 +17,7 @@ import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.table.query.ParseException;
-import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.csv.CSVWriterStream;
 
 /**
@@ -43,22 +41,6 @@ public interface TableQueryManager {
 	public QueryResultWithCount query(ProgressCallback<Void> progressCallback, UserInfo user, String query, List<SortItem> sortList, Long offset, Long limit, boolean runQuery,
 			boolean runCount, boolean isConsistent) throws DatastoreException, NotFoundException, TableUnavilableException,
 			TableFailedException, ParseException;
-
-	/**
-	 * Execute a table query.
-	 * 
-	 * @param user
-	 * @param query
-	 * @param isConsistent
-	 * @return
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 * @throws TableUnavilableException
-	 * @throws TableFailedException
-	 * @throws ParseException 
-	 */
-	public QueryResultWithCount query(ProgressCallback<Void> progressCallback, UserInfo user, SqlQuery query, Long offset, Long limit, boolean runQuery, boolean runCount,
-			boolean isConsistent) throws DatastoreException, NotFoundException, TableUnavilableException, TableFailedException, ParseException;
 
 	/**
 	 * get the next page of a query
@@ -133,6 +115,4 @@ public interface TableQueryManager {
 	public TableStatus validateTableIsAvailable(String tableId)
 			throws NotFoundException, TableUnavilableException,
 			TableFailedException;
-
-	Long getMaxRowsPerPageSelectColumns(List<SelectColumn> models);
 }

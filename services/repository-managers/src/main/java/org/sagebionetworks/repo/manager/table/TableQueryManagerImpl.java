@@ -98,7 +98,6 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		}
 	}
 
-	@Override
 	public QueryResultWithCount query(ProgressCallback<Void> progressCallback, UserInfo user, SqlQuery query, Long offset, Long limit, boolean runQuery,
 			boolean runCount, boolean isConsistent) throws DatastoreException, NotFoundException, TableUnavilableException,
 			TableFailedException {
@@ -625,7 +624,11 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		return (long) (this.maxBytesPerRequest / maxRowSizeBytes);
 	}
 	
-	@Override
+	/**
+	 * Get the maximum number of rows that can be loaded into memory for the given schema.
+	 * @param models
+	 * @return
+	 */
 	public Long getMaxRowsPerPageSelectColumns(List<SelectColumn> models) {
 		// Calculate the size
 		int maxRowSizeBytes = TableModelUtils.calculateMaxRowSizeForSelectColumn(models);
