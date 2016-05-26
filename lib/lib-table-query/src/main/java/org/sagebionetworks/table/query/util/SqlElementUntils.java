@@ -451,17 +451,15 @@ public class SqlElementUntils {
 	 * @return
 	 * @throws ParseException
 	 */
-	public static QuerySpecification convertToPaginatedQuery(QuerySpecification model, Long offset, Long limit) throws ParseException {
+	public static QuerySpecification convertToPaginatedQuery(QuerySpecification model, Long offset, Long limit) {
 		if (model == null)
 			throw new IllegalArgumentException("QuerySpecification cannot be null");
 		TableExpression currentTableExpression = model.getTableExpression();
 		if (currentTableExpression == null)
 			throw new IllegalArgumentException("TableExpression cannot be null");
-		// add pagination
-		TableExpression tableExpression = new TableExpression(currentTableExpression.getFromClause(),
-				currentTableExpression.getWhereClause(), currentTableExpression.getGroupByClause(),
-				currentTableExpression.getOrderByClause(), new Pagination(limit, offset));
-		return new QuerySpecification(model.getSetQuantifier(), model.getSelectList(), tableExpression);
+		Pagination pagination = new Pagination(limit, offset);
+		currentTableExpression.replace(pagination);
+		return model;
 	}
 
 	public static TableExpression removeOrderByClause(TableExpression tableExpression) {
@@ -514,5 +512,45 @@ public class SqlElementUntils {
 		} else {
 			return new ActualIdentifier(columnName, null);
 		}
+	}
+
+	/**
+	 * Override pagination on the given query using the provided limit and offset.
+	 * 
+	 * @param model
+	 * @param offset
+	 * @param limit
+	 * @return
+	 */
+	public static QuerySpecification overridePagination(
+			QuerySpecification model, Long offset, Long limit, Long maxRowsPerPage) {
+		
+		long limitFromRequest = (limit != null) ? limit : Long.MAX_VALUE;
+		long offsetFromRequest = (offset != null) ? offset : 0L;
+		
+		long limitFromQuery = Long.MAX_VALUE;
+		long offsetFromQuery = 0L;
+		
+		Pagination pagination = model.getTableExpression().getPagination();
+		if (pagination != null) {
+			if (pagination.getLimitLong() != null) {
+				limitFromQuery = pagination.getLimitLong();
+			}
+			if (pagination.getOffsetLong() != null) {
+				offsetFromQuery = pagination.getOffsetLong();
+			}
+		}
+		
+		long paginatedOffset = offsetFromQuery + offsetFromRequest;
+		// adjust the limit from the query based on the additional offset (assume Long.MAX_VALUE - offset is still
+		// always large enough)
+		limitFromQuery = Math.max(0, limitFromQuery - offsetFromRequest);
+		
+		long paginatedLimit = Math.min(limitFromRequest, limitFromQuery);
+		
+		if (paginatedLimit > maxRowsPerPage) {
+			paginatedLimit = maxRowsPerPage;
+		}
+		return convertToPaginatedQuery(model, paginatedOffset, paginatedLimit);
 	}
 }

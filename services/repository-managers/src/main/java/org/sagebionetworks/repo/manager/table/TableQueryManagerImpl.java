@@ -98,9 +98,11 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		}
 	}
 
-	public QueryResultWithCount query(ProgressCallback<Void> progressCallback, UserInfo user, SqlQuery query, Long offset, Long limit, boolean runQuery,
-			boolean runCount, boolean isConsistent) throws DatastoreException, NotFoundException, TableUnavilableException,
-			TableFailedException {
+	public QueryResultWithCount query(ProgressCallback<Void> progressCallback,
+			UserInfo user, SqlQuery query, Long offset, Long limit,
+			boolean runQuery, boolean runCount, boolean isConsistent)
+			throws DatastoreException, NotFoundException,
+			TableUnavilableException, TableFailedException {
 		ValidateArgument.required(user, "UserInfo");
 		ValidateArgument.required(query, "SqlQuery");
 		ValidateArgument.required(query.getTableSchema(), "query.tableSchema");
@@ -108,48 +110,8 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		// Validate the user has read access on this object
 		tableManagerSupport.validateTableReadAccess(user, query.getTableId());
 		
-		SqlQuery paginatedQuery = null;
-		Long maxRowsPerPage = null;
-		boolean oneRowWasAdded = false;
-		if (runQuery || (runCount && query.isAggregatedResult())) {
-			maxRowsPerPage = getMaxRowsPerPageSelectColumns(query.getSelectColumns());
-			if (maxRowsPerPage == null || maxRowsPerPage == 0) {
-				maxRowsPerPage = 100L;
-			}
-			
-			// limits are a bit complicated. We want to get the minimum of maxRowsPerPage and limit in query, but
-			// if we use maxRowsPerPage, we want to add 1 row, which we later remove and use as a marker to see if there
-			// are more results
-			
-			long limitFromRequest = (limit != null) ? limit : Long.MAX_VALUE;
-			long offsetFromRequest = (offset != null) ? offset : 0L;
-			
-			long limitFromQuery = Long.MAX_VALUE;
-			long offsetFromQuery = 0L;
-			
-			Pagination pagination = query.getModel().getTableExpression().getPagination();
-			if (pagination != null) {
-				if (pagination.getLimitLong() != null) {
-					limitFromQuery = pagination.getLimitLong();
-				}
-				if (pagination.getOffsetLong() != null) {
-					offsetFromQuery = pagination.getOffsetLong();
-				}
-			}
-			
-			long paginatedOffset = offsetFromQuery + offsetFromRequest;
-			// adjust the limit from the query based on the additional offset (assume Long.MAX_VALUE - offset is still
-			// always large enough)
-			limitFromQuery = Math.max(0, limitFromQuery - offsetFromRequest);
-			
-			long paginatedLimit = Math.min(limitFromRequest, limitFromQuery);
-			if (paginatedLimit > maxRowsPerPage) {
-				paginatedLimit = maxRowsPerPage + 1;
-				oneRowWasAdded = true;
-			}
-			
-			paginatedQuery = createPaginatedQuery(query, paginatedOffset, paginatedLimit);
-		}
+		// Create the paginated query.
+		SqlQuery paginatedQuery = createPaginatedQuery(query, offset, limit);
 
 		SqlQuery countQuery = null;
 		if (runCount) {
@@ -160,20 +122,8 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			// So, we use count(*) if there is no aggregate and SQL_CALC_FOUND_ROWS if there is
 			if (query.isAggregatedResult()) {
 				// add the SQL_CALC_FOUND_ROWS to the query
-				SelectList paginatedSelectList = paginatedQuery.getModel().getSelectList();
-				if (BooleanUtils.isTrue(paginatedQuery.getModel().getSelectList().getAsterisk())) {
-					// bug in mysql, SQL_CALC_FOUND_ROWS does not work when the select is '*'. Expand to the known
-					// columns
-					paginatedSelectList = new SelectList(Lists.transform(paginatedQuery.getSelectColumns(),
-							new Function<SelectColumn, DerivedColumn>() {
-								@Override
-								public DerivedColumn apply(SelectColumn input) {
-									return SQLTranslatorUtils.createDerivedColumn(input.getName());
-								}
-							}));
-				}
 				QuerySpecification paginatedModel = new QuerySpecification(SqlDirective.SQL_CALC_FOUND_ROWS, paginatedQuery.getModel()
-						.getSetQuantifier(), paginatedSelectList, paginatedQuery.getModel().getTableExpression());
+						.getSetQuantifier(), paginatedQuery.getModel().getSelectList(), paginatedQuery.getModel().getTableExpression());
 				paginatedQuery = new SqlQuery(paginatedModel, paginatedQuery.getTableSchema(), paginatedQuery.getTableId());
 				// and make the count query "SELECT FOUND_ROWS()"
 				SelectList selectList = new SelectList(Lists.newArrayList(SQLTranslatorUtils.createDerivedColumn(MysqlFunction.FOUND_ROWS)));
@@ -253,6 +203,28 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		return new QueryResultWithCount(queryResult, count);
 	}
 	
+	/**
+	 * Create a paginated query using the optional limit and offset overrides.
+	 * The resulting limit will never be larger than the maximum number
+	 * of rows per page.
+	 * 
+	 * @param query
+	 * @param offset
+	 * @param limit
+	 * @return
+	 */
+	public SqlQuery createPaginatedQuery(SqlQuery query, Long offset,
+			Long limit) {
+		// the max rows per page is a function of the query select.
+		Long maxRowsPerPage = getMaxRowsPerPageSelectColumns(query.getSelectColumns());
+		if (maxRowsPerPage == null || maxRowsPerPage == 0) {
+			maxRowsPerPage = 100L;
+		}
+		// Override pagination.
+		QuerySpecification model = SqlElementUntils.overridePagination(query.getModel(), offset, limit, maxRowsPerPage);
+		return new SqlQuery(model, query.getTableSchema(), query.getTableId());
+	}
+
 	@Override
 	public QueryResult queryNextPage(ProgressCallback<Void> progressCallback, UserInfo user, QueryNextPageToken nextPageToken) throws DatastoreException, NotFoundException,
 			TableUnavilableException, TableFailedException {
@@ -272,8 +244,9 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		// The SQL query is need for the actual query, select columns, and max rows per page.
 		SqlQuery sqlQuery;
 		try {
-			sqlQuery = createQuery(queryBundle.getQuery().getSql(), queryBundle
-					.getQuery().getSort());
+			sqlQuery = createQuery(
+					queryBundle.getQuery().getSql()
+					, queryBundle.getQuery().getSort());
 
 			// query
 			long partMask = -1L; // default all
@@ -283,11 +256,19 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			boolean runQuery = ((partMask & BUNDLE_MASK_QUERY_RESULTS) != 0);
 			boolean runCount = ((partMask & BUNDLE_MASK_QUERY_COUNT) != 0);
 			if (runQuery || runCount) {
-				QueryResultWithCount queryResult = query(progressCallback,
-						user, sqlQuery, queryBundle.getQuery().getOffset(),
-						queryBundle.getQuery().getLimit(), runQuery, runCount,
-						BooleanUtils.isNotFalse(queryBundle.getQuery()
-								.getIsConsistent()));
+				boolean isConsistent = BooleanUtils.isNotFalse(queryBundle.getQuery()
+						.getIsConsistent());
+				// execute the query
+				QueryResultWithCount queryResult = query(
+						progressCallback,
+						user,
+						sqlQuery,
+						queryBundle.getQuery().getOffset(),
+						queryBundle.getQuery().getLimit(),
+						runQuery,
+						runCount,
+						isConsistent
+						);
 				bundle.setQueryResult(queryResult.getQueryResult());
 				bundle.setQueryCount(queryResult.getCount());
 			}
@@ -401,19 +382,10 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		List<ColumnModel> columnModels = columnModelDAO.getColumnModelsForObject(tableId);
 		if(columnModels.isEmpty()){
 			throw new EmptySchemaException("Table schema is empty for: "+tableId, tableId);
-		}
+		}	
 		return new SqlQuery(model, columnModels, tableId);
 	}
 
-	public SqlQuery createPaginatedQuery(SqlQuery query, Long offset, Long limit) {
-		QuerySpecification model;
-		try {
-			model = SqlElementUntils.convertToPaginatedQuery(query.getModel(), offset, limit);
-		} catch (ParseException e) {
-			throw new IllegalArgumentException(e.getMessage(), e);
-		}
-		return new SqlQuery(model, query.getTableSchema(), query.getTableId());
-	}
 
 	/**
 	 * Run a consistent query. All resulting rows will be loading into memory at one time with this method.

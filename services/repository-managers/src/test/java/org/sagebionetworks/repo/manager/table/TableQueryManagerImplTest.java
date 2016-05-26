@@ -48,6 +48,7 @@ import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
+import org.sagebionetworks.repo.model.table.SortDirection;
 import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableState;
@@ -523,6 +524,27 @@ public class TableQueryManagerImplTest {
 		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
 		// call under test
 		manager.validateTableIsAvailable(tableId);
+	}
+	
+	@Test
+	public void testCreateQuerySelectStar() throws EmptySchemaException {
+		List<SortItem> sortList= null;
+		// call under test
+		SqlQuery result = manager.createQuery("select * from "+tableId, sortList);
+		assertNotNull(result);
+		assertEquals("SELECT i0, i1, i2, i3, i4, i5, i6, i7, i8 FROM syn123", result.getModel().toSql());
+	}
+	
+	@Test
+	public void testCreateQueryOverrideSort() throws EmptySchemaException {
+		SortItem sort = new SortItem();
+		sort.setColumn("i0");
+		sort.setDirection(SortDirection.DESC);
+		List<SortItem> sortList= Lists.newArrayList(sort);
+		// call under test
+		SqlQuery result = manager.createQuery("select i2, i0 from "+tableId, sortList);
+		assertNotNull(result);
+		assertEquals("SELECT i2, i0 FROM syn123 ORDER BY i0 DESC", result.getModel().toSql());
 	}
 	
 	@Test
