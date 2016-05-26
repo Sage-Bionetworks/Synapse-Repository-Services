@@ -127,6 +127,9 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 			+COL_DISCUSSION_THREAD_ETAG+" = ?, "
 			+COL_DISCUSSION_THREAD_MODIFIED_ON+" = ? "
 			+" WHERE "+COL_DISCUSSION_THREAD_ID+" = ?";
+	private static final String SQL_UPDATE_THREAD_ETAG = "UPDATE "+TABLE_DISCUSSION_THREAD
+			+" SET "+COL_DISCUSSION_THREAD_ETAG+" = ?"
+			+" WHERE "+COL_DISCUSSION_THREAD_ID+" = ?";
 
 	private static final String SELECT_PROJECT_ID = "SELECT "
 			+TABLE_FORUM+"."+COL_FORUM_PROJECT_ID
@@ -248,6 +251,8 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 	@Override
 	public void updateThreadView(long threadId, long userId) {
 		jdbcTemplate.update(SQL_UPDATE_THREAD_VIEW_TABLE, threadId, userId);
+		String etag = UUID.randomUUID().toString();
+		jdbcTemplate.update(SQL_UPDATE_THREAD_ETAG, etag, threadId);
 	}
 
 	@Override
