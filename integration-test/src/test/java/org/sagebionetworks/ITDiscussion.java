@@ -96,6 +96,9 @@ public class ITDiscussion {
 		assertEquals(synapse.getThread(threadId), bundle);
 		threads = synapse.getThreadsForForum(forumId, 100L, 0L, null, null, DiscussionFilter.NO_FILTER);
 		assertTrue(threads.getResults().size() == 1);
+		// etag has changed
+		bundle.setEtag(null);
+		threads.getResults().get(0).setEtag(null);
 		assertEquals(threads.getResults().get(0), bundle);
 		assertEquals(1L, threads.getTotalNumberOfResults());
 		assertEquals((Long)1L, synapse.getThreadCountForForum(forumId, DiscussionFilter.NO_FILTER).getCount());

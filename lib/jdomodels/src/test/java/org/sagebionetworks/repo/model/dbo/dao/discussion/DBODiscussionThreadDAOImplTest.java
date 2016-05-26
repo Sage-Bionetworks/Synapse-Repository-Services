@@ -615,4 +615,12 @@ public class DBODiscussionThreadDAOImplTest {
 		assertEquals(1L, ids.size());
 		assertEquals(threadId.toString(), ids.get(0));
 	}
+
+	@Test
+	public void testUpdateThreadViewTriggerThreadEtagChange() {
+		DiscussionThreadBundle threadBundle = threadDao.createThread(forumId, threadId.toString(), "title", "messageKey", userId);
+		threadDao.updateThreadView(threadId, userId);
+		DiscussionThreadBundle updated = threadDao.getThread(threadId, DEFAULT_FILTER);
+		assertFalse(threadBundle.getEtag().equals(updated.getEtag()));
+	}
 }
