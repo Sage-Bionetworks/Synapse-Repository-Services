@@ -41,6 +41,8 @@ import org.sagebionetworks.table.cluster.SQLUtils.TableType;
 import org.sagebionetworks.table.cluster.TableIndexDAO.ColumnDefinition;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
+import org.sagebionetworks.table.query.util.SimpleAggregateQueryException;
+import org.sagebionetworks.table.query.util.SqlElementUntils;
 import org.sagebionetworks.util.ReflectionStaticTestUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -282,7 +284,7 @@ public class TableIndexDAOImplTest {
 	}
 
 	@Test
-	public void testSimpleQuery() throws ParseException {
+	public void testSimpleQuery() throws ParseException, SimpleAggregateQueryException {
 		// Create the table
 		List<ColumnModel> allTypes = TableModelTestUtils.createOneOfEachType();
 		tableIndexDAO.createOrUpdateTable(allTypes, tableId);
@@ -310,6 +312,11 @@ public class TableIndexDAOImplTest {
 		assertNotNull(results.getRows());
 		assertEquals(tableId, results.getTableId());
 		assertEquals(2, results.getRows().size());
+		// test the count
+		String countSql = SqlElementUntils.createCountSql(query.getTransformedModel());
+		Long count = tableIndexDAO.countQuery(countSql, query.getParameters());
+		assertEquals(new Long(2), count);
+		
 		// the first row
 		Row row = results.getRows().get(0);
 		assertNotNull(row);

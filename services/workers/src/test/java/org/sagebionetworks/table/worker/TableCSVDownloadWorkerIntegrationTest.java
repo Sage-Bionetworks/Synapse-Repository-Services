@@ -50,7 +50,7 @@ import org.sagebionetworks.repo.model.table.SortDirection;
 import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.TableState;
-import org.sagebionetworks.repo.model.table.TableUnavilableException;
+import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -313,7 +313,7 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		while(true){
 			try {
 				return tableQueryManger.query(mockProgressCallback, adminUserInfo, sql, null, 0L, 100L, true, false, true).getQueryResult().getQueryResults();
-			} catch (TableUnavilableException e) {
+			} catch (TableUnavailableException e) {
 				assertTrue("Timed out waiting for table index worker to make the table available.", (System.currentTimeMillis()-start) <  MAX_WAIT_MS);
 				assertNotNull(e.getStatus());
 				assertFalse("Failed: "+e.getStatus().getErrorMessage(),TableState.PROCESSING_FAILED.equals(e.getStatus().getState()));

@@ -51,9 +51,10 @@ import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.SortDirection;
 import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.repo.model.table.TableFailedException;
+import org.sagebionetworks.repo.model.table.TableLockUnavailableException;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
-import org.sagebionetworks.repo.model.table.TableUnavilableException;
+import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.SqlQuery;
@@ -201,7 +202,7 @@ public class TableQueryManagerImplTest {
 		RowSet expected = new RowSet();
 		expected.setTableId(tableId);
 		when(mockTableIndexDAO.query(any(ProgressCallback.class),any(SqlQuery.class))).thenReturn(expected);
-		QueryResultWithCount results = manager.query(mockProgressCallbackVoid, user, "select * from " + tableId + " limit 1", null, null, null, true, false, false);
+		QueryResultBundle results = manager.query(mockProgressCallbackVoid, user, "select * from " + tableId + " limit 1", null, null, null, true, false, false);
 		// The etag should be null for this case
 		assertEquals("The etag must be null for non-consistent query results.  These results cannot be used for a table update.", null,
 				results.getQueryResult().getQueryResults().getEtag());
@@ -213,7 +214,7 @@ public class TableQueryManagerImplTest {
 	
 	@Test
 	public void testQueryHappyCaseIsConsistentTrue() throws Exception {
-		QueryResultWithCount results = manager.query(mockProgressCallbackVoid, user, "select * from " + tableId + " limit 1", null, null, null, true, false, true);
+		QueryResultBundle results = manager.query(mockProgressCallbackVoid, user, "select * from " + tableId + " limit 1", null, null, null, true, false, true);
 		// The etag should be set
 		assertEquals(status.getLastTableChangeEtag(), results.getQueryResult().getQueryResults().getEtag());
 		// Clear the etag for the test
@@ -224,19 +225,19 @@ public class TableQueryManagerImplTest {
 	
 	@Test
 	public void testQueryCountHappyCaseIsConsistentTrue() throws Exception {
-		QueryResultWithCount results = manager.query(mockProgressCallbackVoid, user, "select * from " + tableId + " limit 1", null, null, null, true, true, true);
+		QueryResultBundle results = manager.query(mockProgressCallbackVoid, user, "select * from " + tableId + " limit 1", null, null, null, true, true, true);
 		// The etag should be set
 		assertEquals(status.getLastTableChangeEtag(), results.getQueryResult().getQueryResults().getEtag());
 		// Clear the etag for the test
 		results.getQueryResult().getQueryResults().setEtag(null);
 		assertEquals(set, results.getQueryResult().getQueryResults());
-		assertEquals(1L, results.getCount().longValue());
+		assertEquals(1L, results.getQueryCount().longValue());
 		verify(mockTableManagerSupport).validateTableReadAccess(user, tableId);
 	}
 
 	@Test
 	public void testQueryAndCountHappyCaseIsConsistentTrue() throws Exception {
-		QueryResultWithCount results = manager.query(mockProgressCallbackVoid, user, "select * from " + tableId + " limit 1", null, null, null, true, false, true);
+		QueryResultBundle results = manager.query(mockProgressCallbackVoid, user, "select * from " + tableId + " limit 1", null, null, null, true, false, true);
 		// The etag should be set
 		assertEquals(status.getLastTableChangeEtag(), results.getQueryResult().getQueryResults().getEtag());
 		// Clear the etag for the test
@@ -249,7 +250,7 @@ public class TableQueryManagerImplTest {
 	public void testQueryNoColumns() throws Exception {
 		// Return no columns
 		when(mockColumnModelDAO.getColumnModelsForObject(tableId)).thenReturn(new LinkedList<ColumnModel>());
-		QueryResultWithCount results = manager.query(mockProgressCallbackVoid, user, "select * from " + tableId + " limit 1", null, null, null, true, false, true);
+		QueryResultBundle results = manager.query(mockProgressCallbackVoid, user, "select * from " + tableId + " limit 1", null, null, null, true, false, true);
 		assertNotNull(results);
 		assertEquals(tableId, results.getQueryResult().getQueryResults().getTableId());
 		assertNull(results.getQueryResult().getQueryResults().getEtag());
@@ -267,7 +268,7 @@ public class TableQueryManagerImplTest {
 		try{
 			manager.query(mockProgressCallbackVoid, user, "select * from " + tableId + " limit 1", null, null, null, true, false, true);
 			fail("should have failed");
-		}catch(TableUnavilableException e){
+		}catch(TableUnavailableException e){
 			// expected
 			assertEquals(status, e.getStatus());
 		}
@@ -285,7 +286,7 @@ public class TableQueryManagerImplTest {
 		try{
 			manager.query(mockProgressCallbackVoid, user, "select * from " + tableId + " limit 1", null, null, null, true, false, true);
 			fail("should have failed");
-		}catch(TableUnavilableException e){
+		}catch(TableUnavailableException e){
 			// expected
 			assertEquals(status, e.getStatus());
 		}
@@ -307,7 +308,7 @@ public class TableQueryManagerImplTest {
 		try{
 			manager.query(mockProgressCallbackVoid, user, "select * from " + tableId + " limit 1", null, null, null, true, false, true);
 			fail("should have failed");
-		}catch(TableUnavilableException e){
+		}catch(TableUnavailableException e){
 			// expected
 			assertEquals(status, e.getStatus());
 		}
@@ -455,7 +456,7 @@ public class TableQueryManagerImplTest {
 		rowSet.setRows(Collections.nCopies(100000, new Row()));
 		when(mockTableIndexDAO.query(any(ProgressCallback.class), any(SqlQuery.class))).thenReturn(rowSet);
 
-		QueryResultWithCount query = manager.query(mockProgressCallbackVoid, user, "select * from " + tableId, null, 0L, 100000L, true, false, false);
+		QueryResultBundle query = manager.query(mockProgressCallbackVoid, user, "select * from " + tableId, null, 0L, 100000L, true, false, false);
 		assertNotNull(query.getQueryResult().getNextPageToken());
 		verify(mockTableManagerSupport).validateTableReadAccess(user, tableId);
 	}
@@ -473,7 +474,7 @@ public class TableQueryManagerImplTest {
 			models.get(i).setName(name);
 		}
 
-		QueryResultWithCount query = manager.query(mockProgressCallbackVoid, user, "select \"i-0\" from " + tableId, null, 0L, 100000L, true, false, false);
+		QueryResultBundle query = manager.query(mockProgressCallbackVoid, user, "select \"i-0\" from " + tableId, null, 0L, 100000L, true, false, false);
 		assertNotNull(query.getQueryResult().getNextPageToken());
 		assertTrue(query.getQueryResult().getNextPageToken().getToken().indexOf("&quot;i-0&quot") != -1);
 		
@@ -493,7 +494,7 @@ public class TableQueryManagerImplTest {
 			models.get(i).setName(name);
 		}
 
-		QueryResultWithCount query = manager.query(mockProgressCallbackVoid, user, "select * from " + tableId, null, 0L, 100000L, true, false, false);
+		QueryResultBundle query = manager.query(mockProgressCallbackVoid, user, "select * from " + tableId, null, 0L, 100000L, true, false, false);
 		assertNotNull(query.getQueryResult().getNextPageToken());
 		assertTrue(query.getQueryResult().getNextPageToken().getToken().indexOf("&quot;i-0&quot") != -1);
 		
@@ -501,7 +502,7 @@ public class TableQueryManagerImplTest {
 	}
 	
 	@Test
-	public void testValidateTableIsAvailableWithStateAvailable() throws NotFoundException, TableUnavilableException, TableFailedException{
+	public void testValidateTableIsAvailableWithStateAvailable() throws NotFoundException, TableUnavailableException, TableFailedException{
 		status.setState(TableState.AVAILABLE);
 		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
 		// call under test
@@ -510,8 +511,8 @@ public class TableQueryManagerImplTest {
 		assertEquals(status, resultsStatus);
 	}
 	
-	@Test (expected=TableUnavilableException.class)
-	public void testValidateTableIsAvailableWithStateProcessing() throws NotFoundException, TableUnavilableException, TableFailedException{
+	@Test (expected=TableUnavailableException.class)
+	public void testValidateTableIsAvailableWithStateProcessing() throws NotFoundException, TableUnavailableException, TableFailedException{
 		status.setState(TableState.PROCESSING);
 		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
 		// call under test
@@ -519,7 +520,7 @@ public class TableQueryManagerImplTest {
 	}
 	
 	@Test (expected=TableFailedException.class)
-	public void testValidateTableIsAvailableWithStateFailed() throws NotFoundException, TableUnavilableException, TableFailedException{
+	public void testValidateTableIsAvailableWithStateFailed() throws NotFoundException, TableUnavailableException, TableFailedException{
 		status.setState(TableState.PROCESSING_FAILED);
 		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
 		// call under test
@@ -562,7 +563,7 @@ public class TableQueryManagerImplTest {
 	}
 	
 	@Test
-	public void testRunConsistentQueryAsStreamDownload() throws NotFoundException, TableUnavilableException, TableFailedException{
+	public void testRunConsistentQueryAsStreamDownload() throws NotFoundException, TableUnavailableException, TableFailedException, TableLockUnavailableException{
 		String sql = "select * from "+tableId;
 		List<SortItem> sortList = null;
 		boolean includeRowIdAndVersion = false;
@@ -579,7 +580,7 @@ public class TableQueryManagerImplTest {
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
-	public void testRunConsistentQueryAsStreamEmptyDownload() throws NotFoundException, TableUnavilableException, TableFailedException{
+	public void testRunConsistentQueryAsStreamEmptyDownload() throws NotFoundException, TableUnavailableException, TableFailedException, TableLockUnavailableException{
 		// setup an empty schema.
 		when(mockColumnModelDAO.getColumnModelsForObject(tableId)).thenReturn(new LinkedList<ColumnModel>());
 		String sql = "select * from "+tableId;

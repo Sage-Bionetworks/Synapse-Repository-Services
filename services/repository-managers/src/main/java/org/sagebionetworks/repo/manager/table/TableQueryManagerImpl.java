@@ -26,33 +26,27 @@ import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.repo.model.table.TableFailedException;
+import org.sagebionetworks.repo.model.table.TableLockUnavailableException;
 import org.sagebionetworks.repo.model.table.TableStatus;
-import org.sagebionetworks.repo.model.table.TableUnavilableException;
+import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
-import org.sagebionetworks.table.cluster.SQLTranslatorUtils;
 import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
-import org.sagebionetworks.table.query.model.DerivedColumn;
-import org.sagebionetworks.table.query.model.MysqlFunction;
 import org.sagebionetworks.table.query.model.Pagination;
 import org.sagebionetworks.table.query.model.QuerySpecification;
-import org.sagebionetworks.table.query.model.SelectList;
-import org.sagebionetworks.table.query.model.SqlDirective;
+import org.sagebionetworks.table.query.util.SimpleAggregateQueryException;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 import org.sagebionetworks.util.Closer;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.util.csv.CSVWriterStream;
-import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionCallback;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Lists;
 import com.thoughtworks.xstream.XStream;
 
 public class TableQueryManagerImpl implements TableQueryManager {
@@ -82,214 +76,17 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	}
 
 	@Override
-	public QueryResultWithCount query(ProgressCallback<Void> progressCallback, UserInfo user, String query, List<SortItem> sortList, Long offset, Long limit, boolean runQuery,
-			boolean runCount, boolean isConsistent) throws DatastoreException, NotFoundException, TableUnavilableException,
-			TableFailedException {
+	public QueryResultBundle query(ProgressCallback<Void> progressCallback, UserInfo user, String query, List<SortItem> sortList, Long offset, Long limit, boolean runQuery,
+			boolean runCount, boolean isConsistent) throws DatastoreException, NotFoundException, TableUnavailableException,
+			TableFailedException, TableLockUnavailableException {
 		SqlQuery sqlQuery;
 		try {
 			sqlQuery = createQuery(query, sortList);
-			return query(progressCallback, user, sqlQuery, offset, limit, runQuery, runCount, isConsistent);
-		} catch (EmptySchemaException e) {
-			QueryResult result = new QueryResult();
-			RowSet emptyRowSet = new RowSet();
-			emptyRowSet.setTableId(e.getTableId());
-			result.setQueryResults(emptyRowSet);
-			return new QueryResultWithCount(runQuery ? result : null, runCount ? 0L : null);
-		}
-	}
-
-	public QueryResultWithCount query(ProgressCallback<Void> progressCallback,
-			UserInfo user, SqlQuery query, Long offset, Long limit,
-			boolean runQuery, boolean runCount, boolean isConsistent)
-			throws DatastoreException, NotFoundException,
-			TableUnavilableException, TableFailedException {
-		ValidateArgument.required(user, "UserInfo");
-		ValidateArgument.required(query, "SqlQuery");
-		ValidateArgument.required(query.getTableSchema(), "query.tableSchema");
-		ValidateArgument.required(query.getTableSchema().isEmpty(), "query.tableSchema cannot be empty");
-		// Validate the user has read access on this object
-		tableManagerSupport.validateTableReadAccess(user, query.getTableId());
-		
-		// Create the paginated query.
-		SqlQuery paginatedQuery = createPaginatedQuery(query, offset, limit);
-
-		SqlQuery countQuery = null;
-		if (runCount) {
-			// there are two ways of getting counts. One is to replace the select clause with count(*) and another is to
-			// use SQL_CALC_FOUND_ROWS & FOUND_ROWS()
-			// the count(*) is usually more efficient, but it is almost impossible to get that right if the query to
-			// count is an aggregate itself.
-			// So, we use count(*) if there is no aggregate and SQL_CALC_FOUND_ROWS if there is
-			if (query.isAggregatedResult()) {
-				// add the SQL_CALC_FOUND_ROWS to the query
-				QuerySpecification paginatedModel = new QuerySpecification(SqlDirective.SQL_CALC_FOUND_ROWS, paginatedQuery.getModel()
-						.getSetQuantifier(), paginatedQuery.getModel().getSelectList(), paginatedQuery.getModel().getTableExpression());
-				paginatedQuery = new SqlQuery(paginatedModel, paginatedQuery.getTableSchema(), paginatedQuery.getTableId());
-				// and make the count query "SELECT FOUND_ROWS()"
-				SelectList selectList = new SelectList(Lists.newArrayList(SQLTranslatorUtils.createDerivedColumn(MysqlFunction.FOUND_ROWS)));
-				countQuery = new SqlQuery(new QuerySpecification(null, null, selectList, null), paginatedQuery.getTableSchema(),
-						paginatedQuery.getTableId());
-			} else {
-				QuerySpecification model = SqlElementUntils.convertToCountQuery(query.getModel());
-				// Lookup the column models for this table
-				List<ColumnModel> columnModels = columnModelDAO.getColumnModelsForObject(query.getTableId());
-				countQuery = new SqlQuery(model, columnModels, query.getTableId());
-			}
-		}
-
-		RowSet rowSet = null;
-		Long count = null;
-		// If this is a consistent read then we need a read lock
-		if (isConsistent) {
-			// A consistent query is only run if the table index is available and up-to-date
-			// with the table state. A read-lock on the index will be held while the query is run.
-			QueryResultWithCount result = runConsistentQuery(progressCallback, paginatedQuery, countQuery);
-			if(result.getQueryResult() != null){
-				rowSet = result.getQueryResult().getQueryResults();
-			}
-			count = result.getCount();
-		} else {
-			// This path queries the table index regardless of the state of the index and without a
-			// read-lock.
-			if (paginatedQuery != null) {
-				rowSet = query(progressCallback, paginatedQuery);
-			}
-			if (countQuery != null) {
-				RowSet countResult = query(progressCallback, countQuery);
-				List<Row> rows = countResult.getRows();
-				if (!rows.isEmpty()) {
-					List<String> values = rows.get(0).getValues();
-					if (!values.isEmpty()) {
-						count = Long.parseLong(values.get(0));
-					}
-				}
-			}
-		}
-
-		// post processing for query result
-		QueryResult queryResult = null;
-		if (runQuery && rowSet != null) {
-			QueryNextPageToken nextPageToken = null;
-			if (oneRowWasAdded) {
-				if (rowSet.getRows().size() > maxRowsPerPage) {
-					// we need to limit the rowSet to maxRowsPerPage and set the next page token
-					rowSet.setRows(Lists.newArrayList(rowSet.getRows().subList(0, maxRowsPerPage.intValue())));
-					nextPageToken = createNextPageToken(query, (offset == null ? 0 : offset) + maxRowsPerPage, limit, isConsistent);
-				}
-			}
-
-			queryResult = new QueryResult();
-			queryResult.setQueryResults(rowSet);
-			queryResult.setNextPageToken(nextPageToken);
-		}
-
-		// post processing for count. When a limit and/or offset is specified in a query, count(*) just ignores those,
-		// since it assumes the limit & offset apply to the one row count(*) returns. In actuality, we want to apply
-		// that limit & offset to the count itself. We do that here manually.
-		if (runCount && count != null) {
-			Pagination pagination = query.getModel().getTableExpression().getPagination();
-			if (pagination != null) {
-				if (pagination.getOffsetLong() != null) {
-					long offsetForCount = pagination.getOffsetLong();
-					count = Math.max(0, count - offsetForCount);
-				}
-				if (pagination.getLimitLong() != null) {
-					long limitForCount = pagination.getLimitLong();
-					count = Math.min(limitForCount, count);
-				}
-			}
-		}
-
-		return new QueryResultWithCount(queryResult, count);
-	}
-	
-	/**
-	 * Create a paginated query using the optional limit and offset overrides.
-	 * The resulting limit will never be larger than the maximum number
-	 * of rows per page.
-	 * 
-	 * @param query
-	 * @param offset
-	 * @param limit
-	 * @return
-	 */
-	public SqlQuery createPaginatedQuery(SqlQuery query, Long offset,
-			Long limit) {
-		// the max rows per page is a function of the query select.
-		Long maxRowsPerPage = getMaxRowsPerPageSelectColumns(query.getSelectColumns());
-		if (maxRowsPerPage == null || maxRowsPerPage == 0) {
-			maxRowsPerPage = 100L;
-		}
-		// Override pagination.
-		QuerySpecification model = SqlElementUntils.overridePagination(query.getModel(), offset, limit, maxRowsPerPage);
-		return new SqlQuery(model, query.getTableSchema(), query.getTableId());
-	}
-
-	@Override
-	public QueryResult queryNextPage(ProgressCallback<Void> progressCallback, UserInfo user, QueryNextPageToken nextPageToken) throws DatastoreException, NotFoundException,
-			TableUnavilableException, TableFailedException {
-		Query query = createQueryFromNextPageToken(nextPageToken);
-		QueryResultWithCount queryResult = query(progressCallback, user, query.getSql(), null, query.getOffset(), query.getLimit(), true,
-				false, query.getIsConsistent());
-		return queryResult.getQueryResult();
-	}
-
-	@Override
-	public QueryResultBundle queryBundle(ProgressCallback<Void> progressCallback, UserInfo user, QueryBundleRequest queryBundle) throws DatastoreException, NotFoundException,
-			TableUnavilableException, TableFailedException {
-		ValidateArgument.required(queryBundle.getQuery(), "query");
-		ValidateArgument.required(queryBundle.getQuery().getSql(), "query.sql");
-
-		QueryResultBundle bundle = new QueryResultBundle();
-		// The SQL query is need for the actual query, select columns, and max rows per page.
-		SqlQuery sqlQuery;
-		try {
-			sqlQuery = createQuery(
-					queryBundle.getQuery().getSql()
-					, queryBundle.getQuery().getSort());
-
-			// query
-			long partMask = -1L; // default all
-			if (queryBundle.getPartMask() != null) {
-				partMask = queryBundle.getPartMask();
-			}
-			boolean runQuery = ((partMask & BUNDLE_MASK_QUERY_RESULTS) != 0);
-			boolean runCount = ((partMask & BUNDLE_MASK_QUERY_COUNT) != 0);
-			if (runQuery || runCount) {
-				boolean isConsistent = BooleanUtils.isNotFalse(queryBundle.getQuery()
-						.getIsConsistent());
-				// execute the query
-				QueryResultWithCount queryResult = query(
-						progressCallback,
-						user,
-						sqlQuery,
-						queryBundle.getQuery().getOffset(),
-						queryBundle.getQuery().getLimit(),
-						runQuery,
-						runCount,
-						isConsistent
-						);
-				bundle.setQueryResult(queryResult.getQueryResult());
-				bundle.setQueryCount(queryResult.getCount());
-			}
-			// select columns must be fetched for for the select columns or max
-			// rows per page.
-			if ((partMask & BUNDLE_MASK_QUERY_SELECT_COLUMNS) > 0) {
-				bundle.setSelectColumns(sqlQuery.getSelectColumns());
-			}
-			// all schema columns
-			if ((partMask & BUNDLE_MASK_QUERY_MAX_ROWS_PER_PAGE) > 0) {
-				bundle.setColumnModels(sqlQuery.getTableSchema());
-			}
-			// Max rows per column
-			if ((partMask & BUNDLE_MASK_QUERY_MAX_ROWS_PER_PAGE) > 0) {
-				bundle.setMaxRowsPerPage(getMaxRowsPerPageSelectColumns(sqlQuery
-						.getSelectColumns()));
-			}
-			return bundle;
+			return querySinglePage(progressCallback, user, sqlQuery, offset, limit, runQuery, runCount, isConsistent);
 		} catch (EmptySchemaException e) {
 			// return an empty result.
 			QueryResult result = new QueryResult();
+			QueryResultBundle bundle = new QueryResultBundle();
 			RowSet emptyRowSet = new RowSet();
 			emptyRowSet.setTableId(e.getTableId());
 			result.setQueryResults(emptyRowSet);
@@ -300,6 +97,188 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			bundle.setSelectColumns(new LinkedList<SelectColumn>());
 			return bundle;
 		}
+	}
+	
+	/**
+	 * Run a single page query against a table.
+	 * 
+	 * @param progressCallback
+	 * @param user
+	 * @param query
+	 * @param offset
+	 * @param limit
+	 * @param runQuery
+	 * @param runCount
+	 * @param isConsistent
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws TableUnavailableException
+	 * @throws TableFailedException
+	 * @throws TableLockUnavailableException
+	 */
+	QueryResultBundle querySinglePage(final ProgressCallback<Void> progressCallback,
+			final UserInfo user, final SqlQuery query, final Long offset, final Long limit,
+			final boolean runQuery,final  boolean runCount, final boolean isConsistent)
+			throws DatastoreException, NotFoundException,
+			TableUnavailableException, TableFailedException, TableLockUnavailableException {
+		// Validate the user has read access on this object
+		tableManagerSupport.validateTableReadAccess(user, query.getTableId());
+		// consistent queries are run with a read lock on the table and include the current etag.
+		if(isConsistent){
+			// run with a read lock
+			return tableManagerSupport.tryRunWithTableNonexclusiveLock(progressCallback, query.getTableId(), READ_LOCK_TIMEOUT_SEC, new ProgressingCallable<QueryResultBundle, Void>(){
+
+					@Override
+					public QueryResultBundle call(
+							ProgressCallback<Void> callback) throws Exception {
+						// We can only run this query if the table is available.
+						final TableStatus status = validateTableIsAvailable(query.getTableId());
+						// run the query
+						QueryResultBundle bundle = querySinglePageAfterLock(progressCallback, user, query, offset, limit, runQuery, runCount, isConsistent);
+						// add the status to the result
+						if(bundle != null && bundle.getQueryResult() != null && bundle.getQueryResult().getQueryResults() != null){
+							// set the etag on the result.
+							bundle.getQueryResult().getQueryResults().setEtag(status.getLastTableChangeEtag());
+						}
+						return bundle;
+					}});
+		}else{
+			// run without a read lock.
+			return querySinglePageAfterLock(progressCallback, user, query, offset, limit, runQuery, runCount, isConsistent);
+		}
+	}
+
+	/**
+	 * Run a query while holding an optional read lock on the table.
+	 * 
+	 * @param progressCallback
+	 * @param user
+	 * @param query
+	 * @param offset
+	 * @param limit
+	 * @param runQuery
+	 * @param runCount
+	 * @param isConsistent
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws TableUnavailableException
+	 * @throws TableFailedException
+	 * @throws TableLockUnavailableException
+	 */
+	QueryResultBundle querySinglePageAfterLock(ProgressCallback<Void> progressCallback,
+			UserInfo user, SqlQuery query, Long offset, Long limit,
+			boolean runQuery, boolean runCount, boolean isConsistent)
+			throws DatastoreException, NotFoundException,
+			TableUnavailableException, TableFailedException, TableLockUnavailableException {
+		ValidateArgument.required(user, "UserInfo");
+		ValidateArgument.required(query, "SqlQuery");
+		ValidateArgument.required(query.getTableSchema(), "query.tableSchema");
+		ValidateArgument.required(query.getTableSchema().isEmpty(), "query.tableSchema cannot be empty");
+
+		// build up the response.
+		QueryResultBundle bundle = new QueryResultBundle();
+		bundle.setColumnModels(query.getTableSchema());
+		bundle.setSelectColumns(query.getSelectColumns());
+		// The max rows per page is a function of the select size.
+		int maxRowsPerPage = this.maxBytesPerRequest / query.getMaxRowSizeBytes();
+		bundle.setMaxRowsPerPage(new Long(maxRowsPerPage));
+		
+		// run the actual query if needed.
+		RowSet rowSet = null;
+		if(runQuery){
+			// Use the provided limit and offset to create a new paginated model
+			QuerySpecification paginatedModel = SqlElementUntils.overridePagination(query.getModel(), offset, limit, maxRowsPerPage);
+			SqlQuery paginatedQuery =  new SqlQuery(paginatedModel, query.getTableSchema(), query.getTableId());
+			// run the query
+			rowSet = query(progressCallback, paginatedQuery);
+		}
+		
+		// run the count query if needed.
+		Long count = null;
+		if(runCount){
+			count = runCountQuery(query);
+		}
+
+		// post processing for query result
+		QueryResult queryResult = null;
+		if (runQuery && rowSet != null) {
+			QueryNextPageToken nextPageToken = null;
+			if (rowSet.getRows().size() == maxRowsPerPage) {
+				nextPageToken = createNextPageToken(query, (offset == null ? 0 : offset) + maxRowsPerPage, limit, isConsistent);
+			}
+			queryResult = new QueryResult();
+			queryResult.setQueryResults(rowSet);
+			queryResult.setNextPageToken(nextPageToken);
+		}
+		
+		bundle.setQueryResult(queryResult);
+		bundle.setQueryCount(count);
+
+		return bundle;
+	}
+
+	@Override
+	public QueryResult queryNextPage(ProgressCallback<Void> progressCallback, UserInfo user, QueryNextPageToken nextPageToken) throws DatastoreException, NotFoundException,
+			TableUnavailableException, TableFailedException, TableLockUnavailableException {
+		Query query = createQueryFromNextPageToken(nextPageToken);
+		QueryResultBundle queryResult = query(progressCallback, user, query.getSql(), null, query.getOffset(), query.getLimit(), true,
+				false, query.getIsConsistent());
+		return queryResult.getQueryResult();
+	}
+
+	@Override
+	public QueryResultBundle queryBundle(ProgressCallback<Void> progressCallback, UserInfo user, QueryBundleRequest queryBundle) throws DatastoreException, NotFoundException,
+			TableUnavailableException, TableFailedException, TableLockUnavailableException {
+		ValidateArgument.required(queryBundle.getQuery(), "query");
+		ValidateArgument.required(queryBundle.getQuery().getSql(), "query.sql");
+
+		QueryResultBundle bundle = new QueryResultBundle();
+		// The SQL query is need for the actual query, select columns, and max rows per page.
+		long partMask = -1L; // default all
+		if (queryBundle.getPartMask() != null) {
+			partMask = queryBundle.getPartMask();
+		}
+		boolean runQuery = ((partMask & BUNDLE_MASK_QUERY_RESULTS) != 0);
+		boolean runCount = ((partMask & BUNDLE_MASK_QUERY_COUNT) != 0);
+		boolean isConsistent = BooleanUtils.isNotFalse(queryBundle.getQuery()
+				.getIsConsistent());
+		
+		// execute the query
+		QueryResultBundle queryResult = query(
+				progressCallback,
+				user,
+				queryBundle.getQuery().getSql(),
+				queryBundle.getQuery().getSort(),
+				queryBundle.getQuery().getOffset(),
+				queryBundle.getQuery().getLimit(),
+				runQuery,
+				runCount,
+				isConsistent
+				);
+		
+		if(runQuery){
+			bundle.setQueryResult(queryResult.getQueryResult());
+		}
+		if(runCount){
+			bundle.setQueryCount(queryResult.getQueryCount());
+		}
+		
+		// select columns must be fetched for for the select columns or max
+		// rows per page.
+		if ((partMask & BUNDLE_MASK_QUERY_SELECT_COLUMNS) > 0) {
+			bundle.setSelectColumns(queryResult.getSelectColumns());
+		}
+		// all schema columns
+		if ((partMask & BUNDLE_MASK_QUERY_MAX_ROWS_PER_PAGE) > 0) {
+			bundle.setColumnModels(queryResult.getColumnModels());
+		}
+		// Max rows per column
+		if ((partMask & BUNDLE_MASK_QUERY_MAX_ROWS_PER_PAGE) > 0) {
+			bundle.setMaxRowsPerPage(queryResult.getMaxRowsPerPage());
+		}
+		return bundle;
 	}
 
 	public static final Charset UTF8 = Charset.forName("UTF-8");
@@ -387,61 +366,6 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	}
 
 
-	/**
-	 * Run a consistent query. All resulting rows will be loading into memory at one time with this method.
-	 * 
-	 * @param tableId
-	 * @param query
-	 * @return
-	 * @throws TableUnavilableException
-	 * @throws NotFoundException
-	 * @throws TableFailedException
-	 */
-	private QueryResultWithCount runConsistentQuery(ProgressCallback<Void> progressCallback, final SqlQuery query, final SqlQuery countQuery) throws TableUnavilableException,
-			NotFoundException, TableFailedException {
-		List<QueryHandler> queryHandlers = Lists.newArrayList();
-		final Object[] output = { null, null };
-		if (query != null) {
-			final RowSet results = new RowSet();
-			output[0] = results;
-			final List<Row> rows = new LinkedList<Row>();
-			results.setRows(rows);
-			results.setTableId(query.getTableId());
-			results.setHeaders(query.getSelectColumns());
-			// Stream the results but keep them in memory.
-			queryHandlers.add(new QueryHandler(query, new RowHandler() {
-
-				@Override
-				public void nextRow(Row row) {
-					rows.add(row);
-				}
-			}));
-		}
-
-		if (countQuery != null) {
-			queryHandlers.add(new QueryHandler(countQuery, new RowHandler() {
-
-				@Override
-				public void nextRow(Row row) {
-					if (!row.getValues().isEmpty()) {
-						output[1] = Long.parseLong(row.getValues().get(0));
-					}
-				}
-			}));
-		}
-
-		String etag = runConsistentQueryAsStream(progressCallback, queryHandlers);
-		
-		QueryResult qr = null;
-		RowSet rowSet = (RowSet) output[0];
-		if(rowSet != null){
-			rowSet.setEtag(etag);
-			qr = new QueryResult();
-			qr.setQueryResults(rowSet);
-		}
-		Long count = (Long) output[1];
-		return new QueryResultWithCount(qr, count);
-	}
 	
 	/**
 	 * Run a consistent query and stream the results. Use this method to avoid loading all rows into memory at one time.
@@ -449,73 +373,77 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @param query
 	 * @param handler
 	 * @return
-	 * @throws TableUnavilableException
+	 * @throws TableUnavailableException
 	 * @throws NotFoundException
 	 * @throws TableFailedException
+	 * @throws TableLockUnavailableException 
 	 */
-	public String runConsistentQueryAsStream(final ProgressCallback<Void> progressCallback, final List<QueryHandler> queryHandlers) throws TableUnavilableException, NotFoundException,
-			TableFailedException {
+	public String runConsistentQueryAsStream(final ProgressCallback<Void> progressCallback, final List<QueryHandler> queryHandlers) throws TableUnavailableException, NotFoundException,
+			TableFailedException, TableLockUnavailableException {
 		if (queryHandlers.isEmpty()) {
 			return null;
 		}
 
 		final String tableId = queryHandlers.get(0).getQuery().getTableId();
-		try {
-			// Run with a read lock.
-			return tableManagerSupport.tryRunWithTableNonexclusiveLock(progressCallback, tableId, READ_LOCK_TIMEOUT_SEC, new ProgressingCallable<String, Void>() {
-				@Override
-				public String call(final ProgressCallback<Void> callback) throws Exception {
-					// We can only run this query if the table is available.
-					final TableStatus status = validateTableIsAvailable(tableId);
-					// We can only run this
-					final TableIndexDAO indexDao = tableConnectionFactory.getConnection(tableId);
-					indexDao.executeInReadTransaction(new TransactionCallback<Void>() {
-						@Override
-						public Void doInTransaction(TransactionStatus transactionStatus) {
-							for (QueryHandler queryHandler : queryHandlers) {
-								if (!queryHandler.getQuery().getTableId().equals(tableId)) {
-									throw new IllegalArgumentException("All queries should be on the same table, but " + tableId + " and "
-											+ queryHandler.getQuery().getTableId());
+		// Run with a read lock.
+		return tableManagerSupport.tryRunWithTableNonexclusiveLock(
+				progressCallback, tableId, READ_LOCK_TIMEOUT_SEC,
+				new ProgressingCallable<String, Void>() {
+					@Override
+					public String call(final ProgressCallback<Void> callback)
+							throws Exception {
+						// We can only run this query if the table is available.
+						final TableStatus status = validateTableIsAvailable(tableId);
+						// We can only run this
+						final TableIndexDAO indexDao = tableConnectionFactory
+								.getConnection(tableId);
+						indexDao.executeInReadTransaction(new TransactionCallback<Void>() {
+							@Override
+							public Void doInTransaction(
+									TransactionStatus transactionStatus) {
+								for (QueryHandler queryHandler : queryHandlers) {
+									if (!queryHandler.getQuery().getTableId()
+											.equals(tableId)) {
+										throw new IllegalArgumentException(
+												"All queries should be on the same table, but "
+														+ tableId
+														+ " and "
+														+ queryHandler
+																.getQuery()
+																.getTableId());
+									}
+									progressCallback.progressMade(null);
+									indexDao.queryAsStream(callback,
+											queryHandler.getQuery(),
+											queryHandler.getHandler());
 								}
-								progressCallback.progressMade(null);
-								indexDao.queryAsStream(callback, queryHandler.getQuery(), queryHandler.getHandler());
+								return null;
 							}
-							return null;
-						}
-					});
-					return status.getLastTableChangeEtag();
-				}
-			});
-		} catch (LockUnavilableException e) {
-			throw new TableUnavilableException(tableManagerSupport.getTableStatusOrCreateIfNotExists(tableId));
-		} catch(TableUnavilableException e){
-			throw e;
-		} catch (TableFailedException e) {
-			throw e;
-		} catch (NotFoundException e) {
-			throw e;
-		} catch (Exception e) {
-			// All other exception are converted to generic datastore.
-			throw new DatastoreException(e);
-		}
+						});
+						return status.getLastTableChangeEtag();
+					}
+				});
+
 	}
+
 	
 	/**
 	 * 
 	 * @param sql
 	 * @param writer
 	 * @return The resulting RowSet will not contain any
-	 * @throws TableUnavilableException
+	 * @throws TableUnavailableException
 	 * @throws NotFoundException
 	 * @throws TableFailedException
+	 * @throws TableLockUnavailableException 
 	 */
 	@Override
 	public DownloadFromTableResult runConsistentQueryAsStream(
 			ProgressCallback<Void> progressCallback, UserInfo user, String sql,
 			List<SortItem> sortList, final CSVWriterStream writer,
 			boolean includeRowIdAndVersion, final boolean writeHeader)
-			throws TableUnavilableException, NotFoundException,
-			TableFailedException {
+			throws TableUnavailableException, NotFoundException,
+			TableFailedException, TableLockUnavailableException {
 		// Convert to a query.
 		try {
 			final SqlQuery query = createQuery(sql, sortList);
@@ -574,6 +502,43 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	}
 	
 	/**
+	 * Run a count query.
+	 * @param query
+	 * @return
+	 */
+	public Long runCountQuery(SqlQuery query) {
+		try {
+			String countSql = SqlElementUntils.createCountSql(query.getTransformedModel());
+			// Get a connection
+			TableIndexDAO indexDao = tableConnectionFactory.getConnection(query.getTableId());
+			Long count = indexDao.countQuery(countSql, query.getParameters());
+			
+			/*
+			 * Post processing for count. When a limit and/or offset is
+			 * specified in a query, count(*) just ignores those, since it
+			 * assumes the limit & offset apply to the one row count(*) returns.
+			 * In actuality, we want to apply that limit & offset to the count
+			 * itself. We do that here manually.
+			 */
+			Pagination pagination = query.getModel().getTableExpression().getPagination();
+			if (pagination != null) {
+				if (pagination.getOffsetLong() != null) {
+					long offsetForCount = pagination.getOffsetLong();
+					count = Math.max(0, count - offsetForCount);
+				}
+				if (pagination.getLimitLong() != null) {
+					long limitForCount = pagination.getLimitLong();
+					count = Math.min(limitForCount, count);
+				}
+			}
+			return count;
+		} catch (SimpleAggregateQueryException e) {
+			// simple aggregate queries always return one row.
+			return 1L;
+		}
+	}
+	
+	/**
 	 * Parser a query and convert ParseExceptions to IllegalArgumentExceptions
 	 * 
 	 * @param sql
@@ -615,7 +580,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @see org.sagebionetworks.repo.manager.table.TableStatusManager#validateTableIsAvailable(java.lang.String)
 	 */
 	@Override
-	public TableStatus validateTableIsAvailable(String tableId) throws NotFoundException, TableUnavilableException, TableFailedException {
+	public TableStatus validateTableIsAvailable(String tableId) throws NotFoundException, TableUnavailableException, TableFailedException {
 		final TableStatus status = tableManagerSupport.getTableStatusOrCreateIfNotExists(tableId);
 		switch(status.getState()){
 		case AVAILABLE:
@@ -623,7 +588,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		case PROCESSING:
 			// When the table is not available, we communicate the current status of the
 			// table in this exception.
-			throw new TableUnavilableException(status);
+			throw new TableUnavailableException(status);
 		default:
 		case PROCESSING_FAILED:
 			// When the table is in a failed state, we communicate the current status of the

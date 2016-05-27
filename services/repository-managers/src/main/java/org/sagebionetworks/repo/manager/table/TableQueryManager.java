@@ -11,11 +11,11 @@ import org.sagebionetworks.repo.model.table.QueryBundleRequest;
 import org.sagebionetworks.repo.model.table.QueryNextPageToken;
 import org.sagebionetworks.repo.model.table.QueryResult;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
-import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.repo.model.table.TableFailedException;
+import org.sagebionetworks.repo.model.table.TableLockUnavailableException;
 import org.sagebionetworks.repo.model.table.TableStatus;
-import org.sagebionetworks.repo.model.table.TableUnavilableException;
+import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.util.csv.CSVWriterStream;
@@ -34,13 +34,14 @@ public interface TableQueryManager {
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
-	 * @throws TableUnavilableException
+	 * @throws TableUnavailableException
 	 * @throws TableFailedException
 	 * @throws ParseException 
+	 * @throws TableLockUnavailableException 
 	 */
-	public QueryResultWithCount query(ProgressCallback<Void> progressCallback, UserInfo user, String query, List<SortItem> sortList, Long offset, Long limit, boolean runQuery,
-			boolean runCount, boolean isConsistent) throws DatastoreException, NotFoundException, TableUnavilableException,
-			TableFailedException, ParseException;
+	public QueryResultBundle query(ProgressCallback<Void> progressCallback, UserInfo user, String query, List<SortItem> sortList, Long offset, Long limit, boolean runQuery,
+			boolean runCount, boolean isConsistent) throws DatastoreException, NotFoundException, TableUnavailableException,
+			TableFailedException, ParseException, TableLockUnavailableException;
 
 	/**
 	 * get the next page of a query
@@ -50,12 +51,13 @@ public interface TableQueryManager {
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
-	 * @throws TableUnavilableException
+	 * @throws TableUnavailableException
 	 * @throws TableFailedException
 	 * @throws ParseException 
+	 * @throws TableLockUnavailableException 
 	 */
 	public QueryResult queryNextPage(ProgressCallback<Void> progressCallback, UserInfo user, QueryNextPageToken nextPageToken) throws DatastoreException, NotFoundException,
-			TableUnavilableException, TableFailedException, ParseException;
+			TableUnavailableException, TableFailedException, ParseException, TableLockUnavailableException;
 
 	/**
 	 * Get a query bundle result
@@ -63,14 +65,15 @@ public interface TableQueryManager {
 	 * @param user
 	 * @param queryBundle
 	 * @return
-	 * @throws TableUnavilableException
+	 * @throws TableUnavailableException
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 * @throws TableFailedException
 	 * @throws ParseException 
+	 * @throws TableLockUnavailableException 
 	 */
 	public QueryResultBundle queryBundle(ProgressCallback<Void> progressCallback, UserInfo user, QueryBundleRequest queryBundle) throws DatastoreException, NotFoundException,
-			TableUnavilableException, TableFailedException, ParseException;
+			TableUnavailableException, TableFailedException, ParseException, TableLockUnavailableException;
 
 	/**
 	 * Run the provided SQL query string and stream the results to the passed CSVWriter. This method will stream over
@@ -84,12 +87,13 @@ public interface TableQueryManager {
 	 * @param writer
 	 * @param writeHeader
 	 * @return
-	 * @throws TableUnavilableException
+	 * @throws TableUnavailableException
 	 * @throws NotFoundException
 	 * @throws TableFailedException
+	 * @throws TableLockUnavailableException 
 	 */
 	DownloadFromTableResult runConsistentQueryAsStream(ProgressCallback<Void> progressCallback, UserInfo user, String sql, List<SortItem> list, CSVWriterStream writer,
-			boolean includeRowIdAndVersion, boolean writeHeader) throws TableUnavilableException, NotFoundException, TableFailedException;
+			boolean includeRowIdAndVersion, boolean writeHeader) throws TableUnavailableException, NotFoundException, TableFailedException, TableLockUnavailableException;
 
 
 	/**
@@ -107,12 +111,12 @@ public interface TableQueryManager {
 	 * @return
 	 * @throws NotFoundException
 	 *             If the table does not exist
-	 * @throws TableUnavilableException
+	 * @throws TableUnavailableException
 	 *             If the table exists but is currently processing.
 	 * @throws TableFailedException
 	 *             If the table exists but processing failed.
 	 */
 	public TableStatus validateTableIsAvailable(String tableId)
-			throws NotFoundException, TableUnavilableException,
+			throws NotFoundException, TableUnavailableException,
 			TableFailedException;
 }

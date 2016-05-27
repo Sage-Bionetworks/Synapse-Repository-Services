@@ -1,6 +1,7 @@
 package org.sagebionetworks.table.cluster;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
@@ -67,6 +68,14 @@ public interface TableIndexDAO {
 	 * @return
 	 */
 	public RowSet query(ProgressCallback<Void> callback, SqlQuery query);
+	
+	/**
+	 * Run a simple count query.
+	 * @param sql
+	 * @param parameters
+	 * @return
+	 */
+	public Long countQuery(String sql, Map<String, Object> parameters);
 	
 	/**
 	 * Provides the means to stream over query results without keeping the row data in memory.

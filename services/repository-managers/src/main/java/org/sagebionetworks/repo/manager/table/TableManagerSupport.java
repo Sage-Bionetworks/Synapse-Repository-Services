@@ -11,7 +11,10 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.TableFailedException;
+import org.sagebionetworks.repo.model.table.TableLockUnavailableException;
 import org.sagebionetworks.repo.model.table.TableStatus;
+import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 
@@ -264,11 +267,13 @@ public interface TableManagerSupport {
 	 * @param runner
 	 * @return
 	 * @throws LockUnavilableException
+	 * @throws TableFailedException 
+	 * @throws TableUnavailableException 
+	 * @throws TableLockUnavailableException 
 	 * @throws Exception
 	 */
 	public <R, T> R tryRunWithTableNonexclusiveLock(ProgressCallback<T> callback, String tableId,
-			int timeoutMS, ProgressingCallable<R, T> runner) throws LockUnavilableException,
-			Exception;
+			int timeoutMS, ProgressingCallable<R, T> runner) throws LockUnavilableException, TableLockUnavailableException, TableUnavailableException, TableFailedException;
 
 	/**
 	 * Validate the user has read access to the given table.

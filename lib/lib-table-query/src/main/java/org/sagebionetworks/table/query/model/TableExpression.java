@@ -80,7 +80,23 @@ public class TableExpression extends SQLElement implements HasAggregate {
 	 * Replace the existing pagination with the passed pagination.
 	 * @param pagination
 	 */
-	public void replace(Pagination pagination) {
+	public void replacePagination(Pagination pagination) {
 		this.pagination = pagination;
+	}
+
+	/**
+	 * Replace the existing group by with the passed group by.
+	 * @param groupBy
+	 */
+	public void replaceGroupBy(GroupByClause groupBy) {
+		this.groupByClause = groupBy;
+	}
+	
+	/**
+	 * Replace the existing group by with the passed group by.
+	 * @param orderBy
+	 */
+	public void replaceOrderBy(OrderByClause orderBy){
+		this.orderByClause = orderBy;
 	}
 }

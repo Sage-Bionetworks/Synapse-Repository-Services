@@ -20,8 +20,10 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.QueryResult;
+import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.TableFailedException;
-import org.sagebionetworks.repo.model.table.TableUnavilableException;
+import org.sagebionetworks.repo.model.table.TableLockUnavailableException;
+import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.Pair;
@@ -67,9 +69,9 @@ public class TableCSVDownloadWorker implements MessageDrivenRunner {
 			DownloadFromTableRequest request = (DownloadFromTableRequest) status.getRequestBody();
 			// Before we start determine how many rows there are.
 			ForwardingProgressCallback<Void, Message> forwardCallabck = new ForwardingProgressCallback<Void, Message>(progressCallback, message);
-			QueryResultWithCount queryResult = tableQueryManger.query(forwardCallabck, user, request.getSql(), request.getSort(), null, null, false, true,
+			QueryResultBundle queryResult = tableQueryManger.query(forwardCallabck, user, request.getSql(), request.getSort(), null, null, false, true,
 					true);
-			long rowCount = queryResult.getCount();
+			long rowCount = queryResult.getQueryCount();
 			// Since each row must first be read from the database then uploaded to S3
 			// The total amount of progress is two times the number of rows.
 			long totalProgress = rowCount*2;
@@ -106,7 +108,12 @@ public class TableCSVDownloadWorker implements MessageDrivenRunner {
 			// Create the file
 			// Now upload the file as a filehandle
 			asynchJobStatusManager.setComplete(status.getJobId(), result);
-		}catch (TableUnavilableException e){
+		}catch (TableUnavailableException e){
+			// This just means we cannot do this right now.  We can try again later.
+			asynchJobStatusManager.updateJobProgress(status.getJobId(), 0L, 100L, "Waiting for the table index to become available...");
+			// Throwing this will put the message back on the queue in 5 seconds.
+			throw new RecoverableMessageException();
+		} catch (TableLockUnavailableException e){
 			// This just means we cannot do this right now.  We can try again later.
 			asynchJobStatusManager.updateJobProgress(status.getJobId(), 0L, 100L, "Waiting for the table index to become available...");
 			// Throwing this will put the message back on the queue in 5 seconds.

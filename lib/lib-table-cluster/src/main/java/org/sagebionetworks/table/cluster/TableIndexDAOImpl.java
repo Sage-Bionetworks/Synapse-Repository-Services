@@ -300,6 +300,15 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 	
 	@Override
+	public Long countQuery(String sql, Map<String, Object> parameters) {
+		ValidateArgument.required(sql, "sql");
+		ValidateArgument.required(parameters, "parameters");
+		// We use spring to create create the prepared statement
+		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
+		return namedTemplate.queryForObject(sql, new MapSqlParameterSource(parameters), Long.class);
+	}
+	
+	@Override
 	public boolean queryAsStream(final ProgressCallback<Void> callback, final SqlQuery query, final RowHandler handler) {
 		ValidateArgument.required(query, "Query");
 		ValidateArgument.required(callback, "ProgressCallback");

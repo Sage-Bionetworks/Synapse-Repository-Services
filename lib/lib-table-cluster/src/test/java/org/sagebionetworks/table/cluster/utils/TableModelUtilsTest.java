@@ -18,6 +18,7 @@ import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -960,6 +961,29 @@ public class TableModelUtilsTest {
 			}
 			TableModelUtils.calculateMaxSizeForType(ct, maxSize);
 		}
+	}
+	
+	@Test
+	public void testCalculateMaxRowSizeMap(){
+		ColumnModel columnOne = TableModelTestUtils.createColumn(1L, "one", ColumnType.STRING);
+		// this select matches the schema
+		SelectColumn selectOne = TableModelUtils.createSelectColumn(columnOne);
+		// match should be by names
+		selectOne.setId(null);
+		// this select does not match the schema
+		SelectColumn selectTwo = TableModelUtils.createSelectColumn("two", ColumnType.STRING, null);
+		
+		List<SelectColumn> select = Lists.newArrayList(selectOne, selectTwo);
+		Map<String, ColumnModel> nameToSchemaMap = new HashMap<String, ColumnModel>();
+		nameToSchemaMap.put(columnOne.getName(), columnOne);
+		
+		// call under test
+		int maxSize = TableModelUtils.calculateMaxRowSize(select, nameToSchemaMap);
+		// part of the size is from the select that matches the schema
+		int expectedSize = TableModelUtils.calculateMaxSizeForType(ColumnType.STRING, columnOne.getMaximumSize());
+		// the other part of the size does not match the schema so the max allowed string size should be used.
+		expectedSize += TableModelUtils.calculateMaxSizeForType(ColumnType.STRING, TableModelUtils.MAX_ALLOWED_STRING_SIZE);
+		assertEquals(expectedSize, maxSize);
 	}
 	
 	@Test

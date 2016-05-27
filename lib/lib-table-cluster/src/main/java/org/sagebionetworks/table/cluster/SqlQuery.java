@@ -60,6 +60,11 @@ public class SqlQuery {
 	String tableId;
 	
 	/**
+	 * The maximum size of each query result row returned by this query.
+	 */
+	int maxRowSizeBytes;
+	
+	/**
 	 * Does this query include ROW_ID and ROW_VERSION?
 	 */
 	boolean includesRowIdAndVersion;
@@ -131,6 +136,8 @@ public class SqlQuery {
 		this.isAggregatedResult = model.hasAnyAggregateElements();
 		// Build headers that describe how the client should read the results of this query.
 		this.selectColumns = SQLTranslatorUtils.getSelectColumns(this.model.getSelectList(), columnNameToModelMap, this.isAggregatedResult);
+		// Maximum row size is a function of both the select clause and schema.
+		this.maxRowSizeBytes = TableModelUtils.calculateMaxRowSize(selectColumns, columnNameToModelMap);
 
 		// Create a copy of the original model.
 		try {
@@ -229,4 +236,23 @@ public class SqlQuery {
 	public List<ColumnModel> getTableSchema() {
 		return tableSchema;
 	}
+
+	/**
+	 * The maximum size of each query result row returned by this query.
+	 * @return
+	 */
+	public int getMaxRowSizeBytes() {
+		return maxRowSizeBytes;
+	}
+
+	/**
+	 * The query model that has been transformed to execute against the actual table index.
+	 * @return
+	 */
+	public QuerySpecification getTransformedModel() {
+		return transformedModel;
+	}
+	
+	
+	
 }

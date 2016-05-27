@@ -614,4 +614,15 @@ public class TableQueryParserTest {
 		assertEquals("SELECT doesNotExist, isIn, string, sAnd, sNot, WeLikeIt FROM SyN456 LIMIT 1 OFFSET 2", sql);
 	}
 	
+	/**
+	 * See PLFM-3878
+	 * @throws ParseException 
+	 */
+	public void testCountDistinctMultipleColumns() throws ParseException{
+		QuerySpecification element = TableQueryParser.parserQuery("select count(distinct one, two) from SyN456");
+		assertNotNull(element);
+		String sql = toSQL(element);
+		assertEquals("", sql);
+	}
+	
 }

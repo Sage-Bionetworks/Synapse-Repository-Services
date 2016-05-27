@@ -1,25 +1,19 @@
 package org.sagebionetworks.table.query;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 import org.junit.Test;
 import org.sagebionetworks.repo.model.table.SortDirection;
 import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.table.query.model.QuerySpecification;
+import org.sagebionetworks.table.query.util.SimpleAggregateQueryException;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 
 import com.google.common.collect.Lists;
 
 public class SqlElementUntilsTest {
 	
-	@Test
-	public void testConvertToCount() throws ParseException{
-		QuerySpecification model = TableQueryParser.parserQuery("select foo, bar from syn123 where foo = 1 order by bar limit 1 offset 2");
-		QuerySpecification converted = SqlElementUntils.convertToCountQuery(model);
-		assertNotNull(converted);
-		assertEquals("SELECT COUNT(*) FROM syn123 WHERE foo = 1", converted.toString());
-	}
-
 	@Test
 	public void testConvertToPaginated() throws ParseException {
 		QuerySpecification model = TableQueryParser.parserQuery("select foo, bar from syn123 where foo = 1 order by bar");
@@ -88,7 +82,7 @@ public class SqlElementUntilsTest {
 		QuerySpecification model = TableQueryParser.parserQuery("select * from syn123");
 		Long limit = null;
 		Long offset = null;
-		Long maxRowsPerPage = 1000L;
+		int maxRowsPerPage = 1000;
 		QuerySpecification converted = SqlElementUntils.overridePagination(model, offset, limit, maxRowsPerPage);
 		assertEquals("SELECT * FROM syn123 LIMIT 1000 OFFSET 0", converted.toString());
 	}
@@ -98,7 +92,7 @@ public class SqlElementUntilsTest {
 		QuerySpecification model = TableQueryParser.parserQuery("select * from syn123");
 		Long limit = null;
 		Long offset = 12L;
-		Long maxRowsPerPage = 1000L;
+		int maxRowsPerPage = 1000;
 		QuerySpecification converted = SqlElementUntils.overridePagination(model, offset, limit, maxRowsPerPage);
 		assertEquals("SELECT * FROM syn123 LIMIT 1000 OFFSET 12", converted.toString());
 	}
@@ -108,7 +102,7 @@ public class SqlElementUntilsTest {
 		QuerySpecification model = TableQueryParser.parserQuery("select * from syn123");
 		Long limit = 15L;
 		Long offset = null;
-		Long maxRowsPerPage = 1000L;
+		int maxRowsPerPage = 1000;
 		QuerySpecification converted = SqlElementUntils.overridePagination(model, offset, limit, maxRowsPerPage);
 		assertEquals("SELECT * FROM syn123 LIMIT 15 OFFSET 0", converted.toString());
 	}
@@ -118,7 +112,7 @@ public class SqlElementUntilsTest {
 		QuerySpecification model = TableQueryParser.parserQuery("select * from syn123 limit 34");
 		Long limit = null;
 		Long offset = null;
-		Long maxRowsPerPage = 1000L;
+		int maxRowsPerPage = 1000;
 		QuerySpecification converted = SqlElementUntils.overridePagination(model, offset, limit, maxRowsPerPage);
 		assertEquals("SELECT * FROM syn123 LIMIT 34 OFFSET 0", converted.toString());
 	}
@@ -128,7 +122,7 @@ public class SqlElementUntilsTest {
 		QuerySpecification model = TableQueryParser.parserQuery("select * from syn123 limit 34 offset 12");
 		Long limit = null;
 		Long offset = null;
-		Long maxRowsPerPage = 1000L;
+		int maxRowsPerPage = 1000;
 		QuerySpecification converted = SqlElementUntils.overridePagination(model, offset, limit, maxRowsPerPage);
 		assertEquals("SELECT * FROM syn123 LIMIT 34 OFFSET 12", converted.toString());
 	}
@@ -138,7 +132,7 @@ public class SqlElementUntilsTest {
 		QuerySpecification model = TableQueryParser.parserQuery("select * from syn123 limit 34 offset 12");
 		Long limit = null;
 		Long offset = 2L;
-		Long maxRowsPerPage = 1000L;
+		int maxRowsPerPage = 1000;
 		QuerySpecification converted = SqlElementUntils.overridePagination(model, offset, limit, maxRowsPerPage);
 		assertEquals("SELECT * FROM syn123 LIMIT 32 OFFSET 14", converted.toString());
 	}
@@ -148,7 +142,7 @@ public class SqlElementUntilsTest {
 		QuerySpecification model = TableQueryParser.parserQuery("select * from syn123 limit 34 offset 12");
 		Long limit = 3L;
 		Long offset = null;
-		Long maxRowsPerPage = 1000L;
+		int maxRowsPerPage = 1000;
 		QuerySpecification converted = SqlElementUntils.overridePagination(model, offset, limit, maxRowsPerPage);
 		assertEquals("SELECT * FROM syn123 LIMIT 3 OFFSET 12", converted.toString());
 	}
@@ -158,7 +152,7 @@ public class SqlElementUntilsTest {
 		QuerySpecification model = TableQueryParser.parserQuery("select * from syn123 limit 100 offset 50");
 		Long limit = 25L;
 		Long offset = 10L;
-		Long maxRowsPerPage = 1000L;
+		int maxRowsPerPage = 1000;
 		QuerySpecification converted = SqlElementUntils.overridePagination(model, offset, limit, maxRowsPerPage);
 		assertEquals("SELECT * FROM syn123 LIMIT 25 OFFSET 60", converted.toString());
 	}
@@ -168,8 +162,42 @@ public class SqlElementUntilsTest {
 		QuerySpecification model = TableQueryParser.parserQuery("select * from syn123 limit 100 offset 75");
 		Long limit = 50L;
 		Long offset = 10L;
-		Long maxRowsPerPage = 1000L;
+		int maxRowsPerPage = 1000;
 		QuerySpecification converted = SqlElementUntils.overridePagination(model, offset, limit, maxRowsPerPage);
 		assertEquals("SELECT * FROM syn123 LIMIT 50 OFFSET 85", converted.toString());
 	}
+	
+	@Test
+	public void testCreateCountSqlNonAggregate() throws ParseException, SimpleAggregateQueryException{
+		QuerySpecification model = new TableQueryParser("select * from syn123 where bar < 1.0 order by foo, bar limit 2 offset 5").querySpecification();
+		String countSql = SqlElementUntils.createCountSql(model);
+		assertEquals("SELECT COUNT(*) FROM syn123 WHERE bar < 1.0", countSql);
+	}
+	
+	@Test
+	public void testCreateCountSqlGroupBy() throws ParseException, SimpleAggregateQueryException{
+		QuerySpecification model = new TableQueryParser("select foo, count(*) from syn123 group by foo, bar").querySpecification();
+		String countSql = SqlElementUntils.createCountSql(model);
+		assertEquals("SELECT COUNT(DISTINCT foo, bar) FROM syn123", countSql);
+	}
+	
+	@Test
+	public void testCreateCountSqlDistinct() throws ParseException, SimpleAggregateQueryException{
+		QuerySpecification model = new TableQueryParser("select distinct foo, bar from syn123").querySpecification();
+		String countSql = SqlElementUntils.createCountSql(model);
+		assertEquals("SELECT COUNT(DISTINCT foo, bar) FROM syn123", countSql);
+	}
+	
+	@Test (expected=SimpleAggregateQueryException.class)
+	public void testCreateCountSimpleAggregateCountStar() throws ParseException, SimpleAggregateQueryException{
+		QuerySpecification model = new TableQueryParser("select count(*) from syn123").querySpecification();
+		SqlElementUntils.createCountSql(model);
+	}
+	
+	@Test (expected=SimpleAggregateQueryException.class)
+	public void testCreateCountSimpleAggregateMultipleAggregate() throws ParseException, SimpleAggregateQueryException{
+		QuerySpecification model = new TableQueryParser("select sum(foo), max(bar) from syn123").querySpecification();
+		SqlElementUntils.createCountSql(model);
+	}
+
 }

@@ -6,7 +6,7 @@ package org.sagebionetworks.repo.model.table;
  * @author jmhill
  *
  */
-public class TableUnavilableException extends Exception {
+public class TableUnavailableException extends Exception {
 	
 	private static final long serialVersionUID = 6302717930229706556L;
 	TableStatus status;
@@ -16,7 +16,7 @@ public class TableUnavilableException extends Exception {
 	 * 
 	 * @param status
 	 */
-	public TableUnavilableException(TableStatus status){
+	public TableUnavailableException(TableStatus status){
 		this.status = status;
 	}
 

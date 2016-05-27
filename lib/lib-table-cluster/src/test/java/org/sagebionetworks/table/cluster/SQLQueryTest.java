@@ -719,4 +719,20 @@ public class SQLQueryTest {
 		SqlQuery translator = new SqlQuery("select foo from syn123 where aDouble <> 'NaN'", tableSchema);
 		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123 WHERE (_DBL_C123_ IS NULL OR _DBL_C123_ <> 'NaN')", translator.getOutputSQL());
 	}
+	
+	@Test
+	public void testMaxRowSizeBytesSelectStar() throws ParseException{
+		// the size will include the size of the schema
+		int maxSizeSchema = TableModelUtils.calculateMaxRowSize(tableSchema);
+		SqlQuery translator = new SqlQuery("select * from syn123", tableSchema);
+		assertEquals(maxSizeSchema, translator.getMaxRowSizeBytes());
+	}
+	
+	@Test
+	public void testMaxRowSizeBytesCountStar() throws ParseException{
+		// the size is the size of an integer
+		int maxSizeSchema = TableModelUtils.calculateMaxSizeForType(ColumnType.INTEGER, null);
+		SqlQuery translator = new SqlQuery("select count(*) from syn123", tableSchema);
+		assertEquals(maxSizeSchema, translator.getMaxRowSizeBytes());
+	}
 }
