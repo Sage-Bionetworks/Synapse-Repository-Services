@@ -26,7 +26,9 @@ import org.sagebionetworks.util.csv.CSVWriterStream;
  */
 public interface TableQueryManager {
 	/**
-	 * Execute a table query.
+	 * Execute a single page of a table query.
+	 * The query results of this call will never exceed the
+	 * maximum number of rows allowed. 
 	 * 
 	 * @param user
 	 * @param query
@@ -39,7 +41,7 @@ public interface TableQueryManager {
 	 * @throws ParseException 
 	 * @throws TableLockUnavailableException 
 	 */
-	public QueryResultBundle query(ProgressCallback<Void> progressCallback, UserInfo user, String query, List<SortItem> sortList, Long offset, Long limit, boolean runQuery,
+	public QueryResultBundle querySinglePage(ProgressCallback<Void> progressCallback, UserInfo user, String query, List<SortItem> sortList, Long offset, Long limit, boolean runQuery,
 			boolean runCount, boolean isConsistent) throws DatastoreException, NotFoundException, TableUnavailableException,
 			TableFailedException, ParseException, TableLockUnavailableException;
 

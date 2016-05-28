@@ -69,7 +69,7 @@ public class TableCSVDownloadWorker implements MessageDrivenRunner {
 			DownloadFromTableRequest request = (DownloadFromTableRequest) status.getRequestBody();
 			// Before we start determine how many rows there are.
 			ForwardingProgressCallback<Void, Message> forwardCallabck = new ForwardingProgressCallback<Void, Message>(progressCallback, message);
-			QueryResultBundle queryResult = tableQueryManger.query(forwardCallabck, user, request.getSql(), request.getSort(), null, null, false, true,
+			QueryResultBundle queryResult = tableQueryManger.querySinglePage(forwardCallabck, user, request.getSql(), request.getSort(), null, null, false, true,
 					true);
 			long rowCount = queryResult.getQueryCount();
 			// Since each row must first be read from the database then uploaded to S3
