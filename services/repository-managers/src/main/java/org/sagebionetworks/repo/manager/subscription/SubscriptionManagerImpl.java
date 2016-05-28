@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.model.subscription.SubscriptionPagedResults;
 import org.sagebionetworks.repo.model.subscription.SubscriptionRequest;
 import org.sagebionetworks.repo.model.subscription.Topic;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -85,14 +86,18 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(subscriptionId, "subscriptionId");
 		Long id = Long.parseLong(subscriptionId);
-		Subscription sub = subscriptionDao.get(id);
-		if (!sub.getSubscriberId().equals(userInfo.getId().toString())) {
-			throw new UnauthorizedException("Only the user who created this subscription can perform this action.");
+		try {
+			Subscription sub = subscriptionDao.get(id);
+			if (!sub.getSubscriberId().equals(userInfo.getId().toString())) {
+				throw new UnauthorizedException("Only the owner of this subscription can perform this action.");
+			}
+			if (sub.getObjectType() == SubscriptionObjectType.FORUM) {
+				unsubscribeToAllExistingThreads(userInfo.getId().toString(), sub.getObjectId());
+			}
+			subscriptionDao.delete(id);
+		} catch (NotFoundException e) {
+			// subscription does not exist - do nothing
 		}
-		if (sub.getObjectType() == SubscriptionObjectType.FORUM) {
-			unsubscribeToAllExistingThreads(userInfo.getId().toString(), sub.getObjectId());
-		}
-		subscriptionDao.delete(id);
 	}
 
 	private void unsubscribeToAllExistingThreads(String userId, String forumId) {
