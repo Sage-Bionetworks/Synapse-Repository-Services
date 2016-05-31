@@ -169,7 +169,7 @@
 				<entry key="fileview">
 					<ref bean="fileViewMetadataProvider"/>
 				</entry>				
-				<entry key="dockerRepository">
+				<entry key="dockerrepo">
 					<ref bean="dockerRepositoryMetadataProvider"/>
 				</entry>				
 			</map>
