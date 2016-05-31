@@ -143,7 +143,7 @@
 		class="org.sagebionetworks.repo.web.service.metadata.FileViewMetadataProvider"
 		scope="singleton" />	
 
-	<bean id="dockerRepoMetadataProvider"
+	<bean id="dockerRepositoryMetadataProvider"
 		class="org.sagebionetworks.repo.web.service.metadata.DockerRepoMetadataProvider"
 		scope="singleton" />	
 
