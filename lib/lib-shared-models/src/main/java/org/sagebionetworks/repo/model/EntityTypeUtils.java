@@ -12,7 +12,7 @@ import org.sagebionetworks.repo.model.registry.EntityRegistry;
 import org.sagebionetworks.repo.model.registry.EntityTypeMetadata;
 import org.sagebionetworks.repo.model.table.FileView;
 import org.sagebionetworks.repo.model.table.TableEntity;
-
+import org.sagebionetworks.repo.model.docker.DockerRepository;
 
 /**
  * Utilities for entity type.
@@ -51,6 +51,8 @@ public class EntityTypeUtils {
 				buildMetadata(EntityType.link, Arrays.asList("DEFAULT",Project.class.getName(), Folder.class.getName()), Link.class, "Link"),
 				// fileview
 				buildMetadata(EntityType.fileview, Arrays.asList("DEFAULT",Project.class.getName(), Folder.class.getName()), FileView.class, "FileView"),
+				// dockerrepo
+				buildMetadata(EntityType.dockerrepo, Arrays.asList("DEFAULT", Project.class.getName(), Folder.class.getName()), DockerRepository.class, "DockerRepository"),
 		};
 
 		className = new HashMap<String, Class<? extends Entity>>();
@@ -60,6 +62,7 @@ public class EntityTypeUtils {
 		className.put(TableEntity.class.getName(), TableEntity.class);
 		className.put(Link.class.getName(), Link.class);
 		className.put(FileView.class.getName(), FileView.class);
+		className.put(DockerRepository.class.getName(), DockerRepository.class);
 	}
 
 	/**

@@ -143,6 +143,10 @@
 		class="org.sagebionetworks.repo.web.service.metadata.FileViewMetadataProvider"
 		scope="singleton" />	
 
+	<bean id="dockerRepoMetadataProvider"
+		class="org.sagebionetworks.repo.web.service.metadata.DockerRepoMetadataProvider"
+		scope="singleton" />	
+
 	<!-- the keys in this map must be the values of the org.sagebionetworks.repo.modelObjectType 
 		enum -->
 	<bean id="metadataProviderFactory"
@@ -164,6 +168,9 @@
 				</entry>
 				<entry key="fileview">
 					<ref bean="fileViewMetadataProvider"/>
+				</entry>				
+				<entry key="dockerRepository">
+					<ref bean="dockerRepositoryMetadataProvider"/>
 				</entry>				
 			</map>
 		</property>
