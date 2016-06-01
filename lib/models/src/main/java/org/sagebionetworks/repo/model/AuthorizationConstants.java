@@ -156,4 +156,16 @@ public class AuthorizationConstants {
 	 */
 	public static final String NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM = "notificationUnsubscribeEndpoint";
 	
+	/**
+	 * 
+	 */
+	public static final String DOCKER_SERVICE_PARAM = "service";
+	
+	/**
+	 * 
+	 */
+	public static final String DOCKER_SCOPE_PARAM = "scope";
+	
+	
+	
 }

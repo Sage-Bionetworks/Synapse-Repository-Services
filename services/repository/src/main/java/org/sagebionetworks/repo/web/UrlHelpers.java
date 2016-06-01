@@ -915,6 +915,11 @@ public class UrlHelpers {
 	public static final String OBJECT_TYPE = "/{objectType}";
 	public static final String ETAG = "/etag";
 	public static final String OBJECT_ID_TYPE_ETAG = OBJECT+OBJECT_ID+OBJECT_TYPE+ETAG;
+	
+	// Docker authorization services
+	public static final String DOCKER_AUTHORIZATION = "/bearerToken";
+	public static final String DOCKER_NOTIFICATION = "/registryEvent";
+
 
 	/**
 	 * APIs for DynamoDB related operations.

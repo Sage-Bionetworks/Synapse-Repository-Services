@@ -119,6 +119,9 @@
 	<!-- The Subscription Service -->
 	<bean id="subscriptionService" class="org.sagebionetworks.repo.web.service.subscription.SubscriptionServiceImpl" />
 
+	<!-- The Subscription Service -->
+	<bean id="dockerService" class="org.sagebionetworks.repo.web.service.DockerServiceImpl" />
+
 		
 		<!-- The Location helper -->
 	<bean id="locationHelper" class="org.sagebionetworks.repo.util.LocationHelpersImpl" />

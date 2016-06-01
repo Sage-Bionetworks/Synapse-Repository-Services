@@ -1,0 +1,36 @@
+{
+	"title": "DockerRegistryEvent",
+	"description": "Docker Registry Event",
+	"name": "DockerRegistryEvent",
+	"properties": {
+		"id": {
+			"type": "string",
+           	"description":""
+		},
+		"timestamp": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date this event was created."
+		},
+		"action": {
+			"type": "object",
+          	"$ref": "org.sagebionetworks.repo.model.docker.RegistryEventAction"
+ 		},
+		"target" : {
+			"type":"object",
+          	"$ref": "org.sagebionetworks.repo.model.docker.RegistryEventTarget"
+ 		},
+		"request" : {
+			"type":"object",
+          	"$ref": "org.sagebionetworks.repo.model.docker.RegistryEventRequest"
+ 		},
+		"actor" : {
+			"type":"object",
+          	"$ref": "org.sagebionetworks.repo.model.docker.RegistryEventActor"
+ 		},
+		"source" : {
+			"type":"object",
+          	"$ref": "org.sagebionetworks.repo.model.docker.RegistryEventSource"
+ 		}
+	}
+}
