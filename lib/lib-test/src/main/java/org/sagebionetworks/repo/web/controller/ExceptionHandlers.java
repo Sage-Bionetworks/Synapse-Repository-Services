@@ -38,7 +38,7 @@ public class ExceptionHandlers {
 
 	public static final TestEntry[] testEntries = new TestEntry[] {
 		new TestEntry(202,
-				new ExceptionType("org.sagebionetworks.repo.model.table.TableUnavilableException", false),
+				new ExceptionType("org.sagebionetworks.repo.model.table.TableUnavailableException", false),
 				new ExceptionType("org.sagebionetworks.repo.model.NotReadyException", false)),
 		new TestEntry(404,
 				new ExceptionType("org.sagebionetworks.repo.web.NotFoundException", true),
