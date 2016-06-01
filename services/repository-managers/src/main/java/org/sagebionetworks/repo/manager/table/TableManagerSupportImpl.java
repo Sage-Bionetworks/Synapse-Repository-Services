@@ -25,12 +25,9 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.TableFailedException;
-import org.sagebionetworks.repo.model.table.TableLockUnavailableException;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
-import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.transactions.RequiresNewReadCommitted;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -38,7 +35,6 @@ import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.TimeoutUtils;
 import org.sagebionetworks.util.ValidateArgument;
-import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.sagebionetworks.workers.util.semaphore.WriteReadSemaphoreRunner;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -309,32 +305,22 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	}
 	
 	@Override
-	public <R,T> R tryRunWithTableExclusiveLock(ProgressCallback<T> callback,
+	public <R, T> R tryRunWithTableExclusiveLock(ProgressCallback<T> callback,
 			String tableId, int timeoutSec, ProgressingCallable<R, T> callable)
-			throws LockUnavilableException, InterruptedException, Exception {
+			throws Exception {
 		String key = TableModelUtils.getTableSemaphoreKey(tableId);
 		// The semaphore runner does all of the lock work.
 		return writeReadSemaphoreRunner.tryRunWithWriteLock(callback, key, timeoutSec, callable);
 	}
 
 	@Override
-	public <R,T> R tryRunWithTableNonexclusiveLock(ProgressCallback<T> callback, String tableId, int lockTimeoutSec, ProgressingCallable<R, T> callable) throws TableLockUnavailableException, TableUnavailableException, TableFailedException {
+	public <R, T> R tryRunWithTableNonexclusiveLock(
+			ProgressCallback<T> callback, String tableId, int lockTimeoutSec,
+			ProgressingCallable<R, T> callable) throws Exception
+			{
 		String key = TableModelUtils.getTableSemaphoreKey(tableId);
 		// The semaphore runner does all of the lock work.
-		try {
-			return writeReadSemaphoreRunner.tryRunWithReadLock(callback, key, lockTimeoutSec, callable);
-		}catch (LockUnavilableException e) {
-			throw new TableLockUnavailableException(e);
-		} catch(TableUnavailableException e){
-			throw e;
-		} catch (TableFailedException e) {
-			throw e;
-		} catch (NotFoundException e) {
-			throw e;
-		} catch (Exception e) {
-			// All other exception are converted to generic datastore.
-			throw new DatastoreException(e);
-		}
+		return writeReadSemaphoreRunner.tryRunWithReadLock(callback, key, lockTimeoutSec, callable);
 	}
 	
 	@Override

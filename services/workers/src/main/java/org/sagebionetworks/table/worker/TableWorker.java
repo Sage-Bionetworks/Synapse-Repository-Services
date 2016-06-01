@@ -143,7 +143,7 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 		} catch (NotFoundException e) {
 			// This is thrown if the table no longer exits
 			return State.UNRECOVERABLE_FAILURE;
-		} catch (InterruptedException e) {
+		} catch (TableUnavailableException e) {
 			// This is a recoverable failure as we can try again later.
 			return State.RECOVERABLE_FAILURE;
 		} catch (Exception e) {

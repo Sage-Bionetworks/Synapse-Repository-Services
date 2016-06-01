@@ -11,12 +11,8 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.TableFailedException;
-import org.sagebionetworks.repo.model.table.TableLockUnavailableException;
 import org.sagebionetworks.repo.model.table.TableStatus;
-import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 
 /**
  * Low-level support for all of the table managers. Contains low-level
@@ -232,16 +228,10 @@ public interface TableManagerSupport {
 	 * 
 	 * @param tableId
 	 * @param runner
-	 * @throws LockUnavilableException
-	 *             Thrown when an exclusive lock cannot be acquired.
-	 * 
 	 * @return
-	 * @throws Exception
-	 * @throws InterruptedException
 	 */
 	public <R, T> R tryRunWithTableExclusiveLock(ProgressCallback<T> callback, String tableId, int timeoutMS,
-			ProgressingCallable<R, T> runner) throws LockUnavilableException,
-			InterruptedException, Exception;
+			ProgressingCallable<R, T> runner) throws Exception;
 
 	/**
 	 * <p>
@@ -266,14 +256,9 @@ public interface TableManagerSupport {
 	 * @param tableId
 	 * @param runner
 	 * @return
-	 * @throws LockUnavilableException
-	 * @throws TableFailedException 
-	 * @throws TableUnavailableException 
-	 * @throws TableLockUnavailableException 
-	 * @throws Exception
 	 */
 	public <R, T> R tryRunWithTableNonexclusiveLock(ProgressCallback<T> callback, String tableId,
-			int timeoutMS, ProgressingCallable<R, T> runner) throws LockUnavilableException, TableLockUnavailableException, TableUnavailableException, TableFailedException;
+			int timeoutMS, ProgressingCallable<R, T> runner) throws Exception;
 
 	/**
 	 * Validate the user has read access to the given table.
