@@ -13,6 +13,7 @@ import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.SelectList;
+import org.sagebionetworks.table.query.util.SqlElementUntils;
 import org.sagebionetworks.util.ValidateArgument;
 
 /**
@@ -65,6 +66,11 @@ public class SqlQuery {
 	int maxRowSizeBytes;
 	
 	/**
+	 * The maximum number of rows per page for the given query
+	 */
+	Long maxRowsPerPage;
+	
+	/**
 	 * Does this query include ROW_ID and ROW_VERSION?
 	 */
 	boolean includesRowIdAndVersion;
@@ -92,7 +98,10 @@ public class SqlQuery {
 	public SqlQuery(String sql, List<ColumnModel> tableSchema) throws ParseException {
 		if(sql == null) throw new IllegalArgumentException("The input SQL cannot be null");
 		QuerySpecification parsedQuery = TableQueryParser.parserQuery(sql);
-		init(parsedQuery, tableSchema, parsedQuery.getTableName());
+		Long overrideOffset = null;
+		Long overrideLimit = null;
+		Long maxBytesPerPage = null;
+		init(parsedQuery, tableSchema, overrideOffset, overrideLimit, maxBytesPerPage);
 	}
 	
 	/**
@@ -105,7 +114,27 @@ public class SqlQuery {
 	public SqlQuery(QuerySpecification model, List<ColumnModel> tableSchema, String tableId) {
 		if (model == null)
 			throw new IllegalArgumentException("The input model cannot be null");
-		init(model, tableSchema, tableId);
+		Long overrideOffset = null;
+		Long overrideLimit = null;
+		Long maxBytesPerPage = null;
+		init(model, tableSchema, overrideOffset, overrideLimit, maxBytesPerPage);
+	}
+	
+	/**
+	 * Create a new
+	 * @param model
+	 * @param tableSchema
+	 * @param tableId
+	 * @param overrideOffset Optional parameter to override the offset in the passed SQL.
+	 * @param overrideLimit Optional parameter to override the limit in the passed SQL.
+	 * @param maxBytesPerPage Optional parameter to limit the number or rows returned by the query.
+	 */
+	public SqlQuery(QuerySpecification model, List<ColumnModel> tableSchema,
+			Long overrideOffset, Long overrideLimit,
+			Long maxBytesPerPage) {
+		if (model == null)
+			throw new IllegalArgumentException("The input model cannot be null");
+		init(model, tableSchema, overrideOffset, overrideLimit, maxBytesPerPage);
 	}
 
 	/**
@@ -114,15 +143,16 @@ public class SqlQuery {
 	 * @param columnNameToModelMap
 	 * @throws ParseException
 	 */
-	public void init(QuerySpecification parsedModel, List<ColumnModel> tableSchema, String tableId) {
+	public void init(QuerySpecification parsedModel,
+			List<ColumnModel> tableSchema, Long overrideOffset,
+			Long overrideLimit, Long maxBytesPerPage) {
 		ValidateArgument.required(tableSchema, "TableSchema");
-		ValidateArgument.required(tableId, "tableId");
 		if(tableSchema.isEmpty()){
 			throw new IllegalArgumentException("Table schema cannot be empty");
 		}
 		this.tableSchema = tableSchema;
 		this.model = parsedModel;
-		this.tableId = tableId;
+		this.tableId = parsedModel.getTableName();
 
 		// This map will contain all of the 
 		this.parameters = new HashMap<String, Object>();	
@@ -138,10 +168,15 @@ public class SqlQuery {
 		this.selectColumns = SQLTranslatorUtils.getSelectColumns(this.model.getSelectList(), columnNameToModelMap, this.isAggregatedResult);
 		// Maximum row size is a function of both the select clause and schema.
 		this.maxRowSizeBytes = TableModelUtils.calculateMaxRowSize(selectColumns, columnNameToModelMap);
+		if(maxBytesPerPage != null){
+			this.maxRowsPerPage =  Math.max(1, maxBytesPerPage / this.maxRowSizeBytes);
+		}
+		// paginated model includes all overrides and max rows per page.
+		QuerySpecification paginatedModel = SqlElementUntils.overridePagination(model, overrideOffset, overrideLimit, maxRowsPerPage);
 
-		// Create a copy of the original model.
+		// Create a copy of the paginated model.
 		try {
-			transformedModel = new TableQueryParser(model.toSql()).querySpecification();
+			transformedModel = new TableQueryParser(paginatedModel.toSql()).querySpecification();
 		} catch (ParseException e) {
 			throw new IllegalArgumentException(e);
 		}
@@ -251,6 +286,14 @@ public class SqlQuery {
 	 */
 	public QuerySpecification getTransformedModel() {
 		return transformedModel;
+	}
+
+	/**
+	 * 
+	 * @return
+	 */
+	public Long getMaxRowsPerPage() {
+		return maxRowsPerPage;
 	}
 	
 	

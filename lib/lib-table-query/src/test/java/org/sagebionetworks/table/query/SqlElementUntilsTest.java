@@ -82,7 +82,7 @@ public class SqlElementUntilsTest {
 		QuerySpecification model = TableQueryParser.parserQuery("select * from syn123");
 		Long limit = null;
 		Long offset = null;
-		int maxRowsPerPage = 1000;
+		Long maxRowsPerPage = 1000L;
 		QuerySpecification converted = SqlElementUntils.overridePagination(model, offset, limit, maxRowsPerPage);
 		assertEquals("SELECT * FROM syn123 LIMIT 1000 OFFSET 0", converted.toString());
 	}
@@ -92,7 +92,7 @@ public class SqlElementUntilsTest {
 		QuerySpecification model = TableQueryParser.parserQuery("select * from syn123");
 		Long limit = null;
 		Long offset = 12L;
-		int maxRowsPerPage = 1000;
+		Long maxRowsPerPage = 1000L;
 		QuerySpecification converted = SqlElementUntils.overridePagination(model, offset, limit, maxRowsPerPage);
 		assertEquals("SELECT * FROM syn123 LIMIT 1000 OFFSET 12", converted.toString());
 	}
@@ -102,7 +102,7 @@ public class SqlElementUntilsTest {
 		QuerySpecification model = TableQueryParser.parserQuery("select * from syn123");
 		Long limit = 15L;
 		Long offset = null;
-		int maxRowsPerPage = 1000;
+		Long maxRowsPerPage = 1000L;
 		QuerySpecification converted = SqlElementUntils.overridePagination(model, offset, limit, maxRowsPerPage);
 		assertEquals("SELECT * FROM syn123 LIMIT 15 OFFSET 0", converted.toString());
 	}
@@ -112,7 +112,7 @@ public class SqlElementUntilsTest {
 		QuerySpecification model = TableQueryParser.parserQuery("select * from syn123 limit 34");
 		Long limit = null;
 		Long offset = null;
-		int maxRowsPerPage = 1000;
+		Long maxRowsPerPage = 1000L;
 		QuerySpecification converted = SqlElementUntils.overridePagination(model, offset, limit, maxRowsPerPage);
 		assertEquals("SELECT * FROM syn123 LIMIT 34 OFFSET 0", converted.toString());
 	}
@@ -122,7 +122,7 @@ public class SqlElementUntilsTest {
 		QuerySpecification model = TableQueryParser.parserQuery("select * from syn123 limit 34 offset 12");
 		Long limit = null;
 		Long offset = null;
-		int maxRowsPerPage = 1000;
+		Long maxRowsPerPage = 1000L;
 		QuerySpecification converted = SqlElementUntils.overridePagination(model, offset, limit, maxRowsPerPage);
 		assertEquals("SELECT * FROM syn123 LIMIT 34 OFFSET 12", converted.toString());
 	}
@@ -132,7 +132,7 @@ public class SqlElementUntilsTest {
 		QuerySpecification model = TableQueryParser.parserQuery("select * from syn123 limit 34 offset 12");
 		Long limit = null;
 		Long offset = 2L;
-		int maxRowsPerPage = 1000;
+		Long maxRowsPerPage = 1000L;
 		QuerySpecification converted = SqlElementUntils.overridePagination(model, offset, limit, maxRowsPerPage);
 		assertEquals("SELECT * FROM syn123 LIMIT 32 OFFSET 14", converted.toString());
 	}
@@ -142,7 +142,7 @@ public class SqlElementUntilsTest {
 		QuerySpecification model = TableQueryParser.parserQuery("select * from syn123 limit 34 offset 12");
 		Long limit = 3L;
 		Long offset = null;
-		int maxRowsPerPage = 1000;
+		Long maxRowsPerPage = 1000L;
 		QuerySpecification converted = SqlElementUntils.overridePagination(model, offset, limit, maxRowsPerPage);
 		assertEquals("SELECT * FROM syn123 LIMIT 3 OFFSET 12", converted.toString());
 	}
@@ -152,7 +152,7 @@ public class SqlElementUntilsTest {
 		QuerySpecification model = TableQueryParser.parserQuery("select * from syn123 limit 100 offset 50");
 		Long limit = 25L;
 		Long offset = 10L;
-		int maxRowsPerPage = 1000;
+		Long maxRowsPerPage = 1000L;
 		QuerySpecification converted = SqlElementUntils.overridePagination(model, offset, limit, maxRowsPerPage);
 		assertEquals("SELECT * FROM syn123 LIMIT 25 OFFSET 60", converted.toString());
 	}
@@ -162,9 +162,29 @@ public class SqlElementUntilsTest {
 		QuerySpecification model = TableQueryParser.parserQuery("select * from syn123 limit 100 offset 75");
 		Long limit = 50L;
 		Long offset = 10L;
-		int maxRowsPerPage = 1000;
+		Long maxRowsPerPage = 1000L;
 		QuerySpecification converted = SqlElementUntils.overridePagination(model, offset, limit, maxRowsPerPage);
 		assertEquals("SELECT * FROM syn123 LIMIT 50 OFFSET 85", converted.toString());
+	}
+	
+	@Test
+	public void testOverridePaginationMaxRowPerPageNull() throws ParseException{
+		QuerySpecification model = TableQueryParser.parserQuery("select * from syn123 limit 100 offset 75");
+		Long limit = 50L;
+		Long offset = 10L;
+		Long maxRowsPerPage = null;
+		QuerySpecification converted = SqlElementUntils.overridePagination(model, offset, limit, maxRowsPerPage);
+		assertEquals("SELECT * FROM syn123 LIMIT 50 OFFSET 85", converted.toString());
+	}
+	
+	@Test
+	public void testOverridePaginationAllNull() throws ParseException{
+		QuerySpecification model = TableQueryParser.parserQuery("select * from syn123 limit 100 offset 75");
+		Long limit = null;
+		Long offset = null;
+		Long maxRowsPerPage = null;
+		QuerySpecification converted = SqlElementUntils.overridePagination(model, offset, limit, maxRowsPerPage);
+		assertEquals("SELECT * FROM syn123 LIMIT 100 OFFSET 75", converted.toString());
 	}
 	
 	@Test

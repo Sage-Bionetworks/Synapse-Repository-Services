@@ -542,8 +542,11 @@ public class SqlElementUntils {
 	 * @return
 	 */
 	public static QuerySpecification overridePagination(
-			QuerySpecification model, Long offset, Long limit, int maxRowsPerPage) {
-		
+			QuerySpecification model, Long offset, Long limit, Long maxRowsPerPage) {
+		if(offset == null && limit == null && maxRowsPerPage == null){
+			// there is nothing to do.
+			return model;
+		}
 		long limitFromRequest = (limit != null) ? limit : Long.MAX_VALUE;
 		long offsetFromRequest = (offset != null) ? offset : 0L;
 		
@@ -567,8 +570,10 @@ public class SqlElementUntils {
 		
 		long paginatedLimit = Math.min(limitFromRequest, limitFromQuery);
 		
-		if (paginatedLimit > maxRowsPerPage) {
-			paginatedLimit = maxRowsPerPage;
+		if(maxRowsPerPage != null){
+			if (paginatedLimit > maxRowsPerPage) {
+				paginatedLimit = maxRowsPerPage;
+			}
 		}
 		return convertToPaginatedQuery(model, paginatedOffset, paginatedLimit);
 	}

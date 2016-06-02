@@ -65,7 +65,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	/**
 	 * Injected via spring
 	 */
-	int maxBytesPerRequest;
+	long maxBytesPerRequest;
 	
 	public void setMaxBytesPerRequest(int maxBytesPerRequest) {
 		this.maxBytesPerRequest = maxBytesPerRequest;
@@ -88,74 +88,36 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			boolean runQuery, boolean runCount, boolean isConsistent)
 			throws TableUnavailableException,
 			TableFailedException, LockUnavilableException {
-		// handler will capture the results of the query.
-		SinglePageRowHandler rowHandler = null;
-		if(runQuery){
-			rowHandler = new SinglePageRowHandler();
-		}
-		// run the query.
-		QueryResultBundle bundle = querySinglePagePartTwo(progressCallback, user, query,
-				sortList, offset, limit, rowHandler, runCount, isConsistent);
-		// add captured rows to the bundle
-		if(runQuery){
-			bundle.getQueryResult().getQueryResults().setRows(rowHandler.getRows());
-		}
-		// add the next page token if needed
-		if (isRowCountEqualToMaxRowsPerPage(bundle)) {
-			int maxRowsPerPage = bundle.getMaxRowsPerPage().intValue();
-			long nextOffset = (offset == null ? 0 : offset) + maxRowsPerPage;
-			QueryNextPageToken nextPageToken = createNextPageToken(query,sortList,
-					nextOffset, limit, isConsistent);
-			bundle.getQueryResult().setNextPageToken(nextPageToken);
-		}
-		return bundle;
-	}
-	
-	/**
-	 * The second part of a single page query.
-	 * 
-	 * Should only be called from {@link #querySinglePage(ProgressCallback, UserInfo, String, List, Long, Long, boolean, boolean, boolean)}
-	 * 
-	 * @param progressCallback
-	 * @param user
-	 * @param query
-	 * @param sortList
-	 * @param offset
-	 * @param limit
-	 * @param rowHandler
-	 * @param runCount
-	 * @param isConsistent
-	 * @return
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 * @throws TableUnavailableException
-	 * @throws TableFailedException
-	 * @throws TableLockUnavailableException
-	 */
-	QueryResultBundle querySinglePagePartTwo(
-			ProgressCallback<Void> progressCallback, UserInfo user,
-			String query, List<SortItem> sortList, Long offset, Long limit,
-			RowHandler rowHandler, boolean runCount, boolean isConsistent)
-			throws TableUnavailableException, TableFailedException,
-			LockUnavilableException {
-		SqlQuery sqlQuery;
-		try {
-			sqlQuery = createQuery(query, sortList);
-			// The max rows per page is a function of the select size.
-			int maxRowsPerPage = Math.max(1, this.maxBytesPerRequest / sqlQuery.getMaxRowSizeBytes());
-			// Create a new query with pagination.
-			QuerySpecification paginatedModel = SqlElementUntils.overridePagination(sqlQuery.getModel(), offset, limit, maxRowsPerPage);
-			// the paginated query is what will be run.
-			sqlQuery =  new SqlQuery(paginatedModel, sqlQuery.getTableSchema(), sqlQuery.getTableId());
+		try{
+			// handler will capture the results of the query.
+			SinglePageRowHandler rowHandler = null;
+			if(runQuery){
+				rowHandler = new SinglePageRowHandler();
+			}
+			// parser the query
+			SqlQuery sqlQuery = createQuery(query, sortList, offset, limit, this.maxBytesPerRequest);
 			// run the query as a stream.
 			QueryResultBundle bundle = queryAsStream(progressCallback, user, sqlQuery, rowHandler, runCount, isConsistent);
 			// save the max rows per page.
-			bundle.setMaxRowsPerPage(new Long(maxRowsPerPage));
+			bundle.setMaxRowsPerPage(sqlQuery.getMaxRowsPerPage());
+			// add captured rows to the bundle
+			if(runQuery){
+				bundle.getQueryResult().getQueryResults().setRows(rowHandler.getRows());
+			}
+			// add the next page token if needed
+			if (isRowCountEqualToMaxRowsPerPage(bundle)) {
+				int maxRowsPerPage = bundle.getMaxRowsPerPage().intValue();
+				long nextOffset = (offset == null ? 0 : offset) + maxRowsPerPage;
+				QueryNextPageToken nextPageToken = createNextPageToken(query,sortList,
+						nextOffset, limit, isConsistent);
+				bundle.getQueryResult().setNextPageToken(nextPageToken);
+			}
 			return bundle;
 		} catch (EmptySchemaException e) {
 			// return an empty result.
 			return createEmptyBundle(e.getTableId());
 		}
+
 	}
 	
 	/**
@@ -429,6 +391,23 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @return
 	 */
 	public SqlQuery createQuery(String sql, List<SortItem> sortList) throws EmptySchemaException {
+		Long overrideOffset = null;
+		Long overrideLimit = null;
+		Long maxBytesPerPage = null;
+		return createQuery(sql, sortList, overrideOffset, overrideLimit, maxBytesPerPage);
+	}
+	
+	/**
+	 * Create a new query from the given SQL and optional parameters.
+	 * @param sql
+	 * @param sortList
+	 * @param overrideOffset
+	 * @param overrideLimit
+	 * @param maxBytesPerPage
+	 * @return
+	 * @throws EmptySchemaException
+	 */
+	public SqlQuery createQuery(String sql, List<SortItem> sortList, Long overrideOffset, Long overrideLimit, Long maxBytesPerPage) throws EmptySchemaException {
 		// First parse the SQL
 		QuerySpecification model = parserQuery(sql);
 		if (sortList != null && !sortList.isEmpty()) {
@@ -445,7 +424,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		if(columnModels.isEmpty()){
 			throw new EmptySchemaException("Table schema is empty for: "+tableId, tableId);
 		}	
-		return new SqlQuery(model, columnModels, tableId);
+		return new SqlQuery(model, columnModels, overrideOffset, overrideLimit, maxBytesPerPage);
 	}
 	
 	/**
