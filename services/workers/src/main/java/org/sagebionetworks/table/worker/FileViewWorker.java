@@ -99,6 +99,8 @@ public class FileViewWorker implements ChangeMessageDrivenRunner {
 		} catch (LockUnavilableException e) {
 			// try again later.
 			throw new RecoverableMessageException();
+		} catch (RecoverableMessageException e) {
+			throw e;
 		}  catch (Exception e) {
 			log.error("Failed to build index: ", e);
 		}

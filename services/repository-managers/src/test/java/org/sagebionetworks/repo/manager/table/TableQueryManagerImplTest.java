@@ -21,7 +21,6 @@ import static org.sagebionetworks.repo.manager.table.TableQueryManagerImpl.BUNDL
 import static org.sagebionetworks.repo.manager.table.TableQueryManagerImpl.BUNDLE_MASK_QUERY_RESULTS;
 import static org.sagebionetworks.repo.manager.table.TableQueryManagerImpl.BUNDLE_MASK_QUERY_SELECT_COLUMNS;
 
-import java.util.Collections;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
@@ -42,7 +41,6 @@ import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
@@ -51,7 +49,6 @@ import org.sagebionetworks.repo.model.table.QueryResult;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
-import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.SortDirection;
 import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.repo.model.table.TableFailedException;
@@ -315,6 +312,25 @@ public class TableQueryManagerImplTest {
 		assertEquals(TableModelUtils.getSelectColumns(models), results.getSelectColumns());
 		assertEquals(count, results.getQueryCount());
 		assertNull(results.getQueryResult());
+	}
+	
+	/**
+	 * A limit included in the query limits the count.
+	 * @throws Exception
+	 */
+	@Test
+	public void testQueryAsStreamAfterLockWithLimit() throws Exception {
+		Long count = 201L;
+		// setup count results
+		when(mockTableIndexDAO.countQuery(anyString(), anyMapOf(String.class, Object.class))).thenReturn(count);
+		// null handler indicates not to run the main query.
+		RowHandler rowHandler = null;
+		boolean runCount = true;
+		SqlQuery query = new SqlQuery("select * from " + tableId+" limit 11", models);
+		// call under test
+		QueryResultBundle results = manager.queryAsStreamAfterLock(mockProgressCallbackVoid, query, rowHandler, runCount);
+		assertNotNull(results);
+		assertEquals(new Long(11), results.getQueryCount());
 	}
 	
 	@Test
@@ -809,5 +825,55 @@ public class TableQueryManagerImplTest {
 		assertNotNull(result);
 		// there should be no query results.
 		assertNull(result.getQueryResult());
+	}
+	
+	/**
+	 * Override of the limit should not change the total count.
+	 */
+	@Test
+	public void testQuerySinglePageOverrideLimit() throws Exception{
+		Long totalCount = 101L;
+		when(mockTableIndexDAO.countQuery(anyString(), anyMapOf(String.class, Object.class))).thenReturn(totalCount);
+		Long offset = 10L;
+		Long limit = 11L;;
+		boolean runQuery = false;
+		boolean runCount = true;
+		boolean isConsistent = true;
+		String query = "select * from "+tableId;
+		// call under test.
+		QueryResultBundle result = manager.querySinglePage(
+				mockProgressCallbackVoid, user, query, sortList,
+				offset, limit, runQuery, runCount, isConsistent);
+		
+		assertNotNull(result);
+		// there should be no query results.
+		assertNull(result.getQueryResult());
+		assertEquals(totalCount, result.getQueryCount());
+	}
+	
+	/**
+	 * When the query includes a limit, that limit will change the count.
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public void testQuerySinglePageWithLimit() throws Exception{
+		Long totalCount = 101L;
+		when(mockTableIndexDAO.countQuery(anyString(), anyMapOf(String.class, Object.class))).thenReturn(totalCount);
+		Long offset = null;
+		Long limit = null;;
+		boolean runQuery = false;
+		boolean runCount = true;
+		boolean isConsistent = true;
+		String query = "select * from "+tableId+" limit 11";
+		// call under test.
+		QueryResultBundle result = manager.querySinglePage(
+				mockProgressCallbackVoid, user, query, sortList,
+				offset, limit, runQuery, runCount, isConsistent);
+		
+		assertNotNull(result);
+		// there should be no query results.
+		assertNull(result.getQueryResult());
+		assertEquals(new Long(11), result.getQueryCount());
 	}
 }

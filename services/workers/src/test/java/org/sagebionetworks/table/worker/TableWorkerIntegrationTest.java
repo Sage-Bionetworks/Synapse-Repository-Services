@@ -101,6 +101,7 @@ import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.TimeUtils;
 import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.sagebionetworks.util.csv.CSVWriterStreamProxy;
+import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.aop.framework.Advised;
 import org.springframework.aop.support.AopUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -1859,13 +1860,13 @@ public class TableWorkerIntegrationTest {
 			try {
 				QueryResultBundle queryResult = tableQueryManger.querySinglePage(mockProgressCallbackVoid, user, sql, sortItems, 0L, limit, true, false, true);
 				return queryResult.getQueryResult();
+			} catch (LockUnavilableException e) {
+				System.out.println("Waiting for table lock: "+e.getLocalizedMessage());
 			} catch (TableUnavailableException e) {
-				assertTrue("Timed out waiting for table index worker to make the table available.", (System.currentTimeMillis()-start) <  MAX_WAIT_MS);
-				assertNotNull(e.getStatus());
-				assertFalse("Failed: "+e.getStatus().getErrorMessage(),TableState.PROCESSING_FAILED.equals(e.getStatus().getState()));
 				System.out.println("Waiting for table index worker to build table. Status: "+e.getStatus());
-				Thread.sleep(1000);
 			}
+			assertTrue("Timed out waiting for table index worker to make the table available.", (System.currentTimeMillis()-start) <  MAX_WAIT_MS);
+			Thread.sleep(1000);
 		}
 	}
 	
@@ -1883,14 +1884,13 @@ public class TableWorkerIntegrationTest {
 				queryBundleRequest.setQuery(query);
 				QueryResultBundle queryResult = tableQueryManger.queryBundle(mockProgressCallbackVoid, user, queryBundleRequest);
 				return queryResult;
+			} catch (LockUnavilableException e) {
+				System.out.println("Waiting for table lock: "+e.getLocalizedMessage());
 			} catch (TableUnavailableException e) {
-				assertTrue("Timed out waiting for table index worker to make the table available.",
-						(System.currentTimeMillis() - start) < MAX_WAIT_MS);
-				assertNotNull(e.getStatus());
-				assertFalse("Failed: " + e.getStatus().getErrorMessage(), TableState.PROCESSING_FAILED.equals(e.getStatus().getState()));
-				System.out.println("Waiting for table index worker to build table. Status: " + e.getStatus());
-				Thread.sleep(1000);
+				System.out.println("Waiting for table index worker to build table. Status: "+e.getStatus());
 			}
+			assertTrue("Timed out waiting for table index worker to make the table available.", (System.currentTimeMillis()-start) <  MAX_WAIT_MS);
+			Thread.sleep(1000);
 		}
 	}
 
@@ -1911,13 +1911,13 @@ public class TableWorkerIntegrationTest {
 			try {
 				tableQueryManger.validateTableIsAvailable(tableId);
 				return tableQueryManger.runConsistentQueryAsStream(mockProgressCallbackVoid, adminUserInfo, sql, null, writer, includeRowIdAndVersion, writeHeader);
+			}  catch (LockUnavilableException e) {
+				System.out.println("Waiting for table lock: "+e.getLocalizedMessage());
 			} catch (TableUnavailableException e) {
-				assertTrue("Timed out waiting for table index worker to make the table available.", (System.currentTimeMillis()-start) <  MAX_WAIT_MS);
-				assertNotNull(e.getStatus());
-				assertFalse("Failed: "+e.getStatus().getErrorMessage(),TableState.PROCESSING_FAILED.equals(e.getStatus().getState()));
 				System.out.println("Waiting for table index worker to build table. Status: "+e.getStatus());
-				Thread.sleep(1000);
 			}
+			assertTrue("Timed out waiting for table index worker to make the table available.", (System.currentTimeMillis()-start) <  MAX_WAIT_MS);
+			Thread.sleep(1000);
 		}
 	}
 
