@@ -7,7 +7,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.*;
 import static org.mockito.Mockito.verify;
 
 import java.io.StringReader;
@@ -31,6 +31,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
+import org.mockito.internal.verification.AtLeast;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.ids.IdGenerator;
@@ -173,8 +174,6 @@ public class TableWorkerIntegrationTest {
 	
 	ProgressCallback<Long> mockPprogressCallback;
 	ProgressCallback<Void> mockProgressCallbackVoid;
-	
-	private int oldMaxBytesPerRequest;
 
 	private List<UserInfo> users = Lists.newArrayList();
 
@@ -192,7 +191,6 @@ public class TableWorkerIntegrationTest {
 		this.tableId = null;
 		// Start with an empty database
 		this.tableConnectionFactory.dropAllTablesForAllConnections();
-		oldMaxBytesPerRequest = (Integer) ReflectionTestUtils.getField(getTargetObject(tableQueryManger), "maxBytesPerRequest");
 	}
 	
 	@After
@@ -210,7 +208,6 @@ public class TableWorkerIntegrationTest {
 			columnManager.truncateAllColumnData(adminUserInfo);
 			// Drop all data in the index database
 			this.tableConnectionFactory.dropAllTablesForAllConnections();
-			ReflectionTestUtils.setField(getTargetObject(tableQueryManger), "maxBytesPerRequest", oldMaxBytesPerRequest);
 			for (UserInfo user : users) {
 				try {
 					userManager.deletePrincipal(adminUserInfo, user.getId());
@@ -255,7 +252,7 @@ public class TableWorkerIntegrationTest {
 		String sql = "select * from " + tableId + " order by row_id";
 		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 8L);
 		// Progress should have been made
-		verify(mockProgressCallbackVoid, times(2)).progressMade(null);
+		verify(mockProgressCallbackVoid, atLeast(2)).progressMade(null);
 		System.out.println("testRoundTrip");
 		System.out.println(queryResult);
 		assertNotNull(queryResult);
@@ -309,7 +306,7 @@ public class TableWorkerIntegrationTest {
 		String sql = "select row_id from " + tableId;
 		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 8L);
 		// Progress should have been made
-		verify(mockProgressCallbackVoid, times(2)).progressMade(null);
+		verify(mockProgressCallbackVoid, atLeast(1)).progressMade(null);
 		System.out.println("testRoundTrip");
 		System.out.println(queryResult);
 		assertNotNull(queryResult);
@@ -392,33 +389,6 @@ public class TableWorkerIntegrationTest {
 		assertEquals(1, queryResult.getQueryResults().getRows().size());
 		assertNull(queryResult.getNextPageToken());
 		compareValues(rowSet, 5, 1, queryResult.getQueryResults());
-
-		List<SelectColumn> select = TableModelUtils.getSelectColumns(schema);
-		ReflectionTestUtils.setField(getTargetObject(tableQueryManger), "maxBytesPerRequest", TableModelUtils.calculateMaxRowSizeForSelectColumn(select) * 2);
-		queryResult = tableQueryManger.querySinglePage(mockProgressCallbackVoid, adminUserInfo, sql, null, 0L, 5L, true, false, true).getQueryResult();
-		assertEquals(2, queryResult.getQueryResults().getRows().size());
-		assertNotNull(queryResult.getNextPageToken());
-		compareValues(rowSet, 0, 2, queryResult.getQueryResults());
-
-		queryResult = tableQueryManger.queryNextPage(mockProgressCallbackVoid, adminUserInfo, queryResult.getNextPageToken());
-		assertEquals(2, queryResult.getQueryResults().getRows().size());
-		assertNotNull(queryResult.getNextPageToken());
-		compareValues(rowSet, 2, 2, queryResult.getQueryResults());
-
-		queryResult = tableQueryManger.queryNextPage(mockProgressCallbackVoid, adminUserInfo, queryResult.getNextPageToken());
-		assertEquals(2, queryResult.getQueryResults().getRows().size());
-		assertNull(queryResult.getNextPageToken());
-		compareValues(rowSet, 4, 2, queryResult.getQueryResults());
-
-		queryResult = tableQueryManger.querySinglePage(mockProgressCallbackVoid, adminUserInfo, sql + " limit 3", null, 0L, 100L, true, false, true).getQueryResult();
-		assertEquals(2, queryResult.getQueryResults().getRows().size());
-		assertNotNull(queryResult.getNextPageToken());
-		compareValues(rowSet, 0, 2, queryResult.getQueryResults());
-
-		queryResult = tableQueryManger.queryNextPage(mockProgressCallbackVoid, adminUserInfo, queryResult.getNextPageToken());
-		assertEquals(1, queryResult.getQueryResults().getRows().size());
-		assertNull(queryResult.getNextPageToken());
-		compareValues(rowSet, 2, 1, queryResult.getQueryResults());
 	}
 
 	@Test

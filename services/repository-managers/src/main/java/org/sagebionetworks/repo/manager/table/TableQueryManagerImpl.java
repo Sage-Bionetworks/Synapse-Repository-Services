@@ -67,7 +67,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 */
 	long maxBytesPerRequest;
 	
-	public void setMaxBytesPerRequest(int maxBytesPerRequest) {
+	public void setMaxBytesPerRequest(long maxBytesPerRequest) {
 		this.maxBytesPerRequest = maxBytesPerRequest;
 	}
 

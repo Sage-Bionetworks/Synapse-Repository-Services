@@ -312,6 +312,7 @@ public class TableIndexDAOImplTest {
 		assertNotNull(results.getRows());
 		assertEquals(tableId, results.getTableId());
 		assertEquals(2, results.getRows().size());
+		verify(mockProgressCallback, times(2)).progressMade(null);
 		// test the count
 		String countSql = SqlElementUntils.createCountSql(query.getTransformedModel());
 		Long count = tableIndexDAO.countQuery(countSql, query.getParameters());
