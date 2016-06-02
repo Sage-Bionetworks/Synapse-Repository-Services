@@ -53,6 +53,7 @@ import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
+import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -313,13 +314,13 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		while(true){
 			try {
 				return tableQueryManger.querySinglePage(mockProgressCallback, adminUserInfo, sql, null, 0L, 100L, true, false, true).getQueryResult().getQueryResults();
+			}  catch (LockUnavilableException e) {
+				System.out.println("Waiting for table lock: "+e.getLocalizedMessage());
 			} catch (TableUnavailableException e) {
-				assertTrue("Timed out waiting for table index worker to make the table available.", (System.currentTimeMillis()-start) <  MAX_WAIT_MS);
-				assertNotNull(e.getStatus());
-				assertFalse("Failed: "+e.getStatus().getErrorMessage(),TableState.PROCESSING_FAILED.equals(e.getStatus().getState()));
 				System.out.println("Waiting for table index worker to build table. Status: "+e.getStatus());
-				Thread.sleep(1000);
 			}
+			assertTrue("Timed out waiting for table index worker to make the table available.", (System.currentTimeMillis()-start) <  MAX_WAIT_MS);
+			Thread.sleep(1000);
 		}
 	}
 	

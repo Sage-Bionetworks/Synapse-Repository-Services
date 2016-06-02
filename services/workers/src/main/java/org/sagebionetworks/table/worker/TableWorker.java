@@ -146,6 +146,9 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 		} catch (TableUnavailableException e) {
 			// This is a recoverable failure as we can try again later.
 			return State.RECOVERABLE_FAILURE;
+		} catch (InterruptedException e) {
+			// This is a recoverable failure as we can try again later.
+			return State.RECOVERABLE_FAILURE;
 		} catch (Exception e) {
 			log.error("Failed with unknown error", e);
 			// Cannot recover from this.
