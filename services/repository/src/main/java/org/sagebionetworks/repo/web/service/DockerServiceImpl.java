@@ -1,19 +1,27 @@
 package org.sagebionetworks.repo.web.service;
 
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
+import static org.sagebionetworks.repo.web.service.DockerNameUtil.REPO_NAME_PATH_SEP;
 
+import org.sagebionetworks.auth.services.AuthenticationService;
+import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.docker.DockerAuthorizationToken;
 import org.sagebionetworks.repo.model.docker.DockerCommit;
 import org.sagebionetworks.repo.model.docker.DockerRegistryEvent;
 import org.sagebionetworks.repo.model.docker.DockerRegistryEventList;
 import org.sagebionetworks.repo.model.docker.DockerRepository;
 import org.sagebionetworks.repo.model.docker.RegistryEventAction;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.springframework.beans.factory.annotation.Autowired;
 
 
 
 public class DockerServiceImpl implements DockerService {
+	@Autowired
+	private AuthenticationService authenticationService;
+
+	@Autowired
+	private EntityService entityService;
 
 	/**
 	 * Answer Docker Registry authorization request.
@@ -38,13 +46,12 @@ public class DockerServiceImpl implements DockerService {
 		return result;
 	}
 	
-	private static final String REPO_NAME_PATH_SEP = "/"; // TODO combine with parsing util's
-	
 	public static String getParentIdFromRepositoryName(String name) {
 		int i = name.indexOf(REPO_NAME_PATH_SEP);
 		String result = name;
 		if (i>0) result = name.substring(0, i);
-		// TODO validate that the string is a valid ID (i.e. "syn" followed by a number)
+		// validate that the string is a valid ID (i.e. "syn" followed by a number)
+		KeyFactory.stringToKey(result);
 		return result;
 	}
 
@@ -52,6 +59,7 @@ public class DockerServiceImpl implements DockerService {
 	 * Process (push, pull) event notifications from Docker Registry
 	 * @param registryEvents
 	 */
+	@WriteTransaction
 	@Override
 	public void dockerRegistryNotification(DockerRegistryEventList registryEvents) {
 		for (DockerRegistryEvent event : registryEvents.getEvents()) {
@@ -69,23 +77,21 @@ public class DockerServiceImpl implements DockerService {
 				DockerCommit commit = new DockerCommit();
 				commit.setTag(event.getTarget().getTag());
 				commit.setDigest(event.getTarget().getDigest());
-				// create or update the given object
-				// TODO search for the Repo with the given name and parent
-				boolean alreadyExists = false;
-				if (alreadyExists) {
-					DockerRepository entity =null; // TODO get current version
-					Set<DockerCommit> commits = new HashSet<DockerCommit>(entity.getCommits());
-					commits.add(commit);
-					entity.setCommits(commits);
-					// TODO update entity
-				} else {
+				Long userId = authenticationService.getUserId(username);
+				String entityId = null;
+				// TODO what if you have update but not create permission and 
+				// the repo' already exists?  If so you should not be trying to create.
+				try {
 					DockerRepository entity = new DockerRepository();
-					entity.setCommits(Collections.singleton(commit));
 					entity.setIsManaged(true);
-					entity.setName(host+"/"+repositoryName);
+					entity.setName(entityName);
 					entity.setParentId(parentId);
-					// TODO create entity
+					entityId = entityService.createManagedDockerRepo(userId, entity);
+				} catch (NameConflictException e) {
+					// already exists
+					// TODO find entityId for the given ID and name
 				}
+				// TODO Add commit to entity
 			case pull:
 				// nothing to do. We are being notified that someone has pulled a repository image
 			default:

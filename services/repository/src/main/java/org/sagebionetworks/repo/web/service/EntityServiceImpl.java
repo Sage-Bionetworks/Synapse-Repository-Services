@@ -35,6 +35,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.repo.model.docker.DockerRepository;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.provenance.Activity;
@@ -243,6 +244,23 @@ public class EntityServiceImpl implements EntityService {
 		fireAfterCreateEntityEvent(userInfo, newEntity, type);
 		// Return the resulting entity.
 		return getEntity(userInfo, id, request, clazz, eventType);
+	}
+
+	@WriteTransaction
+	@Override
+	public String createManagedDockerRepo(Long userId, DockerRepository newEntity)
+			throws DatastoreException, InvalidModelException,
+			UnauthorizedException, NotFoundException {
+		if (!newEntity.getIsManaged()) throw new InvalidModelException("Only managed Docker entities permitted.");
+		// Get the user
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		// Create a new id for this entity
+		long newId = idGenerator.generateNewId();
+		newEntity.setId(KeyFactory.keyToString(newId));
+		entityManager.createEntity(userInfo, newEntity, null);
+		fireAfterCreateEntityEvent(userInfo, newEntity, EntityType.dockerrepo);
+		// Return the ID of the new entity
+		return KeyFactory.keyToString(newId);
 	}
 
 	/**

@@ -146,8 +146,8 @@
 		class="org.sagebionetworks.repo.web.service.metadata.FileViewMetadataProvider"
 		scope="singleton" />	
 
-	<bean id="dockerRepositoryMetadataProvider"
-		class="org.sagebionetworks.repo.web.service.metadata.DockerRepoMetadataProvider"
+	<bean id="externalDockerRepoValidator"
+		class="org.sagebionetworks.repo.web.service.metadata.ExternalDockerRepoValidator"
 		scope="singleton" />	
 
 	<!-- the keys in this map must be the values of the org.sagebionetworks.repo.modelObjectType 
@@ -173,7 +173,7 @@
 					<ref bean="fileViewMetadataProvider"/>
 				</entry>				
 				<entry key="dockerrepo">
-					<ref bean="dockerRepositoryMetadataProvider"/>
+					<ref bean="externalDockerRepoValidator"/>
 				</entry>				
 			</map>
 		</property>
