@@ -10,14 +10,6 @@
         "isManaged": {
             "type":"boolean",
             "description":"Indicates that the repository is managed by Synapse, rather than by an external registry."
-        },
-        "commits": {
-         	"type": "array",
-           	"description":"The commits for this repository.",
-			"uniqueItems": true,
-			"items": {
-           		"$ref": "org.sagebionetworks.repo.model.docker.DockerCommit"
-  			}
         }
     }
 }

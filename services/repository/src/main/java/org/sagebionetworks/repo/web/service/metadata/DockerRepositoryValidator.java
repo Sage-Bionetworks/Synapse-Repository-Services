@@ -1,16 +1,13 @@
 package org.sagebionetworks.repo.web.service.metadata;
 
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.docker.DockerCommit;
 import org.sagebionetworks.repo.model.docker.DockerRepository;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -23,8 +20,7 @@ public class DockerRepositoryValidator implements EntityValidator<DockerReposito
 	// one alpha numeric or several alphanumerics with hyphens internally
 	public static final String hostnameComponentRegexp = "([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9])";
 	public static final String hostnameRegexp = hostnameComponentRegexp+
-									"(\\.|"+hostnameComponentRegexp+")*"+
-									"(:[0-9]+)?";
+									"(\\.|"+hostnameComponentRegexp+")*"+"(:[0-9]+)?";
 	
 	// we keep the Regexp name from Docker, but it should be called 'lowerCaseAlpha...'
 	public static final String alphaNumericRegexp = "[a-z0-9]+";
@@ -71,68 +67,39 @@ public class DockerRepositoryValidator implements EntityValidator<DockerReposito
 		return Arrays.asList("docker.synapse.org");
 	}
 	
-	public static boolean isSynapseRegistry(String registryHost) {
-		return false; // TODO 
-	}
-	
-	public static boolean isInBlackList(String registryHost) {
+	public static boolean isReserved(String registryHost) {
 		return false; // TODO
 	}
 	
 	// list the DNS names (wildcards allowed) which are not allowed
 	// to be external registries
-	public static final List<String> EXTERNAL_REGISTRY_BLACKLIST;
+	public static final List<String> RESERVED_REGISTRY_NAME_LIST;
 	static {
-		EXTERNAL_REGISTRY_BLACKLIST = Arrays.asList("*.synapse.org");
+		RESERVED_REGISTRY_NAME_LIST = Arrays.asList("*.synapse.org");
 	};
 	
-	public static void validateCommits(Set<DockerCommit> commits) {
-		Set<String> tags = new HashSet<String>();
-		Set<String> digests = new HashSet<String>();
-		for (DockerCommit commit : commits) {
-			String tag = commit.getTag();
-			String digest = commit.getDigest();
-			// TODO make sure tag and digest are formatted correctly
-			if (tag!=null && tags.contains(tag)) 
-				throw new InvalidModelException("Repeated tag "+tag);
-			tags.add(tag);
-			if (digest==null) 
-				throw new InvalidModelException("digest cannot be null.");
-			if (digests.contains(digest)) 
-				throw new InvalidModelException("Repeated digest "+digest);
-			digests.add(digest);
-		}
-	}
-	
-	
-	//	Dns/subnet blacklist (reserved) for external urls
-	//	Plus white list of allowed
-	//	- no changing parentId.  parent must always be the initial one.
-	//	- no changing name.
+	/*
+	 * Allow only the creation of an external docker repository.  No update is allowed.
+	 * @see org.sagebionetworks.repo.web.service.metadata.EntityValidator#validateEntity(org.sagebionetworks.repo.model.Entity, org.sagebionetworks.repo.web.service.metadata.EntityEvent)
+	 */
 	@Override
 	public void validateEntity(DockerRepository dockerRepository, EntityEvent event)
 			throws InvalidModelException, NotFoundException,
 			DatastoreException, UnauthorizedException {
 		
-		if (event.getType()==EventType.UPDATE) {
-			if (dockerRepository.getId()==null) throw new InvalidModelException("Entity ID is required.");
-			// TODO retrieve the entity based on its ID
-			// TODO for efficiency, retrieve entity without annotations
-			// if metadata is being changed, then reject it
-			// this includes parentId, isManaged, name, commits
-		} else if (event.getType()==EventType.CREATE) {
+		if (event.getType()==EventType.CREATE) {
 			validateName(dockerRepository.getName());
 			String registryHost = getRegistryHost(dockerRepository.getName());
 			if (registryHost!=null) {
-				// check registryHost to see if its managed and set 'isManaged' accordingly
-				if (isSynapseRegistry(registryHost)) {
+				if (getSynapseRegistries().contains(registryHost)) {
 					throw new InvalidModelException("Cannot create a managed Docker repository.");
-				} else if (isInBlackList(registryHost)) {
-					throw new InvalidModelException("Cannot a Docker repository having this registry host.");
+				} else if (isReserved(registryHost)) {
+					throw new InvalidModelException("Cannot a Docker repository having a reserved registry host.");
 				}
 			}
 			dockerRepository.setIsManaged(false);
-			validateCommits(dockerRepository.getCommits());
+		} else if (event.getType()==EventType.UPDATE) {
+			throw new IllegalArgumentException("Update is not allowed.");
 		} else {
 			throw new IllegalArgumentException("Unexpected event type "+event.getType());
 		}
