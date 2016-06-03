@@ -246,23 +246,6 @@ public class EntityServiceImpl implements EntityService {
 		return getEntity(userInfo, id, request, clazz, eventType);
 	}
 
-	@WriteTransaction
-	@Override
-	public String createManagedDockerRepo(Long userId, DockerRepository newEntity)
-			throws DatastoreException, InvalidModelException,
-			UnauthorizedException, NotFoundException {
-		if (!newEntity.getIsManaged()) throw new InvalidModelException("Only managed Docker entities permitted.");
-		// Get the user
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		// Create a new id for this entity
-		long newId = idGenerator.generateNewId();
-		newEntity.setId(KeyFactory.keyToString(newId));
-		entityManager.createEntity(userInfo, newEntity, null);
-		fireAfterCreateEntityEvent(userInfo, newEntity, EntityType.dockerrepo);
-		// Return the ID of the new entity
-		return KeyFactory.keyToString(newId);
-	}
-
 	/**
 	 * Fire an after a create event.
 	 * @param userInfo

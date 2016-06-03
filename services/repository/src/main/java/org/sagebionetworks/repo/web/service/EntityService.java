@@ -734,8 +734,4 @@ public interface EntityService {
 	 */
 	public EntityId getEntityIdForAlias(String alias);
 
-	public String createManagedDockerRepo(Long userId, DockerRepository newEntity)
-			throws DatastoreException, InvalidModelException,
-			UnauthorizedException, NotFoundException;
-
 }

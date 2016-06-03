@@ -2,8 +2,17 @@ package org.sagebionetworks.repo.web.service;
 
 import static org.sagebionetworks.repo.web.service.DockerNameUtil.REPO_NAME_PATH_SEP;
 
+import java.security.KeyPair;
+import java.util.Arrays;
+
 import org.sagebionetworks.auth.services.AuthenticationService;
-import org.sagebionetworks.repo.model.NameConflictException;
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.repo.manager.EntityManager;
+import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.docker.DockerAuthorizationToken;
 import org.sagebionetworks.repo.model.docker.DockerCommit;
 import org.sagebionetworks.repo.model.docker.DockerRegistryEvent;
@@ -11,17 +20,31 @@ import org.sagebionetworks.repo.model.docker.DockerRegistryEventList;
 import org.sagebionetworks.repo.model.docker.DockerRepository;
 import org.sagebionetworks.repo.model.docker.RegistryEventAction;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
 
 
 public class DockerServiceImpl implements DockerService {
 	@Autowired
-	private AuthenticationService authenticationService;
-
+	private NodeDAO nodeDAO;
+	
 	@Autowired
-	private EntityService entityService;
+	private AuthenticationService authenticationService;
+	
+	@Autowired
+	IdGenerator idGenerator;
+	
+	@Autowired
+	UserManager userManager;
+	
+	@Autowired
+	EntityManager entityManager;
+	
+	@Autowired
+	PrincipalAliasDAO principalAliasDAO;
 
 	/**
 	 * Answer Docker Registry authorization request.
@@ -40,7 +63,18 @@ public class DockerServiceImpl implements DockerService {
 		// for 'push' access, check canCreate, and UPDATE access in synID
 		// for 'pull' access, check READ and DOWNLOAD access in synID
 		// now construct the auth response and return it
-		String token = null; 
+		
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		String userName = principalAliasDAO.getUserName(userId);
+		
+		String[] scopeParts = scope.split(":");
+		if (scopeParts.length!=3) throw new RuntimeException("Expected 3 parts but found "+scopeParts.length);
+		String type = scopeParts[0];
+		String repository = scopeParts[1];
+		String accessTypes = scopeParts[2];
+
+		KeyPair keyPair = null; // TODO
+		String token = DockerTokenUtil.createToken(keyPair, userName, type, service, repository, Arrays.asList(accessTypes.split(",")));
 		DockerAuthorizationToken result = new DockerAuthorizationToken();
 		result.setToken(token);
 		return result;
@@ -79,17 +113,26 @@ public class DockerServiceImpl implements DockerService {
 				commit.setDigest(event.getTarget().getDigest());
 				Long userId = authenticationService.getUserId(username);
 				String entityId = null;
-				// TODO what if you have update but not create permission and 
-				// the repo' already exists?  If so you should not be trying to create.
 				try {
+					EntityHeader entityHeader = nodeDAO.getEntityHeaderByChildName(parentId, entityName);
+					if (entityHeader.getType()!= EntityType.dockerrepo.name()) 
+						throw new IllegalArgumentException("Cannot create a Docker repository in container "+parentId+
+								". An entity of type "+entityHeader.getType()+" already exists with name "+entityName);
+					entityId = entityHeader.getId();
+				} catch (NotFoundException nfe) {
+					// The node doesn't already exist
+
 					DockerRepository entity = new DockerRepository();
 					entity.setIsManaged(true);
 					entity.setName(entityName);
 					entity.setParentId(parentId);
-					entityId = entityService.createManagedDockerRepo(userId, entity);
-				} catch (NameConflictException e) {
-					// already exists
-					// TODO find entityId for the given ID and name
+					// Get the user
+					UserInfo userInfo = userManager.getUserInfo(userId);
+					// Create a new id for this entity
+					long newId = idGenerator.generateNewId();
+					entity.setId(KeyFactory.keyToString(newId));
+					entityManager.createEntity(userInfo, entity, null);
+					entityId =  KeyFactory.keyToString(newId);
 				}
 				// TODO Add commit to entity
 			case pull:
