@@ -148,7 +148,7 @@ public class SqlElementUntilsTest {
 	}
 	
 	@Test
-	public void testOverridePaginationQueryWithLimitOffsetOverrideInRange() throws ParseException{
+	public void testOverridePaginationQueryQueryLimitGreaterThanOverrideOffset() throws ParseException{
 		QuerySpecification model = TableQueryParser.parserQuery("select * from syn123 limit 100 offset 50");
 		Long limit = 25L;
 		Long offset = 10L;
@@ -158,13 +158,23 @@ public class SqlElementUntilsTest {
 	}
 	
 	@Test
-	public void testOverridePaginationQueryWithLimitOffsetOverrideOutOfRange() throws ParseException{
-		QuerySpecification model = TableQueryParser.parserQuery("select * from syn123 limit 100 offset 75");
-		Long limit = 50L;
-		Long offset = 10L;
+	public void testOverridePaginationQueryQueryLimitLessThanOverrideOffset() throws ParseException{
+		QuerySpecification model = TableQueryParser.parserQuery("select * from syn123 limit 100 offset 50");
+		Long limit = 25L;
+		Long offset = 101L;
 		Long maxRowsPerPage = 1000L;
 		QuerySpecification converted = SqlElementUntils.overridePagination(model, offset, limit, maxRowsPerPage);
-		assertEquals("SELECT * FROM syn123 LIMIT 50 OFFSET 85", converted.toString());
+		assertEquals("SELECT * FROM syn123 LIMIT 0 OFFSET 151", converted.toString());
+	}
+	
+	@Test
+	public void testOverridePaginationQueryMaxRowsLessLimit() throws ParseException{
+		QuerySpecification model = TableQueryParser.parserQuery("select * from syn123 limit 100");
+		Long limit = null;
+		Long offset = null;
+		Long maxRowsPerPage = 99L;
+		QuerySpecification converted = SqlElementUntils.overridePagination(model, offset, limit, maxRowsPerPage);
+		assertEquals("SELECT * FROM syn123 LIMIT 99 OFFSET 0", converted.toString());
 	}
 	
 	@Test
@@ -196,7 +206,7 @@ public class SqlElementUntilsTest {
 	
 	@Test
 	public void testCreateCountSqlGroupBy() throws ParseException, SimpleAggregateQueryException{
-		QuerySpecification model = new TableQueryParser("select foo, count(*) from syn123 group by foo, bar").querySpecification();
+		QuerySpecification model = new TableQueryParser("select foo, bar, count(*) from syn123 group by foo, bar").querySpecification();
 		String countSql = SqlElementUntils.createCountSql(model);
 		assertEquals("SELECT COUNT(DISTINCT foo, bar) FROM syn123", countSql);
 	}

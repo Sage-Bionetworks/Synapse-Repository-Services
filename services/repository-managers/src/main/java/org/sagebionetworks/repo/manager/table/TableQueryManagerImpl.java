@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.manager.table;
 
+import static org.sagebionetworks.repo.manager.table.TableQueryManagerImpl.BUNDLE_MASK_QUERY_COLUMN_MODELS;
+
 import java.io.StringWriter;
 import java.util.LinkedList;
 import java.util.List;
@@ -329,7 +331,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			bundle.setSelectColumns(queryResult.getSelectColumns());
 		}
 		// all schema columns
-		if ((partMask & BUNDLE_MASK_QUERY_MAX_ROWS_PER_PAGE) > 0) {
+		if ((partMask & BUNDLE_MASK_QUERY_COLUMN_MODELS) > 0) {
 			bundle.setColumnModels(queryResult.getColumnModels());
 		}
 		// Max rows per column
