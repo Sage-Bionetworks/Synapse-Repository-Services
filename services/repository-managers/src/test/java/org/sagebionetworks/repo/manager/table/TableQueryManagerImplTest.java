@@ -16,10 +16,7 @@ import static org.mockito.Mockito.stub;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.sagebionetworks.repo.manager.table.TableQueryManagerImpl.BUNDLE_MASK_QUERY_COUNT;
-import static org.sagebionetworks.repo.manager.table.TableQueryManagerImpl.BUNDLE_MASK_QUERY_MAX_ROWS_PER_PAGE;
-import static org.sagebionetworks.repo.manager.table.TableQueryManagerImpl.BUNDLE_MASK_QUERY_RESULTS;
-import static org.sagebionetworks.repo.manager.table.TableQueryManagerImpl.BUNDLE_MASK_QUERY_SELECT_COLUMNS;
+import static org.sagebionetworks.repo.manager.table.TableQueryManagerImpl.*;
 
 import java.util.Date;
 import java.util.LinkedList;
@@ -49,6 +46,7 @@ import org.sagebionetworks.repo.model.table.QueryResult;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.SortDirection;
 import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.repo.model.table.TableFailedException;
@@ -424,58 +422,21 @@ public class TableQueryManagerImplTest {
 		verify(mockTableManagerSupport, times(1)).getTableStatusOrCreateIfNotExists(tableId);
 	}
 	
-	/**
-	 * Test for a consistent query when the table index is not available and not yet being build
-	 * 
-	 * @throws Exception
-	 */
+	
 	@Test
-	public void testQueryIsConsistentTrueNotFound() throws Exception {
-		status.setState(TableState.PROCESSING);
-		try{
-			manager.querySinglePage(mockProgressCallbackVoid, user, "select * from " + tableId + " limit 1", null, null, null, true, false, true);
-			fail("should have failed");
-		}catch(TableUnavailableException e){
-			// expected
-			assertEquals(status, e.getStatus());
-		}
-		verify(mockTableManagerSupport, times(1)).getTableStatusOrCreateIfNotExists(tableId);
-	}
-
-	@Test
-	public void testQueryBundle() throws Exception {
-		RowSet selectStar = new RowSet();
-		selectStar.setEtag("etag");
-		selectStar.setHeaders(TableModelUtils.getSelectColumns(models));
-		selectStar.setTableId(tableId);
-		selectStar.setRows(TableModelTestUtils.createRows(models, 10));
-		QueryResult selectStarResult = new QueryResult();
-		selectStarResult.setNextPageToken(null);
-		selectStarResult.setQueryResults(selectStar);
-
-		runQueryBundleTest("select * from " + tableId, selectStar, 10L, TableModelUtils.getSelectColumns(models).toString(), 2929L);
-	}
-
-	@Test
-	public void testQueryBundleColumnsExpanded() throws Exception {
-		RowSet selectStar = new RowSet();
-		selectStar.setEtag("etag");
-		selectStar.setHeaders(TableModelUtils.getSelectColumns(models));
-		selectStar.setTableId(tableId);
-		selectStar.setRows(TableModelTestUtils.createRows(models, 10));
-		QueryResult selectStarResult = new QueryResult();
-		selectStarResult.setNextPageToken(null);
-		selectStarResult.setQueryResults(selectStar);
-
-		runQueryBundleTest("select " + StringUtils.join(Lists.transform(models, TableModelTestUtils.convertToNameFunction), ",") + " from "
-				+ tableId, selectStar, 10L, TableModelUtils.getSelectColumns(models).toString(),
-				2929L);
-	}
-
-	private void runQueryBundleTest(String sql, RowSet selectResult, Long countResult, String selectColumns, Long maxRowsPerPage)
+	public void runQueryBundleTest()
 			throws Exception {
+		List<SelectColumn> selectColumns = TableModelUtils.getSelectColumns(models);
+		int maxRowSizeBytes = TableModelUtils.calculateMaxRowSize(models);
+		maxBytesPerRequest = maxRowSizeBytes*10;
+		manager.setMaxBytesPerRequest(maxBytesPerRequest);
+		Long maxRowsPerPage = new Long(maxBytesPerRequest/maxRowSizeBytes);
+		// setup the count
+		Long count = 101L;
+		when(mockTableIndexDAO.countQuery(anyString(), anyMapOf(String.class, Object.class))).thenReturn(count);
+		
 		Query query = new Query();
-		query.setSql(sql);
+		query.setSql("select * from " + tableId);
 		query.setIsConsistent(true);
 		query.setOffset(0L);
 		query.setLimit(Long.MAX_VALUE);
@@ -485,7 +446,7 @@ public class TableQueryManagerImplTest {
 		// Request query only
 		queryBundle.setPartMask(BUNDLE_MASK_QUERY_RESULTS);
 		QueryResultBundle bundle = manager.queryBundle(mockProgressCallbackVoid, user, queryBundle);
-		assertEquals(selectResult, bundle.getQueryResult().getQueryResults());
+		assertEquals(rows, bundle.getQueryResult().getQueryResults().getRows());
 		assertEquals(null, bundle.getQueryCount());
 		assertEquals(null, bundle.getSelectColumns());
 		assertEquals(null, bundle.getMaxRowsPerPage());
@@ -494,7 +455,7 @@ public class TableQueryManagerImplTest {
 		queryBundle.setPartMask(BUNDLE_MASK_QUERY_COUNT);
 		bundle = manager.queryBundle(mockProgressCallbackVoid, user, queryBundle);
 		assertEquals(null, bundle.getQueryResult());
-		assertEquals(countResult, bundle.getQueryCount());
+		assertEquals(count, bundle.getQueryCount());
 		assertEquals(null, bundle.getSelectColumns());
 		assertEquals(null, bundle.getMaxRowsPerPage());
 
@@ -503,7 +464,7 @@ public class TableQueryManagerImplTest {
 		bundle = manager.queryBundle(mockProgressCallbackVoid, user, queryBundle);
 		assertEquals(null, bundle.getQueryResult());
 		assertEquals(null, bundle.getQueryCount());
-		assertEquals(selectColumns, bundle.getSelectColumns().toString());
+		assertEquals(selectColumns, bundle.getSelectColumns());
 		assertEquals(null, bundle.getMaxRowsPerPage());
 
 		// max rows per page
@@ -513,14 +474,22 @@ public class TableQueryManagerImplTest {
 		assertEquals(null, bundle.getQueryCount());
 		assertEquals(null, bundle.getSelectColumns());
 		assertEquals(maxRowsPerPage, bundle.getMaxRowsPerPage());
+		
+		// max rows per page
+		queryBundle.setPartMask(BUNDLE_MASK_QUERY_COLUMN_MODELS);
+		bundle = manager.queryBundle(mockProgressCallbackVoid, user, queryBundle);
+		assertEquals(null, bundle.getQueryResult());
+		assertEquals(null, bundle.getQueryCount());
+		assertEquals(null, bundle.getSelectColumns());
+		assertEquals(models, bundle.getColumnModels());
 
 		// now combine them all
 		queryBundle.setPartMask(BUNDLE_MASK_QUERY_RESULTS | BUNDLE_MASK_QUERY_COUNT
 				| BUNDLE_MASK_QUERY_SELECT_COLUMNS | BUNDLE_MASK_QUERY_MAX_ROWS_PER_PAGE);
 		bundle = manager.queryBundle(mockProgressCallbackVoid, user, queryBundle);
-		assertEquals(selectResult, bundle.getQueryResult().getQueryResults());
-		assertEquals(countResult, bundle.getQueryCount());
-		assertEquals(selectColumns, bundle.getSelectColumns().toString());
+		assertEquals(rows, bundle.getQueryResult().getQueryResults().getRows());
+		assertEquals(count, bundle.getQueryCount());
+		assertEquals(selectColumns, bundle.getSelectColumns());
 		assertEquals(maxRowsPerPage, bundle.getMaxRowsPerPage());
 	}
 	
@@ -715,6 +684,17 @@ public class TableQueryManagerImplTest {
 		// method under test
 		long count = manager.runCountQuery(query);
 		assertEquals(50L, count);
+	}
+	
+	@Test
+	public void testRunCountQueryWithCountLessThanOffset() throws ParseException{
+		SqlQuery query = new SqlQuery("select i0 from "+tableId+" limit 100 offset 150", models);
+		ArgumentCaptor<String> sqlCaptrue = ArgumentCaptor.forClass(String.class);
+		// setup the count returned from query
+		when(mockTableIndexDAO.countQuery(sqlCaptrue.capture(), anyMapOf(String.class, Object.class))).thenReturn(149L);
+		// method under test
+		long count = manager.runCountQuery(query);
+		assertEquals(0L, count);
 	}
 	
 	@Test
