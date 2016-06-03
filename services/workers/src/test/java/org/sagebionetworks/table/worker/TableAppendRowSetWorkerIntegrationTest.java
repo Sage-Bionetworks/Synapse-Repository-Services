@@ -57,7 +57,8 @@ import com.google.common.collect.Lists;
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class TableAppendRowSetWorkerIntegrationTest {
 
-	public static final int MAX_WAIT_MS = 1000 * 80;
+	public static final int MAX_WAIT_MS = 1000 * 60 * 10;
+	
 	@Autowired
 	AsynchJobStatusManager asynchJobStatusManager;
 	@Autowired
