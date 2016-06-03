@@ -173,8 +173,6 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 			if(!ENTITY.equals(in.getFrom().toLowerCase())){
 				if(VERSIONABLE.equals(in.getFrom().toLowerCase())){
 					in.addExpression(new Expression(new CompoundId(null, SqlConstants.TYPE_COLUMN_NAME), Comparator.IN, VERSIONABLE_TYPES));
-				}else if(VERSIONABLE.equals(in.getFrom().toLowerCase())){
-					in.addExpression(new Expression(new CompoundId(null, SqlConstants.TYPE_COLUMN_NAME), Comparator.IN, VERSIONABLE_TYPES));
 				}else{
 					EntityType type = EntityType.valueOf(in.getFrom().toLowerCase());
 					in.addExpression(new Expression(new CompoundId(null, SqlConstants.TYPE_COLUMN_NAME), Comparator.EQUALS, type.name()));
