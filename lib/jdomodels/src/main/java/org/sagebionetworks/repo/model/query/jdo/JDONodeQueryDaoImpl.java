@@ -11,11 +11,11 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.NodeQueryResults;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil;
 import org.sagebionetworks.repo.model.jdo.FieldTypeCache;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -40,7 +40,7 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 
 	private static final String VERSIONABLE = "versionable";
 	
-	private static final List<String> VERSIONABLE_TYPES = Arrays.asList(EntityType.file.name(), EntityType.table.name());
+	private static final List<String> VERSIONABLE_TYPES = Arrays.asList(EntityType.file.name(), EntityType.table.name(), EntityType.fileview.name());
 
 	private static final String ENTITY = "entity";
 
@@ -86,7 +86,7 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 	 * @param name
 	 * @return
 	 */
-	private FieldType getFieldType(String name) {
+	static FieldType getFieldType(String name) {
 		// Look up this name
 		return FieldTypeCache.getInstance().getTypeForName(name);
 	}
@@ -165,7 +165,7 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 	 * @throws DatastoreException
 	 * @return True, if the query is valid and can be run, else false.
 	 */
-	private boolean buildQueryStrings(BasicQuery in, UserInfo userInfo, StringBuilder countQuery, StringBuilder fullQuery,
+	static boolean buildQueryStrings(BasicQuery in, UserInfo userInfo, StringBuilder countQuery, StringBuilder fullQuery,
 			Map<String, Object> parameters) throws DatastoreException {
 		// Add a filter on type if needed
 		if(in.getFrom() != null){
@@ -273,7 +273,7 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 	 * @param parameters
 	 * @throws DatastoreException
 	 */
-	private void buildAllSorting(StringBuilder orderByClause, String sort, boolean ascending) throws DatastoreException,
+	static void buildAllSorting(StringBuilder orderByClause, String sort, boolean ascending) throws DatastoreException,
 			AttributeDoesNotExistException {
 		// The first thing we need to do is determine if we are sorting on a
 		// primary field or an attribute.
@@ -315,7 +315,7 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 	 * @param alias
 	 * @return
 	 */
-	private String buildSelect(boolean isCount, List<String> select) {
+	static String buildSelect(boolean isCount, List<String> select) {
 		StringBuilder builder = new StringBuilder();
 		builder.append("select ");
 		if (isCount) {
@@ -358,14 +358,14 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 		return builder.toString();
 	}
 
-	private void addAnnotationsToSelect(StringBuilder builder) {
+	static void addAnnotationsToSelect(StringBuilder builder) {
 		builder.append(", ");
 		builder.append(SqlConstants.REVISION_ALIAS);
 		builder.append(".");
 		builder.append(SqlConstants.COL_REVISION_ANNOS_BLOB);
 	}
 
-	private void addNodeFieldToSelect(StringBuilder builder, NodeField field) {
+	static void addNodeFieldToSelect(StringBuilder builder, NodeField field) {
 		builder.append(", ");
 		builder.append(field.getTableAlias());
 		builder.append(".");
@@ -381,7 +381,7 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 	 * @param from
 	 * @throws AttributeDoesNotExistException 
 	 */
-	private Map<String, FieldType> buildFrom(StringBuilder fromBuilder, BasicQuery in) throws AttributeDoesNotExistException {
+	static Map<String, FieldType> buildFrom(StringBuilder fromBuilder, BasicQuery in) throws AttributeDoesNotExistException {
 		Map<String, FieldType> aliasMap = new HashMap<String, FieldType>();
 		fromBuilder.append("from");
 
@@ -446,7 +446,7 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 	 * @param usedTypes
 	 * @throws AttributeDoesNotExistException 
 	 */
-	private void addFrom(StringBuilder fromBuilder, String alias, FieldType type, Map<String, FieldType> aliasMap)
+	static void addFrom(StringBuilder fromBuilder, String alias, FieldType type, Map<String, FieldType> aliasMap)
 			throws AttributeDoesNotExistException {
 		if (FieldType.DOES_NOT_EXIST.equals(type))
 			throw new AttributeDoesNotExistException("Unknown field type: " + type);
@@ -473,7 +473,7 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 	 * @throws AttributeDoesNotExistException 
 	 * @throws DatastoreException 
 	 */
-	private void buildWhere(StringBuilder whereBuilder, String authorizationFilter, Map<String, FieldType> aliasMap, Map parameters,
+	static void buildWhere(StringBuilder whereBuilder, String authorizationFilter, Map<String, FieldType> aliasMap, Map parameters,
 			BasicQuery in) throws AttributeDoesNotExistException, DatastoreException {
 		// We need a where clause if there is more than one table in this query or if there are any filters.
 		int conditionCount = 0;
@@ -616,7 +616,7 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 	 * @param whereBuilder
 	 * @param conditionCount
 	 */
-	private void prepareWhereBuilder(StringBuilder whereBuilder,
+	static void prepareWhereBuilder(StringBuilder whereBuilder,
 			int conditionCount) {
 		if(conditionCount == 0){
 			whereBuilder.append("where");

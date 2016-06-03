@@ -69,7 +69,7 @@ import au.com.bytecode.opencsv.CSVReader;
 public class TableCSVDownloadWorkerIntegrationTest {
 
 	// This test can be slow when run from outside of Amazon.
-	public static final int MAX_WAIT_MS = 1000*60*3;
+	public static final int MAX_WAIT_MS = 1000 * 60 * 10;
 	
 	@Autowired
 	AsynchJobStatusManager asynchJobStatusManager;
