@@ -35,7 +35,6 @@ import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.TimeoutUtils;
 import org.sagebionetworks.util.ValidateArgument;
-import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.sagebionetworks.workers.util.semaphore.WriteReadSemaphoreRunner;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -306,17 +305,19 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	}
 	
 	@Override
-	public <R,T> R tryRunWithTableExclusiveLock(ProgressCallback<T> callback,
+	public <R, T> R tryRunWithTableExclusiveLock(ProgressCallback<T> callback,
 			String tableId, int timeoutSec, ProgressingCallable<R, T> callable)
-			throws LockUnavilableException, InterruptedException, Exception {
+			throws Exception {
 		String key = TableModelUtils.getTableSemaphoreKey(tableId);
 		// The semaphore runner does all of the lock work.
 		return writeReadSemaphoreRunner.tryRunWithWriteLock(callback, key, timeoutSec, callable);
 	}
 
 	@Override
-	public <R,T> R tryRunWithTableNonexclusiveLock(ProgressCallback<T> callback, String tableId, int lockTimeoutSec, ProgressingCallable<R, T> callable)
-			throws Exception {
+	public <R, T> R tryRunWithTableNonexclusiveLock(
+			ProgressCallback<T> callback, String tableId, int lockTimeoutSec,
+			ProgressingCallable<R, T> callable) throws Exception
+			{
 		String key = TableModelUtils.getTableSemaphoreKey(tableId);
 		// The semaphore runner does all of the lock work.
 		return writeReadSemaphoreRunner.tryRunWithReadLock(callback, key, lockTimeoutSec, callable);

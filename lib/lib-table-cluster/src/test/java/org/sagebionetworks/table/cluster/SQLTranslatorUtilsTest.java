@@ -39,6 +39,7 @@ import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.model.SignedLiteral;
 import org.sagebionetworks.table.query.model.TableReference;
 import org.sagebionetworks.table.query.model.ValueExpressionPrimary;
+import org.sagebionetworks.table.query.util.SimpleAggregateQueryException;
 
 import com.google.common.collect.Lists;
 
@@ -1151,5 +1152,6 @@ public class SQLTranslatorUtilsTest {
 		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
 		assertEquals("SELECT FOUND_ROWS()",element.toSql());
 	}
+	
 
 }

@@ -21,8 +21,10 @@ import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
+import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.HasPredicate;
 import org.sagebionetworks.table.query.model.Predicate;
+import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 
 import com.google.common.collect.Lists;
@@ -718,5 +720,87 @@ public class SQLQueryTest {
 	public void testTranslateRightHandSideNaN() throws ParseException{
 		SqlQuery translator = new SqlQuery("select foo from syn123 where aDouble <> 'NaN'", tableSchema);
 		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123 WHERE (_DBL_C123_ IS NULL OR _DBL_C123_ <> 'NaN')", translator.getOutputSQL());
+	}
+	
+	@Test
+	public void testMaxRowSizeBytesSelectStar() throws ParseException{
+		// the size will include the size of the schema
+		int maxSizeSchema = TableModelUtils.calculateMaxRowSize(tableSchema);
+		SqlQuery translator = new SqlQuery("select * from syn123", tableSchema);
+		assertEquals(maxSizeSchema, translator.getMaxRowSizeBytes());
+	}
+	
+	@Test
+	public void testMaxRowSizeBytesCountStar() throws ParseException{
+		// the size is the size of an integer
+		int maxSizeSchema = TableModelUtils.calculateMaxSizeForType(ColumnType.INTEGER, null);
+		SqlQuery translator = new SqlQuery("select count(*) from syn123", tableSchema);
+		assertEquals(maxSizeSchema, translator.getMaxRowSizeBytes());
+	}
+	
+	@Test
+	public void testMaxRowsPerPage() throws ParseException{
+		int maxSizeSchema = TableModelUtils.calculateMaxRowSize(tableSchema);
+		Long maxBytesPerPage = maxSizeSchema*2L;
+		QuerySpecification model = new TableQueryParser("select * from syn123").querySpecification();
+		SqlQuery translator = new SqlQuery(model, tableSchema, null, null, maxBytesPerPage);
+		assertEquals(maxSizeSchema, translator.getMaxRowSizeBytes());
+		assertEquals(new Long(2L), translator.getMaxRowsPerPage());
+	}
+	
+	@Test
+	public void testMaxRowsPerPageMaxBytesSmall() throws ParseException{
+		int maxSizeSchema = TableModelUtils.calculateMaxRowSize(tableSchema);
+		Long maxBytesPerPage = 3L;
+		QuerySpecification model = new TableQueryParser("select * from syn123").querySpecification();
+		SqlQuery translator = new SqlQuery(model, tableSchema, null, null, maxBytesPerPage);
+		assertEquals(maxSizeSchema, translator.getMaxRowSizeBytes());
+		assertEquals(new Long(1L), translator.getMaxRowsPerPage());
+	}
+	
+	@Test
+	public void testMaxRowsPerPageNullMaxBytesPerPage() throws ParseException{
+		int maxSizeSchema = TableModelUtils.calculateMaxRowSize(tableSchema);
+		Long maxBytesPerPage = null;
+		QuerySpecification model = new TableQueryParser("select * from syn123").querySpecification();
+		SqlQuery translator = new SqlQuery(model, tableSchema, null, null, maxBytesPerPage);
+		assertEquals(maxSizeSchema, translator.getMaxRowSizeBytes());
+		assertEquals(null, translator.getMaxRowsPerPage());
+	}
+	
+	@Test
+	public void testOverrideLimitAndOffset() throws ParseException{
+		Long overideOffset = 1L;
+		Long overideLimit = 10L;
+		Long maxBytesPerPage = 10000L;
+		QuerySpecification model = new TableQueryParser("select foo from syn123").querySpecification();
+		SqlQuery translator = new SqlQuery(model, tableSchema, overideOffset, overideLimit, maxBytesPerPage);
+		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123 LIMIT :b0 OFFSET :b1",translator.getOutputSQL());
+		assertEquals(overideLimit, translator.getParameters().get("b0"));
+		assertEquals(overideOffset, translator.getParameters().get("b1"));
+		// the original model should remain unchanged.
+		assertEquals("SELECT foo FROM syn123",translator.getModel().toSql());
+	}
+	
+	@Test
+	public void testOverrideLimitAndOffsetNullWithMaxBytesPerPage() throws ParseException{
+		Long overideOffset = null;
+		Long overideLimit = null;
+		Long maxBytesPerPage = 1L;
+		QuerySpecification model = new TableQueryParser("select foo from syn123").querySpecification();
+		SqlQuery translator = new SqlQuery(model, tableSchema, overideOffset, overideLimit, maxBytesPerPage);
+		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123 LIMIT :b0 OFFSET :b1",translator.getOutputSQL());
+		assertEquals(new Long(1), translator.getParameters().get("b0"));
+		assertEquals(new Long(0), translator.getParameters().get("b1"));
+	}
+	
+	@Test
+	public void testOverrideNull() throws ParseException{
+		Long overideOffset = null;
+		Long overideLimit = null;
+		Long maxBytesPerPage = null;
+		QuerySpecification model = new TableQueryParser("select foo from syn123").querySpecification();
+		SqlQuery translator = new SqlQuery(model, tableSchema, overideOffset, overideLimit, maxBytesPerPage);
+		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123",translator.getOutputSQL());
 	}
 }

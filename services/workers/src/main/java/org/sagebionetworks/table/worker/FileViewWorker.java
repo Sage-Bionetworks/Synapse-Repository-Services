@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
@@ -92,13 +93,15 @@ public class FileViewWorker implements ChangeMessageDrivenRunner {
 				}
 
 			} );
+		} catch (TableUnavailableException e) {
+			// try again later.
+			throw new RecoverableMessageException();
 		} catch (LockUnavilableException e) {
 			// try again later.
 			throw new RecoverableMessageException();
 		} catch (RecoverableMessageException e) {
-			// pass it along
 			throw e;
-		} catch (Exception e) {
+		}  catch (Exception e) {
 			log.error("Failed to build index: ", e);
 		}
 	}

@@ -12,27 +12,26 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
-import org.sagebionetworks.repo.manager.table.QueryResultWithCount;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
-import org.sagebionetworks.repo.model.table.QueryResult;
+import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.TableFailedException;
-import org.sagebionetworks.repo.model.table.TableUnavilableException;
+import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.util.Clock;
-import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
+import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.beans.factory.annotation.Autowired;
-
-import com.amazonaws.services.sqs.model.Message;
 
 import au.com.bytecode.opencsv.CSVWriter;
 import au.com.bytecode.opencsv.Constants;
+
+import com.amazonaws.services.sqs.model.Message;
 
 /**
  * This worker will stream the results of a table SQL query to a local CSV file and upload the file
@@ -67,9 +66,9 @@ public class TableCSVDownloadWorker implements MessageDrivenRunner {
 			DownloadFromTableRequest request = (DownloadFromTableRequest) status.getRequestBody();
 			// Before we start determine how many rows there are.
 			ForwardingProgressCallback<Void, Message> forwardCallabck = new ForwardingProgressCallback<Void, Message>(progressCallback, message);
-			QueryResultWithCount queryResult = tableQueryManger.query(forwardCallabck, user, request.getSql(), request.getSort(), null, null, false, true,
+			QueryResultBundle queryResult = tableQueryManger.querySinglePage(forwardCallabck, user, request.getSql(), request.getSort(), null, null, false, true,
 					true);
-			long rowCount = queryResult.getCount();
+			long rowCount = queryResult.getQueryCount();
 			// Since each row must first be read from the database then uploaded to S3
 			// The total amount of progress is two times the number of rows.
 			long totalProgress = rowCount*2;
@@ -106,7 +105,12 @@ public class TableCSVDownloadWorker implements MessageDrivenRunner {
 			// Create the file
 			// Now upload the file as a filehandle
 			asynchJobStatusManager.setComplete(status.getJobId(), result);
-		}catch (TableUnavilableException e){
+		}catch (TableUnavailableException e){
+			// This just means we cannot do this right now.  We can try again later.
+			asynchJobStatusManager.updateJobProgress(status.getJobId(), 0L, 100L, "Waiting for the table index to become available...");
+			// Throwing this will put the message back on the queue in 5 seconds.
+			throw new RecoverableMessageException();
+		} catch (LockUnavilableException e){
 			// This just means we cannot do this right now.  We can try again later.
 			asynchJobStatusManager.updateJobProgress(status.getJobId(), 0L, 100L, "Waiting for the table index to become available...");
 			// Throwing this will put the message back on the queue in 5 seconds.

@@ -7,7 +7,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.*;
 import static org.mockito.Mockito.verify;
 
 import java.io.StringReader;
@@ -31,6 +31,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
+import org.mockito.internal.verification.AtLeast;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.ids.IdGenerator;
@@ -93,7 +94,7 @@ import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.TableState;
-import org.sagebionetworks.repo.model.table.TableUnavilableException;
+import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
@@ -101,6 +102,7 @@ import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.TimeUtils;
 import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.sagebionetworks.util.csv.CSVWriterStreamProxy;
+import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.aop.framework.Advised;
 import org.springframework.aop.support.AopUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -172,8 +174,6 @@ public class TableWorkerIntegrationTest {
 	
 	ProgressCallback<Long> mockPprogressCallback;
 	ProgressCallback<Void> mockProgressCallbackVoid;
-	
-	private int oldMaxBytesPerRequest;
 
 	private List<UserInfo> users = Lists.newArrayList();
 
@@ -191,7 +191,6 @@ public class TableWorkerIntegrationTest {
 		this.tableId = null;
 		// Start with an empty database
 		this.tableConnectionFactory.dropAllTablesForAllConnections();
-		oldMaxBytesPerRequest = (Integer) ReflectionTestUtils.getField(getTargetObject(tableQueryManger), "maxBytesPerRequest");
 	}
 	
 	@After
@@ -209,7 +208,6 @@ public class TableWorkerIntegrationTest {
 			columnManager.truncateAllColumnData(adminUserInfo);
 			// Drop all data in the index database
 			this.tableConnectionFactory.dropAllTablesForAllConnections();
-			ReflectionTestUtils.setField(getTargetObject(tableQueryManger), "maxBytesPerRequest", oldMaxBytesPerRequest);
 			for (UserInfo user : users) {
 				try {
 					userManager.deletePrincipal(adminUserInfo, user.getId());
@@ -254,7 +252,7 @@ public class TableWorkerIntegrationTest {
 		String sql = "select * from " + tableId + " order by row_id";
 		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 8L);
 		// Progress should have been made
-		verify(mockProgressCallbackVoid, times(1)).progressMade(null);
+		verify(mockProgressCallbackVoid, atLeast(2)).progressMade(null);
 		System.out.println("testRoundTrip");
 		System.out.println(queryResult);
 		assertNotNull(queryResult);
@@ -308,7 +306,7 @@ public class TableWorkerIntegrationTest {
 		String sql = "select row_id from " + tableId;
 		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 8L);
 		// Progress should have been made
-		verify(mockProgressCallbackVoid, times(1)).progressMade(null);
+		verify(mockProgressCallbackVoid, atLeast(1)).progressMade(null);
 		System.out.println("testRoundTrip");
 		System.out.println(queryResult);
 		assertNotNull(queryResult);
@@ -364,60 +362,33 @@ public class TableWorkerIntegrationTest {
 		assertNull(queryResult.getNextPageToken());
 		compareValues(rowSet, 0, 5, queryResult.getQueryResults());
 
-		queryResult = tableQueryManger.query(mockProgressCallbackVoid, adminUserInfo, sql, null, 5L, 1L, true, false, true).getQueryResult();
+		queryResult = tableQueryManger.querySinglePage(mockProgressCallbackVoid, adminUserInfo, sql, null, 5L, 1L, true, false, true).getQueryResult();
 		assertEquals(1, queryResult.getQueryResults().getRows().size());
 		assertNull(queryResult.getNextPageToken());
 		compareValues(rowSet, 5, 1, queryResult.getQueryResults());
 
-		queryResult = tableQueryManger.query(mockProgressCallbackVoid, adminUserInfo, sql, null, 5L, 2L, true, false, true).getQueryResult();
+		queryResult = tableQueryManger.querySinglePage(mockProgressCallbackVoid, adminUserInfo, sql, null, 5L, 2L, true, false, true).getQueryResult();
 		assertEquals(1, queryResult.getQueryResults().getRows().size());
 		assertNull(queryResult.getNextPageToken());
 		compareValues(rowSet, 5, 1, queryResult.getQueryResults());
 
-		queryResult = tableQueryManger.query(mockProgressCallbackVoid, adminUserInfo, sql + " limit 2 offset 3", null, 0L, 8L, true,
+		queryResult = tableQueryManger.querySinglePage(mockProgressCallbackVoid, adminUserInfo, sql + " limit 2 offset 3", null, 0L, 8L, true,
 				false, true).getQueryResult();
 		assertEquals(2, queryResult.getQueryResults().getRows().size());
 		assertNull(queryResult.getNextPageToken());
 		compareValues(rowSet, 3, 2, queryResult.getQueryResults());
 
-		queryResult = tableQueryManger.query(mockProgressCallbackVoid, adminUserInfo, sql + " limit 8 offset 2", null, 2L, 2L, true,
+		queryResult = tableQueryManger.querySinglePage(mockProgressCallbackVoid, adminUserInfo, sql + " limit 8 offset 2", null, 2L, 2L, true,
 				false, true).getQueryResult();
 		assertEquals(2, queryResult.getQueryResults().getRows().size());
 		assertNull(queryResult.getNextPageToken());
 		compareValues(rowSet, 4, 2, queryResult.getQueryResults());
 
-		queryResult = tableQueryManger.query(mockProgressCallbackVoid,adminUserInfo, sql + " limit 8 offset 3", null, 2L, 2L, true,
+		queryResult = tableQueryManger.querySinglePage(mockProgressCallbackVoid,adminUserInfo, sql + " limit 8 offset 3", null, 2L, 2L, true,
 				false, true).getQueryResult();
 		assertEquals(1, queryResult.getQueryResults().getRows().size());
 		assertNull(queryResult.getNextPageToken());
 		compareValues(rowSet, 5, 1, queryResult.getQueryResults());
-
-		List<SelectColumn> select = TableModelUtils.getSelectColumns(schema);
-		ReflectionTestUtils.setField(getTargetObject(tableQueryManger), "maxBytesPerRequest", TableModelUtils.calculateMaxRowSizeForSelectColumn(select) * 2);
-		queryResult = tableQueryManger.query(mockProgressCallbackVoid, adminUserInfo, sql, null, 0L, 5L, true, false, true).getQueryResult();
-		assertEquals(2, queryResult.getQueryResults().getRows().size());
-		assertNotNull(queryResult.getNextPageToken());
-		compareValues(rowSet, 0, 2, queryResult.getQueryResults());
-
-		queryResult = tableQueryManger.queryNextPage(mockProgressCallbackVoid, adminUserInfo, queryResult.getNextPageToken());
-		assertEquals(2, queryResult.getQueryResults().getRows().size());
-		assertNotNull(queryResult.getNextPageToken());
-		compareValues(rowSet, 2, 2, queryResult.getQueryResults());
-
-		queryResult = tableQueryManger.queryNextPage(mockProgressCallbackVoid, adminUserInfo, queryResult.getNextPageToken());
-		assertEquals(2, queryResult.getQueryResults().getRows().size());
-		assertNull(queryResult.getNextPageToken());
-		compareValues(rowSet, 4, 2, queryResult.getQueryResults());
-
-		queryResult = tableQueryManger.query(mockProgressCallbackVoid, adminUserInfo, sql + " limit 3", null, 0L, 100L, true, false, true).getQueryResult();
-		assertEquals(2, queryResult.getQueryResults().getRows().size());
-		assertNotNull(queryResult.getNextPageToken());
-		compareValues(rowSet, 0, 2, queryResult.getQueryResults());
-
-		queryResult = tableQueryManger.queryNextPage(mockProgressCallbackVoid, adminUserInfo, queryResult.getNextPageToken());
-		assertEquals(1, queryResult.getQueryResults().getRows().size());
-		assertNull(queryResult.getNextPageToken());
-		compareValues(rowSet, 2, 1, queryResult.getQueryResults());
 	}
 
 	@Test
@@ -1857,15 +1828,15 @@ public class TableWorkerIntegrationTest {
 		long start = System.currentTimeMillis();
 		while(true){
 			try {
-				QueryResultWithCount queryResult = tableQueryManger.query(mockProgressCallbackVoid, user, sql, sortItems, 0L, limit, true, false, true);
+				QueryResultBundle queryResult = tableQueryManger.querySinglePage(mockProgressCallbackVoid, user, sql, sortItems, 0L, limit, true, false, true);
 				return queryResult.getQueryResult();
-			} catch (TableUnavilableException e) {
-				assertTrue("Timed out waiting for table index worker to make the table available.", (System.currentTimeMillis()-start) <  MAX_WAIT_MS);
-				assertNotNull(e.getStatus());
-				assertFalse("Failed: "+e.getStatus().getErrorMessage(),TableState.PROCESSING_FAILED.equals(e.getStatus().getState()));
+			} catch (LockUnavilableException e) {
+				System.out.println("Waiting for table lock: "+e.getLocalizedMessage());
+			} catch (TableUnavailableException e) {
 				System.out.println("Waiting for table index worker to build table. Status: "+e.getStatus());
-				Thread.sleep(1000);
 			}
+			assertTrue("Timed out waiting for table index worker to make the table available.", (System.currentTimeMillis()-start) <  MAX_WAIT_MS);
+			Thread.sleep(1000);
 		}
 	}
 	
@@ -1883,14 +1854,13 @@ public class TableWorkerIntegrationTest {
 				queryBundleRequest.setQuery(query);
 				QueryResultBundle queryResult = tableQueryManger.queryBundle(mockProgressCallbackVoid, user, queryBundleRequest);
 				return queryResult;
-			} catch (TableUnavilableException e) {
-				assertTrue("Timed out waiting for table index worker to make the table available.",
-						(System.currentTimeMillis() - start) < MAX_WAIT_MS);
-				assertNotNull(e.getStatus());
-				assertFalse("Failed: " + e.getStatus().getErrorMessage(), TableState.PROCESSING_FAILED.equals(e.getStatus().getState()));
-				System.out.println("Waiting for table index worker to build table. Status: " + e.getStatus());
-				Thread.sleep(1000);
+			} catch (LockUnavilableException e) {
+				System.out.println("Waiting for table lock: "+e.getLocalizedMessage());
+			} catch (TableUnavailableException e) {
+				System.out.println("Waiting for table index worker to build table. Status: "+e.getStatus());
 			}
+			assertTrue("Timed out waiting for table index worker to make the table available.", (System.currentTimeMillis()-start) <  MAX_WAIT_MS);
+			Thread.sleep(1000);
 		}
 	}
 
@@ -1909,14 +1879,15 @@ public class TableWorkerIntegrationTest {
 		long start = System.currentTimeMillis();
 		while(true){
 			try {
+				tableQueryManger.validateTableIsAvailable(tableId);
 				return tableQueryManger.runConsistentQueryAsStream(mockProgressCallbackVoid, adminUserInfo, sql, null, writer, includeRowIdAndVersion, writeHeader);
-			} catch (TableUnavilableException e) {
-				assertTrue("Timed out waiting for table index worker to make the table available.", (System.currentTimeMillis()-start) <  MAX_WAIT_MS);
-				assertNotNull(e.getStatus());
-				assertFalse("Failed: "+e.getStatus().getErrorMessage(),TableState.PROCESSING_FAILED.equals(e.getStatus().getState()));
+			}  catch (LockUnavilableException e) {
+				System.out.println("Waiting for table lock: "+e.getLocalizedMessage());
+			} catch (TableUnavailableException e) {
 				System.out.println("Waiting for table index worker to build table. Status: "+e.getStatus());
-				Thread.sleep(1000);
 			}
+			assertTrue("Timed out waiting for table index worker to make the table available.", (System.currentTimeMillis()-start) <  MAX_WAIT_MS);
+			Thread.sleep(1000);
 		}
 	}
 

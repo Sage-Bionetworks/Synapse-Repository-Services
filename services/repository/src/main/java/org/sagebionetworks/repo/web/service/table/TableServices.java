@@ -16,7 +16,7 @@ import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
-import org.sagebionetworks.repo.model.table.TableUnavilableException;
+import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 /**

@@ -9,7 +9,47 @@ import org.sagebionetworks.repo.model.table.SortDirection;
 import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
-import org.sagebionetworks.table.query.model.*;
+import org.sagebionetworks.table.query.model.ActualIdentifier;
+import org.sagebionetworks.table.query.model.BetweenPredicate;
+import org.sagebionetworks.table.query.model.BooleanFactor;
+import org.sagebionetworks.table.query.model.BooleanPredicate;
+import org.sagebionetworks.table.query.model.BooleanPrimary;
+import org.sagebionetworks.table.query.model.BooleanTerm;
+import org.sagebionetworks.table.query.model.BooleanTest;
+import org.sagebionetworks.table.query.model.ColumnName;
+import org.sagebionetworks.table.query.model.ColumnReference;
+import org.sagebionetworks.table.query.model.ComparisonPredicate;
+import org.sagebionetworks.table.query.model.DerivedColumn;
+import org.sagebionetworks.table.query.model.EscapeCharacter;
+import org.sagebionetworks.table.query.model.FromClause;
+import org.sagebionetworks.table.query.model.GroupByClause;
+import org.sagebionetworks.table.query.model.GroupingColumnReference;
+import org.sagebionetworks.table.query.model.GroupingColumnReferenceList;
+import org.sagebionetworks.table.query.model.Identifier;
+import org.sagebionetworks.table.query.model.InPredicate;
+import org.sagebionetworks.table.query.model.InPredicateValue;
+import org.sagebionetworks.table.query.model.LikePredicate;
+import org.sagebionetworks.table.query.model.MatchValue;
+import org.sagebionetworks.table.query.model.NullPredicate;
+import org.sagebionetworks.table.query.model.OrderByClause;
+import org.sagebionetworks.table.query.model.OrderingSpecification;
+import org.sagebionetworks.table.query.model.Pagination;
+import org.sagebionetworks.table.query.model.Pattern;
+import org.sagebionetworks.table.query.model.Predicate;
+import org.sagebionetworks.table.query.model.QuerySpecification;
+import org.sagebionetworks.table.query.model.RowValueConstructor;
+import org.sagebionetworks.table.query.model.RowValueConstructorElement;
+import org.sagebionetworks.table.query.model.RowValueConstructorList;
+import org.sagebionetworks.table.query.model.SearchCondition;
+import org.sagebionetworks.table.query.model.SelectList;
+import org.sagebionetworks.table.query.model.SetQuantifier;
+import org.sagebionetworks.table.query.model.SortKey;
+import org.sagebionetworks.table.query.model.SortSpecification;
+import org.sagebionetworks.table.query.model.SortSpecificationList;
+import org.sagebionetworks.table.query.model.TableExpression;
+import org.sagebionetworks.table.query.model.ValueExpression;
+import org.sagebionetworks.table.query.model.ValueExpressionPrimary;
+import org.sagebionetworks.table.query.model.WhereClause;
 import org.sagebionetworks.util.ValidateArgument;
 
 import com.google.common.collect.Lists;
@@ -423,35 +463,12 @@ public class SqlElementUntils {
 	
 	/**
 	 * Convert the passed query into a count query.
-	 * @param model
-	 * @return
-	 * @throws ParseException 
-	 */
-	public static QuerySpecification convertToCountQuery(QuerySpecification model) {
-		ValidateArgument.required(model, "QuerySpecification");
-		TableExpression currentTableExpression = model.getTableExpression();
-		ValidateArgument.required(currentTableExpression, "TableExpression");
-
-		// Clear the select list
-		SelectList count;
-		try {
-			count = new SelectList(createDerivedColumns("count(*)"));
-		} catch (ParseException e) {
-			throw new IllegalArgumentException(e);
-		}
-		TableExpression tableExpression = new TableExpression(currentTableExpression.getFromClause(),
-				currentTableExpression.getWhereClause(), currentTableExpression.getGroupByClause(), null, null);
-		return new QuerySpecification(null, null, count, tableExpression);
-	}
-	
-	/**
-	 * Convert the passed query into a count query.
 	 * 
 	 * @param model
 	 * @return
 	 * @throws ParseException
 	 */
-	public static QuerySpecification convertToPaginatedQuery(QuerySpecification model, Long offset, Long limit) throws ParseException {
+	public static QuerySpecification convertToPaginatedQuery(QuerySpecification model, Long offset, Long limit)  {
 		if (model == null)
 			throw new IllegalArgumentException("QuerySpecification cannot be null");
 		TableExpression currentTableExpression = model.getTableExpression();
@@ -514,5 +531,93 @@ public class SqlElementUntils {
 		} else {
 			return new ActualIdentifier(columnName, null);
 		}
+	}
+
+	/**
+	 * Override pagination on the given query using the provided limit and offset.
+	 * 
+	 * @param model
+	 * @param offset
+	 * @param limit
+	 * @return
+	 */
+	public static QuerySpecification overridePagination(
+			QuerySpecification model, Long offset, Long limit, Long maxRowsPerPage) {
+		if(offset == null && limit == null && maxRowsPerPage == null){
+			// there is nothing to do.
+			return model;
+		}
+		long limitFromRequest = (limit != null) ? limit : Long.MAX_VALUE;
+		long offsetFromRequest = (offset != null) ? offset : 0L;
+		
+		long limitFromQuery = Long.MAX_VALUE;
+		long offsetFromQuery = 0L;
+		
+		Pagination pagination = model.getTableExpression().getPagination();
+		if (pagination != null) {
+			if (pagination.getLimitLong() != null) {
+				limitFromQuery = pagination.getLimitLong();
+			}
+			if (pagination.getOffsetLong() != null) {
+				offsetFromQuery = pagination.getOffsetLong();
+			}
+		}
+		
+		long paginatedOffset = offsetFromQuery + offsetFromRequest;
+		// adjust the limit from the query based on the additional offset (assume Long.MAX_VALUE - offset is still
+		// always large enough)
+		limitFromQuery = Math.max(0, limitFromQuery - offsetFromRequest);
+		
+		long paginatedLimit = Math.min(limitFromRequest, limitFromQuery);
+		
+		if(maxRowsPerPage != null){
+			if (paginatedLimit > maxRowsPerPage) {
+				paginatedLimit = maxRowsPerPage;
+			}
+		}
+		return convertToPaginatedQuery(model, paginatedOffset, paginatedLimit);
+	}
+	
+	/**
+	 * Create SQL that can be used for a count query from the given query model.
+	 * 
+	 * @param transformedModel
+	 * @return
+	 * @throws SimpleAggregateQueryException Thrown when given query is a simple aggregate query that would return one row.
+	 */
+	public static String createCountSql(QuerySpecification model) throws SimpleAggregateQueryException{
+		TableExpression tableExpression = null;
+		FromClause fromClause = model.getTableExpression().getFromClause();
+		WhereClause whereClause = model.getTableExpression().getWhereClause();
+		GroupByClause groupByClause = null;
+		OrderByClause orderByClause = null;
+		Pagination pagination = null;
+		StringBuilder builder = new StringBuilder();
+		builder.append("SELECT ");
+		// There are three cases
+		if(model.hasAnyAggregateElements()){
+			// does this have a group by clause?
+			if(model.getTableExpression().getGroupByClause() != null){
+				// group by query
+				builder.append("COUNT(DISTINCT ");
+				builder.append(model.getTableExpression().getGroupByClause().getGroupingColumnReferenceList().toSql());
+				builder.append(")");
+			}else if(SetQuantifier.DISTINCT.equals(model.getSetQuantifier())){
+				// distinct select
+				builder.append("COUNT(DISTINCT ");
+				builder.append(model.getSelectList().toSql());
+				builder.append(")");
+			}else{
+				throw new SimpleAggregateQueryException("Simple aggregate queries always return one row");
+			}
+		}else{
+			// simple count *
+			builder.append("COUNT(*)");
+		}
+		// clear pagination, group by, order by
+		tableExpression = new TableExpression(fromClause, whereClause, groupByClause, orderByClause, pagination);
+		builder.append(" ");
+		builder.append(tableExpression.toSql());
+		return builder.toString();
 	}
 }

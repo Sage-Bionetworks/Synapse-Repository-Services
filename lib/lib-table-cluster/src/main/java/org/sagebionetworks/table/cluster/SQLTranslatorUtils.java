@@ -29,6 +29,7 @@ import org.sagebionetworks.table.query.model.ColumnName;
 import org.sagebionetworks.table.query.model.ColumnReference;
 import org.sagebionetworks.table.query.model.DerivedColumn;
 import org.sagebionetworks.table.query.model.Factor;
+import org.sagebionetworks.table.query.model.FromClause;
 import org.sagebionetworks.table.query.model.FunctionType;
 import org.sagebionetworks.table.query.model.GroupByClause;
 import org.sagebionetworks.table.query.model.HasPredicate;
@@ -43,6 +44,7 @@ import org.sagebionetworks.table.query.model.OrderByClause;
 import org.sagebionetworks.table.query.model.Pagination;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.SelectList;
+import org.sagebionetworks.table.query.model.SetQuantifier;
 import org.sagebionetworks.table.query.model.StringValueExpression;
 import org.sagebionetworks.table.query.model.TableExpression;
 import org.sagebionetworks.table.query.model.TableReference;
@@ -583,4 +585,5 @@ public class SQLTranslatorUtils {
 		Long tableId = KeyFactory.stringToKey(tableReference.getTableName());
 		tableReference.replaceTableName(SQLUtils.TABLE_PREFIX + tableId);
 	}
+	
 }

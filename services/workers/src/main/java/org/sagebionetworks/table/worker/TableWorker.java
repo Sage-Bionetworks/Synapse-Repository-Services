@@ -25,7 +25,7 @@ import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableRowChange;
-import org.sagebionetworks.repo.model.table.TableUnavilableException;
+import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
@@ -143,6 +143,9 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 		} catch (NotFoundException e) {
 			// This is thrown if the table no longer exits
 			return State.UNRECOVERABLE_FAILURE;
+		} catch (TableUnavailableException e) {
+			// This is a recoverable failure as we can try again later.
+			return State.RECOVERABLE_FAILURE;
 		} catch (InterruptedException e) {
 			// This is a recoverable failure as we can try again later.
 			return State.RECOVERABLE_FAILURE;
@@ -179,12 +182,8 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 			tableManagerSupport.attemptToSetTableStatusToAvailable(tableId,
 					tableResetToken, lastEtag);
 			return State.SUCCESS;
-		} catch (TableUnavilableException e) {
+		} catch (TableUnavailableException e) {
 			// recoverable
-			tableManagerSupport.attemptToUpdateTableProgress(tableId,
-					tableResetToken, e.getStatus().getProgressMessage(), e
-							.getStatus().getProgressCurrent(), e.getStatus()
-							.getProgressTotal());
 			log.info("Create index " + tableId + " aborted, unavailable");
 			return State.RECOVERABLE_FAILURE;
 		} catch (Exception e) {
@@ -214,12 +213,12 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 * @throws IOException
-	 * @throws TableUnavilableException
+	 * @throws TableUnavailableException
 	 */
 	String synchIndexWithTable(ProgressCallback<ChangeMessage> progressCallback,
 			final TableIndexManager indexManager, String tableId, String resetToken,
 			ChangeMessage change) throws DatastoreException, NotFoundException,
-			IOException, TableUnavilableException {
+			IOException, TableUnavailableException {
 		// The first task is to get the table schema in-synch.
 		// Get the current schema of the table.
 		List<ColumnModel> currentSchema = tableManagerSupport

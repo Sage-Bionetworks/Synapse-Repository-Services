@@ -29,7 +29,7 @@ import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
-import org.sagebionetworks.repo.model.table.TableUnavilableException;
+import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewResult;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
@@ -686,7 +686,7 @@ public class TableController extends BaseController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 * @throws IOException
-	 * @throws TableUnavilableException
+	 * @throws TableUnavailableException
 	 * @throws TableFailedException
 	 */
 	@ResponseStatus(HttpStatus.CREATED)

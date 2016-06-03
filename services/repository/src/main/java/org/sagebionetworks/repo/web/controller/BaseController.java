@@ -29,7 +29,7 @@ import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.table.TableStatus;
-import org.sagebionetworks.repo.model.table.TableUnavilableException;
+import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
@@ -114,10 +114,10 @@ public abstract class BaseController {
 	 * @param request
 	 * @return
 	 */
-	@ExceptionHandler(TableUnavilableException.class)
+	@ExceptionHandler(TableUnavailableException.class)
 	@ResponseStatus(HttpStatus.ACCEPTED)
 	public @ResponseBody
-	TableStatus handleTableUnavilableException(TableUnavilableException ex, 
+	TableStatus handleTableUnavilableException(TableUnavailableException ex, 
 			HttpServletRequest request) {
 		return ex.getStatus();
 	}

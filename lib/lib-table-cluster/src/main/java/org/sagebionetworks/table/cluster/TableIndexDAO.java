@@ -1,10 +1,11 @@
 package org.sagebionetworks.table.cluster;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.repo.model.dao.table.RowAndHeaderHandler;
+import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.RowSet;
@@ -69,13 +70,21 @@ public interface TableIndexDAO {
 	public RowSet query(ProgressCallback<Void> callback, SqlQuery query);
 	
 	/**
+	 * Run a simple count query.
+	 * @param sql
+	 * @param parameters
+	 * @return
+	 */
+	public Long countQuery(String sql, Map<String, Object> parameters);
+	
+	/**
 	 * Provides the means to stream over query results without keeping the row data in memory.
 	 * 
 	 * @param query
 	 * @param handler
 	 * @return
 	 */
-	public boolean queryAsStream(ProgressCallback<Void> callback, SqlQuery query, RowAndHeaderHandler handler);
+	public boolean queryAsStream(ProgressCallback<Void> callback, SqlQuery query, RowHandler handler);
 	
 	/**
 	 * Get the row count for this table.

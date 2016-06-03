@@ -1,17 +1,13 @@
 package org.sagebionetworks.repo.web.service;
 
-import java.lang.reflect.InvocationTargetException;
-
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.model.AsynchJobFailedException;
-import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NotReadyException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchJobState;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
-import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 

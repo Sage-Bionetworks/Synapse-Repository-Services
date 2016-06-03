@@ -12,10 +12,11 @@ import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.TableFailedException;
-import org.sagebionetworks.repo.model.table.TableUnavilableException;
+import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
+import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.sqs.model.Message;
@@ -47,15 +48,17 @@ public class TableQueryWorker implements MessageDrivenRunner {
 			ForwardingProgressCallback<Void, Message> forwardCallabck = new ForwardingProgressCallback<Void, Message>(progressCallback, message);
 			QueryResultBundle queryBundle = tableQueryManager.queryBundle(forwardCallabck, user, request);
 			asynchJobStatusManager.setComplete(status.getJobId(), queryBundle);
-		} catch (TableUnavilableException e) {
+		} catch (TableUnavailableException e) {
+			// This just means we cannot do this right now.  We can try again later.
+			asynchJobStatusManager.updateJobProgress(status.getJobId(), 0L, 100L, "Waiting for the table index to become available...");
 			// This just means we cannot do this right now. We can try again
 			// later.
-			asynchJobStatusManager.updateJobProgress(status.getJobId(), 0L,
-					100L, "Waiting for the table index to become available...");
-			// do not return the message because we do not want it to be
-			// deleted.
-			// but we don't want to wait too long, so set the visibility timeout
-			// to something smaller
+			throw new RecoverableMessageException();
+		}catch (LockUnavilableException e) {
+			// This just means we cannot do this right now.  We can try again later.
+			asynchJobStatusManager.updateJobProgress(status.getJobId(), 0L, 100L, "Waiting for the table index to become available...");
+			// This just means we cannot do this right now. We can try again
+			// later.
 			throw new RecoverableMessageException();
 		} catch (TableFailedException e) {
 			// This means we cannot use this table

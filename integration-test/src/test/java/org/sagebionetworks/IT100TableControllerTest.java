@@ -604,8 +604,6 @@ public class IT100TableControllerTest {
 		assertNotNull(queryResults);
 		assertNull(queryResults.getEtag());
 		assertEquals(table.getId(), queryResults.getTableId());
-		assertNull(queryResults.getRows());
-		assertNull(queryResults.getHeaders());
 	}
 	
 	@Test

@@ -1,12 +1,8 @@
 package org.sagebionetworks.table.cluster;
 
-import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
-import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
-
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.HashSet;
@@ -20,15 +16,13 @@ import java.util.regex.Pattern;
 import javax.sql.DataSource;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.repo.model.dao.table.RowAndHeaderHandler;
+import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
-import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
-import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.dao.InvalidDataAccessResourceUsageException;
 import org.springframework.jdbc.BadSqlGrammarException;
@@ -295,20 +289,10 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		rowSet.setRows(rows);
 		rowSet.setHeaders(query.getSelectColumns());
 		// Stream over the results and save the results in a a list
-		queryAsStream(callback, query, new RowAndHeaderHandler() {
-			@Override
-			public void writeHeader() {
-				// no-op
-			}
-
+		queryAsStream(callback, query, new RowHandler() {
 			@Override
 			public void nextRow(Row row) {
 				rows.add(row);
-			}
-
-			@Override
-			public void setEtag(String etag) {
-				rowSet.setEtag(etag);
 			}
 		});
 		rowSet.setTableId(query.getTableId());
@@ -316,12 +300,20 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 	
 	@Override
-	public boolean queryAsStream(final ProgressCallback<Void> callback, final SqlQuery query, final RowAndHeaderHandler handler) {
+	public Long countQuery(String sql, Map<String, Object> parameters) {
+		ValidateArgument.required(sql, "sql");
+		ValidateArgument.required(parameters, "parameters");
+		// We use spring to create create the prepared statement
+		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
+		return namedTemplate.queryForObject(sql, new MapSqlParameterSource(parameters), Long.class);
+	}
+	
+	@Override
+	public boolean queryAsStream(final ProgressCallback<Void> callback, final SqlQuery query, final RowHandler handler) {
 		ValidateArgument.required(query, "Query");
 		ValidateArgument.required(callback, "ProgressCallback");
 		// We use spring to create create the prepared statement
 		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
-		handler.writeHeader();
 		namedTemplate.query(query.getOutputSQL(), new MapSqlParameterSource(query.getParameters()), new RowCallbackHandler() {
 			@Override
 			public void processRow(ResultSet rs) throws SQLException {
