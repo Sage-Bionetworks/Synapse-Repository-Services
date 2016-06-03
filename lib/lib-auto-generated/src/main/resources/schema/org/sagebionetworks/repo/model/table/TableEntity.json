@@ -3,7 +3,7 @@
     "description":"A TableEntity represents the metadata of a table.",
     "implements":[
         {
-            "$ref":"org.sagebionetworks.repo.model.Versionable"
+            "$ref":"org.sagebionetworks.repo.model.table.Table"
         }
     ],
     "properties":{
