@@ -5,14 +5,5 @@
         {
             "$ref":"org.sagebionetworks.repo.model.table.Table"
         }
-    ],
-    "properties":{
-		"columnIds": {
-		    "description":"The list of ColumnModel IDs that define the schema for this table.",
-			"type": "array",
-			"items": {
-				"type": "string"
-			}
-		}
-    }
+    ]
 }
