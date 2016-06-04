@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.web.service;
 
 import org.sagebionetworks.repo.model.docker.DockerAuthorizationToken;
-import org.sagebionetworks.repo.model.docker.DockerRegistryEventList;
 
 
 public interface DockerService {
@@ -16,9 +15,4 @@ public interface DockerService {
 	 */
 	public DockerAuthorizationToken authorizeDockerAccess(Long userId, String service, String scope);
 
-	/**
-	 * Process (push, pull) event notifications from Docker Registry
-	 * @param registryEvents
-	 */
-	public void dockerRegistryNotification(DockerRegistryEventList registryEvents);
 }

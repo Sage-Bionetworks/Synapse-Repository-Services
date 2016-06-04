@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.web.service;
+package org.sagebionetworks.repo.manager;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Header;
@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.apache.commons.codec.binary.Base32;
-import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.net.util.Base64;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;

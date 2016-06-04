@@ -7,6 +7,7 @@ import static org.junit.Assert.assertTrue;
 import java.util.regex.Pattern;
 
 import org.junit.Test;
+import org.sagebionetworks.repo.manager.DockerNameUtil;
 
 public class DockerNameUtilTest {
 

@@ -50,20 +50,6 @@ public class DockerController extends BaseController {
 		return serviceProvider.getDockerService().authorizeDockerAccess(userId, service, scope);
 	}
 
-	/**
-	 * Process Docker registry event notifications.  This service is called by the Docker registry 
-	 * only and is not for general use.
-	 * @param registryEvents
-	 * @throws NotFoundException
-	 */
-	@ResponseStatus(HttpStatus.NO_CONTENT)
-	@RequestMapping(value = UrlHelpers.DOCKER_NOTIFICATION, method = RequestMethod.POST)
-	public void processRegistryNotification(
-			@RequestBody DockerRegistryEventList registryEvents
-			) throws NotFoundException {
-		serviceProvider.getDockerService().dockerRegistryNotification(registryEvents);
-	}
-
 	/*
 	 * TODO service to add a commit to a repo.
 	 * Note:  If the commit includes a tag then the current commit holding that tag must release it.

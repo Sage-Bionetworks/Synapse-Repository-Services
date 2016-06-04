@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.web.service;
+package org.sagebionetworks.repo.manager;
 
 import java.util.Arrays;
 import java.util.List;
