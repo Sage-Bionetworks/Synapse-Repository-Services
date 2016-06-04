@@ -3,13 +3,16 @@ package org.sagebionetworks.repo.manager;
 import static org.sagebionetworks.repo.manager.DockerNameUtil.REPO_NAME_PATH_SEP;
 
 import java.security.KeyPair;
+import java.security.interfaces.ECPrivateKey;
+import java.security.interfaces.ECPublicKey;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.docker.DockerAuthorizationToken;
 import org.sagebionetworks.repo.model.docker.DockerCommit;
@@ -53,22 +56,48 @@ public class DockerManagerImpl implements DockerManager {
 	 */
 	@Override
 	public DockerAuthorizationToken authorizeDockerAccess(String userName, UserInfo userInfo, String service, String scope) {
-		// check that 'service' matches a supported registry host
-		// scope is repository:repopath:actions
-		// check that 'repopath' is a valid path
-		// check that 'repopath' starts with a synapse ID (synID)
-		// for 'push' access, check canCreate, and UPDATE access in synID
-		// for 'pull' access, check READ and DOWNLOAD access in synID
-		// now construct the auth response and return it
-		
 		String[] scopeParts = scope.split(":");
 		if (scopeParts.length!=3) throw new RuntimeException("Expected 3 parts but found "+scopeParts.length);
 		String type = scopeParts[0];
 		String repository = scopeParts[1];
 		String accessTypes = scopeParts[2];
+		
+		// TODO scope is repository:repopath:actions
+		// TODO check that 'service' matches a supported registry host
+		// (We could support different user passwords for different hosts)
 
+		// TODO check that 'repopath' is a valid path
+		// TODO check that 'repopath' starts with a synapse ID (synID)
+		// TODO for 'push' access, check canCreate, and UPDATE access in synID
+		// TODO for 'pull' access, check READ and DOWNLOAD access in synID
+		
 		KeyPair keyPair = null; // TODO
-		String token = DockerTokenUtil.createToken(keyPair, userName, type, service, repository, Arrays.asList(accessTypes.split(",")));
+		ECPrivateKey privateKey = (ECPrivateKey)keyPair.getPrivate();
+		ECPublicKey  validatingKey = (ECPublicKey)keyPair.getPublic();
+		// TODO don't compute the key's ID each time
+		String keyId = DockerTokenUtil.computeKeyId(validatingKey);
+		
+		List<String> permittedAccessTypes = new ArrayList<String>();
+		for (String requestedAccessTypeString : accessTypes.split(",")) {
+			RegistryEventAction requestedAccessType = RegistryEventAction.valueOf(requestedAccessTypeString);
+			switch (requestedAccessType) {
+			case push:
+				// TODO check CREATE or UPDATE permission and add to permittedAccessTypes
+				break;
+			case pull:
+				// TODO check DOWNLOAD permission and add to permittedAccessTypes
+				break;
+			default:
+				throw new RuntimeException("Unexpected access type: "+requestedAccessType);
+			}
+		}
+
+		// now construct the auth response and return it
+		long now = System.currentTimeMillis();
+		String token = DockerTokenUtil.createToken(
+				privateKey, keyId, userName, type, service, repository, 
+				permittedAccessTypes, now);
+		
 		DockerAuthorizationToken result = new DockerAuthorizationToken();
 		result.setToken(token);
 		return result;

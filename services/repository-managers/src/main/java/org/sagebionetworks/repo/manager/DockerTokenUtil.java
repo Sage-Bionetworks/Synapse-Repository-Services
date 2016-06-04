@@ -5,11 +5,9 @@ import io.jsonwebtoken.Header;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 
-import java.security.KeyPair;
 import java.security.MessageDigest;
 import java.security.PublicKey;
 import java.security.interfaces.ECPrivateKey;
-import java.security.interfaces.ECPublicKey;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
@@ -23,81 +21,72 @@ import org.json.JSONObject;
 public class DockerTokenUtil {
 
 	private static final String ISSUER = "synapse.org";
-	private static final long TIME_WINDOW_SEC = 1200;
+	private static final long TIME_WINDOW_SEC = 1200; // twenty minutes
 	private static final String ACCESS = "access";
 
 	public static String createToken(
-			KeyPair keyPair, String userName, String type, 
-			String registry, String repository, List<String> actions) {
-
-		ECPrivateKey key = (ECPrivateKey)keyPair.getPrivate();
-		ECPublicKey  validatingKey = (ECPublicKey)keyPair.getPublic();
-
-		long now = System.currentTimeMillis();
+			ECPrivateKey privateKey, String keyId, String userName, String type, 
+			String registry, String repository, List<String> actions, long now) {
 
 		JSONArray access = new JSONArray();
 		JSONObject accessEntry = new JSONObject();
 		try {
-		access.put(accessEntry);
-		accessEntry.put("type", type);
-		accessEntry.put("name", repository);
-		JSONArray actionArray = new JSONArray();
-		for (String action : actions) actionArray.put(action);
-		accessEntry.put("actions", actionArray);
+			access.put(accessEntry);
+			accessEntry.put("type", type);
+			accessEntry.put("name", repository);
+			JSONArray actionArray = new JSONArray();
+			for (String action : actions) actionArray.put(action);
+			accessEntry.put("actions", actionArray);
 		} catch (JSONException e) {
 			throw new RuntimeException(e);
 		}
 
 		Claims claims = Jwts.claims()
-			.setIssuer(ISSUER)
-			.setAudience(registry)
-			.setExpiration(new Date(now+TIME_WINDOW_SEC*1000L))
-			.setNotBefore(new Date(now-TIME_WINDOW_SEC*1000L))
-			.setIssuedAt(new Date(now))
-			.setId(UUID.randomUUID().toString())
-			.setSubject(userName);
+				.setIssuer(ISSUER)
+				.setAudience(registry)
+				.setExpiration(new Date(now+TIME_WINDOW_SEC*1000L))
+				.setNotBefore(new Date(now-TIME_WINDOW_SEC*1000L))
+				.setIssuedAt(new Date(now))
+				.setId(UUID.randomUUID().toString())
+				.setSubject(userName);
 		claims.put(ACCESS, access);
-
-		// TODO don't compute the key's ID each time
-		String keyId = computeKeyId(validatingKey);
 
 		String s = Jwts.builder().setClaims(claims).
 				setHeaderParam(Header.TYPE, Header.JWT_TYPE).
 				setHeaderParam("kid", keyId).
-				signWith(SignatureAlgorithm.ES256, key).compact();
+				signWith(SignatureAlgorithm.ES256, privateKey).compact();
 
-		// the signature is wrong.  regenerate it
+		// The signature created by the Jwts library is wrong.
+		// Here we regenerate it.
 		try {
 			String[] pieces = s.split("\\.");
 			if (pieces.length!=3) throw new RuntimeException("Expected 3 pieces but found "+pieces.length);
-
-			// sign
-			System.out.println("Will resign:\n"+pieces[0]+"."+pieces[1]);
-			String messageToSign = pieces[0]+"."+pieces[1];
-			System.out.println("original signature:    "+pieces[2]);
+			// the first two pieces are the message to sign.  The third piece is the (incorrect) signature.
 
 			Base64 base64 = new Base64();
 			// what are the original signature bytes?
 			byte[] originalSigBytes = base64.decode(pieces[2]);
 
-			int shouldBe48 = originalSigBytes[0];
 			int lengthOfRemaining = originalSigBytes[1]; // # of bytes, from originalSigBytes[2] to end
 			if (lengthOfRemaining>originalSigBytes.length-2) throw
-			new IllegalStateException("Expected <="+(originalSigBytes.length-2)+" but found "+lengthOfRemaining);
+				new IllegalStateException("Expected <="+(originalSigBytes.length-2)+" but found "+lengthOfRemaining);
 			int shouldBe2 = originalSigBytes[2];
 			if (shouldBe2!=2) throw new IllegalStateException("Exected 2 but found "+shouldBe2);
 			int lengthOfVR = originalSigBytes[3]; // should be 32
-			if (lengthOfVR!=32 && lengthOfVR!=33) throw new IllegalStateException("Exected 32 or 33 but found "+lengthOfVR);
+			if (lengthOfVR!=32 && lengthOfVR!=33) 
+				throw new IllegalStateException("Exected 32 or 33 but found "+lengthOfVR);
 			// VR goes from originalSigBytes[4], for lengthOfVR bytes
 			// for Java, you can simply perform new BigInteger(1, byte[] r).toByteArray() as the default Java encoding of a BigInteger is identical to the ASN.1 encoding of INTEGER
 			shouldBe2 = originalSigBytes[4+lengthOfVR];
-			if (shouldBe2!=2) throw new IllegalStateException("Exected 2 but found "+shouldBe2);
+			if (shouldBe2!=2) 
+				throw new IllegalStateException("Exected 2 but found "+shouldBe2);
 			int lengthOfVS = originalSigBytes[5+lengthOfVR];
-			if (lengthOfVS!=32 && lengthOfVS!=33) throw new IllegalStateException("Exected 32 or 33 but found "+lengthOfVS);
-			// VS goes from originalSigBytes[6+lengthOfVR] for lengthOfVS bytes
+			if (lengthOfVS!=32 && lengthOfVS!=33) 
+				throw new IllegalStateException("Exected 32 or 33 but found "+lengthOfVS);
+			// VS starts at originalSigBytes[6+lengthOfVR] and goes for lengthOfVS bytes
 			// originalSigBytes.length should be >= 6+lengthOfVR+lengthOfVS
 			if (lengthOfVS>originalSigBytes.length-6-lengthOfVR) throw
-			new IllegalStateException("Expected <="+(originalSigBytes.length-6-lengthOfVR)+" but found "+lengthOfVS);
+				new IllegalStateException("Expected <="+(originalSigBytes.length-6-lengthOfVR)+" but found "+lengthOfVS);
 
 			byte[] p1363Signature = new byte[64];
 
@@ -114,14 +103,11 @@ public class DockerTokenUtil {
 			System.arraycopy(originalSigBytes, 6+lengthOfVR+(lengthOfVS > 32 ? 1 : 0), 
 					p1363Signature, numVRBytes, numVSBytes);
 
-
-
-			String base64Encoded = base64.encodeBase64URLSafeString(p1363Signature);
+			String base64Encoded = Base64.encodeBase64URLSafeString(p1363Signature);
 			while (base64Encoded.endsWith("=")) 
 				base64Encoded = base64Encoded.substring(0, base64Encoded.length()-1);
 
 			s = pieces[0]+"."+pieces[1]+"."+base64Encoded;
-
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
@@ -155,7 +141,7 @@ public class DockerTokenUtil {
 			throw new RuntimeException(e);
 		}
 	}
-	
+
 
 
 }
