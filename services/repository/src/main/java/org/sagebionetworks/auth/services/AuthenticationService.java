@@ -85,8 +85,9 @@ public interface AuthenticationService {
 	public void deleteSecretKey(Long principalId) throws NotFoundException;
 	
 	/**
-	 * Method used for converting usernames to user IDs
+	 * Temporary method used for converting usernames to user IDs
 	 */
+	@Deprecated
 	public Long getUserId(String username) throws NotFoundException;
 	
 	/**
