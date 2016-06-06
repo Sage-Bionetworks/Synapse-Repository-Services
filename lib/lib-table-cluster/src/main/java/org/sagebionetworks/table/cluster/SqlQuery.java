@@ -87,6 +87,10 @@ public class SqlQuery {
 	 */
 	List<SelectColumn> selectColumns;
 	
+	Long overrideOffset;
+	Long overrideLimit;
+	Long maxBytesPerPage;
+	
 	
 	/**
 	 * Create a new SQLQuery from an input SQL string and mapping of the column names to column IDs.
@@ -136,6 +140,17 @@ public class SqlQuery {
 			throw new IllegalArgumentException("The input model cannot be null");
 		init(model, tableSchema, overrideOffset, overrideLimit, maxBytesPerPage);
 	}
+	
+	/**
+	 * Create a new query as a copy of the passed query model.
+	 * @param model
+	 * @param toCopy
+	 */
+	public SqlQuery(QuerySpecification model, SqlQuery toCopy) {
+		ValidateArgument.required(model, "model");
+		ValidateArgument.required(toCopy, "toCopy");
+		init(model, toCopy.getTableSchema(), toCopy.overrideOffset, toCopy.overrideLimit, toCopy.maxBytesPerPage);
+	}
 
 	/**
 	 * @param tableId
@@ -153,6 +168,9 @@ public class SqlQuery {
 		this.tableSchema = tableSchema;
 		this.model = parsedModel;
 		this.tableId = parsedModel.getTableName();
+		this.overrideOffset = overrideOffset;
+		this.overrideLimit = overrideLimit;
+		this.maxBytesPerPage = maxBytesPerPage;
 
 		// This map will contain all of the 
 		this.parameters = new HashMap<String, Object>();	

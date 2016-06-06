@@ -655,6 +655,13 @@ public class SQLUtilsTest {
 		assertEquals(expected, result);
 	}
 	
+	@Test
+	public void testCreateSQLGetDistinctValues(){
+		String expected = "SELECT DISTINCT _C789_ FROM T123";
+		String result = SQLUtils.createSQLGetDistinctValues("syn123", "789");
+		assertEquals(expected, result);
+	}
+	
 	/**
 	 * A helper to create a list of ColumnModels from column model ids.
 	 * 

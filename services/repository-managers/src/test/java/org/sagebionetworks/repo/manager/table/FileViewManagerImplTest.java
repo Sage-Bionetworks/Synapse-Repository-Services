@@ -137,15 +137,6 @@ public class FileViewManagerImplTest {
 	}
 	
 	@Test
-	public void testGetColumModel(){
-		ColumnModel cm = new ColumnModel();
-		cm.setId("123");
-		when(columnModelDao.createColumnModel(any(ColumnModel.class))).thenReturn(cm);
-		ColumnModel result = manager.getColumModel(FileEntityFields.id);
-		assertEquals(cm, result);
-	}
-	
-	@Test
 	public void testGetViewSchemaNoBenefactor(){
 		List<ColumnModel> rawSchema = Lists.newArrayList(FileEntityFields.id.getColumnModel());
 		when(tableManagerSupport.getColumnModelsForTable(viewId)).thenReturn(rawSchema);

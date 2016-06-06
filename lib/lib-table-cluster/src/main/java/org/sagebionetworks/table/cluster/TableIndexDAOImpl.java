@@ -416,4 +416,11 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		return indexMD5Hex.equals(schemaMD5Hex);
 	}
 
+	@Override
+	public Set<Long> getDistinctLongValues(String tableId, String columnIds) {
+		String sql = SQLUtils.createSQLGetDistinctValues(tableId, columnIds);
+		List<Long> results = template.queryForList(sql, Long.class);
+		return new HashSet<Long>(results);
+	}
+
 }

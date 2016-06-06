@@ -188,4 +188,13 @@ public interface TableIndexDAO {
 	 * @return
 	 */
 	public boolean doesIndexStateMatch(String tableId, long versionNumber, String schemaMD5Hex);
+
+	/**
+	 * Get the distinct Long values for a given column ID.
+	 * 
+	 * @param id
+	 * @return
+	 */
+	public Set<Long> getDistinctLongValues(String tableId, String columnIds);
+
 }

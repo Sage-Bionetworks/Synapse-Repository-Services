@@ -35,21 +35,6 @@ public interface FileViewManager {
 	public Long streamOverAllFilesInViewAsBatch(String tableId,
 			List<ColumnModel> currentSchema, int rowsPerBatch, RowBatchHandler rowBatchHandler);
 	
-	/**
-	 * Get the ColumnModel for a given FileEntityField.
-	 * 
-	 * @param field
-	 * @return
-	 */
-	public ColumnModel getColumModel(FileEntityFields field);
-	
-	/**
-	 * Get the default ColumnModels for each primary filed of FileEntity.
-	 * 
-	 * @return
-	 */
-	public List<ColumnModel> getDefaultFileEntityColumns();
-
 	
 	/**
 	 * Get the schema of a FileView.  This schema will include any columns of the view plus the benefactor column.

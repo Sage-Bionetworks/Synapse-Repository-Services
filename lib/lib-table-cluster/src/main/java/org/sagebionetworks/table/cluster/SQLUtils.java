@@ -944,4 +944,15 @@ public class SQLUtils {
 	public static String createSQLGetBoundFileHandleId(String tableId){
 		return "SELECT "+FILE_ID+" FROM "+getTableNameForId(tableId, TableType.FILE_IDS)+" WHERE "+FILE_ID+" IN( :"+FILE_ID_BIND+")";
 	}
+	
+	/**
+	 * Select distinct values from the given column ID.
+	 * 
+	 * @param tableId
+	 * @param columnId
+	 * @return
+	 */
+	public static String createSQLGetDistinctValues(String tableId, String columnId){
+		return "SELECT DISTINCT "+getColumnNameForId(columnId)+" FROM "+getTableNameForId(tableId, TableType.INDEX);
+	}
 }
