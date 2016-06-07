@@ -140,6 +140,7 @@ public class FileViewManagerImplTest {
 	public void testGetViewSchemaNoBenefactor(){
 		List<ColumnModel> rawSchema = Lists.newArrayList(FileEntityFields.id.getColumnModel());
 		when(tableManagerSupport.getColumnModelsForTable(viewId)).thenReturn(rawSchema);
+		when(tableManagerSupport.getColumModel(FileEntityFields.benefactorId)).thenReturn(FileEntityFields.benefactorId.getColumnModel());
 		// the results should contain both ID and benefactor.
 		List<ColumnModel> expected = Lists.newArrayList(FileEntityFields.id.getColumnModel(), FileEntityFields.benefactorId.getColumnModel());
 		// call under test
