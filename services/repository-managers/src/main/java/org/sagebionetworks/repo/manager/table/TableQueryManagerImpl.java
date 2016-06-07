@@ -1,19 +1,22 @@
 package org.sagebionetworks.repo.manager.table;
 
-import static org.sagebionetworks.repo.manager.table.TableQueryManagerImpl.BUNDLE_MASK_QUERY_COLUMN_MODELS;
-
 import java.io.StringWriter;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.commons.lang.BooleanUtils;
 import org.apache.commons.lang.StringUtils;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
+import org.sagebionetworks.repo.model.dbo.dao.table.FileEntityFields;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.Query;
@@ -28,6 +31,7 @@ import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
+import org.sagebionetworks.repo.model.table.TableView;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.SqlQuery;
@@ -37,6 +41,7 @@ import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.Pagination;
 import org.sagebionetworks.table.query.model.QuerySpecification;
+import org.sagebionetworks.table.query.model.WhereClause;
 import org.sagebionetworks.table.query.util.SimpleAggregateQueryException;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 import org.sagebionetworks.util.Closer;
@@ -115,7 +120,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 				bundle.getQueryResult().setNextPageToken(nextPageToken);
 			}
 			return bundle;
-		} catch (EmptySchemaException e) {
+		} catch (EmptyResultException e) {
 			// return an empty result.
 			return createEmptyBundle(e.getTableId());
 		}
@@ -139,15 +144,14 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @throws NotFoundException
 	 * @throws TableUnavailableException
 	 * @throws TableFailedException
+	 * @throws EmptyResultException 
 	 * @throws TableLockUnavailableException
 	 */
 	QueryResultBundle queryAsStream(final ProgressCallback<Void> progressCallback,
 			final UserInfo user, final SqlQuery query,
 			final RowHandler rowHandler,final  boolean runCount, final boolean isConsistent)
 			throws DatastoreException, NotFoundException,
-			TableUnavailableException, TableFailedException, LockUnavilableException {
-		// Validate the user has read access on this object
-		tableManagerSupport.validateTableReadAccess(user, query.getTableId());
+			TableUnavailableException, TableFailedException, LockUnavilableException, EmptyResultException {		
 		// consistent queries are run with a read lock on the table and include the current etag.
 		if(isConsistent){
 			// run with the read lock
@@ -161,7 +165,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 						// We can only run this query if the table is available.
 						final TableStatus status = validateTableIsAvailable(query.getTableId());
 						// run the query
-						QueryResultBundle bundle = queryAsStreamAfterLock(progressCallback, query, rowHandler, runCount);
+						QueryResultBundle bundle = queryAsStreamWithAuthorization(progressCallback, user, query, rowHandler, runCount);
 						// add the status to the result
 						if(rowHandler != null){
 							// the etag is only returned for consistent queries.
@@ -171,7 +175,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 					}});
 		}else{
 			// run without a read lock.
-			return queryAsStreamAfterLock(progressCallback, query, rowHandler, runCount);
+			return queryAsStreamWithAuthorization(progressCallback, user, query, rowHandler, runCount);
 		}
 	}
 	
@@ -202,10 +206,47 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			throw new RuntimeException(e);
 		}
 	}
+	
+	/**
+	 * Table query authorization includes validating the user has read access to the given table.
+	 * In addition, a row level filter must be applied to queries against TableViews.  All authorization
+	 * checks and filters are applied in this method.
+	 * 
+	 * @param progressCallback
+	 * @param user
+	 * @param query
+	 * @param rowHandler
+	 * @param runCount
+	 * @return
+	 * @throws NotFoundException
+	 * @throws LockUnavilableException
+	 * @throws TableUnavailableException
+	 * @throws TableFailedException
+	 * @throws EmptyResultException 
+	 */
+	QueryResultBundle queryAsStreamWithAuthorization(ProgressCallback<Void> progressCallback, UserInfo user, SqlQuery query,
+			RowHandler rowHandler, boolean runCount) throws NotFoundException, LockUnavilableException, TableUnavailableException, TableFailedException, EmptyResultException{
+		// Get a connection to the table.
+		TableIndexDAO indexDao = tableConnectionFactory.getConnection(query.getTableId());
+		
+		// Validate the user has read access on this object
+		EntityType tableType = tableManagerSupport.validateTableReadAccess(user, query.getTableId());
+		Class<? extends Entity> tableTypeClass = EntityTypeUtils.getClassForType(tableType);
+		SqlQuery filteredQuery = null;
+		if(TableView.class.isAssignableFrom(tableTypeClass)){
+			// Table views must have a row level filter applied to the query
+			filteredQuery = addRowLevelFilter(user, query, indexDao);
+		}else{
+			// A row level filter is not needed so the original query can be used.
+			filteredQuery = query;
+		}
+		// run the actual query.
+		return queryAsStreamAfterAuthorization(progressCallback, filteredQuery, rowHandler, runCount, indexDao);
+	}
 
 	/**
-	 * Run a query while holding an optional read lock on the table.
-	 * This should only be called from {@link #queryAsStream(ProgressCallback, UserInfo, SqlQuery, RowHandler, boolean, boolean)}
+	 * Run a query as a stream after all authorization checks have been performed
+	 * and any any required row-level filtering has been applied.
 	 * 
 	 * @param progressCallback
 	 * @param user
@@ -222,10 +263,9 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @throws TableFailedException
 	 * @throws TableLockUnavailableException
 	 */
-	QueryResultBundle queryAsStreamAfterLock(ProgressCallback<Void> progressCallback, SqlQuery query,
-			RowHandler rowHandler, boolean runCount)
-			throws DatastoreException, NotFoundException,
-			TableUnavailableException, TableFailedException, LockUnavilableException {
+	QueryResultBundle queryAsStreamAfterAuthorization(ProgressCallback<Void> progressCallback, SqlQuery query,
+			RowHandler rowHandler, boolean runCount, TableIndexDAO indexDao)
+			throws TableUnavailableException, TableFailedException, LockUnavilableException {
 		// build up the response.
 		QueryResultBundle bundle = new QueryResultBundle();
 		bundle.setColumnModels(query.getTableSchema());
@@ -235,7 +275,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		QueryResult queryResult = null;
 		if(rowHandler != null){
 			// run the query
-			RowSet rowSet = runQueryAsStream(progressCallback, query, rowHandler);
+			RowSet rowSet = runQueryAsStream(progressCallback, query, rowHandler, indexDao);
 			queryResult = new QueryResult();
 			queryResult.setQueryResults(rowSet);
 		}
@@ -244,7 +284,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		Long count = null;
 		if(runCount){
 			// count requested.
-			count = runCountQuery(query);
+			count = runCountQuery(query, indexDao);
 		}
 		bundle.setQueryResult(queryResult);
 		bundle.setQueryCount(count);
@@ -392,7 +432,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @param sortList
 	 * @return
 	 */
-	public SqlQuery createQuery(String sql, List<SortItem> sortList) throws EmptySchemaException {
+	public SqlQuery createQuery(String sql, List<SortItem> sortList) throws EmptyResultException {
 		Long overrideOffset = null;
 		Long overrideLimit = null;
 		Long maxBytesPerPage = null;
@@ -407,9 +447,9 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @param overrideLimit
 	 * @param maxBytesPerPage
 	 * @return
-	 * @throws EmptySchemaException
+	 * @throws EmptyResultException
 	 */
-	public SqlQuery createQuery(String sql, List<SortItem> sortList, Long overrideOffset, Long overrideLimit, Long maxBytesPerPage) throws EmptySchemaException {
+	public SqlQuery createQuery(String sql, List<SortItem> sortList, Long overrideOffset, Long overrideLimit, Long maxBytesPerPage) throws EmptyResultException {
 		// First parse the SQL
 		QuerySpecification model = parserQuery(sql);
 		if (sortList != null && !sortList.isEmpty()) {
@@ -424,7 +464,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		// Lookup the column models for this table
 		List<ColumnModel> columnModels = columnModelDAO.getColumnModelsForObject(tableId);
 		if(columnModels.isEmpty()){
-			throw new EmptySchemaException("Table schema is empty for: "+tableId, tableId);
+			throw new EmptyResultException("Table schema is empty for: "+tableId, tableId);
 		}	
 		return new SqlQuery(model, columnModels, overrideOffset, overrideLimit, maxBytesPerPage);
 	}
@@ -474,7 +514,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			// pass along the etag.
 			response.setEtag(result.getQueryResult().getQueryResults().getEtag());
 			return response;
-		} catch (EmptySchemaException e) {
+		} catch (EmptyResultException e) {
 			throw new IllegalArgumentException("Table "+e.getTableId()+" has an empty schema");
 		}
 	}
@@ -488,11 +528,9 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @return
 	 */
 	RowSet runQueryAsStream(ProgressCallback<Void> callback,
-			SqlQuery query, RowHandler rowHandler) {
+			SqlQuery query, RowHandler rowHandler, TableIndexDAO indexDao) {
 		ValidateArgument.required(query, "query");
 		ValidateArgument.required(rowHandler, "rowHandler");
-		// Get a connection
-		TableIndexDAO indexDao = tableConnectionFactory.getConnection(query.getTableId());
 		indexDao.queryAsStream(callback, query, rowHandler);
 		RowSet results = new RowSet();
 		results.setHeaders(query.getSelectColumns());
@@ -505,12 +543,10 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @param query
 	 * @return
 	 */
-	long runCountQuery(SqlQuery query) {
+	long runCountQuery(SqlQuery query, TableIndexDAO indexDao) {
 		try {
 			// create the count SQL from the already transformed model.
 			String countSql = SqlElementUntils.createCountSql(query.getTransformedModel());
-			// Get a connection
-			TableIndexDAO indexDao = tableConnectionFactory.getConnection(query.getTableId());
 			// execute the count query
 			Long count = indexDao.countQuery(countSql, query.getParameters());
 			
@@ -604,5 +640,70 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		bundle.setMaxRowsPerPage(1L);
 		bundle.setSelectColumns(new LinkedList<SelectColumn>());
 		return bundle;
+	}
+	
+	/**
+	 * Add a row level filter to the given query.
+	 * 
+	 * @param user
+	 * @param query
+	 * @return
+	 */
+	SqlQuery addRowLevelFilter(UserInfo user, SqlQuery query, TableIndexDAO indexDao) throws EmptyResultException {
+		// First get the distinct benefactors applied to the table
+		ColumnModel benefactorColumn = tableManagerSupport.getColumModel(FileEntityFields.benefactorId);
+		// lookup the distinct benefactor IDs applied to the table.
+		Set<Long> tableBenefactors = indexDao.getDistinctLongValues(query.getTableId(), benefactorColumn.getId());
+		if(tableBenefactors.isEmpty()){
+			throw new EmptyResultException("Table has no benefactors", query.getTableId());
+		}
+		// Get the sub-set of benefactors visible to the user.
+		Set<Long> accessibleBenefactors = tableManagerSupport.getAccessibleBenefactors(user, tableBenefactors);
+		return buildBenefactorFilter(query, accessibleBenefactors);
+	}
+	
+	/**
+	 * Build a new query with a benefactor filter applied to the SQL from the passed query.
+	 * @param originalQuery
+	 * @param accessibleBenefactors
+	 * @return
+	 * @throws EmptyResultException 
+	 */
+	public static SqlQuery buildBenefactorFilter(SqlQuery originalQuery, Set<Long> accessibleBenefactors) throws EmptyResultException{
+		ValidateArgument.required(originalQuery, "originalQuery");
+		ValidateArgument.required(accessibleBenefactors, "accessibleBenefactors");
+		if(accessibleBenefactors.isEmpty()){
+			throw new EmptyResultException("User does not have access to any benefactors in the table.", originalQuery.getTableId());
+		}
+		// copy the original model
+		try {
+			QuerySpecification modelCopy = new TableQueryParser(originalQuery.getModel().toSql()).querySpecification();
+			WhereClause where = originalQuery.getModel().getTableExpression().getWhereClause();
+			StringBuilder filterBuilder = new StringBuilder();
+			if(where != null){
+				filterBuilder.append(where.toSql());
+				filterBuilder.append(" AND ");
+			}else{
+				filterBuilder.append("WHERE ");
+			}
+			filterBuilder.append(FileEntityFields.benefactorId.name());
+			filterBuilder.append(" IN (");
+			boolean isFirst = true;
+			for(Long id: accessibleBenefactors){
+				if(!isFirst){
+					filterBuilder.append(",");
+				}
+				filterBuilder.append(id);
+				isFirst = false;
+			}
+			filterBuilder.append(")");
+			// create the new where
+			where = new TableQueryParser(filterBuilder.toString()).whereClause();
+			modelCopy.getTableExpression().replaceWhere(where);
+			// return a copy
+			return new SqlQuery(modelCopy, originalQuery);
+		} catch (ParseException e) {
+			throw new RuntimeException(e);
+		}
 	}
 }

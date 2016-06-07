@@ -17,7 +17,6 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
-import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class FileViewManagerImpl implements FileViewManager {
@@ -54,35 +53,12 @@ public class FileViewManagerImpl implements FileViewManager {
 		tableManagerSupport.setTableToProcessingAndTriggerUpdate(viewIdString);
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see org.sagebionetworks.repo.manager.table.FileViewManager#getColumModel(org.sagebionetworks.repo.model.dbo.dao.table.FileEntityFields)
-	 */
-	@Override
-	public ColumnModel getColumModel(FileEntityFields field) {
-		ValidateArgument.required(field, "field");
-		return columnModelDao.createColumnModel(field.getColumnModel());
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * @see org.sagebionetworks.repo.manager.table.FileViewManager#getDefaultFileEntityColumns()
-	 */
-	@Override
-	public List<ColumnModel> getDefaultFileEntityColumns() {
-		List<ColumnModel> list = new LinkedList<ColumnModel>();
-		for(FileEntityFields field: FileEntityFields.values()){
-			list.add(getColumModel(field));
-		}
-		return list;
-	}
-
 	@Override
 	public  List<ColumnModel> getViewSchemaWithBenefactor(String viewId){
 		final List<ColumnModel> currentSchema = tableManagerSupport.getColumnModelsForTable(viewId);
 		// we need to ensure the benefactor column in included in all tables for the authorization filter.
 		if(!FileViewUtils.containsBenefactor(currentSchema)){
-			currentSchema.add(getColumModel(FileEntityFields.benefactorId));
+			currentSchema.add(tableManagerSupport.getColumModel(FileEntityFields.benefactorId));
 		}
 		return currentSchema;
 	}

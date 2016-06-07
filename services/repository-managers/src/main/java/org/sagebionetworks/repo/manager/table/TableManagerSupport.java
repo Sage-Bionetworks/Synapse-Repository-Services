@@ -7,9 +7,11 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dbo.dao.table.FileEntityFields;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -269,7 +271,7 @@ public interface TableManagerSupport {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	void validateTableReadAccess(UserInfo userInfo, String tableId)
+	EntityType validateTableReadAccess(UserInfo userInfo, String tableId)
 			throws UnauthorizedException, DatastoreException, NotFoundException;
 
 	/**
@@ -300,5 +302,30 @@ public interface TableManagerSupport {
 	 * @param tableId
 	 */
 	public void lockOnTableId(String tableId);
+	
+	/**
+	 * Given a set of benefactor Ids get the sub-set of benefactor IDs
+	 * for which the given user has read access.
+	 * @param user
+	 * @param benefactorIds
+	 * @return
+	 */
+	public Set<Long> getAccessibleBenefactors(UserInfo user,
+			Set<Long> benefactorIds);
+	
+	/**
+	 * Get the ColumnModel for a given FileEntityField.
+	 * 
+	 * @param field
+	 * @return
+	 */
+	public ColumnModel getColumModel(FileEntityFields field);
+	
+	/**
+	 * Get the default ColumnModels for each primary filed of FileEntity.
+	 * 
+	 * @return
+	 */
+	public List<ColumnModel> getDefaultFileEntityColumns();
 
 }

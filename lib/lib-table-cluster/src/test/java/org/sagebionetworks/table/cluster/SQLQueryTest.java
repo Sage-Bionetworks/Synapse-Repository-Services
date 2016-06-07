@@ -803,4 +803,23 @@ public class SQLQueryTest {
 		SqlQuery translator = new SqlQuery(model, tableSchema, overideOffset, overideLimit, maxBytesPerPage);
 		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123",translator.getOutputSQL());
 	}
+	
+	@Test
+	public void testCopyConstructor() throws ParseException{
+		Long overideOffset = 1L;
+		Long overideLimit = 101L;
+		Long maxBytesPerPage = 501L;
+		QuerySpecification originalModel = new TableQueryParser("select foo from syn123").querySpecification();
+		SqlQuery original = new SqlQuery(originalModel, tableSchema, overideOffset, overideLimit, maxBytesPerPage);
+
+		QuerySpecification newModel = new TableQueryParser("select foo as bar from syn123").querySpecification();
+		SqlQuery copy = new SqlQuery(newModel, original);
+		assertEquals("SELECT _C111_ AS bar FROM T123 LIMIT :b0 OFFSET :b1", copy.getOutputSQL());
+		assertEquals(3L, copy.getParameters().get("b0"));
+		assertEquals(overideOffset, copy.getParameters().get("b1"));
+		assertEquals(tableSchema, copy.getTableSchema());
+		assertEquals(maxBytesPerPage, copy.maxBytesPerPage);
+		assertEquals(overideOffset, copy.overrideOffset);
+		assertEquals(overideLimit, copy.overrideLimit);
+	}
 }

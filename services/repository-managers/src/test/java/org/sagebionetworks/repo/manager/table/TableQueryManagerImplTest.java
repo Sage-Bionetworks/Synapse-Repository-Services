@@ -9,6 +9,7 @@ import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyMapOf;
+import static org.mockito.Matchers.anySetOf;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
@@ -16,13 +17,18 @@ import static org.mockito.Mockito.stub;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.sagebionetworks.repo.manager.table.TableQueryManagerImpl.*;
+import static org.sagebionetworks.repo.manager.table.TableQueryManagerImpl.BUNDLE_MASK_QUERY_COLUMN_MODELS;
+import static org.sagebionetworks.repo.manager.table.TableQueryManagerImpl.BUNDLE_MASK_QUERY_COUNT;
+import static org.sagebionetworks.repo.manager.table.TableQueryManagerImpl.BUNDLE_MASK_QUERY_MAX_ROWS_PER_PAGE;
+import static org.sagebionetworks.repo.manager.table.TableQueryManagerImpl.BUNDLE_MASK_QUERY_RESULTS;
+import static org.sagebionetworks.repo.manager.table.TableQueryManagerImpl.BUNDLE_MASK_QUERY_SELECT_COLUMNS;
 
 import java.util.Date;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.apache.commons.lang.StringUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -32,10 +38,12 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
+import org.sagebionetworks.repo.model.dbo.dao.table.FileEntityFields;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
@@ -65,6 +73,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.support.TransactionCallback;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 public class TableQueryManagerImplTest {
 	
@@ -179,6 +188,16 @@ public class TableQueryManagerImplTest {
 		sort.setColumn("i0");
 		sort.setDirection(SortDirection.DESC);
 		sortList = Lists.newArrayList(sort);
+		
+		when(mockTableManagerSupport.validateTableReadAccess(user, tableId)).thenReturn(EntityType.table);
+		
+		ColumnModel benefactorColumn = FileEntityFields.benefactorId.getColumnModel();
+		benefactorColumn.setId("999");
+		when(mockTableManagerSupport.getColumModel(FileEntityFields.benefactorId)).thenReturn(benefactorColumn);
+		HashSet<Long> benfactors = Sets.newHashSet(333L,444L);
+		HashSet<Long> subSet = Sets.newHashSet(444L);
+		when(mockTableIndexDAO.getDistinctLongValues(tableId, benefactorColumn.getId())).thenReturn(benfactors);
+		when(mockTableManagerSupport.getAccessibleBenefactors(user, benfactors)).thenReturn(subSet);
 	}
 
 	@Test (expected = UnauthorizedException.class)
@@ -295,7 +314,52 @@ public class TableQueryManagerImplTest {
 	}
 	
 	@Test
-	public void testQueryAsStreamAfterLockCountOnly() throws Exception {
+	public void testQueryAsStreamWithAuthorizationTableEntity() throws Exception{
+		// Setup a table entity.
+		EntityType type = EntityType.table;
+		when(mockTableManagerSupport.validateTableReadAccess(user, tableId)).thenReturn(type);
+		SqlQuery query = new SqlQuery("select i0 from "+tableId, models);
+		
+		RowHandler rowHandler = new SinglePageRowHandler();
+		boolean runCount = true;
+		// call under test
+		QueryResultBundle result = manager.queryAsStreamWithAuthorization(mockProgressCallbackVoid, user, query, rowHandler, runCount);
+		// auth check should occur
+		verify(mockTableManagerSupport).validateTableReadAccess(user, tableId);
+		// a benefactor check should not occur for TableEntities
+		verify(mockTableManagerSupport, never()).getAccessibleBenefactors(any(UserInfo.class), anySetOf(Long.class));
+	}
+	
+	@Test
+	public void testQueryAsStreamWithAuthorizationFileView() throws Exception{
+		// add benefactor to the schema
+		ColumnModel benefactorColumn = FileEntityFields.benefactorId.getColumnModel();
+		benefactorColumn.setId("99");
+		models.add(benefactorColumn);
+		// capture the SQL
+		ArgumentCaptor<String> sqlCaptrue = ArgumentCaptor.forClass(String.class);
+		// setup the count returned from query
+		when(mockTableIndexDAO.countQuery(sqlCaptrue.capture(), anyMapOf(String.class, Object.class))).thenReturn(200L);
+		// Setup a fileView
+		EntityType type = EntityType.fileview;
+		when(mockTableManagerSupport.validateTableReadAccess(user, tableId)).thenReturn(type);
+		SqlQuery query = new SqlQuery("select i0 from "+tableId, models);
+		
+		RowHandler rowHandler = new SinglePageRowHandler();
+		boolean runCount = true;
+		// call under test
+		QueryResultBundle result = manager.queryAsStreamWithAuthorization(mockProgressCallbackVoid, user, query, rowHandler, runCount);
+		assertNotNull(result);
+		// auth check should occur
+		verify(mockTableManagerSupport).validateTableReadAccess(user, tableId);
+		// a benefactor check must occur for FileViews
+		verify(mockTableManagerSupport).getAccessibleBenefactors(any(UserInfo.class), anySetOf(Long.class));
+		// validate the benefactor filter is applied
+		assertEquals("SELECT COUNT(*) FROM T123 WHERE _C99_ IN ( :b0 )", sqlCaptrue.getValue());
+	}
+	
+	@Test
+	public void testQueryAsStreamAfterAuthorizationCountOnly() throws Exception {
 		Long count = 201L;
 		// setup count results
 		when(mockTableIndexDAO.countQuery(anyString(), anyMapOf(String.class, Object.class))).thenReturn(count);
@@ -304,7 +368,7 @@ public class TableQueryManagerImplTest {
 		boolean runCount = true;
 		SqlQuery query = new SqlQuery("select * from " + tableId, models);
 		// call under test
-		QueryResultBundle results = manager.queryAsStreamAfterLock(mockProgressCallbackVoid, query, rowHandler, runCount);
+		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(mockProgressCallbackVoid, query, rowHandler, runCount, mockTableIndexDAO);
 		assertNotNull(results);
 		assertEquals(models, results.getColumnModels());
 		assertEquals(TableModelUtils.getSelectColumns(models), results.getSelectColumns());
@@ -317,7 +381,7 @@ public class TableQueryManagerImplTest {
 	 * @throws Exception
 	 */
 	@Test
-	public void testQueryAsStreamAfterLockWithLimit() throws Exception {
+	public void testQueryAsStreamAfterAuthorizationWithLimit() throws Exception {
 		Long count = 201L;
 		// setup count results
 		when(mockTableIndexDAO.countQuery(anyString(), anyMapOf(String.class, Object.class))).thenReturn(count);
@@ -326,13 +390,13 @@ public class TableQueryManagerImplTest {
 		boolean runCount = true;
 		SqlQuery query = new SqlQuery("select * from " + tableId+" limit 11", models);
 		// call under test
-		QueryResultBundle results = manager.queryAsStreamAfterLock(mockProgressCallbackVoid, query, rowHandler, runCount);
+		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(mockProgressCallbackVoid, query, rowHandler, runCount, mockTableIndexDAO);
 		assertNotNull(results);
 		assertEquals(new Long(11), results.getQueryCount());
 	}
 	
 	@Test
-	public void testQueryAsStreamAfterLockNoCount() throws Exception {
+	public void testQueryAsStreamAfterAuthorizationNoCount() throws Exception {
 		Long count = 201L;
 		// setup count results
 		when(mockTableIndexDAO.countQuery(anyString(), anyMapOf(String.class, Object.class))).thenReturn(count);
@@ -341,7 +405,7 @@ public class TableQueryManagerImplTest {
 		boolean runCount = false;
 		SqlQuery query = new SqlQuery("select * from " + tableId, models);
 		// call under test
-		QueryResultBundle results = manager.queryAsStreamAfterLock(mockProgressCallbackVoid, query, rowHandler, runCount);
+		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(mockProgressCallbackVoid, query, rowHandler, runCount, mockTableIndexDAO);
 		assertNotNull(results);
 		assertEquals(models, results.getColumnModels());
 		assertEquals(TableModelUtils.getSelectColumns(models), results.getSelectColumns());
@@ -351,7 +415,7 @@ public class TableQueryManagerImplTest {
 	}
 	
 	@Test
-	public void testQueryAsStreamAfterLockQueryAndCount() throws Exception {
+	public void testQueryAsStreamAfterAuthorizationQueryAndCount() throws Exception {
 		Long count = 201L;
 		// setup count results
 		when(mockTableIndexDAO.countQuery(anyString(), anyMapOf(String.class, Object.class))).thenReturn(count);
@@ -360,7 +424,7 @@ public class TableQueryManagerImplTest {
 		boolean runCount = true;
 		SqlQuery query = new SqlQuery("select * from " + tableId, models);
 		// call under test
-		QueryResultBundle results = manager.queryAsStreamAfterLock(mockProgressCallbackVoid, query, rowHandler, runCount);
+		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(mockProgressCallbackVoid, query, rowHandler, runCount, mockTableIndexDAO);
 		assertNotNull(results);
 		assertEquals(models, results.getColumnModels());
 		assertEquals(TableModelUtils.getSelectColumns(models), results.getSelectColumns());
@@ -374,7 +438,7 @@ public class TableQueryManagerImplTest {
 		SinglePageRowHandler rowHandler = new SinglePageRowHandler();
 		SqlQuery query = new SqlQuery("select * from " + tableId, models);
 		// call under test
-		RowSet rowSet = manager.runQueryAsStream(mockProgressCallbackVoid, query, rowHandler);
+		RowSet rowSet = manager.runQueryAsStream(mockProgressCallbackVoid, query, rowHandler, mockTableIndexDAO);
 		assertNotNull(rowSet);
 		assertEquals(TableModelUtils.getSelectColumns(models), rowSet.getHeaders());
 		assertEquals(tableId, rowSet.getTableId());
@@ -555,7 +619,7 @@ public class TableQueryManagerImplTest {
 	}
 	
 	@Test
-	public void testCreateQuerySelectStar() throws EmptySchemaException {
+	public void testCreateQuerySelectStar() throws EmptyResultException {
 		List<SortItem> sortList= null;
 		// call under test
 		SqlQuery result = manager.createQuery("select * from "+tableId, sortList);
@@ -564,7 +628,7 @@ public class TableQueryManagerImplTest {
 	}
 	
 	@Test
-	public void testCreateQueryOverrideSort() throws EmptySchemaException {
+	public void testCreateQueryOverrideSort() throws EmptyResultException {
 		SortItem sort = new SortItem();
 		sort.setColumn("i0");
 		sort.setDirection(SortDirection.DESC);
@@ -584,7 +648,7 @@ public class TableQueryManagerImplTest {
 		try {
 			manager.createQuery("select * from "+tableId, sortList);
 			fail("Should have failed since the schema is empty");
-		} catch (EmptySchemaException e) {
+		} catch (EmptyResultException e) {
 			assertEquals(tableId, e.getTableId());
 		}
 	}
@@ -623,7 +687,7 @@ public class TableQueryManagerImplTest {
 	@Test
 	public void testRunCountQuerySimpleAggregate() throws ParseException{
 		SqlQuery query = new SqlQuery("select max(i0) from "+tableId, models);
-		long count = manager.runCountQuery(query);
+		long count = manager.runCountQuery(query, mockTableIndexDAO);
 		assertEquals(1l, count);
 		// no need to run a query for a simple aggregate
 		verify(mockTableIndexDAO, never()).countQuery(anyString(), anyMapOf(String.class, Object.class));
@@ -636,7 +700,7 @@ public class TableQueryManagerImplTest {
 		// setup the count returned from query
 		when(mockTableIndexDAO.countQuery(sqlCaptrue.capture(), anyMapOf(String.class, Object.class))).thenReturn(200L);
 		// method under test
-		long count = manager.runCountQuery(query);
+		long count = manager.runCountQuery(query, mockTableIndexDAO);
 		assertEquals(200L, count);
 		assertEquals("SELECT COUNT(*) FROM T123 WHERE _C0_ = :b0", sqlCaptrue.getValue());
 		verify(mockTableIndexDAO).countQuery(anyString(), anyMapOf(String.class, Object.class));
@@ -649,7 +713,7 @@ public class TableQueryManagerImplTest {
 		// setup the count returned from query
 		when(mockTableIndexDAO.countQuery(sqlCaptrue.capture(), anyMapOf(String.class, Object.class))).thenReturn(200L);
 		// method under test
-		long count = manager.runCountQuery(query);
+		long count = manager.runCountQuery(query, mockTableIndexDAO);
 		assertEquals(100L, count);
 	}
 	
@@ -660,7 +724,7 @@ public class TableQueryManagerImplTest {
 		// setup the count returned from query
 		when(mockTableIndexDAO.countQuery(sqlCaptrue.capture(), anyMapOf(String.class, Object.class))).thenReturn(200L);
 		// method under test
-		long count = manager.runCountQuery(query);
+		long count = manager.runCountQuery(query, mockTableIndexDAO);
 		assertEquals(200L, count);
 	}
 	
@@ -671,7 +735,7 @@ public class TableQueryManagerImplTest {
 		// setup the count returned from query
 		when(mockTableIndexDAO.countQuery(sqlCaptrue.capture(), anyMapOf(String.class, Object.class))).thenReturn(200L);
 		// method under test
-		long count = manager.runCountQuery(query);
+		long count = manager.runCountQuery(query, mockTableIndexDAO);
 		assertEquals(100L, count);
 	}
 	
@@ -682,7 +746,7 @@ public class TableQueryManagerImplTest {
 		// setup the count returned from query
 		when(mockTableIndexDAO.countQuery(sqlCaptrue.capture(), anyMapOf(String.class, Object.class))).thenReturn(200L);
 		// method under test
-		long count = manager.runCountQuery(query);
+		long count = manager.runCountQuery(query, mockTableIndexDAO);
 		assertEquals(50L, count);
 	}
 	
@@ -693,7 +757,7 @@ public class TableQueryManagerImplTest {
 		// setup the count returned from query
 		when(mockTableIndexDAO.countQuery(sqlCaptrue.capture(), anyMapOf(String.class, Object.class))).thenReturn(149L);
 		// method under test
-		long count = manager.runCountQuery(query);
+		long count = manager.runCountQuery(query, mockTableIndexDAO);
 		assertEquals(0L, count);
 	}
 	
@@ -855,5 +919,69 @@ public class TableQueryManagerImplTest {
 		// there should be no query results.
 		assertNull(result.getQueryResult());
 		assertEquals(new Long(11), result.getQueryCount());
+	}
+	
+	@Test
+	public void testBuildBenefactorFilter() throws ParseException, EmptyResultException{
+		// add benefactor to the schema
+		ColumnModel benefactorColumn = FileEntityFields.benefactorId.getColumnModel();
+		benefactorColumn.setId("99");
+		models.add(benefactorColumn);
+		
+		SqlQuery query = new SqlQuery("select i0 from "+tableId+" where i1 is not null", models);
+		LinkedHashSet<Long> benefactorIds = new LinkedHashSet<Long>();
+		benefactorIds.add(456L);
+		benefactorIds.add(123L);
+		
+		// call under test
+		SqlQuery filtered = TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds);
+		assertNotNull(filtered);
+		// should filter by benefactorId
+		assertEquals("SELECT i0 FROM syn123 WHERE i1 IS NOT NULL AND benefactorId IN ( 456, 123 )", filtered.getModel().toSql());
+		assertEquals("SELECT _C0_, ROW_ID, ROW_VERSION FROM T123 WHERE _C1_ IS NOT NULL AND _C99_ IN ( :b0, :b1 )", filtered.getOutputSQL());
+		assertEquals(new Long(456), filtered.getParameters().get("b0"));
+		assertEquals(new Long(123), filtered.getParameters().get("b1"));
+	}
+	
+	@Test
+	public void testBuildBenefactorFilterNoWhere() throws ParseException, EmptyResultException{
+		// no where cluase in the original query.
+		SqlQuery query = new SqlQuery("select i0 from "+tableId, models);
+		LinkedHashSet<Long> benefactorIds = new LinkedHashSet<Long>();
+		benefactorIds.add(123L);
+		// call under test
+		SqlQuery filtered = TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds);
+		assertNotNull(filtered);
+		// should filter by benefactorId
+		assertEquals("SELECT i0 FROM syn123 WHERE benefactorId IN ( 123 )", filtered.getModel().toSql());
+	}
+	
+	@Test (expected=EmptyResultException.class)
+	public void testBuildBenefactorFilterEmpty() throws ParseException, EmptyResultException{
+		SqlQuery query = new SqlQuery("select i0 from "+tableId+" where i1 is not null", models);
+		LinkedHashSet<Long> benefactorIds = new LinkedHashSet<Long>();
+		// call under test
+		TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds);
+	}
+	
+	@Test (expected=EmptyResultException.class)
+	public void testAddRowLevelFilterEmpty() throws ParseException, EmptyResultException{
+		SqlQuery query = new SqlQuery("select i0 from "+tableId, models);
+		ColumnModel benefactorColumn = FileEntityFields.benefactorId.getColumnModel();
+		benefactorColumn.setId("999");
+		when(mockTableManagerSupport.getColumModel(FileEntityFields.benefactorId)).thenReturn(benefactorColumn);
+		//return empty benefactors
+		when(mockTableIndexDAO.getDistinctLongValues(tableId, benefactorColumn.getId())).thenReturn(new HashSet<Long>());
+		// call under test
+		manager.addRowLevelFilter(user, query, mockTableIndexDAO);
+	}
+	
+	@Test
+	public void testAddRowLevelFilter() throws ParseException, EmptyResultException{
+		SqlQuery query = new SqlQuery("select i0 from "+tableId, models);
+		// call under test
+		SqlQuery result = manager.addRowLevelFilter(user, query, mockTableIndexDAO);
+		assertNotNull(result);
+		assertEquals("SELECT i0 FROM syn123 WHERE benefactorId IN ( 444 )", result.getModel().toSql());
 	}
 }

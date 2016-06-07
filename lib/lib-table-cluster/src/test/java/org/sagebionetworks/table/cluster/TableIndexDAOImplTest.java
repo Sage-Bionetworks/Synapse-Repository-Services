@@ -1029,4 +1029,36 @@ public class TableIndexDAOImplTest {
 		boolean match = this.tableIndexDAO.doesIndexStateMatch(tableId, version, md5);
 		assertFalse(match);
 	}
+	
+	@Test
+	public void testGetDistinctLongValues(){
+		// create a table with a long column.
+		ColumnModel column = new ColumnModel();
+		column.setId("12");
+		column.setName("foo");
+		column.setColumnType(ColumnType.INTEGER);
+		List<ColumnModel> schema = Lists.newArrayList(column);
+		
+		tableIndexDAO.createOrUpdateTable(schema, tableId);
+		// create three rows.
+		List<Row> rows = TableModelTestUtils.createRows(schema, 2);
+		// add duplicate values
+		rows.addAll(TableModelTestUtils.createRows(schema, 2));
+		RowSet set = new RowSet();
+		set.setRows(rows);
+		set.setHeaders(TableModelUtils.getSelectColumns(schema));
+		set.setTableId(tableId);
+		
+		IdRange range = new IdRange();
+		range.setMinimumId(100L);
+		range.setMaximumId(200L);
+		range.setVersionNumber(3L);
+		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
+		
+		tableIndexDAO.createOrUpdateOrDeleteRows(set, schema);
+		
+		Set<Long> results = tableIndexDAO.getDistinctLongValues(tableId, column.getId());
+		Set<Long> expected = Sets.newHashSet(3000L, 3001L);
+		assertEquals(expected, results);
+	}
 }

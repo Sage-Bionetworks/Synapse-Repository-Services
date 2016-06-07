@@ -99,4 +99,12 @@ public class TableExpression extends SQLElement implements HasAggregate {
 	public void replaceOrderBy(OrderByClause orderBy){
 		this.orderByClause = orderBy;
 	}
+
+	/**
+	 * Replace the existing where clause.
+	 * @param where
+	 */
+	public void replaceWhere(WhereClause where) {
+		this.whereClause = where;
+	}
 }

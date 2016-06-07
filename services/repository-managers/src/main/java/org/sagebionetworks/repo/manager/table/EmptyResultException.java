@@ -1,20 +1,19 @@
 package org.sagebionetworks.repo.manager.table;
 
 /**
- * Thrown when a table does not have a schema.
- * 
+ * Thrown when a table query will return no results.
  *
  */
-public class EmptySchemaException extends Exception {
+public class EmptyResultException extends Exception {
 
 	private static final long serialVersionUID = 1L;
 	
 	String tableId;
 
-	public EmptySchemaException() {
+	public EmptyResultException() {
 	}
 
-	public EmptySchemaException(String message, String tableId) {
+	public EmptyResultException(String message, String tableId) {
 		super(message);
 		this.tableId = tableId;
 	}
