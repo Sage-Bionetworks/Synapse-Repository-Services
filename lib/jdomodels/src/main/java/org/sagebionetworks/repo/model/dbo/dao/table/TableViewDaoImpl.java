@@ -23,28 +23,30 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
-public class FileViewDaoImpl implements FileViewDao {
+public class TableViewDaoImpl implements TableViewDao {
 
 	/*
 	 * The default CRC32 to use for no results.
 	 */
 	public static long DEFAULT_EMPTY_CRC = 0;
 	private static final String IDS_PARAM_NAME = "ids_param";
-	private static final String SQL_COUNT_FILES_IN_CONTAINERS = "SELECT COUNT("+COL_NODE_ID+") FROM "+TABLE_NODE+" WHERE "+COL_NODE_TYPE+" = '"+EntityType.file.name()+"' AND "+COL_NODE_PARENT_ID+" IN (:"+IDS_PARAM_NAME+")";
-	private static final String SQL_SELECT_FILE_CRC32 = "SELECT SUM(CRC32(CONCAT("+ COL_NODE_ID+", '-',"+ COL_NODE_ETAG+ "))) FROM "+ TABLE_NODE+ " WHERE "+ COL_NODE_TYPE+ " = '"+ EntityType.file+ "' AND "+ COL_NODE_PARENT_ID + " IN (:" + IDS_PARAM_NAME + ")";
+	private static final String TYPE_PARAM_NAME = "type_param";
+	private static final String SQL_COUNT_FILES_IN_CONTAINERS = "SELECT COUNT("+COL_NODE_ID+") FROM "+TABLE_NODE+" WHERE "+COL_NODE_TYPE+" = :"+TYPE_PARAM_NAME+" AND "+COL_NODE_PARENT_ID+" IN (:"+IDS_PARAM_NAME+")";
+	private static final String SQL_SELECT_FILE_CRC32 = "SELECT SUM(CRC32(CONCAT("+ COL_NODE_ID+", '-',"+ COL_NODE_ETAG+ "))) FROM "+ TABLE_NODE+ " WHERE "+ COL_NODE_TYPE+ " = :"+ TYPE_PARAM_NAME+ " AND "+ COL_NODE_PARENT_ID + " IN (:" + IDS_PARAM_NAME + ")";
 	
 	@Autowired
 	private StreamingJdbcTemplate streamingJdbcTemplate;
 
 	@Override
-	public long calculateCRCForAllFilesWithinContainers(Set<Long> viewContainers) {
+	public long calculateCRCForAllEntitiesWithinContainers(Set<Long> viewContainers, EntityType type) {
 		ValidateArgument.required(viewContainers, "viewContainers");
 		if (viewContainers.isEmpty()) {
 			// default
 			return DEFAULT_EMPTY_CRC;
 		}
-		Map<String, Set<Long>> parameters = new HashMap<String, Set<Long>>(1);
+		Map<String, Object> parameters = new HashMap<String, Object>(2);
 		parameters.put(IDS_PARAM_NAME, viewContainers);
+		parameters.put(TYPE_PARAM_NAME, type.name());
 		NamedParameterJdbcTemplate namedParameterJdbcTemplate = new NamedParameterJdbcTemplate(streamingJdbcTemplate);
 		Long result = namedParameterJdbcTemplate.queryForObject(
 				SQL_SELECT_FILE_CRC32, parameters, Long.class);
@@ -63,13 +65,14 @@ public class FileViewDaoImpl implements FileViewDao {
 	 * org.sagebionetworks.repo.model.dao.table.RowHandler)
 	 */
 	@Override
-	public void streamOverFileEntities(Set<Long> containers,
+	public void streamOverEntities(Set<Long> containers, EntityType type,
 			final List<ColumnModel> schema, final RowHandler rowHandler) {
 		// Determine which columns are primary fields an which are annotations
 		final List<ColumnModel> annotationColumns = FileViewUtils
 				.getNonFileEntityFieldColumns(schema);
-		Map<String, Set<Long>> parameters = new HashMap<String, Set<Long>>(1);
+		Map<String, Object> parameters = new HashMap<String, Object>(1);
 		parameters.put(IDS_PARAM_NAME, containers);
+		parameters.put(TYPE_PARAM_NAME, type.name());
 		String query = FileViewUtils.createSQLForSchema(schema);
 		NamedParameterJdbcTemplate namedParameterJdbcTemplate = new NamedParameterJdbcTemplate(streamingJdbcTemplate);
 		namedParameterJdbcTemplate.query(query, parameters,
@@ -86,9 +89,10 @@ public class FileViewDaoImpl implements FileViewDao {
 	}
 
 	@Override
-	public long countAllFilesInView(Set<Long> allContainersInScope) {
-		Map<String, Set<Long>> parameters = new HashMap<String, Set<Long>>(1);
+	public long countAllEntitiesInView(Set<Long> allContainersInScope, EntityType type) {
+		Map<String, Object> parameters = new HashMap<String, Object>(1);
 		parameters.put(IDS_PARAM_NAME, allContainersInScope);
+		parameters.put(TYPE_PARAM_NAME, type.name());
 		NamedParameterJdbcTemplate namedParameterJdbcTemplate = new NamedParameterJdbcTemplate(streamingJdbcTemplate);
 		return namedParameterJdbcTemplate.queryForObject(SQL_COUNT_FILES_IN_CONTAINERS, parameters, Long.class);
 	}

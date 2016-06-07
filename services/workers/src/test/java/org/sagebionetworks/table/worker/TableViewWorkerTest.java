@@ -14,11 +14,12 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
-import org.sagebionetworks.repo.manager.table.FileViewManager;
+import org.sagebionetworks.repo.manager.table.TableViewManager;
 import org.sagebionetworks.repo.manager.table.TableIndexConnectionFactory;
 import org.sagebionetworks.repo.manager.table.TableIndexConnectionUnavailableException;
 import org.sagebionetworks.repo.manager.table.TableIndexManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.table.RowBatchHandler;
 import org.sagebionetworks.repo.model.dbo.dao.table.FileEntityFields;
@@ -33,10 +34,10 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
 
-public class FileViewWorkerTest {
+public class TableViewWorkerTest {
 
 	@Mock
-	FileViewManager tableViewManager;
+	TableViewManager tableViewManager;
 	@Mock
 	TableManagerSupport tableManagerSupport;
 	@Mock
@@ -48,7 +49,7 @@ public class FileViewWorkerTest {
 	@Mock
 	ProgressCallback<ChangeMessage> innerCallback;
 
-	FileViewWorker worker;
+	TableViewWorker worker;
 
 	String tableId;
 	ChangeMessage change;
@@ -64,7 +65,7 @@ public class FileViewWorkerTest {
 	public void before() throws Exception {
 		MockitoAnnotations.initMocks(this);
 
-		worker = new FileViewWorker();
+		worker = new TableViewWorker();
 		ReflectionTestUtils.setField(worker, "tableViewManager",
 				tableViewManager);
 		ReflectionTestUtils.setField(worker, "tableManagerSupport",
@@ -128,7 +129,7 @@ public class FileViewWorkerTest {
 				RowBatchHandler handler = (RowBatchHandler) invocation.getArguments()[3];
 				handler.nextBatch(rows, 0, rowCount);
 				return viewCRC;
-			}}).when(tableViewManager).streamOverAllFilesInViewAsBatch(anyString(),  anyListOf(ColumnModel.class), anyInt(), any(RowBatchHandler.class));
+			}}).when(tableViewManager).streamOverAllEntitiesInViewAsBatch(anyString(), any(EntityType.class), anyListOf(ColumnModel.class), anyInt(), any(RowBatchHandler.class));
 	}
 
 	@Test
@@ -214,7 +215,7 @@ public class FileViewWorkerTest {
 		verify(tableManagerSupport, times(1)).attemptToUpdateTableProgress(tableId, token, "Building view...", 0L, 1L);
 		verify(indexManager, times(1)).applyChangeSetToIndex(any(RowSet.class), anyListOf(ColumnModel.class));
 		verify(indexManager).setIndexVersion(viewCRC);
-		verify(tableManagerSupport).attemptToSetTableStatusToAvailable(tableId, token, FileViewWorker.DEFAULT_ETAG);
+		verify(tableManagerSupport).attemptToSetTableStatusToAvailable(tableId, token, TableViewWorker.DEFAULT_ETAG);
 	}
 
 }
