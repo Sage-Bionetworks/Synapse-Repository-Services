@@ -1,7 +1,14 @@
 package org.sagebionetworks.table.worker;
 
-import static org.mockito.Matchers.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyInt;
+import static org.mockito.Matchers.anyListOf;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -14,11 +21,11 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
-import org.sagebionetworks.repo.manager.table.TableViewManager;
 import org.sagebionetworks.repo.manager.table.TableIndexConnectionFactory;
 import org.sagebionetworks.repo.manager.table.TableIndexConnectionUnavailableException;
 import org.sagebionetworks.repo.manager.table.TableIndexManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
+import org.sagebionetworks.repo.manager.table.TableViewManager;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.table.RowBatchHandler;
@@ -31,8 +38,6 @@ import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.test.util.ReflectionTestUtils;
-
-import com.google.common.collect.Lists;
 
 public class TableViewWorkerTest {
 
@@ -126,7 +131,7 @@ public class TableViewWorkerTest {
 		doAnswer(new Answer<Long>(){
 			@Override
 			public Long answer(InvocationOnMock invocation) throws Throwable {
-				RowBatchHandler handler = (RowBatchHandler) invocation.getArguments()[3];
+				RowBatchHandler handler = (RowBatchHandler) invocation.getArguments()[4];
 				handler.nextBatch(rows, 0, rowCount);
 				return viewCRC;
 			}}).when(tableViewManager).streamOverAllEntitiesInViewAsBatch(anyString(), any(EntityType.class), anyListOf(ColumnModel.class), anyInt(), any(RowBatchHandler.class));
