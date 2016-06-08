@@ -94,7 +94,7 @@ public class TableViewManagerImplTest {
 		doAnswer(new Answer<Void>(){
 			@Override
 			public Void answer(InvocationOnMock invocation) throws Throwable {
-				RowHandler handler = (RowHandler) invocation.getArguments()[2];
+				RowHandler handler = (RowHandler) invocation.getArguments()[3];
 				// send all rows
 				for(Row row: rows){
 					handler.nextRow(row);

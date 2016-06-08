@@ -453,6 +453,7 @@ public class TableManagerSupportTest {
 	public void calculateFileViewCRC32(){
 		Long crc32 = 45678L;
 		EntityType type = EntityType.fileview;
+		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(type);
 		when(mockFileViewDao.calculateCRCForAllEntitiesWithinContainers(containersInScope, type)).thenReturn(crc32);
 		
 		Long crcResult = manager.calculateFileViewCRC32(tableId);
