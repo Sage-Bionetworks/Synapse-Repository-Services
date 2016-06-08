@@ -1,6 +1,7 @@
 package org.sagebionetworks.table.query.util;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -600,12 +601,12 @@ public class SqlElementUntils {
 			if(model.getTableExpression().getGroupByClause() != null){
 				// group by query
 				builder.append("COUNT(DISTINCT ");
-				builder.append(model.getTableExpression().getGroupByClause().getGroupingColumnReferenceList().toSql());
+				builder.append(createSelectFromGroupBy(model.getSelectList(), model.getTableExpression().getGroupByClause()));
 				builder.append(")");
 			}else if(SetQuantifier.DISTINCT.equals(model.getSetQuantifier())){
 				// distinct select
 				builder.append("COUNT(DISTINCT ");
-				builder.append(model.getSelectList().toSql());
+				builder.append(createSelectWithoutAs(model.getSelectList()));
 				builder.append(")");
 			}else{
 				throw new SimpleAggregateQueryException("Simple aggregate queries always return one row");
@@ -618,6 +619,62 @@ public class SqlElementUntils {
 		tableExpression = new TableExpression(fromClause, whereClause, groupByClause, orderByClause, pagination);
 		builder.append(" ");
 		builder.append(tableExpression.toSql());
+		return builder.toString();
+	}
+	
+	/**
+	 * Create a select clause from a group by clause.
+	 * A group by column reference can be the value of an 'AS' from the select
+	 * column.  When this occurs the original ValueExpression from the select must
+	 * replace the a
+	 * 
+	 * @param originalSelect The original select of the query.
+	 * @param groupBy
+	 * @return
+	 */
+	public static String createSelectFromGroupBy(SelectList originalSelect, GroupByClause groupBy){
+		Map<String, ValueExpression> asMapping = new HashMap<String, ValueExpression>();
+		// build a mapping for each as clause
+		for(DerivedColumn dc: originalSelect.getColumns()){
+			if(dc.getAsClause() != null){
+				String asValue = dc.getAsClause().getFirstUnquotedValue();
+				asMapping.put(asValue, dc.getValueExpression());
+			}
+		}
+		StringBuilder builder = new StringBuilder();
+		boolean isFirst = true;
+		for(GroupingColumnReference gcr: groupBy.getGroupingColumnReferenceList().getGroupingColumnReferences()){
+			if(!isFirst){
+				builder.append(", ");
+			}
+			String unQuoted = gcr.getFirstUnquotedValue();
+			ValueExpression selectValue = asMapping.get(unQuoted);
+			if(selectValue != null){
+				// replace ass with value expression
+				builder.append(selectValue.toSql());
+			}else{
+				builder.append(gcr.toSql());
+			}
+			isFirst = false;
+		}
+		return builder.toString();
+	}
+	
+	/**
+	 * Create a select statement excluding any 'AS' clause.
+	 * @param originalSelect
+	 * @return
+	 */
+	public static String createSelectWithoutAs(SelectList originalSelect){
+		StringBuilder builder = new StringBuilder();
+		boolean isFirst = true;
+		for(DerivedColumn dc: originalSelect.getColumns()){
+			if(!isFirst){
+				builder.append(", ");
+			}
+			builder.append(dc.getValueExpression().toSql());
+			isFirst = false;
+		}
 		return builder.toString();
 	}
 }
