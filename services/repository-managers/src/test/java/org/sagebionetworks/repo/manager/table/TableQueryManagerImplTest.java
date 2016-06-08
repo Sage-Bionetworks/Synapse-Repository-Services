@@ -295,6 +295,20 @@ public class TableQueryManagerImplTest {
 		manager.queryAsStream(mockProgressCallbackVoid, user, query, rowHandler, runCount, isConsistent);
 	}
 	
+	@Test (expected=EmptyResultException.class)
+	public void testQueryAsStreamEmptyResultException() throws Exception{
+		when(mockTableManagerSupport.tryRunWithTableNonexclusiveLock(
+						any(ProgressCallback.class), anyString(), anyInt(),
+						any(ProgressingCallable.class))).thenThrow(
+				new EmptyResultException());
+		RowHandler rowHandler = new SinglePageRowHandler();
+		boolean runCount = true;
+		boolean isConsistent = true;
+		SqlQuery query = new SqlQuery("select * from " + tableId, models);
+		// call under test.
+		manager.queryAsStream(mockProgressCallbackVoid, user, query, rowHandler, runCount, isConsistent);
+	}
+	
 	@Test
 	public void testQueryAsStreamIsConsistentFalse() throws Exception{
 		RowHandler rowHandler = new SinglePageRowHandler();

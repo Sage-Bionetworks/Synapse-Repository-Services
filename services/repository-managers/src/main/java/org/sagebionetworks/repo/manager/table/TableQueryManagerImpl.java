@@ -188,9 +188,10 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @return
 	 * @throws TableUnavailableException
 	 * @throws TableFailedException
+	 * @throws EmptyResultException 
 	 */
 	<R, T> R tryRunWithTableReadLock(ProgressCallback<T> callback, String tableId,
-			ProgressingCallable<R, T> runner) throws TableUnavailableException, TableFailedException{
+			ProgressingCallable<R, T> runner) throws TableUnavailableException, TableFailedException, EmptyResultException{
 		
 		try {
 			return tableManagerSupport.tryRunWithTableNonexclusiveLock(callback, tableId, READ_LOCK_TIMEOUT_SEC, runner);
@@ -200,6 +201,8 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		} catch (TableUnavailableException e) {
 			throw e;
 		} catch (TableFailedException e) {
+			throw e;
+		} catch (EmptyResultException e) {
 			throw e;
 		} catch (Exception e){
 			// all other checked exceptions are converted to runtime
