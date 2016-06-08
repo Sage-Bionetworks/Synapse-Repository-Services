@@ -34,7 +34,7 @@ import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.FileEntityFields;
-import org.sagebionetworks.repo.model.dbo.dao.table.FileViewDao;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableViewDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
@@ -70,7 +70,7 @@ public class TableManagerSupportTest {
 	@Mock
 	NodeDAO mockNodeDao;
 	@Mock
-	FileViewDao mockFileViewDao;
+	TableViewDao mockFileViewDao;
 	@Mock
 	TableRowTruthDAO mockTableTruthDao;
 	@Mock
@@ -452,7 +452,9 @@ public class TableManagerSupportTest {
 	@Test
 	public void calculateFileViewCRC32(){
 		Long crc32 = 45678L;
-		when(mockFileViewDao.calculateCRCForAllFilesWithinContainers(containersInScope)).thenReturn(crc32);
+		EntityType type = EntityType.fileview;
+		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(type);
+		when(mockFileViewDao.calculateCRCForAllEntitiesWithinContainers(containersInScope, type)).thenReturn(crc32);
 		
 		Long crcResult = manager.calculateFileViewCRC32(tableId);
 		assertEquals(crc32, crcResult);
@@ -473,7 +475,8 @@ public class TableManagerSupportTest {
 	@Test
 	public void testGetTableVersionForFileView() {
 		Long crc32 = 45678L;
-		when(mockFileViewDao.calculateCRCForAllFilesWithinContainers(containersInScope)).thenReturn(crc32);
+		EntityType type = EntityType.fileview;
+		when(mockFileViewDao.calculateCRCForAllEntitiesWithinContainers(containersInScope, type)).thenReturn(crc32);
 		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.fileview);
 		// call under test
 		Long version = manager.getTableVersion(tableId);

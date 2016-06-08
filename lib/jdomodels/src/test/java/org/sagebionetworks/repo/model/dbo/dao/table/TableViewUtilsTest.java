@@ -7,6 +7,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION
 
 
 
+
 import java.io.IOException;
 import java.sql.Blob;
 import java.sql.ResultSet;
@@ -23,6 +24,7 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -31,7 +33,7 @@ import org.sagebionetworks.repo.model.table.Row;
 
 import com.google.common.collect.Lists;
 
-public class FileViewUtilsTest {
+public class TableViewUtilsTest {
 	
 	@Mock
 	ResultSet mockResultSet;
@@ -41,6 +43,8 @@ public class FileViewUtilsTest {
 	ColumnModel colDate;
 	ColumnModel colInteger;
 	ColumnModel colLink;
+	
+	EntityType type;
 	
 	@Before
 	public void before(){
@@ -65,6 +69,8 @@ public class FileViewUtilsTest {
 		colLink = new ColumnModel();
 		colLink.setName("linkKey");
 		colLink.setColumnType(ColumnType.LINK);
+		
+		type = EntityType.file;
 	}
 
 	@Test
@@ -76,7 +82,7 @@ public class FileViewUtilsTest {
 		ColumnModel primary = FileEntityFields.id.getColumnModel();
 		List<ColumnModel> input = Lists.newArrayList(annotation, primary);
 		// call under test
-		List<FileEntityFields> results = FileViewUtils.getFileEntityFields(input);
+		List<FileEntityFields> results = TableViewUtils.getFileEntityFields(input);
 		assertEquals(Lists.newArrayList(FileEntityFields.id), results);
 	}
 	
@@ -88,7 +94,7 @@ public class FileViewUtilsTest {
 		
 		List<ColumnModel> input = Lists.newArrayList(annotation);
 		// call under test
-		List<FileEntityFields> results = FileViewUtils.getFileEntityFields(input);
+		List<FileEntityFields> results = TableViewUtils.getFileEntityFields(input);
 		assertNotNull(results);
 		assertTrue(results.isEmpty());
 	}
@@ -103,7 +109,7 @@ public class FileViewUtilsTest {
 		ColumnModel primary = FileEntityFields.id.getColumnModel();
 		List<ColumnModel> input = Lists.newArrayList(annotation, primary);
 		// call under test
-		List<ColumnModel> results = FileViewUtils.getNonFileEntityFieldColumns(input);
+		List<ColumnModel> results = TableViewUtils.getNonFileEntityFieldColumns(input);
 		assertEquals(Lists.newArrayList(annotation), results);
 	}
 	
@@ -112,7 +118,7 @@ public class FileViewUtilsTest {
 		ColumnModel primary = FileEntityFields.id.getColumnModel();
 		List<ColumnModel> input = Lists.newArrayList(primary);
 		// call under test
-		List<ColumnModel> results = FileViewUtils.getNonFileEntityFieldColumns(input);
+		List<ColumnModel> results = TableViewUtils.getNonFileEntityFieldColumns(input);
 		assertNotNull(results);
 		assertTrue(results.isEmpty());;
 	}
@@ -122,7 +128,7 @@ public class FileViewUtilsTest {
 		// Test all columns
 		List<ColumnModel> allColumns = FileEntityFields.getAllColumnModels();
 		// call under test
-		String sql = FileViewUtils.createSQLForSchema(allColumns);
+		String sql = TableViewUtils.createSQLForSchema(allColumns, type);
 		String expected = 
 				"SELECT N.ID as 'id'"
 				+ ", N.CURRENT_REV_NUM as 'currentVersion'"
@@ -149,7 +155,7 @@ public class FileViewUtilsTest {
 	public void testCreateSQLForSchemaNodeOnly(){
 		// only node should be hit with this query
 		List<ColumnModel> schema = Lists.newArrayList(FileEntityFields.id.getColumnModel());
-		String sql = FileViewUtils.createSQLForSchema(schema);
+		String sql = TableViewUtils.createSQLForSchema(schema, type);
 		String expected = 
 				"SELECT N.ID as 'id'"
 				+ ", N.CURRENT_REV_NUM as 'currentVersion'"
@@ -163,7 +169,7 @@ public class FileViewUtilsTest {
 	public void testCreateSQLForSchemaRevisionOnly(){
 		// node and revision should be hit since a revision column is used.
 		List<ColumnModel> schema = Lists.newArrayList(FileEntityFields.modifiedBy.getColumnModel());
-		String sql = FileViewUtils.createSQLForSchema(schema);
+		String sql = TableViewUtils.createSQLForSchema(schema, type);
 		String expected = 
 				"SELECT N.ID as 'id'"
 				+ ", N.CURRENT_REV_NUM as 'currentVersion'"
@@ -184,7 +190,7 @@ public class FileViewUtilsTest {
 		cm.setName("foo");
 		cm.setMaximumSize(23L);
 		List<ColumnModel> schema = Lists.newArrayList(cm);
-		String sql = FileViewUtils.createSQLForSchema(schema);
+		String sql = TableViewUtils.createSQLForSchema(schema, type);
 		String expected = 
 				"SELECT N.ID as 'id'"
 				+ ", N.CURRENT_REV_NUM as 'currentVersion'"
@@ -209,7 +215,7 @@ public class FileViewUtilsTest {
 		List<ColumnModel> annotations = Lists.newArrayList(colDate, colDouble, colInteger, colLink, colString);
 		
 		// call under test
-		Map<String, String> results = FileViewUtils.extractAnnotations(annotations, annos);
+		Map<String, String> results = TableViewUtils.extractAnnotations(annotations, annos);
 		assertNotNull(results);
 		assertEquals("23", results.get(colDate.getName()));
 		assertEquals("someString", results.get(colString.getName()));
@@ -237,7 +243,7 @@ public class FileViewUtilsTest {
 		List<ColumnModel> annotations = Lists.newArrayList(colString);
 		
 		// call under test
-		Map<String, String> results = FileViewUtils.extractAnnotations(annotations, annos);
+		Map<String, String> results = TableViewUtils.extractAnnotations(annotations, annos);
 		assertNotNull(results);
 		assertEquals("someString", results.get(colString.getName()));
 	}
@@ -254,7 +260,7 @@ public class FileViewUtilsTest {
 		List<ColumnModel> annotations = Lists.newArrayList(colDate);
 		
 		// call under test
-		Map<String, String> results = FileViewUtils.extractAnnotations(annotations, annos);
+		Map<String, String> results = TableViewUtils.extractAnnotations(annotations, annos);
 		assertNotNull(results);
 		assertEquals("23", results.get(colDate.getName()));
 	}
@@ -271,7 +277,7 @@ public class FileViewUtilsTest {
 		List<ColumnModel> annotations = Lists.newArrayList(colInteger);
 		
 		// call under test
-		Map<String, String> results = FileViewUtils.extractAnnotations(annotations, annos);
+		Map<String, String> results = TableViewUtils.extractAnnotations(annotations, annos);
 		assertNotNull(results);
 		assertEquals("99", results.get(colInteger.getName()));
 	}
@@ -288,7 +294,7 @@ public class FileViewUtilsTest {
 		List<ColumnModel> annotations = Lists.newArrayList(colDouble);
 		
 		// call under test
-		Map<String, String> results = FileViewUtils.extractAnnotations(annotations, annos);
+		Map<String, String> results = TableViewUtils.extractAnnotations(annotations, annos);
 		assertNotNull(results);
 		assertEquals("1.234", results.get(colDouble.getName()));
 	}
@@ -298,10 +304,10 @@ public class FileViewUtilsTest {
 		List<ColumnModel> schema = FileEntityFields.getAllColumnModels();
 		// add an annotation
 		schema.add(colString);
-		List<ColumnModel> annotationColumns = FileViewUtils.getNonFileEntityFieldColumns(schema);
+		List<ColumnModel> annotationColumns = TableViewUtils.getNonFileEntityFieldColumns(schema);
 		Row expectedRow = setupSampleRowHelper(schema, annotationColumns);
 		// call under test
-		Row row = FileViewUtils.extractRow(schema, annotationColumns, mockResultSet);
+		Row row = TableViewUtils.extractRow(schema, annotationColumns, mockResultSet);
 		assertNotNull(row);
 		assertEquals(expectedRow, row);
 	}
@@ -309,10 +315,10 @@ public class FileViewUtilsTest {
 	@Test
 	public void testExtractRowWithNoAnnotations() throws Exception {
 		List<ColumnModel> schema = Lists.newArrayList(FileEntityFields.createdBy.getColumnModel());
-		List<ColumnModel> annotationColumns = FileViewUtils.getNonFileEntityFieldColumns(schema);
+		List<ColumnModel> annotationColumns = TableViewUtils.getNonFileEntityFieldColumns(schema);
 		Row expectedRow = setupSampleRowHelper(schema, annotationColumns);
 		// call under test
-		Row row = FileViewUtils.extractRow(schema, annotationColumns, mockResultSet);
+		Row row = TableViewUtils.extractRow(schema, annotationColumns, mockResultSet);
 		assertNotNull(row);
 		assertEquals(expectedRow, row);
 	}
@@ -320,10 +326,10 @@ public class FileViewUtilsTest {
 	@Test
 	public void testExtractRowWithAnnotationsOnly() throws Exception {
 		List<ColumnModel> schema = Lists.newArrayList(colDate);
-		List<ColumnModel> annotationColumns = FileViewUtils.getNonFileEntityFieldColumns(schema);
+		List<ColumnModel> annotationColumns = TableViewUtils.getNonFileEntityFieldColumns(schema);
 		Row expectedRow = setupSampleRowHelper(schema, annotationColumns);
 		// call under test
-		Row row = FileViewUtils.extractRow(schema, annotationColumns, mockResultSet);
+		Row row = TableViewUtils.extractRow(schema, annotationColumns, mockResultSet);
 		assertNotNull(row);
 		assertEquals(expectedRow, row);
 	}
@@ -396,11 +402,24 @@ public class FileViewUtilsTest {
 	public void testContainsBenefactor(){
 		List<ColumnModel> all = FileEntityFields.getAllColumnModels();
 		// all under test
-		assertTrue(FileViewUtils.containsBenefactor(all));
+		assertTrue(TableViewUtils.containsBenefactor(all));
 		// remove benefactor from the list.
 		all.remove(FileEntityFields.benefactorId.getColumnModel());
 		// call under test
-		assertFalse(FileViewUtils.containsBenefactor(all));
+		assertFalse(TableViewUtils.containsBenefactor(all));
+	}
+	
+	@Test
+	public void testGetFilterTypeForViewTypeFileView(){
+		// call under test.
+		EntityType entityType = TableViewUtils.getFilterTypeForViewType(EntityType.fileview);
+		assertEquals(EntityType.file, entityType);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetEntityTypeForViewUnknown(){
+		// call under test.
+		TableViewUtils.getFilterTypeForViewType(EntityType.project);
 	}
 	
 }

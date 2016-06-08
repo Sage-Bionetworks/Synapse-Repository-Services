@@ -190,7 +190,7 @@ public interface TableManagerSupport {
 	 * @param allContainersInScope
 	 * @return
 	 */
-	public Long calculateFileViewCRC32(Set<Long> allContainersInScope);
+	public Long calculateFileViewCRC32(Set<Long> allContainersInScope, EntityType type);
 	
 	/**
 	 * Get the set of container ids (Projects and Folders) for a view's scope.
@@ -327,5 +327,12 @@ public interface TableManagerSupport {
 	 * @return
 	 */
 	public List<ColumnModel> getDefaultFileEntityColumns();
+
+	/**
+	 * Get the entity type for the given table.
+	 * @param tableId
+	 * @return
+	 */
+	public EntityType getTableEntityType(String tableId);
 
 }

@@ -21,7 +21,7 @@ import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.FileEntityFields;
-import org.sagebionetworks.repo.model.dbo.dao.table.FileViewDao;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableViewDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
@@ -57,7 +57,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	@Autowired
 	NodeDAO nodeDao;
 	@Autowired
-	FileViewDao fileViewDao;
+	TableViewDao fileViewDao;
 	@Autowired
 	TableRowTruthDAO tableTruthDao;
 	@Autowired
@@ -241,7 +241,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	 */
 	@Override
 	public ObjectType getTableType(String tableId) {
-		EntityType type = nodeDao.getNodeTypeById(tableId);
+		EntityType type = getTableEntityType(tableId);
 		return getObjectTypeForEntityType(type);
 	}
 	
@@ -270,13 +270,14 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	public Long calculateFileViewCRC32(String tableId) {
 		// Start with all container IDs that define the view's scope
 		Set<Long> viewContainers = getAllContainerIdsForViewScope(tableId);
-		return calculateFileViewCRC32(viewContainers);
+		EntityType type = getTableEntityType(tableId);
+		return calculateFileViewCRC32(viewContainers, type);
 	}
 	
 	@Override
-	public Long calculateFileViewCRC32(Set<Long> viewContainers) {
+	public Long calculateFileViewCRC32(Set<Long> viewContainers, EntityType type) {
 		// Calculate the crc for the containers.
-		return fileViewDao.calculateCRCForAllFilesWithinContainers(viewContainers);
+		return fileViewDao.calculateCRCForAllEntitiesWithinContainers(viewContainers, type);
 	}
 
 	/*
@@ -346,7 +347,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 								ACCESS_TYPE.READ));
 
 		// Lookup the entity type for this table.
-		EntityType entityTpe = nodeDao.getNodeTypeById(tableId);
+		EntityType entityTpe = getTableEntityType(tableId);
 		ObjectType type = getObjectTypeForEntityType(entityTpe);
 		// User must have the download permission to read from a TableEntity.
 		if(ObjectType.TABLE.equals(type)){
@@ -411,5 +412,10 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	public Set<Long> getAccessibleBenefactors(UserInfo user,
 			Set<Long> benefactorIds) {
 		return authorizationManager.getAccessibleBenefactors(user, benefactorIds);
+	}
+
+	@Override
+	public EntityType getTableEntityType(String tableId) {
+		return nodeDao.getNodeTypeById(tableId);
 	}
 }
