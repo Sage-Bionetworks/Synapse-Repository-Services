@@ -12,7 +12,7 @@ import org.sagebionetworks.repo.model.dao.table.RowBatchHandler;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.dbo.dao.table.FileEntityFields;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableViewDao;
-import org.sagebionetworks.repo.model.dbo.dao.table.FileViewUtils;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableViewUtils;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -58,7 +58,7 @@ public class TableViewManagerImpl implements TableViewManager {
 	public  List<ColumnModel> getViewSchemaWithBenefactor(String viewId){
 		final List<ColumnModel> currentSchema = tableManagerSupport.getColumnModelsForTable(viewId);
 		// we need to ensure the benefactor column in included in all tables for the authorization filter.
-		if(!FileViewUtils.containsBenefactor(currentSchema)){
+		if(!TableViewUtils.containsBenefactor(currentSchema)){
 			currentSchema.add(tableManagerSupport.getColumModel(FileEntityFields.benefactorId));
 		}
 		return currentSchema;

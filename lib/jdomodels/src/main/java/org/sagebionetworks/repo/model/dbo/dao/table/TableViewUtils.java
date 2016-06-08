@@ -28,7 +28,6 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.util.ValidateArgument;
 
@@ -36,7 +35,7 @@ import org.sagebionetworks.util.ValidateArgument;
  * Static utilities for FileViews.
  *
  */
-public class FileViewUtils {
+public class TableViewUtils {
 	
 	private static final String IDS_PARAM_NAME = "ids_param";
 
@@ -46,7 +45,7 @@ public class FileViewUtils {
 	 * @param schema
 	 * @return
 	 */
-	public static String createSQLForSchema(List<ColumnModel> schema) {
+	public static String createSQLForSchema(List<ColumnModel> schema, EntityType type) {
 		ValidateArgument.required(schema, "schema");
 		ValidateArgument.requirement(!schema.isEmpty(), "schema cannot be empty");
 		StringBuilder builder = new StringBuilder();
@@ -66,7 +65,7 @@ public class FileViewUtils {
 		String nodeAlias = id.getTableAlias();
 		String revAlias = dataFileHandleId.getTableAlias();
 		// Add all primary columns
-		List<FileEntityFields> primaryColumns = FileViewUtils.getFileEntityFields(schema);
+		List<FileEntityFields> primaryColumns = TableViewUtils.getFileEntityFields(schema);
 		for(FileEntityFields field: primaryColumns){
 			if(!added.contains(field)){
 				isFirst = false;
@@ -78,7 +77,7 @@ public class FileViewUtils {
 			}
 		}
 		// Add annotations if needed
-		List<ColumnModel> annotations = FileViewUtils.getNonFileEntityFieldColumns(schema);
+		List<ColumnModel> annotations = TableViewUtils.getNonFileEntityFieldColumns(schema);
 		if(!annotations.isEmpty()){
 			joinRevision = true;
 			builder.append(", ").append(revAlias).append(".").append(COL_REVISION_ANNOS_BLOB);
@@ -91,7 +90,7 @@ public class FileViewUtils {
 		}
 		// Filter files within the container scope.
 		builder.append(" WHERE ");
-		builder.append(nodeAlias).append(".").append(COL_NODE_TYPE).append(" = '").append(EntityType.file).append("'");
+		builder.append(nodeAlias).append(".").append(COL_NODE_TYPE).append(" = '").append(type.name()).append("'");
 		builder.append(" AND ");
 		builder.append(nodeAlias).append(".").append(COL_NODE_PARENT_ID).append(" IN (:").append(IDS_PARAM_NAME).append(")");
 		// complete join with JDOREVISION if needed.
@@ -267,7 +266,7 @@ public class FileViewUtils {
 			Blob annosBlob = rs.getBlob(COL_REVISION_ANNOS_BLOB);
 			if(annosBlob != null){
 				byte[] bytes = annosBlob.getBytes(1, (int) annosBlob.length());
-				annotationsMap = FileViewUtils.extractAnnotations(annotationColumns, bytes);
+				annotationsMap = TableViewUtils.extractAnnotations(annotationColumns, bytes);
 			}
 		}
 		// Create the results
@@ -301,6 +300,22 @@ public class FileViewUtils {
 			}
 		}
 		return false;
+	}
+	
+	/**
+	 * Get the filter type for a given view type.
+	 * For example, the view type: FileView uses a filter type of File. 
+	 * 
+	 * @param viewType
+	 * @return
+	 */
+	public static EntityType getFilterTypeForViewType(EntityType viewType){
+		switch(viewType){
+		case fileview:
+			return EntityType.file;
+			default:
+				throw new IllegalArgumentException("Unknown view type: "+viewType);
+		}
 	}
 
 }

@@ -38,15 +38,16 @@ public class TableViewDaoImpl implements TableViewDao {
 	private StreamingJdbcTemplate streamingJdbcTemplate;
 
 	@Override
-	public long calculateCRCForAllEntitiesWithinContainers(Set<Long> viewContainers, EntityType type) {
+	public long calculateCRCForAllEntitiesWithinContainers(Set<Long> viewContainers, EntityType viewType) {
 		ValidateArgument.required(viewContainers, "viewContainers");
 		if (viewContainers.isEmpty()) {
 			// default
 			return DEFAULT_EMPTY_CRC;
 		}
+		EntityType filterType = TableViewUtils.getFilterTypeForViewType(viewType);
 		Map<String, Object> parameters = new HashMap<String, Object>(2);
 		parameters.put(IDS_PARAM_NAME, viewContainers);
-		parameters.put(TYPE_PARAM_NAME, type.name());
+		parameters.put(TYPE_PARAM_NAME, filterType.name());
 		NamedParameterJdbcTemplate namedParameterJdbcTemplate = new NamedParameterJdbcTemplate(streamingJdbcTemplate);
 		Long result = namedParameterJdbcTemplate.queryForObject(
 				SQL_SELECT_FILE_CRC32, parameters, Long.class);
@@ -65,15 +66,17 @@ public class TableViewDaoImpl implements TableViewDao {
 	 * org.sagebionetworks.repo.model.dao.table.RowHandler)
 	 */
 	@Override
-	public void streamOverEntities(Set<Long> containers, EntityType type,
+	public void streamOverEntities(Set<Long> containers, EntityType viewType,
 			final List<ColumnModel> schema, final RowHandler rowHandler) {
 		// Determine which columns are primary fields an which are annotations
-		final List<ColumnModel> annotationColumns = FileViewUtils
+		final List<ColumnModel> annotationColumns = TableViewUtils
 				.getNonFileEntityFieldColumns(schema);
+
 		Map<String, Object> parameters = new HashMap<String, Object>(1);
 		parameters.put(IDS_PARAM_NAME, containers);
-		parameters.put(TYPE_PARAM_NAME, type.name());
-		String query = FileViewUtils.createSQLForSchema(schema);
+		// get the filter type for this view.
+		EntityType filterType = TableViewUtils.getFilterTypeForViewType(viewType);
+		String query = TableViewUtils.createSQLForSchema(schema, filterType);
 		NamedParameterJdbcTemplate namedParameterJdbcTemplate = new NamedParameterJdbcTemplate(streamingJdbcTemplate);
 		namedParameterJdbcTemplate.query(query, parameters,
 				new RowCallbackHandler() {
@@ -81,7 +84,7 @@ public class TableViewDaoImpl implements TableViewDao {
 					@Override
 					public void processRow(ResultSet rs) throws SQLException {
 						// Map to a Row
-						Row row = FileViewUtils.extractRow(schema,
+						Row row = TableViewUtils.extractRow(schema,
 								annotationColumns, rs);
 						rowHandler.nextRow(row);
 					}
@@ -89,10 +92,11 @@ public class TableViewDaoImpl implements TableViewDao {
 	}
 
 	@Override
-	public long countAllEntitiesInView(Set<Long> allContainersInScope, EntityType type) {
+	public long countAllEntitiesInView(Set<Long> allContainersInScope, EntityType viewType) {
+		EntityType filterType = TableViewUtils.getFilterTypeForViewType(viewType);
 		Map<String, Object> parameters = new HashMap<String, Object>(1);
 		parameters.put(IDS_PARAM_NAME, allContainersInScope);
-		parameters.put(TYPE_PARAM_NAME, type.name());
+		parameters.put(TYPE_PARAM_NAME, filterType.name());
 		NamedParameterJdbcTemplate namedParameterJdbcTemplate = new NamedParameterJdbcTemplate(streamingJdbcTemplate);
 		return namedParameterJdbcTemplate.queryForObject(SQL_COUNT_FILES_IN_CONTAINERS, parameters, Long.class);
 	}

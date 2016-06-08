@@ -45,13 +45,13 @@ public class TableViewDaoImplTest {
 	
 	private Long creatorUserGroupId;
 	List<String> toDelete;
-	EntityType type;
+	EntityType viewType;
 	
 	@Before
 	public void before(){
 		creatorUserGroupId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		toDelete = new ArrayList<String>();
-		type = EntityType.fileview;
+		viewType = EntityType.fileview;
 	}
 	
 	@After
@@ -84,7 +84,7 @@ public class TableViewDaoImplTest {
 		Set<Long> containers = Sets.newHashSet(projectId);
 
 		//  call under test
-		long crcResults = fileViewDao.calculateCRCForAllEntitiesWithinContainers(containers, type);
+		long crcResults = fileViewDao.calculateCRCForAllEntitiesWithinContainers(containers, viewType);
 		assertTrue(crcResults > 0L);
 	}
 	
@@ -100,7 +100,7 @@ public class TableViewDaoImplTest {
 		Long projectId = KeyFactory.stringToKey(project.getId());
 		Set<Long> containers = Sets.newHashSet(projectId);
 		//  call under test
-		long crcResults = fileViewDao.calculateCRCForAllEntitiesWithinContainers(containers, type);
+		long crcResults = fileViewDao.calculateCRCForAllEntitiesWithinContainers(containers, viewType);
 		assertEquals(0, crcResults);
 	}
 	
@@ -109,7 +109,7 @@ public class TableViewDaoImplTest {
 		// empty containers
 		Set<Long> containers = new HashSet<Long>(0);
 		//  call under test
-		long crcResults = fileViewDao.calculateCRCForAllEntitiesWithinContainers(containers, type);
+		long crcResults = fileViewDao.calculateCRCForAllEntitiesWithinContainers(containers, viewType);
 		assertEquals(0, crcResults);
 	}
 	
@@ -125,7 +125,7 @@ public class TableViewDaoImplTest {
 		Long projectId = KeyFactory.stringToKey(project.getId());
 		Set<Long> containers = Sets.newHashSet(projectId);
 		// There should no files yet
-		long count = fileViewDao.countAllEntitiesInView(containers, type);
+		long count = fileViewDao.countAllEntitiesInView(containers, viewType);
 		assertEquals(0, count);
 		
 		// add a file
@@ -156,7 +156,7 @@ public class TableViewDaoImplTest {
 		//  call under test
 		final List<Row> rows = new LinkedList<Row>();
 		// call under test
-		fileViewDao.streamOverEntities(containers, type, schema, new RowHandler() {
+		fileViewDao.streamOverEntities(containers, viewType, schema, new RowHandler() {
 			
 			@Override
 			public void nextRow(Row row) {
@@ -175,7 +175,7 @@ public class TableViewDaoImplTest {
 		assertEquals(expectedValeus, values);
 		
 		// there should now be one file.
-		count = fileViewDao.countAllEntitiesInView(containers, type);
+		count = fileViewDao.countAllEntitiesInView(containers, viewType);
 		assertEquals(1, count);
 	}
 
