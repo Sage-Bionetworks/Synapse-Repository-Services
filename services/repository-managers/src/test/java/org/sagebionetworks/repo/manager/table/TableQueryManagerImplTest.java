@@ -663,7 +663,7 @@ public class TableQueryManagerImplTest {
 		long count = manager.runCountQuery(query);
 		assertEquals(200L, count);
 	}
-	
+		
 	@Test
 	public void testRunCountQueryWithLimitAndOffsetLessThanCount() throws ParseException{
 		SqlQuery query = new SqlQuery("select i0 from "+tableId+" limit 100 offset 50", models);
@@ -695,6 +695,38 @@ public class TableQueryManagerImplTest {
 		// method under test
 		long count = manager.runCountQuery(query);
 		assertEquals(0L, count);
+	}
+	
+	/**
+	 * The group by references an 'AS' value from the select.  The
+	 * resulting count(distinct) must use a direct reference not the 'AS' value.
+	 * @throws ParseException
+	 */
+	@Test
+	public void testRunCountQueryPLFM_3899() throws ParseException{
+		SqlQuery query = new SqlQuery("select i0 as bar from "+tableId+" group by bar", models);
+		ArgumentCaptor<String> sqlCaptrue = ArgumentCaptor.forClass(String.class);
+		// setup the count returned from query
+		when(mockTableIndexDAO.countQuery(sqlCaptrue.capture(), anyMapOf(String.class, Object.class))).thenReturn(200L);
+		// method under test
+		long count = manager.runCountQuery(query);
+		assertEquals("SELECT COUNT(DISTINCT _C0_) FROM T123", sqlCaptrue.getValue());
+	}
+	
+	/**
+	 * When a distinct query is converted to a count query, any 'AS' clause
+	 * from the original SQL must be excluded in the resulting count(distinct).
+	 * @throws ParseException
+	 */
+	@Test
+	public void testRunCountQueryPLFM_3900() throws ParseException{
+		SqlQuery query = new SqlQuery("select distinct i0 as bar, i4 from "+tableId, models);
+		ArgumentCaptor<String> sqlCaptrue = ArgumentCaptor.forClass(String.class);
+		// setup the count returned from query
+		when(mockTableIndexDAO.countQuery(sqlCaptrue.capture(), anyMapOf(String.class, Object.class))).thenReturn(200L);
+		// method under test
+		long count = manager.runCountQuery(query);
+		assertEquals("SELECT COUNT(DISTINCT _C0_, _C4_) FROM T123", sqlCaptrue.getValue());
 	}
 	
 	@Test

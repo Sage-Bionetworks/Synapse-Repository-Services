@@ -229,5 +229,61 @@ public class SqlElementUntilsTest {
 		QuerySpecification model = new TableQueryParser("select sum(foo), max(bar) from syn123").querySpecification();
 		SqlElementUntils.createCountSql(model);
 	}
+	
+	@Test
+	public void testCreateSelectFromGroupBy() throws Exception{
+		QuerySpecification model = new TableQueryParser("select foo as a, bar from syn123 group by bar, a").querySpecification();
+		String result = SqlElementUntils.createSelectFromGroupBy(model.getSelectList(), model.getTableExpression().getGroupByClause());
+		assertEquals("bar, foo", result);
+	}
+	
+	@Test
+	public void testCreateSelectFromGroupBySingleQuotes() throws Exception{
+		QuerySpecification model = new TableQueryParser("select 'has space' as b from syn123 group by b").querySpecification();
+		String result = SqlElementUntils.createSelectFromGroupBy(model.getSelectList(), model.getTableExpression().getGroupByClause());
+		assertEquals("'has space'", result);
+	}
+	
+	@Test
+	public void testCreateSelectFromGroupByDoubleQuotes() throws Exception{
+		QuerySpecification model = new TableQueryParser("select \"has space\" as b from syn123 group by b").querySpecification();
+		String result = SqlElementUntils.createSelectFromGroupBy(model.getSelectList(), model.getTableExpression().getGroupByClause());
+		assertEquals("\"has space\"", result);
+	}
+	
+	/**
+	 * This is a test for PLFM-3899.
+	 */
+	@Test
+	public void testCreateCountSqlAsInGroupBy() throws Exception {
+		QuerySpecification model = new TableQueryParser("select foo as a from syn123 group by a").querySpecification();
+		String countSql = SqlElementUntils.createCountSql(model);
+		assertEquals("SELECT COUNT(DISTINCT foo) FROM syn123", countSql);
+	}
+	
+	@Test
+	public void testCreateSelectWithoutAs() throws Exception {
+		QuerySpecification model = new TableQueryParser("select foo as a, bar as boo from syn123").querySpecification();
+		String countSql = SqlElementUntils.createSelectWithoutAs(model.getSelectList());
+		assertEquals("foo, bar", countSql);
+	}
+	
+	@Test
+	public void testCreateSelectWithoutAsQuote() throws Exception {
+		QuerySpecification model = new TableQueryParser("select 'foo' as a, \"bar\" as boo from syn123").querySpecification();
+		String countSql = SqlElementUntils.createSelectWithoutAs(model.getSelectList());
+		assertEquals("'foo', \"bar\"", countSql);
+	}
+	
+	/**
+	 * This is a test for PLFM-3900.
+	 * @throws Exception
+	 */
+	@Test
+	public void testCreateCountSqlDistinctWithAs() throws Exception {
+		QuerySpecification model = new TableQueryParser("select distinct foo as a from syn123").querySpecification();
+		String countSql = SqlElementUntils.createCountSql(model);
+		assertEquals("SELECT COUNT(DISTINCT foo) FROM syn123", countSql);
+	}
 
 }
