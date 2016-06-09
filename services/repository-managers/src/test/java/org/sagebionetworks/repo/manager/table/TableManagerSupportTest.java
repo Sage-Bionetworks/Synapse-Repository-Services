@@ -7,12 +7,11 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import java.io.IOException;
 import java.util.Date;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
@@ -21,6 +20,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationStatus;
@@ -141,6 +142,15 @@ public class TableManagerSupportTest {
 		when(mockNodeDao.getAllContainerIds(333L)).thenReturn(Lists.newArrayList(30L,31L));
 		
 		containersInScope = Sets.newHashSet(222L,333L,20L,21L,30L,31L);
+		
+		// mirror passed columns.
+		doAnswer(new Answer<ColumnModel>() {
+			@Override
+			public ColumnModel answer(InvocationOnMock invocation)
+					throws Throwable {
+				return (ColumnModel) invocation.getArguments()[0];
+			}
+		}).when(mockColumnModelDao).createColumnModel(any(ColumnModel.class));
 	}
 	
 	
@@ -575,6 +585,24 @@ public class TableManagerSupportTest {
 		when(mockColumnModelDao.createColumnModel(any(ColumnModel.class))).thenReturn(cm);
 		ColumnModel result = manager.getColumModel(FileEntityFields.id);
 		assertEquals(cm, result);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetDefaultTableViewColumnsUnknown(){
+		manager.getDefaultTableViewColumns(EntityType.project);
+	}
+	
+	@Test
+	public void testGetDefaultTableViewColumnsFileView(){
+		// View view defaults are from the FileEntityFields enumeration.
+		List<ColumnModel> expected = new LinkedList<ColumnModel>();
+		for(FileEntityFields field: FileEntityFields.values()){
+			expected.add(field.getColumnModel());
+		}
+		// call under test
+		List<ColumnModel> results = manager.getDefaultTableViewColumns(EntityType.fileview);
+		assertEquals(expected, results);
+
 	}
 	
 }

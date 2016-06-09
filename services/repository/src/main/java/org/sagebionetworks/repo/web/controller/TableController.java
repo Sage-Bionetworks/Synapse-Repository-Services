@@ -8,6 +8,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.NotReadyException;
 import org.sagebionetworks.repo.model.ServiceConstants;
@@ -266,6 +267,31 @@ public class TableController extends BaseController {
 			throws DatastoreException, NotFoundException {
 		return serviceProvider.getTableServices().listColumnModels(userId,
 				prefix, limit, offset);
+	}
+	
+	/**
+	 * Get the list of default <a
+	 * href="${org.sagebionetworks.repo.model.table.ColumnModel}">ColumnModels
+	 * </a> that are available for a <a
+	 * href="${org.sagebionetworks.repo.model.table.TableView}">TableView
+	 * </a> schema for the given view type.
+	 * 
+	 * @param viewtype Must be a value from <a
+	 * href="${org.sagebionetworks.repo.model.EntityType}">EntityType
+	 * </a> enumeration. For example, use 'fileview' for a FileView.
+	 * @return -
+	 * @throws DatastoreException
+	 *             - Synapse error.
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.COLUMN_TABLE_IVEW, method = RequestMethod.GET)
+	public @ResponseBody
+	ListWrapper<ColumnModel> getDefaultColumnsForViewType(
+			@PathVariable String viewtype)
+			throws DatastoreException, NotFoundException {
+		List<ColumnModel> results = serviceProvider.getTableServices()
+				.getDefaultViewColumnsForType(EntityType.valueOf(viewtype));
+		return ListWrapper.wrap(results, ColumnModel.class);
 	}
 
 	/**
@@ -1060,4 +1086,5 @@ public class TableController extends BaseController {
 						asyncToken);
 		return (UploadToTableResult) jobStatus.getResponseBody();
 	}
+
 }

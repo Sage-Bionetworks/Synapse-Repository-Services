@@ -10,8 +10,10 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
+import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
@@ -47,6 +49,8 @@ public class TableServicesImpl implements TableServices {
 	FileHandleManager fileHandleManager;
 	@Autowired
 	TableQueryManager tableQueryManager;
+	@Autowired
+	TableManagerSupport tableManagerSupport;
 
 	@Override
 	public ColumnModel createColumnModel(Long userId, ColumnModel columnModel) throws DatastoreException, NotFoundException {
@@ -196,6 +200,11 @@ public class TableServicesImpl implements TableServices {
 	@Override
 	public Long getMaxRowsPerPage(List<ColumnModel> models) {
 		return tableQueryManager.getMaxRowsPerPage(models);
+	}
+
+	@Override
+	public List<ColumnModel> getDefaultViewColumnsForType(EntityType viewType) {
+		return tableManagerSupport.getDefaultTableViewColumns(viewType);
 	}
 	
 }

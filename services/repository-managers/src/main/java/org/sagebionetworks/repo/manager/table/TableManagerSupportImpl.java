@@ -395,19 +395,6 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		return columnModelDao.createColumnModel(field.getColumnModel());
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see org.sagebionetworks.repo.manager.table.FileViewManager#getDefaultFileEntityColumns()
-	 */
-	@Override
-	public List<ColumnModel> getDefaultFileEntityColumns() {
-		List<ColumnModel> list = new LinkedList<ColumnModel>();
-		for(FileEntityFields field: FileEntityFields.values()){
-			list.add(getColumModel(field));
-		}
-		return list;
-	}
-
 	@Override
 	public Set<Long> getAccessibleBenefactors(UserInfo user,
 			Set<Long> benefactorIds) {
@@ -417,5 +404,17 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	@Override
 	public EntityType getTableEntityType(String tableId) {
 		return nodeDao.getNodeTypeById(tableId);
+	}
+
+	@Override
+	public List<ColumnModel> getDefaultTableViewColumns(EntityType viewType) {
+		if(!EntityType.fileview.equals(viewType)){
+			throw new IllegalArgumentException("Unsupported type: "+viewType);
+		}
+		List<ColumnModel> list = new LinkedList<ColumnModel>();
+		for(FileEntityFields field: FileEntityFields.values()){
+			list.add(getColumModel(field));
+		}
+		return list;
 	}
 }

@@ -326,7 +326,7 @@ public interface TableManagerSupport {
 	 * 
 	 * @return
 	 */
-	public List<ColumnModel> getDefaultFileEntityColumns();
+	public List<ColumnModel> getDefaultTableViewColumns(EntityType viewType);
 
 	/**
 	 * Get the entity type for the given table.

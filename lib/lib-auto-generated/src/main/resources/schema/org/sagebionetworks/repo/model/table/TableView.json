@@ -1,5 +1,5 @@
 {
-	"description": "JSON schema for TableView interface",
+	"description": "A view of Synapse content. Each view is defined with a container scope and a schema.",
 	"type": "interface",
 	"implements": [
 		{

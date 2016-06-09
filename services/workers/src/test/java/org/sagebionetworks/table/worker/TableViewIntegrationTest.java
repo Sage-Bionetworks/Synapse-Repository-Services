@@ -26,6 +26,7 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
@@ -132,7 +133,7 @@ public class TableViewIntegrationTest {
 			fileIds.add(fileId);
 		}
 		
-		List<ColumnModel> defaultSchema = tableManagerSupport.getDefaultFileEntityColumns();
+		List<ColumnModel> defaultSchema = tableManagerSupport.getDefaultTableViewColumns(EntityType.fileview);
 		defaultColumnIds = new LinkedList<String>();
 		for(ColumnModel cm: defaultSchema){
 			defaultColumnIds.add(cm.getId());
