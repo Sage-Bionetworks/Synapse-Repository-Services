@@ -1,9 +1,11 @@
 package org.sagebionetworks.table.worker;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.sql.Date;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
@@ -20,13 +22,11 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.manager.table.TableViewManager;
-import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.AccessControlListDAO;
-import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.FileEntity;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -34,9 +34,9 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.FileView;
-import org.sagebionetworks.repo.model.table.QueryResult;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SortItem;
@@ -84,6 +84,11 @@ public class TableViewIntegrationTest {
 	
 	List<String> defaultColumnIds;
 	
+	List<String> fileIds;
+	
+	String fileViewId;
+	FileView fileView;
+	
 	@Before
 	public void before(){
 		mockProgressCallbackVoid= Mockito.mock(ProgressCallback.class);
@@ -117,12 +122,14 @@ public class TableViewIntegrationTest {
 		entitiesToDelete.add(projectId);
 		// add files to the project
 		fileCount = 3;
+		fileIds = new LinkedList<String>();
 		for(int i=0; i<fileCount; i++){
 			FileEntity file = new FileEntity();
 			file.setName("foo"+i);
 			file.setParentId(projectId);
 			file.setDataFileHandleId(sharedHandle.getId());
-			entityManager.createEntity(adminUserInfo, file, null);
+			String fileId = entityManager.createEntity(adminUserInfo, file, null);
+			fileIds.add(fileId);
 		}
 		
 		List<ColumnModel> defaultSchema = tableManagerSupport.getDefaultFileEntityColumns();
@@ -130,6 +137,16 @@ public class TableViewIntegrationTest {
 		for(ColumnModel cm: defaultSchema){
 			defaultColumnIds.add(cm.getId());
 		}
+		
+		// Create a new file view
+		FileView fileView = new FileView();
+		fileView.setName("aFileView");
+		fileView.setParentId(project.getId());
+		fileView.setColumnIds(defaultColumnIds);
+		fileView.setScopeIds(Lists.newArrayList(project.getId()));
+		fileViewId = entityManager.createEntity(adminUserInfo, fileView, null);
+		fileView = entityManager.getEntity(adminUserInfo, fileViewId, FileView.class);
+		tableViewMangaer.setViewSchemaAndScope(adminUserInfo, fileView.getColumnIds(), fileView.getScopeIds(), fileViewId);
 	}
 	
 	@After
@@ -153,18 +170,8 @@ public class TableViewIntegrationTest {
 	
 	@Test
 	public void testFileView() throws Exception{
-		// Create a new file view
-		FileView fileView = new FileView();
-		fileView.setName("aFileView");
-		fileView.setParentId(project.getId());
-		fileView.setColumnIds(defaultColumnIds);
-		fileView.setScopeIds(Lists.newArrayList(project.getId()));
-		String fiewViewId = entityManager.createEntity(adminUserInfo, fileView, null);
-		fileView = entityManager.getEntity(adminUserInfo, fiewViewId, FileView.class);
-		tableViewMangaer.setViewSchemaAndScope(adminUserInfo, fileView.getColumnIds(), fileView.getScopeIds(), fiewViewId);
-		
 		// query the view as a user that does not permission
-		String sql = "select * from "+fiewViewId;
+		String sql = "select * from "+fileViewId;
 		try {
 			QueryResultBundle results = waitForConsistentQuery(userInfo, sql);
 			fail("Should have failed.");
@@ -172,7 +179,7 @@ public class TableViewIntegrationTest {
 			// expected
 		}
 		// grant the user read access to the view
-		AccessControlList acl = AccessControlListUtil.createACL(fiewViewId, userInfo, Sets.newHashSet(ACCESS_TYPE.READ), new Date(System.currentTimeMillis()));
+		AccessControlList acl = AccessControlListUtil.createACL(fileViewId, userInfo, Sets.newHashSet(ACCESS_TYPE.READ), new Date(System.currentTimeMillis()));
 		entityPermissionsManager.overrideInheritance(acl, adminUserInfo);
 		// run the query again
 		QueryResultBundle results = waitForConsistentQuery(userInfo, sql);
@@ -202,6 +209,42 @@ public class TableViewIntegrationTest {
 		assertNotNull(results.getQueryResult().getQueryResults().getRows());
 		rows = results.getQueryResult().getQueryResults().getRows();
 		assertEquals(fileCount, rows.size());
+	}
+	
+	@Test
+	public void testContentUpdate() throws Exception {
+		Long fileId = KeyFactory.stringToKey(fileIds.get(0));
+		// lookup the file
+		FileEntity file = entityManager.getEntity(adminUserInfo, ""+fileId, FileEntity.class);
+		
+		// query the etag of the first file
+		String sql = "select etag from "+fileViewId+" where id = "+fileId;
+		QueryResultBundle results = waitForConsistentQuery(adminUserInfo, sql);
+		assertNotNull(results);
+		assertEquals(new Long(1), results.getQueryCount());
+		assertNotNull(results.getQueryResult());
+		assertNotNull(results.getQueryResult().getQueryResults());
+		assertNotNull(results.getQueryResult().getQueryResults().getRows());
+		Row row = results.getQueryResult().getQueryResults().getRows().get(0);
+		assertEquals(fileId, row.getRowId());
+		String etag = row.getValues().get(0);
+		assertEquals(file.getEtag(), etag);
+		
+		// update the entity and run the query again
+		file.setName("newName");
+		entityManager.updateEntity(adminUserInfo, file, false, null);
+		file = entityManager.getEntity(adminUserInfo, ""+fileId, FileEntity.class);
+		// run the query again
+		results = waitForConsistentQuery(adminUserInfo, sql);
+		assertNotNull(results);
+		assertEquals(new Long(1), results.getQueryCount());
+		assertNotNull(results.getQueryResult());
+		assertNotNull(results.getQueryResult().getQueryResults());
+		assertNotNull(results.getQueryResult().getQueryResults().getRows());
+		row = results.getQueryResult().getQueryResults().getRows().get(0);
+		assertEquals(fileId, row.getRowId());
+		etag = row.getValues().get(0);
+		assertEquals(file.getEtag(), etag);
 	}
 	
 	
