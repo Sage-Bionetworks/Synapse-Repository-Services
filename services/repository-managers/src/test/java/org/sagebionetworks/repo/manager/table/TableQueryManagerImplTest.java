@@ -787,7 +787,7 @@ public class TableQueryManagerImplTest {
 		// setup the count returned from query
 		when(mockTableIndexDAO.countQuery(sqlCaptrue.capture(), anyMapOf(String.class, Object.class))).thenReturn(200L);
 		// method under test
-		long count = manager.runCountQuery(query);
+		long count = manager.runCountQuery(query, mockTableIndexDAO);
 		assertEquals("SELECT COUNT(DISTINCT _C0_) FROM T123", sqlCaptrue.getValue());
 	}
 	
@@ -803,7 +803,7 @@ public class TableQueryManagerImplTest {
 		// setup the count returned from query
 		when(mockTableIndexDAO.countQuery(sqlCaptrue.capture(), anyMapOf(String.class, Object.class))).thenReturn(200L);
 		// method under test
-		long count = manager.runCountQuery(query);
+		long count = manager.runCountQuery(query, mockTableIndexDAO);
 		assertEquals("SELECT COUNT(DISTINCT _C0_, _C4_) FROM T123", sqlCaptrue.getValue());
 	}
 	
