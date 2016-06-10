@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -416,5 +417,15 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 			list.add(getColumModel(field));
 		}
 		return list;
+	}
+
+	@Override
+	public Set<Long> getEntityPath(String entityId) {
+		List<EntityHeader> headers = nodeDao.getEntityPath(entityId);
+		Set<Long> results = new HashSet<Long>(headers.size());
+		for(EntityHeader header: headers){
+			results.add(KeyFactory.stringToKey(header.getId()));
+		}
+		return results;
 	}
 }

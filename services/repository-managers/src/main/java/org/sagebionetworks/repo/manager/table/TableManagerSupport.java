@@ -335,4 +335,11 @@ public interface TableManagerSupport {
 	 */
 	public EntityType getTableEntityType(String tableId);
 
+	/**
+	 * Get the path of the given entity.
+	 * @param entityId
+	 * @return
+	 */
+	public Set<Long> getEntityPath(String entityId);
+
 }

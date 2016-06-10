@@ -42,7 +42,7 @@ public class TableViewManagerImplTest {
 	@Mock
 	ColumnModelDAO columnModelDao;
 	@Mock
-	TableViewDao fileViewDao;
+	TableViewDao mockTableViewDao;
 	
 	TableViewManagerImpl manager;
 	
@@ -66,7 +66,7 @@ public class TableViewManagerImplTest {
 		ReflectionTestUtils.setField(manager, "columModelManager", columnModelManager);
 		ReflectionTestUtils.setField(manager, "tableManagerSupport", tableManagerSupport);
 		ReflectionTestUtils.setField(manager, "columnModelDao", columnModelDao);
-		ReflectionTestUtils.setField(manager, "fileViewDao", fileViewDao);
+		ReflectionTestUtils.setField(manager, "tableViewDao", mockTableViewDao);
 		
 		userInfo = new UserInfo(false, 888L);
 		schema = Lists.newArrayList("1","2","3");
@@ -100,11 +100,11 @@ public class TableViewManagerImplTest {
 					handler.nextRow(row);
 				}
 				return null;
-			}}).when(fileViewDao).streamOverEntities(anySetOf(Long.class), any(EntityType.class), anyListOf(ColumnModel.class), any(RowHandler.class));
+			}}).when(mockTableViewDao).streamOverEntities(anySetOf(Long.class), any(EntityType.class), anyListOf(ColumnModel.class), any(RowHandler.class));
 		
 		viewCRC = 999L;
-		when(fileViewDao.countAllEntitiesInView(anySetOf(Long.class), any(EntityType.class))).thenReturn(rowCount);
-		when(fileViewDao.calculateCRCForAllEntitiesWithinContainers(anySetOf(Long.class), any(EntityType.class))).thenReturn(viewCRC);
+		when(mockTableViewDao.countAllEntitiesInView(anySetOf(Long.class), any(EntityType.class))).thenReturn(rowCount);
+		when(mockTableViewDao.calculateCRCForAllEntitiesWithinContainers(anySetOf(Long.class), any(EntityType.class))).thenReturn(viewCRC);
 		
 	}
 	
@@ -228,6 +228,17 @@ public class TableViewManagerImplTest {
 		assertEquals(viewCRC, crcResult);
 		//  all row should be gathered
 		assertEquals(rows, gatheredRows);
+	}
+	
+	@Test
+	public void testFindViewsContainingEntity(){
+		Set<Long> path = Sets.newHashSet(123L,456L);
+		when(tableManagerSupport.getEntityPath(viewId)).thenReturn(path);
+		Set<Long> expected = Sets.newHashSet(789L);
+		when(viewScopeDao.findViewScopeIntersectionWithPath(path)).thenReturn(expected);
+		// call under test
+		Set<Long> results = manager.findViewsContainingEntity(viewId);
+		assertEquals(expected, results);
 	}
 
 }

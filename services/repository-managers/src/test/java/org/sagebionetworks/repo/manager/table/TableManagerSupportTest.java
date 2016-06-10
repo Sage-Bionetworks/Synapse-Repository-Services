@@ -26,6 +26,7 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationStatus;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -602,7 +603,19 @@ public class TableManagerSupportTest {
 		// call under test
 		List<ColumnModel> results = manager.getDefaultTableViewColumns(EntityType.fileview);
 		assertEquals(expected, results);
-
+	}
+	
+	@Test
+	public void testGetEntityPath(){
+		EntityHeader one = new EntityHeader();
+		one.setId("syn123");
+		EntityHeader two = new EntityHeader();
+		two.setId("syn456");
+		when(mockNodeDao.getEntityPath(tableId)).thenReturn(Lists.newArrayList(one, two));
+		Set<Long> expected = Sets.newHashSet(123L, 456L);
+		// call under test
+		Set<Long> results = manager.getEntityPath(tableId);
+		assertEquals(expected, results);
 	}
 	
 }
