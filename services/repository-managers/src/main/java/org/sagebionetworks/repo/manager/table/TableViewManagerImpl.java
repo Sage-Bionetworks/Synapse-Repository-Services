@@ -31,7 +31,7 @@ public class TableViewManagerImpl implements TableViewManager {
 	@Autowired
 	ColumnModelDAO columnModelDao;
 	@Autowired
-	TableViewDao fileViewDao;
+	TableViewDao tableViewDao;
 	
 	/*
 	 * (non-Javadoc)
@@ -76,14 +76,14 @@ public class TableViewManagerImpl implements TableViewManager {
 		Set<Long> allContainersInScope  = tableManagerSupport.getAllContainerIdsForViewScope(tableId);
 		
 		// Count the number of expected rows for progress.
-		final long totalProgress = fileViewDao.countAllEntitiesInView(allContainersInScope, type);
+		final long totalProgress = tableViewDao.countAllEntitiesInView(allContainersInScope, type);
 		
 		// This CRC represents the current state of the view.
-		Long viewCRC = fileViewDao.calculateCRCForAllEntitiesWithinContainers(allContainersInScope, type);
+		Long viewCRC = tableViewDao.calculateCRCForAllEntitiesWithinContainers(allContainersInScope, type);
 		// This will contain the batch of rows.
 		final List<Row> batchRows = new LinkedList<Row>();
 		// copy all FileEntity data to the table
-		fileViewDao.streamOverEntities(allContainersInScope, type, currentSchema, new RowHandler() {
+		tableViewDao.streamOverEntities(allContainersInScope, type, currentSchema, new RowHandler() {
 			
 			long currentProgresss = 0;
 			
@@ -106,6 +106,12 @@ public class TableViewManagerImpl implements TableViewManager {
 			rowBatchHandler.nextBatch(new LinkedList<Row>(batchRows), totalProgress, totalProgress);
 		}
 		return viewCRC;
+	}
+
+	@Override
+	public Set<Long> findViewsContainingEntity(String entityId) {
+		Set<Long> entityPath = tableManagerSupport.getEntityPath(entityId);
+		return viewScopeDao.findViewScopeIntersectionWithPath(entityPath);
 	}
 
 }

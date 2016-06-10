@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.table;
 
 import java.util.List;
+import java.util.Set;
 
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -44,6 +45,14 @@ public interface TableViewManager {
 	 * @return
 	 */
 	 List<ColumnModel> getViewSchemaWithBenefactor(String viewId);
+
+	 /**
+	  * Find Views that contain the given Entity.
+	  * 
+	  * @param objectId
+	  * @return
+	  */
+	public Set<Long> findViewsContainingEntity(String entityId);
 
 
 }
