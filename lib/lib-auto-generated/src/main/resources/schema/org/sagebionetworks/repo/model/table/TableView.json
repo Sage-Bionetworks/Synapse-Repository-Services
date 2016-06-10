@@ -1,0 +1,18 @@
+{
+	"description": "JSON schema for TableView interface",
+	"type": "interface",
+	"implements": [
+		{
+			"$ref":"org.sagebionetworks.repo.model.table.Table"
+		}
+	],
+	"properties": {
+		"scopeIds": {
+		    "description":"The list of container IDs (projects or folders) that define the scope of this view.",
+			"type": "array",
+			"items": {
+				"type": "string"
+			}
+		}
+	}
+}

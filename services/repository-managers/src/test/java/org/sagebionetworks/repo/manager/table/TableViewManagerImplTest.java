@@ -15,12 +15,13 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.RowBatchHandler;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.dbo.dao.table.FileEntityFields;
-import org.sagebionetworks.repo.model.dbo.dao.table.FileViewDao;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableViewDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -30,7 +31,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-public class FileViewManagerImplTest {
+public class TableViewManagerImplTest {
 
 	@Mock
 	ViewScopeDao viewScopeDao;
@@ -41,9 +42,9 @@ public class FileViewManagerImplTest {
 	@Mock
 	ColumnModelDAO columnModelDao;
 	@Mock
-	FileViewDao fileViewDao;
+	TableViewDao fileViewDao;
 	
-	FileViewManagerImpl manager;
+	TableViewManagerImpl manager;
 	
 	UserInfo userInfo;
 	List<String> schema;
@@ -60,7 +61,7 @@ public class FileViewManagerImplTest {
 	public void before(){
 		MockitoAnnotations.initMocks(this);
 		
-		manager = new FileViewManagerImpl();
+		manager = new TableViewManagerImpl();
 		ReflectionTestUtils.setField(manager, "viewScopeDao", viewScopeDao);
 		ReflectionTestUtils.setField(manager, "columModelManager", columnModelManager);
 		ReflectionTestUtils.setField(manager, "tableManagerSupport", tableManagerSupport);
@@ -93,17 +94,17 @@ public class FileViewManagerImplTest {
 		doAnswer(new Answer<Void>(){
 			@Override
 			public Void answer(InvocationOnMock invocation) throws Throwable {
-				RowHandler handler = (RowHandler) invocation.getArguments()[2];
+				RowHandler handler = (RowHandler) invocation.getArguments()[3];
 				// send all rows
 				for(Row row: rows){
 					handler.nextRow(row);
 				}
 				return null;
-			}}).when(fileViewDao).streamOverFileEntities(any(Set.class), any(List.class), any(RowHandler.class));
+			}}).when(fileViewDao).streamOverEntities(anySetOf(Long.class), any(EntityType.class), anyListOf(ColumnModel.class), any(RowHandler.class));
 		
 		viewCRC = 999L;
-		when(fileViewDao.countAllFilesInView(any(Set.class))).thenReturn(rowCount);
-		when(fileViewDao.calculateCRCForAllFilesWithinContainers(any(Set.class))).thenReturn(viewCRC);
+		when(fileViewDao.countAllEntitiesInView(anySetOf(Long.class), any(EntityType.class))).thenReturn(rowCount);
+		when(fileViewDao.calculateCRCForAllEntitiesWithinContainers(anySetOf(Long.class), any(EntityType.class))).thenReturn(viewCRC);
 		
 	}
 	
@@ -137,18 +138,10 @@ public class FileViewManagerImplTest {
 	}
 	
 	@Test
-	public void testGetColumModel(){
-		ColumnModel cm = new ColumnModel();
-		cm.setId("123");
-		when(columnModelDao.createColumnModel(any(ColumnModel.class))).thenReturn(cm);
-		ColumnModel result = manager.getColumModel(FileEntityFields.id);
-		assertEquals(cm, result);
-	}
-	
-	@Test
 	public void testGetViewSchemaNoBenefactor(){
 		List<ColumnModel> rawSchema = Lists.newArrayList(FileEntityFields.id.getColumnModel());
 		when(tableManagerSupport.getColumnModelsForTable(viewId)).thenReturn(rawSchema);
+		when(tableManagerSupport.getColumModel(FileEntityFields.benefactorId)).thenReturn(FileEntityFields.benefactorId.getColumnModel());
 		// the results should contain both ID and benefactor.
 		List<ColumnModel> expected = Lists.newArrayList(FileEntityFields.id.getColumnModel(), FileEntityFields.benefactorId.getColumnModel());
 		// call under test
@@ -174,7 +167,7 @@ public class FileViewManagerImplTest {
 		final int rowsPerBatch = (int)(rowCount-1);
 		final List<Row> gatheredRows = new LinkedList<Row>();
 		// call under test
-		long crcResult = manager.streamOverAllFilesInViewAsBatch(viewId, schema, rowsPerBatch, new RowBatchHandler() {
+		long crcResult = manager.streamOverAllEntitiesInViewAsBatch(viewId, EntityType.fileview, schema, rowsPerBatch, new RowBatchHandler() {
 			
 			long count = 0;
 			@Override
@@ -197,7 +190,7 @@ public class FileViewManagerImplTest {
 		final int rowsPerBatch = (int) (rowCount+1);
 		final List<Row> gatheredRows = new LinkedList<Row>();
 		// call under test
-		long crcResult = manager.streamOverAllFilesInViewAsBatch(viewId, schema, rowsPerBatch, new RowBatchHandler() {
+		long crcResult = manager.streamOverAllEntitiesInViewAsBatch(viewId, EntityType.fileview, schema, rowsPerBatch, new RowBatchHandler() {
 			
 			long count = 0;
 			@Override
@@ -220,7 +213,7 @@ public class FileViewManagerImplTest {
 		final int rowsPerBatch = (int) (rowCount);
 		final List<Row> gatheredRows = new LinkedList<Row>();
 		// call under test
-		long crcResult = manager.streamOverAllFilesInViewAsBatch(viewId, schema, rowsPerBatch, new RowBatchHandler() {
+		long crcResult = manager.streamOverAllEntitiesInViewAsBatch(viewId, EntityType.fileview, schema, rowsPerBatch, new RowBatchHandler() {
 			
 			long count = 0;
 			@Override

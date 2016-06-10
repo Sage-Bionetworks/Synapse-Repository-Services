@@ -798,6 +798,28 @@ public class TableModelUtils {
 		}
 		return size;
 	}
+	
+	/**
+	 * Given a list of SelectColumns and a name to schema map, calculate the maximum size of each
+	 * row in bytes.
+	 * @param columns
+	 * @param nameToSchemaMap
+	 * @return
+	 */
+	public static int calculateMaxRowSize(List<SelectColumn> columns, Map<String, ColumnModel> nameToSchemaMap) {
+		int size = 0;
+		for (SelectColumn scm : columns) {
+			// Lookup the column by name
+			ColumnModel column = nameToSchemaMap.get(scm.getName());
+			if(column != null){
+				size += calculateMaxSizeForType(column.getColumnType(), column.getMaximumSize());
+			}else{
+				// Since the size is unknown, the max allowed size is used.
+				size += calculateMaxSizeForType(scm.getColumnType(), MAX_ALLOWED_STRING_SIZE);
+			}
+		}
+		return size;
+	}
 
 	/**
 	 * Calculate the maximum size in bytes that a column of this type can be when represented as a string.

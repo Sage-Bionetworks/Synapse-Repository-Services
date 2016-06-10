@@ -33,14 +33,20 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.FileView;
 import org.sagebionetworks.repo.model.table.IdRange;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
+import org.sagebionetworks.repo.model.table.Table;
+import org.sagebionetworks.repo.model.table.TableEntity;
+import org.sagebionetworks.repo.model.table.TableView;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
 import org.sagebionetworks.table.cluster.TableIndexDAO.ColumnDefinition;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
+import org.sagebionetworks.table.query.util.SimpleAggregateQueryException;
+import org.sagebionetworks.table.query.util.SqlElementUntils;
 import org.sagebionetworks.util.ReflectionStaticTestUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -85,6 +91,19 @@ public class TableIndexDAOImplTest {
 			tableIndexDAO.deleteTable(tableId);
 			tableIndexDAO.deleteSecondayTables(tableId);
 		}
+	}
+	
+	@Test
+	public void testTableEnityTypes(){
+		TableEntity tableEntity = new TableEntity();
+		assertTrue(tableEntity instanceof Table);
+	}
+	
+	@Test
+	public void testFileViewTypes(){
+		FileView fileView = new FileView();
+		assertTrue(fileView instanceof Table);
+		assertTrue(fileView instanceof TableView);
 	}
 
 	@Test
@@ -282,7 +301,7 @@ public class TableIndexDAOImplTest {
 	}
 
 	@Test
-	public void testSimpleQuery() throws ParseException {
+	public void testSimpleQuery() throws ParseException, SimpleAggregateQueryException {
 		// Create the table
 		List<ColumnModel> allTypes = TableModelTestUtils.createOneOfEachType();
 		tableIndexDAO.createOrUpdateTable(allTypes, tableId);
@@ -310,6 +329,12 @@ public class TableIndexDAOImplTest {
 		assertNotNull(results.getRows());
 		assertEquals(tableId, results.getTableId());
 		assertEquals(2, results.getRows().size());
+		verify(mockProgressCallback, times(2)).progressMade(null);
+		// test the count
+		String countSql = SqlElementUntils.createCountSql(query.getTransformedModel());
+		Long count = tableIndexDAO.countQuery(countSql, query.getParameters());
+		assertEquals(new Long(2), count);
+		
 		// the first row
 		Row row = results.getRows().get(0);
 		assertNotNull(row);
@@ -1003,5 +1028,37 @@ public class TableIndexDAOImplTest {
 		// call under test
 		boolean match = this.tableIndexDAO.doesIndexStateMatch(tableId, version, md5);
 		assertFalse(match);
+	}
+	
+	@Test
+	public void testGetDistinctLongValues(){
+		// create a table with a long column.
+		ColumnModel column = new ColumnModel();
+		column.setId("12");
+		column.setName("foo");
+		column.setColumnType(ColumnType.INTEGER);
+		List<ColumnModel> schema = Lists.newArrayList(column);
+		
+		tableIndexDAO.createOrUpdateTable(schema, tableId);
+		// create three rows.
+		List<Row> rows = TableModelTestUtils.createRows(schema, 2);
+		// add duplicate values
+		rows.addAll(TableModelTestUtils.createRows(schema, 2));
+		RowSet set = new RowSet();
+		set.setRows(rows);
+		set.setHeaders(TableModelUtils.getSelectColumns(schema));
+		set.setTableId(tableId);
+		
+		IdRange range = new IdRange();
+		range.setMinimumId(100L);
+		range.setMaximumId(200L);
+		range.setVersionNumber(3L);
+		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
+		
+		tableIndexDAO.createOrUpdateOrDeleteRows(set, schema);
+		
+		Set<Long> results = tableIndexDAO.getDistinctLongValues(tableId, column.getId());
+		Set<Long> expected = Sets.newHashSet(3000L, 3001L);
+		assertEquals(expected, results);
 	}
 }

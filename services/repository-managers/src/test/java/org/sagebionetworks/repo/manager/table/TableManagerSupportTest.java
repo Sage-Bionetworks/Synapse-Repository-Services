@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.never;
@@ -32,7 +33,8 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
-import org.sagebionetworks.repo.model.dbo.dao.table.FileViewDao;
+import org.sagebionetworks.repo.model.dbo.dao.table.FileEntityFields;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableViewDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
@@ -68,7 +70,7 @@ public class TableManagerSupportTest {
 	@Mock
 	NodeDAO mockNodeDao;
 	@Mock
-	FileViewDao mockFileViewDao;
+	TableViewDao mockFileViewDao;
 	@Mock
 	TableRowTruthDAO mockTableTruthDao;
 	@Mock
@@ -412,6 +414,17 @@ public class TableManagerSupportTest {
 	}
 	
 	@Test
+	public void testGetObjectTypeForEntityType(){
+		assertEquals(ObjectType.TABLE, TableManagerSupportImpl.getObjectTypeForEntityType(EntityType.table));
+		assertEquals(ObjectType.FILE_VIEW, TableManagerSupportImpl.getObjectTypeForEntityType(EntityType.fileview));
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetObjectTypeForEntityTypeUnknownType(){
+		TableManagerSupportImpl.getObjectTypeForEntityType(EntityType.project);
+	}
+	
+	@Test
 	public void testGetVersionOfLastTableChangeNull() throws NotFoundException, IOException{
 		// no last version
 		when(mockTableTruthDao.getLastTableRowChange(tableId)).thenReturn(null);
@@ -439,7 +452,9 @@ public class TableManagerSupportTest {
 	@Test
 	public void calculateFileViewCRC32(){
 		Long crc32 = 45678L;
-		when(mockFileViewDao.calculateCRCForAllFilesWithinContainers(containersInScope)).thenReturn(crc32);
+		EntityType type = EntityType.fileview;
+		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(type);
+		when(mockFileViewDao.calculateCRCForAllEntitiesWithinContainers(containersInScope, type)).thenReturn(crc32);
 		
 		Long crcResult = manager.calculateFileViewCRC32(tableId);
 		assertEquals(crc32, crcResult);
@@ -460,7 +475,8 @@ public class TableManagerSupportTest {
 	@Test
 	public void testGetTableVersionForFileView() {
 		Long crc32 = 45678L;
-		when(mockFileViewDao.calculateCRCForAllFilesWithinContainers(containersInScope)).thenReturn(crc32);
+		EntityType type = EntityType.fileview;
+		when(mockFileViewDao.calculateCRCForAllEntitiesWithinContainers(containersInScope, type)).thenReturn(crc32);
 		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.fileview);
 		// call under test
 		Long version = manager.getTableVersion(tableId);
@@ -480,7 +496,8 @@ public class TableManagerSupportTest {
 		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(new AuthorizationStatus(true, ""));
 		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD)).thenReturn(new AuthorizationStatus(true, ""));
 		//  call under test
-		manager.validateTableReadAccess(userInfo, tableId);
+		EntityType type = manager.validateTableReadAccess(userInfo, tableId);
+		assertEquals(EntityType.table, type);
 		verify(mockAuthorizationManager).canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ);
 		verify(mockAuthorizationManager).canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD);
 	}
@@ -549,6 +566,15 @@ public class TableManagerSupportTest {
 		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPLOAD)).thenReturn(new AuthorizationStatus(true, ""));
 		//  call under test
 		manager.validateTableWriteAccess(userInfo, tableId);
+	}
+	
+	@Test
+	public void testGetColumModel(){
+		ColumnModel cm = new ColumnModel();
+		cm.setId("123");
+		when(mockColumnModelDao.createColumnModel(any(ColumnModel.class))).thenReturn(cm);
+		ColumnModel result = manager.getColumModel(FileEntityFields.id);
+		assertEquals(cm, result);
 	}
 	
 }

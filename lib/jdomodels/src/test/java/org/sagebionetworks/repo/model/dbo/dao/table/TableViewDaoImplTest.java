@@ -36,20 +36,22 @@ import com.google.common.collect.Sets;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
-public class FileViewDaoImplTest {
+public class TableViewDaoImplTest {
 	
 	@Autowired
 	NodeDAO nodeDao;
 	@Autowired
-	FileViewDao fileViewDao;
+	TableViewDao fileViewDao;
 	
 	private Long creatorUserGroupId;
 	List<String> toDelete;
+	EntityType viewType;
 	
 	@Before
 	public void before(){
 		creatorUserGroupId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		toDelete = new ArrayList<String>();
+		viewType = EntityType.fileview;
 	}
 	
 	@After
@@ -65,7 +67,7 @@ public class FileViewDaoImplTest {
 	}
 	
 	@Test
-	public void testCalculateCRCForAllFilesWithinContainers() throws UnsupportedEncodingException{
+	public void testCalculateCRCForAllEntitiesWithinContainers() throws UnsupportedEncodingException{
 		// create a project
 		Node project = NodeTestUtils.createNew("Project", creatorUserGroupId);
 		project.setNodeType(EntityType.project);
@@ -80,13 +82,14 @@ public class FileViewDaoImplTest {
 		
 		Long projectId = KeyFactory.stringToKey(project.getId());
 		Set<Long> containers = Sets.newHashSet(projectId);
+
 		//  call under test
-		long crcResults = fileViewDao.calculateCRCForAllFilesWithinContainers(containers);
+		long crcResults = fileViewDao.calculateCRCForAllEntitiesWithinContainers(containers, viewType);
 		assertTrue(crcResults > 0L);
 	}
 	
 	@Test
-	public void testCalculateCRCForAllFilesWithinContainersNoChildren() throws UnsupportedEncodingException{
+	public void testCalculateCRCForAllEntitiesWithinContainersNoChildren() throws UnsupportedEncodingException{
 		// create a project
 		Node project = NodeTestUtils.createNew("Project", creatorUserGroupId);
 		project.setNodeType(EntityType.project);
@@ -97,21 +100,21 @@ public class FileViewDaoImplTest {
 		Long projectId = KeyFactory.stringToKey(project.getId());
 		Set<Long> containers = Sets.newHashSet(projectId);
 		//  call under test
-		long crcResults = fileViewDao.calculateCRCForAllFilesWithinContainers(containers);
+		long crcResults = fileViewDao.calculateCRCForAllEntitiesWithinContainers(containers, viewType);
 		assertEquals(0, crcResults);
 	}
 	
 	@Test
-	public void testCalculateCRCForAllFilesWithinContainersEmpty() throws UnsupportedEncodingException{
+	public void testCalculateCRCForAllEntitiesWithinContainersEmpty() throws UnsupportedEncodingException{
 		// empty containers
 		Set<Long> containers = new HashSet<Long>(0);
 		//  call under test
-		long crcResults = fileViewDao.calculateCRCForAllFilesWithinContainers(containers);
+		long crcResults = fileViewDao.calculateCRCForAllEntitiesWithinContainers(containers, viewType);
 		assertEquals(0, crcResults);
 	}
 	
 	@Test
-	public void testStreamOverFileEntities() throws UnsupportedEncodingException{
+	public void testStreamOverEntities() throws UnsupportedEncodingException{
 		// create a project
 		Node project = NodeTestUtils.createNew("Project", creatorUserGroupId);
 		project.setNodeType(EntityType.project);
@@ -122,7 +125,7 @@ public class FileViewDaoImplTest {
 		Long projectId = KeyFactory.stringToKey(project.getId());
 		Set<Long> containers = Sets.newHashSet(projectId);
 		// There should no files yet
-		long count = fileViewDao.countAllFilesInView(containers);
+		long count = fileViewDao.countAllEntitiesInView(containers, viewType);
 		assertEquals(0, count);
 		
 		// add a file
@@ -153,7 +156,7 @@ public class FileViewDaoImplTest {
 		//  call under test
 		final List<Row> rows = new LinkedList<Row>();
 		// call under test
-		fileViewDao.streamOverFileEntities(containers, schema, new RowHandler() {
+		fileViewDao.streamOverEntities(containers, viewType, schema, new RowHandler() {
 			
 			@Override
 			public void nextRow(Row row) {
@@ -172,7 +175,7 @@ public class FileViewDaoImplTest {
 		assertEquals(expectedValeus, values);
 		
 		// there should now be one file.
-		count = fileViewDao.countAllFilesInView(containers);
+		count = fileViewDao.countAllEntitiesInView(containers, viewType);
 		assertEquals(1, count);
 	}
 

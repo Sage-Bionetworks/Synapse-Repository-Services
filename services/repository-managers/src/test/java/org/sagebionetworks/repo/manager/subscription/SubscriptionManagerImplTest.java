@@ -29,6 +29,7 @@ import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.SubscriptionPagedResults;
 import org.sagebionetworks.repo.model.subscription.SubscriptionRequest;
 import org.sagebionetworks.repo.model.subscription.Topic;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
 
 public class SubscriptionManagerImplTest {
@@ -240,6 +241,15 @@ public class SubscriptionManagerImplTest {
 		sub.setSubscriberId(anotherUser.toString());
 		when(mockDao.get(subscriptionId)).thenReturn(sub);
 		manager.delete(userInfo, subscriptionId.toString());
+	}
+
+	@Test
+	public void testDeleteNonExisting() {
+		Long subscriptionId = 3L;
+		sub.setSubscriberId(anotherUser.toString());
+		when(mockDao.get(subscriptionId)).thenThrow(new NotFoundException());
+		manager.delete(userInfo, subscriptionId.toString());
+		verify(mockDao, never()).delete(subscriptionId);
 	}
 
 	@SuppressWarnings("unchecked")

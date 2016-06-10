@@ -7,11 +7,12 @@ import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.asynchronous.workers.changes.ChangeMessageDrivenRunner;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
-import org.sagebionetworks.repo.manager.table.FileViewManager;
+import org.sagebionetworks.repo.manager.table.TableViewManager;
 import org.sagebionetworks.repo.manager.table.TableIndexConnectionFactory;
 import org.sagebionetworks.repo.manager.table.TableIndexConnectionUnavailableException;
 import org.sagebionetworks.repo.manager.table.TableIndexManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.table.RowBatchHandler;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
@@ -19,27 +20,28 @@ import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
- * This file view worker will completely re-build a file view
- * on any FileView change.
+ * This worker will completely re-build a table view
+ * on any change to a the view schema or scope.
  *
  */
-public class FileViewWorker implements ChangeMessageDrivenRunner {
+public class TableViewWorker implements ChangeMessageDrivenRunner {
 	
 	public static final String DEFAULT_ETAG = "DEFAULT";
 
-	static private Logger log = LogManager.getLogger(FileViewWorker.class);
+	static private Logger log = LogManager.getLogger(TableViewWorker.class);
 	
 	public static int TIMEOUT_MS = 1000*60*10;
 	public static int BATCH_SIZE_BYTES = 1024*1024*5; // 5 MBs
 
 	@Autowired
-	FileViewManager tableViewManager;
+	TableViewManager tableViewManager;
 	@Autowired
 	TableManagerSupport tableManagerSupport;
 	@Autowired
@@ -92,13 +94,15 @@ public class FileViewWorker implements ChangeMessageDrivenRunner {
 				}
 
 			} );
+		} catch (TableUnavailableException e) {
+			// try again later.
+			throw new RecoverableMessageException();
 		} catch (LockUnavilableException e) {
 			// try again later.
 			throw new RecoverableMessageException();
 		} catch (RecoverableMessageException e) {
-			// pass it along
 			throw e;
-		} catch (Exception e) {
+		}  catch (Exception e) {
 			log.error("Failed to build index: ", e);
 		}
 	}
@@ -118,6 +122,8 @@ public class FileViewWorker implements ChangeMessageDrivenRunner {
 		}
 		// Start the worker
 		final String token = tableManagerSupport.startTableProcessing(tableId);
+		// Loook-up the type for this table.
+		EntityType entityType = tableManagerSupport.getTableEntityType(tableId);
 
 		// Since this worker re-builds the index, start by deleting it.
 		indexManager.deleteTableIndex();
@@ -132,7 +138,7 @@ public class FileViewWorker implements ChangeMessageDrivenRunner {
 		rowSetBatch.setHeaders(TableModelUtils.getSelectColumns(currentSchema));
 		rowSetBatch.setTableId(tableId);
 		// Stream all of the file data into the index.
-		Long viewCRC = tableViewManager.streamOverAllFilesInViewAsBatch(tableId, currentSchema, rowsPerBatch, new RowBatchHandler() {
+		Long viewCRC = tableViewManager.streamOverAllEntitiesInViewAsBatch(tableId, entityType, currentSchema, rowsPerBatch, new RowBatchHandler() {
 			
 			@Override
 			public void nextBatch(List<Row> batch, long currentProgress,

@@ -22,7 +22,6 @@ import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.SubscriptionPagedResults;
 import org.sagebionetworks.repo.model.subscription.SubscriptionRequest;
 import org.sagebionetworks.repo.model.subscription.Topic;
-import org.sagebionetworks.repo.web.NotFoundException;
 
 public class SubscriptionControllerAutowiredTest extends AbstractAutowiredControllerTestBase{
 
@@ -89,7 +88,7 @@ public class SubscriptionControllerAutowiredTest extends AbstractAutowiredContro
 		assertEquals(subscription, subscriptions.get(0));
 	}
 
-	@Test (expected = NotFoundException.class)
+	@Test
 	public void testDelete() throws Exception {
 		Subscription subscription = servletTestHelper.subscribe(dispatchServlet, adminUserId, toSubscribe);
 		String subscriptionId = subscription.getSubscriptionId();

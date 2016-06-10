@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.table;
 
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
@@ -19,7 +20,8 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
-import org.sagebionetworks.repo.model.dbo.dao.table.FileViewDao;
+import org.sagebionetworks.repo.model.dbo.dao.table.FileEntityFields;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableViewDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
@@ -35,7 +37,6 @@ import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.TimeoutUtils;
 import org.sagebionetworks.util.ValidateArgument;
-import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.sagebionetworks.workers.util.semaphore.WriteReadSemaphoreRunner;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -56,7 +57,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	@Autowired
 	NodeDAO nodeDao;
 	@Autowired
-	FileViewDao fileViewDao;
+	TableViewDao fileViewDao;
 	@Autowired
 	TableRowTruthDAO tableTruthDao;
 	@Autowired
@@ -240,14 +241,25 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	 */
 	@Override
 	public ObjectType getTableType(String tableId) {
-		EntityType type = nodeDao.getNodeTypeById(tableId);
+		EntityType type = getTableEntityType(tableId);
+		return getObjectTypeForEntityType(type);
+	}
+	
+	/**
+	 * Convert an EntityType to an Object.
+	 * @param type
+	 * @return
+	 */
+	public static ObjectType getObjectTypeForEntityType(EntityType type) {
 		switch (type) {
 		case table:
 			return ObjectType.TABLE;
 		case fileview:
 			return ObjectType.FILE_VIEW;
+		default:
+			throw new IllegalArgumentException("unknown table type: " + type);
 		}
-		throw new IllegalArgumentException("unknown table type: " + type);
+
 	}
 	
 	/*
@@ -258,13 +270,14 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	public Long calculateFileViewCRC32(String tableId) {
 		// Start with all container IDs that define the view's scope
 		Set<Long> viewContainers = getAllContainerIdsForViewScope(tableId);
-		return calculateFileViewCRC32(viewContainers);
+		EntityType type = getTableEntityType(tableId);
+		return calculateFileViewCRC32(viewContainers, type);
 	}
 	
 	@Override
-	public Long calculateFileViewCRC32(Set<Long> viewContainers) {
+	public Long calculateFileViewCRC32(Set<Long> viewContainers, EntityType type) {
 		// Calculate the crc for the containers.
-		return fileViewDao.calculateCRCForAllFilesWithinContainers(viewContainers);
+		return fileViewDao.calculateCRCForAllEntitiesWithinContainers(viewContainers, type);
 	}
 
 	/*
@@ -306,24 +319,26 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	}
 	
 	@Override
-	public <R,T> R tryRunWithTableExclusiveLock(ProgressCallback<T> callback,
+	public <R, T> R tryRunWithTableExclusiveLock(ProgressCallback<T> callback,
 			String tableId, int timeoutSec, ProgressingCallable<R, T> callable)
-			throws LockUnavilableException, InterruptedException, Exception {
+			throws Exception {
 		String key = TableModelUtils.getTableSemaphoreKey(tableId);
 		// The semaphore runner does all of the lock work.
 		return writeReadSemaphoreRunner.tryRunWithWriteLock(callback, key, timeoutSec, callable);
 	}
 
 	@Override
-	public <R,T> R tryRunWithTableNonexclusiveLock(ProgressCallback<T> callback, String tableId, int lockTimeoutSec, ProgressingCallable<R, T> callable)
-			throws Exception {
+	public <R, T> R tryRunWithTableNonexclusiveLock(
+			ProgressCallback<T> callback, String tableId, int lockTimeoutSec,
+			ProgressingCallable<R, T> callable) throws Exception
+			{
 		String key = TableModelUtils.getTableSemaphoreKey(tableId);
 		// The semaphore runner does all of the lock work.
 		return writeReadSemaphoreRunner.tryRunWithReadLock(callback, key, lockTimeoutSec, callable);
 	}
 	
 	@Override
-	public void validateTableReadAccess(UserInfo userInfo, String tableId)
+	public EntityType validateTableReadAccess(UserInfo userInfo, String tableId)
 			throws UnauthorizedException, DatastoreException, NotFoundException {
 		// They must have read permission to access table content.
 		AuthorizationManagerUtil
@@ -331,7 +346,9 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 						.canAccess(userInfo, tableId, ObjectType.ENTITY,
 								ACCESS_TYPE.READ));
 
-		ObjectType type = getTableType(tableId);
+		// Lookup the entity type for this table.
+		EntityType entityTpe = getTableEntityType(tableId);
+		ObjectType type = getObjectTypeForEntityType(entityTpe);
 		// User must have the download permission to read from a TableEntity.
 		if(ObjectType.TABLE.equals(type)){
 			// And they must have download permission to access table content.
@@ -340,6 +357,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 							.canAccess(userInfo, tableId, ObjectType.ENTITY,
 									ACCESS_TYPE.DOWNLOAD));
 		}
+		return entityTpe;
 	}
 	
 	@Override
@@ -367,4 +385,37 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		columnModelDao.lockOnOwner(tableId);
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * @see org.sagebionetworks.repo.manager.table.FileViewManager#getColumModel(org.sagebionetworks.repo.model.dbo.dao.table.FileEntityFields)
+	 */
+	@Override
+	public ColumnModel getColumModel(FileEntityFields field) {
+		ValidateArgument.required(field, "field");
+		return columnModelDao.createColumnModel(field.getColumnModel());
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see org.sagebionetworks.repo.manager.table.FileViewManager#getDefaultFileEntityColumns()
+	 */
+	@Override
+	public List<ColumnModel> getDefaultFileEntityColumns() {
+		List<ColumnModel> list = new LinkedList<ColumnModel>();
+		for(FileEntityFields field: FileEntityFields.values()){
+			list.add(getColumModel(field));
+		}
+		return list;
+	}
+
+	@Override
+	public Set<Long> getAccessibleBenefactors(UserInfo user,
+			Set<Long> benefactorIds) {
+		return authorizationManager.getAccessibleBenefactors(user, benefactorIds);
+	}
+
+	@Override
+	public EntityType getTableEntityType(String tableId) {
+		return nodeDao.getNodeTypeById(tableId);
+	}
 }
