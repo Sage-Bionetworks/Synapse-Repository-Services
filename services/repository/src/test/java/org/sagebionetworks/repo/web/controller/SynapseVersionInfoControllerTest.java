@@ -13,9 +13,6 @@ import org.springframework.beans.factory.annotation.Autowired;
  */
 public class SynapseVersionInfoControllerTest extends AbstractAutowiredControllerTestBase {
 
-	@Autowired
-	UserGroupDAO userGroupDAO;
-	
 	@Test
 	public void testGetVersionInfo() throws Exception {
 		SynapseVersionInfo vi;

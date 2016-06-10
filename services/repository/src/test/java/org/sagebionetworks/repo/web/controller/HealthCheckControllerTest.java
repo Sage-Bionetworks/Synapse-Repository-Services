@@ -14,10 +14,6 @@ import org.springframework.beans.factory.annotation.Autowired;
  */
 public class HealthCheckControllerTest extends AbstractAutowiredControllerTestBase {
 
-	@Autowired
-	UserGroupDAO userGroupDAO;
-	
-	
 	@Test
 	public void testCheckAmznHealth() throws Exception {
 		String s;
