@@ -9,7 +9,7 @@ import java.util.regex.Pattern;
 
 import org.junit.Test;
 
-public class DockerRepositoryValidatorTest {
+public class ExternalDockerRepoValidatorTest {
 
 	ExternalDockerRepoValidator provider;
 	

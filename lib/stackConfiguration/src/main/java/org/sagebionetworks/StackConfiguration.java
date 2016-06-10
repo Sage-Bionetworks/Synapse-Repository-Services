@@ -1494,6 +1494,17 @@ public class StackConfiguration {
 	}
 	
 	/**
+	 * Credentials for signing Docker authorization bearer tokens
+	 */
+	public static String getDockerAuthorizationPrivateKey() {
+		return configuration.getDecryptedProperty("org.sagebionetworks.docker.authorization.private.key");
+	}
+
+	public static String getDockerAuthorizationCertificate() {
+		return configuration.getProperty("org.sagebionetworks.docker.authorization.certificate");
+	}
+	
+	/**
 	 * 
 	 * @return if missing or false then certified user restrictions are in effect.  Setting to true disables.
 	 */

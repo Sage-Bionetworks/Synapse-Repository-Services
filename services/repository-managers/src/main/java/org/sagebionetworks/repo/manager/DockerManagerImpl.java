@@ -2,17 +2,20 @@ package org.sagebionetworks.repo.manager;
 
 import static org.sagebionetworks.repo.manager.DockerNameUtil.REPO_NAME_PATH_SEP;
 
-import java.security.KeyPair;
-import java.security.interfaces.ECPrivateKey;
-import java.security.interfaces.ECPublicKey;
+import java.security.PrivateKey;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.docker.DockerAuthorizationToken;
 import org.sagebionetworks.repo.model.docker.DockerCommit;
@@ -45,6 +48,18 @@ public class DockerManagerImpl implements DockerManager {
 	
 	@Autowired
 	PrincipalAliasDAO principalAliasDAO;
+	
+	@Autowired
+	AuthorizationManager authorizationManager;
+	
+	private static final String PUBLIC_KEY_ID;
+	private static final PrivateKey PRIVATE_KEY;
+	
+	static {
+		PRIVATE_KEY = DockerTokenUtil.readPrivateKey();
+		X509Certificate certificate = DockerTokenUtil.readCertificate();
+		PUBLIC_KEY_ID = DockerTokenUtil.computeKeyId(certificate.getPublicKey());
+	}
 
 	/**
 	 * Answer Docker Registry authorization request.
@@ -58,49 +73,97 @@ public class DockerManagerImpl implements DockerManager {
 	public DockerAuthorizationToken authorizeDockerAccess(String userName, UserInfo userInfo, String service, String scope) {
 		String[] scopeParts = scope.split(":");
 		if (scopeParts.length!=3) throw new RuntimeException("Expected 3 parts but found "+scopeParts.length);
-		String type = scopeParts[0];
-		String repository = scopeParts[1];
-		String accessTypes = scopeParts[2];
-		
-		// TODO scope is repository:repopath:actions
-		// TODO check that 'service' matches a supported registry host
-		// (We could support different user passwords for different hosts)
-
-		// TODO check that 'repopath' is a valid path
-		// TODO check that 'repopath' starts with a synapse ID (synID)
-		// TODO for 'push' access, check canCreate, and UPDATE access in synID
-		// TODO for 'pull' access, check READ and DOWNLOAD access in synID
-		
-		KeyPair keyPair = null; // TODO
-		ECPrivateKey privateKey = (ECPrivateKey)keyPair.getPrivate();
-		ECPublicKey  validatingKey = (ECPublicKey)keyPair.getPublic();
-		// TODO don't compute the key's ID each time
-		String keyId = DockerTokenUtil.computeKeyId(validatingKey);
+		String type = scopeParts[0]; // type='repository'
+		String repositoryName = scopeParts[1]; // i.e. the 'path'
+		String accessTypes = scopeParts[2]; // e.g. push, pull
 		
 		List<String> permittedAccessTypes = new ArrayList<String>();
-		for (String requestedAccessTypeString : accessTypes.split(",")) {
-			RegistryEventAction requestedAccessType = RegistryEventAction.valueOf(requestedAccessTypeString);
-			switch (requestedAccessType) {
-			case push:
-				// TODO check CREATE or UPDATE permission and add to permittedAccessTypes
-				break;
-			case pull:
-				// TODO check DOWNLOAD permission and add to permittedAccessTypes
-				break;
-			default:
-				throw new RuntimeException("Unexpected access type: "+requestedAccessType);
+
+		String parentId = validParentProjectId(repositoryName);
+		
+		if (parentId!=null) {
+			String entityName = repositoryName.substring(parentId.length()+1);
+			EntityHeader entityHeader = null;
+			try {
+				entityHeader = nodeDAO.getEntityHeaderByChildName(parentId, entityName);
+			} catch (NotFoundException nfe) {
+				entityHeader = null;
+			}
+			String existingDockerRepoId = null;
+			if (entityHeader!=null && EntityType.valueOf(entityHeader.getType()) == EntityType.dockerrepo) {
+				existingDockerRepoId = entityHeader.getId();
+			}
+
+			for (String requestedAccessTypeString : accessTypes.split(",")) {
+				RegistryEventAction requestedAccessType = RegistryEventAction.valueOf(requestedAccessTypeString);
+				switch (requestedAccessType) {
+				case push:
+					// check CREATE or UPDATE permission and add to permittedAccessTypes
+					if (existingDockerRepoId==null) {
+						// check for create permission on parent
+						Node node = new Node();
+						node.setParentId(parentId);
+						node.setNodeType(EntityType.dockerrepo);
+						AuthorizationStatus as = authorizationManager.canCreate(userInfo, node);
+						if (as.getAuthorized()) permittedAccessTypes.add(requestedAccessType.name());
+					} else {
+						// check update permission on this entity
+						AuthorizationStatus as = authorizationManager.canAccess(
+								userInfo, existingDockerRepoId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE);
+						if (as.getAuthorized()) permittedAccessTypes.add(requestedAccessType.name());
+					}
+					break;
+				case pull:
+					// check DOWNLOAD permission and add to permittedAccessTypes
+					if (existingDockerRepoId!=null) {
+						AuthorizationStatus as = authorizationManager.canAccess(
+								userInfo, existingDockerRepoId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD);
+						if (as.getAuthorized()) permittedAccessTypes.add(requestedAccessType.name());
+					}
+					break;
+				default:
+					throw new RuntimeException("Unexpected access type: "+requestedAccessType);
+				}
 			}
 		}
 
 		// now construct the auth response and return it
 		long now = System.currentTimeMillis();
 		String token = DockerTokenUtil.createToken(
-				privateKey, keyId, userName, type, service, repository, 
+				PRIVATE_KEY, PUBLIC_KEY_ID, userName, type, service, repositoryName, 
 				permittedAccessTypes, now);
-		
 		DockerAuthorizationToken result = new DockerAuthorizationToken();
 		result.setToken(token);
 		return result;
+	}
+	
+	/*
+	 * Given a repository path, return a valid parent Id, 
+	 * a project which has been verified to exist. 
+	 * If there is no such valid parent then return null
+	 */
+	public String validParentProjectId(String repositoryName) {
+		// check that 'repopath' is a valid path
+		try {
+			DockerNameUtil.validateName(repositoryName);
+		} catch (IllegalArgumentException e) {
+			return null;
+		}
+		// check that 'repopath' starts with a synapse ID (synID) and synID is a project or folder
+		String parentId;
+		try {
+			parentId = getParentIdFromRepositoryName(repositoryName);
+		} catch (DatastoreException e) {
+			return null;
+		}
+
+		Long parentIdAsLong = KeyFactory.stringToKey(parentId);
+		List<EntityHeader> headers = nodeDAO.getEntityHeader(Collections.singleton(parentIdAsLong));
+		if (headers.size()==0) return null; // Not found!
+		if (headers.size()>1) throw new IllegalStateException("Expected one node with ID "+parentId+" but found "+headers.size());
+		EntityHeader header = headers.get(0);
+		if (!header.getType().equals(EntityType.project.name())) return null; // parent must be a project!
+		return header.getId();
 	}
 	
 	public static String getParentIdFromRepositoryName(String name) {

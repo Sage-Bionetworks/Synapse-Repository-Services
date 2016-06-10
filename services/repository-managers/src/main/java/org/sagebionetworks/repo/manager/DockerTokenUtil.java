@@ -5,18 +5,25 @@ import io.jsonwebtoken.Header;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 
+import java.security.KeyFactory;
 import java.security.MessageDigest;
+import java.security.PrivateKey;
 import java.security.PublicKey;
-import java.security.interfaces.ECPrivateKey;
+import java.security.cert.CertificateParsingException;
+import java.security.cert.X509Certificate;
+import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
 import org.apache.commons.codec.binary.Base32;
 import org.apache.commons.net.util.Base64;
+import org.bouncycastle.asn1.x509.Certificate;
+import org.bouncycastle.jce.provider.X509CertificateObject;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.sagebionetworks.StackConfiguration;
 
 public class DockerTokenUtil {
 
@@ -25,7 +32,7 @@ public class DockerTokenUtil {
 	private static final String ACCESS = "access";
 
 	public static String createToken(
-			ECPrivateKey privateKey, String keyId, String userName, String type, 
+			PrivateKey privateKey, String keyId, String userName, String type, 
 			String registry, String repository, List<String> actions, long now) {
 
 		JSONArray access = new JSONArray();
@@ -113,6 +120,29 @@ public class DockerTokenUtil {
 		}
 		return s;
 
+	}
+	
+	public static final String KEY_GENERATION_ALGORITHM = "EC";
+
+	public static PrivateKey readPrivateKey() {
+		try {
+			KeyFactory factory = KeyFactory.getInstance(KEY_GENERATION_ALGORITHM, "BC");
+			byte[] content = Base64.decodeBase64(StackConfiguration.getDockerAuthorizationPrivateKey());
+			PKCS8EncodedKeySpec privKeySpec = new PKCS8EncodedKeySpec(content);
+			return factory.generatePrivate(privKeySpec);
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+	
+	public static X509Certificate readCertificate() {
+		try {
+			byte[] content = Base64.decodeBase64(StackConfiguration.getDockerAuthorizationCertificate());
+			Certificate certificate = Certificate.getInstance(content);
+			return new X509CertificateObject(certificate);
+		} catch (CertificateParsingException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	// from https://botbot.me/freenode/cryptography-dev/2015-12-04/?page=1
