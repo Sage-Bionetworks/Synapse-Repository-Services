@@ -326,7 +326,7 @@ public interface TableManagerSupport {
 	 * 
 	 * @return
 	 */
-	public List<ColumnModel> getDefaultFileEntityColumns();
+	public List<ColumnModel> getDefaultTableViewColumns(EntityType viewType);
 
 	/**
 	 * Get the entity type for the given table.
@@ -334,5 +334,12 @@ public interface TableManagerSupport {
 	 * @return
 	 */
 	public EntityType getTableEntityType(String tableId);
+
+	/**
+	 * Get the path of the given entity.
+	 * @param entityId
+	 * @return
+	 */
+	public Set<Long> getEntityPath(String entityId);
 
 }

@@ -44,6 +44,7 @@ import org.sagebionetworks.repo.model.EntityBundleCreate;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.EntityPath;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.JoinTeamSignedToken;
 import org.sagebionetworks.repo.model.LogEntry;
 import org.sagebionetworks.repo.model.MembershipInvitation;
@@ -1487,6 +1488,15 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	ColumnModel getColumnModel(String columnId) throws SynapseException;
+	
+	/**
+	 * Get the default columns for a given view type.
+	 * 
+	 * @param viewType
+	 * @return
+	 * @throws SynapseException
+	 */
+	List<ColumnModel> getDefaultColumnsForView(EntityType viewType) throws SynapseException;
 	
 	// Team services
 	

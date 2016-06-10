@@ -36,6 +36,7 @@ import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseResultNotReadyException;
 import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.file.FileHandle;
@@ -593,6 +594,17 @@ public class IT100TableControllerTest {
 		expected.clear();
 		expected.add(three);
 		assertEquals(expected, pcm.getResults());
+	}
+	
+	@Test
+	public void testgetDefaultColumnsForView() throws SynapseException{
+		List<ColumnModel> defaults = synapse.getDefaultColumnsForView(EntityType.fileview);
+		assertNotNull(defaults);
+		assertTrue(defaults.size() > 1);
+		ColumnModel cm = defaults.get(0);
+		assertNotNull(cm);
+		assertNotNull(cm.getName());
+		assertNotNull(cm.getId());
 	}
 	
 	@Test

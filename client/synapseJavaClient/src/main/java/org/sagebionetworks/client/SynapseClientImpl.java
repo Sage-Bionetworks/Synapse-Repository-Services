@@ -72,6 +72,7 @@ import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.EntityInstanceFactory;
 import org.sagebionetworks.repo.model.EntityPath;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.JoinTeamSignedToken;
 import org.sagebionetworks.repo.model.ListWrapper;
@@ -361,6 +362,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 	protected static final String COLUMN = "/column";
 	protected static final String COLUMN_BATCH = COLUMN + "/batch";
+	protected static final String COLUMN_VIEW_DEFAULT = COLUMN + "/tableview/defaults/";
 	protected static final String TABLE = "/table";
 	protected static final String ROW_ID = "/row";
 	protected static final String ROW_VERSION = "/version";
@@ -6096,6 +6098,22 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			throw new SynapseClientException(e);
 		}
 	}
+	
+	@Override
+	public List<ColumnModel> getDefaultColumnsForView(EntityType viewType)
+			throws SynapseException {
+		if(viewType == null){
+			throw new IllegalArgumentException("Viewtype cannot be null");
+		}
+		try {
+			String url = COLUMN_VIEW_DEFAULT+viewType.name();
+			JSONObject jsonObject = getSharedClientConnection().getJson(
+					repoEndpoint, url, getUserAgent());
+			return ListWrapper.unwrap(new JSONObjectAdapterImpl(jsonObject), ColumnModel.class);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
+	}
 
 	@Override
 	public PaginatedColumnModels listColumnModels(String prefix, Long limit,
@@ -7678,4 +7696,5 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public PrincipalAliasResponse getPrincipalAlias(PrincipalAliasRequest request) throws SynapseException {
 		return asymmetricalPost(repoEndpoint, PRINCIPAL+"/alias/", request, PrincipalAliasResponse.class, null);
 	}
+
 }
