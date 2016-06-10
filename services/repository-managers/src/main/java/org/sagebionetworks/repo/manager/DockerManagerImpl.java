@@ -166,7 +166,7 @@ public class DockerManagerImpl implements DockerManager {
 		return header.getId();
 	}
 	
-	public static String getParentIdFromRepositoryName(String name) {
+	private static String getParentIdFromRepositoryName(String name) {
 		int i = name.indexOf(REPO_NAME_PATH_SEP);
 		String result = name;
 		if (i>0) result = name.substring(0, i);

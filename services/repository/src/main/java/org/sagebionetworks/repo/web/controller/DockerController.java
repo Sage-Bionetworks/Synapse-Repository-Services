@@ -54,29 +54,21 @@ public class DockerController extends BaseController {
 	 * TODO service to add a commit to a repo.
 	 * Note:  If the commit includes a tag then the current commit holding that tag must release it.
 	 * Note:  This must also change modifiedBy, modifiedOn for the  entity.
-	 * Note:  The commit table should have a casc
 	 */
 	
 	/*
 	 * TODO service to list the commits for a repo.
 	 * Might have a param to return just the commits having tags
 	 */
+
 	
 	/*
-	 * Find the repo for a commit
-	 */
-	
-	/*
-	 * Create a Docker password
-	 */
-	
-	/*
-	 * Read the Docker password
+	 * TODO Read the Docker password
 	 * 
 	 */
 	
 	/*
-	 * Delete (invalidate) the Docker password
+	 * TODO Delete (invalidate) the Docker password
 	 */
 
 }
