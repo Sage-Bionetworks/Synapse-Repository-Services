@@ -6,6 +6,7 @@ import java.util.Properties;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.apache.pdfbox.io.IOUtils;
 import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.springframework.http.HttpStatus;
@@ -33,6 +34,8 @@ public class SynapseVersionInfoController extends BaseController {
 				prop.load(s);
 			} catch (IOException e) {
 				throw new RuntimeException("version-info.properties file not found", e);
+			} finally {
+				IOUtils.closeQuietly(s);
 			}
 			versionInfo = prop.getProperty("org.sagebionetworks.repository.version");
 		}
