@@ -355,7 +355,7 @@ public class TableQueryManagerImplTest {
 		// setup the count returned from query
 		when(mockTableIndexDAO.countQuery(sqlCaptrue.capture(), anyMapOf(String.class, Object.class))).thenReturn(200L);
 		// Setup a fileView
-		EntityType type = EntityType.fileview;
+		EntityType type = EntityType.entityview;
 		when(mockTableManagerSupport.validateTableReadAccess(user, tableId)).thenReturn(type);
 		SqlQuery query = new SqlQuery("select i0 from "+tableId, models);
 		

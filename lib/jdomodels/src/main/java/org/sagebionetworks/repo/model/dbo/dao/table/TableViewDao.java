@@ -3,9 +3,9 @@ package org.sagebionetworks.repo.model.dbo.dao.table;
 import java.util.List;
 import java.util.Set;
 
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ViewType;
 
 public interface TableViewDao {
 	
@@ -19,7 +19,7 @@ public interface TableViewDao {
 	 * @param type The type of entity to filter.
 	 * @return
 	 */
-	public long calculateCRCForAllEntitiesWithinContainers(Set<Long> viewContainers, EntityType type);
+	public long calculateCRCForAllEntitiesWithinContainers(Set<Long> viewContainers, ViewType type);
 
 	/**
 	 * Stream over all entities of the given type that are contained within the given containers.
@@ -31,7 +31,7 @@ public interface TableViewDao {
 	 * @param schema
 	 * @param rowHandler
 	 */
-	void streamOverEntities(Set<Long> containers, EntityType type, List<ColumnModel> schema,
+	void streamOverEntities(Set<Long> containers, ViewType type, List<ColumnModel> schema,
 			RowHandler rowHandler);
 
 	/**
@@ -40,6 +40,6 @@ public interface TableViewDao {
 	 * @param allContainersInScope
 	 * @param type The type of entity to filter.
 	 */
-	public long countAllEntitiesInView(Set<Long> allContainersInScope, EntityType type);
+	public long countAllEntitiesInView(Set<Long> allContainersInScope, ViewType type);
 
 }

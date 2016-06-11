@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS `JDONODE` (
   `DESCRIPTION` mediumblob DEFAULT NULL,
   `ETAG` char(36) NOT NULL,
   `NAME` varchar(256) CHARACTER SET latin1 COLLATE latin1_bin NOT NULL,
-  `NODE_TYPE` ENUM('project', 'folder', 'link','file','table','fileview') NOT NULL,
+  `NODE_TYPE` ENUM('project', 'folder', 'link','file','table','entityview') NOT NULL,
   `PARENT_ID` bigint(20) DEFAULT NULL,
   `BENEFACTOR_ID` bigint(20) DEFAULT NULL,
   `PROJECT_ID` bigint(20) DEFAULT NULL,

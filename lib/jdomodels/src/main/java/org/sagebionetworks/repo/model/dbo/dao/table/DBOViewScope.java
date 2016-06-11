@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.dao.table;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VIEW_SCOPE_CONTAINER_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VIEW_SCOPE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VIEW_SCOPE_VIEW_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_VIEW_SCOPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_VIEW_SCOPE;
@@ -16,20 +15,17 @@ import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
-public class DBOViewScope  implements MigratableDatabaseObject<DBOViewScope, DBOViewScope> {
+public class DBOViewScope implements MigratableDatabaseObject<DBOViewScope, DBOViewScope> {
 	
 	private static final FieldColumn[] FIELDS = new FieldColumn[] {
-		new FieldColumn("id", COL_VIEW_SCOPE_ID, true).withIsBackupId(true),
-		new FieldColumn("viewId", COL_VIEW_SCOPE_VIEW_ID),
-		new FieldColumn("containerId", COL_VIEW_SCOPE_CONTAINER_ID),
+		new FieldColumn("viewId", COL_VIEW_SCOPE_VIEW_ID, true).withIsBackupId(true),
+		new FieldColumn("containerId", COL_VIEW_SCOPE_CONTAINER_ID, true),
 	};
 	
 	Long id;
 	Long viewId;
 	Long containerId;
 	
-	
-
 	public Long getId() {
 		return id;
 	}
@@ -102,7 +98,6 @@ public class DBOViewScope  implements MigratableDatabaseObject<DBOViewScope, DBO
 			public DBOViewScope mapRow(ResultSet rs, int rowNum)
 					throws SQLException {
 				DBOViewScope dto = new DBOViewScope();
-				dto.setId(rs.getLong(COL_VIEW_SCOPE_ID));
 				dto.setViewId(rs.getLong(COL_VIEW_SCOPE_VIEW_ID));
 				dto.setContainerId(rs.getLong(COL_VIEW_SCOPE_CONTAINER_ID));
 				return dto;

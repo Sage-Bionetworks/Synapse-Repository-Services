@@ -26,7 +26,6 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
@@ -37,11 +36,12 @@ import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.FileView;
+import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
+import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
@@ -88,7 +88,7 @@ public class TableViewIntegrationTest {
 	List<String> fileIds;
 	
 	String fileViewId;
-	FileView fileView;
+	EntityView entityView;
 	
 	@Before
 	public void before(){
@@ -133,21 +133,22 @@ public class TableViewIntegrationTest {
 			fileIds.add(fileId);
 		}
 		
-		List<ColumnModel> defaultSchema = tableManagerSupport.getDefaultTableViewColumns(EntityType.fileview);
+		List<ColumnModel> defaultSchema = tableManagerSupport.getDefaultTableViewColumns(ViewType.file);
 		defaultColumnIds = new LinkedList<String>();
 		for(ColumnModel cm: defaultSchema){
 			defaultColumnIds.add(cm.getId());
 		}
 		
 		// Create a new file view
-		FileView fileView = new FileView();
+		EntityView fileView = new EntityView();
 		fileView.setName("aFileView");
 		fileView.setParentId(project.getId());
 		fileView.setColumnIds(defaultColumnIds);
 		fileView.setScopeIds(Lists.newArrayList(project.getId()));
+		fileView.setType(ViewType.file);
 		fileViewId = entityManager.createEntity(adminUserInfo, fileView, null);
-		fileView = entityManager.getEntity(adminUserInfo, fileViewId, FileView.class);
-		tableViewMangaer.setViewSchemaAndScope(adminUserInfo, fileView.getColumnIds(), fileView.getScopeIds(), fileViewId);
+		fileView = entityManager.getEntity(adminUserInfo, fileViewId, EntityView.class);
+		tableViewMangaer.setViewSchemaAndScope(adminUserInfo, fileView.getColumnIds(), fileView.getScopeIds(), fileView.getType(), fileViewId);
 	}
 	
 	@After

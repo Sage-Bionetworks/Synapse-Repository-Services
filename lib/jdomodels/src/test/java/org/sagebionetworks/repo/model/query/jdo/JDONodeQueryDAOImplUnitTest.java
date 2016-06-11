@@ -70,7 +70,7 @@ public class JDONodeQueryDAOImplUnitTest {
 				Lists.newArrayList(
 						EntityType.file.name(),
 						EntityType.table.name(),
-						EntityType.fileview.name()),
+						EntityType.entityview.name()),
 						parameters.get("expKey0"));
 	}
 

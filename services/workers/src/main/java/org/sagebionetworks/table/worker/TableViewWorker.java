@@ -7,12 +7,11 @@ import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.asynchronous.workers.changes.ChangeMessageDrivenRunner;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
-import org.sagebionetworks.repo.manager.table.TableViewManager;
 import org.sagebionetworks.repo.manager.table.TableIndexConnectionFactory;
 import org.sagebionetworks.repo.manager.table.TableIndexConnectionUnavailableException;
 import org.sagebionetworks.repo.manager.table.TableIndexManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
-import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.manager.table.TableViewManager;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.table.RowBatchHandler;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
@@ -21,6 +20,7 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
+import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
@@ -53,7 +53,7 @@ public class TableViewWorker implements ChangeMessageDrivenRunner {
 			ChangeMessage message) throws RecoverableMessageException,
 			Exception {
 		// This worker is only works on FileView messages
-		if(ObjectType.FILE_VIEW.equals(message.getObjectType())){
+		if(ObjectType.ENTITY_VIEW.equals(message.getObjectType())){
 			final String tableId = message.getObjectId();
 			final TableIndexManager indexManager;
 			try {
@@ -123,7 +123,7 @@ public class TableViewWorker implements ChangeMessageDrivenRunner {
 		// Start the worker
 		final String token = tableManagerSupport.startTableProcessing(tableId);
 		// Loook-up the type for this table.
-		EntityType entityType = tableManagerSupport.getTableEntityType(tableId);
+		ViewType viewType = tableManagerSupport.getViewType(tableId);
 
 		// Since this worker re-builds the index, start by deleting it.
 		indexManager.deleteTableIndex();
@@ -138,7 +138,7 @@ public class TableViewWorker implements ChangeMessageDrivenRunner {
 		rowSetBatch.setHeaders(TableModelUtils.getSelectColumns(currentSchema));
 		rowSetBatch.setTableId(tableId);
 		// Stream all of the file data into the index.
-		Long viewCRC = tableViewManager.streamOverAllEntitiesInViewAsBatch(tableId, entityType, currentSchema, rowsPerBatch, new RowBatchHandler() {
+		Long viewCRC = tableViewManager.streamOverAllEntitiesInViewAsBatch(tableId, viewType, currentSchema, rowsPerBatch, new RowBatchHandler() {
 			
 			@Override
 			public void nextBatch(List<Row> batch, long currentProgress,

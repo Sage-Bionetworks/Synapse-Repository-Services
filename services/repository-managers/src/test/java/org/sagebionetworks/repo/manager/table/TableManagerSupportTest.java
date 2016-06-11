@@ -7,7 +7,10 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.util.Date;
@@ -45,6 +48,7 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
+import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
@@ -410,10 +414,10 @@ public class TableManagerSupportTest {
 	@Test
 	public void testGetTableTypeFileView() {
 		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(
-				EntityType.fileview);
+				EntityType.entityview);
 		// call under test
 		ObjectType type = manager.getTableType(tableId);
-		assertEquals(ObjectType.FILE_VIEW, type);
+		assertEquals(ObjectType.ENTITY_VIEW, type);
 	}
 
 	@Test(expected = IllegalArgumentException.class)
@@ -427,7 +431,7 @@ public class TableManagerSupportTest {
 	@Test
 	public void testGetObjectTypeForEntityType(){
 		assertEquals(ObjectType.TABLE, TableManagerSupportImpl.getObjectTypeForEntityType(EntityType.table));
-		assertEquals(ObjectType.FILE_VIEW, TableManagerSupportImpl.getObjectTypeForEntityType(EntityType.fileview));
+		assertEquals(ObjectType.ENTITY_VIEW, TableManagerSupportImpl.getObjectTypeForEntityType(EntityType.entityview));
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -463,8 +467,8 @@ public class TableManagerSupportTest {
 	@Test
 	public void calculateFileViewCRC32(){
 		Long crc32 = 45678L;
-		EntityType type = EntityType.fileview;
-		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(type);
+		ViewType type = ViewType.file;
+		when(mockViewScopeDao.getViewType(tableIdLong)).thenReturn(type);
 		when(mockFileViewDao.calculateCRCForAllEntitiesWithinContainers(containersInScope, type)).thenReturn(crc32);
 		
 		Long crcResult = manager.calculateFileViewCRC32(tableId);
@@ -486,9 +490,9 @@ public class TableManagerSupportTest {
 	@Test
 	public void testGetTableVersionForFileView() {
 		Long crc32 = 45678L;
-		EntityType type = EntityType.fileview;
+		ViewType type = ViewType.file;
 		when(mockFileViewDao.calculateCRCForAllEntitiesWithinContainers(containersInScope, type)).thenReturn(crc32);
-		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.fileview);
+		when(mockViewScopeDao.getViewType(tableIdLong)).thenReturn(type);
 		// call under test
 		Long version = manager.getTableVersion(tableId);
 		assertEquals(crc32, version);
@@ -533,7 +537,7 @@ public class TableManagerSupportTest {
 	
 	@Test
 	public void testValidateTableReadAccessFiewView(){
-		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.fileview);
+		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.entityview);
 		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(new AuthorizationStatus(true, ""));
 		//  call under test
 		manager.validateTableReadAccess(userInfo, tableId);
@@ -544,7 +548,7 @@ public class TableManagerSupportTest {
 	
 	@Test (expected=UnauthorizedException.class)
 	public void testValidateTableReadAccessFiewViewNoRead(){
-		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.fileview);
+		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.entityview);
 		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(new AuthorizationStatus(false, ""));
 		//  call under test
 		manager.validateTableReadAccess(userInfo, tableId);
@@ -588,10 +592,6 @@ public class TableManagerSupportTest {
 		assertEquals(cm, result);
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
-	public void testGetDefaultTableViewColumnsUnknown(){
-		manager.getDefaultTableViewColumns(EntityType.project);
-	}
 	
 	@Test
 	public void testGetDefaultTableViewColumnsFileView(){
@@ -601,7 +601,7 @@ public class TableManagerSupportTest {
 			expected.add(field.getColumnModel());
 		}
 		// call under test
-		List<ColumnModel> results = manager.getDefaultTableViewColumns(EntityType.fileview);
+		List<ColumnModel> results = manager.getDefaultTableViewColumns(ViewType.file);
 		assertEquals(expected, results);
 	}
 	
