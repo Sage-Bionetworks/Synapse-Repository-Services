@@ -54,6 +54,7 @@ import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
+import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.TimeUtils;
@@ -598,7 +599,7 @@ public class IT100TableControllerTest {
 	
 	@Test
 	public void testgetDefaultColumnsForView() throws SynapseException{
-		List<ColumnModel> defaults = synapse.getDefaultColumnsForView(EntityType.fileview);
+		List<ColumnModel> defaults = synapse.getDefaultColumnsForView(ViewType.file);
 		assertNotNull(defaults);
 		assertTrue(defaults.size() > 1);
 		ColumnModel cm = defaults.get(0);

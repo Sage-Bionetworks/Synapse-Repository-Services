@@ -1,48 +1,53 @@
 package org.sagebionetworks.repo.model.dbo.dao.table;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VIEW_SCOPE_CONTAINER_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VIEW_SCOPE_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VIEW_SCOPE_VIEW_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_VIEW_SCOPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
-import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 public class ViewScopeDaoImpl implements ViewScopeDao {
 	
+	private static final String SQL_TRUNCATE_TABLE = "DELETE FROM "+TABLE_VIEW_TYPE+" WHERE "+COL_VIEW_TYPE_VIEW_ID+" IS NOT NULL";
+
+	private static final String SQL_SELECT_VIEW_TYPE = "SELECT "+COL_VIEW_TYPE_VIEW_TYPE+" FROM "+TABLE_VIEW_TYPE+" WHERE "+COL_VIEW_TYPE_VIEW_ID+" = ?";
+
+	private static final String SQL_INSERT_VIEW_TYPE = "INSERT INTO "+TABLE_VIEW_TYPE+" ("+COL_VIEW_TYPE_VIEW_ID+", "+COL_VIEW_TYPE_VIEW_TYPE+", "+COL_VIEW_TYPE_ETAG+") VALUES(?,?,?) ON DUPLICATE KEY UPDATE "+COL_VIEW_TYPE_VIEW_TYPE+" = ?, "+COL_VIEW_TYPE_ETAG+" = ?";
+
 	private static final String SQL_SELECT_CONTAINERS_FOR_VIEW = "SELECT "+COL_VIEW_SCOPE_CONTAINER_ID+" FROM "+TABLE_VIEW_SCOPE+" WHERE "+COL_VIEW_SCOPE_VIEW_ID+" = ?";
 
 	private static final String SQL_SELECT_DISTINCT_VIEW_IDS_FOR_PATH = "SELECT DISTINCT "+COL_VIEW_SCOPE_VIEW_ID+" FROM "+TABLE_VIEW_SCOPE+" WHERE "+COL_VIEW_SCOPE_CONTAINER_ID+" IN (:pathIds)";
 
-	private static final String SQL_INSERT_VIEW_SCOPE = "INSERT INTO "+TABLE_VIEW_SCOPE+" ("+COL_VIEW_SCOPE_ID+", "+COL_VIEW_SCOPE_VIEW_ID+", "+COL_VIEW_SCOPE_CONTAINER_ID+") VALUES (?,?,?)";
+	private static final String SQL_INSERT_VIEW_SCOPE = "INSERT INTO "+TABLE_VIEW_SCOPE+" ("+COL_VIEW_SCOPE_VIEW_ID+", "+COL_VIEW_SCOPE_CONTAINER_ID+") VALUES (?,?)";
 
 	private static final String SQL_DELETE_ALL_FOR_VIEW_ID = "DELETE FROM "+TABLE_VIEW_SCOPE+" WHERE "+COL_VIEW_SCOPE_VIEW_ID+" = ?";
 	
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
 	@Autowired
-	private IdGenerator idGenerator;
-	@Autowired
 	private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
 	@WriteTransactionReadCommitted
 	@Override
-	public void setViewScope(Long viewId, Set<Long> containerIds) {
+	public void setViewScopeAndType(Long viewId, Set<Long> containerIds, ViewType viewType) {
 		ValidateArgument.required(viewId, "viewId");
+		ValidateArgument.required(viewType, "viewType");
+		// add the type
+		String type = viewType.name();
+		String etag = UUID.randomUUID().toString();
+		jdbcTemplate.update(SQL_INSERT_VIEW_TYPE,viewId, type, etag, type, etag);
+		
 		// clear any existing scope for this view
 		jdbcTemplate.update(SQL_DELETE_ALL_FOR_VIEW_ID, viewId);
 		
@@ -52,8 +57,7 @@ public class ViewScopeDaoImpl implements ViewScopeDao {
 			while(it.hasNext()){
 				Long containerId = it.next();
 				if(containerId != null){
-					long id = idGenerator.generateNewId(IdGenerator.TYPE.VIEW_SCOPE_ID);
-					jdbcTemplate.update(SQL_INSERT_VIEW_SCOPE, id,viewId,containerId);
+					jdbcTemplate.update(SQL_INSERT_VIEW_SCOPE, viewId,containerId);
 				}
 			}
 		}
@@ -69,12 +73,18 @@ public class ViewScopeDaoImpl implements ViewScopeDao {
 
 	@WriteTransactionReadCommitted
 	public void truncateAll(){
-		jdbcTemplate.update("TRUNCATE TABLE "+TABLE_VIEW_SCOPE);
+		jdbcTemplate.update(SQL_TRUNCATE_TABLE);
 	}
 
 	@Override
 	public Set<Long> getViewScope(Long viewId) {
 		List<Long> list = jdbcTemplate.queryForList(SQL_SELECT_CONTAINERS_FOR_VIEW, Long.class, viewId);
 		return new HashSet<Long>(list);
+	}
+
+	@Override
+	public ViewType getViewType(Long tableId) {
+		String type = jdbcTemplate.queryForObject(SQL_SELECT_VIEW_TYPE, String.class, tableId);
+		return ViewType.valueOf(type);
 	}
 }

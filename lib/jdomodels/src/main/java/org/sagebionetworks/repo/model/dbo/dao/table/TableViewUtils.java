@@ -24,11 +24,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.util.ValidateArgument;
 
 /**
@@ -45,7 +45,7 @@ public class TableViewUtils {
 	 * @param schema
 	 * @return
 	 */
-	public static String createSQLForSchema(List<ColumnModel> schema, EntityType type) {
+	public static String createSQLForSchema(List<ColumnModel> schema, ViewType type) {
 		ValidateArgument.required(schema, "schema");
 		ValidateArgument.requirement(!schema.isEmpty(), "schema cannot be empty");
 		StringBuilder builder = new StringBuilder();
@@ -300,22 +300,6 @@ public class TableViewUtils {
 			}
 		}
 		return false;
-	}
-	
-	/**
-	 * Get the filter type for a given view type.
-	 * For example, the view type: FileView uses a filter type of File. 
-	 * 
-	 * @param viewType
-	 * @return
-	 */
-	public static EntityType getFilterTypeForViewType(EntityType viewType){
-		switch(viewType){
-		case fileview:
-			return EntityType.file;
-			default:
-				throw new IllegalArgumentException("Unknown view type: "+viewType);
-		}
 	}
 
 }

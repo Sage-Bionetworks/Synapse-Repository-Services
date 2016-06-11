@@ -26,7 +26,6 @@ import org.sagebionetworks.repo.manager.table.TableIndexConnectionUnavailableExc
 import org.sagebionetworks.repo.manager.table.TableIndexManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableViewManager;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.table.RowBatchHandler;
 import org.sagebionetworks.repo.model.dbo.dao.table.FileEntityFields;
@@ -35,6 +34,7 @@ import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -83,7 +83,7 @@ public class TableViewWorkerTest {
 		change.setChangeNumber(99L);
 		change.setChangeType(ChangeType.CREATE);
 		change.setObjectId(tableId);
-		change.setObjectType(ObjectType.FILE_VIEW);
+		change.setObjectType(ObjectType.ENTITY_VIEW);
 		
 		token = "statusToken";
 		
@@ -134,7 +134,7 @@ public class TableViewWorkerTest {
 				RowBatchHandler handler = (RowBatchHandler) invocation.getArguments()[4];
 				handler.nextBatch(rows, 0, rowCount);
 				return viewCRC;
-			}}).when(tableViewManager).streamOverAllEntitiesInViewAsBatch(anyString(), any(EntityType.class), anyListOf(ColumnModel.class), anyInt(), any(RowBatchHandler.class));
+			}}).when(tableViewManager).streamOverAllEntitiesInViewAsBatch(anyString(), any(ViewType.class), anyListOf(ColumnModel.class), anyInt(), any(RowBatchHandler.class));
 	}
 
 	@Test

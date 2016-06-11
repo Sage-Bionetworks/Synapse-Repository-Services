@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.dao.table.FileEntityFields;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.TableStatus;
+import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
@@ -190,7 +191,7 @@ public interface TableManagerSupport {
 	 * @param allContainersInScope
 	 * @return
 	 */
-	public Long calculateFileViewCRC32(Set<Long> allContainersInScope, EntityType type);
+	public Long calculateFileViewCRC32(Set<Long> allContainersInScope, ViewType type);
 	
 	/**
 	 * Get the set of container ids (Projects and Folders) for a view's scope.
@@ -326,7 +327,7 @@ public interface TableManagerSupport {
 	 * 
 	 * @return
 	 */
-	public List<ColumnModel> getDefaultTableViewColumns(EntityType viewType);
+	public List<ColumnModel> getDefaultTableViewColumns(ViewType viewType);
 
 	/**
 	 * Get the entity type for the given table.
@@ -341,5 +342,12 @@ public interface TableManagerSupport {
 	 * @return
 	 */
 	public Set<Long> getEntityPath(String entityId);
+
+	/**
+	 * Get the view type for the given table ID.
+	 * @param tableId
+	 * @return
+	 */
+	ViewType getViewType(String tableId);
 
 }

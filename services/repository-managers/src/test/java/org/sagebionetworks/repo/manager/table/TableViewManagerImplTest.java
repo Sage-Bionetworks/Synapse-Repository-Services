@@ -1,8 +1,12 @@
 package org.sagebionetworks.repo.manager.table;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Matchers.anyListOf;
+import static org.mockito.Matchers.anySetOf;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -15,7 +19,6 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.RowBatchHandler;
@@ -26,6 +29,7 @@ import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.repo.model.table.ViewType;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
@@ -50,7 +54,7 @@ public class TableViewManagerImplTest {
 	List<String> schema;
 	List<String> scope;
 	String viewId;
-
+	ViewType viewType;
 	
 	Set<Long> scopeIds;
 	long rowCount;
@@ -74,6 +78,7 @@ public class TableViewManagerImplTest {
 		scopeIds = new HashSet<Long>(KeyFactory.stringToKey(scope));
 		
 		viewId = "syn555";
+		viewType = ViewType.file;
 		
 		doAnswer(new Answer<ColumnModel>(){
 			@Override
@@ -100,19 +105,19 @@ public class TableViewManagerImplTest {
 					handler.nextRow(row);
 				}
 				return null;
-			}}).when(mockTableViewDao).streamOverEntities(anySetOf(Long.class), any(EntityType.class), anyListOf(ColumnModel.class), any(RowHandler.class));
+			}}).when(mockTableViewDao).streamOverEntities(anySetOf(Long.class), any(ViewType.class), anyListOf(ColumnModel.class), any(RowHandler.class));
 		
 		viewCRC = 999L;
-		when(mockTableViewDao.countAllEntitiesInView(anySetOf(Long.class), any(EntityType.class))).thenReturn(rowCount);
-		when(mockTableViewDao.calculateCRCForAllEntitiesWithinContainers(anySetOf(Long.class), any(EntityType.class))).thenReturn(viewCRC);
+		when(mockTableViewDao.countAllEntitiesInView(anySetOf(Long.class), any(ViewType.class))).thenReturn(rowCount);
+		when(mockTableViewDao.calculateCRCForAllEntitiesWithinContainers(anySetOf(Long.class), any(ViewType.class))).thenReturn(viewCRC);
 		
 	}
 	
 	@Test
 	public void testSetViewSchemaAndScope(){
 		// call under test
-		manager.setViewSchemaAndScope(userInfo, schema, scope, viewId);
-		verify(viewScopeDao).setViewScope(555L, Sets.newHashSet(123L, 456L));
+		manager.setViewSchemaAndScope(userInfo, schema, scope, viewType, viewId);
+		verify(viewScopeDao).setViewScopeAndType(555L, Sets.newHashSet(123L, 456L), viewType);
 		verify(columnModelManager).bindColumnToObject(userInfo, schema, viewId);
 		verify(tableManagerSupport).setTableToProcessingAndTriggerUpdate(viewId);
 	}
@@ -121,8 +126,8 @@ public class TableViewManagerImplTest {
 	public void testSetViewSchemaAndScopeWithNullSchema(){
 		schema = null;
 		// call under test
-		manager.setViewSchemaAndScope(userInfo, schema, scope, viewId);
-		verify(viewScopeDao).setViewScope(555L, Sets.newHashSet(123L, 456L));
+		manager.setViewSchemaAndScope(userInfo, schema, scope, viewType, viewId);
+		verify(viewScopeDao).setViewScopeAndType(555L, Sets.newHashSet(123L, 456L), viewType);
 		verify(columnModelManager).bindColumnToObject(userInfo, null, viewId);
 		verify(tableManagerSupport).setTableToProcessingAndTriggerUpdate(viewId);
 	}
@@ -131,11 +136,19 @@ public class TableViewManagerImplTest {
 	public void testSetViewSchemaAndScopeWithNullScope(){
 		scope = null;
 		// call under test
-		manager.setViewSchemaAndScope(userInfo, schema, scope, viewId);
-		verify(viewScopeDao).setViewScope(555L, null);
+		manager.setViewSchemaAndScope(userInfo, schema, scope, viewType, viewId);
+		verify(viewScopeDao).setViewScopeAndType(555L, null, viewType);
 		verify(columnModelManager).bindColumnToObject(userInfo, schema, viewId);
 		verify(tableManagerSupport).setTableToProcessingAndTriggerUpdate(viewId);
 	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testSetViewSchemaAndScopeWithNullType(){
+		viewType = null;
+		// call under test
+		manager.setViewSchemaAndScope(userInfo, schema, scope, viewType, viewId);
+	}
+	
 	
 	@Test
 	public void testGetViewSchemaNoBenefactor(){
@@ -167,7 +180,7 @@ public class TableViewManagerImplTest {
 		final int rowsPerBatch = (int)(rowCount-1);
 		final List<Row> gatheredRows = new LinkedList<Row>();
 		// call under test
-		long crcResult = manager.streamOverAllEntitiesInViewAsBatch(viewId, EntityType.fileview, schema, rowsPerBatch, new RowBatchHandler() {
+		long crcResult = manager.streamOverAllEntitiesInViewAsBatch(viewId, ViewType.file, schema, rowsPerBatch, new RowBatchHandler() {
 			
 			long count = 0;
 			@Override
@@ -190,7 +203,7 @@ public class TableViewManagerImplTest {
 		final int rowsPerBatch = (int) (rowCount+1);
 		final List<Row> gatheredRows = new LinkedList<Row>();
 		// call under test
-		long crcResult = manager.streamOverAllEntitiesInViewAsBatch(viewId, EntityType.fileview, schema, rowsPerBatch, new RowBatchHandler() {
+		long crcResult = manager.streamOverAllEntitiesInViewAsBatch(viewId, ViewType.file, schema, rowsPerBatch, new RowBatchHandler() {
 			
 			long count = 0;
 			@Override
@@ -213,7 +226,7 @@ public class TableViewManagerImplTest {
 		final int rowsPerBatch = (int) (rowCount);
 		final List<Row> gatheredRows = new LinkedList<Row>();
 		// call under test
-		long crcResult = manager.streamOverAllEntitiesInViewAsBatch(viewId, EntityType.fileview, schema, rowsPerBatch, new RowBatchHandler() {
+		long crcResult = manager.streamOverAllEntitiesInViewAsBatch(viewId, ViewType.file, schema, rowsPerBatch, new RowBatchHandler() {
 			
 			long count = 0;
 			@Override

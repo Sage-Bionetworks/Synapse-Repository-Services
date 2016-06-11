@@ -7,6 +7,7 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.RowBatchHandler;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ViewType;
 
 /**
  * Business logic for materialized table views.
@@ -22,7 +23,7 @@ public interface TableViewManager {
 	 * @param viewId
 	 */
 	public void setViewSchemaAndScope(UserInfo userInfo, List<String> schema,
-			List<String> scope, String viewId);
+			List<String> scope, ViewType type, String viewId);
 	
 	
 	/**
@@ -34,7 +35,7 @@ public interface TableViewManager {
 	 * @param rowBatchHandler
 	 * @return
 	 */
-	public Long streamOverAllEntitiesInViewAsBatch(String tableId, EntityType type,
+	public Long streamOverAllEntitiesInViewAsBatch(String tableId, ViewType type,
 			List<ColumnModel> currentSchema, int rowsPerBatch, RowBatchHandler rowBatchHandler);
 	
 	

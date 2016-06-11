@@ -31,6 +31,7 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
+import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.repo.transactions.RequiresNewReadCommitted;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -255,8 +256,8 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		switch (type) {
 		case table:
 			return ObjectType.TABLE;
-		case fileview:
-			return ObjectType.FILE_VIEW;
+		case entityview:
+			return ObjectType.ENTITY_VIEW;
 		default:
 			throw new IllegalArgumentException("unknown table type: " + type);
 		}
@@ -271,12 +272,12 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	public Long calculateFileViewCRC32(String tableId) {
 		// Start with all container IDs that define the view's scope
 		Set<Long> viewContainers = getAllContainerIdsForViewScope(tableId);
-		EntityType type = getTableEntityType(tableId);
+		ViewType type = getViewType(tableId);
 		return calculateFileViewCRC32(viewContainers, type);
 	}
 	
 	@Override
-	public Long calculateFileViewCRC32(Set<Long> viewContainers, EntityType type) {
+	public Long calculateFileViewCRC32(Set<Long> viewContainers, ViewType type) {
 		// Calculate the crc for the containers.
 		return fileViewDao.calculateCRCForAllEntitiesWithinContainers(viewContainers, type);
 	}
@@ -312,11 +313,12 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		case TABLE:
 			// For TableEntity the version of the last change set is used.
 			return getVersionOfLastTableEntityChange(tableId);
-		case FILE_VIEW:
+		case ENTITY_VIEW:
 			// For FileViews the CRC of all files in the view is used.
 			return calculateFileViewCRC32(tableId);
+		default:
+			throw new IllegalArgumentException("unknown table type: " + type);
 		}
-		throw new IllegalArgumentException("unknown table type: " + type);
 	}
 	
 	@Override
@@ -406,10 +408,15 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	public EntityType getTableEntityType(String tableId) {
 		return nodeDao.getNodeTypeById(tableId);
 	}
+	
+	@Override
+	public ViewType getViewType(String tableId){
+		return viewScopeDao.getViewType(KeyFactory.stringToKey(tableId));
+	}
 
 	@Override
-	public List<ColumnModel> getDefaultTableViewColumns(EntityType viewType) {
-		if(!EntityType.fileview.equals(viewType)){
+	public List<ColumnModel> getDefaultTableViewColumns(ViewType viewType) {
+		if(!ViewType.file.equals(viewType)){
 			throw new IllegalArgumentException("Unsupported type: "+viewType);
 		}
 		List<ColumnModel> list = new LinkedList<ColumnModel>();

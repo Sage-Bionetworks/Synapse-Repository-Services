@@ -16,7 +16,6 @@ import org.sagebionetworks.repo.model.dbo.migration.MigratableTableDAOImpl;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 
 /**
  * Unit test for MigatableTableDAOImpl

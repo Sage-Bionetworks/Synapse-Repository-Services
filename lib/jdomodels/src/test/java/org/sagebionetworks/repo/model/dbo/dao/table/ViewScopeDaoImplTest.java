@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.dao.table;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -9,7 +10,11 @@ import java.util.Set;
 import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
+import org.sagebionetworks.repo.model.table.ViewType;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
@@ -21,6 +26,8 @@ public class ViewScopeDaoImplTest {
 
 	@Autowired
 	ViewScopeDao viewScopeDao;
+	@Autowired
+	DBOBasicDao basicDao;
 	
 	@After
 	public void after(){
@@ -32,10 +39,38 @@ public class ViewScopeDaoImplTest {
 		long viewId1 = 123L;
 		Set<Long> containers = Sets.newHashSet(444L,555L);
 		// one
-		viewScopeDao.setViewScope(viewId1, containers);
+		viewScopeDao.setViewScopeAndType(viewId1, containers, ViewType.file);
 		// find the intersection
 		Set<Long> fetched = viewScopeDao.getViewScope(viewId1);
 		assertEquals(containers, fetched);
+		assertEquals(ViewType.file, viewScopeDao.getViewType(viewId1));
+	}
+	
+	@Test
+	public void testSetViewScopeUpdateEtagChange(){
+		long viewId1 = 123L;
+		Set<Long> containers = Sets.newHashSet(444L,555L);
+		// one
+		viewScopeDao.setViewScopeAndType(viewId1, containers, ViewType.file);
+		
+		// check the value in the database.
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue("viewId", viewId1);
+		DBOViewType dboType = basicDao.getObjectByPrimaryKey(DBOViewType.class, param);
+		assertNotNull(dboType);
+		assertEquals(new Long(viewId1), dboType.getViewId());
+		assertNotNull(dboType.getEtag());
+		assertEquals(ViewType.file.name(), dboType.getViewType());
+		String startEtag = dboType.getEtag();
+		
+		// update one
+		containers = Sets.newHashSet(444L);
+		// one
+		viewScopeDao.setViewScopeAndType(viewId1, containers, ViewType.file);
+		// check the etag
+		dboType = basicDao.getObjectByPrimaryKey(DBOViewType.class, param);
+		assertNotNull(dboType.getEtag());
+		assertFalse("Etag should have changed",startEtag.equals(dboType.getEtag()));
 	}
 	
 	@Test
@@ -43,7 +78,7 @@ public class ViewScopeDaoImplTest {
 		long viewId1 = 123L;
 		Set<Long> containers = Sets.newHashSet(444L,555L);
 		// one
-		viewScopeDao.setViewScope(viewId1, containers);
+		viewScopeDao.setViewScopeAndType(viewId1, containers, ViewType.file);
 		// find the intersection
 		Set<Long> intersection = viewScopeDao.findViewScopeIntersectionWithPath(containers);
 		assertNotNull(intersection);
@@ -56,10 +91,10 @@ public class ViewScopeDaoImplTest {
 		long viewId1 = 123L;
 		Set<Long> containers = Sets.newHashSet(444L,555L);
 		// one
-		viewScopeDao.setViewScope(viewId1, containers);
+		viewScopeDao.setViewScopeAndType(viewId1, containers, ViewType.file);
 		// change the values
 		containers = Sets.newHashSet(555L,777L);
-		viewScopeDao.setViewScope(viewId1, containers);
+		viewScopeDao.setViewScopeAndType(viewId1, containers, ViewType.file);
 		// The 444 container should no longer intersect with view 123
 		Set<Long> intersection = viewScopeDao.findViewScopeIntersectionWithPath(Sets.newHashSet(444L));
 		assertNotNull(intersection);
@@ -81,9 +116,9 @@ public class ViewScopeDaoImplTest {
 		long viewId1 = 123L;
 		long viewId2 = 456L;
 		// one
-		viewScopeDao.setViewScope(viewId1, Sets.newHashSet(444L,555L));
+		viewScopeDao.setViewScopeAndType(viewId1, Sets.newHashSet(444L,555L), ViewType.file);
 		// two
-		viewScopeDao.setViewScope(viewId2, Sets.newHashSet(555L,888L));
+		viewScopeDao.setViewScopeAndType(viewId2, Sets.newHashSet(555L,888L), ViewType.file);
 		// 555 should intersect with views 123 and 456
 		Set<Long> results = viewScopeDao.findViewScopeIntersectionWithPath(Sets.newHashSet(555L));
 		assertEquals(Sets.newHashSet(viewId1, viewId2), results);
@@ -101,7 +136,7 @@ public class ViewScopeDaoImplTest {
 		long viewId1 = 123L;
 		Set<Long> containers = Sets.newHashSet(444L,555L);
 		// one
-		viewScopeDao.setViewScope(viewId1, containers);
+		viewScopeDao.setViewScopeAndType(viewId1, containers, ViewType.file);
 		// find the intersection
 		Set<Long> intersection = viewScopeDao.findViewScopeIntersectionWithPath(containers);
 		assertNotNull(intersection);
@@ -110,7 +145,7 @@ public class ViewScopeDaoImplTest {
 		
 		// set the scope null
 		containers = null;
-		viewScopeDao.setViewScope(viewId1, containers);
+		viewScopeDao.setViewScopeAndType(viewId1, containers, ViewType.file);
 		
 		// No intersection should be found
 		intersection = viewScopeDao.findViewScopeIntersectionWithPath(Sets.newHashSet(444L,555L));

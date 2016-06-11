@@ -1,9 +1,0 @@
-{
-    "title":"Table",
-    "description":"A FileView is a materialized view of file metadata.",
-    "implements":[
-        {
-            "$ref":"org.sagebionetworks.repo.model.table.TableView"
-        }
-    ]
-}

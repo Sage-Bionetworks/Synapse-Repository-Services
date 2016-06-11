@@ -27,8 +27,9 @@ import org.sagebionetworks.repo.model.Preview;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.SchemaCache;
-import org.sagebionetworks.repo.model.table.FileView;
+import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.TableEntity;
+import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.sample.Example;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.TYPE;
@@ -314,12 +315,13 @@ public class NodeTranslationUtilsTest {
 	
 	@Test
 	public void testFileViewSetAmdGet() throws InstantiationException, IllegalAccessException{
-		FileView view = new FileView();
+		EntityView view = new EntityView();
 		view.setName("viewName");
+		view.setType(ViewType.file);
 		view.setColumnIds(Lists.newArrayList("1","2"));
 		view.setScopeIds(Lists.newArrayList("syn4","5"));
 		
-		FileView clone = cloneUsingNodeTranslation(view);
+		EntityView clone = cloneUsingNodeTranslation(view);
 		assertNotNull(clone);
 		assertEquals(view, clone);
 	}
