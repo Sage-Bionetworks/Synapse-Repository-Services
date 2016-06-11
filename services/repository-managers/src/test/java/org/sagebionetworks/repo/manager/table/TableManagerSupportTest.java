@@ -491,8 +491,9 @@ public class TableManagerSupportTest {
 	public void testGetTableVersionForFileView() {
 		Long crc32 = 45678L;
 		ViewType type = ViewType.file;
-		when(mockFileViewDao.calculateCRCForAllEntitiesWithinContainers(containersInScope, type)).thenReturn(crc32);
 		when(mockViewScopeDao.getViewType(tableIdLong)).thenReturn(type);
+		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.entityview);
+		when(mockFileViewDao.calculateCRCForAllEntitiesWithinContainers(containersInScope, type)).thenReturn(crc32);
 		// call under test
 		Long version = manager.getTableVersion(tableId);
 		assertEquals(crc32, version);
