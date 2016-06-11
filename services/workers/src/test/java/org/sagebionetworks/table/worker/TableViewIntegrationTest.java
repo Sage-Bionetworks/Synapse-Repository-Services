@@ -117,7 +117,7 @@ public class TableViewIntegrationTest {
 		entitiesToDelete = new LinkedList<String>();
 		
 		project = new Project();
-		project.setName("TableViewIntegrationTestProject");
+		project.setName(UUID.randomUUID().toString());
 		String projectId = entityManager.createEntity(adminUserInfo, project, null);
 		project = entityManager.getEntity(adminUserInfo, projectId, Project.class);
 		entitiesToDelete.add(projectId);

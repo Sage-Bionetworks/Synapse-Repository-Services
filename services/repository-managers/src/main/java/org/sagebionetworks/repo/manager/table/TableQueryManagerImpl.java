@@ -5,16 +5,12 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
-import javax.swing.text.TableView;
-
 import org.apache.commons.lang.BooleanUtils;
 import org.apache.commons.lang.StringUtils;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
@@ -235,9 +231,8 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		
 		// Validate the user has read access on this object
 		EntityType tableType = tableManagerSupport.validateTableReadAccess(user, query.getTableId());
-		Class<? extends Entity> tableTypeClass = EntityTypeUtils.getClassForType(tableType);
 		SqlQuery filteredQuery = null;
-		if(TableView.class.isAssignableFrom(tableTypeClass)){
+		if(EntityType.entityview.equals(tableType)){
 			// Table views must have a row level filter applied to the query
 			filteredQuery = addRowLevelFilter(user, query, indexDao);
 		}else{

@@ -36,7 +36,7 @@
 									ref="stackConfiguration.workerQueueName[TableViewWorker]" />
 								<property name="topicNamesToSubscribe">
 									<list>
-										<ref bean="stackConfiguration.repositoryChangeTopic[FILE_VIEW]" />
+										<ref bean="stackConfiguration.repositoryChangeTopic[ENTITY_VIEW]" />
 									</list>
 								</property>								
 								<property name="gate">
