@@ -162,7 +162,7 @@
 				<entry key="table">
 					<ref bean="tableEntityMetadataProvider"/>
 				</entry>
-				<entry key="entityView">
+				<entry key="entityview">
 					<ref bean="entityiewMetadataProvider"/>
 				</entry>				
 			</map>

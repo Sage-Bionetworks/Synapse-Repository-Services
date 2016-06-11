@@ -55,7 +55,9 @@ import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.TableEntity;
+import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.service.EntityService;
@@ -233,6 +235,13 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 					List<String> idList = new LinkedList<String>();
 					idList.add(columnModelOne.getId());
 					table.setColumnIds(idList);
+				}
+				if(object instanceof EntityView){
+					EntityView view = (EntityView) object;
+					List<String> idList = new LinkedList<String>();
+					idList.add(columnModelOne.getId());
+					view.setColumnIds(idList);
+					view.setType(ViewType.file);
 				}
 				Entity clone = servletTestHelper.createEntity(dispatchServlet, object, userId);
 				assertNotNull(clone);

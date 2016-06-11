@@ -273,12 +273,12 @@ public class TableController extends BaseController {
 	 * Get the list of default <a
 	 * href="${org.sagebionetworks.repo.model.table.ColumnModel}">ColumnModels
 	 * </a> that are available for a <a
-	 * href="${org.sagebionetworks.repo.model.table.TableView}">TableView
-	 * </a> schema for the given view type.
+	 * href="${org.sagebionetworks.repo.model.table.ViewType}">ViewType
+	 * </a>.
 	 * 
 	 * @param viewtype Must be a value from <a
-	 * href="${org.sagebionetworks.repo.model.EntityType}">EntityType
-	 * </a> enumeration. For example, use 'fileview' for a FileView.
+	 * href="${org.sagebionetworks.repo.model.table.ViewType}">ViewType
+	 * </a> enumeration.
 	 * @return -
 	 * @throws DatastoreException
 	 *             - Synapse error.
