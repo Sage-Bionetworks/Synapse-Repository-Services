@@ -37,22 +37,19 @@ public class StackStatusInterceptor implements HandlerInterceptor {
 		if(prefix != null && prefix.indexOf(UrlHelpers.MIGRATION) > -1){
 			return true;
 		}
+		// We want all health check to go through not matter what.
+		if(prefix != null && prefix.indexOf(UrlHelpers.VERSION) > -1){
+			return true;
+		}
 		
 		// Get the current stack status
 		StatusEnum status = stackStatusDao.getCurrentStatus();
-		if(StatusEnum.DOWN == status){
-			StackStatus full = stackStatusDao.getFullCurrentStatus();
-			throw new ServiceUnavailableException("Synapse is down for maintenance.  Message: "+full.getCurrentMessage());
-		}else if(StatusEnum.READ_WRITE == status){
+		if(StatusEnum.READ_WRITE == status){
 			return true;
-		}else if(StatusEnum.READ_ONLY == status){
-			// Allow all GETs
-			if("GET".equals(request.getMethod())){
-				return true;
-			}else{
-				StackStatus full = stackStatusDao.getFullCurrentStatus();
-				throw new ServiceUnavailableException("Synapse is in READ_ONLY mode for maintenance.  Only HTTP GETs are allowed at this time.  Message: "+full.getCurrentMessage());
-			}
+		}
+		if (StatusEnum.READ_ONLY == status || StatusEnum.DOWN == status) {
+			StackStatus full = stackStatusDao.getFullCurrentStatus();
+			throw new ServiceUnavailableException("Synapse is down for maintenance. Message: "+full.getCurrentMessage());
 		}else{
 			throw new IllegalStateException("Unknown Synapse status: "+status);
 		}
