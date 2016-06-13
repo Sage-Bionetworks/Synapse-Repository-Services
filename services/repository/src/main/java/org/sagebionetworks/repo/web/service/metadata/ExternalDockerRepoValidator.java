@@ -27,7 +27,7 @@ public class ExternalDockerRepoValidator implements EntityValidator<DockerReposi
 		String hostSansPort = DockerNameUtil.getRegistryHostSansPort(registryHost);
 		List<String> reservedHostRegexps = StackConfiguration.getDockerReservedRegistryHosts();
 		for (String reservedHostRegexp : reservedHostRegexps) {
-			if (Pattern.compile(reservedHostRegexp).matcher(hostSansPort).matches()) 
+			if (Pattern.compile(reservedHostRegexp).matcher(hostSansPort).find()) 
 				return true;
 		}
 		return false;
