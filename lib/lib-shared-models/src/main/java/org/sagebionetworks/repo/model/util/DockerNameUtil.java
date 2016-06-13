@@ -16,14 +16,17 @@ public class DockerNameUtil {
 	
 	// we keep the Regexp name from Docker.  It could more accurately be called 'lowerCaseAlpha...'
 	private static final String alphaNumericRegexp = "[a-z0-9]+";
+	
 	private static final String separatorRegexp = "[._]|__|[-]*";
 
 	private static final String nameComponentRegexp = alphaNumericRegexp +
-								"("+separatorRegexp+alphaNumericRegexp+")*";
+			"("+separatorRegexp+alphaNumericRegexp+")*";
+
+	private static final String REPO_NAME_PATH_SEP = "/";
 	
-	public static final String REPO_NAME_PATH_SEP = "/";
-	
-	public static final String PathRegexp = nameComponentRegexp+"("+REPO_NAME_PATH_SEP+nameComponentRegexp+")*";
+	// here we deviate slightly from the .go code:  By requiring that the first part of the path not have
+	// separator characters we can differentiate between a host name (like 'quay.io') and a repo name.
+	private static final String PathRegexp = alphaNumericRegexp+"("+REPO_NAME_PATH_SEP+nameComponentRegexp+")*";
 	
 	private static final String NameRegexp = "("+hostnameRegexp+REPO_NAME_PATH_SEP+")?"+PathRegexp;
 	
@@ -53,6 +56,9 @@ public class DockerNameUtil {
 		}
 	}
 	
+	/*
+	 * Given a validate host name with optional port, return just the host name
+	 */
 	public static String getRegistryHostSansPort(String host) {
 		if (host==null) return null;
 		int colon = host.indexOf(":");

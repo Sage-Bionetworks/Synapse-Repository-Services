@@ -2,7 +2,7 @@ package org.sagebionetworks.repo.model.util;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 import java.util.regex.Pattern;
 
@@ -13,12 +13,30 @@ public class DockerNameUtilTest {
 
 	private static final Pattern HOSTNAME_PATTERN = Pattern.compile("^"+DockerNameUtil.hostnameRegexp+"$");
 	
-	public static void assertIsHostName(String name) {
+	private static void assertIsHostName(String name) {
 		assertTrue(HOSTNAME_PATTERN.matcher(name).matches());
 	}
 
-	public static void assertIsNOTHostName(String name) {
+	private static void assertIsNOTHostName(String name) {
 		assertFalse(HOSTNAME_PATTERN.matcher(name).matches());
+	}
+
+	private static void assertIsRepoPath(String name) {
+		try {
+			DockerNameUtil.validateName(name);
+			// pass
+		} catch (IllegalArgumentException e) {
+			fail();
+		}
+	}
+
+	private static void assertIsNOTRepoPath(String name) {
+		try {
+			DockerNameUtil.validateName(name);
+			fail();
+		} catch (IllegalArgumentException e) {
+			// pass
+		}
 	}
 
 	@Test
@@ -30,30 +48,44 @@ public class DockerNameUtilTest {
 		assertIsHostName("www.dockerhub.com");
 		assertIsHostName("syn-AP-se");
 		assertIsHostName("syn.apse");
-		
 		assertIsNOTHostName("syn-");
 		assertIsNOTHostName("https://www.dockerhub.com");
 	}
-	
-	private static final Pattern REPO_PATH_PATTERN = Pattern.compile("^"+DockerNameUtil.hostnameRegexp+"$");
-	
-	public static void assertIsRepoPath(String name) {
-		assertTrue(REPO_PATH_PATTERN.matcher(name).matches());
-	}
 
-	public static void assertIsNOTRepoPath(String name) {
-		assertFalse(REPO_PATH_PATTERN.matcher(name).matches());
-	}
-
-	
 	
 	@Test
-	public void testGetRegistryHostAndName() {
+	public void testValidateName() {
+		// paths with no host
+		assertIsRepoPath("dockerhubuname/d0ckerhubrep0");
+		assertIsRepoPath("dockerhubuname/d0cker-hub_rep0");
+		assertIsRepoPath("a/path/with/lots/0f/parts");
+		assertIsNOTRepoPath("/apathwith/leadingslash");
+		assertIsNOTRepoPath("-apathwith/leadingdash");
+		assertIsNOTRepoPath("apathwith/trailingslash/");
+		assertIsNOTRepoPath("apathwith/UPPERcase");
+		
+		// paths with host
+		assertIsRepoPath("docker.syn-apse.org/prject/repo");
+		assertIsRepoPath("docker.synapse.org:443/prject/repo");
+		assertIsNOTRepoPath("docker.synapse.org:443");
+		assertIsNOTRepoPath("docker.synapse.org:443/");
+		assertIsNOTRepoPath("https://docker.synapse.org:443/prject/repo");
+	}
+	
+	@Test
+	public void testGetRegistryHost() {
+		assertEquals("docker.synapse.org", 
+				DockerNameUtil.getRegistryHost("docker.synapse.org/foo/bar"));
 		assertEquals("docker.synapse.org:443", 
 				DockerNameUtil.getRegistryHost("docker.synapse.org:443/foo/bar"));
 		assertNull(DockerNameUtil.getRegistryHost("foo/bar"));
 	}
 
-
+	@Test
+	public void testGetRegistryHostSansPort() {
+		assertEquals("docker.synapse.org", DockerNameUtil.getRegistryHostSansPort("docker.synapse.org:443"));
+		assertEquals("docker.synapse.org", DockerNameUtil.getRegistryHostSansPort("docker.synapse.org"));
+		assertNull(DockerNameUtil.getRegistryHostSansPort(null));
+	}
 
 }
