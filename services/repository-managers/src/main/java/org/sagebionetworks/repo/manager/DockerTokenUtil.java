@@ -5,48 +5,51 @@ import io.jsonwebtoken.Header;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 
+import java.io.ByteArrayInputStream;
 import java.security.KeyFactory;
 import java.security.MessageDigest;
 import java.security.PrivateKey;
 import java.security.PublicKey;
-import java.security.cert.CertificateParsingException;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.Date;
 import java.util.List;
-import java.util.UUID;
 
 import org.apache.commons.codec.binary.Base32;
 import org.apache.commons.net.util.Base64;
-import org.bouncycastle.asn1.x509.Certificate;
-import org.bouncycastle.jce.provider.X509CertificateObject;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
 import org.sagebionetworks.StackConfiguration;
 
 public class DockerTokenUtil {
 
-	private static final String ISSUER = "synapse.org";
+	private static final String ISSUER = "www.synapse.org";
 	private static final long TIME_WINDOW_SEC = 1200; // twenty minutes
 	private static final String ACCESS = "access";
 
-	public static String createToken(
-			PrivateKey privateKey, String keyId, String userName, String type, 
-			String registry, String repository, List<String> actions, long now) {
+	private static final String PUBLIC_KEY_ID;
+	private static final PrivateKey PRIVATE_KEY;
+	
+	static {
+		PRIVATE_KEY = readPrivateKey();
+		X509Certificate certificate = readCertificate();
+		PUBLIC_KEY_ID = computeKeyId(certificate.getPublicKey());
+	}
+
+	public static String createToken(String userName, String type, 
+			String registry, String repository, List<String> actions, long now, String uuid) {
 
 		JSONArray access = new JSONArray();
 		JSONObject accessEntry = new JSONObject();
-		try {
-			access.put(accessEntry);
-			accessEntry.put("type", type);
-			accessEntry.put("name", repository);
-			JSONArray actionArray = new JSONArray();
-			for (String action : actions) actionArray.put(action);
-			accessEntry.put("actions", actionArray);
-		} catch (JSONException e) {
-			throw new RuntimeException(e);
-		}
+
+		access.add(accessEntry);
+		accessEntry.put("type", type);
+		accessEntry.put("name", repository);
+		JSONArray actionArray = new JSONArray();
+		for (String action : actions) actionArray.add(action);
+		accessEntry.put("actions", actionArray);
 
 		Claims claims = Jwts.claims()
 				.setIssuer(ISSUER)
@@ -54,17 +57,19 @@ public class DockerTokenUtil {
 				.setExpiration(new Date(now+TIME_WINDOW_SEC*1000L))
 				.setNotBefore(new Date(now-TIME_WINDOW_SEC*1000L))
 				.setIssuedAt(new Date(now))
-				.setId(UUID.randomUUID().toString())
+				.setId(uuid)
 				.setSubject(userName);
 		claims.put(ACCESS, access);
-
+		
 		String s = Jwts.builder().setClaims(claims).
 				setHeaderParam(Header.TYPE, Header.JWT_TYPE).
-				setHeaderParam("kid", keyId).
-				signWith(SignatureAlgorithm.ES256, privateKey).compact();
+				setHeaderParam("kid", PUBLIC_KEY_ID).
+				signWith(SignatureAlgorithm.ES256, PRIVATE_KEY).compact();
 
-		// The signature created by the Jwts library is wrong.
-		// Here we regenerate it.
+		// The signature created by the Jwts library is wrong:
+		// The signature must be in P1363 format, NOT ASN.1, 
+		// which is what the code underlying 'compact()' generates when signing.
+		// Below we regenerate it.
 		try {
 			String[] pieces = s.split("\\.");
 			if (pieces.length!=3) throw new RuntimeException("Expected 3 pieces but found "+pieces.length);
@@ -124,9 +129,9 @@ public class DockerTokenUtil {
 	
 	public static final String KEY_GENERATION_ALGORITHM = "EC";
 
-	public static PrivateKey readPrivateKey() {
+	private static PrivateKey readPrivateKey() {
 		try {
-			KeyFactory factory = KeyFactory.getInstance(KEY_GENERATION_ALGORITHM, "BC");
+			KeyFactory factory = KeyFactory.getInstance(KEY_GENERATION_ALGORITHM);
 			byte[] content = Base64.decodeBase64(StackConfiguration.getDockerAuthorizationPrivateKey());
 			PKCS8EncodedKeySpec privKeySpec = new PKCS8EncodedKeySpec(content);
 			return factory.generatePrivate(privKeySpec);
@@ -135,20 +140,23 @@ public class DockerTokenUtil {
 		}
 	}
 	
-	public static X509Certificate readCertificate() {
+	private static X509Certificate readCertificate() {
 		try {
 			byte[] content = Base64.decodeBase64(StackConfiguration.getDockerAuthorizationCertificate());
-			Certificate certificate = Certificate.getInstance(content);
-			return new X509CertificateObject(certificate);
-		} catch (CertificateParsingException e) {
-			throw new RuntimeException(e);
+			CertificateFactory certFactory = CertificateFactory.getInstance("X.509");
+			X509Certificate certificate = (X509Certificate)certFactory.generateCertificate(new ByteArrayInputStream(content));
+			if (certificate.getPublicKey()==null) throw new RuntimeException();
+			return certificate;
+		} catch (CertificateException e) {
+			throw new RuntimeException(e);			
 		}
 	}
 
 	// from https://botbot.me/freenode/cryptography-dev/2015-12-04/?page=1
 	// SPKI DER SHA-256 hash, strip of the last two bytes, base32 encode it and then add a : every four chars.
-	public static String computeKeyId(PublicKey publicKey) {
+	private static String computeKeyId(PublicKey publicKey) {
 		try {
+			if (publicKey==null) throw new RuntimeException();
 			// http://stackoverflow.com/questions/3103652/hash-string-via-sha-256-in-java
 			MessageDigest md = MessageDigest.getInstance("SHA-256");
 			md.update(publicKey.getEncoded());
@@ -171,7 +179,4 @@ public class DockerTokenUtil {
 			throw new RuntimeException(e);
 		}
 	}
-
-
-
 }

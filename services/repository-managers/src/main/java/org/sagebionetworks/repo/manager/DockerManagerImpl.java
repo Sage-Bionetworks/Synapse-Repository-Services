@@ -7,6 +7,7 @@ import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -52,15 +53,6 @@ public class DockerManagerImpl implements DockerManager {
 	@Autowired
 	AuthorizationManager authorizationManager;
 	
-	private static final String PUBLIC_KEY_ID;
-	private static final PrivateKey PRIVATE_KEY;
-	
-	static {
-		PRIVATE_KEY = DockerTokenUtil.readPrivateKey();
-		X509Certificate certificate = DockerTokenUtil.readCertificate();
-		PUBLIC_KEY_ID = DockerTokenUtil.computeKeyId(certificate.getPublicKey());
-	}
-
 	/**
 	 * Answer Docker Registry authorization request.
 	 * 
@@ -129,9 +121,10 @@ public class DockerManagerImpl implements DockerManager {
 
 		// now construct the auth response and return it
 		long now = System.currentTimeMillis();
-		String token = DockerTokenUtil.createToken(
-				PRIVATE_KEY, PUBLIC_KEY_ID, userName, type, service, repositoryName, 
-				permittedAccessTypes, now);
+		String uuid = UUID.randomUUID().toString();
+		
+		String token = DockerTokenUtil.createToken(userName, type, service, repositoryName, 
+				permittedAccessTypes, now, uuid);
 		DockerAuthorizationToken result = new DockerAuthorizationToken();
 		result.setToken(token);
 		return result;

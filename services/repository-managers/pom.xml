@@ -100,7 +100,7 @@
 		<dependency>
 			<groupId>org.springframework</groupId>
 			<artifactId>spring-context-support</artifactId>
-		</dependency>		
+		</dependency>
 		<dependency>
 			<groupId>org.springframework</groupId>
 			<artifactId>spring-web</artifactId>
@@ -136,7 +136,7 @@
 			<scope>compile</scope>
 		</dependency>
 		<dependency>
-		    <groupId>org.quartz-scheduler</groupId>
+			<groupId>org.quartz-scheduler</groupId>
 			<artifactId>quartz</artifactId>
 		</dependency>
 		<dependency>
@@ -204,21 +204,28 @@
 			<artifactId>json</artifactId>
 			<version>${org.json.version}</version>
 		</dependency>
-		
-        <!-- Convert .pdf to .png -->
-        <dependency>
-          <groupId>org.apache.pdfbox</groupId>
-          <artifactId>pdfbox</artifactId>
-          <version>1.8.10</version>
-        </dependency>
-        
-        <dependency>
+
+		<!-- Convert .pdf to .png -->
+		<dependency>
+			<groupId>org.apache.pdfbox</groupId>
+			<artifactId>pdfbox</artifactId>
+			<version>1.8.10</version>
+		</dependency>
+
+		<dependency>
 			<groupId>io.jsonwebtoken</groupId>
 			<artifactId>jjwt</artifactId>
 			<version>0.6.0</version>
 		</dependency>
-		
+
+		<!-- jsonwebtoken seems to need this JSON library -->
 		<dependency>
+			<groupId>com.googlecode.json-simple</groupId>
+			<artifactId>json-simple</artifactId>
+			<version>1.1</version>
+		</dependency>
+
+		<!--dependency>
 			<groupId>org.bouncycastle</groupId>
 			<artifactId>bcprov-jdk15on</artifactId>
 			<version>1.51</version>
@@ -233,8 +240,8 @@
 			<groupId>org.bouncycastle</groupId>
 			<artifactId>bcprov-ext-jdk15on</artifactId>
 			<version>1.54</version>
-		</dependency>
-        
+		</dependency-->
+		
 	</dependencies>
 
 	<build>
@@ -273,6 +280,7 @@
 					<argLine>-Xmx1024m -Xms128m</argLine>
 				</configuration>
 			</plugin>
+
 			<plugin>
 				<groupId>org.sagebionetworks</groupId>
 				<artifactId>schema-to-pojo-maven-plugin</artifactId>
