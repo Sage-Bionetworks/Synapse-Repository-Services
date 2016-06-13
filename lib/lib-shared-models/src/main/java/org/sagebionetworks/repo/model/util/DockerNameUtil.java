@@ -14,7 +14,7 @@ public class DockerNameUtil {
 	public static final String hostnameRegexp = hostnameComponentRegexp+
 									"(\\.|"+hostnameComponentRegexp+")*"+"(:[0-9]+)?";
 	
-	// we keep the Regexp name from Docker, but it should be called 'lowerCaseAlpha...'
+	// we keep the Regexp name from Docker.  It could more accurately be called 'lowerCaseAlpha...'
 	private static final String alphaNumericRegexp = "[a-z0-9]+";
 	private static final String separatorRegexp = "[._]|__|[-]*";
 
