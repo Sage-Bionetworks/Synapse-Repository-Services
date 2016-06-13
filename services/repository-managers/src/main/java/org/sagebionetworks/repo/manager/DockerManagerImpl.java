@@ -2,8 +2,6 @@ package org.sagebionetworks.repo.manager;
 
 import static org.sagebionetworks.repo.model.util.DockerNameUtil.REPO_NAME_PATH_SEP;
 
-import java.security.PrivateKey;
-import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -188,6 +186,7 @@ public class DockerManagerImpl implements DockerManager {
 				String repositoryName = event.getTarget().getRepository();
 				String entityName = host+REPO_NAME_PATH_SEP+repositoryName;
 				String parentId = getParentIdFromRepositoryName(repositoryName);
+				if (parentId==null) throw new IllegalArgumentException("parentId is required.");
 				DockerCommit commit = new DockerCommit();
 				commit.setTag(event.getTarget().getTag());
 				commit.setDigest(event.getTarget().getDigest());
@@ -204,7 +203,12 @@ public class DockerManagerImpl implements DockerManager {
 					entityId = entityHeader.getId();
 				} catch (NotFoundException nfe) {
 					// The node doesn't already exist
-
+					List<EntityHeader> headers = nodeDAO.getEntityHeader(Collections.singleton(KeyFactory.stringToKey(parentId)));
+					if (headers.size()==0) throw new NotFoundException("parentId "+parentId+" does not exist.");
+					if (headers.size()>1) throw new IllegalStateException("Expected 0-1 result for "+parentId+" but found "+headers.size());
+					if (EntityType.valueOf(headers.get(0).getType())!=EntityType.project) {
+						throw new IllegalArgumentException("Parent must be a project.");
+					}
 					DockerRepository entity = new DockerRepository();
 					entity.setIsManaged(true);
 					entity.setName(entityName);

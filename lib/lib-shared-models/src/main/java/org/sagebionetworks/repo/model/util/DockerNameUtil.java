@@ -1,13 +1,10 @@
 package org.sagebionetworks.repo.model.util;
 
-import java.util.Arrays;
-import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 
 public class DockerNameUtil {
-
 	// the regexps in this file are adapted from
 	// https://github.com/docker/distribution/blob/master/reference/regexp.go
 	// (Note: The cited source is controlled by this license: https://github.com/docker/distribution/blob/master/LICENSE)
@@ -56,13 +53,10 @@ public class DockerNameUtil {
 		}
 	}
 	
-	/*
-	 * Get the registries which delegate authorization to Synapse
-	 */
-	public static List<String> getSynapseRegistries() {
-		// TODO read from configuration file
-		return Arrays.asList("docker.synapse.org");
+	public static String getRegistryHostSansPort(String host) {
+		if (host==null) return null;
+		int colon = host.indexOf(":");
+		if (colon<0) return host;
+		return host.substring(0, colon);
 	}
-	
-
 }
