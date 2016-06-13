@@ -22,7 +22,7 @@ public class DockerNameUtil {
 	private static final String nameComponentRegexp = alphaNumericRegexp +
 			"("+separatorRegexp+alphaNumericRegexp+")*";
 
-	private static final String REPO_NAME_PATH_SEP = "/";
+	public static final String REPO_NAME_PATH_SEP = "/";
 	
 	// here we deviate slightly from the .go code:  By requiring that the first part of the path not have
 	// separator characters we can differentiate between a host name (like 'quay.io') and a repo name.

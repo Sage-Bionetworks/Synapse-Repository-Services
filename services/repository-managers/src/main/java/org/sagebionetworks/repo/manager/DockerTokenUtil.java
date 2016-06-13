@@ -140,7 +140,7 @@ public class DockerTokenUtil {
 		}
 	}
 	
-	private static X509Certificate readCertificate() {
+	public static X509Certificate readCertificate() {
 		try {
 			byte[] content = Base64.decodeBase64(StackConfiguration.getDockerAuthorizationCertificate());
 			CertificateFactory certFactory = CertificateFactory.getInstance("X.509");

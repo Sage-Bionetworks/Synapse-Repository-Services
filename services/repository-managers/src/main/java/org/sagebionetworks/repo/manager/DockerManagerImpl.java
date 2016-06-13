@@ -36,22 +36,22 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class DockerManagerImpl implements DockerManager {
 	@Autowired
 	private NodeDAO nodeDAO;
-	
+
 	@Autowired
 	IdGenerator idGenerator;
-	
+
 	@Autowired
 	UserManager userManager;
-	
+
 	@Autowired
 	EntityManager entityManager;
-	
+
 	@Autowired
 	PrincipalAliasDAO principalAliasDAO;
-	
+
 	@Autowired
 	AuthorizationManager authorizationManager;
-	
+
 	/**
 	 * Answer Docker Registry authorization request.
 	 * 
@@ -65,70 +65,77 @@ public class DockerManagerImpl implements DockerManager {
 		String[] scopeParts = scope.split(":");
 		if (scopeParts.length!=3) throw new RuntimeException("Expected 3 parts but found "+scopeParts.length);
 		String type = scopeParts[0]; // type='repository'
-		String repositoryName = scopeParts[1]; // i.e. the 'path'
+		String repositoryPath = scopeParts[1]; // i.e. the 'path'
 		String accessTypes = scopeParts[2]; // e.g. push, pull
-		
-		List<String> permittedAccessTypes = new ArrayList<String>();
 
-		String parentId = validParentProjectId(repositoryName);
-		
-		if (parentId!=null) {
-			String entityName = repositoryName.substring(parentId.length()+1);
-			EntityHeader entityHeader = null;
-			try {
-				entityHeader = nodeDAO.getEntityHeaderByChildName(parentId, entityName);
-			} catch (NotFoundException nfe) {
-				entityHeader = null;
-			}
-			String existingDockerRepoId = null;
-			if (entityHeader!=null && EntityType.valueOf(entityHeader.getType()) == EntityType.dockerrepo) {
-				existingDockerRepoId = entityHeader.getId();
-			}
-
-			for (String requestedAccessTypeString : accessTypes.split(",")) {
-				RegistryEventAction requestedAccessType = RegistryEventAction.valueOf(requestedAccessTypeString);
-				switch (requestedAccessType) {
-				case push:
-					// check CREATE or UPDATE permission and add to permittedAccessTypes
-					if (existingDockerRepoId==null) {
-						// check for create permission on parent
-						Node node = new Node();
-						node.setParentId(parentId);
-						node.setNodeType(EntityType.dockerrepo);
-						AuthorizationStatus as = authorizationManager.canCreate(userInfo, node);
-						if (as.getAuthorized()) permittedAccessTypes.add(requestedAccessType.name());
-					} else {
-						// check update permission on this entity
-						AuthorizationStatus as = authorizationManager.canAccess(
-								userInfo, existingDockerRepoId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE);
-						if (as.getAuthorized()) permittedAccessTypes.add(requestedAccessType.name());
-					}
-					break;
-				case pull:
-					// check DOWNLOAD permission and add to permittedAccessTypes
-					if (existingDockerRepoId!=null) {
-						AuthorizationStatus as = authorizationManager.canAccess(
-								userInfo, existingDockerRepoId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD);
-						if (as.getAuthorized()) permittedAccessTypes.add(requestedAccessType.name());
-					}
-					break;
-				default:
-					throw new RuntimeException("Unexpected access type: "+requestedAccessType);
-				}
-			}
-		}
-
+		List<String> permittedAccessTypes = getPermittedAccessTypes( userName,  userInfo,  service,  type, repositoryPath, accessTypes);
 		// now construct the auth response and return it
 		long now = System.currentTimeMillis();
 		String uuid = UUID.randomUUID().toString();
-		
-		String token = DockerTokenUtil.createToken(userName, type, service, repositoryName, 
+
+		String token = DockerTokenUtil.createToken(userName, type, service, repositoryPath, 
 				permittedAccessTypes, now, uuid);
 		DockerAuthorizationToken result = new DockerAuthorizationToken();
 		result.setToken(token);
 		return result;
+
 	}
-	
+
+	public List<String> getPermittedAccessTypes(String userName, UserInfo userInfo, 
+			String service, String type, String repositoryPath, String accessTypes) {
+
+		List<String> permittedAccessTypes = new ArrayList<String>();
+
+		String parentId = validParentProjectId(repositoryPath);
+
+		if (parentId==null) return permittedAccessTypes;
+
+		String entityName = repositoryPath.substring(parentId.length()+1);
+		EntityHeader entityHeader = null;
+		try {
+			entityHeader = nodeDAO.getEntityHeaderByChildName(parentId, entityName);
+		} catch (NotFoundException nfe) {
+			entityHeader = null;
+		}
+		String existingDockerRepoId = null;
+		if (entityHeader!=null && EntityType.valueOf(entityHeader.getType()) == EntityType.dockerrepo) {
+			existingDockerRepoId = entityHeader.getId();
+		}
+
+		for (String requestedAccessTypeString : accessTypes.split(",")) {
+			RegistryEventAction requestedAccessType = RegistryEventAction.valueOf(requestedAccessTypeString);
+			AuthorizationStatus as = null;
+			switch (requestedAccessType) {
+			case push:
+				// check CREATE or UPDATE permission and add to permittedAccessTypes
+				if (existingDockerRepoId==null) {
+					// check for create permission on parent
+					Node node = new Node();
+					node.setParentId(parentId);
+					node.setNodeType(EntityType.dockerrepo);
+					as = authorizationManager.canCreate(userInfo, node);
+				} else {
+					// check update permission on this entity
+					as = authorizationManager.canAccess(
+							userInfo, existingDockerRepoId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE);
+				}
+				break;
+			case pull:
+				// check DOWNLOAD permission and add to permittedAccessTypes
+				if (existingDockerRepoId!=null) {
+					as = authorizationManager.canAccess(
+							userInfo, existingDockerRepoId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD);
+				}
+				break;
+			default:
+				throw new RuntimeException("Unexpected access type: "+requestedAccessType);
+			}
+			if (as!=null && as.getAuthorized()) permittedAccessTypes.add(requestedAccessType.name());
+		}
+		return permittedAccessTypes;
+	}
+
+
 	/*
 	 * Given a repository path, return a valid parent Id, 
 	 * a project which has been verified to exist. 
@@ -157,7 +164,7 @@ public class DockerManagerImpl implements DockerManager {
 		if (!header.getType().equals(EntityType.project.name())) return null; // parent must be a project!
 		return header.getId();
 	}
-	
+
 	private static String getParentIdFromRepositoryName(String name) {
 		int i = name.indexOf(REPO_NAME_PATH_SEP);
 		String result = name;
@@ -193,7 +200,7 @@ public class DockerManagerImpl implements DockerManager {
 				PrincipalAlias pa = userManager.lookupPrincipalByAlias(username);
 				if(AliasType.TEAM_NAME.equals(pa.getType())) throw new RuntimeException(username+" is a Team name.");
 				Long userId = pa.getPrincipalId();
-				
+
 				String entityId = null;
 				try {
 					EntityHeader entityHeader = nodeDAO.getEntityHeaderByChildName(parentId, entityName);

@@ -33,7 +33,6 @@ public class ExternalDockerRepoValidatorTest {
 	public void before() {
 		MockitoAnnotations.initMocks(this);
 		provider = new ExternalDockerRepoValidator();
-		assertNotNull(nodeDAO);
 		ReflectionTestUtils.setField(provider, "nodeDAO", nodeDAO);
 	}
 	
