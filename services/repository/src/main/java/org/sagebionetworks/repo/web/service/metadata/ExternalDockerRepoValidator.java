@@ -3,11 +3,11 @@ package org.sagebionetworks.repo.web.service.metadata;
 import java.util.Arrays;
 import java.util.List;
 
-import org.sagebionetworks.repo.manager.DockerNameUtil;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.docker.DockerRepository;
+import org.sagebionetworks.repo.model.util.DockerNameUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public class ExternalDockerRepoValidator implements EntityValidator<DockerRepository> {

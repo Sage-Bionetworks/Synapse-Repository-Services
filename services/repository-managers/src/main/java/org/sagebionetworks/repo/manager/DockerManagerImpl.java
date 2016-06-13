@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.sagebionetworks.repo.manager.DockerNameUtil.REPO_NAME_PATH_SEP;
+import static org.sagebionetworks.repo.model.util.DockerNameUtil.REPO_NAME_PATH_SEP;
 
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
+import org.sagebionetworks.repo.model.util.DockerNameUtil;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;

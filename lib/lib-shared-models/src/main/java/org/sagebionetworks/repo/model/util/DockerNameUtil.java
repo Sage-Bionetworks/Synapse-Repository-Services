@@ -1,11 +1,10 @@
-package org.sagebionetworks.repo.manager;
+package org.sagebionetworks.repo.model.util;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.sagebionetworks.repo.model.InvalidModelException;
 
 public class DockerNameUtil {
 
@@ -52,7 +51,7 @@ public class DockerNameUtil {
 				String hostWithSlash = hostAsPrefixMatcher.group();
 				return hostWithSlash.substring(0, hostWithSlash.length()-1);
 			} else {
-				throw new InvalidModelException("Invalid repository name: "+name);
+				throw new IllegalArgumentException("Invalid repository name: "+name);
 			}
 		}
 	}
