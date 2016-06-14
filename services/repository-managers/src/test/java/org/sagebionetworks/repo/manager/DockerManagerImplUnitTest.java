@@ -3,7 +3,10 @@ package org.sagebionetworks.repo.manager;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
@@ -17,6 +20,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
@@ -240,10 +244,28 @@ public class DockerManagerImplUnitTest {
 	}
 	
 	@Test
-	public void testDockerRegistryNotificationPush() {
+	public void testDockerRegistryNotificationPushExistingEntity() {
 		DockerRegistryEventList events = 
 				createEvent(RegistryEventAction.push, HOST, USER_NAME, REPOSITORY_PATH, TAG, DIGEST);
 		dockerManager.dockerRegistryNotification(events);
+		// no create operation, since the repo already exists
+		verify(entityManager, never()).createEntity((UserInfo)any(), (Entity)any(), (String)any());
+		// TODO verify that commit was added
 	}
+	
+	// TODO test existing, non-repo child object
+	
+	// TODO call 'push' for non-existing and verify that entity was created
+	
+	
+	@Test
+	public void testDockerRegistryNotificationPull() {
+		DockerRegistryEventList events = 
+				createEvent(RegistryEventAction.pull, HOST, USER_NAME, REPOSITORY_PATH, TAG, DIGEST);
+		dockerManager.dockerRegistryNotification(events);
+		// no create operation, since the repo already exists
+		verify(entityManager, never()).createEntity((UserInfo)any(), (Entity)any(), (String)any());
+	}
+	
 
 }
