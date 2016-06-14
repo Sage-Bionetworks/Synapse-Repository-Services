@@ -26,12 +26,15 @@ import org.sagebionetworks.StackConfiguration;
 public class DockerTokenUtil {
 
 	private static final String ISSUER = "www.synapse.org";
-	private static final long TIME_WINDOW_SEC = 1200; // twenty minutes
+	private static final long TIME_WINDOW_SEC = 120L; // two minutes
 	private static final String ACCESS = "access";
 
 	private static final String PUBLIC_KEY_ID;
 	private static final PrivateKey PRIVATE_KEY;
 	
+	// Eliptic Curve key is required by the Json Web Token signing library
+	public static final String KEY_GENERATION_ALGORITHM = "EC";
+
 	static {
 		PRIVATE_KEY = readPrivateKey();
 		X509Certificate certificate = readCertificate();
@@ -127,8 +130,6 @@ public class DockerTokenUtil {
 
 	}
 	
-	public static final String KEY_GENERATION_ALGORITHM = "EC";
-
 	private static PrivateKey readPrivateKey() {
 		try {
 			KeyFactory factory = KeyFactory.getInstance(KEY_GENERATION_ALGORITHM);
@@ -140,7 +141,7 @@ public class DockerTokenUtil {
 		}
 	}
 	
-	public static X509Certificate readCertificate() {
+	private static X509Certificate readCertificate() {
 		try {
 			byte[] content = Base64.decodeBase64(StackConfiguration.getDockerAuthorizationCertificate());
 			CertificateFactory certFactory = CertificateFactory.getInstance("X.509");

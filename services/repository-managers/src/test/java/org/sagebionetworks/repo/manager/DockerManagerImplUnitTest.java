@@ -16,6 +16,7 @@ import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.ids.IdGenerator;
@@ -30,12 +31,14 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.docker.DockerAuthorizationToken;
 import org.sagebionetworks.repo.model.docker.DockerRegistryEvent;
 import org.sagebionetworks.repo.model.docker.DockerRegistryEventList;
+import org.sagebionetworks.repo.model.docker.DockerRepository;
 import org.sagebionetworks.repo.model.docker.RegistryEventAction;
 import org.sagebionetworks.repo.model.docker.RegistryEventActor;
 import org.sagebionetworks.repo.model.docker.RegistryEventRequest;
 import org.sagebionetworks.repo.model.docker.RegistryEventTarget;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
 
 
@@ -51,13 +54,13 @@ public class DockerManagerImplUnitTest {
 	private static final String USER_NAME = "auser";
 	private static final UserInfo USER_INFO = new UserInfo(false, USER_ID);
 	
-	private static final String SERVICE = "www.synapse.org";
+	private static final String REGISTRY_HOST = "docker.synapse.org";
+	private static final String SERVICE = REGISTRY_HOST;
 	private static final String TYPE = "repository";
 	private static final String REPOSITORY_PATH = PARENT_ID+"/reponame";
 	private static final String ENTITY_NAME = SERVICE+"/"+REPOSITORY_PATH;
 	private static final String ACCESS_TYPES_STRING="push,pull";
 	
-	private static final String HOST = "www.synapse.org";
 	private static final String TAG = "v1";
 	private static final String DIGEST = "sha256:8900ee859c6808c9f83ce51bf44b508df63d1f2e8a839ca230471f1bac90ee19";
 
@@ -124,6 +127,8 @@ public class DockerManagerImplUnitTest {
 		when(userManager.lookupPrincipalByAlias(USER_NAME)).thenReturn(pa);
 		
 		when(userManager.getUserInfo(USER_ID)).thenReturn(USER_INFO);
+		
+		when(idGenerator.generateNewId()).thenReturn(REPO_ENTITY_ID_LONG);
 	}
 
 	@Test
@@ -151,6 +156,7 @@ public class DockerManagerImplUnitTest {
 	public void testAuthorizeDockerAccess() throws Exception {
 		String scope =TYPE+":"+REPOSITORY_PATH+":"+ACCESS_TYPES_STRING;
 		
+		// method under test:
 		DockerAuthorizationToken token = dockerManager.
 				authorizeDockerAccess(USER_NAME, USER_INFO, SERVICE, scope);
 		
@@ -159,6 +165,7 @@ public class DockerManagerImplUnitTest {
 	
 	@Test
 	public void testGetPermittedAccessTypesHappyCase() throws Exception {
+		// method under test:
 		List<String> permitted = dockerManager.
 				getPermittedAccessTypes(USER_NAME, USER_INFO, SERVICE, TYPE, REPOSITORY_PATH, ACCESS_TYPES_STRING);
 		
@@ -169,6 +176,7 @@ public class DockerManagerImplUnitTest {
 	public void testGetPermittedAccessTypesInvalidParent() throws Exception {
 		String repositoryPath = "garbage/"+ENTITY_NAME;
 		
+		// method under test:
 		List<String> permitted = dockerManager.
 				getPermittedAccessTypes(USER_NAME, USER_INFO, SERVICE, TYPE, repositoryPath, ACCESS_TYPES_STRING);
 		
@@ -179,6 +187,7 @@ public class DockerManagerImplUnitTest {
 	public void testGetPermittedAccessTypesNonexistentChild() throws Exception {
 		String repositoryPath = PARENT_ID+"/non-existent-repo";
 
+		// method under test:
 		List<String> permitted = dockerManager.
 				getPermittedAccessTypes(USER_NAME, USER_INFO, SERVICE, TYPE, repositoryPath, ACCESS_TYPES_STRING);
 		
@@ -196,6 +205,7 @@ public class DockerManagerImplUnitTest {
 				eq(USER_INFO), eq(REPO_ENTITY_ID), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.DOWNLOAD))).
 				thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		
+		// method under test:
 		List<String> permitted = dockerManager.
 				getPermittedAccessTypes(USER_NAME, USER_INFO, SERVICE, TYPE, REPOSITORY_PATH, ACCESS_TYPES_STRING);
 
@@ -214,6 +224,7 @@ public class DockerManagerImplUnitTest {
 				eq(USER_INFO), eq(REPO_ENTITY_ID), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.DOWNLOAD))).
 				thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		
+		// method under test:
 		List<String> permitted = dockerManager.
 				getPermittedAccessTypes(USER_NAME, USER_INFO, SERVICE, TYPE, repositoryPath, ACCESS_TYPES_STRING);
 
@@ -221,6 +232,7 @@ public class DockerManagerImplUnitTest {
 		assertTrue(permitted.toString(), permitted.isEmpty());
 	}
 	
+	// helper function to construct registry events in the prescribed format
 	private static DockerRegistryEventList createEvent(
 			RegistryEventAction action, String host, String userName, String repositoryPath, String tag, String digest) {
 		DockerRegistryEvent event = new DockerRegistryEvent();
@@ -244,24 +256,79 @@ public class DockerManagerImplUnitTest {
 	}
 	
 	@Test
+	public void testDockerRegistryNotificationPushNEWEntity() {
+		when(nodeDAO.getEntityHeaderByChildName(PARENT_ID, ENTITY_NAME)).thenThrow(new NotFoundException());
+
+		DockerRegistryEventList events = 
+				createEvent(RegistryEventAction.push, REGISTRY_HOST, USER_NAME, REPOSITORY_PATH, TAG, DIGEST);
+		
+		// method under test:
+		dockerManager.dockerRegistryNotification(events);
+		
+		ArgumentCaptor<DockerRepository> repo = ArgumentCaptor.forClass(DockerRepository.class);
+		verify(entityManager).createEntity(eq(USER_INFO), repo.capture(), (String)eq(null));
+		assertEquals(PARENT_ID, repo.getValue().getParentId());
+		assertTrue(repo.getValue().getIsManaged());
+		assertEquals(ENTITY_NAME, repo.getValue().getName());
+		assertEquals(REPO_ENTITY_ID, repo.getValue().getId());
+		// TODO verify that commit was added
+	}
+
+	
+	@Test
 	public void testDockerRegistryNotificationPushExistingEntity() {
 		DockerRegistryEventList events = 
-				createEvent(RegistryEventAction.push, HOST, USER_NAME, REPOSITORY_PATH, TAG, DIGEST);
+				createEvent(RegistryEventAction.push, REGISTRY_HOST, USER_NAME, REPOSITORY_PATH, TAG, DIGEST);
+		
+		// method under test:
 		dockerManager.dockerRegistryNotification(events);
+		
 		// no create operation, since the repo already exists
 		verify(entityManager, never()).createEntity((UserInfo)any(), (Entity)any(), (String)any());
 		// TODO verify that commit was added
 	}
 	
-	// TODO test existing, non-repo child object
+	@Test
+	public void testDockerRegistryNotificationPushUnsupportedHost() {
+		when(nodeDAO.getEntityHeaderByChildName(PARENT_ID, ENTITY_NAME)).thenThrow(new NotFoundException());
+
+		DockerRegistryEventList events = 
+				createEvent(RegistryEventAction.push, "quay.io", USER_NAME, REPOSITORY_PATH, TAG, DIGEST);
+		
+		// method under test:
+		dockerManager.dockerRegistryNotification(events);
+		
+		verify(entityManager, never()).createEntity((UserInfo)any(), (Entity)any(), (String)any());
+	}
 	
-	// TODO call 'push' for non-existing and verify that entity was created
+	@Test(expected=IllegalArgumentException.class)
+	public void testDockerRegistryNotificationPushNEWEntityParentIsFolder() {
+		when(nodeDAO.getEntityHeaderByChildName(PARENT_ID, ENTITY_NAME)).thenThrow(new NotFoundException());
+		parentHeader.setType(EntityType.folder.name());
+
+		DockerRegistryEventList events = 
+				createEvent(RegistryEventAction.push, REGISTRY_HOST, USER_NAME, REPOSITORY_PATH, TAG, DIGEST);
+		
+		// method under test:
+		dockerManager.dockerRegistryNotification(events);
+	}
+
 	
-	
+	@Test(expected=IllegalArgumentException.class)
+	public void testDockerRegistryNotificationPushExistingEntityNotRepo() {
+		repoEntityHeader.setType(EntityType.file.name());
+
+		DockerRegistryEventList events = 
+				createEvent(RegistryEventAction.push, REGISTRY_HOST, USER_NAME, REPOSITORY_PATH, TAG, DIGEST);
+		
+		// method under test:
+		dockerManager.dockerRegistryNotification(events);
+	}
+
 	@Test
 	public void testDockerRegistryNotificationPull() {
 		DockerRegistryEventList events = 
-				createEvent(RegistryEventAction.pull, HOST, USER_NAME, REPOSITORY_PATH, TAG, DIGEST);
+				createEvent(RegistryEventAction.pull, REGISTRY_HOST, USER_NAME, REPOSITORY_PATH, TAG, DIGEST);
 		dockerManager.dockerRegistryNotification(events);
 		// no create operation, since the repo already exists
 		verify(entityManager, never()).createEntity((UserInfo)any(), (Entity)any(), (String)any());

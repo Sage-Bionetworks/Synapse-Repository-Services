@@ -169,12 +169,19 @@ public class AuthorizationConstants {
 	public static final String DOCKER_USER_ID_PARAM = "dockerUserId";
 
 	/**
+	 * Request parameter for the Docker authorization request.
 	 * 
+	 * This is the host name of the registry host making the request.
 	 */
 	public static final String DOCKER_SERVICE_PARAM = "service";
 	
 	/**
+	 * Request parameter for the Docker authorization request.
 	 * 
+	 * 'scope' is the scope of the requested authorization.  It has three colon
+	 * separated fields: 'type', 'path', and 'access types', where 'type' is
+	 * 'repository', 'path' is the repo path within the registry and 'access types'
+	 * is a comma delimited subset of 'push', 'pull'
 	 */
 	public static final String DOCKER_SCOPE_PARAM = "scope";
 	

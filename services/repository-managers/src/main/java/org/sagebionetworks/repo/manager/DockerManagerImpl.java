@@ -7,6 +7,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -185,6 +186,7 @@ public class DockerManagerImpl implements DockerManager {
 			case push:
 				// need to make sure this is a registry we support
 				String host = event.getRequest().getHost();
+				if (!StackConfiguration.getDockerRegistryHosts().contains(host)) continue;
 				// note the username was authenticated in the authorization check
 				String username = event.getActor().getName();
 				// the 'repository name' does not include the registry host or the tag
