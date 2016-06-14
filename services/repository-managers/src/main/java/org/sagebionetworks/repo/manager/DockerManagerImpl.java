@@ -25,7 +25,6 @@ import org.sagebionetworks.repo.model.docker.RegistryEventAction;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
-import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.model.util.DockerNameUtil;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -45,9 +44,6 @@ public class DockerManagerImpl implements DockerManager {
 
 	@Autowired
 	EntityManager entityManager;
-
-	@Autowired
-	PrincipalAliasDAO principalAliasDAO;
 
 	@Autowired
 	AuthorizationManager authorizationManager;
@@ -90,7 +86,7 @@ public class DockerManagerImpl implements DockerManager {
 
 		if (parentId==null) return permittedAccessTypes;
 
-		String entityName = repositoryPath.substring(parentId.length()+1);
+		String entityName = service+DockerNameUtil.REPO_NAME_PATH_SEP+repositoryPath;
 		EntityHeader entityHeader = null;
 		try {
 			entityHeader = nodeDAO.getEntityHeaderByChildName(parentId, entityName);
@@ -125,6 +121,8 @@ public class DockerManagerImpl implements DockerManager {
 				if (existingDockerRepoId!=null) {
 					as = authorizationManager.canAccess(
 							userInfo, existingDockerRepoId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD);
+					// TODO if denied here see if the repo is in a submission and, if so, 
+					// check the ACL on the Evaluation owning the Submission
 				}
 				break;
 			default:
@@ -229,8 +227,10 @@ public class DockerManagerImpl implements DockerManager {
 					entityId =  KeyFactory.keyToString(newId);
 				}
 				// TODO Add commit to entity
+				break;
 			case pull:
 				// nothing to do. We are being notified that someone has pulled a repository image
+				break;
 			default:
 				throw new IllegalArgumentException("Unexpected action "+action);
 			}

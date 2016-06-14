@@ -1,11 +1,12 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.when;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -23,7 +24,14 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.docker.DockerAuthorizationToken;
-import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
+import org.sagebionetworks.repo.model.docker.DockerRegistryEvent;
+import org.sagebionetworks.repo.model.docker.DockerRegistryEventList;
+import org.sagebionetworks.repo.model.docker.RegistryEventAction;
+import org.sagebionetworks.repo.model.docker.RegistryEventActor;
+import org.sagebionetworks.repo.model.docker.RegistryEventRequest;
+import org.sagebionetworks.repo.model.docker.RegistryEventTarget;
+import org.sagebionetworks.repo.model.principal.AliasType;
+import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.springframework.test.util.ReflectionTestUtils;
 
 
@@ -34,15 +42,21 @@ public class DockerManagerImplUnitTest {
 	
 	private static final long REPO_ENTITY_ID_LONG = 123456L;
 	private static final String REPO_ENTITY_ID = "syn"+REPO_ENTITY_ID_LONG;
-	private static final String ENTITY_NAME = "myrepo";
 	
+	private static final long USER_ID = 111L;
 	private static final String USER_NAME = "auser";
-	private static final UserInfo USER_INFO = new UserInfo(false);
+	private static final UserInfo USER_INFO = new UserInfo(false, USER_ID);
 	
 	private static final String SERVICE = "www.synapse.org";
 	private static final String TYPE = "repository";
-	private static final String REPOSITORY_PATH = PARENT_ID+"/"+ENTITY_NAME;
+	private static final String REPOSITORY_PATH = PARENT_ID+"/reponame";
+	private static final String ENTITY_NAME = SERVICE+"/"+REPOSITORY_PATH;
 	private static final String ACCESS_TYPES_STRING="push,pull";
+	
+	private static final String HOST = "www.synapse.org";
+	private static final String TAG = "v1";
+	private static final String DIGEST = "sha256:8900ee859c6808c9f83ce51bf44b508df63d1f2e8a839ca230471f1bac90ee19";
+
 	
 	private DockerManagerImpl dockerManager;
 	
@@ -59,9 +73,6 @@ public class DockerManagerImplUnitTest {
 	private EntityManager entityManager;
 	
 	@Mock
-	private PrincipalAliasDAO principalAliasDAO;
-	
-	@Mock
 	private AuthorizationManager authorizationManager;
 	
 	private EntityHeader parentHeader;
@@ -76,7 +87,6 @@ public class DockerManagerImplUnitTest {
 		ReflectionTestUtils.setField(dockerManager, "idGenerator", idGenerator);
 		ReflectionTestUtils.setField(dockerManager, "userManager", userManager);
 		ReflectionTestUtils.setField(dockerManager, "entityManager", entityManager);
-		ReflectionTestUtils.setField(dockerManager, "principalAliasDAO", principalAliasDAO);
 		ReflectionTestUtils.setField(dockerManager, "authorizationManager", authorizationManager);
 
 		parentHeader = new EntityHeader();
@@ -103,6 +113,13 @@ public class DockerManagerImplUnitTest {
 		when(authorizationManager.canAccess(
 				eq(USER_INFO), eq(REPO_ENTITY_ID), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.DOWNLOAD))).
 				thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		
+		PrincipalAlias pa = new PrincipalAlias();
+		pa.setPrincipalId(USER_ID);
+		pa.setType(AliasType.USER_NAME);
+		when(userManager.lookupPrincipalByAlias(USER_NAME)).thenReturn(pa);
+		
+		when(userManager.getUserInfo(USER_ID)).thenReturn(USER_INFO);
 	}
 
 	@Test
@@ -199,10 +216,34 @@ public class DockerManagerImplUnitTest {
 		// Note, we DO have update access, but that doesn't let us 'push' since the repo doesn't exist
 		assertTrue(permitted.toString(), permitted.isEmpty());
 	}
-
-//	@Test
-//	public void testDockerRegistryNotification() {
-//		fail("Not yet implemented");
-//	}
+	
+	private static DockerRegistryEventList createEvent(
+			RegistryEventAction action, String host, String userName, String repositoryPath, String tag, String digest) {
+		DockerRegistryEvent event = new DockerRegistryEvent();
+		event.setAction(action);
+		RegistryEventRequest eventRequest = new RegistryEventRequest();
+		event.setRequest(eventRequest);
+		eventRequest.setHost(host);
+		RegistryEventActor eventActor = new RegistryEventActor();
+		event.setActor(eventActor);
+		eventActor.setName(userName);
+		RegistryEventTarget target = new RegistryEventTarget();
+		target.setRepository(repositoryPath);
+		target.setTag(tag);
+		target.setDigest(digest);
+		event.setTarget(target);
+		DockerRegistryEventList eventList = new DockerRegistryEventList();
+		List<DockerRegistryEvent> events = new ArrayList<DockerRegistryEvent>();
+		eventList.setEvents(events);
+		events.add(event);
+		return eventList;
+	}
+	
+	@Test
+	public void testDockerRegistryNotificationPush() {
+		DockerRegistryEventList events = 
+				createEvent(RegistryEventAction.push, HOST, USER_NAME, REPOSITORY_PATH, TAG, DIGEST);
+		dockerManager.dockerRegistryNotification(events);
+	}
 
 }
