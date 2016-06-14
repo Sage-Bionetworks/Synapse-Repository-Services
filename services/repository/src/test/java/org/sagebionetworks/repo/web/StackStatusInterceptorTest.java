@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.status.StatusEnum;
+import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
 import org.sagebionetworks.repo.web.controller.AbstractAutowiredControllerTestBase;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -77,8 +78,16 @@ public class StackStatusInterceptorTest extends AbstractAutowiredControllerTestB
 		setStackStatus(StatusEnum.READ_ONLY);
 		// Make sure the status is what we expect
 		assertEquals(StatusEnum.READ_ONLY, stackStatusDao.getCurrentStatus());
-		Project fetched = servletTestHelper.getEntity(dispatchServlet, Project.class, sampleProject.getId(), adminUserId);
-		assertNotNull(fetched);
+		try{
+			// This should fail in read only.
+			servletTestHelper.getEntity(dispatchServlet, Project.class, sampleProject.getId(), adminUserId);
+			fail("Calling a GET while synapse is down should have thrown an 503");
+		} catch (DatastoreException e){
+			// Make sure the message is in the exception
+			assertTrue(e.getMessage().indexOf(CURRENT_STATUS_1) > 0);
+			assertTrue(e.getMessage().indexOf(StatusEnum.READ_ONLY.name()) > 0);
+			assertTrue(e.getMessage().indexOf(CURRENT_STATUS_2) > 0);
+		}
 	}
 	
 	@Test
@@ -216,4 +225,24 @@ public class StackStatusInterceptorTest extends AbstractAutowiredControllerTestB
 		stackStatusDao.updateStatus(status);
 	}
 
+	@Test
+	public void testGetVersionReadOnly() throws Exception {
+		// Set the status to be read only
+		setStackStatus(StatusEnum.READ_ONLY);
+		// Make sure the status is what we expect
+		assertEquals(StatusEnum.READ_ONLY, stackStatusDao.getCurrentStatus());
+		SynapseVersionInfo versionInfo = servletTestHelper.getVersionInfo();
+		assertNotNull(versionInfo);
+	}
+
+
+	@Test
+	public void testGetVersionDown() throws Exception {
+		// Set the status to be read only
+		setStackStatus(StatusEnum.DOWN);
+		// Make sure the status is what we expect
+		assertEquals(StatusEnum.DOWN, stackStatusDao.getCurrentStatus());
+		SynapseVersionInfo versionInfo = servletTestHelper.getVersionInfo();
+		assertNotNull(versionInfo);
+	}
 }

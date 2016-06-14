@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.message.PublishResults;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.status.StatusEnum;
+import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
 /**
@@ -91,10 +92,17 @@ public class IT101Administration {
 		status.setStatus(StatusEnum.READ_ONLY);
 		status = adminSynapse.updateCurrentStackStatus(status);
 		assertEquals(StatusEnum.READ_ONLY, status.getStatus());
+
+		// Now we should be able get the version
+		SynapseVersionInfo version = adminSynapse.getVersionInfo();
+		assertNotNull(version);
 		
-		// Now we should be able get the project
-		project = adminSynapse.getEntity(projectId, Project.class);
-		assertNotNull(project);
+		// Now we should not be able get the project
+		try {
+			adminSynapse.getEntity(projectId, Project.class);
+		}catch(SynapseServerException e){
+			assertTrue(e.getMessage().indexOf("Synapse is down for maintenance.") > -1);
+		}
 		// Updates should not work
 		String newDescription = "Updating the description";
 		project.setDescription(newDescription);
@@ -102,7 +110,7 @@ public class IT101Administration {
 			adminSynapse.putEntity(project);
 			fail("Updating an entity in read only mode should have failed");
 		}catch(SynapseServerException e){
-			assertTrue(e.getMessage().indexOf("Synapse is in READ_ONLY mode for maintenance") > -1);
+			assertTrue(e.getMessage().indexOf("Synapse is down for maintenance.") > -1);
 		} finally {
 			// put it back in read-write mode and try again
 			status.setStatus(StatusEnum.READ_WRITE);

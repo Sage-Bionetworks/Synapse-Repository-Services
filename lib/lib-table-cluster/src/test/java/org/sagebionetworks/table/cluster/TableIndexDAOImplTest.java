@@ -33,14 +33,13 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
-import org.sagebionetworks.repo.model.table.FileView;
+import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.IdRange;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.Table;
 import org.sagebionetworks.repo.model.table.TableEntity;
-import org.sagebionetworks.repo.model.table.TableView;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
 import org.sagebionetworks.table.cluster.TableIndexDAO.ColumnDefinition;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
@@ -101,9 +100,8 @@ public class TableIndexDAOImplTest {
 	
 	@Test
 	public void testFileViewTypes(){
-		FileView fileView = new FileView();
-		assertTrue(fileView instanceof Table);
-		assertTrue(fileView instanceof TableView);
+		EntityView entityView = new EntityView();
+		assertTrue(entityView instanceof Table);
 	}
 
 	@Test

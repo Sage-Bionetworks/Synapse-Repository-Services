@@ -2,6 +2,8 @@ package org.sagebionetworks.repo.model.dbo.dao.table;
 
 import java.util.Set;
 
+import org.sagebionetworks.repo.model.table.ViewType;
+
 /**
  * Tracks views and their scopes.
  * 
@@ -15,7 +17,7 @@ public interface ViewScopeDao {
 	 * @param viewId
 	 * @param containerIds
 	 */
-	public void setViewScope(Long viewId, Set<Long> containerIds);
+	public void setViewScopeAndType(Long viewId, Set<Long> containerIds, ViewType type);
 	
 	/**
 	 * Find all views with a scope that intersects the given path.
@@ -37,6 +39,13 @@ public interface ViewScopeDao {
 	 * @return
 	 */
 	public Set<Long> getViewScope(Long viewId);
+
+	/**
+	 * Get the ViewType for the given table ID.
+	 * @param tableId
+	 * @return
+	 */
+	public ViewType getViewType(Long tableId);
 	
 
 }

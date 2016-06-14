@@ -1,6 +1,5 @@
 {
-	"description": "A view of Synapse content. Each view is defined with a container scope and a schema.",
-	"type": "interface",
+	"description": "A view of Entities within a defined scope.",
 	"implements": [
 		{
 			"$ref":"org.sagebionetworks.repo.model.table.Table"
@@ -13,6 +12,15 @@
 			"items": {
 				"type": "string"
 			}
+		},
+		"type": {
+			"type": "string",
+			"description": "The type of the entities to be shown in this view.",
+			"name": "ViewType",
+			"id": "org.sagebionetworks.repo.model.table.ViewType",
+			"enum": [
+				"file"
+			]
 		}
 	}
 }

@@ -1,12 +1,13 @@
 package org.sagebionetworks.repo.model.dbo.dao.table;
 
-import static org.junit.Assert.*;
-import static  org.mockito.Mockito.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.anyInt;
+import static org.mockito.Matchers.anyLong;
+import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ANNOS_BLOB;
-
-
-
-
 
 import java.io.IOException;
 import java.sql.Blob;
@@ -18,18 +19,17 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.io.filefilter.FileFilterUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.repo.model.table.ViewType;
 
 import com.google.common.collect.Lists;
 
@@ -44,7 +44,7 @@ public class TableViewUtilsTest {
 	ColumnModel colInteger;
 	ColumnModel colLink;
 	
-	EntityType type;
+	ViewType type;
 	
 	@Before
 	public void before(){
@@ -70,7 +70,7 @@ public class TableViewUtilsTest {
 		colLink.setName("linkKey");
 		colLink.setColumnType(ColumnType.LINK);
 		
-		type = EntityType.file;
+		type = ViewType.file;
 	}
 
 	@Test
@@ -407,19 +407,6 @@ public class TableViewUtilsTest {
 		all.remove(FileEntityFields.benefactorId.getColumnModel());
 		// call under test
 		assertFalse(TableViewUtils.containsBenefactor(all));
-	}
-	
-	@Test
-	public void testGetFilterTypeForViewTypeFileView(){
-		// call under test.
-		EntityType entityType = TableViewUtils.getFilterTypeForViewType(EntityType.fileview);
-		assertEquals(EntityType.file, entityType);
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testGetEntityTypeForViewUnknown(){
-		// call under test.
-		TableViewUtils.getFilterTypeForViewType(EntityType.project);
 	}
 	
 }

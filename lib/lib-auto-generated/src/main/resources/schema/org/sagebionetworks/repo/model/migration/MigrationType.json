@@ -66,6 +66,7 @@
         "DISCUSSION_REPLY",
         "SUBSCRIPTION",
         "BROADCAST_MESSAGE",
+        "VIEW_TYPE",
         "VIEW_SCOPE",
         "AUTHENTICATION_RECEIPT",
         "CHANGE"

@@ -317,7 +317,7 @@ public class MigratableTableDAOImplAutowireTest {
 		expectedPrimaryTypes.add(MigrationType.DISCUSSION_REPLY);
 		expectedPrimaryTypes.add(MigrationType.SUBSCRIPTION);
 		expectedPrimaryTypes.add(MigrationType.BROADCAST_MESSAGE);
-		expectedPrimaryTypes.add(MigrationType.VIEW_SCOPE);
+		expectedPrimaryTypes.add(MigrationType.VIEW_TYPE);
 		expectedPrimaryTypes.add(MigrationType.AUTHENTICATION_RECEIPT);
 		expectedPrimaryTypes.add(MigrationType.CHANGE);
 		// Get the list

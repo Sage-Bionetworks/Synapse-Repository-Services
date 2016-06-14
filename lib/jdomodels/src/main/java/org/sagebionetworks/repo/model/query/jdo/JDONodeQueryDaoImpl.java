@@ -40,7 +40,7 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 
 	private static final String VERSIONABLE = "versionable";
 	
-	private static final List<String> VERSIONABLE_TYPES = Arrays.asList(EntityType.file.name(), EntityType.table.name(), EntityType.fileview.name());
+	private static final List<String> VERSIONABLE_TYPES = Arrays.asList(EntityType.file.name(), EntityType.table.name(), EntityType.entityview.name());
 
 	private static final String ENTITY = "entity";
 

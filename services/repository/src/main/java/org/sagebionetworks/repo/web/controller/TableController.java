@@ -8,7 +8,6 @@ import javax.servlet.http.HttpServletResponse;
 import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.NotReadyException;
 import org.sagebionetworks.repo.model.ServiceConstants;
@@ -35,6 +34,7 @@ import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewResult;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
+import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
@@ -273,12 +273,12 @@ public class TableController extends BaseController {
 	 * Get the list of default <a
 	 * href="${org.sagebionetworks.repo.model.table.ColumnModel}">ColumnModels
 	 * </a> that are available for a <a
-	 * href="${org.sagebionetworks.repo.model.table.TableView}">TableView
-	 * </a> schema for the given view type.
+	 * href="${org.sagebionetworks.repo.model.table.ViewType}">ViewType
+	 * </a>.
 	 * 
 	 * @param viewtype Must be a value from <a
-	 * href="${org.sagebionetworks.repo.model.EntityType}">EntityType
-	 * </a> enumeration. For example, use 'fileview' for a FileView.
+	 * href="${org.sagebionetworks.repo.model.table.ViewType}">ViewType
+	 * </a> enumeration.
 	 * @return -
 	 * @throws DatastoreException
 	 *             - Synapse error.
@@ -290,7 +290,7 @@ public class TableController extends BaseController {
 			@PathVariable String viewtype)
 			throws DatastoreException, NotFoundException {
 		List<ColumnModel> results = serviceProvider.getTableServices()
-				.getDefaultViewColumnsForType(EntityType.valueOf(viewtype));
+				.getDefaultViewColumnsForType(ViewType.valueOf(viewtype));
 		return ListWrapper.wrap(results, ColumnModel.class);
 	}
 

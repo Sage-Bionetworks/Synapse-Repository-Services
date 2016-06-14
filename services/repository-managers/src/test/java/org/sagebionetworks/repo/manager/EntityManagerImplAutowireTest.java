@@ -40,7 +40,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.provenance.Activity;
-import org.sagebionetworks.repo.model.table.FileView;
+import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -358,7 +358,7 @@ public class EntityManagerImplAutowireTest {
 		String pid = entityManager.createEntity(userInfo, project, null);
 		toDelete.add(pid);
 		
-		FileView fileView = new FileView();
+		EntityView fileView = new EntityView();
 		fileView.setName("fileView");
 		fileView.setColumnIds(Lists.newArrayList("1","2"));
 		fileView.setScopeIds(Lists.newArrayList("syn4","5"));
@@ -367,7 +367,7 @@ public class EntityManagerImplAutowireTest {
 		String fileViewId = entityManager.createEntity(userInfo, fileView, null);
 		toDelete.add(fileViewId);
 		
-		FileView viewGet = entityManager.getEntity(userInfo, fileViewId, FileView.class);
+		EntityView viewGet = entityManager.getEntity(userInfo, fileViewId, EntityView.class);
 		assertNotNull(viewGet);
 		assertEquals(fileView.getColumnIds(), viewGet.getColumnIds());
 		assertEquals(Lists.newArrayList("4","5"), viewGet.getScopeIds());

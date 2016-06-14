@@ -124,6 +124,7 @@ import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.RawRowSet;
 import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.model.verification.AttachmentMetadata;
@@ -355,7 +356,7 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 	
 	private void createViewScope() {
 		viewScopeDao.truncateAll();
-		viewScopeDao.setViewScope(123L, Sets.newHashSet(456L,789L));
+		viewScopeDao.setViewScopeAndType(123L, Sets.newHashSet(456L,789L), ViewType.file);
 	}
 
 	private void createBroadcastMessage() {

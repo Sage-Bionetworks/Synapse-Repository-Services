@@ -24,6 +24,6 @@
         "FORUM",
     	"THREAD",
     	"REPLY",
-    	"FILE_VIEW"
+    	"ENTITY_VIEW"
     ]
 }

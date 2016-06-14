@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.repo.model.table.ViewType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -45,13 +46,13 @@ public class TableViewDaoImplTest {
 	
 	private Long creatorUserGroupId;
 	List<String> toDelete;
-	EntityType viewType;
+	ViewType viewType;
 	
 	@Before
 	public void before(){
 		creatorUserGroupId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		toDelete = new ArrayList<String>();
-		viewType = EntityType.fileview;
+		viewType = ViewType.file;
 	}
 	
 	@After

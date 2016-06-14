@@ -47,7 +47,7 @@
 	<bean name="stackConfiguration.repositoryChangeTopic[CERTIFIED_USER_PASSING_RECORD]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean name="stackConfiguration.repositoryChangeTopic[REPLY]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean name="stackConfiguration.repositoryChangeTopic[THREAD]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
-	<bean name="stackConfiguration.repositoryChangeTopic[FILE_VIEW]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	<bean name="stackConfiguration.repositoryChangeTopic[ENTITY_VIEW]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	
 	<!-- Define each value that we want to be able to inject in other beans. -->
 	<bean id="stackConfiguration.idGeneratorDatabaseDriver" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
