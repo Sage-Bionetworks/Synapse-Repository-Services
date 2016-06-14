@@ -46,8 +46,8 @@ public class SynapseClientFactoryImpl implements SynapseClientFactory {
 	 */
 	private static SynapseAdminClientImpl createNewConnection(SynapseConnectionInfo info) throws SynapseException{
 		HttpClientProvider provider = new HttpClientProviderImpl();
-		provider.setGlobalConnectionTimeout(1000*15); 	// 15 secs
-		provider.setGlobalSocketTimeout(1000*60*2);		//  2 mins
+		provider.setGlobalConnectionTimeout(1000*60); 		// 	1 	min
+		provider.setGlobalSocketTimeout(1000*60*10);		//  10 mins
 		SynapseAdminClientImpl synapse = new SynapseAdminClientImpl(provider);
 		synapse.setAuthEndpoint(info.getAuthenticationEndPoint());
 		synapse.setRepositoryEndpoint(info.getRepositoryEndPoint());
