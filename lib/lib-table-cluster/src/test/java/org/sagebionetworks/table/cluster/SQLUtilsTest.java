@@ -1,7 +1,6 @@
 package org.sagebionetworks.table.cluster;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.stub;
 
 import java.util.Arrays;
@@ -679,6 +678,260 @@ public class SQLUtilsTest {
 			}
 		}
 		return list;
+	}
+	
+	@Test
+	public void testAppendAppendColumnDefinitionWithDefult(){
+		StringBuilder builder = new StringBuilder();
+		ColumnModel cm = new ColumnModel();
+		cm.setId("123");
+		cm.setColumnType(ColumnType.INTEGER);
+		cm.setDefaultValue("456");
+		// call under test
+		SQLUtils.appendColumnDefinition(builder, cm);
+		assertEquals("_C123_ bigint(20) DEFAULT 456", builder.toString());
+	}
+	
+	@Test
+	public void testAppendAppendColumnDefinitionDefaultNull(){
+		StringBuilder builder = new StringBuilder();
+		ColumnModel cm = new ColumnModel();
+		cm.setId("123");
+		cm.setColumnType(ColumnType.INTEGER);
+		cm.setDefaultValue(null);
+		// call under test
+		SQLUtils.appendColumnDefinition(builder, cm);
+		assertEquals("_C123_ bigint(20) DEFAULT NULL", builder.toString());
+	}
+	
+	
+	@Test
+	public void testAppendAddColumn(){
+		StringBuilder builder = new StringBuilder();
+		ColumnModel cm = new ColumnModel();
+		cm.setId("123");
+		cm.setColumnType(ColumnType.INTEGER);
+		// call under test
+		SQLUtils.appendAddColumn(builder, cm);
+		assertEquals("ADD COLUMN _C123_ bigint(20) DEFAULT NULL", builder.toString());
+	}
+	
+	@Test
+	public void testAppendAddColumnDouble(){
+		StringBuilder builder = new StringBuilder();
+		ColumnModel cm = new ColumnModel();
+		cm.setId("123");
+		cm.setColumnType(ColumnType.DOUBLE);
+		// call under test
+		SQLUtils.appendAddColumn(builder, cm);
+		assertEquals("ADD COLUMN _C123_ double DEFAULT NULL"
+				+ ", ADD COLUMN _DBL_C123_ ENUM ('NaN', 'Infinity', '-Infinity') DEFAULT null", builder.toString());
+	}
+	
+	@Test
+	public void testAppendDropColumn(){
+		StringBuilder builder = new StringBuilder();
+		ColumnModel cm = new ColumnModel();
+		cm.setId("123");
+		cm.setColumnType(ColumnType.INTEGER);
+		// call under test
+		SQLUtils.appendDeleteColumn(builder, cm);
+		assertEquals("DROP COLUMN _C123_", builder.toString());
+	}
+	
+	@Test
+	public void testAppendDropColumnDouble(){
+		StringBuilder builder = new StringBuilder();
+		ColumnModel cm = new ColumnModel();
+		cm.setId("123");
+		cm.setColumnType(ColumnType.DOUBLE);
+		// call under test
+		SQLUtils.appendDeleteColumn(builder, cm);
+		assertEquals("DROP COLUMN _C123_, DROP COLUMN _DBL_C123_", builder.toString());
+	}
+	
+	@Test
+	public void testAppendAddDoubleEnum(){
+		StringBuilder builder = new StringBuilder();
+		// call under test
+		SQLUtils.appendAddDoubleEnum(builder, "123");
+		assertEquals(", ADD COLUMN _DBL_C123_ ENUM ('NaN', 'Infinity', '-Infinity') DEFAULT null", builder.toString());
+	}
+	
+	@Test
+	public void testAppendDropDoubleEnum(){
+		StringBuilder builder = new StringBuilder();
+		// call under test
+		SQLUtils.appendDropDoubleEnum(builder, "123");
+		assertEquals(", DROP COLUMN _DBL_C123_", builder.toString());
+	}
+	
+	@Test
+	public void testAppendRenameDoubleEnum(){
+		StringBuilder builder = new StringBuilder();
+		// call under test
+		SQLUtils.appendRenameDoubleEnum(builder, "123", "456");
+		assertEquals(", CHANGE COLUMN _DBL_C123_ _DBL_C456_ ENUM ('NaN', 'Infinity', '-Infinity') DEFAULT null", builder.toString());
+	}
+	
+	@Test
+	public void testAppendUpdateColumn(){
+		StringBuilder builder = new StringBuilder();
+		// old column.
+		ColumnModel oldColumn = new ColumnModel();
+		oldColumn.setId("123");
+		oldColumn.setColumnType(ColumnType.STRING);
+		// new column
+		ColumnModel newColumn = new ColumnModel();
+		newColumn.setId("456");
+		newColumn.setColumnType(ColumnType.INTEGER);
+		
+		ColumnChange change = new ColumnChange(oldColumn, newColumn);
+		// call under test
+		SQLUtils.appendUpdateColumn(builder, change);
+		assertEquals("CHANGE COLUMN _C123_ _C456_ bigint(20) DEFAULT NULL", builder.toString());
+	}
+	
+	@Test
+	public void testAppendUpdateColumnOldDouble(){
+		StringBuilder builder = new StringBuilder();
+		// old column.
+		ColumnModel oldColumn = new ColumnModel();
+		oldColumn.setId("123");
+		oldColumn.setColumnType(ColumnType.DOUBLE);
+		// new column
+		ColumnModel newColumn = new ColumnModel();
+		newColumn.setId("456");
+		newColumn.setColumnType(ColumnType.INTEGER);
+		
+		ColumnChange change = new ColumnChange(oldColumn, newColumn);
+		// call under test
+		SQLUtils.appendUpdateColumn(builder, change);
+		assertEquals("CHANGE COLUMN _C123_ _C456_ bigint(20) DEFAULT NULL"
+				+ ", DROP COLUMN _DBL_C123_", builder.toString());
+	}
+	
+	@Test
+	public void testAppendUpdateColumnNewDouble(){
+		StringBuilder builder = new StringBuilder();
+		// old column.
+		ColumnModel oldColumn = new ColumnModel();
+		oldColumn.setId("123");
+		oldColumn.setColumnType(ColumnType.INTEGER);
+		// new column
+		ColumnModel newColumn = new ColumnModel();
+		newColumn.setId("456");
+		newColumn.setColumnType(ColumnType.DOUBLE);
+		
+		ColumnChange change = new ColumnChange(oldColumn, newColumn);
+		// call under test
+		SQLUtils.appendUpdateColumn(builder, change);
+		assertEquals("CHANGE COLUMN _C123_ _C456_ double DEFAULT NULL"
+				+ ", ADD COLUMN _DBL_C456_ ENUM ('NaN', 'Infinity', '-Infinity') DEFAULT null", builder.toString());
+	}
+	
+	@Test
+	public void testAppendUpdateColumnOldAndNewDouble(){
+		StringBuilder builder = new StringBuilder();
+		// old column.
+		ColumnModel oldColumn = new ColumnModel();
+		oldColumn.setId("123");
+		oldColumn.setColumnType(ColumnType.DOUBLE);
+		// new column
+		ColumnModel newColumn = new ColumnModel();
+		newColumn.setId("456");
+		newColumn.setColumnType(ColumnType.DOUBLE);
+		
+		ColumnChange change = new ColumnChange(oldColumn, newColumn);
+		// call under test
+		SQLUtils.appendUpdateColumn(builder, change);
+		assertEquals("CHANGE COLUMN _C123_ _C456_ double DEFAULT NULL"
+				+ ", CHANGE COLUMN _DBL_C123_ _DBL_C456_ ENUM ('NaN', 'Infinity', '-Infinity') DEFAULT null", builder.toString());
+	}
+	
+	@Test
+	public void testAppendAlterTableSql(){
+		StringBuilder builder = new StringBuilder();
+		// old column.
+		ColumnModel oldColumn = new ColumnModel();
+		oldColumn.setId("123");
+		oldColumn.setColumnType(ColumnType.BOOLEAN);
+		// new column
+		ColumnModel newColumn = new ColumnModel();
+		newColumn.setId("456");
+		newColumn.setColumnType(ColumnType.BOOLEAN);
+		
+		ColumnChange change = new ColumnChange(oldColumn, newColumn);
+		// call under test
+		boolean hasChange = SQLUtils.appendAlterTableSql(builder, change);
+		assertTrue(hasChange);
+		assertEquals("CHANGE COLUMN _C123_ _C456_ boolean DEFAULT NULL", builder.toString());
+	}
+	
+	@Test
+	public void testAppendAlterNoChange(){
+		StringBuilder builder = new StringBuilder();
+		// old column.
+		ColumnModel oldColumn = new ColumnModel();
+		oldColumn.setId("123");
+		oldColumn.setColumnType(ColumnType.BOOLEAN);
+		// new column
+		ColumnModel newColumn = new ColumnModel();
+		newColumn.setId("123");
+		newColumn.setColumnType(ColumnType.BOOLEAN);
+		
+		ColumnChange change = new ColumnChange(oldColumn, newColumn);
+		// call under test
+		boolean hasChange = SQLUtils.appendAlterTableSql(builder, change);
+		assertFalse(hasChange);
+		assertEquals("", builder.toString());
+	}
+	
+	@Test
+	public void testAppendAlterAdd(){
+		StringBuilder builder = new StringBuilder();
+		// old column.
+		ColumnModel oldColumn = null;
+		// new column
+		ColumnModel newColumn = new ColumnModel();
+		newColumn.setId("123");
+		newColumn.setColumnType(ColumnType.BOOLEAN);
+		
+		ColumnChange change = new ColumnChange(oldColumn, newColumn);
+		// call under test
+		boolean hasChange = SQLUtils.appendAlterTableSql(builder, change);
+		assertTrue(hasChange);
+		assertEquals("ADD COLUMN _C123_ boolean DEFAULT NULL", builder.toString());
+	}
+	
+	@Test
+	public void testAppendAlterDrop(){
+		StringBuilder builder = new StringBuilder();
+		// old column.
+		ColumnModel oldColumn = new ColumnModel();
+		oldColumn.setId("123");
+		oldColumn.setColumnType(ColumnType.BOOLEAN);
+		// new column
+		ColumnModel newColumn = null;
+		ColumnChange change = new ColumnChange(oldColumn, newColumn);
+		// call under test
+		boolean hasChange = SQLUtils.appendAlterTableSql(builder, change);
+		assertTrue(hasChange);
+		assertEquals("DROP COLUMN _C123_", builder.toString());
+	}
+	
+	@Test
+	public void testAppendAlterOldAndNewNull(){
+		StringBuilder builder = new StringBuilder();
+		// old column.
+		ColumnModel oldColumn = null;
+		// new column
+		ColumnModel newColumn = null;
+		ColumnChange change = new ColumnChange(oldColumn, newColumn);
+		// call under test
+		boolean hasChange = SQLUtils.appendAlterTableSql(builder, change);
+		assertFalse(hasChange);
+		assertEquals("", builder.toString());
 	}
 	
 }

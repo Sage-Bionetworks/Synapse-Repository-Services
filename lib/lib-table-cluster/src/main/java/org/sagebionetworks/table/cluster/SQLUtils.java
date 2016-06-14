@@ -955,4 +955,178 @@ public class SQLUtils {
 	public static String createSQLGetDistinctValues(String tableId, String columnId){
 		return "SELECT DISTINCT "+getColumnNameForId(columnId)+" FROM "+getTableNameForId(tableId, TableType.INDEX);
 	}
+
+	
+	/**
+	 * Append a column type definition to the passed builder.
+	 * 
+	 * @param builder
+	 * @param column
+	 */
+	public static void appendColumnDefinition(StringBuilder builder, ColumnModel column){
+		builder.append(getColumnNameForId(column.getId()));
+		builder.append(" ");
+		builder.append(getSQLTypeForColumnType(column.getColumnType(), column.getMaximumSize()));
+		builder.append(" ");
+		builder.append(getSQLDefaultForColumnType(column.getColumnType(), column.getDefaultValue()));
+	}
+	
+	/**
+	 * Append an add column statement to the passed builder.
+	 * @param builder
+	 * @param newColumn
+	 */
+	public static void appendAddColumn(StringBuilder builder,
+			ColumnModel newColumn) {
+		ValidateArgument.required(newColumn, "newColumn");
+		builder.append("ADD COLUMN ");
+		appendColumnDefinition(builder, newColumn);
+		// doubles use two columns.
+		if(ColumnType.DOUBLE.equals(newColumn.getColumnType())){
+			appendAddDoubleEnum(builder, newColumn.getId());
+		}
+	}
+
+	/**
+	 * Append the SQL to add a double enumeration column for the given column.
+	 * @param builder
+	 * @param newColumn
+	 */
+	public static void appendAddDoubleEnum(StringBuilder builder,
+			String columnId) {
+		builder.append(", ADD COLUMN ");
+		builder.append(TableConstants.DOUBLE_PREFIX );
+		builder.append(getColumnNameForId(columnId));
+		builder.append(DOUBLE_ENUM_CLAUSE);
+	}
+	
+	/**
+	 * Append a delete column statement to the passed builder.
+	 * @param builder
+	 * @param oldColumn
+	 */
+	public static void appendDeleteColumn(StringBuilder builder,
+			ColumnModel oldColumn) {
+		ValidateArgument.required(oldColumn, "oldColumn");
+		builder.append("DROP COLUMN ");
+		builder.append(getColumnNameForId(oldColumn.getId()));
+		// doubles use two columns.
+		if(ColumnType.DOUBLE.equals(oldColumn.getColumnType())){
+			appendDropDoubleEnum(builder, oldColumn.getId());
+		}
+	}
+
+	/**
+	 * Append drop double enumeration column for the given column id.
+	 * @param builder
+	 * @param oldColumn
+	 */
+	public static void appendDropDoubleEnum(StringBuilder builder,
+			String columnId) {
+		builder.append(", DROP COLUMN ");
+		builder.append(TableConstants.DOUBLE_PREFIX );
+		builder.append(getColumnNameForId(columnId));
+	}
+	
+	/**
+	 * Append a the rename of a double enumeration column.
+	 * @param builder
+	 * @param oldId
+	 * @param newId
+	 */
+	public static void appendRenameDoubleEnum(StringBuilder builder, String oldId, String newId){
+		builder.append(", CHANGE COLUMN ");
+		builder.append(TableConstants.DOUBLE_PREFIX );
+		builder.append(getColumnNameForId(oldId));
+		builder.append(" ");
+		builder.append(TableConstants.DOUBLE_PREFIX );
+		builder.append(getColumnNameForId(newId));
+		builder.append(DOUBLE_ENUM_CLAUSE);
+	}
+
+	/**
+	 * Append an update column statement to the passed builder.
+	 * @param builder
+	 * @param change
+	 */
+	public static void appendUpdateColumn(StringBuilder builder,
+			ColumnChange change) {
+		ValidateArgument.required(change, "change");
+		ValidateArgument.required(change.getOldColumn(), "change.getOldColumn()");
+		ValidateArgument.required(change.getNewColumn(), "change.getNewColumn()");
+		builder.append("CHANGE COLUMN ");
+		builder.append(getColumnNameForId(change.getOldColumn().getId()));
+		builder.append(" ");
+		appendColumnDefinition(builder, change.getNewColumn());
+		// Is this a type change?
+		if(!change.getOldColumn().getColumnType().equals(change.getNewColumn().getColumnType())){
+			if(ColumnType.DOUBLE.equals(change.getOldColumn().getColumnType())){
+				// The old type is a double so remove the double enumeration column
+				appendDropDoubleEnum(builder, change.getOldColumn().getId());
+			}else if(ColumnType.DOUBLE.equals(change.getNewColumn().getColumnType())){
+				// the new type is a double so add the double enumeration column
+				appendAddDoubleEnum(builder, change.getNewColumn().getId());
+			}
+		}
+		// are both columns a double?
+		if(ColumnType.DOUBLE.equals(change.getOldColumn().getColumnType())
+				&& ColumnType.DOUBLE.equals(change.getNewColumn().getColumnType())){
+			appendRenameDoubleEnum(builder, change.getOldColumn().getId(), change.getNewColumn().getId());
+		}
+	}
+	
+	/**
+	 * Alter a single column for a given column change.
+	 * @param builder
+	 * @param change
+	 */
+	public static boolean appendAlterTableSql(StringBuilder builder,
+			ColumnChange change) {
+		if(change.getOldColumn() == null && change.getNewColumn() == null){
+			// nothing to do
+			return false;
+		}
+		if(change.getOldColumn() == null){
+			// add
+			appendAddColumn(builder, change.getNewColumn());
+		}else if(change.getNewColumn() == null){
+			// delete
+			appendDeleteColumn(builder, change.getOldColumn());
+		}else{
+			// update
+			if(change.getNewColumn().equals(change.getOldColumn())){
+				// nothing to do.
+				return false;
+			}
+			appendUpdateColumn(builder, change);
+		}
+		return true;
+	}
+	
+	/**
+	 * Create an alter table SQL statement for the given set of column changes.
+	 * 
+	 * @param changes
+	 * @return
+	 */
+	public static String createAlterTableSql(List<ColumnChange> changes, long tableId){
+		StringBuilder builder = new StringBuilder();
+		builder.append("ALTER TABLE ");
+		builder.append(getTableNameForId(tableId, TableType.INDEX));
+		builder.append(" ");
+		boolean isFirst = true;
+		boolean hasChanges = false;
+		for(ColumnChange change: changes){
+			if(!isFirst){
+				builder.append(", ");
+			}
+			boolean hasChange = appendAlterTableSql(builder, change);
+			if(hasChange){
+				hasChanges = true;
+			}
+			isFirst = false;
+		}
+		return builder.toString();
+	}
+
 }
