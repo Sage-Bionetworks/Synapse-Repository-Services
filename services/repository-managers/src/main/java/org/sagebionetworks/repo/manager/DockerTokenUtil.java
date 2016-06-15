@@ -15,10 +15,14 @@ import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.Date;
+import java.util.Enumeration;
 import java.util.List;
 
 import org.apache.commons.codec.binary.Base32;
 import org.apache.commons.net.util.Base64;
+import org.bouncycastle.asn1.ASN1Encodable;
+import org.bouncycastle.asn1.ASN1Primitive;
+import org.bouncycastle.asn1.DLSequence;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.sagebionetworks.StackConfiguration;
@@ -72,52 +76,32 @@ public class DockerTokenUtil {
 		// The signature created by the Jwts library is wrong:
 		// The signature must be in P1363 format, NOT ASN.1, 
 		// which is what the code underlying 'compact()' generates when signing.
-		// Below we regenerate it.
+		// Below we regenerate it, using this as a guide:
+		// http://crypto.stackexchange.com/questions/1795/how-can-i-convert-a-der-ecdsa-signature-to-asn-1
+		// generally Java seems to use ASN.1 formatting and not P1363
 		try {
 			String[] pieces = s.split("\\.");
 			if (pieces.length!=3) throw new RuntimeException("Expected 3 pieces but found "+pieces.length);
 			// the first two pieces are the message to sign.  The third piece is the (incorrect) signature.
 
 			Base64 base64 = new Base64();
-			// what are the original signature bytes?
+			
+			// the original signature bytes
 			byte[] originalSigBytes = base64.decode(pieces[2]);
-
-			int lengthOfRemaining = originalSigBytes[1]; // # of bytes, from originalSigBytes[2] to end
-			if (lengthOfRemaining>originalSigBytes.length-2) throw
-				new IllegalStateException("Expected <="+(originalSigBytes.length-2)+" but found "+lengthOfRemaining);
-			int shouldBe2 = originalSigBytes[2];
-			if (shouldBe2!=2) throw new IllegalStateException("Exected 2 but found "+shouldBe2);
-			int lengthOfVR = originalSigBytes[3]; // should be 32
-			if (lengthOfVR!=32 && lengthOfVR!=33) 
-				throw new IllegalStateException("Exected 32 or 33 but found "+lengthOfVR);
-			// VR goes from originalSigBytes[4], for lengthOfVR bytes
-			// for Java, you can simply perform new BigInteger(1, byte[] r).toByteArray() as the default Java encoding of a BigInteger is identical to the ASN.1 encoding of INTEGER
-			shouldBe2 = originalSigBytes[4+lengthOfVR];
-			if (shouldBe2!=2) 
-				throw new IllegalStateException("Exected 2 but found "+shouldBe2);
-			int lengthOfVS = originalSigBytes[5+lengthOfVR];
-			if (lengthOfVS!=32 && lengthOfVS!=33) 
-				throw new IllegalStateException("Exected 32 or 33 but found "+lengthOfVS);
-			// VS starts at originalSigBytes[6+lengthOfVR] and goes for lengthOfVS bytes
-			// originalSigBytes.length should be >= 6+lengthOfVR+lengthOfVS
-			if (lengthOfVS>originalSigBytes.length-6-lengthOfVR) throw
-				new IllegalStateException("Expected <="+(originalSigBytes.length-6-lengthOfVR)+" but found "+lengthOfVS);
-
+			
+			ASN1Primitive obj = ASN1Primitive.fromByteArray(originalSigBytes);
+			DLSequence app = (DLSequence) obj;
+			ASN1Encodable[] encodables = app.toArray();
+			assert encodables.length==2;
+			byte[] b;
+			// extract the two 32 byte integers from the ASN.1 format and simply concatenate
+			// them in a new binary array
 			byte[] p1363Signature = new byte[64];
-
-			// r and s each occupy half the array
-			// Remove padding bytes
-			int numVRBytes = lengthOfVR > 32 ? 32 : lengthOfVR;
-			System.arraycopy(originalSigBytes, 4+(lengthOfVR > 32 ? 1 : 0), 
-					p1363Signature, 0, numVRBytes);
-
-			int numVSBytes = lengthOfVS > 32 ? 32 : lengthOfVS;
-			if (numVRBytes+numVSBytes!=p1363Signature.length)
-				throw new IllegalStateException("Source bytes number: "+(numVRBytes+numVSBytes)
-						+" but destination array has length "+p1363Signature.length);
-			System.arraycopy(originalSigBytes, 6+lengthOfVR+(lengthOfVS > 32 ? 1 : 0), 
-					p1363Signature, numVRBytes, numVSBytes);
-
+			b = encodables[0].toASN1Primitive().getEncoded();
+			System.arraycopy(b, b.length-32, p1363Signature, 0, 32);
+			b = encodables[1].toASN1Primitive().getEncoded();
+			System.arraycopy(b, b.length-32, p1363Signature, 32, 32);
+				
 			String base64Encoded = Base64.encodeBase64URLSafeString(p1363Signature);
 			while (base64Encoded.endsWith("=")) 
 				base64Encoded = base64Encoded.substring(0, base64Encoded.length()-1);
