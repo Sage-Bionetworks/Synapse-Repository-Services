@@ -1,0 +1,11 @@
+{
+	"title": "RegistryEventActor",
+	"description": "",
+	"name": "RegistryEventActor",
+	"properties": {
+		"name": {
+			"type": "string",
+			"description": ""
+		}
+	}
+}

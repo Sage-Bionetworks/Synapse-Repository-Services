@@ -1,0 +1,15 @@
+{
+	"title": "RegistryEventSource",
+	"description": "",
+	"name": "RegistryEventSource",
+	"properties": {
+		"addr": {
+			"type": "string",
+			"description": ""
+		},
+		"instanceID": {
+			"type": "string",
+			"description": ""
+		}
+	}
+}

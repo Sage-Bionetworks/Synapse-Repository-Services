@@ -1,0 +1,35 @@
+{
+	"title": "RegistryEventTarget",
+	"description": "",
+	"name": "RegistryEventTarget",
+	"properties": {
+		"mediaType": {
+			"type": "string",
+			"description": ""
+		},
+		"size": {
+			"type": "integer",
+			"description": ""
+		},
+		"digest": {
+			"type": "string",
+			"description": ""
+		},
+		"length": {
+			"type": "integer",
+			"description": ""
+		},
+		"repository": {
+			"type": "string",
+			"description": ""
+		},
+		"tag": {
+			"type": "string",
+			"description": ""
+		},
+		"url": {
+			"type": "string",
+			"description": ""
+		}
+	}
+}

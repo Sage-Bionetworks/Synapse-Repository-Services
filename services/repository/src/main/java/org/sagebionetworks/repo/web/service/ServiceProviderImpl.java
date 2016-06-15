@@ -77,6 +77,8 @@ public class ServiceProviderImpl implements ServiceProvider {
 	private DiscussionService discussionService;
 	@Autowired
 	private SubscriptionService subscriptionService;
+	@Autowired
+	private DockerService dockerService;
 	
 	public AccessApprovalService getAccessApprovalService() {
 		return accessApprovalService;
@@ -199,6 +201,10 @@ public class ServiceProviderImpl implements ServiceProvider {
 	@Override
 	public SubscriptionService getSubscriptionService() {
 		return subscriptionService;
+	}
+	@Override
+	public DockerService getDockerService() {
+		return dockerService;
 	}
 	
 }
