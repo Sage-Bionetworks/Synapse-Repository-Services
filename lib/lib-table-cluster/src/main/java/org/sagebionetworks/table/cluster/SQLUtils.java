@@ -539,6 +539,7 @@ public class SQLUtils {
 		return COLUMN_PREFIX + columnId.toString() + COLUMN_POSTFIX;
 	}
 
+
 	static Iterable<String> getColumnNames(final Iterable<ColumnModel> columnModels) {
 		return new Iterable<String>() {
 			@Override
@@ -955,20 +956,88 @@ public class SQLUtils {
 	public static String createSQLGetDistinctValues(String tableId, String columnId){
 		return "SELECT DISTINCT "+getColumnNameForId(columnId)+" FROM "+getTableNameForId(tableId, TableType.INDEX);
 	}
-
 	
 	/**
-	 * Append a column type definition to the passed builder.
-	 * 
-	 * @param builder
-	 * @param column
+	 * SQL to create a table if it does not exist.
+	 * @param tableId
+	 * @return
 	 */
-	public static void appendColumnDefinition(StringBuilder builder, ColumnModel column){
-		builder.append(getColumnNameForId(column.getId()));
+	public static String createTableIfDoesNotExistSQL(String tableId){
+		StringBuilder builder = new StringBuilder();
+		builder.append("CREATE TABLE IF NOT EXISTS ");
+		builder.append(getTableNameForId(tableId, TableType.INDEX));
+		builder.append("( ");
+		builder.append(ROW_ID).append(" bigint(20) NOT NULL, ");
+		builder.append(ROW_VERSION).append(" bigint(20) NOT NULL, ");
+		builder.append("PRIMARY KEY (").append("ROW_ID").append(")");
+		builder.append(")");
+		return builder.toString();
+	}
+
+	/**
+	 * Create an alter table SQL statement for the given set of column changes.
+	 * 
+	 * @param changes
+	 * @return
+	 */
+	public static String createAlterTableSql(List<ColumnChange> changes, String tableId){
+		StringBuilder builder = new StringBuilder();
+		builder.append("ALTER TABLE ");
+		builder.append(getTableNameForId(tableId, TableType.INDEX));
 		builder.append(" ");
-		builder.append(getSQLTypeForColumnType(column.getColumnType(), column.getMaximumSize()));
-		builder.append(" ");
-		builder.append(getSQLDefaultForColumnType(column.getColumnType(), column.getDefaultValue()));
+		boolean isFirst = true;
+		boolean hasChanges = false;
+		for(ColumnChange change: changes){
+			if(!isFirst){
+				builder.append(", ");
+			}
+			boolean hasChange = appendAlterTableSql(builder, change);
+			if(hasChange){
+				hasChanges = true;
+			}
+			isFirst = false;
+		}
+		// return null if there is nothing to do.
+		if(!hasChanges){
+			return null;
+		}
+		return builder.toString();
+	}
+	
+	/**
+	 * Alter a single column for a given column change.
+	 * @param builder
+	 * @param change
+	 */
+	public static boolean appendAlterTableSql(StringBuilder builder,
+			ColumnChange change) {
+		if(change.getOldColumn() == null && change.getNewColumn() == null){
+			// nothing to do
+			return false;
+		}
+		if(change.getOldColumn() == null){
+			// add
+			appendAddColumn(builder, change.getNewColumn());
+			// change was added.
+			return true;
+		}
+
+		if(change.getNewColumn() == null){
+			// delete
+			appendDeleteColumn(builder, change.getOldColumn());
+			// change was added.
+			return true;
+		}
+
+		if (change.getNewColumn().equals(change.getOldColumn())) {
+			// both columns are the same so do nothing.
+			return false;
+		}
+		// update
+		appendUpdateColumn(builder, change);
+		// change was added.
+		return true;
+
 	}
 	
 	/**
@@ -986,19 +1055,6 @@ public class SQLUtils {
 			appendAddDoubleEnum(builder, newColumn.getId());
 		}
 	}
-
-	/**
-	 * Append the SQL to add a double enumeration column for the given column.
-	 * @param builder
-	 * @param newColumn
-	 */
-	public static void appendAddDoubleEnum(StringBuilder builder,
-			String columnId) {
-		builder.append(", ADD COLUMN ");
-		builder.append(TableConstants.DOUBLE_PREFIX );
-		builder.append(getColumnNameForId(columnId));
-		builder.append(DOUBLE_ENUM_CLAUSE);
-	}
 	
 	/**
 	 * Append a delete column statement to the passed builder.
@@ -1015,35 +1071,7 @@ public class SQLUtils {
 			appendDropDoubleEnum(builder, oldColumn.getId());
 		}
 	}
-
-	/**
-	 * Append drop double enumeration column for the given column id.
-	 * @param builder
-	 * @param oldColumn
-	 */
-	public static void appendDropDoubleEnum(StringBuilder builder,
-			String columnId) {
-		builder.append(", DROP COLUMN ");
-		builder.append(TableConstants.DOUBLE_PREFIX );
-		builder.append(getColumnNameForId(columnId));
-	}
 	
-	/**
-	 * Append a the rename of a double enumeration column.
-	 * @param builder
-	 * @param oldId
-	 * @param newId
-	 */
-	public static void appendRenameDoubleEnum(StringBuilder builder, String oldId, String newId){
-		builder.append(", CHANGE COLUMN ");
-		builder.append(TableConstants.DOUBLE_PREFIX );
-		builder.append(getColumnNameForId(oldId));
-		builder.append(" ");
-		builder.append(TableConstants.DOUBLE_PREFIX );
-		builder.append(getColumnNameForId(newId));
-		builder.append(DOUBLE_ENUM_CLAUSE);
-	}
-
 	/**
 	 * Append an update column statement to the passed builder.
 	 * @param builder
@@ -1076,57 +1104,88 @@ public class SQLUtils {
 	}
 	
 	/**
-	 * Alter a single column for a given column change.
+	 * Append a column type definition to the passed builder.
+	 * 
 	 * @param builder
-	 * @param change
+	 * @param column
 	 */
-	public static boolean appendAlterTableSql(StringBuilder builder,
-			ColumnChange change) {
-		if(change.getOldColumn() == null && change.getNewColumn() == null){
-			// nothing to do
-			return false;
-		}
-		if(change.getOldColumn() == null){
-			// add
-			appendAddColumn(builder, change.getNewColumn());
-		}else if(change.getNewColumn() == null){
-			// delete
-			appendDeleteColumn(builder, change.getOldColumn());
-		}else{
-			// update
-			if(change.getNewColumn().equals(change.getOldColumn())){
-				// nothing to do.
-				return false;
-			}
-			appendUpdateColumn(builder, change);
-		}
-		return true;
+	public static void appendColumnDefinition(StringBuilder builder, ColumnModel column){
+		builder.append(getColumnNameForId(column.getId()));
+		builder.append(" ");
+		builder.append(getSQLTypeForColumnType(column.getColumnType(), column.getMaximumSize()));
+		builder.append(" ");
+		builder.append(getSQLDefaultForColumnType(column.getColumnType(), column.getDefaultValue()));
+	}
+
+	/**
+	 * Append the SQL to add a double enumeration column for the given column.
+	 * @param builder
+	 * @param newColumn
+	 */
+	public static void appendAddDoubleEnum(StringBuilder builder,
+			String columnId) {
+		builder.append(", ADD COLUMN ");
+		builder.append(TableConstants.DOUBLE_PREFIX );
+		builder.append(getColumnNameForId(columnId));
+		builder.append(DOUBLE_ENUM_CLAUSE);
+	}
+
+	/**
+	 * Append drop double enumeration column for the given column id.
+	 * @param builder
+	 * @param oldColumn
+	 */
+	public static void appendDropDoubleEnum(StringBuilder builder,
+			String columnId) {
+		builder.append(", DROP COLUMN ");
+		builder.append(TableConstants.DOUBLE_PREFIX );
+		builder.append(getColumnNameForId(columnId));
 	}
 	
 	/**
-	 * Create an alter table SQL statement for the given set of column changes.
-	 * 
-	 * @param changes
+	 * Append a the rename of a double enumeration column.
+	 * @param builder
+	 * @param oldId
+	 * @param newId
+	 */
+	public static void appendRenameDoubleEnum(StringBuilder builder, String oldId, String newId){
+		builder.append(", CHANGE COLUMN ");
+		builder.append(TableConstants.DOUBLE_PREFIX );
+		builder.append(getColumnNameForId(oldId));
+		builder.append(" ");
+		builder.append(TableConstants.DOUBLE_PREFIX );
+		builder.append(getColumnNameForId(newId));
+		builder.append(DOUBLE_ENUM_CLAUSE);
+	}
+
+	/**
+	 * Create the SQL to truncate the given table.
+	 * @param tableId
 	 * @return
 	 */
-	public static String createAlterTableSql(List<ColumnChange> changes, long tableId){
+	public static String createTruncateSql(String tableId) {
+		return "TRUNCATE TABLE "+getTableNameForId(tableId, TableType.INDEX);
+	}
+
+	/**
+	 * Create the SQL to an index for each column name.
+	 * @param tableId
+	 * @param indicesToAdd
+	 * @return
+	 */
+	public static String createAddIndicesSql(String tableId,
+			List<ColumnDefinition> indicesToAdd) {
 		StringBuilder builder = new StringBuilder();
 		builder.append("ALTER TABLE ");
 		builder.append(getTableNameForId(tableId, TableType.INDEX));
-		builder.append(" ");
 		boolean isFirst = true;
-		boolean hasChanges = false;
-		for(ColumnChange change: changes){
-			if(!isFirst){
+		for(ColumnDefinition column: indicesToAdd){
+			if(isFirst){
 				builder.append(", ");
 			}
-			boolean hasChange = appendAlterTableSql(builder, change);
-			if(hasChange){
-				hasChanges = true;
-			}
-			isFirst = false;
+			builder.append("ADD INDEX ");
 		}
-		return builder.toString();
+		return null;
 	}
 
 }

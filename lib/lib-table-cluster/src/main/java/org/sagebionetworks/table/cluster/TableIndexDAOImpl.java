@@ -48,6 +48,7 @@ import com.google.common.collect.Sets;
 
 public class TableIndexDAOImpl implements TableIndexDAO {
 
+	private static final String KEY = "Key";
 	private static final String SQL_SHOW_COLUMNS = "SHOW COLUMNS FROM ";
 	private static final String FIELD = "Field";
 	private static final String TYPE = "Type";
@@ -114,7 +115,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		List<String> oldColumns = oldColumnDefs == null ? null : Lists.transform(oldColumnDefs, new Function<ColumnDefinition, String>() {
 			@Override
 			public String apply(ColumnDefinition input) {
-				return input.name;
+				return input.getName();
 			}
 		});
 		// Build the SQL to create or update the table
@@ -158,14 +159,15 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				@Override
 				public ColumnDefinition mapRow(ResultSet rs, int rowNum) throws SQLException {
 					ColumnDefinition columnDefinition = new ColumnDefinition();
-					columnDefinition.name = rs.getString(FIELD);
-					columnDefinition.maxSize = null;
+					columnDefinition.setName(rs.getString(FIELD));
 					String type = rs.getString(TYPE);
 					Matcher m = VARCHAR.matcher(type);
 					if (m.matches()) {
-						columnDefinition.columnType = ColumnType.STRING;
-						columnDefinition.maxSize = Long.parseLong(m.group(1));
+						columnDefinition.setColumnType(ColumnType.STRING);
+						columnDefinition.setMaxSize(Long.parseLong(m.group(1)));
 					}
+					String key = rs.getString(KEY);
+					columnDefinition.setHasIndex(!"".equals(key));
 					return columnDefinition;
 				}
 			});
@@ -422,5 +424,36 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		List<Long> results = template.queryForList(sql, Long.class);
 		return new HashSet<Long>(results);
 	}
+
+	@Override
+	public void createTableIfDoesNotExist(String tableId) {
+		String sql = SQLUtils.createTableIfDoesNotExistSQL(tableId);
+		template.update(sql);
+	}
+
+	@Override
+	public boolean alterTableAsNeeded(String tableId, List<ColumnChange> changes) {
+		String sql = SQLUtils.createAlterTableSql(changes, tableId);
+		if(sql == null){
+			// no change are needed.
+			return false;
+		}
+		// apply the update
+		template.update(sql);
+		return true;
+	}
+
+	@Override
+	public void truncateTable(String tableId) {
+		String sql = SQLUtils.createTruncateSql(tableId);
+		template.update(sql);
+	}
+
+	@Override
+	public void addIndicesToTable(String tableId, List<ColumnDefinition> indicesToAdd) {
+		String sql = SQLUtils.createAddIndicesSql(tableId, indicesToAdd);
+		template.update(sql);
+	}
+
 
 }

@@ -27,6 +27,9 @@ import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
+import org.sagebionetworks.repo.model.table.TableConstants;
+import org.sagebionetworks.table.cluster.ColumnDefinition;
+import org.sagebionetworks.table.cluster.SQLUtils;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionCallback;
@@ -211,5 +214,81 @@ public class TableIndexManagerImplTest {
 		verify(mockIndexDao).deleteSecondayTables(tableId);
 		verify(mockIndexDao).deleteTable(tableId);
 	}
+	
+	@Test
+	public void testGetColumnsThatNeedAnIndexNone(){
+		List<ColumnDefinition> schema = createColumnDefintions(2);
+		int maxNumberOfIndices = 100;
+		// call under test
+		List<String> results = TableIndexManagerImpl.getColumnsThatNeedAnIndex(schema, maxNumberOfIndices);
+		// All columns already have an index for this case
+		assertNotNull(results);
+		assertTrue(results.isEmpty());
+	}
+	
+	@Test
+	public void testGetColumnsThatNeedAnIndexOverLimit(){
+		// with two columns
+		List<ColumnDefinition> schema = createColumnDefintions(2);
+		// set the last two columns with missing index
+		schema.get(2).setHasIndex(false);
+		schema.get(3).setHasIndex(false);
+		// only allow two total indices.
+		int maxNumberOfIndices = 2;
+		// call under test
+		List<String> results = TableIndexManagerImpl.getColumnsThatNeedAnIndex(schema, maxNumberOfIndices);
+		// All columns already have an index for this case
+		assertNotNull(results);
+		assertEquals(1, results.size());
+		// the first column should get an index
+		assertEquals("_C0_", results.get(0));
+	}
+	
+	@Test
+	public void testGetColumnsThatNeedAnIndexAtLimit(){
+		// with two columns
+		List<ColumnDefinition> schema = createColumnDefintions(2);
+		// set the last two columns with missing index
+		schema.get(2).setHasIndex(false);
+		schema.get(3).setHasIndex(false);
+		// only allow two total indices.
+		int maxNumberOfIndices = 3;
+		// call under test
+		List<String> results = TableIndexManagerImpl.getColumnsThatNeedAnIndex(schema, maxNumberOfIndices);
+		// All columns already have an index for this case
+		assertNotNull(results);
+		assertEquals(2, results.size());
+		// the first column should get an index
+		assertEquals("_C0_", results.get(0));
+		assertEquals("_C1_", results.get(1));
+	}
+	
+	/**
+	 * Helper to create test ColumnDefinition
+	 * @param count
+	 * @return
+	 */
+	List<ColumnDefinition> createColumnDefintions(int count){
+		List<ColumnDefinition> results = new LinkedList<ColumnDefinition>();
+		ColumnDefinition rowId = new ColumnDefinition();
+		rowId.setName(TableConstants.ROW_ID);
+		rowId.setHasIndex(true);
+		results.add(rowId);
+		
+		ColumnDefinition rowVersion = new ColumnDefinition();
+		rowVersion.setName(TableConstants.ROW_VERSION);
+		rowVersion.setHasIndex(false);
+		results.add(rowVersion);
+				
+		for(int i=0; i<count; i++){
+			ColumnDefinition def = new ColumnDefinition();
+			def.setName(SQLUtils.getColumnNameForId(""+i));
+			def.setHasIndex(true);
+			results.add(def);
+		}
+		return results;
+	}
+	
+	
 	
 }

@@ -934,4 +934,68 @@ public class SQLUtilsTest {
 		assertEquals("", builder.toString());
 	}
 	
+	@Test
+	public void testCreateAlterTableSqlMultiple(){
+		ColumnModel oldColumn = new ColumnModel();
+		oldColumn.setId("123");
+		oldColumn.setColumnType(ColumnType.BOOLEAN);
+		// new column
+		ColumnModel newColumn = new ColumnModel();
+		newColumn.setId("456");
+		newColumn.setColumnType(ColumnType.INTEGER);
+		ColumnChange change = new ColumnChange(oldColumn, newColumn);
+		
+		oldColumn = new ColumnModel();
+		oldColumn.setId("111");
+		oldColumn.setColumnType(ColumnType.DOUBLE);
+		// new column
+		newColumn = new ColumnModel();
+		newColumn.setId("222");
+		newColumn.setColumnType(ColumnType.STRING);
+		newColumn.setMaximumSize(15L);
+		newColumn.setDefaultValue("foo");
+		ColumnChange change2 = new ColumnChange(oldColumn, newColumn);
+		String tableId = "syn999";
+		// call under test
+		String results = SQLUtils.createAlterTableSql(Lists.newArrayList(change, change2), tableId);
+		assertEquals("ALTER TABLE T999 "
+				+ "CHANGE COLUMN _C123_ _C456_ bigint(20) DEFAULT NULL, "
+				+ "CHANGE COLUMN _C111_ _C222_ varchar(15) CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT 'foo', "
+				+ "DROP COLUMN _DBL_C111_", results);
+	}
+	
+	@Test
+	public void testCreateAlterTableSqlNoChange(){
+		ColumnModel oldColumn = new ColumnModel();
+		oldColumn.setId("123");
+		oldColumn.setColumnType(ColumnType.BOOLEAN);
+		// new column
+		ColumnModel newColumn = new ColumnModel();
+		newColumn.setId("123");
+		newColumn.setColumnType(ColumnType.BOOLEAN);
+		ColumnChange change = new ColumnChange(oldColumn, newColumn);
+		
+		String tableId = "syn999";
+		// call under test
+		String results = SQLUtils.createAlterTableSql(Lists.newArrayList(change), tableId);
+		assertEquals("when there are no changes the sql should be null",null, results);
+	}
+	
+	@Test
+	public void testCreateTableIfDoesNotExistSQL(){
+		String tableId = "syn123";
+		// call under test
+		String sql = SQLUtils.createTableIfDoesNotExistSQL(tableId);
+		assertEquals("CREATE TABLE IF NOT EXISTS T123( "
+				+ "ROW_ID bigint(20) NOT NULL, "
+				+ "ROW_VERSION bigint(20) NOT NULL, "
+				+ "PRIMARY KEY (ROW_ID))", sql);
+	}
+	
+	@Test
+	public void testCreateTruncateSql(){
+		String sql = SQLUtils.createTruncateSql("syn123");
+		assertEquals("TRUNCATE TABLE T123", sql);
+	}
+	
 }

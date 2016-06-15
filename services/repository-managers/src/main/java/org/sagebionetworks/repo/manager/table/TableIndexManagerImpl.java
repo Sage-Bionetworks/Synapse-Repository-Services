@@ -1,16 +1,25 @@
 package org.sagebionetworks.repo.manager.table;
 
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
+
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.table.cluster.ColumnChange;
+import org.sagebionetworks.table.cluster.ColumnDefinition;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionCallback;
 
 public class TableIndexManagerImpl implements TableIndexManager {
+	
+	public static final int MAX_MYSQL_INDEX_COUNT = 63; // mysql only supports a max of 64 secondary indices per table.
 	
 	private final TableIndexDAO tableIndexDao;
 	private final String tableId;
@@ -154,6 +163,84 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	public void setIndexVersion(Long versionNumber) {
 		tableIndexDao.setMaxCurrentCompleteVersionForTable(
 				tableId, versionNumber);
+	}
+	@Override
+	public void createTableIndexIfDoesNotExist() {
+		// Create all of the status tables unconditionally.
+		tableIndexDao.createSecondaryTables(tableId);
+		// create the table if it does not exist
+		tableIndexDao.createTableIfDoesNotExist(tableId);
+	}
+	@Override
+	public void updateTableSchema(List<ColumnChange> changes) {
+		// create the table if it does not exist
+		tableIndexDao.createTableIfDoesNotExist(tableId);
+		// Create all of the status tables unconditionally.
+		tableIndexDao.createSecondaryTables(tableId);
+		
+		List<ColumnModel> newSchema = new LinkedList<ColumnModel>();
+		for(ColumnChange change: changes){
+			if(change.getNewColumn() != null){
+				newSchema.add(change.getNewColumn());
+			}
+		}
+		
+		if(newSchema.isEmpty()){
+			// clear all rows from the table
+			tableIndexDao.truncateTable(tableId);
+		}
+		// Alter the table
+		tableIndexDao.alterTableAsNeeded(tableId, changes);
+		
+		// Add any missing indices.
+		List<ColumnDefinition> currentColumns = tableIndexDao.getCurrentTableColumns(tableId);
+		List<ColumnDefinition> indicesToAdd = getColumnsThatNeedAnIndex(currentColumns, MAX_MYSQL_INDEX_COUNT);
+		tableIndexDao.addIndicesToTable(tableId, indicesToAdd);
+		
+		// Save the hash of the new schema
+		String schemaMD5Hex = TableModelUtils. createSchemaMD5HexCM(newSchema);
+		tableIndexDao.setCurrentSchemaMD5Hex(tableId, schemaMD5Hex);
+	}
+	
+	/**
+	 * Given the current schema of a table determine which columns need an index,
+	 * while remaining under the maximum number off allowed indices.
+	 * 
+	 * @param schema
+	 * @param The maximum number of indices allowed on a single table.
+	 * @return
+	 */
+	public static List<ColumnDefinition> getColumnsThatNeedAnIndex(List<ColumnDefinition> schema, int maxNumberOfIndices){
+		ValidateArgument.required(schema, "schema");
+		List<ColumnDefinition> results = new LinkedList<ColumnDefinition>();
+		int totalIndexCount = 0;
+		for(ColumnDefinition columnDef: schema){
+			if(columnDef.hasIndex()){
+				totalIndexCount++;
+			}
+		}
+		if(totalIndexCount >= maxNumberOfIndices){
+			// cannot add any more indices.
+			return results;
+		}
+		// 
+		int maxNumberToAdd = maxNumberOfIndices-totalIndexCount;
+		for(ColumnDefinition columnDef: schema){
+			// skip rowId and version
+			if(ROW_ID.equals(columnDef.getName().toUpperCase())){
+				continue;
+			}
+			if(ROW_VERSION.equals(columnDef.getName().toUpperCase())){
+				continue;
+			}
+			if(!columnDef.hasIndex()){
+				results.add(columnDef);
+			}
+			if(results.size() == maxNumberToAdd){
+				break;
+			}
+		}
+		return results;
 	}
 	
 }

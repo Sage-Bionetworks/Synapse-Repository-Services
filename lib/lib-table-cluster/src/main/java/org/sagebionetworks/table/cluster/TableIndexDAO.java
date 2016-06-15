@@ -7,7 +7,6 @@ import java.util.Set;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.support.TransactionCallback;
@@ -19,12 +18,6 @@ import org.springframework.transaction.support.TransactionCallback;
  */
 public interface TableIndexDAO {
 
-	public static class ColumnDefinition {
-		public String name;
-		public ColumnType columnType;
-		public Long maxSize;
-	}
-
 	/**
 	 * Create or update a table with the given schema.
 	 * 
@@ -32,7 +25,25 @@ public interface TableIndexDAO {
 	 * @param schema
 	 * @param tableId
 	 */
+	@Deprecated
 	public boolean createOrUpdateTable(List<ColumnModel> schema, String tableId);
+	
+	/**
+	 * Create a table with the given name if it does not exist.
+	 * @param tableId The ID of the table.
+	 */
+	public void createTableIfDoesNotExist(String tableId);
+	
+	/**
+	 * Alter the given table as needed. The table will be changed
+	 * according to the passed list of column changes.  This includes,
+	 * additions, deletions, and updates.
+	 * 
+	 * @param tableId
+	 * @param changes
+	 * @return True if the table was altered. False if the table was not changed.
+	 */
+	public boolean alterTableAsNeeded(String tableId, List<ColumnChange> changes);
 	
 	/**
 	 * 
@@ -196,5 +207,22 @@ public interface TableIndexDAO {
 	 * @return
 	 */
 	public Set<Long> getDistinctLongValues(String tableId, String columnIds);
+
+	/**
+	 * Truncate all of the data in the given table.
+	 * 
+	 * @param tableId
+	 */
+	public void truncateTable(String tableId);
+
+
+	/**
+	 * Add an index for each column name in the given list to the given table.
+	 * @param tableId
+	 * @param indicesToAdd
+	 * @param tableId
+	 * @param indicesToAdd
+	 */
+	public void addIndicesToTable(String tableId, List<ColumnDefinition> indicesToAdd);
 
 }
