@@ -3,12 +3,21 @@ package org.sagebionetworks.repo.manager;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.List;
 
 import org.junit.Test;
 
 public class DockerTokenUtilTest {
+	
+	@Test
+	public void testKeyId() throws Exception {
+		X509Certificate certificate = DockerTokenUtil.readCertificate();
+		String keyId = DockerTokenUtil.computeKeyId(certificate.getPublicKey());
+		String expectedKeyId = "FWOZ:6JNY:OUZ5:BHLA:YWJI:PKL4:G6QR:XCMK:3BU4:EIXW:L3Q7:VMIR";
+		assertEquals(expectedKeyId, keyId);
+	}
 
 	@Test
 	public void testTokenGeneration() throws Exception {

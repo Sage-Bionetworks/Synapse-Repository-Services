@@ -125,7 +125,7 @@ public class DockerTokenUtil {
 		}
 	}
 	
-	private static X509Certificate readCertificate() {
+	public static X509Certificate readCertificate() {
 		try {
 			byte[] content = Base64.decodeBase64(StackConfiguration.getDockerAuthorizationCertificate());
 			CertificateFactory certFactory = CertificateFactory.getInstance("X.509");
@@ -139,7 +139,7 @@ public class DockerTokenUtil {
 
 	// from https://botbot.me/freenode/cryptography-dev/2015-12-04/?page=1
 	// SPKI DER SHA-256 hash, strip of the last two bytes, base32 encode it and then add a : every four chars.
-	private static String computeKeyId(PublicKey publicKey) {
+	public static String computeKeyId(PublicKey publicKey) {
 		try {
 			if (publicKey==null) throw new RuntimeException();
 			// http://stackoverflow.com/questions/3103652/hash-string-via-sha-256-in-java
