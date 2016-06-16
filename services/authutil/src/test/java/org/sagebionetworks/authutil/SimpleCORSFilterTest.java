@@ -18,6 +18,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 
 public class SimpleCORSFilterTest {
 	
@@ -49,13 +50,16 @@ public class SimpleCORSFilterTest {
 
 	@Test
 	public void testIsPreflight() throws IOException, ServletException{
-		// request header "access control request method" is set
+		// request header "access control request method" is set.
 		when(mockRequest.getHeader(SimpleCORSFilter.ACCESS_CONTROL_REQUEST_METHOD)).thenReturn("set");
+		// verify filter echos back custom headers that we request. 
+		String testHeaders = "Origin, X-Requested-With, Content-Type, Accept, " + AuthorizationConstants.SESSION_TOKEN_PARAM;
+		when(mockRequest.getHeader(SimpleCORSFilter.ACCESS_CONTROL_REQUEST_HEADERS)).thenReturn(testHeaders);
 		when(mockRequest.getMethod()).thenReturn(SimpleCORSFilter.OPTIONS);
 		filter.doFilter(mockRequest, mockResponse, mockChain);
 		verify(mockResponse).addHeader(SimpleCORSFilter.ACCESS_CONTROL_ALLOW_ORIGIN, SimpleCORSFilter.ALL_ORIGINS);
 		verify(mockResponse).addHeader(SimpleCORSFilter.ACCESS_CONTROL_MAX_AGE, SimpleCORSFilter.MAX_AGE);
-		verify(mockResponse).addHeader(SimpleCORSFilter.ACCESS_CONTROL_ALLOW_HEADERS, SimpleCORSFilter.HEADERS);
+		verify(mockResponse).addHeader(SimpleCORSFilter.ACCESS_CONTROL_ALLOW_HEADERS, testHeaders);
 		verify(mockResponse).addHeader(SimpleCORSFilter.ACCESS_CONTROL_ALLOW_METHODS, SimpleCORSFilter.METHODS);
 		verify(mockResponse).addHeader(SimpleCORSFilter.ACCESS_CONTROL_ALLOW_CREDENTIALS, Boolean.TRUE.toString());
 		
