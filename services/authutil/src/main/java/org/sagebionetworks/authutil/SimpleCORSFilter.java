@@ -26,6 +26,17 @@ import org.apache.logging.log4j.Logger;
  */
 public class SimpleCORSFilter implements Filter {
 
+	public static final String OPTIONS = "OPTIONS";
+	public static final String ACCESS_CONTROL_REQUEST_METHOD = "Access-Control-Request-Method";
+	public static final String ALL_ORIGINS = "*";
+	public static final String METHODS = "POST, GET, PUT";
+	public static final String HEADERS = "Origin, X-Requested-With, Content-Type, Accept";
+	public static final String MAX_AGE = "300";
+	public static final String ACCESS_CONTROL_ALLOW_CREDENTIALS = "Access-Control-Allow-Credentials";
+	public static final String ACCESS_CONTROL_ALLOW_METHODS = "Access-Control-Allow-Methods";
+	public static final String ACCESS_CONTROL_ALLOW_HEADERS = "Access-Control-Allow-Headers";
+	public static final String ACCESS_CONTROL_MAX_AGE = "Access-Control-Max-Age";
+	public static final String ACCESS_CONTROL_ALLOW_ORIGIN = "Access-Control-Allow-Origin";
 	static private Logger log = LogManager.getLogger(SimpleCORSFilter.class);
 	
 	@Override
@@ -39,17 +50,17 @@ public class SimpleCORSFilter implements Filter {
 		HttpServletRequest request = (HttpServletRequest) req;
 		HttpServletResponse response = (HttpServletResponse) res;
 		// Add this header to the response of every call.
-		response.addHeader("Access-Control-Allow-Origin", "*");
+		response.addHeader(ACCESS_CONTROL_ALLOW_ORIGIN, ALL_ORIGINS);
 		// Is this a pre-flight request?
 		if(isPreFlightRequest(request)){
 			// header indicates how long the results of a preflight request can be cached in seconds
-			response.addHeader("Access-Control-Max-Age", "300");
+			response.addHeader(ACCESS_CONTROL_MAX_AGE, MAX_AGE);
 			// header indicates which custom header field names can be used during the actual request.
-			response.addHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+			response.addHeader(ACCESS_CONTROL_ALLOW_HEADERS, HEADERS);
 			// header indicates the methods that can be used in the actual request.
-			response.addHeader("Access-Control-Allow-Methods", "POST, GET, PUT");
+			response.addHeader(ACCESS_CONTROL_ALLOW_METHODS, METHODS);
 			// header indicates that the actual request can include user credentials (send cookies from another domain).
-			response.addHeader("Access-Control-Allow-Credentials", "true");
+			response.addHeader(ACCESS_CONTROL_ALLOW_CREDENTIALS, Boolean.TRUE.toString());
 			// We do not pass along the pre-flight requests, we just return with the header.
 			log.info("Pre-flight request headers: ");
 			logHeaders(request);
@@ -83,9 +94,9 @@ public class SimpleCORSFilter implements Filter {
 	 * @return
 	 */
 	public boolean isPreFlightRequest(HttpServletRequest request){
-		return request.getHeader("Access-Control-Request-Method") != null && 
+		return request.getHeader(ACCESS_CONTROL_REQUEST_METHOD) != null && 
 				request.getMethod() != null &&
-				request.getMethod().equals("OPTIONS");
+				request.getMethod().equals(OPTIONS);
 	}
 
 }
