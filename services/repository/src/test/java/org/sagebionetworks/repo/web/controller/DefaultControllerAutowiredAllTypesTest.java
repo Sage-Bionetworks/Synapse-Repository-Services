@@ -268,7 +268,7 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 	 * @return
 	 */
 	private String findCompatableParentId(List<EntityHeader> path, EntityType type){
-		// Frist try null
+		// First try null
 		if(EntityTypeUtils.isValidParentType(type, null)) return null;
 		// Try each entry in the list
 		for(EntityHeader header: path){
