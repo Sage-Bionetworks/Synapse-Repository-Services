@@ -46,6 +46,7 @@ import com.google.common.collect.Sets;
 public class SQLUtils {
 
 
+	private static final String IDX = "idx_";
 	public static final String CHARACTER_SET_UTF8_COLLATE_UTF8_GENERAL_CI = "CHARACTER SET utf8 COLLATE utf8_general_ci";
 	public static final String FILE_ID_BIND = "bFIds";
 	public static final String ROW_ID_BIND = "bRI";
@@ -272,7 +273,7 @@ public class SQLUtils {
 	}
 
 	static String getColumnIndexName(String columnName) {
-		return columnName + "idx_";
+		return columnName + IDX;
 	}
 
 	/**
@@ -281,6 +282,7 @@ public class SQLUtils {
 	 * @param type
 	 * @return
 	 */
+	@Deprecated
 	public static String getSQLTypeForColumnType(ColumnType type, Long maxSize) {
 		if (type == null) {
 			throw new IllegalArgumentException("ColumnType cannot be null");
@@ -314,6 +316,7 @@ public class SQLUtils {
 	 * @param type
 	 * @return
 	 */
+	@Deprecated
 	public static Object parseValueForDB(ColumnType type, String value){
 		if(value == null) return null;
 		if(type == null) throw new IllegalArgumentException("Type cannot be null");
@@ -355,6 +358,7 @@ public class SQLUtils {
 	 * @param defaultString
 	 * @return
 	 */
+	@Deprecated
 	public static String getSQLDefaultForColumnType(ColumnType type,
 			String defaultString) {
 		if (defaultString == null)
@@ -537,6 +541,15 @@ public class SQLUtils {
 		if (columnId == null)
 			throw new IllegalArgumentException("Column ID cannot be null");
 		return COLUMN_PREFIX + columnId.toString() + COLUMN_POSTFIX;
+	}
+	
+	/**
+	 * Get the name of an index for the given column.
+	 * @param columnId
+	 * @return
+	 */
+	public static String getIndexNameForColumnId(String columnId){
+		return "`"+getColumnNameForId(columnId)+IDX+"`";
 	}
 
 
@@ -1082,6 +1095,17 @@ public class SQLUtils {
 		ValidateArgument.required(change, "change");
 		ValidateArgument.required(change.getOldColumn(), "change.getOldColumn()");
 		ValidateArgument.required(change.getNewColumn(), "change.getNewColumn()");
+		// Drop the old index only if needed.
+		if(!isIndexCompatible(change.getOldColumn(), change.getNewColumn())){
+			builder.append("DROP INDEX ");
+			builder.append(getIndexNameForColumnId(change.getOldColumn().getId()));
+		}else{
+			builder.append("RENAME INDEX `");
+			builder.append(getColumnIndexName(change.getOldColumn().getId()));
+			builder.append(" TO ");
+			builder.append(getColumnIndexName(change.getNewColumn().getId()));
+		}
+		builder.append(", ");
 		builder.append("CHANGE COLUMN ");
 		builder.append(getColumnNameForId(change.getOldColumn().getId()));
 		builder.append(" ");
@@ -1104,6 +1128,26 @@ public class SQLUtils {
 	}
 	
 	/**
+	 * Is the index used by the old model compatible with the new model?
+	 * 
+	 * @param oldModel
+	 * @param newModel
+	 * @return
+	 */
+	public static boolean isIndexCompatible(ColumnModel oldModel, ColumnModel newModel){
+		if(oldModel.getMaximumSize() != null){
+			if(!oldModel.getMaximumSize().equals(newModel.getMaximumSize())){
+				// the column sizes do not match so the index is not compatible.
+				return false;
+			}
+		}
+		ColumnTypeInfo oldInfo = ColumnTypeInfo.getInfoForType(oldModel.getColumnType());
+		ColumnTypeInfo newInfo = ColumnTypeInfo.getInfoForType(newModel.getColumnType());
+		// Do both columns use the same MySQL column type?
+		return oldInfo.getMySqlType().equals(newInfo.getMySqlType());
+	}
+	
+	/**
 	 * Append a column type definition to the passed builder.
 	 * 
 	 * @param builder
@@ -1112,9 +1156,8 @@ public class SQLUtils {
 	public static void appendColumnDefinition(StringBuilder builder, ColumnModel column){
 		builder.append(getColumnNameForId(column.getId()));
 		builder.append(" ");
-		builder.append(getSQLTypeForColumnType(column.getColumnType(), column.getMaximumSize()));
-		builder.append(" ");
-		builder.append(getSQLDefaultForColumnType(column.getColumnType(), column.getDefaultValue()));
+		ColumnTypeInfo info = ColumnTypeInfo.getInfoForType(column.getColumnType());
+		builder.append(info.toSql(column.getMaximumSize(), column.getDefaultValue()));
 	}
 
 	/**

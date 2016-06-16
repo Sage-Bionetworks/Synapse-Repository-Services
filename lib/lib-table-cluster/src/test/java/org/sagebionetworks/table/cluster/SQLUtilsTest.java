@@ -689,7 +689,7 @@ public class SQLUtilsTest {
 		cm.setDefaultValue("456");
 		// call under test
 		SQLUtils.appendColumnDefinition(builder, cm);
-		assertEquals("_C123_ bigint(20) DEFAULT 456", builder.toString());
+		assertEquals("_C123_ BIGINT(20) DEFAULT 456", builder.toString());
 	}
 	
 	@Test
@@ -701,7 +701,7 @@ public class SQLUtilsTest {
 		cm.setDefaultValue(null);
 		// call under test
 		SQLUtils.appendColumnDefinition(builder, cm);
-		assertEquals("_C123_ bigint(20) DEFAULT NULL", builder.toString());
+		assertEquals("_C123_ BIGINT(20) DEFAULT NULL", builder.toString());
 	}
 	
 	
@@ -713,7 +713,7 @@ public class SQLUtilsTest {
 		cm.setColumnType(ColumnType.INTEGER);
 		// call under test
 		SQLUtils.appendAddColumn(builder, cm);
-		assertEquals("ADD COLUMN _C123_ bigint(20) DEFAULT NULL", builder.toString());
+		assertEquals("ADD COLUMN _C123_ BIGINT(20) DEFAULT NULL", builder.toString());
 	}
 	
 	@Test
@@ -724,7 +724,7 @@ public class SQLUtilsTest {
 		cm.setColumnType(ColumnType.DOUBLE);
 		// call under test
 		SQLUtils.appendAddColumn(builder, cm);
-		assertEquals("ADD COLUMN _C123_ double DEFAULT NULL"
+		assertEquals("ADD COLUMN _C123_ DOUBLE DEFAULT NULL"
 				+ ", ADD COLUMN _DBL_C123_ ENUM ('NaN', 'Infinity', '-Infinity') DEFAULT null", builder.toString());
 	}
 	
@@ -775,6 +775,42 @@ public class SQLUtilsTest {
 	}
 	
 	@Test
+	public void testAppendUpdateColumnCompatibleIndex(){
+		StringBuilder builder = new StringBuilder();
+		// old column.
+		ColumnModel oldColumn = new ColumnModel();
+		oldColumn.setId("123");
+		oldColumn.setColumnType(ColumnType.BOOLEAN);
+		// new column
+		ColumnModel newColumn = new ColumnModel();
+		newColumn.setId("456");
+		newColumn.setColumnType(ColumnType.BOOLEAN);
+		
+		ColumnChange change = new ColumnChange(oldColumn, newColumn);
+		// call under test
+		SQLUtils.appendUpdateColumn(builder, change);
+		assertEquals("CHANGE COLUMN _C123_ _C456_ BOOLEAN DEFAULT NULL", builder.toString());
+	}
+	
+	@Test
+	public void testAppendUpdateColumnNonCompatibleIndex(){
+		StringBuilder builder = new StringBuilder();
+		// old column.
+		ColumnModel oldColumn = new ColumnModel();
+		oldColumn.setId("123");
+		oldColumn.setColumnType(ColumnType.BOOLEAN);
+		// new column
+		ColumnModel newColumn = new ColumnModel();
+		newColumn.setId("456");
+		newColumn.setColumnType(ColumnType.INTEGER);
+		
+		ColumnChange change = new ColumnChange(oldColumn, newColumn);
+		// call under test
+		SQLUtils.appendUpdateColumn(builder, change);
+		assertEquals("DROP INDEX `123idx_`, CHANGE COLUMN _C123_ _C456_ BIGINT(20) DEFAULT NULL", builder.toString());
+	}
+	
+	@Test
 	public void testAppendUpdateColumn(){
 		StringBuilder builder = new StringBuilder();
 		// old column.
@@ -789,7 +825,7 @@ public class SQLUtilsTest {
 		ColumnChange change = new ColumnChange(oldColumn, newColumn);
 		// call under test
 		SQLUtils.appendUpdateColumn(builder, change);
-		assertEquals("CHANGE COLUMN _C123_ _C456_ bigint(20) DEFAULT NULL", builder.toString());
+		assertEquals("DROP INDEX `123idx_`, CHANGE COLUMN _C123_ _C456_ BIGINT(20) DEFAULT NULL", builder.toString());
 	}
 	
 	@Test
@@ -807,7 +843,7 @@ public class SQLUtilsTest {
 		ColumnChange change = new ColumnChange(oldColumn, newColumn);
 		// call under test
 		SQLUtils.appendUpdateColumn(builder, change);
-		assertEquals("CHANGE COLUMN _C123_ _C456_ bigint(20) DEFAULT NULL"
+		assertEquals("DROP INDEX `123idx_`, CHANGE COLUMN _C123_ _C456_ BIGINT(20) DEFAULT NULL"
 				+ ", DROP COLUMN _DBL_C123_", builder.toString());
 	}
 	
@@ -826,7 +862,7 @@ public class SQLUtilsTest {
 		ColumnChange change = new ColumnChange(oldColumn, newColumn);
 		// call under test
 		SQLUtils.appendUpdateColumn(builder, change);
-		assertEquals("CHANGE COLUMN _C123_ _C456_ double DEFAULT NULL"
+		assertEquals("DROP INDEX `123idx_`, CHANGE COLUMN _C123_ _C456_ DOUBLE DEFAULT NULL"
 				+ ", ADD COLUMN _DBL_C456_ ENUM ('NaN', 'Infinity', '-Infinity') DEFAULT null", builder.toString());
 	}
 	
@@ -845,7 +881,7 @@ public class SQLUtilsTest {
 		ColumnChange change = new ColumnChange(oldColumn, newColumn);
 		// call under test
 		SQLUtils.appendUpdateColumn(builder, change);
-		assertEquals("CHANGE COLUMN _C123_ _C456_ double DEFAULT NULL"
+		assertEquals("CHANGE COLUMN _C123_ _C456_ DOUBLE DEFAULT NULL"
 				+ ", CHANGE COLUMN _DBL_C123_ _DBL_C456_ ENUM ('NaN', 'Infinity', '-Infinity') DEFAULT null", builder.toString());
 	}
 	
@@ -865,7 +901,7 @@ public class SQLUtilsTest {
 		// call under test
 		boolean hasChange = SQLUtils.appendAlterTableSql(builder, change);
 		assertTrue(hasChange);
-		assertEquals("CHANGE COLUMN _C123_ _C456_ boolean DEFAULT NULL", builder.toString());
+		assertEquals("CHANGE COLUMN _C123_ _C456_ BOOLEAN DEFAULT NULL", builder.toString());
 	}
 	
 	@Test
@@ -901,7 +937,7 @@ public class SQLUtilsTest {
 		// call under test
 		boolean hasChange = SQLUtils.appendAlterTableSql(builder, change);
 		assertTrue(hasChange);
-		assertEquals("ADD COLUMN _C123_ boolean DEFAULT NULL", builder.toString());
+		assertEquals("ADD COLUMN _C123_ BOOLEAN DEFAULT NULL", builder.toString());
 	}
 	
 	@Test
@@ -959,8 +995,8 @@ public class SQLUtilsTest {
 		// call under test
 		String results = SQLUtils.createAlterTableSql(Lists.newArrayList(change, change2), tableId);
 		assertEquals("ALTER TABLE T999 "
-				+ "CHANGE COLUMN _C123_ _C456_ bigint(20) DEFAULT NULL, "
-				+ "CHANGE COLUMN _C111_ _C222_ varchar(15) CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT 'foo', "
+				+ "CHANGE COLUMN _C123_ _C456_ BIGINT(20) DEFAULT NULL, "
+				+ "CHANGE COLUMN _C111_ _C222_ VARCHAR(15) CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT 'foo', "
 				+ "DROP COLUMN _DBL_C111_", results);
 	}
 	
@@ -996,6 +1032,96 @@ public class SQLUtilsTest {
 	public void testCreateTruncateSql(){
 		String sql = SQLUtils.createTruncateSql("syn123");
 		assertEquals("TRUNCATE TABLE T123", sql);
+	}
+	
+	@Test
+	public void testIsIndexCompatibleSameTypeAndSize(){
+		ColumnModel oldColumn = new ColumnModel();
+		oldColumn.setId("123");
+		oldColumn.setColumnType(ColumnType.STRING);
+		oldColumn.setMaximumSize(15L);
+		// new column
+		ColumnModel newColumn = new ColumnModel();
+		newColumn.setId("456");
+		newColumn.setColumnType(ColumnType.STRING);
+		newColumn.setMaximumSize(15L);
+		// call under test
+		assertTrue(SQLUtils.isIndexCompatible(oldColumn, newColumn));
+	}
+	
+	@Test
+	public void testIsIndexCompatibleSameTypeDifferentSize(){
+		ColumnModel oldColumn = new ColumnModel();
+		oldColumn.setId("123");
+		oldColumn.setColumnType(ColumnType.STRING);
+		oldColumn.setMaximumSize(15L);
+		// new column
+		ColumnModel newColumn = new ColumnModel();
+		newColumn.setId("456");
+		newColumn.setColumnType(ColumnType.STRING);
+		newColumn.setMaximumSize(14L);
+		// call under test
+		assertFalse(SQLUtils.isIndexCompatible(oldColumn, newColumn));
+	}
+	
+	@Test
+	public void testIsIndexCompatibleCompatibleTypeSameType(){
+		ColumnModel oldColumn = new ColumnModel();
+		oldColumn.setId("123");
+		oldColumn.setColumnType(ColumnType.LINK);
+		oldColumn.setMaximumSize(15L);
+		// new column
+		ColumnModel newColumn = new ColumnModel();
+		newColumn.setId("456");
+		newColumn.setColumnType(ColumnType.STRING);
+		newColumn.setMaximumSize(15L);
+		// call under test
+		assertTrue(SQLUtils.isIndexCompatible(oldColumn, newColumn));
+	}
+	
+	@Test
+	public void testIsIndexCompatibleNonCompatibleTypeNullSize(){
+		ColumnModel oldColumn = new ColumnModel();
+		oldColumn.setId("123");
+		oldColumn.setColumnType(ColumnType.BOOLEAN);
+		oldColumn.setMaximumSize(null);
+		// new column
+		ColumnModel newColumn = new ColumnModel();
+		newColumn.setId("456");
+		newColumn.setColumnType(ColumnType.INTEGER);
+		newColumn.setMaximumSize(null);
+		// call under test
+		assertFalse(SQLUtils.isIndexCompatible(oldColumn, newColumn));
+	}
+	
+	@Test
+	public void testIsIndexCompatibleNonCompatibleTypeSameSize(){
+		ColumnModel oldColumn = new ColumnModel();
+		oldColumn.setId("123");
+		oldColumn.setColumnType(ColumnType.STRING);
+		oldColumn.setMaximumSize(15L);
+		// new column
+		ColumnModel newColumn = new ColumnModel();
+		newColumn.setId("456");
+		newColumn.setColumnType(ColumnType.LARGETEXT);
+		newColumn.setMaximumSize(15L);
+		// call under test
+		assertFalse(SQLUtils.isIndexCompatible(oldColumn, newColumn));
+	}
+	
+	@Test
+	public void testIsIndexCompatibleDifferntTypeNullSize(){
+		ColumnModel oldColumn = new ColumnModel();
+		oldColumn.setId("123");
+		oldColumn.setColumnType(ColumnType.INTEGER);
+		oldColumn.setMaximumSize(15L);
+		// new column
+		ColumnModel newColumn = new ColumnModel();
+		newColumn.setId("456");
+		newColumn.setColumnType(ColumnType.FILEHANDLEID);
+		newColumn.setMaximumSize(15L);
+		// call under test
+		assertTrue(SQLUtils.isIndexCompatible(oldColumn, newColumn));
 	}
 	
 }
