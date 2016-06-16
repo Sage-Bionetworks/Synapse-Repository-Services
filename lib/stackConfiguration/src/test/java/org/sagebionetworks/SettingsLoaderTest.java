@@ -6,10 +6,12 @@ import java.io.IOException;
 import java.util.Properties;
 
 import org.jdom.JDOMException;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class SettingsLoaderTest {
 	
+	@Ignore
 	@Test
 	public void testLoadSettings() throws IOException, JDOMException{
 		// Load the settings file
