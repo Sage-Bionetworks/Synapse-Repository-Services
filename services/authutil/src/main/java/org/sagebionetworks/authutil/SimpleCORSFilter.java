@@ -44,7 +44,13 @@ public class SimpleCORSFilter implements Filter {
 		if(isPreFlightRequest(request)){
 			// header indicates how long the results of a preflight request can be cached in seconds
 			response.addHeader("Access-Control-Max-Age", "300");
-			// We do not pass along the pre-flight requests, we just return with the header
+			// header indicates which custom header field names can be used during the actual request.
+			response.addHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+			// header indicates the methods that can be used in the actual request.
+			response.addHeader("Access-Control-Allow-Methods", "POST, GET, PUT");
+			// header indicates that the actual request can include user credentials (send cookies from another domain).
+			response.addHeader("Access-Control-Allow-Credentials", "true");
+			// We do not pass along the pre-flight requests, we just return with the header.
 			log.info("Pre-flight request headers: ");
 			logHeaders(request);
 		} else {
