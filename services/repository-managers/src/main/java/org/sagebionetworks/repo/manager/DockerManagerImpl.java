@@ -162,7 +162,7 @@ public class DockerManagerImpl implements DockerManager {
 		if (headers.size()==0) return null; // Not found!
 		if (headers.size()>1) throw new IllegalStateException("Expected one node with ID "+parentId+" but found "+headers.size());
 		EntityHeader header = headers.get(0);
-		if (!header.getType().equals(EntityType.project.name())) return null; // parent must be a project!
+		if(EntityTypeUtils.getEntityTypeForClassName(header.getType())!=EntityType.project) return null; // parent must be a project!
 		return header.getId();
 	}
 

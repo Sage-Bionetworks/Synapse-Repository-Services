@@ -24,9 +24,11 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.docker.DockerAuthorizationToken;
 import org.sagebionetworks.repo.model.docker.DockerRegistryEvent;
@@ -98,13 +100,13 @@ public class DockerManagerImplUnitTest {
 
 		parentHeader = new EntityHeader();
 		parentHeader.setId(PARENT_ID);
-		parentHeader.setType(EntityType.project.name());
+		parentHeader.setType(Project.class.getName());
 		List<EntityHeader> parent = Collections.singletonList(parentHeader);
 		when(nodeDAO.getEntityHeader(Collections.singleton(PARENT_ID_LONG))).thenReturn(parent);
 		
 		repoEntityHeader = new EntityHeader();
 		repoEntityHeader.setId(REPO_ENTITY_ID);
-		repoEntityHeader.setType(EntityType.dockerrepo.name());
+		repoEntityHeader.setType(DockerRepository.class.getName());
 		when(nodeDAO.getEntityHeaderByChildName(PARENT_ID, ENTITY_NAME)).thenReturn(repoEntityHeader);
 		
 		authQueryNode = new Node();
@@ -143,7 +145,7 @@ public class DockerManagerImplUnitTest {
 
 	@Test
 	public void testValidParentProjectIdParentNotAProject() {
-		parentHeader.setType(EntityType.folder.name());
+		parentHeader.setType(Folder.class.getName());
 		assertEquals(null, dockerManager.validParentProjectId(PARENT_ID+"/myrepo"));
 	}
 
