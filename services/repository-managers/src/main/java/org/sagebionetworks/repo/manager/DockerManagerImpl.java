@@ -13,6 +13,7 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -95,7 +96,8 @@ public class DockerManagerImpl implements DockerManager {
 			entityHeader = null;
 		}
 		String existingDockerRepoId = null;
-		if (entityHeader!=null && EntityType.valueOf(entityHeader.getType()) == EntityType.dockerrepo) {
+		if (entityHeader!=null && 
+				EntityTypeUtils.getEntityTypeForClassName(entityHeader.getType()) == EntityType.dockerrepo) {
 			existingDockerRepoId = entityHeader.getId();
 		}
 
@@ -160,7 +162,7 @@ public class DockerManagerImpl implements DockerManager {
 		if (headers.size()==0) return null; // Not found!
 		if (headers.size()>1) throw new IllegalStateException("Expected one node with ID "+parentId+" but found "+headers.size());
 		EntityHeader header = headers.get(0);
-		if (!header.getType().equals(EntityType.project.name())) return null; // parent must be a project!
+		if(EntityTypeUtils.getEntityTypeForClassName(header.getType())!=EntityType.project) return null; // parent must be a project!
 		return header.getId();
 	}
 
@@ -204,7 +206,7 @@ public class DockerManagerImpl implements DockerManager {
 				String entityId = null;
 				try {
 					EntityHeader entityHeader = nodeDAO.getEntityHeaderByChildName(parentId, entityName);
-					if (entityHeader.getType()!= EntityType.dockerrepo.name()) 
+					if (EntityTypeUtils.getEntityTypeForClassName(entityHeader.getType())!= EntityType.dockerrepo) 
 						throw new IllegalArgumentException("Cannot create a Docker repository in container "+parentId+
 								". An entity of type "+entityHeader.getType()+" already exists with name "+entityName);
 					entityId = entityHeader.getId();
@@ -213,7 +215,7 @@ public class DockerManagerImpl implements DockerManager {
 					List<EntityHeader> headers = nodeDAO.getEntityHeader(Collections.singleton(KeyFactory.stringToKey(parentId)));
 					if (headers.size()==0) throw new NotFoundException("parentId "+parentId+" does not exist.");
 					if (headers.size()>1) throw new IllegalStateException("Expected 0-1 result for "+parentId+" but found "+headers.size());
-					if (EntityType.valueOf(headers.get(0).getType())!=EntityType.project) {
+					if (EntityTypeUtils.getEntityTypeForClassName(headers.get(0).getType())!=EntityType.project) {
 						throw new IllegalArgumentException("Parent must be a project.");
 					}
 					DockerRepository entity = new DockerRepository();

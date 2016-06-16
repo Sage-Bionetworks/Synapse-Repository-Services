@@ -52,6 +52,7 @@ import org.sagebionetworks.repo.model.Versionable;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
+import org.sagebionetworks.repo.model.docker.DockerRepository;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -243,6 +244,9 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 					view.setColumnIds(idList);
 					view.setType(ViewType.file);
 				}
+				if(object instanceof DockerRepository){
+					object.setParentId(project.getId());
+				}
 				Entity clone = servletTestHelper.createEntity(dispatchServlet, object, userId);
 				assertNotNull(clone);
 				assertNotNull(clone.getId());
@@ -268,7 +272,7 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 	 * @return
 	 */
 	private String findCompatableParentId(List<EntityHeader> path, EntityType type){
-		// Frist try null
+		// First try null
 		if(EntityTypeUtils.isValidParentType(type, null)) return null;
 		// Try each entry in the list
 		for(EntityHeader header: path){
@@ -338,6 +342,7 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 		// Now update each
 		int counter=0;
 		for(Entity entity: created){
+			if (entity instanceof DockerRepository) continue;
 			// Now change the name
 			String newName ="my new name"+counter;
 			entity.setName(newName);
