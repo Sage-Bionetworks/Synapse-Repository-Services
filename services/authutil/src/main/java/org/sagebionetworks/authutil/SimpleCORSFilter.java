@@ -14,6 +14,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 
 /**
  * This is a very simple filter to allow Cross-Origin Resource Sharing (CORS).
@@ -30,7 +31,8 @@ public class SimpleCORSFilter implements Filter {
 	public static final String ACCESS_CONTROL_REQUEST_METHOD = "Access-Control-Request-Method";
 	public static final String ALL_ORIGINS = "*";
 	public static final String METHODS = "POST, GET, PUT";
-	public static final String HEADERS = "Origin, X-Requested-With, Content-Type, Accept";
+	
+	public static final String HEADERS = "Origin, X-Requested-With, Content-Type, Accept, " + AuthorizationConstants.SESSION_TOKEN_PARAM;
 	public static final String MAX_AGE = "300";
 	public static final String ACCESS_CONTROL_ALLOW_CREDENTIALS = "Access-Control-Allow-Credentials";
 	public static final String ACCESS_CONTROL_ALLOW_METHODS = "Access-Control-Allow-Methods";
