@@ -1,5 +1,7 @@
 package org.sagebionetworks.authutil;
 
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -63,6 +65,16 @@ public class SimpleCORSFilterTest {
 		verify(mockResponse).addHeader(SimpleCORSFilter.ACCESS_CONTROL_ALLOW_METHODS, SimpleCORSFilter.METHODS);
 		verify(mockResponse).addHeader(SimpleCORSFilter.ACCESS_CONTROL_ALLOW_CREDENTIALS, Boolean.TRUE.toString());
 		
+		verify(mockChain, never()).doFilter(mockRequest, mockResponse);
+	}
+	
+	@Test
+	public void testIsPreflightNoCustomHeaders() throws IOException, ServletException{
+		// request header "access control request method" is set.
+		when(mockRequest.getHeader(SimpleCORSFilter.ACCESS_CONTROL_REQUEST_METHOD)).thenReturn("set");
+		when(mockRequest.getMethod()).thenReturn(SimpleCORSFilter.OPTIONS);
+		filter.doFilter(mockRequest, mockResponse, mockChain);
+		verify(mockResponse, never()).addHeader(eq(SimpleCORSFilter.ACCESS_CONTROL_ALLOW_HEADERS), anyString());
 		verify(mockChain, never()).doFilter(mockRequest, mockResponse);
 	}
 	

@@ -60,7 +60,10 @@ public class SimpleCORSFilter implements Filter {
 			response.addHeader(ACCESS_CONTROL_MAX_AGE, MAX_AGE);
 			// header indicates which custom header field names can be used during the actual request.
 			// Echo back the requested headers
-			response.addHeader(ACCESS_CONTROL_ALLOW_HEADERS, request.getHeader(ACCESS_CONTROL_REQUEST_HEADERS)); 
+			String customHeaders = request.getHeader(ACCESS_CONTROL_REQUEST_HEADERS);
+			if (customHeaders != null) {
+				response.addHeader(ACCESS_CONTROL_ALLOW_HEADERS, customHeaders);	
+			}
 			// header indicates the methods that can be used in the actual request.
 			response.addHeader(ACCESS_CONTROL_ALLOW_METHODS, METHODS);
 			// header indicates that the actual request can include user credentials (send cookies from another domain).
