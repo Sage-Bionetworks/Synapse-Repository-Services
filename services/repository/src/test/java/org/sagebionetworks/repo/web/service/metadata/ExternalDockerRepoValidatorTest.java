@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.web.service.metadata;
 
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
 
@@ -13,9 +12,10 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.repo.model.EntityHeader;
-import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.docker.DockerRepository;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -54,7 +54,7 @@ public class ExternalDockerRepoValidatorTest {
 		EventType type = EventType.CREATE;
 		EntityHeader parentHeader = new EntityHeader();
 		parentHeader.setId(PARENT_ID);
-		parentHeader.setType(EntityType.project.name());
+		parentHeader.setType(Project.class.getName());
 		List<EntityHeader> parent = Collections.singletonList(parentHeader);
 		when(nodeDAO.getEntityHeader(Collections.singleton(PARENT_ID_LONG))).thenReturn(parent);
 		EntityEvent event = new EntityEvent(type, null, null);
@@ -69,7 +69,7 @@ public class ExternalDockerRepoValidatorTest {
 		EventType type = EventType.CREATE;
 		EntityHeader parentHeader = new EntityHeader();
 		parentHeader.setId(PARENT_ID);
-		parentHeader.setType(EntityType.folder.name());
+		parentHeader.setType(Folder.class.getName());
 		List<EntityHeader> parent = Collections.singletonList(parentHeader);
 		when(nodeDAO.getEntityHeader(Collections.singleton(PARENT_ID_LONG))).thenReturn(parent);
 		EntityEvent event = new EntityEvent(type, null, null);

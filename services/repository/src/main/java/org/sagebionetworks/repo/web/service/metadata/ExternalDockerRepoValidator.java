@@ -8,6 +8,7 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -58,7 +59,7 @@ public class ExternalDockerRepoValidator implements EntityValidator<DockerReposi
 			List<EntityHeader> headers = nodeDAO.getEntityHeader(Collections.singleton(KeyFactory.stringToKey(parentId)));
 			if (headers.size()==0) throw new NotFoundException("parentId "+parentId+" does not exist.");
 			if (headers.size()>1) throw new IllegalStateException("Expected 0-1 result for "+parentId+" but found "+headers.size());
-			if (EntityType.valueOf(headers.get(0).getType())!=EntityType.project) {
+			if (EntityTypeUtils.getEntityTypeForClassName(headers.get(0).getType())!=EntityType.project) {
 				throw new IllegalArgumentException("Parent must be a project.");
 			}
 		} else if (event.getType()==EventType.UPDATE) {
