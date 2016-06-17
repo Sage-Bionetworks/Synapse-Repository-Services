@@ -807,7 +807,7 @@ public class SQLUtilsTest {
 		ColumnChange change = new ColumnChange(oldColumn, newColumn);
 		// call under test
 		SQLUtils.appendUpdateColumn(builder, change);
-		assertEquals("DROP INDEX `123idx_`, CHANGE COLUMN _C123_ _C456_ BIGINT(20) DEFAULT NULL", builder.toString());
+		assertEquals("CHANGE COLUMN _C123_ _C456_ BIGINT(20) DEFAULT NULL", builder.toString());
 	}
 	
 	@Test
@@ -825,7 +825,7 @@ public class SQLUtilsTest {
 		ColumnChange change = new ColumnChange(oldColumn, newColumn);
 		// call under test
 		SQLUtils.appendUpdateColumn(builder, change);
-		assertEquals("DROP INDEX `123idx_`, CHANGE COLUMN _C123_ _C456_ BIGINT(20) DEFAULT NULL", builder.toString());
+		assertEquals("CHANGE COLUMN _C123_ _C456_ BIGINT(20) DEFAULT NULL", builder.toString());
 	}
 	
 	@Test
@@ -843,7 +843,7 @@ public class SQLUtilsTest {
 		ColumnChange change = new ColumnChange(oldColumn, newColumn);
 		// call under test
 		SQLUtils.appendUpdateColumn(builder, change);
-		assertEquals("DROP INDEX `123idx_`, CHANGE COLUMN _C123_ _C456_ BIGINT(20) DEFAULT NULL"
+		assertEquals("CHANGE COLUMN _C123_ _C456_ BIGINT(20) DEFAULT NULL"
 				+ ", DROP COLUMN _DBL_C123_", builder.toString());
 	}
 	
@@ -862,7 +862,7 @@ public class SQLUtilsTest {
 		ColumnChange change = new ColumnChange(oldColumn, newColumn);
 		// call under test
 		SQLUtils.appendUpdateColumn(builder, change);
-		assertEquals("DROP INDEX `123idx_`, CHANGE COLUMN _C123_ _C456_ DOUBLE DEFAULT NULL"
+		assertEquals("CHANGE COLUMN _C123_ _C456_ DOUBLE DEFAULT NULL"
 				+ ", ADD COLUMN _DBL_C456_ ENUM ('NaN', 'Infinity', '-Infinity') DEFAULT null", builder.toString());
 	}
 	

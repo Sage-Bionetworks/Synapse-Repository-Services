@@ -1095,17 +1095,6 @@ public class SQLUtils {
 		ValidateArgument.required(change, "change");
 		ValidateArgument.required(change.getOldColumn(), "change.getOldColumn()");
 		ValidateArgument.required(change.getNewColumn(), "change.getNewColumn()");
-		// Drop the old index only if needed.
-		if(!isIndexCompatible(change.getOldColumn(), change.getNewColumn())){
-			builder.append("DROP INDEX ");
-			builder.append(getIndexNameForColumnId(change.getOldColumn().getId()));
-		}else{
-			builder.append("RENAME INDEX `");
-			builder.append(getColumnIndexName(change.getOldColumn().getId()));
-			builder.append(" TO ");
-			builder.append(getColumnIndexName(change.getNewColumn().getId()));
-		}
-		builder.append(", ");
 		builder.append("CHANGE COLUMN ");
 		builder.append(getColumnNameForId(change.getOldColumn().getId()));
 		builder.append(" ");
