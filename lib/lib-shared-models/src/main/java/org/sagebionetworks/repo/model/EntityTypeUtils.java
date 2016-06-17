@@ -52,7 +52,7 @@ public class EntityTypeUtils {
 				// EntityView
 				buildMetadata(EntityType.entityview, Arrays.asList("DEFAULT",Project.class.getName(), Folder.class.getName()), EntityView.class, "EntityView"),
 				// dockerrepo
-				buildMetadata(EntityType.dockerrepo, Arrays.asList("DEFAULT", Project.class.getName(), Folder.class.getName()), DockerRepository.class, "DockerRepository"),
+				buildMetadata(EntityType.dockerrepo, Arrays.asList("DEFAULT", Project.class.getName()), DockerRepository.class, "DockerRepository"),
 		};
 
 		className = new HashMap<String, Class<? extends Entity>>();

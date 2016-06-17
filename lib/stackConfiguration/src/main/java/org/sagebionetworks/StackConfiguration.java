@@ -3,7 +3,9 @@ package org.sagebionetworks;
 import java.math.BigInteger;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
@@ -1491,6 +1493,27 @@ public class StackConfiguration {
 	
 	public static String getDefaultPortalNotificationEndpoint() {
 		return configuration.getProperty("org.sagebionetworks.notification.portal.endpoint");
+	}
+	
+	/**
+	 * Credentials for signing Docker authorization bearer tokens
+	 */
+	public static String getDockerAuthorizationPrivateKey() {
+		return configuration.getDecryptedProperty("org.sagebionetworks.docker.authorization.private.key");
+	}
+
+	public static String getDockerAuthorizationCertificate() {
+		return configuration.getProperty("org.sagebionetworks.docker.authorization.certificate");
+	}
+	
+	public static List<String> getDockerRegistryHosts() {
+		String s = configuration.getProperty("org.sagebionetworks.docker.registry.hostnames");
+		return Arrays.asList(s.split(","));
+	}
+	
+	public static List<String> getDockerReservedRegistryHosts() {
+		String s = configuration.getProperty("org.sagebionetworks.docker.reserved.hostnames");
+		return Arrays.asList(s.split(","));
 	}
 	
 	/**

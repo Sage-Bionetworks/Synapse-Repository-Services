@@ -11,10 +11,12 @@ import java.util.List;
 import java.util.UUID;
 
 import org.junit.After;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.EntityPermissionsManager;
@@ -59,6 +61,8 @@ public class TableViewIntegrationTest {
 	public static final int MAX_WAIT_MS = 1000 * 60 * 10;
 	
 	@Autowired
+	private StackConfiguration config;
+	@Autowired
 	private UserManager userManager;
 	@Autowired
 	private EntityManager entityManager;
@@ -92,6 +96,8 @@ public class TableViewIntegrationTest {
 	
 	@Before
 	public void before(){
+		// Only run this test if the table feature is enabled.
+		Assume.assumeTrue(config.getTableEnabled());
 		mockProgressCallbackVoid= Mockito.mock(ProgressCallback.class);
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		NewUser user = new NewUser();

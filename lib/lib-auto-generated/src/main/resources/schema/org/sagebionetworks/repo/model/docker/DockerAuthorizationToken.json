@@ -1,0 +1,11 @@
+{
+	"title": "DockerAuthorizationToken",
+	"description": "Authorization Token for Docker Registry Access",
+	"name": "DockerAuthorizationToken",
+	"properties": {
+		"token": {
+			"type": "string",
+			"description": "authorization Token for Docker Registry Access"
+		}
+	}
+}

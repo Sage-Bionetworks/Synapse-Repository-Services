@@ -1,0 +1,14 @@
+{
+	"title": "DockerRegistryEventList",
+	"description": "List of Registry Events",
+	"name": "DockerRegistryEventList",
+	"properties": {
+		"events": {
+			"type": "array",
+           	"description":"A list of events that occurred in a docker registry",
+			"items": {
+           		"$ref": "org.sagebionetworks.repo.model.docker.DockerRegistryEvent"
+  			}
+		}
+	}
+}

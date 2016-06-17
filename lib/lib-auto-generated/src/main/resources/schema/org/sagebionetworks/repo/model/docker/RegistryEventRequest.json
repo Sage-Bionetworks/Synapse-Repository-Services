@@ -1,0 +1,27 @@
+{
+	"title": "RegistryEventRequest",
+	"description": "",
+	"name": "RegistryEventRequest",
+	"properties": {
+		"id": {
+			"type": "string",
+			"description": ""
+		},
+		"addr": {
+			"type": "string",
+			"description": ""
+		},
+		"host": {
+			"type": "string",
+			"description": ""
+		},
+		"method": {
+			"type": "string",
+			"description": ""
+		},
+		"useragent": {
+			"type": "string",
+			"description": ""
+		}
+	}
+}
