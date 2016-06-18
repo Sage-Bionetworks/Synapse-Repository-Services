@@ -59,7 +59,7 @@ public class DockerNameUtil {
 	}
 	
 	/*
-	 * Given a validate host name with optional port, return just the host name
+	 * Given a valid host name with optional port, return just the host name
 	 */
 	public static String getRegistryHostSansPort(String host) {
 		if (host==null) return null;

@@ -2,35 +2,41 @@
 	"title": "DockerRegistryEvent",
 	"description": "Docker Registry Event",
 	"name": "DockerRegistryEvent",
+	"description": "https://godoc.org/github.com/docker/distribution/notifications#Event",
 	"properties": {
 		"id": {
 			"type": "string",
-           	"description":""
+           	"description":"ID provides a unique identifier for the event."
 		},
 		"timestamp": {
 			"type": "string",
 			"format": "date-time",
-			"description": "The date this event was created."
+			"description": "Timestamp is the time at which the event occurred."
 		},
 		"action": {
 			"type": "object",
-          	"$ref": "org.sagebionetworks.repo.model.docker.RegistryEventAction"
+          	"$ref": "org.sagebionetworks.repo.model.docker.RegistryEventAction",
+          	"description": "Action indicates what action encompasses the provided event."
  		},
 		"target" : {
 			"type":"object",
-          	"$ref": "org.sagebionetworks.repo.model.docker.RegistryEventTarget"
+          	"$ref": "org.sagebionetworks.repo.model.docker.RegistryEventTarget",
+          	"description": "Target uniquely describes the target of the event."
  		},
 		"request" : {
 			"type":"object",
-          	"$ref": "org.sagebionetworks.repo.model.docker.RegistryEventRequest"
+          	"$ref": "org.sagebionetworks.repo.model.docker.RegistryEventRequest",
+          	"description": "Request covers the request that generated the event."
  		},
 		"actor" : {
 			"type":"object",
-          	"$ref": "org.sagebionetworks.repo.model.docker.RegistryEventActor"
+          	"$ref": "org.sagebionetworks.repo.model.docker.RegistryEventActor",
+          	"description": "Actor specifies the agent that initiated the event."
  		},
 		"source" : {
 			"type":"object",
-          	"$ref": "org.sagebionetworks.repo.model.docker.RegistryEventSource"
+          	"$ref": "org.sagebionetworks.repo.model.docker.RegistryEventSource",
+          	"description": "Source identifies the registry node that generated the event."
  		}
 	}
 }

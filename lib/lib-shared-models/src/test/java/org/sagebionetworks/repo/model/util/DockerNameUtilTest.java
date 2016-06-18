@@ -21,7 +21,7 @@ public class DockerNameUtilTest {
 		assertFalse(HOSTNAME_PATTERN.matcher(name).matches());
 	}
 
-	private static void assertIsRepoPath(String name) {
+	private static void assertIsRepoName(String name) {
 		try {
 			DockerNameUtil.validateName(name);
 			// pass
@@ -30,7 +30,7 @@ public class DockerNameUtilTest {
 		}
 	}
 
-	private static void assertIsNOTRepoPath(String name) {
+	private static void assertIsNOTRepoName(String name) {
 		try {
 			DockerNameUtil.validateName(name);
 			fail();
@@ -55,21 +55,21 @@ public class DockerNameUtilTest {
 	
 	@Test
 	public void testValidateName() {
-		// paths with no host
-		assertIsRepoPath("dockerhubuname/d0ckerhubrep0");
-		assertIsRepoPath("dockerhubuname/d0cker-hub_rep0");
-		assertIsRepoPath("a/path/with/lots/0f/parts");
-		assertIsNOTRepoPath("/apathwith/leadingslash");
-		assertIsNOTRepoPath("-apathwith/leadingdash");
-		assertIsNOTRepoPath("apathwith/trailingslash/");
-		assertIsNOTRepoPath("apathwith/UPPERcase");
+		// names with no host
+		assertIsRepoName("dockerhubuname/d0ckerhubrep0");
+		assertIsRepoName("dockerhubuname/d0cker-hub_rep0");
+		assertIsRepoName("a/path/with/lots/0f/parts");
+		assertIsNOTRepoName("/apathwith/leadingslash");
+		assertIsNOTRepoName("-apathwith/leadingdash");
+		assertIsNOTRepoName("apathwith/trailingslash/");
+		assertIsNOTRepoName("apathwith/UPPERcase");
 		
-		// paths with host
-		assertIsRepoPath("docker.syn-apse.org/prject/repo");
-		assertIsRepoPath("docker.synapse.org:443/prject/repo");
-		assertIsNOTRepoPath("docker.synapse.org:443");
-		assertIsNOTRepoPath("docker.synapse.org:443/");
-		assertIsNOTRepoPath("https://docker.synapse.org:443/prject/repo");
+		// names with host
+		assertIsRepoName("docker.syn-apse.org/prject/repo");
+		assertIsRepoName("docker.synapse.org:443/prject/repo");
+		assertIsNOTRepoName("docker.synapse.org:443");
+		assertIsNOTRepoName("docker.synapse.org:443/");
+		assertIsNOTRepoName("https://docker.synapse.org:443/prject/repo");
 	}
 	
 	@Test
