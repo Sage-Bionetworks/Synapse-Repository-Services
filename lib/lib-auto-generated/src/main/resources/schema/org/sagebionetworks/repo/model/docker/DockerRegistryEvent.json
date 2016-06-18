@@ -1,6 +1,5 @@
 {
 	"title": "DockerRegistryEvent",
-	"description": "Docker Registry Event",
 	"name": "DockerRegistryEvent",
 	"description": "https://godoc.org/github.com/docker/distribution/notifications#Event",
 	"properties": {
