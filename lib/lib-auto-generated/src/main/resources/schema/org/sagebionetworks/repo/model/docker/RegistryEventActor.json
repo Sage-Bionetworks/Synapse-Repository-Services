@@ -1,11 +1,10 @@
 {
 	"title": "RegistryEventActor",
-	"description": "",
 	"name": "RegistryEventActor",
 	"properties": {
 		"name": {
 			"type": "string",
-			"description": ""
+			"description": "The name of the user who initiated the event."
 		}
 	}
 }

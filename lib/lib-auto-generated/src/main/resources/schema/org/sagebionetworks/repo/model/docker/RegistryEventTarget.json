@@ -1,35 +1,30 @@
 {
 	"title": "RegistryEventTarget",
-	"description": "",
 	"name": "RegistryEventTarget",
 	"properties": {
 		"mediaType": {
-			"type": "string",
-			"description": ""
+			"type": "string"
 		},
 		"size": {
-			"type": "integer",
-			"description": ""
+			"type": "integer"
 		},
 		"digest": {
 			"type": "string",
-			"description": ""
+			"description": "The digest of the image being pushed or pulled."
 		},
 		"length": {
-			"type": "integer",
-			"description": ""
+			"type": "integer"
 		},
 		"repository": {
 			"type": "string",
-			"description": ""
+			"description": "The path of the repository which is the subject of the event."
 		},
 		"tag": {
 			"type": "string",
-			"description": ""
+			"description": "The user supplied tag for the commit of the repsository being pushed or pulled."
 		},
 		"url": {
-			"type": "string",
-			"description": ""
+			"type": "string"
 		}
 	}
 }

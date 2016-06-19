@@ -1,27 +1,22 @@
 {
 	"title": "RegistryEventRequest",
-	"description": "",
 	"name": "RegistryEventRequest",
 	"properties": {
 		"id": {
-			"type": "string",
-			"description": ""
+			"type": "string"
 		},
 		"addr": {
-			"type": "string",
-			"description": ""
+			"type": "string"
 		},
 		"host": {
 			"type": "string",
-			"description": ""
+			"description": "The host name (CNAME or IP with optional :port) of the registry where the event occurred."
 		},
 		"method": {
-			"type": "string",
-			"description": ""
+			"type": "string"
 		},
 		"useragent": {
-			"type": "string",
-			"description": ""
+			"type": "string"
 		}
 	}
 }

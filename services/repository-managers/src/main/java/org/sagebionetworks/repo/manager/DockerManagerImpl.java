@@ -89,16 +89,16 @@ public class DockerManagerImpl implements DockerManager {
 		if (parentId==null) return permittedAccessTypes;
 
 		String entityName = service+DockerNameUtil.REPO_NAME_PATH_SEP+repositoryPath;
-		EntityHeader entityHeader = null;
-		try {
-			entityHeader = nodeDAO.getEntityHeaderByChildName(parentId, entityName);
-		} catch (NotFoundException nfe) {
-			entityHeader = null;
-		}
+
 		String existingDockerRepoId = null;
-		if (entityHeader!=null && 
-				EntityTypeUtils.getEntityTypeForClassName(entityHeader.getType()) == EntityType.dockerrepo) {
+		try {
+			EntityHeader entityHeader = nodeDAO.getEntityHeaderByChildName(parentId, entityName);
+			// can't push or pull (do any operation) on an entity which is not a Docker repository
+			if (EntityTypeUtils.getEntityTypeForClassName(entityHeader.getType()) != EntityType.dockerrepo)
+				return permittedAccessTypes;
 			existingDockerRepoId = entityHeader.getId();
+		} catch (NotFoundException nfe) {
+			existingDockerRepoId = null;
 		}
 
 		for (String requestedAccessTypeString : accessTypes.split(",")) {
@@ -142,17 +142,17 @@ public class DockerManagerImpl implements DockerManager {
 	 * a project which has been verified to exist. 
 	 * If there is no such valid parent then return null
 	 */
-	public String validParentProjectId(String repositoryName) {
-		// check that 'repopath' is a valid path
+	public String validParentProjectId(String repositoryPath) {
+		// check that 'repositoryPath' is a valid path
 		try {
-			DockerNameUtil.validateName(repositoryName);
+			DockerNameUtil.validateName(repositoryPath);
 		} catch (IllegalArgumentException e) {
 			return null;
 		}
 		// check that 'repopath' starts with a synapse ID (synID) and synID is a project or folder
 		String parentId;
 		try {
-			parentId = getParentIdFromRepositoryName(repositoryName);
+			parentId = getParentIdFromRepositoryPath(repositoryPath);
 		} catch (DatastoreException e) {
 			return null;
 		}
@@ -166,7 +166,7 @@ public class DockerManagerImpl implements DockerManager {
 		return header.getId();
 	}
 
-	private static String getParentIdFromRepositoryName(String name) {
+	private static String getParentIdFromRepositoryPath(String name) {
 		int i = name.indexOf(REPO_NAME_PATH_SEP);
 		String result = name;
 		if (i>0) result = name.substring(0, i);
@@ -191,10 +191,10 @@ public class DockerManagerImpl implements DockerManager {
 				if (!StackConfiguration.getDockerRegistryHosts().contains(host)) continue;
 				// note the username was authenticated in the authorization check
 				String username = event.getActor().getName();
-				// the 'repository name' does not include the registry host or the tag
-				String repositoryName = event.getTarget().getRepository();
-				String entityName = host+REPO_NAME_PATH_SEP+repositoryName;
-				String parentId = getParentIdFromRepositoryName(repositoryName);
+				// the 'repository path' does not include the registry host or the tag
+				String repositoryPath = event.getTarget().getRepository();
+				String entityName = host+REPO_NAME_PATH_SEP+repositoryPath;
+				String parentId = getParentIdFromRepositoryPath(repositoryPath);
 				if (parentId==null) throw new IllegalArgumentException("parentId is required.");
 				DockerCommit commit = new DockerCommit();
 				commit.setTag(event.getTarget().getTag());
