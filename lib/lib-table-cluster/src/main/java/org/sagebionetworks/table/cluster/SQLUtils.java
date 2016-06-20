@@ -46,6 +46,7 @@ import com.google.common.collect.Sets;
 public class SQLUtils {
 
 
+	private static final String IDX = "idx_";
 	public static final String CHARACTER_SET_UTF8_COLLATE_UTF8_GENERAL_CI = "CHARACTER SET utf8 COLLATE utf8_general_ci";
 	public static final String FILE_ID_BIND = "bFIds";
 	public static final String ROW_ID_BIND = "bRI";
@@ -272,7 +273,7 @@ public class SQLUtils {
 	}
 
 	static String getColumnIndexName(String columnName) {
-		return columnName + "idx_";
+		return columnName + IDX;
 	}
 
 	/**
@@ -281,6 +282,7 @@ public class SQLUtils {
 	 * @param type
 	 * @return
 	 */
+	@Deprecated
 	public static String getSQLTypeForColumnType(ColumnType type, Long maxSize) {
 		if (type == null) {
 			throw new IllegalArgumentException("ColumnType cannot be null");
@@ -314,6 +316,7 @@ public class SQLUtils {
 	 * @param type
 	 * @return
 	 */
+	@Deprecated
 	public static Object parseValueForDB(ColumnType type, String value){
 		if(value == null) return null;
 		if(type == null) throw new IllegalArgumentException("Type cannot be null");
@@ -355,6 +358,7 @@ public class SQLUtils {
 	 * @param defaultString
 	 * @return
 	 */
+	@Deprecated
 	public static String getSQLDefaultForColumnType(ColumnType type,
 			String defaultString) {
 		if (defaultString == null)
@@ -538,6 +542,16 @@ public class SQLUtils {
 			throw new IllegalArgumentException("Column ID cannot be null");
 		return COLUMN_PREFIX + columnId.toString() + COLUMN_POSTFIX;
 	}
+	
+	/**
+	 * Get the name of an index for the given column.
+	 * @param columnId
+	 * @return
+	 */
+	public static String getIndexNameForColumnId(String columnId){
+		return "`"+getColumnNameForId(columnId)+IDX+"`";
+	}
+
 
 	static Iterable<String> getColumnNames(final Iterable<ColumnModel> columnModels) {
 		return new Iterable<String>() {
@@ -955,4 +969,255 @@ public class SQLUtils {
 	public static String createSQLGetDistinctValues(String tableId, String columnId){
 		return "SELECT DISTINCT "+getColumnNameForId(columnId)+" FROM "+getTableNameForId(tableId, TableType.INDEX);
 	}
+	
+	/**
+	 * SQL to create a table if it does not exist.
+	 * @param tableId
+	 * @return
+	 */
+	public static String createTableIfDoesNotExistSQL(String tableId){
+		StringBuilder builder = new StringBuilder();
+		builder.append("CREATE TABLE IF NOT EXISTS ");
+		builder.append(getTableNameForId(tableId, TableType.INDEX));
+		builder.append("( ");
+		builder.append(ROW_ID).append(" bigint(20) NOT NULL, ");
+		builder.append(ROW_VERSION).append(" bigint(20) NOT NULL, ");
+		builder.append("PRIMARY KEY (").append("ROW_ID").append(")");
+		builder.append(")");
+		return builder.toString();
+	}
+
+	/**
+	 * Create an alter table SQL statement for the given set of column changes.
+	 * 
+	 * @param changes
+	 * @return
+	 */
+	public static String createAlterTableSql(List<ColumnChange> changes, String tableId){
+		StringBuilder builder = new StringBuilder();
+		builder.append("ALTER TABLE ");
+		builder.append(getTableNameForId(tableId, TableType.INDEX));
+		builder.append(" ");
+		boolean isFirst = true;
+		boolean hasChanges = false;
+		for(ColumnChange change: changes){
+			if(!isFirst){
+				builder.append(", ");
+			}
+			boolean hasChange = appendAlterTableSql(builder, change);
+			if(hasChange){
+				hasChanges = true;
+			}
+			isFirst = false;
+		}
+		// return null if there is nothing to do.
+		if(!hasChanges){
+			return null;
+		}
+		return builder.toString();
+	}
+	
+	/**
+	 * Alter a single column for a given column change.
+	 * @param builder
+	 * @param change
+	 */
+	public static boolean appendAlterTableSql(StringBuilder builder,
+			ColumnChange change) {
+		if(change.getOldColumn() == null && change.getNewColumn() == null){
+			// nothing to do
+			return false;
+		}
+		if(change.getOldColumn() == null){
+			// add
+			appendAddColumn(builder, change.getNewColumn());
+			// change was added.
+			return true;
+		}
+
+		if(change.getNewColumn() == null){
+			// delete
+			appendDeleteColumn(builder, change.getOldColumn());
+			// change was added.
+			return true;
+		}
+
+		if (change.getNewColumn().equals(change.getOldColumn())) {
+			// both columns are the same so do nothing.
+			return false;
+		}
+		// update
+		appendUpdateColumn(builder, change);
+		// change was added.
+		return true;
+
+	}
+	
+	/**
+	 * Append an add column statement to the passed builder.
+	 * @param builder
+	 * @param newColumn
+	 */
+	public static void appendAddColumn(StringBuilder builder,
+			ColumnModel newColumn) {
+		ValidateArgument.required(newColumn, "newColumn");
+		builder.append("ADD COLUMN ");
+		appendColumnDefinition(builder, newColumn);
+		// doubles use two columns.
+		if(ColumnType.DOUBLE.equals(newColumn.getColumnType())){
+			appendAddDoubleEnum(builder, newColumn.getId());
+		}
+	}
+	
+	/**
+	 * Append a delete column statement to the passed builder.
+	 * @param builder
+	 * @param oldColumn
+	 */
+	public static void appendDeleteColumn(StringBuilder builder,
+			ColumnModel oldColumn) {
+		ValidateArgument.required(oldColumn, "oldColumn");
+		builder.append("DROP COLUMN ");
+		builder.append(getColumnNameForId(oldColumn.getId()));
+		// doubles use two columns.
+		if(ColumnType.DOUBLE.equals(oldColumn.getColumnType())){
+			appendDropDoubleEnum(builder, oldColumn.getId());
+		}
+	}
+	
+	/**
+	 * Append an update column statement to the passed builder.
+	 * @param builder
+	 * @param change
+	 */
+	public static void appendUpdateColumn(StringBuilder builder,
+			ColumnChange change) {
+		ValidateArgument.required(change, "change");
+		ValidateArgument.required(change.getOldColumn(), "change.getOldColumn()");
+		ValidateArgument.required(change.getNewColumn(), "change.getNewColumn()");
+		builder.append("CHANGE COLUMN ");
+		builder.append(getColumnNameForId(change.getOldColumn().getId()));
+		builder.append(" ");
+		appendColumnDefinition(builder, change.getNewColumn());
+		// Is this a type change?
+		if(!change.getOldColumn().getColumnType().equals(change.getNewColumn().getColumnType())){
+			if(ColumnType.DOUBLE.equals(change.getOldColumn().getColumnType())){
+				// The old type is a double so remove the double enumeration column
+				appendDropDoubleEnum(builder, change.getOldColumn().getId());
+			}else if(ColumnType.DOUBLE.equals(change.getNewColumn().getColumnType())){
+				// the new type is a double so add the double enumeration column
+				appendAddDoubleEnum(builder, change.getNewColumn().getId());
+			}
+		}
+		// are both columns a double?
+		if(ColumnType.DOUBLE.equals(change.getOldColumn().getColumnType())
+				&& ColumnType.DOUBLE.equals(change.getNewColumn().getColumnType())){
+			appendRenameDoubleEnum(builder, change.getOldColumn().getId(), change.getNewColumn().getId());
+		}
+	}
+	
+	/**
+	 * Is the index used by the old model compatible with the new model?
+	 * 
+	 * @param oldModel
+	 * @param newModel
+	 * @return
+	 */
+	public static boolean isIndexCompatible(ColumnModel oldModel, ColumnModel newModel){
+		if(oldModel.getMaximumSize() != null){
+			if(!oldModel.getMaximumSize().equals(newModel.getMaximumSize())){
+				// the column sizes do not match so the index is not compatible.
+				return false;
+			}
+		}
+		ColumnTypeInfo oldInfo = ColumnTypeInfo.getInfoForType(oldModel.getColumnType());
+		ColumnTypeInfo newInfo = ColumnTypeInfo.getInfoForType(newModel.getColumnType());
+		// Do both columns use the same MySQL column type?
+		return oldInfo.getMySqlType().equals(newInfo.getMySqlType());
+	}
+	
+	/**
+	 * Append a column type definition to the passed builder.
+	 * 
+	 * @param builder
+	 * @param column
+	 */
+	public static void appendColumnDefinition(StringBuilder builder, ColumnModel column){
+		builder.append(getColumnNameForId(column.getId()));
+		builder.append(" ");
+		ColumnTypeInfo info = ColumnTypeInfo.getInfoForType(column.getColumnType());
+		builder.append(info.toSql(column.getMaximumSize(), column.getDefaultValue()));
+	}
+
+	/**
+	 * Append the SQL to add a double enumeration column for the given column.
+	 * @param builder
+	 * @param newColumn
+	 */
+	public static void appendAddDoubleEnum(StringBuilder builder,
+			String columnId) {
+		builder.append(", ADD COLUMN ");
+		builder.append(TableConstants.DOUBLE_PREFIX );
+		builder.append(getColumnNameForId(columnId));
+		builder.append(DOUBLE_ENUM_CLAUSE);
+	}
+
+	/**
+	 * Append drop double enumeration column for the given column id.
+	 * @param builder
+	 * @param oldColumn
+	 */
+	public static void appendDropDoubleEnum(StringBuilder builder,
+			String columnId) {
+		builder.append(", DROP COLUMN ");
+		builder.append(TableConstants.DOUBLE_PREFIX );
+		builder.append(getColumnNameForId(columnId));
+	}
+	
+	/**
+	 * Append a the rename of a double enumeration column.
+	 * @param builder
+	 * @param oldId
+	 * @param newId
+	 */
+	public static void appendRenameDoubleEnum(StringBuilder builder, String oldId, String newId){
+		builder.append(", CHANGE COLUMN ");
+		builder.append(TableConstants.DOUBLE_PREFIX );
+		builder.append(getColumnNameForId(oldId));
+		builder.append(" ");
+		builder.append(TableConstants.DOUBLE_PREFIX );
+		builder.append(getColumnNameForId(newId));
+		builder.append(DOUBLE_ENUM_CLAUSE);
+	}
+
+	/**
+	 * Create the SQL to truncate the given table.
+	 * @param tableId
+	 * @return
+	 */
+	public static String createTruncateSql(String tableId) {
+		return "TRUNCATE TABLE "+getTableNameForId(tableId, TableType.INDEX);
+	}
+
+	/**
+	 * Create the SQL to an index for each column name.
+	 * @param tableId
+	 * @param indicesToAdd
+	 * @return
+	 */
+	public static String createAddIndicesSql(String tableId,
+			List<ColumnDefinition> indicesToAdd) {
+		StringBuilder builder = new StringBuilder();
+		builder.append("ALTER TABLE ");
+		builder.append(getTableNameForId(tableId, TableType.INDEX));
+		boolean isFirst = true;
+		for(ColumnDefinition column: indicesToAdd){
+			if(isFirst){
+				builder.append(", ");
+			}
+			builder.append("ADD INDEX ");
+		}
+		return null;
+	}
+
 }

@@ -1,16 +1,20 @@
 package org.sagebionetworks.repo.manager.table;
 
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.table.cluster.ColumnChange;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionCallback;
 
 public class TableIndexManagerImpl implements TableIndexManager {
+	
+	public static final int MAX_MYSQL_INDEX_COUNT = 63; // mysql only supports a max of 64 secondary indices per table.
 	
 	private final TableIndexDAO tableIndexDao;
 	private final String tableId;
@@ -154,6 +158,38 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	public void setIndexVersion(Long versionNumber) {
 		tableIndexDao.setMaxCurrentCompleteVersionForTable(
 				tableId, versionNumber);
+	}
+	@Override
+	public void createTableIndexIfDoesNotExist() {
+		// Create all of the status tables unconditionally.
+		tableIndexDao.createSecondaryTables(tableId);
+		// create the table if it does not exist
+		tableIndexDao.createTableIfDoesNotExist(tableId);
+	}
+	
+	@Override
+	public void updateTableSchema(List<ColumnChange> changes) {
+		// create the table if it does not exist
+		tableIndexDao.createTableIfDoesNotExist(tableId);
+		// Create all of the status tables unconditionally.
+		tableIndexDao.createSecondaryTables(tableId);
+		
+		List<ColumnModel> newSchema = new LinkedList<ColumnModel>();
+		for(ColumnChange change: changes){
+			if(change.getNewColumn() != null){
+				newSchema.add(change.getNewColumn());
+			}
+		}
+		
+		if(newSchema.isEmpty()){
+			// clear all rows from the table
+			tableIndexDao.truncateTable(tableId);
+		}
+		// Alter the table
+		tableIndexDao.alterTableAsNeeded(tableId, changes);		
+		// Save the hash of the new schema
+		String schemaMD5Hex = TableModelUtils. createSchemaMD5HexCM(newSchema);
+		tableIndexDao.setCurrentSchemaMD5Hex(tableId, schemaMD5Hex);
 	}
 	
 }

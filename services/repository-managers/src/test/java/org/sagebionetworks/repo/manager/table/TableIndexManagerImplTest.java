@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.table;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyList;
 import static org.mockito.Matchers.anyLong;
@@ -27,11 +28,13 @@ import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
+import org.sagebionetworks.repo.model.table.TableConstants;
+import org.sagebionetworks.table.cluster.ColumnDefinition;
+import org.sagebionetworks.table.cluster.SQLUtils;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionCallback;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 public class TableIndexManagerImplTest {
@@ -211,5 +214,33 @@ public class TableIndexManagerImplTest {
 		verify(mockIndexDao).deleteSecondayTables(tableId);
 		verify(mockIndexDao).deleteTable(tableId);
 	}
+	
+	/**
+	 * Helper to create test ColumnDefinition
+	 * @param count
+	 * @return
+	 */
+	List<ColumnDefinition> createColumnDefintions(int count){
+		List<ColumnDefinition> results = new LinkedList<ColumnDefinition>();
+		ColumnDefinition rowId = new ColumnDefinition();
+		rowId.setName(TableConstants.ROW_ID);
+		rowId.setHasIndex(true);
+		results.add(rowId);
+		
+		ColumnDefinition rowVersion = new ColumnDefinition();
+		rowVersion.setName(TableConstants.ROW_VERSION);
+		rowVersion.setHasIndex(false);
+		results.add(rowVersion);
+				
+		for(int i=0; i<count; i++){
+			ColumnDefinition def = new ColumnDefinition();
+			def.setName(SQLUtils.getColumnNameForId(""+i));
+			def.setHasIndex(true);
+			results.add(def);
+		}
+		return results;
+	}
+	
+	
 	
 }
