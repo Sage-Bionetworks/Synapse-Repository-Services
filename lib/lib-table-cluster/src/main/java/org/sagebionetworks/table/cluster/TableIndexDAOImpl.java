@@ -449,11 +449,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		template.update(sql);
 	}
 
-	@Override
-	public void addIndicesToTable(String tableId, List<ColumnDefinition> indicesToAdd) {
-		String sql = SQLUtils.createAddIndicesSql(tableId, indicesToAdd);
-		template.update(sql);
-	}
 
 
 }

@@ -1,8 +1,6 @@
 package org.sagebionetworks.repo.manager.table;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyList;
@@ -215,54 +213,6 @@ public class TableIndexManagerImplTest {
 		manager.deleteTableIndex();
 		verify(mockIndexDao).deleteSecondayTables(tableId);
 		verify(mockIndexDao).deleteTable(tableId);
-	}
-	
-	@Test
-	public void testGetColumnsThatNeedAnIndexNone(){
-		List<ColumnDefinition> schema = createColumnDefintions(2);
-		int maxNumberOfIndices = 100;
-		// call under test
-		List<ColumnDefinition> results = TableIndexManagerImpl.getColumnsThatNeedAnIndex(schema, maxNumberOfIndices);
-		// All columns already have an index for this case
-		assertNotNull(results);
-		assertTrue(results.isEmpty());
-	}
-	
-	@Test
-	public void testGetColumnsThatNeedAnIndexOverLimit(){
-		// with two columns
-		List<ColumnDefinition> schema = createColumnDefintions(2);
-		// set the last two columns with missing index
-		schema.get(2).setHasIndex(false);
-		schema.get(3).setHasIndex(false);
-		// only allow two total indices.
-		int maxNumberOfIndices = 2;
-		// call under test
-		List<ColumnDefinition> results = TableIndexManagerImpl.getColumnsThatNeedAnIndex(schema, maxNumberOfIndices);
-		// All columns already have an index for this case
-		assertNotNull(results);
-		assertEquals(1, results.size());
-		// the first column should get an index
-		assertEquals("_C0_", results.get(0).getName());
-	}
-	
-	@Test
-	public void testGetColumnsThatNeedAnIndexAtLimit(){
-		// with two columns
-		List<ColumnDefinition> schema = createColumnDefintions(2);
-		// set the last two columns with missing index
-		schema.get(2).setHasIndex(false);
-		schema.get(3).setHasIndex(false);
-		// only allow two total indices.
-		int maxNumberOfIndices = 3;
-		// call under test
-		List<ColumnDefinition> results = TableIndexManagerImpl.getColumnsThatNeedAnIndex(schema, maxNumberOfIndices);
-		// All columns already have an index for this case
-		assertNotNull(results);
-		assertEquals(2, results.size());
-		// the first column should get an index
-		assertEquals("_C0_", results.get(0).getName());
-		assertEquals("_C1_", results.get(1).getName());
 	}
 	
 	/**

@@ -215,14 +215,4 @@ public interface TableIndexDAO {
 	 */
 	public void truncateTable(String tableId);
 
-
-	/**
-	 * Add an index for each column name in the given list to the given table.
-	 * @param tableId
-	 * @param indicesToAdd
-	 * @param tableId
-	 * @param indicesToAdd
-	 */
-	public void addIndicesToTable(String tableId, List<ColumnDefinition> indicesToAdd);
-
 }
