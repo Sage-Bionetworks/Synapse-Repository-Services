@@ -1124,4 +1124,25 @@ public class SQLUtilsTest {
 		assertTrue(SQLUtils.isIndexCompatible(oldColumn, newColumn));
 	}
 	
+	@Test
+	public void testCreateCardinalitySqlEmpty(){
+		String tableId = "syn123";
+		List<DatabaseColumnInfo> list = new LinkedList<DatabaseColumnInfo>();
+		String results = SQLUtils.createCardinalitySql(list, tableId);
+		assertEquals(null, results);
+	}
+	
+	@Test
+	public void testCreateCardinalitySqlMultiple(){
+		DatabaseColumnInfo one = new DatabaseColumnInfo();
+		one.setColumnId("_C111_");
+		DatabaseColumnInfo two = new DatabaseColumnInfo();
+		two.setColumnId("_C222_");
+		
+		String tableId = "syn123";
+		List<DatabaseColumnInfo> list = Lists.newArrayList(one, two);
+		String results = SQLUtils.createCardinalitySql(list, tableId);
+		assertEquals("SELECT COUNT(DISTINCT _C111_) AS _C111_, COUNT(DISTINCT _C222_) AS _C222_ FROM T123", results);
+	}
+	
 }

@@ -58,6 +58,7 @@ public interface TableIndexDAO {
 	 * @param tableId
 	 * @return
 	 */
+	@Deprecated
 	public List<ColumnDefinition> getCurrentTableColumns(String tableId);
 	
 	/**
@@ -214,5 +215,23 @@ public interface TableIndexDAO {
 	 * @param tableId
 	 */
 	public void truncateTable(String tableId);
-
+	
+	
+	/**
+	 * Get information about each column of a database table.
+	 * 
+	 * @param tableId
+	 * @return
+	 */
+	public List<DatabaseColumnInfo> getDatabaseInfo(String tableId);
+	
+	/**
+	 * Provide the cardinality for the given columns and table.
+	 * 
+	 * Note: A single query will be executed, and the results added to the passed info list.
+	 * 
+	 * @param list
+	 * @param tableId
+	 */
+	public void provideCardinality(List<DatabaseColumnInfo> list, String tableId);
 }

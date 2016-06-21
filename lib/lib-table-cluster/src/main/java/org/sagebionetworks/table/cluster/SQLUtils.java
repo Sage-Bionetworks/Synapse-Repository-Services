@@ -1199,25 +1199,72 @@ public class SQLUtils {
 		return "TRUNCATE TABLE "+getTableNameForId(tableId, TableType.INDEX);
 	}
 
+	
 	/**
-	 * Create the SQL to an index for each column name.
+	 * A single SQL statement to get the cardinality of each column as a single call.
+	 * 
+	 * @param list
 	 * @param tableId
-	 * @param indicesToAdd
 	 * @return
 	 */
-	public static String createAddIndicesSql(String tableId,
-			List<ColumnDefinition> indicesToAdd) {
+	public static String createCardinalitySql(List<DatabaseColumnInfo> list, String tableId){
+		if(list.isEmpty()){
+			return null;
+		}
+		StringBuilder builder = new StringBuilder();
+		builder.append("SELECT ");
+		boolean isFirst = true;
+		for(DatabaseColumnInfo info: list){
+			if(!isFirst){
+				builder.append(", ");
+			}
+			builder.append("COUNT(DISTINCT ");
+			builder.append(info.getColumnId());
+			builder.append(") AS ");
+			builder.append(info.getColumnId());
+			isFirst = false;
+		}
+		builder.append(" FROM ");
+		builder.append(getTableNameForId(tableId, TableType.INDEX));
+		return builder.toString();
+	}
+	
+	/**
+	 * Select 
+	 * @param list
+	 * @param tableId
+	 * @return
+	 */
+	public String createAlterIndexSql(List<DatabaseColumnInfo> list, String tableId, int maxNumberOfIndex){
 		StringBuilder builder = new StringBuilder();
 		builder.append("ALTER TABLE ");
 		builder.append(getTableNameForId(tableId, TableType.INDEX));
+		builder.append(" ");
+		// sort by cardinality
+		Collections.sort(list, DatabaseColumnInfo.CARDINALITY_COMPARATOR);
+		Collections.reverse(list);
+		
+		// count the indices
+		int currentIndexCount = 0;
+		for(DatabaseColumnInfo info: list){
+			if(info.hasIndex()){
+				currentIndexCount++;
+			}
+		}
+		
 		boolean isFirst = true;
-		for(ColumnDefinition column: indicesToAdd){
-			if(isFirst){
+		for(DatabaseColumnInfo info: list){
+			// ignore row_id and version
+			if(ROW_ID.equals(info.getColumnId())
+					|| ROW_VERSION.equals(info.getColumnId())){
+				continue;
+			}
+
+			if(!isFirst){
 				builder.append(", ");
 			}
-			builder.append("ADD INDEX ");
+			isFirst = false;
 		}
-		return null;
+		return builder.toString();
 	}
-
 }

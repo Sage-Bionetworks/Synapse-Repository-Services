@@ -150,6 +150,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		}
 	}
 
+	@Deprecated
 	@Override
 	public List<ColumnDefinition> getCurrentTableColumns(String tableId) {
 		String tableName = SQLUtils.getTableNameForId(tableId, SQLUtils.TableType.INDEX);
@@ -449,6 +450,41 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		template.update(sql);
 	}
 
+	@Override
+	public List<DatabaseColumnInfo> getDatabaseInfo(String tableId) {
+		try {
+			String tableName = SQLUtils.getTableNameForId(tableId, SQLUtils.TableType.INDEX);
+			// Bind variables do not seem to work here
+			return template.query(SQL_SHOW_COLUMNS + tableName, new RowMapper<DatabaseColumnInfo>() {
+				@Override
+				public DatabaseColumnInfo mapRow(ResultSet rs, int rowNum) throws SQLException {
+					DatabaseColumnInfo info = new DatabaseColumnInfo();
+					info.setColumnId(rs.getString(FIELD));
+					String key = rs.getString(KEY);
+					info.setHasIndex(!"".equals(key));
+					return info;
+				}
+			});
+		} catch (BadSqlGrammarException e) {
+			// Spring throws this when the table does not
+			return null;
+		}
+	}
 
+
+	@Override
+	public void provideCardinality(final List<DatabaseColumnInfo> list,
+			String tableId) {
+		String sql = SQLUtils.createCardinalitySql(list, tableId);
+		template.query(sql, new RowCallbackHandler() {
+			@Override
+			public void processRow(ResultSet rs) throws SQLException {
+				for (DatabaseColumnInfo info : list) {
+					info.setCardinality(rs.getLong(info.getColumnId()));
+				}
+			}
+		});
+
+	}
 
 }

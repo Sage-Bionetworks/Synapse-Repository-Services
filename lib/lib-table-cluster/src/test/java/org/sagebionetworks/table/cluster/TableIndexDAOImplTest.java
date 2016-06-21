@@ -1111,4 +1111,61 @@ public class TableIndexDAOImplTest {
 		assertFalse(wasAltered);
 	}
 	
+	
+	@Test
+	public void testColumnInfoAndCardinality(){
+		// create a table with a long column.
+		ColumnModel intColumn = new ColumnModel();
+		intColumn.setId("12");
+		intColumn.setName("foo");
+		intColumn.setColumnType(ColumnType.INTEGER);
+		
+		ColumnModel booleanColumn = new ColumnModel();
+		booleanColumn.setId("13");
+		booleanColumn.setName("bar");
+		booleanColumn.setColumnType(ColumnType.BOOLEAN);
+		
+		List<ColumnModel> schema = Lists.newArrayList(intColumn, booleanColumn);
+		
+		tableIndexDAO.createOrUpdateTable(schema, tableId);
+		// create three rows.
+		List<Row> rows = TableModelTestUtils.createRows(schema, 5);
+		// add duplicate values
+		RowSet set = new RowSet();
+		set.setRows(rows);
+		set.setHeaders(TableModelUtils.getSelectColumns(schema));
+		set.setTableId(tableId);
+		
+		IdRange range = new IdRange();
+		range.setMinimumId(100L);
+		range.setMaximumId(200L);
+		range.setVersionNumber(3L);
+		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
+		
+		tableIndexDAO.createOrUpdateOrDeleteRows(set, schema);
+		
+		List<DatabaseColumnInfo> infoList = tableIndexDAO.getDatabaseInfo(tableId);
+		assertNotNull(infoList);
+		
+		tableIndexDAO.provideCardinality(infoList, tableId);
+		assertEquals(4, infoList.size());
+		
+		DatabaseColumnInfo info = infoList.get(0);
+		// ROW_ID
+		assertEquals("ROW_ID", info.getColumnId());
+		assertEquals(new Long(5), info.getCardinality());
+		assertTrue(info.hasIndex());
+		
+		// one
+		info = infoList.get(2);
+		assertEquals("_C12_", info.getColumnId());
+		assertEquals(new Long(5), info.getCardinality());
+		assertTrue(info.hasIndex());
+		
+		// two
+		info = infoList.get(3);
+		assertEquals("_C13_", info.getColumnId());
+		assertEquals(new Long(2), info.getCardinality());
+		assertTrue(info.hasIndex());
+	}
 }
