@@ -234,4 +234,11 @@ public interface TableIndexDAO {
 	 * @param tableId
 	 */
 	public void provideCardinality(List<DatabaseColumnInfo> list, String tableId);
+	
+	/**
+	 * Provide the index name for each column in the table.
+	 * @param list
+	 * @param tableId
+	 */
+	public void provideIndexName(List<DatabaseColumnInfo> list, String tableId);
 }

@@ -2,7 +2,8 @@ package org.sagebionetworks.table.cluster;
 
 import java.util.Comparator;
 
-import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.table.cluster.utils.ColumnConstants;
+import org.sagebionetworks.util.ValidateArgument;
 
 /**
  * Information about a column in the database.
@@ -10,17 +11,18 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
  */
 public class DatabaseColumnInfo {
 	
-	String columnId;
+	String columnName;
 	boolean hasIndex;
+	MySqlColumnType type;
+	Integer maxSize;
 	Long cardinality;
 	String indexName;
-	ColumnModel definition;
 	
-	public String getColumnId() {
-		return columnId;
+	public String getColumnName() {
+		return columnName;
 	}
-	public void setColumnId(String columnId) {
-		this.columnId = columnId;
+	public void setColumnName(String columnName) {
+		this.columnName = columnName;
 	}
 	public boolean hasIndex() {
 		return hasIndex;
@@ -40,14 +42,57 @@ public class DatabaseColumnInfo {
 	public void setIndexName(String indexName) {
 		this.indexName = indexName;
 	}
-	public ColumnModel getDefinition() {
-		return definition;
+	public MySqlColumnType getType() {
+		return type;
 	}
-	public void setDefinition(ColumnModel definition) {
-		this.definition = definition;
+	public void setType(MySqlColumnType type) {
+		this.type = type;
+	}
+	public Integer getMaxSize() {
+		return maxSize;
+	}
+	public void setMaxSize(Integer maxSize) {
+		this.maxSize = maxSize;
+	}
+	
+	/**
+	 * Create the index definition for this column.
+	 * 
+	 * @return
+	 */
+	public String createIndexDefinition(){
+		ValidateArgument.required(indexName, "indexName");
+		ValidateArgument.required(columnName, "columnName");
+		ValidateArgument.required(type, "type");
+		Integer indexSize = null;
+		if(MySqlColumnType.MEDIUMTEXT.equals(type)){
+			indexSize = ColumnConstants.MAX_MYSQL_VARCHAR_INDEX_LENGTH;
+		}else{
+			indexSize = maxSize;
+		}
+		StringBuilder builder = new StringBuilder();
+		builder.append(indexName);
+		builder.append(" (");
+		builder.append(columnName);
+		if(indexSize != null && indexSize >= ColumnConstants.MAX_MYSQL_VARCHAR_INDEX_LENGTH){
+			builder.append("(");
+			builder.append(ColumnConstants.MAX_MYSQL_VARCHAR_INDEX_LENGTH);
+			builder.append(")");
+		}
+		builder.append(")");
+		return builder.toString();
 	}
 
-	
+	/**
+	 * Comparator based on DatabaseColumnInfo.cardinality;
+	 */
+	public static Comparator<DatabaseColumnInfo> CARDINALITY_COMPARATOR = new Comparator<DatabaseColumnInfo>() {
+		@Override
+		public int compare(DatabaseColumnInfo one, DatabaseColumnInfo two) {
+			return Long.compare(one.cardinality, two.cardinality);
+		}
+	};
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -55,12 +100,12 @@ public class DatabaseColumnInfo {
 		result = prime * result
 				+ ((cardinality == null) ? 0 : cardinality.hashCode());
 		result = prime * result
-				+ ((columnId == null) ? 0 : columnId.hashCode());
-		result = prime * result
-				+ ((definition == null) ? 0 : definition.hashCode());
+				+ ((columnName == null) ? 0 : columnName.hashCode());
 		result = prime * result + (hasIndex ? 1231 : 1237);
 		result = prime * result
 				+ ((indexName == null) ? 0 : indexName.hashCode());
+		result = prime * result + maxSize;
+		result = prime * result + ((type == null) ? 0 : type.hashCode());
 		return result;
 	}
 	@Override
@@ -77,15 +122,10 @@ public class DatabaseColumnInfo {
 				return false;
 		} else if (!cardinality.equals(other.cardinality))
 			return false;
-		if (columnId == null) {
-			if (other.columnId != null)
+		if (columnName == null) {
+			if (other.columnName != null)
 				return false;
-		} else if (!columnId.equals(other.columnId))
-			return false;
-		if (definition == null) {
-			if (other.definition != null)
-				return false;
-		} else if (!definition.equals(other.definition))
+		} else if (!columnName.equals(other.columnName))
 			return false;
 		if (hasIndex != other.hasIndex)
 			return false;
@@ -94,28 +134,18 @@ public class DatabaseColumnInfo {
 				return false;
 		} else if (!indexName.equals(other.indexName))
 			return false;
+		if (maxSize != other.maxSize)
+			return false;
+		if (type != other.type)
+			return false;
 		return true;
 	}
-
 	@Override
 	public String toString() {
-		return "DatabaseColumnInfo [columnId=" + columnId + ", hasIndex="
-				+ hasIndex + ", cardinality=" + cardinality + ", indexName="
-				+ indexName + ", definition=" + definition + "]";
+		return "DatabaseColumnInfo [columnName=" + columnName + ", hasIndex="
+				+ hasIndex + ", type=" + type + ", maxSize=" + maxSize
+				+ ", cardinality=" + cardinality + ", indexName=" + indexName
+				+ "]";
 	}
-
-
-
-	/**
-	 * Comparator based on DatabaseColumnInfo.cardinality;
-	 */
-	public static Comparator<DatabaseColumnInfo> CARDINALITY_COMPARATOR = new Comparator<DatabaseColumnInfo>() {
-		@Override
-		public int compare(DatabaseColumnInfo one, DatabaseColumnInfo two) {
-			return Long.compare(one.cardinality, two.cardinality);
-		}
-	};
-
-
 	
 }

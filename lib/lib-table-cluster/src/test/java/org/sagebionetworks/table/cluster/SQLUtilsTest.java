@@ -1136,9 +1136,9 @@ public class SQLUtilsTest {
 	@Test
 	public void testCreateCardinalitySqlMultiple(){
 		DatabaseColumnInfo one = new DatabaseColumnInfo();
-		one.setColumnId("_C111_");
+		one.setColumnName("_C111_");
 		DatabaseColumnInfo two = new DatabaseColumnInfo();
-		two.setColumnId("_C222_");
+		two.setColumnName("_C222_");
 		
 		String tableId = "syn123";
 		List<DatabaseColumnInfo> list = Lists.newArrayList(one, two);
@@ -1150,14 +1150,14 @@ public class SQLUtilsTest {
 		List<DatabaseColumnInfo> list = new LinkedList<DatabaseColumnInfo>();
 		//row id
 		DatabaseColumnInfo rowId = new DatabaseColumnInfo();
-		rowId.setColumnId(TableConstants.ROW_ID);
+		rowId.setColumnName(TableConstants.ROW_ID);
 		rowId.setCardinality(rowCount);
 		rowId.setHasIndex(true);
 		rowId.setIndexName("PRIMARY");
 		list.add(rowId);
 		//row version
 		DatabaseColumnInfo rowVersion = new DatabaseColumnInfo();
-		rowVersion.setColumnId(TableConstants.ROW_VERSION);
+		rowVersion.setColumnName(TableConstants.ROW_VERSION);
 		rowVersion.setCardinality(1L);
 		rowVersion.setHasIndex(true);
 		rowVersion.setIndexName("");
@@ -1166,7 +1166,7 @@ public class SQLUtilsTest {
 		// Create rows with descending cardinality.
 		for(int i=0; i<rowCount; i++){
 			DatabaseColumnInfo info = new DatabaseColumnInfo();
-			info.setColumnId("_C"+i+"_");
+			info.setColumnName("_C"+i+"_");
 			info.setCardinality(rowCount-i);
 			info.setHasIndex(false);
 			info.setIndexName(null);
@@ -1200,8 +1200,8 @@ public class SQLUtilsTest {
 		IndexChange changes = SQLUtils.calculateIndexChanges(currentInfo, tableId, maxNumberOfIndex);
 		// both columns should have an index added.
 		assertEquals(columnCount, changes.getToAdd().size());
-		assertEquals("_C0_", changes.getToAdd().get(0).getColumnId());
-		assertEquals("_C1_", changes.getToAdd().get(1).getColumnId());
+		assertEquals("_C0_", changes.getToAdd().get(0).getColumnName());
+		assertEquals("_C1_", changes.getToAdd().get(1).getColumnName());
 		
 		assertEquals(0, changes.getToRemove().size());
 		assertEquals(0, changes.getToRename().size());
@@ -1225,7 +1225,7 @@ public class SQLUtilsTest {
 		assertEquals(0, changes.getToRemove().size());
 		// the last column needs to be renamed.
 		assertEquals(1, changes.getToRename().size());
-		assertEquals("_C0_", changes.getToRename().get(0).getColumnId());
+		assertEquals("_C0_", changes.getToRename().get(0).getColumnName());
 	}
 	
 	@Test
@@ -1238,7 +1238,7 @@ public class SQLUtilsTest {
 		DatabaseColumnInfo lastInfo = currentInfo.get(2);
 		lastInfo.setHasIndex(true);
 		// set the correct name
-		lastInfo.setIndexName(SQLUtils.getIndexName(lastInfo.getColumnId()));
+		lastInfo.setIndexName(SQLUtils.getIndexName(lastInfo.getColumnName()));
 		// call under test.
 		IndexChange changes = SQLUtils.calculateIndexChanges(currentInfo, tableId, maxNumberOfIndex);
 
@@ -1258,13 +1258,13 @@ public class SQLUtilsTest {
 		DatabaseColumnInfo lastInfo = currentInfo.get(2);
 		lastInfo.setHasIndex(true);
 		// set the correct name
-		lastInfo.setIndexName(SQLUtils.getIndexName(lastInfo.getColumnId()));
+		lastInfo.setIndexName(SQLUtils.getIndexName(lastInfo.getColumnName()));
 		// call under test.
 		IndexChange changes = SQLUtils.calculateIndexChanges(currentInfo, tableId, maxNumberOfIndex);
 
 		assertEquals(0, changes.getToAdd().size());		
 		assertEquals(1, changes.getToRemove().size());
-		assertEquals("_C0_", changes.getToRemove().get(0).getColumnId());
+		assertEquals("_C0_", changes.getToRemove().get(0).getColumnName());
 		assertEquals(0, changes.getToRename().size());
 	}
 	
@@ -1277,7 +1277,7 @@ public class SQLUtilsTest {
 		//  index with a lower cardinality
 		DatabaseColumnInfo firstInfo = currentInfo.get(2);
 		firstInfo.setHasIndex(true);
-		firstInfo.setIndexName(SQLUtils.getIndexName(firstInfo.getColumnId()));
+		firstInfo.setIndexName(SQLUtils.getIndexName(firstInfo.getColumnName()));
 		firstInfo.setCardinality(1L);
 		
 		// no index with a higher cardinality.
@@ -1289,9 +1289,9 @@ public class SQLUtilsTest {
 		IndexChange changes = SQLUtils.calculateIndexChanges(currentInfo, tableId, maxNumberOfIndex);
 
 		assertEquals(1, changes.getToAdd().size());	
-		assertEquals("Higher cardinality should be added","_C1_", changes.getToAdd().get(0).getColumnId());
+		assertEquals("Higher cardinality should be added","_C1_", changes.getToAdd().get(0).getColumnName());
 		assertEquals(1, changes.getToRemove().size());
-		assertEquals("Lower cardinality should be dropped.","_C0_", changes.getToRemove().get(0).getColumnId());
+		assertEquals("Lower cardinality should be dropped.","_C0_", changes.getToRemove().get(0).getColumnName());
 		assertEquals(0, changes.getToRename().size());
 	}
 	
@@ -1304,7 +1304,7 @@ public class SQLUtilsTest {
 		//  index with a lower cardinality
 		DatabaseColumnInfo firstInfo = currentInfo.get(2);
 		firstInfo.setHasIndex(true);
-		firstInfo.setIndexName(SQLUtils.getIndexName(firstInfo.getColumnId()));
+		firstInfo.setIndexName(SQLUtils.getIndexName(firstInfo.getColumnName()));
 		firstInfo.setCardinality(1L);
 		// index with a high cardinality but wrong name.
 		DatabaseColumnInfo midInfo = currentInfo.get(3);
@@ -1321,11 +1321,11 @@ public class SQLUtilsTest {
 		IndexChange changes = SQLUtils.calculateIndexChanges(currentInfo, tableId, maxNumberOfIndex);
 
 		assertEquals(1, changes.getToAdd().size());	
-		assertEquals("Higher cardinality should be added","_C2_", changes.getToAdd().get(0).getColumnId());
+		assertEquals("Higher cardinality should be added","_C2_", changes.getToAdd().get(0).getColumnName());
 		assertEquals(1, changes.getToRemove().size());
-		assertEquals("Lower cardinality should be dropped.","_C0_", changes.getToRemove().get(0).getColumnId());
+		assertEquals("Lower cardinality should be dropped.","_C0_", changes.getToRemove().get(0).getColumnName());
 		assertEquals(1, changes.getToRename().size());
-		assertEquals("High cardinality should be renamed.","_C1_", changes.getToRename().get(0).getColumnId());
+		assertEquals("High cardinality should be renamed.","_C1_", changes.getToRename().get(0).getColumnName());
 	}
 	
 	@Test
@@ -1344,14 +1344,10 @@ public class SQLUtilsTest {
 	
 	@Test
 	public void testCreateAlterSqlAdd(){
-		ColumnModel definition = new ColumnModel();
-		definition.setColumnType(ColumnType.STRING);
-		definition.setId("1");
-		definition.setMaximumSize(1000L);
-		
 		DatabaseColumnInfo info = new DatabaseColumnInfo();
-		info.setColumnId("_C1_");
-		info.setDefinition(definition);
+		info.setColumnName("_C1_");
+		info.setCardinality(1L);
+		info.setType(MySqlColumnType.MEDIUMTEXT);
 		
 		List<DatabaseColumnInfo> toAdd = Lists.newArrayList(info);
 		List<DatabaseColumnInfo> toRemove = new LinkedList<DatabaseColumnInfo>();
@@ -1365,14 +1361,10 @@ public class SQLUtilsTest {
 	
 	@Test
 	public void testCreateAlterSqlDrop(){
-		ColumnModel definition = new ColumnModel();
-		definition.setColumnType(ColumnType.BOOLEAN);
-		definition.setId("1");
-		
 		DatabaseColumnInfo info = new DatabaseColumnInfo();
-		info.setColumnId("_C1_");
+		info.setColumnName("_C1_");
 		info.setIndexName("_C1_IDX");
-		info.setDefinition(definition);
+		info.setCardinality(1L);
 
 		List<DatabaseColumnInfo> toAdd = new LinkedList<DatabaseColumnInfo>();
 		List<DatabaseColumnInfo> toRemove = Lists.newArrayList(info);
@@ -1386,14 +1378,9 @@ public class SQLUtilsTest {
 	
 	@Test
 	public void testCreateAlterSqlRename(){
-		ColumnModel definition = new ColumnModel();
-		definition.setColumnType(ColumnType.BOOLEAN);
-		definition.setId("1");
-		
 		DatabaseColumnInfo info = new DatabaseColumnInfo();
-		info.setColumnId("_C1_");
+		info.setColumnName("_C1_");
 		info.setIndexName("_C2_IDX");
-		info.setDefinition(definition);
 
 		List<DatabaseColumnInfo> toAdd = new LinkedList<DatabaseColumnInfo>();
 		List<DatabaseColumnInfo> toRemove =  new LinkedList<DatabaseColumnInfo>();
@@ -1406,12 +1393,7 @@ public class SQLUtilsTest {
 	}
 	
 	@Test
-	public void testAlterSqlAddRemoveRename(){
-		
-		ColumnModel definition = new ColumnModel();
-		definition.setColumnType(ColumnType.BOOLEAN);
-		definition.setId("1");
-		
+	public void testAlterSqlAddRemoveRename(){		
 		String tableId = "syn123";
 		int maxNumberOfIndex = 3;
 		int columnCount = 3;
@@ -1419,19 +1401,21 @@ public class SQLUtilsTest {
 		//  index with a lower cardinality
 		DatabaseColumnInfo firstInfo = currentInfo.get(2);
 		firstInfo.setHasIndex(true);
-		firstInfo.setIndexName(SQLUtils.getIndexName(firstInfo.getColumnId()));
 		firstInfo.setCardinality(1L);
+		firstInfo.setIndexName("_C0_idx_");
+		firstInfo.setType(MySqlColumnType.BIGINT);
 		// index with a high cardinality but wrong name.
 		DatabaseColumnInfo midInfo = currentInfo.get(3);
 		midInfo.setHasIndex(true);
 		midInfo.setIndexName("wrongName");
 		midInfo.setCardinality(3L);
+		midInfo.setType(MySqlColumnType.BIGINT);
 		
 		// no index with a higher cardinality.
 		DatabaseColumnInfo lastInfo = currentInfo.get(4);
 		lastInfo.setHasIndex(false);
 		lastInfo.setCardinality(2L);
-		lastInfo.setDefinition(definition);
+		lastInfo.setType(MySqlColumnType.BIGINT);
 		
 		String results = SQLUtils.createAlterSql(currentInfo, tableId, maxNumberOfIndex);
 		assertEquals("ALTER TABLE T123 "

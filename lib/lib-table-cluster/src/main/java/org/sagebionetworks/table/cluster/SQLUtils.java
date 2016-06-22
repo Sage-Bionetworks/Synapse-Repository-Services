@@ -14,10 +14,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Stack;
 import java.util.regex.Pattern;
-
-import javax.management.MXBean;
 
 import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.lang.StringUtils;
@@ -1222,9 +1219,9 @@ public class SQLUtils {
 				builder.append(", ");
 			}
 			builder.append("COUNT(DISTINCT ");
-			builder.append(info.getColumnId());
+			builder.append(info.getColumnName());
 			builder.append(") AS ");
-			builder.append(info.getColumnId());
+			builder.append(info.getColumnName());
 			isFirst = false;
 		}
 		builder.append(" FROM ");
@@ -1265,8 +1262,8 @@ public class SQLUtils {
 		int indexCount = 1;
 		for(DatabaseColumnInfo info: list){
 			// ignore row_id and version
-			if(ROW_ID.equals(info.getColumnId())
-					|| ROW_VERSION.equals(info.getColumnId())){
+			if(ROW_ID.equals(info.getColumnName())
+					|| ROW_VERSION.equals(info.getColumnName())){
 				continue;
 			}
 			if(indexCount < maxNumberOfIndex){
@@ -1276,7 +1273,7 @@ public class SQLUtils {
 					toAdd.add(info);
 				}else{
 					// does the index need to be renamed?
-					String expectedIndexName = getIndexName(info.getColumnId());
+					String expectedIndexName = getIndexName(info.getColumnName());
 					if(!expectedIndexName.equals(info.getIndexName())){
 						toRename.add(info);
 					}
@@ -1302,6 +1299,7 @@ public class SQLUtils {
 	public static String createAlterSql(IndexChange change, String tableId){
 		ValidateArgument.required(change, "change");
 		ValidateArgument.required(tableId, "tableId");
+		
 		if(change.getToAdd().isEmpty()
 				&& change.getToRemove().isEmpty()
 				&& change.getToRename().isEmpty()){
@@ -1331,7 +1329,7 @@ public class SQLUtils {
 			builder.append("RENAME INDEX ");
 			builder.append(info.getIndexName());
 			builder.append(" TO ");
-			builder.append(getIndexName(info.getColumnId()));
+			builder.append(getIndexName(info.getColumnName()));
 			isFirst = false;
 		}
 		// adds
@@ -1340,10 +1338,8 @@ public class SQLUtils {
 				builder.append(", ");
 			}
 			builder.append("ADD INDEX ");
-			ColumnTypeInfo typeInfo = ColumnTypeInfo.getInfoForType(info.getDefinition().getColumnType());
-			String indexName = getIndexName(info.getColumnId());
-			String columnName = info.getColumnId();
-			builder.append(typeInfo.toIndexDefinitionSql(indexName, columnName, info.getDefinition().getMaximumSize()));
+			info.setIndexName(getIndexName(info.getColumnName()));
+			builder.append(info.createIndexDefinition());
 			isFirst = false;
 		}
 		return builder.toString();
@@ -1357,5 +1353,6 @@ public class SQLUtils {
 	public static String getIndexName(String columnId){
 		return columnId+IDX;
 	}
+	
 	
 }

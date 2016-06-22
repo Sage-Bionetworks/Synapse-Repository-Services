@@ -1148,24 +1148,35 @@ public class TableIndexDAOImplTest {
 		assertNotNull(infoList);
 		
 		tableIndexDAO.provideCardinality(infoList, tableId);
+		tableIndexDAO.provideIndexName(infoList, tableId);
+		
 		assertEquals(4, infoList.size());
 		
 		DatabaseColumnInfo info = infoList.get(0);
 		// ROW_ID
-		assertEquals("ROW_ID", info.getColumnId());
+		assertEquals("ROW_ID", info.getColumnName());
 		assertEquals(new Long(5), info.getCardinality());
+		assertEquals("PRIMARY", info.getIndexName());
 		assertTrue(info.hasIndex());
+		assertEquals(MySqlColumnType.BIGINT, info.getType());
+		assertEquals(new Integer(20), info.getMaxSize());
 		
 		// one
 		info = infoList.get(2);
-		assertEquals("_C12_", info.getColumnId());
+		assertEquals("_C12_", info.getColumnName());
 		assertEquals(new Long(5), info.getCardinality());
 		assertTrue(info.hasIndex());
+		assertEquals("_C12_idx_", info.getIndexName());
+		assertEquals(MySqlColumnType.BIGINT, info.getType());
+		assertEquals(new Integer(20), info.getMaxSize());
 		
 		// two
 		info = infoList.get(3);
-		assertEquals("_C13_", info.getColumnId());
+		assertEquals("_C13_", info.getColumnName());
 		assertEquals(new Long(2), info.getCardinality());
 		assertTrue(info.hasIndex());
+		assertEquals("_C13_idx_", info.getIndexName());
+		assertEquals(MySqlColumnType.TINYINT, info.getType());
+		assertEquals(new Integer(1), info.getMaxSize());
 	}
 }

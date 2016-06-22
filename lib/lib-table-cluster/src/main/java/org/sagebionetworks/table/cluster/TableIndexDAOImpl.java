@@ -5,6 +5,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -48,6 +49,9 @@ import com.google.common.collect.Sets;
 
 public class TableIndexDAOImpl implements TableIndexDAO {
 
+	private static final String KEY_NAME = "Key_name";
+	private static final String COLUMN_NAME = "Column_name";
+	private static final String SHOW_INDEXES_FROM = "SHOW INDEXES FROM ";
 	private static final String KEY = "Key";
 	private static final String SQL_SHOW_COLUMNS = "SHOW COLUMNS FROM ";
 	private static final String FIELD = "Field";
@@ -459,9 +463,12 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				@Override
 				public DatabaseColumnInfo mapRow(ResultSet rs, int rowNum) throws SQLException {
 					DatabaseColumnInfo info = new DatabaseColumnInfo();
-					info.setColumnId(rs.getString(FIELD));
+					info.setColumnName(rs.getString(FIELD));
 					String key = rs.getString(KEY);
 					info.setHasIndex(!"".equals(key));
+					String typeString = rs.getString("Type");
+					info.setType(MySqlColumnType.parserType(typeString));
+					info.setMaxSize(MySqlColumnType.parseSize(typeString));
 					return info;
 				}
 			});
@@ -480,11 +487,31 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			@Override
 			public void processRow(ResultSet rs) throws SQLException {
 				for (DatabaseColumnInfo info : list) {
-					info.setCardinality(rs.getLong(info.getColumnId()));
+					info.setCardinality(rs.getLong(info.getColumnName()));
 				}
 			}
 		});
+	}
 
+	@Override
+	public void provideIndexName(List<DatabaseColumnInfo> list, String tableId) {
+		final Map<String, DatabaseColumnInfo> nameToInfoMap = new HashMap<String, DatabaseColumnInfo>(list.size());
+		for(DatabaseColumnInfo info: list){
+			nameToInfoMap.put(info.getColumnName(), info);
+		}
+		String tableName = SQLUtils.getTableNameForId(tableId, SQLUtils.TableType.INDEX);
+		template.query(SHOW_INDEXES_FROM+tableName, new RowCallbackHandler() {
+			@Override
+			public void processRow(ResultSet rs) throws SQLException {
+				String columnName = rs.getString(COLUMN_NAME);
+				String indexName = rs.getString(KEY_NAME);
+				DatabaseColumnInfo info = nameToInfoMap.get(columnName);
+				if(info == null){
+					throw new IllegalArgumentException("Provided List<DatabaseColumnInfo> has no match for column: "+columnName);
+				}
+				info.setIndexName(indexName);
+			}
+		});
 	}
 
 }
