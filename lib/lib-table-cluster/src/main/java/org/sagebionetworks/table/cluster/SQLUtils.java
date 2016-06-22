@@ -14,7 +14,10 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Stack;
 import java.util.regex.Pattern;
+
+import javax.management.MXBean;
 
 import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.lang.StringUtils;
@@ -1230,41 +1233,129 @@ public class SQLUtils {
 	}
 	
 	/**
-	 * Select 
+	 * Create SQL to alter the table to add, remove, and rename column indices.  This method
+	 * will insure that columns with high cardinality are given an index before columns with
+	 * a low cardinality while ensuring the maximum number of indices is respected for each table.
+	 * 
 	 * @param list
 	 * @param tableId
 	 * @return
 	 */
-	public String createAlterIndexSql(List<DatabaseColumnInfo> list, String tableId, int maxNumberOfIndex){
-		StringBuilder builder = new StringBuilder();
-		builder.append("ALTER TABLE ");
-		builder.append(getTableNameForId(tableId, TableType.INDEX));
-		builder.append(" ");
-		// sort by cardinality
-		Collections.sort(list, DatabaseColumnInfo.CARDINALITY_COMPARATOR);
-		Collections.reverse(list);
+	public static String createAlterSql(List<DatabaseColumnInfo> list, String tableId, int maxNumberOfIndex){
+		IndexChange change = calculateIndexChanges(list, tableId, maxNumberOfIndex);
+		return createAlterSql(change, tableId);
+	}
+	
+	/**
+	 * Create an IndexChange to add, remove, and rename column indices.  This method
+	 * will insure that columns with high cardinality are given an index before columns with
+	 * a low cardinality while ensuring the maximum number of indices is respected for each table.
+	 * 
+	 * @param list
+	 * @param tableId
+	 * @return
+	 */
+	public static IndexChange calculateIndexChanges(List<DatabaseColumnInfo> list, String tableId, int maxNumberOfIndex){
+		// sort by cardinality descending
+		Collections.sort(list, Collections.reverseOrder(DatabaseColumnInfo.CARDINALITY_COMPARATOR));
+		List<DatabaseColumnInfo> toAdd = new LinkedList<DatabaseColumnInfo>();
+		List<DatabaseColumnInfo> toRemove = new LinkedList<DatabaseColumnInfo>();
+		List<DatabaseColumnInfo> toRename = new LinkedList<DatabaseColumnInfo>();
 		
-		// count the indices
-		int currentIndexCount = 0;
-		for(DatabaseColumnInfo info: list){
-			if(info.hasIndex()){
-				currentIndexCount++;
-			}
-		}
-		
-		boolean isFirst = true;
+		int indexCount = 1;
 		for(DatabaseColumnInfo info: list){
 			// ignore row_id and version
 			if(ROW_ID.equals(info.getColumnId())
 					|| ROW_VERSION.equals(info.getColumnId())){
 				continue;
 			}
-
+			if(indexCount < maxNumberOfIndex){
+				// Still under the max.
+				indexCount++;
+				if(!info.hasIndex()){
+					toAdd.add(info);
+				}else{
+					// does the index need to be renamed?
+					String expectedIndexName = getIndexName(info.getColumnId());
+					if(!expectedIndexName.equals(info.getIndexName())){
+						toRename.add(info);
+					}
+				}
+			}else{
+				// over the max
+				if(info.hasIndex()){
+					toRemove.add(info);
+				}
+			}
+		}
+		return new IndexChange(toAdd, toRemove, toRename);
+	}
+	
+	
+	/**
+	 * Create the alter table SQL for the given index change.
+	 * 
+	 * @param change
+	 * @param tableId
+	 * @return
+	 */
+	public static String createAlterSql(IndexChange change, String tableId){
+		ValidateArgument.required(change, "change");
+		ValidateArgument.required(tableId, "tableId");
+		if(change.getToAdd().isEmpty()
+				&& change.getToRemove().isEmpty()
+				&& change.getToRename().isEmpty()){
+			// nothing to do.
+			return null;
+		}
+		
+		StringBuilder builder = new StringBuilder();
+		builder.append("ALTER TABLE ");
+		builder.append(getTableNameForId(tableId, TableType.INDEX));
+		builder.append(" ");
+		boolean isFirst = true;
+		//deletes first
+		for(DatabaseColumnInfo info: change.getToRemove()){
 			if(!isFirst){
 				builder.append(", ");
 			}
+			builder.append("DROP INDEX ");
+			builder.append(info.getIndexName());			
+			isFirst = false;
+		}
+		// renames
+		for(DatabaseColumnInfo info: change.getToRename()){
+			if(!isFirst){
+				builder.append(", ");
+			}
+			builder.append("RENAME INDEX ");
+			builder.append(info.getIndexName());
+			builder.append(" TO ");
+			builder.append(getIndexName(info.getColumnId()));
+			isFirst = false;
+		}
+		// adds
+		for(DatabaseColumnInfo info: change.getToAdd()){
+			if(!isFirst){
+				builder.append(", ");
+			}
+			builder.append("ADD INDEX ");
+			ColumnTypeInfo typeInfo = ColumnTypeInfo.getInfoForType(info.getDefinition().getColumnType());
+			String indexName = getIndexName(info.getColumnId());
+			String columnName = info.getColumnId();
+			builder.append(typeInfo.toIndexDefinitionSql(indexName, columnName, info.getDefinition().getMaximumSize()));
 			isFirst = false;
 		}
 		return builder.toString();
 	}
+	
+	/**
+	 * Get the name of an index from the columnId.
+	 * @param columnId
+	 * @return
+	 */
+	public static String getIndexName(String columnId){
+		return columnId+IDX;
+	}
+	
 }

@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.IdRange;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
@@ -1145,4 +1146,297 @@ public class SQLUtilsTest {
 		assertEquals("SELECT COUNT(DISTINCT _C111_) AS _C111_, COUNT(DISTINCT _C222_) AS _C222_ FROM T123", results);
 	}
 	
+	public List<DatabaseColumnInfo> createDatabaseColumnInfo(long rowCount){
+		List<DatabaseColumnInfo> list = new LinkedList<DatabaseColumnInfo>();
+		//row id
+		DatabaseColumnInfo rowId = new DatabaseColumnInfo();
+		rowId.setColumnId(TableConstants.ROW_ID);
+		rowId.setCardinality(rowCount);
+		rowId.setHasIndex(true);
+		rowId.setIndexName("PRIMARY");
+		list.add(rowId);
+		//row version
+		DatabaseColumnInfo rowVersion = new DatabaseColumnInfo();
+		rowVersion.setColumnId(TableConstants.ROW_VERSION);
+		rowVersion.setCardinality(1L);
+		rowVersion.setHasIndex(true);
+		rowVersion.setIndexName("");
+		list.add(rowVersion);
+		
+		// Create rows with descending cardinality.
+		for(int i=0; i<rowCount; i++){
+			DatabaseColumnInfo info = new DatabaseColumnInfo();
+			info.setColumnId("_C"+i+"_");
+			info.setCardinality(rowCount-i);
+			info.setHasIndex(false);
+			info.setIndexName(null);
+			list.add(info);
+		}
+		return list;
+	}
+	
+	@Test
+	public void testCalculateIndexChangesIgnoreRowIdAndVersion(){
+		String tableId = "syn123";
+		int maxNumberOfIndex = 1;
+		List<DatabaseColumnInfo> currentInfo = createDatabaseColumnInfo(2);
+		IndexChange changes = SQLUtils.calculateIndexChanges(currentInfo, tableId, maxNumberOfIndex);
+		assertNotNull(changes);
+		assertNotNull(changes.getToAdd());
+		assertNotNull(changes.getToRemove());
+		assertNotNull(changes.getToRename());
+		assertEquals(0, changes.getToAdd().size());
+		assertEquals(0, changes.getToRemove().size());
+		assertEquals(0, changes.getToRename().size());
+	}
+	
+	@Test
+	public void testCalculateIndexChangesUnderMax(){
+		String tableId = "syn123";
+		int maxNumberOfIndex = 10000;
+		int columnCount = 2;
+		List<DatabaseColumnInfo> currentInfo = createDatabaseColumnInfo(columnCount);
+		// call under test
+		IndexChange changes = SQLUtils.calculateIndexChanges(currentInfo, tableId, maxNumberOfIndex);
+		// both columns should have an index added.
+		assertEquals(columnCount, changes.getToAdd().size());
+		assertEquals("_C0_", changes.getToAdd().get(0).getColumnId());
+		assertEquals("_C1_", changes.getToAdd().get(1).getColumnId());
+		
+		assertEquals(0, changes.getToRemove().size());
+		assertEquals(0, changes.getToRename().size());
+	}
+	
+	@Test
+	public void testCalculateIndexChangesUnderMaxNeedsRename(){
+		String tableId = "syn123";
+		int maxNumberOfIndex = 10000;
+		int columnCount = 1;
+		List<DatabaseColumnInfo> currentInfo = createDatabaseColumnInfo(columnCount);
+		// set an index on the last column.
+		DatabaseColumnInfo lastInfo = currentInfo.get(2);
+		lastInfo.setHasIndex(true);
+		// set the wrong name.
+		lastInfo.setIndexName("wrongName");
+		// call under test.
+		IndexChange changes = SQLUtils.calculateIndexChanges(currentInfo, tableId, maxNumberOfIndex);
+
+		assertEquals(0, changes.getToAdd().size());
+		assertEquals(0, changes.getToRemove().size());
+		// the last column needs to be renamed.
+		assertEquals(1, changes.getToRename().size());
+		assertEquals("_C0_", changes.getToRename().get(0).getColumnId());
+	}
+	
+	@Test
+	public void testCalculateIndexChangesUnderMaxNameCorrect(){
+		String tableId = "syn123";
+		int maxNumberOfIndex = 10000;
+		int columnCount = 1;
+		List<DatabaseColumnInfo> currentInfo = createDatabaseColumnInfo(columnCount);
+		// set an index on the last column.
+		DatabaseColumnInfo lastInfo = currentInfo.get(2);
+		lastInfo.setHasIndex(true);
+		// set the correct name
+		lastInfo.setIndexName(SQLUtils.getIndexName(lastInfo.getColumnId()));
+		// call under test.
+		IndexChange changes = SQLUtils.calculateIndexChanges(currentInfo, tableId, maxNumberOfIndex);
+
+		assertEquals(0, changes.getToAdd().size());		
+		assertEquals(0, changes.getToRemove().size());
+		// rename not needed.
+		assertEquals(0, changes.getToRename().size());
+	}
+	
+	@Test
+	public void testCalculateIndexChangesOverMaxWithTooManyIndices(){
+		String tableId = "syn123";
+		int maxNumberOfIndex = 1;
+		int columnCount = 1;
+		List<DatabaseColumnInfo> currentInfo = createDatabaseColumnInfo(columnCount);
+		// set an index on the last column.
+		DatabaseColumnInfo lastInfo = currentInfo.get(2);
+		lastInfo.setHasIndex(true);
+		// set the correct name
+		lastInfo.setIndexName(SQLUtils.getIndexName(lastInfo.getColumnId()));
+		// call under test.
+		IndexChange changes = SQLUtils.calculateIndexChanges(currentInfo, tableId, maxNumberOfIndex);
+
+		assertEquals(0, changes.getToAdd().size());		
+		assertEquals(1, changes.getToRemove().size());
+		assertEquals("_C0_", changes.getToRemove().get(0).getColumnId());
+		assertEquals(0, changes.getToRename().size());
+	}
+	
+	@Test
+	public void testCalculateIndexChangesLowCardinalityReplacedWithHigh(){
+		String tableId = "syn123";
+		int maxNumberOfIndex = 2;
+		int columnCount = 2;
+		List<DatabaseColumnInfo> currentInfo = createDatabaseColumnInfo(columnCount);
+		//  index with a lower cardinality
+		DatabaseColumnInfo firstInfo = currentInfo.get(2);
+		firstInfo.setHasIndex(true);
+		firstInfo.setIndexName(SQLUtils.getIndexName(firstInfo.getColumnId()));
+		firstInfo.setCardinality(1L);
+		
+		// no index with a higher cardinality.
+		DatabaseColumnInfo lastInfo = currentInfo.get(3);
+		lastInfo.setHasIndex(false);
+		lastInfo.setCardinality(2L);
+		
+		// call under test.
+		IndexChange changes = SQLUtils.calculateIndexChanges(currentInfo, tableId, maxNumberOfIndex);
+
+		assertEquals(1, changes.getToAdd().size());	
+		assertEquals("Higher cardinality should be added","_C1_", changes.getToAdd().get(0).getColumnId());
+		assertEquals(1, changes.getToRemove().size());
+		assertEquals("Lower cardinality should be dropped.","_C0_", changes.getToRemove().get(0).getColumnId());
+		assertEquals(0, changes.getToRename().size());
+	}
+	
+	@Test
+	public void testCalculateIndexChangesWithAddRemoveRename(){
+		String tableId = "syn123";
+		int maxNumberOfIndex = 3;
+		int columnCount = 3;
+		List<DatabaseColumnInfo> currentInfo = createDatabaseColumnInfo(columnCount);
+		//  index with a lower cardinality
+		DatabaseColumnInfo firstInfo = currentInfo.get(2);
+		firstInfo.setHasIndex(true);
+		firstInfo.setIndexName(SQLUtils.getIndexName(firstInfo.getColumnId()));
+		firstInfo.setCardinality(1L);
+		// index with a high cardinality but wrong name.
+		DatabaseColumnInfo midInfo = currentInfo.get(3);
+		midInfo.setHasIndex(true);
+		midInfo.setIndexName("wrongName");
+		midInfo.setCardinality(3L);
+		
+		// no index with a higher cardinality.
+		DatabaseColumnInfo lastInfo = currentInfo.get(4);
+		lastInfo.setHasIndex(false);
+		lastInfo.setCardinality(2L);
+		
+		// call under test.
+		IndexChange changes = SQLUtils.calculateIndexChanges(currentInfo, tableId, maxNumberOfIndex);
+
+		assertEquals(1, changes.getToAdd().size());	
+		assertEquals("Higher cardinality should be added","_C2_", changes.getToAdd().get(0).getColumnId());
+		assertEquals(1, changes.getToRemove().size());
+		assertEquals("Lower cardinality should be dropped.","_C0_", changes.getToRemove().get(0).getColumnId());
+		assertEquals(1, changes.getToRename().size());
+		assertEquals("High cardinality should be renamed.","_C1_", changes.getToRename().get(0).getColumnId());
+	}
+	
+	@Test
+	public void testCreateAlterSqlEmpty(){
+		// test with nothing to do.
+		List<DatabaseColumnInfo> toAdd = new LinkedList<DatabaseColumnInfo>();
+		List<DatabaseColumnInfo> toRemove = new LinkedList<DatabaseColumnInfo>();
+		List<DatabaseColumnInfo> toRename = new LinkedList<DatabaseColumnInfo>();
+		IndexChange changes = new IndexChange(toAdd, toRemove, toRename);
+		String tableId = "syn123";
+		// call under test
+		String results = SQLUtils.createAlterSql(changes, tableId);
+		assertEquals(null, results);
+	}
+	
+	
+	@Test
+	public void testCreateAlterSqlAdd(){
+		ColumnModel definition = new ColumnModel();
+		definition.setColumnType(ColumnType.STRING);
+		definition.setId("1");
+		definition.setMaximumSize(1000L);
+		
+		DatabaseColumnInfo info = new DatabaseColumnInfo();
+		info.setColumnId("_C1_");
+		info.setDefinition(definition);
+		
+		List<DatabaseColumnInfo> toAdd = Lists.newArrayList(info);
+		List<DatabaseColumnInfo> toRemove = new LinkedList<DatabaseColumnInfo>();
+		List<DatabaseColumnInfo> toRename = new LinkedList<DatabaseColumnInfo>();
+		IndexChange changes = new IndexChange(toAdd, toRemove, toRename);
+		String tableId = "syn123";
+		// call under test
+		String results = SQLUtils.createAlterSql(changes, tableId);
+		assertEquals("ALTER TABLE T123 ADD INDEX _C1_idx_ (_C1_(255))", results);
+	}
+	
+	@Test
+	public void testCreateAlterSqlDrop(){
+		ColumnModel definition = new ColumnModel();
+		definition.setColumnType(ColumnType.BOOLEAN);
+		definition.setId("1");
+		
+		DatabaseColumnInfo info = new DatabaseColumnInfo();
+		info.setColumnId("_C1_");
+		info.setIndexName("_C1_IDX");
+		info.setDefinition(definition);
+
+		List<DatabaseColumnInfo> toAdd = new LinkedList<DatabaseColumnInfo>();
+		List<DatabaseColumnInfo> toRemove = Lists.newArrayList(info);
+		List<DatabaseColumnInfo> toRename = new LinkedList<DatabaseColumnInfo>();
+		IndexChange changes = new IndexChange(toAdd, toRemove, toRename);
+		String tableId = "syn123";
+		// call under test
+		String results = SQLUtils.createAlterSql(changes, tableId);
+		assertEquals("ALTER TABLE T123 DROP INDEX _C1_IDX", results);
+	}
+	
+	@Test
+	public void testCreateAlterSqlRename(){
+		ColumnModel definition = new ColumnModel();
+		definition.setColumnType(ColumnType.BOOLEAN);
+		definition.setId("1");
+		
+		DatabaseColumnInfo info = new DatabaseColumnInfo();
+		info.setColumnId("_C1_");
+		info.setIndexName("_C2_IDX");
+		info.setDefinition(definition);
+
+		List<DatabaseColumnInfo> toAdd = new LinkedList<DatabaseColumnInfo>();
+		List<DatabaseColumnInfo> toRemove =  new LinkedList<DatabaseColumnInfo>();
+		List<DatabaseColumnInfo> toRename = Lists.newArrayList(info);
+		IndexChange changes = new IndexChange(toAdd, toRemove, toRename);
+		String tableId = "syn123";
+		// call under test
+		String results = SQLUtils.createAlterSql(changes, tableId);
+		assertEquals("ALTER TABLE T123 RENAME INDEX _C2_IDX TO _C1_idx_", results);
+	}
+	
+	@Test
+	public void testAlterSqlAddRemoveRename(){
+		
+		ColumnModel definition = new ColumnModel();
+		definition.setColumnType(ColumnType.BOOLEAN);
+		definition.setId("1");
+		
+		String tableId = "syn123";
+		int maxNumberOfIndex = 3;
+		int columnCount = 3;
+		List<DatabaseColumnInfo> currentInfo = createDatabaseColumnInfo(columnCount);
+		//  index with a lower cardinality
+		DatabaseColumnInfo firstInfo = currentInfo.get(2);
+		firstInfo.setHasIndex(true);
+		firstInfo.setIndexName(SQLUtils.getIndexName(firstInfo.getColumnId()));
+		firstInfo.setCardinality(1L);
+		// index with a high cardinality but wrong name.
+		DatabaseColumnInfo midInfo = currentInfo.get(3);
+		midInfo.setHasIndex(true);
+		midInfo.setIndexName("wrongName");
+		midInfo.setCardinality(3L);
+		
+		// no index with a higher cardinality.
+		DatabaseColumnInfo lastInfo = currentInfo.get(4);
+		lastInfo.setHasIndex(false);
+		lastInfo.setCardinality(2L);
+		lastInfo.setDefinition(definition);
+		
+		String results = SQLUtils.createAlterSql(currentInfo, tableId, maxNumberOfIndex);
+		assertEquals("ALTER TABLE T123 "
+				+ "DROP INDEX _C0_idx_, "
+				+ "RENAME INDEX wrongName TO _C1_idx_, "
+				+ "ADD INDEX _C2_idx_ (_C2_)", results);
+	}
 }

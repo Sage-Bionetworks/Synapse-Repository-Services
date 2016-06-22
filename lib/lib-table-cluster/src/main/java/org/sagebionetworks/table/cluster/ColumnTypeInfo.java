@@ -4,6 +4,7 @@ import static org.sagebionetworks.table.cluster.utils.ColumnConstants.CHARACTER_
 
 import org.apache.commons.lang.StringEscapeUtils;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.table.cluster.utils.ColumnConstants;
 
 /**
  * Mapping of ColumnType to database information.
@@ -64,6 +65,39 @@ public enum ColumnTypeInfo {
 	}
 	
 	/**
+	 * SQL for an index definition.
+	 * 
+	 * @param indexName
+	 * @param columnName
+	 * @param inputSize
+	 * @return
+	 */
+	public String toIndexDefinitionSql(String indexName, String columnName, Long inputSize){
+		if(inputSize == null && requiresInputMaxSize()){
+			throw new IllegalArgumentException("Size must be provided for type: "+type);
+		}
+		StringBuilder builder = new StringBuilder();
+		builder.append(indexName);
+		builder.append(" ");
+		builder.append("(");
+		builder.append(columnName);
+		if(isStringType()){
+			Long size = maxSize;
+			if(MySqlColumnType.MEDIUMTEXT.equals(mySqlType)){
+				size = ColumnConstants.MAX_MYSQL_VARCHAR_INDEX_LENGTH;
+			}else if(inputSize != null){
+				size = inputSize;
+			}
+			if(size >= ColumnConstants.MAX_MYSQL_VARCHAR_INDEX_LENGTH){
+				// add a size limit to the index.
+				builder.append("(").append(ColumnConstants.MAX_MYSQL_VARCHAR_INDEX_LENGTH).append(")");
+			}
+		}
+		builder.append(")");
+		return builder.toString();
+	}
+	
+	/**
 	 * Is the type a string type?
 	 * 
 	 * @return
@@ -92,7 +126,7 @@ public enum ColumnTypeInfo {
 				return info;
 			}
 		}
-		throw new IllegalArgumentException("Unkown ColumnType: "+type);
+		throw new IllegalArgumentException("Unknown ColumnType: "+type);
 	}
 	
 	/**

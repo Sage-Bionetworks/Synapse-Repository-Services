@@ -6,6 +6,7 @@ import java.util.Set;
 
 import org.junit.Test;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.table.cluster.utils.ColumnConstants;
 
 import com.google.common.collect.Sets;
 
@@ -331,5 +332,86 @@ public class ColumnTypeInfoTest {
 		StringBuilder builder = new StringBuilder();
 		String defaultValue = "bar";
 		ColumnTypeInfo.INTEGER.appendDefaultValue(builder, defaultValue);
+	}
+	
+	@Test
+	public void testToIndexDefinitionSql(){
+		String indexName = "123_idx";
+		String columnName = "c123";
+		Long inputSize = null;
+		String results = ColumnTypeInfo.BOOLEAN.toIndexDefinitionSql(indexName, columnName, inputSize);
+		assertEquals("123_idx (c123)", results);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testToIndexDefinitionSqlStringSizeNull(){
+		String indexName = "123_idx";
+		String columnName = "c123";
+		Long inputSize = null;
+		String results = ColumnTypeInfo.STRING.toIndexDefinitionSql(indexName, columnName, inputSize);
+		assertEquals("123_idx (c123)", results);
+	}
+	
+	@Test
+	public void testToIndexDefinitionSqlStringSizeLessThanMax(){
+		String indexName = "123_idx";
+		String columnName = "c123";
+		Long inputSize = 15L;
+		String results = ColumnTypeInfo.STRING.toIndexDefinitionSql(indexName, columnName, inputSize);
+		assertEquals("123_idx (c123)", results);
+	}
+	
+	@Test
+	public void testToIndexDefinitionSqlStringSizeLessAtMax(){
+		String indexName = "123_idx";
+		String columnName = "c123";
+		Long inputSize = ColumnConstants.MAX_MYSQL_VARCHAR_INDEX_LENGTH;
+		String results = ColumnTypeInfo.STRING.toIndexDefinitionSql(indexName, columnName, inputSize);
+		assertEquals("123_idx (c123(255))", results);
+	}
+	
+	@Test
+	public void testToIndexDefinitionSqlLargeText(){
+		String indexName = "123_idx";
+		String columnName = "c123";
+		Long inputSize = null;
+		String results = ColumnTypeInfo.LARGETEXT.toIndexDefinitionSql(indexName, columnName, inputSize);
+		assertEquals("123_idx (c123(255))", results);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testToIndexDefinitionSqlLinkNullSize(){
+		String indexName = "123_idx";
+		String columnName = "c123";
+		Long inputSize = null;
+		String results = ColumnTypeInfo.LINK.toIndexDefinitionSql(indexName, columnName, inputSize);
+		assertEquals("123_idx (c123(255))", results);
+	}
+	
+	@Test
+	public void testToIndexDefinitionSqlLinkSizeUnderMax(){
+		String indexName = "123_idx";
+		String columnName = "c123";
+		Long inputSize = 13L;
+		String results = ColumnTypeInfo.LINK.toIndexDefinitionSql(indexName, columnName, inputSize);
+		assertEquals("123_idx (c123)", results);
+	}
+	
+	@Test
+	public void testToIndexDefinitionSqlLinkSizeOverrMax(){
+		String indexName = "123_idx";
+		String columnName = "c123";
+		Long inputSize = ColumnConstants.MAX_MYSQL_VARCHAR_INDEX_LENGTH+1;
+		String results = ColumnTypeInfo.LINK.toIndexDefinitionSql(indexName, columnName, inputSize);
+		assertEquals("123_idx (c123(255))", results);
+	}
+	
+	@Test
+	public void testToIndexDefinitionSqlEntityId(){
+		String indexName = "123_idx";
+		String columnName = "c123";
+		Long inputSize = null;
+		String results = ColumnTypeInfo.ENTITYID.toIndexDefinitionSql(indexName, columnName, inputSize);
+		assertEquals("123_idx (c123)", results);
 	}
 }
