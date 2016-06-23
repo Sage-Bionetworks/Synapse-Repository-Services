@@ -89,6 +89,10 @@ public class DatabaseColumnInfo {
 	public static Comparator<DatabaseColumnInfo> CARDINALITY_COMPARATOR = new Comparator<DatabaseColumnInfo>() {
 		@Override
 		public int compare(DatabaseColumnInfo one, DatabaseColumnInfo two) {
+			ValidateArgument.required(one, "DatabaseColumnInfo");
+			ValidateArgument.required(one.getCardinality(), "DatabaseColumnInfo.getCardinality()");
+			ValidateArgument.required(two, "DatabaseColumnInfo");
+			ValidateArgument.required(two.getCardinality(), "DatabaseColumnInfo.getCardinality()");
 			return Long.compare(one.cardinality, two.cardinality);
 		}
 	};

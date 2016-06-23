@@ -94,4 +94,34 @@ public class DatabaseColumnInfoTest {
 		// call under test
 		info.createIndexDefinition();
 	}
+	
+	@Test
+	public void testCARDINALITY_COMPARATOR(){
+		DatabaseColumnInfo one = new DatabaseColumnInfo();
+		one.setCardinality(1L);
+		DatabaseColumnInfo two = new DatabaseColumnInfo();
+		two.setCardinality(2L);
+		int compare = DatabaseColumnInfo.CARDINALITY_COMPARATOR.compare(one, two);
+		assertEquals(-1, compare);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCARDINALITY_COMPARATOROneCardinalityNull(){
+		DatabaseColumnInfo one = new DatabaseColumnInfo();
+		one.setCardinality(null);
+		DatabaseColumnInfo two = new DatabaseColumnInfo();
+		two.setCardinality(2L);
+		// call under test.
+		DatabaseColumnInfo.CARDINALITY_COMPARATOR.compare(one, two);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCARDINALITY_COMPARATORTwoCardinalityNull(){
+		DatabaseColumnInfo one = new DatabaseColumnInfo();
+		one.setCardinality(1L);
+		DatabaseColumnInfo two = new DatabaseColumnInfo();
+		two.setCardinality(null);
+		// call under test.
+		DatabaseColumnInfo.CARDINALITY_COMPARATOR.compare(one, two);
+	}	
 }

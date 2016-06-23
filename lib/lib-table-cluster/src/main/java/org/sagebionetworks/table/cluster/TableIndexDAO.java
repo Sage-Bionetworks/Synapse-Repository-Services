@@ -241,4 +241,5 @@ public interface TableIndexDAO {
 	 * @param tableId
 	 */
 	public void provideIndexName(List<DatabaseColumnInfo> list, String tableId);
+	
 }
