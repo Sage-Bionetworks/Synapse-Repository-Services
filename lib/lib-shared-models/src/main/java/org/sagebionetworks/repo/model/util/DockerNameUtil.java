@@ -10,16 +10,16 @@ public class DockerNameUtil {
 	// (Note: The cited source is controlled by this license: https://github.com/docker/distribution/blob/master/LICENSE)
 
 	// one alpha numeric or several alphanumerics with hyphens internally
-	private static final String hostnameComponentRegexp = "([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9])";
+	public static final String hostnameComponentRegexp = "([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9])";
 	public static final String hostnameRegexp = hostnameComponentRegexp+
 									"(\\.|"+hostnameComponentRegexp+")*"+"(:[0-9]+)?";
 	
 	// we keep the Regexp name from Docker.  It could more accurately be called 'lowerCaseAlpha...'
-	private static final String alphaNumericRegexp = "[a-z0-9]+";
+	public static final String alphaNumericRegexp = "[a-z0-9]+";
 	
-	private static final String separatorRegexp = "[._]|__|[-]*";
+	public static final String separatorRegexp = "[._]|__|[-]*";
 
-	private static final String nameComponentRegexp = alphaNumericRegexp +
+	public static final String nameComponentRegexp = alphaNumericRegexp +
 			"("+separatorRegexp+alphaNumericRegexp+")*";
 
 	public static final String REPO_NAME_PATH_SEP = "/";
@@ -28,9 +28,9 @@ public class DockerNameUtil {
 	// separator characters we can differentiate between a host name (like 'quay.io') and a repo name.
 	// This is consistent with the use of repo paths in Dockerhub (where the first field is a user or
 	// organzation name, with no separator characters) and Synapse (where the first field is a Synapse ID).
-	private static final String PathRegexp = alphaNumericRegexp+"("+REPO_NAME_PATH_SEP+nameComponentRegexp+")*";
+	public static final String PathRegexp = alphaNumericRegexp+"("+REPO_NAME_PATH_SEP+nameComponentRegexp+")*";
 	
-	private static final String NameRegexp = "("+hostnameRegexp+REPO_NAME_PATH_SEP+")?"+PathRegexp;
+	public static final String NameRegexp = "("+hostnameRegexp+REPO_NAME_PATH_SEP+")?"+PathRegexp;
 	
 	public static void validateName(String name) {
 		if(!Pattern.matches("^"+NameRegexp+"$", name))
