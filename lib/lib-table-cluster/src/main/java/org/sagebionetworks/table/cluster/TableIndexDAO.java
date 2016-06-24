@@ -242,4 +242,21 @@ public interface TableIndexDAO {
 	 */
 	public void provideIndexName(List<DatabaseColumnInfo> list, String tableId);
 	
+	
+	/**
+	 * The provided column data is used to optimize the indices on the given
+	 * table. Indices are added until either all columns have an index or the
+	 * maximum number of indices per table is reached. When a table has more
+	 * columns than the maximum number of indices, indices are assigned to
+	 * columns with higher cardinality before columns with low cardinality.
+	 * 
+	 * @param list
+	 *            The current column information of this table used for the
+	 *            optimization.
+	 * @param tableId
+	 *            The table to optimize.
+	 * @param maxNumberOfIndex
+	 *            The maximum number of indices allowed on a single table.
+	 */
+	public void opptimizeTableIndices(List<DatabaseColumnInfo> list, String tableId, int maxNumberOfIndex);
 }

@@ -514,4 +514,15 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		});
 	}
 
+	@Override
+	public void opptimizeTableIndices(List<DatabaseColumnInfo> list,
+			String tableId, int maxNumberOfIndex) {
+		String alterSql = SQLUtils.createOptimizedAlterIndices(list, tableId, maxNumberOfIndex);
+		if(alterSql == null){
+			// No changes are needed.
+			return;
+		}
+		template.update(alterSql);
+	}
+
 }

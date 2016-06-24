@@ -1178,5 +1178,17 @@ public class TableIndexDAOImplTest {
 		assertEquals("_C13_idx_", info.getIndexName());
 		assertEquals(MySqlColumnType.TINYINT, info.getType());
 		assertEquals(new Integer(1), info.getMaxSize());
+		
+		// Optimize the indices
+		int maxNumberOfIndices = 5;
+		tableIndexDAO.opptimizeTableIndices(infoList, tableId, maxNumberOfIndices);
+		// fetch index information.
+		List<DatabaseColumnInfo> updated = tableIndexDAO.getDatabaseInfo(tableId);
+		assertNotNull(updated);
+		
+		tableIndexDAO.provideCardinality(updated, tableId);
+		tableIndexDAO.provideIndexName(updated, tableId);
+		
+		
 	}
 }

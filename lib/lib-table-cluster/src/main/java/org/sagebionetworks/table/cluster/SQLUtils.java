@@ -1238,21 +1238,22 @@ public class SQLUtils {
 	 * @param tableId
 	 * @return
 	 */
-	public static String createAlterSql(List<DatabaseColumnInfo> list, String tableId, int maxNumberOfIndex){
-		IndexChange change = calculateIndexChanges(list, tableId, maxNumberOfIndex);
-		return createAlterSql(change, tableId);
+	public static String createOptimizedAlterIndices(List<DatabaseColumnInfo> list, String tableId, int maxNumberOfIndex){
+		IndexChange change = calculateIndexOptimization(list, tableId, maxNumberOfIndex);
+		return createAlterIndices(change, tableId);
 	}
 	
 	/**
 	 * Create an IndexChange to add, remove, and rename column indices.  This method
 	 * will insure that columns with high cardinality are given an index before columns with
-	 * a low cardinality while ensuring the maximum number of indices is respected for each table.
+	 * a low cardinality while ensuring the ma
+	 * ximum number of indices is respected for each table.
 	 * 
 	 * @param list
 	 * @param tableId
 	 * @return
 	 */
-	public static IndexChange calculateIndexChanges(List<DatabaseColumnInfo> list, String tableId, int maxNumberOfIndex){
+	public static IndexChange calculateIndexOptimization(List<DatabaseColumnInfo> list, String tableId, int maxNumberOfIndex){
 		// sort by cardinality descending
 		Collections.sort(list, Collections.reverseOrder(DatabaseColumnInfo.CARDINALITY_COMPARATOR));
 		List<DatabaseColumnInfo> toAdd = new LinkedList<DatabaseColumnInfo>();
@@ -1296,7 +1297,7 @@ public class SQLUtils {
 	 * @param tableId
 	 * @return
 	 */
-	public static String createAlterSql(IndexChange change, String tableId){
+	public static String createAlterIndices(IndexChange change, String tableId){
 		ValidateArgument.required(change, "change");
 		ValidateArgument.required(tableId, "tableId");
 		

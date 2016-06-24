@@ -1180,7 +1180,7 @@ public class SQLUtilsTest {
 		String tableId = "syn123";
 		int maxNumberOfIndex = 1;
 		List<DatabaseColumnInfo> currentInfo = createDatabaseColumnInfo(2);
-		IndexChange changes = SQLUtils.calculateIndexChanges(currentInfo, tableId, maxNumberOfIndex);
+		IndexChange changes = SQLUtils.calculateIndexOptimization(currentInfo, tableId, maxNumberOfIndex);
 		assertNotNull(changes);
 		assertNotNull(changes.getToAdd());
 		assertNotNull(changes.getToRemove());
@@ -1197,7 +1197,7 @@ public class SQLUtilsTest {
 		int columnCount = 2;
 		List<DatabaseColumnInfo> currentInfo = createDatabaseColumnInfo(columnCount);
 		// call under test
-		IndexChange changes = SQLUtils.calculateIndexChanges(currentInfo, tableId, maxNumberOfIndex);
+		IndexChange changes = SQLUtils.calculateIndexOptimization(currentInfo, tableId, maxNumberOfIndex);
 		// both columns should have an index added.
 		assertEquals(columnCount, changes.getToAdd().size());
 		assertEquals("_C0_", changes.getToAdd().get(0).getColumnName());
@@ -1219,7 +1219,7 @@ public class SQLUtilsTest {
 		// set the wrong name.
 		lastInfo.setIndexName("wrongName");
 		// call under test.
-		IndexChange changes = SQLUtils.calculateIndexChanges(currentInfo, tableId, maxNumberOfIndex);
+		IndexChange changes = SQLUtils.calculateIndexOptimization(currentInfo, tableId, maxNumberOfIndex);
 
 		assertEquals(0, changes.getToAdd().size());
 		assertEquals(0, changes.getToRemove().size());
@@ -1240,7 +1240,7 @@ public class SQLUtilsTest {
 		// set the correct name
 		lastInfo.setIndexName(SQLUtils.getIndexName(lastInfo.getColumnName()));
 		// call under test.
-		IndexChange changes = SQLUtils.calculateIndexChanges(currentInfo, tableId, maxNumberOfIndex);
+		IndexChange changes = SQLUtils.calculateIndexOptimization(currentInfo, tableId, maxNumberOfIndex);
 
 		assertEquals(0, changes.getToAdd().size());		
 		assertEquals(0, changes.getToRemove().size());
@@ -1260,7 +1260,7 @@ public class SQLUtilsTest {
 		// set the correct name
 		lastInfo.setIndexName(SQLUtils.getIndexName(lastInfo.getColumnName()));
 		// call under test.
-		IndexChange changes = SQLUtils.calculateIndexChanges(currentInfo, tableId, maxNumberOfIndex);
+		IndexChange changes = SQLUtils.calculateIndexOptimization(currentInfo, tableId, maxNumberOfIndex);
 
 		assertEquals(0, changes.getToAdd().size());		
 		assertEquals(1, changes.getToRemove().size());
@@ -1286,7 +1286,7 @@ public class SQLUtilsTest {
 		lastInfo.setCardinality(2L);
 		
 		// call under test.
-		IndexChange changes = SQLUtils.calculateIndexChanges(currentInfo, tableId, maxNumberOfIndex);
+		IndexChange changes = SQLUtils.calculateIndexOptimization(currentInfo, tableId, maxNumberOfIndex);
 
 		assertEquals(1, changes.getToAdd().size());	
 		assertEquals("Higher cardinality should be added","_C1_", changes.getToAdd().get(0).getColumnName());
@@ -1318,7 +1318,7 @@ public class SQLUtilsTest {
 		lastInfo.setCardinality(2L);
 		
 		// call under test.
-		IndexChange changes = SQLUtils.calculateIndexChanges(currentInfo, tableId, maxNumberOfIndex);
+		IndexChange changes = SQLUtils.calculateIndexOptimization(currentInfo, tableId, maxNumberOfIndex);
 
 		assertEquals(1, changes.getToAdd().size());	
 		assertEquals("Higher cardinality should be added","_C2_", changes.getToAdd().get(0).getColumnName());
@@ -1337,7 +1337,7 @@ public class SQLUtilsTest {
 		IndexChange changes = new IndexChange(toAdd, toRemove, toRename);
 		String tableId = "syn123";
 		// call under test
-		String results = SQLUtils.createAlterSql(changes, tableId);
+		String results = SQLUtils.createAlterIndices(changes, tableId);
 		assertEquals(null, results);
 	}
 	
@@ -1355,7 +1355,7 @@ public class SQLUtilsTest {
 		IndexChange changes = new IndexChange(toAdd, toRemove, toRename);
 		String tableId = "syn123";
 		// call under test
-		String results = SQLUtils.createAlterSql(changes, tableId);
+		String results = SQLUtils.createAlterIndices(changes, tableId);
 		assertEquals("ALTER TABLE T123 ADD INDEX _C1_idx_ (_C1_(255))", results);
 	}
 	
@@ -1372,7 +1372,7 @@ public class SQLUtilsTest {
 		IndexChange changes = new IndexChange(toAdd, toRemove, toRename);
 		String tableId = "syn123";
 		// call under test
-		String results = SQLUtils.createAlterSql(changes, tableId);
+		String results = SQLUtils.createAlterIndices(changes, tableId);
 		assertEquals("ALTER TABLE T123 DROP INDEX _C1_IDX", results);
 	}
 	
@@ -1388,7 +1388,7 @@ public class SQLUtilsTest {
 		IndexChange changes = new IndexChange(toAdd, toRemove, toRename);
 		String tableId = "syn123";
 		// call under test
-		String results = SQLUtils.createAlterSql(changes, tableId);
+		String results = SQLUtils.createAlterIndices(changes, tableId);
 		assertEquals("ALTER TABLE T123 RENAME INDEX _C2_IDX TO _C1_idx_", results);
 	}
 	
@@ -1417,7 +1417,7 @@ public class SQLUtilsTest {
 		lastInfo.setCardinality(2L);
 		lastInfo.setType(MySqlColumnType.BIGINT);
 		
-		String results = SQLUtils.createAlterSql(currentInfo, tableId, maxNumberOfIndex);
+		String results = SQLUtils.createOptimizedAlterIndices(currentInfo, tableId, maxNumberOfIndex);
 		assertEquals("ALTER TABLE T123 "
 				+ "DROP INDEX _C0_idx_, "
 				+ "RENAME INDEX wrongName TO _C1_idx_, "
