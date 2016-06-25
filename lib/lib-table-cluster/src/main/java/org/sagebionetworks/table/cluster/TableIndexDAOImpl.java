@@ -25,7 +25,6 @@ import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
 import org.sagebionetworks.util.ValidateArgument;
-import org.springframework.dao.InvalidDataAccessResourceUsageException;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -42,8 +41,6 @@ import org.springframework.transaction.support.DefaultTransactionDefinition;
 import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
@@ -114,31 +111,40 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	@Override
 	public boolean createOrUpdateTable(List<ColumnModel> newSchema,
 			String tableId) {
-		// First determine if we have any columns for this table yet
-		List<ColumnDefinition> oldColumnDefs = getCurrentTableColumns(tableId);
-		List<String> oldColumns = oldColumnDefs == null ? null : Lists.transform(oldColumnDefs, new Function<ColumnDefinition, String>() {
-			@Override
-			public String apply(ColumnDefinition input) {
-				return input.getName();
-			}
-		});
-		// Build the SQL to create or update the table
-		String dml = SQLUtils.creatOrAlterTableSQL(oldColumns, newSchema, tableId);
-		// If there is nothing to apply then do nothing
-		if (dml == null)
-			return false;
-		// Execute the DML
-		try {
-			template.update(dml);
-		} catch (BadSqlGrammarException e) {
-			if (e.getCause() != null && e.getCause().getMessage() != null && e.getCause().getMessage().startsWith("Row size too large")) {
-				throw new InvalidDataAccessResourceUsageException(
-						"Too much data per column. The maximum size for a row is about 65000 bytes", e.getCause());
-			} else {
-				throw e;
-			}
+		
+		List<ColumnChange> changes = new LinkedList<ColumnChange>();
+		for(ColumnModel newColumn: newSchema){
+			ColumnModel oldColumn = null;
+			changes.add(new ColumnChange(oldColumn, newColumn));
 		}
+		createTableIfDoesNotExist(tableId);
+		alterTableAsNeeded(tableId, changes);
 		return true;
+//		// First determine if we have any columns for this table yet
+//		List<ColumnDefinition> oldColumnDefs = getCurrentTableColumns(tableId);
+//		List<String> oldColumns = oldColumnDefs == null ? null : Lists.transform(oldColumnDefs, new Function<ColumnDefinition, String>() {
+//			@Override
+//			public String apply(ColumnDefinition input) {
+//				return input.getName();
+//			}
+//		});
+//		// Build the SQL to create or update the table
+//		String dml = SQLUtils.creatOrAlterTableSQL(oldColumns, newSchema, tableId);
+//		// If there is nothing to apply then do nothing
+//		if (dml == null)
+//			return false;
+//		// Execute the DML
+//		try {
+//			template.update(dml);
+//		} catch (BadSqlGrammarException e) {
+//			if (e.getCause() != null && e.getCause().getMessage() != null && e.getCause().getMessage().startsWith("Row size too large")) {
+//				throw new InvalidDataAccessResourceUsageException(
+//						"Too much data per column. The maximum size for a row is about 65000 bytes", e.getCause());
+//			} else {
+//				throw e;
+//			}
+//		}
+//		return true;
 	}
 
 
@@ -515,7 +521,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public void opptimizeTableIndices(List<DatabaseColumnInfo> list,
+	public void optimizeTableIndices(List<DatabaseColumnInfo> list,
 			String tableId, int maxNumberOfIndex) {
 		String alterSql = SQLUtils.createOptimizedAlterIndices(list, tableId, maxNumberOfIndex);
 		if(alterSql == null){

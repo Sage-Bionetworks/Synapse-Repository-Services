@@ -1318,8 +1318,7 @@ public class SQLUtils {
 			if(!isFirst){
 				builder.append(", ");
 			}
-			builder.append("DROP INDEX ");
-			builder.append(info.getIndexName());			
+			appendDropIndex(builder, info);		
 			isFirst = false;
 		}
 		// renames
@@ -1327,10 +1326,10 @@ public class SQLUtils {
 			if(!isFirst){
 				builder.append(", ");
 			}
-			builder.append("RENAME INDEX ");
-			builder.append(info.getIndexName());
-			builder.append(" TO ");
-			builder.append(getIndexName(info.getColumnName()));
+			// for MySQL 5.6 rename index is not supported so drop and add.
+			appendDropIndex(builder, info);		
+			builder.append(", ");
+			appendAddIndex(builder, info);
 			isFirst = false;
 		}
 		// adds
@@ -1338,12 +1337,21 @@ public class SQLUtils {
 			if(!isFirst){
 				builder.append(", ");
 			}
-			builder.append("ADD INDEX ");
-			info.setIndexName(getIndexName(info.getColumnName()));
-			builder.append(info.createIndexDefinition());
+			appendAddIndex(builder, info);
 			isFirst = false;
 		}
 		return builder.toString();
+	}
+	
+	private static void appendDropIndex(StringBuilder builder, DatabaseColumnInfo info){
+		builder.append("DROP INDEX ");
+		builder.append(info.getIndexName());	
+	}
+	
+	private static void appendAddIndex(StringBuilder builder, DatabaseColumnInfo info){
+		builder.append("ADD INDEX ");
+		info.setIndexName(getIndexName(info.getColumnName()));
+		builder.append(info.createIndexDefinition());	
 	}
 	
 	/**

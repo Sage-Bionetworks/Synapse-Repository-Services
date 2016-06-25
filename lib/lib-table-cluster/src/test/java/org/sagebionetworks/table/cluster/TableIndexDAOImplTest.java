@@ -850,9 +850,6 @@ public class TableIndexDAOImplTest {
 
 		// Create the table.
 		tableIndexDAO.createOrUpdateTable(schema, tableId);
-		if (StackConfiguration.singleton().getTableAllIndexedEnabled()) {
-			checkIndexes(tableId, indexes.toArray(new String[0]));
-		}
 	}
 
 	@Test
@@ -874,9 +871,6 @@ public class TableIndexDAOImplTest {
 
 		// Create the table.
 		tableIndexDAO.createOrUpdateTable(schema, tableId);
-		if (StackConfiguration.singleton().getTableAllIndexedEnabled()) {
-			checkIndexes(tableId, indexes.toArray(new String[0]));
-		}
 
 		// replace 10 columns
 		for (int i = 30; i < 40; i++) {
@@ -886,9 +880,6 @@ public class TableIndexDAOImplTest {
 		}
 
 		tableIndexDAO.createOrUpdateTable(schema, tableId);
-		if (StackConfiguration.singleton().getTableAllIndexedEnabled()) {
-			checkIndexes(tableId, indexes.toArray(new String[0]));
-		}
 
 		// replace 10 and add 10 columns
 		for (int i = 20; i < 30; i++) {
@@ -908,34 +899,6 @@ public class TableIndexDAOImplTest {
 			}
 		}
 		tableIndexDAO.createOrUpdateTable(schema, tableId);
-		if (StackConfiguration.singleton().getTableAllIndexedEnabled()) {
-			checkIndexes(tableId, indexes.toArray(new String[0]));
-		}
-	}
-
-	private void checkIndexes(String tableId, final String... indexes)
-			throws Exception {
-		JdbcTemplate template = (JdbcTemplate) ReflectionStaticTestUtils
-				.getField(tableIndexDAO, "template");
-		String tableName = SQLUtils.getTableNameForId(tableId,
-				SQLUtils.TableType.INDEX);
-
-		// Bind variables do not seem to work here
-		final AtomicInteger count = new AtomicInteger(0);
-		template.query("show columns from " + tableName, new RowMapper<Void>() {
-			@Override
-			public Void mapRow(ResultSet rs, int rowNum) throws SQLException {
-				boolean hasIndex = !StringUtils.isEmpty(rs.getString("Key"));
-				String column = rs.getString("Field");
-				if (hasIndex) {
-					count.incrementAndGet();
-					assertTrue("Index on " + column, Arrays.asList(indexes)
-							.contains(column));
-				}
-				return null;
-			}
-		});
-		assertEquals(indexes.length, count.get());
 	}
 	
 	@Test
@@ -1181,14 +1144,135 @@ public class TableIndexDAOImplTest {
 		
 		// Optimize the indices
 		int maxNumberOfIndices = 5;
-		tableIndexDAO.opptimizeTableIndices(infoList, tableId, maxNumberOfIndices);
+		tableIndexDAO.optimizeTableIndices(infoList, tableId, maxNumberOfIndices);
 		// fetch index information.
 		List<DatabaseColumnInfo> updated = tableIndexDAO.getDatabaseInfo(tableId);
 		assertNotNull(updated);
 		
 		tableIndexDAO.provideCardinality(updated, tableId);
 		tableIndexDAO.provideIndexName(updated, tableId);
+	}
+	
+	@Test
+	public void testIndexAdd(){
+		// create the table
+		tableIndexDAO.createTableIfDoesNotExist(tableId);
+		ColumnModel oldColumn = null;
 		
+		// Create a column
+		ColumnModel newColumn = new ColumnModel();
+		newColumn.setId("12");
+		newColumn.setName("foo");
+		newColumn.setColumnType(ColumnType.INTEGER);
 		
+		// add the column
+		tableIndexDAO.alterTableAsNeeded(tableId, Lists.newArrayList(new ColumnChange(oldColumn, newColumn)));
+		int maxNumberOfIndices = 5;
+		optimizeTableIndices(tableId, maxNumberOfIndices);
+		// Get the latest table information
+		List<DatabaseColumnInfo> infoList = getAllColumnInfo(tableId);
+		assertNotNull(infoList);
+		assertEquals(3, infoList.size());
+		DatabaseColumnInfo info = infoList.get(2);
+		assertEquals("_C12_idx_",info.getIndexName());
+	}
+	
+	@Test
+	public void testIndexRename(){
+		// create the table
+		tableIndexDAO.createTableIfDoesNotExist(tableId);
+		ColumnModel oldColumn = null;
+		
+		// Create a column
+		ColumnModel newColumn = new ColumnModel();
+		newColumn.setId("12");
+		newColumn.setName("foo");
+		newColumn.setColumnType(ColumnType.INTEGER);
+		
+		// add the column
+		tableIndexDAO.alterTableAsNeeded(tableId, Lists.newArrayList(new ColumnChange(oldColumn, newColumn)));
+		int maxNumberOfIndices = 5;
+		optimizeTableIndices(tableId, maxNumberOfIndices);
+		// Get the latest table information
+		List<DatabaseColumnInfo> infoList = getAllColumnInfo(tableId);
+		assertNotNull(infoList);
+		assertEquals(3, infoList.size());
+		DatabaseColumnInfo info = infoList.get(2);
+		assertEquals("_C12_idx_",info.getIndexName());
+		
+		// Now change the column type
+		oldColumn = newColumn;
+		newColumn = new ColumnModel();
+		newColumn.setId("13");
+		newColumn.setName("bar");
+		newColumn.setColumnType(ColumnType.DATE);
+		
+		tableIndexDAO.alterTableAsNeeded(tableId, Lists.newArrayList(new ColumnChange(oldColumn, newColumn)));
+		// the index should get renamed
+		optimizeTableIndices(tableId, maxNumberOfIndices);
+		infoList = getAllColumnInfo(tableId);
+		assertNotNull(infoList);
+		assertEquals(3, infoList.size());
+		info = infoList.get(2);
+		assertEquals("_C13_idx_",info.getIndexName());
+	}
+	
+	@Test
+	public void testIndexDrop(){
+		// create the table
+		tableIndexDAO.createTableIfDoesNotExist(tableId);
+		ColumnModel oldColumn = null;
+		
+		// Create a column
+		ColumnModel newColumn = new ColumnModel();
+		newColumn.setId("12");
+		newColumn.setName("foo");
+		newColumn.setColumnType(ColumnType.INTEGER);
+		
+		// add the column
+		tableIndexDAO.alterTableAsNeeded(tableId, Lists.newArrayList(new ColumnChange(oldColumn, newColumn)));
+		int maxNumberOfIndices = 5;
+		optimizeTableIndices(tableId, maxNumberOfIndices);
+		// Get the latest table information
+		List<DatabaseColumnInfo> infoList = getAllColumnInfo(tableId);
+		assertNotNull(infoList);
+		assertEquals(3, infoList.size());
+		DatabaseColumnInfo info = infoList.get(2);
+		assertEquals("_C12_idx_",info.getIndexName());
+		
+		// reduce the number of allowed indices
+		maxNumberOfIndices = 1;
+		// the index should get renamed
+		optimizeTableIndices(tableId, maxNumberOfIndices);
+		// the column should no longer have an index.
+		infoList = getAllColumnInfo(tableId);
+		assertNotNull(infoList);
+		assertEquals(3, infoList.size());
+		info = infoList.get(2);
+		assertFalse(info.hasIndex());
+		assertEquals(null,info.getIndexName());
+	}
+	
+	/**
+	 * Helper to get all of the DatabaseColumnInfo about a table. 
+	 * @param tableId
+	 * @return
+	 */
+	public List<DatabaseColumnInfo> getAllColumnInfo(String tableId){
+		List<DatabaseColumnInfo> info = tableIndexDAO.getDatabaseInfo(tableId);
+		tableIndexDAO.provideCardinality(info, tableId);
+		tableIndexDAO.provideIndexName(info, tableId);
+		return info;
+	}
+	
+	/**
+	 * Helper to optimize the indices for a table.
+	 * 
+	 * @param tableId
+	 * @param maxNumberOfIndices
+	 */
+	public void optimizeTableIndices(String tableId, int maxNumberOfIndices){
+		List<DatabaseColumnInfo> info = getAllColumnInfo(tableId);
+		tableIndexDAO.optimizeTableIndices(info, tableId, maxNumberOfIndices);
 	}
 }

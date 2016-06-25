@@ -10,7 +10,6 @@ public class TableIndexConnectionFactoryImpl implements
 	
 	@Autowired
 	ConnectionFactory connectionFactory;
-
 	/*
 	 * (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.table.TableIndexConnectionFactory#connectToTableIndex(java.lang.String)

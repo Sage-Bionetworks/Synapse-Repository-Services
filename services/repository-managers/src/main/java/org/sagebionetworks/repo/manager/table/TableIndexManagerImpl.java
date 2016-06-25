@@ -7,6 +7,7 @@ import java.util.Set;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.table.cluster.ColumnChange;
+import org.sagebionetworks.table.cluster.DatabaseColumnInfo;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.springframework.transaction.TransactionStatus;
@@ -127,19 +128,13 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 */
 	@Override
 	public void setIndexSchema(List<ColumnModel> currentSchema) {
-		// Create all of the status tables unconditionally.
-		tableIndexDao.createSecondaryTables(tableId);
-		
-		if (currentSchema.isEmpty()) {
-			// If there is no schema delete the table
-			tableIndexDao.deleteTable(tableId);
-		} else {
-			// We have a schema so create or update the table
-			tableIndexDao.createOrUpdateTable(currentSchema, tableId);
+		// Replace all columns
+		List<ColumnChange> changes = new LinkedList<ColumnChange>();
+		for(ColumnModel newColumn: currentSchema){
+			ColumnModel oldColumn = null;
+			changes.add(new ColumnChange(oldColumn, newColumn));
 		}
-		// Save the hash of the new schema
-		String schemaMD5Hex = TableModelUtils. createSchemaMD5HexCM(currentSchema);
-		tableIndexDao.setCurrentSchemaMD5Hex(tableId, schemaMD5Hex);
+		updateTableSchema(changes);
 	}
 
 	@Override
@@ -158,13 +153,6 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	public void setIndexVersion(Long versionNumber) {
 		tableIndexDao.setMaxCurrentCompleteVersionForTable(
 				tableId, versionNumber);
-	}
-	@Override
-	public void createTableIndexIfDoesNotExist() {
-		// Create all of the status tables unconditionally.
-		tableIndexDao.createSecondaryTables(tableId);
-		// create the table if it does not exist
-		tableIndexDao.createTableIfDoesNotExist(tableId);
 	}
 	
 	@Override
@@ -190,6 +178,22 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		// Save the hash of the new schema
 		String schemaMD5Hex = TableModelUtils. createSchemaMD5HexCM(newSchema);
 		tableIndexDao.setCurrentSchemaMD5Hex(tableId, schemaMD5Hex);
+	}
+	/*
+	 * (non-Javadoc)
+	 * @see org.sagebionetworks.repo.manager.table.TableIndexManager#optimizeTableIndices()
+	 */
+	@Override
+	public void optimizeTableIndices() {
+		// To optimize a table's indices, statistics must be gathered
+		// for each column of the table.
+		List<DatabaseColumnInfo> tableInfo = tableIndexDao.getDatabaseInfo(tableId);
+		// must also gather cardinality data for each column.
+		tableIndexDao.provideCardinality(tableInfo, tableId);
+		// must also gather the names of each index currently applied to each column.
+		tableIndexDao.provideIndexName(tableInfo, tableId);
+		// All of the column data is then used to optimized the indices.
+		tableIndexDao.optimizeTableIndices(tableInfo, tableId, MAX_MYSQL_INDEX_COUNT);
 	}
 	
 }

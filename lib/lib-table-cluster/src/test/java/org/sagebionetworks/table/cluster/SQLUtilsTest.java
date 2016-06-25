@@ -1380,7 +1380,8 @@ public class SQLUtilsTest {
 	public void testCreateAlterSqlRename(){
 		DatabaseColumnInfo info = new DatabaseColumnInfo();
 		info.setColumnName("_C1_");
-		info.setIndexName("_C2_IDX");
+		info.setIndexName("_C2_idx_");
+		info.setType(MySqlColumnType.BIGINT);
 
 		List<DatabaseColumnInfo> toAdd = new LinkedList<DatabaseColumnInfo>();
 		List<DatabaseColumnInfo> toRemove =  new LinkedList<DatabaseColumnInfo>();
@@ -1389,7 +1390,7 @@ public class SQLUtilsTest {
 		String tableId = "syn123";
 		// call under test
 		String results = SQLUtils.createAlterIndices(changes, tableId);
-		assertEquals("ALTER TABLE T123 RENAME INDEX _C2_IDX TO _C1_idx_", results);
+		assertEquals("ALTER TABLE T123 DROP INDEX _C2_idx_, ADD INDEX _C1_idx_ (_C1_)", results);
 	}
 	
 	@Test
@@ -1420,7 +1421,7 @@ public class SQLUtilsTest {
 		String results = SQLUtils.createOptimizedAlterIndices(currentInfo, tableId, maxNumberOfIndex);
 		assertEquals("ALTER TABLE T123 "
 				+ "DROP INDEX _C0_idx_, "
-				+ "RENAME INDEX wrongName TO _C1_idx_, "
+				+ "DROP INDEX wrongName, ADD INDEX _C1_idx_ (_C1_), "
 				+ "ADD INDEX _C2_idx_ (_C2_)", results);
 	}
 }

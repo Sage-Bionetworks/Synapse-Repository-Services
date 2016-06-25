@@ -280,6 +280,9 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 				}
 			}
 		}
+		
+		indexManager.optimizeTableIndices();
+		
 		if(lastFailedException != null){
 			throw new RuntimeException(lastFailedException);
 		}

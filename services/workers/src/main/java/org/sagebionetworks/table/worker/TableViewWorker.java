@@ -152,6 +152,7 @@ public class TableViewWorker implements ChangeMessageDrivenRunner {
 			}
 		});
 		
+		indexManager.optimizeTableIndices();
 		indexManager.setIndexVersion(viewCRC);
 		// Attempt to set the table to complete.
 		tableManagerSupport.attemptToSetTableStatusToAvailable(tableId, token, DEFAULT_ETAG);

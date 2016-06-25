@@ -25,7 +25,6 @@ public interface TableIndexDAO {
 	 * @param schema
 	 * @param tableId
 	 */
-	@Deprecated
 	public boolean createOrUpdateTable(List<ColumnModel> schema, String tableId);
 	
 	/**
@@ -258,5 +257,5 @@ public interface TableIndexDAO {
 	 * @param maxNumberOfIndex
 	 *            The maximum number of indices allowed on a single table.
 	 */
-	public void opptimizeTableIndices(List<DatabaseColumnInfo> list, String tableId, int maxNumberOfIndex);
+	public void optimizeTableIndices(List<DatabaseColumnInfo> list, String tableId, int maxNumberOfIndex);
 }
