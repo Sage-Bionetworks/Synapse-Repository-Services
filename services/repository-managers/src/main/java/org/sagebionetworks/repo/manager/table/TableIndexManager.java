@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.table.cluster.ColumnChange;
 
 /**
  * The 'truth' of a Synapse table consists of metadata in the main repository
@@ -99,7 +100,19 @@ public interface TableIndexManager {
 	 * @param currentSchema
 	 */
 	public void setIndexSchema(List<ColumnModel> currentSchema);
-
+	
+	/**
+	 * Create the table index if it does not exist. 
+	 * @param tableId
+	 */
+	public void createTableIndexIfDoesNotExist();
+	
+	/**
+	 * 
+	 * @param currentSchema
+	 */
+	public void updateTableSchema(List<ColumnChange> changes);
+	
 	/**
 	 * Delete the index for this table.
 	 */

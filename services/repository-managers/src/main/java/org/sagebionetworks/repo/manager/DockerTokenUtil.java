@@ -45,6 +45,7 @@ public class DockerTokenUtil {
 		PUBLIC_KEY_ID = computeKeyId(certificate.getPublicKey());
 	}
 
+	// This implements the specification: https://docs.docker.com/registry/spec/auth/jwt/
 	public static String createToken(String userName, String type, 
 			String registry, String repository, List<String> actions, long now, String uuid) {
 

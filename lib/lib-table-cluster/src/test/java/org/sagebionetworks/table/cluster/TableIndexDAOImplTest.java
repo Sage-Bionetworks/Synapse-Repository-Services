@@ -17,7 +17,6 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -41,7 +40,6 @@ import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.Table;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
-import org.sagebionetworks.table.cluster.TableIndexDAO.ColumnDefinition;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.util.SimpleAggregateQueryException;
@@ -78,9 +76,11 @@ public class TableIndexDAOImplTest {
 		mockProgressCallback = Mockito.mock(ProgressCallback.class);
 		// Only run this test if the table feature is enabled.
 		Assume.assumeTrue(config.getTableEnabled());
-		tableId = "syn" + new Random().nextInt(Integer.MAX_VALUE);
+		tableId = "syn123";
 		// First get a connection for this table
 		tableIndexDAO = tableConnectionFactory.getConnection(tableId);
+		tableIndexDAO.deleteTable(tableId);
+		tableIndexDAO.deleteSecondayTables(tableId);
 	}
 
 	@After
@@ -254,6 +254,11 @@ public class TableIndexDAOImplTest {
 		// Check again
 		count = tableIndexDAO.getRowCountForTable(tableId);
 		assertEquals(new Long(rows.size()), count);
+		
+		// truncate and get the count again
+		tableIndexDAO.truncateTable(tableId);
+		count = tableIndexDAO.getRowCountForTable(tableId);
+		assertEquals(new Long(0), count);
 	}
 
 	@Test
@@ -1059,4 +1064,51 @@ public class TableIndexDAOImplTest {
 		Set<Long> expected = Sets.newHashSet(3000L, 3001L);
 		assertEquals(expected, results);
 	}
+	
+	@Test
+	public void testGetCurrentTableColumns(){
+		// Create the table
+		tableIndexDAO.createTableIfDoesNotExist(tableId);
+		// Call under test.
+		List<ColumnDefinition> schema = tableIndexDAO.getCurrentTableColumns(tableId);
+		assertNotNull(schema);
+		assertEquals(2, schema.size());
+		ColumnDefinition cd = schema.get(0);
+		assertEquals(ROW_ID, cd.getName());
+		assertTrue("ROW_ID is the primary key so it should have an index.",cd.hasIndex());
+		
+		cd = schema.get(1);
+		assertEquals(ROW_VERSION, cd.getName());
+		assertFalse(cd.hasIndex());
+	}
+	
+	@Test
+	public void testAlterTableAsNeeded(){
+		// This will be an add, so the old is null.
+		ColumnModel oldColumn = null;
+		ColumnModel newColumn = new ColumnModel();
+		newColumn.setColumnType(ColumnType.BOOLEAN);
+		newColumn.setId("123");
+		newColumn.setName("aBoolean");
+		ColumnChange change = new ColumnChange(oldColumn, newColumn);
+		// Create the table
+		tableIndexDAO.createTableIfDoesNotExist(tableId);
+		// call under test.
+		boolean wasAltered = tableIndexDAO.alterTableAsNeeded(tableId, Lists.newArrayList(change));
+		assertTrue(wasAltered);
+		// Check the results
+		List<ColumnDefinition> schema = tableIndexDAO.getCurrentTableColumns(tableId);
+		assertNotNull(schema);
+		assertEquals(3, schema.size());
+		ColumnDefinition cd = schema.get(2);
+		assertEquals("_C123_", cd.getName());
+		assertFalse(cd.hasIndex());
+		
+		// Another update of the same column with no change should not alter the table
+		oldColumn = newColumn;
+		change = new ColumnChange(oldColumn, newColumn);
+		wasAltered = tableIndexDAO.alterTableAsNeeded(tableId, Lists.newArrayList(change));
+		assertFalse(wasAltered);
+	}
+	
 }

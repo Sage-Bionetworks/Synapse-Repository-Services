@@ -189,6 +189,8 @@ public class DockerManagerImplUnitTest {
 	public void testGetPermittedAccessTypesNonexistentChild() throws Exception {
 		String repositoryPath = PARENT_ID+"/non-existent-repo";
 
+		when(nodeDAO.getEntityHeaderByChildName(PARENT_ID, SERVICE+"/"+repositoryPath)).thenThrow(new NotFoundException());
+
 		// method under test:
 		List<String> permitted = dockerManager.
 				getPermittedAccessTypes(USER_NAME, USER_INFO, SERVICE, TYPE, repositoryPath, ACCESS_TYPES_STRING);
@@ -218,6 +220,8 @@ public class DockerManagerImplUnitTest {
 	@Test
 	public void testGetPermittedAccessTypesNonexistentChildUnauthorized() throws Exception {
 		String repositoryPath = PARENT_ID+"/non-existent-repo";
+
+		when(nodeDAO.getEntityHeaderByChildName(PARENT_ID, SERVICE+"/"+repositoryPath)).thenThrow(new NotFoundException());
 
 		when(authorizationManager.canCreate(eq(USER_INFO), eq(authQueryNode))).
 			thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
