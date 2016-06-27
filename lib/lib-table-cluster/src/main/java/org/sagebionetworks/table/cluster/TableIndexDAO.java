@@ -17,15 +17,6 @@ import org.springframework.transaction.support.TransactionCallback;
  *
  */
 public interface TableIndexDAO {
-
-	/**
-	 * Create or update a table with the given schema.
-	 * 
-	 * @param connection
-	 * @param schema
-	 * @param tableId
-	 */
-	public boolean createOrUpdateTable(List<ColumnModel> schema, String tableId);
 	
 	/**
 	 * Create a table with the given name if it does not exist.

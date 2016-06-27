@@ -50,7 +50,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	private static final String COLUMN_NAME = "Column_name";
 	private static final String SHOW_INDEXES_FROM = "SHOW INDEXES FROM ";
 	private static final String KEY = "Key";
-	private static final String SQL_SHOW_COLUMNS = "SHOW COLUMNS FROM ";
+	private static final String SQL_SHOW_COLUMNS = "SHOW FULL COLUMNS FROM ";
 	private static final String FIELD = "Field";
 	private static final String TYPE = "Type";
 	private static final Pattern VARCHAR = Pattern.compile("varchar\\((\\d+)\\)");
@@ -108,18 +108,18 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		return new TransactionTemplate(transactionManager, transactionDef);
 	}
 
-	@Override
-	public boolean createOrUpdateTable(List<ColumnModel> newSchema,
-			String tableId) {
-		
-		List<ColumnChange> changes = new LinkedList<ColumnChange>();
-		for(ColumnModel newColumn: newSchema){
-			ColumnModel oldColumn = null;
-			changes.add(new ColumnChange(oldColumn, newColumn));
-		}
-		createTableIfDoesNotExist(tableId);
-		alterTableAsNeeded(tableId, changes);
-		return true;
+//	@Override
+//	public boolean createOrUpdateTable(List<ColumnModel> newSchema,
+//			String tableId) {
+//		
+//		List<ColumnChange> changes = new LinkedList<ColumnChange>();
+//		for(ColumnModel newColumn: newSchema){
+//			ColumnModel oldColumn = null;
+//			changes.add(new ColumnChange(oldColumn, newColumn));
+//		}
+//		createTableIfDoesNotExist(tableId);
+//		alterTableAsNeeded(tableId, changes);
+//		return true;
 //		// First determine if we have any columns for this table yet
 //		List<ColumnDefinition> oldColumnDefs = getCurrentTableColumns(tableId);
 //		List<String> oldColumns = oldColumnDefs == null ? null : Lists.transform(oldColumnDefs, new Function<ColumnDefinition, String>() {
@@ -145,7 +145,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 //			}
 //		}
 //		return true;
-	}
+//	}
 
 
 	@Override
@@ -475,6 +475,10 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 					String typeString = rs.getString("Type");
 					info.setType(MySqlColumnType.parserType(typeString));
 					info.setMaxSize(MySqlColumnType.parseSize(typeString));
+					String comment = rs.getString("Comment");
+					if(comment != null && !"".equals(comment)){
+						info.setColumnType(ColumnType.valueOf(comment));
+					}
 					return info;
 				}
 			});

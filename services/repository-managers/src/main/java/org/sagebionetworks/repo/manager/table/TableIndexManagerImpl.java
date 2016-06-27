@@ -8,6 +8,7 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.table.cluster.ColumnChange;
 import org.sagebionetworks.table.cluster.DatabaseColumnInfo;
+import org.sagebionetworks.table.cluster.SQLUtils;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.springframework.transaction.TransactionStatus;
@@ -127,13 +128,10 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * , java.util.List)
 	 */
 	@Override
-	public void setIndexSchema(List<ColumnModel> currentSchema) {
-		// Replace all columns
-		List<ColumnChange> changes = new LinkedList<ColumnChange>();
-		for(ColumnModel newColumn: currentSchema){
-			ColumnModel oldColumn = null;
-			changes.add(new ColumnChange(oldColumn, newColumn));
-		}
+	public void setIndexSchema(List<ColumnModel> newSchema) {
+		// Lookup the current schema of the index
+		List<DatabaseColumnInfo> currentSchema = tableIndexDao.getDatabaseInfo(tableId);
+		List<ColumnChange> changes = SQLUtils.createReplaceSchemaChange(currentSchema, newSchema);
 		updateTableSchema(changes);
 	}
 

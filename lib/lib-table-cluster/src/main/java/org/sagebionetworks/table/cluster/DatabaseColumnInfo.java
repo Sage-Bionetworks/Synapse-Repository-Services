@@ -1,7 +1,11 @@
 package org.sagebionetworks.table.cluster;
 
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
+
 import java.util.Comparator;
 
+import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.table.cluster.utils.ColumnConstants;
 import org.sagebionetworks.util.ValidateArgument;
 
@@ -17,6 +21,7 @@ public class DatabaseColumnInfo {
 	Integer maxSize;
 	Long cardinality;
 	String indexName;
+	ColumnType columnType;
 	
 	public String getColumnName() {
 		return columnName;
@@ -54,6 +59,21 @@ public class DatabaseColumnInfo {
 	public void setMaxSize(Integer maxSize) {
 		this.maxSize = maxSize;
 	}
+	public ColumnType getColumnType() {
+		return columnType;
+	}
+	public void setColumnType(ColumnType columnType) {
+		this.columnType = columnType;
+	}
+	/**
+	 * Is this column ROW_ID or ROW_VERSION?
+	 * 
+	 * @return
+	 */
+	public boolean isRowIdOrVersion(){
+		return ROW_ID.equals(this.columnName) || ROW_VERSION.equals(this.columnName);
+	}
+	
 	
 	/**
 	 * Create the index definition for this column.

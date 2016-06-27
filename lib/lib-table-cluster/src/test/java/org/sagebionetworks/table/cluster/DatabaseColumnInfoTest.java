@@ -1,8 +1,9 @@
 package org.sagebionetworks.table.cluster;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 
 import org.junit.Test;
+import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.cluster.utils.ColumnConstants;
 
 public class DatabaseColumnInfoTest {
@@ -123,5 +124,26 @@ public class DatabaseColumnInfoTest {
 		two.setCardinality(null);
 		// call under test.
 		DatabaseColumnInfo.CARDINALITY_COMPARATOR.compare(one, two);
-	}	
+	}
+	
+	@Test
+	public void testIsRowIdOrVersionRowId(){
+		DatabaseColumnInfo info = new DatabaseColumnInfo();
+		info.setColumnName(TableConstants.ROW_ID);
+		assertTrue(info.isRowIdOrVersion());
+	}
+	
+	@Test
+	public void testIsRowIdOrVersionRowVersion(){
+		DatabaseColumnInfo info = new DatabaseColumnInfo();
+		info.setColumnName(TableConstants.ROW_VERSION);
+		assertTrue(info.isRowIdOrVersion());
+	}
+	
+	@Test
+	public void testIsRowIdOrVersionNot(){
+		DatabaseColumnInfo info = new DatabaseColumnInfo();
+		info.setColumnName("_C123_");
+		assertFalse(info.isRowIdOrVersion());
+	}
 }

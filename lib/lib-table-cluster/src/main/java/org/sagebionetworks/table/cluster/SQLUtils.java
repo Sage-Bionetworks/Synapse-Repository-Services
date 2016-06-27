@@ -1117,26 +1117,6 @@ public class SQLUtils {
 	}
 	
 	/**
-	 * Is the index used by the old model compatible with the new model?
-	 * 
-	 * @param oldModel
-	 * @param newModel
-	 * @return
-	 */
-	public static boolean isIndexCompatible(ColumnModel oldModel, ColumnModel newModel){
-		if(oldModel.getMaximumSize() != null){
-			if(!oldModel.getMaximumSize().equals(newModel.getMaximumSize())){
-				// the column sizes do not match so the index is not compatible.
-				return false;
-			}
-		}
-		ColumnTypeInfo oldInfo = ColumnTypeInfo.getInfoForType(oldModel.getColumnType());
-		ColumnTypeInfo newInfo = ColumnTypeInfo.getInfoForType(newModel.getColumnType());
-		// Do both columns use the same MySQL column type?
-		return oldInfo.getMySqlType().equals(newInfo.getMySqlType());
-	}
-	
-	/**
 	 * Append a column type definition to the passed builder.
 	 * 
 	 * @param builder
@@ -1254,7 +1234,9 @@ public class SQLUtils {
 	 * @return
 	 */
 	public static IndexChange calculateIndexOptimization(List<DatabaseColumnInfo> list, String tableId, int maxNumberOfIndex){
-		// sort by cardinality descending
+		// us a copy of the list
+		list = new LinkedList<DatabaseColumnInfo>(list);
+		// sort by cardinality descending		
 		Collections.sort(list, Collections.reverseOrder(DatabaseColumnInfo.CARDINALITY_COMPARATOR));
 		List<DatabaseColumnInfo> toAdd = new LinkedList<DatabaseColumnInfo>();
 		List<DatabaseColumnInfo> toRemove = new LinkedList<DatabaseColumnInfo>();
@@ -1263,8 +1245,7 @@ public class SQLUtils {
 		int indexCount = 1;
 		for(DatabaseColumnInfo info: list){
 			// ignore row_id and version
-			if(ROW_ID.equals(info.getColumnName())
-					|| ROW_VERSION.equals(info.getColumnName())){
+			if(info.isRowIdOrVersion()){
 				continue;
 			}
 			if(indexCount < maxNumberOfIndex){
@@ -1361,6 +1342,97 @@ public class SQLUtils {
 	 */
 	public static String getIndexName(String columnId){
 		return columnId+IDX;
+	}
+	
+	/**
+	 * Create a list of ColumnChanges to replace the current schema represented by the given
+	 * list of Database with a new schema represented by the given ColumnModels.
+	 * @param infoList
+	 * @param newSchema
+	 * @return
+	 */
+	public static List<ColumnChange> createReplaceSchemaChange(List<DatabaseColumnInfo> infoList, List<ColumnModel> newSchema){
+		List<ColumnModel> oldColumnIds = getColumnIds(infoList);
+		return createReplaceSchemaChangeIds(oldColumnIds, newSchema);
+	}
+	
+	/**
+	 * Create a replace schema change.
+	 * Any column in the current schema that is not in the schema will be removed.
+	 * Any column in the new schema that is not in the old schema will be added.
+	 * Any column in both the current and new will be left unchanged.
+	 * 
+	 * @param currentInfo
+	 * @param newSchema
+	 * @return
+	 */
+	public static List<ColumnChange> createReplaceSchemaChangeIds(List<ColumnModel> currentColunm, List<ColumnModel> newSchema){
+		Set<String> oldSet = new HashSet<String>(currentColunm.size());
+		for(ColumnModel cm: currentColunm){
+			oldSet.add(cm.getId());
+		}
+		Set<String> newSet = new HashSet<String>(newSchema.size());
+		for(ColumnModel cm: newSchema){
+			newSet.add(cm.getId());
+		}
+		List<ColumnChange> changes = new LinkedList<ColumnChange>();
+		// remove any column in the current that is not in the new.
+		for(ColumnModel oldColumn: currentColunm){
+			if(!newSet.contains(oldColumn.getId())){
+				// Remove this column
+				ColumnModel newColumn = null;
+				changes.add(new ColumnChange(oldColumn, newColumn));
+			}
+		}
+		// Add any column in the current that is not in the old.
+		for(ColumnModel newColumn: newSchema){
+			if(!oldSet.contains(newColumn.getId())){
+				ColumnModel oldColumn = null;
+				changes.add(new ColumnChange(oldColumn, newColumn));
+			}
+		}
+		return changes;
+	}
+	
+	/**
+	 * Extract the list of columnIds from a list of DatabaseColumnInfo.
+	 * 
+	 * @param infoList
+	 * @return
+	 */
+	public static List<ColumnModel> getColumnIds(List<DatabaseColumnInfo> infoList){
+		List<ColumnModel> results = new LinkedList<ColumnModel>();
+		if(infoList != null){
+			for(DatabaseColumnInfo info: infoList){
+				if(!info.isRowIdOrVersion()){
+					if(info.getColumnType() != null){
+						long columnId = getColumnId(info);
+						ColumnModel cm = new ColumnModel();
+						cm.setId(""+columnId);
+						cm.setColumnType(info.getColumnType());
+						results.add(cm);
+					}
+				}
+			}
+		}
+		return results;
+	}
+	
+	/**
+	 * Extract the columnId from the columnName of the given DatabaseColumnInfo.
+	 * 
+	 * @param info
+	 * @return
+	 */
+	public static long getColumnId(DatabaseColumnInfo info){
+		ValidateArgument.required(info, "DatabaseColumnInfo");
+		ValidateArgument.required(info.getColumnName(), "DatabaseColumnInfo.columnName()");
+		String columnName = info.getColumnName();
+		try {
+			return Long.parseLong(columnName.substring(COLUMN_PREFIX.length(), columnName.length()-COLUMN_POSTFIX.length()));
+		} catch (NumberFormatException e) {
+			throw new IllegalArgumentException("Unexpected columnName: "+info.getColumnName());
+		}
 	}
 	
 	
