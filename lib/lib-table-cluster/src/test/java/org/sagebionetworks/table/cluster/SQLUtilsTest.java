@@ -1,19 +1,18 @@
 package org.sagebionetworks.table.cluster;
 
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.stub;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
-import javax.xml.crypto.Data;
-
 import org.apache.commons.lang.StringUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -28,8 +27,6 @@ import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
-
-
 
 
 public class SQLUtilsTest {
@@ -63,168 +60,6 @@ public class SQLUtilsTest {
 	public void teardownStackConfig() {
 		if (oldStackConfiguration != null) {
 			ReflectionTestUtils.setField(StackConfiguration.singleton(), "singleton", oldStackConfiguration);
-		}
-	}
-
-	@Test (expected=IllegalArgumentException.class)
-	public void testCreateTableSQLNullSchema(){
-		// cannot be null
-		SQLUtils.createTableSQL(null, "123");
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testCreateTableSQLNullTable(){
-		// cannot be null
-		SQLUtils.createTableSQL(simpleSchema, null);
-	}
-
-	@Test (expected=IllegalArgumentException.class)
-	public void testCreateTableSQLEmptySchema(){
-		// cannot be null
-		simpleSchema.clear();
-		SQLUtils.createTableSQL(simpleSchema, "123");
-	}
-	
-	@Test
-	public void testcreateColumnIndexDefinition(){
-		Long maxSize = null;
-		String expected = "INDEX `_C123_idx_` (`_C123_`)";
-		String index = SQLUtils.createColumnIndexDefinition("_C123_", maxSize);
-		assertEquals(expected, index);
-	}
-	
-	@Test
-	public void testcreateColumnIndexDefinitionMaxSizeUnder(){
-		Long maxSize = SQLUtils.MAX_MYSQL_VARCHAR_INDEX_LENGTH-1;
-		String expected = "INDEX `_C123_idx_` (`_C123_`)";
-		String index = SQLUtils.createColumnIndexDefinition("_C123_", maxSize);
-		assertEquals(expected, index);
-	}
-	
-	@Test
-	public void testcreateColumnIndexDefinitionMaxSizeOver(){
-		Long maxSize = SQLUtils.MAX_MYSQL_VARCHAR_INDEX_LENGTH+1;
-		String expected = "INDEX `_C123_idx_` (`_C123_`(255))";
-		String index = SQLUtils.createColumnIndexDefinition("_C123_", maxSize);
-		assertEquals(expected, index);
-	}
-	
-	@Test
-	public void testCreateTableSQL(){
-		// Build the create DDL for this table
-		String sql = SQLUtils.createTableSQL(simpleSchema, "syn123");
-		assertNotNull(sql);
-		String index1 = "";
-		String index2 = "";
-		String index3 = "";
-		if (StackConfiguration.singleton().getTableAllIndexedEnabled()) {
-			index1 = ", INDEX `_C456_idx_` (`_C456_`)";
-			index2 = ", INDEX `_C789_idx_` (`_C789_`(255))";
-			index3 = ", INDEX `_C123_idx_` (`_C123_`)";
-		}
-		// Validate it contains the expected elements
-		String expected = "CREATE TABLE IF NOT EXISTS `T123` ( ROW_ID bigint(20) NOT NULL, ROW_VERSION bigint(20) NOT NULL"
-				+ ", `_C456_` bigint(20) DEFAULT NULL" + index1
-				+ ", `_C789_` varchar(300) CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT NULL" + index2
-				+ ", `_C123_` varchar(150) CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT NULL" + index3 + ", PRIMARY KEY (ROW_ID) )";
-		assertEquals(expected, sql);
-	}
-	
-	@Test
-	public void testCreateTableSQLLargeText(){
-		ColumnModel cm = TableModelTestUtils.createColumn(444L, "large Text", ColumnType.LARGETEXT);
-		List<ColumnModel> types = Lists.newArrayList(cm);
-		// call under test
-		String sql = SQLUtils.createTableSQL(types, "syn123");
-		
-		String index1 = "";
-		if (StackConfiguration.singleton().getTableAllIndexedEnabled()) {
-			index1 = ", INDEX `_C444_idx_` (`_C444_`(255))";
-		}
-		
-		String expected = "CREATE TABLE IF NOT EXISTS `T123` ( ROW_ID bigint(20) NOT NULL, ROW_VERSION bigint(20) NOT NULL"
-				+ ", `_C444_` mediumtext CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT NULL"
-				+ index1 + ", PRIMARY KEY (ROW_ID) )";
-		assertEquals(expected, sql);
-	}
-
-	@Test
-	public void testCreateTableSQLInvertAllIndexes() {
-		oldStackConfiguration = StackConfiguration.singleton();
-		StackConfiguration mockedStackConfiguration = Mockito.spy(oldStackConfiguration);
-		stub(mockedStackConfiguration.getTableAllIndexedEnabled()).toReturn(!oldStackConfiguration.getTableAllIndexedEnabled());
-		ReflectionTestUtils.setField(StackConfiguration.singleton(), "singleton", mockedStackConfiguration);
-		testCreateTableSQL();
-	}
-
-	@Test
-	public void testGetSQLTypeForColumnTypeString(){
-		String expected = "varchar(13) CHARACTER SET utf8 COLLATE utf8_general_ci";
-		String sql = SQLUtils.getSQLTypeForColumnType(ColumnType.STRING, 13L);
-		assertEquals(expected, sql);
-	}
-	
-	@Test
-	public void testGetSQLTypeForColumnTypeLink() {
-		String expected = "varchar(13) CHARACTER SET utf8 COLLATE utf8_general_ci";
-		String sql = SQLUtils.getSQLTypeForColumnType(ColumnType.LINK, 13L);
-		assertEquals(expected, sql);
-	}
-
-	@Test
-	public void testGetSQLTypeForColumnTypeLong(){
-		String expected = "bigint(20)";
-		String sql = SQLUtils.getSQLTypeForColumnType(ColumnType.INTEGER, null);
-		assertEquals(expected, sql);
-	}
-	
-	@Test
-	public void testGetSQLTypeForColumnTypeFileHandle(){
-		String expected = "bigint(20)";
-		String sql = SQLUtils.getSQLTypeForColumnType(ColumnType.FILEHANDLEID, null);
-		assertEquals(expected, sql);
-	}
-	
-	@Test
-	public void testGetSQLTypeForColumnTypeDate() {
-		String expected = "bigint(20)";
-		String sql = SQLUtils.getSQLTypeForColumnType(ColumnType.DATE, null);
-		assertEquals(expected, sql);
-	}
-
-	@Test
-	public void testGetSQLTypeForColumnTypeDouble(){
-		String expected = "double";
-		String sql = SQLUtils.getSQLTypeForColumnType(ColumnType.DOUBLE, null);
-		assertEquals(expected, sql);
-	}
-	
-	@Test
-	public void testGetSQLTypeForColumnTypeBoolean(){
-		String expected = "boolean";
-		String sql = SQLUtils.getSQLTypeForColumnType(ColumnType.BOOLEAN, null);
-		assertEquals(expected, sql);
-	}
-	
-	@Test
-	public void testGetSQLTypeForColumnTypeLargeText(){
-		String expected = "mediumtext CHARACTER SET utf8 COLLATE utf8_general_ci";
-		String sql = SQLUtils.getSQLTypeForColumnType(ColumnType.LARGETEXT, null);
-		assertEquals(expected, sql);
-	}
-	 
-	@Test
-	public void testGetSQLTypeForColumnTypeAllTypes(){
-		// We should be able to get sql for each type.
-		for(ColumnType type: ColumnType.values()){
-			Long size = null;
-			if(ColumnType.STRING == type){
-				size = 100L;
-			} else if (type == ColumnType.LINK) {
-				size = 135L;
-			}
-			String sql = SQLUtils.getSQLTypeForColumnType(type, size);
-			assertNotNull(sql);
 		}
 	}
 	
@@ -291,212 +126,7 @@ public class SQLUtilsTest {
 		assertEquals(expected, objectValue);
 	}
 	
-	
-	@Test
-	public void testGetSQLDefaultsForLong(){
-		String expected = "DEFAULT 123";
-		String sql = SQLUtils.getSQLDefaultForColumnType(ColumnType.INTEGER, "123");
-		assertEquals(expected, sql);
-	}
-	
-	@Test
-	public void testGetSQLDefaultsForFileHandle(){
-		String expected = "DEFAULT 123";
-		String sql = SQLUtils.getSQLDefaultForColumnType(ColumnType.FILEHANDLEID, "123");
-		assertEquals(expected, sql);
-	}
-	
-	@Test
-	public void testGetSQLDefaultsForEntityId() {
-		String expected = "DEFAULT 'syn123.3'";
-		String sql = SQLUtils.getSQLDefaultForColumnType(ColumnType.ENTITYID, "syn123.3");
-		assertEquals(expected, sql);
-	}
 
-	@Test
-	public void testGetSQLDefaultsForDATE() {
-		String expected = "DEFAULT 123";
-		String sql = SQLUtils.getSQLDefaultForColumnType(ColumnType.DATE, "123");
-		assertEquals(expected, sql);
-	}
-
-	@Test
-	public void testGetSQLDefaultsForString(){
-		String expected = "DEFAULT 'a string'";
-		String sql = SQLUtils.getSQLDefaultForColumnType(ColumnType.STRING, "a string");
-		assertEquals(expected, sql);
-	}
-	
-	@Test
-	public void testGetSQLDefaultsForLink() {
-		String expected = "DEFAULT 'a link'";
-		String sql = SQLUtils.getSQLDefaultForColumnType(ColumnType.LINK, "a link");
-		assertEquals(expected, sql);
-	}
-
-	@Test
-	public void testGetSQLDefaultsForDouble(){
-		String expected = "DEFAULT 1.3888998E-13";
-		String sql = SQLUtils.getSQLDefaultForColumnType(ColumnType.DOUBLE, "1.3888998e-13");
-		assertEquals(expected, sql);
-	}
-	
-	@Test
-	public void testGetSQLDefaultsForAllTypesNull(){
-		// We should be able to get sql for each type.
-		for(ColumnType type: ColumnType.values()){
-			String sql = SQLUtils.getSQLDefaultForColumnType(type, null);
-			assertEquals("DEFAULT NULL", sql);
-		}
-	}
-	
-	@Test
-	public void testGetSQLDefaultsForBooleanTrue(){
-		String expected = "DEFAULT true";
-		String sql = SQLUtils.getSQLDefaultForColumnType(ColumnType.BOOLEAN, "true");
-		assertEquals(expected, sql);
-	}
-	
-	@Test
-	public void testGetSQLDefaultsForBooleanFalse(){
-		String expected = "DEFAULT false";
-		String sql = SQLUtils.getSQLDefaultForColumnType(ColumnType.BOOLEAN, "false");
-		assertEquals(expected, sql);
-	}
-	
-	@Test
-	public void testSQLInjection(){
-		String expected = "DEFAULT ''' DROP TABLE FOO '''";
-		String sql = SQLUtils.getSQLDefaultForColumnType(ColumnType.STRING, "' DROP TABLE FOO '");
-		assertEquals(expected, sql);
-	}
-	
-	@Test
-	public void testCreateAllTypes(){
-		List<ColumnModel> allTypes = TableModelTestUtils.createOneOfEachType();
-		String sql = SQLUtils.createTableSQL(allTypes, "syn123");
-		assertNotNull(sql);
-	}
-	
-
-	
-	@Test
-	public void testCalculateColumnsToAddOverlap(){
-		List<String> oldSchema = Arrays.asList("_C1_", "_C2_", "_C3_", "whatever");
-		List<ColumnModel> newSchema = helperCreateColumnsWithIds("0", "2", "4");
-		// For this case we expect 0 and 4 to be added.
-		List<ColumnModel> expected = helperCreateColumnsWithIds("0", "4");
-		List<ColumnModel> toAdd = Lists.newArrayList();
-		List<String> toDrop = Lists.newArrayList();
-		SQLUtils.calculateColumnsToAddOrDrop(oldSchema, newSchema, toAdd, toDrop);
-		assertEquals(expected.toString(), toAdd.toString());
-		assertEquals(Lists.newArrayList("_C1_", "_C3_", "whatever"), toDrop);
-	}
-	
-	@Test
-	public void testCalculateColumnsToAddNoOverlap(){
-		List<String> oldSchema = Arrays.asList("_C1_", "_C2_", "_C3_", "whatever");
-		List<ColumnModel> newSchema = helperCreateColumnsWithIds("4","5","6");
-		// For this case we expect all new columns to be added
-		List<ColumnModel> expected = helperCreateColumnsWithIds("4","5","6");
-		List<ColumnModel> toAdd = Lists.newArrayList();
-		List<String> toDrop = Lists.newArrayList();
-		SQLUtils.calculateColumnsToAddOrDrop(oldSchema, newSchema, toAdd, toDrop);
-		assertEquals(expected, toAdd);
-		assertEquals(Lists.newArrayList("_C1_", "_C2_", "_C3_", "whatever"), toDrop);
-	}
-	
-	@Test
-	public void testCalculateColumnsToAddOldEmpty(){
-		List<String> oldSchema = Arrays.asList();
-		List<ColumnModel> newSchema = helperCreateColumnsWithIds("4","5","6");
-		// For this case we expect all new columns to be added
-		List<ColumnModel> expected = helperCreateColumnsWithIds("4","5","6");
-		List<ColumnModel> toAdd = Lists.newArrayList();
-		List<String> toDrop = Lists.newArrayList();
-		SQLUtils.calculateColumnsToAddOrDrop(oldSchema, newSchema, toAdd, toDrop);
-		assertEquals(expected, toAdd);
-		assertEquals(Lists.newArrayList(), toDrop);
-	}
-	
-	@Test
-	public void testCalculateColumnsToAddNewEmpty(){
-		List<String> oldSchema = Arrays.asList("_C1_", "_C2_", "_C3_", "whatever");
-		List<ColumnModel> newSchema = helperCreateColumnsWithIds();
-		// For this case we expect no columns to be added
-		List<ColumnModel> expected = helperCreateColumnsWithIds();
-		List<ColumnModel> toAdd = Lists.newArrayList();
-		List<String> toDrop = Lists.newArrayList();
-		SQLUtils.calculateColumnsToAddOrDrop(oldSchema, newSchema, toAdd, toDrop);
-		assertEquals(expected, toAdd);
-		assertEquals(Lists.newArrayList("_C1_", "_C2_", "_C3_", "whatever"), toDrop);
-	}
-	
-	@Test
-	public void testCalculateColumnsToDropOverlap(){
-		List<String> oldSchema = Arrays.asList("1","2","3");
-		List<ColumnModel> newSchema = helperCreateColumnsWithIds("0","2","4");
-		// For this case we expect 1 and 3 to be removed.
-		List<String> expected = Arrays.asList("1","3");
-		List<String> toRemove = SQLUtils.calculateColumnsToDrop(oldSchema, newSchema);
-		assertEquals(expected, toRemove);
-	}
-	
-	@Test
-	public void testCalculateColumnsToDropNoOverlap(){
-		List<String> oldSchema = Arrays.asList("1","2","3");
-		List<ColumnModel> newSchema = helperCreateColumnsWithIds("4","5","6");
-		// For this case all old columns should be dropped
-		List<String> expected = Arrays.asList("1","2","3");
-		List<String> toRemove = SQLUtils.calculateColumnsToDrop(oldSchema, newSchema);
-		assertEquals(expected, toRemove);
-	}
-	
-	@Test
-	public void testCalculateColumnsToDropOldEmpty(){
-		List<String> oldSchema = Arrays.asList();
-		List<ColumnModel> newSchema = helperCreateColumnsWithIds("4","5","6");
-		// For this case nothing needs to be dropped
-		List<String> expected = Arrays.asList();
-		List<String> toRemove = SQLUtils.calculateColumnsToDrop(oldSchema, newSchema);
-		assertEquals(expected, toRemove);
-	}
-	
-	@Test
-	public void testCalculateColumnsToDropNewEmpty(){
-		List<String> oldSchema = Arrays.asList("1","2","3");
-		List<ColumnModel> newSchema = helperCreateColumnsWithIds();
-		// For this case everything needs to be dropped
-		List<String> expected = Arrays.asList("1","2","3");
-		List<String> toRemove = SQLUtils.calculateColumnsToDrop(oldSchema, newSchema);
-		assertEquals(expected, toRemove);
-	}
-	
-	@Test
-	public void testAlterTable(){
-		List<String> oldSchema = Arrays.asList("_C1_", "_C2_", "_C3_");
-		List<ColumnModel> newSchema = helperCreateColumnsWithIds("0","2","4");
-		// This should drop columns 1 & 3 and then add columns 0 & 4
-		String sql = SQLUtils.alterTableSql(oldSchema, newSchema, "syn999");
-		assertNotNull(sql);
-		String index = "";
-		if (StackConfiguration.singleton().getTableAllIndexedEnabled()) {
-			index = ",ADD INDEX `_C0_idx_` (`_C0_`),ADD INDEX `_C4_idx_` (`_C4_`)";
-		}
-		String expected = "ALTER TABLE `T999` DROP COLUMN `_C1_`, DROP COLUMN `_C3_`, ADD COLUMN `_C0_` bigint(20) DEFAULT NULL, ADD COLUMN `_C4_` bigint(20) DEFAULT NULL"
-				+ index;
-		assertEquals(expected, sql);
-	}
-	
-	@Test
-	public void testAlterTableNoChange(){
-		List<String> oldSchema = Arrays.asList("_C1_", "_C2_", "_C3_");
-		List<ColumnModel> newSchema = helperCreateColumnsWithIds("1","2","3");
-		// This should drop columns 1 & 3 and then add columns 0 & 4
-		String sql = SQLUtils.alterTableSql(oldSchema, newSchema, "syn999");
-		assertEquals(null, sql);
-	}
-	
 	@Test
 	public void testGetTableNameForId(){
 		assertEquals("T123", SQLUtils.getTableNameForId("syn123", TableType.INDEX));
@@ -534,15 +164,6 @@ public class SQLUtilsTest {
 		StringBuilder sb = new StringBuilder();
 		SQLUtils.appendDoubleCase("3", sb);
 		assertEquals("CASE WHEN _DBL_C3_ IS NULL THEN _C3_ ELSE _DBL_C3_ END", sb.toString());
-	}
-
-	@Test
-	public void testCreatOrAlterTableSQLNoChange(){
-		List<String> oldSchema = Arrays.asList("_C1_", "_C2_", "_C3_");
-		List<ColumnModel> newSchema = helperCreateColumnsWithIds("1","2","3");
-		// When both the old and new are the same there is nothing to do
-		String dml = SQLUtils.creatOrAlterTableSQL(oldSchema, newSchema, "syn123");
-		assertEquals("When no schema change is needed the DML should be null",null, dml);
 	}
 	
 	@Test
