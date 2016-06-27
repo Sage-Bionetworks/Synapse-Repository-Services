@@ -16,11 +16,18 @@ public class MarkdownDaoImplIntegrationTest {
 	MarkdownDao dao;
 
 	@Test
-	public void test() throws Exception {
+	public void testSimpleText() throws Exception {
 		String rawMarkdown = "## a heading";
 		String outputType = "html";
 		String result = "<h2 toc=\"true\">a heading</h2>\n";
 		assertEquals(result, dao.convertMarkdown(rawMarkdown, outputType));
 	}
 
+	@Test
+	public void testEntityId() throws Exception {
+		String rawMarkdown = "syn12345";
+		String outputType = "html";
+		String result = "<p><a href=\"https://www.synapse.org/#!Synapse:syn12345\" target=\"_blank\">syn12345</a></p>\n";
+		assertEquals(result, dao.convertMarkdown(rawMarkdown, outputType));
+	}
 }

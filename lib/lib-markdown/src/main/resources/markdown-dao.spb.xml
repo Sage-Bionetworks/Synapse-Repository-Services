@@ -23,6 +23,7 @@
 	<bean id="markdownDao"
 		class="org.sagebionetworks.markdown.MarkdownDaoImpl"
 		scope="singleton">
+		<property name="synapseBaseUrl" ref="stackConfiguration.synapseBaseUrl"/>
 	</bean>
 
 </beans>

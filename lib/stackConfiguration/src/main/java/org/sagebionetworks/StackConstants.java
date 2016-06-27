@@ -139,4 +139,6 @@ public class StackConstants {
 	public static final String EXTERNAL_S3_TEST_BUCKET = "%1$s.external.s3.test.sagebase.org";
 
 	public static final String MARKDOWN_SERVICE_ENDPOINT = "http://markdownit.prod.sagebase.org";
+
+	public static final String SYNAPSE_BASE_URL = "https://www.synapse.org/";
 }
