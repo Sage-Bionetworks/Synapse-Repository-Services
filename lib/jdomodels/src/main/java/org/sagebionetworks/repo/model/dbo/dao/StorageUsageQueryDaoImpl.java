@@ -33,6 +33,7 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 
+@Deprecated
 public final class StorageUsageQueryDaoImpl implements StorageUsageQueryDao {
 
 	private static final String S3_FILTER = COL_FILES_METADATA_TYPE + " = 'S3'";
@@ -111,11 +112,13 @@ public final class StorageUsageQueryDaoImpl implements StorageUsageQueryDao {
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
 
+	@Deprecated
 	@Override
 	public Long getTotalSize() throws DatastoreException {
 		return getTotalSize(true);
 	}
 
+	@Deprecated
 	@Override
 	public Long getTotalSizeForUser(Long userId) throws DatastoreException {
 
@@ -126,11 +129,13 @@ public final class StorageUsageQueryDaoImpl implements StorageUsageQueryDao {
 		return getTotalSizeForUser(userId, true);
 	}
 
+	@Deprecated
 	@Override
 	public Long getTotalCount() throws DatastoreException {
 		return getTotalCount(true);
 	}
 
+	@Deprecated
 	@Override
 	public Long getTotalCountForUser(Long userId) throws DatastoreException {
 
@@ -141,6 +146,7 @@ public final class StorageUsageQueryDaoImpl implements StorageUsageQueryDao {
 		return getTotalCountForUser(userId, true);
 	}
 
+	@Deprecated
 	@Override
 	public StorageUsageSummaryList getAggregatedUsage(List<StorageUsageDimension> dimensionList)
 			throws DatastoreException, InvalidModelException {
@@ -155,6 +161,7 @@ public final class StorageUsageQueryDaoImpl implements StorageUsageQueryDao {
 		return summaryList;
 	}
 
+	@Deprecated
 	@Override
 	public StorageUsageSummaryList getAggregatedUsageForUser(Long userId,
 			List<StorageUsageDimension> dimensionList)
@@ -173,6 +180,7 @@ public final class StorageUsageQueryDaoImpl implements StorageUsageQueryDao {
 		return summaryList;
 	}
 
+	@Deprecated
 	@Override
 	public StorageUsageSummaryList getAggregatedUsageByUserInRange(long beginIncl, long endExcl) {
 
@@ -190,6 +198,7 @@ public final class StorageUsageQueryDaoImpl implements StorageUsageQueryDao {
 		return summaryList;
 	}
 
+	@Deprecated
 	@Override
 	public List<StorageUsage> getUsageInRangeForUser(Long userId, long beginIncl, long endExcl)
 			throws DatastoreException {
