@@ -1556,13 +1556,15 @@ public class StackConfiguration {
 	 * @return the markdown service endpoint
 	 */
 	public String getMarkdownServiceEndpoint() {
-		return StackConstants.MARKDOWN_SERVICE_ENDPOINT;
+		return configuration
+				.getProperty("org.sagebionetworks.markdown.service.endpoint");
 	}
 
 	/**
 	 * @return the Synapse base URL
 	 */
 	public String getSynapseBaseUrl() {
-		return StackConstants.SYNAPSE_BASE_URL;
+		return configuration
+				.getProperty("org.sagebionetworks.synapse.base.url");
 	}
 }
