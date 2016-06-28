@@ -1558,4 +1558,11 @@ public class StackConfiguration {
 	public String getMarkdownServiceEndpoint() {
 		return StackConstants.MARKDOWN_SERVICE_ENDPOINT;
 	}
+
+	/**
+	 * @return the Synapse base URL
+	 */
+	public String getSynapseBaseUrl() {
+		return StackConstants.SYNAPSE_BASE_URL;
+	}
 }
