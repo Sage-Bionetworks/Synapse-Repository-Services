@@ -9,23 +9,27 @@ import org.sagebionetworks.repo.model.storage.StorageUsageDimension;
 import org.sagebionetworks.repo.model.storage.StorageUsageSummaryList;
 import org.springframework.beans.factory.annotation.Autowired;
 
+@Deprecated
 public class StorageUsageManagerImpl implements StorageUsageManager {
 
 	@Autowired
 	private StorageUsageQueryDao storageUsageDao;
 
+	@Deprecated
 	@Override
 	public StorageUsageSummaryList getUsage(
 			List<StorageUsageDimension> dimensionList) {
 		return storageUsageDao.getAggregatedUsage(dimensionList);
 	}
 
+	@Deprecated
 	@Override
 	public StorageUsageSummaryList getUsageForUser(Long userId,
 			List<StorageUsageDimension> dimensionList) {
 		return storageUsageDao.getAggregatedUsageForUser(userId, dimensionList);
 	}
 
+	@Deprecated
 	@Override
 	public QueryResults<StorageUsage> getUsageInRangeForUser(Long userId, Integer offset, Integer limit) {
 		List<StorageUsage> storageUsageList = storageUsageDao.getUsageInRangeForUser(userId, offset, offset + limit);
@@ -34,6 +38,7 @@ public class StorageUsageManagerImpl implements StorageUsageManager {
 		return queryResults;
 	}
 
+	@Deprecated
 	@Override
 	public StorageUsageSummaryList getUsageByUserInRange(Integer offset, Integer limit) {
 		return storageUsageDao.getAggregatedUsageByUserInRange(offset, offset + limit);

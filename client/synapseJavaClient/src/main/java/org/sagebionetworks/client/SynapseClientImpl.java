@@ -5228,6 +5228,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		}
 	}
 
+	@Deprecated
 	@Override
 	public StorageUsageSummaryList getStorageUsageSummary(
 			List<StorageUsageDimension> aggregation) throws SynapseException {

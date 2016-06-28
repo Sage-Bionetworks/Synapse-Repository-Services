@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.manager.StorageUsageManager;
@@ -17,6 +18,7 @@ import org.springframework.aop.framework.Advised;
 import org.springframework.aop.support.AopUtils;
 import org.springframework.test.util.ReflectionTestUtils;
 
+@Ignore
 public class StorageUsageServiceImplTest {
 
 	private final Long userId = 1234L;
