@@ -184,6 +184,7 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 
 	public static final String SQL_SELECT_ALL_THREAD_ID = "SELECT "+COL_DISCUSSION_THREAD_ID
 			+" FROM "+TABLE_DISCUSSION_THREAD
+			+" ORDER BY "+COL_DISCUSSION_THREAD_ID
 			+" LIMIT ? OFFSET ?";
 
 	public static final String SQL_SELECT_ALL_THREAD_ID_FOR_FORUM = "SELECT "+COL_DISCUSSION_THREAD_ID
