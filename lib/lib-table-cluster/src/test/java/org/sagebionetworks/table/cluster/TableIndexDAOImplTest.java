@@ -11,14 +11,11 @@ import static org.mockito.Mockito.verify;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.After;
 import org.junit.Assume;
@@ -44,14 +41,10 @@ import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.util.SimpleAggregateQueryException;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
-import org.sagebionetworks.util.ReflectionStaticTestUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.RowMapper;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.util.ReflectionTestUtils;
-import org.springframework.util.StringUtils;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -92,6 +85,19 @@ public class TableIndexDAOImplTest {
 		}
 	}
 	
+	/**
+	 * Helper to setup a table with a new schema.
+	 * 
+	 * @param newSchema
+	 * @param tableId
+	 */
+	public boolean createOrUpdateTable(List<ColumnModel> newSchema, String tableId){
+		List<DatabaseColumnInfo> currentSchema = tableIndexDAO.getDatabaseInfo(tableId);
+		List<ColumnChange> changes = SQLUtils.createReplaceSchemaChange(currentSchema, newSchema);
+		tableIndexDAO.createTableIfDoesNotExist(tableId);
+		return tableIndexDAO.alterTableAsNeeded(tableId, changes);
+	}
+	
 	@Test
 	public void testTableEnityTypes(){
 		TableEntity tableEntity = new TableEntity();
@@ -105,38 +111,29 @@ public class TableIndexDAOImplTest {
 	}
 
 	@Test
-	public void testGetCurrentTableColumnsDoesNotExist() {
-		// There should not be any columns for this table as it does not exist
-		List<ColumnDefinition> columns = tableIndexDAO
-				.getCurrentTableColumns(tableId);
-		assertNull(columns);
-	}
-
-	@Test
 	public void testCRUD() {
 		// Create a Simple table with only a few columns
 		List<ColumnModel> allTypes = TableModelTestUtils.createOneOfEachType();
 		// Create the table
-		boolean updated = tableIndexDAO.createOrUpdateTable(allTypes, tableId);
+		boolean updated = createOrUpdateTable(allTypes, tableId);
 		assertTrue(
 				"The table should not have existed so update should be true",
 				updated);
-		updated = tableIndexDAO.createOrUpdateTable(allTypes, tableId);
+		updated = createOrUpdateTable(allTypes, tableId);
 		assertFalse(
 				"The table already existed in that state so it should not have been updated",
 				updated);
 		// Now we should be able to see the columns that were created
-		List<ColumnDefinition> columns = tableIndexDAO
-				.getCurrentTableColumns(tableId);
+		List<DatabaseColumnInfo> columns = getAllColumnInfo(tableId);
 		// There should be a column for each column in the schema plus one
 		// ROW_ID and one ROW_VERSION plus one extra for doubles.
 		assertEquals(allTypes.size() + 2 + 1, columns.size());
 		for (int i = 0; i < allTypes.size(); i++) {
 			// Now remove a column and update the table
 			ColumnModel removed = allTypes.remove(0);
-			tableIndexDAO.createOrUpdateTable(allTypes, tableId);
+			createOrUpdateTable(allTypes, tableId);
 			// Now we should be able to see the columns that were created
-			columns = tableIndexDAO.getCurrentTableColumns(tableId);
+			columns = getAllColumnInfo(tableId);
 			// There should be a column for each column in the schema plus one
 			// ROW_ID and one ROW_VERSION.
 			int extraColumns = 1;
@@ -147,18 +144,14 @@ public class TableIndexDAOImplTest {
 					+ extraColumns, columns.size());
 			// Now add a column
 			allTypes.add(removed);
-			tableIndexDAO.createOrUpdateTable(allTypes, tableId);
+			createOrUpdateTable(allTypes, tableId);
 			// Now we should be able to see the columns that were created
-			columns = tableIndexDAO.getCurrentTableColumns(tableId);
+			columns = getAllColumnInfo(tableId);
 			// There should be a column for each column in the schema plus one
 			// ROW_ID and one ROW_VERSION.
-			assertEquals("readded " + removed, allTypes.size() + 2 + 1,
+			assertEquals("read " + removed, allTypes.size() + 2 + 1,
 					columns.size());
 		}
-		// Now delete the table
-		assertTrue(tableIndexDAO.deleteTable(tableId));
-		columns = tableIndexDAO.getCurrentTableColumns(tableId);
-		assertEquals(null, columns);
 	}
 
 	@Test
@@ -176,7 +169,7 @@ public class TableIndexDAOImplTest {
 		range.setVersionNumber(3L);
 		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
 		// Create the table
-		tableIndexDAO.createOrUpdateTable(allTypes, tableId);
+		createOrUpdateTable(allTypes, tableId);
 		// Now fill the table with data
 		tableIndexDAO.createOrUpdateOrDeleteRows(set, allTypes);
 		List<Map<String, Object>> result = tableIndexDAO.getConnection()
@@ -233,7 +226,7 @@ public class TableIndexDAOImplTest {
 				null, count);
 		// Create the table
 		List<ColumnModel> allTypes = TableModelTestUtils.createOneOfEachType();
-		tableIndexDAO.createOrUpdateTable(allTypes, tableId);
+		createOrUpdateTable(allTypes, tableId);
 		// the table now exists
 		count = tableIndexDAO.getRowCountForTable(tableId);
 		assertEquals("The row count should be 0 when the table is empty",
@@ -307,7 +300,7 @@ public class TableIndexDAOImplTest {
 	public void testSimpleQuery() throws ParseException, SimpleAggregateQueryException {
 		// Create the table
 		List<ColumnModel> allTypes = TableModelTestUtils.createOneOfEachType();
-		tableIndexDAO.createOrUpdateTable(allTypes, tableId);
+		createOrUpdateTable(allTypes, tableId);
 		// Now add some data
 		List<Row> rows = TableModelTestUtils.createRows(allTypes, 2);
 		RowSet set = new RowSet();
@@ -412,7 +405,7 @@ public class TableIndexDAOImplTest {
 	public void testLargeTable() throws ParseException {
 		// Create the table
 		List<ColumnModel> allTypes = TableModelTestUtils.createOneOfEachType();
-		tableIndexDAO.createOrUpdateTable(allTypes, tableId);
+		createOrUpdateTable(allTypes, tableId);
 		// Now add some data
 		long startTime = System.currentTimeMillis();
 		List<SelectColumn> headers = TableModelUtils.getSelectColumns(allTypes);
@@ -555,7 +548,7 @@ public class TableIndexDAOImplTest {
 		// Create the table
 		List<ColumnModel> doubleColumn = Lists.newArrayList(TableModelTestUtils
 				.createColumn(1L, "col1", ColumnType.DOUBLE));
-		tableIndexDAO.createOrUpdateTable(doubleColumn, tableId);
+		createOrUpdateTable(doubleColumn, tableId);
 		// Now add some data
 		List<Row> rows = TableModelTestUtils.createRows(doubleColumn, 5);
 		// insert special values
@@ -596,7 +589,7 @@ public class TableIndexDAOImplTest {
 	public void testSimpleQueryWithDeletedRows() throws ParseException {
 		// Create the table
 		List<ColumnModel> allTypes = TableModelTestUtils.createOneOfEachType();
-		tableIndexDAO.createOrUpdateTable(allTypes, tableId);
+		createOrUpdateTable(allTypes, tableId);
 		// Now add some data
 		List<Row> rows = TableModelTestUtils.createRows(allTypes, 4);
 		Row deletion = new Row();
@@ -638,7 +631,7 @@ public class TableIndexDAOImplTest {
 	public void testNullQuery() throws ParseException {
 		// Create the table
 		List<ColumnModel> allTypes = TableModelTestUtils.createOneOfEachType();
-		tableIndexDAO.createOrUpdateTable(allTypes, tableId);
+		createOrUpdateTable(allTypes, tableId);
 		// Now add some data
 		List<Row> rows = TableModelTestUtils.createNullRows(allTypes, 2);
 		RowSet set = new RowSet();
@@ -688,7 +681,7 @@ public class TableIndexDAOImplTest {
 		selectColumn.setColumnType(null);
 		selectColumn.setId(null);
 		selectColumn.setName("count(*)");
-		tableIndexDAO.createOrUpdateTable(allTypes, tableId);
+		createOrUpdateTable(allTypes, tableId);
 		// Now add some data
 		List<Row> rows = TableModelTestUtils.createRows(allTypes, 2);
 		RowSet set = new RowSet();
@@ -741,7 +734,7 @@ public class TableIndexDAOImplTest {
 		schema.add(foo);
 		schema.add(bar);
 		// Create the table.
-		tableIndexDAO.createOrUpdateTable(schema, tableId);
+		createOrUpdateTable(schema, tableId);
 		// Create some data
 		// Now add some data
 		List<Row> rows = TableModelTestUtils.createRows(schema, 100);
@@ -796,7 +789,7 @@ public class TableIndexDAOImplTest {
 		schema.add(foo);
 		schema.add(bar);
 		// Create the table.
-		tableIndexDAO.createOrUpdateTable(schema, tableId);
+		createOrUpdateTable(schema, tableId);
 		// Create some data
 		// Now add some data
 		List<Row> rows = TableModelTestUtils.createRows(schema, 100);
@@ -847,12 +840,8 @@ public class TableIndexDAOImplTest {
 				indexes.add(SQLUtils.getColumnNameForId(cm.getId()));
 			}
 		}
-
 		// Create the table.
-		tableIndexDAO.createOrUpdateTable(schema, tableId);
-		if (StackConfiguration.singleton().getTableAllIndexedEnabled()) {
-			checkIndexes(tableId, indexes.toArray(new String[0]));
-		}
+		createOrUpdateTable(schema, tableId);
 	}
 
 	@Test
@@ -873,10 +862,7 @@ public class TableIndexDAOImplTest {
 		}
 
 		// Create the table.
-		tableIndexDAO.createOrUpdateTable(schema, tableId);
-		if (StackConfiguration.singleton().getTableAllIndexedEnabled()) {
-			checkIndexes(tableId, indexes.toArray(new String[0]));
-		}
+		createOrUpdateTable(schema, tableId);
 
 		// replace 10 columns
 		for (int i = 30; i < 40; i++) {
@@ -885,10 +871,7 @@ public class TableIndexDAOImplTest {
 			indexes.set(i + 1, SQLUtils.getColumnNameForId(cm.getId()));
 		}
 
-		tableIndexDAO.createOrUpdateTable(schema, tableId);
-		if (StackConfiguration.singleton().getTableAllIndexedEnabled()) {
-			checkIndexes(tableId, indexes.toArray(new String[0]));
-		}
+		createOrUpdateTable(schema, tableId);
 
 		// replace 10 and add 10 columns
 		for (int i = 20; i < 30; i++) {
@@ -907,35 +890,7 @@ public class TableIndexDAOImplTest {
 				indexes.add(SQLUtils.getColumnNameForId(cm.getId()));
 			}
 		}
-		tableIndexDAO.createOrUpdateTable(schema, tableId);
-		if (StackConfiguration.singleton().getTableAllIndexedEnabled()) {
-			checkIndexes(tableId, indexes.toArray(new String[0]));
-		}
-	}
-
-	private void checkIndexes(String tableId, final String... indexes)
-			throws Exception {
-		JdbcTemplate template = (JdbcTemplate) ReflectionStaticTestUtils
-				.getField(tableIndexDAO, "template");
-		String tableName = SQLUtils.getTableNameForId(tableId,
-				SQLUtils.TableType.INDEX);
-
-		// Bind variables do not seem to work here
-		final AtomicInteger count = new AtomicInteger(0);
-		template.query("show columns from " + tableName, new RowMapper<Void>() {
-			@Override
-			public Void mapRow(ResultSet rs, int rowNum) throws SQLException {
-				boolean hasIndex = !StringUtils.isEmpty(rs.getString("Key"));
-				String column = rs.getString("Field");
-				if (hasIndex) {
-					count.incrementAndGet();
-					assertTrue("Index on " + column, Arrays.asList(indexes)
-							.contains(column));
-				}
-				return null;
-			}
-		});
-		assertEquals(indexes.length, count.get());
+		createOrUpdateTable(schema, tableId);
 	}
 	
 	@Test
@@ -1042,7 +997,7 @@ public class TableIndexDAOImplTest {
 		column.setColumnType(ColumnType.INTEGER);
 		List<ColumnModel> schema = Lists.newArrayList(column);
 		
-		tableIndexDAO.createOrUpdateTable(schema, tableId);
+		createOrUpdateTable(schema, tableId);
 		// create three rows.
 		List<Row> rows = TableModelTestUtils.createRows(schema, 2);
 		// add duplicate values
@@ -1070,15 +1025,15 @@ public class TableIndexDAOImplTest {
 		// Create the table
 		tableIndexDAO.createTableIfDoesNotExist(tableId);
 		// Call under test.
-		List<ColumnDefinition> schema = tableIndexDAO.getCurrentTableColumns(tableId);
+		List<DatabaseColumnInfo> schema = getAllColumnInfo(tableId);
 		assertNotNull(schema);
 		assertEquals(2, schema.size());
-		ColumnDefinition cd = schema.get(0);
-		assertEquals(ROW_ID, cd.getName());
+		DatabaseColumnInfo cd = schema.get(0);
+		assertEquals(ROW_ID, cd.getColumnName());
 		assertTrue("ROW_ID is the primary key so it should have an index.",cd.hasIndex());
 		
 		cd = schema.get(1);
-		assertEquals(ROW_VERSION, cd.getName());
+		assertEquals(ROW_VERSION, cd.getColumnName());
 		assertFalse(cd.hasIndex());
 	}
 	
@@ -1097,11 +1052,11 @@ public class TableIndexDAOImplTest {
 		boolean wasAltered = tableIndexDAO.alterTableAsNeeded(tableId, Lists.newArrayList(change));
 		assertTrue(wasAltered);
 		// Check the results
-		List<ColumnDefinition> schema = tableIndexDAO.getCurrentTableColumns(tableId);
+		List<DatabaseColumnInfo> schema =  getAllColumnInfo(tableId);
 		assertNotNull(schema);
 		assertEquals(3, schema.size());
-		ColumnDefinition cd = schema.get(2);
-		assertEquals("_C123_", cd.getName());
+		DatabaseColumnInfo cd = schema.get(2);
+		assertEquals("_C123_", cd.getColumnName());
 		assertFalse(cd.hasIndex());
 		
 		// Another update of the same column with no change should not alter the table
@@ -1111,4 +1066,215 @@ public class TableIndexDAOImplTest {
 		assertFalse(wasAltered);
 	}
 	
+	
+	@Test
+	public void testColumnInfoAndCardinality(){
+		// create a table with a long column.
+		ColumnModel intColumn = new ColumnModel();
+		intColumn.setId("12");
+		intColumn.setName("foo");
+		intColumn.setColumnType(ColumnType.INTEGER);
+		
+		ColumnModel booleanColumn = new ColumnModel();
+		booleanColumn.setId("13");
+		booleanColumn.setName("bar");
+		booleanColumn.setColumnType(ColumnType.BOOLEAN);
+		
+		List<ColumnModel> schema = Lists.newArrayList(intColumn, booleanColumn);
+		
+		createOrUpdateTable(schema, tableId);
+		// create three rows.
+		List<Row> rows = TableModelTestUtils.createRows(schema, 5);
+		// add duplicate values
+		RowSet set = new RowSet();
+		set.setRows(rows);
+		set.setHeaders(TableModelUtils.getSelectColumns(schema));
+		set.setTableId(tableId);
+		
+		IdRange range = new IdRange();
+		range.setMinimumId(100L);
+		range.setMaximumId(200L);
+		range.setVersionNumber(3L);
+		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
+		
+		tableIndexDAO.createOrUpdateOrDeleteRows(set, schema);
+		
+		List<DatabaseColumnInfo> infoList = getAllColumnInfo(tableId);
+		assertNotNull(infoList);
+		tableIndexDAO.optimizeTableIndices(infoList, tableId, 4);
+		infoList = getAllColumnInfo(tableId);
+		
+		assertEquals(4, infoList.size());
+		
+		DatabaseColumnInfo info = infoList.get(0);
+		// ROW_ID
+		assertEquals("ROW_ID", info.getColumnName());
+		assertEquals(new Long(5), info.getCardinality());
+		assertEquals("PRIMARY", info.getIndexName());
+		assertTrue(info.hasIndex());
+		assertEquals(MySqlColumnType.BIGINT, info.getType());
+		assertEquals(new Integer(20), info.getMaxSize());
+		assertEquals(null, info.getColumnType());
+		
+		// one
+		info = infoList.get(2);
+		assertEquals("_C12_", info.getColumnName());
+		assertEquals(new Long(5), info.getCardinality());
+		assertTrue(info.hasIndex());
+		assertEquals("_C12_idx_", info.getIndexName());
+		assertEquals(MySqlColumnType.BIGINT, info.getType());
+		assertEquals(new Integer(20), info.getMaxSize());
+		assertEquals(ColumnType.INTEGER, info.getColumnType());
+		
+		// two
+		info = infoList.get(3);
+		assertEquals("_C13_", info.getColumnName());
+		assertEquals(new Long(2), info.getCardinality());
+		assertTrue(info.hasIndex());
+		assertEquals("_C13_idx_", info.getIndexName());
+		assertEquals(MySqlColumnType.TINYINT, info.getType());
+		assertEquals(new Integer(1), info.getMaxSize());
+		assertEquals(ColumnType.BOOLEAN, info.getColumnType());
+		
+		// Optimize the indices
+		int maxNumberOfIndices = 5;
+		tableIndexDAO.optimizeTableIndices(infoList, tableId, maxNumberOfIndices);
+		// fetch index information.
+		List<DatabaseColumnInfo> updated = tableIndexDAO.getDatabaseInfo(tableId);
+		assertNotNull(updated);
+		
+		tableIndexDAO.provideCardinality(updated, tableId);
+		tableIndexDAO.provideIndexName(updated, tableId);
+	}
+	
+	@Test
+	public void testIndexAdd(){
+		// create the table
+		tableIndexDAO.createTableIfDoesNotExist(tableId);
+		ColumnModel oldColumn = null;
+		
+		// Create a column
+		ColumnModel newColumn = new ColumnModel();
+		newColumn.setId("12");
+		newColumn.setName("foo");
+		newColumn.setColumnType(ColumnType.INTEGER);
+		
+		// add the column
+		tableIndexDAO.alterTableAsNeeded(tableId, Lists.newArrayList(new ColumnChange(oldColumn, newColumn)));
+		int maxNumberOfIndices = 5;
+		optimizeTableIndices(tableId, maxNumberOfIndices);
+		// Get the latest table information
+		List<DatabaseColumnInfo> infoList = getAllColumnInfo(tableId);
+		assertNotNull(infoList);
+		assertEquals(3, infoList.size());
+		DatabaseColumnInfo info = infoList.get(2);
+		assertEquals("_C12_idx_",info.getIndexName());
+	}
+	
+	@Test
+	public void testIndexRename(){
+		// create the table
+		tableIndexDAO.createTableIfDoesNotExist(tableId);
+		ColumnModel oldColumn = null;
+		
+		// Create a column
+		ColumnModel newColumn = new ColumnModel();
+		newColumn.setId("12");
+		newColumn.setName("foo");
+		newColumn.setColumnType(ColumnType.INTEGER);
+		
+		// add the column
+		tableIndexDAO.alterTableAsNeeded(tableId, Lists.newArrayList(new ColumnChange(oldColumn, newColumn)));
+		int maxNumberOfIndices = 5;
+		optimizeTableIndices(tableId, maxNumberOfIndices);
+		// Get the latest table information
+		List<DatabaseColumnInfo> infoList = getAllColumnInfo(tableId);
+		assertNotNull(infoList);
+		assertEquals(3, infoList.size());
+		DatabaseColumnInfo info = infoList.get(2);
+		assertEquals("_C12_idx_",info.getIndexName());
+		
+		// Now change the column type
+		oldColumn = newColumn;
+		newColumn = new ColumnModel();
+		newColumn.setId("13");
+		newColumn.setName("bar");
+		newColumn.setColumnType(ColumnType.DATE);
+		
+		tableIndexDAO.alterTableAsNeeded(tableId, Lists.newArrayList(new ColumnChange(oldColumn, newColumn)));
+		// the index should get renamed
+		optimizeTableIndices(tableId, maxNumberOfIndices);
+		infoList = getAllColumnInfo(tableId);
+		assertNotNull(infoList);
+		assertEquals(3, infoList.size());
+		info = infoList.get(2);
+		assertEquals("_C13_idx_",info.getIndexName());
+	}
+	
+	@Test
+	public void testIndexDrop(){
+		// create the table
+		tableIndexDAO.createTableIfDoesNotExist(tableId);
+		ColumnModel oldColumn = null;
+		
+		// Create a column
+		ColumnModel newColumn = new ColumnModel();
+		newColumn.setId("12");
+		newColumn.setName("foo");
+		newColumn.setColumnType(ColumnType.INTEGER);
+		
+		// add the column
+		tableIndexDAO.alterTableAsNeeded(tableId, Lists.newArrayList(new ColumnChange(oldColumn, newColumn)));
+		int maxNumberOfIndices = 5;
+		optimizeTableIndices(tableId, maxNumberOfIndices);
+		// Get the latest table information
+		List<DatabaseColumnInfo> infoList = getAllColumnInfo(tableId);
+		assertNotNull(infoList);
+		assertEquals(3, infoList.size());
+		DatabaseColumnInfo info = infoList.get(2);
+		assertEquals("_C12_idx_",info.getIndexName());
+		
+		// reduce the number of allowed indices
+		maxNumberOfIndices = 1;
+		// the index should get renamed
+		optimizeTableIndices(tableId, maxNumberOfIndices);
+		// the column should no longer have an index.
+		infoList = getAllColumnInfo(tableId);
+		assertNotNull(infoList);
+		assertEquals(3, infoList.size());
+		info = infoList.get(2);
+		assertFalse(info.hasIndex());
+		assertEquals(null,info.getIndexName());
+	}
+	
+	/**
+	 * Helper to get all of the DatabaseColumnInfo about a table. 
+	 * @param tableId
+	 * @return
+	 */
+	public List<DatabaseColumnInfo> getAllColumnInfo(String tableId){
+		List<DatabaseColumnInfo> info = tableIndexDAO.getDatabaseInfo(tableId);
+		tableIndexDAO.provideCardinality(info, tableId);
+		tableIndexDAO.provideIndexName(info, tableId);
+		return info;
+	}
+	
+	/**
+	 * Helper to optimize the indices for a table.
+	 * 
+	 * @param tableId
+	 * @param maxNumberOfIndices
+	 */
+	public void optimizeTableIndices(String tableId, int maxNumberOfIndices){
+		List<DatabaseColumnInfo> info = getAllColumnInfo(tableId);
+		tableIndexDAO.optimizeTableIndices(info, tableId, maxNumberOfIndices);
+	}
+	
+	@Test
+	public void testGetDatabaseInfoEmpty(){
+		// table does not exist
+		List<DatabaseColumnInfo> info = tableIndexDAO.getDatabaseInfo(tableId);
+		assertNotNull(info);
+		assertTrue(info.isEmpty());
+	}
 }

@@ -7,6 +7,7 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.security.MessageDigest;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -1221,10 +1222,14 @@ public class TableModelUtils {
 	
 	/**
 	 * Create the MD5 hex string of the given column model IDs.
+	 * Note: The resulting MD5 is independent of order.
 	 * @param currentSchema
 	 * @return
 	 */
 	public static String createSchemaMD5Hex(List<Long> columnIds){
+		// Sort the IDs to yield the same MD5 regardless of order.
+		columnIds = new LinkedList<Long>(columnIds);
+		Collections.sort(columnIds);
 		StringBuilder builder = new StringBuilder();
 		builder.append("DEFAULT");
 		for(Long id : columnIds){

@@ -17,16 +17,6 @@ import org.springframework.transaction.support.TransactionCallback;
  *
  */
 public interface TableIndexDAO {
-
-	/**
-	 * Create or update a table with the given schema.
-	 * 
-	 * @param connection
-	 * @param schema
-	 * @param tableId
-	 */
-	@Deprecated
-	public boolean createOrUpdateTable(List<ColumnModel> schema, String tableId);
 	
 	/**
 	 * Create a table with the given name if it does not exist.
@@ -52,13 +42,6 @@ public interface TableIndexDAO {
 	 * @return
 	 */
 	public boolean deleteTable(String tableId); 
-	
-	/**
-	 * Get the current columns of a table in the passed database connection.
-	 * @param tableId
-	 * @return
-	 */
-	public List<ColumnDefinition> getCurrentTableColumns(String tableId);
 	
 	/**
 	 * Create or update the rows passed in the given RowSet.
@@ -214,5 +197,48 @@ public interface TableIndexDAO {
 	 * @param tableId
 	 */
 	public void truncateTable(String tableId);
-
+	
+	
+	/**
+	 * Get information about each column of a database table.
+	 * 
+	 * @param tableId
+	 * @return
+	 */
+	public List<DatabaseColumnInfo> getDatabaseInfo(String tableId);
+	
+	/**
+	 * Provide the cardinality for the given columns and table.
+	 * 
+	 * Note: A single query will be executed, and the results added to the passed info list.
+	 * 
+	 * @param list
+	 * @param tableId
+	 */
+	public void provideCardinality(List<DatabaseColumnInfo> list, String tableId);
+	
+	/**
+	 * Provide the index name for each column in the table.
+	 * @param list
+	 * @param tableId
+	 */
+	public void provideIndexName(List<DatabaseColumnInfo> list, String tableId);
+	
+	
+	/**
+	 * The provided column data is used to optimize the indices on the given
+	 * table. Indices are added until either all columns have an index or the
+	 * maximum number of indices per table is reached. When a table has more
+	 * columns than the maximum number of indices, indices are assigned to
+	 * columns with higher cardinality before columns with low cardinality.
+	 * 
+	 * @param list
+	 *            The current column information of this table used for the
+	 *            optimization.
+	 * @param tableId
+	 *            The table to optimize.
+	 * @param maxNumberOfIndex
+	 *            The maximum number of indices allowed on a single table.
+	 */
+	public void optimizeTableIndices(List<DatabaseColumnInfo> list, String tableId, int maxNumberOfIndex);
 }

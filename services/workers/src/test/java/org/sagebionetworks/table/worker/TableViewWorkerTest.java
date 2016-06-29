@@ -221,6 +221,7 @@ public class TableViewWorkerTest {
 		verify(indexManager, times(1)).applyChangeSetToIndex(any(RowSet.class), anyListOf(ColumnModel.class));
 		verify(indexManager).setIndexVersion(viewCRC);
 		verify(tableManagerSupport).attemptToSetTableStatusToAvailable(tableId, token, TableViewWorker.DEFAULT_ETAG);
+		verify(indexManager).optimizeTableIndices();
 	}
 
 }

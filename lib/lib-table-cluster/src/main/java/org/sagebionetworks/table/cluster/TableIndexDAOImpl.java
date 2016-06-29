@@ -5,12 +5,12 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.sql.DataSource;
@@ -24,7 +24,6 @@ import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
 import org.sagebionetworks.util.ValidateArgument;
-import org.springframework.dao.InvalidDataAccessResourceUsageException;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -41,15 +40,16 @@ import org.springframework.transaction.support.DefaultTransactionDefinition;
 import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 public class TableIndexDAOImpl implements TableIndexDAO {
 
+	private static final String KEY_NAME = "Key_name";
+	private static final String COLUMN_NAME = "Column_name";
+	private static final String SHOW_INDEXES_FROM = "SHOW INDEXES FROM ";
 	private static final String KEY = "Key";
-	private static final String SQL_SHOW_COLUMNS = "SHOW COLUMNS FROM ";
+	private static final String SQL_SHOW_COLUMNS = "SHOW FULL COLUMNS FROM ";
 	private static final String FIELD = "Field";
 	private static final String TYPE = "Type";
 	private static final Pattern VARCHAR = Pattern.compile("varchar\\((\\d+)\\)");
@@ -108,37 +108,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public boolean createOrUpdateTable(List<ColumnModel> newSchema,
-			String tableId) {
-		// First determine if we have any columns for this table yet
-		List<ColumnDefinition> oldColumnDefs = getCurrentTableColumns(tableId);
-		List<String> oldColumns = oldColumnDefs == null ? null : Lists.transform(oldColumnDefs, new Function<ColumnDefinition, String>() {
-			@Override
-			public String apply(ColumnDefinition input) {
-				return input.getName();
-			}
-		});
-		// Build the SQL to create or update the table
-		String dml = SQLUtils.creatOrAlterTableSQL(oldColumns, newSchema, tableId);
-		// If there is nothing to apply then do nothing
-		if (dml == null)
-			return false;
-		// Execute the DML
-		try {
-			template.update(dml);
-		} catch (BadSqlGrammarException e) {
-			if (e.getCause() != null && e.getCause().getMessage() != null && e.getCause().getMessage().startsWith("Row size too large")) {
-				throw new InvalidDataAccessResourceUsageException(
-						"Too much data per column. The maximum size for a row is about 65000 bytes", e.getCause());
-			} else {
-				throw e;
-			}
-		}
-		return true;
-	}
-
-
-	@Override
 	public boolean deleteTable(String tableId) {
 		String dropTableDML = SQLUtils.dropTableSQL(tableId, SQLUtils.TableType.INDEX);
 		try {
@@ -147,33 +116,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		} catch (BadSqlGrammarException e) {
 			// This is thrown when the table does not exist
 			return false;
-		}
-	}
-
-	@Override
-	public List<ColumnDefinition> getCurrentTableColumns(String tableId) {
-		String tableName = SQLUtils.getTableNameForId(tableId, SQLUtils.TableType.INDEX);
-		// Bind variables do not seem to work here
-		try {
-			return template.query(SQL_SHOW_COLUMNS + tableName, new RowMapper<ColumnDefinition>() {
-				@Override
-				public ColumnDefinition mapRow(ResultSet rs, int rowNum) throws SQLException {
-					ColumnDefinition columnDefinition = new ColumnDefinition();
-					columnDefinition.setName(rs.getString(FIELD));
-					String type = rs.getString(TYPE);
-					Matcher m = VARCHAR.matcher(type);
-					if (m.matches()) {
-						columnDefinition.setColumnType(ColumnType.STRING);
-						columnDefinition.setMaxSize(Long.parseLong(m.group(1)));
-					}
-					String key = rs.getString(KEY);
-					columnDefinition.setHasIndex(!"".equals(key));
-					return columnDefinition;
-				}
-			});
-		} catch (BadSqlGrammarException e) {
-			// Spring throws this when the table does not
-			return null;
 		}
 	}
 
@@ -449,6 +391,89 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		template.update(sql);
 	}
 
+	@Override
+	public List<DatabaseColumnInfo> getDatabaseInfo(String tableId) {
+		try {
+			String tableName = SQLUtils.getTableNameForId(tableId, SQLUtils.TableType.INDEX);
+			// Bind variables do not seem to work here
+			return template.query(SQL_SHOW_COLUMNS + tableName, new RowMapper<DatabaseColumnInfo>() {
+				@Override
+				public DatabaseColumnInfo mapRow(ResultSet rs, int rowNum) throws SQLException {
+					DatabaseColumnInfo info = new DatabaseColumnInfo();
+					info.setColumnName(rs.getString(FIELD));
+					String key = rs.getString(KEY);
+					info.setHasIndex(!"".equals(key));
+					String typeString = rs.getString("Type");
+					info.setType(MySqlColumnType.parserType(typeString));
+					info.setMaxSize(MySqlColumnType.parseSize(typeString));
+					String comment = rs.getString("Comment");
+					if(comment != null && !"".equals(comment)){
+						info.setColumnType(ColumnType.valueOf(comment));
+					}
+					return info;
+				}
+			});
+		} catch (BadSqlGrammarException e) {
+			// Spring throws this when the table does not
+			return new LinkedList<DatabaseColumnInfo>();
+		}
+	}
 
+
+	@Override
+	public void provideCardinality(final List<DatabaseColumnInfo> list,
+			String tableId) {
+		ValidateArgument.required(list, "list");
+		ValidateArgument.required(tableId, "tableId");
+		if(list.isEmpty()){
+			return;
+		}
+		String sql = SQLUtils.createCardinalitySql(list, tableId);
+		template.query(sql, new RowCallbackHandler() {
+			@Override
+			public void processRow(ResultSet rs) throws SQLException {
+				for (DatabaseColumnInfo info : list) {
+					info.setCardinality(rs.getLong(info.getColumnName()));
+				}
+			}
+		});
+	}
+
+	@Override
+	public void provideIndexName(List<DatabaseColumnInfo> list, String tableId) {
+		ValidateArgument.required(list, "list");
+		ValidateArgument.required(tableId, "tableId");
+		if(list.isEmpty()){
+			return;
+		}
+		final Map<String, DatabaseColumnInfo> nameToInfoMap = new HashMap<String, DatabaseColumnInfo>(list.size());
+		for(DatabaseColumnInfo info: list){
+			nameToInfoMap.put(info.getColumnName(), info);
+		}
+		String tableName = SQLUtils.getTableNameForId(tableId, SQLUtils.TableType.INDEX);
+		template.query(SHOW_INDEXES_FROM+tableName, new RowCallbackHandler() {
+			@Override
+			public void processRow(ResultSet rs) throws SQLException {
+				String columnName = rs.getString(COLUMN_NAME);
+				String indexName = rs.getString(KEY_NAME);
+				DatabaseColumnInfo info = nameToInfoMap.get(columnName);
+				if(info == null){
+					throw new IllegalArgumentException("Provided List<DatabaseColumnInfo> has no match for column: "+columnName);
+				}
+				info.setIndexName(indexName);
+			}
+		});
+	}
+
+	@Override
+	public void optimizeTableIndices(List<DatabaseColumnInfo> list,
+			String tableId, int maxNumberOfIndex) {
+		String alterSql = SQLUtils.createOptimizedAlterIndices(list, tableId, maxNumberOfIndex);
+		if(alterSql == null){
+			// No changes are needed.
+			return;
+		}
+		template.update(alterSql);
+	}
 
 }

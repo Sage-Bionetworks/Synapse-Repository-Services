@@ -1,12 +1,13 @@
 package org.sagebionetworks.repo.manager.table;
 
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.table.cluster.ColumnChange;
+import org.sagebionetworks.table.cluster.DatabaseColumnInfo;
+import org.sagebionetworks.table.cluster.SQLUtils;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.springframework.transaction.TransactionStatus;
@@ -126,20 +127,12 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * , java.util.List)
 	 */
 	@Override
-	public void setIndexSchema(List<ColumnModel> currentSchema) {
-		// Create all of the status tables unconditionally.
-		tableIndexDao.createSecondaryTables(tableId);
-		
-		if (currentSchema.isEmpty()) {
-			// If there is no schema delete the table
-			tableIndexDao.deleteTable(tableId);
-		} else {
-			// We have a schema so create or update the table
-			tableIndexDao.createOrUpdateTable(currentSchema, tableId);
-		}
-		// Save the hash of the new schema
-		String schemaMD5Hex = TableModelUtils. createSchemaMD5HexCM(currentSchema);
-		tableIndexDao.setCurrentSchemaMD5Hex(tableId, schemaMD5Hex);
+	public void setIndexSchema(List<ColumnModel> newSchema) {
+		// Lookup the current schema of the index
+		List<DatabaseColumnInfo> currentSchema = tableIndexDao.getDatabaseInfo(tableId);
+		// create a change that replaces the old schema as needed.
+		List<ColumnChange> changes = SQLUtils.createReplaceSchemaChange(currentSchema, newSchema);
+		updateTableSchema(changes);
 	}
 
 	@Override
@@ -159,37 +152,45 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		tableIndexDao.setMaxCurrentCompleteVersionForTable(
 				tableId, versionNumber);
 	}
-	@Override
-	public void createTableIndexIfDoesNotExist() {
-		// Create all of the status tables unconditionally.
-		tableIndexDao.createSecondaryTables(tableId);
-		// create the table if it does not exist
-		tableIndexDao.createTableIfDoesNotExist(tableId);
-	}
 	
 	@Override
-	public void updateTableSchema(List<ColumnChange> changes) {
+	public boolean updateTableSchema(List<ColumnChange> changes) {
 		// create the table if it does not exist
 		tableIndexDao.createTableIfDoesNotExist(tableId);
 		// Create all of the status tables unconditionally.
 		tableIndexDao.createSecondaryTables(tableId);
-		
-		List<ColumnModel> newSchema = new LinkedList<ColumnModel>();
-		for(ColumnChange change: changes){
-			if(change.getNewColumn() != null){
-				newSchema.add(change.getNewColumn());
-			}
-		}
-		
-		if(newSchema.isEmpty()){
-			// clear all rows from the table
-			tableIndexDao.truncateTable(tableId);
-		}
 		// Alter the table
-		tableIndexDao.alterTableAsNeeded(tableId, changes);		
-		// Save the hash of the new schema
-		String schemaMD5Hex = TableModelUtils. createSchemaMD5HexCM(newSchema);
-		tableIndexDao.setCurrentSchemaMD5Hex(tableId, schemaMD5Hex);
+		boolean wasSchemaChanged = tableIndexDao.alterTableAsNeeded(tableId, changes);
+		if(wasSchemaChanged){
+			// Get the current schema.
+			List<DatabaseColumnInfo> tableInfo = tableIndexDao.getDatabaseInfo(tableId);
+			// Determine the current schema
+			List<ColumnModel> currentSchema = SQLUtils.extractSchemaFromInfo(tableInfo);
+			if(currentSchema.isEmpty()){
+				// there are no columns in the table so truncate all rows.
+				tableIndexDao.truncateTable(tableId);
+			}
+			// Set the new schema MD5
+			String schemaMD5Hex = TableModelUtils.createSchemaMD5HexCM(currentSchema);
+			tableIndexDao.setCurrentSchemaMD5Hex(tableId, schemaMD5Hex);
+		}
+		return wasSchemaChanged;
+	}
+	/*
+	 * (non-Javadoc)
+	 * @see org.sagebionetworks.repo.manager.table.TableIndexManager#optimizeTableIndices()
+	 */
+	@Override
+	public void optimizeTableIndices() {
+		// To optimize a table's indices, statistics must be gathered
+		// for each column of the table.
+		List<DatabaseColumnInfo> tableInfo = tableIndexDao.getDatabaseInfo(tableId);
+		// must also gather cardinality data for each column.
+		tableIndexDao.provideCardinality(tableInfo, tableId);
+		// must also gather the names of each index currently applied to each column.
+		tableIndexDao.provideIndexName(tableInfo, tableId);
+		// All of the column data is then used to optimized the indices.
+		tableIndexDao.optimizeTableIndices(tableInfo, tableId, MAX_MYSQL_INDEX_COUNT);
 	}
 	
 }

@@ -9,16 +9,12 @@ import static org.sagebionetworks.repo.model.table.TableConstants.SINGLE_KEY;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-import org.apache.commons.lang.StringEscapeUtils;
-import org.apache.commons.lang.StringUtils;
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -26,16 +22,13 @@ import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.TableConstants;
-import org.sagebionetworks.table.cluster.utils.ColumnConstants;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
-import org.sagebionetworks.util.TimeUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 
 /**
  * Utilities for generating Table SQL, DML, and DDL.
@@ -61,10 +54,6 @@ public class SQLUtils {
 	private static final String DOUBLE_NEGATIVE_INFINITY = Double.toString(Double.NEGATIVE_INFINITY);
 	private static final String DOUBLE_ENUM_CLAUSE = " ENUM ('" + DOUBLE_NAN + "', '" + DOUBLE_POSITIVE_INFINITY + "', '"
 			+ DOUBLE_NEGATIVE_INFINITY + "') DEFAULT null";
-
-	public static final long MAX_MYSQL_VARCHAR_INDEX_LENGTH = 255; // from docs, max length is 767 bytes, 767/3 = 255
-																	// characters
-	private static final int MAX_MYSQL_SECONDARY_INDEX_COUNT = 63; // mysql only supports a max of 64 secondary indexes
 
 	public enum TableType {
 		/**
@@ -103,77 +92,6 @@ public class SQLUtils {
 	public static final List<TableType> SECONDARY_TYPES = ImmutableList.of(TableType.STATUS, TableType.FILE_IDS);
 	
 	/**
-	 * Generate the SQL need to create or alter a table from one schema to
-	 * another.
-	 * 
-	 * @param oldSchema
-	 *            The original schema of the table. Should be null if the table
-	 *            does not already exist.
-	 * @param newSchema
-	 *            The new schema that the table should have when the resulting
-	 *            SQL is executed.
-	 * @return
-	 */
-	public static String creatOrAlterTableSQL(List<String> oldColumns,
-			List<ColumnModel> newSchema, String tableId) {
-		if (oldColumns == null || oldColumns.isEmpty()) {
-			// This is a create
-			return createTableSQL(newSchema, tableId);
-		} else {
-			// This is an alter
-			return alterTableSql(oldColumns, newSchema, tableId);
-		}
-	}
-
-	/**
-	 * Alter a table by adding all new columns and removing all columns no
-	 * longer used.
-	 * 
-	 * @param oldSchema
-	 * @param newSchema
-	 * @param tableId
-	 * @return
-	 */
-	public static String alterTableSql(List<String> oldColumns,
-			List<ColumnModel> newSchema, String tableId) {
-		// Calculate both the columns to add and remove.
-		List<ColumnModel> toAdd = Lists.newArrayList();
-		List<String> toDrop = Lists.newArrayList();
-		calculateColumnsToAddOrDrop(oldColumns, newSchema, toAdd, toDrop);
-		// There is nothing to do if both are empty
-		if (toAdd.isEmpty() && toDrop.isEmpty()) {
-			return null;
-		}
-		int indexCount;
-		// column count - 2 for row_id and row_version columns which don't count towards possible indexes
-		int columnCount = oldColumns.size() - 2;
-		if (columnCount <= MAX_MYSQL_SECONDARY_INDEX_COUNT) {
-			// if we have less than the max indexes, all columns have indexes and we remove the ones we drop
-			indexCount = columnCount - toDrop.size();
-		} else {
-			// we don't know which columns we are dropping and which have indexes. We estimate the index count
-			// conservatively
-			indexCount = Math.min(columnCount - toDrop.size(), MAX_MYSQL_SECONDARY_INDEX_COUNT);
-		}
-		return alterTableSQLInner(toAdd, toDrop, tableId, indexCount);
-	}
-
-	/**
-	 * Given a new schema generate the create table DDL.
-	 * 
-	 * @param newSchema
-	 * @return
-	 */
-	public static String createTableSQL(List<ColumnModel> newSchema,
-			String tableId) {
-		ValidateArgument.required(newSchema, "Table schema");
-		ValidateArgument.requirement(newSchema.size() >= 1, "Table schema must include at least one column");
-		ValidateArgument.required(tableId, "tableId");
-		String columnDefinitions = getColumnDefinitionsToCreate(newSchema);
-		return createTableSQL(tableId, TableType.INDEX, columnDefinitions);
-	}
-
-	/**
 	 * Given a new schema generate the create table DDL.
 	 * 
 	 * @param newSchema
@@ -205,271 +123,17 @@ public class SQLUtils {
 		return "CREATE TABLE IF NOT EXISTS `" + getTableNameForId(tableId, type) + "` ( " + columnDefinitions + " )";
 	}
 
-	private static String getColumnDefinitionsToCreate(List<ColumnModel> newSchema) {
-		List<String> columns = Lists.newArrayListWithExpectedSize(newSchema.size() * 2);
-		// Every table must have a ROW_ID and ROW_VERSION
-		columns.add(ROW_ID + " bigint(20) NOT NULL");
-		columns.add(ROW_VERSION + " bigint(20) NOT NULL");
-		int indexCount = 0;
-		for (int i = 0; i < newSchema.size(); i++) {
-			appendColumnDefinitionsToBuilder(columns, columns, newSchema.get(i), false, indexCount);
-			indexCount++;
-		}
-		columns.add("PRIMARY KEY (" + ROW_ID + ")");
-		return StringUtils.join(columns, ", ");
-	}
-
-	/**
-	 * Append a column definition to the passed builder.
-	 * 
-	 * @param builder
-	 * @param newSchema
-	 * @param indexCount
-	 */
-	static void appendColumnDefinitionsToBuilder(List<String> columns, List<String> indexes, ColumnModel newSchema, boolean justNames,
-			int indexCount) {
-		String columnName = getColumnNameForId(newSchema.getId());
-		Long maxSize = newSchema.getMaximumSize();
-		switch (newSchema.getColumnType()) {
-		case DOUBLE:
-			if (justNames) {
-				columns.add(columnName);
-				columns.add(TableConstants.DOUBLE_PREFIX + columnName);
-			} else {
-				columns.add("`" + columnName + "` " + getSQLTypeForColumnType(newSchema.getColumnType(), newSchema.getMaximumSize()) + " "
-						+ getSQLDefaultForColumnType(newSchema.getColumnType(), newSchema.getDefaultValue()));
-				columns.add("`" + TableConstants.DOUBLE_PREFIX + columnName + "` " + DOUBLE_ENUM_CLAUSE);
-			}
-			break;
-		case LARGETEXT:
-			maxSize = MAX_MYSQL_VARCHAR_INDEX_LENGTH;
-		default:
-			if (justNames) {
-				columns.add(columnName);
-			} else {
-				columns.add("`" + columnName + "` " + getSQLTypeForColumnType(newSchema.getColumnType(), newSchema.getMaximumSize()) + " "
-						+ getSQLDefaultForColumnType(newSchema.getColumnType(), newSchema.getDefaultValue()));
-			}
-			break;
-		}
-		if (indexes != null && !justNames && indexCount < MAX_MYSQL_SECONDARY_INDEX_COUNT) {
-			boolean allIndexedEnabled = StackConfiguration.singleton().getTableAllIndexedEnabled();
-			if (allIndexedEnabled) {
-				String index = createColumnIndexDefinition(columnName, maxSize);
-				indexes.add(index);
-			}
-		}
-	}
-
-	static String createColumnIndexDefinition(String columnName, Long maximumSize) {
-		String prefixLength = "";
-		if (maximumSize != null) {
-			long columnSize = maximumSize.longValue();
-			if (columnSize >= MAX_MYSQL_VARCHAR_INDEX_LENGTH) {
-				prefixLength = "(" + MAX_MYSQL_VARCHAR_INDEX_LENGTH + ")";
-			}
-		}
-		return "INDEX `" + getColumnIndexName(columnName) + "` (`" + columnName + "`" + prefixLength + ")";
-	}
-
-	static String getColumnIndexName(String columnName) {
-		return columnName + IDX;
-	}
-
-	/**
-	 * Get the DML for this column type.
-	 * 
-	 * @param type
-	 * @return
-	 */
-	@Deprecated
-	public static String getSQLTypeForColumnType(ColumnType type, Long maxSize) {
-		if (type == null) {
-			throw new IllegalArgumentException("ColumnType cannot be null");
-		}
-		switch (type) {
-		case INTEGER:
-		case FILEHANDLEID:
-		case DATE:
-			return "bigint(20)";
-		case ENTITYID:
-			return "varchar(" + ColumnConstants.MAX_ENTITY_ID_BYTES_AS_STRING + ") "+CHARACTER_SET_UTF8_COLLATE_UTF8_GENERAL_CI;
-		case LINK:
-		case STRING:
-			// Strings and links must have a size
-			if (maxSize == null)
-				throw new IllegalArgumentException("Cannot create a string column without a max size.");
-			return "varchar(" + maxSize + ") "+CHARACTER_SET_UTF8_COLLATE_UTF8_GENERAL_CI;
-		case DOUBLE:
-			return "double";
-		case BOOLEAN:
-			return "boolean";
-		case LARGETEXT:
-			return "mediumtext "+CHARACTER_SET_UTF8_COLLATE_UTF8_GENERAL_CI;
-		}
-		throw new IllegalArgumentException("Unknown type: " + type.name());
-	}
-
 	/**
 	 * Pares the value for insertion into the database.
 	 * @param value
 	 * @param type
 	 * @return
 	 */
-	@Deprecated
 	public static Object parseValueForDB(ColumnType type, String value){
 		if(value == null) return null;
 		if(type == null) throw new IllegalArgumentException("Type cannot be null");
-		try {
-			switch (type) {
-			case STRING:
-			case ENTITYID:
-			case LINK:
-			case LARGETEXT:
-				return value;
-			case DOUBLE:
-				return Double.parseDouble(value);
-			case INTEGER:
-			case FILEHANDLEID:
-				return Long.parseLong(value);
-			case DATE:
-				// value can be either a number (in which case it is milliseconds since blah) or not a number (in which
-				// case it is date string)
-				try {
-					return Long.parseLong(value);
-				} catch (NumberFormatException e) {
-					return TimeUtils.parseSqlDate(value);
-				}
-			case BOOLEAN:
-				boolean booleanValue = Boolean.parseBoolean(value);
-				return booleanValue;
-			}
-			throw new IllegalArgumentException("Unknown Type: " + type);
-		} catch (NumberFormatException e) {
-			// Convert all parsing errors to illegal args.
-			throw new IllegalArgumentException(e);
-		}
-	}
-
-	/**
-	 * Generate the Default part of a column definition.
-	 * 
-	 * @param type
-	 * @param defaultString
-	 * @return
-	 */
-	@Deprecated
-	public static String getSQLDefaultForColumnType(ColumnType type,
-			String defaultString) {
-		if (defaultString == null)
-			return DEFAULT + " NULL";
-		// Prevent SQL injection attack
-		defaultString = StringEscapeUtils.escapeSql(defaultString);
-		Object objectValue = parseValueForDB(type, defaultString);
-		StringBuilder builder = new StringBuilder();
-		builder.append(DEFAULT).append(" ");
-		boolean needsStringEscape = type == ColumnType.STRING || type == ColumnType.ENTITYID || type == ColumnType.LINK;
-		if (needsStringEscape) {
-			builder.append("'");
-		}
-		builder.append(objectValue.toString());
-		if (needsStringEscape) {
-			builder.append("'");
-		}
-		return builder.toString();
-	}
-
-	/**
-	 * Generate the SQL needed to alter a table given the list of columns to add
-	 * and drop.
-	 * 
-	 * @param toAdd
-	 * @param toRemove
-	 * @return
-	 */
-	public static String alterTableSQLInner(Iterable<ColumnModel> toAdd, Iterable<String> toDrop, String tableId, int indexCount) {
-		StringBuilder builder = new StringBuilder();
-		builder.append("ALTER TABLE ");
-		builder.append("`").append(getTableNameForId(tableId, TableType.INDEX)).append("`");
-		boolean first = true;
-		// Drops first
-		for (String drop : toDrop) {
-			if (!first) {
-				builder.append(",");
-			}
-			builder.append(" DROP COLUMN `").append(drop).append("`");
-			first = false;
-		}
-		// Now the adds
-		List<String> columnsToAdd = Lists.newArrayList();
-		List<String> indexes = Lists.newArrayList();
-		for (ColumnModel add : toAdd) {
-			appendColumnDefinitionsToBuilder(columnsToAdd, indexes, add, false, indexCount);
-			indexCount++;
-		}
-		for (String add : columnsToAdd) {
-			if (!first) {
-				builder.append(",");
-			}
-			builder.append(" ADD COLUMN ").append(add);
-			first = false;
-		}
-		for (String add : indexes) {
-			if (!first) {
-				builder.append(",");
-			}
-			builder.append("ADD " + add);
-			first = false;
-		}
-		return builder.toString();
-	}
-
-	/**
-	 * Given both the old and new schema which columns need to be added.
-	 * 
-	 * @param oldSchema
-	 * @param newSchema
-	 * @return
-	 */
-	static void calculateColumnsToAddOrDrop(List<String> oldColumns, List<ColumnModel> newSchema, List<ColumnModel> toAdd,
-			List<String> toDrop) {
-		Set<String> oldColumnSet = Sets.newLinkedHashSet(oldColumns);
-		oldColumnSet.remove(ROW_ID);
-		oldColumnSet.remove(ROW_VERSION);
-		for (ColumnModel cm : newSchema) {
-			List<String> columnNames = Lists.newArrayList();
-			appendColumnDefinitionsToBuilder(columnNames, null, cm, true, 0);
-			boolean added = false;
-			for (String columnName : columnNames) {
-				if (!oldColumnSet.remove(columnName)) {
-					added = true;
-				}
-			}
-			if (added) {
-				toAdd.add(cm);
-			}
-		}
-		toDrop.addAll(oldColumnSet);
-	}
-
-	/**
-	 * Given both the old and new schema which columns need to be removed.
-	 * 
-	 * @param oldSchema
-	 * @param newSchema
-	 * @return
-	 */
-	public static List<String> calculateColumnsToDrop(
-			List<String> oldSchema, List<ColumnModel> newSchema) {
-		// Add any column in the old schema that is not in the new.
-		Set<String> set = createColumnIdSet(newSchema);
-		List<String> toDrop = new LinkedList<String>();
-		for(String columnId: oldSchema){
-			if(!set.contains(columnId)){
-				toDrop.add(columnId);
-			}
-		}
-		return toDrop;
+		ColumnTypeInfo info = ColumnTypeInfo.getInfoForType(type);
+		return info.parseValueForDB(value);
 	}
 
 	/**
@@ -479,7 +143,7 @@ public class SQLUtils {
 	 * @return
 	 */
 	static Set<String> createColumnIdSet(List<ColumnModel> schema) {
-		HashSet<String> set = new HashSet<String>();
+		HashSet<String> set = new HashSet<String>(schema.size());
 		for (ColumnModel cm : schema) {
 			if (cm.getId() == null)
 				throw new IllegalArgumentException("ColumnId cannot be null");
@@ -525,13 +189,6 @@ public class SQLUtils {
 	}
 
 	/**
-	 * is the a certain type of table name?
-	 */
-	public static boolean isTableName(String name, TableType type) {
-		return type.getTableNamePattern().matcher(name.toUpperCase()).matches();
-	}
-
-	/**
 	 * Get the Column name for a given column ID.
 	 * 
 	 * @param columnId
@@ -541,63 +198,6 @@ public class SQLUtils {
 		if (columnId == null)
 			throw new IllegalArgumentException("Column ID cannot be null");
 		return COLUMN_PREFIX + columnId.toString() + COLUMN_POSTFIX;
-	}
-	
-	/**
-	 * Get the name of an index for the given column.
-	 * @param columnId
-	 * @return
-	 */
-	public static String getIndexNameForColumnId(String columnId){
-		return "`"+getColumnNameForId(columnId)+IDX+"`";
-	}
-
-
-	static Iterable<String> getColumnNames(final Iterable<ColumnModel> columnModels) {
-		return new Iterable<String>() {
-			@Override
-			public Iterator<String> iterator() {
-				final Iterator<ColumnModel> cmIterator = columnModels.iterator();
-				return new Iterator<String>() {
-					Iterator<String> names = null;
-
-					@Override
-					public void remove() {
-						cmIterator.remove();
-					}
-
-					@Override
-					public String next() {
-						if (names != null) {
-							String name = names.next();
-							if (!names.hasNext()) {
-								names = null;
-							}
-							return name;
-						} else {
-							ColumnModel cm = cmIterator.next();
-							List<String> columns = Lists.newArrayList();
-							appendColumnDefinitionsToBuilder(columns, null, cm, true, 0);
-							if (columns.size() == 1) {
-								return columns.get(0);
-							} else {
-								names = columns.iterator();
-								return names.next();
-							}
-						}
-					}
-
-					@Override
-					public boolean hasNext() {
-						if (names == null) {
-							return cmIterator.hasNext();
-						} else {
-							return names.hasNext();
-						}
-					}
-				};
-			}
-		};
 	}
 
 	public static void appendColumnName(String subName, String columnId, StringBuilder builder) {
@@ -741,22 +341,40 @@ public class SQLUtils {
 		// Unconditionally set these two columns
 		builder.append(ROW_ID);
 		builder.append(", ").append(ROW_VERSION);
-		for (String columnName : getColumnNames(schema)) {
+		List<String> columnNames = getColumnNames(schema);
+		for (String columnName : columnNames) {
 			builder.append(", ");
 			builder.append(columnName);
 		}
 		builder.append(") VALUES ( :").append(ROW_ID_BIND).append(", :").append(ROW_VERSION_BIND);
-		for (String columnName : getColumnNames(schema)) {
+		for (String columnName : columnNames) {
 			builder.append(", :");
 			builder.append(columnName);
 		}
 		builder.append(") ON DUPLICATE KEY UPDATE " + ROW_VERSION + " = VALUES(" + ROW_VERSION + ")");
-		for (String columnName : getColumnNames(schema)) {
+		for (String columnName : columnNames) {
 			builder.append(", ");
 			builder.append(columnName);
 			builder.append(" = VALUES(").append(columnName).append(")");
 		}
 		return builder.toString();
+	}
+	
+	/**
+	 * Get all of the column names for the given schema.
+	 * @param schema
+	 * @return
+	 */
+	public static List<String> getColumnNames(List<ColumnModel> schema){
+		List<String> names = new LinkedList<String>();
+		for(ColumnModel cm: schema){
+			String columnName = getColumnNameForId(cm.getId());
+			names.add(columnName);
+			if(ColumnType.DOUBLE.equals(cm.getColumnType())){
+				names.add(TableConstants.DOUBLE_PREFIX + columnName);
+			}
+		}
+		return names;
 	}
 
 	/**
@@ -1117,26 +735,6 @@ public class SQLUtils {
 	}
 	
 	/**
-	 * Is the index used by the old model compatible with the new model?
-	 * 
-	 * @param oldModel
-	 * @param newModel
-	 * @return
-	 */
-	public static boolean isIndexCompatible(ColumnModel oldModel, ColumnModel newModel){
-		if(oldModel.getMaximumSize() != null){
-			if(!oldModel.getMaximumSize().equals(newModel.getMaximumSize())){
-				// the column sizes do not match so the index is not compatible.
-				return false;
-			}
-		}
-		ColumnTypeInfo oldInfo = ColumnTypeInfo.getInfoForType(oldModel.getColumnType());
-		ColumnTypeInfo newInfo = ColumnTypeInfo.getInfoForType(newModel.getColumnType());
-		// Do both columns use the same MySQL column type?
-		return oldInfo.getMySqlType().equals(newInfo.getMySqlType());
-	}
-	
-	/**
 	 * Append a column type definition to the passed builder.
 	 * 
 	 * @param builder
@@ -1199,25 +797,261 @@ public class SQLUtils {
 		return "TRUNCATE TABLE "+getTableNameForId(tableId, TableType.INDEX);
 	}
 
+	
 	/**
-	 * Create the SQL to an index for each column name.
+	 * A single SQL statement to get the cardinality of each column as a single call.
+	 * 
+	 * @param list
 	 * @param tableId
-	 * @param indicesToAdd
 	 * @return
 	 */
-	public static String createAddIndicesSql(String tableId,
-			List<ColumnDefinition> indicesToAdd) {
+	public static String createCardinalitySql(List<DatabaseColumnInfo> list, String tableId){
+		if(list.isEmpty()){
+			return null;
+		}
+		StringBuilder builder = new StringBuilder();
+		builder.append("SELECT ");
+		boolean isFirst = true;
+		for(DatabaseColumnInfo info: list){
+			if(!isFirst){
+				builder.append(", ");
+			}
+			builder.append("COUNT(DISTINCT ");
+			builder.append(info.getColumnName());
+			builder.append(") AS ");
+			builder.append(info.getColumnName());
+			isFirst = false;
+		}
+		builder.append(" FROM ");
+		builder.append(getTableNameForId(tableId, TableType.INDEX));
+		return builder.toString();
+	}
+	
+	/**
+	 * Create SQL to alter the table to add, remove, and rename column indices.  This method
+	 * will insure that columns with high cardinality are given an index before columns with
+	 * a low cardinality while ensuring the maximum number of indices is respected for each table.
+	 * 
+	 * @param list
+	 * @param tableId
+	 * @return
+	 */
+	public static String createOptimizedAlterIndices(List<DatabaseColumnInfo> list, String tableId, int maxNumberOfIndex){
+		IndexChange change = calculateIndexOptimization(list, tableId, maxNumberOfIndex);
+		return createAlterIndices(change, tableId);
+	}
+	
+	/**
+	 * Create an IndexChange to add, remove, and rename column indices.  This method
+	 * will insure that columns with high cardinality are given an index before columns with
+	 * a low cardinality while ensuring the ma
+	 * ximum number of indices is respected for each table.
+	 * 
+	 * @param list
+	 * @param tableId
+	 * @return
+	 */
+	public static IndexChange calculateIndexOptimization(List<DatabaseColumnInfo> list, String tableId, int maxNumberOfIndex){
+		// us a copy of the list
+		list = new LinkedList<DatabaseColumnInfo>(list);
+		// sort by cardinality descending		
+		Collections.sort(list, Collections.reverseOrder(DatabaseColumnInfo.CARDINALITY_COMPARATOR));
+		List<DatabaseColumnInfo> toAdd = new LinkedList<DatabaseColumnInfo>();
+		List<DatabaseColumnInfo> toRemove = new LinkedList<DatabaseColumnInfo>();
+		List<DatabaseColumnInfo> toRename = new LinkedList<DatabaseColumnInfo>();
+		
+		int indexCount = 1;
+		for(DatabaseColumnInfo info: list){
+			// ignore row_id and version
+			if(info.isRowIdOrVersion()){
+				continue;
+			}
+			if(indexCount < maxNumberOfIndex){
+				// Still under the max.
+				indexCount++;
+				if(!info.hasIndex()){
+					toAdd.add(info);
+				}else{
+					// does the index need to be renamed?
+					String expectedIndexName = getIndexName(info.getColumnName());
+					if(!expectedIndexName.equals(info.getIndexName())){
+						toRename.add(info);
+					}
+				}
+			}else{
+				// over the max
+				if(info.hasIndex()){
+					toRemove.add(info);
+				}
+			}
+		}
+		return new IndexChange(toAdd, toRemove, toRename);
+	}
+	
+	
+	/**
+	 * Create the alter table SQL for the given index change.
+	 * 
+	 * @param change
+	 * @param tableId
+	 * @return
+	 */
+	public static String createAlterIndices(IndexChange change, String tableId){
+		ValidateArgument.required(change, "change");
+		ValidateArgument.required(tableId, "tableId");
+		
+		if(change.getToAdd().isEmpty()
+				&& change.getToRemove().isEmpty()
+				&& change.getToRename().isEmpty()){
+			// nothing to do.
+			return null;
+		}
+		
 		StringBuilder builder = new StringBuilder();
 		builder.append("ALTER TABLE ");
 		builder.append(getTableNameForId(tableId, TableType.INDEX));
+		builder.append(" ");
 		boolean isFirst = true;
-		for(ColumnDefinition column: indicesToAdd){
-			if(isFirst){
+		//deletes first
+		for(DatabaseColumnInfo info: change.getToRemove()){
+			if(!isFirst){
 				builder.append(", ");
 			}
-			builder.append("ADD INDEX ");
+			appendDropIndex(builder, info);		
+			isFirst = false;
 		}
-		return null;
+		// renames
+		for(DatabaseColumnInfo info: change.getToRename()){
+			if(!isFirst){
+				builder.append(", ");
+			}
+			// for MySQL 5.6 rename index is not supported so drop and add.
+			appendDropIndex(builder, info);		
+			builder.append(", ");
+			appendAddIndex(builder, info);
+			isFirst = false;
+		}
+		// adds
+		for(DatabaseColumnInfo info: change.getToAdd()){
+			if(!isFirst){
+				builder.append(", ");
+			}
+			appendAddIndex(builder, info);
+			isFirst = false;
+		}
+		return builder.toString();
 	}
-
+	
+	private static void appendDropIndex(StringBuilder builder, DatabaseColumnInfo info){
+		builder.append("DROP INDEX ");
+		builder.append(info.getIndexName());	
+	}
+	
+	private static void appendAddIndex(StringBuilder builder, DatabaseColumnInfo info){
+		builder.append("ADD INDEX ");
+		info.setIndexName(getIndexName(info.getColumnName()));
+		builder.append(info.createIndexDefinition());	
+	}
+	
+	/**
+	 * Get the name of an index from the columnId.
+	 * @param columnId
+	 * @return
+	 */
+	public static String getIndexName(String columnId){
+		return columnId+IDX;
+	}
+	
+	/**
+	 * Create a list of ColumnChanges to replace the current schema represented by the given
+	 * list of Database with a new schema represented by the given ColumnModels.
+	 * @param infoList
+	 * @param newSchema
+	 * @return
+	 */
+	public static List<ColumnChange> createReplaceSchemaChange(List<DatabaseColumnInfo> infoList, List<ColumnModel> newSchema){
+		List<ColumnModel> oldColumnIds = extractSchemaFromInfo(infoList);
+		return createReplaceSchemaChangeIds(oldColumnIds, newSchema);
+	}
+	
+	/**
+	 * Create a replace schema change.
+	 * Any column in the current schema that is not in the schema will be removed.
+	 * Any column in the new schema that is not in the old schema will be added.
+	 * Any column in both the current and new will be left unchanged.
+	 * 
+	 * @param currentInfo
+	 * @param newSchema
+	 * @return
+	 */
+	public static List<ColumnChange> createReplaceSchemaChangeIds(List<ColumnModel> currentColunm, List<ColumnModel> newSchema){
+		Set<String> oldSet = createColumnIdSet(currentColunm);
+		Set<String> newSet = createColumnIdSet(newSchema);
+		for(ColumnModel cm: newSchema){
+			newSet.add(cm.getId());
+		}
+		List<ColumnChange> changes = new LinkedList<ColumnChange>();
+		// remove any column in the current that is not in the new.
+		for(ColumnModel oldColumn: currentColunm){
+			if(!newSet.contains(oldColumn.getId())){
+				// Remove this column
+				ColumnModel newColumn = null;
+				changes.add(new ColumnChange(oldColumn, newColumn));
+			}
+		}
+		// Add any column in the current that is not in the old.
+		for(ColumnModel newColumn: newSchema){
+			if(!oldSet.contains(newColumn.getId())){
+				ColumnModel oldColumn = null;
+				changes.add(new ColumnChange(oldColumn, newColumn));
+			}
+		}
+		return changes;
+	}
+	
+	/**
+	 * Extract the list of columnIds from a list of DatabaseColumnInfo.
+	 * 
+	 * @param infoList
+	 * @return
+	 */
+	public static List<ColumnModel> extractSchemaFromInfo(List<DatabaseColumnInfo> infoList){
+		List<ColumnModel> results = new LinkedList<ColumnModel>();
+		if(infoList != null){
+			for(DatabaseColumnInfo info: infoList){
+				if(!info.isRowIdOrVersion()){
+					if(info.getColumnType() != null){
+						long columnId = getColumnId(info);
+						ColumnModel cm = new ColumnModel();
+						cm.setId(""+columnId);
+						cm.setColumnType(info.getColumnType());
+						if(info.getMaxSize() != null){
+							cm.setMaximumSize(info.getMaxSize().longValue());
+						}
+						results.add(cm);
+					}
+				}
+			}
+		}
+		return results;
+	}
+	
+	/**
+	 * Extract the columnId from the columnName of the given DatabaseColumnInfo.
+	 * 
+	 * @param info
+	 * @return
+	 */
+	public static long getColumnId(DatabaseColumnInfo info){
+		ValidateArgument.required(info, "DatabaseColumnInfo");
+		ValidateArgument.required(info.getColumnName(), "DatabaseColumnInfo.columnName()");
+		String columnName = info.getColumnName();
+		try {
+			return Long.parseLong(columnName.substring(COLUMN_PREFIX.length(), columnName.length()-COLUMN_POSTFIX.length()));
+		} catch (NumberFormatException e) {
+			throw new IllegalArgumentException("Unexpected columnName: "+info.getColumnName());
+		}
+	}
+	
+	
 }

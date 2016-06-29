@@ -78,4 +78,6 @@ public class ColumnConstants {
 	public static final long MAX_LARGE_TEXT_CHARACTERS = MAX_LARGE_TEXT_BYTES/MAX_BYTES_PER_CHAR_UTF_8;
 	
 	public static final String CHARACTER_SET_UTF8_COLLATE_UTF8_GENERAL_CI = "CHARACTER SET utf8 COLLATE utf8_general_ci";
+	
+	public static final int MAX_MYSQL_VARCHAR_INDEX_LENGTH = 255;
 }
