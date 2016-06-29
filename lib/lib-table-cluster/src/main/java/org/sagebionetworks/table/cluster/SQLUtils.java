@@ -970,7 +970,7 @@ public class SQLUtils {
 	 * @return
 	 */
 	public static List<ColumnChange> createReplaceSchemaChange(List<DatabaseColumnInfo> infoList, List<ColumnModel> newSchema){
-		List<ColumnModel> oldColumnIds = getColumnIds(infoList);
+		List<ColumnModel> oldColumnIds = extractSchemaFromInfo(infoList);
 		return createReplaceSchemaChangeIds(oldColumnIds, newSchema);
 	}
 	
@@ -1015,7 +1015,7 @@ public class SQLUtils {
 	 * @param infoList
 	 * @return
 	 */
-	public static List<ColumnModel> getColumnIds(List<DatabaseColumnInfo> infoList){
+	public static List<ColumnModel> extractSchemaFromInfo(List<DatabaseColumnInfo> infoList){
 		List<ColumnModel> results = new LinkedList<ColumnModel>();
 		if(infoList != null){
 			for(DatabaseColumnInfo info: infoList){
@@ -1025,6 +1025,9 @@ public class SQLUtils {
 						ColumnModel cm = new ColumnModel();
 						cm.setId(""+columnId);
 						cm.setColumnType(info.getColumnType());
+						if(info.getMaxSize() != null){
+							cm.setMaximumSize(info.getMaxSize().longValue());
+						}
 						results.add(cm);
 					}
 				}

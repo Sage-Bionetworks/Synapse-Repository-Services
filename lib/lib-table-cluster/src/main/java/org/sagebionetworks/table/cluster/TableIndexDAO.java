@@ -44,14 +44,6 @@ public interface TableIndexDAO {
 	public boolean deleteTable(String tableId); 
 	
 	/**
-	 * Get the current columns of a table in the passed database connection.
-	 * @param tableId
-	 * @return
-	 */
-	@Deprecated
-	public List<ColumnDefinition> getCurrentTableColumns(String tableId);
-	
-	/**
 	 * Create or update the rows passed in the given RowSet.
 	 * 
 	 * Note: The passed RowSet is not required to match the current schema.

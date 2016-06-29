@@ -159,9 +159,30 @@ public class TableIndexManagerImplTest {
 	
 	@Test
 	public void testSetIndexSchemaWithColumns(){
+		ColumnModel column = new ColumnModel();
+		column.setId("44");
+		column.setColumnType(ColumnType.BOOLEAN);
+		schema = Lists.newArrayList(column);
+		
+		DatabaseColumnInfo info = new DatabaseColumnInfo();
+		info.setColumnName("_C44_");
+		info.setColumnType(ColumnType.BOOLEAN);
+		
+		when(mockIndexDao.getDatabaseInfo(tableId)).thenReturn(Lists.newArrayList(info));
+		when(mockIndexDao.alterTableAsNeeded(anyString(), anyList())).thenReturn(true);
 		// call under test
 		manager.setIndexSchema(schema);
 		String schemaMD5Hex = TableModelUtils. createSchemaMD5HexCM(Lists.newArrayList(schema));
+		verify(mockIndexDao).setCurrentSchemaMD5Hex(tableId, schemaMD5Hex);
+	}
+	
+	@Test
+	public void testSetIndexSchemaWithNoColumns(){
+		when(mockIndexDao.getDatabaseInfo(tableId)).thenReturn(new LinkedList<DatabaseColumnInfo>());
+		when(mockIndexDao.alterTableAsNeeded(anyString(), anyList())).thenReturn(true);
+		// call under test
+		manager.setIndexSchema(new LinkedList<ColumnModel>());
+		String schemaMD5Hex = TableModelUtils. createSchemaMD5HexCM(Lists.newArrayList(new LinkedList<ColumnModel>()));
 		verify(mockIndexDao).setCurrentSchemaMD5Hex(tableId, schemaMD5Hex);
 	}
 	
@@ -224,6 +245,12 @@ public class TableIndexManagerImplTest {
 		ColumnModel newColumn = new ColumnModel();
 		newColumn.setId("12");
 		List<ColumnChange> changes = Lists.newArrayList(new ColumnChange(oldColumn, newColumn));
+		when(mockIndexDao.alterTableAsNeeded(tableId, changes)).thenReturn(true);
+		DatabaseColumnInfo info = new DatabaseColumnInfo();
+		info.setColumnName("_C12_");
+		info.setColumnType(ColumnType.BOOLEAN);
+		when(mockIndexDao.getDatabaseInfo(tableId)).thenReturn(Lists.newArrayList(info));
+		
 		// call under test
 		manager.updateTableSchema(changes);
 		verify(mockIndexDao).createTableIfDoesNotExist(tableId);
@@ -243,10 +270,13 @@ public class TableIndexManagerImplTest {
 		ColumnModel newColumn = null;
 
 		List<ColumnChange> changes = Lists.newArrayList(new ColumnChange(oldColumn, newColumn));
+		when(mockIndexDao.alterTableAsNeeded(tableId, changes)).thenReturn(true);
+		when(mockIndexDao.getDatabaseInfo(tableId)).thenReturn(new LinkedList<DatabaseColumnInfo>());
 		// call under test
 		manager.updateTableSchema(changes);
 		verify(mockIndexDao).createTableIfDoesNotExist(tableId);
 		verify(mockIndexDao).createSecondaryTables(tableId);
+		verify(mockIndexDao).getDatabaseInfo(tableId);
 		// The new schema is empty so the table is truncated.
 		verify(mockIndexDao).truncateTable(tableId);
 		verify(mockIndexDao).alterTableAsNeeded(tableId, changes);
@@ -254,4 +284,20 @@ public class TableIndexManagerImplTest {
 		String schemaMD5Hex = TableModelUtils. createSchemaMD5HexCM(new LinkedList<ColumnModel>());
 		verify(mockIndexDao).setCurrentSchemaMD5Hex(tableId, schemaMD5Hex);
 	}
+	
+	@Test
+	public void testUpdateTableSchemaNoChange(){
+		List<ColumnChange> changes = new LinkedList<ColumnChange>();
+		when(mockIndexDao.alterTableAsNeeded(tableId, changes)).thenReturn(false);
+		when(mockIndexDao.getDatabaseInfo(tableId)).thenReturn(new LinkedList<DatabaseColumnInfo>());
+		// call under test
+		manager.updateTableSchema(changes);
+		verify(mockIndexDao).createTableIfDoesNotExist(tableId);
+		verify(mockIndexDao).createSecondaryTables(tableId);
+		verify(mockIndexDao).alterTableAsNeeded(tableId, changes);
+		verify(mockIndexDao, never()).getDatabaseInfo(tableId);
+		verify(mockIndexDao, never()).truncateTable(tableId);
+		verify(mockIndexDao, never()).setCurrentSchemaMD5Hex(anyString(), anyString());
+	}
+	
 }

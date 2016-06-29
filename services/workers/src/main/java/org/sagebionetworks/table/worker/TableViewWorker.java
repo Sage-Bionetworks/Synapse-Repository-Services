@@ -151,7 +151,7 @@ public class TableViewWorker implements ChangeMessageDrivenRunner {
 				tableManagerSupport.attemptToUpdateTableProgress(tableId, token, "Building view...", currentProgress, totalProgress);
 			}
 		});
-		
+		// now that table is created and populated the indices on the table can be optimized.
 		indexManager.optimizeTableIndices();
 		indexManager.setIndexVersion(viewCRC);
 		// Attempt to set the table to complete.

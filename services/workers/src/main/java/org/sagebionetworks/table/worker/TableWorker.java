@@ -280,7 +280,7 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 				}
 			}
 		}
-		
+		// now that table is created and populated the indices on the table can be optimized.
 		indexManager.optimizeTableIndices();
 		
 		if(lastFailedException != null){

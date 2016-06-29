@@ -125,10 +125,12 @@ public class DatabaseColumnInfo {
 				+ ((cardinality == null) ? 0 : cardinality.hashCode());
 		result = prime * result
 				+ ((columnName == null) ? 0 : columnName.hashCode());
+		result = prime * result
+				+ ((columnType == null) ? 0 : columnType.hashCode());
 		result = prime * result + (hasIndex ? 1231 : 1237);
 		result = prime * result
 				+ ((indexName == null) ? 0 : indexName.hashCode());
-		result = prime * result + maxSize;
+		result = prime * result + ((maxSize == null) ? 0 : maxSize.hashCode());
 		result = prime * result + ((type == null) ? 0 : type.hashCode());
 		return result;
 	}
@@ -151,6 +153,8 @@ public class DatabaseColumnInfo {
 				return false;
 		} else if (!columnName.equals(other.columnName))
 			return false;
+		if (columnType != other.columnType)
+			return false;
 		if (hasIndex != other.hasIndex)
 			return false;
 		if (indexName == null) {
@@ -158,18 +162,23 @@ public class DatabaseColumnInfo {
 				return false;
 		} else if (!indexName.equals(other.indexName))
 			return false;
-		if (maxSize != other.maxSize)
+		if (maxSize == null) {
+			if (other.maxSize != null)
+				return false;
+		} else if (!maxSize.equals(other.maxSize))
 			return false;
 		if (type != other.type)
 			return false;
 		return true;
 	}
+	
 	@Override
 	public String toString() {
 		return "DatabaseColumnInfo [columnName=" + columnName + ", hasIndex="
 				+ hasIndex + ", type=" + type + ", maxSize=" + maxSize
 				+ ", cardinality=" + cardinality + ", indexName=" + indexName
-				+ "]";
+				+ ", columnType=" + columnType + "]";
 	}
+
 	
 }

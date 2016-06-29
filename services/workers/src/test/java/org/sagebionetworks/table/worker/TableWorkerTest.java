@@ -226,6 +226,7 @@ public class TableWorkerTest {
 		verify(mockTableIndexManager).applyChangeSetToIndex(rowSet2, currentSchema, 1L);
 		// Progress should be made for each result
 		verify(mockProgressCallback, times(2)).progressMade(two);
+		verify(mockTableIndexManager).optimizeTableIndices();
 	}
 	
 	@Test

@@ -111,14 +111,6 @@ public class TableIndexDAOImplTest {
 	}
 
 	@Test
-	public void testGetCurrentTableColumnsDoesNotExist() {
-		// There should not be any columns for this table as it does not exist
-		List<ColumnDefinition> columns = tableIndexDAO
-				.getCurrentTableColumns(tableId);
-		assertNull(columns);
-	}
-
-	@Test
 	public void testCRUD() {
 		// Create a Simple table with only a few columns
 		List<ColumnModel> allTypes = TableModelTestUtils.createOneOfEachType();
@@ -132,8 +124,7 @@ public class TableIndexDAOImplTest {
 				"The table already existed in that state so it should not have been updated",
 				updated);
 		// Now we should be able to see the columns that were created
-		List<ColumnDefinition> columns = tableIndexDAO
-				.getCurrentTableColumns(tableId);
+		List<DatabaseColumnInfo> columns = getAllColumnInfo(tableId);
 		// There should be a column for each column in the schema plus one
 		// ROW_ID and one ROW_VERSION plus one extra for doubles.
 		assertEquals(allTypes.size() + 2 + 1, columns.size());
@@ -142,7 +133,7 @@ public class TableIndexDAOImplTest {
 			ColumnModel removed = allTypes.remove(0);
 			createOrUpdateTable(allTypes, tableId);
 			// Now we should be able to see the columns that were created
-			columns = tableIndexDAO.getCurrentTableColumns(tableId);
+			columns = getAllColumnInfo(tableId);
 			// There should be a column for each column in the schema plus one
 			// ROW_ID and one ROW_VERSION.
 			int extraColumns = 1;
@@ -155,16 +146,12 @@ public class TableIndexDAOImplTest {
 			allTypes.add(removed);
 			createOrUpdateTable(allTypes, tableId);
 			// Now we should be able to see the columns that were created
-			columns = tableIndexDAO.getCurrentTableColumns(tableId);
+			columns = getAllColumnInfo(tableId);
 			// There should be a column for each column in the schema plus one
 			// ROW_ID and one ROW_VERSION.
-			assertEquals("readded " + removed, allTypes.size() + 2 + 1,
+			assertEquals("read " + removed, allTypes.size() + 2 + 1,
 					columns.size());
 		}
-		// Now delete the table
-		assertTrue(tableIndexDAO.deleteTable(tableId));
-		columns = tableIndexDAO.getCurrentTableColumns(tableId);
-		assertEquals(null, columns);
 	}
 
 	@Test
@@ -1038,15 +1025,15 @@ public class TableIndexDAOImplTest {
 		// Create the table
 		tableIndexDAO.createTableIfDoesNotExist(tableId);
 		// Call under test.
-		List<ColumnDefinition> schema = tableIndexDAO.getCurrentTableColumns(tableId);
+		List<DatabaseColumnInfo> schema = getAllColumnInfo(tableId);
 		assertNotNull(schema);
 		assertEquals(2, schema.size());
-		ColumnDefinition cd = schema.get(0);
-		assertEquals(ROW_ID, cd.getName());
+		DatabaseColumnInfo cd = schema.get(0);
+		assertEquals(ROW_ID, cd.getColumnName());
 		assertTrue("ROW_ID is the primary key so it should have an index.",cd.hasIndex());
 		
 		cd = schema.get(1);
-		assertEquals(ROW_VERSION, cd.getName());
+		assertEquals(ROW_VERSION, cd.getColumnName());
 		assertFalse(cd.hasIndex());
 	}
 	
@@ -1065,11 +1052,11 @@ public class TableIndexDAOImplTest {
 		boolean wasAltered = tableIndexDAO.alterTableAsNeeded(tableId, Lists.newArrayList(change));
 		assertTrue(wasAltered);
 		// Check the results
-		List<ColumnDefinition> schema = tableIndexDAO.getCurrentTableColumns(tableId);
+		List<DatabaseColumnInfo> schema =  getAllColumnInfo(tableId);
 		assertNotNull(schema);
 		assertEquals(3, schema.size());
-		ColumnDefinition cd = schema.get(2);
-		assertEquals("_C123_", cd.getName());
+		DatabaseColumnInfo cd = schema.get(2);
+		assertEquals("_C123_", cd.getColumnName());
 		assertFalse(cd.hasIndex());
 		
 		// Another update of the same column with no change should not alter the table
@@ -1281,5 +1268,13 @@ public class TableIndexDAOImplTest {
 	public void optimizeTableIndices(String tableId, int maxNumberOfIndices){
 		List<DatabaseColumnInfo> info = getAllColumnInfo(tableId);
 		tableIndexDAO.optimizeTableIndices(info, tableId, maxNumberOfIndices);
+	}
+	
+	@Test
+	public void testGetDatabaseInfoEmpty(){
+		// table does not exist
+		List<DatabaseColumnInfo> info = tableIndexDAO.getDatabaseInfo(tableId);
+		assertNotNull(info);
+		assertTrue(info.isEmpty());
 	}
 }

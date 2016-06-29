@@ -105,7 +105,7 @@ public interface TableIndexManager {
 	 * 
 	 * @param currentSchema
 	 */
-	public void updateTableSchema(List<ColumnChange> changes);
+	public boolean updateTableSchema(List<ColumnChange> changes);
 	
 	/**
 	 * Delete the index for this table.

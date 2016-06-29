@@ -1019,18 +1019,20 @@ public class SQLUtilsTest {
 		
 		DatabaseColumnInfo info = new DatabaseColumnInfo();
 		info.setColumnName(columnName);
-		info.setColumnType(ColumnType.BOOLEAN);
+		info.setColumnType(ColumnType.STRING);
+		info.setMaxSize(22);
 		
 		DatabaseColumnInfo noType = new DatabaseColumnInfo();
 		noType.setColumnName("noType");
 		noType.setColumnType(null);
 		
 		List<DatabaseColumnInfo> infoList = Lists.newArrayList(rowId, rowVersion, info, noType);
-		List<ColumnModel> results = SQLUtils.getColumnIds(infoList);
+		List<ColumnModel> results = SQLUtils.extractSchemaFromInfo(infoList);
 		
 		ColumnModel cm = new ColumnModel();
 		cm.setId("123");
 		cm.setColumnType(info.getColumnType());
+		cm.setMaximumSize(22L);
 		
 		List<ColumnModel> expected = Lists.newArrayList(cm);
 		assertEquals(expected, results);
