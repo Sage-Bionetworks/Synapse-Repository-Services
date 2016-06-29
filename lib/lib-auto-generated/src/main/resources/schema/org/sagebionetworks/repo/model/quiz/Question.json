@@ -13,9 +13,17 @@
 			"links": [{"rel": "describedby","href": "http://synapse.sagebase.org/access/public"}]
 		},
 		"reference":{
-			"description":"Information for background reading related to the question.",
+			"description":"This field is deprecated. Please use helpText and docLink.",
 			"type":"object",
 			"$ref":"org.sagebionetworks.repo.model.dao.WikiPageKey"
+		},
+		"docLink":{
+			"description":"Link to the document that contains information for background reading related to the question.",
+			"type":"string"
+		},
+		"helpText":{
+			"description":"A short text that provides a snippet of help to answer the question.",
+			"type":"string"
 		},
 		"concreteType":{
 			"type": "string"
