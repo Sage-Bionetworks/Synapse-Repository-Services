@@ -987,9 +987,6 @@ public class SQLUtils {
 	public static List<ColumnChange> createReplaceSchemaChangeIds(List<ColumnModel> currentColunm, List<ColumnModel> newSchema){
 		Set<String> oldSet = createColumnIdSet(currentColunm);
 		Set<String> newSet = createColumnIdSet(newSchema);
-		for(ColumnModel cm: newSchema){
-			newSet.add(cm.getId());
-		}
 		List<ColumnChange> changes = new LinkedList<ColumnChange>();
 		// remove any column in the current that is not in the new.
 		for(ColumnModel oldColumn: currentColunm){

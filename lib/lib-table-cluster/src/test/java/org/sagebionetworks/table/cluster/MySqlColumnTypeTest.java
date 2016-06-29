@@ -16,6 +16,15 @@ public class MySqlColumnTypeTest {
 	}
 	
 	@Test
+	public void testParserTypeNoSize(){
+		for(MySqlColumnType type: MySqlColumnType.values()){
+			String typeString = type.name().toLowerCase();
+			MySqlColumnType lookup = MySqlColumnType.parserType(typeString);
+			assertEquals(type, lookup);
+		}
+	}
+	
+	@Test
 	public void testParseSizeBigInt(){
 		String typeString = "bigint(20)";
 		Integer size = MySqlColumnType.parseSize(typeString);

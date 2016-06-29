@@ -3,7 +3,6 @@ package org.sagebionetworks.table.cluster;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.stub;
 import static org.mockito.Mockito.times;
@@ -1135,16 +1134,6 @@ public class TableIndexDAOImplTest {
 		assertEquals(MySqlColumnType.TINYINT, info.getType());
 		assertEquals(new Integer(1), info.getMaxSize());
 		assertEquals(ColumnType.BOOLEAN, info.getColumnType());
-		
-		// Optimize the indices
-		int maxNumberOfIndices = 5;
-		tableIndexDAO.optimizeTableIndices(infoList, tableId, maxNumberOfIndices);
-		// fetch index information.
-		List<DatabaseColumnInfo> updated = tableIndexDAO.getDatabaseInfo(tableId);
-		assertNotNull(updated);
-		
-		tableIndexDAO.provideCardinality(updated, tableId);
-		tableIndexDAO.provideIndexName(updated, tableId);
 	}
 	
 	@Test
