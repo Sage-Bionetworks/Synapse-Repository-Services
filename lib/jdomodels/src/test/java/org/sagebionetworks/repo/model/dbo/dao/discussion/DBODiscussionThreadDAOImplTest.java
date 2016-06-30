@@ -483,8 +483,7 @@ public class DBODiscussionThreadDAOImplTest {
 		Long threadId2 = idGenerator.generateNewId(TYPE.DISCUSSION_THREAD_ID);
 		threadDao.createThread(forumId, threadId2 .toString(), "title", "messageKey2", userId);
 
-		assertEquals(new HashSet<Long>(Arrays.asList(threadId, threadId2)),
-				new HashSet<Long>(threadDao.getAllThreadId(10L, 0L)));
+		assertEquals(Arrays.asList(threadId, threadId2), threadDao.getAllThreadId(10L, 0L));
 	}
 
 	@Test

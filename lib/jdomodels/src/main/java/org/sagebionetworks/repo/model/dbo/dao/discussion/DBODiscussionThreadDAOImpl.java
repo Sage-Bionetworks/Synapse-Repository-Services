@@ -182,8 +182,10 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 	private static final String DESC = " DESC ";
 	public static final Long MAX_LIMIT = 100L;
 
+	// This query is used by the stats worker. It's critical to keep the order by threadId to prevent deadlock.
 	public static final String SQL_SELECT_ALL_THREAD_ID = "SELECT "+COL_DISCUSSION_THREAD_ID
 			+" FROM "+TABLE_DISCUSSION_THREAD
+			+" ORDER BY "+COL_DISCUSSION_THREAD_ID
 			+" LIMIT ? OFFSET ?";
 
 	public static final String SQL_SELECT_ALL_THREAD_ID_FOR_FORUM = "SELECT "+COL_DISCUSSION_THREAD_ID
@@ -198,6 +200,7 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 	private static final String SQL_SELECT_THREAD_VIEW_COUNT = "SELECT COUNT(*)"
 			+" FROM "+TABLE_DISCUSSION_THREAD_VIEW
 			+" WHERE "+COL_DISCUSSION_THREAD_VIEW_THREAD_ID+" = ?";
+	// This query is used by the stats worker. It's critical to keep the order by threadId to prevent deadlock.
 	private static final String SQL_SELECT_THREAD_VIEW_STAT = "SELECT "
 			+COL_DISCUSSION_THREAD_VIEW_THREAD_ID+", "
 			+"COUNT(*) AS "+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_VIEWS+" "
