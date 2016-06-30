@@ -4,7 +4,6 @@ import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -37,8 +36,6 @@ public class SubscriptionManagerImplTest {
 	@Mock
 	private AuthorizationManager mockAuthorizationManager;
 	@Mock
-	private DiscussionThreadDAO mockThreadDao;
-	@Mock
 	private DBOChangeDAO mockChangeDao;
 	@Mock
 	private SubscriptionDAO mockDao;
@@ -59,7 +56,6 @@ public class SubscriptionManagerImplTest {
 		manager = new SubscriptionManagerImpl();
 		ReflectionTestUtils.setField(manager, "authorizationManager", mockAuthorizationManager);
 		ReflectionTestUtils.setField(manager, "subscriptionDao", mockDao);
-		ReflectionTestUtils.setField(manager, "threadDao", mockThreadDao);
 		ReflectionTestUtils.setField(manager, "changeDao", mockChangeDao);
 		ReflectionTestUtils.setField(manager, "aclDao", mockAclDao);
 
@@ -108,15 +104,9 @@ public class SubscriptionManagerImplTest {
 		when(mockDao
 				.create(userId.toString(), objectId, SubscriptionObjectType.FORUM))
 				.thenReturn(sub);
-		List<String> threadIdList = Arrays.asList("1");
-		when(mockThreadDao.getAllThreadIdForForum(objectId)).thenReturn(threadIdList);
 		assertEquals(sub, manager.create(userInfo, topic));
-		verify(mockAuthorizationManager).canSubscribe(userInfo, objectId, SubscriptionObjectType.FORUM);
-		verify(mockThreadDao).getAllThreadIdForForum(objectId);
-		verify(mockDao).subscribeAllTopic(userId.toString(), threadIdList, SubscriptionObjectType.THREAD);
 	}
 
-	@SuppressWarnings("unchecked")
 	@Test
 	public void testCreateThreadSubscription(){
 		when(mockAuthorizationManager
@@ -128,8 +118,6 @@ public class SubscriptionManagerImplTest {
 		topic.setObjectType(SubscriptionObjectType.THREAD);
 		assertEquals(sub, manager.create(userInfo, topic));
 		verify(mockAuthorizationManager).canSubscribe(userInfo, objectId, SubscriptionObjectType.THREAD);
-		verify(mockThreadDao, never()).getAllThreadIdForForum(anyString());
-		verify(mockDao, never()).subscribeAllTopic(anyString(), any(List.class), any(SubscriptionObjectType.class));
 	}
 
 	@Test (expected=IllegalArgumentException.class)
@@ -252,7 +240,6 @@ public class SubscriptionManagerImplTest {
 		verify(mockDao, never()).delete(subscriptionId);
 	}
 
-	@SuppressWarnings("unchecked")
 	@Test
 	public void testDeleteThreadSubscription() {
 		Long subscriptionId = 3L;
@@ -261,8 +248,6 @@ public class SubscriptionManagerImplTest {
 		when(mockDao.get(subscriptionId)).thenReturn(sub);
 		manager.delete(userInfo, subscriptionId.toString());
 		verify(mockDao).delete(subscriptionId);
-		verify(mockThreadDao, never()).getAllThreadIdForForum(anyString());
-		verify(mockDao, never()).deleteList(anyString(), any(List.class), any(SubscriptionObjectType.class));
 	}
 
 	@Test
@@ -271,12 +256,8 @@ public class SubscriptionManagerImplTest {
 		sub.setSubscriberId(userId.toString());
 		sub.setObjectType(SubscriptionObjectType.FORUM);
 		when(mockDao.get(subscriptionId)).thenReturn(sub);
-		List<String> threadIdList = Arrays.asList("1");
-		when(mockThreadDao.getAllThreadIdForForum(objectId)).thenReturn(threadIdList);
 		manager.delete(userInfo, subscriptionId.toString());
 		verify(mockDao).delete(subscriptionId);
-		verify(mockThreadDao).getAllThreadIdForForum(anyString());
-		verify(mockDao).deleteList(userId.toString(), threadIdList, SubscriptionObjectType.THREAD);
 	}
 
 	@Test (expected = IllegalArgumentException.class)

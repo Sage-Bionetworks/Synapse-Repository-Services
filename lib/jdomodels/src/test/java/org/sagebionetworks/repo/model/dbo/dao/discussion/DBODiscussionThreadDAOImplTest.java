@@ -601,20 +601,6 @@ public class DBODiscussionThreadDAOImplTest {
 				DBODiscussionThreadDAOImpl.buildGetQuery(10L, 0L, null, null, DiscussionFilter.DELETED_ONLY));
 	}
 
-	@Test (expected = IllegalArgumentException.class)
-	public void testGetAllThreadIdForForumWithNullForumId() {
-		threadDao.getAllThreadIdForForum(null);
-	}
-
-	@Test
-	public void testGetAllThreadIdForForum() {
-		assertTrue(threadDao.getAllThreadIdForForum(forumId).isEmpty());
-		threadDao.createThread(forumId, threadId.toString(), "title", "messageKey", userId);
-		List<String> ids = threadDao.getAllThreadIdForForum(forumId);
-		assertEquals(1L, ids.size());
-		assertEquals(threadId.toString(), ids.get(0));
-	}
-
 	@Test
 	public void testUpdateThreadViewTriggerThreadEtagChange() {
 		DiscussionThreadBundle threadBundle = threadDao.createThread(forumId, threadId.toString(), "title", "messageKey", userId);

@@ -87,24 +87,6 @@ public interface SubscriptionDAO {
 			SubscriptionObjectType objectType);
 
 	/**
-	 * Subscribe a user to all topics listed
-	 * 
-	 * @param userId
-	 * @param idList
-	 * @param objectType
-	 */
-	public void subscribeAllTopic(String userId, List<String> idList, SubscriptionObjectType objectType);
-
-	/**
-	 * Unsubscribe from a list of topics
-	 * 
-	 * @param userId
-	 * @param idList
-	 * @param objectType
-	 */
-	public void deleteList(String userId, List<String> idList, SubscriptionObjectType objectType);
-
-	/**
 	 * Retrieve all projects that a user has subscriptions to
 	 * 
 	 * @param userId
