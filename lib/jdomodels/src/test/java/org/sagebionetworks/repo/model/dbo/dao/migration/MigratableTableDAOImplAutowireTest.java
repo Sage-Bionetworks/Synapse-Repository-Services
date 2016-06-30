@@ -425,6 +425,7 @@ public class MigratableTableDAOImplAutowireTest {
 	@Test
 	public void testGetListRowMetadataByRangeMultipleBatches() {
 		long minId = fileHandleDao.getMaxId()+1;
+		long startCount = fileHandleDao.getCount();
 		List<Long> ids = new LinkedList<Long>();
 		// Create 5 file handles
 		for (int i = 1; i < 6; i++) {
@@ -437,7 +438,7 @@ public class MigratableTableDAOImplAutowireTest {
 		// First batch
 		RowMetadataResult b = migratableTableDAO.listRowMetadataByRange(MigrationType.FILE_HANDLE, minId, ids.get(4)+1, 2, 0);
 		assertNotNull(b);
-		assertEquals(5L, b.getTotalCount().longValue());
+		assertEquals(startCount+5L, b.getTotalCount().longValue());
 		assertNotNull(b.getList());
 		assertEquals(2, b.getList().size());
 		assertEquals(ids.get(0), b.getList().get(0).getId());
@@ -445,7 +446,7 @@ public class MigratableTableDAOImplAutowireTest {
 		// Second batch
 		b = migratableTableDAO.listRowMetadataByRange(MigrationType.FILE_HANDLE, minId, ids.get(4)+1, 2, 2);
 		assertNotNull(b);
-		assertEquals(5L, b.getTotalCount().longValue());
+		assertEquals(startCount+5L, b.getTotalCount().longValue());
 		assertNotNull(b.getList());
 		assertEquals(2, b.getList().size());
 		assertEquals(ids.get(2), b.getList().get(0).getId());
@@ -453,14 +454,14 @@ public class MigratableTableDAOImplAutowireTest {
 		// Last batch
 		b = migratableTableDAO.listRowMetadataByRange(MigrationType.FILE_HANDLE, minId, ids.get(4)+1, 2, 4);
 		assertNotNull(b);
-		assertEquals(5L, b.getTotalCount().longValue());
+		assertEquals(startCount+5L, b.getTotalCount().longValue());
 		assertNotNull(b.getList());
 		assertEquals(1, b.getList().size());
 		assertEquals(ids.get(4), b.getList().get(0).getId());
 		// Beyond
 		b = migratableTableDAO.listRowMetadataByRange(MigrationType.FILE_HANDLE, minId, ids.get(4)+1, 2, 5);
 		assertNotNull(b);
-		assertEquals(5L, b.getTotalCount().longValue());
+		assertEquals(startCount+5L, b.getTotalCount().longValue());
 		assertNotNull(b.getList());
 		assertEquals(0, b.getList().size());
 	}
