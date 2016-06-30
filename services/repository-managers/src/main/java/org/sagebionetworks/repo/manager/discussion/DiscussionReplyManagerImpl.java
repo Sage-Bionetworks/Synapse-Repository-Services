@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.manager.discussion;
 import static org.sagebionetworks.repo.manager.AuthorizationManagerImpl.*;
 
 import java.io.IOException;
-import java.util.Set;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
@@ -27,7 +26,6 @@ import org.sagebionetworks.repo.model.discussion.ReplyCount;
 import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
-import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.upload.discussion.MessageKeyUtils;
@@ -50,8 +48,6 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 	private IdGenerator idGenerator;
 	@Autowired
 	private TransactionalMessenger transactionalMessenger;
-	@Autowired
-	private PrincipalAliasDAO principalAliasDao;
 
 	@WriteTransactionReadCommitted
 	@Override
@@ -69,28 +65,9 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 		String replyId = idGenerator.generateNewId(TYPE.DISCUSSION_REPLY_ID).toString();
 		String messageKey = uploadDao.uploadReplyMessage(createReply.getMessageMarkdown(), thread.getForumId(), threadId, replyId);
 		DiscussionReplyBundle reply = replyDao.createReply(threadId, replyId, messageKey, userInfo.getId());
-		handleSubscription(userInfo.getId().toString(), thread.getId(), createReply.getMessageMarkdown());
+		subscriptionDao.create(userInfo.getId().toString(), threadId, SubscriptionObjectType.THREAD);
 		transactionalMessenger.sendMessageAfterCommit(replyId, ObjectType.REPLY, reply.getEtag(), ChangeType.CREATE, userInfo.getId());
 		return reply;
-	}
-
-	/**
-	 * Subscribe the userId, and all mentioned user to the thread
-	 * 
-	 * @param userId
-	 * @param threadId
-	 * @param markdown
-	 */
-	@Override
-	public void handleSubscription(String userId, String threadId, String markdown) {
-		ValidateArgument.required(markdown, "markdown");
-		ValidateArgument.required(threadId, "threadId");
-		Set<String> usernameList = DiscussionUtils.getMentionedUsername(markdown);
-		Set<String> subscribers = principalAliasDao.lookupPrincipalIds(usernameList);
-		if (userId != null) {
-			subscribers.add(userId);
-		}
-		subscriptionDao.subscribeAllUsers(subscribers, threadId, SubscriptionObjectType.THREAD);
 	}
 
 	@Override
@@ -116,7 +93,6 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 		if (authorizationManager.isUserCreatorOrAdmin(userInfo, reply.getCreatedBy())) {
 			String messageKey = uploadDao.uploadReplyMessage(newMessage.getMessageMarkdown(), reply.getForumId(), reply.getThreadId(), reply.getId());
 			reply = replyDao.updateMessageKey(replyIdLong, messageKey);
-			handleSubscription(userInfo.getId().toString(), reply.getThreadId(), newMessage.getMessageMarkdown());
 			return reply;
 		} else {
 			throw new UnauthorizedException("Only the user that created the thread can modify it.");
