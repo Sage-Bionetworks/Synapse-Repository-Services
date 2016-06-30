@@ -70,6 +70,7 @@ public class DBODiscussionReplyDAOImpl implements DiscussionReplyDAO{
 		
 	};
 
+	// This query is used by the stats worker. It's critial to keep the order by threadId to prevent deadlock.
 	private static final String SQL_SELECT_THREAD_REPLY_STAT = "SELECT "
 			+COL_DISCUSSION_REPLY_THREAD_ID+", "
 			+"COUNT(*) AS "+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_REPLIES+", "
