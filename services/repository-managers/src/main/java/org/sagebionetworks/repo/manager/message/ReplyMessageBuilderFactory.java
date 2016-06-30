@@ -18,6 +18,7 @@ public class ReplyMessageBuilderFactory implements MessageBuilderFactory {
 			+ "replied to [%3$s](https://www.synapse.org/#!Synapse:%4$s/discussion/threadId=%5$s) "
 			+ "thread in [%6$s](https://www.synapse.org/#!Synapse:%4$s) forum.\n>";
 	public static final String REPLY_CREATED_TITLE = "Synapse Notification: New reply created in thread '%1$s'";
+	public static final String UNSUBSCRIBE_THREAD = "[Unsubscribe to the thread](https://www.synapse.org/#!Subscription:subscriptionID=%1$s)\n";
 	
 	@Autowired
 	private DiscussionReplyDAO replyDao;
@@ -50,7 +51,7 @@ public class ReplyMessageBuilderFactory implements MessageBuilderFactory {
 		markdown = uploadDao.getMessage(replyBundle.getMessageKey());
 		return new DiscussionBroadcastMessageBuilder(actor, userId.toString(),
 				threadBundle.getTitle(), threadBundle.getId(), threadBundle.getProjectId(),
-				projectName, markdown, REPLY_TEMPLATE, REPLY_CREATED_TITLE, markdownDao);
+				projectName, markdown, REPLY_TEMPLATE, REPLY_CREATED_TITLE, UNSUBSCRIBE_THREAD, markdownDao);
 	}
 
 }

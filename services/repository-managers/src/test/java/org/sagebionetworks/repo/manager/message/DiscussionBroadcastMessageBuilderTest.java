@@ -8,6 +8,7 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.markdown.MarkdownDao;
+import org.sagebionetworks.repo.model.subscription.MentionedUser;
 import org.sagebionetworks.repo.model.subscription.Subscriber;
 import org.sagebionetworks.utils.HttpClientHelperException;
 
@@ -25,6 +26,7 @@ public class DiscussionBroadcastMessageBuilderTest {
 	String projectId;
 	String markdown;
 	Subscriber subscriber;
+	MentionedUser user;
 	
 	DiscussionBroadcastMessageBuilder builder;
 	
@@ -47,36 +49,61 @@ public class DiscussionBroadcastMessageBuilderTest {
 		subscriber.setSubscriberId("123");
 		subscriber.setUsername("subscriberUsername");
 		subscriber.setSubscriptionId("999");
+
+		user = new MentionedUser();
+		user.setFirstName("firstName");
+		user.setLastName("lastName");
+		user.setNotificationEmail("notificationEmail@domain.org");
+		user.setUserId("456");
+		user.setUsername("username");
 	
 		builder = new DiscussionBroadcastMessageBuilder(actorUsername, actorUserId,
 				threadTitle, threadId, projectId, projectName, markdown,
 				ThreadMessageBuilderFactory.THREAD_TEMPLATE, ThreadMessageBuilderFactory.THREAD_CREATED_TITLE,
-				mockMarkdownDao);
+				ThreadMessageBuilderFactory.UNSUBSCRIBE_FORUM, mockMarkdownDao);
 	}
 
 	@Test
-	public void testBuildRawBody(){
-		String body = builder.buildRawBody(subscriber);
+	public void testBuildRawBodyForSubscriber(){
+		String body = builder.buildRawBodyForSubscriber(subscriber);
 		assertNotNull(body);
 		assertTrue(body.contains("subscriberFirstName subscriberLastName (subscriberUsername)"));
 		assertTrue(body.contains("someone"));
 		assertTrue(body.contains(threadTitle));
 		assertTrue(body.contains(projectName));
+		assertTrue(body.contains("https://www.synapse.org/#!Subscription:objectID=333&objectType=THREAD"));
 		assertTrue(body.contains("https://www.synapse.org/#!Subscription:subscriptionID=999"));
 		assertTrue(body.contains("https://www.synapse.org/#!Synapse:syn8888/discussion/threadId=333"));
 		assertTrue(body.contains("https://www.synapse.org/#!Synapse:syn8888"));
+		assertTrue(body.contains("Subscribe to the thread"));
+		assertTrue(body.contains("Unsubscribe to the forum"));
 	}
 
 	@Test
-	public void testBuildRawBodyWithSynapseWidget(){
+	public void testBuildRawBodyForNoneSubscriber(){
+		String body = builder.buildRawBodyForNonSubscriber(user);
+		assertNotNull(body);
+		assertTrue(body.contains("firstName lastName (username)"));
+		assertTrue(body.contains("someone"));
+		assertTrue(body.contains(threadTitle));
+		assertTrue(body.contains(projectName));
+		assertTrue(body.contains("https://www.synapse.org/#!Subscription:objectID=333&objectType=THREAD"));
+		assertTrue(body.contains("https://www.synapse.org/#!Synapse:syn8888/discussion/threadId=333"));
+		assertTrue(body.contains("https://www.synapse.org/#!Synapse:syn8888"));
+		assertTrue(body.contains("Subscribe to the thread"));
+		assertFalse(body.contains("Unsubscribe to the forum"));
+	}
+
+	@Test
+	public void testBuildRawBodyForSubscriberWithSynapseWidget(){
 		markdown = "Seen you eyes son show.\n@kimyen\n${jointeam?teamId=3319496&isChallenge=false&"
 				+ "isSimpleRequestButton=false&isMemberMessage=Already a member&successMessage=Successfully "
 				+ "joined&text=Join&requestOpenText=Your request to join this team has been sent%2E}";
 		builder = new DiscussionBroadcastMessageBuilder(actorUsername, actorUserId,
 				threadTitle, threadId, projectId, projectName, markdown,
 				ThreadMessageBuilderFactory.THREAD_TEMPLATE, ThreadMessageBuilderFactory.THREAD_CREATED_TITLE,
-				mockMarkdownDao);
-		String body = builder.buildRawBody(subscriber);
+				ThreadMessageBuilderFactory.UNSUBSCRIBE_FORUM, mockMarkdownDao);
+		String body = builder.buildRawBodyForSubscriber(subscriber);
 		assertNotNull(body);
 		assertTrue(body.contains("subscriberFirstName subscriberLastName (subscriberUsername)"));
 		assertTrue(body.contains("someone"));

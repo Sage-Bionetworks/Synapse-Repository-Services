@@ -8,6 +8,7 @@ import org.sagebionetworks.markdown.MarkdownDao;
 import org.sagebionetworks.repo.manager.EmailUtils;
 import org.sagebionetworks.repo.manager.SendRawEmailRequestBuilder;
 import org.sagebionetworks.repo.manager.SendRawEmailRequestBuilder.BodyType;
+import org.sagebionetworks.repo.model.subscription.MentionedUser;
 import org.sagebionetworks.repo.model.subscription.Subscriber;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.Topic;
@@ -18,7 +19,7 @@ import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
 
 public class DiscussionBroadcastMessageBuilder implements BroadcastMessageBuilder {
 	public static final String GREETING = "Hello %1$s,\n\n";
-	public static final String UNSUBSCRIBE = "[Unsubscribe to the thread](https://www.synapse.org/#!Subscription:subscriptionID=%1$s)\n";
+	public static final String SUBSCRIBE_THREAD = "[Subscribe to the thread](https://www.synapse.org/#!Subscription:objectID=%1$s&objectType=THREAD)\n";
 	MarkdownDao markdownDao;
 	String actorUsername;
 	String actorUserId;
@@ -29,10 +30,12 @@ public class DiscussionBroadcastMessageBuilder implements BroadcastMessageBuilde
 	String markdown;
 	String subject;
 	String emailTemplate;
+	String unsubscribe;
 
 	public DiscussionBroadcastMessageBuilder(String actorUsername, String actorUserId,
 			String threadTitle, String threadId, String projectId, String projectName,
-			String markdown, String emailTemplate, String emailTitle, MarkdownDao markdownDao) {
+			String markdown, String emailTemplate, String emailTitle, String unsubscribe,
+			MarkdownDao markdownDao) {
 		ValidateArgument.required(actorUsername, "actorUsername");
 		ValidateArgument.required(actorUserId, "actorUserId");
 		ValidateArgument.required(threadTitle, "threadTitle");
@@ -43,6 +46,7 @@ public class DiscussionBroadcastMessageBuilder implements BroadcastMessageBuilde
 		ValidateArgument.required(emailTemplate, "emailTemplate");
 		ValidateArgument.required(emailTitle, "emailTitle");
 		ValidateArgument.required(markdownDao, "markdownDao");
+		ValidateArgument.required(unsubscribe, "unsubscribe");
 		this.actorUsername = actorUsername;
 		this.actorUserId = actorUserId;
 		this.threadId = threadId;
@@ -53,6 +57,7 @@ public class DiscussionBroadcastMessageBuilder implements BroadcastMessageBuilde
 		this.subject = String.format(emailTitle, threadTitleTruncated);
 		this.emailTemplate = emailTemplate;
 		this.markdownDao = markdownDao;
+		this.unsubscribe = unsubscribe;
 	}
 
 	@Override
@@ -66,12 +71,24 @@ public class DiscussionBroadcastMessageBuilder implements BroadcastMessageBuilde
 	@Override
 	public SendRawEmailRequest buildEmailForSubscriber(Subscriber subscriber) throws ClientProtocolException, JSONException, IOException, HttpClientHelperException {
 		// build the email body
-		String body = buildRawBody(subscriber);
+		String body = buildRawBodyForSubscriber(subscriber);
 		return new SendRawEmailRequestBuilder()
 		.withSubject(subject)
 		.withBody(markdownDao.convertMarkdown(body, null), BodyType.HTML)
 		.withSenderDisplayName("noreply")
 		.withRecipientEmail(subscriber.getNotificationEmail())
+		.build();
+	}
+
+	@Override
+	public SendRawEmailRequest buildEmailForNonSubscriber(MentionedUser user) throws ClientProtocolException, JSONException, IOException, HttpClientHelperException {
+		// build the email body
+		String body = buildRawBodyForNonSubscriber(user);
+		return new SendRawEmailRequestBuilder()
+		.withSubject(subject)
+		.withBody(markdownDao.convertMarkdown(body, null), BodyType.HTML)
+		.withSenderDisplayName("noreply")
+		.withRecipientEmail(user.getNotificationEmail())
 		.build();
 	}
 	
@@ -80,13 +97,29 @@ public class DiscussionBroadcastMessageBuilder implements BroadcastMessageBuilde
 	 * @param subscriber
 	 * @return
 	 */
-	public String buildRawBody(Subscriber subscriber){
+	public String buildRawBodyForSubscriber(Subscriber subscriber){
 		StringBuilder sb = new StringBuilder();
 		String recipientName = EmailUtils.getDisplayNameWithUsername(subscriber.getFirstName(), subscriber.getLastName(), subscriber.getUsername());
 		sb.append(String.format(GREETING, recipientName));
 		sb.append(String.format(emailTemplate, actorUsername, actorUserId, threadTitleTruncated, projectId, threadId, projectName));
 		sb.append(markdown+"\n\n");
-		sb.append(String.format(UNSUBSCRIBE, subscriber.getSubscriptionId()));
+		sb.append(String.format(SUBSCRIBE_THREAD, threadId));
+		sb.append(String.format(unsubscribe, subscriber.getSubscriptionId()));
+		return sb.toString();
+	}
+
+	/**
+	 * Build the email body.
+	 * @param user
+	 * @return
+	 */
+	public String buildRawBodyForNonSubscriber(MentionedUser user){
+		StringBuilder sb = new StringBuilder();
+		String recipientName = EmailUtils.getDisplayNameWithUsername(user.getFirstName(), user.getLastName(), user.getUsername());
+		sb.append(String.format(GREETING, recipientName));
+		sb.append(String.format(emailTemplate, actorUsername, actorUserId, threadTitleTruncated, projectId, threadId, projectName));
+		sb.append(markdown+"\n\n");
+		sb.append(String.format(SUBSCRIBE_THREAD, threadId));
 		return sb.toString();
 	}
 
