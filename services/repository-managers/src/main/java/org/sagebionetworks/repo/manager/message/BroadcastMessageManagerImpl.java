@@ -1,22 +1,28 @@
 package org.sagebionetworks.repo.manager.message;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.http.client.ClientProtocolException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONException;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.repo.manager.discussion.DiscussionUtils;
 import org.sagebionetworks.repo.manager.principal.SynapseEmailService;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.UserProfileDAO;
+import org.sagebionetworks.repo.model.broadcast.UserNotificationInfo;
 import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.message.BroadcastMessageDao;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.model.subscription.Subscriber;
 import org.sagebionetworks.repo.model.subscription.Topic;
 import org.sagebionetworks.util.TimeoutUtils;
@@ -48,6 +54,10 @@ public class BroadcastMessageManagerImpl implements BroadcastMessageManager {
 	DBOChangeDAO changeDao;
 	@Autowired
 	TimeoutUtils timeoutUtils;
+	@Autowired
+	PrincipalAliasDAO principalAliasDao;
+	@Autowired
+	UserProfileDAO userProfileDao;
 
 	@Override
 	public void broadcastMessage(UserInfo user,	ProgressCallback<ChangeMessage> progressCallback, ChangeMessage changeMessage) throws ClientProtocolException, JSONException, IOException, HttpClientHelperException {
@@ -91,10 +101,12 @@ public class BroadcastMessageManagerImpl implements BroadcastMessageManager {
 		valdiateTopic(topic);
 		// Get all of the email subscribers for this topic.
 		List<Subscriber> subscribers = subscriptionDAO.getAllEmailSubscribers(topic.getObjectId(), topic.getObjectType());
+		List<String> subscriberIds = new ArrayList<String>();
 		// The builder will prepare an email for each subscriber
 		for(Subscriber subscriber: subscribers){
+			subscriberIds.add(subscriber.getSubscriberId());
+			// do not send an email to the user who created this change
 			if (subscriber.getSubscriberId().equals(changeMessage.getUserId().toString())) {
-				// do not send an email to the user who created this change
 				continue;
 			}
 			// progress between each message
@@ -102,6 +114,30 @@ public class BroadcastMessageManagerImpl implements BroadcastMessageManager {
 			SendRawEmailRequest emailRequest = builder.buildEmailForSubscriber(subscriber);
 			log.debug("sending email to "+subscriber.getNotificationEmail());
 			sesClient.sendRawEmail(emailRequest);
+		}
+
+		if (builder instanceof DiscussionBroadcastMessageBuilder) {
+			DiscussionBroadcastMessageBuilder discussionBuilder = (DiscussionBroadcastMessageBuilder)builder;
+			// Get all mentioned users
+			String markdown = discussionBuilder.getMarkdown();
+			Set<String> usernameList = DiscussionUtils.getMentionedUsername(markdown);
+			Set<String> mentionedUserIds = principalAliasDao.lookupPrincipalIds(usernameList);
+			// remove mentioned users who subscribed to the topic
+			mentionedUserIds.removeAll(subscriberIds);
+			// create list of MentionedUser from their ids
+			List<UserNotificationInfo> mentionedUsers = userProfileDao.getUserNotificationInfo(mentionedUserIds);
+			// build and send email to each mentioned user
+			for(UserNotificationInfo userInfo: mentionedUsers){
+				// do not send an email to the user who created this change
+				if (userInfo.getUserId().equals(changeMessage.getUserId().toString())) {
+					continue;
+				}
+				// progress between each message
+				progressCallback.progressMade(changeMessage);
+				SendRawEmailRequest emailRequest = builder.buildEmailForNonSubscriber(userInfo);
+				log.debug("sending email to "+userInfo.getNotificationEmail());
+				sesClient.sendRawEmail(emailRequest);
+			}
 		}
 	}
 	

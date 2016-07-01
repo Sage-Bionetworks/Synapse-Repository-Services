@@ -8,9 +8,8 @@ import org.sagebionetworks.markdown.MarkdownDao;
 import org.sagebionetworks.repo.manager.EmailUtils;
 import org.sagebionetworks.repo.manager.SendRawEmailRequestBuilder;
 import org.sagebionetworks.repo.manager.SendRawEmailRequestBuilder.BodyType;
-import org.sagebionetworks.repo.model.subscription.MentionedUser;
+import org.sagebionetworks.repo.model.broadcast.UserNotificationInfo;
 import org.sagebionetworks.repo.model.subscription.Subscriber;
-import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.Topic;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.utils.HttpClientHelperException;
@@ -31,11 +30,12 @@ public class DiscussionBroadcastMessageBuilder implements BroadcastMessageBuilde
 	String subject;
 	String emailTemplate;
 	String unsubscribe;
+	Topic broadcastTopic;
 
 	public DiscussionBroadcastMessageBuilder(String actorUsername, String actorUserId,
 			String threadTitle, String threadId, String projectId, String projectName,
 			String markdown, String emailTemplate, String emailTitle, String unsubscribe,
-			MarkdownDao markdownDao) {
+			MarkdownDao markdownDao, Topic broadcastTopic) {
 		ValidateArgument.required(actorUsername, "actorUsername");
 		ValidateArgument.required(actorUserId, "actorUserId");
 		ValidateArgument.required(threadTitle, "threadTitle");
@@ -47,6 +47,7 @@ public class DiscussionBroadcastMessageBuilder implements BroadcastMessageBuilde
 		ValidateArgument.required(emailTitle, "emailTitle");
 		ValidateArgument.required(markdownDao, "markdownDao");
 		ValidateArgument.required(unsubscribe, "unsubscribe");
+		ValidateArgument.required(broadcastTopic, "broadcastTopic");
 		this.actorUsername = actorUsername;
 		this.actorUserId = actorUserId;
 		this.threadId = threadId;
@@ -62,10 +63,7 @@ public class DiscussionBroadcastMessageBuilder implements BroadcastMessageBuilde
 
 	@Override
 	public Topic getBroadcastTopic() {
-		Topic topic = new Topic();
-		topic.setObjectId(threadId);
-		topic.setObjectType(SubscriptionObjectType.THREAD);
-		return topic;
+		return broadcastTopic;
 	}
 
 	@Override
@@ -81,7 +79,7 @@ public class DiscussionBroadcastMessageBuilder implements BroadcastMessageBuilde
 	}
 
 	@Override
-	public SendRawEmailRequest buildEmailForNonSubscriber(MentionedUser user) throws ClientProtocolException, JSONException, IOException, HttpClientHelperException {
+	public SendRawEmailRequest buildEmailForNonSubscriber(UserNotificationInfo user) throws ClientProtocolException, JSONException, IOException, HttpClientHelperException {
 		// build the email body
 		String body = buildRawBodyForNonSubscriber(user);
 		return new SendRawEmailRequestBuilder()
@@ -113,7 +111,7 @@ public class DiscussionBroadcastMessageBuilder implements BroadcastMessageBuilde
 	 * @param user
 	 * @return
 	 */
-	public String buildRawBodyForNonSubscriber(MentionedUser user){
+	public String buildRawBodyForNonSubscriber(UserNotificationInfo user){
 		StringBuilder sb = new StringBuilder();
 		String recipientName = EmailUtils.getDisplayNameWithUsername(user.getFirstName(), user.getLastName(), user.getUsername());
 		sb.append(String.format(GREETING, recipientName));
@@ -135,5 +133,9 @@ public class DiscussionBroadcastMessageBuilder implements BroadcastMessageBuilde
 		}else{
 			return toTruncate.substring(0, maxLength)+"...";
 		}
+	}
+
+	public String getMarkdown() {
+		return markdown;
 	}
 }

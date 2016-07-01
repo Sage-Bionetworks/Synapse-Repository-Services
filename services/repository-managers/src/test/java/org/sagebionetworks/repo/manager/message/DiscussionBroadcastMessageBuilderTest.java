@@ -8,8 +8,10 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.markdown.MarkdownDao;
-import org.sagebionetworks.repo.model.subscription.MentionedUser;
+import org.sagebionetworks.repo.model.broadcast.UserNotificationInfo;
 import org.sagebionetworks.repo.model.subscription.Subscriber;
+import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
+import org.sagebionetworks.repo.model.subscription.Topic;
 import org.sagebionetworks.utils.HttpClientHelperException;
 
 import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
@@ -26,7 +28,8 @@ public class DiscussionBroadcastMessageBuilderTest {
 	String projectId;
 	String markdown;
 	Subscriber subscriber;
-	MentionedUser user;
+	UserNotificationInfo user;
+	Topic topic;
 	
 	DiscussionBroadcastMessageBuilder builder;
 	
@@ -50,17 +53,21 @@ public class DiscussionBroadcastMessageBuilderTest {
 		subscriber.setUsername("subscriberUsername");
 		subscriber.setSubscriptionId("999");
 
-		user = new MentionedUser();
+		user = new UserNotificationInfo();
 		user.setFirstName("firstName");
 		user.setLastName("lastName");
 		user.setNotificationEmail("notificationEmail@domain.org");
 		user.setUserId("456");
 		user.setUsername("username");
+
+		topic = new Topic();
+		topic.setObjectId("777");
+		topic.setObjectType(SubscriptionObjectType.FORUM);
 	
 		builder = new DiscussionBroadcastMessageBuilder(actorUsername, actorUserId,
 				threadTitle, threadId, projectId, projectName, markdown,
 				ThreadMessageBuilderFactory.THREAD_TEMPLATE, ThreadMessageBuilderFactory.THREAD_CREATED_TITLE,
-				ThreadMessageBuilderFactory.UNSUBSCRIBE_FORUM, mockMarkdownDao);
+				ThreadMessageBuilderFactory.UNSUBSCRIBE_FORUM, mockMarkdownDao, topic);
 	}
 
 	@Test
@@ -102,7 +109,7 @@ public class DiscussionBroadcastMessageBuilderTest {
 		builder = new DiscussionBroadcastMessageBuilder(actorUsername, actorUserId,
 				threadTitle, threadId, projectId, projectName, markdown,
 				ThreadMessageBuilderFactory.THREAD_TEMPLATE, ThreadMessageBuilderFactory.THREAD_CREATED_TITLE,
-				ThreadMessageBuilderFactory.UNSUBSCRIBE_FORUM, mockMarkdownDao);
+				ThreadMessageBuilderFactory.UNSUBSCRIBE_FORUM, mockMarkdownDao, topic);
 		String body = builder.buildRawBodyForSubscriber(subscriber);
 		assertNotNull(body);
 		assertTrue(body.contains("subscriberFirstName subscriberLastName (subscriberUsername)"));
