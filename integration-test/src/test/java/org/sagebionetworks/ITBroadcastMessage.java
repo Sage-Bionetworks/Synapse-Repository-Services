@@ -82,7 +82,7 @@ public class ITBroadcastMessage {
 		Topic toSubscribe = new Topic();
 		toSubscribe.setObjectId(forumId);
 		toSubscribe.setObjectType(SubscriptionObjectType.FORUM);
-		synapseTwo.subscribe(toSubscribe );
+		synapseTwo.subscribe(toSubscribe);
 	}
 
 	private void grantREADPermission(SynapseClient synapseOne, String projectId, SynapseClient synpaseTwo) throws SynapseException {

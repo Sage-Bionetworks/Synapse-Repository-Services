@@ -150,4 +150,9 @@ public class DiscussionBroadcastMessageBuilderTest {
 		String truncate = DiscussionBroadcastMessageBuilder.truncateString(input, input.length());
 		assertEquals(input, truncate);
 	}
+
+	@Test
+	public void testGetTopic() {
+		assertEquals(topic, builder.getBroadcastTopic());
+	}
 }

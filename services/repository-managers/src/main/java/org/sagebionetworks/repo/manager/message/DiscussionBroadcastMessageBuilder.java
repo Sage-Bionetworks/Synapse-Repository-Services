@@ -59,6 +59,7 @@ public class DiscussionBroadcastMessageBuilder implements BroadcastMessageBuilde
 		this.emailTemplate = emailTemplate;
 		this.markdownDao = markdownDao;
 		this.unsubscribe = unsubscribe;
+		this.broadcastTopic = broadcastTopic;
 	}
 
 	@Override
