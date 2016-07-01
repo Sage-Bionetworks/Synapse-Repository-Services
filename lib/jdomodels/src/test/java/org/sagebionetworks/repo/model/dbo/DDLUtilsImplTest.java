@@ -28,9 +28,9 @@ public class DDLUtilsImplTest {
 	String ddlFile = "Example.sql";
 	
 	@After
-	public void after(){
-		// Drop the table
-		ddlUtils.dropTable(tableName);
+	public void after() {
+		// Do not drop the table, causes problem if test executed between DOExampleTest and DBOAnnotatedExampleTest
+		// ddlUtils.dropTable(tableName);
 	}
 
 	@Test
