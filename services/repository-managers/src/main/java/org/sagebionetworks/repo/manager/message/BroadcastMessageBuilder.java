@@ -4,7 +4,7 @@ import java.io.IOException;
 
 import org.apache.http.client.ClientProtocolException;
 import org.json.JSONException;
-import org.sagebionetworks.repo.model.subscription.MentionedUser;
+import org.sagebionetworks.repo.model.broadcast.UserNotificationInfo;
 import org.sagebionetworks.repo.model.subscription.Subscriber;
 import org.sagebionetworks.repo.model.subscription.Topic;
 import org.sagebionetworks.utils.HttpClientHelperException;
@@ -42,7 +42,7 @@ public interface BroadcastMessageBuilder {
 	 * @throws JSONException 
 	 * @throws ClientProtocolException 
 	 */
-	SendRawEmailRequest buildEmailForNonSubscriber(MentionedUser user)
+	SendRawEmailRequest buildEmailForNonSubscriber(UserNotificationInfo user)
 			throws ClientProtocolException, JSONException, IOException, HttpClientHelperException;
 
 }
