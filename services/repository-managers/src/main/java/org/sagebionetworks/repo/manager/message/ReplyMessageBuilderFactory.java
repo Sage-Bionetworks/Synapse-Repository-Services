@@ -57,7 +57,7 @@ public class ReplyMessageBuilderFactory implements MessageBuilderFactory {
 		return new DiscussionBroadcastMessageBuilder(actor, userId.toString(),
 				threadBundle.getTitle(), threadBundle.getId(), threadBundle.getProjectId(),
 				projectName, markdown, REPLY_TEMPLATE, REPLY_CREATED_TITLE, UNSUBSCRIBE_THREAD,
-				markdownDao, broadcastTopic);
+				markdownDao, broadcastTopic, principalAliasDAO);
 	}
 
 }

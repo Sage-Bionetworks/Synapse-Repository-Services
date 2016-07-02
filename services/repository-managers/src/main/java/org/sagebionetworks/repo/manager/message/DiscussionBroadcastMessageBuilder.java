@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.message;
 
 import java.io.IOException;
+import java.util.Set;
 
 import org.apache.http.client.ClientProtocolException;
 import org.json.JSONException;
@@ -8,7 +9,9 @@ import org.sagebionetworks.markdown.MarkdownDao;
 import org.sagebionetworks.repo.manager.EmailUtils;
 import org.sagebionetworks.repo.manager.SendRawEmailRequestBuilder;
 import org.sagebionetworks.repo.manager.SendRawEmailRequestBuilder.BodyType;
+import org.sagebionetworks.repo.manager.discussion.DiscussionUtils;
 import org.sagebionetworks.repo.model.broadcast.UserNotificationInfo;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.model.subscription.Subscriber;
 import org.sagebionetworks.repo.model.subscription.Topic;
 import org.sagebionetworks.util.ValidateArgument;
@@ -31,11 +34,12 @@ public class DiscussionBroadcastMessageBuilder implements BroadcastMessageBuilde
 	String emailTemplate;
 	String unsubscribe;
 	Topic broadcastTopic;
+	PrincipalAliasDAO principalAliasDao;
 
 	public DiscussionBroadcastMessageBuilder(String actorUsername, String actorUserId,
 			String threadTitle, String threadId, String projectId, String projectName,
 			String markdown, String emailTemplate, String emailTitle, String unsubscribe,
-			MarkdownDao markdownDao, Topic broadcastTopic) {
+			MarkdownDao markdownDao, Topic broadcastTopic, PrincipalAliasDAO principalAliasDao) {
 		ValidateArgument.required(actorUsername, "actorUsername");
 		ValidateArgument.required(actorUserId, "actorUserId");
 		ValidateArgument.required(threadTitle, "threadTitle");
@@ -48,6 +52,7 @@ public class DiscussionBroadcastMessageBuilder implements BroadcastMessageBuilde
 		ValidateArgument.required(markdownDao, "markdownDao");
 		ValidateArgument.required(unsubscribe, "unsubscribe");
 		ValidateArgument.required(broadcastTopic, "broadcastTopic");
+		ValidateArgument.required(principalAliasDao, "principalAliasDao");
 		this.actorUsername = actorUsername;
 		this.actorUserId = actorUserId;
 		this.threadId = threadId;
@@ -60,6 +65,7 @@ public class DiscussionBroadcastMessageBuilder implements BroadcastMessageBuilde
 		this.markdownDao = markdownDao;
 		this.unsubscribe = unsubscribe;
 		this.broadcastTopic = broadcastTopic;
+		this.principalAliasDao = principalAliasDao;
 	}
 
 	@Override
@@ -138,5 +144,11 @@ public class DiscussionBroadcastMessageBuilder implements BroadcastMessageBuilde
 
 	public String getMarkdown() {
 		return markdown;
+	}
+
+	@Override
+	public Set<String> getRelatedUsers() {
+		Set<String> usernameList = DiscussionUtils.getMentionedUsername(markdown);
+		return principalAliasDao.lookupPrincipalIds(usernameList);
 	}
 }

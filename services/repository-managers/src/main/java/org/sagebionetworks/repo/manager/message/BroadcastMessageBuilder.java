@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.message;
 
 import java.io.IOException;
+import java.util.Set;
 
 import org.apache.http.client.ClientProtocolException;
 import org.json.JSONException;
@@ -11,6 +12,11 @@ import org.sagebionetworks.utils.HttpClientHelperException;
 
 import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
 
+/**
+ * A BroadcastMessageBuilder instance is created with specific information for a
+ * change event. It builds SendRawEmailRequest related to this change event for users.
+ *
+ */
 public interface BroadcastMessageBuilder {
 
 	/**
@@ -45,4 +51,9 @@ public interface BroadcastMessageBuilder {
 	SendRawEmailRequest buildEmailForNonSubscriber(UserNotificationInfo user)
 			throws ClientProtocolException, JSONException, IOException, HttpClientHelperException;
 
+	/**
+	 * 
+	 * @return a set of userIds that related to this message
+	 */
+	Set<String> getRelatedUsers();
 }

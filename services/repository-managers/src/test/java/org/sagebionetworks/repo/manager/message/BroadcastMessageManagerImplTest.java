@@ -89,7 +89,7 @@ public class BroadcastMessageManagerImplTest {
 		ReflectionTestUtils.setField(manager, "userProfileDao", mockUserProfileDao);
 		Map<ObjectType, MessageBuilderFactory> factoryMap = new HashMap<ObjectType, MessageBuilderFactory>();
 		factoryMap.put(ObjectType.REPLY, mockFactory);
-		manager.setFactoryMap(factoryMap);
+		manager.setMessageBuilderFactoryMap(factoryMap);
 		
 		// default setup
 		change = new ChangeMessage();

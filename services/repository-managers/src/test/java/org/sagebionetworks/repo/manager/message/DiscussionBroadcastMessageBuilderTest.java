@@ -3,12 +3,16 @@ package org.sagebionetworks.repo.manager.message;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.markdown.MarkdownDao;
 import org.sagebionetworks.repo.model.broadcast.UserNotificationInfo;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.model.subscription.Subscriber;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.Topic;
@@ -19,6 +23,8 @@ import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
 public class DiscussionBroadcastMessageBuilderTest {
 	@Mock
 	MarkdownDao mockMarkdownDao;
+	@Mock
+	PrincipalAliasDAO mockPrincipalAliasDAO;
 
 	String actorUsername;
 	String actorUserId;
@@ -67,7 +73,7 @@ public class DiscussionBroadcastMessageBuilderTest {
 		builder = new DiscussionBroadcastMessageBuilder(actorUsername, actorUserId,
 				threadTitle, threadId, projectId, projectName, markdown,
 				ThreadMessageBuilderFactory.THREAD_TEMPLATE, ThreadMessageBuilderFactory.THREAD_CREATED_TITLE,
-				ThreadMessageBuilderFactory.UNSUBSCRIBE_FORUM, mockMarkdownDao, topic);
+				ThreadMessageBuilderFactory.UNSUBSCRIBE_FORUM, mockMarkdownDao, topic, mockPrincipalAliasDAO);
 	}
 
 	@Test
@@ -109,7 +115,7 @@ public class DiscussionBroadcastMessageBuilderTest {
 		builder = new DiscussionBroadcastMessageBuilder(actorUsername, actorUserId,
 				threadTitle, threadId, projectId, projectName, markdown,
 				ThreadMessageBuilderFactory.THREAD_TEMPLATE, ThreadMessageBuilderFactory.THREAD_CREATED_TITLE,
-				ThreadMessageBuilderFactory.UNSUBSCRIBE_FORUM, mockMarkdownDao, topic);
+				ThreadMessageBuilderFactory.UNSUBSCRIBE_FORUM, mockMarkdownDao, topic, mockPrincipalAliasDAO);
 		String body = builder.buildRawBodyForSubscriber(subscriber);
 		assertNotNull(body);
 		assertTrue(body.contains("subscriberFirstName subscriberLastName (subscriberUsername)"));
@@ -154,5 +160,24 @@ public class DiscussionBroadcastMessageBuilderTest {
 	@Test
 	public void testGetTopic() {
 		assertEquals(topic, builder.getBroadcastTopic());
+	}
+
+	@Test
+	public void testGetRelatedUsersWithoutMentionedUsers() {
+		assertEquals(new HashSet<String>(), builder.getRelatedUsers());
+	}
+
+	@Test
+	public void testGetRelatedUsersWithMentionedUsers() {
+		Set<String> usernameSet = new HashSet<String>();
+		usernameSet.add("user");
+		Set<String> userIdSet = new HashSet<String>();
+		userIdSet.add("101");
+		when(mockPrincipalAliasDAO.lookupPrincipalIds(usernameSet)).thenReturn(userIdSet);
+		builder = new DiscussionBroadcastMessageBuilder(actorUsername, actorUserId,
+				threadTitle, threadId, projectId, projectName, "@user",
+				ThreadMessageBuilderFactory.THREAD_TEMPLATE, ThreadMessageBuilderFactory.THREAD_CREATED_TITLE,
+				ThreadMessageBuilderFactory.UNSUBSCRIBE_FORUM, mockMarkdownDao, topic, mockPrincipalAliasDAO);
+		assertEquals(userIdSet, builder.getRelatedUsers());
 	}
 }

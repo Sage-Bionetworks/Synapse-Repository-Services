@@ -378,7 +378,7 @@
 	<bean id="broadcastMessageManager"
 		class="org.sagebionetworks.repo.manager.message.BroadcastMessageManagerImpl"
 		scope ="singleton">
-		<property name="FactoryMap">
+		<property name="messageBuilderFactoryMap">
 			<map>
 				<entry key="THREAD">
 					<ref bean="threadMessageBuilderFactory" />

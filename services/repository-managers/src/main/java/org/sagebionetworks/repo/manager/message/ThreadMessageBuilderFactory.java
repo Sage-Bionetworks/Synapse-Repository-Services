@@ -48,9 +48,10 @@ public class ThreadMessageBuilderFactory implements MessageBuilderFactory {
 		Topic broadcastTopic = new Topic();
 		broadcastTopic.setObjectId(threadBundle.getForumId());
 		broadcastTopic.setObjectType(SubscriptionObjectType.FORUM);
-		return new DiscussionBroadcastMessageBuilder(actor, userId.toString(), threadBundle.getTitle(),
-				threadBundle.getId(), threadBundle.getProjectId(), projectName, markdown,
-				THREAD_TEMPLATE, THREAD_CREATED_TITLE, UNSUBSCRIBE_FORUM, markdownDao, broadcastTopic);
+		return new DiscussionBroadcastMessageBuilder(actor, userId.toString(),
+				threadBundle.getTitle(), threadBundle.getId(), threadBundle.getProjectId(),
+				projectName, markdown, THREAD_TEMPLATE, THREAD_CREATED_TITLE,
+				UNSUBSCRIBE_FORUM, markdownDao, broadcastTopic, principalAliasDAO);
 	}
 
 }
