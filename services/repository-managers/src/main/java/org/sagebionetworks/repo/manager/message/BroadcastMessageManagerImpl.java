@@ -11,6 +11,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONException;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.repo.manager.discussion.DiscussionUtils;
 import org.sagebionetworks.repo.manager.principal.SynapseEmailService;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -21,6 +22,7 @@ import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.message.BroadcastMessageDao;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.model.subscription.Subscriber;
 import org.sagebionetworks.repo.model.subscription.Topic;
 import org.sagebionetworks.util.TimeoutUtils;
@@ -40,7 +42,7 @@ public class BroadcastMessageManagerImpl implements BroadcastMessageManager {
 	public static final long MESSAGE_EXPIRATION_MS = 1000*60*60*24; // 24 hours
 	
 	// Maps ObjectTypes to factory. Injected (IoC).
-	Map<ObjectType, MessageBuilder> builderMap;
+	Map<ObjectType, MessageBuilderFactory> factoryMap;
 
 	@Autowired
 	SubscriptionDAO subscriptionDAO;
@@ -52,6 +54,8 @@ public class BroadcastMessageManagerImpl implements BroadcastMessageManager {
 	DBOChangeDAO changeDao;
 	@Autowired
 	TimeoutUtils timeoutUtils;
+	@Autowired
+	PrincipalAliasDAO principalAliasDao;
 	@Autowired
 	UserProfileDAO userProfileDao;
 
@@ -87,12 +91,12 @@ public class BroadcastMessageManagerImpl implements BroadcastMessageManager {
 		// Record this message as sent to prevent the messages from being sent again.
 		broadcastMessageDao.setBroadcast(changeMessage.getChangeNumber());
 		// Lookup the factory for this type.
-		MessageBuilder builder = builderMap.get(changeMessage.getObjectType());
-		if(builder == null){
+		MessageBuilderFactory factory = factoryMap.get(changeMessage.getObjectType());
+		if(factory == null){
 			throw new IllegalArgumentException("No factory found for object type: "+changeMessage.getObjectType());
 		}
 		// The builder creates the email.
-		builder.createMessageBuilder(changeMessage.getObjectId(), changeMessage.getChangeType(), changeMessage.getUserId());
+		BroadcastMessageBuilder builder = factory.createMessageBuilder(changeMessage.getObjectId(), changeMessage.getChangeType(), changeMessage.getUserId());
 		Topic topic = builder.getBroadcastTopic();
 		valdiateTopic(topic);
 		// Get all of the email subscribers for this topic.
@@ -112,23 +116,28 @@ public class BroadcastMessageManagerImpl implements BroadcastMessageManager {
 			sesClient.sendRawEmail(emailRequest);
 		}
 
-		// Get all mentioned users
-		Set<String> mentionedUserIds = builder.getRelatedUsers();
-		// remove mentioned users who subscribed to the topic
-		mentionedUserIds.removeAll(subscriberIds);
-		// create list of MentionedUser from their ids
-		List<UserNotificationInfo> mentionedUsers = userProfileDao.getUserNotificationInfo(mentionedUserIds);
-		// build and send email to each mentioned user
-		for(UserNotificationInfo userInfo: mentionedUsers){
-			// do not send an email to the user who created this change
-			if (userInfo.getUserId().equals(changeMessage.getUserId().toString())) {
-				continue;
+		if (builder instanceof DiscussionBroadcastMessageBuilder) {
+			DiscussionBroadcastMessageBuilder discussionBuilder = (DiscussionBroadcastMessageBuilder)builder;
+			// Get all mentioned users
+			String markdown = discussionBuilder.getMarkdown();
+			Set<String> usernameList = DiscussionUtils.getMentionedUsername(markdown);
+			Set<String> mentionedUserIds = principalAliasDao.lookupPrincipalIds(usernameList);
+			// remove mentioned users who subscribed to the topic
+			mentionedUserIds.removeAll(subscriberIds);
+			// create list of MentionedUser from their ids
+			List<UserNotificationInfo> mentionedUsers = userProfileDao.getUserNotificationInfo(mentionedUserIds);
+			// build and send email to each mentioned user
+			for(UserNotificationInfo userInfo: mentionedUsers){
+				// do not send an email to the user who created this change
+				if (userInfo.getUserId().equals(changeMessage.getUserId().toString())) {
+					continue;
+				}
+				// progress between each message
+				progressCallback.progressMade(changeMessage);
+				SendRawEmailRequest emailRequest = builder.buildEmailForNonSubscriber(userInfo);
+				log.debug("sending email to "+userInfo.getNotificationEmail());
+				sesClient.sendRawEmail(emailRequest);
 			}
-			// progress between each message
-			progressCallback.progressMade(changeMessage);
-			SendRawEmailRequest emailRequest = builder.buildEmailForNonSubscriber(userInfo);
-			log.debug("sending email to "+userInfo.getNotificationEmail());
-			sesClient.sendRawEmail(emailRequest);
 		}
 	}
 	
@@ -145,9 +154,11 @@ public class BroadcastMessageManagerImpl implements BroadcastMessageManager {
 	/**
 	 * IoC.
 	 * 
-	 * @param builderMap
+	 * @param factoryMap
 	 */
-	public void setFactoryMap(Map<ObjectType, MessageBuilder> builderMap) {
-		this.builderMap = builderMap;
+	public void setFactoryMap(Map<ObjectType, MessageBuilderFactory> factoryMap) {
+		this.factoryMap = factoryMap;
 	}
+	
+	
 }

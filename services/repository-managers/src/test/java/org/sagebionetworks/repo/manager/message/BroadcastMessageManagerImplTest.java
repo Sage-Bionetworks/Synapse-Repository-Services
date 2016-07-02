@@ -31,6 +31,7 @@ import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.message.BroadcastMessageDao;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.model.subscription.Subscriber;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.Topic;
@@ -43,7 +44,7 @@ import com.google.common.collect.Lists;
 
 public class BroadcastMessageManagerImplTest {
 	
-	Map<ObjectType, MessageBuilder> builderMap;
+	Map<ObjectType, BroadcastMessageBuilder> builderMap;
 
 	@Mock
 	SubscriptionDAO mockSubscriptionDAO;
@@ -56,11 +57,15 @@ public class BroadcastMessageManagerImplTest {
 	@Mock
 	TimeoutUtils mockTimeoutUtils;
 	@Mock
-	MessageBuilder mockBuilder;
+	DiscussionBroadcastMessageBuilder mockBroadcastMessageBuilder;
+	@Mock
+	MessageBuilderFactory mockFactory;
 	@Mock
 	UserInfo mockUser;
 	@Mock
 	ProgressCallback<ChangeMessage> mockCallback;
+	@Mock
+	PrincipalAliasDAO mockPrincipalAliasDao;
 	@Mock
 	UserProfileDAO mockUserProfileDao;
 	
@@ -80,9 +85,10 @@ public class BroadcastMessageManagerImplTest {
 		ReflectionTestUtils.setField(manager, "changeDao", mockChangeDao);
 		ReflectionTestUtils.setField(manager, "timeoutUtils", mockTimeoutUtils);
 		ReflectionTestUtils.setField(manager, "sesClient", mockSesClient);
+		ReflectionTestUtils.setField(manager, "principalAliasDao", mockPrincipalAliasDao);
 		ReflectionTestUtils.setField(manager, "userProfileDao", mockUserProfileDao);
-		Map<ObjectType, MessageBuilder> factoryMap = new HashMap<ObjectType, MessageBuilder>();
-		factoryMap.put(ObjectType.REPLY, mockBuilder);
+		Map<ObjectType, MessageBuilderFactory> factoryMap = new HashMap<ObjectType, MessageBuilderFactory>();
+		factoryMap.put(ObjectType.REPLY, mockFactory);
 		manager.setFactoryMap(factoryMap);
 		
 		// default setup
@@ -104,7 +110,9 @@ public class BroadcastMessageManagerImplTest {
 		when(mockBroadcastMessageDao.wasBroadcast(change.getChangeNumber())).thenReturn(false);
 		when(mockChangeDao.doesChangeNumberExist(change.getChangeNumber())).thenReturn(true);
 		
-		when(mockBuilder.getBroadcastTopic()).thenReturn(topic);
+		when(mockFactory.createMessageBuilder(change.getObjectId(), change.getChangeType(), change.getUserId())).thenReturn(mockBroadcastMessageBuilder);
+
+		when(mockBroadcastMessageBuilder.getBroadcastTopic()).thenReturn(topic);
 		
 		
 		Subscriber sub1 = new Subscriber();
@@ -116,13 +124,13 @@ public class BroadcastMessageManagerImplTest {
 		subscribers = Lists.newArrayList(sub1, sub2);
 		
 		when(mockSubscriptionDAO.getAllEmailSubscribers(topic.getObjectId(), topic.getObjectType())).thenReturn(subscribers);
-		when(mockBuilder.buildEmailForSubscriber(any(Subscriber.class))).thenReturn(new SendRawEmailRequest());
+		when(mockBroadcastMessageBuilder.buildEmailForSubscriber(any(Subscriber.class))).thenReturn(new SendRawEmailRequest());
 		
 	}
 	
 	@Test
 	public void testBroadcastThreadWithoutMentionedUsers() throws Exception{
-		when(mockBuilder.getRelatedUsers()).thenReturn(new HashSet<String>());
+		when(mockBroadcastMessageBuilder.getMarkdown()).thenReturn("");
 		// call under test
 		manager.broadcastMessage(mockUser, mockCallback, change);
 		// The message state should be sent.
@@ -135,13 +143,16 @@ public class BroadcastMessageManagerImplTest {
 
 	@Test
 	public void testBroadcastThreadWithMentionedUsers() throws Exception {
-		Set<String> mentionedUsers = new HashSet<String>();
-		mentionedUsers.add("111");
-		mentionedUsers.add("2");
-		when(mockBuilder.getRelatedUsers()).thenReturn(mentionedUsers);
+		when(mockBroadcastMessageBuilder.getMarkdown()).thenReturn("@user @subscriber");
+		Set<String> users = new HashSet<String>();
+		users.addAll(Arrays.asList("user", "subscriber"));
+		Set<String> userIds = new HashSet<String>();
+		userIds.addAll(Arrays.asList("111", "2"));
+		when(mockPrincipalAliasDao.lookupPrincipalIds(users)).thenReturn(userIds);
+		userIds.remove("2");
 		UserNotificationInfo userInfo = new UserNotificationInfo();
 		userInfo.setUserId("111");
-		when(mockUserProfileDao.getUserNotificationInfo(mentionedUsers)).thenReturn(Arrays.asList(userInfo));
+		when(mockUserProfileDao.getUserNotificationInfo(userIds)).thenReturn(Arrays.asList(userInfo));
 		manager.broadcastMessage(mockUser, mockCallback, change);
 		// The message state should be sent.
 		verify(mockBroadcastMessageDao).setBroadcast(change.getChangeNumber());
@@ -153,7 +164,7 @@ public class BroadcastMessageManagerImplTest {
 
 	@Test (expected = HttpClientHelperException.class)
 	public void testBroadcastFailToBuildMessage() throws Exception{
-		when(mockBuilder.buildEmailForSubscriber(any(Subscriber.class))).thenThrow(new HttpClientHelperException("", 500, ""));
+		when(mockBroadcastMessageBuilder.buildEmailForSubscriber(any(Subscriber.class))).thenThrow(new HttpClientHelperException("", 500, ""));
 		manager.broadcastMessage(mockUser, mockCallback, change);
 	}
 	

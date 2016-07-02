@@ -10,6 +10,8 @@ import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.markdown.MarkdownDao;
 import org.sagebionetworks.repo.model.broadcast.UserNotificationInfo;
 import org.sagebionetworks.repo.model.subscription.Subscriber;
+import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
+import org.sagebionetworks.repo.model.subscription.Topic;
 import org.sagebionetworks.utils.HttpClientHelperException;
 
 import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
@@ -27,6 +29,7 @@ public class DiscussionBroadcastMessageBuilderTest {
 	String markdown;
 	Subscriber subscriber;
 	UserNotificationInfo user;
+	Topic topic;
 	
 	DiscussionBroadcastMessageBuilder builder;
 	
@@ -56,11 +59,15 @@ public class DiscussionBroadcastMessageBuilderTest {
 		user.setNotificationEmail("notificationEmail@domain.org");
 		user.setUserId("456");
 		user.setUsername("username");
+
+		topic = new Topic();
+		topic.setObjectId("777");
+		topic.setObjectType(SubscriptionObjectType.FORUM);
 	
 		builder = new DiscussionBroadcastMessageBuilder(actorUsername, actorUserId,
 				threadTitle, threadId, projectId, projectName, markdown,
-				ThreadMessageBuilder.THREAD_TEMPLATE, ThreadMessageBuilder.THREAD_CREATED_TITLE,
-				ThreadMessageBuilder.UNSUBSCRIBE_FORUM, mockMarkdownDao);
+				ThreadMessageBuilderFactory.THREAD_TEMPLATE, ThreadMessageBuilderFactory.THREAD_CREATED_TITLE,
+				ThreadMessageBuilderFactory.UNSUBSCRIBE_FORUM, mockMarkdownDao, topic);
 	}
 
 	@Test
@@ -101,8 +108,8 @@ public class DiscussionBroadcastMessageBuilderTest {
 				+ "joined&text=Join&requestOpenText=Your request to join this team has been sent%2E}";
 		builder = new DiscussionBroadcastMessageBuilder(actorUsername, actorUserId,
 				threadTitle, threadId, projectId, projectName, markdown,
-				ThreadMessageBuilder.THREAD_TEMPLATE, ThreadMessageBuilder.THREAD_CREATED_TITLE,
-				ThreadMessageBuilder.UNSUBSCRIBE_FORUM, mockMarkdownDao);
+				ThreadMessageBuilderFactory.THREAD_TEMPLATE, ThreadMessageBuilderFactory.THREAD_CREATED_TITLE,
+				ThreadMessageBuilderFactory.UNSUBSCRIBE_FORUM, mockMarkdownDao, topic);
 		String body = builder.buildRawBodyForSubscriber(subscriber);
 		assertNotNull(body);
 		assertTrue(body.contains("subscriberFirstName subscriberLastName (subscriberUsername)"));
@@ -142,5 +149,10 @@ public class DiscussionBroadcastMessageBuilderTest {
 		String input = "123456789";
 		String truncate = DiscussionBroadcastMessageBuilder.truncateString(input, input.length());
 		assertEquals(input, truncate);
+	}
+
+	@Test
+	public void testGetTopic() {
+		assertEquals(topic, builder.getBroadcastTopic());
 	}
 }
