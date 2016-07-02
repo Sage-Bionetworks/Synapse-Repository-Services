@@ -10,13 +10,12 @@ import org.sagebionetworks.repo.manager.SendRawEmailRequestBuilder;
 import org.sagebionetworks.repo.manager.SendRawEmailRequestBuilder.BodyType;
 import org.sagebionetworks.repo.model.broadcast.UserNotificationInfo;
 import org.sagebionetworks.repo.model.subscription.Subscriber;
-import org.sagebionetworks.repo.model.subscription.Topic;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.utils.HttpClientHelperException;
 
 import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
 
-public class DiscussionBroadcastMessageBuilder implements BroadcastMessageBuilder {
+public class DiscussionBroadcastMessageBuilder {
 	public static final String GREETING = "Hello %1$s,\n\n";
 	public static final String SUBSCRIBE_THREAD = "[Subscribe to the thread](https://www.synapse.org/#!Subscription:objectID=%1$s&objectType=THREAD)\n";
 	MarkdownDao markdownDao;
@@ -30,12 +29,11 @@ public class DiscussionBroadcastMessageBuilder implements BroadcastMessageBuilde
 	String subject;
 	String emailTemplate;
 	String unsubscribe;
-	Topic broadcastTopic;
 
 	public DiscussionBroadcastMessageBuilder(String actorUsername, String actorUserId,
 			String threadTitle, String threadId, String projectId, String projectName,
 			String markdown, String emailTemplate, String emailTitle, String unsubscribe,
-			MarkdownDao markdownDao, Topic broadcastTopic) {
+			MarkdownDao markdownDao) {
 		ValidateArgument.required(actorUsername, "actorUsername");
 		ValidateArgument.required(actorUserId, "actorUserId");
 		ValidateArgument.required(threadTitle, "threadTitle");
@@ -47,7 +45,6 @@ public class DiscussionBroadcastMessageBuilder implements BroadcastMessageBuilde
 		ValidateArgument.required(emailTitle, "emailTitle");
 		ValidateArgument.required(markdownDao, "markdownDao");
 		ValidateArgument.required(unsubscribe, "unsubscribe");
-		ValidateArgument.required(broadcastTopic, "broadcastTopic");
 		this.actorUsername = actorUsername;
 		this.actorUserId = actorUserId;
 		this.threadId = threadId;
@@ -59,15 +56,8 @@ public class DiscussionBroadcastMessageBuilder implements BroadcastMessageBuilde
 		this.emailTemplate = emailTemplate;
 		this.markdownDao = markdownDao;
 		this.unsubscribe = unsubscribe;
-		this.broadcastTopic = broadcastTopic;
 	}
 
-	@Override
-	public Topic getBroadcastTopic() {
-		return broadcastTopic;
-	}
-
-	@Override
 	public SendRawEmailRequest buildEmailForSubscriber(Subscriber subscriber) throws ClientProtocolException, JSONException, IOException, HttpClientHelperException {
 		// build the email body
 		String body = buildRawBodyForSubscriber(subscriber);
@@ -79,7 +69,6 @@ public class DiscussionBroadcastMessageBuilder implements BroadcastMessageBuilde
 		.build();
 	}
 
-	@Override
 	public SendRawEmailRequest buildEmailForNonSubscriber(UserNotificationInfo user) throws ClientProtocolException, JSONException, IOException, HttpClientHelperException {
 		// build the email body
 		String body = buildRawBodyForNonSubscriber(user);
@@ -134,9 +123,5 @@ public class DiscussionBroadcastMessageBuilder implements BroadcastMessageBuilde
 		}else{
 			return toTruncate.substring(0, maxLength)+"...";
 		}
-	}
-
-	public String getMarkdown() {
-		return markdown;
 	}
 }

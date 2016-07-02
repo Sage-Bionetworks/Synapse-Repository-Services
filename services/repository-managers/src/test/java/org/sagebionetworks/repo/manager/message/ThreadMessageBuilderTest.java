@@ -1,11 +1,15 @@
 package org.sagebionetworks.repo.manager.message;
 
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.*;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.eq;
+
+import java.util.HashSet;
+import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -20,9 +24,11 @@ import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
+import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
+import org.sagebionetworks.repo.model.subscription.Topic;
 import org.springframework.test.util.ReflectionTestUtils;
 
-public class ThreadMessageBuilderFactoryTest {
+public class ThreadMessageBuilderTest {
 
 	@Mock
 	private DiscussionThreadDAO mockThreadDao;
@@ -42,18 +48,18 @@ public class ThreadMessageBuilderFactoryTest {
 	Long actorUserId;
 	String actorUsername;
 	
-	ThreadMessageBuilderFactory factory;
+	ThreadMessageBuilder builder;
 	
 	@Before
 	public void before(){
 		MockitoAnnotations.initMocks(this);
 
-		factory = new ThreadMessageBuilderFactory();
-		ReflectionTestUtils.setField(factory, "threadDao", mockThreadDao);
-		ReflectionTestUtils.setField(factory, "nodeDao", mockNodeDao);
-		ReflectionTestUtils.setField(factory, "principalAliasDAO", mockPrincipalAliasDAO);
-		ReflectionTestUtils.setField(factory, "uploadDao", mockUploadDao);
-		ReflectionTestUtils.setField(factory, "markdownDao", mockMarkdownDao);
+		builder = new ThreadMessageBuilder();
+		ReflectionTestUtils.setField(builder, "threadDao", mockThreadDao);
+		ReflectionTestUtils.setField(builder, "nodeDao", mockNodeDao);
+		ReflectionTestUtils.setField(builder, "principalAliasDAO", mockPrincipalAliasDAO);
+		ReflectionTestUtils.setField(builder, "uploadDao", mockUploadDao);
+		ReflectionTestUtils.setField(builder, "markdownDao", mockMarkdownDao);
 
 		key = "key";
 		message = "message";
@@ -80,10 +86,44 @@ public class ThreadMessageBuilderFactoryTest {
 	public void testBuild(){
 		String objectId = "123";
 		ChangeType type = ChangeType.CREATE;
-		BroadcastMessageBuilder bulider = factory.createMessageBuilder(objectId, type, actorUserId);
-		assertNotNull(bulider);
+		builder.createMessageBuilder(objectId, type, actorUserId);
+		verify(mockThreadDao).getThread(123L, DiscussionFilter.NO_FILTER);
 		verify(mockNodeDao).getEntityHeader("444", null);
+		verify(mockPrincipalAliasDAO).getUserName(actorUserId);
 		verify(mockUploadDao).getMessage(key);
 	}
-	
+
+	@Test
+	public void testGetBroadcastTopic() {
+		Topic broadcastTopic = new Topic();
+		broadcastTopic.setObjectId(threadBundle.getForumId());
+		broadcastTopic.setObjectType(SubscriptionObjectType.FORUM);
+		String objectId = "123";
+		ChangeType type = ChangeType.CREATE;
+		builder.createMessageBuilder(objectId, type, actorUserId);
+		assertEquals(broadcastTopic, builder.getBroadcastTopic());
+	}
+
+	@Test
+	public void testGetRelatedUsersWithMentionedUser() {
+		when(mockUploadDao.getMessage(key)).thenReturn("@user");
+		String objectId = "123";
+		ChangeType type = ChangeType.CREATE;
+		Set<String> usernameList = new HashSet<String>();
+		usernameList.add("user");
+		when(mockPrincipalAliasDAO.lookupPrincipalIds(usernameList)).thenReturn(usernameList);
+		builder.createMessageBuilder(objectId, type, actorUserId);
+		assertEquals(usernameList , builder.getRelatedUsers());
+		verify(mockPrincipalAliasDAO).lookupPrincipalIds(usernameList);
+	}
+
+	@Test
+	public void testGetRelatedUsersWithoutMentionedUser() {
+		String objectId = "123";
+		ChangeType type = ChangeType.CREATE;
+		when(mockPrincipalAliasDAO.lookupPrincipalIds(eq(new HashSet<String>()))).thenReturn(new HashSet<String>());
+		builder.createMessageBuilder(objectId, type, actorUserId);
+		assertEquals(new HashSet<String>(), builder.getRelatedUsers());
+		verify(mockPrincipalAliasDAO).lookupPrincipalIds(new HashSet<String>());
+	}
 }

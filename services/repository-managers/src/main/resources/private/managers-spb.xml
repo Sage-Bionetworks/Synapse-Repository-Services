@@ -378,13 +378,13 @@
 	<bean id="broadcastMessageManager"
 		class="org.sagebionetworks.repo.manager.message.BroadcastMessageManagerImpl"
 		scope ="singleton">
-		<property name="FactoryMap">
+		<property name="builderMap">
 			<map>
 				<entry key="THREAD">
-					<ref bean="threadMessageBuilderFactory" />
+					<ref bean="threadMessageBuilder" />
 				</entry>
 				<entry key="REPLY">
-					<ref bean="replyMessageBuilderFactory" />
+					<ref bean="replyMessageBuilder" />
 				</entry>
 			</map>
 		</property>

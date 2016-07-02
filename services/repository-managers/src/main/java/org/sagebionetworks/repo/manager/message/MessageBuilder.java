@@ -1,17 +1,33 @@
 package org.sagebionetworks.repo.manager.message;
 
 import java.io.IOException;
+import java.util.Set;
 
 import org.apache.http.client.ClientProtocolException;
 import org.json.JSONException;
 import org.sagebionetworks.repo.model.broadcast.UserNotificationInfo;
+import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.subscription.Subscriber;
 import org.sagebionetworks.repo.model.subscription.Topic;
 import org.sagebionetworks.utils.HttpClientHelperException;
 
 import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
 
-public interface BroadcastMessageBuilder {
+/**
+ * Factory that generates message builders.
+ *
+ */
+public interface MessageBuilder {
+
+	/**
+	 * Create a message builder that will be used to build all messages for the given change event.
+	 * 
+	 * @param objectId
+	 * @param changeType
+	 * @param userId
+	 * @return
+	 */
+	void createMessageBuilder(String objectId, ChangeType changeType, Long userId);
 
 	/**
 	 * Get the topic that the messages should be broadcast too.
@@ -45,4 +61,9 @@ public interface BroadcastMessageBuilder {
 	SendRawEmailRequest buildEmailForNonSubscriber(UserNotificationInfo user)
 			throws ClientProtocolException, JSONException, IOException, HttpClientHelperException;
 
+	/**
+	 * 
+	 * @return a list of users that is related to this message
+	 */
+	Set<String> getRelatedUsers();
 }
