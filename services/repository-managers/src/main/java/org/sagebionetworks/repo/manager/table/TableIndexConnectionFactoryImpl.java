@@ -10,6 +10,8 @@ public class TableIndexConnectionFactoryImpl implements
 	
 	@Autowired
 	ConnectionFactory connectionFactory;
+	@Autowired
+	TableManagerSupport tableManagerSupport;
 	/*
 	 * (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.table.TableIndexConnectionFactory#connectToTableIndex(java.lang.String)
@@ -23,7 +25,7 @@ public class TableIndexConnectionFactoryImpl implements
 		if(dao == null){
 			throw new TableIndexConnectionUnavailableException("Cannot connect to table: "+tableId);
 		}
-		return new TableIndexManagerImpl(dao, tableId);
+		return new TableIndexManagerImpl(dao, tableManagerSupport, tableId);
 	}
 
 }

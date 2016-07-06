@@ -215,7 +215,7 @@ public class TableViewWorkerTest {
 		worker.createOrUpdateIndexHoldingLock(tableId, indexManager, innerCallback, change);
 		
 		verify(indexManager).deleteTableIndex();
-		verify(indexManager).setIndexSchema(schema);
+		verify(indexManager).setIndexSchema(innerCallback, change,schema);
 		verify(innerCallback, times(1)).progressMade(change);
 		verify(tableManagerSupport, times(1)).attemptToUpdateTableProgress(tableId, token, "Building view...", 0L, 1L);
 		verify(indexManager, times(1)).applyChangeSetToIndex(any(RowSet.class), anyListOf(ColumnModel.class));

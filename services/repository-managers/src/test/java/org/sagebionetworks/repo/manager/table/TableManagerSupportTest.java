@@ -9,6 +9,7 @@ import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -17,15 +18,21 @@ import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationStatus;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -83,6 +90,12 @@ public class TableManagerSupportTest {
 	ViewScopeDao mockViewScopeDao;
 	@Mock
 	AuthorizationManager mockAuthorizationManager;
+	@Mock
+	ExecutorService mockExecutor;
+	@Mock
+	Future<Integer> mockFuture;
+	@Mock
+	ProgressCallback<String> mockCallback;
 	
 	String schemaMD5Hex;
 	
@@ -94,6 +107,8 @@ public class TableManagerSupportTest {
 	Set<Long> scope;
 	Set<Long> containersInScope;
 	UserInfo userInfo;
+	
+	Integer callableReturn;
 	
 	@Before
 	public void before() throws Exception {
@@ -112,6 +127,11 @@ public class TableManagerSupportTest {
 		ReflectionTestUtils.setField(manager, "tableTruthDao", mockTableTruthDao);
 		ReflectionTestUtils.setField(manager, "viewScopeDao", mockViewScopeDao);
 		ReflectionTestUtils.setField(manager, "authorizationManager", mockAuthorizationManager);
+		ReflectionTestUtils.setField(manager, "tableSupportExecutorService", mockExecutor);
+		
+		when(mockExecutor.submit(any(Callable.class))).thenReturn(mockFuture);
+		callableReturn = 123;
+		when(mockFuture.get(anyLong(), any(TimeUnit.class))).thenReturn(callableReturn);
 		
 		userInfo = new UserInfo(false, 8L);
 		
@@ -619,4 +639,12 @@ public class TableManagerSupportTest {
 		assertEquals(expected, results);
 	}
 	
+	@Test
+	public void testCallWithAutoProgress() throws Exception{
+		Callable<Integer> callable = Mockito.mock(Callable.class);
+		String parameter = "foo";
+		Integer result = manager.callWithAutoProgress(mockCallback, parameter, callable);
+		assertEquals(callableReturn, result);
+		verify(mockCallback, times(1)).progressMade(parameter);
+	}
 }

@@ -228,7 +228,7 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 				"Creating table ", 0L, 100L);
 		
 		// Setup the table's index.
-		indexManager.setIndexSchema(currentSchema);
+		indexManager.setIndexSchema(progressCallback, change, currentSchema);
 
 		// List all of the changes
 		tableManagerSupport.attemptToUpdateTableProgress(tableId, resetToken,

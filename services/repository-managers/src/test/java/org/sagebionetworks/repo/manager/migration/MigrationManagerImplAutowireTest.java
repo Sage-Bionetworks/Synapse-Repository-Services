@@ -359,7 +359,7 @@ public class MigrationManagerImplAutowireTest {
 			// pretend to be worker and generate caches and index
 			List<ColumnModel> currentSchema = tableManagerSupport.getColumnModelsForTable(tableId);
 			TableIndexDAO indexDao = tableConnectionFactory.getConnection(tableId);
-			TableIndexManagerImpl manager = new TableIndexManagerImpl(indexDao, tableId);
+			TableIndexManagerImpl manager = new TableIndexManagerImpl(indexDao,tableManagerSupport, tableId);
 			manager.setIndexSchema(currentSchema);
 			List<ColumnModel> models = columnManager.getColumnModelsForTable(adminUser, tableId);
 			RowReferenceSet rowRefs = new RowReferenceSet();

@@ -45,6 +45,9 @@ public class TableIndexManagerImplTest {
 	TableIndexDAO mockIndexDao;
 	@Mock
 	TransactionStatus mockTransactionStatus;
+	@Mock
+	TableManagerSupport mockManagerSupport;
+	
 	TableIndexManagerImpl manager;
 	String tableId;
 	Long versionNumber;
@@ -58,7 +61,7 @@ public class TableIndexManagerImplTest {
 	public void before(){
 		MockitoAnnotations.initMocks(this);
 		tableId = "syn123";
-		manager = new TableIndexManagerImpl(mockIndexDao, tableId);
+		manager = new TableIndexManagerImpl(mockIndexDao, mockManagerSupport, tableId);
 		
 		versionNumber = 99L;
 		rows = new ArrayList<Row>();
@@ -96,13 +99,18 @@ public class TableIndexManagerImplTest {
 
 	@Test (expected=IllegalArgumentException.class)
 	public void testNullDao(){
-		new TableIndexManagerImpl(null, tableId);	
+		new TableIndexManagerImpl(null, mockManagerSupport, tableId);	
 	}
 	
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testNullTableId(){
-		new TableIndexManagerImpl(mockIndexDao, null);			
+		new TableIndexManagerImpl(mockIndexDao, mockManagerSupport, null);			
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testNullSupport(){
+		new TableIndexManagerImpl(mockIndexDao, null, tableId);			
 	}
 	
 	@Test

@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.table;
 
 import java.util.List;
 
+import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.table.cluster.ColumnChange;
@@ -99,13 +100,13 @@ public interface TableIndexManager {
 	 * 
 	 * @param currentSchema
 	 */
-	public void setIndexSchema(List<ColumnModel> currentSchema);
+	public <T> void setIndexSchema(ProgressCallback<T> progressCallback, T parameter, List<ColumnModel> currentSchema);
 	
 	/**
 	 * 
 	 * @param currentSchema
 	 */
-	public boolean updateTableSchema(List<ColumnChange> changes);
+	public <T> boolean updateTableSchema(ProgressCallback<T> progressCallback, T parameter, List<ColumnChange> changes);
 	
 	/**
 	 * Delete the index for this table.

@@ -131,7 +131,7 @@ public class TableViewWorker implements ChangeMessageDrivenRunner {
 		final List<ColumnModel> currentSchema = tableViewManager.getViewSchemaWithBenefactor(tableId);
 
 		// create the table in the index.
-		indexManager.setIndexSchema(currentSchema);
+		indexManager.setIndexSchema(callback, message, currentSchema);
 		// Calculate the number of rows per bath based on the current schema
 		final int rowsPerBatch = BATCH_SIZE_BYTES/TableModelUtils.calculateMaxRowSize(currentSchema);
 		final RowSet rowSetBatch = new RowSet();
