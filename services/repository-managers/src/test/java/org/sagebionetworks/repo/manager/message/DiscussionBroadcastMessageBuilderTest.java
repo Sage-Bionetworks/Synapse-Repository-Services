@@ -13,7 +13,7 @@ import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.markdown.MarkdownDao;
 import org.sagebionetworks.repo.model.broadcast.UserNotificationInfo;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
-import org.sagebionetworks.repo.model.subscription.Subscriber;
+import org.sagebionetworks.repo.model.dao.subscription.Subscriber;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.Topic;
 import org.sagebionetworks.utils.HttpClientHelperException;

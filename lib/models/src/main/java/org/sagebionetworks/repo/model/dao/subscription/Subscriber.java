@@ -9,7 +9,7 @@ public class Subscriber {
 	private String subscriberId;
 	private String username;
 	private String firstName;
-	private String lastname;
+	private String lastName;
 	private String notificationEmail;
 	public String getSubscriptionId() {
 		return subscriptionId;
@@ -35,11 +35,11 @@ public class Subscriber {
 	public void setFirstName(String firstName) {
 		this.firstName = firstName;
 	}
-	public String getLastname() {
-		return lastname;
+	public String getLastName() {
+		return lastName;
 	}
-	public void setLastname(String lastname) {
-		this.lastname = lastname;
+	public void setLastName(String lastname) {
+		this.lastName = lastname;
 	}
 	public String getNotificationEmail() {
 		return notificationEmail;
@@ -52,7 +52,7 @@ public class Subscriber {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + ((firstName == null) ? 0 : firstName.hashCode());
-		result = prime * result + ((lastname == null) ? 0 : lastname.hashCode());
+		result = prime * result + ((lastName == null) ? 0 : lastName.hashCode());
 		result = prime * result + ((notificationEmail == null) ? 0 : notificationEmail.hashCode());
 		result = prime * result + ((subscriberId == null) ? 0 : subscriberId.hashCode());
 		result = prime * result + ((subscriptionId == null) ? 0 : subscriptionId.hashCode());
@@ -73,10 +73,10 @@ public class Subscriber {
 				return false;
 		} else if (!firstName.equals(other.firstName))
 			return false;
-		if (lastname == null) {
-			if (other.lastname != null)
+		if (lastName == null) {
+			if (other.lastName != null)
 				return false;
-		} else if (!lastname.equals(other.lastname))
+		} else if (!lastName.equals(other.lastName))
 			return false;
 		if (notificationEmail == null) {
 			if (other.notificationEmail != null)
@@ -103,7 +103,7 @@ public class Subscriber {
 	@Override
 	public String toString() {
 		return "Subscriber [subscriptionId=" + subscriptionId + ", subscriberId=" + subscriberId + ", username="
-				+ username + ", firstName=" + firstName + ", lastname=" + lastname + ", notificationEmail="
+				+ username + ", firstName=" + firstName + ", lastname=" + lastName + ", notificationEmail="
 				+ notificationEmail + "]";
 	}
 }

@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.model.dao.subscription;
 import java.util.List;
 import java.util.Set;
 
-import org.sagebionetworks.repo.model.subscription.Subscriber;
 import org.sagebionetworks.repo.model.subscription.Subscription;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.SubscriptionPagedResults;

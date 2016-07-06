@@ -6,7 +6,7 @@ import java.util.Set;
 import org.apache.http.client.ClientProtocolException;
 import org.json.JSONException;
 import org.sagebionetworks.repo.model.broadcast.UserNotificationInfo;
-import org.sagebionetworks.repo.model.subscription.Subscriber;
+import org.sagebionetworks.repo.model.dao.subscription.Subscriber;
 import org.sagebionetworks.repo.model.subscription.Topic;
 import org.sagebionetworks.utils.HttpClientHelperException;
 
