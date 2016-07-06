@@ -34,7 +34,7 @@ import com.amazonaws.services.sqs.model.Message;
 
 public class PreviewWorkerTest {
 	
-	ProgressCallback<ChangeMessage> mockProgressCallback;
+	ProgressCallback<Void> mockProgressCallback;
 	PreviewManager mockPreveiwManager;
 	ChangeMessage change;
 	WorkerLogger mockWorkerLogger;

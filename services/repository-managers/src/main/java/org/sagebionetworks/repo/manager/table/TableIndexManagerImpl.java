@@ -133,12 +133,12 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * , java.util.List)
 	 */
 	@Override
-	public <T> void setIndexSchema(ProgressCallback<T> progressCallback, T parameter, List<ColumnModel> newSchema) {
+	public <T> void setIndexSchema(ProgressCallback<Void> progressCallback, List<ColumnModel> newSchema) {
 		// Lookup the current schema of the index
 		List<DatabaseColumnInfo> currentSchema = tableIndexDao.getDatabaseInfo(tableId);
 		// create a change that replaces the old schema as needed.
 		List<ColumnChange> changes = SQLUtils.createReplaceSchemaChange(currentSchema, newSchema);
-		updateTableSchema(progressCallback, parameter, changes);
+		updateTableSchema(progressCallback, changes);
 	}
 
 	@Override
@@ -160,7 +160,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	}
 	
 	@Override
-	public <T> boolean updateTableSchema(ProgressCallback<T> progressCallback, T parameter, List<ColumnChange> changes) {
+	public <T> boolean updateTableSchema(ProgressCallback<Void> progressCallback, List<ColumnChange> changes) {
 		// create the table if it does not exist
 		tableIndexDao.createTableIfDoesNotExist(tableId);
 		// Create all of the status tables unconditionally.

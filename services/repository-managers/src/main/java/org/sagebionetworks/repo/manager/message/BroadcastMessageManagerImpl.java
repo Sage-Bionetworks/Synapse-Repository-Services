@@ -50,7 +50,7 @@ public class BroadcastMessageManagerImpl implements BroadcastMessageManager {
 	TimeoutUtils timeoutUtils;
 
 	@Override
-	public void broadcastMessage(UserInfo user,	ProgressCallback<ChangeMessage> progressCallback, ChangeMessage changeMessage) throws ClientProtocolException, JSONException, IOException, HttpClientHelperException {
+	public void broadcastMessage(UserInfo user,	ProgressCallback<Void> progressCallback, ChangeMessage changeMessage) throws ClientProtocolException, JSONException, IOException, HttpClientHelperException {
 		ValidateArgument.required(user, "user");
 		ValidateArgument.required(changeMessage, "changeMessage");
 		ValidateArgument.required(changeMessage.getUserId(), "ChangeMessage.userId");
@@ -98,7 +98,7 @@ public class BroadcastMessageManagerImpl implements BroadcastMessageManager {
 				continue;
 			}
 			// progress between each message
-			progressCallback.progressMade(changeMessage);
+			progressCallback.progressMade(null);
 			SendRawEmailRequest emailRequest = builder.buildEmailForSubscriber(subscriber);
 			log.debug("sending email to "+subscriber.getNotificationEmail());
 			sesClient.sendRawEmail(emailRequest);

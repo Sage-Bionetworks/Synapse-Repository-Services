@@ -49,7 +49,7 @@ public class TableViewWorker implements ChangeMessageDrivenRunner {
 	
 
 	@Override
-	public void run(ProgressCallback<ChangeMessage> progressCallback,
+	public void run(ProgressCallback<Void> progressCallback,
 			ChangeMessage message) throws RecoverableMessageException,
 			Exception {
 		// This worker is only works on FileView messages
@@ -80,13 +80,13 @@ public class TableViewWorker implements ChangeMessageDrivenRunner {
 	 * @param indexManager
 	 * @throws RecoverableMessageException 
 	 */
-	public void createOrUpdateIndex(final String tableId, final TableIndexManager indexManager, ProgressCallback<ChangeMessage> outerCallback, final ChangeMessage message) throws RecoverableMessageException{
+	public void createOrUpdateIndex(final String tableId, final TableIndexManager indexManager, ProgressCallback<Void> outerCallback, final ChangeMessage message) throws RecoverableMessageException{
 		// get the exclusive lock to update the table
 		try {
-			tableManagerSupport.tryRunWithTableExclusiveLock(outerCallback, tableId, TIMEOUT_MS, new ProgressingCallable<Void, ChangeMessage>() {
+			tableManagerSupport.tryRunWithTableExclusiveLock(outerCallback, tableId, TIMEOUT_MS, new ProgressingCallable<Void, Void>() {
 
 				@Override
-				public Void call(ProgressCallback<ChangeMessage> innerCallback)
+				public Void call(ProgressCallback<Void> innerCallback)
 						throws Exception {
 					// next level.
 					createOrUpdateIndexHoldingLock(tableId, indexManager, innerCallback, message);
@@ -114,7 +114,7 @@ public class TableViewWorker implements ChangeMessageDrivenRunner {
 	 * @param indexManager
 	 * @param callback
 	 */
-	public void createOrUpdateIndexHoldingLock(final String tableId, final TableIndexManager indexManager, final ProgressCallback<ChangeMessage> callback, final ChangeMessage message){
+	public void createOrUpdateIndexHoldingLock(final String tableId, final TableIndexManager indexManager, final ProgressCallback<Void> callback, final ChangeMessage message){
 		// Is the index out-of-synch?
 		if(tableManagerSupport.isIndexSynchronizedWithTruth(tableId)){
 			// nothing to do
@@ -131,7 +131,7 @@ public class TableViewWorker implements ChangeMessageDrivenRunner {
 		final List<ColumnModel> currentSchema = tableViewManager.getViewSchemaWithBenefactor(tableId);
 
 		// create the table in the index.
-		indexManager.setIndexSchema(callback, message, currentSchema);
+		indexManager.setIndexSchema(callback, currentSchema);
 		// Calculate the number of rows per bath based on the current schema
 		final int rowsPerBatch = BATCH_SIZE_BYTES/TableModelUtils.calculateMaxRowSize(currentSchema);
 		final RowSet rowSetBatch = new RowSet();
@@ -147,7 +147,7 @@ public class TableViewWorker implements ChangeMessageDrivenRunner {
 				rowSetBatch.setRows(batch);
 				indexManager.applyChangeSetToIndex(rowSetBatch, currentSchema);
 				// report progress for each batch
-				callback.progressMade(message);
+				callback.progressMade(null);
 				tableManagerSupport.attemptToUpdateTableProgress(tableId, token, "Building view...", currentProgress, totalProgress);
 			}
 		});

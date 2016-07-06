@@ -234,8 +234,8 @@ public interface TableManagerSupport {
 	 * @param runner
 	 * @return
 	 */
-	public <R, T> R tryRunWithTableExclusiveLock(ProgressCallback<T> callback, String tableId, int timeoutMS,
-			ProgressingCallable<R, T> runner) throws Exception;
+	public <R> R tryRunWithTableExclusiveLock(ProgressCallback<Void> callback, String tableId, int timeoutMS,
+			ProgressingCallable<R, Void> runner) throws Exception;
 
 	/**
 	 * <p>
@@ -370,6 +370,6 @@ public interface TableManagerSupport {
 	 * @return
 	 * @throws Exception 
 	 */
-	public <R,T> R callWithAutoProgress(ProgressCallback<T> callback, T parameter, Callable<R> callable) throws Exception;
+	public <R> R callWithAutoProgress(ProgressCallback<Void> callback, Callable<R> callable) throws Exception;
 
 }

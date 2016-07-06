@@ -95,7 +95,7 @@ public class TableManagerSupportTest {
 	@Mock
 	Future<Integer> mockFuture;
 	@Mock
-	ProgressCallback<String> mockCallback;
+	ProgressCallback<Void> mockCallback;
 	
 	String schemaMD5Hex;
 	
@@ -642,9 +642,8 @@ public class TableManagerSupportTest {
 	@Test
 	public void testCallWithAutoProgress() throws Exception{
 		Callable<Integer> callable = Mockito.mock(Callable.class);
-		String parameter = "foo";
-		Integer result = manager.callWithAutoProgress(mockCallback, parameter, callable);
+		Integer result = manager.callWithAutoProgress(mockCallback, callable);
 		assertEquals(callableReturn, result);
-		verify(mockCallback, times(1)).progressMade(parameter);
+		verify(mockCallback, times(1)).progressMade(null);
 	}
 }

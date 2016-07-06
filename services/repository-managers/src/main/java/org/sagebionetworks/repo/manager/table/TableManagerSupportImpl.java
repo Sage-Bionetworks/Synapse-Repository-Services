@@ -329,8 +329,8 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	}
 	
 	@Override
-	public <R, T> R tryRunWithTableExclusiveLock(ProgressCallback<T> callback,
-			String tableId, int timeoutSec, ProgressingCallable<R, T> callable)
+	public <R> R tryRunWithTableExclusiveLock(ProgressCallback<Void> callback,
+			String tableId, int timeoutSec, ProgressingCallable<R, Void> callable)
 			throws Exception {
 		String key = TableModelUtils.getTableSemaphoreKey(tableId);
 		// The semaphore runner does all of the lock work.
@@ -445,11 +445,9 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 
 
 	@Override
-	public <R, T> R callWithAutoProgress(ProgressCallback<T> callback,
-			T parameter, Callable<R> callable) throws Exception {
-		AutoProgressingCallable<R, T> auto = new AutoProgressingCallable<R, T>(
-				tableSupportExecutorService, callable, AUTO_PROGRESS_FREQUENCY_MS,
-				parameter);
+	public <R> R callWithAutoProgress(ProgressCallback<Void> callback, Callable<R> callable) throws Exception {
+		AutoProgressingCallable<R> auto = new AutoProgressingCallable<R>(
+				tableSupportExecutorService, callable, AUTO_PROGRESS_FREQUENCY_MS);
 		return auto.call(callback);
 	}
 }

@@ -23,6 +23,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
+import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -47,6 +48,8 @@ public class TableIndexManagerImplTest {
 	TransactionStatus mockTransactionStatus;
 	@Mock
 	TableManagerSupport mockManagerSupport;
+	@Mock
+	ProgressCallback<Void> mockCallback;
 	
 	TableIndexManagerImpl manager;
 	String tableId;
@@ -179,7 +182,7 @@ public class TableIndexManagerImplTest {
 		when(mockIndexDao.getDatabaseInfo(tableId)).thenReturn(Lists.newArrayList(info));
 		when(mockIndexDao.alterTableAsNeeded(anyString(), anyList())).thenReturn(true);
 		// call under test
-		manager.setIndexSchema(schema);
+		manager.setIndexSchema(mockCallback, schema);
 		String schemaMD5Hex = TableModelUtils. createSchemaMD5HexCM(Lists.newArrayList(schema));
 		verify(mockIndexDao).setCurrentSchemaMD5Hex(tableId, schemaMD5Hex);
 	}
@@ -189,7 +192,7 @@ public class TableIndexManagerImplTest {
 		when(mockIndexDao.getDatabaseInfo(tableId)).thenReturn(new LinkedList<DatabaseColumnInfo>());
 		when(mockIndexDao.alterTableAsNeeded(anyString(), anyList())).thenReturn(true);
 		// call under test
-		manager.setIndexSchema(new LinkedList<ColumnModel>());
+		manager.setIndexSchema(mockCallback, new LinkedList<ColumnModel>());
 		String schemaMD5Hex = TableModelUtils. createSchemaMD5HexCM(Lists.newArrayList(new LinkedList<ColumnModel>()));
 		verify(mockIndexDao).setCurrentSchemaMD5Hex(tableId, schemaMD5Hex);
 	}
@@ -260,7 +263,7 @@ public class TableIndexManagerImplTest {
 		when(mockIndexDao.getDatabaseInfo(tableId)).thenReturn(Lists.newArrayList(info));
 		
 		// call under test
-		manager.updateTableSchema(changes);
+		manager.updateTableSchema(mockCallback, changes);
 		verify(mockIndexDao).createTableIfDoesNotExist(tableId);
 		verify(mockIndexDao).createSecondaryTables(tableId);
 		// The new schema is not empty so do not truncate.
@@ -281,7 +284,7 @@ public class TableIndexManagerImplTest {
 		when(mockIndexDao.alterTableAsNeeded(tableId, changes)).thenReturn(true);
 		when(mockIndexDao.getDatabaseInfo(tableId)).thenReturn(new LinkedList<DatabaseColumnInfo>());
 		// call under test
-		manager.updateTableSchema(changes);
+		manager.updateTableSchema(mockCallback, changes);
 		verify(mockIndexDao).createTableIfDoesNotExist(tableId);
 		verify(mockIndexDao).createSecondaryTables(tableId);
 		verify(mockIndexDao).getDatabaseInfo(tableId);
@@ -299,7 +302,7 @@ public class TableIndexManagerImplTest {
 		when(mockIndexDao.alterTableAsNeeded(tableId, changes)).thenReturn(false);
 		when(mockIndexDao.getDatabaseInfo(tableId)).thenReturn(new LinkedList<DatabaseColumnInfo>());
 		// call under test
-		manager.updateTableSchema(changes);
+		manager.updateTableSchema(mockCallback, changes);
 		verify(mockIndexDao).createTableIfDoesNotExist(tableId);
 		verify(mockIndexDao).createSecondaryTables(tableId);
 		verify(mockIndexDao).alterTableAsNeeded(tableId, changes);

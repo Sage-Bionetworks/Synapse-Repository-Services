@@ -30,7 +30,7 @@ public class EntityAnnotationsWorker implements ChangeMessageDrivenRunner {
 	WorkerLogger workerLogger;
 
 	@Override
-	public void run(ProgressCallback<ChangeMessage> progressCallback, ChangeMessage change)
+	public void run(ProgressCallback<Void> progressCallback, ChangeMessage change)
 			throws RecoverableMessageException, Exception {
 		// Extract the ChangeMessage
 		// We only care about entity messages here

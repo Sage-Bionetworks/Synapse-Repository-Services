@@ -123,11 +123,13 @@ public class MigrationManagerImplAutowireTest {
 	private String[] projectIds = new String[3];
 	StackConfiguration stackConfig;
 	ProgressCallback<Long> mockProgressCallback;
+	ProgressCallback<Void> mockProgressCallbackVoid;
 	private long startId;
 
 	@Before
 	public void before() throws Exception {
 		mockProgressCallback = Mockito.mock(ProgressCallback.class);
+		mockProgressCallbackVoid = Mockito.mock(ProgressCallback.class);
 		toDelete = new LinkedList<String>();
 		adminUser = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		creatorUserGroupId = adminUser.getId().toString();
@@ -360,7 +362,7 @@ public class MigrationManagerImplAutowireTest {
 			List<ColumnModel> currentSchema = tableManagerSupport.getColumnModelsForTable(tableId);
 			TableIndexDAO indexDao = tableConnectionFactory.getConnection(tableId);
 			TableIndexManagerImpl manager = new TableIndexManagerImpl(indexDao,tableManagerSupport, tableId);
-			manager.setIndexSchema(currentSchema);
+			manager.setIndexSchema(mockProgressCallbackVoid, currentSchema);
 			List<ColumnModel> models = columnManager.getColumnModelsForTable(adminUser, tableId);
 			RowReferenceSet rowRefs = new RowReferenceSet();
 			rowRefs.setRows(Collections.singletonList(TableModelTestUtils.createRowReference(0L, 0L)));

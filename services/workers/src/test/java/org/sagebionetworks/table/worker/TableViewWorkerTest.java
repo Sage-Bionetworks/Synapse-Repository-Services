@@ -50,9 +50,9 @@ public class TableViewWorkerTest {
 	@Mock
 	TableIndexManager indexManager;
 	@Mock
-	ProgressCallback<ChangeMessage> outerCallback;
+	ProgressCallback<Void> outerCallback;
 	@Mock
-	ProgressCallback<ChangeMessage> innerCallback;
+	ProgressCallback<Void> innerCallback;
 
 	TableViewWorker worker;
 
@@ -99,7 +99,7 @@ public class TableViewWorkerTest {
 		doAnswer(new Answer<Void>() {
 			@Override
 			public Void answer(InvocationOnMock invocation) throws Throwable {
-				ProgressingCallable<Void, ChangeMessage> callable = (ProgressingCallable<Void, ChangeMessage>) invocation
+				ProgressingCallable<Void, Void> callable = (ProgressingCallable<Void, Void>) invocation
 						.getArguments()[3];
 				// pass it along
 				if(callable != null){
@@ -215,8 +215,8 @@ public class TableViewWorkerTest {
 		worker.createOrUpdateIndexHoldingLock(tableId, indexManager, innerCallback, change);
 		
 		verify(indexManager).deleteTableIndex();
-		verify(indexManager).setIndexSchema(innerCallback, change,schema);
-		verify(innerCallback, times(1)).progressMade(change);
+		verify(indexManager).setIndexSchema(innerCallback,schema);
+		verify(innerCallback, times(1)).progressMade(null);
 		verify(tableManagerSupport, times(1)).attemptToUpdateTableProgress(tableId, token, "Building view...", 0L, 1L);
 		verify(indexManager, times(1)).applyChangeSetToIndex(any(RowSet.class), anyListOf(ColumnModel.class));
 		verify(indexManager).setIndexVersion(viewCRC);
