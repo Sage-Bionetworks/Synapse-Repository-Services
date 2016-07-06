@@ -8,6 +8,8 @@ import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
+import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
+import org.sagebionetworks.repo.model.subscription.Topic;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -16,6 +18,7 @@ public class ThreadMessageBuilderFactory implements MessageBuilderFactory {
 			+ "created thread [%3$s](https://www.synapse.org/#!Synapse:%4$s/discussion/threadId=%5$s) "
 			+ "in [%6$s](https://www.synapse.org/#!Synapse:%4$s) forum.\n>";
 	public static final String THREAD_CREATED_TITLE = "Synapse Notification: New thread '%1$s'";
+	public static final String UNSUBSCRIBE_FORUM = "[Unsubscribe to the forum](https://www.synapse.org/#!Subscription:subscriptionID=%1$s)\n";
 
 	@Autowired
 	private DiscussionThreadDAO threadDao;
@@ -42,9 +45,13 @@ public class ThreadMessageBuilderFactory implements MessageBuilderFactory {
 		String actor = principalAliasDAO.getUserName(userId);
 		String markdown = null;
 		markdown = uploadDao.getMessage(threadBundle.getMessageKey());
-		return new DiscussionBroadcastMessageBuilder(actor, userId.toString(), threadBundle.getTitle(),
-				threadBundle.getId(), threadBundle.getProjectId(), projectName, markdown,
-				THREAD_TEMPLATE, THREAD_CREATED_TITLE, markdownDao);
+		Topic broadcastTopic = new Topic();
+		broadcastTopic.setObjectId(threadBundle.getForumId());
+		broadcastTopic.setObjectType(SubscriptionObjectType.FORUM);
+		return new DiscussionBroadcastMessageBuilder(actor, userId.toString(),
+				threadBundle.getTitle(), threadBundle.getId(), threadBundle.getProjectId(),
+				projectName, markdown, THREAD_TEMPLATE, THREAD_CREATED_TITLE,
+				UNSUBSCRIBE_FORUM, markdownDao, broadcastTopic, principalAliasDAO);
 	}
 
 }

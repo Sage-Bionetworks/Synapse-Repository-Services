@@ -5,8 +5,10 @@ import static org.junit.Assert.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
 import org.junit.After;
 import org.junit.Before;
@@ -19,11 +21,16 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
+import org.sagebionetworks.repo.model.broadcast.UserNotificationInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.message.Settings;
+import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.BootstrapPrincipal;
 import org.sagebionetworks.repo.model.principal.BootstrapUser;
+import org.sagebionetworks.repo.model.principal.PrincipalAlias;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -41,28 +48,39 @@ public class DBOUserProfileDAOImplTest {
 	
 	@Autowired
 	FileHandleDao fileHandleDao;
+
+	@Autowired
+	PrincipalAliasDAO principalAliasDAO;
+
+	@Autowired
+	private NotificationEmailDAO notificationEmailDAO;
 	
-	private UserGroup individualGroup = null;
+	private UserGroup principal = null;
+	private UserGroup principal2 = null;
 	
-	private List<UserGroup> individualGroupsToDelete = null;
+	private List<UserGroup> principalToDelete = null;
 	private List<String> fileHandlesToDelete = null;
 	
 	private List<String> toDelete;
 	
 	@Before
 	public void setUp() throws Exception {
-		individualGroup = new UserGroup();
-		individualGroup.setIsIndividual(true);
-		individualGroup.setCreationDate(new Date());
-		individualGroup.setId(userGroupDAO.create(individualGroup).toString());
+		principal = new UserGroup();
+		principal.setIsIndividual(true);
+		principal.setCreationDate(new Date());
+		principal.setId(userGroupDAO.create(principal).toString());
+		principal2 = new UserGroup();
+		principal2.setIsIndividual(true);
+		principal2.setCreationDate(new Date());
+		principal2.setId(userGroupDAO.create(principal2).toString());
 		toDelete = new LinkedList<String>();
-		individualGroupsToDelete = new ArrayList<UserGroup>();
+		principalToDelete = new ArrayList<UserGroup>();
 		for (int i=0; i<2; i++) {
 			UserGroup individualGroup = new UserGroup();
 			individualGroup.setIsIndividual(true);
 			individualGroup.setCreationDate(new Date());
 			individualGroup.setId(userGroupDAO.create(individualGroup).toString());
-			individualGroupsToDelete.add(individualGroup);
+			principalToDelete.add(individualGroup);
 		}
 		fileHandlesToDelete = new LinkedList<String>();
 	}
@@ -70,7 +88,7 @@ public class DBOUserProfileDAOImplTest {
 	
 	@After
 	public void tearDown() throws Exception{
-		for (UserGroup ug : individualGroupsToDelete) {
+		for (UserGroup ug : principalToDelete) {
 			// this will delete the user profile too
 			userGroupDAO.delete(ug.getId());
 		}
@@ -88,7 +106,7 @@ public class DBOUserProfileDAOImplTest {
 				} catch (Exception e) {}
 			}
 		}
-		individualGroupsToDelete.clear();
+		principalToDelete.clear();
 	}
 	
 	/**
@@ -97,7 +115,7 @@ public class DBOUserProfileDAOImplTest {
 	 */
 	private UserProfile createUserProfile(){
 		UserProfile userProfile = new UserProfile();
-		userProfile.setOwnerId(individualGroup.getId());
+		userProfile.setOwnerId(principal.getId());
 		userProfile.setFirstName("foo");
 		userProfile.setLastName("bar");
 		userProfile.setRStudioUrl("http://rstudio.com");
@@ -224,7 +242,7 @@ public class DBOUserProfileDAOImplTest {
 		List<UserProfile> userProfiles = new ArrayList<UserProfile>();
 		long initialCount = userProfileDAO.getCount();
 		// Create it
-		for (UserGroup ug : individualGroupsToDelete) {
+		for (UserGroup ug : principalToDelete) {
 			// Create a new user profile
 			UserProfile userProfile = new UserProfile();
 			userProfile.setOwnerId(ug.getId());
@@ -303,7 +321,7 @@ public class DBOUserProfileDAOImplTest {
 	public void testGetPictureFileHandleId() throws NotFoundException{
 		ExternalFileHandle ef = new ExternalFileHandle();
 		ef.setExternalURL("http://google.com");
-		ef.setCreatedBy(individualGroup.getId());
+		ef.setCreatedBy(principal.getId());
 		ef.setCreatedOn(new Date());
 		ef.setFileName("Some name");
 		ef = fileHandleDao.createFile(ef);
@@ -332,5 +350,49 @@ public class DBOUserProfileDAOImplTest {
 				assertEquals(bootUg.getId().toString(), profile.getOwnerId());
 			}
 		}
+	}
+
+	@Test
+	public void testGetUserNotificationInfo() {
+		String user1 = createUserWithNotificationEmail(Long.parseLong(principal.getId()),
+				"username", "first", "last", "first@domain.org", true);
+		String user2 = createUserWithNotificationEmail(Long.parseLong(principal2.getId()),
+				"username2", "first2", "last2", "second@domain.org", false);
+
+		Set<String> ids = new HashSet<String>();
+		ids.addAll(Arrays.asList(user1, user2));
+		List<UserNotificationInfo> results = userProfileDAO.getUserNotificationInfo(ids);
+		assertEquals(1, results.size());
+		assertEquals(user1, results.get(0).getUserId());
+		assertEquals("first", results.get(0).getFirstName());
+		assertEquals("last", results.get(0).getLastName());
+		assertEquals("username", results.get(0).getUsername());
+		assertEquals("first@domain.org", results.get(0).getNotificationEmail());
+
+		principalAliasDAO.removeAllAliasFromPrincipal(Long.parseLong(principal.getId()));
+		principalAliasDAO.removeAllAliasFromPrincipal(Long.parseLong(principal2.getId()));
+	}
+
+	private String createUserWithNotificationEmail(Long principalId, String username,
+			String firstName, String lastName, String email, Boolean receiveNotification) {
+		Settings setting = new Settings();
+		setting.setSendEmailNotifications(receiveNotification);
+		UserProfile userProfile = new UserProfile();
+		userProfile.setOwnerId(principalId.toString());
+		userProfile.setFirstName(firstName);
+		userProfile.setLastName(lastName);
+		userProfile.setNotificationSettings(setting);
+		String user = userProfileDAO.create(userProfile);
+		PrincipalAlias usernameAlias = new PrincipalAlias();
+		usernameAlias.setAlias(username);
+		usernameAlias.setPrincipalId(principalId);
+		usernameAlias.setType(AliasType.USER_NAME);
+		principalAliasDAO.bindAliasToPrincipal(usernameAlias);
+		PrincipalAlias emailAlias = new PrincipalAlias();
+		emailAlias.setAlias(email);
+		emailAlias.setPrincipalId(principalId);
+		emailAlias.setType(AliasType.USER_EMAIL);
+		notificationEmailDAO.create(principalAliasDAO.bindAliasToPrincipal(emailAlias));
+		return user;
 	}
 }

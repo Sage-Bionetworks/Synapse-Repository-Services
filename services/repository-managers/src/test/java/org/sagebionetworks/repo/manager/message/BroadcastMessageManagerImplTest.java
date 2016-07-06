@@ -7,26 +7,35 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
+import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.principal.SynapseEmailService;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.UserProfileDAO;
+import org.sagebionetworks.repo.model.broadcast.UserNotificationInfo;
 import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.message.BroadcastMessageDao;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.repo.model.subscription.Subscriber;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
+import org.sagebionetworks.repo.model.dao.subscription.Subscriber;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.Topic;
 import org.sagebionetworks.util.TimeoutUtils;
@@ -51,19 +60,26 @@ public class BroadcastMessageManagerImplTest {
 	@Mock
 	TimeoutUtils mockTimeoutUtils;
 	@Mock
-	BroadcastMessageBuilder mockBroadcastMessageBuilder;
+	DiscussionBroadcastMessageBuilder mockBroadcastMessageBuilder;
 	@Mock
 	MessageBuilderFactory mockFactory;
 	@Mock
 	UserInfo mockUser;
 	@Mock
 	ProgressCallback<ChangeMessage> mockCallback;
+	@Mock
+	PrincipalAliasDAO mockPrincipalAliasDao;
+	@Mock
+	UserProfileDAO mockUserProfileDao;
+	@Mock
+	UserManager mockUserManager;
+	@Mock
+	AuthorizationManager mockAuthManager;
 	
 	BroadcastMessageManagerImpl manager;
-	
 	ChangeMessage change;
-
 	List<Subscriber> subscribers;
+	Topic topic;
 
 	@Before
 	public void before() throws Exception{
@@ -75,10 +91,13 @@ public class BroadcastMessageManagerImplTest {
 		ReflectionTestUtils.setField(manager, "changeDao", mockChangeDao);
 		ReflectionTestUtils.setField(manager, "timeoutUtils", mockTimeoutUtils);
 		ReflectionTestUtils.setField(manager, "sesClient", mockSesClient);
-		
+		ReflectionTestUtils.setField(manager, "principalAliasDao", mockPrincipalAliasDao);
+		ReflectionTestUtils.setField(manager, "userProfileDao", mockUserProfileDao);
+		ReflectionTestUtils.setField(manager, "userManager", mockUserManager);
+		ReflectionTestUtils.setField(manager, "authManager", mockAuthManager);
 		Map<ObjectType, MessageBuilderFactory> factoryMap = new HashMap<ObjectType, MessageBuilderFactory>();
 		factoryMap.put(ObjectType.REPLY, mockFactory);
-		manager.setFactoryMap(factoryMap);
+		manager.setMessageBuilderFactoryMap(factoryMap);
 		
 		// default setup
 		change = new ChangeMessage();
@@ -89,7 +108,7 @@ public class BroadcastMessageManagerImplTest {
 		change.setTimestamp(new Date(123000L));
 		change.setUserId(789L);
 		
-		Topic topic = new Topic();
+		topic = new Topic();
 		topic.setObjectId("5555");
 		topic.setObjectType(SubscriptionObjectType.THREAD);
 
@@ -118,7 +137,8 @@ public class BroadcastMessageManagerImplTest {
 	}
 	
 	@Test
-	public void testHappyBroadcast() throws Exception{
+	public void testBroadcastThreadWithoutMentionedUsers() throws Exception{
+		when(mockBroadcastMessageBuilder.getMarkdown()).thenReturn("");
 		// call under test
 		manager.broadcastMessage(mockUser, mockCallback, change);
 		// The message state should be sent.
@@ -127,6 +147,43 @@ public class BroadcastMessageManagerImplTest {
 		verify(mockCallback, times(2)).progressMade(change);
 		// two messages should be sent
 		verify(mockSesClient, times(2)).sendRawEmail(any(SendRawEmailRequest.class));
+	}
+
+	@Test
+	public void testBroadcastThreadWithMentionedUsers() throws Exception {
+		Set<String> userIds = new HashSet<String>();
+		userIds.addAll(Arrays.asList("111", "222", "2"));
+		when(mockBroadcastMessageBuilder.getRelatedUsers()).thenReturn(userIds);
+		userIds.remove("2");
+		UserNotificationInfo userNotificationInfo1 = new UserNotificationInfo();
+		userNotificationInfo1.setUserId("111");
+		UserNotificationInfo userNotificationInfo2 = new UserNotificationInfo();
+		userNotificationInfo2.setUserId("222");
+		when(mockUserProfileDao.getUserNotificationInfo(userIds)).thenReturn(Arrays.asList(userNotificationInfo1, userNotificationInfo2));
+		UserInfo hasAccessUserInfo = new UserInfo(false);
+		hasAccessUserInfo.setId(111L);
+		UserInfo accessDeniedUserInfo = new UserInfo(false);
+		accessDeniedUserInfo.setId(222L);
+		when(mockUserManager.getUserInfo(111L)).thenReturn(hasAccessUserInfo);
+		when(mockUserManager.getUserInfo(222L)).thenReturn(accessDeniedUserInfo);
+		when(mockAuthManager.canSubscribe(hasAccessUserInfo, topic.getObjectId(), topic.getObjectType()))
+				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(mockAuthManager.canSubscribe(accessDeniedUserInfo, topic.getObjectId(), topic.getObjectType()))
+				.thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+
+		manager.broadcastMessage(mockUser, mockCallback, change);
+		// The message state should be sent.
+		verify(mockBroadcastMessageDao).setBroadcast(change.getChangeNumber());
+		verify(mockBroadcastMessageBuilder).getRelatedUsers();
+		verify(mockUserProfileDao).getUserNotificationInfo(userIds);
+		verify(mockUserManager).getUserInfo(111L);
+		verify(mockUserManager).getUserInfo(222L);
+		verify(mockAuthManager).canSubscribe(hasAccessUserInfo, topic.getObjectId(), topic.getObjectType());
+		verify(mockAuthManager).canSubscribe(accessDeniedUserInfo, topic.getObjectId(), topic.getObjectType());
+		// progress should be made for each subscriber
+		verify(mockCallback, times(3)).progressMade(change);
+		// two messages should be sent
+		verify(mockSesClient, times(3)).sendRawEmail(any(SendRawEmailRequest.class));
 	}
 
 	@Test (expected = HttpClientHelperException.class)

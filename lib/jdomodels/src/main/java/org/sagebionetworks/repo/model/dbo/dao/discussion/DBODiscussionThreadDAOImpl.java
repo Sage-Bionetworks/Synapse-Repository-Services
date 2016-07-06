@@ -489,12 +489,6 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 	}
 
 	@Override
-	public List<String> getAllThreadIdForForum(String forumId) {
-		ValidateArgument.required(forumId, "forumId");
-		return jdbcTemplate.queryForList(SQL_SELECT_ALL_THREAD_ID_FOR_FORUM, new Object[]{forumId}, String.class);
-	}
-
-	@Override
 	public String getProjectId(String threadId) {
 		List<String> queryResult = jdbcTemplate.query(SELECT_PROJECT_ID, new RowMapper<String>(){
 			@Override

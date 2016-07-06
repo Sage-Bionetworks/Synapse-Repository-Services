@@ -95,13 +95,4 @@ public interface DiscussionReplyManager {
 	 * @param accessType
 	 */
 	public void checkPermission(UserInfo userInfo, String replyId, ACCESS_TYPE accessType);
-
-	/**
-	 * Find and subscribe all subscribers to this thread
-	 * 
-	 * @param userId
-	 * @param threadId
-	 * @param markdown
-	 */
-	void handleSubscription(String userId, String threadId, String markdown);
 }

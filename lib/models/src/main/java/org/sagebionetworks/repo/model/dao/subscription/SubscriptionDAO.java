@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.model.dao.subscription;
 import java.util.List;
 import java.util.Set;
 
-import org.sagebionetworks.repo.model.subscription.Subscriber;
 import org.sagebionetworks.repo.model.subscription.Subscription;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.SubscriptionPagedResults;
@@ -85,24 +84,6 @@ public interface SubscriptionDAO {
 	 */
 	public List<Subscriber> getAllEmailSubscribers(String objectId,
 			SubscriptionObjectType objectType);
-
-	/**
-	 * Subscribe a user to all topics listed
-	 * 
-	 * @param userId
-	 * @param idList
-	 * @param objectType
-	 */
-	public void subscribeAllTopic(String userId, List<String> idList, SubscriptionObjectType objectType);
-
-	/**
-	 * Unsubscribe from a list of topics
-	 * 
-	 * @param userId
-	 * @param idList
-	 * @param objectType
-	 */
-	public void deleteList(String userId, List<String> idList, SubscriptionObjectType objectType);
 
 	/**
 	 * Retrieve all projects that a user has subscriptions to
