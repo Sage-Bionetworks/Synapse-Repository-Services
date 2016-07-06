@@ -308,6 +308,36 @@ public class MessageManagerImplTest {
 	
 	@After
 	public void tearDown() throws Exception {
+		for (String id : cleanup) {
+			messageManager.deleteMessage(adminUserInfo, id);
+		}
+		
+		fileDAO.delete(fileHandleId);
+
+		// Cleanup the team
+		teamManager.delete(testUser, testTeam.getId());
+		
+		if (nodeId != null) {
+			try {
+				nodeManager.delete(adminUserInfo, nodeId);
+			} catch (NotFoundException e) { }
+		}
+		nodeId=null;
+		
+		if (childId != null) {
+			try {
+				nodeManager.delete(adminUserInfo, childId);
+			} catch (NotFoundException e) { }
+		}
+		childId=null;
+		
+		// Reset the test user's notification settings to the default
+		UserProfile profile = userProfileManager.getUserProfile(testUser.getId().toString());
+		profile.setNotificationSettings(new Settings());
+		userProfileManager.updateUserProfile(testUser, profile);
+		
+		userManager.deletePrincipal(adminUserInfo, testUser.getId());
+		userManager.deletePrincipal(adminUserInfo, otherTestUser.getId());
 		for (PrincipalAlias alias : aliasesToDelete) {
 			principalAliasDAO.removeAliasFromPrincipal(alias.getPrincipalId(), alias.getAliasId());
 		}
@@ -419,40 +449,6 @@ public class MessageManagerImplTest {
 		
 		// check that the stubbed client was NOT called
 		assertEquals(0, errors.size());
-	}
-	
-	@After
-	public void cleanup() throws Exception {
-		for (String id : cleanup) {
-			messageManager.deleteMessage(adminUserInfo, id);
-		}
-		
-		fileDAO.delete(fileHandleId);
-
-		// Cleanup the team
-		teamManager.delete(testUser, testTeam.getId());
-		
-		if (nodeId != null) {
-			try {
-				nodeManager.delete(adminUserInfo, nodeId);
-			} catch (NotFoundException e) { }
-		}
-		nodeId=null;
-		
-		if (childId != null) {
-			try {
-				nodeManager.delete(adminUserInfo, childId);
-			} catch (NotFoundException e) { }
-		}
-		childId=null;
-		
-		// Reset the test user's notification settings to the default
-		UserProfile profile = userProfileManager.getUserProfile(testUser.getId().toString());
-		profile.setNotificationSettings(new Settings());
-		userProfileManager.updateUserProfile(testUser, profile);
-		
-		userManager.deletePrincipal(adminUserInfo, testUser.getId());
-		userManager.deletePrincipal(adminUserInfo, otherTestUser.getId());
 	}
 	
 	@SuppressWarnings("serial")
