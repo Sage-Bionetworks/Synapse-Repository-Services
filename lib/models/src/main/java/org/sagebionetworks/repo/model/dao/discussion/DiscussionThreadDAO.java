@@ -145,14 +145,6 @@ public interface DiscussionThreadDAO {
 	public List<Long> getAllThreadId(Long limit, Long offset);
 
 	/**
-	 * Get all thread Ids for a forum
-	 * 
-	 * @param forumId
-	 * @return
-	 */
-	public List<String> getAllThreadIdForForum(String forumId);
-
-	/**
 	 * Pin a thread
 	 * 
 	 * @param threadId

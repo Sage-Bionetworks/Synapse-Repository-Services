@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.manager.subscription;
 
-import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.repo.manager.AuthorizationManager;
@@ -10,7 +9,6 @@ import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dao.discussion.DiscussionThreadDAO;
 import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -30,8 +28,6 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
 	@Autowired
 	private SubscriptionDAO subscriptionDao;
 	@Autowired
-	private DiscussionThreadDAO threadDao;
-	@Autowired
 	private AuthorizationManager authorizationManager;
 	@Autowired
 	private DBOChangeDAO changeDao;
@@ -48,15 +44,7 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canSubscribe(userInfo, toSubscribe.getObjectId(), toSubscribe.getObjectType()));
 		Subscription sub = subscriptionDao.create(userInfo.getId().toString(), toSubscribe.getObjectId(), toSubscribe.getObjectType());
-		if (toSubscribe.getObjectType() == SubscriptionObjectType.FORUM) {
-			subscribeToAllExistingThreads(userInfo.getId().toString(), toSubscribe.getObjectId());
-		}
 		return sub;
-	}
-
-	private void subscribeToAllExistingThreads(String userId, String forumId) {
-		List<String> threadIdList = threadDao.getAllThreadIdForForum(forumId);
-		subscriptionDao.subscribeAllTopic(userId, threadIdList, SubscriptionObjectType.THREAD);
 	}
 
 	@Override
@@ -91,18 +79,10 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
 			if (!sub.getSubscriberId().equals(userInfo.getId().toString())) {
 				throw new UnauthorizedException("Only the owner of this subscription can perform this action.");
 			}
-			if (sub.getObjectType() == SubscriptionObjectType.FORUM) {
-				unsubscribeToAllExistingThreads(userInfo.getId().toString(), sub.getObjectId());
-			}
 			subscriptionDao.delete(id);
 		} catch (NotFoundException e) {
 			// subscription does not exist - do nothing
 		}
-	}
-
-	private void unsubscribeToAllExistingThreads(String userId, String forumId) {
-		List<String> threadIdList = threadDao.getAllThreadIdForForum(forumId);
-		subscriptionDao.deleteList(userId, threadIdList, SubscriptionObjectType.THREAD);
 	}
 
 	@WriteTransactionReadCommitted

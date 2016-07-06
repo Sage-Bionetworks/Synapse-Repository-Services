@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model;
 import java.util.List;
 import java.util.Set;
 
+import org.sagebionetworks.repo.model.broadcast.UserNotificationInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface UserProfileDAO {
@@ -94,4 +95,12 @@ public interface UserProfileDAO {
 	 * @throws NotFoundException 
 	 */
 	public String getPictureFileHandleId(String userId) throws NotFoundException;
+
+	/**
+	 * retrieves notification information for a list of users
+	 * 
+	 * @param ids
+	 * @return
+	 */
+	public List<UserNotificationInfo> getUserNotificationInfo(Set<String> ids);
 }
