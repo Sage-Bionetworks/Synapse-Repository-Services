@@ -11,6 +11,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONException;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.principal.SynapseEmailService;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -66,6 +68,10 @@ public class BroadcastMessageManagerImpl implements BroadcastMessageManager {
 	PrincipalAliasDAO principalAliasDao;
 	@Autowired
 	UserProfileDAO userProfileDao;
+	@Autowired
+	UserManager userManager;
+	@Autowired
+	AuthorizationManager authManager;
 
 	@Override
 	public void broadcastMessage(UserInfo user,	ProgressCallback<ChangeMessage> progressCallback, ChangeMessage changeMessage) throws ClientProtocolException, JSONException, IOException, HttpClientHelperException {
@@ -124,11 +130,12 @@ public class BroadcastMessageManagerImpl implements BroadcastMessageManager {
 			sesClient.sendRawEmail(emailRequest);
 		}
 
-		sendMessageToNonSubscribers(progressCallback, changeMessage, builder, subscriberIds);
+		sendMessageToNonSubscribers(progressCallback, changeMessage, builder, subscriberIds, topic);
 	}
 
 	private void sendMessageToNonSubscribers(ProgressCallback<ChangeMessage> progressCallback,
-			ChangeMessage changeMessage, BroadcastMessageBuilder builder, List<String> subscriberIds)
+			ChangeMessage changeMessage, BroadcastMessageBuilder builder, List<String> subscriberIds,
+			Topic topic)
 			throws ClientProtocolException, JSONException, IOException, HttpClientHelperException {
 		Set<String> mentionedUserIds = builder.getRelatedUsers();
 		// remove mentioned users who subscribed to the topic
@@ -136,16 +143,19 @@ public class BroadcastMessageManagerImpl implements BroadcastMessageManager {
 		// create list of MentionedUser from their ids
 		List<UserNotificationInfo> mentionedUsers = userProfileDao.getUserNotificationInfo(mentionedUserIds);
 		// build and send email to each mentioned user
-		for(UserNotificationInfo userInfo: mentionedUsers){
+		for(UserNotificationInfo userNotificationInfo: mentionedUsers){
 			// do not send an email to the user who created this change
-			if (userInfo.getUserId().equals(changeMessage.getUserId().toString())) {
+			if (userNotificationInfo.getUserId().equals(changeMessage.getUserId().toString())) {
 				continue;
 			}
-			// progress between each message
-			progressCallback.progressMade(changeMessage);
-			SendRawEmailRequest emailRequest = builder.buildEmailForNonSubscriber(userInfo);
-			log.debug("sending email to "+userInfo.getNotificationEmail());
-			sesClient.sendRawEmail(emailRequest);
+			UserInfo userInfo = userManager.getUserInfo(Long.parseLong(userNotificationInfo.getUserId()));
+			if (authManager.canSubscribe(userInfo, topic.getObjectId(), topic.getObjectType()).getAuthorized()) {
+				// progress between each message
+				progressCallback.progressMade(changeMessage);
+				SendRawEmailRequest emailRequest = builder.buildEmailForNonSubscriber(userNotificationInfo);
+				log.debug("sending email to "+userNotificationInfo.getNotificationEmail());
+				sesClient.sendRawEmail(emailRequest);
+			}
 		}
 	}
 	
