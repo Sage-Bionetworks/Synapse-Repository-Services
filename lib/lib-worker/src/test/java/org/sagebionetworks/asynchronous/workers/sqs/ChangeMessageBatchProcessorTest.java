@@ -114,10 +114,8 @@ public class ChangeMessageBatchProcessorTest {
 		doAnswer(new Answer<Object>() {
 			public Object answer(InvocationOnMock invocation) {
 				Object[] args = invocation.getArguments();
-				ProgressCallback<ChangeMessage> progress = (ProgressCallback<ChangeMessage>) args[0];
-				ChangeMessage change = (ChangeMessage) args[1];
-				progress.progressMade(change);
-				
+				ProgressCallback<Void> progress = (ProgressCallback<Void>) args[0];
+				progress.progressMade(null);
 				return null;
 			}
 		}).when(mockRunner).run(any(ProgressCallback.class),

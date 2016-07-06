@@ -100,13 +100,13 @@ public interface TableIndexManager {
 	 * 
 	 * @param currentSchema
 	 */
-	public <T> void setIndexSchema(ProgressCallback<Void> progressCallback, List<ColumnModel> currentSchema);
+	public void setIndexSchema(ProgressCallback<Void> progressCallback, List<ColumnModel> currentSchema);
 	
 	/**
 	 * 
 	 * @param currentSchema
 	 */
-	public <T> boolean updateTableSchema(ProgressCallback<Void> progressCallback, List<ColumnChange> changes);
+	public boolean updateTableSchema(ProgressCallback<Void> progressCallback, List<ColumnChange> changes);
 	
 	/**
 	 * Delete the index for this table.

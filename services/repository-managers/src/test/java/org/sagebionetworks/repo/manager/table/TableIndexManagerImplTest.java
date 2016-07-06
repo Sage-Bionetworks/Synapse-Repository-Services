@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.Callable;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -61,7 +62,7 @@ public class TableIndexManagerImplTest {
 	
 	@SuppressWarnings("unchecked")
 	@Before
-	public void before(){
+	public void before() throws Exception{
 		MockitoAnnotations.initMocks(this);
 		tableId = "syn123";
 		manager = new TableIndexManagerImpl(mockIndexDao, mockManagerSupport, tableId);
@@ -97,6 +98,16 @@ public class TableIndexManagerImplTest {
 				callback.doInTransaction(mockTransactionStatus);
 				return null;
 			}}).when(mockIndexDao).executeInWriteTransaction(any(TransactionCallback.class));
+		
+		// setup callable.
+		when(mockManagerSupport.callWithAutoProgress(any(ProgressCallback.class), any(Callable.class))).then(new Answer<Boolean>() {
+
+			@Override
+			public Boolean answer(InvocationOnMock invocation) throws Throwable {
+				Callable<Boolean> callable = (Callable<Boolean>) invocation.getArguments()[1];
+				return callable.call();
+			}
+		});
 
 	}
 

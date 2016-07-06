@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.table;
 
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.Callable;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -133,7 +134,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * , java.util.List)
 	 */
 	@Override
-	public <T> void setIndexSchema(ProgressCallback<Void> progressCallback, List<ColumnModel> newSchema) {
+	public void setIndexSchema(ProgressCallback<Void> progressCallback, List<ColumnModel> newSchema) {
 		// Lookup the current schema of the index
 		List<DatabaseColumnInfo> currentSchema = tableIndexDao.getDatabaseInfo(tableId);
 		// create a change that replaces the old schema as needed.
@@ -160,13 +161,13 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	}
 	
 	@Override
-	public <T> boolean updateTableSchema(ProgressCallback<Void> progressCallback, List<ColumnChange> changes) {
+	public boolean updateTableSchema(ProgressCallback<Void> progressCallback, List<ColumnChange> changes) {
 		// create the table if it does not exist
 		tableIndexDao.createTableIfDoesNotExist(tableId);
 		// Create all of the status tables unconditionally.
 		tableIndexDao.createSecondaryTables(tableId);
 		// Alter the table
-		boolean wasSchemaChanged = tableIndexDao.alterTableAsNeeded(tableId, changes);
+		boolean wasSchemaChanged = alterTableAsNeededWithProgress(progressCallback, tableId, changes);
 		if(wasSchemaChanged){
 			// Get the current schema.
 			List<DatabaseColumnInfo> tableInfo = tableIndexDao.getDatabaseInfo(tableId);
@@ -181,6 +182,27 @@ public class TableIndexManagerImpl implements TableIndexManager {
 			tableIndexDao.setCurrentSchemaMD5Hex(tableId, schemaMD5Hex);
 		}
 		return wasSchemaChanged;
+	}
+	
+	/**
+	 * Alter the table schema using an auto-progressing callback.
+	 * @param progressCallback
+	 * @param tableId
+	 * @param changes
+	 * @return
+	 * @throws Exception
+	 */
+	private boolean alterTableAsNeededWithProgress(ProgressCallback<Void> progressCallback, final String tableId, final List<ColumnChange> changes){
+		 try {
+			return  tableManagerSupport.callWithAutoProgress(progressCallback, new Callable<Boolean>() {
+				@Override
+				public Boolean call() throws Exception {
+					return tableIndexDao.alterTableAsNeeded(tableId, changes);
+				}
+			});
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
 	}
 	/*
 	 * (non-Javadoc)
