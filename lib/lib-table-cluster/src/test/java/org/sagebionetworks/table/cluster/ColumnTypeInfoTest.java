@@ -1,6 +1,10 @@
 package org.sagebionetworks.table.cluster;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import java.util.Set;
 
@@ -141,7 +145,7 @@ public class ColumnTypeInfoTest {
 		Long inputSize = null;
 		String defaultValue = null;
 		String sql = ColumnTypeInfo.INTEGER.toSql(inputSize, defaultValue);
-		assertEquals("BIGINT(20) DEFAULT NULL", sql);
+		assertEquals("BIGINT(20) DEFAULT NULL COMMENT 'INTEGER'", sql);
 	}
 	
 	@Test
@@ -149,7 +153,7 @@ public class ColumnTypeInfoTest {
 		Long inputSize = null;
 		String defaultValue = "123";
 		String sql = ColumnTypeInfo.INTEGER.toSql(inputSize, defaultValue);
-		assertEquals("BIGINT(20) DEFAULT 123", sql);
+		assertEquals("BIGINT(20) DEFAULT 123 COMMENT 'INTEGER'", sql);
 	}
 	
 	@Test
@@ -157,7 +161,7 @@ public class ColumnTypeInfoTest {
 		Long inputSize = null;
 		String defaultValue = null;
 		String sql = ColumnTypeInfo.FILEHANDLEID.toSql(inputSize, defaultValue);
-		assertEquals("BIGINT(20) DEFAULT NULL", sql);
+		assertEquals("BIGINT(20) DEFAULT NULL COMMENT 'FILEHANDLEID'", sql);
 	}
 	
 	@Test
@@ -165,7 +169,7 @@ public class ColumnTypeInfoTest {
 		Long inputSize = null;
 		String defaultValue = "123";
 		String sql = ColumnTypeInfo.FILEHANDLEID.toSql(inputSize, defaultValue);
-		assertEquals("BIGINT(20) DEFAULT 123", sql);
+		assertEquals("BIGINT(20) DEFAULT 123 COMMENT 'FILEHANDLEID'", sql);
 	}
 	
 	@Test
@@ -173,7 +177,7 @@ public class ColumnTypeInfoTest {
 		Long inputSize = null;
 		String defaultValue = null;
 		String sql = ColumnTypeInfo.DATE.toSql(inputSize, defaultValue);
-		assertEquals("BIGINT(20) DEFAULT NULL", sql);
+		assertEquals("BIGINT(20) DEFAULT NULL COMMENT 'DATE'", sql);
 	}
 	
 	@Test
@@ -181,7 +185,7 @@ public class ColumnTypeInfoTest {
 		Long inputSize = null;
 		String defaultValue = "123";
 		String sql = ColumnTypeInfo.DATE.toSql(inputSize, defaultValue);
-		assertEquals("BIGINT(20) DEFAULT 123", sql);
+		assertEquals("BIGINT(20) DEFAULT 123 COMMENT 'DATE'", sql);
 	}
 	
 	@Test
@@ -189,7 +193,7 @@ public class ColumnTypeInfoTest {
 		Long inputSize = null;
 		String defaultValue = null;
 		String sql = ColumnTypeInfo.ENTITYID.toSql(inputSize, defaultValue);
-		assertEquals("VARCHAR(44) CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT NULL", sql);
+		assertEquals("VARCHAR(44) CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT NULL COMMENT 'ENTITYID'", sql);
 	}
 	
 	@Test
@@ -197,7 +201,7 @@ public class ColumnTypeInfoTest {
 		Long inputSize = null;
 		String defaultValue = "syn123";
 		String sql = ColumnTypeInfo.ENTITYID.toSql(inputSize, defaultValue);
-		assertEquals("VARCHAR(44) CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT 'syn123'", sql);
+		assertEquals("VARCHAR(44) CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT 'syn123' COMMENT 'ENTITYID'", sql);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -212,7 +216,7 @@ public class ColumnTypeInfoTest {
 		Long inputSize = 123L;
 		String defaultValue = null;
 		String sql = ColumnTypeInfo.STRING.toSql(inputSize, defaultValue);
-		assertEquals("VARCHAR(123) CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT NULL", sql);
+		assertEquals("VARCHAR(123) CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT NULL COMMENT 'STRING'", sql);
 	}
 	
 	@Test
@@ -220,7 +224,7 @@ public class ColumnTypeInfoTest {
 		Long inputSize = 123L;
 		String defaultValue = "foo";
 		String sql = ColumnTypeInfo.STRING.toSql(inputSize, defaultValue);
-		assertEquals("VARCHAR(123) CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT 'foo'", sql);
+		assertEquals("VARCHAR(123) CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT 'foo' COMMENT 'STRING'", sql);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -235,7 +239,7 @@ public class ColumnTypeInfoTest {
 		Long inputSize = 123L;
 		String defaultValue = null;
 		String sql = ColumnTypeInfo.LINK.toSql(inputSize, defaultValue);
-		assertEquals("VARCHAR(123) CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT NULL", sql);
+		assertEquals("VARCHAR(123) CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT NULL COMMENT 'LINK'", sql);
 	}
 	
 	@Test
@@ -243,7 +247,7 @@ public class ColumnTypeInfoTest {
 		Long inputSize = 123L;
 		String defaultValue = "foo";
 		String sql = ColumnTypeInfo.LINK.toSql(inputSize, defaultValue);
-		assertEquals("VARCHAR(123) CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT 'foo'", sql);
+		assertEquals("VARCHAR(123) CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT 'foo' COMMENT 'LINK'", sql);
 	}
 	
 	@Test
@@ -251,7 +255,7 @@ public class ColumnTypeInfoTest {
 		Long inputSize = null;
 		String defaultValue = null;
 		String sql = ColumnTypeInfo.DOUBLE.toSql(inputSize, defaultValue);
-		assertEquals("DOUBLE DEFAULT NULL", sql);
+		assertEquals("DOUBLE DEFAULT NULL COMMENT 'DOUBLE'", sql);
 	}
 	
 	@Test
@@ -259,7 +263,7 @@ public class ColumnTypeInfoTest {
 		Long inputSize = null;
 		String defaultValue = "1.2";
 		String sql = ColumnTypeInfo.DOUBLE.toSql(inputSize, defaultValue);
-		assertEquals("DOUBLE DEFAULT 1.2", sql);
+		assertEquals("DOUBLE DEFAULT 1.2 COMMENT 'DOUBLE'", sql);
 	}
 	
 	@Test
@@ -267,7 +271,7 @@ public class ColumnTypeInfoTest {
 		Long inputSize = null;
 		String defaultValue = null;
 		String sql = ColumnTypeInfo.LARGETEXT.toSql(inputSize, defaultValue);
-		assertEquals("MEDIUMTEXT CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT NULL", sql);
+		assertEquals("MEDIUMTEXT CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT NULL COMMENT 'LARGETEXT'", sql);
 	}
 	
 	@Test
@@ -275,7 +279,7 @@ public class ColumnTypeInfoTest {
 		Long inputSize = null;
 		String defaultValue = "bar";
 		String sql = ColumnTypeInfo.LARGETEXT.toSql(inputSize, defaultValue);
-		assertEquals("MEDIUMTEXT CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT 'bar'", sql);
+		assertEquals("MEDIUMTEXT CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT 'bar' COMMENT 'LARGETEXT'", sql);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -332,4 +336,5 @@ public class ColumnTypeInfoTest {
 		String defaultValue = "bar";
 		ColumnTypeInfo.INTEGER.appendDefaultValue(builder, defaultValue);
 	}
+	
 }

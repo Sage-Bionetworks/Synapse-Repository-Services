@@ -28,7 +28,7 @@ public interface BroadcastMessageManager {
 	 * @throws ClientProtocolException 
 	 */
 	public void broadcastMessage(UserInfo user,
-			ProgressCallback<ChangeMessage> progressCallback,
+			ProgressCallback<Void> progressCallback,
 			ChangeMessage changeMessage) throws ClientProtocolException, JSONException, IOException, HttpClientHelperException;
 
 }

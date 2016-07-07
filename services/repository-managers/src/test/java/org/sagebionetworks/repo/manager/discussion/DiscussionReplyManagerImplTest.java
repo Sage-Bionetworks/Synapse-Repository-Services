@@ -1,14 +1,11 @@
 package org.sagebionetworks.repo.manager.discussion;
 
-import static org.junit.Assert.*;
-import static org.mockito.Matchers.any;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.*;
 
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
 import java.util.UUID;
 
 import org.junit.Before;
@@ -37,12 +34,12 @@ import org.sagebionetworks.repo.model.discussion.MessageURL;
 import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
-import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
 
 public class DiscussionReplyManagerImplTest {
+
 	@Mock
 	private DiscussionThreadManager mockThreadManager;
 	@Mock
@@ -59,11 +56,10 @@ public class DiscussionReplyManagerImplTest {
 	private IdGenerator mockIdGenerator;
 	@Mock
 	private TransactionalMessenger mockTransactionalMessenger;
-	@Mock
-	private PrincipalAliasDAO mockPrincipalAliasDao;
 
 	private DiscussionReplyManager replyManager;
 	private UserInfo userInfo = new UserInfo(false /*not admin*/);
+	private Long userId = 765L;
 	private String threadId = "123";
 	private String projectId = "syn456";
 	private String forumId = "789";
@@ -84,7 +80,6 @@ public class DiscussionReplyManagerImplTest {
 		ReflectionTestUtils.setField(replyManager, "idGenerator", mockIdGenerator);
 		ReflectionTestUtils.setField(replyManager, "subscriptionDao", mockSubscriptionDao);
 		ReflectionTestUtils.setField(replyManager, "transactionalMessenger", mockTransactionalMessenger);
-		ReflectionTestUtils.setField(replyManager, "principalAliasDao", mockPrincipalAliasDao);
 
 		Mockito.when(mockThreadManager.getThread(userInfo, threadId)).thenReturn(mockThread);
 		Mockito.when(mockThread.getProjectId()).thenReturn(projectId);
@@ -104,7 +99,7 @@ public class DiscussionReplyManagerImplTest {
 		bundle.setEtag("etag");
 		messageKey = forumId + "/" + threadId + "/" + replyId +"/" + UUID.randomUUID().toString();
 		bundle.setMessageKey(messageKey);
-		userInfo.setId(765L);
+		userInfo.setId(userId);
 		bundle.setCreatedBy(userInfo.getId().toString());
 		Mockito.when(mockReplyDao.getReply(Mockito.anyLong(), Mockito.any(DiscussionFilter.class))).thenReturn(bundle);
 		Mockito.when(mockAuthorizationManager.isAnonymousUser(userInfo)).thenReturn(false);
@@ -166,7 +161,7 @@ public class DiscussionReplyManagerImplTest {
 				.thenReturn(bundle);
 		DiscussionReplyBundle reply = replyManager.createReply(userInfo, createReply);
 		assertEquals(bundle, reply);
-		Mockito.verify(mockSubscriptionDao).subscribeAllUsers(any(Set.class), eq(reply.getThreadId()), eq(SubscriptionObjectType.THREAD));
+		Mockito.verify(mockSubscriptionDao).create(eq(userId.toString()), eq(reply.getThreadId()), eq(SubscriptionObjectType.THREAD));
 		Mockito.verify(mockTransactionalMessenger).sendMessageAfterCommit(replyId.toString(), ObjectType.REPLY, bundle.getEtag(), ChangeType.CREATE, userInfo.getId());
 	}
 
@@ -219,7 +214,6 @@ public class DiscussionReplyManagerImplTest {
 		newMessage.setMessageMarkdown("messageMarkdown");
 		replyManager.updateReplyMessage(userInfo, replyId.toString(), newMessage);
 		Mockito.verify(mockReplyDao).updateMessageKey(replyId, messageKey);
-		Mockito.verify(mockSubscriptionDao).subscribeAllUsers(any(Set.class), eq(threadId), eq(SubscriptionObjectType.THREAD));
 	}
 
 	@Test (expected = UnauthorizedException.class)
@@ -313,33 +307,4 @@ public class DiscussionReplyManagerImplTest {
 		assertEquals((Long)3L, replyManager.getReplyCountForThread(userInfo, threadId, DiscussionFilter.NO_FILTER).getCount());
 	}
 
-
-	@Test (expected = IllegalArgumentException.class)
-	public void testHandleSubscriptionWithNullMarkdown() {
-		replyManager.handleSubscription(userInfo.getId().toString(), threadId.toString(), null);
-	}
-
-	@Test (expected = IllegalArgumentException.class)
-	public void testHandleSubscriptionWithNullThreadId() {
-		replyManager.handleSubscription(userInfo.getId().toString(), null, "");
-	}
-
-	@Test
-	public void testHandleSubscriptionWithNulluserId() {
-		replyManager.handleSubscription(null, threadId.toString(), "");
-		verify(mockPrincipalAliasDao).lookupPrincipalIds(any(Set.class));
-		verify(mockSubscriptionDao).subscribeAllUsers(any(Set.class), eq(threadId.toString()), eq(SubscriptionObjectType.THREAD));
-	}
-
-	@Test
-	public void testHandleSubscription() {
-		String anonymous = "-1";
-		Set<String> toSubscribe = new HashSet<String>();
-		toSubscribe.add(anonymous);
-		when(mockPrincipalAliasDao.lookupPrincipalIds(any(Set.class))).thenReturn(toSubscribe);
-		toSubscribe.add(userInfo.getId().toString());
-		replyManager.handleSubscription(userInfo.getId().toString(), threadId.toString(), "@anonymous");
-		verify(mockPrincipalAliasDao).lookupPrincipalIds(any(Set.class));
-		verify(mockSubscriptionDao).subscribeAllUsers(toSubscribe, threadId.toString(), SubscriptionObjectType.THREAD);
-	}
 }

@@ -4,7 +4,10 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
 
+import org.sagebionetworks.common.util.progress.AutoProgressingCallable;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
@@ -45,6 +48,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class TableManagerSupportImpl implements TableManagerSupport {
 	
 	public static final long TABLE_PROCESSING_TIMEOUT_MS = 1000*60*10; // 10 mins
+	
+	public static final long AUTO_PROGRESS_FREQUENCY_MS = 5*1000; // 5 seconds
 
 	@Autowired
 	TableStatusDAO tableStatusDAO;
@@ -68,6 +73,8 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	WriteReadSemaphoreRunner writeReadSemaphoreRunner;
 	@Autowired
 	AuthorizationManager authorizationManager;
+	@Autowired
+	ExecutorService tableSupportExecutorService;
 	
 	/*
 	 * (non-Javadoc)
@@ -322,8 +329,8 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	}
 	
 	@Override
-	public <R, T> R tryRunWithTableExclusiveLock(ProgressCallback<T> callback,
-			String tableId, int timeoutSec, ProgressingCallable<R, T> callable)
+	public <R> R tryRunWithTableExclusiveLock(ProgressCallback<Void> callback,
+			String tableId, int timeoutSec, ProgressingCallable<R, Void> callable)
 			throws Exception {
 		String key = TableModelUtils.getTableSemaphoreKey(tableId);
 		// The semaphore runner does all of the lock work.
@@ -434,5 +441,13 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 			results.add(KeyFactory.stringToKey(header.getId()));
 		}
 		return results;
+	}
+
+
+	@Override
+	public <R> R callWithAutoProgress(ProgressCallback<Void> callback, Callable<R> callable) throws Exception {
+		AutoProgressingCallable<R> auto = new AutoProgressingCallable<R>(
+				tableSupportExecutorService, callable, AUTO_PROGRESS_FREQUENCY_MS);
+		return auto.call(callback);
 	}
 }

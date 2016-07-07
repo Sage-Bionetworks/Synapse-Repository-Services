@@ -25,7 +25,7 @@ public class ProjectStatsWorkerV2 implements ChangeMessageDrivenRunner {
 	ProjectStatsManager projectStatsManager;
 
 	@Override
-	public void run(ProgressCallback<ChangeMessage> progressCallback,
+	public void run(ProgressCallback<Void> progressCallback,
 			ChangeMessage message) throws RecoverableMessageException,
 			Exception {
 		

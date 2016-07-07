@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.table;
 
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.Callable;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
@@ -233,8 +234,8 @@ public interface TableManagerSupport {
 	 * @param runner
 	 * @return
 	 */
-	public <R, T> R tryRunWithTableExclusiveLock(ProgressCallback<T> callback, String tableId, int timeoutMS,
-			ProgressingCallable<R, T> runner) throws Exception;
+	public <R> R tryRunWithTableExclusiveLock(ProgressCallback<Void> callback, String tableId, int timeoutMS,
+			ProgressingCallable<R, Void> runner) throws Exception;
 
 	/**
 	 * <p>
@@ -349,5 +350,26 @@ public interface TableManagerSupport {
 	 * @return
 	 */
 	ViewType getViewType(String tableId);
+	
+	
+	/**
+	 * Execute the given callback with automatic progress events generated for
+	 * the provided callback. This allows the callable to run for long periods
+	 * of time while maintaining progress events.
+	 * 
+	 * @param callback
+	 *            Progress events will be generated for the provided callback at
+	 *            a fix frequency regardless of the amount of time the callable
+	 *            takes to execute.
+	 * 
+	 * @param parameter
+	 *            The parameter to pass to the callback.
+	 * 
+	 * @param callable
+	 *            The callable to be executed.
+	 * @return
+	 * @throws Exception 
+	 */
+	public <R> R callWithAutoProgress(ProgressCallback<Void> callback, Callable<R> callable) throws Exception;
 
 }

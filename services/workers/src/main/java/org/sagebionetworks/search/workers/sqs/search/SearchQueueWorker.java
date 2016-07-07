@@ -6,7 +6,6 @@ import org.apache.http.client.ClientProtocolException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.asynchronous.workers.changes.ChangeMessageDrivenRunner;
-import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.search.SearchDocumentDriver;
@@ -21,11 +20,8 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.search.SearchDao;
 import org.sagebionetworks.utils.HttpClientHelperException;
-import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
-
-import com.amazonaws.services.sqs.model.Message;
 
 /**
  * This worker updates the search index based on messages received
@@ -50,7 +46,7 @@ public class SearchQueueWorker implements ChangeMessageDrivenRunner {
 	private WorkerLogger workerLogger;
 
 	@Override
-	public void run(ProgressCallback<ChangeMessage> progressCallback, ChangeMessage change)
+	public void run(ProgressCallback<Void> progressCallback, ChangeMessage change)
 			throws RecoverableMessageException, Exception {
 		// If the feature is disabled then we simply swallow all messages
 		if (!searchDao.isSearchEnabled()) {

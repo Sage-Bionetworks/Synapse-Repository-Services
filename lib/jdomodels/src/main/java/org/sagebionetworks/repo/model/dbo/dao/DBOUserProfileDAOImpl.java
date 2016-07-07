@@ -1,16 +1,29 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_BOUND_ALIAS_DISPLAY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NOTIFICATION_EMAIL_ALIAS_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_PRINCIPAL_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_EMAIL_NOTIFICATION;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_FIRST_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_LAST_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_PICTURE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NOTIFICATION_EMAIL;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_PRINCIPAL_ALIAS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_PROFILE;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -20,18 +33,22 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
+import org.sagebionetworks.repo.model.broadcast.UserNotificationInfo;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserProfile;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
+import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.BootstrapPrincipal;
 import org.sagebionetworks.repo.model.principal.BootstrapUser;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 
 /**
@@ -52,6 +69,9 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
 
+	@Autowired
+	private JdbcTemplate jdbcTemplate;
+
 	private static final String SELECT_PAGINATED = "SELECT * FROM "
 			+ TABLE_USER_PROFILE + " LIMIT :" + LIMIT_PARAM_NAME + " OFFSET :"
 			+ OFFSET_PARAM_NAME;
@@ -71,6 +91,22 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 			+ TABLE_USER_PROFILE + " where " + COL_USER_PROFILE_ID + "=:"
 			+ DBOUserProfile.OWNER_ID_FIELD_NAME + " for update";
 
+	private static final String SQL_GET_USER_INFO_FOR_NOTIFICATION = "SELECT"
+			+ " U."+ COL_USER_PROFILE_ID + ","
+			+ " U." + COL_USER_PROFILE_FIRST_NAME + ","
+			+ " U." + COL_USER_PROFILE_LAST_NAME + ","
+			+ " A1." + COL_BOUND_ALIAS_DISPLAY + " AS 'EMAIL',"
+			+ " A2." + COL_BOUND_ALIAS_DISPLAY + " AS 'USERNAME'"
+			+ " FROM " + TABLE_USER_PROFILE + " U, "
+			+ TABLE_NOTIFICATION_EMAIL + " N, "
+			+ TABLE_PRINCIPAL_ALIAS + " A1, "
+			+ TABLE_PRINCIPAL_ALIAS + " A2 "
+			+ "WHERE U." + COL_USER_PROFILE_ID + " IN (:ids)"
+			+ " AND U." + COL_USER_PROFILE_EMAIL_NOTIFICATION + " = true"
+			+ " AND A1." + COL_PRINCIPAL_ALIAS_PRINCIPAL_ID + " = U." + COL_USER_PROFILE_ID
+			+ " AND N." + COL_NOTIFICATION_EMAIL_ALIAS_ID + " = A1." + COL_PRINCIPAL_ALIAS_ID
+			+ " AND A2." + COL_PRINCIPAL_ALIAS_PRINCIPAL_ID + " = U." + COL_USER_PROFILE_ID 
+			+ " AND A2." + COL_PRINCIPAL_ALIAS_TYPE + " = '" + AliasType.USER_NAME.name() + "'";
 
 	/*
 	 * (non-Javadoc)
@@ -255,6 +291,27 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 		} catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException("Unknown user: " + userId);
 		}
+	}
 
+	@Override
+	public List<UserNotificationInfo> getUserNotificationInfo(Set<String> ids) {
+		if (ids.isEmpty()) {
+			return new ArrayList<UserNotificationInfo>();
+		}
+		MapSqlParameterSource parameters = new MapSqlParameterSource("ids", ids);
+		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
+		return namedTemplate.query(SQL_GET_USER_INFO_FOR_NOTIFICATION, parameters, new RowMapper<UserNotificationInfo>(){
+
+			@Override
+			public UserNotificationInfo mapRow(ResultSet rs, int rowNum) throws SQLException {
+				UserNotificationInfo user = new UserNotificationInfo();
+				user.setFirstName(rs.getString(COL_USER_PROFILE_FIRST_NAME));
+				user.setLastName(rs.getString(COL_USER_PROFILE_LAST_NAME));
+				user.setUsername(rs.getString("USERNAME"));
+				user.setNotificationEmail(rs.getString("EMAIL"));
+				user.setUserId(rs.getString(COL_USER_PROFILE_ID));
+				return user;
+			}
+		});
 	}
 }

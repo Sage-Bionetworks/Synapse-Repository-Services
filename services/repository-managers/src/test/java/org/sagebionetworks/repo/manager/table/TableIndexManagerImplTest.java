@@ -16,31 +16,42 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.Callable;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
+import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
-import org.sagebionetworks.repo.model.table.TableConstants;
-import org.sagebionetworks.table.cluster.ColumnDefinition;
-import org.sagebionetworks.table.cluster.SQLUtils;
+import org.sagebionetworks.table.cluster.ColumnChange;
+import org.sagebionetworks.table.cluster.DatabaseColumnInfo;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
+import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionCallback;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 public class TableIndexManagerImplTest {
 	
+	@Mock
 	TableIndexDAO mockIndexDao;
+	@Mock
 	TransactionStatus mockTransactionStatus;
+	@Mock
+	TableManagerSupport mockManagerSupport;
+	@Mock
+	ProgressCallback<Void> mockCallback;
+	
 	TableIndexManagerImpl manager;
 	String tableId;
 	Long versionNumber;
@@ -51,11 +62,10 @@ public class TableIndexManagerImplTest {
 	
 	@SuppressWarnings("unchecked")
 	@Before
-	public void before(){
-		mockIndexDao = Mockito.mock(TableIndexDAO.class);
-		mockTransactionStatus = Mockito.mock(TransactionStatus.class);
+	public void before() throws Exception{
+		MockitoAnnotations.initMocks(this);
 		tableId = "syn123";
-		manager = new TableIndexManagerImpl(mockIndexDao, tableId);
+		manager = new TableIndexManagerImpl(mockIndexDao, mockManagerSupport, tableId);
 		
 		versionNumber = 99L;
 		rows = new ArrayList<Row>();
@@ -88,17 +98,33 @@ public class TableIndexManagerImplTest {
 				callback.doInTransaction(mockTransactionStatus);
 				return null;
 			}}).when(mockIndexDao).executeInWriteTransaction(any(TransactionCallback.class));
+		
+		// setup callable.
+		when(mockManagerSupport.callWithAutoProgress(any(ProgressCallback.class), any(Callable.class))).then(new Answer<Boolean>() {
+
+			@Override
+			public Boolean answer(InvocationOnMock invocation) throws Throwable {
+				Callable<Boolean> callable = (Callable<Boolean>) invocation.getArguments()[1];
+				return callable.call();
+			}
+		});
 
 	}
 
 	@Test (expected=IllegalArgumentException.class)
 	public void testNullDao(){
-		new TableIndexManagerImpl(null, tableId);	
+		new TableIndexManagerImpl(null, mockManagerSupport, tableId);	
 	}
+	
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testNullTableId(){
-		new TableIndexManagerImpl(mockIndexDao, null);			
+		new TableIndexManagerImpl(mockIndexDao, mockManagerSupport, null);			
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testNullSupport(){
+		new TableIndexManagerImpl(mockIndexDao, null, tableId);			
 	}
 	
 	@Test
@@ -155,25 +181,31 @@ public class TableIndexManagerImplTest {
 	
 	@Test
 	public void testSetIndexSchemaWithColumns(){
+		ColumnModel column = new ColumnModel();
+		column.setId("44");
+		column.setColumnType(ColumnType.BOOLEAN);
+		schema = Lists.newArrayList(column);
+		
+		DatabaseColumnInfo info = new DatabaseColumnInfo();
+		info.setColumnName("_C44_");
+		info.setColumnType(ColumnType.BOOLEAN);
+		
+		when(mockIndexDao.getDatabaseInfo(tableId)).thenReturn(Lists.newArrayList(info));
+		when(mockIndexDao.alterTableAsNeeded(anyString(), anyList())).thenReturn(true);
 		// call under test
-		manager.setIndexSchema(schema);
-		// The main table should be created or updated.
-		verify(mockIndexDao).createOrUpdateTable(schema, tableId);
-		verify(mockIndexDao, never()).deleteTable(tableId);
-		verify(mockIndexDao).createSecondaryTables(tableId);
+		manager.setIndexSchema(mockCallback, schema);
+		String schemaMD5Hex = TableModelUtils. createSchemaMD5HexCM(Lists.newArrayList(schema));
+		verify(mockIndexDao).setCurrentSchemaMD5Hex(tableId, schemaMD5Hex);
 	}
 	
 	@Test
-	public void testSetIndexSchemaEmpty(){
-		schema = new LinkedList<ColumnModel>();
+	public void testSetIndexSchemaWithNoColumns(){
+		when(mockIndexDao.getDatabaseInfo(tableId)).thenReturn(new LinkedList<DatabaseColumnInfo>());
+		when(mockIndexDao.alterTableAsNeeded(anyString(), anyList())).thenReturn(true);
 		// call under test
-		manager.setIndexSchema(schema);
-		// The main table should be created or updated.
-		verify(mockIndexDao, never()).createOrUpdateTable(anyList(), anyString());
-		// The main table should be deleted.
-		verify(mockIndexDao).deleteTable(tableId);
-		// The status tables should be created even if the schema is empty
-		verify(mockIndexDao).createSecondaryTables(tableId);
+		manager.setIndexSchema(mockCallback, new LinkedList<ColumnModel>());
+		String schemaMD5Hex = TableModelUtils. createSchemaMD5HexCM(Lists.newArrayList(new LinkedList<ColumnModel>()));
+		verify(mockIndexDao).setCurrentSchemaMD5Hex(tableId, schemaMD5Hex);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -215,32 +247,79 @@ public class TableIndexManagerImplTest {
 		verify(mockIndexDao).deleteTable(tableId);
 	}
 	
-	/**
-	 * Helper to create test ColumnDefinition
-	 * @param count
-	 * @return
-	 */
-	List<ColumnDefinition> createColumnDefintions(int count){
-		List<ColumnDefinition> results = new LinkedList<ColumnDefinition>();
-		ColumnDefinition rowId = new ColumnDefinition();
-		rowId.setName(TableConstants.ROW_ID);
-		rowId.setHasIndex(true);
-		results.add(rowId);
-		
-		ColumnDefinition rowVersion = new ColumnDefinition();
-		rowVersion.setName(TableConstants.ROW_VERSION);
-		rowVersion.setHasIndex(false);
-		results.add(rowVersion);
-				
-		for(int i=0; i<count; i++){
-			ColumnDefinition def = new ColumnDefinition();
-			def.setName(SQLUtils.getColumnNameForId(""+i));
-			def.setHasIndex(true);
-			results.add(def);
-		}
-		return results;
+	@Test
+	public void testOptimizeTableIndices(){
+		List<DatabaseColumnInfo> infoList = new LinkedList<DatabaseColumnInfo>();
+		when(mockIndexDao.getDatabaseInfo(tableId)).thenReturn(infoList);
+		// call under test
+		manager.optimizeTableIndices();
+		// column data must be gathered.
+		verify(mockIndexDao).getDatabaseInfo(tableId);
+		verify(mockIndexDao).provideCardinality(infoList, tableId);
+		verify(mockIndexDao).provideIndexName(infoList, tableId);
+		// optimization called.
+		verify(mockIndexDao).optimizeTableIndices(infoList, tableId, 63);
 	}
 	
+	@Test
+	public void testUpdateTableSchemaAddColumn(){
+		ColumnModel oldColumn = null;
+		ColumnModel newColumn = new ColumnModel();
+		newColumn.setId("12");
+		List<ColumnChange> changes = Lists.newArrayList(new ColumnChange(oldColumn, newColumn));
+		when(mockIndexDao.alterTableAsNeeded(tableId, changes)).thenReturn(true);
+		DatabaseColumnInfo info = new DatabaseColumnInfo();
+		info.setColumnName("_C12_");
+		info.setColumnType(ColumnType.BOOLEAN);
+		when(mockIndexDao.getDatabaseInfo(tableId)).thenReturn(Lists.newArrayList(info));
+		
+		// call under test
+		manager.updateTableSchema(mockCallback, changes);
+		verify(mockIndexDao).createTableIfDoesNotExist(tableId);
+		verify(mockIndexDao).createSecondaryTables(tableId);
+		// The new schema is not empty so do not truncate.
+		verify(mockIndexDao, never()).truncateTable(tableId);
+		verify(mockIndexDao).alterTableAsNeeded(tableId, changes);
+		
+		String schemaMD5Hex = TableModelUtils. createSchemaMD5HexCM(Lists.newArrayList(newColumn));
+		verify(mockIndexDao).setCurrentSchemaMD5Hex(tableId, schemaMD5Hex);
+	}
 	
+	@Test
+	public void testUpdateTableSchemaRemoveAllColumns(){
+		ColumnModel oldColumn = new ColumnModel();
+		oldColumn.setId("12");
+		ColumnModel newColumn = null;
+
+		List<ColumnChange> changes = Lists.newArrayList(new ColumnChange(oldColumn, newColumn));
+		when(mockIndexDao.alterTableAsNeeded(tableId, changes)).thenReturn(true);
+		when(mockIndexDao.getDatabaseInfo(tableId)).thenReturn(new LinkedList<DatabaseColumnInfo>());
+		// call under test
+		manager.updateTableSchema(mockCallback, changes);
+		verify(mockIndexDao).createTableIfDoesNotExist(tableId);
+		verify(mockIndexDao).createSecondaryTables(tableId);
+		verify(mockIndexDao).getDatabaseInfo(tableId);
+		// The new schema is empty so the table is truncated.
+		verify(mockIndexDao).truncateTable(tableId);
+		verify(mockIndexDao).alterTableAsNeeded(tableId, changes);
+		
+		String schemaMD5Hex = TableModelUtils. createSchemaMD5HexCM(new LinkedList<ColumnModel>());
+		verify(mockIndexDao).setCurrentSchemaMD5Hex(tableId, schemaMD5Hex);
+	}
+	
+	@Test
+	public void testUpdateTableSchemaNoChange(){
+		List<ColumnChange> changes = new LinkedList<ColumnChange>();
+		when(mockIndexDao.alterTableAsNeeded(tableId, changes)).thenReturn(false);
+		when(mockIndexDao.getDatabaseInfo(tableId)).thenReturn(new LinkedList<DatabaseColumnInfo>());
+		// call under test
+		manager.updateTableSchema(mockCallback, changes);
+		verify(mockIndexDao).createTableIfDoesNotExist(tableId);
+		verify(mockIndexDao).createSecondaryTables(tableId);
+		verify(mockIndexDao).alterTableAsNeeded(tableId, changes);
+		verify(mockIndexDao, never()).getDatabaseInfo(tableId);
+		verify(mockIndexDao, never()).truncateTable(tableId);
+		verify(mockIndexDao, never()).setCurrentSchemaMD5Hex(anyString(), anyString());
+	}
 	
 }

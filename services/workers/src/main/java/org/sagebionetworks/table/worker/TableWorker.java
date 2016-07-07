@@ -61,7 +61,7 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 	Integer lockTimeoutSec;
 
 	@Override
-	public void run(ProgressCallback<ChangeMessage> progressCallback, ChangeMessage change)
+	public void run(ProgressCallback<Void> progressCallback, ChangeMessage change)
 			throws RecoverableMessageException, Exception {
 		// If the feature is disabled then we simply swallow all messages
 		if (!configuration.getTableEnabled()) {
@@ -102,7 +102,7 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 	 * @return
 	 */
 	public State createOrUpdateTable(
-			ProgressCallback<ChangeMessage> progressCallback,
+			ProgressCallback<Void> progressCallback,
 			final String tableId, final TableIndexManager tableIndexManger,
 			final ChangeMessage change) {
 		// Attempt to run with
@@ -122,9 +122,9 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 			// Run with the exclusive lock on the table if we can get it.
 			return tableManagerSupport.tryRunWithTableExclusiveLock(progressCallback,tableId,
 					lockTimeoutSec,
-					new ProgressingCallable<State, ChangeMessage>() {
+					new ProgressingCallable<State, Void>() {
 						@Override
-						public State call(ProgressCallback<ChangeMessage> progress) throws Exception {
+						public State call(ProgressCallback<Void> progress) throws Exception {
 							// This method does the real work.
 							return createOrUpdateWhileHoldingLock(
 									progress, tableId, tableIndexManger, tableResetToken,
@@ -167,7 +167,7 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 	 * @throws ConflictingUpdateException
 	 */
 	private State createOrUpdateWhileHoldingLock(
-			ProgressCallback<ChangeMessage> progressCallback, String tableId, TableIndexManager tableIndexManager,
+			ProgressCallback<Void> progressCallback, String tableId, TableIndexManager tableIndexManager,
 			String tableResetToken, ChangeMessage change)
 			throws ConflictingUpdateException, NotFoundException {
 		// Start the real work
@@ -215,7 +215,7 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 	 * @throws IOException
 	 * @throws TableUnavailableException
 	 */
-	String synchIndexWithTable(ProgressCallback<ChangeMessage> progressCallback,
+	String synchIndexWithTable(ProgressCallback<Void> progressCallback,
 			final TableIndexManager indexManager, String tableId, String resetToken,
 			ChangeMessage change) throws DatastoreException, NotFoundException,
 			IOException, TableUnavailableException {
@@ -228,7 +228,7 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 				"Creating table ", 0L, 100L);
 		
 		// Setup the table's index.
-		indexManager.setIndexSchema(currentSchema);
+		indexManager.setIndexSchema(progressCallback, currentSchema);
 
 		// List all of the changes
 		tableManagerSupport.attemptToUpdateTableProgress(tableId, resetToken,
@@ -255,7 +255,7 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 		String lastEtag = null;
 		Exception lastFailedException = null;
 		for(TableRowChange changeSet: changes){
-			progressCallback.progressMade(change);
+			progressCallback.progressMade(null);
 			currentProgress += changeSet.getRowCount();
 			lastEtag = changeSet.getEtag();
 			// Only apply changes sets not already applied to the index.
@@ -280,6 +280,9 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 				}
 			}
 		}
+		// now that table is created and populated the indices on the table can be optimized.
+		indexManager.optimizeTableIndices();
+		
 		if(lastFailedException != null){
 			throw new RuntimeException(lastFailedException);
 		}

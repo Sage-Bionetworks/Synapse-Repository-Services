@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.table;
 
 import java.util.List;
 
+import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.table.cluster.ColumnChange;
@@ -99,19 +100,13 @@ public interface TableIndexManager {
 	 * 
 	 * @param currentSchema
 	 */
-	public void setIndexSchema(List<ColumnModel> currentSchema);
-	
-	/**
-	 * Create the table index if it does not exist. 
-	 * @param tableId
-	 */
-	public void createTableIndexIfDoesNotExist();
+	public void setIndexSchema(ProgressCallback<Void> progressCallback, List<ColumnModel> currentSchema);
 	
 	/**
 	 * 
 	 * @param currentSchema
 	 */
-	public void updateTableSchema(List<ColumnChange> changes);
+	public boolean updateTableSchema(ProgressCallback<Void> progressCallback, List<ColumnChange> changes);
 	
 	/**
 	 * Delete the index for this table.
@@ -123,5 +118,17 @@ public interface TableIndexManager {
 	 * @param viewCRC
 	 */
 	public void setIndexVersion(Long viewCRC);
+	
+	/**
+	 * Optimize the indices of this table. Indices are added until either all
+	 * columns have an index or the maximum number of indices per table is
+	 * reached. When a table has more columns than the maximum number of
+	 * indices, indices are assigned to columns with higher cardinality before
+	 * columns with low cardinality.
+	 * 
+	 * Note: This method should be called after making all changes to a table.
+	 */
+	public void optimizeTableIndices();
+	
 
 }

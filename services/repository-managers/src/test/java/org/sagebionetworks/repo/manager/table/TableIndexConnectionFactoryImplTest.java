@@ -13,24 +13,31 @@ import static org.mockito.Mockito.when;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.springframework.test.util.ReflectionTestUtils;
 
 public class TableIndexConnectionFactoryImplTest {
 	
-	private TableIndexDAO mockTableIndexDAO;
-	private ConnectionFactory mockDaoConnectionFactory;
+	@Mock
+	TableIndexDAO mockTableIndexDAO;
+	@Mock
+	ConnectionFactory mockDaoConnectionFactory;
+	@Mock
+	TableManagerSupport mockManagerSupport;
+	
 	private TableIndexConnectionFactoryImpl indexFactory;
 	private String tableId;
 	
 	@Before
 	public void before(){
-		mockTableIndexDAO = Mockito.mock(TableIndexDAO.class);
-		mockDaoConnectionFactory = Mockito.mock(ConnectionFactory.class);
+		MockitoAnnotations.initMocks(this);
 		indexFactory = new TableIndexConnectionFactoryImpl();
 		ReflectionTestUtils.setField(indexFactory, "connectionFactory", mockDaoConnectionFactory);
+		ReflectionTestUtils.setField(indexFactory, "tableManagerSupport", mockManagerSupport);
 		tableId = "syn456";
 		when(mockDaoConnectionFactory.getConnection(tableId)).thenReturn(mockTableIndexDAO);
 	}

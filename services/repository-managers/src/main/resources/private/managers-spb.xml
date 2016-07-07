@@ -329,6 +329,11 @@
     </bean>
  
 	<bean id="tableViewManager" class="org.sagebionetworks.repo.manager.table.TableViewManagerImpl" scope="singleton" />
+
+	<bean id="tableSupportExecutorService" class="java.util.concurrent.Executors"
+		scope="singleton" factory-method="newFixedThreadPool">
+		<constructor-arg value="100" />
+	</bean>
 	
 	<bean id="tableManagerSupport" class="org.sagebionetworks.repo.manager.table.TableManagerSupportImpl" scope="singleton" />
     
@@ -378,7 +383,7 @@
 	<bean id="broadcastMessageManager"
 		class="org.sagebionetworks.repo.manager.message.BroadcastMessageManagerImpl"
 		scope ="singleton">
-		<property name="FactoryMap">
+		<property name="messageBuilderFactoryMap">
 			<map>
 				<entry key="THREAD">
 					<ref bean="threadMessageBuilderFactory" />

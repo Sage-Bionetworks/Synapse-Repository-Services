@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.model.storage.StorageUsageSummaryList;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
+@Deprecated
 public class StorageUsageServiceImpl implements StorageUsageService {
 
 	@Autowired
@@ -23,6 +24,7 @@ public class StorageUsageServiceImpl implements StorageUsageService {
 	@Autowired
 	private StorageUsageManager storageUsageManager;
 
+	@Deprecated
 	@Override
 	public StorageUsageSummaryList getUsage(Long currentUserId,
 			List<StorageUsageDimension> dimensionList) throws UnauthorizedException, DatastoreException {
@@ -42,6 +44,7 @@ public class StorageUsageServiceImpl implements StorageUsageService {
 		return results;
 	}
 
+	@Deprecated
 	@Override
 	public StorageUsageSummaryList getUsageForUser(Long currentUserId, Long userId,
 			List<StorageUsageDimension> dimensionList)
@@ -62,6 +65,7 @@ public class StorageUsageServiceImpl implements StorageUsageService {
 		return results;
 	}
 
+	@Deprecated
 	@Override
 	public StorageUsageSummaryList getUsageByUserInRange(Long currentUserId,
 			Integer offset, Integer limit) throws UnauthorizedException, DatastoreException {
@@ -79,6 +83,7 @@ public class StorageUsageServiceImpl implements StorageUsageService {
 		return results;
 	}
 
+	@Deprecated
 	@Override
 	public PaginatedResults<StorageUsage> getUsageInRangeForUser(Long currentUserId, Long userId,
 			Integer offset, Integer limit, String urlPath)

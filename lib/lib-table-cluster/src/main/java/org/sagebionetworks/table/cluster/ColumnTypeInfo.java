@@ -60,6 +60,8 @@ public enum ColumnTypeInfo {
 		// default
 		builder.append(" ");
 		appendDefaultValue(builder, defaultValue);
+		// Add the column type as a comment
+		builder.append(" COMMENT '").append(this.type.name()).append("'");
 		return builder.toString();
 	}
 	
@@ -92,7 +94,7 @@ public enum ColumnTypeInfo {
 				return info;
 			}
 		}
-		throw new IllegalArgumentException("Unkown ColumnType: "+type);
+		throw new IllegalArgumentException("Unknown ColumnType: "+type);
 	}
 	
 	/**

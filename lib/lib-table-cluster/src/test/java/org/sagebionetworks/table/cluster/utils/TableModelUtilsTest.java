@@ -1259,8 +1259,16 @@ public class TableModelUtilsTest {
 	@Test
 	public void testCreateSchemaMD5Hex(){
 		List<Long> ids = Lists.newArrayList(1L,2L,3L);
+		String expectedMd5Hex = "c6fc24807df697dd54e1b891a432fe94";
+		// call under test.
 		String md5Hex = TableModelUtils.createSchemaMD5Hex(ids);
-		assertEquals("c6fc24807df697dd54e1b891a432fe94", md5Hex);
+		assertEquals(expectedMd5Hex, md5Hex);
+		
+		// The same ids in a different order should return the same MD5
+		ids = Lists.newArrayList(3L,2L,1L);
+		// call under test.
+		md5Hex = TableModelUtils.createSchemaMD5Hex(ids);
+		assertEquals("The MD5 should be the same regardless of order.",expectedMd5Hex, md5Hex);
 	}
 	
 	@Test

@@ -156,6 +156,7 @@
 
 	<!-- Markdown Service -->
 	<bean id="stackConfiguration.markdownServiceEndpoint" class="org.springframework.beans.factory.config.PropertyPathFactoryBean"/>
+	<bean id="stackConfiguration.synapseBaseUrl" class="org.springframework.beans.factory.config.PropertyPathFactoryBean"/>
 
 	<!-- Logging -->
 	<bean id="stackConfiguration.logBucketName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />

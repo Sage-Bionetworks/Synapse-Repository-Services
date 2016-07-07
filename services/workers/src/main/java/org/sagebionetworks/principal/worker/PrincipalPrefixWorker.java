@@ -34,10 +34,10 @@ public class PrincipalPrefixWorker implements ChangeMessageDrivenRunner {
 	UserGroupDAO userGroupDao;
 
 	@Override
-	public void run(ProgressCallback<ChangeMessage> progressCallback, ChangeMessage changeMessage)
+	public void run(ProgressCallback<Void> progressCallback, ChangeMessage changeMessage)
 			throws RecoverableMessageException, Exception {
 		// Keep this message invisible
-		progressCallback.progressMade(changeMessage);
+		progressCallback.progressMade(null);
 		if (changeMessage.getObjectType() != ObjectType.PRINCIPAL) {
 			// do nothing when receive a non-principal message
 			return;
@@ -72,7 +72,7 @@ public class PrincipalPrefixWorker implements ChangeMessageDrivenRunner {
 				List<PrincipalAlias> names = principalAliasDAO.listPrincipalAliases(principalId, AliasType.TEAM_NAME);
 				for(PrincipalAlias alias: names){
 					principalPrefixDao.addPrincipalAlias(alias.getAlias(), principalId);
-					progressCallback.progressMade(changeMessage);
+					progressCallback.progressMade(null);
 				}
 			} catch (Exception e) {
 				log.warn("Did not find team names for principalId = "+principalId);
