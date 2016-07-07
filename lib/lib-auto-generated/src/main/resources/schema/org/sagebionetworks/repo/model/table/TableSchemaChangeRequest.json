@@ -1,0 +1,17 @@
+{
+	"description": "An AsynchronousRequestBody to change the schema of a table.",
+	"implements":[
+        {
+            "$ref": "org.sagebionetworks.repo.model.table.TableUpdateRequest"
+        }
+    ],
+	"properties": {
+		"changes": {
+		    "description":"List of changes that describes column additions, deletions, and updates",
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.table.ColumnChange"
+			}
+		}
+	}
+}

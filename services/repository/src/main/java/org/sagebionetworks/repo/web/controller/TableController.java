@@ -30,6 +30,8 @@ import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
+import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
+import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewResult;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
@@ -293,6 +295,74 @@ public class TableController extends BaseController {
 				.getDefaultViewColumnsForType(ViewType.valueOf(viewtype));
 		return ListWrapper.wrap(results, ColumnModel.class);
 	}
+	
+	/**
+	 * Start a table update job that will attempt to make all of the requested changes in
+	 * a single transaction. All updates will either succeed or fail as a unit.  All update
+	 * requests must be for the same table.
+	 * 
+	 * Note: The caller must have the <a
+	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
+	 * >ACCESS_TYPE.UPDATE</a> permission on the TableEntity to make this call.
+	 * </p>
+	 * 
+	 * @param userId
+	 * @param id
+	 *            The ID of the TableEntity to append rows to.
+	 * @param request
+	 *            List of table update requests to be applied as a single transaction.
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_TRANSACTION_ASYNC_START, method = RequestMethod.POST)
+	public @ResponseBody
+	AsyncJobId startTableTransactionJob(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String id, @RequestBody TableUpdateTransactionRequest request)
+			throws DatastoreException, NotFoundException, IOException {
+		if (id == null)
+			throw new IllegalArgumentException("{id} cannot be null");
+		AsynchronousJobStatus job = serviceProvider
+				.getAsynchronousJobServices().startJob(userId, request);
+		AsyncJobId asyncJobId = new AsyncJobId();
+		asyncJobId.setToken(job.getJobId());
+		return asyncJobId;
+	}
+
+	/**
+	 * Asynchronously get the results of a table update transaction started with
+	 * <a href="${POST.entity.id.table.tramsaction.async.start}">POST
+	 * /entity/{id}/table/transaction/async/start</a>
+	 * <p>
+	 * Note: When the result is not ready yet, this method will return a status
+	 * code of 202 (ACCEPTED) and the response body will be a <a
+	 * href="${org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus}"
+	 * >AsynchronousJobStatus</a> object.
+	 * </p>
+	 * 
+	 * @param userId
+	 * @param asyncToken
+	 * @return
+	 * @throws NotReadyException
+	 * @throws NotFoundException
+	 * @throws AsynchJobFailedException
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_TRANSACTION_ASYNC_GET, method = RequestMethod.GET)
+	public @ResponseBody
+	TableUpdateTransactionResponse getTableTransactionResult(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String id, @PathVariable String asyncToken) throws Throwable {
+		if (id == null)
+			throw new IllegalArgumentException("{id} cannot be null");
+		AsynchronousJobStatus jobStatus = serviceProvider
+				.getAsynchronousJobServices().getJobStatusAndThrow(userId,
+						asyncToken);
+		return (TableUpdateTransactionResponse) jobStatus.getResponseBody();
+	}
+
 
 	/**
 	 * <p>
@@ -835,6 +905,9 @@ public class TableController extends BaseController {
 		return (QueryResult) jobStatus.getResponseBody();
 	}
 
+	/*
+	 * Note: user-agent: 'synapseRClient/1.5-4/Rv3.3.0' is still using this method as of 7/7/16.
+	 */
 	@Deprecated
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.TABLE_DOWNLOAD_CSV_ASYNC_START, method = RequestMethod.POST)

@@ -2,7 +2,7 @@
 	"description": "The result of a CSV table upload job.",
 	"implements":[
         {
-            "$ref":"org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody"
+            "$ref":"org.sagebionetworks.repo.model.table.TableUpdateResponse"
         }
     ],
 	"properties": {

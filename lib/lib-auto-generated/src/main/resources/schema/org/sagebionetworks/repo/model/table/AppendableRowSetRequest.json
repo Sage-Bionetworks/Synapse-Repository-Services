@@ -2,7 +2,7 @@
     "title":"AppendRowRequest",
 	"implements": [
 		{
-			"$ref": "org.sagebionetworks.repo.model.table.TableUpdateRequestBody"
+			"$ref": "org.sagebionetworks.repo.model.table.TableUpdateRequest"
 		}
 	],
     "properties":{

@@ -1,0 +1,20 @@
+{
+	"description": "An AsynchronousRequestBody to used make multiple changes to a table as a single 'transaction'. All changes will either succeed or fail as a unit.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody"
+		},
+		{
+			"$ref": "org.sagebionetworks.repo.model.table.HasEntityId"
+		}
+	],
+	"properties": {
+		"changes": {
+		    "description":"List of changes that describes column additions, deletions, and updates",
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.table.TableUpdateRequest"
+			}
+		}
+	}
+}

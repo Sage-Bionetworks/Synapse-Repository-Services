@@ -1,5 +1,6 @@
 {
-    "title":"TableUpdateRequestBody",
+    "title":"TableUpdateRequest",
+    "description":"Abstraction for a request to update a table.",
     "type": "interface",
 	"implements": [
 		{
