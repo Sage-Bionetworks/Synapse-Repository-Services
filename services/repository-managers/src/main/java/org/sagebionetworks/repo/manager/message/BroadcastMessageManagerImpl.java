@@ -74,7 +74,7 @@ public class BroadcastMessageManagerImpl implements BroadcastMessageManager {
 	AuthorizationManager authManager;
 
 	@Override
-	public void broadcastMessage(UserInfo user,	ProgressCallback<ChangeMessage> progressCallback, ChangeMessage changeMessage) throws ClientProtocolException, JSONException, IOException, HttpClientHelperException {
+	public void broadcastMessage(UserInfo user,	ProgressCallback<Void> progressCallback, ChangeMessage changeMessage) throws ClientProtocolException, JSONException, IOException, HttpClientHelperException {
 		ValidateArgument.required(user, "user");
 		ValidateArgument.required(changeMessage, "changeMessage");
 		ValidateArgument.required(changeMessage.getUserId(), "ChangeMessage.userId");
@@ -124,7 +124,7 @@ public class BroadcastMessageManagerImpl implements BroadcastMessageManager {
 				continue;
 			}
 			// progress between each message
-			progressCallback.progressMade(changeMessage);
+			progressCallback.progressMade(null);
 			SendRawEmailRequest emailRequest = builder.buildEmailForSubscriber(subscriber);
 			log.debug("sending email to "+subscriber.getNotificationEmail());
 			sesClient.sendRawEmail(emailRequest);
@@ -133,7 +133,7 @@ public class BroadcastMessageManagerImpl implements BroadcastMessageManager {
 		sendMessageToNonSubscribers(progressCallback, changeMessage, builder, subscriberIds, topic);
 	}
 
-	private void sendMessageToNonSubscribers(ProgressCallback<ChangeMessage> progressCallback,
+	private void sendMessageToNonSubscribers(ProgressCallback<Void> progressCallback,
 			ChangeMessage changeMessage, BroadcastMessageBuilder builder, List<String> subscriberIds,
 			Topic topic)
 			throws ClientProtocolException, JSONException, IOException, HttpClientHelperException {
@@ -151,7 +151,7 @@ public class BroadcastMessageManagerImpl implements BroadcastMessageManager {
 			UserInfo userInfo = userManager.getUserInfo(Long.parseLong(userNotificationInfo.getUserId()));
 			if (authManager.canSubscribe(userInfo, topic.getObjectId(), topic.getObjectType()).getAuthorized()) {
 				// progress between each message
-				progressCallback.progressMade(changeMessage);
+				progressCallback.progressMade(null);
 				SendRawEmailRequest emailRequest = builder.buildEmailForNonSubscriber(userNotificationInfo);
 				log.debug("sending email to "+userNotificationInfo.getNotificationEmail());
 				sesClient.sendRawEmail(emailRequest);

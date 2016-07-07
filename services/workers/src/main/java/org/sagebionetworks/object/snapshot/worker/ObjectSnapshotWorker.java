@@ -23,9 +23,9 @@ public class ObjectSnapshotWorker implements ChangeMessageDrivenRunner {
 	}
 
 	@Override
-	public void run(ProgressCallback<ChangeMessage> progressCallback, ChangeMessage changeMessage) throws IOException {
+	public void run(ProgressCallback<Void> progressCallback, ChangeMessage changeMessage) throws IOException {
 		// Keep this message invisible
-		progressCallback.progressMade(changeMessage);
+		progressCallback.progressMade(null);
 		if (changeMessage.getChangeType() == ChangeType.DELETE) {
 			// TODO: capture the deleted objects
 			return;

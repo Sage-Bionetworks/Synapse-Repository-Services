@@ -24,7 +24,7 @@ public class ProjectStatsWorkerV2Test {
 	@Mock
 	ProjectStatsManager mockProjectStatsManager;
 	@Mock
-	ProgressCallback<ChangeMessage> mockProgressCallback;
+	ProgressCallback<Void> mockProgressCallback;
 	
 	ProjectStatsWorkerV2 worker;
 	

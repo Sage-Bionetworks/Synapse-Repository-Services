@@ -66,7 +66,7 @@ public class BroadcastMessageManagerImplTest {
 	@Mock
 	UserInfo mockUser;
 	@Mock
-	ProgressCallback<ChangeMessage> mockCallback;
+	ProgressCallback<Void> mockCallback;
 	@Mock
 	PrincipalAliasDAO mockPrincipalAliasDao;
 	@Mock
@@ -144,7 +144,7 @@ public class BroadcastMessageManagerImplTest {
 		// The message state should be sent.
 		verify(mockBroadcastMessageDao).setBroadcast(change.getChangeNumber());
 		// progress should be made for each subscriber
-		verify(mockCallback, times(2)).progressMade(change);
+		verify(mockCallback, times(2)).progressMade(null);
 		// two messages should be sent
 		verify(mockSesClient, times(2)).sendRawEmail(any(SendRawEmailRequest.class));
 	}
@@ -181,7 +181,7 @@ public class BroadcastMessageManagerImplTest {
 		verify(mockAuthManager).canSubscribe(hasAccessUserInfo, topic.getObjectId(), topic.getObjectType());
 		verify(mockAuthManager).canSubscribe(accessDeniedUserInfo, topic.getObjectId(), topic.getObjectType());
 		// progress should be made for each subscriber
-		verify(mockCallback, times(3)).progressMade(change);
+		verify(mockCallback, times(3)).progressMade(null);
 		// two messages should be sent
 		verify(mockSesClient, times(3)).sendRawEmail(any(SendRawEmailRequest.class));
 	}

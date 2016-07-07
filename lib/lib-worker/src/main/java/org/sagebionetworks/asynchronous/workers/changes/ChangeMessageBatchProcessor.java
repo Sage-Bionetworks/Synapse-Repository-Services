@@ -52,9 +52,9 @@ public class ChangeMessageBatchProcessor implements MessageDrivenRunner {
 			try {
 				// Make progress before each message
 				progressCallback.progressMade(message);
-				runner.run(new ProgressCallback<ChangeMessage>() {
+				runner.run(new ProgressCallback<Void>() {
 					@Override
-					public void progressMade(ChangeMessage t) {
+					public void progressMade(Void t) {
 						progressCallback.progressMade(message);
 					}
 				}, change);

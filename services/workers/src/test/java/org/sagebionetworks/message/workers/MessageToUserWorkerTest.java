@@ -20,7 +20,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 public class MessageToUserWorkerTest {
 	
-	ProgressCallback<ChangeMessage> mockCallback;
+	ProgressCallback<Void> mockCallback;
 	MessageManager mockMessageManager;
 	WorkerLogger mockWorkerLogger;
 	MessageToUserWorker worker;

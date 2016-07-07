@@ -29,7 +29,7 @@ public class MessageToUserWorker implements ChangeMessageDrivenRunner {
 	private WorkerLogger workerLogger;
 
 	@Override
-	public void run(final ProgressCallback<ChangeMessage> progressCallback, final ChangeMessage change)
+	public void run(final ProgressCallback<Void> progressCallback, final ChangeMessage change)
 			throws RecoverableMessageException, Exception {
 		// We only care about MESSAGE messages here
 		if (ObjectType.MESSAGE == change.getObjectType()) {
@@ -41,7 +41,7 @@ public class MessageToUserWorker implements ChangeMessageDrivenRunner {
 							new ProgressCallback<Void>() {
 						@Override
 						public void progressMade(Void foo) {
-							progressCallback.progressMade(change);
+							progressCallback.progressMade(null);
 						}
 
 					});

@@ -2,7 +2,9 @@ package org.sagebionetworks.repo.manager.table;
 
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.Callable;
 
+import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.table.cluster.ColumnChange;
@@ -18,16 +20,21 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	public static final int MAX_MYSQL_INDEX_COUNT = 63; // mysql only supports a max of 64 secondary indices per table.
 	
 	private final TableIndexDAO tableIndexDao;
+	private final TableManagerSupport tableManagerSupport;
 	private final String tableId;
 	
-	public TableIndexManagerImpl(TableIndexDAO dao, String tableId){
+	public TableIndexManagerImpl(TableIndexDAO dao, TableManagerSupport tableManagerSupport, String tableId){
 		if(dao == null){
 			throw new IllegalArgumentException("TableIndexDAO cannot be null");
+		}
+		if(tableManagerSupport == null){
+			throw new IllegalArgumentException("TableManagerSupport cannot be null");
 		}
 		if(tableId == null){
 			throw new IllegalArgumentException("TableId cannot be null");
 		}
 		this.tableIndexDao = dao;
+		this.tableManagerSupport = tableManagerSupport;
 		this.tableId = tableId;
 	}
 	/*
@@ -127,12 +134,12 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * , java.util.List)
 	 */
 	@Override
-	public void setIndexSchema(List<ColumnModel> newSchema) {
+	public void setIndexSchema(ProgressCallback<Void> progressCallback, List<ColumnModel> newSchema) {
 		// Lookup the current schema of the index
 		List<DatabaseColumnInfo> currentSchema = tableIndexDao.getDatabaseInfo(tableId);
 		// create a change that replaces the old schema as needed.
 		List<ColumnChange> changes = SQLUtils.createReplaceSchemaChange(currentSchema, newSchema);
-		updateTableSchema(changes);
+		updateTableSchema(progressCallback, changes);
 	}
 
 	@Override
@@ -154,13 +161,13 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	}
 	
 	@Override
-	public boolean updateTableSchema(List<ColumnChange> changes) {
+	public boolean updateTableSchema(ProgressCallback<Void> progressCallback, List<ColumnChange> changes) {
 		// create the table if it does not exist
 		tableIndexDao.createTableIfDoesNotExist(tableId);
 		// Create all of the status tables unconditionally.
 		tableIndexDao.createSecondaryTables(tableId);
 		// Alter the table
-		boolean wasSchemaChanged = tableIndexDao.alterTableAsNeeded(tableId, changes);
+		boolean wasSchemaChanged = alterTableAsNeededWithProgress(progressCallback, tableId, changes);
 		if(wasSchemaChanged){
 			// Get the current schema.
 			List<DatabaseColumnInfo> tableInfo = tableIndexDao.getDatabaseInfo(tableId);
@@ -175,6 +182,27 @@ public class TableIndexManagerImpl implements TableIndexManager {
 			tableIndexDao.setCurrentSchemaMD5Hex(tableId, schemaMD5Hex);
 		}
 		return wasSchemaChanged;
+	}
+	
+	/**
+	 * Alter the table schema using an auto-progressing callback.
+	 * @param progressCallback
+	 * @param tableId
+	 * @param changes
+	 * @return
+	 * @throws Exception
+	 */
+	private boolean alterTableAsNeededWithProgress(ProgressCallback<Void> progressCallback, final String tableId, final List<ColumnChange> changes){
+		 try {
+			return  tableManagerSupport.callWithAutoProgress(progressCallback, new Callable<Boolean>() {
+				@Override
+				public Boolean call() throws Exception {
+					return tableIndexDao.alterTableAsNeeded(tableId, changes);
+				}
+			});
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
 	}
 	/*
 	 * (non-Javadoc)

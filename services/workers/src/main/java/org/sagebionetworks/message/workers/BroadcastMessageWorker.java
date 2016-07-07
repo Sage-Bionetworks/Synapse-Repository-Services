@@ -28,7 +28,7 @@ public class BroadcastMessageWorker implements ChangeMessageDrivenRunner{
 	private UserManager userManager;
 
 	@Override
-	public void run(ProgressCallback<ChangeMessage> progressCallback, ChangeMessage message)
+	public void run(ProgressCallback<Void> progressCallback, ChangeMessage message)
 			throws RecoverableMessageException {
 		UserInfo admin = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		log.info("broadcasting "+message.getChangeType()+" "+message.getObjectType());

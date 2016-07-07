@@ -3,7 +3,6 @@ package org.sagebionetworks.file.worker;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.asynchronous.workers.changes.ChangeMessageDrivenRunner;
-import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.file.preview.PreviewManager;
@@ -16,11 +15,8 @@ import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
-import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
-
-import com.amazonaws.services.sqs.model.Message;
 
 /**
  * This worker process file create messages. When a file is created without a
@@ -40,7 +36,7 @@ public class PreviewWorker implements ChangeMessageDrivenRunner {
 	WorkerLogger workerLogger;
 
 	@Override
-	public void run(ProgressCallback<ChangeMessage> progressCallback, ChangeMessage changeMessage)
+	public void run(ProgressCallback<Void> progressCallback, ChangeMessage changeMessage)
 			throws RecoverableMessageException, Exception {
 
 		try {

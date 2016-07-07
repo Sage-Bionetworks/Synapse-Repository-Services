@@ -26,7 +26,7 @@ import org.springframework.test.util.ReflectionTestUtils;
  */
 public class EntityAnnotationWorkerTest {
 	
-	ProgressCallback<ChangeMessage> mockProgressCallback;
+	ProgressCallback<Void> mockProgressCallback;
 	AsynchronousDAO mockManager;
 	WorkerLogger mockWorkerLogger;
 	EntityAnnotationsWorker worker;
