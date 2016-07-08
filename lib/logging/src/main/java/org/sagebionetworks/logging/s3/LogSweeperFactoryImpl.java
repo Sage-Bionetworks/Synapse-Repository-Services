@@ -37,7 +37,7 @@ public class LogSweeperFactoryImpl implements LogSweeperFactory {
 		if(appendersToSweep == null) throw new IllegalArgumentException("Appends cannot be null");
 		log.debug("appenders: "+appendersToSweep);
 		// find the sweep directory
-		Map<String, Appender<?>> map = log.getAppenders();
+		Map<String, Appender> map = log.getAppenders();
 		// Find each appender
 		logDirectories = new LinkedList<File>();
 		Set<String> directorySet = new HashSet<String>();
