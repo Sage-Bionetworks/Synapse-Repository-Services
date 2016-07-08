@@ -919,7 +919,7 @@
 		</org.apache.httpcomponents.version>
 		<com.sun.tools.version>1.7</com.sun.tools.version>
 		<org.apache.pivot.version>2.0.1</org.apache.pivot.version>
-		<log4j.version>2.0-beta8</log4j.version>
+		<log4j.version>2.6.1</log4j.version>
 		<org.openoffice.version>3.2.1</org.openoffice.version>
 		<org.im4java.version>1.4.0</org.im4java.version>
 	</properties>
