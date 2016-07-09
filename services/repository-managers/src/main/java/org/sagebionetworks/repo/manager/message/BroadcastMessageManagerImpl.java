@@ -133,11 +133,20 @@ public class BroadcastMessageManagerImpl implements BroadcastMessageManager {
 		sendMessageToNonSubscribers(progressCallback, changeMessage, builder, subscriberIds, topic);
 	}
 
-	private void sendMessageToNonSubscribers(ProgressCallback<Void> progressCallback,
+	/*
+	 * Send email notification to users who is not subscribed to the topic, but
+	 * related to the topic and need to be notified (ex: mentioned users in a thread).
+	 * An email is only being sent to a user if he/she has permission to subscribe
+	 * to the topic.
+	 */
+	public void sendMessageToNonSubscribers(ProgressCallback<Void> progressCallback,
 			ChangeMessage changeMessage, BroadcastMessageBuilder builder, List<String> subscriberIds,
 			Topic topic)
 			throws ClientProtocolException, JSONException, IOException, HttpClientHelperException {
 		Set<String> mentionedUserIds = builder.getRelatedUsers();
+		if (mentionedUserIds.isEmpty()) {
+			return;
+		}
 		// remove mentioned users who subscribed to the topic
 		mentionedUserIds.removeAll(subscriberIds);
 		// create list of MentionedUser from their ids
