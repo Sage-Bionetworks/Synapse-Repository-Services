@@ -300,7 +300,7 @@ public class TableController extends BaseController {
 	 * Start a table update job that will attempt to make all of the requested changes in
 	 * a single transaction. All updates will either succeed or fail as a unit.  All update
 	 * requests must be for the same table.
-	 * 
+	 * <p>
 	 * Note: The caller must have the <a
 	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
 	 * >ACCESS_TYPE.UPDATE</a> permission on the TableEntity to make this call.
@@ -308,7 +308,7 @@ public class TableController extends BaseController {
 	 * 
 	 * @param userId
 	 * @param id
-	 *            The ID of the TableEntity to append rows to.
+	 *            The ID of the TableEntity to update.
 	 * @param request
 	 *            List of table update requests to be applied as a single transaction.
 	 * @return
@@ -334,7 +334,7 @@ public class TableController extends BaseController {
 
 	/**
 	 * Asynchronously get the results of a table update transaction started with
-	 * <a href="${POST.entity.id.table.tramsaction.async.start}">POST
+	 * <a href="${POST.entity.id.table.transaction.async.start}">POST
 	 * /entity/{id}/table/transaction/async/start</a>
 	 * <p>
 	 * Note: When the result is not ready yet, this method will return a status
@@ -345,6 +345,8 @@ public class TableController extends BaseController {
 	 * 
 	 * @param userId
 	 * @param asyncToken
+	 * @param id The ID of the table entity.
+	 * @param asyncToken The token returned when the job was started.
 	 * @return
 	 * @throws NotReadyException
 	 * @throws NotFoundException

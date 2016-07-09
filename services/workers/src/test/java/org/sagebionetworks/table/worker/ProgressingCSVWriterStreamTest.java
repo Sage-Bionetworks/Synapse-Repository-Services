@@ -20,7 +20,7 @@ import au.com.bytecode.opencsv.CSVWriter;
 
 public class ProgressingCSVWriterStreamTest {
 	CSVWriter mockWriter;
-	ProgressCallback<Message> mockProgress;
+	ProgressCallback<Void> mockProgress;
 	Message mockMessage;
 	AsynchJobStatusManager mockAsynchJobStatusManager;
 	long currentProgress;
@@ -50,13 +50,13 @@ public class ProgressingCSVWriterStreamTest {
 		stream.writeNext(one);
 		verify(mockWriter).writeNext(one);
 		verify(mockClock, never()).sleep(anyLong());
-		verify(mockProgress, never()).progressMade(any(Message.class));
+		verify(mockProgress, never()).progressMade(null);
 		verify(mockAsynchJobStatusManager, never()).updateJobProgress(anyString(), anyLong(),anyLong(), anyString());
 		// Now a little over two seconds have elapse sine the start.
 		String[] two = new String[]{"2"};
 		stream.writeNext(two);
 		verify(mockWriter).writeNext(two);
-		verify(mockProgress).progressMade(any(Message.class));
+		verify(mockProgress).progressMade(null);
 		verify(mockAsynchJobStatusManager).updateJobProgress(anyString(), anyLong(),anyLong(), anyString());
 	}
 

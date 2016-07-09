@@ -9,7 +9,6 @@ import java.util.zip.ZipOutputStream;
 import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
@@ -72,7 +71,7 @@ public class BulkFileDownloadWorker implements MessageDrivenRunner {
 	BulkDownloadManager bulkDownloadManager; 
 
 	@Override
-	public void run(ProgressCallback<Message> progressCallback, Message message)
+	public void run(ProgressCallback<Void> progressCallback, Message message)
 			throws RecoverableMessageException, Exception {
 
 		AsynchronousJobStatus status = asynchJobStatusManager.lookupJobStatus(message.getBody());
@@ -82,8 +81,7 @@ public class BulkFileDownloadWorker implements MessageDrivenRunner {
 				throw new IllegalArgumentException("Unexpected request body: "
 						+ status.getRequestBody());
 			}
-			BulkFileDownloadRequest request = (BulkFileDownloadRequest) status
-					.getRequestBody();
+			BulkFileDownloadRequest request = asynchJobStatusManager.extractRequestBody(status, BulkFileDownloadRequest.class);
 			// build the zip from the results
 			BulkFileDownloadResponse response = buildZip(progressCallback,
 					message, status, request);
@@ -103,7 +101,7 @@ public class BulkFileDownloadWorker implements MessageDrivenRunner {
 	 * @throws IOException 
 	 */
 	public BulkFileDownloadResponse buildZip(
-			final ProgressCallback<Message> progressCallback,
+			final ProgressCallback<Void> progressCallback,
 			final Message message, AsynchronousJobStatus status,
 			BulkFileDownloadRequest request) throws IOException {
 		// The generated zip will be written to this temp file.
@@ -136,7 +134,7 @@ public class BulkFileDownloadWorker implements MessageDrivenRunner {
 									@Override
 									public void progressChanged(
 											ProgressEvent progressEvent) {
-										progressCallback.progressMade(message);
+										progressCallback.progressMade(null);
 									}
 								});
 				resultFileHandleId = resultHandle.getId();
@@ -164,7 +162,7 @@ public class BulkFileDownloadWorker implements MessageDrivenRunner {
 	 * @param zipOut
 	 */
 	public List<FileDownloadSummary> addFilesToZip(
-			ProgressCallback<Message> progressCallback, Message message,
+			ProgressCallback<Void> progressCallback, Message message,
 			List<FileHandleAssociationAuthorizationStatus> authResults,
 			File tempResultFile, ZipOutputStream zipOut,
 			AsynchronousJobStatus status,
@@ -177,7 +175,7 @@ public class BulkFileDownloadWorker implements MessageDrivenRunner {
 		for (FileHandleAssociationAuthorizationStatus fhas : authResults) {
 			String fileHandleId = fhas.getAssociation().getFileHandleId();
 			// Make progress between each file
-			progressCallback.progressMade(message);
+			progressCallback.progressMade(null);
 			// update the job progress
 			asynchJobStatusManager.updateJobProgress(status.getJobId(),
 					currentProgress, totalProgress, PROCESSING_FILE_HANDLE_ID

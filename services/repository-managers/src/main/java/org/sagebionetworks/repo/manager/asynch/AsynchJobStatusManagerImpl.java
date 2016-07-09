@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.dao.asynch.AsynchronousJobStatusDAO;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
@@ -204,6 +205,20 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 	@Override
 	public void emptyAllQueues() {
 		asynchJobQueuePublisher.emptyAllQueues();
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public <T extends AsynchronousRequestBody> T extractRequestBody(
+			AsynchronousJobStatus status, Class<T> clazz) {
+		ValidateArgument.required(status, "status");
+		ValidateArgument.required(clazz, "class");
+		ValidateArgument.required(status.getRequestBody(), "status.requestBody()");
+		if(!clazz.isInstance(status.getRequestBody())){
+			throw new IllegalArgumentException("Expected a job body of type: " + clazz.getName() + " but received: "
+					+ status.getRequestBody().getClass().getName());
+		}
+		return (T)status.getRequestBody();
 	}	
 
 }

@@ -51,7 +51,7 @@ public class TableCSVAppenderPreviewWorker implements MessageDrivenRunner {
 
 
 	@Override
-	public void run(ProgressCallback<Message> progressCallback, Message message)
+	public void run(ProgressCallback<Void> progressCallback, Message message)
 			throws RecoverableMessageException, Exception {
 		// We should only get one message
 		try{
@@ -67,12 +67,12 @@ public class TableCSVAppenderPreviewWorker implements MessageDrivenRunner {
 	 * @param status
 	 * @throws Throwable 
 	 */
-	public void processStatus(final ProgressCallback<Message> progressCallback, final Message message) throws Throwable {
-		final AsynchronousJobStatus status = extractStatus(message);
+	public void processStatus(final ProgressCallback<Void> progressCallback, final Message message) throws Throwable {
+		final AsynchronousJobStatus status = asynchJobStatusManager.lookupJobStatus(message.getBody());
 		CSVReader reader = null;
 		try{
 			UserInfo user = userManger.getUserInfo(status.getStartedByUserId());
-			UploadToTablePreviewRequest body = (UploadToTablePreviewRequest) status.getRequestBody();
+			UploadToTablePreviewRequest body = asynchJobStatusManager.extractRequestBody(status, UploadToTablePreviewRequest.class);
 			// Get the filehandle
 			S3FileHandle fileHandle = (S3FileHandle) fileHandleManager.getRawFileHandle(user, body.getUploadFileHandleId());
 			// Get the metadat for this file
@@ -98,7 +98,7 @@ public class TableCSVAppenderPreviewWorker implements MessageDrivenRunner {
 							countingInputStream.getByteCount(), progressTotal,
 							"Processed: " + rowNumber + " rows");
 					// update the message.
-					progressCallback.progressMade(message);
+					progressCallback.progressMade(null);
 				}
 			}, progressIntervalMs);
 			// This builder does the work of building an actual preview.
@@ -117,28 +117,5 @@ public class TableCSVAppenderPreviewWorker implements MessageDrivenRunner {
 				} catch (IOException e) {}
 			}
 		}
-	}
-	
-
-	/**
-	 * Extract the AsynchUploadRequestBody from the message.
-	 * @param message
-	 * @return
-	 * @throws JSONObjectAdapterException
-	 */
-	AsynchronousJobStatus extractStatus(Message message) throws JSONObjectAdapterException{
-		if(message == null){
-			throw new IllegalArgumentException("Message cannot be null");
-		}
-		AsynchronousJobStatus status = asynchJobStatusManager.lookupJobStatus(message.getBody());
-		if(status.getRequestBody() == null){
-			throw new IllegalArgumentException("Job body cannot be null");
-		}
-		if (!(status.getRequestBody() instanceof UploadToTablePreviewRequest)) {
-			throw new IllegalArgumentException("Expected a job body of type: " + UploadToTablePreviewRequest.class.getName() + " but received: "
-					+ status.getRequestBody().getClass().getName());
-		}
-		return status;
-	}
-	
+	}	
 }

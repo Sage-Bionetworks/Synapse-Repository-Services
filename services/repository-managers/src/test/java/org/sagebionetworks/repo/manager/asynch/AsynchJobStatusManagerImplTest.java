@@ -33,6 +33,7 @@ import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.dao.asynch.AsynchronousJobStatusDAO;
+import org.sagebionetworks.repo.model.file.BulkFileDownloadRequest;
 import org.sagebionetworks.repo.model.file.S3FileCopyResult;
 import org.sagebionetworks.repo.model.file.S3FileCopyResultType;
 import org.sagebionetworks.repo.model.file.S3FileCopyResults;
@@ -472,5 +473,37 @@ public class AsynchJobStatusManagerImplTest {
 		verify(mockAsynchJobQueuePublisher, times(1)).publishMessage(status);
 	}
 	
+	@Test
+	public void testExtractRequestBody(){
+		AsynchronousJobStatus status = new AsynchronousJobStatus();
+		status.setRequestBody(new DownloadFromTableRequest());
+		// call under test.
+		DownloadFromTableRequest body = manager.extractRequestBody(status, DownloadFromTableRequest.class);
+		assertNotNull(body);
+		assertEquals(status.getRequestBody(), body);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testExtractRequestBodyNullStatus(){
+		AsynchronousJobStatus status = null;
+		// call under test.
+		manager.extractRequestBody(status, DownloadFromTableRequest.class);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testExtractRequestBodyNullBody(){
+		AsynchronousJobStatus status = new AsynchronousJobStatus();
+		status.setRequestBody(null);
+		// call under test.
+		manager.extractRequestBody(status, DownloadFromTableRequest.class);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testExtractRequestBodyWrongType(){
+		AsynchronousJobStatus status = new AsynchronousJobStatus();
+		status.setRequestBody(null);
+		// call under test.
+		manager.extractRequestBody(status, BulkFileDownloadRequest.class);
+	}
 
 }

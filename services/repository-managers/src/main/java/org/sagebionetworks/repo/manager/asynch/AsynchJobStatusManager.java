@@ -49,6 +49,15 @@ public interface AsynchJobStatusManager {
 	 * @throws NotFoundException
 	 */
 	public AsynchronousJobStatus lookupJobStatus(String jobId) throws DatastoreException, NotFoundException;
+	
+	/**
+	 * Extract the request body from the passed job status.
+	 * 
+	 * @param status
+	 * @param clazz
+	 * @return
+	 */
+	public <T extends AsynchronousRequestBody> T extractRequestBody(AsynchronousJobStatus status, Class<T> clazz); 
 
 	/**
 	 * Stop a job.

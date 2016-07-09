@@ -18,7 +18,6 @@ import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowReferenceSetResults;
 import org.sagebionetworks.repo.model.table.RowSet;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -51,7 +50,7 @@ public class TableAppendRowSetWorker implements MessageDrivenRunner {
 	 * @throws Throwable 
 	 */
 	@Override
-	public void run(ProgressCallback<Message> progressCallback, Message message)
+	public void run(ProgressCallback<Void> progressCallback, Message message)
 			throws RecoverableMessageException, Exception {
 		// First read the body
 		try {
@@ -65,11 +64,11 @@ public class TableAppendRowSetWorker implements MessageDrivenRunner {
 	 * @param status
 	 * @throws Throwable 
 	 */
-	public void processStatus(final ProgressCallback<Message> progressCallback, final Message message) throws Throwable {
-		AsynchronousJobStatus status = extractStatus(message);
+	public void processStatus(final ProgressCallback<Void> progressCallback, final Message message) throws Throwable {
+		AsynchronousJobStatus status = asynchJobStatusManager.lookupJobStatus(message.getBody());
 		try{
 			UserInfo user = userManger.getUserInfo(status.getStartedByUserId());
-			AppendableRowSetRequest body = (AppendableRowSetRequest) status.getRequestBody();
+			AppendableRowSetRequest body = asynchJobStatusManager.extractRequestBody(status, AppendableRowSetRequest.class);
 			AppendableRowSet appendSet = body.getToAppend();
 			if(appendSet == null){
 				throw new IllegalArgumentException("ToAppend cannot be null");
@@ -85,7 +84,7 @@ public class TableAppendRowSetWorker implements MessageDrivenRunner {
 			ProgressCallback<Long> rowCallback = new ProgressCallback<Long>() {
 				@Override
 				public void progressMade(Long progress) {
-					progressCallback.progressMade(message);
+					progressCallback.progressMade(null);
 				}
 			};
 			// Do the work
@@ -111,26 +110,4 @@ public class TableAppendRowSetWorker implements MessageDrivenRunner {
 			throw e;
 		}
 	}
-	
-	/**
-	 * Extract the AsynchUploadRequestBody from the message.
-	 * @param message
-	 * @return
-	 * @throws JSONObjectAdapterException
-	 */
-	AsynchronousJobStatus extractStatus(Message message) throws JSONObjectAdapterException{
-		if(message == null){
-			throw new IllegalArgumentException("Message cannot be null");
-		}
-		AsynchronousJobStatus status = asynchJobStatusManager.lookupJobStatus(message.getBody());
-		if(status.getRequestBody() == null){
-			throw new IllegalArgumentException("Job body cannot be null");
-		}
-		if (!(status.getRequestBody() instanceof AppendableRowSetRequest)) {
-			throw new IllegalArgumentException("Expected a job body of type: " + AppendableRowSetRequest.class.getName() + " but received: "
-					+ status.getRequestBody().getClass().getName());
-		}
-		return status;
-	}
-	
 }
