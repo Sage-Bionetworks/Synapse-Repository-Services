@@ -113,7 +113,7 @@ public class AccessInterceptor implements HandlerInterceptor, AccessIdListener{
 		// Save this record
 		accessRecorder.save(data);
 		// Clear the logging thread context
-		ThreadContext.clear();
+		ThreadContext.clearAll();
 	}
 
 	@Override
