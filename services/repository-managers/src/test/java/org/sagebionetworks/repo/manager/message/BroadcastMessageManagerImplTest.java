@@ -7,6 +7,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
@@ -29,13 +30,13 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.broadcast.UserNotificationInfo;
+import org.sagebionetworks.repo.model.dao.subscription.Subscriber;
 import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.message.BroadcastMessageDao;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
-import org.sagebionetworks.repo.model.dao.subscription.Subscriber;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.Topic;
 import org.sagebionetworks.util.TimeoutUtils;
@@ -178,12 +179,94 @@ public class BroadcastMessageManagerImplTest {
 		verify(mockUserProfileDao).getUserNotificationInfo(userIds);
 		verify(mockUserManager).getUserInfo(111L);
 		verify(mockUserManager).getUserInfo(222L);
+		verify(mockUserManager, never()).getUserInfo(2L);
 		verify(mockAuthManager).canSubscribe(hasAccessUserInfo, topic.getObjectId(), topic.getObjectType());
 		verify(mockAuthManager).canSubscribe(accessDeniedUserInfo, topic.getObjectId(), topic.getObjectType());
-		// progress should be made for each subscriber
 		verify(mockCallback, times(3)).progressMade(null);
-		// two messages should be sent
 		verify(mockSesClient, times(3)).sendRawEmail(any(SendRawEmailRequest.class));
+	}
+
+	@SuppressWarnings("unchecked")
+	@Test
+	public void testSendMessageToNonSubscribersEmptyNonSubscribers() throws Exception {
+		when(mockBroadcastMessageBuilder.getRelatedUsers()).thenReturn(new HashSet<String>());
+		manager.sendMessageToNonSubscribers(mockCallback, change, mockBroadcastMessageBuilder, new ArrayList<String>(), topic);
+		verify(mockBroadcastMessageBuilder).getRelatedUsers();
+		verify(mockUserProfileDao, never()).getUserNotificationInfo(any(Set.class));
+	}
+
+	@Test
+	public void testSendMessageToNonSubscribersNoneReceiveNotification() throws Exception {
+		Set<String> userIds = new HashSet<String>();
+		userIds.addAll(Arrays.asList("111", "222", "2"));
+		when(mockBroadcastMessageBuilder.getRelatedUsers()).thenReturn(userIds);
+		when(mockUserProfileDao.getUserNotificationInfo(userIds)).thenReturn(new ArrayList<UserNotificationInfo>());
+		manager.sendMessageToNonSubscribers(mockCallback, change, mockBroadcastMessageBuilder, new ArrayList<String>(), topic);
+		verify(mockBroadcastMessageBuilder).getRelatedUsers();
+		verify(mockUserProfileDao).getUserNotificationInfo(userIds);
+		verify(mockUserManager, never()).getUserInfo(anyLong());
+	}
+
+	@Test
+	public void testSendMessageToNonSubscribersAllWithPermission() throws Exception {
+		Set<String> userIds = new HashSet<String>();
+		userIds.addAll(Arrays.asList("111", "222"));
+		UserNotificationInfo userNotificationInfo1 = new UserNotificationInfo();
+		userNotificationInfo1.setUserId("111");
+		UserNotificationInfo userNotificationInfo2 = new UserNotificationInfo();
+		userNotificationInfo2.setUserId("222");
+		when(mockBroadcastMessageBuilder.getRelatedUsers()).thenReturn(userIds);
+		when(mockUserProfileDao.getUserNotificationInfo(userIds)).thenReturn(Arrays.asList(userNotificationInfo1, userNotificationInfo2));
+		UserInfo hasAccessUserInfo = new UserInfo(false);
+		hasAccessUserInfo.setId(111L);
+		UserInfo accessDeniedUserInfo = new UserInfo(false);
+		accessDeniedUserInfo.setId(222L);
+		when(mockUserManager.getUserInfo(111L)).thenReturn(hasAccessUserInfo);
+		when(mockUserManager.getUserInfo(222L)).thenReturn(accessDeniedUserInfo);
+		when(mockAuthManager.canSubscribe(hasAccessUserInfo, topic.getObjectId(), topic.getObjectType()))
+				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(mockAuthManager.canSubscribe(accessDeniedUserInfo, topic.getObjectId(), topic.getObjectType()))
+				.thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+		manager.sendMessageToNonSubscribers(mockCallback, change, mockBroadcastMessageBuilder, new ArrayList<String>(), topic);
+		verify(mockBroadcastMessageBuilder).getRelatedUsers();
+		verify(mockUserProfileDao).getUserNotificationInfo(userIds);
+		verify(mockUserManager).getUserInfo(111L);
+		verify(mockUserManager).getUserInfo(222L);
+		verify(mockAuthManager).canSubscribe(hasAccessUserInfo, topic.getObjectId(), topic.getObjectType());
+		verify(mockAuthManager).canSubscribe(accessDeniedUserInfo, topic.getObjectId(), topic.getObjectType());
+		verify(mockCallback, times(1)).progressMade(null);
+		verify(mockSesClient, times(1)).sendRawEmail(any(SendRawEmailRequest.class));
+	}
+
+	@Test
+	public void testSendMessageToNonSubscribersWithUserWithoutPermission() throws Exception {
+		Set<String> userIds = new HashSet<String>();
+		userIds.addAll(Arrays.asList("111", "222"));
+		UserNotificationInfo userNotificationInfo1 = new UserNotificationInfo();
+		userNotificationInfo1.setUserId("111");
+		UserNotificationInfo userNotificationInfo2 = new UserNotificationInfo();
+		userNotificationInfo2.setUserId("222");
+		when(mockBroadcastMessageBuilder.getRelatedUsers()).thenReturn(userIds);
+		when(mockUserProfileDao.getUserNotificationInfo(userIds)).thenReturn(Arrays.asList(userNotificationInfo1, userNotificationInfo2));
+		UserInfo hasAccessUserInfo1 = new UserInfo(false);
+		hasAccessUserInfo1.setId(111L);
+		UserInfo hasAccessUserInfo2 = new UserInfo(false);
+		hasAccessUserInfo2.setId(222L);
+		when(mockUserManager.getUserInfo(111L)).thenReturn(hasAccessUserInfo1);
+		when(mockUserManager.getUserInfo(222L)).thenReturn(hasAccessUserInfo2);
+		when(mockAuthManager.canSubscribe(hasAccessUserInfo1, topic.getObjectId(), topic.getObjectType()))
+				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(mockAuthManager.canSubscribe(hasAccessUserInfo2, topic.getObjectId(), topic.getObjectType()))
+				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		manager.sendMessageToNonSubscribers(mockCallback, change, mockBroadcastMessageBuilder, new ArrayList<String>(), topic);
+		verify(mockBroadcastMessageBuilder).getRelatedUsers();
+		verify(mockUserProfileDao).getUserNotificationInfo(userIds);
+		verify(mockUserManager).getUserInfo(111L);
+		verify(mockUserManager).getUserInfo(222L);
+		verify(mockAuthManager).canSubscribe(hasAccessUserInfo1, topic.getObjectId(), topic.getObjectType());
+		verify(mockAuthManager).canSubscribe(hasAccessUserInfo2, topic.getObjectId(), topic.getObjectType());
+		verify(mockCallback, times(2)).progressMade(null);
+		verify(mockSesClient, times(2)).sendRawEmail(any(SendRawEmailRequest.class));
 	}
 
 	@Test (expected = HttpClientHelperException.class)
