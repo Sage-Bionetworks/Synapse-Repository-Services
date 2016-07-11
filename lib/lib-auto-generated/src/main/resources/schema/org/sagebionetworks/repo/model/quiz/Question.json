@@ -19,11 +19,13 @@
 		},
 		"docLink":{
 			"description":"Link to the document that contains information for background reading related to the question.",
-			"type":"string"
+			"type":"string",
+			"links": [{"rel": "describedby","href": "http://synapse.sagebase.org/access/public"}]
 		},
 		"helpText":{
 			"description":"A short text that provides a snippet of help to answer the question.",
-			"type":"string"
+			"type":"string",
+			"links": [{"rel": "describedby","href": "http://synapse.sagebase.org/access/public"}]
 		},
 		"concreteType":{
 			"type": "string"
