@@ -354,12 +354,16 @@ public class TrashManagerImpl implements TrashManager {
 	/**
 	 * Recursively gets the IDs of all the descendants.
 	 */
-	private void getDescendants(String nodeId, Collection<String> descendants) {
+	public void getDescendants(String nodeId, Collection<String>descendants) {
+		if(nodeId == null || descendants == null){
+			throw new IllegalArgumentException(  (nodeId == null ? "nodeId" : "descendants") + " cannot be null.");
+		}
 		List<String> children = nodeDao.getChildrenIdsAsList(nodeId);
-		descendants.addAll(children);
 		if (children == null || children.size() == 0) {
 			return;
 		}
+		
+		descendants.addAll(children);
 		for (String child : children) {
 			getDescendants(child, descendants); // Recursion
 		}
