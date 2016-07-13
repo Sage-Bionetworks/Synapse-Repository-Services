@@ -353,7 +353,38 @@ public class DBOUserProfileDAOImplTest {
 	}
 
 	@Test
-	public void testGetUserNotificationInfo() {
+	public void testGetUserNotificationInfoAllReceiveNotification() {
+		String user1 = createUserWithNotificationEmail(Long.parseLong(principal.getId()),
+				"username", "first", "last", "first@domain.org", true);
+		String user2 = createUserWithNotificationEmail(Long.parseLong(principal2.getId()),
+				"username2", "first2", "last2", "second@domain.org", true);
+
+		Set<String> ids = new HashSet<String>();
+		ids.addAll(Arrays.asList(user1, user2));
+		List<UserNotificationInfo> results = userProfileDAO.getUserNotificationInfo(ids);
+		assertEquals(2, results.size());
+		UserNotificationInfo userInfo1 = createUserNotificationInfo(user1, "first", "last", "username", "first@domain.org");
+		UserNotificationInfo userInfo2 = createUserNotificationInfo(user2, "first2", "last2", "username2", "second@domain.org");
+		assertTrue(results.contains(userInfo1));
+		assertTrue(results.contains(userInfo2));
+
+		principalAliasDAO.removeAllAliasFromPrincipal(Long.parseLong(principal.getId()));
+		principalAliasDAO.removeAllAliasFromPrincipal(Long.parseLong(principal2.getId()));
+	}
+
+	private UserNotificationInfo createUserNotificationInfo(String user1, String firstName,
+			String lastName, String username, String email) {
+		UserNotificationInfo userInfo = new UserNotificationInfo();
+		userInfo.setFirstName(firstName);
+		userInfo.setLastName(lastName);
+		userInfo.setUsername(username);
+		userInfo.setUserId(user1);
+		userInfo.setNotificationEmail(email);
+		return userInfo;
+	}
+
+	@Test
+	public void testGetUserNotificationInfoWithUserDoNotReceiveNotification() {
 		String user1 = createUserWithNotificationEmail(Long.parseLong(principal.getId()),
 				"username", "first", "last", "first@domain.org", true);
 		String user2 = createUserWithNotificationEmail(Long.parseLong(principal2.getId()),
@@ -363,11 +394,8 @@ public class DBOUserProfileDAOImplTest {
 		ids.addAll(Arrays.asList(user1, user2));
 		List<UserNotificationInfo> results = userProfileDAO.getUserNotificationInfo(ids);
 		assertEquals(1, results.size());
-		assertEquals(user1, results.get(0).getUserId());
-		assertEquals("first", results.get(0).getFirstName());
-		assertEquals("last", results.get(0).getLastName());
-		assertEquals("username", results.get(0).getUsername());
-		assertEquals("first@domain.org", results.get(0).getNotificationEmail());
+		UserNotificationInfo userInfo = createUserNotificationInfo(user1, "first", "last", "username", "first@domain.org");
+		assertTrue(results.contains(userInfo));
 
 		principalAliasDAO.removeAllAliasFromPrincipal(Long.parseLong(principal.getId()));
 		principalAliasDAO.removeAllAliasFromPrincipal(Long.parseLong(principal2.getId()));
