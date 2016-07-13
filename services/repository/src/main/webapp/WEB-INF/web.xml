@@ -99,6 +99,16 @@
 	</filter-mapping>
 
 	<filter>
+		<filter-name>dockerFilter</filter-name>
+		<filter-class>org.sagebionetworks.repo.web.filter.DockerFilter</filter-class>
+	</filter>
+
+	<filter-mapping>
+		<filter-name>dockerFilter</filter-name>
+		<url-pattern>/docker/v1/*</url-pattern>
+	</filter-mapping>
+
+	<filter>
 		<filter-name>profileFilter</filter-name>
 		<filter-class>org.sagebionetworks.profiler.ProfileFilter</filter-class>
 		<init-param>

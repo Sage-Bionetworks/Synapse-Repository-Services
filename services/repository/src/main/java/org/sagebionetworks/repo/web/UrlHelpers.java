@@ -39,6 +39,7 @@ public class UrlHelpers {
 	public static final String AUTH_PATH			= "/auth/v1";
 	public static final String FILE_PATH			= "/file/v1";
 	public static final String REPO_PATH			= "/repo/v1";
+	public static final String DOCKER_PATH			= "/docker/v1";
 	
 	/**
 	 * Used for batch requests
