@@ -1191,6 +1191,72 @@ public class NodeDAOImplTest {
 		assertEquals("Deleting all versions except the first should have left the node in place with a current version of 1.",new Long(1), node.getVersionNumber());
 	}
 	
+	//mySQL seems to have a limit of 15 for the number of delete cascades to prevent infinite loops.
+	@Test
+	public void testDeleteCascade(){
+		//TODO: just putting this comment here so i can easily find this location
+		final int maxSQLDeleteCascade = 15;
+		
+		//create maxSQLDeleteCascade amount of nodes each referencing the previous
+		/*
+		  root
+		   |
+		 Node1
+		   |
+		 Node2
+		   |
+		   .
+		   .
+		   .
+		   |
+	     Node15
+		  
+		*/
+		
+		
+		String rootID = "syn4489"; //keeps track of the previously created node's id. initially is the root
+		//TODO: is there a variable for the root node somewhere? Just going to hardcode it for now
+		
+		List<String> nodeIDs = new ArrayList<String>();
+		
+		for(int i = 0; i < maxSQLDeleteCascade; i++){
+			String nodeName = "NodeDAOImplTest.testDeleteCascade() Node:" + i;
+			Node node = new Node();
+			
+			//set fields for the new node
+			Date now = new Date();
+			node.setName(nodeName);
+			node.setParentId( nodeIDs.isEmpty() ? rootID : nodeIDs.get(nodeIDs.size() - 1) );//previous added node is the parent
+			node.setNodeType(EntityType.project);//I actually don't really know what this does yet but I saw it in another test
+			node.setModifiedByPrincipalId(creatorUserGroupId);
+			node.setModifiedOn(now);
+			node.setCreatedOn(now);
+			node.setCreatedByPrincipalId(creatorUserGroupId);
+			
+			//create the node in the database and update the parentid to that of the new node
+			String nodeID = nodeDao.createNew(node);
+			assertNotNull(nodeID);
+			
+			nodeIDs.add(nodeID);
+			toDelete.add(0, nodeID);//have to delete the nodes in reverse order or else will not be able to clean up if test fails
+		}
+		assertTrue(nodeIDs.size() == maxSQLDeleteCascade);
+		
+		//delete the parent node 
+		try{
+			nodeDao.delete(nodeIDs.get(0));
+		}catch (Exception e){
+			fail("Unable to Cascade delete more than " + maxSQLDeleteCascade +"levels");
+		}
+		
+		//check that all added nodes were deleted 
+		for(String nodeID : nodeIDs){
+			assertFalse(nodeDao.doesNodeExist(KeyFactory.stringToKey(nodeID)));
+		}
+		
+	}
+	
+	
 	@Test
 	public void testPeekCurrentEtag() throws  Exception {
 		Node node = privateCreateNew("testPeekCurrentEtag");
