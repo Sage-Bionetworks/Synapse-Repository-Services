@@ -472,38 +472,5 @@ public class AsynchJobStatusManagerImplTest {
 		verify(mockAsynchJobStatusDao, times(1)).startJob(anyLong(), any(AsynchronousRequestBody.class));
 		verify(mockAsynchJobQueuePublisher, times(1)).publishMessage(status);
 	}
-	
-	@Test
-	public void testExtractRequestBody(){
-		AsynchronousJobStatus status = new AsynchronousJobStatus();
-		status.setRequestBody(new DownloadFromTableRequest());
-		// call under test.
-		DownloadFromTableRequest body = manager.extractRequestBody(status, DownloadFromTableRequest.class);
-		assertNotNull(body);
-		assertEquals(status.getRequestBody(), body);
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testExtractRequestBodyNullStatus(){
-		AsynchronousJobStatus status = null;
-		// call under test.
-		manager.extractRequestBody(status, DownloadFromTableRequest.class);
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testExtractRequestBodyNullBody(){
-		AsynchronousJobStatus status = new AsynchronousJobStatus();
-		status.setRequestBody(null);
-		// call under test.
-		manager.extractRequestBody(status, DownloadFromTableRequest.class);
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testExtractRequestBodyWrongType(){
-		AsynchronousJobStatus status = new AsynchronousJobStatus();
-		status.setRequestBody(null);
-		// call under test.
-		manager.extractRequestBody(status, BulkFileDownloadRequest.class);
-	}
 
 }

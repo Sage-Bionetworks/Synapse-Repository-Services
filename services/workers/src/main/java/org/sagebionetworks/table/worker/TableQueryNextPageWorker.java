@@ -5,6 +5,7 @@ import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
+import org.sagebionetworks.repo.manager.asynch.AsynchJobUtils;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
@@ -39,7 +40,7 @@ public class TableQueryNextPageWorker implements MessageDrivenRunner {
 		AsynchronousJobStatus status = asynchJobStatusManager.lookupJobStatus(message.getBody());
 		try{
 			UserInfo user = userManger.getUserInfo(status.getStartedByUserId());
-			QueryNextPageToken request = asynchJobStatusManager.extractRequestBody(status, QueryNextPageToken.class);
+			QueryNextPageToken request = AsynchJobUtils.extractRequestBody(status, QueryNextPageToken.class);
 			QueryResult queryResult = tableQueryManger.queryNextPage(progressCallback, user, request);
 			asynchJobStatusManager.setComplete(status.getJobId(), queryResult);
 		}catch (TableUnavailableException e){

@@ -10,6 +10,7 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ThrottlingProgressCallback;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
+import org.sagebionetworks.repo.manager.asynch.AsynchJobUtils;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -72,7 +73,7 @@ public class TableCSVAppenderPreviewWorker implements MessageDrivenRunner {
 		CSVReader reader = null;
 		try{
 			UserInfo user = userManger.getUserInfo(status.getStartedByUserId());
-			UploadToTablePreviewRequest body = asynchJobStatusManager.extractRequestBody(status, UploadToTablePreviewRequest.class);
+			UploadToTablePreviewRequest body = AsynchJobUtils.extractRequestBody(status, UploadToTablePreviewRequest.class);
 			// Get the filehandle
 			S3FileHandle fileHandle = (S3FileHandle) fileHandleManager.getRawFileHandle(user, body.getUploadFileHandleId());
 			// Get the metadat for this file

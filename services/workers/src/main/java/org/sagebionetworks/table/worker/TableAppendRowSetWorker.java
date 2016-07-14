@@ -7,6 +7,7 @@ import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
+import org.sagebionetworks.repo.manager.asynch.AsynchJobUtils;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -68,7 +69,7 @@ public class TableAppendRowSetWorker implements MessageDrivenRunner {
 		AsynchronousJobStatus status = asynchJobStatusManager.lookupJobStatus(message.getBody());
 		try{
 			UserInfo user = userManger.getUserInfo(status.getStartedByUserId());
-			AppendableRowSetRequest body = asynchJobStatusManager.extractRequestBody(status, AppendableRowSetRequest.class);
+			AppendableRowSetRequest body = AsynchJobUtils.extractRequestBody(status, AppendableRowSetRequest.class);
 			AppendableRowSet appendSet = body.getToAppend();
 			if(appendSet == null){
 				throw new IllegalArgumentException("ToAppend cannot be null");

@@ -11,6 +11,7 @@ import org.sagebionetworks.common.util.progress.ForwardingProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
+import org.sagebionetworks.repo.manager.asynch.AsynchJobUtils;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -63,7 +64,7 @@ public class TableCSVDownloadWorker implements MessageDrivenRunner {
 		CSVWriter writer = null;
 		try{
 			UserInfo user = userManger.getUserInfo(status.getStartedByUserId());
-			DownloadFromTableRequest request = asynchJobStatusManager.extractRequestBody(status, DownloadFromTableRequest.class);
+			DownloadFromTableRequest request = AsynchJobUtils.extractRequestBody(status, DownloadFromTableRequest.class);
 			// Before we start determine how many rows there are.
 			QueryResultBundle queryResult = tableQueryManger.querySinglePage(progressCallback, user, request.getSql(), request.getSort(), null, null, false, true,
 					true);

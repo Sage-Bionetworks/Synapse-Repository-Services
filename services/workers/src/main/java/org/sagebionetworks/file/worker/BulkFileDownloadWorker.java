@@ -12,6 +12,7 @@ import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
+import org.sagebionetworks.repo.manager.asynch.AsynchJobUtils;
 import org.sagebionetworks.repo.manager.file.FileHandleAssociationAuthorizationStatus;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
@@ -81,7 +82,7 @@ public class BulkFileDownloadWorker implements MessageDrivenRunner {
 				throw new IllegalArgumentException("Unexpected request body: "
 						+ status.getRequestBody());
 			}
-			BulkFileDownloadRequest request = asynchJobStatusManager.extractRequestBody(status, BulkFileDownloadRequest.class);
+			BulkFileDownloadRequest request = AsynchJobUtils.extractRequestBody(status, BulkFileDownloadRequest.class);
 			// build the zip from the results
 			BulkFileDownloadResponse response = buildZip(progressCallback,
 					message, status, request);

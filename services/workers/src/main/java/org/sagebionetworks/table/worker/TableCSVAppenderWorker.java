@@ -11,6 +11,7 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ThrottlingProgressCallback;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
+import org.sagebionetworks.repo.manager.asynch.AsynchJobUtils;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
@@ -78,7 +79,7 @@ public class TableCSVAppenderWorker implements MessageDrivenRunner {
 		CSVReader reader = null;
 		try{
 			UserInfo user = userManger.getUserInfo(status.getStartedByUserId());
-			UploadToTableRequest body = asynchJobStatusManager.extractRequestBody(status, UploadToTableRequest.class);
+			UploadToTableRequest body = AsynchJobUtils.extractRequestBody(status, UploadToTableRequest.class);
 			// Get the filehandle
 			S3FileHandle fileHandle = (S3FileHandle) fileHandleManager.getRawFileHandle(user, body.getUploadFileHandleId());
 			// Get the schema for the table
