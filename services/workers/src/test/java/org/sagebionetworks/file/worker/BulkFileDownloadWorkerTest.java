@@ -172,6 +172,8 @@ public class BulkFileDownloadWorkerTest {
 						any(UserInfo.class), any(File.class), anyString(),
 						any(ProgressListener.class))).thenReturn(resultHandle);
 		when(mockAsynchJobStatusManager.lookupJobStatus(jobStatus.getJobId())).thenReturn(jobStatus);
+		
+		when(mockAsynchJobStatusManager.extractRequestBody(jobStatus, BulkFileDownloadRequest.class)).thenReturn((BulkFileDownloadRequest) jobStatus.getRequestBody());
 	}
 
 	@Test
