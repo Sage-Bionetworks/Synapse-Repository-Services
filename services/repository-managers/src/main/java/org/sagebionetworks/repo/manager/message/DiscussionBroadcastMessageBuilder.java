@@ -13,6 +13,7 @@ import org.sagebionetworks.repo.manager.discussion.DiscussionUtils;
 import org.sagebionetworks.repo.model.broadcast.UserNotificationInfo;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.model.dao.subscription.Subscriber;
+import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.Topic;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.utils.HttpClientHelperException;
@@ -108,7 +109,10 @@ public class DiscussionBroadcastMessageBuilder implements BroadcastMessageBuilde
 		sb.append(String.format(GREETING, recipientName));
 		sb.append(String.format(emailTemplate, actorUsername, actorUserId, threadTitleTruncated, projectId, threadId, projectName));
 		sb.append(markdown+"\n\n");
-		sb.append(String.format(SUBSCRIBE_THREAD, threadId));
+		// only add subscribe to thread link to message that send to non thread subscribers
+		if (broadcastTopic.getObjectType() != SubscriptionObjectType.THREAD) {
+			sb.append(String.format(SUBSCRIBE_THREAD, threadId));
+		}
 		sb.append(String.format(unsubscribe, subscriber.getSubscriptionId()));
 		return sb.toString();
 	}

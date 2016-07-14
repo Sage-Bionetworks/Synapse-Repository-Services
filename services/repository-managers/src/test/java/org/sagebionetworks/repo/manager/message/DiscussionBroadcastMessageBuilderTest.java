@@ -87,9 +87,31 @@ public class DiscussionBroadcastMessageBuilderTest {
 		assertTrue(body.contains("https://www.synapse.org/#!Subscription:objectID=333&objectType=THREAD"));
 		assertTrue(body.contains("https://www.synapse.org/#!Subscription:subscriptionID=999"));
 		assertTrue(body.contains("https://www.synapse.org/#!Synapse:syn8888/discussion/threadId=333"));
-		assertTrue(body.contains("https://www.synapse.org/#!Synapse:syn8888"));
+		assertTrue(body.contains("https://www.synapse.org/#!Synapse:syn8888/discussion"));
 		assertTrue(body.contains("Subscribe to the thread"));
 		assertTrue(body.contains("Unsubscribe to the forum"));
+	}
+
+	@Test
+	public void testBuildReplyRawBodyForSubscriber(){
+		topic.setObjectType(SubscriptionObjectType.THREAD);
+		builder = new DiscussionBroadcastMessageBuilder(actorUsername, actorUserId,
+				threadTitle, threadId, projectId, projectName, markdown,
+				ReplyMessageBuilderFactory.REPLY_TEMPLATE, ReplyMessageBuilderFactory.REPLY_CREATED_TITLE,
+				ReplyMessageBuilderFactory.UNSUBSCRIBE_THREAD, mockMarkdownDao, topic, mockPrincipalAliasDAO);
+	
+		String body = builder.buildRawBodyForSubscriber(subscriber);
+		assertNotNull(body);
+		assertTrue(body.contains("subscriberFirstName subscriberLastName (subscriberUsername)"));
+		assertTrue(body.contains("someone"));
+		assertTrue(body.contains(threadTitle));
+		assertTrue(body.contains(projectName));
+		assertFalse(body.contains("https://www.synapse.org/#!Subscription:objectID=333&objectType=THREAD"));
+		assertTrue(body.contains("https://www.synapse.org/#!Subscription:subscriptionID=999"));
+		assertTrue(body.contains("https://www.synapse.org/#!Synapse:syn8888/discussion/threadId=333"));
+		assertTrue(body.contains("https://www.synapse.org/#!Synapse:syn8888/discussion"));
+		assertFalse(body.contains("Subscribe to the thread"));
+		assertTrue(body.contains("Unsubscribe to the thread"));
 	}
 
 	@Test
@@ -102,7 +124,7 @@ public class DiscussionBroadcastMessageBuilderTest {
 		assertTrue(body.contains(projectName));
 		assertTrue(body.contains("https://www.synapse.org/#!Subscription:objectID=333&objectType=THREAD"));
 		assertTrue(body.contains("https://www.synapse.org/#!Synapse:syn8888/discussion/threadId=333"));
-		assertTrue(body.contains("https://www.synapse.org/#!Synapse:syn8888"));
+		assertTrue(body.contains("https://www.synapse.org/#!Synapse:syn8888/discussion"));
 		assertTrue(body.contains("Subscribe to the thread"));
 		assertFalse(body.contains("Unsubscribe to the forum"));
 	}
@@ -124,7 +146,7 @@ public class DiscussionBroadcastMessageBuilderTest {
 		assertTrue(body.contains(projectName));
 		assertTrue(body.contains("https://www.synapse.org/#!Subscription:subscriptionID=999"));
 		assertTrue(body.contains("https://www.synapse.org/#!Synapse:syn8888/discussion/threadId=333"));
-		assertTrue(body.contains("https://www.synapse.org/#!Synapse:syn8888"));
+		assertTrue(body.contains("https://www.synapse.org/#!Synapse:syn8888/discussion"));
 		assertTrue(body.contains("Seen you eyes son show.\n>@kimyen\n>${jointeam?teamId=3319496&isChallenge=false&"
 				+ "isSimpleRequestButton=false&isMemberMessage=Already a member&successMessage=Successfully "
 				+ "joined&text=Join&requestOpenText=Your request to join this team has been sent%2E}"));
