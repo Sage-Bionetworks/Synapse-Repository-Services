@@ -350,7 +350,8 @@ public class FileHandleManagerImplAutowireTest {
 			fail("should have been deleted");
 		} catch (AmazonClientException e) {
 		} finally {
-			IOUtils.closeQuietly(object3.getObjectContent());
+			if (object3 != null)
+				IOUtils.closeQuietly(object3.getObjectContent());
 		}
 	}
 
