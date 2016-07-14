@@ -18,9 +18,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class ReplyMessageBuilderFactory implements MessageBuilderFactory {
 	public static final String REPLY_TEMPLATE = "**[%1$s](https://www.synapse.org/#!Profile:%2$s)** "
 			+ "replied to [%3$s](https://www.synapse.org/#!Synapse:%4$s/discussion/threadId=%5$s) "
-			+ "thread in [%6$s](https://www.synapse.org/#!Synapse:%4$s) forum.\n>";
+			+ "thread in [%6$s](https://www.synapse.org/#!Synapse:%4$s/discussion) forum.\n>";
 	public static final String REPLY_CREATED_TITLE = "Synapse Notification: New reply created in thread '%1$s'";
-	public static final String UNSUBSCRIBE_THREAD = "[Unsubscribe to the thread](https://www.synapse.org/#!Subscription:subscriptionID=%1$s)\n";
+	public static final String UNSUBSCRIBE_THREAD = "[Unsubscribe from the thread](https://www.synapse.org/#!Subscription:subscriptionID=%1$s)\n";
 	
 	@Autowired
 	private DiscussionReplyDAO replyDao;
