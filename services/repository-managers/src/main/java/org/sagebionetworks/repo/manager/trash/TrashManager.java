@@ -85,9 +85,17 @@ public interface TrashManager {
 	 * the specified time.
 	 */
 	List<TrashedEntity> getTrashBefore(Timestamp timestamp) throws DatastoreException;
+	
+	/**
+	 * Gets the list of trashed items with no children that are also in the trash 
+	 * and were removed before the specified time.
+	 */
+	List<TrashedEntity> getTrashLeavesBefore(Timestamp timestamp) throws DatastoreException;
 
 	/**
 	 * Purges a list of trashed entities. Once purged, the entities will be permanently deleted.
 	 */
 	void purgeTrash(List<TrashedEntity> trashList, PurgeCallback purgeCallback) throws DatastoreException, NotFoundException;
+
+	
 }

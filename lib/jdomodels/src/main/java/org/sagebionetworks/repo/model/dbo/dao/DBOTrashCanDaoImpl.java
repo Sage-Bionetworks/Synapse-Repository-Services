@@ -6,6 +6,9 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TRASH_CA
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TRASH_CAN;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_PARENT_ID;
 
 import java.sql.Timestamp;
 import java.util.List;
@@ -65,11 +68,29 @@ public class DBOTrashCanDaoImpl implements TrashCanDao {
 			"SELECT * FROM " + TABLE_TRASH_CAN
 			+ " WHERE " + COL_TRASH_CAN_NODE_ID + " = :" + COL_TRASH_CAN_NODE_ID;
 
-	private static final String SELECT_TRASCH_BEFORE_TIMESTAMP =
+	private static final String SELECT_TRASH_BEFORE_TIMESTAMP =
 			"SELECT * FROM " + TABLE_TRASH_CAN +
 			" WHERE " + COL_TRASH_CAN_DELETED_ON + " < :" + COL_TRASH_CAN_DELETED_ON +
 			" ORDER BY " + COL_TRASH_CAN_NODE_ID;
-
+	
+	private static final int MAX_LEAVES_PER_BATCH =  250000;
+	//leaves only means that the selected trash node does not have any children nodes
+    private static final String SELECT_TRASH_BEFORE_TIMESTAMP_LEAVES_ONLY =
+            "SELECT trash.* FROM " + TABLE_TRASH_CAN + " trash" +
+            " JOIN " + TABLE_NODE + " node" + " ON" + " node." + COL_NODE_ID + " = trash." + COL_TRASH_CAN_NODE_ID +
+            " LEFT JOIN " + TABLE_NODE + " node2" + " ON" + " node." + COL_NODE_ID + " = " + "node2." + COL_NODE_PARENT_ID +
+            " WHERE " + COL_TRASH_CAN_DELETED_ON + " < :" + COL_TRASH_CAN_DELETED_ON +
+            " AND " + "node2." + COL_NODE_PARENT_ID + " IS NULL" +
+            " ORDER BY " + COL_TRASH_CAN_NODE_ID +
+            " LIMIT " + MAX_LEAVES_PER_BATCH;
+	/* SELECT_TRASH_BEFORE_TIMESTAMP_LEAVES_ONLY is the optimized version of:
+SELECT trash.*
+FROM JDONODE node
+JOIN TRASH_CAN trash ON trash.NODE_ID = node.ID
+WHERE trash.DELETED_ON < NOW()
+AND ID NOT IN (SELECT DISTINCT PARENT_ID FROM JDONODE WHERE PARENT_ID IS NOT NULL);
+	 */
+	
 	private static final RowMapper<DBOTrashedEntity> rowMapper = (new DBOTrashedEntity()).getTableMapping();
 
 	@Autowired
@@ -220,18 +241,26 @@ public class DBOTrashCanDaoImpl implements TrashCanDao {
 	@Override
 	public List<TrashedEntity> getTrashBefore(Timestamp timestamp) throws DatastoreException {
 
-		if (timestamp == null) {
+		return getTrashBefore(SELECT_TRASH_BEFORE_TIMESTAMP, timestamp);
+	}
+	
+	@Override
+	public List<TrashedEntity> getTrashLeavesBefore(Timestamp timestamp) throws DatastoreException{
+		return getTrashBefore(SELECT_TRASH_BEFORE_TIMESTAMP_LEAVES_ONLY, timestamp);
+	}
+	
+	private List<TrashedEntity> getTrashBefore(String sqlQuery,Timestamp timestamp) throws DatastoreException {
+		if(timestamp == null){
 			throw new IllegalArgumentException("Time stamp cannot be null.");
 		}
-
 		MapSqlParameterSource paramMap = new MapSqlParameterSource();
 		paramMap.addValue(COL_TRASH_CAN_DELETED_ON, timestamp);
 		List<DBOTrashedEntity> trashList = simpleJdbcTemplate.query(
-				SELECT_TRASCH_BEFORE_TIMESTAMP, rowMapper, paramMap);
-
+				sqlQuery, rowMapper, paramMap);
 		return TrashedEntityUtils.convertDboToDto(trashList);
 	}
-
+	
+	
 	@WriteTransaction
 	@Override
 	public void delete(String userGroupId, String nodeId)

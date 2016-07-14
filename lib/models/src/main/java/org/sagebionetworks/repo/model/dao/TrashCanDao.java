@@ -63,11 +63,18 @@ public interface TrashCanDao {
 	 * Gets all the trash items that were deleted before the specified time stamp.
 	 */
 	List<TrashedEntity> getTrashBefore(Timestamp timestamp) throws DatastoreException;
-
+	
+	/**
+	 * Gets all the trash items that were deleted before the specified time stamp with no children trash items
+	 */
+	List<TrashedEntity> getTrashLeavesBefore(Timestamp timestamp) throws DatastoreException;
+	
 	/**
 	 * Removes a trash item from the trash can table. This happens when the trash item is either restored or purged.
 	 *
 	 * @throws NotFoundException When the item is not deleted by the user.
 	 */
 	void delete(String userGroupId, String nodeId) throws DatastoreException, NotFoundException;
+	
+	
 }

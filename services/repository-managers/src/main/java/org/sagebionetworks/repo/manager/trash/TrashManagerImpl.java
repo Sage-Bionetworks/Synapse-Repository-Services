@@ -350,6 +350,11 @@ public class TrashManagerImpl implements TrashManager {
 	public List<TrashedEntity> getTrashBefore(Timestamp timestamp) throws DatastoreException {
 		return trashCanDao.getTrashBefore(timestamp);
 	}
+	
+	@Override
+	public List<TrashedEntity> getTrashLeavesBefore(Timestamp timestamp) throws DatastoreException {
+		return trashCanDao.getTrashLeavesBefore(timestamp);
+	}
 
 	/**
 	 * Recursively gets the IDs of all the descendants.

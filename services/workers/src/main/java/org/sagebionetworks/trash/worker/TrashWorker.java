@@ -27,7 +27,7 @@ public class TrashWorker implements ProgressingRunner<Void>{
 		// to use the same timestamp to purge the trash can.
 		long today = (now >> SHIFT_ONE_DAY) << SHIFT_ONE_DAY;
 		final Timestamp timestamp = new Timestamp(today - MONTH);
-		List<TrashedEntity> trashList = trashManager.getTrashBefore(timestamp);
+		List<TrashedEntity> trashList = trashManager.getTrashLeavesBefore(timestamp);
 		logger.info("Purging " + trashList.size() + " entities, before " +
 					timestamp + ", from the trash can.");
 		trashManager.purgeTrash(trashList, null);
