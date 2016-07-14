@@ -46,7 +46,7 @@ public class DockerTokenUtil {
 	}
 
 	// This implements the specification: https://docs.docker.com/registry/spec/auth/jwt/
-	public static String createToken(String userName, String type, 
+	public static String createToken(String user, String type, 
 			String registry, String repository, List<String> actions, long now, String uuid) {
 
 		JSONArray access = new JSONArray();
@@ -66,7 +66,7 @@ public class DockerTokenUtil {
 				.setNotBefore(new Date(now-TIME_WINDOW_SEC*1000L))
 				.setIssuedAt(new Date(now))
 				.setId(uuid)
-				.setSubject(userName);
+				.setSubject(user);
 		claims.put(ACCESS, access);
 		
 		String s = Jwts.builder().setClaims(claims).
