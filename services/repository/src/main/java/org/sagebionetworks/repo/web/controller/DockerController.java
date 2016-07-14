@@ -43,7 +43,7 @@ public class DockerController extends BaseController {
 	DockerAuthorizationToken authorizeDockerAccess(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = AuthorizationConstants.DOCKER_SERVICE_PARAM, required=true) String service,
-			@RequestParam(value = AuthorizationConstants.DOCKER_SCOPE_PARAM, required=true) String scope
+			@RequestParam(value = AuthorizationConstants.DOCKER_SCOPE_PARAM, required=false) String scope
 			) throws NotFoundException {
 		return serviceProvider.getDockerService().authorizeDockerAccess(userId, service, scope);
 	}
