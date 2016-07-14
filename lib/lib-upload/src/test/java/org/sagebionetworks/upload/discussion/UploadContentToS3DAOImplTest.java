@@ -31,6 +31,8 @@ public class UploadContentToS3DAOImplTest {
 	private AmazonS3Client mockS3Client;
 	@Mock
 	private S3Object mockS3Object;
+	@Mock
+	private S3ObjectInputStream mockInputStream;
 	private String bucketName = "bucket";
 	private UploadContentToS3DAOImpl dao;
 	private URL url;
@@ -130,5 +132,29 @@ public class UploadContentToS3DAOImplTest {
 		dao.getMessage(key);
 		verify(mockS3Client).getObject(anyString(), eq(key));
 	}
-	
+
+	@Test (expected = NullPointerException.class)
+	public void testGetMessageWithNullInputStream() throws IOException {
+		when(mockS3Client.getObject(anyString(), anyString())).thenReturn(mockS3Object);
+		when(mockS3Object.getObjectContent()).thenReturn(null);
+		String key = "key";
+		dao.getMessage(key);
+		verify(mockS3Client).getObject(anyString(), eq(key));
+		verify(mockS3Object).getObjectContent();
+	}
+
+	@Test
+	public void testGetMessageCloseInputStream() throws IOException {
+		when(mockS3Client.getObject(anyString(), anyString())).thenReturn(mockS3Object);
+		when(mockS3Object.getObjectContent()).thenReturn(mockInputStream);
+		String key = "key";
+		try {
+			dao.getMessage(key);
+		} catch (RuntimeException e) {
+			// as expected
+		}
+		verify(mockS3Client).getObject(anyString(), eq(key));
+		verify(mockS3Object).getObjectContent();
+		verify(mockInputStream).close();
+	}
 }

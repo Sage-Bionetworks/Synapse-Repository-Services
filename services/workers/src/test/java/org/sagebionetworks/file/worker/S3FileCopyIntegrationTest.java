@@ -16,6 +16,7 @@ import java.util.UUID;
 import java.util.concurrent.Callable;
 
 import org.apache.commons.fileupload.FileItemStream;
+import org.apache.commons.io.IOUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -52,6 +53,7 @@ import org.springframework.test.context.ContextConfiguration;
 
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.S3Object;
+import com.amazonaws.services.s3.model.S3ObjectInputStream;
 import com.google.common.collect.Lists;
 
 /**
@@ -170,9 +172,15 @@ public class S3FileCopyIntegrationTest {
 		assertEquals(testFileNames.length, results.getResults().size());
 		for (int i = 0; i < testFileNames.length; i++) {
 			assertEquals(S3FileCopyResultType.COPIED, results.getResults().get(i).getResultType());
-			TestStreams.assertEquals(TestStreams.randomStream(200, 123L + i), s3Client.getObject(DESTINATION_TEST_BUCKET, testFileNames[i])
-					.getObjectContent());
-			s3ToDelete.add(results.getResults().get(i).getResultKey());
+			S3ObjectInputStream content = null;
+			try {
+				content = s3Client.getObject(DESTINATION_TEST_BUCKET, testFileNames[i])
+						.getObjectContent();
+				TestStreams.assertEquals(TestStreams.randomStream(200, 123L + i), content);
+				s3ToDelete.add(results.getResults().get(i).getResultKey());
+			} finally {
+				IOUtils.closeQuietly(content);
+			}
 		}
 	}
 
