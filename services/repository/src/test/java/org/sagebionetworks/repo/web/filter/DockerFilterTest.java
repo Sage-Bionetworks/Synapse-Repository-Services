@@ -75,12 +75,7 @@ public class DockerFilterTest {
 		filter.doFilter(mockRequest, mockResponse, mockFilterChain);
 		verify(mockAuthenticationService).authenticate(loginCred , DomainType.SYNAPSE);
 		verify(mockAuthenticationService, never()).lookupUserForAuthentication(anyString());
-		ArgumentCaptor<HttpServletRequest> requestCaptor = ArgumentCaptor.forClass(HttpServletRequest.class);
-		verify(mockFilterChain).doFilter(requestCaptor.capture(), eq(mockResponse));
-		HttpServletRequest request = requestCaptor.getValue();
-		assertNotNull(request);
-		assertEquals(request.getParameter(AuthorizationConstants.USER_ID_PARAM),
-				BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString());
+		verify(mockFilterChain, never()).doFilter(any(HttpServletRequest.class), eq(mockResponse));
 	}
 
 	@Test
@@ -95,12 +90,7 @@ public class DockerFilterTest {
 		filter.doFilter(mockRequest, mockResponse, mockFilterChain);
 		verify(mockAuthenticationService).authenticate(loginCred , DomainType.SYNAPSE);
 		verify(mockAuthenticationService).lookupUserForAuthentication(username);
-		ArgumentCaptor<HttpServletRequest> requestCaptor = ArgumentCaptor.forClass(HttpServletRequest.class);
-		verify(mockFilterChain).doFilter(requestCaptor.capture(), eq(mockResponse));
-		HttpServletRequest request = requestCaptor.getValue();
-		assertNotNull(request);
-		assertEquals(request.getParameter(AuthorizationConstants.USER_ID_PARAM),
-				BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString());
+		verify(mockFilterChain, never()).doFilter(any(HttpServletRequest.class), eq(mockResponse));
 	}
 
 	@Test

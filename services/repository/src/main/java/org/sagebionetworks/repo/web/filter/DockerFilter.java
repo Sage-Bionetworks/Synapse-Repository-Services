@@ -11,7 +11,9 @@ import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
+import org.apache.http.HttpStatus;
 import org.sagebionetworks.auth.BasicAuthUtils;
 import org.sagebionetworks.auth.UserNameAndPassword;
 import org.sagebionetworks.auth.services.AuthenticationService;
@@ -38,7 +40,9 @@ public class DockerFilter implements Filter {
 		UserNameAndPassword up = BasicAuthUtils.getBasicAuthenticationCredentials(httpRequest);
 
 		Long userId = null;
-		if (up != null) {
+		if (up == null) {
+			userId = BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
+		} else {
 			try {
 				LoginCredentials credential = new LoginCredentials();
 				credential.setEmail(up.getUserName());
@@ -47,10 +51,10 @@ public class DockerFilter implements Filter {
 				PrincipalAlias alias = authenticationService.lookupUserForAuthentication(up.getUserName());
 				userId = alias.getPrincipalId();
 			} catch (NotFoundException e) {
+				HttpServletResponse httpResponse = (HttpServletResponse)response;
+				httpResponse.setStatus(HttpStatus.SC_UNAUTHORIZED);
+				return;
 			}
-		}
-		if (userId == null) {
-			userId = BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
 		}
 
 		Map<String, String[]> modParams = new HashMap<String, String[]>(httpRequest.getParameterMap());
