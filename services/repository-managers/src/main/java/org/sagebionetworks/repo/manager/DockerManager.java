@@ -10,13 +10,12 @@ public interface DockerManager {
 	/**
 	 * Answer Docker Registry authorization request.
 
-	 * @param userName
 	 * @param userInfo
 	 * @param service
 	 * @param scope
 	 * @return
 	 */
-	public DockerAuthorizationToken authorizeDockerAccess(String userName, UserInfo userInfo, String service, String scope);
+	public DockerAuthorizationToken authorizeDockerAccess(UserInfo userInfo, String service, String scope);
 
 	/**
 	 * Process (push, pull) event notifications from Docker Registry
