@@ -18,7 +18,7 @@ public class ThreadMessageBuilderFactory implements MessageBuilderFactory {
 			+ "created thread [%3$s](https://www.synapse.org/#!Synapse:%4$s/discussion/threadId=%5$s) "
 			+ "in [%6$s](https://www.synapse.org/#!Synapse:%4$s/discussion) forum.\n>";
 	public static final String THREAD_CREATED_TITLE = "Synapse Notification: New thread '%1$s'";
-	public static final String UNSUBSCRIBE_FORUM = "[Unsubscribe to the forum](https://www.synapse.org/#!Subscription:subscriptionID=%1$s)\n";
+	public static final String UNSUBSCRIBE_FORUM = "[Unsubscribe from the forum](https://www.synapse.org/#!Subscription:subscriptionID=%1$s)\n";
 
 	@Autowired
 	private DiscussionThreadDAO threadDao;

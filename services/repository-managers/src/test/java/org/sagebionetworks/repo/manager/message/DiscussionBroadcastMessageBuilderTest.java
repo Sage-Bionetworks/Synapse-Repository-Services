@@ -89,7 +89,7 @@ public class DiscussionBroadcastMessageBuilderTest {
 		assertTrue(body.contains("https://www.synapse.org/#!Synapse:syn8888/discussion/threadId=333"));
 		assertTrue(body.contains("https://www.synapse.org/#!Synapse:syn8888/discussion"));
 		assertTrue(body.contains("Subscribe to the thread"));
-		assertTrue(body.contains("Unsubscribe to the forum"));
+		assertTrue(body.contains("Unsubscribe from the forum"));
 	}
 
 	@Test
@@ -111,7 +111,7 @@ public class DiscussionBroadcastMessageBuilderTest {
 		assertTrue(body.contains("https://www.synapse.org/#!Synapse:syn8888/discussion/threadId=333"));
 		assertTrue(body.contains("https://www.synapse.org/#!Synapse:syn8888/discussion"));
 		assertFalse(body.contains("Subscribe to the thread"));
-		assertTrue(body.contains("Unsubscribe to the thread"));
+		assertTrue(body.contains("Unsubscribe from the thread"));
 	}
 
 	@Test
@@ -126,7 +126,7 @@ public class DiscussionBroadcastMessageBuilderTest {
 		assertTrue(body.contains("https://www.synapse.org/#!Synapse:syn8888/discussion/threadId=333"));
 		assertTrue(body.contains("https://www.synapse.org/#!Synapse:syn8888/discussion"));
 		assertTrue(body.contains("Subscribe to the thread"));
-		assertFalse(body.contains("Unsubscribe to the forum"));
+		assertFalse(body.contains("Unsubscribe from the forum"));
 	}
 
 	@Test
