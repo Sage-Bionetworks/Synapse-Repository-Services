@@ -2554,16 +2554,6 @@ public interface SynapseClient extends BaseClient {
 	DiscussionThreadBundle getThread(String threadId) throws SynapseException;
 
 	/**
-	 * Get a discussion thread given its ID
-	 * 
-	 * @param threadId
-	 * @param filter
-	 * @return
-	 * @throws SynapseException
-	 */
-	DiscussionThreadBundle getThread(String threadId, DiscussionFilter filter) throws SynapseException;
-
-	/**
 	 * Get threads for a given forum
 	 * 
 	 * @param forumId

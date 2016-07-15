@@ -7378,18 +7378,9 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 	@Override
 	public DiscussionThreadBundle getThread(String threadId) throws SynapseException {
-		return getThread(threadId, null);
-	}
-
-	@Override
-	public DiscussionThreadBundle getThread(String threadId, DiscussionFilter filter)
-			throws SynapseException{
 		try {
 			ValidateArgument.required(threadId, "threadId");
 			String url = THREAD+"/"+threadId;
-			if (filter != null) {
-				url += "?filter="+filter.name();
-			}
 			return getJSONEntity(url, DiscussionThreadBundle.class);
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseClientException(e);

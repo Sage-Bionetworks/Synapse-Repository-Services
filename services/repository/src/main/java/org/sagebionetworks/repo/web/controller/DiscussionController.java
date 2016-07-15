@@ -151,9 +151,8 @@ public class DiscussionController extends BaseController {
 	@RequestMapping(value = UrlHelpers.THREAD_THREAD_ID, method = RequestMethod.GET)
 	public @ResponseBody DiscussionThreadBundle getThread(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestParam(value = ServiceConstants.DISCUSSION_FILTER_PARAM, required = false) DiscussionFilter filter,
 			@PathVariable String threadId) {
-		return serviceProvider.getDiscussionService().getThread(userId, threadId, filter);
+		return serviceProvider.getDiscussionService().getThread(userId, threadId);
 	}
 
 	/**

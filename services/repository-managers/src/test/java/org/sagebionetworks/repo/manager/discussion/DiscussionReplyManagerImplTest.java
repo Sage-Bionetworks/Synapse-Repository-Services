@@ -81,7 +81,7 @@ public class DiscussionReplyManagerImplTest {
 		ReflectionTestUtils.setField(replyManager, "subscriptionDao", mockSubscriptionDao);
 		ReflectionTestUtils.setField(replyManager, "transactionalMessenger", mockTransactionalMessenger);
 
-		Mockito.when(mockThreadManager.getThread(userInfo, threadId, DiscussionFilter.EXCLUDE_DELETED)).thenReturn(mockThread);
+		Mockito.when(mockThreadManager.getThread(userInfo, threadId)).thenReturn(mockThread);
 		Mockito.when(mockThread.getProjectId()).thenReturn(projectId);
 		Mockito.when(mockThread.getForumId()).thenReturn(forumId);
 		Mockito.when(mockThread.getId()).thenReturn(threadId);
@@ -136,7 +136,7 @@ public class DiscussionReplyManagerImplTest {
 		CreateDiscussionReply createReply = new CreateDiscussionReply();
 		createReply.setThreadId(threadId);
 		createReply.setMessageMarkdown("messageMarkdown");
-		Mockito.when(mockThreadManager.getThread(userInfo, threadId, DiscussionFilter.EXCLUDE_DELETED)).thenThrow(new UnauthorizedException());
+		Mockito.when(mockThreadManager.getThread(userInfo, threadId)).thenThrow(new UnauthorizedException());
 		replyManager.createReply(userInfo, createReply);
 	}
 

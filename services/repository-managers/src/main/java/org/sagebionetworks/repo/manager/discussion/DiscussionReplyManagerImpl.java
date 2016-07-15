@@ -61,7 +61,7 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 		if (authorizationManager.isAnonymousUser(userInfo)){
 			throw new UnauthorizedException(ANONYMOUS_ACCESS_DENIED_REASON);
 		}
-		DiscussionThreadBundle thread = threadManager.getThread(userInfo, threadId, DiscussionFilter.EXCLUDE_DELETED);
+		DiscussionThreadBundle thread = threadManager.getThread(userInfo, threadId);
 		String replyId = idGenerator.generateNewId(TYPE.DISCUSSION_REPLY_ID).toString();
 		String messageKey = uploadDao.uploadReplyMessage(createReply.getMessageMarkdown(), thread.getForumId(), threadId, replyId);
 		DiscussionReplyBundle reply = replyDao.createReply(threadId, replyId, messageKey, userInfo.getId());

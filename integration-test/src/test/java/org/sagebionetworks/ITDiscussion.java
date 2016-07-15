@@ -189,8 +189,6 @@ public class ITDiscussion {
 		assertEquals(0, availableThreads.getTotalNumberOfResults());
 		assertEquals((Long)1L, synapse.getThreadCountForForum(forumId, DiscussionFilter.NO_FILTER).getCount());
 
-		assertEquals(threadId, synapse.getThread(threadId, DiscussionFilter.NO_FILTER).getId());
-
 		try {
 			synapse.getThread(threadId);
 			fail();

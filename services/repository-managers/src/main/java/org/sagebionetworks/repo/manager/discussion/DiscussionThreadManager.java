@@ -31,10 +31,9 @@ public interface DiscussionThreadManager {
 	 * 
 	 * @param userInfo
 	 * @param threadId
-	 * @param filter
 	 * @return
 	 */
-	public DiscussionThreadBundle getThread(UserInfo userInfo, String threadId, DiscussionFilter filter);
+	public DiscussionThreadBundle getThread(UserInfo userInfo, String threadId);
 
 	/**
 	 * Update the thread's title
