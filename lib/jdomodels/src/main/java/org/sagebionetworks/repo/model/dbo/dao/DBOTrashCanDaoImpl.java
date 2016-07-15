@@ -3,15 +3,18 @@ package org.sagebionetworks.repo.model.dbo.dao;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TRASH_CAN_DELETED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TRASH_CAN_DELETED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TRASH_CAN_NODE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TRASH_CAN_PARENT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TRASH_CAN;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_PARENT_ID;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.joda.time.DateTime;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -29,6 +32,7 @@ import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class DBOTrashCanDaoImpl implements TrashCanDao {
+	private static final String NUM_DAYS_PARAMETER = "NUM_DAYS";
 
 	private static final String SELECT_COUNT =
 			"SELECT COUNT("+ COL_TRASH_CAN_NODE_ID + ") FROM " + TABLE_TRASH_CAN;
@@ -73,26 +77,38 @@ public class DBOTrashCanDaoImpl implements TrashCanDao {
 			" WHERE " + COL_TRASH_CAN_DELETED_ON + " < :" + COL_TRASH_CAN_DELETED_ON +
 			" ORDER BY " + COL_TRASH_CAN_NODE_ID;
 	
-	private static final int MAX_LEAVES_PER_BATCH =  250000;
-	//leaves only means that the selected trash node does not have any children nodes
-    private static final String SELECT_TRASH_BEFORE_TIMESTAMP_LEAVES_ONLY =
-            "SELECT trash.* FROM " + TABLE_TRASH_CAN + " trash" +
-            " JOIN " + TABLE_NODE + " node" + " ON" + " node." + COL_NODE_ID + " = trash." + COL_TRASH_CAN_NODE_ID +
-            " LEFT JOIN " + TABLE_NODE + " node2" + " ON" + " node." + COL_NODE_ID + " = " + "node2." + COL_NODE_PARENT_ID +
-            " WHERE " + COL_TRASH_CAN_DELETED_ON + " < :" + COL_TRASH_CAN_DELETED_ON +
-            " AND " + "node2." + COL_NODE_PARENT_ID + " IS NULL" +
-            " ORDER BY " + COL_TRASH_CAN_NODE_ID +
-            " LIMIT " + MAX_LEAVES_PER_BATCH;
-	/* SELECT_TRASH_BEFORE_TIMESTAMP_LEAVES_ONLY is the optimized version of:
-SELECT trash.*
-FROM JDONODE node
-JOIN TRASH_CAN trash ON trash.NODE_ID = node.ID
-WHERE trash.DELETED_ON < NOW()
-AND ID NOT IN (SELECT DISTINCT PARENT_ID FROM JDONODE WHERE PARENT_ID IS NOT NULL);
-	 */
+	
+	/*
+	  SELECTs trash nodes that are more than NUM_DAYS days old with no children nodes
+   	 
+   	  The use of NOT EXISTS instead of NOT IN is an optimization. 
+	  mySQL is supposed to automatically do it but the query execution plan showed that it does not do it correctly
+	  http://dev.mysql.com/doc/refman/5.7/en/subquery-optimization.html
+	  
+	  Also, the reason we only want children nodes is that mySQL's innoDB 
+	  has a limit of 15 levels cascade deletes when the foreign key is self referential
+	  http://dev.mysql.com/doc/refman/5.7/en/innodb-foreign-key-constraints.html
+	*/
+	private static final String SELECT_TRASH_BEFORE_NUM_DAYS_LEAVES_ONLY =
+			"SELECT " + COL_TRASH_CAN_NODE_ID +
+			" FROM " + TABLE_TRASH_CAN + " T1" +
+			" WHERE T1." + COL_TRASH_CAN_DELETED_ON + " < (NOW() - interval :" + NUM_DAYS_PARAMETER +" DAY)" + //TODO: style of inserting parameters?
+			" AND NOT EXISTS (SELECT 1 FROM " + TABLE_TRASH_CAN+" T2"+
+							" WHERE T2." +COL_TRASH_CAN_PARENT_ID + " = T1." + COL_TRASH_CAN_NODE_ID + ")"+
+			" LIMIT :" + LIMIT_PARAM_NAME;
 	
 	private static final RowMapper<DBOTrashedEntity> rowMapper = (new DBOTrashedEntity()).getTableMapping();
-
+	
+	//TODO: should this be placed here or in separate java file?
+	//rowMapper used in getTrashNumDaysOldNoChildren()
+	private static final RowMapper<Long> rowMapperLong = new RowMapper<Long>(){
+		@Override
+		public
+		Long mapRow(ResultSet rs, int rowNum) throws SQLException{
+			return rs.getLong(COL_TRASH_CAN_NODE_ID);
+		}
+	};
+	
 	@Autowired
 	private DBOBasicDao basicDao;
 
@@ -237,28 +253,35 @@ AND ID NOT IN (SELECT DISTINCT PARENT_ID FROM JDONODE WHERE PARENT_ID IS NOT NUL
 		List<DBOTrashedEntity> trashList = simpleJdbcTemplate.query(sortById ? SELECT_TRASH_ORDER_BY_ID : SELECT_TRASH, rowMapper, paramMap);
 		return TrashedEntityUtils.convertDboToDto(trashList);
 	}
-
+	
+	@Deprecated
 	@Override
 	public List<TrashedEntity> getTrashBefore(Timestamp timestamp) throws DatastoreException {
 
-		return getTrashBefore(SELECT_TRASH_BEFORE_TIMESTAMP, timestamp);
-	}
-	
-	@Override
-	public List<TrashedEntity> getTrashLeavesBefore(Timestamp timestamp) throws DatastoreException{
-		return getTrashBefore(SELECT_TRASH_BEFORE_TIMESTAMP_LEAVES_ONLY, timestamp);
-	}
-	
-	private List<TrashedEntity> getTrashBefore(String sqlQuery,Timestamp timestamp) throws DatastoreException {
 		if(timestamp == null){
 			throw new IllegalArgumentException("Time stamp cannot be null.");
 		}
 		MapSqlParameterSource paramMap = new MapSqlParameterSource();
 		paramMap.addValue(COL_TRASH_CAN_DELETED_ON, timestamp);
 		List<DBOTrashedEntity> trashList = simpleJdbcTemplate.query(
-				sqlQuery, rowMapper, paramMap);
+				SELECT_TRASH_BEFORE_TIMESTAMP, rowMapper, paramMap);
 		return TrashedEntityUtils.convertDboToDto(trashList);
 	}
+	
+	//TODO: I am horrible at naming things
+	@Override
+	public List<Long> getTrashNumDaysOldNoChildren(long numDays, long maxTrashItems) throws DatastoreException{
+		if(numDays < 0 || maxTrashItems < 0){
+			throw new IllegalArgumentException("integer parameters cannot be less than zero");
+		}
+		
+		MapSqlParameterSource paramMap = new MapSqlParameterSource();
+		paramMap.addValue(NUM_DAYS_PARAMETER, numDays);
+		paramMap.addValue(LIMIT_PARAM_NAME, maxTrashItems);
+		
+		return simpleJdbcTemplate.query(SELECT_TRASH_BEFORE_NUM_DAYS_LEAVES_ONLY, rowMapperLong, paramMap);
+	}
+	
 	
 	
 	@WriteTransaction

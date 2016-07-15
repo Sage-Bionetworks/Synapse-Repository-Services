@@ -87,10 +87,13 @@ public interface TrashManager {
 	List<TrashedEntity> getTrashBefore(Timestamp timestamp) throws DatastoreException;
 	
 	/**
-	 * Gets the list of trashed items with no children that are also in the trash 
-	 * and were removed before the specified time.
+	 * Gets rowLimit amount of trash items that have no children trash items and are more than numDays old.
+	 * @param numDays how many days old the trash items must be
+	 * @param maxTrashItems maximum number of results to return
+	 * @return Set of IDs of the trash items as Longs
+	 * @throws DatastoreException
 	 */
-	List<TrashedEntity> getTrashLeavesBefore(Timestamp timestamp) throws DatastoreException;
+	public List<Long> getTrashNumDaysOldNoChildren(long numDays, long maxTrashItems) throws DatastoreException;
 
 	/**
 	 * Purges a list of trashed entities. Once purged, the entities will be permanently deleted.

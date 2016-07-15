@@ -352,8 +352,9 @@ public class TrashManagerImpl implements TrashManager {
 	}
 	
 	@Override
-	public List<TrashedEntity> getTrashLeavesBefore(Timestamp timestamp) throws DatastoreException {
-		return trashCanDao.getTrashLeavesBefore(timestamp);
+	//TODO: There's probably a better name I can use for this method
+	public List<Long> getTrashNumDaysOldNoChildren(long numDays, long maxTrashItems) throws DatastoreException{
+		return trashCanDao.getTrashNumDaysOldNoChildren(numDays,maxTrashItems);
 	}
 
 	/**
