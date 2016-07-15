@@ -93,6 +93,8 @@ public class DiscussionControllerAutowiredTest extends AbstractAutowiredControll
 		DiscussionThreadBundle bundle = servletTestHelper.createThread(dispatchServlet, adminUserId, createThread);
 		servletTestHelper.markThreadAsDeleted(dispatchServlet, adminUserId, bundle.getId());
 		DiscussionThreadBundle bundle2 = servletTestHelper.getThread(dispatchServlet, adminUserId, bundle.getId(), DiscussionFilter.DELETED_ONLY);
+		bundle.setIsDeleted(true);
+		bundle.setEtag(bundle2.getEtag());
 		assertEquals(bundle, bundle2);
 	}
 
