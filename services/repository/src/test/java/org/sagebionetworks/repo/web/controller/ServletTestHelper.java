@@ -2023,12 +2023,9 @@ public class ServletTestHelper {
 	}
 
 	public DiscussionThreadBundle getThread(DispatcherServlet dispatchServlet,
-			Long userId, String threadId, DiscussionFilter filter) throws Exception {
+			Long userId, String threadId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, "/repo/v1", UrlHelpers.THREAD+"/"+threadId, userId, null);
-		if (filter != null) {
-			request.addParameter("filter", filter.name());
-		}
 		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.OK);
 		return objectMapper.readValue(response.getContentAsString(), DiscussionThreadBundle.class);

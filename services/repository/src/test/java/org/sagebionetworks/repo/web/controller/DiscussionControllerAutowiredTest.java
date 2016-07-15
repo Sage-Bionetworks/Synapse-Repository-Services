@@ -82,7 +82,7 @@ public class DiscussionControllerAutowiredTest extends AbstractAutowiredControll
 		Forum dto = servletTestHelper.getForumByProjectId(dispatchServlet, project.getId(), adminUserId);
 		createThread.setForumId(dto.getId());
 		DiscussionThreadBundle bundle = servletTestHelper.createThread(dispatchServlet, adminUserId, createThread);
-		DiscussionThreadBundle bundle2 = servletTestHelper.getThread(dispatchServlet, adminUserId, bundle.getId(), null);
+		DiscussionThreadBundle bundle2 = servletTestHelper.getThread(dispatchServlet, adminUserId, bundle.getId());
 		assertEquals(bundle, bundle2);
 	}
 
@@ -92,7 +92,7 @@ public class DiscussionControllerAutowiredTest extends AbstractAutowiredControll
 		createThread.setForumId(dto.getId());
 		DiscussionThreadBundle bundle = servletTestHelper.createThread(dispatchServlet, adminUserId, createThread);
 		servletTestHelper.markThreadAsDeleted(dispatchServlet, adminUserId, bundle.getId());
-		DiscussionThreadBundle bundle2 = servletTestHelper.getThread(dispatchServlet, adminUserId, bundle.getId(), DiscussionFilter.DELETED_ONLY);
+		DiscussionThreadBundle bundle2 = servletTestHelper.getThread(dispatchServlet, adminUserId, bundle.getId());
 		bundle.setIsDeleted(true);
 		bundle.setEtag(bundle2.getEtag());
 		assertEquals(bundle, bundle2);
@@ -168,7 +168,7 @@ public class DiscussionControllerAutowiredTest extends AbstractAutowiredControll
 		createThread.setForumId(dto.getId());
 		DiscussionThreadBundle bundle = servletTestHelper.createThread(dispatchServlet, adminUserId, createThread);
 		servletTestHelper.markThreadAsDeleted(dispatchServlet, adminUserId, bundle.getId());
-		assertTrue(servletTestHelper.getThread(dispatchServlet, adminUserId, bundle.getId(), null).getIsDeleted());
+		assertTrue(servletTestHelper.getThread(dispatchServlet, adminUserId, bundle.getId()).getIsDeleted());
 	}
 
 	@Test
@@ -176,11 +176,11 @@ public class DiscussionControllerAutowiredTest extends AbstractAutowiredControll
 		Forum dto = servletTestHelper.getForumByProjectId(dispatchServlet, project.getId(), adminUserId);
 		createThread.setForumId(dto.getId());
 		DiscussionThreadBundle bundle = servletTestHelper.createThread(dispatchServlet, adminUserId, createThread);
-		assertFalse(servletTestHelper.getThread(dispatchServlet, adminUserId, bundle.getId(), null).getIsPinned());
+		assertFalse(servletTestHelper.getThread(dispatchServlet, adminUserId, bundle.getId()).getIsPinned());
 		servletTestHelper.pinThread(dispatchServlet, adminUserId, bundle.getId());
-		assertTrue(servletTestHelper.getThread(dispatchServlet, adminUserId, bundle.getId(), null).getIsPinned());
+		assertTrue(servletTestHelper.getThread(dispatchServlet, adminUserId, bundle.getId()).getIsPinned());
 		servletTestHelper.unpinThread(dispatchServlet, adminUserId, bundle.getId());
-		assertFalse(servletTestHelper.getThread(dispatchServlet, adminUserId, bundle.getId(), null).getIsPinned());
+		assertFalse(servletTestHelper.getThread(dispatchServlet, adminUserId, bundle.getId()).getIsPinned());
 	}
 
 	@Test
