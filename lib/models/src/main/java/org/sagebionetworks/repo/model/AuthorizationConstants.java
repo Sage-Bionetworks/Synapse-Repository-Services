@@ -157,18 +157,6 @@ public class AuthorizationConstants {
 	public static final String NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM = "notificationUnsubscribeEndpoint";
 	
 	/**
-	 * Request parameter for the authenticated user name or anonymous, 
-	 * as verified by the Docker authentication filter
-	 */
-	public static final String DOCKER_USER_NAME_PARAM = "dockerUserName";
-
-	/**
-	 * Request parameter for the authenticated user id or anonymous, 
-	 * as determined by the Docker authentication filter
-	 */
-	public static final String DOCKER_USER_ID_PARAM = "dockerUserId";
-
-	/**
 	 * Request parameter for the Docker authorization request.
 	 * 
 	 * This is the host name of the registry host making the request.

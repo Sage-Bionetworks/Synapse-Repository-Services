@@ -15,10 +15,10 @@ public class DockerServiceImpl implements DockerService {
 	private DockerManager dockerManager;
 
 	@Override
-	public DockerAuthorizationToken authorizeDockerAccess(String userName, Long userId,
+	public DockerAuthorizationToken authorizeDockerAccess(Long userId,
 			String service, String scope) {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return dockerManager.authorizeDockerAccess(userName, userInfo, service, scope);
+		return dockerManager.authorizeDockerAccess(userInfo, service, scope);
 	}
 
 }
