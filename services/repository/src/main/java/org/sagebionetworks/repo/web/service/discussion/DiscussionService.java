@@ -53,9 +53,10 @@ public interface DiscussionService {
 	 * 
 	 * @param userId
 	 * @param threadId
+	 * @param filter 
 	 * @return
 	 */
-	public DiscussionThreadBundle getThread(Long userId, String threadId);
+	public DiscussionThreadBundle getThread(Long userId, String threadId, DiscussionFilter filter);
 
 	/**
 	 * Update a thread title

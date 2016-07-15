@@ -104,8 +104,8 @@ public class DiscussionServiceImplTest {
 
 	@Test
 	public void testGetThread() {
-		Mockito.when(mockThreadManager.getThread(userInfo, threadId)).thenReturn(threadBundle);
-		assertEquals(threadBundle, discussionServices.getThread(userId, threadId));
+		Mockito.when(mockThreadManager.getThread(userInfo, threadId, DiscussionFilter.EXCLUDE_DELETED)).thenReturn(threadBundle);
+		assertEquals(threadBundle, discussionServices.getThread(userId, threadId, DiscussionFilter.EXCLUDE_DELETED));
 	}
 
 	@Test

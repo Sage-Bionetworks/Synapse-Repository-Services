@@ -86,14 +86,21 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 	}
 
 	@Override
-	public DiscussionThreadBundle getThread(UserInfo userInfo, String threadId) {
+	public DiscussionThreadBundle getThread(UserInfo userInfo, String threadId, DiscussionFilter filter) {
 		ValidateArgument.required(threadId, "threadId");
 		UserInfo.validateUserInfo(userInfo);
-		DiscussionFilter filter = DiscussionFilter.EXCLUDE_DELETED;
+		if (filter == null) {
+			filter = DiscussionFilter.EXCLUDE_DELETED;
+		}
 		Long threadIdLong = Long.parseLong(threadId);
 		DiscussionThreadBundle thread = threadDao.getThread(threadIdLong, filter);
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccess(userInfo, thread.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
+		if (filter != DiscussionFilter.EXCLUDE_DELETED) {
+			AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+					authorizationManager.canAccess(userInfo, thread.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.MODERATE));
+		} else {
+			AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+					authorizationManager.canAccess(userInfo, thread.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
+		}
 		threadDao.updateThreadView(threadIdLong, userInfo.getId());
 		return updateNumberOfReplies(thread, filter);
 	}

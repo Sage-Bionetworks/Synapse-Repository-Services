@@ -54,9 +54,9 @@ public class DiscussionServiceImpl implements DiscussionService{
 	}
 
 	@Override
-	public DiscussionThreadBundle getThread(Long userId, String threadId) {
+	public DiscussionThreadBundle getThread(Long userId, String threadId, DiscussionFilter filter) {
 		UserInfo user = userManager.getUserInfo(userId);
-		return threadManager.getThread(user, threadId);
+		return threadManager.getThread(user, threadId, filter);
 	}
 
 	@Override
