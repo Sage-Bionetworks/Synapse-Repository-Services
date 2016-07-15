@@ -60,13 +60,18 @@ public class DockerManagerImpl implements DockerManager {
 	 */
 	@Override
 	public DockerAuthorizationToken authorizeDockerAccess(UserInfo userInfo, String service, String scope) {
-		String[] scopeParts = scope.split(":");
-		if (scopeParts.length!=3) throw new RuntimeException("Expected 3 parts but found "+scopeParts.length);
-		String type = scopeParts[0]; // type='repository'
-		String repositoryPath = scopeParts[1]; // i.e. the 'path'
-		String accessTypes = scopeParts[2]; // e.g. push, pull
+		String type = null;
+		String repositoryPath = null;
+		List<String> permittedAccessTypes = Collections.EMPTY_LIST;
+		if (scope!=null) {
+			String[] scopeParts = scope.split(":");
+			if (scopeParts.length!=3) throw new RuntimeException("Expected 3 parts but found "+scopeParts.length);
+			type = scopeParts[0]; // type='repository'
+			repositoryPath = scopeParts[1]; // i.e. the 'path'
+			String accessTypes = scopeParts[2]; // e.g. push, pull
+			permittedAccessTypes = getPermittedAccessTypes(userInfo,  service,  type, repositoryPath, accessTypes);
+		}
 
-		List<String> permittedAccessTypes = getPermittedAccessTypes(userInfo,  service,  type, repositoryPath, accessTypes);
 		// now construct the auth response and return it
 		long now = System.currentTimeMillis();
 		String uuid = UUID.randomUUID().toString();
