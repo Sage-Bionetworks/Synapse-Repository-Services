@@ -180,4 +180,18 @@ public class DiscussionBroadcastMessageBuilderTest {
 				ThreadMessageBuilderFactory.UNSUBSCRIBE_FORUM, mockMarkdownDao, topic, mockPrincipalAliasDAO);
 		assertEquals(userIdSet, builder.getRelatedUsers());
 	}
+
+	@Test
+	public void testBuildEmailForSubscriber() throws Exception{
+		when(mockMarkdownDao.convertMarkdown(anyString(), anyString())).thenReturn("content");
+		SendRawEmailRequest emailRequest = builder.buildEmailForSubscriber(subscriber);
+		assertNotNull(emailRequest);
+	}
+
+	@Test
+	public void testBuildEmailForNonSubscriber() throws Exception{
+		when(mockMarkdownDao.convertMarkdown(anyString(), anyString())).thenReturn("content");
+		SendRawEmailRequest emailRequest = builder.buildEmailForNonSubscriber(user);
+		assertNotNull(emailRequest);
+	}
 }
