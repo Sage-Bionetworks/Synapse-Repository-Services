@@ -162,13 +162,13 @@ public class DiscussionControllerAutowiredTest extends AbstractAutowiredControll
 		assertTrue(bundle2.getIsEdited());
 	}
 
-	@Test (expected = NotFoundException.class)
+	@Test
 	public void testMarkThreadAsDeleted() throws Exception {
 		Forum dto = servletTestHelper.getForumByProjectId(dispatchServlet, project.getId(), adminUserId);
 		createThread.setForumId(dto.getId());
 		DiscussionThreadBundle bundle = servletTestHelper.createThread(dispatchServlet, adminUserId, createThread);
 		servletTestHelper.markThreadAsDeleted(dispatchServlet, adminUserId, bundle.getId());
-		servletTestHelper.getThread(dispatchServlet, adminUserId, bundle.getId(), null);
+		assertTrue(servletTestHelper.getThread(dispatchServlet, adminUserId, bundle.getId(), null).getIsDeleted());
 	}
 
 	@Test
