@@ -79,6 +79,14 @@ public interface NodeDAO {
 	public boolean delete(String id) throws DatastoreException;
 	
 	/**
+	 * Delete all nodes within a list of IDs.
+	 * @param IDs list of IDs to remove
+	 * @return boolean
+	 * @throws DatastoreException
+	 */
+	public boolean delete(List<Long> IDs) throws DatastoreException;
+	
+	/**
 	 * Delete a specific version.
 	 * @param id
 	 * @param versionNumber

@@ -271,6 +271,7 @@ public class DBOTrashCanDaoImpl implements TrashCanDao {
 	//TODO: I am horrible at naming things
 	@Override
 	public List<Long> getTrashNumDaysOldNoChildren(long numDays, long maxTrashItems) throws DatastoreException{
+		//TODO: write test for this
 		if(numDays < 0 || maxTrashItems < 0){
 			throw new IllegalArgumentException("integer parameters cannot be less than zero");
 		}
@@ -304,6 +305,8 @@ public class DBOTrashCanDaoImpl implements TrashCanDao {
 			basicDao.deleteObjectByPrimaryKey(DBOTrashedEntity.class, params);
 		}
 	}
+	
+	//TODO: delete() that takes in a list
 
 	private List<TrashedEntity> getNodeList(Long userGroupId, Long nodeId) {
 		MapSqlParameterSource paramMap = new MapSqlParameterSource();

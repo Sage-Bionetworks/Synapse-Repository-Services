@@ -345,6 +345,30 @@ public class TrashManagerImpl implements TrashManager {
 			}
 		}
 	}
+	
+	@Override
+	public void purgeTrashAdmin(List<Long> trashIDs, UserInfo user){
+		//TODO: write test for this
+		if (trashIDs == null) {
+			throw new IllegalArgumentException("trashIDs cannot be null");
+		}
+
+		if (user == null) {
+			throw new IllegalArgumentException("User cannot be null");
+		}
+		
+		UserInfo.validateUserInfo(user);
+		if (!user.isAdmin()) {
+			String userId = user.getId().toString();
+			throw new UnauthorizedException("Current user " + userId
+					+ " does not have the permission.");
+		}
+	
+		nodeDao.delete(trashIDs);
+		aclDAO.delete(trashIDs, ObjectType.ENTITY);
+		trashCanDao.delete(trash.getDeletedByPrincipalId(), trashIDs);
+
+	}
 
 	@Override
 	public List<TrashedEntity> getTrashBefore(Timestamp timestamp) throws DatastoreException {

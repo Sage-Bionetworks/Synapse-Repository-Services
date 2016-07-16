@@ -46,6 +46,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -73,7 +74,10 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 
 	private static final String SQL_SELECT_ACL_ID_FOR_RESOURCE = "SELECT "+COL_ACL_ID+" FROM "+TABLE_ACCESS_CONTROL_LIST+
 			" WHERE "+COL_ACL_OWNER_ID+" = ? AND "+COL_ACL_OWNER_TYPE+" = ?";
-
+	private static final String SQL_DELETE_ACLS_BY_IDS = "DELETE FROM " + TABLE_ACCESS_CONTROL_LIST + 
+														" WHERE " + DBOAccessControlList.OWNER_ID_FIELD_NAME + " IN (:ids)"+
+														" AND " +  DBOAccessControlList.OWNER_TYPE_FIELD_NAME + " = :" + DBOAccessControlList.OWNER_TYPE_FIELD_NAME;
+	
 	/**
 	 * Keep a copy of the row mapper.
 	 */
@@ -298,6 +302,31 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 			// if there is no valid AclId for this ownerId and ownerType, do nothing
 			log.info("Atempted to delete an ACL that does not exist. OwnerId: " + ownerId + ", ownerType: " + ownerType);
 		}
+	}
+	
+	@WriteTransaction
+	@Override
+	public void delete(List<Long> ownerIds, ObjectType ownerType) throws DatastoreException {
+		//TODO: write test for this
+		
+		//sending messages requires iteration to find aclID
+		for(long id: ownerIds){ //TODO: may be able to do this all in one SQL query. change later
+			final String stringID = KeyFactory.keyToString(id);
+			try{
+				Long dboId = getAclId(stringID, ownerType);
+				transactionalMessenger.sendMessageAfterCommit(dboId.toString(), ObjectType.ACCESS_CONTROL_LIST, 
+						UUID.randomUUID().toString(), ChangeType.DELETE);
+			}catch (NotFoundException e){
+				// if there is no valid AclId for this ownerId and ownerType, do nothing
+				log.info("Atempted to delete an ACL that does not exist. OwnerId: " + stringID + ", ownerType: " + ownerType);
+			}
+		}
+		
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("ids", ownerIds);
+		params.addValue(DBOAccessControlList.OWNER_TYPE_FIELD_NAME, ownerType.name());
+		namedParameterJdbcTemplate.update(SQL_DELETE_ACLS_BY_IDS, params);
+		
 	}
 
 	@Override
