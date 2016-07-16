@@ -41,7 +41,7 @@ public class ChangeMessageBatchProcessor implements MessageDrivenRunner {
 	}
 
 	@Override
-	public void run(final ProgressCallback<Message> progressCallback,
+	public void run(final ProgressCallback<Void> progressCallback,
 			final Message message) throws RecoverableMessageException,
 			Exception {
 		// read the batch.
@@ -51,11 +51,11 @@ public class ChangeMessageBatchProcessor implements MessageDrivenRunner {
 		for (ChangeMessage change : batch) {
 			try {
 				// Make progress before each message
-				progressCallback.progressMade(message);
+				progressCallback.progressMade(null);
 				runner.run(new ProgressCallback<Void>() {
 					@Override
 					public void progressMade(Void t) {
-						progressCallback.progressMade(message);
+						progressCallback.progressMade(null);
 					}
 				}, change);
 			} catch (RecoverableMessageException e) {

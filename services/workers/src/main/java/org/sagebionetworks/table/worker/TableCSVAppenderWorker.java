@@ -11,6 +11,7 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ThrottlingProgressCallback;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
+import org.sagebionetworks.repo.manager.asynch.AsynchJobUtils;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
@@ -59,7 +60,7 @@ public class TableCSVAppenderWorker implements MessageDrivenRunner {
 	private long rowCount;
 
 	@Override
-	public void run(ProgressCallback<Message> progressCallback,
+	public void run(ProgressCallback<Void> progressCallback,
 			Message message) throws RecoverableMessageException, Exception {
 		try{
 			processStatus(progressCallback, message);
@@ -73,12 +74,12 @@ public class TableCSVAppenderWorker implements MessageDrivenRunner {
 	 * @param status
 	 * @throws Throwable 
 	 */
-	public void processStatus(final ProgressCallback<Message> progressCallback, final Message message) throws Throwable {
-		final AsynchronousJobStatus status = extractStatus(message);
+	public void processStatus(final ProgressCallback<Void> progressCallback, final Message message) throws Throwable {
+		final AsynchronousJobStatus status = asynchJobStatusManager.lookupJobStatus(message.getBody());
 		CSVReader reader = null;
 		try{
 			UserInfo user = userManger.getUserInfo(status.getStartedByUserId());
-			UploadToTableRequest body = (UploadToTableRequest) status.getRequestBody();
+			UploadToTableRequest body = AsynchJobUtils.extractRequestBody(status, UploadToTableRequest.class);
 			// Get the filehandle
 			S3FileHandle fileHandle = (S3FileHandle) fileHandleManager.getRawFileHandle(user, body.getUploadFileHandleId());
 			// Get the schema for the table
@@ -107,7 +108,7 @@ public class TableCSVAppenderWorker implements MessageDrivenRunner {
 							countingInputStream.getByteCount(), progressTotal,
 							"Read: " + rowNumber + " rows");
 					// update the message.
-					progressCallback.progressMade(message);
+					progressCallback.progressMade(null);
 				}
 			}, progressIntervalMs);
 			
@@ -124,7 +125,7 @@ public class TableCSVAppenderWorker implements MessageDrivenRunner {
 				@Override
 				public void progressMade(Long count) {
 					// update the message.
-					progressCallback.progressMade(message);
+					progressCallback.progressMade(null);
 					rowCount += count;
 				}});
 			// Done
@@ -145,28 +146,5 @@ public class TableCSVAppenderWorker implements MessageDrivenRunner {
 			}
 		}
 	}
-	
 
-	/**
-	 * Extract the AsynchUploadRequestBody from the message.
-	 * @param message
-	 * @return
-	 * @throws JSONObjectAdapterException
-	 */
-	AsynchronousJobStatus extractStatus(Message message) throws JSONObjectAdapterException{
-		if(message == null){
-			throw new IllegalArgumentException("Message cannot be null");
-		}
-		AsynchronousJobStatus status = asynchJobStatusManager.lookupJobStatus(message.getBody());
-		if(status.getRequestBody() == null){
-			throw new IllegalArgumentException("Job body cannot be null");
-		}
-		if (!(status.getRequestBody() instanceof UploadToTableRequest)) {
-			throw new IllegalArgumentException("Expected a job body of type: " + UploadToTableRequest.class.getName() + " but received: "
-					+ status.getRequestBody().getClass().getName());
-		}
-		return status;
-	}
-
-	
 }

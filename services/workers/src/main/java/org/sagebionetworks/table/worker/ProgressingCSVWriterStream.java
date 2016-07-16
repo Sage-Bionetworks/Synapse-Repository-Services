@@ -1,14 +1,13 @@
 package org.sagebionetworks.table.worker;
 
-import org.sagebionetworks.asynchronous.workers.sqs.WorkerProgress;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.csv.CSVWriterStream;
 
-import com.amazonaws.services.sqs.model.Message;
-
 import au.com.bytecode.opencsv.CSVWriter;
+
+import com.amazonaws.services.sqs.model.Message;
 
 /**
  * This implementation of CSVWriterStream will notify that progress is made for
@@ -26,7 +25,7 @@ public class ProgressingCSVWriterStream implements CSVWriterStream {
 	 */
 	public static final long UPDATE_FEQUENCY_MS = 2000;
 	CSVWriter writer;
-	ProgressCallback<Message> progressCallback;
+	ProgressCallback<Void> progressCallback;
 	Message originatingMessage;
 	AsynchJobStatusManager asynchJobStatusManager;
 	long currentProgress;
@@ -50,7 +49,7 @@ public class ProgressingCSVWriterStream implements CSVWriterStream {
 	 *            continues to be made.
 	 */
 	public ProgressingCSVWriterStream(CSVWriter writer,
-			ProgressCallback<Message> progressCallback, Message originatingMessage,
+			ProgressCallback<Void> progressCallback, Message originatingMessage,
 			AsynchJobStatusManager asynchJobStatusManager,
 			long currentProgress, long totalProgress, String jobId, Clock clock) {
 		super();
@@ -73,7 +72,7 @@ public class ProgressingCSVWriterStream implements CSVWriterStream {
 		if(clock.currentTimeMillis() - lastUpdateTimeMS > UPDATE_FEQUENCY_MS){
 			// It is time to update the progress
 			// notify that progress is still being made for this message
-			progressCallback.progressMade(originatingMessage);
+			progressCallback.progressMade(null);
 			// Update the status
 			asynchJobStatusManager.updateJobProgress(jobId, currentProgress, totalProgress, BUILDING_THE_CSV);
 			// reset the clock

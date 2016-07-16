@@ -17,7 +17,7 @@ public class UploadProgressListener implements ProgressListener {
 
 	public static final String MESSAGE_CREATE_CSV_FILE_HANDLE = "Create CSV FileHandle";
 	
-	ProgressCallback<Message> progressCallback;
+	ProgressCallback<Void> progressCallback;
 	Message originatingMessage;
 	long startProgress;
 	double bytesTransferedSoFar;
@@ -36,7 +36,7 @@ public class UploadProgressListener implements ProgressListener {
 	 * @param asynchJobStatusManager
 	 * @param jobId
 	 */
-	public UploadProgressListener(ProgressCallback<Message> progressCallback,
+	public UploadProgressListener(ProgressCallback<Void> progressCallback,
 			Message originatingMessage, long startProgress, double bytesPerRow,
 			long totalProgress, AsynchJobStatusManager asynchJobStatusManager,
 			String jobId) {
@@ -63,7 +63,7 @@ public class UploadProgressListener implements ProgressListener {
 		}
 		// It is time to update the progress
 		// notify that progress is still being made for this message
-		progressCallback.progressMade(originatingMessage);
+		progressCallback.progressMade(null);
 		// Update the status
 		asynchJobStatusManager.updateJobProgress(jobId, currentProgress, totalProgress, MESSAGE_CREATE_CSV_FILE_HANDLE);
 	}
