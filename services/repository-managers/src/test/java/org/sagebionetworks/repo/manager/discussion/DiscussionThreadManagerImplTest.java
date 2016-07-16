@@ -102,6 +102,7 @@ public class DiscussionThreadManagerImplTest {
 		dto.setId(threadId.toString());
 		dto.setEtag("etag");
 		dto.setForumId(forumId.toString());
+		dto.setIsDeleted(false);
 		userInfo.setId(userId);
 
 		newTitle.setTitle("newTitle");
@@ -199,7 +200,25 @@ public class DiscussionThreadManagerImplTest {
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		assertEquals(dto, threadManager.getThread(userInfo, threadId.toString()));
 		Mockito.verify(mockThreadDao).updateThreadView(Mockito.anyLong(), Mockito.anyLong());
-		Mockito.verify(mockReplyDao).getReplyCount(threadId, DiscussionFilter.EXCLUDE_DELETED);
+		Mockito.verify(mockReplyDao).getReplyCount(threadId, DiscussionFilter.NO_FILTER);
+	}
+
+	@Test
+	public void testGetDeletedThreadAuthorized() {
+		dto.setIsDeleted(true);
+		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.MODERATE))
+				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		assertEquals(dto, threadManager.getThread(userInfo, threadId.toString()));
+		Mockito.verify(mockThreadDao).updateThreadView(Mockito.anyLong(), Mockito.anyLong());
+		Mockito.verify(mockReplyDao).getReplyCount(threadId, DiscussionFilter.NO_FILTER);
+	}
+
+	@Test (expected = NotFoundException.class)
+	public void testGetDeletedThreadUnauthorized() {
+		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.MODERATE))
+				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		Mockito.when(mockThreadDao.getThread(threadId, DiscussionFilter.NO_FILTER)).thenThrow(new NotFoundException());
+		threadManager.getThread(userInfo, threadId.toString());
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -227,14 +246,6 @@ public class DiscussionThreadManagerImplTest {
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		threadManager.checkPermission(userInfo, threadId.toString(), ACCESS_TYPE.READ);
 		Mockito.verify(mockThreadDao, Mockito.never()).updateThreadView(Mockito.anyLong(), Mockito.anyLong());
-	}
-
-	@Test (expected = NotFoundException.class)
-	public void testGetThreadDeleted() {
-		Mockito.when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
-				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		Mockito.when(mockThreadDao.getThread(threadId, DiscussionFilter.EXCLUDE_DELETED)).thenThrow(new NotFoundException());
-		threadManager.getThread(userInfo, threadId.toString());
 	}
 
 	@Test (expected = IllegalArgumentException.class)
