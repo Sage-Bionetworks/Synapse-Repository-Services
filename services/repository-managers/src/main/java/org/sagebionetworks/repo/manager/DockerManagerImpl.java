@@ -11,6 +11,7 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.DockerNodeDao;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
@@ -25,8 +26,6 @@ import org.sagebionetworks.repo.model.docker.DockerRegistryEventList;
 import org.sagebionetworks.repo.model.docker.DockerRepository;
 import org.sagebionetworks.repo.model.docker.RegistryEventAction;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.principal.AliasType;
-import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.util.DockerNameUtil;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -37,6 +36,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class DockerManagerImpl implements DockerManager {
 	@Autowired
 	private NodeDAO nodeDAO;
+	
+	@Autowired
+	private DockerNodeDao dockerNodeDao;
 
 	@Autowired
 	IdGenerator idGenerator;
@@ -93,18 +95,9 @@ public class DockerManagerImpl implements DockerManager {
 
 		if (parentId==null) return permittedAccessTypes;
 
-		String entityName = service+DockerNameUtil.REPO_NAME_PATH_SEP+repositoryPath;
+		String repositoryName = service+DockerNameUtil.REPO_NAME_PATH_SEP+repositoryPath;
 
-		String existingDockerRepoId = null;
-		try {
-			EntityHeader entityHeader = nodeDAO.getEntityHeaderByChildName(parentId, entityName);
-			// can't push or pull (do any operation) on an entity which is not a Docker repository
-			if (EntityTypeUtils.getEntityTypeForClassName(entityHeader.getType()) != EntityType.dockerrepo)
-				return permittedAccessTypes;
-			existingDockerRepoId = entityHeader.getId();
-		} catch (NotFoundException nfe) {
-			existingDockerRepoId = null;
-		}
+		String existingDockerRepoId = dockerNodeDao.getEntityIdForRepositoryName(repositoryName);
 
 		for (String requestedAccessTypeString : accessTypes.split(",")) {
 			RegistryEventAction requestedAccessType = RegistryEventAction.valueOf(requestedAccessTypeString);
@@ -198,21 +191,15 @@ public class DockerManagerImpl implements DockerManager {
 				Long userId = Long.parseLong(event.getActor().getName());
 				// the 'repository path' does not include the registry host or the tag
 				String repositoryPath = event.getTarget().getRepository();
-				String entityName = host+REPO_NAME_PATH_SEP+repositoryPath;
+				String repositoryName = host+REPO_NAME_PATH_SEP+repositoryPath;
 				String parentId = getParentIdFromRepositoryPath(repositoryPath);
 				if (parentId==null) throw new IllegalArgumentException("parentId is required.");
 				DockerCommit commit = new DockerCommit();
 				commit.setTag(event.getTarget().getTag());
 				commit.setDigest(event.getTarget().getDigest());
 
-				String entityId = null;
-				try {
-					EntityHeader entityHeader = nodeDAO.getEntityHeaderByChildName(parentId, entityName);
-					if (EntityTypeUtils.getEntityTypeForClassName(entityHeader.getType())!= EntityType.dockerrepo) 
-						throw new IllegalArgumentException("Cannot create a Docker repository in container "+parentId+
-								". An entity of type "+entityHeader.getType()+" already exists with name "+entityName);
-					entityId = entityHeader.getId();
-				} catch (NotFoundException nfe) {
+				String entityId =  dockerNodeDao.getEntityIdForRepositoryName(repositoryName);
+				if (entityId==null) {
 					// The node doesn't already exist
 					List<EntityHeader> headers = nodeDAO.getEntityHeader(Collections.singleton(KeyFactory.stringToKey(parentId)));
 					if (headers.size()==0) throw new NotFoundException("parentId "+parentId+" does not exist.");
@@ -222,7 +209,7 @@ public class DockerManagerImpl implements DockerManager {
 					}
 					DockerRepository entity = new DockerRepository();
 					entity.setIsManaged(true);
-					entity.setName(entityName);
+					entity.setRepositoryName(repositoryName);
 					entity.setParentId(parentId);
 					// Get the user
 					UserInfo userInfo = userManager.getUserInfo(userId);
@@ -231,6 +218,7 @@ public class DockerManagerImpl implements DockerManager {
 					entity.setId(KeyFactory.keyToString(newId));
 					entityManager.createEntity(userInfo, entity, null);
 					entityId =  KeyFactory.keyToString(newId);
+					dockerNodeDao.createRepositoryName(entityId, repositoryName);
 				}
 				// TODO Add commit to entity
 				break;

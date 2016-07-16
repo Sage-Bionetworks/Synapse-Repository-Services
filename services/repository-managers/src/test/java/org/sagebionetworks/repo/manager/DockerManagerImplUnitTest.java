@@ -21,6 +21,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.DockerNodeDao;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
@@ -40,7 +41,6 @@ import org.sagebionetworks.repo.model.docker.RegistryEventRequest;
 import org.sagebionetworks.repo.model.docker.RegistryEventTarget;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
-import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
 
 
@@ -60,7 +60,7 @@ public class DockerManagerImplUnitTest {
 	private static final String SERVICE = REGISTRY_HOST;
 	private static final String TYPE = "repository";
 	private static final String REPOSITORY_PATH = PARENT_ID+"/reponame";
-	private static final String ENTITY_NAME = SERVICE+"/"+REPOSITORY_PATH;
+	private static final String REPOSITORY_NAME = SERVICE+"/"+REPOSITORY_PATH;
 	private static final String ACCESS_TYPES_STRING="push,pull";
 	
 	private static final String TAG = "v1";
@@ -71,6 +71,9 @@ public class DockerManagerImplUnitTest {
 	
 	@Mock
 	private NodeDAO nodeDAO;
+	
+	@Mock
+	private DockerNodeDao dockerNodeDao;
 	
 	@Mock
 	private IdGenerator idGenerator;
@@ -85,7 +88,6 @@ public class DockerManagerImplUnitTest {
 	private AuthorizationManager authorizationManager;
 	
 	private EntityHeader parentHeader;
-	private EntityHeader repoEntityHeader;
 	private Node authQueryNode;
 
 	@Before
@@ -93,6 +95,7 @@ public class DockerManagerImplUnitTest {
 		MockitoAnnotations.initMocks(this);
 		dockerManager = new DockerManagerImpl();
 		ReflectionTestUtils.setField(dockerManager, "nodeDAO", nodeDAO);
+		ReflectionTestUtils.setField(dockerManager, "dockerNodeDao", dockerNodeDao);
 		ReflectionTestUtils.setField(dockerManager, "idGenerator", idGenerator);
 		ReflectionTestUtils.setField(dockerManager, "userManager", userManager);
 		ReflectionTestUtils.setField(dockerManager, "entityManager", entityManager);
@@ -104,10 +107,7 @@ public class DockerManagerImplUnitTest {
 		List<EntityHeader> parent = Collections.singletonList(parentHeader);
 		when(nodeDAO.getEntityHeader(Collections.singleton(PARENT_ID_LONG))).thenReturn(parent);
 		
-		repoEntityHeader = new EntityHeader();
-		repoEntityHeader.setId(REPO_ENTITY_ID);
-		repoEntityHeader.setType(DockerRepository.class.getName());
-		when(nodeDAO.getEntityHeaderByChildName(PARENT_ID, ENTITY_NAME)).thenReturn(repoEntityHeader);
+		when(dockerNodeDao.getEntityIdForRepositoryName(REPOSITORY_NAME)).thenReturn(REPO_ENTITY_ID);
 		
 		authQueryNode = new Node();
 		authQueryNode.setParentId(PARENT_ID);
@@ -185,7 +185,7 @@ public class DockerManagerImplUnitTest {
 
 	@Test
 	public void testGetPermittedAccessTypesInvalidParent() throws Exception {
-		String repositoryPath = "garbage/"+ENTITY_NAME;
+		String repositoryPath = "garbage/"+REPOSITORY_NAME;
 		
 		// method under test:
 		List<String> permitted = dockerManager.
@@ -198,7 +198,7 @@ public class DockerManagerImplUnitTest {
 	public void testGetPermittedAccessTypesNonexistentChild() throws Exception {
 		String repositoryPath = PARENT_ID+"/non-existent-repo";
 
-		when(nodeDAO.getEntityHeaderByChildName(PARENT_ID, SERVICE+"/"+repositoryPath)).thenThrow(new NotFoundException());
+		when(dockerNodeDao.getEntityIdForRepositoryName(SERVICE+"/"+repositoryPath)).thenReturn(null);
 
 		// method under test:
 		List<String> permitted = dockerManager.
@@ -230,7 +230,7 @@ public class DockerManagerImplUnitTest {
 	public void testGetPermittedAccessTypesNonexistentChildUnauthorized() throws Exception {
 		String repositoryPath = PARENT_ID+"/non-existent-repo";
 
-		when(nodeDAO.getEntityHeaderByChildName(PARENT_ID, SERVICE+"/"+repositoryPath)).thenThrow(new NotFoundException());
+		when(dockerNodeDao.getEntityIdForRepositoryName(SERVICE+"/"+repositoryPath)).thenReturn(null);
 
 		when(authorizationManager.canCreate(eq(USER_INFO), eq(authQueryNode))).
 			thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
@@ -272,7 +272,7 @@ public class DockerManagerImplUnitTest {
 	
 	@Test
 	public void testDockerRegistryNotificationPushNEWEntity() {
-		when(nodeDAO.getEntityHeaderByChildName(PARENT_ID, ENTITY_NAME)).thenThrow(new NotFoundException());
+		when(dockerNodeDao.getEntityIdForRepositoryName(REPOSITORY_NAME)).thenReturn(null);
 
 		DockerRegistryEventList events = 
 				createEvent(RegistryEventAction.push, REGISTRY_HOST, USER_ID, REPOSITORY_PATH, TAG, DIGEST);
@@ -284,7 +284,7 @@ public class DockerManagerImplUnitTest {
 		verify(entityManager).createEntity(eq(USER_INFO), repo.capture(), (String)eq(null));
 		assertEquals(PARENT_ID, repo.getValue().getParentId());
 		assertTrue(repo.getValue().getIsManaged());
-		assertEquals(ENTITY_NAME, repo.getValue().getName());
+		assertEquals(REPOSITORY_NAME, repo.getValue().getRepositoryName());
 		assertEquals(REPO_ENTITY_ID, repo.getValue().getId());
 		// TODO verify that commit was added
 	}
@@ -305,7 +305,7 @@ public class DockerManagerImplUnitTest {
 	
 	@Test
 	public void testDockerRegistryNotificationPushUnsupportedHost() {
-		when(nodeDAO.getEntityHeaderByChildName(PARENT_ID, ENTITY_NAME)).thenThrow(new NotFoundException());
+		when(dockerNodeDao.getEntityIdForRepositoryName(REPOSITORY_NAME)).thenReturn(null);
 
 		DockerRegistryEventList events = 
 				createEvent(RegistryEventAction.push, "quay.io", USER_ID, REPOSITORY_PATH, TAG, DIGEST);
@@ -318,20 +318,8 @@ public class DockerManagerImplUnitTest {
 	
 	@Test(expected=IllegalArgumentException.class)
 	public void testDockerRegistryNotificationPushNEWEntityParentIsFolder() {
-		when(nodeDAO.getEntityHeaderByChildName(PARENT_ID, ENTITY_NAME)).thenThrow(new NotFoundException());
+		when(dockerNodeDao.getEntityIdForRepositoryName(REPOSITORY_NAME)).thenReturn(null);
 		parentHeader.setType(EntityType.folder.name());
-
-		DockerRegistryEventList events = 
-				createEvent(RegistryEventAction.push, REGISTRY_HOST, USER_ID, REPOSITORY_PATH, TAG, DIGEST);
-		
-		// method under test:
-		dockerManager.dockerRegistryNotification(events);
-	}
-
-	
-	@Test(expected=IllegalArgumentException.class)
-	public void testDockerRegistryNotificationPushExistingEntityNotRepo() {
-		repoEntityHeader.setType(EntityType.file.name());
 
 		DockerRegistryEventList events = 
 				createEvent(RegistryEventAction.push, REGISTRY_HOST, USER_ID, REPOSITORY_PATH, TAG, DIGEST);

@@ -115,14 +115,18 @@ public class ExternalDockerRepoValidatorTest {
 		provider.validateEntity(repo, event);
 	}
 	
-	@Test(expected=IllegalArgumentException.class)
 	public void testValidateEntityUpdate() throws Exception {
 		DockerRepository repo = new DockerRepository();
 		repo.setName("quay.io/uname/myrepo");
 		repo.setParentId(PARENT_ID);
-		
 		EventType type = EventType.UPDATE;
+		EntityHeader parentHeader = new EntityHeader();
+		parentHeader.setId(PARENT_ID);
+		parentHeader.setType(Project.class.getName());
+		List<EntityHeader> parent = Collections.singletonList(parentHeader);
+		when(nodeDAO.getEntityHeader(Collections.singleton(PARENT_ID_LONG))).thenReturn(parent);
 		EntityEvent event = new EntityEvent(type, null, null);
 		provider.validateEntity(repo, event);
+
 	}
 }

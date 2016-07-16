@@ -38,34 +38,35 @@ public class ExternalDockerRepoValidator implements EntityValidator<DockerReposi
 	 * Allow only the creation of an external docker repository.  No update is allowed.
 	 * @see org.sagebionetworks.repo.web.service.metadata.EntityValidator#validateEntity(org.sagebionetworks.repo.model.Entity, org.sagebionetworks.repo.web.service.metadata.EntityEvent)
 	 */
+	// TODO this doesn't guard against someone getting a managed repo, changing the repository name to a non-managed
+	// one, and updating it.
 	@Override
 	public void validateEntity(DockerRepository dockerRepository, EntityEvent event)
 			throws InvalidModelException, NotFoundException,
 			DatastoreException, UnauthorizedException {
 		
-		if (event.getType()==EventType.CREATE) {
-			DockerNameUtil.validateName(dockerRepository.getName());
-			String registryHost = DockerNameUtil.getRegistryHost(dockerRepository.getName());
-			if (registryHost!=null) {
-				if (StackConfiguration.getDockerRegistryHosts().contains(registryHost)) {
-					throw new InvalidModelException("Cannot create a managed Docker repository.");
-				} else if (isReserved(registryHost)) {
-					throw new InvalidModelException("Cannot create a Docker repository having a reserved registry host.");
-				}
-			}
-			dockerRepository.setIsManaged(false);
-			String parentId = dockerRepository.getParentId();
-			if (parentId==null) throw new IllegalArgumentException("parentId is required.");
-			List<EntityHeader> headers = nodeDAO.getEntityHeader(Collections.singleton(KeyFactory.stringToKey(parentId)));
-			if (headers.size()==0) throw new NotFoundException("parentId "+parentId+" does not exist.");
-			if (headers.size()>1) throw new IllegalStateException("Expected 0-1 result for "+parentId+" but found "+headers.size());
-			if (EntityTypeUtils.getEntityTypeForClassName(headers.get(0).getType())!=EntityType.project) {
-				throw new IllegalArgumentException("Parent must be a project.");
-			}
-		} else if (event.getType()==EventType.UPDATE) {
-			throw new IllegalArgumentException("Update is not allowed.");
-		} else {
+		if (event.getType()!=EventType.CREATE && event.getType()!=EventType.UPDATE) {
 			throw new IllegalArgumentException("Unexpected event type "+event.getType());
+		}
+		
+		String repositoryName = dockerRepository.getRepositoryName();
+		DockerNameUtil.validateName(repositoryName);
+		String registryHost = DockerNameUtil.getRegistryHost(repositoryName);
+		if (registryHost!=null) {
+			if (StackConfiguration.getDockerRegistryHosts().contains(registryHost)) {
+				throw new InvalidModelException("Cannot create a managed Docker repository.");
+			} else if (isReserved(registryHost)) {
+				throw new InvalidModelException("Cannot create a Docker repository having a reserved registry host.");
+			}
+		}
+		dockerRepository.setIsManaged(false);
+		String parentId = dockerRepository.getParentId();
+		if (parentId==null) throw new IllegalArgumentException("parentId is required.");
+		List<EntityHeader> headers = nodeDAO.getEntityHeader(Collections.singleton(KeyFactory.stringToKey(parentId)));
+		if (headers.size()==0) throw new NotFoundException("parentId "+parentId+" does not exist.");
+		if (headers.size()>1) throw new IllegalStateException("Expected 0-1 result for "+parentId+" but found "+headers.size());
+		if (EntityTypeUtils.getEntityTypeForClassName(headers.get(0).getType())!=EntityType.project) {
+			throw new IllegalArgumentException("Parent must be a project.");
 		}
 	}
 
