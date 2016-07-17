@@ -85,7 +85,7 @@ public class MigrationClient {
 			}
 		} finally {
 			// After migration is complete, re-enable read/write
-			setDestinationStatus(StatusEnum.READ_WRITE, "Synapse is ready for read/write");
+			// setDestinationStatus(StatusEnum.READ_WRITE, "Synapse is ready for read/write");
 		}
 		return failed;
 	}
