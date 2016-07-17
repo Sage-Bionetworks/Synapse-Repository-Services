@@ -54,7 +54,7 @@ import au.com.bytecode.opencsv.Constants;
 public class TableCSVAppenderWorkerTest {
 	
 	@Mock
-	ProgressCallback<Message> mockProgressCallback;
+	ProgressCallback<Void> mockProgressCallback;
 	@Mock
 	AsynchJobStatusManager mockAasynchJobStatusManager;
 	@Mock

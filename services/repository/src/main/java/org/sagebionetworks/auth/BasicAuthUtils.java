@@ -6,7 +6,7 @@ import com.sun.jersey.core.util.Base64;
 
 public class BasicAuthUtils {
 
-	static final String BASIC_PREFIX = "Basic ";
+	public static final String BASIC_PREFIX = "Basic ";
 
 	public static UserNameAndPassword getBasicAuthenticationCredentials(HttpServletRequest httpRequest) {
 		String header = httpRequest.getHeader("Authorization");

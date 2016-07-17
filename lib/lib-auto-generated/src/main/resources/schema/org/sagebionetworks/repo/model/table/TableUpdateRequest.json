@@ -1,0 +1,13 @@
+{
+    "title":"TableUpdateRequest",
+    "description":"Abstraction for a request to update a table.",
+    "type": "interface",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody"
+		},
+		{
+			"$ref": "org.sagebionetworks.repo.model.table.HasEntityId"
+		}
+	]
+}

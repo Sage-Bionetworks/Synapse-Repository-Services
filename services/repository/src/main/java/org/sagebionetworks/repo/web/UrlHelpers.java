@@ -39,6 +39,7 @@ public class UrlHelpers {
 	public static final String AUTH_PATH			= "/auth/v1";
 	public static final String FILE_PATH			= "/file/v1";
 	public static final String REPO_PATH			= "/repo/v1";
+	public static final String DOCKER_PATH			= "/docker/v1";
 	
 	/**
 	 * Used for batch requests
@@ -759,6 +760,9 @@ public class UrlHelpers {
 	public static final String ENTITY_TABLE_APPEND = ENTITY_TABLE+"/append";
 	public static final String ENTITY_TABLE_APPEND_ROW_ASYNC_START = ENTITY_TABLE_APPEND + ASYNC_START_REQUEST;
 	public static final String ENTITY_TABLE_APPEND_ROW_ASYNC_GET = ENTITY_TABLE_APPEND + ASYNC_GET_REQUEST;
+	public static final String ENTITY_TABLE_TRANSACTION = ENTITY_TABLE+"/transaction";
+	public static final String ENTITY_TABLE_TRANSACTION_ASYNC_START = ENTITY_TABLE_TRANSACTION + ASYNC_START_REQUEST;
+	public static final String ENTITY_TABLE_TRANSACTION_ASYNC_GET = ENTITY_TABLE_TRANSACTION + ASYNC_GET_REQUEST;
 	public static final String ENTITY_TABLE_QUERY = ENTITY_TABLE+"/query";
 	public static final String ENTITY_TABLE_QUERY_ASYNC_START = ENTITY_TABLE_QUERY + ASYNC_START_REQUEST;
 	public static final String ENTITY_TABLE_QUERY_ASYNC_GET = ENTITY_TABLE_QUERY + ASYNC_GET_REQUEST;

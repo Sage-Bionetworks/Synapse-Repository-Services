@@ -8,12 +8,11 @@ public interface DockerService {
 	/**
 	 * Answer Docker Registry authorization request.
 	 * 
-	 * @param userName
 	 * @param userId
 	 * @param service
 	 * @param scope
 	 * @return
 	 */
-	public DockerAuthorizationToken authorizeDockerAccess(String userName, Long userId, String service, String scope);
+	public DockerAuthorizationToken authorizeDockerAccess(Long userId, String service, String scope);
 
 }

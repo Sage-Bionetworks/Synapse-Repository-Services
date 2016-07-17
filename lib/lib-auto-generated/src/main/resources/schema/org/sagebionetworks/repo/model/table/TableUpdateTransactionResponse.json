@@ -1,0 +1,17 @@
+{
+	"description": "An AsynchronousResponseBody returned from a table update transaction.",
+	"implements":[
+        {
+            "$ref":"org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody"
+        }
+    ],
+	"properties": {
+		"changes": {
+		    "description":"List of responses. There will be one response for each request in the transaction.",
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.table.TableUpdateResponse"
+			}
+		}
+	}
+}

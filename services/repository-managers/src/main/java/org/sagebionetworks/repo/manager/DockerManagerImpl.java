@@ -53,25 +53,30 @@ public class DockerManagerImpl implements DockerManager {
 	/**
 	 * Answer Docker Registry authorization request.
 	 * 
-	 * @param userId
+	 * @param userInfo
 	 * @param service
 	 * @param scope
 	 * @return
 	 */
 	@Override
-	public DockerAuthorizationToken authorizeDockerAccess(String userName, UserInfo userInfo, String service, String scope) {
-		String[] scopeParts = scope.split(":");
-		if (scopeParts.length!=3) throw new RuntimeException("Expected 3 parts but found "+scopeParts.length);
-		String type = scopeParts[0]; // type='repository'
-		String repositoryPath = scopeParts[1]; // i.e. the 'path'
-		String accessTypes = scopeParts[2]; // e.g. push, pull
+	public DockerAuthorizationToken authorizeDockerAccess(UserInfo userInfo, String service, String scope) {
+		String type = null;
+		String repositoryPath = null;
+		List<String> permittedAccessTypes = Collections.EMPTY_LIST;
+		if (scope!=null) {
+			String[] scopeParts = scope.split(":");
+			if (scopeParts.length!=3) throw new RuntimeException("Expected 3 parts but found "+scopeParts.length);
+			type = scopeParts[0]; // type='repository'
+			repositoryPath = scopeParts[1]; // i.e. the 'path'
+			String accessTypes = scopeParts[2]; // e.g. push, pull
+			permittedAccessTypes = getPermittedAccessTypes(userInfo,  service,  type, repositoryPath, accessTypes);
+		}
 
-		List<String> permittedAccessTypes = getPermittedAccessTypes( userName,  userInfo,  service,  type, repositoryPath, accessTypes);
 		// now construct the auth response and return it
 		long now = System.currentTimeMillis();
 		String uuid = UUID.randomUUID().toString();
 
-		String token = DockerTokenUtil.createToken(userName, type, service, repositoryPath, 
+		String token = DockerTokenUtil.createToken(userInfo.getId().toString(), type, service, repositoryPath, 
 				permittedAccessTypes, now, uuid);
 		DockerAuthorizationToken result = new DockerAuthorizationToken();
 		result.setToken(token);
@@ -79,7 +84,7 @@ public class DockerManagerImpl implements DockerManager {
 
 	}
 
-	public List<String> getPermittedAccessTypes(String userName, UserInfo userInfo, 
+	public List<String> getPermittedAccessTypes(UserInfo userInfo, 
 			String service, String type, String repositoryPath, String accessTypes) {
 
 		List<String> permittedAccessTypes = new ArrayList<String>();
@@ -189,8 +194,8 @@ public class DockerManagerImpl implements DockerManager {
 				// need to make sure this is a registry we support
 				String host = event.getRequest().getHost();
 				if (!StackConfiguration.getDockerRegistryHosts().contains(host)) continue;
-				// note the username was authenticated in the authorization check
-				String username = event.getActor().getName();
+				// note the user ID was authenticated in the authorization check
+				Long userId = Long.parseLong(event.getActor().getName());
 				// the 'repository path' does not include the registry host or the tag
 				String repositoryPath = event.getTarget().getRepository();
 				String entityName = host+REPO_NAME_PATH_SEP+repositoryPath;
@@ -199,9 +204,6 @@ public class DockerManagerImpl implements DockerManager {
 				DockerCommit commit = new DockerCommit();
 				commit.setTag(event.getTarget().getTag());
 				commit.setDigest(event.getTarget().getDigest());
-				PrincipalAlias pa = userManager.lookupPrincipalByAlias(username);
-				if(AliasType.TEAM_NAME.equals(pa.getType())) throw new RuntimeException(username+" is a Team name.");
-				Long userId = pa.getPrincipalId();
 
 				String entityId = null;
 				try {

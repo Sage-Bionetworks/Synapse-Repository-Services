@@ -86,9 +86,9 @@ public class S3FileCopyWorker implements MessageDrivenRunner {
 		private final String fileName;
 		private final AsynchronousJobStatus status;
 		private long progressCurrent = 0L;
-		private ProgressCallback<Message> progressCallback;
+		private ProgressCallback<Void> progressCallback;
 
-		S3CopyFileProgressCallback(Message message, long progressTotal, long progressCurrent, String fileName, AsynchronousJobStatus status, ProgressCallback<Message> progressCallback) {
+		S3CopyFileProgressCallback(Message message, long progressTotal, long progressCurrent, String fileName, AsynchronousJobStatus status, ProgressCallback<Void> progressCallback) {
 			this.message = message;
 			this.progressTotal = progressTotal;
 			this.progressCurrent = progressCurrent;
@@ -101,7 +101,7 @@ public class S3FileCopyWorker implements MessageDrivenRunner {
 		public void progressMade(Long sizeTransfered) {
 			progressCurrent += sizeTransfered;
 			asynchJobStatusManager.updateJobProgress(status.getJobId(), progressCurrent, progressTotal, "Copying " + fileName);
-			progressCallback.progressMade(message);
+			progressCallback.progressMade(null);
 		}
 
 		long getProgressCurrent() {
@@ -146,7 +146,7 @@ public class S3FileCopyWorker implements MessageDrivenRunner {
 	 * @throws Throwable
 	 */
 	@Override
-	public void run(ProgressCallback<Message> progressCallback,
+	public void run(ProgressCallback<Void> progressCallback,
 			Message message) throws RecoverableMessageException, Exception {
 		AsynchronousJobStatus status = extractStatus(message);
 		try {

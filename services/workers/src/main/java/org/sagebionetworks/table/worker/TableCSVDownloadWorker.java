@@ -11,6 +11,7 @@ import org.sagebionetworks.common.util.progress.ForwardingProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
+import org.sagebionetworks.repo.manager.asynch.AsynchJobUtils;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -56,17 +57,16 @@ public class TableCSVDownloadWorker implements MessageDrivenRunner {
 	Clock clock;	
 
 	@Override
-	public void run(ProgressCallback<Message> progressCallback, Message message) throws Exception {
-		AsynchronousJobStatus status = extractStatus(message);
+	public void run(ProgressCallback<Void> progressCallback, Message message) throws Exception {
+		AsynchronousJobStatus status = asynchJobStatusManager.lookupJobStatus(message.getBody());
 		String fileName = "Job-"+status.getJobId();
 		File temp = null;
 		CSVWriter writer = null;
 		try{
 			UserInfo user = userManger.getUserInfo(status.getStartedByUserId());
-			DownloadFromTableRequest request = (DownloadFromTableRequest) status.getRequestBody();
+			DownloadFromTableRequest request = AsynchJobUtils.extractRequestBody(status, DownloadFromTableRequest.class);
 			// Before we start determine how many rows there are.
-			ForwardingProgressCallback<Void, Message> forwardCallabck = new ForwardingProgressCallback<Void, Message>(progressCallback, message);
-			QueryResultBundle queryResult = tableQueryManger.querySinglePage(forwardCallabck, user, request.getSql(), request.getSort(), null, null, false, true,
+			QueryResultBundle queryResult = tableQueryManger.querySinglePage(progressCallback, user, request.getSql(), request.getSort(), null, null, false, true,
 					true);
 			long rowCount = queryResult.getQueryCount();
 			// Since each row must first be read from the database then uploaded to S3
@@ -87,7 +87,7 @@ public class TableCSVDownloadWorker implements MessageDrivenRunner {
 			// Execute the actual query and stream the results to the file.
 			DownloadFromTableResult result = null;
 			try{
-				result = tableQueryManger.runConsistentQueryAsStream(forwardCallabck, user, request.getSql(), request.getSort(), stream,
+				result = tableQueryManger.runConsistentQueryAsStream(progressCallback, user, request.getSql(), request.getSort(), stream,
 						includeRowIdAndVersion, writeHeaders);
 			}finally{
 				writer.close();
@@ -133,29 +133,7 @@ public class TableCSVDownloadWorker implements MessageDrivenRunner {
 			}
 		}
 	}
-
-
-	/**
-	 * Extract the AsynchUploadRequestBody from the message.
-	 * @param message
-	 * @return
-	 * @throws JSONObjectAdapterException
-	 */
-	AsynchronousJobStatus extractStatus(Message message) throws JSONObjectAdapterException{
-		if(message == null){
-			throw new IllegalArgumentException("Message cannot be null");
-		}
-		AsynchronousJobStatus status = asynchJobStatusManager.lookupJobStatus(message.getBody());
-		if(status.getRequestBody() == null){
-			throw new IllegalArgumentException("Job body cannot be null");
-		}
-		if (!(status.getRequestBody() instanceof DownloadFromTableRequest)) {
-			throw new IllegalArgumentException("Expected a job body of type: " + DownloadFromTableRequest.class.getName() + " but received: "
-					+ status.getRequestBody().getClass().getName());
-		}
-		return status;
-	}
-
+	
 	/**
 	 * Prepare a writer with the parameters from the request.
 	 * @param writer
