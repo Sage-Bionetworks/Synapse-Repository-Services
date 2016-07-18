@@ -67,7 +67,7 @@ public class ProjectStatsWorker implements MessageDrivenRunner {
 
 
 	@Override
-	public void run(ProgressCallback<Message> progressCallback, Message message)
+	public void run(ProgressCallback<Void> progressCallback, Message message)
 			throws RecoverableMessageException, Exception {
 		try {
 			ModificationMessage modificationMessage = extractStatus(message);

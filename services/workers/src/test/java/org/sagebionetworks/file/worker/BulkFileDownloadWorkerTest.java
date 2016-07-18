@@ -48,7 +48,7 @@ public class BulkFileDownloadWorkerTest {
 	UserManager mockUserManger;
 	BulkDownloadManager mockBulkDownloadManager;
 
-	ProgressCallback<Message> mockProgress;
+	ProgressCallback<Void> mockProgress;
 
 	BulkFileDownloadWorker worker;
 
@@ -189,7 +189,7 @@ public class BulkFileDownloadWorkerTest {
 	@Test
 	public void testRunHappy() throws Exception {
 		worker.run(mockProgress, message);
-		verify(mockProgress, times(1)).progressMade(message);
+		verify(mockProgress, times(1)).progressMade(null);
 		verify(mockAsynchJobStatusManager, times(1)).updateJobProgress(
 				anyString(), anyLong(), anyLong(), anyString());
 
@@ -292,7 +292,7 @@ public class BulkFileDownloadWorkerTest {
 		// call under test.
 		worker.run(mockProgress, message);
 		// progress should be made for each file.
-		verify(mockProgress, times(2)).progressMade(message);
+		verify(mockProgress, times(2)).progressMade(null);
 		verify(mockAsynchJobStatusManager, times(2)).updateJobProgress(
 				anyString(), anyLong(), anyLong(), anyString());
 		

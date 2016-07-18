@@ -2,10 +2,7 @@
     "title":"AppendRowRequest",
 	"implements": [
 		{
-			"$ref": "org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody"
-		},
-		{
-			"$ref": "org.sagebionetworks.repo.model.table.HasEntityId"
+			"$ref": "org.sagebionetworks.repo.model.table.TableUpdateRequest"
 		}
 	],
     "properties":{

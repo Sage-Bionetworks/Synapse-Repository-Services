@@ -2,10 +2,10 @@ package org.sagebionetworks.table.worker;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.sagebionetworks.common.util.progress.ForwardingProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
+import org.sagebionetworks.repo.manager.asynch.AsynchJobUtils;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
@@ -13,7 +13,6 @@ import org.sagebionetworks.repo.model.table.QueryNextPageToken;
 import org.sagebionetworks.repo.model.table.QueryResult;
 import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,14 +35,13 @@ public class TableQueryNextPageWorker implements MessageDrivenRunner {
 	private UserManager userManger;
 
 	@Override
-	public void run(ProgressCallback<Message> progressCallback, Message message)
+	public void run(ProgressCallback<Void> progressCallback, Message message)
 			throws RecoverableMessageException, Exception {
-		AsynchronousJobStatus status = extractStatus(message);
+		AsynchronousJobStatus status = asynchJobStatusManager.lookupJobStatus(message.getBody());
 		try{
 			UserInfo user = userManger.getUserInfo(status.getStartedByUserId());
-			QueryNextPageToken request = (QueryNextPageToken) status.getRequestBody();
-			ForwardingProgressCallback<Void, Message> forwardCallabck = new ForwardingProgressCallback<Void, Message>(progressCallback, message);
-			QueryResult queryResult = tableQueryManger.queryNextPage(forwardCallabck, user, request);
+			QueryNextPageToken request = AsynchJobUtils.extractRequestBody(status, QueryNextPageToken.class);
+			QueryResult queryResult = tableQueryManger.queryNextPage(progressCallback, user, request);
 			asynchJobStatusManager.setComplete(status.getJobId(), queryResult);
 		}catch (TableUnavailableException e){
 			// This just means we cannot do this right now.  We can try again later.
@@ -60,27 +58,4 @@ public class TableQueryNextPageWorker implements MessageDrivenRunner {
 			log.error("Worker failed:", e);
 		}
 	}
-
-
-	/**
-	 * Extract the AsynchUploadRequestBody from the message.
-	 * @param message
-	 * @return
-	 * @throws JSONObjectAdapterException
-	 */
-	AsynchronousJobStatus extractStatus(Message message) throws JSONObjectAdapterException{
-		if(message == null){
-			throw new IllegalArgumentException("Message cannot be null");
-		}
-		AsynchronousJobStatus status = asynchJobStatusManager.lookupJobStatus(message.getBody());
-		if(status.getRequestBody() == null){
-			throw new IllegalArgumentException("Job body cannot be null");
-		}
-		if (!(status.getRequestBody() instanceof QueryNextPageToken)) {
-			throw new IllegalArgumentException("Expected a job body of type: " + QueryNextPageToken.class.getName() + " but received: "
-					+ status.getRequestBody().getClass().getName());
-		}
-		return status;
-	}
-
 }

@@ -33,6 +33,7 @@ import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.dao.asynch.AsynchronousJobStatusDAO;
+import org.sagebionetworks.repo.model.file.BulkFileDownloadRequest;
 import org.sagebionetworks.repo.model.file.S3FileCopyResult;
 import org.sagebionetworks.repo.model.file.S3FileCopyResultType;
 import org.sagebionetworks.repo.model.file.S3FileCopyResults;
@@ -471,6 +472,5 @@ public class AsynchJobStatusManagerImplTest {
 		verify(mockAsynchJobStatusDao, times(1)).startJob(anyLong(), any(AsynchronousRequestBody.class));
 		verify(mockAsynchJobQueuePublisher, times(1)).publishMessage(status);
 	}
-	
 
 }
