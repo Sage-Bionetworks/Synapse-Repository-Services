@@ -3,12 +3,15 @@ package org.sagebionetworks;
 import static org.junit.Assert.*;
 
 import java.net.URL;
+import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
+import org.apache.http.util.EntityUtils;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -32,7 +35,7 @@ public class ITDocker {
 	private static SynapseAdminClient adminSynapse;
 	private static SynapseClient synapseOne;
 	private static Long userToDelete;
-	private static String repoEndpoint;
+	private static String dockerEndpoint;
 	private static String username;
 	private static String password;
 
@@ -52,11 +55,12 @@ public class ITDocker {
 		adminSynapse.clearAllLocks();
 		synapseOne = new SynapseClientImpl();
 		SynapseClientHelper.setEndpoints(synapseOne);
+
+		username = UUID.randomUUID().toString();
+		password = UUID.randomUUID().toString();
 		userToDelete = SynapseClientHelper
-				.createUser(adminSynapse, synapseOne);
-		repoEndpoint = StackConfiguration.getRepositoryServiceEndpoint();
-		username = StackConfiguration.getCloudMailInUser();
-		password = StackConfiguration.getCloudMailInPassword();
+				.createUser(adminSynapse, synapseOne, username, password);
+		dockerEndpoint = StackConfiguration.getDockerServiceEndpoint();
 
 	}
 
@@ -95,16 +99,15 @@ public class ITDocker {
 		String service = "docker.synapse.org";
 		String repoPath = projectId+"/reponame";
 		String scope = TYPE+":"+repoPath+":"+ACCESS_TYPES_STRING;
-		String urlString = repoEndpoint + DOCKER_AUTHORIZATION;
-		urlString += "?" + SERVICE_PARAM + "=" + service;
-		urlString += "&" + SCOPE_PARAM + "=" + scope;
-		URL url = new URL(urlString);
-		HttpResponse response = conn.performRequest(url.toString(), "GET", null,
+		String urlString = dockerEndpoint + DOCKER_AUTHORIZATION;
+		urlString += "?" + SERVICE_PARAM + "=" + URLEncoder.encode(service, "UTF-8");
+		urlString += "&" + SCOPE_PARAM + "=" + URLEncoder.encode(scope, "UTF-8");
+		HttpResponse response = conn.performRequest(urlString, "GET", null,
 				requestHeaders);
+
+		assertNotNull(EntityUtils.toString(response.getEntity()));
 
 		assertEquals(HttpStatus.SC_OK, response.getStatusLine()
 				.getStatusCode());
-
-		assertNotNull(response.getEntity());
 	}
 }
