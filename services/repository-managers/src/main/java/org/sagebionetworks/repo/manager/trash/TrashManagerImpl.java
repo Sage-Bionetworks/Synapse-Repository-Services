@@ -366,7 +366,7 @@ public class TrashManagerImpl implements TrashManager {
 	
 		nodeDao.delete(trashIDs);
 		aclDAO.delete(trashIDs, ObjectType.ENTITY);
-		trashCanDao.delete(trash.getDeletedByPrincipalId(), trashIDs);
+		trashCanDao.delete(trashIDs);
 
 	}
 

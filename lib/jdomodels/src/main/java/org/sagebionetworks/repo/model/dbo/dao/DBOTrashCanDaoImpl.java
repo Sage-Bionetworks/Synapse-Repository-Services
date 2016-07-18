@@ -77,6 +77,9 @@ public class DBOTrashCanDaoImpl implements TrashCanDao {
 			" WHERE " + COL_TRASH_CAN_DELETED_ON + " < :" + COL_TRASH_CAN_DELETED_ON +
 			" ORDER BY " + COL_TRASH_CAN_NODE_ID;
 	
+	private static final String DELETE_TRASH_BY_IDS = 
+			"DELETE FROM " + TABLE_TRASH_CAN + 
+			" WHERE " + COL_TRASH_CAN_NODE_ID + " IN (:ids)";
 	
 	/*
 	  SELECTs trash nodes that are more than NUM_DAYS days old with no children nodes
@@ -306,7 +309,18 @@ public class DBOTrashCanDaoImpl implements TrashCanDao {
 		}
 	}
 	
-	//TODO: delete() that takes in a list
+	
+	@WriteTransaction
+	@Override
+	public void delete(List<Long> nodeIDs){
+		if (nodeIDs == null) {
+			throw new IllegalArgumentException("nodeId cannot be null.");
+		}
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("ids", nodeIDs); //TODO: set "ids" to some variable?
+		simpleJdbcTemplate.update(DELETE_TRASH_BY_IDS, params);
+		
+	}
 
 	private List<TrashedEntity> getNodeList(Long userGroupId, Long nodeId) {
 		MapSqlParameterSource paramMap = new MapSqlParameterSource();

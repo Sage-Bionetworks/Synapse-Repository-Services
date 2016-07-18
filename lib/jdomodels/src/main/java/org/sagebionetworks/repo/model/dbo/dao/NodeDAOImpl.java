@@ -448,6 +448,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	@WriteTransaction
 	@Override
 	public boolean delete(List<Long> IDs) throws DatastoreException{
+		//TODO: USE DELETE IGNORE
 		//TODO: write test for this
 		if(IDs == null){
 			throw new IllegalArgumentException("IDs cannot be null");

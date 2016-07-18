@@ -81,7 +81,13 @@ public interface TrashCanDao {
 	 */
 	void delete(String userGroupId, String nodeId) throws DatastoreException, NotFoundException;
 
-	
+	/**
+	 * Removes all trash items in a list of node IDs
+	 * @param nodeIDs list of trash node IDs as longs
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	void delete(List<Long> nodeIDs) throws DatastoreException, NotFoundException;
 	
 	
 }

@@ -307,6 +307,9 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 	@WriteTransaction
 	@Override
 	public void delete(List<Long> ownerIds, ObjectType ownerType) throws DatastoreException {
+		
+		//TODO: USE "DELETE IGNORE"
+		
 		//TODO: write test for this
 		
 		//sending messages requires iteration to find aclID
@@ -323,7 +326,7 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 		}
 		
 		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue("ids", ownerIds);
+		params.addValue("ids", ownerIds); //TODO: set "ids" to some variable?
 		params.addValue(DBOAccessControlList.OWNER_TYPE_FIELD_NAME, ownerType.name());
 		namedParameterJdbcTemplate.update(SQL_DELETE_ACLS_BY_IDS, params);
 		
