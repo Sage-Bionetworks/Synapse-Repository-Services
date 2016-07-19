@@ -445,7 +445,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		return dboBasicDao.deleteObjectByPrimaryKey(DBONode.class, prams);
 	}
 	
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public boolean delete(List<Long> IDs) throws DatastoreException{
 		//TODO: USE DELETE IGNORE

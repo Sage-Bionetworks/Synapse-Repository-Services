@@ -314,7 +314,7 @@ public class DBOTrashCanDaoImpl implements TrashCanDao {
 	}
 	
 	
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public void delete(List<Long> nodeIDs){
 		if (nodeIDs == null) {

@@ -42,6 +42,7 @@ import org.sagebionetworks.repo.model.message.AclModificationType;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -303,7 +304,7 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 		}
 	}
 	
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public void delete(List<Long> ownerIds, ObjectType ownerType) throws DatastoreException {
 		
