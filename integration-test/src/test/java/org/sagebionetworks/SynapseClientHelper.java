@@ -31,6 +31,10 @@ public class SynapseClientHelper {
 	}
 	
 	public static Long createUser(SynapseAdminClient client, SynapseClient newUserClient, String username) throws SynapseException, JSONObjectAdapterException {
+		return createUser(client, newUserClient, username, "password");
+	}
+	
+	public static Long createUser(SynapseAdminClient client, SynapseClient newUserClient, String username, String password) throws SynapseException, JSONObjectAdapterException {
 		if (newUserClient == null) {
 			newUserClient = new SynapseClientImpl();
 		}
@@ -44,7 +48,7 @@ public class SynapseClientHelper {
 		nu.setSession(session);
 		nu.setEmail(UUID.randomUUID().toString() + "@sagebase.org");
 		nu.setUsername(username);
-		nu.setPassword("password");
+		nu.setPassword(password);
 		Long principalId = client.createUser(nu);
 		client.setCertifiedUserStatus(principalId.toString(), true);
 		return principalId;
