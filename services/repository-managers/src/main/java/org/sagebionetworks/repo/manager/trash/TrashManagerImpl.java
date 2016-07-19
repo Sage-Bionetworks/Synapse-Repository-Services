@@ -378,7 +378,7 @@ public class TrashManagerImpl implements TrashManager {
 	@Override
 	//TODO: There's probably a better name I can use for this method
 	public List<Long> getTrashNumDaysOldNoChildren(long numDays, long maxTrashItems) throws DatastoreException{
-		return trashCanDao.getTrashNumDaysOldNoChildren(numDays,maxTrashItems);
+		return trashCanDao.getTrashLeavesBefore(numDays,maxTrashItems);
 	}
 
 	/**
