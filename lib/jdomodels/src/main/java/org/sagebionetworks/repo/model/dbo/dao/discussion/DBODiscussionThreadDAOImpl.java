@@ -503,8 +503,9 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 	}
 
 	@Override
-	public String getAuthor(String threadId) {
-		List<String> queryResult = jdbcTemplate.query(SELECT_AUTHOR, new RowMapper<String>(){
+	public String getAuthorForUpdate(String threadId) {
+		String query = addCondition(SELECT_AUTHOR, DiscussionFilter.EXCLUDE_DELETED);
+		List<String> queryResult = jdbcTemplate.query(query, new RowMapper<String>(){
 			@Override
 			public String mapRow(ResultSet rs, int rowNum) throws SQLException {
 				return rs.getString(COL_DISCUSSION_THREAD_CREATED_BY);

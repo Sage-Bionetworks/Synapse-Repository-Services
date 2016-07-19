@@ -171,5 +171,6 @@ public interface DiscussionThreadDAO {
 	 * @param threadId
 	 * @return
 	 */
-	public String getAuthor(String threadId);
+	public String getAuthorForUpdate(String threadId);
+
 }
