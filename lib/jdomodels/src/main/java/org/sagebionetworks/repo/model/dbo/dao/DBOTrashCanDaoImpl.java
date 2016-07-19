@@ -30,6 +30,7 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 
 public class DBOTrashCanDaoImpl implements TrashCanDao {
 	private static final String NUM_DAYS_PARAMETER = "NUM_DAYS";
@@ -98,8 +99,8 @@ public class DBOTrashCanDaoImpl implements TrashCanDao {
 			" WHERE T1." + COL_TRASH_CAN_DELETED_ON + " < (NOW() - INTERVAL :" + NUM_DAYS_PARAMETER +" DAY)" +
 			" AND NOT EXISTS (SELECT 1 FROM " + TABLE_TRASH_CAN+" T2"+
 							" WHERE T2." +COL_TRASH_CAN_PARENT_ID + " = T1." + COL_TRASH_CAN_NODE_ID + ")"+
-			" LIMIT :" + LIMIT_PARAM_NAME +
-			" ORDER BY " + COL_TRASH_CAN_NODE_ID;
+			" ORDER BY " + COL_TRASH_CAN_NODE_ID + 
+			" LIMIT :" + LIMIT_PARAM_NAME;
 	
 	private static final RowMapper<DBOTrashedEntity> rowMapper = (new DBOTrashedEntity()).getTableMapping();
 	
