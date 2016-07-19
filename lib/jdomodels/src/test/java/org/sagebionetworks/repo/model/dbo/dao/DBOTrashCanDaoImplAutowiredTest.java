@@ -10,6 +10,7 @@ import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.List;
 
+import org.joda.time.DateTime;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -17,6 +18,8 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.dao.TrashCanDao;
+import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOTrashedEntity;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -29,6 +32,9 @@ public class DBOTrashCanDaoImplAutowiredTest {
 	@Autowired
 	private TrashCanDao trashCanDao;
 
+	@Autowired
+	private DBOBasicDao basicDao;
+	
 	private String userId;
 
 	@Before
@@ -232,6 +238,48 @@ public class DBOTrashCanDaoImplAutowiredTest {
 		assertEquals(1, trashList.size());
 		assertEquals(nodeName, trashList.get(0).getEntityName());
 
+	}
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetTrashLeavesBeforeNegativeNumDays(){//TODO: move to unit test?
+		trashCanDao.getTrashLeavesBefore(-1, 123);
+	}
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetTrashLeavesBeforeNegativeLimit(){//TODO: move to unit test?
+		trashCanDao.getTrashLeavesBefore(123, -1);
+	}
+	
+	@Test 
+	public void testGetTrashLeavesBefore(){
+		final int numNodes = 5;
+		final String nodeNameBase = "DBOTrashCanDaoImplAutowiredTest.testGetTrashLeavesBefore() Node:";
+		final long nodeID = 9000L;
+		final long parentID = 10L;
+		
+		assertTrue(trashCanDao.getCount() == 0);
+		
+		//create trash nodes
+		for(int i = 0; i < numNodes; i++){
+			String stringNodeID = KeyFactory.keyToString(nodeID + i);
+			String stringParentID = KeyFactory.keyToString(parentID + i);
+			createTestNode(userId, stringNodeID, nodeNameBase + i, stringParentID, new Timestamp());//TODO: finish this
+		}
+		
+		
+		
+		
+	}
+	
+	//Basically same as create() in TrashCanDao but can specify the timestamp.
+	private void createTestNode(String userGroupId, String nodeId, String nodeName, String parentId, Timestamp ts){
+		DBOTrashedEntity dbo = new DBOTrashedEntity();
+		dbo.setNodeId(KeyFactory.stringToKey(nodeId));
+		dbo.setNodeName(nodeName);
+		dbo.setDeletedBy(KeyFactory.stringToKey(userGroupId));
+		dbo.setDeletedOn(ts);
+		dbo.setParentId(KeyFactory.stringToKey(parentId));
+		basicDao.createNew(dbo);
 	}
 
 	private void clear() throws Exception {
