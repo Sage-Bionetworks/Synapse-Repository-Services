@@ -177,7 +177,7 @@ public class DiscussionThreadManagerImplTest {
 		DiscussionThreadBundle createdThread = threadManager.createThread(userInfo, createDto);
 		assertNotNull(createdThread);
 		assertEquals(createdThread, dto);
-		Mockito.verify(mockReplyDao).getReplyCount(Long.parseLong(createdThread.getId()), DiscussionFilter.NO_FILTER);
+		Mockito.verify(mockReplyDao).getReplyCount(Long.parseLong(createdThread.getId()), DiscussionFilter.EXCLUDE_DELETED);
 		Mockito.verify(mockTransactionalMessenger).sendMessageAfterCommit(createdThread.getId(), ObjectType.THREAD, dto.getEtag(), ChangeType.CREATE, userInfo.getId());
 		Mockito.verify(mockSubscriptionDao).create(eq(userId.toString()), eq(dto.getId()), eq(SubscriptionObjectType.THREAD));
 	}
