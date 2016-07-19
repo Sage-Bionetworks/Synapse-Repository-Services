@@ -164,6 +164,16 @@ public class DockerManagerImplUnitTest {
 		assertNotNull(token.getToken());
 	}
 	
+	// Docker login calls the authorization service, but without a 'scope' param
+	@Test
+	public void testDockerLogin() throws Exception {
+		// method under test:
+		DockerAuthorizationToken token = dockerManager.
+				authorizeDockerAccess(USER_INFO, SERVICE, null);
+		
+		assertNotNull(token.getToken());
+	}
+	
 	@Test
 	public void testGetPermittedAccessTypesHappyCase() throws Exception {
 		// method under test:

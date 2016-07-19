@@ -1,0 +1,17 @@
+{
+	"description": "An response to a table schema change request.",
+	"implements":[
+        {
+            "$ref": "org.sagebionetworks.repo.model.table.TableUpdateResponse"
+        }
+    ],
+	"properties": {
+		"schema": {
+		    "description":"The resulting schema after the change.",
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.table.ColumnModel"
+			}
+		}
+	}
+}

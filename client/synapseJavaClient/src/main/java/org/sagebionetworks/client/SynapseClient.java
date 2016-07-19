@@ -2545,7 +2545,7 @@ public interface SynapseClient extends BaseClient {
 	DiscussionThreadBundle createThread(CreateDiscussionThread toCreate) throws SynapseException;
 
 	/**
-	 * Get the discussion thread given its ID
+	 * Get an available discussion thread given its ID
 	 * 
 	 * @param threadId
 	 * @return

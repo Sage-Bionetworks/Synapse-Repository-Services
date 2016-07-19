@@ -1,0 +1,10 @@
+{
+    "title":"TableUpdateResponse",
+    "description":"Abstraction for a response to update a table.",
+    "type": "interface",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody"
+		}
+	]
+}

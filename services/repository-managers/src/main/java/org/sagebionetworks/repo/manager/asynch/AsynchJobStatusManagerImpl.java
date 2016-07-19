@@ -204,6 +204,7 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 	@Override
 	public void emptyAllQueues() {
 		asynchJobQueuePublisher.emptyAllQueues();
-	}	
+	}
+	
 
 }

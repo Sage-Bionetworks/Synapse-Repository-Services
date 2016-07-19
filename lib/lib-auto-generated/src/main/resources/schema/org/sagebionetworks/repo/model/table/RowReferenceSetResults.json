@@ -2,7 +2,7 @@
 	"description": "Response of an asynchronous that returns RowReferenceSet.",
 	"implements":[
         {
-            "$ref":"org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody"
+            "$ref":"org.sagebionetworks.repo.model.table.TableUpdateResponse"
         }
     ],
 	"properties": {

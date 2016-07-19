@@ -32,6 +32,7 @@ import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.upload.discussion.MessageKeyUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -89,13 +90,21 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 	public DiscussionThreadBundle getThread(UserInfo userInfo, String threadId) {
 		ValidateArgument.required(threadId, "threadId");
 		UserInfo.validateUserInfo(userInfo);
-		DiscussionFilter filter = DiscussionFilter.EXCLUDE_DELETED;
 		Long threadIdLong = Long.parseLong(threadId);
-		DiscussionThreadBundle thread = threadDao.getThread(threadIdLong, filter);
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccess(userInfo, thread.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
+		DiscussionThreadBundle thread = threadDao.getThread(threadIdLong, DEFAULT_FILTER);
+		if (thread.getIsDeleted()) {
+			try {
+				AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+						authorizationManager.canAccess(userInfo, thread.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.MODERATE));
+			} catch (UnauthorizedException e) {
+				throw new NotFoundException();
+			}
+		} else {
+			AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+					authorizationManager.canAccess(userInfo, thread.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
+		}
 		threadDao.updateThreadView(threadIdLong, userInfo.getId());
-		return updateNumberOfReplies(thread, filter);
+		return updateNumberOfReplies(thread, DiscussionFilter.NO_FILTER);
 	}
 
 	@Override

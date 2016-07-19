@@ -26,7 +26,7 @@ import com.amazonaws.services.sqs.model.Message;
 
 public class ChangeMessageBatchProcessorTest {
 
-	ProgressCallback<Message> mockProgressCallback;
+	ProgressCallback<Void> mockProgressCallback;
 	AmazonSQSClient mockAwsSQSClient;
 	ChangeMessageDrivenRunner mockRunner;
 	String queueName;
@@ -75,7 +75,7 @@ public class ChangeMessageBatchProcessorTest {
 		// The runner should be called twice
 		verify(mockRunner, times(2)).run(any(ProgressCallback.class),
 				any(ChangeMessage.class));
-		verify(mockProgressCallback, times(2)).progressMade(awsMessage);
+		verify(mockProgressCallback, times(2)).progressMade(null);
 	}
 
 	@Test
@@ -88,7 +88,7 @@ public class ChangeMessageBatchProcessorTest {
 		processor.run(mockProgressCallback, awsMessage);
 		verify(mockRunner, times(2)).run(any(ProgressCallback.class),
 				any(ChangeMessage.class));
-		verify(mockProgressCallback, times(2)).progressMade(awsMessage);
+		verify(mockProgressCallback, times(2)).progressMade(null);
 		verify(mockAwsSQSClient).sendMessage(queueUrl,
 				EntityFactory.createJSONStringForEntity(one));
 		verify(mockAwsSQSClient).sendMessage(queueUrl,
@@ -124,7 +124,7 @@ public class ChangeMessageBatchProcessorTest {
 		processor.run(mockProgressCallback, awsMessage);
 		verify(mockRunner, times(2)).run(any(ProgressCallback.class),
 				any(ChangeMessage.class));
-		verify(mockProgressCallback, times(4)).progressMade(awsMessage);
+		verify(mockProgressCallback, times(4)).progressMade(null);
 	}
 	
 	@Test
@@ -148,6 +148,6 @@ public class ChangeMessageBatchProcessorTest {
 		// Even though the first message triggered an error the second was processed.
 		verify(mockRunner, times(2)).run(any(ProgressCallback.class),
 				any(ChangeMessage.class));
-		verify(mockProgressCallback, times(2)).progressMade(awsMessage);
+		verify(mockProgressCallback, times(2)).progressMade(null);
 	}
 }
