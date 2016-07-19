@@ -371,5 +371,6 @@ public interface TableManagerSupport {
 	 * @throws Exception 
 	 */
 	public <R> R callWithAutoProgress(ProgressCallback<Void> callback, Callable<R> callable) throws Exception;
+	
 
 }

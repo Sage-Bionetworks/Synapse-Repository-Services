@@ -1,9 +1,15 @@
 package org.sagebionetworks.table.worker;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.*;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -15,10 +21,12 @@ import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableTransactionManager;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.dao.asynch.AsynchProgress;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
@@ -38,6 +46,8 @@ public class TableTransactionWorkerTest {
 	@Mock
 	TableManagerSupport mockTableManagerSupport; 
 	@Mock
+	UserManager mockUserManager;
+	@Mock
 	ProgressCallback<Void> mockProgressCallback;
 	@Mock
 	Message mockMessage;
@@ -55,6 +65,8 @@ public class TableTransactionWorkerTest {
 	TableUpdateTransactionRequest request;
 	EntityType tableType;
 	TableUpdateTransactionResponse responseBody;
+	Long userId;
+	UserInfo userInfo;
 
 	@Before
 	public void before() throws RecoverableMessageException, TableUnavailableException{
@@ -62,6 +74,11 @@ public class TableTransactionWorkerTest {
 		worker = new TableTransactionWorker();
 		ReflectionTestUtils.setField(worker, "asynchJobStatusManager", mockAsynchJobStatusManager);
 		ReflectionTestUtils.setField(worker, "tableManagerSupport", mockTableManagerSupport);
+		ReflectionTestUtils.setField(worker, "userManager", mockUserManager);
+		
+		userId = 987L;
+		userInfo = new UserInfo(false);
+		userInfo.setId(userId);
 		
 		jobId = "123";
 		tableId = "syn123";
@@ -73,6 +90,7 @@ public class TableTransactionWorkerTest {
 
 		status = new AsynchronousJobStatus();
 		status.setJobId(jobId);
+		status.setStartedByUserId(userId);
 		
 		request = new TableUpdateTransactionRequest();
 		request.setEntityId(tableId);
@@ -83,6 +101,7 @@ public class TableTransactionWorkerTest {
 		when(mockMessage.getBody()).thenReturn(jobId);
 		when(mockAsynchJobStatusManager.lookupJobStatus(jobId)).thenReturn(status);
 		when(mockTableManagerSupport.getTableEntityType(tableId)).thenReturn(tableType);
+		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo);
 		
 		// simulate some progress and return a result
 		doAnswer(new Answer<TableUpdateTransactionResponse>(){
@@ -97,7 +116,7 @@ public class TableTransactionWorkerTest {
 				statusCallback.progressMade(new AsynchProgress(50L, 100L, "half-way"));
 				statusCallback.progressMade(new AsynchProgress(100L, 100L, "done"));
 				return responseBody;
-			}}).when(mockTableTransactionManager).updateTableWithTransaction(any(ProgressCallback.class), any(TableUpdateTransactionRequest.class));
+			}}).when(mockTableTransactionManager).updateTableWithTransaction(any(ProgressCallback.class), any(UserInfo.class), any(TableUpdateTransactionRequest.class));
 
 	}
 	
@@ -113,6 +132,8 @@ public class TableTransactionWorkerTest {
 		verify(mockAsynchJobStatusManager).updateJobProgress(jobId, 100L, 100L, "done");
 		// the job should be set complete
 		verify(mockAsynchJobStatusManager).setComplete(jobId, responseBody);
+		// the managers do the actual transaction work.
+		verify(mockTableTransactionManager).updateTableWithTransaction(any(ProgressCallback.class), eq(userInfo), eq(request));
 	}
 	
 	@Test
@@ -148,7 +169,7 @@ public class TableTransactionWorkerTest {
 		reset(mockTableTransactionManager);
 		when(
 				mockTableTransactionManager.updateTableWithTransaction(
-						any(ProgressCallback.class),
+						any(ProgressCallback.class), any(UserInfo.class),
 						any(TableUpdateTransactionRequest.class))).thenThrow(
 				new TableUnavailableException(null));
 		try {
@@ -168,7 +189,7 @@ public class TableTransactionWorkerTest {
 		reset(mockTableTransactionManager);
 		when(
 				mockTableTransactionManager.updateTableWithTransaction(
-						any(ProgressCallback.class),
+						any(ProgressCallback.class), any(UserInfo.class),
 						any(TableUpdateTransactionRequest.class))).thenThrow(
 				new LockUnavilableException());
 		try {
@@ -188,7 +209,7 @@ public class TableTransactionWorkerTest {
 		reset(mockTableTransactionManager);
 		when(
 				mockTableTransactionManager.updateTableWithTransaction(
-						any(ProgressCallback.class),
+						any(ProgressCallback.class), any(UserInfo.class),
 						any(TableUpdateTransactionRequest.class))).thenThrow(
 				new RecoverableMessageException("message"));
 		try {
@@ -209,7 +230,7 @@ public class TableTransactionWorkerTest {
 		RuntimeException exception = new RuntimeException("message");
 		when(
 				mockTableTransactionManager.updateTableWithTransaction(
-						any(ProgressCallback.class),
+						any(ProgressCallback.class), any(UserInfo.class),
 						any(TableUpdateTransactionRequest.class))).thenThrow(
 				exception);
 		try {

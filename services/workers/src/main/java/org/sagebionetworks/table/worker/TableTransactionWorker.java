@@ -5,11 +5,13 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobUtils;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableTransactionManager;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.dao.asynch.AsynchProgress;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
@@ -40,7 +42,10 @@ public class TableTransactionWorker implements MessageDrivenRunner {
 	AsynchJobStatusManager asynchJobStatusManager;
 	
 	@Autowired
-	TableManagerSupport tableManagerSupport; 
+	TableManagerSupport tableManagerSupport;
+	
+	@Autowired
+	UserManager userManager;
 	
 	Map<EntityType, TableTransactionManager> managerMap;
 	
@@ -61,6 +66,8 @@ public class TableTransactionWorker implements MessageDrivenRunner {
 			TableUpdateTransactionRequest request = AsynchJobUtils.extractRequestBody(status, TableUpdateTransactionRequest.class);
 			ValidateArgument.required(request, "TableUpdateTransactionRequest");
 			ValidateArgument.required(request.getEntityId(), "TableUpdateTransactionRequest.entityId");
+			// Lookup the user that started the job
+			UserInfo userInfo = userManager.getUserInfo(status.getStartedByUserId());
 			// Lookup the type of the table
 			EntityType tableType = tableManagerSupport.getTableEntityType(request.getEntityId());
 			// Lookup the manger for this type
@@ -80,8 +87,9 @@ public class TableTransactionWorker implements MessageDrivenRunner {
 				}
 				
 			};
+			
 			// The manager does the rest of the work.
-			TableUpdateTransactionResponse responseBody = transactionManager.updateTableWithTransaction(statusCallback, request);
+			TableUpdateTransactionResponse responseBody = transactionManager.updateTableWithTransaction(statusCallback, userInfo, request);
 			// Set the job complete.
 			asynchJobStatusManager.setComplete(status.getJobId(), responseBody);
 			log.info("JobId: "+status.getJobId()+" complete");
