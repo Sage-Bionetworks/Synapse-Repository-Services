@@ -316,7 +316,7 @@ public class DBOTrashCanDaoImpl implements TrashCanDao {
 	
 	@WriteTransactionReadCommitted
 	@Override
-	public void delete(List<Long> nodeIDs){
+	public void delete(List<Long> nodeIDs) throws DatastoreException, NotFoundException {
 		if (nodeIDs == null) {
 			throw new IllegalArgumentException("nodeId cannot be null.");
 		}
