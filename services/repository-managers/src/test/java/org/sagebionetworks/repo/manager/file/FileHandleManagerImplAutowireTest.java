@@ -26,6 +26,7 @@ import java.util.UUID;
 import org.apache.commons.fileupload.FileItemIterator;
 import org.apache.commons.fileupload.FileItemStream;
 import org.apache.commons.fileupload.FileUploadException;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.NotImplementedException;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
@@ -335,16 +336,22 @@ public class FileHandleManagerImplAutowireTest {
 		assertTrue(S3TestUtils.doesFileExist(original.getBucketName(), original.getKey(), s3Client, 30000));
 
 		fileUploadManager.deleteFileHandle(userInfo, original.getId());
-		s3Client.getObject(original.getBucketName(), original.getKey());
+		S3Object object1 = s3Client.getObject(original.getBucketName(), original.getKey());
+		IOUtils.closeQuietly(object1.getObjectContent());
 
 		fileUploadManager.deleteFileHandle(userInfo, copy2.getId());
-		s3Client.getObject(copy2.getBucketName(), copy2.getKey());
+		S3Object object2 = s3Client.getObject(copy2.getBucketName(), copy2.getKey());
+		IOUtils.closeQuietly(object2.getObjectContent());
 
 		fileUploadManager.deleteFileHandle(userInfo, copy1.getId());
+		S3Object object3 = null;
 		try {
-			s3Client.getObject(copy2.getBucketName(), copy1.getKey());
+			object3 = s3Client.getObject(copy2.getBucketName(), copy1.getKey());
 			fail("should have been deleted");
 		} catch (AmazonClientException e) {
+		} finally {
+			if (object3 != null)
+				IOUtils.closeQuietly(object3.getObjectContent());
 		}
 	}
 
