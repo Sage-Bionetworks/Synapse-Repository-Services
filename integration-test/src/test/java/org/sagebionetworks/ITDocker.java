@@ -2,7 +2,6 @@ package org.sagebionetworks;
 
 import static org.junit.Assert.*;
 
-import java.net.URL;
 import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.Map;

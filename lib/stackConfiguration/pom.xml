@@ -76,10 +76,7 @@
 
 	<properties>
 		<!-- Build time-determined default property values -->
-		<org.sagebionetworks.authenticationservice.privateendpoint>http://localhost:8080/services-repository-${project.version}/auth/v1</org.sagebionetworks.authenticationservice.privateendpoint>
-		<org.sagebionetworks.authenticationservice.publicendpoint>http://localhost:8080/services-repository-${project.version}/auth/v1</org.sagebionetworks.authenticationservice.publicendpoint>
-		<org.sagebionetworks.repositoryservice.endpoint>http://localhost:8080/services-repository-${project.version}/repo/v1</org.sagebionetworks.repositoryservice.endpoint>
-		<org.sagebionetworks.fileservice.endpoint>http://localhost:8080/services-repository-${project.version}/file/v1</org.sagebionetworks.fileservice.endpoint>
+		<org.sagebionetworks.base.endpoint>http://localhost:8080/services-repository-${project.version}</org.sagebionetworks.base.endpoint>
 	</properties>
 
 	<build>
