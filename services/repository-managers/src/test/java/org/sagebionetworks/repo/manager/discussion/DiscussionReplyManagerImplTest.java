@@ -215,6 +215,14 @@ public class DiscussionReplyManagerImplTest {
 		replyManager.updateReplyMessage(userInfo, replyId.toString(), newMessage);
 	}
 
+	@Test (expected = NotFoundException.class)
+	public void testUpdateReplyMessageForDeletedReply() throws IOException {
+		when(mockReplyDao.getReply(replyId, DiscussionFilter.EXCLUDE_DELETED)).thenThrow(new NotFoundException());
+		UpdateReplyMessage newMessage = new UpdateReplyMessage();
+		newMessage.setMessageMarkdown("messageMarkdown");
+		replyManager.updateReplyMessage(userInfo, replyId.toString(), newMessage);
+	}
+
 	@Test
 	public void testUpdateReplyMessageAuthorized() throws IOException {
 		when(mockAuthorizationManager.isUserCreatorOrAdmin(userInfo, bundle.getCreatedBy())).thenReturn(true);
