@@ -1256,6 +1256,51 @@ public class NodeDAOImplTest {
 		
 	}
 	
+	@Test
+	public void testDeleteList(){
+		List<Long> nodeIDs = new ArrayList<Long>();
+		int numNodes = 3;
+		String rootID = "syn4489"; 
+		//TODO: is there a variable for the root node somewhere? Just going to hardcode it for now
+		
+		//create numNodes amount of Nodes. all children of the root
+		for(int i = 0; i < numNodes; i++){
+			String nodeName = "NodeDAOImplTest.testDeleteList() Node:" + i;
+			Node node = new Node();
+			
+			//set fields for the new node
+			Date now = new Date();
+			node.setName(nodeName);
+			node.setParentId( rootID );//previous added node is the parent
+			node.setNodeType(EntityType.project);//I actually don't really know what this does yet but I saw it in another test
+			node.setModifiedByPrincipalId(creatorUserGroupId);
+			node.setModifiedOn(now);
+			node.setCreatedOn(now);
+			node.setCreatedByPrincipalId(creatorUserGroupId);
+			
+			//create the node in the database and update the parentid to that of the new node
+			String nodeID = nodeDao.createNew(node);
+			assertNotNull(nodeID);
+			
+			nodeIDs.add(KeyFactory.stringToKey(nodeID));
+			toDelete.add(nodeID);//add to cleanup list in case test fails
+		}
+		assertEquals(numNodes, nodeIDs.size());
+		
+		//check that the nodes were added
+		for(Long nodeID : nodeIDs){
+			assertTrue(nodeDao.doesNodeExist(nodeID));
+		}
+		
+		//delete the nodes
+		nodeDao.delete(nodeIDs);
+		
+		//check that the nodes no longer exist
+		for(Long nodeID : nodeIDs){
+			assertFalse(nodeDao.doesNodeExist(nodeID));
+		}
+	}
+	
 	
 	@Test
 	public void testPeekCurrentEtag() throws  Exception {

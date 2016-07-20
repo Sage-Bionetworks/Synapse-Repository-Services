@@ -5,12 +5,14 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import org.junit.After;
@@ -315,6 +317,31 @@ public class DBOAccessControlListDAOImplTest {
 		Long aclId = -598787L;
 		aclDAO.get(aclId);
 	}
+	
+	@Test
+	public void testGetAclIds(){
+		List<Long> nodeIds = new ArrayList<Long>(); 
+		for(Node node : nodeList){
+			nodeIds.add(KeyFactory.stringToKey(node.getId()));
+		}
+		List<Long> aclIds = aclDAO.getAclIds(nodeIds, ObjectType.ENTITY);
+		assertEquals(nodeIds.size(), aclIds.size());
+		for(Long aclId : aclIds){
+			AccessControlList acl2 = aclDAO.get(aclId);
+			assertTrue(aclList.contains(acl2));
+		}
+	}
+	
+	@Test
+	public void testGetAclIdsBadIds(){
+		List<Long> badList = new ArrayList<Long>();
+		badList.add(123L);
+		badList.add(456L);
+		List<Long> aclIDs = aclDAO.getAclIds(badList, ObjectType.ENTITY);
+		assertEquals(0, aclIDs.size());
+	}
+	
+	
 
 	/**
 	 * Test method getOwnerType using AclId
@@ -410,6 +437,24 @@ public class DBOAccessControlListDAOImplTest {
 		assertFalse(aclDAO.canAccess(gs2, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE));
 		assertFalse(aclDAO.canAccess(gs2, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.CREATE));
 		
+	}
+	
+	@Test
+	public void testDeleteList(){
+		List<Long> nodeIds = new ArrayList<Long>();
+		for(Node node: nodeList){
+			nodeIds.add(KeyFactory.stringToKey(node.getId()));
+		}
+		aclDAO.delete(nodeIds, ObjectType.ENTITY);
+		for(Long nodeId: nodeIds){
+			try{
+				aclDAO.get(KeyFactory.keyToString(nodeId), ObjectType.ENTITY);
+				//should not get past here and throw exception ACL was deleted 
+				fail();
+			}catch (NotFoundException e){
+				//expected
+			}
+		}
 	}
 
 }
