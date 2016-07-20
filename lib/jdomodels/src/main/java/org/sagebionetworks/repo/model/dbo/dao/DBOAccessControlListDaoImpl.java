@@ -59,6 +59,7 @@ import com.google.common.collect.Sets.SetView;
 
 public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 	static private Log log = LogFactory.getLog(DBOAccessControlListDaoImpl.class);	
+	private static final String IDS_PARAM_NAME = "ids_param";
 
 	private static final String SELECT_ACCESS_TYPES_FOR_RESOURCE = "SELECT "+COL_RESOURCE_ACCESS_TYPE_ELEMENT+" FROM "+TABLE_RESOURCE_ACCESS_TYPE+" WHERE "+COL_RESOURCE_ACCESS_TYPE_ID+" = ?";
 
@@ -77,10 +78,10 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 			" WHERE "+COL_ACL_OWNER_ID+" = ? AND "+COL_ACL_OWNER_TYPE+" = ?";
 	
 	private static final String SQL_SELECT_ACL_IDS_FOR_RESOURCE = "SELECT "+COL_ACL_ID +" FROM "+TABLE_ACCESS_CONTROL_LIST+
-			" WHERE "+COL_ACL_OWNER_ID+" IN (:ids) AND "+COL_ACL_OWNER_TYPE+" = :" + COL_ACL_OWNER_TYPE + " ORDER BY " + COL_ACL_OWNER_ID;
+			" WHERE "+COL_ACL_OWNER_ID+" IN (:"+IDS_PARAM_NAME+") AND "+COL_ACL_OWNER_TYPE+" = :" + COL_ACL_OWNER_TYPE + " ORDER BY " + COL_ACL_OWNER_ID;
 	
 	private static final String SQL_DELETE_ACLS_BY_IDS = "DELETE FROM " + TABLE_ACCESS_CONTROL_LIST + 
-														" WHERE " + COL_ACL_OWNER_ID + " IN (:ids)"+
+														" WHERE " + COL_ACL_OWNER_ID + " IN (:"+IDS_PARAM_NAME+")"+
 														" AND " +  COL_ACL_OWNER_TYPE + " = :" + DBOAccessControlList.OWNER_TYPE_FIELD_NAME;
 	
 	/**
@@ -195,10 +196,9 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 	
 	@Override
 	public List<Long> getAclIds(List<Long> nodeIds, ObjectType objectType){
-		//TODO: write test for this later
 		try {
 			MapSqlParameterSource params = new MapSqlParameterSource();
-			params.addValue("ids", nodeIds); //TODO: set "ids" to some variable?
+			params.addValue(IDS_PARAM_NAME, nodeIds); 
 			params.addValue(COL_ACL_OWNER_TYPE, objectType.name());
 			return namedParameterJdbcTemplate.query(SQL_SELECT_ACL_IDS_FOR_RESOURCE, params, rowMapperACLId);
 		} catch (EmptyResultDataAccessException e) {
@@ -333,7 +333,6 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 	@WriteTransactionReadCommitted
 	@Override
 	public void delete(List<Long> ownerIds, ObjectType ownerType) throws DatastoreException {
-		//TODO: write test for this
 		
 		List<Long> ACLIds = getAclIds(ownerIds, ownerType);
 		for(Long aclID : ACLIds){
@@ -341,7 +340,7 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 		}
 		
 		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue("ids", ownerIds); //TODO: set "ids" to some variable?
+		params.addValue(IDS_PARAM_NAME, ownerIds);
 		params.addValue(DBOAccessControlList.OWNER_TYPE_FIELD_NAME, ownerType.name());
 		namedParameterJdbcTemplate.update(SQL_DELETE_ACLS_BY_IDS, params);
 		

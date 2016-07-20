@@ -292,7 +292,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			+" FROM "+TABLE_REVISION
 			+" WHERE "+COL_REVISION_OWNER_NODE+" = ?";
 	
-	private static final String SQL_DELETE_BY_IDS = "DELETE FROM " + TABLE_NODE + " WHERE ID IN (:ids)";
+	private static final String SQL_DELETE_BY_IDS = "DELETE FROM " + TABLE_NODE + " WHERE ID IN (:"+ IDS_PARAM_NAME+")";
 	
 	@WriteTransaction
 	@Override
@@ -448,7 +448,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	@WriteTransactionReadCommitted
 	@Override
 	public boolean delete(List<Long> IDs) throws DatastoreException{
-		//TODO: write test for this
 		if(IDs == null){
 			throw new IllegalArgumentException("IDs cannot be null");
 		}
@@ -456,7 +455,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			String stringID = KeyFactory.keyToString(ID);
 			transactionalMessenger.sendMessageAfterCommit(stringID, ObjectType.ENTITY, ChangeType.DELETE);
 		}
-		MapSqlParameterSource parameters = new MapSqlParameterSource("ids", IDs);
+		MapSqlParameterSource parameters = new MapSqlParameterSource(IDS_PARAM_NAME, IDs);
 		int count = namedParameterJdbcTemplate.update(SQL_DELETE_BY_IDS, parameters);
 		return count == IDs.size(); //I saw this kind of thing in deleteObjectByPrimaryKey() of DBOBasicDaoImpl
 	}

@@ -33,8 +33,9 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 
 public class DBOTrashCanDaoImpl implements TrashCanDao {
-	private static final String NUM_DAYS_PARAMETER = "NUM_DAYS";
-
+	private static final String NUM_DAYS_PARAM_NAME = "num_days_param";
+	private static final String IDS_PARAM_NAME = "ids_param";
+	
 	private static final String SELECT_COUNT =
 			"SELECT COUNT("+ COL_TRASH_CAN_NODE_ID + ") FROM " + TABLE_TRASH_CAN;
 
@@ -80,7 +81,7 @@ public class DBOTrashCanDaoImpl implements TrashCanDao {
 	
 	private static final String DELETE_TRASH_BY_IDS = 
 			"DELETE FROM " + TABLE_TRASH_CAN + 
-			" WHERE " + COL_TRASH_CAN_NODE_ID + " IN (:ids)";
+			" WHERE " + COL_TRASH_CAN_NODE_ID + " IN (:"+IDS_PARAM_NAME+")";
 	
 	/*
 	  SELECTs trash nodes that are more than NUM_DAYS days old with no children nodes
@@ -96,7 +97,7 @@ public class DBOTrashCanDaoImpl implements TrashCanDao {
 	private static final String SELECT_TRASH_BEFORE_NUM_DAYS_LEAVES_ONLY =
 			"SELECT " + COL_TRASH_CAN_NODE_ID +
 			" FROM " + TABLE_TRASH_CAN + " T1" +
-			" WHERE T1." + COL_TRASH_CAN_DELETED_ON + " < (NOW() - INTERVAL :" + NUM_DAYS_PARAMETER +" DAY)" +
+			" WHERE T1." + COL_TRASH_CAN_DELETED_ON + " < (NOW() - INTERVAL :" + NUM_DAYS_PARAM_NAME +" DAY)" +
 			" AND NOT EXISTS (SELECT 1 FROM " + TABLE_TRASH_CAN+" T2"+
 							" WHERE T2." +COL_TRASH_CAN_PARENT_ID + " = T1." + COL_TRASH_CAN_NODE_ID + ")"+
 			" ORDER BY " + COL_TRASH_CAN_NODE_ID + 
@@ -284,7 +285,7 @@ public class DBOTrashCanDaoImpl implements TrashCanDao {
 		}
 		
 		MapSqlParameterSource paramMap = new MapSqlParameterSource();
-		paramMap.addValue(NUM_DAYS_PARAMETER, numDays);
+		paramMap.addValue(NUM_DAYS_PARAM_NAME, numDays);
 		paramMap.addValue(LIMIT_PARAM_NAME, limit);
 		
 		return namedParameterJdbcTemplate.query(SELECT_TRASH_BEFORE_NUM_DAYS_LEAVES_ONLY, paramMap, rowMapperNodeId);
@@ -321,7 +322,7 @@ public class DBOTrashCanDaoImpl implements TrashCanDao {
 			throw new IllegalArgumentException("nodeId cannot be null.");
 		}
 		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue("ids", nodeIDs); //TODO: set "ids" to some variable?
+		params.addValue(IDS_PARAM_NAME, nodeIDs); 
 		namedParameterJdbcTemplate.update(DELETE_TRASH_BY_IDS, params);
 		
 	}
