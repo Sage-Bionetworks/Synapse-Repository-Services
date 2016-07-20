@@ -26,10 +26,10 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
 public class DBODockerManagedRepositoryName implements MigratableDatabaseObject<DBODockerManagedRepositoryName, DBODockerManagedRepositoryName> {
 
 	@Field(name = COL_DOCKER_REPOSITORY_OWNER_ID, backupId = true, primary = true, nullable = false)
-	@ForeignKey(table = TABLE_NODE, field = COL_NODE_ID, cascadeDelete = true)
+	@ForeignKey(table = TABLE_NODE, field = COL_NODE_ID, cascadeDelete = true, name = "DOCKER_REPO_NAME_FK")
 	private Long owner;
 
-	@Field(name = COL_DOCKER_REPOSITORY_NAME, backupId = true, primary = true, nullable = false)
+	@Field(name = COL_DOCKER_REPOSITORY_NAME, varchar = 512, backupId = false, primary = false, nullable = false)
 	private String repositoryName;
 
 	private static TableMapping<DBODockerManagedRepositoryName> TABLE_MAPPING = 
