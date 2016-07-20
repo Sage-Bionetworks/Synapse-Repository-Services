@@ -7,9 +7,11 @@ import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyMap;
 import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.anyInt;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.never;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -97,6 +99,12 @@ public class SharedClientConnectionTest {
 		when(mockClientProvider.performRequest(any(String.class),any(String.class),any(String.class),requestHeaderCaptor.capture())).thenReturn(mockResponse);
 		when(mockClientProvider.execute(any(HttpUriRequest.class))).thenReturn(mockResponse);
 		sharedClientConnection.setRetryRequestIfServiceUnavailable(false);
+	}
+	
+	@Test
+	public void testTimeoutsDontChange() {
+		verify(mockClientProvider, never()).setGlobalConnectionTimeout(anyInt());
+		verify(mockClientProvider, never()).setGlobalSocketTimeout(anyInt());
 	}
 
 	@Test
