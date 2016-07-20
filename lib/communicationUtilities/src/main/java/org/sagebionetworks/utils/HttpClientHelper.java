@@ -418,7 +418,7 @@ public class HttpClientHelper {
 		HttpEntity responseEntity = response.getEntity();
 		String responseBody = null;
 		if (responseEntity != null) {
-			EntityUtils.toString(responseEntity);
+			responseBody = EntityUtils.toString(responseEntity);
 			EntityUtils.consumeQuietly(responseEntity);
 //			InputStream responseContent = (null == responseEntity ? null : responseEntity.getContent());
 //			if (responseContent != null) {
