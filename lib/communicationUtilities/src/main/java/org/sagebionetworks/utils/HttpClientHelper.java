@@ -416,11 +416,7 @@ public class HttpClientHelper {
 		if (statusCode>=200 && statusCode<300) return;
 		String statusMessage = response.getStatusLine().getReasonPhrase();
 		HttpEntity responseEntity = response.getEntity();
-		String responseBody = "";
-		if (responseEntity != null) {
-			responseBody = EntityUtils.toString(responseEntity);
-			EntityUtils.consumeQuietly(responseEntity);
-		}
+		String responseBody = (null == responseEntity) ? "" : EntityUtils.toString(responseEntity);
 		throw new HttpClientHelperException(responseBody, statusCode, statusMessage);
 	}
 
