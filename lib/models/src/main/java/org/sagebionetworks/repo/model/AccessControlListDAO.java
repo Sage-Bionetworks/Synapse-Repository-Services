@@ -43,6 +43,16 @@ public interface AccessControlListDAO  {
 	public Long getAclId(String id, ObjectType objectType) throws DatastoreException, NotFoundException;
 	
 	/**
+	 * Get the ACL IDs using ownerId and objectType, if they exist
+	 * .
+	 * @param ownerIds List of ownerId as long
+	 * @param objectType
+	 * @return List of ACL Ids as longs. Sorted in ascending order by their corresponding ownerIds 
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	public List<Long> getAclIds(List<Long> ownerIds, ObjectType objectType);	
+	/**
 	 * Get an ACL using the ACL's ID
 	 * @param id - the id of the acl (not the ownerId)
 	 * @return
@@ -98,6 +108,8 @@ public interface AccessControlListDAO  {
 	 */
 	public Set<Long> getAccessibleBenefactors(Set<Long> groups, Set<Long> benefactors,
 			ObjectType entity, ACCESS_TYPE read);
+
+	
 
 	
 }

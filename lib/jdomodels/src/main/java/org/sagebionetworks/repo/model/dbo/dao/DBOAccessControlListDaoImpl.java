@@ -6,6 +6,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_OWNE
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_OWNER;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_TYPE_ELEMENT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_TYPE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TRASH_CAN_NODE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS_CONTROL_LIST;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_RESOURCE_ACCESS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_RESOURCE_ACCESS_TYPE;
@@ -74,9 +75,13 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 
 	private static final String SQL_SELECT_ACL_ID_FOR_RESOURCE = "SELECT "+COL_ACL_ID+" FROM "+TABLE_ACCESS_CONTROL_LIST+
 			" WHERE "+COL_ACL_OWNER_ID+" = ? AND "+COL_ACL_OWNER_TYPE+" = ?";
+	
+	private static final String SQL_SELECT_ACL_IDS_FOR_RESOURCE = "SELECT "+COL_ACL_ID +" FROM "+TABLE_ACCESS_CONTROL_LIST+
+			" WHERE "+COL_ACL_OWNER_ID+" IN (:ids) AND "+COL_ACL_OWNER_TYPE+" = :" + COL_ACL_OWNER_TYPE + " ORDER BY " + COL_ACL_OWNER_ID;
+	
 	private static final String SQL_DELETE_ACLS_BY_IDS = "DELETE FROM " + TABLE_ACCESS_CONTROL_LIST + 
-														" WHERE " + DBOAccessControlList.OWNER_ID_FIELD_NAME + " IN (:ids)"+
-														" AND " +  DBOAccessControlList.OWNER_TYPE_FIELD_NAME + " = :" + DBOAccessControlList.OWNER_TYPE_FIELD_NAME;
+														" WHERE " + COL_ACL_OWNER_ID + " IN (:ids)"+
+														" AND " +  COL_ACL_OWNER_TYPE + " = :" + DBOAccessControlList.OWNER_TYPE_FIELD_NAME;
 	
 	/**
 	 * Keep a copy of the row mapper.
@@ -84,7 +89,15 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 	private static RowMapper<DBOAccessControlList> aclRowMapper = (new DBOAccessControlList()).getTableMapping();
 
 	private static final RowMapper<DBOResourceAccess> accessMapper = new DBOResourceAccess().getTableMapping();
-
+	
+	private static final RowMapper<Long> rowMapperACLId= new RowMapper<Long>(){
+		@Override
+		public
+		Long mapRow(ResultSet rs, int rowNum) throws SQLException{
+			return rs.getLong(COL_ACL_ID);
+		}
+	};
+	
 	private static final Function<ResourceAccess, Long> RESOURCE_ACCESS_TO_PRINCIPAL_TRANSFORMER = new Function<ResourceAccess, Long>() {
 		@Override
 		public Long apply(ResourceAccess input) {
@@ -177,6 +190,19 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 			return jdbcTemplate.queryForObject(SQL_SELECT_ACL_ID_FOR_RESOURCE, Long.class, KeyFactory.stringToKey(id), objectType.name());
 		} catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException("Acl " + id + " not found");
+		}
+	}
+	
+	@Override
+	public List<Long> getAclIds(List<Long> nodeIds, ObjectType objectType){
+		//TODO: write test for this later
+		try {
+			MapSqlParameterSource params = new MapSqlParameterSource();
+			params.addValue("ids", nodeIds); //TODO: set "ids" to some variable?
+			params.addValue(COL_ACL_OWNER_TYPE, objectType.name());
+			return namedParameterJdbcTemplate.query(SQL_SELECT_ACL_IDS_FOR_RESOURCE, params, rowMapperACLId);
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException("None of the Acl ids could not be found");
 		}
 	}
 
@@ -307,22 +333,11 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 	@WriteTransactionReadCommitted
 	@Override
 	public void delete(List<Long> ownerIds, ObjectType ownerType) throws DatastoreException {
-		
-		//TODO: USE "DELETE IGNORE"
-		
 		//TODO: write test for this
 		
-		//sending messages requires iteration to find aclID
-		for(long id: ownerIds){ //TODO: may be able to do this all in one SQL query. change later
-			final String stringID = KeyFactory.keyToString(id);
-			try{
-				Long dboId = getAclId(stringID, ownerType);
-				transactionalMessenger.sendMessageAfterCommit(dboId.toString(), ObjectType.ACCESS_CONTROL_LIST, 
-						UUID.randomUUID().toString(), ChangeType.DELETE);
-			}catch (NotFoundException e){
-				// if there is no valid AclId for this ownerId and ownerType, do nothing
-				log.info("Atempted to delete an ACL that does not exist. OwnerId: " + stringID + ", ownerType: " + ownerType);
-			}
+		List<Long> ACLIds = getAclIds(ownerIds, ownerType);
+		for(Long aclID : ACLIds){
+			transactionalMessenger.sendMessageAfterCommit(aclID.toString(), ObjectType.ACCESS_CONTROL_LIST, UUID.randomUUID().toString(), ChangeType.DELETE);
 		}
 		
 		MapSqlParameterSource params = new MapSqlParameterSource();
