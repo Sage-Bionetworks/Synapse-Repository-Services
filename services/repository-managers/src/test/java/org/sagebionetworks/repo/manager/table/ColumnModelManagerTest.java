@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.model.table;
+package org.sagebionetworks.repo.manager.table;
 
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.verify;
@@ -23,6 +23,10 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
+import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
+import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -361,5 +365,30 @@ public class ColumnModelManagerTest {
 		when(mockColumnModelDAO.getColumnModel(scheamIds, false)).thenReturn(schema);
 		//call under test
 		columnModelManager.bindColumnToObject(user, scheamIds, objectId);
+	}
+	
+	/**
+	 * Check the max columns per table.
+	 */
+	@Test
+	public void testOverMaxColumnsPerTable(){
+		String objectId = "syn123";
+		List<String> scheamIds = Lists.newArrayList();
+		List<ColumnModel> schema = Lists.newArrayList();
+		int numberOfColumns = ColumnModelManagerImpl.MY_SQL_MAX_COLUMNS_PER_TABLE+1;
+		for(int i=0; i<numberOfColumns; i++){
+			ColumnModel cm = TableModelTestUtils.createColumn((long)i, "c"+i, ColumnType.BOOLEAN);
+			cm.setMaximumSize(1000L);
+			schema.add(cm);
+			scheamIds.add(""+cm.getId());
+		}
+		when(mockColumnModelDAO.getColumnModel(scheamIds, false)).thenReturn(schema);
+		try {
+			//call under test
+			columnModelManager.bindColumnToObject(user, scheamIds, objectId);
+			fail("should have failed");
+		} catch (IllegalArgumentException e) {
+			assertTrue(e.getMessage().startsWith("Too many columns"));
+		}
 	}
 }
