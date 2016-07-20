@@ -44,5 +44,39 @@ public class MySqlColumnTypeTest {
 		Integer size = MySqlColumnType.parseSize(typeString);
 		assertEquals(null, size);
 	}
+	
+	@Test
+	public void testBigIntHasSize(){
+		assertTrue(MySqlColumnType.BIGINT.hasSize());
+	}
+	
+	@Test
+	public void testVarCharHasSize(){
+		assertTrue(MySqlColumnType.VARCHAR.hasSize());
+	}
+	
+	@Test
+	public void testDoubleHasSize(){
+		assertFalse(MySqlColumnType.DOUBLE.hasSize());
+	}
 
+	@Test
+	public void testBooleanHasSize(){
+		assertFalse(MySqlColumnType.BOOLEAN.hasSize());
+	}
+	
+	@Test
+	public void testMediumTextHasSize(){
+		assertFalse(MySqlColumnType.MEDIUMTEXT.hasSize());
+	}
+	
+	@Test
+	public void testTinyIntHasSize(){
+		assertTrue(MySqlColumnType.TINYINT.hasSize());
+	}
+	
+	@Test
+	public void testEnumHasSize(){
+		assertFalse(MySqlColumnType.ENUM.hasSize());
+	}
 }

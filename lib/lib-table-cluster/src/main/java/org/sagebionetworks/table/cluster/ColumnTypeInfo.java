@@ -48,7 +48,7 @@ public enum ColumnTypeInfo {
 		if(inputSize != null){
 			size = inputSize;
 		}
-		if(size != null){
+		if(size != null && mySqlType.hasSize()){
 			builder.append("(");
 			builder.append(size);
 			builder.append(")");
