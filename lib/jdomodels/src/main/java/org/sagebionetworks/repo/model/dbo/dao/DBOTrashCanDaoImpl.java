@@ -106,7 +106,7 @@ public class DBOTrashCanDaoImpl implements TrashCanDao {
 	
 	//TODO: should this be placed here or in separate java file?
 	//rowMapper used in getTrashNumDaysOldNoChildren()
-	private static final RowMapper<Long> rowMapperLong = new RowMapper<Long>(){
+	private static final RowMapper<Long> rowMapperNodeId = new RowMapper<Long>(){
 		@Override
 		public
 		Long mapRow(ResultSet rs, int rowNum) throws SQLException{
@@ -287,7 +287,7 @@ public class DBOTrashCanDaoImpl implements TrashCanDao {
 		paramMap.addValue(NUM_DAYS_PARAMETER, numDays);
 		paramMap.addValue(LIMIT_PARAM_NAME, limit);
 		
-		return namedParameterJdbcTemplate.query(SELECT_TRASH_BEFORE_NUM_DAYS_LEAVES_ONLY, paramMap, rowMapperLong);
+		return namedParameterJdbcTemplate.query(SELECT_TRASH_BEFORE_NUM_DAYS_LEAVES_ONLY, paramMap, rowMapperNodeId);
 	}
 	
 	
