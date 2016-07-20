@@ -448,7 +448,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	@WriteTransactionReadCommitted
 	@Override
 	public boolean delete(List<Long> IDs) throws DatastoreException{
-		//TODO: USE DELETE IGNORE
 		//TODO: write test for this
 		if(IDs == null){
 			throw new IllegalArgumentException("IDs cannot be null");
@@ -458,7 +457,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			transactionalMessenger.sendMessageAfterCommit(stringID, ObjectType.ENTITY, ChangeType.DELETE);
 		}
 		MapSqlParameterSource parameters = new MapSqlParameterSource("ids", IDs);
-		int count = jdbcTemplate.update(SQL_DELETE_BY_IDS, parameters);
+		int count = namedParameterJdbcTemplate.update(SQL_DELETE_BY_IDS, parameters);
 		return count == IDs.size(); //I saw this kind of thing in deleteObjectByPrimaryKey() of DBOBasicDaoImpl
 	}
 	
