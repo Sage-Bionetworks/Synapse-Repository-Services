@@ -49,7 +49,7 @@ public class ExternalDockerRepoValidatorTest {
 	@Test
 	public void testValidateEntityHappyCase() throws Exception {
 		DockerRepository repo = new DockerRepository();
-		repo.setName("quay.io/uname/myrepo");
+		repo.setRepositoryName("quay.io/uname/myrepo");
 		repo.setParentId(PARENT_ID);
 		EventType type = EventType.CREATE;
 		EntityHeader parentHeader = new EntityHeader();
@@ -64,7 +64,7 @@ public class ExternalDockerRepoValidatorTest {
 	@Test(expected=IllegalArgumentException.class)
 	public void testValidateEntityParentIsNotProject() throws Exception {
 		DockerRepository repo = new DockerRepository();
-		repo.setName("quay.io/uname/myrepo");
+		repo.setRepositoryName("quay.io/uname/myrepo");
 		repo.setParentId(PARENT_ID);
 		EventType type = EventType.CREATE;
 		EntityHeader parentHeader = new EntityHeader();
@@ -79,7 +79,7 @@ public class ExternalDockerRepoValidatorTest {
 	@Test(expected=IllegalArgumentException.class)
 	public void testValidateEntityMissingParentId() throws Exception {
 		DockerRepository repo = new DockerRepository();
-		repo.setName("quay.io/uname/myrepo");
+		repo.setRepositoryName("quay.io/uname/myrepo");
 		EventType type = EventType.CREATE;
 		EntityEvent event = new EntityEvent(type, null, null);
 		provider.validateEntity(repo, event);
@@ -88,7 +88,7 @@ public class ExternalDockerRepoValidatorTest {
 	@Test(expected=InvalidModelException.class)
 	public void testValidateEntityManagedHost() throws Exception {
 		DockerRepository repo = new DockerRepository();
-		repo.setName("docker.synapse.org/uname/myrepo");
+		repo.setRepositoryName("docker.synapse.org/uname/myrepo");
 		repo.setParentId(PARENT_ID);
 		EventType type = EventType.CREATE;
 		EntityEvent event = new EntityEvent(type, null, null);
@@ -98,7 +98,7 @@ public class ExternalDockerRepoValidatorTest {
 	@Test(expected=InvalidModelException.class)
 	public void testValidateEntityReservedHost() throws Exception {
 		DockerRepository repo = new DockerRepository();
-		repo.setName("newrepo.synapse.org/uname/myrepo");
+		repo.setRepositoryName("newrepo.synapse.org/uname/myrepo");
 		repo.setParentId(PARENT_ID);
 		EventType type = EventType.CREATE;
 		EntityEvent event = new EntityEvent(type, null, null);
@@ -108,7 +108,7 @@ public class ExternalDockerRepoValidatorTest {
 	@Test(expected=IllegalArgumentException.class)
 	public void testValidateEntityIllegalName() throws Exception {
 		DockerRepository repo = new DockerRepository();
-		repo.setName("/invalid/");
+		repo.setRepositoryName("/invalid/");
 		repo.setParentId(PARENT_ID);
 		EventType type = EventType.CREATE;
 		EntityEvent event = new EntityEvent(type, null, null);
@@ -117,7 +117,7 @@ public class ExternalDockerRepoValidatorTest {
 	
 	public void testValidateEntityUpdate() throws Exception {
 		DockerRepository repo = new DockerRepository();
-		repo.setName("quay.io/uname/myrepo");
+		repo.setRepositoryName("quay.io/uname/myrepo");
 		repo.setParentId(PARENT_ID);
 		EventType type = EventType.UPDATE;
 		EntityHeader parentHeader = new EntityHeader();

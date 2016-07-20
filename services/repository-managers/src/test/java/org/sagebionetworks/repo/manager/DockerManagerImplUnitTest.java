@@ -9,7 +9,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -32,15 +31,12 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.docker.DockerAuthorizationToken;
-import org.sagebionetworks.repo.model.docker.DockerRegistryEvent;
 import org.sagebionetworks.repo.model.docker.DockerRegistryEventList;
 import org.sagebionetworks.repo.model.docker.DockerRepository;
 import org.sagebionetworks.repo.model.docker.RegistryEventAction;
-import org.sagebionetworks.repo.model.docker.RegistryEventActor;
-import org.sagebionetworks.repo.model.docker.RegistryEventRequest;
-import org.sagebionetworks.repo.model.docker.RegistryEventTarget;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
+import org.sagebionetworks.util.DockerRegistryEventUtil;
 import org.springframework.test.util.ReflectionTestUtils;
 
 
@@ -247,35 +243,12 @@ public class DockerManagerImplUnitTest {
 		assertTrue(permitted.toString(), permitted.isEmpty());
 	}
 	
-	// helper function to construct registry events in the prescribed format
-	private static DockerRegistryEventList createEvent(
-			RegistryEventAction action, String host, long userId, String repositoryPath, String tag, String digest) {
-		DockerRegistryEvent event = new DockerRegistryEvent();
-		event.setAction(action);
-		RegistryEventRequest eventRequest = new RegistryEventRequest();
-		event.setRequest(eventRequest);
-		eventRequest.setHost(host);
-		RegistryEventActor eventActor = new RegistryEventActor();
-		event.setActor(eventActor);
-		eventActor.setName(""+userId);
-		RegistryEventTarget target = new RegistryEventTarget();
-		target.setRepository(repositoryPath);
-		target.setTag(tag);
-		target.setDigest(digest);
-		event.setTarget(target);
-		DockerRegistryEventList eventList = new DockerRegistryEventList();
-		List<DockerRegistryEvent> events = new ArrayList<DockerRegistryEvent>();
-		eventList.setEvents(events);
-		events.add(event);
-		return eventList;
-	}
-	
 	@Test
 	public void testDockerRegistryNotificationPushNEWEntity() {
 		when(dockerNodeDao.getEntityIdForRepositoryName(REPOSITORY_NAME)).thenReturn(null);
 
 		DockerRegistryEventList events = 
-				createEvent(RegistryEventAction.push, REGISTRY_HOST, USER_ID, REPOSITORY_PATH, TAG, DIGEST);
+				DockerRegistryEventUtil.createDockerRegistryEvent(RegistryEventAction.push, REGISTRY_HOST, USER_ID, REPOSITORY_PATH, TAG, DIGEST);
 		
 		// method under test:
 		dockerManager.dockerRegistryNotification(events);
@@ -293,7 +266,7 @@ public class DockerManagerImplUnitTest {
 	@Test
 	public void testDockerRegistryNotificationPushExistingEntity() {
 		DockerRegistryEventList events = 
-				createEvent(RegistryEventAction.push, REGISTRY_HOST, USER_ID, REPOSITORY_PATH, TAG, DIGEST);
+				DockerRegistryEventUtil.createDockerRegistryEvent(RegistryEventAction.push, REGISTRY_HOST, USER_ID, REPOSITORY_PATH, TAG, DIGEST);
 		
 		// method under test:
 		dockerManager.dockerRegistryNotification(events);
@@ -308,7 +281,7 @@ public class DockerManagerImplUnitTest {
 		when(dockerNodeDao.getEntityIdForRepositoryName(REPOSITORY_NAME)).thenReturn(null);
 
 		DockerRegistryEventList events = 
-				createEvent(RegistryEventAction.push, "quay.io", USER_ID, REPOSITORY_PATH, TAG, DIGEST);
+				createDockerRegistryEvent(RegistryEventAction.push, "quay.io", USER_ID, REPOSITORY_PATH, TAG, DIGEST);
 		
 		// method under test:
 		dockerManager.dockerRegistryNotification(events);
@@ -322,7 +295,7 @@ public class DockerManagerImplUnitTest {
 		parentHeader.setType(EntityType.folder.name());
 
 		DockerRegistryEventList events = 
-				createEvent(RegistryEventAction.push, REGISTRY_HOST, USER_ID, REPOSITORY_PATH, TAG, DIGEST);
+				createDockerRegistryEvent(RegistryEventAction.push, REGISTRY_HOST, USER_ID, REPOSITORY_PATH, TAG, DIGEST);
 		
 		// method under test:
 		dockerManager.dockerRegistryNotification(events);
@@ -331,7 +304,7 @@ public class DockerManagerImplUnitTest {
 	@Test
 	public void testDockerRegistryNotificationPull() {
 		DockerRegistryEventList events = 
-				createEvent(RegistryEventAction.pull, REGISTRY_HOST, USER_ID, REPOSITORY_PATH, TAG, DIGEST);
+				createDockerRegistryEvent(RegistryEventAction.pull, REGISTRY_HOST, USER_ID, REPOSITORY_PATH, TAG, DIGEST);
 		dockerManager.dockerRegistryNotification(events);
 		// no create operation, since the repo already exists
 		verify(entityManager, never()).createEntity((UserInfo)any(), (Entity)any(), (String)any());

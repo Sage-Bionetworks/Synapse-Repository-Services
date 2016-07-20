@@ -31,6 +31,7 @@ import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionContributor;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.repo.manager.DockerManager;
 import org.sagebionetworks.repo.manager.StorageQuotaManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
@@ -96,7 +97,9 @@ import org.sagebionetworks.repo.model.dbo.file.CreateMultipartRequest;
 import org.sagebionetworks.repo.model.dbo.file.MultipartUploadDAO;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOSessionToken;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
+import org.sagebionetworks.repo.model.docker.DockerRegistryEventList;
 import org.sagebionetworks.repo.model.docker.DockerRepository;
+import org.sagebionetworks.repo.model.docker.RegistryEventAction;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
@@ -135,6 +138,7 @@ import org.sagebionetworks.repo.web.controller.AbstractAutowiredControllerTestBa
 import org.sagebionetworks.repo.web.service.ServiceProvider;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
+import org.sagebionetworks.util.DockerRegistryEventUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.annotation.DirtiesContext;
 
@@ -170,6 +174,9 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 
 	@Autowired
 	private UserProfileManager userProfileManager;
+	
+	@Autowired
+	private DockerManager dockerManager;
 
 	@Autowired
 	private ServiceProvider serviceProvider;
@@ -278,7 +285,6 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 	// Entities
 	private Project project;
 	private FileEntity fileEntity;
-	private DockerRepository managedDockerRepository;
 	private Folder folderToTrash;
 
 	// requirement
@@ -645,12 +651,11 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		fileEntity = serviceProvider.getEntityService().createEntity(adminUserId, fileEntity, activity.getId(), mockRequest);
 
 		// create a managed Docker repository
-		managedDockerRepository = new DockerRepository();
-		managedDockerRepository.setIsManaged(true);
-		managedDockerRepository.setParentId(project.getId());
-		managedDockerRepository.setRepositoryName("docker.synapse.org/"+project.getId()+"/repo-name");
-		managedDockerRepository = serviceProvider.getEntityService().createEntity(
-				adminUserId, managedDockerRepository, null, mockRequest);
+		DockerRegistryEventList eventList = 
+				DockerRegistryEventUtil.createDockerRegistryEvent(
+						RegistryEventAction.push, "docker.synapse.org", 
+						adminUserId, project.getId()+"/repo-name", "latest", "000");
+		dockerManager.dockerRegistryNotification(eventList);
 		
 		// Create a folder to trash
 		folderToTrash = new Folder();
