@@ -200,7 +200,7 @@ public class DiscussionThreadManagerImplTest {
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		assertEquals(dto, threadManager.getThread(userInfo, threadId.toString()));
 		verify(mockThreadDao).updateThreadView(Mockito.anyLong(), Mockito.anyLong());
-		verify(mockReplyDao).getReplyCount(threadId, DiscussionFilter.NO_FILTER);
+		verify(mockReplyDao).getReplyCount(threadId, DiscussionFilter.EXCLUDE_DELETED);
 	}
 
 	@Test
@@ -210,7 +210,7 @@ public class DiscussionThreadManagerImplTest {
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		assertEquals(dto, threadManager.getThread(userInfo, threadId.toString()));
 		verify(mockThreadDao).updateThreadView(Mockito.anyLong(), Mockito.anyLong());
-		verify(mockReplyDao).getReplyCount(threadId, DiscussionFilter.NO_FILTER);
+		verify(mockReplyDao).getReplyCount(threadId, DiscussionFilter.EXCLUDE_DELETED);
 	}
 
 	@Test (expected = NotFoundException.class)
@@ -273,7 +273,7 @@ public class DiscussionThreadManagerImplTest {
 		when(mockThreadDao.updateTitle(Mockito.anyLong(), Mockito.anyString())).thenReturn(dto);
 
 		assertEquals(dto, threadManager.updateTitle(userInfo, threadId.toString(), newTitle));
-		verify(mockReplyDao).getReplyCount(threadId, DiscussionFilter.NO_FILTER);
+		verify(mockReplyDao).getReplyCount(threadId, DiscussionFilter.EXCLUDE_DELETED);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -302,7 +302,7 @@ public class DiscussionThreadManagerImplTest {
 				.thenReturn("newMessage");
 		when(mockThreadDao.updateMessageKey(Mockito.anyLong(), Mockito.anyString())).thenReturn(dto);
 		assertEquals(dto, threadManager.updateMessage(userInfo, threadId.toString(), newMessage));
-		verify(mockReplyDao).getReplyCount(threadId, DiscussionFilter.NO_FILTER);
+		verify(mockReplyDao).getReplyCount(threadId, DiscussionFilter.EXCLUDE_DELETED);
 	}
 
 	@Test (expected = UnauthorizedException.class)
@@ -331,8 +331,14 @@ public class DiscussionThreadManagerImplTest {
 	}
 
 	@Test (expected = NotFoundException.class)
+	public void testPinNotExistingThread() {
+		when(mockThreadDao.isThreadDeleted(threadId.toString())).thenThrow(new NotFoundException());
+		threadManager.pinThread(userInfo, threadId.toString());
+	}
+
+	@Test (expected = NotFoundException.class)
 	public void testPinDeletedThread() {
-		when(mockThreadDao.getAuthorForUpdate(threadId.toString())).thenThrow(new NotFoundException());
+		when(mockThreadDao.isThreadDeleted(threadId.toString())).thenReturn(true);
 		threadManager.pinThread(userInfo, threadId.toString());
 	}
 
@@ -354,8 +360,14 @@ public class DiscussionThreadManagerImplTest {
 	}
 
 	@Test (expected = NotFoundException.class)
+	public void testUnpinNonExistingThread() {
+		when(mockThreadDao.isThreadDeleted(threadId.toString())).thenThrow(new NotFoundException());
+		threadManager.unpinThread(userInfo, threadId.toString());
+	}
+
+	@Test (expected = NotFoundException.class)
 	public void testUnpinDeletedThread() {
-		when(mockThreadDao.getAuthorForUpdate(threadId.toString())).thenThrow(new NotFoundException());
+		when(mockThreadDao.isThreadDeleted(threadId.toString())).thenReturn(true);
 		threadManager.unpinThread(userInfo, threadId.toString());
 	}
 

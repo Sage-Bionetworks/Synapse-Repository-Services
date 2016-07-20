@@ -104,7 +104,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 					authorizationManager.canAccess(userInfo, thread.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
 		}
 		threadDao.updateThreadView(threadIdLong, userInfo.getId());
-		return updateNumberOfReplies(thread, DiscussionFilter.NO_FILTER);
+		return updateNumberOfReplies(thread, DiscussionFilter.EXCLUDE_DELETED);
 	}
 
 	@Override
@@ -128,7 +128,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		String author = threadDao.getAuthorForUpdate(threadId);
 		if (authorizationManager.isUserCreatorOrAdmin(userInfo, author)) {
 			DiscussionThreadBundle thread = threadDao.updateTitle(threadIdLong, newTitle.getTitle());
-			return updateNumberOfReplies(thread, DiscussionFilter.NO_FILTER);
+			return updateNumberOfReplies(thread, DiscussionFilter.EXCLUDE_DELETED);
 		} else {
 			throw new UnauthorizedException("Only the user that created the thread can modify it.");
 		}
@@ -147,7 +147,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		if (authorizationManager.isUserCreatorOrAdmin(userInfo, thread.getCreatedBy())) {
 			String messageKey = uploadDao.uploadThreadMessage(newMessage.getMessageMarkdown(), thread.getForumId(), thread.getId());
 			thread = threadDao.updateMessageKey(threadIdLong, messageKey);
-			return updateNumberOfReplies(thread, DiscussionFilter.NO_FILTER);
+			return updateNumberOfReplies(thread, DiscussionFilter.EXCLUDE_DELETED);
 		} else {
 			throw new UnauthorizedException("Only the user that created the thread can modify it.");
 		}
@@ -156,7 +156,6 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 	@WriteTransactionReadCommitted
 	@Override
 	public void markThreadAsDeleted(UserInfo userInfo, String threadId) {
-		threadDao.getAuthorForUpdate(threadId);
 		checkPermission(userInfo, threadId, ACCESS_TYPE.MODERATE);
 		threadDao.markThreadAsDeleted(Long.parseLong(threadId));
 	}
@@ -164,7 +163,9 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 	@WriteTransactionReadCommitted
 	@Override
 	public void pinThread(UserInfo userInfo, String threadId) {
-		threadDao.getAuthorForUpdate(threadId);
+		if (threadDao.isThreadDeleted(threadId)) {
+			throw new NotFoundException();
+		}
 		checkPermission(userInfo, threadId, ACCESS_TYPE.MODERATE);
 		threadDao.pinThread(Long.parseLong(threadId));
 	}
@@ -172,7 +173,9 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 	@WriteTransactionReadCommitted
 	@Override
 	public void unpinThread(UserInfo userInfo, String threadId) {
-		threadDao.getAuthorForUpdate(threadId);
+		if (threadDao.isThreadDeleted(threadId)) {
+			throw new NotFoundException();
+		}
 		checkPermission(userInfo, threadId, ACCESS_TYPE.MODERATE);
 		threadDao.unpinThread(Long.parseLong(threadId));
 	}

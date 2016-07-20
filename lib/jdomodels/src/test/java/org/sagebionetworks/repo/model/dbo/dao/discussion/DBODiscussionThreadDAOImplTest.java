@@ -616,4 +616,22 @@ public class DBODiscussionThreadDAOImplTest {
 		threadDao.markThreadAsDeleted(threadId);
 		threadDao.getAuthorForUpdate(""+threadId);
 	}
+
+	@Test (expected = NotFoundException.class)
+	public void testIsThreadDeletedForNonExistingThread() {
+		threadDao.isThreadDeleted(threadId.toString());
+	}
+
+	@Test
+	public void testIsThreadDeletedForNotDeletedThread() {
+		threadDao.createThread(forumId, threadId.toString(), "title", "messageKey", userId);
+		assertEquals(false, threadDao.isThreadDeleted(threadId.toString()));
+	}
+
+	@Test
+	public void testIsThreadDeletedForDeletedThread() {
+		threadDao.createThread(forumId, threadId.toString(), "title", "messageKey", userId);
+		threadDao.markThreadAsDeleted(threadId);
+		assertEquals(true, threadDao.isThreadDeleted(threadId.toString()));
+	}
 }

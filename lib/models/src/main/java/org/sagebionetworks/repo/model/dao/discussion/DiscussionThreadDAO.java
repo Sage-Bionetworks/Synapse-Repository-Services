@@ -173,4 +173,12 @@ public interface DiscussionThreadDAO {
 	 */
 	public String getAuthorForUpdate(String threadId);
 
+	/**
+	 * 
+	 * @param threadId
+	 * @return true is the thread has been marked as deleted,
+	 *         false otherwise.
+	 */
+	public boolean isThreadDeleted(String threadId);
+
 }
