@@ -96,6 +96,7 @@ import org.sagebionetworks.repo.model.dbo.file.CreateMultipartRequest;
 import org.sagebionetworks.repo.model.dbo.file.MultipartUploadDAO;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOSessionToken;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
+import org.sagebionetworks.repo.model.docker.DockerRepository;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
@@ -277,6 +278,7 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 	// Entities
 	private Project project;
 	private FileEntity fileEntity;
+	private DockerRepository managedDockerRepository;
 	private Folder folderToTrash;
 
 	// requirement
@@ -642,6 +644,14 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		fileEntity.setDataFileHandleId(handleOne.getId());
 		fileEntity = serviceProvider.getEntityService().createEntity(adminUserId, fileEntity, activity.getId(), mockRequest);
 
+		// create a managed Docker repository
+		managedDockerRepository = new DockerRepository();
+		managedDockerRepository.setIsManaged(true);
+		managedDockerRepository.setParentId(project.getId());
+		managedDockerRepository.setRepositoryName("docker.synapse.org/"+project.getId()+"/repo-name");
+		managedDockerRepository = serviceProvider.getEntityService().createEntity(
+				adminUserId, managedDockerRepository, null, mockRequest);
+		
 		// Create a folder to trash
 		folderToTrash = new Folder();
 		folderToTrash.setName("boundForTheTrashCan");
