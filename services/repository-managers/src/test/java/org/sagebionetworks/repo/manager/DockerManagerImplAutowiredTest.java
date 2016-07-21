@@ -28,7 +28,7 @@ public class DockerManagerImplAutowiredTest {
 
 	private static final String SERVICE = "docker.synapse.org";
 	private static final String TYPE = "repository";
-	private static final String REPOSITORY_PATH = "syn101/path";
+	private String repositoryPath;
 	private static final String TAG = "lastest";
 	private static final String DIGEST = "sha256:10010101";
 
@@ -57,6 +57,7 @@ public class DockerManagerImplAutowiredTest {
 		Project project = new Project();
 		project.setName("project" + RandomStringUtils.randomAlphanumeric(10));
 		projectId = entityManager.createEntity(userInfo, project, null);
+		repositoryPath = projectId+"/path";
 	}
 	
 	@After
@@ -69,7 +70,7 @@ public class DockerManagerImplAutowiredTest {
 	@Test
 	public void testAuthorizeDockerAccess() {
 		// test to see if we can push to the project.  Answer should be yes!
-		String scope =TYPE+":"+REPOSITORY_PATH+":push";
+		String scope =TYPE+":"+repositoryPath+":push";
 		DockerAuthorizationToken token = dockerManager.authorizeDockerAccess(userInfo, SERVICE, scope);
 		assertNotNull(token.getToken());
 	}
@@ -78,7 +79,7 @@ public class DockerManagerImplAutowiredTest {
 	public void testDockerRegistryNotification() {
 		DockerRegistryEventList events = 
 				DockerRegistryEventUtil.createDockerRegistryEvent(
-						RegistryEventAction.push, SERVICE, userInfo.getId(), REPOSITORY_PATH, TAG, DIGEST);
+						RegistryEventAction.push, SERVICE, userInfo.getId(), repositoryPath, TAG, DIGEST);
 		dockerManager.dockerRegistryNotification(events);
 	}
 
