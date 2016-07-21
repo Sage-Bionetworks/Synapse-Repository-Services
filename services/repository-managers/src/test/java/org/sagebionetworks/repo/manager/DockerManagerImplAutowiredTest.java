@@ -58,7 +58,6 @@ public class DockerManagerImplAutowiredTest {
 	@After
 	public void tearDown() throws Exception {
 		entityManager.deleteEntity(adminUserInfo, projectId);
-		userManager.deletePrincipal(adminUserInfo, Long.parseLong(adminUserInfo.getId().toString()));
 	}
 
 	@Test
