@@ -21,8 +21,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class ExternalDockerRepoValidator implements EntityValidator<DockerRepository> {
 	@Autowired
 	private NodeDAO nodeDAO;
-
-		
+	
 	public static boolean isReserved(String registryHost) {
 		if (registryHost==null) return false; // it's an implicit reference to DockerHub
 		String hostSansPort = DockerNameUtil.getRegistryHostSansPort(registryHost);
@@ -67,6 +66,10 @@ public class ExternalDockerRepoValidator implements EntityValidator<DockerReposi
 		if (headers.size()>1) throw new IllegalStateException("Expected 0-1 result for "+parentId+" but found "+headers.size());
 		if (EntityTypeUtils.getEntityTypeForClassName(headers.get(0).getType())!=EntityType.project) {
 			throw new IllegalArgumentException("Parent must be a project.");
+		}
+		
+		if (event.getType()!=EventType.UPDATE) {
+			
 		}
 	}
 

@@ -28,7 +28,7 @@ public class DockerManagerImplAutowiredTest {
 
 	private static final String SERVICE = "docker.synapse.org";
 	private static final String TYPE = "repository";
-	private static final String REPOSITORY_PATH = "/repo/path";
+	private static final String REPOSITORY_PATH = "/syn101/path";
 	private static final String TAG = "lastest";
 	private static final String DIGEST = "sha256:10010101";
 
