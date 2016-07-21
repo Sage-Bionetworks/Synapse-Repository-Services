@@ -8,7 +8,6 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.sagebionetworks.repo.model.dbo.dao.NodeDAOImpl.TRASH_FOLDER_ID;
 
-import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -20,7 +19,6 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
-import java.util.zip.CRC32;
 
 import org.junit.After;
 import org.junit.Before;
@@ -165,6 +163,8 @@ public class NodeDAOImplTest {
 	private String publicProject2;
 
 	private String nooneOwns;
+
+	private final String rootID = KeyFactory.keyToString(KeyFactory.ROOT_ID);
 
 	@Before
 	public void before() throws Exception {
@@ -1192,9 +1192,8 @@ public class NodeDAOImplTest {
 	}
 	
 	//mySQL seems to have a limit of 15 for the number of delete cascades to prevent infinite loops.
-	@Test
+	@Test (expected = DataIntegrityViolationException.class)
 	public void testDeleteCascade(){
-		//TODO: just putting this comment here so i can easily find this location
 		final int maxSQLDeleteCascade = 15;
 		
 		//create maxSQLDeleteCascade amount of nodes each referencing the previous
@@ -1212,10 +1211,6 @@ public class NodeDAOImplTest {
 	     Node15
 		  
 		*/
-		
-		
-		String rootID = "syn4489"; //keeps track of the previously created node's id. initially is the root
-		//TODO: is there a variable for the root node somewhere? Just going to hardcode it for now
 		
 		List<String> nodeIDs = new ArrayList<String>();
 		
@@ -1243,12 +1238,9 @@ public class NodeDAOImplTest {
 		assertTrue(nodeIDs.size() == maxSQLDeleteCascade);
 		
 		//delete the parent node 
-		try{
-			nodeDao.delete(nodeIDs.get(0));
-		}catch (Exception e){
-			fail("Unable to Cascade delete more than " + maxSQLDeleteCascade +"levels");
-		}
+		nodeDao.delete(nodeIDs.get(0));
 		
+		//should not get here if >= 15 levels of cascade delete
 		//check that all added nodes were deleted 
 		for(String nodeID : nodeIDs){
 			assertFalse(nodeDao.doesNodeExist(KeyFactory.stringToKey(nodeID)));
@@ -1259,9 +1251,7 @@ public class NodeDAOImplTest {
 	@Test
 	public void testDeleteList(){
 		List<Long> nodeIDs = new ArrayList<Long>();
-		int numNodes = 3;
-		String rootID = "syn4489"; 
-		//TODO: is there a variable for the root node somewhere? Just going to hardcode it for now
+		int numNodes = 3; 
 		
 		//create numNodes amount of Nodes. all children of the root
 		for(int i = 0; i < numNodes; i++){

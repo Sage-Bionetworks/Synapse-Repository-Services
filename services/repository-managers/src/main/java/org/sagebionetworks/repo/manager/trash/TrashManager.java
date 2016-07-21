@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.trash;
 
 import java.sql.Timestamp;
+import java.util.Collection;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -93,12 +94,24 @@ public interface TrashManager {
 	 * @return Set of IDs of the trash items as Longs
 	 * @throws DatastoreException
 	 */
-	public List<Long> getTrashNumDaysOldNoChildren(long numDays, long maxTrashItems) throws DatastoreException;
+	public List<Long> getTrashLeavesBefore(long numDays, long maxTrashItems) throws DatastoreException;
 
 	/**
 	 * Purges a list of trashed entities. Once purged, the entities will be permanently deleted.
 	 */
-	void purgeTrash(List<TrashedEntity> trashList, PurgeCallback purgeCallback) throws DatastoreException, NotFoundException;
+	public void purgeTrash(List<TrashedEntity> trashList, PurgeCallback purgeCallback) throws DatastoreException, NotFoundException;
+	
+	/**
+	 * Purges trash by a given list of their IDs as longs. User caling this must be an admin.
+	 * @param trashIDs list of trashEntity IDs as longs
+	 * @param user must be an admin user.
+	 * @param purgeCallback optional
+	 */
+	public void purgeTrashAdmin(List<Long> trashIDs, UserInfo user);
+
+	public void getDescendants(String nodeID, Collection<String> descendants);
+
+	
 
 	
 }

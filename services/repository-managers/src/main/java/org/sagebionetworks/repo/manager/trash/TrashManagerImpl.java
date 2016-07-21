@@ -7,10 +7,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
-import org.sagebionetworks.repo.manager.NodeInheritanceManager;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
@@ -29,6 +27,7 @@ import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class TrashManagerImpl implements TrashManager {
@@ -38,9 +37,6 @@ public class TrashManagerImpl implements TrashManager {
 
 	@Autowired
 	private NodeManager nodeManager;
-
-	@Autowired
-	private NodeInheritanceManager nodeInheritanceManager;
 
 	@Autowired
 	private NodeDAO nodeDao;
@@ -53,9 +49,6 @@ public class TrashManagerImpl implements TrashManager {
 	
 	@Autowired
 	private TransactionalMessenger transactionalMessenger;
-
-	@Autowired
-	private StackConfiguration stackConfig;
 
 	@WriteTransaction
 	@Override
@@ -71,7 +64,6 @@ public class TrashManagerImpl implements TrashManager {
 
 		// Authorize
 		UserInfo.validateUserInfo(currentUser);
-		String userName = currentUser.getId().toString();
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canAccess(currentUser, nodeId, ObjectType.ENTITY, ACCESS_TYPE.DELETE));
 
@@ -141,8 +133,7 @@ public class TrashManagerImpl implements TrashManager {
 			throw new ParentInTrashCanException("The intended parent " + newParentId + " is in the trash can and cannot be restored to.");
 		}
 
-		// Authorize on the new parent
-		String userName = currentUser.getId().toString();
+		currentUser.getId().toString();
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canAccess(currentUser, newParentId, ObjectType.ENTITY, ACCESS_TYPE.CREATE));
 		Node node = nodeDao.getNode(nodeId);
@@ -347,19 +338,13 @@ public class TrashManagerImpl implements TrashManager {
 	}
 	
 	@Override
-	public void purgeTrashAdmin(List<Long> trashIDs, UserInfo user){
-		//TODO: write test for this
-		if (trashIDs == null) {
-			throw new IllegalArgumentException("trashIDs cannot be null");
-		}
-
-		if (user == null) {
-			throw new IllegalArgumentException("User cannot be null");
-		}
+	public void purgeTrashAdmin(List<Long> trashIDs, UserInfo userInfo){
+		ValidateArgument.required(trashIDs, "trashIDs");
+		ValidateArgument.required(userInfo, "userInfo");
 		
-		UserInfo.validateUserInfo(user);
-		if (!user.isAdmin()) {
-			String userId = user.getId().toString();
+		UserInfo.validateUserInfo(userInfo);
+		if (!userInfo.isAdmin()) {
+			String userId = userInfo.getId().toString();
 			throw new UnauthorizedException("Current user " + userId
 					+ " does not have the permission.");
 		}
@@ -376,11 +361,11 @@ public class TrashManagerImpl implements TrashManager {
 	}
 	
 	@Override
-	//TODO: There's probably a better name I can use for this method
-	public List<Long> getTrashNumDaysOldNoChildren(long numDays, long maxTrashItems) throws DatastoreException{
-		return trashCanDao.getTrashLeavesBefore(numDays,maxTrashItems);
+	public List<Long> getTrashLeavesBefore(long numDays, long maxTrashItems) throws DatastoreException{
+		return trashCanDao.getTrashLeavesBefore(numDays, maxTrashItems);
 	}
-
+	
+	@Override
 	/**
 	 * Recursively gets the IDs of all the descendants.
 	 */
@@ -389,7 +374,7 @@ public class TrashManagerImpl implements TrashManager {
 			throw new IllegalArgumentException(  (nodeId == null ? "nodeId" : "descendants") + " cannot be null.");
 		}
 		List<String> children = nodeDao.getChildrenIdsAsList(nodeId);
-		if (children == null || children.size() == 0) {
+		if (children.isEmpty()) {
 			return;
 		}
 		
@@ -398,4 +383,5 @@ public class TrashManagerImpl implements TrashManager {
 			getDescendants(child, descendants); // Recursion
 		}
 	}
+
 }

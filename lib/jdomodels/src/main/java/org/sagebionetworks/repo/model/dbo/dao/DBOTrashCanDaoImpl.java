@@ -105,7 +105,6 @@ public class DBOTrashCanDaoImpl implements TrashCanDao {
 	
 	private static final RowMapper<DBOTrashedEntity> rowMapper = (new DBOTrashedEntity()).getTableMapping();
 	
-	//TODO: should this be placed here or in separate java file?
 	//rowMapper used in getTrashNumDaysOldNoChildren()
 	private static final RowMapper<Long> rowMapperNodeId = new RowMapper<Long>(){
 		@Override
@@ -279,7 +278,6 @@ public class DBOTrashCanDaoImpl implements TrashCanDao {
 	
 	@Override
 	public List<Long> getTrashLeavesBefore(long numDays, long limit) throws DatastoreException{
-		//TODO: write test for this
 		if(numDays < 0 || limit < 0){
 			throw new IllegalArgumentException("parameters cannot have value less than zero");
 		}
