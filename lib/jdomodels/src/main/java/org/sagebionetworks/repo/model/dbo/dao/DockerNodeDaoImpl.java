@@ -4,7 +4,10 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOCKER_R
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOCKER_REPOSITORY_OWNER_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DOCKER_REPOSITORY_NAME;
 
+import java.util.List;
+
 import org.apache.commons.lang3.StringUtils;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DockerNodeDao;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
@@ -38,7 +41,13 @@ public class DockerNodeDaoImpl implements DockerNodeDao {
 	@Override
 	public String getEntityIdForRepositoryName(String repositoryName) {
 		if (StringUtils.isEmpty(repositoryName)) throw new InvalidModelException("repositoryName is required.");
-		Long nodeId = jdbcTemplate.queryForObject(REPOSITORY_NAME_SQL, Long.class, repositoryName);
-		return nodeId==null ? null : KeyFactory.keyToString(nodeId);
+		List<Long> nodeIds = jdbcTemplate.queryForList(REPOSITORY_NAME_SQL, Long.class, repositoryName);
+		if (nodeIds.size()==0) {
+			return null;
+		}
+		if (nodeIds.size()==1) {
+			 return KeyFactory.keyToString(nodeIds.get(0));
+		}
+		throw new DatastoreException("Expected 0-1 but found "+nodeIds.size());
 	}
 }
