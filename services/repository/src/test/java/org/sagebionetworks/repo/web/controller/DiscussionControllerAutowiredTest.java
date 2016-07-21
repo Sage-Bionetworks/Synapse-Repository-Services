@@ -24,7 +24,6 @@ import org.sagebionetworks.repo.model.discussion.MessageURL;
 import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
-import org.sagebionetworks.repo.web.NotFoundException;
 
 public class DiscussionControllerAutowiredTest extends AbstractAutowiredControllerTestBase{
 
@@ -277,7 +276,7 @@ public class DiscussionControllerAutowiredTest extends AbstractAutowiredControll
 		assertTrue(bundle2.getIsEdited());
 	}
 
-	@Test (expected = NotFoundException.class)
+	@Test
 	public void testMarkReplyAsDeleted() throws Exception {
 		Forum dto = servletTestHelper.getForumByProjectId(dispatchServlet, project.getId(), adminUserId);
 		createThread.setForumId(dto.getId());
@@ -285,7 +284,7 @@ public class DiscussionControllerAutowiredTest extends AbstractAutowiredControll
 		createReply.setThreadId(threadBundle.getId());
 		DiscussionReplyBundle replyBundle = servletTestHelper.createReply(dispatchServlet, adminUserId, createReply);
 		servletTestHelper.markReplyAsDeleted(dispatchServlet, adminUserId, replyBundle.getId());
-		servletTestHelper.getReply(dispatchServlet, adminUserId, replyBundle.getId());
+		assertTrue(servletTestHelper.getReply(dispatchServlet, adminUserId, replyBundle.getId()).getIsDeleted());
 	}
 
 	@Test
