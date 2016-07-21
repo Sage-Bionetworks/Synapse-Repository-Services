@@ -281,7 +281,7 @@ public class DockerManagerImplUnitTest {
 		when(dockerNodeDao.getEntityIdForRepositoryName(REPOSITORY_NAME)).thenReturn(null);
 
 		DockerRegistryEventList events = 
-				createDockerRegistryEvent(RegistryEventAction.push, "quay.io", USER_ID, REPOSITORY_PATH, TAG, DIGEST);
+				DockerRegistryEventUtil.createDockerRegistryEvent(RegistryEventAction.push, "quay.io", USER_ID, REPOSITORY_PATH, TAG, DIGEST);
 		
 		// method under test:
 		dockerManager.dockerRegistryNotification(events);
@@ -295,7 +295,7 @@ public class DockerManagerImplUnitTest {
 		parentHeader.setType(EntityType.folder.name());
 
 		DockerRegistryEventList events = 
-				createDockerRegistryEvent(RegistryEventAction.push, REGISTRY_HOST, USER_ID, REPOSITORY_PATH, TAG, DIGEST);
+				DockerRegistryEventUtil.createDockerRegistryEvent(RegistryEventAction.push, REGISTRY_HOST, USER_ID, REPOSITORY_PATH, TAG, DIGEST);
 		
 		// method under test:
 		dockerManager.dockerRegistryNotification(events);
@@ -304,7 +304,7 @@ public class DockerManagerImplUnitTest {
 	@Test
 	public void testDockerRegistryNotificationPull() {
 		DockerRegistryEventList events = 
-				createDockerRegistryEvent(RegistryEventAction.pull, REGISTRY_HOST, USER_ID, REPOSITORY_PATH, TAG, DIGEST);
+				DockerRegistryEventUtil.createDockerRegistryEvent(RegistryEventAction.pull, REGISTRY_HOST, USER_ID, REPOSITORY_PATH, TAG, DIGEST);
 		dockerManager.dockerRegistryNotification(events);
 		// no create operation, since the repo already exists
 		verify(entityManager, never()).createEntity((UserInfo)any(), (Entity)any(), (String)any());
