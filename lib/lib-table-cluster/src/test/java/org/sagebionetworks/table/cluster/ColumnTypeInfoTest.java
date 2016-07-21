@@ -259,6 +259,14 @@ public class ColumnTypeInfoTest {
 	}
 	
 	@Test
+	public void testToSqlDoubleWithSize(){
+		Long inputSize = 100L;
+		String defaultValue = null;
+		String sql = ColumnTypeInfo.DOUBLE.toSql(inputSize, defaultValue);
+		assertEquals("DOUBLE DEFAULT NULL COMMENT 'DOUBLE'", sql);
+	}
+	
+	@Test
 	public void testToSqlDoubleWithDefault(){
 		Long inputSize = null;
 		String defaultValue = "1.2";
@@ -280,6 +288,30 @@ public class ColumnTypeInfoTest {
 		String defaultValue = "bar";
 		String sql = ColumnTypeInfo.LARGETEXT.toSql(inputSize, defaultValue);
 		assertEquals("MEDIUMTEXT CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT 'bar' COMMENT 'LARGETEXT'", sql);
+	}
+	
+	@Test
+	public void testToSqlBoolean(){
+		Long inputSize = null;
+		String defaultValue = null;
+		String sql = ColumnTypeInfo.BOOLEAN.toSql(inputSize, defaultValue);
+		assertEquals("BOOLEAN DEFAULT NULL COMMENT 'BOOLEAN'", sql);
+	}
+	
+	@Test
+	public void testToSqlBooleanDefault(){
+		Long inputSize = null;
+		String defaultValue = Boolean.TRUE.toString();
+		String sql = ColumnTypeInfo.BOOLEAN.toSql(inputSize, defaultValue);
+		assertEquals("BOOLEAN DEFAULT true COMMENT 'BOOLEAN'", sql);
+	}
+	
+	@Test
+	public void testToSqlBooleanWithSize(){
+		Long inputSize = 19L;
+		String defaultValue = null;
+		String sql = ColumnTypeInfo.BOOLEAN.toSql(inputSize, defaultValue);
+		assertEquals("BOOLEAN DEFAULT NULL COMMENT 'BOOLEAN'", sql);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)

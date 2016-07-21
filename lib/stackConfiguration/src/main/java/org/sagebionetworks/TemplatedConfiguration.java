@@ -136,4 +136,10 @@ public interface TemplatedConfiguration {
 	 */
 	public int getHttpClientMaxConnsPerRoute();
 
+	/**
+	 * 
+	 * @return docker service endpoint
+	 */
+	public String getDockerServiceEndpoint();
+
 }

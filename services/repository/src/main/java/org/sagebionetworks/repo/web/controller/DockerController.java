@@ -37,7 +37,7 @@ public class DockerController extends BaseController {
 	 * @return
 	 * @throws NotFoundException
 	 */
-	@ResponseStatus(HttpStatus.CREATED)
+	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.DOCKER_AUTHORIZATION, method = RequestMethod.GET)
 	public @ResponseBody
 	DockerAuthorizationToken authorizeDockerAccess(
