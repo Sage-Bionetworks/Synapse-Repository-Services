@@ -164,7 +164,7 @@ public class TrashManagerImpl implements TrashManager {
 
 	@Override
 	public QueryResults<TrashedEntity> viewTrashForUser(
-			UserInfo currentUser, UserInfo user, Long offset, Long limit) {
+			UserInfo currentUser, UserInfo user, long offset, long limit) {
 
 		if (currentUser == null) {
 			throw new IllegalArgumentException("Current user cannot be null");
@@ -172,11 +172,11 @@ public class TrashManagerImpl implements TrashManager {
 		if (user == null) {
 			throw new IllegalArgumentException("User cannot be null");
 		}
-		if (offset == null) {
-			throw new IllegalArgumentException("Offset cannot be null");
+		if (offset < 0L) {
+			throw new IllegalArgumentException("Offset cannot be < 0");
 		}
-		if (limit == null) {
-			throw new IllegalArgumentException("Limit cannot be null");
+		if (limit < 0L) {
+			throw new IllegalArgumentException("Limit cannot be < 0");
 		}
 
 		UserInfo.validateUserInfo(currentUser);
@@ -198,17 +198,17 @@ public class TrashManagerImpl implements TrashManager {
 
 	@Override
 	public QueryResults<TrashedEntity> viewTrash(UserInfo currentUser,
-			Long offset, Long limit) throws DatastoreException,
+			long offset, long limit) throws DatastoreException,
 			UnauthorizedException {
 
 		if (currentUser == null) {
 			throw new IllegalArgumentException("Current user cannot be null");
 		}
-		if (offset == null) {
-			throw new IllegalArgumentException("Offset cannot be null");
+		if (offset < 0L) {
+			throw new IllegalArgumentException("Offset cannot be < 0");
 		}
-		if (limit == null) {
-			throw new IllegalArgumentException("Limit cannot be null");
+		if (limit < 0L) {
+			throw new IllegalArgumentException("Limit cannot be < 0");
 		}
 
 		UserInfo.validateUserInfo(currentUser);

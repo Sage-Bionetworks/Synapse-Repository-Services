@@ -42,23 +42,31 @@ public interface TrashManager {
 	 *            The user currently logged in.
 	 * @param userInfo
 	 *            The user who deleted the entities into the trash can.
+	 * @param offset
+	 * 				Offset to begin paging results. Must be > 0.
+	 * @param limit 
+	 * 				Maximum number of results to return. Must be > 0.
 	 * @throws UnauthorizedException
 	 *             When the current user is not the same user nor an
 	 *             administrator.
 	 */
 	QueryResults<TrashedEntity> viewTrashForUser(UserInfo currentUser, UserInfo userInfo,
-			Long offset, Long limit) throws DatastoreException, UnauthorizedException;
+			long offset, long limit) throws DatastoreException, UnauthorizedException;
 
 	/**
 	 * Retrieves all the trash entities in the trash can.
 	 *
 	 * @param currentUser
 	 *            The user currently logged in. Must be an administrator.
+	 * @param offset
+	 * 				Offset to begin paging results. Must be > 0.
+	 * @param limit 
+	 * 				Maximum number of results to return. Must be > 0.
 	 * @throws UnauthorizedException
 	 *             When the current user is not an administrator.
 	 */
 	QueryResults<TrashedEntity> viewTrash(UserInfo currentUser,
-			Long offset, Long limit) throws DatastoreException, UnauthorizedException;
+			long offset, long limit) throws DatastoreException, UnauthorizedException;
 
 	/**
 	 * Purges the specified entity from the trash can. After purging, the entity
