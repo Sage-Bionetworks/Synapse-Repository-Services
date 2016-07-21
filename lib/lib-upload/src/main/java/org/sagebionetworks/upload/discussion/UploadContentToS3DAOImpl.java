@@ -119,13 +119,16 @@ public class UploadContentToS3DAOImpl implements UploadContentToS3DAO {
 
 	@Override
 	public String getMessage(String key) {
+		InputStream input = null;
 		try {
 			S3Object object = s3Client.getObject(bucketName, key);
-			InputStream input = object.getObjectContent();
+			input = object.getObjectContent();
 			GZIPInputStream zipIn = new GZIPInputStream(input);
 			return IOUtils.toString(zipIn, "UTF-8");
 		} catch(IOException e) {
 			throw new RuntimeException("Failed to retrieve message for key "+key);
+		} finally {
+			IOUtils.closeQuietly(input);
 		}
 	}
 }

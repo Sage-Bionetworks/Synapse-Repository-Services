@@ -46,10 +46,10 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Sets;
@@ -89,8 +89,6 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 	};
 
 	@Autowired
-	private SimpleJdbcTemplate simpleJdbcTemplate;	
-	@Autowired
 	private DBOBasicDao dboBasicDao;
 	@Autowired
 	private IdGenerator idGenerator;
@@ -98,6 +96,8 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 	TransactionalMessenger transactionalMessenger;
 	@Autowired
 	private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
+	@Autowired
+	private JdbcTemplate jdbcTemplate;
 
 	@WriteTransaction
 	@Override
@@ -170,7 +170,7 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 	public Long getAclId(String id, ObjectType objectType)
 			throws DatastoreException, NotFoundException {
 		try {
-			return simpleJdbcTemplate.queryForLong(SQL_SELECT_ACL_ID_FOR_RESOURCE, KeyFactory.stringToKey(id), objectType.name());
+			return jdbcTemplate.queryForObject(SQL_SELECT_ACL_ID_FOR_RESOURCE, Long.class, KeyFactory.stringToKey(id), objectType.name());
 		} catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException("Acl " + id + " not found");
 		}
@@ -179,7 +179,7 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 	@Override
 	public ObjectType getOwnerType(Long id) throws DatastoreException, NotFoundException {
 		try {
-			return ObjectType.valueOf(simpleJdbcTemplate.queryForObject(SQL_SELECT_OWNER_TYPE_FOR_RESOURCE, String.class, id));
+			return ObjectType.valueOf(jdbcTemplate.queryForObject(SQL_SELECT_OWNER_TYPE_FOR_RESOURCE, String.class, id));
 		} catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException("owner type " + id + " not found");
 		}
@@ -187,7 +187,7 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 	
 	private DBOAccessControlList getDboAcl(Long id) throws DatastoreException, NotFoundException {
 		List<DBOAccessControlList> dboList = null;
-		dboList = simpleJdbcTemplate.query(SQL_SELECT_ALL_ACL_WITH_ACL_ID, aclRowMapper, id);
+		dboList = jdbcTemplate.query(SQL_SELECT_ALL_ACL_WITH_ACL_ID, aclRowMapper, id);
 		if (dboList.size() != 1) {
 			throw new NotFoundException("Acl " + id + " not found");
 		}
@@ -201,11 +201,11 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 		ObjectType ownerType = ObjectType.valueOf(dboAcl.getOwnerType());
 		AccessControlList acl = AccessControlListUtils.createAcl(dboAcl, ownerType);
 		// Now fetch the rest of the data for this ACL
-		List<DBOResourceAccess> raList = simpleJdbcTemplate.query(SELECT_ALL_RESOURCE_ACCESS, accessMapper, dboAcl.getId());
+		List<DBOResourceAccess> raList = jdbcTemplate.query(SELECT_ALL_RESOURCE_ACCESS, accessMapper, dboAcl.getId());
 		Set<ResourceAccess> raSet = new HashSet<ResourceAccess>();
 		acl.setResourceAccess(raSet);
 		for(DBOResourceAccess raDbo: raList){
-			List<String> typeList = simpleJdbcTemplate.query(SELECT_ACCESS_TYPES_FOR_RESOURCE, new RowMapper<String>(){
+			List<String> typeList = jdbcTemplate.query(SELECT_ACCESS_TYPES_FOR_RESOURCE, new RowMapper<String>(){
 				@Override
 				public String mapRow(ResultSet rs, int rowNum)throws SQLException {
 					return rs.getString(COL_RESOURCE_ACCESS_TYPE_ELEMENT);
@@ -245,7 +245,7 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 		DBOAccessControlList dbo = AccessControlListUtils.createDBO(acl, origDbo.getId(), ownerType);
 		dboBasicDao.update(dbo);
 		// Now delete the resource access
-		simpleJdbcTemplate.update(DELETE_RESOURCE_ACCESS_SQL, dbo.getId());
+		jdbcTemplate.update(DELETE_RESOURCE_ACCESS_SQL, dbo.getId());
 		// Now recreate it from the passed data.
 		populateResourceAccess(dbo.getId(), acl.getResourceAccess());
 
@@ -314,7 +314,7 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_ACL_OWNER_ID, ownerId);
 		param.addValue(COL_ACL_OWNER_TYPE, ownerType.name());
-		return simpleJdbcTemplate.queryForObject(SELECT_FOR_UPDATE, aclRowMapper, param);
+		return namedParameterJdbcTemplate.queryForObject(SELECT_FOR_UPDATE, param, aclRowMapper);
 	}
 
 	@Override

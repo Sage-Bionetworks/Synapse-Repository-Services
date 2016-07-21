@@ -67,6 +67,7 @@ import org.sagebionetworks.repo.model.discussion.ThreadCount;
 import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
+import org.sagebionetworks.repo.model.docker.DockerAuthorizationToken;
 import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
@@ -2248,5 +2249,19 @@ public class ServletTestHelper {
 		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.OK);
 		return objectMapper.readValue(response.getContentAsString(), PrincipalAliasResponse.class);
+	}
+
+	public DockerAuthorizationToken authorizeDockerAccess(DispatcherServlet dispatchServlet, Long userId,
+			String service, String scope) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.DOCKER_PATH, UrlHelpers.DOCKER_AUTHORIZATION, userId, null);
+		request.addParameter(AuthorizationConstants.DOCKER_SERVICE_PARAM, service);
+		if (scope != null) {
+			request.addParameter(AuthorizationConstants.DOCKER_SCOPE_PARAM, scope);
+		}
+		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
+				HttpStatus.OK);
+		return objectMapper.readValue(response.getContentAsString(), DockerAuthorizationToken.class);
+
 	}
 }
