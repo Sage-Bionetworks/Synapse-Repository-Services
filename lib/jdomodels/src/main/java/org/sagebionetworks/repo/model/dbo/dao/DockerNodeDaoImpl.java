@@ -35,6 +35,7 @@ public class DockerNodeDaoImpl implements DockerNodeDao {
 	@Override
 	public void createRepositoryName(String entityId, String repositoryName) {
 		ValidateArgument.required(entityId, "entityId");
+		ValidateArgument.required(repositoryName, "repositoryName");
 		DBODockerManagedRepositoryName dbo = new DBODockerManagedRepositoryName();
 		dbo.setOwner(KeyFactory.stringToKey(entityId));
 		dbo.setRepositoryName(repositoryName);
