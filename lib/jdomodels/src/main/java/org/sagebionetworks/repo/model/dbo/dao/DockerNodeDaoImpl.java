@@ -4,7 +4,9 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOCKER_R
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOCKER_REPOSITORY_OWNER_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DOCKER_REPOSITORY_NAME;
 
+import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.repo.model.DockerNodeDao;
+import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBODockerManagedRepositoryName;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -26,6 +28,7 @@ public class DockerNodeDaoImpl implements DockerNodeDao {
 	@WriteTransaction
 	@Override
 	public void createRepositoryName(String entityId, String repositoryName) {
+		if (StringUtils.isEmpty(repositoryName)) throw new InvalidModelException("repositoryName is required.");
 		DBODockerManagedRepositoryName dbo = new DBODockerManagedRepositoryName();
 		dbo.setOwner(KeyFactory.stringToKey(entityId));
 		dbo.setRepositoryName(repositoryName);
@@ -34,7 +37,8 @@ public class DockerNodeDaoImpl implements DockerNodeDao {
 	
 	@Override
 	public String getEntityIdForRepositoryName(String repositoryName) {
-		Long nodeId = jdbcTemplate.queryForObject(REPOSITORY_NAME_SQL, Long.class);
+		if (StringUtils.isEmpty(repositoryName)) throw new InvalidModelException("repositoryName is required.");
+		Long nodeId = jdbcTemplate.queryForObject(REPOSITORY_NAME_SQL, Long.class, repositoryName);
 		return nodeId==null ? null : KeyFactory.keyToString(nodeId);
 	}
 }

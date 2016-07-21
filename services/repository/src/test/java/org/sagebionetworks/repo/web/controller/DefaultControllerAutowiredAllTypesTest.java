@@ -246,6 +246,9 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 				}
 				if(object instanceof DockerRepository){
 					object.setParentId(project.getId());
+					DockerRepository dockerRepository = (DockerRepository)object;
+					dockerRepository.setIsManaged(false);
+					dockerRepository.setRepositoryName("foo/bar");
 				}
 				Entity clone = servletTestHelper.createEntity(dispatchServlet, object, userId);
 				assertNotNull(clone);
