@@ -21,7 +21,6 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
  * This secondary table to Node holds the fully qualified name of a managed Docker repository.
  */
 @Table(name = TABLE_DOCKER_REPOSITORY_NAME, constraints = { 
-		"unique key UNIQUE_DOCKER_REPO_OWNER ("+ COL_DOCKER_REPOSITORY_OWNER_ID +")",
 		"unique key UNIQUE_DOCKER_REPO_NAME ("+ COL_DOCKER_REPOSITORY_NAME +")" })
 public class DBODockerManagedRepositoryName implements MigratableDatabaseObject<DBODockerManagedRepositoryName, DBODockerManagedRepositoryName> {
 

@@ -6,6 +6,7 @@ import java.util.regex.Pattern;
 
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.DockerNodeDao;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
@@ -22,6 +23,9 @@ public class ExternalDockerRepoValidator implements EntityValidator<DockerReposi
 	@Autowired
 	private NodeDAO nodeDAO;
 	
+	@Autowired
+	private DockerNodeDao dockerNodeDao;
+	
 	public static boolean isReserved(String registryHost) {
 		if (registryHost==null) return false; // it's an implicit reference to DockerHub
 		String hostSansPort = DockerNameUtil.getRegistryHostSansPort(registryHost);
@@ -37,8 +41,6 @@ public class ExternalDockerRepoValidator implements EntityValidator<DockerReposi
 	 * Allow only the creation of an external docker repository.  No update is allowed.
 	 * @see org.sagebionetworks.repo.web.service.metadata.EntityValidator#validateEntity(org.sagebionetworks.repo.model.Entity, org.sagebionetworks.repo.web.service.metadata.EntityEvent)
 	 */
-	// TODO this doesn't guard against someone getting a managed repo, changing the repository name to a non-managed
-	// one, and updating it.
 	@Override
 	public void validateEntity(DockerRepository dockerRepository, EntityEvent event)
 			throws InvalidModelException, NotFoundException,
@@ -65,11 +67,17 @@ public class ExternalDockerRepoValidator implements EntityValidator<DockerReposi
 		if (headers.size()==0) throw new NotFoundException("parentId "+parentId+" does not exist.");
 		if (headers.size()>1) throw new IllegalStateException("Expected 0-1 result for "+parentId+" but found "+headers.size());
 		if (EntityTypeUtils.getEntityTypeForClassName(headers.get(0).getType())!=EntityType.project) {
-			throw new IllegalArgumentException("Parent must be a project.");
+			throw new InvalidModelException("Parent must be a project.");
 		}
 		
-		if (event.getType()!=EventType.UPDATE) {
-			
+		if (event.getType()==EventType.UPDATE) {
+			if (dockerRepository.getId()==null) throw new InvalidModelException("Entity ID is required for update.");
+			// Check whether entity ID of updated Docker Repository is already used for a managed repository.
+			// If so, reject the update.
+			String managedRepositoryName = dockerNodeDao.getRepositoryNameForEntityId(dockerRepository.getId());
+			if (managedRepositoryName!=null) {
+				throw new InvalidModelException("Cannot convert a managed Docker repository into an unmanaged one.");
+			}
 		}
 	}
 

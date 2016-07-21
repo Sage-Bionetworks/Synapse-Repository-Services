@@ -70,11 +70,15 @@ public class DockerNodeDaoImplTest {
 		
 		String retrievedId = dockerNodeDao.getEntityIdForRepositoryName(repositoryName);
 		assertEquals(dockerRepository.getId(), retrievedId);
+		
+		String retrievedName = dockerNodeDao.getRepositoryNameForEntityId(dockerRepository.getId());
+		assertEquals(repositoryName, retrievedName);
 	}
 	
 	@Test
 	public void testNonExistentRepo() {
 		assertNull(dockerNodeDao.getEntityIdForRepositoryName("this/repo/doesnt/exist"));
+		assertNull(dockerNodeDao.getRepositoryNameForEntityId("syn987654321"));
 	}
 
 }

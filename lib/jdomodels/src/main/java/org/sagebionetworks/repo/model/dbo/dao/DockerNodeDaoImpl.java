@@ -24,9 +24,13 @@ public class DockerNodeDaoImpl implements DockerNodeDao {
 	@Autowired
 	private DBOBasicDao basicDao;
 	
-	private static final String REPOSITORY_NAME_SQL = 
+	private static final String REPOSITORY_ID_SQL = 
 			"SELECT "+COL_DOCKER_REPOSITORY_OWNER_ID+" FROM "+TABLE_DOCKER_REPOSITORY_NAME+
 			" WHERE "+COL_DOCKER_REPOSITORY_NAME+"=?";
+	
+	private static final String REPOSITORY_NAME_SQL = 
+			"SELECT "+COL_DOCKER_REPOSITORY_NAME+" FROM "+TABLE_DOCKER_REPOSITORY_NAME+
+			" WHERE "+COL_DOCKER_REPOSITORY_OWNER_ID+"=?";
 	
 	@WriteTransaction
 	@Override
@@ -41,7 +45,7 @@ public class DockerNodeDaoImpl implements DockerNodeDao {
 	@Override
 	public String getEntityIdForRepositoryName(String repositoryName) {
 		if (StringUtils.isEmpty(repositoryName)) throw new InvalidModelException("repositoryName is required.");
-		List<Long> nodeIds = jdbcTemplate.queryForList(REPOSITORY_NAME_SQL, Long.class, repositoryName);
+		List<Long> nodeIds = jdbcTemplate.queryForList(REPOSITORY_ID_SQL, Long.class, repositoryName);
 		if (nodeIds.size()==0) {
 			return null;
 		}
@@ -49,5 +53,18 @@ public class DockerNodeDaoImpl implements DockerNodeDao {
 			 return KeyFactory.keyToString(nodeIds.get(0));
 		}
 		throw new DatastoreException("Expected 0-1 but found "+nodeIds.size());
+	}
+
+	@Override
+	public String getRepositoryNameForEntityId(String entityId) {
+		if (StringUtils.isEmpty(entityId)) throw new InvalidModelException("repositoryName is required.");
+		List<String> repositoryNames = jdbcTemplate.queryForList(REPOSITORY_NAME_SQL, String.class, KeyFactory.stringToKey(entityId));
+		if (repositoryNames.size()==0) {
+			return null;
+		}
+		if (repositoryNames.size()==1) {
+			 return repositoryNames.get(0);
+		}
+		throw new DatastoreException("Expected 0-1 but found "+repositoryNames.size());
 	}
 }

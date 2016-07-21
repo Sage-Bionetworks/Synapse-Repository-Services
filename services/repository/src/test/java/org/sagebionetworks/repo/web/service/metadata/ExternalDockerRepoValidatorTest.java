@@ -11,29 +11,37 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.sagebionetworks.repo.model.DockerNodeDao;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.docker.DockerRepository;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.springframework.test.util.ReflectionTestUtils;
 
 public class ExternalDockerRepoValidatorTest {
 
 	private ExternalDockerRepoValidator provider;
 	
+	private static final long ENTITY_ID_LONG = 12345L;
 	private static final long PARENT_ID_LONG = 98765L;
 	private static final String PARENT_ID = "syn"+PARENT_ID_LONG;
 	
 	@Mock
 	private NodeDAO nodeDAO;
 	
+	@Mock
+	private DockerNodeDao dockerNodeDao;
+	
 	@Before
 	public void before() {
 		MockitoAnnotations.initMocks(this);
 		provider = new ExternalDockerRepoValidator();
 		ReflectionTestUtils.setField(provider, "nodeDAO", nodeDAO);
+		ReflectionTestUtils.setField(provider, "dockerNodeDao", dockerNodeDao);
+		when(dockerNodeDao.getRepositoryNameForEntityId(KeyFactory.keyToString(ENTITY_ID_LONG))).thenReturn(null);
 	}
 	
 	@Test
@@ -61,7 +69,7 @@ public class ExternalDockerRepoValidatorTest {
 		provider.validateEntity(repo, event);
 	}
 	
-	@Test(expected=IllegalArgumentException.class)
+	@Test(expected=InvalidModelException.class)
 	public void testValidateEntityParentIsNotProject() throws Exception {
 		DockerRepository repo = new DockerRepository();
 		repo.setRepositoryName("quay.io/uname/myrepo");
@@ -115,10 +123,13 @@ public class ExternalDockerRepoValidatorTest {
 		provider.validateEntity(repo, event);
 	}
 	
+	@Test
 	public void testValidateEntityUpdate() throws Exception {
 		DockerRepository repo = new DockerRepository();
 		repo.setRepositoryName("quay.io/uname/myrepo");
+		repo.setId(KeyFactory.keyToString(ENTITY_ID_LONG));
 		repo.setParentId(PARENT_ID);
+		
 		EventType type = EventType.UPDATE;
 		EntityHeader parentHeader = new EntityHeader();
 		parentHeader.setId(PARENT_ID);
@@ -129,4 +140,25 @@ public class ExternalDockerRepoValidatorTest {
 		provider.validateEntity(repo, event);
 
 	}
+	
+	@Test(expected=InvalidModelException.class)
+	public void testIllegalConversionofManagedToUnmanagedRepo() throws Exception {
+		DockerRepository repo = new DockerRepository();
+		repo.setRepositoryName("quay.io/uname/myrepo");
+		repo.setId(KeyFactory.keyToString(ENTITY_ID_LONG));
+		repo.setParentId(PARENT_ID);
+		EventType type = EventType.UPDATE;
+		EntityHeader parentHeader = new EntityHeader();
+		parentHeader.setId(PARENT_ID);
+		parentHeader.setType(Project.class.getName());
+		List<EntityHeader> parent = Collections.singletonList(parentHeader);
+		when(nodeDAO.getEntityHeader(Collections.singleton(PARENT_ID_LONG))).thenReturn(parent);
+		when(dockerNodeDao.getRepositoryNameForEntityId(KeyFactory.keyToString(ENTITY_ID_LONG))).
+			thenReturn("docker.synapse.org/syn192837/repo-name");
+
+		EntityEvent event = new EntityEvent(type, null, null);
+		provider.validateEntity(repo, event);
+
+	}
+
 }

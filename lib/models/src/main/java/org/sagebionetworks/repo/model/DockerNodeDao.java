@@ -12,5 +12,10 @@ public interface DockerNodeDao {
 	 * Return the unique entity ID for the given (managed) repository name or null if none exists.
 	 */
 	String getEntityIdForRepositoryName(String repositoryName);
+	
+	/*
+	 * Return the managed repository name for a given entity ID or null if none exists.
+	 */
+	String getRepositoryNameForEntityId(String entityId);
 
 }
