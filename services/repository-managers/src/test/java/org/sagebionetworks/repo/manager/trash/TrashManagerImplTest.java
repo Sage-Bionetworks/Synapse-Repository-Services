@@ -26,6 +26,7 @@ import org.sagebionetworks.repo.manager.EntityPermissionsManager;
 import org.sagebionetworks.repo.manager.NodeInheritanceManager;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.trash.TrashManager.PurgeCallback;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -99,6 +100,7 @@ public class TrashManagerImplTest {
 	private String child1Etag;
 	private String child2Etag;
 	
+	private PurgeCallback purgeCallback;
 	
 	@Before
 	public void setUp() throws Exception {
@@ -136,6 +138,21 @@ public class TrashManagerImplTest {
 		child2Etag = "Child2's fake etag";
 		
 		emptyChildIDList = new ArrayList<String>();
+		
+		purgeCallback = spy(new PurgeCallback(){
+
+			@Override
+			public void startPurge(String id) {
+				System.out.println("startPurge() Called");
+			}
+
+			@Override
+			public void endPurge() {
+				System.out.println("endPurge() Called");
+			}
+			
+			
+		});
 		
 		setField(trashManager, "nodeDao", mockNodeDAO);
 		setField(trashManager, "aclDAO", mockAclDAO);
@@ -216,7 +233,7 @@ public class TrashManagerImplTest {
 		verify(mockNodeDAO,times(1)).getNode(nodeID);
 		verify(mockNodeManager, times(1)).updateForTrashCan(userInfo, testNode, ChangeType.DELETE);
 		verify(mockTrashCanDao, times(1)).create(userInfo.getId().toString(), nodeID, nodeName, nodeParentID);
-		//verify(trashManager, times(1)).getDescendants(nodeID, Matchers.<Collection<String>>any());
+		verify(trashManager).getDescendants( eq(nodeID), Matchers.<Collection<String>>any() );
 		
 		//verify for loop 
 		//child1
@@ -372,6 +389,51 @@ public class TrashManagerImplTest {
 		assertEquals(trashList.size(), results.getTotalNumberOfResults());
 		assertEquals(trashList, results.getResults());
 	}
+	
+	////////////////////////////
+	//purgeTrashForUser() Tests
+	/////////////////////////////
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void testPurgeTrashForUserNullCurrentUser(){
+		trashManager.purgeTrashForUser(null, nodeID, purgeCallback);
+	}
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void testPurgeTrashForUserNullNodeId(){
+		trashManager.purgeTrashForUser(userInfo, null, purgeCallback);
+	}
+	
+	@Test (expected = NotFoundException.class)
+	public void testPurgeTrashForUserNotDeletedByUser(){
+		when(mockTrashCanDao.exists(userInfo.getId().toString(), nodeID))
+		.thenReturn(false);
+		trashManager.purgeTrashForUser(userInfo, nodeID, purgeCallback);
+	}
+	
+	@Test 
+	public void testPurgeTrashForUser(){
+		when(mockTrashCanDao.exists(userInfo.getId().toString(), nodeID))
+		.thenReturn(true);
+		trashManager.purgeTrashForUser(userInfo, nodeID, purgeCallback);
+		
+		verify(trashManager).getDescendants( eq(nodeID), Matchers.<Collection<String>>any() );
+		verify(mockNodeDAO).delete(nodeID);
+		verify(mockAclDAO).delete(nodeID, ObjectType.ENTITY);
+		verify(mockTrashCanDao).delete(userInfo.getId().toString(), nodeID);
+		
+		verify(mockTrashCanDao).delete(userInfo.getId().toString(), child1ID);
+		verify(mockTrashCanDao).delete(userInfo.getId().toString(), child2ID);
+		
+		//not very important but might as well check
+		verify(purgeCallback, times(3)).startPurge(any(String.class));
+		verify(purgeCallback, times(3)).startPurge(any(String.class));
+	}
+	
+	////
+	//
+	////
+	
 	
 	//////////////////////////////////////////////////
 	// TODO: TESTS FOR OTHER METHODS COMMING SOON(TM)
