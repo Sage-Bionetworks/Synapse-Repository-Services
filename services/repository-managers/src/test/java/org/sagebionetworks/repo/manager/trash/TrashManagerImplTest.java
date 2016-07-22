@@ -100,6 +100,8 @@ public class TrashManagerImplTest {
 	private String child1Etag;
 	private String child2Etag;
 	
+	private List<TrashedEntity> trashList;
+	
 	private PurgeCallback purgeCallback;
 	
 	@Before
@@ -136,6 +138,8 @@ public class TrashManagerImplTest {
 		child2Name = "Child2's fake name";
 		child1Etag = "Child1's fake etag";
 		child2Etag = "Child2's fake etag";
+		
+		trashList = new ArrayList<TrashedEntity>();
 		
 		emptyChildIDList = new ArrayList<String>();
 		
@@ -352,7 +356,6 @@ public class TrashManagerImplTest {
 	public void testViewTrashForUser(){
 		final long limit = 1;
 		final long offset = 0;
-		List<TrashedEntity> trashList = new ArrayList<TrashedEntity>();
 		when(mockTrashCanDao.getInRangeForUser(userInfo.getId().toString(), false, offset , limit))
 		.thenReturn(trashList);
 		QueryResults<TrashedEntity> results = trashManager.viewTrashForUser(userInfo, userInfo, offset , limit);
@@ -382,7 +385,7 @@ public class TrashManagerImplTest {
 	public void testViewTrash(){
 		final long limit = 1;
 		final long offset = 0;
-		List<TrashedEntity> trashList = new ArrayList<TrashedEntity>();
+		
 		when(mockTrashCanDao.getInRange(false, offset , limit))
 		.thenReturn(trashList);
 		QueryResults<TrashedEntity> results = trashManager.viewTrash(adminUserInfo, offset , limit);
@@ -391,7 +394,7 @@ public class TrashManagerImplTest {
 	}
 	
 	////////////////////////////
-	//purgeTrashForUser() Tests
+	//purgeTrashForUser(User, NodeID) Tests
 	/////////////////////////////
 	
 	@Test (expected = IllegalArgumentException.class)
@@ -430,13 +433,47 @@ public class TrashManagerImplTest {
 		verify(purgeCallback, times(3)).startPurge(any(String.class));
 	}
 	
-	////
-	//
-	////
+	////////////////////////////////
+	//purgeTrashForUser(User) Tests
+	////////////////////////////////
+	@Test (expected = IllegalArgumentException.class)
+	public void testPurgeAllTrashForUserNullCurrentUser(){
+		trashManager.purgeTrashForUser(null, purgeCallback);
+	}
 	
+	@Test
+	public void testPurgeAllTrashForUser(){
+		
+		when(mockTrashCanDao.getInRangeForUser(userInfo.getId().toString(), true, 0, Long.MAX_VALUE))
+		.thenReturn(trashList);
+		trashManager.purgeTrashForUser(userInfo, purgeCallback);
+		verify(trashManager).purgeTrash(trashList, purgeCallback);
+		
+	}
+	
+	/////////////////////////
+	//purgeTrash(User) Tests
+	/////////////////////////
+	@Test (expected = IllegalArgumentException.class)
+	public void testPurgeAllTrashNullCurrentUser(){
+		trashManager.purgeTrash((UserInfo) null, purgeCallback);
+	}
+	@Test (expected = UnauthorizedException.class)
+	public void testPurgeAllTrashNonAdmin(){
+		trashManager.purgeTrash(userInfo, purgeCallback);
+	}
+	@Test
+	public void testPurgeAllTrash(){
+		when(mockTrashCanDao.getInRange(true, 0, Long.MAX_VALUE))
+		.thenReturn(trashList);
+		trashManager.purgeTrash(adminUserInfo, purgeCallback);
+		verify(trashManager).purgeTrash(trashList, purgeCallback);
+	}
 	
 	//////////////////////////////////////////////////
-	// TODO: TESTS FOR OTHER METHODS COMMING SOON(TM)
+	// TODO: TESTS FOR 
+	// purgeTrash(List<TrashedEntity> trashList, PurgeCallback purgeCallback)
+	// But it might get replaced very soon so skip for now.
 	//////////////////////////////////////////////////
 	
 	
@@ -523,7 +560,7 @@ public class TrashManagerImplTest {
 	public void testGetTrashBefore(){
 		//setup
 		Timestamp now = new Timestamp(System.currentTimeMillis());
-		List<TrashedEntity> trashList = new ArrayList<TrashedEntity>();
+		
 		when(mockTrashCanDao.getTrashBefore(now)).thenReturn(trashList);
 		
 		//test
