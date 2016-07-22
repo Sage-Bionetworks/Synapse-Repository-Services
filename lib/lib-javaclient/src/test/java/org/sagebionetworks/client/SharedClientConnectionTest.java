@@ -7,11 +7,9 @@ import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyMap;
 import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.anyInt;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.never;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -60,7 +58,7 @@ public class SharedClientConnectionTest {
 		when(header.getElements()).thenReturn(new HeaderElement[]{he});
 		return header;
 	}
-	
+
 	private void configureMockHttpResponse(final int statusCode, final String responseBody) {
 		StatusLine statusLine = Mockito.mock(StatusLine.class);
 		when(statusLine.getStatusCode()).thenReturn(statusCode);
@@ -100,7 +98,7 @@ public class SharedClientConnectionTest {
 		when(mockClientProvider.execute(any(HttpUriRequest.class))).thenReturn(mockResponse);
 		sharedClientConnection.setRetryRequestIfServiceUnavailable(false);
 	}
-	
+
 	@Test
 	public void testHappyPath() throws Exception {
 		String expectedResponse = "{\"foo\":\"bar\"}";
