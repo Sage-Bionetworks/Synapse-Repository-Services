@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.manager.table;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dao.asynch.AsynchProgress;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
@@ -25,7 +24,7 @@ public interface TableTransactionManager {
 	 * should be re-tried in the future.
 	 */
 	TableUpdateTransactionResponse updateTableWithTransaction(
-			ProgressCallback<AsynchProgress> progressCallback,
+			ProgressCallback<Void> progressCallback,
 			UserInfo userInfo,
 			TableUpdateTransactionRequest request) throws RecoverableMessageException, TableUnavailableException;
 

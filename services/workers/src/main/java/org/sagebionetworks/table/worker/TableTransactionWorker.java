@@ -5,6 +5,7 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.common.util.progress.ThrottlingProgressCallback;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobUtils;
@@ -13,7 +14,6 @@ import org.sagebionetworks.repo.manager.table.TableTransactionManager;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
-import org.sagebionetworks.repo.model.dao.asynch.AsynchProgress;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
@@ -34,6 +34,8 @@ import com.sun.star.lang.IllegalArgumentException;
  */
 public class TableTransactionWorker implements MessageDrivenRunner {
 	
+	private static final int THROTTLING_FREQUENCY_MS = 2000;
+
 	public static final String WAITING_FOR_TABLE_LOCK = "Waiting for table lock";
 
 	static private Logger log = LogManager.getLogger(TableTransactionWorker.class);
@@ -76,20 +78,23 @@ public class TableTransactionWorker implements MessageDrivenRunner {
 				throw new IllegalArgumentException("Cannot find a transaction manager for type: "+tableType.name());
 			}
 			// setup a callback to make progress
-			ProgressCallback<AsynchProgress> statusCallback = new ProgressCallback<AsynchProgress>(){
+			ProgressCallback<Void> statusCallback = new ProgressCallback<Void>(){
+				
+				int count = 1;
 
 				@Override
-				public void progressMade(AsynchProgress progress) {
+				public void progressMade(Void param) {
 					// forward to the outside
 					progressCallback.progressMade(null);
 					// update the job status.
-					asynchJobStatusManager.updateJobProgress(status.getJobId(), progress.getProgressCurrent(), progress.getProgressTotal(), progress.getMessage());
+					asynchJobStatusManager.updateJobProgress(status.getJobId(), 0L, 100L, "Update: "+(count++));
 				}
 				
 			};
-			
+			// Use a throttling callback to suppress too many updates.
+			ThrottlingProgressCallback<Void> throttlingCallback = new ThrottlingProgressCallback<>(statusCallback, THROTTLING_FREQUENCY_MS);
 			// The manager does the rest of the work.
-			TableUpdateTransactionResponse responseBody = transactionManager.updateTableWithTransaction(statusCallback, userInfo, request);
+			TableUpdateTransactionResponse responseBody = transactionManager.updateTableWithTransaction(throttlingCallback, userInfo, request);
 			// Set the job complete.
 			asynchJobStatusManager.setComplete(status.getJobId(), responseBody);
 			log.info("JobId: "+status.getJobId()+" complete");

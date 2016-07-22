@@ -47,6 +47,7 @@ import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
@@ -55,6 +56,8 @@ import com.google.common.collect.Sets;
 
 public class TableEntityManagerImpl implements TableEntityManager {
 	
+	private static final int EXCLUSIVE_LOCK_TIMEOUT_MS = 5*1000;
+
 	private static final String PARTIAL_ROW_KEY_NOT_A_VALID = "PartialRow.value.key: '%s' is not a valid column ID for row ID: %s";
 
 	static private Log log = LogFactory.getLog(TableEntityManagerImpl.class);
@@ -73,6 +76,8 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	ColumnModelManager columModelManager;
 	@Autowired
 	TableManagerSupport tableManagerSupport;
+	@Autowired
+	TransactionTemplate readCommitedTransactionTemplate;
 	
 	/**
 	 * Injected via spring
@@ -545,10 +550,25 @@ public class TableEntityManagerImpl implements TableEntityManager {
 
 	@WriteTransactionReadCommitted
 	@Override
-	public void setTableSchema(UserInfo userInfo, List<String> columnIds,
-			String id) {
-		columModelManager.bindColumnToObject(userInfo, columnIds, id);
-		tableManagerSupport.setTableToProcessingAndTriggerUpdate(id);
+	public void setTableSchema(final UserInfo userInfo, final List<String> columnIds,
+			final String id) {
+		try {
+			tableManagerSupport.tryRunWithTableExclusiveLock(null, id, EXCLUSIVE_LOCK_TIMEOUT_MS, new ProgressingCallable<Void, Void>() {
+
+				@Override
+				public Void call(ProgressCallback<Void> callback) throws Exception {
+					columModelManager.bindColumnToObject(userInfo, columnIds, id);
+					tableManagerSupport.setTableToProcessingAndTriggerUpdate(id);
+					return null;
+				}
+			});
+		}catch (LockUnavilableException e) {
+			throw new TemporarilyUnavailableException("Cannot update an unavailable table");
+		}catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	@WriteTransactionReadCommitted

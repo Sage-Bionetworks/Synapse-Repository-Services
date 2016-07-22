@@ -8,7 +8,7 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 import static org.mockito.Mockito.when;
 
 import java.util.HashMap;
@@ -28,7 +28,6 @@ import org.sagebionetworks.repo.manager.table.TableTransactionManager;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
-import org.sagebionetworks.repo.model.dao.asynch.AsynchProgress;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
@@ -110,11 +109,11 @@ public class TableTransactionWorkerTest {
 			public TableUpdateTransactionResponse answer(
 					InvocationOnMock invocation) throws Throwable {
 				// the first argument is the progress callback
-				ProgressCallback<AsynchProgress> statusCallback = (ProgressCallback<AsynchProgress>) invocation.getArguments()[0];
+				ProgressCallback<Void> statusCallback = (ProgressCallback<Void>) invocation.getArguments()[0];
 				// make some progress
-				statusCallback.progressMade(new AsynchProgress(0L, 100L, "starting"));
-				statusCallback.progressMade(new AsynchProgress(50L, 100L, "half-way"));
-				statusCallback.progressMade(new AsynchProgress(100L, 100L, "done"));
+				statusCallback.progressMade(null);
+				statusCallback.progressMade(null);
+				statusCallback.progressMade(null);
 				return responseBody;
 			}}).when(mockTableTransactionManager).updateTableWithTransaction(any(ProgressCallback.class), any(UserInfo.class), any(TableUpdateTransactionRequest.class));
 
@@ -125,11 +124,9 @@ public class TableTransactionWorkerTest {
 		// call under test
 		worker.run(mockProgressCallback, mockMessage);
 		// progress should be made three times
-		verify(mockProgressCallback, times(3)).progressMade(null);
+		verify(mockProgressCallback, atLeast(1)).progressMade(null);
 		// status should be made three times
-		verify(mockAsynchJobStatusManager).updateJobProgress(jobId, 0L, 100L, "starting");
-		verify(mockAsynchJobStatusManager).updateJobProgress(jobId, 50L, 100L, "half-way");
-		verify(mockAsynchJobStatusManager).updateJobProgress(jobId, 100L, 100L, "done");
+		verify(mockAsynchJobStatusManager).updateJobProgress(jobId, 0L, 100L, "Update: 1");
 		// the job should be set complete
 		verify(mockAsynchJobStatusManager).setComplete(jobId, responseBody);
 		// the managers do the actual transaction work.

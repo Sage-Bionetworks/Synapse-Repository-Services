@@ -755,13 +755,39 @@ public class TableEntityManagerTest {
 		assertEquals(expected, out);
 	}
 	
+	@SuppressWarnings("unchecked")
 	@Test
-	public void testSetTableSchema(){
+	public void testSetTableSchema() throws Exception{
+		// setup success.
+		doAnswer(new Answer<Void>(){
+			@Override
+			public Void answer(InvocationOnMock invocation) throws Throwable {
+				ProgressCallback callback = (ProgressCallback) invocation.getArguments()[0];
+				ProgressingCallable runner = (ProgressingCallable) invocation.getArguments()[3];
+				runner.call(callback);
+				return null;
+			}}).when(mockTableManagerSupport).tryRunWithTableExclusiveLock(any(ProgressCallback.class), anyString(), anyInt(), any(ProgressingCallable.class));
+		
 		List<String> schema = Lists.newArrayList("111","222");
 		// call under test.
 		manager.setTableSchema(user, schema, tableId);
 		verify(mockColumModelManager).bindColumnToObject(user, schema, tableId);
 		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(tableId);
+	}
+	
+	@SuppressWarnings("unchecked")
+	@Test (expected=TemporarilyUnavailableException.class)
+	public void testSetTableSchemaLockUnavailableException() throws Exception{
+		// setup success.
+		doAnswer(new Answer<Void>(){
+			@Override
+			public Void answer(InvocationOnMock invocation) throws Throwable {
+				throw new LockUnavilableException("No Lock for you!");
+			}}).when(mockTableManagerSupport).tryRunWithTableExclusiveLock(any(ProgressCallback.class), anyString(), anyInt(), any(ProgressingCallable.class));
+		
+		List<String> schema = Lists.newArrayList("111","222");
+		// call under test.
+		manager.setTableSchema(user, schema, tableId);
 	}
 	
 	@Test
