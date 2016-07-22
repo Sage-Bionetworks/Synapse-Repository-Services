@@ -15,17 +15,13 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Matchers;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.repo.manager.AccessRequirementManager;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.AuthorizationStatus;
-import org.sagebionetworks.repo.manager.EntityPermissionsManager;
 import org.sagebionetworks.repo.manager.NodeInheritanceManager;
 import org.sagebionetworks.repo.manager.NodeManager;
-import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.trash.TrashManager.PurgeCallback;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
@@ -36,17 +32,11 @@ import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.UserNotFoundException;
 import org.sagebionetworks.repo.model.dao.TrashCanDao;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
-import org.sagebionetworks.repo.model.table.QueryResult;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.springframework.beans.factory.annotation.Autowired;
 
-
-import io.jsonwebtoken.lang.Collections;
 
 import org.sagebionetworks.repo.model.Node;
 
