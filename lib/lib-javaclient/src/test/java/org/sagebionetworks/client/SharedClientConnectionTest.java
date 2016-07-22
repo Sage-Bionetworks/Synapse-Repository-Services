@@ -102,12 +102,6 @@ public class SharedClientConnectionTest {
 	}
 	
 	@Test
-	public void testTimeoutsDontChange() {
-		verify(mockClientProvider, never()).setGlobalConnectionTimeout(anyInt());
-		verify(mockClientProvider, never()).setGlobalSocketTimeout(anyInt());
-	}
-
-	@Test
 	public void testHappyPath() throws Exception {
 		String expectedResponse = "{\"foo\":\"bar\"}";
 		configureMockHttpResponse(201, expectedResponse);
