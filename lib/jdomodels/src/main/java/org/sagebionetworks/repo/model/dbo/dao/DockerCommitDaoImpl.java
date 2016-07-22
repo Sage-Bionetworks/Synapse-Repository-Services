@@ -1,11 +1,23 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
-
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CURRENT_REV;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOCKER_COMMIT_CREATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOCKER_COMMIT_OWNER_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOCKER_COMMIT_TAG;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ETAG;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_MODIFIED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_MODIFIED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_NUMBER;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_OWNER_NODE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DOCKER_COMMIT;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_REVISION;
 
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 
 import org.sagebionetworks.repo.model.DockerCommitDao;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
@@ -38,17 +50,28 @@ public class DockerCommitDaoImpl implements DockerCommitDao {
 	private static final TableMapping<DBODockerCommit> COMMIT_ROW_MAPPER = 
 			(new DBODockerCommit()).getTableMapping();
 	
+	private static final String UPDATE_NODE_ETAG_SQL = 
+			"UPDATE "+TABLE_NODE+" SET "+COL_NODE_ETAG+"=? WHERE "+COL_NODE_ID+"=?";
+	
+	private static final String UPDATE_REVISION_SQL = 
+			"UPDATE "+TABLE_REVISION+" r SET r."+COL_REVISION_MODIFIED_BY+"=?, r."+
+			COL_REVISION_MODIFIED_ON+"=? WHERE r."+COL_REVISION_OWNER_NODE+"=? "+
+			" AND r."+COL_REVISION_NUMBER+"= SELECT n."+COL_CURRENT_REV+" FROM "+
+			TABLE_NODE+" n WHERE n."+COL_NODE_ID+"=r."+COL_REVISION_OWNER_NODE;
 
 	@WriteTransaction
 	@Override
-	public void createDockerCommit(String entityId, DockerCommit commit) {
+	public void createDockerCommit(String entityId, long modifiedBy, DockerCommit commit) {
 		DBODockerCommit dbo = new DBODockerCommit();
-		dbo.setOwner(KeyFactory.stringToKey(entityId));
+		long nodeId = KeyFactory.stringToKey(entityId);
+		dbo.setOwner(nodeId);
 		dbo.setTag(commit.getTag());
 		dbo.setDigest(commit.getDigest());
-		dbo.setCreatedOn(commit.getCreatedOn().getTime());
+		long eventTime = commit.getCreatedOn().getTime();
+		dbo.setCreatedOn(eventTime);
 		basicDao.createNew(dbo);
-		// TODO touch node's etag
+		jdbcTemplate.update(UPDATE_NODE_ETAG_SQL, UUID.randomUUID().toString(), nodeId);
+		jdbcTemplate.update(UPDATE_REVISION_SQL, modifiedBy, eventTime, nodeId);
 	}
 	
 	@Override

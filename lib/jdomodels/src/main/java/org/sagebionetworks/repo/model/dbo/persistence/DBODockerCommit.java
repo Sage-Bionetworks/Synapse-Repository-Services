@@ -104,11 +104,11 @@ public class DBODockerCommit implements MigratableDatabaseObject<DBODockerCommit
 		this.digest = digest;
 	}
 
-	public long getCreatedOn() {
+	public Long getCreatedOn() {
 		return createdOn;
 	}
 
-	public void setCreatedOn(long createdOn) {
+	public void setCreatedOn(Long createdOn) {
 		this.createdOn = createdOn;
 	}
 

@@ -11,6 +11,7 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.DockerCommitDao;
 import org.sagebionetworks.repo.model.DockerNodeDao;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
@@ -51,6 +52,9 @@ public class DockerManagerImpl implements DockerManager {
 
 	@Autowired
 	AuthorizationManager authorizationManager;
+	
+	@Autowired
+	DockerCommitDao dockerCommitDao;
 
 	/**
 	 * Answer Docker Registry authorization request.
@@ -220,7 +224,8 @@ public class DockerManagerImpl implements DockerManager {
 					entityId =  KeyFactory.keyToString(newId);
 					dockerNodeDao.createRepositoryName(entityId, repositoryName);
 				}
-				// TODO Add commit to entity
+				// Add commit to entity
+				dockerCommitDao.createDockerCommit(entityId, userId, commit);
 				break;
 			case pull:
 				// nothing to do. We are being notified that someone has pulled a repository image

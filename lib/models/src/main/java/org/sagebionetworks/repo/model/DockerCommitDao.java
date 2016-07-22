@@ -6,7 +6,7 @@ import org.sagebionetworks.repo.model.docker.DockerCommit;
 
 public interface DockerCommitDao {
 	
-	void createDockerCommit(String entityId, DockerCommit commit);
+	void createDockerCommit(String entityId, long userId, DockerCommit commit);
 	
 	/*
 	 * returns all the commits for a given Docker repository, choosing just

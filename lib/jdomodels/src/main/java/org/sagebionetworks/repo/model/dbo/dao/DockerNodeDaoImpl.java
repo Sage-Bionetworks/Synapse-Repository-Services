@@ -14,7 +14,9 @@ import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBODockerManagedRepositoryName;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 public class DockerNodeDaoImpl implements DockerNodeDao {
@@ -45,26 +47,21 @@ public class DockerNodeDaoImpl implements DockerNodeDao {
 	@Override
 	public String getEntityIdForRepositoryName(String repositoryName) {
 		if (StringUtils.isEmpty(repositoryName)) throw new InvalidModelException("repositoryName is required.");
-		List<Long> nodeIds = jdbcTemplate.queryForList(REPOSITORY_ID_SQL, Long.class, repositoryName);
-		if (nodeIds.size()==0) {
+		try {
+			long nodeId = jdbcTemplate.queryForObject(REPOSITORY_ID_SQL, Long.class, repositoryName);
+			return KeyFactory.keyToString(nodeId);
+		} catch (EmptyResultDataAccessException e) {
 			return null;
 		}
-		if (nodeIds.size()==1) {
-			 return KeyFactory.keyToString(nodeIds.get(0));
-		}
-		throw new DatastoreException("Expected 0-1 but found "+nodeIds.size());
 	}
 
 	@Override
 	public String getRepositoryNameForEntityId(String entityId) {
 		if (StringUtils.isEmpty(entityId)) throw new InvalidModelException("repositoryName is required.");
-		List<String> repositoryNames = jdbcTemplate.queryForList(REPOSITORY_NAME_SQL, String.class, KeyFactory.stringToKey(entityId));
-		if (repositoryNames.size()==0) {
+		try {
+			return jdbcTemplate.queryForObject(REPOSITORY_NAME_SQL, String.class, KeyFactory.stringToKey(entityId));
+		} catch (EmptyResultDataAccessException e) {
 			return null;
 		}
-		if (repositoryNames.size()==1) {
-			 return repositoryNames.get(0);
-		}
-		throw new DatastoreException("Expected 0-1 but found "+repositoryNames.size());
 	}
 }

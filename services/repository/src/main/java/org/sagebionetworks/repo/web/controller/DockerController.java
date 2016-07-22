@@ -47,15 +47,4 @@ public class DockerController extends BaseController {
 			) throws NotFoundException {
 		return serviceProvider.getDockerService().authorizeDockerAccess(userId, service, scope);
 	}
-
-	/*
-	 * TODO service to add a commit to a repo.
-	 * Note:  If the commit includes a tag then the current commit holding that tag must release it.
-	 * Note:  This must also change modifiedBy, modifiedOn for the  entity.
-	 */
-	
-	/*
-	 * TODO service to list the commits for a repo.
-	 * Might have a param to return just the commits having tags
-	 */
 }
