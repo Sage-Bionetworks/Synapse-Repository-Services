@@ -26,6 +26,7 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -337,6 +338,7 @@ public class TrashManagerImpl implements TrashManager {
 		}
 	}
 	
+	@WriteTransactionReadCommitted
 	@Override
 	public void purgeTrashAdmin(List<Long> trashIDs, UserInfo userInfo){
 		ValidateArgument.required(trashIDs, "trashIDs");
