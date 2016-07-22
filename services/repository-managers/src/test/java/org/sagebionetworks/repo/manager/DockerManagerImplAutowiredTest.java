@@ -1,8 +1,7 @@
 package org.sagebionetworks.repo.manager;
 
 import static org.junit.Assert.assertNotNull;
-
-import java.util.UUID;
+import static org.junit.Assert.assertNull;
 
 import org.apache.commons.lang.RandomStringUtils;
 import org.junit.After;
@@ -10,9 +9,9 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.DockerNodeDao;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.docker.DockerAuthorizationToken;
 import org.sagebionetworks.repo.model.docker.DockerRegistryEventList;
 import org.sagebionetworks.repo.model.docker.RegistryEventAction;
@@ -41,6 +40,9 @@ public class DockerManagerImplAutowiredTest {
 
 	@Autowired
 	private UserManager userManager;
+	
+	@Autowired
+	private DockerNodeDao dockerNodeDao;
 
 	private UserInfo adminUserInfo;
 	private String projectId;
@@ -70,10 +72,14 @@ public class DockerManagerImplAutowiredTest {
 	
 	@Test
 	public void testDockerRegistryNotification() {
+		assertNull(dockerNodeDao.getEntityIdForRepositoryName(SERVICE+"/"+repositoryPath));
+
 		DockerRegistryEventList events = 
 				DockerRegistryEventUtil.createDockerRegistryEvent(
 						RegistryEventAction.push, SERVICE, adminUserInfo.getId(), repositoryPath, TAG, DIGEST);
 		dockerManager.dockerRegistryNotification(events);
+		
+		assertNotNull(dockerNodeDao.getEntityIdForRepositoryName(SERVICE+"/"+repositoryPath));
 	}
 
 }
