@@ -10,12 +10,12 @@ import java.security.KeyFactory;
 import java.security.MessageDigest;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.security.Security;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.Date;
-import java.util.Enumeration;
 import java.util.List;
 
 import org.apache.commons.codec.binary.Base32;
@@ -23,6 +23,7 @@ import org.apache.commons.net.util.Base64;
 import org.bouncycastle.asn1.ASN1Encodable;
 import org.bouncycastle.asn1.ASN1Primitive;
 import org.bouncycastle.asn1.DLSequence;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.sagebionetworks.StackConfiguration;
@@ -40,7 +41,10 @@ public class DockerTokenUtil {
 	public static final String KEY_GENERATION_ALGORITHM = "EC";
 
 	static {
-		PRIVATE_KEY = readPrivateKey();
+		  Security.removeProvider("SunEC");
+		  Security.removeProvider("EC");
+		  Security.addProvider(new BouncyCastleProvider());	
+		  PRIVATE_KEY = readPrivateKey();
 		X509Certificate certificate = readCertificate();
 		PUBLIC_KEY_ID = computeKeyId(certificate.getPublicKey());
 	}
