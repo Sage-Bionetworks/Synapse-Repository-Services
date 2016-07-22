@@ -81,4 +81,28 @@ public class DockerNodeDaoImplTest {
 		assertNull(dockerNodeDao.getRepositoryNameForEntityId("syn987654321"));
 	}
 
+	@Test(expected=IllegalArgumentException.class)
+	public void testRepeatedRepositoryName() {
+		Node project = NodeTestUtils.createNew("Project", creatorUserGroupId);
+		project.setNodeType(EntityType.project);
+		project = nodeDao.createNewNode(project);
+		toDelete.add(project.getId());
+		assertNotNull(project);
+		// add a repo
+		Node dockerRepository = NodeTestUtils.createNew("dockerRepository", creatorUserGroupId);
+		dockerRepository.setNodeType(EntityType.dockerrepo);
+		dockerRepository.setParentId(project.getId());
+		dockerRepository = nodeDao.createNewNode(dockerRepository);
+		String repositoryName = "docker.synapse.org/"+project.getId()+"/repo-name";
+		dockerNodeDao.createRepositoryName(dockerRepository.getId(), repositoryName);
+		
+		// add another repo with the same repository name
+		dockerRepository = NodeTestUtils.createNew("dockerRepository2", creatorUserGroupId);
+		dockerRepository.setNodeType(EntityType.dockerrepo);
+		dockerRepository.setParentId(project.getId());
+		dockerRepository = nodeDao.createNewNode(dockerRepository);
+		dockerNodeDao.createRepositoryName(dockerRepository.getId(), repositoryName);
+	}
+	
+
 }

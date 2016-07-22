@@ -6,14 +6,13 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DOCKER
 
 import java.util.List;
 
-import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DockerNodeDao;
-import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBODockerManagedRepositoryName;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 
@@ -35,7 +34,8 @@ public class DockerNodeDaoImpl implements DockerNodeDao {
 	@WriteTransaction
 	@Override
 	public void createRepositoryName(String entityId, String repositoryName) {
-		if (StringUtils.isEmpty(repositoryName)) throw new InvalidModelException("repositoryName is required.");
+		ValidateArgument.required(entityId, "entityId");
+		ValidateArgument.required(repositoryName, "repositoryName");
 		DBODockerManagedRepositoryName dbo = new DBODockerManagedRepositoryName();
 		dbo.setOwner(KeyFactory.stringToKey(entityId));
 		dbo.setRepositoryName(repositoryName);
@@ -44,7 +44,7 @@ public class DockerNodeDaoImpl implements DockerNodeDao {
 	
 	@Override
 	public String getEntityIdForRepositoryName(String repositoryName) {
-		if (StringUtils.isEmpty(repositoryName)) throw new InvalidModelException("repositoryName is required.");
+		ValidateArgument.required(repositoryName, "repositoryName");
 		List<Long> nodeIds = jdbcTemplate.queryForList(REPOSITORY_ID_SQL, Long.class, repositoryName);
 		if (nodeIds.size()==0) {
 			return null;
@@ -57,7 +57,7 @@ public class DockerNodeDaoImpl implements DockerNodeDao {
 
 	@Override
 	public String getRepositoryNameForEntityId(String entityId) {
-		if (StringUtils.isEmpty(entityId)) throw new InvalidModelException("repositoryName is required.");
+		ValidateArgument.required(entityId, "entityId");
 		List<String> repositoryNames = jdbcTemplate.queryForList(REPOSITORY_NAME_SQL, String.class, KeyFactory.stringToKey(entityId));
 		if (repositoryNames.size()==0) {
 			return null;
