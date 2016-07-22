@@ -10,12 +10,12 @@ import java.security.KeyFactory;
 import java.security.MessageDigest;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.security.Security;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.Date;
-import java.util.Enumeration;
 import java.util.List;
 
 import org.apache.commons.codec.binary.Base32;
@@ -23,6 +23,7 @@ import org.apache.commons.net.util.Base64;
 import org.bouncycastle.asn1.ASN1Encodable;
 import org.bouncycastle.asn1.ASN1Primitive;
 import org.bouncycastle.asn1.DLSequence;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.sagebionetworks.StackConfiguration;
@@ -35,11 +36,14 @@ public class DockerTokenUtil {
 
 	private static final String PUBLIC_KEY_ID;
 	private static final PrivateKey PRIVATE_KEY;
-	
+
 	// Eliptic Curve key is required by the Json Web Token signing library
 	public static final String KEY_GENERATION_ALGORITHM = "EC";
 
 	static {
+		Security.removeProvider("SunEC");
+		Security.removeProvider("EC");
+		Security.addProvider(new BouncyCastleProvider());	
 		PRIVATE_KEY = readPrivateKey();
 		X509Certificate certificate = readCertificate();
 		PUBLIC_KEY_ID = computeKeyId(certificate.getPublicKey());
@@ -68,7 +72,7 @@ public class DockerTokenUtil {
 				.setId(uuid)
 				.setSubject(user);
 		claims.put(ACCESS, access);
-		
+
 		String s = Jwts.builder().setClaims(claims).
 				setHeaderParam(Header.TYPE, Header.JWT_TYPE).
 				setHeaderParam("kid", PUBLIC_KEY_ID).
@@ -86,10 +90,10 @@ public class DockerTokenUtil {
 			// the first two pieces are the message to sign.  The third piece is the (incorrect) signature.
 
 			Base64 base64 = new Base64();
-			
+
 			// the original signature bytes
 			byte[] originalSigBytes = base64.decode(pieces[2]);
-			
+
 			ASN1Primitive obj = ASN1Primitive.fromByteArray(originalSigBytes);
 			DLSequence app = (DLSequence) obj;
 			ASN1Encodable[] encodables = app.toArray();
@@ -102,7 +106,7 @@ public class DockerTokenUtil {
 			System.arraycopy(b, b.length-32, p1363Signature, 0, 32);
 			b = encodables[1].toASN1Primitive().getEncoded();
 			System.arraycopy(b, b.length-32, p1363Signature, 32, 32);
-				
+
 			String base64Encoded = Base64.encodeBase64URLSafeString(p1363Signature);
 			while (base64Encoded.endsWith("=")) 
 				base64Encoded = base64Encoded.substring(0, base64Encoded.length()-1);
@@ -114,7 +118,7 @@ public class DockerTokenUtil {
 		return s;
 
 	}
-	
+
 	private static PrivateKey readPrivateKey() {
 		try {
 			KeyFactory factory = KeyFactory.getInstance(KEY_GENERATION_ALGORITHM);
@@ -125,7 +129,7 @@ public class DockerTokenUtil {
 			throw new RuntimeException(e);
 		}
 	}
-	
+
 	public static X509Certificate readCertificate() {
 		try {
 			byte[] content = Base64.decodeBase64(StackConfiguration.getDockerAuthorizationCertificate());
