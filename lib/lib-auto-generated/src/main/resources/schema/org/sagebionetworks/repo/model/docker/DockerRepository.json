@@ -7,6 +7,10 @@
         }
     ],
     "properties":{
+    	"repositoryName": {
+    		"type":"string",
+    		"description":"This is the repository name, [host[:port]/]path"
+    	},
         "isManaged": {
             "type":"boolean",
             "description":"Indicates that the repository is managed by Synapse, rather than by an external registry."

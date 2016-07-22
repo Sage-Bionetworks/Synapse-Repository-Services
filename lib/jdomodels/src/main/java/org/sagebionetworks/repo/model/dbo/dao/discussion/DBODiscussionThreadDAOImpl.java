@@ -29,6 +29,7 @@ import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -139,6 +140,10 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 			+ " AND "+TABLE_DISCUSSION_THREAD+"."+COL_DISCUSSION_THREAD_ID+" = ?";
 
 	private static final String SELECT_AUTHOR = "SELECT "+COL_DISCUSSION_THREAD_CREATED_BY
+			+" FROM "+TABLE_DISCUSSION_THREAD
+			+" WHERE "+COL_DISCUSSION_THREAD_ID+" = ?";
+
+	private static final String SELECT_IS_DELETED = "SELECT "+COL_DISCUSSION_THREAD_IS_DELETED
 			+" FROM "+TABLE_DISCUSSION_THREAD
 			+" WHERE "+COL_DISCUSSION_THREAD_ID+" = ?";
 
@@ -503,8 +508,9 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 	}
 
 	@Override
-	public String getAuthor(String threadId) {
-		List<String> queryResult = jdbcTemplate.query(SELECT_AUTHOR, new RowMapper<String>(){
+	public String getAuthorForUpdate(String threadId) {
+		String query = addCondition(SELECT_AUTHOR, DiscussionFilter.EXCLUDE_DELETED);
+		List<String> queryResult = jdbcTemplate.query(query, new RowMapper<String>(){
 			@Override
 			public String mapRow(ResultSet rs, int rowNum) throws SQLException {
 				return rs.getString(COL_DISCUSSION_THREAD_CREATED_BY);
@@ -514,5 +520,14 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 			throw new NotFoundException();
 		}
 		return queryResult.get(0);
+	}
+
+	@Override
+	public boolean isThreadDeleted(String threadId) {
+		try {
+			return jdbcTemplate.queryForObject(SELECT_IS_DELETED, Boolean.class, threadId);
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException();
+		}
 	}
 }

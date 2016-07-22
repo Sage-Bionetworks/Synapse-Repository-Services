@@ -266,6 +266,7 @@ public class DBONode implements MigratableDatabaseObject<DBONode, DBONode>, Obse
 	public List<MigratableDatabaseObject<?,?>> getSecondaryTypes() {
 		List<MigratableDatabaseObject<?,?>> list = new LinkedList<MigratableDatabaseObject<?,?>>();
 		list.add(new DBORevision());
+		list.add(new DBODockerManagedRepositoryName());
 		return list;
 	}
 

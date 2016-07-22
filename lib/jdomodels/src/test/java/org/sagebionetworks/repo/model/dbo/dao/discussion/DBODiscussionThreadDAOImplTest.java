@@ -138,12 +138,12 @@ public class DBODiscussionThreadDAOImplTest {
 	@Test
 	public void testGetAuthor() {
 		DiscussionThreadBundle dto = threadDao.createThread(forumId, threadId.toString(), "title", "messageKey", userId);
-		assertEquals(userId.toString(), threadDao.getAuthor(dto.getId()));
+		assertEquals(userId.toString(), threadDao.getAuthorForUpdate(dto.getId()));
 	}
 
 	@Test (expected=NotFoundException.class)
 	public void testGetAuthorNotFound() {
-		threadDao.getAuthor("-1");
+		threadDao.getAuthorForUpdate("-1");
 	}
 
 	@Test
@@ -607,5 +607,31 @@ public class DBODiscussionThreadDAOImplTest {
 		threadDao.updateThreadView(threadId, userId);
 		DiscussionThreadBundle updated = threadDao.getThread(threadId, DEFAULT_FILTER);
 		assertFalse(threadBundle.getEtag().equals(updated.getEtag()));
+	}
+
+	@Test (expected = NotFoundException.class)
+	public void testGetAuthorForUpdateDeletedThread() throws InterruptedException {
+		DiscussionThreadBundle dto = threadDao.createThread(forumId, threadId.toString(), "title", "messageKey", userId);
+		long threadId = Long.parseLong(dto.getId());
+		threadDao.markThreadAsDeleted(threadId);
+		threadDao.getAuthorForUpdate(""+threadId);
+	}
+
+	@Test (expected = NotFoundException.class)
+	public void testIsThreadDeletedForNonExistingThread() {
+		threadDao.isThreadDeleted(threadId.toString());
+	}
+
+	@Test
+	public void testIsThreadDeletedForNotDeletedThread() {
+		threadDao.createThread(forumId, threadId.toString(), "title", "messageKey", userId);
+		assertEquals(false, threadDao.isThreadDeleted(threadId.toString()));
+	}
+
+	@Test
+	public void testIsThreadDeletedForDeletedThread() {
+		threadDao.createThread(forumId, threadId.toString(), "title", "messageKey", userId);
+		threadDao.markThreadAsDeleted(threadId);
+		assertEquals(true, threadDao.isThreadDeleted(threadId.toString()));
 	}
 }
