@@ -32,6 +32,7 @@ import org.json.JSONObject;
 import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseConflictingUpdateException;
+import org.sagebionetworks.client.exceptions.SynapseDeprecatedServiceException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseLockedException;
@@ -341,6 +342,8 @@ public class SharedClientConnection {
 			throw new SynapseLockedException(reasonStr);
 		} else if (statusCode == HttpStatus.SC_PRECONDITION_FAILED) {
 			throw new SynapseConflictingUpdateException(reasonStr);
+		} else if (statusCode == HttpStatus.SC_GONE) {
+			throw new SynapseDeprecatedServiceException(reasonStr);
 		} else {
 			throw new SynapseServerException(statusCode, reasonStr);
 		}

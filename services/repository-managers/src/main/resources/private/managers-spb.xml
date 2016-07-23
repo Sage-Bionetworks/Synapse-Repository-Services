@@ -272,10 +272,6 @@
 	<bean id="s3Utility" class="org.sagebionetworks.repo.manager.AmazonS3UtilityImpl"
 		scope="singleton" />
 
-	<bean id="storageUsageManager"
-		class="org.sagebionetworks.repo.manager.StorageUsageManagerImpl"
-		scope="singleton" />
-
 	<bean id="schemaManager" class="org.sagebionetworks.repo.manager.SchemaManagerImpl"
 		scope="singleton" />
 		
