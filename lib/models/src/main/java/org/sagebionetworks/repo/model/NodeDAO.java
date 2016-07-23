@@ -79,12 +79,12 @@ public interface NodeDAO {
 	public boolean delete(String id) throws DatastoreException;
 	
 	/**
-	 * Delete all nodes within a list of IDs.
+	 * Delete all nodes within a list of IDs. All nodes in the list must have < 14 levels of children.
 	 * @param IDs list of IDs to remove
-	 * @return boolean
+	 * @return int number of nodes deleted
 	 * @throws DatastoreException
 	 */
-	public boolean delete(List<Long> IDs) throws DatastoreException;
+	public int delete(List<Long> IDs) throws DatastoreException;
 	
 	/**
 	 * Delete a specific version.

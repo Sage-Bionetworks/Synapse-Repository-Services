@@ -43,7 +43,7 @@ public interface AccessControlListDAO  {
 	public Long getAclId(String id, ObjectType objectType) throws DatastoreException, NotFoundException;
 	
 	/**
-	 * Get the ACL IDs using ownerId and objectType, if they exist
+	 * Get the ACL IDs, if they exist, using ownerId and objectType
 	 * .
 	 * @param ownerIds List of ownerId as long
 	 * @param objectType
@@ -94,9 +94,10 @@ public interface AccessControlListDAO  {
 	 * Deletes ACLs using a List of Node Ids.
 	 * @param ids list of id's of the nodes to delete
 	 * @param ownerType
+	 * @return int number of ACLs deleted
 	 * @throws DatastoreException
 	 */
-	void delete(List<Long> ids, ObjectType ownerType) throws DatastoreException;
+	int delete(List<Long> ids, ObjectType ownerType) throws DatastoreException;
 
 	/**
 	 * Given a set of benefactors, and benefactors, return the sub-set of benefactors the that any given principal can see.

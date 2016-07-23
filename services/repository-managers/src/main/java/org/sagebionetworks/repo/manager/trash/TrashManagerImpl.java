@@ -7,6 +7,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.commons.lang.Validate;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.NodeManager;
@@ -134,7 +135,6 @@ public class TrashManagerImpl implements TrashManager {
 			throw new ParentInTrashCanException("The intended parent " + newParentId + " is in the trash can and cannot be restored to.");
 		}
 
-		currentUser.getId().toString();
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canAccess(currentUser, newParentId, ObjectType.ENTITY, ACCESS_TYPE.CREATE));
 		Node node = nodeDao.getNode(nodeId);
@@ -166,13 +166,8 @@ public class TrashManagerImpl implements TrashManager {
 	@Override
 	public QueryResults<TrashedEntity> viewTrashForUser(
 			UserInfo currentUser, UserInfo user, long offset, long limit) {
-
-		if (currentUser == null) {
-			throw new IllegalArgumentException("Current user cannot be null");
-		}
-		if (user == null) {
-			throw new IllegalArgumentException("User cannot be null");
-		}
+		ValidateArgument.required(currentUser, "currentUser");
+		ValidateArgument.required(user, "user");
 		if (offset < 0L) {
 			throw new IllegalArgumentException("Offset cannot be < 0");
 		}
@@ -344,11 +339,9 @@ public class TrashManagerImpl implements TrashManager {
 		ValidateArgument.required(trashIDs, "trashIDs");
 		ValidateArgument.required(userInfo, "userInfo");
 		
-		UserInfo.validateUserInfo(userInfo);
 		if (!userInfo.isAdmin()) {
 			String userId = userInfo.getId().toString();
-			throw new UnauthorizedException("Current user " + userId
-					+ " does not have the permission.");
+			throw new UnauthorizedException("Only an Administrator can perform this action.");
 		}
 	
 		nodeDao.delete(trashIDs);
@@ -364,17 +357,16 @@ public class TrashManagerImpl implements TrashManager {
 	
 	@Override
 	public List<Long> getTrashLeavesBefore(long numDays, long maxTrashItems) throws DatastoreException{
-		return trashCanDao.getTrashLeavesBefore(numDays, maxTrashItems);
+		return trashCanDao.getTrashLeaves(numDays, maxTrashItems);
 	}
 	
 	@Override
 	/**
 	 * Recursively gets the IDs of all the descendants.
 	 */
-	public void getDescendants(String nodeId, Collection<String>descendants) {
-		if(nodeId == null || descendants == null){
-			throw new IllegalArgumentException(  (nodeId == null ? "nodeId" : "descendants") + " cannot be null.");
-		}
+	public void getDescendants(String nodeId, Collection<String> descendants) {
+		ValidateArgument.required(nodeId, "nodeId");
+		ValidateArgument.required(descendants, "descendants");
 		List<String> children = nodeDao.getChildrenIdsAsList(nodeId);
 		if (children.isEmpty()) {
 			return;

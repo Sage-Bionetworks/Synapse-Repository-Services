@@ -13,6 +13,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_RESOUR
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -196,6 +197,12 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 	
 	@Override
 	public List<Long> getAclIds(List<Long> nodeIds, ObjectType objectType){
+		ValidateArgument.required(nodeIds, "nodeIds");
+		ValidateArgument.required(objectType, "objectType");
+		
+		if(nodeIds.isEmpty()){ //no need to query database
+			return new ArrayList<Long>();
+		}
 		try {
 			MapSqlParameterSource params = new MapSqlParameterSource();
 			params.addValue(IDS_PARAM_NAME, nodeIds); 
@@ -332,17 +339,24 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 	
 	@WriteTransactionReadCommitted
 	@Override
-	public void delete(List<Long> ownerIds, ObjectType ownerType) throws DatastoreException {
+	public int delete(List<Long> ownerIds, ObjectType ownerType) throws DatastoreException {
+		ValidateArgument.required(ownerIds, "ownerIds");
+		ValidateArgument.required(ownerType, "ownerType");
 		
-		List<Long> ACLIds = getAclIds(ownerIds, ownerType);
-		for(Long aclID : ACLIds){
-			transactionalMessenger.sendMessageAfterCommit(aclID.toString(), ObjectType.ACCESS_CONTROL_LIST, UUID.randomUUID().toString(), ChangeType.DELETE);
+		if(ownerIds.isEmpty()){
+			//no need to update database if not deleting anything
+			return 0;
+		}
+		
+		List<Long> aclIds = getAclIds(ownerIds, ownerType);
+		for(Long aclId : aclIds){
+			transactionalMessenger.sendMessageAfterCommit(aclId.toString(), ObjectType.ACCESS_CONTROL_LIST, UUID.randomUUID().toString(), ChangeType.DELETE);
 		}
 		
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(IDS_PARAM_NAME, ownerIds);
 		params.addValue(DBOAccessControlList.OWNER_TYPE_FIELD_NAME, ownerType.name());
-		namedParameterJdbcTemplate.update(SQL_DELETE_ACLS_BY_IDS, params);
+		return namedParameterJdbcTemplate.update(SQL_DELETE_ACLS_BY_IDS, params);
 		
 	}
 

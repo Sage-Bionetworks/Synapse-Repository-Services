@@ -51,9 +51,6 @@ public class TrashManagerImplTest {
 	@Mock 
 	private NodeInheritanceManager mockNodeInheritanceManager;
 	
-//	@Mock 
-//	private EntityPermissionsManager mockEntityPermissionsManager;
-	
 	@Mock 
 	private NodeDAO mockNodeDAO;
 	
@@ -180,11 +177,6 @@ public class TrashManagerImplTest {
 		when(mockNodeDAO.getChildrenIdsAsList(child2ID))
 		.thenReturn(emptyChildIDList);
 	}
-
-	@After
-	public void tearDown() throws Exception {
-		//TODO: IDK YET
-	}
 	
 	
 	///////////////////////
@@ -266,11 +258,18 @@ public class TrashManagerImplTest {
 		trashManager.restoreFromTrash(userInfo, badNodeID, nodeParentID);
 	}
 	
-	@Test (expected = UnauthorizedException.class)
+	@Test
 	public void testRestoreFromTrashNotAdminAndNotDeletedByUser(){
 		final String fakeDeletedByID = "synDEFINITELYNOTTHISUSER";
 		nodeTrashedEntity.setDeletedByPrincipalId(fakeDeletedByID);
-		trashManager.restoreFromTrash(userInfo, nodeID, nodeParentID);
+		try{
+			trashManager.restoreFromTrash(userInfo, nodeID, nodeParentID);
+			fail("should not get to here");
+		}catch (UnauthorizedException e){
+			//expected
+			verify(mockTrashCanDao).getTrashedEntity(nodeID);
+			verify(mockAuthorizationManager, never()).canAccess(any(UserInfo.class), anyString(), any(ObjectType.class), any(ACCESS_TYPE.class));
+		}
 	}
 	
 	@Test (expected = ParentInTrashCanException.class)
@@ -567,10 +566,10 @@ public class TrashManagerImplTest {
 		final long daysBefore = 1;
 		final long limit = 1234;
 		List<Long> trashIdList = new ArrayList<Long>();
-		when(mockTrashCanDao.getTrashLeavesBefore(daysBefore, limit)).thenReturn(trashIdList);
+		when(mockTrashCanDao.getTrashLeaves(daysBefore, limit)).thenReturn(trashIdList);
 		
 		assertEquals(trashManager.getTrashLeavesBefore(daysBefore, limit), trashIdList);
-		verify(mockTrashCanDao, times(1)).getTrashLeavesBefore(daysBefore, limit);
+		verify(mockTrashCanDao, times(1)).getTrashLeaves(daysBefore, limit);
 	}
 
 }

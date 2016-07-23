@@ -1191,38 +1191,63 @@ public class NodeDAOImplTest {
 		assertEquals("Deleting all versions except the first should have left the node in place with a current version of 1.",new Long(1), node.getVersionNumber());
 	}
 	
-	//mySQL seems to have a limit of 15 for the number of delete cascades to prevent infinite loops.
+	//mySQL seems to have a limit of 15 for the number of delete cascades to prevent infinite loops. https://dev.mysql.com/doc/mysql-reslimits-excerpt/5.5/en/ansi-diff-foreign-keys.html
 	@Test (expected = DataIntegrityViolationException.class)
-	public void testDeleteCascade(){
-		final int maxSQLDeleteCascade = 15;
+	public void testDeleteCascadeMax(){
+		List<String> nodeIds = createNestedNodes(15);
+		//delete the parent node 
+		nodeDao.delete(nodeIds.get(0));
+	}
+	
+	//anything less than 15 works
+	@Test
+	public void testDeleteCascadeNotMax(){
+		List<String> nodeIds = createNestedNodes(14);
+		//delete the parent node 
+		nodeDao.delete(nodeIds.get(0));
+		//check that all added nodes were deleted 
+		for(String nodeID : nodeIds){
+			assertFalse(nodeDao.doesNodeExist(KeyFactory.stringToKey(nodeID)));
+		}
+	}
+	
+	/**
+	 * <pre>
+	 * numLevels amount of nodes each referencing the previous
+	 *    root
+	 *     |
+	 *   Node1
+	 *     |
+	 *   Node2
+	 *     |
+	 *     .
+	 *     .
+	 *     .
+	 *     |
+	 *    Node{numLevels}
+	 * </pre>
+	 * @param numLevels number of chained nodes to creates
+	 * @return List of all created nodes' ids ordered by level ascendingly
+	 * @throws DataIntegrityViolationException
+	 */
+	private List<String> createNestedNodes(int numLevels) throws DataIntegrityViolationException{
 		
-		//create maxSQLDeleteCascade amount of nodes each referencing the previous
 		/*
-		  root
-		   |
-		 Node1
-		   |
-		 Node2
-		   |
-		   .
-		   .
-		   .
-		   |
-	     Node15
+
 		  
 		*/
 		
 		List<String> nodeIDs = new ArrayList<String>();
 		
-		for(int i = 0; i < maxSQLDeleteCascade; i++){
-			String nodeName = "NodeDAOImplTest.testDeleteCascade() Node:" + i;
+		for(int i = 0; i < numLevels; i++){
+			String nodeName = "NodeDAOImplTest.createNestedNodes() Node:" + i;
 			Node node = new Node();
 			
 			//set fields for the new node
 			Date now = new Date();
 			node.setName(nodeName);
 			node.setParentId( nodeIDs.isEmpty() ? rootID : nodeIDs.get(nodeIDs.size() - 1) );//previous added node is the parent
-			node.setNodeType(EntityType.project);//I actually don't really know what this does yet but I saw it in another test
+			node.setNodeType(EntityType.project);
 			node.setModifiedByPrincipalId(creatorUserGroupId);
 			node.setModifiedOn(now);
 			node.setCreatedOn(now);
@@ -1235,23 +1260,26 @@ public class NodeDAOImplTest {
 			nodeIDs.add(nodeID);
 			toDelete.add(0, nodeID);//have to delete the nodes in reverse order or else will not be able to clean up if test fails
 		}
-		assertTrue(nodeIDs.size() == maxSQLDeleteCascade);
+		assertTrue(nodeIDs.size() == numLevels);
 		
-		//delete the parent node 
-		nodeDao.delete(nodeIDs.get(0));
-		
-		//should not get here if >= 15 levels of cascade delete
-		//check that all added nodes were deleted 
-		for(String nodeID : nodeIDs){
-			assertFalse(nodeDao.doesNodeExist(KeyFactory.stringToKey(nodeID)));
-		}
-		
+		return nodeIDs;
+	}
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void testDeleteListNullList(){
+		nodeDao.delete((List<Long>) null);
 	}
 	
 	@Test
-	public void testDeleteList(){
+	public void testDeleteListEmptyList(){
+		assertEquals(0, nodeDao.delete(new ArrayList<Long>()));
+	}
+	
+	
+	@Test
+	public void testDeleteListLeavesOnly(){
 		List<Long> nodeIDs = new ArrayList<Long>();
-		int numNodes = 3; 
+		int numNodes = 2; 
 		
 		//create numNodes amount of Nodes. all children of the root
 		for(int i = 0; i < numNodes; i++){
@@ -1262,7 +1290,7 @@ public class NodeDAOImplTest {
 			Date now = new Date();
 			node.setName(nodeName);
 			node.setParentId( rootID );//previous added node is the parent
-			node.setNodeType(EntityType.project);//I actually don't really know what this does yet but I saw it in another test
+			node.setNodeType(EntityType.project);
 			node.setModifiedByPrincipalId(creatorUserGroupId);
 			node.setModifiedOn(now);
 			node.setCreatedOn(now);
@@ -1289,6 +1317,28 @@ public class NodeDAOImplTest {
 		for(Long nodeID : nodeIDs){
 			assertFalse(nodeDao.doesNodeExist(nodeID));
 		}
+	}
+	@Test
+	public void testDeleteListOfNodeWithChildren(){
+		List<String> stringTypeNodeIds = createNestedNodes(2);//1 child
+		List<Long> listParentOnly = new ArrayList<Long>();
+		
+		//only add the root parent
+		listParentOnly.add(KeyFactory.stringToKey(stringTypeNodeIds.get(0)));
+		
+		nodeDao.delete(listParentOnly);
+	}
+	
+	
+	@Test (expected = DataIntegrityViolationException.class)
+	public void testDeleteListCascadeMax(){
+		List<String> stringTypeNodeIds = createNestedNodes(15);
+		List<Long> listParentOnly = new ArrayList<Long>();
+		
+		//only add the root parent
+		listParentOnly.add(KeyFactory.stringToKey(stringTypeNodeIds.get(0)));
+		
+		nodeDao.delete(listParentOnly);
 	}
 	
 	

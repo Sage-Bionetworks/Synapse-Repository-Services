@@ -14,6 +14,7 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
@@ -24,6 +25,7 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
@@ -46,7 +48,10 @@ import com.google.common.collect.Sets;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class DBOAccessControlListDAOImplTest {
-
+	
+	@Autowired
+	DBOChangeDAO changeDAO;
+	
 	@Autowired
 	private AccessControlListDAO aclDAO;
 	
@@ -313,10 +318,32 @@ public class DBOAccessControlListDAOImplTest {
 	}
 
 	@Test  (expected=NotFoundException.class)
-	public void testGetWithBadAclID() throws Exception {
+	public void testGetAclIdNotExists() throws Exception {
 		Long aclId = -598787L;
 		aclDAO.get(aclId);
 	}
+	
+	////////////////////
+	//getAclIds() tests
+	////////////////////
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetAclIdsNullList(){
+		aclDAO.getAclIds(null, ObjectType.ENTITY);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetAclIdsNullObjectType(){
+		aclDAO.getAclIds(new ArrayList<Long>(), null);
+	}
+	
+	@Test 
+	public void testGetAclIdsEmptyNodeIdsList(){
+		List<Long> aclIds = aclDAO.getAclIds(new ArrayList<Long>(), ObjectType.ENTITY);
+		assertNotNull(aclIds);
+		assertTrue(aclIds.isEmpty());
+	}
+	
 	
 	@Test
 	public void testGetAclIds(){
@@ -333,7 +360,7 @@ public class DBOAccessControlListDAOImplTest {
 	}
 	
 	@Test
-	public void testGetAclIdsBadIds(){
+	public void testGetAclIdsNotExist(){
 		List<Long> badList = new ArrayList<Long>();
 		badList.add(123L);
 		badList.add(456L);
@@ -441,11 +468,16 @@ public class DBOAccessControlListDAOImplTest {
 	
 	@Test
 	public void testDeleteList(){
+		//setup
 		List<Long> nodeIds = new ArrayList<Long>();
 		for(Node node: nodeList){
 			nodeIds.add(KeyFactory.stringToKey(node.getId()));
 		}
+		
+		//delete the ACLs
 		aclDAO.delete(nodeIds, ObjectType.ENTITY);
+		
+		//check that the ACLs were indeed deleted
 		for(Long nodeId: nodeIds){
 			try{
 				aclDAO.get(KeyFactory.keyToString(nodeId), ObjectType.ENTITY);

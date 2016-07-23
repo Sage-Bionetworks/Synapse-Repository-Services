@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTrashedEntity;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -277,10 +278,9 @@ public class DBOTrashCanDaoImpl implements TrashCanDao {
 	}
 	
 	@Override
-	public List<Long> getTrashLeavesBefore(long numDays, long limit) throws DatastoreException{
-		if(numDays < 0 || limit < 0){
-			throw new IllegalArgumentException("parameters cannot have value less than zero");
-		}
+	public List<Long> getTrashLeaves(long numDays, long limit) throws DatastoreException{
+		ValidateArgument.requirement(numDays >= 0, "numDays must not be negative");
+		ValidateArgument.requirement(limit >= 0, "limit must not be negative");
 		
 		MapSqlParameterSource paramMap = new MapSqlParameterSource();
 		paramMap.addValue(NUM_DAYS_PARAM_NAME, numDays);
@@ -315,13 +315,16 @@ public class DBOTrashCanDaoImpl implements TrashCanDao {
 	
 	@WriteTransactionReadCommitted
 	@Override
-	public void delete(List<Long> nodeIDs) throws DatastoreException, NotFoundException {
-		if (nodeIDs == null) {
-			throw new IllegalArgumentException("nodeId cannot be null.");
+	public int delete(List<Long> nodeIds) throws DatastoreException, NotFoundException {
+		ValidateArgument.required(nodeIds, "nodeIds");
+		if(nodeIds.isEmpty()){ 
+			//no need to update database if not deleting anything
+			return 0;
 		}
+		
 		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue(IDS_PARAM_NAME, nodeIDs); 
-		namedParameterJdbcTemplate.update(DELETE_TRASH_BY_IDS, params);
+		params.addValue(IDS_PARAM_NAME, nodeIds); 
+		return namedParameterJdbcTemplate.update(DELETE_TRASH_BY_IDS, params);
 		
 	}
 

@@ -67,12 +67,12 @@ public interface TrashCanDao {
 	
 	/**
 	 * Gets rowLimit amount of trash items that have no children trash items and are more than numDays old.
-	 * @param numDays how many days old the trash items must be
+	 * @param numDays number of days the item has been in the trash can
 	 * @param limit maximum number of results to return
 	 * @return Set of IDs of the trash items as Longs
 	 * @throws DatastoreException
 	 */
-	List<Long> getTrashLeavesBefore(long numDays, long limit) throws DatastoreException;
+	List<Long> getTrashLeaves(long numDays, long limit) throws DatastoreException;
 	
 	/**
 	 * Removes a trash item from the trash can table. This happens when the trash item is either restored or purged.
@@ -84,10 +84,11 @@ public interface TrashCanDao {
 	/**
 	 * Removes all trash items in a list of node IDs
 	 * @param nodeIDs list of trash node IDs as longs
+	 * @return int number of Trash nodes deleted
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	void delete(List<Long> nodeIDs) throws DatastoreException, NotFoundException;
+	int delete(List<Long> nodeIDs) throws DatastoreException, NotFoundException;
 	
 	
 }

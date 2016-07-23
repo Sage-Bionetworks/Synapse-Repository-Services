@@ -97,7 +97,7 @@ public interface TrashManager {
 	
 	/**
 	 * Gets rowLimit amount of trash items that have no children trash items and are more than numDays old.
-	 * @param numDays how many days old the trash items must be
+	 * @param numDays number of days the item has been in the trash can
 	 * @param maxTrashItems maximum number of results to return
 	 * @return Set of IDs of the trash items as Longs
 	 * @throws DatastoreException
