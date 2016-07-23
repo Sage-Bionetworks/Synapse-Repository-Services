@@ -344,9 +344,6 @@
 	
    	<bean id="asynchJobStatusManager" class="org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManagerImpl" scope="singleton" />
 
-	<bean id="storageQuotaManager" class="org.sagebionetworks.repo.manager.StorageQuotaManagerImpl"
-		scope="singleton" />		
-		
 	<bean id="subStatusAnnoAsyncManager"
 		class="org.sagebionetworks.repo.model.dbo.dao.SubmissionStatusAnnotationsAsyncManagerImpl" />
 
