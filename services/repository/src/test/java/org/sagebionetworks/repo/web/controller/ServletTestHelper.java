@@ -89,8 +89,6 @@ import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.status.StackStatus;
-import org.sagebionetworks.repo.model.storage.StorageUsage;
-import org.sagebionetworks.repo.model.storage.StorageUsageSummaryList;
 import org.sagebionetworks.repo.model.subscription.Etag;
 import org.sagebionetworks.repo.model.subscription.Subscription;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
@@ -1787,44 +1785,6 @@ public class ServletTestHelper {
 
 		return ServletTestHelperUtils
 				.readResponse(response, EntityIdList.class);
-	}
-
-	public StorageUsageSummaryList getStorageUsageGrandTotal(Long userId)
-			throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, UrlHelpers.STORAGE_SUMMARY, userId, null);
-		MockHttpServletResponse response = ServletTestHelperUtils
-				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
-
-		return ServletTestHelperUtils.readResponse(response,
-				StorageUsageSummaryList.class);
-	}
-
-	public StorageUsageSummaryList getStorageUsageAggregatedTotal(
-			Long userId, String aggregation) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, UrlHelpers.STORAGE_SUMMARY + "/" + userId,
-				userId, null);
-		request.setParameter(ServiceConstants.AGGREGATION_DIMENSION,
-				aggregation);
-		MockHttpServletResponse response = ServletTestHelperUtils
-				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
-
-		return ServletTestHelperUtils.readResponse(response,
-				StorageUsageSummaryList.class);
-	}
-
-	public PaginatedResults<StorageUsage> getStorageUsageItemized(
-			Long userId, String aggregation) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, UrlHelpers.STORAGE_DETAILS, userId, null);
-		request.setParameter(ServiceConstants.AGGREGATION_DIMENSION,
-				aggregation);
-		MockHttpServletResponse response = ServletTestHelperUtils
-				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
-
-		return ServletTestHelperUtils.readResponsePaginatedResults(response,
-				StorageUsage.class);
 	}
 
 	public PaginatedResults<TrashedEntity> getTrashCan(Long userId)
