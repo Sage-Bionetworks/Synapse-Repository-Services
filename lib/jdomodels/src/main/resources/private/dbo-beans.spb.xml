@@ -142,6 +142,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.wikiV2.V2DBOWikiOwner" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOActivity" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBONode" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBODockerManagedRepositoryName" />
 				<!-- Team-related beans -->
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOTeam" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOMembershipInvtnSubmission" />

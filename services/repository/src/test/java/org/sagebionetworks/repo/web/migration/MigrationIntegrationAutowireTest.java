@@ -98,7 +98,6 @@ import org.sagebionetworks.repo.model.dbo.file.MultipartUploadDAO;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOSessionToken;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.sagebionetworks.repo.model.docker.DockerRegistryEventList;
-import org.sagebionetworks.repo.model.docker.DockerRepository;
 import org.sagebionetworks.repo.model.docker.RegistryEventAction;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
