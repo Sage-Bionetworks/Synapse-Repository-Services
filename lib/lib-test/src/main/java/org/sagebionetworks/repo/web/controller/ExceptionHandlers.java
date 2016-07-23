@@ -86,5 +86,5 @@ public class ExceptionHandlers {
 		new TestEntry(423,
 				new ExceptionType("org.sagebionetworks.repo.model.LockedException", true)),
 		new TestEntry(410,
-				new ExceptionType("org.sagebionetworks.repo.model.DeprecatedServiceException", true)) };
+				new ExceptionType("org.sagebionetworks.repo.web.DeprecatedServiceException", true)) };
 }
