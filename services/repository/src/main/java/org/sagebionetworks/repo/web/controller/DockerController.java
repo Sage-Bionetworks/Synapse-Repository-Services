@@ -58,15 +58,4 @@ public class DockerController extends BaseController {
 	 * TODO service to list the commits for a repo.
 	 * Might have a param to return just the commits having tags
 	 */
-
-	
-	/*
-	 * TODO Read the Docker password
-	 * 
-	 */
-	
-	/*
-	 * TODO Delete (invalidate) the Docker password
-	 */
-
 }

@@ -808,6 +808,11 @@ public class SqlConstants {
 	public static final String COL_AUTHENTICATION_RECEIPT_RECEIPT = "RECEIPT";
 	public static final String COL_AUTHENTICATION_RECEIPT_EXPIRATION = "EXPIRATION";
 	public static final String DDL_AUTHENTICATION_RECEIPT = "schema/AuthenticationReceipt-ddl.sql";
+	
+	// DockerRepsitoryName table
+	public static final String TABLE_DOCKER_REPOSITORY_NAME = "DOCKER_REPOSITORY_NAME";
+	public static final String COL_DOCKER_REPOSITORY_OWNER_ID = "OWNER_ID";
+	public static final String COL_DOCKER_REPOSITORY_NAME = "REPOSITORY_NAME";
 
 	// This seems to be the name of the id column for all tables.
 	public static final String COLUMN_ID		= "id";

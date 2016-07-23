@@ -5,13 +5,27 @@ package org.sagebionetworks.table.cluster;
  *
  */
 public enum MySqlColumnType {
-	BIGINT,
-	VARCHAR,
-	DOUBLE,
-	BOOLEAN,
-	MEDIUMTEXT,
-	TINYINT,
-	ENUM;
+	BIGINT(true),
+	VARCHAR(true),
+	DOUBLE(false),
+	BOOLEAN(false),
+	MEDIUMTEXT(false),
+	TINYINT(true),
+	ENUM(false);
+	
+	boolean hasSize;
+	
+	private MySqlColumnType(boolean hasSize){
+		this.hasSize = hasSize;
+	}
+	
+	/**
+	 * Can type type have a size?
+	 * @return
+	 */
+	public boolean hasSize(){
+		return hasSize;
+	}
 	
 	
 	/**
