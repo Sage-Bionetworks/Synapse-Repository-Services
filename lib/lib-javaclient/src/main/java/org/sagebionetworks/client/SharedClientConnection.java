@@ -119,8 +119,6 @@ public class SharedClientConnection {
 		defaultPOSTPUTHeaders.put("Content-Type", "application/json; charset="+SYNAPSE_ENCODING_CHARSET);
 		
 		this.clientProvider = clientProvider;
-		clientProvider.setGlobalConnectionTimeout(ServiceConstants.DEFAULT_CONNECT_TIMEOUT_MSEC);
-		clientProvider.setGlobalSocketTimeout(ServiceConstants.DEFAULT_SOCKET_TIMEOUT_MSEC);
 		
 		requestProfile = false;
 		//by default, retry if we get a 503

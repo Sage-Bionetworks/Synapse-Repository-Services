@@ -40,6 +40,7 @@
                 <bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOComment" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBONode" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBORevision" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBODockerManagedRepositoryName" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOAnnotationOwner" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOStringAnnotation" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOLongAnnotation" />
