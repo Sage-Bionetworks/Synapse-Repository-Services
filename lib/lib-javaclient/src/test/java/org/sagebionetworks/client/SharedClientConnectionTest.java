@@ -58,7 +58,7 @@ public class SharedClientConnectionTest {
 		when(header.getElements()).thenReturn(new HeaderElement[]{he});
 		return header;
 	}
-	
+
 	private void configureMockHttpResponse(final int statusCode, final String responseBody) {
 		StatusLine statusLine = Mockito.mock(StatusLine.class);
 		when(statusLine.getStatusCode()).thenReturn(statusCode);
