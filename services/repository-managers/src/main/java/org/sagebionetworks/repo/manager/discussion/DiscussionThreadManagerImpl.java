@@ -78,7 +78,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		DiscussionThreadBundle thread = threadDao.createThread(createThread.getForumId(), id.toString(), createThread.getTitle(), messageKey, userInfo.getId());
 		transactionalMessenger.sendMessageAfterCommit(""+id, ObjectType.THREAD, thread.getEtag(),  ChangeType.CREATE, userInfo.getId());
 		subscriptionDao.create(userInfo.getId().toString(), id.toString(), SubscriptionObjectType.THREAD);
-		return updateNumberOfReplies(thread, DiscussionFilter.NO_FILTER);
+		return updateNumberOfReplies(thread, DiscussionFilter.EXCLUDE_DELETED);
 	}
 
 	private DiscussionThreadBundle updateNumberOfReplies(DiscussionThreadBundle thread, DiscussionFilter filter) {
@@ -104,7 +104,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 					authorizationManager.canAccess(userInfo, thread.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
 		}
 		threadDao.updateThreadView(threadIdLong, userInfo.getId());
-		return updateNumberOfReplies(thread, DiscussionFilter.NO_FILTER);
+		return updateNumberOfReplies(thread, DiscussionFilter.EXCLUDE_DELETED);
 	}
 
 	@Override
@@ -125,10 +125,10 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		ValidateArgument.required(newTitle.getTitle(), "UpdateThreadTitle.title");
 		UserInfo.validateUserInfo(userInfo);
 		Long threadIdLong = Long.parseLong(threadId);
-		String author = threadDao.getAuthor(threadId);
+		String author = threadDao.getAuthorForUpdate(threadId);
 		if (authorizationManager.isUserCreatorOrAdmin(userInfo, author)) {
 			DiscussionThreadBundle thread = threadDao.updateTitle(threadIdLong, newTitle.getTitle());
-			return updateNumberOfReplies(thread, DiscussionFilter.NO_FILTER);
+			return updateNumberOfReplies(thread, DiscussionFilter.EXCLUDE_DELETED);
 		} else {
 			throw new UnauthorizedException("Only the user that created the thread can modify it.");
 		}
@@ -143,11 +143,11 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		ValidateArgument.required(newMessage.getMessageMarkdown(), "UpdateThreadMessage.messageMarkdown");
 		UserInfo.validateUserInfo(userInfo);
 		Long threadIdLong = Long.parseLong(threadId);
-		DiscussionThreadBundle thread = threadDao.getThread(threadIdLong, DEFAULT_FILTER);
+		DiscussionThreadBundle thread = threadDao.getThread(threadIdLong, DiscussionFilter.EXCLUDE_DELETED);
 		if (authorizationManager.isUserCreatorOrAdmin(userInfo, thread.getCreatedBy())) {
 			String messageKey = uploadDao.uploadThreadMessage(newMessage.getMessageMarkdown(), thread.getForumId(), thread.getId());
 			thread = threadDao.updateMessageKey(threadIdLong, messageKey);
-			return updateNumberOfReplies(thread, DiscussionFilter.NO_FILTER);
+			return updateNumberOfReplies(thread, DiscussionFilter.EXCLUDE_DELETED);
 		} else {
 			throw new UnauthorizedException("Only the user that created the thread can modify it.");
 		}
@@ -163,6 +163,9 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 	@WriteTransactionReadCommitted
 	@Override
 	public void pinThread(UserInfo userInfo, String threadId) {
+		if (threadDao.isThreadDeleted(threadId)) {
+			throw new NotFoundException();
+		}
 		checkPermission(userInfo, threadId, ACCESS_TYPE.MODERATE);
 		threadDao.pinThread(Long.parseLong(threadId));
 	}
@@ -170,6 +173,9 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 	@WriteTransactionReadCommitted
 	@Override
 	public void unpinThread(UserInfo userInfo, String threadId) {
+		if (threadDao.isThreadDeleted(threadId)) {
+			throw new NotFoundException();
+		}
 		checkPermission(userInfo, threadId, ACCESS_TYPE.MODERATE);
 		threadDao.unpinThread(Long.parseLong(threadId));
 	}

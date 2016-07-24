@@ -246,6 +246,9 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 				}
 				if(object instanceof DockerRepository){
 					object.setParentId(project.getId());
+					DockerRepository dockerRepository = (DockerRepository)object;
+					dockerRepository.setIsManaged(false);
+					dockerRepository.setRepositoryName("foo/bar");
 				}
 				Entity clone = servletTestHelper.createEntity(dispatchServlet, object, userId);
 				assertNotNull(clone);
@@ -341,8 +344,7 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 		
 		// Now update each
 		int counter=0;
-		for(Entity entity: created){
-			if (entity instanceof DockerRepository) continue;
+		for(Entity entity: created) {
 			// Now change the name
 			String newName ="my new name"+counter;
 			entity.setName(newName);

@@ -392,23 +392,27 @@ public class HttpClientHelper {
 			IOException, HttpClientHelperException {
 
 		String responseContent = null;
+		HttpResponse response = null;
+		try {
+			response = HttpClientHelper.performRequest(client,
+					requestUrl, "GET", null, null);
+			convertHttpStatusToException(response);
+			HttpEntity entity = response.getEntity();
+			if (null != entity) {
+				if (MAX_ALLOWED_DOWNLOAD_TO_STRING_LENGTH < entity
+						.getContentLength()) {
+					throw new HttpClientHelperException("Requested content("
+							+ requestUrl + ") is too large("
+							+ entity.getContentLength()
+							+ "), download it to a file instead", response.getStatusLine().getStatusCode(), responseContent);
 
-		HttpResponse response = HttpClientHelper.performRequest(client,
-				requestUrl, "GET", null, null);
-		convertHttpStatusToException(response);
-		HttpEntity entity = response.getEntity();
-		if (null != entity) {
-			if (MAX_ALLOWED_DOWNLOAD_TO_STRING_LENGTH < entity
-					.getContentLength()) {
-				throw new HttpClientHelperException("Requested content("
-						+ requestUrl + ") is too large("
-						+ entity.getContentLength()
-						+ "), download it to a file instead", response.getStatusLine().getStatusCode(), responseContent);
-
+				}
+				responseContent = EntityUtils.toString(entity);
 			}
-			responseContent = EntityUtils.toString(entity);
+			return responseContent;
+		} finally {
+			closeResponseStream(response);
 		}
-		return responseContent;
 	}
 	
 	private static void convertHttpStatusToException(HttpResponse response) throws HttpClientHelperException, IOException {
@@ -418,6 +422,15 @@ public class HttpClientHelper {
 		HttpEntity responseEntity = response.getEntity();
 		String responseBody = (null == responseEntity) ? "" : EntityUtils.toString(responseEntity);
 		throw new HttpClientHelperException(responseBody, statusCode, statusMessage);
+	}
+	
+	private static void closeResponseStream(HttpResponse response) {
+		if (response != null) {
+			HttpEntity entity = response.getEntity();
+			if (entity != null) {
+				EntityUtils.consumeQuietly(entity);
+			}
+		}
 	}
 
 	/**
@@ -443,16 +456,21 @@ public class HttpClientHelper {
 			file = File.createTempFile(HttpClientHelper.class.getName(), "tmp");
 		}
 
-		HttpResponse response = HttpClientHelper.performRequest(client,
-				requestUrl, "GET", null, null);
-		convertHttpStatusToException(response);
-		HttpEntity fileEntity = response.getEntity();
-		if (null != fileEntity) {
-			FileOutputStream fileOutputStream = new FileOutputStream(file);
-			fileEntity.writeTo(fileOutputStream);
-			fileOutputStream.close();
+		HttpResponse response = null;
+		try {
+			response = HttpClientHelper.performRequest(client,
+					requestUrl, "GET", null, null);
+			convertHttpStatusToException(response);
+			HttpEntity fileEntity = response.getEntity();
+			if (null != fileEntity) {
+				FileOutputStream fileOutputStream = new FileOutputStream(file);
+				fileEntity.writeTo(fileOutputStream);
+				fileOutputStream.close();
+			}
+			return file;
+		} finally {
+			closeResponseStream(response);
 		}
-		return file;
 	}
 
 	/**
@@ -475,22 +493,26 @@ public class HttpClientHelper {
 			IOException, HttpClientHelperException {
 
 		String responseContent = null;
-
-		HttpResponse response = HttpClientHelper.performRequest(client,
-				requestUrl, "POST", requestContent, requestHeaders);
-		convertHttpStatusToException(response);
-		HttpEntity entity = response.getEntity();
-		if (null != entity) {
-			if (MAX_ALLOWED_DOWNLOAD_TO_STRING_LENGTH < entity
-					.getContentLength()) {
-				throw new HttpClientHelperException("Requested content("
-						+ requestUrl + ") is too large("
-						+ entity.getContentLength()
-						+ "), download it to a file instead", response.getStatusLine().getStatusCode(), responseContent);
+		HttpResponse response = null;
+		try {
+			response = HttpClientHelper.performRequest(client,
+					requestUrl, "POST", requestContent, requestHeaders);
+			convertHttpStatusToException(response);
+			HttpEntity entity = response.getEntity();
+			if (null != entity) {
+				if (MAX_ALLOWED_DOWNLOAD_TO_STRING_LENGTH < entity
+						.getContentLength()) {
+					throw new HttpClientHelperException("Requested content("
+							+ requestUrl + ") is too large("
+							+ entity.getContentLength()
+							+ "), download it to a file instead", response.getStatusLine().getStatusCode(), responseContent);
+				}
+				responseContent = EntityUtils.toString(entity);
 			}
-			responseContent = EntityUtils.toString(entity);
+			return responseContent;
+		} finally {
+			closeResponseStream(response);
 		}
-		return responseContent;
 	}
 
 	/**
@@ -517,22 +539,26 @@ public class HttpClientHelper {
 		String responseContent = null;
 
 		InputStreamEntity requestEntity = new InputStreamEntity(stream, length);
-
-		HttpResponse response = HttpClientHelper.performEntityRequest(client,
-				requestUrl, "POST", requestEntity, requestHeaders);
-		convertHttpStatusToException(response);
-		HttpEntity entity = response.getEntity();
-		if (null != entity) {
-			if (MAX_ALLOWED_DOWNLOAD_TO_STRING_LENGTH < entity
-					.getContentLength()) {
-				throw new HttpClientHelperException("Requested content("
-						+ requestUrl + ") is too large("
-						+ entity.getContentLength()
-						+ "), download it to a file instead", response.getStatusLine().getStatusCode(), responseContent);
+		HttpResponse response = null;
+		try {
+			response = HttpClientHelper.performEntityRequest(client,
+					requestUrl, "POST", requestEntity, requestHeaders);
+			convertHttpStatusToException(response);
+			HttpEntity entity = response.getEntity();
+			if (null != entity) {
+				if (MAX_ALLOWED_DOWNLOAD_TO_STRING_LENGTH < entity
+						.getContentLength()) {
+					throw new HttpClientHelperException("Requested content("
+							+ requestUrl + ") is too large("
+							+ entity.getContentLength()
+							+ "), download it to a file instead", response.getStatusLine().getStatusCode(), responseContent);
+				}
+				responseContent = EntityUtils.toString(entity);
 			}
-			responseContent = EntityUtils.toString(entity);
+			return responseContent;
+		} finally {
+			closeResponseStream(response);
 		}
-		return responseContent;
 	}
 
 	/**
@@ -557,22 +583,27 @@ public class HttpClientHelper {
 		String responseContent = null;
 
 		InputStreamEntity requestEntity = new InputStreamEntity(stream, length);
-
-		HttpResponse response = HttpClientHelper.performEntityRequest(client,
-				requestUrl, "PUT", requestEntity, requestHeaders);
-		convertHttpStatusToException(response);
-		HttpEntity entity = response.getEntity();
-		if (null != entity) {
-			if (MAX_ALLOWED_DOWNLOAD_TO_STRING_LENGTH < entity
-					.getContentLength()) {
-				throw new HttpClientHelperException("Requested content("
-						+ requestUrl + ") is too large("
-						+ entity.getContentLength()
-						+ "), download it to a file instead", response.getStatusLine().getStatusCode(), responseContent);
+		HttpResponse response = null;
+		
+		try {
+			response = HttpClientHelper.performEntityRequest(client,
+					requestUrl, "PUT", requestEntity, requestHeaders);
+			convertHttpStatusToException(response);
+			HttpEntity entity = response.getEntity();
+			if (null != entity) {
+				if (MAX_ALLOWED_DOWNLOAD_TO_STRING_LENGTH < entity
+						.getContentLength()) {
+					throw new HttpClientHelperException("Requested content("
+							+ requestUrl + ") is too large("
+							+ entity.getContentLength()
+							+ "), download it to a file instead", response.getStatusLine().getStatusCode(), responseContent);
+				}
+				responseContent = EntityUtils.toString(entity);
 			}
-			responseContent = EntityUtils.toString(entity);
+			return responseContent;
+		} finally {
+			closeResponseStream(response);
 		}
-		return responseContent;
 	}
 
 	/**
@@ -591,14 +622,19 @@ public class HttpClientHelper {
 			throws ClientProtocolException, IOException,
 			HttpClientHelperException {
 
-		HttpResponse response = HttpClientHelper.performRequest(client,
-				requestUrl, "GET", null, headers);
-		convertHttpStatusToException(response);
-		HttpEntity fileEntity = response.getEntity();
-		if (null != fileEntity) {
-			FileOutputStream fileOutputStream = new FileOutputStream(filepath);
-			fileEntity.writeTo(fileOutputStream);
-			fileOutputStream.close();
+		HttpResponse response = null;
+		try {
+			response = HttpClientHelper.performRequest(client,
+					requestUrl, "GET", null, headers);
+			convertHttpStatusToException(response);
+			HttpEntity fileEntity = response.getEntity();
+			if (null != fileEntity) {
+				FileOutputStream fileOutputStream = new FileOutputStream(filepath);
+				fileEntity.writeTo(fileOutputStream);
+				fileOutputStream.close();
+			}
+		} finally {
+			closeResponseStream(response);
 		}
 	}
 
