@@ -190,8 +190,6 @@ import org.sagebionetworks.repo.model.request.ReferenceList;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.status.StackStatus;
-import org.sagebionetworks.repo.model.storage.StorageUsageDimension;
-import org.sagebionetworks.repo.model.storage.StorageUsageSummaryList;
 import org.sagebionetworks.repo.model.subscription.Etag;
 import org.sagebionetworks.repo.model.subscription.Subscription;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
@@ -354,8 +352,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String MESSAGE_INBOX_FILTER_PARAM = "inboxFilter";
 	private static final String MESSAGE_ORDER_BY_PARAM = "orderBy";
 	private static final String MESSAGE_DESCENDING_PARAM = "descending";
-
-	private static final String STORAGE_SUMMARY_PATH = "/storageSummary";
 
 	protected static final String ASYNC_START = "/async/start";
 	protected static final String ASYNC_GET = "/async/get/";
@@ -5224,25 +5220,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			JSONObjectAdapter joa = new JSONObjectAdapterImpl(jsonObj);
 			return new QueryTableResults(joa);
 		} catch (Exception e) {
-			throw new SynapseClientException(e);
-		}
-	}
-
-	@Deprecated
-	@Override
-	public StorageUsageSummaryList getStorageUsageSummary(
-			List<StorageUsageDimension> aggregation) throws SynapseException {
-		String uri = STORAGE_SUMMARY_PATH;
-		if (aggregation != null && aggregation.size() > 0) {
-			uri += "?aggregation=" + StringUtils.join(aggregation, ",");
-		}
-
-		try {
-			JSONObject jsonObj = getSharedClientConnection().getJson(
-					repoEndpoint, uri, getUserAgent());
-			return EntityFactory.createEntityFromJSONObject(jsonObj,
-					StorageUsageSummaryList.class);
-		} catch (JSONObjectAdapterException e) {
 			throw new SynapseClientException(e);
 		}
 	}

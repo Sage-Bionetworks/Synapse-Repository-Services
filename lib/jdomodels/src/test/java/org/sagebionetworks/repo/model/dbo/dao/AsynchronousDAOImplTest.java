@@ -14,7 +14,6 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.Reference;
-import org.sagebionetworks.repo.model.StorageUsageQueryDao;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -33,7 +32,6 @@ public class AsynchronousDAOImplTest {
 	NodeDAO mockNodeDao;
 	DBOReferenceDao mockReferenceDao;
 	DBOAnnotationsDao mockAnnotationsDao;
-	StorageUsageQueryDao mockStorageLocationDao;
 	FileHandleDao mockFileMetadataDao;
 	AsynchronousDAOImpl testDao;
 	NamedAnnotations annos;
@@ -46,7 +44,6 @@ public class AsynchronousDAOImplTest {
 		mockNodeDao = Mockito.mock(NodeDAO.class);
 		mockReferenceDao = Mockito.mock(DBOReferenceDao.class);
 		mockAnnotationsDao = Mockito.mock(DBOAnnotationsDao.class);
-		mockStorageLocationDao = Mockito.mock(StorageUsageQueryDao.class);
 		mockFileMetadataDao = Mockito.mock(FileHandleDao.class);
 
 		// Setup the reference
@@ -66,7 +63,7 @@ public class AsynchronousDAOImplTest {
 		when(mockNodeDao.getNodeReference(nodeIdString)).thenReturn(ref);
 		when(mockNodeDao.getAnnotations(nodeIdString)).thenReturn(annos);
 
-		testDao = new AsynchronousDAOImpl(mockNodeDao, mockReferenceDao, mockAnnotationsDao, mockStorageLocationDao,mockFileMetadataDao);
+		testDao = new AsynchronousDAOImpl(mockNodeDao, mockReferenceDao, mockAnnotationsDao, mockFileMetadataDao);
 	}
 
 	@Test (expected=IllegalArgumentException.class)

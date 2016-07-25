@@ -31,6 +31,7 @@ import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.queryparser.ParseException;
+import org.sagebionetworks.repo.web.DeprecatedServiceException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.repo.web.UrlHelpers;
@@ -793,6 +794,18 @@ public abstract class BaseController {
 	@ResponseStatus(HttpStatus.LOCKED)
 	public @ResponseBody
 	ErrorResponse handleLockedException(LockedException ex,
+			HttpServletRequest request,
+			HttpServletResponse response) {
+		return handleException(ex, request, false);
+	}
+
+	/**
+	 * This is thrown when the user tries to use a deprecated service
+	 */
+	@ExceptionHandler(DeprecatedServiceException.class)
+	@ResponseStatus(HttpStatus.GONE)
+	public @ResponseBody
+	ErrorResponse handleDeprecatedServiceException(DeprecatedServiceException ex,
 			HttpServletRequest request,
 			HttpServletResponse response) {
 		return handleException(ex, request, false);

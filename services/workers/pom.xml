@@ -123,7 +123,7 @@
 			<plugin>
 				<artifactId>maven-surefire-plugin</artifactId>
 				<configuration>
-					<argLine>-Xmx512m -Xms128m</argLine>
+					<argLine>-Xmx1024m -Xms128m -XX:MaxPermSize=512m</argLine>
 				</configuration>
 			</plugin>
 
