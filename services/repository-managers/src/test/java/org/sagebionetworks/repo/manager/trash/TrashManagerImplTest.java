@@ -264,11 +264,12 @@ public class TrashManagerImplTest {
 		nodeTrashedEntity.setDeletedByPrincipalId(fakeDeletedByID);
 		try{
 			trashManager.restoreFromTrash(userInfo, nodeID, nodeParentID);
-			fail("should not get to here");
+			fail("expected UnauthorizedException");
 		}catch (UnauthorizedException e){
 			//expected
 			verify(mockTrashCanDao).getTrashedEntity(nodeID);
 			verify(mockAuthorizationManager, never()).canAccess(any(UserInfo.class), anyString(), any(ObjectType.class), any(ACCESS_TYPE.class));
+			verify(mockAuthorizationManager, never()).canUserMoveRestrictedEntity(any(UserInfo.class), anyString(), anyString());
 		}
 	}
 	
@@ -279,19 +280,34 @@ public class TrashManagerImplTest {
 		trashManager.restoreFromTrash(userInfo, nodeID, fakeNewParentID);
 	}
 	
-	@Test (expected = UnauthorizedException.class)
+	@Test 
 	public void testRestoreFromTrashUnauthourizedNewParent(){
 		when(mockAuthorizationManager.canAccess(userInfo, nodeParentID, ObjectType.ENTITY, ACCESS_TYPE.CREATE))
 		.thenReturn(new AuthorizationStatus(false, "I'm a teapot."));
-		trashManager.restoreFromTrash(userInfo, nodeID, nodeParentID);
+		try{
+			trashManager.restoreFromTrash(userInfo, nodeID, nodeParentID);
+			fail("expected UnauthorizedException");
+		}catch (UnauthorizedException e){
+			//expected
+			verify(mockTrashCanDao).getTrashedEntity(nodeID);
+			verify(mockAuthorizationManager).canAccess(userInfo, nodeParentID, ObjectType.ENTITY, ACCESS_TYPE.CREATE);
+			verify(mockAuthorizationManager, never()).canUserMoveRestrictedEntity(any(UserInfo.class), anyString(), anyString());
+		}
 		
 	}
 	
-	@Test (expected = UnauthorizedException.class)
+	@Test
 	public void testRestoreFromTrashUnauthourizedNodeID(){
 		when(mockAuthorizationManager.canUserMoveRestrictedEntity(userInfo, nodeTrashedEntity.getOriginalParentId(), nodeParentID))
 		.thenReturn(new AuthorizationStatus(false, "U can't touch this."));
-		trashManager.restoreFromTrash(userInfo, nodeID, nodeParentID);
+		try{
+			trashManager.restoreFromTrash(userInfo, nodeID, nodeParentID);
+		}catch (UnauthorizedException e){
+			//expected
+			verify(mockTrashCanDao).getTrashedEntity(nodeID);
+			verify(mockAuthorizationManager).canAccess(userInfo, nodeParentID, ObjectType.ENTITY, ACCESS_TYPE.CREATE);
+			verify(mockAuthorizationManager).canUserMoveRestrictedEntity(userInfo, nodeTrashedEntity.getOriginalParentId(), nodeParentID);
+		}
 	}
 	
 	@Test 
@@ -436,6 +452,7 @@ public class TrashManagerImplTest {
 		when(mockTrashCanDao.getInRangeForUser(userInfo.getId().toString(), true, 0, Long.MAX_VALUE))
 		.thenReturn(trashList);
 		trashManager.purgeTrashForUser(userInfo, purgeCallback);
+		verify(mockTrashCanDao).getInRangeForUser(userInfo.getId().toString(), true, 0, Long.MAX_VALUE);
 		verify(trashManager).purgeTrash(trashList, purgeCallback);
 		
 	}
@@ -462,7 +479,7 @@ public class TrashManagerImplTest {
 	//////////////////////////////////////////////////
 	// TODO: TESTS FOR 
 	// purgeTrash(List<TrashedEntity> trashList, PurgeCallback purgeCallback)
-	// But it might get replaced very soon so skip for now.
+	// But it might get replaced very soon by purgeTrashAdmin() so skip for now.
 	//////////////////////////////////////////////////
 	
 	
