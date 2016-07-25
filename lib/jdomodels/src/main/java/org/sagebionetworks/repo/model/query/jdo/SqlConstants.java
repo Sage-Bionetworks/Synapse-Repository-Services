@@ -816,6 +816,7 @@ public class SqlConstants {
 	
 	// DockerCommit table
 	public static final String TABLE_DOCKER_COMMIT = "DOCKER_COMMIT";
+	public static final String COL_DOCKER_COMMIT_ID = "ID";
 	public static final String COL_DOCKER_COMMIT_OWNER_ID = "OWNER_ID";
 	public static final String COL_DOCKER_COMMIT_TAG = "TAG";
 	public static final String COL_DOCKER_COMMIT_DIGEST = "DIGEST";

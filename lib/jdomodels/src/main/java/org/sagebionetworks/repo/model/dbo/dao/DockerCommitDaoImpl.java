@@ -25,7 +25,7 @@ import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.persistence.DBODockerCommit;
 import org.sagebionetworks.repo.model.docker.DockerCommit;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 
@@ -59,7 +59,7 @@ public class DockerCommitDaoImpl implements DockerCommitDao {
 			" AND r."+COL_REVISION_NUMBER+"= SELECT n."+COL_CURRENT_REV+" FROM "+
 			TABLE_NODE+" n WHERE n."+COL_NODE_ID+"=r."+COL_REVISION_OWNER_NODE;
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public void createDockerCommit(String entityId, long modifiedBy, DockerCommit commit) {
 		DBODockerCommit dbo = new DBODockerCommit();

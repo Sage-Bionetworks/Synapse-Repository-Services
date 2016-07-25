@@ -4,6 +4,7 @@ import static org.sagebionetworks.repo.model.util.DockerNameUtil.REPO_NAME_PATH_
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
@@ -28,7 +29,7 @@ import org.sagebionetworks.repo.model.docker.DockerRepository;
 import org.sagebionetworks.repo.model.docker.RegistryEventAction;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.util.DockerNameUtil;
-import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -181,7 +182,7 @@ public class DockerManagerImpl implements DockerManager {
 	 * Process (push, pull) event notifications from Docker Registry
 	 * @param registryEvents
 	 */
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public void dockerRegistryNotification(DockerRegistryEventList registryEvents) {
 		for (DockerRegistryEvent event : registryEvents.getEvents()) {
@@ -201,6 +202,7 @@ public class DockerManagerImpl implements DockerManager {
 				DockerCommit commit = new DockerCommit();
 				commit.setTag(event.getTarget().getTag());
 				commit.setDigest(event.getTarget().getDigest());
+				commit.setCreatedOn(new Date());
 
 				String entityId =  dockerNodeDao.getEntityIdForRepositoryName(repositoryName);
 				if (entityId==null) {

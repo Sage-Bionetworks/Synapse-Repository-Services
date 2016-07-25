@@ -17,7 +17,11 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
 		"unique key UNIQUE_DOCKER_COMMIT ("+ COL_DOCKER_COMMIT_OWNER_ID + 
 		"," + COL_DOCKER_COMMIT_TAG +"," + COL_DOCKER_COMMIT_CREATED_ON +")" })
 public class DBODockerCommit implements MigratableDatabaseObject<DBODockerCommit, DBODockerCommit> {
-	@Field(name = COL_DOCKER_COMMIT_OWNER_ID, backupId = true, primary = true, nullable = false)
+
+	@Field(name = COL_DOCKER_COMMIT_ID, backupId = true, primary = true, nullable = false)
+	private Long migrationId;
+	
+	@Field(name = COL_DOCKER_COMMIT_OWNER_ID, backupId = false, primary = false, nullable = false)
 	@ForeignKey(table = TABLE_NODE, field = COL_NODE_ID, cascadeDelete = true, name = "DOCKER_COMMIT_OWNER_FK")
 	private Long owner;
 	
@@ -25,7 +29,7 @@ public class DBODockerCommit implements MigratableDatabaseObject<DBODockerCommit
 	@Field(name = COL_DOCKER_COMMIT_TAG, varchar = 128, backupId = false, primary = false, nullable = true)
 	private String tag;
 
-	// a sha256 digest uses 71 characters, but the Docker spec is open ended, 
+	// a sha256 digest uses 71 characters, but the Docker spec' is open ended, 
 	// potentially allowing other kinds of digests
 	@Field(name = COL_DOCKER_COMMIT_DIGEST, varchar = 200, backupId = false, primary = false, nullable = false)
 	private String digest;
