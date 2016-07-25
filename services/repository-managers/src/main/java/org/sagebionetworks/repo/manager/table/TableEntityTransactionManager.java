@@ -29,8 +29,9 @@ public class TableEntityTransactionManager implements TableTransactionManager {
 	TransactionTemplate readCommitedTransactionTemplate;
 	@Autowired
 	TableEntityManager tableEntityManager;
+	@Autowired
+	TableIndexConnectionFactory tableIndexConnectionFactory;
 
-	
 	@Override
 	public TableUpdateTransactionResponse updateTableWithTransaction(
 			final ProgressCallback<Void> progressCallback, final UserInfo userInfo,
@@ -124,7 +125,44 @@ public class TableEntityTransactionManager implements TableTransactionManager {
 	void validateUpdateRequests(ProgressCallback<Void> callback,
 			UserInfo userInfo, TableUpdateTransactionRequest request) {
 
+		// Determine if a temporary table is needed to validate any of the requests.
+		boolean isTemporaryTableNeeded = isTemporaryTableNeeded(callback,
+				request);
 		
+		// setup a temporary table if needed.
+		if(isTemporaryTableNeeded){
+			TableIndexManager indexManager = tableIndexConnectionFactory.connectToTableIndex(request.getEntityId());
+			indexManager.createTemporaryTableCopy(callback);
+			try{
+				
+			}finally{
+				indexManager.deleteTemporaryTableCopy(callback);
+			}
+		}
+		
+		
+	}
+
+	/**
+	 * Is a temporary table needed to validate any of the changes for the given request.
+	 * 
+	 * @param callback
+	 * @param request
+	 * @return
+	 */
+	boolean isTemporaryTableNeeded(ProgressCallback<Void> callback,
+			TableUpdateTransactionRequest request) {
+		boolean isTemporaryTableNeeded = false;
+		for(TableUpdateRequest change: request.getChanges()){
+			// progress before each check.
+			callback.progressMade(null);
+			boolean tempNeeded = tableEntityManager.isTemporaryTableNeededToValidate(change);
+			if(tempNeeded){
+				isTemporaryTableNeeded = true;
+				break;
+			}
+		}
+		return isTemporaryTableNeeded;
 	}
 	
 	/**

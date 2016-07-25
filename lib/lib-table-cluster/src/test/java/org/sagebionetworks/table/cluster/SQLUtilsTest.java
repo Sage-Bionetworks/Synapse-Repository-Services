@@ -1037,4 +1037,18 @@ public class SQLUtilsTest {
 		List<ColumnModel> expected = Lists.newArrayList(cm);
 		assertEquals(expected, results);
 	}
+	
+	@Test 
+	public void testTemporaryTableName(){
+		String tableId = "syn123";
+		String temp = SQLUtils.getTemporaryTableName(tableId);
+		assertEquals("TEMP123", temp);
+	}
+	
+	@Test 
+	public void testCreateTempTableSql(){
+		String tableId = "syn123";
+		String sql = SQLUtils.createTempTableSql(tableId);
+		assertEquals("CREATE TABLE TEMP123 LIKE T123", sql);
+	}
 }

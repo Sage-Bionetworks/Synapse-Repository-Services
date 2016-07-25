@@ -241,4 +241,21 @@ public interface TableIndexDAO {
 	 *            The maximum number of indices allowed on a single table.
 	 */
 	public void optimizeTableIndices(List<DatabaseColumnInfo> list, String tableId, int maxNumberOfIndex);
+
+	/**
+	 * Create a temporary table like the given table.
+	 * @param tableId
+	 */
+	public void createTemporaryTable(String tableId);
+
+	/**
+	 * Copy all of the data from the original table to the temporary table.
+	 * @param tableId
+	 */
+	public void copyAllDataToTemporaryTable(String tableId);
+
+	/**
+	 * Delete the temporary table associated with the given table.
+	 */
+	public void deleteTemporaryTable(String tableId);
 }

@@ -16,6 +16,7 @@ import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableRowChange;
+import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 
@@ -192,5 +193,12 @@ public interface TableEntityManager {
 	 * @param deletedId
 	 */
 	public void deleteTable(String deletedId);
+
+	/**
+	 * Is a temporary table needed to validate the given table update request.
+	 * @param change
+	 * @return
+	 */
+	public boolean isTemporaryTableNeededToValidate(TableUpdateRequest change);
 
 }

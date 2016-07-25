@@ -476,4 +476,22 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		template.update(alterSql);
 	}
 
+	@Override
+	public void createTemporaryTable(String tableId) {
+		String sql = SQLUtils.createTempTableSql(tableId);
+		template.update(sql);
+	}
+
+	@Override
+	public void copyAllDataToTemporaryTable(String tableId) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void deleteTemporaryTable(String tableId) {
+		// TODO Auto-generated method stub
+		
+	}
+
 }

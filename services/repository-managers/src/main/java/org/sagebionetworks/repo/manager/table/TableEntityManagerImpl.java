@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.model.dao.table.RowSetAccessor;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.exception.ReadOnlyException;
 import org.sagebionetworks.repo.model.status.StatusEnum;
+import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PartialRow;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
@@ -37,6 +38,8 @@ import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableRowChange;
+import org.sagebionetworks.repo.model.table.TableSchemaChangeRequest;
+import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
@@ -577,6 +580,41 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		columModelManager.unbindAllColumnsAndOwnerFromObject(deletedId);
 		deleteAllRows(deletedId);
 		tableManagerSupport.setTableDeleted(deletedId, ObjectType.TABLE);
+	}
+
+
+	@Override
+	public boolean isTemporaryTableNeededToValidate(TableUpdateRequest change) {
+		if(change instanceof TableSchemaChangeRequest){
+			TableSchemaChangeRequest schemaChange = (TableSchemaChangeRequest) change;
+			return isTemporaryTableNeededToValidate(schemaChange.getChanges());
+		}else{
+			throw new IllegalArgumentException("Unknown change type: "+change.getClass().getName());
+		}
+	}
+	
+	/**
+	 * Is a Temporary table needed to validate the passed set of changes.
+	 * @param changes
+	 * @return
+	 */
+	public static boolean isTemporaryTableNeededToValidate(
+			List<ColumnChange> changes) {
+		if(changes == null){
+			return false;
+		}
+		if(changes.isEmpty()){
+			return false;
+		}
+		for(ColumnChange change: changes){
+			if(change.getNewColumnId() != null && change.getOldColumnId() != null){
+				if(!change.getNewColumnId().equals(change.getOldColumnId())){
+					// a column change requires a temporary table to validate.
+					return true;
+				}
+			}
+		}
+		return false;
 	}
 
 }

@@ -39,6 +39,7 @@ import com.google.common.collect.Lists;
 public class SQLUtils {
 
 
+	private static final String TEMP = "TEMP";
 	private static final String IDX = "idx_";
 	public static final String CHARACTER_SET_UTF8_COLLATE_UTF8_GENERAL_CI = "CHARACTER SET utf8 COLLATE utf8_general_ci";
 	public static final String FILE_ID_BIND = "bFIds";
@@ -1050,5 +1051,25 @@ public class SQLUtils {
 		}
 	}
 	
+	/**
+	 * The name of the temporary table for the given table Id.
+	 * 
+	 * @param tableId
+	 * @return
+	 */
+	public static String getTemporaryTableName(String tableId){
+		return TEMP+KeyFactory.stringToKey(tableId);
+	}
+
+	/**
+	 * Create the SQL used to create a temporary table 
+	 * @param tableId
+	 * @return
+	 */
+	public static String createTempTableSql(String tableId) {
+		String tableName = getTableNameForId(tableId, TableType.INDEX);
+		String tempName = getTemporaryTableName(tableId);
+		return String.format("CREATE TABLE %1$S LIKE %2$S", tempName, tableName);
+	}
 	
 }
