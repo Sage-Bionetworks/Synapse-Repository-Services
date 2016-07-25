@@ -4,6 +4,7 @@ import java.sql.Timestamp;
 import java.util.Collection;
 import java.util.List;
 
+import org.sagebionetworks.repo.manager.trash.TrashManager.PurgeCallback;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.TrashedEntity;
@@ -18,6 +19,8 @@ public interface TrashManager {
 
 	public interface PurgeCallback {
 		void startPurge(String id);
+		
+		void startPurge(List<Long> ids);
 
 		void endPurge();
 	}
@@ -115,7 +118,7 @@ public interface TrashManager {
 	 * @param user must be an admin user.
 	 * @param purgeCallback optional
 	 */
-	public void purgeTrashAdmin(List<Long> trashIDs, UserInfo user);
+	public void purgeTrashAdmin(List<Long> trashIDs, UserInfo user, PurgeCallback purgeCallback);
 
 	public void getDescendants(String nodeID, Collection<String> descendants);
 

@@ -335,7 +335,7 @@ public class TrashManagerImpl implements TrashManager {
 	
 	@WriteTransactionReadCommitted
 	@Override
-	public void purgeTrashAdmin(List<Long> trashIDs, UserInfo userInfo){
+	public void purgeTrashAdmin(List<Long> trashIDs, UserInfo userInfo, PurgeCallback purgeCallback){
 		ValidateArgument.required(trashIDs, "trashIDs");
 		ValidateArgument.required(userInfo, "userInfo");
 		
@@ -343,10 +343,17 @@ public class TrashManagerImpl implements TrashManager {
 			String userId = userInfo.getId().toString();
 			throw new UnauthorizedException("Only an Administrator can perform this action.");
 		}
+		if(purgeCallback != null){
+			purgeCallback.startPurge(trashIDs);
+		}
 	
 		nodeDao.delete(trashIDs);
 		aclDAO.delete(trashIDs, ObjectType.ENTITY);
 		trashCanDao.delete(trashIDs);
+		
+		if(purgeCallback != null){
+			purgeCallback.endPurge();
+		}
 
 	}
 
