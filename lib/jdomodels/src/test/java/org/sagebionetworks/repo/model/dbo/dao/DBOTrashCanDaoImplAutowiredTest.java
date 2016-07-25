@@ -286,30 +286,35 @@ public class DBOTrashCanDaoImplAutowiredTest {
 	
 	@Test 
 	public void testGetTrashLeavesNodesWithNoChildren(){
-		final int numNodes = 2;
 		final String nodeNameBase = "DBOTrashCanDaoImplAutowiredTest.testGetTrashLeavesNoChildren() Node:";
 		final long nodeID = 9000L;
 		final long parentID = 10L;
 		
 		assertEquals(0, trashCanDao.getCount());
 		
-		//create trash leaves
-		for(int i = 0; i < numNodes; i++){
-			String stringNodeID = KeyFactory.keyToString(nodeID + i);
-			String stringParentID = KeyFactory.keyToString(parentID + i);
-			Timestamp time = timeDaysAgo(numNodes - i);
-			createTestNode(userId, stringNodeID, nodeNameBase + stringNodeID, stringParentID, time);
-		}
-		assertEquals(trashCanDao.getCount(), numNodes);
+		//create trash leaves Node 1
+		String stringNode1ID = KeyFactory.keyToString(nodeID + 1);
+		String stringParent1ID = KeyFactory.keyToString(parentID + 1);
+		Timestamp time1 = timeDaysAgo(3);//3 days old
+		createTestNode(userId, stringNode1ID, nodeNameBase + stringNode1ID, stringParent1ID, time1);
 		
-		//older than trashBefore days
-		int trashBefore = 1;
-		assertTrue(trashBefore <= numNodes);
-		List<Long> trashOlderThanNumDays = trashCanDao.getTrashLeaves(trashBefore, 100);
-		assertEquals(numNodes - trashBefore,trashOlderThanNumDays.size());
-		for(int i = 0; i < numNodes - trashBefore; i++){
-			assertTrue(trashOlderThanNumDays.contains(nodeID + i));
-		}
+		//create trash leaves Node 1
+		String stringNode2ID = KeyFactory.keyToString(nodeID + 2);
+		String stringParent2ID = KeyFactory.keyToString(parentID + 2);
+		Timestamp time2 = timeDaysAgo(1);//1 day old
+		createTestNode(userId, stringNode2ID, nodeNameBase + stringNode2ID, stringParent2ID, time2);
+		
+		assertEquals(2,trashCanDao.getCount());
+		
+		
+		int trashBefore = 2; //look for trash older than 2 days
+		int limit = 100; //arbitrary number. doesn't matter here
+		List<Long> trashOlderThanNumDays = trashCanDao.getTrashLeaves(trashBefore, limit);
+		assertEquals(1,trashOlderThanNumDays.size()); 
+		
+		assertTrue(trashOlderThanNumDays.contains(nodeID + 1));//contains node 1
+		assertFalse(trashOlderThanNumDays.contains(nodeID + 2));//does not contains node 2
+		
 		
 	}
 	
