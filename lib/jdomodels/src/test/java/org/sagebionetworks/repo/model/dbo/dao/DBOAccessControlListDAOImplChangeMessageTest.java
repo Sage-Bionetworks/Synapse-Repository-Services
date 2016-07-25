@@ -25,6 +25,7 @@ import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -179,6 +180,32 @@ public class DBOAccessControlListDAOImplChangeMessageTest {
 
 		aclDAO.delete(nodeId, ObjectType.ENTITY);
 
+		List<ChangeMessage> changes = changeDAO.listChanges(changeDAO.getCurrentChangeNumber(), ObjectType.ACCESS_CONTROL_LIST, Long.MAX_VALUE);
+		assertNotNull(changes);
+		ChangeMessage message = changes.get(0);
+		assertNotNull(message);
+		assertEquals(ChangeType.DELETE, message.getChangeType());
+		assertEquals(ObjectType.ACCESS_CONTROL_LIST, message.getObjectType());
+	}
+	
+	@Test
+	public void testDeleteList() throws Exception{
+		changeDAO.deleteAllChanges();
+		
+		// Create an ACL for this node
+		AccessControlList acl = new AccessControlList();
+		acl.setId(nodeId);
+		acl.setCreationDate(new Date(System.currentTimeMillis()));
+		acl.setResourceAccess(new HashSet<ResourceAccess>());
+		String aclId = aclDAO.create(acl, ObjectType.ENTITY);
+		assertEquals(nodeId, aclId);
+		
+		List<Long> aclToBeDeletedList = new ArrayList<Long>();
+		aclToBeDeletedList.add(KeyFactory.stringToKey(nodeId));
+		
+		aclDAO.delete(aclToBeDeletedList, ObjectType.ENTITY);
+		
+		
 		List<ChangeMessage> changes = changeDAO.listChanges(changeDAO.getCurrentChangeNumber(), ObjectType.ACCESS_CONTROL_LIST, Long.MAX_VALUE);
 		assertNotNull(changes);
 		ChangeMessage message = changes.get(0);

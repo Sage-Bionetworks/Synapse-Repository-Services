@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model;
 
+import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -42,6 +43,16 @@ public interface AccessControlListDAO  {
 	public Long getAclId(String id, ObjectType objectType) throws DatastoreException, NotFoundException;
 	
 	/**
+	 * Get the ACL IDs, if they exist, using ownerId and objectType
+	 * .
+	 * @param ownerIds List of ownerId as long
+	 * @param objectType
+	 * @return List of ACL Ids as longs. Sorted in ascending order by their corresponding ownerIds 
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	public List<Long> getAclIds(List<Long> ownerIds, ObjectType objectType);	
+	/**
 	 * Get an ACL using the ACL's ID
 	 * @param id - the id of the acl (not the ownerId)
 	 * @return
@@ -78,6 +89,15 @@ public interface AccessControlListDAO  {
 	 * @throws NotFoundException
 	 */
 	public void delete(String id, ObjectType ownerType) throws DatastoreException, NotFoundException;
+	
+	/**
+	 * Deletes ACLs using a List of Node Ids.
+	 * @param ids list of id's of the nodes to delete
+	 * @param ownerType
+	 * @return int number of ACLs deleted
+	 * @throws DatastoreException
+	 */
+	int delete(List<Long> ids, ObjectType ownerType) throws DatastoreException;
 
 	/**
 	 * Given a set of benefactors, and benefactors, return the sub-set of benefactors the that any given principal can see.
@@ -89,4 +109,8 @@ public interface AccessControlListDAO  {
 	 */
 	public Set<Long> getAccessibleBenefactors(Set<Long> groups, Set<Long> benefactors,
 			ObjectType entity, ACCESS_TYPE read);
+
+	
+
+	
 }

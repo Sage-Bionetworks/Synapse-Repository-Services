@@ -3,12 +3,18 @@ package org.sagebionetworks.repo.model.dbo.dao;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TRASH_CAN_DELETED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TRASH_CAN_DELETED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TRASH_CAN_NODE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TRASH_CAN_PARENT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TRASH_CAN;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.joda.time.DateTime;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -18,15 +24,19 @@ import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTrashedEntity;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 
 public class DBOTrashCanDaoImpl implements TrashCanDao {
-
+	private static final String NUM_DAYS_PARAM_NAME = "num_days_param";
+	private static final String IDS_PARAM_NAME = "ids_param";
+	
 	private static final String SELECT_COUNT =
 			"SELECT COUNT("+ COL_TRASH_CAN_NODE_ID + ") FROM " + TABLE_TRASH_CAN;
 
@@ -65,13 +75,46 @@ public class DBOTrashCanDaoImpl implements TrashCanDao {
 			"SELECT * FROM " + TABLE_TRASH_CAN
 			+ " WHERE " + COL_TRASH_CAN_NODE_ID + " = :" + COL_TRASH_CAN_NODE_ID;
 
-	private static final String SELECT_TRASCH_BEFORE_TIMESTAMP =
+	private static final String SELECT_TRASH_BEFORE_TIMESTAMP =
 			"SELECT * FROM " + TABLE_TRASH_CAN +
 			" WHERE " + COL_TRASH_CAN_DELETED_ON + " < :" + COL_TRASH_CAN_DELETED_ON +
 			" ORDER BY " + COL_TRASH_CAN_NODE_ID;
-
+	
+	private static final String DELETE_TRASH_BY_IDS = 
+			"DELETE FROM " + TABLE_TRASH_CAN + 
+			" WHERE " + COL_TRASH_CAN_NODE_ID + " IN (:"+IDS_PARAM_NAME+")";
+	
+	/*
+	  SELECTs trash nodes that are more than NUM_DAYS days old with no children nodes
+   	 
+   	  The use of NOT EXISTS instead of NOT IN is an optimization. 
+	  mySQL is supposed to automatically do it but the query execution plan showed that it does not do it correctly
+	  http://dev.mysql.com/doc/refman/5.7/en/subquery-optimization.html
+	  
+	  Also, the reason we only want children nodes is that mySQL's innoDB 
+	  has a limit of 15 levels cascade deletes when the foreign key is self referential
+	  http://dev.mysql.com/doc/refman/5.7/en/innodb-foreign-key-constraints.html
+	*/
+	private static final String SELECT_TRASH_BEFORE_NUM_DAYS_LEAVES_ONLY =
+			"SELECT " + COL_TRASH_CAN_NODE_ID +
+			" FROM " + TABLE_TRASH_CAN + " T1" +
+			" WHERE T1." + COL_TRASH_CAN_DELETED_ON + " < (NOW() - INTERVAL :" + NUM_DAYS_PARAM_NAME +" DAY)" +
+			" AND NOT EXISTS (SELECT 1 FROM " + TABLE_TRASH_CAN+" T2"+
+							" WHERE T2." +COL_TRASH_CAN_PARENT_ID + " = T1." + COL_TRASH_CAN_NODE_ID + ")"+
+			" ORDER BY " + COL_TRASH_CAN_NODE_ID + 
+			" LIMIT :" + LIMIT_PARAM_NAME;
+	
 	private static final RowMapper<DBOTrashedEntity> rowMapper = (new DBOTrashedEntity()).getTableMapping();
-
+	
+	//rowMapper used in getTrashNumDaysOldNoChildren()
+	private static final RowMapper<Long> rowMapperNodeId = new RowMapper<Long>(){
+		@Override
+		public
+		Long mapRow(ResultSet rs, int rowNum) throws SQLException{
+			return rs.getLong(COL_TRASH_CAN_NODE_ID);
+		}
+	};
+	
 	@Autowired
 	private DBOBasicDao basicDao;
 	
@@ -218,22 +261,36 @@ public class DBOTrashCanDaoImpl implements TrashCanDao {
 		List<DBOTrashedEntity> trashList = namedParameterJdbcTemplate.query(sortById ? SELECT_TRASH_ORDER_BY_ID : SELECT_TRASH, paramMap, rowMapper);
 		return TrashedEntityUtils.convertDboToDto(trashList);
 	}
-
+	
+	@Deprecated
 	@Override
 	public List<TrashedEntity> getTrashBefore(Timestamp timestamp) throws DatastoreException {
 
-		if (timestamp == null) {
+		if(timestamp == null){
 			throw new IllegalArgumentException("Time stamp cannot be null.");
 		}
-
 		MapSqlParameterSource paramMap = new MapSqlParameterSource();
 		paramMap.addValue(COL_TRASH_CAN_DELETED_ON, timestamp);
 		List<DBOTrashedEntity> trashList = namedParameterJdbcTemplate.query(
-				SELECT_TRASCH_BEFORE_TIMESTAMP, paramMap, rowMapper);
+				SELECT_TRASH_BEFORE_TIMESTAMP, paramMap, rowMapper);
 
 		return TrashedEntityUtils.convertDboToDto(trashList);
 	}
-
+	
+	@Override
+	public List<Long> getTrashLeaves(long numDays, long limit) throws DatastoreException{
+		ValidateArgument.requirement(numDays >= 0, "numDays must not be negative");
+		ValidateArgument.requirement(limit >= 0, "limit must not be negative");
+		
+		MapSqlParameterSource paramMap = new MapSqlParameterSource();
+		paramMap.addValue(NUM_DAYS_PARAM_NAME, numDays);
+		paramMap.addValue(LIMIT_PARAM_NAME, limit);
+		
+		return namedParameterJdbcTemplate.query(SELECT_TRASH_BEFORE_NUM_DAYS_LEAVES_ONLY, paramMap, rowMapperNodeId);
+	}
+	
+	
+	
 	@WriteTransaction
 	@Override
 	public void delete(String userGroupId, String nodeId)
@@ -253,6 +310,22 @@ public class DBOTrashCanDaoImpl implements TrashCanDao {
 			params.addValue("nodeId", KeyFactory.stringToKey(trash.getEntityId()));
 			basicDao.deleteObjectByPrimaryKey(DBOTrashedEntity.class, params);
 		}
+	}
+	
+	
+	@WriteTransactionReadCommitted
+	@Override
+	public int delete(List<Long> nodeIds) throws DatastoreException, NotFoundException {
+		ValidateArgument.required(nodeIds, "nodeIds");
+		if(nodeIds.isEmpty()){ 
+			//no need to update database if not deleting anything
+			return 0;
+		}
+		
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue(IDS_PARAM_NAME, nodeIds); 
+		return namedParameterJdbcTemplate.update(DELETE_TRASH_BY_IDS, params);
+		
 	}
 
 	private List<TrashedEntity> getNodeList(Long userGroupId, Long nodeId) {
