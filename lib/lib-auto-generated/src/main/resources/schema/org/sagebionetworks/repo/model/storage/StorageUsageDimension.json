@@ -1,9 +1,0 @@
-{
-	"description": "JSON schema for aggregating dimensions for storage usage.",
-	"type": "string",
-	"enum": [
-		"STORAGE_PROVIDER",
-		"CONTENT_TYPE",
-		"USER_ID"
-	]
-}
