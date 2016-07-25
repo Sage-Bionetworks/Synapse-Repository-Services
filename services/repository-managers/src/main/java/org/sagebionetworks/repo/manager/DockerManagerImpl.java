@@ -10,6 +10,7 @@ import java.util.UUID;
 
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DockerCommitDao;
@@ -23,6 +24,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.docker.DockerAuthorizationToken;
 import org.sagebionetworks.repo.model.docker.DockerCommit;
+import org.sagebionetworks.repo.model.docker.DockerCommitSortBy;
 import org.sagebionetworks.repo.model.docker.DockerRegistryEvent;
 import org.sagebionetworks.repo.model.docker.DockerRegistryEventList;
 import org.sagebionetworks.repo.model.docker.DockerRepository;
@@ -31,6 +33,7 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.util.DockerNameUtil;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 
@@ -236,5 +239,35 @@ public class DockerManagerImpl implements DockerManager {
 				throw new IllegalArgumentException("Unexpected action "+action);
 			}
 		}
+	}
+
+	@Override
+	public void addDockerCommitToUnmanagedRespository(UserInfo userInfo, String entityId,
+			DockerCommit commit) {
+		ValidateArgument.required(entityId, "entityId");
+		ValidateArgument.required(commit.getDigest(), "digest");
+		if (dockerNodeDao.getRepositoryNameForEntityId(entityId)!=null) {
+			throw new IllegalArgumentException("Cannot add a commit for a managed Docker repository.");
+		}
+		AuthorizationStatus authStatus = authorizationManager.canAccess(userInfo, entityId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE);
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(authStatus);
+		commit.setCreatedOn(new Date());
+		dockerCommitDao.createDockerCommit(entityId, userInfo.getId(), commit);
+	}
+
+	@Override
+	public PaginatedResults<DockerCommit> listDockerCommits(UserInfo userInfo,
+			String entityId, DockerCommitSortBy sortBy, boolean ascending,
+			long limit, long offset) {
+		ValidateArgument.required(entityId, "entityId");
+		ValidateArgument.required(sortBy, "sortBy");
+		AuthorizationStatus authStatus = authorizationManager.canAccess(userInfo, entityId, ObjectType.ENTITY, ACCESS_TYPE.READ);
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(authStatus);
+		List<DockerCommit> commits = dockerCommitDao.listDockerCommits(entityId, sortBy, ascending, limit, offset);
+		long count = dockerCommitDao.countDockerCommits(entityId);
+		PaginatedResults<DockerCommit> result = new PaginatedResults<DockerCommit>();
+		result.setResults(commits);
+		result.setTotalNumberOfResults(count);
+		return result;
 	}
 }

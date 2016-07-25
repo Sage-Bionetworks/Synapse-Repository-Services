@@ -75,4 +75,5 @@ public interface ServiceProvider {
 	public SubscriptionService getSubscriptionService();
 	
 	public DockerService getDockerService();
+	
 }

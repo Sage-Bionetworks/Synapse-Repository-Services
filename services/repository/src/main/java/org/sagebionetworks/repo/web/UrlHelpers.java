@@ -923,6 +923,7 @@ public class UrlHelpers {
 	
 	// Docker authorization services
 	public static final String DOCKER_AUTHORIZATION = "/bearerToken";
+	public static final String ENITY_ID_DOCKER_COMMIT = ENTITY_ID+"/dockerCommit";
 
 
 	/**

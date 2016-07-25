@@ -19,11 +19,14 @@ import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.DockerCommitDao;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.persistence.DBODockerCommit;
 import org.sagebionetworks.repo.model.docker.DockerCommit;
+import org.sagebionetworks.repo.model.docker.DockerCommitSortBy;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,17 +39,9 @@ public class DockerCommitDaoImpl implements DockerCommitDao {
 	@Autowired
 	private DBOBasicDao basicDao;
 	
-	// get the latest tags for an entity
-	// for this to return a single record per <entity,tag> it's crucial
-	// that the table have a unique key constraint on <entity,tag,createdOn>
-	private static final String LATEST_COMMIT_SQL = 
-		"SELECT * FROM "+TABLE_DOCKER_COMMIT+" d "+
-		" WHERE d."+COL_DOCKER_COMMIT_OWNER_ID+"=? AND d."+
-		COL_DOCKER_COMMIT_CREATED_ON+"=(SELECT MAX(d2."+COL_DOCKER_COMMIT_CREATED_ON+
-		") FROM "+TABLE_DOCKER_COMMIT+" d2 WHERE "+
-			" d2."+COL_DOCKER_COMMIT_OWNER_ID+"=d."+COL_DOCKER_COMMIT_OWNER_ID+" AND "+
-			" d2."+COL_DOCKER_COMMIT_TAG+"=d."+COL_DOCKER_COMMIT_TAG+")";
-	
+	@Autowired
+	private IdGenerator idGenerator;
+
 	private static final TableMapping<DBODockerCommit> COMMIT_ROW_MAPPER = 
 			(new DBODockerCommit()).getTableMapping();
 	
@@ -59,11 +54,32 @@ public class DockerCommitDaoImpl implements DockerCommitDao {
 			" AND r."+COL_REVISION_NUMBER+"= SELECT n."+COL_CURRENT_REV+" FROM "+
 			TABLE_NODE+" n WHERE n."+COL_NODE_ID+"=r."+COL_REVISION_OWNER_NODE;
 
+	// get the latest tags for an entity
+	// for this to return a single record per <entity,tag> it's crucial
+	// that the table have a unique key constraint on <entity,tag,createdOn>
+	private static final String LATEST_COMMIT_SQL = 
+		"SELECT * FROM "+TABLE_DOCKER_COMMIT+" d "+
+		" WHERE d."+COL_DOCKER_COMMIT_OWNER_ID+"=? AND d."+
+		COL_DOCKER_COMMIT_CREATED_ON+"=(SELECT MAX(d2."+COL_DOCKER_COMMIT_CREATED_ON+
+		") FROM "+TABLE_DOCKER_COMMIT+" d2 WHERE "+
+			" d2."+COL_DOCKER_COMMIT_OWNER_ID+"=d."+COL_DOCKER_COMMIT_OWNER_ID+" AND "+
+			" d2."+COL_DOCKER_COMMIT_TAG+"=d."+COL_DOCKER_COMMIT_TAG+") ORDER BY ? ? LIMT ? OFFSET ?";
+	
+	// get the count for the commit listing query (above)
+	private static final String LATEST_COMMIT_COUNT_SQL = 
+		"SELECT COUNT(*) FROM "+TABLE_DOCKER_COMMIT+" d "+
+		" WHERE d."+COL_DOCKER_COMMIT_OWNER_ID+"=? AND d."+
+		COL_DOCKER_COMMIT_CREATED_ON+"=(SELECT MAX(d2."+COL_DOCKER_COMMIT_CREATED_ON+
+		") FROM "+TABLE_DOCKER_COMMIT+" d2 WHERE "+
+			" d2."+COL_DOCKER_COMMIT_OWNER_ID+"=d."+COL_DOCKER_COMMIT_OWNER_ID+" AND "+
+			" d2."+COL_DOCKER_COMMIT_TAG+"=d."+COL_DOCKER_COMMIT_TAG+")";
+	
 	@WriteTransactionReadCommitted
 	@Override
 	public void createDockerCommit(String entityId, long modifiedBy, DockerCommit commit) {
 		DBODockerCommit dbo = new DBODockerCommit();
 		long nodeId = KeyFactory.stringToKey(entityId);
+		dbo.setMigrationId(idGenerator.generateNewId(TYPE.DOCKER_COMMIT));
 		dbo.setOwner(nodeId);
 		dbo.setTag(commit.getTag());
 		dbo.setDigest(commit.getDigest());
@@ -75,10 +91,13 @@ public class DockerCommitDaoImpl implements DockerCommitDao {
 	}
 	
 	@Override
-	public List<DockerCommit> listDockerCommits(String entityId) {
+	public List<DockerCommit> listDockerCommits(String entityId, 
+			DockerCommitSortBy sortBy, boolean ascending, long limit, long offset) {
 		if (entityId==null) throw new IllegalArgumentException("entityId is required.");
 		long nodeIdAsLong = KeyFactory.stringToKey(entityId);
-		List<DBODockerCommit> dbos = jdbcTemplate.query(LATEST_COMMIT_SQL, COMMIT_ROW_MAPPER, nodeIdAsLong);
+		List<DBODockerCommit> dbos = jdbcTemplate.query(
+				LATEST_COMMIT_SQL, COMMIT_ROW_MAPPER, 
+				nodeIdAsLong, sortBy.name(), ascending?"ASC":"DESC", limit, offset);
 		List<DockerCommit> result = new ArrayList<DockerCommit>();
 		for (DBODockerCommit dbo : dbos) {
 			DockerCommit dto = new DockerCommit();
@@ -88,6 +107,13 @@ public class DockerCommitDaoImpl implements DockerCommitDao {
 			result.add(dto);
 		}
 		return result;
+	}
+
+	@Override
+	public long countDockerCommits(String entityId) {
+		if (entityId==null) throw new IllegalArgumentException("entityId is required.");
+		long nodeIdAsLong = KeyFactory.stringToKey(entityId);
+		return jdbcTemplate.queryForObject(LATEST_COMMIT_COUNT_SQL, Long.class, nodeIdAsLong);
 	}
 
 }
