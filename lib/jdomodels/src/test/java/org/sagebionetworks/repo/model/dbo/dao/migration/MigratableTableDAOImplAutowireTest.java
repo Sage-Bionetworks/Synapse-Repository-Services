@@ -310,7 +310,6 @@ public class MigratableTableDAOImplAutowireTest {
 		expectedPrimaryTypes.add(MigrationType.COLUMN_MODEL);
 		expectedPrimaryTypes.add(MigrationType.BOUND_COLUMN_OWNER);
 		expectedPrimaryTypes.add(MigrationType.TABLE_SEQUENCE);
-		expectedPrimaryTypes.add(MigrationType.STORAGE_QUOTA);
 		expectedPrimaryTypes.add(MigrationType.QUIZ_RESPONSE);
 		expectedPrimaryTypes.add(MigrationType.VERIFICATION_SUBMISSION);
 		expectedPrimaryTypes.add(MigrationType.VERIFICATION_STATE);

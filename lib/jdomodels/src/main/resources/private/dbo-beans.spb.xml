@@ -67,7 +67,6 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.wikiV2.V2DBOWikiOwner" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOFavorite" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBODoi" />
-				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOStorageQuota" />
 				<!-- Team-related beans -->
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOTeam" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOMembershipInvtnSubmission" />
@@ -173,7 +172,6 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.table.DBOBoundColumnOwner" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableIdSequence" />
 								
-				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOStorageQuota" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOQuizResponse" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOVerificationSubmission" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOVerificationState" />

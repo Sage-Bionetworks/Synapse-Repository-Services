@@ -197,10 +197,6 @@
 		scope="singleton">
 		<constructor-arg ref="awsCredentials" />
 	</bean>
-	<bean id="storageUsageQueryDao"
-		class="org.sagebionetworks.repo.model.dbo.dao.StorageUsageQueryDaoImpl"
-		scope="singleton">
-	</bean>
 	
 	<bean id="messageDAO" class="org.sagebionetworks.repo.model.dbo.dao.DBOMessageDAOImpl"
 		scope="singleton" />
@@ -228,16 +224,6 @@
 
 	<bean id="doiAdminDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBODoiAdminDaoImpl"
-		scope="singleton">
-	</bean>
-
-	<bean id="storageQuotaDao"
-		class="org.sagebionetworks.repo.model.dbo.dao.DBOStorageQuotaDaoImpl"
-		scope="singleton">
-	</bean>
-
-	<bean id="storageQuotaAdminDao"
-		class="org.sagebionetworks.repo.model.dbo.dao.StorageQuotaAdminDaoImpl"
 		scope="singleton">
 	</bean>
 	

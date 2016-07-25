@@ -196,7 +196,7 @@ public class DMLUtils {
 	}
 	
 	/**
-	 * Create an INSERT statement for a given mapping.
+	 * Create an DELETE statement for a given mapping.
 	 * @param mapping
 	 * @return
 	 */

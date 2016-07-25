@@ -24,8 +24,6 @@ public interface ServiceProvider {
 	
 	public NodeQueryService getNodeQueryService();
 	
-	public StorageUsageService getStorageUsageService();
-	
 	public UserGroupService getUserGroupService();
 	
 	public UserProfileService getUserProfileService();

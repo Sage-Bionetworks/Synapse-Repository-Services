@@ -272,10 +272,6 @@
 	<bean id="s3Utility" class="org.sagebionetworks.repo.manager.AmazonS3UtilityImpl"
 		scope="singleton" />
 
-	<bean id="storageUsageManager"
-		class="org.sagebionetworks.repo.manager.StorageUsageManagerImpl"
-		scope="singleton" />
-
 	<bean id="schemaManager" class="org.sagebionetworks.repo.manager.SchemaManagerImpl"
 		scope="singleton" />
 		
@@ -348,9 +344,6 @@
 	
    	<bean id="asynchJobStatusManager" class="org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManagerImpl" scope="singleton" />
 
-	<bean id="storageQuotaManager" class="org.sagebionetworks.repo.manager.StorageQuotaManagerImpl"
-		scope="singleton" />		
-		
 	<bean id="subStatusAnnoAsyncManager"
 		class="org.sagebionetworks.repo.model.dbo.dao.SubmissionStatusAnnotationsAsyncManagerImpl" />
 

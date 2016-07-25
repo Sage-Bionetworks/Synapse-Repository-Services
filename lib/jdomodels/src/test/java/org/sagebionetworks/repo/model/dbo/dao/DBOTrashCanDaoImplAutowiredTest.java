@@ -5,11 +5,15 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.List;
 
+import org.joda.time.DateTime;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -17,10 +21,16 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.dao.TrashCanDao;
+import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOTrashedEntity;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+
+import com.sun.tools.javah.resources.l10n;
+
+import junit.framework.TestListener;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
@@ -29,6 +39,9 @@ public class DBOTrashCanDaoImplAutowiredTest {
 	@Autowired
 	private TrashCanDao trashCanDao;
 
+	@Autowired
+	private DBOBasicDao basicDao;
+	
 	private String userId;
 
 	@Before
@@ -232,6 +245,189 @@ public class DBOTrashCanDaoImplAutowiredTest {
 		assertEquals(1, trashList.size());
 		assertEquals(nodeName, trashList.get(0).getEntityName());
 
+	}
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetTrashLeavesNegativeNumDays(){//TODO: move to unit test?
+		trashCanDao.getTrashLeaves(-1, 123);
+	}
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetTrashLeavesNegativeLimit(){//TODO: move to unit test?
+		trashCanDao.getTrashLeaves(123, -1);
+	}
+	
+	@Test 
+	public void testGetTrashLeavesNodesWithNoChildrenOlderThanNow(){
+		final int numNodes = 5;
+		final String nodeNameBase = "DBOTrashCanDaoImplAutowiredTest.testGetTrashLeavesNoChildrenOlderThanNow() Node:";
+		final long nodeID = 9000L;
+		final long parentID = 10L;
+		
+		assertEquals(0, trashCanDao.getCount());
+		
+		//create trash leaves
+		for(int i = 0; i < numNodes; i++){
+			String stringNodeID = KeyFactory.keyToString(nodeID + i);
+			String stringParentID = KeyFactory.keyToString(parentID + i);
+			Timestamp time = timeDaysAgo( numNodes - i);
+			createTestNode(userId, stringNodeID, nodeNameBase + stringNodeID, stringParentID, time);
+		}
+		assertEquals(trashCanDao.getCount(), numNodes);
+		
+		//test all older than now
+		List<Long> trashOlderThanNow = trashCanDao.getTrashLeaves(0, 100);
+		assertEquals(numNodes,trashOlderThanNow.size());
+		for(int i = 0; i < numNodes; i++){
+			assertTrue(trashOlderThanNow.contains(nodeID + i));
+		}
+		
+	}
+	
+	@Test 
+	public void testGetTrashLeavesNodesWithNoChildren(){
+		final int numNodes = 2;
+		final String nodeNameBase = "DBOTrashCanDaoImplAutowiredTest.testGetTrashLeavesNoChildren() Node:";
+		final long nodeID = 9000L;
+		final long parentID = 10L;
+		
+		assertEquals(0, trashCanDao.getCount());
+		
+		//create trash leaves
+		for(int i = 0; i < numNodes; i++){
+			String stringNodeID = KeyFactory.keyToString(nodeID + i);
+			String stringParentID = KeyFactory.keyToString(parentID + i);
+			Timestamp time = timeDaysAgo(numNodes - i);
+			createTestNode(userId, stringNodeID, nodeNameBase + stringNodeID, stringParentID, time);
+		}
+		assertEquals(trashCanDao.getCount(), numNodes);
+		
+		//older than trashBefore days
+		int trashBefore = 1;
+		assertTrue(trashBefore <= numNodes);
+		List<Long> trashOlderThanNumDays = trashCanDao.getTrashLeaves(trashBefore, 100);
+		assertEquals(numNodes - trashBefore,trashOlderThanNumDays.size());
+		for(int i = 0; i < numNodes - trashBefore; i++){
+			assertTrue(trashOlderThanNumDays.contains(nodeID + i));
+		}
+		
+	}
+	
+	@Test
+	public void testGetTrashLeavesNodesWithChildren(){
+		/*
+		 Create node with 2 children that have children
+
+		           N0
+		          /  \
+		         N1  N2
+		         |    |\
+		         N3  N4 N5
+		*/
+		final String nodeNameBase = "DBOTrashCanDaoImplAutowiredTest.testGetTrashLeavesNodesWithChildren() Node:";
+		final long nodeIdBase = 9000L;
+		//N0
+		final String N0Id = KeyFactory.keyToString(nodeIdBase + 0);
+		final String N0ParentId = KeyFactory.keyToString(12345L); //some random value for parent
+		createTestNode(userId, N0Id, nodeNameBase + N0Id, N0ParentId, timeDaysAgo(1) );
+		
+		//N1
+		final String N1Id = KeyFactory.keyToString(nodeIdBase + 1);
+		final String N1ParentId = N0Id; //some random value for parent
+		createTestNode(userId, N1Id, nodeNameBase + N1Id, N1ParentId, timeDaysAgo(1) );
+		
+		//N2
+		final String N2Id = KeyFactory.keyToString(nodeIdBase + 2);
+		final String N2ParentId = N0Id; //some random value for parent
+		createTestNode(userId, N2Id, nodeNameBase + N2Id, N2ParentId, timeDaysAgo(1) );
+		
+		//N3
+		final String N3Id = KeyFactory.keyToString(nodeIdBase + 3);
+		final String N3ParentId = N1Id; //some random value for parent
+		createTestNode(userId, N3Id, nodeNameBase + N3Id, N3ParentId, timeDaysAgo(1) );
+		
+		//N4
+		final String N4Id = KeyFactory.keyToString(nodeIdBase + 4);
+		final String N4ParentId = N2Id; //some random value for parent
+		createTestNode(userId, N4Id, nodeNameBase + N4Id, N4ParentId, timeDaysAgo(1) );
+		
+		//N5
+		final String N5Id = KeyFactory.keyToString(nodeIdBase + 5);
+		final String N5ParentId = N2Id; //some random value for parent
+		createTestNode(userId, N5Id, nodeNameBase + N5Id, N5ParentId, timeDaysAgo(1) );
+		
+		//check that N3, N4, N5 are the only ones in the list
+		List<Long> trashLeaves = trashCanDao.getTrashLeaves(0, 6);
+		assertEquals(3, trashLeaves.size());
+		assertTrue( trashLeaves.contains( KeyFactory.stringToKey(N3Id) ) );
+		assertTrue( trashLeaves.contains( KeyFactory.stringToKey(N4Id) ) );
+		assertTrue( trashLeaves.contains( KeyFactory.stringToKey(N5Id) ) );
+		
+	}
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void TestDeleteListNullList(){
+		trashCanDao.delete(null);
+	}
+	
+	@Test
+	public void TestDeleteListEmptyList(){
+		assertEquals(0, trashCanDao.delete(new ArrayList<Long>()));
+	}
+	
+	@Test
+	public void testDeleteListNonExistantTrash(){
+		List<Long> nonExistantTrashList = new ArrayList<Long>();
+		assertEquals(0, trashCanDao.delete(nonExistantTrashList) );
+	}
+	
+	@Test
+	public void testDeleteList(){
+		final int numNodes = 2;
+		final String nodeNameBase = "DBOTrashCanDaoImplAutowiredTest.testDeleteList() Node:";
+		final long nodeIDBase = 9000L;
+		final long parentID = 10L;
+		
+		List<Long> nodesToDelete =  new ArrayList<Long>();
+		assertEquals(0, trashCanDao.getCount());
+		for(int i = 0; i < numNodes; i++){
+			long nodeID = nodeIDBase + i;
+			String stringNodeID = KeyFactory.keyToString(nodeID);
+			String stringParentID = KeyFactory.keyToString(parentID + i);
+			trashCanDao.create(userId, stringNodeID, nodeNameBase + i, stringParentID);
+			
+			//delete the even value nodes later
+			if(nodeID % 2 == 0){
+				nodesToDelete.add(nodeID);
+			}
+		}
+		assertEquals(numNodes, trashCanDao.getCount());
+		
+		trashCanDao.delete(nodesToDelete);
+		
+		assertEquals(numNodes/2 , trashCanDao.getCount());
+		//check that the even nodes are all deleted
+		for(int i = 0; i < numNodes; i++){
+			long nodeID = nodeIDBase + i;
+			assertTrue( trashCanDao.exists(userId, KeyFactory.keyToString(nodeID)) != (nodeID % 2 == 0) ); //Only one of these conditions is true
+		}
+	}
+	
+	
+	//time in milliseconds of numDays ago
+	private Timestamp timeDaysAgo(int numDays){
+		return new Timestamp(System.currentTimeMillis() - numDays * 24 * 60 * 60 * 1000);
+	}
+	
+	//Basically same as create() in TrashCanDao but can specify the timestamp.
+	private void createTestNode(String userGroupId, String nodeId, String nodeName, String parentId, Timestamp ts){
+		DBOTrashedEntity dbo = new DBOTrashedEntity();
+		dbo.setNodeId(KeyFactory.stringToKey(nodeId));
+		dbo.setNodeName(nodeName);
+		dbo.setDeletedBy(KeyFactory.stringToKey(userGroupId));
+		dbo.setDeletedOn(ts);
+		dbo.setParentId(KeyFactory.stringToKey(parentId));
+		basicDao.createNew(dbo);
 	}
 
 	private void clear() throws Exception {

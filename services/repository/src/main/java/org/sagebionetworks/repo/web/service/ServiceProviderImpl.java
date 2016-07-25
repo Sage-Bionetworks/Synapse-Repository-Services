@@ -28,8 +28,6 @@ public class ServiceProviderImpl implements ServiceProvider {
 	@Autowired
 	private NodeQueryService nodeQueryService;
 	@Autowired
-	private StorageUsageService storageUsageService;
-	@Autowired
 	private UserGroupService userGroupService;
 	@Autowired
 	private UserProfileService userProfileService;
@@ -100,9 +98,6 @@ public class ServiceProviderImpl implements ServiceProvider {
 	}
 	public NodeQueryService getNodeQueryService() {
 		return nodeQueryService;
-	}
-	public StorageUsageService getStorageUsageService() {
-		return storageUsageService;
 	}
 	public UserGroupService getUserGroupService() {
 		return userGroupService;

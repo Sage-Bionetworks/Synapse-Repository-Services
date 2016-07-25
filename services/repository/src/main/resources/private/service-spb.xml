@@ -52,9 +52,6 @@
 	
 	<!-- The Messaging Service -->
 	<bean id="messageService" class="org.sagebionetworks.repo.web.service.MessageServiceImpl" />
-
-	<!-- The StorageUsage Service -->
-	<bean id="storageUsageService" class="org.sagebionetworks.repo.web.service.StorageUsageServiceImpl" />
 	
 	<!--Migration related beans  -->
 	<bean id="migrationService" class="org.sagebionetworks.repo.web.service.MigrationServiceImpl" />

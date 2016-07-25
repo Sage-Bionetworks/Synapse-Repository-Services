@@ -57,7 +57,6 @@
         "BOUND_COLUMN_ORDINAL",
         "TABLE_SEQUENCE",
         "TABLE_CHANGE",
-        "STORAGE_QUOTA",
         "QUIZ_RESPONSE",
         "VERIFICATION_SUBMISSION",
         "VERIFICATION_STATE",

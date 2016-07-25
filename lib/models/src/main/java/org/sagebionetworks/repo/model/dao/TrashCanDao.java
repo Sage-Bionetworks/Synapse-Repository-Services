@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.dao;
 
 import java.sql.Timestamp;
 import java.util.List;
+import java.util.Set;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.TrashedEntity;
@@ -63,11 +64,31 @@ public interface TrashCanDao {
 	 * Gets all the trash items that were deleted before the specified time stamp.
 	 */
 	List<TrashedEntity> getTrashBefore(Timestamp timestamp) throws DatastoreException;
-
+	
+	/**
+	 * Gets rowLimit amount of trash items that have no children trash items and are more than numDays old.
+	 * @param numDays number of days the item has been in the trash can
+	 * @param limit maximum number of results to return
+	 * @return Set of IDs of the trash items as Longs
+	 * @throws DatastoreException
+	 */
+	List<Long> getTrashLeaves(long numDays, long limit) throws DatastoreException;
+	
 	/**
 	 * Removes a trash item from the trash can table. This happens when the trash item is either restored or purged.
 	 *
 	 * @throws NotFoundException When the item is not deleted by the user.
 	 */
 	void delete(String userGroupId, String nodeId) throws DatastoreException, NotFoundException;
+
+	/**
+	 * Removes all trash items in a list of node IDs
+	 * @param nodeIDs list of trash node IDs as longs
+	 * @return int number of Trash nodes deleted
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	int delete(List<Long> nodeIDs) throws DatastoreException, NotFoundException;
+	
+	
 }

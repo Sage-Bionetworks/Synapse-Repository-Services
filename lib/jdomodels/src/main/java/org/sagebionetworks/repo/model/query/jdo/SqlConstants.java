@@ -634,13 +634,6 @@ public class SqlConstants {
 	public static final String COL_UPLOAD_STATUS_RUNTIME_MS			= "RUNTIME_MS";
 	public static final String DDL_UPLOAD_STATUS					= "schema/UploadDaemonStatus-ddl.sql";
 	
-	// Storage Quota
-	public static final String TABLE_STORAGE_QUOTA            = "STORAGE_QUOTA";
-	public static final String COL_STORAGE_QUOTA_OWNER_ID     = "OWNER_ID";
-	public static final String COL_STORAGE_QUOTA_ETAG         = "ETAG";
-	public static final String COL_STORAGE_QUOTA_QUOTA_IN_MB  = "QUOTA_IN_MB";
-	public static final String DDL_FILE_STORAGE_QUOTA         ="schema/StorageQuota-ddl.sql";
-	
 	// Credential
 	public static final String TABLE_CREDENTIAL             = "CREDENTIAL";
 	public static final String COL_CREDENTIAL_PRINCIPAL_ID  = "PRINCIPAL_ID";

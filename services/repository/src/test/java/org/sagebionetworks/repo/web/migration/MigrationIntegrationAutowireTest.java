@@ -32,7 +32,6 @@ import org.sagebionetworks.evaluation.model.SubmissionContributor;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.manager.DockerManager;
-import org.sagebionetworks.repo.manager.StorageQuotaManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.manager.migration.MigrationManager;
@@ -66,7 +65,6 @@ import org.sagebionetworks.repo.model.QuizResponseDAO;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.StorageLocationDAO;
-import org.sagebionetworks.repo.model.StorageQuotaAdminDao;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
@@ -185,12 +183,6 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 
 	@Autowired
 	private MigrationManager migrationManager;
-
-	@Autowired
-	private StorageQuotaManager storageQuotaManager;
-
-	@Autowired
-	private StorageQuotaAdminDao storageQuotaAdminDao;
 
 	@Autowired
 	private UserGroupDAO userGroupDAO;
@@ -339,7 +331,6 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		createAccessApproval();
 		createV2WikiPages();
 		createDoi();
-		createStorageQuota();
 		UserGroup sampleGroup = createUserGroups(1);
 		createTeamsRequestsAndInvitations(sampleGroup);
 		createCredentials(sampleGroup);
@@ -511,7 +502,6 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		migrationManager.deleteAllData(adminUserInfo);
 		// bootstrap to put back the bootstrap data
 		entityBootstrapper.bootstrapAll();
-		storageQuotaAdminDao.clear();
 	}
 
 	private void createFavorite() {
@@ -710,10 +700,6 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		fileMetadataDao.setPreviewId(handleOne.getId(), preview.getId());
 
 		return handleOne.getId();
-	}
-
-	private void createStorageQuota() {
-		storageQuotaManager.setQuotaForUser(adminUserInfo, adminUserInfo, 3000);
 	}
 
 	// returns a group for use in a team
