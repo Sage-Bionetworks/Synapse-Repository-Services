@@ -51,8 +51,8 @@ public class DockerCommitDaoImpl implements DockerCommitDao {
 	private static final String UPDATE_REVISION_SQL = 
 			"UPDATE "+TABLE_REVISION+" r SET r."+COL_REVISION_MODIFIED_BY+"=?, r."+
 			COL_REVISION_MODIFIED_ON+"=? WHERE r."+COL_REVISION_OWNER_NODE+"=? "+
-			" AND r."+COL_REVISION_NUMBER+"= SELECT n."+COL_CURRENT_REV+" FROM "+
-			TABLE_NODE+" n WHERE n."+COL_NODE_ID+"=r."+COL_REVISION_OWNER_NODE;
+			" AND r."+COL_REVISION_NUMBER+"= (SELECT n."+COL_CURRENT_REV+" FROM "+
+			TABLE_NODE+" n WHERE n."+COL_NODE_ID+"=r."+COL_REVISION_OWNER_NODE+")";
 
 	// get the latest tags for an entity
 	// for this to return a single record per <entity,tag> it's crucial
@@ -63,7 +63,7 @@ public class DockerCommitDaoImpl implements DockerCommitDao {
 		COL_DOCKER_COMMIT_CREATED_ON+"=(SELECT MAX(d2."+COL_DOCKER_COMMIT_CREATED_ON+
 		") FROM "+TABLE_DOCKER_COMMIT+" d2 WHERE "+
 			" d2."+COL_DOCKER_COMMIT_OWNER_ID+"=d."+COL_DOCKER_COMMIT_OWNER_ID+" AND "+
-			" d2."+COL_DOCKER_COMMIT_TAG+"=d."+COL_DOCKER_COMMIT_TAG+") ORDER BY ? ? LIMT ? OFFSET ?";
+			" d2."+COL_DOCKER_COMMIT_TAG+"=d."+COL_DOCKER_COMMIT_TAG+") ORDER BY ? ? LIMIT ? OFFSET ?";
 	
 	// get the count for the commit listing query (above)
 	private static final String LATEST_COMMIT_COUNT_SQL = 
@@ -79,7 +79,7 @@ public class DockerCommitDaoImpl implements DockerCommitDao {
 	public String createDockerCommit(String entityId, long modifiedBy, DockerCommit commit) {
 		DBODockerCommit dbo = new DBODockerCommit();
 		long nodeId = KeyFactory.stringToKey(entityId);
-		dbo.setMigrationId(idGenerator.generateNewId(TYPE.DOCKER_COMMIT));
+		dbo.setMigrationId(idGenerator.generateNewId(TYPE.DOCKER_COMMIT_ID));
 		dbo.setOwner(nodeId);
 		dbo.setTag(commit.getTag());
 		dbo.setDigest(commit.getDigest());
