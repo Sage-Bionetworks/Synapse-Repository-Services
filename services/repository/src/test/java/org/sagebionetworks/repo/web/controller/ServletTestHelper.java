@@ -1838,6 +1838,13 @@ public class ServletTestHelper {
 		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.OK);
 	}
+	
+	public void adminPurgeTrashLeaves(Long userId) throws Exception{
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.PUT, UrlHelpers.ADMIN_TRASHCAN_PURGE_LEAVES, userId, null);
+		request.addParameter(ServiceConstants.TRASH_CAN_DELETE_DAYS_OLD_PARAM, "0");
+		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+	}
 
 	public PaginatedResults<TrashedEntity> adminGetTrashCan(Long userId)
 			throws Exception {

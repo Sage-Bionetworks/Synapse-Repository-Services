@@ -265,4 +265,18 @@ public class ServiceConstants {
 	public static final String DISCUSSION_FILTER_PARAM = "filter";
 
 	public static final String SUBSCRIPTION_OBJECT_TYPE_PARAM = "objectType";
+	
+	/**
+	 * limit number of items to delete from the trash can
+	 */
+	public static final String TRASH_CAN_DELETE_LIMIT_PARAM = "limit";
+	
+	public static final String DEFAULT_TRASH_CAN_DELETE_LIMIT = "250000";
+	
+	/**
+	 * limit age of file to be deleted. i.e. trash files deleted must be at least this many days old.
+	 */
+	public static final String TRASH_CAN_DELETE_DAYS_OLD_PARAM = "daysOld";
+	
+	public static final String DEFAULT_TRASH_CAN_DELETE_DAYS_OLD = "30";
 }

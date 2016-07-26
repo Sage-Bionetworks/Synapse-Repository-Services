@@ -390,6 +390,11 @@ public class UrlHelpers {
 	 * Purges the trash can for the current user.
 	 */
 	public static final String TRASHCAN_PURGE = TRASHCAN + "/purge";
+	
+	/**
+	 * Purges the trash can for the current user of all trash items with no children trash items.
+	 */
+	public static final String TRASHCAN_PURGE_LEAVES = TRASHCAN + "/purgeleaves";
 
 	/**
 	 * Views the current trash can.
@@ -405,6 +410,11 @@ public class UrlHelpers {
 	 * Purges everything in the trash can.
 	 */
 	public static final String ADMIN_TRASHCAN_PURGE = ADMIN + TRASHCAN_PURGE;
+	
+	/**
+	 * Purges all trash items in the trash can with no children trash items.
+	 */
+	public static final String ADMIN_TRASHCAN_PURGE_LEAVES = ADMIN + TRASHCAN_PURGE_LEAVES;
 
 	/**
 	 * URL path for query controller
