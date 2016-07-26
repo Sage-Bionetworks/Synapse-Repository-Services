@@ -30,6 +30,8 @@ import org.sagebionetworks.repo.model.docker.DockerRegistryEventList;
 import org.sagebionetworks.repo.model.docker.DockerRepository;
 import org.sagebionetworks.repo.model.docker.RegistryEventAction;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.util.DockerNameUtil;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -59,6 +61,10 @@ public class DockerManagerImpl implements DockerManager {
 	
 	@Autowired
 	DockerCommitDao dockerCommitDao;
+	
+	@Autowired
+	private TransactionalMessenger transactionalMessenger;
+
 
 	/**
 	 * Answer Docker Registry authorization request.
@@ -252,7 +258,8 @@ public class DockerManagerImpl implements DockerManager {
 		AuthorizationStatus authStatus = authorizationManager.canAccess(userInfo, entityId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE);
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(authStatus);
 		commit.setCreatedOn(new Date());
-		dockerCommitDao.createDockerCommit(entityId, userInfo.getId(), commit);
+		String newEntityEtag = dockerCommitDao.createDockerCommit(entityId, userInfo.getId(), commit);
+		transactionalMessenger.sendMessageAfterCommit(entityId, ObjectType.ENTITY, newEntityEtag, ChangeType.UPDATE);
 	}
 
 	@Override

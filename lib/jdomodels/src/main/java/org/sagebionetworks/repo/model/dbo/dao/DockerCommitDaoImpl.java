@@ -76,7 +76,7 @@ public class DockerCommitDaoImpl implements DockerCommitDao {
 	
 	@WriteTransactionReadCommitted
 	@Override
-	public void createDockerCommit(String entityId, long modifiedBy, DockerCommit commit) {
+	public String createDockerCommit(String entityId, long modifiedBy, DockerCommit commit) {
 		DBODockerCommit dbo = new DBODockerCommit();
 		long nodeId = KeyFactory.stringToKey(entityId);
 		dbo.setMigrationId(idGenerator.generateNewId(TYPE.DOCKER_COMMIT));
@@ -86,8 +86,10 @@ public class DockerCommitDaoImpl implements DockerCommitDao {
 		long eventTime = commit.getCreatedOn().getTime();
 		dbo.setCreatedOn(eventTime);
 		basicDao.createNew(dbo);
-		jdbcTemplate.update(UPDATE_NODE_ETAG_SQL, UUID.randomUUID().toString(), nodeId);
+		String etag = UUID.randomUUID().toString();
+		jdbcTemplate.update(UPDATE_NODE_ETAG_SQL, etag, nodeId);
 		jdbcTemplate.update(UPDATE_REVISION_SQL, modifiedBy, eventTime, nodeId);
+		return etag;
 	}
 	
 	@Override

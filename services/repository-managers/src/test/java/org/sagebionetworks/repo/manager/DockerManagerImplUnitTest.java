@@ -20,6 +20,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.DockerCommitDao;
 import org.sagebionetworks.repo.model.DockerNodeDao;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -72,6 +73,9 @@ public class DockerManagerImplUnitTest {
 	private DockerNodeDao dockerNodeDao;
 	
 	@Mock
+	private DockerCommitDao dockerCommitDao;
+	
+	@Mock
 	private IdGenerator idGenerator;
 	
 	@Mock
@@ -96,6 +100,7 @@ public class DockerManagerImplUnitTest {
 		ReflectionTestUtils.setField(dockerManager, "userManager", userManager);
 		ReflectionTestUtils.setField(dockerManager, "entityManager", entityManager);
 		ReflectionTestUtils.setField(dockerManager, "authorizationManager", authorizationManager);
+		ReflectionTestUtils.setField(dockerManager, "dockerCommitDao", dockerCommitDao);
 
 		parentHeader = new EntityHeader();
 		parentHeader.setId(PARENT_ID);
