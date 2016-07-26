@@ -98,7 +98,7 @@ public class DBOTrashCanDaoImpl implements TrashCanDao {
 	private static final String SELECT_TRASH_BEFORE_NUM_DAYS_LEAVES_ONLY =
 			"SELECT " + COL_TRASH_CAN_NODE_ID +
 			" FROM " + TABLE_TRASH_CAN + " T1" +
-			" WHERE T1." + COL_TRASH_CAN_DELETED_ON + " < (NOW() - INTERVAL :" + NUM_DAYS_PARAM_NAME +" DAY)" +
+			" WHERE T1." + COL_TRASH_CAN_DELETED_ON + " <= (NOW() - INTERVAL :" + NUM_DAYS_PARAM_NAME +" DAY)" +
 			" AND NOT EXISTS (SELECT 1 FROM " + TABLE_TRASH_CAN+" T2"+
 							" WHERE T2." +COL_TRASH_CAN_PARENT_ID + " = T1." + COL_TRASH_CAN_NODE_ID + ")"+
 			" ORDER BY " + COL_TRASH_CAN_NODE_ID + 

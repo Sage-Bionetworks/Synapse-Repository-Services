@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.web.controller;
 
+import static org.junit.Assert.fail;
+
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
@@ -243,5 +245,41 @@ public class TrashControllerAutowiredTest extends AbstractAutowiredControllerTes
 		// Already purged, no need to clean
 		child = null;
 		parent = null;
+	}
+	
+	@Test
+	public void testAdminLeaves() throws Exception{
+		//reset trash can
+		servletTestHelper.adminPurgeTrash(adminUserId);
+		PaginatedResults<TrashedEntity> results = servletTestHelper.adminGetTrashCan(adminUserId);
+		Assert.assertEquals(0, results.getTotalNumberOfResults());
+		Assert.assertEquals(0, results.getResults().size());
+
+		// Move the parent to the trash can
+		servletTestHelper.trashEntity(testUserId, parent.getId());
+
+		results = servletTestHelper.adminGetTrashCan(adminUserId);
+		Assert.assertEquals(2, results.getTotalNumberOfResults());
+		Assert.assertEquals(2, results.getResults().size());
+		
+		//purge leaves (i.e. the child)
+		servletTestHelper.adminPurgeTrashLeaves(adminUserId);
+		
+		//make sure the parent is still in the trashcan
+		results = servletTestHelper.adminGetTrashCan(adminUserId);
+		Assert.assertEquals(1, results.getTotalNumberOfResults());
+		Assert.assertEquals(1, results.getResults().size());
+		Assert.assertEquals(parent.getId(), results.getResults().get(0).getEntityId() );
+		
+		
+		
+		//delete leaves again to clean up trash can
+		servletTestHelper.adminPurgeTrashLeaves(adminUserId);
+		
+		results = servletTestHelper.adminGetTrashCan(adminUserId);
+		Assert.assertEquals(0, results.getTotalNumberOfResults());
+		Assert.assertEquals(0, results.getResults().size());
+		parent = null;
+		child = null;
 	}
 }

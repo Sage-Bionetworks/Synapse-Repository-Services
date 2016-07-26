@@ -141,6 +141,11 @@ public class TrashManagerImplTest {
 			public void endPurge() {
 				System.out.println("endPurge() Called");
 			}
+
+			@Override
+			public void startPurge(List<Long> ids) {
+				System.out.println("startPurge(List) called");
+			}
 			
 			
 		});
@@ -533,24 +538,24 @@ public class TrashManagerImplTest {
 	///////////////////////////////
 	@Test (expected = IllegalArgumentException.class)
 	public void testPurgeTrashAdminNullList(){
-		trashManager.purgeTrashAdmin(null, adminUserInfo);
+		trashManager.purgeTrashAdmin(null, adminUserInfo, purgeCallback);
 	}
 	
 	@Test (expected = IllegalArgumentException.class)
 	public void testPurgeTrashAdminNullUser(){
-		trashManager.purgeTrashAdmin(new ArrayList<Long>(1), null);
+		trashManager.purgeTrashAdmin(new ArrayList<Long>(1), null, purgeCallback);
 	}
 	
 	@Test (expected = UnauthorizedException.class)
 	public void testPurgeTrashAdminUserNotAdmin(){
-		trashManager.purgeTrashAdmin(new ArrayList<Long>(1), userInfo);
+		trashManager.purgeTrashAdmin(new ArrayList<Long>(1), userInfo, purgeCallback);
 	}
 	
 	@Test
 	public void testPurgeTrashAdmin(){
 		List<Long> trashIDList = new ArrayList<Long>(1);
 		trashIDList.add(1L);
-		trashManager.purgeTrashAdmin(trashIDList, adminUserInfo);
+		trashManager.purgeTrashAdmin(trashIDList, adminUserInfo, purgeCallback);
 		
 		verify(mockNodeDAO,times(1)).delete(trashIDList);
 		verify(mockAclDAO,times(1)).delete(trashIDList, ObjectType.ENTITY);
