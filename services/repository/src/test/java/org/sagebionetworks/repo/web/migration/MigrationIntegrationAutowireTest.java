@@ -392,7 +392,9 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 
 	private void createThreadEntityReference() {
 		DiscussionThreadEntityReference entityRef = new DiscussionThreadEntityReference();
-		threadDao.insertEntityReference(Arrays.asList(entityRef ));
+		entityRef.setEntityId(project.getId());
+		entityRef.setThreadId(threadId);
+		threadDao.insertEntityReference(Arrays.asList(entityRef));
 	}
 
 	private void createReply() {
