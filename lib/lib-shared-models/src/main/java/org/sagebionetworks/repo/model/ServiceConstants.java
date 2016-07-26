@@ -274,9 +274,9 @@ public class ServiceConstants {
 	public static final String DEFAULT_TRASH_CAN_DELETE_LIMIT = "250000";
 	
 	/**
-	 * limit age of file to be deleted. i.e. trash files deleted must be at least this many days old.
+	 * number of days trash items must have been in the trash
 	 */
-	public static final String TRASH_CAN_DELETE_DAYS_OLD_PARAM = "daysOld";
+	public static final String DAYS_IN_TRASH_CAN_PARAM = "daysOld";
 	
-	public static final String DEFAULT_TRASH_CAN_DELETE_DAYS_OLD = "30";
+	public static final String DEFAULT_DAYS_IN_TRASH_CAN = "30";
 }

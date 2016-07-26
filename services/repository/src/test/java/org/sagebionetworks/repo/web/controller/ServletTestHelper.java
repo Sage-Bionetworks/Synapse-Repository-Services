@@ -1839,10 +1839,11 @@ public class ServletTestHelper {
 				HttpStatus.OK);
 	}
 	
-	public void adminPurgeTrashLeaves(Long userId) throws Exception{
+	public void adminPurgeTrashLeaves(DispatcherServlet dispatchServlet, Long userId, Long numDaysInTrash, Long limit) throws Exception{
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.PUT, UrlHelpers.ADMIN_TRASHCAN_PURGE_LEAVES, userId, null);
-		request.addParameter(ServiceConstants.TRASH_CAN_DELETE_DAYS_OLD_PARAM, "0");
+		request.addParameter(ServiceConstants.DAYS_IN_TRASH_CAN_PARAM, numDaysInTrash.toString());
+		request.addParameter(ServiceConstants.TRASH_CAN_DELETE_LIMIT_PARAM, limit.toString());
 		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
 	}
 
