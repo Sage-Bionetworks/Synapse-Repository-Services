@@ -30,9 +30,13 @@ import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadAuthorStat;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
+import org.sagebionetworks.repo.model.discussion.DiscussionThreadEntityReference;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadReplyStat;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadViewStat;
+import org.sagebionetworks.repo.model.discussion.EntityThreadCount;
+import org.sagebionetworks.repo.model.discussion.EntityThreadCounts;
 import org.sagebionetworks.repo.model.discussion.Forum;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -270,7 +274,7 @@ public class DBODiscussionThreadDAOImplTest {
 		List<DiscussionThreadBundle> createdThreads = createListOfThreads(3);
 		assertEquals(createdThreads.size(), 3);
 
-		assertEquals(3, threadDao.getThreadCount(forumIdLong, DiscussionFilter.NO_FILTER));
+		assertEquals(3, threadDao.getThreadCountForForum(forumIdLong, DiscussionFilter.NO_FILTER));
 
 		assertEquals("non order",
 				new HashSet<DiscussionThreadBundle>(createdThreads),
@@ -517,6 +521,7 @@ public class DBODiscussionThreadDAOImplTest {
 
 	@Test
 	public void testBuildGetQuery() {
+		String baseQuery = DBODiscussionThreadDAOImpl.SQL_SELECT_THREADS_BY_FORUM_ID;
 		assertEquals("not ordered","SELECT DISCUSSION_THREAD.ID AS ID,"
 				+ " DISCUSSION_THREAD.FORUM_ID AS FORUM_ID, FORUM.PROJECT_ID AS PROJECT_ID,"
 				+ " DISCUSSION_THREAD.TITLE AS TITLE, DISCUSSION_THREAD.CREATED_ON AS CREATED_ON,"
@@ -532,7 +537,7 @@ public class DBODiscussionThreadDAOImplTest {
 				+ " LEFT OUTER JOIN DISCUSSION_THREAD_STATS ON DISCUSSION_THREAD.ID = DISCUSSION_THREAD_STATS.THREAD_ID"
 				+ " WHERE FORUM_ID = ?"
 				+ " LIMIT 10 OFFSET 0",
-				DBODiscussionThreadDAOImpl.buildGetQuery(10L, 0L, null, null, DiscussionFilter.NO_FILTER));
+				DBODiscussionThreadDAOImpl.buildGetQuery(baseQuery, 10L, 0L, null, null, DiscussionFilter.NO_FILTER));
 		assertEquals("ordered by pinned and last activity","SELECT DISCUSSION_THREAD.ID AS ID,"
 				+ " DISCUSSION_THREAD.FORUM_ID AS FORUM_ID, FORUM.PROJECT_ID AS PROJECT_ID,"
 				+ " DISCUSSION_THREAD.TITLE AS TITLE, DISCUSSION_THREAD.CREATED_ON AS CREATED_ON,"
@@ -549,7 +554,7 @@ public class DBODiscussionThreadDAOImplTest {
 				+ " WHERE FORUM_ID = ?"
 				+ " ORDER BY IS_PINNED DESC, LAST_ACTIVITY"
 				+ " LIMIT 10 OFFSET 0",
-				DBODiscussionThreadDAOImpl.buildGetQuery(10L, 0L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true, DiscussionFilter.NO_FILTER));
+				DBODiscussionThreadDAOImpl.buildGetQuery(baseQuery, 10L, 0L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true, DiscussionFilter.NO_FILTER));
 		assertEquals("limit","SELECT DISCUSSION_THREAD.ID AS ID,"
 				+ " DISCUSSION_THREAD.FORUM_ID AS FORUM_ID, FORUM.PROJECT_ID AS PROJECT_ID,"
 				+ " DISCUSSION_THREAD.TITLE AS TITLE, DISCUSSION_THREAD.CREATED_ON AS CREATED_ON,"
@@ -565,7 +570,7 @@ public class DBODiscussionThreadDAOImplTest {
 				+ " LEFT OUTER JOIN DISCUSSION_THREAD_STATS ON DISCUSSION_THREAD.ID = DISCUSSION_THREAD_STATS.THREAD_ID"
 				+ " WHERE FORUM_ID = ?"
 				+ " LIMIT 100 OFFSET 0",
-				DBODiscussionThreadDAOImpl.buildGetQuery(100L, 0L, null, null, DiscussionFilter.NO_FILTER));
+				DBODiscussionThreadDAOImpl.buildGetQuery(baseQuery, 100L, 0L, null, null, DiscussionFilter.NO_FILTER));
 		assertEquals("offset","SELECT DISCUSSION_THREAD.ID AS ID,"
 				+ " DISCUSSION_THREAD.FORUM_ID AS FORUM_ID, FORUM.PROJECT_ID AS PROJECT_ID,"
 				+ " DISCUSSION_THREAD.TITLE AS TITLE, DISCUSSION_THREAD.CREATED_ON AS CREATED_ON,"
@@ -581,7 +586,7 @@ public class DBODiscussionThreadDAOImplTest {
 				+ " LEFT OUTER JOIN DISCUSSION_THREAD_STATS ON DISCUSSION_THREAD.ID = DISCUSSION_THREAD_STATS.THREAD_ID"
 				+ " WHERE FORUM_ID = ?"
 				+ " LIMIT 10 OFFSET 2",
-				DBODiscussionThreadDAOImpl.buildGetQuery(10L, 2L, null, null, DiscussionFilter.NO_FILTER));
+				DBODiscussionThreadDAOImpl.buildGetQuery(baseQuery, 10L, 2L, null, null, DiscussionFilter.NO_FILTER));
 		assertEquals("filtered","SELECT DISCUSSION_THREAD.ID AS ID,"
 				+ " DISCUSSION_THREAD.FORUM_ID AS FORUM_ID, FORUM.PROJECT_ID AS PROJECT_ID,"
 				+ " DISCUSSION_THREAD.TITLE AS TITLE, DISCUSSION_THREAD.CREATED_ON AS CREATED_ON,"
@@ -598,7 +603,7 @@ public class DBODiscussionThreadDAOImplTest {
 				+ " WHERE FORUM_ID = ?"
 				+ " AND IS_DELETED = TRUE"
 				+ " LIMIT 10 OFFSET 0",
-				DBODiscussionThreadDAOImpl.buildGetQuery(10L, 0L, null, null, DiscussionFilter.DELETED_ONLY));
+				DBODiscussionThreadDAOImpl.buildGetQuery(baseQuery, 10L, 0L, null, null, DiscussionFilter.DELETED_ONLY));
 	}
 
 	@Test
@@ -633,5 +638,115 @@ public class DBODiscussionThreadDAOImplTest {
 		threadDao.createThread(forumId, threadId.toString(), "title", "messageKey", userId);
 		threadDao.markThreadAsDeleted(threadId);
 		assertEquals(true, threadDao.isThreadDeleted(threadId.toString()));
+	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetThreadCountsNullList(){
+		threadDao.getThreadCounts(null);
+	}
+
+	@Test
+	public void testGetThreadCountsEmptylList(){
+		EntityThreadCounts threadCounts = threadDao.getThreadCounts(new ArrayList<String>());
+		assertNotNull(threadCounts);
+		List<EntityThreadCount> list = threadCounts.getList();
+		assertNotNull(list);
+		assertTrue(list.isEmpty());
+	}
+
+	@Test
+	public void testGetThreadCountsForEntityWithoutReference(){
+		EntityThreadCounts threadCounts = threadDao.getThreadCounts(Arrays.asList(projectId));
+		assertNotNull(threadCounts);
+		List<EntityThreadCount> list = threadCounts.getList();
+		assertNotNull(list);
+		assertTrue(list.isEmpty());
+	}
+
+	@Test
+	public void testGetThreadCountsForOneEntity() {
+		threadDao.createThread(forumId, threadId.toString(), "title", "messageKey", userId);
+		DiscussionThreadEntityReference entityRef = createEntityRef(threadId.toString(), projectId);
+		threadDao.insertEntityReference(Arrays.asList(entityRef));
+		EntityThreadCounts threadCounts = threadDao.getThreadCounts(Arrays.asList(projectId));
+		assertNotNull(threadCounts);
+		List<EntityThreadCount> list = threadCounts.getList();
+		assertNotNull(list);
+		assertEquals(list.size(), 1);
+		assertEquals(list.get(0).getEntityId(), projectId);
+		assertEquals(list.get(0).getCount(), (Long) 1L);
+	}
+
+	@Test
+	public void testGetThreadCountsForMultipleEntities() {
+		String entity1 = "syn1";
+		String entity2 = "syn2";
+		String entity3 = "syn3";
+		Long threadId2 = idGenerator.generateNewId(TYPE.DISCUSSION_THREAD_ID);
+		threadDao.createThread(forumId, threadId.toString(), "title", "messageKey", userId);
+		threadDao.createThread(forumId, threadId2.toString(), "title", "messageKey2", userId);
+
+		// entity1 is mentioned by 2 threads
+		DiscussionThreadEntityReference entityRef1 = createEntityRef(threadId.toString(), entity1);
+		DiscussionThreadEntityReference entityRef2 = createEntityRef(threadId2.toString(), entity1);
+		// entity2 is mentioned by 1 thread twice
+		DiscussionThreadEntityReference entityRef3 = createEntityRef(threadId.toString(), entity2);
+		DiscussionThreadEntityReference entityRef4 = createEntityRef(threadId.toString(), entity2);
+		// entity3 is not mentioned
+		threadDao.insertEntityReference(Arrays.asList(entityRef1, entityRef2, entityRef3, entityRef4));
+
+		EntityThreadCounts threadCounts = threadDao.getThreadCounts(Arrays.asList(entity1, entity2, entity3));
+		assertNotNull(threadCounts);
+		List<EntityThreadCount> list = threadCounts.getList();
+		assertNotNull(list);
+		assertEquals(list.size(), 2);
+
+		EntityThreadCount entity1Count = createEntityThreadCount(entity1, 2L);
+		EntityThreadCount entity2Count = createEntityThreadCount(entity2, 1L);
+
+		assertTrue(list.contains(entity1Count));
+		assertTrue(list.contains(entity2Count));
+	}
+
+	@Test
+	public void testGetThreadsForEntityWithNoReference() {
+		PaginatedResults<DiscussionThreadBundle> result = threadDao.getThreadsForEntity(KeyFactory.stringToKey(projectId), MAX_LIMIT, 0L, null, null, DEFAULT_FILTER);
+		assertNotNull(result);
+		assertEquals(result.getTotalNumberOfResults(), 0L);
+		assertNotNull(result.getResults());
+		assertTrue(result.getResults().isEmpty());
+	}
+
+	@Test
+	public void testGetThreadsForEntityWithReferences() {
+		Long threadId2 = idGenerator.generateNewId(TYPE.DISCUSSION_THREAD_ID);
+		DiscussionThreadBundle bundle1 = threadDao.createThread(forumId, threadId.toString(), "title", "messageKey", userId);
+		DiscussionThreadBundle bundle2 = threadDao.createThread(forumId, threadId2.toString(), "title", "messageKey2", userId);
+
+		DiscussionThreadEntityReference entityRef1 = createEntityRef(threadId.toString(), projectId);
+		DiscussionThreadEntityReference entityRef2 = createEntityRef(threadId2.toString(), projectId);
+		threadDao.insertEntityReference(Arrays.asList(entityRef1, entityRef2));
+
+		PaginatedResults<DiscussionThreadBundle> result = threadDao.getThreadsForEntity(KeyFactory.stringToKey(projectId), MAX_LIMIT, 0L, null, null, DEFAULT_FILTER);
+		assertNotNull(result);
+		assertEquals(result.getTotalNumberOfResults(), 2L);
+		assertNotNull(result.getResults());
+		assertEquals(result.getResults().size(), 2L);
+		assertTrue(result.getResults().contains(bundle1));
+		assertTrue(result.getResults().contains(bundle2));
+	}
+
+	private EntityThreadCount createEntityThreadCount(String entityId, long count) {
+		EntityThreadCount threadCount = new EntityThreadCount();
+		threadCount.setEntityId(entityId);
+		threadCount.setCount(count);
+		return threadCount;
+	}
+
+	private DiscussionThreadEntityReference createEntityRef(String threadId, String entityId) {
+		DiscussionThreadEntityReference entityRef = new DiscussionThreadEntityReference();
+		entityRef.setEntityId(entityId);
+		entityRef.setThreadId(threadId);
+		return entityRef;
 	}
 }

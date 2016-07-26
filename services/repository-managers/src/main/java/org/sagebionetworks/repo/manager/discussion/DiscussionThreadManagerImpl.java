@@ -227,7 +227,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ));
 		ThreadCount count = new ThreadCount();
-		count.setCount(threadDao.getThreadCount(Long.parseLong(forumId), filter));
+		count.setCount(threadDao.getThreadCountForForum(Long.parseLong(forumId), filter));
 		return count;
 	}
 }
