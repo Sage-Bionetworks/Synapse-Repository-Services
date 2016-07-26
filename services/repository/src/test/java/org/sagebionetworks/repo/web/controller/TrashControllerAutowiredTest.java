@@ -1,7 +1,5 @@
 package org.sagebionetworks.repo.web.controller;
 
-import static org.junit.Assert.fail;
-
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
@@ -20,6 +18,7 @@ import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
@@ -263,7 +262,7 @@ public class TrashControllerAutowiredTest extends AbstractAutowiredControllerTes
 		Assert.assertEquals(2, results.getResults().size());
 		
 		//purge leaves (i.e. the child)
-		servletTestHelper.adminPurgeTrashLeaves(adminUserId);
+		servletTestHelper.adminPurgeTrashLeaves(dispatchServlet, adminUserId, 0L, Long.parseLong(ServiceConstants.DEFAULT_DAYS_IN_TRASH_CAN));
 		
 		//make sure the parent is still in the trashcan
 		results = servletTestHelper.adminGetTrashCan(adminUserId);
@@ -274,7 +273,7 @@ public class TrashControllerAutowiredTest extends AbstractAutowiredControllerTes
 		
 		
 		//delete leaves again to clean up trash can
-		servletTestHelper.adminPurgeTrashLeaves(adminUserId);
+		servletTestHelper.adminPurgeTrashLeaves(dispatchServlet, adminUserId, 0L, Long.parseLong(ServiceConstants.DEFAULT_DAYS_IN_TRASH_CAN));
 		
 		results = servletTestHelper.adminGetTrashCan(adminUserId);
 		Assert.assertEquals(0, results.getTotalNumberOfResults());
