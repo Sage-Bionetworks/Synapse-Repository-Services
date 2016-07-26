@@ -95,6 +95,7 @@ import org.sagebionetworks.repo.model.dbo.file.CreateMultipartRequest;
 import org.sagebionetworks.repo.model.dbo.file.MultipartUploadDAO;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOSessionToken;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
+import org.sagebionetworks.repo.model.discussion.DiscussionThreadEntityReference;
 import org.sagebionetworks.repo.model.docker.DockerRegistryEventList;
 import org.sagebionetworks.repo.model.docker.RegistryEventAction;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
@@ -344,6 +345,7 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		createVerificationSubmission();
 		createThread();
 		createThreadView();
+		createThreadEntityReference();
 		createReply();
 		createMultipartUpload();
 		createSubscription();
@@ -386,6 +388,11 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 
 	private void createThreadView() {
 		threadDao.updateThreadView(Long.parseLong(threadId), adminUserId);
+	}
+
+	private void createThreadEntityReference() {
+		DiscussionThreadEntityReference entityRef = new DiscussionThreadEntityReference();
+		threadDao.insertEntityReference(Arrays.asList(entityRef ));
 	}
 
 	private void createReply() {
