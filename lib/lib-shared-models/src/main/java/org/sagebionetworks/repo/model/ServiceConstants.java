@@ -276,7 +276,7 @@ public class ServiceConstants {
 	/**
 	 * number of days trash items must have been in the trash
 	 */
-	public static final String DAYS_IN_TRASH_CAN_PARAM = "daysOld";
+	public static final String DAYS_IN_TRASH_CAN_PARAM = "daysInTrash";
 	
 	public static final String DEFAULT_DAYS_IN_TRASH_CAN = "30";
 }
