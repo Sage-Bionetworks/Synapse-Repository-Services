@@ -176,7 +176,7 @@ public class TrashController extends BaseController {
 	public void purgeLeaves(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = ServiceConstants.TRASH_CAN_DELETE_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_TRASH_CAN_DELETE_LIMIT) Long limit,
-			@RequestParam(value = ServiceConstants.TRASH_CAN_DELETE_DAYS_OLD_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_TRASH_CAN_DELETE_DAYS_OLD) Long daysOld,
+			@RequestParam(value = ServiceConstants.DAYS_IN_TRASH_CAN_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_DAYS_IN_TRASH_CAN) Long daysOld,
 			HttpServletRequest request) throws NotFoundException, DatastoreException, UnauthorizedException {
 		this.serviceProvider.getTrashService().purgeTrashLeaves(userId, daysOld, limit);
 	}

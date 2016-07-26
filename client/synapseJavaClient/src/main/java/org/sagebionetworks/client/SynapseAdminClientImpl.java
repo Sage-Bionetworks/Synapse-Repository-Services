@@ -3,8 +3,6 @@ package org.sagebionetworks.client;
 import java.io.UnsupportedEncodingException;
 import java.net.URISyntaxException;
 import java.net.URLEncoder;
-import java.util.List;
-
 import org.apache.http.client.utils.URIBuilder;
 import org.json.JSONObject;
 import org.sagebionetworks.client.exceptions.SynapseClientException;
@@ -28,7 +26,6 @@ import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.MigrationTypeList;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
-import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -43,6 +40,7 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	private static final String DAEMON = ADMIN + "/daemon";
 	private static final String ADMIN_TRASHCAN_VIEW = ADMIN + "/trashcan/view";
 	private static final String ADMIN_TRASHCAN_PURGE = ADMIN + "/trashcan/purge";
+	private static final String ADMIN_TRASHCAN_PURGE_LEAVES = ADMIN + "/trashcan/purgeleaves";
 	private static final String ADMIN_CHANGE_MESSAGES = ADMIN + "/messages";
 	private static final String ADMIN_FIRE_MESSAGES = ADMIN + "/messages/refire";
 	private static final String ADMIN_GET_CURRENT_CHANGE_NUM = ADMIN + "/messages/currentnumber";
@@ -71,7 +69,9 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	private static final String ADMIN_USER = ADMIN + "/user";
 	private static final String ADMIN_CLEAR_LOCKS = ADMIN+"/locks";
 	private static final String ADMIN_CREATE_OR_UPDATE_CHANGE_MESSAGES = ADMIN+"/messages/createOrUpdate";
-
+	
+	private static final String DAYS_IN_TRASH_PARAM = "daysInTrash";
+	
 	public SynapseAdminClientImpl() {
 		super();
 	}
@@ -118,6 +118,12 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	@Override
 	public void purgeTrash() throws SynapseException {
 		getSharedClientConnection().putJson(repoEndpoint, ADMIN_TRASHCAN_PURGE, null, getUserAgent());
+	}
+	
+	@Override
+	public void purgeTrashLeaves(long numDaysInTrash, long limit) throws SynapseException {
+		String uri = ADMIN_TRASHCAN_PURGE_LEAVES + "?" + DAYS_IN_TRASH_PARAM + "=" + numDaysInTrash + "&" + LIMIT + "=" + limit;
+		getSharedClientConnection().putUri(repoEndpoint, uri, getUserAgent());
 	}
 	
 	@Override

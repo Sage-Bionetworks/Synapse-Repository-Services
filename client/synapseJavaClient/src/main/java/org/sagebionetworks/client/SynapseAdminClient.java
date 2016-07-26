@@ -1,19 +1,14 @@
 package org.sagebionetworks.client;
 
 
-import java.util.List;
-
-import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.TrashedEntity;
-import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
-import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.message.FireMessagesResult;
 import org.sagebionetworks.repo.model.message.PublishResults;
@@ -25,7 +20,6 @@ import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.MigrationTypeList;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.model.status.StackStatus;
-import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
 /**
@@ -210,7 +204,15 @@ public interface SynapseAdminClient extends SynapseClient {
 	 * Purges everything in the trash can. All the entities in the trash will be permanently deleted.
 	 */
 	public void purgeTrash() throws SynapseException;
-
+	
+	/**
+	 * Purges trash without children trash items in the trash can.
+	 * @param numDaysInTrash number of days the trash items must have been in the trash can
+	 * @param limit number of trash items to delete
+	 * @throws SynapseException
+	 */
+	public void purgeTrashLeaves(long numDaysInTrash, long limit) throws SynapseException;
+	
 	public BackupRestoreStatus getDaemonStatus(String daemonId)
 			throws SynapseException, JSONObjectAdapterException;
 
