@@ -1,0 +1,13 @@
+{
+	"title":"EntityThreadCount",
+	"description":"The model object represents the number of threads that mentioned a particular entity.",
+	"properties": {
+		"entityId":{
+			"type":"string"
+		},
+		"count":{
+			"type":"integer",
+			"description":"The number of threads that the current user can view."
+		}
+	}
+}
