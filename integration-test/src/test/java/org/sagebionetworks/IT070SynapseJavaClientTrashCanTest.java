@@ -59,11 +59,15 @@ public class IT070SynapseJavaClientTrashCanTest {
 
 	@After
 	public void after() throws SynapseException {
-		if (child != null) {
+		try {
 			synapse.deleteAndPurgeEntityById(child.getId());
+		}catch (SynapseException e){
+			//do nothing if already deleted
 		}
-		if (parent != null) {
+		try{
 			synapse.deleteAndPurgeEntityById(parent.getId());
+		}catch(SynapseException e){
+			//do nothing if already deleted
 		}
 	}
 	
@@ -137,8 +141,6 @@ public class IT070SynapseJavaClientTrashCanTest {
 		assertNotNull(results);
 		assertEquals(0, results.getResults().size());
 		// Already purged, no need to clean
-		child = null;
-		parent = null;
 	}
 
 	@Test
@@ -165,8 +167,6 @@ public class IT070SynapseJavaClientTrashCanTest {
 		assertNotNull(results);
 		assertEquals(0, results.getResults().size());
 		// Already purged, no need to clean
-		child = null;
-		parent = null;
 	}
 
 	@Test
@@ -198,8 +198,6 @@ public class IT070SynapseJavaClientTrashCanTest {
 		assertNotNull(results);
 		assertEquals(0, results.getResults().size());
 		// Already purged, no need to clean
-		child = null;
-		parent = null;
 	}
 	
 	@Test
@@ -232,8 +230,5 @@ public class IT070SynapseJavaClientTrashCanTest {
 		results = adminSynapse.viewTrash(offset, limit);
 		assertNotNull(results);
 		assertEquals(0, results.getResults().size());//nothing in trash
-		
-		child = null;
-		parent = null;
 	}
 }
