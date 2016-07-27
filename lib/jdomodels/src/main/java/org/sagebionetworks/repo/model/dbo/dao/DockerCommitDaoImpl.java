@@ -58,12 +58,17 @@ public class DockerCommitDaoImpl implements DockerCommitDao {
 	// for this to return a single record per <entity,tag> it's crucial
 	// that the table have a unique key constraint on <entity,tag,createdOn>
 	private static final String LATEST_COMMIT_SQL = 
-		"SELECT * FROM "+TABLE_DOCKER_COMMIT+" d "+
-		" WHERE d."+COL_DOCKER_COMMIT_OWNER_ID+"=? AND d."+
-		COL_DOCKER_COMMIT_CREATED_ON+"=(SELECT MAX(d2."+COL_DOCKER_COMMIT_CREATED_ON+
-		") FROM "+TABLE_DOCKER_COMMIT+" d2 WHERE "+
-			" d2."+COL_DOCKER_COMMIT_OWNER_ID+"=d."+COL_DOCKER_COMMIT_OWNER_ID+" AND "+
-			" d2."+COL_DOCKER_COMMIT_TAG+"=d."+COL_DOCKER_COMMIT_TAG+") ORDER BY ? ? LIMIT ? OFFSET ?";
+			"SELECT * FROM "+TABLE_DOCKER_COMMIT+" d "+
+			" WHERE d."+COL_DOCKER_COMMIT_OWNER_ID+"=? AND d."+
+			COL_DOCKER_COMMIT_CREATED_ON+"=(SELECT MAX(d2."+COL_DOCKER_COMMIT_CREATED_ON+
+			") FROM "+TABLE_DOCKER_COMMIT+" d2 WHERE "+
+				" d2."+COL_DOCKER_COMMIT_OWNER_ID+"=d."+COL_DOCKER_COMMIT_OWNER_ID+" AND "+
+				" d2."+COL_DOCKER_COMMIT_TAG+"=d."+COL_DOCKER_COMMIT_TAG+") ORDER BY ";
+	
+	private static final String ASC = " ASC ";
+	private static final String DESC = " DESC ";
+	
+	private static final String LIMIT_OFFSET = " LIMIT ? OFFSET ?";
 	
 	// get the count for the commit listing query (above)
 	private static final String LATEST_COMMIT_COUNT_SQL = 
@@ -97,9 +102,12 @@ public class DockerCommitDaoImpl implements DockerCommitDao {
 			DockerCommitSortBy sortBy, boolean ascending, long limit, long offset) {
 		if (entityId==null) throw new IllegalArgumentException("entityId is required.");
 		long nodeIdAsLong = KeyFactory.stringToKey(entityId);
+		StringBuilder sb = new StringBuilder(LATEST_COMMIT_SQL);
+		sb.append(sortBy.name());
+		sb.append(ascending?ASC:DESC);
+		sb.append(LIMIT_OFFSET);
 		List<DBODockerCommit> dbos = jdbcTemplate.query(
-				LATEST_COMMIT_SQL, COMMIT_ROW_MAPPER, 
-				nodeIdAsLong, sortBy.name(), ascending?"ASC":"DESC", limit, offset);
+					sb.toString(), COMMIT_ROW_MAPPER, nodeIdAsLong, limit, offset);
 		List<DockerCommit> result = new ArrayList<DockerCommit>();
 		for (DBODockerCommit dbo : dbos) {
 			DockerCommit dto = new DockerCommit();
