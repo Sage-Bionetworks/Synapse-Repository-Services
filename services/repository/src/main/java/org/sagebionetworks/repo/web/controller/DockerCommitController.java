@@ -68,7 +68,7 @@ public class DockerCommitController {
 	 * @return
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.ENITY_ID_DOCKER_COMMIT, method = RequestMethod.POST)
+	@RequestMapping(value = UrlHelpers.ENITY_ID_DOCKER_COMMIT, method = RequestMethod.GET)
 	public @ResponseBody
 	PaginatedResults<DockerCommit> listDockerCommits(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,

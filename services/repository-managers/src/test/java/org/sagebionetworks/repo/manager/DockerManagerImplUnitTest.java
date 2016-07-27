@@ -4,13 +4,18 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyLong;
+import static org.mockito.Matchers.anyObject;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 
 import org.junit.Before;
@@ -19,6 +24,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DockerCommitDao;
 import org.sagebionetworks.repo.model.DockerNodeDao;
@@ -30,11 +36,16 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.docker.DockerAuthorizationToken;
+import org.sagebionetworks.repo.model.docker.DockerCommit;
+import org.sagebionetworks.repo.model.docker.DockerCommitSortBy;
 import org.sagebionetworks.repo.model.docker.DockerRegistryEventList;
 import org.sagebionetworks.repo.model.docker.DockerRepository;
 import org.sagebionetworks.repo.model.docker.RegistryEventAction;
+import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.util.DockerRegistryEventUtil;
@@ -87,6 +98,9 @@ public class DockerManagerImplUnitTest {
 	@Mock
 	private AuthorizationManager authorizationManager;
 	
+	@Mock
+	private TransactionalMessenger transactionalMessenger;
+	
 	private EntityHeader parentHeader;
 	private Node authQueryNode;
 
@@ -101,6 +115,7 @@ public class DockerManagerImplUnitTest {
 		ReflectionTestUtils.setField(dockerManager, "entityManager", entityManager);
 		ReflectionTestUtils.setField(dockerManager, "authorizationManager", authorizationManager);
 		ReflectionTestUtils.setField(dockerManager, "dockerCommitDao", dockerCommitDao);
+		ReflectionTestUtils.setField(dockerManager, "transactionalMessenger", transactionalMessenger);
 
 		parentHeader = new EntityHeader();
 		parentHeader.setId(PARENT_ID);
@@ -116,6 +131,10 @@ public class DockerManagerImplUnitTest {
 		when(authorizationManager.canCreate(eq(USER_INFO), eq(authQueryNode))).
 			thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 
+		when(authorizationManager.canAccess(
+				eq(USER_INFO), eq(REPO_ENTITY_ID), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.READ))).
+				thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		
 		when(authorizationManager.canAccess(
 				eq(USER_INFO), eq(REPO_ENTITY_ID), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.UPDATE))).
 				thenReturn(AuthorizationManagerUtil.AUTHORIZED);
@@ -264,7 +283,14 @@ public class DockerManagerImplUnitTest {
 		assertTrue(repo.getValue().getIsManaged());
 		assertEquals(REPOSITORY_NAME, repo.getValue().getRepositoryName());
 		assertEquals(REPO_ENTITY_ID, repo.getValue().getId());
-		// TODO verify that commit was added
+		
+		// verify that commit was added
+		ArgumentCaptor<DockerCommit> captureCommit = ArgumentCaptor.forClass(DockerCommit.class);
+		verify(dockerCommitDao).createDockerCommit(eq(REPO_ENTITY_ID), eq(USER_ID), captureCommit.capture());
+		DockerCommit commit = captureCommit.getValue();
+		assertTrue(System.currentTimeMillis()-commit.getCreatedOn().getTime()<1000L);
+		assertEquals(DIGEST, commit.getDigest());
+		assertEquals(TAG, commit.getTag());
 	}
 
 	
@@ -278,7 +304,14 @@ public class DockerManagerImplUnitTest {
 		
 		// no create operation, since the repo already exists
 		verify(entityManager, never()).createEntity((UserInfo)any(), (Entity)any(), (String)any());
-		// TODO verify that commit was added
+		
+		// verify that commit was added
+		ArgumentCaptor<DockerCommit> captureCommit = ArgumentCaptor.forClass(DockerCommit.class);
+		verify(dockerCommitDao).createDockerCommit(eq(REPO_ENTITY_ID), eq(USER_ID), captureCommit.capture());
+		DockerCommit commit = captureCommit.getValue();
+		assertTrue(System.currentTimeMillis()-commit.getCreatedOn().getTime()<1000L);
+		assertEquals(DIGEST, commit.getDigest());
+		assertEquals(TAG, commit.getTag());
 	}
 	
 	@Test
@@ -291,7 +324,8 @@ public class DockerManagerImplUnitTest {
 		// method under test:
 		dockerManager.dockerRegistryNotification(events);
 		
-		verify(entityManager, never()).createEntity((UserInfo)any(), (Entity)any(), (String)any());
+		verify(entityManager, never()).createEntity((UserInfo)anyObject(), (Entity)anyObject(), anyString());
+		verify(dockerCommitDao, never()).createDockerCommit(anyString(), anyLong(), (DockerCommit)anyObject());
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
@@ -312,7 +346,83 @@ public class DockerManagerImplUnitTest {
 				DockerRegistryEventUtil.createDockerRegistryEvent(RegistryEventAction.pull, REGISTRY_HOST, USER_ID, REPOSITORY_PATH, TAG, DIGEST);
 		dockerManager.dockerRegistryNotification(events);
 		// no create operation, since the repo already exists
-		verify(entityManager, never()).createEntity((UserInfo)any(), (Entity)any(), (String)any());
+		verify(entityManager, never()).createEntity((UserInfo)anyObject(), (Entity)anyObject(), anyString());
+		verify(dockerCommitDao, never()).createDockerCommit(anyString(), anyLong(), (DockerCommit)anyObject());
+	}
+	private static DockerCommit createCommit() {
+		DockerCommit commit = new DockerCommit();
+		Date createdOn = new Date();
+		commit.setCreatedOn(createdOn);
+		commit.setDigest(DIGEST);
+		commit.setTag(TAG);
+		return commit;
+	}
+	
+	@Test
+	public void testAddDockerCommitToUnmanagedRespository() {
+		
+		DockerCommit commit = createCommit();
+		
+		// method under test
+		dockerManager.addDockerCommitToUnmanagedRespository(USER_INFO, REPO_ENTITY_ID, commit);
+		
+		verify(dockerCommitDao).createDockerCommit(REPO_ENTITY_ID, USER_ID, commit);
+		verify(transactionalMessenger).sendMessageAfterCommit(
+				eq(REPO_ENTITY_ID), eq(ObjectType.ENTITY), anyString(), eq(ChangeType.UPDATE));
+	}
+	
+	@Test(expected=IllegalArgumentException.class)
+	public void testAddDockerCommitToMANANGEDRespository() {
+		// this makes the repo a *managed* repo
+		when (dockerNodeDao.getRepositoryNameForEntityId(REPO_ENTITY_ID)).thenReturn(REPOSITORY_NAME);
+		DockerCommit commit = createCommit();
+
+		// method under test
+		dockerManager.addDockerCommitToUnmanagedRespository(USER_INFO, REPO_ENTITY_ID, commit);
+	}
+	
+	@Test(expected=UnauthorizedException.class)
+	public void testAddDockerCommitToUnmanagedRespositoryUNAUTHORIZED() {
+		
+		when(authorizationManager.canAccess(
+				eq(USER_INFO), eq(REPO_ENTITY_ID), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.UPDATE))).
+				thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+		
+		
+		DockerCommit commit = createCommit();
+		
+		// method under test
+		dockerManager.addDockerCommitToUnmanagedRespository(USER_INFO, REPO_ENTITY_ID, commit);
+	}
+	
+	@Test
+	public void listDockerCommits() {
+		List<DockerCommit> commits = new ArrayList<DockerCommit>();
+		commits.add(createCommit());
+		commits.add(createCommit());
+		
+		when(dockerCommitDao.listDockerCommits(REPO_ENTITY_ID, DockerCommitSortBy.CREATED_ON, /*ascending*/true, 10, 0)).
+			thenReturn(commits);
+		
+		when(dockerCommitDao.countDockerCommits(REPO_ENTITY_ID)).thenReturn(2L);
+		
+		// method under test
+		PaginatedResults<DockerCommit> pgs = dockerManager.listDockerCommits(
+				USER_INFO, REPO_ENTITY_ID, DockerCommitSortBy.CREATED_ON, /*ascending*/true, 10, 0);
+		
+		assertEquals(2L, pgs.getTotalNumberOfResults());
+		assertEquals(commits, pgs.getResults());
+	}
+	
+	@Test(expected=UnauthorizedException.class)
+	public void listDockerCommitsUNAUTHORIZED() {
+		when(authorizationManager.canAccess(
+				eq(USER_INFO), eq(REPO_ENTITY_ID), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.READ))).
+				thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+				
+		// method under test
+		PaginatedResults<DockerCommit> pgs = dockerManager.listDockerCommits(
+				USER_INFO, REPO_ENTITY_ID, DockerCommitSortBy.CREATED_ON, /*ascending*/true, 10, 0);
 	}
 	
 
