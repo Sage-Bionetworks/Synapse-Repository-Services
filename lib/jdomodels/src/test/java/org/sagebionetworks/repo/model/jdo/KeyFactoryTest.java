@@ -1,11 +1,15 @@
 package org.sagebionetworks.repo.model.jdo;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.junit.Test;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityId;
+import org.sagebionetworks.repo.model.EntityIdList;
 
 import com.google.common.collect.Lists;
 
@@ -67,5 +71,36 @@ public class KeyFactoryTest {
 	@Test (expected=IllegalArgumentException.class)
 	public void testStringToKeyListNull(){
 		KeyFactory.stringToKey((List<String>)null);
+	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetKeysWithNullEntityIdList(){
+		KeyFactory.getKeys(null);
+	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetKeysWithNullIdList(){
+		KeyFactory.getKeys(new EntityIdList());
+	}
+
+	@Test
+	public void testGetKeysWithEmptyIdList(){
+		EntityIdList entityIdList = new EntityIdList();
+		entityIdList.setIdList(new ArrayList<EntityId>());
+		KeyFactory.getKeys(entityIdList);
+	}
+
+	@Test
+	public void testGetKeys(){
+		EntityId id1 = new EntityId();
+		id1.setId("syn1");
+		EntityId id2 = new EntityId();
+		id2.setId("2");
+		EntityIdList entityIdList = new EntityIdList();
+		entityIdList.setIdList(Arrays.asList(id1, id2));
+		List<Long> result = KeyFactory.getKeys(entityIdList);
+		assertNotNull(result);
+		assertTrue(result.contains(1L));
+		assertTrue(result.contains(2L));
 	}
 }
