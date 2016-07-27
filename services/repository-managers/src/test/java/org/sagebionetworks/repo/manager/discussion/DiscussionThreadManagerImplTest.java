@@ -6,7 +6,10 @@ import static org.junit.Assert.assertNotNull;
 
 import static org.mockito.Mockito.*;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
 
 import org.apache.commons.lang.RandomStringUtils;
 import org.junit.Before;
@@ -20,6 +23,9 @@ import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessControlListDAO;
+import org.sagebionetworks.repo.model.EntityId;
+import org.sagebionetworks.repo.model.EntityIdList;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UploadContentToS3DAO;
@@ -32,6 +38,7 @@ import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
 import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
+import org.sagebionetworks.repo.model.discussion.EntityThreadCounts;
 import org.sagebionetworks.repo.model.discussion.Forum;
 import org.sagebionetworks.repo.model.discussion.MessageURL;
 import org.sagebionetworks.repo.model.discussion.ThreadCount;
@@ -60,6 +67,8 @@ public class DiscussionThreadManagerImplTest {
 	private IdGenerator mockIdGenerator;
 	@Mock
 	private TransactionalMessenger mockTransactionalMessenger;
+	@Mock
+	private AccessControlListDAO mockAclDao;
 
 	private DiscussionThreadManager threadManager;
 	private UserInfo userInfo = new UserInfo(false /*not admin*/);
@@ -88,6 +97,7 @@ public class DiscussionThreadManagerImplTest {
 		ReflectionTestUtils.setField(threadManager, "replyDao", mockReplyDao);
 		ReflectionTestUtils.setField(threadManager, "subscriptionDao", mockSubscriptionDao);
 		ReflectionTestUtils.setField(threadManager, "transactionalMessenger", mockTransactionalMessenger);
+		ReflectionTestUtils.setField(threadManager, "aclDao", mockAclDao);
 
 		createDto = new CreateDiscussionThread();
 		createDto.setForumId(forumId.toString());
@@ -461,4 +471,87 @@ public class DiscussionThreadManagerImplTest {
 		assertEquals(count, tc.getCount());
 	}
 
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetEntityThreadCountNullEntityIdList() {
+		threadManager.getEntityThreadCounts(userInfo, null);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetEntityThreadCountNullIdList() {
+		threadManager.getEntityThreadCounts(userInfo, new EntityIdList());
+	}
+
+	@Test
+	public void testGetEntityThreadCountEmptyIdList() {
+		HashSet<Long> projectIds = new HashSet<Long>();
+		EntityIdList entityIdList = new EntityIdList();
+		entityIdList.setIdList(new ArrayList<EntityId>());
+		ArrayList<Long> entityIds = new ArrayList<Long>();
+		EntityThreadCounts entityThreadCounts = new EntityThreadCounts();
+		when(mockThreadDao.getProjectIds(anyList())).thenReturn(projectIds);
+		when(mockAclDao.getAccessibleBenefactors(anySet(), eq(projectIds), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.READ))).thenReturn(projectIds);
+		when(mockThreadDao.getThreadCounts(entityIds, projectIds)).thenReturn(entityThreadCounts);
+		assertEquals(entityThreadCounts, threadManager.getEntityThreadCounts(userInfo, entityIdList));
+		verify(mockThreadDao).getProjectIds(eq(entityIds));
+		verify(mockAclDao).getAccessibleBenefactors(anySet(), eq(projectIds), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.READ));
+		verify(mockThreadDao).getThreadCounts(eq(entityIds), eq(projectIds));
+	}
+
+	@Test
+	public void testGetEntityThreadCount() {
+		HashSet<Long> projectIds = new HashSet<Long>();
+		projectIds.add(1L);
+		projectIds.add(2L);
+		HashSet<Long> projectIdsCanRead = new HashSet<Long>();
+		projectIdsCanRead.add(1L);
+
+		EntityId entityId = new EntityId();
+		entityId.setId("syn3");
+		ArrayList<EntityId> idList = new ArrayList<EntityId>();
+		idList.add(entityId);
+		EntityIdList entityIdList = new EntityIdList();
+		entityIdList.setIdList(idList);
+		ArrayList<Long> entityIds = new ArrayList<Long>();
+		entityIds.add(3L);
+
+		EntityThreadCounts entityThreadCounts = new EntityThreadCounts();
+
+		when(mockThreadDao.getProjectIds(entityIds)).thenReturn(projectIds);
+		when(mockAclDao.getAccessibleBenefactors(anySet(), eq(projectIds), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.READ)))
+				.thenReturn(projectIdsCanRead);
+		when(mockThreadDao.getThreadCounts(entityIds, projectIdsCanRead)).thenReturn(entityThreadCounts);
+		assertEquals(entityThreadCounts, threadManager.getEntityThreadCounts(userInfo, entityIdList));
+		verify(mockThreadDao).getProjectIds(eq(entityIds));
+		verify(mockAclDao).getAccessibleBenefactors(anySet(), eq(projectIds), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.READ));
+		verify(mockThreadDao).getThreadCounts(eq(entityIds), eq(projectIdsCanRead));
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetThreadsForEntityWithNullEntityId(){
+		threadManager.getThreadsForEntity(userInfo, null, 2L, 0L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true);
+	}
+
+	@Test
+	public void testGetThreadsForEntity(){
+		HashSet<Long> projectIds = new HashSet<Long>();
+		projectIds.add(1L);
+		projectIds.add(2L);
+		HashSet<Long> projectIdsCanRead = new HashSet<Long>();
+		projectIdsCanRead.add(1L);
+
+		List<Long> entityIds = Arrays.asList(3L);
+
+		PaginatedResults<DiscussionThreadBundle> result = new PaginatedResults<DiscussionThreadBundle>();
+		result.setResults(new ArrayList<DiscussionThreadBundle>());
+
+		when(mockThreadDao.getProjectIds(entityIds)).thenReturn(projectIds);
+		when(mockAclDao.getAccessibleBenefactors(anySet(), eq(projectIds), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.READ)))
+				.thenReturn(projectIdsCanRead);
+		when(mockThreadDao.getThreadsForEntity(3L, 2L, 0L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true, DiscussionFilter.EXCLUDE_DELETED, projectIdsCanRead)).thenReturn(result);
+
+		assertEquals(result, threadManager.getThreadsForEntity(userInfo, "syn3", 2L, 0L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true));
+		verify(mockThreadDao).getProjectIds(eq(entityIds));
+		verify(mockAclDao).getAccessibleBenefactors(anySet(), eq(projectIds), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.READ));
+		verify(mockThreadDao).getThreadsForEntity(3L, 2L, 0L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true, DiscussionFilter.EXCLUDE_DELETED, projectIdsCanRead);
+	}
 }

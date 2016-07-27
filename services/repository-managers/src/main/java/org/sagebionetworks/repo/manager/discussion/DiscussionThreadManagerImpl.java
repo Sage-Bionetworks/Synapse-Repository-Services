@@ -4,7 +4,9 @@ import static org.sagebionetworks.repo.manager.AuthorizationManagerImpl.*;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
@@ -12,6 +14,8 @@ import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessControlListDAO;
+import org.sagebionetworks.repo.model.EntityIdList;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UploadContentToS3DAO;
@@ -23,11 +27,13 @@ import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
 import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
+import org.sagebionetworks.repo.model.discussion.EntityThreadCounts;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.MessageURL;
 import org.sagebionetworks.repo.model.discussion.ThreadCount;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
@@ -57,6 +63,8 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 	private IdGenerator idGenerator;
 	@Autowired
 	private TransactionalMessenger transactionalMessenger;
+	@Autowired
+	private AccessControlListDAO aclDao;
 
 	@WriteTransactionReadCommitted
 	@Override
@@ -229,5 +237,28 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		ThreadCount count = new ThreadCount();
 		count.setCount(threadDao.getThreadCountForForum(Long.parseLong(forumId), filter));
 		return count;
+	}
+
+	@Override
+	public PaginatedResults<DiscussionThreadBundle> getThreadsForEntity(UserInfo userInfo, String entityId, Long limit,
+			Long offset, DiscussionThreadOrder order, Boolean ascending) {
+		ValidateArgument.required(entityId, "entityId");
+		UserInfo.validateUserInfo(userInfo);
+		Long entityIdLong = KeyFactory.stringToKey(entityId);
+		Set<Long> projectIds = threadDao.getProjectIds(Arrays.asList(entityIdLong));
+		projectIds = aclDao.getAccessibleBenefactors(userInfo.getGroups(), projectIds, ObjectType.ENTITY, ACCESS_TYPE.READ);
+		PaginatedResults<DiscussionThreadBundle> threads =
+				threadDao.getThreadsForEntity(entityIdLong, limit, offset, order, ascending, DiscussionFilter.EXCLUDE_DELETED, projectIds);
+		return updateNumberOfReplies(threads, DiscussionFilter.EXCLUDE_DELETED);
+	}
+
+	@Override
+	public EntityThreadCounts getEntityThreadCounts(UserInfo userInfo, EntityIdList entityIdList) {
+		UserInfo.validateUserInfo(userInfo);
+		ValidateArgument.required(entityIdList, "entityIdList");
+		List<Long> entityIds = KeyFactory.getKeys(entityIdList);
+		Set<Long> projectIds = threadDao.getProjectIds(entityIds);
+		projectIds = aclDao.getAccessibleBenefactors(userInfo.getGroups(), projectIds, ObjectType.ENTITY, ACCESS_TYPE.READ);
+		return threadDao.getThreadCounts(entityIds, projectIds);
 	}
 }

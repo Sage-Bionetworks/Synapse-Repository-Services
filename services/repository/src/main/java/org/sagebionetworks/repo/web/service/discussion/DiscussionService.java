@@ -3,12 +3,14 @@ package org.sagebionetworks.repo.web.service.discussion;
 import java.io.IOException;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.repo.model.EntityIdList;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
 import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
+import org.sagebionetworks.repo.model.discussion.EntityThreadCounts;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.Forum;
 import org.sagebionetworks.repo.model.discussion.MessageURL;
@@ -98,7 +100,7 @@ public interface DiscussionService {
 	 * @param filter 
 	 * @return
 	 */
-	public PaginatedResults<DiscussionThreadBundle> getThreads(Long userId,
+	public PaginatedResults<DiscussionThreadBundle> getThreadsForForum(Long userId,
 			String forumId, Long limit, Long offset, DiscussionThreadOrder order,
 			Boolean ascending, DiscussionFilter filter);
 
@@ -208,4 +210,27 @@ public interface DiscussionService {
 	 * @param threadId
 	 */
 	public void unpinThread(Long userId, String threadId);
+
+	/**
+	 * Get limit number of threads starting at offset for a given entityId
+	 * 
+	 * @param userId
+	 * @param entityId
+	 * @param limit
+	 * @param offset
+	 * @param order
+	 * @param ascending
+	 * @return
+	 */
+	public PaginatedResults<DiscussionThreadBundle> getThreadsForEntity(Long userId, String entityId, Long limit,
+			Long offset, DiscussionThreadOrder order, Boolean ascending);
+
+	/**
+	 * Get EntityThreadCounts for a list of entityIds.
+	 * 
+	 * @param userId
+	 * @param entityIds
+	 * @return
+	 */
+	public EntityThreadCounts getThreadCounts(Long userId, EntityIdList entityIds);
 }
