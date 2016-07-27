@@ -1,8 +1,10 @@
 package org.sagebionetworks;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 import java.net.URLEncoder;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -15,13 +17,17 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.sagebionetworks.client.DockerCommitSortBy;
 import org.sagebionetworks.client.SharedClientConnection;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.docker.DockerCommit;
+import org.sagebionetworks.repo.model.docker.DockerRepository;
 
 public class ITDocker {
 	private static final String SCOPE_PARAM = "scope";
@@ -108,5 +114,36 @@ public class ITDocker {
 
 		assertEquals(HttpStatus.SC_OK, response.getStatusLine()
 				.getStatusCode());
+	}
+	
+	private static DockerCommit createCommit(String tag, String digest) {
+		DockerCommit commit = new DockerCommit();
+		Date createdOn = new Date();
+		commit.setCreatedOn(createdOn);
+		commit.setDigest(digest);
+		commit.setTag(tag);
+		return commit;
+	}
+
+	@Test
+	public void testUnmanagedRepository() throws Exception {
+		DockerRepository dockerRepo = new DockerRepository();
+		dockerRepo.setParentId(projectId);
+		dockerRepo.setRepositoryName("uname/reponame");
+		dockerRepo = synapseOne.createEntity(dockerRepo);
+		String tag = "tag";
+		DockerCommit commit1 = createCommit(tag, UUID.randomUUID().toString());
+		synapseOne.addDockerCommit(dockerRepo.getId(), commit1);
+		Thread.sleep(10L);
+		// now reassign the tag to a new commit
+		DockerCommit commit2 = createCommit(tag, UUID.randomUUID().toString());
+		synapseOne.addDockerCommit(dockerRepo.getId(), commit2);
+		PaginatedResults<DockerCommit> result = synapseOne.listDockerCommits(dockerRepo.getId(), 10L, 0L, DockerCommitSortBy.TAG, true);
+		assertEquals(1L, result.getTotalNumberOfResults());
+		assertEquals(1, result.getResults().size());
+		DockerCommit retrieved = result.getResults().get(0);
+		assertNotNull(retrieved.getCreatedOn());
+		assertEquals(commit2.getDigest(), retrieved.getDigest());
+		assertEquals(tag, retrieved.getTag());
 	}
 }

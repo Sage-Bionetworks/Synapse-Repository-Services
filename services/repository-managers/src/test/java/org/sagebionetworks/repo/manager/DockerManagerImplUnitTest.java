@@ -349,6 +349,7 @@ public class DockerManagerImplUnitTest {
 		verify(entityManager, never()).createEntity((UserInfo)anyObject(), (Entity)anyObject(), anyString());
 		verify(dockerCommitDao, never()).createDockerCommit(anyString(), anyLong(), (DockerCommit)anyObject());
 	}
+	
 	private static DockerCommit createCommit() {
 		DockerCommit commit = new DockerCommit();
 		Date createdOn = new Date();
