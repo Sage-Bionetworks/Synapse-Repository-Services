@@ -641,13 +641,31 @@ public class DBODiscussionThreadDAOImplTest {
 	}
 
 	@Test (expected=IllegalArgumentException.class)
-	public void testGetThreadCountsNullList(){
-		threadDao.getThreadCounts(null);
+	public void testGetThreadCountsNullEntityIdList(){
+		threadDao.getThreadCounts(null, new HashSet<Long>());
+	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetThreadCountsNullProjectSet(){
+		threadDao.getThreadCounts(new ArrayList<Long>(), null);
 	}
 
 	@Test
-	public void testGetThreadCountsEmptylList(){
-		EntityThreadCounts threadCounts = threadDao.getThreadCounts(new ArrayList<String>());
+	public void testGetThreadCountsEmptyEntityIdList(){
+		Set<Long> projectIds = new HashSet<Long>();
+		projectIds.add(1L);
+		EntityThreadCounts threadCounts = threadDao.getThreadCounts(new ArrayList<Long>(), projectIds);
+		assertNotNull(threadCounts);
+		List<EntityThreadCount> list = threadCounts.getList();
+		assertNotNull(list);
+		assertTrue(list.isEmpty());
+	}
+
+	@Test
+	public void testGetThreadCountsEmptyProjectIdSet(){
+		List<Long> entityIds = new ArrayList<Long>();
+		entityIds.add(1L);
+		EntityThreadCounts threadCounts = threadDao.getThreadCounts(entityIds, new HashSet<Long>());
 		assertNotNull(threadCounts);
 		List<EntityThreadCount> list = threadCounts.getList();
 		assertNotNull(list);
@@ -656,7 +674,12 @@ public class DBODiscussionThreadDAOImplTest {
 
 	@Test
 	public void testGetThreadCountsForEntityWithoutReference(){
-		EntityThreadCounts threadCounts = threadDao.getThreadCounts(Arrays.asList(projectId));
+		Long projectIdLong = KeyFactory.stringToKey(projectId);
+		List<Long> entityIds = new ArrayList<Long>();
+		entityIds.add(projectIdLong);
+		Set<Long> projectIds = new HashSet<Long>();
+		projectIds.add(projectIdLong);
+		EntityThreadCounts threadCounts = threadDao.getThreadCounts(entityIds, projectIds);
 		assertNotNull(threadCounts);
 		List<EntityThreadCount> list = threadCounts.getList();
 		assertNotNull(list);
@@ -664,11 +687,33 @@ public class DBODiscussionThreadDAOImplTest {
 	}
 
 	@Test
-	public void testGetThreadCountsForOneEntity() {
+	public void testGetThreadCountsForEntityNotInProjectList() {
+		Long projectIdLong = KeyFactory.stringToKey(projectId);
+		List<Long> entityIds = new ArrayList<Long>();
+		entityIds.add(projectIdLong);
+		Set<Long> projectIds = new HashSet<Long>();
+		projectIds.add(1L);
 		threadDao.createThread(forumId, threadId.toString(), "title", "messageKey", userId);
 		DiscussionThreadEntityReference entityRef = createEntityRef(threadId.toString(), projectId);
 		threadDao.insertEntityReference(Arrays.asList(entityRef));
-		EntityThreadCounts threadCounts = threadDao.getThreadCounts(Arrays.asList(projectId));
+		EntityThreadCounts threadCounts = threadDao.getThreadCounts(entityIds, projectIds);
+		assertNotNull(threadCounts);
+		List<EntityThreadCount> list = threadCounts.getList();
+		assertNotNull(list);
+		assertEquals(list.size(), 0);
+	}
+
+	@Test
+	public void testGetThreadCountsForOneEntity() {
+		Long projectIdLong = KeyFactory.stringToKey(projectId);
+		List<Long> entityIds = new ArrayList<Long>();
+		entityIds.add(projectIdLong);
+		Set<Long> projectIds = new HashSet<Long>();
+		projectIds.add(projectIdLong);
+		threadDao.createThread(forumId, threadId.toString(), "title", "messageKey", userId);
+		DiscussionThreadEntityReference entityRef = createEntityRef(threadId.toString(), projectId);
+		threadDao.insertEntityReference(Arrays.asList(entityRef));
+		EntityThreadCounts threadCounts = threadDao.getThreadCounts(entityIds, projectIds);
 		assertNotNull(threadCounts);
 		List<EntityThreadCount> list = threadCounts.getList();
 		assertNotNull(list);
@@ -679,38 +724,71 @@ public class DBODiscussionThreadDAOImplTest {
 
 	@Test
 	public void testGetThreadCountsForMultipleEntities() {
-		String entity1 = "syn1";
-		String entity2 = "syn2";
-		String entity3 = "syn3";
+		Long entity1 = 1L;
+		Long entity2 = 2L;
+		Long entity3 = 3L;
 		Long threadId2 = idGenerator.generateNewId(TYPE.DISCUSSION_THREAD_ID);
 		threadDao.createThread(forumId, threadId.toString(), "title", "messageKey", userId);
 		threadDao.createThread(forumId, threadId2.toString(), "title", "messageKey2", userId);
+		Set<Long> projectIds = new HashSet<Long>();
+		projectIds.add(KeyFactory.stringToKey(projectId));
 
 		// entity1 is mentioned by 2 threads
-		DiscussionThreadEntityReference entityRef1 = createEntityRef(threadId.toString(), entity1);
-		DiscussionThreadEntityReference entityRef2 = createEntityRef(threadId2.toString(), entity1);
+		DiscussionThreadEntityReference entityRef1 = createEntityRef(threadId.toString(), entity1.toString());
+		DiscussionThreadEntityReference entityRef2 = createEntityRef(threadId2.toString(), entity1.toString());
 		// entity2 is mentioned by 1 thread twice
-		DiscussionThreadEntityReference entityRef3 = createEntityRef(threadId.toString(), entity2);
-		DiscussionThreadEntityReference entityRef4 = createEntityRef(threadId.toString(), entity2);
+		DiscussionThreadEntityReference entityRef3 = createEntityRef(threadId.toString(), entity2.toString());
+		DiscussionThreadEntityReference entityRef4 = createEntityRef(threadId.toString(), entity2.toString());
 		// entity3 is not mentioned
 		threadDao.insertEntityReference(Arrays.asList(entityRef1, entityRef2, entityRef3, entityRef4));
 
-		EntityThreadCounts threadCounts = threadDao.getThreadCounts(Arrays.asList(entity1, entity2, entity3));
+		EntityThreadCounts threadCounts = threadDao.getThreadCounts(Arrays.asList(entity1, entity2, entity3), projectIds);
 		assertNotNull(threadCounts);
 		List<EntityThreadCount> list = threadCounts.getList();
 		assertNotNull(list);
 		assertEquals(list.size(), 2);
 
-		EntityThreadCount entity1Count = createEntityThreadCount(entity1, 2L);
-		EntityThreadCount entity2Count = createEntityThreadCount(entity2, 1L);
+		EntityThreadCount entity1Count = createEntityThreadCount(KeyFactory.keyToString(entity1), 2L);
+		EntityThreadCount entity2Count = createEntityThreadCount(KeyFactory.keyToString(entity2), 1L);
 
 		assertTrue(list.contains(entity1Count));
 		assertTrue(list.contains(entity2Count));
 	}
 
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetThreadForEntityWithNullProjectIds(){
+		threadDao.getThreadsForEntity(KeyFactory.stringToKey(projectId), MAX_LIMIT, 0L, null, null, DEFAULT_FILTER, null);
+	}
+
+	@Test
+	public void testGetThreadForEntityWithEmptyProjectIds(){
+		PaginatedResults<DiscussionThreadBundle> result = threadDao.getThreadsForEntity(KeyFactory.stringToKey(projectId), MAX_LIMIT, 0L, null, null, DEFAULT_FILTER, new HashSet<Long>());
+		assertNotNull(result);
+		assertEquals(result.getTotalNumberOfResults(), 0L);
+		assertNotNull(result.getResults());
+		assertTrue(result.getResults().isEmpty());
+	}
+
 	@Test
 	public void testGetThreadsForEntityWithNoReference() {
-		PaginatedResults<DiscussionThreadBundle> result = threadDao.getThreadsForEntity(KeyFactory.stringToKey(projectId), MAX_LIMIT, 0L, null, null, DEFAULT_FILTER);
+		Set<Long> projectIds = new HashSet<Long>();
+		projectIds.add(KeyFactory.stringToKey(projectId));
+		PaginatedResults<DiscussionThreadBundle> result = threadDao.getThreadsForEntity(KeyFactory.stringToKey(projectId), MAX_LIMIT, 0L, null, null, DEFAULT_FILTER, projectIds);
+		assertNotNull(result);
+		assertEquals(result.getTotalNumberOfResults(), 0L);
+		assertNotNull(result.getResults());
+		assertTrue(result.getResults().isEmpty());
+	}
+
+	@Test
+	public void testGetThreadsForEntityNotInProjectIdList() {
+		Set<Long> projectIds = new HashSet<Long>();
+		projectIds.add(1L);
+		threadDao.createThread(forumId, threadId.toString(), "title", "messageKey", userId);
+		DiscussionThreadEntityReference entityRef = createEntityRef(threadId.toString(), projectId);
+		threadDao.insertEntityReference(Arrays.asList(entityRef));
+
+		PaginatedResults<DiscussionThreadBundle> result = threadDao.getThreadsForEntity(KeyFactory.stringToKey(projectId), MAX_LIMIT, 0L, null, null, DEFAULT_FILTER, projectIds);
 		assertNotNull(result);
 		assertEquals(result.getTotalNumberOfResults(), 0L);
 		assertNotNull(result.getResults());
@@ -719,6 +797,8 @@ public class DBODiscussionThreadDAOImplTest {
 
 	@Test
 	public void testGetThreadsForEntityWithReferences() {
+		Set<Long> projectIds = new HashSet<Long>();
+		projectIds.add(KeyFactory.stringToKey(projectId));
 		Long threadId2 = idGenerator.generateNewId(TYPE.DISCUSSION_THREAD_ID);
 		DiscussionThreadBundle bundle1 = threadDao.createThread(forumId, threadId.toString(), "title", "messageKey", userId);
 		DiscussionThreadBundle bundle2 = threadDao.createThread(forumId, threadId2.toString(), "title", "messageKey2", userId);
@@ -727,13 +807,42 @@ public class DBODiscussionThreadDAOImplTest {
 		DiscussionThreadEntityReference entityRef2 = createEntityRef(threadId2.toString(), projectId);
 		threadDao.insertEntityReference(Arrays.asList(entityRef1, entityRef2));
 
-		PaginatedResults<DiscussionThreadBundle> result = threadDao.getThreadsForEntity(KeyFactory.stringToKey(projectId), MAX_LIMIT, 0L, null, null, DEFAULT_FILTER);
+		PaginatedResults<DiscussionThreadBundle> result = threadDao.getThreadsForEntity(KeyFactory.stringToKey(projectId), MAX_LIMIT, 0L, null, null, DEFAULT_FILTER, projectIds);
 		assertNotNull(result);
 		assertEquals(result.getTotalNumberOfResults(), 2L);
 		assertNotNull(result.getResults());
 		assertEquals(result.getResults().size(), 2L);
 		assertTrue(result.getResults().contains(bundle1));
 		assertTrue(result.getResults().contains(bundle2));
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetProjectIdsWithNullEntityIdList(){
+		threadDao.getProjectIds(null);
+	}
+
+	@Test
+	public void testGetProjectIdsWithEmptyEntityIdList(){
+		Set<Long> projectIds = threadDao.getProjectIds(new ArrayList<Long>());
+		assertNotNull(projectIds);
+		assertTrue(projectIds.isEmpty());
+	}
+
+	@Test
+	public void testGetProjectIds(){
+		Long projectIdLong = KeyFactory.stringToKey(projectId);
+		List<Long> entityIds = new ArrayList<Long>();
+		entityIds.add(projectIdLong);
+
+		threadDao.createThread(forumId, threadId.toString(), "title", "messageKey", userId);
+		DiscussionThreadEntityReference entityRef1 = createEntityRef(threadId.toString(), projectId);
+		DiscussionThreadEntityReference entityRef2 = createEntityRef(threadId.toString(), projectId);
+		threadDao.insertEntityReference(Arrays.asList(entityRef1, entityRef2));
+
+		Set<Long> projectIds = threadDao.getProjectIds(entityIds);
+		assertNotNull(projectIds);
+		assertEquals(projectIds.size(), 1);
+		assertTrue(projectIds.contains(projectIdLong));
 	}
 
 	private EntityThreadCount createEntityThreadCount(String entityId, long count) {
@@ -749,4 +858,5 @@ public class DBODiscussionThreadDAOImplTest {
 		entityRef.setThreadId(threadId);
 		return entityRef;
 	}
+
 }

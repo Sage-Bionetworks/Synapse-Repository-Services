@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dao.discussion;
 
 import java.util.List;
+import java.util.Set;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
@@ -185,25 +186,18 @@ public interface DiscussionThreadDAO {
 
 	/**
 	 * 
-	 * @param entityIds
-	 * @return number of threads that mentioned a particular entity for a list of entity
-	 */
-	public EntityThreadCounts getThreadCounts(List<String> entityIds);
-
-	/**
-	 * 
 	 * @param entityId
 	 * @param limit
 	 * @param offset
 	 * @param order
 	 * @param ascending
 	 * @param filter
+	 * @param projectIds
 	 * @return a paginated list of threads that mentioned the enityId
 	 */
 	public PaginatedResults<DiscussionThreadBundle> getThreadsForEntity(long entityId,
 			Long limit, Long offset, DiscussionThreadOrder order, Boolean ascending,
-			DiscussionFilter filter);
-
+			DiscussionFilter filter, Set<Long> projectIds);
 
 	/**
 	 * Insert a batch of DiscussionThreadEntityReference
@@ -211,4 +205,20 @@ public interface DiscussionThreadDAO {
 	 * @param refs
 	 */
 	public void insertEntityReference(List<DiscussionThreadEntityReference> refs);
+
+	/**
+	 * Get a list of projectIds that threads, which mentioned entityIds, belongs to.
+	 * 
+	 * @param list
+	 * @return
+	 */
+	public Set<Long> getProjectIds(List<Long> list);
+
+	/**
+	 * @param entityIds
+	 * @param projectIds
+	 * @return number of threads, within a range or projects, that mentioned a
+	 *  particular entity, for a list of entityIds.
+	 */
+	public EntityThreadCounts getThreadCounts(List<Long> entityIds, Set<Long> projectIds);
 }
