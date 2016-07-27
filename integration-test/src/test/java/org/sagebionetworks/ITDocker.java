@@ -145,5 +145,11 @@ public class ITDocker {
 		assertNotNull(retrieved.getCreatedOn());
 		assertEquals(commit2.getDigest(), retrieved.getDigest());
 		assertEquals(tag, retrieved.getTag());
+		
+		// make sure optional params are optional
+		assertEquals(
+				result,
+				synapseOne.listDockerCommits(dockerRepo.getId(), null, null, null, null)
+				);
 	}
 }
