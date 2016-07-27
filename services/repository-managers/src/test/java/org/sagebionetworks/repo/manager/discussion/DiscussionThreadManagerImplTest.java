@@ -452,7 +452,7 @@ public class DiscussionThreadManagerImplTest {
 	@Test
 	public void testGetThreadCountForForum() {
 		Long count = 3L;
-		when(mockThreadDao.getThreadCount(Mockito.anyLong(), Mockito.any(DiscussionFilter.class)))
+		when(mockThreadDao.getThreadCountForForum(Mockito.anyLong(), Mockito.any(DiscussionFilter.class)))
 				.thenReturn(count);
 		when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);

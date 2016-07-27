@@ -785,6 +785,12 @@ public class SqlConstants {
 	public static final String COL_DISCUSSION_REPLY_IS_DELETED = "IS_DELETED";
 	public static final String DDL_DISCUSSION_REPLY = "schema/DiscussionReply-ddl.sql";
 
+	// Discussion Thread Entity Reference table
+	public static final String TABLE_DISCUSSION_THREAD_ENTITY_REFERENCE = "DISCUSSION_THREAD_ENTITY_REFERENCE";
+	public static final String COL_DISCUSSION_THREAD_ENTITY_REFERENCE_THREAD_ID = "THREAD_ID";
+	public static final String COL_DISCUSSION_THREAD_ENTITY_REFERENCE_ENTITY_ID = "ENTITY_ID";
+	public static final String DDL_DISCUSSION_THREAD_ENTITY_REFERENCE = "schema/DiscussionThreadEntityReference-ddl.sql";
+
 	// Subscription table
 	public static final String TABLE_SUBSCRIPTION = "SUBSCRIPTION";
 	public static final String COL_SUBSCRIPTION_ID = "ID";

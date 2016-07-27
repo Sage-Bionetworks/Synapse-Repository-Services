@@ -312,6 +312,7 @@ public class DBODiscussionThread  implements MigratableDatabaseObject<DBODiscuss
 	public List<MigratableDatabaseObject<?, ?>> getSecondaryTypes() {
 		List<MigratableDatabaseObject<?,?>> list = new LinkedList<MigratableDatabaseObject<?,?>>();
 		list.add(new DBODiscussionThreadView());
+		list.add(new DBODiscussionThreadEntityReference());
 		return list;
 	}
 
