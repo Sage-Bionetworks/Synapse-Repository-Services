@@ -508,13 +508,12 @@ public class DBODiscussionThreadDAOImplTest {
 		List<DiscussionThreadBundle> createdThreads = createListOfThreads(3);
 		threadDao.markThreadAsDeleted(Long.parseLong(createdThreads.get(1).getId()));
 
-		List<DiscussionThreadBundle> deleted = threadDao.getThreadsForForum(forumIdLong, MAX_LIMIT, 0L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true, DiscussionFilter.DELETED_ONLY);
-		List<DiscussionThreadBundle> available = threadDao.getThreadsForForum(forumIdLong, MAX_LIMIT, 0L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true, DiscussionFilter.EXCLUDE_DELETED);
-		assertEquals(createdThreads.get(1).getId(), deleted.get(0).getId());
+		List<DiscussionThreadBundle> deletedThreads = threadDao.getThreadsForForum(forumIdLong, MAX_LIMIT, 0L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true, DiscussionFilter.DELETED_ONLY);
+		List<DiscussionThreadBundle> availableThreads = threadDao.getThreadsForForum(forumIdLong, MAX_LIMIT, 0L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true, DiscussionFilter.EXCLUDE_DELETED);
+		assertEquals(createdThreads.get(1).getId(), deletedThreads.get(0).getId());
 
-		Set<String> availableThreads = new HashSet<String>();
-		assertTrue(availableThreads.contains(createdThreads.get(0).getId()));
-		assertTrue(availableThreads.contains(createdThreads.get(2).getId()));
+		assertTrue(availableThreads.contains(createdThreads.get(0)));
+		assertTrue(availableThreads.contains(createdThreads.get(2)));
 	}
 
 	@Test
