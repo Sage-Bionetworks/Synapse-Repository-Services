@@ -64,10 +64,8 @@ public class UserThrottleFilter implements Filter {
 		} else {
 			try {
 				String concurrentLockToken = userThrottleConcurrentConnectionsMemoryCountingSemaphore.attemptToAcquireLock(userId, CONCURRENT_CONNECTIONS_LOCK_TIMEOUT_SEC, MAX_CONCURRENT_LOCKS);
-				
-				//no need to store frequency lock token since it will be timed out, not released.
-				userThrottleRequestFrequencyMemoryCountingSemaphore.attemptToAcquireLock(userId, REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC, MAX_REQUEST_FREQUENCY_LOCKS);
-				if (concurrentLockToken != null && concurrentLockToken != null) {
+				String frequencyLockToken = userThrottleRequestFrequencyMemoryCountingSemaphore.attemptToAcquireLock(userId, REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC, MAX_REQUEST_FREQUENCY_LOCKS);
+				if (concurrentLockToken != null && frequencyLockToken != null) {
 					try {
 						chain.doFilter(request, response);
 					} finally {
@@ -80,9 +78,10 @@ public class UserThrottleFilter implements Filter {
 						}
 					}
 				} else {
+					String eventName = ((concurrentLockToken == null) ? "ConcurrentConnections" : "RequestFrequency") + "LockUnavailable";
 					ProfileData lockUnavailableEvent = new ProfileData();
 					lockUnavailableEvent.setNamespace(this.getClass().getName());
-					lockUnavailableEvent.setName("LockUnavailable");
+					lockUnavailableEvent.setName(eventName);
 					lockUnavailableEvent.setValue(1.0);
 					lockUnavailableEvent.setUnit("Count");
 					lockUnavailableEvent.setTimestamp(new Date());
