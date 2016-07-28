@@ -150,6 +150,8 @@ public class DockerManagerImplUnitTest {
 		when(userManager.getUserInfo(USER_ID)).thenReturn(USER_INFO);
 		
 		when(idGenerator.generateNewId()).thenReturn(REPO_ENTITY_ID_LONG);
+		
+		when(entityManager.getEntityType(USER_INFO, REPO_ENTITY_ID)).thenReturn(EntityType.dockerrepo);
 	}
 
 	@Test
@@ -397,7 +399,7 @@ public class DockerManagerImplUnitTest {
 	}
 	
 	@Test
-	public void listDockerCommits() {
+	public void listDockerCommitsHappyCase() {
 		List<DockerCommit> commits = new ArrayList<DockerCommit>();
 		commits.add(createCommit());
 		commits.add(createCommit());
@@ -426,5 +428,13 @@ public class DockerManagerImplUnitTest {
 				USER_INFO, REPO_ENTITY_ID, DockerCommitSortBy.CREATED_ON, /*ascending*/true, 10, 0);
 	}
 	
+	@Test(expected=IllegalArgumentException.class)
+	public void listDockerCommitsforNONrepo() {
+		when(entityManager.getEntityType(USER_INFO, REPO_ENTITY_ID)).thenReturn(EntityType.project);
+		// method under test
+		PaginatedResults<DockerCommit> pgs = dockerManager.listDockerCommits(
+				USER_INFO, REPO_ENTITY_ID, DockerCommitSortBy.CREATED_ON, /*ascending*/true, 10, 0);
+
+	}
 
 }

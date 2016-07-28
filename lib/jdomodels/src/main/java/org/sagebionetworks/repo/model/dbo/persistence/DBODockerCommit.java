@@ -26,7 +26,7 @@ public class DBODockerCommit implements MigratableDatabaseObject<DBODockerCommit
 	private Long owner;
 	
 	// max length is 128 https://docs.docker.com/engine/reference/commandline/tag/
-	@Field(name = COL_DOCKER_COMMIT_TAG, varchar = 128, backupId = false, primary = false, nullable = true)
+	@Field(name = COL_DOCKER_COMMIT_TAG, varchar = 128, backupId = false, primary = false, nullable = false)
 	private String tag;
 
 	// a sha256 digest uses 71 characters, but the Docker spec' is open ended, 
@@ -34,14 +34,6 @@ public class DBODockerCommit implements MigratableDatabaseObject<DBODockerCommit
 	@Field(name = COL_DOCKER_COMMIT_DIGEST, varchar = 200, backupId = false, primary = false, nullable = false)
 	private String digest;
 	
-	public Long getMigrationId() {
-		return migrationId;
-	}
-
-	public void setMigrationId(Long migrationId) {
-		this.migrationId = migrationId;
-	}
-
 	@Field(name = COL_DOCKER_COMMIT_CREATED_ON, backupId = false, primary = false, nullable = false)
 	private Long createdOn;
 
@@ -90,6 +82,14 @@ public class DBODockerCommit implements MigratableDatabaseObject<DBODockerCommit
 	@Override
 	public List<MigratableDatabaseObject<?, ?>> getSecondaryTypes() {
 		return null;
+	}
+
+	public Long getMigrationId() {
+		return migrationId;
+	}
+
+	public void setMigrationId(Long migrationId) {
+		this.migrationId = migrationId;
 	}
 
 	public Long getOwner() {

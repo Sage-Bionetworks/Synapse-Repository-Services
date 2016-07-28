@@ -253,7 +253,7 @@ public class DockerManagerImpl implements DockerManager {
 		ValidateArgument.required(entityId, "entityId");
 		ValidateArgument.required(commit.getDigest(), "digest");
 		if (dockerNodeDao.getRepositoryNameForEntityId(entityId)!=null) {
-			throw new IllegalArgumentException("Cannot add a commit for a managed Docker repository.");
+			throw new IllegalArgumentException("Commits for managed Docker repositories are created using the Docker client rather than the Synapse client.");
 		}
 		AuthorizationStatus authStatus = authorizationManager.canAccess(userInfo, entityId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE);
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(authStatus);
@@ -270,6 +270,8 @@ public class DockerManagerImpl implements DockerManager {
 		ValidateArgument.required(sortBy, "sortBy");
 		AuthorizationStatus authStatus = authorizationManager.canAccess(userInfo, entityId, ObjectType.ENTITY, ACCESS_TYPE.READ);
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(authStatus);
+		EntityType entityType = entityManager.getEntityType(userInfo, entityId);
+		if (!entityType.equals(entityType.dockerrepo)) throw new IllegalArgumentException("Only Docker reposiory entities have commits.");
 		List<DockerCommit> commits = dockerCommitDao.listDockerCommits(entityId, sortBy, ascending, limit, offset);
 		long count = dockerCommitDao.countDockerCommits(entityId);
 		PaginatedResults<DockerCommit> result = new PaginatedResults<DockerCommit>();

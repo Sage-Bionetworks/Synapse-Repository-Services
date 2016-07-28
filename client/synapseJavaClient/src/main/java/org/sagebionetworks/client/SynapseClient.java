@@ -2766,18 +2766,24 @@ public interface SynapseClient extends BaseClient {
 	PrincipalAliasResponse getPrincipalAlias(PrincipalAliasRequest request) throws SynapseException;
 	
 	/**
-	 * Add a new DockerCommit to an existing Docker repository entity.
+	 * Add a new DockerCommit to an existing Docker repository entity.  This can only be called
+	 * for external / unmanaged Docker repositories.
 	 * 
-	 * @param entityId
-	 * @param dockerCommit
+	 * @param entityId the ID of the Docker repository
+	 * @param dockerCommit the new commit, including tag and digest
 	 * @throws SynapseException
 	 */
 	void addDockerCommit(String entityId, DockerCommit dockerCommit) throws SynapseException;
 	
 	/**
-	 * Return a paginated 
-	 * @param entityId
-	 * @return
+	 * Return a paginated list of commits (tag/digest pairs) for the given Docker repository.
+	 *
+	 * @param entityId the ID of the Docker repository entity
+	 * @param limit pagination parameter, optional (default is 20)
+	 * @param offset pagination parameter, optional (default is 0)
+	 * @param sortBy TAG or CREATED_ON, optional (default is CREATED_ON)
+	 * @param ascending, optional (default is false)
+	 * @return a paginated list of commits (tag/digest pairs) for the given Docker repository.
 	 * @throws SynapseException
 	 */
 	PaginatedResults<DockerCommit> listDockerCommits(String entityId, Long limit, Long offset, DockerCommitSortBy sortBy, Boolean ascending) throws SynapseException;
