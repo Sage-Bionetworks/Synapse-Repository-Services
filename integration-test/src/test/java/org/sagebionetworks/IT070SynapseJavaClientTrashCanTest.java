@@ -59,11 +59,15 @@ public class IT070SynapseJavaClientTrashCanTest {
 
 	@After
 	public void after() throws SynapseException {
-		if (child != null) {
+		try {
 			synapse.deleteAndPurgeEntityById(child.getId());
+		}catch (SynapseException e){
+			//do nothing if already deleted
 		}
-		if (parent != null) {
+		try{
 			synapse.deleteAndPurgeEntityById(parent.getId());
+		}catch(SynapseException e){
+			//do nothing if already deleted
 		}
 	}
 	
@@ -137,8 +141,6 @@ public class IT070SynapseJavaClientTrashCanTest {
 		assertNotNull(results);
 		assertEquals(0, results.getResults().size());
 		// Already purged, no need to clean
-		child = null;
-		parent = null;
 	}
 
 	@Test
@@ -165,8 +167,6 @@ public class IT070SynapseJavaClientTrashCanTest {
 		assertNotNull(results);
 		assertEquals(0, results.getResults().size());
 		// Already purged, no need to clean
-		child = null;
-		parent = null;
 	}
 
 	@Test
@@ -182,7 +182,7 @@ public class IT070SynapseJavaClientTrashCanTest {
 			synapse.getEntityById(child.getId());
 			fail();
 		} catch (SynapseNotFoundException e) {
-			assertTrue(true);
+			//expected
 		} catch (Throwable e) {
 			fail();
 		}
@@ -190,7 +190,7 @@ public class IT070SynapseJavaClientTrashCanTest {
 			synapse.getEntityById(parent.getId());
 			fail();
 		} catch (SynapseNotFoundException e) {
-			assertTrue(true);
+			//expected
 		} catch (Throwable e) {
 			fail();
 		}
@@ -198,7 +198,37 @@ public class IT070SynapseJavaClientTrashCanTest {
 		assertNotNull(results);
 		assertEquals(0, results.getResults().size());
 		// Already purged, no need to clean
-		child = null;
-		parent = null;
+	}
+	
+	@Test
+	public void testAdminPurgeLeaves() throws SynapseException{
+		final long limit = Long.MAX_VALUE;
+		final long offset = 0;
+		final long daysInTrash = 0;
+		
+		//reset trash can
+		adminSynapse.purgeTrash();
+		
+		//move the 2 nodes to the trash
+		synapse.moveToTrash(parent.getId());
+		PaginatedResults<TrashedEntity> results = adminSynapse.viewTrash(0L, Long.MAX_VALUE);
+		assertNotNull(results);
+		assertEquals(2, results.getResults().size());
+		assertEquals(2, results.getTotalNumberOfResults());
+		
+		//purge the trash leaves (child node)
+		adminSynapse.purgeTrashLeaves(daysInTrash, limit);
+		
+		//check parent still in trash
+		results = adminSynapse.viewTrash(offset, limit);
+		assertNotNull(results);
+		assertEquals(1, results.getResults().size());//only 1 item in trash
+		assertEquals(parent.getId(), results.getResults().get(0).getEntityId());//id of trash item matches parent node's id
+		
+		//purge leaves again to empty trash can
+		adminSynapse.purgeTrashLeaves(daysInTrash, limit);
+		results = adminSynapse.viewTrash(offset, limit);
+		assertNotNull(results);
+		assertEquals(0, results.getResults().size());//nothing in trash
 	}
 }
