@@ -62,7 +62,8 @@ public class DockerCommitControllerAutowiredTest extends AbstractAutowiredContro
 		servletTestHelper.createDockerCommit(dispatchServlet, adminUserId, unmanagedRepository.getId(), commit);
 
 		// list the commits (should get back the added one)
-		PaginatedResults<DockerCommit> result = servletTestHelper.listDockerCommits(adminUserId, unmanagedRepository.getId(), DockerCommitSortBy.CREATED_ON, /*ascending*/true, 10, 0);
+		PaginatedResults<DockerCommit> result = servletTestHelper.listDockerCommits(
+				adminUserId, unmanagedRepository.getId(), DockerCommitSortBy.CREATED_ON, /*ascending*/true, 10L, 0L);
 		assertEquals(1, result.getTotalNumberOfResults());
 		assertEquals(1, result.getResults().size());
 		DockerCommit retrieved = result.getResults().get(0);
@@ -70,6 +71,10 @@ public class DockerCommitControllerAutowiredTest extends AbstractAutowiredContro
 		assertEquals(DIGEST, retrieved.getDigest());
 		assertEquals(TAG, retrieved.getTag());
 		
+		// make sure optional param's are optional
+		PaginatedResults<DockerCommit> result2 = servletTestHelper.listDockerCommits(
+				adminUserId, unmanagedRepository.getId(), null, null, null, null);
+		assertEquals(result, result2);
 	}
 
 }

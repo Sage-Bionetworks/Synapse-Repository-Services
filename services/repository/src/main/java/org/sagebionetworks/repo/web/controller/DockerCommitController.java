@@ -73,7 +73,7 @@ public class DockerCommitController {
 	PaginatedResults<DockerCommit> listDockerCommits(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable(value = UrlHelpers.ID_PATH_VARIABLE) String entityId,
-			@RequestParam(value = ServiceConstants.SORT_BY_PARAM) String sortByParam,
+			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false) String sortByParam,
 			@RequestParam(value = ServiceConstants.ASCENDING_PARAM, required = false, defaultValue = "false") Boolean ascending,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Long limit,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Long offset
