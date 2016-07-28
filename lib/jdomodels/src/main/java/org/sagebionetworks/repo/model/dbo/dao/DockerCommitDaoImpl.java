@@ -29,6 +29,7 @@ import org.sagebionetworks.repo.model.docker.DockerCommit;
 import org.sagebionetworks.repo.model.docker.DockerCommitSortBy;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 
@@ -82,6 +83,12 @@ public class DockerCommitDaoImpl implements DockerCommitDao {
 	@WriteTransactionReadCommitted
 	@Override
 	public String createDockerCommit(String entityId, long modifiedBy, DockerCommit commit) {
+		ValidateArgument.required(entityId, "entityId");
+		ValidateArgument.required(commit, "commit");
+		ValidateArgument.required(commit.getCreatedOn(), "commit.createdOn");
+		ValidateArgument.required(commit.getDigest(), "commit.digest");
+		ValidateArgument.required(commit.getTag(), "commit.tag");
+		
 		DBODockerCommit dbo = new DBODockerCommit();
 		long nodeId = KeyFactory.stringToKey(entityId);
 		dbo.setMigrationId(idGenerator.generateNewId(TYPE.DOCKER_COMMIT_ID));
@@ -100,7 +107,8 @@ public class DockerCommitDaoImpl implements DockerCommitDao {
 	@Override
 	public List<DockerCommit> listDockerCommits(String entityId, 
 			DockerCommitSortBy sortBy, boolean ascending, long limit, long offset) {
-		if (entityId==null) throw new IllegalArgumentException("entityId is required.");
+		ValidateArgument.required(entityId, "entityId");
+		ValidateArgument.required(sortBy, "sortBy");
 		long nodeIdAsLong = KeyFactory.stringToKey(entityId);
 		StringBuilder sb = new StringBuilder(LATEST_COMMIT_SQL);
 		sb.append(sortBy.name());
@@ -121,7 +129,7 @@ public class DockerCommitDaoImpl implements DockerCommitDao {
 
 	@Override
 	public long countDockerCommits(String entityId) {
-		if (entityId==null) throw new IllegalArgumentException("entityId is required.");
+		ValidateArgument.required(entityId, "entityId");
 		long nodeIdAsLong = KeyFactory.stringToKey(entityId);
 		return jdbcTemplate.queryForObject(LATEST_COMMIT_COUNT_SQL, Long.class, nodeIdAsLong);
 	}

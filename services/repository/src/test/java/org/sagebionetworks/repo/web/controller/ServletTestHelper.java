@@ -2239,7 +2239,7 @@ public class ServletTestHelper {
 			Long userId, String entityId, DockerCommit commit) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.POST, "/repo/v1", "/entity/"+entityId+"/dockerCommit", userId, commit);
-		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request, HttpStatus.CREATED);
+		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request, HttpStatus.NO_CONTENT);
 	}
 
 	public PaginatedResults<DockerCommit> listDockerCommits(Long userId, String entityId,
