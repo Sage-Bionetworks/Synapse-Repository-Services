@@ -90,6 +90,7 @@ import org.sagebionetworks.repo.model.discussion.ThreadCount;
 import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
+import org.sagebionetworks.repo.model.docker.DockerCommit;
 import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.entity.query.EntityQuery;
 import org.sagebionetworks.repo.model.entity.query.EntityQueryResults;
@@ -2763,4 +2764,21 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	PrincipalAliasResponse getPrincipalAlias(PrincipalAliasRequest request) throws SynapseException;
+	
+	/**
+	 * Add a new DockerCommit to an existing Docker repository entity.
+	 * 
+	 * @param entityId
+	 * @param dockerCommit
+	 * @throws SynapseException
+	 */
+	void addDockerCommit(String entityId, DockerCommit dockerCommit) throws SynapseException;
+	
+	/**
+	 * Return a paginated 
+	 * @param entityId
+	 * @return
+	 * @throws SynapseException
+	 */
+	PaginatedResults<DockerCommit> listDockerCommits(String entityId, Long limit, Long offset, DockerCommitSortBy sortBy, Boolean ascending) throws SynapseException;
 }

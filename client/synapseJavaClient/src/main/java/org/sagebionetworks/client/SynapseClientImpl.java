@@ -129,6 +129,7 @@ import org.sagebionetworks.repo.model.discussion.ThreadCount;
 import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
+import org.sagebionetworks.repo.model.docker.DockerCommit;
 import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.entity.query.EntityQuery;
 import org.sagebionetworks.repo.model.entity.query.EntityQueryResults;
@@ -239,6 +240,7 @@ import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.Maps;
 
 /**
@@ -514,6 +516,9 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String OBJECT = "/object";	
 
 	private static final String PRINCIPAL_ID_REQUEST_PARAM = "principalId";
+	
+	private static final String DOCKER_COMMIT = "/dockerCommit";
+
 
 	protected String repoEndpoint;
 	protected String authEndpoint;
@@ -7675,4 +7680,43 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		return asymmetricalPost(repoEndpoint, PRINCIPAL+"/alias/", request, PrincipalAliasResponse.class, null);
 	}
 
+	@Override
+	public void addDockerCommit(String entityId, DockerCommit dockerCommit) throws SynapseException {
+		ValidateArgument.required(entityId, "entityId");
+		try {
+			JSONObject obj = EntityFactory.createJSONObjectForEntity(dockerCommit);
+			getSharedClientConnection().postJson(repoEndpoint, ENTITY+"/"+entityId+DOCKER_COMMIT, 
+					obj.toString(), getUserAgent(), null);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
+	}
+
+	@Override
+	public PaginatedResults<DockerCommit> listDockerCommits(
+			String entityId, Long limit, Long offset, DockerCommitSortBy sortBy, Boolean ascending) throws SynapseException {
+		ValidateArgument.required(entityId, "entityId");
+		String url = ENTITY+"/"+entityId+DOCKER_COMMIT;
+		List<String> requestParams = new ArrayList<String>();
+		if (limit!=null) requestParams.add(LIMIT+"="+limit);
+		if (offset!=null) requestParams.add(OFFSET+"="+offset);
+		if (sortBy!=null) requestParams.add("sort="+sortBy.name());
+		if (ascending!=null) requestParams.add("ascending="+ascending);
+		if (!requestParams.isEmpty()) {
+			url += "?" + Joiner.on('&').join(requestParams);
+		}
+		
+		JSONObject jsonObj = getEntity(url);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+
+		PaginatedResults<DockerCommit> results = new PaginatedResults<DockerCommit>(
+				DockerCommit.class);
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
+
+	}
 }

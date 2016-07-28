@@ -115,11 +115,11 @@ public class DiscussionController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM) Long limit,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM) Long offset,
-			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false) DiscussionThreadOrder order,
+			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false) DiscussionThreadOrder sort,
 			@RequestParam(value = ServiceConstants.ASCENDING_PARAM, required = false) Boolean ascending,
 			@RequestParam(value = ServiceConstants.DISCUSSION_FILTER_PARAM) DiscussionFilter filter,
 			@PathVariable String forumId) {
-		return serviceProvider.getDiscussionService().getThreadsForForum(userId, forumId, limit, offset, order, ascending, filter);
+		return serviceProvider.getDiscussionService().getThreadsForForum(userId, forumId, limit, offset, sort, ascending, filter);
 	}
 
 	/**

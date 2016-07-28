@@ -41,6 +41,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBONode" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBORevision" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBODockerManagedRepositoryName" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBODockerCommit" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOAnnotationOwner" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOStringAnnotation" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOLongAnnotation" />
@@ -143,6 +144,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOActivity" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBONode" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBODockerManagedRepositoryName" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBODockerCommit" />
 				<!-- Team-related beans -->
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOTeam" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOMembershipInvtnSubmission" />
