@@ -2,10 +2,13 @@ package org.sagebionetworks.repo.model.jdo;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityId;
+import org.sagebionetworks.repo.model.EntityIdList;
 import org.sagebionetworks.util.ValidateArgument;
 
 /**
@@ -88,5 +91,23 @@ public class KeyFactory {
 		} catch (UnsupportedEncodingException e) {
 			throw new DatastoreException(e);
 		}
+	}
+
+	/**
+	 * Converts a json-representation of a list of entityIds into the List of 
+	 * Long represents.
+	 * 
+	 * @param id
+	 * @return the decoded key
+	 * @throws DatastoreException
+	 */
+	public static List<Long> getKeys(EntityIdList entityIdList){
+		ValidateArgument.required(entityIdList, "entityIdList");
+		ValidateArgument.required(entityIdList.getIdList(), "EntityIdList.idList");
+		List<Long> keys = new ArrayList<Long>();
+		for (EntityId id : entityIdList.getIdList()){
+			keys.add(KeyFactory.stringToKey(id.getId()));
+		}
+		return keys;
 	}
 }

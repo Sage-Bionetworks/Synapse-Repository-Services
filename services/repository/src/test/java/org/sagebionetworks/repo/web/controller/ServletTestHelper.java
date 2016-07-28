@@ -60,6 +60,7 @@ import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
+import org.sagebionetworks.repo.model.discussion.EntityThreadCounts;
 import org.sagebionetworks.repo.model.discussion.Forum;
 import org.sagebionetworks.repo.model.discussion.MessageURL;
 import org.sagebionetworks.repo.model.discussion.ReplyCount;
@@ -2041,7 +2042,7 @@ public class ServletTestHelper {
 		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request, HttpStatus.NO_CONTENT);
 	}
 
-	public PaginatedResults<DiscussionThreadBundle> getThreads(DispatcherServlet dispatchServlet,
+	public PaginatedResults<DiscussionThreadBundle> getThreadsForForum(DispatcherServlet dispatchServlet,
 			Long userId, String forumId, Long limit, Long offset, DiscussionThreadOrder order,
 			Boolean ascending, DiscussionFilter filter) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
@@ -2259,5 +2260,29 @@ public class ServletTestHelper {
 				DockerCommit.class);
 	}
 
+	public PaginatedResults<DiscussionThreadBundle> getThreadsForEntity(DispatcherServlet dispatchServlet,
+			Long userId, String entityId, Long limit, Long offset, DiscussionThreadOrder order, Boolean ascending) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.REPO_PATH, UrlHelpers.ENTITY+"/"+entityId+UrlHelpers.THREADS, userId, null);
+		request.addParameter("limit", limit.toString());
+		request.addParameter("offset", offset.toString());
+		if (order != null) {
+			request.addParameter("sort", order.name());
+		}
+		if (ascending != null) {
+			request.addParameter("ascending", ascending.toString());
+		}
+		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
+				HttpStatus.OK);
+		return ServletTestHelperUtils.readResponsePaginatedResults(response, DiscussionThreadBundle.class);
+	}
 
+	public EntityThreadCounts getEntityThreadCounts(DispatcherServlet dispatchServlet,
+			Long userId, EntityIdList entityIds) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.POST, UrlHelpers.REPO_PATH, UrlHelpers.ENTITY_THREAD_COUNTS, userId, entityIds);
+		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
+				HttpStatus.OK);
+		return objectMapper.readValue(response.getContentAsString(), EntityThreadCounts.class);
+	}
 }

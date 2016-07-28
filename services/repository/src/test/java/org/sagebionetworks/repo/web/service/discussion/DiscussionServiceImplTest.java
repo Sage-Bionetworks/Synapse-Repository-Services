@@ -137,7 +137,7 @@ public class DiscussionServiceImplTest {
 		PaginatedResults<DiscussionThreadBundle> threads = new PaginatedResults<DiscussionThreadBundle>();
 		threads.setResults(Arrays.asList(threadBundle));
 		Mockito.when(mockThreadManager.getThreadsForForum(userInfo, forumId, 10L, 0L, null, true, DiscussionFilter.NO_FILTER)).thenReturn(threads);
-		assertEquals(threads, discussionServices.getThreads(userId, forumId, 10L, 0L, null, true, DiscussionFilter.NO_FILTER));
+		assertEquals(threads, discussionServices.getThreadsForForum(userId, forumId, 10L, 0L, null, true, DiscussionFilter.NO_FILTER));
 	}
 
 	@Test

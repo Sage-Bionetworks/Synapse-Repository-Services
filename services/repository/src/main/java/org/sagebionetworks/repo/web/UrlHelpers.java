@@ -918,6 +918,9 @@ public class UrlHelpers {
 	public static final String URL = "/messageUrl";
 	public static final String THREAD_URL = THREAD+URL;
 	public static final String REPLY_URL = REPLY+URL;
+	public static final String ENTITY_ID_THREADS = ENTITY_ID+THREADS;
+	public static final String THREAD_COUNTS = "/threadcounts";
+	public static final String ENTITY_THREAD_COUNTS = ENTITY+THREAD_COUNTS;
 
 	// Subscription Services
 	public static final String SUBSCRIPTION = "/subscription";
