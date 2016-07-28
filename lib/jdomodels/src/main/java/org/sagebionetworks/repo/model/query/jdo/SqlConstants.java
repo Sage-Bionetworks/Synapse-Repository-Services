@@ -806,6 +806,15 @@ public class SqlConstants {
 	public static final String TABLE_DOCKER_REPOSITORY_NAME = "DOCKER_REPOSITORY_NAME";
 	public static final String COL_DOCKER_REPOSITORY_OWNER_ID = "OWNER_ID";
 	public static final String COL_DOCKER_REPOSITORY_NAME = "REPOSITORY_NAME";
+	
+	// DockerCommit table
+	public static final String TABLE_DOCKER_COMMIT = "DOCKER_COMMIT";
+	public static final String COL_DOCKER_COMMIT_ID = "ID";
+	public static final String COL_DOCKER_COMMIT_OWNER_ID = "OWNER_ID";
+	public static final String COL_DOCKER_COMMIT_TAG = "TAG";
+	public static final String COL_DOCKER_COMMIT_DIGEST = "DIGEST";
+	public static final String COL_DOCKER_COMMIT_CREATED_ON = "CREATED_ON";
+	
 
 	// This seems to be the name of the id column for all tables.
 	public static final String COLUMN_ID		= "id";

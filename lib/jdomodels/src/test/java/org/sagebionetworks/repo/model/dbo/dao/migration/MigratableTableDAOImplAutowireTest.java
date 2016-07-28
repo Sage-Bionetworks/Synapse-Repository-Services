@@ -287,6 +287,7 @@ public class MigratableTableDAOImplAutowireTest {
 		expectedPrimaryTypes.add(MigrationType.ACTIVITY);
 		expectedPrimaryTypes.add(MigrationType.NODE);
 		expectedPrimaryTypes.add(MigrationType.DOCKER_REPOSITORY_NAME);
+		expectedPrimaryTypes.add(MigrationType.DOCKER_COMMIT);
 		expectedPrimaryTypes.add(MigrationType.TEAM);
 		expectedPrimaryTypes.add(MigrationType.MEMBERSHIP_INVITATION_SUBMISSION);
 		expectedPrimaryTypes.add(MigrationType.MEMBERSHIP_REQUEST_SUBMISSION);

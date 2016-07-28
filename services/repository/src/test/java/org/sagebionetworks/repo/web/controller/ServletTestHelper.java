@@ -68,6 +68,8 @@ import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
 import org.sagebionetworks.repo.model.docker.DockerAuthorizationToken;
+import org.sagebionetworks.repo.model.docker.DockerCommit;
+import org.sagebionetworks.repo.model.docker.DockerCommitSortBy;
 import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
@@ -2230,6 +2232,32 @@ public class ServletTestHelper {
 		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.OK);
 		return objectMapper.readValue(response.getContentAsString(), DockerAuthorizationToken.class);
-
 	}
+	
+	public void createDockerCommit(DispatcherServlet dispatchServlet,
+			Long userId, String entityId, DockerCommit commit) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.POST, "/repo/v1", "/entity/"+entityId+"/dockerCommit", userId, commit);
+		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request, HttpStatus.CREATED);
+	}
+
+	public PaginatedResults<DockerCommit> listDockerCommits(Long userId, String entityId,
+			DockerCommitSortBy sortBy, Boolean ascending, Long limit, Long offset)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, "/entity/"+entityId+"/dockerCommit", userId, null);
+
+		if (sortBy!=null) request.addParameter("sort", ""+sortBy);
+		if (ascending!=null) request.addParameter("ascending", ""+ascending);
+		if (limit!=null) request.addParameter("limit", ""+limit);
+		if (offset!=null) request.addParameter("offset", ""+offset);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
+		return ServletTestHelperUtils.readResponsePaginatedResults(response,
+				DockerCommit.class);
+	}
+
+
 }
