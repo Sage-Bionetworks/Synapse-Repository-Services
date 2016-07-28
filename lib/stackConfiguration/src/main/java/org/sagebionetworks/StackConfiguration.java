@@ -214,6 +214,10 @@ public class StackConfiguration {
 		return configuration.getDockerServiceEndpoint();
 	}
 
+	public static String getDockerRegistryListenerEndpoint() {
+		return configuration.getDockerRegistryListenerEndpoint();
+	}
+
 	/**
 	 * This is the bucket for workflow-related files such as configuration or
 	 * search document files. Each workflow should store stuff under its own
