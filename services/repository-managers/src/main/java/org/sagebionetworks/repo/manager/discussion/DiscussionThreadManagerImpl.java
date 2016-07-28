@@ -203,7 +203,18 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 			AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 					authorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.MODERATE));
 		}
-		PaginatedResults<DiscussionThreadBundle> threads = threadDao.getThreads(Long.parseLong(forumId), limit, offset, order, ascending, filter);
+
+		PaginatedResults<DiscussionThreadBundle> threads = new PaginatedResults<DiscussionThreadBundle>();
+		long forumIdLong = Long.parseLong(forumId);
+		long count = threadDao.getThreadCountForForum(forumIdLong, filter);
+		threads.setTotalNumberOfResults(count);
+
+		List<DiscussionThreadBundle> results = new ArrayList<DiscussionThreadBundle>();
+		if (count > 0) {
+			results = threadDao.getThreadsForForum(Long.parseLong(forumId), limit, offset, order, ascending, filter);
+			
+		}
+		threads.setResults(results);
 		return updateNumberOfReplies(threads, filter);
 	}
 

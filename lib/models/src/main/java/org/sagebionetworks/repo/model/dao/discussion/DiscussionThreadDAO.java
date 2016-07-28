@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.model.dao.discussion;
 import java.util.List;
 import java.util.Set;
 
-import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadAuthorStat;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
@@ -58,7 +57,7 @@ public interface DiscussionThreadDAO {
 	 * @param filter 
 	 * @return
 	 */
-	public PaginatedResults<DiscussionThreadBundle> getThreads(long forumId,
+	public List<DiscussionThreadBundle> getThreadsForForum(long forumId,
 			Long limit, Long offset, DiscussionThreadOrder order, Boolean ascending,
 			DiscussionFilter filter);
 
