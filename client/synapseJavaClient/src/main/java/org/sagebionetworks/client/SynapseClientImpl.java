@@ -7705,10 +7705,18 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		if (!requestParams.isEmpty()) {
 			url += "?" + Joiner.on('&').join(requestParams);
 		}
+		
+		JSONObject jsonObj = getEntity(url);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+
+		PaginatedResults<DockerCommit> results = new PaginatedResults<DockerCommit>(
+				DockerCommit.class);
 		try {
-			return getJSONEntity(url, PaginatedResults.class);
+			results.initializeFromJSONObject(adapter);
+			return results;
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseClientException(e);
 		}
+
 	}
 }
