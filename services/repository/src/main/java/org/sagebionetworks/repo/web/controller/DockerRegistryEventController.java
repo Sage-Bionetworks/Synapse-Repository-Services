@@ -40,8 +40,7 @@ public class DockerRegistryEventController extends BaseController {
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.DOCKER_REGISTRY_EVENTS, method = RequestMethod.POST)
-	public @ResponseBody
-	void registryEvents(@RequestBody DockerRegistryEventList registryEvents)  {
+	public void registryEvents(@RequestBody DockerRegistryEventList registryEvents)  {
 		serviceProvider.getDockerService().dockerRegistryNotification(registryEvents);
 	}
 }

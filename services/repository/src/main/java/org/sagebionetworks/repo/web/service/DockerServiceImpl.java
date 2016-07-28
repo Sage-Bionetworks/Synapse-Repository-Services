@@ -28,7 +28,7 @@ public class DockerServiceImpl implements DockerService {
 	@Autowired
 	private Consumer consumer;
 
-	private static final Logger log = LogManager.getLogger(LogService.class);
+	private static final Logger log = LogManager.getLogger(DockerServiceImpl.class);
 
 	@Override
 	public DockerAuthorizationToken authorizeDockerAccess(Long userId,
