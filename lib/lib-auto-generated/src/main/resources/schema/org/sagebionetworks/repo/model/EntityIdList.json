@@ -6,8 +6,7 @@
 			"description": "A list of entity IDs.",
 			"uniqueItems": false,
 			"items": {
-				"type": "object",
-				"$ref": "org.sagebionetworks.repo.model.EntityId"
+				"type": "string"
 			}
 		}
 	}

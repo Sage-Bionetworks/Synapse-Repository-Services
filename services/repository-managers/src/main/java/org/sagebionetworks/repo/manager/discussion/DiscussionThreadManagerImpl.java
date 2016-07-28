@@ -256,7 +256,8 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 	public EntityThreadCounts getEntityThreadCounts(UserInfo userInfo, EntityIdList entityIdList) {
 		UserInfo.validateUserInfo(userInfo);
 		ValidateArgument.required(entityIdList, "entityIdList");
-		List<Long> entityIds = KeyFactory.getKeys(entityIdList);
+		ValidateArgument.required(entityIdList.getIdList(), "EntityIdList.list");
+		List<Long> entityIds = KeyFactory.stringToKey(entityIdList.getIdList());
 		Set<Long> projectIds = threadDao.getProjectIds(entityIds);
 		projectIds = aclDao.getAccessibleBenefactors(userInfo.getGroups(), projectIds, ObjectType.ENTITY, ACCESS_TYPE.READ);
 		return threadDao.getThreadCounts(entityIds, projectIds);

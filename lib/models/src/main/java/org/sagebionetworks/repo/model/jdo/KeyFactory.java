@@ -92,22 +92,4 @@ public class KeyFactory {
 			throw new DatastoreException(e);
 		}
 	}
-
-	/**
-	 * Converts a json-representation of a list of entityIds into the List of 
-	 * Long represents.
-	 * 
-	 * @param id
-	 * @return the decoded key
-	 * @throws DatastoreException
-	 */
-	public static List<Long> getKeys(EntityIdList entityIdList){
-		ValidateArgument.required(entityIdList, "entityIdList");
-		ValidateArgument.required(entityIdList.getIdList(), "EntityIdList.idList");
-		List<Long> keys = new ArrayList<Long>();
-		for (EntityId id : entityIdList.getIdList()){
-			keys.add(KeyFactory.stringToKey(id.getId()));
-		}
-		return keys;
-	}
 }

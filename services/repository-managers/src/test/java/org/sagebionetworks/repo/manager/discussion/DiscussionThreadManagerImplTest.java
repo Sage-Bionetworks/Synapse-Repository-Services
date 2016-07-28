@@ -485,7 +485,7 @@ public class DiscussionThreadManagerImplTest {
 	public void testGetEntityThreadCountEmptyIdList() {
 		HashSet<Long> projectIds = new HashSet<Long>();
 		EntityIdList entityIdList = new EntityIdList();
-		entityIdList.setIdList(new ArrayList<EntityId>());
+		entityIdList.setIdList(new ArrayList<String>());
 		ArrayList<Long> entityIds = new ArrayList<Long>();
 		EntityThreadCounts entityThreadCounts = new EntityThreadCounts();
 		when(mockThreadDao.getProjectIds(anyList())).thenReturn(projectIds);
@@ -505,10 +505,8 @@ public class DiscussionThreadManagerImplTest {
 		HashSet<Long> projectIdsCanRead = new HashSet<Long>();
 		projectIdsCanRead.add(1L);
 
-		EntityId entityId = new EntityId();
-		entityId.setId("syn3");
-		ArrayList<EntityId> idList = new ArrayList<EntityId>();
-		idList.add(entityId);
+		ArrayList<String> idList = new ArrayList<String>();
+		idList.add("syn3");
 		EntityIdList entityIdList = new EntityIdList();
 		entityIdList.setIdList(idList);
 		ArrayList<Long> entityIds = new ArrayList<Long>();
