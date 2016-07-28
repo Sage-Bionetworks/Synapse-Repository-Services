@@ -30,9 +30,14 @@ import org.springframework.beans.factory.annotation.Autowired;
  */
 public class UserThrottleFilter implements Filter {
 	
-	public static final long LOCK_TIMOUTE_SEC = 60*10; // 10 MINS
+	public static final long CONCURRENT_CONNECTIONS_LOCK_TIMEOUT_SEC = 60*10; // 10 MINS
 	// The maximum number of concurrent locks a user can have per machine.
 	public static final int MAX_CONCURRENT_LOCKS = 3;
+	
+	//limit users to 1 request per 1 second
+	public static final long REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC =  1; //1 second
+	public static final int MAX_REQUEST_FREQUENCY_LOCKS = 1;
+	
 
 	private static Logger log = LogManager.getLogger(UserThrottleFilter.class);
 
@@ -40,7 +45,10 @@ public class UserThrottleFilter implements Filter {
 	private Consumer consumer;
 	
 	@Autowired
-	MemoryCountingSemaphore userThrottleMemoryCountingSemaphore;
+	MemoryCountingSemaphore userThrottleConcurrentConnectionsMemoryCountingSemaphore;
+	
+	@Autowired
+	MemoryCountingSemaphore userThrottleRequestFrequencyMemoryCountingSemaphore;
 
 	@Override
 	public void destroy() {
@@ -55,13 +63,17 @@ public class UserThrottleFilter implements Filter {
 			chain.doFilter(request, response);
 		} else {
 			try {
-				String lockToken = userThrottleMemoryCountingSemaphore.attemptToAcquireLock(userId, LOCK_TIMOUTE_SEC, MAX_CONCURRENT_LOCKS);
-				if (lockToken != null) {
+				String concurrentLockToken = userThrottleConcurrentConnectionsMemoryCountingSemaphore.attemptToAcquireLock(userId, CONCURRENT_CONNECTIONS_LOCK_TIMEOUT_SEC, MAX_CONCURRENT_LOCKS);
+				
+				//no need to store frequency lock token since it will be timed out, not released.
+				userThrottleRequestFrequencyMemoryCountingSemaphore.attemptToAcquireLock(userId, REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC, MAX_REQUEST_FREQUENCY_LOCKS);
+				if (concurrentLockToken != null && concurrentLockToken != null) {
 					try {
 						chain.doFilter(request, response);
 					} finally {
 						try {
-							userThrottleMemoryCountingSemaphore.releaseLock(userId, lockToken);
+							userThrottleConcurrentConnectionsMemoryCountingSemaphore.releaseLock(userId, concurrentLockToken);
+							//do not release frequency lock, allow it to timeout to enforce frequency limit.
 						} catch (LockReleaseFailedException e) {
 							// This happens when test force the release of all locks.
 							log.info(e.getMessage());
@@ -78,7 +90,8 @@ public class UserThrottleFilter implements Filter {
 					consumer.addProfileData(lockUnavailableEvent);
 					HttpServletResponse httpResponse = (HttpServletResponse) response;
 					httpResponse.setStatus(HttpStatus.SC_SERVICE_UNAVAILABLE);
-					httpResponse.getWriter().println(AuthorizationConstants.REASON_TOO_MANY_CONCURRENT_REQUESTS);
+					final String reason = (concurrentLockToken == null) ? AuthorizationConstants.REASON_TOO_MANY_CONCURRENT_REQUESTS : AuthorizationConstants.REASON_REQUESTS_TOO_FREQUENT;
+					httpResponse.getWriter().println(reason);
 				}
 			} catch (IOException e) {
 				throw e;

@@ -6,7 +6,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
-import static org.sagebionetworks.repo.web.filter.UserThrottleFilter.LOCK_TIMOUTE_SEC;
+import static org.sagebionetworks.repo.web.filter.UserThrottleFilter.CONCURRENT_CONNECTIONS_LOCK_TIMEOUT_SEC;
 import static org.sagebionetworks.repo.web.filter.UserThrottleFilter.MAX_CONCURRENT_LOCKS;
 
 import javax.servlet.FilterChain;
@@ -56,11 +56,11 @@ public class UserThrottleFilterTest {
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		FilterChain filterChain = mock(FilterChain.class);
 
-		when(userThrottleGate.attemptToAcquireLock("111", LOCK_TIMOUTE_SEC, MAX_CONCURRENT_LOCKS)).thenReturn("token");
+		when(userThrottleGate.attemptToAcquireLock("111", CONCURRENT_CONNECTIONS_LOCK_TIMEOUT_SEC, MAX_CONCURRENT_LOCKS)).thenReturn("token");
 		filter.doFilter(request, response, filterChain);
 
 		verify(filterChain).doFilter(request, response);
-		verify(userThrottleGate).attemptToAcquireLock("111", LOCK_TIMOUTE_SEC, MAX_CONCURRENT_LOCKS);
+		verify(userThrottleGate).attemptToAcquireLock("111", CONCURRENT_CONNECTIONS_LOCK_TIMEOUT_SEC, MAX_CONCURRENT_LOCKS);
 		verify(userThrottleGate).releaseLock("111", "token");
 		verifyNoMoreInteractions(filterChain, userThrottleGate);
 	}
@@ -72,11 +72,11 @@ public class UserThrottleFilterTest {
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		FilterChain filterChain = mock(FilterChain.class);
 
-		when(userThrottleGate.attemptToAcquireLock("111", LOCK_TIMOUTE_SEC, MAX_CONCURRENT_LOCKS)).thenThrow(new RuntimeException());
+		when(userThrottleGate.attemptToAcquireLock("111", CONCURRENT_CONNECTIONS_LOCK_TIMEOUT_SEC, MAX_CONCURRENT_LOCKS)).thenThrow(new RuntimeException());
 		try {
 			filter.doFilter(request, response, filterChain);
 		} finally {
-			verify(userThrottleGate).attemptToAcquireLock("111", LOCK_TIMOUTE_SEC, MAX_CONCURRENT_LOCKS);
+			verify(userThrottleGate).attemptToAcquireLock("111", CONCURRENT_CONNECTIONS_LOCK_TIMEOUT_SEC, MAX_CONCURRENT_LOCKS);
 			verifyNoMoreInteractions(filterChain, userThrottleGate);
 		}
 	}
@@ -90,12 +90,12 @@ public class UserThrottleFilterTest {
 		Consumer consumer = mock(Consumer.class);
 		ReflectionTestUtils.setField(filter, "consumer", consumer);
 
-		when(userThrottleGate.attemptToAcquireLock("111", LOCK_TIMOUTE_SEC, MAX_CONCURRENT_LOCKS)).thenReturn(null);
+		when(userThrottleGate.attemptToAcquireLock("111", CONCURRENT_CONNECTIONS_LOCK_TIMEOUT_SEC, MAX_CONCURRENT_LOCKS)).thenReturn(null);
 
 		filter.doFilter(request, response, filterChain);
 		assertEquals(503, response.getStatus());
 
-		verify(userThrottleGate).attemptToAcquireLock("111", LOCK_TIMOUTE_SEC, MAX_CONCURRENT_LOCKS);
+		verify(userThrottleGate).attemptToAcquireLock("111", CONCURRENT_CONNECTIONS_LOCK_TIMEOUT_SEC, MAX_CONCURRENT_LOCKS);
 		verify(consumer).addProfileData(any(ProfileData.class));
 		verifyNoMoreInteractions(filterChain, userThrottleGate, consumer);
 	}

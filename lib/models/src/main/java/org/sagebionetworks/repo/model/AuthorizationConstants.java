@@ -124,6 +124,7 @@ public class AuthorizationConstants {
 	 * Response message for 503.
 	 */
 	public static final String REASON_TOO_MANY_CONCURRENT_REQUESTS = "{\"reason\": \"Too many concurrent requests\"}";
+	public static final String REASON_REQUESTS_TOO_FREQUENT = "{\"reason\": \"Too frequent requests\"}";
 	/**
 	 * Response message for 500.
 	 */
