@@ -42,8 +42,11 @@ public class DockerCommitController {
 	 * (Commits for managed repositories are added via direct integration with the 
 	 * Synapse Docker registry.)
 
+	 * @param userId 
+	 * @param entityId the ID of the Docker repository entity
+	 * @param dockerCommit the new tag/digest pair for the repository
 	 */
-	@ResponseStatus(HttpStatus.CREATED)
+	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.ENITY_ID_DOCKER_COMMIT, method = RequestMethod.POST)
 	public @ResponseBody
 	void addDockerCommit(
@@ -60,12 +63,11 @@ public class DockerCommitController {
 	 * date, descending (newest first).
 	 * 
 	 * @param userId
-	 * @param entityId
-	 * @param sortByParam
-	 * @param ascending
-	 * @param limit
-	 * @param offset
-	 * @return
+	 * @param entityId the ID of the Docker repository entity
+	 * @param limit pagination parameter, optional (default is 20)
+	 * @param offset pagination parameter, optional (default is 0)
+	 * @param sortBy TAG or CREATED_ON, optional (default is CREATED_ON)
+	 * @param ascending, optional (default is false)
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENITY_ID_DOCKER_COMMIT, method = RequestMethod.GET)
