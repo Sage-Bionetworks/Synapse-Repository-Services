@@ -594,7 +594,21 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 	}
 
 	@Override
-	public PaginatedResults<DiscussionThreadBundle> getThreadsForEntity(long entityId, Long limit, Long offset,
+	public long getThreadCountForEntity(long entityId, DiscussionFilter filter, Set<Long> projectIds) {
+		ValidateArgument.required(filter, "filter");
+		ValidateArgument.required(projectIds, "projectIds");
+		if (projectIds.isEmpty()) {
+			return 0L;
+		}
+		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
+		MapSqlParameterSource parameters = new MapSqlParameterSource(ID, entityId);
+		parameters.addValue(PROJECT_IDS, projectIds);
+		String countQuery = addCondition(SQL_SELECT_THREAD_COUNT_FOR_ENTITY, filter);
+		return namedTemplate.queryForLong(countQuery, parameters);
+	}
+
+	@Override
+	public List<DiscussionThreadBundle> getThreadsForEntity(long entityId, Long limit, Long offset,
 			DiscussionThreadOrder order, Boolean ascending, DiscussionFilter filter, Set<Long> projectIds) {
 		ValidateArgument.required(limit,"limit");
 		ValidateArgument.required(offset,"offset");
@@ -604,24 +618,15 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 					"Limit and offset must be greater than 0, and limit must be smaller than or equal to "+MAX_LIMIT);
 		ValidateArgument.requirement((order == null && ascending == null)
 				|| (order != null && ascending != null),"order and ascending must be both null or not null");
-		PaginatedResults<DiscussionThreadBundle> threads = new PaginatedResults<DiscussionThreadBundle>();
-		List<DiscussionThreadBundle> results = new ArrayList<DiscussionThreadBundle>();
 
-		if (!projectIds.isEmpty()) {
-			NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
-			MapSqlParameterSource parameters = new MapSqlParameterSource(ID, entityId);
-			parameters.addValue(PROJECT_IDS, projectIds);
-			String countQuery = addCondition(SQL_SELECT_THREAD_COUNT_FOR_ENTITY, filter);
-			long count = namedTemplate.queryForLong(countQuery, parameters);
-			threads.setTotalNumberOfResults(count);
-
-			if (count > 0) {
-				String query = buildGetQuery(SQL_SELECT_THREADS_BY_ENTITY_ID, limit, offset, order, ascending, filter);
-				results = namedTemplate.query(query, parameters, DISCUSSION_THREAD_BUNDLE_ROW_MAPPER);
-			}
+		if (projectIds.isEmpty()) {
+			return new ArrayList<DiscussionThreadBundle>();
 		}
-		threads.setResults(results);
-		return threads;
+		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
+		MapSqlParameterSource parameters = new MapSqlParameterSource(ID, entityId);
+		parameters.addValue(PROJECT_IDS, projectIds);
+		String query = buildGetQuery(SQL_SELECT_THREADS_BY_ENTITY_ID, limit, offset, order, ascending, filter);
+		return namedTemplate.query(query, parameters, DISCUSSION_THREAD_BUNDLE_ROW_MAPPER);
 	}
 
 
@@ -671,7 +676,7 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 	}
 
 	@Override
-	public Set<Long> getProjectIds(List<Long> entityIds) {
+	public Set<Long> getDistinctProjectIdsOfThreadsReferencesEntityIds(List<Long> entityIds) {
 		ValidateArgument.required(entityIds, "entityIds");
 		final Set<Long> result = new HashSet<Long>();
 		if (entityIds.isEmpty()) {

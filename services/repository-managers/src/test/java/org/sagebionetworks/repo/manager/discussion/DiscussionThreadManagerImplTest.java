@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.commons.lang.RandomStringUtils;
 import org.junit.Before;
@@ -488,11 +489,11 @@ public class DiscussionThreadManagerImplTest {
 		entityIdList.setIdList(new ArrayList<String>());
 		ArrayList<Long> entityIds = new ArrayList<Long>();
 		EntityThreadCounts entityThreadCounts = new EntityThreadCounts();
-		when(mockThreadDao.getProjectIds(anyList())).thenReturn(projectIds);
+		when(mockThreadDao.getDistinctProjectIdsOfThreadsReferencesEntityIds(anyList())).thenReturn(projectIds);
 		when(mockAclDao.getAccessibleBenefactors(anySet(), eq(projectIds), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.READ))).thenReturn(projectIds);
 		when(mockThreadDao.getThreadCounts(entityIds, projectIds)).thenReturn(entityThreadCounts);
 		assertEquals(entityThreadCounts, threadManager.getEntityThreadCounts(userInfo, entityIdList));
-		verify(mockThreadDao).getProjectIds(eq(entityIds));
+		verify(mockThreadDao).getDistinctProjectIdsOfThreadsReferencesEntityIds(eq(entityIds));
 		verify(mockAclDao).getAccessibleBenefactors(anySet(), eq(projectIds), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.READ));
 		verify(mockThreadDao).getThreadCounts(eq(entityIds), eq(projectIds));
 	}
@@ -514,12 +515,12 @@ public class DiscussionThreadManagerImplTest {
 
 		EntityThreadCounts entityThreadCounts = new EntityThreadCounts();
 
-		when(mockThreadDao.getProjectIds(entityIds)).thenReturn(projectIds);
+		when(mockThreadDao.getDistinctProjectIdsOfThreadsReferencesEntityIds(entityIds)).thenReturn(projectIds);
 		when(mockAclDao.getAccessibleBenefactors(anySet(), eq(projectIds), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.READ)))
 				.thenReturn(projectIdsCanRead);
 		when(mockThreadDao.getThreadCounts(entityIds, projectIdsCanRead)).thenReturn(entityThreadCounts);
 		assertEquals(entityThreadCounts, threadManager.getEntityThreadCounts(userInfo, entityIdList));
-		verify(mockThreadDao).getProjectIds(eq(entityIds));
+		verify(mockThreadDao).getDistinctProjectIdsOfThreadsReferencesEntityIds(eq(entityIds));
 		verify(mockAclDao).getAccessibleBenefactors(anySet(), eq(projectIds), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.READ));
 		verify(mockThreadDao).getThreadCounts(eq(entityIds), eq(projectIdsCanRead));
 	}
@@ -527,6 +528,33 @@ public class DiscussionThreadManagerImplTest {
 	@Test (expected = IllegalArgumentException.class)
 	public void testGetThreadsForEntityWithNullEntityId(){
 		threadManager.getThreadsForEntity(userInfo, null, 2L, 0L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true);
+	}
+
+	@Test
+	public void testGetThreadsForEntityWithoutReferences(){
+		HashSet<Long> projectIds = new HashSet<Long>();
+		projectIds.add(1L);
+		projectIds.add(2L);
+		HashSet<Long> projectIdsCanRead = new HashSet<Long>();
+		projectIdsCanRead.add(1L);
+
+		List<Long> entityIds = Arrays.asList(3L);
+
+		PaginatedResults<DiscussionThreadBundle> result = new PaginatedResults<DiscussionThreadBundle>();
+		List<DiscussionThreadBundle> list = new ArrayList<DiscussionThreadBundle>();
+		result.setResults(list);
+		result.setTotalNumberOfResults(0L);
+
+		when(mockThreadDao.getDistinctProjectIdsOfThreadsReferencesEntityIds(entityIds)).thenReturn(projectIds);
+		when(mockAclDao.getAccessibleBenefactors(anySet(), eq(projectIds), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.READ)))
+				.thenReturn(projectIdsCanRead);
+		when(mockThreadDao.getThreadCountForEntity(3L, DiscussionFilter.EXCLUDE_DELETED, projectIdsCanRead)).thenReturn(0L);
+
+		assertEquals(result, threadManager.getThreadsForEntity(userInfo, "syn3", 2L, 0L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true));
+		verify(mockThreadDao).getDistinctProjectIdsOfThreadsReferencesEntityIds(eq(entityIds));
+		verify(mockAclDao).getAccessibleBenefactors(anySet(), eq(projectIds), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.READ));
+		verify(mockThreadDao).getThreadCountForEntity(3L, DiscussionFilter.EXCLUDE_DELETED, projectIdsCanRead);
+		verify(mockThreadDao, never()).getThreadsForEntity(anyLong(), anyLong(), anyLong(), (DiscussionThreadOrder) anyObject(), anyBoolean(), (DiscussionFilter) anyObject(), (Set) anyObject());
 	}
 
 	@Test
@@ -540,16 +568,20 @@ public class DiscussionThreadManagerImplTest {
 		List<Long> entityIds = Arrays.asList(3L);
 
 		PaginatedResults<DiscussionThreadBundle> result = new PaginatedResults<DiscussionThreadBundle>();
-		result.setResults(new ArrayList<DiscussionThreadBundle>());
+		List<DiscussionThreadBundle> list = new ArrayList<DiscussionThreadBundle>();
+		result.setResults(list);
+		result.setTotalNumberOfResults(1L);
 
-		when(mockThreadDao.getProjectIds(entityIds)).thenReturn(projectIds);
+		when(mockThreadDao.getDistinctProjectIdsOfThreadsReferencesEntityIds(entityIds)).thenReturn(projectIds);
 		when(mockAclDao.getAccessibleBenefactors(anySet(), eq(projectIds), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.READ)))
 				.thenReturn(projectIdsCanRead);
-		when(mockThreadDao.getThreadsForEntity(3L, 2L, 0L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true, DiscussionFilter.EXCLUDE_DELETED, projectIdsCanRead)).thenReturn(result);
+		when(mockThreadDao.getThreadCountForEntity(3L, DiscussionFilter.EXCLUDE_DELETED, projectIdsCanRead)).thenReturn(1L);
+		when(mockThreadDao.getThreadsForEntity(3L, 2L, 0L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true, DiscussionFilter.EXCLUDE_DELETED, projectIdsCanRead)).thenReturn(list);
 
 		assertEquals(result, threadManager.getThreadsForEntity(userInfo, "syn3", 2L, 0L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true));
-		verify(mockThreadDao).getProjectIds(eq(entityIds));
+		verify(mockThreadDao).getDistinctProjectIdsOfThreadsReferencesEntityIds(eq(entityIds));
 		verify(mockAclDao).getAccessibleBenefactors(anySet(), eq(projectIds), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.READ));
+		verify(mockThreadDao).getThreadCountForEntity(3L, DiscussionFilter.EXCLUDE_DELETED, projectIdsCanRead);
 		verify(mockThreadDao).getThreadsForEntity(3L, 2L, 0L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true, DiscussionFilter.EXCLUDE_DELETED, projectIdsCanRead);
 	}
 }

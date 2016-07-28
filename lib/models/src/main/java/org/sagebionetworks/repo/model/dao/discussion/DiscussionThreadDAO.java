@@ -193,9 +193,9 @@ public interface DiscussionThreadDAO {
 	 * @param ascending
 	 * @param filter
 	 * @param projectIds
-	 * @return a paginated list of threads that mentioned the enityId
+	 * @return a list of threads that mentioned the enityId
 	 */
-	public PaginatedResults<DiscussionThreadBundle> getThreadsForEntity(long entityId,
+	public List<DiscussionThreadBundle> getThreadsForEntity(long entityId,
 			Long limit, Long offset, DiscussionThreadOrder order, Boolean ascending,
 			DiscussionFilter filter, Set<Long> projectIds);
 
@@ -212,7 +212,7 @@ public interface DiscussionThreadDAO {
 	 * @param list
 	 * @return
 	 */
-	public Set<Long> getProjectIds(List<Long> list);
+	public Set<Long> getDistinctProjectIdsOfThreadsReferencesEntityIds(List<Long> list);
 
 	/**
 	 * @param entityIds
@@ -221,4 +221,13 @@ public interface DiscussionThreadDAO {
 	 *  particular entity, for a list of entityIds.
 	 */
 	public EntityThreadCounts getThreadCounts(List<Long> entityIds, Set<Long> projectIds);
+
+	/**
+	 * @param entityId
+	 * @param filter
+	 * @param projectIds
+	 * @return number of threads, within a range or projects, that mentioned a
+	 *  particular entity, for a given entityId
+	 */
+	public long getThreadCountForEntity(long entityId, DiscussionFilter filter, Set<Long> projectIds);
 }

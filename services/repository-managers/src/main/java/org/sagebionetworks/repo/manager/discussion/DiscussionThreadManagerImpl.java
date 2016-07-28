@@ -245,10 +245,17 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		ValidateArgument.required(entityId, "entityId");
 		UserInfo.validateUserInfo(userInfo);
 		Long entityIdLong = KeyFactory.stringToKey(entityId);
-		Set<Long> projectIds = threadDao.getProjectIds(Arrays.asList(entityIdLong));
+		Set<Long> projectIds = threadDao.getDistinctProjectIdsOfThreadsReferencesEntityIds(Arrays.asList(entityIdLong));
 		projectIds = aclDao.getAccessibleBenefactors(userInfo.getGroups(), projectIds, ObjectType.ENTITY, ACCESS_TYPE.READ);
-		PaginatedResults<DiscussionThreadBundle> threads =
-				threadDao.getThreadsForEntity(entityIdLong, limit, offset, order, ascending, DiscussionFilter.EXCLUDE_DELETED, projectIds);
+
+		PaginatedResults<DiscussionThreadBundle> threads = new PaginatedResults<DiscussionThreadBundle>();
+		long count = threadDao.getThreadCountForEntity(entityIdLong, DiscussionFilter.EXCLUDE_DELETED, projectIds);
+		threads.setTotalNumberOfResults(count);
+		List<DiscussionThreadBundle> results = new ArrayList<DiscussionThreadBundle>();
+		if (count > 0) {
+			results = threadDao.getThreadsForEntity(entityIdLong, limit, offset, order, ascending, DiscussionFilter.EXCLUDE_DELETED, projectIds);
+		}
+		threads.setResults(results);
 		return updateNumberOfReplies(threads, DiscussionFilter.EXCLUDE_DELETED);
 	}
 
@@ -258,7 +265,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		ValidateArgument.required(entityIdList, "entityIdList");
 		ValidateArgument.required(entityIdList.getIdList(), "EntityIdList.list");
 		List<Long> entityIds = KeyFactory.stringToKey(entityIdList.getIdList());
-		Set<Long> projectIds = threadDao.getProjectIds(entityIds);
+		Set<Long> projectIds = threadDao.getDistinctProjectIdsOfThreadsReferencesEntityIds(entityIds);
 		projectIds = aclDao.getAccessibleBenefactors(userInfo.getGroups(), projectIds, ObjectType.ENTITY, ACCESS_TYPE.READ);
 		return threadDao.getThreadCounts(entityIds, projectIds);
 	}
