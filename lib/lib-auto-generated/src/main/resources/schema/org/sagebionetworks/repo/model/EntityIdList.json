@@ -3,7 +3,7 @@
 	"properties": {
 		"idList": {
 			"type": "array",
-			"description": "A list of entity IDs.",
+			"description": "A list of entity IDs. Limit size 20.",
 			"uniqueItems": false,
 			"items": {
 				"type": "string"

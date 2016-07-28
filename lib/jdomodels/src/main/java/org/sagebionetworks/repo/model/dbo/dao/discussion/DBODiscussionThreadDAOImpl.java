@@ -192,7 +192,7 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 	private static final String ORDER_BY_NUMBER_OF_VIEWS = " ORDER BY "+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_VIEWS;
 	private static final String ORDER_BY_NUMBER_OF_REPLIES = " ORDER BY "+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_REPLIES;
 	private static final String DESC = " DESC ";
-	public static final Long MAX_LIMIT = 100L;
+	public static final Long MAX_LIMIT = 20L;
 
 	// for entity references
 	private static final String ENTITY_IDS = "entityIds";

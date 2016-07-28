@@ -47,6 +47,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 
 	private static final DiscussionFilter DEFAULT_FILTER = DiscussionFilter.NO_FILTER;
 	public static final int MAX_TITLE_LENGTH = 140;
+	public static final long MAX_LIMIT = 20L;
 	@Autowired
 	private DiscussionThreadDAO threadDao;
 	@Autowired
@@ -195,6 +196,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		ValidateArgument.required(forumId, "forumId");
 		ValidateArgument.required(filter, "filter");
 		UserInfo.validateUserInfo(userInfo);
+		ValidateArgument.requirement(limit==null || limit <= MAX_LIMIT, "Limit cannot exceed "+MAX_LIMIT);
 		String projectId = forumDao.getForum(Long.parseLong(forumId)).getProjectId();
 		if (filter.equals(DiscussionFilter.EXCLUDE_DELETED)) {
 			AuthorizationManagerUtil.checkAuthorizationAndThrowException(
@@ -255,6 +257,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 			Long offset, DiscussionThreadOrder order, Boolean ascending) {
 		ValidateArgument.required(entityId, "entityId");
 		UserInfo.validateUserInfo(userInfo);
+		ValidateArgument.requirement(limit == null || limit <= MAX_LIMIT, "Limit cannot exceed "+MAX_LIMIT);
 		Long entityIdLong = KeyFactory.stringToKey(entityId);
 		Set<Long> projectIds = threadDao.getDistinctProjectIdsOfThreadsReferencesEntityIds(Arrays.asList(entityIdLong));
 		projectIds = aclDao.getAccessibleBenefactors(userInfo.getGroups(), projectIds, ObjectType.ENTITY, ACCESS_TYPE.READ);
@@ -275,6 +278,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		UserInfo.validateUserInfo(userInfo);
 		ValidateArgument.required(entityIdList, "entityIdList");
 		ValidateArgument.required(entityIdList.getIdList(), "EntityIdList.list");
+		ValidateArgument.requirement(entityIdList.getIdList().size() <= MAX_LIMIT, "The size of entityIdList cannot exceed "+MAX_LIMIT);
 		List<Long> entityIds = KeyFactory.stringToKey(entityIdList.getIdList());
 		Set<Long> projectIds = threadDao.getDistinctProjectIdsOfThreadsReferencesEntityIds(entityIds);
 		projectIds = aclDao.getAccessibleBenefactors(userInfo.getGroups(), projectIds, ObjectType.ENTITY, ACCESS_TYPE.READ);

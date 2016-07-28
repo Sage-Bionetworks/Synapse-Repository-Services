@@ -70,6 +70,10 @@ public class DiscussionThreadManagerImplTest {
 	private TransactionalMessenger mockTransactionalMessenger;
 	@Mock
 	private AccessControlListDAO mockAclDao;
+	@Mock
+	private EntityIdList mockEntityIdList;
+	@Mock
+	private List<String> mockList;
 
 	private DiscussionThreadManager threadManager;
 	private UserInfo userInfo = new UserInfo(false /*not admin*/);
@@ -396,6 +400,11 @@ public class DiscussionThreadManagerImplTest {
 		threadManager.getThreadsForForum(userInfo, null, 2L, 0L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, null, DiscussionFilter.NO_FILTER);
 	}
 
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetThreadsForForumExceedLimit() {
+		threadManager.getThreadsForForum(userInfo, forumId.toString(), MAX_LIMIT+1, 0L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true, DiscussionFilter.EXCLUDE_DELETED);
+	}
+
 	@Test (expected = UnauthorizedException.class)
 	public void testGetThreadsForForumUnauthorizedWithNoFilter() {
 		when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.MODERATE))
@@ -499,6 +508,13 @@ public class DiscussionThreadManagerImplTest {
 		threadManager.getEntityThreadCounts(userInfo, new EntityIdList());
 	}
 
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetEntityThreadCountExceedLimit() {
+		when(mockEntityIdList.getIdList()).thenReturn(mockList);
+		when(mockList.size()).thenReturn((int) (MAX_LIMIT+1));
+		threadManager.getEntityThreadCounts(userInfo, mockEntityIdList);
+	}
+
 	@Test
 	public void testGetEntityThreadCountEmptyIdList() {
 		HashSet<Long> projectIds = new HashSet<Long>();
@@ -545,6 +561,11 @@ public class DiscussionThreadManagerImplTest {
 	@Test (expected = IllegalArgumentException.class)
 	public void testGetThreadsForEntityWithNullEntityId(){
 		threadManager.getThreadsForEntity(userInfo, null, 2L, 0L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetThreadsForEntityExceedLimit(){
+		threadManager.getThreadsForEntity(userInfo, "syn3", MAX_LIMIT+1, 0L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true);
 	}
 
 	@Test

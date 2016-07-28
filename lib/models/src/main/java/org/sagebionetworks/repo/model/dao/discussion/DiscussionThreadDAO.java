@@ -192,14 +192,15 @@ public interface DiscussionThreadDAO {
 	 * @param ascending
 	 * @param filter
 	 * @param projectIds
-	 * @return a list of threads that mentioned the enityId
+	 * @return a list of threads that are in the given projectIds and referenced
+	 *  the given enityId
 	 */
 	public List<DiscussionThreadBundle> getThreadsForEntity(long entityId,
 			Long limit, Long offset, DiscussionThreadOrder order, Boolean ascending,
 			DiscussionFilter filter, Set<Long> projectIds);
 
 	/**
-	 * Insert a batch of DiscussionThreadEntityReference
+	 * Insert a batch of references from a thread to an entity
 	 * 
 	 * @param refs
 	 */
