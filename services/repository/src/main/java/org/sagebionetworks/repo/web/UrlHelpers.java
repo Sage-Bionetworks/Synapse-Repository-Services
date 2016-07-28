@@ -40,6 +40,7 @@ public class UrlHelpers {
 	public static final String FILE_PATH			= "/file/v1";
 	public static final String REPO_PATH			= "/repo/v1";
 	public static final String DOCKER_PATH			= "/docker/v1";
+	public static final String DOCKER_REGISTRY_PATH	= "/dockerRegistryListener/v1";
 	
 	/**
 	 * Used for batch requests
@@ -934,6 +935,7 @@ public class UrlHelpers {
 	// Docker authorization services
 	public static final String DOCKER_AUTHORIZATION = "/bearerToken";
 	public static final String ENITY_ID_DOCKER_COMMIT = ENTITY_ID+"/dockerCommit";
+	public static final String DOCKER_REGISTRY_EVENTS = "/events";
 
 
 	/**

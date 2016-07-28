@@ -11,5 +11,6 @@
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 	
-	<bean id="dockerFilter" class="org.sagebionetworks.repo.web.filter.DockerFilter" />	
+	<bean id="dockerClientAuthFilter" class="org.sagebionetworks.repo.web.filter.DockerClientAuthFilter" />	
+	<bean id="dockerRegistryAuthFilter" class="org.sagebionetworks.repo.web.filter.DockerRegistryAuthFilter" />	
 </beans>

@@ -99,7 +99,7 @@
 	</filter-mapping>
 
 	<filter>
-		<filter-name>dockerFilter</filter-name>
+		<filter-name>dockerClientAuthFilter</filter-name>
 		<filter-class>org.springframework.web.filter.DelegatingFilterProxy</filter-class>
 		<init-param>
 			<!-- Make sure the init-params are passed through the proxy to the bean -->
@@ -113,8 +113,23 @@
 	</filter>
 
 	<filter-mapping>
-		<filter-name>dockerFilter</filter-name>
+		<filter-name>dockerClientAuthFilter</filter-name>
 		<url-pattern>/docker/v1/*</url-pattern>
+	</filter-mapping>
+
+	<filter>
+		<filter-name>dockerRegistryAuthFilter</filter-name>
+		<filter-class>org.springframework.web.filter.DelegatingFilterProxy</filter-class>
+		<init-param>
+			<!-- Make sure the init-params are passed through the proxy to the bean -->
+			<param-name>targetFilterLifecycle</param-name>
+			<param-value>true</param-value>
+		</init-param>
+	</filter>
+
+	<filter-mapping>
+		<filter-name>dockerRegistryAuthFilter</filter-name>
+		<url-pattern>/dockerRegistryListener/v1/*</url-pattern>
 	</filter-mapping>
 
 	<filter>

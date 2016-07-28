@@ -7,6 +7,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.docker.DockerAuthorizationToken;
 import org.sagebionetworks.repo.model.docker.DockerCommit;
 import org.sagebionetworks.repo.model.docker.DockerCommitSortBy;
+import org.sagebionetworks.repo.model.docker.DockerRegistryEventList;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class DockerServiceImpl implements DockerService {
@@ -35,6 +36,13 @@ public class DockerServiceImpl implements DockerService {
 			String entityId, DockerCommitSortBy sortBy, boolean ascending, long limit, long offset) {
 				UserInfo userInfo = userManager.getUserInfo(userId);
 		return dockerManager.listDockerCommits(userInfo, entityId, sortBy, ascending, limit, offset);
+	}
+
+	@Override
+	public void dockerRegistryNotification(
+			DockerRegistryEventList registryEvents) {
+		// TODO errors should go to CloudWatch
+		dockerManager.dockerRegistryNotification(registryEvents);
 	}
 
 }

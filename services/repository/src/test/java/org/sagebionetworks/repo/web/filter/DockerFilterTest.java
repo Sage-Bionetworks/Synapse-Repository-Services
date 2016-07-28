@@ -36,7 +36,7 @@ public class DockerFilterTest {
 	@Mock
 	PrincipalAlias mockPrincipalAlias;
 
-	DockerFilter filter;
+	DockerClientAuthFilter filter;
 	String header;
 	String username = "username";
 	String password = "password";
@@ -45,7 +45,7 @@ public class DockerFilterTest {
 	@Before
 	public void before() {
 		MockitoAnnotations.initMocks(this);
-		filter = new DockerFilter();
+		filter = new DockerClientAuthFilter();
 		header = BasicAuthUtils.BASIC_PREFIX + Base64.encode(username+":"+password);
 		ReflectionTestUtils.setField(filter, "authenticationService", mockAuthenticationService);
 	}
