@@ -122,10 +122,6 @@
 	<!-- The Subscription Service -->
 	<bean id="dockerService" class="org.sagebionetworks.repo.web.service.DockerServiceImpl" />
 
-		
-		<!-- The Location helper -->
-	<bean id="locationHelper" class="org.sagebionetworks.repo.util.LocationHelpersImpl" />
-
 	<bean id="referenceUtil" class="org.sagebionetworks.repo.util.ReferenceUtilImpl" />
 
 	<!-- Provides validation for all types -->
