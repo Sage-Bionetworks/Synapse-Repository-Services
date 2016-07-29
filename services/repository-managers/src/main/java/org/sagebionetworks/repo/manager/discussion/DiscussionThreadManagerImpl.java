@@ -47,6 +47,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 
 	private static final DiscussionFilter DEFAULT_FILTER = DiscussionFilter.NO_FILTER;
 	public static final int MAX_TITLE_LENGTH = 140;
+	public static final long MAX_LIMIT = 20L;
 	@Autowired
 	private DiscussionThreadDAO threadDao;
 	@Autowired
@@ -195,6 +196,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		ValidateArgument.required(forumId, "forumId");
 		ValidateArgument.required(filter, "filter");
 		UserInfo.validateUserInfo(userInfo);
+		ValidateArgument.requirement(limit==null || limit <= MAX_LIMIT, "Limit cannot exceed "+MAX_LIMIT);
 		String projectId = forumDao.getForum(Long.parseLong(forumId)).getProjectId();
 		if (filter.equals(DiscussionFilter.EXCLUDE_DELETED)) {
 			AuthorizationManagerUtil.checkAuthorizationAndThrowException(
@@ -203,7 +205,18 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 			AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 					authorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.MODERATE));
 		}
-		PaginatedResults<DiscussionThreadBundle> threads = threadDao.getThreads(Long.parseLong(forumId), limit, offset, order, ascending, filter);
+
+		PaginatedResults<DiscussionThreadBundle> threads = new PaginatedResults<DiscussionThreadBundle>();
+		long forumIdLong = Long.parseLong(forumId);
+		long count = threadDao.getThreadCountForForum(forumIdLong, filter);
+		threads.setTotalNumberOfResults(count);
+
+		List<DiscussionThreadBundle> results = new ArrayList<DiscussionThreadBundle>();
+		if (count > 0) {
+			results = threadDao.getThreadsForForum(Long.parseLong(forumId), limit, offset, order, ascending, filter);
+			
+		}
+		threads.setResults(results);
 		return updateNumberOfReplies(threads, filter);
 	}
 
@@ -244,11 +257,19 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 			Long offset, DiscussionThreadOrder order, Boolean ascending) {
 		ValidateArgument.required(entityId, "entityId");
 		UserInfo.validateUserInfo(userInfo);
+		ValidateArgument.requirement(limit == null || limit <= MAX_LIMIT, "Limit cannot exceed "+MAX_LIMIT);
 		Long entityIdLong = KeyFactory.stringToKey(entityId);
-		Set<Long> projectIds = threadDao.getProjectIds(Arrays.asList(entityIdLong));
+		Set<Long> projectIds = threadDao.getDistinctProjectIdsOfThreadsReferencesEntityIds(Arrays.asList(entityIdLong));
 		projectIds = aclDao.getAccessibleBenefactors(userInfo.getGroups(), projectIds, ObjectType.ENTITY, ACCESS_TYPE.READ);
-		PaginatedResults<DiscussionThreadBundle> threads =
-				threadDao.getThreadsForEntity(entityIdLong, limit, offset, order, ascending, DiscussionFilter.EXCLUDE_DELETED, projectIds);
+
+		PaginatedResults<DiscussionThreadBundle> threads = new PaginatedResults<DiscussionThreadBundle>();
+		long count = threadDao.getThreadCountForEntity(entityIdLong, DiscussionFilter.EXCLUDE_DELETED, projectIds);
+		threads.setTotalNumberOfResults(count);
+		List<DiscussionThreadBundle> results = new ArrayList<DiscussionThreadBundle>();
+		if (count > 0) {
+			results = threadDao.getThreadsForEntity(entityIdLong, limit, offset, order, ascending, DiscussionFilter.EXCLUDE_DELETED, projectIds);
+		}
+		threads.setResults(results);
 		return updateNumberOfReplies(threads, DiscussionFilter.EXCLUDE_DELETED);
 	}
 
@@ -256,8 +277,10 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 	public EntityThreadCounts getEntityThreadCounts(UserInfo userInfo, EntityIdList entityIdList) {
 		UserInfo.validateUserInfo(userInfo);
 		ValidateArgument.required(entityIdList, "entityIdList");
-		List<Long> entityIds = KeyFactory.getKeys(entityIdList);
-		Set<Long> projectIds = threadDao.getProjectIds(entityIds);
+		ValidateArgument.required(entityIdList.getIdList(), "EntityIdList.list");
+		ValidateArgument.requirement(entityIdList.getIdList().size() <= MAX_LIMIT, "The size of entityIdList cannot exceed "+MAX_LIMIT);
+		List<Long> entityIds = KeyFactory.stringToKey(entityIdList.getIdList());
+		Set<Long> projectIds = threadDao.getDistinctProjectIdsOfThreadsReferencesEntityIds(entityIds);
 		projectIds = aclDao.getAccessibleBenefactors(userInfo.getGroups(), projectIds, ObjectType.ENTITY, ACCESS_TYPE.READ);
 		return threadDao.getThreadCounts(entityIds, projectIds);
 	}

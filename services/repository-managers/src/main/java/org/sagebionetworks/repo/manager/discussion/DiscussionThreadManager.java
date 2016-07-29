@@ -125,7 +125,7 @@ public interface DiscussionThreadManager {
 	void checkPermission(UserInfo userInfo, String threadId, ACCESS_TYPE accessType);
 
 	/**
-	 * Get threads that mentioned entityId
+	 *Get threads that belongs to projects user can view and references the given entity
 	 * 
 	 * @param userInfo
 	 * @param entityId
@@ -139,7 +139,8 @@ public interface DiscussionThreadManager {
 			Long offset, DiscussionThreadOrder order, Boolean ascending);
 
 	/**
-	 * Get EntityThreadCounts for a list of entityIds.
+	 * Get list of entity and count pairs, with count is the number of threads
+	 *  that belongs to projects user can view and references the given entity.
 	 * 
 	 * @param user
 	 * @param entityIds
