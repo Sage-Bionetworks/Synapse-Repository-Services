@@ -12,5 +12,4 @@
 	<aop:aspectj-autoproxy />
 	
 	<bean id="dockerClientAuthFilter" class="org.sagebionetworks.repo.web.filter.DockerClientAuthFilter" />	
-	<bean id="dockerRegistryAuthFilter" class="org.sagebionetworks.repo.web.filter.DockerRegistryAuthFilter" />	
 </beans>

@@ -218,13 +218,13 @@ public class ITDocker {
 				requestHeaders);
 
 		// check that repo was created
-		JSONObject queryResult = synapseOne.query("select id from dokerrepo where projectId == '"+projectId+"'");
+		JSONObject queryResult = synapseOne.query("select id from dockerrepo where projectId == '"+projectId+"'");
 		Long count = queryResult.getLong("totalNumberOfResults");
 		assertEquals(new Long(1), count);
 
 	}
 
-	@Test(expected=UnauthorizedException.class)
+	@Test
 	public void testSendRegistryEventsWrongCredentials() throws Exception {
 		Map<String, String> requestHeaders = new HashMap<String, String>();
 		// Note, without this header  we get a 415 response code
@@ -235,9 +235,11 @@ public class ITDocker {
 		DockerRegistryEventList registryEvents = new DockerRegistryEventList();
 		URL url = new URL(StackConfiguration.getDockerRegistryListenerEndpoint() + 
 				DOCKER_REGISTRY_EVENTS);
-		conn.performRequest(url.toString(), "POST",
+		String urlString = url.toString();
+		HttpResponse response = conn.performRequest(url.toString(), "POST",
 				EntityFactory.createJSONStringForEntity(registryEvents),
 				requestHeaders);
+		assertEquals(HttpStatus.SC_UNAUTHORIZED, response.getStatusLine().getStatusCode());
 	}
 
 

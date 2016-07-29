@@ -116,15 +116,10 @@
 		<filter-name>dockerClientAuthFilter</filter-name>
 		<url-pattern>/docker/v1/*</url-pattern>
 	</filter-mapping>
-
+	
 	<filter>
 		<filter-name>dockerRegistryAuthFilter</filter-name>
-		<filter-class>org.springframework.web.filter.DelegatingFilterProxy</filter-class>
-		<init-param>
-			<!-- Make sure the init-params are passed through the proxy to the bean -->
-			<param-name>targetFilterLifecycle</param-name>
-			<param-value>true</param-value>
-		</init-param>
+		<filter-class>org.sagebionetworks.repo.web.filter.DockerRegistryAuthFilter</filter-class>
 	</filter>
 
 	<filter-mapping>
@@ -261,7 +256,4 @@
 		<url-pattern>/repo/v1/cloudMailInMessage/*</url-pattern>
 		<url-pattern>/repo/v1/cloudMailInAuthorization/*</url-pattern>
 	</filter-mapping>
-
-	
-
 </web-app>
