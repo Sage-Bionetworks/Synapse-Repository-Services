@@ -245,12 +245,16 @@ public class ITDocker {
 				requestHeaders);
 		
 		HttpEntity httpEntity = response.getEntity();
-		
 		try {
 			assertEquals(HttpStatus.SC_UNAUTHORIZED, response.getStatusLine().getStatusCode());
 		} finally {
 			EntityUtils.consumeQuietly(httpEntity);
 		}
+		
+		JSONObject queryResult = synapseOne.query("select id from dockerrepo where projectId == '"+projectId+"'");
+		Long count = queryResult.getLong("totalNumberOfResults");
+		assertEquals(new Long(0), count);
+
 	}
 
 
