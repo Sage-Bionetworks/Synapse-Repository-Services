@@ -198,19 +198,16 @@ public class ITCloudMailIn {
 		String fromemail = "notArealUser@sagebase.org";
 		HttpResponse response = sendMessage("CloudMailInMessages/"
 				+ sampleFileName, fromemail);
-		HttpEntity httpEntity = response.getEntity();
-		try {
-			String responseBody = IOUtils.toString(httpEntity.getContent());
-			assertEquals(
-					"Specified address notArealUser@sagebase.org is not registered with Synapse.",
-					responseBody);
-			String contentType = httpEntity.getContentType().getValue();
-			assertTrue(contentType, contentType.startsWith("text/plain"));
-			assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusLine()
-					.getStatusCode());
-		} finally {
-			EntityUtils.consumeQuietly(httpEntity);
-		}
+
+		String responseBody = IOUtils.toString(response.getEntity()
+				.getContent());
+		assertEquals(
+				"Specified address notArealUser@sagebase.org is not registered with Synapse.",
+				responseBody);
+		String contentType = response.getEntity().getContentType().getValue();
+		assertTrue(contentType, contentType.startsWith("text/plain"));
+		assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusLine()
+				.getStatusCode());
 	}
 
 
