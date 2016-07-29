@@ -1,5 +1,8 @@
 package org.sagebionetworks.repo.web.filter;
 
+import static org.sagebionetworks.repo.web.filter.UserThrottleFilter.CONCURRENT_CONNECTION_KEY_PREFIX;
+import static org.sagebionetworks.repo.web.filter.UserThrottleFilter.REQUEST_FREQUENCY_KEY_PREFIX;
+
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Date;
@@ -33,10 +36,12 @@ public class UserThrottleFilter implements Filter {
 	public static final long CONCURRENT_CONNECTIONS_LOCK_TIMEOUT_SEC = 60*10; // 10 MINS
 	// The maximum number of concurrent locks a user can have per machine.
 	public static final int MAX_CONCURRENT_LOCKS = 3;
+	public static final String CONCURRENT_CONNECTION_KEY_PREFIX = "Concurrent Connections Key - ";
 	
 	//limit users to on average send 1 request per 1 second
 	public static final long REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC =  30; //30 seconds
 	public static final int MAX_REQUEST_FREQUENCY_LOCKS = 30;
+	public static final String REQUEST_FREQUENCY_KEY_PREFIX = "Request Frequency Key - ";
 	
 
 	private static Logger log = LogManager.getLogger(UserThrottleFilter.class);
@@ -45,10 +50,7 @@ public class UserThrottleFilter implements Filter {
 	private Consumer consumer;
 	
 	@Autowired
-	MemoryCountingSemaphore userThrottleConcurrentConnectionsMemoryCountingSemaphore;
-	
-	@Autowired
-	MemoryCountingSemaphore userThrottleRequestFrequencyMemoryCountingSemaphore;
+	MemoryCountingSemaphore userThrottleMemoryCountingSemaphore;
 
 	@Override
 	public void destroy() {
@@ -63,14 +65,17 @@ public class UserThrottleFilter implements Filter {
 			chain.doFilter(request, response);
 		} else {
 			try {
-				String concurrentLockToken = userThrottleConcurrentConnectionsMemoryCountingSemaphore.attemptToAcquireLock(userId, CONCURRENT_CONNECTIONS_LOCK_TIMEOUT_SEC, MAX_CONCURRENT_LOCKS);
-				String frequencyLockToken = userThrottleRequestFrequencyMemoryCountingSemaphore.attemptToAcquireLock(userId, REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC, MAX_REQUEST_FREQUENCY_LOCKS);
+				String concurrentKeyUserId = CONCURRENT_CONNECTION_KEY_PREFIX + userId;
+				String frequencyKeyUserId = REQUEST_FREQUENCY_KEY_PREFIX + userId;
+				
+				String concurrentLockToken = userThrottleMemoryCountingSemaphore.attemptToAcquireLock(concurrentKeyUserId, CONCURRENT_CONNECTIONS_LOCK_TIMEOUT_SEC, MAX_CONCURRENT_LOCKS);
+				String frequencyLockToken = userThrottleMemoryCountingSemaphore.attemptToAcquireLock(frequencyKeyUserId, REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC, MAX_REQUEST_FREQUENCY_LOCKS);
 				if (concurrentLockToken != null && frequencyLockToken != null) {
 					try {
 						chain.doFilter(request, response);
 					} finally {
 						try {
-							userThrottleConcurrentConnectionsMemoryCountingSemaphore.releaseLock(userId, concurrentLockToken);
+							userThrottleMemoryCountingSemaphore.releaseLock(concurrentKeyUserId, concurrentLockToken);
 							//do not release frequency lock, allow it to timeout to enforce frequency limit.
 						} catch (LockReleaseFailedException e) {
 							// This happens when test force the release of all locks.
