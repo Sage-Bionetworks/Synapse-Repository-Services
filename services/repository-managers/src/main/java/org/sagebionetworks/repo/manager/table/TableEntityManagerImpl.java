@@ -40,6 +40,7 @@ import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableSchemaChangeRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateRequest;
+import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
@@ -615,6 +616,23 @@ public class TableEntityManagerImpl implements TableEntityManager {
 			}
 		}
 		return false;
+	}
+
+
+	@Override
+	public void validateUpdateRequest(ProgressCallback<Void> callback,
+			UserInfo userInfo, TableUpdateRequest change,
+			TableIndexManager indexManager) {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public TableUpdateResponse updateTable(ProgressCallback<Void> callback,
+			UserInfo userInfo, TableUpdateRequest change) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }
