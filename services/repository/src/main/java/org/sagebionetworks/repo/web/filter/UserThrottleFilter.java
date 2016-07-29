@@ -36,12 +36,12 @@ public class UserThrottleFilter implements Filter {
 	public static final long CONCURRENT_CONNECTIONS_LOCK_TIMEOUT_SEC = 60*10; // 10 MINS
 	// The maximum number of concurrent locks a user can have per machine.
 	public static final int MAX_CONCURRENT_LOCKS = 3;
-	public static final String CONCURRENT_CONNECTION_KEY_PREFIX = "Concurrent Connections Key - ";
+	public static final String CONCURRENT_CONNECTION_KEY_PREFIX = "ConcurrentConnectionsKey-";
 	
 	//limit users to on average send 1 request per 1 second
 	public static final long REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC =  30; //30 seconds
 	public static final int MAX_REQUEST_FREQUENCY_LOCKS = 30;
-	public static final String REQUEST_FREQUENCY_KEY_PREFIX = "Request Frequency Key - ";
+	public static final String REQUEST_FREQUENCY_KEY_PREFIX = "RequestFrequencyKey-";
 	
 
 	private static Logger log = LogManager.getLogger(UserThrottleFilter.class);
@@ -68,34 +68,39 @@ public class UserThrottleFilter implements Filter {
 				String concurrentKeyUserId = CONCURRENT_CONNECTION_KEY_PREFIX + userId;
 				String frequencyKeyUserId = REQUEST_FREQUENCY_KEY_PREFIX + userId;
 				
+				//try to acquire the concurrent connections lock first
 				String concurrentLockToken = userThrottleMemoryCountingSemaphore.attemptToAcquireLock(concurrentKeyUserId, CONCURRENT_CONNECTIONS_LOCK_TIMEOUT_SEC, MAX_CONCURRENT_LOCKS);
-				String frequencyLockToken = userThrottleMemoryCountingSemaphore.attemptToAcquireLock(frequencyKeyUserId, REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC, MAX_REQUEST_FREQUENCY_LOCKS);
-				if (concurrentLockToken != null && frequencyLockToken != null) {
-					try {
-						chain.doFilter(request, response);
-					} finally {
+				if (concurrentLockToken != null) {
+					//then try to acquire the request frequency lock
+					String frequencyLockToken = userThrottleMemoryCountingSemaphore.attemptToAcquireLock(frequencyKeyUserId, REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC, MAX_REQUEST_FREQUENCY_LOCKS);
+					if(frequencyLockToken != null){
+						//acquired both locks. proceed to next filter
 						try {
+							chain.doFilter(request, response);
+						} finally {
+							try {
+								//clean up by releasing locks
+								userThrottleMemoryCountingSemaphore.releaseLock(concurrentKeyUserId, concurrentLockToken);
+								//do not release frequency lock, allow it to timeout to enforce frequency limit.
+							} catch (LockReleaseFailedException e) {
+								// This happens when test force the release of all locks.
+								log.info(e.getMessage());
+							}
+						}
+					}else{
+						//could not acquire request frequency lock
+						try {
+							//release the previously acquired concurrent connection lock
 							userThrottleMemoryCountingSemaphore.releaseLock(concurrentKeyUserId, concurrentLockToken);
-							//do not release frequency lock, allow it to timeout to enforce frequency limit.
 						} catch (LockReleaseFailedException e) {
 							// This happens when test force the release of all locks.
 							log.info(e.getMessage());
 						}
+						reportLockAcquireError(userId, response, "RequestFrequencyLockUnavailable", AuthorizationConstants.REASON_REQUESTS_TOO_FREQUENT);
 					}
-				} else {
-					String eventName = ((concurrentLockToken == null) ? "ConcurrentConnections" : "RequestFrequency") + "LockUnavailable";
-					ProfileData lockUnavailableEvent = new ProfileData();
-					lockUnavailableEvent.setNamespace(this.getClass().getName());
-					lockUnavailableEvent.setName(eventName);
-					lockUnavailableEvent.setValue(1.0);
-					lockUnavailableEvent.setUnit("Count");
-					lockUnavailableEvent.setTimestamp(new Date());
-					lockUnavailableEvent.setDimension(Collections.singletonMap("UserId", userId));
-					consumer.addProfileData(lockUnavailableEvent);
-					HttpServletResponse httpResponse = (HttpServletResponse) response;
-					httpResponse.setStatus(HttpStatus.SC_SERVICE_UNAVAILABLE);
-					final String reason = (concurrentLockToken == null) ? AuthorizationConstants.REASON_TOO_MANY_CONCURRENT_REQUESTS : AuthorizationConstants.REASON_REQUESTS_TOO_FREQUENT;
-					httpResponse.getWriter().println(reason);
+				} else{
+					//could not acquire concurrent connections lock
+					reportLockAcquireError(userId, response, "ConcurrentConnectionsLockUnavailable", AuthorizationConstants.REASON_TOO_MANY_CONCURRENT_REQUESTS);
 				}
 			} catch (IOException e) {
 				throw e;
@@ -106,7 +111,30 @@ public class UserThrottleFilter implements Filter {
 			}
 		}
 	}
-
+	
+	/**
+	 * reports to cloudwatch that a lock could not be acquired and sets
+	 * @param userId id of user
+	 * @param response 
+	 * @param eventName name of event to be reported to cloudwatch
+	 * @param reason reason for user to see
+	 * @throws IOException 
+	 */
+	private void reportLockAcquireError(String userId, ServletResponse response, String eventName, String reason) throws IOException{
+		
+		ProfileData lockUnavailableEvent = new ProfileData();
+		lockUnavailableEvent.setNamespace(this.getClass().getName());
+		lockUnavailableEvent.setName(eventName);
+		lockUnavailableEvent.setValue(1.0);
+		lockUnavailableEvent.setUnit("Count");
+		lockUnavailableEvent.setTimestamp(new Date());
+		lockUnavailableEvent.setDimension(Collections.singletonMap("UserId", userId));
+		consumer.addProfileData(lockUnavailableEvent);
+		HttpServletResponse httpResponse = (HttpServletResponse) response;
+		httpResponse.setStatus(HttpStatus.SC_SERVICE_UNAVAILABLE);
+		httpResponse.getWriter().println(reason);
+	}
+	
 	@Override
 	public void init(FilterConfig arg0) throws ServletException {
 	}
