@@ -103,6 +103,7 @@ public class IT501SynapseJavaClientMessagingTest {
 	@SuppressWarnings("serial")
 	@Before
 	public void before() throws Exception {
+		adminSynapse.clearAllLocks();
 		cleanup = new ArrayList<String>();
 
 		oneToTwo = new MessageToUser();

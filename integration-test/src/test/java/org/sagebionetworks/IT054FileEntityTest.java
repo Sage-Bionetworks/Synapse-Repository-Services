@@ -87,6 +87,7 @@ public class IT054FileEntityTest {
 	
 	@Before
 	public void before() throws SynapseException {
+		adminSynapse.clearAllLocks();
 		// Create a project, this will own the file entity
 		project = new Project();
 		project = synapse.createEntity(project);

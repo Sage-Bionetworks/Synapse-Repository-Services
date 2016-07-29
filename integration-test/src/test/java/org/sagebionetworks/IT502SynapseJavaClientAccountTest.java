@@ -53,6 +53,7 @@ public class IT502SynapseJavaClientAccountTest {
 	
 	@Before
 	public void before() throws SynapseException {
+		adminSynapse.clearAllLocks();
 		s3KeyToDelete = null;
 	}
 	

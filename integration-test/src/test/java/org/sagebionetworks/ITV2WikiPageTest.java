@@ -85,6 +85,7 @@ public class ITV2WikiPageTest {
 	
 	@Before
 	public void before() throws SynapseException, IOException {
+		adminSynapse.clearAllLocks();
 		toDelete = new ArrayList<WikiPageKey>();
 		fileHandlesToDelete = new ArrayList<String>();
 		// Get image and markdown files from the classpath.
