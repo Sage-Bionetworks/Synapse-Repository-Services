@@ -258,4 +258,11 @@ public interface TableIndexDAO {
 	 * Delete the temporary table associated with the given table.
 	 */
 	public void deleteTemporaryTable(String tableId);
+
+	/**
+	 * Count the rows in the temp table.
+	 * @param tableId
+	 * @return
+	 */
+	public long getTempTableCount(String tableId);
 }

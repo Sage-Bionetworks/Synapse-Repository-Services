@@ -1051,4 +1051,18 @@ public class SQLUtilsTest {
 		String sql = SQLUtils.createTempTableSql(tableId);
 		assertEquals("CREATE TABLE TEMP123 LIKE T123", sql);
 	}
+	
+	@Test 
+	public void testCopyTableToTempSql(){
+		String tableId = "syn123";
+		String sql = SQLUtils.copyTableToTempSql(tableId);
+		assertEquals("INSERT INTO TEMP123 SELECT * FROM T123 ORDER BY ROW_ID", sql);
+	}
+	
+	@Test 
+	public void testDeleteTempTableSql(){
+		String tableId = "syn123";
+		String sql = SQLUtils.deleteTempTableSql(tableId);
+		assertEquals("DROP TABLE IF EXISTS TEMP123", sql);
+	}
 }

@@ -39,6 +39,10 @@ import com.google.common.collect.Lists;
 public class SQLUtils {
 
 
+	private static final String DROP_TABLE_IF_EXISTS = "DROP TABLE IF EXISTS %1$S";
+	private static final String SELECT_COUNT_FROM_TEMP = "SELECT COUNT(*) FROM ";
+	private static final String SQL_COPY_TABLE_TO_TEMP = "INSERT INTO %1$S SELECT * FROM %2$S ORDER BY "+ROW_ID;
+	private static final String CREATE_TABLE_LIKE = "CREATE TABLE %1$S LIKE %2$S";
 	private static final String TEMP = "TEMP";
 	private static final String IDX = "idx_";
 	public static final String CHARACTER_SET_UTF8_COLLATE_UTF8_GENERAL_CI = "CHARACTER SET utf8 COLLATE utf8_general_ci";
@@ -1069,7 +1073,39 @@ public class SQLUtils {
 	public static String createTempTableSql(String tableId) {
 		String tableName = getTableNameForId(tableId, TableType.INDEX);
 		String tempName = getTemporaryTableName(tableId);
-		return String.format("CREATE TABLE %1$S LIKE %2$S", tempName, tableName);
+		return String.format(CREATE_TABLE_LIKE, tempName, tableName);
 	}
 	
+	
+	/**
+	 * Create the SQL used to copy all of the data from a table to the temp table.
+	 * 
+	 * @param tableId
+	 * @return
+	 */
+	public static String copyTableToTempSql(String tableId){
+		String tableName = getTableNameForId(tableId, TableType.INDEX);
+		String tempName = getTemporaryTableName(tableId);
+		return String.format(SQL_COPY_TABLE_TO_TEMP, tempName, tableName);
+	}
+	
+	/**
+	 * SQL to count the rows in temp table.
+	 * @param tableId
+	 * @return
+	 */
+	public static String countTempRowsSql(String tableId){
+		String tempName = getTemporaryTableName(tableId);
+		return SELECT_COUNT_FROM_TEMP+tempName;
+	}
+	
+	/**
+	 *SQL to delete a temp table.
+	 * @param tableId
+	 * @return
+	 */
+	public static String deleteTempTableSql(String tableId){
+		String tempName = getTemporaryTableName(tableId);
+		return String.format(DROP_TABLE_IF_EXISTS, tempName);
+	}
 }

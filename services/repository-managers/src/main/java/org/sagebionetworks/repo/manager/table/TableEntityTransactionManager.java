@@ -126,21 +126,40 @@ public class TableEntityTransactionManager implements TableTransactionManager {
 			UserInfo userInfo, TableUpdateTransactionRequest request) {
 
 		// Determine if a temporary table is needed to validate any of the requests.
-		boolean isTemporaryTableNeeded = isTemporaryTableNeeded(callback,
-				request);
+		boolean isTemporaryTableNeeded = isTemporaryTableNeeded(callback, request);
 		
 		// setup a temporary table if needed.
 		if(isTemporaryTableNeeded){
 			TableIndexManager indexManager = tableIndexConnectionFactory.connectToTableIndex(request.getEntityId());
 			indexManager.createTemporaryTableCopy(callback);
 			try{
-				
+				// validate while the temp table exists.
+				validateEachUpdateRequest(callback, userInfo, request, indexManager);
 			}finally{
 				indexManager.deleteTemporaryTableCopy(callback);
 			}
+		}else{
+			// we do not need a temporary copy to validate this request.
+			validateEachUpdateRequest(callback, userInfo, request, null);
 		}
-		
-		
+	}
+
+
+	/**
+	 * Validate each update request.
+	 * @param callback
+	 * @param userInfo
+	 * @param request
+	 * @param indexManager
+	 */
+	void validateEachUpdateRequest(ProgressCallback<Void> callback,
+			UserInfo userInfo, TableUpdateTransactionRequest request,
+			TableIndexManager indexManager) {
+		for(TableUpdateRequest change: request.getChanges()){
+			// progress before each check.
+			callback.progressMade(null);
+			tableEntityManager.validateUpdateRequest(callback, userInfo, change, indexManager);
+		}
 	}
 
 	/**
@@ -152,17 +171,15 @@ public class TableEntityTransactionManager implements TableTransactionManager {
 	 */
 	boolean isTemporaryTableNeeded(ProgressCallback<Void> callback,
 			TableUpdateTransactionRequest request) {
-		boolean isTemporaryTableNeeded = false;
 		for(TableUpdateRequest change: request.getChanges()){
 			// progress before each check.
 			callback.progressMade(null);
 			boolean tempNeeded = tableEntityManager.isTemporaryTableNeededToValidate(change);
 			if(tempNeeded){
-				isTemporaryTableNeeded = true;
-				break;
+				return true;
 			}
 		}
-		return isTemporaryTableNeeded;
+		return false;
 	}
 	
 	/**
@@ -179,8 +196,14 @@ public class TableEntityTransactionManager implements TableTransactionManager {
 			TableUpdateTransactionRequest request) {
 		// execute each request
 		List<TableUpdateResponse> results = new LinkedList<TableUpdateResponse>();
-
-		return null;
+		TableUpdateTransactionResponse response = new TableUpdateTransactionResponse();
+		response.setResults(results);
+		for(TableUpdateRequest change: request.getChanges()){
+			callback.progressMade(null);
+			TableUpdateResponse changeResponse = tableEntityManager.updateTable(callback, userInfo, change);
+			results.add(changeResponse);
+		}
+		return response;
 	}
 
 }
