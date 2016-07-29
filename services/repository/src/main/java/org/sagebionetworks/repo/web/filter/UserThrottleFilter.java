@@ -34,9 +34,9 @@ public class UserThrottleFilter implements Filter {
 	// The maximum number of concurrent locks a user can have per machine.
 	public static final int MAX_CONCURRENT_LOCKS = 3;
 	
-	//limit users to 1 request per 1 second
-	public static final long REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC =  1; //1 second
-	public static final int MAX_REQUEST_FREQUENCY_LOCKS = 1;
+	//limit users to on average send 1 request per 1 second
+	public static final long REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC =  30; //30 seconds
+	public static final int MAX_REQUEST_FREQUENCY_LOCKS = 30;
 	
 
 	private static Logger log = LogManager.getLogger(UserThrottleFilter.class);
