@@ -21,6 +21,7 @@ import org.apache.http.HttpStatus;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.sagebionetworks.cloudwatch.Consumer;
@@ -108,7 +109,6 @@ public class UserThrottleFilterTest {
 			filter.doFilter(request, response, filterChain);
 		} finally {
 			verify(userThrottleGate).attemptToAcquireLock(concurrentKeyUserId, CONCURRENT_CONNECTIONS_LOCK_TIMEOUT_SEC, MAX_CONCURRENT_LOCKS);
-			verify(userThrottleGate).attemptToAcquireLock(frequencyKeyUserId, REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC, MAX_REQUEST_FREQUENCY_LOCKS);
 			verifyNoMoreInteractions(filterChain, userThrottleGate);
 		}
 	}
@@ -124,9 +124,13 @@ public class UserThrottleFilterTest {
 		
 		filter.doFilter(request, response, filterChain);
 		assertEquals(HttpStatus.SC_SERVICE_UNAVAILABLE, response.getStatus());
+		
+		ArgumentCaptor<ProfileData> profileDataArgument = ArgumentCaptor.forClass(ProfileData.class); 
+		verify(consumer).addProfileData(profileDataArgument.capture());
+		assertEquals("ConcurrentConnectionsLockUnavailable", profileDataArgument.getValue().getName());
+		
 
 		verify(userThrottleGate).attemptToAcquireLock(concurrentKeyUserId, CONCURRENT_CONNECTIONS_LOCK_TIMEOUT_SEC, MAX_CONCURRENT_LOCKS);
-		verify(userThrottleGate).attemptToAcquireLock(frequencyKeyUserId, REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC, MAX_REQUEST_FREQUENCY_LOCKS);
 		verify(consumer).addProfileData(any(ProfileData.class));
 		verifyNoMoreInteractions(filterChain, userThrottleGate, userThrottleGate, consumer);
 	}
@@ -141,9 +145,15 @@ public class UserThrottleFilterTest {
 
 		filter.doFilter(request, response, filterChain);
 		assertEquals(HttpStatus.SC_SERVICE_UNAVAILABLE, response.getStatus());
-
+		
+		ArgumentCaptor<ProfileData> profileDataArgument = ArgumentCaptor.forClass(ProfileData.class); 
+		verify(consumer).addProfileData(profileDataArgument.capture());
+		assertEquals("RequestFrequencyLockUnavailable", profileDataArgument.getValue().getName());
+		
+		
 		verify(userThrottleGate).attemptToAcquireLock(concurrentKeyUserId, CONCURRENT_CONNECTIONS_LOCK_TIMEOUT_SEC, MAX_CONCURRENT_LOCKS);
 		verify(userThrottleGate).attemptToAcquireLock(frequencyKeyUserId, REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC, MAX_REQUEST_FREQUENCY_LOCKS);
+		verify(userThrottleGate).releaseLock(concurrentKeyUserId, concurrentSemaphoreToken);
 		verify(consumer).addProfileData(any(ProfileData.class));
 		verifyNoMoreInteractions(filterChain, userThrottleGate, userThrottleGate, consumer);
 	}
