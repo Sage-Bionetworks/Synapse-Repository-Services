@@ -38,7 +38,7 @@ public class DockerRegistryEventController extends BaseController {
 	 * 
 	 * @param registryEvents
 	 */
-	@ResponseStatus(HttpStatus.CREATED)
+	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.DOCKER_REGISTRY_EVENTS, method = RequestMethod.POST)
 	public void registryEvents(@RequestBody DockerRegistryEventList registryEvents)  {
 		serviceProvider.getDockerService().dockerRegistryNotification(registryEvents);
