@@ -1,6 +1,7 @@
 package org.sagebionetworks;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayOutputStream;
@@ -12,8 +13,10 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.apache.commons.codec.binary.Base64;
+import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
+import org.apache.http.util.EntityUtils;
 import org.json.JSONObject;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -41,7 +44,7 @@ public class ITCloudMailIn {
 	private static String username;
 	private static String password;
 	private static final String[] SAMPLE_MESSAGES = { "SimpleMessage.json",
-			"MessageWithAttachment.json" };
+	"MessageWithAttachment.json" };
 
 	private static final String MESSAGE_URI = "/cloudMailInMessage";
 	private static final String AUTHORIZATION_URI = "/cloudMailInAuthorization";
@@ -55,7 +58,7 @@ public class ITCloudMailIn {
 		adminSynapse = new SynapseAdminClientImpl();
 		SynapseClientHelper.setEndpoints(adminSynapse);
 		adminSynapse
-				.setUserName(StackConfiguration.getMigrationAdminUsername());
+		.setUserName(StackConfiguration.getMigrationAdminUsername());
 		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
 		adminSynapse.clearAllLocks();
 		synapseOne = new SynapseClientImpl();
@@ -75,9 +78,9 @@ public class ITCloudMailIn {
 		conn = synapseOne.getSharedClientConnection();
 		requestHeaders = new HashMap<String, String>();
 		requestHeaders.put("Content-Type", "application/json"); // Note, without
-																// this header
-																// we get a 415
-																// response code
+		// this header
+		// we get a 415
+		// response code
 		requestHeaders.put(
 				"Authorization",
 				"Basic "
@@ -111,12 +114,12 @@ public class ITCloudMailIn {
 			JSONObject origHeaders = new JSONObject(message.getHeaders());
 			JSONObject newHeaders = new JSONObject();
 			newHeaders.put("Subject", origHeaders.get("Subject")); // can copy
-																	// other
-																	// headers
-																	// too
+			// other
+			// headers
+			// too
 			String toemail = userProfile.getEmails().get(0);
 			message.setHeaders(newHeaders.toString());
-			
+
 			Envelope newEnvelope = new Envelope();
 			newEnvelope.setFrom(fromemail);
 			newEnvelope.setRecipients(Collections.singletonList(myusername + "@synapse.org"));
@@ -131,9 +134,14 @@ public class ITCloudMailIn {
 					EntityFactory.createJSONStringForEntity(message),
 					requestHeaders);
 
-			if (response.getStatusLine().getStatusCode() == HttpStatus.SC_NO_CONTENT) {
-				// check that message is sent (file is created)
-				assertTrue(EmailValidationUtil.doesFileExist(emailMessageKey, 60000L));
+			HttpEntity httpEntity = response.getEntity();
+			try {
+				if (response.getStatusLine().getStatusCode() == HttpStatus.SC_NO_CONTENT) {
+					// check that message is sent (file is created)
+					assertTrue(EmailValidationUtil.doesFileExist(emailMessageKey, 60000L));
+				}
+			} finally {
+				EntityUtils.consumeQuietly(httpEntity);
 			}
 			return response;
 
@@ -165,7 +173,7 @@ public class ITCloudMailIn {
 		requestHeaders.put("Authorization",
 				"Basic "+ (new String(Base64.encodeBase64(
 						(username + ":ThisIsTheWrongPassword!!!")
-										.getBytes()))));
+						.getBytes()))));
 
 		String sampleFileName = SAMPLE_MESSAGES[0];
 		UserProfile userProfile = synapseOne.getUserProfile(user1ToDelete
@@ -173,8 +181,14 @@ public class ITCloudMailIn {
 		String fromemail = userProfile.getEmails().get(0);
 		HttpResponse response = sendMessage("CloudMailInMessages/"
 				+ sampleFileName, fromemail);
-		assertEquals(HttpStatus.SC_UNAUTHORIZED, response.getStatusLine()
-				.getStatusCode());
+		HttpEntity httpEntity = response.getEntity();
+		try {
+			assertEquals(HttpStatus.SC_UNAUTHORIZED, response.getStatusLine()
+					.getStatusCode());
+		} finally {
+			EntityUtils.consumeQuietly(httpEntity);
+		}
+
 	}
 
 	// send from an invalid email and check that the error comes back
@@ -184,28 +198,32 @@ public class ITCloudMailIn {
 		String fromemail = "notArealUser@sagebase.org";
 		HttpResponse response = sendMessage("CloudMailInMessages/"
 				+ sampleFileName, fromemail);
-		String responseBody = IOUtils.toString(response.getEntity()
-				.getContent());
-		assertEquals(
-				"Specified address notArealUser@sagebase.org is not registered with Synapse.",
-				responseBody);
-		String contentType = response.getEntity().getContentType().getValue();
-		assertTrue(contentType, contentType.startsWith("text/plain"));
-		assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusLine()
-				.getStatusCode());
+		HttpEntity httpEntity = response.getEntity();
+		try {
+			String responseBody = IOUtils.toString(httpEntity.getContent());
+			assertEquals(
+					"Specified address notArealUser@sagebase.org is not registered with Synapse.",
+					responseBody);
+			String contentType = httpEntity.getContentType().getValue();
+			assertTrue(contentType, contentType.startsWith("text/plain"));
+			assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusLine()
+					.getStatusCode());
+		} finally {
+			EntityUtils.consumeQuietly(httpEntity);
+		}
 	}
-	
-	
+
+
 	@Test
 	public void testCloudMailAuthorizationOK() throws Exception {
 		UserProfile fromUserProfile = synapseOne.getUserProfile(user1ToDelete
 				.toString());
 		String fromemail = fromUserProfile.getEmails().get(0);
-		
+
 		UserProfile toUserProfile = synapseOne.getUserProfile(user1ToDelete
 				.toString());
 		String toUsername = toUserProfile.getUserName();
-		
+
 		AuthorizationCheckHeader ach = new AuthorizationCheckHeader();
 		ach.setFrom(fromemail);
 		ach.setTo(toUsername+"@synapse.org");
@@ -214,9 +232,14 @@ public class ITCloudMailIn {
 		HttpResponse response = conn.performRequest(url.toString(), "POST",
 				EntityFactory.createJSONStringForEntity(ach),
 				requestHeaders);
+		HttpEntity httpEntity = response.getEntity();
+		try {
 
-		assertEquals(HttpStatus.SC_NO_CONTENT, response.getStatusLine()
-				.getStatusCode());
+			assertEquals(HttpStatus.SC_NO_CONTENT, response.getStatusLine()
+					.getStatusCode());
+		} finally {
+			EntityUtils.consumeQuietly(httpEntity);
+		}
 
 	}
 
@@ -225,10 +248,10 @@ public class ITCloudMailIn {
 		UserProfile fromUserProfile = synapseOne.getUserProfile(user1ToDelete
 				.toString());
 		String fromemail = fromUserProfile.getEmails().get(0);
-		
+
 		// this is not a valid recipient
 		String toUsername = UUID.randomUUID().toString();
-		
+
 		AuthorizationCheckHeader ach = new AuthorizationCheckHeader();
 		ach.setFrom(fromemail);
 		ach.setTo(toUsername+"@synapse.org");
@@ -238,11 +261,16 @@ public class ITCloudMailIn {
 				EntityFactory.createJSONStringForEntity(ach),
 				requestHeaders);
 
-		String contentType = response.getEntity().getContentType().getValue();
-		assertTrue(contentType, contentType.startsWith("text/plain"));
+		HttpEntity httpEntity = response.getEntity();
+		try {
+			String contentType = httpEntity.getContentType().getValue();
+			assertTrue(contentType, contentType.startsWith("text/plain"));
 
-		assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusLine()
-				.getStatusCode());
+			assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusLine()
+					.getStatusCode());
+		} finally {
+			EntityUtils.consumeQuietly(httpEntity);
+		}
 
 	}
 

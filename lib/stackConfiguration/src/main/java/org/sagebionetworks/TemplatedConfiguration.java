@@ -141,5 +141,11 @@ public interface TemplatedConfiguration {
 	 * @return docker service endpoint
 	 */
 	public String getDockerServiceEndpoint();
+	
+	/**
+	 * 
+	 * @return the endpoint for the docker registry event listener
+	 */
+	public String getDockerRegistryListenerEndpoint();
 
 }

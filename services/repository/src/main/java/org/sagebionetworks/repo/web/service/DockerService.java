@@ -4,6 +4,7 @@ import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.docker.DockerAuthorizationToken;
 import org.sagebionetworks.repo.model.docker.DockerCommit;
 import org.sagebionetworks.repo.model.docker.DockerCommitSortBy;
+import org.sagebionetworks.repo.model.docker.DockerRegistryEventList;
 
 
 public interface DockerService {
@@ -38,5 +39,14 @@ public interface DockerService {
 	 */
 	public PaginatedResults<DockerCommit> listDockerCommits(Long userId, 
 			String entityId, DockerCommitSortBy sortBy, boolean ascending, long limit, long offset);
+	
+	
+	/**
+	 * Process Event notifications from Docker registry
+	 * 
+	 * @param registryEvents
+	 */
+	public void dockerRegistryNotification(DockerRegistryEventList registryEvents);
+
 
 }

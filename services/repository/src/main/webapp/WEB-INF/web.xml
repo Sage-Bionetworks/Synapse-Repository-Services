@@ -99,7 +99,7 @@
 	</filter-mapping>
 
 	<filter>
-		<filter-name>dockerFilter</filter-name>
+		<filter-name>dockerClientAuthFilter</filter-name>
 		<filter-class>org.springframework.web.filter.DelegatingFilterProxy</filter-class>
 		<init-param>
 			<!-- Make sure the init-params are passed through the proxy to the bean -->
@@ -113,8 +113,18 @@
 	</filter>
 
 	<filter-mapping>
-		<filter-name>dockerFilter</filter-name>
+		<filter-name>dockerClientAuthFilter</filter-name>
 		<url-pattern>/docker/v1/*</url-pattern>
+	</filter-mapping>
+	
+	<filter>
+		<filter-name>dockerRegistryAuthFilter</filter-name>
+		<filter-class>org.sagebionetworks.repo.web.filter.DockerRegistryAuthFilter</filter-class>
+	</filter>
+
+	<filter-mapping>
+		<filter-name>dockerRegistryAuthFilter</filter-name>
+		<url-pattern>/dockerRegistryListener/v1/*</url-pattern>
 	</filter-mapping>
 
 	<filter>
@@ -246,7 +256,4 @@
 		<url-pattern>/repo/v1/cloudMailInMessage/*</url-pattern>
 		<url-pattern>/repo/v1/cloudMailInAuthorization/*</url-pattern>
 	</filter-mapping>
-
-	
-
 </web-app>
