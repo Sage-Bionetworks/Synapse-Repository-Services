@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.model.dao.discussion;
 import java.util.List;
 import java.util.Set;
 
-import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadAuthorStat;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
@@ -58,7 +57,7 @@ public interface DiscussionThreadDAO {
 	 * @param filter 
 	 * @return
 	 */
-	public PaginatedResults<DiscussionThreadBundle> getThreads(long forumId,
+	public List<DiscussionThreadBundle> getThreadsForForum(long forumId,
 			Long limit, Long offset, DiscussionThreadOrder order, Boolean ascending,
 			DiscussionFilter filter);
 
@@ -193,14 +192,15 @@ public interface DiscussionThreadDAO {
 	 * @param ascending
 	 * @param filter
 	 * @param projectIds
-	 * @return a paginated list of threads that mentioned the enityId
+	 * @return a list of threads that are in the given projectIds and referenced
+	 *  the given enityId
 	 */
-	public PaginatedResults<DiscussionThreadBundle> getThreadsForEntity(long entityId,
+	public List<DiscussionThreadBundle> getThreadsForEntity(long entityId,
 			Long limit, Long offset, DiscussionThreadOrder order, Boolean ascending,
 			DiscussionFilter filter, Set<Long> projectIds);
 
 	/**
-	 * Insert a batch of DiscussionThreadEntityReference
+	 * Insert a batch of references from a thread to an entity
 	 * 
 	 * @param refs
 	 */
@@ -212,7 +212,7 @@ public interface DiscussionThreadDAO {
 	 * @param list
 	 * @return
 	 */
-	public Set<Long> getProjectIds(List<Long> list);
+	public Set<Long> getDistinctProjectIdsOfThreadsReferencesEntityIds(List<Long> list);
 
 	/**
 	 * @param entityIds
@@ -221,4 +221,13 @@ public interface DiscussionThreadDAO {
 	 *  particular entity, for a list of entityIds.
 	 */
 	public EntityThreadCounts getThreadCounts(List<Long> entityIds, Set<Long> projectIds);
+
+	/**
+	 * @param entityId
+	 * @param filter
+	 * @param projectIds
+	 * @return number of threads, within a range or projects, that mentioned a
+	 *  particular entity, for a given entityId
+	 */
+	public long getThreadCountForEntity(long entityId, DiscussionFilter filter, Set<Long> projectIds);
 }

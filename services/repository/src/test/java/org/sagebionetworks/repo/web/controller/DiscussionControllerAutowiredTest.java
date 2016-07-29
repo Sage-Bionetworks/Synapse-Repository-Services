@@ -321,9 +321,7 @@ public class DiscussionControllerAutowiredTest extends AbstractAutowiredControll
 		createThread.setForumId(forum.getId());
 		servletTestHelper.createThread(dispatchServlet, adminUserId, createThread);
 		EntityIdList entityIdList = new EntityIdList();
-		EntityId id = new EntityId();
-		id.setId(project.getId());
-		entityIdList.setIdList(Arrays.asList(id));
+		entityIdList.setIdList(Arrays.asList(project.getId()));
 		EntityThreadCounts results = servletTestHelper.getEntityThreadCounts(dispatchServlet, adminUserId, entityIdList);
 		assertNotNull(results);
 		assertNotNull(results.getList());

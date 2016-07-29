@@ -101,7 +101,7 @@ public class DiscussionController extends BaseController {
 	 * Target users: anyone who has READ permission to the project.
 	 * 
 	 * @param userId - The ID of the user who is making the request
-	 * @param limit - Limits the size of the page returned. For example, a page size of 10 require limit = 10. The maximum Limit for this call is 100.
+	 * @param limit - Limits the size of the page returned. For example, a page size of 10 require limit = 10. The maximum Limit for this call is 20.
 	 * @param offset - The index of the pagination offset. For a page size of 10, the first page would be at offset = 0, and the second page would be at offset = 10.
 	 * @param sort - The field to sort the resulting threads on
 	 * @param ascending - The direction of sort: true for ascending, and false for descending
@@ -423,17 +423,18 @@ public class DiscussionController extends BaseController {
 	}
 
 	/**
-	 * This API is used to get N number of threads for a given entityId.
+	 * This API is used to get N number of threads that belongs to projects user
+	 * can view and references the given entity.
 	 * <br/>
 	 * Target users: anyone who has READ permission to the entity.
 	 * 
 	 * @param userId - The ID of the user who is making the request
-	 * @param limit - Limits the size of the page returned. For example, a page size of 10 require limit = 10. The maximum Limit for this call is 100.
+	 * @param limit - Limits the size of the page returned. For example, a page size of 10 require limit = 10. The maximum Limit for this call is 20.
 	 * @param offset - The index of the pagination offset. For a page size of 10, the first page would be at offset = 0, and the second page would be at offset = 10.
 	 * @param sort - The field to sort the resulting threads on
 	 * @param ascending - The direction of sort: true for ascending, and false for descending
 	 * @param id - The request entityId
-	 * @return
+	 * @return the threads that user has read permission to.
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_ID_THREADS, method = RequestMethod.GET)
@@ -448,12 +449,14 @@ public class DiscussionController extends BaseController {
 	}
 
 	/**
-	 * This API is used to get EntityThreadCounts for a list of entityIds.
+	 * This API is used to get list of entity and count pairs, with count is the
+	 * number of threads that belongs to projects user can view and references
+	 * the given entity.
 	 * <br/>
 	 * Target users: anyone who has READ permission to the project.
 	 * 
 	 * @param userId - The ID of the user who is making the request
-	 * @param entityIds - The requested list
+	 * @param entityIds - The requested list. Limit size 20.
 	 * @return
 	 */
 	@ResponseStatus(HttpStatus.OK)
