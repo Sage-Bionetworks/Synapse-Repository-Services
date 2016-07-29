@@ -45,6 +45,7 @@ public class IT070SynapseJavaClientTrashCanTest {
 
 	@Before
 	public void before() throws SynapseException {
+		adminSynapse.clearAllLocks();
 		parent = new Project();
 		parent.setName("IT070SynapseJavaClientTrashCanTest.parent");
 		parent = synapse.createEntity(parent);
