@@ -73,13 +73,7 @@
 	
 	<bean id="multipartManagerV2" class="org.sagebionetworks.repo.manager.file.MultipartManagerV2Impl"  />
 	
-	<bean name="userThrottleConcurrentConnectionsMemoryCountingSemaphore" class="org.sagebionetworks.repo.model.semaphore.MemoryCountingSemaphoreImpl" scope="singleton">
-		<constructor-arg index="0">
-		<bean class="org.sagebionetworks.common.util.ClockImpl"/>
-		</constructor-arg>
-	</bean>
-	
-	<bean name="userThrottleRequestFrequencyMemoryCountingSemaphore" class="org.sagebionetworks.repo.model.semaphore.MemoryCountingSemaphoreImpl" scope="singleton">
+	<bean name="userThrottleMemoryCountingSemaphore" class="org.sagebionetworks.repo.model.semaphore.MemoryCountingSemaphoreImpl" scope="singleton">
 		<constructor-arg index="0">
 		<bean class="org.sagebionetworks.common.util.ClockImpl"/>
 		</constructor-arg>
