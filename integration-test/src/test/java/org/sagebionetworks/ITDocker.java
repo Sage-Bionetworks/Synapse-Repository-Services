@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.apache.commons.codec.binary.Base64;
+import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.util.EntityUtils;
@@ -31,7 +32,6 @@ import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
-import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.docker.DockerCommit;
 import org.sagebionetworks.repo.model.docker.DockerRegistryEvent;
 import org.sagebionetworks.repo.model.docker.DockerRegistryEventList;
@@ -126,11 +126,16 @@ public class ITDocker {
 		urlString += "&" + SCOPE_PARAM + "=" + URLEncoder.encode(scope, "UTF-8");
 		HttpResponse response = conn.performRequest(urlString, "GET", null,
 				requestHeaders);
+		
+		HttpEntity httpEntity = response.getEntity();
+		try {
+			assertNotNull(EntityUtils.toString(httpEntity));
 
-		assertNotNull(EntityUtils.toString(response.getEntity()));
-
-		assertEquals(HttpStatus.SC_OK, response.getStatusLine()
-				.getStatusCode());
+			assertEquals(HttpStatus.SC_OK, response.getStatusLine()
+					.getStatusCode());
+		} finally {
+			EntityUtils.consumeQuietly(httpEntity);
+		}
 	}
 
 	private static DockerCommit createCommit(String tag, String digest) {
@@ -171,7 +176,7 @@ public class ITDocker {
 	}
 	
 	// helper function to construct registry events in the prescribed format
-	public static DockerRegistryEventList createDockerRegistryEvent(
+	private static DockerRegistryEventList createDockerRegistryEvent(
 			RegistryEventAction action, String host, long userId, String repositoryPath, String tag, String digest) {
 		DockerRegistryEvent event = new DockerRegistryEvent();
 		event.setAction(action);
@@ -235,11 +240,17 @@ public class ITDocker {
 		DockerRegistryEventList registryEvents = new DockerRegistryEventList();
 		URL url = new URL(StackConfiguration.getDockerRegistryListenerEndpoint() + 
 				DOCKER_REGISTRY_EVENTS);
-		String urlString = url.toString();
 		HttpResponse response = conn.performRequest(url.toString(), "POST",
 				EntityFactory.createJSONStringForEntity(registryEvents),
 				requestHeaders);
-		assertEquals(HttpStatus.SC_UNAUTHORIZED, response.getStatusLine().getStatusCode());
+		
+		HttpEntity httpEntity = response.getEntity();
+		
+		try {
+			assertEquals(HttpStatus.SC_UNAUTHORIZED, response.getStatusLine().getStatusCode());
+		} finally {
+			EntityUtils.consumeQuietly(httpEntity);
+		}
 	}
 
 
