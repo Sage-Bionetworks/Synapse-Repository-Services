@@ -1,7 +1,6 @@
 package org.sagebionetworks;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayOutputStream;
@@ -13,10 +12,8 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.apache.commons.codec.binary.Base64;
-import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
-import org.apache.http.util.EntityUtils;
 import org.json.JSONObject;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -134,14 +131,9 @@ public class ITCloudMailIn {
 					EntityFactory.createJSONStringForEntity(message),
 					requestHeaders);
 
-			HttpEntity httpEntity = response.getEntity();
-			try {
-				if (response.getStatusLine().getStatusCode() == HttpStatus.SC_NO_CONTENT) {
-					// check that message is sent (file is created)
-					assertTrue(EmailValidationUtil.doesFileExist(emailMessageKey, 60000L));
-				}
-			} finally {
-				EntityUtils.consumeQuietly(httpEntity);
+			if (response.getStatusLine().getStatusCode() == HttpStatus.SC_NO_CONTENT) {
+				// check that message is sent (file is created)
+				assertTrue(EmailValidationUtil.doesFileExist(emailMessageKey, 60000L));
 			}
 			return response;
 
@@ -181,14 +173,8 @@ public class ITCloudMailIn {
 		String fromemail = userProfile.getEmails().get(0);
 		HttpResponse response = sendMessage("CloudMailInMessages/"
 				+ sampleFileName, fromemail);
-		HttpEntity httpEntity = response.getEntity();
-		try {
-			assertEquals(HttpStatus.SC_UNAUTHORIZED, response.getStatusLine()
-					.getStatusCode());
-		} finally {
-			EntityUtils.consumeQuietly(httpEntity);
-		}
-
+		assertEquals(HttpStatus.SC_UNAUTHORIZED, response.getStatusLine()
+				.getStatusCode());
 	}
 
 	// send from an invalid email and check that the error comes back
@@ -198,7 +184,6 @@ public class ITCloudMailIn {
 		String fromemail = "notArealUser@sagebase.org";
 		HttpResponse response = sendMessage("CloudMailInMessages/"
 				+ sampleFileName, fromemail);
-
 		String responseBody = IOUtils.toString(response.getEntity()
 				.getContent());
 		assertEquals(
@@ -229,14 +214,9 @@ public class ITCloudMailIn {
 		HttpResponse response = conn.performRequest(url.toString(), "POST",
 				EntityFactory.createJSONStringForEntity(ach),
 				requestHeaders);
-		HttpEntity httpEntity = response.getEntity();
-		try {
 
-			assertEquals(HttpStatus.SC_NO_CONTENT, response.getStatusLine()
-					.getStatusCode());
-		} finally {
-			EntityUtils.consumeQuietly(httpEntity);
-		}
+		assertEquals(HttpStatus.SC_NO_CONTENT, response.getStatusLine()
+				.getStatusCode());
 
 	}
 
@@ -258,16 +238,11 @@ public class ITCloudMailIn {
 				EntityFactory.createJSONStringForEntity(ach),
 				requestHeaders);
 
-		HttpEntity httpEntity = response.getEntity();
-		try {
-			String contentType = httpEntity.getContentType().getValue();
-			assertTrue(contentType, contentType.startsWith("text/plain"));
+		String contentType = response.getEntity().getContentType().getValue();
+		assertTrue(contentType, contentType.startsWith("text/plain"));
 
-			assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusLine()
-					.getStatusCode());
-		} finally {
-			EntityUtils.consumeQuietly(httpEntity);
-		}
+		assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusLine()
+				.getStatusCode());
 
 	}
 
