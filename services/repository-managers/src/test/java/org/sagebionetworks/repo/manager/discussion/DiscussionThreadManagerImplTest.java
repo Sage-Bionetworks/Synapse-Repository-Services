@@ -195,6 +195,7 @@ public class DiscussionThreadManagerImplTest {
 		verify(mockReplyDao).getReplyCount(Long.parseLong(createdThread.getId()), DiscussionFilter.EXCLUDE_DELETED);
 		verify(mockTransactionalMessenger).sendMessageAfterCommit(createdThread.getId(), ObjectType.THREAD, dto.getEtag(), ChangeType.CREATE, userInfo.getId());
 		verify(mockSubscriptionDao).create(eq(userId.toString()), eq(dto.getId()), eq(SubscriptionObjectType.THREAD));
+		verify(mockThreadDao).insertEntityReference(any(List.class));
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -318,6 +319,7 @@ public class DiscussionThreadManagerImplTest {
 		when(mockThreadDao.updateMessageKey(Mockito.anyLong(), Mockito.anyString())).thenReturn(dto);
 		assertEquals(dto, threadManager.updateMessage(userInfo, threadId.toString(), newMessage));
 		verify(mockReplyDao).getReplyCount(threadId, DiscussionFilter.EXCLUDE_DELETED);
+		verify(mockThreadDao).insertEntityReference(any(List.class));
 	}
 
 	@Test (expected = UnauthorizedException.class)

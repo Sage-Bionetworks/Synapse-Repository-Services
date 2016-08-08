@@ -87,6 +87,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		DiscussionThreadBundle thread = threadDao.createThread(createThread.getForumId(), id.toString(), createThread.getTitle(), messageKey, userInfo.getId());
 		transactionalMessenger.sendMessageAfterCommit(""+id, ObjectType.THREAD, thread.getEtag(),  ChangeType.CREATE, userInfo.getId());
 		subscriptionDao.create(userInfo.getId().toString(), id.toString(), SubscriptionObjectType.THREAD);
+		threadDao.insertEntityReference(DiscussionUtils.getEntityReferences(createThread.getMessageMarkdown(), thread.getId()));
 		return updateNumberOfReplies(thread, DiscussionFilter.EXCLUDE_DELETED);
 	}
 
@@ -156,6 +157,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		if (authorizationManager.isUserCreatorOrAdmin(userInfo, thread.getCreatedBy())) {
 			String messageKey = uploadDao.uploadThreadMessage(newMessage.getMessageMarkdown(), thread.getForumId(), thread.getId());
 			thread = threadDao.updateMessageKey(threadIdLong, messageKey);
+			threadDao.insertEntityReference(DiscussionUtils.getEntityReferences(newMessage.getMessageMarkdown(), thread.getId()));
 			return updateNumberOfReplies(thread, DiscussionFilter.EXCLUDE_DELETED);
 		} else {
 			throw new UnauthorizedException("Only the user that created the thread can modify it.");
