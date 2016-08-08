@@ -45,6 +45,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 
+	private static final long DEFAULT_OFFSET = 0L;
 	private static final DiscussionFilter DEFAULT_FILTER = DiscussionFilter.NO_FILTER;
 	public static final int MAX_TITLE_LENGTH = 140;
 	public static final long MAX_LIMIT = 20L;
@@ -198,7 +199,14 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		ValidateArgument.required(forumId, "forumId");
 		ValidateArgument.required(filter, "filter");
 		UserInfo.validateUserInfo(userInfo);
-		ValidateArgument.requirement(limit==null || limit <= MAX_LIMIT, "Limit cannot exceed "+MAX_LIMIT);
+		if (limit == null) {
+			limit = MAX_LIMIT;
+		}
+		if (offset == null) {
+			offset = DEFAULT_OFFSET;
+		}
+		ValidateArgument.requirement(limit >= 0 && offset >= 0 && limit <= MAX_LIMIT,
+				"Limit and offset must be greater than 0, and limit must be smaller than or equal to "+MAX_LIMIT);
 		String projectId = forumDao.getForum(Long.parseLong(forumId)).getProjectId();
 		if (filter.equals(DiscussionFilter.EXCLUDE_DELETED)) {
 			AuthorizationManagerUtil.checkAuthorizationAndThrowException(
@@ -216,7 +224,6 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		List<DiscussionThreadBundle> results = new ArrayList<DiscussionThreadBundle>();
 		if (count > 0) {
 			results = threadDao.getThreadsForForum(Long.parseLong(forumId), limit, offset, order, ascending, filter);
-			
 		}
 		threads.setResults(results);
 		return updateNumberOfReplies(threads, filter);
@@ -259,7 +266,14 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 			Long offset, DiscussionThreadOrder order, Boolean ascending) {
 		ValidateArgument.required(entityId, "entityId");
 		UserInfo.validateUserInfo(userInfo);
-		ValidateArgument.requirement(limit == null || limit <= MAX_LIMIT, "Limit cannot exceed "+MAX_LIMIT);
+		if (limit == null) {
+			limit = MAX_LIMIT;
+		}
+		if (offset == null) {
+			offset = DEFAULT_OFFSET;
+		}
+		ValidateArgument.requirement(limit >= 0 && offset >= 0 && limit <= MAX_LIMIT,
+				"Limit and offset must be greater than 0, and limit must be smaller than or equal to "+MAX_LIMIT);
 		Long entityIdLong = KeyFactory.stringToKey(entityId);
 		Set<Long> projectIds = threadDao.getDistinctProjectIdsOfThreadsReferencesEntityIds(Arrays.asList(entityIdLong));
 		projectIds = aclDao.getAccessibleBenefactors(userInfo.getGroups(), projectIds, ObjectType.ENTITY, ACCESS_TYPE.READ);
