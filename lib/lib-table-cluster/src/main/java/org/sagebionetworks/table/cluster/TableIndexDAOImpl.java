@@ -24,6 +24,8 @@ import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
 import org.sagebionetworks.util.ValidateArgument;
+import org.springframework.dao.DataAccessException;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -474,6 +476,34 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			return;
 		}
 		template.update(alterSql);
+	}
+
+	@Override
+	public void createTemporaryTable(String tableId) {
+		String sql = SQLUtils.createTempTableSql(tableId);
+		template.update(sql);
+	}
+
+	@Override
+	public void copyAllDataToTemporaryTable(String tableId) {
+		String sql = SQLUtils.copyTableToTempSql(tableId);
+		template.update(sql);
+	}
+
+	@Override
+	public void deleteTemporaryTable(String tableId) {
+		String sql = SQLUtils.deleteTempTableSql(tableId);
+		template.update(sql);
+	}
+
+	@Override
+	public long getTempTableCount(String tableId) {
+		String sql = SQLUtils.countTempRowsSql(tableId);
+		try {
+			return template.queryForObject(sql, Long.class);
+		} catch (DataAccessException e) {
+			return 0l;
+		}
 	}
 
 }

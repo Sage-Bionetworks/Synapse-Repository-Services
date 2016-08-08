@@ -634,13 +634,6 @@ public class SqlConstants {
 	public static final String COL_UPLOAD_STATUS_RUNTIME_MS			= "RUNTIME_MS";
 	public static final String DDL_UPLOAD_STATUS					= "schema/UploadDaemonStatus-ddl.sql";
 	
-	// Storage Quota
-	public static final String TABLE_STORAGE_QUOTA            = "STORAGE_QUOTA";
-	public static final String COL_STORAGE_QUOTA_OWNER_ID     = "OWNER_ID";
-	public static final String COL_STORAGE_QUOTA_ETAG         = "ETAG";
-	public static final String COL_STORAGE_QUOTA_QUOTA_IN_MB  = "QUOTA_IN_MB";
-	public static final String DDL_FILE_STORAGE_QUOTA         ="schema/StorageQuota-ddl.sql";
-	
 	// Credential
 	public static final String TABLE_CREDENTIAL             = "CREDENTIAL";
 	public static final String COL_CREDENTIAL_PRINCIPAL_ID  = "PRINCIPAL_ID";
@@ -792,6 +785,12 @@ public class SqlConstants {
 	public static final String COL_DISCUSSION_REPLY_IS_DELETED = "IS_DELETED";
 	public static final String DDL_DISCUSSION_REPLY = "schema/DiscussionReply-ddl.sql";
 
+	// Discussion Thread Entity Reference table
+	public static final String TABLE_DISCUSSION_THREAD_ENTITY_REFERENCE = "DISCUSSION_THREAD_ENTITY_REFERENCE";
+	public static final String COL_DISCUSSION_THREAD_ENTITY_REFERENCE_THREAD_ID = "THREAD_ID";
+	public static final String COL_DISCUSSION_THREAD_ENTITY_REFERENCE_ENTITY_ID = "ENTITY_ID";
+	public static final String DDL_DISCUSSION_THREAD_ENTITY_REFERENCE = "schema/DiscussionThreadEntityReference-ddl.sql";
+
 	// Subscription table
 	public static final String TABLE_SUBSCRIPTION = "SUBSCRIPTION";
 	public static final String COL_SUBSCRIPTION_ID = "ID";
@@ -813,6 +812,15 @@ public class SqlConstants {
 	public static final String TABLE_DOCKER_REPOSITORY_NAME = "DOCKER_REPOSITORY_NAME";
 	public static final String COL_DOCKER_REPOSITORY_OWNER_ID = "OWNER_ID";
 	public static final String COL_DOCKER_REPOSITORY_NAME = "REPOSITORY_NAME";
+	
+	// DockerCommit table
+	public static final String TABLE_DOCKER_COMMIT = "DOCKER_COMMIT";
+	public static final String COL_DOCKER_COMMIT_ID = "ID";
+	public static final String COL_DOCKER_COMMIT_OWNER_ID = "OWNER_ID";
+	public static final String COL_DOCKER_COMMIT_TAG = "TAG";
+	public static final String COL_DOCKER_COMMIT_DIGEST = "DIGEST";
+	public static final String COL_DOCKER_COMMIT_CREATED_ON = "CREATED_ON";
+	
 
 	// This seems to be the name of the id column for all tables.
 	public static final String COLUMN_ID		= "id";

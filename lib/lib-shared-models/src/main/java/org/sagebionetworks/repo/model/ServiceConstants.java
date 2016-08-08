@@ -265,4 +265,18 @@ public class ServiceConstants {
 	public static final String DISCUSSION_FILTER_PARAM = "filter";
 
 	public static final String SUBSCRIPTION_OBJECT_TYPE_PARAM = "objectType";
+	
+	/**
+	 * limit number of items to delete from the trash can
+	 */
+	public static final String TRASH_CAN_DELETE_LIMIT_PARAM = "limit";
+	
+	public static final String DEFAULT_TRASH_CAN_DELETE_LIMIT = "250000";
+	
+	/**
+	 * number of days trash items must have been in the trash
+	 */
+	public static final String DAYS_IN_TRASH_CAN_PARAM = "daysInTrash";
+	
+	public static final String DEFAULT_DAYS_IN_TRASH_CAN = "30";
 }

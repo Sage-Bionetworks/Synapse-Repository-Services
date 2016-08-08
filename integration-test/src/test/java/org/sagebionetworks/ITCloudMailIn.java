@@ -41,7 +41,7 @@ public class ITCloudMailIn {
 	private static String username;
 	private static String password;
 	private static final String[] SAMPLE_MESSAGES = { "SimpleMessage.json",
-			"MessageWithAttachment.json" };
+	"MessageWithAttachment.json" };
 
 	private static final String MESSAGE_URI = "/cloudMailInMessage";
 	private static final String AUTHORIZATION_URI = "/cloudMailInAuthorization";
@@ -55,7 +55,7 @@ public class ITCloudMailIn {
 		adminSynapse = new SynapseAdminClientImpl();
 		SynapseClientHelper.setEndpoints(adminSynapse);
 		adminSynapse
-				.setUserName(StackConfiguration.getMigrationAdminUsername());
+		.setUserName(StackConfiguration.getMigrationAdminUsername());
 		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
 		adminSynapse.clearAllLocks();
 		synapseOne = new SynapseClientImpl();
@@ -75,9 +75,9 @@ public class ITCloudMailIn {
 		conn = synapseOne.getSharedClientConnection();
 		requestHeaders = new HashMap<String, String>();
 		requestHeaders.put("Content-Type", "application/json"); // Note, without
-																// this header
-																// we get a 415
-																// response code
+		// this header
+		// we get a 415
+		// response code
 		requestHeaders.put(
 				"Authorization",
 				"Basic "
@@ -111,12 +111,12 @@ public class ITCloudMailIn {
 			JSONObject origHeaders = new JSONObject(message.getHeaders());
 			JSONObject newHeaders = new JSONObject();
 			newHeaders.put("Subject", origHeaders.get("Subject")); // can copy
-																	// other
-																	// headers
-																	// too
+			// other
+			// headers
+			// too
 			String toemail = userProfile.getEmails().get(0);
 			message.setHeaders(newHeaders.toString());
-			
+
 			Envelope newEnvelope = new Envelope();
 			newEnvelope.setFrom(fromemail);
 			newEnvelope.setRecipients(Collections.singletonList(myusername + "@synapse.org"));
@@ -165,7 +165,7 @@ public class ITCloudMailIn {
 		requestHeaders.put("Authorization",
 				"Basic "+ (new String(Base64.encodeBase64(
 						(username + ":ThisIsTheWrongPassword!!!")
-										.getBytes()))));
+						.getBytes()))));
 
 		String sampleFileName = SAMPLE_MESSAGES[0];
 		UserProfile userProfile = synapseOne.getUserProfile(user1ToDelete
@@ -194,18 +194,18 @@ public class ITCloudMailIn {
 		assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusLine()
 				.getStatusCode());
 	}
-	
-	
+
+
 	@Test
 	public void testCloudMailAuthorizationOK() throws Exception {
 		UserProfile fromUserProfile = synapseOne.getUserProfile(user1ToDelete
 				.toString());
 		String fromemail = fromUserProfile.getEmails().get(0);
-		
+
 		UserProfile toUserProfile = synapseOne.getUserProfile(user1ToDelete
 				.toString());
 		String toUsername = toUserProfile.getUserName();
-		
+
 		AuthorizationCheckHeader ach = new AuthorizationCheckHeader();
 		ach.setFrom(fromemail);
 		ach.setTo(toUsername+"@synapse.org");
@@ -225,10 +225,10 @@ public class ITCloudMailIn {
 		UserProfile fromUserProfile = synapseOne.getUserProfile(user1ToDelete
 				.toString());
 		String fromemail = fromUserProfile.getEmails().get(0);
-		
+
 		// this is not a valid recipient
 		String toUsername = UUID.randomUUID().toString();
-		
+
 		AuthorizationCheckHeader ach = new AuthorizationCheckHeader();
 		ach.setFrom(fromemail);
 		ach.setTo(toUsername+"@synapse.org");

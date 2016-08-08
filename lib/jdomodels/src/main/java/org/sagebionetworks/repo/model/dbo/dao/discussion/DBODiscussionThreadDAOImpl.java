@@ -10,7 +10,9 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
@@ -22,8 +24,11 @@ import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadAuthorStat;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
+import org.sagebionetworks.repo.model.discussion.DiscussionThreadEntityReference;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadReplyStat;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadViewStat;
+import org.sagebionetworks.repo.model.discussion.EntityThreadCount;
+import org.sagebionetworks.repo.model.discussion.EntityThreadCounts;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -33,6 +38,8 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 
@@ -175,17 +182,72 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 	public static final String DELETED_CONDITION = " AND "+COL_DISCUSSION_THREAD_IS_DELETED+" = TRUE";
 	private static final String SQL_SELECT_THREAD_BY_ID = SELECT_THREAD_BUNDLE
 			+" WHERE "+TABLE_DISCUSSION_THREAD+"."+COL_DISCUSSION_THREAD_ID+" = ?";
-	private static final String SQL_SELECT_THREAD_COUNT = "SELECT COUNT(*)"
+	private static final String SQL_SELECT_THREAD_COUNT_FOR_FORUM = "SELECT COUNT(*)"
 			+" FROM "+TABLE_DISCUSSION_THREAD
 			+" WHERE "+COL_DISCUSSION_THREAD_FORUM_ID+" = ?";
-	private static final String SQL_SELECT_THREADS_BY_FORUM_ID = SELECT_THREAD_BUNDLE
+	public static final String SQL_SELECT_THREADS_BY_FORUM_ID = SELECT_THREAD_BUNDLE
 			+" WHERE "+COL_DISCUSSION_THREAD_FORUM_ID+" = ?";
 	private static final String ORDER_BY_PINNED_AND_LAST_ACTIVITY = " ORDER BY "+COL_DISCUSSION_THREAD_IS_PINNED+" DESC, "
 			+COL_DISCUSSION_THREAD_STATS_LAST_ACTIVITY;
 	private static final String ORDER_BY_NUMBER_OF_VIEWS = " ORDER BY "+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_VIEWS;
 	private static final String ORDER_BY_NUMBER_OF_REPLIES = " ORDER BY "+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_REPLIES;
 	private static final String DESC = " DESC ";
-	public static final Long MAX_LIMIT = 100L;
+	public static final Long MAX_LIMIT = 20L;
+
+	// for entity references
+	private static final String ENTITY_IDS = "entityIds";
+	private static final String ID = "id";
+	private static final String PROJECT_IDS = "projectIds";
+
+	public static final String FORUM_THREAD_ENTITY_REF_JOIN = 
+			" FROM "+TABLE_DISCUSSION_THREAD_ENTITY_REFERENCE+", "
+					+TABLE_DISCUSSION_THREAD+", "
+					+TABLE_FORUM
+			+" WHERE "+TABLE_DISCUSSION_THREAD_ENTITY_REFERENCE+"."+COL_DISCUSSION_THREAD_ENTITY_REFERENCE_THREAD_ID
+					+" = "+TABLE_DISCUSSION_THREAD+"."+COL_DISCUSSION_THREAD_ID
+			+" AND "+TABLE_DISCUSSION_THREAD+"."+COL_DISCUSSION_THREAD_FORUM_ID
+					+" = "+TABLE_FORUM+"."+COL_FORUM_ID;
+	public static final String ENTITY_ID_CONDITION = COL_DISCUSSION_THREAD_ENTITY_REFERENCE_ENTITY_ID+" = :"+ID;
+	public static final String PROJECT_CONDITION = COL_FORUM_PROJECT_ID+" IN (:"+PROJECT_IDS+")";
+	public static final String ENTITY_LIST_CONDITION = COL_DISCUSSION_THREAD_ENTITY_REFERENCE_ENTITY_ID+" IN (:"+ENTITY_IDS+")";
+
+	// Count the unique threads that mentioned the given entity and belong to a project in the given list
+	public static final String SQL_SELECT_THREAD_COUNT_FOR_ENTITY =
+			"SELECT COUNT(DISTINCT "+COL_DISCUSSION_THREAD_ENTITY_REFERENCE_THREAD_ID+")"
+			+FORUM_THREAD_ENTITY_REF_JOIN
+			+" AND "+ENTITY_ID_CONDITION
+			+" AND "+PROJECT_CONDITION;
+
+	// Get thread bundles that mentioned the given entity and belong to a project in the given list
+	public static final String SQL_SELECT_THREADS_BY_ENTITY_ID = SELECT_THREAD_BUNDLE
+			+" JOIN "+TABLE_DISCUSSION_THREAD_ENTITY_REFERENCE
+			+" ON "+TABLE_DISCUSSION_THREAD_ENTITY_REFERENCE+"."+COL_DISCUSSION_THREAD_ENTITY_REFERENCE_THREAD_ID
+			+" = "+TABLE_DISCUSSION_THREAD+"."+COL_DISCUSSION_THREAD_ID
+			+" WHERE "+ENTITY_ID_CONDITION
+			+" AND "+PROJECT_CONDITION;
+
+	public static final String SQL_INSERT_IGNORE_ENTITY_REFERENCE = "INSERT IGNORE INTO "
+			+TABLE_DISCUSSION_THREAD_ENTITY_REFERENCE+"("
+			+COL_DISCUSSION_THREAD_ENTITY_REFERENCE_THREAD_ID+", "
+			+COL_DISCUSSION_THREAD_ENTITY_REFERENCE_ENTITY_ID+") "
+			+ "VALUES (?,?)";
+
+	public static final String THREAD_COUNT = "THREAD_COUNT";
+
+	// get a list of (entityId, count distinct threads) for a given list of entity,
+	// with threads belong to a project in a given list
+	public static final String SQL_GET_THREAD_COUNTS = "SELECT "
+			+COL_DISCUSSION_THREAD_ENTITY_REFERENCE_ENTITY_ID+", "
+			+"COUNT(DISTINCT "+COL_DISCUSSION_THREAD_ENTITY_REFERENCE_THREAD_ID+") AS "+THREAD_COUNT
+			+ FORUM_THREAD_ENTITY_REF_JOIN
+			+ " AND "+ENTITY_LIST_CONDITION
+			+ " AND "+PROJECT_CONDITION
+			+" GROUP BY "+COL_DISCUSSION_THREAD_ENTITY_REFERENCE_ENTITY_ID;
+
+	// Get a list of project that contains threads that mentioned an entity in the given list
+	public static final String SQL_GET_PROJECTS = "SELECT DISTINCT "+COL_FORUM_PROJECT_ID
+			+FORUM_THREAD_ENTITY_REF_JOIN
+			+" AND "+ENTITY_LIST_CONDITION;
 
 	// This query is used by the stats worker. It's critical to keep the order by threadId to prevent deadlock.
 	public static final String SQL_SELECT_ALL_THREAD_ID = "SELECT "+COL_DISCUSSION_THREAD_ID
@@ -264,7 +326,7 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 	}
 
 	@Override
-	public PaginatedResults<DiscussionThreadBundle> getThreads(long forumId,
+	public List<DiscussionThreadBundle> getThreadsForForum(long forumId,
 			Long limit, Long offset, DiscussionThreadOrder order, Boolean ascending,
 			DiscussionFilter filter) {
 		ValidateArgument.required(limit,"limit");
@@ -274,22 +336,11 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 					"Limit and offset must be greater than 0, and limit must be smaller than or equal to "+MAX_LIMIT);
 		ValidateArgument.requirement((order == null && ascending == null)
 				|| (order != null && ascending != null),"order and ascending must be both null or not null");
-		PaginatedResults<DiscussionThreadBundle> threads = new PaginatedResults<DiscussionThreadBundle>();
-		List<DiscussionThreadBundle> results = new ArrayList<DiscussionThreadBundle>();
-		long count = getThreadCount(forumId, filter);
-		threads.setTotalNumberOfResults(count);
-
-		if (count > 0) {
-			String query = buildGetQuery(limit, offset, order, ascending, filter);
-			results = jdbcTemplate.query(query, DISCUSSION_THREAD_BUNDLE_ROW_MAPPER, forumId);
-		}
-
-		threads.setResults(results);
-		return threads;
+		String query = buildGetQuery(SQL_SELECT_THREADS_BY_FORUM_ID, limit, offset, order, ascending, filter);
+		return jdbcTemplate.query(query, DISCUSSION_THREAD_BUNDLE_ROW_MAPPER, forumId);
 	}
 
-	protected static String buildGetQuery(Long limit, Long offset, DiscussionThreadOrder order, Boolean ascending, DiscussionFilter filter) {
-		String query = SQL_SELECT_THREADS_BY_FORUM_ID;
+	protected static String buildGetQuery(String query, Long limit, Long offset, DiscussionThreadOrder order, Boolean ascending, DiscussionFilter filter) {
 		query = addCondition(query, filter);
 		if (order != null) {
 			switch (order) {
@@ -379,9 +430,11 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 		return getThread(threadId, DEFAULT_FILTER);
 	}
 
-	public long getThreadCount(long forumId, DiscussionFilter filter) {
-		String query = SQL_SELECT_THREAD_COUNT;
-		return jdbcTemplate.queryForLong(addCondition(query, filter), forumId);
+
+	@Override
+	public long getThreadCountForForum(long forumId, DiscussionFilter filter) {
+		ValidateArgument.required(filter, "filter");
+		return jdbcTemplate.queryForLong(addCondition(SQL_SELECT_THREAD_COUNT_FOR_FORUM, filter), forumId);
 	}
 
 	@WriteTransactionReadCommitted
@@ -529,5 +582,106 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 		} catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException();
 		}
+	}
+
+	@Override
+	public long getThreadCountForEntity(long entityId, DiscussionFilter filter, Set<Long> projectIds) {
+		ValidateArgument.required(filter, "filter");
+		ValidateArgument.required(projectIds, "projectIds");
+		if (projectIds.isEmpty()) {
+			return 0L;
+		}
+		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
+		MapSqlParameterSource parameters = new MapSqlParameterSource(ID, entityId);
+		parameters.addValue(PROJECT_IDS, projectIds);
+		String countQuery = addCondition(SQL_SELECT_THREAD_COUNT_FOR_ENTITY, filter);
+		return namedTemplate.queryForLong(countQuery, parameters);
+	}
+
+	@Override
+	public List<DiscussionThreadBundle> getThreadsForEntity(long entityId, Long limit, Long offset,
+			DiscussionThreadOrder order, Boolean ascending, DiscussionFilter filter, Set<Long> projectIds) {
+		ValidateArgument.required(limit,"limit");
+		ValidateArgument.required(offset,"offset");
+		ValidateArgument.required(filter, "filter");
+		ValidateArgument.required(projectIds, "projectIds");
+		ValidateArgument.requirement(limit >= 0 && offset >= 0 && limit <= MAX_LIMIT,
+					"Limit and offset must be greater than 0, and limit must be smaller than or equal to "+MAX_LIMIT);
+		ValidateArgument.requirement((order == null && ascending == null)
+				|| (order != null && ascending != null),"order and ascending must be both null or not null");
+
+		if (projectIds.isEmpty()) {
+			return new ArrayList<DiscussionThreadBundle>();
+		}
+		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
+		MapSqlParameterSource parameters = new MapSqlParameterSource(ID, entityId);
+		parameters.addValue(PROJECT_IDS, projectIds);
+		String query = buildGetQuery(SQL_SELECT_THREADS_BY_ENTITY_ID, limit, offset, order, ascending, filter);
+		return namedTemplate.query(query, parameters, DISCUSSION_THREAD_BUNDLE_ROW_MAPPER);
+	}
+
+
+	@WriteTransactionReadCommitted
+	@Override
+	public void insertEntityReference(final List<DiscussionThreadEntityReference> refs) {
+		jdbcTemplate.batchUpdate(SQL_INSERT_IGNORE_ENTITY_REFERENCE, new BatchPreparedStatementSetter(){
+
+			@Override
+			public void setValues(PreparedStatement ps, int i)
+					throws SQLException {
+				ps.setLong(1, Long.parseLong(refs.get(i).getThreadId()));
+				ps.setLong(2, KeyFactory.stringToKey(refs.get(i).getEntityId()));
+			}
+
+			@Override
+			public int getBatchSize() {
+				return refs.size();
+			}
+		});
+	}
+
+	@Override
+	public EntityThreadCounts getThreadCounts(List<Long> entityIds, Set<Long> projectIds) {
+		ValidateArgument.required(entityIds, "entityIds");
+		ValidateArgument.required(projectIds, "projectIds");
+		EntityThreadCounts threadCounts = new EntityThreadCounts();
+		List<EntityThreadCount> queryResult = new ArrayList<EntityThreadCount>();
+		threadCounts.setList(queryResult);
+		if (entityIds.isEmpty() || projectIds.isEmpty()) {
+			return threadCounts;
+		}
+		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
+		MapSqlParameterSource parameters = new MapSqlParameterSource(ENTITY_IDS, entityIds);
+		parameters.addValue(PROJECT_IDS, projectIds);
+		threadCounts.setList(namedTemplate.query(SQL_GET_THREAD_COUNTS, parameters, new RowMapper<EntityThreadCount>(){
+
+			@Override
+			public EntityThreadCount mapRow(ResultSet rs, int rowNum) throws SQLException {
+				EntityThreadCount threadCount = new EntityThreadCount();
+				threadCount.setCount(rs.getLong(THREAD_COUNT));
+				threadCount.setEntityId(KeyFactory.keyToString(rs.getLong(COL_DISCUSSION_THREAD_ENTITY_REFERENCE_ENTITY_ID)));
+				return threadCount;
+			}
+		}));
+		return threadCounts;
+	}
+
+	@Override
+	public Set<Long> getDistinctProjectIdsOfThreadsReferencesEntityIds(List<Long> entityIds) {
+		ValidateArgument.required(entityIds, "entityIds");
+		final Set<Long> result = new HashSet<Long>();
+		if (entityIds.isEmpty()) {
+			return result;
+		}
+		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
+		MapSqlParameterSource parameters = new MapSqlParameterSource(ENTITY_IDS, entityIds);
+		namedTemplate.query(SQL_GET_PROJECTS, parameters, new RowMapper<Void>(){
+			@Override
+			public Void mapRow(ResultSet rs, int rowNum) throws SQLException {
+				result.add(rs.getLong(COL_FORUM_PROJECT_ID));
+				return null;
+			}
+		});
+		return result;
 	}
 }

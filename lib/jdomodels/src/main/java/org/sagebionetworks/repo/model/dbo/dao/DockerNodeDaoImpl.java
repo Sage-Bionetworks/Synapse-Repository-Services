@@ -4,16 +4,14 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOCKER_R
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOCKER_REPOSITORY_OWNER_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DOCKER_REPOSITORY_NAME;
 
-import java.util.List;
-
-import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DockerNodeDao;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBODockerManagedRepositoryName;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 public class DockerNodeDaoImpl implements DockerNodeDao {
@@ -31,7 +29,7 @@ public class DockerNodeDaoImpl implements DockerNodeDao {
 			"SELECT "+COL_DOCKER_REPOSITORY_NAME+" FROM "+TABLE_DOCKER_REPOSITORY_NAME+
 			" WHERE "+COL_DOCKER_REPOSITORY_OWNER_ID+"=?";
 	
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public void createRepositoryName(String entityId, String repositoryName) {
 		ValidateArgument.required(entityId, "entityId");
@@ -45,26 +43,21 @@ public class DockerNodeDaoImpl implements DockerNodeDao {
 	@Override
 	public String getEntityIdForRepositoryName(String repositoryName) {
 		ValidateArgument.required(repositoryName, "repositoryName");
-		List<Long> nodeIds = jdbcTemplate.queryForList(REPOSITORY_ID_SQL, Long.class, repositoryName);
-		if (nodeIds.size()==0) {
+		try {
+			long nodeId = jdbcTemplate.queryForObject(REPOSITORY_ID_SQL, Long.class, repositoryName);
+			return KeyFactory.keyToString(nodeId);
+		} catch (EmptyResultDataAccessException e) {
 			return null;
 		}
-		if (nodeIds.size()==1) {
-			 return KeyFactory.keyToString(nodeIds.get(0));
-		}
-		throw new DatastoreException("Expected 0-1 but found "+nodeIds.size());
 	}
 
 	@Override
 	public String getRepositoryNameForEntityId(String entityId) {
 		ValidateArgument.required(entityId, "entityId");
-		List<String> repositoryNames = jdbcTemplate.queryForList(REPOSITORY_NAME_SQL, String.class, KeyFactory.stringToKey(entityId));
-		if (repositoryNames.size()==0) {
+		try {
+			return jdbcTemplate.queryForObject(REPOSITORY_NAME_SQL, String.class, KeyFactory.stringToKey(entityId));
+		} catch (EmptyResultDataAccessException e) {
 			return null;
 		}
-		if (repositoryNames.size()==1) {
-			 return repositoryNames.get(0);
-		}
-		throw new DatastoreException("Expected 0-1 but found "+repositoryNames.size());
 	}
 }

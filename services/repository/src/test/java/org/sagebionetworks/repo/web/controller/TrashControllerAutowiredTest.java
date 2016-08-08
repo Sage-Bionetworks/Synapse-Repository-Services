@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
@@ -76,11 +77,15 @@ public class TrashControllerAutowiredTest extends AbstractAutowiredControllerTes
 
 	@After
 	public void after() throws Exception {
-		if (child != null) {
+		try {
 			entityService.deleteEntity(testUserId, child.getId());
+		}catch (NotFoundException e){
+			//do nothing if already deleted
 		}
-		if (parent != null) {
+		try {
 			entityService.deleteEntity(testUserId, parent.getId());
+		}catch (NotFoundException e){
+			//do nothing if already deleted
 		}
 		
 		userManager.deletePrincipal(adminUserInfo, testUserInfo.getId());
@@ -121,8 +126,6 @@ public class TrashControllerAutowiredTest extends AbstractAutowiredControllerTes
 		}
 
 		// Already purged, no need to clean
-		child = null;
-		parent = null;
 	}
 
 	@Test
@@ -154,8 +157,6 @@ public class TrashControllerAutowiredTest extends AbstractAutowiredControllerTes
 		}
 
 		// Already purged, no need to clean
-		child = null;
-		parent = null;
 	}
 
 	@Test
@@ -241,7 +242,39 @@ public class TrashControllerAutowiredTest extends AbstractAutowiredControllerTes
 		Assert.assertEquals(0, results.getResults().size());
 
 		// Already purged, no need to clean
-		child = null;
-		parent = null;
+	}
+	
+	@Test
+	public void testAdminLeaves() throws Exception{
+		//reset trash can
+		servletTestHelper.adminPurgeTrash(adminUserId);
+		PaginatedResults<TrashedEntity> results = servletTestHelper.adminGetTrashCan(adminUserId);
+		Assert.assertEquals(0, results.getTotalNumberOfResults());
+		Assert.assertEquals(0, results.getResults().size());
+
+		// Move the parent to the trash can
+		servletTestHelper.trashEntity(testUserId, parent.getId());
+
+		results = servletTestHelper.adminGetTrashCan(adminUserId);
+		Assert.assertEquals(2, results.getTotalNumberOfResults());
+		Assert.assertEquals(2, results.getResults().size());
+		
+		//purge leaves (i.e. the child)
+		servletTestHelper.adminPurgeTrashLeaves(dispatchServlet, adminUserId, 0L, Long.parseLong(ServiceConstants.DEFAULT_DAYS_IN_TRASH_CAN));
+		
+		//make sure the parent is still in the trashcan
+		results = servletTestHelper.adminGetTrashCan(adminUserId);
+		Assert.assertEquals(1, results.getTotalNumberOfResults());
+		Assert.assertEquals(1, results.getResults().size());
+		Assert.assertEquals(parent.getId(), results.getResults().get(0).getEntityId() );
+		
+		
+		
+		//delete leaves again to clean up trash can
+		servletTestHelper.adminPurgeTrashLeaves(dispatchServlet, adminUserId, 0L, Long.parseLong(ServiceConstants.DEFAULT_DAYS_IN_TRASH_CAN));
+		
+		results = servletTestHelper.adminGetTrashCan(adminUserId);
+		Assert.assertEquals(0, results.getTotalNumberOfResults());
+		Assert.assertEquals(0, results.getResults().size());
 	}
 }

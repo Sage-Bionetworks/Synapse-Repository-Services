@@ -44,7 +44,6 @@ import org.sagebionetworks.repo.model.EntityBundleCreate;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.EntityPath;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.JoinTeamSignedToken;
 import org.sagebionetworks.repo.model.LogEntry;
 import org.sagebionetworks.repo.model.MembershipInvitation;
@@ -91,6 +90,7 @@ import org.sagebionetworks.repo.model.discussion.ThreadCount;
 import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
+import org.sagebionetworks.repo.model.docker.DockerCommit;
 import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.entity.query.EntityQuery;
 import org.sagebionetworks.repo.model.entity.query.EntityQueryResults;
@@ -145,8 +145,6 @@ import org.sagebionetworks.repo.model.quiz.QuizResponse;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.status.StackStatus;
-import org.sagebionetworks.repo.model.storage.StorageUsageDimension;
-import org.sagebionetworks.repo.model.storage.StorageUsageSummaryList;
 import org.sagebionetworks.repo.model.subscription.Etag;
 import org.sagebionetworks.repo.model.subscription.Subscription;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
@@ -1134,8 +1132,6 @@ public interface SynapseClient extends BaseClient {
 	public Long getSubmissionCount(String evalId) throws SynapseException;
 
 	public QueryTableResults queryEvaluation(String query) throws SynapseException;
-	
-	public StorageUsageSummaryList getStorageUsageSummary(List<StorageUsageDimension> aggregation) throws SynapseException;
 
 	public void moveToTrash(String entityId) throws SynapseException;
 
@@ -2768,4 +2764,27 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	PrincipalAliasResponse getPrincipalAlias(PrincipalAliasRequest request) throws SynapseException;
+	
+	/**
+	 * Add a new DockerCommit to an existing Docker repository entity.  This can only be called
+	 * for external / unmanaged Docker repositories.
+	 * 
+	 * @param entityId the ID of the Docker repository
+	 * @param dockerCommit the new commit, including tag and digest
+	 * @throws SynapseException
+	 */
+	void addDockerCommit(String entityId, DockerCommit dockerCommit) throws SynapseException;
+	
+	/**
+	 * Return a paginated list of commits (tag/digest pairs) for the given Docker repository.
+	 *
+	 * @param entityId the ID of the Docker repository entity
+	 * @param limit pagination parameter, optional (default is 20)
+	 * @param offset pagination parameter, optional (default is 0)
+	 * @param sortBy TAG or CREATED_ON, optional (default is CREATED_ON)
+	 * @param ascending, optional (default is false)
+	 * @return a paginated list of commits (tag/digest pairs) for the given Docker repository.
+	 * @throws SynapseException
+	 */
+	PaginatedResults<DockerCommit> listDockerCommits(String entityId, Long limit, Long offset, DockerCommitSortBy sortBy, Boolean ascending) throws SynapseException;
 }

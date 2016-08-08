@@ -4,10 +4,12 @@ import java.io.IOException;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.EntityIdList;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
 import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
+import org.sagebionetworks.repo.model.discussion.EntityThreadCounts;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.MessageURL;
 import org.sagebionetworks.repo.model.discussion.ThreadCount;
@@ -121,4 +123,28 @@ public interface DiscussionThreadManager {
 	 * @param accessType
 	 */
 	void checkPermission(UserInfo userInfo, String threadId, ACCESS_TYPE accessType);
+
+	/**
+	 *Get threads that belongs to projects user can view and references the given entity
+	 * 
+	 * @param userInfo
+	 * @param entityId
+	 * @param limit
+	 * @param offset
+	 * @param order
+	 * @param ascending
+	 * @return
+	 */
+	public PaginatedResults<DiscussionThreadBundle> getThreadsForEntity(UserInfo user, String entityId, Long limit,
+			Long offset, DiscussionThreadOrder order, Boolean ascending);
+
+	/**
+	 * Get list of entity and count pairs, with count is the number of threads
+	 *  that belongs to projects user can view and references the given entity.
+	 * 
+	 * @param user
+	 * @param entityIds
+	 * @return
+	 */
+	public EntityThreadCounts getEntityThreadCounts(UserInfo user, EntityIdList entityIds);
 }

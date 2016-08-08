@@ -389,7 +389,6 @@ public class MigrationManagerImplAutowireTest {
 		List<MigrationType> result = migrationManager.getSecondaryTypes(MigrationType.NODE);
 		List<MigrationType> expected = new LinkedList<MigrationType>();
 		expected.add(MigrationType.NODE_REVISION);
-		expected.add(MigrationType.DOCKER_REPOSITORY_NAME);
 		assertEquals(expected, result);
 		
 		// file handles do not have secondary so null

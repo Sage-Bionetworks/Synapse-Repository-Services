@@ -71,4 +71,15 @@ public interface TrashService {
 	 */
 	void purgeTrash(Long currentUserId)
 			throws DatastoreException, NotFoundException, UnauthorizedException;
+	
+	/**
+	 * Purges trash items with no children trash items that have been in the trash for more than daysOld.
+	 * @param currentUserId
+	 * 					The user currently logged in. Must be an administrator.
+	 * @param daysOld
+	 * 					Number of days old the trash to be purged must be.
+	 * @throws UnauthorizedException
+	 * 					When the current user is not an administrator.					
+	 */
+	void purgeTrashLeaves(Long currentUserId, Long daysOld, Long limit) throws DatastoreException, NotFoundException, UnauthorizedException;
 }

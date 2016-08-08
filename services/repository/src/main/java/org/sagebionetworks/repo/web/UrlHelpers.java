@@ -40,6 +40,7 @@ public class UrlHelpers {
 	public static final String FILE_PATH			= "/file/v1";
 	public static final String REPO_PATH			= "/repo/v1";
 	public static final String DOCKER_PATH			= "/docker/v1";
+	public static final String DOCKER_REGISTRY_PATH	= "/dockerRegistryListener/v1";
 	
 	/**
 	 * Used for batch requests
@@ -390,6 +391,11 @@ public class UrlHelpers {
 	 * Purges the trash can for the current user.
 	 */
 	public static final String TRASHCAN_PURGE = TRASHCAN + "/purge";
+	
+	/**
+	 * Purges the trash can for the current user of all trash items with no children trash items.
+	 */
+	public static final String TRASHCAN_PURGE_LEAVES = TRASHCAN + "/purgeleaves";
 
 	/**
 	 * Views the current trash can.
@@ -405,6 +411,11 @@ public class UrlHelpers {
 	 * Purges everything in the trash can.
 	 */
 	public static final String ADMIN_TRASHCAN_PURGE = ADMIN + TRASHCAN_PURGE;
+	
+	/**
+	 * Purges all trash items in the trash can with no children trash items.
+	 */
+	public static final String ADMIN_TRASHCAN_PURGE_LEAVES = ADMIN + TRASHCAN_PURGE_LEAVES;
 
 	/**
 	 * URL path for query controller
@@ -908,6 +919,9 @@ public class UrlHelpers {
 	public static final String URL = "/messageUrl";
 	public static final String THREAD_URL = THREAD+URL;
 	public static final String REPLY_URL = REPLY+URL;
+	public static final String ENTITY_ID_THREADS = ENTITY_ID+THREADS;
+	public static final String THREAD_COUNTS = "/threadcounts";
+	public static final String ENTITY_THREAD_COUNTS = ENTITY+THREAD_COUNTS;
 
 	// Subscription Services
 	public static final String SUBSCRIPTION = "/subscription";
@@ -923,6 +937,8 @@ public class UrlHelpers {
 	
 	// Docker authorization services
 	public static final String DOCKER_AUTHORIZATION = "/bearerToken";
+	public static final String ENITY_ID_DOCKER_COMMIT = ENTITY_ID+"/dockerCommit";
+	public static final String DOCKER_REGISTRY_EVENTS = "/events";
 
 
 	/**

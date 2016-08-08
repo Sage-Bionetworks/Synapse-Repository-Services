@@ -33,14 +33,12 @@ import org.sagebionetworks.repo.model.message.Settings;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
-import org.sagebionetworks.repo.util.LocationHelper;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 import com.amazonaws.services.s3.AmazonS3Client;
 
 public class UserProfileManagerImplUnitTest {
 
-	LocationHelper mocKLocationHelper;
 	UserProfileDAO mockProfileDAO;
 	UserGroupDAO mockUserGroupDAO;
 	UserManager mockUserManager;
@@ -65,7 +63,6 @@ public class UserProfileManagerImplUnitTest {
 	
 	@Before
 	public void before() throws Exception {
-		mocKLocationHelper = Mockito.mock(LocationHelper.class);
 		mockProfileDAO = Mockito.mock(UserProfileDAO.class);
 		mockUserGroupDAO = Mockito.mock(UserGroupDAO.class);
 		mockUserManager = Mockito.mock(UserManager.class);

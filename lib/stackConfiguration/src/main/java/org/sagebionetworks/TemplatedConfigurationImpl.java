@@ -323,6 +323,11 @@ public class TemplatedConfigurationImpl implements TemplatedConfiguration {
 	public String getDockerServiceEndpoint() {
 		return getProperty("org.sagebionetworks.docker.endpoint");
 	}
+	
+	@Override
+	public String getDockerRegistryListenerEndpoint() {
+		return getProperty("org.sagebionetworks.docker.registry.listener.endpoint");
+	}
 
 	@Override
 	public int getHttpClientMaxConnsPerRoute() {

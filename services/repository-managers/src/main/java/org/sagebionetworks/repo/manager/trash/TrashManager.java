@@ -1,8 +1,10 @@
 package org.sagebionetworks.repo.manager.trash;
 
 import java.sql.Timestamp;
+import java.util.Collection;
 import java.util.List;
 
+import org.sagebionetworks.repo.manager.trash.TrashManager.PurgeCallback;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.TrashedEntity;
@@ -17,6 +19,8 @@ public interface TrashManager {
 
 	public interface PurgeCallback {
 		void startPurge(String id);
+		
+		void startPurge(List<Long> ids);
 
 		void endPurge();
 	}
@@ -41,23 +45,31 @@ public interface TrashManager {
 	 *            The user currently logged in.
 	 * @param userInfo
 	 *            The user who deleted the entities into the trash can.
+	 * @param offset
+	 * 				Offset to begin paging results. Must be > 0.
+	 * @param limit 
+	 * 				Maximum number of results to return. Must be > 0.
 	 * @throws UnauthorizedException
 	 *             When the current user is not the same user nor an
 	 *             administrator.
 	 */
 	QueryResults<TrashedEntity> viewTrashForUser(UserInfo currentUser, UserInfo userInfo,
-			Long offset, Long limit) throws DatastoreException, UnauthorizedException;
+			long offset, long limit) throws DatastoreException, UnauthorizedException;
 
 	/**
 	 * Retrieves all the trash entities in the trash can.
 	 *
 	 * @param currentUser
 	 *            The user currently logged in. Must be an administrator.
+	 * @param offset
+	 * 				Offset to begin paging results. Must be > 0.
+	 * @param limit 
+	 * 				Maximum number of results to return. Must be > 0.
 	 * @throws UnauthorizedException
 	 *             When the current user is not an administrator.
 	 */
 	QueryResults<TrashedEntity> viewTrash(UserInfo currentUser,
-			Long offset, Long limit) throws DatastoreException, UnauthorizedException;
+			long offset, long limit) throws DatastoreException, UnauthorizedException;
 
 	/**
 	 * Purges the specified entity from the trash can. After purging, the entity
@@ -85,9 +97,32 @@ public interface TrashManager {
 	 * the specified time.
 	 */
 	List<TrashedEntity> getTrashBefore(Timestamp timestamp) throws DatastoreException;
+	
+	/**
+	 * Gets rowLimit amount of trash items that have no children trash items and are more than numDays old.
+	 * @param numDays number of days the item has been in the trash can
+	 * @param maxTrashItems maximum number of results to return
+	 * @return Set of IDs of the trash items as Longs
+	 * @throws DatastoreException
+	 */
+	public List<Long> getTrashLeavesBefore(long numDays, long maxTrashItems) throws DatastoreException;
 
 	/**
 	 * Purges a list of trashed entities. Once purged, the entities will be permanently deleted.
 	 */
-	void purgeTrash(List<TrashedEntity> trashList, PurgeCallback purgeCallback) throws DatastoreException, NotFoundException;
+	public void purgeTrash(List<TrashedEntity> trashList, PurgeCallback purgeCallback) throws DatastoreException, NotFoundException;
+	
+	/**
+	 * Purges trash by a given list of their IDs as longs. User caling this must be an admin.
+	 * @param trashIDs list of trashEntity IDs as longs
+	 * @param user must be an admin user.
+	 * @param purgeCallback optional
+	 */
+	public void purgeTrashAdmin(List<Long> trashIDs, UserInfo user, PurgeCallback purgeCallback);
+
+	public void getDescendants(String nodeID, Collection<String> descendants);
+
+	
+
+	
 }

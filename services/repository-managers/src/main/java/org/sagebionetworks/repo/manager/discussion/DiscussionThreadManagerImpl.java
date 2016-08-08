@@ -4,7 +4,9 @@ import static org.sagebionetworks.repo.manager.AuthorizationManagerImpl.*;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
@@ -12,6 +14,8 @@ import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessControlListDAO;
+import org.sagebionetworks.repo.model.EntityIdList;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UploadContentToS3DAO;
@@ -23,11 +27,13 @@ import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
 import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
+import org.sagebionetworks.repo.model.discussion.EntityThreadCounts;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.MessageURL;
 import org.sagebionetworks.repo.model.discussion.ThreadCount;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
@@ -41,6 +47,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 
 	private static final DiscussionFilter DEFAULT_FILTER = DiscussionFilter.NO_FILTER;
 	public static final int MAX_TITLE_LENGTH = 140;
+	public static final long MAX_LIMIT = 20L;
 	@Autowired
 	private DiscussionThreadDAO threadDao;
 	@Autowired
@@ -57,6 +64,8 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 	private IdGenerator idGenerator;
 	@Autowired
 	private TransactionalMessenger transactionalMessenger;
+	@Autowired
+	private AccessControlListDAO aclDao;
 
 	@WriteTransactionReadCommitted
 	@Override
@@ -187,6 +196,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		ValidateArgument.required(forumId, "forumId");
 		ValidateArgument.required(filter, "filter");
 		UserInfo.validateUserInfo(userInfo);
+		ValidateArgument.requirement(limit==null || limit <= MAX_LIMIT, "Limit cannot exceed "+MAX_LIMIT);
 		String projectId = forumDao.getForum(Long.parseLong(forumId)).getProjectId();
 		if (filter.equals(DiscussionFilter.EXCLUDE_DELETED)) {
 			AuthorizationManagerUtil.checkAuthorizationAndThrowException(
@@ -195,7 +205,18 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 			AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 					authorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.MODERATE));
 		}
-		PaginatedResults<DiscussionThreadBundle> threads = threadDao.getThreads(Long.parseLong(forumId), limit, offset, order, ascending, filter);
+
+		PaginatedResults<DiscussionThreadBundle> threads = new PaginatedResults<DiscussionThreadBundle>();
+		long forumIdLong = Long.parseLong(forumId);
+		long count = threadDao.getThreadCountForForum(forumIdLong, filter);
+		threads.setTotalNumberOfResults(count);
+
+		List<DiscussionThreadBundle> results = new ArrayList<DiscussionThreadBundle>();
+		if (count > 0) {
+			results = threadDao.getThreadsForForum(Long.parseLong(forumId), limit, offset, order, ascending, filter);
+			
+		}
+		threads.setResults(results);
 		return updateNumberOfReplies(threads, filter);
 	}
 
@@ -227,7 +248,40 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ));
 		ThreadCount count = new ThreadCount();
-		count.setCount(threadDao.getThreadCount(Long.parseLong(forumId), filter));
+		count.setCount(threadDao.getThreadCountForForum(Long.parseLong(forumId), filter));
 		return count;
+	}
+
+	@Override
+	public PaginatedResults<DiscussionThreadBundle> getThreadsForEntity(UserInfo userInfo, String entityId, Long limit,
+			Long offset, DiscussionThreadOrder order, Boolean ascending) {
+		ValidateArgument.required(entityId, "entityId");
+		UserInfo.validateUserInfo(userInfo);
+		ValidateArgument.requirement(limit == null || limit <= MAX_LIMIT, "Limit cannot exceed "+MAX_LIMIT);
+		Long entityIdLong = KeyFactory.stringToKey(entityId);
+		Set<Long> projectIds = threadDao.getDistinctProjectIdsOfThreadsReferencesEntityIds(Arrays.asList(entityIdLong));
+		projectIds = aclDao.getAccessibleBenefactors(userInfo.getGroups(), projectIds, ObjectType.ENTITY, ACCESS_TYPE.READ);
+
+		PaginatedResults<DiscussionThreadBundle> threads = new PaginatedResults<DiscussionThreadBundle>();
+		long count = threadDao.getThreadCountForEntity(entityIdLong, DiscussionFilter.EXCLUDE_DELETED, projectIds);
+		threads.setTotalNumberOfResults(count);
+		List<DiscussionThreadBundle> results = new ArrayList<DiscussionThreadBundle>();
+		if (count > 0) {
+			results = threadDao.getThreadsForEntity(entityIdLong, limit, offset, order, ascending, DiscussionFilter.EXCLUDE_DELETED, projectIds);
+		}
+		threads.setResults(results);
+		return updateNumberOfReplies(threads, DiscussionFilter.EXCLUDE_DELETED);
+	}
+
+	@Override
+	public EntityThreadCounts getEntityThreadCounts(UserInfo userInfo, EntityIdList entityIdList) {
+		UserInfo.validateUserInfo(userInfo);
+		ValidateArgument.required(entityIdList, "entityIdList");
+		ValidateArgument.required(entityIdList.getIdList(), "EntityIdList.list");
+		ValidateArgument.requirement(entityIdList.getIdList().size() <= MAX_LIMIT, "The size of entityIdList cannot exceed "+MAX_LIMIT);
+		List<Long> entityIds = KeyFactory.stringToKey(entityIdList.getIdList());
+		Set<Long> projectIds = threadDao.getDistinctProjectIdsOfThreadsReferencesEntityIds(entityIds);
+		projectIds = aclDao.getAccessibleBenefactors(userInfo.getGroups(), projectIds, ObjectType.ENTITY, ACCESS_TYPE.READ);
+		return threadDao.getThreadCounts(entityIds, projectIds);
 	}
 }

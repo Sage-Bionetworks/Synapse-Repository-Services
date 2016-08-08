@@ -24,29 +24,29 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import com.sun.syndication.io.impl.Base64;
 
-public class DockerFilterTest {
+public class DockerClientAuthFilterTest {
 	@Mock
-	AuthenticationService mockAuthenticationService;
+	private AuthenticationService mockAuthenticationService;
 	@Mock
-	HttpServletRequest mockRequest;
+	private HttpServletRequest mockRequest;
 	@Mock
-	HttpServletResponse mockResponse;
+	private HttpServletResponse mockResponse;
 	@Mock
-	FilterChain mockFilterChain;
+	private FilterChain mockFilterChain;
 	@Mock
-	PrincipalAlias mockPrincipalAlias;
+	private PrincipalAlias mockPrincipalAlias;
 
-	DockerFilter filter;
-	String header;
-	String username = "username";
-	String password = "password";
-	Long userId = 123L;
+	private DockerClientAuthFilter filter;
+	private String header;
+	private static final String USERNAME = "username";
+	private static final String PASSWORD = "password";
+	private static final Long USERID = 123L;
 
 	@Before
 	public void before() {
 		MockitoAnnotations.initMocks(this);
-		filter = new DockerFilter();
-		header = BasicAuthUtils.BASIC_PREFIX + Base64.encode(username+":"+password);
+		filter = new DockerClientAuthFilter();
+		header = BasicAuthUtils.BASIC_PREFIX + Base64.encode(USERNAME+":"+PASSWORD);
 		ReflectionTestUtils.setField(filter, "authenticationService", mockAuthenticationService);
 	}
 
@@ -67,8 +67,8 @@ public class DockerFilterTest {
 	public void testDoFilterWithWrongUsernameAndPassword() throws Exception {
 		when(mockRequest.getHeader("Authorization")).thenReturn(header);
 		LoginCredentials loginCred = new LoginCredentials();
-		loginCred.setEmail(username);
-		loginCred.setPassword(password);
+		loginCred.setEmail(USERNAME);
+		loginCred.setPassword(PASSWORD);
 		when(mockAuthenticationService.authenticate(loginCred , DomainType.SYNAPSE))
 				.thenThrow(new NotFoundException());
 
@@ -82,14 +82,14 @@ public class DockerFilterTest {
 	public void testDoFilterWithNotFoundUsername() throws Exception {
 		when(mockRequest.getHeader("Authorization")).thenReturn(header);
 		LoginCredentials loginCred = new LoginCredentials();
-		loginCred.setEmail(username);
-		loginCred.setPassword(password);
-		when(mockAuthenticationService.lookupUserForAuthentication(username))
+		loginCred.setEmail(USERNAME);
+		loginCred.setPassword(PASSWORD);
+		when(mockAuthenticationService.lookupUserForAuthentication(USERNAME))
 				.thenThrow(new NotFoundException());
 
 		filter.doFilter(mockRequest, mockResponse, mockFilterChain);
 		verify(mockAuthenticationService).authenticate(loginCred , DomainType.SYNAPSE);
-		verify(mockAuthenticationService).lookupUserForAuthentication(username);
+		verify(mockAuthenticationService).lookupUserForAuthentication(USERNAME);
 		verify(mockFilterChain, never()).doFilter(any(HttpServletRequest.class), eq(mockResponse));
 	}
 
@@ -97,11 +97,11 @@ public class DockerFilterTest {
 	public void testDoFilterAuthenticateSuccess() throws Exception {
 		when(mockRequest.getHeader("Authorization")).thenReturn(header);
 		LoginCredentials loginCred = new LoginCredentials();
-		loginCred.setEmail(username);
-		loginCred.setPassword(password);
-		when(mockAuthenticationService.lookupUserForAuthentication(username))
+		loginCred.setEmail(USERNAME);
+		loginCred.setPassword(PASSWORD);
+		when(mockAuthenticationService.lookupUserForAuthentication(USERNAME))
 				.thenReturn(mockPrincipalAlias);
-		when(mockPrincipalAlias.getPrincipalId()).thenReturn(userId);
+		when(mockPrincipalAlias.getPrincipalId()).thenReturn(USERID);
 
 		filter.doFilter(mockRequest, mockResponse, mockFilterChain);
 		verify(mockAuthenticationService).authenticate(loginCred , DomainType.SYNAPSE);
@@ -110,7 +110,7 @@ public class DockerFilterTest {
 		verify(mockFilterChain).doFilter(requestCaptor.capture(), eq(mockResponse));
 		HttpServletRequest request = requestCaptor.getValue();
 		assertNotNull(request);
-		assertEquals(request.getParameter(AuthorizationConstants.USER_ID_PARAM), userId.toString());
+		assertEquals(request.getParameter(AuthorizationConstants.USER_ID_PARAM), USERID.toString());
 	}
 
 }

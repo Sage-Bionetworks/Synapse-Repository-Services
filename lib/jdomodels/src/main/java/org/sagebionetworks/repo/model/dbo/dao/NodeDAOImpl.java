@@ -271,19 +271,19 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private DBOBasicDao dboBasicDao;
 
 	private final Long ROOT_NODE_ID = Long.parseLong(StackConfiguration.getRootFolderEntityIdStatic());
-
-	private static String BIND_ID_KEY = "bindId";
-	private static String SQL_ETAG_WITHOUT_LOCK = "SELECT "+COL_NODE_ETAG+" FROM "+TABLE_NODE+" WHERE ID = ?";
-	private static String SQL_ETAG_FOR_UPDATE = SQL_ETAG_WITHOUT_LOCK+" FOR UPDATE";
 	
-	private static String SQL_GET_ALL_VERSION_NUMBERS = "SELECT "+COL_REVISION_NUMBER+" FROM "+TABLE_REVISION+" WHERE "+COL_REVISION_OWNER_NODE +" = ? ORDER BY "+COL_REVISION_NUMBER+" DESC";
+	private static final String BIND_ID_KEY = "bindId";
+	private static final String SQL_ETAG_WITHOUT_LOCK = "SELECT "+COL_NODE_ETAG+" FROM "+TABLE_NODE+" WHERE ID = ?";
+	private static final String SQL_ETAG_FOR_UPDATE = SQL_ETAG_WITHOUT_LOCK+" FOR UPDATE";
+	
+	private static final String SQL_GET_ALL_VERSION_NUMBERS = "SELECT "+COL_REVISION_NUMBER+" FROM "+TABLE_REVISION+" WHERE "+COL_REVISION_OWNER_NODE +" = ? ORDER BY "+COL_REVISION_NUMBER+" DESC";
 
 	
-	private static String SQL_COUNT_ALL = "SELECT COUNT("+COL_NODE_ID+") FROM "+TABLE_NODE;
+	private static final String SQL_COUNT_ALL = "SELECT COUNT("+COL_NODE_ID+") FROM "+TABLE_NODE;
 	// Used to determine if a node id already exists
-	private static String SQL_COUNT_NODE_ID = "SELECT COUNT("+COL_NODE_ID+") FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID +" = :"+BIND_ID_KEY;
-	private static String SQL_COUNT_REVISON_ID = "SELECT COUNT("+COL_REVISION_OWNER_NODE+") FROM "+TABLE_REVISION+" WHERE "+COL_REVISION_OWNER_NODE +" = ? AND "+COL_REVISION_NUMBER+" = ?";
-	private static String SQL_COUNT_REVISONS = "SELECT COUNT("
+	private static final String SQL_COUNT_NODE_ID = "SELECT COUNT("+COL_NODE_ID+") FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID +" = :"+BIND_ID_KEY;
+	private static final String SQL_COUNT_REVISON_ID = "SELECT COUNT("+COL_REVISION_OWNER_NODE+") FROM "+TABLE_REVISION+" WHERE "+COL_REVISION_OWNER_NODE +" = ? AND "+COL_REVISION_NUMBER+" = ?";
+	private static final String SQL_COUNT_REVISONS = "SELECT COUNT("
 			+ COL_REVISION_NUMBER+ ") FROM " + TABLE_REVISION + " WHERE "
 			+ COL_REVISION_OWNER_NODE + " = ?";
 
@@ -291,7 +291,9 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			"SELECT DISTINCT "+COL_REVISION_FILE_HANDLE_ID
 			+" FROM "+TABLE_REVISION
 			+" WHERE "+COL_REVISION_OWNER_NODE+" = ?";
-
+	
+	private static final String SQL_DELETE_BY_IDS = "DELETE FROM " + TABLE_NODE + " WHERE ID IN (:"+ IDS_PARAM_NAME+")";
+	
 	@WriteTransaction
 	@Override
 	public String createNew(Node dto) throws NotFoundException, DatastoreException, InvalidModelException {
@@ -441,6 +443,23 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		// Send a delete message
 		transactionalMessenger.sendMessageAfterCommit(id, ObjectType.ENTITY, ChangeType.DELETE);
 		return dboBasicDao.deleteObjectByPrimaryKey(DBONode.class, prams);
+	}
+	
+	@WriteTransactionReadCommitted
+	@Override
+	public int delete(List<Long> ids) throws DatastoreException{
+		ValidateArgument.required(ids, "ids");
+		if(ids.isEmpty()){
+			//no need to update database if not deleting anything
+			return 0;
+		}
+		
+		for(long id : ids){
+			String stringID = KeyFactory.keyToString(id);
+			transactionalMessenger.sendMessageAfterCommit(stringID, ObjectType.ENTITY, ChangeType.DELETE);
+		}
+		MapSqlParameterSource parameters = new MapSqlParameterSource(IDS_PARAM_NAME, ids);
+		return namedParameterJdbcTemplate.update(SQL_DELETE_BY_IDS, parameters);
 	}
 	
 	@WriteTransaction

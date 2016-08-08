@@ -1,9 +1,6 @@
 package org.sagebionetworks.repo.manager.table;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyListOf;
@@ -55,6 +52,7 @@ import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.exception.ReadOnlyException;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.status.StatusEnum;
+import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.PartialRow;
@@ -67,8 +65,10 @@ import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.TableRowChange;
+import org.sagebionetworks.repo.model.table.TableSchemaChangeRequest;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
+import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
@@ -755,13 +755,39 @@ public class TableEntityManagerTest {
 		assertEquals(expected, out);
 	}
 	
+	@SuppressWarnings("unchecked")
 	@Test
-	public void testSetTableSchema(){
+	public void testSetTableSchema() throws Exception{
+		// setup success.
+		doAnswer(new Answer<Void>(){
+			@Override
+			public Void answer(InvocationOnMock invocation) throws Throwable {
+				ProgressCallback callback = (ProgressCallback) invocation.getArguments()[0];
+				ProgressingCallable runner = (ProgressingCallable) invocation.getArguments()[3];
+				runner.call(callback);
+				return null;
+			}}).when(mockTableManagerSupport).tryRunWithTableExclusiveLock(any(ProgressCallback.class), anyString(), anyInt(), any(ProgressingCallable.class));
+		
 		List<String> schema = Lists.newArrayList("111","222");
 		// call under test.
 		manager.setTableSchema(user, schema, tableId);
 		verify(mockColumModelManager).bindColumnToObject(user, schema, tableId);
 		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(tableId);
+	}
+	
+	@SuppressWarnings("unchecked")
+	@Test (expected=TemporarilyUnavailableException.class)
+	public void testSetTableSchemaLockUnavailableException() throws Exception{
+		// setup success.
+		doAnswer(new Answer<Void>(){
+			@Override
+			public Void answer(InvocationOnMock invocation) throws Throwable {
+				throw new LockUnavilableException("No Lock for you!");
+			}}).when(mockTableManagerSupport).tryRunWithTableExclusiveLock(any(ProgressCallback.class), anyString(), anyInt(), any(ProgressingCallable.class));
+		
+		List<String> schema = Lists.newArrayList("111","222");
+		// call under test.
+		manager.setTableSchema(user, schema, tableId);
 	}
 	
 	@Test
@@ -771,5 +797,64 @@ public class TableEntityManagerTest {
 		verify(mockColumModelManager).unbindAllColumnsAndOwnerFromObject(tableId);
 		verify(mockTruthDao).deleteAllRowDataForTable(tableId);
 		verify(mockTableManagerSupport).setTableDeleted(tableId, ObjectType.TABLE);
+	}
+	
+	@Test
+	public void testIsTemporaryTableNeededToValidateAddAndDelete(){
+		List<ColumnChange> changes = new LinkedList<ColumnChange>();
+		
+		ColumnChange delete = new ColumnChange();
+		delete.setOldColumnId("123");
+		delete.setNewColumnId(null);
+		
+		ColumnChange add = new ColumnChange();
+		add.setOldColumnId(null);
+		add.setNewColumnId("123");
+		
+		
+		changes.add(delete);
+		changes.add(add);
+		// deletes and adds do not require a temp table.
+		assertFalse(TableEntityManagerImpl.isTemporaryTableNeededToValidate(changes));
+	}
+	
+	@Test
+	public void testIsTemporaryTableNeededToValidateUpdate(){
+		List<ColumnChange> changes = new LinkedList<ColumnChange>();
+		ColumnChange update = new ColumnChange();
+		update.setOldColumnId("123");
+		update.setNewColumnId("456");
+		changes.add(update);
+		assertTrue(TableEntityManagerImpl.isTemporaryTableNeededToValidate(changes));
+	}
+	
+	@Test
+	public void testIsTemporaryTableNeededToValidateUpdateNoChange(){
+		List<ColumnChange> changes = new LinkedList<ColumnChange>();
+		ColumnChange update = new ColumnChange();
+		update.setOldColumnId("123");
+		update.setNewColumnId("123");
+		changes.add(update);
+		assertFalse(TableEntityManagerImpl.isTemporaryTableNeededToValidate(changes));
+	}
+	
+	@Test
+	public void testIsTemporaryTableNeededToValidate(){
+		List<ColumnChange> changes = new LinkedList<ColumnChange>();
+		ColumnChange update = new ColumnChange();
+		update.setOldColumnId("123");
+		update.setNewColumnId("456");
+		changes.add(update);
+		TableSchemaChangeRequest request = new TableSchemaChangeRequest();
+		request.setChanges(changes);
+		// call under test
+		assertTrue(manager.isTemporaryTableNeededToValidate(request));
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testIsTemporaryTableNeededToValidateUnknown(){
+		TableUpdateRequest mockRequest = Mockito.mock(TableUpdateRequest.class);
+		// call under test
+		manager.isTemporaryTableNeededToValidate(mockRequest);
 	}
 }
