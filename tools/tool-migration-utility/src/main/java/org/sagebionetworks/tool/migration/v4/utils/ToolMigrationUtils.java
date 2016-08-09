@@ -1,9 +1,11 @@
 package org.sagebionetworks.tool.migration.v4.utils;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.exceptions.SynapseException;
@@ -52,10 +54,46 @@ public class ToolMigrationUtils {
 		List<MigrationTypeCount> typeCounts = new LinkedList<MigrationTypeCount>();
 		List<MigrationType> types = conn.getMigrationTypes().getList();
 		for (MigrationType t: types) {
-			MigrationTypeCount c = conn.getTypeCount(t);
-			typeCounts.add(c);
+			try {
+				MigrationTypeCount c = conn.getTypeCount(t);
+				typeCounts.add(c);
+			} catch (org.sagebionetworks.client.exceptions.SynapseBadRequestException e) {
+				// Unsupported types not added to list 
+			}
 		}
 		return typeCounts;
+	}
+	
+	//	Temporary hacks to get the lists in sync
+	//	Get a set of MigrationTypes from a list of MigrationTypeCounts
+	public static Set<MigrationType> getTypesFromTypeCounts(List<MigrationTypeCount> typeCounts) {
+		Set<MigrationType> s = new HashSet<MigrationType>();
+		for (MigrationTypeCount mtc: typeCounts) {
+			s.add(mtc.getType());
+		}
+		return s;
+	}
+	
+	//	Given a list of types, only keep the MigrationTypeCounts that match these types
+	public static List<MigrationTypeCount> filterSourceByDestination(List<MigrationTypeCount> srcTypeCounts, Set<MigrationType> destTypes) {
+		List<MigrationTypeCount> toKeep = new LinkedList<MigrationTypeCount>();
+		for (MigrationTypeCount mtc: srcTypeCounts) {
+			if (destTypes.contains(mtc.getType())) {
+				toKeep.add(mtc);
+			}
+		}
+		return toKeep;
+	}
+	
+	//	Given a list of types, only keep the MigrationTypes that match
+	public static List<MigrationType> filterTypes(List<MigrationType> toFilter, Set<MigrationType> filter) {
+		List<MigrationType> toKeep = new LinkedList<MigrationType>();
+		for (MigrationType mt: toFilter) {
+			if (filter.contains(mt)) {
+				toKeep.add(mt);
+			}
+		}
+		return toKeep;
 	}
 	
 	public static List<MigrationTypeCountDiff> getMigrationTypeCountDiffs(List<MigrationTypeCount> srcCounts, List<MigrationTypeCount> destCounts) {
