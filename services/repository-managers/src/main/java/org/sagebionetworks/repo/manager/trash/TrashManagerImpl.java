@@ -7,10 +7,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.sagebionetworks.StackConfiguration;
+import org.apache.commons.lang.Validate;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
-import org.sagebionetworks.repo.manager.NodeInheritanceManager;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
@@ -28,7 +27,9 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class TrashManagerImpl implements TrashManager {
@@ -38,9 +39,6 @@ public class TrashManagerImpl implements TrashManager {
 
 	@Autowired
 	private NodeManager nodeManager;
-
-	@Autowired
-	private NodeInheritanceManager nodeInheritanceManager;
 
 	@Autowired
 	private NodeDAO nodeDao;
@@ -53,9 +51,6 @@ public class TrashManagerImpl implements TrashManager {
 	
 	@Autowired
 	private TransactionalMessenger transactionalMessenger;
-
-	@Autowired
-	private StackConfiguration stackConfig;
 
 	@WriteTransaction
 	@Override
@@ -71,7 +66,6 @@ public class TrashManagerImpl implements TrashManager {
 
 		// Authorize
 		UserInfo.validateUserInfo(currentUser);
-		String userName = currentUser.getId().toString();
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canAccess(currentUser, nodeId, ObjectType.ENTITY, ACCESS_TYPE.DELETE));
 
@@ -141,8 +135,6 @@ public class TrashManagerImpl implements TrashManager {
 			throw new ParentInTrashCanException("The intended parent " + newParentId + " is in the trash can and cannot be restored to.");
 		}
 
-		// Authorize on the new parent
-		String userName = currentUser.getId().toString();
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canAccess(currentUser, newParentId, ObjectType.ENTITY, ACCESS_TYPE.CREATE));
 		Node node = nodeDao.getNode(nodeId);
@@ -173,19 +165,14 @@ public class TrashManagerImpl implements TrashManager {
 
 	@Override
 	public QueryResults<TrashedEntity> viewTrashForUser(
-			UserInfo currentUser, UserInfo user, Long offset, Long limit) {
-
-		if (currentUser == null) {
-			throw new IllegalArgumentException("Current user cannot be null");
+			UserInfo currentUser, UserInfo user, long offset, long limit) {
+		ValidateArgument.required(currentUser, "currentUser");
+		ValidateArgument.required(user, "user");
+		if (offset < 0L) {
+			throw new IllegalArgumentException("Offset cannot be < 0");
 		}
-		if (user == null) {
-			throw new IllegalArgumentException("User cannot be null");
-		}
-		if (offset == null) {
-			throw new IllegalArgumentException("Offset cannot be null");
-		}
-		if (limit == null) {
-			throw new IllegalArgumentException("Limit cannot be null");
+		if (limit < 0L) {
+			throw new IllegalArgumentException("Limit cannot be < 0");
 		}
 
 		UserInfo.validateUserInfo(currentUser);
@@ -207,17 +194,17 @@ public class TrashManagerImpl implements TrashManager {
 
 	@Override
 	public QueryResults<TrashedEntity> viewTrash(UserInfo currentUser,
-			Long offset, Long limit) throws DatastoreException,
+			long offset, long limit) throws DatastoreException,
 			UnauthorizedException {
 
 		if (currentUser == null) {
 			throw new IllegalArgumentException("Current user cannot be null");
 		}
-		if (offset == null) {
-			throw new IllegalArgumentException("Offset cannot be null");
+		if (offset < 0L) {
+			throw new IllegalArgumentException("Offset cannot be < 0");
 		}
-		if (limit == null) {
-			throw new IllegalArgumentException("Limit cannot be null");
+		if (limit < 0L) {
+			throw new IllegalArgumentException("Limit cannot be < 0");
 		}
 
 		UserInfo.validateUserInfo(currentUser);
@@ -345,23 +332,57 @@ public class TrashManagerImpl implements TrashManager {
 			}
 		}
 	}
+	
+	@WriteTransactionReadCommitted
+	@Override
+	public void purgeTrashAdmin(List<Long> trashIDs, UserInfo userInfo, PurgeCallback purgeCallback){
+		ValidateArgument.required(trashIDs, "trashIDs");
+		ValidateArgument.required(userInfo, "userInfo");
+		
+		if (!userInfo.isAdmin()) {
+			String userId = userInfo.getId().toString();
+			throw new UnauthorizedException("Only an Administrator can perform this action.");
+		}
+		if(purgeCallback != null){
+			purgeCallback.startPurge(trashIDs);
+		}
+	
+		nodeDao.delete(trashIDs);
+		aclDAO.delete(trashIDs, ObjectType.ENTITY);
+		trashCanDao.delete(trashIDs);
+		
+		if(purgeCallback != null){
+			purgeCallback.endPurge();
+		}
+
+	}
 
 	@Override
 	public List<TrashedEntity> getTrashBefore(Timestamp timestamp) throws DatastoreException {
 		return trashCanDao.getTrashBefore(timestamp);
 	}
-
+	
+	@Override
+	public List<Long> getTrashLeavesBefore(long numDays, long maxTrashItems) throws DatastoreException{
+		return trashCanDao.getTrashLeaves(numDays, maxTrashItems);
+	}
+	
+	@Override
 	/**
 	 * Recursively gets the IDs of all the descendants.
 	 */
-	private void getDescendants(String nodeId, Collection<String> descendants) {
+	public void getDescendants(String nodeId, Collection<String> descendants) {
+		ValidateArgument.required(nodeId, "nodeId");
+		ValidateArgument.required(descendants, "descendants");
 		List<String> children = nodeDao.getChildrenIdsAsList(nodeId);
-		descendants.addAll(children);
-		if (children == null || children.size() == 0) {
+		if (children.isEmpty()) {
 			return;
 		}
+		
+		descendants.addAll(children);
 		for (String child : children) {
 			getDescendants(child, descendants); // Recursion
 		}
 	}
+
 }

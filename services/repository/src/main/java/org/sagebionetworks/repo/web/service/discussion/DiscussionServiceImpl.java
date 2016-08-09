@@ -7,6 +7,7 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.discussion.DiscussionReplyManager;
 import org.sagebionetworks.repo.manager.discussion.DiscussionThreadManager;
 import org.sagebionetworks.repo.manager.discussion.ForumManager;
+import org.sagebionetworks.repo.model.EntityIdList;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
@@ -14,6 +15,7 @@ import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
+import org.sagebionetworks.repo.model.discussion.EntityThreadCounts;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.Forum;
 import org.sagebionetworks.repo.model.discussion.MessageURL;
@@ -80,7 +82,7 @@ public class DiscussionServiceImpl implements DiscussionService{
 	}
 
 	@Override
-	public PaginatedResults<DiscussionThreadBundle> getThreads(Long userId,
+	public PaginatedResults<DiscussionThreadBundle> getThreadsForForum(Long userId,
 			String forumId, Long limit, Long offset, DiscussionThreadOrder order,
 			Boolean ascending, DiscussionFilter filter) {
 		UserInfo user = userManager.getUserInfo(userId);
@@ -153,5 +155,18 @@ public class DiscussionServiceImpl implements DiscussionService{
 	public void unpinThread(Long userId, String threadId) {
 		UserInfo user = userManager.getUserInfo(userId);
 		threadManager.unpinThread(user, threadId);
+	}
+
+	@Override
+	public PaginatedResults<DiscussionThreadBundle> getThreadsForEntity(Long userId, String entityId, Long limit,
+			Long offset, DiscussionThreadOrder order, Boolean ascending) {
+		UserInfo user = userManager.getUserInfo(userId);
+		return threadManager.getThreadsForEntity(user, entityId, limit, offset, order, ascending);
+	}
+
+	@Override
+	public EntityThreadCounts getThreadCounts(Long userId, EntityIdList entityIds) {
+		UserInfo user = userManager.getUserInfo(userId);
+		return threadManager.getEntityThreadCounts(user, entityIds);
 	}
 }

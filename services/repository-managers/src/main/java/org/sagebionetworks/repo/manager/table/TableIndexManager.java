@@ -129,6 +129,19 @@ public interface TableIndexManager {
 	 * Note: This method should be called after making all changes to a table.
 	 */
 	public void optimizeTableIndices();
+
+	/**
+	 * Create a temporary copy of the table's index table.
+	 * 
+	 * @param callback
+	 */
+	public void createTemporaryTableCopy(ProgressCallback<Void> callback);
+
+	/**
+	 * Delete the temporary copy of table's index.
+	 * @param callback
+	 */
+	public void deleteTemporaryTableCopy(ProgressCallback<Void> callback);
 	
 
 }

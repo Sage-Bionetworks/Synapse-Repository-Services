@@ -26,7 +26,7 @@ import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
-public class DockerFilter implements Filter {
+public class DockerClientAuthFilter implements Filter {
 	@Autowired
 	private AuthenticationService authenticationService;
 

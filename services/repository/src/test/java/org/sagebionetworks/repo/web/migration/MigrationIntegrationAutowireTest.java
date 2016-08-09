@@ -32,7 +32,6 @@ import org.sagebionetworks.evaluation.model.SubmissionContributor;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.manager.DockerManager;
-import org.sagebionetworks.repo.manager.StorageQuotaManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.manager.migration.MigrationManager;
@@ -66,7 +65,6 @@ import org.sagebionetworks.repo.model.QuizResponseDAO;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.StorageLocationDAO;
-import org.sagebionetworks.repo.model.StorageQuotaAdminDao;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
@@ -97,8 +95,8 @@ import org.sagebionetworks.repo.model.dbo.file.CreateMultipartRequest;
 import org.sagebionetworks.repo.model.dbo.file.MultipartUploadDAO;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOSessionToken;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
+import org.sagebionetworks.repo.model.discussion.DiscussionThreadEntityReference;
 import org.sagebionetworks.repo.model.docker.DockerRegistryEventList;
-import org.sagebionetworks.repo.model.docker.DockerRepository;
 import org.sagebionetworks.repo.model.docker.RegistryEventAction;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
@@ -186,12 +184,6 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 
 	@Autowired
 	private MigrationManager migrationManager;
-
-	@Autowired
-	private StorageQuotaManager storageQuotaManager;
-
-	@Autowired
-	private StorageQuotaAdminDao storageQuotaAdminDao;
 
 	@Autowired
 	private UserGroupDAO userGroupDAO;
@@ -340,7 +332,6 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		createAccessApproval();
 		createV2WikiPages();
 		createDoi();
-		createStorageQuota();
 		UserGroup sampleGroup = createUserGroups(1);
 		createTeamsRequestsAndInvitations(sampleGroup);
 		createCredentials(sampleGroup);
@@ -354,6 +345,7 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		createVerificationSubmission();
 		createThread();
 		createThreadView();
+		createThreadEntityReference();
 		createReply();
 		createMultipartUpload();
 		createSubscription();
@@ -396,6 +388,13 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 
 	private void createThreadView() {
 		threadDao.updateThreadView(Long.parseLong(threadId), adminUserId);
+	}
+
+	private void createThreadEntityReference() {
+		DiscussionThreadEntityReference entityRef = new DiscussionThreadEntityReference();
+		entityRef.setEntityId(project.getId());
+		entityRef.setThreadId(threadId);
+		threadDao.insertEntityReference(Arrays.asList(entityRef));
 	}
 
 	private void createReply() {
@@ -512,7 +511,6 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		migrationManager.deleteAllData(adminUserInfo);
 		// bootstrap to put back the bootstrap data
 		entityBootstrapper.bootstrapAll();
-		storageQuotaAdminDao.clear();
 	}
 
 	private void createFavorite() {
@@ -711,10 +709,6 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		fileMetadataDao.setPreviewId(handleOne.getId(), preview.getId());
 
 		return handleOne.getId();
-	}
-
-	private void createStorageQuota() {
-		storageQuotaManager.setQuotaForUser(adminUserInfo, adminUserInfo, 3000);
 	}
 
 	// returns a group for use in a team

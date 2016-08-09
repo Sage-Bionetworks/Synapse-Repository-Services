@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
@@ -8,12 +9,16 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DockerNodeDao;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.docker.DockerAuthorizationToken;
+import org.sagebionetworks.repo.model.docker.DockerCommit;
+import org.sagebionetworks.repo.model.docker.DockerCommitSortBy;
 import org.sagebionetworks.repo.model.docker.DockerRegistryEventList;
+import org.sagebionetworks.repo.model.docker.DockerRepository;
 import org.sagebionetworks.repo.model.docker.RegistryEventAction;
 import org.sagebionetworks.util.DockerRegistryEventUtil;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -78,8 +83,46 @@ public class DockerManagerImplAutowiredTest {
 				DockerRegistryEventUtil.createDockerRegistryEvent(
 						RegistryEventAction.push, SERVICE, adminUserInfo.getId(), repositoryPath, TAG, DIGEST);
 		dockerManager.dockerRegistryNotification(events);
+
+		String createdEntityId = dockerNodeDao.getEntityIdForRepositoryName(SERVICE+"/"+repositoryPath);
+		assertNotNull(createdEntityId);
+
+		PaginatedResults<DockerCommit> pgs = 
+				dockerManager.listDockerCommits(adminUserInfo, createdEntityId, 
+						DockerCommitSortBy.TAG, /*ascending*/true, 10, 0);
 		
-		assertNotNull(dockerNodeDao.getEntityIdForRepositoryName(SERVICE+"/"+repositoryPath));
+		assertEquals(1L, pgs.getTotalNumberOfResults());
+		assertEquals(1L, pgs.getResults().size());
+		DockerCommit commit = pgs.getResults().get(0);
+		assertNotNull(commit.getCreatedOn());
+		assertEquals(TAG, commit.getTag());
+		assertEquals(DIGEST, commit.getDigest());
+	}
+	
+	@Test
+	public void testAddDockerCommitToUnmanagedRespository() throws Exception {
+		DockerRepository unmanagedRepo = new DockerRepository();
+		unmanagedRepo.setId("111");
+ 		unmanagedRepo.setRepositoryName("repo/name");
+ 		unmanagedRepo.setParentId(projectId);
+		String entityId = entityManager.createEntity(adminUserInfo, unmanagedRepo, null);
+		DockerCommit commit = new DockerCommit();
+		commit.setDigest(DIGEST);
+		commit.setTag(TAG);
+		
+		// method under test
+		dockerManager.addDockerCommitToUnmanagedRespository(adminUserInfo, entityId, commit);
+		
+		PaginatedResults<DockerCommit> pgs = 
+				dockerManager.listDockerCommits(adminUserInfo, entityId, 
+						DockerCommitSortBy.TAG, /*ascending*/true, 10, 0);
+		
+		assertEquals(1L, pgs.getTotalNumberOfResults());
+		assertEquals(1L, pgs.getResults().size());
+		DockerCommit retrievedCommit = pgs.getResults().get(0);
+		assertNotNull(retrievedCommit.getCreatedOn());
+		assertEquals(TAG, retrievedCommit.getTag());
+		assertEquals(DIGEST, retrievedCommit.getDigest());
 	}
 
 }

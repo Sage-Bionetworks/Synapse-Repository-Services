@@ -5,6 +5,7 @@ import java.io.IOException;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityIdList;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
@@ -12,6 +13,7 @@ import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
+import org.sagebionetworks.repo.model.discussion.EntityThreadCounts;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.Forum;
 import org.sagebionetworks.repo.model.discussion.MessageURL;
@@ -99,7 +101,7 @@ public class DiscussionController extends BaseController {
 	 * Target users: anyone who has READ permission to the project.
 	 * 
 	 * @param userId - The ID of the user who is making the request
-	 * @param limit - Limits the size of the page returned. For example, a page size of 10 require limit = 10. The maximum Limit for this call is 100.
+	 * @param limit - Limits the size of the page returned. For example, a page size of 10 require limit = 10. The maximum Limit for this call is 20.
 	 * @param offset - The index of the pagination offset. For a page size of 10, the first page would be at offset = 0, and the second page would be at offset = 10.
 	 * @param sort - The field to sort the resulting threads on
 	 * @param ascending - The direction of sort: true for ascending, and false for descending
@@ -113,11 +115,11 @@ public class DiscussionController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM) Long limit,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM) Long offset,
-			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false) DiscussionThreadOrder order,
+			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false) DiscussionThreadOrder sort,
 			@RequestParam(value = ServiceConstants.ASCENDING_PARAM, required = false) Boolean ascending,
 			@RequestParam(value = ServiceConstants.DISCUSSION_FILTER_PARAM) DiscussionFilter filter,
 			@PathVariable String forumId) {
-		return serviceProvider.getDiscussionService().getThreads(userId, forumId, limit, offset, order, ascending, filter);
+		return serviceProvider.getDiscussionService().getThreadsForForum(userId, forumId, limit, offset, sort, ascending, filter);
 	}
 
 	/**
@@ -418,5 +420,50 @@ public class DiscussionController extends BaseController {
 			@RequestParam(value = ServiceConstants.DISCUSSION_FILTER_PARAM) DiscussionFilter filter,
 			@PathVariable String threadId) {
 		return serviceProvider.getDiscussionService().getReplyCount(userId, threadId, filter);
+	}
+
+	/**
+	 * This API is used to get N number of threads that belongs to projects user
+	 * can view and references the given entity.
+	 * <br/>
+	 * Target users: anyone who has READ permission to the entity.
+	 * 
+	 * @param userId - The ID of the user who is making the request
+	 * @param limit - Limits the size of the page returned. For example, a page size of 10 require limit = 10. The maximum Limit for this call is 20.
+	 * @param offset - The index of the pagination offset. For a page size of 10, the first page would be at offset = 0, and the second page would be at offset = 10.
+	 * @param sort - The field to sort the resulting threads on
+	 * @param ascending - The direction of sort: true for ascending, and false for descending
+	 * @param id - The request entityId
+	 * @return the threads that user has read permission to.
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ENTITY_ID_THREADS, method = RequestMethod.GET)
+	public @ResponseBody PaginatedResults<DiscussionThreadBundle> getThreadsForEntity(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM) Long limit,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM) Long offset,
+			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false) DiscussionThreadOrder order,
+			@RequestParam(value = ServiceConstants.ASCENDING_PARAM, required = false) Boolean ascending,
+			@PathVariable String id) {
+		return serviceProvider.getDiscussionService().getThreadsForEntity(userId, id, limit, offset, order, ascending);
+	}
+
+	/**
+	 * This API is used to get list of entity and count pairs, with count is the
+	 * number of threads that belongs to projects user can view and references
+	 * the given entity.
+	 * <br/>
+	 * Target users: anyone who has READ permission to the project.
+	 * 
+	 * @param userId - The ID of the user who is making the request
+	 * @param entityIds - The requested list. Limit size 20.
+	 * @return
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ENTITY_THREAD_COUNTS, method = RequestMethod.POST)
+	public @ResponseBody EntityThreadCounts getThreadCounts(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody EntityIdList entityIds) {
+		return serviceProvider.getDiscussionService().getThreadCounts(userId, entityIds);
 	}
 }

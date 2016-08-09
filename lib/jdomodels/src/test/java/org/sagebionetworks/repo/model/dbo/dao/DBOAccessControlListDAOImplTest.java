@@ -5,13 +5,16 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
@@ -22,6 +25,7 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
@@ -44,7 +48,10 @@ import com.google.common.collect.Sets;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class DBOAccessControlListDAOImplTest {
-
+	
+	@Autowired
+	DBOChangeDAO changeDAO;
+	
 	@Autowired
 	private AccessControlListDAO aclDAO;
 	
@@ -311,10 +318,57 @@ public class DBOAccessControlListDAOImplTest {
 	}
 
 	@Test  (expected=NotFoundException.class)
-	public void testGetWithBadAclID() throws Exception {
+	public void testGetAclIdNotExists() throws Exception {
 		Long aclId = -598787L;
 		aclDAO.get(aclId);
 	}
+	
+	////////////////////
+	//getAclIds() tests
+	////////////////////
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetAclIdsNullList(){
+		aclDAO.getAclIds(null, ObjectType.ENTITY);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetAclIdsNullObjectType(){
+		aclDAO.getAclIds(new ArrayList<Long>(), null);
+	}
+	
+	@Test 
+	public void testGetAclIdsEmptyNodeIdsList(){
+		List<Long> aclIds = aclDAO.getAclIds(new ArrayList<Long>(), ObjectType.ENTITY);
+		assertNotNull(aclIds);
+		assertTrue(aclIds.isEmpty());
+	}
+	
+	
+	@Test
+	public void testGetAclIds(){
+		List<Long> nodeIds = new ArrayList<Long>(); 
+		for(Node node : nodeList){
+			nodeIds.add(KeyFactory.stringToKey(node.getId()));
+		}
+		List<Long> aclIds = aclDAO.getAclIds(nodeIds, ObjectType.ENTITY);
+		assertEquals(nodeIds.size(), aclIds.size());
+		for(Long aclId : aclIds){
+			AccessControlList acl2 = aclDAO.get(aclId);
+			assertTrue(aclList.contains(acl2));
+		}
+	}
+	
+	@Test
+	public void testGetAclIdsNotExist(){
+		List<Long> badList = new ArrayList<Long>();
+		badList.add(123L);
+		badList.add(456L);
+		List<Long> aclIDs = aclDAO.getAclIds(badList, ObjectType.ENTITY);
+		assertEquals(0, aclIDs.size());
+	}
+	
+	
 
 	/**
 	 * Test method getOwnerType using AclId
@@ -410,6 +464,29 @@ public class DBOAccessControlListDAOImplTest {
 		assertFalse(aclDAO.canAccess(gs2, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE));
 		assertFalse(aclDAO.canAccess(gs2, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.CREATE));
 		
+	}
+	
+	@Test
+	public void testDeleteList(){
+		//setup
+		List<Long> nodeIds = new ArrayList<Long>();
+		for(Node node: nodeList){
+			nodeIds.add(KeyFactory.stringToKey(node.getId()));
+		}
+		
+		//delete the ACLs
+		aclDAO.delete(nodeIds, ObjectType.ENTITY);
+		
+		//check that the ACLs were indeed deleted
+		for(Long nodeId: nodeIds){
+			try{
+				aclDAO.get(KeyFactory.keyToString(nodeId), ObjectType.ENTITY);
+				//should not get past here and throw exception ACL was deleted 
+				fail();
+			}catch (NotFoundException e){
+				//expected
+			}
+		}
 	}
 
 }

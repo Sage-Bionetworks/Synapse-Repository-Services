@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.web.controller;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.apache.commons.io.filefilter.FalseFileFilter;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -165,5 +166,18 @@ public class TrashController extends BaseController {
 			HttpServletRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		this.serviceProvider.getTrashService().purgeTrash(userId);
+	}
+	
+	/**
+	 * For administrators to purge trash items with no children trash items that are more than some days old
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = {UrlHelpers.ADMIN_TRASHCAN_PURGE_LEAVES}, method = RequestMethod.PUT)
+	public void purgeLeaves(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam(value = ServiceConstants.TRASH_CAN_DELETE_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_TRASH_CAN_DELETE_LIMIT) Long limit,
+			@RequestParam(value = ServiceConstants.DAYS_IN_TRASH_CAN_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_DAYS_IN_TRASH_CAN) Long daysOld,
+			HttpServletRequest request) throws NotFoundException, DatastoreException, UnauthorizedException {
+		this.serviceProvider.getTrashService().purgeTrashLeaves(userId, daysOld, limit);
 	}
 }

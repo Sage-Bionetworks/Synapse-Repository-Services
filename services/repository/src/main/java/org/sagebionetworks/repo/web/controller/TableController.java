@@ -37,6 +37,7 @@ import org.sagebionetworks.repo.model.table.UploadToTablePreviewResult;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
 import org.sagebionetworks.repo.model.table.ViewType;
+import org.sagebionetworks.repo.web.DeprecatedServiceException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
@@ -907,9 +908,6 @@ public class TableController extends BaseController {
 		return (QueryResult) jobStatus.getResponseBody();
 	}
 
-	/*
-	 * Note: user-agent: 'synapseRClient/1.5-4/Rv3.3.0' is still using this method as of 7/7/16.
-	 */
 	@Deprecated
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.TABLE_DOWNLOAD_CSV_ASYNC_START, method = RequestMethod.POST)
@@ -917,12 +915,8 @@ public class TableController extends BaseController {
 	AsyncJobId csvDownloadAsyncStart(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody DownloadFromTableRequest downloadRequest)
-			throws DatastoreException, NotFoundException, IOException {
-		AsynchronousJobStatus job = serviceProvider
-				.getAsynchronousJobServices().startJob(userId, downloadRequest);
-		AsyncJobId asyncJobId = new AsyncJobId();
-		asyncJobId.setToken(job.getJobId());
-		return asyncJobId;
+			throws DeprecatedServiceException {
+		throw new DeprecatedServiceException("Please update your client to use the new API.");
 	}
 
 	@Deprecated
@@ -931,11 +925,9 @@ public class TableController extends BaseController {
 	public @ResponseBody
 	DownloadFromTableResult csvDownloadAsyncGet(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String asyncToken) throws Throwable {
-		AsynchronousJobStatus jobStatus = serviceProvider
-				.getAsynchronousJobServices().getJobStatusAndThrow(userId,
-						asyncToken);
-		return (DownloadFromTableResult) jobStatus.getResponseBody();
+			@PathVariable String asyncToken)
+			throws DeprecatedServiceException {
+		throw new DeprecatedServiceException("Please update your client to use the new API.");
 	}
 
 	/**
@@ -1075,12 +1067,8 @@ public class TableController extends BaseController {
 	AsyncJobId csvUploadAsyncStart(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody UploadToTableRequest uploadRequest)
-			throws DatastoreException, NotFoundException, IOException {
-		AsynchronousJobStatus job = serviceProvider
-				.getAsynchronousJobServices().startJob(userId, uploadRequest);
-		AsyncJobId asyncJobId = new AsyncJobId();
-		asyncJobId.setToken(job.getJobId());
-		return asyncJobId;
+			throws DeprecatedServiceException {
+		throw new DeprecatedServiceException("Please update your client to use the new API.");
 	}
 
 	@Deprecated
@@ -1089,11 +1077,9 @@ public class TableController extends BaseController {
 	public @ResponseBody
 	UploadToTableResult csvUploadAsyncGet(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String asyncToken) throws Throwable {
-		AsynchronousJobStatus jobStatus = serviceProvider
-				.getAsynchronousJobServices().getJobStatusAndThrow(userId,
-						asyncToken);
-		return (UploadToTableResult) jobStatus.getResponseBody();
+			@PathVariable String asyncToken)
+			throws DeprecatedServiceException {
+		throw new DeprecatedServiceException("Please update your client to use the new API.");
 	}
 
 	/**

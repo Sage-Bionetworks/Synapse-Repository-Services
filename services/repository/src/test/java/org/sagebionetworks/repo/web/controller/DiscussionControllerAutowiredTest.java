@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.web.controller;
 
 import static org.junit.Assert.*;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.UUID;
 
@@ -10,6 +11,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityId;
+import org.sagebionetworks.repo.model.EntityIdList;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
@@ -19,6 +22,7 @@ import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
+import org.sagebionetworks.repo.model.discussion.EntityThreadCounts;
 import org.sagebionetworks.repo.model.discussion.Forum;
 import org.sagebionetworks.repo.model.discussion.MessageURL;
 import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
@@ -98,12 +102,12 @@ public class DiscussionControllerAutowiredTest extends AbstractAutowiredControll
 	}
 
 	@Test
-	public void testGetThreads() throws Exception {
+	public void testGetThreadsForForum() throws Exception {
 		Forum forum = servletTestHelper.getForumByProjectId(dispatchServlet, project.getId(), adminUserId);
 		createThread.setForumId(forum.getId());
 		DiscussionThreadBundle bundle1 = servletTestHelper.createThread(dispatchServlet, adminUserId, createThread);
 		DiscussionThreadBundle bundle2 = servletTestHelper.createThread(dispatchServlet, adminUserId, createThread);
-		PaginatedResults<DiscussionThreadBundle> results = servletTestHelper.getThreads(dispatchServlet, adminUserId, forum.getId(), 1L, 1L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true, DiscussionFilter.NO_FILTER);
+		PaginatedResults<DiscussionThreadBundle> results = servletTestHelper.getThreadsForForum(dispatchServlet, adminUserId, forum.getId(), 1L, 1L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true, DiscussionFilter.NO_FILTER);
 		assertEquals(bundle2, results.getResults().get(0));
 		assertEquals(2L, results.getTotalNumberOfResults());
 	}
@@ -115,10 +119,10 @@ public class DiscussionControllerAutowiredTest extends AbstractAutowiredControll
 		DiscussionThreadBundle bundle1 = servletTestHelper.createThread(dispatchServlet, adminUserId, createThread);
 		DiscussionThreadBundle bundle2 = servletTestHelper.createThread(dispatchServlet, adminUserId, createThread);
 		servletTestHelper.markThreadAsDeleted(dispatchServlet, adminUserId, bundle1.getId());
-		PaginatedResults<DiscussionThreadBundle> deleted = servletTestHelper.getThreads(dispatchServlet, adminUserId, forum.getId(), 10L, 0L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true, DiscussionFilter.DELETED_ONLY);
+		PaginatedResults<DiscussionThreadBundle> deleted = servletTestHelper.getThreadsForForum(dispatchServlet, adminUserId, forum.getId(), 10L, 0L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true, DiscussionFilter.DELETED_ONLY);
 		assertEquals(1L, deleted.getTotalNumberOfResults());
 		assertEquals(bundle1.getId(), deleted.getResults().get(0).getId());
-		PaginatedResults<DiscussionThreadBundle> available = servletTestHelper.getThreads(dispatchServlet, adminUserId, forum.getId(), 10L, 0L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true, DiscussionFilter.EXCLUDE_DELETED);
+		PaginatedResults<DiscussionThreadBundle> available = servletTestHelper.getThreadsForForum(dispatchServlet, adminUserId, forum.getId(), 10L, 0L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true, DiscussionFilter.EXCLUDE_DELETED);
 		assertEquals(1L, available.getTotalNumberOfResults());
 		assertEquals(bundle2.getId(), available.getResults().get(0).getId());
 	}
@@ -297,5 +301,30 @@ public class DiscussionControllerAutowiredTest extends AbstractAutowiredControll
 		MessageURL url = servletTestHelper.getReplyUrl(dispatchServlet, adminUserId, replyBundle.getMessageKey());
 		assertNotNull(url);
 		assertNotNull(url.getMessageUrl());
+	}
+
+	@Test
+	public void testGetThreadsForEntity() throws Exception {
+		Forum forum = servletTestHelper.getForumByProjectId(dispatchServlet, project.getId(), adminUserId);
+		createThread.setForumId(forum.getId());
+		servletTestHelper.createThread(dispatchServlet, adminUserId, createThread);
+		PaginatedResults<DiscussionThreadBundle> results = servletTestHelper.getThreadsForEntity(dispatchServlet, adminUserId, project.getId(), 1L, 1L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true);
+		assertNotNull(results);
+		assertEquals(0L, results.getTotalNumberOfResults());
+		assertNotNull(results.getResults());
+		assertTrue(results.getResults().isEmpty());
+	}
+
+	@Test
+	public void testGetEntityThreadCounts() throws Exception {
+		Forum forum = servletTestHelper.getForumByProjectId(dispatchServlet, project.getId(), adminUserId);
+		createThread.setForumId(forum.getId());
+		servletTestHelper.createThread(dispatchServlet, adminUserId, createThread);
+		EntityIdList entityIdList = new EntityIdList();
+		entityIdList.setIdList(Arrays.asList(project.getId()));
+		EntityThreadCounts results = servletTestHelper.getEntityThreadCounts(dispatchServlet, adminUserId, entityIdList);
+		assertNotNull(results);
+		assertNotNull(results.getList());
+		assertTrue(results.getList().isEmpty());
 	}
 }

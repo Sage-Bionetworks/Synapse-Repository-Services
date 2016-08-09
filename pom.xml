@@ -19,6 +19,7 @@
 		</connection>
 		<url>http://sagebionetworks.jira.com/source/browse/PLFM</url>
 	</scm>
+
 	<name>Sage Bionetworks Platform</name>
 	<description>
 		Sage Bionetworks Platform
@@ -991,4 +992,5 @@
 			</dependencies>
 		</profile>
 	</profiles>
+
 </project>

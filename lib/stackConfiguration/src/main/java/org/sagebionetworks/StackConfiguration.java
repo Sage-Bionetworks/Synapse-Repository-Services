@@ -214,6 +214,10 @@ public class StackConfiguration {
 		return configuration.getDockerServiceEndpoint();
 	}
 
+	public static String getDockerRegistryListenerEndpoint() {
+		return configuration.getDockerRegistryListenerEndpoint();
+	}
+
 	/**
 	 * This is the bucket for workflow-related files such as configuration or
 	 * search document files. Each workflow should store stuff under its own
@@ -1498,6 +1502,22 @@ public class StackConfiguration {
 	public static String getDefaultPortalNotificationEndpoint() {
 		return configuration.getProperty("org.sagebionetworks.notification.portal.endpoint");
 	}
+	
+	/*
+	 * Credentials used by Docker Registry to send events to the repo services.
+	 */
+	public static String getDockerRegistryUser() {
+		return configuration.getDecryptedProperty("org.sagebionetworks.docker.registry.user");
+	}
+	
+	/*
+	 * Credentials used by Docker Registry to send events to the repo services.
+	 */
+	public static String getDockerRegistryPassword() {
+		return configuration.getDecryptedProperty("org.sagebionetworks.docker.registry.password");
+	}
+	
+
 	
 	/**
 	 * Credentials for signing Docker authorization bearer tokens
