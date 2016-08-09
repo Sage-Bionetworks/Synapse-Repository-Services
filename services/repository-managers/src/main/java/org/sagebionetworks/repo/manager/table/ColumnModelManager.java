@@ -121,5 +121,12 @@ public interface ColumnModelManager {
 	 * @throws DatastoreException 
 	 */
 	public List<ColumnModel> getCurrentColumns(UserInfo user, String tableId, List<SelectColumn> selectColumns) throws DatastoreException, NotFoundException;
+
+	/**
+	 * Validate the given schema is under the max size.
+	 * 
+	 * @param columnIds
+	 */
+	List<ColumnModel> validateSchemaSize(List<String> columnIds);
 }
 

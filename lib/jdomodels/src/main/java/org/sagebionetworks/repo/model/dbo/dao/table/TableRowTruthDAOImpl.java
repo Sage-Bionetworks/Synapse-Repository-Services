@@ -30,9 +30,11 @@ import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.dao.table.RowSetAccessor;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.dbo.persistence.table.ColumnModelUtils;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableIdSequence;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableRowChange;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.IdRange;
 import org.sagebionetworks.repo.model.table.RawRowSet;
@@ -40,6 +42,7 @@ import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.TableChangeType;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -215,6 +218,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		changeDBO.setKey(key);
 		changeDBO.setBucket(s3Bucket);
 		changeDBO.setRowCount(new Long(delta.getRows().size()));
+		changeDBO.setChangeType(TableChangeType.ROW.name());
 		basicDao.createNew(changeDBO);
 
 		// Prepare the results
@@ -232,6 +236,67 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		}
 		results.setRows(refs);
 		return results;
+	}
+	
+	@Override
+	public long appendSchemaChangeToTable(String userId, String tableId,
+			List<Long> current, List<ColumnChange> changes) throws IOException {
+		
+		long coutToReserver = 1;
+		IdRange range = reserveIdsInRange(tableId, coutToReserver);
+		// We are ready to convert the file to a CSV and save it to S3.
+		String key = saveSchemaToS3(changes);
+		// record the change
+		DBOTableRowChange changeDBO = new DBOTableRowChange();
+		changeDBO.setTableId(KeyFactory.stringToKey(tableId));
+		changeDBO.setRowVersion(range.getVersionNumber());
+		changeDBO.setEtag(range.getEtag());
+		changeDBO.setColumnIds(TableModelUtils.createDelimitedColumnModelIdString(current));
+		changeDBO.setCreatedBy(Long.parseLong(userId));
+		changeDBO.setCreatedOn(System.currentTimeMillis());
+		changeDBO.setKey(key);
+		changeDBO.setBucket(s3Bucket);
+		changeDBO.setRowCount(0L);
+		changeDBO.setChangeType(TableChangeType.COLUMN.name());
+		basicDao.createNew(changeDBO);
+		return range.getVersionNumber();
+	}
+	
+	String saveSchemaToS3(List<ColumnChange> changes)
+			throws IOException {
+		File temp = File.createTempFile("schemaChange", ".gz");
+		FileOutputStream out = null;
+		try {
+			out = new FileOutputStream(temp);
+			// Save this to the the zipped CSV
+			ColumnModelUtils.writeSchemaChangeToGz(changes, out);
+			// upload it to S3.
+			String key = String.format(KEY_TEMPLATE, UUID.randomUUID()
+					.toString());
+			s3Client.putObject(s3Bucket, key, temp);
+			return key;
+		} finally {
+			if (out != null) {
+				out.close();
+			}
+			if (temp != null) {
+				temp.delete();
+			}
+		}
+	}
+	
+	@Override
+	public List<ColumnChange> getSchemaChangeForVersion(String tableId,
+			long versionNumber) throws IOException {
+		TableRowChange dto = getTableRowChange(tableId, versionNumber);
+		// Download the file from S3
+		S3Object object = s3Client.getObject(dto.getBucket(), dto.getKey());
+		try {
+			return ColumnModelUtils.readSchemaChangeFromGz(object.getObjectContent());
+		} finally {
+			// Need to close the stream unconditionally.
+			object.getObjectContent().close();
+		}
 	}
 
 	@Override
@@ -365,7 +430,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	public RowSet getRowSet(String tableId, long rowVersion, List<ColumnModel> columns)
 			throws IOException, NotFoundException {
 		TableRowChange dto = getTableRowChange(tableId, rowVersion);
-		// Downlaod the file from S3
+		// Download the file from S3
 		S3Object object = s3Client.getObject(dto.getBucket(), dto.getKey());
 		try {
 			RowSet set = new RowSet();

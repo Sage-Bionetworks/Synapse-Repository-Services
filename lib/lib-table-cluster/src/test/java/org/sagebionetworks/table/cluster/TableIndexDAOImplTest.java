@@ -94,7 +94,8 @@ public class TableIndexDAOImplTest {
 		List<DatabaseColumnInfo> currentSchema = tableIndexDAO.getDatabaseInfo(tableId);
 		List<ColumnChange> changes = SQLUtils.createReplaceSchemaChange(currentSchema, newSchema);
 		tableIndexDAO.createTableIfDoesNotExist(tableId);
-		return tableIndexDAO.alterTableAsNeeded(tableId, changes);
+		boolean alterTemp = false;
+		return tableIndexDAO.alterTableAsNeeded(tableId, changes, alterTemp);
 	}
 	
 	@Test
@@ -1047,8 +1048,9 @@ public class TableIndexDAOImplTest {
 		ColumnChange change = new ColumnChange(oldColumn, newColumn);
 		// Create the table
 		tableIndexDAO.createTableIfDoesNotExist(tableId);
+		boolean alterTemp = false;
 		// call under test.
-		boolean wasAltered = tableIndexDAO.alterTableAsNeeded(tableId, Lists.newArrayList(change));
+		boolean wasAltered = tableIndexDAO.alterTableAsNeeded(tableId, Lists.newArrayList(change), alterTemp);
 		assertTrue(wasAltered);
 		// Check the results
 		List<DatabaseColumnInfo> schema =  getAllColumnInfo(tableId);
@@ -1061,7 +1063,7 @@ public class TableIndexDAOImplTest {
 		// Another update of the same column with no change should not alter the table
 		oldColumn = newColumn;
 		change = new ColumnChange(oldColumn, newColumn);
-		wasAltered = tableIndexDAO.alterTableAsNeeded(tableId, Lists.newArrayList(change));
+		wasAltered = tableIndexDAO.alterTableAsNeeded(tableId, Lists.newArrayList(change), alterTemp);
 		assertFalse(wasAltered);
 	}
 	
@@ -1147,9 +1149,9 @@ public class TableIndexDAOImplTest {
 		newColumn.setId("12");
 		newColumn.setName("foo");
 		newColumn.setColumnType(ColumnType.INTEGER);
-		
+		boolean alterTemp = false;
 		// add the column
-		tableIndexDAO.alterTableAsNeeded(tableId, Lists.newArrayList(new ColumnChange(oldColumn, newColumn)));
+		tableIndexDAO.alterTableAsNeeded(tableId, Lists.newArrayList(new ColumnChange(oldColumn, newColumn)), alterTemp);
 		int maxNumberOfIndices = 5;
 		optimizeTableIndices(tableId, maxNumberOfIndices);
 		// Get the latest table information
@@ -1171,9 +1173,9 @@ public class TableIndexDAOImplTest {
 		newColumn.setId("12");
 		newColumn.setName("foo");
 		newColumn.setColumnType(ColumnType.INTEGER);
-		
+		boolean alterTemp = false;
 		// add the column
-		tableIndexDAO.alterTableAsNeeded(tableId, Lists.newArrayList(new ColumnChange(oldColumn, newColumn)));
+		tableIndexDAO.alterTableAsNeeded(tableId, Lists.newArrayList(new ColumnChange(oldColumn, newColumn)), alterTemp);
 		int maxNumberOfIndices = 5;
 		optimizeTableIndices(tableId, maxNumberOfIndices);
 		// Get the latest table information
@@ -1190,7 +1192,7 @@ public class TableIndexDAOImplTest {
 		newColumn.setName("bar");
 		newColumn.setColumnType(ColumnType.DATE);
 		
-		tableIndexDAO.alterTableAsNeeded(tableId, Lists.newArrayList(new ColumnChange(oldColumn, newColumn)));
+		tableIndexDAO.alterTableAsNeeded(tableId, Lists.newArrayList(new ColumnChange(oldColumn, newColumn)), alterTemp);
 		// the index should get renamed
 		optimizeTableIndices(tableId, maxNumberOfIndices);
 		infoList = getAllColumnInfo(tableId);
@@ -1211,9 +1213,9 @@ public class TableIndexDAOImplTest {
 		newColumn.setId("12");
 		newColumn.setName("foo");
 		newColumn.setColumnType(ColumnType.INTEGER);
-		
+		boolean alterTemp = false;
 		// add the column
-		tableIndexDAO.alterTableAsNeeded(tableId, Lists.newArrayList(new ColumnChange(oldColumn, newColumn)));
+		tableIndexDAO.alterTableAsNeeded(tableId, Lists.newArrayList(new ColumnChange(oldColumn, newColumn)), alterTemp);
 		int maxNumberOfIndices = 5;
 		optimizeTableIndices(tableId, maxNumberOfIndices);
 		// Get the latest table information

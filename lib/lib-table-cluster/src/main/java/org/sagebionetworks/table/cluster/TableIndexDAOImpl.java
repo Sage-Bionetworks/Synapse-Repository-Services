@@ -376,8 +376,8 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public boolean alterTableAsNeeded(String tableId, List<ColumnChange> changes) {
-		String sql = SQLUtils.createAlterTableSql(changes, tableId);
+	public boolean alterTableAsNeeded(String tableId, List<ColumnChange> changes, boolean alterTemp) {
+		String sql = SQLUtils.createAlterTableSql(changes, tableId, alterTemp);
 		if(sql == null){
 			// no change are needed.
 			return false;

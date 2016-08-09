@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.persistence.table;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_BUCKET;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_COL_IDS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_COUNT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_CREATED_BY;
@@ -39,6 +39,7 @@ public class DBOTableRowChange implements MigratableDatabaseObject<DBOTableRowCh
 		new FieldColumn("bucket", COL_TABLE_ROW_BUCKET),
 		new FieldColumn("key", COL_TABLE_ROW_KEY),
 		new FieldColumn("rowCount", COL_TABLE_ROW_COUNT),
+		new FieldColumn("changeType", COL_TABLE_ROW_TYPE),
 	};
 	
 	private Long tableId;
@@ -50,6 +51,7 @@ public class DBOTableRowChange implements MigratableDatabaseObject<DBOTableRowCh
 	private String bucket;
 	private String key;
 	private Long rowCount;
+	private String changeType;
 	
 	@Override
 	public TableMapping<DBOTableRowChange> getTableMapping() {
@@ -68,6 +70,7 @@ public class DBOTableRowChange implements MigratableDatabaseObject<DBOTableRowCh
 				change.setBucket(rs.getString(COL_TABLE_ROW_BUCKET));
 				change.setKey(rs.getString(COL_TABLE_ROW_KEY));
 				change.setRowCount(rs.getLong(COL_TABLE_ROW_COUNT));
+				change.setChangeType(rs.getString(COL_TABLE_ROW_TYPE));
 				return change;
 			}
 
@@ -163,6 +166,14 @@ public class DBOTableRowChange implements MigratableDatabaseObject<DBOTableRowCh
 
 	public void setKey(String key) {
 		this.key = key;
+	}
+	
+	public String getChangeType() {
+		return changeType;
+	}
+
+	public void setChangeType(String changeType) {
+		this.changeType = changeType;
 	}
 
 	@Override

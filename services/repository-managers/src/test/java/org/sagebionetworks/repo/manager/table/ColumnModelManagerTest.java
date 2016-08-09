@@ -327,6 +327,54 @@ public class ColumnModelManagerTest {
 		List<ColumnModel> resutls = columnModelManager.getColumnModelsForTable(user, objectId);
 	}
 	
+	@Test
+	public void testValidateSchemaSizeUnderLimit(){
+		List<String> scheamIds = Lists.newArrayList();
+		List<ColumnModel> schema = Lists.newArrayList();
+		// Currently the breaking point is 23 string columns of size 1000.
+		for(int i=0; i<21; i++){
+			ColumnModel cm = TableModelTestUtils.createColumn((long)i, "c"+i, ColumnType.STRING);
+			cm.setMaximumSize(1000L);
+			schema.add(cm);
+			scheamIds.add(""+cm.getId());
+		}
+		when(mockColumnModelDAO.getColumnModel(scheamIds, false)).thenReturn(schema);
+		
+		columnModelManager.validateSchemaSize(scheamIds);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testValidateSchemaSizeOverLimit(){
+		List<String> scheamIds = Lists.newArrayList();
+		List<ColumnModel> schema = Lists.newArrayList();
+		// Currently the breaking point is 23 string columns of size 1000.
+		for(int i=0; i<23; i++){
+			ColumnModel cm = TableModelTestUtils.createColumn((long)i, "c"+i, ColumnType.STRING);
+			cm.setMaximumSize(1000L);
+			schema.add(cm);
+			scheamIds.add(""+cm.getId());
+		}
+		when(mockColumnModelDAO.getColumnModel(scheamIds, false)).thenReturn(schema);
+		
+		columnModelManager.validateSchemaSize(scheamIds);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testValidateSchemaTooManyColumns(){
+		List<String> scheamIds = Lists.newArrayList();
+		List<ColumnModel> schema = Lists.newArrayList();
+		int numberOfColumns = ColumnModelManagerImpl.MY_SQL_MAX_COLUMNS_PER_TABLE+1;
+		for(int i=0; i<numberOfColumns; i++){
+			ColumnModel cm = TableModelTestUtils.createColumn((long)i, "c"+i, ColumnType.BOOLEAN);
+			cm.setMaximumSize(1L);
+			schema.add(cm);
+			scheamIds.add(""+cm.getId());
+		}
+		when(mockColumnModelDAO.getColumnModel(scheamIds, false)).thenReturn(schema);
+		columnModelManager.validateSchemaSize(scheamIds);
+	}
+	
+	
 	/**
 	 * See PLFM-3619.  This schema should be just under the limit.
 	 */

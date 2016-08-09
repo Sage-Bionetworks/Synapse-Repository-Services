@@ -40,6 +40,15 @@
 		"rowCount": {
 			"type": "integer",
 			"description": "The number of rows in this change."
+		},
+		"changeType": {
+			"type": "string",
+			"name": "TableChangeType",
+			"id": "org.sagebionetworks.repo.model.table.TableChangeType",
+			"enum": [
+				"ROW",
+				"COLUMN"
+			]
 		}
     }
 }

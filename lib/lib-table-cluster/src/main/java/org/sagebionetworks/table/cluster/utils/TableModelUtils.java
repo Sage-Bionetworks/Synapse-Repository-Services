@@ -26,6 +26,7 @@ import org.apache.commons.lang.StringUtils;
 import org.sagebionetworks.repo.model.dao.table.RowAccessor;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.IdRange;
@@ -1270,5 +1271,7 @@ public class TableModelUtils {
 		}
 		return results;
 	}
+	
+
 
 }

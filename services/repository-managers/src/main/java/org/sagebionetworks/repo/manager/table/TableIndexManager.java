@@ -142,6 +142,18 @@ public interface TableIndexManager {
 	 * @param callback
 	 */
 	public void deleteTemporaryTableCopy(ProgressCallback<Void> callback);
+
+	/**
+	 * Attempt to alter the schema of a temporary copy of a table.
+	 * This is used to valiate table schema changes.
+	 * 
+	 * @param progressCallback
+	 * @param tableId
+	 * @param changes
+	 * @return
+	 */
+	boolean alterTempTableSchmea(ProgressCallback<Void> progressCallback,
+			String tableId, List<ColumnChange> changes);
 	
 
 }

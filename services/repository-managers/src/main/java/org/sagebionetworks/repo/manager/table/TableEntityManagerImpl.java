@@ -623,8 +623,45 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	public void validateUpdateRequest(ProgressCallback<Void> callback,
 			UserInfo userInfo, TableUpdateRequest change,
 			TableIndexManager indexManager) {
-		// TODO Auto-generated method stub
+		ValidateArgument.required(callback, "callback");
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(change, "change");
+		if(change instanceof TableSchemaChangeRequest){
+			validateUpdateRequest(callback, userInfo, (TableSchemaChangeRequest)change, indexManager);
+		}else{
+			throw new IllegalArgumentException("Unkown Request type: "+change.getClass().getName());
+		}
 		
+	}
+	
+	/**
+	 * Validation for a schema change request.
+	 * @param callback
+	 * @param userInfo
+	 * @param change
+	 * @param indexManager
+	 */
+	public void validateUpdateRequest(ProgressCallback<Void> callback,
+			UserInfo userInfo, TableSchemaChangeRequest changes,
+			TableIndexManager indexManager) {
+		// first determine what the new Schema will be
+		List<String> newSchemaIds = new LinkedList<String>();
+		for(ColumnChange change: changes.getChanges()){
+			if(change.getNewColumnId() != null){
+				newSchemaIds.add(change.getNewColumnId());
+			}
+		}
+		// validate the schema.
+		List<ColumnModel> newSchemaColumns = columModelManager.validateSchemaSize(newSchemaIds);
+		// If the change includes an update then the schema change must be checked against the temp table.
+		boolean includesUpdate = isTemporaryTableNeededToValidate(changes.getChanges());
+		if(includesUpdate){
+			if(indexManager == null){
+				throw new IllegalStateException("A temporary table is needed to validate but was not provided.");
+			}
+			boolean alterTemp = true;
+			indexManager.alterTempTableSchmea(callback, changes.getChanges());
+		}
 	}
 
 

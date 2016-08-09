@@ -8,6 +8,7 @@ import java.util.LinkedList;
 
 import org.junit.Test;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableRowChange;
+import org.sagebionetworks.repo.model.table.TableChangeType;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 
 import com.google.common.collect.Lists;
@@ -30,6 +31,7 @@ public class TableRowChangeUtilsTest {
 		dto.setKey("key");
 		dto.setEtag("someEtag");
 		dto.setRowCount(999L);
+		dto.setChangeType(TableChangeType.ROW);
 		// To DBO
 		DBOTableRowChange dbo = TableRowChangeUtils.createDBOFromDTO(dto);
 		assertNotNull(dbo);

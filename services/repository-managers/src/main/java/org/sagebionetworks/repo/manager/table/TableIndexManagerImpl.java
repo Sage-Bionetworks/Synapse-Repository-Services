@@ -166,8 +166,9 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		tableIndexDao.createTableIfDoesNotExist(tableId);
 		// Create all of the status tables unconditionally.
 		tableIndexDao.createSecondaryTables(tableId);
+		boolean alterTemp = false;
 		// Alter the table
-		boolean wasSchemaChanged = alterTableAsNeededWithProgress(progressCallback, tableId, changes);
+		boolean wasSchemaChanged = alterTableAsNeededWithProgress(progressCallback, tableId, changes, alterTemp);
 		if(wasSchemaChanged){
 			// Get the current schema.
 			List<DatabaseColumnInfo> tableInfo = tableIndexDao.getDatabaseInfo(tableId);
@@ -184,6 +185,12 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		return wasSchemaChanged;
 	}
 	
+	@Override
+	public boolean alterTempTableSchmea(ProgressCallback<Void> progressCallback, final String tableId, final List<ColumnChange> changes){
+		boolean alterTemp = true;
+		return alterTableAsNeededWithProgress(progressCallback, tableId, changes, alterTemp);
+	}
+	
 	/**
 	 * Alter the table schema using an auto-progressing callback.
 	 * @param progressCallback
@@ -192,12 +199,12 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * @return
 	 * @throws Exception
 	 */
-	private boolean alterTableAsNeededWithProgress(ProgressCallback<Void> progressCallback, final String tableId, final List<ColumnChange> changes){
+	private boolean alterTableAsNeededWithProgress(ProgressCallback<Void> progressCallback, final String tableId, final List<ColumnChange> changes, final boolean alterTemp){
 		 try {
 			return  tableManagerSupport.callWithAutoProgress(progressCallback, new Callable<Boolean>() {
 				@Override
 				public Boolean call() throws Exception {
-					return tableIndexDao.alterTableAsNeeded(tableId, changes);
+					return tableIndexDao.alterTableAsNeeded(tableId, changes, alterTemp);
 				}
 			});
 		} catch (Exception e) {

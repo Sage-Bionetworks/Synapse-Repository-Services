@@ -10,7 +10,7 @@ import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -191,7 +191,7 @@ public class TableIndexManagerImplTest {
 		info.setColumnType(ColumnType.BOOLEAN);
 		
 		when(mockIndexDao.getDatabaseInfo(tableId)).thenReturn(Lists.newArrayList(info));
-		when(mockIndexDao.alterTableAsNeeded(anyString(), anyList())).thenReturn(true);
+		when(mockIndexDao.alterTableAsNeeded(anyString(), anyList(), anyBoolean())).thenReturn(true);
 		// call under test
 		manager.setIndexSchema(mockCallback, schema);
 		String schemaMD5Hex = TableModelUtils. createSchemaMD5HexCM(Lists.newArrayList(schema));
@@ -201,7 +201,7 @@ public class TableIndexManagerImplTest {
 	@Test
 	public void testSetIndexSchemaWithNoColumns(){
 		when(mockIndexDao.getDatabaseInfo(tableId)).thenReturn(new LinkedList<DatabaseColumnInfo>());
-		when(mockIndexDao.alterTableAsNeeded(anyString(), anyList())).thenReturn(true);
+		when(mockIndexDao.alterTableAsNeeded(anyString(), anyList(), anyBoolean())).thenReturn(true);
 		// call under test
 		manager.setIndexSchema(mockCallback, new LinkedList<ColumnModel>());
 		String schemaMD5Hex = TableModelUtils. createSchemaMD5HexCM(Lists.newArrayList(new LinkedList<ColumnModel>()));
@@ -267,7 +267,8 @@ public class TableIndexManagerImplTest {
 		ColumnModel newColumn = new ColumnModel();
 		newColumn.setId("12");
 		List<ColumnChange> changes = Lists.newArrayList(new ColumnChange(oldColumn, newColumn));
-		when(mockIndexDao.alterTableAsNeeded(tableId, changes)).thenReturn(true);
+		boolean alterTemp = false;
+		when(mockIndexDao.alterTableAsNeeded(tableId, changes, alterTemp)).thenReturn(true);
 		DatabaseColumnInfo info = new DatabaseColumnInfo();
 		info.setColumnName("_C12_");
 		info.setColumnType(ColumnType.BOOLEAN);
@@ -279,7 +280,7 @@ public class TableIndexManagerImplTest {
 		verify(mockIndexDao).createSecondaryTables(tableId);
 		// The new schema is not empty so do not truncate.
 		verify(mockIndexDao, never()).truncateTable(tableId);
-		verify(mockIndexDao).alterTableAsNeeded(tableId, changes);
+		verify(mockIndexDao).alterTableAsNeeded(tableId, changes, alterTemp);
 		
 		String schemaMD5Hex = TableModelUtils. createSchemaMD5HexCM(Lists.newArrayList(newColumn));
 		verify(mockIndexDao).setCurrentSchemaMD5Hex(tableId, schemaMD5Hex);
@@ -290,9 +291,10 @@ public class TableIndexManagerImplTest {
 		ColumnModel oldColumn = new ColumnModel();
 		oldColumn.setId("12");
 		ColumnModel newColumn = null;
+		boolean alterTemp = false;
 
 		List<ColumnChange> changes = Lists.newArrayList(new ColumnChange(oldColumn, newColumn));
-		when(mockIndexDao.alterTableAsNeeded(tableId, changes)).thenReturn(true);
+		when(mockIndexDao.alterTableAsNeeded(tableId, changes, alterTemp)).thenReturn(true);
 		when(mockIndexDao.getDatabaseInfo(tableId)).thenReturn(new LinkedList<DatabaseColumnInfo>());
 		// call under test
 		manager.updateTableSchema(mockCallback, changes);
@@ -301,7 +303,7 @@ public class TableIndexManagerImplTest {
 		verify(mockIndexDao).getDatabaseInfo(tableId);
 		// The new schema is empty so the table is truncated.
 		verify(mockIndexDao).truncateTable(tableId);
-		verify(mockIndexDao).alterTableAsNeeded(tableId, changes);
+		verify(mockIndexDao).alterTableAsNeeded(tableId, changes, alterTemp);
 		
 		String schemaMD5Hex = TableModelUtils. createSchemaMD5HexCM(new LinkedList<ColumnModel>());
 		verify(mockIndexDao).setCurrentSchemaMD5Hex(tableId, schemaMD5Hex);
@@ -310,13 +312,14 @@ public class TableIndexManagerImplTest {
 	@Test
 	public void testUpdateTableSchemaNoChange(){
 		List<ColumnChange> changes = new LinkedList<ColumnChange>();
-		when(mockIndexDao.alterTableAsNeeded(tableId, changes)).thenReturn(false);
+		boolean alterTemp = false;
+		when(mockIndexDao.alterTableAsNeeded(tableId, changes, alterTemp)).thenReturn(false);
 		when(mockIndexDao.getDatabaseInfo(tableId)).thenReturn(new LinkedList<DatabaseColumnInfo>());
 		// call under test
 		manager.updateTableSchema(mockCallback, changes);
 		verify(mockIndexDao).createTableIfDoesNotExist(tableId);
 		verify(mockIndexDao).createSecondaryTables(tableId);
-		verify(mockIndexDao).alterTableAsNeeded(tableId, changes);
+		verify(mockIndexDao).alterTableAsNeeded(tableId, changes, alterTemp);
 		verify(mockIndexDao, never()).getDatabaseInfo(tableId);
 		verify(mockIndexDao, never()).truncateTable(tableId);
 		verify(mockIndexDao, never()).setCurrentSchemaMD5Hex(anyString(), anyString());

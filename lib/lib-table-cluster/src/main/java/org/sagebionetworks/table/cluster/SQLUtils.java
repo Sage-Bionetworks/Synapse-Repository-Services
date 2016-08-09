@@ -616,10 +616,14 @@ public class SQLUtils {
 	 * @param changes
 	 * @return
 	 */
-	public static String createAlterTableSql(List<ColumnChange> changes, String tableId){
+	public static String createAlterTableSql(List<ColumnChange> changes, String tableId, boolean alterTemp){
 		StringBuilder builder = new StringBuilder();
 		builder.append("ALTER TABLE ");
-		builder.append(getTableNameForId(tableId, TableType.INDEX));
+		if(alterTemp){
+			builder.append(getTemporaryTableName(tableId));
+		}else{
+			builder.append(getTableNameForId(tableId, TableType.INDEX));
+		}
 		builder.append(" ");
 		boolean isFirst = true;
 		boolean hasChanges = false;

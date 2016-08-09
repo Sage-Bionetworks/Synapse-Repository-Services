@@ -616,9 +616,41 @@ public class SQLUtilsTest {
 		newColumn.setDefaultValue("foo");
 		ColumnChange change2 = new ColumnChange(oldColumn, newColumn);
 		String tableId = "syn999";
+		boolean alterTemp = false;
 		// call under test
-		String results = SQLUtils.createAlterTableSql(Lists.newArrayList(change, change2), tableId);
+		String results = SQLUtils.createAlterTableSql(Lists.newArrayList(change, change2), tableId, alterTemp);
 		assertEquals("ALTER TABLE T999 "
+				+ "CHANGE COLUMN _C123_ _C456_ BIGINT(20) DEFAULT NULL COMMENT 'INTEGER', "
+				+ "CHANGE COLUMN _C111_ _C222_ VARCHAR(15) CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT 'foo' COMMENT 'STRING', "
+				+ "DROP COLUMN _DBL_C111_", results);
+	}
+	
+	@Test
+	public void testCreateAlterTableSqlMultipleTempTrue(){
+		ColumnModel oldColumn = new ColumnModel();
+		oldColumn.setId("123");
+		oldColumn.setColumnType(ColumnType.BOOLEAN);
+		// new column
+		ColumnModel newColumn = new ColumnModel();
+		newColumn.setId("456");
+		newColumn.setColumnType(ColumnType.INTEGER);
+		ColumnChange change = new ColumnChange(oldColumn, newColumn);
+		
+		oldColumn = new ColumnModel();
+		oldColumn.setId("111");
+		oldColumn.setColumnType(ColumnType.DOUBLE);
+		// new column
+		newColumn = new ColumnModel();
+		newColumn.setId("222");
+		newColumn.setColumnType(ColumnType.STRING);
+		newColumn.setMaximumSize(15L);
+		newColumn.setDefaultValue("foo");
+		ColumnChange change2 = new ColumnChange(oldColumn, newColumn);
+		String tableId = "syn999";
+		boolean alterTemp = true;
+		// call under test
+		String results = SQLUtils.createAlterTableSql(Lists.newArrayList(change, change2), tableId, alterTemp);
+		assertEquals("ALTER TABLE TEMP999 "
 				+ "CHANGE COLUMN _C123_ _C456_ BIGINT(20) DEFAULT NULL COMMENT 'INTEGER', "
 				+ "CHANGE COLUMN _C111_ _C222_ VARCHAR(15) CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT 'foo' COMMENT 'STRING', "
 				+ "DROP COLUMN _DBL_C111_", results);
@@ -634,10 +666,11 @@ public class SQLUtilsTest {
 		newColumn.setId("123");
 		newColumn.setColumnType(ColumnType.BOOLEAN);
 		ColumnChange change = new ColumnChange(oldColumn, newColumn);
+		boolean alterTemp = false;
 		
 		String tableId = "syn999";
 		// call under test
-		String results = SQLUtils.createAlterTableSql(Lists.newArrayList(change), tableId);
+		String results = SQLUtils.createAlterTableSql(Lists.newArrayList(change), tableId, alterTemp);
 		assertEquals("when there are no changes the sql should be null",null, results);
 	}
 	

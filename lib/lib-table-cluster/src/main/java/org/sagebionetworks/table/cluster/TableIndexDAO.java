@@ -31,9 +31,10 @@ public interface TableIndexDAO {
 	 * 
 	 * @param tableId
 	 * @param changes
+	 * @param alterTemp When true the temporary table will be altered.  When false the original table will be altered.
 	 * @return True if the table was altered. False if the table was not changed.
 	 */
-	public boolean alterTableAsNeeded(String tableId, List<ColumnChange> changes);
+	public boolean alterTableAsNeeded(String tableId, List<ColumnChange> changes, boolean alterTemp);
 	
 	/**
 	 * 

@@ -6,6 +6,7 @@ import java.util.List;
 
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableRowChange;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.table.TableChangeType;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 
@@ -29,6 +30,7 @@ public class TableRowChangeUtils {
 		dto.setBucket(dbo.getBucket());
 		dto.setKey(dbo.getKey());
 		dto.setRowCount(dbo.getRowCount());
+		dto.setChangeType(TableChangeType.valueOf(dbo.getChangeType()));
 		return dto;
 	}
 
@@ -51,6 +53,7 @@ public class TableRowChangeUtils {
 		dbo.setBucket(dto.getBucket());
 		dbo.setKey(dto.getKey());
 		dbo.setRowCount(dto.getRowCount());
+		dbo.setChangeType(dto.getChangeType().name());
 		return dbo;
 	}
 
