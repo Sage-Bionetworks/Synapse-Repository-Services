@@ -221,4 +221,40 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		tableIndexDao.optimizeTableIndices(tableInfo, tableId, MAX_MYSQL_INDEX_COUNT);
 	}
 	
+	@Override
+	public void createTemporaryTableCopy(ProgressCallback<Void> callback) {
+		// creating a temp table can take a long time so auto-progress is used.
+		 try {
+			tableManagerSupport.callWithAutoProgress(callback, new Callable<Void>() {
+				@Override
+				public Void call() throws Exception {
+					// create the table.
+					tableIndexDao.createTemporaryTable(tableId);
+					// copy all the data from the original to the temp.
+					tableIndexDao.copyAllDataToTemporaryTable(tableId);
+					return null;
+				}
+			});
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+		
+	}
+	@Override
+	public void deleteTemporaryTableCopy(ProgressCallback<Void> callback) {
+		// deleting a temp table can take a long time so auto-progress is used.
+		 try {
+			tableManagerSupport.callWithAutoProgress(callback, new Callable<Void>() {
+				@Override
+				public Void call() throws Exception {
+					// create the table.
+					tableIndexDao.deleteTemporaryTable(tableId);
+					return null;
+				}
+			});
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+	
 }

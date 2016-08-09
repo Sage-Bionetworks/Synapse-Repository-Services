@@ -9,7 +9,6 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.Reference;
-import org.sagebionetworks.repo.model.StorageUsageQueryDao;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -48,13 +47,11 @@ public class AsynchronousDAOImpl implements AsynchronousDAO {
 	 * @param nodeDao
 	 * @param dboReferenceDao
 	 * @param dboAnnotationsDao
-	 * @param storageLocationDao
 	 * @param fileMetadataDao
 	 * @param wikiPageDao
 	 */
 	public AsynchronousDAOImpl(NodeDAO nodeDao, DBOReferenceDao dboReferenceDao,
-		DBOAnnotationsDao dboAnnotationsDao,
-		StorageUsageQueryDao storageLocationDao, FileHandleDao fileMetadataDao) {
+		DBOAnnotationsDao dboAnnotationsDao, FileHandleDao fileMetadataDao) {
 	super();
 	this.nodeDao = nodeDao;
 	this.dboReferenceDao = dboReferenceDao;

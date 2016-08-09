@@ -60,6 +60,7 @@ import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
+import org.sagebionetworks.repo.model.discussion.EntityThreadCounts;
 import org.sagebionetworks.repo.model.discussion.Forum;
 import org.sagebionetworks.repo.model.discussion.MessageURL;
 import org.sagebionetworks.repo.model.discussion.ReplyCount;
@@ -68,6 +69,8 @@ import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
 import org.sagebionetworks.repo.model.docker.DockerAuthorizationToken;
+import org.sagebionetworks.repo.model.docker.DockerCommit;
+import org.sagebionetworks.repo.model.docker.DockerCommitSortBy;
 import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
@@ -89,8 +92,6 @@ import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.status.StackStatus;
-import org.sagebionetworks.repo.model.storage.StorageUsage;
-import org.sagebionetworks.repo.model.storage.StorageUsageSummaryList;
 import org.sagebionetworks.repo.model.subscription.Etag;
 import org.sagebionetworks.repo.model.subscription.Subscription;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
@@ -1730,102 +1731,6 @@ public class ServletTestHelper {
 				SearchResults.class);
 	}
 
-	public EntityIdList getAncestors(Long userId, String entityId)
-			throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils
-				.initRequest(HTTPMODE.GET, UrlHelpers.ENTITY + "/" + entityId
-						+ "/ancestors", userId, null);
-		MockHttpServletResponse response = ServletTestHelperUtils
-				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
-
-		return ServletTestHelperUtils
-				.readResponse(response, EntityIdList.class);
-	}
-
-	public EntityId getParent(Long userId, String entityId)
-			throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + entityId + "/parent",
-				userId, null);
-		MockHttpServletResponse response = ServletTestHelperUtils
-				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
-
-		return ServletTestHelperUtils.readResponse(response, EntityId.class);
-	}
-
-	public EntityIdList getDescendants(Long userId, String entityId)
-			throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + entityId
-						+ "/descendants", userId, null);
-		MockHttpServletResponse response = ServletTestHelperUtils
-				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
-
-		return ServletTestHelperUtils
-				.readResponse(response, EntityIdList.class);
-	}
-
-	public EntityIdList getDescendantsWithGeneration(Long userId,
-			String entityId, int generation) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + entityId
-						+ "/descendants/" + generation, userId, null);
-		MockHttpServletResponse response = ServletTestHelperUtils
-				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
-
-		return ServletTestHelperUtils
-				.readResponse(response, EntityIdList.class);
-	}
-
-	public EntityIdList getChildren(Long userId, String entityId)
-			throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + entityId + "/children",
-				userId, null);
-		MockHttpServletResponse response = ServletTestHelperUtils
-				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
-
-		return ServletTestHelperUtils
-				.readResponse(response, EntityIdList.class);
-	}
-
-	public StorageUsageSummaryList getStorageUsageGrandTotal(Long userId)
-			throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, UrlHelpers.STORAGE_SUMMARY, userId, null);
-		MockHttpServletResponse response = ServletTestHelperUtils
-				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
-
-		return ServletTestHelperUtils.readResponse(response,
-				StorageUsageSummaryList.class);
-	}
-
-	public StorageUsageSummaryList getStorageUsageAggregatedTotal(
-			Long userId, String aggregation) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, UrlHelpers.STORAGE_SUMMARY + "/" + userId,
-				userId, null);
-		request.setParameter(ServiceConstants.AGGREGATION_DIMENSION,
-				aggregation);
-		MockHttpServletResponse response = ServletTestHelperUtils
-				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
-
-		return ServletTestHelperUtils.readResponse(response,
-				StorageUsageSummaryList.class);
-	}
-
-	public PaginatedResults<StorageUsage> getStorageUsageItemized(
-			Long userId, String aggregation) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, UrlHelpers.STORAGE_DETAILS, userId, null);
-		request.setParameter(ServiceConstants.AGGREGATION_DIMENSION,
-				aggregation);
-		MockHttpServletResponse response = ServletTestHelperUtils
-				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
-
-		return ServletTestHelperUtils.readResponsePaginatedResults(response,
-				StorageUsage.class);
-	}
 
 	public PaginatedResults<TrashedEntity> getTrashCan(Long userId)
 			throws Exception {
@@ -1877,6 +1782,14 @@ public class ServletTestHelper {
 				HTTPMODE.PUT, UrlHelpers.ADMIN_TRASHCAN_PURGE, userId, null);
 		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.OK);
+	}
+	
+	public void adminPurgeTrashLeaves(DispatcherServlet dispatchServlet, Long userId, Long numDaysInTrash, Long limit) throws Exception{
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.PUT, UrlHelpers.ADMIN_TRASHCAN_PURGE_LEAVES, userId, null);
+		request.addParameter(ServiceConstants.DAYS_IN_TRASH_CAN_PARAM, numDaysInTrash.toString());
+		request.addParameter(ServiceConstants.TRASH_CAN_DELETE_LIMIT_PARAM, limit.toString());
+		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
 	}
 
 	public PaginatedResults<TrashedEntity> adminGetTrashCan(Long userId)
@@ -2071,7 +1984,7 @@ public class ServletTestHelper {
 		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request, HttpStatus.NO_CONTENT);
 	}
 
-	public PaginatedResults<DiscussionThreadBundle> getThreads(DispatcherServlet dispatchServlet,
+	public PaginatedResults<DiscussionThreadBundle> getThreadsForForum(DispatcherServlet dispatchServlet,
 			Long userId, String forumId, Long limit, Long offset, DiscussionThreadOrder order,
 			Boolean ascending, DiscussionFilter filter) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
@@ -2262,6 +2175,56 @@ public class ServletTestHelper {
 		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.OK);
 		return objectMapper.readValue(response.getContentAsString(), DockerAuthorizationToken.class);
+	}
+	
+	public void createDockerCommit(DispatcherServlet dispatchServlet,
+			Long userId, String entityId, DockerCommit commit) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.POST, "/repo/v1", "/entity/"+entityId+"/dockerCommit", userId, commit);
+		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request, HttpStatus.NO_CONTENT);
+	}
 
+	public PaginatedResults<DockerCommit> listDockerCommits(Long userId, String entityId,
+			DockerCommitSortBy sortBy, Boolean ascending, Long limit, Long offset)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, "/entity/"+entityId+"/dockerCommit", userId, null);
+
+		if (sortBy!=null) request.addParameter("sort", ""+sortBy);
+		if (ascending!=null) request.addParameter("ascending", ""+ascending);
+		if (limit!=null) request.addParameter("limit", ""+limit);
+		if (offset!=null) request.addParameter("offset", ""+offset);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
+		return ServletTestHelperUtils.readResponsePaginatedResults(response,
+				DockerCommit.class);
+	}
+
+	public PaginatedResults<DiscussionThreadBundle> getThreadsForEntity(DispatcherServlet dispatchServlet,
+			Long userId, String entityId, Long limit, Long offset, DiscussionThreadOrder order, Boolean ascending) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.REPO_PATH, UrlHelpers.ENTITY+"/"+entityId+UrlHelpers.THREADS, userId, null);
+		request.addParameter("limit", limit.toString());
+		request.addParameter("offset", offset.toString());
+		if (order != null) {
+			request.addParameter("sort", order.name());
+		}
+		if (ascending != null) {
+			request.addParameter("ascending", ascending.toString());
+		}
+		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
+				HttpStatus.OK);
+		return ServletTestHelperUtils.readResponsePaginatedResults(response, DiscussionThreadBundle.class);
+	}
+
+	public EntityThreadCounts getEntityThreadCounts(DispatcherServlet dispatchServlet,
+			Long userId, EntityIdList entityIds) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.POST, UrlHelpers.REPO_PATH, UrlHelpers.ENTITY_THREAD_COUNTS, userId, entityIds);
+		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
+				HttpStatus.OK);
+		return objectMapper.readValue(response.getContentAsString(), EntityThreadCounts.class);
 	}
 }

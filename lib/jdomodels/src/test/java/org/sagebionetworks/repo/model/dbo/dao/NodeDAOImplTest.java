@@ -8,7 +8,6 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.sagebionetworks.repo.model.dbo.dao.NodeDAOImpl.TRASH_FOLDER_ID;
 
-import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -20,7 +19,6 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
-import java.util.zip.CRC32;
 
 import org.junit.After;
 import org.junit.Before;
@@ -165,6 +163,8 @@ public class NodeDAOImplTest {
 	private String publicProject2;
 
 	private String nooneOwns;
+
+	private final String rootID = KeyFactory.keyToString(KeyFactory.ROOT_ID);
 
 	@Before
 	public void before() throws Exception {
@@ -1190,6 +1190,157 @@ public class NodeDAOImplTest {
 		assertNotNull(node);
 		assertEquals("Deleting all versions except the first should have left the node in place with a current version of 1.",new Long(1), node.getVersionNumber());
 	}
+	
+	//mySQL seems to have a limit of 15 for the number of delete cascades to prevent infinite loops. https://dev.mysql.com/doc/mysql-reslimits-excerpt/5.5/en/ansi-diff-foreign-keys.html
+	@Test (expected = DataIntegrityViolationException.class)
+	public void testDeleteCascadeMax(){
+		List<String> nodeIds = createNestedNodes(15);
+		//delete the parent node 
+		nodeDao.delete(nodeIds.get(0));
+	}
+	
+	//anything less than 15 works
+	@Test
+	public void testDeleteCascadeNotMax(){
+		List<String> nodeIds = createNestedNodes(14);
+		//delete the parent node 
+		nodeDao.delete(nodeIds.get(0));
+		//check that all added nodes were deleted 
+		for(String nodeID : nodeIds){
+			assertFalse(nodeDao.doesNodeExist(KeyFactory.stringToKey(nodeID)));
+		}
+	}
+	
+	/**
+	 * <pre>
+	 * numLevels amount of nodes each referencing the previous
+	 *    root
+	 *     |
+	 *   Node1
+	 *     |
+	 *   Node2
+	 *     |
+	 *     .
+	 *     .
+	 *     .
+	 *     |
+	 *    Node{numLevels}
+	 * </pre>
+	 * @param numLevels number of chained nodes to creates
+	 * @return List of all created nodes' ids ordered by level ascendingly
+	 * @throws DataIntegrityViolationException
+	 */
+	private List<String> createNestedNodes(int numLevels) throws DataIntegrityViolationException{
+		
+		/*
+
+		  
+		*/
+		
+		List<String> nodeIDs = new ArrayList<String>();
+		
+		for(int i = 0; i < numLevels; i++){
+			String nodeName = "NodeDAOImplTest.createNestedNodes() Node:" + i;
+			Node node = new Node();
+			
+			//set fields for the new node
+			Date now = new Date();
+			node.setName(nodeName);
+			node.setParentId( nodeIDs.isEmpty() ? rootID : nodeIDs.get(nodeIDs.size() - 1) );//previous added node is the parent
+			node.setNodeType(EntityType.project);
+			node.setModifiedByPrincipalId(creatorUserGroupId);
+			node.setModifiedOn(now);
+			node.setCreatedOn(now);
+			node.setCreatedByPrincipalId(creatorUserGroupId);
+			
+			//create the node in the database and update the parentid to that of the new node
+			String nodeID = nodeDao.createNew(node);
+			assertNotNull(nodeID);
+			
+			nodeIDs.add(nodeID);
+			toDelete.add(0, nodeID);//have to delete the nodes in reverse order or else will not be able to clean up if test fails
+		}
+		assertTrue(nodeIDs.size() == numLevels);
+		
+		return nodeIDs;
+	}
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void testDeleteListNullList(){
+		nodeDao.delete((List<Long>) null);
+	}
+	
+	@Test
+	public void testDeleteListEmptyList(){
+		assertEquals(0, nodeDao.delete(new ArrayList<Long>()));
+	}
+	
+	
+	@Test
+	public void testDeleteListLeavesOnly(){
+		List<Long> nodeIDs = new ArrayList<Long>();
+		int numNodes = 2; 
+		
+		//create numNodes amount of Nodes. all children of the root
+		for(int i = 0; i < numNodes; i++){
+			String nodeName = "NodeDAOImplTest.testDeleteList() Node:" + i;
+			Node node = new Node();
+			
+			//set fields for the new node
+			Date now = new Date();
+			node.setName(nodeName);
+			node.setParentId( rootID );//previous added node is the parent
+			node.setNodeType(EntityType.project);
+			node.setModifiedByPrincipalId(creatorUserGroupId);
+			node.setModifiedOn(now);
+			node.setCreatedOn(now);
+			node.setCreatedByPrincipalId(creatorUserGroupId);
+			
+			//create the node in the database and update the parentid to that of the new node
+			String nodeID = nodeDao.createNew(node);
+			assertNotNull(nodeID);
+			
+			nodeIDs.add(KeyFactory.stringToKey(nodeID));
+			toDelete.add(nodeID);//add to cleanup list in case test fails
+		}
+		assertEquals(numNodes, nodeIDs.size());
+		
+		//check that the nodes were added
+		for(Long nodeID : nodeIDs){
+			assertTrue(nodeDao.doesNodeExist(nodeID));
+		}
+		
+		//delete the nodes
+		nodeDao.delete(nodeIDs);
+		
+		//check that the nodes no longer exist
+		for(Long nodeID : nodeIDs){
+			assertFalse(nodeDao.doesNodeExist(nodeID));
+		}
+	}
+	@Test
+	public void testDeleteListOfNodeWithChildren(){
+		List<String> stringTypeNodeIds = createNestedNodes(2);//1 child
+		List<Long> listParentOnly = new ArrayList<Long>();
+		
+		//only add the root parent
+		listParentOnly.add(KeyFactory.stringToKey(stringTypeNodeIds.get(0)));
+		
+		nodeDao.delete(listParentOnly);
+	}
+	
+	
+	@Test (expected = DataIntegrityViolationException.class)
+	public void testDeleteListCascadeMax(){
+		List<String> stringTypeNodeIds = createNestedNodes(15);
+		List<Long> listParentOnly = new ArrayList<Long>();
+		
+		//only add the root parent
+		listParentOnly.add(KeyFactory.stringToKey(stringTypeNodeIds.get(0)));
+		
+		nodeDao.delete(listParentOnly);
+	}
+	
 	
 	@Test
 	public void testPeekCurrentEtag() throws  Exception {

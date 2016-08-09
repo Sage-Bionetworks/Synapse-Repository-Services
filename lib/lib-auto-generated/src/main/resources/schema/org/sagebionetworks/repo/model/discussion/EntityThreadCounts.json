@@ -1,0 +1,13 @@
+{
+	"title":"EntityThreadCounts",
+	"description":"The model object represents a list of EntityThreadCounts",
+	"properties": {
+		"list":{
+			"type": "array",
+			"items": {
+				"type": "object",
+				"$ref":"org.sagebionetworks.repo.model.discussion.EntityThreadCount"
+			}
+		}
+	}
+}

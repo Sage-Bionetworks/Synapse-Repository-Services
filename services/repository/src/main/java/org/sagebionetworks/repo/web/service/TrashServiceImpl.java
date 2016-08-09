@@ -1,6 +1,10 @@
 package org.sagebionetworks.repo.web.service;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -18,6 +22,7 @@ import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.principal.BootstrapPrincipal;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.service.metadata.EntityProvider;
@@ -25,7 +30,10 @@ import org.sagebionetworks.repo.web.service.metadata.MetadataProviderFactory;
 import org.sagebionetworks.repo.web.service.metadata.TypeSpecificDeleteProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
+
+
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 
 public class TrashServiceImpl implements TrashService {
 
@@ -98,33 +106,46 @@ public class TrashServiceImpl implements TrashService {
 	}
 
 	private class TrashPurgeCallback implements PurgeCallback {
-		private List<EntityProvider<? extends Entity>> providers = null;
-		private String entityId = null;
+		
+		private Map<String, List<EntityProvider<? extends Entity>> > entityIdToProviersListMap;
 
 		public TrashPurgeCallback() {
+			this.entityIdToProviersListMap = new HashMap<String, List<EntityProvider<? extends Entity>> >();
 		}
 
 		@Override
 		public void startPurge(String entityId) {
-			this.entityId = entityId;
-			providers = null;
 			try {
 				EntityType type = entityManager.getEntityTypeForDeletion(entityId);
 
 				// Fetch the provider that will validate this entity.
-				providers = metadataProviderFactory.getMetadataProvider(type);
+				List<EntityProvider<? extends Entity>> providers = metadataProviderFactory.getMetadataProvider(type);
+				entityIdToProviersListMap.put(entityId, providers);
 			} catch (NotFoundException e) {
 				// it's ok if it doesn't exist
+			}
+		}
+		
+		@Override
+		public void startPurge(List<Long> ids) {
+			for(long id: ids){
+				startPurge( KeyFactory.keyToString(id) );
 			}
 		}
 
 		@Override
 		public void endPurge() {
 			// Do extra cleanup as needed.
-			if (entityId != null && providers != null) {
-				for (EntityProvider<? extends Entity> provider : providers) {
-					if (provider instanceof TypeSpecificDeleteProvider) {
-						((TypeSpecificDeleteProvider<Entity>) provider).entityDeleted(entityId);
+			if ( !entityIdToProviersListMap.isEmpty() ) {
+				for(Entry<String, List<EntityProvider<? extends Entity>>> entry : entityIdToProviersListMap.entrySet()){ //iterate through all key,value pairs in the map
+					//getting the key and value
+					String entityId = entry.getKey();
+					List<EntityProvider<? extends Entity>> providers = entry.getValue();
+					
+					for (EntityProvider<? extends Entity> provider : providers) {
+						if (provider instanceof TypeSpecificDeleteProvider) {
+							((TypeSpecificDeleteProvider<Entity>) provider).entityDeleted(entityId);
+						}
 					}
 				}
 			}
@@ -156,5 +177,13 @@ public class TrashServiceImpl implements TrashService {
 		}
 
 		trashManager.purgeTrash(currentUser, new TrashPurgeCallback());
+	}
+	
+	@WriteTransactionReadCommitted
+	@Override
+	public void purgeTrashLeaves(Long currentUserId, Long daysOld, Long limit) throws DatastoreException, NotFoundException, UnauthorizedException{
+		UserInfo currentUser = userManager.getUserInfo(currentUserId);
+		List<Long> trashList = trashManager.getTrashLeavesBefore(daysOld, limit);
+		trashManager.purgeTrashAdmin(trashList, currentUser, new TrashPurgeCallback());
 	}
 }

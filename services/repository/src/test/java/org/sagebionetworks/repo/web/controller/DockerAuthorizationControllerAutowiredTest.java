@@ -6,7 +6,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 
-public class DockerControllerAutowiredTest extends AbstractAutowiredControllerTestBase {
+public class DockerAuthorizationControllerAutowiredTest extends AbstractAutowiredControllerTestBase {
 
 	private Long adminUserId;
 

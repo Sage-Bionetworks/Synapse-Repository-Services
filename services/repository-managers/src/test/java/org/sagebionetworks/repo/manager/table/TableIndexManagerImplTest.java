@@ -100,11 +100,11 @@ public class TableIndexManagerImplTest {
 			}}).when(mockIndexDao).executeInWriteTransaction(any(TransactionCallback.class));
 		
 		// setup callable.
-		when(mockManagerSupport.callWithAutoProgress(any(ProgressCallback.class), any(Callable.class))).then(new Answer<Boolean>() {
+		when(mockManagerSupport.callWithAutoProgress(any(ProgressCallback.class), any(Callable.class))).then(new Answer<Object>() {
 
 			@Override
-			public Boolean answer(InvocationOnMock invocation) throws Throwable {
-				Callable<Boolean> callable = (Callable<Boolean>) invocation.getArguments()[1];
+			public Object answer(InvocationOnMock invocation) throws Throwable {
+				Callable<Object> callable = (Callable<Object>) invocation.getArguments()[1];
 				return callable.call();
 			}
 		});
@@ -320,6 +320,27 @@ public class TableIndexManagerImplTest {
 		verify(mockIndexDao, never()).getDatabaseInfo(tableId);
 		verify(mockIndexDao, never()).truncateTable(tableId);
 		verify(mockIndexDao, never()).setCurrentSchemaMD5Hex(anyString(), anyString());
+	}
+	
+	@SuppressWarnings("unchecked")
+	@Test
+	public void testCreateTemporaryTableCopy() throws Exception{
+		// call under test
+		manager.createTemporaryTableCopy(mockCallback);
+		// auto progress should be used.
+		verify(mockManagerSupport).callWithAutoProgress(any(ProgressCallback.class), any(Callable.class));
+		verify(mockIndexDao).createTemporaryTable(tableId);
+		verify(mockIndexDao).copyAllDataToTemporaryTable(tableId);
+	}
+	
+	@SuppressWarnings("unchecked")
+	@Test
+	public void testDeleteTemporaryTableCopy() throws Exception{
+		// call under test
+		manager.deleteTemporaryTableCopy(mockCallback);
+		// auto progress should be used.
+		verify(mockManagerSupport).callWithAutoProgress(any(ProgressCallback.class), any(Callable.class));
+		verify(mockIndexDao).deleteTemporaryTable(tableId);
 	}
 	
 }
