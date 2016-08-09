@@ -40,8 +40,8 @@ public class UserThrottleFilter implements Filter {
 	public static final String CONCURRENT_CONNECTION_KEY_PREFIX = "ConcurrentConnectionsKey-";
 	
 	//limit users to on average send 1 request per 1 second
-	public static final long REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC =  75; //75 seconds
-	public static final int MAX_REQUEST_FREQUENCY_LOCKS = 75;
+	public static final long REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC =  150; //150 seconds
+	public static final int MAX_REQUEST_FREQUENCY_LOCKS = 150;
 	public static final String REQUEST_FREQUENCY_KEY_PREFIX = "RequestFrequencyKey-";
 	
 
