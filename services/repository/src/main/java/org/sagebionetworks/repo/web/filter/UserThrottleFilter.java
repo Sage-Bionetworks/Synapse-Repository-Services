@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.semaphore.LockReleaseFailedException;
 import org.sagebionetworks.repo.model.semaphore.MemoryCountingSemaphore;
+import org.sagebionetworks.repo.model.semaphore.MemoryTimeBlockCountingSemaphore;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -39,8 +40,8 @@ public class UserThrottleFilter implements Filter {
 	public static final String CONCURRENT_CONNECTION_KEY_PREFIX = "ConcurrentConnectionsKey-";
 	
 	//limit users to on average send 1 request per 1 second
-	public static final long REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC =  30; //30 seconds
-	public static final int MAX_REQUEST_FREQUENCY_LOCKS = 30;
+	public static final long REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC =  75; //75 seconds
+	public static final int MAX_REQUEST_FREQUENCY_LOCKS = 75;
 	public static final String REQUEST_FREQUENCY_KEY_PREFIX = "RequestFrequencyKey-";
 	
 
@@ -51,6 +52,9 @@ public class UserThrottleFilter implements Filter {
 	
 	@Autowired
 	MemoryCountingSemaphore userThrottleMemoryCountingSemaphore;
+	
+	@Autowired
+	MemoryTimeBlockCountingSemaphore userThrottleMemoryTimeBlockSemaphore;
 
 	@Override
 	public void destroy() {
@@ -72,8 +76,8 @@ public class UserThrottleFilter implements Filter {
 				String concurrentLockToken = userThrottleMemoryCountingSemaphore.attemptToAcquireLock(concurrentKeyUserId, CONCURRENT_CONNECTIONS_LOCK_TIMEOUT_SEC, MAX_CONCURRENT_LOCKS);
 				if (concurrentLockToken != null) {
 					//then try to acquire the request frequency lock
-					String frequencyLockToken = userThrottleMemoryCountingSemaphore.attemptToAcquireLock(frequencyKeyUserId, REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC, MAX_REQUEST_FREQUENCY_LOCKS);
-					if(frequencyLockToken != null){
+					boolean frequencyLockAcquired = userThrottleMemoryTimeBlockSemaphore.attemptToAcquireLock(frequencyKeyUserId, REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC, MAX_REQUEST_FREQUENCY_LOCKS);
+					if(frequencyLockAcquired){
 						//acquired both locks. proceed to next filter
 						try {
 							chain.doFilter(request, response);
