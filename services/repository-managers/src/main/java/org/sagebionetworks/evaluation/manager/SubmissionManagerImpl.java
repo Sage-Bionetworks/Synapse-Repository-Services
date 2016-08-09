@@ -34,12 +34,13 @@ import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
-import org.sagebionetworks.repo.manager.team.TeamConstants;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.DockerCommitDao;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.QueryResults;
@@ -53,6 +54,7 @@ import org.sagebionetworks.repo.model.annotation.AnnotationsUtils;
 import org.sagebionetworks.repo.model.annotation.DoubleAnnotation;
 import org.sagebionetworks.repo.model.annotation.LongAnnotation;
 import org.sagebionetworks.repo.model.annotation.StringAnnotation;
+import org.sagebionetworks.repo.model.docker.DockerCommit;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.evaluation.EvaluationSubmissionsDAO;
 import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
@@ -62,8 +64,6 @@ import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
-import org.sagebionetworks.repo.model.principal.AliasType;
-import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
@@ -101,6 +101,8 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	private UserProfileManager userProfileManager;
 	@Autowired
 	private EvaluationDAO evaluationDAO;
+	@Autowired
+	private DockerCommitDao dockerCommitDao;
 	
 	private static final int MAX_BATCH_SIZE = 500;
 	
@@ -177,7 +179,17 @@ public class SubmissionManagerImpl implements SubmissionManager {
 			// invalid eTag; reject the Submission
 			throw new IllegalArgumentException("The supplied eTag is out of date. " +
 					"Please fetch Entity " + entityId + " again.");
-		} 
+		}
+		
+		if (node.getNodeType()==EntityType.dockerrepo) {
+			EvaluationUtils.ensureNotNull(submission.getDockerDigest(), "Docker Digest");
+			List<DockerCommit> commits = dockerCommitDao.
+					listCommitByOwnerAndDigest(entityId, submission.getDockerDigest());
+			if (commits.isEmpty()) throw new IllegalArgumentException("The given Docker Repository, "+
+					entityId+", does not have digest "+submission.getDockerDigest());
+		} else {
+			submission.setDockerDigest(null);
+		}
 		
 		// let's use a single time stamp for everything we do in this transaction
 		Date now = new Date();
