@@ -141,7 +141,7 @@ public class DockerCommitDaoImpl implements DockerCommitDao {
 	}
 
 	@Override
-	public List<DockerCommit> listCommitByOwnerAndDigest(String entityId,
+	public List<DockerCommit> listCommitsByOwnerAndDigest(String entityId,
 			String digest) {
 		ValidateArgument.required(entityId, "entityId");
 		ValidateArgument.required(digest, "digest");

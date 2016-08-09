@@ -184,7 +184,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		if (node.getNodeType()==EntityType.dockerrepo) {
 			EvaluationUtils.ensureNotNull(submission.getDockerDigest(), "Docker Digest");
 			List<DockerCommit> commits = dockerCommitDao.
-					listCommitByOwnerAndDigest(entityId, submission.getDockerDigest());
+					listCommitsByOwnerAndDigest(entityId, submission.getDockerDigest());
 			if (commits.isEmpty()) throw new IllegalArgumentException("The given Docker Repository, "+
 					entityId+", does not have digest "+submission.getDockerDigest());
 		} else {
