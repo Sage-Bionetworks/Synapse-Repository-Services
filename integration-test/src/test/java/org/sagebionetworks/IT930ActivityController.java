@@ -16,6 +16,7 @@ import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
+import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
@@ -44,7 +45,8 @@ public class IT930ActivityController {
 	}
 	
 	@Before
-	public void before() {
+	public void before() throws SynapseException {
+		adminSynapse.clearAllLocks();
 		entitiesToDelete = new ArrayList<String>();
 		activitiesToDelete = new ArrayList<String>();
 	}
