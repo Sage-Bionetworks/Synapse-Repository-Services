@@ -192,7 +192,6 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 	private static final String ORDER_BY_NUMBER_OF_VIEWS = " ORDER BY "+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_VIEWS;
 	private static final String ORDER_BY_NUMBER_OF_REPLIES = " ORDER BY "+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_REPLIES;
 	private static final String DESC = " DESC ";
-	public static final Long MAX_LIMIT = 20L;
 
 	// for entity references
 	private static final String ENTITY_IDS = "entityIds";
@@ -332,8 +331,6 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 		ValidateArgument.required(limit,"limit");
 		ValidateArgument.required(offset,"offset");
 		ValidateArgument.required(filter, "filter");
-		ValidateArgument.requirement(limit >= 0 && offset >= 0 && limit <= MAX_LIMIT,
-					"Limit and offset must be greater than 0, and limit must be smaller than or equal to "+MAX_LIMIT);
 		ValidateArgument.requirement((order == null && ascending == null)
 				|| (order != null && ascending != null),"order and ascending must be both null or not null");
 		String query = buildGetQuery(SQL_SELECT_THREADS_BY_FORUM_ID, limit, offset, order, ascending, filter);
@@ -504,8 +501,6 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 	public List<DiscussionThreadViewStat> getThreadViewStat(Long limit, Long offset) {
 		ValidateArgument.required(limit, "limit");
 		ValidateArgument.required(offset, "offset");
-		ValidateArgument.requirement(limit >= 0 && offset >= 0 && limit <= MAX_LIMIT,
-				"Limit and offset must be greater than 0, and limit must be smaller than or equal to "+MAX_LIMIT);
 		return jdbcTemplate.query(SQL_SELECT_THREAD_VIEW_STAT, DISCUSSION_THREAD_VIEW_STAT_ROW_MAPPER, limit, offset);
 	}
 
@@ -535,8 +530,6 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 	public List<Long> getAllThreadId(Long limit, Long offset) {
 		ValidateArgument.required(limit, "limit");
 		ValidateArgument.required(offset, "offset");
-		ValidateArgument.requirement(limit >= 0 && offset >= 0 && limit <= MAX_LIMIT,
-				"Limit and offset must be greater than 0, and limit must be smaller than or equal to "+MAX_LIMIT);
 		return jdbcTemplate.query(SQL_SELECT_ALL_THREAD_ID, new RowMapper<Long>(){
 
 			@Override
@@ -605,8 +598,6 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 		ValidateArgument.required(offset,"offset");
 		ValidateArgument.required(filter, "filter");
 		ValidateArgument.required(projectIds, "projectIds");
-		ValidateArgument.requirement(limit >= 0 && offset >= 0 && limit <= MAX_LIMIT,
-					"Limit and offset must be greater than 0, and limit must be smaller than or equal to "+MAX_LIMIT);
 		ValidateArgument.requirement((order == null && ascending == null)
 				|| (order != null && ascending != null),"order and ascending must be both null or not null");
 
