@@ -1,8 +1,5 @@
 package org.sagebionetworks.repo.web.filter;
 
-import static org.sagebionetworks.repo.web.filter.UserThrottleFilter.CONCURRENT_CONNECTION_KEY_PREFIX;
-import static org.sagebionetworks.repo.web.filter.UserThrottleFilter.REQUEST_FREQUENCY_KEY_PREFIX;
-
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Date;
