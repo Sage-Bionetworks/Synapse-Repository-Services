@@ -8,6 +8,7 @@ import static org.junit.Assert.assertTrue;
 import java.util.Arrays;
 
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -62,6 +63,10 @@ public class ITDiscussion {
 	public void cleanup() throws SynapseException, JSONObjectAdapterException {
 		if (project != null) adminSynapse.deleteEntity(project, true);
 		synapse.unsubscribeAll();
+	}
+
+	@AfterClass
+	public static void tearDown() throws SynapseException, JSONObjectAdapterException {
 		if (userToDelete != null) adminSynapse.deleteUser(userToDelete);
 	}
 
@@ -202,10 +207,22 @@ public class ITDiscussion {
 
 	@Test
 	public void testThreadCountsForEntityIdList() throws SynapseException {
+		// create a forum
+		Forum forum = synapse.getForumByProjectId(projectId);
+		String forumId = forum.getId();
+		// create a thread
+		CreateDiscussionThread toCreate = new CreateDiscussionThread();
+		toCreate.setForumId(forumId);
+		String title = "Mention project";
+		toCreate.setTitle(title);
+		String message = projectId;
+		toCreate.setMessageMarkdown(message);
+		synapse.createThread(toCreate);
+
 		EntityThreadCounts results = synapse.getEntityThreadCount(Arrays.asList(projectId));
 		assertNotNull(results);
 		assertEquals(1L, results.getList().size());
 		assertEquals(projectId, results.getList().get(0).getEntityId());
-		assertEquals((Long)0L, results.getList().get(0).getCount());
+		assertEquals((Long)1L, results.getList().get(0).getCount());
 	}
 }
