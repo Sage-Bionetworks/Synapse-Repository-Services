@@ -6,6 +6,7 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.when;
 
+import java.util.ArrayList;
 import java.util.Collections;
 
 import org.junit.Before;
@@ -26,6 +27,7 @@ import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.repo.model.dao.PermissionDao;
 import org.sagebionetworks.util.ReflectionStaticTestUtils;
 
 public class EntityPermissionsManagerImplUnitTest {
@@ -35,10 +37,13 @@ public class EntityPermissionsManagerImplUnitTest {
 	private UserInfo certifiedUserInfo;
 	private static final String projectId = "syn123";
 	private static final String folderId = "syn456";
+	private static final String dockerRepoId = "syn789";
 	private static final String projectParentId = "syn000";
 	private static final String folderParentId = "syn999";
+	private static final String benefactorId = "syn987";
 	private Node project;
 	private Node folder;
+	private Node dockerRepo;
 	
 	@Mock
 	private UserGroupDAO mockUserGroupDAO;
@@ -48,6 +53,8 @@ public class EntityPermissionsManagerImplUnitTest {
 	private AccessControlListDAO mockAclDAO;
 	@Mock
 	private AccessRequirementDAO  mockAccessRequirementDAO;
+	@Mock
+	private PermissionDao mockPermissionDao;
 	@Mock
 	private NodeInheritanceManager mockNodeInheritanceManager;
 	@Mock
@@ -98,13 +105,21 @@ public class EntityPermissionsManagerImplUnitTest {
     	when(mockNodeDao.getNode(folderId)).thenReturn(folder);
     	when(mockNodeDao.getNodeTypeById(folderId)).thenReturn(EntityType.folder);
    	
+    	dockerRepo = new Node();
+    	dockerRepo.setId(dockerRepoId);
+    	dockerRepo.setCreatedByPrincipalId(111111L);
+    	dockerRepo.setParentId(folderParentId);
+    	dockerRepo.setNodeType(EntityType.dockerrepo);
+    	when(mockNodeDao.getNode(dockerRepoId)).thenReturn(dockerRepo);
+    	when(mockNodeDao.getNodeTypeById(dockerRepoId)).thenReturn(EntityType.dockerrepo);
+   	
     	UserInfo anonymousUser = new UserInfo(false);
     	anonymousUser.setId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
     	when(mockUserManager.getUserInfo(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId())).thenReturn(anonymousUser);
 
-    	String benefactorId = "syn987";
 		when(mockNodeInheritanceManager.getBenefactor(projectId)).thenReturn(benefactorId);
 		when(mockNodeInheritanceManager.getBenefactor(folderId)).thenReturn(benefactorId);
+		when(mockNodeInheritanceManager.getBenefactor(dockerRepoId)).thenReturn(benefactorId);
 		when(mockNodeInheritanceManager.getBenefactor(projectParentId)).thenReturn(benefactorId);
 		when(mockNodeInheritanceManager.getBenefactor(folderParentId)).thenReturn(benefactorId);
 		when(mockNodeInheritanceManager.getBenefactor(benefactorId)).thenReturn(benefactorId);
@@ -224,6 +239,56 @@ public class EntityPermissionsManagerImplUnitTest {
 		
 		assertFalse(entityPermissionsManager.canCreateWiki(folderId, nonCertifiedUserInfo).getAuthorized());
 	}
+	
+	@Test
+	public void testHasAccessDockerRepoDownload() throws Exception {
+		// create a 'baseline case' in which the user has full access via the benefactor acl
+		assertTrue(entityPermissionsManager.
+				hasAccess(dockerRepoId, ACCESS_TYPE.DOWNLOAD, certifiedUserInfo).getAuthorized());
+		// ... but not via any evaluation queue
+		when(mockPermissionDao.isEntityInEvaluationWithAccess(
+				dockerRepoId, new ArrayList(certifiedUserInfo.getGroups()), 
+				ACCESS_TYPE.READ_PRIVATE_SUBMISSION)).thenReturn(false);
+		// now remove the ACL permission
+		when(mockAclDAO.canAccess(eq(certifiedUserInfo.getGroups()), 
+				eq(benefactorId), eq(ObjectType.ENTITY), (ACCESS_TYPE)any())).
+					thenReturn(false);
+		// the permission is now gone
+		assertFalse(entityPermissionsManager.
+				hasAccess(dockerRepoId, ACCESS_TYPE.DOWNLOAD, certifiedUserInfo).getAuthorized());
+		// but give access via a submission queue
+		when(mockPermissionDao.isEntityInEvaluationWithAccess(
+				dockerRepoId, new ArrayList(certifiedUserInfo.getGroups()), 
+				ACCESS_TYPE.READ_PRIVATE_SUBMISSION)).thenReturn(true);
+		// and the permission is restored
+		when(mockAclDAO.canAccess(eq(certifiedUserInfo.getGroups()), 
+				eq(benefactorId), eq(ObjectType.ENTITY), (ACCESS_TYPE)any())).
+					thenReturn(true);
+	}
+	
+	@Test
+	public void testGetUserPermissionsForCertifiedUserOnDockerRepo() throws Exception {
+		UserEntityPermissions uep = entityPermissionsManager.
+				getUserPermissionsForEntity(certifiedUserInfo, dockerRepoId);
+		
+		assertTrue(uep.getCanAddChild());
+		assertTrue(uep.getCanChangePermissions()); 
+		assertTrue(uep.getCanChangeSettings()); 
+		assertTrue(uep.getCanDelete());
+		assertTrue(uep.getCanEdit());
+		assertTrue(uep.getCanEnableInheritance());
+		assertFalse(uep.getCanPublicRead());
+		assertTrue(uep.getCanView());
+		assertTrue(uep.getCanDownload());
+		assertTrue(uep.getCanUpload());
+		assertTrue(uep.getCanCertifiedUserAddChild());
+		assertTrue(uep.getCanCertifiedUserEdit());
+		assertTrue(uep.getIsCertifiedUser());
+		assertTrue(uep.getCanModerate());
+		
+	}
+	
+
 
 }
 

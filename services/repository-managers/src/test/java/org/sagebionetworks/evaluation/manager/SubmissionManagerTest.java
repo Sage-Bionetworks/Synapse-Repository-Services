@@ -53,6 +53,7 @@ import org.sagebionetworks.repo.manager.team.EmailParseUtil;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.DockerCommitDao;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Folder;
@@ -68,6 +69,7 @@ import org.sagebionetworks.repo.model.annotation.Annotations;
 import org.sagebionetworks.repo.model.annotation.DoubleAnnotation;
 import org.sagebionetworks.repo.model.annotation.LongAnnotation;
 import org.sagebionetworks.repo.model.annotation.StringAnnotation;
+import org.sagebionetworks.repo.model.docker.DockerCommit;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.evaluation.EvaluationSubmissionsDAO;
 import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
@@ -103,9 +105,11 @@ public class SubmissionManagerTest {
 	private EvaluationPermissionsManager mockEvalPermissionsManager;
 	private SubmissionEligibilityManager mockSubmissionEligibilityManager;
 	private Node mockNode;
+	private Node mockDockerRepoNode;
 	private TeamDAO mockTeamDAO;
 	private UserProfileManager mockUserProfileManager;
 	private EvaluationDAO mockEvaluationDAO;
+	private DockerCommitDao mockDockerCommitDao;
 	private Folder folder;
 	private EntityBundle bundle;
 	
@@ -120,6 +124,7 @@ public class SubmissionManagerTest {
 	private static final String SUB2_ID = "87";
 	private static final String ENTITY_ID = "90";
 	private static final String ENTITY2_ID = "99";
+	private static final String DOCKER_REPO_ENTITY_ID = "11";
 	private static final String ETAG = "etag";	
 	private static final String HANDLE_ID_2 = "handle2";
 	private static final String HANDLE_ID_1 = "handle1";
@@ -127,6 +132,7 @@ public class SubmissionManagerTest {
 	private static final String TEAM_ID = "999";
 	private static final String CHALLENGE_END_POINT = "https://synapse.org/#ENTITY:";
 	private static final String NOTIFICATION_UNSUBSCRIBE_END_POINT = "https://synapse.org/#notificationUnsubscribeEndpoint:";
+	private static final String DOCKER_REPO_DIGEST = "abcdef012345";
 	
 	private static UserInfo ownerInfo;
 	private static UserInfo userInfo;
@@ -226,23 +232,29 @@ public class SubmissionManagerTest {
     	mockEntityManager = mock(EntityManager.class);
     	mockNodeManager = mock(NodeManager.class, RETURNS_DEEP_STUBS);
     	mockNode = mock(Node.class);
+    	mockDockerRepoNode = mock(Node.class);
       	mockFileHandleManager = mock(FileHandleManager.class);
       	mockEvalPermissionsManager = mock(EvaluationPermissionsManager.class);
       	mockSubmissionEligibilityManager = mock(SubmissionEligibilityManager.class);
       	mockTeamDAO = mock(TeamDAO.class);
       	mockUserProfileManager = mock(UserProfileManager.class);
       	mockEvaluationDAO = mock(EvaluationDAO.class);
+      	mockDockerCommitDao = mock(DockerCommitDao.class);
 
     	when(mockIdGenerator.generateNewId()).thenReturn(Long.parseLong(SUB_ID));
     	when(mockSubmissionDAO.get(eq(SUB_ID))).thenReturn(subWithId);
     	when(mockSubmissionDAO.get(eq(SUB2_ID))).thenReturn(sub2WithId);
     	when(mockSubmissionDAO.create(eq(sub))).thenReturn(SUB_ID);
     	when(mockSubmissionStatusDAO.get(eq(SUB_ID))).thenReturn(subStatus);
-    	when(mockNode.getNodeType()).thenReturn(EntityType.values()[0]);
+    	when(mockNode.getNodeType()).thenReturn(EntityType.file);
     	when(mockNode.getETag()).thenReturn(ETAG);
+    	when(mockDockerRepoNode.getNodeType()).thenReturn(EntityType.dockerrepo);
+    	when(mockDockerRepoNode.getETag()).thenReturn(ETAG);
     	when(mockNodeManager.get(any(UserInfo.class), eq(ENTITY_ID))).thenReturn(mockNode);    	
+    	when(mockNodeManager.get(any(UserInfo.class), eq(DOCKER_REPO_ENTITY_ID))).thenReturn(mockDockerRepoNode);    	
     	when(mockNodeManager.get(eq(userInfo), eq(ENTITY2_ID))).thenThrow(new UnauthorizedException());
     	when(mockNodeManager.getNodeForVersionNumber(eq(userInfo), eq(ENTITY_ID), anyLong())).thenReturn(mockNode);
+    	when(mockNodeManager.getNodeForVersionNumber(eq(userInfo), eq(DOCKER_REPO_ENTITY_ID), anyLong())).thenReturn(mockDockerRepoNode);
     	when(mockNodeManager.getNodeForVersionNumber(eq(userInfo), eq(ENTITY2_ID), anyLong())).thenThrow(new UnauthorizedException());
     	when(mockEntityManager.getEntityForVersion(any(UserInfo.class), anyString(), anyLong(), any(Class.class))).thenReturn(folder);
     	when(mockSubmissionFileHandleDAO.getAllBySubmission(eq(SUB_ID))).thenReturn(handleIds);
@@ -262,6 +274,13 @@ public class SubmissionManagerTest {
     	when(mockSubmissionEligibilityManager.isIndividualEligible(eq(EVAL_ID), any(UserInfo.class), any(Date.class))).
     		thenReturn(AuthorizationManagerUtil.AUTHORIZED);
     	
+    	DockerCommit commit = new DockerCommit();
+    	commit.setTag("foo");
+    	commit.setDigest(DOCKER_REPO_DIGEST);
+    	when(mockDockerCommitDao.
+    			listCommitsByOwnerAndDigest(DOCKER_REPO_ENTITY_ID, DOCKER_REPO_DIGEST)).
+    			thenReturn(Collections.singletonList(commit));
+    	
     	// Submission Manager
     	submissionManager = new SubmissionManagerImpl();
     	ReflectionTestUtils.setField(submissionManager, "idGenerator", mockIdGenerator);
@@ -277,6 +296,7 @@ public class SubmissionManagerTest {
     	ReflectionTestUtils.setField(submissionManager, "teamDAO", mockTeamDAO);
     	ReflectionTestUtils.setField(submissionManager, "userProfileManager", mockUserProfileManager);
     	ReflectionTestUtils.setField(submissionManager, "evaluationDAO", mockEvaluationDAO);
+    	ReflectionTestUtils.setField(submissionManager, "dockerCommitDao", mockDockerCommitDao);
     }
 	
 	@Test
@@ -453,6 +473,35 @@ public class SubmissionManagerTest {
 	public void testUnauthorizedEntity() throws NotFoundException, DatastoreException, JSONObjectAdapterException {		
 		// user should not have access to sub2
 		submissionManager.createSubmission(userInfo, sub2, ETAG, null, bundle);		
+	}
+	
+	@Test
+	public void testCreateWithErroneousDockerDigest() throws Exception{
+		sub.setDockerDigest("this is some digest");
+		submissionManager.createSubmission(userInfo, sub, ETAG, null, bundle);
+		Submission retrieved = submissionManager.getSubmission(ownerInfo, SUB_ID);
+		assertNull(retrieved.getDockerDigest());
+	}
+	
+	@Test
+	public void testCreateDockerRepoSubmission() throws Exception {
+		sub.setEntityId(DOCKER_REPO_ENTITY_ID);
+		sub.setDockerDigest(DOCKER_REPO_DIGEST);
+		submissionManager.createSubmission(userInfo, sub, ETAG, null, bundle);		
+	}
+	
+	@Test(expected=IllegalArgumentException.class)
+	public void testCreateDockerRepoSubmissionNoDigest() throws Exception {
+		sub.setEntityId(DOCKER_REPO_ENTITY_ID);
+		sub.setDockerDigest(null);
+		submissionManager.createSubmission(userInfo, sub, ETAG, null, bundle);		
+	}
+	
+	@Test(expected=IllegalArgumentException.class)
+	public void testCreateDockerRepoSubmissionInvalidDigest() throws Exception {
+		sub.setEntityId(DOCKER_REPO_ENTITY_ID);
+		sub.setDockerDigest("not a valid digest");
+		submissionManager.createSubmission(userInfo, sub, ETAG, null, bundle);		
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
