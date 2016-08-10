@@ -35,11 +35,9 @@ public class UserThrottleFilter implements Filter {
 	// The maximum number of concurrent locks a user can have per machine.
 	public static final int MAX_CONCURRENT_LOCKS = 3;
 	
-	//limit users to on average send 1 request per 1 second
+	//From usage data in redash, normal users would not be affected with an average send 1 request per 1 second
+	//Set to 150 requests / 150 seconds so that the filter could tolerate infrequent high bursts of request from users
 	public static final long REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC =  150; //150 seconds
-	
-	//If MAX_REQUEST_FREQUENCY_LOCKS < 150 this filter will throttle the Integration Tests and the build will fail
-	//not sure of the exact value (150 was from trial and error) but anything < 100 definitely does now work
 	public static final int MAX_REQUEST_FREQUENCY_LOCKS = 150;
 	
 
