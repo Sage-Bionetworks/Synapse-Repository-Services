@@ -29,11 +29,9 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
-import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.PermissionDao;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
-import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,6 +41,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class PermissionDaoImplTest {
+	
 	@Autowired
 	private PermissionDao permissionDao;
 
@@ -54,9 +53,6 @@ public class PermissionDaoImplTest {
 
 	@Autowired
 	private NodeDAO nodeDAO;
-
-	@Autowired
-	private FileHandleDao fileHandleDAO;
 
 	@Autowired
 	AccessControlListDAO aclDAO;
@@ -71,21 +67,18 @@ public class PermissionDaoImplTest {
 	private Submission submission;
 
 	private String evalId;
-	private String fileHandleId;
-
-	private static Random random = new Random();
 
 	private static Submission newSubmission(String submissionId, String userId, Date createdDate, String evalId, String nodeId) {
 		Submission submission = new Submission();
 		submission.setCreatedOn(createdDate);
 		submission.setId(submissionId);
-		submission.setName(SUBMISSION_NAME+"_"+random.nextInt());
+		submission.setName(SUBMISSION_NAME);
 		submission.setEvaluationId(evalId);
 		submission.setEntityId(nodeId);
 		submission.setVersionNumber(VERSION_NUMBER);
 		submission.setUserId(userId);
-		submission.setSubmitterAlias("Team Awesome_"+random.nextInt());
-		submission.setEntityBundleJSON("some bundle"+random.nextInt());
+		submission.setSubmitterAlias("Team Awesome");
+		submission.setEntityBundleJSON("some bundle");
 		return submission;
 	}
 
@@ -93,22 +86,10 @@ public class PermissionDaoImplTest {
 	public void setUp() throws DatastoreException, InvalidModelException, NotFoundException {
 		userId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString();
 
-		// create a file handle
-		PreviewFileHandle meta = new PreviewFileHandle();
-		meta.setBucketName("bucketName");
-		meta.setKey("key");
-		meta.setContentType("content type");
-		meta.setContentSize(123l);
-		meta.setContentMd5("md5");
-		meta.setCreatedBy("" + userId);
-		meta.setFileName("preview.jpg");
-		fileHandleId = fileHandleDAO.createFile(meta).getId();
-
 		// create a node
 		Node toCreate = NodeTestUtils.createNew(SUBMISSION_NAME, Long.parseLong(userId));
 		toCreate.setVersionComment("This is the first version of the first node ever!");
 		toCreate.setVersionLabel("0.0.1");
-		toCreate.setFileHandleId(fileHandleId);
 		nodeId = nodeDAO.createNew(toCreate);
 
 		// create an Evaluation
@@ -161,7 +142,6 @@ public class PermissionDaoImplTest {
 		try {
 			nodeDAO.delete(nodeId);
 		} catch (NotFoundException e) {};
-		fileHandleDAO.delete(fileHandleId);
 	}
 
 	@Test
