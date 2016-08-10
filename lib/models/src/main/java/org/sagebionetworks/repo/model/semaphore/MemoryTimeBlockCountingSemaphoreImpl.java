@@ -46,7 +46,6 @@ public class MemoryTimeBlockCountingSemaphoreImpl implements MemoryTimeBlockCoun
 		semaphore.setExpiration(newExpiration);
 		semaphore.resetCount();
 		semaphore.increment();
-		assert(semaphore.getCount() == 1);
 	}
 
 	@Override
