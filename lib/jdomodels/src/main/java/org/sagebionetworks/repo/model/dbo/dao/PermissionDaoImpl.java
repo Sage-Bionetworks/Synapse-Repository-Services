@@ -20,6 +20,7 @@ import java.util.List;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.PermissionDao;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -67,7 +68,7 @@ public class PermissionDaoImpl implements PermissionDao {
 		ValidateArgument.required(accessType, "accessType");
 		if (principalIds.isEmpty()) return false;
 		return 0<jdbcTemplate.queryForObject(SUBMISSIONS_WITH_ENTITY_AND_PERMISSION_SQL, Long.class, 
-					entityId, principalIds, accessType.name());
+					KeyFactory.stringToKey(entityId), principalIds, accessType.name());
 	}
 
 }
