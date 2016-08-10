@@ -123,8 +123,7 @@ public class AuthorizationConstants {
 	/**
 	 * Response message for 503.
 	 */
-	public static final String REASON_TOO_MANY_CONCURRENT_REQUESTS = "{\"reason\": \"Too many concurrent requests\"}";
-	public static final String REASON_REQUESTS_TOO_FREQUENT = "{\"reason\": \"Requests are too frequent\"}";
+	public static final String REASON_USER_THROTTLED = "{\"reason\": \"Too many concurrent requests or requests are too frequent\"}";
 	/**
 	 * Response message for 500.
 	 */

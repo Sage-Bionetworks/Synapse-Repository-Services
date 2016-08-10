@@ -11,8 +11,6 @@ import static org.sagebionetworks.repo.web.filter.UserThrottleFilter.CONCURRENT_
 import static org.sagebionetworks.repo.web.filter.UserThrottleFilter.MAX_CONCURRENT_LOCKS;
 import static org.sagebionetworks.repo.web.filter.UserThrottleFilter.REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC;
 import static org.sagebionetworks.repo.web.filter.UserThrottleFilter.MAX_REQUEST_FREQUENCY_LOCKS;
-import static org.sagebionetworks.repo.web.filter.UserThrottleFilter.CONCURRENT_CONNECTION_KEY_PREFIX;
-import static org.sagebionetworks.repo.web.filter.UserThrottleFilter.REQUEST_FREQUENCY_KEY_PREFIX;
 
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
@@ -34,7 +32,6 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import javassist.tools.reflect.Reflection;
 
 @RunWith(MockitoJUnitRunner.class)
 public class UserThrottleFilterTest {
@@ -53,8 +50,6 @@ public class UserThrottleFilterTest {
 	private static final String userId = "111";
 	private static final String concurrentSemaphoreToken = "concurrentToken";
 	
-	private static final String concurrentKeyUserId = CONCURRENT_CONNECTION_KEY_PREFIX + userId;
-	private static final String frequencyKeyUserId = REQUEST_FREQUENCY_KEY_PREFIX + userId;
 	
 	private MockHttpServletRequest request;
 	private MockHttpServletResponse response;
@@ -83,38 +78,38 @@ public class UserThrottleFilterTest {
 
 	@Test
 	public void testNotAnonymous() throws Exception {
-		when(userThrottleGate.attemptToAcquireLock(concurrentKeyUserId, CONCURRENT_CONNECTIONS_LOCK_TIMEOUT_SEC, MAX_CONCURRENT_LOCKS)).thenReturn(concurrentSemaphoreToken);
-		when(userFrequencyThrottleGate.attemptToAcquireLock(frequencyKeyUserId, REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC, MAX_REQUEST_FREQUENCY_LOCKS)).thenReturn(true);
+		when(userThrottleGate.attemptToAcquireLock(userId, CONCURRENT_CONNECTIONS_LOCK_TIMEOUT_SEC, MAX_CONCURRENT_LOCKS)).thenReturn(concurrentSemaphoreToken);
+		when(userFrequencyThrottleGate.attemptToAcquireLock(userId, REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC, MAX_REQUEST_FREQUENCY_LOCKS)).thenReturn(true);
 
 		filter.doFilter(request, response, filterChain);
 
 		verify(filterChain).doFilter(request, response);
-		verify(userThrottleGate).attemptToAcquireLock(concurrentKeyUserId, CONCURRENT_CONNECTIONS_LOCK_TIMEOUT_SEC, MAX_CONCURRENT_LOCKS);
-		verify(userFrequencyThrottleGate).attemptToAcquireLock(frequencyKeyUserId, REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC, MAX_REQUEST_FREQUENCY_LOCKS);
+		verify(userThrottleGate).attemptToAcquireLock(userId, CONCURRENT_CONNECTIONS_LOCK_TIMEOUT_SEC, MAX_CONCURRENT_LOCKS);
+		verify(userFrequencyThrottleGate).attemptToAcquireLock(userId, REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC, MAX_REQUEST_FREQUENCY_LOCKS);
 
-		verify(userThrottleGate).releaseLock(concurrentKeyUserId, concurrentSemaphoreToken);
+		verify(userThrottleGate).releaseLock(userId, concurrentSemaphoreToken);
 		
 		verifyNoMoreInteractions(filterChain, userThrottleGate, userFrequencyThrottleGate);
 	}
 
 	@Test(expected = ServletException.class)
 	public void testConcurrentConnectionsAcquireLockException() throws Exception {
-		when(userThrottleGate.attemptToAcquireLock(concurrentKeyUserId, CONCURRENT_CONNECTIONS_LOCK_TIMEOUT_SEC, MAX_CONCURRENT_LOCKS)).thenThrow(new RuntimeException());
+		when(userThrottleGate.attemptToAcquireLock(userId, CONCURRENT_CONNECTIONS_LOCK_TIMEOUT_SEC, MAX_CONCURRENT_LOCKS)).thenThrow(new RuntimeException());
 		try {
 			filter.doFilter(request, response, filterChain);
 		} finally {
-			verify(userThrottleGate).attemptToAcquireLock(concurrentKeyUserId, CONCURRENT_CONNECTIONS_LOCK_TIMEOUT_SEC, MAX_CONCURRENT_LOCKS);
+			verify(userThrottleGate).attemptToAcquireLock(userId, CONCURRENT_CONNECTIONS_LOCK_TIMEOUT_SEC, MAX_CONCURRENT_LOCKS);
 			verifyNoMoreInteractions(filterChain, userThrottleGate, userFrequencyThrottleGate);
 		}
 	}
 	
 	@Test(expected = ServletException.class)
 	public void testRequestFrequencyAcquireLockException() throws Exception {
-		when(userFrequencyThrottleGate.attemptToAcquireLock(frequencyKeyUserId, REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC, MAX_REQUEST_FREQUENCY_LOCKS)).thenThrow(new RuntimeException());
+		when(userFrequencyThrottleGate.attemptToAcquireLock(userId, REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC, MAX_REQUEST_FREQUENCY_LOCKS)).thenThrow(new RuntimeException());
 		try {
 			filter.doFilter(request, response, filterChain);
 		} finally {
-			verify(userThrottleGate).attemptToAcquireLock(concurrentKeyUserId, CONCURRENT_CONNECTIONS_LOCK_TIMEOUT_SEC, MAX_CONCURRENT_LOCKS);
+			verify(userThrottleGate).attemptToAcquireLock(userId, CONCURRENT_CONNECTIONS_LOCK_TIMEOUT_SEC, MAX_CONCURRENT_LOCKS);
 			verifyNoMoreInteractions(filterChain, userThrottleGate, userFrequencyThrottleGate);
 		}
 	}
@@ -124,8 +119,8 @@ public class UserThrottleFilterTest {
 		Consumer consumer = mock(Consumer.class);
 		ReflectionTestUtils.setField(filter, "consumer", consumer);
 
-		when(userThrottleGate.attemptToAcquireLock(concurrentKeyUserId, CONCURRENT_CONNECTIONS_LOCK_TIMEOUT_SEC, MAX_CONCURRENT_LOCKS)).thenReturn(null);
-		when(userFrequencyThrottleGate.attemptToAcquireLock(frequencyKeyUserId, REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC, MAX_REQUEST_FREQUENCY_LOCKS)).thenReturn(true);
+		when(userThrottleGate.attemptToAcquireLock(userId, CONCURRENT_CONNECTIONS_LOCK_TIMEOUT_SEC, MAX_CONCURRENT_LOCKS)).thenReturn(null);
+		when(userFrequencyThrottleGate.attemptToAcquireLock(userId, REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC, MAX_REQUEST_FREQUENCY_LOCKS)).thenReturn(true);
 
 		
 		filter.doFilter(request, response, filterChain);
@@ -136,7 +131,7 @@ public class UserThrottleFilterTest {
 		assertEquals("ConcurrentConnectionsLockUnavailable", profileDataArgument.getValue().getName());
 		
 
-		verify(userThrottleGate).attemptToAcquireLock(concurrentKeyUserId, CONCURRENT_CONNECTIONS_LOCK_TIMEOUT_SEC, MAX_CONCURRENT_LOCKS);
+		verify(userThrottleGate).attemptToAcquireLock(userId, CONCURRENT_CONNECTIONS_LOCK_TIMEOUT_SEC, MAX_CONCURRENT_LOCKS);
 		verify(consumer).addProfileData(any(ProfileData.class));
 		verifyNoMoreInteractions(filterChain, userThrottleGate, userFrequencyThrottleGate, consumer);
 	}
@@ -146,8 +141,8 @@ public class UserThrottleFilterTest {
 		Consumer consumer = mock(Consumer.class);
 		ReflectionTestUtils.setField(filter, "consumer", consumer);
 		
-		when(userThrottleGate.attemptToAcquireLock(concurrentKeyUserId, CONCURRENT_CONNECTIONS_LOCK_TIMEOUT_SEC, MAX_CONCURRENT_LOCKS)).thenReturn(concurrentSemaphoreToken);
-		when(userFrequencyThrottleGate.attemptToAcquireLock(frequencyKeyUserId, REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC, MAX_REQUEST_FREQUENCY_LOCKS)).thenReturn(false);
+		when(userThrottleGate.attemptToAcquireLock(userId, CONCURRENT_CONNECTIONS_LOCK_TIMEOUT_SEC, MAX_CONCURRENT_LOCKS)).thenReturn(concurrentSemaphoreToken);
+		when(userFrequencyThrottleGate.attemptToAcquireLock(userId, REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC, MAX_REQUEST_FREQUENCY_LOCKS)).thenReturn(false);
 
 		filter.doFilter(request, response, filterChain);
 		assertEquals(HttpStatus.SC_SERVICE_UNAVAILABLE, response.getStatus());
@@ -157,9 +152,9 @@ public class UserThrottleFilterTest {
 		assertEquals("RequestFrequencyLockUnavailable", profileDataArgument.getValue().getName());
 		
 		
-		verify(userThrottleGate).attemptToAcquireLock(concurrentKeyUserId, CONCURRENT_CONNECTIONS_LOCK_TIMEOUT_SEC, MAX_CONCURRENT_LOCKS);
-		verify(userFrequencyThrottleGate).attemptToAcquireLock(frequencyKeyUserId, REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC, MAX_REQUEST_FREQUENCY_LOCKS);
-		verify(userThrottleGate).releaseLock(concurrentKeyUserId, concurrentSemaphoreToken);
+		verify(userThrottleGate).attemptToAcquireLock(userId, CONCURRENT_CONNECTIONS_LOCK_TIMEOUT_SEC, MAX_CONCURRENT_LOCKS);
+		verify(userFrequencyThrottleGate).attemptToAcquireLock(userId, REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC, MAX_REQUEST_FREQUENCY_LOCKS);
+		verify(userThrottleGate).releaseLock(userId, concurrentSemaphoreToken);
 		verify(consumer).addProfileData(any(ProfileData.class));
 		verifyNoMoreInteractions(filterChain, userThrottleGate, userFrequencyThrottleGate, consumer);
 	}

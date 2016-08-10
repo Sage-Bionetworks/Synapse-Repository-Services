@@ -20,17 +20,14 @@ public class MemoryTimeBlockCountingSemaphoreImpl implements MemoryTimeBlockCoun
 			//no semaphore created for key yet
 			//create new semaphore and increment
 			SimpleSemaphore newSem = new SimpleSemaphore();
-			newSem.setExpiration(calcExpirationTime(timeoutSec));
-			newSem.increment();
+			resetAndIncrementSemaphore(newSem, timeoutSec);
 			keySemaphoreMap.put(key, newSem);
 			return true;
 		}
 		
 		if(semaphore.isExpired()){
 			//reset and increment if semaphore has expired
-			semaphore.setExpiration(calcExpirationTime(timeoutSec));
-			semaphore.resetCount();
-			semaphore.increment();
+			resetAndIncrementSemaphore(semaphore, timeoutSec);
 			return true;
 		}
 		
@@ -43,8 +40,13 @@ public class MemoryTimeBlockCountingSemaphoreImpl implements MemoryTimeBlockCoun
 		return false;
 	}
 	
-	private static long calcExpirationTime(long timeoutSec){
-		return System.currentTimeMillis() + timeoutSec * 1000;
+	//resets the semaphore, give it a new expiration and increment the count
+	private static void resetAndIncrementSemaphore(SimpleSemaphore semaphore, long timeoutSec){
+		long newExpiration = System.currentTimeMillis() + timeoutSec * 1000;
+		semaphore.setExpiration(newExpiration);
+		semaphore.resetCount();
+		semaphore.increment();
+		assert(semaphore.getCount() == 1);
 	}
 
 	@Override

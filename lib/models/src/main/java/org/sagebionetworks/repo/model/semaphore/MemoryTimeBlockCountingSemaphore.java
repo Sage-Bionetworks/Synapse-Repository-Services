@@ -16,10 +16,10 @@ public interface MemoryTimeBlockCountingSemaphore {
 	 * @param key
 	 *            A unique key to lock on
 	 * @param maxLockCount
-	 *            The maximum number of locks of that can be issued to the given
+	 *            The maximum number of locks of that can be issued from the semaphore to the given
 	 *            key.
 	 * @param timeoutSec
-	 *            The maximum life of the lock in seconds.
+	 *            The maximum life of the semaphore for that key in seconds.
 	 *            If the current semaphore for the given key has not yet expired, this parameter will be ignored.
 	 * 
 	 * @return boolean true if lock was acquired successfully. false otherwise.

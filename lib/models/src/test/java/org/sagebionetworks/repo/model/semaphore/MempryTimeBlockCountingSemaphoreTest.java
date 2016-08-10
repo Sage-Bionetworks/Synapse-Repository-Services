@@ -8,14 +8,12 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.eq;
 
 import java.util.Map;
-import java.util.concurrent.Semaphore;
 
-import org.joda.time.chrono.LimitChronology;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -40,7 +38,7 @@ public class MempryTimeBlockCountingSemaphoreTest {
 	@Before
 	public void setUp() throws Exception {
 		MockitoAnnotations.initMocks(this);
-		memoryTimeBlockCountingSemaphore = Mockito.spy(new MemoryTimeBlockCountingSemaphoreImpl());
+		memoryTimeBlockCountingSemaphore = new MemoryTimeBlockCountingSemaphoreImpl();
 		ReflectionTestUtils.setField(memoryTimeBlockCountingSemaphore, "keySemaphoreMap", keySemaphoreMap);
 	}
 	
@@ -66,10 +64,12 @@ public class MempryTimeBlockCountingSemaphoreTest {
 		
 		assertTrue(memoryTimeBlockCountingSemaphore.attemptToAcquireLock(key, timeoutSec, limit));
 		
-		verify(memoryTimeBlockCountingSemaphore).attemptToAcquireLock(key, timeoutSec, limit);
 		verify(keySemaphoreMap).get(key);
-		verify(keySemaphoreMap).put(eq(key), any(SimpleSemaphore.class));
-		verifyNoMoreInteractions(memoryTimeBlockCountingSemaphore, keySemaphoreMap);
+		ArgumentCaptor<SimpleSemaphore> semaphoreCaptor = ArgumentCaptor.forClass(SimpleSemaphore.class);
+		verify(keySemaphoreMap).put(eq(key), semaphoreCaptor.capture());
+		SimpleSemaphore capturedSemaphore = semaphoreCaptor.getValue();
+		assertEquals(1, capturedSemaphore.getCount());
+		verifyNoMoreInteractions(keySemaphoreMap);
 	}
 	
 	@Test
@@ -79,14 +79,13 @@ public class MempryTimeBlockCountingSemaphoreTest {
 		
 		assertTrue(memoryTimeBlockCountingSemaphore.attemptToAcquireLock(key, timeoutSec, limit));
 		
-		verify(memoryTimeBlockCountingSemaphore).attemptToAcquireLock(key, timeoutSec, limit);
 		verify(keySemaphoreMap).get(key);
 		verify(mockSemaphore).isExpired();
 		verify(mockSemaphore).setExpiration(any(Long.class));
 		verify(mockSemaphore).resetCount();
 		verify(mockSemaphore).increment();
 		
-		verifyNoMoreInteractions(memoryTimeBlockCountingSemaphore, keySemaphoreMap,  mockSemaphore);
+		verifyNoMoreInteractions(keySemaphoreMap,  mockSemaphore);
 	}
 	
 	@Test
@@ -97,11 +96,10 @@ public class MempryTimeBlockCountingSemaphoreTest {
 		
 		assertFalse(memoryTimeBlockCountingSemaphore.attemptToAcquireLock(key, timeoutSec, limit));
 		
-		verify(memoryTimeBlockCountingSemaphore).attemptToAcquireLock(key, timeoutSec, limit);
 		verify(keySemaphoreMap).get(key);
 		verify(mockSemaphore).isExpired();
 		verify(mockSemaphore).getCount();
-		verifyNoMoreInteractions(memoryTimeBlockCountingSemaphore, keySemaphoreMap,  mockSemaphore);
+		verifyNoMoreInteractions(keySemaphoreMap,  mockSemaphore);
 	}
 	
 	@Test
@@ -112,12 +110,11 @@ public class MempryTimeBlockCountingSemaphoreTest {
 		
 		assertTrue(memoryTimeBlockCountingSemaphore.attemptToAcquireLock(key, timeoutSec, limit));
 		
-		verify(memoryTimeBlockCountingSemaphore).attemptToAcquireLock(key, timeoutSec, limit);
 		verify(keySemaphoreMap).get(key);
 		verify(mockSemaphore).isExpired();
 		verify(mockSemaphore).getCount();
 		verify(mockSemaphore).increment();
-		verifyNoMoreInteractions(memoryTimeBlockCountingSemaphore, keySemaphoreMap,  mockSemaphore);
+		verifyNoMoreInteractions(keySemaphoreMap,  mockSemaphore);
 
 	}
 

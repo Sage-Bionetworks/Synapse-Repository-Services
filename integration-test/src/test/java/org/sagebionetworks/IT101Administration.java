@@ -155,10 +155,4 @@ public class IT101Administration {
 	public void testClearAllLocks() throws SynapseException{
 		adminSynapse.clearAllLocks();
 	}
-	
-	@Test
-	public void testClearAllLocksTwice() throws SynapseException{
-		adminSynapse.clearAllLocks();
-		adminSynapse.clearAllLocks();
-	}
 }

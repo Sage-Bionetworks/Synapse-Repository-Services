@@ -10,8 +10,13 @@ public class SimpleSemaphore {
 	private int count; //number of semaphores held
 	private long expirationTimeMilis; //expiration time in milliseconds
 	
+	public SimpleSemaphore(){
+		this.count = 0;
+		this.expirationTimeMilis = System.currentTimeMillis();
+	}
+	
 	public void increment(){
-		count++;
+		this.count++;
 	}
 	
 	public void setExpiration(long time){
@@ -23,10 +28,10 @@ public class SimpleSemaphore {
 	}
 	
 	public int getCount(){
-		return count;
+		return this.count;
 	}
 	
 	public boolean isExpired(){
-		return  System.currentTimeMillis() > expirationTimeMilis;
+		return  System.currentTimeMillis() >= this.expirationTimeMilis;
 	}
 }
