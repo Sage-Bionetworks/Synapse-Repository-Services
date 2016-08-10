@@ -14,6 +14,8 @@ import java.util.Map;
 import java.util.TimeZone;
 
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.table.ColumnChange;
+import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.IdRange;
@@ -501,5 +503,66 @@ public class TableModelTestUtils {
 			ids.add(Long.parseLong(column.getId()));
 		}
 		return ids;
+	}
+	
+	/**
+	 * Create a column change request that includes and add, update, and delete.
+	 * 
+	 * @return
+	 */
+	public static List<ColumnChange> createAddUpdateDeleteColumnChange(){
+		ColumnChange add = new ColumnChange();
+		add.setOldColumnId(null);
+		add.setNewColumnId("111");
+		
+		ColumnChange update = new ColumnChange();
+		update.setOldColumnId("222");
+		update.setNewColumnId("333");
+		
+		ColumnChange delete = new ColumnChange();
+		delete.setOldColumnId("444");
+		delete.setNewColumnId(null);
+		
+		return  Lists.newArrayList(add, update, delete);
+	}
+	
+	/**
+	 * Create columns to match the given changes.
+	 * @param changes
+	 * @return
+	 */
+	public static List<ColumnModel> createColumnsForChanges(List<ColumnChange> changes){
+		List<ColumnModel> results = new LinkedList<>();
+		for(ColumnChange change: changes){
+			if(change.getOldColumnId() != null){
+				results.add(createColumn(Long.parseLong(change.getOldColumnId())));
+			}
+			if(change.getNewColumnId() != null){
+				results.add(createColumn(Long.parseLong(change.getNewColumnId())));
+			}
+		}
+		return results;
+	}
+	
+	/**
+	 * Create test details for given column changes.
+	 * 
+	 * @param changes
+	 * @return
+	 */
+	public static List<ColumnChangeDetails> createDetailsForChanges(List<ColumnChange> changes){
+		List<ColumnChangeDetails> results = new LinkedList<>();
+		for(ColumnChange change: changes){
+			ColumnModel oldModel = null;
+			ColumnModel newModel = null;
+			if(change.getOldColumnId() != null){
+				oldModel = createColumn(Long.parseLong(change.getOldColumnId()));
+			}
+			if(change.getNewColumnId() != null){
+				newModel = createColumn(Long.parseLong(change.getNewColumnId()));
+			}
+			results.add(new ColumnChangeDetails(oldModel, newModel));
+		}
+		return results;
 	}
 }

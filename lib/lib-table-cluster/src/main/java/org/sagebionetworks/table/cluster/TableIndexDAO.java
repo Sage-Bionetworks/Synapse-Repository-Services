@@ -6,6 +6,7 @@ import java.util.Set;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
+import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -34,7 +35,7 @@ public interface TableIndexDAO {
 	 * @param alterTemp When true the temporary table will be altered.  When false the original table will be altered.
 	 * @return True if the table was altered. False if the table was not changed.
 	 */
-	public boolean alterTableAsNeeded(String tableId, List<ColumnChange> changes, boolean alterTemp);
+	public boolean alterTableAsNeeded(String tableId, List<ColumnChangeDetails> changes, boolean alterTemp);
 	
 	/**
 	 * 

@@ -7,9 +7,6 @@ import static org.mockito.Matchers.anyList;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anySet;
 import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.*;
 
 import java.util.ArrayList;
@@ -26,12 +23,12 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
+import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
-import org.sagebionetworks.table.cluster.ColumnChange;
 import org.sagebionetworks.table.cluster.DatabaseColumnInfo;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
@@ -266,7 +263,7 @@ public class TableIndexManagerImplTest {
 		ColumnModel oldColumn = null;
 		ColumnModel newColumn = new ColumnModel();
 		newColumn.setId("12");
-		List<ColumnChange> changes = Lists.newArrayList(new ColumnChange(oldColumn, newColumn));
+		List<ColumnChangeDetails> changes = Lists.newArrayList(new ColumnChangeDetails(oldColumn, newColumn));
 		boolean alterTemp = false;
 		when(mockIndexDao.alterTableAsNeeded(tableId, changes, alterTemp)).thenReturn(true);
 		DatabaseColumnInfo info = new DatabaseColumnInfo();
@@ -293,7 +290,7 @@ public class TableIndexManagerImplTest {
 		ColumnModel newColumn = null;
 		boolean alterTemp = false;
 
-		List<ColumnChange> changes = Lists.newArrayList(new ColumnChange(oldColumn, newColumn));
+		List<ColumnChangeDetails> changes = Lists.newArrayList(new ColumnChangeDetails(oldColumn, newColumn));
 		when(mockIndexDao.alterTableAsNeeded(tableId, changes, alterTemp)).thenReturn(true);
 		when(mockIndexDao.getDatabaseInfo(tableId)).thenReturn(new LinkedList<DatabaseColumnInfo>());
 		// call under test
@@ -311,7 +308,7 @@ public class TableIndexManagerImplTest {
 	
 	@Test
 	public void testUpdateTableSchemaNoChange(){
-		List<ColumnChange> changes = new LinkedList<ColumnChange>();
+		List<ColumnChangeDetails> changes = new LinkedList<ColumnChangeDetails>();
 		boolean alterTemp = false;
 		when(mockIndexDao.alterTableAsNeeded(tableId, changes, alterTemp)).thenReturn(false);
 		when(mockIndexDao.getDatabaseInfo(tableId)).thenReturn(new LinkedList<DatabaseColumnInfo>());

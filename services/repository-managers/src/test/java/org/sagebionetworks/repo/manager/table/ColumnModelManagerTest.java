@@ -1,8 +1,11 @@
 package org.sagebionetworks.repo.manager.table;
 
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.Mockito.*;
 
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -11,10 +14,10 @@ import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
-import org.sagebionetworks.repo.manager.table.ColumnModelManagerImpl;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -23,6 +26,8 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
+import org.sagebionetworks.repo.model.table.ColumnChange;
+import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
@@ -39,15 +44,16 @@ import com.google.common.collect.Lists;
  */
 public class ColumnModelManagerTest {
 	
+	@Mock
 	ColumnModelDAO mockColumnModelDAO;
+	@Mock
 	AuthorizationManager mockauthorizationManager;
 	ColumnModelManagerImpl columnModelManager;
 	UserInfo user;
 	
 	@Before
 	public void before(){
-		mockColumnModelDAO = Mockito.mock(ColumnModelDAO.class);
-		mockauthorizationManager = Mockito.mock(AuthorizationManager.class);
+		MockitoAnnotations.initMocks(this);
 		columnModelManager = new ColumnModelManagerImpl();
 		user = new UserInfo(false, 123L);
 		ReflectionTestUtils.setField(columnModelManager, "columnModelDao", mockColumnModelDAO);
@@ -438,5 +444,22 @@ public class ColumnModelManagerTest {
 		} catch (IllegalArgumentException e) {
 			assertTrue(e.getMessage().startsWith("Too many columns"));
 		}
+	}
+	
+	@Test
+	public void testGetColumnChangeDetails(){
+		List<ColumnChange> changes = TableModelTestUtils.createAddUpdateDeleteColumnChange();
+		List<ColumnModel> columns = TableModelTestUtils.createColumnsForChanges(changes);
+		
+		when(mockColumnModelDAO.getColumnModel(anyListOf(String.class), anyBoolean())).thenReturn(columns);
+		
+		List<ColumnChangeDetails> expected = Lists.newArrayList(
+				new ColumnChangeDetails(null, columns.get(0)),
+				new ColumnChangeDetails(columns.get(1), columns.get(2)),
+				new ColumnChangeDetails(columns.get(3), null));
+		
+		// Call under test
+		List<ColumnChangeDetails> results = columnModelManager.getColumnChangeDetails(changes);
+		assertEquals(expected, results);
 	}
 }

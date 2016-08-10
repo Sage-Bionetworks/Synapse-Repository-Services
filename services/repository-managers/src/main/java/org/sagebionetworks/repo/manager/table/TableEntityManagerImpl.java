@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.exception.ReadOnlyException;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.model.table.ColumnChange;
+import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PartialRow;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
@@ -39,6 +40,7 @@ import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableSchemaChangeRequest;
+import org.sagebionetworks.repo.model.table.TableSchemaChangeResponse;
 import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
@@ -588,7 +590,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	public boolean isTemporaryTableNeededToValidate(TableUpdateRequest change) {
 		if(change instanceof TableSchemaChangeRequest){
 			TableSchemaChangeRequest schemaChange = (TableSchemaChangeRequest) change;
-			return isTemporaryTableNeededToValidate(schemaChange.getChanges());
+			return containsColumnUpdate(schemaChange.getChanges());
 		}else{
 			throw new IllegalArgumentException("Unknown change type: "+change.getClass().getName());
 		}
@@ -599,7 +601,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	 * @param changes
 	 * @return
 	 */
-	public static boolean isTemporaryTableNeededToValidate(
+	public static boolean containsColumnUpdate(
 			List<ColumnChange> changes) {
 		if(changes == null){
 			return false;
@@ -629,7 +631,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		if(change instanceof TableSchemaChangeRequest){
 			validateUpdateRequest(callback, userInfo, (TableSchemaChangeRequest)change, indexManager);
 		}else{
-			throw new IllegalArgumentException("Unkown Request type: "+change.getClass().getName());
+			throw new IllegalArgumentException("Unknown request type: "+change.getClass().getName());
 		}
 		
 	}
@@ -652,15 +654,16 @@ public class TableEntityManagerImpl implements TableEntityManager {
 			}
 		}
 		// validate the schema.
-		List<ColumnModel> newSchemaColumns = columModelManager.validateSchemaSize(newSchemaIds);
+		columModelManager.validateSchemaSize(newSchemaIds);
 		// If the change includes an update then the schema change must be checked against the temp table.
-		boolean includesUpdate = isTemporaryTableNeededToValidate(changes.getChanges());
+		boolean includesUpdate = containsColumnUpdate(changes.getChanges());
 		if(includesUpdate){
 			if(indexManager == null){
 				throw new IllegalStateException("A temporary table is needed to validate but was not provided.");
 			}
-			boolean alterTemp = true;
-			indexManager.alterTempTableSchmea(callback, changes.getChanges());
+			List<ColumnChangeDetails> details = columModelManager.getColumnChangeDetails(changes.getChanges());
+			// attempt to apply the schema change to the temp copy of the table.
+			indexManager.alterTempTableSchmea(callback, changes.getEntityId(), details);
 		}
 	}
 
@@ -668,7 +671,27 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	@Override
 	public TableUpdateResponse updateTable(ProgressCallback<Void> callback,
 			UserInfo userInfo, TableUpdateRequest change) {
-		// TODO Auto-generated method stub
+		ValidateArgument.required(callback, "callback");
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(change, "change");
+		if(change instanceof TableSchemaChangeRequest){
+			return updateTable(callback, userInfo, (TableSchemaChangeRequest)change);
+		}else{
+			throw new IllegalArgumentException("Unknown request type: "+change.getClass().getName());
+		}
+	}
+	
+	/**
+	 * Apply a validated schema change request.
+	 * 
+	 * @param callback
+	 * @param userInfo
+	 * @param change
+	 * @return
+	 */
+	public TableSchemaChangeResponse updateTable(ProgressCallback<Void> callback,
+			UserInfo userInfo, TableSchemaChangeRequest change) {
+		
 		return null;
 	}
 

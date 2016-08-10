@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.table;
 
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -14,6 +15,8 @@ import org.sagebionetworks.repo.model.PaginatedIds;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
+import org.sagebionetworks.repo.model.table.ColumnChange;
+import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.SelectColumn;
@@ -214,6 +217,42 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 			}
 		}
 		return results;
+	}
+
+	@Override
+	public List<ColumnChangeDetails> getColumnChangeDetails(
+			List<ColumnChange> changes) {
+		// Gather all of the IDs
+		List<String> columnIds = new LinkedList<>();
+		for(ColumnChange change: changes){
+			if(change.getNewColumnId() != null){
+				columnIds.add(change.getNewColumnId());
+			}
+			if(change.getOldColumnId() != null){
+				columnIds.add(change.getOldColumnId());
+			}
+		}
+		boolean keepOrder = false;
+		List<ColumnModel> models = columnModelDao.getColumnModel(columnIds, keepOrder);
+		// map the result
+		Map<String, ColumnModel> map = new HashMap<String, ColumnModel>(models.size());
+		for(ColumnModel cm: models){
+			map.put(cm.getId(), cm);
+		}
+		// Build up the results
+		List<ColumnChangeDetails> details = new LinkedList<>();
+		for(ColumnChange change: changes){
+			ColumnModel newModel = null;
+			ColumnModel oldModel = null;
+			if(change.getNewColumnId() != null){
+				newModel = map.get(change.getNewColumnId());
+			}
+			if(change.getOldColumnId() != null){
+				oldModel = map.get(change.getOldColumnId());
+			}
+			details.add(new ColumnChangeDetails(oldModel, newModel));
+		}
+		return details;
 	}
 	
 }

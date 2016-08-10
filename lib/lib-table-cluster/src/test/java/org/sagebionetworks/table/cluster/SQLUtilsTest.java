@@ -15,6 +15,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
+import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.IdRange;
@@ -410,7 +411,7 @@ public class SQLUtilsTest {
 		newColumn.setId("456");
 		newColumn.setColumnType(ColumnType.BOOLEAN);
 		
-		ColumnChange change = new ColumnChange(oldColumn, newColumn);
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
 		// call under test
 		SQLUtils.appendUpdateColumn(builder, change);
 		assertEquals("CHANGE COLUMN _C123_ _C456_ BOOLEAN DEFAULT NULL COMMENT 'BOOLEAN'", builder.toString());
@@ -428,7 +429,7 @@ public class SQLUtilsTest {
 		newColumn.setId("456");
 		newColumn.setColumnType(ColumnType.INTEGER);
 		
-		ColumnChange change = new ColumnChange(oldColumn, newColumn);
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
 		// call under test
 		SQLUtils.appendUpdateColumn(builder, change);
 		assertEquals("CHANGE COLUMN _C123_ _C456_ BIGINT(20) DEFAULT NULL COMMENT 'INTEGER'", builder.toString());
@@ -446,7 +447,7 @@ public class SQLUtilsTest {
 		newColumn.setId("456");
 		newColumn.setColumnType(ColumnType.INTEGER);
 		
-		ColumnChange change = new ColumnChange(oldColumn, newColumn);
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
 		// call under test
 		SQLUtils.appendUpdateColumn(builder, change);
 		assertEquals("CHANGE COLUMN _C123_ _C456_ BIGINT(20) DEFAULT NULL COMMENT 'INTEGER'", builder.toString());
@@ -464,7 +465,7 @@ public class SQLUtilsTest {
 		newColumn.setId("456");
 		newColumn.setColumnType(ColumnType.INTEGER);
 		
-		ColumnChange change = new ColumnChange(oldColumn, newColumn);
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
 		// call under test
 		SQLUtils.appendUpdateColumn(builder, change);
 		assertEquals("CHANGE COLUMN _C123_ _C456_ BIGINT(20) DEFAULT NULL COMMENT 'INTEGER'"
@@ -483,7 +484,7 @@ public class SQLUtilsTest {
 		newColumn.setId("456");
 		newColumn.setColumnType(ColumnType.DOUBLE);
 		
-		ColumnChange change = new ColumnChange(oldColumn, newColumn);
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
 		// call under test
 		SQLUtils.appendUpdateColumn(builder, change);
 		assertEquals("CHANGE COLUMN _C123_ _C456_ DOUBLE DEFAULT NULL COMMENT 'DOUBLE'"
@@ -502,7 +503,7 @@ public class SQLUtilsTest {
 		newColumn.setId("456");
 		newColumn.setColumnType(ColumnType.DOUBLE);
 		
-		ColumnChange change = new ColumnChange(oldColumn, newColumn);
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
 		// call under test
 		SQLUtils.appendUpdateColumn(builder, change);
 		assertEquals("CHANGE COLUMN _C123_ _C456_ DOUBLE DEFAULT NULL COMMENT 'DOUBLE'"
@@ -521,7 +522,7 @@ public class SQLUtilsTest {
 		newColumn.setId("456");
 		newColumn.setColumnType(ColumnType.BOOLEAN);
 		
-		ColumnChange change = new ColumnChange(oldColumn, newColumn);
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
 		// call under test
 		boolean hasChange = SQLUtils.appendAlterTableSql(builder, change);
 		assertTrue(hasChange);
@@ -540,7 +541,7 @@ public class SQLUtilsTest {
 		newColumn.setId("123");
 		newColumn.setColumnType(ColumnType.BOOLEAN);
 		
-		ColumnChange change = new ColumnChange(oldColumn, newColumn);
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
 		// call under test
 		boolean hasChange = SQLUtils.appendAlterTableSql(builder, change);
 		assertFalse(hasChange);
@@ -557,7 +558,7 @@ public class SQLUtilsTest {
 		newColumn.setId("123");
 		newColumn.setColumnType(ColumnType.BOOLEAN);
 		
-		ColumnChange change = new ColumnChange(oldColumn, newColumn);
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
 		// call under test
 		boolean hasChange = SQLUtils.appendAlterTableSql(builder, change);
 		assertTrue(hasChange);
@@ -573,7 +574,7 @@ public class SQLUtilsTest {
 		oldColumn.setColumnType(ColumnType.BOOLEAN);
 		// new column
 		ColumnModel newColumn = null;
-		ColumnChange change = new ColumnChange(oldColumn, newColumn);
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
 		// call under test
 		boolean hasChange = SQLUtils.appendAlterTableSql(builder, change);
 		assertTrue(hasChange);
@@ -587,7 +588,7 @@ public class SQLUtilsTest {
 		ColumnModel oldColumn = null;
 		// new column
 		ColumnModel newColumn = null;
-		ColumnChange change = new ColumnChange(oldColumn, newColumn);
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
 		// call under test
 		boolean hasChange = SQLUtils.appendAlterTableSql(builder, change);
 		assertFalse(hasChange);
@@ -603,7 +604,7 @@ public class SQLUtilsTest {
 		ColumnModel newColumn = new ColumnModel();
 		newColumn.setId("456");
 		newColumn.setColumnType(ColumnType.INTEGER);
-		ColumnChange change = new ColumnChange(oldColumn, newColumn);
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
 		
 		oldColumn = new ColumnModel();
 		oldColumn.setId("111");
@@ -614,7 +615,7 @@ public class SQLUtilsTest {
 		newColumn.setColumnType(ColumnType.STRING);
 		newColumn.setMaximumSize(15L);
 		newColumn.setDefaultValue("foo");
-		ColumnChange change2 = new ColumnChange(oldColumn, newColumn);
+		ColumnChangeDetails change2 = new ColumnChangeDetails(oldColumn, newColumn);
 		String tableId = "syn999";
 		boolean alterTemp = false;
 		// call under test
@@ -634,7 +635,7 @@ public class SQLUtilsTest {
 		ColumnModel newColumn = new ColumnModel();
 		newColumn.setId("456");
 		newColumn.setColumnType(ColumnType.INTEGER);
-		ColumnChange change = new ColumnChange(oldColumn, newColumn);
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
 		
 		oldColumn = new ColumnModel();
 		oldColumn.setId("111");
@@ -645,7 +646,7 @@ public class SQLUtilsTest {
 		newColumn.setColumnType(ColumnType.STRING);
 		newColumn.setMaximumSize(15L);
 		newColumn.setDefaultValue("foo");
-		ColumnChange change2 = new ColumnChange(oldColumn, newColumn);
+		ColumnChangeDetails change2 = new ColumnChangeDetails(oldColumn, newColumn);
 		String tableId = "syn999";
 		boolean alterTemp = true;
 		// call under test
@@ -665,7 +666,7 @@ public class SQLUtilsTest {
 		ColumnModel newColumn = new ColumnModel();
 		newColumn.setId("123");
 		newColumn.setColumnType(ColumnType.BOOLEAN);
-		ColumnChange change = new ColumnChange(oldColumn, newColumn);
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
 		boolean alterTemp = false;
 		
 		String tableId = "syn999";
@@ -999,15 +1000,15 @@ public class SQLUtilsTest {
 		List<ColumnModel> oldSchema = Lists.newArrayList(one, two);
 		List<ColumnModel> newSchema = Lists.newArrayList(two, three);
 		// call under test
-		List<ColumnChange> results = SQLUtils.createReplaceSchemaChangeIds(oldSchema, newSchema);
+		List<ColumnChangeDetails> results = SQLUtils.createReplaceSchemaChangeIds(oldSchema, newSchema);
 		assertNotNull(results);
 		assertEquals(2, results.size());
 		// one should be removed
-		ColumnChange toRemove = results.get(0);
+		ColumnChangeDetails toRemove = results.get(0);
 		assertEquals("1", toRemove.getOldColumn().getId());
 		assertEquals(null, toRemove.getNewColumn());
 		// three should be added.
-		ColumnChange toAdd = results.get(1);
+		ColumnChangeDetails toAdd = results.get(1);
 		assertEquals(null, toAdd.getOldColumn());
 		assertEquals(three, toAdd.getNewColumn());
 	}
@@ -1019,7 +1020,7 @@ public class SQLUtilsTest {
 		List<ColumnModel> oldSchema = Lists.newArrayList(one, two);
 		List<ColumnModel> newSchema = Lists.newArrayList(two, one);
 		// call under test
-		List<ColumnChange> results = SQLUtils.createReplaceSchemaChangeIds(oldSchema, newSchema);
+		List<ColumnChangeDetails> results = SQLUtils.createReplaceSchemaChangeIds(oldSchema, newSchema);
 		assertNotNull(results);
 		assertEquals(0, results.size());
 	}

@@ -26,6 +26,7 @@ import org.mockito.Mockito;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
+import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.EntityView;
@@ -92,7 +93,7 @@ public class TableIndexDAOImplTest {
 	 */
 	public boolean createOrUpdateTable(List<ColumnModel> newSchema, String tableId){
 		List<DatabaseColumnInfo> currentSchema = tableIndexDAO.getDatabaseInfo(tableId);
-		List<ColumnChange> changes = SQLUtils.createReplaceSchemaChange(currentSchema, newSchema);
+		List<ColumnChangeDetails> changes = SQLUtils.createReplaceSchemaChange(currentSchema, newSchema);
 		tableIndexDAO.createTableIfDoesNotExist(tableId);
 		boolean alterTemp = false;
 		return tableIndexDAO.alterTableAsNeeded(tableId, changes, alterTemp);
@@ -1045,7 +1046,7 @@ public class TableIndexDAOImplTest {
 		newColumn.setColumnType(ColumnType.BOOLEAN);
 		newColumn.setId("123");
 		newColumn.setName("aBoolean");
-		ColumnChange change = new ColumnChange(oldColumn, newColumn);
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
 		// Create the table
 		tableIndexDAO.createTableIfDoesNotExist(tableId);
 		boolean alterTemp = false;
@@ -1062,7 +1063,7 @@ public class TableIndexDAOImplTest {
 		
 		// Another update of the same column with no change should not alter the table
 		oldColumn = newColumn;
-		change = new ColumnChange(oldColumn, newColumn);
+		change = new ColumnChangeDetails(oldColumn, newColumn);
 		wasAltered = tableIndexDAO.alterTableAsNeeded(tableId, Lists.newArrayList(change), alterTemp);
 		assertFalse(wasAltered);
 	}
@@ -1151,7 +1152,7 @@ public class TableIndexDAOImplTest {
 		newColumn.setColumnType(ColumnType.INTEGER);
 		boolean alterTemp = false;
 		// add the column
-		tableIndexDAO.alterTableAsNeeded(tableId, Lists.newArrayList(new ColumnChange(oldColumn, newColumn)), alterTemp);
+		tableIndexDAO.alterTableAsNeeded(tableId, Lists.newArrayList(new ColumnChangeDetails(oldColumn, newColumn)), alterTemp);
 		int maxNumberOfIndices = 5;
 		optimizeTableIndices(tableId, maxNumberOfIndices);
 		// Get the latest table information
@@ -1175,7 +1176,7 @@ public class TableIndexDAOImplTest {
 		newColumn.setColumnType(ColumnType.INTEGER);
 		boolean alterTemp = false;
 		// add the column
-		tableIndexDAO.alterTableAsNeeded(tableId, Lists.newArrayList(new ColumnChange(oldColumn, newColumn)), alterTemp);
+		tableIndexDAO.alterTableAsNeeded(tableId, Lists.newArrayList(new ColumnChangeDetails(oldColumn, newColumn)), alterTemp);
 		int maxNumberOfIndices = 5;
 		optimizeTableIndices(tableId, maxNumberOfIndices);
 		// Get the latest table information
@@ -1192,7 +1193,7 @@ public class TableIndexDAOImplTest {
 		newColumn.setName("bar");
 		newColumn.setColumnType(ColumnType.DATE);
 		
-		tableIndexDAO.alterTableAsNeeded(tableId, Lists.newArrayList(new ColumnChange(oldColumn, newColumn)), alterTemp);
+		tableIndexDAO.alterTableAsNeeded(tableId, Lists.newArrayList(new ColumnChangeDetails(oldColumn, newColumn)), alterTemp);
 		// the index should get renamed
 		optimizeTableIndices(tableId, maxNumberOfIndices);
 		infoList = getAllColumnInfo(tableId);
@@ -1215,7 +1216,7 @@ public class TableIndexDAOImplTest {
 		newColumn.setColumnType(ColumnType.INTEGER);
 		boolean alterTemp = false;
 		// add the column
-		tableIndexDAO.alterTableAsNeeded(tableId, Lists.newArrayList(new ColumnChange(oldColumn, newColumn)), alterTemp);
+		tableIndexDAO.alterTableAsNeeded(tableId, Lists.newArrayList(new ColumnChangeDetails(oldColumn, newColumn)), alterTemp);
 		int maxNumberOfIndices = 5;
 		optimizeTableIndices(tableId, maxNumberOfIndices);
 		// Get the latest table information

@@ -53,6 +53,7 @@ import org.sagebionetworks.repo.model.exception.ReadOnlyException;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.model.table.ColumnChange;
+import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.PartialRow;
@@ -104,6 +105,9 @@ public class TableEntityManagerTest {
 	ColumnModelManager mockColumModelManager;
 	@Mock
 	TableManagerSupport mockTableManagerSupport;
+	@Mock
+	TableIndexManager mockIndexManager;
+
 	
 	List<ColumnModel> models;
 	String schemaMD5Hex;
@@ -815,7 +819,7 @@ public class TableEntityManagerTest {
 		changes.add(delete);
 		changes.add(add);
 		// deletes and adds do not require a temp table.
-		assertFalse(TableEntityManagerImpl.isTemporaryTableNeededToValidate(changes));
+		assertFalse(TableEntityManagerImpl.containsColumnUpdate(changes));
 	}
 	
 	@Test
@@ -825,7 +829,7 @@ public class TableEntityManagerTest {
 		update.setOldColumnId("123");
 		update.setNewColumnId("456");
 		changes.add(update);
-		assertTrue(TableEntityManagerImpl.isTemporaryTableNeededToValidate(changes));
+		assertTrue(TableEntityManagerImpl.containsColumnUpdate(changes));
 	}
 	
 	@Test
@@ -835,7 +839,7 @@ public class TableEntityManagerTest {
 		update.setOldColumnId("123");
 		update.setNewColumnId("123");
 		changes.add(update);
-		assertFalse(TableEntityManagerImpl.isTemporaryTableNeededToValidate(changes));
+		assertFalse(TableEntityManagerImpl.containsColumnUpdate(changes));
 	}
 	
 	@Test
@@ -856,5 +860,79 @@ public class TableEntityManagerTest {
 		TableUpdateRequest mockRequest = Mockito.mock(TableUpdateRequest.class);
 		// call under test
 		manager.isTemporaryTableNeededToValidate(mockRequest);
+	}
+	
+	@Test
+	public void testValidateUpdateRequestSchema(){
+		List<ColumnChange> changes = TableModelTestUtils.createAddUpdateDeleteColumnChange();
+		TableSchemaChangeRequest request = new TableSchemaChangeRequest();
+		request.setChanges(changes);
+		request.setEntityId(tableId);
+		
+		List<ColumnChangeDetails> details = TableModelTestUtils.createDetailsForChanges(changes);
+		
+		List<String> newColumnIds = Lists.newArrayList("111","333");
+		when(mockColumModelManager.getColumnChangeDetails(changes)).thenReturn(details);
+		
+		// Call under test
+		manager.validateUpdateRequest(mockProgressCallbackVoid, user, request, mockIndexManager);
+		verify(mockColumModelManager).validateSchemaSize(newColumnIds);
+		verify(mockIndexManager).alterTempTableSchmea(mockProgressCallbackVoid, tableId, details);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testValidateUpdateRequestSchemaTooLarge(){		
+		List<ColumnChange> changes = TableModelTestUtils.createAddUpdateDeleteColumnChange();
+		TableSchemaChangeRequest request = new TableSchemaChangeRequest();
+		request.setChanges(changes);
+		request.setEntityId(tableId);
+		
+		List<ColumnChangeDetails> details = TableModelTestUtils.createDetailsForChanges(changes);
+		
+		List<String> newColumnIds = Lists.newArrayList("111","333");
+		when(mockColumModelManager.getColumnChangeDetails(changes)).thenReturn(details);
+		when(mockColumModelManager.validateSchemaSize(newColumnIds)).thenThrow(new IllegalArgumentException("Too large."));
+		
+		// Call under test
+		manager.validateUpdateRequest(mockProgressCallbackVoid, user, request, mockIndexManager);
+	}
+	
+	@Test (expected=IllegalStateException.class)
+	public void testValidateUpdateRequestSchemaNullManagerWithUpdate(){
+		List<ColumnChange> changes = TableModelTestUtils.createAddUpdateDeleteColumnChange();
+		TableSchemaChangeRequest request = new TableSchemaChangeRequest();
+		request.setChanges(changes);
+		request.setEntityId(tableId);
+		
+		List<ColumnChangeDetails> details = TableModelTestUtils.createDetailsForChanges(changes);
+		
+		when(mockColumModelManager.getColumnChangeDetails(changes)).thenReturn(details);
+		
+		mockIndexManager = null;
+		// Call under test
+		manager.validateUpdateRequest(mockProgressCallbackVoid, user, request, mockIndexManager);
+	}
+	
+	@Test
+	public void testValidateUpdateRequestSchemaNoUpdate(){
+		// this case only contains an add (no update)
+		ColumnChange add = new ColumnChange();
+		add.setNewColumnId("111");
+		add.setOldColumnId(null);
+		
+		List<ColumnChange> changes = Lists.newArrayList(add);
+		TableSchemaChangeRequest request = new TableSchemaChangeRequest();
+		request.setChanges(changes);
+		request.setEntityId(tableId);
+		
+		List<ColumnChangeDetails> details = TableModelTestUtils.createDetailsForChanges(changes);
+		
+		List<String> newColumnIds = Lists.newArrayList("111","333");
+		when(mockColumModelManager.getColumnChangeDetails(changes)).thenReturn(details);		
+		// Call under test
+		manager.validateUpdateRequest(mockProgressCallbackVoid, user, request, null);
+		verify(mockColumModelManager).validateSchemaSize(newColumnIds);
+		// temp table should not be used.
+		verify(mockIndexManager, never()).alterTempTableSchmea(any(ProgressCallback.class), anyString(), anyListOf(ColumnChangeDetails.class));
 	}
 }

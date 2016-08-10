@@ -7,6 +7,8 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.PaginatedIds;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.table.ColumnChange;
+import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.SelectColumn;
@@ -128,5 +130,14 @@ public interface ColumnModelManager {
 	 * @param columnIds
 	 */
 	List<ColumnModel> validateSchemaSize(List<String> columnIds);
+
+	/**
+	 * Get the details of a schema change.
+	 * 
+	 * @param changes
+	 * @return
+	 */
+	public List<ColumnChangeDetails> getColumnChangeDetails(
+			List<ColumnChange> changes);
 }
 
