@@ -11,11 +11,11 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.springframework.beans.factory.annotation.Autowired;
 
-
 public class TrashWorker implements ProgressingRunner<Void>{
-	private final long MAX_TRASH_ITEMS = 250000;
-	private final long TRASH_AGE_IN_DAYS = 30; //about 1 month
 	private final Logger logger = LogManager.getLogger(TrashWorker.class);
+	public static final long MAX_TRASH_ITEMS = 250000;
+	public static final long TRASH_AGE_IN_DAYS = 30; //about 1 month
+	
 	@Autowired
 	private TrashManager trashManager;
 
