@@ -647,12 +647,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 			UserInfo userInfo, TableSchemaChangeRequest changes,
 			TableIndexManager indexManager) {
 		// first determine what the new Schema will be
-		List<String> newSchemaIds = new LinkedList<String>();
-		for(ColumnChange change: changes.getChanges()){
-			if(change.getNewColumnId() != null){
-				newSchemaIds.add(change.getNewColumnId());
-			}
-		}
+		List<String> newSchemaIds = TableModelUtils.getNewSchemaColumnIds(changes.getChanges());
 		// validate the schema.
 		columModelManager.validateSchemaSize(newSchemaIds);
 		// If the change includes an update then the schema change must be checked against the temp table.
@@ -690,9 +685,27 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	 * @return
 	 */
 	public TableSchemaChangeResponse updateTable(ProgressCallback<Void> callback,
-			UserInfo userInfo, TableSchemaChangeRequest change) {
-		
-		return null;
+			UserInfo userInfo, TableSchemaChangeRequest changes) {
+
+		// Get the IDs of the new schema.
+		List<String> newSchemaIds = TableModelUtils.getNewSchemaColumnIds(changes.getChanges());
+		columModelManager.bindColumnToObject(userInfo, newSchemaIds, changes.getEntityId());
+		boolean keepOrder = true;
+		List<ColumnModel> newSchema = columModelManager.getColumnModel(userInfo, newSchemaIds, keepOrder);
+		// If the change includes an update then a change needs to be pushed to the changes
+		if(containsColumnUpdate(changes.getChanges())){
+			List<Long> newSchemaIdsLong = TableModelUtils.getIds(newSchema);
+			try {
+				this.tableRowTruthDao.appendSchemaChangeToTable(""+userInfo.getId(), changes.getEntityId(), newSchemaIdsLong, changes.getChanges());
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
+		}
+		// trigger an update.
+		tableManagerSupport.setTableToProcessingAndTriggerUpdate(changes.getEntityId());
+		TableSchemaChangeResponse response = new TableSchemaChangeResponse();
+		response.setSchema(newSchema);
+		return response;
 	}
 
 }

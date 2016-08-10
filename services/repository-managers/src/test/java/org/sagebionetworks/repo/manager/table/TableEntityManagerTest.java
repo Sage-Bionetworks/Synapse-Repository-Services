@@ -128,6 +128,10 @@ public class TableEntityManagerTest {
 	TableStatus status;
 	String ETAG;
 	
+	TableSchemaChangeRequest schemaChangeRequest;
+	List<ColumnChangeDetails> columChangedetails;
+	List<String> newColumnIds;
+	
 	@SuppressWarnings("unchecked")
 	@Before
 	public void before() throws Exception {
@@ -246,6 +250,16 @@ public class TableEntityManagerTest {
 		ETAG = "";
 		
 		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
+		
+		List<ColumnChange> changes = TableModelTestUtils.createAddUpdateDeleteColumnChange();
+		schemaChangeRequest = new TableSchemaChangeRequest();
+		schemaChangeRequest.setChanges(changes);
+		schemaChangeRequest.setEntityId(tableId);
+		
+		columChangedetails = TableModelTestUtils.createDetailsForChanges(changes);
+		
+		when(mockColumModelManager.getColumnChangeDetails(changes)).thenReturn(columChangedetails);
+		newColumnIds = Lists.newArrayList("111","333");
 	}
 	
 	@Test (expected=UnauthorizedException.class)
@@ -863,54 +877,33 @@ public class TableEntityManagerTest {
 	}
 	
 	@Test
-	public void testValidateUpdateRequestSchema(){
-		List<ColumnChange> changes = TableModelTestUtils.createAddUpdateDeleteColumnChange();
-		TableSchemaChangeRequest request = new TableSchemaChangeRequest();
-		request.setChanges(changes);
-		request.setEntityId(tableId);
-		
-		List<ColumnChangeDetails> details = TableModelTestUtils.createDetailsForChanges(changes);
-		
-		List<String> newColumnIds = Lists.newArrayList("111","333");
-		when(mockColumModelManager.getColumnChangeDetails(changes)).thenReturn(details);
-		
+	public void testValidateUpdateNullProgress(){
+		mockProgressCallbackVoid = null;
 		// Call under test
-		manager.validateUpdateRequest(mockProgressCallbackVoid, user, request, mockIndexManager);
+		manager.validateUpdateRequest(mockProgressCallbackVoid, user, schemaChangeRequest, mockIndexManager);
+	}
+	
+	@Test
+	public void testValidateUpdateRequestSchema(){
+		// Call under test
+		manager.validateUpdateRequest(mockProgressCallbackVoid, user, schemaChangeRequest, mockIndexManager);
 		verify(mockColumModelManager).validateSchemaSize(newColumnIds);
-		verify(mockIndexManager).alterTempTableSchmea(mockProgressCallbackVoid, tableId, details);
+		verify(mockIndexManager).alterTempTableSchmea(mockProgressCallbackVoid, tableId, columChangedetails);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testValidateUpdateRequestSchemaTooLarge(){		
-		List<ColumnChange> changes = TableModelTestUtils.createAddUpdateDeleteColumnChange();
-		TableSchemaChangeRequest request = new TableSchemaChangeRequest();
-		request.setChanges(changes);
-		request.setEntityId(tableId);
-		
-		List<ColumnChangeDetails> details = TableModelTestUtils.createDetailsForChanges(changes);
-		
-		List<String> newColumnIds = Lists.newArrayList("111","333");
-		when(mockColumModelManager.getColumnChangeDetails(changes)).thenReturn(details);
 		when(mockColumModelManager.validateSchemaSize(newColumnIds)).thenThrow(new IllegalArgumentException("Too large."));
 		
 		// Call under test
-		manager.validateUpdateRequest(mockProgressCallbackVoid, user, request, mockIndexManager);
+		manager.validateUpdateRequest(mockProgressCallbackVoid, user, schemaChangeRequest, mockIndexManager);
 	}
 	
 	@Test (expected=IllegalStateException.class)
 	public void testValidateUpdateRequestSchemaNullManagerWithUpdate(){
-		List<ColumnChange> changes = TableModelTestUtils.createAddUpdateDeleteColumnChange();
-		TableSchemaChangeRequest request = new TableSchemaChangeRequest();
-		request.setChanges(changes);
-		request.setEntityId(tableId);
-		
-		List<ColumnChangeDetails> details = TableModelTestUtils.createDetailsForChanges(changes);
-		
-		when(mockColumModelManager.getColumnChangeDetails(changes)).thenReturn(details);
-		
 		mockIndexManager = null;
 		// Call under test
-		manager.validateUpdateRequest(mockProgressCallbackVoid, user, request, mockIndexManager);
+		manager.validateUpdateRequest(mockProgressCallbackVoid, user, schemaChangeRequest, mockIndexManager);
 	}
 	
 	@Test
@@ -927,12 +920,17 @@ public class TableEntityManagerTest {
 		
 		List<ColumnChangeDetails> details = TableModelTestUtils.createDetailsForChanges(changes);
 		
-		List<String> newColumnIds = Lists.newArrayList("111","333");
+		List<String> newColumnIds = Lists.newArrayList("111");
 		when(mockColumModelManager.getColumnChangeDetails(changes)).thenReturn(details);		
 		// Call under test
 		manager.validateUpdateRequest(mockProgressCallbackVoid, user, request, null);
 		verify(mockColumModelManager).validateSchemaSize(newColumnIds);
 		// temp table should not be used.
 		verify(mockIndexManager, never()).alterTempTableSchmea(any(ProgressCallback.class), anyString(), anyListOf(ColumnChangeDetails.class));
+	}
+	
+	@Test
+	public void testUpdateTableSchema(){
+		
 	}
 }
