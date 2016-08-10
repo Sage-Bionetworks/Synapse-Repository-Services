@@ -1,6 +1,8 @@
 package org.sagebionetworks.repo.manager.table;
 
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -162,6 +164,32 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 			}
 		}
 		return schema;
+	}
+	
+	@Override
+	public List<String> calculateNewSchemaIds(String tableId, List<ColumnChange> changes) {
+		// lookup the current schema.
+		List<ColumnModel> current =  columnModelDao.getColumnModelsForObject(tableId);
+		List<String> newSchemaIds = new LinkedList<>();
+		for(ColumnModel cm: current){
+			newSchemaIds.add(cm.getId());
+		}
+		// Calculate new schema
+		for(ColumnChange change: changes){
+			if(change.getNewColumnId() != null && change.getOldColumnId() != null){
+				// update
+				int oldIndex = newSchemaIds.indexOf(change.getOldColumnId());
+				newSchemaIds.add(oldIndex, change.getNewColumnId());
+				newSchemaIds.remove(change.getOldColumnId());
+			}else if(change.getOldColumnId() != null){
+				// remove
+				newSchemaIds.remove(change.getOldColumnId());
+			}else{
+				// add
+				newSchemaIds.add(change.getNewColumnId());
+			}
+		}
+		return newSchemaIds;
 	}
 
 	@WriteTransaction

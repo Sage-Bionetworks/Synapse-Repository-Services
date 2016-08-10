@@ -629,7 +629,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(change, "change");
 		if(change instanceof TableSchemaChangeRequest){
-			validateUpdateRequest(callback, userInfo, (TableSchemaChangeRequest)change, indexManager);
+			validateSchemaUpdateRequest(callback, userInfo, (TableSchemaChangeRequest)change, indexManager);
 		}else{
 			throw new IllegalArgumentException("Unknown request type: "+change.getClass().getName());
 		}
@@ -643,12 +643,12 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	 * @param change
 	 * @param indexManager
 	 */
-	public void validateUpdateRequest(ProgressCallback<Void> callback,
+	public void validateSchemaUpdateRequest(ProgressCallback<Void> callback,
 			UserInfo userInfo, TableSchemaChangeRequest changes,
 			TableIndexManager indexManager) {
 		// first determine what the new Schema will be
-		List<String> newSchemaIds = TableModelUtils.getNewSchemaColumnIds(changes.getChanges());
-		// validate the schema.
+		List<String> newSchemaIds = columModelManager.calculateNewSchemaIds(changes.getEntityId(), changes.getChanges());
+		// validate the new schema.
 		columModelManager.validateSchemaSize(newSchemaIds);
 		// If the change includes an update then the schema change must be checked against the temp table.
 		boolean includesUpdate = containsColumnUpdate(changes.getChanges());
@@ -670,7 +670,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(change, "change");
 		if(change instanceof TableSchemaChangeRequest){
-			return updateTable(callback, userInfo, (TableSchemaChangeRequest)change);
+			return updateTableSchema(callback, userInfo, (TableSchemaChangeRequest)change);
 		}else{
 			throw new IllegalArgumentException("Unknown request type: "+change.getClass().getName());
 		}
@@ -684,11 +684,11 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	 * @param change
 	 * @return
 	 */
-	public TableSchemaChangeResponse updateTable(ProgressCallback<Void> callback,
+	public TableSchemaChangeResponse updateTableSchema(ProgressCallback<Void> callback,
 			UserInfo userInfo, TableSchemaChangeRequest changes) {
 
-		// Get the IDs of the new schema.
-		List<String> newSchemaIds = TableModelUtils.getNewSchemaColumnIds(changes.getChanges());
+		// first determine what the new Schema will be
+		List<String> newSchemaIds = columModelManager.calculateNewSchemaIds(changes.getEntityId(), changes.getChanges());
 		columModelManager.bindColumnToObject(userInfo, newSchemaIds, changes.getEntityId());
 		boolean keepOrder = true;
 		List<ColumnModel> newSchema = columModelManager.getColumnModel(userInfo, newSchemaIds, keepOrder);

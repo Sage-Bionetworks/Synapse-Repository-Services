@@ -462,4 +462,36 @@ public class ColumnModelManagerTest {
 		List<ColumnChangeDetails> results = columnModelManager.getColumnChangeDetails(changes);
 		assertEquals(expected, results);
 	}
+	
+	@Test
+	public void testCalculateNewSchemaIds(){
+		String tableId = "syn567";
+		List<ColumnModel> currentSchema = Lists.newArrayList(
+				TableModelTestUtils.createColumn(111L),
+				TableModelTestUtils.createColumn(222L),
+				TableModelTestUtils.createColumn(333L)
+				);
+		
+		
+		when(mockColumnModelDAO.getColumnModelsForObject(tableId)).thenReturn(currentSchema);
+		
+		ColumnChange remove = new ColumnChange();
+		remove.setOldColumnId("111");
+		remove.setNewColumnId(null);
+		
+		ColumnChange update = new ColumnChange();
+		update.setOldColumnId("222");
+		update.setNewColumnId("444");
+		
+		ColumnChange add = new ColumnChange();
+		add.setOldColumnId(null);
+		add.setNewColumnId("555");
+		
+		List<ColumnChange> changes = Lists.newArrayList(remove, update, add);
+		
+		List<String> expectedNewSchema = Lists.newArrayList("444","333","555");
+		// call under test.
+		List<String> results = columnModelManager.calculateNewSchemaIds(tableId, changes);
+		assertEquals(expectedNewSchema, results);
+	}
 }

@@ -876,17 +876,38 @@ public class TableEntityManagerTest {
 		manager.isTemporaryTableNeededToValidate(mockRequest);
 	}
 	
-	@Test
+	@Test (expected=IllegalArgumentException.class)
 	public void testValidateUpdateNullProgress(){
 		mockProgressCallbackVoid = null;
 		// Call under test
 		manager.validateUpdateRequest(mockProgressCallbackVoid, user, schemaChangeRequest, mockIndexManager);
 	}
 	
+	@Test (expected=IllegalArgumentException.class)
+	public void testValidateUpdateNullUser(){
+		user = null;
+		// Call under test
+		manager.validateUpdateRequest(mockProgressCallbackVoid, user, schemaChangeRequest, mockIndexManager);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testValidateUpdateNullRequest(){
+		schemaChangeRequest = null;
+		// Call under test
+		manager.validateUpdateRequest(mockProgressCallbackVoid, user, schemaChangeRequest, mockIndexManager);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testValidateUpdateUnknownRequest(){
+		TableUpdateRequest unknown = Mockito.mock(TableUpdateRequest.class);
+		// Call under test
+		manager.validateUpdateRequest(mockProgressCallbackVoid, user, unknown, mockIndexManager);
+	}
+	
 	@Test
 	public void testValidateUpdateRequestSchema(){
 		// Call under test
-		manager.validateUpdateRequest(mockProgressCallbackVoid, user, schemaChangeRequest, mockIndexManager);
+		manager.validateSchemaUpdateRequest(mockProgressCallbackVoid, user, schemaChangeRequest, mockIndexManager);
 		verify(mockColumModelManager).validateSchemaSize(newColumnIds);
 		verify(mockIndexManager).alterTempTableSchmea(mockProgressCallbackVoid, tableId, columChangedetails);
 	}
@@ -896,14 +917,14 @@ public class TableEntityManagerTest {
 		when(mockColumModelManager.validateSchemaSize(newColumnIds)).thenThrow(new IllegalArgumentException("Too large."));
 		
 		// Call under test
-		manager.validateUpdateRequest(mockProgressCallbackVoid, user, schemaChangeRequest, mockIndexManager);
+		manager.validateSchemaUpdateRequest(mockProgressCallbackVoid, user, schemaChangeRequest, mockIndexManager);
 	}
 	
 	@Test (expected=IllegalStateException.class)
 	public void testValidateUpdateRequestSchemaNullManagerWithUpdate(){
 		mockIndexManager = null;
 		// Call under test
-		manager.validateUpdateRequest(mockProgressCallbackVoid, user, schemaChangeRequest, mockIndexManager);
+		manager.validateSchemaUpdateRequest(mockProgressCallbackVoid, user, schemaChangeRequest, mockIndexManager);
 	}
 	
 	@Test
@@ -923,7 +944,7 @@ public class TableEntityManagerTest {
 		List<String> newColumnIds = Lists.newArrayList("111");
 		when(mockColumModelManager.getColumnChangeDetails(changes)).thenReturn(details);		
 		// Call under test
-		manager.validateUpdateRequest(mockProgressCallbackVoid, user, request, null);
+		manager.validateSchemaUpdateRequest(mockProgressCallbackVoid, user, request, null);
 		verify(mockColumModelManager).validateSchemaSize(newColumnIds);
 		// temp table should not be used.
 		verify(mockIndexManager, never()).alterTempTableSchmea(any(ProgressCallback.class), anyString(), anyListOf(ColumnChangeDetails.class));
