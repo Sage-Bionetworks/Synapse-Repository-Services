@@ -46,6 +46,7 @@ public class IT101Administration {
 	
 	@Before
 	public void before()throws Exception {
+		adminSynapse.clearAllLocks();
 		toDelete = new ArrayList<Entity>();
 		// always restore the status
 		if(adminSynapse != null){
@@ -152,6 +153,12 @@ public class IT101Administration {
 	
 	@Test
 	public void testClearAllLocks() throws SynapseException{
+		adminSynapse.clearAllLocks();
+	}
+	
+	@Test
+	public void testClearAllLocksTwice() throws SynapseException{
+		adminSynapse.clearAllLocks();
 		adminSynapse.clearAllLocks();
 	}
 }

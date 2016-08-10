@@ -71,7 +71,6 @@ public class IT501SynapseJavaClientMessagingTest {
 		SynapseClientHelper.setEndpoints(adminSynapse);
 		adminSynapse.setUserName(StackConfiguration.getMigrationAdminUsername());
 		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
-		adminSynapse.clearAllLocks();
 		synapseOne = new SynapseClientImpl();
 		user1ToDelete = SynapseClientHelper.createUser(adminSynapse, synapseOne);
 		
@@ -103,6 +102,7 @@ public class IT501SynapseJavaClientMessagingTest {
 	@SuppressWarnings("serial")
 	@Before
 	public void before() throws Exception {
+		adminSynapse.clearAllLocks();
 		cleanup = new ArrayList<String>();
 
 		oneToTwo = new MessageToUser();

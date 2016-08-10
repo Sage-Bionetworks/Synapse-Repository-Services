@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.semaphore.LockReleaseFailedException;
 import org.sagebionetworks.repo.model.semaphore.MemoryCountingSemaphore;
+import org.sagebionetworks.repo.model.semaphore.MemoryTimeBlockCountingSemaphore;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -30,9 +31,19 @@ import org.springframework.beans.factory.annotation.Autowired;
  */
 public class UserThrottleFilter implements Filter {
 	
-	public static final long LOCK_TIMOUTE_SEC = 60*10; // 10 MINS
+	public static final long CONCURRENT_CONNECTIONS_LOCK_TIMEOUT_SEC = 60*10; // 10 MINS
 	// The maximum number of concurrent locks a user can have per machine.
 	public static final int MAX_CONCURRENT_LOCKS = 3;
+	public static final String CONCURRENT_CONNECTION_KEY_PREFIX = "ConcurrentConnectionsKey-";
+	
+	//limit users to on average send 1 request per 1 second
+	public static final long REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC =  150; //150 seconds
+	
+	//If MAX_REQUEST_FREQUENCY_LOCKS < 150 this filter will throttle the Integration Tests and the build will fail
+	//not sure of the exact value (150 was from trial and error) but anything < 100 definitely does now work
+	public static final int MAX_REQUEST_FREQUENCY_LOCKS = 150;
+	public static final String REQUEST_FREQUENCY_KEY_PREFIX = "RequestFrequencyKey-";
+	
 
 	private static Logger log = LogManager.getLogger(UserThrottleFilter.class);
 
@@ -41,6 +52,9 @@ public class UserThrottleFilter implements Filter {
 	
 	@Autowired
 	MemoryCountingSemaphore userThrottleMemoryCountingSemaphore;
+	
+	@Autowired
+	MemoryTimeBlockCountingSemaphore userThrottleMemoryTimeBlockSemaphore;
 
 	@Override
 	public void destroy() {
@@ -55,30 +69,42 @@ public class UserThrottleFilter implements Filter {
 			chain.doFilter(request, response);
 		} else {
 			try {
-				String lockToken = userThrottleMemoryCountingSemaphore.attemptToAcquireLock(userId, LOCK_TIMOUTE_SEC, MAX_CONCURRENT_LOCKS);
-				if (lockToken != null) {
-					try {
-						chain.doFilter(request, response);
-					} finally {
+				String concurrentKeyUserId = CONCURRENT_CONNECTION_KEY_PREFIX + userId;
+				String frequencyKeyUserId = REQUEST_FREQUENCY_KEY_PREFIX + userId;
+				
+				//try to acquire the concurrent connections lock first
+				String concurrentLockToken = userThrottleMemoryCountingSemaphore.attemptToAcquireLock(concurrentKeyUserId, CONCURRENT_CONNECTIONS_LOCK_TIMEOUT_SEC, MAX_CONCURRENT_LOCKS);
+				if (concurrentLockToken != null) {
+					//then try to acquire the request frequency lock
+					boolean frequencyLockAcquired = userThrottleMemoryTimeBlockSemaphore.attemptToAcquireLock(frequencyKeyUserId, REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC, MAX_REQUEST_FREQUENCY_LOCKS);
+					if(frequencyLockAcquired){
+						//acquired both locks. proceed to next filter
 						try {
-							userThrottleMemoryCountingSemaphore.releaseLock(userId, lockToken);
+							chain.doFilter(request, response);
+						} finally {
+							try {
+								//clean up by releasing locks
+								userThrottleMemoryCountingSemaphore.releaseLock(concurrentKeyUserId, concurrentLockToken);
+								//do not release frequency lock, allow it to timeout to enforce frequency limit.
+							} catch (LockReleaseFailedException e) {
+								// This happens when test force the release of all locks.
+								log.info(e.getMessage());
+							}
+						}
+					}else{
+						//could not acquire request frequency lock
+						try {
+							//release the previously acquired concurrent connection lock
+							userThrottleMemoryCountingSemaphore.releaseLock(concurrentKeyUserId, concurrentLockToken);
 						} catch (LockReleaseFailedException e) {
 							// This happens when test force the release of all locks.
 							log.info(e.getMessage());
 						}
+						reportLockAcquireError(userId, response, "RequestFrequencyLockUnavailable", AuthorizationConstants.REASON_REQUESTS_TOO_FREQUENT);
 					}
-				} else {
-					ProfileData lockUnavailableEvent = new ProfileData();
-					lockUnavailableEvent.setNamespace(this.getClass().getName());
-					lockUnavailableEvent.setName("LockUnavailable");
-					lockUnavailableEvent.setValue(1.0);
-					lockUnavailableEvent.setUnit("Count");
-					lockUnavailableEvent.setTimestamp(new Date());
-					lockUnavailableEvent.setDimension(Collections.singletonMap("UserId", userId));
-					consumer.addProfileData(lockUnavailableEvent);
-					HttpServletResponse httpResponse = (HttpServletResponse) response;
-					httpResponse.setStatus(HttpStatus.SC_SERVICE_UNAVAILABLE);
-					httpResponse.getWriter().println(AuthorizationConstants.REASON_TOO_MANY_CONCURRENT_REQUESTS);
+				} else{
+					//could not acquire concurrent connections lock
+					reportLockAcquireError(userId, response, "ConcurrentConnectionsLockUnavailable", AuthorizationConstants.REASON_TOO_MANY_CONCURRENT_REQUESTS);
 				}
 			} catch (IOException e) {
 				throw e;
@@ -89,7 +115,30 @@ public class UserThrottleFilter implements Filter {
 			}
 		}
 	}
-
+	
+	/**
+	 * reports to cloudwatch that a lock could not be acquired and sets
+	 * @param userId id of user
+	 * @param response 
+	 * @param eventName name of event to be reported to cloudwatch
+	 * @param reason reason for user to see
+	 * @throws IOException 
+	 */
+	private void reportLockAcquireError(String userId, ServletResponse response, String eventName, String reason) throws IOException{
+		
+		ProfileData lockUnavailableEvent = new ProfileData();
+		lockUnavailableEvent.setNamespace(this.getClass().getName());
+		lockUnavailableEvent.setName(eventName);
+		lockUnavailableEvent.setValue(1.0);
+		lockUnavailableEvent.setUnit("Count");
+		lockUnavailableEvent.setTimestamp(new Date());
+		lockUnavailableEvent.setDimension(Collections.singletonMap("UserId", userId));
+		consumer.addProfileData(lockUnavailableEvent);
+		HttpServletResponse httpResponse = (HttpServletResponse) response;
+		httpResponse.setStatus(HttpStatus.SC_SERVICE_UNAVAILABLE);
+		httpResponse.getWriter().println(reason);
+	}
+	
 	@Override
 	public void init(FilterConfig arg0) throws ServletException {
 	}
