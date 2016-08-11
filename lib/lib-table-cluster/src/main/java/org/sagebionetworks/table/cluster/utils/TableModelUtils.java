@@ -754,7 +754,7 @@ public class TableModelUtils {
 		// Now process all of the columns as defined by the schema
 		for (ColumnModel model : columns) {
 			String value = null;
-			Integer valueIndex = columnIndexMap.get(Long.parseLong(model.getId()));
+			Integer valueIndex = columnIndexMap.get(model.getId());
 			if (valueIndex == null) {
 				// this means this column did not exist when this row as created, so set the value to the default
 				// value
