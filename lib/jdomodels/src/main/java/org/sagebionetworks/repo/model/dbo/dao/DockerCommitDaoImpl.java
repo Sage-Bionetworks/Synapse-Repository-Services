@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CURRENT_REV;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOCKER_COMMIT_CREATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOCKER_COMMIT_DIGEST;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOCKER_COMMIT_OWNER_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOCKER_COMMIT_TAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ETAG;
@@ -80,6 +81,11 @@ public class DockerCommitDaoImpl implements DockerCommitDao {
 			" d2."+COL_DOCKER_COMMIT_OWNER_ID+"=d."+COL_DOCKER_COMMIT_OWNER_ID+" AND "+
 			" d2."+COL_DOCKER_COMMIT_TAG+"=d."+COL_DOCKER_COMMIT_TAG+")";
 	
+	private static final String COMMITS_FOR_ENTITY_AND_DIGEST_SQL = 
+			"SELECT * FROM "+TABLE_DOCKER_COMMIT+" d "+
+			" WHERE d."+COL_DOCKER_COMMIT_OWNER_ID+"=? AND d."+
+					COL_DOCKER_COMMIT_DIGEST+"=?";
+	
 	@WriteTransactionReadCommitted
 	@Override
 	public String createDockerCommit(String entityId, long modifiedBy, DockerCommit commit) {
@@ -132,6 +138,25 @@ public class DockerCommitDaoImpl implements DockerCommitDao {
 		ValidateArgument.required(entityId, "entityId");
 		long nodeIdAsLong = KeyFactory.stringToKey(entityId);
 		return jdbcTemplate.queryForObject(LATEST_COMMIT_COUNT_SQL, Long.class, nodeIdAsLong);
+	}
+
+	@Override
+	public List<DockerCommit> listCommitsByOwnerAndDigest(String entityId,
+			String digest) {
+		ValidateArgument.required(entityId, "entityId");
+		ValidateArgument.required(digest, "digest");
+		long nodeIdAsLong = KeyFactory.stringToKey(entityId);
+		List<DBODockerCommit> dbos = jdbcTemplate.query(
+				COMMITS_FOR_ENTITY_AND_DIGEST_SQL, COMMIT_ROW_MAPPER, nodeIdAsLong, digest);
+		List<DockerCommit> result = new ArrayList<DockerCommit>();
+		for (DBODockerCommit dbo : dbos) {
+			DockerCommit dto = new DockerCommit();
+			dto.setDigest(dbo.getDigest());
+			dto.setTag(dbo.getTag());
+			dto.setCreatedOn(new Date(dbo.getCreatedOn()));
+			result.add(dto);
+		}
+		return result;
 	}
 
 }
