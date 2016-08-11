@@ -957,9 +957,9 @@ public class TableRowTruthDAOImplTest {
 		changes.add(delete);
 		changes.add(update);
 		
-		 List<Long> current = new LinkedList<Long>();
-		 current.add(123L);
-		 current.add(888L);
+		 List<String> current = new LinkedList<String>();
+		 current.add("123");
+		 current.add("888");
 		 
 		String tableId = "syn123";
 		// append the schema change to the changes table.

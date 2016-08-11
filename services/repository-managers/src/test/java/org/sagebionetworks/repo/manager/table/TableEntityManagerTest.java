@@ -582,7 +582,7 @@ public class TableEntityManagerTest {
 		RowSetAccessor originalAccessor = mock(RowSetAccessor.class);
 		RowAccessor row2Accessor = mock(RowAccessor.class);
 		when(originalAccessor.getRow(2L)).thenReturn(row2Accessor);
-		when(row2Accessor.getCellById(Long.parseLong(models.get(ColumnType.FILEHANDLEID.ordinal()).getId()))).thenReturn("505002");
+		when(row2Accessor.getCellById(models.get(ColumnType.FILEHANDLEID.ordinal()).getId())).thenReturn("505002");
 
 		when(mockTruthDao.getLatestVersionsWithRowData(tableId, Sets.newHashSet(2L), 0L, models)).thenReturn(originalAccessor);
 		// call under test
@@ -992,7 +992,7 @@ public class TableEntityManagerTest {
 	@Test
 	public void testUpdateTableSchema() throws IOException{
 		when(mockColumModelManager.getColumnModel(user, newColumnIds, true)).thenReturn(models);
-		List<Long> newSchemaIdsLong = TableModelUtils.getIds(models);
+		List<String> newSchemaIdsLong = TableModelUtils.getIds(models);
 		// call under test.
 		TableSchemaChangeResponse response = manager.updateTableSchema(mockProgressCallbackVoid, user, schemaChangeRequest);
 		assertNotNull(response);
@@ -1027,7 +1027,7 @@ public class TableEntityManagerTest {
 		verify(mockColumModelManager).calculateNewSchemaIds(tableId, schemaChangeRequest.getChanges());
 		verify(mockColumModelManager).bindColumnToObject(user, newColumnIds, tableId);
 		verify(mockColumModelManager).getColumnModel(user, newColumnIds, true);
-		verify(mockTruthDao, never()).appendSchemaChangeToTable(anyString(), anyString(), anyListOf(Long.class), anyListOf(ColumnChange.class));
+		verify(mockTruthDao, never()).appendSchemaChangeToTable(anyString(), anyString(), anyListOf(String.class), anyListOf(ColumnChange.class));
 		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(tableId);
 	}
 }

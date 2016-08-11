@@ -26,12 +26,12 @@ import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.web.NotFoundException;
 
+import au.com.bytecode.opencsv.CSVReader;
+import au.com.bytecode.opencsv.CSVWriter;
+
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-
-import au.com.bytecode.opencsv.CSVReader;
-import au.com.bytecode.opencsv.CSVWriter;
 
 /**
  * Utilities for working with Tables and Row data.
@@ -495,12 +495,12 @@ public class TableModelTestUtils {
 	 * @param models
 	 * @return
 	 */
-	public static List<Long> getIdsFromSelectColumns(List<SelectColumn> columns) {
+	public static List<String> getIdsFromSelectColumns(List<SelectColumn> columns) {
 		if (columns == null)
 			throw new IllegalArgumentException("ColumnModels cannot be null");
-		List<Long> ids = Lists.newArrayList();
+		List<String> ids = Lists.newArrayList();
 		for (SelectColumn column : columns) {
-			ids.add(Long.parseLong(column.getId()));
+			ids.add(column.getId());
 		}
 		return ids;
 	}

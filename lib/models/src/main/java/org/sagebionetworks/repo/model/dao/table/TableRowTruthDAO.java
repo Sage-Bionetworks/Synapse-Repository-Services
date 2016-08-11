@@ -77,7 +77,7 @@ public interface TableRowTruthDAO {
 	 * @param changes
 	 * @throws IOException 
 	 */
-	public long appendSchemaChangeToTable(String userId, String tableId, List<Long> current, List<ColumnChange> changes) throws IOException;
+	public long appendSchemaChangeToTable(String userId, String tableId, List<String> current, List<ColumnChange> changes) throws IOException;
 	
 	/**
 	 * Get the schema change for a given version.

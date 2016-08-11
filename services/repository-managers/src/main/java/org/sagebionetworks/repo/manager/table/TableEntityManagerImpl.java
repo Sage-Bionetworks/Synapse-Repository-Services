@@ -237,7 +237,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 						if (partialRow.getValues().containsKey(model.getId())) {
 							value = partialRow.getValues().get(model.getId());
 						} else {
-							value = currentRow.getCellById(Long.parseLong(model.getId()));
+							value = currentRow.getCellById(model.getId());
 						}
 						if (value == null) {
 							value = model.getDefaultValue();
@@ -303,7 +303,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		// serially by locking on the table's Id.
 		tableManagerSupport.lockOnTableId(tableId);
 		
-		List<Long> ids = Transform.toList(columns, TableModelUtils.COLUMN_MODEL_TO_ID);
+		List<String> ids = TableModelUtils.getIds(columns);
 		List<Row> batch = new LinkedList<Row>();
 		int batchSizeBytes = 0;
 		int count = 0;
@@ -694,7 +694,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		List<ColumnModel> newSchema = columModelManager.getColumnModel(userInfo, newSchemaIds, keepOrder);
 		// If the change includes an update then a change needs to be pushed to the changes
 		if(containsColumnUpdate(changes.getChanges())){
-			List<Long> newSchemaIdsLong = TableModelUtils.getIds(newSchema);
+			List<String> newSchemaIdsLong = TableModelUtils.getIds(newSchema);
 			try {
 				this.tableRowTruthDao.appendSchemaChangeToTable(""+userInfo.getId(), changes.getEntityId(), newSchemaIdsLong, changes.getChanges());
 			} catch (IOException e) {

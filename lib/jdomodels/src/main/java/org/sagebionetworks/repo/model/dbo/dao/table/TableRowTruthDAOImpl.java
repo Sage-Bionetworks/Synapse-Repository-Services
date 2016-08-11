@@ -211,8 +211,8 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		changeDBO.setTableId(KeyFactory.stringToKey(tableId));
 		changeDBO.setRowVersion(range.getVersionNumber());
 		changeDBO.setEtag(range.getEtag());
-		changeDBO.setColumnIds(TableModelUtils.createDelimitedColumnModelIdString(Lists.transform(columns,
-				TableModelUtils.COLUMN_MODEL_TO_ID)));
+		changeDBO.setColumnIds(TableModelUtils.createDelimitedColumnModelIdString(
+				TableModelUtils.getIds(columns)));
 		changeDBO.setCreatedBy(Long.parseLong(userId));
 		changeDBO.setCreatedOn(System.currentTimeMillis());
 		changeDBO.setKey(key);
@@ -240,7 +240,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	
 	@Override
 	public long appendSchemaChangeToTable(String userId, String tableId,
-			List<Long> current, List<ColumnChange> changes) throws IOException {
+			List<String> current, List<ColumnChange> changes) throws IOException {
 		
 		long coutToReserver = 1;
 		IdRange range = reserveIdsInRange(tableId, coutToReserver);
@@ -599,7 +599,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		if (results.size() == 0) {
 			throw new NotFoundException("Row not found, row=" + ref.getRowId() + ", version=" + ref.getVersionNumber());
 		}
-		Map<Long, Integer> columnIndexMap = TableModelUtils.createColumnIdToIndexMap(trc);
+		Map<String, Integer> columnIndexMap = TableModelUtils.createColumnIdToIndexMap(trc);
 		return TableModelUtils.convertToSchemaAndMerge(results.get(0), columnIndexMap, columns);
 	}
 
@@ -619,7 +619,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 				break;
 			}
 
-			final List<Long> rowChangeColumnIds = rowChange.getIds();
+			final List<String> rowChangeColumnIds = rowChange.getIds();
 			// Scan over the delta
 			scanChange(new RowHandler() {
 				@Override
@@ -634,15 +634,15 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		return new RowSetAccessor(rowIdToRowMap);
 	}
 
-	protected void appendRowDataToMap(final Map<Long, RowAccessor> rowIdToRowMap, final List<Long> rowChangeColumnIds, final Row row) {
+	protected void appendRowDataToMap(final Map<Long, RowAccessor> rowIdToRowMap, final List<String> rowChangeColumnIds, final Row row) {
 		if (TableModelUtils.isDeletedRow(row)) {
 			rowIdToRowMap.remove(row.getRowId());
 		} else {
 			rowIdToRowMap.put(row.getRowId(), new RowAccessor() {
-				Map<Long, Integer> columnIdToIndexMap = null;
+				Map<String, Integer> columnIdToIndexMap = null;
 
 				@Override
-				public String getCellById(Long columnId) {
+				public String getCellById(String columnId) {
 					if (columnIdToIndexMap == null) {
 						columnIdToIndexMap = TableModelUtils.createColumnIdToIndexMap(rowChangeColumnIds);
 					}
