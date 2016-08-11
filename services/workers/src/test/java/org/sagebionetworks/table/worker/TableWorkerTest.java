@@ -441,31 +441,6 @@ public class TableWorkerTest {
 		verify(mockTableManagerSupport).attemptToSetTableStatusToAvailable(anyString(), anyString(), anyString());
 	}
 	
-	/**
-	 * This case the first change set is broken but the second change set fixes it.
-	 * @throws Exception
-	 */
-	@Test
-	public void testBrokenChangeSetFixed() throws Exception{
-		two.setObjectType(ObjectType.TABLE);
-		two.setChangeType(ChangeType.UPDATE);
-		two.setObjectEtag(resetToken);
-		
-		// Set the first change set to have an error.
-		doThrow(new RuntimeException("Bad Change Set")).when(mockTableIndexManager).applyChangeSetToIndex(rowSet1, currentSchema, 0L);
-		
-		// call under test
-		worker.run(mockProgressCallback, two);
-		// The connection factory should be called
-		verify(mockConnectionFactory, times(1)).connectToTableIndex(tableId);
-		// The status should get set to available
-		verify(mockTableManagerSupport, times(1)).attemptToSetTableStatusToAvailable(tableId, resetToken, "etag2");
-		verify(mockTableManagerSupport, times(4)).attemptToUpdateTableProgress(eq(tableId), eq(resetToken), anyString(), anyLong(), anyLong());
-
-		verify(mockTableIndexManager).applyChangeSetToIndex(rowSet2, currentSchema, 1L);
-		// Progress should be made for each result
-		verify(mockProgressCallback, times(2)).progressMade(null);
-	}
 	
 	/**
 	 * For this case the second (and last) change set is broken so the job should fail.
@@ -489,31 +464,6 @@ public class TableWorkerTest {
 		
 		// The status should get set to failed
 		verify(mockTableManagerSupport, times(1)).attemptToSetTableStatusToFailed(anyString(), anyString(), anyString(), anyString());
-	}
-	
-	/**
-	 * For this case, there are multiple errors without a fix so the job should fail.
-	 * @throws Exception
-	 */
-	@Test
-	public void testBrokenChangeSetMultipleErrors() throws Exception{
-		two.setObjectType(ObjectType.TABLE);
-		two.setChangeType(ChangeType.UPDATE);
-		two.setObjectEtag(resetToken);
-		
-		// this time the second change set has an error
-		RuntimeException error1 = new RuntimeException("Bad Change Set 1");
-		RuntimeException error2 = new RuntimeException("Bad Change Set 2");
-		doThrow(error1).when(mockTableIndexManager).applyChangeSetToIndex(rowSet1, currentSchema, 0L);
-		doThrow(error2).when(mockTableIndexManager).applyChangeSetToIndex(rowSet2, currentSchema, 1L);
-		
-		// call under test
-		worker.run(mockProgressCallback, two);
-		
-		verify(mockTableIndexManager).applyChangeSetToIndex(rowSet1, currentSchema, 0L);
-		
-		// The status should get set to failed
-		verify(mockTableManagerSupport, times(1)).attemptToSetTableStatusToFailed(anyString(), anyString(), contains(error2.getMessage()), anyString());
 	}
 	
 	@Test

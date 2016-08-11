@@ -231,14 +231,6 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 		// List all change sets applied to this table.
 		List<TableRowChange> changes = tableEntityManager.listRowSetsKeysForTable(tableId);
 		
-		if (changes == null || changes.isEmpty()) {
-			/*
-			 * If there are no changes for this table then the last etag will be
-			 * null and there is nothing else to do.
-			 */
-			return null;
-		}
-		
 		// Calculate the total work to perform
 		long totalProgress = 1;
 		for (TableRowChange changSet : changes) {
@@ -247,35 +239,30 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 		// Apply each change set not already indexed
 		long currentProgress = 0;
 		String lastEtag = null;
-		for(TableRowChange changeSet: changes){
-			progressCallback.progressMade(null);
-			currentProgress += changeSet.getRowCount();
-			lastEtag = changeSet.getEtag();
-			// Only apply changes sets not already applied to the index.
-			if(!indexManager.isVersionAppliedToIndex(changeSet.getRowVersion())){
-				tableManagerSupport.attemptToUpdateTableProgress(tableId,
-						resetToken, "Applying version: " + changeSet.getRowVersion(), currentProgress,
-								totalProgress);
-				switch(changeSet.getChangeType()){
-				case ROW:
-					// Get the current schema from the change set
-					boolean keepOrder = true;
-					List<ColumnModel> currentSchema = tableManagerSupport.getColumnModel(changeSet.getIds(), keepOrder);
-					// Setup the table's index.
-					indexManager.setIndexSchema(progressCallback, currentSchema);
-					// This is a change that we must apply.
-					RowSet rowSet = tableEntityManager.getRowSet(tableId, changeSet.getRowVersion(), currentSchema);
-					// attempt to apply this change set to the table.
-					indexManager.applyChangeSetToIndex(rowSet, currentSchema, changeSet.getRowVersion());
-					break;
-				case COLUMN:
-					// apply the schema change
-					List<ColumnChangeDetails> schemaChange = tableEntityManager.getSchemaChangeForVersion(tableId, changeSet.getRowVersion());
-					indexManager.updateTableSchema(progressCallback, schemaChange);
-					indexManager.setIndexVersion(changeSet.getRowVersion());
-					break;
-				default:
-					throw new IllegalArgumentException("Unknown change type: "+changeSet.getChangeType());
+		if(changes != null){
+			for(TableRowChange changeSet: changes){
+				progressCallback.progressMade(null);
+				currentProgress += changeSet.getRowCount();
+				lastEtag = changeSet.getEtag();
+				// Only apply changes sets not already applied to the index.
+				if(!indexManager.isVersionAppliedToIndex(changeSet.getRowVersion())){
+					// update the progress between actual change.
+					tableManagerSupport.attemptToUpdateTableProgress(tableId,
+							resetToken, "Applying version: " + changeSet.getRowVersion(), currentProgress,
+									totalProgress);
+					// Each type of change is applied 
+					switch(changeSet.getChangeType()){
+					case ROW:
+						applyRowChange(progressCallback, indexManager, tableId,
+								changeSet);
+						break;
+					case COLUMN:
+						applyColumnChange(progressCallback, indexManager, tableId,
+								changeSet);
+						break;
+					default:
+						throw new IllegalArgumentException("Unknown change type: "+changeSet.getChangeType());
+					}
 				}
 			}
 		}
@@ -287,6 +274,48 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 		indexManager.optimizeTableIndices();
 		
 		return lastEtag;
+	}
+
+	/**
+	 * Apply a column (a schema) change to a table.
+	 * 
+	 * @param progressCallback
+	 * @param indexManager
+	 * @param tableId
+	 * @param changeSet
+	 * @throws IOException
+	 */
+	void applyColumnChange(ProgressCallback<Void> progressCallback,
+			final TableIndexManager indexManager, String tableId,
+			TableRowChange changeSet) throws IOException {
+		// apply the schema change
+		List<ColumnChangeDetails> schemaChange = tableEntityManager.getSchemaChangeForVersion(tableId, changeSet.getRowVersion());
+		indexManager.updateTableSchema(progressCallback, schemaChange);
+		indexManager.setIndexVersion(changeSet.getRowVersion());
+	}
+
+
+	/**
+	 * Apply a row change to a table.
+	 * 
+	 * @param progressCallback
+	 * @param indexManager
+	 * @param tableId
+	 * @param changeSet
+	 * @throws IOException
+	 */
+	void applyRowChange(ProgressCallback<Void> progressCallback,
+			final TableIndexManager indexManager, String tableId,
+			TableRowChange changeSet) throws IOException {
+		// Get the current schema from the change set
+		boolean keepOrder = true;
+		List<ColumnModel> currentSchema = tableManagerSupport.getColumnModel(changeSet.getIds(), keepOrder);
+		// Setup the table's index.
+		indexManager.setIndexSchema(progressCallback, currentSchema);
+		// This is a change that we must apply.
+		RowSet rowSet = tableEntityManager.getRowSet(tableId, changeSet.getRowVersion(), currentSchema);
+		// attempt to apply this change set to the table.
+		indexManager.applyChangeSetToIndex(rowSet, currentSchema, changeSet.getRowVersion());
 	}
 
 
