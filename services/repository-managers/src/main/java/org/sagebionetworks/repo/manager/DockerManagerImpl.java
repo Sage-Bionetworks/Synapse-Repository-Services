@@ -1,11 +1,15 @@
 package org.sagebionetworks.repo.manager;
 
+import static org.sagebionetworks.repo.model.docker.RegistryEventAction.pull;
+import static org.sagebionetworks.repo.model.docker.RegistryEventAction.push;
 import static org.sagebionetworks.repo.model.util.DockerNameUtil.REPO_NAME_PATH_SEP;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import org.sagebionetworks.StackConfiguration;
@@ -78,7 +82,7 @@ public class DockerManagerImpl implements DockerManager {
 	public DockerAuthorizationToken authorizeDockerAccess(UserInfo userInfo, String service, String scope) {
 		String type = null;
 		String repositoryPath = null;
-		List<String> permittedAccessTypes = Collections.EMPTY_LIST;
+		Set<String> permittedAccessTypes = Collections.EMPTY_SET;
 		if (scope!=null) {
 			String[] scopeParts = scope.split(":");
 			if (scopeParts.length!=3) throw new RuntimeException("Expected 3 parts but found "+scopeParts.length);
@@ -93,17 +97,17 @@ public class DockerManagerImpl implements DockerManager {
 		String uuid = UUID.randomUUID().toString();
 
 		String token = DockerTokenUtil.createToken(userInfo.getId().toString(), type, service, repositoryPath, 
-				permittedAccessTypes, now, uuid);
+				new ArrayList<String>(permittedAccessTypes), now, uuid);
 		DockerAuthorizationToken result = new DockerAuthorizationToken();
 		result.setToken(token);
 		return result;
 
 	}
 
-	public List<String> getPermittedAccessTypes(UserInfo userInfo, 
+	public Set<String> getPermittedAccessTypes(UserInfo userInfo, 
 			String service, String type, String repositoryPath, String accessTypes) {
 
-		List<String> permittedAccessTypes = new ArrayList<String>();
+		Set<String> permittedAccessTypes = new HashSet<String>();
 
 		String parentId = validParentProjectId(repositoryPath);
 
@@ -143,7 +147,15 @@ public class DockerManagerImpl implements DockerManager {
 			default:
 				throw new RuntimeException("Unexpected access type: "+requestedAccessType);
 			}
-			if (as!=null && as.getAuthorized()) permittedAccessTypes.add(requestedAccessType.name());
+			if (as!=null && as.getAuthorized()) {
+				// if push is requested and granted we also have to grant pull access
+				if (requestedAccessType==push) {
+					permittedAccessTypes.add(push.name());
+					permittedAccessTypes.add(pull.name());
+				} else {
+					permittedAccessTypes.add(requestedAccessType.name());
+				}
+			}
 		}
 		return permittedAccessTypes;
 	}
