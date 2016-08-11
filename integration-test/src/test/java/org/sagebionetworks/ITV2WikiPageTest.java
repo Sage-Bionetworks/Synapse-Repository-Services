@@ -78,13 +78,13 @@ public class ITV2WikiPageTest {
 		SynapseClientHelper.setEndpoints(adminSynapse);
 		adminSynapse.setUserName(StackConfiguration.getMigrationAdminUsername());
 		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
-		adminSynapse.clearAllLocks();
 		synapse = new SynapseClientImpl();
 		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
 	}
 	
 	@Before
 	public void before() throws SynapseException, IOException {
+		adminSynapse.clearAllLocks();
 		toDelete = new ArrayList<WikiPageKey>();
 		fileHandlesToDelete = new ArrayList<String>();
 		// Get image and markdown files from the classpath.

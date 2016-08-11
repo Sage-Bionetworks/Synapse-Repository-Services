@@ -95,7 +95,8 @@ public class IT100TableControllerTest {
 	}
 	
 	@Before
-	public void before(){
+	public void before() throws SynapseException{
+		adminSynapse.clearAllLocks();
 		entitiesToDelete = new LinkedList<Entity>();
 		tablesToDelete = new ArrayList<TableEntity>();
 	}

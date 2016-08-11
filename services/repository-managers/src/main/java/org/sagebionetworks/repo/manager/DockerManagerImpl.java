@@ -1,17 +1,22 @@
 package org.sagebionetworks.repo.manager;
 
+import static org.sagebionetworks.repo.model.docker.RegistryEventAction.pull;
+import static org.sagebionetworks.repo.model.docker.RegistryEventAction.push;
 import static org.sagebionetworks.repo.model.util.DockerNameUtil.REPO_NAME_PATH_SEP;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DockerCommitDao;
 import org.sagebionetworks.repo.model.DockerNodeDao;
@@ -78,7 +83,7 @@ public class DockerManagerImpl implements DockerManager {
 	public DockerAuthorizationToken authorizeDockerAccess(UserInfo userInfo, String service, String scope) {
 		String type = null;
 		String repositoryPath = null;
-		List<String> permittedAccessTypes = Collections.EMPTY_LIST;
+		Set<String> permittedAccessTypes = Collections.EMPTY_SET;
 		if (scope!=null) {
 			String[] scopeParts = scope.split(":");
 			if (scopeParts.length!=3) throw new RuntimeException("Expected 3 parts but found "+scopeParts.length);
@@ -93,17 +98,17 @@ public class DockerManagerImpl implements DockerManager {
 		String uuid = UUID.randomUUID().toString();
 
 		String token = DockerTokenUtil.createToken(userInfo.getId().toString(), type, service, repositoryPath, 
-				permittedAccessTypes, now, uuid);
+				new ArrayList<String>(permittedAccessTypes), now, uuid);
 		DockerAuthorizationToken result = new DockerAuthorizationToken();
 		result.setToken(token);
 		return result;
 
 	}
 
-	public List<String> getPermittedAccessTypes(UserInfo userInfo, 
+	public Set<String> getPermittedAccessTypes(UserInfo userInfo, 
 			String service, String type, String repositoryPath, String accessTypes) {
 
-		List<String> permittedAccessTypes = new ArrayList<String>();
+		Set<String> permittedAccessTypes = new HashSet<String>();
 
 		String parentId = validParentProjectId(repositoryPath);
 
@@ -130,6 +135,10 @@ public class DockerManagerImpl implements DockerManager {
 					as = authorizationManager.canAccess(
 							userInfo, existingDockerRepoId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE);
 				}
+				if (as!=null && as.getAuthorized()) {
+					permittedAccessTypes.add(requestedAccessType.name());
+					if (existingDockerRepoId==null) permittedAccessTypes.add(pull.name());
+				}
 				break;
 			case pull:
 				// check DOWNLOAD permission and add to permittedAccessTypes
@@ -137,11 +146,11 @@ public class DockerManagerImpl implements DockerManager {
 					as = authorizationManager.canAccess(
 							userInfo, existingDockerRepoId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD);
 				}
+				if (as!=null && as.getAuthorized()) permittedAccessTypes.add(requestedAccessType.name());
 				break;
 			default:
 				throw new RuntimeException("Unexpected access type: "+requestedAccessType);
 			}
-			if (as!=null && as.getAuthorized()) permittedAccessTypes.add(requestedAccessType.name());
 		}
 		return permittedAccessTypes;
 	}

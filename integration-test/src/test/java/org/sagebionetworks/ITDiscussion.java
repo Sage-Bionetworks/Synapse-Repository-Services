@@ -53,6 +53,7 @@ public class ITDiscussion {
 
 	@Before
 	public void before() throws SynapseException {
+		adminSynapse.clearAllLocks();
 		project = new Project();
 		project = synapse.createEntity(project);
 		assertNotNull(project);

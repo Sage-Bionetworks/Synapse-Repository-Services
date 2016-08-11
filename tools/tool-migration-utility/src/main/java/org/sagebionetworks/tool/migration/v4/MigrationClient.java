@@ -9,6 +9,7 @@ import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -141,13 +142,20 @@ public class MigrationClient {
 		
 		// Get the counts for all type from both the source and destination
 		List<MigrationTypeCount> startSourceCounts = ToolMigrationUtils.getTypeCounts(source);
+		// Should only contain the types for which we can get a count
 		List<MigrationTypeCount> startDestCounts = ToolMigrationUtils.getTypeCounts(destination);
+		// 
+		Set<MigrationType> destTypesToKeep = ToolMigrationUtils.getTypesFromTypeCounts(startDestCounts);
+		startSourceCounts = ToolMigrationUtils.filterSourceByDestination(startSourceCounts, destTypesToKeep);
+		
 		log.info("Starting diffs in counts:");
 		printDiffsInCounts(startSourceCounts, startDestCounts);
 		
 		// Get the primary types for src and dest
 		List<MigrationType> srcPrimaryTypes = source.getPrimaryTypes().getList();
 		List<MigrationType> destPrimaryTypes = destination.getPrimaryTypes().getList();
+		destPrimaryTypes = ToolMigrationUtils.filterTypes(destPrimaryTypes, destTypesToKeep);
+		
 		// Only migrate the src primary types that are at destination
 		List<MigrationType> primaryTypesToMigrate = new LinkedList<MigrationType>();
 		for (MigrationType pt: destPrimaryTypes) {
@@ -164,6 +172,7 @@ public class MigrationClient {
 		
 		// Print the final counts
 		List<MigrationTypeCount> endSourceCounts = ToolMigrationUtils.getTypeCounts(source);
+		endSourceCounts = ToolMigrationUtils.filterSourceByDestination(endSourceCounts, destTypesToKeep);
 		List<MigrationTypeCount> endDestCounts = ToolMigrationUtils.getTypeCounts(destination);
 		log.info("Ending diffs in  counts:");
 		printDiffsInCounts(endSourceCounts, endDestCounts);
