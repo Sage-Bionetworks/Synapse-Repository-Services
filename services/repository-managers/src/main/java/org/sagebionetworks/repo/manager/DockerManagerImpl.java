@@ -16,6 +16,7 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DockerCommitDao;
 import org.sagebionetworks.repo.model.DockerNodeDao;
@@ -134,6 +135,10 @@ public class DockerManagerImpl implements DockerManager {
 					as = authorizationManager.canAccess(
 							userInfo, existingDockerRepoId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE);
 				}
+				if (as!=null && as.getAuthorized()) {
+					permittedAccessTypes.add(requestedAccessType.name());
+					if (existingDockerRepoId==null) permittedAccessTypes.add(pull.name());
+				}
 				break;
 			case pull:
 				// check DOWNLOAD permission and add to permittedAccessTypes
@@ -143,18 +148,10 @@ public class DockerManagerImpl implements DockerManager {
 					// TODO if denied here see if the repo is in a submission and, if so, 
 					// check the ACL on the Evaluation owning the Submission
 				}
+				if (as!=null && as.getAuthorized()) permittedAccessTypes.add(requestedAccessType.name());
 				break;
 			default:
 				throw new RuntimeException("Unexpected access type: "+requestedAccessType);
-			}
-			if (as!=null && as.getAuthorized()) {
-				// if push is requested and granted we also have to grant pull access
-				if (requestedAccessType==push) {
-					permittedAccessTypes.add(push.name());
-					permittedAccessTypes.add(pull.name());
-				} else {
-					permittedAccessTypes.add(requestedAccessType.name());
-				}
 			}
 		}
 		return permittedAccessTypes;
