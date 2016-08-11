@@ -67,6 +67,7 @@ public class IT055WikiPageTest {
 	
 	@Before
 	public void before() throws SynapseException, IOException {
+		adminSynapse.clearAllLocks();
 		toDelete = new ArrayList<WikiPageKey>();
 		handlesToDelete = new ArrayList<String>();
 		

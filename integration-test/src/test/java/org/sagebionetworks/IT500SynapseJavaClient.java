@@ -186,6 +186,7 @@ public class IT500SynapseJavaClient {
 	
 	@Before
 	public void before() throws SynapseException {
+		adminSynapse.clearAllLocks();
 		toDelete = new ArrayList<String>();
 		accessRequirementsToDelete = new ArrayList<Long>();
 		handlesToDelete = new ArrayList<String>();

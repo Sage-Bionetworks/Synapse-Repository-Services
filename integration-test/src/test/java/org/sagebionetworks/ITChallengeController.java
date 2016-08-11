@@ -81,6 +81,7 @@ public class ITChallengeController {
 	
 	@Before
 	public void before() throws Exception {
+		adminSynapse.clearAllLocks();
 		entitiesToDelete = new ArrayList<String>();
 		activitiesToDelete = new ArrayList<String>();
 		participantTeam = createTeam("ITChallengeController_test_participants");
