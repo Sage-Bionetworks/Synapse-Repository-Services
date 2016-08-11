@@ -146,9 +146,8 @@ public class DockerCommitDaoImpl implements DockerCommitDao {
 		ValidateArgument.required(entityId, "entityId");
 		ValidateArgument.required(digest, "digest");
 		long nodeIdAsLong = KeyFactory.stringToKey(entityId);
-		StringBuilder sb = new StringBuilder(COMMITS_FOR_ENTITY_AND_DIGEST_SQL);
 		List<DBODockerCommit> dbos = jdbcTemplate.query(
-					sb.toString(), COMMIT_ROW_MAPPER, nodeIdAsLong, digest);
+				COMMITS_FOR_ENTITY_AND_DIGEST_SQL, COMMIT_ROW_MAPPER, nodeIdAsLong, digest);
 		List<DockerCommit> result = new ArrayList<DockerCommit>();
 		for (DBODockerCommit dbo : dbos) {
 			DockerCommit dto = new DockerCommit();

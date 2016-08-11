@@ -488,6 +488,7 @@ public class SubmissionManagerTest {
 		sub.setEntityId(DOCKER_REPO_ENTITY_ID);
 		sub.setDockerDigest(DOCKER_REPO_DIGEST);
 		submissionManager.createSubmission(userInfo, sub, ETAG, null, bundle);		
+		verify(mockDockerCommitDao).listCommitsByOwnerAndDigest(DOCKER_REPO_ENTITY_ID, DOCKER_REPO_DIGEST);
 	}
 	
 	@Test(expected=IllegalArgumentException.class)

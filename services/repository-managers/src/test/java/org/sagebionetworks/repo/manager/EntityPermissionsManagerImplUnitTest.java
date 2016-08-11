@@ -267,6 +267,15 @@ public class EntityPermissionsManagerImplUnitTest {
 	}
 	
 	@Test
+	public void testAnonymousCannotDownloadDockerRepo() throws Exception {
+    	UserInfo anonymousUser = new UserInfo(false);
+    	anonymousUser.setId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+		assertFalse(entityPermissionsManager.
+				hasAccess(dockerRepoId, ACCESS_TYPE.DOWNLOAD, anonymousUser).getAuthorized());
+		
+	}
+	
+	@Test
 	public void testGetUserPermissionsForCertifiedUserOnDockerRepo() throws Exception {
 		UserEntityPermissions uep = entityPermissionsManager.
 				getUserPermissionsForEntity(certifiedUserInfo, dockerRepoId);
