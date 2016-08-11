@@ -17,7 +17,7 @@
 		    "description":"The list of ColumnModels ID that describes the rows of this change.",
 			"type": "array",
 			"items": {
-				"type": "integer"
+				"type": "string"
 			}
 		},
 		"createdOn": {

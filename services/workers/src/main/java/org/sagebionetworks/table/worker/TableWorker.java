@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.TableChangeType;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -219,17 +220,10 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 			final TableIndexManager indexManager, String tableId, String resetToken,
 			ChangeMessage change) throws DatastoreException, NotFoundException,
 			IOException, TableUnavailableException {
-		// The first task is to get the table schema in-synch.
-		// Get the current schema of the table.
-		List<ColumnModel> currentSchema = tableManagerSupport
-				.getColumnModelsForTable(tableId);
 		// Create or update the table with this schema.
 		tableManagerSupport.attemptToUpdateTableProgress(tableId, resetToken,
 				"Creating table ", 0L, 100L);
 		
-		// Setup the table's index.
-		indexManager.setIndexSchema(progressCallback, currentSchema);
-
 		// List all of the changes
 		tableManagerSupport.attemptToUpdateTableProgress(tableId, resetToken,
 				"Getting current table row versions ", 0L, 100L);
@@ -253,39 +247,35 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 		// Apply each change set not already indexed
 		long currentProgress = 0;
 		String lastEtag = null;
-		Exception lastFailedException = null;
 		for(TableRowChange changeSet: changes){
 			progressCallback.progressMade(null);
 			currentProgress += changeSet.getRowCount();
 			lastEtag = changeSet.getEtag();
 			// Only apply changes sets not already applied to the index.
 			if(!indexManager.isVersionAppliedToIndex(changeSet.getRowVersion())){
-				// This is a change that we must apply.
-				RowSet rowSet = tableEntityManager.getRowSet(tableId, changeSet.getRowVersion(), currentSchema);
 				tableManagerSupport.attemptToUpdateTableProgress(tableId,
-						resetToken, "Applying " + rowSet.getRows().size()
-								+ " rows for version: " + changeSet.getRowVersion(), currentProgress,
+						resetToken, "Applying version: " + changeSet.getRowVersion(), currentProgress,
 								totalProgress);
-				try {
+				switch(changeSet.getChangeType()){
+				case ROW:
+					// Get the current schema from the change set
+					boolean keepOrder = true;
+					List<ColumnModel> currentSchema = tableManagerSupport.getColumnModel(changeSet.getIds(), keepOrder);
+					// Setup the table's index.
+					indexManager.setIndexSchema(progressCallback, currentSchema);
+					// This is a change that we must apply.
+					RowSet rowSet = tableEntityManager.getRowSet(tableId, changeSet.getRowVersion(), currentSchema);
 					// attempt to apply this change set to the table.
 					indexManager.applyChangeSetToIndex(rowSet, currentSchema, changeSet.getRowVersion());
-					// Clear the exception (we will be removing this in the future).
-					lastFailedException = null;
-				} catch (Exception e) {
-					/*
-					 * Log and then skip failures.
-					 */
-					log.error("Failed to apply a change set to table :"+tableId+" version: "+changeSet.getRowVersion(), e);
-					lastFailedException = e;
+					break;
+				default:
+					throw new IllegalArgumentException("Unknown change type: "+changeSet.getChangeType());
 				}
 			}
 		}
 		// now that table is created and populated the indices on the table can be optimized.
 		indexManager.optimizeTableIndices();
 		
-		if(lastFailedException != null){
-			throw new RuntimeException(lastFailedException);
-		}
 		return lastEtag;
 	}
 

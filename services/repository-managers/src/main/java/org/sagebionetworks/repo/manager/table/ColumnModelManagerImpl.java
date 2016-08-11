@@ -179,6 +179,9 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 			if(change.getNewColumnId() != null && change.getOldColumnId() != null){
 				// update
 				int oldIndex = newSchemaIds.indexOf(change.getOldColumnId());
+				if(oldIndex < 0){
+					throw new IllegalArgumentException("Cannot update column: "+change.getOldColumnId()+" since it is not currently a column of table: "+tableId);
+				}
 				newSchemaIds.add(oldIndex, change.getNewColumnId());
 				newSchemaIds.remove(change.getOldColumnId());
 			}else if(change.getOldColumnId() != null){

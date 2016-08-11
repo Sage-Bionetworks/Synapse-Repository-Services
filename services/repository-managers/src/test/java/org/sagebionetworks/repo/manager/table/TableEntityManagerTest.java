@@ -67,6 +67,7 @@ import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableSchemaChangeRequest;
+import org.sagebionetworks.repo.model.table.TableSchemaChangeResponse;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUpdateRequest;
@@ -260,6 +261,7 @@ public class TableEntityManagerTest {
 		
 		when(mockColumModelManager.getColumnChangeDetails(changes)).thenReturn(columChangedetails);
 		newColumnIds = Lists.newArrayList("111","333");
+		when(mockColumModelManager.calculateNewSchemaIds(tableId, changes)).thenReturn(newColumnIds);
 	}
 	
 	@Test (expected=UnauthorizedException.class)
@@ -943,6 +945,8 @@ public class TableEntityManagerTest {
 		
 		List<String> newColumnIds = Lists.newArrayList("111");
 		when(mockColumModelManager.getColumnChangeDetails(changes)).thenReturn(details);		
+		
+		when(mockColumModelManager.calculateNewSchemaIds(tableId, changes)).thenReturn(newColumnIds);
 		// Call under test
 		manager.validateSchemaUpdateRequest(mockProgressCallbackVoid, user, request, null);
 		verify(mockColumModelManager).validateSchemaSize(newColumnIds);
@@ -951,7 +955,79 @@ public class TableEntityManagerTest {
 	}
 	
 	@Test
-	public void testUpdateTableSchema(){
+	public void testUpdateTable(){
+		// call under test.
+		manager.updateTable(mockProgressCallbackVoid, user, schemaChangeRequest);
+		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(tableId);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testUpdateTableNullProgress(){
+		mockProgressCallbackVoid = null;
+		// call under test.
+		manager.updateTable(mockProgressCallbackVoid, user, schemaChangeRequest);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testUpdateTableNullUser(){
+		user = null;
+		// call under test.
+		manager.updateTable(mockProgressCallbackVoid, user, schemaChangeRequest);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testUpdateTableNullRequset(){
+		schemaChangeRequest = null;
+		// call under test.
+		manager.updateTable(mockProgressCallbackVoid, user, schemaChangeRequest);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testUpdateTableUnkownRequset(){
+		TableUpdateRequest unknown = Mockito.mock(TableUpdateRequest.class);
+		// call under test.
+		manager.updateTable(mockProgressCallbackVoid, user, unknown);
+	}
+	
+	@Test
+	public void testUpdateTableSchema() throws IOException{
+		when(mockColumModelManager.getColumnModel(user, newColumnIds, true)).thenReturn(models);
+		List<Long> newSchemaIdsLong = TableModelUtils.getIds(models);
+		// call under test.
+		TableSchemaChangeResponse response = manager.updateTableSchema(mockProgressCallbackVoid, user, schemaChangeRequest);
+		assertNotNull(response);
+		assertEquals(models, response.getSchema());
+		verify(mockColumModelManager).calculateNewSchemaIds(tableId, schemaChangeRequest.getChanges());
+		verify(mockColumModelManager).bindColumnToObject(user, newColumnIds, tableId);
+		verify(mockColumModelManager).getColumnModel(user, newColumnIds, true);
+		verify(mockTruthDao).appendSchemaChangeToTable(""+user.getId(), tableId, newSchemaIdsLong, schemaChangeRequest.getChanges());
+		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(tableId);
+	}
+	
+	@Test
+	public void testUpdateTableSchemaNoUpdate() throws IOException{
+		// this case only contains an add (no update)
+		ColumnChange add = new ColumnChange();
+		add.setNewColumnId("111");
+		add.setOldColumnId(null);
 		
+		List<ColumnChange> changes = Lists.newArrayList(add);
+		schemaChangeRequest = new TableSchemaChangeRequest();
+		schemaChangeRequest.setChanges(changes);
+		schemaChangeRequest.setEntityId(tableId);
+		
+		models = Lists.newArrayList(TableModelTestUtils.createColumn(111l));
+		newColumnIds = Lists.newArrayList("111");
+		when(mockColumModelManager.calculateNewSchemaIds(tableId, changes)).thenReturn(newColumnIds);
+		when(mockColumModelManager.getColumnModel(user, newColumnIds, true)).thenReturn(models);
+		// call under test.
+		TableSchemaChangeResponse response = manager.updateTableSchema(mockProgressCallbackVoid, user, schemaChangeRequest);
+		assertNotNull(response);
+		assertEquals(models, response.getSchema());
+		verify(mockColumModelManager).calculateNewSchemaIds(tableId, schemaChangeRequest.getChanges());
+		verify(mockColumModelManager).bindColumnToObject(user, newColumnIds, tableId);
+		verify(mockColumModelManager).getColumnModel(user, newColumnIds, true);
+		verify(mockTruthDao, never()).appendSchemaChangeToTable(anyString(), anyString(), anyListOf(Long.class), anyListOf(ColumnChange.class));
+		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(tableId);
 	}
 }

@@ -494,4 +494,22 @@ public class ColumnModelManagerTest {
 		List<String> results = columnModelManager.calculateNewSchemaIds(tableId, changes);
 		assertEquals(expectedNewSchema, results);
 	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCalculateNewSchemaMissingUpdate(){
+		String tableId = "syn567";
+		List<ColumnModel> currentSchema = Lists.newArrayList(
+				TableModelTestUtils.createColumn(111L)
+		);
+		
+		when(mockColumnModelDAO.getColumnModelsForObject(tableId)).thenReturn(currentSchema);
+		// update a column that does not exist.
+		ColumnChange update = new ColumnChange();
+		update.setOldColumnId("222");
+		update.setNewColumnId("444");
+		
+		List<ColumnChange> changes = Lists.newArrayList(update);
+		// call under test.
+		columnModelManager.calculateNewSchemaIds(tableId, changes);
+	}
 }
