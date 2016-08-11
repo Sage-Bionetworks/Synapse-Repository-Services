@@ -41,6 +41,7 @@ import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.TableChangeType;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -122,10 +123,12 @@ public class TableWorkerTest {
 		trc1.setEtag("etag");
 		trc1.setRowVersion(0L);
 		trc1.setRowCount(12L);
+		trc1.setChangeType(TableChangeType.ROW);
 		TableRowChange trc2 = new TableRowChange();
 		trc2.setEtag("etag2");
 		trc2.setRowVersion(1L);
 		trc2.setRowCount(3L);
+		trc2.setChangeType(TableChangeType.ROW);
 		when(mockTableEntityManager.listRowSetsKeysForTable(tableId)).thenReturn(Arrays.asList(trc1,trc2));
 		when(mockTableIndexManager.isVersionAppliedToIndex(anyLong())).thenReturn(false);
 		
@@ -266,6 +269,7 @@ public class TableWorkerTest {
 		trc.setEtag("etag");
 		trc.setRowVersion(3L);
 		trc.setRowCount(12L);
+		trc.setChangeType(TableChangeType.ROW);
 		when(mockTableEntityManager.listRowSetsKeysForTable(tableId)).thenReturn(Arrays.asList(trc));
 		when(mockTableIndexManager.isVersionAppliedToIndex(trc.getRowVersion())).thenReturn(false);
 		RowSet rowSet = new RowSet();
