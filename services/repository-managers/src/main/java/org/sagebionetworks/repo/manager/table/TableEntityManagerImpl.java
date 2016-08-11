@@ -708,4 +708,12 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		return response;
 	}
 
+
+	@Override
+	public List<ColumnChangeDetails> getSchemaChangeForVersion(String tableId,
+			long versionNumber) throws IOException {
+		List<ColumnChange> changes = tableRowTruthDao.getSchemaChangeForVersion(tableId, versionNumber);
+		return columModelManager.getColumnChangeDetails(changes);
+	}
+
 }

@@ -22,6 +22,8 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.table.ColumnChange;
+import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableChangeType;
@@ -267,6 +269,12 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 					RowSet rowSet = tableEntityManager.getRowSet(tableId, changeSet.getRowVersion(), currentSchema);
 					// attempt to apply this change set to the table.
 					indexManager.applyChangeSetToIndex(rowSet, currentSchema, changeSet.getRowVersion());
+					break;
+				case COLUMN:
+					// apply the schema change
+					List<ColumnChangeDetails> schemaChange = tableEntityManager.getSchemaChangeForVersion(tableId, changeSet.getRowVersion());
+					indexManager.updateTableSchema(progressCallback, schemaChange);
+					indexManager.setIndexVersion(changeSet.getRowVersion());
 					break;
 				default:
 					throw new IllegalArgumentException("Unknown change type: "+changeSet.getChangeType());
