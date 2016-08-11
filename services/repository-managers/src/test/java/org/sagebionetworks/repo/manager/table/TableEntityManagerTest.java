@@ -1030,4 +1030,15 @@ public class TableEntityManagerTest {
 		verify(mockTruthDao, never()).appendSchemaChangeToTable(anyString(), anyString(), anyListOf(String.class), anyListOf(ColumnChange.class));
 		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(tableId);
 	}
+	
+	@Test
+	public void  testGetSchemaChangeForVersion() throws IOException{
+		long versionNumber = 123L;
+		when(mockTruthDao.getSchemaChangeForVersion(tableId, versionNumber)).thenReturn(schemaChangeRequest.getChanges());
+		// call under test
+		List<ColumnChangeDetails> details = manager.getSchemaChangeForVersion(tableId, versionNumber);
+		assertEquals(columChangedetails, details);
+		verify(mockTruthDao).getSchemaChangeForVersion(tableId, versionNumber);
+		verify(mockColumModelManager).getColumnChangeDetails(schemaChangeRequest.getChanges());
+	}
 }

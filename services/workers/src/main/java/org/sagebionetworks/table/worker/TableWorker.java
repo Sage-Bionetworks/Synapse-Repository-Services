@@ -22,11 +22,9 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.RowSet;
-import org.sagebionetworks.repo.model.table.TableChangeType;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -281,6 +279,10 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 				}
 			}
 		}
+		// After all changes are applied to the index ensure the final schema is set
+		List<ColumnModel> currentSchema = tableManagerSupport.getColumnModelsForTable(tableId);
+		indexManager.setIndexSchema(progressCallback, currentSchema);
+		
 		// now that table is created and populated the indices on the table can be optimized.
 		indexManager.optimizeTableIndices();
 		
