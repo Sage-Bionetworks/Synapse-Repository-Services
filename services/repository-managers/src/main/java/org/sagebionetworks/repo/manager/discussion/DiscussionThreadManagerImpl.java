@@ -88,6 +88,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		return thread;
 	}
 
+	@WriteTransactionReadCommitted
 	@Override
 	public DiscussionThreadBundle getThread(UserInfo userInfo, String threadId) {
 		ValidateArgument.required(threadId, "threadId");
@@ -106,6 +107,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 					authorizationManager.canAccess(userInfo, thread.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
 		}
 		threadDao.updateThreadView(threadIdLong, userInfo.getId());
+		transactionalMessenger.sendMessageAfterCommit(threadId, ObjectType.THREAD, thread.getEtag(),  ChangeType.UPDATE, userInfo.getId());
 		return thread;
 	}
 

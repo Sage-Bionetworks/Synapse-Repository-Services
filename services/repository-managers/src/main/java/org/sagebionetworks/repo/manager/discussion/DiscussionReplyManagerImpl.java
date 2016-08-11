@@ -68,6 +68,7 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 		DiscussionReplyBundle reply = replyDao.createReply(threadId, replyId, messageKey, userInfo.getId());
 		subscriptionDao.create(userInfo.getId().toString(), threadId, SubscriptionObjectType.THREAD);
 		transactionalMessenger.sendMessageAfterCommit(replyId, ObjectType.REPLY, reply.getEtag(), ChangeType.CREATE, userInfo.getId());
+		transactionalMessenger.sendMessageAfterCommit(threadId, ObjectType.THREAD, ChangeType.UPDATE, userInfo.getId());
 		return reply;
 	}
 

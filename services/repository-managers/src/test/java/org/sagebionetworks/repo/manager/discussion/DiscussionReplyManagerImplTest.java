@@ -165,6 +165,7 @@ public class DiscussionReplyManagerImplTest {
 		assertEquals(bundle, reply);
 		verify(mockSubscriptionDao).create(eq(userId.toString()), eq(reply.getThreadId()), eq(SubscriptionObjectType.THREAD));
 		verify(mockTransactionalMessenger).sendMessageAfterCommit(replyId.toString(), ObjectType.REPLY, bundle.getEtag(), ChangeType.CREATE, userInfo.getId());
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(threadId, ObjectType.THREAD, ChangeType.UPDATE, userInfo.getId());
 	}
 
 	@Test (expected = UnauthorizedException.class)

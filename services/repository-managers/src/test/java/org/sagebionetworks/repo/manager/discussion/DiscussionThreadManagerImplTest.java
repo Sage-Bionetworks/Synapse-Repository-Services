@@ -208,6 +208,7 @@ public class DiscussionThreadManagerImplTest {
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		assertEquals(dto, threadManager.getThread(userInfo, threadId.toString()));
 		verify(mockThreadDao).updateThreadView(Mockito.anyLong(), Mockito.anyLong());
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(threadId.toString(), ObjectType.THREAD, dto.getEtag(), ChangeType.UPDATE, userInfo.getId());
 	}
 
 	@Test
