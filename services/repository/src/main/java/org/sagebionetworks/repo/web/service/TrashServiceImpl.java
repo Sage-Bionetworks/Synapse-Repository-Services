@@ -184,6 +184,6 @@ public class TrashServiceImpl implements TrashService {
 	public void purgeTrashLeaves(Long currentUserId, Long daysOld, Long limit) throws DatastoreException, NotFoundException, UnauthorizedException{
 		UserInfo currentUser = userManager.getUserInfo(currentUserId);
 		List<Long> trashList = trashManager.getTrashLeavesBefore(daysOld, limit);
-		trashManager.purgeTrashAdmin(trashList, currentUser, new TrashPurgeCallback());
+		trashManager.purgeTrashAdmin(trashList, currentUser);
 	}
 }
