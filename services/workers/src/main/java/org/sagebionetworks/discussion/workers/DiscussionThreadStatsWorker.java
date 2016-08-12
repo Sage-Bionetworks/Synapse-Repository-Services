@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 
 public class DiscussionThreadStatsWorker implements ChangeMessageDrivenRunner{
 	@Autowired
@@ -41,7 +42,11 @@ public class DiscussionThreadStatsWorker implements ChangeMessageDrivenRunner{
 		stat.setNumberOfViews(threadDao.countThreadView(threadId));
 		progressCallback.progressMade(null);
 
-		threadDao.updateThreadStats(Arrays.asList(stat));
+		try {
+			threadDao.updateThreadStats(Arrays.asList(stat));
+		} catch (DataIntegrityViolationException e) {
+			// the thread no longer exist, do nothing
+		}
 	}
 
 }
