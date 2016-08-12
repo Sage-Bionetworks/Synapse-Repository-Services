@@ -1,10 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.dao.discussion;
 
+import static org.junit.Assert.*;
 import static org.sagebionetworks.repo.model.dbo.dao.discussion.DBODiscussionReplyDAOImpl.*;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 import static org.sagebionetworks.repo.model.dbo.dao.discussion.DBODiscussionReplyDAOImpl.MAX_LIMIT;
 
 import java.util.ArrayList;
@@ -331,6 +328,15 @@ public class DBODiscussionReplyDAOImplTest {
 		dto.setModifiedOn(returnedDto.getModifiedOn());
 		dto.setEtag(returnedDto.getEtag());
 		assertEquals(dto, returnedDto);
+	}
+
+	@Test
+	public void testGetThreadReplyStatsNoReplies() {
+		DiscussionThreadReplyStat stat = replyDao.getThreadReplyStat(threadIdLong);
+		assertNotNull(stat);
+		assertNull(stat.getThreadId());
+		assertEquals((Long)0L, stat.getNumberOfReplies());
+		assertNull(stat.getLastActivity());
 	}
 
 	@Test

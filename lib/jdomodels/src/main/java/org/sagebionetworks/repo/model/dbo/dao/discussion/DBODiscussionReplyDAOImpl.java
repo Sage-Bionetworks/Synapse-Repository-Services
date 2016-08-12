@@ -61,9 +61,24 @@ public class DBODiscussionReplyDAOImpl implements DiscussionReplyDAO{
 		public DiscussionThreadReplyStat mapRow(ResultSet rs, int rowNum)
 				throws SQLException {
 			DiscussionThreadReplyStat dto = new DiscussionThreadReplyStat();
-			dto.setThreadId(rs.getLong(COL_DISCUSSION_REPLY_THREAD_ID));
-			dto.setNumberOfReplies(rs.getLong(COL_DISCUSSION_THREAD_STATS_NUMBER_OF_REPLIES));
-			dto.setLastActivity(rs.getTimestamp(COL_DISCUSSION_THREAD_STATS_LAST_ACTIVITY).getTime());
+			long threadId = rs.getLong(COL_DISCUSSION_REPLY_THREAD_ID);
+			if (rs.wasNull()) {
+				dto.setThreadId(null);
+			} else {
+				dto.setThreadId(threadId);
+			}
+			Long numberOfReplies = rs.getLong(COL_DISCUSSION_THREAD_STATS_NUMBER_OF_REPLIES);
+			if (rs.wasNull()) {
+				dto.setNumberOfReplies(null);
+			} else {
+				dto.setNumberOfReplies(numberOfReplies);
+			}
+			Timestamp timestamp = rs.getTimestamp(COL_DISCUSSION_THREAD_STATS_LAST_ACTIVITY);
+			if (rs.wasNull()) {
+				dto.setLastActivity(null);
+			} else {
+				dto.setLastActivity(timestamp.getTime());
+			}
 			return dto;
 		}
 		

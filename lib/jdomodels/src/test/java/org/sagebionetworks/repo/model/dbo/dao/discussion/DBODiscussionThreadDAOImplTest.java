@@ -456,12 +456,13 @@ public class DBODiscussionThreadDAOImplTest {
 
 	@Test
 	public void testCountThreadViewForNonExistingThread() {
-		
+		assertEquals(0L, threadDao.countThreadView(threadId));
 	}
 
 	@Test
 	public void testCountThreadViewForExistingThreadZeroView() {
-		
+		threadDao.createThread(forumId, threadId.toString(), "title", "messageKey", userId);
+		assertEquals(0L, threadDao.countThreadView(threadId));
 	}
 
 	@Test
