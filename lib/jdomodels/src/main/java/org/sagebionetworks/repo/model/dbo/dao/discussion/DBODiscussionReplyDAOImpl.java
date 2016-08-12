@@ -18,7 +18,6 @@ import org.sagebionetworks.repo.model.dbo.persistence.discussion.DiscussionReply
 import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
-import org.sagebionetworks.repo.model.discussion.DiscussionThreadAuthorStat;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadReplyStat;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
@@ -77,9 +76,7 @@ public class DBODiscussionReplyDAOImpl implements DiscussionReplyDAO{
 			+"MAX("+COL_DISCUSSION_REPLY_MODIFIED_ON+") AS "+COL_DISCUSSION_THREAD_STATS_LAST_ACTIVITY+" "
 			+"FROM "+TABLE_DISCUSSION_REPLY+" "
 			+"WHERE "+COL_DISCUSSION_REPLY_IS_DELETED+" = FALSE "
-			+"GROUP BY "+COL_DISCUSSION_REPLY_THREAD_ID+" "
-			+"ORDER BY "+COL_DISCUSSION_REPLY_THREAD_ID+" "
-			+"LIMIT ? OFFSET ?";
+			+"AND "+COL_DISCUSSION_REPLY_THREAD_ID+" = ?";
 
 	private static final String SQL_SELECT_THREAD_AUTHOR_STAT = "SELECT "+COL_DISCUSSION_REPLY_CREATED_BY
 			+" FROM "+TABLE_DISCUSSION_REPLY
@@ -274,28 +271,19 @@ public class DBODiscussionReplyDAOImpl implements DiscussionReplyDAO{
 	}
 
 	@Override
-	public List<DiscussionThreadReplyStat> getThreadReplyStat(Long limit,
-			Long offset) {
-		ValidateArgument.required(limit, "limit");
-		ValidateArgument.required(offset, "offset");
-		ValidateArgument.requirement(limit >= 0 && offset >= 0 && limit <= MAX_LIMIT,
-				"Limit and offset must be greater than 0, and limit must be smaller than or equal to "+MAX_LIMIT);
-		return jdbcTemplate.query(SQL_SELECT_THREAD_REPLY_STAT, DISCUSSION_THREAD_REPLY_STAT_ROW_MAPPER, limit, offset);
+	public DiscussionThreadReplyStat getThreadReplyStat(long threadId) {
+		return jdbcTemplate.queryForObject(SQL_SELECT_THREAD_REPLY_STAT, DISCUSSION_THREAD_REPLY_STAT_ROW_MAPPER, threadId);
 	}
 
 	@Override
-	public DiscussionThreadAuthorStat getDiscussionThreadAuthorStat(long threadId) {
-		DiscussionThreadAuthorStat dto = new DiscussionThreadAuthorStat();
-		dto.setThreadId(threadId);
-		List<String> authors = jdbcTemplate.query(SQL_SELECT_THREAD_AUTHOR_STAT, new RowMapper<String>(){
+	public List<String> getActiveAuthors(long threadId) {
+		return jdbcTemplate.query(SQL_SELECT_THREAD_AUTHOR_STAT, new RowMapper<String>(){
 
 			@Override
 			public String mapRow(ResultSet rs, int rowNum) throws SQLException {
 				return rs.getString(COL_DISCUSSION_REPLY_CREATED_BY);
 			}
 		}, threadId);
-		dto.setActiveAuthors(authors);
-		return dto;
 	}
 
 	@Override
