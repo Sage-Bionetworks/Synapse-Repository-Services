@@ -106,6 +106,7 @@ import org.sagebionetworks.repo.web.controller.ExceptionHandlers;
 import org.sagebionetworks.repo.web.controller.ExceptionHandlers.ExceptionType;
 import org.sagebionetworks.repo.web.controller.ExceptionHandlers.TestEntry;
 import org.sagebionetworks.util.SerializationUtils;
+import org.springframework.http.HttpStatus;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -1806,12 +1807,12 @@ public class IT500SynapseJavaClient {
 		}
 		// give it some time to send all requests and have the requests waiting
 		Thread.sleep(5000);
-		// non waiting one should fail with 503
+		// non waiting one should fail with 429
 		try {
 			nonWaitingAdminSynapse.waitForTesting(false);
 			fail("Should have been throttled");
 		} catch (SynapseServerException e) {
-			assertEquals(503, e.getStatusCode());
+			assertEquals(HttpStatus.TOO_MANY_REQUESTS.value(), e.getStatusCode());
 		}
 		// waiting one should fail with retry exception
 		try {
