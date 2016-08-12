@@ -30,7 +30,7 @@
 								<property name="semaphoreLockKey" value="discussionThreadStatsWorker" />
 								<property name="semaphoreMaxLockCount" value="1" />
 								<property name="semaphoreLockAndMessageVisibilityTimeoutSec"
-									value="200" />
+									value="20" />
 								<property name="queueName"
 									ref="stackConfiguration.asyncQueueName[THREAD_STATS]" />
 								<property name="gate">
@@ -50,7 +50,7 @@
 			</bean>
 		</property>
 		<!-- We stager the start delay of each trigger to spread out the timing -->
-		<property name="startDelay" value="47" />
+		<property name="startDelay" value="1301" />
 		<property name="repeatInterval" value="1011" />
 	</bean>
 </beans>

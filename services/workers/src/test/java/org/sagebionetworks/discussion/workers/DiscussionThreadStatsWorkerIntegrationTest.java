@@ -75,7 +75,7 @@ public class DiscussionThreadStatsWorkerIntegrationTest {
 		createReply.setMessageMarkdown("a reply");
 		replyManager.createReply(adminUserInfo, createReply );
 		// wait for the worker to update stat
-		Thread.sleep(2000);
+		Thread.sleep(3000);
 		DiscussionThreadBundle bundle = threadManager.getThread(adminUserInfo, threadId);
 		assertEquals((Long)1L, bundle.getNumberOfReplies());
 	}
