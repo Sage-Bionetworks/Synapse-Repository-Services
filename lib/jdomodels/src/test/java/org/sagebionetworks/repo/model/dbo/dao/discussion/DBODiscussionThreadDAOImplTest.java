@@ -44,6 +44,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class DBODiscussionThreadDAOImplTest {
+	public static final long MAX_LIMIT = 20L;
 
 	@Autowired
 	private ForumDAO forumDao;
@@ -293,22 +294,7 @@ public class DBODiscussionThreadDAOImplTest {
 				threadDao.getThreadsForForum(forumIdLong, 2L, 3L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true, DiscussionFilter.NO_FILTER));
 		assertEquals("order, on limit",
 				Arrays.asList(createdThreads.get(1), createdThreads.get(2)),
-				threadDao.getThreadsForForum(forumIdLong, DBODiscussionThreadDAOImpl.MAX_LIMIT, 1L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true, DiscussionFilter.NO_FILTER));
-	}
-
-	@Test (expected = IllegalArgumentException.class)
-	public void testNegativeOffset() {
-		threadDao.getThreadsForForum(forumIdLong, 2L, -3L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true, DiscussionFilter.NO_FILTER);
-	}
-
-	@Test (expected = IllegalArgumentException.class)
-	public void testNegativeLimit() {
-		threadDao.getThreadsForForum(forumIdLong, -2L, 3L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true, DiscussionFilter.NO_FILTER);
-	}
-
-	@Test (expected = IllegalArgumentException.class)
-	public void testOverLimit() {
-		threadDao.getThreadsForForum(forumIdLong, DBODiscussionThreadDAOImpl.MAX_LIMIT+1, 3L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true, DiscussionFilter.NO_FILTER);
+				threadDao.getThreadsForForum(forumIdLong, MAX_LIMIT, 1L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true, DiscussionFilter.NO_FILTER));
 	}
 
 	@Test (expected = IllegalArgumentException.class)

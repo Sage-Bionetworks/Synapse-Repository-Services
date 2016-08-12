@@ -70,6 +70,7 @@ import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityBundleCreate;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityId;
+import org.sagebionetworks.repo.model.EntityIdList;
 import org.sagebionetworks.repo.model.EntityInstanceFactory;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.IdList;
@@ -122,6 +123,7 @@ import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
+import org.sagebionetworks.repo.model.discussion.EntityThreadCounts;
 import org.sagebionetworks.repo.model.discussion.Forum;
 import org.sagebionetworks.repo.model.discussion.MessageURL;
 import org.sagebionetworks.repo.model.discussion.ReplyCount;
@@ -509,6 +511,9 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String URL = "/messageUrl";
 	private static final String PIN = "/pin";
 	private static final String UNPIN = "/unpin";
+
+	private static final String THREAD_COUNTS = "/threadcounts";
+	private static final String ENTITY_THREAD_COUNTS = ENTITY + THREAD_COUNTS;
 
 	private static final String SUBSCRIPTION = "/subscription";
 	private static final String LIST = "/list";
@@ -7718,5 +7723,41 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			throw new SynapseClientException(e);
 		}
 
+	}
+
+	@Override
+	public PaginatedResults<DiscussionThreadBundle> getThreadsForEntity(String entityId, Long limit, Long offset,
+			DiscussionThreadOrder order, Boolean ascending, DiscussionFilter filter) throws SynapseException {
+		ValidateArgument.required(entityId, "entityId");
+		ValidateArgument.required(limit, "limit");
+		ValidateArgument.required(offset, "offset");
+		ValidateArgument.required(filter, "filter");
+		String url = ENTITY+"/"+entityId+THREADS
+				+"?"+LIMIT+"="+limit+"&"+OFFSET+"="+offset;
+		if (order != null) {
+			url += "&sort="+order.name();
+		}
+		if (ascending != null) {
+			url += "&ascending="+ascending;
+		}
+		url += "&filter="+filter.toString();
+		JSONObject jsonObj = getEntity(url);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		PaginatedResults<DiscussionThreadBundle> results =
+				new PaginatedResults<DiscussionThreadBundle>(DiscussionThreadBundle.class);
+
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
+	}
+
+	@Override
+	public EntityThreadCounts getEntityThreadCount(List<String> entityIds) throws SynapseException {
+		EntityIdList idList = new EntityIdList();
+		idList.setIdList(entityIds);
+		return asymmetricalPost(repoEndpoint, ENTITY_THREAD_COUNTS, idList , EntityThreadCounts.class, null);
 	}
 }

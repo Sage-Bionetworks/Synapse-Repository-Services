@@ -113,6 +113,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+@Ignore // see PLFM-3994
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class TableWorkerIntegrationTest {
@@ -1257,6 +1258,7 @@ public class TableWorkerIntegrationTest {
 		assertEquals(Lists.newArrayList("something", null, "something", "default"), queryResult.getQueryResults().getRows().get(5)
 				.getValues());
 	}
+
 
 	@Test
 	public void testUpdateFilehandles() throws Exception {

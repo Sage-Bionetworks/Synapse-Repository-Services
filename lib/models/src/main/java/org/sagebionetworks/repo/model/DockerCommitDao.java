@@ -25,4 +25,9 @@ public interface DockerCommitDao {
 	 */
 	long countDockerCommits(String entityId);
 	
+	/*
+	 * List the commits (usually zero or one) for the given entity and digest.
+	 */
+	List<DockerCommit> listCommitsByOwnerAndDigest(String entityId, String digest);
+	
 }
