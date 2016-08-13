@@ -83,6 +83,7 @@ import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
+import org.sagebionetworks.repo.model.discussion.EntityThreadCounts;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.Forum;
 import org.sagebionetworks.repo.model.discussion.ReplyCount;
@@ -2787,4 +2788,27 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	PaginatedResults<DockerCommit> listDockerCommits(String entityId, Long limit, Long offset, DockerCommitSortBy sortBy, Boolean ascending) throws SynapseException;
+
+	/**
+	 * Get threads that reference the given entity
+	 * 
+	 * @param entityId
+	 * @param limit
+	 * @param offset
+	 * @param order
+	 * @param ascending
+	 * @param filter
+	 * @return a paginated list of threads that the user can view
+	 * @throws SynapseException
+	 */
+	PaginatedResults<DiscussionThreadBundle> getThreadsForEntity(String entityId, Long limit, Long offset, DiscussionThreadOrder order, Boolean ascending, DiscussionFilter filter) throws SynapseException;
+
+	/**
+	 * Provides the number of threads that reference each entity in the given id list
+	 * 
+	 * @param entityIds
+	 * @return the number of threads the user can view
+	 * @throws SynapseException 
+	 */
+	EntityThreadCounts getEntityThreadCount(List<String> entityIds) throws SynapseException;
 }

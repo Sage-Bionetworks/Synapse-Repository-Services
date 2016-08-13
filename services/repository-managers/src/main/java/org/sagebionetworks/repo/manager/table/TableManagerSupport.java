@@ -236,7 +236,7 @@ public interface TableManagerSupport {
 	 */
 	public <R> R tryRunWithTableExclusiveLock(ProgressCallback<Void> callback, String tableId, int timeoutMS,
 			ProgressingCallable<R, Void> runner) throws Exception;
-
+	
 	/**
 	 * <p>
 	 * Attempt to acquire a non-exclusive lock on a table. If the lock is
@@ -371,5 +371,7 @@ public interface TableManagerSupport {
 	 * @throws Exception 
 	 */
 	public <R> R callWithAutoProgress(ProgressCallback<Void> callback, Callable<R> callable) throws Exception;
+	
+	
 
 }

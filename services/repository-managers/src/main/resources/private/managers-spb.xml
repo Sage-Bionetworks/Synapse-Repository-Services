@@ -185,9 +185,6 @@
 	   	<property name="maxPreviewMemory" ref="stackConfiguration.maxFilePreviewMemoryPoolBytes"/>
 	</bean>
 	
-	<!-- The Location helper -->
-	<bean id="locationHelper" class="org.sagebionetworks.repo.util.LocationHelpersImpl" />
-
 	<bean id="referenceUtil" class="org.sagebionetworks.repo.util.ReferenceUtilImpl" />
 	
 	<bean id="fileHandleAssociationManager"

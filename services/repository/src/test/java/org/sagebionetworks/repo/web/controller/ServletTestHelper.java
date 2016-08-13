@@ -1731,64 +1731,6 @@ public class ServletTestHelper {
 				SearchResults.class);
 	}
 
-	public EntityIdList getAncestors(Long userId, String entityId)
-			throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils
-				.initRequest(HTTPMODE.GET, UrlHelpers.ENTITY + "/" + entityId
-						+ "/ancestors", userId, null);
-		MockHttpServletResponse response = ServletTestHelperUtils
-				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
-
-		return ServletTestHelperUtils
-				.readResponse(response, EntityIdList.class);
-	}
-
-	public EntityId getParent(Long userId, String entityId)
-			throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + entityId + "/parent",
-				userId, null);
-		MockHttpServletResponse response = ServletTestHelperUtils
-				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
-
-		return ServletTestHelperUtils.readResponse(response, EntityId.class);
-	}
-
-	public EntityIdList getDescendants(Long userId, String entityId)
-			throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + entityId
-						+ "/descendants", userId, null);
-		MockHttpServletResponse response = ServletTestHelperUtils
-				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
-
-		return ServletTestHelperUtils
-				.readResponse(response, EntityIdList.class);
-	}
-
-	public EntityIdList getDescendantsWithGeneration(Long userId,
-			String entityId, int generation) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + entityId
-						+ "/descendants/" + generation, userId, null);
-		MockHttpServletResponse response = ServletTestHelperUtils
-				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
-
-		return ServletTestHelperUtils
-				.readResponse(response, EntityIdList.class);
-	}
-
-	public EntityIdList getChildren(Long userId, String entityId)
-			throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + entityId + "/children",
-				userId, null);
-		MockHttpServletResponse response = ServletTestHelperUtils
-				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
-
-		return ServletTestHelperUtils
-				.readResponse(response, EntityIdList.class);
-	}
 
 	public PaginatedResults<TrashedEntity> getTrashCan(Long userId)
 			throws Exception {

@@ -16,6 +16,8 @@ import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableRowChange;
+import org.sagebionetworks.repo.model.table.TableUpdateRequest;
+import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 
@@ -192,5 +194,34 @@ public interface TableEntityManager {
 	 * @param deletedId
 	 */
 	public void deleteTable(String deletedId);
+
+	/**
+	 * Is a temporary table needed to validate the given table update request.
+	 * @param change
+	 * @return
+	 */
+	public boolean isTemporaryTableNeededToValidate(TableUpdateRequest change);
+
+	/**
+	 * Validate a single update request.
+	 * @param callback
+	 * @param userInfo
+	 * @param change
+	 * @param indexManager The index manager is only provided if a temporary table was created 
+	 * for the purpose of validation.
+	 */
+	public void validateUpdateRequest(ProgressCallback<Void> callback,
+			UserInfo userInfo, TableUpdateRequest change,
+			TableIndexManager indexManager);
+
+	/**
+	 * Update the table with the given request.
+	 * @param callback
+	 * @param userInfo
+	 * @param change
+	 * @return
+	 */
+	public TableUpdateResponse updateTable(ProgressCallback<Void> callback,
+			UserInfo userInfo, TableUpdateRequest change);
 
 }

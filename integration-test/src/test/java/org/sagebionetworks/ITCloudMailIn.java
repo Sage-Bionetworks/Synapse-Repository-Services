@@ -18,6 +18,7 @@ import org.json.JSONObject;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.client.SharedClientConnection;
 import org.sagebionetworks.client.SynapseAdminClient;
@@ -178,6 +179,7 @@ public class ITCloudMailIn {
 	}
 
 	// send from an invalid email and check that the error comes back
+	@Ignore // See PLFM-3993
 	@Test
 	public void testResponseMessage() throws Exception {
 		String sampleFileName = SAMPLE_MESSAGES[0];

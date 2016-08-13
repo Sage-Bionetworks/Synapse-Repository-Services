@@ -25,7 +25,6 @@ import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
-import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.EntityIdList;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -195,6 +194,7 @@ public class DiscussionThreadManagerImplTest {
 		verify(mockReplyDao).getReplyCount(Long.parseLong(createdThread.getId()), DiscussionFilter.EXCLUDE_DELETED);
 		verify(mockTransactionalMessenger).sendMessageAfterCommit(createdThread.getId(), ObjectType.THREAD, dto.getEtag(), ChangeType.CREATE, userInfo.getId());
 		verify(mockSubscriptionDao).create(eq(userId.toString()), eq(dto.getId()), eq(SubscriptionObjectType.THREAD));
+		verify(mockThreadDao).insertEntityReference(any(List.class));
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -318,6 +318,7 @@ public class DiscussionThreadManagerImplTest {
 		when(mockThreadDao.updateMessageKey(Mockito.anyLong(), Mockito.anyString())).thenReturn(dto);
 		assertEquals(dto, threadManager.updateMessage(userInfo, threadId.toString(), newMessage));
 		verify(mockReplyDao).getReplyCount(threadId, DiscussionFilter.EXCLUDE_DELETED);
+		verify(mockThreadDao).insertEntityReference(any(List.class));
 	}
 
 	@Test (expected = UnauthorizedException.class)
@@ -403,6 +404,16 @@ public class DiscussionThreadManagerImplTest {
 	@Test (expected = IllegalArgumentException.class)
 	public void testGetThreadsForForumExceedLimit() {
 		threadManager.getThreadsForForum(userInfo, forumId.toString(), MAX_LIMIT+1, 0L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true, DiscussionFilter.EXCLUDE_DELETED);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testNegativeOffset() {
+		threadManager.getThreadsForForum(userInfo, forumId.toString(), MAX_LIMIT, -2L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true, DiscussionFilter.EXCLUDE_DELETED);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testNegativeLimit() {
+		threadManager.getThreadsForForum(userInfo, forumId.toString(), -1L, 0L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true, DiscussionFilter.EXCLUDE_DELETED);
 	}
 
 	@Test (expected = UnauthorizedException.class)
@@ -566,6 +577,16 @@ public class DiscussionThreadManagerImplTest {
 	@Test (expected = IllegalArgumentException.class)
 	public void testGetThreadsForEntityExceedLimit(){
 		threadManager.getThreadsForEntity(userInfo, "syn3", MAX_LIMIT+1, 0L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetThreadsForEntityNegativeOffset() {
+		threadManager.getThreadsForEntity(userInfo, "syn3", MAX_LIMIT, -3L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetThreadsForEntityNegativeLimit() {
+		threadManager.getThreadsForEntity(userInfo, "syn3", -2L, 0L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true);
 	}
 
 	@Test
