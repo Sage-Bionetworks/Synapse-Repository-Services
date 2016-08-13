@@ -12,7 +12,6 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.http.HttpStatus;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.cloudwatch.Consumer;
@@ -23,6 +22,7 @@ import org.sagebionetworks.repo.model.semaphore.LockReleaseFailedException;
 import org.sagebionetworks.repo.model.semaphore.MemoryCountingSemaphore;
 import org.sagebionetworks.repo.model.semaphore.MemoryTimeBlockCountingSemaphore;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 
 /**
  * This is an filter that throttles non-anonymous user requests. It does this by limiting the number of concurrent
@@ -36,10 +36,14 @@ public class UserThrottleFilter implements Filter {
 	public static final int MAX_CONCURRENT_LOCKS = 3;
 	
 	//From usage data in redash, normal users would not be affected with an average send 1 request per 1 second
-	//Set to 150 requests / 150 seconds so that the filter could tolerate infrequent high bursts of request from users
-	public static final long REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC =  150; //150 seconds
-	public static final int MAX_REQUEST_FREQUENCY_LOCKS = 150;
+	//Set to 1000 requests / 60 seconds so that the filter could tolerate infrequent high bursts of request from users
+	public static final long REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC =  60; //60 seconds
+	public static final int MAX_REQUEST_FREQUENCY_LOCKS = 1000;
 	
+	public static final String REASON_USER_THROTTLED_CONCURRENT = 
+			"{\"reason\": \"Too many concurrent requests. Allowed "+ MAX_CONCURRENT_LOCKS +" concurrent connections at any time.\"}";
+	public static final String REASON_USER_THROTTLED_FREQUENT = 
+			"{\"reason\": \"Requests are too frequent. Allowed "+MAX_REQUEST_FREQUENCY_LOCKS+" requests every "+REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC+" seconds.\"}";
 
 	private static Logger log = LogManager.getLogger(UserThrottleFilter.class);
 
@@ -77,10 +81,10 @@ public class UserThrottleFilter implements Filter {
 						//acquired both locks. proceed to next filter
 						chain.doFilter(request, response);
 					}else{
-						reportLockAcquireError(userId, response, "RequestFrequencyLockUnavailable", AuthorizationConstants.REASON_USER_THROTTLED);
+						reportLockAcquireError(userId, response, "RequestFrequencyLockUnavailable", REASON_USER_THROTTLED_FREQUENT);
 					}
 				}else{
-					reportLockAcquireError(userId, response, "ConcurrentConnectionsLockUnavailable", AuthorizationConstants.REASON_USER_THROTTLED);
+					reportLockAcquireError(userId, response, "ConcurrentConnectionsLockUnavailable", REASON_USER_THROTTLED_CONCURRENT);
 				}
 				
 			
@@ -124,7 +128,7 @@ public class UserThrottleFilter implements Filter {
 		lockUnavailableEvent.setDimension(Collections.singletonMap("UserId", userId));
 		consumer.addProfileData(lockUnavailableEvent);
 		HttpServletResponse httpResponse = (HttpServletResponse) response;
-		httpResponse.setStatus(HttpStatus.SC_SERVICE_UNAVAILABLE);
+		httpResponse.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
 		httpResponse.getWriter().println(reason);
 	}
 	

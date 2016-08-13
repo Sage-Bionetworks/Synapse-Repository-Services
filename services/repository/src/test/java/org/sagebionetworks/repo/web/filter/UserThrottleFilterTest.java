@@ -15,7 +15,6 @@ import static org.sagebionetworks.repo.web.filter.UserThrottleFilter.MAX_REQUEST
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
 
-import org.apache.http.HttpStatus;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -28,6 +27,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.semaphore.MemoryCountingSemaphore;
 import org.sagebionetworks.repo.model.semaphore.MemoryTimeBlockCountingSemaphore;
+import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -124,7 +124,7 @@ public class UserThrottleFilterTest {
 
 		
 		filter.doFilter(request, response, filterChain);
-		assertEquals(HttpStatus.SC_SERVICE_UNAVAILABLE, response.getStatus());
+		assertEquals(HttpStatus.TOO_MANY_REQUESTS.value(), response.getStatus());
 		
 		ArgumentCaptor<ProfileData> profileDataArgument = ArgumentCaptor.forClass(ProfileData.class); 
 		verify(consumer).addProfileData(profileDataArgument.capture());
@@ -145,7 +145,7 @@ public class UserThrottleFilterTest {
 		when(userFrequencyThrottleGate.attemptToAcquireLock(userId, REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC, MAX_REQUEST_FREQUENCY_LOCKS)).thenReturn(false);
 
 		filter.doFilter(request, response, filterChain);
-		assertEquals(HttpStatus.SC_SERVICE_UNAVAILABLE, response.getStatus());
+		assertEquals(HttpStatus.TOO_MANY_REQUESTS.value(), response.getStatus());
 		
 		ArgumentCaptor<ProfileData> profileDataArgument = ArgumentCaptor.forClass(ProfileData.class); 
 		verify(consumer).addProfileData(profileDataArgument.capture());
