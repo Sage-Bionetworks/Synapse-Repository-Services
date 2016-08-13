@@ -36,10 +36,13 @@ public class UserThrottleFilter implements Filter {
 	public static final int MAX_CONCURRENT_LOCKS = 3;
 	
 	//From usage data in redash, normal users would not be affected with an average send 1 request per 1 second
-	//Set to 150 requests / 150 seconds so that the filter could tolerate infrequent high bursts of request from users
-	public static final long REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC =  150; //150 seconds
-	public static final int MAX_REQUEST_FREQUENCY_LOCKS = 150;
+	//Set to 1000 requests / 60 seconds so that the filter could tolerate infrequent high bursts of request from users
+	public static final long REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC =  60; //60 seconds
+	public static final int MAX_REQUEST_FREQUENCY_LOCKS = 1000;
 	
+	public static final String REASON_USER_THROTTLED = 
+			"{\"reason\": \"Too many concurrent connections or requests are too frequent. Allowed "+ MAX_CONCURRENT_LOCKS +" concurrent connections at any time. Allowed "+MAX_REQUEST_FREQUENCY_LOCKS+" requests every "+REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC+" seconds.\"}";
+
 
 	private static Logger log = LogManager.getLogger(UserThrottleFilter.class);
 
@@ -77,10 +80,10 @@ public class UserThrottleFilter implements Filter {
 						//acquired both locks. proceed to next filter
 						chain.doFilter(request, response);
 					}else{
-						reportLockAcquireError(userId, response, "RequestFrequencyLockUnavailable", AuthorizationConstants.REASON_USER_THROTTLED);
+						reportLockAcquireError(userId, response, "RequestFrequencyLockUnavailable", REASON_USER_THROTTLED);
 					}
 				}else{
-					reportLockAcquireError(userId, response, "ConcurrentConnectionsLockUnavailable", AuthorizationConstants.REASON_USER_THROTTLED);
+					reportLockAcquireError(userId, response, "ConcurrentConnectionsLockUnavailable", REASON_USER_THROTTLED);
 				}
 				
 			
