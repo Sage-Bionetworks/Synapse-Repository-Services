@@ -16,6 +16,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -477,5 +478,28 @@ public class TableWorkerTest {
 		worker.run(mockProgressCallback, two);
 		// no work should be performed.
 		verifyZeroInteractions(mockTableIndexManager);
+	}
+	
+	@Test
+	public void testApplyRowChange() throws IOException{
+		List<String> columnIds = Lists.newArrayList("111","222");
+		TableRowChange trc = new TableRowChange();
+		trc.setEtag("etag");
+		trc.setRowVersion(0L);
+		trc.setRowCount(12L);
+		trc.setIds(columnIds);
+		
+		List<ColumnModel> columns = Lists.newArrayList(
+				TableModelTestUtils.createColumn(111L),
+				TableModelTestUtils.createColumn(222L));
+		when(mockTableManagerSupport.getColumnModel(columnIds, true)).thenReturn(columns);
+		when(mockTableEntityManager.getRowSet(tableId, trc.getRowVersion(), columns)).thenReturn(rowSet1);
+		
+		// call under test
+		worker.applyRowChange(mockProgressCallback, mockTableIndexManager, tableId, trc);
+		// schema of the change should be applied
+		verify(mockTableIndexManager).setIndexSchema(mockProgressCallback, columns);
+		// the change set should be applied.
+		verify(mockTableIndexManager).applyChangeSetToIndex(rowSet1, columns,trc.getRowVersion());
 	}
 }
