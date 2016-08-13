@@ -428,38 +428,6 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 	}
 
 	@Override
-<<<<<<< HEAD
-	public List<DiscussionThreadViewStat> getThreadViewStat(Long limit, Long offset) {
-		ValidateArgument.required(limit, "limit");
-		ValidateArgument.required(offset, "offset");
-		return jdbcTemplate.query(SQL_SELECT_THREAD_VIEW_STAT, DISCUSSION_THREAD_VIEW_STAT_ROW_MAPPER, limit, offset);
-	}
-
-	@WriteTransactionReadCommitted
-	@Override
-	public void updateThreadReplyStat(final List<DiscussionThreadReplyStat> stats) {
-		jdbcTemplate.batchUpdate(SQL_UPDATE_THREAD_REPLY_STATS, new BatchPreparedStatementSetter(){
-
-			@Override
-			public void setValues(PreparedStatement ps, int i)
-					throws SQLException {
-				ps.setLong(1, stats.get(i).getThreadId());
-				ps.setLong(2, stats.get(i).getNumberOfReplies());
-				ps.setTimestamp(3, new Timestamp(stats.get(i).getLastActivity()));
-				ps.setLong(4, stats.get(i).getNumberOfReplies());
-				ps.setTimestamp(5, new Timestamp(stats.get(i).getLastActivity()));
-			}
-
-			@Override
-			public int getBatchSize() {
-				return stats.size();
-			}
-		});
-	}
-
-	@Override
-=======
->>>>>>> PLFM-3991
 	public List<Long> getAllThreadId(Long limit, Long offset) {
 		ValidateArgument.required(limit, "limit");
 		ValidateArgument.required(offset, "offset");
