@@ -312,7 +312,6 @@ public class DiscussionThreadManagerImplTest {
 				.thenReturn("newMessage");
 		when(mockThreadDao.updateMessageKey(Mockito.anyLong(), Mockito.anyString())).thenReturn(dto);
 		assertEquals(dto, threadManager.updateMessage(userInfo, threadId.toString(), newMessage));
-		verify(mockReplyDao).getReplyCount(threadId, DiscussionFilter.EXCLUDE_DELETED);
 		verify(mockThreadDao).insertEntityReference(any(List.class));
 	}
 
