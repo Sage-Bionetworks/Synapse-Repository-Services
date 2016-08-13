@@ -25,6 +25,7 @@ import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.TableChangeType;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -288,6 +289,10 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 	void applyColumnChange(ProgressCallback<Void> progressCallback,
 			final TableIndexManager indexManager, String tableId,
 			TableRowChange changeSet) throws IOException {
+		ValidateArgument.required(changeSet, "changeSet");
+		if(!TableChangeType.COLUMN.equals(changeSet.getChangeType())){
+			throw new IllegalArgumentException("Expected: "+TableChangeType.COLUMN);
+		}
 		// apply the schema change
 		List<ColumnChangeDetails> schemaChange = tableEntityManager.getSchemaChangeForVersion(tableId, changeSet.getRowVersion());
 		indexManager.updateTableSchema(progressCallback, schemaChange);
@@ -307,6 +312,10 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 	void applyRowChange(ProgressCallback<Void> progressCallback,
 			final TableIndexManager indexManager, String tableId,
 			TableRowChange changeSet) throws IOException {
+		ValidateArgument.required(changeSet, "changeSet");
+		if(!TableChangeType.ROW.equals(changeSet.getChangeType())){
+			throw new IllegalArgumentException("Expected: "+TableChangeType.ROW);
+		}
 		// Get the current schema from the change set
 		boolean keepOrder = true;
 		List<ColumnModel> currentSchema = tableManagerSupport.getColumnModel(changeSet.getIds(), keepOrder);

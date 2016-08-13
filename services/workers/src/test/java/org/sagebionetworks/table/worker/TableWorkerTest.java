@@ -6,7 +6,6 @@ import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyListOf;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.contains;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
@@ -40,6 +39,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableChangeType;
@@ -488,6 +488,7 @@ public class TableWorkerTest {
 		trc.setRowVersion(0L);
 		trc.setRowCount(12L);
 		trc.setIds(columnIds);
+		trc.setChangeType(TableChangeType.ROW);
 		
 		List<ColumnModel> columns = Lists.newArrayList(
 				TableModelTestUtils.createColumn(111L),
@@ -501,5 +502,56 @@ public class TableWorkerTest {
 		verify(mockTableIndexManager).setIndexSchema(mockProgressCallback, columns);
 		// the change set should be applied.
 		verify(mockTableIndexManager).applyChangeSetToIndex(rowSet1, columns,trc.getRowVersion());
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testApplyRowChangeNullChange() throws IOException{
+		TableRowChange trc = null;
+		// call under test
+		worker.applyRowChange(mockProgressCallback, mockTableIndexManager, tableId, trc);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testApplyRowChangeWrongType() throws IOException{
+		TableRowChange trc = new TableRowChange();
+		trc.setChangeType(TableChangeType.COLUMN);
+		// call under test
+		worker.applyRowChange(mockProgressCallback, mockTableIndexManager, tableId, trc);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testApplyColumnChangeNullChange() throws IOException{
+		TableRowChange trc = null;
+		// call under test
+		worker.applyColumnChange(mockProgressCallback, mockTableIndexManager, tableId, trc);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testApplyColumnChangeWrongType() throws IOException{
+		TableRowChange trc = new TableRowChange();
+		trc.setChangeType(TableChangeType.ROW);
+		// call under test
+		worker.applyColumnChange(mockProgressCallback, mockTableIndexManager, tableId, trc);
+	}
+	
+	@Test
+	public void testApplyColumnChange() throws IOException{
+		List<String> columnIds = Lists.newArrayList("222");
+		TableRowChange trc = new TableRowChange();
+		trc.setEtag("etag");
+		trc.setRowVersion(0L);
+		trc.setRowCount(12L);
+		trc.setIds(columnIds);
+		trc.setChangeType(TableChangeType.COLUMN);
+		
+		ColumnModel oldColumn = TableModelTestUtils.createColumn(111L);
+		ColumnModel newColumn = TableModelTestUtils.createColumn(222L);
+		
+		List<ColumnChangeDetails> details = Lists.newArrayList(new ColumnChangeDetails(oldColumn, newColumn));
+		when(mockTableEntityManager.getSchemaChangeForVersion(tableId, trc.getRowVersion())).thenReturn(details);
+		// call under test
+		worker.applyColumnChange(mockProgressCallback, mockTableIndexManager, tableId, trc);
+		verify(mockTableIndexManager).updateTableSchema(mockProgressCallback, details);
+		verify(mockTableIndexManager).setIndexVersion(trc.getRowVersion());
 	}
 }
