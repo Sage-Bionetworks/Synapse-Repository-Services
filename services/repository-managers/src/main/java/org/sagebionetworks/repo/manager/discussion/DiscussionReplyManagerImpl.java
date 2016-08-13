@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.discussion;
 import static org.sagebionetworks.repo.manager.AuthorizationManagerImpl.*;
 
 import java.io.IOException;
+import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
@@ -68,6 +69,7 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 		DiscussionReplyBundle reply = replyDao.createReply(threadId, replyId, messageKey, userInfo.getId());
 		subscriptionDao.create(userInfo.getId().toString(), threadId, SubscriptionObjectType.THREAD);
 		transactionalMessenger.sendMessageAfterCommit(replyId, ObjectType.REPLY, reply.getEtag(), ChangeType.CREATE, userInfo.getId());
+		transactionalMessenger.sendMessageAfterCommit(threadId, ObjectType.THREAD, UUID.randomUUID().toString(), ChangeType.UPDATE, userInfo.getId());
 		return reply;
 	}
 
