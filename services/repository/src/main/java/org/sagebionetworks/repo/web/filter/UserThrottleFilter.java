@@ -12,7 +12,6 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.http.HttpStatus;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.cloudwatch.Consumer;
@@ -23,6 +22,7 @@ import org.sagebionetworks.repo.model.semaphore.LockReleaseFailedException;
 import org.sagebionetworks.repo.model.semaphore.MemoryCountingSemaphore;
 import org.sagebionetworks.repo.model.semaphore.MemoryTimeBlockCountingSemaphore;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 
 /**
  * This is an filter that throttles non-anonymous user requests. It does this by limiting the number of concurrent
@@ -124,7 +124,7 @@ public class UserThrottleFilter implements Filter {
 		lockUnavailableEvent.setDimension(Collections.singletonMap("UserId", userId));
 		consumer.addProfileData(lockUnavailableEvent);
 		HttpServletResponse httpResponse = (HttpServletResponse) response;
-		httpResponse.setStatus(HttpStatus.SC_SERVICE_UNAVAILABLE);
+		httpResponse.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
 		httpResponse.getWriter().println(reason);
 	}
 	
