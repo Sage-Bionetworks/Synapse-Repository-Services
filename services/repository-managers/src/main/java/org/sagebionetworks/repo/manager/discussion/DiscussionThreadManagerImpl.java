@@ -20,7 +20,6 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UploadContentToS3DAO;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dao.discussion.DiscussionReplyDAO;
 import org.sagebionetworks.repo.model.dao.discussion.DiscussionThreadDAO;
 import org.sagebionetworks.repo.model.dao.discussion.ForumDAO;
 import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
@@ -51,8 +50,6 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 	public static final long MAX_LIMIT = 20L;
 	@Autowired
 	private DiscussionThreadDAO threadDao;
-	@Autowired
-	private DiscussionReplyDAO replyDao;
 	@Autowired
 	private ForumDAO forumDao;
 	@Autowired
@@ -89,14 +86,10 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		transactionalMessenger.sendMessageAfterCommit(""+id, ObjectType.THREAD, thread.getEtag(),  ChangeType.CREATE, userInfo.getId());
 		subscriptionDao.create(userInfo.getId().toString(), id.toString(), SubscriptionObjectType.THREAD);
 		threadDao.insertEntityReference(DiscussionUtils.getEntityReferences(createThread.getMessageMarkdown(), thread.getId()));
-		return updateNumberOfReplies(thread, DiscussionFilter.EXCLUDE_DELETED);
-	}
-
-	private DiscussionThreadBundle updateNumberOfReplies(DiscussionThreadBundle thread, DiscussionFilter filter) {
-		thread.setNumberOfReplies(replyDao.getReplyCount(Long.parseLong(thread.getId()), filter));
 		return thread;
 	}
 
+	@WriteTransactionReadCommitted
 	@Override
 	public DiscussionThreadBundle getThread(UserInfo userInfo, String threadId) {
 		ValidateArgument.required(threadId, "threadId");
@@ -115,7 +108,8 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 					authorizationManager.canAccess(userInfo, thread.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
 		}
 		threadDao.updateThreadView(threadIdLong, userInfo.getId());
-		return updateNumberOfReplies(thread, DiscussionFilter.EXCLUDE_DELETED);
+		transactionalMessenger.sendMessageAfterCommit(threadId, ObjectType.THREAD, thread.getEtag(),  ChangeType.UPDATE, userInfo.getId());
+		return thread;
 	}
 
 	@Override
@@ -139,7 +133,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		String author = threadDao.getAuthorForUpdate(threadId);
 		if (authorizationManager.isUserCreatorOrAdmin(userInfo, author)) {
 			DiscussionThreadBundle thread = threadDao.updateTitle(threadIdLong, newTitle.getTitle());
-			return updateNumberOfReplies(thread, DiscussionFilter.EXCLUDE_DELETED);
+			return thread;
 		} else {
 			throw new UnauthorizedException("Only the user that created the thread can modify it.");
 		}
@@ -159,7 +153,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 			String messageKey = uploadDao.uploadThreadMessage(newMessage.getMessageMarkdown(), thread.getForumId(), thread.getId());
 			thread = threadDao.updateMessageKey(threadIdLong, messageKey);
 			threadDao.insertEntityReference(DiscussionUtils.getEntityReferences(newMessage.getMessageMarkdown(), thread.getId()));
-			return updateNumberOfReplies(thread, DiscussionFilter.EXCLUDE_DELETED);
+			return thread;
 		} else {
 			throw new UnauthorizedException("Only the user that created the thread can modify it.");
 		}
@@ -226,16 +220,6 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 			results = threadDao.getThreadsForForum(Long.parseLong(forumId), limit, offset, order, ascending, filter);
 		}
 		threads.setResults(results);
-		return updateNumberOfReplies(threads, filter);
-	}
-
-	private PaginatedResults<DiscussionThreadBundle> updateNumberOfReplies(
-			PaginatedResults<DiscussionThreadBundle> threads, DiscussionFilter filter) {
-		List<DiscussionThreadBundle> list = new ArrayList<DiscussionThreadBundle>();
-		for (DiscussionThreadBundle thread : threads.getResults()) {
-			list.add(updateNumberOfReplies(thread, filter));
-		}
-		threads.setResults(list);
 		return threads;
 	}
 
@@ -286,7 +270,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 			results = threadDao.getThreadsForEntity(entityIdLong, limit, offset, order, ascending, DiscussionFilter.EXCLUDE_DELETED, projectIds);
 		}
 		threads.setResults(results);
-		return updateNumberOfReplies(threads, DiscussionFilter.EXCLUDE_DELETED);
+		return threads;
 	}
 
 	@Override
