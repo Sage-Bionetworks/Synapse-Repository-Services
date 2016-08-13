@@ -538,24 +538,24 @@ public class TrashManagerImplTest {
 	///////////////////////////////
 	@Test (expected = IllegalArgumentException.class)
 	public void testPurgeTrashAdminNullList(){
-		trashManager.purgeTrashAdmin(null, adminUserInfo, purgeCallback);
+		trashManager.purgeTrashAdmin(null, adminUserInfo);
 	}
 	
 	@Test (expected = IllegalArgumentException.class)
 	public void testPurgeTrashAdminNullUser(){
-		trashManager.purgeTrashAdmin(new ArrayList<Long>(1), null, purgeCallback);
+		trashManager.purgeTrashAdmin(new ArrayList<Long>(1), null);
 	}
 	
 	@Test (expected = UnauthorizedException.class)
 	public void testPurgeTrashAdminUserNotAdmin(){
-		trashManager.purgeTrashAdmin(new ArrayList<Long>(1), userInfo, purgeCallback);
+		trashManager.purgeTrashAdmin(new ArrayList<Long>(1), userInfo);
 	}
 	
 	@Test
 	public void testPurgeTrashAdmin(){
 		List<Long> trashIDList = new ArrayList<Long>(1);
 		trashIDList.add(1L);
-		trashManager.purgeTrashAdmin(trashIDList, adminUserInfo, purgeCallback);
+		trashManager.purgeTrashAdmin(trashIDList, adminUserInfo);
 		
 		verify(mockNodeDAO,times(1)).delete(trashIDList);
 		verify(mockAclDAO,times(1)).delete(trashIDList, ObjectType.ENTITY);

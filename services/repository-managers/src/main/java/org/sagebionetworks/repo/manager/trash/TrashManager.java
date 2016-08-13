@@ -118,7 +118,7 @@ public interface TrashManager {
 	 * @param user must be an admin user.
 	 * @param purgeCallback optional
 	 */
-	public void purgeTrashAdmin(List<Long> trashIDs, UserInfo user, PurgeCallback purgeCallback);
+	public void purgeTrashAdmin(List<Long> trashIDs, UserInfo user);
 
 	public void getDescendants(String nodeID, Collection<String> descendants);
 
