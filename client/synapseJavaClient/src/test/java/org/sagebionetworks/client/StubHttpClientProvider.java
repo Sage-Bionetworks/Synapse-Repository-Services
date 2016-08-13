@@ -30,18 +30,6 @@ public class StubHttpClientProvider implements HttpClientProvider {
 	}
 
 	@Override
-	public void setGlobalConnectionTimeout(int defaultTimeoutMsec) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void setGlobalSocketTimeout(int defaultTimeoutMsec) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
 	public void putFile(String requestUrl, File toPut,
 			Map<String, String> requestHeaders) throws ClientProtocolException,
 			IOException, HttpClientHelperException {

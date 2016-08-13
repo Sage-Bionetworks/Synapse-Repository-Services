@@ -550,6 +550,10 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		// Use the default implementations
 		this(new SharedClientConnection(new HttpClientProviderImpl()));
 	}
+	
+	public SynapseClientImpl(int connectionTimeout, int socketTimeout) {
+		this(new SharedClientConnection(new HttpClientProviderImpl(connectionTimeout, socketTimeout)));
+	}
 
 	/**
 	 * Will use the same connection as the other client

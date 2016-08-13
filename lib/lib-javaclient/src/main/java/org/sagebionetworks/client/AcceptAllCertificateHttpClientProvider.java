@@ -42,16 +42,6 @@ public class AcceptAllCertificateHttpClientProvider implements HttpClientProvide
 
 	
 	@Override
-	public void setGlobalConnectionTimeout(int defaultTimeoutMsec) {
-		HttpClientHelper.setGlobalConnectionTimeout(getSingleton(), defaultTimeoutMsec);
-	}
-
-	@Override
-	public void setGlobalSocketTimeout(int defaultTimeoutMsec) {
-		HttpClientHelper.setGlobalSocketTimeout(getSingleton(), defaultTimeoutMsec);
-	}
-
-	@Override
 	public HttpResponse performRequest(String requestUrl, String requestMethod,
 			String requestContent, Map<String, String> requestHeaders)
 			throws ClientProtocolException, IOException {

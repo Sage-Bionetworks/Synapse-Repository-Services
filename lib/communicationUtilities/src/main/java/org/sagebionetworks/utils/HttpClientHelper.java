@@ -80,13 +80,17 @@ public class HttpClientHelper {
 	 * @return the HTTP client connection factory
 	 */
 	public static HttpClient createNewClient(boolean verifySSLCertificates) {
+		return HttpClientHelper.createNewClient(verifySSLCertificates, DEFAULT_CONNECT_TIMEOUT_MSEC, DEFAULT_SOCKET_TIMEOUT_MSEC);
+	}
+	
+	public static HttpClient createNewClient(boolean verifySSLCertificates, int connectTimeout, int socketTimeout) {
 		try {
 			ThreadSafeClientConnManager connectionManager = createClientConnectionManager(verifySSLCertificates);
 			HttpParams clientParams = new BasicHttpParams();
 			clientParams.setParameter(CoreConnectionPNames.CONNECTION_TIMEOUT,
-					DEFAULT_CONNECT_TIMEOUT_MSEC);
+					connectTimeout);
 			clientParams.setParameter(CoreConnectionPNames.SO_TIMEOUT,
-					DEFAULT_SOCKET_TIMEOUT_MSEC);
+					socketTimeout);
 			return new DecompressingHttpClient(new DefaultHttpClient(connectionManager, clientParams));
 		} catch (KeyStoreException e) {
 			throw new RuntimeException(e);
