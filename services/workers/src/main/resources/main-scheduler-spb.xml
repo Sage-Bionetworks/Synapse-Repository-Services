@@ -88,9 +88,7 @@
 				<ref bean="objectQueueMessageReveiverTrigger"/>
 				<ref bean="s3FileCopyMessageReveiverTrigger"/>
 				<ref bean="fileBulkDownloadMessageReveiverTrigger"/>
-				<ref bean="threadViewStatsWorkerTrigger"/>
-				<ref bean="threadReplyStatsWorkerTrigger"/>
-				<ref bean="threadAuthorStatsWorkerTrigger"/>
+				<ref bean="threadStatsWorkerTrigger"/>
 				<ref bean="broadcastMessageQueueMessageReveiverTrigger"/>
 				<!-- others -->
 				<ref bean="changeSentMessageSynchTrigger" />
