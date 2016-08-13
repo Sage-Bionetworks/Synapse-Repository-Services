@@ -99,6 +99,10 @@ public class SharedClientConnection {
 		// Use the default implementations
 		this(new HttpClientProviderImpl());
 	}
+	
+	public SharedClientConnection(int connectTimeout, int socketTimeout) {
+		this(new HttpClientProviderImpl(connectTimeout, socketTimeout));
+	}
 
 	/**
 	 * Will use the provided client provider and data uploader.

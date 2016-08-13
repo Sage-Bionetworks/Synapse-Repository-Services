@@ -80,6 +80,10 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 		super(new SharedClientConnection(clientProvider));
 	}
 	
+	public SynapseAdminClientImpl(int connectionTimeout, int socketTimeout) {
+		super(new SharedClientConnection(connectionTimeout, socketTimeout));
+	}
+	
 	/**
 	 * @param updated
 	 * @return status

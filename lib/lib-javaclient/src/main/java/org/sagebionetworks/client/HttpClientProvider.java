@@ -19,18 +19,6 @@ import org.sagebionetworks.utils.HttpClientHelperException;
 public interface HttpClientProvider {
 
 	/**
-	 * 
-	 * @param defaultTimeoutMsec
-	 */
-	public void setGlobalConnectionTimeout(int defaultTimeoutMsec);
-
-	/**
-	 * 
-	 * @param defaultTimeoutMsec
-	 */
-	public void setGlobalSocketTimeout(int defaultTimeoutMsec);
-
-	/**
 	 * Upload a file.
 	 * 
 	 * @param requestUrl
