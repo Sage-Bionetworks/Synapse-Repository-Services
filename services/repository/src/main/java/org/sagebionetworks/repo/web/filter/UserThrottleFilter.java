@@ -36,9 +36,9 @@ public class UserThrottleFilter implements Filter {
 	public static final int MAX_CONCURRENT_LOCKS = 3;
 	
 	//From usage data in redash, normal users would not be affected with an average send 1 request per 1 second
-	//Set to 1000 requests / 60 seconds so that the filter could tolerate infrequent high bursts of request from users
+	//Set to 600 requests / 60 seconds so that the filter could tolerate infrequent high bursts of request from users
 	public static final long REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC =  60; //60 seconds
-	public static final int MAX_REQUEST_FREQUENCY_LOCKS = 1000;
+	public static final int MAX_REQUEST_FREQUENCY_LOCKS = 600;
 	
 	public static final String REASON_USER_THROTTLED_CONCURRENT = 
 			"{\"reason\": \"Too many concurrent requests. Allowed "+ MAX_CONCURRENT_LOCKS +" concurrent connections at any time.\"}";
