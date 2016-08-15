@@ -28,7 +28,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class DiscussionThreadStatsWorkerIntegrationTest {
-	private static final long TIME_OUT = 30*60*1000;
+	private static final long TIME_OUT = 30*1000;
 
 	@Autowired
 	private DiscussionThreadManager threadManager;
