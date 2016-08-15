@@ -58,7 +58,7 @@ import com.google.common.collect.Sets;
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class TableViewIntegrationTest {
 	
-	public static final int MAX_WAIT_MS = 1000 * 60 * 10;
+	public static final int MAX_WAIT_MS = 1000 * 60;
 	
 	@Autowired
 	private StackConfiguration config;

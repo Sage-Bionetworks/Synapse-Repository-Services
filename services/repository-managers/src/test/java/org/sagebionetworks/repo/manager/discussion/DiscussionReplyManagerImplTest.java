@@ -172,6 +172,7 @@ public class DiscussionReplyManagerImplTest {
 		verify(mockSubscriptionDao).create(eq(userId.toString()), eq(reply.getThreadId()), eq(SubscriptionObjectType.THREAD));
 		verify(mockTransactionalMessenger).sendMessageAfterCommit(replyId.toString(), ObjectType.REPLY, bundle.getEtag(), ChangeType.CREATE, userInfo.getId());
 		verify(mockThreadDao).insertEntityReference(any(List.class));
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(eq(threadId), eq(ObjectType.THREAD), anyString(), eq(ChangeType.UPDATE), eq(userInfo.getId()));
 	}
 
 	@Test (expected = UnauthorizedException.class)
