@@ -1273,23 +1273,5 @@ public class TableModelUtils {
 		}
 		return results;
 	}
-	
-	
-	/**
-	 * Extract the ColumnModel ids of the new schema given the column changes.
-	 * 
-	 * @param chagnes
-	 * @return
-	 */
-	public static List<String> getNewSchemaColumnIds(List<ColumnChange> changes){
-		List<String> newSchemaIds = new LinkedList<String>();
-		for(ColumnChange change: changes){
-			if(change.getNewColumnId() != null){
-				newSchemaIds.add(change.getNewColumnId());
-			}
-		}
-		return newSchemaIds;
-	}
-
 
 }
