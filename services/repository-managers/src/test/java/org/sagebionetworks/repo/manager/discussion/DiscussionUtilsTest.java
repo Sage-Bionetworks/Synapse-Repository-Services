@@ -131,7 +131,7 @@ public class DiscussionUtilsTest {
 	}
 
 	@Test
-	public void testGetEntityRefeCaseMultipleUsername() {
+	public void testGetEntityRefeCaseMultipleIds() {
 		DiscussionThreadEntityReference ref = new DiscussionThreadEntityReference();
 		ref.setEntityId("123");
 		ref.setThreadId("1");
@@ -144,12 +144,22 @@ public class DiscussionUtilsTest {
 	}
 
 	@Test
-	public void testGetEntityRefCaseEmptyStringUsername() {
+	public void testGetEntityRefCaseMissingDigits() {
 		List<DiscussionThreadEntityReference> expected = new ArrayList<DiscussionThreadEntityReference>();
 		DiscussionThreadEntityReference ref = new DiscussionThreadEntityReference();
 		ref.setEntityId("123");
 		ref.setThreadId("1");
 		expected.add(ref);
 		assertEquals(expected, DiscussionUtils.getEntityReferences("syn syn123", "1"));
+	}
+
+	@Test
+	public void testGetEntityRefCaseInsensitive() {
+		List<DiscussionThreadEntityReference> expected = new ArrayList<DiscussionThreadEntityReference>();
+		DiscussionThreadEntityReference ref = new DiscussionThreadEntityReference();
+		ref.setEntityId("123");
+		ref.setThreadId("1");
+		expected.add(ref);
+		assertEquals(expected, DiscussionUtils.getEntityReferences("sYn123", "1"));
 	}
 }
