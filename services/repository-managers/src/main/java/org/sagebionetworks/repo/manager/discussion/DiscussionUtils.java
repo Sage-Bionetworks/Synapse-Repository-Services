@@ -13,7 +13,7 @@ import org.sagebionetworks.util.ValidateArgument;
 
 public class DiscussionUtils {
 	private static final Pattern USER_MENTION_PATTERN = Pattern.compile("@\\S+");
-	private static final Pattern ENTITY_REF_PATTERN = Pattern.compile("syn\\d+(\\s|$)");
+	private static final Pattern ENTITY_REF_PATTERN = Pattern.compile("syn\\d+(\\s|$)", Pattern.CASE_INSENSITIVE);
 
 	/**
 	 * Extract all username that are mentioned in this markdown
