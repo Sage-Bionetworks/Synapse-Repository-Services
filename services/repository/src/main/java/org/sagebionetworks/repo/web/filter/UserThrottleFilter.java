@@ -128,7 +128,8 @@ public class UserThrottleFilter implements Filter {
 		lockUnavailableEvent.setDimension(Collections.singletonMap("UserId", userId));
 		consumer.addProfileData(lockUnavailableEvent);
 		HttpServletResponse httpResponse = (HttpServletResponse) response;
-		httpResponse.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
+		//TODO: Switch to 429 http code once clients have been implemented to expect that code
+		httpResponse.setStatus(HttpStatus.SERVICE_UNAVAILABLE.value());
 		httpResponse.getWriter().println(reason);
 	}
 	
