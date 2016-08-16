@@ -1807,12 +1807,13 @@ public class IT500SynapseJavaClient {
 		}
 		// give it some time to send all requests and have the requests waiting
 		Thread.sleep(5000);
-		// non waiting one should fail with 429
+		// non waiting one should fail with 503
 		try {
 			nonWaitingAdminSynapse.waitForTesting(false);
 			fail("Should have been throttled");
 		} catch (SynapseServerException e) {
-			assertEquals(HttpStatus.TOO_MANY_REQUESTS.value(), e.getStatusCode());
+			//TODO: Switch to 429 http code once clients have been implemented to expect that code
+			assertEquals(HttpStatus.SERVICE_UNAVAILABLE.value(), e.getStatusCode());
 		}
 		// waiting one should fail with retry exception
 		try {

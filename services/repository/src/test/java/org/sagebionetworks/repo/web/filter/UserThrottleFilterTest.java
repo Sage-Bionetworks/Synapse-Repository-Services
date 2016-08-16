@@ -124,7 +124,8 @@ public class UserThrottleFilterTest {
 
 		
 		filter.doFilter(request, response, filterChain);
-		assertEquals(HttpStatus.TOO_MANY_REQUESTS.value(), response.getStatus());
+		//TODO: Switch to 429 http code once clients have been implemented to expect that code
+		assertEquals(HttpStatus.SERVICE_UNAVAILABLE.value(), response.getStatus());
 		
 		ArgumentCaptor<ProfileData> profileDataArgument = ArgumentCaptor.forClass(ProfileData.class); 
 		verify(consumer).addProfileData(profileDataArgument.capture());
@@ -145,7 +146,8 @@ public class UserThrottleFilterTest {
 		when(userFrequencyThrottleGate.attemptToAcquireLock(userId, REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC, MAX_REQUEST_FREQUENCY_LOCKS)).thenReturn(false);
 
 		filter.doFilter(request, response, filterChain);
-		assertEquals(HttpStatus.TOO_MANY_REQUESTS.value(), response.getStatus());
+		//TODO: Switch to 429 http code once clients have been implemented to expect that code
+		assertEquals(HttpStatus.SERVICE_UNAVAILABLE.value(), response.getStatus());
 		
 		ArgumentCaptor<ProfileData> profileDataArgument = ArgumentCaptor.forClass(ProfileData.class); 
 		verify(consumer).addProfileData(profileDataArgument.capture());
