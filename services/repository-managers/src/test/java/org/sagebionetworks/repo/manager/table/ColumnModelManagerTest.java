@@ -1,8 +1,11 @@
 package org.sagebionetworks.repo.manager.table;
 
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.Mockito.*;
 
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -11,10 +14,10 @@ import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
-import org.sagebionetworks.repo.manager.table.ColumnModelManagerImpl;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -23,6 +26,8 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
+import org.sagebionetworks.repo.model.table.ColumnChange;
+import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
@@ -39,15 +44,16 @@ import com.google.common.collect.Lists;
  */
 public class ColumnModelManagerTest {
 	
+	@Mock
 	ColumnModelDAO mockColumnModelDAO;
+	@Mock
 	AuthorizationManager mockauthorizationManager;
 	ColumnModelManagerImpl columnModelManager;
 	UserInfo user;
 	
 	@Before
 	public void before(){
-		mockColumnModelDAO = Mockito.mock(ColumnModelDAO.class);
-		mockauthorizationManager = Mockito.mock(AuthorizationManager.class);
+		MockitoAnnotations.initMocks(this);
 		columnModelManager = new ColumnModelManagerImpl();
 		user = new UserInfo(false, 123L);
 		ReflectionTestUtils.setField(columnModelManager, "columnModelDao", mockColumnModelDAO);
@@ -327,6 +333,54 @@ public class ColumnModelManagerTest {
 		List<ColumnModel> resutls = columnModelManager.getColumnModelsForTable(user, objectId);
 	}
 	
+	@Test
+	public void testValidateSchemaSizeUnderLimit(){
+		List<String> scheamIds = Lists.newArrayList();
+		List<ColumnModel> schema = Lists.newArrayList();
+		// Currently the breaking point is 23 string columns of size 1000.
+		for(int i=0; i<21; i++){
+			ColumnModel cm = TableModelTestUtils.createColumn((long)i, "c"+i, ColumnType.STRING);
+			cm.setMaximumSize(1000L);
+			schema.add(cm);
+			scheamIds.add(""+cm.getId());
+		}
+		when(mockColumnModelDAO.getColumnModel(scheamIds, false)).thenReturn(schema);
+		
+		columnModelManager.validateSchemaSize(scheamIds);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testValidateSchemaSizeOverLimit(){
+		List<String> scheamIds = Lists.newArrayList();
+		List<ColumnModel> schema = Lists.newArrayList();
+		// Currently the breaking point is 23 string columns of size 1000.
+		for(int i=0; i<23; i++){
+			ColumnModel cm = TableModelTestUtils.createColumn((long)i, "c"+i, ColumnType.STRING);
+			cm.setMaximumSize(1000L);
+			schema.add(cm);
+			scheamIds.add(""+cm.getId());
+		}
+		when(mockColumnModelDAO.getColumnModel(scheamIds, false)).thenReturn(schema);
+		
+		columnModelManager.validateSchemaSize(scheamIds);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testValidateSchemaTooManyColumns(){
+		List<String> scheamIds = Lists.newArrayList();
+		List<ColumnModel> schema = Lists.newArrayList();
+		int numberOfColumns = ColumnModelManagerImpl.MY_SQL_MAX_COLUMNS_PER_TABLE+1;
+		for(int i=0; i<numberOfColumns; i++){
+			ColumnModel cm = TableModelTestUtils.createColumn((long)i, "c"+i, ColumnType.BOOLEAN);
+			cm.setMaximumSize(1L);
+			schema.add(cm);
+			scheamIds.add(""+cm.getId());
+		}
+		when(mockColumnModelDAO.getColumnModel(scheamIds, false)).thenReturn(schema);
+		columnModelManager.validateSchemaSize(scheamIds);
+	}
+	
+	
 	/**
 	 * See PLFM-3619.  This schema should be just under the limit.
 	 */
@@ -390,5 +444,72 @@ public class ColumnModelManagerTest {
 		} catch (IllegalArgumentException e) {
 			assertTrue(e.getMessage().startsWith("Too many columns"));
 		}
+	}
+	
+	@Test
+	public void testGetColumnChangeDetails(){
+		List<ColumnChange> changes = TableModelTestUtils.createAddUpdateDeleteColumnChange();
+		List<ColumnModel> columns = TableModelTestUtils.createColumnsForChanges(changes);
+		
+		when(mockColumnModelDAO.getColumnModel(anyListOf(String.class), anyBoolean())).thenReturn(columns);
+		
+		List<ColumnChangeDetails> expected = Lists.newArrayList(
+				new ColumnChangeDetails(null, columns.get(0)),
+				new ColumnChangeDetails(columns.get(1), columns.get(2)),
+				new ColumnChangeDetails(columns.get(3), null));
+		
+		// Call under test
+		List<ColumnChangeDetails> results = columnModelManager.getColumnChangeDetails(changes);
+		assertEquals(expected, results);
+	}
+	
+	@Test
+	public void testCalculateNewSchemaIds(){
+		String tableId = "syn567";
+		List<ColumnModel> currentSchema = Lists.newArrayList(
+				TableModelTestUtils.createColumn(111L),
+				TableModelTestUtils.createColumn(222L),
+				TableModelTestUtils.createColumn(333L)
+				);
+		
+		
+		when(mockColumnModelDAO.getColumnModelsForObject(tableId)).thenReturn(currentSchema);
+		
+		ColumnChange remove = new ColumnChange();
+		remove.setOldColumnId("111");
+		remove.setNewColumnId(null);
+		
+		ColumnChange update = new ColumnChange();
+		update.setOldColumnId("222");
+		update.setNewColumnId("444");
+		
+		ColumnChange add = new ColumnChange();
+		add.setOldColumnId(null);
+		add.setNewColumnId("555");
+		
+		List<ColumnChange> changes = Lists.newArrayList(remove, update, add);
+		
+		List<String> expectedNewSchema = Lists.newArrayList("444","333","555");
+		// call under test.
+		List<String> results = columnModelManager.calculateNewSchemaIds(tableId, changes);
+		assertEquals(expectedNewSchema, results);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCalculateNewSchemaMissingUpdate(){
+		String tableId = "syn567";
+		List<ColumnModel> currentSchema = Lists.newArrayList(
+				TableModelTestUtils.createColumn(111L)
+		);
+		
+		when(mockColumnModelDAO.getColumnModelsForObject(tableId)).thenReturn(currentSchema);
+		// update a column that does not exist.
+		ColumnChange update = new ColumnChange();
+		update.setOldColumnId("222");
+		update.setNewColumnId("444");
+		
+		List<ColumnChange> changes = Lists.newArrayList(update);
+		// call under test.
+		columnModelManager.calculateNewSchemaIds(tableId, changes);
 	}
 }

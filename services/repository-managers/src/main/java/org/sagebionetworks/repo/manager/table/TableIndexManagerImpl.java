@@ -5,9 +5,9 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.RowSet;
-import org.sagebionetworks.table.cluster.ColumnChange;
 import org.sagebionetworks.table.cluster.DatabaseColumnInfo;
 import org.sagebionetworks.table.cluster.SQLUtils;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
@@ -138,7 +138,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		// Lookup the current schema of the index
 		List<DatabaseColumnInfo> currentSchema = tableIndexDao.getDatabaseInfo(tableId);
 		// create a change that replaces the old schema as needed.
-		List<ColumnChange> changes = SQLUtils.createReplaceSchemaChange(currentSchema, newSchema);
+		List<ColumnChangeDetails> changes = SQLUtils.createReplaceSchemaChange(currentSchema, newSchema);
 		updateTableSchema(progressCallback, changes);
 	}
 
@@ -161,13 +161,14 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	}
 	
 	@Override
-	public boolean updateTableSchema(ProgressCallback<Void> progressCallback, List<ColumnChange> changes) {
+	public boolean updateTableSchema(ProgressCallback<Void> progressCallback, List<ColumnChangeDetails> changes) {
 		// create the table if it does not exist
 		tableIndexDao.createTableIfDoesNotExist(tableId);
 		// Create all of the status tables unconditionally.
 		tableIndexDao.createSecondaryTables(tableId);
+		boolean alterTemp = false;
 		// Alter the table
-		boolean wasSchemaChanged = alterTableAsNeededWithProgress(progressCallback, tableId, changes);
+		boolean wasSchemaChanged = alterTableAsNeededWithProgress(progressCallback, tableId, changes, alterTemp);
 		if(wasSchemaChanged){
 			// Get the current schema.
 			List<DatabaseColumnInfo> tableInfo = tableIndexDao.getDatabaseInfo(tableId);
@@ -184,6 +185,12 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		return wasSchemaChanged;
 	}
 	
+	@Override
+	public boolean alterTempTableSchmea(ProgressCallback<Void> progressCallback, final String tableId, final List<ColumnChangeDetails> changes){
+		boolean alterTemp = true;
+		return alterTableAsNeededWithProgress(progressCallback, tableId, changes, alterTemp);
+	}
+	
 	/**
 	 * Alter the table schema using an auto-progressing callback.
 	 * @param progressCallback
@@ -192,12 +199,12 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * @return
 	 * @throws Exception
 	 */
-	private boolean alterTableAsNeededWithProgress(ProgressCallback<Void> progressCallback, final String tableId, final List<ColumnChange> changes){
+	private boolean alterTableAsNeededWithProgress(ProgressCallback<Void> progressCallback, final String tableId, final List<ColumnChangeDetails> changes, final boolean alterTemp){
 		 try {
 			return  tableManagerSupport.callWithAutoProgress(progressCallback, new Callable<Boolean>() {
 				@Override
 				public Boolean call() throws Exception {
-					return tableIndexDao.alterTableAsNeeded(tableId, changes);
+					return tableIndexDao.alterTableAsNeeded(tableId, changes, alterTemp);
 				}
 			});
 		} catch (Exception e) {

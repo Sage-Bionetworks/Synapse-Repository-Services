@@ -21,6 +21,7 @@ import java.util.Set;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
+import org.apache.commons.io.IOUtils;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Reference;
@@ -189,7 +190,7 @@ public class JDOSecondaryPropertyUtils {
 			XStream xstream = createXStream();
 			xstream.toXML(dto, zipWriter);
 		}finally{
-			Closer.closeQuietly(zipWriter, zipper, buff, out);
+			IOUtils.closeQuietly(zipWriter);
 		}
 		return out.toByteArray();
 	}
@@ -205,7 +206,7 @@ public class JDOSecondaryPropertyUtils {
 			xstream.alias(classAlias, dto.getClass());
 			xstream.toXML(dto, zipWriter);
 		}finally{
-			Closer.closeQuietly(zipWriter, zipper, buff, out);
+			IOUtils.closeQuietly(zipWriter);
 		}
 		return out.toByteArray();
 	}
@@ -226,7 +227,7 @@ public class JDOSecondaryPropertyUtils {
 			XStream xstream = createXStream();
 			xstream.toXML(dto, zipWriter);
 		}finally{
-			Closer.closeQuietly(zipWriter, zipper, buff, out);
+			IOUtils.closeQuietly(zipWriter);
 		}
 		return out.toByteArray();
 	}
@@ -248,7 +249,7 @@ public class JDOSecondaryPropertyUtils {
 			XStream xstream = createXStream();
 			xstream.toXML(dto, zipWriter);
 		}finally{
-			Closer.closeQuietly(zipWriter, zipper, buff, out);
+			IOUtils.closeQuietly(zipWriter);
 		}
 		return out.toByteArray();
 	}

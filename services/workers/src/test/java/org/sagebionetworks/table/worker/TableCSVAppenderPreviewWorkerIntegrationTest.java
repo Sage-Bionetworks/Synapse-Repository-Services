@@ -74,7 +74,7 @@ public class TableCSVAppenderPreviewWorkerIntegrationTest {
 	private UserInfo adminUserInfo;
 	RowReferenceSet referenceSet;
 	List<ColumnModel> schema;
-	List<Long> headers;
+	List<String> headers;
 	private File tempFile;
 	S3FileHandle fileHandle;
 	

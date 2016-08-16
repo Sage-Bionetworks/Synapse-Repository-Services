@@ -6,7 +6,6 @@ import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyListOf;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.contains;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
@@ -16,6 +15,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -39,8 +39,10 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.TableChangeType;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -122,10 +124,12 @@ public class TableWorkerTest {
 		trc1.setEtag("etag");
 		trc1.setRowVersion(0L);
 		trc1.setRowCount(12L);
+		trc1.setChangeType(TableChangeType.ROW);
 		TableRowChange trc2 = new TableRowChange();
 		trc2.setEtag("etag2");
 		trc2.setRowVersion(1L);
 		trc2.setRowCount(3L);
+		trc2.setChangeType(TableChangeType.ROW);
 		when(mockTableEntityManager.listRowSetsKeysForTable(tableId)).thenReturn(Arrays.asList(trc1,trc2));
 		when(mockTableIndexManager.isVersionAppliedToIndex(anyLong())).thenReturn(false);
 		
@@ -266,6 +270,7 @@ public class TableWorkerTest {
 		trc.setEtag("etag");
 		trc.setRowVersion(3L);
 		trc.setRowCount(12L);
+		trc.setChangeType(TableChangeType.ROW);
 		when(mockTableEntityManager.listRowSetsKeysForTable(tableId)).thenReturn(Arrays.asList(trc));
 		when(mockTableIndexManager.isVersionAppliedToIndex(trc.getRowVersion())).thenReturn(false);
 		RowSet rowSet = new RowSet();
@@ -437,31 +442,6 @@ public class TableWorkerTest {
 		verify(mockTableManagerSupport).attemptToSetTableStatusToAvailable(anyString(), anyString(), anyString());
 	}
 	
-	/**
-	 * This case the first change set is broken but the second change set fixes it.
-	 * @throws Exception
-	 */
-	@Test
-	public void testBrokenChangeSetFixed() throws Exception{
-		two.setObjectType(ObjectType.TABLE);
-		two.setChangeType(ChangeType.UPDATE);
-		two.setObjectEtag(resetToken);
-		
-		// Set the first change set to have an error.
-		doThrow(new RuntimeException("Bad Change Set")).when(mockTableIndexManager).applyChangeSetToIndex(rowSet1, currentSchema, 0L);
-		
-		// call under test
-		worker.run(mockProgressCallback, two);
-		// The connection factory should be called
-		verify(mockConnectionFactory, times(1)).connectToTableIndex(tableId);
-		// The status should get set to available
-		verify(mockTableManagerSupport, times(1)).attemptToSetTableStatusToAvailable(tableId, resetToken, "etag2");
-		verify(mockTableManagerSupport, times(4)).attemptToUpdateTableProgress(eq(tableId), eq(resetToken), anyString(), anyLong(), anyLong());
-
-		verify(mockTableIndexManager).applyChangeSetToIndex(rowSet2, currentSchema, 1L);
-		// Progress should be made for each result
-		verify(mockProgressCallback, times(2)).progressMade(null);
-	}
 	
 	/**
 	 * For this case the second (and last) change set is broken so the job should fail.
@@ -487,31 +467,6 @@ public class TableWorkerTest {
 		verify(mockTableManagerSupport, times(1)).attemptToSetTableStatusToFailed(anyString(), anyString(), anyString(), anyString());
 	}
 	
-	/**
-	 * For this case, there are multiple errors without a fix so the job should fail.
-	 * @throws Exception
-	 */
-	@Test
-	public void testBrokenChangeSetMultipleErrors() throws Exception{
-		two.setObjectType(ObjectType.TABLE);
-		two.setChangeType(ChangeType.UPDATE);
-		two.setObjectEtag(resetToken);
-		
-		// this time the second change set has an error
-		RuntimeException error1 = new RuntimeException("Bad Change Set 1");
-		RuntimeException error2 = new RuntimeException("Bad Change Set 2");
-		doThrow(error1).when(mockTableIndexManager).applyChangeSetToIndex(rowSet1, currentSchema, 0L);
-		doThrow(error2).when(mockTableIndexManager).applyChangeSetToIndex(rowSet2, currentSchema, 1L);
-		
-		// call under test
-		worker.run(mockProgressCallback, two);
-		
-		verify(mockTableIndexManager).applyChangeSetToIndex(rowSet1, currentSchema, 0L);
-		
-		// The status should get set to failed
-		verify(mockTableManagerSupport, times(1)).attemptToSetTableStatusToFailed(anyString(), anyString(), contains(error2.getMessage()), anyString());
-	}
-	
 	@Test
 	public void testNoWork() throws Exception {
 		// setup no work
@@ -523,5 +478,80 @@ public class TableWorkerTest {
 		worker.run(mockProgressCallback, two);
 		// no work should be performed.
 		verifyZeroInteractions(mockTableIndexManager);
+	}
+	
+	@Test
+	public void testApplyRowChange() throws IOException{
+		List<String> columnIds = Lists.newArrayList("111","222");
+		TableRowChange trc = new TableRowChange();
+		trc.setEtag("etag");
+		trc.setRowVersion(0L);
+		trc.setRowCount(12L);
+		trc.setIds(columnIds);
+		trc.setChangeType(TableChangeType.ROW);
+		
+		List<ColumnModel> columns = Lists.newArrayList(
+				TableModelTestUtils.createColumn(111L),
+				TableModelTestUtils.createColumn(222L));
+		when(mockTableManagerSupport.getColumnModel(columnIds, true)).thenReturn(columns);
+		when(mockTableEntityManager.getRowSet(tableId, trc.getRowVersion(), columns)).thenReturn(rowSet1);
+		
+		// call under test
+		worker.applyRowChange(mockProgressCallback, mockTableIndexManager, tableId, trc);
+		// schema of the change should be applied
+		verify(mockTableIndexManager).setIndexSchema(mockProgressCallback, columns);
+		// the change set should be applied.
+		verify(mockTableIndexManager).applyChangeSetToIndex(rowSet1, columns,trc.getRowVersion());
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testApplyRowChangeNullChange() throws IOException{
+		TableRowChange trc = null;
+		// call under test
+		worker.applyRowChange(mockProgressCallback, mockTableIndexManager, tableId, trc);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testApplyRowChangeWrongType() throws IOException{
+		TableRowChange trc = new TableRowChange();
+		trc.setChangeType(TableChangeType.COLUMN);
+		// call under test
+		worker.applyRowChange(mockProgressCallback, mockTableIndexManager, tableId, trc);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testApplyColumnChangeNullChange() throws IOException{
+		TableRowChange trc = null;
+		// call under test
+		worker.applyColumnChange(mockProgressCallback, mockTableIndexManager, tableId, trc);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testApplyColumnChangeWrongType() throws IOException{
+		TableRowChange trc = new TableRowChange();
+		trc.setChangeType(TableChangeType.ROW);
+		// call under test
+		worker.applyColumnChange(mockProgressCallback, mockTableIndexManager, tableId, trc);
+	}
+	
+	@Test
+	public void testApplyColumnChange() throws IOException{
+		List<String> columnIds = Lists.newArrayList("222");
+		TableRowChange trc = new TableRowChange();
+		trc.setEtag("etag");
+		trc.setRowVersion(0L);
+		trc.setRowCount(12L);
+		trc.setIds(columnIds);
+		trc.setChangeType(TableChangeType.COLUMN);
+		
+		ColumnModel oldColumn = TableModelTestUtils.createColumn(111L);
+		ColumnModel newColumn = TableModelTestUtils.createColumn(222L);
+		
+		List<ColumnChangeDetails> details = Lists.newArrayList(new ColumnChangeDetails(oldColumn, newColumn));
+		when(mockTableEntityManager.getSchemaChangeForVersion(tableId, trc.getRowVersion())).thenReturn(details);
+		// call under test
+		worker.applyColumnChange(mockProgressCallback, mockTableIndexManager, tableId, trc);
+		verify(mockTableIndexManager).updateTableSchema(mockProgressCallback, details);
+		verify(mockTableIndexManager).setIndexVersion(trc.getRowVersion());
 	}
 }

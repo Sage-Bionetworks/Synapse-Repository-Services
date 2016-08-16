@@ -481,9 +481,9 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 			models.add(columnModelDao.createColumnModel(cm));
 		}
 
-		List<Long> headers = TableModelUtils.getIds(models);
+		List<String> headers = TableModelUtils.getIds(models);
 		// bind the columns to the entity
-		columnModelDao.bindColumnToObject(Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
+		columnModelDao.bindColumnToObject(headers, tableId);
 
 		// create some test rows.
 		List<Row> rows = TableModelTestUtils.createRows(models, 5);

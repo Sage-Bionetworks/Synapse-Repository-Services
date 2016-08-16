@@ -372,6 +372,13 @@ public interface TableManagerSupport {
 	 */
 	public <R> R callWithAutoProgress(ProgressCallback<Void> callback, Callable<R> callable) throws Exception;
 	
+	/**
+	 * Get the column models for the given columnIds.
+	 * @param ids
+	 * @param keepOrder
+	 * @return
+	 */
+	public List<ColumnModel> getColumnModel(List<String> ids, boolean keepOrder);
 	
 
 }
