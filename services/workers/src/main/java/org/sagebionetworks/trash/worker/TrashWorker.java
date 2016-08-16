@@ -23,10 +23,10 @@ public class TrashWorker implements ProgressingRunner<Void>{
 	public void run(ProgressCallback<Void> progressCallback) throws Exception {
 		
 		List<Long> trashList = trashManager.getTrashLeavesBefore(TRASH_AGE_IN_DAYS, MAX_TRASH_ITEMS);
-		logger.info("Purging " + trashList.size() + " entities, before " +
+		logger.info("Purging " + trashList.size() + " entities, older than " +
 					TRASH_AGE_IN_DAYS + " days, from the trash can.");
 		UserInfo adminUser = new UserInfo(true, BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
-		trashManager.purgeTrashAdmin(trashList, adminUser, null);
+		trashManager.purgeTrashAdmin(trashList, adminUser);
 	}
 
 }

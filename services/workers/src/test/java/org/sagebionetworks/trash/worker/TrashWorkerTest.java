@@ -49,6 +49,6 @@ public class TrashWorkerTest {
 		when(mockManager.getTrashLeavesBefore(TRASH_AGE_IN_DAYS, MAX_TRASH_ITEMS)).thenReturn(trashList);
 		worker.run(mockProgressCallback);
 		verify(mockManager, times(1)).getTrashLeavesBefore(TRASH_AGE_IN_DAYS, MAX_TRASH_ITEMS);
-		verify(mockManager, times(1)).purgeTrashAdmin(eq(trashList), any(UserInfo.class),(PurgeCallback) isNull());
+		verify(mockManager, times(1)).purgeTrashAdmin(eq(trashList), any(UserInfo.class));
 	}
 }
