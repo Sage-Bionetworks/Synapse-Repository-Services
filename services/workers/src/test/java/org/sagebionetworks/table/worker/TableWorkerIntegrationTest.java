@@ -113,7 +113,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-@Ignore // see PLFM-3994
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class TableWorkerIntegrationTest {
@@ -121,7 +120,7 @@ public class TableWorkerIntegrationTest {
 	/**
 	 * 
 	 */
-	public static final int MAX_WAIT_MS = 1000 * 60 * 10;
+	public static final int MAX_WAIT_MS = 1000 * 60;
 	
 	@Autowired
 	StackConfiguration config;

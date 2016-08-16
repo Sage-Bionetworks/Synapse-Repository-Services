@@ -1266,4 +1266,49 @@ public class TableIndexDAOImplTest {
 		assertNotNull(info);
 		assertTrue(info.isEmpty());
 	}
+	
+	@Test
+	public void testCreateTempTable(){
+		ColumnModel intColumn = new ColumnModel();
+		intColumn.setId("12");
+		intColumn.setName("foo");
+		intColumn.setColumnType(ColumnType.INTEGER);
+		
+		ColumnModel booleanColumn = new ColumnModel();
+		booleanColumn.setId("13");
+		booleanColumn.setName("bar");
+		booleanColumn.setColumnType(ColumnType.BOOLEAN);
+		
+		List<ColumnModel> schema = Lists.newArrayList(intColumn, booleanColumn);
+		
+		createOrUpdateTable(schema, tableId);
+		// create three rows.
+		List<Row> rows = TableModelTestUtils.createRows(schema, 5);
+		// add duplicate values
+		RowSet set = new RowSet();
+		set.setRows(rows);
+		set.setHeaders(TableModelUtils.getSelectColumns(schema));
+		set.setTableId(tableId);
+		
+		IdRange range = new IdRange();
+		range.setMinimumId(100L);
+		range.setMaximumId(200L);
+		range.setVersionNumber(3L);
+		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
+		
+		tableIndexDAO.createOrUpdateOrDeleteRows(set, schema);
+		
+		tableIndexDAO.deleteTemporaryTable(tableId);
+		// Create a copy of the table
+		tableIndexDAO.createTemporaryTable(tableId);
+		// populate table with data
+		tableIndexDAO.copyAllDataToTemporaryTable(tableId);
+		
+		long count = tableIndexDAO.getTempTableCount(tableId);
+		assertEquals(5L, count);
+		// delete the temp and get the count again
+		tableIndexDAO.deleteTemporaryTable(tableId);
+		count = tableIndexDAO.getTempTableCount(tableId);
+		assertEquals(0L, count);
+	}
 }
