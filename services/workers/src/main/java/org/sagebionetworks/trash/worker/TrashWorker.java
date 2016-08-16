@@ -13,7 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 public class TrashWorker implements ProgressingRunner<Void>{
 	private final Logger logger = LogManager.getLogger(TrashWorker.class);
-	public static final long MAX_TRASH_ITEMS = 250000;
+	public static final long MAX_TRASH_ITEMS = 10000;
 	public static final long TRASH_AGE_IN_DAYS = 30; //about 1 month
 	
 	@Autowired
@@ -26,7 +26,7 @@ public class TrashWorker implements ProgressingRunner<Void>{
 		logger.info("Purging " + trashList.size() + " entities, before " +
 					TRASH_AGE_IN_DAYS + " days, from the trash can.");
 		UserInfo adminUser = new UserInfo(true, BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
-		trashManager.purgeTrashAdmin(trashList,adminUser, null);
+		trashManager.purgeTrashAdmin(trashList, adminUser, null);
 	}
 
 }
