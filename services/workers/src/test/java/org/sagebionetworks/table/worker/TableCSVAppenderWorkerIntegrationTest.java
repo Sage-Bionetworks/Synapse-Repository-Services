@@ -62,7 +62,7 @@ import au.com.bytecode.opencsv.CSVWriter;
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class TableCSVAppenderWorkerIntegrationTest {
 
-	public static final int MAX_WAIT_MS = 1000 * 60 * 10;
+	public static final int MAX_WAIT_MS = 1000 * 60;
 	
 	@Autowired
 	AsynchJobStatusManager asynchJobStatusManager;
@@ -85,7 +85,7 @@ public class TableCSVAppenderWorkerIntegrationTest {
 	private UserInfo adminUserInfo;
 	RowReferenceSet referenceSet;
 	List<ColumnModel> schema;
-	List<Long> headers;
+	List<String> headers;
 	private String tableId;
 	private List<String> toDelete = Lists.newArrayList();
 	private List<File> tempFiles = Lists.newArrayList();
@@ -162,11 +162,11 @@ public class TableCSVAppenderWorkerIntegrationTest {
 		// Create the table
 		TableEntity table = new TableEntity();
 		table.setParentId(project.getId());
-		table.setColumnIds(Lists.transform(headers, TableModelUtils.LONG_TO_STRING));
+		table.setColumnIds(headers);
 		table.setName(UUID.randomUUID().toString());
 		tableId = entityManager.createEntity(adminUserInfo, table, null);
 		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableEntityManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
+		tableEntityManager.setTableSchema(adminUserInfo, headers, tableId);
 
 		// Create a CSV file to upload
 		File tempFile = File.createTempFile("TableCSVAppenderWorkerIntegrationTest", ".csv");
@@ -248,17 +248,17 @@ public class TableCSVAppenderWorkerIntegrationTest {
 		cm.setName("someinteger");
 		cm = columnManager.createColumnModel(adminUserInfo, cm);
 		schema.add(cm);
-		List<Long> ids = TableModelUtils.getIds(schema);
+		List<String> ids = TableModelUtils.getIds(schema);
 		headers = ids;
 
 		// Create the table
 		TableEntity table = new TableEntity();
 		table.setParentId(project.getId());
-		table.setColumnIds(Lists.transform(headers, TableModelUtils.LONG_TO_STRING));
+		table.setColumnIds(headers);
 		table.setName(UUID.randomUUID().toString());
 		tableId = entityManager.createEntity(adminUserInfo, table, null);
 		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableEntityManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
+		tableEntityManager.setTableSchema(adminUserInfo, headers, tableId);
 
 		// Create a CSV file to upload
 		File tempFile = File.createTempFile("TableCSVAppenderWorkerIntegrationTest", ".csv");

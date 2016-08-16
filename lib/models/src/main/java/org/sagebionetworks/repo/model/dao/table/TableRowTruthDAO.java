@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
+import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.IdRange;
 import org.sagebionetworks.repo.model.table.RawRowSet;
@@ -66,6 +67,26 @@ public interface TableRowTruthDAO {
 	 */
 	public RowReferenceSet appendRowSetToTable(String userId, String tableId, List<ColumnModel> columns, RawRowSet delta)
 			throws IOException;
+	
+	/**
+	 * Append a schema change to the table's changes.
+	 * 
+	 * @param userId
+	 * @param tableId
+	 * @param current
+	 * @param changes
+	 * @throws IOException 
+	 */
+	public long appendSchemaChangeToTable(String userId, String tableId, List<String> current, List<ColumnChange> changes) throws IOException;
+	
+	/**
+	 * Get the schema change for a given version.
+	 * @param tableId
+	 * @param versionNumber
+	 * @return
+	 * @throws IOException 
+	 */
+	public List<ColumnChange> getSchemaChangeForVersion(String tableId, long versionNumber) throws IOException;
 		
 	/**
 	 * Fetch a change set for a given table and

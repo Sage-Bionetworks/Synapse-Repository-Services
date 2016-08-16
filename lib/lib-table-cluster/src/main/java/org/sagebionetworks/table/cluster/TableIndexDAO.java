@@ -6,6 +6,7 @@ import java.util.Set;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
+import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -31,9 +32,10 @@ public interface TableIndexDAO {
 	 * 
 	 * @param tableId
 	 * @param changes
+	 * @param alterTemp When true the temporary table will be altered.  When false the original table will be altered.
 	 * @return True if the table was altered. False if the table was not changed.
 	 */
-	public boolean alterTableAsNeeded(String tableId, List<ColumnChange> changes);
+	public boolean alterTableAsNeeded(String tableId, List<ColumnChangeDetails> changes, boolean alterTemp);
 	
 	/**
 	 * 
@@ -241,4 +243,28 @@ public interface TableIndexDAO {
 	 *            The maximum number of indices allowed on a single table.
 	 */
 	public void optimizeTableIndices(List<DatabaseColumnInfo> list, String tableId, int maxNumberOfIndex);
+
+	/**
+	 * Create a temporary table like the given table.
+	 * @param tableId
+	 */
+	public void createTemporaryTable(String tableId);
+
+	/**
+	 * Copy all of the data from the original table to the temporary table.
+	 * @param tableId
+	 */
+	public void copyAllDataToTemporaryTable(String tableId);
+
+	/**
+	 * Delete the temporary table associated with the given table.
+	 */
+	public void deleteTemporaryTable(String tableId);
+
+	/**
+	 * Count the rows in the temp table.
+	 * @param tableId
+	 * @return
+	 */
+	public long getTempTableCount(String tableId);
 }

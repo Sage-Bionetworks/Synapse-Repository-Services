@@ -34,6 +34,7 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
+import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.repo.transactions.RequiresNewReadCommitted;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
@@ -450,4 +451,10 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 				tableSupportExecutorService, callable, AUTO_PROGRESS_FREQUENCY_MS);
 		return auto.call(callback);
 	}
+
+	@Override
+	public List<ColumnModel> getColumnModel(List<String> ids, boolean keepOrder) {
+		return columnModelDao.getColumnModel(ids, keepOrder);
+	}
+
 }

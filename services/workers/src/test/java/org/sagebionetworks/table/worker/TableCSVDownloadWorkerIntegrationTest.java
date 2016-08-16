@@ -49,7 +49,6 @@ import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SortDirection;
 import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.repo.model.table.TableEntity;
-import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
@@ -58,18 +57,18 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import au.com.bytecode.opencsv.CSVReader;
+
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.google.common.collect.Lists;
-
-import au.com.bytecode.opencsv.CSVReader;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class TableCSVDownloadWorkerIntegrationTest {
 
 	// This test can be slow when run from outside of Amazon.
-	public static final int MAX_WAIT_MS = 1000 * 60 * 10;
+	public static final int MAX_WAIT_MS = 1000 * 60;
 	
 	@Autowired
 	AsynchJobStatusManager asynchJobStatusManager;
@@ -285,14 +284,14 @@ public class TableCSVDownloadWorkerIntegrationTest {
 			cm = columnManager.createColumnModel(adminUserInfo, cm);
 			schema.add(cm);
 		}
-		List<Long> headers = TableModelUtils.getIds(schema);
+		List<String> headers = TableModelUtils.getIds(schema);
 		// Create the table.
 		TableEntity table = new TableEntity();
 		table.setName(UUID.randomUUID().toString());
-		table.setColumnIds(Lists.transform(headers, TableModelUtils.LONG_TO_STRING));
+		table.setColumnIds(headers);
 		tableId = entityManager.createEntity(adminUserInfo, table, null);
 		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableEntityManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
+		tableEntityManager.setTableSchema(adminUserInfo, headers, tableId);
 		// Create some CSV data
 		List<String[]> input = new ArrayList<String[]>(3);
 		input.add(new String[] { "a", "b", "c" });

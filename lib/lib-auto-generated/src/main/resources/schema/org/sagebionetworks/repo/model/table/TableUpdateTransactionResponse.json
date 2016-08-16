@@ -6,7 +6,7 @@
         }
     ],
 	"properties": {
-		"changes": {
+		"results": {
 		    "description":"List of responses. There will be one response for each request in the transaction.",
 			"type": "array",
 			"items": {

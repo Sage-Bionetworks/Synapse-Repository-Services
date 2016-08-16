@@ -20,7 +20,6 @@ import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.util.LocationHelper;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public class EntityManagerImplUnitTest {
@@ -31,7 +30,6 @@ public class EntityManagerImplUnitTest {
 	private EntityManagerImpl entityManager;
 	private NodeManager mockNodeManager;
 	private IdGenerator mocIdGenerator;
-	private LocationHelper mocKLocationHelper;
 	Long userId = 007L;
 	
 	@Before
@@ -41,7 +39,6 @@ public class EntityManagerImplUnitTest {
 		mockUserManager = Mockito.mock(UserManager.class);
 		mockNodeManager = Mockito.mock(NodeManager.class);
 		mocIdGenerator = Mockito.mock(IdGenerator.class);
-		mocKLocationHelper = Mockito.mock(LocationHelper.class);
 		mockUser = new UserInfo(false);
 		entityManager = new EntityManagerImpl(mockNodeManager, mockPermissionsManager, mockUserManager);
 	}
