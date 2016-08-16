@@ -3,9 +3,9 @@ package org.sagebionetworks.repo.manager.table;
 import java.util.List;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.RowSet;
-import org.sagebionetworks.table.cluster.ColumnChange;
 
 /**
  * The 'truth' of a Synapse table consists of metadata in the main repository
@@ -106,7 +106,7 @@ public interface TableIndexManager {
 	 * 
 	 * @param currentSchema
 	 */
-	public boolean updateTableSchema(ProgressCallback<Void> progressCallback, List<ColumnChange> changes);
+	public boolean updateTableSchema(ProgressCallback<Void> progressCallback, List<ColumnChangeDetails> changes);
 	
 	/**
 	 * Delete the index for this table.
@@ -142,6 +142,18 @@ public interface TableIndexManager {
 	 * @param callback
 	 */
 	public void deleteTemporaryTableCopy(ProgressCallback<Void> callback);
+
+	/**
+	 * Attempt to alter the schema of a temporary copy of a table.
+	 * This is used to valiate table schema changes.
+	 * 
+	 * @param progressCallback
+	 * @param tableId
+	 * @param changes
+	 * @return
+	 */
+	boolean alterTempTableSchmea(ProgressCallback<Void> progressCallback,
+			String tableId, List<ColumnChangeDetails> changes);
 	
 
 }

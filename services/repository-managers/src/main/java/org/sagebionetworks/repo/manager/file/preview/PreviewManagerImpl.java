@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -206,7 +207,7 @@ public class PreviewManagerImpl implements  PreviewManager {
 				in.abort();
 			}
 			// unconditionally close the streams if they exist
-			Closer.closeQuietly(out);
+			IOUtils.closeQuietly(out);
 			// unconditionally delete the temp files if they exist
 			if(tempUpload != null){
 				tempUpload.delete();
