@@ -16,6 +16,7 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Row;
@@ -616,14 +617,18 @@ public class SQLUtils {
 	 * @param changes
 	 * @return
 	 */
-	public static String createAlterTableSql(List<ColumnChange> changes, String tableId){
+	public static String createAlterTableSql(List<ColumnChangeDetails> changes, String tableId, boolean alterTemp){
 		StringBuilder builder = new StringBuilder();
 		builder.append("ALTER TABLE ");
-		builder.append(getTableNameForId(tableId, TableType.INDEX));
+		if(alterTemp){
+			builder.append(getTemporaryTableName(tableId));
+		}else{
+			builder.append(getTableNameForId(tableId, TableType.INDEX));
+		}
 		builder.append(" ");
 		boolean isFirst = true;
 		boolean hasChanges = false;
-		for(ColumnChange change: changes){
+		for(ColumnChangeDetails change: changes){
 			if(!isFirst){
 				builder.append(", ");
 			}
@@ -646,7 +651,7 @@ public class SQLUtils {
 	 * @param change
 	 */
 	public static boolean appendAlterTableSql(StringBuilder builder,
-			ColumnChange change) {
+			ColumnChangeDetails change) {
 		if(change.getOldColumn() == null && change.getNewColumn() == null){
 			// nothing to do
 			return false;
@@ -714,7 +719,7 @@ public class SQLUtils {
 	 * @param change
 	 */
 	public static void appendUpdateColumn(StringBuilder builder,
-			ColumnChange change) {
+			ColumnChangeDetails change) {
 		ValidateArgument.required(change, "change");
 		ValidateArgument.required(change.getOldColumn(), "change.getOldColumn()");
 		ValidateArgument.required(change.getNewColumn(), "change.getNewColumn()");
@@ -974,7 +979,7 @@ public class SQLUtils {
 	 * @param newSchema
 	 * @return
 	 */
-	public static List<ColumnChange> createReplaceSchemaChange(List<DatabaseColumnInfo> infoList, List<ColumnModel> newSchema){
+	public static List<ColumnChangeDetails> createReplaceSchemaChange(List<DatabaseColumnInfo> infoList, List<ColumnModel> newSchema){
 		List<ColumnModel> oldColumnIds = extractSchemaFromInfo(infoList);
 		return createReplaceSchemaChangeIds(oldColumnIds, newSchema);
 	}
@@ -989,23 +994,23 @@ public class SQLUtils {
 	 * @param newSchema
 	 * @return
 	 */
-	public static List<ColumnChange> createReplaceSchemaChangeIds(List<ColumnModel> currentColunm, List<ColumnModel> newSchema){
+	public static List<ColumnChangeDetails> createReplaceSchemaChangeIds(List<ColumnModel> currentColunm, List<ColumnModel> newSchema){
 		Set<String> oldSet = createColumnIdSet(currentColunm);
 		Set<String> newSet = createColumnIdSet(newSchema);
-		List<ColumnChange> changes = new LinkedList<ColumnChange>();
+		List<ColumnChangeDetails> changes = new LinkedList<ColumnChangeDetails>();
 		// remove any column in the current that is not in the new.
 		for(ColumnModel oldColumn: currentColunm){
 			if(!newSet.contains(oldColumn.getId())){
 				// Remove this column
 				ColumnModel newColumn = null;
-				changes.add(new ColumnChange(oldColumn, newColumn));
+				changes.add(new ColumnChangeDetails(oldColumn, newColumn));
 			}
 		}
 		// Add any column in the current that is not in the old.
 		for(ColumnModel newColumn: newSchema){
 			if(!oldSet.contains(newColumn.getId())){
 				ColumnModel oldColumn = null;
-				changes.add(new ColumnChange(oldColumn, newColumn));
+				changes.add(new ColumnChangeDetails(oldColumn, newColumn));
 			}
 		}
 		return changes;

@@ -168,13 +168,13 @@ public class MigrationManagerImplAutowireTest {
 				cm = columnManager.createColumnModel(adminUser, cm);
 				schema.add(cm);
 			}
-			List<Long> headers = TableModelUtils.getIds(schema);
+			List<String> headers = TableModelUtils.getIds(schema);
 			// Create the table.
 			TableEntity table = new TableEntity();
 			table.setName(UUID.randomUUID().toString());
-			table.setColumnIds(Lists.transform(headers, TableModelUtils.LONG_TO_STRING));
+			table.setColumnIds(headers);
 			tableId = entityManager.createEntity(adminUser, table, null);
-			tableEntityManager.setTableSchema(adminUser, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
+			tableEntityManager.setTableSchema(adminUser, headers, tableId);
 
 			// Now add some data
 			RowSet rowSet = new RowSet();

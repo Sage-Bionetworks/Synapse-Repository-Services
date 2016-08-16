@@ -452,4 +452,9 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		return auto.call(callback);
 	}
 
+	@Override
+	public List<ColumnModel> getColumnModel(List<String> ids, boolean keepOrder) {
+		return columnModelDao.getColumnModel(ids, keepOrder);
+	}
+
 }

@@ -24,6 +24,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.Stack;
 
+import org.apache.commons.io.IOUtils;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.client.SynapseAdminClient;
@@ -383,7 +384,7 @@ public class SynapseAdminClientMocker {
 			zipWriter = new OutputStreamWriter(out, "UTF-8");
 			xstream.toXML(backupList, zipWriter);
 		} finally {
-			Closer.closeQuietly(zipWriter, out);
+			IOUtils.closeQuietly(zipWriter);
 		}
 		return temp;
 	}
