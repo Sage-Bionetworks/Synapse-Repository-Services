@@ -106,6 +106,7 @@ import org.sagebionetworks.repo.web.controller.ExceptionHandlers;
 import org.sagebionetworks.repo.web.controller.ExceptionHandlers.ExceptionType;
 import org.sagebionetworks.repo.web.controller.ExceptionHandlers.TestEntry;
 import org.sagebionetworks.util.SerializationUtils;
+import org.springframework.http.HttpStatus;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -186,6 +187,7 @@ public class IT500SynapseJavaClient {
 	
 	@Before
 	public void before() throws SynapseException {
+		adminSynapse.clearAllLocks();
 		toDelete = new ArrayList<String>();
 		accessRequirementsToDelete = new ArrayList<Long>();
 		handlesToDelete = new ArrayList<String>();
@@ -1810,7 +1812,8 @@ public class IT500SynapseJavaClient {
 			nonWaitingAdminSynapse.waitForTesting(false);
 			fail("Should have been throttled");
 		} catch (SynapseServerException e) {
-			assertEquals(503, e.getStatusCode());
+			//TODO: Switch to 429 http code once clients have been implemented to expect that code
+			assertEquals(HttpStatus.SERVICE_UNAVAILABLE.value(), e.getStatusCode());
 		}
 		// waiting one should fail with retry exception
 		try {

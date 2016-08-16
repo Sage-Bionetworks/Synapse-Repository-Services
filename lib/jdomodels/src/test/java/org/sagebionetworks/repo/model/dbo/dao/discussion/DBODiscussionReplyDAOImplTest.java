@@ -1,10 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.dao.discussion;
 
+import static org.junit.Assert.*;
 import static org.sagebionetworks.repo.model.dbo.dao.discussion.DBODiscussionReplyDAOImpl.*;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 import static org.sagebionetworks.repo.model.dbo.dao.discussion.DBODiscussionReplyDAOImpl.MAX_LIMIT;
 
 import java.util.ArrayList;
@@ -33,8 +30,6 @@ import org.sagebionetworks.repo.model.dao.discussion.ForumDAO;
 import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
-import org.sagebionetworks.repo.model.discussion.DiscussionThreadAuthorStat;
-import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadReplyStat;
 import org.sagebionetworks.repo.model.discussion.Forum;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
@@ -336,6 +331,15 @@ public class DBODiscussionReplyDAOImplTest {
 	}
 
 	@Test
+	public void testGetThreadReplyStatsNoReplies() {
+		DiscussionThreadReplyStat stat = replyDao.getThreadReplyStat(threadIdLong);
+		assertNotNull(stat);
+		assertNull(stat.getThreadId());
+		assertEquals((Long)0L, stat.getNumberOfReplies());
+		assertNull(stat.getLastActivity());
+	}
+
+	@Test
 	public void testGetThreadReplyStats() throws InterruptedException {
 		// create another thread
 		Long threadIdLong2 = idGenerator.generateNewId(TYPE.DISCUSSION_THREAD_ID);
@@ -347,11 +351,10 @@ public class DBODiscussionReplyDAOImplTest {
 		createReplies(numberOfReplies, threadId);
 		createReplies(numberOfReplies, threadId2);
 
-		List<DiscussionThreadReplyStat> stats = replyDao.getThreadReplyStat(10L, 0L);
-		assertNotNull(stats);
-		assertEquals(stats.size(), 2);
-		DiscussionThreadReplyStat stat1 = stats.get(0);
-		DiscussionThreadReplyStat stat2 = stats.get(1);
+		DiscussionThreadReplyStat stat1 = replyDao.getThreadReplyStat(threadIdLong);
+		DiscussionThreadReplyStat stat2 = replyDao.getThreadReplyStat(threadIdLong2);
+		assertNotNull(stat1);
+		assertNotNull(stat2);
 		assertEquals(stat1.getThreadId(), threadIdLong);
 		assertEquals(stat2.getThreadId(), threadIdLong2);
 		assertEquals(stat1.getNumberOfReplies(), (Long) 2L);
@@ -367,20 +370,17 @@ public class DBODiscussionReplyDAOImplTest {
 		List<DiscussionReplyBundle> replies = createReplies(numberOfReplies, threadId);
 		replyDao.markReplyAsDeleted(Long.parseLong(replies.get(0).getId()));
 
-		List<DiscussionThreadReplyStat> stats = replyDao.getThreadReplyStat(10L, 0L);
-		assertNotNull(stats);
-		assertEquals(stats.size(), 1);
-		DiscussionThreadReplyStat stat = stats.get(0);
+		DiscussionThreadReplyStat stat = replyDao.getThreadReplyStat(threadIdLong);
+		assertNotNull(stat);
 		assertEquals(stat.getThreadId(), threadIdLong);
 		assertEquals(stat.getNumberOfReplies(), (Long) 1L);
 	}
 
 	@Test
 	public void testGetThreadAuthorStats() throws InterruptedException {
-		DiscussionThreadAuthorStat stat = replyDao.getDiscussionThreadAuthorStat(threadIdLong);
-		assertNotNull(stat);
-		assertEquals(stat.getThreadId(), threadIdLong);
-		assertTrue(stat.getActiveAuthors().isEmpty());
+		List<String> activeAuthors = replyDao.getActiveAuthors(threadIdLong);
+		assertNotNull(activeAuthors);
+		assertTrue(activeAuthors.isEmpty());
 
 		List<Long> users = createUsers(6);
 		replyDao.createReply(threadId, idGenerator.generateNewId(TYPE.DISCUSSION_REPLY_ID).toString(),
@@ -390,8 +390,8 @@ public class DBODiscussionReplyDAOImplTest {
 		replyDao.createReply(threadId, idGenerator.generateNewId(TYPE.DISCUSSION_REPLY_ID).toString(),
 				UUID.randomUUID().toString(), users.get(1));
 
-		stat = replyDao.getDiscussionThreadAuthorStat(threadIdLong);
-		assertEquals(stat.getActiveAuthors(),
+		activeAuthors = replyDao.getActiveAuthors(threadIdLong);
+		assertEquals(activeAuthors,
 				Arrays.asList(users.get(0).toString(), users.get(1).toString()));
 
 		replyDao.createReply(threadId, idGenerator.generateNewId(TYPE.DISCUSSION_REPLY_ID).toString(),
@@ -411,8 +411,8 @@ public class DBODiscussionReplyDAOImplTest {
 		replyDao.createReply(threadId, idGenerator.generateNewId(TYPE.DISCUSSION_REPLY_ID).toString(),
 				UUID.randomUUID().toString(), users.get(5));
 
-		stat = replyDao.getDiscussionThreadAuthorStat(threadIdLong);
-		assertEquals(new HashSet<String>(stat.getActiveAuthors()),
+		activeAuthors = replyDao.getActiveAuthors(threadIdLong);
+		assertEquals(new HashSet<String>(activeAuthors),
 				new HashSet<String>(Arrays.asList(users.get(0).toString(),
 						users.get(1).toString(), users.get(2).toString(),
 						users.get(3).toString(), users.get(4).toString())));
@@ -422,10 +422,9 @@ public class DBODiscussionReplyDAOImplTest {
 
 	@Test
 	public void testGetThreadAuthorStatsWithDeletedReply() throws InterruptedException {
-		DiscussionThreadAuthorStat stat = replyDao.getDiscussionThreadAuthorStat(threadIdLong);
-		assertNotNull(stat);
-		assertEquals(stat.getThreadId(), threadIdLong);
-		assertTrue(stat.getActiveAuthors().isEmpty());
+		List<String> activeAuthors = replyDao.getActiveAuthors(threadIdLong);
+		assertNotNull(activeAuthors);
+		assertTrue(activeAuthors.isEmpty());
 
 		List<Long> users = createUsers(6);
 		replyDao.createReply(threadId, idGenerator.generateNewId(TYPE.DISCUSSION_REPLY_ID).toString(),
@@ -454,8 +453,8 @@ public class DBODiscussionReplyDAOImplTest {
 				UUID.randomUUID().toString(), users.get(5));
 		replyDao.markReplyAsDeleted(Long.parseLong(reply.getId()));
 
-		stat = replyDao.getDiscussionThreadAuthorStat(threadIdLong);
-		assertEquals(new HashSet<String>(stat.getActiveAuthors()),
+		activeAuthors = replyDao.getActiveAuthors(threadIdLong);
+		assertEquals(new HashSet<String>(activeAuthors),
 				new HashSet<String>(Arrays.asList(users.get(0).toString(),
 						users.get(1).toString(), users.get(5).toString(),
 						users.get(3).toString(), users.get(4).toString())));

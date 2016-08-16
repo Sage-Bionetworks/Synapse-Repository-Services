@@ -1,13 +1,11 @@
 package org.sagebionetworks.repo.manager;
 
-import java.util.List;
-
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.docker.DockerAuthorizationToken;
 import org.sagebionetworks.repo.model.docker.DockerCommit;
-import org.sagebionetworks.repo.model.docker.DockerRegistryEventList;
 import org.sagebionetworks.repo.model.docker.DockerCommitSortBy;
+import org.sagebionetworks.repo.model.docker.DockerRegistryEventList;
 
 
 public interface DockerManager {

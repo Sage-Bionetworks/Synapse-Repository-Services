@@ -9,6 +9,7 @@ import org.sagebionetworks.repo.manager.message.BroadcastMessageManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
+import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.utils.HttpClientHelperException;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,6 +31,10 @@ public class BroadcastMessageWorker implements ChangeMessageDrivenRunner{
 	@Override
 	public void run(ProgressCallback<Void> progressCallback, ChangeMessage message)
 			throws RecoverableMessageException {
+		if (message.getChangeType() != ChangeType.CREATE) {
+			// only broadcast create events
+			return;
+		}
 		UserInfo admin = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		log.info("broadcasting "+message.getChangeType()+" "+message.getObjectType());
 		try {

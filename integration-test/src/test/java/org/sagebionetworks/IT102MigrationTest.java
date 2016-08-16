@@ -53,6 +53,7 @@ public class IT102MigrationTest {
 	
 	@Before
 	public void before() throws Exception {
+		adminSynapse.clearAllLocks();
 		toDelete = new ArrayList<Entity>();
 		project = new Project();
 		project.setName("projectIT102");
