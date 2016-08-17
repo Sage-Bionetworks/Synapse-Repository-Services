@@ -1,4 +1,4 @@
-package org.sagebionetworks.table.cluster;
+package org.sagebionetworks.repo.model.table;
 
 import org.sagebionetworks.repo.model.table.ColumnModel;
 
@@ -13,7 +13,7 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
  * </ul>
  *
  */
-public class ColumnChange {
+public class ColumnChangeDetails {
 
 	ColumnModel oldColumn;
 	ColumnModel newColumn;
@@ -30,7 +30,7 @@ public class ColumnChange {
 	 * @param oldColumn
 	 * @param newColumn
 	 */
-	public ColumnChange(ColumnModel oldColumn, ColumnModel newColumn) {
+	public ColumnChangeDetails(ColumnModel oldColumn, ColumnModel newColumn) {
 		super();
 		this.oldColumn = oldColumn;
 		this.newColumn = newColumn;
@@ -63,7 +63,7 @@ public class ColumnChange {
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		ColumnChange other = (ColumnChange) obj;
+		ColumnChangeDetails other = (ColumnChangeDetails) obj;
 		if (newColumn == null) {
 			if (other.newColumn != null)
 				return false;

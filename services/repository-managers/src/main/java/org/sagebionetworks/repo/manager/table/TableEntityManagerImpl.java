@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.exception.ReadOnlyException;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.model.table.ColumnChange;
+import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PartialRow;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
@@ -39,6 +40,7 @@ import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableSchemaChangeRequest;
+import org.sagebionetworks.repo.model.table.TableSchemaChangeResponse;
 import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
@@ -235,7 +237,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 						if (partialRow.getValues().containsKey(model.getId())) {
 							value = partialRow.getValues().get(model.getId());
 						} else {
-							value = currentRow.getCellById(Long.parseLong(model.getId()));
+							value = currentRow.getCellById(model.getId());
 						}
 						if (value == null) {
 							value = model.getDefaultValue();
@@ -301,7 +303,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		// serially by locking on the table's Id.
 		tableManagerSupport.lockOnTableId(tableId);
 		
-		List<Long> ids = Transform.toList(columns, TableModelUtils.COLUMN_MODEL_TO_ID);
+		List<String> ids = TableModelUtils.getIds(columns);
 		List<Row> batch = new LinkedList<Row>();
 		int batchSizeBytes = 0;
 		int count = 0;
@@ -588,7 +590,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	public boolean isTemporaryTableNeededToValidate(TableUpdateRequest change) {
 		if(change instanceof TableSchemaChangeRequest){
 			TableSchemaChangeRequest schemaChange = (TableSchemaChangeRequest) change;
-			return isTemporaryTableNeededToValidate(schemaChange.getChanges());
+			return containsColumnUpdate(schemaChange.getChanges());
 		}else{
 			throw new IllegalArgumentException("Unknown change type: "+change.getClass().getName());
 		}
@@ -599,7 +601,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	 * @param changes
 	 * @return
 	 */
-	public static boolean isTemporaryTableNeededToValidate(
+	public static boolean containsColumnUpdate(
 			List<ColumnChange> changes) {
 		if(changes == null){
 			return false;
@@ -623,16 +625,95 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	public void validateUpdateRequest(ProgressCallback<Void> callback,
 			UserInfo userInfo, TableUpdateRequest change,
 			TableIndexManager indexManager) {
-		// TODO Auto-generated method stub
+		ValidateArgument.required(callback, "callback");
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(change, "change");
+		if(change instanceof TableSchemaChangeRequest){
+			validateSchemaUpdateRequest(callback, userInfo, (TableSchemaChangeRequest)change, indexManager);
+		}else{
+			throw new IllegalArgumentException("Unknown request type: "+change.getClass().getName());
+		}
 		
+	}
+	
+	/**
+	 * Validation for a schema change request.
+	 * @param callback
+	 * @param userInfo
+	 * @param change
+	 * @param indexManager
+	 */
+	public void validateSchemaUpdateRequest(ProgressCallback<Void> callback,
+			UserInfo userInfo, TableSchemaChangeRequest changes,
+			TableIndexManager indexManager) {
+		// first determine what the new Schema will be
+		List<String> newSchemaIds = columModelManager.calculateNewSchemaIds(changes.getEntityId(), changes.getChanges());
+		// validate the new schema.
+		columModelManager.validateSchemaSize(newSchemaIds);
+		// If the change includes an update then the schema change must be checked against the temp table.
+		boolean includesUpdate = containsColumnUpdate(changes.getChanges());
+		if(includesUpdate){
+			if(indexManager == null){
+				throw new IllegalStateException("A temporary table is needed to validate but was not provided.");
+			}
+			List<ColumnChangeDetails> details = columModelManager.getColumnChangeDetails(changes.getChanges());
+			// attempt to apply the schema change to the temp copy of the table.
+			indexManager.alterTempTableSchmea(callback, changes.getEntityId(), details);
+		}
 	}
 
 
 	@Override
 	public TableUpdateResponse updateTable(ProgressCallback<Void> callback,
 			UserInfo userInfo, TableUpdateRequest change) {
-		// TODO Auto-generated method stub
-		return null;
+		ValidateArgument.required(callback, "callback");
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(change, "change");
+		if(change instanceof TableSchemaChangeRequest){
+			return updateTableSchema(callback, userInfo, (TableSchemaChangeRequest)change);
+		}else{
+			throw new IllegalArgumentException("Unknown request type: "+change.getClass().getName());
+		}
+	}
+	
+	/**
+	 * Apply a validated schema change request.
+	 * 
+	 * @param callback
+	 * @param userInfo
+	 * @param change
+	 * @return
+	 */
+	public TableSchemaChangeResponse updateTableSchema(ProgressCallback<Void> callback,
+			UserInfo userInfo, TableSchemaChangeRequest changes) {
+
+		// first determine what the new Schema will be
+		List<String> newSchemaIds = columModelManager.calculateNewSchemaIds(changes.getEntityId(), changes.getChanges());
+		columModelManager.bindColumnToObject(userInfo, newSchemaIds, changes.getEntityId());
+		boolean keepOrder = true;
+		List<ColumnModel> newSchema = columModelManager.getColumnModel(userInfo, newSchemaIds, keepOrder);
+		// If the change includes an update then a change needs to be pushed to the changes
+		if(containsColumnUpdate(changes.getChanges())){
+			List<String> newSchemaIdsLong = TableModelUtils.getIds(newSchema);
+			try {
+				this.tableRowTruthDao.appendSchemaChangeToTable(""+userInfo.getId(), changes.getEntityId(), newSchemaIdsLong, changes.getChanges());
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
+		}
+		// trigger an update.
+		tableManagerSupport.setTableToProcessingAndTriggerUpdate(changes.getEntityId());
+		TableSchemaChangeResponse response = new TableSchemaChangeResponse();
+		response.setSchema(newSchema);
+		return response;
+	}
+
+
+	@Override
+	public List<ColumnChangeDetails> getSchemaChangeForVersion(String tableId,
+			long versionNumber) throws IOException {
+		List<ColumnChange> changes = tableRowTruthDao.getSchemaChangeForVersion(tableId, versionNumber);
+		return columModelManager.getColumnChangeDetails(changes);
 	}
 
 }

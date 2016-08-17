@@ -17,6 +17,7 @@ import javax.sql.DataSource;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
+import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Row;
@@ -376,8 +377,8 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public boolean alterTableAsNeeded(String tableId, List<ColumnChange> changes) {
-		String sql = SQLUtils.createAlterTableSql(changes, tableId);
+	public boolean alterTableAsNeeded(String tableId, List<ColumnChangeDetails> changes, boolean alterTemp) {
+		String sql = SQLUtils.createAlterTableSql(changes, tableId, alterTemp);
 		if(sql == null){
 			// no change are needed.
 			return false;

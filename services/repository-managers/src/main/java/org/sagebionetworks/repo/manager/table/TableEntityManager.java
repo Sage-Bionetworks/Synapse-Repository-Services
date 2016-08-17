@@ -8,6 +8,8 @@ import java.util.Set;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.table.ColumnChange;
+import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.Row;
@@ -118,6 +120,16 @@ public interface TableEntityManager {
 	 */
 	public RowSet getRowSet(String tableId, Long rowVersion, List<ColumnModel> columns)
 			throws IOException, NotFoundException;
+	
+	/**
+	 * Get the schema change for a given version.
+	 * 
+	 * @param tableId
+	 * @param versionNumber
+	 * @return
+	 * @throws IOException
+	 */
+	public List<ColumnChangeDetails> getSchemaChangeForVersion(String tableId, long versionNumber) throws IOException;
 
 	/**
 	 * Get the last table row change
