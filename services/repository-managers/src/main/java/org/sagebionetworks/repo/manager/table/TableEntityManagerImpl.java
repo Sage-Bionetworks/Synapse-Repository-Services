@@ -716,4 +716,10 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		return columModelManager.getColumnChangeDetails(changes);
 	}
 
+
+	@Override
+	public List<String> getTableSchema(UserInfo user, String id) {
+		return columModelManager.getColumnIdForTable(id);
+	}
+
 }

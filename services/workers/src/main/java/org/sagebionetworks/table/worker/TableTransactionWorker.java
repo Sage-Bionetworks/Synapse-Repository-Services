@@ -1,7 +1,5 @@
 package org.sagebionetworks.table.worker;
 
-import java.util.Map;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
@@ -25,7 +23,6 @@ import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.sqs.model.Message;
-import com.sun.star.lang.IllegalArgumentException;
 
 /**
  * Umbrella worker for all table update transactions.
@@ -68,9 +65,6 @@ public class TableTransactionWorker implements MessageDrivenRunner {
 			EntityType tableType = tableManagerSupport.getTableEntityType(request.getEntityId());
 			// Lookup the manger for this type
 			TableTransactionManager transactionManager = tableTransactionManagerProvider.getTransactionManagerForType(tableType);
-			if(transactionManager == null){
-				throw new IllegalArgumentException("Cannot find a transaction manager for type: "+tableType.name());
-			}
 			// setup a callback to make progress
 			ProgressCallback<Void> statusCallback = new ProgressCallback<Void>(){
 				

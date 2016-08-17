@@ -1,6 +1,8 @@
 package org.sagebionetworks.table.worker;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -19,7 +21,6 @@ import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.asynch.AsynchJobState;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
@@ -121,7 +122,6 @@ public class TableTransactionWorkerIntegrationTest {
 		transaction.setEntityId(tableId);
 		transaction.setChanges(updates);
 	
-		
 		// wait for the change to complete
 		TableUpdateTransactionResponse response = startAndWaitForJob(adminUserInfo, transaction, TableUpdateTransactionResponse.class);
 		assertNotNull(response);
@@ -133,7 +133,6 @@ public class TableTransactionWorkerIntegrationTest {
 		assertNotNull(changeResponse.getSchema());
 		assertEquals(1, changeResponse.getSchema().size());
 		assertEquals(intColumn, changeResponse.getSchema().get(0));
-		
 	}
 	
 	/**

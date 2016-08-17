@@ -139,6 +139,9 @@ public class DBOColumnModelImplTest {
 
 	@Test
 	public void testBindColumns() throws DatastoreException, NotFoundException{
+		List<String> ids = columnModelDao.getColumnIdsForObject("syn123");
+		assertNotNull(ids);
+		assertTrue(ids.isEmpty());
 		// Now bind one column
 		List<String> toBind = new LinkedList<String>();
 		toBind.add(two.getId());
@@ -152,6 +155,10 @@ public class DBOColumnModelImplTest {
 		toBind.add(three.getId());
 		count = columnModelDao.bindColumnToObject(toBind, "syn123");
 		assertTrue(count > 0);
+		
+		ids = columnModelDao.getColumnIdsForObject("syn123");
+		List<String> expected = Lists.newArrayList(one.getId(), three.getId());
+		assertEquals(expected, ids);
 	}
 	
 	@Test

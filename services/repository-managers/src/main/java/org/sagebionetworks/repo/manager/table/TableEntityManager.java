@@ -236,4 +236,12 @@ public interface TableEntityManager {
 	public TableUpdateResponse updateTable(ProgressCallback<Void> callback,
 			UserInfo userInfo, TableUpdateRequest change);
 
+	/**
+	 * Get the schema for the table.
+	 * @param user
+	 * @param id
+	 * @return
+	 */
+	public List<String> getTableSchema(UserInfo user, String id);
+
 }
