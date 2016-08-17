@@ -35,6 +35,7 @@ import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseServerException;
 import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
+import org.sagebionetworks.client.exceptions.SynapseTooManyRequestsException;
 
 public class SharedClientConnectionTest {
 	
@@ -43,10 +44,14 @@ public class SharedClientConnectionTest {
 	private HttpResponse mockResponse;
 	private ArgumentCaptor<Map> requestHeaderCaptor;
 
-	private String 	endpoint="http://reposvcs.org";
+	private static final String endpoint="http://reposvcs.org";
 	private static final String uri = "/some/uri";
 	private static final String jsonString = "jsonString";
 	private static final String userAgent = "user/agent";
+	
+	private static final String genericExceptionMessage = "user message";
+	private static final String genericErrorMessageJson = "{\"reason\":\"" + genericExceptionMessage +"\"}";
+
 	
 	private static Header mockHeader(final String name, final String value) {
 		Header header = Mockito.mock(Header.class);
@@ -134,16 +139,18 @@ public class SharedClientConnectionTest {
 	@Test
 	public void testBadRequest() throws Exception {
 		sharedClientConnection.setRetryRequestIfServiceUnavailable(true);
-		configureMockHttpResponse(HttpStatus.SC_BAD_REQUEST, "{\"reason\":\"user message\"}");
+		configureMockHttpResponse(HttpStatus.SC_BAD_REQUEST, genericErrorMessageJson);
 		try {
 			sharedClientConnection.postJson(endpoint, uri,jsonString, userAgent, null);
 			fail("expected exception");
 		} catch (SynapseBadRequestException e) {
 			//verify does not retry with BAD_REQUEST
 			verify(mockClientProvider, times(1)).performRequest(anyString(), anyString(), anyString(), anyMap());
-			assertEquals("user message", e.getMessage());
+			assertEquals(genericExceptionMessage, e.getMessage());
 		}
 	}
+	
+	
 	
 
 	@Test
@@ -177,79 +184,90 @@ public class SharedClientConnectionTest {
 	
 	@Test
 	public void testUnauthorized() throws Exception {
-		configureMockHttpResponse(HttpStatus.SC_UNAUTHORIZED, "{\"reason\":\"user message\"}");
+		configureMockHttpResponse(HttpStatus.SC_UNAUTHORIZED, genericErrorMessageJson);
 		try {
 			sharedClientConnection.postJson(endpoint, uri,jsonString, userAgent, null);
 			fail("expected exception");
 		} catch (SynapseUnauthorizedException e) {
-			assertEquals("user message", e.getMessage());
+			assertEquals(genericExceptionMessage, e.getMessage());
 		}
 	}
 
 	@Test
 	public void testNotFoundRequest() throws Exception {
-		configureMockHttpResponse(HttpStatus.SC_NOT_FOUND, "{\"reason\":\"user message\"}");
+		configureMockHttpResponse(HttpStatus.SC_NOT_FOUND, genericErrorMessageJson);
 		try {
 			sharedClientConnection.postJson(endpoint, uri,jsonString, userAgent, null);
 			fail("expected exception");
 		} catch (SynapseNotFoundException e) {
-			assertEquals("user message", e.getMessage());
+			assertEquals(genericExceptionMessage, e.getMessage());
 		}
 	}
 
 	@Test
 	public void testForbiddenRequest() throws Exception {
-		configureMockHttpResponse(HttpStatus.SC_FORBIDDEN, "{\"reason\":\"user message\"}");
+		configureMockHttpResponse(HttpStatus.SC_FORBIDDEN, genericErrorMessageJson);
 		try {
 			sharedClientConnection.postJson(endpoint, uri,jsonString, userAgent, null);
 			fail("expected exception");
 		} catch (SynapseForbiddenException e) {
-			assertEquals("user message", e.getMessage());
+			assertEquals(genericExceptionMessage, e.getMessage());
 		}
 	}
 
 	@Test
 	public void testSynapseServerRequest() throws Exception {
-		configureMockHttpResponse(HttpStatus.SC_INTERNAL_SERVER_ERROR, "{\"reason\":\"user message\"}");
+		configureMockHttpResponse(HttpStatus.SC_INTERNAL_SERVER_ERROR, genericErrorMessageJson);
 		try {
 			sharedClientConnection.postJson(endpoint, uri,jsonString, userAgent, null);
 			fail("expected exception");
 		} catch (SynapseServerException e) {
-			assertEquals("user message", e.getMessage());
+			assertEquals(genericExceptionMessage, e.getMessage());
 		}
 	}
 
 	@Test
 	public void testDownloadZippedFileStringErrorHandling() throws Exception {
-		configureMockHttpResponse(HttpStatus.SC_UNAUTHORIZED, "{\"reason\":\"user message\"}");
+		configureMockHttpResponse(HttpStatus.SC_UNAUTHORIZED, genericErrorMessageJson);
 		try {
 			sharedClientConnection.downloadZippedFileString(uri, uri, userAgent);
 			fail("expected exception");
 		} catch (SynapseUnauthorizedException e) {
-			assertEquals("user message", e.getMessage());
+			assertEquals(genericExceptionMessage, e.getMessage());
 		}
 	}
 
 	@Test
 	public void testPostStringDirectErrorHandling() throws Exception {
-		configureMockHttpResponse(HttpStatus.SC_UNAUTHORIZED, "{\"reason\":\"user message\"}");
+		configureMockHttpResponse(HttpStatus.SC_UNAUTHORIZED, genericErrorMessageJson);
 		try {
-			sharedClientConnection.postStringDirect("http://host", uri, jsonString, userAgent);
+			sharedClientConnection.postStringDirect(endpoint, uri, jsonString, userAgent);
 			fail("expected exception");
 		} catch (SynapseUnauthorizedException e) {
-			assertEquals("user message", e.getMessage());
+			assertEquals(genericExceptionMessage, e.getMessage());
 		}
 	}
 
 
 	@Test
 	public void testGetDirectErrorHandling() throws Exception {
-		configureMockHttpResponse(HttpStatus.SC_UNAUTHORIZED, "{\"reason\":\"user message\"}");
+		configureMockHttpResponse(HttpStatus.SC_UNAUTHORIZED, genericErrorMessageJson);
 		try {
-			sharedClientConnection.getDirect("http://host", uri, userAgent);
+			sharedClientConnection.getDirect(endpoint, uri, userAgent);
 			fail("expected exception");
 		} catch (SynapseUnauthorizedException e) {
-			assertEquals("user message", e.getMessage());
+			assertEquals(genericExceptionMessage, e.getMessage());
+		}
+	}
+	
+	@Test
+	public void testTooManyRequests() throws Exception {
+		configureMockHttpResponse(SynapseTooManyRequestsException.TOO_MANY_REQUESTS_STATUS_CODE, genericErrorMessageJson);
+		try {
+			sharedClientConnection.getDirect(endpoint, uri, userAgent);
+			fail("expected exception");
+		} catch (SynapseTooManyRequestsException e) {
+			assertEquals(genericExceptionMessage, e.getMessage());
 		}
 	}
 	
