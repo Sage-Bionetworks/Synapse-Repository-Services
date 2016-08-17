@@ -13,20 +13,34 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 public class TrashWorker implements ProgressingRunner<Void>{
 	private final Logger logger = LogManager.getLogger(TrashWorker.class);
-	public static final long MAX_TRASH_ITEMS = 10000;
-	public static final long TRASH_AGE_IN_DAYS = 30; //about 1 month
+	public static final long TRASH_DELETE_LIMIT = 10000;
+	public static final long CUTOFF_TRASH_AGE_IN_DAYS = 30; //about 1 month
 	
 	@Autowired
 	private TrashManager trashManager;
 
 	@Override
 	public void run(ProgressCallback<Void> progressCallback) throws Exception {
+		long startTime = System.currentTimeMillis();
+		List<Long> trashList = null;
 		
-		List<Long> trashList = trashManager.getTrashLeavesBefore(TRASH_AGE_IN_DAYS, MAX_TRASH_ITEMS);
+		try{
+			trashList = trashManager.getTrashLeavesBefore(CUTOFF_TRASH_AGE_IN_DAYS, TRASH_DELETE_LIMIT);
+		}catch (Exception e){
+			logger.error("Unable to find trash entities to delete.");
+			logger.catching(e);
+			return;
+		}
+		
 		logger.info("Purging " + trashList.size() + " entities, older than " +
-					TRASH_AGE_IN_DAYS + " days, from the trash can.");
+					CUTOFF_TRASH_AGE_IN_DAYS + " days, from the trash can.");
 		UserInfo adminUser = new UserInfo(true, BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		
+		//Should work as long as the list exists
 		trashManager.purgeTrashAdmin(trashList, adminUser);
+
+		long timeTaken = System.currentTimeMillis() - startTime;
+		logger.info("Sucessfully purged" +  trashList.size() + " trash entities. Worker took " + timeTaken + " miliseconds.");
 	}
 
 }
