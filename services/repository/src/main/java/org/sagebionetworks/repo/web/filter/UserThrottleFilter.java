@@ -65,7 +65,8 @@ public class UserThrottleFilter implements Filter {
 
 		String userId = request.getParameter(AuthorizationConstants.USER_ID_PARAM);
 		long userIdLong = Long.parseLong(userId);
-		if (AuthorizationUtils.isUserAnonymous(userIdLong)) {
+		if (AuthorizationUtils.isUserAnonymous(userIdLong) || isMigrationAdmin(userIdLong) ) {
+			//do not throttle anonymous users nor the admin responsible for migration.
 			chain.doFilter(request, response);
 		} else {
 			String concurrentLockToken = null;
@@ -131,6 +132,11 @@ public class UserThrottleFilter implements Filter {
 		//TODO: Switch to 429 http code once clients have been implemented to expect that code
 		httpResponse.setStatus(HttpStatus.SERVICE_UNAVAILABLE.value());
 		httpResponse.getWriter().println(reason);
+	}
+	
+	//returns whether the userId is that of the admin used for migration
+	private boolean isMigrationAdmin(long userId){
+		return userId == AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 	}
 	
 	@Override
