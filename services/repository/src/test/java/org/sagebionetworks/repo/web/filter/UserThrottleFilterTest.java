@@ -7,6 +7,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.sagebionetworks.repo.web.filter.UserThrottleFilter.CONCURRENT_CONNECTIONS_LOCK_TIMEOUT_SEC;
 import static org.sagebionetworks.repo.web.filter.UserThrottleFilter.MAX_CONCURRENT_LOCKS;
 import static org.sagebionetworks.repo.web.filter.UserThrottleFilter.REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC;
@@ -75,9 +76,22 @@ public class UserThrottleFilterTest {
 		verify(filterChain).doFilter(request, response);
 		verifyNoMoreInteractions(filterChain, userThrottleGate, userFrequencyThrottleGate);
 	}
+	
+	@Test
+	public void testMigrationAdmin() throws Exception{
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString());
+		
+		filter.doFilter(request, response, filterChain);
+
+		verify(filterChain).doFilter(request, response);
+		
+		verifyZeroInteractions(userThrottleGate);
+		verifyZeroInteractions(userFrequencyThrottleGate);
+		verifyNoMoreInteractions(filterChain);
+	}
 
 	@Test
-	public void testNotAnonymous() throws Exception {
+	public void testRegularUser() throws Exception {
 		when(userThrottleGate.attemptToAcquireLock(userId, CONCURRENT_CONNECTIONS_LOCK_TIMEOUT_SEC, MAX_CONCURRENT_LOCKS)).thenReturn(concurrentSemaphoreToken);
 		when(userFrequencyThrottleGate.attemptToAcquireLock(userId, REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC, MAX_REQUEST_FREQUENCY_LOCKS)).thenReturn(true);
 
