@@ -218,6 +218,10 @@ import org.sagebionetworks.repo.model.table.RowReferenceSetResults;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
+import org.sagebionetworks.repo.model.table.TableUpdateRequest;
+import org.sagebionetworks.repo.model.table.TableUpdateResponse;
+import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
+import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewResult;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
@@ -375,6 +379,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	protected static final String TABLE_UPLOAD_CSV_PREVIEW = TABLE
 			+ "/upload/csv/preview";
 	protected static final String TABLE_APPEND = TABLE + "/append";
+	
+	protected static final String TABLE_TRANSACTION = TABLE+"/transaction";
 
 	protected static final String ASYNCHRONOUS_JOB = "/asynchronous/job";
 
@@ -5813,6 +5819,23 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		RowReferenceSetResults rrs = (RowReferenceSetResults) getAsyncResult(
 				AsynchJobType.TableAppendRowSet, token, tableId);
 		return rrs.getRowReferenceSet();
+	}
+	
+	@Override
+	public String startTableTransactionJob(List<TableUpdateRequest> changes,
+			String tableId) throws SynapseException {
+		TableUpdateTransactionRequest request = new TableUpdateTransactionRequest();
+		request.setEntityId(tableId);
+		request.setChanges(changes);
+		return startAsynchJob(AsynchJobType.TableTransaction, request);
+	}
+
+	@Override
+	public List<TableUpdateResponse> getTableTransactionJobResults(String token, String tableId)
+			throws SynapseException, SynapseResultNotReadyException {
+		TableUpdateTransactionResponse response = (TableUpdateTransactionResponse) getAsyncResult(
+				AsynchJobType.TableTransaction, token, tableId);
+		return response.getResults();
 	}
 
 	@Override

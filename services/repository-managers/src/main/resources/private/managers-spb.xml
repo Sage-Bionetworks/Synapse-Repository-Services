@@ -469,4 +469,20 @@
 	<bean id="challengeManager" class="org.sagebionetworks.repo.manager.ChallengeManagerImpl" scope="singleton"/>
     
 	<bean id="verificationManager" class="org.sagebionetworks.repo.manager.VerificationManagerImpl" scope="singleton"/>
+	
+	<bean id="tableEntityTransactionManager"
+		class="org.sagebionetworks.repo.manager.table.TableEntityTransactionManager"
+		scope="singleton"/>
+
+	<bean id="tableTransactionManagerProvider"
+		class="org.sagebionetworks.repo.manager.table.TableTransactionManagerProviderImpl"
+		scope="singleton">
+		<property name="managerMap">
+			<map>
+				<entry key="table">
+					<ref bean="tableEntityTransactionManager" />
+				</entry>
+			</map>
+		</property>
+	</bean>
 </beans>

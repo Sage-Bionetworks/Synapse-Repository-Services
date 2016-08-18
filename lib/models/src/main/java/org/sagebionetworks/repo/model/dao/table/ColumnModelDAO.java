@@ -140,4 +140,11 @@ public interface ColumnModelDAO {
 	 * 
 	 */
 	public boolean truncateAllColumnData();
+
+	/**
+	 * Get the column Ids for a given table.
+	 * @param id
+	 * @return
+	 */
+	public List<String> getColumnIdsForObject(String id);
 }

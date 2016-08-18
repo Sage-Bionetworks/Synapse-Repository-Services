@@ -165,6 +165,8 @@ import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
+import org.sagebionetworks.repo.model.table.TableUpdateRequest;
+import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewResult;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
@@ -2812,4 +2814,29 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException 
 	 */
 	EntityThreadCounts getEntityThreadCount(List<String> entityIds) throws SynapseException;
+	
+	/**
+	 * Start a table transaction job.  Either all of the passed requests will be applied
+	 * or none of the requests will be applied. 
+	 * 
+	 * @param changes
+	 * @param tableId
+	 * @return
+	 * @throws SynapseException
+	 */
+	String startTableTransactionJob(List<TableUpdateRequest> changes,
+			String tableId) throws SynapseException;
+
+	/**
+	 * Get the results of a started table transaction job.
+	 * There will be one response for each request.
+	 * @param token
+	 * @param tableId
+	 * @return
+	 * @throws SynapseException
+	 * @throws SynapseResultNotReadyException
+	 */
+	List<TableUpdateResponse> getTableTransactionJobResults(String token,
+			String tableId) throws SynapseException,
+			SynapseResultNotReadyException;
 }

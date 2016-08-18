@@ -1,7 +1,5 @@
 package org.sagebionetworks.table.worker;
 
-import java.util.Map;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
@@ -11,6 +9,7 @@ import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobUtils;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableTransactionManager;
+import org.sagebionetworks.repo.manager.table.TableTransactionManagerProvider;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
@@ -24,7 +23,6 @@ import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.sqs.model.Message;
-import com.sun.star.lang.IllegalArgumentException;
 
 /**
  * Umbrella worker for all table update transactions.
@@ -49,15 +47,8 @@ public class TableTransactionWorker implements MessageDrivenRunner {
 	@Autowired
 	UserManager userManager;
 	
-	Map<EntityType, TableTransactionManager> managerMap;
-	
-	/**
-	 * Injected.
-	 * @param managerMap
-	 */
-	public void setManagerMap(Map<EntityType, TableTransactionManager> managerMap) {
-		this.managerMap = managerMap;
-	}
+	@Autowired
+	TableTransactionManagerProvider tableTransactionManagerProvider;
 
 
 	@Override
@@ -73,10 +64,7 @@ public class TableTransactionWorker implements MessageDrivenRunner {
 			// Lookup the type of the table
 			EntityType tableType = tableManagerSupport.getTableEntityType(request.getEntityId());
 			// Lookup the manger for this type
-			TableTransactionManager transactionManager = managerMap.get(tableType);
-			if(transactionManager == null){
-				throw new IllegalArgumentException("Cannot find a transaction manager for type: "+tableType.name());
-			}
+			TableTransactionManager transactionManager = tableTransactionManagerProvider.getTransactionManagerForType(tableType);
 			// setup a callback to make progress
 			ProgressCallback<Void> statusCallback = new ProgressCallback<Void>(){
 				
