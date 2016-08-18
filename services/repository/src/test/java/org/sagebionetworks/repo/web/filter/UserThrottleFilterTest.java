@@ -7,6 +7,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.sagebionetworks.repo.web.filter.UserThrottleFilter.CONCURRENT_CONNECTIONS_LOCK_TIMEOUT_SEC;
 import static org.sagebionetworks.repo.web.filter.UserThrottleFilter.MAX_CONCURRENT_LOCKS;
 import static org.sagebionetworks.repo.web.filter.UserThrottleFilter.REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC;
@@ -83,7 +84,10 @@ public class UserThrottleFilterTest {
 		filter.doFilter(request, response, filterChain);
 
 		verify(filterChain).doFilter(request, response);
-		verifyNoMoreInteractions(filterChain, userThrottleGate, userFrequencyThrottleGate);
+		
+		verifyZeroInteractions(userThrottleGate);
+		verifyZeroInteractions(userFrequencyThrottleGate);
+		verifyNoMoreInteractions(filterChain);
 	}
 
 	@Test
