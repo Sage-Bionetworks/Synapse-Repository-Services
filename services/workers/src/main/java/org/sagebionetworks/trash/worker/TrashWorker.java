@@ -20,27 +20,24 @@ public class TrashWorker implements ProgressingRunner<Void>{
 	private TrashManager trashManager;
 
 	@Override
-	public void run(ProgressCallback<Void> progressCallback) throws Exception {
+	public void run(ProgressCallback<Void> progressCallback) {
 		long startTime = System.currentTimeMillis();
-		List<Long> trashList = null;
 		
 		try{
-			trashList = trashManager.getTrashLeavesBefore(CUTOFF_TRASH_AGE_IN_DAYS, TRASH_DELETE_LIMIT);
+			List<Long> trashList = trashManager.getTrashLeavesBefore(CUTOFF_TRASH_AGE_IN_DAYS, TRASH_DELETE_LIMIT);
+			logger.info("Purging " + trashList.size() + " entities, older than " +
+					CUTOFF_TRASH_AGE_IN_DAYS + " days, from the trash can.");
+			UserInfo adminUser = new UserInfo(true, BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+			
+			//Should work as long as the list exists
+			trashManager.purgeTrashAdmin(trashList, adminUser);
+	
+			logger.info("Sucessfully purged " +  trashList.size() + " trash entities. Worker took " + (System.currentTimeMillis() - startTime) + " miliseconds.");
 		}catch (Exception e){
-			logger.error("Unable to find trash entities to delete.");
+			logger.error("Unable to purge the trash entities. Worker took "+ (System.currentTimeMillis() - startTime) +" miliseconds. ");
 			logger.catching(e);
-			return;
 		}
 		
-		logger.info("Purging " + trashList.size() + " entities, older than " +
-					CUTOFF_TRASH_AGE_IN_DAYS + " days, from the trash can.");
-		UserInfo adminUser = new UserInfo(true, BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
-		
-		//Should work as long as the list exists
-		trashManager.purgeTrashAdmin(trashList, adminUser);
-
-		long timeTaken = System.currentTimeMillis() - startTime;
-		logger.info("Sucessfully purged" +  trashList.size() + " trash entities. Worker took " + timeTaken + " miliseconds.");
 	}
 
 }

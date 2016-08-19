@@ -47,6 +47,8 @@ public class TrashWorkerTest {
 	@Test
 	public void testTrashListThrowError(){
 		when(mockManager.getTrashLeavesBefore(CUTOFF_TRASH_AGE_IN_DAYS, TRASH_DELETE_LIMIT)).thenThrow(DatastoreException.class);
+		worker.run(mockProgressCallback);
+		verify(mockManager).getTrashLeavesBefore(CUTOFF_TRASH_AGE_IN_DAYS, TRASH_DELETE_LIMIT);
 		verifyNoMoreInteractions(mockManager);
 	}
 	
