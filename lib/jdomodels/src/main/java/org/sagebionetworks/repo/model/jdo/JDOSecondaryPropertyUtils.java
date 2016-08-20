@@ -22,6 +22,7 @@ import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 import org.apache.commons.io.IOUtils;
+import org.sagebionetworks.repo.model.AnnotationDTO;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Reference;
@@ -401,5 +402,19 @@ public class JDOSecondaryPropertyUtils {
 	public static NamedAnnotations createFromJDO(DBORevision rev) throws IOException{
 		if(rev == null) throw new IllegalArgumentException("JDOAnnotations cannot be null");
 		return decompressedAnnotations(rev.getAnnotations());
+	}
+
+	/**
+	 * Translate from NamedAnnotations to a list of AnnotationDTO.
+	 * @param annos
+	 * @return
+	 */
+	public static List<AnnotationDTO> translate(NamedAnnotations annos) {
+		if(annos != null){
+			if(annos.getAdditionalAnnotations() != null){
+				annos.getAdditionalAnnotations().getStringAnnotations();
+			}
+		}
+		return null;
 	}
 }

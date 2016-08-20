@@ -515,4 +515,12 @@ public interface NodeDAO {
 	 * @return
 	 */
 	public Set<Long> getFileHandleIdsAssociatedWithFileEntity(List<Long> fileHandleIds, long entityId);
+	
+	/**
+	 * Get the list of all entity DTO objects for the given list of entity ids.
+	 * 
+	 * @param ids
+	 * @return
+	 */
+	public List<EntityDTO> getEntityDTOs(List<String> ids);
 }

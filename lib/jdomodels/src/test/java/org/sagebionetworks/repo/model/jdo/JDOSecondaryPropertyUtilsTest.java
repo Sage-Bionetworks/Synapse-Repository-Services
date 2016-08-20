@@ -19,6 +19,7 @@ import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.sagebionetworks.repo.model.AnnotationDTO;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Reference;
@@ -398,6 +399,18 @@ public class JDOSecondaryPropertyUtilsTest {
 					+ randomSeed + ", count=" + count + "]";
 		}
 		
+	}
+	
+	@Test
+	public void testTranslate(){
+		NamedAnnotations annos = new NamedAnnotations();
+		annos.getAdditionalAnnotations().addAnnotation("aString", "someString");
+		annos.getAdditionalAnnotations().addAnnotation("aLong", 123L);
+		annos.getAdditionalAnnotations().addAnnotation("aDouble", 1.22);
+		annos.getAdditionalAnnotations().addAnnotation("aDate", new Date(123L));
+		List<AnnotationDTO> results = JDOSecondaryPropertyUtils.translate(annos);
+		assertNotNull(results);
+		assertEquals(4, results.size());
 	}
 
 }
