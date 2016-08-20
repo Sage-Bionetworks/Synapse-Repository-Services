@@ -73,7 +73,6 @@ public class UserConcurrentConnectionThrottleFilter implements Filter {
 				throw new ServletException(e.getMessage(), e);
 			}finally {
 				//clean up by releasing concurrent lock regardless if frequency lock was acquired
-				//do not release frequency lock(if acquired), allow it to timeout to enforce frequency limit.
 				if(concurrentLockToken != null){
 					try {
 						userThrottleMemoryCountingSemaphore.releaseLock(userId, concurrentLockToken);
