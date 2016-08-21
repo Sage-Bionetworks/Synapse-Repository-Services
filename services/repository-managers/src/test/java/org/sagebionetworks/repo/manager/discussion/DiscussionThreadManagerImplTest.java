@@ -284,6 +284,7 @@ public class DiscussionThreadManagerImplTest {
 		when(mockThreadDao.updateTitle(Mockito.anyLong(), Mockito.anyString())).thenReturn(dto);
 
 		assertEquals(dto, threadManager.updateTitle(userInfo, threadId.toString(), newTitle));
+		verify(mockThreadDao).insertEntityReference(any(List.class));
 	}
 
 	@Test (expected = IllegalArgumentException.class)
