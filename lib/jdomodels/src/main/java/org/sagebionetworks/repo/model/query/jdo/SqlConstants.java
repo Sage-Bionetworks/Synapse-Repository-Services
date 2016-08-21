@@ -450,6 +450,7 @@ public class SqlConstants {
 	public static final String COL_TABLE_ROW_BUCKET			= "S3_BUCKET";
 	public static final String COL_TABLE_ROW_KEY			= "S3_KEY";
 	public static final String COL_TABLE_ROW_COUNT			= "ROW_COUNT";
+	public static final String COL_TABLE_ROW_TYPE			= "CHANGE_TYPE";
 	public static final String DDL_TABLE_ROW_CHANGE = "schema/TableRowChange-ddl.sql";
 	
 	// Tracks view scope.

@@ -17,6 +17,7 @@ import javax.sql.DataSource;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
+import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Row;
@@ -24,6 +25,8 @@ import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
 import org.sagebionetworks.util.ValidateArgument;
+import org.springframework.dao.DataAccessException;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -374,8 +377,8 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public boolean alterTableAsNeeded(String tableId, List<ColumnChange> changes) {
-		String sql = SQLUtils.createAlterTableSql(changes, tableId);
+	public boolean alterTableAsNeeded(String tableId, List<ColumnChangeDetails> changes, boolean alterTemp) {
+		String sql = SQLUtils.createAlterTableSql(changes, tableId, alterTemp);
 		if(sql == null){
 			// no change are needed.
 			return false;
@@ -474,6 +477,34 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			return;
 		}
 		template.update(alterSql);
+	}
+
+	@Override
+	public void createTemporaryTable(String tableId) {
+		String sql = SQLUtils.createTempTableSql(tableId);
+		template.update(sql);
+	}
+
+	@Override
+	public void copyAllDataToTemporaryTable(String tableId) {
+		String sql = SQLUtils.copyTableToTempSql(tableId);
+		template.update(sql);
+	}
+
+	@Override
+	public void deleteTemporaryTable(String tableId) {
+		String sql = SQLUtils.deleteTempTableSql(tableId);
+		template.update(sql);
+	}
+
+	@Override
+	public long getTempTableCount(String tableId) {
+		String sql = SQLUtils.countTempRowsSql(tableId);
+		try {
+			return template.queryForObject(sql, Long.class);
+		} catch (DataAccessException e) {
+			return 0l;
+		}
 	}
 
 }

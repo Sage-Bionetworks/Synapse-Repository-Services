@@ -83,6 +83,7 @@ import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
+import org.sagebionetworks.repo.model.discussion.EntityThreadCounts;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.Forum;
 import org.sagebionetworks.repo.model.discussion.ReplyCount;
@@ -91,6 +92,7 @@ import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
 import org.sagebionetworks.repo.model.docker.DockerCommit;
+import org.sagebionetworks.repo.model.docker.DockerCommitSortBy;
 import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.entity.query.EntityQuery;
 import org.sagebionetworks.repo.model.entity.query.EntityQueryResults;
@@ -163,6 +165,8 @@ import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
+import org.sagebionetworks.repo.model.table.TableUpdateRequest;
+import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewResult;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
@@ -2787,4 +2791,52 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	PaginatedResults<DockerCommit> listDockerCommits(String entityId, Long limit, Long offset, DockerCommitSortBy sortBy, Boolean ascending) throws SynapseException;
+
+	/**
+	 * Get threads that reference the given entity
+	 * 
+	 * @param entityId
+	 * @param limit
+	 * @param offset
+	 * @param order
+	 * @param ascending
+	 * @param filter
+	 * @return a paginated list of threads that the user can view
+	 * @throws SynapseException
+	 */
+	PaginatedResults<DiscussionThreadBundle> getThreadsForEntity(String entityId, Long limit, Long offset, DiscussionThreadOrder order, Boolean ascending, DiscussionFilter filter) throws SynapseException;
+
+	/**
+	 * Provides the number of threads that reference each entity in the given id list
+	 * 
+	 * @param entityIds
+	 * @return the number of threads the user can view
+	 * @throws SynapseException 
+	 */
+	EntityThreadCounts getEntityThreadCount(List<String> entityIds) throws SynapseException;
+	
+	/**
+	 * Start a table transaction job.  Either all of the passed requests will be applied
+	 * or none of the requests will be applied. 
+	 * 
+	 * @param changes
+	 * @param tableId
+	 * @return
+	 * @throws SynapseException
+	 */
+	String startTableTransactionJob(List<TableUpdateRequest> changes,
+			String tableId) throws SynapseException;
+
+	/**
+	 * Get the results of a started table transaction job.
+	 * There will be one response for each request.
+	 * @param token
+	 * @param tableId
+	 * @return
+	 * @throws SynapseException
+	 * @throws SynapseResultNotReadyException
+	 */
+	List<TableUpdateResponse> getTableTransactionJobResults(String token,
+			String tableId) throws SynapseException,
+			SynapseResultNotReadyException;
 }

@@ -8,6 +8,8 @@ import java.util.Set;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.table.ColumnChange;
+import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.Row;
@@ -16,6 +18,8 @@ import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableRowChange;
+import org.sagebionetworks.repo.model.table.TableUpdateRequest;
+import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 
@@ -116,6 +120,16 @@ public interface TableEntityManager {
 	 */
 	public RowSet getRowSet(String tableId, Long rowVersion, List<ColumnModel> columns)
 			throws IOException, NotFoundException;
+	
+	/**
+	 * Get the schema change for a given version.
+	 * 
+	 * @param tableId
+	 * @param versionNumber
+	 * @return
+	 * @throws IOException
+	 */
+	public List<ColumnChangeDetails> getSchemaChangeForVersion(String tableId, long versionNumber) throws IOException;
 
 	/**
 	 * Get the last table row change
@@ -192,5 +206,42 @@ public interface TableEntityManager {
 	 * @param deletedId
 	 */
 	public void deleteTable(String deletedId);
+
+	/**
+	 * Is a temporary table needed to validate the given table update request.
+	 * @param change
+	 * @return
+	 */
+	public boolean isTemporaryTableNeededToValidate(TableUpdateRequest change);
+
+	/**
+	 * Validate a single update request.
+	 * @param callback
+	 * @param userInfo
+	 * @param change
+	 * @param indexManager The index manager is only provided if a temporary table was created 
+	 * for the purpose of validation.
+	 */
+	public void validateUpdateRequest(ProgressCallback<Void> callback,
+			UserInfo userInfo, TableUpdateRequest change,
+			TableIndexManager indexManager);
+
+	/**
+	 * Update the table with the given request.
+	 * @param callback
+	 * @param userInfo
+	 * @param change
+	 * @return
+	 */
+	public TableUpdateResponse updateTable(ProgressCallback<Void> callback,
+			UserInfo userInfo, TableUpdateRequest change);
+
+	/**
+	 * Get the schema for the table.
+	 * @param user
+	 * @param id
+	 * @return
+	 */
+	public List<String> getTableSchema(UserInfo user, String id);
 
 }

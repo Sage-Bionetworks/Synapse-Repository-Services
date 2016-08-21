@@ -7,19 +7,19 @@ import java.util.List;
  * 
  */
 public class RawRowSet {
-	private final List<Long> ids;
+	private final List<String> ids;
 	private final String etag;
 	private final String tableId;
 	private final List<Row> rows;
 
-	public RawRowSet(List<Long> ids, String etag, String tableId, List<Row> rows) {
+	public RawRowSet(List<String> ids, String etag, String tableId, List<Row> rows) {
 		this.ids = ids;
 		this.etag = etag;
 		this.tableId = tableId;
 		this.rows = rows;
 	}
 
-	public List<Long> getIds() {
+	public List<String> getIds() {
 		return ids;
 	}
 

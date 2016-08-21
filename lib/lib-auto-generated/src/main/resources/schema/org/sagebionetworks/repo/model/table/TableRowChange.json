@@ -17,7 +17,7 @@
 		    "description":"The list of ColumnModels ID that describes the rows of this change.",
 			"type": "array",
 			"items": {
-				"type": "integer"
+				"type": "string"
 			}
 		},
 		"createdOn": {
@@ -40,6 +40,15 @@
 		"rowCount": {
 			"type": "integer",
 			"description": "The number of rows in this change."
+		},
+		"changeType": {
+			"type": "string",
+			"name": "TableChangeType",
+			"id": "org.sagebionetworks.repo.model.table.TableChangeType",
+			"enum": [
+				"ROW",
+				"COLUMN"
+			]
 		}
     }
 }

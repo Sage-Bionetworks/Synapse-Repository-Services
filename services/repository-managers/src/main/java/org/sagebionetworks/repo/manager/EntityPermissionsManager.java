@@ -88,7 +88,7 @@ public interface EntityPermissionsManager {
 	public AccessControlList applyInheritanceToChildren(String rId, UserInfo userInfo) throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException;
 
 	/**
-	 * Use case:  Need to find out if a user can download a resource.
+	 * Use case:  Need to find out if a user can access a resource.
 	 * 
 	 * @param resourceId the ID of the resource of interest
 	 * @param user

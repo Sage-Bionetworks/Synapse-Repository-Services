@@ -7,10 +7,7 @@ import static org.mockito.Matchers.anyList;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anySet;
 import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -26,12 +23,12 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
+import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
-import org.sagebionetworks.table.cluster.ColumnChange;
 import org.sagebionetworks.table.cluster.DatabaseColumnInfo;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
@@ -100,11 +97,11 @@ public class TableIndexManagerImplTest {
 			}}).when(mockIndexDao).executeInWriteTransaction(any(TransactionCallback.class));
 		
 		// setup callable.
-		when(mockManagerSupport.callWithAutoProgress(any(ProgressCallback.class), any(Callable.class))).then(new Answer<Boolean>() {
+		when(mockManagerSupport.callWithAutoProgress(any(ProgressCallback.class), any(Callable.class))).then(new Answer<Object>() {
 
 			@Override
-			public Boolean answer(InvocationOnMock invocation) throws Throwable {
-				Callable<Boolean> callable = (Callable<Boolean>) invocation.getArguments()[1];
+			public Object answer(InvocationOnMock invocation) throws Throwable {
+				Callable<Object> callable = (Callable<Object>) invocation.getArguments()[1];
 				return callable.call();
 			}
 		});
@@ -191,7 +188,7 @@ public class TableIndexManagerImplTest {
 		info.setColumnType(ColumnType.BOOLEAN);
 		
 		when(mockIndexDao.getDatabaseInfo(tableId)).thenReturn(Lists.newArrayList(info));
-		when(mockIndexDao.alterTableAsNeeded(anyString(), anyList())).thenReturn(true);
+		when(mockIndexDao.alterTableAsNeeded(anyString(), anyList(), anyBoolean())).thenReturn(true);
 		// call under test
 		manager.setIndexSchema(mockCallback, schema);
 		String schemaMD5Hex = TableModelUtils. createSchemaMD5HexCM(Lists.newArrayList(schema));
@@ -201,7 +198,7 @@ public class TableIndexManagerImplTest {
 	@Test
 	public void testSetIndexSchemaWithNoColumns(){
 		when(mockIndexDao.getDatabaseInfo(tableId)).thenReturn(new LinkedList<DatabaseColumnInfo>());
-		when(mockIndexDao.alterTableAsNeeded(anyString(), anyList())).thenReturn(true);
+		when(mockIndexDao.alterTableAsNeeded(anyString(), anyList(), anyBoolean())).thenReturn(true);
 		// call under test
 		manager.setIndexSchema(mockCallback, new LinkedList<ColumnModel>());
 		String schemaMD5Hex = TableModelUtils. createSchemaMD5HexCM(Lists.newArrayList(new LinkedList<ColumnModel>()));
@@ -266,8 +263,9 @@ public class TableIndexManagerImplTest {
 		ColumnModel oldColumn = null;
 		ColumnModel newColumn = new ColumnModel();
 		newColumn.setId("12");
-		List<ColumnChange> changes = Lists.newArrayList(new ColumnChange(oldColumn, newColumn));
-		when(mockIndexDao.alterTableAsNeeded(tableId, changes)).thenReturn(true);
+		List<ColumnChangeDetails> changes = Lists.newArrayList(new ColumnChangeDetails(oldColumn, newColumn));
+		boolean alterTemp = false;
+		when(mockIndexDao.alterTableAsNeeded(tableId, changes, alterTemp)).thenReturn(true);
 		DatabaseColumnInfo info = new DatabaseColumnInfo();
 		info.setColumnName("_C12_");
 		info.setColumnType(ColumnType.BOOLEAN);
@@ -279,7 +277,7 @@ public class TableIndexManagerImplTest {
 		verify(mockIndexDao).createSecondaryTables(tableId);
 		// The new schema is not empty so do not truncate.
 		verify(mockIndexDao, never()).truncateTable(tableId);
-		verify(mockIndexDao).alterTableAsNeeded(tableId, changes);
+		verify(mockIndexDao).alterTableAsNeeded(tableId, changes, alterTemp);
 		
 		String schemaMD5Hex = TableModelUtils. createSchemaMD5HexCM(Lists.newArrayList(newColumn));
 		verify(mockIndexDao).setCurrentSchemaMD5Hex(tableId, schemaMD5Hex);
@@ -290,9 +288,10 @@ public class TableIndexManagerImplTest {
 		ColumnModel oldColumn = new ColumnModel();
 		oldColumn.setId("12");
 		ColumnModel newColumn = null;
+		boolean alterTemp = false;
 
-		List<ColumnChange> changes = Lists.newArrayList(new ColumnChange(oldColumn, newColumn));
-		when(mockIndexDao.alterTableAsNeeded(tableId, changes)).thenReturn(true);
+		List<ColumnChangeDetails> changes = Lists.newArrayList(new ColumnChangeDetails(oldColumn, newColumn));
+		when(mockIndexDao.alterTableAsNeeded(tableId, changes, alterTemp)).thenReturn(true);
 		when(mockIndexDao.getDatabaseInfo(tableId)).thenReturn(new LinkedList<DatabaseColumnInfo>());
 		// call under test
 		manager.updateTableSchema(mockCallback, changes);
@@ -301,7 +300,7 @@ public class TableIndexManagerImplTest {
 		verify(mockIndexDao).getDatabaseInfo(tableId);
 		// The new schema is empty so the table is truncated.
 		verify(mockIndexDao).truncateTable(tableId);
-		verify(mockIndexDao).alterTableAsNeeded(tableId, changes);
+		verify(mockIndexDao).alterTableAsNeeded(tableId, changes, alterTemp);
 		
 		String schemaMD5Hex = TableModelUtils. createSchemaMD5HexCM(new LinkedList<ColumnModel>());
 		verify(mockIndexDao).setCurrentSchemaMD5Hex(tableId, schemaMD5Hex);
@@ -309,17 +308,39 @@ public class TableIndexManagerImplTest {
 	
 	@Test
 	public void testUpdateTableSchemaNoChange(){
-		List<ColumnChange> changes = new LinkedList<ColumnChange>();
-		when(mockIndexDao.alterTableAsNeeded(tableId, changes)).thenReturn(false);
+		List<ColumnChangeDetails> changes = new LinkedList<ColumnChangeDetails>();
+		boolean alterTemp = false;
+		when(mockIndexDao.alterTableAsNeeded(tableId, changes, alterTemp)).thenReturn(false);
 		when(mockIndexDao.getDatabaseInfo(tableId)).thenReturn(new LinkedList<DatabaseColumnInfo>());
 		// call under test
 		manager.updateTableSchema(mockCallback, changes);
 		verify(mockIndexDao).createTableIfDoesNotExist(tableId);
 		verify(mockIndexDao).createSecondaryTables(tableId);
-		verify(mockIndexDao).alterTableAsNeeded(tableId, changes);
+		verify(mockIndexDao).alterTableAsNeeded(tableId, changes, alterTemp);
 		verify(mockIndexDao, never()).getDatabaseInfo(tableId);
 		verify(mockIndexDao, never()).truncateTable(tableId);
 		verify(mockIndexDao, never()).setCurrentSchemaMD5Hex(anyString(), anyString());
+	}
+	
+	@SuppressWarnings("unchecked")
+	@Test
+	public void testCreateTemporaryTableCopy() throws Exception{
+		// call under test
+		manager.createTemporaryTableCopy(mockCallback);
+		// auto progress should be used.
+		verify(mockManagerSupport).callWithAutoProgress(any(ProgressCallback.class), any(Callable.class));
+		verify(mockIndexDao).createTemporaryTable(tableId);
+		verify(mockIndexDao).copyAllDataToTemporaryTable(tableId);
+	}
+	
+	@SuppressWarnings("unchecked")
+	@Test
+	public void testDeleteTemporaryTableCopy() throws Exception{
+		// call under test
+		manager.deleteTemporaryTableCopy(mockCallback);
+		// auto progress should be used.
+		verify(mockManagerSupport).callWithAutoProgress(any(ProgressCallback.class), any(Callable.class));
+		verify(mockIndexDao).deleteTemporaryTable(tableId);
 	}
 	
 }

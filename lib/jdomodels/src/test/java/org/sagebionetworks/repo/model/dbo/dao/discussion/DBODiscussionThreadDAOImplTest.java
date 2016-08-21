@@ -26,12 +26,10 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dao.discussion.DiscussionThreadDAO;
 import org.sagebionetworks.repo.model.dao.discussion.ForumDAO;
 import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
-import org.sagebionetworks.repo.model.discussion.DiscussionThreadAuthorStat;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadEntityReference;
-import org.sagebionetworks.repo.model.discussion.DiscussionThreadReplyStat;
-import org.sagebionetworks.repo.model.discussion.DiscussionThreadViewStat;
+import org.sagebionetworks.repo.model.discussion.DiscussionThreadStat;
 import org.sagebionetworks.repo.model.discussion.EntityThreadCount;
 import org.sagebionetworks.repo.model.discussion.EntityThreadCounts;
 import org.sagebionetworks.repo.model.discussion.Forum;
@@ -44,6 +42,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class DBODiscussionThreadDAOImplTest {
+	public static final long MAX_LIMIT = 20L;
 
 	@Autowired
 	private ForumDAO forumDao;
@@ -293,22 +292,7 @@ public class DBODiscussionThreadDAOImplTest {
 				threadDao.getThreadsForForum(forumIdLong, 2L, 3L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true, DiscussionFilter.NO_FILTER));
 		assertEquals("order, on limit",
 				Arrays.asList(createdThreads.get(1), createdThreads.get(2)),
-				threadDao.getThreadsForForum(forumIdLong, DBODiscussionThreadDAOImpl.MAX_LIMIT, 1L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true, DiscussionFilter.NO_FILTER));
-	}
-
-	@Test (expected = IllegalArgumentException.class)
-	public void testNegativeOffset() {
-		threadDao.getThreadsForForum(forumIdLong, 2L, -3L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true, DiscussionFilter.NO_FILTER);
-	}
-
-	@Test (expected = IllegalArgumentException.class)
-	public void testNegativeLimit() {
-		threadDao.getThreadsForForum(forumIdLong, -2L, 3L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true, DiscussionFilter.NO_FILTER);
-	}
-
-	@Test (expected = IllegalArgumentException.class)
-	public void testOverLimit() {
-		threadDao.getThreadsForForum(forumIdLong, DBODiscussionThreadDAOImpl.MAX_LIMIT+1, 3L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true, DiscussionFilter.NO_FILTER);
+				threadDao.getThreadsForForum(forumIdLong, MAX_LIMIT, 1L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true, DiscussionFilter.NO_FILTER));
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -337,19 +321,19 @@ public class DBODiscussionThreadDAOImplTest {
 	}
 
 	@Test
-	public void testUpdateThreadViewStat() throws InterruptedException {
+	public void testUpdateThreadStatByNumberOfViews() throws InterruptedException {
 		List<DiscussionThreadBundle> createdThreads = createListOfThreads(3);
 
 		List<Long> numberOfViews = Arrays.asList(1L, 3L, 2L);
-		List<DiscussionThreadViewStat> stats = new ArrayList<DiscussionThreadViewStat>();
+		List<DiscussionThreadStat> stats = new ArrayList<DiscussionThreadStat>();
 		for (int i = 0; i < 3; i++) {
-			DiscussionThreadViewStat stat = new DiscussionThreadViewStat();
+			DiscussionThreadStat stat = new DiscussionThreadStat();
 			stat.setThreadId(Long.parseLong(createdThreads.get(i).getId()));
 			stat.setNumberOfViews(numberOfViews.get(i));
 			stats.add(stat);
 			createdThreads.get(i).setNumberOfViews(numberOfViews.get(i));
 		}
-		threadDao.updateThreadViewStat(stats);
+		threadDao.updateThreadStats(stats);
 
 		List<DiscussionThreadBundle> expected = Arrays.asList(createdThreads.get(0), createdThreads.get(2), createdThreads.get(1));
 		assertEquals("sorted by number of views",
@@ -367,9 +351,9 @@ public class DBODiscussionThreadDAOImplTest {
 		List<DiscussionThreadBundle> createdThreads = createListOfThreads(3);
 		List<Long> numberOfReplies = Arrays.asList(1L, 3L, 2L);
 		Long lastActivity = System.currentTimeMillis();
-		List<DiscussionThreadReplyStat> stats = new ArrayList<DiscussionThreadReplyStat>();
+		List<DiscussionThreadStat> stats = new ArrayList<DiscussionThreadStat>();
 		for (int i = 0; i < 3; i++) {
-			DiscussionThreadReplyStat stat = new DiscussionThreadReplyStat();
+			DiscussionThreadStat stat = new DiscussionThreadStat();
 			stat.setThreadId(Long.parseLong(createdThreads.get(i).getId()));
 			stat.setNumberOfReplies(numberOfReplies.get(i));
 			stat.setLastActivity(lastActivity);
@@ -377,7 +361,7 @@ public class DBODiscussionThreadDAOImplTest {
 			createdThreads.get(i).setNumberOfReplies(numberOfReplies.get(i));
 			createdThreads.get(i).setLastActivity(new Date(lastActivity));
 		}
-		threadDao.updateThreadReplyStat(stats);
+		threadDao.updateThreadStats(stats);
 		List<DiscussionThreadBundle> expected = new ArrayList<DiscussionThreadBundle>();
 		expected.addAll(Arrays.asList(createdThreads.get(0), createdThreads.get(2), createdThreads.get(1)));
 		assertEquals("sorted by number of replies",
@@ -399,9 +383,9 @@ public class DBODiscussionThreadDAOImplTest {
 		Long date2 = new Date(2015-1900, 10, 19, 0, 0, 2).getTime();
 		Long date3 = new Date(2015-1900, 10, 19, 0, 0, 3).getTime();
 		List<Long> lastActivities = Arrays.asList(date1, date3, date2);
-		List<DiscussionThreadReplyStat> stats = new ArrayList<DiscussionThreadReplyStat>();
+		List<DiscussionThreadStat> stats = new ArrayList<DiscussionThreadStat>();
 		for (int i = 0; i < 3; i++) {
-			DiscussionThreadReplyStat stat = new DiscussionThreadReplyStat();
+			DiscussionThreadStat stat = new DiscussionThreadStat();
 			stat.setThreadId(Long.parseLong(createdThreads.get(i).getId()));
 			stat.setNumberOfReplies(numberOfReplies);
 			stat.setLastActivity(lastActivities.get(i));
@@ -409,7 +393,7 @@ public class DBODiscussionThreadDAOImplTest {
 			createdThreads.get(i).setNumberOfReplies(numberOfReplies);
 			createdThreads.get(i).setLastActivity(new Date(lastActivities.get(i)));
 		}
-		threadDao.updateThreadReplyStat(stats);
+		threadDao.updateThreadStats(stats);
 		List<DiscussionThreadBundle> expected = new ArrayList<DiscussionThreadBundle>();
 		expected.addAll(Arrays.asList(createdThreads.get(0), createdThreads.get(2), createdThreads.get(1)));
 		assertEquals("sorted by last activity",
@@ -436,20 +420,20 @@ public class DBODiscussionThreadDAOImplTest {
 	}
 
 	@Test
-	public void testSetActiveAuthors() {
+	public void testUpdateActiveAuthors() {
 		DiscussionThreadBundle dto = threadDao.createThread(forumId, threadId.toString(), "title", "messageKey", userId);
 		long threadId = Long.parseLong(dto.getId());
-		DiscussionThreadAuthorStat stat = new DiscussionThreadAuthorStat();
+		DiscussionThreadStat stat = new DiscussionThreadStat();
 		stat.setThreadId(threadId);
 		stat.setActiveAuthors(Arrays.asList(dto.getCreatedBy(), "123456"));
-		threadDao.updateThreadAuthorStat(Arrays.asList(stat));
+		threadDao.updateThreadStats(Arrays.asList(stat));
 		dto.setActiveAuthors(Arrays.asList(dto.getCreatedBy(), "123456"));
 		assertEquals(new HashSet<String>(dto.getActiveAuthors()),
 				new HashSet<String>(threadDao.getThread(threadId, DEFAULT_FILTER).getActiveAuthors()));
 	}
 
 	@Test
-	public void testGetThreadReplyStats() {
+	public void testCountThreadView() {
 		// create some threads
 		threadDao.createThread(forumId, threadId.toString(), "title", "messageKey", userId);
 		Long threadId2 = idGenerator.generateNewId(TYPE.DISCUSSION_THREAD_ID);
@@ -466,15 +450,19 @@ public class DBODiscussionThreadDAOImplTest {
 		threadDao.updateThreadView(threadId2, userId);
 		threadDao.updateThreadView(threadId2, userId2);
 
-		List<DiscussionThreadViewStat> stats = threadDao.getThreadViewStat(10L, 0L);
-		assertNotNull(stats);
-		assertEquals(stats.size(), 2);
-		DiscussionThreadViewStat stat1 = stats.get(0);
-		DiscussionThreadViewStat stat2 = stats.get(1);
-		assertEquals(stat1.getThreadId(), threadId);
-		assertEquals(stat2.getThreadId(), threadId2);
-		assertEquals(stat1.getNumberOfViews(), (Long) 1L);
-		assertEquals(stat2.getNumberOfViews(), (Long) 2L);
+		assertEquals(1L, threadDao.countThreadView(threadId));
+		assertEquals(2L, threadDao.countThreadView(threadId2));
+	}
+
+	@Test
+	public void testCountThreadViewForNonExistingThread() {
+		assertEquals(0L, threadDao.countThreadView(threadId));
+	}
+
+	@Test
+	public void testCountThreadViewForExistingThreadZeroView() {
+		threadDao.createThread(forumId, threadId.toString(), "title", "messageKey", userId);
+		assertEquals(0L, threadDao.countThreadView(threadId));
 	}
 
 	@Test

@@ -35,6 +35,10 @@
             "type":"integer",
             "description":"The submitted version number of the Entity."
         },
+		"dockerDigest":{
+            "type":"string",
+            "description":"For Docker repositories, the digest from the commit.  Null for other entity types."
+        },
         "name": {
 			"type": "string",
 			"description": "The title of this Submission.",

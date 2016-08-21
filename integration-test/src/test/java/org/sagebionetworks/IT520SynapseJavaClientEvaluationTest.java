@@ -142,6 +142,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 	
 	@Before
 	public void before() throws DatastoreException, NotFoundException, SynapseException, IOException {
+		adminSynapse.clearAllLocks();
 		evaluationsToDelete = new ArrayList<String>();
 		submissionsToDelete = new ArrayList<String>();
 		entitiesToDelete = new ArrayList<String>();

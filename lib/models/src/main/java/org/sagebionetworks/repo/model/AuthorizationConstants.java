@@ -120,10 +120,7 @@ public class AuthorizationConstants {
 	 * A request parameter used in the AccessRequirementController to filter unmet access requirements on access type.
 	 */
 	public static final String ACCESS_TYPE_PARAM = "accessType";
-	/**
-	 * Response message for 503.
-	 */
-	public static final String REASON_TOO_MANY_CONCURRENT_REQUESTS = "{\"reason\": \"Too many concurrent requests\"}";
+
 	/**
 	 * Response message for 500.
 	 */

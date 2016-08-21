@@ -31,7 +31,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  *
  */
 @Controller
-@ControllerInfo(displayName="Docker Repository Services", path="repo/v1")
+@ControllerInfo(displayName="Docker Commit Services", path="repo/v1")
 @RequestMapping(UrlHelpers.REPO_PATH)
 public class DockerCommitController {
 	@Autowired

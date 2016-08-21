@@ -54,6 +54,7 @@
     <import resource="classpath:broadcast-message-worker-sqs-spb.xml"/>
     <import resource="classpath:project-stats-v2-sqs-spb.xml"/>
     <import resource="classpath:table-view-worker-sqs-spb.xml"/>
+    <import resource="classpath:table-update-transaction-worker-sqs-spb.xml"/>
 
 	<bean id="mainScheduler"
 			class="org.springframework.scheduling.quartz.SchedulerFactoryBean"
@@ -88,9 +89,7 @@
 				<ref bean="objectQueueMessageReveiverTrigger"/>
 				<ref bean="s3FileCopyMessageReveiverTrigger"/>
 				<ref bean="fileBulkDownloadMessageReveiverTrigger"/>
-				<ref bean="threadViewStatsWorkerTrigger"/>
-				<ref bean="threadReplyStatsWorkerTrigger"/>
-				<ref bean="threadAuthorStatsWorkerTrigger"/>
+				<ref bean="threadStatsWorkerTrigger"/>
 				<ref bean="broadcastMessageQueueMessageReveiverTrigger"/>
 				<!-- others -->
 				<ref bean="changeSentMessageSynchTrigger" />
@@ -98,6 +97,7 @@
 				<!-- workers publish messages too -->
 				<ref bean="messagePublisherTrigger" />
 				<ref bean="tableViewWorkerTrigger" />
+				<ref bean="tableTransactionMessageReveiverTrigger" />
 			</list>
 		</property>
 	</bean>

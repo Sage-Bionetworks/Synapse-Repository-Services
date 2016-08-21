@@ -171,4 +171,12 @@ public class AsynchJobTypeTest {
 		String expected = "/file/s3FileCopy/async/start";
 		assertEquals(actual, expected);
 	}
+	
+	@Test
+	public void testTableTransaction(){
+		AsynchJobType type = AsynchJobType.TableTransaction;
+		String actual = type.getResultUrl(token, (String) null);
+		String expected = "/table/transaction/async/get/abcdefgh";
+		assertEquals(actual, expected);
+	}
 }

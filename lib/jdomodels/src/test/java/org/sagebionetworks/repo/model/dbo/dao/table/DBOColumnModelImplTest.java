@@ -139,6 +139,9 @@ public class DBOColumnModelImplTest {
 
 	@Test
 	public void testBindColumns() throws DatastoreException, NotFoundException{
+		List<String> ids = columnModelDao.getColumnIdsForObject("syn123");
+		assertNotNull(ids);
+		assertTrue(ids.isEmpty());
 		// Now bind one column
 		List<String> toBind = new LinkedList<String>();
 		toBind.add(two.getId());
@@ -152,6 +155,10 @@ public class DBOColumnModelImplTest {
 		toBind.add(three.getId());
 		count = columnModelDao.bindColumnToObject(toBind, "syn123");
 		assertTrue(count > 0);
+		
+		ids = columnModelDao.getColumnIdsForObject("syn123");
+		List<String> expected = Lists.newArrayList(one.getId(), three.getId());
+		assertEquals(expected, ids);
 	}
 	
 	@Test
@@ -325,10 +332,10 @@ public class DBOColumnModelImplTest {
 		}
 		// Shuffle the results so the order they are bound to does not match the natural order
 		Collections.shuffle(models);
-		List<Long> ids = TableModelUtils.getIds(models);
+		List<String> ids = TableModelUtils.getIds(models);
 		// Now bind them to the table in this shuffled order
 		String tableId = "syn123";
-		columnModelDao.bindColumnToObject(Lists.transform(ids, TableModelUtils.LONG_TO_STRING), tableId);
+		columnModelDao.bindColumnToObject(ids, tableId);
 		// Now make sure we can fetch this back in the same order that we bound the columns
 		List<ColumnModel> fetched = columnModelDao.getColumnModelsForObject(tableId);
 		assertNotNull(fetched);
@@ -338,7 +345,7 @@ public class DBOColumnModelImplTest {
 		Collections.shuffle(models);
 		ids = TableModelUtils.getIds(models);
 		// Bind the new columns in a new order
-		columnModelDao.bindColumnToObject(Lists.transform(ids, TableModelUtils.LONG_TO_STRING), tableId);
+		columnModelDao.bindColumnToObject(ids, tableId);
 		// Get them back in the same order with the same columns
 		fetched = columnModelDao.getColumnModelsForObject(tableId);
 		assertNotNull(fetched);
@@ -357,8 +364,8 @@ public class DBOColumnModelImplTest {
 		for(ColumnModel cm: raw){
 			models.add(columnModelDao.createColumnModel(cm));
 		}
-		List<Long> ids = TableModelUtils.getIds(models);
-		count = columnModelDao.bindColumnToObject(Lists.transform(ids, TableModelUtils.LONG_TO_STRING), tableId);
+		List<String> ids = TableModelUtils.getIds(models);
+		count = columnModelDao.bindColumnToObject(ids, tableId);
 		assertEquals(ids.size(), count);
 		// Now if we set it back to empty the update should include 5 rows
 		List<String> empty = new LinkedList<String>();

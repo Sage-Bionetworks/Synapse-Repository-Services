@@ -5,6 +5,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.BooleanUtils;
 import org.apache.commons.lang.StringUtils;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
@@ -400,7 +401,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		XStream xstream = new XStream();
 		xstream.alias("Query", Query.class);
 		xstream.toXML(query, writer);
-		Closer.closeQuietly(writer);
+		IOUtils.closeQuietly(writer);
 		QueryNextPageToken nextPageToken = new QueryNextPageToken();
 		nextPageToken.setToken(writer.toString());
 		return nextPageToken;

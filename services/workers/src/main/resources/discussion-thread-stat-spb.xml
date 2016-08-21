@@ -10,26 +10,36 @@
 
 	<aop:aspectj-autoproxy />
 
-	<bean id="threadViewStatsWorkerTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean"
+	<bean id="threadStatsWorkerTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean"
 		scope="singleton">
 		<property name="jobDetail">
 			<bean
 				class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
 				<property name="targetObject">
 					<bean
-						class="org.sagebionetworks.workers.util.semaphore.SemaphoreGatedWorkerStack">
+						class="org.sagebionetworks.asynchronous.workers.changes.ChangeMessageDrivenWorkerStack">
 						<constructor-arg index="0" ref="countingSemaphore" />
-						<constructor-arg index="1">
+						<constructor-arg index="1" ref="awsSQSClient" />
+						<constructor-arg index="2" ref="awsSNSClient" />
+						<constructor-arg index="3">
 							<bean
-								class="org.sagebionetworks.workers.util.semaphore.SemaphoreGatedWorkerStackConfiguration">
-								<property name="progressingRunner">
-									<bean class="org.sagebionetworks.discussion.workers.DiscussionThreadViewStatsWorker" />
+								class="org.sagebionetworks.asynchronous.workers.changes.ChangeMessageDrivenWorkerStackConfig">
+								<property name="runner">
+									<bean class="org.sagebionetworks.discussion.workers.DiscussionThreadStatsWorker" />
 								</property>
-								<property name="semaphoreLockKey" value="threadViewStatsWorker" />
+								<property name="semaphoreLockKey" value="discussionThreadStatsWorker" />
 								<property name="semaphoreMaxLockCount" value="1" />
-								<property name="semaphoreLockTimeoutSec" value="600" />
+								<property name="semaphoreLockAndMessageVisibilityTimeoutSec"
+									value="20" />
+								<property name="queueName"
+									ref="stackConfiguration.asyncQueueName[THREAD_STATS]" />
 								<property name="gate">
 									<bean class="org.sagebionetworks.worker.utils.StackStatusGate" />
+								</property>
+								<property name="topicNamesToSubscribe">
+									<list>
+										<ref bean="stackConfiguration.repositoryChangeTopic[THREAD]" />
+									</list>
 								</property>
 							</bean>
 						</constructor-arg>
@@ -39,77 +49,8 @@
 				<property name="concurrent" value="false" />
 			</bean>
 		</property>
-		<property name="startDelay" value="13217" />
-		<!-- Runs every 1 minutes. -->
-		<property name="repeatInterval" value="60000" />
+		<!-- We stager the start delay of each trigger to spread out the timing -->
+		<property name="startDelay" value="1301" />
+		<property name="repeatInterval" value="1011" />
 	</bean>
-
-	<bean id="threadReplyStatsWorkerTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean"
-		scope="singleton">
-		<property name="jobDetail">
-			<bean
-				class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
-				<property name="targetObject">
-					<bean
-						class="org.sagebionetworks.workers.util.semaphore.SemaphoreGatedWorkerStack">
-						<constructor-arg index="0" ref="countingSemaphore" />
-						<constructor-arg index="1">
-							<bean
-								class="org.sagebionetworks.workers.util.semaphore.SemaphoreGatedWorkerStackConfiguration">
-								<property name="progressingRunner">
-									<bean class="org.sagebionetworks.discussion.workers.DiscussionThreadReplyStatsWorker" />
-								</property>
-								<property name="semaphoreLockKey" value="threadReplyStatsWorker" />
-								<property name="semaphoreMaxLockCount" value="1" />
-								<property name="semaphoreLockTimeoutSec" value="600" />
-								<property name="gate">
-									<bean class="org.sagebionetworks.worker.utils.StackStatusGate" />
-								</property>
-							</bean>
-						</constructor-arg>
-					</bean>
-				</property>
-				<property name="targetMethod" value="run" />
-				<property name="concurrent" value="false" />
-			</bean>
-		</property>
-		<property name="startDelay" value="13241" />
-		<!-- Runs every 1 minutes. -->
-		<property name="repeatInterval" value="60000" />
-	</bean>	
-
-	<bean id="threadAuthorStatsWorkerTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean"
-		scope="singleton">
-		<property name="jobDetail">
-			<bean
-				class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
-				<property name="targetObject">
-					<bean
-						class="org.sagebionetworks.workers.util.semaphore.SemaphoreGatedWorkerStack">
-						<constructor-arg index="0" ref="countingSemaphore" />
-						<constructor-arg index="1">
-							<bean
-								class="org.sagebionetworks.workers.util.semaphore.SemaphoreGatedWorkerStackConfiguration">
-								<property name="progressingRunner">
-									<bean class="org.sagebionetworks.discussion.workers.DiscussionThreadAuthorStatsWorker" />
-								</property>
-								<property name="semaphoreLockKey" value="threadAuthorStatsWorker" />
-								<property name="semaphoreMaxLockCount" value="1" />
-								<property name="semaphoreLockTimeoutSec" value="1800" />
-								<property name="gate">
-									<bean class="org.sagebionetworks.worker.utils.StackStatusGate" />
-								</property>
-							</bean>
-						</constructor-arg>
-					</bean>
-				</property>
-				<property name="targetMethod" value="run" />
-				<property name="concurrent" value="false" />
-			</bean>
-		</property>
-		<property name="startDelay" value="13477" />
-		<!-- Runs every 5 minutes. -->
-		<property name="repeatInterval" value="300000" />
-	</bean>	
-
 </beans>
