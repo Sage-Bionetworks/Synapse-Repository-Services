@@ -11,7 +11,7 @@
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 
-	<bean id="userThrottleFilter" class="org.sagebionetworks.repo.web.filter.UserThrottleFilter">
-	</bean>
+	<bean id="userConcurrentConnectionThrottleFilter" class="org.sagebionetworks.repo.web.filter.UserConcurrentConnectionThrottleFilter"/>
+	<bean id="userRequestFrequencyThrottleFilter" class="org.sagebionetworks.repo.web.filter.UserRequestFrequencyThrottleFilter"/>
 	
 </beans>
