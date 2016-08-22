@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.web.filter.UserRequestFrequencyThrottleFilter.REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC;
 import static org.sagebionetworks.repo.web.filter.UserRequestFrequencyThrottleFilter.MAX_REQUEST_FREQUENCY_LOCKS;
+import static org.sagebionetworks.repo.web.filter.UserRequestFrequencyThrottleFilter.CLOUDWATCH_EVENT_NAME;
 
 import javax.servlet.FilterChain;
 
@@ -62,7 +63,6 @@ public class UserRequestFrequencyThrottleFilterTest {
 		filter.doFilter(request, response, filterChain);
 
 		verify(filterChain).doFilter(request, response);
-		
 		verifyZeroInteractions(userFrequencyThrottleGate);
 		verifyNoMoreInteractions(filterChain);
 	}
@@ -74,7 +74,6 @@ public class UserRequestFrequencyThrottleFilterTest {
 		filter.doFilter(request, response, filterChain);
 
 		verify(filterChain).doFilter(request, response);
-		
 		verifyZeroInteractions(userFrequencyThrottleGate);
 		verifyNoMoreInteractions(filterChain);
 	}
@@ -87,7 +86,6 @@ public class UserRequestFrequencyThrottleFilterTest {
 
 		verify(filterChain).doFilter(request, response);
 		verify(userFrequencyThrottleGate).attemptToAcquireLock(userId, REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC, MAX_REQUEST_FREQUENCY_LOCKS);
-		
 		verifyNoMoreInteractions(filterChain, userFrequencyThrottleGate);
 	}
 	
@@ -104,8 +102,7 @@ public class UserRequestFrequencyThrottleFilterTest {
 		
 		ArgumentCaptor<ProfileData> profileDataArgument = ArgumentCaptor.forClass(ProfileData.class); 
 		verify(consumer).addProfileData(profileDataArgument.capture());
-		assertEquals("RequestFrequencyLockUnavailable", profileDataArgument.getValue().getName());
-		
+		assertEquals(CLOUDWATCH_EVENT_NAME, profileDataArgument.getValue().getName());
 		
 		verify(userFrequencyThrottleGate).attemptToAcquireLock(userId, REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC, MAX_REQUEST_FREQUENCY_LOCKS);
 		verify(consumer).addProfileData(any(ProfileData.class));

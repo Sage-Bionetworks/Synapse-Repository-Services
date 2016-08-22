@@ -78,7 +78,6 @@ public class UserConcurrentConnectionThrottleFilterTest {
 		filter.doFilter(request, response, filterChain);
 
 		verify(filterChain).doFilter(request, response);
-		
 		verifyZeroInteractions(userThrottleGate);
 		verifyNoMoreInteractions(filterChain);
 	}
@@ -91,9 +90,7 @@ public class UserConcurrentConnectionThrottleFilterTest {
 
 		verify(filterChain).doFilter(request, response);
 		verify(userThrottleGate).attemptToAcquireLock(userId, CONCURRENT_CONNECTIONS_LOCK_TIMEOUT_SEC, MAX_CONCURRENT_LOCKS);
-
 		verify(userThrottleGate).releaseLock(userId, concurrentSemaphoreToken);
-		
 		verifyNoMoreInteractions(filterChain, userThrottleGate);
 	}
 
@@ -123,7 +120,6 @@ public class UserConcurrentConnectionThrottleFilterTest {
 		verify(consumer).addProfileData(profileDataArgument.capture());
 		assertEquals(CLOUDWATCH_EVENT_NAME, profileDataArgument.getValue().getName());
 		
-
 		verify(userThrottleGate).attemptToAcquireLock(userId, CONCURRENT_CONNECTIONS_LOCK_TIMEOUT_SEC, MAX_CONCURRENT_LOCKS);
 		verify(consumer).addProfileData(any(ProfileData.class));
 		verifyNoMoreInteractions(filterChain, userThrottleGate, consumer);

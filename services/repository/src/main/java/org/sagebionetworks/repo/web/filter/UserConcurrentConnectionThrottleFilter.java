@@ -1,8 +1,8 @@
 package org.sagebionetworks.repo.web.filter;
 
-import static org.sagebionetworks.repo.web.filter.ThrottleUtils.reportLockAcquireError;
+import static org.sagebionetworks.repo.web.filter.ThrottleUtils.generateLockAcquireErrorEvent;
 import static org.sagebionetworks.repo.web.filter.ThrottleUtils.isMigrationAdmin;
-
+import static org.sagebionetworks.repo.web.filter.ThrottleUtils.httpTooManyRequestsErrorResponse;
 
 import java.io.IOException;
 
@@ -15,6 +15,7 @@ import javax.servlet.ServletResponse;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.cloudwatch.Consumer;
+import org.sagebionetworks.cloudwatch.ProfileData;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.semaphore.LockReleaseFailedException;
@@ -65,7 +66,9 @@ public class UserConcurrentConnectionThrottleFilter implements Filter {
 				if(concurrentLockToken != null){
 					chain.doFilter(request, response);
 				}else{
-					reportLockAcquireError(userId, response, CLOUDWATCH_EVENT_NAME, REASON_USER_THROTTLED_CONCURRENT, consumer, this.getClass());
+					ProfileData report = generateLockAcquireErrorEvent(userId, CLOUDWATCH_EVENT_NAME, this.getClass());
+					consumer.addProfileData(report);
+					httpTooManyRequestsErrorResponse(response, REASON_USER_THROTTLED_CONCURRENT);
 				}
 			} catch (IOException | ServletException e) {
 				throw e;
