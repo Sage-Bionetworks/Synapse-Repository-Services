@@ -1759,7 +1759,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	}
 
 	@Override
-	public List<EntityDTO> getEntityDTOs(List<String> ids) {
+	public List<EntityDTO> getEntityDTOs(List<String> ids,final int maxAnnotationSize) {
 		ValidateArgument.required(ids, "ids");
 		if(ids.isEmpty()){
 			return new LinkedList<EntityDTO>();
@@ -1802,7 +1802,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 					byte[] bytes = blob.getBytes(1, (int) blob.length());
 					try {
 						NamedAnnotations annos = JDOSecondaryPropertyUtils.decompressedAnnotations(bytes);
-						dto.setAnnotations(JDOSecondaryPropertyUtils.translate(annos));
+						dto.setAnnotations(JDOSecondaryPropertyUtils.translate(annos, maxAnnotationSize));
 					} catch (IOException e) {
 						throw new DatastoreException(e);
 					}

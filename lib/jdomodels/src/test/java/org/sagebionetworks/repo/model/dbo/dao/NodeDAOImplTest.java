@@ -34,6 +34,7 @@ import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.ActivityDAO;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.AnnotationDTO;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityDTO;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -3020,8 +3021,10 @@ public class NodeDAOImplTest {
 		annos.getAdditionalAnnotations().addAnnotation("aDouble", 1.22);
 		nodeDao.updateAnnotations(file.getId(), annos);
 		
+		int maxAnnotationChars = 10;
+		
 		// call under test
-		List<EntityDTO> results = nodeDao.getEntityDTOs(Lists.newArrayList(project.getId(),file.getId()));
+		List<EntityDTO> results = nodeDao.getEntityDTOs(Lists.newArrayList(project.getId(),file.getId()), maxAnnotationChars);
 		assertNotNull(results);
 		assertEquals(2, results.size());
 		EntityDTO fileDto = results.get(1);
@@ -3039,6 +3042,12 @@ public class NodeDAOImplTest {
 		assertEquals(new Long(Long.parseLong(file.getFileHandleId())), fileDto.getFileHandleId());
 		assertNotNull(fileDto.getAnnotations());
 		assertEquals(3, fileDto.getAnnotations().size());
+		List<AnnotationDTO> expected = Lists.newArrayList(
+				new AnnotationDTO("aString", AnnotationDTO.Type.STRING, "someString"),
+				new AnnotationDTO("aLong", AnnotationDTO.Type.LONG, "123"),
+				new AnnotationDTO("aDouble", AnnotationDTO.Type.DOUBLE, "1.22")
+		);
+		assertEquals(expected, fileDto.getAnnotations());
 		// null checks on the project
 		EntityDTO projectDto = results.get(0);
 		assertEquals(KeyFactory.stringToKey(project.getId()), projectDto.getId());

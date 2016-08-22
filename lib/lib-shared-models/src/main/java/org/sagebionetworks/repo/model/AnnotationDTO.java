@@ -6,7 +6,7 @@ package org.sagebionetworks.repo.model;
  */
 public class AnnotationDTO {
 	
-	enum Type{
+	public enum Type{
 		STRING,
 		LONG,
 		DOUBLE,
@@ -16,6 +16,23 @@ public class AnnotationDTO {
 	String key;
 	Type type;
 	String value;
+	
+	public AnnotationDTO(){
+	}
+	
+	/**
+	 * All fields constructor.
+	 * 
+	 * @param key
+	 * @param type
+	 * @param value
+	 */
+	public AnnotationDTO(String key, Type type, String value) {
+		super();
+		this.key = key;
+		this.type = type;
+		this.value = value;
+	}
 	
 	public String getKey() {
 		return key;
@@ -66,6 +83,12 @@ public class AnnotationDTO {
 		} else if (!value.equals(other.value))
 			return false;
 		return true;
+	}
+
+	@Override
+	public String toString() {
+		return "AnnotationDTO [key=" + key + ", type=" + type + ", value="
+				+ value + "]";
 	}
 
 }

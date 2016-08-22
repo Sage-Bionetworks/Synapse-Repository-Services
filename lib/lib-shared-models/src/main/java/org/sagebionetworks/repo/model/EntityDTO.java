@@ -202,7 +202,15 @@ public class EntityDTO {
 			return false;
 		return true;
 	}
-	
-	
+	@Override
+	public String toString() {
+		return "EntityDTO [id=" + id + ", createdBy=" + createdBy
+				+ ", createdOn=" + createdOn + ", etag=" + etag + ", name="
+				+ name + ", type=" + type + ", parentId=" + parentId
+				+ ", benefactorId=" + benefactorId + ", projectId=" + projectId
+				+ ", modifiedBy=" + modifiedBy + ", modifiedOn=" + modifiedOn
+				+ ", fileHandleId=" + fileHandleId + ", annotations="
+				+ annotations + "]";
+	}
 	
 }
