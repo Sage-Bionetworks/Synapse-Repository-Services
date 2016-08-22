@@ -113,7 +113,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-@Ignore // see PLFM-3994
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class TableWorkerIntegrationTest {
@@ -121,7 +120,7 @@ public class TableWorkerIntegrationTest {
 	/**
 	 * 
 	 */
-	public static final int MAX_WAIT_MS = 1000 * 60 * 10;
+	public static final int MAX_WAIT_MS = 1000 * 60;
 	
 	@Autowired
 	StackConfiguration config;
@@ -221,14 +220,14 @@ public class TableWorkerIntegrationTest {
 			cm = columnManager.createColumnModel(adminUserInfo, cm);
 			schema.add(cm);
 		}
-		List<Long> headers = TableModelUtils.getIds(schema);
+		List<String> headers = TableModelUtils.getIds(schema);
 		// Create the table.
 		TableEntity table = new TableEntity();
 		table.setName(UUID.randomUUID().toString());
-		table.setColumnIds(Lists.transform(headers, TableModelUtils.LONG_TO_STRING));
+		table.setColumnIds(headers);
 		tableId = entityManager.createEntity(adminUserInfo, table, null);
 		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableEntityManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
+		tableEntityManager.setTableSchema(adminUserInfo, headers, tableId);
 		// Now add some data
 		List<Row> rows = TableModelTestUtils.createRows(schema, 2);
 		// Add null rows
@@ -281,14 +280,14 @@ public class TableWorkerIntegrationTest {
 			cm = columnManager.createColumnModel(adminUserInfo, cm);
 			schema.add(cm);
 		}
-		List<Long> headers = TableModelUtils.getIds(schema);
+		List<String> headers = TableModelUtils.getIds(schema);
 		// Create the table.
 		TableEntity table = new TableEntity();
 		table.setName(UUID.randomUUID().toString());
-		table.setColumnIds(Lists.transform(headers, TableModelUtils.LONG_TO_STRING));
+		table.setColumnIds(headers);
 		tableId = entityManager.createEntity(adminUserInfo, table, null);
 		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableEntityManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
+		tableEntityManager.setTableSchema(adminUserInfo, headers, tableId);
 		// add a row
 		List<Row> rows = TableModelTestUtils.createRows(schema, 1);
 		RowSet rowSet = new RowSet();
@@ -323,14 +322,14 @@ public class TableWorkerIntegrationTest {
 			cm = columnManager.createColumnModel(adminUserInfo, cm);
 			schema.add(cm);
 		}
-		List<Long> headers = TableModelUtils.getIds(schema);
+		List<String> headers = TableModelUtils.getIds(schema);
 		// Create the table.
 		TableEntity table = new TableEntity();
 		table.setName(UUID.randomUUID().toString());
-		table.setColumnIds(Lists.transform(headers, TableModelUtils.LONG_TO_STRING));
+		table.setColumnIds(headers);
 		tableId = entityManager.createEntity(adminUserInfo, table, null);
 		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableEntityManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
+		tableEntityManager.setTableSchema(adminUserInfo, headers, tableId);
 		// Now add some data
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(TableModelTestUtils.createRows(schema, 6));
@@ -394,14 +393,14 @@ public class TableWorkerIntegrationTest {
 				columnManager.createColumnModel(adminUserInfo, TableModelTestUtils.createColumn(null, "col1", ColumnType.INTEGER)),
 				columnManager.createColumnModel(adminUserInfo, TableModelTestUtils.createColumn(null, "col2", ColumnType.INTEGER)),
 				columnManager.createColumnModel(adminUserInfo, TableModelTestUtils.createColumn(null, "col3", ColumnType.INTEGER)));
-		List<Long> headers = TableModelUtils.getIds(schema);
+		List<String> headers = TableModelUtils.getIds(schema);
 		// Create the table.
 		TableEntity table = new TableEntity();
 		table.setName(UUID.randomUUID().toString());
-		table.setColumnIds(Lists.transform(headers, TableModelUtils.LONG_TO_STRING));
+		table.setColumnIds(headers);
 		tableId = entityManager.createEntity(adminUserInfo, table, null);
 		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableEntityManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
+		tableEntityManager.setTableSchema(adminUserInfo, headers, tableId);
 		// Now add some data
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(Lists.newArrayList(TableModelTestUtils.createRow(null, null, "a", "1", "10", "3"),
@@ -439,14 +438,14 @@ public class TableWorkerIntegrationTest {
 		// Create one column of each type
 		schema = Lists.newArrayList(columnManager.createColumnModel(adminUserInfo,
 				TableModelTestUtils.createColumn(null, "number", ColumnType.DOUBLE)));
-		List<Long> headers = TableModelUtils.getIds(schema);
+		List<String> headers = TableModelUtils.getIds(schema);
 		// Create the table.
 		TableEntity table = new TableEntity();
 		table.setName(UUID.randomUUID().toString());
-		table.setColumnIds(Lists.transform(headers, TableModelUtils.LONG_TO_STRING));
+		table.setColumnIds(headers);
 		tableId = entityManager.createEntity(adminUserInfo, table, null);
 		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableEntityManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
+		tableEntityManager.setTableSchema(adminUserInfo, headers, tableId);
 		// Now add some data
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(Lists.newArrayList(TableModelTestUtils.createRow(null, null, "1.5"), TableModelTestUtils.createRow(null, null, "2.0"),
@@ -501,14 +500,14 @@ public class TableWorkerIntegrationTest {
 			cm = columnManager.createColumnModel(adminUserInfo, cm);
 			schema.add(cm);
 		}
-		List<Long> headers = TableModelUtils.getIds(schema);
+		List<String> headers = TableModelUtils.getIds(schema);
 		// Create the table.
 		TableEntity table = new TableEntity();
 		table.setName(UUID.randomUUID().toString());
-		table.setColumnIds(Lists.transform(headers, TableModelUtils.LONG_TO_STRING));
+		table.setColumnIds(headers);
 		tableId = entityManager.createEntity(adminUserInfo, table, null);
 		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableEntityManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
+		tableEntityManager.setTableSchema(adminUserInfo, headers, tableId);
 		// Now add some data
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(TableModelTestUtils.createRows(schema, 10));
@@ -618,14 +617,14 @@ public class TableWorkerIntegrationTest {
 			cm = columnManager.createColumnModel(adminUserInfo, cm);
 			schema.add(cm);
 		}
-		List<Long> headers = TableModelUtils.getIds(schema);
+		List<String> headers = TableModelUtils.getIds(schema);
 		// Create the table.
 		TableEntity table = new TableEntity();
 		table.setName(UUID.randomUUID().toString());
-		table.setColumnIds(Lists.transform(headers, TableModelUtils.LONG_TO_STRING));
+		table.setColumnIds(headers);
 		tableId = entityManager.createEntity(adminUserInfo, table, null);
 		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableEntityManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
+		tableEntityManager.setTableSchema(adminUserInfo, headers, tableId);
 		// Now add some data
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(TableModelTestUtils.createRows(schema, 10));
@@ -672,15 +671,15 @@ public class TableWorkerIntegrationTest {
 			cm = columnManager.createColumnModel(adminUserInfo, cm);
 			schema.add(cm);
 		}
-		List<Long> headers = TableModelUtils.getIds(schema);
+		List<String> headers = TableModelUtils.getIds(schema);
 		// Create the table.
 		TableEntity table = new TableEntity();
 		table.setName(UUID.randomUUID().toString());
-		table.setColumnIds(Lists.transform(headers, TableModelUtils.LONG_TO_STRING));
+		table.setColumnIds(headers);
 		tableId = entityManager.createEntity(adminUserInfo, table, null);
 		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableEntityManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
-		RowSet rowSet = createRowSet(Lists.transform(headers, TableModelUtils.LONG_TO_STRING));
+		tableEntityManager.setTableSchema(adminUserInfo, headers, tableId);
+		RowSet rowSet = createRowSet(headers);
 		tableEntityManager.appendRows(adminUserInfo, tableId, schema, rowSet, mockPprogressCallback);
 		// Wait for the table to become available
 		String sql = "select * from " + tableId + " order by row_id";
@@ -707,15 +706,15 @@ public class TableWorkerIntegrationTest {
 			cm = columnManager.createColumnModel(adminUserInfo, cm);
 			schema.add(cm);
 		}
-		List<Long> headers = TableModelUtils.getIds(schema);
+		List<String> headers = TableModelUtils.getIds(schema);
 		// Create the table.
 		TableEntity table = new TableEntity();
 		table.setName(UUID.randomUUID().toString());
-		table.setColumnIds(Lists.transform(headers, TableModelUtils.LONG_TO_STRING));
+		table.setColumnIds(headers);
 		tableId = entityManager.createEntity(adminUserInfo, table, null);
 		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableEntityManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
-		RowSet rowSet = createRowSet(Lists.transform(headers, TableModelUtils.LONG_TO_STRING));
+		tableEntityManager.setTableSchema(adminUserInfo, headers, tableId);
+		RowSet rowSet = createRowSet(headers);
 		tableEntityManager.appendRows(adminUserInfo, tableId, schema, rowSet, mockPprogressCallback);
 		// Wait for the table to become available
 		String sql = "select * from " + tableId + " order by row_id";
@@ -756,14 +755,14 @@ public class TableWorkerIntegrationTest {
 			cm = columnManager.createColumnModel(adminUserInfo, cm);
 			schema.add(cm);
 		}
-		List<Long> headers = TableModelUtils.getIds(schema);
+		List<String> headers = TableModelUtils.getIds(schema);
 		// Create the table.
 		TableEntity table = new TableEntity();
 		table.setName(UUID.randomUUID().toString());
-		table.setColumnIds(Lists.transform(headers, TableModelUtils.LONG_TO_STRING));
+		table.setColumnIds(headers);
 		tableId = entityManager.createEntity(adminUserInfo, table, null);
 		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableEntityManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
+		tableEntityManager.setTableSchema(adminUserInfo, headers, tableId);
 		// Now add some data
 		List<Row> rows = TableModelTestUtils.createRows(schema, 10);
 		// Add null rows
@@ -817,14 +816,14 @@ public class TableWorkerIntegrationTest {
 		// Create one column
 		schema = Lists.newArrayList(columnManager.createColumnModel(adminUserInfo,
 				TableModelTestUtils.createColumn(null, "col1", ColumnType.STRING)));
-		List<Long> headers = TableModelUtils.getIds(schema);
+		List<String> headers = TableModelUtils.getIds(schema);
 
 		// Create the table.
 		TableEntity table = new TableEntity();
 		table.setName(UUID.randomUUID().toString());
-		table.setColumnIds(Lists.transform(headers, TableModelUtils.LONG_TO_STRING));
+		table.setColumnIds(headers);
 		tableId = entityManager.createEntity(adminUserInfo, table, null);
-		tableEntityManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
+		tableEntityManager.setTableSchema(adminUserInfo, headers, tableId);
 
 		// add data
 		RowSet rowSet = new RowSet();
@@ -843,7 +842,7 @@ public class TableWorkerIntegrationTest {
 		// add new column
 		schema.add(columnManager.createColumnModel(adminUserInfo, TableModelTestUtils.createColumn(null, "col2", ColumnType.STRING)));
 		headers = TableModelUtils.getIds(schema);
-		tableEntityManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
+		tableEntityManager.setTableSchema(adminUserInfo, headers, tableId);
 		String newColumnId = ""+headers.get(headers.size()-1);
 		// set data on new column
 		
@@ -863,7 +862,7 @@ public class TableWorkerIntegrationTest {
 		// remove column a
 		schema.remove(0);
 		headers = TableModelUtils.getIds(schema);
-		tableEntityManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
+		tableEntityManager.setTableSchema(adminUserInfo, headers, tableId);
 
 		// wait for table to be available
 		sql = "select * from " + tableId;
@@ -885,14 +884,14 @@ public class TableWorkerIntegrationTest {
 	public void testDates() throws Exception {
 		schema = Lists.newArrayList(columnManager.createColumnModel(adminUserInfo,
 				TableModelTestUtils.createColumn(0L, "coldate", ColumnType.DATE)));
-		List<Long> headers = TableModelUtils.getIds(schema);
+		List<String> headers = TableModelUtils.getIds(schema);
 		// Create the table.
 		TableEntity table = new TableEntity();
 		table.setName(UUID.randomUUID().toString());
-		table.setColumnIds(Lists.transform(headers, TableModelUtils.LONG_TO_STRING));
+		table.setColumnIds(headers);
 		tableId = entityManager.createEntity(adminUserInfo, table, null);
 		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableEntityManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
+		tableEntityManager.setTableSchema(adminUserInfo, headers, tableId);
 		DateFormat dateTimeInstance = new SimpleDateFormat("yyy-M-d h:mm");
 		dateTimeInstance.setTimeZone(TimeZone.getTimeZone("GMT"));
 		Date[] dates = new Date[] { dateTimeInstance.parse("2014-2-3 2:12"), dateTimeInstance.parse("2014-2-3 3:41"),
@@ -931,14 +930,14 @@ public class TableWorkerIntegrationTest {
 	public void testDoubles() throws Exception {
 		schema = Lists.newArrayList(columnManager.createColumnModel(adminUserInfo,
 				TableModelTestUtils.createColumn(0L, "coldouble", ColumnType.DOUBLE)));
-		List<Long> headers = TableModelUtils.getIds(schema);
+		List<String> headers = TableModelUtils.getIds(schema);
 		// Create the table.
 		TableEntity table = new TableEntity();
 		table.setName(UUID.randomUUID().toString());
-		table.setColumnIds(Lists.transform(headers, TableModelUtils.LONG_TO_STRING));
+		table.setColumnIds(headers);
 		tableId = entityManager.createEntity(adminUserInfo, table, null);
 		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableEntityManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
+		tableEntityManager.setTableSchema(adminUserInfo, headers, tableId);
 		Double[] doubles = { Double.NaN, null, Double.NEGATIVE_INFINITY, -Double.MAX_VALUE, -1.0, 0.0, 1.0, 3e42, Double.MAX_VALUE,
 				Double.POSITIVE_INFINITY };
 		String[] expected = { "NaN", null, "-Infinity", "-1.7976931348623157e308", "-1", "0", "1", "3e42", "1.7976931348623157e308",
@@ -999,14 +998,14 @@ public class TableWorkerIntegrationTest {
 	public void testBooleans() throws Exception {
 		schema = Lists.newArrayList(columnManager.createColumnModel(adminUserInfo,
 				TableModelTestUtils.createColumn(0L, "colbool", ColumnType.BOOLEAN)));
-		List<Long> headers = TableModelUtils.getIds(schema);
+		List<String> headers = TableModelUtils.getIds(schema);
 		// Create the table.
 		TableEntity table = new TableEntity();
 		table.setName(UUID.randomUUID().toString());
-		table.setColumnIds(Lists.transform(headers, TableModelUtils.LONG_TO_STRING));
+		table.setColumnIds(headers);
 		tableId = entityManager.createEntity(adminUserInfo, table, null);
 		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableEntityManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
+		tableEntityManager.setTableSchema(adminUserInfo, headers, tableId);
 
 		String[] booleans = new String[] { null, "", "true", "false", "True", "False", "TRUE", "FALSE", Boolean.TRUE.toString(),
 				Boolean.FALSE.toString(), Boolean.FALSE.toString() };
@@ -1095,14 +1094,14 @@ public class TableWorkerIntegrationTest {
 		cm = columnManager.createColumnModel(adminUserInfo, cm);
 		schema.add(cm);
 
-		List<Long> headers = TableModelUtils.getIds(schema);
+		List<String> headers = TableModelUtils.getIds(schema);
 		// Create the table.
 		TableEntity table = new TableEntity();
 		table.setName(UUID.randomUUID().toString());
-		table.setColumnIds(Lists.transform(headers, TableModelUtils.LONG_TO_STRING));
+		table.setColumnIds(headers);
 		tableId = entityManager.createEntity(adminUserInfo, table, null);
 		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableEntityManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
+		tableEntityManager.setTableSchema(adminUserInfo, headers, tableId);
 		// Now add some data
 		List<Row> rows = TableModelTestUtils.createRows(schema, 4);
 		RowSet rowSet = new RowSet();
@@ -1160,13 +1159,13 @@ public class TableWorkerIntegrationTest {
 		schema.add(columnManager.createColumnModel(adminUserInfo, cm));
 		cm.setName("col4");
 		schema.add(columnManager.createColumnModel(adminUserInfo, cm));
-		List<Long> headers = TableModelUtils.getIds(schema);
+		List<String> headers = TableModelUtils.getIds(schema);
 		// Create the table.
 		TableEntity table = new TableEntity();
 		table.setName(UUID.randomUUID().toString());
-		table.setColumnIds(Lists.transform(headers, TableModelUtils.LONG_TO_STRING));
+		table.setColumnIds(headers);
 		tableId = entityManager.createEntity(adminUserInfo, table, null);
-		tableEntityManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
+		tableEntityManager.setTableSchema(adminUserInfo, headers, tableId);
 
 		// Now add some data
 		List<Row> rows = Lists.newArrayList();
@@ -1270,13 +1269,13 @@ public class TableWorkerIntegrationTest {
 			cm.setName("col" + i);
 			schema.add(columnManager.createColumnModel(adminUserInfo, cm));
 		}
-		List<Long> headers = TableModelUtils.getIds(schema);
+		List<String> headers = TableModelUtils.getIds(schema);
 		// Create the table.
 		TableEntity table = new TableEntity();
 		table.setName(UUID.randomUUID().toString());
-		table.setColumnIds(Lists.transform(headers, TableModelUtils.LONG_TO_STRING));
+		table.setColumnIds(headers);
 		tableId = entityManager.createEntity(adminUserInfo, table, null);
-		tableEntityManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
+		tableEntityManager.setTableSchema(adminUserInfo, headers, tableId);
 
 		// Now add a file handle
 		ExternalFileHandle fileHandle1 = new ExternalFileHandle();
@@ -1357,14 +1356,14 @@ public class TableWorkerIntegrationTest {
 			cm = columnManager.createColumnModel(adminUserInfo, cm);
 			schema.add(cm);
 		}
-		List<Long> headers = TableModelUtils.getIds(schema);
+		List<String> headers = TableModelUtils.getIds(schema);
 		// Create the table.
 		TableEntity table = new TableEntity();
 		table.setName(UUID.randomUUID().toString());
-		table.setColumnIds(Lists.transform(headers, TableModelUtils.LONG_TO_STRING));
+		table.setColumnIds(headers);
 		tableId = entityManager.createEntity(adminUserInfo, table, null);
 		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableEntityManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
+		tableEntityManager.setTableSchema(adminUserInfo, headers, tableId);
 		// Now add some data
 		List<Row> rows = TableModelTestUtils.createRows(schema, 500000);
 		RowSet rowSet = new RowSet();
@@ -1401,14 +1400,14 @@ public class TableWorkerIntegrationTest {
 			cm = columnManager.createColumnModel(adminUserInfo, cm);
 			schema.add(cm);
 		}
-		List<Long> headers = TableModelUtils.getIds(schema);
+		List<String> headers = TableModelUtils.getIds(schema);
 		// Create the table.
 		TableEntity table = new TableEntity();
 		table.setName(UUID.randomUUID().toString());
-		table.setColumnIds(Lists.transform(headers, TableModelUtils.LONG_TO_STRING));
+		table.setColumnIds(headers);
 		tableId = entityManager.createEntity(adminUserInfo, table, null);
 		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableEntityManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
+		tableEntityManager.setTableSchema(adminUserInfo, headers, tableId);
 		// Now add some data
 		List<Row> rows = TableModelTestUtils.createRows(schema, 10);
 		RowSet rowSet = new RowSet();
@@ -1509,14 +1508,14 @@ public class TableWorkerIntegrationTest {
 			cm = columnManager.createColumnModel(adminUserInfo, cm);
 			schema.add(cm);
 		}
-		List<Long> headers = TableModelUtils.getIds(schema);
+		List<String> headers = TableModelUtils.getIds(schema);
 		// Create the table.
 		TableEntity table = new TableEntity();
 		table.setName(UUID.randomUUID().toString());
-		table.setColumnIds(Lists.transform(headers, TableModelUtils.LONG_TO_STRING));
+		table.setColumnIds(headers);
 		tableId = entityManager.createEntity(adminUserInfo, table, null);
 		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableEntityManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
+		tableEntityManager.setTableSchema(adminUserInfo, headers, tableId);
 		// We should be able to query
 		String sql = "select * from " + tableId;
 		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 1L);
@@ -1547,14 +1546,14 @@ public class TableWorkerIntegrationTest {
 			cm = columnManager.createColumnModel(adminUserInfo, cm);
 			schema.add(cm);
 		}
-		List<Long> headers = TableModelUtils.getIds(schema);
+		List<String> headers = TableModelUtils.getIds(schema);
 		// Create the table.
 		TableEntity table = new TableEntity();
 		table.setName(UUID.randomUUID().toString());
-		table.setColumnIds(Lists.transform(headers, TableModelUtils.LONG_TO_STRING));
+		table.setColumnIds(headers);
 		tableId = entityManager.createEntity(adminUserInfo, table, null);
 		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableEntityManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
+		tableEntityManager.setTableSchema(adminUserInfo, headers, tableId);
 		// Create some CSV data
 		List<String[]> input = new ArrayList<String[]>(3);
 		input.add(new String[] { "a", "b", "c" });
@@ -1641,14 +1640,14 @@ public class TableWorkerIntegrationTest {
 		schema = Lists.newArrayList(
 				columnManager.createColumnModel(adminUserInfo, TableModelTestUtils.createColumn(0L, "a", ColumnType.STRING)),
 				columnManager.createColumnModel(adminUserInfo, TableModelTestUtils.createColumn(0L, "b", ColumnType.INTEGER)));
-		List<Long> headers = TableModelUtils.getIds(schema);
+		List<String> headers = TableModelUtils.getIds(schema);
 		// Create the table.
 		TableEntity table = new TableEntity();
 		table.setName(UUID.randomUUID().toString());
-		table.setColumnIds(Lists.transform(headers, TableModelUtils.LONG_TO_STRING));
+		table.setColumnIds(headers);
 		tableId = entityManager.createEntity(adminUserInfo, table, null);
 		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableEntityManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
+		tableEntityManager.setTableSchema(adminUserInfo, headers, tableId);
 		// Create some CSV data
 		String[][] input = { { "a", "b" }, { "A", "1" }, { "A", "2" }, { "C", "4" } };
 		// This is the starting input stream
@@ -1732,21 +1731,21 @@ public class TableWorkerIntegrationTest {
 		project.setName("Proj-" + UUID.randomUUID().toString());
 		projectId = entityManager.createEntity(owner, project, null);
 
-		List<Long> headers = TableModelUtils.getIds(schema);
+		List<String> headers = TableModelUtils.getIds(schema);
 		// Create the table.
 		TableEntity table = new TableEntity();
 		table.setName(UUID.randomUUID().toString());
-		table.setColumnIds(Lists.transform(headers, TableModelUtils.LONG_TO_STRING));
+		table.setColumnIds(headers);
 		table.setParentId(projectId);
 		tableId = entityManager.createEntity(owner, table, null);
 		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableEntityManager.setTableSchema(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
+		tableEntityManager.setTableSchema(adminUserInfo, headers, tableId);
 		tableEntityManager.appendRows(owner, tableId, schema,
-				createRowSet(Lists.transform(headers, TableModelUtils.LONG_TO_STRING)), mockPprogressCallback);
+				createRowSet(headers), mockPprogressCallback);
 
 		try {
 			tableEntityManager.appendRows(notOwner, tableId, schema,
-					createRowSet(Lists.transform(headers, TableModelUtils.LONG_TO_STRING)), mockPprogressCallback);
+					createRowSet(headers), mockPprogressCallback);
 			fail("no update permissions");
 		} catch (UnauthorizedException e) {
 		}
@@ -1772,7 +1771,7 @@ public class TableWorkerIntegrationTest {
 		acl = entityPermissionsManager.updateACL(acl, adminUserInfo);
 
 		tableEntityManager.appendRows(notOwner, tableId, schema,
-				createRowSet(Lists.transform(headers, TableModelUtils.LONG_TO_STRING)), mockPprogressCallback);
+				createRowSet(headers), mockPprogressCallback);
 		waitForConsistentQuery(notOwner, sql, null, 8L);
 
 		// add access restriction
@@ -1799,7 +1798,7 @@ public class TableWorkerIntegrationTest {
 
 		waitForConsistentQuery(notOwner, sql, null, 8L);
 		tableEntityManager.appendRows(notOwner, tableId, schema,
-				createRowSet(Lists.transform(headers, TableModelUtils.LONG_TO_STRING)), mockPprogressCallback);
+				createRowSet(headers), mockPprogressCallback);
 	}
 
 	private RowSet createRowSet(List<String> headers) {

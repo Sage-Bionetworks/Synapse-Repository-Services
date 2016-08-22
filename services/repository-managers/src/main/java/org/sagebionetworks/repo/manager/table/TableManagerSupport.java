@@ -236,7 +236,7 @@ public interface TableManagerSupport {
 	 */
 	public <R> R tryRunWithTableExclusiveLock(ProgressCallback<Void> callback, String tableId, int timeoutMS,
 			ProgressingCallable<R, Void> runner) throws Exception;
-
+	
 	/**
 	 * <p>
 	 * Attempt to acquire a non-exclusive lock on a table. If the lock is
@@ -371,5 +371,14 @@ public interface TableManagerSupport {
 	 * @throws Exception 
 	 */
 	public <R> R callWithAutoProgress(ProgressCallback<Void> callback, Callable<R> callable) throws Exception;
+	
+	/**
+	 * Get the column models for the given columnIds.
+	 * @param ids
+	 * @param keepOrder
+	 * @return
+	 */
+	public List<ColumnModel> getColumnModel(List<String> ids, boolean keepOrder);
+	
 
 }

@@ -28,6 +28,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class DiscussionThreadStatsWorkerIntegrationTest {
+	private static final long TIME_OUT = 30*1000;
 
 	@Autowired
 	private DiscussionThreadManager threadManager;
@@ -74,10 +75,16 @@ public class DiscussionThreadStatsWorkerIntegrationTest {
 		createReply.setThreadId(threadId);
 		createReply.setMessageMarkdown("a reply");
 		replyManager.createReply(adminUserInfo, createReply );
-		// wait for the worker to update stat
-		Thread.sleep(3000);
-		DiscussionThreadBundle bundle = threadManager.getThread(adminUserInfo, threadId);
-		assertEquals((Long)1L, bundle.getNumberOfReplies());
+		long startTime = System.currentTimeMillis();
+		while (System.currentTimeMillis() - startTime < TIME_OUT) {
+			// wait for the worker to update stat
+			Thread.sleep(1000);
+			DiscussionThreadBundle bundle = threadManager.getThread(adminUserInfo, threadId);
+			if (bundle.getNumberOfReplies() == 1) {
+				return;
+			}
+		}
+		fail();
 	}
 
 }

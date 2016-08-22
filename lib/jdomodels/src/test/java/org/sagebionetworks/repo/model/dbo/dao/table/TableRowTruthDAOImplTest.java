@@ -1,6 +1,11 @@
 package org.sagebionetworks.repo.model.dbo.dao.table;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -24,6 +29,7 @@ import org.sagebionetworks.repo.model.dao.table.RowAccessor;
 import org.sagebionetworks.repo.model.dao.table.RowSetAccessor;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.IdRange;
@@ -930,6 +936,37 @@ public class TableRowTruthDAOImplTest {
 		updatedSetNoEtag.getRows().get(0).setVersionNumber(null);
 		// This should fail as a null version number is passed in. 
 		tableRowTruthDao.checkForRowLevelConflict(tableId, updatedSetNoEtag);
+	}
+	
+	@Test
+	public void testAppendSchemaChange() throws IOException{
+		ColumnChange add = new ColumnChange();
+		add.setOldColumnId(null);
+		add.setNewColumnId("123");
+		
+		ColumnChange delete = new ColumnChange();
+		delete.setOldColumnId("456");
+		delete.setNewColumnId(null);
+		
+		ColumnChange update = new ColumnChange();
+		update.setOldColumnId("777");
+		update.setNewColumnId("888");
+		
+		List<ColumnChange> changes = new LinkedList<ColumnChange>();
+		changes.add(add);
+		changes.add(delete);
+		changes.add(update);
+		
+		 List<String> current = new LinkedList<String>();
+		 current.add("123");
+		 current.add("888");
+		 
+		String tableId = "syn123";
+		// append the schema change to the changes table.
+		long versionNumber = tableRowTruthDao.appendSchemaChangeToTable(creatorUserGroupId, tableId, current, changes);
+		// lookup the schema change for the given change number.
+		List<ColumnChange> back = tableRowTruthDao.getSchemaChangeForVersion(tableId, versionNumber);
+		assertEquals(changes, back);
 	}
 
 }

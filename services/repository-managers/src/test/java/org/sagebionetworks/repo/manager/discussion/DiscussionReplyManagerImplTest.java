@@ -2,11 +2,13 @@ package org.sagebionetworks.repo.manager.discussion;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.*;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
 
 import org.junit.Before;
@@ -25,6 +27,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UploadContentToS3DAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.discussion.DiscussionReplyDAO;
+import org.sagebionetworks.repo.model.dao.discussion.DiscussionThreadDAO;
 import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
 import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
@@ -43,6 +46,8 @@ public class DiscussionReplyManagerImplTest {
 
 	@Mock
 	private DiscussionThreadManager mockThreadManager;
+	@Mock
+	private DiscussionThreadDAO mockThreadDao;
 	@Mock
 	private DiscussionReplyDAO mockReplyDao;
 	@Mock
@@ -75,6 +80,7 @@ public class DiscussionReplyManagerImplTest {
 
 		replyManager = new DiscussionReplyManagerImpl();
 		ReflectionTestUtils.setField(replyManager, "threadManager", mockThreadManager);
+		ReflectionTestUtils.setField(replyManager, "threadDao", mockThreadDao);
 		ReflectionTestUtils.setField(replyManager, "replyDao", mockReplyDao);
 		ReflectionTestUtils.setField(replyManager, "uploadDao", mockUploadDao);
 		ReflectionTestUtils.setField(replyManager, "authorizationManager", mockAuthorizationManager);
@@ -165,6 +171,7 @@ public class DiscussionReplyManagerImplTest {
 		assertEquals(bundle, reply);
 		verify(mockSubscriptionDao).create(eq(userId.toString()), eq(reply.getThreadId()), eq(SubscriptionObjectType.THREAD));
 		verify(mockTransactionalMessenger).sendMessageAfterCommit(replyId.toString(), ObjectType.REPLY, bundle.getEtag(), ChangeType.CREATE, userInfo.getId());
+		verify(mockThreadDao).insertEntityReference(any(List.class));
 		verify(mockTransactionalMessenger).sendMessageAfterCommit(eq(threadId), eq(ObjectType.THREAD), anyString(), eq(ChangeType.UPDATE), eq(userInfo.getId()));
 	}
 
@@ -234,6 +241,7 @@ public class DiscussionReplyManagerImplTest {
 		newMessage.setMessageMarkdown("messageMarkdown");
 		replyManager.updateReplyMessage(userInfo, replyId.toString(), newMessage);
 		verify(mockReplyDao).updateMessageKey(replyId, messageKey);
+		verify(mockThreadDao).insertEntityReference(any(List.class));
 	}
 
 	@Test (expected = UnauthorizedException.class)

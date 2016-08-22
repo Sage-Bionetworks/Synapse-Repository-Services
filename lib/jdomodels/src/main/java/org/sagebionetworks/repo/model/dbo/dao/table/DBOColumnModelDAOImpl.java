@@ -46,7 +46,6 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.SingleColumnRowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 import com.google.common.collect.Sets;
@@ -61,6 +60,7 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 
 	private static final String SQL_SELECT_OWNER_ETAG_FOR_UPDATE = "SELECT "+COL_BOUND_OWNER_ETAG+" FROM "+TABLE_BOUND_COLUMN_OWNER+" WHERE "+COL_BOUND_OWNER_OBJECT_ID+" = ? FOR UPDATE";
 	private static final String SQL_GET_COLUMN_MODELS_FOR_OBJECT = "SELECT CM.* FROM "+TABLE_BOUND_COLUMN_ORDINAL+" BO, "+TABLE_COLUMN_MODEL+" CM WHERE BO."+COL_BOUND_CM_ORD_COLUMN_ID+" = CM."+COL_CM_ID+" AND BO."+COL_BOUND_CM_ORD_OBJECT_ID+" = ? ORDER BY BO."+COL_BOUND_CM_ORD_ORDINAL+" ASC";
+	private static final String SQL_GET_COLUMN_ID_FOR_OBJECT = "SELECT "+COL_BOUND_CM_ORD_COLUMN_ID+" FROM "+TABLE_BOUND_COLUMN_ORDINAL+" BO WHERE BO."+COL_BOUND_CM_ORD_OBJECT_ID+" = ? ORDER BY BO."+COL_BOUND_CM_ORD_ORDINAL+" ASC";
 	private static final String SQL_DELETE_BOUND_ORDINAL = "DELETE FROM "+TABLE_BOUND_COLUMN_ORDINAL+" WHERE "+COL_BOUND_CM_ORD_OBJECT_ID+" = ?";
 	private static final String SQL_DELETE_BOUND_COLUMNS = "DELETE FROM "+TABLE_BOUND_COLUMN+" WHERE "+COL_BOUND_CM_OBJECT_ID+" = ?";
 	private static final String SQL_DELETE_COLUMN_MODEL = "DELETE FROM "+TABLE_COLUMN_MODEL+" WHERE "+COL_CM_ID+" = ?";
@@ -105,6 +105,13 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 		// Convert to DTOs
 		return ColumnModelUtils.createDTOFromDBO(dbos);
 	}
+	
+	@Override
+	public List<String> getColumnIdsForObject(String tableIdString) {
+		long tableId = KeyFactory.stringToKey(tableIdString);
+		return jdbcTemplate.queryForList(SQL_GET_COLUMN_ID_FOR_OBJECT, String.class, tableId);
+	}
+	
 	/**
 	 * @param namePrefix
 	 * @return

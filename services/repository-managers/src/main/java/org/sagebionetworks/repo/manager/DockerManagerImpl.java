@@ -145,8 +145,6 @@ public class DockerManagerImpl implements DockerManager {
 				if (existingDockerRepoId!=null) {
 					as = authorizationManager.canAccess(
 							userInfo, existingDockerRepoId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD);
-					// TODO if denied here see if the repo is in a submission and, if so, 
-					// check the ACL on the Evaluation owning the Submission
 				}
 				if (as!=null && as.getAuthorized()) permittedAccessTypes.add(requestedAccessType.name());
 				break;

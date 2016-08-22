@@ -5,7 +5,10 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Arrays;
+
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -21,6 +24,8 @@ import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
 import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
+import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
+import org.sagebionetworks.repo.model.discussion.EntityThreadCounts;
 import org.sagebionetworks.repo.model.discussion.Forum;
 import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
@@ -59,11 +64,15 @@ public class ITDiscussion {
 	public void cleanup() throws SynapseException, JSONObjectAdapterException {
 		if (project != null) adminSynapse.deleteEntity(project, true);
 		synapse.unsubscribeAll();
+	}
+
+	@AfterClass
+	public static void tearDown() throws SynapseException, JSONObjectAdapterException {
 		if (userToDelete != null) adminSynapse.deleteUser(userToDelete);
 	}
 
 	@Test
-	public void test() throws SynapseException {
+	public void testForum() throws SynapseException {
 		// create a forum
 		Forum forum = synapse.getForumByProjectId(projectId);
 		assertNotNull(forum);
@@ -187,5 +196,34 @@ public class ITDiscussion {
 		availableThreads = synapse.getThreadsForForum(forumId, 20L, 0L, null, null, DiscussionFilter.EXCLUDE_DELETED);
 		assertEquals(0, availableThreads.getTotalNumberOfResults());
 		assertEquals((Long)1L, synapse.getThreadCountForForum(forumId, DiscussionFilter.NO_FILTER).getCount());
+	}
+
+	@Test
+	public void testEntityReferences() throws SynapseException {
+		PaginatedResults<DiscussionThreadBundle> results = synapse.getThreadsForEntity(projectId, 20L, 0L, DiscussionThreadOrder.NUMBER_OF_VIEWS, true, DiscussionFilter.EXCLUDE_DELETED);
+		assertNotNull(results);
+		assertTrue(results.getResults().isEmpty());
+		assertEquals(0L, results.getTotalNumberOfResults());
+	}
+
+	@Test
+	public void testThreadCountsForEntityIdList() throws SynapseException {
+		// create a forum
+		Forum forum = synapse.getForumByProjectId(projectId);
+		String forumId = forum.getId();
+		// create a thread
+		CreateDiscussionThread toCreate = new CreateDiscussionThread();
+		toCreate.setForumId(forumId);
+		String title = "Mention project";
+		toCreate.setTitle(title);
+		String message = projectId;
+		toCreate.setMessageMarkdown(message);
+		synapse.createThread(toCreate);
+
+		EntityThreadCounts results = synapse.getEntityThreadCount(Arrays.asList(projectId));
+		assertNotNull(results);
+		assertEquals(1L, results.getList().size());
+		assertEquals(projectId, results.getList().get(0).getEntityId());
+		assertEquals((Long)1L, results.getList().get(0).getCount());
 	}
 }

@@ -16,6 +16,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UploadContentToS3DAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.discussion.DiscussionReplyDAO;
+import org.sagebionetworks.repo.model.dao.discussion.DiscussionThreadDAO;
 import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
 import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
@@ -38,6 +39,8 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 	private static final DiscussionFilter DEFAULT_FILTER = DiscussionFilter.NO_FILTER;
 	@Autowired
 	private DiscussionThreadManager threadManager;
+	@Autowired
+	private DiscussionThreadDAO threadDao;
 	@Autowired
 	private UploadContentToS3DAO uploadDao;
 	@Autowired
@@ -69,6 +72,7 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 		DiscussionReplyBundle reply = replyDao.createReply(threadId, replyId, messageKey, userInfo.getId());
 		subscriptionDao.create(userInfo.getId().toString(), threadId, SubscriptionObjectType.THREAD);
 		transactionalMessenger.sendMessageAfterCommit(replyId, ObjectType.REPLY, reply.getEtag(), ChangeType.CREATE, userInfo.getId());
+		threadDao.insertEntityReference(DiscussionUtils.getEntityReferences(createReply.getMessageMarkdown(), threadId));
 		transactionalMessenger.sendMessageAfterCommit(threadId, ObjectType.THREAD, UUID.randomUUID().toString(), ChangeType.UPDATE, userInfo.getId());
 		return reply;
 	}
@@ -105,6 +109,7 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 		if (authorizationManager.isUserCreatorOrAdmin(userInfo, reply.getCreatedBy())) {
 			String messageKey = uploadDao.uploadReplyMessage(newMessage.getMessageMarkdown(), reply.getForumId(), reply.getThreadId(), reply.getId());
 			reply = replyDao.updateMessageKey(replyIdLong, messageKey);
+			threadDao.insertEntityReference(DiscussionUtils.getEntityReferences(newMessage.getMessageMarkdown(), reply.getThreadId()));
 			return reply;
 		} else {
 			throw new UnauthorizedException("Only the user that created the thread can modify it.");
