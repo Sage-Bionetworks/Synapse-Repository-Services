@@ -1,8 +1,8 @@
 package org.sagebionetworks.repo.web.filter;
 
-import static org.sagebionetworks.repo.web.filter.ThrottleUtils.generateLockAcquireErrorEvent;
+import static org.sagebionetworks.repo.web.filter.ThrottleUtils.generateCloudwatchProfiledata;
 import static org.sagebionetworks.repo.web.filter.ThrottleUtils.isMigrationAdmin;
-import static org.sagebionetworks.repo.web.filter.ThrottleUtils.httpTooManyRequestsErrorResponse;
+import static org.sagebionetworks.repo.web.filter.ThrottleUtils.setResponseError;
 
 import java.io.IOException;
 
@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.semaphore.LockReleaseFailedException;
 import org.sagebionetworks.repo.model.semaphore.MemoryCountingSemaphore;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 
 /**
  * This is an filter that throttles non-anonymous user requests. It does this by limiting the number of concurrent
@@ -66,9 +67,9 @@ public class UserConcurrentConnectionThrottleFilter implements Filter {
 				if(concurrentLockToken != null){
 					chain.doFilter(request, response);
 				}else{
-					ProfileData report = generateLockAcquireErrorEvent(userId, CLOUDWATCH_EVENT_NAME, this.getClass());
+					ProfileData report = generateCloudwatchProfiledata(userId, CLOUDWATCH_EVENT_NAME, this.getClass().getName());
 					consumer.addProfileData(report);
-					httpTooManyRequestsErrorResponse(response, REASON_USER_THROTTLED_CONCURRENT);
+					setResponseError(response, HttpStatus.SERVICE_UNAVAILABLE.value(), REASON_USER_THROTTLED_CONCURRENT);
 				}
 			} catch (IOException | ServletException e) {
 				throw e;

@@ -10,8 +10,6 @@ import javax.servlet.http.HttpServletResponse;
 import org.sagebionetworks.cloudwatch.ProfileData;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.util.ValidateArgument;
-import org.springframework.http.HttpStatus;
-import javax.servlet.Filter;
 public class ThrottleUtils {
 	
 	/**
@@ -19,17 +17,17 @@ public class ThrottleUtils {
 	 * @param userId id of user
 	 * @param eventName name of event to be reported to Cloudwatch
 	 * @param comsumer Consumer object of the filter for Cloudwatch
-	 * @param filterClass class of the filter reporting the error. use: this.getClass()
+	 * @param namespace namespace of the Cloudwatch ProfileData
 	 * @throws IOException 
 	 * @return ProfileData event that was generated from provided parameters
 	 */
-	public static ProfileData generateLockAcquireErrorEvent(String userId, String eventName, Class<? extends Filter> filterClass){
+	public static ProfileData generateCloudwatchProfiledata(String userId, String eventName, String namespace){
 		ValidateArgument.required(userId, "userId");
 		ValidateArgument.required(eventName, "eventName");
-		ValidateArgument.required(filterClass, "filterClass");
+		ValidateArgument.required(namespace, "namespace");
 		
 		ProfileData lockUnavailableEvent = new ProfileData();
-		lockUnavailableEvent.setNamespace(filterClass.getName());
+		lockUnavailableEvent.setNamespace(namespace);
 		lockUnavailableEvent.setName(eventName);
 		lockUnavailableEvent.setValue(1.0);
 		lockUnavailableEvent.setUnit("Count");
@@ -40,17 +38,18 @@ public class ThrottleUtils {
 	/**
 	 * Sets the response message to return to user as HTTP 503.
 	 * @param response the response object the user will receive.
-	 * @param reason message to include along with the http code indicating why error occurred
+	 * @param errorCode the HTTP error code to return to the user
+	 * @param errorMessage message to include along with the HTTP code indicating why error occurred
 	 * @throws IOException
 	 */
-	public static void httpTooManyRequestsErrorResponse(ServletResponse response, String reason) throws IOException {
+	public static void setResponseError(ServletResponse response, int errorCode, String errorMessage) throws IOException {
 		ValidateArgument.required(response,"respose");
-		ValidateArgument.required(reason, "reason");
+		ValidateArgument.required(errorMessage, "errorMessage");
 		
 		HttpServletResponse httpResponse = (HttpServletResponse) response;
 		//TODO: Switch to 429 http code once clients have been implemented to expect that code
-		httpResponse.setStatus(HttpStatus.SERVICE_UNAVAILABLE.value());
-		httpResponse.getWriter().println(reason);
+		httpResponse.setStatus(errorCode);
+		httpResponse.getWriter().println(errorMessage);
 	}
 	
 	//returns true if the user is the migration admin, false otherwise.
