@@ -35,11 +35,5 @@ public interface TableIndexConnectionFactory {
 	 * @return
 	 */
 	TableIndexManager connectToTableIndex(String tableId) throws TableIndexConnectionUnavailableException;
-	
-	/**
-	 * Get all connections.
-	 * @return
-	 */
-	List<TableIndexManager> getAllConnections();
 
 }
