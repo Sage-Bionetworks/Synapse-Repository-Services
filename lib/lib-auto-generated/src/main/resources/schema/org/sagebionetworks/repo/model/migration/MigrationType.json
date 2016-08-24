@@ -72,7 +72,7 @@
         "VIEW_TYPE",
         "VIEW_SCOPE",
         "AUTHENTICATION_RECEIPT",
-        "CHANGE",
-        "THROTTLE_RULE"
+        "THROTTLE_RULE",
+        "CHANGE"
     ]
 }

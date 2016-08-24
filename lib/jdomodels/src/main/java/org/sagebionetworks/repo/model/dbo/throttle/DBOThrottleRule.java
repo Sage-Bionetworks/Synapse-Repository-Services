@@ -26,7 +26,7 @@ public class DBOThrottleRule implements MigratableDatabaseObject<DBOThrottleRule
 	
 	private static final FieldColumn[] FIELDS = new FieldColumn[]{
 		new FieldColumn("throttleId", COL_THROTTLE_RULES_ID).withIsBackupId(true),
-		new FieldColumn("normalizedUri", COL_THROTTLE_RULES_NORMALIZED_URI),
+		new FieldColumn("normalizedUri", COL_THROTTLE_RULES_NORMALIZED_URI, true),
 		new FieldColumn("maxCalls", COL_THROTTLE_RULES_MAX_CALLS),
 		new FieldColumn("callPeriodSec", COL_THROTTLE_RULES_CALL_PERIOD),
 		new FieldColumn("modifiedOn", COL_THROTTLE_RULES_MODIFIED_ON).withIsEtag(true)
@@ -34,8 +34,8 @@ public class DBOThrottleRule implements MigratableDatabaseObject<DBOThrottleRule
 	
 	private long throttleId;
 	private String normalizedUri;
-	private int maxCalls;
-	private int callPeriodSec;
+	private long maxCalls;
+	private long callPeriodSec;
 	private Date modifiedOn;
 	
 	@Override
@@ -80,8 +80,8 @@ public class DBOThrottleRule implements MigratableDatabaseObject<DBOThrottleRule
 				DBOThrottleRule throttleRule = new DBOThrottleRule();
 				throttleRule.setThrottleId(rs.getLong(COL_THROTTLE_RULES_ID));
 				throttleRule.setNormalizedUri(rs.getString(COL_THROTTLE_RULES_NORMALIZED_URI));
-				throttleRule.setMaxCalls(rs.getInt(COL_THROTTLE_RULES_MAX_CALLS));
-				throttleRule.setCallPeriodSec(rs.getInt(COL_THROTTLE_RULES_CALL_PERIOD));
+				throttleRule.setMaxCalls(rs.getLong(COL_THROTTLE_RULES_MAX_CALLS));
+				throttleRule.setCallPeriodSec(rs.getLong(COL_THROTTLE_RULES_CALL_PERIOD));
 				throttleRule.setModifiedOn( new Date( rs.getTimestamp(COL_THROTTLE_RULES_MODIFIED_ON).getTime() ) );
 				return throttleRule;
 			}
@@ -151,16 +151,16 @@ public class DBOThrottleRule implements MigratableDatabaseObject<DBOThrottleRule
 	public void setNormalizedUri(String normalizedUri) {
 		this.normalizedUri = normalizedUri;
 	}
-	public int getMaxCalls() {
+	public long getMaxCalls() {
 		return maxCalls;
 	}
-	public void setMaxCalls(int maxCalls) {
+	public void setMaxCalls(long maxCalls) {
 		this.maxCalls = maxCalls;
 	}
-	public int getCallPeriodSec() {
+	public long getCallPeriodSec() {
 		return callPeriodSec;
 	}
-	public void setCallPeriodSec(int callPeriodSec) {
+	public void setCallPeriodSec(long callPeriodSec) {
 		this.callPeriodSec = callPeriodSec;
 	}
 	public Date getModifiedOn() {

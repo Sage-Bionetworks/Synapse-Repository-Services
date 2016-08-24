@@ -185,9 +185,8 @@
 				<bean class="org.sagebionetworks.repo.model.message.DBOBroadcastMessage" />
 				<bean class="org.sagebionetworks.repo.model.dbo.dao.table.DBOViewType" />
 				<bean class="org.sagebionetworks.repo.model.dbo.auth.DBOAuthenticationReceipt" />
-				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOChange" />
-				
 				<bean class="org.sagebionetworks.repo.model.dbo.throttle.DBOThrottleRule" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOChange" /> <!-- THIS MUST ALWAYS BE THE LAST BEAN -->
 			</list>
 		</property>
 		<!-- These are UserGroup row IDs that should not be deleted during migration -->
