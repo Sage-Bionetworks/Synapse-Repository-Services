@@ -8,9 +8,10 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 
-import static org.sagebionetworks.trash.worker.TrashWorker.MAX_TRASH_ITEMS;
-import static org.sagebionetworks.trash.worker.TrashWorker.TRASH_AGE_IN_DAYS;
+import static org.sagebionetworks.trash.worker.TrashWorker.TRASH_DELETE_LIMIT;
+import static org.sagebionetworks.trash.worker.TrashWorker.CUTOFF_TRASH_AGE_IN_DAYS;
 
 import java.sql.Timestamp;
 import java.util.LinkedList;
@@ -23,7 +24,7 @@ import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.trash.TrashManager;
-import org.sagebionetworks.repo.manager.trash.TrashManager.PurgeCallback;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -44,11 +45,22 @@ public class TrashWorkerTest {
 		ReflectionTestUtils.setField(worker, "trashManager", mockManager);
 	}
 	@Test
-	public void test() throws Exception {
-		List<Long> trashList = new LinkedList<Long>();
-		when(mockManager.getTrashLeavesBefore(TRASH_AGE_IN_DAYS, MAX_TRASH_ITEMS)).thenReturn(trashList);
+	public void testTrashListThrowError(){
+		when(mockManager.getTrashLeavesBefore(CUTOFF_TRASH_AGE_IN_DAYS, TRASH_DELETE_LIMIT)).thenThrow(DatastoreException.class);
 		worker.run(mockProgressCallback);
-		verify(mockManager, times(1)).getTrashLeavesBefore(TRASH_AGE_IN_DAYS, MAX_TRASH_ITEMS);
+		verify(mockManager).getTrashLeavesBefore(CUTOFF_TRASH_AGE_IN_DAYS, TRASH_DELETE_LIMIT);
+		verifyNoMoreInteractions(mockManager);
+	}
+	
+	
+	@Test
+	public void testSucessful() throws Exception {
+		List<Long> trashList = new LinkedList<Long>();
+		when(mockManager.getTrashLeavesBefore(CUTOFF_TRASH_AGE_IN_DAYS, TRASH_DELETE_LIMIT)).thenReturn(trashList);
+		worker.run(mockProgressCallback);
+		verify(mockManager, times(1)).getTrashLeavesBefore(CUTOFF_TRASH_AGE_IN_DAYS, TRASH_DELETE_LIMIT);
 		verify(mockManager, times(1)).purgeTrashAdmin(eq(trashList), any(UserInfo.class));
 	}
+	
+	
 }
