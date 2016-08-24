@@ -1,0 +1,31 @@
+{
+"description": "The ThrottleRule model object represents a single throttle rule.",
+	"properties": {
+		"id": {
+			"type": "integer",
+			"required": true,
+			"description": "The id of the ThrottleRule"
+		},
+		"normalizedUri": {
+			"type": "string",
+			"required": true,
+			"description": "The normalized URI of the API call to throttle"
+		},
+		"maxCalls": {
+			"type": "integer",
+			"required": true,
+			"description": "The maximum number of calls which can be made in a time period"
+		},
+		"callPeriodSec": {
+			"type": "integer",
+			"required": true,
+			"description": "The time period, in seconds, in which a limited number of calls can be made"
+		},
+		"modifiedOn": {
+			"type": "string",
+			"format": "date-time",
+			"required": true,
+			"description": "The timestamp of when this rule was last modified"
+		}
+	}
+}
