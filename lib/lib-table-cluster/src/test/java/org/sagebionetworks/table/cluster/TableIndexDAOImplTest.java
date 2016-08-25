@@ -11,6 +11,7 @@ import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 
 import java.util.Arrays;
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -25,6 +26,9 @@ import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.repo.model.AnnotationDTO;
+import org.sagebionetworks.repo.model.EntityDTO;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -48,6 +52,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.sun.tools.internal.ws.wsdl.framework.Entity;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:table-cluster-spb.xml" })
@@ -1313,5 +1318,99 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.deleteTemporaryTable(tableId);
 		count = tableIndexDAO.getTempTableCount(tableId);
 		assertEquals(0L, count);
+	}
+	
+	@Test
+	public void testEntityReplication(){
+		tableIndexDAO.createEntityReplicationTablesIfDoesNotExist();
+		// delete all data
+		tableIndexDAO.deleteEntityData(mockProgressCallback, Lists.newArrayList(1L,2L,3L));
+		
+		EntityDTO project = createEntityDTO(1L, EntityType.project, 0);
+		EntityDTO folder = createEntityDTO(2L, EntityType.folder, 5);
+		EntityDTO file = createEntityDTO(3L, EntityType.file, 10);
+		tableIndexDAO.addEntityData(mockProgressCallback, Lists.newArrayList(file, folder, project));
+		
+		// lookup each
+		EntityDTO fetched = tableIndexDAO.getEntityData(1L);
+		assertEquals(project, fetched);
+		fetched = tableIndexDAO.getEntityData(2L);
+		assertEquals(folder, fetched);
+		fetched = tableIndexDAO.getEntityData(3L);
+		assertEquals(file, fetched);
+	}
+	
+	@Test
+	public void testEntityReplicationWithNulls(){
+		tableIndexDAO.createEntityReplicationTablesIfDoesNotExist();
+		// delete all data
+		tableIndexDAO.deleteEntityData(mockProgressCallback, Lists.newArrayList(1L));
+		
+		EntityDTO project = createEntityDTO(1L, EntityType.project, 0);
+		project.setParentId(null);
+		project.setBenefactorId(null);
+		project.setProjectId(null);
+		project.setFileHandleId(null);
+		tableIndexDAO.addEntityData(mockProgressCallback, Lists.newArrayList(project));
+		
+		// lookup each
+		EntityDTO fetched = tableIndexDAO.getEntityData(1L);
+		assertEquals(project, fetched);
+	}
+	
+	@Test
+	public void testEntityReplicationUpdate(){
+		tableIndexDAO.createEntityReplicationTablesIfDoesNotExist();
+		// delete all data
+		tableIndexDAO.deleteEntityData(mockProgressCallback, Lists.newArrayList(1L));
+		
+		EntityDTO file = createEntityDTO(1L, EntityType.file, 5);
+		tableIndexDAO.addEntityData(mockProgressCallback, Lists.newArrayList(file));
+		// delete before an update
+		tableIndexDAO.deleteEntityData(mockProgressCallback, Lists.newArrayList(file.getId()));
+		file = createEntityDTO(1L, EntityType.file, 3);
+		tableIndexDAO.addEntityData(mockProgressCallback, Lists.newArrayList(file));
+		
+		// lookup each
+		EntityDTO fetched = tableIndexDAO.getEntityData(1L);
+		assertEquals(file, fetched);
+	}
+	
+	/**
+	 * Helper to create populated EntityDTO.
+	 * @param id
+	 * @param type
+	 * @param annotationCount
+	 * @return
+	 */
+	private EntityDTO createEntityDTO(long id, EntityType type, int annotationCount){
+		EntityDTO entityDto = new EntityDTO();
+		entityDto.setId(id);
+		entityDto.setCreatedBy(222L);
+		entityDto.setCreatedOn(new Date());
+		entityDto.setEtag("etag"+id);
+		entityDto.setName("name"+id);
+		entityDto.setType(type);
+		entityDto.setParentId(1L);
+		entityDto.setBenefactorId(2L);
+		entityDto.setProjectId(3L);
+		entityDto.setModifiedBy(333L);
+		entityDto.setModifiedOn(new Date());
+		if(EntityType.file.equals(type)){
+			entityDto.setFileHandleId(888L);
+		}
+		List<AnnotationDTO> annos = new LinkedList<AnnotationDTO>();
+		for(int i=0; i<annotationCount; i++){
+			AnnotationDTO annoDto = new AnnotationDTO();
+			annoDto.setEntityId(id);
+			annoDto.setKey("key"+i);
+			annoDto.setType(AnnotationDTO.Type.values()[i%AnnotationDTO.Type.values().length]);
+			annoDto.setValue(""+i);
+			annos.add(annoDto);
+		}
+		if(!annos.isEmpty()){
+			entityDto.setAnnotations(annos);
+		}
+		return entityDto;
 	}
 }

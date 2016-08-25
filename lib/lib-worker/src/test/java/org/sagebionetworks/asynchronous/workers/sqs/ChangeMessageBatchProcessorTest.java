@@ -1,17 +1,25 @@
 package org.sagebionetworks.asynchronous.workers.sqs;
 
 import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
+import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
+import org.sagebionetworks.asynchronous.workers.changes.BatchChangeMessageDrivenRunner;
 import org.sagebionetworks.asynchronous.workers.changes.ChangeMessageBatchProcessor;
 import org.sagebionetworks.asynchronous.workers.changes.ChangeMessageDrivenRunner;
+import org.sagebionetworks.asynchronous.workers.changes.ChangeMessageRunner;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
@@ -21,14 +29,21 @@ import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 
 import com.amazonaws.services.sqs.AmazonSQSClient;
 import com.amazonaws.services.sqs.model.CreateQueueResult;
-import com.amazonaws.services.sqs.model.GetQueueUrlResult;
 import com.amazonaws.services.sqs.model.Message;
 
 public class ChangeMessageBatchProcessorTest {
 
+	@Mock
 	ProgressCallback<Void> mockProgressCallback;
+	@Mock
 	AmazonSQSClient mockAwsSQSClient;
+	@Mock
 	ChangeMessageDrivenRunner mockRunner;
+	@Mock
+	BatchChangeMessageDrivenRunner mockBatchRunner;
+	@Mock
+	ChangeMessageRunner mockUnknownRunner;
+	
 	String queueName;
 	String queueUrl;
 
@@ -36,14 +51,14 @@ public class ChangeMessageBatchProcessorTest {
 	Message awsMessage;
 	ChangeMessage one;
 	ChangeMessage two;
+	List<ChangeMessage> messageList;
+	
 
 	@Before
 	public void before() throws Exception {
+		MockitoAnnotations.initMocks(this);
 		queueName = "someQueue";
 		queueUrl = "someQueueUrl";
-		mockProgressCallback = Mockito.mock(ProgressCallback.class);
-		mockAwsSQSClient = Mockito.mock(AmazonSQSClient.class);
-		mockRunner = Mockito.mock(ChangeMessageDrivenRunner.class);
 		when(mockAwsSQSClient.createQueue(queueName)).thenReturn(
 				new CreateQueueResult().withQueueUrl(queueUrl));
 		processor = new ChangeMessageBatchProcessor(mockAwsSQSClient,
@@ -62,7 +77,8 @@ public class ChangeMessageBatchProcessorTest {
 		two.setObjectId("789");
 		two.setObjectId("synXYZ");
 		ChangeMessages messages = new ChangeMessages();
-		messages.setList(Arrays.asList(one, two));
+		messageList = Arrays.asList(one, two);
+		messages.setList(messageList);
 		// Set the message
 		awsMessage = MessageUtils.createTopicMessage(messages, "topic:arn",
 				"id", "handle");
@@ -149,5 +165,22 @@ public class ChangeMessageBatchProcessorTest {
 		verify(mockRunner, times(2)).run(any(ProgressCallback.class),
 				any(ChangeMessage.class));
 		verify(mockProgressCallback, times(2)).progressMade(null);
+	}
+	
+	@Test
+	public void testBatchRunner() throws RecoverableMessageException, Exception{
+		processor = new ChangeMessageBatchProcessor(mockAwsSQSClient,
+				queueName, mockBatchRunner);
+		// call under test
+		processor.run(mockProgressCallback, awsMessage);
+		verify(mockBatchRunner).run(mockProgressCallback, messageList);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testUnkownRunnerType() throws RecoverableMessageException, Exception{
+		processor = new ChangeMessageBatchProcessor(mockAwsSQSClient,
+				queueName, mockUnknownRunner);
+		// call under test
+		processor.run(mockProgressCallback, awsMessage);
 	}
 }
