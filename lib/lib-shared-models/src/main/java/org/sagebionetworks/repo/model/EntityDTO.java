@@ -7,7 +7,7 @@ import java.util.List;
  * Entity Data Transfer Object (TDO).
  *
  */
-public class EntityDTO {
+public class EntityDTO implements Comparable<EntityDTO> {
 	
 	Long id;
 	Long createdBy;
@@ -211,6 +211,11 @@ public class EntityDTO {
 				+ ", modifiedBy=" + modifiedBy + ", modifiedOn=" + modifiedOn
 				+ ", fileHandleId=" + fileHandleId + ", annotations="
 				+ annotations + "]";
+	}
+	@Override
+	public int compareTo(EntityDTO o) {
+		// sort on Id.
+		return Long.compare(this.id, o.id);
 	}
 	
 }

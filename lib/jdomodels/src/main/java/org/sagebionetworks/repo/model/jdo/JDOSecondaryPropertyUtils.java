@@ -434,29 +434,29 @@ public class JDOSecondaryPropertyUtils {
 	 * @param maxAnnotationChars the maximum number of characters for any annotation value.
 	 * @return
 	 */
-	public static List<AnnotationDTO> translate(NamedAnnotations annos, int maxAnnotationChars) {
+	public static List<AnnotationDTO> translate(Long entityId, NamedAnnotations annos, int maxAnnotationChars) {
 		List<AnnotationDTO> results = new LinkedList<AnnotationDTO>();
 		if(annos != null){
 			// strings
 			Annotations additional = annos.getAdditionalAnnotations();
 			for(String key: additional.getStringAnnotations().keySet()){
 				List values = additional.getStringAnnotations().get(key);
-				results.add(new AnnotationDTO(key, AnnotationDTO.Type.STRING, getSingleString(values, maxAnnotationChars)));
+				results.add(new AnnotationDTO(entityId, key, AnnotationDTO.Type.STRING, getSingleString(values, maxAnnotationChars)));
 			}
 			// longs
 			for(String key: additional.getLongAnnotations().keySet()){
 				List values = additional.getLongAnnotations().get(key);
-				results.add(new AnnotationDTO(key, AnnotationDTO.Type.LONG, getSingleString(values, maxAnnotationChars)));
+				results.add(new AnnotationDTO(entityId, key, AnnotationDTO.Type.LONG, getSingleString(values, maxAnnotationChars)));
 			}
 			// doubles
 			for(String key: additional.getDoubleAnnotations().keySet()){
 				List values = additional.getDoubleAnnotations().get(key);
-				results.add(new AnnotationDTO(key, AnnotationDTO.Type.DOUBLE, getSingleString(values, maxAnnotationChars)));
+				results.add(new AnnotationDTO(entityId, key, AnnotationDTO.Type.DOUBLE, getSingleString(values, maxAnnotationChars)));
 			}
 			// dates
 			for(String key: additional.getDateAnnotations().keySet()){
 				List values = additional.getDateAnnotations().get(key);
-				results.add(new AnnotationDTO(key, AnnotationDTO.Type.DATE, getSingleString(values, maxAnnotationChars)));
+				results.add(new AnnotationDTO(entityId, key, AnnotationDTO.Type.DATE, getSingleString(values, maxAnnotationChars)));
 			}
 		}
 		return results;

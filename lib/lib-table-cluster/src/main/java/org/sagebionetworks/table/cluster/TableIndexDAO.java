@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.repo.model.EntityDTO;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -267,4 +268,32 @@ public interface TableIndexDAO {
 	 * @return
 	 */
 	public long getTempTableCount(String tableId);
+	
+	/**
+	 * Create the entity replication tables if they do not exist.
+	 * 
+	 */
+	void createEntityReplicationTablesIfDoesNotExist();
+
+	/**
+	 * Delete all entity data with the given Ids.
+	 * @param progressCallback 
+	 * 
+	 * @param allIds
+	 */
+	public void deleteEntityData(ProgressCallback<Void> progressCallback, List<Long> allIds);
+
+	/**
+	 * Add the given entity data to the index.
+	 * 
+	 * @param entityDTOs
+	 */
+	public void addEntityData(ProgressCallback<Void> progressCallback, List<EntityDTO> entityDTOs);
+	
+	/**
+	 * Get the entity DTO for a given entity ID.
+	 * @param entityId
+	 * @return
+	 */
+	public EntityDTO getEntityData(Long entityId);
 }

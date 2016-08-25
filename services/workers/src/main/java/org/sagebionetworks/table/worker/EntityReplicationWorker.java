@@ -5,9 +5,11 @@ import java.util.List;
 
 import org.sagebionetworks.asynchronous.workers.changes.BatchChangeMessageDrivenRunner;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.common.util.progress.ThrottlingProgressCallback;
 import org.sagebionetworks.repo.model.EntityDTO;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
@@ -28,6 +30,7 @@ import org.springframework.transaction.support.TransactionCallback;
 public class EntityReplicationWorker implements BatchChangeMessageDrivenRunner {
 
 	public static final int MAX_ANNOTATION_CHARS = 500;
+	public static final long THROTTLE_FREQUENCY_MS = 1000*30;
 
 	@Autowired
 	NodeDAO nodeDao;
@@ -44,20 +47,29 @@ public class EntityReplicationWorker implements BatchChangeMessageDrivenRunner {
 		List<String> createOrUpdateIds = new LinkedList<>();
 		List<String> deleteIds = new LinkedList<String>();
 		groupByChangeType(messages, createOrUpdateIds, deleteIds);
+		final List<Long> allIds = new LinkedList<Long>();
+		allIds.addAll(KeyFactory.stringToKey(createOrUpdateIds));
+		allIds.addAll(KeyFactory.stringToKey(deleteIds));
+		
 		progressCallback.progressMade(null);
+		final ThrottlingProgressCallback<Void> throttleCallback = new ThrottlingProgressCallback<Void>(progressCallback, THROTTLE_FREQUENCY_MS);
 		// Get a copy of the batch of data.
-		List<EntityDTO> entityDTOs = nodeDao.getEntityDTOs(createOrUpdateIds,
+		final List<EntityDTO> entityDTOs = nodeDao.getEntityDTOs(createOrUpdateIds,
 				MAX_ANNOTATION_CHARS);
 		// Get the connections
 		List<TableIndexDAO> indexDaos = connectionFactory.getAllConnections();
 		// make all changes in an index as a transaction
 		for(TableIndexDAO indexDao: indexDaos){
-			progressCallback.progressMade(null);
+			throttleCallback.progressMade(null);
+			indexDao.createEntityReplicationTablesIfDoesNotExist();
+			final TableIndexDAO indexDaoFinal = indexDao;
 			indexDao.executeInWriteTransaction(new TransactionCallback<Void>() {
 
 				@Override
 				public Void doInTransaction(TransactionStatus status) {
-					// TODO Auto-generated method stub
+					// clear everything.
+					indexDaoFinal.deleteEntityData(throttleCallback, allIds);
+					indexDaoFinal.addEntityData(throttleCallback, entityDTOs);
 					return null;
 				}
 			});

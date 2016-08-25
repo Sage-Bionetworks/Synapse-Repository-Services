@@ -1773,7 +1773,8 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			public EntityDTO mapRow(ResultSet rs, int rowNum)
 					throws SQLException {
 				EntityDTO dto = new EntityDTO();
-				dto.setId(rs.getLong(COL_NODE_ID));
+				long entityId = rs.getLong(COL_NODE_ID);
+				dto.setId(entityId);
 				dto.setCreatedBy(rs.getLong(COL_NODE_CREATED_BY));
 				dto.setCreatedOn(new Date(rs.getLong(COL_NODE_CREATED_ON)));
 				dto.setEtag(rs.getString(COL_NODE_ETAG));
@@ -1802,7 +1803,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 					byte[] bytes = blob.getBytes(1, (int) blob.length());
 					try {
 						NamedAnnotations annos = JDOSecondaryPropertyUtils.decompressedAnnotations(bytes);
-						dto.setAnnotations(JDOSecondaryPropertyUtils.translate(annos, maxAnnotationSize));
+						dto.setAnnotations(JDOSecondaryPropertyUtils.translate(entityId, annos, maxAnnotationSize));
 					} catch (IOException e) {
 						throw new DatastoreException(e);
 					}

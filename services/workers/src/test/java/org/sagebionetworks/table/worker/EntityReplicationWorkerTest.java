@@ -10,13 +10,20 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
+import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.repo.model.EntityDTO;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
+import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.support.TransactionCallback;
 
 import com.google.common.collect.Lists;
 
@@ -29,11 +36,16 @@ public class EntityReplicationWorkerTest {
 	ConnectionFactory mockConnectionFactory;
 	@Mock
 	TableIndexDAO mockIndexDao;
+	@Mock
+	TransactionStatus transactionStatus;
+	@Mock
+	ProgressCallback<Void> mockPogressCallback;
 	
 	EntityReplicationWorker worker;
 	
 	List<ChangeMessage> changes;
 
+	@SuppressWarnings("unchecked")
 	@Before
 	public void before(){
 		MockitoAnnotations.initMocks(this);
@@ -56,6 +68,15 @@ public class EntityReplicationWorkerTest {
 		changes = Lists.newArrayList(update, create, delete);
 		
 		when(mockConnectionFactory.getAllConnections()).thenReturn(Lists.newArrayList(mockIndexDao));
+		
+		doAnswer(new Answer<Void>(){
+
+			@Override
+			public Void answer(InvocationOnMock invocation) throws Throwable {
+				TransactionCallback callback = (TransactionCallback) invocation.getArguments()[0];
+				callback.doInTransaction(transactionStatus);
+				return null;
+			}}).when(mockIndexDao).executeInWriteTransaction(any(TransactionCallback.class));
 	}
 	
 	@Test
@@ -67,6 +88,20 @@ public class EntityReplicationWorkerTest {
 		List<String> expectedDelete = Lists.newArrayList("333");
 		assertEquals(expectedCreateOrUpdate, createOrUpdateIds);
 		assertEquals(expectedDelete, deleteIds);
+	}
+	
+	@Test
+	public void testRun() throws RecoverableMessageException, Exception{
+		List<EntityDTO> entityData = new LinkedList<EntityDTO>();
+		when(mockNodeDao.getEntityDTOs(anyListOf(String.class), anyInt())).thenReturn(entityData);
+		
+		// call under test
+		worker.run(mockPogressCallback, changes);
+		verify(mockNodeDao).getEntityDTOs(Lists.newArrayList("111", "222"), EntityReplicationWorker.MAX_ANNOTATION_CHARS);
+		verify(mockIndexDao).createEntityReplicationTablesIfDoesNotExist();
+		verify(mockIndexDao).deleteEntityData(any(ProgressCallback.class) ,eq(Lists.newArrayList(111L,222L,333L)));
+		verify(mockIndexDao).addEntityData(any(ProgressCallback.class) ,eq(entityData));
+		verify(mockPogressCallback, times(2)).progressMade(null);
 	}
 
 }

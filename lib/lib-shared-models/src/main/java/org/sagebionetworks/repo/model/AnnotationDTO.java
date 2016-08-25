@@ -13,6 +13,7 @@ public class AnnotationDTO {
 		DATE,
 	}
 	
+	Long entityId;
 	String key;
 	Type type;
 	String value;
@@ -27,13 +28,22 @@ public class AnnotationDTO {
 	 * @param type
 	 * @param value
 	 */
-	public AnnotationDTO(String key, Type type, String value) {
+	public AnnotationDTO(Long entityId, String key, Type type, String value) {
 		super();
+		this.entityId = entityId;
 		this.key = key;
 		this.type = type;
 		this.value = value;
 	}
 	
+	public Long getEntityId() {
+		return entityId;
+	}
+
+	public void setEntityId(Long entityId) {
+		this.entityId = entityId;
+	}
+
 	public String getKey() {
 		return key;
 	}
@@ -52,15 +62,20 @@ public class AnnotationDTO {
 	public void setValue(String value) {
 		this.value = value;
 	}
+	
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
+		result = prime * result
+				+ ((entityId == null) ? 0 : entityId.hashCode());
 		result = prime * result + ((key == null) ? 0 : key.hashCode());
 		result = prime * result + ((type == null) ? 0 : type.hashCode());
 		result = prime * result + ((value == null) ? 0 : value.hashCode());
 		return result;
 	}
+
 	@Override
 	public boolean equals(Object obj) {
 		if (this == obj)
@@ -70,6 +85,11 @@ public class AnnotationDTO {
 		if (getClass() != obj.getClass())
 			return false;
 		AnnotationDTO other = (AnnotationDTO) obj;
+		if (entityId == null) {
+			if (other.entityId != null)
+				return false;
+		} else if (!entityId.equals(other.entityId))
+			return false;
 		if (key == null) {
 			if (other.key != null)
 				return false;
@@ -87,8 +107,8 @@ public class AnnotationDTO {
 
 	@Override
 	public String toString() {
-		return "AnnotationDTO [key=" + key + ", type=" + type + ", value="
-				+ value + "]";
+		return "AnnotationDTO [entityId=" + entityId + ", key=" + key
+				+ ", type=" + type + ", value=" + value + "]";
 	}
 
 }

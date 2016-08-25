@@ -3010,6 +3010,7 @@ public class NodeDAOImplTest {
 		file.setParentId(project.getId());
 		file.setFileHandleId(fileHandle.getId());
 		file = nodeDao.createNewNode(file);
+		long fileIdLong = KeyFactory.stringToKey(file.getId());
 		toDelete.add(file.getId());
 		NamedAnnotations annos = new NamedAnnotations();
 		annos.setId(file.getId());
@@ -3043,9 +3044,9 @@ public class NodeDAOImplTest {
 		assertNotNull(fileDto.getAnnotations());
 		assertEquals(3, fileDto.getAnnotations().size());
 		List<AnnotationDTO> expected = Lists.newArrayList(
-				new AnnotationDTO("aString", AnnotationDTO.Type.STRING, "someString"),
-				new AnnotationDTO("aLong", AnnotationDTO.Type.LONG, "123"),
-				new AnnotationDTO("aDouble", AnnotationDTO.Type.DOUBLE, "1.22")
+				new AnnotationDTO(fileIdLong, "aString", AnnotationDTO.Type.STRING, "someString"),
+				new AnnotationDTO(fileIdLong, "aLong", AnnotationDTO.Type.LONG, "123"),
+				new AnnotationDTO(fileIdLong, "aDouble", AnnotationDTO.Type.DOUBLE, "1.22")
 		);
 		assertEquals(expected, fileDto.getAnnotations());
 		// null checks on the project

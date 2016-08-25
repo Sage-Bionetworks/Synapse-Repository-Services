@@ -406,6 +406,7 @@ public class JDOSecondaryPropertyUtilsTest {
 	
 	@Test
 	public void testTranslate(){
+		long entityId = 123;
 		int maxAnnotationChars = 6;
 		NamedAnnotations annos = new NamedAnnotations();
 		annos.getAdditionalAnnotations().addAnnotation("aString", "someString");
@@ -414,13 +415,13 @@ public class JDOSecondaryPropertyUtilsTest {
 		annos.getAdditionalAnnotations().addAnnotation("aDate", new Date(444L));
 		
 		List<AnnotationDTO> expected = Lists.newArrayList(
-				new AnnotationDTO("aString", AnnotationDTO.Type.STRING, "someSt"),
-				new AnnotationDTO("aLong", AnnotationDTO.Type.LONG, "123"),
-				new AnnotationDTO("aDouble", AnnotationDTO.Type.DOUBLE, "1.22"),
-				new AnnotationDTO("aDate", AnnotationDTO.Type.DATE, "444")
+				new AnnotationDTO(entityId, "aString", AnnotationDTO.Type.STRING, "someSt"),
+				new AnnotationDTO(entityId, "aLong", AnnotationDTO.Type.LONG, "123"),
+				new AnnotationDTO(entityId, "aDouble", AnnotationDTO.Type.DOUBLE, "1.22"),
+				new AnnotationDTO(entityId, "aDate", AnnotationDTO.Type.DATE, "444")
 		);
 		
-		List<AnnotationDTO> results = JDOSecondaryPropertyUtils.translate(annos, maxAnnotationChars);
+		List<AnnotationDTO> results = JDOSecondaryPropertyUtils.translate(entityId, annos, maxAnnotationChars);
 		assertNotNull(results);
 		
 		assertEquals(expected, results);
