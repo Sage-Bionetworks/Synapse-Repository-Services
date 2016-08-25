@@ -628,38 +628,43 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	@Override
 	public EntityDTO getEntityData(Long entityId) {
 		// query for the template.
-		EntityDTO dto = template.queryForObject(TableConstants.ENTITY_REPLICATION_GET, new RowMapper<EntityDTO>(){
+		EntityDTO dto;
+		try {
+			dto = template.queryForObject(TableConstants.ENTITY_REPLICATION_GET, new RowMapper<EntityDTO>(){
 
-			@Override
-			public EntityDTO mapRow(ResultSet rs, int rowNum)
-					throws SQLException {
-				EntityDTO dto = new EntityDTO();
-				dto.setId(rs.getLong(ENTITY_REPLICATION_COL_ID));
-				dto.setCreatedBy(rs.getLong(ENTITY_REPLICATION_COL_CRATED_BY));
-				dto.setCreatedOn(new Date(rs.getLong(ENTITY_REPLICATION_COL_CRATED_ON)));
-				dto.setEtag(rs.getString(ENTITY_REPLICATION_COL_ETAG));
-				dto.setName(rs.getString(ENTITY_REPLICATION_COL_NAME));
-				dto.setType(EntityType.valueOf(rs.getString(ENTITY_REPLICATION_COL_TYPE)));
-				dto.setParentId(rs.getLong(ENTITY_REPLICATION_COL_PARENT_ID));
-				if(rs.wasNull()){
-					dto.setParentId(null);
-				}
-				dto.setBenefactorId(rs.getLong(ENTITY_REPLICATION_COL_BENEFACTOR_ID));
-				if(rs.wasNull()){
-					dto.setBenefactorId(null);
-				}
-				dto.setProjectId(rs.getLong(ENTITY_REPLICATION_COL_PROJECT_ID));
-				if(rs.wasNull()){
-					dto.setProjectId(null);
-				}
-				dto.setModifiedBy(rs.getLong(ENTITY_REPLICATION_COL_MODIFIED_BY));
-				dto.setModifiedOn(new Date(rs.getLong(ENTITY_REPLICATION_COL_MODIFIED_ON)));
-				dto.setFileHandleId(rs.getLong(ENTITY_REPLICATION_COL_FILE_ID));
-				if(rs.wasNull()){
-					dto.setFileHandleId(null);
-				}
-				return dto;
-			}}, entityId);
+				@Override
+				public EntityDTO mapRow(ResultSet rs, int rowNum)
+						throws SQLException {
+					EntityDTO dto = new EntityDTO();
+					dto.setId(rs.getLong(ENTITY_REPLICATION_COL_ID));
+					dto.setCreatedBy(rs.getLong(ENTITY_REPLICATION_COL_CRATED_BY));
+					dto.setCreatedOn(new Date(rs.getLong(ENTITY_REPLICATION_COL_CRATED_ON)));
+					dto.setEtag(rs.getString(ENTITY_REPLICATION_COL_ETAG));
+					dto.setName(rs.getString(ENTITY_REPLICATION_COL_NAME));
+					dto.setType(EntityType.valueOf(rs.getString(ENTITY_REPLICATION_COL_TYPE)));
+					dto.setParentId(rs.getLong(ENTITY_REPLICATION_COL_PARENT_ID));
+					if(rs.wasNull()){
+						dto.setParentId(null);
+					}
+					dto.setBenefactorId(rs.getLong(ENTITY_REPLICATION_COL_BENEFACTOR_ID));
+					if(rs.wasNull()){
+						dto.setBenefactorId(null);
+					}
+					dto.setProjectId(rs.getLong(ENTITY_REPLICATION_COL_PROJECT_ID));
+					if(rs.wasNull()){
+						dto.setProjectId(null);
+					}
+					dto.setModifiedBy(rs.getLong(ENTITY_REPLICATION_COL_MODIFIED_BY));
+					dto.setModifiedOn(new Date(rs.getLong(ENTITY_REPLICATION_COL_MODIFIED_ON)));
+					dto.setFileHandleId(rs.getLong(ENTITY_REPLICATION_COL_FILE_ID));
+					if(rs.wasNull()){
+						dto.setFileHandleId(null);
+					}
+					return dto;
+				}}, entityId);
+		} catch (DataAccessException e) {
+			return null;
+		}
 		// get the annotations.
 		List<AnnotationDTO> annotations = template.query(TableConstants.ANNOTATION_REPLICATION_GET, new RowMapper<AnnotationDTO>(){
 
