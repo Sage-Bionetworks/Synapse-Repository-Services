@@ -36,7 +36,7 @@ public class UserApiFrequencyThrottleFilter implements Filter{
 	private Consumer consumer;
 	
 	@Autowired
-	ThrottleRulesCache rulesCache;
+	ThrottleRulesCache throttleRulesCache;
 	
 	//TODO: use same semaphore or different one?
 	@Autowired
@@ -60,7 +60,7 @@ public class UserApiFrequencyThrottleFilter implements Filter{
 		} else{
 			HttpServletRequest httpServletRequest = (HttpServletRequest) request;
 			String normalizedURI = getNormalizedURI(httpServletRequest.getRequestURI(), httpServletRequest.getMethod());
-			ThrottleLimit limit = rulesCache.getThrottleLimit(normalizedURI);
+			ThrottleLimit limit = throttleRulesCache.getThrottleLimit(normalizedURI);
 			if(limit == null){
 				//no throttle exists for this URI
 				chain.doFilter(request, response);

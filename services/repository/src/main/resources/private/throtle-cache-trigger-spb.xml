@@ -8,11 +8,21 @@
        http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.0.xsd
        http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd">
 
-	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
+	<!-- Turn on Spring's auotproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
-	<bean id="throttleRulesCache" class="org.sagebionetworks.repo.web.filter.ThrottleRulesCache" scope="singleton"/>
-	<bean id="userApiFrequencyThrottleFilter" class="org.sagebionetworks.repo.web.filter.UserApiFrequencyThrottleFilter"/>
-	<bean id="userConcurrentConnectionThrottleFilter" class="org.sagebionetworks.repo.web.filter.UserConcurrentConnectionThrottleFilter"/>
-	<bean id="userRequestFrequencyThrottleFilter" class="org.sagebionetworks.repo.web.filter.UserRequestFrequencyThrottleFilter"/>
-	
+
+	<!-- This trigger will fire changes messages pushed to the queue -->
+	<bean id="throttleRulesCacheTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean">
+		<property name="jobDetail">
+			<bean
+				class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+				<property name="targetObject" ref="throttleRulesCache" />
+				<property name="targetMethod" value="timerFired" />
+				<property name="concurrent" value="false" />
+			</bean>
+		</property>
+		<property name="startDelay" value="500" />
+		<property name="repeatInterval" value="300000" /><!-- 5 minutes in milliseconds -->
+	</bean>
+
 </beans>
