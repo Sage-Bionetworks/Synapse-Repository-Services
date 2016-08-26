@@ -14,7 +14,11 @@ import org.sagebionetworks.repo.model.throttle.ThrottleLimit;
 import org.sagebionetworks.repo.model.throttle.ThrottleRule;
 import org.springframework.beans.factory.annotation.Autowired;
 
-
+/**
+ * Caches the THROTTLE_RULES database table
+ * @author zdong
+ *
+ */
 public class ThrottleRulesCache {
 	private static long UPDATE_PERIOD_MILISECONDS = 5 * 60 * 1000; //update every 5 minutes
 	
