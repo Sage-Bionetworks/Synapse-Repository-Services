@@ -44,7 +44,7 @@ public class UserApiFrequencyThrottleFilter implements Filter{
 	
 	@Override
 	public void init(FilterConfig filterConfig) throws ServletException {
-		rulesCache.updateRules();
+		//do nothing
 	}
 
 
@@ -61,14 +61,19 @@ public class UserApiFrequencyThrottleFilter implements Filter{
 			HttpServletRequest httpServletRequest = (HttpServletRequest) request;
 			String normalizedURI = getNormalizedURI(httpServletRequest.getRequestURI(), httpServletRequest.getMethod());
 			ThrottleLimit limit = rulesCache.getThrottleLimit(normalizedURI);
-			
-			boolean lockAcquired = userThrottleMemoryTimeBlockSemaphore.attemptToAcquireLock(userId + normalizedURI, limit.getCallPeriodSec(), limit.getMaxCalls());
-			if(lockAcquired){
+			if(limit == null){
+				//no throttle exists for this URI
 				chain.doFilter(request, response);
 			}else{
-				ProfileData report = generateCloudwatchProfiledata(userId, CLOUDWATCH_EVENT_NAME, this.getClass().getName());
-				consumer.addProfileData(report);
-				setResponseError(response, HttpStatus.SERVICE_UNAVAILABLE.value(), String.format(REASON_USER_THROTTLED_API_FORMAT, normalizedURI, limit.getMaxCalls(), limit.getCallPeriodSec()));
+				//this URI is throttled
+				boolean lockAcquired = userThrottleMemoryTimeBlockSemaphore.attemptToAcquireLock(userId + normalizedURI, limit.getCallPeriodSec(), limit.getMaxCalls());
+				if(lockAcquired){
+					chain.doFilter(request, response);
+				}else{
+					ProfileData report = generateCloudwatchProfiledata(userId, CLOUDWATCH_EVENT_NAME, this.getClass().getName());
+					consumer.addProfileData(report);
+					setResponseError(response, HttpStatus.SERVICE_UNAVAILABLE.value(), String.format(REASON_USER_THROTTLED_API_FORMAT, normalizedURI, limit.getMaxCalls(), limit.getCallPeriodSec()));
+				}
 			}
 		}
 		
@@ -81,7 +86,7 @@ public class UserApiFrequencyThrottleFilter implements Filter{
 	
 	@Override
 	public void destroy() {
-		
+		//do nothing
 	}
 
 }
