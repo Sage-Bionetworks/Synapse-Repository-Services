@@ -9,6 +9,7 @@ import org.springframework.dao.DuplicateKeyException;
 import org.apache.logging.log4j.LogManager;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.dao.throttle.ThrottleRulesDAO;
@@ -65,6 +66,7 @@ public class DBOThrottleRulesImplTest {
 		throttleRulesDao.addThrottle(1, testUri, 1, -1);
 	}
 	
+	@Ignore
 	@Test (expected = DuplicateKeyException.class)
 	public void testAddThrottleDuplicateUri(){
 		throttleRulesDao.addThrottle(1, testUri, maxCalls, callPeriod);
