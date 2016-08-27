@@ -106,6 +106,7 @@ public class TableConstants {
 	// ENTITY_REPLICATION
 	public static final String ENTITY_REPLICATION_TABLE 			= "ENTITY_REPLICATION";
 	public static final String ENTITY_REPLICATION_COL_ID			= "ID";
+	public static final String ENTITY_REPLICATION_COL_VERSION		= "CURRENT_VERSION";
 	public static final String ENTITY_REPLICATION_COL_CRATED_BY		= "CREATED_BY";
 	public static final String ENTITY_REPLICATION_COL_CRATED_ON		= "CREATED_ON";
 	public static final String ENTITY_REPLICATION_COL_ETAG			= "ETAG";
@@ -137,6 +138,7 @@ public class TableConstants {
 
 	public final static String ENTITY_REPLICATION_TABLE_CREATE = "CREATE TABLE IF NOT EXISTS "+ENTITY_REPLICATION_TABLE+"("
 			+ ENTITY_REPLICATION_COL_ID +" bigint(20) NOT NULL,"
+			+ ENTITY_REPLICATION_COL_VERSION +" bigint(20) NOT NULL,"
 			+ ENTITY_REPLICATION_COL_CRATED_BY +" bigint(20) NOT NULL,"
 			+ ENTITY_REPLICATION_COL_CRATED_ON +" bigint(20) NOT NULL,"
 			+ ENTITY_REPLICATION_COL_ETAG +" char(36) NOT NULL,"
@@ -148,12 +150,14 @@ public class TableConstants {
 			+ ENTITY_REPLICATION_COL_MODIFIED_BY +" bigint(20) NOT NULL,"
 			+ ENTITY_REPLICATION_COL_MODIFIED_ON +" bigint(20) NOT NULL,"
 			+ ENTITY_REPLICATION_COL_FILE_ID +" bigint(20) DEFAULT NULL,"
-			+ "PRIMARY KEY("+ENTITY_REPLICATION_COL_ID+")"
+			+ "PRIMARY KEY("+ENTITY_REPLICATION_COL_ID+"),"
+			+ "INDEX ("+ENTITY_REPLICATION_COL_PARENT_ID+")"
 			+ ")";
 	public final static String ENTITY_REPLICATION_DELETE_ALL = "DELETE FROM "+ENTITY_REPLICATION_TABLE+" WHERE "+ENTITY_REPLICATION_COL_ID+" = ?";
 	
 	public final static String ENTITY_REPLICATION_INSERT = "INSERT INTO "+ENTITY_REPLICATION_TABLE+" ("
 			+ ENTITY_REPLICATION_COL_ID+","
+			+ ENTITY_REPLICATION_COL_VERSION+","
 			+ ENTITY_REPLICATION_COL_CRATED_BY+","
 			+ ENTITY_REPLICATION_COL_CRATED_ON+","
 			+ ENTITY_REPLICATION_COL_ETAG+","
@@ -165,9 +169,24 @@ public class TableConstants {
 			+ ENTITY_REPLICATION_COL_MODIFIED_BY+","
 			+ ENTITY_REPLICATION_COL_MODIFIED_ON+","
 			+ ENTITY_REPLICATION_COL_FILE_ID
-			+ ") VALUES (?,?,?,?,?,?,?,?,?,?,?,?)";
+			+ ") VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)";
 	
 	public final static String ENTITY_REPLICATION_GET = "SELECT * FROM "+TableConstants.ENTITY_REPLICATION_TABLE+" WHERE "+TableConstants.ENTITY_REPLICATION_COL_ID+" = ?";
+	
+	public static final String TYPE_PARAMETER_NAME = "typeParam";
+	public static final String PARENT_ID_PARAMETER_NAME = "parentIds";
+	
+	//  Select the CRC32 from the entity replication for a given type and scope
+	public static final String SQL_SELECT_FILE_CRC32 = "SELECT SUM(CRC32(CONCAT("
+			+ ENTITY_REPLICATION_COL_ID
+			+ ", '-',"
+			+ ENTITY_REPLICATION_COL_ETAG
+			+ "))) FROM "
+			+ ENTITY_REPLICATION_TABLE
+			+ " WHERE "
+			+ ENTITY_REPLICATION_COL_TYPE
+			+ " = :"+TYPE_PARAMETER_NAME+" AND "
+			+ ENTITY_REPLICATION_COL_PARENT_ID + " IN (:"+PARENT_ID_PARAMETER_NAME+")";
 	
 	// ANNOTATION_REPLICATION
 	public static final String ANNOTATION_REPLICATION_TABLE 		="ANNOTATION_REPLICATION";

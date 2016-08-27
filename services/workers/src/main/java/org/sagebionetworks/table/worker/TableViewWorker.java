@@ -1,6 +1,7 @@
 package org.sagebionetworks.table.worker;
 
 import java.util.List;
+import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -129,28 +130,14 @@ public class TableViewWorker implements ChangeMessageDrivenRunner {
 		indexManager.deleteTableIndex();
 		// Lookup the table's schema
 		final List<ColumnModel> currentSchema = tableViewManager.getViewSchemaWithBenefactor(tableId);
+		
+		// Get the containers for this view.
+		Set<Long> allContainersInScope  = tableManagerSupport.getAllContainerIdsForViewScope(tableId);
 
 		// create the table in the index.
 		indexManager.setIndexSchema(callback, currentSchema);
-		// Calculate the number of rows per bath based on the current schema
-		final int rowsPerBatch = BATCH_SIZE_BYTES/TableModelUtils.calculateMaxRowSize(currentSchema);
-		final RowSet rowSetBatch = new RowSet();
-		rowSetBatch.setHeaders(TableModelUtils.getSelectColumns(currentSchema));
-		rowSetBatch.setTableId(tableId);
-		// Stream all of the file data into the index.
-		Long viewCRC = tableViewManager.streamOverAllEntitiesInViewAsBatch(tableId, viewType, currentSchema, rowsPerBatch, new RowBatchHandler() {
-			
-			@Override
-			public void nextBatch(List<Row> batch, long currentProgress,
-					long totalProgress) {
-				// apply the batch to index.
-				rowSetBatch.setRows(batch);
-				indexManager.applyChangeSetToIndex(rowSetBatch, currentSchema);
-				// report progress for each batch
-				callback.progressMade(null);
-				tableManagerSupport.attemptToUpdateTableProgress(tableId, token, "Building view...", currentProgress, totalProgress);
-			}
-		});
+		// populate the view by coping data from the entity replication tables.
+		Long viewCRC = indexManager.populateViewFromEntityReplication(callback, viewType, allContainersInScope, currentSchema);
 		// now that table is created and populated the indices on the table can be optimized.
 		indexManager.optimizeTableIndices();
 		indexManager.setIndexVersion(viewCRC);

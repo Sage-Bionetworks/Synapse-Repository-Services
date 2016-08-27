@@ -8,6 +8,7 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.table.cluster.DatabaseColumnInfo;
 import org.sagebionetworks.table.cluster.SQLUtils;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
@@ -262,6 +263,38 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
+	}
+	@Override
+	public Long populateViewFromEntityReplication(final ProgressCallback<Void> callback, final ViewType viewType,
+			final Set<Long> allContainersInScope, final List<ColumnModel> currentSchema) {
+		// this can take a long time with no chance to make progress.
+		 try {
+			return tableManagerSupport.callWithAutoProgress(callback, new Callable<Long>() {
+				@Override
+				public Long call() throws Exception {
+					// create the table.
+					return populateViewFromEntityReplicationWithProgress(viewType, allContainersInScope, currentSchema);
+				}
+			});
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+	
+	/**
+	 * Populate the view table from the entity replication tables.
+	 * 
+	 * @param viewType
+	 * @param allContainersInScope
+	 * @param currentSchema
+	 * @return
+	 */
+	Long populateViewFromEntityReplicationWithProgress(ViewType viewType, Set<Long> allContainersInScope, List<ColumnModel> currentSchema){
+		// calculate the new CRC23 from the entity replication data for the given scope.
+		Long crc32 = tableIndexDao.calculateCRC32ofEntityReplicationScope(viewType, allContainersInScope);
+		// copy the data from the entity replication tables to table's index
+		tableIndexDao.copyEntityReplicationToTable(this.tableId, viewType, allContainersInScope, currentSchema);
+		return crc32;
 	}
 	
 }

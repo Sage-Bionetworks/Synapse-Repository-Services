@@ -12,6 +12,7 @@ import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -40,6 +41,7 @@ import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.Table;
 import org.sagebionetworks.repo.model.table.TableEntity;
+import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
@@ -1374,6 +1376,36 @@ public class TableIndexDAOImplTest {
 		// lookup each
 		EntityDTO fetched = tableIndexDAO.getEntityData(1L);
 		assertEquals(file, fetched);
+	}
+
+	@Test
+	public void testCalculateCRC32ofEntityReplicationScope(){
+		tableIndexDAO.createEntityReplicationTablesIfDoesNotExist();
+		// delete all data
+		tableIndexDAO.deleteEntityData(mockProgressCallback, Lists.newArrayList(1L,2L,3L));
+		
+		// setup some hierarchy.
+		EntityDTO file1 = createEntityDTO(2L, EntityType.file, 0);
+		file1.setParentId(333L);
+		EntityDTO file2 = createEntityDTO(3L, EntityType.file, 0);
+		file2.setParentId(222L);
+		
+		tableIndexDAO.addEntityData(mockProgressCallback, Lists.newArrayList(file1, file2));
+		// both parents
+		Set<Long> scope = Sets.newHashSet(file1.getParentId(), file2.getParentId());
+		// call under test
+		Long crc = tableIndexDAO.calculateCRC32ofEntityReplicationScope(ViewType.file, scope);
+		assertEquals(new Long(3715581114L), crc);
+		// reduce the scope
+		scope = Sets.newHashSet(file1.getParentId());
+		// call under test
+		crc = tableIndexDAO.calculateCRC32ofEntityReplicationScope(ViewType.file, scope);
+		assertEquals(new Long(122929132L), crc);
+		// reduce the scope
+		scope = Sets.newHashSet(file2.getParentId());
+		// call under test
+		crc = tableIndexDAO.calculateCRC32ofEntityReplicationScope(ViewType.file, scope);
+		assertEquals(new Long(3592651982L), crc);
 	}
 	
 	/**

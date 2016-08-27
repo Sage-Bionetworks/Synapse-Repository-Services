@@ -3030,6 +3030,7 @@ public class NodeDAOImplTest {
 		assertEquals(2, results.size());
 		EntityDTO fileDto = results.get(1);
 		assertEquals(KeyFactory.stringToKey(file.getId()), fileDto.getId());
+		assertEquals(file.getVersionNumber(), fileDto.getCurrentVersion());
 		assertEquals(file.getCreatedByPrincipalId(), fileDto.getCreatedBy());
 		assertEquals(file.getCreatedOn(), fileDto.getCreatedOn());
 		assertEquals(file.getETag(), fileDto.getEtag());

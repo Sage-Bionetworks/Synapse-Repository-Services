@@ -10,6 +10,7 @@ import java.util.List;
 public class EntityDTO implements Comparable<EntityDTO> {
 	
 	Long id;
+	Long currentVersion;
 	Long createdBy;
 	Date createdOn;
 	String etag;
@@ -28,6 +29,13 @@ public class EntityDTO implements Comparable<EntityDTO> {
 	}
 	public void setId(Long id) {
 		this.id = id;
+	}
+	
+	public Long getCurrentVersion() {
+		return currentVersion;
+	}
+	public void setCurrentVersion(Long currentVersion) {
+		this.currentVersion = currentVersion;
 	}
 	public Long getCreatedBy() {
 		return createdBy;
@@ -113,6 +121,8 @@ public class EntityDTO implements Comparable<EntityDTO> {
 				+ ((createdBy == null) ? 0 : createdBy.hashCode());
 		result = prime * result
 				+ ((createdOn == null) ? 0 : createdOn.hashCode());
+		result = prime * result
+				+ ((currentVersion == null) ? 0 : currentVersion.hashCode());
 		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
 		result = prime * result
 				+ ((fileHandleId == null) ? 0 : fileHandleId.hashCode());
@@ -157,6 +167,11 @@ public class EntityDTO implements Comparable<EntityDTO> {
 			if (other.createdOn != null)
 				return false;
 		} else if (!createdOn.equals(other.createdOn))
+			return false;
+		if (currentVersion == null) {
+			if (other.currentVersion != null)
+				return false;
+		} else if (!currentVersion.equals(other.currentVersion))
 			return false;
 		if (etag == null) {
 			if (other.etag != null)
@@ -204,13 +219,13 @@ public class EntityDTO implements Comparable<EntityDTO> {
 	}
 	@Override
 	public String toString() {
-		return "EntityDTO [id=" + id + ", createdBy=" + createdBy
-				+ ", createdOn=" + createdOn + ", etag=" + etag + ", name="
-				+ name + ", type=" + type + ", parentId=" + parentId
-				+ ", benefactorId=" + benefactorId + ", projectId=" + projectId
-				+ ", modifiedBy=" + modifiedBy + ", modifiedOn=" + modifiedOn
-				+ ", fileHandleId=" + fileHandleId + ", annotations="
-				+ annotations + "]";
+		return "EntityDTO [id=" + id + ", currentVersion=" + currentVersion
+				+ ", createdBy=" + createdBy + ", createdOn=" + createdOn
+				+ ", etag=" + etag + ", name=" + name + ", type=" + type
+				+ ", parentId=" + parentId + ", benefactorId=" + benefactorId
+				+ ", projectId=" + projectId + ", modifiedBy=" + modifiedBy
+				+ ", modifiedOn=" + modifiedOn + ", fileHandleId="
+				+ fileHandleId + ", annotations=" + annotations + "]";
 	}
 	@Override
 	public int compareTo(EntityDTO o) {

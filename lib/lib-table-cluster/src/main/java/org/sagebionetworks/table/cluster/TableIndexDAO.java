@@ -10,6 +10,7 @@ import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.ViewType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.support.TransactionCallback;
 
@@ -296,4 +297,25 @@ public interface TableIndexDAO {
 	 * @return
 	 */
 	public EntityDTO getEntityData(Long entityId);
+
+	/**
+	 * Given a container scope calculate the CRC32 of the entity replication table on 'id-etag'.
+	 * @param viewType 
+	 * 
+	 * @param allContainersInScope
+	 * @return
+	 */
+	public Long calculateCRC32ofEntityReplicationScope(
+			ViewType viewType, Set<Long> allContainersInScope);
+
+	/**
+	 * Copy the data from the entity replication tables to the given view's table.
+	 * 
+	 * @param viewId
+	 * @param viewType
+	 * @param allContainersInScope
+	 * @param currentSchema
+	 */
+	public void copyEntityReplicationToTable(String viewId, ViewType viewType,
+			Set<Long> allContainersInScope, List<ColumnModel> currentSchema);
 }

@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.TableConstants;
+import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -1113,4 +1114,12 @@ public class SQLUtils {
 		String tempName = getTemporaryTableName(tableId);
 		return String.format(DROP_TABLE_IF_EXISTS, tempName);
 	}
+
+	public static String createSelectInsertFromEntityReplication(String viewId,
+			ViewType viewType, Set<Long> allContainersInScope,
+			List<ColumnModel> currentSchema) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 }

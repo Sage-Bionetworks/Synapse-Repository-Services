@@ -29,7 +29,9 @@ import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableConstants;
+import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
+import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.BadSqlGrammarException;
@@ -47,6 +49,9 @@ import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.DefaultTransactionDefinition;
 import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
+
+
+
 
 
 
@@ -682,6 +687,27 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			dto.setAnnotations(annotations);
 		}
 		return dto;
+	}
+
+	@Override
+	public Long calculateCRC32ofEntityReplicationScope(ViewType viewType,
+			Set<Long> allContainersInScope) {
+		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(TYPE_PARAMETER_NAME, viewType.name());
+		param.addValue(PARENT_ID_PARAMETER_NAME, allContainersInScope);
+		return namedTemplate.queryForObject(SQL_SELECT_FILE_CRC32, param, Long.class);
+	}
+
+	@Override
+	public void copyEntityReplicationToTable(String viewId, ViewType viewType,
+			Set<Long> allContainersInScope, List<ColumnModel> currentSchema) {
+		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(TYPE_PARAMETER_NAME, viewType.name());
+		param.addValue(PARENT_ID_PARAMETER_NAME, allContainersInScope);
+		String sql = SQLUtils.createSelectInsertFromEntityReplication(viewId, viewType, allContainersInScope, currentSchema);
+		namedTemplate.update(sql, param);
 	}
 
 }
