@@ -515,4 +515,13 @@ public interface NodeDAO {
 	 * @return
 	 */
 	public Set<Long> getFileHandleIdsAssociatedWithFileEntity(List<Long> fileHandleIds, long entityId);
+	
+	/**
+	 * Get the list of all entity DTO objects for the given list of entity ids.
+	 * 
+	 * @param ids
+	 * @param maxAnnotationChars the maximum number of characters for any annotation value.
+	 * @return
+	 */
+	public List<EntityDTO> getEntityDTOs(List<String> ids, int maxAnnotationChars);
 }

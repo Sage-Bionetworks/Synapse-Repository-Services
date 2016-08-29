@@ -85,6 +85,7 @@ import org.sagebionetworks.repo.model.dao.discussion.ForumDAO;
 import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
+import org.sagebionetworks.repo.model.dao.throttle.ThrottleRulesDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.auth.AuthenticationReceiptDAO;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
@@ -127,6 +128,7 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.RawRowSet;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.ViewType;
+import org.sagebionetworks.repo.model.throttle.ThrottleRule;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.model.verification.AttachmentMetadata;
@@ -263,6 +265,9 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 	private MultipartUploadDAO multipartUploadDAO;
 	
 	@Autowired
+	private ThrottleRulesDAO throttleRulesDao;
+	
+	@Autowired
 	private ViewScopeDao viewScopeDao;
 	
 	private Team team;
@@ -352,6 +357,7 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		createBroadcastMessage();
 		createViewScope();
 		createAuthenticationReceipt();
+		createThrottleRule();
 	}
 	
 	private void createViewScope() {
@@ -823,6 +829,10 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		mis.setInviteeId(otherUserId);
 
 		membershipInvtnSubmissionDAO.create(mis);
+	}
+	
+	private void createThrottleRule(){
+		throttleRulesDao.addThrottle(new ThrottleRule(0, "/repo/v1/asdf/fake/for/migration/test", 123, 456));
 	}
 
 	@After
