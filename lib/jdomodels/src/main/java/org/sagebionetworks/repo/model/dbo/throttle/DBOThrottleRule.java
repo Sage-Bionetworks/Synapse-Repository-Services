@@ -25,8 +25,8 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
 public class DBOThrottleRule implements MigratableDatabaseObject<DBOThrottleRule, DBOThrottleRule>{
 	
 	private static final FieldColumn[] FIELDS = new FieldColumn[]{
-		new FieldColumn("throttleId", COL_THROTTLE_RULES_ID).withIsBackupId(true),
-		new FieldColumn("normalizedUri", COL_THROTTLE_RULES_NORMALIZED_URI, true),
+		new FieldColumn("throttleId", COL_THROTTLE_RULES_ID, true).withIsBackupId(true),
+		new FieldColumn("normalizedUri", COL_THROTTLE_RULES_NORMALIZED_URI),
 		new FieldColumn("maxCalls", COL_THROTTLE_RULES_MAX_CALLS),
 		new FieldColumn("callPeriodSec", COL_THROTTLE_RULES_CALL_PERIOD),
 		new FieldColumn("modifiedOn", COL_THROTTLE_RULES_MODIFIED_ON).withIsEtag(true)
