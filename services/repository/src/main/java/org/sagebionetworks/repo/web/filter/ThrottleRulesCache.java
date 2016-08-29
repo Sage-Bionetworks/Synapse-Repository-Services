@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.web.filter;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -26,14 +25,26 @@ public class ThrottleRulesCache {
 	 * The maps in this class are immutable. When the throttle rules are updated, a new map is created
 	 * and the reference is changed.
 	 */
-	private AtomicReference<Map<String, ThrottleLimit>> throttleRulesMap = new AtomicReference<Map<String, ThrottleLimit>>( new ConcurrentHashMap<String, ThrottleLimit>());
+	private AtomicReference<Map<String, ThrottleLimit>> throttleRulesMapReference = new AtomicReference<Map<String, ThrottleLimit>>( new ConcurrentHashMap<String, ThrottleLimit>());
 	private AtomicLong lastUpdated = new AtomicLong(0);
 	
 	@Autowired
 	private ThrottleRulesDAO throttleRulesDao;
 	
-	public ThrottleLimit getThrottleLimit(String normalizedUri){
-		return throttleRulesMap.get().get(normalizedUri);
+	/**
+	 * Returns the ThrottleLimit of the given normalize API path. Returns null if there is no limit
+	 * @param normalizedPath 
+	 * @return
+	 */
+	public ThrottleLimit getThrottleLimit(String normalizedPath){
+		return throttleRulesMapReference.get().get(normalizedPath);
+	}
+	
+	/**
+	 * Returns the number of API paths that are throttled
+	 */
+	public int getNumThrottleRules(){
+		return throttleRulesMapReference.get().size();
 	}
 	
 
@@ -45,13 +56,22 @@ public class ThrottleRulesCache {
 		Map<String, ThrottleLimit> updatedRulesMap = new ConcurrentHashMap<String, ThrottleLimit>();
 		List<ThrottleRule> rules = throttleRulesDao.getAllThrottles();
 		for(ThrottleRule rule : rules){
-			updatedRulesMap.put(rule.getNormalizedUri(), new ThrottleLimit(rule.getMaxCalls(), rule.getCallPeriodSec()));
+			updatedRulesMap.put(rule.getNormalizedPath(), new ThrottleLimit(rule.getMaxCallsPerPeriod(), rule.getPeriod()));
 		}
 		
 		//change the reference to the new map and flag that the thread finished updating
 
-		throttleRulesMap.set(updatedRulesMap);
+		throttleRulesMapReference.set(updatedRulesMap);
 		lastUpdated.set(System.currentTimeMillis());
+	}
+	
+	/**
+	 * <h1>USED FOR TESTING</h1><br>
+	 * Returns the unix timestamp in miliseconds of when the cache was last updated. If the map has never been updated, returns 0.
+	 * @return
+	 */
+	public long getLastUpdated(){
+		return lastUpdated.get();
 	}
 	
 	//autowire the trigger in integrationtest
