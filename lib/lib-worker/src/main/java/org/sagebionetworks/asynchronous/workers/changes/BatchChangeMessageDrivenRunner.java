@@ -1,12 +1,18 @@
 package org.sagebionetworks.asynchronous.workers.changes;
 
+import java.util.List;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 
-public interface ChangeMessageDrivenRunner extends ChangeMessageRunner {
-
+/**
+ * A change message driven worker that can accept an batch of change messages.
+ * 
+ * @author jhill
+ *
+ */
+public interface BatchChangeMessageDrivenRunner extends ChangeMessageRunner {
 	/**
 	 * This method will be called when there is a message to process. The
 	 * message will be deleted from the queue after the this call terminates
@@ -17,9 +23,9 @@ public interface ChangeMessageDrivenRunner extends ChangeMessageRunner {
 	 *            the container that the runner is still working on the message.
 	 *            The container will refresh the message visibility timeout if
 	 *            needed when progressMade(Message) is called.
-	 * @param message
-	 *            The message to be processed. The message will be deleted from
-	 *            the queue after the this call terminates unless a
+	 * @param messages
+	 *            List of messages to be processed. The message will be deleted
+	 *            from the queue after the this call terminates unless a
 	 *            RecoverableMessageException is thrown.
 	 * @throws RecoverableMessageException
 	 *             The caller is expected to throw a
@@ -31,6 +37,7 @@ public interface ChangeMessageDrivenRunner extends ChangeMessageRunner {
 	 *             indicates to the container that the message should be
 	 *             returned to the queue for future processing.
 	 */
-	public void run(ProgressCallback<Void> progressCallback, ChangeMessage message)
-			throws RecoverableMessageException, Exception;
+	public void run(ProgressCallback<Void> progressCallback,
+			List<ChangeMessage> messages) throws RecoverableMessageException,
+			Exception;
 }
