@@ -5,6 +5,7 @@ import static org.sagebionetworks.repo.web.filter.ThrottleUtils.isMigrationAdmin
 import static org.sagebionetworks.repo.web.filter.ThrottleUtils.setResponseError;
 
 import java.io.IOException;
+import java.util.Collections;
 
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -67,7 +68,7 @@ public class UserConcurrentConnectionThrottleFilter implements Filter {
 				if(concurrentLockToken != null){
 					chain.doFilter(request, response);
 				}else{
-					ProfileData report = generateCloudwatchProfiledata(userId, CLOUDWATCH_EVENT_NAME, this.getClass().getName());
+					ProfileData report = generateCloudwatchProfiledata( CLOUDWATCH_EVENT_NAME, this.getClass().getName(), Collections.singletonMap("UserId", userId));
 					consumer.addProfileData(report);
 					setResponseError(response, HttpStatus.SERVICE_UNAVAILABLE.value(), REASON_USER_THROTTLED_CONCURRENT);
 				}

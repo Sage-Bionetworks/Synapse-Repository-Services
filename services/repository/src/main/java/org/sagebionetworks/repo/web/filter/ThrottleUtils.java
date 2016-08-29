@@ -1,8 +1,8 @@
 package org.sagebionetworks.repo.web.filter;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.Date;
+import java.util.Map;
 
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletResponse;
@@ -21,10 +21,10 @@ public class ThrottleUtils {
 	 * @throws IOException 
 	 * @return ProfileData event that was generated from provided parameters
 	 */
-	public static ProfileData generateCloudwatchProfiledata(String userId, String eventName, String namespace){
-		ValidateArgument.required(userId, "userId");
+	public static ProfileData generateCloudwatchProfiledata(String eventName, String namespace, Map<String, String> dimensions){
 		ValidateArgument.required(eventName, "eventName");
 		ValidateArgument.required(namespace, "namespace");
+		ValidateArgument.required(dimensions, "dimensions");
 		
 		ProfileData lockUnavailableEvent = new ProfileData();
 		lockUnavailableEvent.setNamespace(namespace);
@@ -32,7 +32,7 @@ public class ThrottleUtils {
 		lockUnavailableEvent.setValue(1.0);
 		lockUnavailableEvent.setUnit("Count");
 		lockUnavailableEvent.setTimestamp(new Date());
-		lockUnavailableEvent.setDimension(Collections.singletonMap("UserId", userId));
+		lockUnavailableEvent.setDimension(dimensions);
 		return lockUnavailableEvent;
 	}
 	/**
