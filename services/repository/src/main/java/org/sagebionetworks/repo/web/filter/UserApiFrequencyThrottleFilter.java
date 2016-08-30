@@ -39,7 +39,6 @@ public class UserApiFrequencyThrottleFilter implements Filter{
 	@Autowired
 	ThrottleRulesCache throttleRulesCache;
 	
-	//TODO: use same semaphore or different one?
 	@Autowired
 	MemoryTimeBlockCountingSemaphore userThrottleMemoryTimeBlockSemaphore;
 	
