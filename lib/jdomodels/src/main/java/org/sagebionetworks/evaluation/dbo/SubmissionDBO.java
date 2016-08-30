@@ -1,7 +1,29 @@
 package org.sagebionetworks.evaluation.dbo;
 
-import static org.sagebionetworks.evaluation.dbo.DBOConstants.*;
-import static org.sagebionetworks.repo.model.query.SQLConstants.*;
+import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBMISSION_CREATED_ON;
+import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBMISSION_DOCKER_DIGEST;
+import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBMISSION_ENTITY_BUNDLE;
+import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBMISSION_ENTITY_ID;
+import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBMISSION_ENTITY_VERSION;
+import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBMISSION_EVAL_ID;
+import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBMISSION_ID;
+import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBMISSION_NAME;
+import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBMISSION_SUBMITTER_ALIAS;
+import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBMISSION_TEAM_ID;
+import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBMISSION_USER_ID;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_CREATED_ON;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_DOCKER_DIGEST;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_ENTITY_BUNDLE;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_ENTITY_ID;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_ENTITY_VERSION;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_EVAL_ID;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_ID;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_NAME;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_SUBMITTER_ALIAS;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_TEAM_ID;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_USER_ID;
+import static org.sagebionetworks.repo.model.query.SQLConstants.DDL_FILE_SUBMISSION;
+import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_SUBMISSION;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
