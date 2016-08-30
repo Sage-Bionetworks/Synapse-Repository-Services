@@ -152,7 +152,6 @@ public class SubmissionManagerAutowiredTest {
 		assertNull(retrieved.getTeamId());
 		assertEquals(retrievedNode.getVersionNumber(), retrieved.getVersionNumber());
 		assertEquals(DOCKER_DIGEST, retrieved.getDockerDigest());
-
 	}
 
 }
