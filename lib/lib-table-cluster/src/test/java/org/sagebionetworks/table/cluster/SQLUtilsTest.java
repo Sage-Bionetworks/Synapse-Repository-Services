@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.IdRange;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
@@ -1098,5 +1099,16 @@ public class SQLUtilsTest {
 		String tableId = "syn123";
 		String sql = SQLUtils.deleteTempTableSql(tableId);
 		assertEquals("DROP TABLE IF EXISTS TEMP123", sql);
+	}
+	
+	@Test
+	public void testCreateSelectInsertFromEntityReplication(){
+		String viewId = "syn123";
+		ColumnModel one = TableModelTestUtils.createColumn(1L);
+		ColumnModel id = EntityField.id.getColumnModel();
+		id.setId("2");
+		List<ColumnModel> schema = Lists.newArrayList(one, id);
+		String sql = SQLUtils.createSelectInsertFromEntityReplication(viewId, schema);
+		assertEquals("", sql);
 	}
 }

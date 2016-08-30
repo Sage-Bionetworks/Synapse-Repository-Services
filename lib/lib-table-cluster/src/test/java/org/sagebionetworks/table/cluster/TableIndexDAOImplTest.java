@@ -27,13 +27,13 @@ import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.repo.model.AnnotationDTO;
-import org.sagebionetworks.repo.model.EntityDTO;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
+import org.sagebionetworks.repo.model.table.AnnotationDTO;
 import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.EntityDTO;
 import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.IdRange;
 import org.sagebionetworks.repo.model.table.Row;
@@ -41,6 +41,7 @@ import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.Table;
 import org.sagebionetworks.repo.model.table.TableEntity;
+import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
@@ -1418,6 +1419,7 @@ public class TableIndexDAOImplTest {
 	private EntityDTO createEntityDTO(long id, EntityType type, int annotationCount){
 		EntityDTO entityDto = new EntityDTO();
 		entityDto.setId(id);
+		entityDto.setCurrentVersion(2L);
 		entityDto.setCreatedBy(222L);
 		entityDto.setCreatedOn(new Date());
 		entityDto.setEtag("etag"+id);
@@ -1436,7 +1438,7 @@ public class TableIndexDAOImplTest {
 			AnnotationDTO annoDto = new AnnotationDTO();
 			annoDto.setEntityId(id);
 			annoDto.setKey("key"+i);
-			annoDto.setType(AnnotationDTO.Type.values()[i%AnnotationDTO.Type.values().length]);
+			annoDto.setType(AnnotationType.values()[i%AnnotationType.values().length]);
 			annoDto.setValue(""+i);
 			annos.add(annoDto);
 		}

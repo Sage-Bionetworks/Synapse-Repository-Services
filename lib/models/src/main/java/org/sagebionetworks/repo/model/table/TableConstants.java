@@ -5,7 +5,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.sagebionetworks.repo.model.AnnotationDTO;
 import org.sagebionetworks.repo.model.EntityType;
 
 import com.google.common.collect.ImmutableMap;
@@ -175,6 +174,8 @@ public class TableConstants {
 	
 	public static final String TYPE_PARAMETER_NAME = "typeParam";
 	public static final String PARENT_ID_PARAMETER_NAME = "parentIds";
+	public static final String ENTITY_REPLICATION_ALIAS = "R";
+	public static final String ANNOTATION_REPLICATION_ALIAS = "A";
 	
 	//  Select the CRC32 from the entity replication for a given type and scope
 	public static final String SQL_SELECT_FILE_CRC32 = "SELECT SUM(CRC32(CONCAT("
@@ -199,7 +200,7 @@ public class TableConstants {
 	static {
 		StringBuilder builder = new StringBuilder();
 		boolean first = true;
-		for(AnnotationDTO.Type type: AnnotationDTO.Type.values()){
+		for(AnnotationType type: AnnotationType.values()){
 			if(!first){
 				builder.append(", ");
 			}

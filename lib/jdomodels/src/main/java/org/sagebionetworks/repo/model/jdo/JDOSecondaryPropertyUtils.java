@@ -22,11 +22,12 @@ import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 import org.apache.commons.io.IOUtils;
-import org.sagebionetworks.repo.model.AnnotationDTO;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
+import org.sagebionetworks.repo.model.table.AnnotationDTO;
+import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.util.Closer;
 import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.ValidateArgument;
@@ -441,22 +442,22 @@ public class JDOSecondaryPropertyUtils {
 			Annotations additional = annos.getAdditionalAnnotations();
 			for(String key: additional.getStringAnnotations().keySet()){
 				List values = additional.getStringAnnotations().get(key);
-				results.add(new AnnotationDTO(entityId, key, AnnotationDTO.Type.STRING, getSingleString(values, maxAnnotationChars)));
+				results.add(new AnnotationDTO(entityId, key, AnnotationType.STRING, getSingleString(values, maxAnnotationChars)));
 			}
 			// longs
 			for(String key: additional.getLongAnnotations().keySet()){
 				List values = additional.getLongAnnotations().get(key);
-				results.add(new AnnotationDTO(entityId, key, AnnotationDTO.Type.LONG, getSingleString(values, maxAnnotationChars)));
+				results.add(new AnnotationDTO(entityId, key, AnnotationType.LONG, getSingleString(values, maxAnnotationChars)));
 			}
 			// doubles
 			for(String key: additional.getDoubleAnnotations().keySet()){
 				List values = additional.getDoubleAnnotations().get(key);
-				results.add(new AnnotationDTO(entityId, key, AnnotationDTO.Type.DOUBLE, getSingleString(values, maxAnnotationChars)));
+				results.add(new AnnotationDTO(entityId, key, AnnotationType.DOUBLE, getSingleString(values, maxAnnotationChars)));
 			}
 			// dates
 			for(String key: additional.getDateAnnotations().keySet()){
 				List values = additional.getDateAnnotations().get(key);
-				results.add(new AnnotationDTO(entityId, key, AnnotationDTO.Type.DATE, getSingleString(values, maxAnnotationChars)));
+				results.add(new AnnotationDTO(entityId, key, AnnotationType.DATE, getSingleString(values, maxAnnotationChars)));
 			}
 		}
 		return results;

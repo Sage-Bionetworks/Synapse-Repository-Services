@@ -1,6 +1,8 @@
 package org.sagebionetworks.repo.manager.table;
 
 import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -15,6 +17,7 @@ import org.sagebionetworks.repo.model.dbo.dao.table.TableViewUtils;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
@@ -116,6 +119,28 @@ public class TableViewManagerImpl implements TableViewManager {
 	public Set<Long> findViewsContainingEntity(String entityId) {
 		Set<Long> entityPath = tableManagerSupport.getEntityPath(entityId);
 		return viewScopeDao.findViewScopeIntersectionWithPath(entityPath);
+	}
+
+	@Override
+	public List<ColumnModel> getViewSchemaWithRequiredColumns(String tableId) {
+		List<ColumnModel> currentSchema = tableManagerSupport.getColumnModelsForTable(tableId);
+		/* Set of required column names.
+		 * Note: Using a list instead of a HashSet because the list only contains three elements.
+		 */
+		List<ColumnModel> requiredFields = tableManagerSupport.getColumnModels(
+				EntityField.id,
+				EntityField.currentVersion,
+				EntityField.benefactorId
+				);
+		// remove the the columns that already exist
+		for(ColumnModel cm: currentSchema){
+			requiredFields.remove(cm);
+		}
+		// Add anything still missing
+		for(ColumnModel required: requiredFields){
+			currentSchema.add(required);
+		}
+		return currentSchema;
 	}
 
 }

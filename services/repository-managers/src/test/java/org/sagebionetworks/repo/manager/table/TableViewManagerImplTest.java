@@ -4,9 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyListOf;
 import static org.mockito.Matchers.anySetOf;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -15,8 +13,10 @@ import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Matchers;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.mockito.internal.matchers.AnyVararg;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.model.dbo.dao.table.TableViewDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -111,6 +112,26 @@ public class TableViewManagerImplTest {
 		when(mockTableViewDao.countAllEntitiesInView(anySetOf(Long.class), any(ViewType.class))).thenReturn(rowCount);
 		when(mockTableViewDao.calculateCRCForAllEntitiesWithinContainers(anySetOf(Long.class), any(ViewType.class))).thenReturn(viewCRC);
 		
+		doAnswer(new Answer<ColumnModel>(){
+			@Override
+			public ColumnModel answer(InvocationOnMock invocation)
+					throws Throwable {
+				EntityField field = (EntityField) invocation.getArguments()[0];
+				return field.getColumnModel();
+			}}).when(tableManagerSupport).getColumnModel(any(EntityField.class));
+		
+		doAnswer(new Answer<List<ColumnModel>>(){
+			@Override
+			public List<ColumnModel> answer(InvocationOnMock invocation)
+					throws Throwable {
+				Object[] fields =  invocation.getArguments();
+				List<ColumnModel> results = new LinkedList<ColumnModel>();
+				for(Object object: fields){
+					EntityField field = (EntityField) object;
+					results.add(field.getColumnModel());
+				}
+				return results;
+			}}).when(tableManagerSupport).getColumnModels(Matchers.<EntityField>anyVararg());
 	}
 	
 	@Test
@@ -252,6 +273,42 @@ public class TableViewManagerImplTest {
 		// call under test
 		Set<Long> results = manager.findViewsContainingEntity(viewId);
 		assertEquals(expected, results);
+	}
+	
+	@Test
+	public void testGetViewSchemaWithRequiredColumnsNoAdditions(){
+		String tableId = "syn123";
+		List<ColumnModel> rawSchema = Lists.newArrayList(
+				EntityField.currentVersion.getColumnModel(),
+				EntityField.benefactorId.getColumnModel(),
+				EntityField.createdBy.getColumnModel(),
+				EntityField.id.getColumnModel()
+				);
+		when(tableManagerSupport.getColumnModelsForTable(tableId)).thenReturn(rawSchema);
+		// call under test
+		List<ColumnModel> result = manager.getViewSchemaWithRequiredColumns(tableId);
+		assertEquals(rawSchema, result);
+	}
+	
+	@Test
+	public void testGetViewSchemaWithRequiredColumnsAllMissing(){
+		String tableId = "syn123";
+		List<ColumnModel> rawSchema = Lists.newArrayList(
+				EntityField.createdBy.getColumnModel(),
+				EntityField.createdOn.getColumnModel()
+				);
+		when(tableManagerSupport.getColumnModelsForTable(tableId)).thenReturn(rawSchema);
+		// call under test
+		List<ColumnModel> result = manager.getViewSchemaWithRequiredColumns(tableId);
+		
+		List<ColumnModel> expected = Lists.newArrayList(
+				EntityField.createdBy.getColumnModel(),
+				EntityField.createdOn.getColumnModel(),
+				EntityField.id.getColumnModel(),
+				EntityField.currentVersion.getColumnModel(),
+				EntityField.benefactorId.getColumnModel()
+				);
+		assertEquals(expected, result);
 	}
 
 }

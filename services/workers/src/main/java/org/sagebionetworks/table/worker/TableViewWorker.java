@@ -129,7 +129,7 @@ public class TableViewWorker implements ChangeMessageDrivenRunner {
 		// Since this worker re-builds the index, start by deleting it.
 		indexManager.deleteTableIndex();
 		// Lookup the table's schema
-		final List<ColumnModel> currentSchema = tableViewManager.getViewSchemaWithBenefactor(tableId);
+		final List<ColumnModel> currentSchema = tableViewManager.getViewSchemaWithRequiredColumns(tableId);
 		
 		// Get the containers for this view.
 		Set<Long> allContainersInScope  = tableManagerSupport.getAllContainerIdsForViewScope(tableId);

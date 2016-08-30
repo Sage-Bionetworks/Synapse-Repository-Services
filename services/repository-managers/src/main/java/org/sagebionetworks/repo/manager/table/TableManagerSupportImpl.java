@@ -31,10 +31,10 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
-import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.repo.transactions.RequiresNewReadCommitted;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
@@ -405,6 +405,22 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		ValidateArgument.required(field, "field");
 		return columnModelDao.createColumnModel(field.getColumnModel());
 	}
+	
+	@Override
+	public ColumnModel getColumnModel(EntityField field){
+		ValidateArgument.required(field, "field");
+		return columnModelDao.createColumnModel(field.getColumnModel());
+	}
+	
+	@Override
+	public List<ColumnModel> getColumnModels(EntityField... fields) {
+		List<ColumnModel> results = new LinkedList<ColumnModel>();
+		for(EntityField field: fields){
+			results.add(getColumnModel(field));
+		}
+		return results;
+	}
+
 
 	@Override
 	public Set<Long> getAccessibleBenefactors(UserInfo user,
@@ -456,5 +472,4 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	public List<ColumnModel> getColumnModel(List<String> ids, boolean keepOrder) {
 		return columnModelDao.getColumnModel(ids, keepOrder);
 	}
-
 }

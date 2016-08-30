@@ -1,7 +1,9 @@
-package org.sagebionetworks.repo.model;
+package org.sagebionetworks.repo.model.table;
 
 import java.util.Date;
 import java.util.List;
+
+import org.sagebionetworks.repo.model.EntityType;
 
 /**
  * Entity Data Transfer Object (TDO).
