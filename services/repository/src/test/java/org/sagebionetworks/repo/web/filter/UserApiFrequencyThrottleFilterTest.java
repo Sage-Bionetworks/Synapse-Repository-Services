@@ -52,6 +52,7 @@ public class UserApiFrequencyThrottleFilterTest {
 	private static final String path = "/repo/v1/the/path/is/a/lie/12345/";
 	private static final String normalizedPath = PathNormalizer.normalizeMethodSignature(path);
 	private static final ThrottleLimit throttleLimit = new ThrottleLimit(123, 456);
+	private static final String keyForSemaphore = userId + ":" + normalizedPath;
 	
 	private MockHttpServletRequest request;
 	private MockHttpServletResponse response;
@@ -59,15 +60,14 @@ public class UserApiFrequencyThrottleFilterTest {
 	@Before
 	public void setupFilter() throws Exception {
 		filter = new UserApiFrequencyThrottleFilter();
-		request = new MockHttpServletRequest();
-		response = new MockHttpServletResponse();
-		
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		ReflectionTestUtils.setField(filter, "userThrottleMemoryTimeBlockSemaphore", userFrequencyThrottleGate);
 		ReflectionTestUtils.setField(filter, "throttleRulesCache", throttleRulesCache);
+		
+		request = new MockHttpServletRequest();
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		request.setRequestURI(path);
 		
-		assertNotNull(userFrequencyThrottleGate);
+		response = new MockHttpServletResponse();
 	}
 	
 	@Test
@@ -108,12 +108,12 @@ public class UserApiFrequencyThrottleFilterTest {
 	@Test
 	public void testUserUnderThrottleLimit() throws Exception {
 		when(throttleRulesCache.getThrottleLimit(normalizedPath)).thenReturn(throttleLimit);
-		when(userFrequencyThrottleGate.attemptToAcquireLock(userId+normalizedPath, throttleLimit.getCallPeriodSec(), throttleLimit.getMaxCallsPerUserPerPeriod())).thenReturn(true);
+		when(userFrequencyThrottleGate.attemptToAcquireLock(keyForSemaphore, throttleLimit.getCallPeriodSec(), throttleLimit.getMaxCallsPerUserPerPeriod())).thenReturn(true);
 
 		filter.doFilter(request, response, filterChain);
 
 		verify(filterChain).doFilter(request, response);
-		verify(userFrequencyThrottleGate).attemptToAcquireLock(userId+normalizedPath, throttleLimit.getCallPeriodSec(), throttleLimit.getMaxCallsPerUserPerPeriod());
+		verify(userFrequencyThrottleGate).attemptToAcquireLock(keyForSemaphore, throttleLimit.getCallPeriodSec(), throttleLimit.getMaxCallsPerUserPerPeriod());
 		verifyNoMoreInteractions(filterChain, userFrequencyThrottleGate);
 	}
 	
@@ -123,7 +123,7 @@ public class UserApiFrequencyThrottleFilterTest {
 		ReflectionTestUtils.setField(filter, "consumer", consumer);
 		
 		when(throttleRulesCache.getThrottleLimit(normalizedPath)).thenReturn(throttleLimit);
-		when(userFrequencyThrottleGate.attemptToAcquireLock(userId+normalizedPath, throttleLimit.getCallPeriodSec(), throttleLimit.getMaxCallsPerUserPerPeriod())).thenReturn(false);
+		when(userFrequencyThrottleGate.attemptToAcquireLock(keyForSemaphore, throttleLimit.getCallPeriodSec(), throttleLimit.getMaxCallsPerUserPerPeriod())).thenReturn(false);
 
 		filter.doFilter(request, response, filterChain);
 		assertEquals(THROTTLED_HTTP_STATUS, response.getStatus());
@@ -132,7 +132,7 @@ public class UserApiFrequencyThrottleFilterTest {
 		verify(consumer).addProfileData(profileDataArgument.capture());
 		assertEquals(CLOUDWATCH_EVENT_NAME, profileDataArgument.getValue().getName());
 		
-		verify(userFrequencyThrottleGate).attemptToAcquireLock(userId+normalizedPath, throttleLimit.getCallPeriodSec(), throttleLimit.getMaxCallsPerUserPerPeriod());
+		verify(userFrequencyThrottleGate).attemptToAcquireLock(keyForSemaphore, throttleLimit.getCallPeriodSec(), throttleLimit.getMaxCallsPerUserPerPeriod());
 		verify(consumer).addProfileData(any(ProfileData.class));
 		verifyNoMoreInteractions(filterChain, userFrequencyThrottleGate, consumer);
 	}
