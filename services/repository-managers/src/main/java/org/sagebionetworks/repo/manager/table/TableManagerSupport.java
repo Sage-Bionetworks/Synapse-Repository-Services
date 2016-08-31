@@ -186,14 +186,6 @@ public interface TableManagerSupport {
 	 */
 	public Long calculateFileViewCRC32(String table);
 	
-	/**
-	 * Calculate a Cyclic Redundancy Check (CRC) of a TableView.
-	 * The CRC is calculated as SUM(CRC23(CONCAT(ID, '-', ETAG)))
-	 * given the ID and ETAG of each entity within the view's scope.
-	 * @param allContainersInScope
-	 * @return
-	 */
-	public Long calculateFileViewCRC32(Set<Long> allContainersInScope, ViewType type);
 	
 	/**
 	 * Get the set of container ids (Projects and Folders) for a view's scope.

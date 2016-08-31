@@ -1411,6 +1411,28 @@ public class TableIndexDAOImplTest {
 	}
 	
 	@Test
+	public void testCalculateCRC32ofEntityReplicationScopeEmpty(){
+		Set<Long> scope = new HashSet<Long>();
+		// call under test
+		Long crc = tableIndexDAO.calculateCRC32ofEntityReplicationScope(ViewType.file, scope);
+		assertEquals(new Long(-1), crc);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCalculateCRC32ofEntityReplicationNullType(){
+		Set<Long> scope = new HashSet<Long>();
+		// call under test
+		tableIndexDAO.calculateCRC32ofEntityReplicationScope(null, scope);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCalculateCRC32ofEntityReplicationNullScope(){
+		Set<Long> scope = null;
+		// call under test
+		tableIndexDAO.calculateCRC32ofEntityReplicationScope(ViewType.file, scope);
+	}
+	
+	@Test
 	public void testCopyEntityReplicationToTable(){
 		tableIndexDAO.createEntityReplicationTablesIfDoesNotExist();
 		// delete all data
@@ -1435,6 +1457,41 @@ public class TableIndexDAOImplTest {
 		// Query the results
 		long count = tableIndexDAO.getRowCountForTable(tableId);
 		assertEquals(2, count);
+		// Check the CRC of the view
+		ColumnModel etagColumn = EntityField.findMatch(schema, EntityField.etag);
+		long crc32 = tableIndexDAO.calculateCRC32ofTableView(tableId, etagColumn.getId());
+		assertEquals(3715581114L, crc32);
+	}
+	
+	@Test
+	public void testCopyEntityReplicationToTableScopeEmpty(){
+		tableIndexDAO.createEntityReplicationTablesIfDoesNotExist();
+		// delete all data
+		tableIndexDAO.deleteEntityData(mockProgressCallback, Lists.newArrayList(2L,3L));
+		
+		// setup some hierarchy.
+		EntityDTO file1 = createEntityDTO(2L, EntityType.file, 2);
+		file1.setParentId(333L);
+		EntityDTO file2 = createEntityDTO(3L, EntityType.file, 3);
+		file2.setParentId(222L);
+		
+		tableIndexDAO.addEntityData(mockProgressCallback, Lists.newArrayList(file1, file2));
+		
+		// both parents
+		Set<Long> scope = new HashSet<Long>();
+		// Create the schema for this table
+		List<ColumnModel> schema = createSchemaFromEntityDTO(file2);
+		// Create the view index
+		createOrUpdateTable(schema, tableId);
+		// Copy the entity data to the table
+		tableIndexDAO.copyEntityReplicationToTable(tableId, ViewType.file, scope, schema);
+		// Query the results
+		long count = tableIndexDAO.getRowCountForTable(tableId);
+		assertEquals(0, count);
+		// Check the CRC of the view
+		ColumnModel etagColumn = EntityField.findMatch(schema, EntityField.etag);
+		long crc32 = tableIndexDAO.calculateCRC32ofTableView(tableId, etagColumn.getId());
+		assertEquals(-1L, crc32);
 	}
 	
 	/**
@@ -1443,7 +1500,7 @@ public class TableIndexDAOImplTest {
 	 * @param dto
 	 * @return
 	 */
-	public List<ColumnModel> createSchemaFromEntityDTO(EntityDTO dto){
+	public static List<ColumnModel> createSchemaFromEntityDTO(EntityDTO dto){
 		List<ColumnModel> schema = new LinkedList<>();
 		// add a column for each annotation
 		if(dto.getAnnotations() != null){
@@ -1466,6 +1523,8 @@ public class TableIndexDAOImplTest {
 		}
 		return schema;
 	}
+
+	
 	
 	public static ColumnType translateType(AnnotationType type){
 		switch(type){

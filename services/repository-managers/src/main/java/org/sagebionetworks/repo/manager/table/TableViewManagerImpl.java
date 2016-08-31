@@ -125,11 +125,10 @@ public class TableViewManagerImpl implements TableViewManager {
 	public List<ColumnModel> getViewSchemaWithRequiredColumns(String tableId) {
 		List<ColumnModel> currentSchema = tableManagerSupport.getColumnModelsForTable(tableId);
 		/* Set of required column names.
-		 * Note: Using a list instead of a HashSet because the list only contains three elements.
+		 * Note: Using a list instead of a HashSet because the list only contains two elements.
 		 */
 		List<ColumnModel> requiredFields = tableManagerSupport.getColumnModels(
-				EntityField.id,
-				EntityField.currentVersion,
+				EntityField.etag,
 				EntityField.benefactorId
 				);
 		// remove the the columns that already exist

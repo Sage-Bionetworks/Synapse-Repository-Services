@@ -2,7 +2,11 @@ package org.sagebionetworks.repo.model.table;
 
 import static org.junit.Assert.*;
 
+import java.util.List;
+
 import org.junit.Test;
+
+import com.google.common.collect.Lists;
 
 public class EntityFieldTest {
 
@@ -98,5 +102,19 @@ public class EntityFieldTest {
 			EntityField match = EntityField.findMatch(model);
 			assertEquals(field, match);
 		}
+	}
+	
+	@Test
+	public void testFindMatchList(){
+		ColumnModel idColumn = EntityField.id.getColumnModel();
+		ColumnModel etagColumn = EntityField.etag.getColumnModel();
+		List<ColumnModel> list = Lists.newArrayList(idColumn, etagColumn);
+		
+		ColumnModel result = EntityField.findMatch(list, EntityField.id);
+		assertEquals(idColumn, result);
+		result = EntityField.findMatch(list, EntityField.etag);
+		assertEquals(etagColumn, result);
+		result = EntityField.findMatch(list, EntityField.name);
+		assertEquals(null, result);
 	}
 }

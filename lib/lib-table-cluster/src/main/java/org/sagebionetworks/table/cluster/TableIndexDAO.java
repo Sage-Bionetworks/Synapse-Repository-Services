@@ -318,4 +318,16 @@ public interface TableIndexDAO {
 	 */
 	public void copyEntityReplicationToTable(String viewId, ViewType viewType,
 			Set<Long> allContainersInScope, List<ColumnModel> currentSchema);
+
+	/**
+	 * Calculate the Cyclic-Redundancy-Check (CRC) of a table view's concatenation
+	 * of ROW_ID + ETAG.  Used to determine if a view is synchronized with the
+	 * truth.
+	 * 
+	 * @param viewId
+	 * @param etagColumnId The ID of the view's ETAG column.
+	 * 
+	 * @return
+	 */
+	Long calculateCRC32ofTableView(String viewId, String etagColumnId);
 }

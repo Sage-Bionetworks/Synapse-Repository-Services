@@ -34,6 +34,7 @@ import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.ValidateArgument;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
@@ -689,16 +690,37 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	@Override
 	public Long calculateCRC32ofEntityReplicationScope(ViewType viewType,
 			Set<Long> allContainersInScope) {
+		ValidateArgument.required(viewType, "viewType");
+		ValidateArgument.required(allContainersInScope, "allContainersInScope");
+		if(allContainersInScope.isEmpty()){
+			return -1L;
+		}
 		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(TYPE_PARAMETER_NAME, viewType.name());
 		param.addValue(PARENT_ID_PARAMETER_NAME, allContainersInScope);
-		return namedTemplate.queryForObject(SQL_SELECT_FILE_CRC32, param, Long.class);
+		return namedTemplate.queryForObject(SQL_ENTITY_REPLICATION_CRC_32, param, Long.class);
+	}
+	
+	@Override
+	public Long calculateCRC32ofTableView(String viewId, String etagColumnId){
+		String sql = SQLUtils.buildTableViewCRC32Sql(viewId, etagColumnId);
+		Long result = this.template.queryForObject(sql, Long.class);
+		if(result == null){
+			return -1L;
+		}
+		return result;
 	}
 
 	@Override
 	public void copyEntityReplicationToTable(String viewId, ViewType viewType,
 			Set<Long> allContainersInScope, List<ColumnModel> currentSchema) {
+		ValidateArgument.required(viewType, "viewType");
+		ValidateArgument.required(allContainersInScope, "allContainersInScope");
+		if(allContainersInScope.isEmpty()){
+			// nothing to do if the scope is empty.
+			return;
+		}
 		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(TYPE_PARAMETER_NAME, viewType.name());

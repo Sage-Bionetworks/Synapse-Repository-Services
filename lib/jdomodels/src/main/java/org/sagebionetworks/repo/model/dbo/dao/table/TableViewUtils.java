@@ -301,22 +301,4 @@ public class TableViewUtils {
 		}
 		return false;
 	}
-	
-	/**
-	 * Create the SQL for select insert from the entity replication tables
-	 * to a table  view's table.
-	 * 
-	 * @param viewId
-	 * @param viewType
-	 * @param allContainersInScope
-	 * @param currentSchema
-	 * @return
-	 */
-	public static String createSelectInsertFromEntityReplication(String viewId,
-			ViewType viewType, Set<Long> allContainersInScope,
-			List<ColumnModel> currentSchema) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
 }

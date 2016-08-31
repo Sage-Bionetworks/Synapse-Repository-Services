@@ -1229,11 +1229,19 @@ public class SQLUtilsTest {
 		id.setId("2");
 		List<ColumnModel> schema = Lists.newArrayList(one, id);
 		String sql = SQLUtils.createSelectInsertFromEntityReplication(viewId, schema);
-		assertEquals("INSERT INTO T123(_C1_, _C2_)"
-				+ " SELECT A0.ANNO_VALUE AS _C1_, R.ID AS _C2_ "
-				+ "FROM ENTITY_REPLICATION R"
-				+ " LEFT OUTER JOIN ANNOTATION_REPLICATION A0 ON"
-				+ " (R.ID = A0.ENTITY_ID AND A0.ANNO_KEY = 'col_1' AND A0.ANNO_TYPE = 'STRING')"
+		assertEquals("INSERT INTO T123(ROW_ID, ROW_VERSION, _C1_, _C2_)"
+				+ " SELECT R.ID, R.CURRENT_VERSION, A0.ANNO_VALUE AS _C1_, R.ID AS _C2_"
+				+ " FROM ENTITY_REPLICATION R"
+				+ " LEFT OUTER JOIN ANNOTATION_REPLICATION A0"
+				+ " ON (R.ID = A0.ENTITY_ID AND A0.ANNO_KEY = 'col_1' AND A0.ANNO_TYPE = 'STRING')"
 				+ " WHERE R.PARENT_ID IN (:parentIds) AND TYPE = :typeParam", sql);
+	}
+	
+	@Test
+	public void testBuildTableViewCRC32Sql(){
+		String viewId = "syn123";
+		String etagColumnId = "444";
+		String sql = SQLUtils.buildTableViewCRC32Sql(viewId, etagColumnId);
+		assertEquals("SELECT SUM(CRC32(CONCAT(ROW_ID, '-', _C444_))) FROM T123", sql);
 	}
 }

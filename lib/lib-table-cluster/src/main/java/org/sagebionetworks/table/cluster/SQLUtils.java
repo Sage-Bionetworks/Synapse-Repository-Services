@@ -1290,5 +1290,18 @@ public class SQLUtils {
 			builder.append(meta.getColumnNameForId());
 		}
 	}
+	
+	/**
+	 * Create the SQL used to calculate the CRC32 of a table view.
+	 * 
+	 * @param viewId
+	 * @param etagColumnId
+	 * @return
+	 */
+	public static String buildTableViewCRC32Sql(String viewId, String etagColumnId){
+		String tableName = getTableNameForId(viewId, TableType.INDEX);
+		String columnId = getColumnNameForId(etagColumnId);
+		return String.format(TableConstants.SQL_TABLE_VIEW_CRC_32_TEMPLATE, columnId, tableName);
+	}
 
 }

@@ -111,5 +111,21 @@ public enum EntityField {
 		}
 		return null;
 	}
+	
+	/**
+	 * Given a list of ColumnModels find the ColumnModel that matches the given EntityField.
+	 * 
+	 * @param columns
+	 * @param toMatch
+	 * @return Returns null if no match is found.
+	 */
+	public static ColumnModel findMatch(List<ColumnModel> columns, EntityField toMatch){
+		for(ColumnModel cm: columns){
+			if(toMatch.isMatch(cm)){
+				return cm;
+			}
+		}
+		return null;
+	}
 
 }

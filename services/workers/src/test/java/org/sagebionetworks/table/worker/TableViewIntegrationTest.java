@@ -42,6 +42,7 @@ import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SortItem;
+import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
@@ -238,10 +239,15 @@ public class TableViewIntegrationTest {
 		String etag = row.getValues().get(0);
 		assertEquals(file.getEtag(), etag);
 		
+		// Lookup the starting table status.
+		TableStatus status = tableManagerSupport.getTableStatusOrCreateIfNotExists(fileViewId);
+		
 		// update the entity and run the query again
 		file.setName("newName");
 		entityManager.updateEntity(adminUserInfo, file, false, null);
 		file = entityManager.getEntity(adminUserInfo, ""+fileId, FileEntity.class);
+		// wait for the view status to change after the update
+		waitForViewStatusChange(status, fileViewId);
 		// run the query again
 		results = waitForConsistentQuery(adminUserInfo, sql);
 		assertNotNull(results);
@@ -285,6 +291,29 @@ public class TableViewIntegrationTest {
 			assertTrue("Timed out waiting for table view worker to make the table available.", (System.currentTimeMillis()-start) <  MAX_WAIT_MS);
 			Thread.sleep(1000);
 		}
+	}
+	
+	/**
+	 * Wait for a table's status to change.
+	 * 
+	 * @param startingStatus
+	 * @param tablId
+	 * @return
+	 * @throws InterruptedException
+	 */
+	private TableStatus waitForViewStatusChange(TableStatus startingStatus, String tablId) throws InterruptedException{
+		long start = System.currentTimeMillis();
+		while(true){
+			TableStatus nextStatus = tableManagerSupport.getTableStatusOrCreateIfNotExists(fileViewId);
+			if(startingStatus.getResetToken().equals(nextStatus.getResetToken())){
+				assertTrue("Timed out waiting for table view status change.", (System.currentTimeMillis()-start) <  MAX_WAIT_MS);
+				System.out.println("Waiting for table status to change resetToken: "+nextStatus.getResetToken());
+				Thread.sleep(1000);
+			}else{
+				return nextStatus;
+			}
+		}
+		
 	}
 
 }
