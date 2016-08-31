@@ -48,7 +48,7 @@ public class SubmissionUtils {
 		} catch (NumberFormatException e) {
 			throw new NumberFormatException("Invalid Team ID: " + dto.getId());
 		}
-		dbo.setDigest(dto.getDockerDigest());
+		dbo.setDockerDigest(dto.getDockerDigest());
 	}
 	
 	/**
@@ -68,7 +68,7 @@ public class SubmissionUtils {
 		dto.setCreatedOn(new Date(dbo.getCreatedOn()));
 		dto.setEntityBundleJSON(dbo.getEntityBundle() == null ? null : new String(dbo.getEntityBundle()));
 		dto.setTeamId(dbo.getTeamId() == null ? null : dbo.getTeamId().toString());
-		dto.setDockerDigest(dbo.getDigest());
+		dto.setDockerDigest(dbo.getDockerDigest());
 	}
 
 	/**
