@@ -128,6 +128,7 @@ public class TableViewWorker implements ChangeMessageDrivenRunner {
 
 		// Since this worker re-builds the index, start by deleting it.
 		indexManager.deleteTableIndex();
+		callback.progressMade(null);
 		// Lookup the table's schema
 		final List<ColumnModel> currentSchema = tableViewManager.getViewSchemaWithRequiredColumns(tableId);
 		
@@ -136,10 +137,14 @@ public class TableViewWorker implements ChangeMessageDrivenRunner {
 
 		// create the table in the index.
 		indexManager.setIndexSchema(callback, currentSchema);
+		callback.progressMade(null);
+		tableManagerSupport.attemptToUpdateTableProgress(tableId, token, "Copying data to view...", 0L, 1L);
 		// populate the view by coping data from the entity replication tables.
 		Long viewCRC = indexManager.populateViewFromEntityReplication(callback, viewType, allContainersInScope, currentSchema);
+		callback.progressMade(null);
 		// now that table is created and populated the indices on the table can be optimized.
 		indexManager.optimizeTableIndices();
+		callback.progressMade(null);
 		indexManager.setIndexVersion(viewCRC);
 		// Attempt to set the table to complete.
 		tableManagerSupport.attemptToSetTableStatusToAvailable(tableId, token, DEFAULT_ETAG);
