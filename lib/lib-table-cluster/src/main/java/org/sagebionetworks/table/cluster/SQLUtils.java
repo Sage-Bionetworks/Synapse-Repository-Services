@@ -1174,6 +1174,7 @@ public class SQLUtils {
 			return AnnotationType.STRING;
 		}
 	}
+
 	
 	/**
 	 * Generate the SQL used to insert select data from the entity replication tables to a
@@ -1210,6 +1211,11 @@ public class SQLUtils {
 		return builder.toString();
 	}
 
+	/**
+	 * Builds the left outer join section of the entity replication insert select.
+	 * @param metadata
+	 * @param builder
+	 */
 	public static void buildJoins(List<ColumnMetadata> metadata,
 			StringBuilder builder) {
 		for(ColumnMetadata meta: metadata){
@@ -1244,32 +1250,44 @@ public class SQLUtils {
 		}
 	}
 
+	/**
+	 * Build the select clause of the entity replication insert select.
+	 * @param builder
+	 * @param metadata
+	 */
 	public static void buildSelect(StringBuilder builder,
 			List<ColumnMetadata> metadata) {
-		boolean first;
-		first = true;
+		builder.append(TableConstants.ENTITY_REPLICATION_ALIAS);
+		builder.append(".");
+		builder.append(TableConstants.ENTITY_REPLICATION_COL_ID);
+		builder.append(", ");
+		builder.append(TableConstants.ENTITY_REPLICATION_ALIAS);
+		builder.append(".");
+		builder.append(TableConstants.ENTITY_REPLICATION_COL_VERSION);
 		for(ColumnMetadata meta: metadata){
-			if(!first){
-				builder.append(", ");
-			}
+			builder.append(", ");
 			builder.append(meta.getTableAlias());
 			builder.append(".");
 			builder.append(meta.getSelectColumnName());
 			builder.append(" AS ");
 			builder.append(meta.getColumnNameForId());
-			first = false;
 		}
 	}
 
+	/**
+	 * Build the insert clause section of entity replication insert select.
+	 * 
+	 * @param builder
+	 * @param metadata
+	 */
 	public static void buildInsertValues(StringBuilder builder,
 			List<ColumnMetadata> metadata) {
-		boolean first = true;
+		builder.append(TableConstants.ROW_ID);
+		builder.append(", ");
+		builder.append(TableConstants.ROW_VERSION);
 		for(ColumnMetadata meta: metadata){
-			if(!first){
-				builder.append(", ");
-			}
+			builder.append(", ");
 			builder.append(meta.getColumnNameForId());
-			first = false;
 		}
 	}
 

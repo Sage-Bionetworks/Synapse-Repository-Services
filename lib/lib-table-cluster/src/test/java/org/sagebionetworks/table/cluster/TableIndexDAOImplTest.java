@@ -34,6 +34,7 @@ import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.EntityDTO;
+import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.IdRange;
 import org.sagebionetworks.repo.model.table.Row;
@@ -1407,6 +1408,78 @@ public class TableIndexDAOImplTest {
 		// call under test
 		crc = tableIndexDAO.calculateCRC32ofEntityReplicationScope(ViewType.file, scope);
 		assertEquals(new Long(3592651982L), crc);
+	}
+	
+	@Test
+	public void testCopyEntityReplicationToTable(){
+		tableIndexDAO.createEntityReplicationTablesIfDoesNotExist();
+		// delete all data
+		tableIndexDAO.deleteEntityData(mockProgressCallback, Lists.newArrayList(2L,3L));
+		
+		// setup some hierarchy.
+		EntityDTO file1 = createEntityDTO(2L, EntityType.file, 2);
+		file1.setParentId(333L);
+		EntityDTO file2 = createEntityDTO(3L, EntityType.file, 3);
+		file2.setParentId(222L);
+		
+		tableIndexDAO.addEntityData(mockProgressCallback, Lists.newArrayList(file1, file2));
+		
+		// both parents
+		Set<Long> scope = Sets.newHashSet(file1.getParentId(), file2.getParentId());
+		// Create the schema for this table
+		List<ColumnModel> schema = createSchemaFromEntityDTO(file2);
+		// Create the view index
+		createOrUpdateTable(schema, tableId);
+		// Copy the entity data to the table
+		tableIndexDAO.copyEntityReplicationToTable(tableId, ViewType.file, scope, schema);
+		// Query the results
+		long count = tableIndexDAO.getRowCountForTable(tableId);
+		assertEquals(2, count);
+	}
+	
+	/**
+	 * Create a view schema using an EntityDTO as a template.
+	 * 
+	 * @param dto
+	 * @return
+	 */
+	public List<ColumnModel> createSchemaFromEntityDTO(EntityDTO dto){
+		List<ColumnModel> schema = new LinkedList<>();
+		// add a column for each annotation
+		if(dto.getAnnotations() != null){
+			for(AnnotationDTO annoDto: dto.getAnnotations()){
+				ColumnModel cm = new ColumnModel();
+				cm.setColumnType(translateType(annoDto.getType()));
+				cm.setName(annoDto.getKey());
+				if(ColumnType.STRING.equals(cm.getColumnType())){
+					cm.setMaximumSize(50L);
+				}
+				schema.add(cm);
+			}
+		}
+		// Add all of the default EntityFields
+		schema.addAll(EntityField.getAllColumnModels());
+		// assign each column an ID
+		for(int i=0; i<schema.size(); i++){
+			ColumnModel cm = schema.get(i);
+			cm.setId(""+i);
+		}
+		return schema;
+	}
+	
+	public static ColumnType translateType(AnnotationType type){
+		switch(type){
+		case STRING:
+			return ColumnType.STRING;
+		case DATE:
+			return ColumnType.DATE;
+		case DOUBLE:
+			return ColumnType.DOUBLE;
+		case LONG:
+			return ColumnType.INTEGER;
+		default:
+			return ColumnType.STRING;
+		}
 	}
 	
 	/**

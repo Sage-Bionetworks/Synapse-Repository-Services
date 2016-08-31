@@ -15,6 +15,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
+import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -1100,6 +1101,125 @@ public class SQLUtilsTest {
 		String sql = SQLUtils.deleteTempTableSql(tableId);
 		assertEquals("DROP TABLE IF EXISTS TEMP123", sql);
 	}
+
+	
+	@Test
+	public void testTranslateColumnsEntityField(){
+		ColumnModel cm = EntityField.benefactorId.getColumnModel();
+		cm.setId("123");
+		int index = 4;
+		// call under test
+		ColumnMetadata meta = SQLUtils.translateColumns(cm, index);
+		assertEquals(cm, meta.getColumnModel());
+		assertEquals(index, meta.getColumnIndex());
+		assertEquals("_C123_", meta.getColumnNameForId());
+		assertEquals(EntityField.benefactorId, meta.getEntityField());
+		assertEquals("R", meta.getTableAlias());
+		assertEquals(EntityField.benefactorId.getDatabaseColumnName(), meta.getSelectColumnName());
+		assertEquals(null, meta.getAnnotationType());
+	}
+	
+	@Test
+	public void testTranslateColumnsAnnotation(){
+		ColumnModel cm = new ColumnModel();
+		cm.setName("foo");
+		cm.setColumnType(ColumnType.STRING);
+		cm.setMaximumSize(50L);
+		cm.setId("123");
+		int index = 4;
+		// call under test.
+		ColumnMetadata meta = SQLUtils.translateColumns(cm, index);
+		assertEquals(cm, meta.getColumnModel());
+		assertEquals(index, meta.getColumnIndex());
+		assertEquals("_C123_", meta.getColumnNameForId());
+		assertEquals(null, meta.getEntityField());
+		assertEquals("A4", meta.getTableAlias());
+		assertEquals(TableConstants.ANNOTATION_REPLICATION_COL_VALUE, meta.getSelectColumnName());
+		assertEquals(AnnotationType.STRING, meta.getAnnotationType());
+	}
+	
+	@Test
+	public void testTranslateColumnType(){
+		assertEquals(AnnotationType.STRING, SQLUtils.translateColumnType(ColumnType.STRING));
+		assertEquals(AnnotationType.STRING, SQLUtils.translateColumnType(ColumnType.BOOLEAN));
+		assertEquals(AnnotationType.DATE, SQLUtils.translateColumnType(ColumnType.DATE));
+		assertEquals(AnnotationType.DOUBLE, SQLUtils.translateColumnType(ColumnType.DOUBLE));
+		assertEquals(AnnotationType.STRING, SQLUtils.translateColumnType(ColumnType.ENTITYID));
+		assertEquals(AnnotationType.STRING, SQLUtils.translateColumnType(ColumnType.FILEHANDLEID));
+		assertEquals(AnnotationType.LONG, SQLUtils.translateColumnType(ColumnType.INTEGER));
+		assertEquals(AnnotationType.STRING, SQLUtils.translateColumnType(ColumnType.LARGETEXT));
+		assertEquals(AnnotationType.STRING, SQLUtils.translateColumnType(ColumnType.LINK));
+	}
+	
+	@Test
+	public void testbuildInsertValues(){
+		ColumnModel one = EntityField.benefactorId.getColumnModel();
+		one.setId("1");
+		ColumnModel two = TableModelTestUtils.createColumn(2L);
+		List<ColumnModel> schema = Lists.newArrayList(one, two);
+		List<ColumnMetadata> metaList = SQLUtils.translateColumns(schema);
+		StringBuilder builder = new StringBuilder();
+		// call under test
+		SQLUtils.buildInsertValues(builder, metaList);
+		assertEquals("ROW_ID, ROW_VERSION, _C1_, _C2_", builder.toString());
+	}
+	
+	@Test
+	public void testBuildSelect(){
+		ColumnModel one = EntityField.benefactorId.getColumnModel();
+		one.setId("1");
+		ColumnModel two = TableModelTestUtils.createColumn(2L);
+		List<ColumnModel> schema = Lists.newArrayList(one, two);
+		List<ColumnMetadata> metaList = SQLUtils.translateColumns(schema);
+		StringBuilder builder = new StringBuilder();
+		// call under test
+		SQLUtils.buildSelect(builder, metaList);
+		assertEquals("R.ID, R.CURRENT_VERSION, R.BENEFACTOR_ID AS _C1_, A1.ANNO_VALUE AS _C2_", builder.toString());
+	}
+	
+	@Test
+	public void testBuildJoinsNoAnnotations(){
+		ColumnModel one = EntityField.benefactorId.getColumnModel();
+		one.setId("1");
+		ColumnModel two = EntityField.id.getColumnModel();
+		two.setId("2");
+		List<ColumnModel> schema = Lists.newArrayList(one, two);
+		List<ColumnMetadata> metaList = SQLUtils.translateColumns(schema);
+		StringBuilder builder = new StringBuilder();
+		// call under test
+		SQLUtils.buildJoins(metaList, builder);
+		assertEquals("", builder.toString());
+	}
+	
+	@Test
+	public void testBuildJoinsOneAnnotation(){
+		ColumnModel one = EntityField.benefactorId.getColumnModel();
+		one.setId("1");
+		ColumnModel two = TableModelTestUtils.createColumn(2L);
+		List<ColumnModel> schema = Lists.newArrayList(one, two);
+		List<ColumnMetadata> metaList = SQLUtils.translateColumns(schema);
+		StringBuilder builder = new StringBuilder();
+		// call under test
+		SQLUtils.buildJoins(metaList, builder);
+		assertEquals(" LEFT OUTER JOIN ANNOTATION_REPLICATION A1 ON"
+				+ " (R.ID = A1.ENTITY_ID AND A1.ANNO_KEY = 'col_2' AND A1.ANNO_TYPE = 'STRING')", builder.toString());
+	}
+	
+	@Test
+	public void testBuildJoinsMultipleAnnotation(){
+		ColumnModel one =  TableModelTestUtils.createColumn(1L);
+		ColumnModel two = TableModelTestUtils.createColumn(2L);
+		two.setColumnType(ColumnType.INTEGER);
+		List<ColumnModel> schema = Lists.newArrayList(one, two);
+		List<ColumnMetadata> metaList = SQLUtils.translateColumns(schema);
+		StringBuilder builder = new StringBuilder();
+		// call under test
+		SQLUtils.buildJoins(metaList, builder);
+		assertEquals(" LEFT OUTER JOIN ANNOTATION_REPLICATION A0 ON"
+				+ " (R.ID = A0.ENTITY_ID AND A0.ANNO_KEY = 'col_1' AND A0.ANNO_TYPE = 'STRING')"
+				+ " LEFT OUTER JOIN ANNOTATION_REPLICATION A1 ON "
+				+ "(R.ID = A1.ENTITY_ID AND A1.ANNO_KEY = 'col_2' AND A1.ANNO_TYPE = 'LONG')", builder.toString());
+	}
 	
 	@Test
 	public void testCreateSelectInsertFromEntityReplication(){
@@ -1109,6 +1229,11 @@ public class SQLUtilsTest {
 		id.setId("2");
 		List<ColumnModel> schema = Lists.newArrayList(one, id);
 		String sql = SQLUtils.createSelectInsertFromEntityReplication(viewId, schema);
-		assertEquals("", sql);
+		assertEquals("INSERT INTO T123(_C1_, _C2_)"
+				+ " SELECT A0.ANNO_VALUE AS _C1_, R.ID AS _C2_ "
+				+ "FROM ENTITY_REPLICATION R"
+				+ " LEFT OUTER JOIN ANNOTATION_REPLICATION A0 ON"
+				+ " (R.ID = A0.ENTITY_ID AND A0.ANNO_KEY = 'col_1' AND A0.ANNO_TYPE = 'STRING')"
+				+ " WHERE R.PARENT_ID IN (:parentIds) AND TYPE = :typeParam", sql);
 	}
 }
