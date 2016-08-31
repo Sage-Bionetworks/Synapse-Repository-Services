@@ -5,6 +5,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang3.StringUtils;
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.sagebionetworks.evaluation.dbo.DBOConstants;
 import org.sagebionetworks.evaluation.model.EvaluationSubmissions;
 import org.sagebionetworks.evaluation.model.Submission;
@@ -23,10 +26,12 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
-
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionStatusAnnotationsAsyncManager {
+	
+	public static final String REPOSITORY_NAME = "repositoryName";
+	private static final String BUNDLE_ENTITY_FIELD = "entity";	
 
 	@Autowired
 	private AnnotationsDAO annotationsDAO;	
@@ -238,8 +243,38 @@ public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionSt
 		teamAnno.setKey(DBOConstants.PARAM_SUBMISSION_TEAM_ID);
 		teamAnno.setValue(submission.getTeamId()==null?null:Long.parseLong(submission.getTeamId()));
 		insertAnnotation(teamAnno, longAnnoMap, doubleAnnoMap, stringAnnoMap);
+		
+		// Docker repo name
+		String dockerRepositoryName = getDockerRepositoryNameFromSubmission(submission);
+		if (!StringUtils.isEmpty(dockerRepositoryName)) {
+			StringAnnotation repoNameAnno = new StringAnnotation();
+			repoNameAnno.setIsPrivate(true);
+			repoNameAnno.setKey(REPOSITORY_NAME);
+			repoNameAnno.setValue(dockerRepositoryName);
+			insertAnnotation(repoNameAnno, longAnnoMap, doubleAnnoMap, stringAnnoMap);
+		}
+		
+		// Docker Digest
+		if (!StringUtils.isEmpty(submission.getDockerDigest())) {
+			StringAnnotation digestAnno = new StringAnnotation();
+			digestAnno.setIsPrivate(true);
+			digestAnno.setKey(DBOConstants.PARAM_SUBMISSION_DOCKER_DIGEST);
+			digestAnno.setValue(submission.getDockerDigest());
+			insertAnnotation(digestAnno, longAnnoMap, doubleAnnoMap, stringAnnoMap);
+		}
+
 	}
 	
+	public static String getDockerRepositoryNameFromSubmission(Submission submission) {
+		try{
+			JSONObject bundle = new JSONObject(submission.getEntityBundleJSON());
+			return bundle.getJSONObject(BUNDLE_ENTITY_FIELD).getString(REPOSITORY_NAME);
+		} catch (JSONException e) {
+			// if the serialized entity isn't as expected, just return null
+			return null;
+		}
+	}
+
 	private static void insertAnnotation(AnnotationBase anno, Map<String, LongAnnotation> longAnnoMap, 
 			Map<String, DoubleAnnotation> doubleAnnoMap, Map<String, StringAnnotation> stringAnnoMap) {
 		String key = anno.getKey();
