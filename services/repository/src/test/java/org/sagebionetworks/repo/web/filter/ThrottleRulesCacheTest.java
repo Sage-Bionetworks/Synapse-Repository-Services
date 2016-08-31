@@ -32,16 +32,6 @@ public class ThrottleRulesCacheTest {
 		
 		ReflectionTestUtils.setField(throttleRulesCache, "throttleRulesDao", throttleRulesDao);
 	}
-
-	@Test
-	public void testTimerFiredNothingToUpdate() {
-		assertEquals(0, throttleRulesCache.getNumThrottleRules());
-		//return empty list of rules
-		when(throttleRulesDao.getAllThrottles()).thenReturn(new LinkedList<ThrottleRule>());
-		
-		throttleRulesCache.timerFired();
-		assertEquals(0, throttleRulesCache.getNumThrottleRules());
-	}
 	
 	@Test
 	public void testTimerFiredUpdateCache(){
@@ -56,7 +46,7 @@ public class ThrottleRulesCacheTest {
 		rules.add(new ThrottleRule(0, path1, maxCalls1, callPeriod1));
 		rules.add(new ThrottleRule(1, path2, maxCalls2, callPeriod2));
 		
-		when(throttleRulesDao.getAllThrottles()).thenReturn(rules);
+		when(throttleRulesDao.getAllThrottleRules()).thenReturn(rules);
 		
 		//initially empty cache
 		assertEquals(0, throttleRulesCache.getNumThrottleRules());
@@ -66,11 +56,11 @@ public class ThrottleRulesCacheTest {
 		
 		//verify the values in the cache
 		ThrottleLimit limit1 = throttleRulesCache.getThrottleLimit(path1);
-		assertEquals(maxCalls1, limit1.getMaxCalls());
+		assertEquals(maxCalls1, limit1.getMaxCallsPerUserPerPeriod());
 		assertEquals(callPeriod1, limit1.getCallPeriodSec());
 		
 		ThrottleLimit limit2 = throttleRulesCache.getThrottleLimit(path2);
-		assertEquals(maxCalls2, limit2.getMaxCalls());
+		assertEquals(maxCalls2, limit2.getMaxCallsPerUserPerPeriod());
 		assertEquals(callPeriod2, limit2.getCallPeriodSec());
 	}
 	
@@ -86,7 +76,7 @@ public class ThrottleRulesCacheTest {
 	
 	@Test
 	public void testGetLastUpdatedAfterUpdate(){
-		when(throttleRulesDao.getAllThrottles()).thenReturn(new LinkedList<ThrottleRule>());
+		when(throttleRulesDao.getAllThrottleRules()).thenReturn(new LinkedList<ThrottleRule>());
 		throttleRulesCache.timerFired();
 		assertTrue(throttleRulesCache.getLastUpdated() > 0);
 	}

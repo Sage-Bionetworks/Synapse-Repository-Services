@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.web.filter.UserApiFrequencyThrottleFilter.CLOUDWATCH_EVENT_NAME;
+import static org.sagebionetworks.repo.web.filter.ThrottleUtils.THROTTLED_HTTP_STATUS;
 
 import javax.servlet.FilterChain;
 import org.junit.Before;
@@ -25,7 +26,6 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL
 import org.sagebionetworks.repo.model.semaphore.MemoryCountingSemaphore;
 import org.sagebionetworks.repo.model.semaphore.MemoryTimeBlockCountingSemaphore;
 import org.sagebionetworks.repo.model.throttle.ThrottleLimit;
-import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.util.ReflectionTestUtils; 
@@ -106,14 +106,14 @@ public class UserApiFrequencyThrottleFilterTest {
 	}
 	
 	@Test
-	public void testRegularUser() throws Exception {
+	public void testUserUnderThrottleLimit() throws Exception {
 		when(throttleRulesCache.getThrottleLimit(normalizedPath)).thenReturn(throttleLimit);
-		when(userFrequencyThrottleGate.attemptToAcquireLock(userId+normalizedPath, throttleLimit.getCallPeriodSec(), throttleLimit.getMaxCalls())).thenReturn(true);
+		when(userFrequencyThrottleGate.attemptToAcquireLock(userId+normalizedPath, throttleLimit.getCallPeriodSec(), throttleLimit.getMaxCallsPerUserPerPeriod())).thenReturn(true);
 
 		filter.doFilter(request, response, filterChain);
 
 		verify(filterChain).doFilter(request, response);
-		verify(userFrequencyThrottleGate).attemptToAcquireLock(userId+normalizedPath, throttleLimit.getCallPeriodSec(), throttleLimit.getMaxCalls());
+		verify(userFrequencyThrottleGate).attemptToAcquireLock(userId+normalizedPath, throttleLimit.getCallPeriodSec(), throttleLimit.getMaxCallsPerUserPerPeriod());
 		verifyNoMoreInteractions(filterChain, userFrequencyThrottleGate);
 	}
 	
@@ -123,17 +123,16 @@ public class UserApiFrequencyThrottleFilterTest {
 		ReflectionTestUtils.setField(filter, "consumer", consumer);
 		
 		when(throttleRulesCache.getThrottleLimit(normalizedPath)).thenReturn(throttleLimit);
-		when(userFrequencyThrottleGate.attemptToAcquireLock(userId+normalizedPath, throttleLimit.getCallPeriodSec(), throttleLimit.getMaxCalls())).thenReturn(false);
+		when(userFrequencyThrottleGate.attemptToAcquireLock(userId+normalizedPath, throttleLimit.getCallPeriodSec(), throttleLimit.getMaxCallsPerUserPerPeriod())).thenReturn(false);
 
 		filter.doFilter(request, response, filterChain);
-		//TODO: Switch to 429 http code once clients have been implemented to expect that code
-		assertEquals(HttpStatus.SERVICE_UNAVAILABLE.value(), response.getStatus());
+		assertEquals(THROTTLED_HTTP_STATUS, response.getStatus());
 		
 		ArgumentCaptor<ProfileData> profileDataArgument = ArgumentCaptor.forClass(ProfileData.class); 
 		verify(consumer).addProfileData(profileDataArgument.capture());
 		assertEquals(CLOUDWATCH_EVENT_NAME, profileDataArgument.getValue().getName());
 		
-		verify(userFrequencyThrottleGate).attemptToAcquireLock(userId+normalizedPath, throttleLimit.getCallPeriodSec(), throttleLimit.getMaxCalls());
+		verify(userFrequencyThrottleGate).attemptToAcquireLock(userId+normalizedPath, throttleLimit.getCallPeriodSec(), throttleLimit.getMaxCallsPerUserPerPeriod());
 		verify(consumer).addProfileData(any(ProfileData.class));
 		verifyNoMoreInteractions(filterChain, userFrequencyThrottleGate, consumer);
 	}

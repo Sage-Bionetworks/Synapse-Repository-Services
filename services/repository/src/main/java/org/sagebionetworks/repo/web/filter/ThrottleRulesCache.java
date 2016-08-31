@@ -54,7 +54,7 @@ public class ThrottleRulesCache {
 	public void timerFired(){
 		//put rules in a new map
 		Map<String, ThrottleLimit> updatedRulesMap = new ConcurrentHashMap<String, ThrottleLimit>();
-		List<ThrottleRule> rules = throttleRulesDao.getAllThrottles();
+		List<ThrottleRule> rules = throttleRulesDao.getAllThrottleRules();
 		for(ThrottleRule rule : rules){
 			updatedRulesMap.put(rule.getNormalizedPath(), new ThrottleLimit(rule.getMaxCallsPerPeriod(), rule.getPeriod()));
 		}
@@ -73,8 +73,4 @@ public class ThrottleRulesCache {
 	public long getLastUpdated(){
 		return lastUpdated.get();
 	}
-	
-	//autowire the trigger in integrationtest
-	//add atomic long -timestamp of when it last ran. in integration test waits for that value to be greater than 0
-	//log the time 
 }

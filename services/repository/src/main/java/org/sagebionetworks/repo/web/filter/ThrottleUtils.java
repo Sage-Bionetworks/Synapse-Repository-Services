@@ -10,7 +10,10 @@ import javax.servlet.http.HttpServletResponse;
 import org.sagebionetworks.cloudwatch.ProfileData;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.util.ValidateArgument;
+import org.springframework.http.HttpStatus;
 public class ThrottleUtils {
+	//TODO: switch to TOO_MANY_REQUESTS (code: 429) when clients have implemented handling that status
+	public static int THROTTLED_HTTP_STATUS = HttpStatus.SERVICE_UNAVAILABLE.value();
 	
 	/**
 	 * reports to Cloudwatch that a lock could not be acquired

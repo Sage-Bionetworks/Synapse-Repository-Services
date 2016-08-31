@@ -3,6 +3,8 @@ package org.sagebionetworks.repo.web.filter;
 import static org.sagebionetworks.repo.web.filter.ThrottleUtils.generateCloudwatchProfiledata;
 import static org.sagebionetworks.repo.web.filter.ThrottleUtils.isMigrationAdmin;
 import static org.sagebionetworks.repo.web.filter.ThrottleUtils.setResponseError;
+import static org.sagebionetworks.repo.web.filter.ThrottleUtils.THROTTLED_HTTP_STATUS;
+
 
 import java.io.IOException;
 import java.util.Collections;
@@ -65,7 +67,7 @@ public class UserApiFrequencyThrottleFilter implements Filter{
 				chain.doFilter(request, response);
 			}else{
 				//this URI is throttled
-				boolean lockAcquired = userThrottleMemoryTimeBlockSemaphore.attemptToAcquireLock(userId + normalizedPath, limit.getCallPeriodSec(), limit.getMaxCalls());
+				boolean lockAcquired = userThrottleMemoryTimeBlockSemaphore.attemptToAcquireLock(userId + ":" + normalizedPath, limit.getCallPeriodSec(), limit.getMaxCallsPerUserPerPeriod());
 				if(lockAcquired){
 					chain.doFilter(request, response);
 				}else{
@@ -77,7 +79,7 @@ public class UserApiFrequencyThrottleFilter implements Filter{
 					ProfileData report = generateCloudwatchProfiledata( CLOUDWATCH_EVENT_NAME, this.getClass().getName(), Collections.unmodifiableMap(dimensions));
 					
 					consumer.addProfileData(report);
-					setResponseError(response, HttpStatus.SERVICE_UNAVAILABLE.value(), String.format(REASON_USER_THROTTLED_API_FORMAT, normalizedPath, limit.getMaxCalls(), limit.getCallPeriodSec()));
+					setResponseError(response, THROTTLED_HTTP_STATUS, String.format(REASON_USER_THROTTLED_API_FORMAT, normalizedPath, limit.getMaxCallsPerUserPerPeriod(), limit.getCallPeriodSec()));
 				}
 			}
 		}
