@@ -71,7 +71,7 @@ public class SubmissionDBO implements MigratableDatabaseObject<SubmissionDBO, Su
 				sub.setVersionNumber(rs.getLong(COL_SUBMISSION_ENTITY_VERSION));
 				sub.setName(rs.getString(COL_SUBMISSION_NAME));
 				sub.setCreatedOn(rs.getLong(COL_SUBMISSION_CREATED_ON));
-				sub.setDigest(rs.getString(COL_SUBMISSION_DOCKER_DIGEST));
+				sub.setDockerDigest(rs.getString(COL_SUBMISSION_DOCKER_DIGEST));
 				java.sql.Blob blob = rs.getBlob(COL_SUBMISSION_ENTITY_BUNDLE);
 				if(blob != null){
 					sub.setEntityBundle(blob.getBytes(1, (int) blob.length()));
@@ -111,7 +111,7 @@ public class SubmissionDBO implements MigratableDatabaseObject<SubmissionDBO, Su
 	private Long createdOn;
 	private String name;
 	private Long teamId;
-	private String digest;
+	private String dockerDigest;
 	
 	public Long getId() {
 		return id;
@@ -181,12 +181,12 @@ public class SubmissionDBO implements MigratableDatabaseObject<SubmissionDBO, Su
 		this.teamId = teamId;
 	}
 	
-	
-	public String getDigest() {
-		return digest;
+	public String getDockerDigest() {
+		return dockerDigest;
 	}
-	public void setDigest(String digest) {
-		this.digest = digest;
+	
+	public void setDockerDigest(String dockerDigest) {
+		this.dockerDigest = dockerDigest;
 	}
 	
 	@Override
@@ -195,7 +195,8 @@ public class SubmissionDBO implements MigratableDatabaseObject<SubmissionDBO, Su
 		int result = 1;
 		result = prime * result
 				+ ((createdOn == null) ? 0 : createdOn.hashCode());
-		result = prime * result + ((digest == null) ? 0 : digest.hashCode());
+		result = prime * result
+				+ ((dockerDigest == null) ? 0 : dockerDigest.hashCode());
 		result = prime * result + Arrays.hashCode(entityBundle);
 		result = prime * result
 				+ ((entityId == null) ? 0 : entityId.hashCode());
@@ -224,10 +225,10 @@ public class SubmissionDBO implements MigratableDatabaseObject<SubmissionDBO, Su
 				return false;
 		} else if (!createdOn.equals(other.createdOn))
 			return false;
-		if (digest == null) {
-			if (other.digest != null)
+		if (dockerDigest == null) {
+			if (other.dockerDigest != null)
 				return false;
-		} else if (!digest.equals(other.digest))
+		} else if (!dockerDigest.equals(other.dockerDigest))
 			return false;
 		if (!Arrays.equals(entityBundle, other.entityBundle))
 			return false;
@@ -280,7 +281,7 @@ public class SubmissionDBO implements MigratableDatabaseObject<SubmissionDBO, Su
 				+ ", entityId=" + entityId + ", entityBundle="
 				+ Arrays.toString(entityBundle) + ", versionNumber="
 				+ versionNumber + ", createdOn=" + createdOn + ", name=" + name
-				+ ", teamId=" + teamId + ", digest=" + digest + "]";
+				+ ", teamId=" + teamId + ", dockerDigest=" + dockerDigest + "]";
 	}
 	@Override
 	public MigrationType getMigratableTableType() {
