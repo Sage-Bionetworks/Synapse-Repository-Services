@@ -1114,7 +1114,7 @@ public class SQLUtilsTest {
 		assertEquals(index, meta.getColumnIndex());
 		assertEquals("_C123_", meta.getColumnNameForId());
 		assertEquals(EntityField.benefactorId, meta.getEntityField());
-		assertEquals("R", meta.getTableAlias());
+		assertEquals(TableConstants.ENTITY_REPLICATION_ALIAS, meta.getTableAlias());
 		assertEquals(EntityField.benefactorId.getDatabaseColumnName(), meta.getSelectColumnName());
 		assertEquals(null, meta.getAnnotationType());
 	}

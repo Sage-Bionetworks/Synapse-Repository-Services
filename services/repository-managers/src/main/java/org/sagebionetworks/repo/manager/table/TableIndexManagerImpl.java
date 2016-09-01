@@ -290,11 +290,13 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	
 	/**
 	 * Populate the view table from the entity replication tables.
+	 * After the view has been populated a the sum of the cyclic redundancy check (CRC)
+	 * will be calculated on the concatenation of ROW_ID & ETAG of the resulting table.
 	 * 
 	 * @param viewType
 	 * @param allContainersInScope
 	 * @param currentSchema
-	 * @return
+	 * @return The CRC32 of the concatenation of ROW_ID & ETAG of the table after the update.
 	 */
 	Long populateViewFromEntityReplicationWithProgress(ViewType viewType, Set<Long> allContainersInScope, List<ColumnModel> currentSchema){
 		ValidateArgument.required(viewType, "viewType");
