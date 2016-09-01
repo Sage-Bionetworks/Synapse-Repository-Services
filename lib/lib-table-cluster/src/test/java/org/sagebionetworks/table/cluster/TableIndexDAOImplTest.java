@@ -1411,6 +1411,16 @@ public class TableIndexDAOImplTest {
 	}
 	
 	@Test
+	public void testCalculateCRC32ofEntityReplicationNoRows(){
+		tableIndexDAO.createEntityReplicationTablesIfDoesNotExist();
+		// nothing should have this scope
+		Set<Long> scope = Sets.newHashSet(99999L);
+		// call under test
+		Long crc = tableIndexDAO.calculateCRC32ofEntityReplicationScope(ViewType.file, scope);
+		assertEquals(new Long(-1), crc);
+	}
+	
+	@Test
 	public void testCalculateCRC32ofEntityReplicationScopeEmpty(){
 		Set<Long> scope = new HashSet<Long>();
 		// call under test

@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
@@ -38,6 +39,7 @@ import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.EntityDTO;
 import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
@@ -47,6 +49,8 @@ import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.table.cluster.ConnectionFactory;
+import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -59,7 +63,7 @@ import com.google.common.collect.Sets;
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class TableViewIntegrationTest {
 	
-	public static final int MAX_WAIT_MS = 1000 * 60;
+	public static final int MAX_WAIT_MS = 1000 * 60 * 2;
 	
 	@Autowired
 	private StackConfiguration config;
@@ -77,6 +81,8 @@ public class TableViewIntegrationTest {
 	private TableQueryManager tableQueryManger;
 	@Autowired
 	EntityPermissionsManager entityPermissionsManager;
+	@Autowired
+	ConnectionFactory tableConnectionFactory;
 	
 	ProgressCallback<Void> mockProgressCallbackVoid;
 	
@@ -179,6 +185,9 @@ public class TableViewIntegrationTest {
 	
 	@Test
 	public void testFileView() throws Exception{
+		Long fileId = KeyFactory.stringToKey(fileIds.get(0));
+		// wait for replication
+		waitForEntityReplication(fileViewId, fileViewId);
 		// query the view as a user that does not permission
 		String sql = "select * from "+fileViewId;
 		try {
@@ -190,6 +199,8 @@ public class TableViewIntegrationTest {
 		// grant the user read access to the view
 		AccessControlList acl = AccessControlListUtil.createACL(fileViewId, userInfo, Sets.newHashSet(ACCESS_TYPE.READ), new Date(System.currentTimeMillis()));
 		entityPermissionsManager.overrideInheritance(acl, adminUserInfo);
+		// wait for replication
+		waitForEntityReplication(fileViewId, fileViewId);
 		// run the query again
 		QueryResultBundle results = waitForConsistentQuery(userInfo, sql);
 		assertNotNull(results);
@@ -208,7 +219,8 @@ public class TableViewIntegrationTest {
 		access.setPrincipalId(userInfo.getId());
 		projectAcl.getResourceAccess().add(access);
 		entityPermissionsManager.updateACL(projectAcl, adminUserInfo);
-		
+		// wait for replication
+		waitForEntityReplication(fileViewId, fileViewId);
 		// run the query again
 		results = waitForConsistentQuery(userInfo, sql);
 		assertNotNull(results);
@@ -225,7 +237,7 @@ public class TableViewIntegrationTest {
 		Long fileId = KeyFactory.stringToKey(fileIds.get(0));
 		// lookup the file
 		FileEntity file = entityManager.getEntity(adminUserInfo, ""+fileId, FileEntity.class);
-		
+		waitForEntityReplication(fileViewId, file.getId());
 		// query the etag of the first file
 		String sql = "select etag from "+fileViewId+" where id = "+fileId;
 		QueryResultBundle results = waitForConsistentQuery(adminUserInfo, sql);
@@ -239,15 +251,12 @@ public class TableViewIntegrationTest {
 		String etag = row.getValues().get(0);
 		assertEquals(file.getEtag(), etag);
 		
-		// Lookup the starting table status.
-		TableStatus status = tableManagerSupport.getTableStatusOrCreateIfNotExists(fileViewId);
-		
 		// update the entity and run the query again
 		file.setName("newName");
 		entityManager.updateEntity(adminUserInfo, file, false, null);
 		file = entityManager.getEntity(adminUserInfo, ""+fileId, FileEntity.class);
-		// wait for the view status to change after the update
-		waitForViewStatusChange(status, fileViewId);
+		// wait for the change to be replicated.
+		waitForEntityReplication(fileViewId, file.getId());
 		// run the query again
 		results = waitForConsistentQuery(adminUserInfo, sql);
 		assertNotNull(results);
@@ -294,26 +303,28 @@ public class TableViewIntegrationTest {
 	}
 	
 	/**
-	 * Wait for a table's status to change.
+	 * Wait for EntityReplication to show the given etag for the given entityId.
 	 * 
-	 * @param startingStatus
-	 * @param tablId
+	 * @param tableId
+	 * @param entityId
+	 * @param etag
 	 * @return
 	 * @throws InterruptedException
 	 */
-	private TableStatus waitForViewStatusChange(TableStatus startingStatus, String tablId) throws InterruptedException{
+	private EntityDTO waitForEntityReplication(String tableId, String entityId) throws InterruptedException{
+		Entity entity = entityManager.getEntity(adminUserInfo, entityId);
 		long start = System.currentTimeMillis();
+		TableIndexDAO indexDao = tableConnectionFactory.getConnection(tableId);
 		while(true){
-			TableStatus nextStatus = tableManagerSupport.getTableStatusOrCreateIfNotExists(fileViewId);
-			if(startingStatus.getResetToken().equals(nextStatus.getResetToken())){
+			EntityDTO dto = indexDao.getEntityData(KeyFactory.stringToKey(entityId));
+			if(dto == null || !dto.getEtag().equals(entity.getEtag())){
 				assertTrue("Timed out waiting for table view status change.", (System.currentTimeMillis()-start) <  MAX_WAIT_MS);
-				System.out.println("Waiting for table status to change resetToken: "+nextStatus.getResetToken());
+				System.out.println("Waiting for entity replication. id: "+entityId+" etag: "+entity.getEtag());
 				Thread.sleep(1000);
 			}else{
-				return nextStatus;
+				return dto;
 			}
 		}
-		
 	}
 
 }

@@ -305,7 +305,7 @@ public interface TableIndexDAO {
 	 * @param allContainersInScope
 	 * @return
 	 */
-	public Long calculateCRC32ofEntityReplicationScope(
+	public long calculateCRC32ofEntityReplicationScope(
 			ViewType viewType, Set<Long> allContainersInScope);
 
 	/**
@@ -329,5 +329,5 @@ public interface TableIndexDAO {
 	 * 
 	 * @return
 	 */
-	Long calculateCRC32ofTableView(String viewId, String etagColumnId);
+	long calculateCRC32ofTableView(String viewId, String etagColumnId);
 }

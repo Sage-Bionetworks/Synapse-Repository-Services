@@ -688,7 +688,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public Long calculateCRC32ofEntityReplicationScope(ViewType viewType,
+	public long calculateCRC32ofEntityReplicationScope(ViewType viewType,
 			Set<Long> allContainersInScope) {
 		ValidateArgument.required(viewType, "viewType");
 		ValidateArgument.required(allContainersInScope, "allContainersInScope");
@@ -699,11 +699,15 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(TYPE_PARAMETER_NAME, viewType.name());
 		param.addValue(PARENT_ID_PARAMETER_NAME, allContainersInScope);
-		return namedTemplate.queryForObject(SQL_ENTITY_REPLICATION_CRC_32, param, Long.class);
+		Long crc32 = namedTemplate.queryForObject(SQL_ENTITY_REPLICATION_CRC_32, param, Long.class);
+		if(crc32 == null){
+			return -1L;
+		}
+		return crc32;
 	}
 	
 	@Override
-	public Long calculateCRC32ofTableView(String viewId, String etagColumnId){
+	public long calculateCRC32ofTableView(String viewId, String etagColumnId){
 		String sql = SQLUtils.buildTableViewCRC32Sql(viewId, etagColumnId);
 		Long result = this.template.queryForObject(sql, Long.class);
 		if(result == null){
