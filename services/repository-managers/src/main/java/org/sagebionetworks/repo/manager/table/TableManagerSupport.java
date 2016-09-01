@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.dao.table.FileEntityFields;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -185,14 +186,6 @@ public interface TableManagerSupport {
 	 */
 	public Long calculateFileViewCRC32(String table);
 	
-	/**
-	 * Calculate a Cyclic Redundancy Check (CRC) of a TableView.
-	 * The CRC is calculated as SUM(CRC23(CONCAT(ID, '-', ETAG)))
-	 * given the ID and ETAG of each entity within the view's scope.
-	 * @param allContainersInScope
-	 * @return
-	 */
-	public Long calculateFileViewCRC32(Set<Long> allContainersInScope, ViewType type);
 	
 	/**
 	 * Get the set of container ids (Projects and Folders) for a view's scope.
@@ -322,6 +315,20 @@ public interface TableManagerSupport {
 	 * @return
 	 */
 	public ColumnModel getColumModel(FileEntityFields field);
+	
+	/**
+	 * Get the ColumnModel for a given EntityField.
+	 * @param field
+	 * @return
+	 */
+	public ColumnModel getColumnModel(EntityField field);
+	
+	/**
+	 * Get the ColumnModels for the passed fields.
+	 * @param field
+	 * @return
+	 */
+	public List<ColumnModel> getColumnModels(EntityField...field);
 	
 	/**
 	 * Get the default ColumnModels for each primary filed of FileEntity.

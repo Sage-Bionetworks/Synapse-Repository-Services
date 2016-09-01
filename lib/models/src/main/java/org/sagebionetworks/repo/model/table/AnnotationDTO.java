@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.model;
+package org.sagebionetworks.repo.model.table;
 
 /**
  * Data transfer object (DTO) for an annotation of an entity.
@@ -6,16 +6,9 @@ package org.sagebionetworks.repo.model;
  */
 public class AnnotationDTO {
 	
-	public enum Type{
-		STRING,
-		LONG,
-		DOUBLE,
-		DATE,
-	}
-	
 	Long entityId;
 	String key;
-	Type type;
+	AnnotationType type;
 	String value;
 	
 	public AnnotationDTO(){
@@ -28,7 +21,7 @@ public class AnnotationDTO {
 	 * @param type
 	 * @param value
 	 */
-	public AnnotationDTO(Long entityId, String key, Type type, String value) {
+	public AnnotationDTO(Long entityId, String key, AnnotationType type, String value) {
 		super();
 		this.entityId = entityId;
 		this.key = key;
@@ -50,10 +43,10 @@ public class AnnotationDTO {
 	public void setKey(String key) {
 		this.key = key;
 	}
-	public Type getType() {
+	public AnnotationType getType() {
 		return type;
 	}
-	public void setType(Type type) {
+	public void setType(AnnotationType type) {
 		this.type = type;
 	}
 	public String getValue() {

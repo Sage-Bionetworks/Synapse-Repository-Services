@@ -19,12 +19,13 @@ import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.sagebionetworks.repo.model.AnnotationDTO;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
+import org.sagebionetworks.repo.model.table.AnnotationDTO;
+import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.repo.model.util.RandomAnnotationsUtil;
 
 import com.google.common.collect.Lists;
@@ -415,10 +416,10 @@ public class JDOSecondaryPropertyUtilsTest {
 		annos.getAdditionalAnnotations().addAnnotation("aDate", new Date(444L));
 		
 		List<AnnotationDTO> expected = Lists.newArrayList(
-				new AnnotationDTO(entityId, "aString", AnnotationDTO.Type.STRING, "someSt"),
-				new AnnotationDTO(entityId, "aLong", AnnotationDTO.Type.LONG, "123"),
-				new AnnotationDTO(entityId, "aDouble", AnnotationDTO.Type.DOUBLE, "1.22"),
-				new AnnotationDTO(entityId, "aDate", AnnotationDTO.Type.DATE, "444")
+				new AnnotationDTO(entityId, "aString", AnnotationType.STRING, "someSt"),
+				new AnnotationDTO(entityId, "aLong", AnnotationType.LONG, "123"),
+				new AnnotationDTO(entityId, "aDouble", AnnotationType.DOUBLE, "1.22"),
+				new AnnotationDTO(entityId, "aDate", AnnotationType.DATE, "444")
 		);
 		
 		List<AnnotationDTO> results = JDOSecondaryPropertyUtils.translate(entityId, annos, maxAnnotationChars);

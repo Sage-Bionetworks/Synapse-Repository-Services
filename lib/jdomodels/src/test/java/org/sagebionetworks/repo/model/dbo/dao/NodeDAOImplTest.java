@@ -34,9 +34,7 @@ import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.ActivityDAO;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.AnnotationDTO;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.EntityDTO;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
@@ -71,6 +69,9 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.provenance.Activity;
+import org.sagebionetworks.repo.model.table.AnnotationDTO;
+import org.sagebionetworks.repo.model.table.EntityDTO;
+import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.Callback;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -3030,6 +3031,7 @@ public class NodeDAOImplTest {
 		assertEquals(2, results.size());
 		EntityDTO fileDto = results.get(1);
 		assertEquals(KeyFactory.stringToKey(file.getId()), fileDto.getId());
+		assertEquals(file.getVersionNumber(), fileDto.getCurrentVersion());
 		assertEquals(file.getCreatedByPrincipalId(), fileDto.getCreatedBy());
 		assertEquals(file.getCreatedOn(), fileDto.getCreatedOn());
 		assertEquals(file.getETag(), fileDto.getEtag());
@@ -3044,9 +3046,9 @@ public class NodeDAOImplTest {
 		assertNotNull(fileDto.getAnnotations());
 		assertEquals(3, fileDto.getAnnotations().size());
 		List<AnnotationDTO> expected = Lists.newArrayList(
-				new AnnotationDTO(fileIdLong, "aString", AnnotationDTO.Type.STRING, "someString"),
-				new AnnotationDTO(fileIdLong, "aLong", AnnotationDTO.Type.LONG, "123"),
-				new AnnotationDTO(fileIdLong, "aDouble", AnnotationDTO.Type.DOUBLE, "1.22")
+				new AnnotationDTO(fileIdLong, "aString", AnnotationType.STRING, "someString"),
+				new AnnotationDTO(fileIdLong, "aLong", AnnotationType.LONG, "123"),
+				new AnnotationDTO(fileIdLong, "aDouble", AnnotationType.DOUBLE, "1.22")
 		);
 		assertEquals(expected, fileDto.getAnnotations());
 		// null checks on the project

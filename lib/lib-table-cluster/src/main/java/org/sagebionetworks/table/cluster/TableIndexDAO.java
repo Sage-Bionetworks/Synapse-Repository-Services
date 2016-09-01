@@ -5,11 +5,12 @@ import java.util.Map;
 import java.util.Set;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.repo.model.EntityDTO;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.EntityDTO;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.ViewType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.support.TransactionCallback;
 
@@ -296,4 +297,37 @@ public interface TableIndexDAO {
 	 * @return
 	 */
 	public EntityDTO getEntityData(Long entityId);
+
+	/**
+	 * Given a container scope calculate the CRC32 of the entity replication table on 'id-etag'.
+	 * @param viewType 
+	 * 
+	 * @param allContainersInScope
+	 * @return
+	 */
+	public long calculateCRC32ofEntityReplicationScope(
+			ViewType viewType, Set<Long> allContainersInScope);
+
+	/**
+	 * Copy the data from the entity replication tables to the given view's table.
+	 * 
+	 * @param viewId
+	 * @param viewType
+	 * @param allContainersInScope
+	 * @param currentSchema
+	 */
+	public void copyEntityReplicationToTable(String viewId, ViewType viewType,
+			Set<Long> allContainersInScope, List<ColumnModel> currentSchema);
+
+	/**
+	 * Calculate the Cyclic-Redundancy-Check (CRC) of a table view's concatenation
+	 * of ROW_ID + ETAG.  Used to determine if a view is synchronized with the
+	 * truth.
+	 * 
+	 * @param viewId
+	 * @param etagColumnId The ID of the view's ETAG column.
+	 * 
+	 * @return
+	 */
+	long calculateCRC32ofTableView(String viewId, String etagColumnId);
 }

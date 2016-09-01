@@ -7,6 +7,7 @@ import java.util.Set;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.table.EntityDTO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.Callback;
 

@@ -1,11 +1,13 @@
 package org.sagebionetworks.repo.manager.table;
 
 import java.util.List;
+import java.util.Set;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.ViewType;
 
 /**
  * The 'truth' of a Synapse table consists of metadata in the main repository
@@ -145,7 +147,7 @@ public interface TableIndexManager {
 
 	/**
 	 * Attempt to alter the schema of a temporary copy of a table.
-	 * This is used to valiate table schema changes.
+	 * This is used to validate table schema changes.
 	 * 
 	 * @param progressCallback
 	 * @param tableId
@@ -154,6 +156,20 @@ public interface TableIndexManager {
 	 */
 	boolean alterTempTableSchmea(ProgressCallback<Void> progressCallback,
 			String tableId, List<ColumnChangeDetails> changes);
+
+
+	/**
+	 * Populate a view table by coping all of the relevant data from the entity 
+	 * replication tables.
+	 * @param callback 
+	 * 
+	 * @param viewType
+	 * @param allContainersInScope
+	 * @param currentSchema
+	 * @return The new CRC23 for the view.
+	 */
+	public Long populateViewFromEntityReplication(ProgressCallback<Void> callback, ViewType viewType,
+			Set<Long> allContainersInScope, List<ColumnModel> currentSchema);
 	
 
 }
