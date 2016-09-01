@@ -42,7 +42,7 @@ public class UserApiFrequencyThrottleFilter implements Filter{
 	ThrottleRulesCache throttleRulesCache;
 	
 	@Autowired
-	MemoryTimeBlockCountingSemaphore userThrottleMemoryTimeBlockSemaphore;
+	MemoryTimeBlockCountingSemaphore userApiThrottleMemoryTimeBlockSemaphore;
 	
 	@Override
 	public void init(FilterConfig filterConfig) throws ServletException {
@@ -67,7 +67,7 @@ public class UserApiFrequencyThrottleFilter implements Filter{
 				chain.doFilter(request, response);
 			}else{
 				//this URI is throttled
-				boolean lockAcquired = userThrottleMemoryTimeBlockSemaphore.attemptToAcquireLock(userId + ":" + normalizedPath, limit.getCallPeriodSec(), limit.getMaxCallsPerUserPerPeriod());
+				boolean lockAcquired = userApiThrottleMemoryTimeBlockSemaphore.attemptToAcquireLock(userId + ":" + normalizedPath, limit.getCallPeriodSec(), limit.getMaxCallsPerUserPerPeriod());
 				if(lockAcquired){
 					chain.doFilter(request, response);
 				}else{

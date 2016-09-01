@@ -80,7 +80,9 @@
 	</bean>
 	
 	<bean name="userThrottleMemoryTimeBlockSemaphore" class="org.sagebionetworks.repo.model.semaphore.MemoryTimeBlockCountingSemaphoreImpl" scope="singleton"/>
-
+	
+	<bean name="userApiThrottleMemoryTimeBlockSemaphore" class="org.sagebionetworks.repo.model.semaphore.MemoryTimeBlockCountingSemaphoreImpl" scope="singleton"/>
+	
 	<bean name="authenticationThrottleMemoryCountingSemaphore" class="org.sagebionetworks.repo.model.semaphore.MemoryCountingSemaphoreImpl" scope="singleton">
 		<constructor-arg index="0">
 		<bean class="org.sagebionetworks.common.util.ClockImpl"/>

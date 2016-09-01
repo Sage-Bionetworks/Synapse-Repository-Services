@@ -60,7 +60,7 @@ public class UserApiFrequencyThrottleFilterTest {
 	@Before
 	public void setupFilter() throws Exception {
 		filter = new UserApiFrequencyThrottleFilter();
-		ReflectionTestUtils.setField(filter, "userThrottleMemoryTimeBlockSemaphore", userFrequencyThrottleGate);
+		ReflectionTestUtils.setField(filter, "userApiThrottleMemoryTimeBlockSemaphore", userFrequencyThrottleGate);
 		ReflectionTestUtils.setField(filter, "throttleRulesCache", throttleRulesCache);
 		
 		request = new MockHttpServletRequest();
