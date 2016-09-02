@@ -41,8 +41,7 @@ public interface MessageManager {
 	 * If the message is going to more than one recipient, a worker will asynchronously process the message.
 	 * In case of failure, the user will be notified via bounce message.  
 	 * </br>
-	 * This method also handles throttling of message creation 
-	 * and checks to see if file handles (message body) are accessible.  
+	 * This method also checks to see if file handles (message body) are accessible.  
 	 */
 	public MessageToUser createMessage(UserInfo userInfo, MessageToUser dto) throws NotFoundException;
 
@@ -122,5 +121,18 @@ public interface MessageManager {
 	 * Sends a delivery failure notification based on a template
 	 */
 	public void sendDeliveryFailureEmail(String messageId, List<String> errors) throws NotFoundException;
+
+	/**
+	 * Saves the message so that it can be processed by other queries.
+	 * If the message is going to exactly one recipient, then the message will be sent in this transaction  
+	 * and any failures will be propagated immediately.
+	 * </br> 
+	 * If the message is going to more than one recipient, a worker will asynchronously process the message.
+	 * In case of failure, the user will be notified via bounce message.  
+	 * </br>
+	 * This method also handles throttling of message creation 
+	 * and checks to see if file handles (message body) are accessible.  
+	 */
+	public MessageToUser createMessageWithThrottle(UserInfo userInfo, MessageToUser dto);
 
 }
