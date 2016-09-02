@@ -59,6 +59,7 @@ public class SQLConstants {
 	public static final String COL_SUBMISSION_NAME				= "NAME";
 	public static final String COL_SUBMISSION_CREATED_ON 		= "CREATED_ON";
 	public static final String COL_SUBMISSION_TEAM_ID 			= "TEAM_ID";
+	public static final String COL_SUBMISSION_DOCKER_DIGEST 	= "DOCKER_DIGEST";
 	
 	// Submission contributor
 	public static final String TABLE_SUBMISSION_CONTRIBUTOR		= "SUBMISSION_CONTRIBUTOR";

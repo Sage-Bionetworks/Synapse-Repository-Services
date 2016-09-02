@@ -1,11 +1,12 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.when;
 
-import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -21,15 +22,19 @@ import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.annotation.Annotations;
 import org.sagebionetworks.repo.model.annotation.DoubleAnnotation;
 import org.sagebionetworks.repo.model.annotation.LongAnnotation;
 import org.sagebionetworks.repo.model.annotation.StringAnnotation;
+import org.sagebionetworks.repo.model.docker.DockerRepository;
 import org.sagebionetworks.repo.model.evaluation.AnnotationsDAO;
 import org.sagebionetworks.repo.model.evaluation.EvaluationSubmissionsDAO;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 
 public class SubmissionStatusAnnotationsAsyncManagerImplTest {
 	
@@ -48,6 +53,8 @@ public class SubmissionStatusAnnotationsAsyncManagerImplTest {
 	private static final String EVAL_SUB_ETAG = "someEvalSubEtag-00000";
 	private static final Long STATUS_VERSION = 7L;
 	private static final String TEAM_ID = "1010101";
+	private static final String DOCKER_REPO_NAME = "docker.synapse.org/syn12345/my-repo";
+	private static final String DOCKER_DIGEST = "sha256:0123456789abcdef";
 	
 	@Before
 	public void before() throws Exception {
@@ -66,6 +73,14 @@ public class SubmissionStatusAnnotationsAsyncManagerImplTest {
 		submission.setUserId("000");
 		submission.setTeamId(TEAM_ID);
 		submission.setVersionNumber(1L);
+		submission.setDockerDigest("sha256:0123456789abcdef");
+		EntityBundle entityBundle = new EntityBundle();
+		DockerRepository repository = new DockerRepository();
+		repository.setRepositoryName(DOCKER_REPO_NAME);
+		entityBundle.setEntity(repository);
+		JSONObjectAdapter joa = new JSONObjectAdapterImpl();
+		entityBundle.writeToJSONObject(joa);
+		submission.setEntityBundleJSON(joa.toJSONString());
 		
 		// SubmissionStatus
 		subStatus = new SubmissionStatus();
@@ -183,6 +198,19 @@ public class SubmissionStatusAnnotationsAsyncManagerImplTest {
 		teamAnno.setValue(submission.getTeamId()==null?null:Long.parseLong(submission.getTeamId()));
 		annos.getLongAnnos().add(teamAnno);
 		
+		// repository name 
+		StringAnnotation repoNameAnno = new StringAnnotation();
+		repoNameAnno.setIsPrivate(true);
+		repoNameAnno.setKey(SubmissionStatusAnnotationsAsyncManagerImpl.REPOSITORY_NAME);
+		repoNameAnno.setValue(DOCKER_REPO_NAME);
+		annos.getStringAnnos().add(repoNameAnno);
+
+		// docker digest
+		StringAnnotation digestAnno = new StringAnnotation();
+		digestAnno.setIsPrivate(true);
+		digestAnno.setKey(DBOConstants.PARAM_SUBMISSION_DOCKER_DIGEST);
+		digestAnno.setValue(DOCKER_DIGEST);
+		annos.getStringAnnos().add(digestAnno);
 	}
 	
 	@Test

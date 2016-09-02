@@ -365,7 +365,7 @@ public class MessageManagerImplTest {
 		// Note: InReplyToRoot is calculated by the DAO
 		
 		// Insert the message
-		dto = messageManager.createMessage(userInfo, dto);
+		dto = messageManager.createMessageWithThrottle(userInfo, dto);
 		assertNotNull(dto.getId());
 		cleanup.add(dto.getId());
 		assertEquals(userInfo.getId().toString(), dto.getCreatedBy());

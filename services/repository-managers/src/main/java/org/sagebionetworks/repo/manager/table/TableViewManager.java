@@ -56,4 +56,13 @@ public interface TableViewManager {
 	public Set<Long> findViewsContainingEntity(String entityId);
 
 
+	/**
+	 * Get the view schema with the required columns including id, version, and benefactorId.
+	 * 
+	 * @param tableId
+	 * @return
+	 */
+	public List<ColumnModel> getViewSchemaWithRequiredColumns(String tableId);
+
+
 }

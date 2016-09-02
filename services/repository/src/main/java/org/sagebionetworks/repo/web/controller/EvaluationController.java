@@ -1201,7 +1201,7 @@ public class EvaluationController extends BaseController {
 	 * <p/>
 	 * While privacy levels for user defined annotations are set by the user, for system-defined fields the privacy level is fixed as follows:  
 	 * <br/>
-	 * The fields userId, name, createdOn, and submitterAlias are private.
+	 * The fields userId, name, createdOn, submitterAlias, repositoryName and dockerDigest are private.
 	 * <br/>
 	 * The fields objectId, scopeId, entityId, versionNumber, modifiedOn, and status are public.
 	 * <p/>

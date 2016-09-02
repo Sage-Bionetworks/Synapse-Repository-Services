@@ -12,6 +12,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -39,6 +40,8 @@ import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import com.google.common.collect.Sets;
+
 public class TableViewWorkerTest {
 
 	@Mock
@@ -64,6 +67,7 @@ public class TableViewWorkerTest {
 	Long viewCRC;
 	long rowCount;
 	List<Row> rows;
+	Set<Long> viewScope;
 
 	@SuppressWarnings("unchecked")
 	@Before
@@ -88,9 +92,12 @@ public class TableViewWorkerTest {
 		token = "statusToken";
 		
 		// setup default responses
+		viewScope = Sets.newHashSet(1L,2L);
 	
 		when(tableManagerSupport.startTableProcessing(tableId)).thenReturn(token);
 		when(tableManagerSupport.isIndexSynchronizedWithTruth(tableId)).thenReturn(false);
+		when(tableManagerSupport.getAllContainerIdsForViewScope(tableId)).thenReturn(viewScope);
+		when(tableManagerSupport.getViewType(tableId)).thenReturn(ViewType.file);
 
 		when(connectionFactory.connectToTableIndex(tableId)).thenReturn(
 				indexManager);
@@ -127,14 +134,9 @@ public class TableViewWorkerTest {
 		}
 
 		when(tableViewManager.getViewSchemaWithBenefactor(tableId)).thenReturn(schema);
-		viewCRC = 888L;
-		doAnswer(new Answer<Long>(){
-			@Override
-			public Long answer(InvocationOnMock invocation) throws Throwable {
-				RowBatchHandler handler = (RowBatchHandler) invocation.getArguments()[4];
-				handler.nextBatch(rows, 0, rowCount);
-				return viewCRC;
-			}}).when(tableViewManager).streamOverAllEntitiesInViewAsBatch(anyString(), any(ViewType.class), anyListOf(ColumnModel.class), anyInt(), any(RowBatchHandler.class));
+		when(tableViewManager.getViewSchemaWithRequiredColumns(tableId)).thenReturn(schema);
+		viewCRC = 888L;		
+		when(indexManager.populateViewFromEntityReplication(innerCallback, ViewType.file, viewScope,schema)).thenReturn(viewCRC);
 	}
 
 	@Test
@@ -216,9 +218,10 @@ public class TableViewWorkerTest {
 		
 		verify(indexManager).deleteTableIndex();
 		verify(indexManager).setIndexSchema(innerCallback,schema);
-		verify(innerCallback, times(1)).progressMade(null);
-		verify(tableManagerSupport, times(1)).attemptToUpdateTableProgress(tableId, token, "Building view...", 0L, 1L);
-		verify(indexManager, times(1)).applyChangeSetToIndex(any(RowSet.class), anyListOf(ColumnModel.class));
+		verify(tableViewManager).getViewSchemaWithRequiredColumns(tableId);
+		verify(innerCallback, times(4)).progressMade(null);
+		verify(tableManagerSupport, times(1)).attemptToUpdateTableProgress(tableId, token, "Copying data to view...", 0L, 1L);
+		verify(indexManager, times(1)).populateViewFromEntityReplication(innerCallback, ViewType.file, viewScope,schema);
 		verify(indexManager).setIndexVersion(viewCRC);
 		verify(tableManagerSupport).attemptToSetTableStatusToAvailable(tableId, token, TableViewWorker.DEFAULT_ETAG);
 		verify(indexManager).optimizeTableIndices();
