@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.table;
 
+import java.io.IOException;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
@@ -16,11 +17,14 @@ import org.sagebionetworks.repo.model.dbo.dao.table.TableViewDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableViewUtils;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.repo.model.table.TableSchemaChangeResponse;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
+import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -140,6 +144,20 @@ public class TableViewManagerImpl implements TableViewManager {
 			currentSchema.add(required);
 		}
 		return currentSchema;
+	}
+
+	@WriteTransactionReadCommitted
+	@Override
+	public List<ColumnModel> applySchemaChange(UserInfo user, String viewId,
+			List<ColumnChange> changes) {
+		// first determine what the new Schema will be
+		List<String> newSchemaIds = columModelManager.calculateNewSchemaIds(viewId, changes);
+		columModelManager.bindColumnToObject(user, newSchemaIds, viewId);
+		boolean keepOrder = true;
+		List<ColumnModel> newSchema = columModelManager.getColumnModel(user, newSchemaIds, keepOrder);
+		// trigger an update.
+		tableManagerSupport.setTableToProcessingAndTriggerUpdate(viewId);
+		return newSchema;
 	}
 
 }
