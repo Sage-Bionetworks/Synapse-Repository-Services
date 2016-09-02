@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.web.service;
 
-import java.util.Collections;
 import java.util.List;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
@@ -55,7 +54,7 @@ public class MessageServiceImpl implements MessageService {
 	public MessageToUser create(Long userId, MessageToUser toCreate)
 			throws NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return messageManager.createMessage(userInfo, toCreate);
+		return messageManager.createMessageWithThrottle(userInfo, toCreate);
 	}
 
 	@Override

@@ -1,10 +1,10 @@
 package org.sagebionetworks.repo.manager;
 import static junit.framework.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.MessageDAO;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.TooManyRequestsException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -180,6 +181,7 @@ public class MessageManagerImplUnitTest {
 		assertEquals(mtu.getTo(), MessageTestUtil.getHeaderFromRawMessage(ser, "To"));
 		assertEquals(mtu.getCc(), MessageTestUtil.getHeaderFromRawMessage(ser, "Cc"));
 		assertEquals(mtu.getBcc(), MessageTestUtil.getHeaderFromRawMessage(ser, "Bcc"));
+		verify(messageDAO, never()).canCreateMessage(anyString(), anyLong(), anyLong());
 	}
 
 	@Test
@@ -203,6 +205,7 @@ public class MessageManagerImplUnitTest {
 		assertEquals(mtu.getTo(), MessageTestUtil.getHeaderFromRawMessage(ser, "To"));
 		assertEquals(mtu.getCc(), MessageTestUtil.getHeaderFromRawMessage(ser, "Cc"));
 		assertEquals(mtu.getBcc(), MessageTestUtil.getHeaderFromRawMessage(ser, "Bcc"));
+		verify(messageDAO, never()).canCreateMessage(anyString(), anyLong(), anyLong());
 	}
 
 	@Test
@@ -228,6 +231,54 @@ public class MessageManagerImplUnitTest {
 		assertEquals(mtu.getTo(), MessageTestUtil.getHeaderFromRawMessage(ser, "To"));
 		assertEquals(mtu.getCc(), MessageTestUtil.getHeaderFromRawMessage(ser, "Cc"));
 		assertEquals(mtu.getBcc(), MessageTestUtil.getHeaderFromRawMessage(ser, "Bcc"));
+		verify(messageDAO, never()).canCreateMessage(anyString(), anyLong(), anyLong());
+	}
+
+	@Test
+	public void testCreateMessageWithThrottlePassed() throws Exception {
+		fileHandle.setContentType("application/json");
+		MessageBody messageBody = new MessageBody();
+		messageBody.setPlain("message body");
+		when(fileHandleManager.downloadFileToString(FILE_HANDLE_ID)).
+		thenReturn(EntityFactory.createJSONStringForEntity(messageBody));
+		when(fileHandleDAO.get(FILE_HANDLE_ID)).thenReturn(fileHandle);
+		
+		messageManager.createMessageWithThrottle(creatorUserInfo, mtu);
+		ArgumentCaptor<SendRawEmailRequest> argument = ArgumentCaptor.forClass(SendRawEmailRequest.class);
+		verify(sesClient).sendRawEmail(argument.capture());
+		SendRawEmailRequest ser = argument.getValue();
+		assertEquals("Foo FOO <foo@synapse.org>", ser.getSource());
+		assertEquals(1, ser.getDestinations().size());
+		assertEquals("bar@sagebase.org", ser.getDestinations().get(0));
+		String body = new String(ser.getRawMessage().getData().array());
+		assertTrue(body.indexOf("message body")>=0);
+		assertTrue(body.indexOf(UNSUBSCRIBE_ENDPOINT)>=0);
+		assertEquals(mtu.getSubject(), MessageTestUtil.getSubjectFromRawMessage(ser));
+		assertEquals(mtu.getTo(), MessageTestUtil.getHeaderFromRawMessage(ser, "To"));
+		assertEquals(mtu.getCc(), MessageTestUtil.getHeaderFromRawMessage(ser, "Cc"));
+		assertEquals(mtu.getBcc(), MessageTestUtil.getHeaderFromRawMessage(ser, "Bcc"));
+		verify(messageDAO).canCreateMessage(anyString(), anyLong(), anyLong());
+	}
+
+	@Test
+	public void testCreateMessageWithThrottleFailed() throws Exception {
+		when(messageDAO.canCreateMessage(eq(CREATOR_ID.toString()), 
+				anyLong(), anyLong())).thenReturn(false);
+		fileHandle.setContentType("application/json");
+		MessageBody messageBody = new MessageBody();
+		messageBody.setPlain("message body");
+		when(fileHandleManager.downloadFileToString(FILE_HANDLE_ID)).
+		thenReturn(EntityFactory.createJSONStringForEntity(messageBody));
+		when(fileHandleDAO.get(FILE_HANDLE_ID)).thenReturn(fileHandle);
+		
+		try {
+			messageManager.createMessageWithThrottle(creatorUserInfo, mtu);
+			fail("TooManyRequestException is expected");
+		} catch (TooManyRequestsException e) {
+			ArgumentCaptor<SendRawEmailRequest> argument = ArgumentCaptor.forClass(SendRawEmailRequest.class);
+			verify(sesClient, never()).sendRawEmail(argument.capture());
+			verify(messageDAO).canCreateMessage(anyString(), anyLong(), anyLong());
+		}
 	}
 
 	@Test
