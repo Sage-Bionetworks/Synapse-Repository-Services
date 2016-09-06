@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.TableSchemaChangeRequest;
 import org.sagebionetworks.repo.model.table.TableSchemaChangeResponse;
@@ -62,13 +63,11 @@ public class TableTransactionWorkerIntegrationTest {
 	@Autowired
 	AsynchJobStatusManager asynchJobStatusManager;
 	
-	UserInfo adminUserInfo;
-	String tableId;
-	
+	UserInfo adminUserInfo;	
 	ColumnModel intColumn;
 	ColumnModel stringColumn;
 	
-	TableEntity table;
+	List<String> toDelete;
 	
 
 	@Before
@@ -77,7 +76,6 @@ public class TableTransactionWorkerIntegrationTest {
 		Assume.assumeTrue(config.getTableEnabled());
 		
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
-		this.tableId = null;
 		// Start with an empty database
 		this.tableConnectionFactory.dropAllTablesForAllConnections();
 		// integer column
@@ -92,34 +90,61 @@ public class TableTransactionWorkerIntegrationTest {
 		stringColumn.setMaximumSize(100L);
 		stringColumn = columnManager.createColumnModel(adminUserInfo, stringColumn);
 		
-		table = new TableEntity();
-		table.setName(UUID.randomUUID().toString());
-		tableId = entityManager.createEntity(adminUserInfo, table, null);
-		table = entityManager.getEntity(adminUserInfo, tableId, TableEntity.class);
+		toDelete = new LinkedList<>();
 	}
 	
 	@After
 	public void after(){
-		if(tableId != null){
-			entityManager.deleteEntity(adminUserInfo, tableId);
+		if(toDelete != null){
+			for(String id: toDelete){
+				try {
+					entityManager.deleteEntity(adminUserInfo, id);
+				} catch (Exception e) {}
+			}
 		}
 	}
 	
 	@Test
-	public void testSchemaUpdate() throws InterruptedException{
+	public void testTableSchemaUpdate() throws InterruptedException{
+		// test schema change on a TableEntity
+		TableEntity table = new TableEntity();
+		table.setName(UUID.randomUUID().toString());
+		String tableId = entityManager.createEntity(adminUserInfo, table, null);
+		table = entityManager.getEntity(adminUserInfo, tableId, TableEntity.class);
+		toDelete.add(tableId);
 		// Update the schema of the table
+		testSchemaChange(tableId);
+	}
+	
+	@Test
+	public void testEntityViewSchemaUpdate() throws InterruptedException{
+		// test schema change on an EntityView
+		EntityView view = new EntityView();
+		view.setName(UUID.randomUUID().toString());
+		String viewId = entityManager.createEntity(adminUserInfo, view, null);
+		view = entityManager.getEntity(adminUserInfo, viewId, EntityView.class);
+		toDelete.add(viewId);
+		testSchemaChange(viewId);
+	}
+	
+	/**
+	 * Test schema change on the given entity Id.
+	 * @param entityId
+	 * @throws InterruptedException
+	 */
+	public void testSchemaChange(String entityId) throws InterruptedException{
 		ColumnChange add = new ColumnChange();
 		add.setOldColumnId(null);
 		add.setNewColumnId(intColumn.getId());
 		List<ColumnChange> changes = Lists.newArrayList(add);
 		TableSchemaChangeRequest request = new TableSchemaChangeRequest();
-		request.setEntityId(tableId);
+		request.setEntityId(entityId);
 		request.setChanges(changes);
 		
 		List<TableUpdateRequest> updates = new LinkedList<TableUpdateRequest>();
 		updates.add(request);
 		TableUpdateTransactionRequest transaction = new TableUpdateTransactionRequest();
-		transaction.setEntityId(tableId);
+		transaction.setEntityId(entityId);
 		transaction.setChanges(updates);
 	
 		// wait for the change to complete
