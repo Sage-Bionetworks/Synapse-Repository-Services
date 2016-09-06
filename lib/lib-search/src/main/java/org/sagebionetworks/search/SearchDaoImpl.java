@@ -30,8 +30,8 @@ import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.utils.HttpClientHelperException;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.amazonaws.services.cloudsearch.AmazonCloudSearchClient;
-import com.amazonaws.services.cloudsearch.model.DomainStatus;
+import com.amazonaws.services.cloudsearchv2.AmazonCloudSearchClient;
+import com.amazonaws.services.cloudsearchv2.model.DomainStatus;
 
 /**
  * Implementation of the Search DAO.

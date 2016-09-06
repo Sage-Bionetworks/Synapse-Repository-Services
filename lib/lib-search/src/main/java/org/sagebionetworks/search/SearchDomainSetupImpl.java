@@ -10,22 +10,22 @@ import org.sagebionetworks.StackConfiguration;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.amazonaws.services.cloudsearch.AmazonCloudSearchClient;
-import com.amazonaws.services.cloudsearch.model.AccessPoliciesStatus;
-import com.amazonaws.services.cloudsearch.model.CreateDomainRequest;
-import com.amazonaws.services.cloudsearch.model.DefineIndexFieldRequest;
-import com.amazonaws.services.cloudsearch.model.DeleteIndexFieldRequest;
-import com.amazonaws.services.cloudsearch.model.DescribeDomainsRequest;
-import com.amazonaws.services.cloudsearch.model.DescribeDomainsResult;
-import com.amazonaws.services.cloudsearch.model.DescribeIndexFieldsRequest;
-import com.amazonaws.services.cloudsearch.model.DescribeIndexFieldsResult;
-import com.amazonaws.services.cloudsearch.model.DescribeServiceAccessPoliciesRequest;
-import com.amazonaws.services.cloudsearch.model.DescribeServiceAccessPoliciesResult;
-import com.amazonaws.services.cloudsearch.model.DomainStatus;
-import com.amazonaws.services.cloudsearch.model.IndexDocumentsRequest;
-import com.amazonaws.services.cloudsearch.model.IndexField;
-import com.amazonaws.services.cloudsearch.model.IndexFieldStatus;
-import com.amazonaws.services.cloudsearch.model.UpdateServiceAccessPoliciesRequest;
+import com.amazonaws.services.cloudsearchv2.AmazonCloudSearchClient;
+import com.amazonaws.services.cloudsearchv2.model.AccessPoliciesStatus;
+import com.amazonaws.services.cloudsearchv2.model.CreateDomainRequest;
+import com.amazonaws.services.cloudsearchv2.model.DefineIndexFieldRequest;
+import com.amazonaws.services.cloudsearchv2.model.DeleteIndexFieldRequest;
+import com.amazonaws.services.cloudsearchv2.model.DescribeDomainsRequest;
+import com.amazonaws.services.cloudsearchv2.model.DescribeDomainsResult;
+import com.amazonaws.services.cloudsearchv2.model.DescribeIndexFieldsRequest;
+import com.amazonaws.services.cloudsearchv2.model.DescribeIndexFieldsResult;
+import com.amazonaws.services.cloudsearchv2.model.DescribeServiceAccessPoliciesRequest;
+import com.amazonaws.services.cloudsearchv2.model.DescribeServiceAccessPoliciesResult;
+import com.amazonaws.services.cloudsearchv2.model.DomainStatus;
+import com.amazonaws.services.cloudsearchv2.model.IndexDocumentsRequest;
+import com.amazonaws.services.cloudsearchv2.model.IndexField;
+import com.amazonaws.services.cloudsearchv2.model.IndexFieldStatus;
+import com.amazonaws.services.cloudsearchv2.model.UpdateServiceAccessPoliciesRequest;
 
 public class SearchDomainSetupImpl implements SearchDomainSetup, InitializingBean {
 

@@ -8,7 +8,7 @@ import java.util.List;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import com.amazonaws.services.cloudsearch.model.IndexField;
+import com.amazonaws.services.cloudsearchv2.model.IndexField;
 
 @Ignore // Turned off until the dao is turned on.
 public class SearchSchemaLoaderTest {
