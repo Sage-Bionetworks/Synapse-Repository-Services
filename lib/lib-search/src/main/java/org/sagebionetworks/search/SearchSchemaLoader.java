@@ -78,11 +78,11 @@ public class SearchSchemaLoader {
 		// All annotations are stored ad literals in this field.
 //		list.add(new IndexField().withIndexFieldName(FIELD_ANNOTATIONS).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(new LiteralOptions().withSearchEnabled(true).withFacetEnabled(false).withResultEnabled(false)));
 		//  Literal text fields to be returned in Search Results whose source is a facet
-		list.add(new IndexField().withIndexFieldName(FIELD_CREATED_BY_R).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(new LiteralOptions().withReturnEnabled(true)));//TODO: SOURCEATTRIBUTE? in v2?
-		list.add(new IndexField().withIndexFieldName(FIELD_MODIFIED_BY_R).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(new LiteralOptions().withReturnEnabled(true)));
-		list.add(new IndexField().withIndexFieldName(FIELD_NODE_TYPE_R).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(new LiteralOptions().withReturnEnabled(true)));
-		list.add(new IndexField().withIndexFieldName(FIELD_DISEASE_R).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(new LiteralOptions().withReturnEnabled(true)));
-		list.add(new IndexField().withIndexFieldName(FIELD_TISSUE_R).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(new LiteralOptions().withReturnEnabled(true)));
+		list.add(new IndexField().withIndexFieldName(FIELD_CREATED_BY_R).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(new LiteralOptions().withReturnEnabled(true).withSourceField(FIELD_CREATED_BY)));
+		list.add(new IndexField().withIndexFieldName(FIELD_MODIFIED_BY_R).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(new LiteralOptions().withReturnEnabled(true).withSourceField(FIELD_MODIFIED_BY)));
+		list.add(new IndexField().withIndexFieldName(FIELD_NODE_TYPE_R).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(new LiteralOptions().withReturnEnabled(true).withSourceField(FIELD_NODE_TYPE)));
+		list.add(new IndexField().withIndexFieldName(FIELD_DISEASE_R).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(new LiteralOptions().withReturnEnabled(true).withSourceField(FIELD_DISEASE)));
+		list.add(new IndexField().withIndexFieldName(FIELD_TISSUE_R).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(new LiteralOptions().withReturnEnabled(true).withSourceField(FIELD_TISSUE)));
 		return list;
 	}
 }

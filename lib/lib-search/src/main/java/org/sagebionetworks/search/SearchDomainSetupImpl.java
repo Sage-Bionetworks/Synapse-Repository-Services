@@ -29,7 +29,7 @@ import com.amazonaws.services.cloudsearchv2.model.UpdateServiceAccessPoliciesReq
 
 public class SearchDomainSetupImpl implements SearchDomainSetup, InitializingBean {
 
-	private static final String POLICY_TEMPLATE = "{\"Statement\": [{\"Effect\":\"Allow\", \"Action\": \"*\", \"Resource\": \"%1$s\", \"Condition\": { \"IpAddress\": { \"aws:SourceIp\": [\"%3$s\"] } }}, {\"Effect\":\"Allow\", \"Action\": \"*\", \"Resource\": \"%2$s\", \"Condition\": { \"IpAddress\": { \"aws:SourceIp\": [\"%3$s\"] } }} ] }";
+	private static final String POLICY_TEMPLATE = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Sid\":\"\",\"Effect\":\"Allow\",\"Principal\":{\"AWS\":\"*\"},\"Action\":[\"cloudsearch:search\",\"cloudsearch:document\"],\"Condition\":{\"IpAddress\":{\"aws:SourceIp\":[\"%1$s\"]}}}]}";
 
 	private static final String SEARCH_DOMAIN_NAME_TEMPLATE = "%1$s-%2$s-sagebase-org";
 	private static final String CLOUD_SEARCH_API_VERSION = "2011-02-01";
@@ -107,11 +107,10 @@ public class SearchDomainSetupImpl implements SearchDomainSetup, InitializingBea
 		DescribeServiceAccessPoliciesResult dsapr = awsSearchClient
 				.describeServiceAccessPolicies(new DescribeServiceAccessPoliciesRequest()
 						.withDomainName(domainName));
-		DomainStatus status = getDomainStatus(domainName);
 		// Set the policy.
 		// Until we figure out a better plan, we are opening this up to 0.0.0.0
-		String policyJson = String.format(POLICY_TEMPLATE, status
-				.getDocService().getArn(), status.getSearchService().getArn(),"0.0.0.0/0");
+		//TODO: is the ARN for the search service and doc service same?
+		String policyJson = String.format(POLICY_TEMPLATE,"0.0.0.0/0");
 		log.debug("Expected Policy: " + policyJson);
 		if (!policyJson.equals(dsapr.getAccessPolicies().getOptions())) {
 			log.info("Updateing the Search Access policy as it does not match the expected policy");
