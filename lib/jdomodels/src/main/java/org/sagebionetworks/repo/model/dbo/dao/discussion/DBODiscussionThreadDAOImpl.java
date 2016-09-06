@@ -177,6 +177,7 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 			+COL_DISCUSSION_THREAD_STATS_LAST_ACTIVITY;
 	private static final String ORDER_BY_NUMBER_OF_VIEWS = " ORDER BY "+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_VIEWS;
 	private static final String ORDER_BY_NUMBER_OF_REPLIES = " ORDER BY "+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_REPLIES;
+	private static final String ORDER_BY_THREAD_TITLE = " ORDER BY "+COL_DISCUSSION_THREAD_TITLE;
 	private static final String DESC = " DESC ";
 
 	// for entity references
@@ -321,6 +322,9 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 					break;
 				case PINNED_AND_LAST_ACTIVITY:
 					query += ORDER_BY_PINNED_AND_LAST_ACTIVITY;
+					break;
+				case THREAD_TITLE:
+					query += ORDER_BY_THREAD_TITLE;
 					break;
 				default:
 					throw new IllegalArgumentException("Unsupported order "+order);
