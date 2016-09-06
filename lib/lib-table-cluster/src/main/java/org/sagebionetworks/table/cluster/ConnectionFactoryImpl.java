@@ -1,6 +1,7 @@
 package org.sagebionetworks.table.cluster;
 
 import java.sql.SQLException;
+import java.util.LinkedList;
 import java.util.List;
 
 import org.apache.commons.dbcp.BasicDataSource;
@@ -98,6 +99,13 @@ public class ConnectionFactoryImpl implements ConnectionFactory {
 			template.update(CREATE_DATABASE+schema);
 			template.update(USE_DATABASE+schema);
 		}
+	}
+
+	@Override
+	public List<TableIndexDAO> getAllConnections() {
+		List<TableIndexDAO> results = new LinkedList<>();
+		results.add(new TableIndexDAOImpl(singleConnectionPool));
+		return results;
 	}
 
 }

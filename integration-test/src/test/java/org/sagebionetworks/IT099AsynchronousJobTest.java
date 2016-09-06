@@ -23,6 +23,7 @@ import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
+import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseResultNotReadyException;
 import org.sagebionetworks.repo.model.Entity;
@@ -78,7 +79,8 @@ public class IT099AsynchronousJobTest {
 	}
 	
 	@Before
-	public void before(){
+	public void before() throws SynapseException{
+		adminSynapse.clearAllLocks();
 		entitiesToDelete = new LinkedList<Entity>();
 		filesToDelete = Lists.newArrayList();
 	}

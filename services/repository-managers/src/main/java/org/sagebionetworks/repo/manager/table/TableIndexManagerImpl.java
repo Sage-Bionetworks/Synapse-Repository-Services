@@ -5,13 +5,16 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.RowSet;
-import org.sagebionetworks.table.cluster.ColumnChange;
+import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.table.cluster.DatabaseColumnInfo;
 import org.sagebionetworks.table.cluster.SQLUtils;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionCallback;
 
@@ -138,7 +141,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		// Lookup the current schema of the index
 		List<DatabaseColumnInfo> currentSchema = tableIndexDao.getDatabaseInfo(tableId);
 		// create a change that replaces the old schema as needed.
-		List<ColumnChange> changes = SQLUtils.createReplaceSchemaChange(currentSchema, newSchema);
+		List<ColumnChangeDetails> changes = SQLUtils.createReplaceSchemaChange(currentSchema, newSchema);
 		updateTableSchema(progressCallback, changes);
 	}
 
@@ -161,13 +164,14 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	}
 	
 	@Override
-	public boolean updateTableSchema(ProgressCallback<Void> progressCallback, List<ColumnChange> changes) {
+	public boolean updateTableSchema(ProgressCallback<Void> progressCallback, List<ColumnChangeDetails> changes) {
 		// create the table if it does not exist
 		tableIndexDao.createTableIfDoesNotExist(tableId);
 		// Create all of the status tables unconditionally.
 		tableIndexDao.createSecondaryTables(tableId);
+		boolean alterTemp = false;
 		// Alter the table
-		boolean wasSchemaChanged = alterTableAsNeededWithProgress(progressCallback, tableId, changes);
+		boolean wasSchemaChanged = alterTableAsNeededWithProgress(progressCallback, tableId, changes, alterTemp);
 		if(wasSchemaChanged){
 			// Get the current schema.
 			List<DatabaseColumnInfo> tableInfo = tableIndexDao.getDatabaseInfo(tableId);
@@ -184,6 +188,12 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		return wasSchemaChanged;
 	}
 	
+	@Override
+	public boolean alterTempTableSchmea(ProgressCallback<Void> progressCallback, final String tableId, final List<ColumnChangeDetails> changes){
+		boolean alterTemp = true;
+		return alterTableAsNeededWithProgress(progressCallback, tableId, changes, alterTemp);
+	}
+	
 	/**
 	 * Alter the table schema using an auto-progressing callback.
 	 * @param progressCallback
@@ -192,12 +202,12 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * @return
 	 * @throws Exception
 	 */
-	private boolean alterTableAsNeededWithProgress(ProgressCallback<Void> progressCallback, final String tableId, final List<ColumnChange> changes){
+	private boolean alterTableAsNeededWithProgress(ProgressCallback<Void> progressCallback, final String tableId, final List<ColumnChangeDetails> changes, final boolean alterTemp){
 		 try {
 			return  tableManagerSupport.callWithAutoProgress(progressCallback, new Callable<Boolean>() {
 				@Override
 				public Boolean call() throws Exception {
-					return tableIndexDao.alterTableAsNeeded(tableId, changes);
+					return tableIndexDao.alterTableAsNeeded(tableId, changes, alterTemp);
 				}
 			});
 		} catch (Exception e) {
@@ -255,6 +265,57 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
+	}
+	@Override
+	public Long populateViewFromEntityReplication(final ProgressCallback<Void> callback, final ViewType viewType,
+			final Set<Long> allContainersInScope, final List<ColumnModel> currentSchema) {
+		ValidateArgument.required(callback, "callback");
+		// this can take a long time with no chance to make progress.
+		 try {
+			return tableManagerSupport.callWithAutoProgress(callback, new Callable<Long>() {
+				@Override
+				public Long call() throws Exception {
+					// create the table.
+					return populateViewFromEntityReplicationWithProgress(viewType, allContainersInScope, currentSchema);
+				}
+			});
+		} catch (Exception e) {
+			if(e instanceof RuntimeException){
+				throw ((RuntimeException)e);
+			}else{
+				throw new RuntimeException(e);
+			}
+		}
+	}
+	
+	/**
+	 * Populate the view table from the entity replication tables.
+	 * After the view has been populated a the sum of the cyclic redundancy check (CRC)
+	 * will be calculated on the concatenation of ROW_ID & ETAG of the resulting table.
+	 * 
+	 * @param viewType
+	 * @param allContainersInScope
+	 * @param currentSchema
+	 * @return The CRC32 of the concatenation of ROW_ID & ETAG of the table after the update.
+	 */
+	Long populateViewFromEntityReplicationWithProgress(ViewType viewType, Set<Long> allContainersInScope, List<ColumnModel> currentSchema){
+		ValidateArgument.required(viewType, "viewType");
+		ValidateArgument.required(allContainersInScope, "allContainersInScope");
+		ValidateArgument.required(currentSchema, "currentSchema");
+		// Lookup the etag column
+		ColumnModel etagColumn = EntityField.findMatch(currentSchema, EntityField.etag);
+		if(etagColumn == null){
+			throw new IllegalArgumentException("The ETAG column is missing from the schema");
+		}
+		// Lookup the benefactor column.
+		ColumnModel benefactorColumn = EntityField.findMatch(currentSchema, EntityField.benefactorId);
+		if(benefactorColumn == null){
+			throw new IllegalArgumentException("The BENEFACTOR column is missing from the schema");
+		}
+		// copy the data from the entity replication tables to table's index
+		tableIndexDao.copyEntityReplicationToTable(this.tableId, viewType, allContainersInScope, currentSchema);
+		// calculate the new CRC32;
+		return tableIndexDao.calculateCRC32ofTableView(tableId, etagColumn.getId());
 	}
 	
 }

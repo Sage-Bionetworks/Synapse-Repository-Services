@@ -5,11 +5,12 @@ import static org.sagebionetworks.repo.model.ACCESS_TYPE.CHANGE_SETTINGS;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.CREATE;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.DELETE;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.DOWNLOAD;
+import static org.sagebionetworks.repo.model.ACCESS_TYPE.MODERATE;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.READ;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPLOAD;
-import static org.sagebionetworks.repo.model.ACCESS_TYPE.MODERATE;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.lang.BooleanUtils;
@@ -34,6 +35,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.repo.model.dao.PermissionDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.project.ExternalSyncSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
@@ -64,6 +66,8 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	private ProjectSettingsManager projectSettingsManager;
 	@Autowired
 	private StackConfiguration configuration;
+	@Autowired
+	private PermissionDao permissionDao;
 
 
 	@Override
@@ -214,7 +218,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		if (!isCertifiedUserOrFeatureDisabled(userInfo) && !EntityType.project.equals(node.getNodeType())) 
 			return AuthorizationManagerUtil.accessDenied("Only certified users may create content in Synapse.");
 		
-		return certifiedUserHasAccess(parentId, CREATE, userInfo);
+		return certifiedUserHasAccess(parentId, null, CREATE, userInfo);
 	}
 
 	@Override
@@ -232,7 +236,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 			return AuthorizationManagerUtil.AUTHORIZED;
 		}
 
-		return certifiedUserHasAccess(node.getId(), ACCESS_TYPE.CHANGE_SETTINGS, userInfo);
+		return certifiedUserHasAccess(node.getId(), node.getNodeType(), ACCESS_TYPE.CHANGE_SETTINGS, userInfo);
 	}
 	
 	/**
@@ -246,13 +250,15 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	public AuthorizationStatus hasAccess(String entityId, ACCESS_TYPE accessType, UserInfo userInfo)
 			throws NotFoundException, DatastoreException  {
 		
+		EntityType entityType = nodeDao.getNodeTypeById(entityId);
+		
 		if (!userInfo.isAdmin() && 
 			!isCertifiedUserOrFeatureDisabled(userInfo) && 
 				(accessType==CREATE ||
-				(accessType==UPDATE && !nodeDao.getNodeTypeById(entityId).equals(EntityType.project))))
+				(accessType==UPDATE && entityType!=EntityType.project)))
 			return AuthorizationManagerUtil.accessDenied("Only certified users may create or update content in Synapse.");
 		
-		return certifiedUserHasAccess(entityId, accessType, userInfo);
+		return certifiedUserHasAccess(entityId, entityType, accessType, userInfo);
 	}
 		
 	/**
@@ -269,7 +275,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 */
-	public AuthorizationStatus certifiedUserHasAccess(String entityId, ACCESS_TYPE accessType, UserInfo userInfo)
+	public AuthorizationStatus certifiedUserHasAccess(String entityId, EntityType entityType, ACCESS_TYPE accessType, UserInfo userInfo)
 				throws NotFoundException, DatastoreException  {
 		// In the case of the trash can, throw the EntityInTrashCanException
 		// The only operations allowed over the trash can is CREATE (i.e. moving
@@ -281,14 +287,6 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 			throw new EntityInTrashCanException("Entity " + entityId + " is in trash can.");
 		}
 		
-		// Can download
-		if (accessType == DOWNLOAD) {
-			return canDownload(userInfo, entityId);
-		}
-		// Can upload
-		if (accessType == UPLOAD) {
-			return canUpload(userInfo, entityId);
-		}
 		// Anonymous can at most READ
 		if (AuthorizationUtils.isUserAnonymous(userInfo)) {
 			if (accessType != ACCESS_TYPE.READ) {
@@ -299,6 +297,14 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		// Admin
 		if (userInfo.isAdmin()) {
 			return AuthorizationManagerUtil.AUTHORIZED;
+		}
+		// Can download
+		if (accessType == DOWNLOAD) {
+			return canDownload(userInfo, entityId, entityType);
+		}
+		// Can upload
+		if (accessType == UPLOAD) {
+			return canUpload(userInfo, entityId);
 		}
 		if (aclDAO.canAccess(userInfo.getGroups(), benefactor, ObjectType.ENTITY, accessType)) {
 			return AuthorizationManagerUtil.AUTHORIZED;
@@ -321,20 +327,21 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	public UserEntityPermissions getUserPermissionsForEntity(UserInfo userInfo,	String entityId)
 			throws NotFoundException, DatastoreException {
 
+		Node node = nodeDao.getNode(entityId);
+
 		UserEntityPermissions permissions = new UserEntityPermissions();
 		permissions.setCanAddChild(hasAccess(entityId, CREATE, userInfo).getAuthorized());
-		permissions.setCanCertifiedUserAddChild(certifiedUserHasAccess(entityId, CREATE, userInfo).getAuthorized());
+		permissions.setCanCertifiedUserAddChild(certifiedUserHasAccess(entityId, node.getNodeType(), CREATE, userInfo).getAuthorized());
 		permissions.setCanChangePermissions(hasAccess(entityId, CHANGE_PERMISSIONS, userInfo).getAuthorized());
 		permissions.setCanChangeSettings(hasAccess(entityId, CHANGE_SETTINGS, userInfo).getAuthorized());
 		permissions.setCanDelete(hasAccess(entityId, DELETE, userInfo).getAuthorized());
 		permissions.setCanEdit(hasAccess(entityId, UPDATE, userInfo).getAuthorized());
-		permissions.setCanCertifiedUserEdit(certifiedUserHasAccess(entityId, UPDATE, userInfo).getAuthorized());
+		permissions.setCanCertifiedUserEdit(certifiedUserHasAccess(entityId, node.getNodeType(), UPDATE, userInfo).getAuthorized());
 		permissions.setCanView(hasAccess(entityId, READ, userInfo).getAuthorized());
-		permissions.setCanDownload(canDownload(userInfo, entityId).getAuthorized());
+		permissions.setCanDownload(canDownload(userInfo, entityId, node.getNodeType()).getAuthorized());
 		permissions.setCanUpload(canUpload(userInfo, entityId).getAuthorized());
 		permissions.setCanModerate(hasAccess(entityId, MODERATE, userInfo).getAuthorized());
 
-		Node node = nodeDao.getNode(entityId);
 		permissions.setOwnerPrincipalId(node.getCreatedByPrincipalId());
 		
 		permissions.setIsCertifiedUser(AuthorizationUtils.isCertifiedUser(userInfo));
@@ -362,7 +369,32 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		}
 	}
 
-	private AuthorizationStatus canDownload(UserInfo userInfo, final String nodeId)
+	// non-docker entities have to meet access requirements (ARs)
+	// docker entities either have to (1) meet ARs AND have read access or (2) be associated
+	// with a downloadable submission
+	private AuthorizationStatus canDownload(UserInfo userInfo, String entityId, EntityType entityType)
+			throws DatastoreException, NotFoundException {
+		AuthorizationStatus meetsAccessRequirements = meetsAccessRequirements(userInfo, entityId);
+		
+		if (entityType==EntityType.dockerrepo) {
+			String benefactor = nodeInheritanceManager.getBenefactor(entityId);
+			if (meetsAccessRequirements.getAuthorized() && aclDAO.canAccess(userInfo.getGroups(), benefactor, ObjectType.ENTITY, ACCESS_TYPE.READ)) {
+				return AuthorizationManagerUtil.AUTHORIZED;
+			}
+			
+			if (permissionDao.isEntityInEvaluationWithAccess(entityId, 
+					new ArrayList<Long>(userInfo.getGroups()), ACCESS_TYPE.READ_PRIVATE_SUBMISSION)) {
+				return AuthorizationManagerUtil.AUTHORIZED;
+			} else {
+				return AuthorizationManagerUtil.ACCESS_DENIED;
+			}
+		} else {
+			return meetsAccessRequirements;
+		}
+
+	}
+	
+	private AuthorizationStatus meetsAccessRequirements(UserInfo userInfo, final String nodeId)
 			throws DatastoreException, NotFoundException {
 		if (userInfo.isAdmin()) return AuthorizationManagerUtil.AUTHORIZED;
 		if (!agreesToTermsOfUse(userInfo)) return AuthorizationManagerUtil.
@@ -379,8 +411,9 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 			return AuthorizationManagerUtil
 					.accessDenied("There are unmet access requirements that must be met to read content in the requested container.");
 		}
+		
 	}
-
+	
 	private AuthorizationStatus canUpload(UserInfo userInfo, final String parentOrNodeId)
 			throws DatastoreException, NotFoundException {
 		if (userInfo.isAdmin()) return AuthorizationManagerUtil.AUTHORIZED;
@@ -412,11 +445,12 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	
 	@Override
 	public AuthorizationStatus canCreateWiki(String entityId, UserInfo userInfo) throws DatastoreException, NotFoundException {
+		EntityType entityType = nodeDao.getNodeTypeById(entityId);
 		if (!userInfo.isAdmin() && 
 			!isCertifiedUserOrFeatureDisabled(userInfo) && 
-				!nodeDao.getNodeTypeById(entityId).equals(EntityType.project))
+				entityType!=EntityType.project)
 			return AuthorizationManagerUtil.accessDenied("Only certified users may create non-project wikis in Synapse.");
 		
-		return certifiedUserHasAccess(entityId, ACCESS_TYPE.CREATE, userInfo);
+		return certifiedUserHasAccess(entityId, entityType, ACCESS_TYPE.CREATE, userInfo);
 	}
 }

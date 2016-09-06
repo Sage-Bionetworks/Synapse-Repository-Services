@@ -41,6 +41,7 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
@@ -54,6 +55,10 @@ import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
+import org.sagebionetworks.repo.model.table.TableSchemaChangeRequest;
+import org.sagebionetworks.repo.model.table.TableSchemaChangeResponse;
+import org.sagebionetworks.repo.model.table.TableUpdateRequest;
+import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.Pair;
@@ -95,7 +100,8 @@ public class IT100TableControllerTest {
 	}
 	
 	@Before
-	public void before(){
+	public void before() throws SynapseException{
+		adminSynapse.clearAllLocks();
 		entitiesToDelete = new LinkedList<Entity>();
 		tablesToDelete = new ArrayList<TableEntity>();
 	}
@@ -782,6 +788,42 @@ public class IT100TableControllerTest {
 		});
 		assertEquals(rowsNeeded - result.getMaxRowsPerPage().intValue(), nextPageResult.getQueryResults().getRows().size());
 		assertNull(nextPageResult.getNextPageToken());
+	}
+	
+	@Test
+	public void testTableTransaction() throws Exception{
+		ColumnModel cm = new ColumnModel();
+		cm.setName("aString");
+		cm.setColumnType(ColumnType.STRING);
+		cm.setMaximumSize(100L);
+		cm = synapse.createColumnModel(cm);
+		
+		// create a table
+		TableEntity table = createTable(null, synapse);
+		
+		TableSchemaChangeRequest request = new TableSchemaChangeRequest();
+		ColumnChange change = new ColumnChange();
+		change.setOldColumnId(null);
+		change.setNewColumnId(cm.getId());
+		request.setChanges(Lists.newArrayList(change));
+		
+		List<TableUpdateRequest> changes = new LinkedList();
+		changes.add(request);
+		
+		final String jobId = synapse.startTableTransactionJob(changes, table.getId());
+		final String tableId = table.getId();
+		
+		List<TableUpdateResponse> results = waitForAsync(new Callable<List<TableUpdateResponse>>() {
+			@Override
+			public List<TableUpdateResponse> call() throws Exception {
+				return synapse.getTableTransactionJobResults(jobId, tableId);
+			}
+		});
+		assertNotNull(results);
+		assertEquals(1, results.size());
+		assertTrue(results.get(0) instanceof TableSchemaChangeResponse);
+		TableSchemaChangeResponse response = (TableSchemaChangeResponse) results.get(0);
+		assertEquals(Lists.newArrayList(cm), response.getSchema());
 	}
 	
 	private TableEntity createTable(List<String> columns) throws SynapseException {

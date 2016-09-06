@@ -104,6 +104,7 @@ public class IT049FileHandleTest {
 	
 	@Before
 	public void before() throws SynapseException {
+		adminSynapse.clearAllLocks();
 		toDelete = new ArrayList<FileHandle>();
 		// Get the image file from the classpath.
 		URL url = IT049FileHandleTest.class.getClassLoader().getResource("images/"+FILE_NAME);

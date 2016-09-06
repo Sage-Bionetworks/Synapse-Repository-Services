@@ -16,6 +16,7 @@ import java.util.concurrent.Callable;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.object.snapshot.worker.utils.AclSnapshotUtils;
@@ -57,6 +58,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
 
+@Ignore // see PLFM-3995
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class ProjectStatsWorkerIntegrationTest {

@@ -4,15 +4,12 @@ import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-
-import java.util.HashMap;
-import java.util.Map;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -25,6 +22,7 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableTransactionManager;
+import org.sagebionetworks.repo.manager.table.TableTransactionManagerProvider;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
@@ -52,8 +50,8 @@ public class TableTransactionWorkerTest {
 	Message mockMessage;
 	@Mock
 	TableTransactionManager mockTableTransactionManager;
-	
-	Map<EntityType, TableTransactionManager> managerMap;
+	@Mock
+	TableTransactionManagerProvider mockTransactionManagerProvider;
 	
 	
 	TableTransactionWorker worker;
@@ -74,6 +72,7 @@ public class TableTransactionWorkerTest {
 		ReflectionTestUtils.setField(worker, "asynchJobStatusManager", mockAsynchJobStatusManager);
 		ReflectionTestUtils.setField(worker, "tableManagerSupport", mockTableManagerSupport);
 		ReflectionTestUtils.setField(worker, "userManager", mockUserManager);
+		ReflectionTestUtils.setField(worker, "tableTransactionManagerProvider", mockTransactionManagerProvider);
 		
 		userId = 987L;
 		userInfo = new UserInfo(false);
@@ -83,9 +82,7 @@ public class TableTransactionWorkerTest {
 		tableId = "syn123";
 		tableType = EntityType.table;
 		
-		managerMap = new HashMap<>(1);
-		managerMap.put(tableType, mockTableTransactionManager);
-		worker.setManagerMap(managerMap);
+		when(mockTransactionManagerProvider.getTransactionManagerForType(tableType)).thenReturn(mockTableTransactionManager);
 
 		status = new AsynchronousJobStatus();
 		status.setJobId(jobId);

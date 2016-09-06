@@ -46,7 +46,6 @@ import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.FileEntityFields;
-import org.sagebionetworks.repo.model.dbo.dao.table.TableViewDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
@@ -82,8 +81,6 @@ public class TableManagerSupportTest {
 	ColumnModelDAO mockColumnModelDao;
 	@Mock
 	NodeDAO mockNodeDao;
-	@Mock
-	TableViewDao mockFileViewDao;
 	@Mock
 	TableRowTruthDAO mockTableTruthDao;
 	@Mock
@@ -123,7 +120,6 @@ public class TableManagerSupportTest {
 		ReflectionTestUtils.setField(manager, "columnModelDao",
 				mockColumnModelDao);
 		ReflectionTestUtils.setField(manager, "nodeDao", mockNodeDao);
-		ReflectionTestUtils.setField(manager, "fileViewDao", mockFileViewDao);
 		ReflectionTestUtils.setField(manager, "tableTruthDao", mockTableTruthDao);
 		ReflectionTestUtils.setField(manager, "viewScopeDao", mockViewScopeDao);
 		ReflectionTestUtils.setField(manager, "authorizationManager", mockAuthorizationManager);
@@ -489,7 +485,7 @@ public class TableManagerSupportTest {
 		Long crc32 = 45678L;
 		ViewType type = ViewType.file;
 		when(mockViewScopeDao.getViewType(tableIdLong)).thenReturn(type);
-		when(mockFileViewDao.calculateCRCForAllEntitiesWithinContainers(containersInScope, type)).thenReturn(crc32);
+		when(mockTableIndexDAO.calculateCRC32ofEntityReplicationScope(type, containersInScope)).thenReturn(crc32);
 		
 		Long crcResult = manager.calculateFileViewCRC32(tableId);
 		assertEquals(crc32, crcResult);
@@ -513,7 +509,7 @@ public class TableManagerSupportTest {
 		ViewType type = ViewType.file;
 		when(mockViewScopeDao.getViewType(tableIdLong)).thenReturn(type);
 		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.entityview);
-		when(mockFileViewDao.calculateCRCForAllEntitiesWithinContainers(containersInScope, type)).thenReturn(crc32);
+		when(mockTableIndexDAO.calculateCRC32ofEntityReplicationScope(type, containersInScope)).thenReturn(crc32);
 		// call under test
 		Long version = manager.getTableVersion(tableId);
 		assertEquals(crc32, version);

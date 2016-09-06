@@ -246,4 +246,27 @@ public class DockerCommitDaoImplTest {
 	public void testCountDockerCommitsMissingEntityId() {
 		dockerCommitDao.countDockerCommits(null);
 	}
+	
+	@Test
+	public void testListCommitsByOwnerAndDigest() throws Exception {
+		long now = System.currentTimeMillis();
+		DockerCommit commitA = createCommit(new Date(now), "A", UUID.randomUUID().toString());
+		dockerCommitDao.createDockerCommit(dockerRepository1.getId(), creatorUserGroupId, commitA);
+		DockerCommit commitB = createCommit(new Date(now+1000L), "B", UUID.randomUUID().toString());
+		dockerCommitDao.createDockerCommit(dockerRepository1.getId(), creatorUserGroupId, commitB);
+		
+		DockerCommit commitY = createCommit(new Date(now+3000L), "Y", UUID.randomUUID().toString());
+		dockerCommitDao.createDockerCommit(dockerRepository2.getId(), creatorUserGroupId, commitY);
+		
+		assertEquals(
+			Collections.singletonList(commitA)
+		,
+			dockerCommitDao.listCommitsByOwnerAndDigest(dockerRepository1.getId(), commitA.getDigest())
+		);
+		
+		assertTrue(dockerCommitDao.listCommitsByOwnerAndDigest(
+				dockerRepository1.getId(), commitY.getDigest()).
+				isEmpty());
+	}
+
 }

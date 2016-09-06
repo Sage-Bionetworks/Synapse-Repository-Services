@@ -16,12 +16,16 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.table.AnnotationType;
+import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.TableConstants;
+import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -616,14 +620,18 @@ public class SQLUtils {
 	 * @param changes
 	 * @return
 	 */
-	public static String createAlterTableSql(List<ColumnChange> changes, String tableId){
+	public static String createAlterTableSql(List<ColumnChangeDetails> changes, String tableId, boolean alterTemp){
 		StringBuilder builder = new StringBuilder();
 		builder.append("ALTER TABLE ");
-		builder.append(getTableNameForId(tableId, TableType.INDEX));
+		if(alterTemp){
+			builder.append(getTemporaryTableName(tableId));
+		}else{
+			builder.append(getTableNameForId(tableId, TableType.INDEX));
+		}
 		builder.append(" ");
 		boolean isFirst = true;
 		boolean hasChanges = false;
-		for(ColumnChange change: changes){
+		for(ColumnChangeDetails change: changes){
 			if(!isFirst){
 				builder.append(", ");
 			}
@@ -646,7 +654,7 @@ public class SQLUtils {
 	 * @param change
 	 */
 	public static boolean appendAlterTableSql(StringBuilder builder,
-			ColumnChange change) {
+			ColumnChangeDetails change) {
 		if(change.getOldColumn() == null && change.getNewColumn() == null){
 			// nothing to do
 			return false;
@@ -714,7 +722,7 @@ public class SQLUtils {
 	 * @param change
 	 */
 	public static void appendUpdateColumn(StringBuilder builder,
-			ColumnChange change) {
+			ColumnChangeDetails change) {
 		ValidateArgument.required(change, "change");
 		ValidateArgument.required(change.getOldColumn(), "change.getOldColumn()");
 		ValidateArgument.required(change.getNewColumn(), "change.getNewColumn()");
@@ -974,7 +982,7 @@ public class SQLUtils {
 	 * @param newSchema
 	 * @return
 	 */
-	public static List<ColumnChange> createReplaceSchemaChange(List<DatabaseColumnInfo> infoList, List<ColumnModel> newSchema){
+	public static List<ColumnChangeDetails> createReplaceSchemaChange(List<DatabaseColumnInfo> infoList, List<ColumnModel> newSchema){
 		List<ColumnModel> oldColumnIds = extractSchemaFromInfo(infoList);
 		return createReplaceSchemaChangeIds(oldColumnIds, newSchema);
 	}
@@ -989,23 +997,23 @@ public class SQLUtils {
 	 * @param newSchema
 	 * @return
 	 */
-	public static List<ColumnChange> createReplaceSchemaChangeIds(List<ColumnModel> currentColunm, List<ColumnModel> newSchema){
+	public static List<ColumnChangeDetails> createReplaceSchemaChangeIds(List<ColumnModel> currentColunm, List<ColumnModel> newSchema){
 		Set<String> oldSet = createColumnIdSet(currentColunm);
 		Set<String> newSet = createColumnIdSet(newSchema);
-		List<ColumnChange> changes = new LinkedList<ColumnChange>();
+		List<ColumnChangeDetails> changes = new LinkedList<ColumnChangeDetails>();
 		// remove any column in the current that is not in the new.
 		for(ColumnModel oldColumn: currentColunm){
 			if(!newSet.contains(oldColumn.getId())){
 				// Remove this column
 				ColumnModel newColumn = null;
-				changes.add(new ColumnChange(oldColumn, newColumn));
+				changes.add(new ColumnChangeDetails(oldColumn, newColumn));
 			}
 		}
 		// Add any column in the current that is not in the old.
 		for(ColumnModel newColumn: newSchema){
 			if(!oldSet.contains(newColumn.getId())){
 				ColumnModel oldColumn = null;
-				changes.add(new ColumnChange(oldColumn, newColumn));
+				changes.add(new ColumnChangeDetails(oldColumn, newColumn));
 			}
 		}
 		return changes;
@@ -1108,4 +1116,192 @@ public class SQLUtils {
 		String tempName = getTemporaryTableName(tableId);
 		return String.format(DROP_TABLE_IF_EXISTS, tempName);
 	}
+
+	/**
+	 * Translate a list of ColumnModels to a list of ColumnMetadata.
+	 * @param currentSchema
+	 * @return
+	 */
+	public static List<ColumnMetadata> translateColumns(List<ColumnModel> currentSchema){
+		List<ColumnMetadata> list = new LinkedList<ColumnMetadata>();
+		for(int i=0; i<currentSchema.size(); i++){
+			ColumnModel cm = currentSchema.get(i);
+			list.add(translateColumns(cm, i));
+		}
+		return list;
+	}
+	
+	/**
+	 * Translate a single ColumnModel into ColumnMetadata.
+	 * @param model
+	 * @param index
+	 * @return
+	 */
+	public static ColumnMetadata translateColumns(ColumnModel model, int index){
+		// First determine if this an entity column or an annotation
+		EntityField entityField = EntityField.findMatch(model);
+		String tableAlias;
+		String selectColumnName;
+		String columnNameForId = getColumnNameForId(model.getId());
+		AnnotationType annotationType = null;
+		if(entityField != null){
+			tableAlias = TableConstants.ENTITY_REPLICATION_ALIAS;
+			selectColumnName = entityField.getDatabaseColumnName();
+		}else{
+			tableAlias = TableConstants.ANNOTATION_REPLICATION_ALIAS+index;
+			selectColumnName = TableConstants.ANNOTATION_REPLICATION_COL_VALUE;
+			annotationType = translateColumnType(model.getColumnType());
+		}
+		return new ColumnMetadata(model, entityField, tableAlias, selectColumnName, columnNameForId, index, annotationType);
+	}
+	
+	/**
+	 * Translate form ColumnType to AnnotationType;
+	 * @param type
+	 * @return
+	 */
+	public static AnnotationType translateColumnType(ColumnType type){
+		switch(type){
+		case STRING:
+			return AnnotationType.STRING;
+		case DATE:
+			return AnnotationType.DATE;
+		case DOUBLE:
+			return AnnotationType.DOUBLE;
+		case INTEGER:
+			return AnnotationType.LONG;
+		default:
+			return AnnotationType.STRING;
+		}
+	}
+
+	
+	/**
+	 * Generate the SQL used to insert select data from the entity replication tables to a
+	 * table's index.
+	 * @param viewId
+	 * @param currentSchema
+	 * @return
+	 */
+	public static String createSelectInsertFromEntityReplication(String viewId,
+			List<ColumnModel> currentSchema) {
+		List<ColumnMetadata> metadata = translateColumns(currentSchema);
+		StringBuilder builder = new StringBuilder();
+		builder.append("INSERT INTO ");
+		builder.append(getTableNameForId(viewId, TableType.INDEX));
+		builder.append("(");
+		buildInsertValues(builder, metadata);
+		builder.append(") SELECT ");
+		buildSelect(builder, metadata);
+		builder.append(" FROM ");
+		builder.append(TableConstants.ENTITY_REPLICATION_TABLE);
+		builder.append(" ");
+		builder.append(TableConstants.ENTITY_REPLICATION_ALIAS);
+		buildJoins(metadata, builder);
+		builder.append(" WHERE ");
+		builder.append(TableConstants.ENTITY_REPLICATION_ALIAS);
+		builder.append(".");
+		builder.append(TableConstants.ENTITY_REPLICATION_COL_PARENT_ID);
+		builder.append(" IN (:");
+		builder.append(TableConstants.PARENT_ID_PARAMETER_NAME);
+		builder.append(") AND ");
+		builder.append(TableConstants.ENTITY_REPLICATION_COL_TYPE);
+		builder.append(" = :");
+		builder.append(TableConstants.TYPE_PARAMETER_NAME);
+		return builder.toString();
+	}
+
+	/**
+	 * Builds the left outer join section of the entity replication insert select.
+	 * @param metadata
+	 * @param builder
+	 */
+	public static void buildJoins(List<ColumnMetadata> metadata,
+			StringBuilder builder) {
+		for(ColumnMetadata meta: metadata){
+			if(meta.getEntityField() == null){
+				builder.append(" LEFT OUTER JOIN ");
+				builder.append(TableConstants.ANNOTATION_REPLICATION_TABLE);
+				builder.append(" ");
+				builder.append(meta.getTableAlias());
+				builder.append(" ON (");
+				builder.append(TableConstants.ENTITY_REPLICATION_ALIAS);
+				builder.append(".");
+				builder.append(TableConstants.ENTITY_REPLICATION_COL_ID);
+				builder.append(" = ");
+				builder.append(meta.getTableAlias());
+				builder.append(".");
+				builder.append(TableConstants.ANNOTATION_REPLICATION_COL_ENTITY_ID);
+				builder.append(" AND ");
+				builder.append(meta.getTableAlias());
+				builder.append(".");
+				builder.append(TableConstants.ANNOTATION_REPLICATION_COL_KEY);
+				builder.append(" = '");
+				builder.append(meta.getColumnModel().getName());
+				builder.append("'");
+				builder.append(" AND ");
+				builder.append(meta.getTableAlias());
+				builder.append(".");
+				builder.append(TableConstants.ANNOTATION_REPLICATION_COL_TYPE);
+				builder.append(" = '");
+				builder.append(meta.getAnnotationType().name());
+				builder.append("')");
+			}
+		}
+	}
+
+	/**
+	 * Build the select clause of the entity replication insert select.
+	 * @param builder
+	 * @param metadata
+	 */
+	public static void buildSelect(StringBuilder builder,
+			List<ColumnMetadata> metadata) {
+		builder.append(TableConstants.ENTITY_REPLICATION_ALIAS);
+		builder.append(".");
+		builder.append(TableConstants.ENTITY_REPLICATION_COL_ID);
+		builder.append(", ");
+		builder.append(TableConstants.ENTITY_REPLICATION_ALIAS);
+		builder.append(".");
+		builder.append(TableConstants.ENTITY_REPLICATION_COL_VERSION);
+		for(ColumnMetadata meta: metadata){
+			builder.append(", ");
+			builder.append(meta.getTableAlias());
+			builder.append(".");
+			builder.append(meta.getSelectColumnName());
+			builder.append(" AS ");
+			builder.append(meta.getColumnNameForId());
+		}
+	}
+
+	/**
+	 * Build the insert clause section of entity replication insert select.
+	 * 
+	 * @param builder
+	 * @param metadata
+	 */
+	public static void buildInsertValues(StringBuilder builder,
+			List<ColumnMetadata> metadata) {
+		builder.append(TableConstants.ROW_ID);
+		builder.append(", ");
+		builder.append(TableConstants.ROW_VERSION);
+		for(ColumnMetadata meta: metadata){
+			builder.append(", ");
+			builder.append(meta.getColumnNameForId());
+		}
+	}
+	
+	/**
+	 * Create the SQL used to calculate the CRC32 of a table view.
+	 * 
+	 * @param viewId
+	 * @param etagColumnId
+	 * @return
+	 */
+	public static String buildTableViewCRC32Sql(String viewId, String etagColumnId){
+		String tableName = getTableNameForId(viewId, TableType.INDEX);
+		String columnId = getColumnNameForId(etagColumnId);
+		return String.format(TableConstants.SQL_TABLE_VIEW_CRC_32_TEMPLATE, columnId, tableName);
+	}
+
 }

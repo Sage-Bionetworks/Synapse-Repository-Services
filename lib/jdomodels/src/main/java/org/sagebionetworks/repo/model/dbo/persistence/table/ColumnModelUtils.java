@@ -3,6 +3,8 @@ package org.sagebionetworks.repo.model.dbo.persistence.table;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.nio.charset.Charset;
@@ -15,13 +17,14 @@ import java.util.List;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
+import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
-import org.sagebionetworks.util.Closer;
 
 import com.google.common.collect.Lists;
 import com.thoughtworks.xstream.XStream;
@@ -56,7 +59,7 @@ public class ColumnModelUtils {
 			Writer zipWriter = new OutputStreamWriter(zip, UTF8);
 			XStream xstream = createXStream();
 			xstream.toXML(normal, zipWriter);
-			Closer.closeQuietly(zipWriter, zip, out);
+			IOUtils.closeQuietly(zipWriter);
 			DBOColumnModel dbo = new DBOColumnModel();
 			dbo.setBytes(out.toByteArray());
 			dbo.setName(normal.getName());
@@ -239,6 +242,7 @@ public class ColumnModelUtils {
 		XStream xstream = new XStream();
 		xstream.alias("ColumnModel", ColumnModel.class);
 		xstream.alias("ColumnType", ColumnType.class);
+		xstream.alias("ColumnChange", ColumnChange.class);
 		return xstream;
 	}
 	
@@ -292,5 +296,42 @@ public class ColumnModelUtils {
 			public int compare(DBOBoundColumn o1, DBOBoundColumn o2) {
 				return o1.columnId.compareTo(o2.columnId);
 			}});
+	}
+	
+	/**
+	 * Write the list of schema changes to the given output stream as a GZIP.
+	 * 
+	 * @param changes
+	 * @param out
+	 * @throws IOException
+	 */
+	public static void writeSchemaChangeToGz(List<ColumnChange> changes, OutputStream out) throws IOException{
+		GZIPOutputStream zipOut = null;
+		try{
+			zipOut = new GZIPOutputStream(out);
+			XStream xstream = createXStream();
+			xstream.toXML(changes, zipOut);
+			zipOut.flush();
+		}finally{
+			IOUtils.closeQuietly(zipOut);
+		}
+	}
+	
+	/**
+	 * Read the schema change from the given GZIP input stream.
+	 * 
+	 * @param input
+	 * @return
+	 * @throws IOException
+	 */
+	public static List<ColumnChange> readSchemaChangeFromGz(InputStream input) throws IOException{
+		GZIPInputStream zipIn = null;
+		try{
+			zipIn = new GZIPInputStream(input);
+			XStream xstream = createXStream();
+			return (List<ColumnChange>) xstream.fromXML(zipIn);
+		}finally{
+			IOUtils.closeQuietly(zipIn);
+		}
 	}
 }

@@ -20,7 +20,7 @@ public class ChangeMessageDrivenWorkerStack implements Runnable {
 			AmazonSQSClient awsSQSClient, AmazonSNSClient awsSNSClient,
 			ChangeMessageDrivenWorkerStackConfig config) {
 		// Get the configured runner.
-		ChangeMessageDrivenRunner changeRunner = config.getRunner();
+		ChangeMessageRunner changeRunner = config.getRunner();
 		if(changeRunner instanceof LockTimeoutAware){
 			LockTimeoutAware lockAware = (LockTimeoutAware) changeRunner;
 			// forward the lock timeout to the runner.

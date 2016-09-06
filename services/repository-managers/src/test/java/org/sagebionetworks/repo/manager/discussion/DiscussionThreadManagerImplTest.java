@@ -3,7 +3,7 @@ package org.sagebionetworks.repo.manager.discussion;
 import static org.sagebionetworks.repo.manager.discussion.DiscussionThreadManagerImpl.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.*;
 
 import java.util.ArrayList;
@@ -15,6 +15,7 @@ import java.util.Set;
 import org.apache.commons.lang.RandomStringUtils;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
@@ -37,6 +38,7 @@ import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
 import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
+import org.sagebionetworks.repo.model.discussion.DiscussionThreadEntityReference;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
 import org.sagebionetworks.repo.model.discussion.EntityThreadCounts;
 import org.sagebionetworks.repo.model.discussion.Forum;
@@ -87,6 +89,8 @@ public class DiscussionThreadManagerImplTest {
 	private MessageURL messageUrl = new MessageURL();
 	private UpdateThreadTitle newTitle = new UpdateThreadTitle();
 	private UpdateThreadMessage newMessage = new UpdateThreadMessage();
+	private List<DiscussionThreadEntityReference> entityRefs = new ArrayList<DiscussionThreadEntityReference>();
+	private List<DiscussionThreadEntityReference> titleEntityRefs = new ArrayList<DiscussionThreadEntityReference>();
 
 	@Before
 	public void before() {
@@ -98,15 +102,14 @@ public class DiscussionThreadManagerImplTest {
 		ReflectionTestUtils.setField(threadManager, "uploadDao", mockUploadDao);
 		ReflectionTestUtils.setField(threadManager, "authorizationManager", mockAuthorizationManager);
 		ReflectionTestUtils.setField(threadManager, "idGenerator", mockIdGenerator);
-		ReflectionTestUtils.setField(threadManager, "replyDao", mockReplyDao);
 		ReflectionTestUtils.setField(threadManager, "subscriptionDao", mockSubscriptionDao);
 		ReflectionTestUtils.setField(threadManager, "transactionalMessenger", mockTransactionalMessenger);
 		ReflectionTestUtils.setField(threadManager, "aclDao", mockAclDao);
 
 		createDto = new CreateDiscussionThread();
 		createDto.setForumId(forumId.toString());
-		createDto.setTitle("title");
-		createDto.setMessageMarkdown("messageMarkdown");
+		createDto.setTitle("title with syn123");
+		createDto.setMessageMarkdown("messageMarkdown with syn456");
 		forum = new Forum();
 		forum.setId(forumId.toString());
 		forum.setProjectId(projectId);
@@ -119,8 +122,20 @@ public class DiscussionThreadManagerImplTest {
 		dto.setIsDeleted(false);
 		userInfo.setId(userId);
 
-		newTitle.setTitle("newTitle");
+		newTitle.setTitle("newTitle with syn123");
 		newMessage.setMessageMarkdown("newMessageMarkdown");
+
+
+		DiscussionThreadEntityReference titleEntityRef = new DiscussionThreadEntityReference();
+		titleEntityRef.setEntityId("123");
+		titleEntityRef.setThreadId(""+threadId);
+		titleEntityRefs.add(titleEntityRef);
+		entityRefs.add(titleEntityRef);
+
+		DiscussionThreadEntityReference markdownEntityRef = new DiscussionThreadEntityReference();
+		markdownEntityRef.setEntityId("456");
+		markdownEntityRef.setThreadId(""+threadId);
+		entityRefs.add(markdownEntityRef);
 
 		when(mockForumDao.getForum(Long.parseLong(createDto.getForumId()))).thenReturn(forum);
 		when(mockThreadDao.getThread(threadId, DiscussionFilter.NO_FILTER)).thenReturn(dto);
@@ -128,7 +143,6 @@ public class DiscussionThreadManagerImplTest {
 		when(mockIdGenerator.generateNewId(TYPE.DISCUSSION_THREAD_ID)).thenReturn(threadId);
 		messageUrl.setMessageUrl("messageUrl");
 		when(mockUploadDao.getThreadUrl(messageKey)).thenReturn(messageUrl);
-		when(mockReplyDao.getReplyCount(Mockito.anyLong(), Mockito.any(DiscussionFilter.class))).thenReturn(0L);
 		when(mockAuthorizationManager.isAnonymousUser(userInfo)).thenReturn(false);
 	}
 
@@ -191,10 +205,13 @@ public class DiscussionThreadManagerImplTest {
 		DiscussionThreadBundle createdThread = threadManager.createThread(userInfo, createDto);
 		assertNotNull(createdThread);
 		assertEquals(createdThread, dto);
-		verify(mockReplyDao).getReplyCount(Long.parseLong(createdThread.getId()), DiscussionFilter.EXCLUDE_DELETED);
 		verify(mockTransactionalMessenger).sendMessageAfterCommit(createdThread.getId(), ObjectType.THREAD, dto.getEtag(), ChangeType.CREATE, userInfo.getId());
 		verify(mockSubscriptionDao).create(eq(userId.toString()), eq(dto.getId()), eq(SubscriptionObjectType.THREAD));
-		verify(mockThreadDao).insertEntityReference(any(List.class));
+		ArgumentCaptor<List> captor = ArgumentCaptor.forClass(List.class);
+		verify(mockThreadDao).insertEntityReference(captor.capture());
+		List<DiscussionThreadEntityReference> list = captor.getValue();
+		assertTrue(list.contains(entityRefs.get(0)));
+		assertTrue(list.contains(entityRefs.get(1)));
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -215,7 +232,7 @@ public class DiscussionThreadManagerImplTest {
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		assertEquals(dto, threadManager.getThread(userInfo, threadId.toString()));
 		verify(mockThreadDao).updateThreadView(Mockito.anyLong(), Mockito.anyLong());
-		verify(mockReplyDao).getReplyCount(threadId, DiscussionFilter.EXCLUDE_DELETED);
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(threadId.toString(), ObjectType.THREAD, dto.getEtag(), ChangeType.UPDATE, userInfo.getId());
 	}
 
 	@Test
@@ -225,7 +242,6 @@ public class DiscussionThreadManagerImplTest {
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		assertEquals(dto, threadManager.getThread(userInfo, threadId.toString()));
 		verify(mockThreadDao).updateThreadView(Mockito.anyLong(), Mockito.anyLong());
-		verify(mockReplyDao).getReplyCount(threadId, DiscussionFilter.EXCLUDE_DELETED);
 	}
 
 	@Test (expected = NotFoundException.class)
@@ -288,7 +304,7 @@ public class DiscussionThreadManagerImplTest {
 		when(mockThreadDao.updateTitle(Mockito.anyLong(), Mockito.anyString())).thenReturn(dto);
 
 		assertEquals(dto, threadManager.updateTitle(userInfo, threadId.toString(), newTitle));
-		verify(mockReplyDao).getReplyCount(threadId, DiscussionFilter.EXCLUDE_DELETED);
+		verify(mockThreadDao).insertEntityReference(titleEntityRefs);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -317,7 +333,6 @@ public class DiscussionThreadManagerImplTest {
 				.thenReturn("newMessage");
 		when(mockThreadDao.updateMessageKey(Mockito.anyLong(), Mockito.anyString())).thenReturn(dto);
 		assertEquals(dto, threadManager.updateMessage(userInfo, threadId.toString(), newMessage));
-		verify(mockReplyDao).getReplyCount(threadId, DiscussionFilter.EXCLUDE_DELETED);
 		verify(mockThreadDao).insertEntityReference(any(List.class));
 	}
 
@@ -455,7 +470,6 @@ public class DiscussionThreadManagerImplTest {
 		when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.MODERATE))
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		assertEquals(threads, threadManager.getThreadsForForum(userInfo, forumId.toString(), 2L, 0L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true, DiscussionFilter.NO_FILTER));
-		verify(mockReplyDao).getReplyCount(threadId, DiscussionFilter.NO_FILTER);
 		verify(mockThreadDao).getThreadsForForum(Mockito.anyLong(), Mockito.anyLong(), Mockito.anyLong(), (DiscussionThreadOrder) Mockito.any(), Mockito.anyBoolean(), Mockito.any(DiscussionFilter.class));
 	}
 

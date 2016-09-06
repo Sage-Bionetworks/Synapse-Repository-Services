@@ -5,6 +5,8 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import org.sagebionetworks.repo.model.EntityType;
+
 import com.google.common.collect.ImmutableMap;
 
 public class TableConstants {
@@ -100,4 +102,136 @@ public class TableConstants {
 		// Make it case insensitive.
 		return KEY_WORDS.contains(word.toUpperCase().trim());
 	}
+	// ENTITY_REPLICATION
+	public static final String ENTITY_REPLICATION_TABLE 			= "ENTITY_REPLICATION";
+	public static final String ENTITY_REPLICATION_COL_ID			= "ID";
+	public static final String ENTITY_REPLICATION_COL_VERSION		= "CURRENT_VERSION";
+	public static final String ENTITY_REPLICATION_COL_CRATED_BY		= "CREATED_BY";
+	public static final String ENTITY_REPLICATION_COL_CRATED_ON		= "CREATED_ON";
+	public static final String ENTITY_REPLICATION_COL_ETAG			= "ETAG";
+	public static final String ENTITY_REPLICATION_COL_NAME			= "NAME";
+	public static final String ENTITY_REPLICATION_COL_TYPE			= "TYPE";
+	public static final String ENTITY_REPLICATION_COL_PARENT_ID		= "PARENT_ID";
+	public static final String ENTITY_REPLICATION_COL_BENEFACTOR_ID	= "BENEFACTOR_ID";
+	public static final String ENTITY_REPLICATION_COL_PROJECT_ID	= "PROJECT_ID";
+	public static final String ENTITY_REPLICATION_COL_MODIFIED_BY	= "MODIFIED_BY";
+	public static final String ENTITY_REPLICATION_COL_MODIFIED_ON	= "MODIFIED_ON";
+	public static final String ENTITY_REPLICATION_COL_FILE_ID		= "FILE_ID";
+	
+	// Dynamic string of all of the entity types.
+	public static final String ENTITY_TYPES;
+	static{
+		StringBuilder builder = new StringBuilder();
+		boolean first = true;
+		for(EntityType type: EntityType.values()){
+			if(!first){
+				builder.append(", ");
+			}
+			builder.append("'");
+			builder.append(type.name());
+			builder.append("'");
+			first = false;
+		}
+		ENTITY_TYPES = builder.toString();
+	}
+
+	public final static String ENTITY_REPLICATION_TABLE_CREATE = "CREATE TABLE IF NOT EXISTS "+ENTITY_REPLICATION_TABLE+"("
+			+ ENTITY_REPLICATION_COL_ID +" bigint(20) NOT NULL,"
+			+ ENTITY_REPLICATION_COL_VERSION +" bigint(20) NOT NULL,"
+			+ ENTITY_REPLICATION_COL_CRATED_BY +" bigint(20) NOT NULL,"
+			+ ENTITY_REPLICATION_COL_CRATED_ON +" bigint(20) NOT NULL,"
+			+ ENTITY_REPLICATION_COL_ETAG +" char(36) NOT NULL,"
+			+ ENTITY_REPLICATION_COL_NAME +" varchar(256) CHARACTER SET latin1 COLLATE latin1_bin NOT NULL,"
+			+ ENTITY_REPLICATION_COL_TYPE +" ENUM("+ENTITY_TYPES+") NOT NULL,"
+			+ ENTITY_REPLICATION_COL_PARENT_ID +" bigint(20) DEFAULT NULL,"
+			+ ENTITY_REPLICATION_COL_BENEFACTOR_ID +" bigint(20) DEFAULT NULL,"
+			+ ENTITY_REPLICATION_COL_PROJECT_ID +" bigint(20) DEFAULT NULL,"
+			+ ENTITY_REPLICATION_COL_MODIFIED_BY +" bigint(20) NOT NULL,"
+			+ ENTITY_REPLICATION_COL_MODIFIED_ON +" bigint(20) NOT NULL,"
+			+ ENTITY_REPLICATION_COL_FILE_ID +" bigint(20) DEFAULT NULL,"
+			+ "PRIMARY KEY("+ENTITY_REPLICATION_COL_ID+"),"
+			+ "INDEX ("+ENTITY_REPLICATION_COL_PARENT_ID+")"
+			+ ")";
+	public final static String ENTITY_REPLICATION_DELETE_ALL = "DELETE FROM "+ENTITY_REPLICATION_TABLE+" WHERE "+ENTITY_REPLICATION_COL_ID+" = ?";
+	
+	public final static String ENTITY_REPLICATION_INSERT = "INSERT INTO "+ENTITY_REPLICATION_TABLE+" ("
+			+ ENTITY_REPLICATION_COL_ID+","
+			+ ENTITY_REPLICATION_COL_VERSION+","
+			+ ENTITY_REPLICATION_COL_CRATED_BY+","
+			+ ENTITY_REPLICATION_COL_CRATED_ON+","
+			+ ENTITY_REPLICATION_COL_ETAG+","
+			+ ENTITY_REPLICATION_COL_NAME+","
+			+ ENTITY_REPLICATION_COL_TYPE+","
+			+ ENTITY_REPLICATION_COL_PARENT_ID+","
+			+ ENTITY_REPLICATION_COL_BENEFACTOR_ID+","
+			+ ENTITY_REPLICATION_COL_PROJECT_ID+","
+			+ ENTITY_REPLICATION_COL_MODIFIED_BY+","
+			+ ENTITY_REPLICATION_COL_MODIFIED_ON+","
+			+ ENTITY_REPLICATION_COL_FILE_ID
+			+ ") VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)";
+	
+	public final static String ENTITY_REPLICATION_GET = "SELECT * FROM "+TableConstants.ENTITY_REPLICATION_TABLE+" WHERE "+TableConstants.ENTITY_REPLICATION_COL_ID+" = ?";
+	
+	public static final String TYPE_PARAMETER_NAME = "typeParam";
+	public static final String PARENT_ID_PARAMETER_NAME = "parentIds";
+	public static final String ENTITY_REPLICATION_ALIAS = "R";
+	public static final String ANNOTATION_REPLICATION_ALIAS = "A";
+	
+	//  Select the CRC32 from the entity replication for a given type and scope
+	public static final String SQL_ENTITY_REPLICATION_CRC_32 = "SELECT SUM(CRC32(CONCAT("
+			+ ENTITY_REPLICATION_COL_ID
+			+ ", '-',"
+			+ ENTITY_REPLICATION_COL_ETAG
+			+ "))) FROM "
+			+ ENTITY_REPLICATION_TABLE
+			+ " WHERE "
+			+ ENTITY_REPLICATION_COL_TYPE
+			+ " = :"+TYPE_PARAMETER_NAME+" AND "
+			+ ENTITY_REPLICATION_COL_PARENT_ID + " IN (:"+PARENT_ID_PARAMETER_NAME+")";
+	
+	// template to calculate CRC32 of a table view.
+	public static final String SQL_TABLE_VIEW_CRC_32_TEMPLATE = "SELECT SUM(CRC32(CONCAT("+ROW_ID+", '-', %1$s))) FROM %2$s";
+	
+	// ANNOTATION_REPLICATION
+	public static final String ANNOTATION_REPLICATION_TABLE 		="ANNOTATION_REPLICATION";
+	public static final String ANNOTATION_REPLICATION_COL_ENTITY_ID	="ENTITY_ID";
+	public static final String ANNOTATION_REPLICATION_COL_KEY		="ANNO_KEY";
+	public static final String ANNOTATION_REPLICATION_COL_TYPE		="ANNO_TYPE";
+	public static final String ANNOTATION_REPLICATION_COL_VALUE		="ANNO_VALUE";
+	
+	public static final String ANNOTATION_TYPES;
+	static {
+		StringBuilder builder = new StringBuilder();
+		boolean first = true;
+		for(AnnotationType type: AnnotationType.values()){
+			if(!first){
+				builder.append(", ");
+			}
+			builder.append("'");
+			builder.append(type.name());
+			builder.append("'");
+			first = false;
+		}
+		ANNOTATION_TYPES = builder.toString();
+	}
+	
+	public static final String ANNOTATION_REPLICATION_TABLE_CREATE = "CREATE TABLE IF NOT EXISTS "+ANNOTATION_REPLICATION_TABLE+"("
+			+ ANNOTATION_REPLICATION_COL_ENTITY_ID+" bigint(20) NOT NULL,"
+			+ ANNOTATION_REPLICATION_COL_KEY+" varchar(256) CHARACTER SET latin1 COLLATE latin1_bin NOT NULL,"
+			+ ANNOTATION_REPLICATION_COL_TYPE+" ENUM("+ANNOTATION_TYPES+") NOT NULL,"
+			+ ANNOTATION_REPLICATION_COL_VALUE+" varchar(500) CHARACTER SET latin1 COLLATE latin1_bin NOT NULL,"
+			+ "PRIMARY KEY("+ANNOTATION_REPLICATION_COL_ENTITY_ID+","+ANNOTATION_REPLICATION_COL_KEY+","+ANNOTATION_REPLICATION_COL_TYPE+"),"
+			+" CONSTRAINT `ENTITY_ID_FK` FOREIGN KEY ("+ANNOTATION_REPLICATION_COL_ENTITY_ID+") REFERENCES "+ENTITY_REPLICATION_TABLE+" ("+ENTITY_REPLICATION_COL_ID+") ON DELETE CASCADE "
+			+ ")";
+	
+	public static final String ANNOTATION_REPLICATION_INSERT ="INSERT INTO "+ANNOTATION_REPLICATION_TABLE+"("
+			+ANNOTATION_REPLICATION_COL_ENTITY_ID+","
+			+ANNOTATION_REPLICATION_COL_KEY+","
+			+ANNOTATION_REPLICATION_COL_TYPE+","
+			+ANNOTATION_REPLICATION_COL_VALUE
+			+ ") VALUES (?,?,?,?)";
+	
+	public final static String ANNOTATION_REPLICATION_GET = "SELECT * FROM "+TableConstants.ANNOTATION_REPLICATION_TABLE+" WHERE "+TableConstants.ANNOTATION_REPLICATION_COL_ENTITY_ID+" = ?";
+
+	
 }

@@ -11,6 +11,8 @@ import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 
 import java.util.Arrays;
+import java.util.Date;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -25,9 +27,14 @@ import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
+import org.sagebionetworks.repo.model.table.AnnotationDTO;
+import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.EntityDTO;
+import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.IdRange;
 import org.sagebionetworks.repo.model.table.Row;
@@ -35,6 +42,8 @@ import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.Table;
 import org.sagebionetworks.repo.model.table.TableEntity;
+import org.sagebionetworks.repo.model.table.AnnotationType;
+import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
@@ -47,6 +56,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.sun.tools.internal.ws.wsdl.framework.Entity;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:table-cluster-spb.xml" })
@@ -92,9 +102,10 @@ public class TableIndexDAOImplTest {
 	 */
 	public boolean createOrUpdateTable(List<ColumnModel> newSchema, String tableId){
 		List<DatabaseColumnInfo> currentSchema = tableIndexDAO.getDatabaseInfo(tableId);
-		List<ColumnChange> changes = SQLUtils.createReplaceSchemaChange(currentSchema, newSchema);
+		List<ColumnChangeDetails> changes = SQLUtils.createReplaceSchemaChange(currentSchema, newSchema);
 		tableIndexDAO.createTableIfDoesNotExist(tableId);
-		return tableIndexDAO.alterTableAsNeeded(tableId, changes);
+		boolean alterTemp = false;
+		return tableIndexDAO.alterTableAsNeeded(tableId, changes, alterTemp);
 	}
 	
 	@Test
@@ -1044,11 +1055,12 @@ public class TableIndexDAOImplTest {
 		newColumn.setColumnType(ColumnType.BOOLEAN);
 		newColumn.setId("123");
 		newColumn.setName("aBoolean");
-		ColumnChange change = new ColumnChange(oldColumn, newColumn);
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
 		// Create the table
 		tableIndexDAO.createTableIfDoesNotExist(tableId);
+		boolean alterTemp = false;
 		// call under test.
-		boolean wasAltered = tableIndexDAO.alterTableAsNeeded(tableId, Lists.newArrayList(change));
+		boolean wasAltered = tableIndexDAO.alterTableAsNeeded(tableId, Lists.newArrayList(change), alterTemp);
 		assertTrue(wasAltered);
 		// Check the results
 		List<DatabaseColumnInfo> schema =  getAllColumnInfo(tableId);
@@ -1060,8 +1072,8 @@ public class TableIndexDAOImplTest {
 		
 		// Another update of the same column with no change should not alter the table
 		oldColumn = newColumn;
-		change = new ColumnChange(oldColumn, newColumn);
-		wasAltered = tableIndexDAO.alterTableAsNeeded(tableId, Lists.newArrayList(change));
+		change = new ColumnChangeDetails(oldColumn, newColumn);
+		wasAltered = tableIndexDAO.alterTableAsNeeded(tableId, Lists.newArrayList(change), alterTemp);
 		assertFalse(wasAltered);
 	}
 	
@@ -1147,9 +1159,9 @@ public class TableIndexDAOImplTest {
 		newColumn.setId("12");
 		newColumn.setName("foo");
 		newColumn.setColumnType(ColumnType.INTEGER);
-		
+		boolean alterTemp = false;
 		// add the column
-		tableIndexDAO.alterTableAsNeeded(tableId, Lists.newArrayList(new ColumnChange(oldColumn, newColumn)));
+		tableIndexDAO.alterTableAsNeeded(tableId, Lists.newArrayList(new ColumnChangeDetails(oldColumn, newColumn)), alterTemp);
 		int maxNumberOfIndices = 5;
 		optimizeTableIndices(tableId, maxNumberOfIndices);
 		// Get the latest table information
@@ -1171,9 +1183,9 @@ public class TableIndexDAOImplTest {
 		newColumn.setId("12");
 		newColumn.setName("foo");
 		newColumn.setColumnType(ColumnType.INTEGER);
-		
+		boolean alterTemp = false;
 		// add the column
-		tableIndexDAO.alterTableAsNeeded(tableId, Lists.newArrayList(new ColumnChange(oldColumn, newColumn)));
+		tableIndexDAO.alterTableAsNeeded(tableId, Lists.newArrayList(new ColumnChangeDetails(oldColumn, newColumn)), alterTemp);
 		int maxNumberOfIndices = 5;
 		optimizeTableIndices(tableId, maxNumberOfIndices);
 		// Get the latest table information
@@ -1190,7 +1202,7 @@ public class TableIndexDAOImplTest {
 		newColumn.setName("bar");
 		newColumn.setColumnType(ColumnType.DATE);
 		
-		tableIndexDAO.alterTableAsNeeded(tableId, Lists.newArrayList(new ColumnChange(oldColumn, newColumn)));
+		tableIndexDAO.alterTableAsNeeded(tableId, Lists.newArrayList(new ColumnChangeDetails(oldColumn, newColumn)), alterTemp);
 		// the index should get renamed
 		optimizeTableIndices(tableId, maxNumberOfIndices);
 		infoList = getAllColumnInfo(tableId);
@@ -1211,9 +1223,9 @@ public class TableIndexDAOImplTest {
 		newColumn.setId("12");
 		newColumn.setName("foo");
 		newColumn.setColumnType(ColumnType.INTEGER);
-		
+		boolean alterTemp = false;
 		// add the column
-		tableIndexDAO.alterTableAsNeeded(tableId, Lists.newArrayList(new ColumnChange(oldColumn, newColumn)));
+		tableIndexDAO.alterTableAsNeeded(tableId, Lists.newArrayList(new ColumnChangeDetails(oldColumn, newColumn)), alterTemp);
 		int maxNumberOfIndices = 5;
 		optimizeTableIndices(tableId, maxNumberOfIndices);
 		// Get the latest table information
@@ -1310,5 +1322,271 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.deleteTemporaryTable(tableId);
 		count = tableIndexDAO.getTempTableCount(tableId);
 		assertEquals(0L, count);
+	}
+	
+	@Test
+	public void testEntityReplication(){
+		tableIndexDAO.createEntityReplicationTablesIfDoesNotExist();
+		// delete all data
+		tableIndexDAO.deleteEntityData(mockProgressCallback, Lists.newArrayList(1L,2L,3L));
+		
+		EntityDTO project = createEntityDTO(1L, EntityType.project, 0);
+		EntityDTO folder = createEntityDTO(2L, EntityType.folder, 5);
+		EntityDTO file = createEntityDTO(3L, EntityType.file, 10);
+		tableIndexDAO.addEntityData(mockProgressCallback, Lists.newArrayList(file, folder, project));
+		
+		// lookup each
+		EntityDTO fetched = tableIndexDAO.getEntityData(1L);
+		assertEquals(project, fetched);
+		fetched = tableIndexDAO.getEntityData(2L);
+		assertEquals(folder, fetched);
+		fetched = tableIndexDAO.getEntityData(3L);
+		assertEquals(file, fetched);
+	}
+	
+	@Test
+	public void testEntityReplicationWithNulls(){
+		tableIndexDAO.createEntityReplicationTablesIfDoesNotExist();
+		// delete all data
+		tableIndexDAO.deleteEntityData(mockProgressCallback, Lists.newArrayList(1L));
+		
+		EntityDTO project = createEntityDTO(1L, EntityType.project, 0);
+		project.setParentId(null);
+		project.setBenefactorId(null);
+		project.setProjectId(null);
+		project.setFileHandleId(null);
+		tableIndexDAO.addEntityData(mockProgressCallback, Lists.newArrayList(project));
+		
+		// lookup each
+		EntityDTO fetched = tableIndexDAO.getEntityData(1L);
+		assertEquals(project, fetched);
+	}
+	
+	@Test
+	public void testEntityReplicationUpdate(){
+		tableIndexDAO.createEntityReplicationTablesIfDoesNotExist();
+		// delete all data
+		tableIndexDAO.deleteEntityData(mockProgressCallback, Lists.newArrayList(1L));
+		
+		EntityDTO file = createEntityDTO(1L, EntityType.file, 5);
+		tableIndexDAO.addEntityData(mockProgressCallback, Lists.newArrayList(file));
+		// delete before an update
+		tableIndexDAO.deleteEntityData(mockProgressCallback, Lists.newArrayList(file.getId()));
+		file = createEntityDTO(1L, EntityType.file, 3);
+		tableIndexDAO.addEntityData(mockProgressCallback, Lists.newArrayList(file));
+		
+		// lookup each
+		EntityDTO fetched = tableIndexDAO.getEntityData(1L);
+		assertEquals(file, fetched);
+	}
+
+	@Test
+	public void testCalculateCRC32ofEntityReplicationScope(){
+		tableIndexDAO.createEntityReplicationTablesIfDoesNotExist();
+		// delete all data
+		tableIndexDAO.deleteEntityData(mockProgressCallback, Lists.newArrayList(1L,2L,3L));
+		
+		// setup some hierarchy.
+		EntityDTO file1 = createEntityDTO(2L, EntityType.file, 0);
+		file1.setParentId(333L);
+		EntityDTO file2 = createEntityDTO(3L, EntityType.file, 0);
+		file2.setParentId(222L);
+		
+		tableIndexDAO.addEntityData(mockProgressCallback, Lists.newArrayList(file1, file2));
+		// both parents
+		Set<Long> scope = Sets.newHashSet(file1.getParentId(), file2.getParentId());
+		// call under test
+		Long crc = tableIndexDAO.calculateCRC32ofEntityReplicationScope(ViewType.file, scope);
+		assertEquals(new Long(3715581114L), crc);
+		// reduce the scope
+		scope = Sets.newHashSet(file1.getParentId());
+		// call under test
+		crc = tableIndexDAO.calculateCRC32ofEntityReplicationScope(ViewType.file, scope);
+		assertEquals(new Long(122929132L), crc);
+		// reduce the scope
+		scope = Sets.newHashSet(file2.getParentId());
+		// call under test
+		crc = tableIndexDAO.calculateCRC32ofEntityReplicationScope(ViewType.file, scope);
+		assertEquals(new Long(3592651982L), crc);
+	}
+	
+	@Test
+	public void testCalculateCRC32ofEntityReplicationNoRows(){
+		tableIndexDAO.createEntityReplicationTablesIfDoesNotExist();
+		// nothing should have this scope
+		Set<Long> scope = Sets.newHashSet(99999L);
+		// call under test
+		Long crc = tableIndexDAO.calculateCRC32ofEntityReplicationScope(ViewType.file, scope);
+		assertEquals(new Long(-1), crc);
+	}
+	
+	@Test
+	public void testCalculateCRC32ofEntityReplicationScopeEmpty(){
+		Set<Long> scope = new HashSet<Long>();
+		// call under test
+		Long crc = tableIndexDAO.calculateCRC32ofEntityReplicationScope(ViewType.file, scope);
+		assertEquals(new Long(-1), crc);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCalculateCRC32ofEntityReplicationNullType(){
+		Set<Long> scope = new HashSet<Long>();
+		// call under test
+		tableIndexDAO.calculateCRC32ofEntityReplicationScope(null, scope);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCalculateCRC32ofEntityReplicationNullScope(){
+		Set<Long> scope = null;
+		// call under test
+		tableIndexDAO.calculateCRC32ofEntityReplicationScope(ViewType.file, scope);
+	}
+	
+	@Test
+	public void testCopyEntityReplicationToTable(){
+		tableIndexDAO.createEntityReplicationTablesIfDoesNotExist();
+		// delete all data
+		tableIndexDAO.deleteEntityData(mockProgressCallback, Lists.newArrayList(2L,3L));
+		
+		// setup some hierarchy.
+		EntityDTO file1 = createEntityDTO(2L, EntityType.file, 2);
+		file1.setParentId(333L);
+		EntityDTO file2 = createEntityDTO(3L, EntityType.file, 3);
+		file2.setParentId(222L);
+		
+		tableIndexDAO.addEntityData(mockProgressCallback, Lists.newArrayList(file1, file2));
+		
+		// both parents
+		Set<Long> scope = Sets.newHashSet(file1.getParentId(), file2.getParentId());
+		// Create the schema for this table
+		List<ColumnModel> schema = createSchemaFromEntityDTO(file2);
+		// Create the view index
+		createOrUpdateTable(schema, tableId);
+		// Copy the entity data to the table
+		tableIndexDAO.copyEntityReplicationToTable(tableId, ViewType.file, scope, schema);
+		// Query the results
+		long count = tableIndexDAO.getRowCountForTable(tableId);
+		assertEquals(2, count);
+		// Check the CRC of the view
+		ColumnModel etagColumn = EntityField.findMatch(schema, EntityField.etag);
+		long crc32 = tableIndexDAO.calculateCRC32ofTableView(tableId, etagColumn.getId());
+		assertEquals(3715581114L, crc32);
+	}
+	
+	@Test
+	public void testCopyEntityReplicationToTableScopeEmpty(){
+		tableIndexDAO.createEntityReplicationTablesIfDoesNotExist();
+		// delete all data
+		tableIndexDAO.deleteEntityData(mockProgressCallback, Lists.newArrayList(2L,3L));
+		
+		// setup some hierarchy.
+		EntityDTO file1 = createEntityDTO(2L, EntityType.file, 2);
+		file1.setParentId(333L);
+		EntityDTO file2 = createEntityDTO(3L, EntityType.file, 3);
+		file2.setParentId(222L);
+		
+		tableIndexDAO.addEntityData(mockProgressCallback, Lists.newArrayList(file1, file2));
+		
+		// both parents
+		Set<Long> scope = new HashSet<Long>();
+		// Create the schema for this table
+		List<ColumnModel> schema = createSchemaFromEntityDTO(file2);
+		// Create the view index
+		createOrUpdateTable(schema, tableId);
+		// Copy the entity data to the table
+		tableIndexDAO.copyEntityReplicationToTable(tableId, ViewType.file, scope, schema);
+		// Query the results
+		long count = tableIndexDAO.getRowCountForTable(tableId);
+		assertEquals(0, count);
+		// Check the CRC of the view
+		ColumnModel etagColumn = EntityField.findMatch(schema, EntityField.etag);
+		long crc32 = tableIndexDAO.calculateCRC32ofTableView(tableId, etagColumn.getId());
+		assertEquals(-1L, crc32);
+	}
+	
+	/**
+	 * Create a view schema using an EntityDTO as a template.
+	 * 
+	 * @param dto
+	 * @return
+	 */
+	public static List<ColumnModel> createSchemaFromEntityDTO(EntityDTO dto){
+		List<ColumnModel> schema = new LinkedList<>();
+		// add a column for each annotation
+		if(dto.getAnnotations() != null){
+			for(AnnotationDTO annoDto: dto.getAnnotations()){
+				ColumnModel cm = new ColumnModel();
+				cm.setColumnType(translateType(annoDto.getType()));
+				cm.setName(annoDto.getKey());
+				if(ColumnType.STRING.equals(cm.getColumnType())){
+					cm.setMaximumSize(50L);
+				}
+				schema.add(cm);
+			}
+		}
+		// Add all of the default EntityFields
+		schema.addAll(EntityField.getAllColumnModels());
+		// assign each column an ID
+		for(int i=0; i<schema.size(); i++){
+			ColumnModel cm = schema.get(i);
+			cm.setId(""+i);
+		}
+		return schema;
+	}
+
+	
+	
+	public static ColumnType translateType(AnnotationType type){
+		switch(type){
+		case STRING:
+			return ColumnType.STRING;
+		case DATE:
+			return ColumnType.DATE;
+		case DOUBLE:
+			return ColumnType.DOUBLE;
+		case LONG:
+			return ColumnType.INTEGER;
+		default:
+			return ColumnType.STRING;
+		}
+	}
+	
+	/**
+	 * Helper to create populated EntityDTO.
+	 * @param id
+	 * @param type
+	 * @param annotationCount
+	 * @return
+	 */
+	private EntityDTO createEntityDTO(long id, EntityType type, int annotationCount){
+		EntityDTO entityDto = new EntityDTO();
+		entityDto.setId(id);
+		entityDto.setCurrentVersion(2L);
+		entityDto.setCreatedBy(222L);
+		entityDto.setCreatedOn(new Date());
+		entityDto.setEtag("etag"+id);
+		entityDto.setName("name"+id);
+		entityDto.setType(type);
+		entityDto.setParentId(1L);
+		entityDto.setBenefactorId(2L);
+		entityDto.setProjectId(3L);
+		entityDto.setModifiedBy(333L);
+		entityDto.setModifiedOn(new Date());
+		if(EntityType.file.equals(type)){
+			entityDto.setFileHandleId(888L);
+		}
+		List<AnnotationDTO> annos = new LinkedList<AnnotationDTO>();
+		for(int i=0; i<annotationCount; i++){
+			AnnotationDTO annoDto = new AnnotationDTO();
+			annoDto.setEntityId(id);
+			annoDto.setKey("key"+i);
+			annoDto.setType(AnnotationType.values()[i%AnnotationType.values().length]);
+			annoDto.setValue(""+i);
+			annos.add(annoDto);
+		}
+		if(!annos.isEmpty()){
+			entityDto.setAnnotations(annos);
+		}
+		return entityDto;
 	}
 }

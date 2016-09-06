@@ -97,6 +97,7 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.query.jdo.QueryUtils;
+import org.sagebionetworks.repo.model.table.EntityDTO;
 import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
@@ -153,6 +154,18 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private static final String SQL_SELECT_PARENT_TYPE_NAME = "SELECT "+COL_NODE_ID+", "+COL_NODE_PARENT_ID+", "+COL_NODE_TYPE+", "+COL_NODE_NAME+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" = ?";
 	private static final String SQL_GET_ALL_CHILDREN_IDS = "SELECT "+COL_NODE_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_PARENT_ID+" = ? ORDER BY "+COL_NODE_ID;
 	private static final String NODE_IDS_LIST_PARAM_NAME = "NODE_IDS";
+	private static final String SQL_SELECT_ENTITY_DTO = "SELECT N."
+			+ COL_NODE_ID + ", N."+COL_CURRENT_REV+", N." + COL_NODE_CREATED_BY + ", N."
+			+ COL_NODE_CREATED_ON + ", N." + COL_NODE_ETAG + ", N."
+			+ COL_NODE_NAME + ", N." + COL_NODE_TYPE + ", N."
+			+ COL_NODE_PARENT_ID + ", N." + COL_NODE_BENEFACTOR_ID + ", N."
+			+ COL_NODE_PROJECT_ID + ", R." + COL_REVISION_MODIFIED_BY + ", R."
+			+ COL_REVISION_MODIFIED_ON + ", R." + COL_REVISION_FILE_HANDLE_ID
+			+ ", R." + COL_REVISION_ANNOS_BLOB + " FROM " + TABLE_NODE + " N, "
+			+ TABLE_REVISION + " R WHERE N." + COL_NODE_ID + " = R."
+			+ COL_REVISION_OWNER_NODE + " AND N." + COL_CURRENT_REV + " = R."
+			+ COL_REVISION_NUMBER + " AND N." + COL_NODE_ID + " IN(:"
+			+ NODE_IDS_LIST_PARAM_NAME + ")";
 	private static final String SQL_GET_CURRENT_VERSIONS = "SELECT "+COL_NODE_ID+","+COL_CURRENT_REV+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" IN ( :"+NODE_IDS_LIST_PARAM_NAME + " )";
 	private static final String OWNER_ID_PARAM_NAME = "OWNER_ID";
 	// selecting and counting the projects a user owns
@@ -1743,6 +1756,62 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		List<Long> foundFileHandleIds = jdbcTemplate.queryForList(SQL_GET_FILE_HANDLE_IDS, Long.class, entityId);
 		results.retainAll(foundFileHandleIds);
 		return results;
+	}
+
+	@Override
+	public List<EntityDTO> getEntityDTOs(List<String> ids,final int maxAnnotationSize) {
+		ValidateArgument.required(ids, "ids");
+		if(ids.isEmpty()){
+			return new LinkedList<EntityDTO>();
+		}
+		List<Long> longIds = KeyFactory.stringToKey(ids);
+		Map<String, List<Long>> parameters = new HashMap<String, List<Long>>(1);
+		parameters.put(NODE_IDS_LIST_PARAM_NAME, longIds);
+		return namedParameterJdbcTemplate.query(SQL_SELECT_ENTITY_DTO , parameters, new RowMapper<EntityDTO>() {
+
+			@Override
+			public EntityDTO mapRow(ResultSet rs, int rowNum)
+					throws SQLException {
+				EntityDTO dto = new EntityDTO();
+				long entityId = rs.getLong(COL_NODE_ID);
+				dto.setId(entityId);
+				dto.setCurrentVersion(rs.getLong(COL_CURRENT_REV));
+				dto.setCreatedBy(rs.getLong(COL_NODE_CREATED_BY));
+				dto.setCreatedOn(new Date(rs.getLong(COL_NODE_CREATED_ON)));
+				dto.setEtag(rs.getString(COL_NODE_ETAG));
+				dto.setName(rs.getString(COL_NODE_NAME));
+				dto.setType(EntityType.valueOf(rs.getString(COL_NODE_TYPE)));
+				dto.setParentId(rs.getLong(COL_NODE_PARENT_ID));
+				if(rs.wasNull()){
+					dto.setParentId(null);
+				}
+				dto.setBenefactorId(rs.getLong(COL_NODE_BENEFACTOR_ID));
+				if(rs.wasNull()){
+					dto.setBenefactorId(null);
+				}
+				dto.setProjectId(rs.getLong(COL_NODE_PROJECT_ID));
+				if(rs.wasNull()){
+					dto.setProjectId(null);
+				}
+				dto.setModifiedBy(rs.getLong(COL_REVISION_MODIFIED_BY));
+				dto.setModifiedOn(new Date(rs.getLong(COL_REVISION_MODIFIED_ON)));
+				dto.setFileHandleId(rs.getLong(COL_REVISION_FILE_HANDLE_ID));
+				if(rs.wasNull()){
+					dto.setFileHandleId(null);
+				}
+				Blob blob = rs.getBlob(COL_REVISION_ANNOS_BLOB);
+				if(blob != null){
+					byte[] bytes = blob.getBytes(1, (int) blob.length());
+					try {
+						NamedAnnotations annos = JDOSecondaryPropertyUtils.decompressedAnnotations(bytes);
+						dto.setAnnotations(JDOSecondaryPropertyUtils.translate(entityId, annos, maxAnnotationSize));
+					} catch (IOException e) {
+						throw new DatastoreException(e);
+					}
+				}
+				return dto;
+			}
+		});
 	}
 
 }

@@ -1,5 +1,8 @@
 package org.sagebionetworks.repo.manager.table;
 
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -14,6 +17,8 @@ import org.sagebionetworks.repo.model.PaginatedIds;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
+import org.sagebionetworks.repo.model.table.ColumnChange;
+import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.SelectColumn;
@@ -140,22 +145,54 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 	}
 	
 	/**
-	 * Validate that the given columns are under the maxiumn schema size supported.
+	 * Validate that the given columns are under the maximum schema size supported.
 	 * @param columnIds
 	 */
-	private void validateSchemaSize(List<String> columnIds) {
+	@Override
+	public List<ColumnModel> validateSchemaSize(List<String> columnIds) {
+		List<ColumnModel> schema = null;
 		if(columnIds != null && !columnIds.isEmpty()){
 			if(columnIds.size() >= MY_SQL_MAX_COLUMNS_PER_TABLE){
 				throw new IllegalArgumentException("Too many columns. The limit is "+MY_SQL_MAX_COLUMNS_PER_TABLE+" columns per table");
 			}
 			// fetch the columns
-			List<ColumnModel> schema = columnModelDao.getColumnModel(columnIds, false);
+			schema = columnModelDao.getColumnModel(columnIds, false);
 			// Calculate the max row size for this schema.
 			int shemaSize = TableModelUtils.calculateMaxRowSize(schema);
 			if(shemaSize > MY_SQL_MAX_BYTES_PER_ROW){
 				throw new IllegalArgumentException("Too much data per column. The maximum size for a row is about "+MY_SQL_MAX_BYTES_PER_ROW+" bytes. The size for the given columns would be "+shemaSize+" bytes");
 			}
 		}
+		return schema;
+	}
+	
+	@Override
+	public List<String> calculateNewSchemaIds(String tableId, List<ColumnChange> changes) {
+		// lookup the current schema.
+		List<ColumnModel> current =  columnModelDao.getColumnModelsForObject(tableId);
+		List<String> newSchemaIds = new LinkedList<>();
+		for(ColumnModel cm: current){
+			newSchemaIds.add(cm.getId());
+		}
+		// Calculate new schema
+		for(ColumnChange change: changes){
+			if(change.getNewColumnId() != null && change.getOldColumnId() != null){
+				// update
+				int oldIndex = newSchemaIds.indexOf(change.getOldColumnId());
+				if(oldIndex < 0){
+					throw new IllegalArgumentException("Cannot update column: "+change.getOldColumnId()+" since it is not currently a column of table: "+tableId);
+				}
+				newSchemaIds.add(oldIndex, change.getNewColumnId());
+				newSchemaIds.remove(change.getOldColumnId());
+			}else if(change.getOldColumnId() != null){
+				// remove
+				newSchemaIds.remove(change.getOldColumnId());
+			}else{
+				// add
+				newSchemaIds.add(change.getNewColumnId());
+			}
+		}
+		return newSchemaIds;
 	}
 
 	@WriteTransaction
@@ -211,6 +248,47 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 			}
 		}
 		return results;
+	}
+
+	@Override
+	public List<ColumnChangeDetails> getColumnChangeDetails(
+			List<ColumnChange> changes) {
+		// Gather all of the IDs
+		List<String> columnIds = new LinkedList<>();
+		for(ColumnChange change: changes){
+			if(change.getNewColumnId() != null){
+				columnIds.add(change.getNewColumnId());
+			}
+			if(change.getOldColumnId() != null){
+				columnIds.add(change.getOldColumnId());
+			}
+		}
+		boolean keepOrder = false;
+		List<ColumnModel> models = columnModelDao.getColumnModel(columnIds, keepOrder);
+		// map the result
+		Map<String, ColumnModel> map = new HashMap<String, ColumnModel>(models.size());
+		for(ColumnModel cm: models){
+			map.put(cm.getId(), cm);
+		}
+		// Build up the results
+		List<ColumnChangeDetails> details = new LinkedList<>();
+		for(ColumnChange change: changes){
+			ColumnModel newModel = null;
+			ColumnModel oldModel = null;
+			if(change.getNewColumnId() != null){
+				newModel = map.get(change.getNewColumnId());
+			}
+			if(change.getOldColumnId() != null){
+				oldModel = map.get(change.getOldColumnId());
+			}
+			details.add(new ColumnChangeDetails(oldModel, newModel));
+		}
+		return details;
+	}
+
+	@Override
+	public List<String> getColumnIdForTable(String id) {
+		return columnModelDao.getColumnIdsForObject(id);
 	}
 	
 }

@@ -7,6 +7,8 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.PaginatedIds;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.table.ColumnChange;
+import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.SelectColumn;
@@ -121,5 +123,35 @@ public interface ColumnModelManager {
 	 * @throws DatastoreException 
 	 */
 	public List<ColumnModel> getCurrentColumns(UserInfo user, String tableId, List<SelectColumn> selectColumns) throws DatastoreException, NotFoundException;
+
+	/**
+	 * Validate the given schema is under the max size.
+	 * 
+	 * @param columnIds
+	 */
+	List<ColumnModel> validateSchemaSize(List<String> columnIds);
+	
+	/**
+	 * Calculate the new schema if the passed changes are applied to the current schema of the table.
+	 * @param changes
+	 * @return
+	 */
+	List<String> calculateNewSchemaIds(String tableId, List<ColumnChange> changes);
+
+	/**
+	 * Get the details of a schema change.
+	 * 
+	 * @param changes
+	 * @return
+	 */
+	public List<ColumnChangeDetails> getColumnChangeDetails(
+			List<ColumnChange> changes);
+
+	/**
+	 * Get the columnIds for a table.
+	 * @param id
+	 * @return
+	 */
+	public List<String> getColumnIdForTable(String id);
 }
 

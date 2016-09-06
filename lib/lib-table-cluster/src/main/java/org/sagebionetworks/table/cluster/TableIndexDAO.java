@@ -6,8 +6,11 @@ import java.util.Set;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
+import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.EntityDTO;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.ViewType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.support.TransactionCallback;
 
@@ -31,9 +34,10 @@ public interface TableIndexDAO {
 	 * 
 	 * @param tableId
 	 * @param changes
+	 * @param alterTemp When true the temporary table will be altered.  When false the original table will be altered.
 	 * @return True if the table was altered. False if the table was not changed.
 	 */
-	public boolean alterTableAsNeeded(String tableId, List<ColumnChange> changes);
+	public boolean alterTableAsNeeded(String tableId, List<ColumnChangeDetails> changes, boolean alterTemp);
 	
 	/**
 	 * 
@@ -265,4 +269,65 @@ public interface TableIndexDAO {
 	 * @return
 	 */
 	public long getTempTableCount(String tableId);
+	
+	/**
+	 * Create the entity replication tables if they do not exist.
+	 * 
+	 */
+	void createEntityReplicationTablesIfDoesNotExist();
+
+	/**
+	 * Delete all entity data with the given Ids.
+	 * @param progressCallback 
+	 * 
+	 * @param allIds
+	 */
+	public void deleteEntityData(ProgressCallback<Void> progressCallback, List<Long> allIds);
+
+	/**
+	 * Add the given entity data to the index.
+	 * 
+	 * @param entityDTOs
+	 */
+	public void addEntityData(ProgressCallback<Void> progressCallback, List<EntityDTO> entityDTOs);
+	
+	/**
+	 * Get the entity DTO for a given entity ID.
+	 * @param entityId
+	 * @return
+	 */
+	public EntityDTO getEntityData(Long entityId);
+
+	/**
+	 * Given a container scope calculate the CRC32 of the entity replication table on 'id-etag'.
+	 * @param viewType 
+	 * 
+	 * @param allContainersInScope
+	 * @return
+	 */
+	public long calculateCRC32ofEntityReplicationScope(
+			ViewType viewType, Set<Long> allContainersInScope);
+
+	/**
+	 * Copy the data from the entity replication tables to the given view's table.
+	 * 
+	 * @param viewId
+	 * @param viewType
+	 * @param allContainersInScope
+	 * @param currentSchema
+	 */
+	public void copyEntityReplicationToTable(String viewId, ViewType viewType,
+			Set<Long> allContainersInScope, List<ColumnModel> currentSchema);
+
+	/**
+	 * Calculate the Cyclic-Redundancy-Check (CRC) of a table view's concatenation
+	 * of ROW_ID + ETAG.  Used to determine if a view is synchronized with the
+	 * truth.
+	 * 
+	 * @param viewId
+	 * @param etagColumnId The ID of the view's ETAG column.
+	 * 
+	 * @return
+	 */
+	long calculateCRC32ofTableView(String viewId, String etagColumnId);
 }

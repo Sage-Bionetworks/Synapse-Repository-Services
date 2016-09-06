@@ -69,7 +69,7 @@ public class AccessInterceptor implements HandlerInterceptor, AccessIdListener{
 		data.setHost(request.getHeader("Host"));
 		data.setOrigin(request.getHeader("Origin"));
 		data.setUserAgent(request.getHeader("User-Agent"));
-		data.setXForwardedFor(request.getHeader("X-Forwarded-For"));
+		data.setXForwardedFor(request.getRemoteAddr());
 		data.setVia(request.getHeader("Via"));
 		data.setDate(KeyGeneratorUtil.getDateString(data.getTimestamp()));
 		data.setStack(this.stack);

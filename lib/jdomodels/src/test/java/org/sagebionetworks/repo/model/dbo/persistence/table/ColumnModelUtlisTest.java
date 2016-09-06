@@ -2,14 +2,20 @@ package org.sagebionetworks.repo.model.dbo.persistence.table;
 
 import static org.junit.Assert.*;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.StringWriter;
 import java.util.Collections;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -268,5 +274,34 @@ public class ColumnModelUtlisTest {
 		assertEquals(normalized, clone);
 	}
 	
+	
+	@Test
+	public void testSchemaChangeToFromGzip() throws IOException{
+		ColumnChange add = new ColumnChange();
+		add.setOldColumnId(null);
+		add.setNewColumnId("123");
+		
+		ColumnChange delete = new ColumnChange();
+		delete.setOldColumnId("456");
+		delete.setNewColumnId(null);
+		
+		ColumnChange update = new ColumnChange();
+		update.setOldColumnId("777");
+		update.setNewColumnId("888");
+		
+		List<ColumnChange> changes = new LinkedList<ColumnChange>();
+		changes.add(add);
+		changes.add(delete);
+		changes.add(update);
+		
+		//write
+		ByteArrayOutputStream out = new ByteArrayOutputStream();
+		ColumnModelUtils.writeSchemaChangeToGz(changes, out);
+		
+		// read
+		ByteArrayInputStream in = new ByteArrayInputStream(out.toByteArray());
+		List<ColumnChange> results = ColumnModelUtils.readSchemaChangeFromGz(in);
+		assertEquals(changes, results);
+	}
 
 }

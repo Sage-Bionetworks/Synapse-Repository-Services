@@ -1,21 +1,18 @@
 package org.sagebionetworks.repo.manager.table;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyList;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anySet;
 import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Callable;
 
 import org.junit.Before;
@@ -26,12 +23,14 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
+import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
-import org.sagebionetworks.table.cluster.ColumnChange;
+import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.table.cluster.DatabaseColumnInfo;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
@@ -59,6 +58,7 @@ public class TableIndexManagerImplTest {
 	RowSet rowSet;
 	List<ColumnModel> schema;
 	List<SelectColumn> selectColumns;
+	Long crc32;
 	
 	@SuppressWarnings("unchecked")
 	@Before
@@ -108,6 +108,8 @@ public class TableIndexManagerImplTest {
 				return callable.call();
 			}
 		});
+		crc32 = 5678L;
+		when(mockIndexDao.calculateCRC32ofTableView(anyString(), anyString())).thenReturn(crc32);
 
 	}
 
@@ -191,7 +193,7 @@ public class TableIndexManagerImplTest {
 		info.setColumnType(ColumnType.BOOLEAN);
 		
 		when(mockIndexDao.getDatabaseInfo(tableId)).thenReturn(Lists.newArrayList(info));
-		when(mockIndexDao.alterTableAsNeeded(anyString(), anyList())).thenReturn(true);
+		when(mockIndexDao.alterTableAsNeeded(anyString(), anyList(), anyBoolean())).thenReturn(true);
 		// call under test
 		manager.setIndexSchema(mockCallback, schema);
 		String schemaMD5Hex = TableModelUtils. createSchemaMD5HexCM(Lists.newArrayList(schema));
@@ -201,7 +203,7 @@ public class TableIndexManagerImplTest {
 	@Test
 	public void testSetIndexSchemaWithNoColumns(){
 		when(mockIndexDao.getDatabaseInfo(tableId)).thenReturn(new LinkedList<DatabaseColumnInfo>());
-		when(mockIndexDao.alterTableAsNeeded(anyString(), anyList())).thenReturn(true);
+		when(mockIndexDao.alterTableAsNeeded(anyString(), anyList(), anyBoolean())).thenReturn(true);
 		// call under test
 		manager.setIndexSchema(mockCallback, new LinkedList<ColumnModel>());
 		String schemaMD5Hex = TableModelUtils. createSchemaMD5HexCM(Lists.newArrayList(new LinkedList<ColumnModel>()));
@@ -266,8 +268,9 @@ public class TableIndexManagerImplTest {
 		ColumnModel oldColumn = null;
 		ColumnModel newColumn = new ColumnModel();
 		newColumn.setId("12");
-		List<ColumnChange> changes = Lists.newArrayList(new ColumnChange(oldColumn, newColumn));
-		when(mockIndexDao.alterTableAsNeeded(tableId, changes)).thenReturn(true);
+		List<ColumnChangeDetails> changes = Lists.newArrayList(new ColumnChangeDetails(oldColumn, newColumn));
+		boolean alterTemp = false;
+		when(mockIndexDao.alterTableAsNeeded(tableId, changes, alterTemp)).thenReturn(true);
 		DatabaseColumnInfo info = new DatabaseColumnInfo();
 		info.setColumnName("_C12_");
 		info.setColumnType(ColumnType.BOOLEAN);
@@ -279,7 +282,7 @@ public class TableIndexManagerImplTest {
 		verify(mockIndexDao).createSecondaryTables(tableId);
 		// The new schema is not empty so do not truncate.
 		verify(mockIndexDao, never()).truncateTable(tableId);
-		verify(mockIndexDao).alterTableAsNeeded(tableId, changes);
+		verify(mockIndexDao).alterTableAsNeeded(tableId, changes, alterTemp);
 		
 		String schemaMD5Hex = TableModelUtils. createSchemaMD5HexCM(Lists.newArrayList(newColumn));
 		verify(mockIndexDao).setCurrentSchemaMD5Hex(tableId, schemaMD5Hex);
@@ -290,9 +293,10 @@ public class TableIndexManagerImplTest {
 		ColumnModel oldColumn = new ColumnModel();
 		oldColumn.setId("12");
 		ColumnModel newColumn = null;
+		boolean alterTemp = false;
 
-		List<ColumnChange> changes = Lists.newArrayList(new ColumnChange(oldColumn, newColumn));
-		when(mockIndexDao.alterTableAsNeeded(tableId, changes)).thenReturn(true);
+		List<ColumnChangeDetails> changes = Lists.newArrayList(new ColumnChangeDetails(oldColumn, newColumn));
+		when(mockIndexDao.alterTableAsNeeded(tableId, changes, alterTemp)).thenReturn(true);
 		when(mockIndexDao.getDatabaseInfo(tableId)).thenReturn(new LinkedList<DatabaseColumnInfo>());
 		// call under test
 		manager.updateTableSchema(mockCallback, changes);
@@ -301,7 +305,7 @@ public class TableIndexManagerImplTest {
 		verify(mockIndexDao).getDatabaseInfo(tableId);
 		// The new schema is empty so the table is truncated.
 		verify(mockIndexDao).truncateTable(tableId);
-		verify(mockIndexDao).alterTableAsNeeded(tableId, changes);
+		verify(mockIndexDao).alterTableAsNeeded(tableId, changes, alterTemp);
 		
 		String schemaMD5Hex = TableModelUtils. createSchemaMD5HexCM(new LinkedList<ColumnModel>());
 		verify(mockIndexDao).setCurrentSchemaMD5Hex(tableId, schemaMD5Hex);
@@ -309,14 +313,15 @@ public class TableIndexManagerImplTest {
 	
 	@Test
 	public void testUpdateTableSchemaNoChange(){
-		List<ColumnChange> changes = new LinkedList<ColumnChange>();
-		when(mockIndexDao.alterTableAsNeeded(tableId, changes)).thenReturn(false);
+		List<ColumnChangeDetails> changes = new LinkedList<ColumnChangeDetails>();
+		boolean alterTemp = false;
+		when(mockIndexDao.alterTableAsNeeded(tableId, changes, alterTemp)).thenReturn(false);
 		when(mockIndexDao.getDatabaseInfo(tableId)).thenReturn(new LinkedList<DatabaseColumnInfo>());
 		// call under test
 		manager.updateTableSchema(mockCallback, changes);
 		verify(mockIndexDao).createTableIfDoesNotExist(tableId);
 		verify(mockIndexDao).createSecondaryTables(tableId);
-		verify(mockIndexDao).alterTableAsNeeded(tableId, changes);
+		verify(mockIndexDao).alterTableAsNeeded(tableId, changes, alterTemp);
 		verify(mockIndexDao, never()).getDatabaseInfo(tableId);
 		verify(mockIndexDao, never()).truncateTable(tableId);
 		verify(mockIndexDao, never()).setCurrentSchemaMD5Hex(anyString(), anyString());
@@ -341,6 +346,95 @@ public class TableIndexManagerImplTest {
 		// auto progress should be used.
 		verify(mockManagerSupport).callWithAutoProgress(any(ProgressCallback.class), any(Callable.class));
 		verify(mockIndexDao).deleteTemporaryTable(tableId);
+	}
+	
+	@Test
+	public void testPopulateViewFromEntityReplication(){
+		ViewType viewType = ViewType.file;
+		Set<Long> scope = Sets.newHashSet(1L,2L);
+		List<ColumnModel> schema = createDefaultColumnsWithIds();
+		ColumnModel etagColumn = EntityField.findMatch(schema, EntityField.etag);
+		// call under test
+		Long resultCrc = manager.populateViewFromEntityReplication(mockCallback, viewType, scope, schema);
+		assertEquals(crc32, resultCrc);
+		verify(mockIndexDao).copyEntityReplicationToTable(tableId, viewType, scope, schema);
+		// the CRC should be calculated with the etag column.
+		verify(mockIndexDao).calculateCRC32ofTableView(tableId, etagColumn.getId());
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testPopulateViewFromEntityReplicationMissingEtagColumn(){
+		ViewType viewType = ViewType.file;
+		Set<Long> scope = Sets.newHashSet(1L,2L);
+		List<ColumnModel> schema = createDefaultColumnsWithIds();
+		ColumnModel etagColumn = EntityField.findMatch(schema, EntityField.etag);
+		// remove the etag column
+		schema.remove(etagColumn);
+		// call under test
+		manager.populateViewFromEntityReplication(mockCallback, viewType, scope, schema);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testPopulateViewFromEntityReplicationMissingBenefactorColumn(){
+		ViewType viewType = ViewType.file;
+		Set<Long> scope = Sets.newHashSet(1L,2L);
+		List<ColumnModel> schema = createDefaultColumnsWithIds();
+		ColumnModel benefactorColumn = EntityField.findMatch(schema, EntityField.benefactorId);
+		// remove the benefactor column
+		schema.remove(benefactorColumn);
+		// call under test
+		manager.populateViewFromEntityReplication(mockCallback, viewType, scope, schema);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testPopulateViewFromEntityReplicationNullViewType(){
+		ViewType viewType = null;
+		Set<Long> scope = Sets.newHashSet(1L,2L);
+		List<ColumnModel> schema = createDefaultColumnsWithIds();
+		// call under test
+		manager.populateViewFromEntityReplication(mockCallback, viewType, scope, schema);;
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testPopulateViewFromEntityReplicationScopeNull(){
+		ViewType viewType = ViewType.file;
+		Set<Long> scope = null;
+		List<ColumnModel> schema = createDefaultColumnsWithIds();
+		// call under test
+		manager.populateViewFromEntityReplication(mockCallback, viewType, scope, schema);;
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testPopulateViewFromEntityReplicationSchemaNull(){
+		ViewType viewType = ViewType.file;
+		Set<Long> scope = Sets.newHashSet(1L,2L);
+		List<ColumnModel> schema = null;
+		// call under test
+		manager.populateViewFromEntityReplication(mockCallback, viewType, scope, schema);;
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testPopulateViewFromEntityReplicationCallbackNull(){
+		ViewType viewType = ViewType.file;
+		Set<Long> scope = Sets.newHashSet(1L,2L);
+		List<ColumnModel> schema = createDefaultColumnsWithIds();
+		mockCallback = null;
+		// call under test
+		manager.populateViewFromEntityReplication(mockCallback, viewType, scope, schema);;
+	}
+	
+	/**
+	 * Create the default EntityField schema with IDs for each column.
+	 * 
+	 * @return
+	 */
+	public static List<ColumnModel> createDefaultColumnsWithIds(){
+		List<ColumnModel> schema = EntityField.getAllColumnModels();
+		for(int i=0; i<schema.size(); i++){
+			ColumnModel cm = schema.get(i);
+			cm.setId(""+i);
+		}
+		return schema;
 	}
 	
 }
