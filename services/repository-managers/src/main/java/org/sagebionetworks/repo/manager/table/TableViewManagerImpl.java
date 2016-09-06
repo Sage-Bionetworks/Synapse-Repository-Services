@@ -8,6 +8,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.ViewType;
@@ -75,6 +76,20 @@ public class TableViewManagerImpl implements TableViewManager {
 			currentSchema.add(required);
 		}
 		return currentSchema;
+	}
+
+	@WriteTransactionReadCommitted
+	@Override
+	public List<ColumnModel> applySchemaChange(UserInfo user, String viewId,
+			List<ColumnChange> changes) {
+		// first determine what the new Schema will be
+		List<String> newSchemaIds = columModelManager.calculateNewSchemaIds(viewId, changes);
+		columModelManager.bindColumnToObject(user, newSchemaIds, viewId);
+		boolean keepOrder = true;
+		List<ColumnModel> newSchema = columModelManager.getColumnModel(user, newSchemaIds, keepOrder);
+		// trigger an update.
+		tableManagerSupport.setTableToProcessingAndTriggerUpdate(viewId);
+		return newSchema;
 	}
 
 }

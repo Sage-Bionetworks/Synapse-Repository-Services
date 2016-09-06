@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dao.table.RowBatchHandler;
+import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ViewType;
 
@@ -39,6 +41,17 @@ public interface TableViewManager {
 	 * @return
 	 */
 	public List<ColumnModel> getViewSchemaWithRequiredColumns(String tableId);
+
+
+	/**
+	 * Apply the passed schema change to the passed view.
+	 * 
+	 * @param viewId 
+	 * @param user 
+	 * @param changes
+	 * @return
+	 */
+	public List<ColumnModel> applySchemaChange(UserInfo user, String viewId, List<ColumnChange> changes);
 
 
 }
