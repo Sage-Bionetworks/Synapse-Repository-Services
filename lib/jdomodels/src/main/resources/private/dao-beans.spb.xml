@@ -42,9 +42,6 @@
 		
 	<bean id="dockerCommitDao" class="org.sagebionetworks.repo.model.dbo.dao.DockerCommitDaoImpl"
 		depends-on="idGenerator" />
-		
-	<bean id="tableViewDao" class="org.sagebionetworks.repo.model.dbo.dao.table.TableViewDaoImpl"
-		scope="singleton" />	
 
 	<bean id="activityDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOActivityDAOImpl"

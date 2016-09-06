@@ -2,7 +2,6 @@ package org.sagebionetworks.table.worker;
 
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
-import static org.mockito.Matchers.anyListOf;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.never;
@@ -28,13 +27,11 @@ import org.sagebionetworks.repo.manager.table.TableIndexManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableViewManager;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.dao.table.RowBatchHandler;
 import org.sagebionetworks.repo.model.dbo.dao.table.FileEntityFields;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.Row;
-import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
@@ -133,7 +130,6 @@ public class TableViewWorkerTest {
 			rows.add(row);
 		}
 
-		when(tableViewManager.getViewSchemaWithBenefactor(tableId)).thenReturn(schema);
 		when(tableViewManager.getViewSchemaWithRequiredColumns(tableId)).thenReturn(schema);
 		viewCRC = 888L;		
 		when(indexManager.populateViewFromEntityReplication(innerCallback, ViewType.file, viewScope,schema)).thenReturn(viewCRC);
