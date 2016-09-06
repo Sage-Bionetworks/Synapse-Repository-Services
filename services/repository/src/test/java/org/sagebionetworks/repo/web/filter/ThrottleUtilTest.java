@@ -8,6 +8,8 @@ import static org.sagebionetworks.repo.web.filter.ThrottleUtils.isMigrationAdmin
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.Collections;
+import java.util.Map;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -16,6 +18,7 @@ import org.mockito.Mockito;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.sagebionetworks.cloudwatch.ProfileData;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+
 import javax.servlet.http.HttpServletResponse;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -26,7 +29,7 @@ public class ThrottleUtilTest {
 	private static final Long userId = 123456L;
 	private static final String namespace = "ecapseman";
 	private static final int httpError = 420;
-	
+	private static final Map<String, String> dimensions = Collections.singletonMap("UserId", userId.toString());
 	@Mock
 	HttpServletResponse mockResponse;
 	
@@ -38,29 +41,30 @@ public class ThrottleUtilTest {
 	////////////////////////////////
 	
 	@Test (expected = IllegalArgumentException.class)
-	public void testReportLockAcquireErrorNullUserId(){
-		generateCloudwatchProfiledata(null, eventName, namespace);
-	}
-	
-	@Test (expected = IllegalArgumentException.class)
 	public void testReportLockAcquireErrorNullEventName(){
-		generateCloudwatchProfiledata(userId.toString(), null, namespace);
+		generateCloudwatchProfiledata(null, namespace, dimensions);
 	}
 	
 	@Test (expected = IllegalArgumentException.class)
 	public void testReportLockAcquireErrorNullFilterClass(){
+		generateCloudwatchProfiledata(eventName, null, dimensions);
+	}
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void testReportLockAcquireErrorNullDimensions(){
 		generateCloudwatchProfiledata(userId.toString(), eventName, null);
 	}
 	
 	@Test
 	public void testReportLockAcquireError(){
-		ProfileData report = generateCloudwatchProfiledata(userId.toString(), eventName, namespace);
+		ProfileData report = generateCloudwatchProfiledata(eventName, namespace, dimensions);
 			
 		assertEquals(eventName, report.getName());
 		assertEquals(namespace, report.getNamespace());
 		assertEquals(userId.toString(), report.getDimension().get("UserId"));
 		assertEquals(1.0, report.getValue(), 1e-15);
 		assertEquals("Count", report.getUnit());
+		assertEquals(dimensions, report.getDimension());
 	}
 	
 	////////////////////////////////////////////
