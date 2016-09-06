@@ -115,58 +115,6 @@ public class TableEntityTransactionManagerTest {
 	}
 
 	@Test
-	public void testValidateRequestValid() {
-		// call under test.
-		TableEntityTransactionManager.validateRequest(request);
-	}
-
-	@Test
-	public void testValidateRequestMissingId() {
-		uploadRequest.setEntityId(null);
-		// call under test.
-		TableEntityTransactionManager.validateRequest(request);
-		// the root table ID is passed to each change if null
-		assertEquals(tableId, uploadRequest.getEntityId());
-	}
-
-	@Test(expected = IllegalArgumentException.class)
-	public void testValidateRequestChangeIdDoesNotMatch() {
-		uploadRequest.setEntityId("doesNotMatch");
-		// call under test.
-		TableEntityTransactionManager.validateRequest(request);
-		// the root table ID is passed to each change if null
-		assertEquals(tableId, uploadRequest.getEntityId());
-	}
-
-	@Test(expected = IllegalArgumentException.class)
-	public void testValidateRequestNullRequest() {
-		request = null;
-		// call under test.
-		TableEntityTransactionManager.validateRequest(request);
-	}
-
-	@Test(expected = IllegalArgumentException.class)
-	public void testValidateRequestEntityIdNull() {
-		request.setEntityId(null);
-		// call under test.
-		TableEntityTransactionManager.validateRequest(request);
-	}
-
-	@Test(expected = IllegalArgumentException.class)
-	public void testValidateRequestChagnesNull() {
-		request.setChanges(null);
-		// call under test.
-		TableEntityTransactionManager.validateRequest(request);
-	}
-
-	@Test(expected = IllegalArgumentException.class)
-	public void testValidateRequestChagnesEmpty() {
-		request.setChanges(new LinkedList<TableUpdateRequest>());
-		// call under test.
-		TableEntityTransactionManager.validateRequest(request);
-	}
-
-	@Test
 	public void testUpdateTableWithTransaction() throws Exception {
 		// call under test.
 		TableUpdateTransactionResponse results = manager

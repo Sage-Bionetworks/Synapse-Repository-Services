@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.model.dbo.dao.table.FileEntityFields;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableViewDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.Row;
@@ -328,6 +329,26 @@ public class TableViewManagerImplTest {
 				EntityField.etag.getColumnModel()
 				);
 		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testApplySchemaChange(){
+		String viewId = "syn123";
+		ColumnChange change = new ColumnChange();
+		change.setOldColumnId(null);
+		change.setNewColumnId("456");
+		List<ColumnChange> changes = Lists.newArrayList(change);
+		ColumnModel model = EntityField.benefactorId.getColumnModel();
+		model.setId(change.getNewColumnId());
+		List<ColumnModel> schema = Lists.newArrayList(model);
+		List<String> newColumnIds = Lists.newArrayList(change.getNewColumnId());
+		when(columnModelManager.calculateNewSchemaIds(viewId, changes)).thenReturn(newColumnIds);
+		when(columnModelManager.getColumnModel(userInfo, newColumnIds, true)).thenReturn(schema);
+		
+		// call under test
+		List<ColumnModel> newSchema = manager.applySchemaChange(userInfo, viewId, changes);
+		assertEquals(schema, newSchema);
+		verify(tableManagerSupport).setTableToProcessingAndTriggerUpdate(viewId);
 	}
 
 }
