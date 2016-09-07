@@ -83,7 +83,7 @@ public class SearchControllerTest extends AbstractAutowiredControllerTestBase {
 		Document doc = documentProvider.formulateSearchDocument(project.getId());
 		searchDao.createOrUpdateSearchDocument(doc);
 		// Wait for it to show up
-		assertTrue(TimeUtils.waitFor(60000, 100, null, new Predicate<Void>() {
+		assertTrue(TimeUtils.waitFor(60000, 1000, null, new Predicate<Void>() {
 			@Override
 			public boolean apply(Void input) {
 				try {

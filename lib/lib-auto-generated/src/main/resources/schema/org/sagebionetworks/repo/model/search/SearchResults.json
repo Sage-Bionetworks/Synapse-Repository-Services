@@ -9,10 +9,6 @@
 			"type": "integer",
 			"description": "The zero-based number of the first hit returned in this page of search results."
 		},
-		"matchExpression": {
-			"type": "string",
-			"description": "The search match expression parsed from the search request parameters.  This is useful for debugging purposes."
-		},
 		"hits": {
 			"type": "array",
 			"description": "The hits in this page of search results",

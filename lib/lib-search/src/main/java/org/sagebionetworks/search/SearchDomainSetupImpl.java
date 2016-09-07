@@ -32,7 +32,7 @@ public class SearchDomainSetupImpl implements SearchDomainSetup, InitializingBea
 	private static final String POLICY_TEMPLATE = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Sid\":\"\",\"Effect\":\"Allow\",\"Principal\":{\"AWS\":\"*\"},\"Action\":[\"cloudsearch:search\",\"cloudsearch:document\"],\"Condition\":{\"IpAddress\":{\"aws:SourceIp\":\"%1$s\"}}}]}";
 
 	private static final String SEARCH_DOMAIN_NAME_TEMPLATE = "%1$s-%2$s-sagebase-org";
-	private static final String CLOUD_SEARCH_API_VERSION = "2011-02-01";
+	private static final String CLOUD_SEARCH_API_VERSION = "2013-01-01";
 	private static final String SEARCH_ENDPOINT_TEMPALTE = "http://%1$s/"+ CLOUD_SEARCH_API_VERSION + "/search";
 	private static final String DOCUMENT_ENDPOINT_TEMPALTE = "httpS://%1$s/"+ CLOUD_SEARCH_API_VERSION + "/documents/batch";
 

@@ -384,6 +384,7 @@ public class IT510SynapseJavaClientSearchTest {
 	 */
 	@Test
 	public void testSearchAuthorizationFilter() throws Exception {
+		//TODO: test may be no longer necessary since matchExpression is no longer supported by AWS
 		UserProfile myProfile = synapse.getMyProfile();
 		assertNotNull(myProfile);
 		String myPrincipalId = myProfile.getOwnerId();
@@ -398,7 +399,7 @@ public class IT510SynapseJavaClientSearchTest {
 		searchQuery.setReturnFields(returnFields);
 		SearchResults results = synapse.search(searchQuery);
 		
-		
+		/*
 		String cloudSearchMatchExpr = results.getMatchExpression();
 		assertTrue(-1 < cloudSearchMatchExpr.indexOf("(or acl:"));
 		assertTrue(-1 < cloudSearchMatchExpr
@@ -406,10 +407,12 @@ public class IT510SynapseJavaClientSearchTest {
 		assertTrue(-1 < cloudSearchMatchExpr
 				.indexOf("acl:'"+AuthorizationConstants.BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId().toString()+"'"));
 		assertTrue(-1 < cloudSearchMatchExpr.indexOf("acl:'"+AuthorizationConstants.BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId().toString()+"'"));
+		*/
 	}
 
 	@Test
 	public void testAnonymousSearchAuthorizationFilter() throws Exception {
+		//TODO: no longer have match-expr
 		String publicPrincipalId = AuthorizationConstants.BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId().toString();
 
 		// now 'log out'
@@ -424,14 +427,15 @@ public class IT510SynapseJavaClientSearchTest {
 		returnFields.add("name");
 		searchQuery.setReturnFields(returnFields);
 		SearchResults results = anonymous.search(searchQuery);
-
-		String cloudSearchMatchExpr = results.getMatchExpression();
+		/*
+		String cloudSearchMatchExpr = results.getMatchExpression();	
 		assertTrue(-1 < cloudSearchMatchExpr.indexOf("(or acl:"));
 		
 		// TODO reenable the following line, which depends on how the 'display name' for 'anonymous' is configured
 		//assertTrue(-1 < cloudSearchMatchExpr.indexOf("acl:'anonymous@sagebase.org'", 0));
 		
 		assertTrue(-1 < cloudSearchMatchExpr.indexOf("acl:'"+publicPrincipalId+"'"));
+		*/
 	}
 
 	/**
@@ -439,6 +443,7 @@ public class IT510SynapseJavaClientSearchTest {
 	 */
 	@Test
 	public void testAdminSearchAuthorizationFilter() throws Exception {
+		//TODO: no longer have match-expr
 		SearchQuery searchQuery = new SearchQuery();
 		List<String> queryTerms = new ArrayList<String>();
 		queryTerms.add(distictValue2);
@@ -447,11 +452,13 @@ public class IT510SynapseJavaClientSearchTest {
 		returnFields.add("name");
 		searchQuery.setReturnFields(returnFields);
 		SearchResults results = adminSynapse.search(searchQuery);
-
+		
+		/*
 		String cloudSearchMatchExpr = results.getMatchExpression();
 
 		// We don't add an authorization filter for admin users
 		assertEquals(-1, cloudSearchMatchExpr.indexOf("acl"));
+		*/
 	}
 
 	/**

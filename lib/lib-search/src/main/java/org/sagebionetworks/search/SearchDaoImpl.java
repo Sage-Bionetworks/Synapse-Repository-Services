@@ -41,9 +41,9 @@ import com.amazonaws.services.cloudsearchv2.model.DomainStatus;
  */
 public class SearchDaoImpl implements SearchDao {
 
-	private static final String QUERY_BY_ID_AND_ETAG = "bq=(and+"+FIELD_ID+":'%1$s'+"+FIELD_ETAG+":'%2$s')";
+	private static final String QUERY_BY_ID_AND_ETAG = "q.parser=structured&q=(and+"+FIELD_ID+":'%1$s'+"+FIELD_ETAG+":'%2$s')";
 	
-	private static final String QUERY_LIST_ALL_DOCUMENTS_ONE_PAGE = "bq="+FIELD_ID+":'*'&size=%1$s&start=%2$s";
+	private static final String QUERY_LIST_ALL_DOCUMENTS_ONE_PAGE = "q.parser=structured&q="+FIELD_ID+":'*'&size=%1$s&start=%2$s";
 
 	static private Logger log = LogManager.getLogger(SearchDaoImpl.class);
 	

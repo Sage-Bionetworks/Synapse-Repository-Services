@@ -54,7 +54,7 @@ public class SearchUtil {
 				if(pair.getNot() != null && pair.getNot()) {
 					term = "(not " + term + ")";
 				}
-				params.add("bq=" + URLEncoder.encode(term, "UTF-8"));
+				params.add("q.parser=structured&q=" + URLEncoder.encode(term, "UTF-8"));
 			}
 		}
 

@@ -87,8 +87,6 @@ public class AwesomeSearchFactory {
 		searchResults.put("facets", facets);
 
 		// Now do the translation
-		searchResults.put("matchExpression", awesomeSearchResults
-				.getString("match-expr"));
 		searchResults.put("found", awesomeSearchResults
 				.getJSONObject("hits").getLong("found"));
 		searchResults.put("start", awesomeSearchResults
