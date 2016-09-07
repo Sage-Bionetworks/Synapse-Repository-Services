@@ -29,7 +29,7 @@ import com.amazonaws.services.cloudsearchv2.model.UpdateServiceAccessPoliciesReq
 
 public class SearchDomainSetupImpl implements SearchDomainSetup, InitializingBean {
 
-	private static final String POLICY_TEMPLATE = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Sid\":\"\",\"Effect\":\"Allow\",\"Principal\":{\"AWS\":\"*\"},\"Action\":[\"cloudsearch:search\",\"cloudsearch:document\"],\"Condition\":{\"IpAddress\":{\"aws:SourceIp\":[\"%1$s\"]}}}]}";
+	private static final String POLICY_TEMPLATE = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Sid\":\"\",\"Effect\":\"Allow\",\"Principal\":{\"AWS\":\"*\"},\"Action\":[\"cloudsearch:search\",\"cloudsearch:document\"],\"Condition\":{\"IpAddress\":{\"aws:SourceIp\":\"%1$s\"}}}]}";
 
 	private static final String SEARCH_DOMAIN_NAME_TEMPLATE = "%1$s-%2$s-sagebase-org";
 	private static final String CLOUD_SEARCH_API_VERSION = "2011-02-01";
@@ -97,6 +97,7 @@ public class SearchDomainSetupImpl implements SearchDomainSetup, InitializingBea
 		}
 
 		// we have to keep waiting
+		log.debug("Must keep waiting.");
 		return false;
 	}
 
@@ -112,7 +113,9 @@ public class SearchDomainSetupImpl implements SearchDomainSetup, InitializingBea
 		//TODO: is the ARN for the search service and doc service same?
 		String policyJson = String.format(POLICY_TEMPLATE,"0.0.0.0/0");
 		log.debug("Expected Policy: " + policyJson);
-		if (!policyJson.equals(dsapr.getAccessPolicies().getOptions())) {
+		String actualPolicyJson = dsapr.getAccessPolicies().getOptions();
+		log.info("Actual Policy: " + actualPolicyJson);
+		if (!policyJson.equals(actualPolicyJson)) {
 			log.info("Updateing the Search Access policy as it does not match the expected policy");
 			// Add the policy.
 			awsSearchClient.updateServiceAccessPolicies(new UpdateServiceAccessPoliciesRequest().withDomainName(domainName).withAccessPolicies(policyJson));
@@ -274,15 +277,13 @@ public class SearchDomainSetupImpl implements SearchDomainSetup, InitializingBea
 			// The domain does not exist, so isn't processing
 			return false;
 		}
-		if (!status.isProcessing()) {
-			return false;
-		}
 		// it is processing, but if it is deleted, it doesn't matter
 		if (status.isDeleted()) {
 			log.warn("Search domain: " + domainName + " has been deleted!");
 			return false;
 		}
-		return true;
+		log.debug("Domain still processing:" + status.isProcessing());
+		return status.isProcessing();
 	}
 
 	/**
@@ -295,8 +296,10 @@ public class SearchDomainSetupImpl implements SearchDomainSetup, InitializingBea
 		DescribeDomainsResult result = awsSearchClient
 				.describeDomains(new DescribeDomainsRequest()
 						.withDomainNames(domainName));
-		if (result.getDomainStatusList().size() == 0)
+		if (result.getDomainStatusList().size() == 0){
+			log.debug("No domains were found.");
 			return null;
+		}
 		if (result.getDomainStatusList().size() != 1)
 			throw new IllegalArgumentException("Expected one and only one search domain with the name: "
 							+ domainName + " but found: "
