@@ -2606,6 +2606,14 @@ public interface SynapseClient extends BaseClient {
 	void markThreadAsDeleted(String threadId) throws SynapseException;
 
 	/**
+	 * Mark a thread as not deleted
+	 * 
+	 * @param threadId
+	 * @throws SynapseException
+	 */
+	void markThreadAsNotDeleted(String threadId) throws SynapseException;
+
+	/**
 	 * Get the message URL for a thread
 	 * 
 	 * @param messageKey

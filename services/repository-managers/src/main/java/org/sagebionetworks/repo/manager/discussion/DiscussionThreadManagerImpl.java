@@ -288,4 +288,10 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		projectIds = aclDao.getAccessibleBenefactors(userInfo.getGroups(), projectIds, ObjectType.ENTITY, ACCESS_TYPE.READ);
 		return threadDao.getThreadCounts(entityIds, projectIds);
 	}
+
+	@Override
+	public void markThreadAsNotDeleted(UserInfo userInfo, String threadId) {
+		checkPermission(userInfo, threadId, ACCESS_TYPE.MODERATE);
+		threadDao.markThreadAsNotDeleted(Long.parseLong(threadId));
+	}
 }

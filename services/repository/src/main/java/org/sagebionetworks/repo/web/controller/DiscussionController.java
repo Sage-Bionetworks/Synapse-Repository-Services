@@ -213,6 +213,22 @@ public class DiscussionController extends BaseController {
 	}
 
 	/**
+	 * This API is used to mark a thread as not deleted.
+	 * <br/>
+	 * Target users: only forum's moderator can restore a deleted thread.
+	 * 
+	 * @param userId - the ID of the user who is making the request
+	 * @param threadId - the ID of the thread that was marked as deleted
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.THREAD_THREAD_ID_RESTORE, method = RequestMethod.PUT)
+	public void markThreadAsNotDeleted(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String threadId) {
+		serviceProvider.getDiscussionService().markThreadAsNotDeleted(userId, threadId);
+	}
+
+	/**
 	 * This API is used to mark a thread as pinned.
 	 * <br/>
 	 * Target users: only forum's moderator can mark a thread as pinned.
