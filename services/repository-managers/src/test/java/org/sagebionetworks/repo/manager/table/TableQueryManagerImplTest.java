@@ -47,6 +47,7 @@ import org.sagebionetworks.repo.model.dbo.dao.table.FileEntityFields;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
+import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
 import org.sagebionetworks.repo.model.table.QueryNextPageToken;
@@ -193,7 +194,7 @@ public class TableQueryManagerImplTest {
 		
 		ColumnModel benefactorColumn = FileEntityFields.benefactorId.getColumnModel();
 		benefactorColumn.setId("999");
-		when(mockTableManagerSupport.getColumModel(FileEntityFields.benefactorId)).thenReturn(benefactorColumn);
+		when(mockTableManagerSupport.getColumnModel(EntityField.benefactorId)).thenReturn(benefactorColumn);
 		HashSet<Long> benfactors = Sets.newHashSet(333L,444L);
 		HashSet<Long> subSet = Sets.newHashSet(444L);
 		when(mockTableIndexDAO.getDistinctLongValues(tableId, benefactorColumn.getId())).thenReturn(benfactors);
@@ -1015,7 +1016,7 @@ public class TableQueryManagerImplTest {
 		SqlQuery query = new SqlQuery("select i0 from "+tableId, models);
 		ColumnModel benefactorColumn = FileEntityFields.benefactorId.getColumnModel();
 		benefactorColumn.setId("999");
-		when(mockTableManagerSupport.getColumModel(FileEntityFields.benefactorId)).thenReturn(benefactorColumn);
+		when(mockTableManagerSupport.getColumnModel(EntityField.benefactorId)).thenReturn(benefactorColumn);
 		//return empty benefactors
 		when(mockTableIndexDAO.getDistinctLongValues(tableId, benefactorColumn.getId())).thenReturn(new HashSet<Long>());
 		// call under test

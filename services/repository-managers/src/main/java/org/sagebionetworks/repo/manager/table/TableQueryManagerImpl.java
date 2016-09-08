@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.dbo.dao.table.FileEntityFields;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
+import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
 import org.sagebionetworks.repo.model.table.QueryNextPageToken;
@@ -651,7 +652,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 */
 	SqlQuery addRowLevelFilter(UserInfo user, SqlQuery query, TableIndexDAO indexDao) throws EmptyResultException {
 		// First get the distinct benefactors applied to the table
-		ColumnModel benefactorColumn = tableManagerSupport.getColumModel(FileEntityFields.benefactorId);
+		ColumnModel benefactorColumn = tableManagerSupport.getColumnModel(EntityField.benefactorId);
 		// lookup the distinct benefactor IDs applied to the table.
 		Set<Long> tableBenefactors = indexDao.getDistinctLongValues(query.getTableId(), benefactorColumn.getId());
 		if(tableBenefactors.isEmpty()){

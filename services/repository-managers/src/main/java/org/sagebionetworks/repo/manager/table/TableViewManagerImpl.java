@@ -70,7 +70,7 @@ public class TableViewManagerImpl implements TableViewManager {
 		final List<ColumnModel> currentSchema = tableManagerSupport.getColumnModelsForTable(viewId);
 		// we need to ensure the benefactor column in included in all tables for the authorization filter.
 		if(!TableViewUtils.containsBenefactor(currentSchema)){
-			currentSchema.add(tableManagerSupport.getColumModel(FileEntityFields.benefactorId));
+			currentSchema.add(tableManagerSupport.getColumnModel(EntityField.benefactorId));
 		}
 		return currentSchema;
 	}

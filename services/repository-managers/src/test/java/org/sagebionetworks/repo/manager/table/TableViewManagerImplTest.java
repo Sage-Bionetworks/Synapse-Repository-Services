@@ -176,7 +176,7 @@ public class TableViewManagerImplTest {
 	public void testGetViewSchemaNoBenefactor(){
 		List<ColumnModel> rawSchema = Lists.newArrayList(FileEntityFields.id.getColumnModel());
 		when(tableManagerSupport.getColumnModelsForTable(viewId)).thenReturn(rawSchema);
-		when(tableManagerSupport.getColumModel(FileEntityFields.benefactorId)).thenReturn(FileEntityFields.benefactorId.getColumnModel());
+		when(tableManagerSupport.getColumnModel(EntityField.benefactorId)).thenReturn(FileEntityFields.benefactorId.getColumnModel());
 		// the results should contain both ID and benefactor.
 		List<ColumnModel> expected = Lists.newArrayList(FileEntityFields.id.getColumnModel(), FileEntityFields.benefactorId.getColumnModel());
 		// call under test
