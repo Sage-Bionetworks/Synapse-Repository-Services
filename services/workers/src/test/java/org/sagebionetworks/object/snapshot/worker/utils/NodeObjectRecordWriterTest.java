@@ -29,6 +29,7 @@ import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.audit.DeletedNode;
 import org.sagebionetworks.repo.model.audit.NodeRecord;
 import org.sagebionetworks.repo.model.audit.ObjectRecord;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
@@ -78,11 +79,17 @@ public class NodeObjectRecordWriterTest {
 				.thenReturn(mockPermissions);
 	}
 
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void deleteChangeMessage() throws IOException {
-		Message message = MessageUtils.buildMessage(ChangeType.DELETE, "123", ObjectType.ENTITY, "etag", System.currentTimeMillis());
+		Long timestamp = System.currentTimeMillis();
+		String nodeId = "123";
+		Message message = MessageUtils.buildMessage(ChangeType.DELETE, nodeId, ObjectType.ENTITY, "etag", timestamp);
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
 		writer.buildAndWriteRecord(changeMessage);
+		DeletedNode deletedNode = new DeletedNode();
+		deletedNode.setId(nodeId);
+		ObjectRecord expected = ObjectRecordBuilderUtils.buildObjectRecord(deletedNode, timestamp);;
+		Mockito.verify(mockObjectRecordDao).saveBatch(Mockito.eq(Arrays.asList(expected)), Mockito.eq(expected.getJsonClassName()));
 	}
 
 	@Test (expected=IllegalArgumentException.class)
