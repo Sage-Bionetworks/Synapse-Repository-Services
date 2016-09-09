@@ -48,10 +48,8 @@ public class SearchHelper {
 			authorizationFilter += SearchDocumentDriverImpl.ACL_INDEX_FIELD
 					+ ":'" + group + "'";
 		}
-		if (1 == groups.size()) {
-			authorizationFilter = "bq=" + authorizationFilter;
-		} else {
-			authorizationFilter = "bq=(or " + authorizationFilter + ")";
+		if (groups.size() > 1){
+			authorizationFilter = "(or " + authorizationFilter + ")";
 		}
 		return authorizationFilter;
 	}

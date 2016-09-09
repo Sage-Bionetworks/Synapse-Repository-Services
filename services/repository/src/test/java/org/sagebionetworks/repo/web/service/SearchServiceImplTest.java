@@ -115,5 +115,20 @@ public class SearchServiceImplTest {
 		assertNull(returnedHit.getPath());
 		verify(mockSearchDao, times(1)).executeSearch(serchQueryString);
 	}
+	
+	//TODO: Test security
+	/**
+	 * 4 documents
+	 * 1 user can see meet search condition
+	 * 1 user cant see meet search condition
+	 * 1 user can see not meet condition
+	 * 1 user cant see not meet condition
+	 * should only return the document meeting condition and can see
+	 * 
+	 * then get rid of secuirty test
+	 * 
+	 * 
+	 * test not restrict admin
+	 */
 
 }

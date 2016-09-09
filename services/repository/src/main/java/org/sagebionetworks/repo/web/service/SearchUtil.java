@@ -14,8 +14,7 @@ import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import com.amazonaws.services.cloudfront.model.InvalidArgumentException;
 
 public class SearchUtil {
-
-	public static String generateQueryString(SearchQuery searchQuery) throws UnsupportedEncodingException {
+	public static String generateStructuredQueryString(SearchQuery searchQuery) throws UnsupportedEncodingException {
 		if (searchQuery == null) {
 			throw new InvalidArgumentException("No search query was provided.");
 		}
@@ -23,16 +22,12 @@ public class SearchUtil {
 		List<String> params = new ArrayList<String>();
 		List<String> q = searchQuery.getQueryTerm();
 		List<KeyValue> bq = searchQuery.getBooleanQuery();
+		StringBuilder queryTermsStringBuilder = new StringBuilder();
 		
 		// clean up empty q
 		if(q != null && q.size() == 1 && "".equals(q.get(0))) {
 			q = null;
-		}		
-
-		// clean up empty q
-		if(q != null && q.size() == 1 && "".equals(q.get(0))) {
-			q = null;
-		}		
+		}
 		
 		// test for minimum search requirements
 		if (!(q != null && q.size() > 0) && !(bq != null && bq.size() > 0)) {
@@ -40,24 +35,36 @@ public class SearchUtil {
 					"Either one queryTerm or one booleanQuery must be defined");
 		}
 
-		// query terms
+		// unstructured query terms into structured query terms
 		if (q != null && q.size() > 0)
-			params.add("q=" + URLEncoder.encode(join(q, ","), "UTF-8"));
+			queryTermsStringBuilder.append("(and " + joinWithQuotes(q, " ") + ")");
 
-		// boolean query
+		// boolean query into structured query terms
 		if (bq != null && bq.size() > 0) {
+			List<String> bqTerms = new ArrayList<String>();
 			for (KeyValue pair : bq) {
 				// this regex is pretty lame to have. need to work continuous into KeyValue model
-				String value = pair.getValue().contains("..") ? pair.getValue()
-						: "'" + escapeQuotedValue(pair.getValue()) + "'";
+				String value = pair.getValue();
+				if(!value.contains("{") && !value.contains("}") 
+					&& !value.contains("[") && !value.contains("]")){ //if not a continuous range such as [300,}
+					value = "'" + escapeQuotedValue(pair.getValue()) + "'";} //add quotes around value. i.e. value -> 'value'
 				String term = pair.getKey() + ":" + value; 
 				if(pair.getNot() != null && pair.getNot()) {
 					term = "(not " + term + ")";
 				}
-				params.add("q.parser=structured&q=" + URLEncoder.encode(term, "UTF-8"));
+				bqTerms.add(term);
 			}
+			
+			//turns it from (and <q1> <q2> ... <qN>) into (and (and <q1> <q2> ... <qN>) <bqterm1> <bqterm2> ... <bqtermN>)
+			queryTermsStringBuilder.append( (queryTermsStringBuilder.length() > 0 ? " ":"") + join(bqTerms, " ")+ ")");
+			queryTermsStringBuilder.insert(0, "(and "); //add to the beginning of string
 		}
-
+		
+		params.add("q.parser=structured");
+		params.add("q=" + URLEncoder.encode(queryTermsStringBuilder.toString(), "UTF-8"));
+		
+		
+		//TODO: change facets
 		// facets
 		if (searchQuery.getFacet() != null && searchQuery.getFacet().size() > 0)
 			params.add("facet=" + URLEncoder.encode(join(searchQuery.getFacet(), ","), "UTF-8"));
@@ -160,10 +167,25 @@ public class SearchUtil {
 	/*
 	 * Private Methods
 	 */
-	private static String join(List<String> list, String delimiter) {
+	private static String join(List<String> list, String delimiter){
+		return joinHelper(list, delimiter, false);
+	}
+	
+	/*
+	 * Private Methods
+	 */
+	private static String joinWithQuotes(List<String> list, String delimiter){
+		return joinHelper(list, delimiter, true);
+	}
+	
+	private static String joinHelper(List<String> list, String delimiter, boolean withQuotes) {
 		StringBuilder sb = new StringBuilder();
 		for (String item : list) {
+			if(withQuotes)
+				sb.append('\''); //appends ' character
 			sb.append(item);
+			if(withQuotes)
+				sb.append('\'');
 			sb.append(delimiter);
 		}
 		String str = sb.toString();

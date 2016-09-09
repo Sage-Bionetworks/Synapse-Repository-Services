@@ -399,7 +399,6 @@ public class IT510SynapseJavaClientSearchTest {
 		searchQuery.setReturnFields(returnFields);
 		SearchResults results = synapse.search(searchQuery);
 		
-		/*
 		String cloudSearchMatchExpr = results.getMatchExpression();
 		assertTrue(-1 < cloudSearchMatchExpr.indexOf("(or acl:"));
 		assertTrue(-1 < cloudSearchMatchExpr
@@ -407,7 +406,7 @@ public class IT510SynapseJavaClientSearchTest {
 		assertTrue(-1 < cloudSearchMatchExpr
 				.indexOf("acl:'"+AuthorizationConstants.BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId().toString()+"'"));
 		assertTrue(-1 < cloudSearchMatchExpr.indexOf("acl:'"+AuthorizationConstants.BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId().toString()+"'"));
-		*/
+		
 	}
 
 	@Test

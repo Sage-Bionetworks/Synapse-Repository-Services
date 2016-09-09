@@ -29,6 +29,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.ModelAndView;
 
+import com.amazonaws.auth.policy.conditions.StringCondition.StringComparisonType;
+
 /**
  * CloudSearch search controller. It currently offers two methods:
  * <ol>
@@ -144,7 +146,7 @@ public class SearchServiceImpl implements SearchService {
 	 */
 	public String createQueryString(UserInfo userInfo, SearchQuery searchQuery)
 			throws UnsupportedEncodingException {
-		String serchQueryString = SearchUtil.generateQueryString(searchQuery);
+		String serchQueryString = SearchUtil.generateStructuredQueryString(searchQuery);
 		serchQueryString = filterSeachForAuthorization(userInfo, serchQueryString);
 		// Merge boolean queries as needed and escape them
 		String cleanedSearchQuery = SearchHelper.cleanUpSearchQueries(serchQueryString);
@@ -159,10 +161,9 @@ public class SearchServiceImpl implements SearchService {
 	public String filterSeachForAuthorization(UserInfo userInfo,String searchQuery) {
 		if(userInfo == null) throw new IllegalArgumentException("UserInfo cannot be null");
 		if (!userInfo.isAdmin()) {
-			StringBuilder builder = new StringBuilder(searchQuery);
-			builder.append("&");
-			builder.append(SearchHelper.formulateAuthorizationFilter(userInfo));
-			searchQuery = builder.toString();
+			String[] splitQuery = searchQuery.split("q=");
+			String actualQuery = splitQuery[1];
+			searchQuery =  splitQuery[0] + "( and ("+ actualQuery +")" + SearchHelper.formulateAuthorizationFilter(userInfo) + ")";
 		}
 		return searchQuery;
 	}
