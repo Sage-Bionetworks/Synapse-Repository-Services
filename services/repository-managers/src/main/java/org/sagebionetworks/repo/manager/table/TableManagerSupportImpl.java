@@ -388,16 +388,6 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	public void lockOnTableId(String tableId) {
 		columnModelDao.lockOnOwner(tableId);
 	}
-
-	/*
-	 * (non-Javadoc)
-	 * @see org.sagebionetworks.repo.manager.table.FileViewManager#getColumModel(org.sagebionetworks.repo.model.dbo.dao.table.FileEntityFields)
-	 */
-	@Override
-	public ColumnModel getColumModel(FileEntityFields field) {
-		ValidateArgument.required(field, "field");
-		return columnModelDao.createColumnModel(field.getColumnModel());
-	}
 	
 	@Override
 	public ColumnModel getColumnModel(EntityField field){
@@ -437,8 +427,8 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 			throw new IllegalArgumentException("Unsupported type: "+viewType);
 		}
 		List<ColumnModel> list = new LinkedList<ColumnModel>();
-		for(FileEntityFields field: FileEntityFields.values()){
-			list.add(getColumModel(field));
+		for(EntityField field: EntityField.values()){
+			list.add(getColumnModel(field));
 		}
 		return list;
 	}
