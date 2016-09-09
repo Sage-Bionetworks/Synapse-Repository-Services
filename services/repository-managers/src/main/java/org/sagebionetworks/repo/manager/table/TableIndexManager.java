@@ -122,6 +122,15 @@ public interface TableIndexManager {
 	public void setIndexVersion(Long viewCRC);
 	
 	/**
+	 * Set the current version of the index and the schema MD5, both of which are used
+	 * to determine if the index is up-to-date.
+	 * 
+	 * @param viewCRC
+	 * @param schemaMD5Hex
+	 */
+	public void setIndexVersionAndSchemaMD5Hex(Long viewCRC, String schemaMD5Hex);
+	
+	/**
 	 * Optimize the indices of this table. Indices are added until either all
 	 * columns have an index or the maximum number of indices per table is
 	 * reached. When a table has more columns than the maximum number of

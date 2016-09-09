@@ -349,7 +349,7 @@ public class TableQueryManagerImplTest {
 	public void testQueryAsStreamWithAuthorizationFileView() throws Exception{
 		// add benefactor to the schema
 		ColumnModel benefactorColumn = FileEntityFields.benefactorId.getColumnModel();
-		benefactorColumn.setId("99");
+		benefactorColumn.setId("999");
 		models.add(benefactorColumn);
 		// capture the SQL
 		ArgumentCaptor<String> sqlCaptrue = ArgumentCaptor.forClass(String.class);
@@ -370,7 +370,7 @@ public class TableQueryManagerImplTest {
 		// a benefactor check must occur for FileViews
 		verify(mockTableManagerSupport).getAccessibleBenefactors(any(UserInfo.class), anySetOf(Long.class));
 		// validate the benefactor filter is applied
-		assertEquals("SELECT COUNT(*) FROM T123 WHERE _C99_ IN ( :b0 )", sqlCaptrue.getValue());
+		assertEquals("SELECT COUNT(*) FROM T123 WHERE _C999_ IN ( 444 )", sqlCaptrue.getValue());
 	}
 	
 	@Test
@@ -981,34 +981,34 @@ public class TableQueryManagerImplTest {
 		benefactorIds.add(123L);
 		
 		// call under test
-		SqlQuery filtered = TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds);
+		SqlQuery filtered = TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds, benefactorColumn.getId());
 		assertNotNull(filtered);
 		// should filter by benefactorId
-		assertEquals("SELECT i0 FROM syn123 WHERE i1 IS NOT NULL AND benefactorId IN ( 456, 123 )", filtered.getModel().toSql());
-		assertEquals("SELECT _C0_, ROW_ID, ROW_VERSION FROM T123 WHERE _C1_ IS NOT NULL AND _C99_ IN ( :b0, :b1 )", filtered.getOutputSQL());
-		assertEquals(new Long(456), filtered.getParameters().get("b0"));
-		assertEquals(new Long(123), filtered.getParameters().get("b1"));
+		assertEquals("SELECT i0 FROM syn123 WHERE i1 IS NOT NULL AND _C99_ IN ( 456, 123 )", filtered.getModel().toSql());
+		assertEquals("SELECT _C0_, ROW_ID, ROW_VERSION FROM T123 WHERE _C1_ IS NOT NULL AND _C99_ IN ( 456, 123 )", filtered.getOutputSQL());
 	}
 	
 	@Test
 	public void testBuildBenefactorFilterNoWhere() throws ParseException, EmptyResultException{
-		// no where cluase in the original query.
+		// no where clause in the original query.
 		SqlQuery query = new SqlQuery("select i0 from "+tableId, models);
 		LinkedHashSet<Long> benefactorIds = new LinkedHashSet<Long>();
 		benefactorIds.add(123L);
+		String benefactorColumnId = "44";
 		// call under test
-		SqlQuery filtered = TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds);
+		SqlQuery filtered = TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds, benefactorColumnId);
 		assertNotNull(filtered);
 		// should filter by benefactorId
-		assertEquals("SELECT i0 FROM syn123 WHERE benefactorId IN ( 123 )", filtered.getModel().toSql());
+		assertEquals("SELECT i0 FROM syn123 WHERE _C44_ IN ( 123 )", filtered.getModel().toSql());
 	}
 	
 	@Test (expected=EmptyResultException.class)
 	public void testBuildBenefactorFilterEmpty() throws ParseException, EmptyResultException{
 		SqlQuery query = new SqlQuery("select i0 from "+tableId+" where i1 is not null", models);
 		LinkedHashSet<Long> benefactorIds = new LinkedHashSet<Long>();
+		String benefactorColumnId = "44";
 		// call under test
-		TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds);
+		TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds, benefactorColumnId);
 	}
 	
 	@Test (expected=EmptyResultException.class)
@@ -1029,6 +1029,6 @@ public class TableQueryManagerImplTest {
 		// call under test
 		SqlQuery result = manager.addRowLevelFilter(user, query, mockTableIndexDAO);
 		assertNotNull(result);
-		assertEquals("SELECT i0 FROM syn123 WHERE benefactorId IN ( 444 )", result.getModel().toSql());
+		assertEquals("SELECT i0 FROM syn123 WHERE _C999_ IN ( 444 )", result.getModel().toSql());
 	}
 }
