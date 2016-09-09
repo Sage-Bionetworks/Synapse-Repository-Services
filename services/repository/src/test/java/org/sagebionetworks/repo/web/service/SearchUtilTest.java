@@ -40,6 +40,7 @@ public class SearchUtilTest {
 	
 	@Before
 	public void before() throws Exception {
+		query = new SearchQuery();
 		// q
 		q = new ArrayList<String>();
 		q.add("hello");
@@ -81,7 +82,7 @@ public class SearchUtilTest {
 		SearchUtil.generateStructuredQueryString(null);
 	}
 	
-	@Test(expected = InvalidArgumentException.class)
+	@Test(expected = InvalidArgumentException.class)//TODO:IllegalArgumentException instead
 	public void testNoQueryContent() throws Exception{
 		// no actual query content
 		SearchUtil.generateStructuredQueryString( new SearchQuery() );
@@ -89,7 +90,6 @@ public class SearchUtilTest {
 	@Test (expected = InvalidArgumentException.class)
 	public void testEmptyQuery() throws Exception{
 		// empty query
-		query = new SearchQuery();
 		query.setQueryTerm(Arrays.asList(new String[] {""}));
 		SearchUtil.generateStructuredQueryString(query);
 	}
@@ -98,7 +98,6 @@ public class SearchUtilTest {
 	public void testRegularQueryOnly() throws Exception{
 
 		// query only
-		query = new SearchQuery();
 		query.setQueryTerm(q);
 		queryStr = SearchUtil.generateStructuredQueryString(query);
 		assertEquals(EXPECTED_QUERY_PREFIX+encodeUTF8("(and 'hello' 'world')"), queryStr);
@@ -107,7 +106,6 @@ public class SearchUtilTest {
 	@Test
 	public void testBooleanQuery() throws Exception{
 		// boolean query only
-		query = new SearchQuery();
 		query.setBooleanQuery(bq);
 		queryStr = SearchUtil.generateStructuredQueryString(query);
 		assertEquals(EXPECTED_QUERY_PREFIX+encodeUTF8("(and Facet1:'Value1')"), queryStr);
@@ -116,7 +114,6 @@ public class SearchUtilTest {
 	@Test
 	public void testBooleanQueryWithBlankRegularQuery() throws Exception{
 		// boolean query with blank single q
-		query = new SearchQuery();
 		query.setQueryTerm(Arrays.asList(new String[] {""}));
 		query.setBooleanQuery(bq);
 		queryStr = SearchUtil.generateStructuredQueryString(query);
@@ -126,7 +123,6 @@ public class SearchUtilTest {
 	@Test
 	public void testBooleanQueryContinuous() throws Exception{
 		// continuous bq
-		query = new SearchQuery();
 		query.setBooleanQuery(bq2);
 		queryStr = SearchUtil.generateStructuredQueryString(query);
 		assertEquals(EXPECTED_QUERY_PREFIX+encodeUTF8("(and Facet1:{,2000])"), queryStr);
@@ -135,7 +131,6 @@ public class SearchUtilTest {
 	@Test
 	public void testNegatedBooleanQuery() throws Exception{
 		// negated boolean query
-		query = new SearchQuery();
 		query.setBooleanQuery(bqNot);
 		queryStr = SearchUtil.generateStructuredQueryString(query);
 		assertEquals(EXPECTED_QUERY_PREFIX + encodeUTF8("(and (not Facet1:'Value1') Facet2:'Value2')"), queryStr);
@@ -144,7 +139,6 @@ public class SearchUtilTest {
 	@Test
 	public void testSpecialCharactersInBooleanQuery() throws Exception{
 		// special characters in boolean query
-		query = new SearchQuery();
 		query.setBooleanQuery(bqSpecialChar);
 		queryStr = SearchUtil.generateStructuredQueryString(query);
 		assertEquals(EXPECTED_QUERY_PREFIX + "%28and+Facet1%3A%27c%3A%5C%5Cdave%5C%27s_folde%2Cr%27%29", queryStr);	
@@ -152,7 +146,6 @@ public class SearchUtilTest {
 	@Test
 	public void testRegularQueryAndBooleanQuery() throws Exception{
 		// Both q and bq
-		query = new SearchQuery();
 		query.setBooleanQuery(bq);
 		query.setQueryTerm(q);
 		queryStr = SearchUtil.generateStructuredQueryString(query);
@@ -162,7 +155,6 @@ public class SearchUtilTest {
 	@Test
 	public void testFacets() throws Exception{
 		// facets
-		query = new SearchQuery();
 		query.setQueryTerm(q);
 		List<String> facets = new ArrayList<String>();
 		facets.add("facet1");
@@ -177,7 +169,6 @@ public class SearchUtilTest {
 	public void asdf() throws Exception{	
 			
 		// facet field constraints
-		query = new SearchQuery();
 		query.setQueryTerm(q);
 		List<KeyList> facetFieldConstraints = new ArrayList<KeyList>();
 		KeyList ffc1 = new KeyList();
@@ -193,7 +184,6 @@ public class SearchUtilTest {
 		assertEquals("q=hello%2Cworld&facet-facet1-constraints=%27one%5C%2Ctwo%5C%5Cthree%27%2C%27dave%5C%27s%27%2C%27regular%27&facet-facet2-constraints=123%2C4..5", queryStr);
 
 		// facet field sort
-		query = new SearchQuery();
 		query.setQueryTerm(q);
 		List<FacetSort> facetFieldSorts = null;
 		FacetSort fs = null;
@@ -203,7 +193,6 @@ public class SearchUtilTest {
 		fs.setSortType(FacetSortOptions.ALPHA);
 		facetFieldSorts = new ArrayList<FacetSort>();
 		facetFieldSorts.add(fs);
-		query = new SearchQuery();
 		query.setQueryTerm(q);
 		query.setFacetFieldSort(facetFieldSorts);
 		queryStr = SearchUtil.generateStructuredQueryString(query);
@@ -214,7 +203,6 @@ public class SearchUtilTest {
 		fs.setSortType(FacetSortOptions.COUNT);
 		facetFieldSorts = new ArrayList<FacetSort>();
 		facetFieldSorts.add(fs);
-		query = new SearchQuery();
 		query.setQueryTerm(q);
 		query.setFacetFieldSort(facetFieldSorts);
 		queryStr = SearchUtil.generateStructuredQueryString(query);
@@ -226,7 +214,6 @@ public class SearchUtilTest {
 		fs.setMaxfield("maxfield");
 		facetFieldSorts = new ArrayList<FacetSort>();
 		facetFieldSorts.add(fs);
-		query = new SearchQuery();
 		query.setQueryTerm(q);
 		query.setFacetFieldSort(facetFieldSorts);
 		queryStr = SearchUtil.generateStructuredQueryString(query);
@@ -239,7 +226,6 @@ public class SearchUtilTest {
 		fs.setSumFields(Arrays.asList(new String[] { "sum1", "sum2" }));
 		facetFieldSorts = new ArrayList<FacetSort>();
 		facetFieldSorts.add(fs);
-		query = new SearchQuery();
 		query.setQueryTerm(q);
 		query.setFacetFieldSort(facetFieldSorts);
 		queryStr = SearchUtil.generateStructuredQueryString(query);
@@ -260,33 +246,43 @@ public class SearchUtilTest {
 		topn.setValue(new Long(20));
 		topNList.add(topn);
 		
-		query = new SearchQuery();
 		query.setQueryTerm(q);
 		query.setFacetFieldTopN(topNList);
 		queryStr = SearchUtil.generateStructuredQueryString(query);
 		assertEquals("q=hello%2Cworld&facet-facet1-top-n=10&facet-facet2-top-n=20", queryStr);
-		
+	}	
+	@Test
+	public void testRank() throws Exception{
+		query.setQueryTerm(q);
+		query.setRank(Arrays.asList(new String[]{"rankfield1", "-rankfield2"}));
+		queryStr = SearchUtil.generateStructuredQueryString(query);
+		assertEquals(EXPECTED_QUERY_PREFIX+encodeUTF8("(and 'hello' 'world')")+ "&sort=" + encodeUTF8("rankfield1 asc,rankfield2 desc"), queryStr);
+	}
+	
+	@Test
+	public void testReturnFields() throws Exception{
 		// return fields
-		query = new SearchQuery();
 		query.setQueryTerm(q);
 		query.setReturnFields(Arrays.asList(new String[] { "retF1", "retF2" }));
 		queryStr = SearchUtil.generateStructuredQueryString(query);
-		assertEquals("q=hello%2Cworld&return-fields=retF1%2CretF2", queryStr);
+		assertEquals(EXPECTED_QUERY_PREFIX+encodeUTF8("(and 'hello' 'world')")+ "&return=" + encodeUTF8("retF1,retF2"), queryStr);
 		
+	}
+	@Test
+	public void testSizeParameter() throws Exception{
 		// size
-		query = new SearchQuery();
 		query.setQueryTerm(q);
 		query.setSize(new Long(100));
 		queryStr = SearchUtil.generateStructuredQueryString(query);
-		assertEquals("q=hello%2Cworld&size=100", queryStr);
-		
+		assertEquals( EXPECTED_QUERY_PREFIX+encodeUTF8("(and 'hello' 'world')") +"&size=100", queryStr);
+	}
+	@Test
+	public void testStartParameter() throws Exception{
 		// start
-		query = new SearchQuery();
 		query.setQueryTerm(q);
 		query.setStart(new Long(10));
 		queryStr = SearchUtil.generateStructuredQueryString(query);
-		assertEquals("q=hello%2Cworld&start=10", queryStr);		
-		
+		assertEquals( EXPECTED_QUERY_PREFIX+encodeUTF8("(and 'hello' 'world')") +"&start=10", queryStr);	
 	}
 }
 
