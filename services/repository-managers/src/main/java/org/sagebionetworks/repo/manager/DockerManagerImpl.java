@@ -120,10 +120,10 @@ public class DockerManagerImpl implements DockerManager {
 
 		for (String requestedAccessTypeString : accessTypes.split(",")) {
 			RegistryEventAction requestedAccessType = RegistryEventAction.valueOf(requestedAccessTypeString);
-			AuthorizationStatus as = null;
 			switch (requestedAccessType) {
 			case push:
 				// check CREATE or UPDATE permission and add to permittedAccessTypes
+				AuthorizationStatus as = null;
 				if (existingDockerRepoId==null) {
 					// check for create permission on parent
 					Node node = new Node();
@@ -141,12 +141,14 @@ public class DockerManagerImpl implements DockerManager {
 				}
 				break;
 			case pull:
-				// check DOWNLOAD permission and add to permittedAccessTypes
+				// check READ+DOWNLOAD permission and add to permittedAccessTypes
 				if (existingDockerRepoId!=null) {
-					as = authorizationManager.canAccess(
-							userInfo, existingDockerRepoId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD);
+					if (authorizationManager.canAccess(
+							userInfo, existingDockerRepoId, ObjectType.ENTITY, ACCESS_TYPE.READ).getAuthorized() &&
+						authorizationManager.canAccess(
+							userInfo, existingDockerRepoId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD).getAuthorized()
+					) permittedAccessTypes.add(requestedAccessType.name());
 				}
-				if (as!=null && as.getAuthorized()) permittedAccessTypes.add(requestedAccessType.name());
 				break;
 			default:
 				throw new RuntimeException("Unexpected access type: "+requestedAccessType);

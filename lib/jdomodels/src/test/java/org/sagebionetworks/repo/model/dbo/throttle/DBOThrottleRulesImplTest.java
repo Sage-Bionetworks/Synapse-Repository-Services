@@ -82,7 +82,7 @@ public class DBOThrottleRulesImplTest {
 		
 		throttleRulesDao.addThrottle(new ThrottleRule(id, testUri, maxCalls, callPeriod));
 		
-		List<ThrottleRule> throttles = throttleRulesDao.getAllThrottles();
+		List<ThrottleRule> throttles = throttleRulesDao.getAllThrottleRules();
 		assertEquals(1, throttles.size());
 		ThrottleRule throttleRule = throttles.get(0);
 		assertEquals((Long) id, throttleRule.getId());
@@ -96,16 +96,21 @@ public class DBOThrottleRulesImplTest {
 	// getAllThrottles Tests
 	/////////////////////////
 	@Test
-	public void testGetAllThrottles(){
-		//should be initially empty
-		List<ThrottleRule> throttles= throttleRulesDao.getAllThrottles();
-		assertEquals(0, throttles.size());
-		
+	public void testGetAllThrottlesWithElements(){
 		// add 2 throttles
 		throttleRulesDao.addThrottle(new ThrottleRule(0, testUri, maxCalls, callPeriod));
 		throttleRulesDao.addThrottle(new ThrottleRule(1, testUri + "asdf", maxCalls, callPeriod));
 		
-		throttles = throttleRulesDao.getAllThrottles();
+		List<ThrottleRule> throttles = throttleRulesDao.getAllThrottleRules();
+		assertNotNull(throttles);
 		assertEquals(2, throttles.size());
+	}
+	
+	@Test
+	public void testGetAllThrottleRulesNoRules(){
+		//should return enmpty list
+		List<ThrottleRule> throttles= throttleRulesDao.getAllThrottleRules();
+		assertNotNull(throttles);
+		assertEquals(0, throttles.size());
 	}
 }

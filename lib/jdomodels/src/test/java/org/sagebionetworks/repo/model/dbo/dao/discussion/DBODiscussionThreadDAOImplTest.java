@@ -321,6 +321,26 @@ public class DBODiscussionThreadDAOImplTest {
 	}
 
 	@Test
+	public void testSortedByThreadTitle() throws InterruptedException {
+		Long threadBId = idGenerator.generateNewId(TYPE.DISCUSSION_THREAD_ID);
+		DiscussionThreadBundle threadB = threadDao.createThread(forumId, threadBId.toString(),
+				"b", UUID.randomUUID().toString(), userId);
+
+		Long threadAId = idGenerator.generateNewId(TYPE.DISCUSSION_THREAD_ID);
+		DiscussionThreadBundle threadA = threadDao.createThread(forumId, threadAId.toString(),
+				"a", UUID.randomUUID().toString(), userId);
+
+		Long threadCId = idGenerator.generateNewId(TYPE.DISCUSSION_THREAD_ID);
+		DiscussionThreadBundle threadC = threadDao.createThread(forumId, threadCId.toString(),
+				"c", UUID.randomUUID().toString(), userId);
+
+		List<DiscussionThreadBundle> expected = Arrays.asList(threadA, threadB, threadC);
+		assertEquals("sorted by title",
+				expected,
+				threadDao.getThreadsForForum(forumIdLong, MAX_LIMIT, 0L, DiscussionThreadOrder.THREAD_TITLE, true, DiscussionFilter.NO_FILTER));
+	}
+
+	@Test
 	public void testUpdateThreadStatByNumberOfViews() throws InterruptedException {
 		List<DiscussionThreadBundle> createdThreads = createListOfThreads(3);
 

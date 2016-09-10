@@ -41,7 +41,7 @@ public class DBOThrottleRulesDAOImpl implements ThrottleRulesDAO {
 	private JdbcTemplate jdbcTemplate;
 	
 	@Override
-	public List<ThrottleRule> getAllThrottles() {
+	public List<ThrottleRule> getAllThrottleRules() {
 		return jdbcTemplate.query(SQL_GET_THROTTLES, THROTTLE_RULE_ROW_MAPPER);
 	}
 	

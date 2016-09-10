@@ -9,7 +9,7 @@ public class MemoryTimeBlockCountingSemaphoreImpl implements MemoryTimeBlockCoun
 	private Map<String, SimpleSemaphore> keySemaphoreMap = new HashMap<String,SimpleSemaphore>();
 	
 	@Override
-	public synchronized boolean attemptToAcquireLock(String key, long timeoutSec, int maxLockCount) {
+	public synchronized boolean attemptToAcquireLock(String key, long timeoutSec, long maxLockCount) {
 		ValidateArgument.required(key, "key");
 		ValidateArgument.requirement(timeoutSec >= 0, "timeoutSec must be a positive value");
 		ValidateArgument.requirement(maxLockCount >= 0, "maxLockCount must be a positive value");
