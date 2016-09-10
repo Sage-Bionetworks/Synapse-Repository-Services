@@ -987,6 +987,20 @@ public class TableIndexDAOImplTest {
 	}
 	
 	@Test
+	public void testSetIndexVersionAndSchemaMD5Hex(){
+		// ensure the secondary tables for this index exist
+		this.tableIndexDAO.createSecondaryTables(tableId);
+		
+		String md5 = "md5hex";
+		Long version = 123L;
+		// call under test.
+		this.tableIndexDAO.setIndexVersionAndSchemaMD5Hex(tableId, version, md5);
+		
+		assertEquals(md5, this.tableIndexDAO.getCurrentSchemaMD5Hex(tableId));
+		assertEquals(version, this.tableIndexDAO.getMaxCurrentCompleteVersionForTable(tableId));
+	}
+	
+	@Test
 	public void testDoesIndexStateMatchTableDoesNotExist(){
 		// ensure the secondary tables for this index exist
 		this.tableIndexDAO.createSecondaryTables(tableId);
