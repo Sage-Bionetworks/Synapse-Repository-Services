@@ -95,7 +95,7 @@ public class SearchUtil {
 							if(range.length !=2 )
 								throw new IllegalArgumentException("Numeric range is incorrectly formatted");
 							StringBuilder rangeStringBuilder = new StringBuilder();
-							
+							//TODO; need "" on constraints
 							//left bound
 							if(range[0] == ""){
 								rangeStringBuilder.append("{");
