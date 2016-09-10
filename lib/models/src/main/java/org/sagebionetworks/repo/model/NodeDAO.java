@@ -7,6 +7,7 @@ import java.util.Set;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.table.EntityDTO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.Callback;
 
@@ -515,4 +516,13 @@ public interface NodeDAO {
 	 * @return
 	 */
 	public Set<Long> getFileHandleIdsAssociatedWithFileEntity(List<Long> fileHandleIds, long entityId);
+	
+	/**
+	 * Get the list of all entity DTO objects for the given list of entity ids.
+	 * 
+	 * @param ids
+	 * @param maxAnnotationChars the maximum number of characters for any annotation value.
+	 * @return
+	 */
+	public List<EntityDTO> getEntityDTOs(List<String> ids, int maxAnnotationChars);
 }

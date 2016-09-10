@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.manager.table;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyList;
 import static org.mockito.Matchers.anyLong;
@@ -13,6 +12,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Callable;
 
 import org.junit.Before;
@@ -26,9 +26,11 @@ import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
+import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.table.cluster.DatabaseColumnInfo;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
@@ -56,6 +58,7 @@ public class TableIndexManagerImplTest {
 	RowSet rowSet;
 	List<ColumnModel> schema;
 	List<SelectColumn> selectColumns;
+	Long crc32;
 	
 	@SuppressWarnings("unchecked")
 	@Before
@@ -105,6 +108,8 @@ public class TableIndexManagerImplTest {
 				return callable.call();
 			}
 		});
+		crc32 = 5678L;
+		when(mockIndexDao.calculateCRC32ofTableView(anyString(), anyString())).thenReturn(crc32);
 
 	}
 
@@ -341,6 +346,95 @@ public class TableIndexManagerImplTest {
 		// auto progress should be used.
 		verify(mockManagerSupport).callWithAutoProgress(any(ProgressCallback.class), any(Callable.class));
 		verify(mockIndexDao).deleteTemporaryTable(tableId);
+	}
+	
+	@Test
+	public void testPopulateViewFromEntityReplication(){
+		ViewType viewType = ViewType.file;
+		Set<Long> scope = Sets.newHashSet(1L,2L);
+		List<ColumnModel> schema = createDefaultColumnsWithIds();
+		ColumnModel etagColumn = EntityField.findMatch(schema, EntityField.etag);
+		// call under test
+		Long resultCrc = manager.populateViewFromEntityReplication(mockCallback, viewType, scope, schema);
+		assertEquals(crc32, resultCrc);
+		verify(mockIndexDao).copyEntityReplicationToTable(tableId, viewType, scope, schema);
+		// the CRC should be calculated with the etag column.
+		verify(mockIndexDao).calculateCRC32ofTableView(tableId, etagColumn.getId());
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testPopulateViewFromEntityReplicationMissingEtagColumn(){
+		ViewType viewType = ViewType.file;
+		Set<Long> scope = Sets.newHashSet(1L,2L);
+		List<ColumnModel> schema = createDefaultColumnsWithIds();
+		ColumnModel etagColumn = EntityField.findMatch(schema, EntityField.etag);
+		// remove the etag column
+		schema.remove(etagColumn);
+		// call under test
+		manager.populateViewFromEntityReplication(mockCallback, viewType, scope, schema);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testPopulateViewFromEntityReplicationMissingBenefactorColumn(){
+		ViewType viewType = ViewType.file;
+		Set<Long> scope = Sets.newHashSet(1L,2L);
+		List<ColumnModel> schema = createDefaultColumnsWithIds();
+		ColumnModel benefactorColumn = EntityField.findMatch(schema, EntityField.benefactorId);
+		// remove the benefactor column
+		schema.remove(benefactorColumn);
+		// call under test
+		manager.populateViewFromEntityReplication(mockCallback, viewType, scope, schema);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testPopulateViewFromEntityReplicationNullViewType(){
+		ViewType viewType = null;
+		Set<Long> scope = Sets.newHashSet(1L,2L);
+		List<ColumnModel> schema = createDefaultColumnsWithIds();
+		// call under test
+		manager.populateViewFromEntityReplication(mockCallback, viewType, scope, schema);;
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testPopulateViewFromEntityReplicationScopeNull(){
+		ViewType viewType = ViewType.file;
+		Set<Long> scope = null;
+		List<ColumnModel> schema = createDefaultColumnsWithIds();
+		// call under test
+		manager.populateViewFromEntityReplication(mockCallback, viewType, scope, schema);;
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testPopulateViewFromEntityReplicationSchemaNull(){
+		ViewType viewType = ViewType.file;
+		Set<Long> scope = Sets.newHashSet(1L,2L);
+		List<ColumnModel> schema = null;
+		// call under test
+		manager.populateViewFromEntityReplication(mockCallback, viewType, scope, schema);;
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testPopulateViewFromEntityReplicationCallbackNull(){
+		ViewType viewType = ViewType.file;
+		Set<Long> scope = Sets.newHashSet(1L,2L);
+		List<ColumnModel> schema = createDefaultColumnsWithIds();
+		mockCallback = null;
+		// call under test
+		manager.populateViewFromEntityReplication(mockCallback, viewType, scope, schema);;
+	}
+	
+	/**
+	 * Create the default EntityField schema with IDs for each column.
+	 * 
+	 * @return
+	 */
+	public static List<ColumnModel> createDefaultColumnsWithIds(){
+		List<ColumnModel> schema = EntityField.getAllColumnModels();
+		for(int i=0; i<schema.size(); i++){
+			ColumnModel cm = schema.get(i);
+			cm.setId(""+i);
+		}
+		return schema;
 	}
 	
 }

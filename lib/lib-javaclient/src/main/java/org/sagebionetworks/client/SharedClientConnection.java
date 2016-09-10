@@ -39,6 +39,7 @@ import org.sagebionetworks.client.exceptions.SynapseLockedException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseServerException;
 import org.sagebionetworks.client.exceptions.SynapseTermsOfUseException;
+import org.sagebionetworks.client.exceptions.SynapseTooManyRequestsException;
 import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
 import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -59,8 +60,7 @@ import org.sagebionetworks.utils.MD5ChecksumHelper;
 /**
  * Low-level Java Client API for Synapse REST APIs
  */
-public class SharedClientConnection {
-	
+public class SharedClientConnection {	
 	private static final String SYNAPSE_ENCODING_CHARSET = "UTF-8";
 
 	public static interface ErrorHandler {
@@ -342,7 +342,9 @@ public class SharedClientConnection {
 			throw new SynapseConflictingUpdateException(reasonStr);
 		} else if (statusCode == HttpStatus.SC_GONE) {
 			throw new SynapseDeprecatedServiceException(reasonStr);
-		} else {
+		} else if (statusCode == SynapseTooManyRequestsException.TOO_MANY_REQUESTS_STATUS_CODE){
+			throw new SynapseTooManyRequestsException(reasonStr);
+		}else {
 			throw new SynapseServerException(statusCode, reasonStr);
 		}
 	}

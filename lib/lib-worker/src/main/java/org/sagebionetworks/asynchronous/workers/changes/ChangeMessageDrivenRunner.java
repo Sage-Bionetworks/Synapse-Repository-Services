@@ -5,7 +5,7 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 
-public interface ChangeMessageDrivenRunner {
+public interface ChangeMessageDrivenRunner extends ChangeMessageRunner {
 
 	/**
 	 * This method will be called when there is a message to process. The

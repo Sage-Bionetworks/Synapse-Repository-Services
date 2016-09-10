@@ -55,7 +55,7 @@ public class AccessInterceptorTest {
 		when(mockRequest.getMethod()).thenReturn("DELETE");
 		when(mockRequest.getHeader("Host")).thenReturn("localhost8080");
 		when(mockRequest.getHeader("User-Agent")).thenReturn("HAL 2000");
-		when(mockRequest.getHeader("X-Forwarded-For")).thenReturn("moon.org");
+		when(mockRequest.getRemoteAddr()).thenReturn("moon.org");
 		when(mockRequest.getHeader("Origin")).thenReturn("http://www.example-social-network.com");
 		when(mockRequest.getHeader("Via")).thenReturn("1.0 fred, 1.1 example.com");
 		when(mockRequest.getQueryString()).thenReturn("?param1=foo");

@@ -25,21 +25,21 @@ import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.FileEntityFields;
-import org.sagebionetworks.repo.model.dbo.dao.table.TableViewDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
-import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.repo.transactions.RequiresNewReadCommitted;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
+import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.TimeoutUtils;
 import org.sagebionetworks.util.ValidateArgument;
@@ -64,8 +64,6 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	ColumnModelDAO columnModelDao;
 	@Autowired
 	NodeDAO nodeDao;
-	@Autowired
-	TableViewDao fileViewDao;
 	@Autowired
 	TableRowTruthDAO tableTruthDao;
 	@Autowired
@@ -281,13 +279,8 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		// Start with all container IDs that define the view's scope
 		Set<Long> viewContainers = getAllContainerIdsForViewScope(tableId);
 		ViewType type = getViewType(tableId);
-		return calculateFileViewCRC32(viewContainers, type);
-	}
-	
-	@Override
-	public Long calculateFileViewCRC32(Set<Long> viewContainers, ViewType type) {
-		// Calculate the crc for the containers.
-		return fileViewDao.calculateCRCForAllEntitiesWithinContainers(viewContainers, type);
+		TableIndexDAO indexDao = this.tableConnectionFactory.getConnection(tableId);
+		return indexDao.calculateCRC32ofEntityReplicationScope(type, viewContainers);
 	}
 
 	/*
@@ -405,6 +398,22 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		ValidateArgument.required(field, "field");
 		return columnModelDao.createColumnModel(field.getColumnModel());
 	}
+	
+	@Override
+	public ColumnModel getColumnModel(EntityField field){
+		ValidateArgument.required(field, "field");
+		return columnModelDao.createColumnModel(field.getColumnModel());
+	}
+	
+	@Override
+	public List<ColumnModel> getColumnModels(EntityField... fields) {
+		List<ColumnModel> results = new LinkedList<ColumnModel>();
+		for(EntityField field: fields){
+			results.add(getColumnModel(field));
+		}
+		return results;
+	}
+
 
 	@Override
 	public Set<Long> getAccessibleBenefactors(UserInfo user,
@@ -456,5 +465,4 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	public List<ColumnModel> getColumnModel(List<String> ids, boolean keepOrder) {
 		return columnModelDao.getColumnModel(ids, keepOrder);
 	}
-
 }

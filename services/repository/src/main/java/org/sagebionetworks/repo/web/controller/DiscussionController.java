@@ -440,8 +440,8 @@ public class DiscussionController extends BaseController {
 	@RequestMapping(value = UrlHelpers.ENTITY_ID_THREADS, method = RequestMethod.GET)
 	public @ResponseBody PaginatedResults<DiscussionThreadBundle> getThreadsForEntity(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM) Long limit,
-			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM) Long offset,
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = true) Long limit,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = true) Long offset,
 			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false) DiscussionThreadOrder order,
 			@RequestParam(value = ServiceConstants.ASCENDING_PARAM, required = false) Boolean ascending,
 			@PathVariable String id) {

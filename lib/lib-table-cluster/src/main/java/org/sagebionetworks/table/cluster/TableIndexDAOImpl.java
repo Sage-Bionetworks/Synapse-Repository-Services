@@ -5,6 +5,9 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -16,17 +19,23 @@ import java.util.regex.Pattern;
 import javax.sql.DataSource;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
+import org.sagebionetworks.repo.model.table.AnnotationDTO;
 import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.EntityDTO;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableConstants;
+import org.sagebionetworks.repo.model.table.AnnotationType;
+import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
+import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.ValidateArgument;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
-import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -42,6 +51,8 @@ import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.DefaultTransactionDefinition;
 import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
+
+import static org.sagebionetworks.repo.model.table.TableConstants.*;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -505,6 +516,221 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		} catch (DataAccessException e) {
 			return 0l;
 		}
+	}
+	
+	@Override
+	public void createEntityReplicationTablesIfDoesNotExist(){
+		template.update(TableConstants.ENTITY_REPLICATION_TABLE_CREATE);
+		template.update(TableConstants.ANNOTATION_REPLICATION_TABLE_CREATE);
+	}
+
+	@Override
+	public void deleteEntityData(final ProgressCallback<Void> progressCallback, List<Long> entityIds) {
+		final List<Long> sorted = new ArrayList<Long>(entityIds);
+		// sort to prevent deadlock.
+		Collections.sort(sorted);
+		// Batch delete.
+		template.batchUpdate(TableConstants.ENTITY_REPLICATION_DELETE_ALL, new BatchPreparedStatementSetter(){
+
+			@Override
+			public void setValues(PreparedStatement ps, int i)
+					throws SQLException {
+				progressCallback.progressMade(null);
+				ps.setLong(1, sorted.get(i));
+			}
+
+			@Override
+			public int getBatchSize() {
+				return sorted.size();
+			}});
+		
+	}
+
+	@Override
+	public void addEntityData(final ProgressCallback<Void> progressCallback, List<EntityDTO> entityDTOs) {
+		final List<EntityDTO> sorted = new ArrayList<EntityDTO>(entityDTOs);
+		Collections.sort(sorted);
+		// batch update the entity table
+		template.batchUpdate(TableConstants.ENTITY_REPLICATION_INSERT, new BatchPreparedStatementSetter(){
+
+			@Override
+			public void setValues(PreparedStatement ps, int i)
+					throws SQLException {
+				// progress for each row.
+				progressCallback.progressMade(null);
+				EntityDTO dto = sorted.get(i);
+				int parameterIndex = 1;
+				ps.setLong(parameterIndex++, dto.getId());
+				ps.setLong(parameterIndex++, dto.getCurrentVersion());
+				ps.setLong(parameterIndex++, dto.getCreatedBy());
+				ps.setLong(parameterIndex++, dto.getCreatedOn().getTime());
+				ps.setString(parameterIndex++, dto.getEtag());
+				ps.setString(parameterIndex++, dto.getName());
+				ps.setString(parameterIndex++, dto.getType().name());
+				if(dto.getParentId() != null){
+					ps.setLong(parameterIndex++, dto.getParentId());
+				}else{
+					ps.setNull(parameterIndex++, java.sql.Types.BIGINT);
+				}
+				if(dto.getBenefactorId() != null){
+					ps.setLong(parameterIndex++, dto.getBenefactorId());
+				}else{
+					ps.setNull(parameterIndex++, java.sql.Types.BIGINT);
+				}
+				if(dto.getProjectId() != null){
+					ps.setLong(parameterIndex++, dto.getProjectId());
+				}else{
+					ps.setNull(parameterIndex++, java.sql.Types.BIGINT);
+				}
+				ps.setLong(parameterIndex++, dto.getModifiedBy());
+				ps.setLong(parameterIndex++, dto.getModifiedOn().getTime());
+				if(dto.getFileHandleId() != null){
+					ps.setLong(parameterIndex++, dto.getFileHandleId());
+				}else{
+					ps.setNull(parameterIndex++, java.sql.Types.BIGINT);
+				}
+			}
+
+			@Override
+			public int getBatchSize() {
+				return sorted.size();
+			}});
+		// map the entities with annotations
+		final List<AnnotationDTO> annotations = new ArrayList<AnnotationDTO>();
+		for(int i=0; i<sorted.size(); i++){
+			EntityDTO dto = sorted.get(i);
+			if(dto.getAnnotations() != null && !dto.getAnnotations().isEmpty()){
+				// this index has annotations.
+				annotations.addAll(dto.getAnnotations());
+			}
+		}
+		// update the annotations
+		template.batchUpdate(TableConstants.ANNOTATION_REPLICATION_INSERT, new BatchPreparedStatementSetter(){
+
+			@Override
+			public void setValues(PreparedStatement ps, int i)
+					throws SQLException {
+				// progress for each row.
+				progressCallback.progressMade(null);
+				AnnotationDTO dto = annotations.get(i);
+				int parameterIndex = 1;
+				ps.setLong(parameterIndex++, dto.getEntityId());
+				ps.setString(parameterIndex++, dto.getKey());
+				ps.setString(parameterIndex++, dto.getType().name());
+				ps.setString(parameterIndex++, dto.getValue());
+			}
+
+			@Override
+			public int getBatchSize() {
+				return annotations.size();
+			}});
+		
+	}
+
+	@Override
+	public EntityDTO getEntityData(Long entityId) {
+		// query for the template.
+		EntityDTO dto;
+		try {
+			dto = template.queryForObject(TableConstants.ENTITY_REPLICATION_GET, new RowMapper<EntityDTO>(){
+
+				@Override
+				public EntityDTO mapRow(ResultSet rs, int rowNum)
+						throws SQLException {
+					EntityDTO dto = new EntityDTO();
+					dto.setId(rs.getLong(ENTITY_REPLICATION_COL_ID));
+					dto.setCurrentVersion(rs.getLong(ENTITY_REPLICATION_COL_VERSION));
+					dto.setCreatedBy(rs.getLong(ENTITY_REPLICATION_COL_CRATED_BY));
+					dto.setCreatedOn(new Date(rs.getLong(ENTITY_REPLICATION_COL_CRATED_ON)));
+					dto.setEtag(rs.getString(ENTITY_REPLICATION_COL_ETAG));
+					dto.setName(rs.getString(ENTITY_REPLICATION_COL_NAME));
+					dto.setType(EntityType.valueOf(rs.getString(ENTITY_REPLICATION_COL_TYPE)));
+					dto.setParentId(rs.getLong(ENTITY_REPLICATION_COL_PARENT_ID));
+					if(rs.wasNull()){
+						dto.setParentId(null);
+					}
+					dto.setBenefactorId(rs.getLong(ENTITY_REPLICATION_COL_BENEFACTOR_ID));
+					if(rs.wasNull()){
+						dto.setBenefactorId(null);
+					}
+					dto.setProjectId(rs.getLong(ENTITY_REPLICATION_COL_PROJECT_ID));
+					if(rs.wasNull()){
+						dto.setProjectId(null);
+					}
+					dto.setModifiedBy(rs.getLong(ENTITY_REPLICATION_COL_MODIFIED_BY));
+					dto.setModifiedOn(new Date(rs.getLong(ENTITY_REPLICATION_COL_MODIFIED_ON)));
+					dto.setFileHandleId(rs.getLong(ENTITY_REPLICATION_COL_FILE_ID));
+					if(rs.wasNull()){
+						dto.setFileHandleId(null);
+					}
+					return dto;
+				}}, entityId);
+		} catch (DataAccessException e) {
+			return null;
+		}
+		// get the annotations.
+		List<AnnotationDTO> annotations = template.query(TableConstants.ANNOTATION_REPLICATION_GET, new RowMapper<AnnotationDTO>(){
+
+			@Override
+			public AnnotationDTO mapRow(ResultSet rs, int rowNum)
+					throws SQLException {
+				AnnotationDTO dto = new AnnotationDTO();
+				dto.setEntityId(rs.getLong(ANNOTATION_REPLICATION_COL_ENTITY_ID));
+				dto.setKey(rs.getString(ANNOTATION_REPLICATION_COL_KEY));
+				dto.setType(AnnotationType.valueOf(rs.getString(ANNOTATION_REPLICATION_COL_TYPE)));
+				dto.setValue(rs.getString(ANNOTATION_REPLICATION_COL_VALUE));
+				return dto;
+			}}, entityId);
+		if(!annotations.isEmpty()){
+			dto.setAnnotations(annotations);
+		}
+		return dto;
+	}
+
+	@Override
+	public long calculateCRC32ofEntityReplicationScope(ViewType viewType,
+			Set<Long> allContainersInScope) {
+		ValidateArgument.required(viewType, "viewType");
+		ValidateArgument.required(allContainersInScope, "allContainersInScope");
+		if(allContainersInScope.isEmpty()){
+			return -1L;
+		}
+		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(TYPE_PARAMETER_NAME, viewType.name());
+		param.addValue(PARENT_ID_PARAMETER_NAME, allContainersInScope);
+		Long crc32 = namedTemplate.queryForObject(SQL_ENTITY_REPLICATION_CRC_32, param, Long.class);
+		if(crc32 == null){
+			return -1L;
+		}
+		return crc32;
+	}
+	
+	@Override
+	public long calculateCRC32ofTableView(String viewId, String etagColumnId){
+		String sql = SQLUtils.buildTableViewCRC32Sql(viewId, etagColumnId);
+		Long result = this.template.queryForObject(sql, Long.class);
+		if(result == null){
+			return -1L;
+		}
+		return result;
+	}
+
+	@Override
+	public void copyEntityReplicationToTable(String viewId, ViewType viewType,
+			Set<Long> allContainersInScope, List<ColumnModel> currentSchema) {
+		ValidateArgument.required(viewType, "viewType");
+		ValidateArgument.required(allContainersInScope, "allContainersInScope");
+		if(allContainersInScope.isEmpty()){
+			// nothing to do if the scope is empty.
+			return;
+		}
+		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(TYPE_PARAMETER_NAME, viewType.name());
+		param.addValue(PARENT_ID_PARAMETER_NAME, allContainersInScope);
+		String sql = SQLUtils.createSelectInsertFromEntityReplication(viewId, currentSchema);
+		namedTemplate.update(sql, param);
 	}
 
 }

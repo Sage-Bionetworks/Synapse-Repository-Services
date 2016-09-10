@@ -285,5 +285,10 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 		}
 		return details;
 	}
+
+	@Override
+	public List<String> getColumnIdForTable(String id) {
+		return columnModelDao.getColumnIdsForObject(id);
+	}
 	
 }

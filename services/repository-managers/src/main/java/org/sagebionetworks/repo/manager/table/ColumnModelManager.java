@@ -146,5 +146,12 @@ public interface ColumnModelManager {
 	 */
 	public List<ColumnChangeDetails> getColumnChangeDetails(
 			List<ColumnChange> changes);
+
+	/**
+	 * Get the columnIds for a table.
+	 * @param id
+	 * @return
+	 */
+	public List<String> getColumnIdForTable(String id);
 }
 

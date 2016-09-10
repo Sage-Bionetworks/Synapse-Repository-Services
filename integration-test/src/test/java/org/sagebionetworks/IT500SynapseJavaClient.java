@@ -1786,57 +1786,6 @@ public class IT500SynapseJavaClient {
 	}
 
 	@Test
-	public void testThrottlingNoRetry() throws Exception {
-		final SynapseAdminClientImpl nonWaitingAdminSynapse = new SynapseAdminClientImpl();
-		SynapseClientHelper.setEndpoints(nonWaitingAdminSynapse);
-		nonWaitingAdminSynapse.setUserName(StackConfiguration.getMigrationAdminUsername());
-		nonWaitingAdminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
-		nonWaitingAdminSynapse.clearAllLocks();
-		nonWaitingAdminSynapse.getSharedClientConnection().setRetryRequestIfServiceUnavailable(false);
-		int max = 3;
-		ExecutorService executor = Executors.newFixedThreadPool(max + 1);
-		List<Future<Void>> results = Lists.newArrayList();
-		for (int i = 0; i < max; i++) {
-			results.add(executor.submit(new Callable<Void>() {
-				@Override
-				public Void call() throws Exception {
-					adminSynapse.waitForTesting(false);
-					return null;
-				}
-			}));
-		}
-		// give it some time to send all requests and have the requests waiting
-		Thread.sleep(5000);
-		// non waiting one should fail with 429
-		try {
-			nonWaitingAdminSynapse.waitForTesting(false);
-			fail("Should have been throttled");
-		} catch (SynapseServerException e) {
-			assertEquals(HttpStatus.TOO_MANY_REQUESTS.value(), e.getStatusCode());
-		}
-		// waiting one should fail with retry exception
-		try {
-			adminSynapse.waitForTesting(false);
-			fail("Should have been throttled");
-		} catch (SynapseServerException e) {
-			assertTrue(e.getMessage().indexOf("Too many concurrent requests") >= 0);
-		}
-
-		// other users should not be throttled
-		UserProfile myProfile = synapseOne.getMyProfile();
-		assertNotNull(myProfile);
-		myProfile = synapseTwo.getMyProfile();
-		assertNotNull(myProfile);
-
-		synapseAnonymous.waitForTesting(true);
-		for (Future<Void> result : results) {
-			result.get();
-		}
-		executor.shutdown();
-		assertTrue(executor.awaitTermination(20, TimeUnit.SECONDS));
-	}
-
-	@Test
 	public void testLogService() throws Exception {
 		String label1 = UUID.randomUUID().toString();
 		String label2 = UUID.randomUUID().toString();
