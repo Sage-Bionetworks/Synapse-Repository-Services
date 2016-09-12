@@ -681,11 +681,11 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			QuerySpecification modelCopy = new TableQueryParser(originalQuery.getModel().toSql()).querySpecification();
 			WhereClause where = originalQuery.getModel().getTableExpression().getWhereClause();
 			StringBuilder filterBuilder = new StringBuilder();
+			filterBuilder.append("WHERE ");
 			if(where != null){
-				filterBuilder.append(where.toSql());
-				filterBuilder.append(" AND ");
-			}else{
-				filterBuilder.append("WHERE ");
+				filterBuilder.append("(");
+				filterBuilder.append(where.getSearchCondition().toSql());
+				filterBuilder.append(") AND ");
 			}
 			filterBuilder.append(SQLUtils.getColumnNameForId(benefactorColumnId));
 			filterBuilder.append(" IN (");
