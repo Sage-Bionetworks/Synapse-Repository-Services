@@ -984,8 +984,38 @@ public class TableQueryManagerImplTest {
 		SqlQuery filtered = TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds, benefactorColumn.getId());
 		assertNotNull(filtered);
 		// should filter by benefactorId
-		assertEquals("SELECT i0 FROM syn123 WHERE i1 IS NOT NULL AND _C99_ IN ( 456, 123 )", filtered.getModel().toSql());
-		assertEquals("SELECT _C0_, ROW_ID, ROW_VERSION FROM T123 WHERE _C1_ IS NOT NULL AND _C99_ IN ( 456, 123 )", filtered.getOutputSQL());
+		assertEquals("SELECT i0 FROM syn123 WHERE ( i1 IS NOT NULL ) AND _C99_ IN ( 456, 123 )", filtered.getModel().toSql());
+		assertEquals("SELECT _C0_, ROW_ID, ROW_VERSION FROM T123 WHERE ( _C1_ IS NOT NULL ) AND _C99_ IN ( 456, 123 )", filtered.getOutputSQL());
+	}
+	
+	/**
+	 * 
+	 * PLFM-4036 identified that the benefactor search condition would limit the row visibility to
+	 * the caller by appending 'AND <BENEFACTOR_FILTER> to a user's existing query. Therefore, if
+	 * the user's original query contained at least two search conditions separated by an 'OR', either
+	 * of the original conditions could negate the benefactor filter.
+	 * 
+	 * The fix was to unconditionally add the filter benefactor to the query such as:
+	 * WHERE ( <USER_CONDITION_1> OR <USER_CONDITION_2> ) AND <BENEFACTOR_FILTER>
+	 * @throws ParseException
+	 * @throws EmptyResultException
+	 */
+	@Test
+	public void testBuildBenefactorFilterPLFM_4036() throws ParseException, EmptyResultException{
+		// add benefactor to the schema
+		ColumnModel benefactorColumn = FileEntityFields.benefactorId.getColumnModel();
+		benefactorColumn.setId("99");
+		
+		SqlQuery query = new SqlQuery("select i0 from "+tableId+" where i1 > 0 or i1 is not null", models);
+		LinkedHashSet<Long> benefactorIds = new LinkedHashSet<Long>();
+		benefactorIds.add(456L);
+		benefactorIds.add(123L);
+		
+		// call under test
+		SqlQuery filtered = TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds, benefactorColumn.getId());
+		assertNotNull(filtered);
+		// should filter by benefactorId
+		assertEquals("SELECT i0 FROM syn123 WHERE ( i1 > 0 OR i1 IS NOT NULL ) AND _C99_ IN ( 456, 123 )", filtered.getModel().toSql());
 	}
 	
 	@Test
