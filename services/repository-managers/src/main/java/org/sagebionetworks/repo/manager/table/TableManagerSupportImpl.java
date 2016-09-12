@@ -288,6 +288,9 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	 */
 	@Override
 	public int getScopeContainerCount(Set<Long> scopeIds) {
+		if(scopeIds == null || !scopeIds.isEmpty()){
+			return 0;
+		}
 		Set<Long> scopeSet = getAllContainerIdsForScope(scopeIds);
 		return scopeSet.size();
 	}
@@ -306,8 +309,6 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	}
 
 	private Set<Long> getAllContainerIdsForScope(Set<Long> scope) {
-		ValidateArgument.required(scope, "scope");
-		ValidateArgument.requirement(!scope.isEmpty(), "Scope cannot be empty");
 		// Add all containers from the given scope
 		Set<Long> allContainersInScope = new HashSet<Long>(scope);
 		for(Long container: scope){
