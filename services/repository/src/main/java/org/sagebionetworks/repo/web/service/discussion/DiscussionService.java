@@ -233,4 +233,12 @@ public interface DiscussionService {
 	 * @return
 	 */
 	public EntityThreadCounts getThreadCounts(Long userId, EntityIdList entityIds);
+
+	/**
+	 * Mark a reply as not deleted
+	 * 
+	 * @param userId
+	 * @param replyId
+	 */
+	public void markThreadAsNotDeleted(Long userId, String threadId);
 }

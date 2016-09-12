@@ -1970,6 +1970,13 @@ public class ServletTestHelper {
 		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request, HttpStatus.NO_CONTENT);
 	}
 
+	public void markThreadAsNotDeleted(DispatcherServlet dispatchServlet,
+			Long userId, String threadId) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.PUT, "/repo/v1", UrlHelpers.THREAD+"/"+threadId+"/restore", userId, null);
+		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+	}
+
 	public void pinThread(DispatcherServlet dispatchServlet,
 			Long userId, String threadId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(

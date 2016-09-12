@@ -69,6 +69,14 @@ public interface DiscussionThreadManager {
 	public void markThreadAsDeleted(UserInfo userInfo, String threadId);
 
 	/**
+	 * Mark a thread as not deleted
+	 * 
+	 * @param userInfo
+	 * @param threadId
+	 */
+	public void markThreadAsNotDeleted(UserInfo userInfo, String threadId);
+
+	/**
 	 * Get threads that belongs to forumId
 	 * 
 	 * @param userInfo

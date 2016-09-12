@@ -900,6 +900,7 @@ public class UrlHelpers {
 	public static final String THREAD = "/thread";
 	public static final String THREAD_ID = "/{threadId}";
 	public static final String THREAD_THREAD_ID = THREAD+THREAD_ID;
+	public static final String THREAD_THREAD_ID_RESTORE = THREAD+THREAD_ID+"/restore";
 	public static final String PIN = "/pin";
 	public static final String UNPIN = "/unpin";
 	public static final String THREAD_THREAD_ID_PIN = THREAD_THREAD_ID+PIN;

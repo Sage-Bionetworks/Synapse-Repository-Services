@@ -205,4 +205,11 @@ public interface DiscussionThreadDAO {
 	 * @param stats
 	 */
 	public void updateThreadStats(List<DiscussionThreadStat> stats);
+
+	/**
+	 * Mark a discussion thread as not deleted
+	 * 
+	 * @param threadId
+	 */
+	public void markThreadAsNotDeleted(long threadId);
 }
