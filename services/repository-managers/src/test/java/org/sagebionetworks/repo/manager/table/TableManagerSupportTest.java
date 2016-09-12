@@ -475,6 +475,13 @@ public class TableManagerSupportTest {
 	}
 	
 	@Test
+	public void testGetScopeContainerCount(){
+		// call under test.
+		int count = manager.getScopeContainerCount(containersInScope);
+		assertEquals(containersInScope.size(), count);
+	}
+	
+	@Test
 	public void testGetAllContainerIdsForViewScope(){
 		// call under test.
 		Set<Long> containers = manager.getAllContainerIdsForViewScope(tableId);

@@ -18,6 +18,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 public class TableViewManagerImpl implements TableViewManager {
 	
+	public static final int MAX_CONTAINERS_PER_VIEW = 1000;
+	public static final String MAX_CONTAINER_MESSAGE = "The provided view scope includes: %1$S containers which exceeds the maximum number of "+MAX_CONTAINERS_PER_VIEW;
+	
 	@Autowired
 	ViewScopeDao viewScopeDao;
 	@Autowired
@@ -43,6 +46,12 @@ public class TableViewManagerImpl implements TableViewManager {
 		if(scope != null){
 			scopeIds = new HashSet<Long>(KeyFactory.stringToKey(scope));
 		}
+		// validate the scope size
+		int scopeContainerCount  = tableManagerSupport.getScopeContainerCount(scopeIds);
+		if(scopeContainerCount > MAX_CONTAINERS_PER_VIEW){
+			throw new IllegalArgumentException(String.format(MAX_CONTAINER_MESSAGE, scopeContainerCount));
+		}
+		
 		// Define the scope of this view.
 		viewScopeDao.setViewScopeAndType(viewId, scopeIds, type);
 		// Define the schema of this view.
