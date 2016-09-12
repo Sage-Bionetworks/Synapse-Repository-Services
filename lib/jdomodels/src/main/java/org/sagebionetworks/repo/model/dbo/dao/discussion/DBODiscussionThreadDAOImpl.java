@@ -101,6 +101,10 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 			+" SET "+COL_DISCUSSION_THREAD_IS_DELETED+" = TRUE, "
 			+COL_DISCUSSION_THREAD_ETAG+" = ? "
 			+" WHERE "+COL_DISCUSSION_THREAD_ID+" = ?";
+	private static final String SQL_MARK_THREAD_AS_NOT_DELETED = "UPDATE "+TABLE_DISCUSSION_THREAD
+			+" SET "+COL_DISCUSSION_THREAD_IS_DELETED+" = FALSE, "
+			+COL_DISCUSSION_THREAD_ETAG+" = ? "
+			+" WHERE "+COL_DISCUSSION_THREAD_ID+" = ?";
 	private static final String SQL_PIN_THREAD = "UPDATE "+TABLE_DISCUSSION_THREAD
 			+" SET "+COL_DISCUSSION_THREAD_IS_PINNED+" = TRUE, "
 			+COL_DISCUSSION_THREAD_ETAG+" = ? "
@@ -624,5 +628,11 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 				return stats.size();
 			}
 		});
+	}
+
+	@Override
+	public void markThreadAsNotDeleted(long threadId) {
+		String etag = UUID.randomUUID().toString();
+		jdbcTemplate.update(SQL_MARK_THREAD_AS_NOT_DELETED, etag, threadId);
 	}
 }

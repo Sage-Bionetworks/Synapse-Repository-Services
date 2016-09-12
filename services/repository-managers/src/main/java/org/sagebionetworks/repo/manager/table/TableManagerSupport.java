@@ -309,14 +309,6 @@ public interface TableManagerSupport {
 			Set<Long> benefactorIds);
 	
 	/**
-	 * Get the ColumnModel for a given FileEntityField.
-	 * 
-	 * @param field
-	 * @return
-	 */
-	public ColumnModel getColumModel(FileEntityFields field);
-	
-	/**
 	 * Get the ColumnModel for a given EntityField.
 	 * @param field
 	 * @return

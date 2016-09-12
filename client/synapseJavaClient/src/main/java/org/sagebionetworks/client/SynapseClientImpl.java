@@ -518,6 +518,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String URL = "/messageUrl";
 	private static final String PIN = "/pin";
 	private static final String UNPIN = "/unpin";
+	private static final String RESTORE = "/restore";
 
 	private static final String THREAD_COUNTS = "/threadcounts";
 	private static final String ENTITY_THREAD_COUNTS = ENTITY + THREAD_COUNTS;
@@ -7447,6 +7448,11 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public void markThreadAsDeleted(String threadId) throws SynapseException {
 		getSharedClientConnection().deleteUri(repoEndpoint, THREAD+"/"+threadId, getUserAgent());
+	}
+
+	@Override
+	public void markThreadAsNotDeleted(String threadId) throws SynapseException {
+		getSharedClientConnection().putUri(repoEndpoint, THREAD+"/"+threadId+RESTORE, getUserAgent());
 	}
 
 	@Override
