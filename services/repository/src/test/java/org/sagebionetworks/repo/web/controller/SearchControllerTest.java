@@ -37,10 +37,7 @@ import com.google.common.base.Predicate;
  * @author John
  *
  */
-public class SearchControllerTest extends AbstractAutowiredControllerTestBase {
-	
-	private static long MAX_WAIT = 1000*15;
-	
+public class SearchControllerTest extends AbstractAutowiredControllerTestBase {	
 	private Long adminUserId;
 	
 	private ServiceProvider provider;
