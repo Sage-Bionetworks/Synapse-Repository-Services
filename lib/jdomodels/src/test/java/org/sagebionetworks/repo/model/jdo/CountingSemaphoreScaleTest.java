@@ -1,17 +1,25 @@
 package org.sagebionetworks.repo.model.jdo;
 
+import static org.junit.Assert.assertTrue;
+
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.database.semaphore.CountingSemaphore;
+import org.sagebionetworks.repo.model.semaphore.SynchronizedCountingSemaphore;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+/**
+ * Test for PLFM-4027.
+ *
+ */
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class CountingSemaphoreScaleTest {
@@ -26,13 +34,20 @@ public class CountingSemaphoreScaleTest {
 	
 	@Before
 	public void before(){
-		poolSize = 250;
-		numberOfAttempts = 1000*100;
+		poolSize = 25;
+		numberOfAttempts = 1000;
 		numberOfLockKeys = 15;
 		threadPool = Executors.newFixedThreadPool(poolSize);
 		countingSemaphore.releaseAllLocks();
+
 	}
 	
+	@Test
+	public void testSemaphoreType(){
+		assertTrue(countingSemaphore instanceof SynchronizedCountingSemaphore);
+	}
+	
+	@Ignore
 	@Test
 	public void testMultipleThreads() throws InterruptedException{
 		for(int i=0; i<numberOfAttempts; i++){
@@ -47,7 +62,7 @@ public class CountingSemaphoreScaleTest {
 	
 	private static class SimpleRunner implements Runnable{
 		
-		private long timeoutSec = 4;
+		private long timeoutSec = 40;
 		private int maxLockCount = 8;
 		private String key;
 		
