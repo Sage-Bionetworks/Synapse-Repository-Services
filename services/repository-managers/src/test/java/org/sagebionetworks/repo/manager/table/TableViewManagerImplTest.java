@@ -1,10 +1,8 @@
 package org.sagebionetworks.repo.manager.table;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -110,6 +108,21 @@ public class TableViewManagerImplTest {
 				}
 				return results;
 			}}).when(tableManagerSupport).getColumnModels(Matchers.<EntityField>anyVararg());
+		
+		when(tableManagerSupport.getScopeContainerCount(anySetOf(Long.class))).thenReturn(10);
+	}
+	
+	@Test
+	public void testSetViewSchemaAndScopeOverLimit(){
+		int containerCount = TableViewManagerImpl.MAX_CONTAINERS_PER_VIEW+1;
+		when(tableManagerSupport.getScopeContainerCount(anySetOf(Long.class))).thenReturn(containerCount);
+		try {
+			// call under test
+			manager.setViewSchemaAndScope(userInfo, schema, scope, viewType, viewId);
+			fail("Should have failed");
+		} catch (IllegalArgumentException e) {
+			assertTrue(e.getMessage().contains(""+containerCount));
+		}
 	}
 	
 	@Test
