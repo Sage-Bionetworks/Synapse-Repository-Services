@@ -77,7 +77,7 @@ public class SearchUtilTest {
 		SearchUtil.generateStructuredQueryString(null);
 	}
 	
-	@Test(expected = IllegalArgumentException.class)//TODO:IllegalArgumentException instead
+	@Test(expected = IllegalArgumentException.class)
 	public void testNoQueryContent() throws Exception{
 		// no actual query content
 		SearchUtil.generateStructuredQueryString( new SearchQuery() );
@@ -99,11 +99,31 @@ public class SearchUtilTest {
 	}
 	
 	@Test
+	public void testRegularQueryWithPrefix() throws Exception{
+		// q
+		q.add("somePrefix*");
+		query.setQueryTerm(q);
+		queryStr = SearchUtil.generateStructuredQueryString(query);
+		assertEquals(EXPECTED_QUERY_PREFIX+encodeUTF8("(and 'hello' 'world' (prefix 'somePrefix'))"), queryStr);
+	}
+	
+	@Test
 	public void testBooleanQuery() throws Exception{
 		// boolean query only
 		query.setBooleanQuery(bq);
 		queryStr = SearchUtil.generateStructuredQueryString(query);
 		assertEquals(EXPECTED_QUERY_PREFIX+encodeUTF8("(and Facet1:'Value1')"), queryStr);
+	}
+	
+	@Test
+	public void testBooleanQueryWithPrefix() throws Exception{
+		KeyValue prefixKV = new KeyValue();
+		prefixKV.setKey("someField");
+		prefixKV.setValue("somePrefix*");
+		bq.add(prefixKV);
+		query.setBooleanQuery(bq);
+		queryStr = SearchUtil.generateStructuredQueryString(query);
+		assertEquals(EXPECTED_QUERY_PREFIX+encodeUTF8("(and Facet1:'Value1' (prefix field=someField 'somePrefix'))"), queryStr);
 	}
 	
 	@Test

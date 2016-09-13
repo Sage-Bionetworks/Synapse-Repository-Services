@@ -293,7 +293,7 @@ public class IT510SynapseJavaClientSearchTest {
 
 		assertEquals(new Long(0), results.getFound());
 		assertEquals(0, results.getHits().size());
-		assertEquals(0, results.getFacets().size());
+		assertEquals(facets.size(), results.getFacets().size());
 	}
 
 	/**
@@ -507,7 +507,7 @@ public class IT510SynapseJavaClientSearchTest {
 			fail("This was a bad query");
 		}catch (SynapseException e) {
 			// did we get the expected message.
-			assertTrue(e.getMessage(), e.getMessage().indexOf("'ugh' is not defined in the metadata for this collection") >= 0);
+			assertTrue(e.getMessage(), e.getMessage().indexOf("Syntax error in query: field (ugh) does not exist.") >= 0);
 			assertFalse("The error message contains the URL of the search index", e.getMessage().indexOf("http://search") >= 0);
 		}
 	}

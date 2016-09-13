@@ -158,12 +158,17 @@ public class SearchServiceImpl implements SearchService {
 	 * @param searchQuery
 	 * @return
 	 */
-	public String filterSeachForAuthorization(UserInfo userInfo,String searchQuery) {
+	public static String filterSeachForAuthorization(UserInfo userInfo,String searchQuery) {
 		if(userInfo == null) throw new IllegalArgumentException("UserInfo cannot be null");
 		if (!userInfo.isAdmin()) {
 			String[] splitQuery = searchQuery.split("q=");
 			String actualQuery = splitQuery[1];
-			searchQuery =  splitQuery[0] + "q=( and ("+ actualQuery +") " + SearchHelper.formulateAuthorizationFilter(userInfo) + ")";
+			int otherParametersIndex = actualQuery.indexOf("&");
+			if(otherParametersIndex == -1){
+				//no other parameters 
+				otherParametersIndex = actualQuery.length();
+			}
+			searchQuery =  splitQuery[0] + "q=( and "+ actualQuery.substring(0,otherParametersIndex) + " " + SearchHelper.formulateAuthorizationFilter(userInfo) + ")" + actualQuery.substring(otherParametersIndex);
 		}
 		return searchQuery;
 	}

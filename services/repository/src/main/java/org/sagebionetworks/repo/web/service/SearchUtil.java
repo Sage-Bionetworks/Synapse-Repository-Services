@@ -33,7 +33,7 @@ public class SearchUtil {
 
 		// unstructured query terms into structured query terms
 		if (q != null && q.size() > 0)
-			queryTermsStringBuilder.append("(and " + joinWithQuotes(q, " ") + ")");
+			queryTermsStringBuilder.append("(and " + joinQueries(q, " ") + ")");
 
 		// boolean query into structured query terms
 		if (bq != null && bq.size() > 0) {
@@ -41,7 +41,13 @@ public class SearchUtil {
 			for (KeyValue pair : bq) {
 				// this regex is pretty lame to have. need to work continuous into KeyValue model
 				String value = pair.getValue();
-
+				
+				if(value.contains("*")){ //prefix queries are treated differently
+					String prefixQuery = createPrefixQuery(value, pair.getKey());
+					bqTerms.add(prefixQuery);
+					continue;
+				}
+				
 				//convert numeric ranges from 2011 cloudsearch syntax to 2013 syntax, for example: 200.. to [200,}
 				if(value.contains("..")) {
 					//TODO: remove this part once client stops using ".." notation for ranges
@@ -69,7 +75,6 @@ public class SearchUtil {
 					value = rangeStringBuilder.toString();
 				}
 				
-				//TODO: switch the .. notation to {} notation
 				if(!value.contains("{") && !value.contains("}") 
 					&& !value.contains("[") && !value.contains("]")){ //if not a continuous range such as [300,}
 					value = "'" + escapeQuotedValue(pair.getValue()) + "'";} //add quotes around value. i.e. value -> 'value'
@@ -138,28 +143,43 @@ public class SearchUtil {
 	/*
 	 * Private Methods
 	 */
+	/**
+	 * Creates a prefix query if there is an asterisk
+	 * @param prefixStringWithAsterisk prefix string containing the * symbol
+	 * @param fieldName optional. used in boolean queries but not in regular queries. 
+	 * @return
+	 */
+	private static String createPrefixQuery(String prefixStringWithAsterisk, String fieldName){
+		int asteriskIndex = prefixStringWithAsterisk.indexOf('*');
+		if(asteriskIndex == -1){
+			throw new IllegalArgumentException("the prefixString does not contain an * (asterisk) symbol");
+		}
+		return "(prefix" + (fieldName==null ? "" : " field=" + fieldName) + " '" + prefixStringWithAsterisk.substring(0, asteriskIndex) + "')";
+	}
+	
+	
 	private static String join(List<String> list, String delimiter){
 		return joinHelper(list, delimiter, false);
 	}
 	
-	/*
-	 * Private Methods
-	 */
-	private static String joinWithQuotes(List<String> list, String delimiter){
+	private static String joinQueries(List<String> list, String delimiter){
 		return joinHelper(list, delimiter, true);
 	}
 	
-	private static String joinHelper(List<String> list, String delimiter, boolean withQuotes) {
+	private static String joinHelper(List<String> list, String delimiter, boolean forQueries) {
 		StringBuilder sb = new StringBuilder();
 		for (String item : list) {
-			if(withQuotes)
-				sb.append('\''); //appends ' character
-			
-			sb.append(item);
-			
-			if(withQuotes)
-				sb.append('\'');
-			
+			if(forQueries){
+				if(item.contains("*")){
+					sb.append(createPrefixQuery(item, null));
+				}else{
+					sb.append('\''); //appends ' character
+					sb.append(item);
+					sb.append('\'');
+				}
+			}else{
+				sb.append(item);
+			}
 			sb.append(delimiter);
 		}
 		String str = sb.toString();
