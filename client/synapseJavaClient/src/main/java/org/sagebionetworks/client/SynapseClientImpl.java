@@ -7451,7 +7451,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public void markThreadAsNotDeleted(String threadId) throws SynapseException {
+	public void restoreDeletedThread(String threadId) throws SynapseException {
 		getSharedClientConnection().putUri(repoEndpoint, THREAD+"/"+threadId+RESTORE, getUserAgent());
 	}
 

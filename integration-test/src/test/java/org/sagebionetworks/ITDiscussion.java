@@ -196,6 +196,10 @@ public class ITDiscussion {
 		availableThreads = synapse.getThreadsForForum(forumId, 20L, 0L, null, null, DiscussionFilter.EXCLUDE_DELETED);
 		assertEquals(0, availableThreads.getTotalNumberOfResults());
 		assertEquals((Long)1L, synapse.getThreadCountForForum(forumId, DiscussionFilter.NO_FILTER).getCount());
+
+		// restore deleted thread
+		synapse.restoreDeletedThread(threadId);
+		assertFalse(synapse.getThread(threadId).getIsDeleted());
 	}
 
 	@Test

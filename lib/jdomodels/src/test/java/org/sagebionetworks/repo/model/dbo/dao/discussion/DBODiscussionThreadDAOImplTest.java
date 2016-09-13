@@ -257,6 +257,7 @@ public class DBODiscussionThreadDAOImplTest {
 				dto.getEtag().equals(returnedDto.getEtag()));
 		dto.setModifiedOn(returnedDto.getModifiedOn());
 		dto.setLastActivity(returnedDto.getLastActivity());
+		assertFalse(dto.equals(returnedDto));
 		dto.setEtag(returnedDto.getEtag());
 		assertEquals(dto, returnedDto);
 	}
