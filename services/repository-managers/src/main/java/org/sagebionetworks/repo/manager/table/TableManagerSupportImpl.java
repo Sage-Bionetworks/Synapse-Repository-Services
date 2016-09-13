@@ -288,7 +288,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	 */
 	@Override
 	public int getScopeContainerCount(Set<Long> scopeIds) {
-		if(scopeIds == null || !scopeIds.isEmpty()){
+		if(scopeIds == null || scopeIds.isEmpty()){
 			return 0;
 		}
 		Set<Long> scopeSet = getAllContainerIdsForScope(scopeIds);
