@@ -213,7 +213,7 @@ public class DiscussionController extends BaseController {
 	}
 
 	/**
-	 * This API is used to mark a thread as not deleted.
+	 * This API is used to restore a deleted thread.
 	 * <br/>
 	 * Target users: only forum's moderator can restore a deleted thread.
 	 * 
@@ -222,7 +222,7 @@ public class DiscussionController extends BaseController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.THREAD_THREAD_ID_RESTORE, method = RequestMethod.PUT)
-	public void markThreadAsNotDeleted(
+	public void restoreDeletedThread(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String threadId) {
 		serviceProvider.getDiscussionService().markThreadAsNotDeleted(userId, threadId);
