@@ -163,7 +163,7 @@ public class SearchServiceImpl implements SearchService {
 		if (!userInfo.isAdmin()) {
 			String[] splitQuery = searchQuery.split("q=");
 			String actualQuery = splitQuery[1];
-			searchQuery =  splitQuery[0] + "( and ("+ actualQuery +")" + SearchHelper.formulateAuthorizationFilter(userInfo) + ")";
+			searchQuery =  splitQuery[0] + "q=( and ("+ actualQuery +") " + SearchHelper.formulateAuthorizationFilter(userInfo) + ")";
 		}
 		return searchQuery;
 	}

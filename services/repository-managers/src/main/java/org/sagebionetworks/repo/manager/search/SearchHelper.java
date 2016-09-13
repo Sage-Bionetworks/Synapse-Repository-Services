@@ -64,7 +64,7 @@ public class SearchHelper {
 	 */
 	public static String cleanUpSearchQueries(String query)
 			throws UnsupportedEncodingException {
-
+		System.out.println(query);
 		// check that query is properly encoded. If there are no '=', then likely it is not escaped properly
 		if (!query.contains("=")) {
 			throw new IllegalArgumentException("Query is incorrectly encoded: " + query);
@@ -117,10 +117,5 @@ public class SearchHelper {
 			escapedQuery += "bq=" + URLEncoder.encode(booleanQuery, "UTF-8");
 		}
 		return escapedQuery;
-	}
-
-	private static String escapeFacetFieldConstraintCommas(String value) {
-		// TODO Auto-generated method stub
-		return null;
 	}
 }

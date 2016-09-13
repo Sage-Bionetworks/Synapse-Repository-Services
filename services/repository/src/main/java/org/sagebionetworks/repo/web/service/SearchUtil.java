@@ -3,26 +3,16 @@ package org.sagebionetworks.repo.web.service;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
-import org.sagebionetworks.repo.model.search.query.FacetSort;
-import org.sagebionetworks.repo.model.search.query.FacetTopN;
-import org.sagebionetworks.repo.model.search.query.KeyList;
 import org.sagebionetworks.repo.model.search.query.KeyValue;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
-import org.springframework.web.jsf.FacesContextUtils;
-
-import com.amazonaws.services.cloudfront.model.InvalidArgumentException;
-import com.sun.star.lang.IllegalArgumentException;
 
 public class SearchUtil {
-	private static String BUCKETS_FORMAT = "buckets:[%s]";
 	
-	public static String generateStructuredQueryString(SearchQuery searchQuery) throws UnsupportedEncodingException, IllegalArgumentException {
+	public static String generateStructuredQueryString(SearchQuery searchQuery) throws UnsupportedEncodingException{
 		if (searchQuery == null) {
-			throw new InvalidArgumentException("No search query was provided.");//TODO: change to IllegalArgumentException
+			throw new IllegalArgumentException("No search query was provided.");//TODO: change to IllegalArgumentException
 		}
 
 		List<String> params = new ArrayList<String>();
@@ -37,7 +27,7 @@ public class SearchUtil {
 		
 		// test for minimum search requirements
 		if (!(q != null && q.size() > 0) && !(bq != null && bq.size() > 0)) {
-			throw new InvalidArgumentException(
+			throw new IllegalArgumentException(
 					"Either one queryTerm or one booleanQuery must be defined");
 		}
 
@@ -51,6 +41,33 @@ public class SearchUtil {
 			for (KeyValue pair : bq) {
 				// this regex is pretty lame to have. need to work continuous into KeyValue model
 				String value = pair.getValue();
+
+				//convert numeric ranges from 2011 cloudsearch syntax to 2013 syntax, for example: 200.. to [200,}
+				if(value.contains("..")) {
+					//TODO: remove this part once client stops using ".." notation for ranges
+					String[] range = value.split("\\.\\.", -1);
+					
+					if(range.length != 2 ){
+						throw new IllegalArgumentException("Numeric range is incorrectly formatted");
+					}
+					
+					StringBuilder rangeStringBuilder = new StringBuilder();
+					//left bound
+					if(range[0].equals("")){
+						rangeStringBuilder.append("{");
+					}else{
+						rangeStringBuilder.append("[" + range[0]);
+					}
+					
+					//right bound
+					rangeStringBuilder.append(",");
+					if(range[1].equals("")){
+						rangeStringBuilder.append("}");
+					}else{
+						rangeStringBuilder.append( range[1] + "]");
+					}
+					value = rangeStringBuilder.toString();
+				}
 				
 				//TODO: switch the .. notation to {} notation
 				if(!value.contains("{") && !value.contains("}") 
@@ -71,140 +88,33 @@ public class SearchUtil {
 		params.add("q.parser=structured");
 		params.add("q=" + URLEncoder.encode(queryTermsStringBuilder.toString(), "UTF-8"));
 		
-		Map<String, StringBuilder> facetOptionsMap = new HashMap<String, StringBuilder>();
 		//preprocess the FacetSortConstraints
 		// facet field constraints
 		if (searchQuery.getFacetFieldConstraints() != null
 				&& searchQuery.getFacetFieldConstraints().size() > 0) {
-			//preprocess
-			for (KeyList facetNameConstraintpair : searchQuery.getFacetFieldConstraints()) {
-				String facetName = facetNameConstraintpair.getKey();
-				StringBuilder constraintsStringBuilder = new StringBuilder("buckets:[");
-				
-				
-				List<String> values = new ArrayList<String>();
-				for(String constraint : facetNameConstraintpair.getValues()) {
-					
-					//converting 2011 cloudsearch syntax for numeric ranges to 2013 cloudsearch syntax
-					if(!constraint.contains("..")) {
-						if( !isNumeric(constraint)){ //just happens to have ".." in it but is not a numeric range
-							constraint = "'" + escapeQuotedValue(constraint) + "'";
-							values.add(constraint);
-						}else{ //is a 2011 cloudsearch numeric range
-							String[] range = constraint.split("..");
-							if(range.length !=2 )
-								throw new IllegalArgumentException("Numeric range is incorrectly formatted");
-							StringBuilder rangeStringBuilder = new StringBuilder();
-							//TODO; need "" on constraints
-							//left bound
-							if(range[0] == ""){
-								rangeStringBuilder.append("{");
-							}else{
-								rangeStringBuilder.append("[" + range[0]);
-							}
-							
-							//right bound
-							rangeStringBuilder.append(",");
-							if(range[1] == ""){
-								rangeStringBuilder.append("}");
-							}else{
-								rangeStringBuilder.append( range[1] + "]");
-							}
-							values.add(rangeStringBuilder.toString());
-						}
-					} else {
-						values.add(constraint);
-					}
-				}
-				constraintsStringBuilder.append(join(values, ","));
-				constraintsStringBuilder.append("]"); //close the buckets part of options
-				facetOptionsMap.put(facetName, constraintsStringBuilder);
-			}
+			throw new IllegalArgumentException("Facet field constraints are no longer supported");
+		}
+		if (searchQuery.getFacetFieldSort() != null){
+			throw new IllegalArgumentException("Sorting of facets is no longer supported");
 		}
 		
-		// facet field sort
-		if (searchQuery.getFacetFieldSort() != null
-				&& searchQuery.getFacetFieldSort().size() > 0) {
-			for (FacetSort facetSort : searchQuery.getFacetFieldSort()) {
-				String key = "facet-" + facetSort.getFacetName() + "-sort";
-				String value = null;
-				switch (facetSort.getSortType()) {
-					case ALPHA:
-						throw IllegalArgumentException("Sorting by ");
-						break;
-					case COUNT:
-						value = "count";
-						break;
-					case MAX:
-						if (facetSort.getMaxfield() != null) {
-							value = "max(" + facetSort.getMaxfield() + ")";
-						} else {
-							throw new InvalidArgumentException(
-									"maxField must be set for type: "
-											+ facetSort.getSortType());
-						}
-						break;
-					case SUM:
-						if (facetSort.getSumFields() != null
-								&& facetSort.getSumFields().size() > 0) {
-							value = "sum(" + join(facetSort.getSumFields(), ",")
-									+ ")";
-						} else {
-							throw new InvalidArgumentException(
-									"sumFields must contain at least one value for type: "
-											+ facetSort.getSortType());
-						}
-						break;
-					default:
-						throw new InvalidArgumentException(
-								"Unknown Facet Field Sort: "
-										+ facetSort.getSortType());
-				}
-				params.add(key + "=" + URLEncoder.encode(value, "UTF-8"));
-			}
-		}
-		
-		
-		
-		
-		
-		//TODO: change facets
 		// facets
-		if (searchQuery.getFacet() != null && searchQuery.getFacet().size() > 0)
-			params.add("facet=" + URLEncoder.encode(join(searchQuery.getFacet(), ","), "UTF-8"));
-
-		
-		/*
-		 * Need to do:
-		 *  map facetname to info from getfacetFieldConstraints
-		 *  also map facetname to sorttopN. new parameter name for this is size
-		 *  then iterate through getfacets() and build query
-		 */
-		
-
-		
+		if (searchQuery.getFacet() != null && searchQuery.getFacet().size() > 0){ //iterate over all facets
+			for(String facetFieldName : searchQuery.getFacet()){
+				//no options inside {} since none are used by the webclient 
+				params.add("facet." + facetFieldName +"=" + URLEncoder.encode("{}", "UTF-8"));
+			}
+		}
 		
 		//switch to size parameter in facet
-		// face top n
-		if (searchQuery.getFacetFieldTopN() != null
-				&& searchQuery.getFacetFieldTopN().size() > 0) {
-			for (FacetTopN topN : searchQuery.getFacetFieldTopN()) {
-				params.add("facet-" + topN.getKey() + "-top-n="
-						+ topN.getValue());
-			}
+		// facet top n
+		if (searchQuery.getFacetFieldTopN() != null) {
+			throw new IllegalArgumentException("facet-field-top-n is no longer supported");
 		}
-
-		//now is sort in 2013 api
+		
 		// rank
-		if (searchQuery.getRank() != null && searchQuery.getRank().size() > 0){
-			StringBuilder rankStringBuilder = new StringBuilder();
-			for(String rank : searchQuery.getRank()){
-				if(rankStringBuilder.length() > 0){
-					rankStringBuilder.append(", ");
-				}
-				rankStringBuilder.append(rank.startsWith("-") ? rank.substring(1)  + " desc" : rank + " asc" );
-			}
-			params.add("sort=" + URLEncoder.encode(rankStringBuilder.toString(), "UTF-8"));
+		if (searchQuery.getRank() != null){
+			throw new IllegalArgumentException("Rank is no longer supported");
 		}
 		
 
@@ -221,8 +131,6 @@ public class SearchUtil {
 		// start
 		if (searchQuery.getStart() != null)
 			params.add("start=" + searchQuery.getStart());
-
-		// TODO : support t-FIELD ?
 
 		return join(params, "&");
 	}

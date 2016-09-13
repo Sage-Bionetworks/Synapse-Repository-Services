@@ -1,9 +1,6 @@
 package org.sagebionetworks.repo.web.service;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.fail;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
@@ -19,8 +16,6 @@ import org.sagebionetworks.repo.model.search.query.FacetTopN;
 import org.sagebionetworks.repo.model.search.query.KeyList;
 import org.sagebionetworks.repo.model.search.query.KeyValue;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
-
-import com.amazonaws.services.cloudfront.model.InvalidArgumentException;
 
 public class SearchUtilTest {
 	private SearchQuery query;
@@ -56,7 +51,7 @@ public class SearchUtilTest {
 		bq2 = new ArrayList<KeyValue>();
 		kv = new KeyValue();
 		kv.setKey("Facet1");
-		kv.setValue("{,2000]");
+		kv.setValue("..2000");
 		bq2.add(kv);
 
 		bqNot = new ArrayList<KeyValue>();
@@ -76,18 +71,18 @@ public class SearchUtilTest {
 		kv.setValue("c:\\dave's_folde,r");
 		bqSpecialChar.add(kv);
 	}
-	@Test (expected = InvalidArgumentException.class)
+	@Test (expected = IllegalArgumentException.class)
 	public void testNullQuery() throws Exception{
 		// null input
 		SearchUtil.generateStructuredQueryString(null);
 	}
 	
-	@Test(expected = InvalidArgumentException.class)//TODO:IllegalArgumentException instead
+	@Test(expected = IllegalArgumentException.class)//TODO:IllegalArgumentException instead
 	public void testNoQueryContent() throws Exception{
 		// no actual query content
 		SearchUtil.generateStructuredQueryString( new SearchQuery() );
 	}
-	@Test (expected = InvalidArgumentException.class)
+	@Test (expected = IllegalArgumentException.class)
 	public void testEmptyQuery() throws Exception{
 		// empty query
 		query.setQueryTerm(Arrays.asList(new String[] {""}));
@@ -162,12 +157,12 @@ public class SearchUtilTest {
 		query.setQueryTerm(q);
 		query.setFacet(facets);
 		queryStr = SearchUtil.generateStructuredQueryString(query);
-		assertEquals("q=hello%2Cworld&facet=facet1%2Cfacet2", queryStr);
+		assertEquals( EXPECTED_QUERY_PREFIX + encodeUTF8("(and 'hello' 'world')")+"&facet.facet1=" + encodeUTF8("{}") + "&facet.facet2=" + encodeUTF8("{}"), queryStr);
 	}
 		
-	@Test
-	public void asdf() throws Exception{	
-			
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void testFacetConstraints() throws Exception{
 		// facet field constraints
 		query.setQueryTerm(q);
 		List<KeyList> facetFieldConstraints = new ArrayList<KeyList>();
@@ -181,8 +176,9 @@ public class SearchUtilTest {
 		facetFieldConstraints.add(ffc2);
 		query.setFacetFieldConstraints(facetFieldConstraints);
 		queryStr = SearchUtil.generateStructuredQueryString(query);
-		assertEquals("q=hello%2Cworld&facet-facet1-constraints=%27one%5C%2Ctwo%5C%5Cthree%27%2C%27dave%5C%27s%27%2C%27regular%27&facet-facet2-constraints=123%2C4..5", queryStr);
-
+	}
+	@Test (expected = IllegalArgumentException.class)
+	public void testFacetSort() throws Exception{
 		// facet field sort
 		query.setQueryTerm(q);
 		List<FacetSort> facetFieldSorts = null;
@@ -196,42 +192,10 @@ public class SearchUtilTest {
 		query.setQueryTerm(q);
 		query.setFacetFieldSort(facetFieldSorts);
 		queryStr = SearchUtil.generateStructuredQueryString(query);
-		assertEquals("q=hello%2Cworld&facet-facet1-sort=alpha", queryStr);
+	}
 		
-		fs = new FacetSort();
-		fs.setFacetName("facet2");
-		fs.setSortType(FacetSortOptions.COUNT);
-		facetFieldSorts = new ArrayList<FacetSort>();
-		facetFieldSorts.add(fs);
-		query.setQueryTerm(q);
-		query.setFacetFieldSort(facetFieldSorts);
-		queryStr = SearchUtil.generateStructuredQueryString(query);
-		assertEquals("q=hello%2Cworld&facet-facet2-sort=count", queryStr);
-		
-		fs = new FacetSort();
-		fs.setFacetName("facet3");
-		fs.setSortType(FacetSortOptions.MAX);
-		fs.setMaxfield("maxfield");
-		facetFieldSorts = new ArrayList<FacetSort>();
-		facetFieldSorts.add(fs);
-		query.setQueryTerm(q);
-		query.setFacetFieldSort(facetFieldSorts);
-		queryStr = SearchUtil.generateStructuredQueryString(query);
-		assertEquals("q=hello%2Cworld&facet-facet3-sort=max%28maxfield%29", queryStr);
-
-				
-		fs = new FacetSort();
-		fs.setFacetName("facet4");
-		fs.setSortType(FacetSortOptions.SUM);
-		fs.setSumFields(Arrays.asList(new String[] { "sum1", "sum2" }));
-		facetFieldSorts = new ArrayList<FacetSort>();
-		facetFieldSorts.add(fs);
-		query.setQueryTerm(q);
-		query.setFacetFieldSort(facetFieldSorts);
-		queryStr = SearchUtil.generateStructuredQueryString(query);
-		assertEquals("q=hello%2Cworld&facet-facet4-sort=sum%28sum1%2Csum2%29", queryStr);
-		
-
+	@Test(expected = IllegalArgumentException.class)
+	public void testFacetFieldTopN() throws Exception{
 		// facet field top N
 		List<FacetTopN> topNList = new ArrayList<FacetTopN>();
 		FacetTopN topn = null; 
@@ -249,14 +213,12 @@ public class SearchUtilTest {
 		query.setQueryTerm(q);
 		query.setFacetFieldTopN(topNList);
 		queryStr = SearchUtil.generateStructuredQueryString(query);
-		assertEquals("q=hello%2Cworld&facet-facet1-top-n=10&facet-facet2-top-n=20", queryStr);
 	}	
-	@Test
+	@Test (expected=IllegalArgumentException.class)
 	public void testRank() throws Exception{
 		query.setQueryTerm(q);
 		query.setRank(Arrays.asList(new String[]{"rankfield1", "-rankfield2"}));
 		queryStr = SearchUtil.generateStructuredQueryString(query);
-		assertEquals(EXPECTED_QUERY_PREFIX+encodeUTF8("(and 'hello' 'world')")+ "&sort=" + encodeUTF8("rankfield1 asc,rankfield2 desc"), queryStr);
 	}
 	
 	@Test
