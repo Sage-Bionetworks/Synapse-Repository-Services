@@ -1,11 +1,11 @@
 package org.sagebionetworks.repo.model.jdo;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 import java.util.List;
 
 import org.junit.Test;
-import org.sagebionetworks.repo.model.DatastoreException;
 
 import com.google.common.collect.Lists;
 
@@ -45,12 +45,18 @@ public class KeyFactoryTest {
 		assertEquals(Long.valueOf(0L), KeyFactory.stringToKey("syn0%0d%0a"));
 	}
 
-	@Test(expected=DatastoreException.class)
+	@Test
 	public void testStringToKeyInvalidPrefix() throws Exception {
-		KeyFactory.stringToKey("foo123");
+		try {
+			KeyFactory.stringToKey("foo123");
+			fail("Should have thrown an exception.");
+		} catch (IllegalArgumentException e) {
+			String expectedMessage = "foo123"+KeyFactory.IS_NOT_A_VALID_SYNAPSE_ID_SUFFIX;
+			assertEquals(expectedMessage, e.getMessage());
+		}
 	}
 
-	@Test(expected=DatastoreException.class)
+	@Test(expected=IllegalArgumentException.class)
 	public void testStringToKeyNonNumericCharacters() throws Exception {
 		KeyFactory.stringToKey("syn/123");
 	}

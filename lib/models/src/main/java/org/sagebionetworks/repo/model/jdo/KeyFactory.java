@@ -21,6 +21,7 @@ import org.sagebionetworks.util.ValidateArgument;
  */
 public class KeyFactory {
 	
+	public static final String IS_NOT_A_VALID_SYNAPSE_ID_SUFFIX = " is not a valid Synapse ID.";
 	public static final Long ROOT_ID = new Long(4489);
 	public static final String SYN_ROOT_ID = KeyFactory.keyToString(ROOT_ID);
 
@@ -54,7 +55,7 @@ public class KeyFactory {
 			String decodedId = urlDecode(id);
 			return new Long(decodedId);
 		} catch (NumberFormatException e) {
-			throw new DatastoreException(e);
+			throw new IllegalArgumentException(id+IS_NOT_A_VALID_SYNAPSE_ID_SUFFIX);
 		}
 	}
 	
