@@ -332,10 +332,17 @@
 		class="org.sagebionetworks.repo.model.dbo.auth.DBOAuthenticationReceiptDAOImpl" />
 
 	<!-- Misc beans -->
+	
+	<!-- A singleton counting semaphore with all method synchronized to serialize lock acquisition on each machine -->
 	<bean id="countingSemaphore"
-		class="org.sagebionetworks.database.semaphore.CountingSemaphoreImpl">
-		<constructor-arg ref="dataSourcePool" index="0"></constructor-arg>
-		<constructor-arg ref="txManager" index="1"></constructor-arg>
+		class="org.sagebionetworks.repo.model.semaphore.SynchronizedCountingSemaphore"
+		scope="singleton">
+		<constructor-arg index="0">
+			<bean class="org.sagebionetworks.database.semaphore.CountingSemaphoreImpl">
+				<constructor-arg ref="dataSourcePool" index="0"></constructor-arg>
+				<constructor-arg ref="txManager" index="1"></constructor-arg>
+			</bean>
+		</constructor-arg>
 	</bean>	
 	
 	<!-- DAO for API Call Throttle-->
