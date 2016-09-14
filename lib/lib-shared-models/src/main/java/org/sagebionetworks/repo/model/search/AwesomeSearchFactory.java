@@ -160,11 +160,11 @@ public class AwesomeSearchFactory {
 					}
 				}
 
-				if (!awesomeSearchFacet.has("constraints"))
+				if (!awesomeSearchFacet.has("buckets"))
 					continue;
 				
 				JSONArrayAdapter awesomeSearchConstraints = awesomeSearchFacet
-						.getJSONArray("constraints");
+						.getJSONArray("buckets"); //in 2013 search api, constraints are called buckets
 
 				JSONArrayAdapter constraints = factory.createNewArray();
 				facet.put("constraints", constraints);
