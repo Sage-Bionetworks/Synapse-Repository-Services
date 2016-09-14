@@ -12,8 +12,11 @@ import org.sagebionetworks.repo.model.file.PartMD5;
 import org.sagebionetworks.upload.UploadUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import com.amazonaws.AmazonClientException;
+import com.amazonaws.AmazonServiceException;
 import com.amazonaws.HttpMethod;
 import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.CompleteMultipartUploadRequest;
 import com.amazonaws.services.s3.model.CopyPartRequest;
 import com.amazonaws.services.s3.model.CopyPartResult;
@@ -135,7 +138,12 @@ public class S3MultipartUploadDAOImpl implements S3MultipartUploadDAO {
 			partEtags.add(new PartETag(partMD5.getPartNumber(), partEtag));
 		}
 
-		s3Client.completeMultipartUpload(cmur);
+		try {
+			s3Client.completeMultipartUpload(cmur);
+		} catch (AmazonS3Exception e) {
+			// thrown when given a bad request.
+			throw new IllegalArgumentException(e.getMessage());
+		}
 		// Lookup the final size of this file
 		ObjectMetadata resultFileMetadata = s3Client.getObjectMetadata(
 				request.getBucket(), request.getKey());
