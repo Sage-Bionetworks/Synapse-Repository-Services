@@ -11,12 +11,9 @@
 		<artifactId>lib</artifactId>
 		<version>develop-SNAPSHOT</version>
 	</parent>
-
-	<groupId>org.sagebionetworks</groupId>
 	<artifactId>lib-jdomodels</artifactId>
-	<version>develop-SNAPSHOT</version>
 	<packaging>jar</packaging>
-	<name>Platform Repository Model Objects - JDO Implementation</name>
+
 
 	<dependencies>
 		<!-- Logging -->
