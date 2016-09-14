@@ -12,7 +12,7 @@ public class SearchUtil {
 	
 	public static String generateStructuredQueryString(SearchQuery searchQuery) throws UnsupportedEncodingException{
 		if (searchQuery == null) {
-			throw new IllegalArgumentException("No search query was provided.");//TODO: change to IllegalArgumentException
+			throw new IllegalArgumentException("No search query was provided.");
 		}
 
 		List<String> params = new ArrayList<String>();

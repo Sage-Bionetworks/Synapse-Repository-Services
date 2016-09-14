@@ -110,7 +110,6 @@ public class SearchDomainSetupImpl implements SearchDomainSetup, InitializingBea
 						.withDomainName(domainName));
 		// Set the policy.
 		// Until we figure out a better plan, we are opening this up to 0.0.0.0
-		//TODO: is the ARN for the search service and doc service same?
 		String policyJson = String.format(POLICY_TEMPLATE,"0.0.0.0/0");
 		log.debug("Expected Policy: " + policyJson);
 		String actualPolicyJson = dsapr.getAccessPolicies().getOptions();
