@@ -178,7 +178,7 @@ public class SearchHelperTest {
 
 
 		// fun characters inside values
-		assertEquals("q=dave&bq=some_key%3A%27one%26two%27", SearchHelper
+		assertEquals("q.parser=structured&q=some_key%3A%27one%26two%27&q=dave", SearchHelper
 				.cleanUpSearchQueries("q.parser=structured&q="+ URLEncoder.encode("some_key:'one&two'", "UTF-8") + "&q=" + URLEncoder.encode("dave", "UTF-8")));
 
 
