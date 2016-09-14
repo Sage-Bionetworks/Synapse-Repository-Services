@@ -82,6 +82,13 @@ public class DiscussionServiceImpl implements DiscussionService{
 	}
 
 	@Override
+	public void markThreadAsNotDeleted(Long userId,
+			String threadId) {
+		UserInfo user = userManager.getUserInfo(userId);
+		threadManager.markThreadAsNotDeleted(user, threadId);
+	}
+
+	@Override
 	public PaginatedResults<DiscussionThreadBundle> getThreadsForForum(Long userId,
 			String forumId, Long limit, Long offset, DiscussionThreadOrder order,
 			Boolean ascending, DiscussionFilter filter) {

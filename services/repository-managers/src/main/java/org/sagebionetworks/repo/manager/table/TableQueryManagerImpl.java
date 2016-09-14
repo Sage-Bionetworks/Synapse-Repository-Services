@@ -15,9 +15,9 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
-import org.sagebionetworks.repo.model.dbo.dao.table.FileEntityFields;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
+import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
 import org.sagebionetworks.repo.model.table.QueryNextPageToken;
@@ -32,6 +32,7 @@ import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
+import org.sagebionetworks.table.cluster.SQLUtils;
 import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
@@ -651,7 +652,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 */
 	SqlQuery addRowLevelFilter(UserInfo user, SqlQuery query, TableIndexDAO indexDao) throws EmptyResultException {
 		// First get the distinct benefactors applied to the table
-		ColumnModel benefactorColumn = tableManagerSupport.getColumModel(FileEntityFields.benefactorId);
+		ColumnModel benefactorColumn = tableManagerSupport.getColumnModel(EntityField.benefactorId);
 		// lookup the distinct benefactor IDs applied to the table.
 		Set<Long> tableBenefactors = indexDao.getDistinctLongValues(query.getTableId(), benefactorColumn.getId());
 		if(tableBenefactors.isEmpty()){
@@ -659,7 +660,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		}
 		// Get the sub-set of benefactors visible to the user.
 		Set<Long> accessibleBenefactors = tableManagerSupport.getAccessibleBenefactors(user, tableBenefactors);
-		return buildBenefactorFilter(query, accessibleBenefactors);
+		return buildBenefactorFilter(query, accessibleBenefactors, benefactorColumn.getId());
 	}
 	
 	/**
@@ -669,7 +670,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @return
 	 * @throws EmptyResultException 
 	 */
-	public static SqlQuery buildBenefactorFilter(SqlQuery originalQuery, Set<Long> accessibleBenefactors) throws EmptyResultException{
+	public static SqlQuery buildBenefactorFilter(SqlQuery originalQuery, Set<Long> accessibleBenefactors, String benefactorColumnId) throws EmptyResultException{
 		ValidateArgument.required(originalQuery, "originalQuery");
 		ValidateArgument.required(accessibleBenefactors, "accessibleBenefactors");
 		if(accessibleBenefactors.isEmpty()){
@@ -680,13 +681,13 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			QuerySpecification modelCopy = new TableQueryParser(originalQuery.getModel().toSql()).querySpecification();
 			WhereClause where = originalQuery.getModel().getTableExpression().getWhereClause();
 			StringBuilder filterBuilder = new StringBuilder();
+			filterBuilder.append("WHERE ");
 			if(where != null){
-				filterBuilder.append(where.toSql());
-				filterBuilder.append(" AND ");
-			}else{
-				filterBuilder.append("WHERE ");
+				filterBuilder.append("(");
+				filterBuilder.append(where.getSearchCondition().toSql());
+				filterBuilder.append(") AND ");
 			}
-			filterBuilder.append(FileEntityFields.benefactorId.name());
+			filterBuilder.append(SQLUtils.getColumnNameForId(benefactorColumnId));
 			filterBuilder.append(" IN (");
 			boolean isFirst = true;
 			for(Long id: accessibleBenefactors){

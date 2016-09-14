@@ -51,6 +51,7 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
@@ -474,6 +475,20 @@ public class TableManagerSupportTest {
 	}
 	
 	@Test
+	public void testGetScopeContainerCount(){
+		// call under test.
+		int count = manager.getScopeContainerCount(containersInScope);
+		assertEquals(containersInScope.size(), count);
+	}
+	
+	@Test
+	public void testGetScopeContainerCountEmpty(){
+		// call under test.
+		int count = manager.getScopeContainerCount(null);
+		assertEquals(0, count);
+	}
+	
+	@Test
 	public void testGetAllContainerIdsForViewScope(){
 		// call under test.
 		Set<Long> containers = manager.getAllContainerIdsForViewScope(tableId);
@@ -605,7 +620,7 @@ public class TableManagerSupportTest {
 		ColumnModel cm = new ColumnModel();
 		cm.setId("123");
 		when(mockColumnModelDao.createColumnModel(any(ColumnModel.class))).thenReturn(cm);
-		ColumnModel result = manager.getColumModel(FileEntityFields.id);
+		ColumnModel result = manager.getColumnModel(EntityField.id);
 		assertEquals(cm, result);
 	}
 	

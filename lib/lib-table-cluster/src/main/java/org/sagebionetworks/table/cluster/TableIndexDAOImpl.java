@@ -201,6 +201,13 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		String createOrUpdateStatusSql = SQLUtils.buildCreateOrUpdateStatusHashSQL(tableId);
 		template.update(createOrUpdateStatusSql, schemaMD5Hex, schemaMD5Hex);
 	}
+	
+	@Override
+	public void setIndexVersionAndSchemaMD5Hex(String tableId, Long viewCRC,
+			String schemaMD5Hex) {
+		String createOrUpdateStatusSql = SQLUtils.buildCreateOrUpdateStatusVersionAndHashSQL(tableId);
+		template.update(createOrUpdateStatusSql, viewCRC, schemaMD5Hex, viewCRC, schemaMD5Hex);
+	}
 
 	@Override
 	public String getCurrentSchemaMD5Hex(String tableId) {

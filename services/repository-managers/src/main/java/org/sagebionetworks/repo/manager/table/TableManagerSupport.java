@@ -20,8 +20,8 @@ import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
- * Low-level support for all of the table managers. Contains low-level
- * business logic common to all table managers.
+ * Low-level support for all of the table managers. Contains low-level business
+ * logic common to all table managers.
  *
  */
 public interface TableManagerSupport {
@@ -138,8 +138,8 @@ public interface TableManagerSupport {
 	 * 
 	 * @param deletedId
 	 */
-	public void setTableDeleted(String deletedId, ObjectType tableType);	
-	
+	public void setTableDeleted(String deletedId, ObjectType tableType);
+
 	/**
 	 * The MD5 hex of a table's schema.
 	 * 
@@ -173,11 +173,11 @@ public interface TableManagerSupport {
 	 * @return
 	 */
 	ObjectType getTableType(String tableId);
-	
+
 	/**
-	 * Calculate a Cyclic Redundancy Check (CRC) of a TableView.
-	 * The CRC is calculated as SUM(CRC23(CONCAT(ID, '-', ETAG)))
-	 * given the ID and ETAG of each entity within the view's scope.
+	 * Calculate a Cyclic Redundancy Check (CRC) of a TableView. The CRC is
+	 * calculated as SUM(CRC23(CONCAT(ID, '-', ETAG))) given the ID and ETAG of
+	 * each entity within the view's scope.
 	 * 
 	 * Warning this call is not cheap.
 	 * 
@@ -185,8 +185,7 @@ public interface TableManagerSupport {
 	 * @return
 	 */
 	public Long calculateFileViewCRC32(String table);
-	
-	
+
 	/**
 	 * Get the set of container ids (Projects and Folders) for a view's scope.
 	 * The resulting set will include the scope containers plus all folders
@@ -200,6 +199,17 @@ public interface TableManagerSupport {
 	 */
 	public Set<Long> getAllContainerIdsForViewScope(String viewId);
 	
+	/**
+	 * Get the count of the number of containers (projects, folder) 
+	 *  defined by the given scope IDs.
+	 *  For example, if the given scopeId is a project entity, then
+	 *  the count will be number of folders contained in the given project.
+	 *  
+	 * @param scopeIds
+	 * @return
+	 */
+	public int getScopeContainerCount(Set<Long> scopeIds);
+
 	/**
 	 * <p>
 	 * Attempt to acquire an exclusive lock on a table. If the lock is acquired,
@@ -227,9 +237,10 @@ public interface TableManagerSupport {
 	 * @param runner
 	 * @return
 	 */
-	public <R> R tryRunWithTableExclusiveLock(ProgressCallback<Void> callback, String tableId, int timeoutMS,
-			ProgressingCallable<R, Void> runner) throws Exception;
-	
+	public <R> R tryRunWithTableExclusiveLock(ProgressCallback<Void> callback,
+			String tableId, int timeoutMS, ProgressingCallable<R, Void> runner)
+			throws Exception;
+
 	/**
 	 * <p>
 	 * Attempt to acquire a non-exclusive lock on a table. If the lock is
@@ -254,8 +265,9 @@ public interface TableManagerSupport {
 	 * @param runner
 	 * @return
 	 */
-	public <R, T> R tryRunWithTableNonexclusiveLock(ProgressCallback<T> callback, String tableId,
-			int timeoutMS, ProgressingCallable<R, T> runner) throws Exception;
+	public <R, T> R tryRunWithTableNonexclusiveLock(
+			ProgressCallback<T> callback, String tableId, int timeoutMS,
+			ProgressingCallable<R, T> runner) throws Exception;
 
 	/**
 	 * Validate the user has read access to the given table.
@@ -271,6 +283,7 @@ public interface TableManagerSupport {
 
 	/**
 	 * Validate the user has write access to the given table.
+	 * 
 	 * @param userInfo
 	 * @param tableId
 	 * @throws UnauthorizedException
@@ -279,7 +292,7 @@ public interface TableManagerSupport {
 	 */
 	void validateTableWriteAccess(UserInfo userInfo, String tableId)
 			throws UnauthorizedException, DatastoreException, NotFoundException;
-	
+
 	/**
 	 * Get the current ColumnModel list for a table.
 	 * 
@@ -297,39 +310,34 @@ public interface TableManagerSupport {
 	 * @param tableId
 	 */
 	public void lockOnTableId(String tableId);
-	
+
 	/**
-	 * Given a set of benefactor Ids get the sub-set of benefactor IDs
-	 * for which the given user has read access.
+	 * Given a set of benefactor Ids get the sub-set of benefactor IDs for which
+	 * the given user has read access.
+	 * 
 	 * @param user
 	 * @param benefactorIds
 	 * @return
 	 */
 	public Set<Long> getAccessibleBenefactors(UserInfo user,
 			Set<Long> benefactorIds);
-	
+
 	/**
-	 * Get the ColumnModel for a given FileEntityField.
+	 * Get the ColumnModel for a given EntityField.
 	 * 
 	 * @param field
 	 * @return
 	 */
-	public ColumnModel getColumModel(FileEntityFields field);
-	
-	/**
-	 * Get the ColumnModel for a given EntityField.
-	 * @param field
-	 * @return
-	 */
 	public ColumnModel getColumnModel(EntityField field);
-	
+
 	/**
 	 * Get the ColumnModels for the passed fields.
+	 * 
 	 * @param field
 	 * @return
 	 */
-	public List<ColumnModel> getColumnModels(EntityField...field);
-	
+	public List<ColumnModel> getColumnModels(EntityField... field);
+
 	/**
 	 * Get the default ColumnModels for each primary filed of FileEntity.
 	 * 
@@ -339,6 +347,7 @@ public interface TableManagerSupport {
 
 	/**
 	 * Get the entity type for the given table.
+	 * 
 	 * @param tableId
 	 * @return
 	 */
@@ -346,6 +355,7 @@ public interface TableManagerSupport {
 
 	/**
 	 * Get the path of the given entity.
+	 * 
 	 * @param entityId
 	 * @return
 	 */
@@ -353,12 +363,12 @@ public interface TableManagerSupport {
 
 	/**
 	 * Get the view type for the given table ID.
+	 * 
 	 * @param tableId
 	 * @return
 	 */
 	ViewType getViewType(String tableId);
-	
-	
+
 	/**
 	 * Execute the given callback with automatic progress events generated for
 	 * the provided callback. This allows the callable to run for long periods
@@ -375,17 +385,18 @@ public interface TableManagerSupport {
 	 * @param callable
 	 *            The callable to be executed.
 	 * @return
-	 * @throws Exception 
+	 * @throws Exception
 	 */
-	public <R> R callWithAutoProgress(ProgressCallback<Void> callback, Callable<R> callable) throws Exception;
-	
+	public <R> R callWithAutoProgress(ProgressCallback<Void> callback,
+			Callable<R> callable) throws Exception;
+
 	/**
 	 * Get the column models for the given columnIds.
+	 * 
 	 * @param ids
 	 * @param keepOrder
 	 * @return
 	 */
 	public List<ColumnModel> getColumnModel(List<String> ids, boolean keepOrder);
-	
 
 }

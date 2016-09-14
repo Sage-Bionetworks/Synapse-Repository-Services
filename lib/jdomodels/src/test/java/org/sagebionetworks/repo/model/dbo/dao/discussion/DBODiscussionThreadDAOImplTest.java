@@ -240,6 +240,28 @@ public class DBODiscussionThreadDAOImplTest {
 		assertEquals(dto, returnedDto);
 	}
 
+	@Test
+	public void testRestore(){
+		DiscussionThreadBundle dto = threadDao.createThread(forumId, threadId.toString(), "title", "messageKey", userId);
+		long threadId = Long.parseLong(dto.getId());
+
+		threadDao.markThreadAsDeleted(threadId);
+		DiscussionThreadBundle returnedDto = threadDao.getThread(threadId, DEFAULT_FILTER);
+		assertTrue(returnedDto.getIsDeleted());
+
+		// undelete
+		dto.setIsDeleted(false);
+		threadDao.markThreadAsNotDeleted(threadId);
+		returnedDto = threadDao.getThread(threadId, DEFAULT_FILTER);
+		assertFalse("after marking thread as not deleted, etag should be different",
+				dto.getEtag().equals(returnedDto.getEtag()));
+		dto.setModifiedOn(returnedDto.getModifiedOn());
+		dto.setLastActivity(returnedDto.getLastActivity());
+		assertFalse(dto.equals(returnedDto));
+		dto.setEtag(returnedDto.getEtag());
+		assertEquals(dto, returnedDto);
+	}
+
 	@Test (expected = NotFoundException.class)
 	public void testDeleteWithFilter(){
 		DiscussionThreadBundle dto = threadDao.createThread(forumId, threadId.toString(), "title", "messageKey", userId);

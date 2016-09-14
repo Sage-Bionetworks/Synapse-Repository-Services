@@ -353,6 +353,24 @@ public class DiscussionThreadManagerImplTest {
 		verify(mockThreadDao).markThreadAsDeleted(threadId);
 	}
 
+
+	@Test (expected = UnauthorizedException.class)
+	public void testRestoreUnauthorized() {
+		when(mockThreadDao.getProjectId(threadId.toString())).thenReturn(projectId);
+		when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.MODERATE))
+				.thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+		threadManager.markThreadAsNotDeleted(userInfo, threadId.toString());
+	}
+
+	@Test
+	public void testRestoreAuthorized() {
+		when(mockThreadDao.getProjectId(threadId.toString())).thenReturn(projectId);
+		when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.MODERATE))
+				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		threadManager.markThreadAsNotDeleted(userInfo, threadId.toString());
+		verify(mockThreadDao).markThreadAsNotDeleted(threadId);
+	}
+
 	@Test (expected = UnauthorizedException.class)
 	public void testPinThreadUnauthorized() {
 		when(mockThreadDao.getProjectId(threadId.toString())).thenReturn(projectId);

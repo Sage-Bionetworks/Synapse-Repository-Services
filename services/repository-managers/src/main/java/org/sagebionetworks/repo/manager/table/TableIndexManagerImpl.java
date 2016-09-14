@@ -164,6 +164,12 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	}
 	
 	@Override
+	public void setIndexVersionAndSchemaMD5Hex(Long viewCRC, String schemaMD5Hex) {
+		tableIndexDao.setIndexVersionAndSchemaMD5Hex(tableId, viewCRC, schemaMD5Hex);
+	}
+	
+	
+	@Override
 	public boolean updateTableSchema(ProgressCallback<Void> progressCallback, List<ColumnChangeDetails> changes) {
 		// create the table if it does not exist
 		tableIndexDao.createTableIfDoesNotExist(tableId);
@@ -317,5 +323,4 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		// calculate the new CRC32;
 		return tableIndexDao.calculateCRC32ofTableView(tableId, etagColumn.getId());
 	}
-	
 }

@@ -166,12 +166,14 @@ public class DiscussionControllerAutowiredTest extends AbstractAutowiredControll
 	}
 
 	@Test
-	public void testMarkThreadAsDeleted() throws Exception {
+	public void testMarkThreadAsDeletedAndRestore() throws Exception {
 		Forum dto = servletTestHelper.getForumByProjectId(dispatchServlet, project.getId(), adminUserId);
 		createThread.setForumId(dto.getId());
 		DiscussionThreadBundle bundle = servletTestHelper.createThread(dispatchServlet, adminUserId, createThread);
 		servletTestHelper.markThreadAsDeleted(dispatchServlet, adminUserId, bundle.getId());
 		assertTrue(servletTestHelper.getThread(dispatchServlet, adminUserId, bundle.getId()).getIsDeleted());
+		servletTestHelper.markThreadAsNotDeleted(dispatchServlet, adminUserId, bundle.getId());
+		assertFalse(servletTestHelper.getThread(dispatchServlet, adminUserId, bundle.getId()).getIsDeleted());
 	}
 
 	@Test
