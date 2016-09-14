@@ -147,20 +147,5 @@ public class SearchServiceImplTest {
 		searchQuery = "q.parser=structured&q=(and 'ayy' 'lmao' 'XD')";
 		assertEquals("q.parser=structured&q=( and (and 'ayy' 'lmao' 'XD') (or acl:'8008135' acl:'123'))", SearchServiceImpl.filterSeachForAuthorization(userInfo, searchQuery));
 	}
-	
-	//TODO: Test security
-	/**
-	 * 4 documents
-	 * 1 user can see meet search condition
-	 * 1 user cant see meet search condition
-	 * 1 user can see not meet condition
-	 * 1 user cant see not meet condition
-	 * should only return the document meeting condition and can see
-	 * 
-	 * then get rid of secuirty test
-	 * 
-	 * 
-	 * test not restrict admin
-	 */
 
 }
