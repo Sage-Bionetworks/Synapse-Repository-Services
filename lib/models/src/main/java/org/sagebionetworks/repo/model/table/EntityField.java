@@ -15,23 +15,21 @@ import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICA
 
 import java.util.LinkedList;
 import java.util.List;
-
-import org.sagebionetworks.util.ValidateArgument;
 /**
  * Enumeration that maps the columns of a ENTITY_REPLICATION to both the database and column model. 
  *
  */
 public enum EntityField {
 	
-	id					(ENTITY_REPLICATION_COL_ID, 			ColumnType.INTEGER, 		null),
+	id					(ENTITY_REPLICATION_COL_ID, 			ColumnType.ENTITYID, 		null),
 	name				(ENTITY_REPLICATION_COL_NAME,			ColumnType.STRING,			256L),
 	createdOn			(ENTITY_REPLICATION_COL_CRATED_ON, 		ColumnType.DATE,			null),
 	createdBy			(ENTITY_REPLICATION_COL_CRATED_BY, 		ColumnType.INTEGER,			null),
 	etag				(ENTITY_REPLICATION_COL_ETAG,	 		ColumnType.STRING,			36L),
 	currentVersion		(ENTITY_REPLICATION_COL_VERSION, 		ColumnType.INTEGER, 		null),
-	parentId			(ENTITY_REPLICATION_COL_PARENT_ID, 		ColumnType.INTEGER,			null),
-	benefactorId		(ENTITY_REPLICATION_COL_BENEFACTOR_ID, 	ColumnType.INTEGER,			null),
-	projectId			(ENTITY_REPLICATION_COL_PROJECT_ID, 	ColumnType.INTEGER,			null),
+	parentId			(ENTITY_REPLICATION_COL_PARENT_ID, 		ColumnType.ENTITYID,		null),
+	benefactorId		(ENTITY_REPLICATION_COL_BENEFACTOR_ID, 	ColumnType.ENTITYID,		null),
+	projectId			(ENTITY_REPLICATION_COL_PROJECT_ID, 	ColumnType.ENTITYID,		null),
 	modifiedOn			(ENTITY_REPLICATION_COL_MODIFIED_ON,	ColumnType.DATE,			null),
 	modifiedBy			(ENTITY_REPLICATION_COL_MODIFIED_BY,	ColumnType.INTEGER,			null),
 	dataFileHandleId	(ENTITY_REPLICATION_COL_FILE_ID,		ColumnType.FILEHANDLEID,	null);
