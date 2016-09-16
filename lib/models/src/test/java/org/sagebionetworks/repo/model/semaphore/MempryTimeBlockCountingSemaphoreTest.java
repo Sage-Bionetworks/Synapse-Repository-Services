@@ -1,11 +1,15 @@
 package org.sagebionetworks.repo.model.semaphore;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.never;
+
 
 import java.util.Map;
 
@@ -116,6 +120,16 @@ public class MempryTimeBlockCountingSemaphoreTest {
 		verify(mockSemaphore).increment();
 		verifyNoMoreInteractions(keySemaphoreMap,  mockSemaphore);
 
+	}
+	
+	@Test
+	public void testAcquireLockZeroMaxLocks(){
+		assertFalse(memoryTimeBlockCountingSemaphore.attemptToAcquireLock(key, timeoutSec, 0));
+		verify(keySemaphoreMap, never()).get(key);
+		verify(mockSemaphore, never()).isExpired();
+		verify(mockSemaphore, never()).getCount();
+		verify(mockSemaphore, never()).increment();
+		verify(mockSemaphore, never()).setExpiration(any(Long.class));
 	}
 
 }
