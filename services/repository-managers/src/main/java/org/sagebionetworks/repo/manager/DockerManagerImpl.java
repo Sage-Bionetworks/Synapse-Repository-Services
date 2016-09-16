@@ -174,7 +174,7 @@ public class DockerManagerImpl implements DockerManager {
 		String parentId;
 		try {
 			parentId = getParentIdFromRepositoryPath(repositoryPath);
-		} catch (DatastoreException e) {
+		} catch (IllegalArgumentException e) {
 			return null;
 		}
 

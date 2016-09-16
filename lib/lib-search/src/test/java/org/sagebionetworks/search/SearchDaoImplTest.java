@@ -5,22 +5,17 @@ import static org.junit.Assert.*;
 import org.junit.Test;
 
 import static org.mockito.Mockito.when;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyList;
 import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.isNull;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.atLeast;
 
 import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import com.amazonaws.services.cloudsearch.AmazonCloudSearchClient;
-import com.amazonaws.services.cloudsearch.model.DomainStatus;
+import com.amazonaws.services.cloudsearchv2.AmazonCloudSearchClient;
+import com.amazonaws.services.cloudsearchv2.model.DomainStatus;
 
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 

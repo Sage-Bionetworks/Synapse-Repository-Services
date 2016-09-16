@@ -83,8 +83,8 @@ public class SearchHelperTest {
 						.cleanUpSearchQueries("q=cancer&return-fields=name,id&facet=node_type,disease,species"));
 
 		// a simple boolean query
-		assertEquals("bq=" + URLEncoder.encode("node_type:'dataset'", "UTF-8"),
-				SearchHelper.cleanUpSearchQueries("bq=node_type:'dataset'"));
+		assertEquals("q.parser=structured&q=" + URLEncoder.encode("node_type:'dataset'", "UTF-8"),
+				SearchHelper.cleanUpSearchQueries("q.parser=structured&q=node_type:'dataset'"));
 
 		// boolean query embedded in front, middle, and end of query string
 		assertEquals(
@@ -178,8 +178,8 @@ public class SearchHelperTest {
 
 
 		// fun characters inside values
-		assertEquals("q=dave&bq=some_key%3A%27one%26two%27", SearchHelper
-				.cleanUpSearchQueries("bq="+ URLEncoder.encode("some_key:'one&two'", "UTF-8") + "&q=" + URLEncoder.encode("dave", "UTF-8")));
+		assertEquals("q.parser=structured&q=some_key%3A%27one%26two%27&q=dave", SearchHelper
+				.cleanUpSearchQueries("q.parser=structured&q="+ URLEncoder.encode("some_key:'one&two'", "UTF-8") + "&q=" + URLEncoder.encode("dave", "UTF-8")));
 
 
 	}

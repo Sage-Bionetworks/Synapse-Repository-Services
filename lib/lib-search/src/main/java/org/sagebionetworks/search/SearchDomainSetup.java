@@ -2,9 +2,9 @@ package org.sagebionetworks.search;
 
 import java.util.List;
 
-import com.amazonaws.services.cloudsearch.model.AccessPoliciesStatus;
-import com.amazonaws.services.cloudsearch.model.DomainStatus;
-import com.amazonaws.services.cloudsearch.model.IndexFieldStatus;
+import com.amazonaws.services.cloudsearchv2.model.AccessPoliciesStatus;
+import com.amazonaws.services.cloudsearchv2.model.DomainStatus;
+import com.amazonaws.services.cloudsearchv2.model.IndexFieldStatus;
 
 public interface SearchDomainSetup {
 	

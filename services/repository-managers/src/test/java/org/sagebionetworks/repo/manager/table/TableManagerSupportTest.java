@@ -45,7 +45,6 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
-import org.sagebionetworks.repo.model.dbo.dao.table.FileEntityFields;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
@@ -475,6 +474,20 @@ public class TableManagerSupportTest {
 	}
 	
 	@Test
+	public void testGetScopeContainerCount(){
+		// call under test.
+		int count = manager.getScopeContainerCount(containersInScope);
+		assertEquals(containersInScope.size(), count);
+	}
+	
+	@Test
+	public void testGetScopeContainerCountEmpty(){
+		// call under test.
+		int count = manager.getScopeContainerCount(null);
+		assertEquals(0, count);
+	}
+	
+	@Test
 	public void testGetAllContainerIdsForViewScope(){
 		// call under test.
 		Set<Long> containers = manager.getAllContainerIdsForViewScope(tableId);
@@ -615,7 +628,7 @@ public class TableManagerSupportTest {
 	public void testGetDefaultTableViewColumnsFileView(){
 		// View view defaults are from the FileEntityFields enumeration.
 		List<ColumnModel> expected = new LinkedList<ColumnModel>();
-		for(FileEntityFields field: FileEntityFields.values()){
+		for(EntityField field: EntityField.values()){
 			expected.add(field.getColumnModel());
 		}
 		// call under test

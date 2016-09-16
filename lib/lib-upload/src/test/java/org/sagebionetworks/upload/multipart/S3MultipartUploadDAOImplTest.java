@@ -26,6 +26,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.CompleteMultipartUploadRequest;
 import com.amazonaws.services.s3.model.CopyPartRequest;
 import com.amazonaws.services.s3.model.CopyPartResult;
@@ -213,6 +214,32 @@ public class S3MultipartUploadDAOImplTest {
 		partEtag = capturedEtags.get(1);
 		assertEquals(2, partEtag.getPartNumber());
 		assertEquals(etag2, partEtag.getETag());
+	}
+	
+	/**
+	 * Test added for PLFM-4038
+	 */
+	@Test (expected=IllegalArgumentException.class)
+	public void testCompleteMultipartUploadAmazonS3Exception(){
+		String key = "someKey";
+		String bucket = "someBucket";
+		// this method should lookup the file size
+		long fileSize = 12345L;
+		ObjectMetadata metadata = new ObjectMetadata();
+		metadata.setContentLength(fileSize);
+		when(mockS3Client.getObjectMetadata(bucket, key)).thenReturn(metadata);
+		String md5Hex1 = "e31f1bce63e28dd8157876638818284c";
+		String md5Hex2 = "c295c08ccfd979130729592bf936b85f";
+		
+		CompleteMultipartRequest request = new CompleteMultipartRequest();
+		request.setAddedParts(Lists.newArrayList(new PartMD5(1,md5Hex1), new PartMD5(2,md5Hex2)));
+		request.setBucket(bucket);
+		request.setKey(key);
+		request.setUploadToken("uplaodToken");
+		// setup an AmazonS3Exception on complete.
+		when(mockS3Client.completeMultipartUpload(any(CompleteMultipartUploadRequest.class))).thenThrow(new AmazonS3Exception("Your proposed upload is smaller than the minimum allowed size") );
+		// call under test
+		dao.completeMultipartUpload(request);
 	}
 
 }

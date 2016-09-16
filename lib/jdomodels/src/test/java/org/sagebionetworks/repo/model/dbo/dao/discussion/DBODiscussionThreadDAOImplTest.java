@@ -257,6 +257,7 @@ public class DBODiscussionThreadDAOImplTest {
 				dto.getEtag().equals(returnedDto.getEtag()));
 		dto.setModifiedOn(returnedDto.getModifiedOn());
 		dto.setLastActivity(returnedDto.getLastActivity());
+		assertFalse(dto.equals(returnedDto));
 		dto.setEtag(returnedDto.getEtag());
 		assertEquals(dto, returnedDto);
 	}
@@ -345,7 +346,7 @@ public class DBODiscussionThreadDAOImplTest {
 	public void testSortedByThreadTitle() throws InterruptedException {
 		Long threadBId = idGenerator.generateNewId(TYPE.DISCUSSION_THREAD_ID);
 		DiscussionThreadBundle threadB = threadDao.createThread(forumId, threadBId.toString(),
-				"b", UUID.randomUUID().toString(), userId);
+				"B", UUID.randomUUID().toString(), userId);
 
 		Long threadAId = idGenerator.generateNewId(TYPE.DISCUSSION_THREAD_ID);
 		DiscussionThreadBundle threadA = threadDao.createThread(forumId, threadAId.toString(),

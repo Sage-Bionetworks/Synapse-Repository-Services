@@ -43,7 +43,6 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
-import org.sagebionetworks.repo.model.dbo.dao.table.FileEntityFields;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
@@ -192,7 +191,7 @@ public class TableQueryManagerImplTest {
 		
 		when(mockTableManagerSupport.validateTableReadAccess(user, tableId)).thenReturn(EntityType.table);
 		
-		ColumnModel benefactorColumn = FileEntityFields.benefactorId.getColumnModel();
+		ColumnModel benefactorColumn = EntityField.benefactorId.getColumnModel();
 		benefactorColumn.setId("999");
 		when(mockTableManagerSupport.getColumnModel(EntityField.benefactorId)).thenReturn(benefactorColumn);
 		HashSet<Long> benfactors = Sets.newHashSet(333L,444L);
@@ -348,7 +347,7 @@ public class TableQueryManagerImplTest {
 	@Test
 	public void testQueryAsStreamWithAuthorizationFileView() throws Exception{
 		// add benefactor to the schema
-		ColumnModel benefactorColumn = FileEntityFields.benefactorId.getColumnModel();
+		ColumnModel benefactorColumn = EntityField.benefactorId.getColumnModel();
 		benefactorColumn.setId("999");
 		models.add(benefactorColumn);
 		// capture the SQL
@@ -971,7 +970,7 @@ public class TableQueryManagerImplTest {
 	@Test
 	public void testBuildBenefactorFilter() throws ParseException, EmptyResultException{
 		// add benefactor to the schema
-		ColumnModel benefactorColumn = FileEntityFields.benefactorId.getColumnModel();
+		ColumnModel benefactorColumn = EntityField.benefactorId.getColumnModel();
 		benefactorColumn.setId("99");
 		models.add(benefactorColumn);
 		
@@ -984,8 +983,38 @@ public class TableQueryManagerImplTest {
 		SqlQuery filtered = TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds, benefactorColumn.getId());
 		assertNotNull(filtered);
 		// should filter by benefactorId
-		assertEquals("SELECT i0 FROM syn123 WHERE i1 IS NOT NULL AND _C99_ IN ( 456, 123 )", filtered.getModel().toSql());
-		assertEquals("SELECT _C0_, ROW_ID, ROW_VERSION FROM T123 WHERE _C1_ IS NOT NULL AND _C99_ IN ( 456, 123 )", filtered.getOutputSQL());
+		assertEquals("SELECT i0 FROM syn123 WHERE ( i1 IS NOT NULL ) AND _C99_ IN ( 456, 123 )", filtered.getModel().toSql());
+		assertEquals("SELECT _C0_, ROW_ID, ROW_VERSION FROM T123 WHERE ( _C1_ IS NOT NULL ) AND _C99_ IN ( 456, 123 )", filtered.getOutputSQL());
+	}
+	
+	/**
+	 * 
+	 * PLFM-4036 identified that the benefactor search condition would limit the row visibility to
+	 * the caller by appending 'AND <BENEFACTOR_FILTER> to a user's existing query. Therefore, if
+	 * the user's original query contained at least two search conditions separated by an 'OR', either
+	 * of the original conditions could negate the benefactor filter.
+	 * 
+	 * The fix was to unconditionally add the filter benefactor to the query such as:
+	 * WHERE ( <USER_CONDITION_1> OR <USER_CONDITION_2> ) AND <BENEFACTOR_FILTER>
+	 * @throws ParseException
+	 * @throws EmptyResultException
+	 */
+	@Test
+	public void testBuildBenefactorFilterPLFM_4036() throws ParseException, EmptyResultException{
+		// add benefactor to the schema
+		ColumnModel benefactorColumn = EntityField.benefactorId.getColumnModel();
+		benefactorColumn.setId("99");
+		
+		SqlQuery query = new SqlQuery("select i0 from "+tableId+" where i1 > 0 or i1 is not null", models);
+		LinkedHashSet<Long> benefactorIds = new LinkedHashSet<Long>();
+		benefactorIds.add(456L);
+		benefactorIds.add(123L);
+		
+		// call under test
+		SqlQuery filtered = TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds, benefactorColumn.getId());
+		assertNotNull(filtered);
+		// should filter by benefactorId
+		assertEquals("SELECT i0 FROM syn123 WHERE ( i1 > 0 OR i1 IS NOT NULL ) AND _C99_ IN ( 456, 123 )", filtered.getModel().toSql());
 	}
 	
 	@Test
@@ -1014,7 +1043,7 @@ public class TableQueryManagerImplTest {
 	@Test (expected=EmptyResultException.class)
 	public void testAddRowLevelFilterEmpty() throws ParseException, EmptyResultException{
 		SqlQuery query = new SqlQuery("select i0 from "+tableId, models);
-		ColumnModel benefactorColumn = FileEntityFields.benefactorId.getColumnModel();
+		ColumnModel benefactorColumn = EntityField.benefactorId.getColumnModel();
 		benefactorColumn.setId("999");
 		when(mockTableManagerSupport.getColumnModel(EntityField.benefactorId)).thenReturn(benefactorColumn);
 		//return empty benefactors

@@ -30,8 +30,8 @@ import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.utils.HttpClientHelperException;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.amazonaws.services.cloudsearch.AmazonCloudSearchClient;
-import com.amazonaws.services.cloudsearch.model.DomainStatus;
+import com.amazonaws.services.cloudsearchv2.AmazonCloudSearchClient;
+import com.amazonaws.services.cloudsearchv2.model.DomainStatus;
 
 /**
  * Implementation of the Search DAO.
@@ -41,9 +41,9 @@ import com.amazonaws.services.cloudsearch.model.DomainStatus;
  */
 public class SearchDaoImpl implements SearchDao {
 
-	private static final String QUERY_BY_ID_AND_ETAG = "bq=(and+"+FIELD_ID+":'%1$s'+"+FIELD_ETAG+":'%2$s')";
+	private static final String QUERY_BY_ID_AND_ETAG = "q.parser=structured&q=(and+"+FIELD_ID+":'%1$s'+"+FIELD_ETAG+":'%2$s')";
 	
-	private static final String QUERY_LIST_ALL_DOCUMENTS_ONE_PAGE = "bq="+FIELD_ID+":'*'&size=%1$s&start=%2$s";
+	private static final String QUERY_LIST_ALL_DOCUMENTS_ONE_PAGE = "q.parser=structured&q="+FIELD_ID+":'*'&size=%1$s&start=%2$s";
 
 	static private Logger log = LogManager.getLogger(SearchDaoImpl.class);
 	
