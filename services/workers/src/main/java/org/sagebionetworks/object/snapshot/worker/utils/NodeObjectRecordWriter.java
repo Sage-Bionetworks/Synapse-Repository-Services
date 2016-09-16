@@ -10,6 +10,7 @@ import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
 import org.sagebionetworks.repo.manager.AccessRequirementManager;
 import org.sagebionetworks.repo.manager.EntityPermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.Node;
@@ -129,10 +130,7 @@ public class NodeObjectRecordWriter implements ObjectRecordWriter {
 			throw new IllegalArgumentException();
 		}
 		if (message.getChangeType() == ChangeType.DELETE) {
-			DeletedNode deletedNode = new DeletedNode();
-			deletedNode.setId(message.getObjectId());
-			ObjectRecord objectRecord = ObjectRecordBuilderUtils.buildObjectRecord(deletedNode, message.getTimestamp().getTime());
-			objectRecordDAO.saveBatch(Arrays.asList(objectRecord), objectRecord.getJsonClassName());
+			captureDeletedNodeRecord(message);
 		} else {
 			try {
 				Node node = nodeDAO.getNode(message.getObjectId());
@@ -140,9 +138,18 @@ public class NodeObjectRecordWriter implements ObjectRecordWriter {
 				record = setAccessProperties(record, userManager, accessRequirementManager, entityPermissionManager);
 				ObjectRecord objectRecord = ObjectRecordBuilderUtils.buildObjectRecord(record, message.getTimestamp().getTime());
 				objectRecordDAO.saveBatch(Arrays.asList(objectRecord), objectRecord.getJsonClassName());
+			} catch (EntityInTrashCanException e) {
+				captureDeletedNodeRecord(message);
 			} catch (NotFoundException e) {
 				log.error("Cannot find node for a " + message.getChangeType() + " message: " + message.toString()) ;
 			}
 		}
+	}
+
+	public void captureDeletedNodeRecord(ChangeMessage message) throws IOException {
+		DeletedNode deletedNode = new DeletedNode();
+		deletedNode.setId(message.getObjectId());
+		ObjectRecord objectRecord = ObjectRecordBuilderUtils.buildObjectRecord(deletedNode, message.getTimestamp().getTime());
+		objectRecordDAO.saveBatch(Arrays.asList(objectRecord), objectRecord.getJsonClassName());
 	}
 }
