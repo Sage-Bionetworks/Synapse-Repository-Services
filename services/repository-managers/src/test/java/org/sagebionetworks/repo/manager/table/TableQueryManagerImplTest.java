@@ -43,7 +43,6 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
-import org.sagebionetworks.repo.model.dbo.dao.table.FileEntityFields;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
@@ -192,7 +191,7 @@ public class TableQueryManagerImplTest {
 		
 		when(mockTableManagerSupport.validateTableReadAccess(user, tableId)).thenReturn(EntityType.table);
 		
-		ColumnModel benefactorColumn = FileEntityFields.benefactorId.getColumnModel();
+		ColumnModel benefactorColumn = EntityField.benefactorId.getColumnModel();
 		benefactorColumn.setId("999");
 		when(mockTableManagerSupport.getColumnModel(EntityField.benefactorId)).thenReturn(benefactorColumn);
 		HashSet<Long> benfactors = Sets.newHashSet(333L,444L);
@@ -348,7 +347,7 @@ public class TableQueryManagerImplTest {
 	@Test
 	public void testQueryAsStreamWithAuthorizationFileView() throws Exception{
 		// add benefactor to the schema
-		ColumnModel benefactorColumn = FileEntityFields.benefactorId.getColumnModel();
+		ColumnModel benefactorColumn = EntityField.benefactorId.getColumnModel();
 		benefactorColumn.setId("999");
 		models.add(benefactorColumn);
 		// capture the SQL
@@ -971,7 +970,7 @@ public class TableQueryManagerImplTest {
 	@Test
 	public void testBuildBenefactorFilter() throws ParseException, EmptyResultException{
 		// add benefactor to the schema
-		ColumnModel benefactorColumn = FileEntityFields.benefactorId.getColumnModel();
+		ColumnModel benefactorColumn = EntityField.benefactorId.getColumnModel();
 		benefactorColumn.setId("99");
 		models.add(benefactorColumn);
 		
@@ -1003,7 +1002,7 @@ public class TableQueryManagerImplTest {
 	@Test
 	public void testBuildBenefactorFilterPLFM_4036() throws ParseException, EmptyResultException{
 		// add benefactor to the schema
-		ColumnModel benefactorColumn = FileEntityFields.benefactorId.getColumnModel();
+		ColumnModel benefactorColumn = EntityField.benefactorId.getColumnModel();
 		benefactorColumn.setId("99");
 		
 		SqlQuery query = new SqlQuery("select i0 from "+tableId+" where i1 > 0 or i1 is not null", models);
@@ -1044,7 +1043,7 @@ public class TableQueryManagerImplTest {
 	@Test (expected=EmptyResultException.class)
 	public void testAddRowLevelFilterEmpty() throws ParseException, EmptyResultException{
 		SqlQuery query = new SqlQuery("select i0 from "+tableId, models);
-		ColumnModel benefactorColumn = FileEntityFields.benefactorId.getColumnModel();
+		ColumnModel benefactorColumn = EntityField.benefactorId.getColumnModel();
 		benefactorColumn.setId("999");
 		when(mockTableManagerSupport.getColumnModel(EntityField.benefactorId)).thenReturn(benefactorColumn);
 		//return empty benefactors
