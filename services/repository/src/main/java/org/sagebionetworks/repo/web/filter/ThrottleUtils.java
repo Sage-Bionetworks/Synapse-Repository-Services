@@ -14,6 +14,7 @@ import org.springframework.http.HttpStatus;
 public class ThrottleUtils {
 	//TODO: switch to TOO_MANY_REQUESTS (code: 429) when clients have implemented handling that status
 	public static int THROTTLED_HTTP_STATUS = HttpStatus.SERVICE_UNAVAILABLE.value();
+	public static String JSON_HTTP_CONTENT_TYPE = "application/json;charset=UTF-8";
 	
 	/**
 	 * reports to Cloudwatch that a lock could not be acquired
@@ -52,6 +53,7 @@ public class ThrottleUtils {
 		HttpServletResponse httpResponse = (HttpServletResponse) response;
 		//TODO: Switch to 429 http code once clients have been implemented to expect that code
 		httpResponse.setStatus(errorCode);
+		httpResponse.setContentType(JSON_HTTP_CONTENT_TYPE);
 		httpResponse.getWriter().println(errorMessage);
 	}
 	
