@@ -346,7 +346,7 @@ public class DBODiscussionThreadDAOImplTest {
 	public void testSortedByThreadTitle() throws InterruptedException {
 		Long threadBId = idGenerator.generateNewId(TYPE.DISCUSSION_THREAD_ID);
 		DiscussionThreadBundle threadB = threadDao.createThread(forumId, threadBId.toString(),
-				"b", UUID.randomUUID().toString(), userId);
+				"B", UUID.randomUUID().toString(), userId);
 
 		Long threadAId = idGenerator.generateNewId(TYPE.DISCUSSION_THREAD_ID);
 		DiscussionThreadBundle threadA = threadDao.createThread(forumId, threadAId.toString(),

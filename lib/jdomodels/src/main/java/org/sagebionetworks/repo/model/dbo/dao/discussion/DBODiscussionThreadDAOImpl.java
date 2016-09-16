@@ -181,7 +181,7 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 			+COL_DISCUSSION_THREAD_STATS_LAST_ACTIVITY;
 	private static final String ORDER_BY_NUMBER_OF_VIEWS = " ORDER BY "+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_VIEWS;
 	private static final String ORDER_BY_NUMBER_OF_REPLIES = " ORDER BY "+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_REPLIES;
-	private static final String ORDER_BY_THREAD_TITLE = " ORDER BY "+COL_DISCUSSION_THREAD_TITLE;
+	private static final String ORDER_BY_THREAD_TITLE = " ORDER BY LOWER(CONVERT ("+COL_DISCUSSION_THREAD_TITLE+" USING UTF8))";
 	private static final String DESC = " DESC ";
 
 	// for entity references
