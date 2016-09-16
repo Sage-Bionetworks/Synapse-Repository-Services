@@ -261,7 +261,7 @@ public class TableEntityManagerTest {
 		
 		when(mockColumModelManager.getColumnChangeDetails(changes)).thenReturn(columChangedetails);
 		newColumnIds = Lists.newArrayList("111","333");
-		when(mockColumModelManager.calculateNewSchemaIds(tableId, changes)).thenReturn(newColumnIds);
+		when(mockColumModelManager.calculateNewSchemaIdsAndValidate(tableId, changes)).thenReturn(newColumnIds);
 	}
 	
 	@Test (expected=UnauthorizedException.class)
@@ -910,16 +910,8 @@ public class TableEntityManagerTest {
 	public void testValidateUpdateRequestSchema(){
 		// Call under test
 		manager.validateSchemaUpdateRequest(mockProgressCallbackVoid, user, schemaChangeRequest, mockIndexManager);
-		verify(mockColumModelManager).validateSchemaSize(newColumnIds);
+		verify(mockColumModelManager).calculateNewSchemaIdsAndValidate(tableId, schemaChangeRequest.getChanges());
 		verify(mockIndexManager).alterTempTableSchmea(mockProgressCallbackVoid, tableId, columChangedetails);
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testValidateUpdateRequestSchemaTooLarge(){		
-		when(mockColumModelManager.validateSchemaSize(newColumnIds)).thenThrow(new IllegalArgumentException("Too large."));
-		
-		// Call under test
-		manager.validateSchemaUpdateRequest(mockProgressCallbackVoid, user, schemaChangeRequest, mockIndexManager);
 	}
 	
 	@Test (expected=IllegalStateException.class)
@@ -946,10 +938,10 @@ public class TableEntityManagerTest {
 		List<String> newColumnIds = Lists.newArrayList("111");
 		when(mockColumModelManager.getColumnChangeDetails(changes)).thenReturn(details);		
 		
-		when(mockColumModelManager.calculateNewSchemaIds(tableId, changes)).thenReturn(newColumnIds);
+		when(mockColumModelManager.calculateNewSchemaIdsAndValidate(tableId, changes)).thenReturn(newColumnIds);
 		// Call under test
 		manager.validateSchemaUpdateRequest(mockProgressCallbackVoid, user, request, null);
-		verify(mockColumModelManager).validateSchemaSize(newColumnIds);
+		verify(mockColumModelManager).calculateNewSchemaIdsAndValidate(tableId, changes);
 		// temp table should not be used.
 		verify(mockIndexManager, never()).alterTempTableSchmea(any(ProgressCallback.class), anyString(), anyListOf(ColumnChangeDetails.class));
 	}
@@ -997,7 +989,7 @@ public class TableEntityManagerTest {
 		TableSchemaChangeResponse response = manager.updateTableSchema(mockProgressCallbackVoid, user, schemaChangeRequest);
 		assertNotNull(response);
 		assertEquals(models, response.getSchema());
-		verify(mockColumModelManager).calculateNewSchemaIds(tableId, schemaChangeRequest.getChanges());
+		verify(mockColumModelManager).calculateNewSchemaIdsAndValidate(tableId, schemaChangeRequest.getChanges());
 		verify(mockColumModelManager).bindColumnToObject(user, newColumnIds, tableId);
 		verify(mockColumModelManager).getColumnModel(user, newColumnIds, true);
 		verify(mockTruthDao).appendSchemaChangeToTable(""+user.getId(), tableId, newSchemaIdsLong, schemaChangeRequest.getChanges());
@@ -1018,13 +1010,13 @@ public class TableEntityManagerTest {
 		
 		models = Lists.newArrayList(TableModelTestUtils.createColumn(111l));
 		newColumnIds = Lists.newArrayList("111");
-		when(mockColumModelManager.calculateNewSchemaIds(tableId, changes)).thenReturn(newColumnIds);
+		when(mockColumModelManager.calculateNewSchemaIdsAndValidate(tableId, changes)).thenReturn(newColumnIds);
 		when(mockColumModelManager.getColumnModel(user, newColumnIds, true)).thenReturn(models);
 		// call under test.
 		TableSchemaChangeResponse response = manager.updateTableSchema(mockProgressCallbackVoid, user, schemaChangeRequest);
 		assertNotNull(response);
 		assertEquals(models, response.getSchema());
-		verify(mockColumModelManager).calculateNewSchemaIds(tableId, schemaChangeRequest.getChanges());
+		verify(mockColumModelManager).calculateNewSchemaIdsAndValidate(tableId, schemaChangeRequest.getChanges());
 		verify(mockColumModelManager).bindColumnToObject(user, newColumnIds, tableId);
 		verify(mockColumModelManager).getColumnModel(user, newColumnIds, true);
 		verify(mockTruthDao, never()).appendSchemaChangeToTable(anyString(), anyString(), anyListOf(String.class), anyListOf(ColumnChange.class));
