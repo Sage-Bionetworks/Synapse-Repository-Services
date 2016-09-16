@@ -38,6 +38,7 @@ import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.TableChangeType;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableSchemaChangeRequest;
 import org.sagebionetworks.repo.model.table.TableSchemaChangeResponse;
@@ -148,7 +149,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 			throws IOException,
 			NotFoundException {
 		RowSet result = new RowSet();
-		TableRowChange lastTableRowChange = tableRowTruthDao.getLastTableRowChange(tableId);
+		TableRowChange lastTableRowChange = tableRowTruthDao.getLastTableRowChange(tableId, TableChangeType.ROW);
 		result.setEtag(lastTableRowChange == null ? null : lastTableRowChange.getEtag());
 		result.setHeaders(TableModelUtils.getSelectColumns(columns));
 		result.setTableId(tableId);
