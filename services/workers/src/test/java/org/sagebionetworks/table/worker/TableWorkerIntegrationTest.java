@@ -9,6 +9,7 @@ import static org.junit.Assert.fail;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.verify;
 
+import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.text.DateFormat;
@@ -70,6 +71,7 @@ import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
@@ -89,6 +91,7 @@ import org.sagebionetworks.repo.model.table.SortDirection;
 import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableEntity;
+import org.sagebionetworks.repo.model.table.TableSchemaChangeRequest;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
@@ -1799,6 +1802,65 @@ public class TableWorkerIntegrationTest {
 		waitForConsistentQuery(notOwner, sql, null, 8L);
 		tableEntityManager.appendRows(notOwner, tableId, schema,
 				createRowSet(headers), mockPprogressCallback);
+	}
+	
+	@Test
+	public void testPLFM_4051() throws DatastoreException, NotFoundException, IOException{
+		ColumnModel oldColumn = new ColumnModel();
+		oldColumn.setName("aString");
+		oldColumn.setColumnType(ColumnType.STRING);
+		oldColumn.setMaximumSize(50L);;
+		oldColumn = columnManager.createColumnModel(adminUserInfo, oldColumn);
+		
+		List<ColumnModel> schema = Lists.newArrayList(oldColumn);
+		
+		List<String> headers = Lists.newArrayList(oldColumn.getId());
+		
+		// Create the table with the column
+		TableEntity table = new TableEntity();
+		table.setName(UUID.randomUUID().toString());
+		table.setColumnIds(headers);
+		tableId = entityManager.createEntity(adminUserInfo, table, null);
+		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
+		tableEntityManager.setTableSchema(adminUserInfo, headers, tableId);
+		
+		// Add a row
+		PartialRow row = new PartialRow();
+		row.setValues(Collections.singletonMap(oldColumn.getId(), "string"));
+		PartialRowSet set = new PartialRowSet();
+		set.setRows(Lists.newArrayList(row));
+		set.setTableId(tableId);
+		// append the row
+		tableEntityManager.appendPartialRows(adminUserInfo, tableId, schema, set, mockPprogressCallback);
+		
+		// Now change the column type.
+		ColumnModel newColumn = new ColumnModel();
+		newColumn.setName("aString");
+		newColumn.setColumnType(ColumnType.STRING);
+		newColumn.setMaximumSize(100L);
+		newColumn = columnManager.createColumnModel(adminUserInfo, newColumn);
+		
+		schema = Lists.newArrayList(newColumn);
+		headers = Lists.newArrayList(newColumn.getId());
+		
+		TableSchemaChangeRequest updateRequest = new TableSchemaChangeRequest();
+		ColumnChange change = new ColumnChange();
+		change.setOldColumnId(oldColumn.getId());
+		change.setNewColumnId(newColumn.getId());
+		updateRequest.setChanges(Lists.newArrayList(change));
+		updateRequest.setEntityId(tableId);
+		// change the column type
+		tableEntityManager.updateTable(mockProgressCallbackVoid, adminUserInfo, updateRequest);
+		
+		// now try to make a partial row change.
+		row = new PartialRow();
+		row.setRowId(0L);
+		row.setValues(Collections.singletonMap(newColumn.getId(), "string-two"));
+		set = new PartialRowSet();
+		set.setRows(Lists.newArrayList(row));
+		set.setTableId(tableId);
+		// This call was failing to merge the partial row with the previous value.
+		tableEntityManager.appendPartialRows(adminUserInfo, tableId, schema, set, mockPprogressCallback);
 	}
 
 	private RowSet createRowSet(List<String> headers) {

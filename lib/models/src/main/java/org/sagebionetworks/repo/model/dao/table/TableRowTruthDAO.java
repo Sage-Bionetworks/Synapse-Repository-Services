@@ -13,6 +13,7 @@ import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.TableChangeType;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -55,6 +56,15 @@ public interface TableRowTruthDAO {
 	 * @return
 	 */
 	public TableRowChange getLastTableRowChange(String tableId);
+	
+	/**
+	 * Get the latest TableRowChange of a given type.
+	 * 
+	 * @param tableId
+	 * @param changeType
+	 * @return
+	 */
+	public TableRowChange getLastTableRowChange(String tableId, TableChangeType changeType);
 
 	/**
 	 * Append a RowSet to a table.
