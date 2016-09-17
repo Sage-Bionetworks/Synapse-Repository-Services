@@ -647,9 +647,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 			UserInfo userInfo, TableSchemaChangeRequest changes,
 			TableIndexManager indexManager) {
 		// first determine what the new Schema will be
-		List<String> newSchemaIds = columModelManager.calculateNewSchemaIds(changes.getEntityId(), changes.getChanges());
-		// validate the new schema.
-		columModelManager.validateSchemaSize(newSchemaIds);
+		columModelManager.calculateNewSchemaIdsAndValidate(changes.getEntityId(), changes.getChanges());
 		// If the change includes an update then the schema change must be checked against the temp table.
 		boolean includesUpdate = containsColumnUpdate(changes.getChanges());
 		if(includesUpdate){
@@ -688,7 +686,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 			UserInfo userInfo, TableSchemaChangeRequest changes) {
 
 		// first determine what the new Schema will be
-		List<String> newSchemaIds = columModelManager.calculateNewSchemaIds(changes.getEntityId(), changes.getChanges());
+		List<String> newSchemaIds = columModelManager.calculateNewSchemaIdsAndValidate(changes.getEntityId(), changes.getChanges());
 		columModelManager.bindColumnToObject(userInfo, newSchemaIds, changes.getEntityId());
 		boolean keepOrder = true;
 		List<ColumnModel> newSchema = columModelManager.getColumnModel(userInfo, newSchemaIds, keepOrder);
