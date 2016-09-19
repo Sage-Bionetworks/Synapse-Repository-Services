@@ -30,9 +30,7 @@ import org.springframework.web.servlet.ModelAndView;
 /**
  * CloudSearch search controller. It currently offers two methods:
  * <ol>
- * <li>'/searchRaw' proxies raw CloudSearch requests though as-is except for
- * adding an authorization filter
- * <li>'/search' operates like /searchRaw but in addition reformats the result
+ * <li>'/search' appends a authorization filter to the user's search and reformats the result
  * into a Synapse model object
  * </ol>
  * 
@@ -64,26 +62,5 @@ public class SearchController extends BaseController {
 			HttpServletRequest request) throws ClientProtocolException, IOException, HttpClientHelperException, DatastoreException,
 			NotFoundException, ServiceUnavailableException {
 		return serviceProvider.getSearchService().proxySearch(userId, searchQuery);
-	}
-
-	/**
-	 * @param userId
-	 * @param searchQuery
-	 * @param request
-	 * @return search results from CloudSearch
-	 * @throws ClientProtocolException
-	 * @throws IOException
-	 * @throws HttpClientHelperException
-	 * @throws JSONException
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 * @throws ServiceUnavailableException
-	 */
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = { "/searchRaw" }, method = RequestMethod.GET)
-	public ModelAndView proxyRawSearch(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestParam(value = "q", required = false) String searchQuery, HttpServletRequest request) throws ClientProtocolException,
-			IOException, HttpClientHelperException, JSONException, DatastoreException, NotFoundException, ServiceUnavailableException {
-		return serviceProvider.getSearchService().proxyRawSearch(userId, searchQuery, request);
 	}
 }
