@@ -140,7 +140,7 @@ public class SearchUtilTest {
 		// continuous bq
 		query.setBooleanQuery(bq2);
 		queryStr = SearchUtil.generateStructuredQueryString(query);
-		assertEquals(EXPECTED_QUERY_PREFIX+encodeUTF8("(and Facet1:{,2000])"), queryStr);
+		assertEquals(EXPECTED_QUERY_PREFIX+encodeUTF8("(and (range field=Facet1 {,2000]))"), queryStr);
 	}
 	
 	@Test
