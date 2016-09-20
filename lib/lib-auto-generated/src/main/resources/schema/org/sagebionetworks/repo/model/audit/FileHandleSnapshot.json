@@ -1,0 +1,46 @@
+{
+	"description": "The FileHandleSnapshot captures all of the fields that are common to all FileHandle implementations.",
+	"properties": {
+		"id": {
+			"description": "The ID of this FileHandle.  All references to this FileHandle will use this ID. Synapse will generate this ID when the FileHandle is created.",
+			"type": "string"
+		},
+		"createdBy": {
+			"description": "The ID Of the user that created this file.",
+			"type": "string"
+		},
+		"createdOn": {
+			"description": "The date when this file was uploaded.",
+			"type": "string",
+			"format":"date-time"
+		},
+		"concreteType":{
+			"type":"string",
+			"description":"This is used to indicate the implementation of this interface. For example, an S3FileHandle should be set to: org.sagebionetworks.repo.model.file.S3FileHandle"
+		},
+		"contentMd5": {
+			"description": "The file's content MD5.",
+			"type": "string"
+		},
+		"fileName": {
+			"type": "string",
+			"description": "The short, user visible name for this file."
+		},
+		"storageLocationId": {
+			"type": "integer",
+			"description": "The optional storage location descriptor"
+		},
+		"contentSize": {
+			"description": "The size of the file in bytes.",
+			"type": "integer"
+		},
+		"key": {
+			"description": "Either the S3 bucket key or URL that points to an external file.",
+			"type": "string"
+		},
+		"bucket": {
+			"description": "The S3 bucket where the file is stored. Null if the file is not stored in an S3 bucket.",
+			"type": "string"
+		}
+	}
+}
