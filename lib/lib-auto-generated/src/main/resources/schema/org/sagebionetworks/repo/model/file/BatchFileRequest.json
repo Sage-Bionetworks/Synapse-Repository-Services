@@ -1,0 +1,20 @@
+{
+	"description": "Batch Request for file pre-signed-URLs and/or FileHandles.",
+	"properties": {
+		"requestedFiles": {
+			"type": "array",
+			"description": "Defines the files to get.",
+			"items": {
+				"$ref":"org.sagebionetworks.repo.model.file.FileHandleAssociation"
+			}
+		},
+		"includePreSignedURLs":{
+			"type": "boolean",
+			"description": "Set to true to request a pre-signed URL for each file.",
+		},
+		"includeFileHandles":{
+			"type": "boolean",
+			"description": "Set to true to request a FileHandle for each file.",
+		}
+	}
+}

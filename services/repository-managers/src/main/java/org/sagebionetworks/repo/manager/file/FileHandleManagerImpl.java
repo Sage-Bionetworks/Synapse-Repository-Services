@@ -15,17 +15,11 @@ import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.util.Collections;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 
-import org.apache.commons.fileupload.FileItemIterator;
-import org.apache.commons.fileupload.FileItemStream;
-import org.apache.commons.fileupload.FileUploadException;
-import org.apache.commons.fileupload.util.Streams;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -86,7 +80,6 @@ import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.model.util.ContentTypeUtils;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.utils.ContentTypeUtil;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
@@ -246,59 +239,6 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		this.fallbackStrategy = fallbackStrategy;
 	}
 
-	@WriteTransaction
-	@Override
-	public FileUploadResults uploadfiles(UserInfo userInfo,
-			Set<String> expectedParams, FileItemIterator itemIterator)
-			throws FileUploadException, IOException,
-			ServiceUnavailableException {
-		if (userInfo == null)
-			throw new IllegalArgumentException("UserInfo cannot be null");
-		if (expectedParams == null)
-			throw new IllegalArgumentException("UserInfo cannot be null");
-		if (itemIterator == null)
-			throw new IllegalArgumentException(
-					"FileItemIterator cannot be null");
-		if (primaryStrategy == null)
-			throw new IllegalStateException(
-					"The primaryStrategy has not been set.");
-		if (fallbackStrategy == null)
-			throw new IllegalStateException(
-					"The fallbackStrategy has not been set.");
-		FileUploadResults results = new FileUploadResults();
-		String userId = getUserId(userInfo);
-		// Upload all of the files
-		// Before we try to read any files make sure we have all of the expected
-		// parameters.
-		Set<String> expectedCopy = new HashSet<String>(expectedParams);
-		while (itemIterator.hasNext()) {
-			FileItemStream fis = itemIterator.next();
-			if (fis.isFormField()) {
-				// This is a parameter
-				// By removing it from the set we indicate that it was found.
-				expectedCopy.remove(fis.getFieldName());
-				// Map parameter in the results
-				results.getParameters().put(fis.getFieldName(),
-						Streams.asString(fis.openStream()));
-			} else {
-				// This is a file
-				if (!expectedCopy.isEmpty()) {
-					// We are missing some required parameters
-					throw new IllegalArgumentException(
-							"Missing one or more of the expected form fields: "
-									+ expectedCopy);
-				}
-				S3FileHandle s3Meta = uploadFile(userId, fis);
-				// If here then we succeeded
-				results.getFiles().add(s3Meta);
-			}
-		}
-		if (log.isDebugEnabled()) {
-			log.debug(results);
-		}
-		return results;
-	}
-
 	/**
 	 * Get the User's ID
 	 * 
@@ -309,36 +249,6 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		return userInfo.getId().toString();
 	}
 
-	/**
-	 * @param userId
-	 * @param fis
-	 * @return
-	 * @throws IOException
-	 * @throws ServiceUnavailableException
-	 */
-	@WriteTransaction
-	@Override
-	@Deprecated
-	public S3FileHandle uploadFile(String userId, FileItemStream fis)
-			throws IOException, ServiceUnavailableException {
-		// Create a token for this file
-		TransferRequest request = createRequest(fis.getContentType(), userId,
-				fis.getName(), fis.openStream());
-		S3FileHandle s3Meta = null;
-		try {
-			// Try the primary
-			s3Meta = primaryStrategy.transferToS3(request);
-		} catch (ServiceUnavailableException e) {
-			log.info("The primary file transfer strategy failed, attempting to use the fall-back strategy.");
-			// The primary strategy failed so try the fall-back.
-			s3Meta = fallbackStrategy.transferToS3(request);
-		}
-		// set this user as the creator of the file
-		s3Meta.setCreatedBy(userId);
-		// Save the file metadata to the DB.
-		s3Meta = fileHandleDao.createFile(s3Meta);
-		return s3Meta;
-	}
 
 	/**
 	 * Build up the S3FileMetadata.

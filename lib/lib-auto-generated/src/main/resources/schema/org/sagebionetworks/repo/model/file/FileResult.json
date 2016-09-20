@@ -1,0 +1,17 @@
+{
+	"description": "Result of a single File request.",
+	"properties": {
+		"fileHandleId":{
+			"type": "string",
+			"description": "The ID of the requested FileHandle.",
+		},
+		"fileHandle": {
+			"description": "The FileHandle of the requested file. Null if the request.includeFileHandles=false.",
+			"$ref":"org.sagebionetworks.repo.model.file.FileHandle"
+		},
+		"preSignedURL":{
+			"type": "string",
+			"description": "A pre-signed URL to download the requested file. Null if the request.includePreSignedURLs=false.",
+		}
+	}
+}

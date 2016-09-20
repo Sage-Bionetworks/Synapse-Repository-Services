@@ -39,19 +39,6 @@ import org.sagebionetworks.repo.web.ServiceUnavailableException;
  */
 public interface FileUploadService {
 
-	
-	/**
-	 * Upload all files for this request.
-	 * @param userName
-	 * @param itemIterator
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 * @throws IOException 
-	 * @throws FileUploadException 
-	 * @throws ServiceUnavailableException 
-	 */
-	@Deprecated
-	FileHandleResults uploadFiles(Long userId, FileItemIterator itemIterator) throws DatastoreException, NotFoundException, FileUploadException, IOException, ServiceUnavailableException;
 
 	/**
 	 * Get a file handle by ID.

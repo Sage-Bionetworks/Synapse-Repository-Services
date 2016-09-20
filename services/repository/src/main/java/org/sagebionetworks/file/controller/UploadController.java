@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.model.NotReadyException;
 import org.sagebionetworks.repo.model.asynch.AsyncJobId;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.file.AddPartResponse;
+import org.sagebionetworks.repo.model.file.BatchFileRequest;
 import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlRequest;
 import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlResponse;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadRequest;
@@ -194,43 +195,29 @@ public class UploadController extends BaseController {
 
 	@Autowired
 	FileUploadService fileService;
-
+	
 	/**
-	 * Upload files as a multi-part upload, and create file handles for each.
-	 * 
-	 * @param request
-	 * @param response
-	 * @param headers
-	 * @throws FileUploadException
+	 * Get a batch of pre-signed URLs and/or FileHandles for the given list of FileHandleAssociations 
+	 * @param userId
+	 * @param handleIdToCopyFrom
+	 * @param fileHandleWithNameAndContentType
+	 * @return
 	 * @throws IOException
-	 * @throws NotFoundException
 	 * @throws DatastoreException
+	 * @throws NotFoundException
 	 * @throws ServiceUnavailableException
 	 * @throws JSONObjectAdapterException
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = "/fileHandle", method = RequestMethod.POST)
-	void uploadFiles(
+	@RequestMapping(value = "/fileHandle/batch", method = RequestMethod.POST)
+	public @ResponseBody S3FileHandle getFileHandleBatch(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			HttpServletRequest request, HttpServletResponse response,
-			@RequestHeader HttpHeaders headers) throws FileUploadException,
-			IOException, DatastoreException, NotFoundException,
+			@PathVariable String handleIdToCopyFrom,
+			@RequestBody BatchFileRequest request)
+			throws IOException, DatastoreException, NotFoundException,
 			ServiceUnavailableException, JSONObjectAdapterException {
-		LogUtils.logRequest(log, request);
-		// Maker sure this is a multipart
-		if (!ServletFileUpload.isMultipartContent(request)) {
-			throw new IllegalArgumentException(
-					"This service only supports: content-type = multipart/form-data");
-		}
-		// Pass it along.
-		FileHandleResults results = fileService.uploadFiles(userId,
-				new ServletFileUpload().getItemIterator(request));
-		response.setContentType("application/json");
-		response.setStatus(HttpStatus.CREATED.value());
-		response.getOutputStream().print(
-				EntityFactory.createJSONStringForEntity(results));
-		// Not flushing causes the stream to be empty for the GWT use case.
-		response.getOutputStream().flush();
+		
+		return null;
 	}
 
 	/**
