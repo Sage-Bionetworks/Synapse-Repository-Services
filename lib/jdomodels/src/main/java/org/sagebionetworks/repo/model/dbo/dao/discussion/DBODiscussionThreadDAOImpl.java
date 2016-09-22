@@ -8,6 +8,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
@@ -15,18 +16,15 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.dao.discussion.DiscussionThreadDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.discussion.DBODiscussionThread;
 import org.sagebionetworks.repo.model.dbo.persistence.discussion.DiscussionThreadUtils;
 import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
-import org.sagebionetworks.repo.model.discussion.DiscussionThreadAuthorStat;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
+import org.sagebionetworks.repo.model.discussion.DiscussionThreadStat;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadEntityReference;
-import org.sagebionetworks.repo.model.discussion.DiscussionThreadReplyStat;
-import org.sagebionetworks.repo.model.discussion.DiscussionThreadViewStat;
 import org.sagebionetworks.repo.model.discussion.EntityThreadCount;
 import org.sagebionetworks.repo.model.discussion.EntityThreadCounts;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -96,23 +94,15 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 		}
 	};
 
-	private RowMapper<DiscussionThreadViewStat> DISCUSSION_THREAD_VIEW_STAT_ROW_MAPPER = new RowMapper<DiscussionThreadViewStat>(){
-
-		@Override
-		public DiscussionThreadViewStat mapRow(ResultSet rs, int rowNum)
-				throws SQLException {
-			DiscussionThreadViewStat dto = new DiscussionThreadViewStat();
-			dto.setThreadId(rs.getLong(COL_DISCUSSION_THREAD_VIEW_THREAD_ID));
-			dto.setNumberOfViews(rs.getLong(COL_DISCUSSION_THREAD_STATS_NUMBER_OF_VIEWS));
-			return dto;
-		}
-	};
-
 	private static final String SQL_SELECT_ETAG_FOR_UPDATE = "SELECT "+COL_DISCUSSION_THREAD_ETAG
 			+" FROM "+TABLE_DISCUSSION_THREAD
 			+" WHERE "+COL_DISCUSSION_THREAD_ID+" = ? FOR UPDATE";
 	private static final String SQL_MARK_THREAD_AS_DELETED = "UPDATE "+TABLE_DISCUSSION_THREAD
 			+" SET "+COL_DISCUSSION_THREAD_IS_DELETED+" = TRUE, "
+			+COL_DISCUSSION_THREAD_ETAG+" = ? "
+			+" WHERE "+COL_DISCUSSION_THREAD_ID+" = ?";
+	private static final String SQL_MARK_THREAD_AS_NOT_DELETED = "UPDATE "+TABLE_DISCUSSION_THREAD
+			+" SET "+COL_DISCUSSION_THREAD_IS_DELETED+" = FALSE, "
 			+COL_DISCUSSION_THREAD_ETAG+" = ? "
 			+" WHERE "+COL_DISCUSSION_THREAD_ID+" = ?";
 	private static final String SQL_PIN_THREAD = "UPDATE "+TABLE_DISCUSSION_THREAD
@@ -191,8 +181,8 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 			+COL_DISCUSSION_THREAD_STATS_LAST_ACTIVITY;
 	private static final String ORDER_BY_NUMBER_OF_VIEWS = " ORDER BY "+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_VIEWS;
 	private static final String ORDER_BY_NUMBER_OF_REPLIES = " ORDER BY "+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_REPLIES;
+	private static final String ORDER_BY_THREAD_TITLE = " ORDER BY LOWER(CONVERT ("+COL_DISCUSSION_THREAD_TITLE+" USING UTF8))";
 	private static final String DESC = " DESC ";
-	public static final Long MAX_LIMIT = 20L;
 
 	// for entity references
 	private static final String ENTITY_IDS = "entityIds";
@@ -267,30 +257,16 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 	private static final String SQL_SELECT_THREAD_VIEW_COUNT = "SELECT COUNT(*)"
 			+" FROM "+TABLE_DISCUSSION_THREAD_VIEW
 			+" WHERE "+COL_DISCUSSION_THREAD_VIEW_THREAD_ID+" = ?";
-	// This query is used by the stats worker. It's critical to keep the order by threadId to prevent deadlock.
-	private static final String SQL_SELECT_THREAD_VIEW_STAT = "SELECT "
-			+COL_DISCUSSION_THREAD_VIEW_THREAD_ID+", "
-			+"COUNT(*) AS "+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_VIEWS+" "
-			+"FROM "+TABLE_DISCUSSION_THREAD_VIEW+" "
-			+"GROUP BY "+COL_DISCUSSION_THREAD_VIEW_THREAD_ID+" "
-			+"ORDER BY "+COL_DISCUSSION_THREAD_VIEW_THREAD_ID+" "
-			+"LIMIT ? OFFSET ?";
 
-	private static final String SQL_UPDATE_THREAD_STATS_VIEWS = "INSERT INTO "
+	private static final String SQL_UPDATE_THREAD_STATS = "INSERT INTO "
 			+TABLE_DISCUSSION_THREAD_STATS+" ("
 			+COL_DISCUSSION_THREAD_STATS_THREAD_ID+", "
-			+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_VIEWS+" ) VALUES (?, ?) ON DUPLICATE KEY UPDATE "
-			+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_VIEWS+" = ? ";
-	private static final String SQL_UPDATE_THREAD_STATS_ACTIVE_AUTHORS = "INSERT INTO "
-			+TABLE_DISCUSSION_THREAD_STATS+" ("
-			+COL_DISCUSSION_THREAD_STATS_THREAD_ID+", "
-			+COL_DISCUSSION_THREAD_STATS_ACTIVE_AUTHORS+" ) VALUES (?, ?) ON DUPLICATE KEY UPDATE "
-			+COL_DISCUSSION_THREAD_STATS_ACTIVE_AUTHORS+" = ? ";
-	private static final String SQL_UPDATE_THREAD_REPLY_STATS =  "INSERT INTO "
-			+TABLE_DISCUSSION_THREAD_STATS+" ("
-			+COL_DISCUSSION_THREAD_STATS_THREAD_ID+", "
+			+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_VIEWS+", "
+			+COL_DISCUSSION_THREAD_STATS_ACTIVE_AUTHORS+", "
 			+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_REPLIES+", "
-			+COL_DISCUSSION_THREAD_STATS_LAST_ACTIVITY+" ) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE "
+			+COL_DISCUSSION_THREAD_STATS_LAST_ACTIVITY+" ) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE "
+			+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_VIEWS+" = ?, "
+			+COL_DISCUSSION_THREAD_STATS_ACTIVE_AUTHORS+" = ?, "
 			+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_REPLIES+" = ?, "
 			+COL_DISCUSSION_THREAD_STATS_LAST_ACTIVITY+" = ? ";
 	public static final DiscussionFilter DEFAULT_FILTER = DiscussionFilter.NO_FILTER;
@@ -332,8 +308,6 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 		ValidateArgument.required(limit,"limit");
 		ValidateArgument.required(offset,"offset");
 		ValidateArgument.required(filter, "filter");
-		ValidateArgument.requirement(limit >= 0 && offset >= 0 && limit <= MAX_LIMIT,
-					"Limit and offset must be greater than 0, and limit must be smaller than or equal to "+MAX_LIMIT);
 		ValidateArgument.requirement((order == null && ascending == null)
 				|| (order != null && ascending != null),"order and ascending must be both null or not null");
 		String query = buildGetQuery(SQL_SELECT_THREADS_BY_FORUM_ID, limit, offset, order, ascending, filter);
@@ -352,6 +326,9 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 					break;
 				case PINNED_AND_LAST_ACTIVITY:
 					query += ORDER_BY_PINNED_AND_LAST_ACTIVITY;
+					break;
+				case THREAD_TITLE:
+					query += ORDER_BY_THREAD_TITLE;
 					break;
 				default:
 					throw new IllegalArgumentException("Unsupported order "+order);
@@ -437,48 +414,6 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 		return jdbcTemplate.queryForLong(addCondition(SQL_SELECT_THREAD_COUNT_FOR_FORUM, filter), forumId);
 	}
 
-	@WriteTransactionReadCommitted
-	@Override
-	public void updateThreadViewStat(final List<DiscussionThreadViewStat> stats) {
-		jdbcTemplate.batchUpdate(SQL_UPDATE_THREAD_STATS_VIEWS, new BatchPreparedStatementSetter(){
-
-			@Override
-			public void setValues(PreparedStatement ps, int i)
-					throws SQLException {
-				ps.setLong(1, stats.get(i).getThreadId());
-				ps.setLong(2, stats.get(i).getNumberOfViews());
-				ps.setLong(3, stats.get(i).getNumberOfViews());
-			}
-
-			@Override
-			public int getBatchSize() {
-				return stats.size();
-			}
-		});
-	}
-
-	@WriteTransactionReadCommitted
-	@Override
-	public void updateThreadAuthorStat(final List<DiscussionThreadAuthorStat> stats) {
-		jdbcTemplate.batchUpdate(SQL_UPDATE_THREAD_STATS_ACTIVE_AUTHORS, new BatchPreparedStatementSetter(){
-
-			@Override
-			public void setValues(PreparedStatement ps, int i)
-					throws SQLException {
-				ps.setLong(1, stats.get(i).getThreadId());
-				String list = DiscussionThreadUtils.toCsvString(stats.get(i).getActiveAuthors());
-				ps.setString(2, list);
-				ps.setString(3, list);
-			}
-
-			@Override
-			public int getBatchSize() {
-				return stats.size();
-			}
-			
-		});
-	}
-
 	@Override
 	public long countThreadView(long threadId) {
 		return jdbcTemplate.queryForLong(SQL_SELECT_THREAD_VIEW_COUNT, threadId);
@@ -501,42 +436,9 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 	}
 
 	@Override
-	public List<DiscussionThreadViewStat> getThreadViewStat(Long limit, Long offset) {
-		ValidateArgument.required(limit, "limit");
-		ValidateArgument.required(offset, "offset");
-		ValidateArgument.requirement(limit >= 0 && offset >= 0 && limit <= MAX_LIMIT,
-				"Limit and offset must be greater than 0, and limit must be smaller than or equal to "+MAX_LIMIT);
-		return jdbcTemplate.query(SQL_SELECT_THREAD_VIEW_STAT, DISCUSSION_THREAD_VIEW_STAT_ROW_MAPPER, limit, offset);
-	}
-
-	@WriteTransactionReadCommitted
-	@Override
-	public void updateThreadReplyStat(final List<DiscussionThreadReplyStat> stats) {
-		jdbcTemplate.batchUpdate(SQL_UPDATE_THREAD_REPLY_STATS, new BatchPreparedStatementSetter(){
-
-			@Override
-			public void setValues(PreparedStatement ps, int i)
-					throws SQLException {
-				ps.setLong(1, stats.get(i).getThreadId());
-				ps.setLong(2, stats.get(i).getNumberOfReplies());
-				ps.setTimestamp(3, new Timestamp(stats.get(i).getLastActivity()));
-				ps.setLong(4, stats.get(i).getNumberOfReplies());
-				ps.setTimestamp(5, new Timestamp(stats.get(i).getLastActivity()));
-			}
-
-			@Override
-			public int getBatchSize() {
-				return stats.size();
-			}
-		});
-	}
-
-	@Override
 	public List<Long> getAllThreadId(Long limit, Long offset) {
 		ValidateArgument.required(limit, "limit");
 		ValidateArgument.required(offset, "offset");
-		ValidateArgument.requirement(limit >= 0 && offset >= 0 && limit <= MAX_LIMIT,
-				"Limit and offset must be greater than 0, and limit must be smaller than or equal to "+MAX_LIMIT);
 		return jdbcTemplate.query(SQL_SELECT_ALL_THREAD_ID, new RowMapper<Long>(){
 
 			@Override
@@ -605,8 +507,6 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 		ValidateArgument.required(offset,"offset");
 		ValidateArgument.required(filter, "filter");
 		ValidateArgument.required(projectIds, "projectIds");
-		ValidateArgument.requirement(limit >= 0 && offset >= 0 && limit <= MAX_LIMIT,
-					"Limit and offset must be greater than 0, and limit must be smaller than or equal to "+MAX_LIMIT);
 		ValidateArgument.requirement((order == null && ascending == null)
 				|| (order != null && ascending != null),"order and ascending must be both null or not null");
 
@@ -683,5 +583,56 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 			}
 		});
 		return result;
+	}
+
+	@Override
+	public void updateThreadStats(final List<DiscussionThreadStat> stats) {
+		jdbcTemplate.batchUpdate(SQL_UPDATE_THREAD_STATS, new BatchPreparedStatementSetter(){
+
+			@Override
+			public void setValues(PreparedStatement ps, int i)
+					throws SQLException {
+				ps.setLong(1, stats.get(i).getThreadId());
+				if (stats.get(i).getNumberOfViews() == null) {
+					ps.setNull(2, Types.BIGINT);
+					ps.setNull(6, Types.BIGINT);
+				} else {
+					ps.setLong(2, stats.get(i).getNumberOfViews());
+					ps.setLong(6, stats.get(i).getNumberOfViews());
+				}
+				if (stats.get(i).getActiveAuthors() == null) {
+					ps.setNull(3, Types.VARCHAR);
+					ps.setNull(7, Types.VARCHAR);
+				} else {
+					ps.setString(3, DiscussionThreadUtils.toCsvString(stats.get(i).getActiveAuthors()));
+					ps.setString(7, DiscussionThreadUtils.toCsvString(stats.get(i).getActiveAuthors()));
+				}
+				if (stats.get(i).getNumberOfReplies() == null) {
+					ps.setNull(4, Types.BIGINT);
+					ps.setNull(8, Types.BIGINT);
+				} else {
+					ps.setLong(4, stats.get(i).getNumberOfReplies());
+					ps.setLong(8, stats.get(i).getNumberOfReplies());
+				}
+				if (stats.get(i).getLastActivity() == null) {
+					ps.setNull(5, Types.TIMESTAMP);
+					ps.setNull(9, Types.TIMESTAMP);
+				} else {
+					ps.setTimestamp(5, new Timestamp(stats.get(i).getLastActivity()));
+					ps.setTimestamp(9, new Timestamp(stats.get(i).getLastActivity()));
+				}
+			}
+
+			@Override
+			public int getBatchSize() {
+				return stats.size();
+			}
+		});
+	}
+
+	@Override
+	public void markThreadAsNotDeleted(long threadId) {
+		String etag = UUID.randomUUID().toString();
+		jdbcTemplate.update(SQL_MARK_THREAD_AS_NOT_DELETED, etag, threadId);
 	}
 }

@@ -213,6 +213,22 @@ public class DiscussionController extends BaseController {
 	}
 
 	/**
+	 * This API is used to restore a deleted thread.
+	 * <br/>
+	 * Target users: only forum's moderator can restore a deleted thread.
+	 * 
+	 * @param userId - the ID of the user who is making the request
+	 * @param threadId - the ID of the thread that was marked as deleted
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.THREAD_THREAD_ID_RESTORE, method = RequestMethod.PUT)
+	public void restoreDeletedThread(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String threadId) {
+		serviceProvider.getDiscussionService().markThreadAsNotDeleted(userId, threadId);
+	}
+
+	/**
 	 * This API is used to mark a thread as pinned.
 	 * <br/>
 	 * Target users: only forum's moderator can mark a thread as pinned.
@@ -440,8 +456,8 @@ public class DiscussionController extends BaseController {
 	@RequestMapping(value = UrlHelpers.ENTITY_ID_THREADS, method = RequestMethod.GET)
 	public @ResponseBody PaginatedResults<DiscussionThreadBundle> getThreadsForEntity(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM) Long limit,
-			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM) Long offset,
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = true) Long limit,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = true) Long offset,
 			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false) DiscussionThreadOrder order,
 			@RequestParam(value = ServiceConstants.ASCENDING_PARAM, required = false) Boolean ascending,
 			@PathVariable String id) {

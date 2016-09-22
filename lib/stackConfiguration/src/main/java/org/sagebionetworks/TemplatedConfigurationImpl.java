@@ -17,8 +17,6 @@ import org.apache.logging.log4j.Logger;
  */
 public class TemplatedConfigurationImpl implements TemplatedConfiguration {
 
-	private static final Logger log = LogManager.getLogger(TemplatedConfigurationImpl.class.getName());
-
 	private String defaultPropertiesFilename;
 	private String templatePropertiesFilename;
 
@@ -93,14 +91,8 @@ public class TemplatedConfigurationImpl implements TemplatedConfiguration {
 		String propertyValue = null;
 		if (stackPropertyOverrides.containsKey(propertyName)) {
 			propertyValue = stackPropertyOverrides.getProperty(propertyName);
-			if (log.isTraceEnabled()) {
-				log.trace(propertyName + "=" + propertyValue + " from stack property overrides " + propertyFileUrl);
-			}
 		} else {
 			propertyValue = defaultStackProperties.getProperty(propertyName);
-			if (log.isTraceEnabled()) {
-				log.trace(propertyName + "=" + propertyValue + " from default stack properties " + defaultPropertiesFilename);
-			}
 		}
 		// NullPointerExceptions further downstream are not very helpful, throw
 		// here

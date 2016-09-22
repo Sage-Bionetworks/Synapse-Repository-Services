@@ -7,7 +7,12 @@ import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -33,8 +38,6 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
-
-import com.sun.star.uno.RuntimeException;
 
 public class TableEntityTransactionManagerTest {
 
@@ -112,58 +115,6 @@ public class TableEntityTransactionManagerTest {
 	}
 
 	@Test
-	public void testValidateRequestValid() {
-		// call under test.
-		TableEntityTransactionManager.validateRequest(request);
-	}
-
-	@Test
-	public void testValidateRequestMissingId() {
-		uploadRequest.setEntityId(null);
-		// call under test.
-		TableEntityTransactionManager.validateRequest(request);
-		// the root table ID is passed to each change if null
-		assertEquals(tableId, uploadRequest.getEntityId());
-	}
-
-	@Test(expected = IllegalArgumentException.class)
-	public void testValidateRequestChangeIdDoesNotMatch() {
-		uploadRequest.setEntityId("doesNotMatch");
-		// call under test.
-		TableEntityTransactionManager.validateRequest(request);
-		// the root table ID is passed to each change if null
-		assertEquals(tableId, uploadRequest.getEntityId());
-	}
-
-	@Test(expected = IllegalArgumentException.class)
-	public void testValidateRequestNullRequest() {
-		request = null;
-		// call under test.
-		TableEntityTransactionManager.validateRequest(request);
-	}
-
-	@Test(expected = IllegalArgumentException.class)
-	public void testValidateRequestEntityIdNull() {
-		request.setEntityId(null);
-		// call under test.
-		TableEntityTransactionManager.validateRequest(request);
-	}
-
-	@Test(expected = IllegalArgumentException.class)
-	public void testValidateRequestChagnesNull() {
-		request.setChanges(null);
-		// call under test.
-		TableEntityTransactionManager.validateRequest(request);
-	}
-
-	@Test(expected = IllegalArgumentException.class)
-	public void testValidateRequestChagnesEmpty() {
-		request.setChanges(new LinkedList<TableUpdateRequest>());
-		// call under test.
-		TableEntityTransactionManager.validateRequest(request);
-	}
-
-	@Test
 	public void testUpdateTableWithTransaction() throws Exception {
 		// call under test.
 		TableUpdateTransactionResponse results = manager
@@ -211,6 +162,20 @@ public class TableEntityTransactionManagerTest {
 						any(ProgressCallback.class), anyString(), anyInt(),
 						any(ProgressingCallable.class))).thenThrow(
 				new RecoverableMessageException());
+		// call under test.
+		manager.updateTableWithTransaction(progressCallback, userInfo, request);
+	}
+	
+	@SuppressWarnings("unchecked")
+	@Test(expected = RuntimeException.class)
+	public void testUpdateTableWithTransactionRuntimeException()
+			throws Exception {
+
+		when(
+				tableManagerSupport.tryRunWithTableExclusiveLock(
+						any(ProgressCallback.class), anyString(), anyInt(),
+						any(ProgressingCallable.class))).thenThrow(
+				new RuntimeException());
 		// call under test.
 		manager.updateTableWithTransaction(progressCallback, userInfo, request);
 	}

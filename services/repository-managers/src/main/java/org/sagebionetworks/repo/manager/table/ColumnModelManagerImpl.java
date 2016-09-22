@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.table;
 
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -14,13 +15,17 @@ import org.sagebionetworks.repo.model.PaginatedIds;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
+import org.sagebionetworks.repo.model.table.ColumnChange;
+import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.google.common.collect.Lists;
@@ -33,6 +38,7 @@ import com.google.common.collect.Lists;
  */
 public class ColumnModelManagerImpl implements ColumnModelManager {
 
+	public static final String COLUMN_TYPE_ERROR_TEMPLATE = "A %1$s column cannot be changed to %2$s";
 	/**
 	 * This is the maximum number of bytes for a single row in MySQL.
 	 * This determines the maximum schema size for a table.
@@ -140,22 +146,112 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 	}
 	
 	/**
-	 * Validate that the given columns are under the maxiumn schema size supported.
+	 * Validate that the given columns are under the maximum schema size supported.
 	 * @param columnIds
 	 */
-	private void validateSchemaSize(List<String> columnIds) {
+	@Override
+	public List<ColumnModel> validateSchemaSize(List<String> columnIds) {
+		List<ColumnModel> schema = null;
 		if(columnIds != null && !columnIds.isEmpty()){
 			if(columnIds.size() >= MY_SQL_MAX_COLUMNS_PER_TABLE){
 				throw new IllegalArgumentException("Too many columns. The limit is "+MY_SQL_MAX_COLUMNS_PER_TABLE+" columns per table");
 			}
 			// fetch the columns
-			List<ColumnModel> schema = columnModelDao.getColumnModel(columnIds, false);
+			schema = columnModelDao.getColumnModel(columnIds, false);
 			// Calculate the max row size for this schema.
 			int shemaSize = TableModelUtils.calculateMaxRowSize(schema);
 			if(shemaSize > MY_SQL_MAX_BYTES_PER_ROW){
 				throw new IllegalArgumentException("Too much data per column. The maximum size for a row is about "+MY_SQL_MAX_BYTES_PER_ROW+" bytes. The size for the given columns would be "+shemaSize+" bytes");
 			}
 		}
+		return schema;
+	}
+	
+	@Override
+	public List<String> calculateNewSchemaIdsAndValidate(String tableId, List<ColumnChange> changes) {
+		// lookup the current schema.
+		List<ColumnModel> oldSchema =  columnModelDao.getColumnModelsForObject(tableId);
+		List<String> newSchemaIds = new LinkedList<>();
+		for(ColumnModel cm: oldSchema){
+			newSchemaIds.add(cm.getId());
+		}
+		// Calculate new schema
+		for(ColumnChange change: changes){
+			if(change.getNewColumnId() != null && change.getOldColumnId() != null){
+				// update
+				int oldIndex = newSchemaIds.indexOf(change.getOldColumnId());
+				if(oldIndex < 0){
+					throw new IllegalArgumentException("Cannot update column: "+change.getOldColumnId()+" since it is not currently a column of table: "+tableId);
+				}
+				newSchemaIds.add(oldIndex, change.getNewColumnId());
+				newSchemaIds.remove(change.getOldColumnId());
+			}else if(change.getOldColumnId() != null){
+				// remove
+				newSchemaIds.remove(change.getOldColumnId());
+			}else{
+				// add
+				newSchemaIds.add(change.getNewColumnId());
+			}
+		}
+		// Validate the new schema size.
+		List<ColumnModel> newSchema = validateSchemaSize(newSchemaIds);
+		// validate the schema change
+		List<ColumnModel> allColumns = new LinkedList<>(oldSchema);
+		allColumns.addAll(newSchema);
+		validateSchemaChange(allColumns, changes);
+		return newSchemaIds;
+	}
+	
+	/**
+	 * Validate each column change.
+	 * @param allColumns All of the columns including the old and new schemas.
+	 * @param chagnes
+	 */
+	static public void validateSchemaChange(List<ColumnModel> allColumns, List<ColumnChange> changes){
+		// Map the IDs to columns
+		Map<String, ColumnModel> idToColumnMap = new HashMap<>(allColumns.size());
+		for(ColumnModel cm: allColumns){
+			idToColumnMap.put(cm.getId(), cm);
+		}
+		// Validate each change
+		for(ColumnChange change: changes){
+			ColumnModel oldColumn = null;
+			ColumnModel newColumn = null;
+			if(change.getNewColumnId() != null){
+				newColumn = idToColumnMap.get(change.getNewColumnId());
+			}
+			if(change.getOldColumnId() != null){
+				oldColumn = idToColumnMap.get(change.getOldColumnId());
+			}
+			validateColumnChange(oldColumn, newColumn);
+		}
+	}
+	
+	/**
+	 * Validate a single column change.
+	 * @param oldColumn
+	 * @param newColumn
+	 */
+	static void validateColumnChange(ColumnModel oldColumn, ColumnModel newColumn){
+		if(oldColumn != null && newColumn != null){
+			if(isFileHandleColumn(oldColumn) && !isFileHandleColumn(newColumn)){
+				throw new IllegalArgumentException(String.format(COLUMN_TYPE_ERROR_TEMPLATE, ColumnType.FILEHANDLEID, newColumn.getColumnType()));
+			}
+			if(isFileHandleColumn(newColumn) && !isFileHandleColumn(oldColumn)){
+				throw new IllegalArgumentException(String.format(COLUMN_TYPE_ERROR_TEMPLATE, oldColumn.getColumnType(), ColumnType.FILEHANDLEID));
+			}
+		}
+	}
+	
+	/**
+	 * Is the given ColumnModel a FileHandleId Column?
+	 * 
+	 * @param columnModel
+	 * @return
+	 */
+	static boolean isFileHandleColumn(ColumnModel columnModel){
+		ValidateArgument.required(columnModel, "columnModel");
+		return ColumnType.FILEHANDLEID.equals(columnModel.getColumnType());
 	}
 
 	@WriteTransaction
@@ -211,6 +307,47 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 			}
 		}
 		return results;
+	}
+
+	@Override
+	public List<ColumnChangeDetails> getColumnChangeDetails(
+			List<ColumnChange> changes) {
+		// Gather all of the IDs
+		List<String> columnIds = new LinkedList<>();
+		for(ColumnChange change: changes){
+			if(change.getNewColumnId() != null){
+				columnIds.add(change.getNewColumnId());
+			}
+			if(change.getOldColumnId() != null){
+				columnIds.add(change.getOldColumnId());
+			}
+		}
+		boolean keepOrder = false;
+		List<ColumnModel> models = columnModelDao.getColumnModel(columnIds, keepOrder);
+		// map the result
+		Map<String, ColumnModel> map = new HashMap<String, ColumnModel>(models.size());
+		for(ColumnModel cm: models){
+			map.put(cm.getId(), cm);
+		}
+		// Build up the results
+		List<ColumnChangeDetails> details = new LinkedList<>();
+		for(ColumnChange change: changes){
+			ColumnModel newModel = null;
+			ColumnModel oldModel = null;
+			if(change.getNewColumnId() != null){
+				newModel = map.get(change.getNewColumnId());
+			}
+			if(change.getOldColumnId() != null){
+				oldModel = map.get(change.getOldColumnId());
+			}
+			details.add(new ColumnChangeDetails(oldModel, newModel));
+		}
+		return details;
+	}
+
+	@Override
+	public List<String> getColumnIdForTable(String id) {
+		return columnModelDao.getColumnIdsForObject(id);
 	}
 	
 }

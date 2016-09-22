@@ -142,7 +142,7 @@
 	</filter-mapping>
 
 	<filter>
-		<filter-name>userThrottleFilter</filter-name>
+		<filter-name>userConcurrentConnectionThrottleFilter</filter-name>
 		<filter-class>org.springframework.web.filter.DelegatingFilterProxy</filter-class>
 		<init-param>
 			<!-- Make sure the init-params are passed through the proxy to the bean -->
@@ -152,11 +152,43 @@
 	</filter>
 
 	<filter-mapping>
-		<filter-name>userThrottleFilter</filter-name>
+		<filter-name>userConcurrentConnectionThrottleFilter</filter-name>
 		<url-pattern>/repo/v1/*</url-pattern>
 		<url-pattern>/file/v1/*</url-pattern>
 	</filter-mapping>
+	
+	<filter>
+		<filter-name>userRequestFrequencyThrottleFilter</filter-name>
+		<filter-class>org.springframework.web.filter.DelegatingFilterProxy</filter-class>
+		<init-param>
+			<!-- Make sure the init-params are passed through the proxy to the bean -->
+			<param-name>targetFilterLifecycle</param-name>
+			<param-value>true</param-value>
+		</init-param>
+	</filter>
 
+	<filter-mapping>
+		<filter-name>userRequestFrequencyThrottleFilter</filter-name>
+		<url-pattern>/repo/v1/*</url-pattern>
+		<url-pattern>/file/v1/*</url-pattern>
+	</filter-mapping>
+	
+	<filter>
+		<filter-name>userApiFrequencyThrottleFilter</filter-name>
+		<filter-class>org.springframework.web.filter.DelegatingFilterProxy</filter-class>
+		<init-param>
+			<!-- Make sure the init-params are passed through the proxy to the bean -->
+			<param-name>targetFilterLifecycle</param-name>
+			<param-value>true</param-value>
+		</init-param>
+	</filter>
+
+	<filter-mapping>
+		<filter-name>userApiFrequencyThrottleFilter</filter-name>
+		<url-pattern>/repo/v1/*</url-pattern>
+		<url-pattern>/file/v1/*</url-pattern>
+	</filter-mapping>
+	
 	<filter>
 		<filter-name>jsonpCallbackFilter</filter-name>
 		<!-- This filter allows JSONP to be returned for methods that are already 

@@ -24,7 +24,11 @@ import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
+import org.sagebionetworks.repo.model.table.AnnotationDTO;
+import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.repo.model.util.RandomAnnotationsUtil;
+
+import com.google.common.collect.Lists;
 
 /**
  * Basic test for converting between JDOs and DTOs.
@@ -62,7 +66,6 @@ public class JDOSecondaryPropertyUtilsTest {
 		assertEquals(named, mapClone);
 		assertNotNull(compressed);
 		System.out.println("Size: "+compressed.length);
-		System.out.println(new String(compressed, "UTF-8"));
 		// Now make sure we can read the compressed data
 		NamedAnnotations dtoCopy = JDOSecondaryPropertyUtils.decompressedAnnotations(compressed);
 		assertNotNull(dtoCopy);
@@ -201,7 +204,6 @@ public class JDOSecondaryPropertyUtilsTest {
 		try{
 			// First create the blob
 			byte[] compressedBlob = JDOSecondaryPropertyUtils.compressAnnotations(named);
-			System.out.println("Compressed file size is: "+compressedBlob.length+" bytes");
 						
 			// Write this blob to the file
 			BufferedOutputStream buffer = new BufferedOutputStream(fos);
@@ -355,49 +357,75 @@ public class JDOSecondaryPropertyUtilsTest {
 		assertEquals(map, JDOSecondaryPropertyUtils.decompressedReferences(compressed));
 	}
 	
-	/**
-	 * Simple data structure for holding blob file data.
-	 * 
-	 * @author jmhill
-	 *
-	 */
-	private static class BlobData{
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetSingleStringNull(){
+		// call under test.
+		JDOSecondaryPropertyUtils.getSingleString(null, 50);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetSingleStringEmpty(){
+		List list = new LinkedList<String>();
+		// call under test
+		JDOSecondaryPropertyUtils.getSingleString(list, 50);
+	}
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetSingleStringNullValue(){
+		List list = new LinkedList<String>();
+		list.add(null);
+		// call under test
+		JDOSecondaryPropertyUtils.getSingleString(list, 50);
+	}
+	@Test
+	public void testGetSingleStringString(){
+		List list = new LinkedList<String>();
+		list.add("foo");
+		// call under test
+		String value = JDOSecondaryPropertyUtils.getSingleString(list, 50);
+		assertEquals("foo", value);
+	}
+	
+	@Test
+	public void testGetSingleStringLargeString(){
+		List list = new LinkedList<String>();
+		list.add("123456");
+		int maxSize = 4;
+		// call under test
+		String value = JDOSecondaryPropertyUtils.getSingleString(list, maxSize);
+		assertEquals("1234", value);
+	}
+	
+	@Test
+	public void testGetSingleStringDate(){
+		List list = new LinkedList<Date>();
+		list.add(new Date(888));
+		// call under test
+		String value = JDOSecondaryPropertyUtils.getSingleString(list, 50);
+		assertEquals("888", value);
+	}
+	
+	
+	@Test
+	public void testTranslate(){
+		long entityId = 123;
+		int maxAnnotationChars = 6;
+		NamedAnnotations annos = new NamedAnnotations();
+		annos.getAdditionalAnnotations().addAnnotation("aString", "someString");
+		annos.getAdditionalAnnotations().addAnnotation("aLong", 123L);
+		annos.getAdditionalAnnotations().addAnnotation("aDouble", 1.22);
+		annos.getAdditionalAnnotations().addAnnotation("aDate", new Date(444L));
 		
-		String fileName;
-		long randomSeed;
-		int count;
+		List<AnnotationDTO> expected = Lists.newArrayList(
+				new AnnotationDTO(entityId, "aString", AnnotationType.STRING, "someSt"),
+				new AnnotationDTO(entityId, "aLong", AnnotationType.LONG, "123"),
+				new AnnotationDTO(entityId, "aDouble", AnnotationType.DOUBLE, "1.22"),
+				new AnnotationDTO(entityId, "aDate", AnnotationType.DATE, "444")
+		);
 		
+		List<AnnotationDTO> results = JDOSecondaryPropertyUtils.translate(entityId, annos, maxAnnotationChars);
+		assertNotNull(results);
 		
-		public BlobData(String fileName, long randomSeed, int count) {
-			super();
-			this.fileName = fileName;
-			this.randomSeed = randomSeed;
-			this.count = count;
-		}
-		public String getFileName() {
-			return fileName;
-		}
-		public void setFileName(String fileName) {
-			this.fileName = fileName;
-		}
-		public long getRandomSeed() {
-			return randomSeed;
-		}
-		public void setRandomSeed(long randomSeed) {
-			this.randomSeed = randomSeed;
-		}
-		public int getCount() {
-			return count;
-		}
-		public void setCount(int count) {
-			this.count = count;
-		}
-		@Override
-		public String toString() {
-			return "BlobData [fileName=" + fileName + ", randomSeed="
-					+ randomSeed + ", count=" + count + "]";
-		}
-		
+		assertEquals(expected, results);
 	}
 
 }

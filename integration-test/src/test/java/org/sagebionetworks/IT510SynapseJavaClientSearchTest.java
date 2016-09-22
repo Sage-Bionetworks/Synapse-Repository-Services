@@ -293,7 +293,7 @@ public class IT510SynapseJavaClientSearchTest {
 
 		assertEquals(new Long(0), results.getFound());
 		assertEquals(0, results.getHits().size());
-		assertEquals(0, results.getFacets().size());
+		assertEquals(facets.size(), results.getFacets().size());
 	}
 
 	/**
@@ -378,81 +378,6 @@ public class IT510SynapseJavaClientSearchTest {
 
 		assertTrue(1 <= results.getFound());
 	}
-	
-	/**
-	 * @throws Exception
-	 */
-	@Test
-	public void testSearchAuthorizationFilter() throws Exception {
-		UserProfile myProfile = synapse.getMyProfile();
-		assertNotNull(myProfile);
-		String myPrincipalId = myProfile.getOwnerId();
-		assertNotNull(myPrincipalId);
-		
-		SearchQuery searchQuery = new SearchQuery();
-		List<String> queryTerms = new ArrayList<String>();
-		queryTerms.add(distictValue1);
-		searchQuery.setQueryTerm(queryTerms);
-		List<String> returnFields = new ArrayList<String>();
-		returnFields.add("name");
-		searchQuery.setReturnFields(returnFields);
-		SearchResults results = synapse.search(searchQuery);
-		
-		
-		String cloudSearchMatchExpr = results.getMatchExpression();
-		assertTrue(-1 < cloudSearchMatchExpr.indexOf("(or acl:"));
-		assertTrue(-1 < cloudSearchMatchExpr
-				.indexOf("acl:'" + myPrincipalId + "'"));
-		assertTrue(-1 < cloudSearchMatchExpr
-				.indexOf("acl:'"+AuthorizationConstants.BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId().toString()+"'"));
-		assertTrue(-1 < cloudSearchMatchExpr.indexOf("acl:'"+AuthorizationConstants.BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId().toString()+"'"));
-	}
-
-	@Test
-	public void testAnonymousSearchAuthorizationFilter() throws Exception {
-		String publicPrincipalId = AuthorizationConstants.BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId().toString();
-
-		// now 'log out'
-		SynapseClient anonymous = new SynapseClientImpl();
-		SynapseClientHelper.setEndpoints(anonymous);
-
-		SearchQuery searchQuery = new SearchQuery();
-		List<String> queryTerms = new ArrayList<String>();
-		queryTerms.add(distictValue2);
-		searchQuery.setQueryTerm(queryTerms);
-		List<String> returnFields = new ArrayList<String>();
-		returnFields.add("name");
-		searchQuery.setReturnFields(returnFields);
-		SearchResults results = anonymous.search(searchQuery);
-
-		String cloudSearchMatchExpr = results.getMatchExpression();
-		assertTrue(-1 < cloudSearchMatchExpr.indexOf("(or acl:"));
-		
-		// TODO reenable the following line, which depends on how the 'display name' for 'anonymous' is configured
-		//assertTrue(-1 < cloudSearchMatchExpr.indexOf("acl:'anonymous@sagebase.org'", 0));
-		
-		assertTrue(-1 < cloudSearchMatchExpr.indexOf("acl:'"+publicPrincipalId+"'"));
-	}
-
-	/**
-	 * @throws Exception
-	 */
-	@Test
-	public void testAdminSearchAuthorizationFilter() throws Exception {
-		SearchQuery searchQuery = new SearchQuery();
-		List<String> queryTerms = new ArrayList<String>();
-		queryTerms.add(distictValue2);
-		searchQuery.setQueryTerm(queryTerms);
-		List<String> returnFields = new ArrayList<String>();
-		returnFields.add("name");
-		searchQuery.setReturnFields(returnFields);
-		SearchResults results = adminSynapse.search(searchQuery);
-
-		String cloudSearchMatchExpr = results.getMatchExpression();
-
-		// We don't add an authorization filter for admin users
-		assertEquals(-1, cloudSearchMatchExpr.indexOf("acl"));
-	}
 
 	/**
 	 * @throws Exception
@@ -500,7 +425,7 @@ public class IT510SynapseJavaClientSearchTest {
 			fail("This was a bad query");
 		}catch (SynapseException e) {
 			// did we get the expected message.
-			assertTrue(e.getMessage(), e.getMessage().indexOf("'ugh' is not defined in the metadata for this collection") >= 0);
+			assertTrue(e.getMessage(), e.getMessage().indexOf("Syntax error in query: field (ugh) does not exist.") >= 0);
 			assertFalse("The error message contains the URL of the search index", e.getMessage().indexOf("http://search") >= 0);
 		}
 	}

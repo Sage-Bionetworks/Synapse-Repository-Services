@@ -1,11 +1,13 @@
 package org.sagebionetworks.repo.manager.table;
 
 import java.util.List;
+import java.util.Set;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.RowSet;
-import org.sagebionetworks.table.cluster.ColumnChange;
+import org.sagebionetworks.repo.model.table.ViewType;
 
 /**
  * The 'truth' of a Synapse table consists of metadata in the main repository
@@ -106,7 +108,7 @@ public interface TableIndexManager {
 	 * 
 	 * @param currentSchema
 	 */
-	public boolean updateTableSchema(ProgressCallback<Void> progressCallback, List<ColumnChange> changes);
+	public boolean updateTableSchema(ProgressCallback<Void> progressCallback, List<ColumnChangeDetails> changes);
 	
 	/**
 	 * Delete the index for this table.
@@ -118,6 +120,15 @@ public interface TableIndexManager {
 	 * @param viewCRC
 	 */
 	public void setIndexVersion(Long viewCRC);
+	
+	/**
+	 * Set the current version of the index and the schema MD5, both of which are used
+	 * to determine if the index is up-to-date.
+	 * 
+	 * @param viewCRC
+	 * @param schemaMD5Hex
+	 */
+	public void setIndexVersionAndSchemaMD5Hex(Long viewCRC, String schemaMD5Hex);
 	
 	/**
 	 * Optimize the indices of this table. Indices are added until either all
@@ -142,6 +153,32 @@ public interface TableIndexManager {
 	 * @param callback
 	 */
 	public void deleteTemporaryTableCopy(ProgressCallback<Void> callback);
+
+	/**
+	 * Attempt to alter the schema of a temporary copy of a table.
+	 * This is used to validate table schema changes.
+	 * 
+	 * @param progressCallback
+	 * @param tableId
+	 * @param changes
+	 * @return
+	 */
+	boolean alterTempTableSchmea(ProgressCallback<Void> progressCallback,
+			String tableId, List<ColumnChangeDetails> changes);
+
+
+	/**
+	 * Populate a view table by coping all of the relevant data from the entity 
+	 * replication tables.
+	 * @param callback 
+	 * 
+	 * @param viewType
+	 * @param allContainersInScope
+	 * @param currentSchema
+	 * @return The new CRC23 for the view.
+	 */
+	public Long populateViewFromEntityReplication(ProgressCallback<Void> callback, ViewType viewType,
+			Set<Long> allContainersInScope, List<ColumnModel> currentSchema);
 	
 
 }

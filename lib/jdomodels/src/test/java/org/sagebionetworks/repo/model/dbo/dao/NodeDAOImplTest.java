@@ -69,6 +69,9 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.provenance.Activity;
+import org.sagebionetworks.repo.model.table.AnnotationDTO;
+import org.sagebionetworks.repo.model.table.EntityDTO;
+import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.Callback;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -2994,6 +2997,68 @@ public class NodeDAOImplTest {
 
 		nodeDao.delete(id);
 		fileHandleDao.delete(fileHandle.getId());
+	}
+	
+	@Test
+	public void testGetEntityDTOs(){
+		Node project = NodeTestUtils.createNew("project", creatorUserGroupId);
+		project.setNodeType(EntityType.project);
+		project = nodeDao.createNewNode(project);
+		toDelete.add(project.getId());
+		
+		Node file = NodeTestUtils.createNew("folder", creatorUserGroupId);
+		file.setNodeType(EntityType.file);
+		file.setParentId(project.getId());
+		file.setFileHandleId(fileHandle.getId());
+		file = nodeDao.createNewNode(file);
+		long fileIdLong = KeyFactory.stringToKey(file.getId());
+		toDelete.add(file.getId());
+		NamedAnnotations annos = new NamedAnnotations();
+		annos.setId(file.getId());
+		annos.setCreatedBy(file.getCreatedByPrincipalId());
+		annos.setCreationDate(file.getCreatedOn());
+		annos.setEtag(file.getETag());
+		annos.getAdditionalAnnotations().addAnnotation("aString", "someString");
+		annos.getAdditionalAnnotations().addAnnotation("aLong", 123L);
+		annos.getAdditionalAnnotations().addAnnotation("aDouble", 1.22);
+		nodeDao.updateAnnotations(file.getId(), annos);
+		
+		int maxAnnotationChars = 10;
+		
+		// call under test
+		List<EntityDTO> results = nodeDao.getEntityDTOs(Lists.newArrayList(project.getId(),file.getId()), maxAnnotationChars);
+		assertNotNull(results);
+		assertEquals(2, results.size());
+		EntityDTO fileDto = results.get(1);
+		assertEquals(KeyFactory.stringToKey(file.getId()), fileDto.getId());
+		assertEquals(file.getVersionNumber(), fileDto.getCurrentVersion());
+		assertEquals(file.getCreatedByPrincipalId(), fileDto.getCreatedBy());
+		assertEquals(file.getCreatedOn(), fileDto.getCreatedOn());
+		assertEquals(file.getETag(), fileDto.getEtag());
+		assertEquals(file.getName(), fileDto.getName());
+		assertEquals(file.getNodeType(), fileDto.getType());
+		assertEquals(KeyFactory.stringToKey(project.getId()), fileDto.getParentId());
+		assertEquals(KeyFactory.stringToKey(project.getId()), fileDto.getBenefactorId());
+		assertEquals(KeyFactory.stringToKey(project.getId()), fileDto.getProjectId());
+		assertEquals(file.getModifiedByPrincipalId(), fileDto.getModifiedBy());
+		assertEquals(file.getModifiedOn(), fileDto.getModifiedOn());
+		assertEquals(new Long(Long.parseLong(file.getFileHandleId())), fileDto.getFileHandleId());
+		assertNotNull(fileDto.getAnnotations());
+		assertEquals(3, fileDto.getAnnotations().size());
+		List<AnnotationDTO> expected = Lists.newArrayList(
+				new AnnotationDTO(fileIdLong, "aString", AnnotationType.STRING, "someString"),
+				new AnnotationDTO(fileIdLong, "aLong", AnnotationType.LONG, "123"),
+				new AnnotationDTO(fileIdLong, "aDouble", AnnotationType.DOUBLE, "1.22")
+		);
+		assertEquals(expected, fileDto.getAnnotations());
+		// null checks on the project
+		EntityDTO projectDto = results.get(0);
+		assertEquals(KeyFactory.stringToKey(project.getId()), projectDto.getId());
+		assertEquals(null, projectDto.getParentId());
+		assertEquals(projectDto.getId(), projectDto.getBenefactorId());
+		assertEquals(projectDto.getId(), projectDto.getProjectId());
+		assertEquals(null, projectDto.getFileHandleId());
+		assertEquals(null, projectDto.getAnnotations());
 	}
 
 	/**

@@ -7,7 +7,7 @@ import org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStackConf
 
 public class ChangeMessageDrivenWorkerStackConfig {
 
-	ChangeMessageDrivenRunner runner;
+	ChangeMessageRunner runner;
 	MessageDrivenWorkerStackConfiguration config = new MessageDrivenWorkerStackConfiguration();
 	
 	/**
@@ -23,7 +23,7 @@ public class ChangeMessageDrivenWorkerStackConfig {
 	 * The runner that handles a message pulled from the queue.
 	 * @param runner
 	 */
-	public void setRunner(ChangeMessageDrivenRunner runner) {
+	public void setRunner(ChangeMessageRunner runner) {
 		this.runner = runner;
 	}
 	
@@ -102,7 +102,7 @@ public class ChangeMessageDrivenWorkerStackConfig {
 		config.setDeadLetterMaxFailureCount(maxFailureCount);
 	}
 
-	public ChangeMessageDrivenRunner getRunner() {
+	public ChangeMessageRunner getRunner() {
 		return runner;
 	}
 

@@ -191,26 +191,34 @@ public class MessageManagerImpl implements MessageManager {
 
 	@Override
 	@WriteTransaction
+	public MessageToUser createMessageWithThrottle(UserInfo userInfo, MessageToUser dto) throws NotFoundException {
+		boolean userIsTrustedMessageSender = userInfo.getGroups().contains(TeamConstants.TRUSTED_MESSAGE_SENDER_TEAM_ID);
+		// Throttle message creation
+		if (!userInfo.isAdmin() && !userIsTrustedMessageSender && !messageDAO.canCreateMessage(userInfo.getId().toString(), 
+					MAX_NUMBER_OF_NEW_MESSAGES,
+					MESSAGE_CREATION_INTERVAL_MILLISECONDS)) {
+			throw new TooManyRequestsException(
+					"Please slow down.  You may send a maximum of "
+							+ MAX_NUMBER_OF_NEW_MESSAGES + " message(s) every "
+							+ (MESSAGE_CREATION_INTERVAL_MILLISECONDS / 1000) + " second(s)");
+		}
+		return createMessage(userInfo, dto);
+	}
+
+	@Override
+	@WriteTransaction
 	public MessageToUser createMessage(UserInfo userInfo, MessageToUser dto) throws NotFoundException {
 		// Make sure the sender is correct
 		dto.setCreatedBy(userInfo.getId().toString());
-		
+
 		if (!userInfo.isAdmin()) {
 			// Can't be anonymous
 			if (AuthorizationUtils.isUserAnonymous(userInfo)) {
 				throw new UnauthorizedException("Anonymous user may not send messages.");
 			}
+
 			boolean userIsTrustedMessageSender = userInfo.getGroups().contains(TeamConstants.TRUSTED_MESSAGE_SENDER_TEAM_ID);
-			// Throttle message creation
-			if (!userIsTrustedMessageSender && !messageDAO.canCreateMessage(userInfo.getId().toString(), 
-						MAX_NUMBER_OF_NEW_MESSAGES,
-						MESSAGE_CREATION_INTERVAL_MILLISECONDS)) {
-				throw new TooManyRequestsException(
-						"Please slow down.  You may send a maximum of "
-								+ MAX_NUMBER_OF_NEW_MESSAGES + " message(s) every "
-								+ (MESSAGE_CREATION_INTERVAL_MILLISECONDS / 1000) + " second(s)");
-			}
-			
+
 			// Limit the number of recipients
 			if (!userIsTrustedMessageSender && dto.getRecipients() != null && dto.getRecipients().size() > MAX_NUMBER_OF_RECIPIENTS) {
 				throw new IllegalArgumentException(
@@ -309,7 +317,7 @@ public class MessageManagerImpl implements MessageManager {
 		MessageToUser message = getMessage(userInfo, messageId);
 		message.setRecipients(recipients.getRecipients());
 		message.setInReplyTo(messageId);
-		return createMessage(userInfo, message);
+		return createMessageWithThrottle(userInfo, message);
 	}
 
 	@Override

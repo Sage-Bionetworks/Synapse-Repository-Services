@@ -11,7 +11,7 @@
 		},
 		"matchExpression": {
 			"type": "string",
-			"description": "The search match expression parsed from the search request parameters.  This is useful for debugging purposes."
+			"description": "DEPRECATED: The search match expression parsed from the search request parameters.  This is useful for debugging purposes."
 		},
 		"hits": {
 			"type": "array",

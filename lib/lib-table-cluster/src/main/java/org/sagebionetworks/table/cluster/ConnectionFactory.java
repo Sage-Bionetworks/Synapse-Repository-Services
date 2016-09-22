@@ -1,5 +1,7 @@
 package org.sagebionetworks.table.cluster;
 
+import java.util.List;
+
 /**
  * The connection factory provides database connections to the cluster of database used to support the Table feature.
  * @author jmhill
@@ -16,8 +18,14 @@ public interface ConnectionFactory {
 	TableIndexDAO getConnection(String tableId);
 	
 	/**
-	 * Drop all tables in every database connectoin.
+	 * Drop all tables in every database connections..
 	 * 
 	 */
 	void dropAllTablesForAllConnections();
+	
+	/**
+	 * Get all connections.
+	 * @return
+	 */
+	List<TableIndexDAO> getAllConnections();
 }

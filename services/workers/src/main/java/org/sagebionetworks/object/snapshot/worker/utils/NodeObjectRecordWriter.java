@@ -10,6 +10,7 @@ import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
 import org.sagebionetworks.repo.manager.AccessRequirementManager;
 import org.sagebionetworks.repo.manager.EntityPermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.Node;
@@ -21,6 +22,7 @@ import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.SelfSignAccessRequirement;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.audit.DeletedNode;
 import org.sagebionetworks.repo.model.audit.NodeRecord;
 import org.sagebionetworks.repo.model.audit.ObjectRecord;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
@@ -124,17 +126,30 @@ public class NodeObjectRecordWriter implements ObjectRecordWriter {
 
 	@Override
 	public void buildAndWriteRecord(ChangeMessage message) throws IOException {
-		if (message.getObjectType() != ObjectType.ENTITY || message.getChangeType() == ChangeType.DELETE) {
+		if (message.getObjectType() != ObjectType.ENTITY) {
 			throw new IllegalArgumentException();
 		}
-		try {
-			Node node = nodeDAO.getNode(message.getObjectId());
-			NodeRecord record = buildNodeRecord(node);
-			record = setAccessProperties(record, userManager, accessRequirementManager, entityPermissionManager);
-			ObjectRecord objectRecord = ObjectRecordBuilderUtils.buildObjectRecord(record, message.getTimestamp().getTime());
-			objectRecordDAO.saveBatch(Arrays.asList(objectRecord), objectRecord.getJsonClassName());
-		} catch (NotFoundException e) {
-			log.error("Cannot find node for a " + message.getChangeType() + " message: " + message.toString()) ;
+		if (message.getChangeType() == ChangeType.DELETE) {
+			captureDeletedNodeRecord(message);
+		} else {
+			try {
+				Node node = nodeDAO.getNode(message.getObjectId());
+				NodeRecord record = buildNodeRecord(node);
+				record = setAccessProperties(record, userManager, accessRequirementManager, entityPermissionManager);
+				ObjectRecord objectRecord = ObjectRecordBuilderUtils.buildObjectRecord(record, message.getTimestamp().getTime());
+				objectRecordDAO.saveBatch(Arrays.asList(objectRecord), objectRecord.getJsonClassName());
+			} catch (EntityInTrashCanException e) {
+				captureDeletedNodeRecord(message);
+			} catch (NotFoundException e) {
+				log.error("Cannot find node for a " + message.getChangeType() + " message: " + message.toString()) ;
+			}
 		}
+	}
+
+	public void captureDeletedNodeRecord(ChangeMessage message) throws IOException {
+		DeletedNode deletedNode = new DeletedNode();
+		deletedNode.setId(message.getObjectId());
+		ObjectRecord objectRecord = ObjectRecordBuilderUtils.buildObjectRecord(deletedNode, message.getTimestamp().getTime());
+		objectRecordDAO.saveBatch(Arrays.asList(objectRecord), objectRecord.getJsonClassName());
 	}
 }

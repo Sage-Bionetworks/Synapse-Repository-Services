@@ -16,7 +16,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -199,10 +201,10 @@ public class DockerManagerImplUnitTest {
 	@Test
 	public void testGetPermittedAccessTypesHappyCase() throws Exception {
 		// method under test:
-		List<String> permitted = dockerManager.
+		Set<String> permitted = dockerManager.
 				getPermittedAccessTypes(USER_INFO, SERVICE, TYPE, REPOSITORY_PATH, ACCESS_TYPES_STRING);
 		
-		assertEquals(Arrays.asList(new String[]{"push", "pull"}), permitted);
+		assertEquals(new HashSet(Arrays.asList(new String[]{"push", "pull"})), permitted);
 	}
 
 	@Test
@@ -210,7 +212,7 @@ public class DockerManagerImplUnitTest {
 		String repositoryPath = "garbage/"+REPOSITORY_NAME;
 		
 		// method under test:
-		List<String> permitted = dockerManager.
+		Set<String> permitted = dockerManager.
 				getPermittedAccessTypes(USER_INFO, SERVICE, TYPE, repositoryPath, ACCESS_TYPES_STRING);
 		
 		assertTrue(permitted.isEmpty());
@@ -223,11 +225,11 @@ public class DockerManagerImplUnitTest {
 		when(dockerNodeDao.getEntityIdForRepositoryName(SERVICE+"/"+repositoryPath)).thenReturn(null);
 
 		// method under test:
-		List<String> permitted = dockerManager.
+		Set<String> permitted = dockerManager.
 				getPermittedAccessTypes(USER_INFO, SERVICE, TYPE, repositoryPath, ACCESS_TYPES_STRING);
 		
-		//OK to push, but can't pull since it doesn't exist
-		assertEquals(Arrays.asList(new String[]{"push"}), permitted);
+		// client needs both push and pull access to push a not-yet-existing repo to the registry
+		assertEquals(new HashSet(Arrays.asList(new String[]{"push", "pull"})), permitted);
 	}
 
 	@Test
@@ -241,8 +243,26 @@ public class DockerManagerImplUnitTest {
 				thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		
 		// method under test:
-		List<String> permitted = dockerManager.
+		Set<String> permitted = dockerManager.
 				getPermittedAccessTypes(USER_INFO, SERVICE, TYPE, REPOSITORY_PATH, ACCESS_TYPES_STRING);
+
+		// Note, we DO have create access, but that doesn't let us 'push' since the repo already exists
+		assertTrue(permitted.toString(), permitted.isEmpty());
+	}
+
+	@Test
+	public void testGetPermittedAccessDownloadButNoRead() throws Exception {
+		when(authorizationManager.canAccess(
+				eq(USER_INFO), eq(REPO_ENTITY_ID), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.READ))).
+				thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+		
+		when(authorizationManager.canAccess(
+				eq(USER_INFO), eq(REPO_ENTITY_ID), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.DOWNLOAD))).
+				thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		
+		// method under test:
+		Set<String> permitted = dockerManager.
+				getPermittedAccessTypes(USER_INFO, SERVICE, TYPE, REPOSITORY_PATH, "pull");
 
 		// Note, we DO have create access, but that doesn't let us 'push' since the repo already exists
 		assertTrue(permitted.toString(), permitted.isEmpty());
@@ -262,7 +282,7 @@ public class DockerManagerImplUnitTest {
 				thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		
 		// method under test:
-		List<String> permitted = dockerManager.
+		Set<String> permitted = dockerManager.
 				getPermittedAccessTypes(USER_INFO, SERVICE, TYPE, repositoryPath, ACCESS_TYPES_STRING);
 
 		// Note, we DO have update access, but that doesn't let us 'push' since the repo doesn't exist

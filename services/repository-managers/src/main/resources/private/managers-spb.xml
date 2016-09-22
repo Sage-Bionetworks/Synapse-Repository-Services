@@ -78,7 +78,11 @@
 		<bean class="org.sagebionetworks.common.util.ClockImpl"/>
 		</constructor-arg>
 	</bean>
-
+	
+	<bean name="userThrottleMemoryTimeBlockSemaphore" class="org.sagebionetworks.repo.model.semaphore.MemoryTimeBlockCountingSemaphoreImpl" scope="singleton"/>
+	
+	<bean name="userApiThrottleMemoryTimeBlockSemaphore" class="org.sagebionetworks.repo.model.semaphore.MemoryTimeBlockCountingSemaphoreImpl" scope="singleton"/>
+	
 	<bean name="authenticationThrottleMemoryCountingSemaphore" class="org.sagebionetworks.repo.model.semaphore.MemoryCountingSemaphoreImpl" scope="singleton">
 		<constructor-arg index="0">
 		<bean class="org.sagebionetworks.common.util.ClockImpl"/>
@@ -467,4 +471,27 @@
 	<bean id="challengeManager" class="org.sagebionetworks.repo.manager.ChallengeManagerImpl" scope="singleton"/>
     
 	<bean id="verificationManager" class="org.sagebionetworks.repo.manager.VerificationManagerImpl" scope="singleton"/>
+	
+	<bean id="tableEntityTransactionManager"
+		class="org.sagebionetworks.repo.manager.table.TableEntityTransactionManager"
+		scope="singleton"/>
+		
+	<bean id="tableViewTransactionManager"
+		class="org.sagebionetworks.repo.manager.table.TableViewTransactionManager"
+		scope="singleton"/>
+
+	<bean id="tableTransactionManagerProvider"
+		class="org.sagebionetworks.repo.manager.table.TableTransactionManagerProviderImpl"
+		scope="singleton">
+		<property name="managerMap">
+			<map>
+				<entry key="table">
+					<ref bean="tableEntityTransactionManager" />
+				</entry>
+				<entry key="entityview">
+					<ref bean="tableViewTransactionManager" />
+				</entry>
+			</map>
+		</property>
+	</bean>
 </beans>

@@ -1,8 +1,11 @@
 package org.sagebionetworks.repo.manager.table;
 
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.Mockito.*;
 
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -11,10 +14,10 @@ import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
-import org.sagebionetworks.repo.manager.table.ColumnModelManagerImpl;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -23,6 +26,8 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
+import org.sagebionetworks.repo.model.table.ColumnChange;
+import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
@@ -39,19 +44,84 @@ import com.google.common.collect.Lists;
  */
 public class ColumnModelManagerTest {
 	
+	@Mock
 	ColumnModelDAO mockColumnModelDAO;
+	@Mock
 	AuthorizationManager mockauthorizationManager;
 	ColumnModelManagerImpl columnModelManager;
 	UserInfo user;
 	
+	String tableId;
+	List<ColumnModel> currentSchema;
+	List<ColumnChange> changes;
+	List<String> expectedNewSchemaIds;
+	List<ColumnModel> newSchema;
+	List<ColumnModel> underLimitSchema;
+	List<String> underLimitSchemaIds;
+	
+	List<String> overLimitSchemaIds;
+	List<ColumnModel> overLimitSchema;
+	
 	@Before
 	public void before(){
-		mockColumnModelDAO = Mockito.mock(ColumnModelDAO.class);
-		mockauthorizationManager = Mockito.mock(AuthorizationManager.class);
+		MockitoAnnotations.initMocks(this);
 		columnModelManager = new ColumnModelManagerImpl();
 		user = new UserInfo(false, 123L);
 		ReflectionTestUtils.setField(columnModelManager, "columnModelDao", mockColumnModelDAO);
 		ReflectionTestUtils.setField(columnModelManager, "authorizationManager", mockauthorizationManager);
+		
+		tableId = "syn567";
+		currentSchema = Lists.newArrayList(
+				TableModelTestUtils.createColumn(111L),
+				TableModelTestUtils.createColumn(222L),
+				TableModelTestUtils.createColumn(333L)
+				);
+		
+		
+		when(mockColumnModelDAO.getColumnModelsForObject(tableId)).thenReturn(currentSchema);
+		
+		ColumnChange remove = new ColumnChange();
+		remove.setOldColumnId("111");
+		remove.setNewColumnId(null);
+		
+		ColumnChange update = new ColumnChange();
+		update.setOldColumnId("222");
+		update.setNewColumnId("444");
+		
+		ColumnChange add = new ColumnChange();
+		add.setOldColumnId(null);
+		add.setNewColumnId("555");
+		
+		changes = Lists.newArrayList(remove, update, add);
+		
+		expectedNewSchemaIds = Lists.newArrayList("444","333","555");
+		
+		List<ColumnModel> newSchema = Lists.newArrayList(
+				TableModelTestUtils.createColumn(444L),
+				TableModelTestUtils.createColumn(333L),
+				TableModelTestUtils.createColumn(555L)
+				);
+		when(mockColumnModelDAO.getColumnModel(expectedNewSchemaIds, false)).thenReturn(newSchema);
+		
+		underLimitSchemaIds = Lists.newArrayList();
+		underLimitSchema = Lists.newArrayList();
+		// Currently the breaking point is 23 string columns of size 1000.
+		for(int i=0; i<21; i++){
+			ColumnModel cm = TableModelTestUtils.createColumn((long)i, "c"+i, ColumnType.STRING);
+			cm.setMaximumSize(1000L);
+			underLimitSchema.add(cm);
+			underLimitSchemaIds.add(""+cm.getId());
+		}
+		
+		overLimitSchemaIds = Lists.newArrayList();
+		overLimitSchema = Lists.newArrayList();
+		// Currently the breaking point is 23 string columns of size 1000.
+		for(int i=0; i<23; i++){
+			ColumnModel cm = TableModelTestUtils.createColumn((long)i, "c"+i, ColumnType.STRING);
+			cm.setMaximumSize(1000L);
+			overLimitSchema.add(cm);
+			overLimitSchemaIds.add(""+cm.getId());
+		}
 	}
 	
 	@Test
@@ -327,12 +397,8 @@ public class ColumnModelManagerTest {
 		List<ColumnModel> resutls = columnModelManager.getColumnModelsForTable(user, objectId);
 	}
 	
-	/**
-	 * See PLFM-3619.  This schema should be just under the limit.
-	 */
 	@Test
-	public void testUnderDataPerColumnLimit(){
-		String objectId = "syn123";
+	public void testValidateSchemaSizeUnderLimit(){
 		List<String> scheamIds = Lists.newArrayList();
 		List<ColumnModel> schema = Lists.newArrayList();
 		// Currently the breaking point is 23 string columns of size 1000.
@@ -343,16 +409,12 @@ public class ColumnModelManagerTest {
 			scheamIds.add(""+cm.getId());
 		}
 		when(mockColumnModelDAO.getColumnModel(scheamIds, false)).thenReturn(schema);
-		//call under test
-		columnModelManager.bindColumnToObject(user, scheamIds, objectId);
+		
+		columnModelManager.validateSchemaSize(scheamIds);
 	}
 	
-	/**
-	 * See PLFM-3619.  This schema should be just over the limit.
-	 */
 	@Test (expected=IllegalArgumentException.class)
-	public void testOverDataPerColumnLimit(){
-		String objectId = "syn123";
+	public void testValidateSchemaSizeOverLimit(){
 		List<String> scheamIds = Lists.newArrayList();
 		List<ColumnModel> schema = Lists.newArrayList();
 		// Currently the breaking point is 23 string columns of size 1000.
@@ -363,8 +425,46 @@ public class ColumnModelManagerTest {
 			scheamIds.add(""+cm.getId());
 		}
 		when(mockColumnModelDAO.getColumnModel(scheamIds, false)).thenReturn(schema);
+		
+		columnModelManager.validateSchemaSize(scheamIds);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testValidateSchemaTooManyColumns(){
+		List<String> scheamIds = Lists.newArrayList();
+		List<ColumnModel> schema = Lists.newArrayList();
+		int numberOfColumns = ColumnModelManagerImpl.MY_SQL_MAX_COLUMNS_PER_TABLE+1;
+		for(int i=0; i<numberOfColumns; i++){
+			ColumnModel cm = TableModelTestUtils.createColumn((long)i, "c"+i, ColumnType.BOOLEAN);
+			cm.setMaximumSize(1L);
+			schema.add(cm);
+			scheamIds.add(""+cm.getId());
+		}
+		when(mockColumnModelDAO.getColumnModel(scheamIds, false)).thenReturn(schema);
+		columnModelManager.validateSchemaSize(scheamIds);
+	}
+	
+	
+	/**
+	 * See PLFM-3619.  This schema should be just under the limit.
+	 */
+	@Test
+	public void testUnderDataPerColumnLimit(){
+		String objectId = "syn123";
+		when(mockColumnModelDAO.getColumnModel(underLimitSchemaIds, false)).thenReturn(underLimitSchema);
 		//call under test
-		columnModelManager.bindColumnToObject(user, scheamIds, objectId);
+		columnModelManager.bindColumnToObject(user, underLimitSchemaIds, objectId);
+	}
+	
+	/**
+	 * See PLFM-3619.  This schema should be just over the limit.
+	 */
+	@Test (expected=IllegalArgumentException.class)
+	public void testOverDataPerColumnLimit(){
+		String objectId = "syn123";
+		when(mockColumnModelDAO.getColumnModel(overLimitSchemaIds, false)).thenReturn(overLimitSchema);
+		//call under test
+		columnModelManager.bindColumnToObject(user, overLimitSchemaIds, objectId);
 	}
 	
 	/**
@@ -391,4 +491,149 @@ public class ColumnModelManagerTest {
 			assertTrue(e.getMessage().startsWith("Too many columns"));
 		}
 	}
+	
+	@Test
+	public void testGetColumnChangeDetails(){
+		List<ColumnChange> changes = TableModelTestUtils.createAddUpdateDeleteColumnChange();
+		List<ColumnModel> columns = TableModelTestUtils.createColumnsForChanges(changes);
+		
+		when(mockColumnModelDAO.getColumnModel(anyListOf(String.class), anyBoolean())).thenReturn(columns);
+		
+		List<ColumnChangeDetails> expected = Lists.newArrayList(
+				new ColumnChangeDetails(null, columns.get(0)),
+				new ColumnChangeDetails(columns.get(1), columns.get(2)),
+				new ColumnChangeDetails(columns.get(3), null));
+		
+		// Call under test
+		List<ColumnChangeDetails> results = columnModelManager.getColumnChangeDetails(changes);
+		assertEquals(expected, results);
+	}
+	
+	@Test
+	public void testCalculateNewSchemaIdsAndValidate(){
+		// call under test.
+		List<String> results = columnModelManager.calculateNewSchemaIdsAndValidate(tableId, changes);
+		assertEquals(expectedNewSchemaIds, results);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCalculateNewSchemaIdsAndValidateOverSizeLimit(){
+		// setup the new schema to be over the limit.
+		when(mockColumnModelDAO.getColumnModel(anyListOf(String.class), anyBoolean())).thenReturn(overLimitSchema);
+		// call under test.
+		columnModelManager.calculateNewSchemaIdsAndValidate(tableId, changes);
+	}
+	
+	@Test
+	public void testCalculateNewSchemaIdsAndValidateFileChange(){
+		// call under test.
+		List<String> results = columnModelManager.calculateNewSchemaIdsAndValidate(tableId, changes);
+		assertEquals(expectedNewSchemaIds, results);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCalculateNewSchemaIdsAndValidateMissingUpdate(){
+		String tableId = "syn567";
+		List<ColumnModel> currentSchema = Lists.newArrayList(
+				TableModelTestUtils.createColumn(111L)
+		);
+		
+		when(mockColumnModelDAO.getColumnModelsForObject(tableId)).thenReturn(currentSchema);
+		// update a column that does not exist.
+		ColumnChange update = new ColumnChange();
+		update.setOldColumnId("222");
+		update.setNewColumnId("444");
+		
+		changes = Lists.newArrayList(update);
+		// call under test.
+		columnModelManager.calculateNewSchemaIdsAndValidate(tableId, changes);
+	}
+	
+	@Test
+	public void testIsFileHandleColumnTrue(){
+		ColumnModel column = new ColumnModel();
+		column.setColumnType(ColumnType.FILEHANDLEID);
+		// call under test
+		assertTrue(ColumnModelManagerImpl.isFileHandleColumn(column));
+	}
+	
+	@Test
+	public void testIsFileHandleColumnFalse(){
+		ColumnModel column = new ColumnModel();
+		column.setColumnType(ColumnType.STRING);
+		// call under test
+		assertFalse(ColumnModelManagerImpl.isFileHandleColumn(column));
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testIsFileHandleColumnNull(){
+		ColumnModel column = null;
+		// call under test
+		assertFalse(ColumnModelManagerImpl.isFileHandleColumn(column));
+	}
+	
+	@Test
+	public void testValidateColumnChangeFileToNonFile() {
+		ColumnModel oldColumn = new ColumnModel();
+		oldColumn.setColumnType(ColumnType.FILEHANDLEID);
+		ColumnModel newColumn = new ColumnModel();
+		newColumn.setColumnType(ColumnType.BOOLEAN);
+		// Call under test
+		try {
+			ColumnModelManagerImpl.validateColumnChange(oldColumn, newColumn);
+			fail("Should have failed");
+		} catch (IllegalArgumentException e) {
+			assertEquals(String.format(
+					ColumnModelManagerImpl.COLUMN_TYPE_ERROR_TEMPLATE,
+					ColumnType.FILEHANDLEID, ColumnType.BOOLEAN),
+					e.getMessage());
+		}
+	}
+	
+	@Test
+	public void testValidateColumnChangeNonFileToFile() {
+		ColumnModel oldColumn = new ColumnModel();
+		oldColumn.setColumnType(ColumnType.STRING);
+		ColumnModel newColumn = new ColumnModel();
+		newColumn.setColumnType(ColumnType.FILEHANDLEID);
+		// Call under test
+		try {
+			ColumnModelManagerImpl.validateColumnChange(oldColumn, newColumn);
+			fail("Should have failed");
+		} catch (IllegalArgumentException e) {
+			assertEquals(String.format(
+					ColumnModelManagerImpl.COLUMN_TYPE_ERROR_TEMPLATE,
+					ColumnType.STRING, ColumnType.FILEHANDLEID),
+					e.getMessage());
+		}
+	}
+	
+	@Test
+	public void testValidateColumnChangeAddFile() {
+		ColumnModel oldColumn = null;
+		ColumnModel newColumn = new ColumnModel();
+		newColumn.setColumnType(ColumnType.FILEHANDLEID);
+		// Call under test
+		ColumnModelManagerImpl.validateColumnChange(oldColumn, newColumn);
+	}
+	
+	@Test
+	public void testValidateColumnChangeRemoveFile() {
+		ColumnModel oldColumn = new ColumnModel();
+		oldColumn.setColumnType(ColumnType.FILEHANDLEID);
+		ColumnModel newColumn = null;
+		// Call under test
+		ColumnModelManagerImpl.validateColumnChange(oldColumn, newColumn);
+	}
+	
+	@Test
+	public void testValidateColumnChangeFileToFile() {
+		ColumnModel oldColumn = new ColumnModel();
+		oldColumn.setColumnType(ColumnType.FILEHANDLEID);
+		ColumnModel newColumn = new ColumnModel();
+		newColumn.setColumnType(ColumnType.FILEHANDLEID);
+		// Call under test
+		ColumnModelManagerImpl.validateColumnChange(oldColumn, newColumn);
+	}
+	
 }

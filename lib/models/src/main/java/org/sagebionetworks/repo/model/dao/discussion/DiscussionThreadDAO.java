@@ -4,12 +4,10 @@ import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
-import org.sagebionetworks.repo.model.discussion.DiscussionThreadAuthorStat;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadEntityReference;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
-import org.sagebionetworks.repo.model.discussion.DiscussionThreadReplyStat;
-import org.sagebionetworks.repo.model.discussion.DiscussionThreadViewStat;
+import org.sagebionetworks.repo.model.discussion.DiscussionThreadStat;
 import org.sagebionetworks.repo.model.discussion.EntityThreadCounts;
 
 public interface DiscussionThreadDAO {
@@ -85,27 +83,6 @@ public interface DiscussionThreadDAO {
 	public DiscussionThreadBundle updateTitle(long threadId, String title);
 
 	/**
-	 * update number of views for the given thread
-	 * 
-	 * @param stats
-	 */
-	public void updateThreadViewStat(List<DiscussionThreadViewStat> stats);
-
-	/**
-	 * update number of replies and last activity for the given thread
-	 * 
-	 * @param stats
-	 */
-	public void updateThreadReplyStat(List<DiscussionThreadReplyStat> stats);
-
-	/**
-	 * update active authors for the given thread
-	 * 
-	 * @param stats
-	 */
-	public void updateThreadAuthorStat(List<DiscussionThreadAuthorStat> stats);
-
-	/**
 	 * insert ignore a record into THREAD_VIEW table
 	 * 
 	 * @param threadId
@@ -127,15 +104,6 @@ public interface DiscussionThreadDAO {
 	 * @return
 	 */
 	public String getEtagForUpdate(long threadId);
-
-	/**
-	 * Get the thread view statistic
-	 * 
-	 * @Param limit
-	 * @param offset
-	 * @return
-	 */
-	public List<DiscussionThreadViewStat> getThreadViewStat(Long limit, Long offset);
 
 	/**
 	 * Get all thread Id
@@ -230,4 +198,18 @@ public interface DiscussionThreadDAO {
 	 *  particular entity, for a given entityId
 	 */
 	public long getThreadCountForEntity(long entityId, DiscussionFilter filter, Set<Long> projectIds);
+
+	/**
+	 * Update the statistic of a thread
+	 * 
+	 * @param stats
+	 */
+	public void updateThreadStats(List<DiscussionThreadStat> stats);
+
+	/**
+	 * Mark a discussion thread as not deleted
+	 * 
+	 * @param threadId
+	 */
+	public void markThreadAsNotDeleted(long threadId);
 }

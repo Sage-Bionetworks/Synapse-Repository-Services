@@ -450,6 +450,7 @@ public class SqlConstants {
 	public static final String COL_TABLE_ROW_BUCKET			= "S3_BUCKET";
 	public static final String COL_TABLE_ROW_KEY			= "S3_KEY";
 	public static final String COL_TABLE_ROW_COUNT			= "ROW_COUNT";
+	public static final String COL_TABLE_ROW_TYPE			= "CHANGE_TYPE";
 	public static final String DDL_TABLE_ROW_CHANGE = "schema/TableRowChange-ddl.sql";
 	
 	// Tracks view scope.
@@ -821,6 +822,14 @@ public class SqlConstants {
 	public static final String COL_DOCKER_COMMIT_DIGEST = "DIGEST";
 	public static final String COL_DOCKER_COMMIT_CREATED_ON = "CREATED_ON";
 	
+	//ThrottleRules table
+	public static final String TABLE_THROTTLE_RULES = "THROTTLE_RULES";
+	public static final String COL_THROTTLE_RULES_ID = "THROTTLE_ID";
+	public static final String COL_THROTTLE_RULES_NORMALIZED_URI = "NORMALIZED_PATH";
+	public static final String COL_THROTTLE_RULES_MAX_CALLS = "MAX_CALLS_PER_USER_PER_SECOND";
+	public static final String COL_THROTTLE_RULES_CALL_PERIOD = "PERIOD_IN_SECONDS";
+	public static final String COL_THROTTLE_RULES_MODIFIED_ON = "MODIFIED_ON";
+	public static final String DDL_THROTTLE_RULES = "schema/ThrottleRules-ddl.sql";
 
 	// This seems to be the name of the id column for all tables.
 	public static final String COLUMN_ID		= "id";

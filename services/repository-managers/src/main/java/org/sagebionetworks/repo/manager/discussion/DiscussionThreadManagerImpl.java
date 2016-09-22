@@ -20,7 +20,6 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UploadContentToS3DAO;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dao.discussion.DiscussionReplyDAO;
 import org.sagebionetworks.repo.model.dao.discussion.DiscussionThreadDAO;
 import org.sagebionetworks.repo.model.dao.discussion.ForumDAO;
 import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
@@ -29,6 +28,7 @@ import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
 import org.sagebionetworks.repo.model.discussion.EntityThreadCounts;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
+import org.sagebionetworks.repo.model.discussion.DiscussionThreadEntityReference;
 import org.sagebionetworks.repo.model.discussion.MessageURL;
 import org.sagebionetworks.repo.model.discussion.ThreadCount;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
@@ -45,13 +45,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 
+	private static final long DEFAULT_OFFSET = 0L;
 	private static final DiscussionFilter DEFAULT_FILTER = DiscussionFilter.NO_FILTER;
 	public static final int MAX_TITLE_LENGTH = 140;
 	public static final long MAX_LIMIT = 20L;
 	@Autowired
 	private DiscussionThreadDAO threadDao;
-	@Autowired
-	private DiscussionReplyDAO replyDao;
 	@Autowired
 	private ForumDAO forumDao;
 	@Autowired
@@ -87,14 +86,13 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		DiscussionThreadBundle thread = threadDao.createThread(createThread.getForumId(), id.toString(), createThread.getTitle(), messageKey, userInfo.getId());
 		transactionalMessenger.sendMessageAfterCommit(""+id, ObjectType.THREAD, thread.getEtag(),  ChangeType.CREATE, userInfo.getId());
 		subscriptionDao.create(userInfo.getId().toString(), id.toString(), SubscriptionObjectType.THREAD);
-		return updateNumberOfReplies(thread, DiscussionFilter.EXCLUDE_DELETED);
-	}
-
-	private DiscussionThreadBundle updateNumberOfReplies(DiscussionThreadBundle thread, DiscussionFilter filter) {
-		thread.setNumberOfReplies(replyDao.getReplyCount(Long.parseLong(thread.getId()), filter));
+		List<DiscussionThreadEntityReference> entityRefs = DiscussionUtils.getEntityReferences(createThread.getMessageMarkdown(), thread.getId());
+		entityRefs.addAll(DiscussionUtils.getEntityReferences(createThread.getTitle(), thread.getId()));
+		threadDao.insertEntityReference(entityRefs);
 		return thread;
 	}
 
+	@WriteTransactionReadCommitted
 	@Override
 	public DiscussionThreadBundle getThread(UserInfo userInfo, String threadId) {
 		ValidateArgument.required(threadId, "threadId");
@@ -113,7 +111,8 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 					authorizationManager.canAccess(userInfo, thread.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
 		}
 		threadDao.updateThreadView(threadIdLong, userInfo.getId());
-		return updateNumberOfReplies(thread, DiscussionFilter.EXCLUDE_DELETED);
+		transactionalMessenger.sendMessageAfterCommit(threadId, ObjectType.THREAD, thread.getEtag(),  ChangeType.UPDATE, userInfo.getId());
+		return thread;
 	}
 
 	@Override
@@ -137,7 +136,8 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		String author = threadDao.getAuthorForUpdate(threadId);
 		if (authorizationManager.isUserCreatorOrAdmin(userInfo, author)) {
 			DiscussionThreadBundle thread = threadDao.updateTitle(threadIdLong, newTitle.getTitle());
-			return updateNumberOfReplies(thread, DiscussionFilter.EXCLUDE_DELETED);
+			threadDao.insertEntityReference(DiscussionUtils.getEntityReferences(newTitle.getTitle(), thread.getId()));
+			return thread;
 		} else {
 			throw new UnauthorizedException("Only the user that created the thread can modify it.");
 		}
@@ -156,7 +156,8 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		if (authorizationManager.isUserCreatorOrAdmin(userInfo, thread.getCreatedBy())) {
 			String messageKey = uploadDao.uploadThreadMessage(newMessage.getMessageMarkdown(), thread.getForumId(), thread.getId());
 			thread = threadDao.updateMessageKey(threadIdLong, messageKey);
-			return updateNumberOfReplies(thread, DiscussionFilter.EXCLUDE_DELETED);
+			threadDao.insertEntityReference(DiscussionUtils.getEntityReferences(newMessage.getMessageMarkdown(), thread.getId()));
+			return thread;
 		} else {
 			throw new UnauthorizedException("Only the user that created the thread can modify it.");
 		}
@@ -196,7 +197,14 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		ValidateArgument.required(forumId, "forumId");
 		ValidateArgument.required(filter, "filter");
 		UserInfo.validateUserInfo(userInfo);
-		ValidateArgument.requirement(limit==null || limit <= MAX_LIMIT, "Limit cannot exceed "+MAX_LIMIT);
+		if (limit == null) {
+			limit = MAX_LIMIT;
+		}
+		if (offset == null) {
+			offset = DEFAULT_OFFSET;
+		}
+		ValidateArgument.requirement(limit >= 0 && offset >= 0 && limit <= MAX_LIMIT,
+				"Limit and offset must be greater than 0, and limit must be smaller than or equal to "+MAX_LIMIT);
 		String projectId = forumDao.getForum(Long.parseLong(forumId)).getProjectId();
 		if (filter.equals(DiscussionFilter.EXCLUDE_DELETED)) {
 			AuthorizationManagerUtil.checkAuthorizationAndThrowException(
@@ -214,19 +222,8 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		List<DiscussionThreadBundle> results = new ArrayList<DiscussionThreadBundle>();
 		if (count > 0) {
 			results = threadDao.getThreadsForForum(Long.parseLong(forumId), limit, offset, order, ascending, filter);
-			
 		}
 		threads.setResults(results);
-		return updateNumberOfReplies(threads, filter);
-	}
-
-	private PaginatedResults<DiscussionThreadBundle> updateNumberOfReplies(
-			PaginatedResults<DiscussionThreadBundle> threads, DiscussionFilter filter) {
-		List<DiscussionThreadBundle> list = new ArrayList<DiscussionThreadBundle>();
-		for (DiscussionThreadBundle thread : threads.getResults()) {
-			list.add(updateNumberOfReplies(thread, filter));
-		}
-		threads.setResults(list);
 		return threads;
 	}
 
@@ -257,7 +254,14 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 			Long offset, DiscussionThreadOrder order, Boolean ascending) {
 		ValidateArgument.required(entityId, "entityId");
 		UserInfo.validateUserInfo(userInfo);
-		ValidateArgument.requirement(limit == null || limit <= MAX_LIMIT, "Limit cannot exceed "+MAX_LIMIT);
+		if (limit == null) {
+			limit = MAX_LIMIT;
+		}
+		if (offset == null) {
+			offset = DEFAULT_OFFSET;
+		}
+		ValidateArgument.requirement(limit >= 0 && offset >= 0 && limit <= MAX_LIMIT,
+				"Limit and offset must be greater than 0, and limit must be smaller than or equal to "+MAX_LIMIT);
 		Long entityIdLong = KeyFactory.stringToKey(entityId);
 		Set<Long> projectIds = threadDao.getDistinctProjectIdsOfThreadsReferencesEntityIds(Arrays.asList(entityIdLong));
 		projectIds = aclDao.getAccessibleBenefactors(userInfo.getGroups(), projectIds, ObjectType.ENTITY, ACCESS_TYPE.READ);
@@ -270,7 +274,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 			results = threadDao.getThreadsForEntity(entityIdLong, limit, offset, order, ascending, DiscussionFilter.EXCLUDE_DELETED, projectIds);
 		}
 		threads.setResults(results);
-		return updateNumberOfReplies(threads, DiscussionFilter.EXCLUDE_DELETED);
+		return threads;
 	}
 
 	@Override
@@ -283,5 +287,11 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		Set<Long> projectIds = threadDao.getDistinctProjectIdsOfThreadsReferencesEntityIds(entityIds);
 		projectIds = aclDao.getAccessibleBenefactors(userInfo.getGroups(), projectIds, ObjectType.ENTITY, ACCESS_TYPE.READ);
 		return threadDao.getThreadCounts(entityIds, projectIds);
+	}
+
+	@Override
+	public void markThreadAsNotDeleted(UserInfo userInfo, String threadId) {
+		checkPermission(userInfo, threadId, ACCESS_TYPE.MODERATE);
+		threadDao.markThreadAsNotDeleted(Long.parseLong(threadId));
 	}
 }

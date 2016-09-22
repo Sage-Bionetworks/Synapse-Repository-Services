@@ -19,6 +19,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.FileEntity;
@@ -28,10 +29,15 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.web.controller.AbstractAutowiredControllerTestBase;
 import org.sagebionetworks.repo.web.service.EntityService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
+
+import com.google.common.collect.Lists;
 
 
 public class EntityServiceImplAutowiredTestNew extends AbstractAutowiredControllerTestBase {
@@ -45,6 +51,9 @@ public class EntityServiceImplAutowiredTestNew extends AbstractAutowiredControll
 	@Autowired
 	private FileHandleDao fileHandleDao;
 	
+	@Autowired
+	private ColumnModelManager columnModelManager;
+	
 	private Project project;
 	private List<String> toDelete;
 	private HttpServletRequest mockRequest;
@@ -53,6 +62,8 @@ public class EntityServiceImplAutowiredTestNew extends AbstractAutowiredControll
 	
 	private S3FileHandle fileHandle1;
 	private S3FileHandle fileHandle2;
+	
+	private ColumnModel column;
 	
 	@Before
 	public void before() throws Exception{
@@ -86,6 +97,11 @@ public class EntityServiceImplAutowiredTestNew extends AbstractAutowiredControll
 		handle.setKey("key2");
 		handle.setFileName("two.txt");
 		fileHandle2 = fileHandleDao.createFile(handle);
+		
+		column = new ColumnModel();
+		column.setColumnType(ColumnType.INTEGER);
+		column.setName("anInteger");
+		column = columnModelManager.createColumnModel(adminUserInfo, column);
 	}
 	@After
 	public void after(){
@@ -224,5 +240,20 @@ public class EntityServiceImplAutowiredTestNew extends AbstractAutowiredControll
 		project2Again = entityService.createEntity(adminUserId, project2Again, null, mockRequest);
 		toDelete.add(project2Again.getId());
 		assertEquals(alias2, ((Project) entityService.getEntity(adminUserId, project2Again.getId(), mockRequest)).getAlias());
+	}
+	
+	@Test
+	public void testTableEntityCreateGet(){
+		List<String> columnIds = Lists.newArrayList(column.getId());
+		TableEntity table = new TableEntity();
+		table.setParentId(project.getId());
+		table.setName("SampleTable");
+		table.setColumnIds(columnIds);
+		
+		table = entityService.createEntity(adminUserId, table, null, mockRequest);
+		assertEquals(columnIds, table.getColumnIds());
+		
+		table = entityService.getEntity(adminUserId, table.getId(), mockRequest, TableEntity.class);
+		assertEquals(columnIds, table.getColumnIds());
 	}
 }

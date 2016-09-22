@@ -70,6 +70,7 @@ import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityBundleCreate;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityId;
+import org.sagebionetworks.repo.model.EntityIdList;
 import org.sagebionetworks.repo.model.EntityInstanceFactory;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.IdList;
@@ -122,6 +123,7 @@ import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
+import org.sagebionetworks.repo.model.discussion.EntityThreadCounts;
 import org.sagebionetworks.repo.model.discussion.Forum;
 import org.sagebionetworks.repo.model.discussion.MessageURL;
 import org.sagebionetworks.repo.model.discussion.ReplyCount;
@@ -130,6 +132,7 @@ import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
 import org.sagebionetworks.repo.model.docker.DockerCommit;
+import org.sagebionetworks.repo.model.docker.DockerCommitSortBy;
 import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.entity.query.EntityQuery;
 import org.sagebionetworks.repo.model.entity.query.EntityQueryResults;
@@ -215,6 +218,10 @@ import org.sagebionetworks.repo.model.table.RowReferenceSetResults;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
+import org.sagebionetworks.repo.model.table.TableUpdateRequest;
+import org.sagebionetworks.repo.model.table.TableUpdateResponse;
+import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
+import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewResult;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
@@ -372,6 +379,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	protected static final String TABLE_UPLOAD_CSV_PREVIEW = TABLE
 			+ "/upload/csv/preview";
 	protected static final String TABLE_APPEND = TABLE + "/append";
+	
+	protected static final String TABLE_TRANSACTION = TABLE+"/transaction";
 
 	protected static final String ASYNCHRONOUS_JOB = "/asynchronous/job";
 
@@ -509,6 +518,10 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String URL = "/messageUrl";
 	private static final String PIN = "/pin";
 	private static final String UNPIN = "/unpin";
+	private static final String RESTORE = "/restore";
+
+	private static final String THREAD_COUNTS = "/threadcounts";
+	private static final String ENTITY_THREAD_COUNTS = ENTITY + THREAD_COUNTS;
 
 	private static final String SUBSCRIPTION = "/subscription";
 	private static final String LIST = "/list";
@@ -5808,6 +5821,23 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 				AsynchJobType.TableAppendRowSet, token, tableId);
 		return rrs.getRowReferenceSet();
 	}
+	
+	@Override
+	public String startTableTransactionJob(List<TableUpdateRequest> changes,
+			String tableId) throws SynapseException {
+		TableUpdateTransactionRequest request = new TableUpdateTransactionRequest();
+		request.setEntityId(tableId);
+		request.setChanges(changes);
+		return startAsynchJob(AsynchJobType.TableTransaction, request);
+	}
+
+	@Override
+	public List<TableUpdateResponse> getTableTransactionJobResults(String token, String tableId)
+			throws SynapseException, SynapseResultNotReadyException {
+		TableUpdateTransactionResponse response = (TableUpdateTransactionResponse) getAsyncResult(
+				AsynchJobType.TableTransaction, token, tableId);
+		return response.getResults();
+	}
 
 	@Override
 	public RowReferenceSet appendRowsToTable(AppendableRowSet rowSet,
@@ -7421,6 +7451,11 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
+	public void restoreDeletedThread(String threadId) throws SynapseException {
+		getSharedClientConnection().putUri(repoEndpoint, THREAD+"/"+threadId+RESTORE, getUserAgent());
+	}
+
+	@Override
 	public DiscussionReplyBundle createReply(CreateDiscussionReply toCreate)
 			throws SynapseException {
 		ValidateArgument.required(toCreate, "toCreate");
@@ -7718,5 +7753,41 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			throw new SynapseClientException(e);
 		}
 
+	}
+
+	@Override
+	public PaginatedResults<DiscussionThreadBundle> getThreadsForEntity(String entityId, Long limit, Long offset,
+			DiscussionThreadOrder order, Boolean ascending, DiscussionFilter filter) throws SynapseException {
+		ValidateArgument.required(entityId, "entityId");
+		ValidateArgument.required(limit, "limit");
+		ValidateArgument.required(offset, "offset");
+		ValidateArgument.required(filter, "filter");
+		String url = ENTITY+"/"+entityId+THREADS
+				+"?"+LIMIT+"="+limit+"&"+OFFSET+"="+offset;
+		if (order != null) {
+			url += "&sort="+order.name();
+		}
+		if (ascending != null) {
+			url += "&ascending="+ascending;
+		}
+		url += "&filter="+filter.toString();
+		JSONObject jsonObj = getEntity(url);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		PaginatedResults<DiscussionThreadBundle> results =
+				new PaginatedResults<DiscussionThreadBundle>(DiscussionThreadBundle.class);
+
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
+	}
+
+	@Override
+	public EntityThreadCounts getEntityThreadCount(List<String> entityIds) throws SynapseException {
+		EntityIdList idList = new EntityIdList();
+		idList.setIdList(entityIds);
+		return asymmetricalPost(repoEndpoint, ENTITY_THREAD_COUNTS, idList , EntityThreadCounts.class, null);
 	}
 }

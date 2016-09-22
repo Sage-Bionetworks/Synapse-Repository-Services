@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.discussion;
 
 import java.io.IOException;
+import java.util.List;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -11,6 +12,7 @@ import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
 import org.sagebionetworks.repo.model.discussion.EntityThreadCounts;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
+import org.sagebionetworks.repo.model.discussion.DiscussionThreadEntityReference;
 import org.sagebionetworks.repo.model.discussion.MessageURL;
 import org.sagebionetworks.repo.model.discussion.ThreadCount;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
@@ -65,6 +67,14 @@ public interface DiscussionThreadManager {
 	 * @param threadId
 	 */
 	public void markThreadAsDeleted(UserInfo userInfo, String threadId);
+
+	/**
+	 * Mark a thread as not deleted
+	 * 
+	 * @param userInfo
+	 * @param threadId
+	 */
+	public void markThreadAsNotDeleted(UserInfo userInfo, String threadId);
 
 	/**
 	 * Get threads that belongs to forumId

@@ -37,12 +37,12 @@ import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 
+import au.com.bytecode.opencsv.CSVReader;
+import au.com.bytecode.opencsv.CSVWriter;
+
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-
-import au.com.bytecode.opencsv.CSVReader;
-import au.com.bytecode.opencsv.CSVWriter;
 
 /**
  * 
@@ -71,7 +71,7 @@ public class TableModelUtilsTest {
 		cm.setColumnType(ColumnType.INTEGER);
 		validModel.add(cm);
 
-		List<Long> ids = Lists.newArrayList(2L, 1L);
+		List<String> ids = Lists.newArrayList("2", "1");
 		List<Row> rows = new LinkedList<Row>();
 		// row one
 		Row row = new Row();
@@ -98,7 +98,7 @@ public class TableModelUtilsTest {
 
 		// Create a second set that has the same order as the schema.
 		String tableId = "456";
-		ids = Lists.newArrayList(1L, 2L);
+		ids = Lists.newArrayList("1", "2");
 
 		rows = new LinkedList<Row>();
 		// row one
@@ -201,7 +201,7 @@ public class TableModelUtilsTest {
 	public void testValidateAndWriteToCSVHeaderMissmatch() {
 		try{
 			validRowSet.getIds().remove(0);
-			validRowSet.getIds().add(0, 3L);
+			validRowSet.getIds().add(0, "3");
 			TableModelUtils.validateAndWriteToCSV(validModel, validRowSet, out);
 			fail("Should have failed");
 		} catch (IllegalArgumentException e) {
@@ -700,8 +700,8 @@ public class TableModelUtilsTest {
 	
 	@Test
 	public void testGetIds() {
-		List<Long> expected = Lists.newArrayList(1L, 2L);
-		List<Long> ids = TableModelUtils.getIds(validModel);
+		List<String> expected = Lists.newArrayList("1", "2");
+		List<String> ids = TableModelUtils.getIds(validModel);
 		assertNotNull(ids);
 		assertEquals(expected, ids);
 	}
@@ -714,11 +714,11 @@ public class TableModelUtilsTest {
 	
 	@Test
 	public void testDelimitedStringRoundTrip() {
-		List<Long> ids = TableModelUtils.getIds(validModel);
+		List<String> ids = TableModelUtils.getIds(validModel);
 		String del = TableModelUtils.createDelimitedColumnModelIdString(ids);
 		assertNotNull(del);
 		System.out.println(del);
-		List<Long> result = TableModelUtils.readColumnModelIdsFromDelimitedString(del);
+		List<String> result = TableModelUtils.readColumnModelIdsFromDelimitedString(del);
 		assertEquals(ids, result);
 	}
 	
@@ -1258,14 +1258,14 @@ public class TableModelUtilsTest {
 	
 	@Test
 	public void testCreateSchemaMD5Hex(){
-		List<Long> ids = Lists.newArrayList(1L,2L,3L);
+		List<String> ids = Lists.newArrayList("1","2","3");
 		String expectedMd5Hex = "c6fc24807df697dd54e1b891a432fe94";
 		// call under test.
 		String md5Hex = TableModelUtils.createSchemaMD5Hex(ids);
 		assertEquals(expectedMd5Hex, md5Hex);
 		
 		// The same ids in a different order should return the same MD5
-		ids = Lists.newArrayList(3L,2L,1L);
+		ids = Lists.newArrayList("3","2","1");
 		// call under test.
 		md5Hex = TableModelUtils.createSchemaMD5Hex(ids);
 		assertEquals("The MD5 should be the same regardless of order.",expectedMd5Hex, md5Hex);
@@ -1281,7 +1281,7 @@ public class TableModelUtilsTest {
 	@Test
 	public void testGetSelectColumnsFromColumnIdsSingle(){
 		ColumnModel cm = TableModelTestUtils.createColumn(12);
-		List<Long> columnIds = Lists.newArrayList(12L);
+		List<String> columnIds = Lists.newArrayList("12");
 		List<ColumnModel> schema  = Lists.newArrayList(cm);
 		// call under test
 		List<SelectColumn> results = TableModelUtils.getSelectColumnsFromColumnIds(columnIds, schema);
@@ -1298,7 +1298,7 @@ public class TableModelUtilsTest {
 		ColumnModel one = TableModelTestUtils.createColumn(1);
 		ColumnModel two = TableModelTestUtils.createColumn(2);
 		// This controls the order of the results.
-		List<Long> columnIds = Lists.newArrayList(2L,4L,1L);
+		List<String> columnIds = Lists.newArrayList("2","4","1");
 		List<ColumnModel> schema  = Lists.newArrayList(one, two);
 		// call under test
 		List<SelectColumn> results = TableModelUtils.getSelectColumnsFromColumnIds(columnIds, schema);

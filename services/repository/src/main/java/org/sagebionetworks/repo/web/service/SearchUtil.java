@@ -5,143 +5,133 @@ import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.sagebionetworks.repo.model.search.query.FacetSort;
-import org.sagebionetworks.repo.model.search.query.FacetTopN;
-import org.sagebionetworks.repo.model.search.query.KeyList;
 import org.sagebionetworks.repo.model.search.query.KeyValue;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 
-import com.amazonaws.services.cloudfront.model.InvalidArgumentException;
-
 public class SearchUtil {
-
-	public static String generateQueryString(SearchQuery searchQuery) throws UnsupportedEncodingException {
+	
+	public static String generateStructuredQueryString(SearchQuery searchQuery) throws UnsupportedEncodingException{
 		if (searchQuery == null) {
-			throw new InvalidArgumentException("No search query was provided.");
+			throw new IllegalArgumentException("No search query was provided.");
 		}
 
 		List<String> params = new ArrayList<String>();
 		List<String> q = searchQuery.getQueryTerm();
 		List<KeyValue> bq = searchQuery.getBooleanQuery();
+		StringBuilder queryTermsStringBuilder = new StringBuilder();
 		
 		// clean up empty q
 		if(q != null && q.size() == 1 && "".equals(q.get(0))) {
 			q = null;
-		}		
-
-		// clean up empty q
-		if(q != null && q.size() == 1 && "".equals(q.get(0))) {
-			q = null;
-		}		
+		}
 		
 		// test for minimum search requirements
 		if (!(q != null && q.size() > 0) && !(bq != null && bq.size() > 0)) {
-			throw new InvalidArgumentException(
+			throw new IllegalArgumentException(
 					"Either one queryTerm or one booleanQuery must be defined");
 		}
 
-		// query terms
+		// unstructured query terms into structured query terms
 		if (q != null && q.size() > 0)
-			params.add("q=" + URLEncoder.encode(join(q, ","), "UTF-8"));
+			queryTermsStringBuilder.append("(and " + joinQueries(q, " ") + ")");
 
-		// boolean query
+		// boolean query into structured query terms
 		if (bq != null && bq.size() > 0) {
+			List<String> bqTerms = new ArrayList<String>();
 			for (KeyValue pair : bq) {
 				// this regex is pretty lame to have. need to work continuous into KeyValue model
-				String value = pair.getValue().contains("..") ? pair.getValue()
-						: "'" + escapeQuotedValue(pair.getValue()) + "'";
+				String value = pair.getValue();
+				
+				if(value.contains("*")){ //prefix queries are treated differently
+					String prefixQuery = createPrefixQuery(value, pair.getKey());
+					bqTerms.add(prefixQuery);
+					continue;
+				}
+				
+				//convert numeric ranges from 2011 cloudsearch syntax to 2013 syntax, for example: 200.. to [200,}
+				if(value.contains("..")) {
+					//TODO: remove this part once client stops using ".." notation for ranges
+					String[] range = value.split("\\.\\.", -1);
+					
+					if(range.length != 2 ){
+						throw new IllegalArgumentException("Numeric range is incorrectly formatted");
+					}
+					
+					StringBuilder rangeStringBuilder = new StringBuilder();
+					//left bound
+					if(range[0].equals("")){
+						rangeStringBuilder.append("{");
+					}else{
+						rangeStringBuilder.append("[" + range[0]);
+					}
+					
+					//right bound
+					rangeStringBuilder.append(",");
+					if(range[1].equals("")){
+						rangeStringBuilder.append("}");
+					}else{
+						rangeStringBuilder.append( range[1] + "]");
+					}
+					value = rangeStringBuilder.toString();
+				}
+				
+				if((value.contains("{") || value.contains("[")) 
+					&& (value.contains("}") || value.contains("]")) ){ //if is a continuous range such as [300,}
+					bqTerms.add("(range field=" + pair.getKey()+ " " + value + ")");
+					continue;
+				}
+				
+				//add quotes around value. i.e. value -> 'value'
+				value = "'" + escapeQuotedValue(pair.getValue()) + "'"; 
 				String term = pair.getKey() + ":" + value; 
 				if(pair.getNot() != null && pair.getNot()) {
 					term = "(not " + term + ")";
 				}
-				params.add("bq=" + URLEncoder.encode(term, "UTF-8"));
+				bqTerms.add(term);
 			}
+			
+			//turns it from (and <q1> <q2> ... <qN>) into (and (and <q1> <q2> ... <qN>) <bqterm1> <bqterm2> ... <bqtermN>)
+			queryTermsStringBuilder.append( (queryTermsStringBuilder.length() > 0 ? " ":"") + join(bqTerms, " ")+ ")");
+			queryTermsStringBuilder.insert(0, "(and "); //add to the beginning of string
 		}
-
-		// facets
-		if (searchQuery.getFacet() != null && searchQuery.getFacet().size() > 0)
-			params.add("facet=" + URLEncoder.encode(join(searchQuery.getFacet(), ","), "UTF-8"));
-
+		
+		params.add("q.parser=structured");
+		params.add("q=" + URLEncoder.encode(queryTermsStringBuilder.toString(), "UTF-8"));
+		
+		//preprocess the FacetSortConstraints
 		// facet field constraints
 		if (searchQuery.getFacetFieldConstraints() != null
 				&& searchQuery.getFacetFieldConstraints().size() > 0) {
-			for (KeyList pair : searchQuery.getFacetFieldConstraints()) {
-				String key = "facet-" + pair.getKey() + "-constraints";
-				
-				// quote and escape strings but not numbers or ranges
-				List<String> values = new ArrayList<String>();
-				for(String value : pair.getValues()) {
-					if(!value.contains("..") && !isNumeric(value)) {
-						value = "'" + escapeQuotedValue(value) + "'";
-						value = value.replaceAll(",","\\\\,"); // replace , -> \,  -- do this after the escapeQuotedValue
-						values.add(value);
-					} else {
-						values.add(value);
-					}
-				}
-				params.add(key + "=" + URLEncoder.encode(join(values, ","), "UTF-8"));
+			throw new IllegalArgumentException("Facet field constraints are no longer supported");
+		}
+		if (searchQuery.getFacetFieldSort() != null){
+			throw new IllegalArgumentException("Sorting of facets is no longer supported");
+		}
+		
+		// facets
+		if (searchQuery.getFacet() != null && searchQuery.getFacet().size() > 0){ //iterate over all facets
+			for(String facetFieldName : searchQuery.getFacet()){
+				//no options inside {} since none are used by the webclient 
+				params.add("facet." + facetFieldName +"=" + URLEncoder.encode("{}", "UTF-8"));
 			}
 		}
-
-		// facet field sort
-		if (searchQuery.getFacetFieldSort() != null
-				&& searchQuery.getFacetFieldSort().size() > 0) {
-			for (FacetSort facetSort : searchQuery.getFacetFieldSort()) {
-				String key = "facet-" + facetSort.getFacetName() + "-sort";
-				String value = null;
-				switch (facetSort.getSortType()) {
-				case ALPHA:
-					value = "alpha";
-					break;
-				case COUNT:
-					value = "count";
-					break;
-				case MAX:
-					if (facetSort.getMaxfield() != null) {
-						value = "max(" + facetSort.getMaxfield() + ")";
-					} else {
-						throw new InvalidArgumentException(
-								"maxField must be set for type: "
-										+ facetSort.getSortType());
-					}
-					break;
-				case SUM:
-					if (facetSort.getSumFields() != null
-							&& facetSort.getSumFields().size() > 0) {
-						value = "sum(" + join(facetSort.getSumFields(), ",")
-								+ ")";
-					} else {
-						throw new InvalidArgumentException(
-								"sumFields must contain at least one value for type: "
-										+ facetSort.getSortType());
-					}
-					break;
-				default:
-					throw new InvalidArgumentException(
-							"Unknown Facet Field Sort: "
-									+ facetSort.getSortType());
-				}
-				params.add(key + "=" + URLEncoder.encode(value, "UTF-8"));
-			}
+		
+		//switch to size parameter in facet
+		// facet top n
+		if (searchQuery.getFacetFieldTopN() != null) {
+			throw new IllegalArgumentException("facet-field-top-n is no longer supported");
 		}
-
-		// face top n
-		if (searchQuery.getFacetFieldTopN() != null
-				&& searchQuery.getFacetFieldTopN().size() > 0) {
-			for (FacetTopN topN : searchQuery.getFacetFieldTopN()) {
-				params.add("facet-" + topN.getKey() + "-top-n="
-						+ topN.getValue());
-			}
-		}
-
+		
 		// rank
-		if (searchQuery.getRank() != null && searchQuery.getRank().size() > 0)
-			params.add("rank=" + URLEncoder.encode(join(searchQuery.getRank(), ","), "UTF-8"));
+		if (searchQuery.getRank() != null){
+			throw new IllegalArgumentException("Rank is no longer supported");
+		}
+		
 
 		// return-fields
 		if (searchQuery.getReturnFields() != null
 				&& searchQuery.getReturnFields().size() > 0)
-			params.add("return-fields="
+			params.add("return="
 					+ URLEncoder.encode(join(searchQuery.getReturnFields(), ","), "UTF-8"));
 
 		// size
@@ -152,18 +142,49 @@ public class SearchUtil {
 		if (searchQuery.getStart() != null)
 			params.add("start=" + searchQuery.getStart());
 
-		// TODO : support t-FIELD ?
-
 		return join(params, "&");
 	}
 
 	/*
 	 * Private Methods
 	 */
-	private static String join(List<String> list, String delimiter) {
+	/**
+	 * Creates a prefix query if there is an asterisk
+	 * @param prefixStringWithAsterisk prefix string containing the * symbol
+	 * @param fieldName optional. used in boolean queries but not in regular queries. 
+	 * @return
+	 */
+	private static String createPrefixQuery(String prefixStringWithAsterisk, String fieldName){
+		int asteriskIndex = prefixStringWithAsterisk.indexOf('*');
+		if(asteriskIndex == -1){
+			throw new IllegalArgumentException("the prefixString does not contain an * (asterisk) symbol");
+		}
+		return "(prefix" + (fieldName==null ? "" : " field=" + fieldName) + " '" + prefixStringWithAsterisk.substring(0, asteriskIndex) + "')";
+	}
+	
+	
+	private static String join(List<String> list, String delimiter){
+		return joinHelper(list, delimiter, false);
+	}
+	
+	private static String joinQueries(List<String> list, String delimiter){
+		return joinHelper(list, delimiter, true);
+	}
+	
+	private static String joinHelper(List<String> list, String delimiter, boolean forQueries) {
 		StringBuilder sb = new StringBuilder();
 		for (String item : list) {
-			sb.append(item);
+			if(forQueries){
+				if(item.contains("*")){
+					sb.append(createPrefixQuery(item, null));
+				}else{
+					sb.append('\''); //appends ' character
+					sb.append(item);
+					sb.append('\'');
+				}
+			}else{
+				sb.append(item);
+			}
 			sb.append(delimiter);
 		}
 		String str = sb.toString();

@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.model.table.HasEntityId;
 import org.sagebionetworks.repo.model.table.QueryResult;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.RowReferenceSetResults;
+import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewResult;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
@@ -30,7 +31,8 @@ public enum AsynchJobType {
 	TableCSVUploadPreview(TABLE_UPLOAD_CSV_PREVIEW, UploadToTablePreviewResult.class, RestEndpointType.repo),
 	TableCSVDownload(TABLE_DOWNLOAD_CSV, DownloadFromTableResult.class, RestEndpointType.repo), 
 	S3FileCopy(S3_FILE_COPY, S3FileCopyResults.class, RestEndpointType.file),
-	BulkFileDownload(FILE_BULK, BulkFileDownloadResponse.class, RestEndpointType.file);
+	BulkFileDownload(FILE_BULK, BulkFileDownloadResponse.class, RestEndpointType.file),
+	TableTransaction(TABLE_TRANSACTION, TableUpdateTransactionResponse.class, RestEndpointType.repo);
 
 	String prefix;
 	Class<? extends AsynchronousResponseBody> responseClass;

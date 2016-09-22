@@ -1,13 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.dao.table;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ID_SEQUENCE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ID_SEQUENCE_TABLE_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_KEY;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_TABLE_ETAG;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_TABLE_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_VERSION;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ROW_CHANGE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TABLE_ID_SEQUENCE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -30,9 +23,11 @@ import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.dao.table.RowSetAccessor;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.dbo.persistence.table.ColumnModelUtils;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableIdSequence;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableRowChange;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.IdRange;
 import org.sagebionetworks.repo.model.table.RawRowSet;
@@ -40,10 +35,12 @@ import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.TableChangeType;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -63,6 +60,9 @@ import com.google.common.collect.Sets;
  * 
  */
 public class TableRowTruthDAOImpl implements TableRowTruthDAO {
+	
+	public static final String SCAN_ROWS_TYPE_ERROR = "Can only scan over table changes of type: "+TableChangeType.ROW;
+
 	private static Logger log = LogManager.getLogger(TableRowTruthDAOImpl.class);
 
 	private static final String SQL_SELECT_VERSION_FOR_ETAG = "SELECT "
@@ -71,8 +71,14 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 			+ " = ? ";
 	private static final String SQL_SELECT_MAX_ROWID = "SELECT " + COL_ID_SEQUENCE + " FROM " + TABLE_TABLE_ID_SEQUENCE + " WHERE "
 			+ COL_ID_SEQUENCE_TABLE_ID + " = ?";
+	
 	private static final String SQL_SELECT_LAST_ROW_CHANGE_FOR_TABLE = "SELECT * FROM " + TABLE_ROW_CHANGE + " WHERE "
 			+ COL_TABLE_ROW_TABLE_ID + " = ? ORDER BY " + COL_TABLE_ROW_VERSION + " DESC LIMIT 1";
+	
+	private static final String SQL_SELECT_LAST_ROW_CHANGE_FOR_TABLE_WITH_TYPE = "SELECT * FROM " + TABLE_ROW_CHANGE + " WHERE "
+			+ COL_TABLE_ROW_TABLE_ID + " = ? AND "+COL_TABLE_ROW_TYPE+" = ? ORDER BY " + COL_TABLE_ROW_VERSION + " DESC LIMIT 1";
+	
+	
 	private static final String SQL_SELECT_ROW_CHANGE_FOR_TABLE_AND_VERSION = "SELECT * FROM "
 			+ TABLE_ROW_CHANGE
 			+ " WHERE "
@@ -87,16 +93,19 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 			+ " WHERE "
 			+ COL_TABLE_ROW_TABLE_ID
 			+ " = ? ORDER BY " + COL_TABLE_ROW_VERSION + " ASC";
+	
 	private static final String SQL_ALL_ROW_CHANGES_FOR_TABLE_GREATER_VERSION_BASE = "FROM "
 			+ TABLE_ROW_CHANGE
 			+ " WHERE "
 			+ COL_TABLE_ROW_TABLE_ID
 			+ " = ? AND "
 			+ COL_TABLE_ROW_VERSION
-			+ " > ? ORDER BY "
+			+ " > ? AND "+COL_TABLE_ROW_TYPE+" = '"+TableChangeType.ROW+"' ORDER BY "
 			+ COL_TABLE_ROW_VERSION + " ASC";
+	
 	private static final String SQL_SELECT_ALL_ROW_CHANGES_FOR_TABLE_GREATER_VERSION = "SELECT * "
 			+ SQL_ALL_ROW_CHANGES_FOR_TABLE_GREATER_VERSION_BASE;
+	
 	private static final String SQL_DELETE_ROW_DATA_FOR_TABLE = "DELETE FROM " + TABLE_TABLE_ID_SEQUENCE + " WHERE "
 			+ COL_ID_SEQUENCE_TABLE_ID
 			+ " = ?";
@@ -208,13 +217,14 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		changeDBO.setTableId(KeyFactory.stringToKey(tableId));
 		changeDBO.setRowVersion(range.getVersionNumber());
 		changeDBO.setEtag(range.getEtag());
-		changeDBO.setColumnIds(TableModelUtils.createDelimitedColumnModelIdString(Lists.transform(columns,
-				TableModelUtils.COLUMN_MODEL_TO_ID)));
+		changeDBO.setColumnIds(TableModelUtils.createDelimitedColumnModelIdString(
+				TableModelUtils.getIds(columns)));
 		changeDBO.setCreatedBy(Long.parseLong(userId));
 		changeDBO.setCreatedOn(System.currentTimeMillis());
 		changeDBO.setKey(key);
 		changeDBO.setBucket(s3Bucket);
 		changeDBO.setRowCount(new Long(delta.getRows().size()));
+		changeDBO.setChangeType(TableChangeType.ROW.name());
 		basicDao.createNew(changeDBO);
 
 		// Prepare the results
@@ -232,6 +242,67 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		}
 		results.setRows(refs);
 		return results;
+	}
+	
+	@Override
+	public long appendSchemaChangeToTable(String userId, String tableId,
+			List<String> current, List<ColumnChange> changes) throws IOException {
+		
+		long coutToReserver = 1;
+		IdRange range = reserveIdsInRange(tableId, coutToReserver);
+		// We are ready to convert the file to a CSV and save it to S3.
+		String key = saveSchemaToS3(changes);
+		// record the change
+		DBOTableRowChange changeDBO = new DBOTableRowChange();
+		changeDBO.setTableId(KeyFactory.stringToKey(tableId));
+		changeDBO.setRowVersion(range.getVersionNumber());
+		changeDBO.setEtag(range.getEtag());
+		changeDBO.setColumnIds(TableModelUtils.createDelimitedColumnModelIdString(current));
+		changeDBO.setCreatedBy(Long.parseLong(userId));
+		changeDBO.setCreatedOn(System.currentTimeMillis());
+		changeDBO.setKey(key);
+		changeDBO.setBucket(s3Bucket);
+		changeDBO.setRowCount(0L);
+		changeDBO.setChangeType(TableChangeType.COLUMN.name());
+		basicDao.createNew(changeDBO);
+		return range.getVersionNumber();
+	}
+	
+	String saveSchemaToS3(List<ColumnChange> changes)
+			throws IOException {
+		File temp = File.createTempFile("schemaChange", ".gz");
+		FileOutputStream out = null;
+		try {
+			out = new FileOutputStream(temp);
+			// Save this to the the zipped CSV
+			ColumnModelUtils.writeSchemaChangeToGz(changes, out);
+			// upload it to S3.
+			String key = String.format(KEY_TEMPLATE, UUID.randomUUID()
+					.toString());
+			s3Client.putObject(s3Bucket, key, temp);
+			return key;
+		} finally {
+			if (out != null) {
+				out.close();
+			}
+			if (temp != null) {
+				temp.delete();
+			}
+		}
+	}
+	
+	@Override
+	public List<ColumnChange> getSchemaChangeForVersion(String tableId,
+			long versionNumber) throws IOException {
+		TableRowChange dto = getTableRowChange(tableId, versionNumber);
+		// Download the file from S3
+		S3Object object = s3Client.getObject(dto.getBucket(), dto.getKey());
+		try {
+			return ColumnModelUtils.readSchemaChangeFromGz(object.getObjectContent());
+		} finally {
+			// Need to close the stream unconditionally.
+			object.getObjectContent().close();
+		}
 	}
 
 	@Override
@@ -273,6 +344,21 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		long tableId = KeyFactory.stringToKey(tableIdString);
 		try {
 			DBOTableRowChange dbo = jdbcTemplate.queryForObject(SQL_SELECT_LAST_ROW_CHANGE_FOR_TABLE, rowChangeMapper, tableId);
+			return TableRowChangeUtils.ceateDTOFromDBO(dbo);
+		} catch (EmptyResultDataAccessException e) {
+			// presumably, no rows have been added yet
+			return null;
+		}
+	}
+	
+	@Override
+	public TableRowChange getLastTableRowChange(String tableIdString,
+			TableChangeType changeType) {
+		ValidateArgument.required(tableIdString, "tableId");
+		ValidateArgument.required(changeType, "TableChangeType");
+		long tableId = KeyFactory.stringToKey(tableIdString);
+		try {
+			DBOTableRowChange dbo = jdbcTemplate.queryForObject(SQL_SELECT_LAST_ROW_CHANGE_FOR_TABLE_WITH_TYPE, rowChangeMapper, tableId, changeType.name());
 			return TableRowChangeUtils.ceateDTOFromDBO(dbo);
 		} catch (EmptyResultDataAccessException e) {
 			// presumably, no rows have been added yet
@@ -365,7 +451,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	public RowSet getRowSet(String tableId, long rowVersion, List<ColumnModel> columns)
 			throws IOException, NotFoundException {
 		TableRowChange dto = getTableRowChange(tableId, rowVersion);
-		// Downlaod the file from S3
+		// Download the file from S3
 		S3Object object = s3Client.getObject(dto.getBucket(), dto.getKey());
 		try {
 			RowSet set = new RowSet();
@@ -399,6 +485,8 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	@Override
 	public void scanChange(RowHandler handler, TableRowChange dto)
 			throws IOException {
+		ValidateArgument.required(dto, "TableRowChange");
+		ValidateArgument.requirement(TableChangeType.ROW.equals(dto.getChangeType()), SCAN_ROWS_TYPE_ERROR);
 		S3Object object = s3Client.getObject(dto.getBucket(), dto.getKey());
 		try {
 			TableModelUtils.scanFromCSVgzStream(object.getObjectContent(),
@@ -534,7 +622,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		if (results.size() == 0) {
 			throw new NotFoundException("Row not found, row=" + ref.getRowId() + ", version=" + ref.getVersionNumber());
 		}
-		Map<Long, Integer> columnIndexMap = TableModelUtils.createColumnIdToIndexMap(trc);
+		Map<String, Integer> columnIndexMap = TableModelUtils.createColumnIdToIndexMap(trc);
 		return TableModelUtils.convertToSchemaAndMerge(results.get(0), columnIndexMap, columns);
 	}
 
@@ -554,7 +642,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 				break;
 			}
 
-			final List<Long> rowChangeColumnIds = rowChange.getIds();
+			final List<String> rowChangeColumnIds = rowChange.getIds();
 			// Scan over the delta
 			scanChange(new RowHandler() {
 				@Override
@@ -569,15 +657,15 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		return new RowSetAccessor(rowIdToRowMap);
 	}
 
-	protected void appendRowDataToMap(final Map<Long, RowAccessor> rowIdToRowMap, final List<Long> rowChangeColumnIds, final Row row) {
+	protected void appendRowDataToMap(final Map<Long, RowAccessor> rowIdToRowMap, final List<String> rowChangeColumnIds, final Row row) {
 		if (TableModelUtils.isDeletedRow(row)) {
 			rowIdToRowMap.remove(row.getRowId());
 		} else {
 			rowIdToRowMap.put(row.getRowId(), new RowAccessor() {
-				Map<Long, Integer> columnIdToIndexMap = null;
+				Map<String, Integer> columnIdToIndexMap = null;
 
 				@Override
-				public String getCellById(Long columnId) {
+				public String getCellById(String columnId) {
 					if (columnIdToIndexMap == null) {
 						columnIdToIndexMap = TableModelUtils.createColumnIdToIndexMap(rowChangeColumnIds);
 					}
@@ -675,4 +763,5 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 			}, rowChange);
 		}
 	}
+
 }

@@ -1,6 +1,11 @@
 package org.sagebionetworks.repo.model.dbo.dao.table;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -10,7 +15,6 @@ import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.After;
 import org.junit.Before;
@@ -24,6 +28,7 @@ import org.sagebionetworks.repo.model.dao.table.RowAccessor;
 import org.sagebionetworks.repo.model.dao.table.RowSetAccessor;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.IdRange;
@@ -33,6 +38,7 @@ import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
+import org.sagebionetworks.repo.model.table.TableChangeType;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
@@ -303,6 +309,40 @@ public class TableRowTruthDAOImplTest {
 		assertEquals(new Long(1), greater.get(0).getRowVersion());
 	}
 	
+	@Test
+	public void testListRowSetsForTableMixedType() throws IOException{
+		List<ColumnModel> columns = TableModelTestUtils.createOneOfEachType();
+		// create some test rows.
+		List<Row> rows = TableModelTestUtils.createRows(columns, 5);
+		String tableId = "syn123";
+		// Before we start there should be no changes
+		List<TableRowChange> results = tableRowTruthDao.listRowSetsKeysForTable(tableId);
+		assertNotNull(results);
+		assertEquals(0, results.size());
+		RawRowSet set = new RawRowSet(TableModelUtils.getIds(columns), null, tableId, rows);
+		// Append this change set
+		RowReferenceSet refSet = tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, columns, set);
+		// append a column change to the table
+		ColumnChange add = new ColumnChange();
+		add.setOldColumnId(null);
+		add.setNewColumnId("123");		
+		List<ColumnChange> changes = new LinkedList<ColumnChange>();
+		changes.add(add);
+		
+		 List<String> current = new LinkedList<String>();
+		 current.add("123");
+		 current.add("888");
+		// Append a column change this change set
+		tableRowTruthDao.appendSchemaChangeToTable(creatorUserGroupId, tableId, current, changes);
+		// Call under test
+		// Listing all versions greater than zero should be the same as all
+		List<TableRowChange> rowChanges = tableRowTruthDao.listRowSetsKeysForTableGreaterThanVersion(tableId, -1l);
+		assertNotNull(rowChanges);
+		assertEquals(1, rowChanges.size());
+		TableRowChange change = rowChanges.get(0);
+		assertEquals(TableChangeType.ROW, change.getChangeType());
+	}
+	
 	
 	@Test
 	public void testGetRowSet() throws IOException, NotFoundException{
@@ -510,6 +550,45 @@ public class TableRowTruthDAOImplTest {
 	}
 	
 	@Test
+	public void testGetLastTableRowChange() throws IOException{
+		// Create some test column models
+		List<ColumnModel> columns = TableModelTestUtils.createOneOfEachType();
+		// create some test rows.
+		List<Row> rows = TableModelTestUtils.createRows(columns, 5);
+		String tableId = "syn123";
+		RawRowSet set = new RawRowSet(TableModelUtils.getIds(columns), null, tableId, rows);
+		// Append this change set
+		RowReferenceSet refSet = tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, columns, set);
+		assertNotNull(refSet);
+	
+		TableChangeType changeType = TableChangeType.ROW;
+		// call under test
+		TableRowChange change = tableRowTruthDao.getLastTableRowChange(tableId, changeType);
+		assertNotNull(change);
+		assertEquals(changeType, change.getChangeType());
+		// There should be no changes of type column.
+		changeType = TableChangeType.COLUMN;
+		change = tableRowTruthDao.getLastTableRowChange(tableId, changeType);
+		assertNull(change);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetLastTableRowChangeNullType() throws IOException{
+		TableChangeType changeType = null;
+		String tableId = "syn123";
+		// call under test
+		tableRowTruthDao.getLastTableRowChange(tableId, changeType);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetLastTableRowChangeNullId() throws IOException{
+		TableChangeType changeType = TableChangeType.COLUMN;
+		String tableId = null;
+		// call under test
+		tableRowTruthDao.getLastTableRowChange(tableId, changeType);
+	}
+	
+	@Test
 	public void testAppendRowsUpdateAndGetLatest() throws Exception {
 		Map<Long, Long> rowVersions = Maps.newHashMap();
 		// Create some test column models
@@ -532,9 +611,6 @@ public class TableRowTruthDAOImplTest {
 		toUpdate.getRows().remove(1);
 		TableModelTestUtils.updateRow(columns, toUpdate.getRows().get(0), 15);
 		TableModelTestUtils.updateRow(columns, toUpdate.getRows().get(1), 18);
-
-		final AtomicInteger count = new AtomicInteger(0);// abusing atomic integer as a reference to an int
-
 
 		// create some new rows
 		rows = TableModelTestUtils.createRows(columns, 2);
@@ -930,6 +1006,79 @@ public class TableRowTruthDAOImplTest {
 		updatedSetNoEtag.getRows().get(0).setVersionNumber(null);
 		// This should fail as a null version number is passed in. 
 		tableRowTruthDao.checkForRowLevelConflict(tableId, updatedSetNoEtag);
+	}
+	
+	@Test
+	public void testScanRows() throws IOException{
+		// Create some test column models
+		List<ColumnModel> columns = TableModelTestUtils.createOneOfEachType();
+		// create some test rows.
+		List<Row> rows = TableModelTestUtils.createRows(columns, 1, false);
+		String tableId = "syn123";
+		RawRowSet set = new RawRowSet(TableModelUtils.getIds(columns), null, tableId, rows);
+		// Append this change set
+		RowReferenceSet refSet = tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, columns, set);
+		CaptureRowHandler rowHandler = new CaptureRowHandler();
+		// call under test.
+		tableRowTruthDao.scanRowSet(tableId, refSet.getRows().get(0).getVersionNumber(), rowHandler);
+		List<Row> capturedRows = rowHandler.getCapturedRows();
+		assertEquals(1, capturedRows.size());
+		assertEquals(rows.get(0).getValues(), capturedRows.get(0).getValues());
+	}
+	
+	@Test
+	public void testAppendSchemaChange() throws IOException{
+		ColumnChange add = new ColumnChange();
+		add.setOldColumnId(null);
+		add.setNewColumnId("123");
+		
+		ColumnChange delete = new ColumnChange();
+		delete.setOldColumnId("456");
+		delete.setNewColumnId(null);
+		
+		ColumnChange update = new ColumnChange();
+		update.setOldColumnId("777");
+		update.setNewColumnId("888");
+		
+		List<ColumnChange> changes = new LinkedList<ColumnChange>();
+		changes.add(add);
+		changes.add(delete);
+		changes.add(update);
+		
+		 List<String> current = new LinkedList<String>();
+		 current.add("123");
+		 current.add("888");
+		 
+		String tableId = "syn123";
+		// append the schema change to the changes table.
+		long versionNumber = tableRowTruthDao.appendSchemaChangeToTable(creatorUserGroupId, tableId, current, changes);
+		// lookup the schema change for the given change number.
+		List<ColumnChange> back = tableRowTruthDao.getSchemaChangeForVersion(tableId, versionNumber);
+		assertEquals(changes, back);
+	}
+	
+	@Test
+	public void testScanRowsColumnChange() throws IOException{
+		ColumnChange add = new ColumnChange();
+		add.setOldColumnId(null);
+		add.setNewColumnId("123");		
+		List<ColumnChange> changes = new LinkedList<ColumnChange>();
+		changes.add(add);
+		
+		 List<String> current = new LinkedList<String>();
+		 current.add("123");
+		 current.add("888");
+		
+		String tableId = "syn123";
+		// Append this change set
+		long version = tableRowTruthDao.appendSchemaChangeToTable(creatorUserGroupId, tableId, current, changes);
+		CaptureRowHandler rowHandler = new CaptureRowHandler();
+		// call under test.
+		try {
+			tableRowTruthDao.scanRowSet(tableId, version, rowHandler);
+		} catch (IllegalArgumentException e) {
+			assertEquals(TableRowTruthDAOImpl.SCAN_ROWS_TYPE_ERROR, e.getMessage());
+		}
 	}
 
 }

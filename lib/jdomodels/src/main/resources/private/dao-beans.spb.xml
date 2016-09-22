@@ -35,14 +35,13 @@
 	<bean id="nodeDao" class="org.sagebionetworks.repo.model.dbo.dao.NodeDAOImpl"
 		depends-on="idGenerator" />
 		
+	<bean id="permissionDao" class="org.sagebionetworks.repo.model.dbo.dao.PermissionDaoImpl"/>
+		
 	<bean id="dockerNodeDao" class="org.sagebionetworks.repo.model.dbo.dao.DockerNodeDaoImpl"
 		depends-on="idGenerator" />
 		
 	<bean id="dockerCommitDao" class="org.sagebionetworks.repo.model.dbo.dao.DockerCommitDaoImpl"
 		depends-on="idGenerator" />
-		
-	<bean id="tableViewDao" class="org.sagebionetworks.repo.model.dbo.dao.table.TableViewDaoImpl"
-		scope="singleton" />	
 
 	<bean id="activityDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOActivityDAOImpl"
@@ -333,10 +332,21 @@
 		class="org.sagebionetworks.repo.model.dbo.auth.DBOAuthenticationReceiptDAOImpl" />
 
 	<!-- Misc beans -->
+	
+	<!-- A singleton counting semaphore with all method synchronized to serialize lock acquisition on each machine -->
 	<bean id="countingSemaphore"
-		class="org.sagebionetworks.database.semaphore.CountingSemaphoreImpl">
-		<constructor-arg ref="dataSourcePool" index="0"></constructor-arg>
-		<constructor-arg ref="txManager" index="1"></constructor-arg>
+		class="org.sagebionetworks.repo.model.semaphore.SynchronizedCountingSemaphore"
+		scope="singleton">
+		<constructor-arg index="0">
+			<bean class="org.sagebionetworks.database.semaphore.CountingSemaphoreImpl">
+				<constructor-arg ref="dataSourcePool" index="0"></constructor-arg>
+				<constructor-arg ref="txManager" index="1"></constructor-arg>
+			</bean>
+		</constructor-arg>
 	</bean>	
+	
+	<!-- DAO for API Call Throttle-->
+	<bean id="throttleRulesDao"
+		class="org.sagebionetworks.repo.model.dbo.dao.throttle.DBOThrottleRulesDAOImpl" />
 
 </beans>

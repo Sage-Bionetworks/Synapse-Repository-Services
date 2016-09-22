@@ -28,11 +28,13 @@
 	<bean name="stackConfiguration.asyncQueueName[BROADCAST]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean name="stackConfiguration.asyncQueueName[PROJECT_STATS_V2]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean name="stackConfiguration.asyncQueueName[TABLE_UPDATE_TRANSACTION]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
-
+	<bean name="stackConfiguration.asyncQueueName[THREAD_STATS]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	
 	<bean name="stackConfiguration.workerQueueName[ProjectStatsWorker]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean name="stackConfiguration.workerQueueName[SyncFolderWorker]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean name="stackConfiguration.workerQueueName[SyncSettingsModificationsWorker]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean name="stackConfiguration.workerQueueName[TableViewWorker]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	<bean name="stackConfiguration.workerQueueName[TableEntityReplicationWorker]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	
 	<!-- Topics -->
 	<bean name="stackConfiguration.repositoryChangeTopic[ACCESS_CONTROL_LIST]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />

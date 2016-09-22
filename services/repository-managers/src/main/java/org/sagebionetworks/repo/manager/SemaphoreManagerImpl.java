@@ -4,6 +4,7 @@ import org.sagebionetworks.database.semaphore.CountingSemaphore;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.semaphore.MemoryCountingSemaphore;
+import org.sagebionetworks.repo.model.semaphore.MemoryTimeBlockCountingSemaphore;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class SemaphoreManagerImpl implements SemaphoreManager {
@@ -13,6 +14,9 @@ public class SemaphoreManagerImpl implements SemaphoreManager {
 	
 	@Autowired
 	MemoryCountingSemaphore userThrottleMemoryCountingSemaphore;
+	
+	@Autowired
+	MemoryTimeBlockCountingSemaphore userThrottleMemoryTimeBlockSemaphore;
 
 	@Override
 	public void releaseAllLocksAsAdmin(UserInfo admin) {
@@ -27,6 +31,9 @@ public class SemaphoreManagerImpl implements SemaphoreManager {
 		countingSemaphore.releaseAllLocks();
 		// release memory locks.
 		userThrottleMemoryCountingSemaphore.releaseAllLocks();
+		
+		userThrottleMemoryTimeBlockSemaphore.releaseAllLocks();
+		
 	}
 	
 

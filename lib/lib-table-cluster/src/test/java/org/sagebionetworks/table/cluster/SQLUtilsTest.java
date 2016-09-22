@@ -15,8 +15,11 @@ import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
+import org.sagebionetworks.repo.model.table.AnnotationType;
+import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.IdRange;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
@@ -410,7 +413,7 @@ public class SQLUtilsTest {
 		newColumn.setId("456");
 		newColumn.setColumnType(ColumnType.BOOLEAN);
 		
-		ColumnChange change = new ColumnChange(oldColumn, newColumn);
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
 		// call under test
 		SQLUtils.appendUpdateColumn(builder, change);
 		assertEquals("CHANGE COLUMN _C123_ _C456_ BOOLEAN DEFAULT NULL COMMENT 'BOOLEAN'", builder.toString());
@@ -428,7 +431,7 @@ public class SQLUtilsTest {
 		newColumn.setId("456");
 		newColumn.setColumnType(ColumnType.INTEGER);
 		
-		ColumnChange change = new ColumnChange(oldColumn, newColumn);
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
 		// call under test
 		SQLUtils.appendUpdateColumn(builder, change);
 		assertEquals("CHANGE COLUMN _C123_ _C456_ BIGINT(20) DEFAULT NULL COMMENT 'INTEGER'", builder.toString());
@@ -446,7 +449,7 @@ public class SQLUtilsTest {
 		newColumn.setId("456");
 		newColumn.setColumnType(ColumnType.INTEGER);
 		
-		ColumnChange change = new ColumnChange(oldColumn, newColumn);
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
 		// call under test
 		SQLUtils.appendUpdateColumn(builder, change);
 		assertEquals("CHANGE COLUMN _C123_ _C456_ BIGINT(20) DEFAULT NULL COMMENT 'INTEGER'", builder.toString());
@@ -464,7 +467,7 @@ public class SQLUtilsTest {
 		newColumn.setId("456");
 		newColumn.setColumnType(ColumnType.INTEGER);
 		
-		ColumnChange change = new ColumnChange(oldColumn, newColumn);
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
 		// call under test
 		SQLUtils.appendUpdateColumn(builder, change);
 		assertEquals("CHANGE COLUMN _C123_ _C456_ BIGINT(20) DEFAULT NULL COMMENT 'INTEGER'"
@@ -483,7 +486,7 @@ public class SQLUtilsTest {
 		newColumn.setId("456");
 		newColumn.setColumnType(ColumnType.DOUBLE);
 		
-		ColumnChange change = new ColumnChange(oldColumn, newColumn);
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
 		// call under test
 		SQLUtils.appendUpdateColumn(builder, change);
 		assertEquals("CHANGE COLUMN _C123_ _C456_ DOUBLE DEFAULT NULL COMMENT 'DOUBLE'"
@@ -502,7 +505,7 @@ public class SQLUtilsTest {
 		newColumn.setId("456");
 		newColumn.setColumnType(ColumnType.DOUBLE);
 		
-		ColumnChange change = new ColumnChange(oldColumn, newColumn);
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
 		// call under test
 		SQLUtils.appendUpdateColumn(builder, change);
 		assertEquals("CHANGE COLUMN _C123_ _C456_ DOUBLE DEFAULT NULL COMMENT 'DOUBLE'"
@@ -521,7 +524,7 @@ public class SQLUtilsTest {
 		newColumn.setId("456");
 		newColumn.setColumnType(ColumnType.BOOLEAN);
 		
-		ColumnChange change = new ColumnChange(oldColumn, newColumn);
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
 		// call under test
 		boolean hasChange = SQLUtils.appendAlterTableSql(builder, change);
 		assertTrue(hasChange);
@@ -540,7 +543,7 @@ public class SQLUtilsTest {
 		newColumn.setId("123");
 		newColumn.setColumnType(ColumnType.BOOLEAN);
 		
-		ColumnChange change = new ColumnChange(oldColumn, newColumn);
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
 		// call under test
 		boolean hasChange = SQLUtils.appendAlterTableSql(builder, change);
 		assertFalse(hasChange);
@@ -557,7 +560,7 @@ public class SQLUtilsTest {
 		newColumn.setId("123");
 		newColumn.setColumnType(ColumnType.BOOLEAN);
 		
-		ColumnChange change = new ColumnChange(oldColumn, newColumn);
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
 		// call under test
 		boolean hasChange = SQLUtils.appendAlterTableSql(builder, change);
 		assertTrue(hasChange);
@@ -573,7 +576,7 @@ public class SQLUtilsTest {
 		oldColumn.setColumnType(ColumnType.BOOLEAN);
 		// new column
 		ColumnModel newColumn = null;
-		ColumnChange change = new ColumnChange(oldColumn, newColumn);
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
 		// call under test
 		boolean hasChange = SQLUtils.appendAlterTableSql(builder, change);
 		assertTrue(hasChange);
@@ -587,7 +590,7 @@ public class SQLUtilsTest {
 		ColumnModel oldColumn = null;
 		// new column
 		ColumnModel newColumn = null;
-		ColumnChange change = new ColumnChange(oldColumn, newColumn);
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
 		// call under test
 		boolean hasChange = SQLUtils.appendAlterTableSql(builder, change);
 		assertFalse(hasChange);
@@ -603,7 +606,7 @@ public class SQLUtilsTest {
 		ColumnModel newColumn = new ColumnModel();
 		newColumn.setId("456");
 		newColumn.setColumnType(ColumnType.INTEGER);
-		ColumnChange change = new ColumnChange(oldColumn, newColumn);
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
 		
 		oldColumn = new ColumnModel();
 		oldColumn.setId("111");
@@ -614,11 +617,43 @@ public class SQLUtilsTest {
 		newColumn.setColumnType(ColumnType.STRING);
 		newColumn.setMaximumSize(15L);
 		newColumn.setDefaultValue("foo");
-		ColumnChange change2 = new ColumnChange(oldColumn, newColumn);
+		ColumnChangeDetails change2 = new ColumnChangeDetails(oldColumn, newColumn);
 		String tableId = "syn999";
+		boolean alterTemp = false;
 		// call under test
-		String results = SQLUtils.createAlterTableSql(Lists.newArrayList(change, change2), tableId);
+		String results = SQLUtils.createAlterTableSql(Lists.newArrayList(change, change2), tableId, alterTemp);
 		assertEquals("ALTER TABLE T999 "
+				+ "CHANGE COLUMN _C123_ _C456_ BIGINT(20) DEFAULT NULL COMMENT 'INTEGER', "
+				+ "CHANGE COLUMN _C111_ _C222_ VARCHAR(15) CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT 'foo' COMMENT 'STRING', "
+				+ "DROP COLUMN _DBL_C111_", results);
+	}
+	
+	@Test
+	public void testCreateAlterTableSqlMultipleTempTrue(){
+		ColumnModel oldColumn = new ColumnModel();
+		oldColumn.setId("123");
+		oldColumn.setColumnType(ColumnType.BOOLEAN);
+		// new column
+		ColumnModel newColumn = new ColumnModel();
+		newColumn.setId("456");
+		newColumn.setColumnType(ColumnType.INTEGER);
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
+		
+		oldColumn = new ColumnModel();
+		oldColumn.setId("111");
+		oldColumn.setColumnType(ColumnType.DOUBLE);
+		// new column
+		newColumn = new ColumnModel();
+		newColumn.setId("222");
+		newColumn.setColumnType(ColumnType.STRING);
+		newColumn.setMaximumSize(15L);
+		newColumn.setDefaultValue("foo");
+		ColumnChangeDetails change2 = new ColumnChangeDetails(oldColumn, newColumn);
+		String tableId = "syn999";
+		boolean alterTemp = true;
+		// call under test
+		String results = SQLUtils.createAlterTableSql(Lists.newArrayList(change, change2), tableId, alterTemp);
+		assertEquals("ALTER TABLE TEMP999 "
 				+ "CHANGE COLUMN _C123_ _C456_ BIGINT(20) DEFAULT NULL COMMENT 'INTEGER', "
 				+ "CHANGE COLUMN _C111_ _C222_ VARCHAR(15) CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT 'foo' COMMENT 'STRING', "
 				+ "DROP COLUMN _DBL_C111_", results);
@@ -633,11 +668,12 @@ public class SQLUtilsTest {
 		ColumnModel newColumn = new ColumnModel();
 		newColumn.setId("123");
 		newColumn.setColumnType(ColumnType.BOOLEAN);
-		ColumnChange change = new ColumnChange(oldColumn, newColumn);
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
+		boolean alterTemp = false;
 		
 		String tableId = "syn999";
 		// call under test
-		String results = SQLUtils.createAlterTableSql(Lists.newArrayList(change), tableId);
+		String results = SQLUtils.createAlterTableSql(Lists.newArrayList(change), tableId, alterTemp);
 		assertEquals("when there are no changes the sql should be null",null, results);
 	}
 	
@@ -966,15 +1002,15 @@ public class SQLUtilsTest {
 		List<ColumnModel> oldSchema = Lists.newArrayList(one, two);
 		List<ColumnModel> newSchema = Lists.newArrayList(two, three);
 		// call under test
-		List<ColumnChange> results = SQLUtils.createReplaceSchemaChangeIds(oldSchema, newSchema);
+		List<ColumnChangeDetails> results = SQLUtils.createReplaceSchemaChangeIds(oldSchema, newSchema);
 		assertNotNull(results);
 		assertEquals(2, results.size());
 		// one should be removed
-		ColumnChange toRemove = results.get(0);
+		ColumnChangeDetails toRemove = results.get(0);
 		assertEquals("1", toRemove.getOldColumn().getId());
 		assertEquals(null, toRemove.getNewColumn());
 		// three should be added.
-		ColumnChange toAdd = results.get(1);
+		ColumnChangeDetails toAdd = results.get(1);
 		assertEquals(null, toAdd.getOldColumn());
 		assertEquals(three, toAdd.getNewColumn());
 	}
@@ -986,7 +1022,7 @@ public class SQLUtilsTest {
 		List<ColumnModel> oldSchema = Lists.newArrayList(one, two);
 		List<ColumnModel> newSchema = Lists.newArrayList(two, one);
 		// call under test
-		List<ColumnChange> results = SQLUtils.createReplaceSchemaChangeIds(oldSchema, newSchema);
+		List<ColumnChangeDetails> results = SQLUtils.createReplaceSchemaChangeIds(oldSchema, newSchema);
 		assertNotNull(results);
 		assertEquals(0, results.size());
 	}
@@ -1064,5 +1100,148 @@ public class SQLUtilsTest {
 		String tableId = "syn123";
 		String sql = SQLUtils.deleteTempTableSql(tableId);
 		assertEquals("DROP TABLE IF EXISTS TEMP123", sql);
+	}
+
+	
+	@Test
+	public void testTranslateColumnsEntityField(){
+		ColumnModel cm = EntityField.benefactorId.getColumnModel();
+		cm.setId("123");
+		int index = 4;
+		// call under test
+		ColumnMetadata meta = SQLUtils.translateColumns(cm, index);
+		assertEquals(cm, meta.getColumnModel());
+		assertEquals(index, meta.getColumnIndex());
+		assertEquals("_C123_", meta.getColumnNameForId());
+		assertEquals(EntityField.benefactorId, meta.getEntityField());
+		assertEquals(TableConstants.ENTITY_REPLICATION_ALIAS, meta.getTableAlias());
+		assertEquals(EntityField.benefactorId.getDatabaseColumnName(), meta.getSelectColumnName());
+		assertEquals(null, meta.getAnnotationType());
+	}
+	
+	@Test
+	public void testTranslateColumnsAnnotation(){
+		ColumnModel cm = new ColumnModel();
+		cm.setName("foo");
+		cm.setColumnType(ColumnType.STRING);
+		cm.setMaximumSize(50L);
+		cm.setId("123");
+		int index = 4;
+		// call under test.
+		ColumnMetadata meta = SQLUtils.translateColumns(cm, index);
+		assertEquals(cm, meta.getColumnModel());
+		assertEquals(index, meta.getColumnIndex());
+		assertEquals("_C123_", meta.getColumnNameForId());
+		assertEquals(null, meta.getEntityField());
+		assertEquals("A4", meta.getTableAlias());
+		assertEquals(TableConstants.ANNOTATION_REPLICATION_COL_VALUE, meta.getSelectColumnName());
+		assertEquals(AnnotationType.STRING, meta.getAnnotationType());
+	}
+	
+	@Test
+	public void testTranslateColumnType(){
+		assertEquals(AnnotationType.STRING, SQLUtils.translateColumnType(ColumnType.STRING));
+		assertEquals(AnnotationType.STRING, SQLUtils.translateColumnType(ColumnType.BOOLEAN));
+		assertEquals(AnnotationType.DATE, SQLUtils.translateColumnType(ColumnType.DATE));
+		assertEquals(AnnotationType.DOUBLE, SQLUtils.translateColumnType(ColumnType.DOUBLE));
+		assertEquals(AnnotationType.STRING, SQLUtils.translateColumnType(ColumnType.ENTITYID));
+		assertEquals(AnnotationType.STRING, SQLUtils.translateColumnType(ColumnType.FILEHANDLEID));
+		assertEquals(AnnotationType.LONG, SQLUtils.translateColumnType(ColumnType.INTEGER));
+		assertEquals(AnnotationType.STRING, SQLUtils.translateColumnType(ColumnType.LARGETEXT));
+		assertEquals(AnnotationType.STRING, SQLUtils.translateColumnType(ColumnType.LINK));
+	}
+	
+	@Test
+	public void testbuildInsertValues(){
+		ColumnModel one = EntityField.benefactorId.getColumnModel();
+		one.setId("1");
+		ColumnModel two = TableModelTestUtils.createColumn(2L);
+		List<ColumnModel> schema = Lists.newArrayList(one, two);
+		List<ColumnMetadata> metaList = SQLUtils.translateColumns(schema);
+		StringBuilder builder = new StringBuilder();
+		// call under test
+		SQLUtils.buildInsertValues(builder, metaList);
+		assertEquals("ROW_ID, ROW_VERSION, _C1_, _C2_", builder.toString());
+	}
+	
+	@Test
+	public void testBuildSelect(){
+		ColumnModel one = EntityField.benefactorId.getColumnModel();
+		one.setId("1");
+		ColumnModel two = TableModelTestUtils.createColumn(2L);
+		List<ColumnModel> schema = Lists.newArrayList(one, two);
+		List<ColumnMetadata> metaList = SQLUtils.translateColumns(schema);
+		StringBuilder builder = new StringBuilder();
+		// call under test
+		SQLUtils.buildSelect(builder, metaList);
+		assertEquals("R.ID, R.CURRENT_VERSION, R.BENEFACTOR_ID AS _C1_, A1.ANNO_VALUE AS _C2_", builder.toString());
+	}
+	
+	@Test
+	public void testBuildJoinsNoAnnotations(){
+		ColumnModel one = EntityField.benefactorId.getColumnModel();
+		one.setId("1");
+		ColumnModel two = EntityField.id.getColumnModel();
+		two.setId("2");
+		List<ColumnModel> schema = Lists.newArrayList(one, two);
+		List<ColumnMetadata> metaList = SQLUtils.translateColumns(schema);
+		StringBuilder builder = new StringBuilder();
+		// call under test
+		SQLUtils.buildJoins(metaList, builder);
+		assertEquals("", builder.toString());
+	}
+	
+	@Test
+	public void testBuildJoinsOneAnnotation(){
+		ColumnModel one = EntityField.benefactorId.getColumnModel();
+		one.setId("1");
+		ColumnModel two = TableModelTestUtils.createColumn(2L);
+		List<ColumnModel> schema = Lists.newArrayList(one, two);
+		List<ColumnMetadata> metaList = SQLUtils.translateColumns(schema);
+		StringBuilder builder = new StringBuilder();
+		// call under test
+		SQLUtils.buildJoins(metaList, builder);
+		assertEquals(" LEFT OUTER JOIN ANNOTATION_REPLICATION A1 ON"
+				+ " (R.ID = A1.ENTITY_ID AND A1.ANNO_KEY = 'col_2' AND A1.ANNO_TYPE = 'STRING')", builder.toString());
+	}
+	
+	@Test
+	public void testBuildJoinsMultipleAnnotation(){
+		ColumnModel one =  TableModelTestUtils.createColumn(1L);
+		ColumnModel two = TableModelTestUtils.createColumn(2L);
+		two.setColumnType(ColumnType.INTEGER);
+		List<ColumnModel> schema = Lists.newArrayList(one, two);
+		List<ColumnMetadata> metaList = SQLUtils.translateColumns(schema);
+		StringBuilder builder = new StringBuilder();
+		// call under test
+		SQLUtils.buildJoins(metaList, builder);
+		assertEquals(" LEFT OUTER JOIN ANNOTATION_REPLICATION A0 ON"
+				+ " (R.ID = A0.ENTITY_ID AND A0.ANNO_KEY = 'col_1' AND A0.ANNO_TYPE = 'STRING')"
+				+ " LEFT OUTER JOIN ANNOTATION_REPLICATION A1 ON "
+				+ "(R.ID = A1.ENTITY_ID AND A1.ANNO_KEY = 'col_2' AND A1.ANNO_TYPE = 'LONG')", builder.toString());
+	}
+	
+	@Test
+	public void testCreateSelectInsertFromEntityReplication(){
+		String viewId = "syn123";
+		ColumnModel one = TableModelTestUtils.createColumn(1L);
+		ColumnModel id = EntityField.id.getColumnModel();
+		id.setId("2");
+		List<ColumnModel> schema = Lists.newArrayList(one, id);
+		String sql = SQLUtils.createSelectInsertFromEntityReplication(viewId, schema);
+		assertEquals("INSERT INTO T123(ROW_ID, ROW_VERSION, _C1_, _C2_)"
+				+ " SELECT R.ID, R.CURRENT_VERSION, A0.ANNO_VALUE AS _C1_, R.ID AS _C2_"
+				+ " FROM ENTITY_REPLICATION R"
+				+ " LEFT OUTER JOIN ANNOTATION_REPLICATION A0"
+				+ " ON (R.ID = A0.ENTITY_ID AND A0.ANNO_KEY = 'col_1' AND A0.ANNO_TYPE = 'STRING')"
+				+ " WHERE R.PARENT_ID IN (:parentIds) AND TYPE = :typeParam", sql);
+	}
+	
+	@Test
+	public void testBuildTableViewCRC32Sql(){
+		String viewId = "syn123";
+		String etagColumnId = "444";
+		String sql = SQLUtils.buildTableViewCRC32Sql(viewId, etagColumnId);
+		assertEquals("SELECT SUM(CRC32(CONCAT(ROW_ID, '-', _C444_))) FROM T123", sql);
 	}
 }

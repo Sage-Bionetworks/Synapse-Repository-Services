@@ -26,7 +26,7 @@
 
 	<!-- Create the AWS search client using the current credentials. -->
 	<bean id="awsSearchClient"
-		class="com.amazonaws.services.cloudsearch.AmazonCloudSearchClient"
+		class="com.amazonaws.services.cloudsearchv2.AmazonCloudSearchClient"
 		scope="singleton">
 		<constructor-arg ref="awsCredentials" />
 	</bean>

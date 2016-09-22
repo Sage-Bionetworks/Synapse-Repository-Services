@@ -1,6 +1,7 @@
 package org.sagebionetworks.table.worker;
 
 import java.util.List;
+import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -127,33 +128,28 @@ public class TableViewWorker implements ChangeMessageDrivenRunner {
 
 		// Since this worker re-builds the index, start by deleting it.
 		indexManager.deleteTableIndex();
-		// Lookup the table's schema
-		final List<ColumnModel> currentSchema = tableViewManager.getViewSchemaWithBenefactor(tableId);
+		callback.progressMade(null);
+		// Need the MD5 for the original schema.
+		List<ColumnModel> originalSchema = tableManagerSupport.getColumnModelsForTable(tableId);
+		String originalSchemaMD5Hex = TableModelUtils.createSchemaMD5HexCM(originalSchema);
+		// The expanded schema includes etag and benefactorId even if they are not included in the original schema.
+		List<ColumnModel> expandedSchema = tableViewManager.getViewSchemaWithRequiredColumns(tableId);
+		
+		// Get the containers for this view.
+		Set<Long> allContainersInScope  = tableManagerSupport.getAllContainerIdsForViewScope(tableId);
 
 		// create the table in the index.
-		indexManager.setIndexSchema(callback, currentSchema);
-		// Calculate the number of rows per bath based on the current schema
-		final int rowsPerBatch = BATCH_SIZE_BYTES/TableModelUtils.calculateMaxRowSize(currentSchema);
-		final RowSet rowSetBatch = new RowSet();
-		rowSetBatch.setHeaders(TableModelUtils.getSelectColumns(currentSchema));
-		rowSetBatch.setTableId(tableId);
-		// Stream all of the file data into the index.
-		Long viewCRC = tableViewManager.streamOverAllEntitiesInViewAsBatch(tableId, viewType, currentSchema, rowsPerBatch, new RowBatchHandler() {
-			
-			@Override
-			public void nextBatch(List<Row> batch, long currentProgress,
-					long totalProgress) {
-				// apply the batch to index.
-				rowSetBatch.setRows(batch);
-				indexManager.applyChangeSetToIndex(rowSetBatch, currentSchema);
-				// report progress for each batch
-				callback.progressMade(null);
-				tableManagerSupport.attemptToUpdateTableProgress(tableId, token, "Building view...", currentProgress, totalProgress);
-			}
-		});
+		indexManager.setIndexSchema(callback, expandedSchema);
+		callback.progressMade(null);
+		tableManagerSupport.attemptToUpdateTableProgress(tableId, token, "Copying data to view...", 0L, 1L);
+		// populate the view by coping data from the entity replication tables.
+		Long viewCRC = indexManager.populateViewFromEntityReplication(callback, viewType, allContainersInScope, expandedSchema);
+		callback.progressMade(null);
 		// now that table is created and populated the indices on the table can be optimized.
 		indexManager.optimizeTableIndices();
-		indexManager.setIndexVersion(viewCRC);
+		callback.progressMade(null);
+		// both the CRC and schema MD5 are used to determine if the view is up-to-date.
+		indexManager.setIndexVersionAndSchemaMD5Hex(viewCRC, originalSchemaMD5Hex);
 		// Attempt to set the table to complete.
 		tableManagerSupport.attemptToSetTableStatusToAvailable(tableId, token, DEFAULT_ETAG);
 	}	

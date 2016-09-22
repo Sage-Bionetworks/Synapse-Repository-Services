@@ -10,8 +10,9 @@
 
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
-
-	<bean id="userThrottleFilter" class="org.sagebionetworks.repo.web.filter.UserThrottleFilter">
-	</bean>
+	<bean id="throttleRulesCache" class="org.sagebionetworks.repo.web.filter.ThrottleRulesCache" scope="singleton"/>
+	<bean id="userApiFrequencyThrottleFilter" class="org.sagebionetworks.repo.web.filter.UserApiFrequencyThrottleFilter"/>
+	<bean id="userConcurrentConnectionThrottleFilter" class="org.sagebionetworks.repo.web.filter.UserConcurrentConnectionThrottleFilter"/>
+	<bean id="userRequestFrequencyThrottleFilter" class="org.sagebionetworks.repo.web.filter.UserRequestFrequencyThrottleFilter"/>
 	
 </beans>
