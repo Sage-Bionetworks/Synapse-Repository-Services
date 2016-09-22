@@ -714,7 +714,7 @@ public class DiscussionThreadManagerImplTest {
 
 	@Test
 	public void testGetModeratorsWithNotFoundModerators() {
-		when(mockAclDao.getAllUserGroups(projectId, ObjectType.ENTITY, ACCESS_TYPE.MODERATE)).thenReturn(new HashSet<String>());
+		when(mockAclDao.getPrincipalIds(projectId, ObjectType.ENTITY, ACCESS_TYPE.MODERATE)).thenReturn(new HashSet<String>());
 		PaginatedIds actual = threadManager.getModerators(userInfo, forum.getId(), 10L, 0L);
 		assertNotNull(actual);
 		assertEquals((Long)0L, actual.getTotalNumberOfResults());
@@ -725,10 +725,10 @@ public class DiscussionThreadManagerImplTest {
 	public void testGetModerators() {
 		HashSet<String> userGroups = new HashSet<String>();
 		userGroups.addAll(Arrays.asList("1", "2"));
-		when(mockAclDao.getAllUserGroups(projectId, ObjectType.ENTITY, ACCESS_TYPE.MODERATE)).thenReturn(userGroups);
+		when(mockAclDao.getPrincipalIds(projectId, ObjectType.ENTITY, ACCESS_TYPE.MODERATE)).thenReturn(userGroups);
 		Set<String> individuals = new HashSet<String>();
 		individuals.addAll(Arrays.asList("2", "3", "4"));
-		when(mockGroupMembersDao.getAllIndividuals(userGroups, 10L, 0L)).thenReturn(individuals);
+		when(mockGroupMembersDao.getIndividuals(userGroups, 10L, 0L)).thenReturn(individuals);
 		when(mockGroupMembersDao.getIndividualCount(userGroups)).thenReturn(3L);
 		PaginatedIds actual = threadManager.getModerators(userInfo, forum.getId(), 10L, 0L);
 		assertNotNull(actual);

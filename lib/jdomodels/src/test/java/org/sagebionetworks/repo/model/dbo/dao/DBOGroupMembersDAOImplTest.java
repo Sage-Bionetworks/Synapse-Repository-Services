@@ -205,26 +205,26 @@ public class DBOGroupMembersDAOImplTest {
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testGetAllIndividualWithNullPrincipalIds(){
-		groupMembersDAO.getAllIndividuals(null, 10L, 0L);
+		groupMembersDAO.getIndividuals(null, 10L, 0L);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testGetAllIndividualWithNullLimit(){
 		Set<String> principalIds = new HashSet<String>();
 		principalIds.addAll(Arrays.asList(testGroup.getId()));
-		groupMembersDAO.getAllIndividuals(principalIds, null, 0L);
+		groupMembersDAO.getIndividuals(principalIds, null, 0L);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testGetAllIndividualWithNullOffset(){
 		Set<String> principalIds = new HashSet<String>();
 		principalIds.addAll(Arrays.asList(testGroup.getId()));
-		groupMembersDAO.getAllIndividuals(principalIds, 10L, null);
+		groupMembersDAO.getIndividuals(principalIds, 10L, null);
 	}
 
 	@Test
 	public void testGetAllIndividualWithEmptySet(){
-		assertEquals(new HashSet<String>(), groupMembersDAO.getAllIndividuals(new HashSet<String>(), 10L, 0L));
+		assertEquals(new HashSet<String>(), groupMembersDAO.getIndividuals(new HashSet<String>(), 10L, 0L));
 	}
 
 	@Test
@@ -232,7 +232,7 @@ public class DBOGroupMembersDAOImplTest {
 		groupMembersDAO.addMembers(testGroup.getId(), Arrays.asList(testUserOne.getId(), testUserThree.getId()));
 		Set<String> principalIds = new HashSet<String>();
 		principalIds.addAll(Arrays.asList(testGroup.getId(), testUserTwo.getId()));
-		Set<String> actual = groupMembersDAO.getAllIndividuals(principalIds, 10L, 0L);
+		Set<String> actual = groupMembersDAO.getIndividuals(principalIds, 10L, 0L);
 		assertTrue(actual.contains(testUserOne.getId()));
 		assertTrue(actual.contains(testUserTwo.getId()));
 		assertTrue(actual.contains(testUserThree.getId()));
@@ -244,7 +244,7 @@ public class DBOGroupMembersDAOImplTest {
 		groupMembersDAO.addMembers(testGroup.getId(), Arrays.asList(testUserOne.getId(), testUserThree.getId()));
 		Set<String> principalIds = new HashSet<String>();
 		principalIds.addAll(Arrays.asList(testGroup.getId(), testUserTwo.getId(), testUserOne.getId()));
-		Set<String> actual = groupMembersDAO.getAllIndividuals(principalIds, 10L, 0L);
+		Set<String> actual = groupMembersDAO.getIndividuals(principalIds, 10L, 0L);
 		assertTrue(actual.contains(testUserOne.getId()));
 		assertTrue(actual.contains(testUserTwo.getId()));
 		assertTrue(actual.contains(testUserThree.getId()));
@@ -257,22 +257,22 @@ public class DBOGroupMembersDAOImplTest {
 		Set<String> principalIds = new HashSet<String>();
 		principalIds.addAll(Arrays.asList(testGroup.getId(), testUserTwo.getId()));
 
-		Set<String> actual = groupMembersDAO.getAllIndividuals(principalIds, 1L, 0L);
+		Set<String> actual = groupMembersDAO.getIndividuals(principalIds, 1L, 0L);
 		assertTrue(actual.contains(testUserOne.getId()));
 		assertFalse(actual.contains(testUserTwo.getId()));
 		assertFalse(actual.contains(testUserThree.getId()));
 
-		actual = groupMembersDAO.getAllIndividuals(principalIds, 1L, 1L);
+		actual = groupMembersDAO.getIndividuals(principalIds, 1L, 1L);
 		assertFalse(actual.contains(testUserOne.getId()));
 		assertTrue(actual.contains(testUserTwo.getId()));
 		assertFalse(actual.contains(testUserThree.getId()));
 
-		actual = groupMembersDAO.getAllIndividuals(principalIds, 1L, 2L);
+		actual = groupMembersDAO.getIndividuals(principalIds, 1L, 2L);
 		assertFalse(actual.contains(testUserOne.getId()));
 		assertFalse(actual.contains(testUserTwo.getId()));
 		assertTrue(actual.contains(testUserThree.getId()));
 
-		assertEquals(new HashSet<String>(), groupMembersDAO.getAllIndividuals(principalIds, 1L, 3L));
+		assertEquals(new HashSet<String>(), groupMembersDAO.getIndividuals(principalIds, 1L, 3L));
 	}
 
 	@Test (expected = IllegalArgumentException.class)

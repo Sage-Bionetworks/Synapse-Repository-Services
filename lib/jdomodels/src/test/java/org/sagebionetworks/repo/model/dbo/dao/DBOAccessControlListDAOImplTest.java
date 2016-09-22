@@ -491,17 +491,17 @@ public class DBOAccessControlListDAOImplTest {
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testGetAllUserGroupsWithNullObjectId(){
-		aclDAO.getAllUserGroups(null, ObjectType.ENTITY, ACCESS_TYPE.READ);
+		aclDAO.getPrincipalIds(null, ObjectType.ENTITY, ACCESS_TYPE.READ);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testGetAllUserGroupsWithNullObjectType(){
-		aclDAO.getAllUserGroups(node.getId(), null, ACCESS_TYPE.READ);
+		aclDAO.getPrincipalIds(node.getId(), null, ACCESS_TYPE.READ);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testGetAllUserGroupsWithNullAccessType(){
-		aclDAO.getAllUserGroups(node.getId(), ObjectType.ENTITY, null);
+		aclDAO.getPrincipalIds(node.getId(), ObjectType.ENTITY, null);
 	}
 
 	@Test
@@ -515,12 +515,12 @@ public class DBOAccessControlListDAOImplTest {
 						ACCESS_TYPE.READ
 				})));
 		assertTrue(acl.getResourceAccess().contains(ra));
-		Set<String> actual = aclDAO.getAllUserGroups(node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ);
+		Set<String> actual = aclDAO.getPrincipalIds(node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ);
 		assertTrue(actual.contains(group.getId().toString()));
 	}
 
 	@Test
 	public void testGetAllUserGroupsForNoAcl(){
-		assertEquals(new HashSet<String>(), aclDAO.getAllUserGroups("-1", ObjectType.ENTITY, ACCESS_TYPE.READ));
+		assertEquals(new HashSet<String>(), aclDAO.getPrincipalIds("-1", ObjectType.ENTITY, ACCESS_TYPE.READ));
 	}
 }

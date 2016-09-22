@@ -76,7 +76,7 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 														" WHERE " + COL_ACL_OWNER_ID + " IN (:"+IDS_PARAM_NAME+")"+
 														" AND " +  COL_ACL_OWNER_TYPE + " = :" + DBOAccessControlList.OWNER_TYPE_FIELD_NAME;
 
-	private static final String SQL_GET_ALL_USER_GROUP = "SELECT "+COL_RESOURCE_ACCESS_GROUP_ID
+	private static final String SQL_GET_ALL_USER_GROUP = "SELECT DISTINCT "+COL_RESOURCE_ACCESS_GROUP_ID
 			+" FROM "+TABLE_ACCESS_CONTROL_LIST+", "+TABLE_RESOURCE_ACCESS+", "+TABLE_RESOURCE_ACCESS_TYPE
 			+" WHERE "+TABLE_ACCESS_CONTROL_LIST+"."+COL_ACL_ID+" = "+TABLE_RESOURCE_ACCESS+"."+COL_RESOURCE_ACCESS_OWNER
 			+" AND "+TABLE_RESOURCE_ACCESS+"."+COL_RESOURCE_ACCESS_ID+" = "+TABLE_RESOURCE_ACCESS_TYPE+"."+COL_RESOURCE_ACCESS_TYPE_ID
@@ -404,7 +404,7 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 	}
 
 	@Override
-	public Set<String> getAllUserGroups(String objectId, ObjectType objectType, ACCESS_TYPE accessType){
+	public Set<String> getPrincipalIds(String objectId, ObjectType objectType, ACCESS_TYPE accessType){
 		ValidateArgument.required(objectId, "objectId");
 		ValidateArgument.required(objectType, "objectType");
 		ValidateArgument.required(accessType, "accessType");
