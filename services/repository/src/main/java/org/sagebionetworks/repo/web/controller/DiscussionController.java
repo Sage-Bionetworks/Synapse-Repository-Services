@@ -485,7 +485,7 @@ public class DiscussionController extends BaseController {
 	}
 
 	/**
-	 * This API is used to get a page of moderators for a given forum ID.
+	 * Returns a page of moderators for a given forum ID.
 	 * <br/>
 	 * Target users: anyone who has READ permission to the project.
 	 * 

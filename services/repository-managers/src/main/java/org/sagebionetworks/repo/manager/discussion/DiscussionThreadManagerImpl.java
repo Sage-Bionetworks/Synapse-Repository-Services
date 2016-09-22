@@ -316,12 +316,12 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		List<String> userIds = new ArrayList<String>();
 		results.setResults(userIds);
 		String projectId = forumDao.getForum(Long.parseLong(forumId)).getProjectId();
-		Set<String> principalIds = aclDao.getAllUserGroups(projectId, ObjectType.ENTITY, ACCESS_TYPE.MODERATE);
+		Set<String> principalIds = aclDao.getPrincipalIds(projectId, ObjectType.ENTITY, ACCESS_TYPE.MODERATE);
 		if (principalIds.isEmpty()) {
 			results.setTotalNumberOfResults(0L);
 			return results;
 		}
-		userIds.addAll(groupMembersDao.getAllIndividuals(principalIds, limit, offset));
+		userIds.addAll(groupMembersDao.getIndividuals(principalIds, limit, offset));
 		results.setTotalNumberOfResults(groupMembersDao.getIndividualCount(principalIds));
 		return results;
 	}

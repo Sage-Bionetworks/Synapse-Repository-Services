@@ -118,6 +118,6 @@ public interface AccessControlListDAO  {
 	 * @param accessType
 	 * @return
 	 */
-	public Set<String> getAllUserGroups(String objectId, ObjectType objectType, ACCESS_TYPE accessType);
+	public Set<String> getPrincipalIds(String objectId, ObjectType objectType, ACCESS_TYPE accessType);
 
 }

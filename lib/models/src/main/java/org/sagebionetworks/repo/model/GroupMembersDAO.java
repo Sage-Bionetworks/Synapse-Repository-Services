@@ -47,7 +47,7 @@ public interface GroupMembersDAO {
 	 * @param offset
 	 * @return
 	 */
-	public Set<String> getAllIndividuals(Set<String> principalIds, Long limit, Long offset);
+	public Set<String> getIndividuals(Set<String> principalIds, Long limit, Long offset);
 
 	/**
 	 * Returns the count of all individual userIds from the given set of principalIds.

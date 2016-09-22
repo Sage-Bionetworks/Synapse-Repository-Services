@@ -209,7 +209,7 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 	}
 
 	@Override
-	public Set<String> getAllIndividuals(Set<String> principalIds, Long limit, Long offset) {
+	public Set<String> getIndividuals(Set<String> principalIds, Long limit, Long offset) {
 		ValidateArgument.required(principalIds, "principalIds");
 		ValidateArgument.required(limit, "limit");
 		ValidateArgument.required(offset, "offset");
