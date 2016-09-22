@@ -264,8 +264,9 @@ public class DockerManagerImplUnitTest {
 		Set<String> permitted = dockerManager.
 				getPermittedAccessTypes(USER_INFO, SERVICE, TYPE, REPOSITORY_PATH, "pull");
 
-		// Note, we DO have create access, but that doesn't let us 'push' since the repo already exists
-		assertTrue(permitted.toString(), permitted.isEmpty());
+		// it's allowed because it's *DOWNLOAD* permission, not *READ* permission which we must have
+		assertEquals(new HashSet(Arrays.asList(new String[]{"pull"})), permitted);
+
 	}
 
 	@Test

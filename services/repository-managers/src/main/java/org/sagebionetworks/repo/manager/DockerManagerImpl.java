@@ -141,11 +141,9 @@ public class DockerManagerImpl implements DockerManager {
 				}
 				break;
 			case pull:
-				// check READ+DOWNLOAD permission and add to permittedAccessTypes
+				// check DOWNLOAD permission and add to permittedAccessTypes
 				if (existingDockerRepoId!=null) {
 					if (authorizationManager.canAccess(
-							userInfo, existingDockerRepoId, ObjectType.ENTITY, ACCESS_TYPE.READ).getAuthorized() &&
-						authorizationManager.canAccess(
 							userInfo, existingDockerRepoId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD).getAuthorized()
 					) permittedAccessTypes.add(requestedAccessType.name());
 				}
