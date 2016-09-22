@@ -16,7 +16,9 @@ import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.EntityIdList;
+import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.PaginatedIds;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UploadContentToS3DAO;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -65,6 +67,8 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 	private TransactionalMessenger transactionalMessenger;
 	@Autowired
 	private AccessControlListDAO aclDao;
+	@Autowired
+	private GroupMembersDAO groupMembersDao;
 
 	@WriteTransactionReadCommitted
 	@Override
@@ -293,5 +297,32 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 	public void markThreadAsNotDeleted(UserInfo userInfo, String threadId) {
 		checkPermission(userInfo, threadId, ACCESS_TYPE.MODERATE);
 		threadDao.markThreadAsNotDeleted(Long.parseLong(threadId));
+	}
+
+	@Override
+	public PaginatedIds getModerators(UserInfo userInfo, String forumId, Long limit, Long offset) {
+		ValidateArgument.required(forumId, "forumId");
+		UserInfo.validateUserInfo(userInfo);
+		if (limit == null) {
+			limit = MAX_LIMIT;
+		}
+		if (offset == null) {
+			offset = DEFAULT_OFFSET;
+		}
+		ValidateArgument.requirement(limit >= 0 && offset >= 0 && limit <= MAX_LIMIT,
+				"Limit and offset must be greater than 0, and limit must be smaller than or equal to "+MAX_LIMIT);
+
+		PaginatedIds results = new PaginatedIds();
+		List<String> userIds = new ArrayList<String>();
+		results.setResults(userIds);
+		String projectId = forumDao.getForum(Long.parseLong(forumId)).getProjectId();
+		Set<String> principalIds = aclDao.getAllUserGroups(projectId, ObjectType.ENTITY, ACCESS_TYPE.MODERATE);
+		if (principalIds.isEmpty()) {
+			results.setTotalNumberOfResults(0L);
+			return results;
+		}
+		userIds.addAll(groupMembersDao.getAllIndividuals(principalIds, limit, offset));
+		results.setTotalNumberOfResults(groupMembersDao.getIndividualCount(principalIds));
+		return results;
 	}
 }
