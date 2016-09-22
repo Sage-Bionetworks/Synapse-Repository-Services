@@ -12,6 +12,15 @@
 		"preSignedURL":{
 			"type": "string",
 			"description": "A pre-signed URL to download the requested file. Null if the request.includePreSignedURLs=false.",
+		},
+		"failureCode": {
+			"type": "string",
+			"description": "Failure code for a files that cannot be downloaded.",
+			"name": "FileResultFailureCode",
+			"enum": [
+				"NOT_FOUND",
+				"UNAUTHORIZED"
+			]
 		}
 	}
 }

@@ -8,7 +8,6 @@ import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -22,12 +21,10 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Collections;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.List;
 
 import org.apache.commons.fileupload.FileItemIterator;
 import org.apache.commons.fileupload.FileItemStream;
-import org.apache.commons.fileupload.FileUploadException;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -45,6 +42,7 @@ import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.file.BatchFileRequest;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
@@ -57,7 +55,6 @@ import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ProxyStorageLocationSettings;
 import org.sagebionetworks.repo.model.project.S3StorageLocationSetting;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.amazonaws.AmazonClientException;
@@ -67,6 +64,7 @@ import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.util.BinaryUtils;
 import com.amazonaws.util.StringInputStream;
+import com.google.common.collect.Lists;
 
 /**
  * A unit test for the FileUploadManagerImpl.
@@ -831,6 +829,41 @@ public class FileHandleManagerImplTest {
 				AuthorizationManagerUtil.ACCESS_DENIED);
 
 		manager.createS3FileHandleCopy(mockUser, "123", null, "image");
+	}
+	
+	@Test
+	public void testGetFileHandleAndUrlBatch(){
+		// one
+		FileHandleAssociation fha1 = new FileHandleAssociation();
+		fha1.setAssociateObjectId("syn123");
+		fha1.setAssociateObjectType(FileHandleAssociateType.FileEntity);
+		fha1.setFileHandleId("333");
+		// two
+		FileHandleAssociation fha2 = new FileHandleAssociation();
+		fha2.setAssociateObjectId("syn456");
+		fha2.setAssociateObjectType(FileHandleAssociateType.TableEntity);
+		fha2.setFileHandleId("444");
+		// missing
+		FileHandleAssociation missing = new FileHandleAssociation();
+		missing.setAssociateObjectId("999");
+		missing.setAssociateObjectType(FileHandleAssociateType.WikiAttachment);
+		missing.setFileHandleId("555");
+		List<FileHandleAssociation> associations = Lists.newArrayList(fha1, fha2, missing);
+		
+		FileHandleAssociationAuthorizationStatus status1 = new FileHandleAssociationAuthorizationStatus(fha1, AuthorizationManagerUtil.ACCESS_DENIED);
+		FileHandleAssociationAuthorizationStatus status2 = new FileHandleAssociationAuthorizationStatus(fha2, AuthorizationManagerUtil.AUTHORIZED);
+		FileHandleAssociationAuthorizationStatus missingStatus = new FileHandleAssociationAuthorizationStatus(fha2, AuthorizationManagerUtil.AUTHORIZED);
+		List<FileHandleAssociationAuthorizationStatus> authResults = Lists.newArrayList(status1, status2, missingStatus);
+		
+		when(mockFileHandleAuthorizationManager.canDownLoadFile(mockUser, associations)).thenReturn(authResults);
+		
+		BatchFileRequest batchRequest = new BatchFileRequest();
+		batchRequest.setRequestedFiles(associations);
+		batchRequest.setIncludeFileHandles(true);
+		batchRequest.setIncludePreSignedURLs(true);
+		
+		// call under test
+		manager.getFileHandleAndUrlBatch(mockUser, batchRequest);
 	}
 
 	/**

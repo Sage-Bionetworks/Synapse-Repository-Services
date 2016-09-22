@@ -204,14 +204,13 @@ public class UploadController extends BaseController {
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = "/fileHandle/batch", method = RequestMethod.POST)
-	public @ResponseBody BatchFileResult getFileHandleBatch(
+	public @ResponseBody BatchFileResult getFileHandleAndUrlBatch(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String handleIdToCopyFrom,
 			@RequestBody BatchFileRequest request)
 			throws IOException, DatastoreException, NotFoundException,
 			ServiceUnavailableException, JSONObjectAdapterException {
-		
-		return null;
+		return fileService.getFileHandleAndUrlBatch(userId, request);
 	}
 
 	/**

@@ -10,6 +10,8 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.AddPartResponse;
+import org.sagebionetworks.repo.model.file.BatchFileRequest;
+import org.sagebionetworks.repo.model.file.BatchFileResult;
 import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlRequest;
 import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlResponse;
 import org.sagebionetworks.repo.model.file.ChunkRequest;
@@ -217,5 +219,12 @@ public class FileUploadServiceImpl implements FileUploadService {
 			String uploadId) {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return multipartManagerV2.completeMultipartUpload(userInfo, uploadId);
+	}
+
+	@Override
+	public BatchFileResult getFileHandleAndUrlBatch(Long userId,
+			BatchFileRequest request) {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return fileUploadManager.getFileHandleAndUrlBatch(userInfo, request);
 	}
 }

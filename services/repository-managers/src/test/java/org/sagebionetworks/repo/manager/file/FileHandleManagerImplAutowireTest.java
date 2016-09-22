@@ -638,20 +638,6 @@ public class FileHandleManagerImplAutowireTest {
 			input.close();
 		}
 	}
-	
-
-	@Test
-	public void testCreateNeverUploadedPlaceHolderFileHandle() throws UnsupportedEncodingException, IOException{
-		String userId = ""+userInfo.getId();
-		Date createdOn = new Date(System.currentTimeMillis());
-		String name = "archive.zip";
-		S3FileHandle handle = fileUploadManager.createNeverUploadedPlaceHolderFileHandle(userId, createdOn, name);
-		assertNotNull(handle);
-		toDelete.add(handle);
-		assertEquals("text/plain", handle.getContentType());
-		assertEquals("archive_zip_placeholder.txt", handle.getFileName());
-		assertNotNull(handle.getContentMd5());
-	}
 
 	/**
 	 * Helper to wait for an upload deamon to finish.
