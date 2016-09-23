@@ -383,6 +383,14 @@ public class IT500SynapseJavaClient {
 		// should be able to download
 		assertTrue(synapseOne.canAccess(file.getId(), ACCESS_TYPE.DOWNLOAD));
 		
+		// give read permission to synapseTwo
+		AccessControlList acl = synapseOne.getACL(file.getId());
+		ResourceAccess readPermission = new ResourceAccess();
+		readPermission.setPrincipalId(Long.parseLong(synapseTwo.getMyProfile().getOwnerId()));
+		readPermission.setAccessType(Collections.singleton(ACCESS_TYPE.READ));
+		acl.getResourceAccess().add(readPermission);
+		synapseOne.updateACL(acl);
+		
 		// now add a ToU restriction
 		TermsOfUseAccessRequirement ar = new TermsOfUseAccessRequirement();
 
@@ -418,15 +426,15 @@ public class IT500SynapseJavaClient {
 		vcpr = synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.DOWNLOAD);
 		assertEquals(0, vcpr.getResults().size());
 		
-		// should not be able to download
-		assertFalse(synapseTwo.canAccess(file.getId(), ACCESS_TYPE.DOWNLOAD));
+		// should be able to download
+		assertTrue(synapseTwo.canAccess(file.getId(), ACCESS_TYPE.DOWNLOAD));
 		
 		ar.setTermsOfUse("play nicer");
 		ar = adminSynapse.updateAccessRequirement(ar);
 		assertEquals("play nicer", ar.getTermsOfUse());
 		
 		// ACL should reflect the first User's permission
-		AccessControlList acl = synapseOne.getACL(project.getId());
+		acl = synapseOne.getACL(project.getId());
 		Set<ResourceAccess> ras = acl.getResourceAccess();
 		boolean foundit = false;
 		List<Long> foundPrincipals = new ArrayList<Long>();
@@ -754,6 +762,14 @@ public class IT500SynapseJavaClient {
 
 		UserProfile otherProfile = synapseOne.getMyProfile();
 		assertNotNull(otherProfile);
+		
+		// give read permission to synapseTwo
+		AccessControlList acl = synapseOne.getACL(layer.getId());
+		ResourceAccess readPermission = new ResourceAccess();
+		readPermission.setPrincipalId(Long.parseLong(synapseTwo.getMyProfile().getOwnerId()));
+		readPermission.setAccessType(Collections.singleton(ACCESS_TYPE.READ));
+		acl.getResourceAccess().add(readPermission);
+		synapseOne.updateACL(acl);
 
 		// check that another can't download
 		assertFalse(synapseTwo.canAccess(layer.getId(), ACCESS_TYPE.DOWNLOAD));
@@ -787,8 +803,8 @@ public class IT500SynapseJavaClient {
 		assertEquals(0, ars.getTotalNumberOfResults());
 		assertEquals(0, ars.getResults().size());
 		
-		// check that CAN'T download
-		assertFalse(synapseTwo.canAccess(layer.getId(), ACCESS_TYPE.DOWNLOAD));
+		// check that CAN download
+		assertTrue(synapseTwo.canAccess(layer.getId(), ACCESS_TYPE.DOWNLOAD));
 	}
 
 	@Test
