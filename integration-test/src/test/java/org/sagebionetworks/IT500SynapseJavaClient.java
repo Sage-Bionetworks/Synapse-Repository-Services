@@ -384,7 +384,7 @@ public class IT500SynapseJavaClient {
 		assertTrue(synapseOne.canAccess(file.getId(), ACCESS_TYPE.DOWNLOAD));
 		
 		// give read permission to synapseTwo
-		AccessControlList acl = synapseOne.getACL(file.getId());
+		AccessControlList acl = synapseOne.getACL(project.getId());
 		ResourceAccess readPermission = new ResourceAccess();
 		readPermission.setPrincipalId(Long.parseLong(synapseTwo.getMyProfile().getOwnerId()));
 		readPermission.setAccessType(Collections.singleton(ACCESS_TYPE.READ));
