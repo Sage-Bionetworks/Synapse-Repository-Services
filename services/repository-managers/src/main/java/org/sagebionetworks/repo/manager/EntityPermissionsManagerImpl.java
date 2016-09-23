@@ -328,7 +328,8 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 			throws NotFoundException, DatastoreException {
 
 		Node node = nodeDao.getNode(entityId);
-		String benefactor = nodeInheritanceManager.getBenefactor(entityId);
+		
+		String benefactor = node.getBenefactorId();
 
 		UserEntityPermissions permissions = new UserEntityPermissions();
 		permissions.setCanAddChild(hasAccess(entityId, CREATE, userInfo).getAuthorized());
