@@ -300,7 +300,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		}
 		// Can download
 		if (accessType == DOWNLOAD) {
-			return canDownload(userInfo, entityId, entityType);
+			return canDownload(userInfo, entityId, benefactor, entityType);
 		}
 		// Can upload
 		if (accessType == UPLOAD) {
@@ -328,6 +328,8 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 			throws NotFoundException, DatastoreException {
 
 		Node node = nodeDao.getNode(entityId);
+		
+		String benefactor = node.getBenefactorId();
 
 		UserEntityPermissions permissions = new UserEntityPermissions();
 		permissions.setCanAddChild(hasAccess(entityId, CREATE, userInfo).getAuthorized());
@@ -338,7 +340,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		permissions.setCanEdit(hasAccess(entityId, UPDATE, userInfo).getAuthorized());
 		permissions.setCanCertifiedUserEdit(certifiedUserHasAccess(entityId, node.getNodeType(), UPDATE, userInfo).getAuthorized());
 		permissions.setCanView(hasAccess(entityId, READ, userInfo).getAuthorized());
-		permissions.setCanDownload(canDownload(userInfo, entityId, node.getNodeType()).getAuthorized());
+		permissions.setCanDownload(canDownload(userInfo, entityId, benefactor, node.getNodeType()).getAuthorized());
 		permissions.setCanUpload(canUpload(userInfo, entityId).getAuthorized());
 		permissions.setCanModerate(hasAccess(entityId, MODERATE, userInfo).getAuthorized());
 
@@ -372,26 +374,31 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	// non-docker entities have to meet access requirements (ARs)
 	// docker entities either have to (1) meet ARs AND have read access or (2) be associated
 	// with a downloadable submission
-	private AuthorizationStatus canDownload(UserInfo userInfo, String entityId, EntityType entityType)
+	private AuthorizationStatus canDownload(UserInfo userInfo, String entityId, String benefactor, EntityType entityType)
 			throws DatastoreException, NotFoundException {
-		AuthorizationStatus meetsAccessRequirements = meetsAccessRequirements(userInfo, entityId);
 		
+		// if the ACL and access requirements permit DOWNLOAD, then its permitted,
+		// and this applies to any type of entity
+		boolean canRead = aclDAO.canAccess(userInfo.getGroups(), benefactor, ObjectType.ENTITY, ACCESS_TYPE.READ);
+		AuthorizationStatus meetsAccessRequirements = meetsAccessRequirements(userInfo, entityId);
+		if (meetsAccessRequirements.getAuthorized() && canRead) {
+			return AuthorizationManagerUtil.AUTHORIZED;
+		}
+		
+		// if the ACL doesn't permit access but it's a Docker repository entity
+		// then DOWNLOAD access can be permitted via a submission queue
 		if (entityType==EntityType.dockerrepo) {
-			String benefactor = nodeInheritanceManager.getBenefactor(entityId);
-			if (meetsAccessRequirements.getAuthorized() && aclDAO.canAccess(userInfo.getGroups(), benefactor, ObjectType.ENTITY, ACCESS_TYPE.READ)) {
-				return AuthorizationManagerUtil.AUTHORIZED;
-			}
-			
 			if (permissionDao.isEntityInEvaluationWithAccess(entityId, 
 					new ArrayList<Long>(userInfo.getGroups()), ACCESS_TYPE.READ_PRIVATE_SUBMISSION)) {
 				return AuthorizationManagerUtil.AUTHORIZED;
 			} else {
 				return AuthorizationManagerUtil.ACCESS_DENIED;
 			}
-		} else {
-			return meetsAccessRequirements;
 		}
-
+		
+		// at this point the entity is NOT authorized via ACL+access requirements and is NOT an Docker repo
+		if (!canRead) return new AuthorizationStatus(false, "You lack 'read' access to the requested entity.");
+		return meetsAccessRequirements;
 	}
 	
 	private AuthorizationStatus meetsAccessRequirements(UserInfo userInfo, final String nodeId)

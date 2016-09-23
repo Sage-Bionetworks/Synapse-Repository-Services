@@ -418,8 +418,8 @@ public class IT500SynapseJavaClient {
 		vcpr = synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.DOWNLOAD);
 		assertEquals(0, vcpr.getResults().size());
 		
-		// should be able to download
-		assertTrue(synapseTwo.canAccess(file.getId(), ACCESS_TYPE.DOWNLOAD));
+		// should not be able to download
+		assertFalse(synapseTwo.canAccess(file.getId(), ACCESS_TYPE.DOWNLOAD));
 		
 		ar.setTermsOfUse("play nicer");
 		ar = adminSynapse.updateAccessRequirement(ar);
@@ -787,8 +787,8 @@ public class IT500SynapseJavaClient {
 		assertEquals(0, ars.getTotalNumberOfResults());
 		assertEquals(0, ars.getResults().size());
 		
-		// check that CAN download
-		assertTrue(synapseTwo.canAccess(layer.getId(), ACCESS_TYPE.DOWNLOAD));
+		// check that CAN'T download
+		assertFalse(synapseTwo.canAccess(layer.getId(), ACCESS_TYPE.DOWNLOAD));
 	}
 
 	@Test
