@@ -112,7 +112,7 @@ import com.google.common.collect.Lists;
  */
 public class FileHandleManagerImpl implements FileHandleManager {
 
-	private static final String MUST_INCLUDE_EITHER = "Must include either FileHandles or pre-signed URLs";
+	public static final String MUST_INCLUDE_EITHER = "Must include either FileHandles or pre-signed URLs";
 
 	public static final String UNAUTHORIZED_PROXY_FILE_HANDLE_MSG = "Only the creator of the ProxyStorageLocationSettings or a user with the 'create' permission on ProxyStorageLocationSettings.benefactorId can create a ProxyFileHandle using this storage location ID.";
 	
@@ -121,7 +121,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 
 	public static final int MAX_REQUESTS_PER_CALL = 100;
 
-	private static final String MAX_REQUESTS_PER_CALL_MESSAGE = "Request exceeds the maxiumn number of objects per request: "+MAX_REQUESTS_PER_CALL;
+	public static final String MAX_REQUESTS_PER_CALL_MESSAGE = "Request exceeds the maximum number of objects per request: "+MAX_REQUESTS_PER_CALL;
 	
 	static private Log log = LogFactory.getLog(FileHandleManagerImpl.class);
 
@@ -1099,8 +1099,12 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(request, "request");
 		ValidateArgument.required(request.getRequestedFiles(), "requestedFiles");
-		ValidateArgument.requirement(!request.getIncludeFileHandles() && !request.getIncludePreSignedURLs(), MUST_INCLUDE_EITHER);
-		ValidateArgument.requirement(request.getRequestedFiles().size() > MAX_REQUESTS_PER_CALL, MAX_REQUESTS_PER_CALL_MESSAGE);
+		if(!request.getIncludeFileHandles() && !request.getIncludePreSignedURLs()){
+			throw new IllegalArgumentException(MUST_INCLUDE_EITHER);
+		}
+		if(request.getRequestedFiles().size() > MAX_REQUESTS_PER_CALL){
+			throw new IllegalArgumentException(MAX_REQUESTS_PER_CALL_MESSAGE);
+		}
 		
 		// Determine which files the user can download
 		List<FileHandleAssociationAuthorizationStatus> authResults = fileHandleAuthorizationManager.canDownLoadFile(userInfo, request.getRequestedFiles());
@@ -1121,17 +1125,19 @@ public class FileHandleManagerImpl implements FileHandleManager {
 			Map<String, FileHandle> fileHandles = fileHandleDao.getAllFileHandlesBatch(fileHandleIdsToFetch);
 			// add the fileHandles to the results
 			for(FileResult fr: requestedFiles){
-				FileHandle handle = fileHandles.get(fr.getFileHandleId());
-				if(handle == null){
-					fr.setFailureCode(FileResultFailureCode.NOT_FOUND);
-				}else{
-					// keep the file handle if requested
-					if(request.getIncludeFileHandles()){
-						fr.setFileHandle(handle);
-					}
-					if(request.getIncludePreSignedURLs()){
-						String url = getURLForFileHandle(handle, null);
-						fr.setPreSignedURL(url);
+				if(fr.getFailureCode() == null){
+					FileHandle handle = fileHandles.get(fr.getFileHandleId());
+					if(handle == null){
+						fr.setFailureCode(FileResultFailureCode.NOT_FOUND);
+					}else{
+						// keep the file handle if requested
+						if(request.getIncludeFileHandles()){
+							fr.setFileHandle(handle);
+						}
+						if(request.getIncludePreSignedURLs()){
+							String url = getURLForFileHandle(handle, null);
+							fr.setPreSignedURL(url);
+						}
 					}
 				}
 			}
