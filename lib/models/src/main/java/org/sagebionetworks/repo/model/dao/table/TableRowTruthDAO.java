@@ -8,6 +8,7 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.IdRange;
+import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.RawRowSet;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
@@ -79,6 +80,41 @@ public interface TableRowTruthDAO {
 			throws IOException;
 	
 	/**
+	 * Fetch a change set for a given table and
+	 * 
+	 * @param rowsToGet
+	 * @param key
+	 * @return
+	 * @throws IOException
+	 * @throws NotFoundException
+	 */
+	public RowSet getRowSet(String tableId, long rowVersion, List<ColumnModel> columns) throws IOException,
+			NotFoundException;
+	
+	/**
+	 * Append a PartialRowSet to a table.
+	 * 
+	 * @param userId
+	 * @param tableId
+	 * @param columns
+	 * @param delta
+	 * @return
+	 * @throws IOException
+	 */
+	public RowReferenceSet appendPartialRowSetToTable(String userId, String tableId, List<ColumnModel> columns, PartialRowSet delta)
+			throws IOException;
+	
+	/**
+	 * Get a PartialRowSet for a given version and table.
+	 * 
+	 * @param tableId
+	 * @param versionNumber
+	 * @return
+	 * @throws IOException
+	 */
+	public PartialRowSet getPartialRowSetForVersion(String tableId, long versionNumber) throws IOException;
+	
+	/**
 	 * Append a schema change to the table's changes.
 	 * 
 	 * @param userId
@@ -97,18 +133,7 @@ public interface TableRowTruthDAO {
 	 * @throws IOException 
 	 */
 	public List<ColumnChange> getSchemaChangeForVersion(String tableId, long versionNumber) throws IOException;
-		
-	/**
-	 * Fetch a change set for a given table and
-	 * 
-	 * @param rowsToGet
-	 * @param key
-	 * @return
-	 * @throws IOException
-	 * @throws NotFoundException
-	 */
-	public RowSet getRowSet(String tableId, long rowVersion, List<ColumnModel> columns) throws IOException,
-			NotFoundException;
+	
 	
 	/**
 	 * Use this method to scan over an entire RowSet without loading the set into memory.  For each row found in the 

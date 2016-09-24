@@ -31,6 +31,8 @@ import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.IdRange;
+import org.sagebionetworks.repo.model.table.PartialRow;
+import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.RawRowSet;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
@@ -56,6 +58,13 @@ public class TableModelUtilsTest {
 	RawRowSet validRowSet2;
 	StringWriter outWritter;
 	CSVWriter out;
+
+	PartialRow validPartialRow;
+	PartialRowSet validPartialRowSet;
+	
+	ColumnModel booleanColumn;
+	List<ColumnModel> booleanSchema;
+	Map<Long, ColumnModel> booleanColumnMap;
 	
 	@Before
 	public void before() {
@@ -92,6 +101,24 @@ public class TableModelUtilsTest {
 		row.setValues(values);
 		rows.add(row);
 		validRowSet = new RawRowSet(ids, null, null, rows);
+		
+		validPartialRow = new PartialRow();
+		validPartialRow.setRowId(0L);
+		Map<String, String> partialValues = new HashMap<String, String>();
+		partialValues.put("111", "true");
+		validPartialRow.setValues(partialValues);
+		
+		validPartialRowSet = new PartialRowSet();
+		validPartialRowSet.setRows(Lists.newArrayList(validPartialRow));
+		validPartialRowSet.setTableId("syn123");
+		
+		booleanColumn = new ColumnModel();
+		booleanColumn.setId("111");
+		booleanColumn.setColumnType(ColumnType.BOOLEAN);
+		booleanSchema = Lists.newArrayList(booleanColumn);
+		
+		booleanColumnMap = new HashMap<Long, ColumnModel>(1);
+		booleanColumnMap.put(Long.parseLong(booleanColumn.getId()), booleanColumn);
 
 		outWritter = new StringWriter();
 		out = new CSVWriter(outWritter);
@@ -537,6 +564,34 @@ public class TableModelUtilsTest {
 		}
 	}
 
+	@Test
+	public void testCountEmptyOrInvalidPartialRowIdsNone() {
+		assertEquals(0, TableModelUtils.countEmptyOrInvalidRowIds(validPartialRowSet));
+	}
+
+	@Test
+	public void testCountEmptyOrInvalidPartialRowIdsNull() {
+		validPartialRowSet.getRows().get(0).setRowId(null);
+		assertEquals(1, TableModelUtils.countEmptyOrInvalidRowIds(validPartialRowSet));
+	}
+
+	@Test
+	public void testCountEmptyOrInvalidPartialRowIdsInvalid() {
+		validPartialRowSet.getRows().get(0).setRowId(-1l);
+		assertEquals(1, TableModelUtils.countEmptyOrInvalidRowIds(validPartialRowSet));
+	}
+
+	@Test
+	public void testCountEmptyOrInvalidPartialRowIdsMixed() {
+		PartialRow row = new PartialRow();
+		row.setRowId(null);
+		validPartialRowSet.getRows().add(row);
+		validPartialRowSet.getRows().get(0).setRowId(-1l);
+		assertEquals(2, TableModelUtils.countEmptyOrInvalidRowIds(validPartialRowSet));
+	}
+	
+///
+	
 	@Test
 	public void testCountEmptyOrInvalidRowIdsNone() {
 		assertEquals(0, TableModelUtils.countEmptyOrInvalidRowIds(validRowSet));
@@ -1312,4 +1367,94 @@ public class TableModelUtilsTest {
 		assertEquals(one.getId(), results.get(2).getId());
 	}
 	
+	@Test
+	public void testValidatePartialRow(){
+		PartialRow row = new PartialRow();
+		row.setRowId(0L);
+		Map<String, String> values = new HashMap<String, String>();
+		values.put("111", "true");
+		row.setValues(values);
+		
+		// call under test
+		TableModelUtils.validatePartialRow(row, booleanColumnMap);
+	}
+	
+	@Test
+	public void testValidatePartialRowColumnDoesNotExist(){
+		PartialRow row = new PartialRow();
+		row.setRowId(0L);
+		Map<String, String> values = new HashMap<String, String>();
+		values.put("222", "true");
+		row.setValues(values);
+		// call under test
+		try {
+			TableModelUtils.validatePartialRow(row, booleanColumnMap);
+			fail("Should have failed");
+		} catch (IllegalArgumentException e) {
+			assertEquals("PartialRow.value.key: '222' is not a valid column ID for row ID: 0", e.getMessage());
+		}
+	}
+	
+	@Test
+	public void testValidatePartialRowInvalidColumnId(){
+		PartialRow row = new PartialRow();
+		row.setRowId(0L);
+		Map<String, String> values = new HashMap<String, String>();
+		values.put("a222", "true");
+		row.setValues(values);
+		// call under test
+		try {
+			TableModelUtils.validatePartialRow(row, booleanColumnMap);
+			fail("Should have failed");
+		} catch (IllegalArgumentException e) {
+			assertEquals("PartialRow.value.key: 'a222' is not a valid column ID for row ID: 0", e.getMessage());
+		}
+	}
+	
+	@Test
+	public void testValidatePartialRowWrongValueType(){
+		PartialRow row = new PartialRow();
+		row.setRowId(0L);
+		Map<String, String> values = new HashMap<String, String>();
+		values.put("111", "1.23");
+		row.setValues(values);
+		// call under test
+		try {
+			TableModelUtils.validatePartialRow(row, booleanColumnMap);
+			fail("Should have failed");
+		} catch (IllegalArgumentException e) {
+			assertEquals(
+					"Value at [0,0] was not a valid BOOLEAN. A value in a boolean column must be null, 'true' or 'false', but was '1.23'",
+					e.getMessage());
+		}
+	}
+	
+	@Test
+	public void testValidatePartialRowSet(){
+		// call under test
+		TableModelUtils.validatePartialRowSet(booleanSchema, validPartialRowSet);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testValidatePartialRowSetInvalid(){		
+		validPartialRow.getValues().put("111", "1.2");
+		
+		// call under test
+		TableModelUtils.validatePartialRowSet(booleanSchema, validPartialRowSet);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testValidatePartialRowSetNullSchema(){
+		booleanSchema = null;		
+		// call under test
+		TableModelUtils.validatePartialRowSet(booleanSchema, validPartialRowSet);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testValidatePartialRowSetNullSet(){
+		PartialRowSet set = null;
+		
+		// call under test
+		TableModelUtils.validatePartialRowSet(booleanSchema, set);
+	}
 }

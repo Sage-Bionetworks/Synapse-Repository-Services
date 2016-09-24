@@ -26,10 +26,11 @@ import org.apache.commons.lang.StringUtils;
 import org.sagebionetworks.repo.model.dao.table.RowAccessor;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.IdRange;
+import org.sagebionetworks.repo.model.table.PartialRow;
+import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.RawRowSet;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
@@ -40,15 +41,15 @@ import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.util.TimeUtils;
 import org.sagebionetworks.util.ValidateArgument;
 
+import au.com.bytecode.opencsv.CSVReader;
+import au.com.bytecode.opencsv.CSVWriter;
+
 import com.google.common.base.Function;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
-
-import au.com.bytecode.opencsv.CSVReader;
-import au.com.bytecode.opencsv.CSVWriter;
 
 /**
  * Utilities for working with Tables and Row data.
@@ -57,6 +58,8 @@ import au.com.bytecode.opencsv.CSVWriter;
  * 
  */
 public class TableModelUtils {
+	
+	private static final String PARTIAL_ROW_KEY_NOT_A_VALID = "PartialRow.value.key: '%s' is not a valid column ID for row ID: %s";
 
 	public static final Function<Long, String> LONG_TO_STRING = new Function<Long, String>() {
 		@Override
@@ -427,6 +430,29 @@ public class TableModelUtils {
 	}
 	
 	/**
+	 * Count the number of PartialRows that do not have a rowId.
+	 * 
+	 * @param set
+	 * @return
+	 */
+	public static int countEmptyOrInvalidRowIds(PartialRowSet set) {
+		validateRowSet(set);
+		int count = 0;
+		for (PartialRow row : set.getRows()) {
+			if(isNullOrInvalid(row.getRowId())){
+				count++;
+			}
+		}
+		return count;
+	}
+	
+	public static void validateRowSet(PartialRowSet partial){
+		ValidateArgument.required(partial, "partial");
+		ValidateArgument.required(partial.getTableId(), "PartialRowSet.tableId");
+		ValidateArgument.required(partial.getRows(), "PartialRowSet.rows");
+	}
+	
+	/**
 	 * Is the row ID null or invalid?
 	 * 
 	 * @param rowId
@@ -458,6 +484,36 @@ public class TableModelUtils {
 		for (Row row : set.getRows()) {
 			// Set the version number for each row
 			row.setVersionNumber(range.getVersionNumber());
+			if(isNullOrInvalid(row.getRowId())){
+				if(range.getMinimumId() == null){
+					throw new IllegalStateException("RowSet required at least one row ID but none were allocated.");
+				}
+				// This row needs an id.
+				row.setRowId(id);
+				id++;
+				// Validate we have not exceeded the rows
+				if(row.getRowId() > range.getMaximumId()){
+					throw new IllegalStateException("RowSet required more row IDs than were allocated.");
+				}
+			}else{
+				// Validate the rowId is within range
+				if(row.getRowId() > range.getMaximumUpdateId()){
+					throw new IllegalArgumentException("Cannot update row: "+row.getRowId()+" because it does not exist.");
+				}
+			}
+		}
+	}
+	
+	/**
+	 * Assign row IDs to any row that is missing a value.
+	 * 
+	 * @param set
+	 * @param range
+	 */
+	public static void assignRowIds(PartialRowSet set, IdRange range) {
+		validateRowSet(set);
+		Long id = range.getMinimumId();
+		for (PartialRow row : set.getRows()) {
 			if(isNullOrInvalid(row.getRowId())){
 				if(range.getMinimumId() == null){
 					throw new IllegalStateException("RowSet required at least one row ID but none were allocated.");
@@ -1272,6 +1328,58 @@ public class TableModelUtils {
 			results.add(select);
 		}
 		return results;
+	}
+	
+	/**
+	 * Validate the given partial rowset
+	 * @param schema
+	 * @param partial
+	 */
+	public static void validatePartialRowSet(List<ColumnModel> schema, PartialRowSet partial){
+		ValidateArgument.required(schema, "schema");
+		validateRowSet(partial);
+		// Map columnId to column
+		Map<Long, ColumnModel> schemaMap = new HashMap<Long, ColumnModel>(schema.size());
+		for(ColumnModel cm: schema){
+			schemaMap.put(Long.parseLong(cm.getId()), cm);
+		}
+		// Validate each value
+		for(PartialRow row: partial.getRows()){
+			// check each value
+			validatePartialRow(row, schemaMap);
+		}
+	}
+	
+	/**
+	 * Validate a single row of a PartialRowSet.
+	 * 
+	 * @param row
+	 * @param schemaMap
+	 */
+	public static void validatePartialRow(PartialRow row,
+			Map<Long, ColumnModel> schemaMap) {
+		if (row != null) {
+			if (row.getValues() != null) {
+				for (String key : row.getValues().keySet()) {
+					try {
+						Long columnId = Long.parseLong(key);
+						String value = row.getValues().get(key);
+						ColumnModel column = schemaMap.get(columnId);
+						if (column == null) {
+							throw new IllegalArgumentException(String.format(
+									PARTIAL_ROW_KEY_NOT_A_VALID, key,
+									row.getRowId()));
+						}
+						// validate the raw value.
+						validateRowValue(value, column, 0, 0);
+					} catch (NumberFormatException e) {
+						throw new IllegalArgumentException(String.format(
+								PARTIAL_ROW_KEY_NOT_A_VALID, key,
+								row.getRowId()));
+					}
+				}
+			}
+		}
 	}
 
 }

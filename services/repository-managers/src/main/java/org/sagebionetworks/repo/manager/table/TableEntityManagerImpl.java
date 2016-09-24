@@ -169,7 +169,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 			rows.add(row);
 		}
 		resolveUpdateValues(tableId, rowsToUpdate, columns);
-		result.setRows(rows);
+		result.setRows(rows); 
 		return result;
 	}
 	
@@ -463,11 +463,25 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	 */
 	public void validateFileHandles(UserInfo user, String tableId,
 			RowSet rowSet) {
+		// Extract the files handles from the change set.
+		Set<Long> filesHandleIds = TableModelUtils.getFileHandleIdsInRowSet(rowSet);
+		validateFileHandles(user, tableId, filesHandleIds);
+	}
+
+
+	/**
+	 * Validate the user has permission to assign the passed list of file
+	 * handles to the the given table.
+	 * 
+	 * @param user
+	 * @param tableId
+	 * @param filesHandleIds
+	 */
+	void validateFileHandles(UserInfo user, String tableId,
+			Set<Long> filesHandleIds) {
 		if(user.isAdmin()){
 			return;
 		}
-		// Extract the files handles from the change set.
-		Set<Long> filesHandleIds = TableModelUtils.getFileHandleIdsInRowSet(rowSet);
 		if(!filesHandleIds.isEmpty()){
 			// convert the longs to strings.
 			List<String> fileHandesToCheck = new LinkedList<String>();
@@ -662,6 +676,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	}
 
 
+	@WriteTransactionReadCommitted
 	@Override
 	public TableUpdateResponse updateTable(ProgressCallback<Void> callback,
 			UserInfo userInfo, TableUpdateRequest change) {
@@ -683,6 +698,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	 * @param change
 	 * @return
 	 */
+	@WriteTransactionReadCommitted
 	public TableSchemaChangeResponse updateTableSchema(ProgressCallback<Void> callback,
 			UserInfo userInfo, TableSchemaChangeRequest changes) {
 
