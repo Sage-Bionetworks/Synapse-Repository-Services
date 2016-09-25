@@ -764,7 +764,7 @@ public class IT500SynapseJavaClient {
 		assertNotNull(otherProfile);
 		
 		// give read permission to synapseTwo
-		AccessControlList acl = synapseOne.getACL(dataset.getId());
+		AccessControlList acl = synapseOne.getACL(project.getId());
 		ResourceAccess readPermission = new ResourceAccess();
 		readPermission.setPrincipalId(Long.parseLong(synapseTwo.getMyProfile().getOwnerId()));
 		readPermission.setAccessType(Collections.singleton(ACCESS_TYPE.READ));
