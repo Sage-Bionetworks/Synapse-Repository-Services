@@ -27,7 +27,9 @@ import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.EntityIdList;
+import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.PaginatedIds;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UploadContentToS3DAO;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -75,6 +77,8 @@ public class DiscussionThreadManagerImplTest {
 	private EntityIdList mockEntityIdList;
 	@Mock
 	private List<String> mockList;
+	@Mock
+	private GroupMembersDAO mockGroupMembersDao;
 
 	private DiscussionThreadManager threadManager;
 	private UserInfo userInfo = new UserInfo(false /*not admin*/);
@@ -105,6 +109,7 @@ public class DiscussionThreadManagerImplTest {
 		ReflectionTestUtils.setField(threadManager, "subscriptionDao", mockSubscriptionDao);
 		ReflectionTestUtils.setField(threadManager, "transactionalMessenger", mockTransactionalMessenger);
 		ReflectionTestUtils.setField(threadManager, "aclDao", mockAclDao);
+		ReflectionTestUtils.setField(threadManager, "groupMembersDao", mockGroupMembersDao);
 
 		createDto = new CreateDiscussionThread();
 		createDto.setForumId(forumId.toString());
@@ -674,5 +679,61 @@ public class DiscussionThreadManagerImplTest {
 		verify(mockAclDao).getAccessibleBenefactors(anySet(), eq(projectIds), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.READ));
 		verify(mockThreadDao).getThreadCountForEntity(3L, DiscussionFilter.EXCLUDE_DELETED, projectIdsCanRead);
 		verify(mockThreadDao).getThreadsForEntity(3L, 2L, 0L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true, DiscussionFilter.EXCLUDE_DELETED, projectIdsCanRead);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetModeratorsWithNullUserInfo(){
+		threadManager.getModerators(null, forum.getId(), 10L, 0L);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetModeratorsWithNullForumId(){
+		threadManager.getModerators(userInfo, null, 10L, 0L);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetModeratorsWithNegativeLimit(){
+		threadManager.getModerators(userInfo, forum.getId(), -1L, 0L);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetModeratorsWithOverLimit(){
+		threadManager.getModerators(userInfo, forum.getId(), MAX_LIMIT+1, 0L);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetModeratorsWithNegativeOffset(){
+		threadManager.getModerators(userInfo, forum.getId(), 10L, -1L);
+	}
+
+	@Test (expected = NotFoundException.class)
+	public void testGetModeratorsWithNotFoundForum() {
+		when(mockForumDao.getForum(Long.parseLong(forum.getId()))).thenThrow(new NotFoundException());
+		threadManager.getModerators(userInfo, forum.getId(), 10L, 0L);
+	}
+
+	@Test
+	public void testGetModeratorsWithNotFoundModerators() {
+		when(mockAclDao.getPrincipalIds(projectId, ObjectType.ENTITY, ACCESS_TYPE.MODERATE)).thenReturn(new HashSet<String>());
+		PaginatedIds actual = threadManager.getModerators(userInfo, forum.getId(), 10L, 0L);
+		assertNotNull(actual);
+		assertEquals((Long)0L, actual.getTotalNumberOfResults());
+		assertTrue(actual.getResults().isEmpty());
+	}
+
+	@Test
+	public void testGetModerators() {
+		HashSet<String> userGroups = new HashSet<String>();
+		userGroups.addAll(Arrays.asList("1", "2"));
+		when(mockAclDao.getPrincipalIds(projectId, ObjectType.ENTITY, ACCESS_TYPE.MODERATE)).thenReturn(userGroups);
+		Set<String> individuals = new HashSet<String>();
+		individuals.addAll(Arrays.asList("2", "3", "4"));
+		when(mockGroupMembersDao.getIndividuals(userGroups, 10L, 0L)).thenReturn(individuals);
+		when(mockGroupMembersDao.getIndividualCount(userGroups)).thenReturn(3L);
+		PaginatedIds actual = threadManager.getModerators(userInfo, forum.getId(), 10L, 0L);
+		assertNotNull(actual);
+		assertEquals((Long)3L, actual.getTotalNumberOfResults());
+		assertTrue(individuals.containsAll(actual.getResults()));
+		assertTrue(actual.getResults().containsAll(individuals));
 	}
 }

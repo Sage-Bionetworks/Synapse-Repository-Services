@@ -2568,6 +2568,17 @@ public interface SynapseClient extends BaseClient {
 	PaginatedResults<DiscussionThreadBundle> getThreadsForForum(String forumId, Long limit, Long offset, DiscussionThreadOrder order, Boolean ascending, DiscussionFilter filter) throws SynapseException;
 
 	/**
+	 * Get moderators for a given forum
+	 * 
+	 * @param forumId
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws SynapseException
+	 */
+	PaginatedIds getModeratorsForForum(String forumId, Long limit, Long offset) throws SynapseException;
+
+	/**
 	 * Get total number of threads for a given forumID
 	 * 
 	 * @param forumId

@@ -6,6 +6,7 @@ import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityIdList;
+import org.sagebionetworks.repo.model.PaginatedIds;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
@@ -481,5 +482,26 @@ public class DiscussionController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody EntityIdList entityIds) {
 		return serviceProvider.getDiscussionService().getThreadCounts(userId, entityIds);
+	}
+
+	/**
+	 * Returns a page of moderators for a given forum ID.
+	 * <br/>
+	 * Target users: anyone who has READ permission to the project.
+	 * 
+	 * @param userId - The ID of the user who is making the request
+	 * @param limit - Limits the size of the page returned. For example, a page size of 10 require limit = 10. The maximum Limit for this call is 100.
+	 * @param offset - The index of the pagination offset. For a page size of 10, the first page would be at offset = 0, and the second page would be at offset = 10.
+	 * @param forumId - The forum ID to which the returning mederators belong
+	 * @return
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.FORUM_FORUM_ID_MODERATORS, method = RequestMethod.GET)
+	public @ResponseBody PaginatedIds getForumModerators(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM) Long limit,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM) Long offset,
+			@PathVariable String forumId) {
+		return serviceProvider.getDiscussionService().getModerators(userId, forumId, limit, offset);
 	}
 }
