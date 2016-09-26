@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
+import org.sagebionetworks.repo.model.table.AbstractRow;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.IdRange;
@@ -76,7 +77,7 @@ public interface TableRowTruthDAO {
 	 * @return
 	 * @throws IOException
 	 */
-	public RowReferenceSet appendRowSetToTable(String userId, String tableId, List<ColumnModel> columns, RawRowSet delta)
+	public RowReferenceSet appendRowSetToTable(String userId, String tableId, List<ColumnModel> columns, RawRowSet delta, Long versionNumber, String etag)
 			throws IOException;
 	
 	/**
@@ -101,7 +102,7 @@ public interface TableRowTruthDAO {
 	 * @return
 	 * @throws IOException
 	 */
-	public RowReferenceSet appendPartialRowSetToTable(String userId, String tableId, List<ColumnModel> columns, PartialRowSet delta)
+	public RowReferenceSet appendPartialRowSetToTable(String userId, String tableId, List<ColumnModel> columns, PartialRowSet delta, Long versionNumber, String etag)
 			throws IOException;
 	
 	/**
@@ -255,6 +256,15 @@ public interface TableRowTruthDAO {
 	 * @throws IOException
 	 */
 	public void scanChange(RowHandler handler, TableRowChange dto) throws IOException;
+
+	/**
+	 * Assign row ids and version numbers to the passed abstract rows.
+	 * 
+	 * @param tableId
+	 * @param rows
+	 * @return
+	 */
+	IdRange assignRowIdsAndVersion(String tableId, List<? extends AbstractRow> rows);
 	
 	
 }

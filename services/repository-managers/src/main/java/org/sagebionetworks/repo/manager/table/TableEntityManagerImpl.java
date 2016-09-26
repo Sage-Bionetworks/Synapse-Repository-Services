@@ -30,6 +30,7 @@ import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.IdRange;
 import org.sagebionetworks.repo.model.table.PartialRow;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.RawRowSet;
@@ -275,7 +276,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		});
 		List<ColumnModel> columns = tableManagerSupport.getColumnModelsForTable(tableId);
 		RawRowSet rowSetToDelete = new RawRowSet(TableModelUtils.getIds(columns), rowsToDelete.getEtag(), tableId, rows);
-		RowReferenceSet result = tableRowTruthDao.appendRowSetToTable(user.getId().toString(), tableId, columns, rowSetToDelete);
+		RowReferenceSet result = appendRowSetToTable(user.getId().toString(), tableId, columns, rowSetToDelete);
 		// The table has change so we must reset the state.
 		tableManagerSupport.setTableToProcessingAndTriggerUpdate(tableId);
 		return result;
@@ -350,6 +351,24 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		}
 		
 	}
+	
+	/**
+	 * Append the passed rows to the given table.
+	 * @param userId
+	 * @param tableId
+	 * @param columns
+	 * @param delta
+	 * @return
+	 * @throws IOException
+	 */
+	RowReferenceSet appendRowSetToTable(String userId, String tableId, List<ColumnModel> columns, RawRowSet delta) throws IOException{
+		// throws an exception if there is a row level conflict.
+		tableRowTruthDao.checkForRowLevelConflict(tableId, delta);
+		// Assign rowId and version to rows additions
+		IdRange range = tableRowTruthDao.assignRowIdsAndVersion(tableId, delta.getRows());
+		// Append the change to the table.
+		return tableRowTruthDao.appendRowSetToTable(userId, tableId, columns, delta, range.getVersionNumber(), range.getEtag());
+	}
 
 	/**
 	 * Append a batch of rows to a table.
@@ -367,9 +386,11 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	private String appendBatchOfRowsToTable(UserInfo user, List<ColumnModel> columns, RawRowSet delta, RowReferenceSet results,
 			ProgressCallback<Long> progressCallback)
 			throws IOException, ReadOnlyException {
+		String tableId = delta.getTableId();
 		// See PLFM-3041
 		checkStackWiteStatus();
-		RowReferenceSet rrs = tableRowTruthDao.appendRowSetToTable(user.getId().toString(), delta.getTableId(), columns, delta);
+		// Append the change to the table.
+		RowReferenceSet rrs = appendRowSetToTable(user.getId().toString(), tableId, columns, delta);
 		if(progressCallback != null){
 			progressCallback.progressMade(new Long(rrs.getRows().size()));
 		}

@@ -26,6 +26,7 @@ import org.apache.commons.lang.StringUtils;
 import org.sagebionetworks.repo.model.dao.table.RowAccessor;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.table.AbstractRow;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.IdRange;
@@ -34,6 +35,7 @@ import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.RawRowSet;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
+import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.TableConstants;
@@ -225,16 +227,14 @@ public class TableModelUtils {
 	 * @param set
 	 */
 	public static void validateRowSet(RawRowSet set) {
-		if (set == null)
-			throw new IllegalArgumentException("RowSet cannot be null");
-		;
-		if (set.getIds() == null)
-			throw new IllegalArgumentException("RowSet.ids cannot be null");
-		if (set.getRows() == null)
-			throw new IllegalArgumentException("RowSet.rows cannot be null");
-		if (set.getRows().size() < 1)
-			throw new IllegalArgumentException(
-					"RowSet.rows must contain at least one row.");
+		ValidateArgument.required(set, "RowSet cannot be null");
+		ValidateArgument.required(set.getIds(), "RowSet.ids cannot be null");
+		validateRows(set.getRows());
+	}
+	
+	public static void validateRows(List<? extends AbstractRow> rows) {
+		ValidateArgument.required(rows, "Rows cannot be null");
+		ValidateArgument.requirement(!rows.isEmpty(), "Rows must contain at least one row.");
 	}
 	
 	/**
@@ -418,27 +418,10 @@ public class TableModelUtils {
 	 * Count all of the empty or invalid rows in the set
 	 * @param set
 	 */
-	public static int countEmptyOrInvalidRowIds(RawRowSet set) {
-		validateRowSet(set);
+	public static int countEmptyOrInvalidRowIds(List<? extends AbstractRow> rows) {
+		validateRows(rows);
 		int count = 0;
-		for (Row row : set.getRows()) {
-			if(isNullOrInvalid(row.getRowId())){
-				count++;
-			}
-		}
-		return count;
-	}
-	
-	/**
-	 * Count the number of PartialRows that do not have a rowId.
-	 * 
-	 * @param set
-	 * @return
-	 */
-	public static int countEmptyOrInvalidRowIds(PartialRowSet set) {
-		validateRowSet(set);
-		int count = 0;
-		for (PartialRow row : set.getRows()) {
+		for (AbstractRow row : rows) {
 			if(isNullOrInvalid(row.getRowId())){
 				count++;
 			}
@@ -449,7 +432,7 @@ public class TableModelUtils {
 	public static void validateRowSet(PartialRowSet partial){
 		ValidateArgument.required(partial, "partial");
 		ValidateArgument.required(partial.getTableId(), "PartialRowSet.tableId");
-		ValidateArgument.required(partial.getRows(), "PartialRowSet.rows");
+		validateRows(partial.getRows());
 	}
 	
 	/**
@@ -478,10 +461,10 @@ public class TableModelUtils {
 	 * @param set
 	 * @param range
 	 */
-	public static void assignRowIdsAndVersionNumbers(RawRowSet set, IdRange range) {
-		validateRowSet(set);
+	public static void assignRowIdsAndVersionNumbers(List<? extends AbstractRow> set, IdRange range) {
+		validateRows(set);
 		Long id = range.getMinimumId();
-		for (Row row : set.getRows()) {
+		for (AbstractRow row : set) {
 			// Set the version number for each row
 			row.setVersionNumber(range.getVersionNumber());
 			if(isNullOrInvalid(row.getRowId())){
@@ -503,36 +486,7 @@ public class TableModelUtils {
 			}
 		}
 	}
-	
-	/**
-	 * Assign row IDs to any row that is missing a value.
-	 * 
-	 * @param set
-	 * @param range
-	 */
-	public static void assignRowIds(PartialRowSet set, IdRange range) {
-		validateRowSet(set);
-		Long id = range.getMinimumId();
-		for (PartialRow row : set.getRows()) {
-			if(isNullOrInvalid(row.getRowId())){
-				if(range.getMinimumId() == null){
-					throw new IllegalStateException("RowSet required at least one row ID but none were allocated.");
-				}
-				// This row needs an id.
-				row.setRowId(id);
-				id++;
-				// Validate we have not exceeded the rows
-				if(row.getRowId() > range.getMaximumId()){
-					throw new IllegalStateException("RowSet required more row IDs than were allocated.");
-				}
-			}else{
-				// Validate the rowId is within range
-				if(row.getRowId() > range.getMaximumUpdateId()){
-					throw new IllegalArgumentException("Cannot update row: "+row.getRowId()+" because it does not exist.");
-				}
-			}
-		}
-	}
+
 
 	/**
 	 * Read the passed CSV into a RowSet.
@@ -1380,6 +1334,32 @@ public class TableModelUtils {
 				}
 			}
 		}
+	}
+
+
+	/**
+	 * Create a RowReferenceSet for the given rows.
+	 * @param tableId
+	 * @param columns
+	 * @param etag
+	 * @param rows
+	 * @return
+	 */
+	public static RowReferenceSet createRowReference(String tableId, List<ColumnModel> columns, String etag, List<? extends AbstractRow> rows) {
+		RowReferenceSet results = new RowReferenceSet();
+		results.setHeaders(TableModelUtils.getSelectColumns(columns));
+		results.setTableId(tableId);
+		results.setEtag(etag);
+		List<RowReference> refs = new LinkedList<RowReference>();
+		// Build up the row references
+		for (AbstractRow row : rows) {
+			RowReference ref = new RowReference();
+			ref.setRowId(row.getRowId());
+			ref.setVersionNumber(row.getVersionNumber());
+			refs.add(ref);
+		}
+		results.setRows(refs);
+		return results;
 	}
 
 }

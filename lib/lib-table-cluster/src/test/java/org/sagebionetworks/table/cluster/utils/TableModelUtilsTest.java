@@ -563,57 +563,31 @@ public class TableModelUtilsTest {
 					TableModelUtils.validateRowValue("", cm, 0, 0));
 		}
 	}
-
-	@Test
-	public void testCountEmptyOrInvalidPartialRowIdsNone() {
-		assertEquals(0, TableModelUtils.countEmptyOrInvalidRowIds(validPartialRowSet));
-	}
-
-	@Test
-	public void testCountEmptyOrInvalidPartialRowIdsNull() {
-		validPartialRowSet.getRows().get(0).setRowId(null);
-		assertEquals(1, TableModelUtils.countEmptyOrInvalidRowIds(validPartialRowSet));
-	}
-
-	@Test
-	public void testCountEmptyOrInvalidPartialRowIdsInvalid() {
-		validPartialRowSet.getRows().get(0).setRowId(-1l);
-		assertEquals(1, TableModelUtils.countEmptyOrInvalidRowIds(validPartialRowSet));
-	}
-
-	@Test
-	public void testCountEmptyOrInvalidPartialRowIdsMixed() {
-		PartialRow row = new PartialRow();
-		row.setRowId(null);
-		validPartialRowSet.getRows().add(row);
-		validPartialRowSet.getRows().get(0).setRowId(-1l);
-		assertEquals(2, TableModelUtils.countEmptyOrInvalidRowIds(validPartialRowSet));
-	}
 	
 ///
 	
 	@Test
 	public void testCountEmptyOrInvalidRowIdsNone() {
-		assertEquals(0, TableModelUtils.countEmptyOrInvalidRowIds(validRowSet));
+		assertEquals(0, TableModelUtils.countEmptyOrInvalidRowIds(validRowSet.getRows()));
 	}
 
 	@Test
 	public void testCountEmptyOrInvalidRowIdsNull() {
 		validRowSet.getRows().get(0).setRowId(null);
-		assertEquals(1, TableModelUtils.countEmptyOrInvalidRowIds(validRowSet));
+		assertEquals(1, TableModelUtils.countEmptyOrInvalidRowIds(validRowSet.getRows()));
 	}
 
 	@Test
 	public void testCountEmptyOrInvalidRowIdsInvalid() {
 		validRowSet.getRows().get(0).setRowId(-1l);
-		assertEquals(1, TableModelUtils.countEmptyOrInvalidRowIds(validRowSet));
+		assertEquals(1, TableModelUtils.countEmptyOrInvalidRowIds(validRowSet.getRows()));
 	}
 
 	@Test
 	public void testCountEmptyOrInvalidRowIdsMixed() {
 		validRowSet.getRows().get(0).setRowId(-1l);
 		validRowSet.getRows().get(1).setRowId(null);
-		assertEquals(2, TableModelUtils.countEmptyOrInvalidRowIds(validRowSet));
+		assertEquals(2, TableModelUtils.countEmptyOrInvalidRowIds(validRowSet.getRows()));
 	}
 	
 	@Test
@@ -624,7 +598,7 @@ public class TableModelUtilsTest {
 		range.setMaximumUpdateId(999l);
 		Long versionNumber = new Long(4);
 		range.setVersionNumber(versionNumber);
-		TableModelUtils.assignRowIdsAndVersionNumbers(validRowSet, range);
+		TableModelUtils.assignRowIdsAndVersionNumbers(validRowSet.getRows(), range);
 		// Validate each row was assigned a version number
 		for (Row row : validRowSet.getRows()) {
 			assertEquals(versionNumber, row.getVersionNumber());
@@ -640,7 +614,7 @@ public class TableModelUtilsTest {
 		Long versionNumber = new Long(4);
 		range.setVersionNumber(versionNumber);
 		validRowSet.getRows().get(1).setRowId(null);
-		TableModelUtils.assignRowIdsAndVersionNumbers(validRowSet, range);
+		TableModelUtils.assignRowIdsAndVersionNumbers(validRowSet.getRows(), range);
 		// Validate each row was assigned a version number
 		for (Row row : validRowSet.getRows()) {
 			assertEquals(versionNumber, row.getVersionNumber());
@@ -660,7 +634,7 @@ public class TableModelUtilsTest {
 		// Clear all the row ids
 		validRowSet.getRows().get(0).setRowId(null);
 		validRowSet.getRows().get(1).setRowId(null);
-		TableModelUtils.assignRowIdsAndVersionNumbers(validRowSet, range);
+		TableModelUtils.assignRowIdsAndVersionNumbers(validRowSet.getRows(), range);
 		// Validate each row was assigned a version number
 		for (Row row : validRowSet.getRows()) {
 			assertEquals(versionNumber, row.getVersionNumber());
@@ -682,7 +656,7 @@ public class TableModelUtilsTest {
 		// Clear all the row ids
 		validRowSet.getRows().get(1).setRowId(null);
 		try {
-			TableModelUtils.assignRowIdsAndVersionNumbers(validRowSet, range);
+			TableModelUtils.assignRowIdsAndVersionNumbers(validRowSet.getRows(), range);
 			fail("should have failed");
 		} catch (IllegalStateException e) {
 			assertEquals("RowSet required at least one row ID but none were allocated.", e.getMessage());
@@ -702,7 +676,7 @@ public class TableModelUtilsTest {
 		validRowSet.getRows().get(0).setRowId(null);
 		validRowSet.getRows().get(1).setRowId(null);
 		try {
-			TableModelUtils.assignRowIdsAndVersionNumbers(validRowSet, range);
+			TableModelUtils.assignRowIdsAndVersionNumbers(validRowSet.getRows(), range);
 			fail("should have failed");
 		} catch (IllegalStateException e) {
 			assertEquals("RowSet required more row IDs than were allocated.", e.getMessage());
@@ -722,7 +696,7 @@ public class TableModelUtilsTest {
 		validRowSet.getRows().get(0).setRowId(0l);
 		validRowSet.getRows().get(1).setRowId(2l);
 		try {
-			TableModelUtils.assignRowIdsAndVersionNumbers(validRowSet, range);
+			TableModelUtils.assignRowIdsAndVersionNumbers(validRowSet.getRows(), range);
 			fail("should have failed");
 		} catch (IllegalArgumentException e) {
 			assertEquals("Cannot update row: 2 because it does not exist.", e.getMessage());
@@ -870,7 +844,7 @@ public class TableModelUtilsTest {
 		range.setVersionNumber(0l);
 		range.setMinimumId(0l);
 		range.setMaximumId(1l);
-		TableModelUtils.assignRowIdsAndVersionNumbers(v1Set, range);
+		TableModelUtils.assignRowIdsAndVersionNumbers(v1Set.getRows(), range);
 		// now remove column two
 		models.remove(1);
 		// Now add back two new columns one with a default value and one without
@@ -886,7 +860,7 @@ public class TableModelUtilsTest {
 		range.setVersionNumber(1l);
 		range.setMinimumId(2l);
 		range.setMaximumId(3l);
-		TableModelUtils.assignRowIdsAndVersionNumbers(v2Set, range);
+		TableModelUtils.assignRowIdsAndVersionNumbers(v2Set.getRows(), range);
 
 		// Now request the data in a different order
 		List<ColumnModel> newOrder = new LinkedList<ColumnModel>();

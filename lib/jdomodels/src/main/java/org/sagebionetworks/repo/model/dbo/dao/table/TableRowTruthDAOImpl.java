@@ -1,13 +1,20 @@
 package org.sagebionetworks.repo.model.dbo.dao.table;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ID_SEQUENCE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ID_SEQUENCE_TABLE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_KEY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_TABLE_ETAG;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_TABLE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_VERSION;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ROW_CHANGE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TABLE_ID_SEQUENCE;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.Writer;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashSet;
@@ -17,7 +24,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import org.apache.commons.io.output.ProxyWriter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -30,6 +36,7 @@ import org.sagebionetworks.repo.model.dbo.persistence.table.ColumnModelUtils;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableIdSequence;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableRowChange;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.table.AbstractRow;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.IdRange;
@@ -41,7 +48,6 @@ import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableChangeType;
 import org.sagebionetworks.repo.model.table.TableRowChange;
-import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
@@ -199,29 +205,41 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 			log.info("S3 error creating bucket: " + e.getStackTrace());
 		}
 	}
+	
+	@WriteTransactionReadCommitted
+	@Override
+	public IdRange assignRowIdsAndVersion(String tableId, List<? extends AbstractRow> rows){
+		// Count the rows without rowIds.
+		int coutToReserver = TableModelUtils.countEmptyOrInvalidRowIds(rows);
+		// Reserver IDs for the missing
+		IdRange range = reserveIdsInRange(tableId, coutToReserver);
+		// Now assign the rowIds and set the version number
+		TableModelUtils.assignRowIdsAndVersionNumbers(rows, range);
+		return range;
+	}
 
 	@WriteTransactionReadCommitted
 	@Override
-	public RowReferenceSet appendRowSetToTable(String userId, String tableId, List<ColumnModel> columns, RawRowSet delta)
+	public RowReferenceSet appendRowSetToTable(String userId, String tableId, List<ColumnModel> columns, RawRowSet delta, Long versionNumber, String etag)
 			throws IOException {
-		// Now set the row version numbers and ID.
-		int coutToReserver = TableModelUtils.countEmptyOrInvalidRowIds(delta);
-		// Reserver IDs for the missing
-		IdRange range = reserveIdsInRange(tableId, coutToReserver);
-		// Are any rows being updated?
-		if (coutToReserver < delta.getRows().size()) {
-			// Validate that this update does not contain any row level conflicts.
-			checkForRowLevelConflict(tableId, delta);
-		}
-		// Now assign the rowIds and set the version number
-		TableModelUtils.assignRowIdsAndVersionNumbers(delta, range);
+//		// Now set the row version numbers and ID.
+//		int coutToReserver = TableModelUtils.countEmptyOrInvalidRowIds(delta);
+//		// Reserver IDs for the missing
+//		IdRange range = reserveIdsInRange(tableId, coutToReserver);
+//		// Are any rows being updated?
+//		if (coutToReserver < delta.getRows().size()) {
+//			// Validate that this update does not contain any row level conflicts.
+//			checkForRowLevelConflict(tableId, delta);
+//		}
+//		// Now assign the rowIds and set the version number
+//		TableModelUtils.assignRowIdsAndVersionNumbers(delta, range);
 		// We are ready to convert the file to a CSV and save it to S3.
 		String key = saveCSVToS3(columns, delta);
 		// record the change
 		DBOTableRowChange changeDBO = new DBOTableRowChange();
 		changeDBO.setTableId(KeyFactory.stringToKey(tableId));
-		changeDBO.setRowVersion(range.getVersionNumber());
-		changeDBO.setEtag(range.getEtag());
+		changeDBO.setRowVersion(versionNumber);
+		changeDBO.setEtag(etag);
 		changeDBO.setColumnIds(TableModelUtils.createDelimitedColumnModelIdString(
 				TableModelUtils.getIds(columns)));
 		changeDBO.setCreatedBy(Long.parseLong(userId));
@@ -232,40 +250,22 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		changeDBO.setChangeType(TableChangeType.ROW.name());
 		basicDao.createNew(changeDBO);
 
-		// Prepare the results
-		RowReferenceSet results = new RowReferenceSet();
-		results.setHeaders(TableModelUtils.getSelectColumns(columns));
-		results.setTableId(tableId);
-		results.setEtag(changeDBO.getEtag());
-		List<RowReference> refs = new LinkedList<RowReference>();
-		// Build up the row references
-		for (Row row : delta.getRows()) {
-			RowReference ref = new RowReference();
-			ref.setRowId(row.getRowId());
-			ref.setVersionNumber(row.getVersionNumber());
-			refs.add(ref);
-		}
-		results.setRows(refs);
-		return results;
+		// Build the reference set.
+		return TableModelUtils.createRowReference(tableId, columns, etag, delta.getRows());
 	}
 	
 	@WriteTransactionReadCommitted
 	@Override
 	public RowReferenceSet appendPartialRowSetToTable(String userId,
-			String tableId, List<ColumnModel> columns, PartialRowSet delta)
+			String tableId, List<ColumnModel> columns, PartialRowSet delta, Long versionNumber, String etag)
 			throws IOException {
-		// Now set the row version numbers and ID.
-		int coutToReserver = TableModelUtils.countEmptyOrInvalidRowIds(delta);
-		IdRange range = reserveIdsInRange(tableId, coutToReserver);
-		// Now assign the rowIds and set the version number
-		TableModelUtils.assignRowIds(delta, range);
 		// We are ready to convert the file to a CSV and save it to S3.
 		String key = savePartialToS3(delta);
 		// record the change
 		DBOTableRowChange changeDBO = new DBOTableRowChange();
 		changeDBO.setTableId(KeyFactory.stringToKey(tableId));
-		changeDBO.setRowVersion(range.getVersionNumber());
-		changeDBO.setEtag(range.getEtag());
+		changeDBO.setRowVersion(versionNumber);
+		changeDBO.setEtag(etag);
 		changeDBO.setColumnIds(TableModelUtils.createDelimitedColumnModelIdString(
 				TableModelUtils.getIds(columns)));
 		changeDBO.setCreatedBy(Long.parseLong(userId));
@@ -275,7 +275,8 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		changeDBO.setRowCount(0L);
 		changeDBO.setChangeType(TableChangeType.PARTIAL_ROW.name());
 		basicDao.createNew(changeDBO);
-		return null;
+		// Build the reference set.
+		return TableModelUtils.createRowReference(tableId, columns, etag, delta.getRows());
 	}
 	
 	@WriteTransactionReadCommitted
