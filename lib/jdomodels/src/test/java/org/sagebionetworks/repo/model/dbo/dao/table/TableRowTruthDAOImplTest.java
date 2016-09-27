@@ -1081,6 +1081,22 @@ public class TableRowTruthDAOImplTest {
 		}
 	}
 	
+	@Test
+	public void testAssignRowIdsAndVersionAdd(){
+		String tableId = "syn123";
+		Row add = new Row();
+		add.setRowId(null);
+		add.setVersionNumber(null);
+		add.setValues(Lists.newArrayList("add"));
+		
+		List<Row> rows = Lists.newArrayList(add);
+		IdRange range = tableRowTruthDao.assignRowIdsAndVersion(tableId, rows);
+		assertNotNull(range);
+		// the row should be assigned a rowId and version
+		assertEquals(new Long(1), add.getRowId());
+		ff
+	}
+	
 	/**
 	 * Test helper to combine three methods that were originally part of appendRowSet
 	 * @param userId
