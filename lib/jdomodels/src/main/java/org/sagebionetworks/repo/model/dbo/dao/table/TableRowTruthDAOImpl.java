@@ -18,7 +18,6 @@ import java.io.OutputStream;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -248,6 +247,8 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	public RowReferenceSet appendPartialRowSetToTable(String userId,
 			String tableId, List<ColumnModel> columns, PartialRowSet delta, Long versionNumber, String etag)
 			throws IOException {
+		// validate the rowset before write.
+		TableModelUtils.validatePartialRowSet(columns, delta);
 		// We are ready to convert the file to a CSV and save it to S3.
 		String key = savePartialToS3(delta);
 		// record the change
@@ -312,13 +313,13 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	}
 	
 	/**
-	 * Write the data from the given proxy to S3.
+	 * Write the data from the given callback to S3.
 	 * 
-	 * @param proxy
+	 * @param callback
 	 * @return
 	 * @throws IOException
 	 */
-	String saveToS3(WriterCallback proxy)
+	String saveToS3(WriterCallback callback)
 			throws IOException {
 		// First write to a temp file.
 		File temp = File.createTempFile("tempToS3", ".gz");
@@ -326,7 +327,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		try {
 			out = new FileOutputStream(temp);
 			// write to the temp file.
-			proxy.write(out);
+			callback.write(out);
 			out.flush();
 			out.close();
 			// upload it to S3.

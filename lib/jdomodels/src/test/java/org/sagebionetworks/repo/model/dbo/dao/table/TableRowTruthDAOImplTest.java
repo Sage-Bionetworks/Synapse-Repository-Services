@@ -1082,20 +1082,60 @@ public class TableRowTruthDAOImplTest {
 	}
 	
 	@Test
-	public void testAssignRowIdsAndVersionAdd(){
+	public void testAssignRowIdsAndVersionAddMultipeTimes(){
 		String tableId = "syn123";
-		Row add = new Row();
-		add.setRowId(null);
-		add.setVersionNumber(null);
-		add.setValues(Lists.newArrayList("add"));
+		Row one = new Row();
+		one.setRowId(null);
+		one.setVersionNumber(null);
+		one.setValues(Lists.newArrayList("one"));
 		
-		List<Row> rows = Lists.newArrayList(add);
+		Row two = new Row();
+		two.setRowId(null);
+		two.setVersionNumber(null);
+		one.setValues(Lists.newArrayList("two"));
+		
+		List<Row> rows = Lists.newArrayList(one, two);
+		// call under test.
 		IdRange range = tableRowTruthDao.assignRowIdsAndVersion(tableId, rows);
 		assertNotNull(range);
+		assertNotNull(range.getEtag());
+		assertEquals(new Long(1),range.getMaximumId());
+		assertEquals(new Long(0),range.getMinimumId());
+		assertEquals(new Long(-1),range.getMaximumUpdateId());
+		
 		// the row should be assigned a rowId and version
-		assertEquals(new Long(1), add.getRowId());
-		ff
+		assertEquals(new Long(0), one.getRowId());
+		assertEquals(new Long(0), one.getVersionNumber());
+		assertEquals(new Long(1), two.getRowId());
+		assertEquals(new Long(0), two.getVersionNumber());
+		
+		// another set for a new version
+		one = new Row();
+		one.setRowId(null);
+		one.setVersionNumber(null);
+		one.setValues(Lists.newArrayList("one"));
+		
+		two = new Row();
+		two.setRowId(null);
+		two.setVersionNumber(null);
+		one.setValues(Lists.newArrayList("two"));
+		
+		rows = Lists.newArrayList(one, two);
+		// call under test.
+		range = tableRowTruthDao.assignRowIdsAndVersion(tableId, rows);
+		assertNotNull(range);
+		assertNotNull(range.getEtag());
+		assertEquals(new Long(3),range.getMaximumId());
+		assertEquals(new Long(2),range.getMinimumId());
+		assertEquals(new Long(1),range.getMaximumUpdateId());
+		
+		// the row should be assigned a rowId and version
+		assertEquals(new Long(2), one.getRowId());
+		assertEquals(new Long(1), one.getVersionNumber());
+		assertEquals(new Long(3), two.getRowId());
+		assertEquals(new Long(1), two.getVersionNumber());
 	}
+	
 	
 	/**
 	 * Test helper to combine three methods that were originally part of appendRowSet

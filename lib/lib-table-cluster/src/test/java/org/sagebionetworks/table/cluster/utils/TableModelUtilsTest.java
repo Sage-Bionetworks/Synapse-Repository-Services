@@ -36,6 +36,7 @@ import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.RawRowSet;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
+import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 
@@ -65,6 +66,7 @@ public class TableModelUtilsTest {
 	ColumnModel booleanColumn;
 	List<ColumnModel> booleanSchema;
 	Map<Long, ColumnModel> booleanColumnMap;
+	String tableId;
 	
 	@Before
 	public void before() {
@@ -104,6 +106,7 @@ public class TableModelUtilsTest {
 		
 		validPartialRow = new PartialRow();
 		validPartialRow.setRowId(0L);
+		validPartialRow.setVersionNumber(5L);
 		Map<String, String> partialValues = new HashMap<String, String>();
 		partialValues.put("111", "true");
 		validPartialRow.setValues(partialValues);
@@ -124,7 +127,7 @@ public class TableModelUtilsTest {
 		out = new CSVWriter(outWritter);
 
 		// Create a second set that has the same order as the schema.
-		String tableId = "456";
+		tableId = "456";
 		ids = Lists.newArrayList("1", "2");
 
 		rows = new LinkedList<Row>();
@@ -1430,5 +1433,21 @@ public class TableModelUtilsTest {
 		
 		// call under test
 		TableModelUtils.validatePartialRowSet(booleanSchema, set);
+	}
+	
+	@Test
+	public void testCreateRowReference(){
+		String etag = "etag";
+		RowReferenceSet ref = TableModelUtils.createRowReference(tableId, booleanSchema, etag, validPartialRowSet.getRows());
+		assertNotNull(ref);
+		assertEquals(etag, ref.getEtag());
+		assertEquals(tableId, ref.getTableId());
+		assertEquals(TableModelUtils.getSelectColumns(booleanSchema), ref.getHeaders());
+		assertNotNull(ref.getRows());
+		assertEquals(1, ref.getRows().size());
+		RowReference rowRef = ref.getRows().get(0);
+		assertNotNull(rowRef);
+		assertEquals(validPartialRow.getRowId(), rowRef.getRowId());
+		assertEquals(validPartialRow.getVersionNumber(), rowRef.getVersionNumber());
 	}
 }

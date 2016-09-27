@@ -120,6 +120,7 @@ public class TableEntityManagerTest {
 	
 	TableEntityManagerImpl manager;
 	UserInfo user;
+	String userId;
 	String tableId;
 	Long tableIdLong;
 	RowSet set;
@@ -158,6 +159,7 @@ public class TableEntityManagerTest {
 		manager.setMaxBytesPerRequest(maxBytesPerRequest);
 		manager.setMaxBytesPerChangeSet(1000000000);
 		user = new UserInfo(false, 7L);
+		userId = ""+user.getId();
 		models = TableModelTestUtils.createOneOfEachType(true);
 		schemaMD5Hex = TableModelUtils.createSchemaMD5HexCM(models);
 		tableId = "syn123";
@@ -241,7 +243,7 @@ public class TableEntityManagerTest {
 		when(mockColumModelManager.calculateNewSchemaIdsAndValidate(tableId, changes)).thenReturn(newColumnIds);
 		
 		// Assign rowId and version to rows additions
-		IdRange idRange = new IdRange();
+		idRange = new IdRange();
 		idRange.setEtag("etag");
 		idRange.setVersionNumber(101L);
 		when(mockTruthDao.assignRowIdsAndVersion(anyString(), anyListOf(AbstractRow.class))).thenReturn(idRange);
@@ -1022,5 +1024,16 @@ public class TableEntityManagerTest {
 		assertEquals(columChangedetails, details);
 		verify(mockTruthDao).getSchemaChangeForVersion(tableId, versionNumber);
 		verify(mockColumModelManager).getColumnChangeDetails(schemaChangeRequest.getChanges());
+	}
+	
+	@Test
+	public void testAppendRowSetToTable() throws IOException{
+		// call under test
+		RowReferenceSet set = manager.appendRowSetToTable(""+user.getId(), tableId, models, rawSet);
+		assertNotNull(set);
+		assertEquals(refSet, set);
+		verify(mockTruthDao).checkForRowLevelConflict(tableId, rawSet);
+		verify(mockTruthDao).assignRowIdsAndVersion(tableId, rawSet.getRows());
+		verify(mockTruthDao).appendRowSetToTable(userId, tableId, models, rawSet, idRange.getVersionNumber(), idRange.getEtag());
 	}
 }
