@@ -15,6 +15,8 @@ import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.security.spec.PKCS8EncodedKeySpec;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
@@ -27,6 +29,7 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.model.docker.RegistryEventAction;
 
 public class DockerTokenUtil {
 
@@ -34,7 +37,7 @@ public class DockerTokenUtil {
 	private static final long TIME_WINDOW_SEC = 120L; // two minutes
 	private static final String ACCESS = "access";
 
-	private static final String PUBLIC_KEY_ID;
+	public static final String PUBLIC_KEY_ID;
 	private static final PrivateKey PRIVATE_KEY;
 
 	// Eliptic Curve key is required by the Json Web Token signing library
@@ -50,19 +53,26 @@ public class DockerTokenUtil {
 	}
 
 	// This implements the specification: https://docs.docker.com/registry/spec/auth/jwt/
-	public static String createToken(String user, String type, 
-			String registry, String repository, List<String> actions, long now, String uuid) {
+	public static String createToken(String user, 
+			String registry, List<DockerScopePermission> accessPermissions, long now, String uuid) {
 
 		JSONArray access = new JSONArray();
-		JSONObject accessEntry = new JSONObject();
+		
+		for(DockerScopePermission permission : accessPermissions){
+			JSONObject accessEntry = new JSONObject();
+			access.add(accessEntry);
+			
+			accessEntry.put("type", permission.getScopeType());
+			accessEntry.put("name", permission.getRepositoryPath());
 
-		access.add(accessEntry);
-		accessEntry.put("type", type);
-		accessEntry.put("name", repository);
-		JSONArray actionArray = new JSONArray();
-		for (String action : actions) actionArray.add(action);
-		accessEntry.put("actions", actionArray);
-
+			JSONArray actionArray = new JSONArray();
+			//put set into a list and sort for deterministic ordering of actions
+			List<RegistryEventAction> actions = new ArrayList<RegistryEventAction>(permission.getPermittedActions());
+			Collections.sort(actions);
+			for (RegistryEventAction action : actions) actionArray.add(action.name());
+			accessEntry.put("actions", actionArray);
+		}
+		
 		Claims claims = Jwts.claims()
 				.setIssuer(ISSUER)
 				.setAudience(registry)

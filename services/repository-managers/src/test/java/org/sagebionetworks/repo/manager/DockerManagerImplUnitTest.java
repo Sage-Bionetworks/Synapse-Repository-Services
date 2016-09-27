@@ -179,7 +179,8 @@ public class DockerManagerImplUnitTest {
 
 	@Test
 	public void testAuthorizeDockerAccess() throws Exception {
-		String scope =TYPE+":"+REPOSITORY_PATH+":"+ACCESS_TYPES_STRING;
+		List<String> scope = new ArrayList<String>();
+		scope.add(TYPE+":"+REPOSITORY_PATH+":"+ACCESS_TYPES_STRING);
 		
 		// method under test:
 		DockerAuthorizationToken token = dockerManager.
@@ -201,10 +202,10 @@ public class DockerManagerImplUnitTest {
 	@Test
 	public void testGetPermittedAccessTypesHappyCase() throws Exception {
 		// method under test:
-		Set<String> permitted = dockerManager.
-				getPermittedAccessTypes(USER_INFO, SERVICE, TYPE, REPOSITORY_PATH, ACCESS_TYPES_STRING);
+		Set<RegistryEventAction> permitted = dockerManager.
+				getPermittedActions(USER_INFO, SERVICE, REPOSITORY_PATH, ACCESS_TYPES_STRING);
 		
-		assertEquals(new HashSet(Arrays.asList(new String[]{"push", "pull"})), permitted);
+		assertEquals(new HashSet(Arrays.asList(new RegistryEventAction[]{RegistryEventAction.push, RegistryEventAction.pull})), permitted);
 	}
 
 	@Test
@@ -212,8 +213,8 @@ public class DockerManagerImplUnitTest {
 		String repositoryPath = "garbage/"+REPOSITORY_NAME;
 		
 		// method under test:
-		Set<String> permitted = dockerManager.
-				getPermittedAccessTypes(USER_INFO, SERVICE, TYPE, repositoryPath, ACCESS_TYPES_STRING);
+		Set<RegistryEventAction> permitted = dockerManager.
+				getPermittedActions(USER_INFO, SERVICE, repositoryPath, ACCESS_TYPES_STRING);
 		
 		assertTrue(permitted.isEmpty());
 	}
@@ -225,11 +226,11 @@ public class DockerManagerImplUnitTest {
 		when(dockerNodeDao.getEntityIdForRepositoryName(SERVICE+"/"+repositoryPath)).thenReturn(null);
 
 		// method under test:
-		Set<String> permitted = dockerManager.
-				getPermittedAccessTypes(USER_INFO, SERVICE, TYPE, repositoryPath, ACCESS_TYPES_STRING);
+		Set<RegistryEventAction> permitted = dockerManager.
+				getPermittedActions(USER_INFO, SERVICE, repositoryPath, ACCESS_TYPES_STRING);
 		
 		// client needs both push and pull access to push a not-yet-existing repo to the registry
-		assertEquals(new HashSet(Arrays.asList(new String[]{"push", "pull"})), permitted);
+		assertEquals(new HashSet(Arrays.asList(new RegistryEventAction[]{RegistryEventAction.push, RegistryEventAction.pull})), permitted);
 	}
 
 	@Test
@@ -243,8 +244,8 @@ public class DockerManagerImplUnitTest {
 				thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		
 		// method under test:
-		Set<String> permitted = dockerManager.
-				getPermittedAccessTypes(USER_INFO, SERVICE, TYPE, REPOSITORY_PATH, ACCESS_TYPES_STRING);
+		Set<RegistryEventAction> permitted = dockerManager.
+				getPermittedActions(USER_INFO, SERVICE, REPOSITORY_PATH, ACCESS_TYPES_STRING);
 
 		// Note, we DO have create access, but that doesn't let us 'push' since the repo already exists
 		assertTrue(permitted.toString(), permitted.isEmpty());
@@ -261,11 +262,11 @@ public class DockerManagerImplUnitTest {
 				thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		
 		// method under test:
-		Set<String> permitted = dockerManager.
-				getPermittedAccessTypes(USER_INFO, SERVICE, TYPE, REPOSITORY_PATH, "pull");
+		Set<RegistryEventAction> permitted = dockerManager.
+				getPermittedActions(USER_INFO, SERVICE, REPOSITORY_PATH, "pull");
 
 		// it's allowed because it's *DOWNLOAD* permission, not *READ* permission which we must have
-		assertEquals(new HashSet(Arrays.asList(new String[]{"pull"})), permitted);
+		assertEquals(new HashSet(Arrays.asList(new RegistryEventAction[]{RegistryEventAction.pull})), permitted);
 
 	}
 
@@ -283,8 +284,8 @@ public class DockerManagerImplUnitTest {
 				thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		
 		// method under test:
-		Set<String> permitted = dockerManager.
-				getPermittedAccessTypes(USER_INFO, SERVICE, TYPE, repositoryPath, ACCESS_TYPES_STRING);
+		Set<RegistryEventAction> permitted = dockerManager.
+				getPermittedActions(USER_INFO, SERVICE, repositoryPath, ACCESS_TYPES_STRING);
 
 		// Note, we DO have update access, but that doesn't let us 'push' since the repo doesn't exist
 		assertTrue(permitted.toString(), permitted.isEmpty());
