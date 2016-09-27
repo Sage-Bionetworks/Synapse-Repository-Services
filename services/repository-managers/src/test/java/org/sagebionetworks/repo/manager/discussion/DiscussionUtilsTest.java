@@ -162,4 +162,24 @@ public class DiscussionUtilsTest {
 		expected.add(ref);
 		assertEquals(expected, DiscussionUtils.getEntityReferences("sYn123", "1"));
 	}
+
+	@Test
+	public void testGetEntityRefCaseParenthese() {
+		List<DiscussionThreadEntityReference> expected = new ArrayList<DiscussionThreadEntityReference>();
+		DiscussionThreadEntityReference ref = new DiscussionThreadEntityReference();
+		ref.setEntityId("123");
+		ref.setThreadId("1");
+		expected.add(ref);
+		assertEquals(expected, DiscussionUtils.getEntityReferences("(syn123)", "1"));
+	}
+
+	@Test
+	public void testGetEntityRefCaseSpecialChars() {
+		List<DiscussionThreadEntityReference> expected = new ArrayList<DiscussionThreadEntityReference>();
+		DiscussionThreadEntityReference ref = new DiscussionThreadEntityReference();
+		ref.setEntityId("123");
+		ref.setThreadId("1");
+		expected.add(ref);
+		assertEquals(expected, DiscussionUtils.getEntityReferences("*^syn123)/+", "1"));
+	}
 }
