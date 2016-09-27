@@ -176,7 +176,17 @@ public class DockerManagerImplUnitTest {
 	public void testValidParentProjectIdHappyPath() {
 		assertEquals(PARENT_ID, dockerManager.validParentProjectId(PARENT_ID+"/myrepo"));
 	}
-
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void testAuthourizeDockerAccessNullUserInfo() throws Exception{
+		dockerManager.authorizeDockerAccess(null, SERVICE, new ArrayList<String>());
+	}
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void testAuthourizeDockerAccessNullService() throws Exception{
+		dockerManager.authorizeDockerAccess(USER_INFO, null, new ArrayList<String>());
+	}
+	
 	@Test
 	public void testAuthorizeDockerAccess() throws Exception {
 		List<String> scope = new ArrayList<String>();
@@ -197,6 +207,30 @@ public class DockerManagerImplUnitTest {
 				authorizeDockerAccess(USER_INFO, SERVICE, null);
 		
 		assertNotNull(token.getToken());
+	}
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetPermittedAccessTypesNullUserInfo() throws Exception{
+		dockerManager.
+		getPermittedActions(null, SERVICE, REPOSITORY_PATH, ACCESS_TYPES_STRING);
+	}
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetPermittedAccessTypesNullService() throws Exception{
+		dockerManager.
+		getPermittedActions(USER_INFO, null, REPOSITORY_PATH, ACCESS_TYPES_STRING);
+	}
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetPermittedAccessTypesNullRepositoryPath() throws Exception{
+		dockerManager.
+		getPermittedActions(USER_INFO, SERVICE, null, ACCESS_TYPES_STRING);
+	}
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetPermittedAccessTypesNullAction() throws Exception{
+		dockerManager.
+		getPermittedActions(USER_INFO, SERVICE, REPOSITORY_PATH, null);
 	}
 	
 	@Test

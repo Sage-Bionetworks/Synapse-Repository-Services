@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
+import org.apache.commons.lang.Validate;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.reflection.model.PaginatedResults;
@@ -74,11 +75,15 @@ public class DockerManagerImpl implements DockerManager {
 	 * 
 	 * @param userInfo
 	 * @param service
-	 * @param scope
+	 * @param scope optional parameter used to authenticate access to docker repositories.
+	 *			pass null if the docker client only needs to check login credentials
 	 * @return
 	 */
 	@Override
 	public DockerAuthorizationToken authorizeDockerAccess(UserInfo userInfo, String service, List<String> scopes) {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(service, "service");
+		
 		List<DockerScopePermission> accessPermissions = new ArrayList<DockerScopePermission>();
 		
 		if (scopes != null) {
@@ -109,6 +114,10 @@ public class DockerManagerImpl implements DockerManager {
 
 	public Set<RegistryEventAction> getPermittedActions(UserInfo userInfo, 
 			String service, String repositoryPath, String actionTypes) {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(service, "service");
+		ValidateArgument.required(repositoryPath, "repositoryPath");
+		ValidateArgument.required(actionTypes, "actionTypes");
 
 		Set<RegistryEventAction> permittedActions = new HashSet<RegistryEventAction>();
 
@@ -120,8 +129,8 @@ public class DockerManagerImpl implements DockerManager {
 
 		String existingDockerRepoId = dockerNodeDao.getEntityIdForRepositoryName(repositoryName);
 
-		for (String requestedAccessTypeString : actionTypes.split(",")) {
-			RegistryEventAction requestedAction = RegistryEventAction.valueOf(requestedAccessTypeString);
+		for (String requestedActionString : actionTypes.split(",")) {
+			RegistryEventAction requestedAction = RegistryEventAction.valueOf(requestedActionString);
 			switch (requestedAction) {
 			case push:
 				// check CREATE or UPDATE permission and add to permittedActions
