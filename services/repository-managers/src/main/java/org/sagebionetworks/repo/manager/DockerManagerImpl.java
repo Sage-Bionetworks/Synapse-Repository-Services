@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.manager;
 
 import static org.sagebionetworks.repo.model.docker.RegistryEventAction.pull;
-import static org.sagebionetworks.repo.model.docker.RegistryEventAction.push;
 import static org.sagebionetworks.repo.model.util.DockerNameUtil.REPO_NAME_PATH_SEP;
 
 import java.util.ArrayList;
@@ -12,7 +11,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-import org.apache.commons.lang.Validate;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.reflection.model.PaginatedResults;

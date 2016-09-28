@@ -38,6 +38,7 @@ public class DockerTokenUtilTest {
 		
 
 		long now = 1465768785754L;
+		long interval = 120;
 		String uuid = "8b263df7-dd04-4afe-8366-64f882e0942d";
 		
 		List<DockerScopePermission> permissions = new ArrayList<DockerScopePermission>();
@@ -57,8 +58,27 @@ public class DockerTokenUtilTest {
 		String expectedHeadersBase64 = Base64.encodeBase64URLSafeString( expectedHeaderString.getBytes());
 		assertEquals(expectedHeadersBase64, pieces[0]);
 		
-		String expectedClaimSetString = "{\"iss\":\"www.synapse.org\",\"aud\":\"docker.synapse.org\",\"exp\":1465768905,\"nbf\":1465768665,\"iat\":1465768785,\"jti\":\"8b263df7-dd04-4afe-8366-64f882e0942d\",\"sub\":\"userName\",\"access\":[{\"name\":\"syn12345/myrepo\",\"type\":\"repository\",\"actions\":[\"push\",\"pull\"]},{\"name\":\"syn12345/myotherrepo\",\"type\":\"repository\",\"actions\":[\"pull\"]}]}";
-		String expectedClaimSetBase64 = Base64.encodeBase64URLSafeString( expectedClaimSetString.getBytes());
+		StringBuilder expectedClaimSetStringBuilder = new StringBuilder("{\"iss\":\"www.synapse.org\",\"aud\":\"docker.synapse.org\",\"exp\":");
+		expectedClaimSetStringBuilder.append(now / 1000 + interval);
+		expectedClaimSetStringBuilder.append(",\"nbf\":");
+		expectedClaimSetStringBuilder.append(now / 1000 - interval);
+		expectedClaimSetStringBuilder.append(",\"iat\":");
+		expectedClaimSetStringBuilder.append(now / 1000);
+		expectedClaimSetStringBuilder.append(",\"jti\":\"");
+		expectedClaimSetStringBuilder.append(uuid);
+		expectedClaimSetStringBuilder.append("\",\"sub\":\"");
+		expectedClaimSetStringBuilder.append(userName);
+		expectedClaimSetStringBuilder.append("\",\"access\":[{\"name\":\"");
+		expectedClaimSetStringBuilder.append(repository1);
+		expectedClaimSetStringBuilder.append("\",\"type\":\"");
+		expectedClaimSetStringBuilder.append(type);
+		expectedClaimSetStringBuilder.append("\",\"actions\":[\"push\",\"pull\"]},{\"name\":\"");
+		expectedClaimSetStringBuilder.append(repository2);
+		expectedClaimSetStringBuilder.append("\",\"type\":\"");
+		expectedClaimSetStringBuilder.append(type);
+		expectedClaimSetStringBuilder.append("\",\"actions\":[\"pull\"]}]}");
+		
+		String expectedClaimSetBase64 = Base64.encodeBase64URLSafeString( expectedClaimSetStringBuilder.toString().getBytes());
 		assertEquals(expectedClaimSetBase64, pieces[1]);
 		assertTrue(pieces[2].length()>0); // since signature changes every time, we can't hard code an 'expected' value
 	}
