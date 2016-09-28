@@ -2172,7 +2172,7 @@ public class ServletTestHelper {
 	}
 
 	public DockerAuthorizationToken authorizeDockerAccess(DispatcherServlet dispatchServlet, Long userId,
-			String service, String scope) throws Exception {
+			String service, String[] scope) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, UrlHelpers.DOCKER_PATH, UrlHelpers.DOCKER_AUTHORIZATION, userId, null);
 		request.addParameter(AuthorizationConstants.DOCKER_SERVICE_PARAM, service);
