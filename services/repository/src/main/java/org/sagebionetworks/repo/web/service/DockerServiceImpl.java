@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.web.service;
 
 import java.util.Collections;
 import java.util.Date;
+import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -32,9 +33,9 @@ public class DockerServiceImpl implements DockerService {
 
 	@Override
 	public DockerAuthorizationToken authorizeDockerAccess(Long userId,
-			String service, String scope) {
+			String service, List<String> scopes) {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return dockerManager.authorizeDockerAccess(userInfo, service, scope);
+		return dockerManager.authorizeDockerAccess(userInfo, service, scopes);
 	}
 
 	@Override
