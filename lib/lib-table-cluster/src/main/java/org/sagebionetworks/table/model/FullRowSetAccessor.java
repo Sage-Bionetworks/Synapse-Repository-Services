@@ -27,17 +27,6 @@ public class FullRowSetAccessor implements ChangeSetAccessor  {
 	RawRowSet rowset;
 	List<CellValue> cellValues;
 
-	
-	public FullRowSetAccessor(List<ColumnModel> schema, RawRowSet rowset) {
-		ValidateArgument.required(schema, "schema");
-		ValidateArgument.required(rowset, "rowset");
-		ValidateArgument.required(rowset.getRows(), "rowset.rows");
-		this.schema = schema;
-		this.rowset = rowset;
-		cellValues = new LinkedList<>();
-		// Create the value list
-		for(Row row: rowset.getRows())
-	}
 
 	@Override
 	public Iterator<? extends AbstractRow> getRowIterator() {
