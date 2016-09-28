@@ -10,11 +10,11 @@
 		},
 		"includePreSignedURLs":{
 			"type": "boolean",
-			"description": "Set to true to request a pre-signed URL for each file.",
+			"description": "Set to true to request a pre-signed URL for each file."
 		},
 		"includeFileHandles":{
 			"type": "boolean",
-			"description": "Set to true to request a FileHandle for each file.",
+			"description": "Set to true to request a FileHandle for each file."
 		}
 	}
 }
