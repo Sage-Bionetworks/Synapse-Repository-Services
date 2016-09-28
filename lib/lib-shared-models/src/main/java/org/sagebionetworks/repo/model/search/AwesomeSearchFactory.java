@@ -87,8 +87,6 @@ public class AwesomeSearchFactory {
 		searchResults.put("facets", facets);
 
 		// Now do the translation
-		searchResults.put("matchExpression", awesomeSearchResults
-				.getString("match-expr"));
 		searchResults.put("found", awesomeSearchResults
 				.getJSONObject("hits").getLong("found"));
 		searchResults.put("start", awesomeSearchResults
@@ -104,19 +102,12 @@ public class AwesomeSearchFactory {
 
 			// Copy over results fields, if they were requested and therefore
 			// present in the AwesomeSearch response
-			if (awesomeSearchHits.getJSONObject(i).has("data")) {
-				JSONObjectAdapter awesomeSearchHitData = awesomeSearchHit.getJSONObject("data");
+			if (awesomeSearchHits.getJSONObject(i).has("fields")) {
+				JSONObjectAdapter awesomeSearchHitData = awesomeSearchHit.getJSONObject("fields");
 				Iterator<String> dataNames = awesomeSearchHitData.keys();
 				while (dataNames.hasNext()) {
 					String dataName = dataNames.next();
-					String dataValue = null;
-					JSONArrayAdapter dataValueArray = awesomeSearchHitData
-							.getJSONArray(dataName);
-					if (0 < dataValueArray.length()) {
-						// Our result fields are currently only arrays of length
-						// one
-						dataValue = dataValueArray.getString(0);
-					}
+					String dataValue = awesomeSearchHitData.getString(dataName);
 					if(dataName.endsWith(RESULT_FIELD_SUFFIX)) {
 						dataName = dataName.substring(0, dataName.length() - RESULT_FIELD_SUFFIX.length());
 					}
@@ -169,11 +160,11 @@ public class AwesomeSearchFactory {
 					}
 				}
 
-				if (!awesomeSearchFacet.has("constraints"))
+				if (!awesomeSearchFacet.has("buckets"))
 					continue;
 				
 				JSONArrayAdapter awesomeSearchConstraints = awesomeSearchFacet
-						.getJSONArray("constraints");
+						.getJSONArray("buckets"); //in 2013 search api, constraints are called buckets
 
 				JSONArrayAdapter constraints = factory.createNewArray();
 				facet.put("constraints", constraints);

@@ -18,6 +18,7 @@ import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.repo.model.PaginatedIds;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
@@ -80,6 +81,12 @@ public class ITDiscussion {
 		assertNotNull(forumId);
 		assertEquals(forum.getProjectId(), projectId);
 		assertEquals(forum, synapse.getForum(forumId));
+
+		// get forum moderators
+		PaginatedIds moderators = synapse.getModeratorsForForum(forum.getId(), 10L, 0L);
+		assertNotNull(moderators);
+		assertTrue(moderators.getResults().contains(userToDelete.toString()));
+		assertEquals((Long)1L, moderators.getTotalNumberOfResults());
 
 		// get all threads in the forum
 		PaginatedResults<DiscussionThreadBundle> threads = synapse.getThreadsForForum(forumId, 20L, 0L, null, null, DiscussionFilter.NO_FILTER);
@@ -196,6 +203,10 @@ public class ITDiscussion {
 		availableThreads = synapse.getThreadsForForum(forumId, 20L, 0L, null, null, DiscussionFilter.EXCLUDE_DELETED);
 		assertEquals(0, availableThreads.getTotalNumberOfResults());
 		assertEquals((Long)1L, synapse.getThreadCountForForum(forumId, DiscussionFilter.NO_FILTER).getCount());
+
+		// restore deleted thread
+		synapse.restoreDeletedThread(threadId);
+		assertFalse(synapse.getThread(threadId).getIsDeleted());
 	}
 
 	@Test

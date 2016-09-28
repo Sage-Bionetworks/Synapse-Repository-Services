@@ -1,15 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_OWNER_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_OWNER_TYPE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_OWNER;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_TYPE_ELEMENT;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_TYPE_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TRASH_CAN_NODE_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS_CONTROL_LIST;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_RESOURCE_ACCESS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_RESOURCE_ACCESS_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -84,7 +75,15 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 	private static final String SQL_DELETE_ACLS_BY_IDS = "DELETE FROM " + TABLE_ACCESS_CONTROL_LIST + 
 														" WHERE " + COL_ACL_OWNER_ID + " IN (:"+IDS_PARAM_NAME+")"+
 														" AND " +  COL_ACL_OWNER_TYPE + " = :" + DBOAccessControlList.OWNER_TYPE_FIELD_NAME;
-	
+
+	private static final String SQL_GET_ALL_USER_GROUP = "SELECT DISTINCT "+COL_RESOURCE_ACCESS_GROUP_ID
+			+" FROM "+TABLE_ACCESS_CONTROL_LIST+", "+TABLE_RESOURCE_ACCESS+", "+TABLE_RESOURCE_ACCESS_TYPE
+			+" WHERE "+TABLE_ACCESS_CONTROL_LIST+"."+COL_ACL_ID+" = "+TABLE_RESOURCE_ACCESS+"."+COL_RESOURCE_ACCESS_OWNER
+			+" AND "+TABLE_RESOURCE_ACCESS+"."+COL_RESOURCE_ACCESS_ID+" = "+TABLE_RESOURCE_ACCESS_TYPE+"."+COL_RESOURCE_ACCESS_TYPE_ID
+			+" AND "+ TABLE_ACCESS_CONTROL_LIST+"."+COL_ACL_OWNER_ID +" = ?"
+			+" AND "+ TABLE_ACCESS_CONTROL_LIST+"."+COL_ACL_OWNER_TYPE +" = ?"
+			+" AND "+ TABLE_RESOURCE_ACCESS_TYPE+"."+COL_RESOURCE_ACCESS_TYPE_ELEMENT +" = ?";
+
 	/**
 	 * Keep a copy of the row mapper.
 	 */
@@ -402,5 +401,15 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 			}
 		});
 		return new HashSet<Long>(result);
+	}
+
+	@Override
+	public Set<String> getPrincipalIds(String objectId, ObjectType objectType, ACCESS_TYPE accessType){
+		ValidateArgument.required(objectId, "objectId");
+		ValidateArgument.required(objectType, "objectType");
+		ValidateArgument.required(accessType, "accessType");
+		Set<String> results = new HashSet<String>();
+		results.addAll(jdbcTemplate.queryForList(SQL_GET_ALL_USER_GROUP, String.class, KeyFactory.stringToKey(objectId), objectType.name(), accessType.name()));
+		return results;
 	}
 }

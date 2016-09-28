@@ -3,8 +3,11 @@ package org.sagebionetworks.repo.web.filter;
 import static org.sagebionetworks.repo.web.filter.ThrottleUtils.isMigrationAdmin;
 import static org.sagebionetworks.repo.web.filter.ThrottleUtils.generateCloudwatchProfiledata;
 import static org.sagebionetworks.repo.web.filter.ThrottleUtils.setResponseError;
+import static org.sagebionetworks.repo.web.filter.ThrottleUtils.THROTTLED_HTTP_STATUS;
+
 
 import java.io.IOException;
+import java.util.Collections;
 
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -19,7 +22,6 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.semaphore.MemoryTimeBlockCountingSemaphore;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 
 /**
  * This is an filter that throttles non-anonymous user requests by limiting
@@ -63,9 +65,9 @@ public class UserRequestFrequencyThrottleFilter implements Filter {
 				//acquired lock. proceed to next filter
 				chain.doFilter(request, response);
 			}else{
-				ProfileData report = generateCloudwatchProfiledata(userId, CLOUDWATCH_EVENT_NAME, this.getClass().getName());
+				ProfileData report = generateCloudwatchProfiledata(CLOUDWATCH_EVENT_NAME, this.getClass().getName(), Collections.singletonMap("UserId", userId));
 				consumer.addProfileData(report);
-				setResponseError(response, HttpStatus.SERVICE_UNAVAILABLE.value(), REASON_USER_THROTTLED_FREQ);
+				setResponseError(response, THROTTLED_HTTP_STATUS, REASON_USER_THROTTLED_FREQ);
 			}
 		}
 	}

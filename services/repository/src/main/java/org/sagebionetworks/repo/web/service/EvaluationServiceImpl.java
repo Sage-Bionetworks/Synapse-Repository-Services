@@ -185,6 +185,7 @@ public class EvaluationServiceImpl implements EvaluationService {
 	}
 
 	@Override
+	@WriteTransaction
 	public Submission createSubmission(Long userId, Submission submission, String entityEtag, 
 			String submissionEligibilityHash, HttpServletRequest request, String challengeEndpoint, String notificationUnsubscribeEndpoint)
 			throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException, JSONObjectAdapterException {

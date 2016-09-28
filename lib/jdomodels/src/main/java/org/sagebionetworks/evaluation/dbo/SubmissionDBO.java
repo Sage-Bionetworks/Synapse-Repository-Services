@@ -1,6 +1,7 @@
 package org.sagebionetworks.evaluation.dbo;
 
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBMISSION_CREATED_ON;
+import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBMISSION_DOCKER_DIGEST;
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBMISSION_ENTITY_BUNDLE;
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBMISSION_ENTITY_ID;
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBMISSION_ENTITY_VERSION;
@@ -11,6 +12,7 @@ import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBMISSION_S
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBMISSION_TEAM_ID;
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBMISSION_USER_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_CREATED_ON;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_DOCKER_DIGEST;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_ENTITY_BUNDLE;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_ENTITY_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_ENTITY_VERSION;
@@ -52,7 +54,8 @@ public class SubmissionDBO implements MigratableDatabaseObject<SubmissionDBO, Su
 			new FieldColumn(PARAM_SUBMISSION_NAME, COL_SUBMISSION_NAME),
 			new FieldColumn(PARAM_SUBMISSION_CREATED_ON, COL_SUBMISSION_CREATED_ON),
 			new FieldColumn(PARAM_SUBMISSION_SUBMITTER_ALIAS, COL_SUBMISSION_SUBMITTER_ALIAS),
-			new FieldColumn(PARAM_SUBMISSION_TEAM_ID, COL_SUBMISSION_TEAM_ID)
+			new FieldColumn(PARAM_SUBMISSION_TEAM_ID, COL_SUBMISSION_TEAM_ID),
+			new FieldColumn(PARAM_SUBMISSION_DOCKER_DIGEST, COL_SUBMISSION_DOCKER_DIGEST)
 			};
 
 	public TableMapping<SubmissionDBO> getTableMapping() {
@@ -68,6 +71,7 @@ public class SubmissionDBO implements MigratableDatabaseObject<SubmissionDBO, Su
 				sub.setVersionNumber(rs.getLong(COL_SUBMISSION_ENTITY_VERSION));
 				sub.setName(rs.getString(COL_SUBMISSION_NAME));
 				sub.setCreatedOn(rs.getLong(COL_SUBMISSION_CREATED_ON));
+				sub.setDockerDigest(rs.getString(COL_SUBMISSION_DOCKER_DIGEST));
 				java.sql.Blob blob = rs.getBlob(COL_SUBMISSION_ENTITY_BUNDLE);
 				if(blob != null){
 					sub.setEntityBundle(blob.getBytes(1, (int) blob.length()));
@@ -107,6 +111,7 @@ public class SubmissionDBO implements MigratableDatabaseObject<SubmissionDBO, Su
 	private Long createdOn;
 	private String name;
 	private Long teamId;
+	private String dockerDigest;
 	
 	public Long getId() {
 		return id;
@@ -175,12 +180,23 @@ public class SubmissionDBO implements MigratableDatabaseObject<SubmissionDBO, Su
 	public void setTeamId(Long teamId) {
 		this.teamId = teamId;
 	}
+	
+	public String getDockerDigest() {
+		return dockerDigest;
+	}
+	
+	public void setDockerDigest(String dockerDigest) {
+		this.dockerDigest = dockerDigest;
+	}
+	
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result
 				+ ((createdOn == null) ? 0 : createdOn.hashCode());
+		result = prime * result
+				+ ((dockerDigest == null) ? 0 : dockerDigest.hashCode());
 		result = prime * result + Arrays.hashCode(entityBundle);
 		result = prime * result
 				+ ((entityId == null) ? 0 : entityId.hashCode());
@@ -208,6 +224,11 @@ public class SubmissionDBO implements MigratableDatabaseObject<SubmissionDBO, Su
 			if (other.createdOn != null)
 				return false;
 		} else if (!createdOn.equals(other.createdOn))
+			return false;
+		if (dockerDigest == null) {
+			if (other.dockerDigest != null)
+				return false;
+		} else if (!dockerDigest.equals(other.dockerDigest))
 			return false;
 		if (!Arrays.equals(entityBundle, other.entityBundle))
 			return false;
@@ -260,7 +281,7 @@ public class SubmissionDBO implements MigratableDatabaseObject<SubmissionDBO, Su
 				+ ", entityId=" + entityId + ", entityBundle="
 				+ Arrays.toString(entityBundle) + ", versionNumber="
 				+ versionNumber + ", createdOn=" + createdOn + ", name=" + name
-				+ "]";
+				+ ", teamId=" + teamId + ", dockerDigest=" + dockerDigest + "]";
 	}
 	@Override
 	public MigrationType getMigratableTableType() {

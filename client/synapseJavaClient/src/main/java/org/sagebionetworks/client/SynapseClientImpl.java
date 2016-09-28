@@ -518,6 +518,9 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String URL = "/messageUrl";
 	private static final String PIN = "/pin";
 	private static final String UNPIN = "/unpin";
+	private static final String RESTORE = "/restore";
+	private static final String MODERATORS = "/moderators";
+	
 
 	private static final String THREAD_COUNTS = "/threadcounts";
 	private static final String ENTITY_THREAD_COUNTS = ENTITY + THREAD_COUNTS;
@@ -7450,6 +7453,11 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
+	public void restoreDeletedThread(String threadId) throws SynapseException {
+		getSharedClientConnection().putUri(repoEndpoint, THREAD+"/"+threadId+RESTORE, getUserAgent());
+	}
+
+	@Override
 	public DiscussionReplyBundle createReply(CreateDiscussionReply toCreate)
 			throws SynapseException {
 		ValidateArgument.required(toCreate, "toCreate");
@@ -7783,5 +7791,19 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		EntityIdList idList = new EntityIdList();
 		idList.setIdList(entityIds);
 		return asymmetricalPost(repoEndpoint, ENTITY_THREAD_COUNTS, idList , EntityThreadCounts.class, null);
+	}
+
+	@Override
+	public PaginatedIds getModeratorsForForum(String forumId, Long limit, Long offset) throws SynapseException {
+		ValidateArgument.required(forumId, "forumId");
+		ValidateArgument.required(limit, "limit");
+		ValidateArgument.required(offset, "offset");
+		String url = FORUM+"/"+forumId+MODERATORS
+				+"?"+LIMIT+"="+limit+"&"+OFFSET+"="+offset;
+		try {
+			return getJSONEntity(url, PaginatedIds.class);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
 	}
 }

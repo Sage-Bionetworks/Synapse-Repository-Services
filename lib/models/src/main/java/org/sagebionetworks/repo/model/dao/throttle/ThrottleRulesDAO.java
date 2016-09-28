@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.model.dao.throttle;
 
-import java.util.Date;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.throttle.ThrottleRule;
@@ -12,17 +11,11 @@ import org.sagebionetworks.repo.model.throttle.ThrottleRule;
  */
 public interface ThrottleRulesDAO {
 	/**
-	 * Returns a list of all currently throttled API calls
+	 * Returns a list of all currently throttled API calls.
+	 * The returned list will be empty if there are no rules.
 	 * @return list of all current throttles
 	 */
-	public List<ThrottleRule> getAllThrottles();
-	
-	/**
-	 * Returns a list of all throttled API calls modified after the given time
-	 * @param time time after which selected throttles have been modified.
-	 * @return
-	 */
-	public List<ThrottleRule> getAllThrottlesAfter(Date time);
+	public List<ThrottleRule> getAllThrottleRules();
 	
 	/**
 	 * Adds a new throttle rule.
@@ -32,7 +25,7 @@ public interface ThrottleRulesDAO {
 	 * @param callPeriodSec call period in seconds in which up to maxCalls can be made
 	 * @return number of rows affected
 	 */
-	public int addThrottle(long id, String normalizedUri, long maxCalls, long callPeriodSec);
+	public int addThrottle(ThrottleRule throttleRule);
 	
 	/**
 	 * Removes all throttles

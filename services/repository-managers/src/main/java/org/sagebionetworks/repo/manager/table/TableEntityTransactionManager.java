@@ -40,7 +40,7 @@ public class TableEntityTransactionManager implements TableTransactionManager {
 		
 		ValidateArgument.required(progressCallback, "callback");
 		ValidateArgument.required(userInfo, "userInfo");
-		validateRequest(request);
+		TableTransactionUtils.validateRequest(request);
 		String tableId = request.getEntityId();
 		// Validate the user has permission to edit the table before locking.
 		tableManagerSupport.validateTableWriteAccess(userInfo, tableId);
@@ -62,29 +62,6 @@ public class TableEntityTransactionManager implements TableTransactionManager {
 			throw e;
 		} catch (Exception e) {
 			throw new RuntimeException(e);
-		}
-	}
-	
-	/**
-	 * Validate a request.
-	 * 
-	 * @param request
-	 */
-	public static void validateRequest(TableUpdateTransactionRequest request){
-		ValidateArgument.required(request, "request");
-		ValidateArgument.required(request.getEntityId(), "request.entityId");
-		ValidateArgument.required(request.getChanges(), "request.changes");
-		if(request.getChanges().isEmpty()){
-			throw new IllegalArgumentException("Must include be at least one change.");
-		}
-		String tableId = request.getEntityId();
-		for(TableUpdateRequest change: request.getChanges()){
-			if(change.getEntityId() == null){
-				change.setEntityId(tableId);
-			}
-			if(!tableId.equals(change.getEntityId())){
-				throw new IllegalArgumentException("EntityId of TableUpdateRequest does not match the requested transaction entityId");
-			}
 		}
 	}
 	

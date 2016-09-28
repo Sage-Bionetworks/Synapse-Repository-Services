@@ -55,7 +55,7 @@
 			level="info" additivity="false">
 			<appender-ref ref="performanceProfiling" />
 		</logger>
-		<logger name="org.sagebionetworks" level="all" additivity="true">
+		<logger name="org.sagebionetworks" level="info" additivity="true">
 			<appender-ref ref="repository" />
 		</logger>
 		<root level="error">

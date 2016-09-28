@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.web.service;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.mockito.Matchers.any;
@@ -9,7 +10,10 @@ import static org.mockito.Mockito.when;
 import static org.sagebionetworks.search.SearchConstants.FIELD_ID;
 import static org.sagebionetworks.search.SearchConstants.FIELD_PATH;
 
+import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.Set;
+
 
 import org.junit.Before;
 import org.junit.Test;
@@ -36,6 +40,7 @@ public class SearchServiceImplTest {
 	private SearchDocumentDriver mockSearchDocumentDriver;
 	private SearchServiceImpl service;
 	private UserInfo userInfo;
+	private String searchQuery;
 	
 	
 	@Before
@@ -45,7 +50,11 @@ public class SearchServiceImplTest {
 		mockSearchDocumentDriver = Mockito.mock(SearchDocumentDriver.class);
 		service= new SearchServiceImpl(mockSearchDao, mockUserManager, mockSearchDocumentDriver);
 		userInfo = new UserInfo(false, 990L);
-
+		searchQuery = "q.parser=structured&q=(and 'RIP' 'Harambe')&return=id,freeze,mage,fun&interactive=deck";
+		Set<Long> userGroups = new HashSet<Long>();
+		userGroups.add(123L);
+		userGroups.add(8008135L);
+		userInfo.setGroups(userGroups);
 	}
 	
 	@Test
@@ -114,6 +123,29 @@ public class SearchServiceImplTest {
 		// The path should not be returned unless requested.
 		assertNull(returnedHit.getPath());
 		verify(mockSearchDao, times(1)).executeSearch(serchQueryString);
+	}
+	
+	@Test(expected = IllegalArgumentException.class)
+	public void testFilterSeachForAuthorizationUserIsNull(){
+		SearchServiceImpl.filterSeachForAuthorization(null, searchQuery);
+	}
+	
+	@Test
+	public void testFilterSeachForAuthorizationUserIsAdmin(){
+		UserInfo adminUser = new UserInfo(true, 420L);
+		assertEquals(searchQuery, SearchServiceImpl.filterSeachForAuthorization(adminUser, searchQuery));
+	}
+	
+	@Test
+	public void testFilterSearchForAuthorizationUserIsNotAdmin(){
+		assertEquals("q.parser=structured&q=( and (and 'RIP' 'Harambe') (or acl:'8008135' acl:'123'))&return=id,freeze,mage,fun&interactive=deck"
+				, SearchServiceImpl.filterSeachForAuthorization(userInfo, searchQuery));
+	}
+	
+	@Test
+	public void testFilterSearchForAuthorizationUserIsNotAdminNoOtherParameters(){
+		searchQuery = "q.parser=structured&q=(and 'ayy' 'lmao' 'XD')";
+		assertEquals("q.parser=structured&q=( and (and 'ayy' 'lmao' 'XD') (or acl:'8008135' acl:'123'))", SearchServiceImpl.filterSeachForAuthorization(userInfo, searchQuery));
 	}
 
 }

@@ -25,6 +25,7 @@
  				<ref bean="performanceLogTrigger" />
 				<ref bean="accessRecorderTrigger" />
 				<ref bean="messagePublisherTrigger" />
+				<ref bean="throttleRulesCacheTrigger" />
 			</list>
 		</property>
 	</bean>

@@ -493,7 +493,7 @@ public class AuthorizationManagerImplTest {
 		assertEquals(false, uep.getCanEdit());
 		assertEquals(false, uep.getCanView());
 		assertEquals(true, uep.getCanUpload());
-		assertEquals(true, uep.getCanDownload()); // can't read but CAN download, which is controlled separately
+		assertEquals(false, uep.getCanDownload());
 		assertEquals(false, uep.getCanEnableInheritance());
 		assertEquals(node.getCreatedByPrincipalId(), uep.getOwnerPrincipalId());
 		
@@ -510,8 +510,8 @@ public class AuthorizationManagerImplTest {
 		assertEquals(false, uep.getCanDelete());
 		assertEquals(false, uep.getCanEdit());
 		assertEquals(true, uep.getCanView());
-		assertEquals(true, uep.getCanDownload()); // can't read but CAN download, which is controlled separately
-		assertEquals(true, uep.getCanUpload()); // can't read but CAN upload, which is controlled separately
+		assertEquals(true, uep.getCanDownload()); // CAN read and now CAN download
+		assertEquals(true, uep.getCanUpload()); // can read and CAN upload, which is controlled separately
 		
 		// Let the user update.
 		acl = entityPermissionsManager.getACL(node.getId(), userInfo);
@@ -589,7 +589,7 @@ public class AuthorizationManagerImplTest {
 		assertEquals(false, uep.getCanDelete());
 		assertEquals(false, uep.getCanEdit());
 		assertEquals(false, uep.getCanView());
-		assertEquals(true, uep.getCanDownload());
+		assertEquals(false, uep.getCanDownload());
 		assertEquals(true, uep.getCanUpload()); // can't read but CAN upload, which is controlled separately
 		assertEquals(false, uep.getCanEnableInheritance());
 
@@ -605,7 +605,7 @@ public class AuthorizationManagerImplTest {
 		assertEquals(false, uep.getCanDelete());
 		assertEquals(false, uep.getCanEdit());
 		assertEquals(false, uep.getCanView());
-		assertEquals(true, uep.getCanDownload());
+		assertEquals(false, uep.getCanDownload());
 		assertEquals(true, uep.getCanUpload()); 
 		assertEquals(false, uep.getCanEnableInheritance());
 		assertEquals(nodeCreatedByTestUser.getCreatedByPrincipalId(), uep.getOwnerPrincipalId());

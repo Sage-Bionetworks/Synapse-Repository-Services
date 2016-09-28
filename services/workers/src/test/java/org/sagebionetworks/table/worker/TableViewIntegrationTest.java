@@ -21,6 +21,7 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.EntityPermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.manager.table.TableViewManager;
@@ -28,24 +29,37 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
+import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
+import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.EntityDTO;
+import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SortItem;
+import org.sagebionetworks.repo.model.table.TableSchemaChangeRequest;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
+import org.sagebionetworks.repo.model.table.TableUpdateRequest;
+import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
+import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.table.cluster.ConnectionFactory;
+import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -58,7 +72,7 @@ import com.google.common.collect.Sets;
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class TableViewIntegrationTest {
 	
-	public static final int MAX_WAIT_MS = 1000 * 60;
+	public static final int MAX_WAIT_MS = 1000 * 60 * 2;
 	
 	@Autowired
 	private StackConfiguration config;
@@ -76,6 +90,10 @@ public class TableViewIntegrationTest {
 	private TableQueryManager tableQueryManger;
 	@Autowired
 	EntityPermissionsManager entityPermissionsManager;
+	@Autowired
+	ConnectionFactory tableConnectionFactory;
+	@Autowired
+	AsynchJobStatusManager asynchJobStatusManager;
 	
 	ProgressCallback<Void> mockProgressCallbackVoid;
 	
@@ -93,6 +111,7 @@ public class TableViewIntegrationTest {
 	
 	String fileViewId;
 	EntityView entityView;
+	List<ColumnModel> defaultSchema;
 	
 	@Before
 	public void before(){
@@ -139,7 +158,7 @@ public class TableViewIntegrationTest {
 			fileIds.add(fileId);
 		}
 		
-		List<ColumnModel> defaultSchema = tableManagerSupport.getDefaultTableViewColumns(ViewType.file);
+		defaultSchema = tableManagerSupport.getDefaultTableViewColumns(ViewType.file);
 		defaultColumnIds = new LinkedList<String>();
 		for(ColumnModel cm: defaultSchema){
 			defaultColumnIds.add(cm.getId());
@@ -178,6 +197,9 @@ public class TableViewIntegrationTest {
 	
 	@Test
 	public void testFileView() throws Exception{
+		Long fileId = KeyFactory.stringToKey(fileIds.get(0));
+		// wait for replication
+		waitForEntityReplication(fileViewId, fileViewId);
 		// query the view as a user that does not permission
 		String sql = "select * from "+fileViewId;
 		try {
@@ -189,6 +211,8 @@ public class TableViewIntegrationTest {
 		// grant the user read access to the view
 		AccessControlList acl = AccessControlListUtil.createACL(fileViewId, userInfo, Sets.newHashSet(ACCESS_TYPE.READ), new Date(System.currentTimeMillis()));
 		entityPermissionsManager.overrideInheritance(acl, adminUserInfo);
+		// wait for replication
+		waitForEntityReplication(fileViewId, fileViewId);
 		// run the query again
 		QueryResultBundle results = waitForConsistentQuery(userInfo, sql);
 		assertNotNull(results);
@@ -207,7 +231,8 @@ public class TableViewIntegrationTest {
 		access.setPrincipalId(userInfo.getId());
 		projectAcl.getResourceAccess().add(access);
 		entityPermissionsManager.updateACL(projectAcl, adminUserInfo);
-		
+		// wait for replication
+		waitForEntityReplication(fileViewId, fileViewId);
 		// run the query again
 		results = waitForConsistentQuery(userInfo, sql);
 		assertNotNull(results);
@@ -224,7 +249,7 @@ public class TableViewIntegrationTest {
 		Long fileId = KeyFactory.stringToKey(fileIds.get(0));
 		// lookup the file
 		FileEntity file = entityManager.getEntity(adminUserInfo, ""+fileId, FileEntity.class);
-		
+		waitForEntityReplication(fileViewId, file.getId());
 		// query the etag of the first file
 		String sql = "select etag from "+fileViewId+" where id = "+fileId;
 		QueryResultBundle results = waitForConsistentQuery(adminUserInfo, sql);
@@ -242,6 +267,8 @@ public class TableViewIntegrationTest {
 		file.setName("newName");
 		entityManager.updateEntity(adminUserInfo, file, false, null);
 		file = entityManager.getEntity(adminUserInfo, ""+fileId, FileEntity.class);
+		// wait for the change to be replicated.
+		waitForEntityReplication(fileViewId, file.getId());
 		// run the query again
 		results = waitForConsistentQuery(adminUserInfo, sql);
 		assertNotNull(results);
@@ -255,6 +282,70 @@ public class TableViewIntegrationTest {
 		assertEquals(file.getEtag(), etag);
 	}
 	
+	@Test
+	public void testForPLFM_4031() throws Exception{
+		Long fileId = KeyFactory.stringToKey(fileIds.get(0));
+		// lookup the file
+		FileEntity file = entityManager.getEntity(adminUserInfo, ""+fileId, FileEntity.class);
+		waitForEntityReplication(fileViewId, file.getId());
+		ColumnModel benefactorColumn = EntityField.findMatch(defaultSchema, EntityField.benefactorId);
+		// change the schema as a transaction
+		ColumnChange remove = new ColumnChange();
+		remove.setOldColumnId(benefactorColumn.getId());
+		remove.setNewColumnId(null);
+		List<ColumnChange> changes = Lists.newArrayList(remove);
+		TableSchemaChangeRequest request = new TableSchemaChangeRequest();
+		request.setEntityId(fileViewId);
+		request.setChanges(changes);
+		
+		List<TableUpdateRequest> updates = new LinkedList<TableUpdateRequest>();
+		updates.add(request);
+		TableUpdateTransactionRequest transaction = new TableUpdateTransactionRequest();
+		transaction.setEntityId(fileViewId);
+		transaction.setChanges(updates);
+	
+		// wait for the change to complete
+		startAndWaitForJob(adminUserInfo, transaction, TableUpdateTransactionResponse.class);
+		// run the query again
+		String sql = "select etag from "+fileViewId+" where id = "+fileId;
+		QueryResultBundle results = waitForConsistentQuery(adminUserInfo, sql);
+		assertNotNull(results);
+		assertEquals(new Long(1), results.getQueryCount());
+		assertNotNull(results.getQueryResult());
+		assertNotNull(results.getQueryResult().getQueryResults());
+		assertNotNull(results.getQueryResult().getQueryResults().getRows());
+		Row row = results.getQueryResult().getQueryResults().getRows().get(0);
+		assertEquals(fileId, row.getRowId());
+		String etag = row.getValues().get(0);
+		assertEquals(file.getEtag(), etag);
+	}
+	
+	/**
+	 * Start an asynchronous job and wait for the results.
+	 * @param user
+	 * @param body
+	 * @return
+	 * @throws InterruptedException 
+	 */
+	@SuppressWarnings("unchecked")
+	public <T extends AsynchronousResponseBody> T  startAndWaitForJob(UserInfo user, AsynchronousRequestBody body, Class<? extends T> clazz) throws InterruptedException{
+		long startTime = System.currentTimeMillis();
+		AsynchronousJobStatus status = asynchJobStatusManager.startJob(user, body);
+		while(true){
+			status = asynchJobStatusManager.getJobStatus(user, status.getJobId());
+			switch(status.getJobState()){
+			case FAILED:
+				assertTrue("Job failed: "+status.getErrorDetails(), false);
+			case PROCESSING:
+				assertTrue("Timed out waiting for job to complete",(System.currentTimeMillis()-startTime) < MAX_WAIT_MS);
+				System.out.println("Waiting for job: "+status.getProgressMessage());
+				Thread.sleep(1000);
+				break;
+			case COMPLETE:
+				return (T)status.getResponseBody();
+			}
+		}
+	}
 	
 	/**
 	 * Attempt to run a query. If the table is unavailable, it will continue to try until successful or the timeout is exceeded.
@@ -284,6 +375,31 @@ public class TableViewIntegrationTest {
 			}
 			assertTrue("Timed out waiting for table view worker to make the table available.", (System.currentTimeMillis()-start) <  MAX_WAIT_MS);
 			Thread.sleep(1000);
+		}
+	}
+	
+	/**
+	 * Wait for EntityReplication to show the given etag for the given entityId.
+	 * 
+	 * @param tableId
+	 * @param entityId
+	 * @param etag
+	 * @return
+	 * @throws InterruptedException
+	 */
+	private EntityDTO waitForEntityReplication(String tableId, String entityId) throws InterruptedException{
+		Entity entity = entityManager.getEntity(adminUserInfo, entityId);
+		long start = System.currentTimeMillis();
+		TableIndexDAO indexDao = tableConnectionFactory.getConnection(tableId);
+		while(true){
+			EntityDTO dto = indexDao.getEntityData(KeyFactory.stringToKey(entityId));
+			if(dto == null || !dto.getEtag().equals(entity.getEtag())){
+				assertTrue("Timed out waiting for table view status change.", (System.currentTimeMillis()-start) <  MAX_WAIT_MS);
+				System.out.println("Waiting for entity replication. id: "+entityId+" etag: "+entity.getEtag());
+				Thread.sleep(1000);
+			}else{
+				return dto;
+			}
 		}
 	}
 

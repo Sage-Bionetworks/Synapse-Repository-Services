@@ -5,12 +5,10 @@ import java.io.UnsupportedEncodingException;
 import java.util.LinkedList;
 import java.util.List;
 
-import javax.servlet.http.HttpServletRequest;
 
 import org.apache.http.client.ClientProtocolException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.json.JSONException;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.search.SearchDocumentDriver;
 import org.sagebionetworks.repo.manager.search.SearchHelper;
@@ -27,15 +25,11 @@ import org.sagebionetworks.search.SearchDao;
 import org.sagebionetworks.utils.HttpClientHelperException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.servlet.ModelAndView;
 
 /**
  * CloudSearch search controller. It currently offers two methods:
  * <ol>
- * <li>/searchRaw proxies raw CloudSearch requests though as-is except for
- * adding an authorization filter
- * <li>/search operates like /searchRaw but in addition reformats the result
- * into a Synapse model object
+ * <li>/search appends a authorization filter to the user's search and reformats the result
  * </ol>
  * 
  * @author deflaux
@@ -144,7 +138,7 @@ public class SearchServiceImpl implements SearchService {
 	 */
 	public String createQueryString(UserInfo userInfo, SearchQuery searchQuery)
 			throws UnsupportedEncodingException {
-		String serchQueryString = SearchUtil.generateQueryString(searchQuery);
+		String serchQueryString = SearchUtil.generateStructuredQueryString(searchQuery);
 		serchQueryString = filterSeachForAuthorization(userInfo, serchQueryString);
 		// Merge boolean queries as needed and escape them
 		String cleanedSearchQuery = SearchHelper.cleanUpSearchQueries(serchQueryString);
@@ -156,52 +150,18 @@ public class SearchServiceImpl implements SearchService {
 	 * @param searchQuery
 	 * @return
 	 */
-	public String filterSeachForAuthorization(UserInfo userInfo,String searchQuery) {
+	public static String filterSeachForAuthorization(UserInfo userInfo,String searchQuery) {
 		if(userInfo == null) throw new IllegalArgumentException("UserInfo cannot be null");
 		if (!userInfo.isAdmin()) {
-			StringBuilder builder = new StringBuilder(searchQuery);
-			builder.append("&");
-			builder.append(SearchHelper.formulateAuthorizationFilter(userInfo));
-			searchQuery = builder.toString();
+			String[] splitQuery = searchQuery.split("q=");
+			String actualQuery = splitQuery[1];
+			int otherParametersIndex = actualQuery.indexOf("&");
+			if(otherParametersIndex == -1){
+				//no other parameters 
+				otherParametersIndex = actualQuery.length();
+			}
+			searchQuery =  splitQuery[0] + "q=( and "+ actualQuery.substring(0,otherParametersIndex) + " " + SearchHelper.formulateAuthorizationFilter(userInfo) + ")" + actualQuery.substring(otherParametersIndex);
 		}
 		return searchQuery;
-	}
-
-	/* (non-Javadoc)
-	 * @see org.sagebionetworks.repo.web.service.SearchService#proxyRawSearch(java.lang.String, java.lang.String, javax.servlet.http.HttpServletRequest)
-	 */
-	@Override
-	public ModelAndView proxyRawSearch(Long userId, String searchQuery, HttpServletRequest request) throws ClientProtocolException,
-			IOException, HttpClientHelperException, JSONException, DatastoreException, NotFoundException, ServiceUnavailableException {
-
-		log.debug("Got raw query " + searchQuery);
-
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		return proxyRawSearch(searchQuery, userInfo);
-	}
-
-	/**
-	 * @param searchQuery
-	 * @param userInfo
-	 * @return
-	 * @throws UnsupportedEncodingException
-	 * @throws ClientProtocolException
-	 * @throws IOException
-	 * @throws HttpClientHelperException
-	 * @throws ServiceUnavailableException
-	 */
-	public ModelAndView proxyRawSearch(String searchQuery, UserInfo userInfo)
-			throws UnsupportedEncodingException, ClientProtocolException,
-			IOException, HttpClientHelperException, ServiceUnavailableException {
-		searchQuery = filterSeachForAuthorization(userInfo, searchQuery);
-
-		// Merge boolean queries as needed and escape them
-		String cleanedSearchQuery = SearchHelper.cleanUpSearchQueries(searchQuery);
-		String response = searchDao.executeRawSearch(cleanedSearchQuery);
-
-		ModelAndView mav = new ModelAndView();
-		mav.addObject("result", response);
-		mav.addObject("url", "private");
-		return mav;
 	}
 }

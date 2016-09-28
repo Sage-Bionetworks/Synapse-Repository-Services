@@ -16,13 +16,16 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.TableConstants;
+import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -419,6 +422,22 @@ public class SQLUtils {
 		builder.append(",");
 		builder.append(SCHEMA_HASH);
 		builder.append(" ) VALUES ('1', -1, ? ) ON DUPLICATE KEY UPDATE "+SCHEMA_HASH+" = ? ");
+		return builder.toString();
+	}
+	
+	public static String buildCreateOrUpdateStatusVersionAndHashSQL(String tableId){
+		if (tableId == null)
+			throw new IllegalArgumentException("TableID cannot be null");
+		StringBuilder builder = new StringBuilder();
+		builder.append("INSERT INTO ");
+		builder.append(getTableNameForId(tableId, TableType.STATUS));
+		builder.append(" ( ");
+		builder.append(SINGLE_KEY);
+		builder.append(",");
+		builder.append(ROW_VERSION);
+		builder.append(",");
+		builder.append(SCHEMA_HASH);
+		builder.append(" ) VALUES ('1', ?, ? ) ON DUPLICATE KEY UPDATE "+ROW_VERSION+" = ?, "+SCHEMA_HASH+" = ? ");
 		return builder.toString();
 	}
 
@@ -1113,4 +1132,192 @@ public class SQLUtils {
 		String tempName = getTemporaryTableName(tableId);
 		return String.format(DROP_TABLE_IF_EXISTS, tempName);
 	}
+
+	/**
+	 * Translate a list of ColumnModels to a list of ColumnMetadata.
+	 * @param currentSchema
+	 * @return
+	 */
+	public static List<ColumnMetadata> translateColumns(List<ColumnModel> currentSchema){
+		List<ColumnMetadata> list = new LinkedList<ColumnMetadata>();
+		for(int i=0; i<currentSchema.size(); i++){
+			ColumnModel cm = currentSchema.get(i);
+			list.add(translateColumns(cm, i));
+		}
+		return list;
+	}
+	
+	/**
+	 * Translate a single ColumnModel into ColumnMetadata.
+	 * @param model
+	 * @param index
+	 * @return
+	 */
+	public static ColumnMetadata translateColumns(ColumnModel model, int index){
+		// First determine if this an entity column or an annotation
+		EntityField entityField = EntityField.findMatch(model);
+		String tableAlias;
+		String selectColumnName;
+		String columnNameForId = getColumnNameForId(model.getId());
+		AnnotationType annotationType = null;
+		if(entityField != null){
+			tableAlias = TableConstants.ENTITY_REPLICATION_ALIAS;
+			selectColumnName = entityField.getDatabaseColumnName();
+		}else{
+			tableAlias = TableConstants.ANNOTATION_REPLICATION_ALIAS+index;
+			selectColumnName = TableConstants.ANNOTATION_REPLICATION_COL_VALUE;
+			annotationType = translateColumnType(model.getColumnType());
+		}
+		return new ColumnMetadata(model, entityField, tableAlias, selectColumnName, columnNameForId, index, annotationType);
+	}
+	
+	/**
+	 * Translate form ColumnType to AnnotationType;
+	 * @param type
+	 * @return
+	 */
+	public static AnnotationType translateColumnType(ColumnType type){
+		switch(type){
+		case STRING:
+			return AnnotationType.STRING;
+		case DATE:
+			return AnnotationType.DATE;
+		case DOUBLE:
+			return AnnotationType.DOUBLE;
+		case INTEGER:
+			return AnnotationType.LONG;
+		default:
+			return AnnotationType.STRING;
+		}
+	}
+
+	
+	/**
+	 * Generate the SQL used to insert select data from the entity replication tables to a
+	 * table's index.
+	 * @param viewId
+	 * @param currentSchema
+	 * @return
+	 */
+	public static String createSelectInsertFromEntityReplication(String viewId,
+			List<ColumnModel> currentSchema) {
+		List<ColumnMetadata> metadata = translateColumns(currentSchema);
+		StringBuilder builder = new StringBuilder();
+		builder.append("INSERT INTO ");
+		builder.append(getTableNameForId(viewId, TableType.INDEX));
+		builder.append("(");
+		buildInsertValues(builder, metadata);
+		builder.append(") SELECT ");
+		buildSelect(builder, metadata);
+		builder.append(" FROM ");
+		builder.append(TableConstants.ENTITY_REPLICATION_TABLE);
+		builder.append(" ");
+		builder.append(TableConstants.ENTITY_REPLICATION_ALIAS);
+		buildJoins(metadata, builder);
+		builder.append(" WHERE ");
+		builder.append(TableConstants.ENTITY_REPLICATION_ALIAS);
+		builder.append(".");
+		builder.append(TableConstants.ENTITY_REPLICATION_COL_PARENT_ID);
+		builder.append(" IN (:");
+		builder.append(TableConstants.PARENT_ID_PARAMETER_NAME);
+		builder.append(") AND ");
+		builder.append(TableConstants.ENTITY_REPLICATION_COL_TYPE);
+		builder.append(" = :");
+		builder.append(TableConstants.TYPE_PARAMETER_NAME);
+		return builder.toString();
+	}
+
+	/**
+	 * Builds the left outer join section of the entity replication insert select.
+	 * @param metadata
+	 * @param builder
+	 */
+	public static void buildJoins(List<ColumnMetadata> metadata,
+			StringBuilder builder) {
+		for(ColumnMetadata meta: metadata){
+			if(meta.getEntityField() == null){
+				builder.append(" LEFT OUTER JOIN ");
+				builder.append(TableConstants.ANNOTATION_REPLICATION_TABLE);
+				builder.append(" ");
+				builder.append(meta.getTableAlias());
+				builder.append(" ON (");
+				builder.append(TableConstants.ENTITY_REPLICATION_ALIAS);
+				builder.append(".");
+				builder.append(TableConstants.ENTITY_REPLICATION_COL_ID);
+				builder.append(" = ");
+				builder.append(meta.getTableAlias());
+				builder.append(".");
+				builder.append(TableConstants.ANNOTATION_REPLICATION_COL_ENTITY_ID);
+				builder.append(" AND ");
+				builder.append(meta.getTableAlias());
+				builder.append(".");
+				builder.append(TableConstants.ANNOTATION_REPLICATION_COL_KEY);
+				builder.append(" = '");
+				builder.append(meta.getColumnModel().getName());
+				builder.append("'");
+				builder.append(" AND ");
+				builder.append(meta.getTableAlias());
+				builder.append(".");
+				builder.append(TableConstants.ANNOTATION_REPLICATION_COL_TYPE);
+				builder.append(" = '");
+				builder.append(meta.getAnnotationType().name());
+				builder.append("')");
+			}
+		}
+	}
+
+	/**
+	 * Build the select clause of the entity replication insert select.
+	 * @param builder
+	 * @param metadata
+	 */
+	public static void buildSelect(StringBuilder builder,
+			List<ColumnMetadata> metadata) {
+		builder.append(TableConstants.ENTITY_REPLICATION_ALIAS);
+		builder.append(".");
+		builder.append(TableConstants.ENTITY_REPLICATION_COL_ID);
+		builder.append(", ");
+		builder.append(TableConstants.ENTITY_REPLICATION_ALIAS);
+		builder.append(".");
+		builder.append(TableConstants.ENTITY_REPLICATION_COL_VERSION);
+		for(ColumnMetadata meta: metadata){
+			builder.append(", ");
+			builder.append(meta.getTableAlias());
+			builder.append(".");
+			builder.append(meta.getSelectColumnName());
+			builder.append(" AS ");
+			builder.append(meta.getColumnNameForId());
+		}
+	}
+
+	/**
+	 * Build the insert clause section of entity replication insert select.
+	 * 
+	 * @param builder
+	 * @param metadata
+	 */
+	public static void buildInsertValues(StringBuilder builder,
+			List<ColumnMetadata> metadata) {
+		builder.append(TableConstants.ROW_ID);
+		builder.append(", ");
+		builder.append(TableConstants.ROW_VERSION);
+		for(ColumnMetadata meta: metadata){
+			builder.append(", ");
+			builder.append(meta.getColumnNameForId());
+		}
+	}
+	
+	/**
+	 * Create the SQL used to calculate the CRC32 of a table view.
+	 * 
+	 * @param viewId
+	 * @param etagColumnId
+	 * @return
+	 */
+	public static String buildTableViewCRC32Sql(String viewId, String etagColumnId){
+		String tableName = getTableNameForId(viewId, TableType.INDEX);
+		String columnId = getColumnNameForId(etagColumnId);
+		return String.format(TableConstants.SQL_TABLE_VIEW_CRC_32_TEMPLATE, columnId, tableName);
+	}
+
 }

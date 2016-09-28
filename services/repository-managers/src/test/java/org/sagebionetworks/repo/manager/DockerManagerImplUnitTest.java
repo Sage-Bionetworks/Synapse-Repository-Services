@@ -251,6 +251,25 @@ public class DockerManagerImplUnitTest {
 	}
 
 	@Test
+	public void testGetPermittedAccessDownloadButNoRead() throws Exception {
+		when(authorizationManager.canAccess(
+				eq(USER_INFO), eq(REPO_ENTITY_ID), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.READ))).
+				thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+		
+		when(authorizationManager.canAccess(
+				eq(USER_INFO), eq(REPO_ENTITY_ID), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.DOWNLOAD))).
+				thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		
+		// method under test:
+		Set<String> permitted = dockerManager.
+				getPermittedAccessTypes(USER_INFO, SERVICE, TYPE, REPOSITORY_PATH, "pull");
+
+		// it's allowed because it's *DOWNLOAD* permission, not *READ* permission which we must have
+		assertEquals(new HashSet(Arrays.asList(new String[]{"pull"})), permitted);
+
+	}
+
+	@Test
 	public void testGetPermittedAccessTypesNonexistentChildUnauthorized() throws Exception {
 		String repositoryPath = PARENT_ID+"/non-existent-repo";
 

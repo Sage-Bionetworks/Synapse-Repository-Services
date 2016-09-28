@@ -87,6 +87,7 @@ public class SubmissionDAOImplTest {
     private static final String SUBMISSION_NAME = "test submission";
     private static final Long VERSION_NUMBER = 1L;
     private static final long CREATION_TIME_STAMP = System.currentTimeMillis();
+	private static final String DOCKER_DIGEST = "sha256:abcdef...";
 
     private String nodeId;
 	private String userId;
@@ -140,6 +141,7 @@ public class SubmissionDAOImplTest {
         submission.setUserId(userId);
         submission.setSubmitterAlias("Team Awesome_"+random.nextInt());
         submission.setEntityBundleJSON("some bundle"+random.nextInt());
+        submission.setDockerDigest(DOCKER_DIGEST);
         return submission;
 	}
 
@@ -509,6 +511,7 @@ public class SubmissionDAOImplTest {
     	subDTO.setSubmitterAlias("Team Awesome");
     	subDTO.setVersionNumber(1L);
     	subDTO.setEntityBundleJSON("foo");
+    	subDTO.setDockerDigest("sha256:abcdef0123456");
     	    	
     	SubmissionUtils.copyDtoToDbo(subDTO, subDBO);
     	SubmissionUtils.copyDboToDto(subDBO, subDTOclone);
@@ -533,6 +536,7 @@ public class SubmissionDAOImplTest {
     	subDTO.setUserId("42");
     	subDTO.setSubmitterAlias("Team Awesome");
     	subDTO.setVersionNumber(1L);
+       	subDTO.setDockerDigest("sha256:abcdef0123456");
     	// null EntityBundle
     	    	
     	SubmissionUtils.copyDtoToDbo(subDTO, subDBO);

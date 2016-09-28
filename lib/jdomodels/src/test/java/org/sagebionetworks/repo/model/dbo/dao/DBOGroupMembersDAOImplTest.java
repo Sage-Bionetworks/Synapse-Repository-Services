@@ -1,22 +1,24 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.ids.NamedIdGenerator;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
-import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -35,12 +37,6 @@ public class DBOGroupMembersDAOImplTest {
 	
 	@Autowired
 	private UserGroupDAO userGroupDAO;
-	
-	@Autowired
-	private DBOBasicDao basicDAO;
-	
-	@Autowired
-	private NamedIdGenerator idGenerator;
 
 	@Autowired
 	DBOChangeDAO changeDAO;
@@ -205,5 +201,103 @@ public class DBOGroupMembersDAOImplTest {
 		// Verify that the parent group's etag has changed
 		updatedTestGroup = userGroupDAO.get(Long.parseLong(testGroup.getId()));
 		assertTrue("Etag must have changed", !testGroup.getEtag().equals(updatedTestGroup.getEtag()));
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetAllIndividualWithNullPrincipalIds(){
+		groupMembersDAO.getIndividuals(null, 10L, 0L);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetAllIndividualWithNullLimit(){
+		Set<String> principalIds = new HashSet<String>();
+		principalIds.addAll(Arrays.asList(testGroup.getId()));
+		groupMembersDAO.getIndividuals(principalIds, null, 0L);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetAllIndividualWithNullOffset(){
+		Set<String> principalIds = new HashSet<String>();
+		principalIds.addAll(Arrays.asList(testGroup.getId()));
+		groupMembersDAO.getIndividuals(principalIds, 10L, null);
+	}
+
+	@Test
+	public void testGetAllIndividualWithEmptySet(){
+		assertEquals(new HashSet<String>(), groupMembersDAO.getIndividuals(new HashSet<String>(), 10L, 0L));
+	}
+
+	@Test
+	public void testGetAllIndividual(){
+		groupMembersDAO.addMembers(testGroup.getId(), Arrays.asList(testUserOne.getId(), testUserThree.getId()));
+		Set<String> principalIds = new HashSet<String>();
+		principalIds.addAll(Arrays.asList(testGroup.getId(), testUserTwo.getId()));
+		Set<String> actual = groupMembersDAO.getIndividuals(principalIds, 10L, 0L);
+		assertTrue(actual.contains(testUserOne.getId()));
+		assertTrue(actual.contains(testUserTwo.getId()));
+		assertTrue(actual.contains(testUserThree.getId()));
+		assertFalse(actual.contains(testGroup.getId()));
+	}
+
+	@Test
+	public void testGetAllIndividualWithRepeatedMembers(){
+		groupMembersDAO.addMembers(testGroup.getId(), Arrays.asList(testUserOne.getId(), testUserThree.getId()));
+		Set<String> principalIds = new HashSet<String>();
+		principalIds.addAll(Arrays.asList(testGroup.getId(), testUserTwo.getId(), testUserOne.getId()));
+		Set<String> actual = groupMembersDAO.getIndividuals(principalIds, 10L, 0L);
+		assertTrue(actual.contains(testUserOne.getId()));
+		assertTrue(actual.contains(testUserTwo.getId()));
+		assertTrue(actual.contains(testUserThree.getId()));
+		assertFalse(actual.contains(testGroup.getId()));
+	}
+
+	@Test
+	public void testGetAllIndividualLimitOffsetAndOrder(){
+		groupMembersDAO.addMembers(testGroup.getId(), Arrays.asList(testUserOne.getId(), testUserThree.getId()));
+		Set<String> principalIds = new HashSet<String>();
+		principalIds.addAll(Arrays.asList(testGroup.getId(), testUserTwo.getId()));
+
+		Set<String> actual = groupMembersDAO.getIndividuals(principalIds, 1L, 0L);
+		assertTrue(actual.contains(testUserOne.getId()));
+		assertFalse(actual.contains(testUserTwo.getId()));
+		assertFalse(actual.contains(testUserThree.getId()));
+
+		actual = groupMembersDAO.getIndividuals(principalIds, 1L, 1L);
+		assertFalse(actual.contains(testUserOne.getId()));
+		assertTrue(actual.contains(testUserTwo.getId()));
+		assertFalse(actual.contains(testUserThree.getId()));
+
+		actual = groupMembersDAO.getIndividuals(principalIds, 1L, 2L);
+		assertFalse(actual.contains(testUserOne.getId()));
+		assertFalse(actual.contains(testUserTwo.getId()));
+		assertTrue(actual.contains(testUserThree.getId()));
+
+		assertEquals(new HashSet<String>(), groupMembersDAO.getIndividuals(principalIds, 1L, 3L));
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetIndividualCountWithNullSet() {
+		groupMembersDAO.getIndividualCount(null);
+	}
+
+	@Test
+	public void testGetIndividualCountWithNullEmptySet() {
+		assertEquals((Long)0L, groupMembersDAO.getIndividualCount(new HashSet<String>()));
+	}
+
+	@Test
+	public void testGetIndividualCount() {
+		groupMembersDAO.addMembers(testGroup.getId(), Arrays.asList(testUserOne.getId(), testUserThree.getId()));
+		Set<String> principalIds = new HashSet<String>();
+		principalIds.addAll(Arrays.asList(testGroup.getId(), testUserTwo.getId()));
+		assertEquals((Long)3L, groupMembersDAO.getIndividualCount(principalIds));
+	}
+
+	@Test
+	public void testGetIndividualCountWithRepeatedMembers() {
+		groupMembersDAO.addMembers(testGroup.getId(), Arrays.asList(testUserOne.getId(), testUserThree.getId()));
+		Set<String> principalIds = new HashSet<String>();
+		principalIds.addAll(Arrays.asList(testGroup.getId(), testUserTwo.getId(), testUserOne.getId()));
+		assertEquals((Long)3L, groupMembersDAO.getIndividualCount(principalIds));
 	}
 }

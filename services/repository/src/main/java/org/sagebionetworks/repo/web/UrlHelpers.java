@@ -900,6 +900,7 @@ public class UrlHelpers {
 	public static final String THREAD = "/thread";
 	public static final String THREAD_ID = "/{threadId}";
 	public static final String THREAD_THREAD_ID = THREAD+THREAD_ID;
+	public static final String THREAD_THREAD_ID_RESTORE = THREAD+THREAD_ID+"/restore";
 	public static final String PIN = "/pin";
 	public static final String UNPIN = "/unpin";
 	public static final String THREAD_THREAD_ID_PIN = THREAD_THREAD_ID+PIN;
@@ -922,6 +923,8 @@ public class UrlHelpers {
 	public static final String ENTITY_ID_THREADS = ENTITY_ID+THREADS;
 	public static final String THREAD_COUNTS = "/threadcounts";
 	public static final String ENTITY_THREAD_COUNTS = ENTITY+THREAD_COUNTS;
+	public static final String MODERATORS = "/moderators";
+	public static final String FORUM_FORUM_ID_MODERATORS = FORUM+FORUM_ID+MODERATORS;
 
 	// Subscription Services
 	public static final String SUBSCRIPTION = "/subscription";

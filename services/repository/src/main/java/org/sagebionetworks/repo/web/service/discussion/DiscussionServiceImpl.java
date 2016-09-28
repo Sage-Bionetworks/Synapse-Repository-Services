@@ -8,6 +8,7 @@ import org.sagebionetworks.repo.manager.discussion.DiscussionReplyManager;
 import org.sagebionetworks.repo.manager.discussion.DiscussionThreadManager;
 import org.sagebionetworks.repo.manager.discussion.ForumManager;
 import org.sagebionetworks.repo.model.EntityIdList;
+import org.sagebionetworks.repo.model.PaginatedIds;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
@@ -79,6 +80,13 @@ public class DiscussionServiceImpl implements DiscussionService{
 			String threadId) {
 		UserInfo user = userManager.getUserInfo(userId);
 		threadManager.markThreadAsDeleted(user, threadId);
+	}
+
+	@Override
+	public void markThreadAsNotDeleted(Long userId,
+			String threadId) {
+		UserInfo user = userManager.getUserInfo(userId);
+		threadManager.markThreadAsNotDeleted(user, threadId);
 	}
 
 	@Override
@@ -168,5 +176,11 @@ public class DiscussionServiceImpl implements DiscussionService{
 	public EntityThreadCounts getThreadCounts(Long userId, EntityIdList entityIds) {
 		UserInfo user = userManager.getUserInfo(userId);
 		return threadManager.getEntityThreadCounts(user, entityIds);
+	}
+
+	@Override
+	public PaginatedIds getModerators(Long userId, String forumId, Long limit, Long offset) {
+		UserInfo user = userManager.getUserInfo(userId);
+		return threadManager.getModerators(user, forumId, limit, offset);
 	}
 }

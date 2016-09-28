@@ -1,8 +1,8 @@
 package org.sagebionetworks.repo.web.filter;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.Date;
+import java.util.Map;
 
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletResponse;
@@ -10,7 +10,12 @@ import javax.servlet.http.HttpServletResponse;
 import org.sagebionetworks.cloudwatch.ProfileData;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.util.ValidateArgument;
+import org.springframework.http.HttpStatus;
 public class ThrottleUtils {
+	//TODO: switch to TOO_MANY_REQUESTS (code: 429) when clients have implemented handling that status
+	public static int THROTTLED_HTTP_STATUS = HttpStatus.SERVICE_UNAVAILABLE.value();
+	public static String JSON_HTTP_CONTENT_TYPE = "application/json";
+	public static String UTF8_ENCODING = "UTF-8";
 	
 	/**
 	 * reports to Cloudwatch that a lock could not be acquired
@@ -21,10 +26,10 @@ public class ThrottleUtils {
 	 * @throws IOException 
 	 * @return ProfileData event that was generated from provided parameters
 	 */
-	public static ProfileData generateCloudwatchProfiledata(String userId, String eventName, String namespace){
-		ValidateArgument.required(userId, "userId");
+	public static ProfileData generateCloudwatchProfiledata(String eventName, String namespace, Map<String, String> dimensions){
 		ValidateArgument.required(eventName, "eventName");
 		ValidateArgument.required(namespace, "namespace");
+		ValidateArgument.required(dimensions, "dimensions");
 		
 		ProfileData lockUnavailableEvent = new ProfileData();
 		lockUnavailableEvent.setNamespace(namespace);
@@ -32,7 +37,7 @@ public class ThrottleUtils {
 		lockUnavailableEvent.setValue(1.0);
 		lockUnavailableEvent.setUnit("Count");
 		lockUnavailableEvent.setTimestamp(new Date());
-		lockUnavailableEvent.setDimension(Collections.singletonMap("UserId", userId));
+		lockUnavailableEvent.setDimension(dimensions);
 		return lockUnavailableEvent;
 	}
 	/**
@@ -49,6 +54,8 @@ public class ThrottleUtils {
 		HttpServletResponse httpResponse = (HttpServletResponse) response;
 		//TODO: Switch to 429 http code once clients have been implemented to expect that code
 		httpResponse.setStatus(errorCode);
+		httpResponse.setContentType(JSON_HTTP_CONTENT_TYPE);
+		httpResponse.setCharacterEncoding(UTF8_ENCODING);
 		httpResponse.getWriter().println(errorMessage);
 	}
 	

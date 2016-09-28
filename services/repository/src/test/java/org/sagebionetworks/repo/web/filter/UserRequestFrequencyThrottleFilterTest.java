@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.web.filter.UserRequestFrequencyThrottleFilter.REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC;
 import static org.sagebionetworks.repo.web.filter.UserRequestFrequencyThrottleFilter.MAX_REQUEST_FREQUENCY_LOCKS;
 import static org.sagebionetworks.repo.web.filter.UserRequestFrequencyThrottleFilter.CLOUDWATCH_EVENT_NAME;
+import static org.sagebionetworks.repo.web.filter.ThrottleUtils.THROTTLED_HTTP_STATUS;
 
 import javax.servlet.FilterChain;
 
@@ -24,7 +25,6 @@ import org.sagebionetworks.cloudwatch.ProfileData;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.semaphore.MemoryTimeBlockCountingSemaphore;
-import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -98,7 +98,7 @@ public class UserRequestFrequencyThrottleFilterTest {
 
 		filter.doFilter(request, response, filterChain);
 		//TODO: Switch to 429 http code once clients have been implemented to expect that code
-		assertEquals(HttpStatus.SERVICE_UNAVAILABLE.value(), response.getStatus());
+		assertEquals(THROTTLED_HTTP_STATUS, response.getStatus());
 		
 		ArgumentCaptor<ProfileData> profileDataArgument = ArgumentCaptor.forClass(ProfileData.class); 
 		verify(consumer).addProfileData(profileDataArgument.capture());
