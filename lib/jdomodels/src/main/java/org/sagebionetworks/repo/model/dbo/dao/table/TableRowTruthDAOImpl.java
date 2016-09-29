@@ -1,15 +1,23 @@
 package org.sagebionetworks.repo.model.dbo.dao.table;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ID_SEQUENCE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ID_SEQUENCE_TABLE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_KEY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_TABLE_ETAG;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_TABLE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_VERSION;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ROW_CHANGE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TABLE_ID_SEQUENCE;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -27,9 +35,11 @@ import org.sagebionetworks.repo.model.dbo.persistence.table.ColumnModelUtils;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableIdSequence;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableRowChange;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.table.AbstractRow;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.IdRange;
+import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.RawRowSet;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
@@ -37,7 +47,7 @@ import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableChangeType;
 import org.sagebionetworks.repo.model.table.TableRowChange;
-import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.ValidateArgument;
@@ -132,7 +142,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	RowMapper<DBOTableRowChange> rowChangeMapper = new DBOTableRowChange()
 			.getTableMapping();
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public IdRange reserveIdsInRange(String tableIdString, long countToReserver) {
 		if (tableIdString == null)
@@ -194,29 +204,30 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 			log.info("S3 error creating bucket: " + e.getStackTrace());
 		}
 	}
-
-	@WriteTransaction
+	
+	@WriteTransactionReadCommitted
 	@Override
-	public RowReferenceSet appendRowSetToTable(String userId, String tableId, List<ColumnModel> columns, RawRowSet delta)
-			throws IOException {
-		// Now set the row version numbers and ID.
-		int coutToReserver = TableModelUtils.countEmptyOrInvalidRowIds(delta);
+	public IdRange assignRowIdsAndVersion(String tableId, List<? extends AbstractRow> rows){
+		// Count the rows without rowIds.
+		int coutToReserver = TableModelUtils.countEmptyOrInvalidRowIds(rows);
 		// Reserver IDs for the missing
 		IdRange range = reserveIdsInRange(tableId, coutToReserver);
-		// Are any rows being updated?
-		if (coutToReserver < delta.getRows().size()) {
-			// Validate that this update does not contain any row level conflicts.
-			checkForRowLevelConflict(tableId, delta);
-		}
 		// Now assign the rowIds and set the version number
-		TableModelUtils.assignRowIdsAndVersionNumbers(delta, range);
+		TableModelUtils.assignRowIdsAndVersionNumbers(rows, range);
+		return range;
+	}
+
+	@WriteTransactionReadCommitted
+	@Override
+	public RowReferenceSet appendRowSetToTable(String userId, String tableId, List<ColumnModel> columns, RawRowSet delta, Long versionNumber, String etag)
+			throws IOException {
 		// We are ready to convert the file to a CSV and save it to S3.
 		String key = saveCSVToS3(columns, delta);
 		// record the change
 		DBOTableRowChange changeDBO = new DBOTableRowChange();
 		changeDBO.setTableId(KeyFactory.stringToKey(tableId));
-		changeDBO.setRowVersion(range.getVersionNumber());
-		changeDBO.setEtag(range.getEtag());
+		changeDBO.setRowVersion(versionNumber);
+		changeDBO.setEtag(etag);
 		changeDBO.setColumnIds(TableModelUtils.createDelimitedColumnModelIdString(
 				TableModelUtils.getIds(columns)));
 		changeDBO.setCreatedBy(Long.parseLong(userId));
@@ -227,23 +238,38 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		changeDBO.setChangeType(TableChangeType.ROW.name());
 		basicDao.createNew(changeDBO);
 
-		// Prepare the results
-		RowReferenceSet results = new RowReferenceSet();
-		results.setHeaders(TableModelUtils.getSelectColumns(columns));
-		results.setTableId(tableId);
-		results.setEtag(changeDBO.getEtag());
-		List<RowReference> refs = new LinkedList<RowReference>();
-		// Build up the row references
-		for (Row row : delta.getRows()) {
-			RowReference ref = new RowReference();
-			ref.setRowId(row.getRowId());
-			ref.setVersionNumber(row.getVersionNumber());
-			refs.add(ref);
-		}
-		results.setRows(refs);
-		return results;
+		// Build the reference set.
+		return TableModelUtils.createRowReference(tableId, columns, etag, delta.getRows());
 	}
 	
+	@WriteTransactionReadCommitted
+	@Override
+	public RowReferenceSet appendPartialRowSetToTable(String userId,
+			String tableId, List<ColumnModel> columns, PartialRowSet delta, Long versionNumber, String etag)
+			throws IOException {
+		// validate the rowset before write.
+		TableModelUtils.validatePartialRowSet(columns, delta);
+		// We are ready to convert the file to a CSV and save it to S3.
+		String key = savePartialToS3(delta);
+		// record the change
+		DBOTableRowChange changeDBO = new DBOTableRowChange();
+		changeDBO.setTableId(KeyFactory.stringToKey(tableId));
+		changeDBO.setRowVersion(versionNumber);
+		changeDBO.setEtag(etag);
+		changeDBO.setColumnIds(TableModelUtils.createDelimitedColumnModelIdString(
+				TableModelUtils.getIds(columns)));
+		changeDBO.setCreatedBy(Long.parseLong(userId));
+		changeDBO.setCreatedOn(System.currentTimeMillis());
+		changeDBO.setKey(key);
+		changeDBO.setBucket(s3Bucket);
+		changeDBO.setRowCount(0L);
+		changeDBO.setChangeType(TableChangeType.PARTIAL_ROW.name());
+		basicDao.createNew(changeDBO);
+		// Build the reference set.
+		return TableModelUtils.createRowReference(tableId, columns, etag, delta.getRows());
+	}
+	
+	@WriteTransactionReadCommitted
 	@Override
 	public long appendSchemaChangeToTable(String userId, String tableId,
 			List<String> current, List<ColumnChange> changes) throws IOException {
@@ -268,14 +294,42 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		return range.getVersionNumber();
 	}
 	
-	String saveSchemaToS3(List<ColumnChange> changes)
+	/**
+	 * Save the Schema to S3
+	 * @param changes
+	 * @return
+	 * @throws IOException
+	 */
+	String saveSchemaToS3(final List<ColumnChange> changes)
 			throws IOException {
-		File temp = File.createTempFile("schemaChange", ".gz");
+		// save the changes to S3
+		return saveToS3(new WriterCallback(){
+
+			@Override
+			public void write(OutputStream out) throws IOException {
+				// write the schema change to the output.
+				ColumnModelUtils.writeSchemaChangeToGz(changes, out);
+			}});
+	}
+	
+	/**
+	 * Write the data from the given callback to S3.
+	 * 
+	 * @param callback
+	 * @return
+	 * @throws IOException
+	 */
+	String saveToS3(WriterCallback callback)
+			throws IOException {
+		// First write to a temp file.
+		File temp = File.createTempFile("tempToS3", ".gz");
 		FileOutputStream out = null;
 		try {
 			out = new FileOutputStream(temp);
-			// Save this to the the zipped CSV
-			ColumnModelUtils.writeSchemaChangeToGz(changes, out);
+			// write to the temp file.
+			callback.write(out);
+			out.flush();
+			out.close();
 			// upload it to S3.
 			String key = String.format(KEY_TEMPLATE, UUID.randomUUID()
 					.toString());
@@ -299,6 +353,29 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		S3Object object = s3Client.getObject(dto.getBucket(), dto.getKey());
 		try {
 			return ColumnModelUtils.readSchemaChangeFromGz(object.getObjectContent());
+		} finally {
+			// Need to close the stream unconditionally.
+			object.getObjectContent().close();
+		}
+	}
+
+	private String savePartialToS3(final PartialRowSet delta) throws IOException {
+		return saveToS3(new WriterCallback() {
+			@Override
+			public void write(OutputStream out) throws IOException {
+				PartialRowUtils.writePartialRows(delta, out);
+			}
+		});
+	}
+
+	@Override
+	public PartialRowSet getPartialRowSetForVersion(String tableId,
+			long versionNumber) throws IOException {
+		TableRowChange dto = getTableRowChange(tableId, versionNumber);
+		// Download the file from S3
+		S3Object object = s3Client.getObject(dto.getBucket(), dto.getKey());
+		try {
+			return PartialRowUtils.readPartialRows(object.getObjectContent());
 		} finally {
 			// Need to close the stream unconditionally.
 			object.getObjectContent().close();
@@ -376,27 +453,17 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	 * @throws IOException
 	 * @throws FileNotFoundException
 	 */
-	private String saveCSVToS3(List<ColumnModel> models, RawRowSet delta)
+	private String saveCSVToS3(final List<ColumnModel> models, final RawRowSet delta)
 			throws IOException, FileNotFoundException {
-		File temp = File.createTempFile("rowSet", "csv.gz");
-		FileOutputStream out = null;
-		try {
-			out = new FileOutputStream(temp);
-			// Save this to the the zipped CSV
-			TableModelUtils.validateAnWriteToCSVgz(models, delta, out);
-			// upload it to S3.
-			String key = String.format(KEY_TEMPLATE, UUID.randomUUID()
-					.toString());
-			s3Client.putObject(s3Bucket, key, temp);
-			return key;
-		} finally {
-			if (out != null) {
-				out.close();
+		
+		return saveToS3(new WriterCallback() {
+			
+			@Override
+			public void write(OutputStream out) throws IOException {
+				TableModelUtils.validateAnWriteToCSVgz(models, delta, out);
+				
 			}
-			if (temp != null) {
-				temp.delete();
-			}
-		}
+		});
 	}
 
 	/**

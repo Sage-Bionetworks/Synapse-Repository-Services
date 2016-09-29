@@ -31,9 +31,12 @@ import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.IdRange;
+import org.sagebionetworks.repo.model.table.PartialRow;
+import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.RawRowSet;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
+import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 
@@ -56,6 +59,14 @@ public class TableModelUtilsTest {
 	RawRowSet validRowSet2;
 	StringWriter outWritter;
 	CSVWriter out;
+
+	PartialRow validPartialRow;
+	PartialRowSet validPartialRowSet;
+	
+	ColumnModel booleanColumn;
+	List<ColumnModel> booleanSchema;
+	Map<Long, ColumnModel> booleanColumnMap;
+	String tableId;
 	
 	@Before
 	public void before() {
@@ -92,12 +103,31 @@ public class TableModelUtilsTest {
 		row.setValues(values);
 		rows.add(row);
 		validRowSet = new RawRowSet(ids, null, null, rows);
+		
+		validPartialRow = new PartialRow();
+		validPartialRow.setRowId(0L);
+		validPartialRow.setVersionNumber(5L);
+		Map<String, String> partialValues = new HashMap<String, String>();
+		partialValues.put("111", "true");
+		validPartialRow.setValues(partialValues);
+		
+		validPartialRowSet = new PartialRowSet();
+		validPartialRowSet.setRows(Lists.newArrayList(validPartialRow));
+		validPartialRowSet.setTableId("syn123");
+		
+		booleanColumn = new ColumnModel();
+		booleanColumn.setId("111");
+		booleanColumn.setColumnType(ColumnType.BOOLEAN);
+		booleanSchema = Lists.newArrayList(booleanColumn);
+		
+		booleanColumnMap = new HashMap<Long, ColumnModel>(1);
+		booleanColumnMap.put(Long.parseLong(booleanColumn.getId()), booleanColumn);
 
 		outWritter = new StringWriter();
 		out = new CSVWriter(outWritter);
 
 		// Create a second set that has the same order as the schema.
-		String tableId = "456";
+		tableId = "456";
 		ids = Lists.newArrayList("1", "2");
 
 		rows = new LinkedList<Row>();
@@ -536,29 +566,31 @@ public class TableModelUtilsTest {
 					TableModelUtils.validateRowValue("", cm, 0, 0));
 		}
 	}
-
+	
+///
+	
 	@Test
 	public void testCountEmptyOrInvalidRowIdsNone() {
-		assertEquals(0, TableModelUtils.countEmptyOrInvalidRowIds(validRowSet));
+		assertEquals(0, TableModelUtils.countEmptyOrInvalidRowIds(validRowSet.getRows()));
 	}
 
 	@Test
 	public void testCountEmptyOrInvalidRowIdsNull() {
 		validRowSet.getRows().get(0).setRowId(null);
-		assertEquals(1, TableModelUtils.countEmptyOrInvalidRowIds(validRowSet));
+		assertEquals(1, TableModelUtils.countEmptyOrInvalidRowIds(validRowSet.getRows()));
 	}
 
 	@Test
 	public void testCountEmptyOrInvalidRowIdsInvalid() {
 		validRowSet.getRows().get(0).setRowId(-1l);
-		assertEquals(1, TableModelUtils.countEmptyOrInvalidRowIds(validRowSet));
+		assertEquals(1, TableModelUtils.countEmptyOrInvalidRowIds(validRowSet.getRows()));
 	}
 
 	@Test
 	public void testCountEmptyOrInvalidRowIdsMixed() {
 		validRowSet.getRows().get(0).setRowId(-1l);
 		validRowSet.getRows().get(1).setRowId(null);
-		assertEquals(2, TableModelUtils.countEmptyOrInvalidRowIds(validRowSet));
+		assertEquals(2, TableModelUtils.countEmptyOrInvalidRowIds(validRowSet.getRows()));
 	}
 	
 	@Test
@@ -569,7 +601,7 @@ public class TableModelUtilsTest {
 		range.setMaximumUpdateId(999l);
 		Long versionNumber = new Long(4);
 		range.setVersionNumber(versionNumber);
-		TableModelUtils.assignRowIdsAndVersionNumbers(validRowSet, range);
+		TableModelUtils.assignRowIdsAndVersionNumbers(validRowSet.getRows(), range);
 		// Validate each row was assigned a version number
 		for (Row row : validRowSet.getRows()) {
 			assertEquals(versionNumber, row.getVersionNumber());
@@ -585,7 +617,7 @@ public class TableModelUtilsTest {
 		Long versionNumber = new Long(4);
 		range.setVersionNumber(versionNumber);
 		validRowSet.getRows().get(1).setRowId(null);
-		TableModelUtils.assignRowIdsAndVersionNumbers(validRowSet, range);
+		TableModelUtils.assignRowIdsAndVersionNumbers(validRowSet.getRows(), range);
 		// Validate each row was assigned a version number
 		for (Row row : validRowSet.getRows()) {
 			assertEquals(versionNumber, row.getVersionNumber());
@@ -605,7 +637,7 @@ public class TableModelUtilsTest {
 		// Clear all the row ids
 		validRowSet.getRows().get(0).setRowId(null);
 		validRowSet.getRows().get(1).setRowId(null);
-		TableModelUtils.assignRowIdsAndVersionNumbers(validRowSet, range);
+		TableModelUtils.assignRowIdsAndVersionNumbers(validRowSet.getRows(), range);
 		// Validate each row was assigned a version number
 		for (Row row : validRowSet.getRows()) {
 			assertEquals(versionNumber, row.getVersionNumber());
@@ -627,7 +659,7 @@ public class TableModelUtilsTest {
 		// Clear all the row ids
 		validRowSet.getRows().get(1).setRowId(null);
 		try {
-			TableModelUtils.assignRowIdsAndVersionNumbers(validRowSet, range);
+			TableModelUtils.assignRowIdsAndVersionNumbers(validRowSet.getRows(), range);
 			fail("should have failed");
 		} catch (IllegalStateException e) {
 			assertEquals("RowSet required at least one row ID but none were allocated.", e.getMessage());
@@ -647,7 +679,7 @@ public class TableModelUtilsTest {
 		validRowSet.getRows().get(0).setRowId(null);
 		validRowSet.getRows().get(1).setRowId(null);
 		try {
-			TableModelUtils.assignRowIdsAndVersionNumbers(validRowSet, range);
+			TableModelUtils.assignRowIdsAndVersionNumbers(validRowSet.getRows(), range);
 			fail("should have failed");
 		} catch (IllegalStateException e) {
 			assertEquals("RowSet required more row IDs than were allocated.", e.getMessage());
@@ -667,7 +699,7 @@ public class TableModelUtilsTest {
 		validRowSet.getRows().get(0).setRowId(0l);
 		validRowSet.getRows().get(1).setRowId(2l);
 		try {
-			TableModelUtils.assignRowIdsAndVersionNumbers(validRowSet, range);
+			TableModelUtils.assignRowIdsAndVersionNumbers(validRowSet.getRows(), range);
 			fail("should have failed");
 		} catch (IllegalArgumentException e) {
 			assertEquals("Cannot update row: 2 because it does not exist.", e.getMessage());
@@ -815,7 +847,7 @@ public class TableModelUtilsTest {
 		range.setVersionNumber(0l);
 		range.setMinimumId(0l);
 		range.setMaximumId(1l);
-		TableModelUtils.assignRowIdsAndVersionNumbers(v1Set, range);
+		TableModelUtils.assignRowIdsAndVersionNumbers(v1Set.getRows(), range);
 		// now remove column two
 		models.remove(1);
 		// Now add back two new columns one with a default value and one without
@@ -831,7 +863,7 @@ public class TableModelUtilsTest {
 		range.setVersionNumber(1l);
 		range.setMinimumId(2l);
 		range.setMaximumId(3l);
-		TableModelUtils.assignRowIdsAndVersionNumbers(v2Set, range);
+		TableModelUtils.assignRowIdsAndVersionNumbers(v2Set.getRows(), range);
 
 		// Now request the data in a different order
 		List<ColumnModel> newOrder = new LinkedList<ColumnModel>();
@@ -1312,4 +1344,110 @@ public class TableModelUtilsTest {
 		assertEquals(one.getId(), results.get(2).getId());
 	}
 	
+	@Test
+	public void testValidatePartialRow(){
+		PartialRow row = new PartialRow();
+		row.setRowId(0L);
+		Map<String, String> values = new HashMap<String, String>();
+		values.put("111", "true");
+		row.setValues(values);
+		
+		// call under test
+		TableModelUtils.validatePartialRow(row, booleanColumnMap);
+	}
+	
+	@Test
+	public void testValidatePartialRowColumnDoesNotExist(){
+		PartialRow row = new PartialRow();
+		row.setRowId(0L);
+		Map<String, String> values = new HashMap<String, String>();
+		values.put("222", "true");
+		row.setValues(values);
+		// call under test
+		try {
+			TableModelUtils.validatePartialRow(row, booleanColumnMap);
+			fail("Should have failed");
+		} catch (IllegalArgumentException e) {
+			assertEquals("PartialRow.value.key: '222' is not a valid column ID for row ID: 0", e.getMessage());
+		}
+	}
+	
+	@Test
+	public void testValidatePartialRowInvalidColumnId(){
+		PartialRow row = new PartialRow();
+		row.setRowId(0L);
+		Map<String, String> values = new HashMap<String, String>();
+		values.put("a222", "true");
+		row.setValues(values);
+		// call under test
+		try {
+			TableModelUtils.validatePartialRow(row, booleanColumnMap);
+			fail("Should have failed");
+		} catch (IllegalArgumentException e) {
+			assertEquals("PartialRow.value.key: 'a222' is not a valid column ID for row ID: 0", e.getMessage());
+		}
+	}
+	
+	@Test
+	public void testValidatePartialRowWrongValueType(){
+		PartialRow row = new PartialRow();
+		row.setRowId(0L);
+		Map<String, String> values = new HashMap<String, String>();
+		values.put("111", "1.23");
+		row.setValues(values);
+		// call under test
+		try {
+			TableModelUtils.validatePartialRow(row, booleanColumnMap);
+			fail("Should have failed");
+		} catch (IllegalArgumentException e) {
+			assertEquals(
+					"Value at [0,0] was not a valid BOOLEAN. A value in a boolean column must be null, 'true' or 'false', but was '1.23'",
+					e.getMessage());
+		}
+	}
+	
+	@Test
+	public void testValidatePartialRowSet(){
+		// call under test
+		TableModelUtils.validatePartialRowSet(booleanSchema, validPartialRowSet);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testValidatePartialRowSetInvalid(){		
+		validPartialRow.getValues().put("111", "1.2");
+		
+		// call under test
+		TableModelUtils.validatePartialRowSet(booleanSchema, validPartialRowSet);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testValidatePartialRowSetNullSchema(){
+		booleanSchema = null;		
+		// call under test
+		TableModelUtils.validatePartialRowSet(booleanSchema, validPartialRowSet);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testValidatePartialRowSetNullSet(){
+		PartialRowSet set = null;
+		
+		// call under test
+		TableModelUtils.validatePartialRowSet(booleanSchema, set);
+	}
+	
+	@Test
+	public void testCreateRowReference(){
+		String etag = "etag";
+		RowReferenceSet ref = TableModelUtils.createRowReference(tableId, booleanSchema, etag, validPartialRowSet.getRows());
+		assertNotNull(ref);
+		assertEquals(etag, ref.getEtag());
+		assertEquals(tableId, ref.getTableId());
+		assertEquals(TableModelUtils.getSelectColumns(booleanSchema), ref.getHeaders());
+		assertNotNull(ref.getRows());
+		assertEquals(1, ref.getRows().size());
+		RowReference rowRef = ref.getRows().get(0);
+		assertNotNull(rowRef);
+		assertEquals(validPartialRow.getRowId(), rowRef.getRowId());
+		assertEquals(validPartialRow.getVersionNumber(), rowRef.getVersionNumber());
+	}
 }

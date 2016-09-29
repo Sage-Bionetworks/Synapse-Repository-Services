@@ -1,15 +1,12 @@
 {
     "title":"Row",
     "description":"Represents a single row of a TableEntity",
+    "implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.table.AbstractRow"
+		}
+	],
     "properties":{
-        "rowId":{
-            "type":"integer",
-            "description":"The immutable ID issued to a new row."
-        },
-        "versionNumber":{
-            "type":"integer",
-            "description":"The version number of this row. Each row version is immutable, so when a row is updated a new version is created."
-        },
 		"values": {
 			"description": "The values for each column of this row.",
 			"type": "array",

@@ -47,7 +47,8 @@
 			"id": "org.sagebionetworks.repo.model.table.TableChangeType",
 			"enum": [
 				"ROW",
-				"COLUMN"
+				"COLUMN",
+				"PARTIAL_ROW"
 			]
 		}
     }

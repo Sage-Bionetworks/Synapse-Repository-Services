@@ -125,8 +125,10 @@ import org.sagebionetworks.repo.model.quiz.PassingRecord;
 import org.sagebionetworks.repo.model.quiz.QuizResponse;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.IdRange;
 import org.sagebionetworks.repo.model.table.RawRowSet;
 import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.repo.model.throttle.ThrottleRule;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
@@ -495,11 +497,29 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		List<Row> rows = TableModelTestUtils.createRows(models, 5);
 		RawRowSet set = new RawRowSet(TableModelUtils.getIds(models), null, tableId, rows);
 		// Append the rows to the table
-		tableRowTruthDao.appendRowSetToTable(adminUserIdString, tableId, models, set);
+		appendRowSetToTable(adminUserIdString, tableId, models, set);
 		// Append some more rows
 		rows = TableModelTestUtils.createRows(models, 6);
 		set = new RawRowSet(TableModelUtils.getIds(models), null, tableId, rows);
-		tableRowTruthDao.appendRowSetToTable(adminUserIdString, tableId, models, set);
+		appendRowSetToTable(adminUserIdString, tableId, models, set);
+	}
+	
+	/**
+	 * Test helper to combine three methods that were originally part of appendRowSet
+	 * @param userId
+	 * @param tableId
+	 * @param columns
+	 * @param delta
+	 * @return
+	 * @throws IOException
+	 */
+	RowReferenceSet appendRowSetToTable(String userId, String tableId, List<ColumnModel> columns, RawRowSet delta) throws IOException{
+		// throws an exception if there is a row level conflict.
+		tableRowTruthDao.checkForRowLevelConflict(tableId, delta);
+		// Assign rowId and version to rows additions
+		IdRange range = tableRowTruthDao.assignRowIdsAndVersion(tableId, delta.getRows());
+		// Append the change to the table.
+		return tableRowTruthDao.appendRowSetToTable(userId, tableId, columns, delta, range.getVersionNumber(), range.getEtag());
 	}
 
 	public void createNewUser() throws NotFoundException {

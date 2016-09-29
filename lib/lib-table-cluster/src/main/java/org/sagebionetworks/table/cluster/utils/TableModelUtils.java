@@ -26,19 +26,25 @@ import org.apache.commons.lang.StringUtils;
 import org.sagebionetworks.repo.model.dao.table.RowAccessor;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.table.ColumnChange;
+import org.sagebionetworks.repo.model.table.AbstractRow;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.IdRange;
+import org.sagebionetworks.repo.model.table.PartialRow;
+import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.RawRowSet;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
+import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.util.TimeUtils;
 import org.sagebionetworks.util.ValidateArgument;
+
+import au.com.bytecode.opencsv.CSVReader;
+import au.com.bytecode.opencsv.CSVWriter;
 
 import com.google.common.base.Function;
 import com.google.common.collect.HashMultimap;
@@ -47,9 +53,6 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 
-import au.com.bytecode.opencsv.CSVReader;
-import au.com.bytecode.opencsv.CSVWriter;
-
 /**
  * Utilities for working with Tables and Row data.
  * 
@@ -57,6 +60,8 @@ import au.com.bytecode.opencsv.CSVWriter;
  * 
  */
 public class TableModelUtils {
+	
+	private static final String PARTIAL_ROW_KEY_NOT_A_VALID = "PartialRow.value.key: '%s' is not a valid column ID for row ID: %s";
 
 	public static final Function<Long, String> LONG_TO_STRING = new Function<Long, String>() {
 		@Override
@@ -222,16 +227,14 @@ public class TableModelUtils {
 	 * @param set
 	 */
 	public static void validateRowSet(RawRowSet set) {
-		if (set == null)
-			throw new IllegalArgumentException("RowSet cannot be null");
-		;
-		if (set.getIds() == null)
-			throw new IllegalArgumentException("RowSet.ids cannot be null");
-		if (set.getRows() == null)
-			throw new IllegalArgumentException("RowSet.rows cannot be null");
-		if (set.getRows().size() < 1)
-			throw new IllegalArgumentException(
-					"RowSet.rows must contain at least one row.");
+		ValidateArgument.required(set, "RowSet cannot be null");
+		ValidateArgument.required(set.getIds(), "RowSet.ids cannot be null");
+		validateRows(set.getRows());
+	}
+	
+	public static void validateRows(List<? extends AbstractRow> rows) {
+		ValidateArgument.required(rows, "Rows cannot be null");
+		ValidateArgument.requirement(!rows.isEmpty(), "Rows must contain at least one row.");
 	}
 	
 	/**
@@ -415,15 +418,21 @@ public class TableModelUtils {
 	 * Count all of the empty or invalid rows in the set
 	 * @param set
 	 */
-	public static int countEmptyOrInvalidRowIds(RawRowSet set) {
-		validateRowSet(set);
+	public static int countEmptyOrInvalidRowIds(List<? extends AbstractRow> rows) {
+		validateRows(rows);
 		int count = 0;
-		for (Row row : set.getRows()) {
+		for (AbstractRow row : rows) {
 			if(isNullOrInvalid(row.getRowId())){
 				count++;
 			}
 		}
 		return count;
+	}
+	
+	public static void validateRowSet(PartialRowSet partial){
+		ValidateArgument.required(partial, "partial");
+		ValidateArgument.required(partial.getTableId(), "PartialRowSet.tableId");
+		validateRows(partial.getRows());
 	}
 	
 	/**
@@ -452,10 +461,10 @@ public class TableModelUtils {
 	 * @param set
 	 * @param range
 	 */
-	public static void assignRowIdsAndVersionNumbers(RawRowSet set, IdRange range) {
-		validateRowSet(set);
+	public static void assignRowIdsAndVersionNumbers(List<? extends AbstractRow> set, IdRange range) {
+		validateRows(set);
 		Long id = range.getMinimumId();
-		for (Row row : set.getRows()) {
+		for (AbstractRow row : set) {
 			// Set the version number for each row
 			row.setVersionNumber(range.getVersionNumber());
 			if(isNullOrInvalid(row.getRowId())){
@@ -477,6 +486,7 @@ public class TableModelUtils {
 			}
 		}
 	}
+
 
 	/**
 	 * Read the passed CSV into a RowSet.
@@ -1271,6 +1281,84 @@ public class TableModelUtils {
 			}
 			results.add(select);
 		}
+		return results;
+	}
+	
+	/**
+	 * Validate the given partial rowset
+	 * @param schema
+	 * @param partial
+	 */
+	public static void validatePartialRowSet(List<ColumnModel> schema, PartialRowSet partial){
+		ValidateArgument.required(schema, "schema");
+		validateRowSet(partial);
+		// Map columnId to column
+		Map<Long, ColumnModel> schemaMap = new HashMap<Long, ColumnModel>(schema.size());
+		for(ColumnModel cm: schema){
+			schemaMap.put(Long.parseLong(cm.getId()), cm);
+		}
+		// Validate each value
+		for(PartialRow row: partial.getRows()){
+			// check each value
+			validatePartialRow(row, schemaMap);
+		}
+	}
+	
+	/**
+	 * Validate a single row of a PartialRowSet.
+	 * 
+	 * @param row
+	 * @param schemaMap
+	 */
+	public static void validatePartialRow(PartialRow row,
+			Map<Long, ColumnModel> schemaMap) {
+		if (row != null) {
+			if (row.getValues() != null) {
+				for (String key : row.getValues().keySet()) {
+					try {
+						Long columnId = Long.parseLong(key);
+						String value = row.getValues().get(key);
+						ColumnModel column = schemaMap.get(columnId);
+						if (column == null) {
+							throw new IllegalArgumentException(String.format(
+									PARTIAL_ROW_KEY_NOT_A_VALID, key,
+									row.getRowId()));
+						}
+						// validate the raw value.
+						validateRowValue(value, column, 0, 0);
+					} catch (NumberFormatException e) {
+						throw new IllegalArgumentException(String.format(
+								PARTIAL_ROW_KEY_NOT_A_VALID, key,
+								row.getRowId()));
+					}
+				}
+			}
+		}
+	}
+
+
+	/**
+	 * Create a RowReferenceSet for the given rows.
+	 * @param tableId
+	 * @param columns
+	 * @param etag
+	 * @param rows
+	 * @return
+	 */
+	public static RowReferenceSet createRowReference(String tableId, List<ColumnModel> columns, String etag, List<? extends AbstractRow> rows) {
+		RowReferenceSet results = new RowReferenceSet();
+		results.setHeaders(TableModelUtils.getSelectColumns(columns));
+		results.setTableId(tableId);
+		results.setEtag(etag);
+		List<RowReference> refs = new LinkedList<RowReference>();
+		// Build up the row references
+		for (AbstractRow row : rows) {
+			RowReference ref = new RowReference();
+			ref.setRowId(row.getRowId());
+			ref.setVersionNumber(row.getVersionNumber());
+			refs.add(ref);
+		}
+		results.setRows(refs);
 		return results;
 	}
 

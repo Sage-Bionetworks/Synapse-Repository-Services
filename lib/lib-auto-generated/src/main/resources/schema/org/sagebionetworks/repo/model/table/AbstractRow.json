@@ -1,0 +1,17 @@
+{
+	"description": "Abstraction for a row with a row ID and version number.",
+	"type": "interface",
+	"properties": {
+		"concreteType":{
+			"type": "string"
+		},
+		"rowId":{
+            "type":"integer",
+            "description":"The immutable ID issued to a new row."
+        },
+        "versionNumber":{
+            "type":"integer",
+            "description":"The version number of this row. Each row version is immutable, so when a row is updated a new version is created."
+        }
+	}
+}
