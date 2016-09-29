@@ -8,7 +8,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.fileupload.FileUploadException;
-import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.file.services.FileUploadService;
@@ -20,6 +19,8 @@ import org.sagebionetworks.repo.model.NotReadyException;
 import org.sagebionetworks.repo.model.asynch.AsyncJobId;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.file.AddPartResponse;
+import org.sagebionetworks.repo.model.file.BatchFileRequest;
+import org.sagebionetworks.repo.model.file.BatchFileResult;
 import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlRequest;
 import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlResponse;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadRequest;
@@ -31,12 +32,9 @@ import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
-import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
 import org.sagebionetworks.repo.model.file.ProxyFileHandle;
-import org.sagebionetworks.repo.model.file.S3FileCopyRequest;
-import org.sagebionetworks.repo.model.file.S3FileCopyResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
 import org.sagebionetworks.repo.model.file.UploadDestination;
@@ -49,14 +47,11 @@ import org.sagebionetworks.repo.web.controller.RedirectUtils;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -194,43 +189,28 @@ public class UploadController extends BaseController {
 
 	@Autowired
 	FileUploadService fileService;
-
+	
 	/**
-	 * Upload files as a multi-part upload, and create file handles for each.
-	 * 
-	 * @param request
-	 * @param response
-	 * @param headers
-	 * @throws FileUploadException
+	 * Get a batch of pre-signed URLs and/or FileHandles for the given list of FileHandleAssociations 
+	 * @param userId
+	 * @param handleIdToCopyFrom
+	 * @param fileHandleWithNameAndContentType
+	 * @return
 	 * @throws IOException
-	 * @throws NotFoundException
 	 * @throws DatastoreException
+	 * @throws NotFoundException
 	 * @throws ServiceUnavailableException
 	 * @throws JSONObjectAdapterException
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = "/fileHandle", method = RequestMethod.POST)
-	void uploadFiles(
+	@RequestMapping(value = "/fileHandle/batch", method = RequestMethod.POST)
+	public @ResponseBody BatchFileResult getFileHandleAndUrlBatch(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			HttpServletRequest request, HttpServletResponse response,
-			@RequestHeader HttpHeaders headers) throws FileUploadException,
-			IOException, DatastoreException, NotFoundException,
+			@PathVariable String handleIdToCopyFrom,
+			@RequestBody BatchFileRequest request)
+			throws IOException, DatastoreException, NotFoundException,
 			ServiceUnavailableException, JSONObjectAdapterException {
-		LogUtils.logRequest(log, request);
-		// Maker sure this is a multipart
-		if (!ServletFileUpload.isMultipartContent(request)) {
-			throw new IllegalArgumentException(
-					"This service only supports: content-type = multipart/form-data");
-		}
-		// Pass it along.
-		FileHandleResults results = fileService.uploadFiles(userId,
-				new ServletFileUpload().getItemIterator(request));
-		response.setContentType("application/json");
-		response.setStatus(HttpStatus.CREATED.value());
-		response.getOutputStream().print(
-				EntityFactory.createJSONStringForEntity(results));
-		// Not flushing causes the stream to be empty for the GWT use case.
-		response.getOutputStream().flush();
+		return fileService.getFileHandleAndUrlBatch(userId, request);
 	}
 
 	/**
@@ -662,65 +642,6 @@ public class UploadController extends BaseController {
 		String redirectUrl = fileService.getPresignedUrlForFileHandle(userId,
 				handleId);
 		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
-	}
-
-	/**
-	 * Asynchronously start a copy of large files to a bucket that is owned by
-	 * the user. This is used for large files that have their requestor pays
-	 * set. See https://www.synapse.org/#!Help:CreateS3DownloadBucket for
-	 * details on how to set up a download bucket. Use the returned job id and
-	 * <a href="${GET.file.s3FileCopy.async.get.asyncToken}">GET
-	 * /file/s3FileCopy/async/get</a> to get the results of the query
-	 * 
-	 * @param userId
-	 * @param request
-	 *            S3FileCopyRequest that specifies what files to copy
-	 * @return
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 * @throws IOException
-	 */
-	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = UrlHelpers.S3_FILE_COPY_ASYNC_START, method = RequestMethod.POST)
-	public @ResponseBody AsyncJobId startS3FileCopyJob(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestBody S3FileCopyRequest request) throws DatastoreException,
-			NotFoundException, IOException {
-		AsynchronousJobStatus job = serviceProvider
-				.getAsynchronousJobServices().startJob(userId, request);
-		AsyncJobId asyncJobId = new AsyncJobId();
-		asyncJobId.setToken(job.getJobId());
-		return asyncJobId;
-	}
-
-	/**
-	 * Asynchronously get the results of a copy of large files to a bucket
-	 * started with <a href="${POST.file.s3FileCopy.async.start}">POST
-	 * /file/s3FileCopy/async/start</a>
-	 * 
-	 * <p>
-	 * Note: When the result is not ready yet, this method will return a status
-	 * code of 202 (ACCEPTED) and the response body will be a <a
-	 * href="${org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus}"
-	 * >AsynchronousJobStatus</a> object.
-	 * </p>
-	 * 
-	 * @param userId
-	 * @param asyncToken
-	 * @return
-	 * @throws NotReadyException
-	 * @throws NotFoundException
-	 * @throws AsynchJobFailedException
-	 */
-	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = UrlHelpers.S3_FILE_COPY_ASYNC_GET, method = RequestMethod.GET)
-	public @ResponseBody S3FileCopyResults getS3FileCopyResult(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String asyncToken) throws Throwable {
-		AsynchronousJobStatus jobStatus = serviceProvider
-				.getAsynchronousJobServices().getJobStatusAndThrow(userId,
-						asyncToken);
-		return (S3FileCopyResults) jobStatus.getResponseBody();
 	}
 
 	/**
