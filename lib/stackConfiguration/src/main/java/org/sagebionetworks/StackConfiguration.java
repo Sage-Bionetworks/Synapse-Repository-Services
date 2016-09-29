@@ -1502,6 +1502,10 @@ public class StackConfiguration {
 	public static String getDefaultPortalNotificationEndpoint() {
 		return configuration.getProperty("org.sagebionetworks.notification.portal.endpoint");
 	}
+
+	public static String getDefaultPortalProfileSettingEndpoint() {
+		return configuration.getProperty("org.sagebionetworks.profile.setting.portal.endpoint");
+	}
 	
 	/*
 	 * Credentials used by Docker Registry to send events to the repo services.

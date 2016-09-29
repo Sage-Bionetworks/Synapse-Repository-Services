@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
@@ -26,6 +27,7 @@ import com.sun.jersey.core.util.Base64;
 public class SendRawEmailRequestBuilderTest {
 	
 	private static final String UNSUBSCRIBE_ENDPOINT = "https://www.synapse.org/#unsub:";
+	private static final String PROFILE_SETTING_ENDPOINT = "https://www.synapse.org/#profile:edit";
 
 	@Test
 	public void testCreateRawEmailRequest() throws Exception {
@@ -37,6 +39,9 @@ public class SendRawEmailRequestBuilderTest {
 				.withSenderUserName("foobar")
 				.withSenderDisplayName("Foo Bar")
 				.withNotificationUnsubscribeEndpoint(UNSUBSCRIBE_ENDPOINT)
+				.withUnsubscribeLink(true)
+				.withUserProfileSettingEndpoint(PROFILE_SETTING_ENDPOINT)
+				.withProfileSettingLink(true)
 				.withUserId("101")
 				.withTo("TO <to@foo.bar>")
 				.withCc("Cc <cc@foo.bar>")
@@ -63,6 +68,7 @@ public class SendRawEmailRequestBuilderTest {
 		String bodyContent = ((String)bodyPart.getContent());
 		assertTrue(bodyContent.startsWith(body));
 		assertTrue(bodyContent.indexOf(UNSUBSCRIBE_ENDPOINT)>0);
+		assertTrue(bodyContent.indexOf(PROFILE_SETTING_ENDPOINT)>0);
 	}
 	
 	@Test
@@ -75,6 +81,9 @@ public class SendRawEmailRequestBuilderTest {
 				.withSenderUserName("foobar")
 				.withSenderDisplayName("Foo Bar")
 				.withNotificationUnsubscribeEndpoint(UNSUBSCRIBE_ENDPOINT)
+				.withUnsubscribeLink(true)
+				.withUserProfileSettingEndpoint(PROFILE_SETTING_ENDPOINT)
+				.withProfileSettingLink(true)
 				.withUserId("101")
 				.withTo("TO<to@foo.bar>")
 				.withCc("Cc<cc@foo.bar>")
@@ -83,7 +92,7 @@ public class SendRawEmailRequestBuilderTest {
 	}
 	
 	@Test
-	public void testCreateRawEmailRequestNoUnsubEndpoint() throws Exception {
+	public void testCreateRawEmailRequestWithoutUnsubEndpoint() throws Exception {
 		String body = "this is the message body";
 		SendRawEmailRequest request = (new SendRawEmailRequestBuilder())
 				.withRecipientEmail("foo@bar.com")
@@ -92,6 +101,9 @@ public class SendRawEmailRequestBuilderTest {
 				.withSenderUserName("foobar")
 				.withSenderDisplayName("Foo Bar")
 				.withUserId("101")
+				.withUnsubscribeLink(true)
+				.withUserProfileSettingEndpoint(PROFILE_SETTING_ENDPOINT)
+				.withProfileSettingLink(true)
 				.withTo("TO <to@foo.bar>")
 				.withCc("Cc <cc@foo.bar>")
 				.withBcc("Bcc <bcc@foo.bar>")
@@ -117,6 +129,132 @@ public class SendRawEmailRequestBuilderTest {
 		String bodyContent = ((String)bodyPart.getContent());
 		assertTrue(bodyContent.startsWith(body));
 		assertTrue(bodyContent.indexOf(StackConfiguration.getDefaultPortalNotificationEndpoint())>0);
+		assertTrue(bodyContent.indexOf(PROFILE_SETTING_ENDPOINT)>0);
+	}
+
+	@Test
+	public void testCreateRawEmailRequestWithoutUnsubLink() throws Exception {
+		String body = "this is the message body";
+		SendRawEmailRequest request = (new SendRawEmailRequestBuilder())
+				.withRecipientEmail("foo@bar.com")
+				.withSubject("subject")
+				.withBody(body, SendRawEmailRequestBuilder.BodyType.JSON)
+				.withSenderUserName("foobar")
+				.withSenderDisplayName("Foo Bar")
+				.withUserId("101")
+				.withNotificationUnsubscribeEndpoint(UNSUBSCRIBE_ENDPOINT)
+				.withUnsubscribeLink(false)
+				.withUserProfileSettingEndpoint(PROFILE_SETTING_ENDPOINT)
+				.withProfileSettingLink(true)
+				.withTo("TO <to@foo.bar>")
+				.withCc("Cc <cc@foo.bar>")
+				.withBcc("Bcc <bcc@foo.bar>")
+				.build();
+		assertEquals("Foo Bar <foobar@synapse.org>", request.getSource());
+		assertEquals(1, request.getDestinations().size());
+		assertEquals("foo@bar.com", request.getDestinations().get(0));
+		MimeMessage mimeMessage = new MimeMessage(Session.getDefaultInstance(new Properties()),
+				new ByteArrayInputStream(request.getRawMessage().getData().array()));
+		assertEquals(1, mimeMessage.getFrom().length);
+		assertEquals("Foo Bar <foobar@synapse.org>", mimeMessage.getFrom()[0].toString());
+		assertEquals("subject", mimeMessage.getSubject());
+		assertEquals("TO <to@foo.bar>", mimeMessage.getHeader("To")[0]);
+		assertEquals("Cc <cc@foo.bar>", mimeMessage.getHeader("Cc")[0]);
+		assertEquals("Bcc <bcc@foo.bar>", mimeMessage.getHeader("Bcc")[0]);
+
+		assertTrue(mimeMessage.getContentType().startsWith("multipart/related"));
+		MimeMultipart content = (MimeMultipart)mimeMessage.getContent();
+		assertEquals(1, content.getCount());
+		assertTrue(content.getContentType().startsWith("multipart/related"));
+		BodyPart bodyPart = content.getBodyPart(0);
+		assertTrue(bodyPart.getContentType().startsWith("text/plain"));
+		String bodyContent = ((String)bodyPart.getContent());
+		assertTrue(bodyContent.startsWith(body));
+		assertFalse(bodyContent.indexOf(UNSUBSCRIBE_ENDPOINT)>0);
+		assertTrue(bodyContent.indexOf(PROFILE_SETTING_ENDPOINT)>0);
+	}
+
+	@Test
+	public void testCreateRawEmailRequestWithoutProfileSettingEndpoint() throws Exception {
+		String body = "this is the message body";
+		SendRawEmailRequest request = (new SendRawEmailRequestBuilder())
+				.withRecipientEmail("foo@bar.com")
+				.withSubject("subject")
+				.withBody(body, SendRawEmailRequestBuilder.BodyType.JSON)
+				.withSenderUserName("foobar")
+				.withSenderDisplayName("Foo Bar")
+				.withUserId("101")
+				.withNotificationUnsubscribeEndpoint(UNSUBSCRIBE_ENDPOINT)
+				.withUnsubscribeLink(true)
+				.withProfileSettingLink(true)
+				.withTo("TO <to@foo.bar>")
+				.withCc("Cc <cc@foo.bar>")
+				.withBcc("Bcc <bcc@foo.bar>")
+				.build();
+		assertEquals("Foo Bar <foobar@synapse.org>", request.getSource());
+		assertEquals(1, request.getDestinations().size());
+		assertEquals("foo@bar.com", request.getDestinations().get(0));
+		MimeMessage mimeMessage = new MimeMessage(Session.getDefaultInstance(new Properties()),
+				new ByteArrayInputStream(request.getRawMessage().getData().array()));
+		assertEquals(1, mimeMessage.getFrom().length);
+		assertEquals("Foo Bar <foobar@synapse.org>", mimeMessage.getFrom()[0].toString());
+		assertEquals("subject", mimeMessage.getSubject());
+		assertEquals("TO <to@foo.bar>", mimeMessage.getHeader("To")[0]);
+		assertEquals("Cc <cc@foo.bar>", mimeMessage.getHeader("Cc")[0]);
+		assertEquals("Bcc <bcc@foo.bar>", mimeMessage.getHeader("Bcc")[0]);
+
+		assertTrue(mimeMessage.getContentType().startsWith("multipart/related"));
+		MimeMultipart content = (MimeMultipart)mimeMessage.getContent();
+		assertEquals(1, content.getCount());
+		assertTrue(content.getContentType().startsWith("multipart/related"));
+		BodyPart bodyPart = content.getBodyPart(0);
+		assertTrue(bodyPart.getContentType().startsWith("text/plain"));
+		String bodyContent = ((String)bodyPart.getContent());
+		assertTrue(bodyContent.startsWith(body));
+		assertTrue(bodyContent.indexOf(UNSUBSCRIBE_ENDPOINT)>0);
+		assertTrue(bodyContent.indexOf(StackConfiguration.getDefaultPortalProfileSettingEndpoint())>0);
+	}
+
+	@Test
+	public void testCreateRawEmailRequestWithoutProfileSettingLink() throws Exception {
+		String body = "this is the message body";
+		SendRawEmailRequest request = (new SendRawEmailRequestBuilder())
+				.withRecipientEmail("foo@bar.com")
+				.withSubject("subject")
+				.withBody(body, SendRawEmailRequestBuilder.BodyType.JSON)
+				.withSenderUserName("foobar")
+				.withSenderDisplayName("Foo Bar")
+				.withUserId("101")
+				.withNotificationUnsubscribeEndpoint(UNSUBSCRIBE_ENDPOINT)
+				.withUnsubscribeLink(true)
+				.withUserProfileSettingEndpoint(PROFILE_SETTING_ENDPOINT)
+				.withProfileSettingLink(false)
+				.withTo("TO <to@foo.bar>")
+				.withCc("Cc <cc@foo.bar>")
+				.withBcc("Bcc <bcc@foo.bar>")
+				.build();
+		assertEquals("Foo Bar <foobar@synapse.org>", request.getSource());
+		assertEquals(1, request.getDestinations().size());
+		assertEquals("foo@bar.com", request.getDestinations().get(0));
+		MimeMessage mimeMessage = new MimeMessage(Session.getDefaultInstance(new Properties()),
+				new ByteArrayInputStream(request.getRawMessage().getData().array()));
+		assertEquals(1, mimeMessage.getFrom().length);
+		assertEquals("Foo Bar <foobar@synapse.org>", mimeMessage.getFrom()[0].toString());
+		assertEquals("subject", mimeMessage.getSubject());
+		assertEquals("TO <to@foo.bar>", mimeMessage.getHeader("To")[0]);
+		assertEquals("Cc <cc@foo.bar>", mimeMessage.getHeader("Cc")[0]);
+		assertEquals("Bcc <bcc@foo.bar>", mimeMessage.getHeader("Bcc")[0]);
+
+		assertTrue(mimeMessage.getContentType().startsWith("multipart/related"));
+		MimeMultipart content = (MimeMultipart)mimeMessage.getContent();
+		assertEquals(1, content.getCount());
+		assertTrue(content.getContentType().startsWith("multipart/related"));
+		BodyPart bodyPart = content.getBodyPart(0);
+		assertTrue(bodyPart.getContentType().startsWith("text/plain"));
+		String bodyContent = ((String)bodyPart.getContent());
+		assertTrue(bodyContent.startsWith(body));
+		assertTrue(bodyContent.indexOf(UNSUBSCRIBE_ENDPOINT)>0);
+		assertFalse(bodyContent.indexOf(PROFILE_SETTING_ENDPOINT)>0);
 	}
 	
 	@Test
@@ -126,7 +264,7 @@ public class SendRawEmailRequestBuilderTest {
 		String somePlainText = "this is the message content.";
 		messageBody.setPlain(somePlainText);
 		MimeMultipart mm = SendRawEmailRequestBuilder.createEmailBodyFromJSON(
-				EntityFactory.createJSONStringForEntity(messageBody), unsubscribeLink);
+				EntityFactory.createJSONStringForEntity(messageBody), unsubscribeLink, PROFILE_SETTING_ENDPOINT);
 		mm = saveChanges(mm);
 
 		assertEquals(1, mm.getCount());
@@ -147,7 +285,7 @@ public class SendRawEmailRequestBuilderTest {
 		String someHtmlText = "<div>this is the message content.</div>";
 		messageBody.setHtml(someHtmlText);
 		MimeMultipart mm = SendRawEmailRequestBuilder.createEmailBodyFromJSON(
-				EntityFactory.createJSONStringForEntity(messageBody), unsubscribeLink);
+				EntityFactory.createJSONStringForEntity(messageBody), unsubscribeLink, PROFILE_SETTING_ENDPOINT);
 		mm = saveChanges(mm);
 
 		assertEquals(1, mm.getCount());
@@ -187,7 +325,7 @@ public class SendRawEmailRequestBuilderTest {
 		attachment.setUrl("http://foo.bar.com");
 		messageBody.setAttachments(Collections.singletonList(attachment));
 		MimeMultipart mm = SendRawEmailRequestBuilder.createEmailBodyFromJSON(
-				EntityFactory.createJSONStringForEntity(messageBody), unsubscribeLink);
+				EntityFactory.createJSONStringForEntity(messageBody), unsubscribeLink, PROFILE_SETTING_ENDPOINT);
 		mm = saveChanges(mm);
 
 		assertTrue(mm.getContentType().startsWith("multipart/related"));
