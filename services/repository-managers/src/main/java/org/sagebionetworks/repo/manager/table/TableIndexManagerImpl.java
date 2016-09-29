@@ -95,23 +95,6 @@ public class TableIndexManagerImpl implements TableIndexManager {
 					});
 		}
 	}
-	
-	@Override
-	public void applyChangeSetToIndex(final RowSet rowset,
-			final List<ColumnModel> currentSchema) {
-		// apply all changes in a transaction
-		tableIndexDao
-				.executeInWriteTransaction(new TransactionCallback<Void>() {
-					@Override
-					public Void doInTransaction(TransactionStatus status) {
-						// apply the change to the index
-						tableIndexDao.createOrUpdateOrDeleteRows(rowset,
-								currentSchema);
-						return null;
-					}
-				});
-		
-	}
 
 	/*
 	 * (non-Javadoc)
