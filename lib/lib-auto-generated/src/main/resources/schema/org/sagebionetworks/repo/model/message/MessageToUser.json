@@ -25,6 +25,18 @@
 			"type": "string",
 			"description":"the portal prefix for one-click email unsubscription.  A signed, serialized token is appended to create the complete URL.  If omitted, the default endpoint will be used."
 		},
+		"userProfileSettingEndpoint": {
+			"type": "string",
+			"description":"the portal link to user profile setting page. If omitted, the default endpoint will be used."
+		},
+		"withUnsubscribeLink": {
+			"type": "boolean",
+			"description": "should the unsubscribe link be included in the email"
+		},
+		"withProfileSettingLink": {
+			"type": "boolean",
+			"description": "should the user profile setting link be included in the email"
+		},
 		"to": {
 			"type": "string",
 			"description": "The email addresses in the 'to' field of the email message"

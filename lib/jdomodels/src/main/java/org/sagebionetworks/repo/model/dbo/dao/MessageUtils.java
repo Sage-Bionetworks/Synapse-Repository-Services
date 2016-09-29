@@ -93,6 +93,9 @@ public class MessageUtils {
 			}
 		}
 		bundle.setNotificationUnsubscribeEndpoint(info.getNotificationsEndpoint());
+		bundle.setUserProfileSettingEndpoint(info.getProfileSettingEndpoint());
+		bundle.setWithUnsubscribeLink(info.getWithUnsubscribeLink());
+		bundle.setWithProfileSettingLink(info.getWithProfileSettingLink());
 		bundle.setTo(info.getTo());
 		bundle.setCc(info.getCc());
 		bundle.setBcc(info.getBcc());
@@ -230,6 +233,9 @@ public class MessageUtils {
 			}
 		}
 		info.setNotificationsEndpoint(dto.getNotificationUnsubscribeEndpoint());
+		info.setProfileSettingEndpoint(dto.getUserProfileSettingEndpoint());
+		info.setWithUnsubscribeLink(dto.getWithUnsubscribeLink());
+		info.setWithProfileSettingLink(dto.getWithProfileSettingLink());
 		info.setTo(dto.getTo());
 		info.setCc(dto.getCc());
 		info.setBcc(dto.getBcc());

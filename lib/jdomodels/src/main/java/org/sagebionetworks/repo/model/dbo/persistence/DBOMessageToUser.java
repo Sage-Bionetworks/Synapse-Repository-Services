@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
-import java.io.UnsupportedEncodingException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
@@ -27,6 +26,9 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 		new FieldColumn("subjectBytes", SqlConstants.COL_MESSAGE_TO_USER_SUBJECT),
 		new FieldColumn("sent", SqlConstants.COL_MESSAGE_TO_USER_SENT),
 		new FieldColumn("notificationsEndpoint", SqlConstants.COL_MESSAGE_NOTIFICATIONS_ENDPOINT),
+		new FieldColumn("profileSettingEndpoint", SqlConstants.COL_MESSAGE_PROFILE_SETTING_ENDPOINT),
+		new FieldColumn("withUnsubscribeLink", SqlConstants.COL_MESSAGE_WITH_UNSUBSCRIBE_LINK),
+		new FieldColumn("withProfileSettingLink", SqlConstants.COL_MESSAGE_WITH_PROFILE_SETTING_LINK),
 		new FieldColumn("to", SqlConstants.COL_MESSAGE_TO_USER_TO),
 		new FieldColumn("cc", SqlConstants.COL_MESSAGE_TO_USER_CC),
 		new FieldColumn("bcc", SqlConstants.COL_MESSAGE_TO_USER_BCC)
@@ -39,6 +41,9 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 	private byte[] subjectBytes;
 	private Boolean sent;
 	private String notificationsEndpoint;
+	private String profileSettingEndpoint;
+	private Boolean withUnsubscribeLink;
+	private Boolean withProfileSettingLink;
 	private String to;
 	private String cc;
 	private String bcc;
@@ -63,6 +68,9 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 
 				result.setSent(rs.getBoolean(SqlConstants.COL_MESSAGE_TO_USER_SENT));
 				result.setNotificationsEndpoint(rs.getString(SqlConstants.COL_MESSAGE_NOTIFICATIONS_ENDPOINT));
+				result.setProfileSettingEndpoint(rs.getString(SqlConstants.COL_MESSAGE_PROFILE_SETTING_ENDPOINT));
+				result.setWithUnsubscribeLink(rs.getBoolean(SqlConstants.COL_MESSAGE_WITH_UNSUBSCRIBE_LINK));
+				result.setWithProfileSettingLink(rs.getBoolean(SqlConstants.COL_MESSAGE_WITH_PROFILE_SETTING_LINK));
 				result.setTo(rs.getString(SqlConstants.COL_MESSAGE_TO_USER_TO));
 				result.setCc(rs.getString(SqlConstants.COL_MESSAGE_TO_USER_CC));
 				result.setBcc(rs.getString(SqlConstants.COL_MESSAGE_TO_USER_BCC));
@@ -139,6 +147,30 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 		this.notificationsEndpoint = notificationsEndpoint;
 	}
 
+	public String getProfileSettingEndpoint() {
+		return profileSettingEndpoint;
+	}
+
+	public void setProfileSettingEndpoint(String profileSettingEndpoint) {
+		this.profileSettingEndpoint = profileSettingEndpoint;
+	}
+
+	public Boolean getWithUnsubscribeLink() {
+		return withUnsubscribeLink;
+	}
+
+	public void setWithUnsubscribeLink(Boolean withUnsubscribeLink) {
+		this.withUnsubscribeLink = withUnsubscribeLink;
+	}
+
+	public Boolean getWithProfileSettingLink() {
+		return withProfileSettingLink;
+	}
+
+	public void setWithProfileSettingLink(Boolean withProfileSettingLink) {
+		this.withProfileSettingLink = withProfileSettingLink;
+	}
+
 	public String getTo() {
 		return to;
 	}
@@ -206,19 +238,16 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 		int result = 1;
 		result = prime * result + ((bcc == null) ? 0 : bcc.hashCode());
 		result = prime * result + ((cc == null) ? 0 : cc.hashCode());
-		result = prime * result
-				+ ((inReplyTo == null) ? 0 : inReplyTo.hashCode());
-		result = prime * result
-				+ ((messageId == null) ? 0 : messageId.hashCode());
-		result = prime
-				* result
-				+ ((notificationsEndpoint == null) ? 0 : notificationsEndpoint
-						.hashCode());
-		result = prime * result
-				+ ((rootMessageId == null) ? 0 : rootMessageId.hashCode());
+		result = prime * result + ((inReplyTo == null) ? 0 : inReplyTo.hashCode());
+		result = prime * result + ((messageId == null) ? 0 : messageId.hashCode());
+		result = prime * result + ((notificationsEndpoint == null) ? 0 : notificationsEndpoint.hashCode());
+		result = prime * result + ((profileSettingEndpoint == null) ? 0 : profileSettingEndpoint.hashCode());
+		result = prime * result + ((rootMessageId == null) ? 0 : rootMessageId.hashCode());
 		result = prime * result + ((sent == null) ? 0 : sent.hashCode());
 		result = prime * result + Arrays.hashCode(subjectBytes);
 		result = prime * result + ((to == null) ? 0 : to.hashCode());
+		result = prime * result + ((withProfileSettingLink == null) ? 0 : withProfileSettingLink.hashCode());
+		result = prime * result + ((withUnsubscribeLink == null) ? 0 : withUnsubscribeLink.hashCode());
 		return result;
 	}
 
@@ -257,6 +286,11 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 				return false;
 		} else if (!notificationsEndpoint.equals(other.notificationsEndpoint))
 			return false;
+		if (profileSettingEndpoint == null) {
+			if (other.profileSettingEndpoint != null)
+				return false;
+		} else if (!profileSettingEndpoint.equals(other.profileSettingEndpoint))
+			return false;
 		if (rootMessageId == null) {
 			if (other.rootMessageId != null)
 				return false;
@@ -274,17 +308,27 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 				return false;
 		} else if (!to.equals(other.to))
 			return false;
+		if (withProfileSettingLink == null) {
+			if (other.withProfileSettingLink != null)
+				return false;
+		} else if (!withProfileSettingLink.equals(other.withProfileSettingLink))
+			return false;
+		if (withUnsubscribeLink == null) {
+			if (other.withUnsubscribeLink != null)
+				return false;
+		} else if (!withUnsubscribeLink.equals(other.withUnsubscribeLink))
+			return false;
 		return true;
 	}
 
 
 	@Override
 	public String toString() {
-		return "DBOMessageToUser [messageId=" + messageId + ", rootMessageId="
-				+ rootMessageId + ", inReplyTo=" + inReplyTo + ", subject="
-				+ Arrays.toString(subjectBytes) + ", sent=" + sent
-				+ ", notificationsEndpoint=" + notificationsEndpoint + ", to="
-				+ to + ", cc=" + cc + ", bcc=" + bcc + "]";
+		return "DBOMessageToUser [messageId=" + messageId + ", rootMessageId=" + rootMessageId + ", inReplyTo="
+				+ inReplyTo + ", subjectBytes=" + Arrays.toString(subjectBytes) + ", sent=" + sent
+				+ ", notificationsEndpoint=" + notificationsEndpoint + ", profileSettingEndpoint="
+				+ profileSettingEndpoint + ", withUnsubscribeLink=" + withUnsubscribeLink + ", withProfileSettingLink="
+				+ withProfileSettingLink + ", to=" + to + ", cc=" + cc + ", bcc=" + bcc + "]";
 	}
 
 }

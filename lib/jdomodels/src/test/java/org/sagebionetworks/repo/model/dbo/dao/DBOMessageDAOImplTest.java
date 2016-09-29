@@ -137,7 +137,11 @@ public class DBOMessageDAOImplTest {
 		dto.setRecipients(recipients);
 		dto.setInReplyTo(inReplyTo);
 		String unsubEndpoint = "https://www.synapse.org/#foo:";
+		String userProfileSettingEndpoint = "https://www.synapse.org/#Profile:edit";
 		dto.setNotificationUnsubscribeEndpoint(unsubEndpoint);
+		dto.setUserProfileSettingEndpoint(userProfileSettingEndpoint);
+		dto.setWithUnsubscribeLink(true);
+		dto.setWithProfileSettingLink(false);
 		// Note: InReplyToRoot is calculated by the DAO
 		String to = "Foo<foo@sb.com>";
 		dto.setTo(to);
@@ -158,6 +162,9 @@ public class DBOMessageDAOImplTest {
 		assertEquals(fileHandleId, dto.getFileHandleId());
 		assertEquals(inReplyTo, dto.getInReplyTo());
 		assertEquals(unsubEndpoint, dto.getNotificationUnsubscribeEndpoint());
+		assertEquals(userProfileSettingEndpoint, dto.getUserProfileSettingEndpoint());
+		assertTrue(dto.getWithUnsubscribeLink());
+		assertFalse(dto.getWithProfileSettingLink());
 		assertEquals(recipients, dto.getRecipients());
 		assertEquals(subject, dto.getSubject());
 		assertEquals(to, dto.getTo());
