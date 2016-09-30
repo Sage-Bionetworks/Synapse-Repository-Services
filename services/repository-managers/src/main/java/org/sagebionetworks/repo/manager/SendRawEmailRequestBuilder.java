@@ -46,9 +46,9 @@ public class SendRawEmailRequestBuilder {
 	private String notificationUnsubscribeEndpoint=null;
 	private String userProfileSettingEndpoint=null;
 	private String userId=null;
-	private Boolean withUnsubscribeLink=false;
-	private Boolean withProfileSettingLink=false;
-	private Boolean isNotificationMessage=false;
+	private boolean withUnsubscribeLink=false;
+	private boolean withProfileSettingLink=false;
+	private boolean isNotificationMessage=false;
 	
 	public enum BodyType{JSON, PLAIN_TEXT, HTML};
 
@@ -100,7 +100,7 @@ public class SendRawEmailRequestBuilder {
 	}
 
 	public SendRawEmailRequestBuilder withUnsubscribeLink(Boolean withUnsubscribeLink) {
-		this.withUnsubscribeLink=withUnsubscribeLink;
+		if (withUnsubscribeLink != null) this.withUnsubscribeLink=withUnsubscribeLink;
 		return this;
 	}
 
@@ -110,12 +110,12 @@ public class SendRawEmailRequestBuilder {
 	}
 
 	public SendRawEmailRequestBuilder withProfileSettingLink(Boolean withProfileSettingLink) {
-		this.withProfileSettingLink=withProfileSettingLink;
+		if (withProfileSettingLink != null) this.withProfileSettingLink=withProfileSettingLink;
 		return this;
 	}
 	
 	public SendRawEmailRequestBuilder withIsNotificationMessage(Boolean isNotificationMessage) {
-		this.isNotificationMessage=isNotificationMessage;
+		if (isNotificationMessage != null) this.isNotificationMessage=isNotificationMessage;
 		return this;
 	}
 

@@ -350,7 +350,7 @@ public class MessageManagerImplTest {
 	/**
 	 * Creates a message row
 	 */
-	private MessageToUser createMessage(UserInfo userInfo, String subject, String fileHandleId, Set<String> recipients, String inReplyTo) throws InterruptedException, NotFoundException {
+	private MessageToUser createMessageWithThrottle(UserInfo userInfo, String subject, String fileHandleId, Set<String> recipients, String inReplyTo) throws InterruptedException, NotFoundException {
 		assertNotNull(userInfo);
 		
 		MessageToUser dto = new MessageToUser();
@@ -371,6 +371,9 @@ public class MessageManagerImplTest {
 		assertEquals(userInfo.getId().toString(), dto.getCreatedBy());
 		assertNotNull(dto.getCreatedOn());
 		assertNotNull(dto.getInReplyToRoot());
+		assertTrue(dto.getWithProfileSettingLink());
+		assertFalse(dto.getIsNotificationMessage());
+		assertFalse(dto.getWithUnsubscribeLink());
 		
 		// Make sure the timestamps on the messages are different 
 		Thread.sleep(5L); // just 5 milliseconds
@@ -382,7 +385,7 @@ public class MessageManagerImplTest {
 	 * Creates a message row
 	 */
 	private MessageToUser createMessage(UserInfo userInfo, String subject, Set<String> recipients, String inReplyTo) throws InterruptedException, NotFoundException {
-		return createMessage(userInfo, subject, fileHandleId, recipients, inReplyTo);
+		return createMessageWithThrottle(userInfo, subject, fileHandleId, recipients, inReplyTo);
 	}
 		
 	
@@ -620,7 +623,7 @@ public class MessageManagerImplTest {
 		assertEquals(1, messageManager.processMessage(messageToTeam.getId(), null).size());
 
 		// ... unless you're a Trusted Message Sender
-		messageToTeam = createMessage(trustedMessageSender, "messageToTeam", tmsFileHandleId,
+		messageToTeam = createMessageWithThrottle(trustedMessageSender, "messageToTeam", tmsFileHandleId,
 				new HashSet<String>() {{add(testTeam.getId());}}, null);
 		assertEquals(0, messageManager.processMessage(messageToTeam.getId(), null).size());
 	}
@@ -676,7 +679,7 @@ public class MessageManagerImplTest {
 		
 		// it's OK to do this as a trusted message sender
 		try {
-			createMessage(trustedMessageSender, null, tmsFileHandleId, tooMany, null);
+			createMessageWithThrottle(trustedMessageSender, null, tmsFileHandleId, tooMany, null);
 			fail();
 		} catch (IllegalArgumentException e) {
 			// this shows that we got past the quantity and frequency limitations
@@ -701,7 +704,7 @@ public class MessageManagerImplTest {
 	@Test
 	public void testCreateTooFastAsTrustedMessageSender() throws Exception {
 		for (int i=0; i<11; i++) {
-			MessageToUser m = createMessage(trustedMessageSender, "userToOther", tmsFileHandleId, 
+			MessageToUser m = createMessageWithThrottle(trustedMessageSender, "userToOther", tmsFileHandleId, 
 				new HashSet<String>() {{add(trustedMessageSender.getId().toString());}}, null);
 			cleanup.add(m.getId());
 		}

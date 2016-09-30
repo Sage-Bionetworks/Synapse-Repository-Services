@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager;
 import static junit.framework.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.anyLong;
@@ -15,6 +16,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.principal.SynapseEmailService;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -69,6 +71,7 @@ public class MessageManagerImplUnitTest {
 	private static final String FILE_HANDLE_ID = "222";
 	private UserInfo creatorUserInfo = null;
 	private static final String UNSUBSCRIBE_ENDPOINT = "https://www.synapse.org/#unsub:";
+	private static final String PROFILE_SETTING_ENDPOINT = "https://www.synapse.org/#profile:edit";
 	
 	@Before
 	public void setUp() throws Exception {
@@ -149,6 +152,10 @@ public class MessageManagerImplUnitTest {
 		mtu.setSubject("subject");
 		mtu.setFileHandleId(FILE_HANDLE_ID);
 		mtu.setNotificationUnsubscribeEndpoint(UNSUBSCRIBE_ENDPOINT);
+		mtu.setUserProfileSettingEndpoint(PROFILE_SETTING_ENDPOINT);
+		mtu.setIsNotificationMessage(false);
+		mtu.setWithUnsubscribeLink(false);
+		mtu.setWithProfileSettingLink(true);
 		mtu.setTo("TO <to@foo.com>");
 		mtu.setCc("CC <cc@foo.com>");
 		mtu.setBcc("BCC <bcc@foo.com>");
@@ -176,7 +183,36 @@ public class MessageManagerImplUnitTest {
 		assertEquals("bar@sagebase.org", ser.getDestinations().get(0));
 		String body = MessageTestUtil.getBodyFromRawMessage(ser, "text/html");
 		assertTrue(body.indexOf(messageBody)>=0);
-		assertTrue(body.indexOf(UNSUBSCRIBE_ENDPOINT)>=0);
+		assertFalse(body.indexOf(UNSUBSCRIBE_ENDPOINT)>=0);
+		assertTrue(body.indexOf(PROFILE_SETTING_ENDPOINT)>=0);
+		assertEquals(mtu.getSubject(), MessageTestUtil.getSubjectFromRawMessage(ser));
+		assertEquals(mtu.getTo(), MessageTestUtil.getHeaderFromRawMessage(ser, "To"));
+		assertEquals(mtu.getCc(), MessageTestUtil.getHeaderFromRawMessage(ser, "Cc"));
+		assertEquals(mtu.getBcc(), MessageTestUtil.getHeaderFromRawMessage(ser, "Bcc"));
+		verify(messageDAO, never()).canCreateMessage(anyString(), anyLong(), anyLong());
+	}
+
+	@Test
+	public void testCreateNotificationMessagePLAIN() throws Exception {
+		mtu.setIsNotificationMessage(true);
+		String from = EmailUtils.DEFAULT_EMAIL_ADDRESS_LOCAL_PART+StackConfiguration.getNotificationEmailSuffix();
+		fileHandle.setContentType("text/plain");
+		String messageBody = "message body";
+		when(fileHandleManager.downloadFileToString(FILE_HANDLE_ID)).thenReturn(messageBody);
+		when(fileHandleDAO.get(FILE_HANDLE_ID)).thenReturn(fileHandle);
+		
+		messageManager.createMessage(creatorUserInfo, mtu);
+		ArgumentCaptor<SendRawEmailRequest> argument = ArgumentCaptor.forClass(SendRawEmailRequest.class);
+		verify(sesClient).sendRawEmail(argument.capture());
+		SendRawEmailRequest ser = argument.getValue();
+		assertFalse(ser.getSource().equals("Foo FOO <foo@synapse.org>"));
+		assertEquals(from, ser.getSource());
+		assertEquals(1, ser.getDestinations().size());
+		assertEquals("bar@sagebase.org", ser.getDestinations().get(0));
+		String body = MessageTestUtil.getBodyFromRawMessage(ser, "text/html");
+		assertTrue(body.indexOf(messageBody)>=0);
+		assertFalse(body.indexOf(UNSUBSCRIBE_ENDPOINT)>=0);
+		assertTrue(body.indexOf(PROFILE_SETTING_ENDPOINT)>=0);
 		assertEquals(mtu.getSubject(), MessageTestUtil.getSubjectFromRawMessage(ser));
 		assertEquals(mtu.getTo(), MessageTestUtil.getHeaderFromRawMessage(ser, "To"));
 		assertEquals(mtu.getCc(), MessageTestUtil.getHeaderFromRawMessage(ser, "Cc"));
@@ -200,7 +236,8 @@ public class MessageManagerImplUnitTest {
 		assertEquals("bar@sagebase.org", ser.getDestinations().get(0));
 		String body = MessageTestUtil.getBodyFromRawMessage(ser, "text/html");
 		assertTrue(body.indexOf(messageBody)>=0);
-		assertTrue(body.indexOf(UNSUBSCRIBE_ENDPOINT)>=0);
+		assertFalse(body.indexOf(UNSUBSCRIBE_ENDPOINT)>=0);
+		assertTrue(body.indexOf(PROFILE_SETTING_ENDPOINT)>=0);
 		assertEquals(mtu.getSubject(), MessageTestUtil.getSubjectFromRawMessage(ser));
 		assertEquals(mtu.getTo(), MessageTestUtil.getHeaderFromRawMessage(ser, "To"));
 		assertEquals(mtu.getCc(), MessageTestUtil.getHeaderFromRawMessage(ser, "Cc"));
@@ -226,7 +263,8 @@ public class MessageManagerImplUnitTest {
 		assertEquals("bar@sagebase.org", ser.getDestinations().get(0));
 		String body = new String(ser.getRawMessage().getData().array());
 		assertTrue(body.indexOf("message body")>=0);
-		assertTrue(body.indexOf(UNSUBSCRIBE_ENDPOINT)>=0);
+		assertFalse(body.indexOf(UNSUBSCRIBE_ENDPOINT)>=0);
+		assertTrue(body.indexOf(PROFILE_SETTING_ENDPOINT)>=0);
 		assertEquals(mtu.getSubject(), MessageTestUtil.getSubjectFromRawMessage(ser));
 		assertEquals(mtu.getTo(), MessageTestUtil.getHeaderFromRawMessage(ser, "To"));
 		assertEquals(mtu.getCc(), MessageTestUtil.getHeaderFromRawMessage(ser, "Cc"));
@@ -252,11 +290,15 @@ public class MessageManagerImplUnitTest {
 		assertEquals("bar@sagebase.org", ser.getDestinations().get(0));
 		String body = new String(ser.getRawMessage().getData().array());
 		assertTrue(body.indexOf("message body")>=0);
-		assertTrue(body.indexOf(UNSUBSCRIBE_ENDPOINT)>=0);
+		assertFalse(body.indexOf(UNSUBSCRIBE_ENDPOINT)>=0);
+		assertTrue(body.indexOf(PROFILE_SETTING_ENDPOINT)>=0);
 		assertEquals(mtu.getSubject(), MessageTestUtil.getSubjectFromRawMessage(ser));
 		assertEquals(mtu.getTo(), MessageTestUtil.getHeaderFromRawMessage(ser, "To"));
 		assertEquals(mtu.getCc(), MessageTestUtil.getHeaderFromRawMessage(ser, "Cc"));
 		assertEquals(mtu.getBcc(), MessageTestUtil.getHeaderFromRawMessage(ser, "Bcc"));
+		assertTrue(mtu.getWithProfileSettingLink());
+		assertFalse(mtu.getIsNotificationMessage());
+		assertFalse(mtu.getWithUnsubscribeLink());
 		verify(messageDAO).canCreateMessage(anyString(), anyLong(), anyLong());
 	}
 
@@ -357,6 +399,5 @@ public class MessageManagerImplUnitTest {
 		assertEquals(StringUtils.join(errors, "\n"), 0, errors.size());
 	}
 
-	
 	
 }

@@ -202,15 +202,17 @@ public class MessageManagerImpl implements MessageManager {
 							+ MAX_NUMBER_OF_NEW_MESSAGES + " message(s) every "
 							+ (MESSAGE_CREATION_INTERVAL_MILLISECONDS / 1000) + " second(s)");
 		}
+		// Make sure the sender is correct
+		dto.setCreatedBy(userInfo.getId().toString());
+		dto.setWithUnsubscribeLink(false);
+		dto.setIsNotificationMessage(false);
+		dto.setWithProfileSettingLink(true);
 		return createMessage(userInfo, dto);
 	}
 
 	@Override
 	@WriteTransaction
 	public MessageToUser createMessage(UserInfo userInfo, MessageToUser dto) throws NotFoundException {
-		// Make sure the sender is correct
-		dto.setCreatedBy(userInfo.getId().toString());
-
 		if (!userInfo.isAdmin()) {
 			// Can't be anonymous
 			if (AuthorizationUtils.isUserAnonymous(userInfo)) {
@@ -414,11 +416,12 @@ public class MessageManagerImpl implements MessageManager {
 		if (messageDAO.getMessageSent(dto.getId())) {
 			return errors;
 		}
+		String senderUserName = null;
 
 		UserInfo userInfo = userManager.getUserInfo(Long.parseLong(dto.getCreatedBy()));
 		
 		// in practice there is always a user name, but strictly speaking it is allowed to be missing
-		String senderUserName = null;
+		
 		try {
 			senderUserName = principalAliasDAO.getUserName(userInfo.getId());
 		} catch (NotFoundException e) {
@@ -481,6 +484,10 @@ public class MessageManagerImpl implements MessageManager {
 						.withSenderDisplayName(senderDisplayName)
 						.withUserId(userId)
 						.withNotificationUnsubscribeEndpoint(dto.getNotificationUnsubscribeEndpoint())
+						.withUnsubscribeLink(dto.getWithUnsubscribeLink())
+						.withUserProfileSettingEndpoint(dto.getUserProfileSettingEndpoint())
+						.withProfileSettingLink(dto.getWithProfileSettingLink())
+						.withIsNotificationMessage(dto.getIsNotificationMessage())
 						.build();
 					sesClient.sendRawEmail(sendRawEmailRequest);
 					// Should the message be marked as READ?
