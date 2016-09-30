@@ -1,21 +1,17 @@
 package org.sagebionetworks.file.services;
 
-import java.io.IOException;
 import java.net.URL;
-import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 
-import org.apache.commons.fileupload.FileItemIterator;
-import org.apache.commons.fileupload.FileUploadException;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
-import org.sagebionetworks.repo.manager.file.FileUploadResults;
 import org.sagebionetworks.repo.manager.file.MultipartManagerV2;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.AddPartResponse;
+import org.sagebionetworks.repo.model.file.BatchFileRequest;
+import org.sagebionetworks.repo.model.file.BatchFileResult;
 import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlRequest;
 import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlResponse;
 import org.sagebionetworks.repo.model.file.ChunkRequest;
@@ -27,7 +23,6 @@ import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
-import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
 import org.sagebionetworks.repo.model.file.ProxyFileHandle;
@@ -36,7 +31,6 @@ import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
 import org.sagebionetworks.repo.model.file.UploadDestination;
 import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -56,26 +50,6 @@ public class FileUploadServiceImpl implements FileUploadService {
 	@Autowired
 	MultipartManagerV2 multipartManagerV2;
 
-	@Override
-	public FileHandleResults uploadFiles(Long userId, FileItemIterator itemIterator) throws DatastoreException, NotFoundException, FileUploadException, IOException, ServiceUnavailableException {
-		if (userId == null) {
-			throw new UnauthorizedException("The user must be authenticated");
-		}
-		if (itemIterator == null) {
-			throw new IllegalArgumentException(
-					"FileItemIterator cannot be null");
-		}
-		// resolve the user
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		FileUploadResults innerResults = fileUploadManager.uploadfiles(userInfo, new HashSet<String>(0), itemIterator);
-		FileHandleResults results = new FileHandleResults();
-		List<FileHandle> list = new LinkedList<FileHandle>();
-		results.setList(list);
-		for(S3FileHandle handle: innerResults.getFiles()){
-			list.add(handle);
-		}
-		return results;
-	}
 
 	@Override
 	public FileHandle getFileHandle(String handleId, Long userId) throws DatastoreException, NotFoundException {
@@ -245,5 +219,12 @@ public class FileUploadServiceImpl implements FileUploadService {
 			String uploadId) {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return multipartManagerV2.completeMultipartUpload(userInfo, uploadId);
+	}
+
+	@Override
+	public BatchFileResult getFileHandleAndUrlBatch(Long userId,
+			BatchFileRequest request) {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return fileUploadManager.getFileHandleAndUrlBatch(userInfo, request);
 	}
 }

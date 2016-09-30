@@ -2,7 +2,6 @@ package org.sagebionetworks.table.worker;
 
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
-import static org.mockito.Matchers.anyListOf;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.never;
@@ -28,14 +27,13 @@ import org.sagebionetworks.repo.manager.table.TableIndexManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableViewManager;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.dao.table.RowBatchHandler;
-import org.sagebionetworks.repo.model.dbo.dao.table.FileEntityFields;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.Row;
-import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.ViewType;
+import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -64,10 +62,12 @@ public class TableViewWorkerTest {
 	String token;
 	
 	List<ColumnModel> schema;
+	List<ColumnModel> expandedSchema;
 	Long viewCRC;
 	long rowCount;
 	List<Row> rows;
 	Set<Long> viewScope;
+	String schemaMD5Hex;
 
 	@SuppressWarnings("unchecked")
 	@Before
@@ -118,12 +118,27 @@ public class TableViewWorkerTest {
 				any(ProgressCallback.class), anyString(), anyInt(),
 				any(ProgressingCallable.class));
 		
-		schema = FileEntityFields.getAllColumnModels();
+		schema = new LinkedList<>();
+		schema.add(EntityField.id.getColumnModel());
+		schema.add(EntityField.name.getColumnModel());
+		
+		expandedSchema = new LinkedList<>(schema);
+		expandedSchema.add(EntityField.id.getColumnModel());
+		expandedSchema.add(EntityField.name.getColumnModel());
+		// add benefactor and etag to the expanded.
+		expandedSchema.add(EntityField.etag.getColumnModel());
+		expandedSchema.add(EntityField.benefactorId.getColumnModel());
 		// Add an ID to each column.
 		for(int i=0; i<schema.size(); i++){
 			ColumnModel cm = schema.get(i);
 			cm.setId(""+i);
 		}
+		for(int i=0; i<expandedSchema.size(); i++){
+			ColumnModel cm = expandedSchema.get(i);
+			cm.setId(""+i);
+		}
+		
+		schemaMD5Hex = TableModelUtils.createSchemaMD5HexCM(schema);
 		
 		rowCount = 1;
 		rows = new LinkedList<Row>();
@@ -132,11 +147,10 @@ public class TableViewWorkerTest {
 			row.setRowId(i);
 			rows.add(row);
 		}
-
-		when(tableViewManager.getViewSchemaWithBenefactor(tableId)).thenReturn(schema);
-		when(tableViewManager.getViewSchemaWithRequiredColumns(tableId)).thenReturn(schema);
+		when(tableManagerSupport.getColumnModelsForTable(tableId)).thenReturn(schema);
+		when(tableViewManager.getViewSchemaWithRequiredColumns(tableId)).thenReturn(expandedSchema);
 		viewCRC = 888L;		
-		when(indexManager.populateViewFromEntityReplication(innerCallback, ViewType.file, viewScope,schema)).thenReturn(viewCRC);
+		when(indexManager.populateViewFromEntityReplication(innerCallback, ViewType.file, viewScope,expandedSchema)).thenReturn(viewCRC);
 	}
 
 	@Test
@@ -217,12 +231,12 @@ public class TableViewWorkerTest {
 		worker.createOrUpdateIndexHoldingLock(tableId, indexManager, innerCallback, change);
 		
 		verify(indexManager).deleteTableIndex();
-		verify(indexManager).setIndexSchema(innerCallback,schema);
+		verify(indexManager).setIndexSchema(innerCallback,expandedSchema);
 		verify(tableViewManager).getViewSchemaWithRequiredColumns(tableId);
 		verify(innerCallback, times(4)).progressMade(null);
 		verify(tableManagerSupport, times(1)).attemptToUpdateTableProgress(tableId, token, "Copying data to view...", 0L, 1L);
-		verify(indexManager, times(1)).populateViewFromEntityReplication(innerCallback, ViewType.file, viewScope,schema);
-		verify(indexManager).setIndexVersion(viewCRC);
+		verify(indexManager, times(1)).populateViewFromEntityReplication(innerCallback, ViewType.file, viewScope,expandedSchema);
+		verify(indexManager).setIndexVersionAndSchemaMD5Hex(viewCRC, schemaMD5Hex);
 		verify(tableManagerSupport).attemptToSetTableStatusToAvailable(tableId, token, TableViewWorker.DEFAULT_ETAG);
 		verify(indexManager).optimizeTableIndices();
 	}

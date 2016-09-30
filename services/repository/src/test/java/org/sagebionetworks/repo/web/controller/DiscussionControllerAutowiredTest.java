@@ -13,6 +13,7 @@ import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.EntityIdList;
+import org.sagebionetworks.repo.model.PaginatedIds;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
@@ -166,12 +167,14 @@ public class DiscussionControllerAutowiredTest extends AbstractAutowiredControll
 	}
 
 	@Test
-	public void testMarkThreadAsDeleted() throws Exception {
+	public void testMarkThreadAsDeletedAndRestore() throws Exception {
 		Forum dto = servletTestHelper.getForumByProjectId(dispatchServlet, project.getId(), adminUserId);
 		createThread.setForumId(dto.getId());
 		DiscussionThreadBundle bundle = servletTestHelper.createThread(dispatchServlet, adminUserId, createThread);
 		servletTestHelper.markThreadAsDeleted(dispatchServlet, adminUserId, bundle.getId());
 		assertTrue(servletTestHelper.getThread(dispatchServlet, adminUserId, bundle.getId()).getIsDeleted());
+		servletTestHelper.markThreadAsNotDeleted(dispatchServlet, adminUserId, bundle.getId());
+		assertFalse(servletTestHelper.getThread(dispatchServlet, adminUserId, bundle.getId()).getIsDeleted());
 	}
 
 	@Test
@@ -326,5 +329,14 @@ public class DiscussionControllerAutowiredTest extends AbstractAutowiredControll
 		assertNotNull(results);
 		assertNotNull(results.getList());
 		assertTrue(results.getList().isEmpty());
+	}
+
+	@Test
+	public void testGetModeratorsForForum() throws Exception {
+		Forum forum = servletTestHelper.getForumByProjectId(dispatchServlet, project.getId(), adminUserId);
+		PaginatedIds moderators = servletTestHelper.getModerators(dispatchServlet, adminUserId, forum.getId(), 10L, 0L);
+		assertNotNull(moderators);
+		assertEquals((Long)1L, moderators.getTotalNumberOfResults());
+		assertTrue(moderators.getResults().contains(adminUserId.toString()));
 	}
 }

@@ -10,6 +10,8 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.AddPartResponse;
+import org.sagebionetworks.repo.model.file.BatchFileRequest;
+import org.sagebionetworks.repo.model.file.BatchFileResult;
 import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlRequest;
 import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlResponse;
 import org.sagebionetworks.repo.model.file.ChunkRequest;
@@ -39,19 +41,6 @@ import org.sagebionetworks.repo.web.ServiceUnavailableException;
  */
 public interface FileUploadService {
 
-	
-	/**
-	 * Upload all files for this request.
-	 * @param userName
-	 * @param itemIterator
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 * @throws IOException 
-	 * @throws FileUploadException 
-	 * @throws ServiceUnavailableException 
-	 */
-	@Deprecated
-	FileHandleResults uploadFiles(Long userId, FileItemIterator itemIterator) throws DatastoreException, NotFoundException, FileUploadException, IOException, ServiceUnavailableException;
 
 	/**
 	 * Get a file handle by ID.
@@ -296,6 +285,15 @@ public interface FileUploadService {
 	 * @return
 	 */
 	MultipartUploadStatus completeMultipartUpload(Long userId, String uploadId);
+
+	/**
+	 * Get a batch of FileHandles for the given batch of requests.
+	 * 
+	 * @param userId
+	 * @param request
+	 * @return
+	 */
+	BatchFileResult getFileHandleAndUrlBatch(Long userId, BatchFileRequest request);
 	
 	
 }

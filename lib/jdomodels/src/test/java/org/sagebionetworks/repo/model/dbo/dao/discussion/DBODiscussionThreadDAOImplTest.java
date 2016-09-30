@@ -240,6 +240,28 @@ public class DBODiscussionThreadDAOImplTest {
 		assertEquals(dto, returnedDto);
 	}
 
+	@Test
+	public void testRestore(){
+		DiscussionThreadBundle dto = threadDao.createThread(forumId, threadId.toString(), "title", "messageKey", userId);
+		long threadId = Long.parseLong(dto.getId());
+
+		threadDao.markThreadAsDeleted(threadId);
+		DiscussionThreadBundle returnedDto = threadDao.getThread(threadId, DEFAULT_FILTER);
+		assertTrue(returnedDto.getIsDeleted());
+
+		// undelete
+		dto.setIsDeleted(false);
+		threadDao.markThreadAsNotDeleted(threadId);
+		returnedDto = threadDao.getThread(threadId, DEFAULT_FILTER);
+		assertFalse("after marking thread as not deleted, etag should be different",
+				dto.getEtag().equals(returnedDto.getEtag()));
+		dto.setModifiedOn(returnedDto.getModifiedOn());
+		dto.setLastActivity(returnedDto.getLastActivity());
+		assertFalse(dto.equals(returnedDto));
+		dto.setEtag(returnedDto.getEtag());
+		assertEquals(dto, returnedDto);
+	}
+
 	@Test (expected = NotFoundException.class)
 	public void testDeleteWithFilter(){
 		DiscussionThreadBundle dto = threadDao.createThread(forumId, threadId.toString(), "title", "messageKey", userId);
@@ -318,6 +340,26 @@ public class DBODiscussionThreadDAOImplTest {
 	@Test (expected = IllegalArgumentException.class)
 	public void testNotNullOrderNullFilter() {
 		threadDao.getThreadsForForum(forumIdLong, 2L, 2L, null, null, null);
+	}
+
+	@Test
+	public void testSortedByThreadTitle() throws InterruptedException {
+		Long threadBId = idGenerator.generateNewId(TYPE.DISCUSSION_THREAD_ID);
+		DiscussionThreadBundle threadB = threadDao.createThread(forumId, threadBId.toString(),
+				"B", UUID.randomUUID().toString(), userId);
+
+		Long threadAId = idGenerator.generateNewId(TYPE.DISCUSSION_THREAD_ID);
+		DiscussionThreadBundle threadA = threadDao.createThread(forumId, threadAId.toString(),
+				"a", UUID.randomUUID().toString(), userId);
+
+		Long threadCId = idGenerator.generateNewId(TYPE.DISCUSSION_THREAD_ID);
+		DiscussionThreadBundle threadC = threadDao.createThread(forumId, threadCId.toString(),
+				"c", UUID.randomUUID().toString(), userId);
+
+		List<DiscussionThreadBundle> expected = Arrays.asList(threadA, threadB, threadC);
+		assertEquals("sorted by title",
+				expected,
+				threadDao.getThreadsForForum(forumIdLong, MAX_LIMIT, 0L, DiscussionThreadOrder.THREAD_TITLE, true, DiscussionFilter.NO_FILTER));
 	}
 
 	@Test

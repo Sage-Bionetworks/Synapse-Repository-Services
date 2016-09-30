@@ -38,6 +38,7 @@ import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.TableChangeType;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableSchemaChangeRequest;
 import org.sagebionetworks.repo.model.table.TableSchemaChangeResponse;
@@ -148,7 +149,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 			throws IOException,
 			NotFoundException {
 		RowSet result = new RowSet();
-		TableRowChange lastTableRowChange = tableRowTruthDao.getLastTableRowChange(tableId);
+		TableRowChange lastTableRowChange = tableRowTruthDao.getLastTableRowChange(tableId, TableChangeType.ROW);
 		result.setEtag(lastTableRowChange == null ? null : lastTableRowChange.getEtag());
 		result.setHeaders(TableModelUtils.getSelectColumns(columns));
 		result.setTableId(tableId);
@@ -647,9 +648,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 			UserInfo userInfo, TableSchemaChangeRequest changes,
 			TableIndexManager indexManager) {
 		// first determine what the new Schema will be
-		List<String> newSchemaIds = columModelManager.calculateNewSchemaIds(changes.getEntityId(), changes.getChanges());
-		// validate the new schema.
-		columModelManager.validateSchemaSize(newSchemaIds);
+		columModelManager.calculateNewSchemaIdsAndValidate(changes.getEntityId(), changes.getChanges());
 		// If the change includes an update then the schema change must be checked against the temp table.
 		boolean includesUpdate = containsColumnUpdate(changes.getChanges());
 		if(includesUpdate){
@@ -688,7 +687,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 			UserInfo userInfo, TableSchemaChangeRequest changes) {
 
 		// first determine what the new Schema will be
-		List<String> newSchemaIds = columModelManager.calculateNewSchemaIds(changes.getEntityId(), changes.getChanges());
+		List<String> newSchemaIds = columModelManager.calculateNewSchemaIdsAndValidate(changes.getEntityId(), changes.getChanges());
 		columModelManager.bindColumnToObject(userInfo, newSchemaIds, changes.getEntityId());
 		boolean keepOrder = true;
 		List<ColumnModel> newSchema = columModelManager.getColumnModel(userInfo, newSchemaIds, keepOrder);

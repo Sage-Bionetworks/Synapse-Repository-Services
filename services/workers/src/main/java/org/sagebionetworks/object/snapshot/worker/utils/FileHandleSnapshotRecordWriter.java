@@ -1,0 +1,86 @@
+package org.sagebionetworks.object.snapshot.worker.utils;
+
+import java.io.IOException;
+import java.util.Arrays;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.audit.dao.ObjectRecordDAO;
+import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
+import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.audit.FileHandleSnapshot;
+import org.sagebionetworks.repo.model.audit.ObjectRecord;
+import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.file.ExternalFileHandle;
+import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.file.PreviewFileHandle;
+import org.sagebionetworks.repo.model.file.ProxyFileHandle;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.message.ChangeMessage;
+import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.web.NotFoundException;
+import org.springframework.beans.factory.annotation.Autowired;
+
+public class FileHandleSnapshotRecordWriter implements ObjectRecordWriter {
+
+	static private Logger log = LogManager.getLogger(FileHandleSnapshotRecordWriter.class);
+	@Autowired
+	private FileHandleDao fileHandleDao;
+	@Autowired
+	private ObjectRecordDAO objectRecordDAO;
+
+	FileHandleSnapshotRecordWriter(){}
+
+	/**
+	 * Build a FileHandleSnapshot that captures all common fields in all FileHandle implementations.
+	 * 
+	 * @param fileHandle
+	 * @return
+	 */
+	public static FileHandleSnapshot buildFileHandleSnapshot(FileHandle fileHandle) {
+		FileHandleSnapshot snapshot = new FileHandleSnapshot();
+		snapshot.setConcreteType(fileHandle.getConcreteType());
+		snapshot.setContentMd5(fileHandle.getContentMd5());
+		snapshot.setContentSize(fileHandle.getContentSize());
+		snapshot.setCreatedBy(fileHandle.getCreatedBy());
+		snapshot.setCreatedOn(fileHandle.getCreatedOn());
+		snapshot.setFileName(fileHandle.getFileName());
+		snapshot.setId(fileHandle.getId());
+		snapshot.setStorageLocationId(fileHandle.getStorageLocationId());
+		if (fileHandle instanceof S3FileHandle) {
+			S3FileHandle s3FH = (S3FileHandle) fileHandle;
+			snapshot.setBucket(s3FH.getBucketName());
+			snapshot.setKey(s3FH.getKey());
+		} else if (fileHandle instanceof PreviewFileHandle) {
+			PreviewFileHandle previewFH = (PreviewFileHandle) fileHandle;
+			snapshot.setBucket(previewFH.getBucketName());
+			snapshot.setKey(previewFH.getKey());
+		} else if (fileHandle instanceof ExternalFileHandle) {
+			ExternalFileHandle externalFH = (ExternalFileHandle) fileHandle;
+			snapshot.setKey(externalFH.getExternalURL());
+		} else if (fileHandle instanceof ProxyFileHandle) {
+			ProxyFileHandle proxyFH = (ProxyFileHandle) fileHandle;
+			snapshot.setKey(proxyFH.getFilePath());
+		}
+		return snapshot;
+	}
+
+	@Override
+	public void buildAndWriteRecord(ChangeMessage message) throws IOException {
+		if (message.getObjectType() != ObjectType.FILE || message.getChangeType() == ChangeType.DELETE) {
+			throw new IllegalArgumentException();
+		}
+		try {
+			FileHandle fileHandle = fileHandleDao.get(message.getObjectId());
+			if (!fileHandle.getEtag().equals(message.getObjectEtag())) {
+				log.info("Ignoring old message.");
+			}
+			FileHandleSnapshot snapshot = buildFileHandleSnapshot(fileHandle);
+			ObjectRecord objectRecord = ObjectRecordBuilderUtils.buildObjectRecord(snapshot, message.getTimestamp().getTime());
+			objectRecordDAO.saveBatch(Arrays.asList(objectRecord), objectRecord.getJsonClassName());
+		} catch (NotFoundException e) {
+			log.error("Cannot find FileHandle for a " + message.getChangeType() + " message: " + message.toString()) ;
+		}
+	}
+
+}

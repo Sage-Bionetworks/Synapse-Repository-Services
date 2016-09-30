@@ -4,6 +4,7 @@ import java.io.IOException;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.EntityIdList;
+import org.sagebionetworks.repo.model.PaginatedIds;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
 import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
@@ -233,4 +234,23 @@ public interface DiscussionService {
 	 * @return
 	 */
 	public EntityThreadCounts getThreadCounts(Long userId, EntityIdList entityIds);
+
+	/**
+	 * Mark a reply as not deleted
+	 * 
+	 * @param userId
+	 * @param replyId
+	 */
+	public void markThreadAsNotDeleted(Long userId, String threadId);
+
+	/**
+	 * Retrieve a paginated list of moderator Ids
+	 * 
+	 * @param userId
+	 * @param forumId
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
+	public PaginatedIds getModerators(Long userId, String forumId, Long limit, Long offset);
 }

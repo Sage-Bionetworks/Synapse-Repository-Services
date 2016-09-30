@@ -30,6 +30,9 @@
 	<bean id="certifiedUserPassingRecordWriter"
 		class="org.sagebionetworks.object.snapshot.worker.utils.CertifiedUserPassingRecordWriter"
 		scope="singleton" />
+	<bean id="fileHandleSnapshotRecordWriter"
+		class="org.sagebionetworks.object.snapshot.worker.utils.FileHandleSnapshotRecordWriter"
+		scope="singleton" />
 
 	<!-- the keys in this map must be the values of the org.sagebionetworks.repo.model.ObjectType enum -->
 	<bean id="objectRecordWriterFactory"
@@ -54,6 +57,9 @@
 				</entry>
 				<entry key="CERTIFIED_USER_PASSING_RECORD">
 					<ref bean="certifiedUserPassingRecordWriter" />
+				</entry>
+				<entry key="FILE">
+					<ref bean="fileHandleSnapshotRecordWriter" />
 				</entry>
 			</map>
 		</property>
@@ -94,6 +100,7 @@
 										<ref bean="stackConfiguration.repositoryChangeTopic[PROJECT_SETTING]" />
 										<ref bean="stackConfiguration.repositoryChangeTopic[VERIFICATION_SUBMISSION]" />
 										<ref bean="stackConfiguration.repositoryChangeTopic[CERTIFIED_USER_PASSING_RECORD]" />
+										<ref bean="stackConfiguration.repositoryChangeTopic[FILE]" />
 									</list>
 								</property>
 							</bean>

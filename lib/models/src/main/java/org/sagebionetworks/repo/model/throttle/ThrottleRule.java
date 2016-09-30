@@ -1,8 +1,6 @@
 
 package org.sagebionetworks.repo.model.throttle;
 
-import java.util.Objects;
-
 import org.sagebionetworks.util.ValidateArgument;
 
 /**
@@ -82,57 +80,46 @@ public class ThrottleRule
 		ValidateArgument.requirement(periodInSeconds >= 0, "periodInSeconds must be a positive value");
 		this.periodInSeconds = periodInSeconds;
 	}
+	
+	@Override
+	public String toString() {
+		return "ThrottleRule [id=" + id + ", normalizedPath=" + normalizedPath + ", maxCallsPerPeriod="
+				+ maxCallsPerPeriod + ", periodInSeconds=" + periodInSeconds + "]";
+	}
 
-    @Override
-    public int hashCode() {
-    	return Objects.hash(id, normalizedPath,maxCallsPerPeriod, periodInSeconds);
-    }
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + (int) (id ^ (id >>> 32));
+		result = prime * result + (int) (maxCallsPerPeriod ^ (maxCallsPerPeriod >>> 32));
+		result = prime * result + ((normalizedPath == null) ? 0 : normalizedPath.hashCode());
+		result = prime * result + (int) (periodInSeconds ^ (periodInSeconds >>> 32));
+		return result;
+	}
 
 	@Override
 	public boolean equals(Object obj) {
-		if ( obj == null ){
+		if (this == obj)
+			return true;
+		if (obj == null)
 			return false;
-		}
-		if(! (obj instanceof ThrottleRule) ){
+		if (getClass() != obj.getClass())
 			return false;
-		}
 		ThrottleRule other = (ThrottleRule) obj;
-		
-		return other == this //check same reference
-			|| (other.id == id //check fields
-				&&	Objects.equals(this.normalizedPath, other.normalizedPath)
-				&&	other.maxCallsPerPeriod == this.maxCallsPerPeriod
-				&&	other.periodInSeconds == this.periodInSeconds);
+		if (id != other.id)
+			return false;
+		if (maxCallsPerPeriod != other.maxCallsPerPeriod)
+			return false;
+		if (normalizedPath == null) {
+			if (other.normalizedPath != null)
+				return false;
+		} else if (!normalizedPath.equals(other.normalizedPath))
+			return false;
+		if (periodInSeconds != other.periodInSeconds)
+			return false;
+		return true;
 	}
 
-    /**
-     * Adds toString method to pojo.
-     * returns a string
-     * 
-     * @return
-     */
-    @Override
-    public String toString() {
-        StringBuilder result;
-        result = new StringBuilder();
-        result.append("");
-        result.append("org.sagebionetworks.repo.model.throttle.ThrottleRule");
-        result.append(" [");
-        result.append("callPeriodSec=");
-        result.append(periodInSeconds);
-        result.append(" ");
-        result.append("id=");
-        result.append(id);
-        result.append(" ");
-        result.append(" ");
-        result.append("maxCalls=");
-        result.append(maxCallsPerPeriod);
-        result.append(" ");
-        result.append("normalizedUri=");
-        result.append(normalizedPath);
-        result.append(" ");
-        result.append("]");
-        return result.toString();
-    }
 
 }

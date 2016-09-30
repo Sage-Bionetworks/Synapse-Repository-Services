@@ -132,11 +132,12 @@ public interface ColumnModelManager {
 	List<ColumnModel> validateSchemaSize(List<String> columnIds);
 	
 	/**
-	 * Calculate the new schema if the passed changes are applied to the current schema of the table.
+	 * Calculate the new schema if the passed changes are applied to the current schema of the table
+	 * and validate the changes.
 	 * @param changes
 	 * @return
 	 */
-	List<String> calculateNewSchemaIds(String tableId, List<ColumnChange> changes);
+	List<String> calculateNewSchemaIdsAndValidate(String tableId, List<ColumnChange> changes);
 
 	/**
 	 * Get the details of a schema change.

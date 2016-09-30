@@ -13,7 +13,8 @@ import org.sagebionetworks.util.ValidateArgument;
 
 public class DiscussionUtils {
 	private static final Pattern USER_MENTION_PATTERN = Pattern.compile("@\\S+");
-	private static final Pattern ENTITY_REF_PATTERN = Pattern.compile("syn\\d+(\\s|$)", Pattern.CASE_INSENSITIVE);
+	private static final Pattern ENTITY_REF_PATTERN = Pattern.compile("([\\W&&\\D]*)(syn\\d+)([\\W&&\\D]*)(\\s|$)", Pattern.CASE_INSENSITIVE);
+	private static final int SYN_ID_GROUP_NUMBER = 2;
 
 	/**
 	 * Extract all username that are mentioned in this markdown
@@ -47,7 +48,7 @@ public class DiscussionUtils {
 		List<DiscussionThreadEntityReference> refs = new ArrayList<DiscussionThreadEntityReference>();
 		Matcher matcher = ENTITY_REF_PATTERN.matcher(markdown);
 		while (matcher.find()) {
-			Long entityId = KeyFactory.stringToKey(matcher.group());
+			Long entityId = KeyFactory.stringToKey(matcher.group(SYN_ID_GROUP_NUMBER));
 			DiscussionThreadEntityReference ref = new DiscussionThreadEntityReference();
 			ref.setEntityId(entityId.toString());
 			ref.setThreadId(threadId);

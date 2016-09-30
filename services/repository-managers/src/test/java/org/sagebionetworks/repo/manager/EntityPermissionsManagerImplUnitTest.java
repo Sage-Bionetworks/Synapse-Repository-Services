@@ -94,6 +94,7 @@ public class EntityPermissionsManagerImplUnitTest {
     	project.setCreatedByPrincipalId(111111L);
     	project.setNodeType(EntityType.project);
        	project.setParentId(projectParentId);
+       	project.setBenefactorId(benefactorId);
     	when(mockNodeDao.getNode(projectId)).thenReturn(project);
     	when(mockNodeDao.getNodeTypeById(projectId)).thenReturn(EntityType.project);
     	
@@ -101,6 +102,7 @@ public class EntityPermissionsManagerImplUnitTest {
     	folder.setId(folderId);
     	folder.setCreatedByPrincipalId(111111L);
         folder.setParentId(folderParentId);
+        folder.setBenefactorId(benefactorId);
     	folder.setNodeType(EntityType.folder);
     	when(mockNodeDao.getNode(folderId)).thenReturn(folder);
     	when(mockNodeDao.getNodeTypeById(folderId)).thenReturn(EntityType.folder);
@@ -110,6 +112,7 @@ public class EntityPermissionsManagerImplUnitTest {
     	dockerRepo.setCreatedByPrincipalId(111111L);
     	dockerRepo.setParentId(folderParentId);
     	dockerRepo.setNodeType(EntityType.dockerrepo);
+    	dockerRepo.setBenefactorId(benefactorId);
     	when(mockNodeDao.getNode(dockerRepoId)).thenReturn(dockerRepo);
     	when(mockNodeDao.getNodeTypeById(dockerRepoId)).thenReturn(EntityType.dockerrepo);
    	

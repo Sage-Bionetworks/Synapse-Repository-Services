@@ -424,6 +424,22 @@ public class SQLUtils {
 		builder.append(" ) VALUES ('1', -1, ? ) ON DUPLICATE KEY UPDATE "+SCHEMA_HASH+" = ? ");
 		return builder.toString();
 	}
+	
+	public static String buildCreateOrUpdateStatusVersionAndHashSQL(String tableId){
+		if (tableId == null)
+			throw new IllegalArgumentException("TableID cannot be null");
+		StringBuilder builder = new StringBuilder();
+		builder.append("INSERT INTO ");
+		builder.append(getTableNameForId(tableId, TableType.STATUS));
+		builder.append(" ( ");
+		builder.append(SINGLE_KEY);
+		builder.append(",");
+		builder.append(ROW_VERSION);
+		builder.append(",");
+		builder.append(SCHEMA_HASH);
+		builder.append(" ) VALUES ('1', ?, ? ) ON DUPLICATE KEY UPDATE "+ROW_VERSION+" = ?, "+SCHEMA_HASH+" = ? ");
+		return builder.toString();
+	}
 
 	/**
 	 * Build the delete statement for inserting rows into a table.

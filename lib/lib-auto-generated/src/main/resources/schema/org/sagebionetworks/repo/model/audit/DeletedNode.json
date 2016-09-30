@@ -1,0 +1,8 @@
+{
+	"description": "Data record a deleted node.",
+	"properties": {
+		"id": {
+			"type": "string"
+		}
+	}
+}

@@ -330,4 +330,14 @@ public interface TableIndexDAO {
 	 * @return
 	 */
 	long calculateCRC32ofTableView(String viewId, String etagColumnId);
+
+	/**
+	 * Save both the current version and schema MD5 for current index.
+	 * 
+	 * @param tableId
+	 * @param viewCRC
+	 * @param schemaMD5Hex
+	 */
+	public void setIndexVersionAndSchemaMD5Hex(String tableId, Long viewCRC,
+			String schemaMD5Hex);
 }

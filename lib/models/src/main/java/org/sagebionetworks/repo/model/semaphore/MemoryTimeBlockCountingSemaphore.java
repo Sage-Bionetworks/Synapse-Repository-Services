@@ -25,7 +25,7 @@ public interface MemoryTimeBlockCountingSemaphore {
 	 * @return boolean true if lock was acquired successfully. false otherwise.
 	 */
 	public boolean attemptToAcquireLock(String key, long timeoutSec,
-			int maxLockCount);
+			long maxLockCount);
 	
 	/**
 	 * Force the release of all locks.

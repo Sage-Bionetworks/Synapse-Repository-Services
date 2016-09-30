@@ -750,7 +750,8 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	public String getFileHandleIdForVersion(UserInfo userInfo, String id, Long versionNumber, FileHandleReason reason)
 			throws NotFoundException, UnauthorizedException {
 		// Validate that the user has download permission.
-		validateDownload(userInfo, id);
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+				authorizationManager.canAccess(userInfo, id, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD));
 
 		switch (reason) {
 		case FOR_FILE_DOWNLOAD:
@@ -790,21 +791,6 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	private void checkFileHandleId(String entityId, String fileHandleId)
 			throws NotFoundException {
 		if(fileHandleId == null) throw new NotFoundException("Object "+entityId+" does not have a file handle associated with it.");
-	}
-
-	/**
-	 * Helper to validate that the user has download permission.
-	 * @param userInfo
-	 * @param id
-	 * @throws NotFoundException
-	 */
-	private void validateDownload(UserInfo userInfo, String id)
-			throws NotFoundException {
-		// First the user must have read access to the entity.
-		validateReadAccess(userInfo, id);
-		// They must have permission to dowload the file to get the handle.
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccess(userInfo, id, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD));
 	}
 
 	/**

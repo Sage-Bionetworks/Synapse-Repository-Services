@@ -4,6 +4,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.commons.lang.RandomStringUtils;
 import org.junit.After;
 import org.junit.Before;
@@ -70,7 +73,8 @@ public class DockerManagerImplAutowiredTest {
 	@Test
 	public void testAuthorizeDockerAccess() {
 		// test to see if we can push to the project.  Answer should be yes!
-		String scope =TYPE+":"+repositoryPath+":push";
+		List<String> scope = new ArrayList<String>();
+		scope.add(TYPE+":"+repositoryPath+":push");
 		DockerAuthorizationToken token = dockerManager.authorizeDockerAccess(adminUserInfo, SERVICE, scope);
 		assertNotNull(token.getToken());
 	}

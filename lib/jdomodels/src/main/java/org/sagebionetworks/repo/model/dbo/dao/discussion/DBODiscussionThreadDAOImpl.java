@@ -101,6 +101,10 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 			+" SET "+COL_DISCUSSION_THREAD_IS_DELETED+" = TRUE, "
 			+COL_DISCUSSION_THREAD_ETAG+" = ? "
 			+" WHERE "+COL_DISCUSSION_THREAD_ID+" = ?";
+	private static final String SQL_MARK_THREAD_AS_NOT_DELETED = "UPDATE "+TABLE_DISCUSSION_THREAD
+			+" SET "+COL_DISCUSSION_THREAD_IS_DELETED+" = FALSE, "
+			+COL_DISCUSSION_THREAD_ETAG+" = ? "
+			+" WHERE "+COL_DISCUSSION_THREAD_ID+" = ?";
 	private static final String SQL_PIN_THREAD = "UPDATE "+TABLE_DISCUSSION_THREAD
 			+" SET "+COL_DISCUSSION_THREAD_IS_PINNED+" = TRUE, "
 			+COL_DISCUSSION_THREAD_ETAG+" = ? "
@@ -177,6 +181,7 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 			+COL_DISCUSSION_THREAD_STATS_LAST_ACTIVITY;
 	private static final String ORDER_BY_NUMBER_OF_VIEWS = " ORDER BY "+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_VIEWS;
 	private static final String ORDER_BY_NUMBER_OF_REPLIES = " ORDER BY "+COL_DISCUSSION_THREAD_STATS_NUMBER_OF_REPLIES;
+	private static final String ORDER_BY_THREAD_TITLE = " ORDER BY LOWER(CONVERT ("+COL_DISCUSSION_THREAD_TITLE+" USING UTF8))";
 	private static final String DESC = " DESC ";
 
 	// for entity references
@@ -321,6 +326,9 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 					break;
 				case PINNED_AND_LAST_ACTIVITY:
 					query += ORDER_BY_PINNED_AND_LAST_ACTIVITY;
+					break;
+				case THREAD_TITLE:
+					query += ORDER_BY_THREAD_TITLE;
 					break;
 				default:
 					throw new IllegalArgumentException("Unsupported order "+order);
@@ -620,5 +628,11 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 				return stats.size();
 			}
 		});
+	}
+
+	@Override
+	public void markThreadAsNotDeleted(long threadId) {
+		String etag = UUID.randomUUID().toString();
+		jdbcTemplate.update(SQL_MARK_THREAD_AS_NOT_DELETED, etag, threadId);
 	}
 }

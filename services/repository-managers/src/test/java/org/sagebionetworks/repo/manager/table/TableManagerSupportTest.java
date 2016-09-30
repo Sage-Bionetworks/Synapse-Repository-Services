@@ -45,12 +45,12 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
-import org.sagebionetworks.repo.model.dbo.dao.table.FileEntityFields;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
@@ -474,6 +474,20 @@ public class TableManagerSupportTest {
 	}
 	
 	@Test
+	public void testGetScopeContainerCount(){
+		// call under test.
+		int count = manager.getScopeContainerCount(containersInScope);
+		assertEquals(containersInScope.size(), count);
+	}
+	
+	@Test
+	public void testGetScopeContainerCountEmpty(){
+		// call under test.
+		int count = manager.getScopeContainerCount(null);
+		assertEquals(0, count);
+	}
+	
+	@Test
 	public void testGetAllContainerIdsForViewScope(){
 		// call under test.
 		Set<Long> containers = manager.getAllContainerIdsForViewScope(tableId);
@@ -553,7 +567,7 @@ public class TableManagerSupportTest {
 	}
 	
 	@Test
-	public void testValidateTableReadAccessFiewView(){
+	public void testValidateTableReadAccessFileView(){
 		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.entityview);
 		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(new AuthorizationStatus(true, ""));
 		//  call under test
@@ -564,7 +578,7 @@ public class TableManagerSupportTest {
 	}
 	
 	@Test (expected=UnauthorizedException.class)
-	public void testValidateTableReadAccessFiewViewNoRead(){
+	public void testValidateTableReadAccessFileViewNoRead(){
 		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.entityview);
 		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(new AuthorizationStatus(false, ""));
 		//  call under test
@@ -605,7 +619,7 @@ public class TableManagerSupportTest {
 		ColumnModel cm = new ColumnModel();
 		cm.setId("123");
 		when(mockColumnModelDao.createColumnModel(any(ColumnModel.class))).thenReturn(cm);
-		ColumnModel result = manager.getColumModel(FileEntityFields.id);
+		ColumnModel result = manager.getColumnModel(EntityField.id);
 		assertEquals(cm, result);
 	}
 	
@@ -614,7 +628,7 @@ public class TableManagerSupportTest {
 	public void testGetDefaultTableViewColumnsFileView(){
 		// View view defaults are from the FileEntityFields enumeration.
 		List<ColumnModel> expected = new LinkedList<ColumnModel>();
-		for(FileEntityFields field: FileEntityFields.values()){
+		for(EntityField field: EntityField.values()){
 			expected.add(field.getColumnModel());
 		}
 		// call under test

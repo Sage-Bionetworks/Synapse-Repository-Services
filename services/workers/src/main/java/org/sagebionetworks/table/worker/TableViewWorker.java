@@ -129,23 +129,27 @@ public class TableViewWorker implements ChangeMessageDrivenRunner {
 		// Since this worker re-builds the index, start by deleting it.
 		indexManager.deleteTableIndex();
 		callback.progressMade(null);
-		// Lookup the table's schema
-		final List<ColumnModel> currentSchema = tableViewManager.getViewSchemaWithRequiredColumns(tableId);
+		// Need the MD5 for the original schema.
+		List<ColumnModel> originalSchema = tableManagerSupport.getColumnModelsForTable(tableId);
+		String originalSchemaMD5Hex = TableModelUtils.createSchemaMD5HexCM(originalSchema);
+		// The expanded schema includes etag and benefactorId even if they are not included in the original schema.
+		List<ColumnModel> expandedSchema = tableViewManager.getViewSchemaWithRequiredColumns(tableId);
 		
 		// Get the containers for this view.
 		Set<Long> allContainersInScope  = tableManagerSupport.getAllContainerIdsForViewScope(tableId);
 
 		// create the table in the index.
-		indexManager.setIndexSchema(callback, currentSchema);
+		indexManager.setIndexSchema(callback, expandedSchema);
 		callback.progressMade(null);
 		tableManagerSupport.attemptToUpdateTableProgress(tableId, token, "Copying data to view...", 0L, 1L);
 		// populate the view by coping data from the entity replication tables.
-		Long viewCRC = indexManager.populateViewFromEntityReplication(callback, viewType, allContainersInScope, currentSchema);
+		Long viewCRC = indexManager.populateViewFromEntityReplication(callback, viewType, allContainersInScope, expandedSchema);
 		callback.progressMade(null);
 		// now that table is created and populated the indices on the table can be optimized.
 		indexManager.optimizeTableIndices();
 		callback.progressMade(null);
-		indexManager.setIndexVersion(viewCRC);
+		// both the CRC and schema MD5 are used to determine if the view is up-to-date.
+		indexManager.setIndexVersionAndSchemaMD5Hex(viewCRC, originalSchemaMD5Hex);
 		// Attempt to set the table to complete.
 		tableManagerSupport.attemptToSetTableStatusToAvailable(tableId, token, DEFAULT_ETAG);
 	}	

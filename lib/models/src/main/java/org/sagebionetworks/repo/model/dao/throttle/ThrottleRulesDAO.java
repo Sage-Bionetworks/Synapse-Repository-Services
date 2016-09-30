@@ -11,10 +11,11 @@ import org.sagebionetworks.repo.model.throttle.ThrottleRule;
  */
 public interface ThrottleRulesDAO {
 	/**
-	 * Returns a list of all currently throttled API calls
+	 * Returns a list of all currently throttled API calls.
+	 * The returned list will be empty if there are no rules.
 	 * @return list of all current throttles
 	 */
-	public List<ThrottleRule> getAllThrottles();
+	public List<ThrottleRule> getAllThrottleRules();
 	
 	/**
 	 * Adds a new throttle rule.

@@ -17,6 +17,7 @@ import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
 import org.sagebionetworks.repo.manager.AccessRequirementManager;
 import org.sagebionetworks.repo.manager.EntityPermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.EntityType;
@@ -29,6 +30,7 @@ import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.audit.DeletedNode;
 import org.sagebionetworks.repo.model.audit.NodeRecord;
 import org.sagebionetworks.repo.model.audit.ObjectRecord;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
@@ -78,11 +80,17 @@ public class NodeObjectRecordWriterTest {
 				.thenReturn(mockPermissions);
 	}
 
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void deleteChangeMessage() throws IOException {
-		Message message = MessageUtils.buildMessage(ChangeType.DELETE, "123", ObjectType.ENTITY, "etag", System.currentTimeMillis());
+		Long timestamp = System.currentTimeMillis();
+		String nodeId = "123";
+		Message message = MessageUtils.buildMessage(ChangeType.DELETE, nodeId, ObjectType.ENTITY, "etag", timestamp);
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
 		writer.buildAndWriteRecord(changeMessage);
+		DeletedNode deletedNode = new DeletedNode();
+		deletedNode.setId(nodeId);
+		ObjectRecord expected = ObjectRecordBuilderUtils.buildObjectRecord(deletedNode, timestamp);;
+		Mockito.verify(mockObjectRecordDao).saveBatch(Mockito.eq(Arrays.asList(expected)), Mockito.eq(expected.getJsonClassName()));
 	}
 
 	@Test (expected=IllegalArgumentException.class)
@@ -234,5 +242,22 @@ public class NodeObjectRecordWriterTest {
 		assertEquals(node.getVersionNumber(), record.getVersionNumber());
 		assertEquals(node.getFileHandleId(), record.getFileHandleId());
 		assertEquals(node.getName(), record.getName());
+	}
+
+	@Test
+	public void testNodeInTrashCan() throws IOException {
+		EntityInTrashCanException exception = new EntityInTrashCanException("");
+		Mockito.when(mockPermissions.getCanPublicRead()).thenThrow(exception);
+
+		Long timestamp = System.currentTimeMillis();
+		String nodeId = "123";
+		Message message = MessageUtils.buildMessage(ChangeType.UPDATE, nodeId, ObjectType.ENTITY, "etag", timestamp);
+		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
+
+		writer.buildAndWriteRecord(changeMessage);
+		DeletedNode deletedNode = new DeletedNode();
+		deletedNode.setId(nodeId);
+		ObjectRecord expected = ObjectRecordBuilderUtils.buildObjectRecord(deletedNode, timestamp);;
+		Mockito.verify(mockObjectRecordDao).saveBatch(Mockito.eq(Arrays.asList(expected)), Mockito.eq(expected.getJsonClassName()));
 	}
 }
