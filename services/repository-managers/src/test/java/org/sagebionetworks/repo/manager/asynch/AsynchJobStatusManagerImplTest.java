@@ -33,10 +33,6 @@ import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.dao.asynch.AsynchronousJobStatusDAO;
-import org.sagebionetworks.repo.model.file.BulkFileDownloadRequest;
-import org.sagebionetworks.repo.model.file.S3FileCopyResult;
-import org.sagebionetworks.repo.model.file.S3FileCopyResultType;
-import org.sagebionetworks.repo.model.file.S3FileCopyResults;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
@@ -318,30 +314,6 @@ public class AsynchJobStatusManagerImplTest {
 		String result = manager.setComplete("456", resultBody);
 		assertEquals("etag", result);
 		verify(mockAsynchJobStatusDao).setComplete("456", resultBody, requestHash);
-	}
-	
-	@Test
-	public void testSetCompleteS3FileCopyResult() throws Exception{
-		when(mockStackStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_WRITE);
-		when(mockAsynchJobStatusDao.setComplete(anyString(), any(AsynchronousResponseBody.class), anyString())).thenReturn("etag");
-		
-		AsynchronousJobStatus status = new AsynchronousJobStatus();
-		status.setStartedByUserId(user.getId());
-		status.setJobId("8888");
-		S3FileCopyResult s3FileCopyResult = new S3FileCopyResult();
-		s3FileCopyResult.setResultKey("downloadFile");
-		s3FileCopyResult.setResultBucket("myFavoriteBucket");
-		s3FileCopyResult.setFile("fileToDownload");
-		s3FileCopyResult.setResultType(S3FileCopyResultType.COPIED);
-		S3FileCopyResults responseBody = new S3FileCopyResults();
-		responseBody.setResults(Arrays.asList(s3FileCopyResult));
-		String requestHash = null;
-		when(mockAsynchJobStatusDao.getJobStatus(anyString())).thenReturn(status);
-		
-		String result = manager.setComplete("456", responseBody);
-		assertEquals("etag", result);
-		verify(mockAsynchJobStatusDao).setComplete("456", responseBody, requestHash);
-		verify(mockObjectRecordDAO).saveBatch(anyList(), Mockito.eq(S3FileCopyResults.class.getSimpleName().toLowerCase()));
 	}
 	
 	/**

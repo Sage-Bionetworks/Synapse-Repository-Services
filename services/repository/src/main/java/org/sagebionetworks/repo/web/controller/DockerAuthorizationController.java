@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.web.controller;
 
+import java.util.List;
+
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.docker.DockerAuthorizationToken;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -43,8 +45,8 @@ public class DockerAuthorizationController extends BaseController {
 	DockerAuthorizationToken authorizeDockerAccess(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = AuthorizationConstants.DOCKER_SERVICE_PARAM, required=true) String service,
-			@RequestParam(value = AuthorizationConstants.DOCKER_SCOPE_PARAM, required=false) String scope
+			@RequestParam(value = AuthorizationConstants.DOCKER_SCOPE_PARAM, required=false) List<String> scopes
 			) throws NotFoundException {
-		return serviceProvider.getDockerService().authorizeDockerAccess(userId, service, scope);
+		return serviceProvider.getDockerService().authorizeDockerAccess(userId, service, scopes);
 	}
 }
