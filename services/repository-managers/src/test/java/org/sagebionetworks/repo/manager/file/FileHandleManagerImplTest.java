@@ -129,7 +129,7 @@ public class FileHandleManagerImplTest {
 		ReflectionTestUtils.setField(manager, "storageLocationDAO", mockPrimaryStrategy);
 		ReflectionTestUtils.setField(manager, "storageLocationDAO", mockFallbackStrategy);
 		ReflectionTestUtils.setField(manager, "authorizationManager", mockAuthorizationManager);
-		ReflectionTestUtils.setField(manager, "storageLocationDAO", mockS3Client);
+		ReflectionTestUtils.setField(manager, "s3Client", mockS3Client);
 		ReflectionTestUtils.setField(manager, "storageLocationDAO", mockFileHandleAuthorizationManager);
 		ReflectionTestUtils.setField(manager, "storageLocationDAO", mockS3Client);
 		
