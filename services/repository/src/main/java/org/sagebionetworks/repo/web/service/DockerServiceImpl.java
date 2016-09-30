@@ -52,7 +52,7 @@ public class DockerServiceImpl implements DockerService {
 	}
 	
 	public void log(Exception e) {
-		log.error(e);
+		log.error("DockerServiceImpl error", e);
 		// log twice, once with just the label
 		ProfileData logEvent = new ProfileData();
 		logEvent.setNamespace(DockerService.class.getName());
