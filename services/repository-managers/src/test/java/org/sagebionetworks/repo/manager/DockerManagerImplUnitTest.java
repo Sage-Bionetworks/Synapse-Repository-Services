@@ -75,7 +75,8 @@ public class DockerManagerImplUnitTest {
 	
 	private static final String TAG = "v1";
 	private static final String DIGEST = "sha256:8900ee859c6808c9f83ce51bf44b508df63d1f2e8a839ca230471f1bac90ee19";
-
+	
+	private static final String MEDIA_TYPE = DockerManagerImpl.MANIFEST_MEDIA_TYPE;
 	
 	private DockerManagerImpl dockerManager;
 	
@@ -330,7 +331,7 @@ public class DockerManagerImplUnitTest {
 		when(dockerNodeDao.getEntityIdForRepositoryName(REPOSITORY_NAME)).thenReturn(null);
 
 		DockerRegistryEventList events = 
-				DockerRegistryEventUtil.createDockerRegistryEvent(RegistryEventAction.push, REGISTRY_HOST, USER_ID, REPOSITORY_PATH, TAG, DIGEST);
+				DockerRegistryEventUtil.createDockerRegistryEvent(RegistryEventAction.push, REGISTRY_HOST, USER_ID, REPOSITORY_PATH, TAG, DIGEST, MEDIA_TYPE);
 		
 		// method under test:
 		dockerManager.dockerRegistryNotification(events);
@@ -355,7 +356,7 @@ public class DockerManagerImplUnitTest {
 	@Test
 	public void testDockerRegistryNotificationPushExistingEntity() {
 		DockerRegistryEventList events = 
-				DockerRegistryEventUtil.createDockerRegistryEvent(RegistryEventAction.push, REGISTRY_HOST, USER_ID, REPOSITORY_PATH, TAG, DIGEST);
+				DockerRegistryEventUtil.createDockerRegistryEvent(RegistryEventAction.push, REGISTRY_HOST, USER_ID, REPOSITORY_PATH, TAG, DIGEST, MEDIA_TYPE);
 		
 		// method under test:
 		dockerManager.dockerRegistryNotification(events);
@@ -377,7 +378,7 @@ public class DockerManagerImplUnitTest {
 		when(dockerNodeDao.getEntityIdForRepositoryName(REPOSITORY_NAME)).thenReturn(null);
 
 		DockerRegistryEventList events = 
-				DockerRegistryEventUtil.createDockerRegistryEvent(RegistryEventAction.push, "quay.io", USER_ID, REPOSITORY_PATH, TAG, DIGEST);
+				DockerRegistryEventUtil.createDockerRegistryEvent(RegistryEventAction.push, "quay.io", USER_ID, REPOSITORY_PATH, TAG, DIGEST, MEDIA_TYPE);
 		
 		// method under test:
 		dockerManager.dockerRegistryNotification(events);
@@ -386,13 +387,28 @@ public class DockerManagerImplUnitTest {
 		verify(dockerCommitDao, never()).createDockerCommit(anyString(), anyLong(), (DockerCommit)anyObject());
 	}
 	
+	@Test
+	public void testDockerRegistryNotificationPushNotManifestMediaType() {
+		when(dockerNodeDao.getEntityIdForRepositoryName(REPOSITORY_NAME)).thenReturn(null);
+
+		DockerRegistryEventList events = 
+				DockerRegistryEventUtil.createDockerRegistryEvent(RegistryEventAction.push, REGISTRY_HOST, USER_ID, REPOSITORY_PATH, TAG, DIGEST, "application/octet-stream");
+		
+		// method under test:
+		dockerManager.dockerRegistryNotification(events);
+		
+		verify(entityManager, never()).createEntity((UserInfo)anyObject(), (Entity)anyObject(), anyString());
+		verify(dockerCommitDao, never()).createDockerCommit(anyString(), anyLong(), (DockerCommit)anyObject());
+	}
+	
+	
 	@Test(expected=IllegalArgumentException.class)
 	public void testDockerRegistryNotificationPushNEWEntityParentIsFolder() {
 		when(dockerNodeDao.getEntityIdForRepositoryName(REPOSITORY_NAME)).thenReturn(null);
 		parentHeader.setType(EntityType.folder.name());
 
 		DockerRegistryEventList events = 
-				DockerRegistryEventUtil.createDockerRegistryEvent(RegistryEventAction.push, REGISTRY_HOST, USER_ID, REPOSITORY_PATH, TAG, DIGEST);
+				DockerRegistryEventUtil.createDockerRegistryEvent(RegistryEventAction.push, REGISTRY_HOST, USER_ID, REPOSITORY_PATH, TAG, DIGEST, MEDIA_TYPE);
 		
 		// method under test:
 		dockerManager.dockerRegistryNotification(events);
@@ -401,7 +417,16 @@ public class DockerManagerImplUnitTest {
 	@Test
 	public void testDockerRegistryNotificationPull() {
 		DockerRegistryEventList events = 
-				DockerRegistryEventUtil.createDockerRegistryEvent(RegistryEventAction.pull, REGISTRY_HOST, USER_ID, REPOSITORY_PATH, TAG, DIGEST);
+				DockerRegistryEventUtil.createDockerRegistryEvent(RegistryEventAction.pull, REGISTRY_HOST, USER_ID, REPOSITORY_PATH, TAG, DIGEST, MEDIA_TYPE);
+		dockerManager.dockerRegistryNotification(events);
+		// no create operation, since the repo already exists
+		verify(entityManager, never()).createEntity((UserInfo)anyObject(), (Entity)anyObject(), anyString());
+		verify(dockerCommitDao, never()).createDockerCommit(anyString(), anyLong(), (DockerCommit)anyObject());
+	}
+	@Test
+	public void testDockerRegistryNotificationMount() {
+		DockerRegistryEventList events = 
+				DockerRegistryEventUtil.createDockerRegistryEvent(RegistryEventAction.mount, REGISTRY_HOST, USER_ID, REPOSITORY_PATH, TAG, DIGEST, MEDIA_TYPE);
 		dockerManager.dockerRegistryNotification(events);
 		// no create operation, since the repo already exists
 		verify(entityManager, never()).createEntity((UserInfo)anyObject(), (Entity)anyObject(), anyString());

@@ -67,7 +67,7 @@ public class DockerManagerImpl implements DockerManager {
 	@Autowired
 	private TransactionalMessenger transactionalMessenger;
 	
-	public String MANIFEST_MEDIA_TYPE = "application/vnd.docker.distribution.manifest.v2+json";
+	public static String MANIFEST_MEDIA_TYPE = "application/vnd.docker.distribution.manifest.v2+json";
 
 	/**
 	 * Answer Docker Registry authorization request.
@@ -265,6 +265,7 @@ public class DockerManagerImpl implements DockerManager {
 				break;
 			case mount:
 				//nothing to do. We are being notified that another repository is being mounted to prevent re-upload
+				break;
 			default:
 				throw new IllegalArgumentException("Unexpected action "+action);
 			}
