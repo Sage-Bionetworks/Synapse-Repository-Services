@@ -1,5 +1,6 @@
 package org.sagebionetworks.table.query.util;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -67,6 +68,7 @@ public class SqlElementUntils {
 	// it so happens that javas definition of word characters matches exactly with sqls non-escapable characters
 	// [0-9a-zA-z_])
 	private static final java.util.regex.Pattern NON_ESCAPABLE_COLUMN_NAME_CHARACTERS = java.util.regex.Pattern.compile("\\W");
+	public static final Long MAX_NUM_FACET_CATEGORIES = 100L;
 	
 	/**
 	 * Create a value expression from an input SQL.
@@ -676,5 +678,67 @@ public class SqlElementUntils {
 			isFirst = false;
 		}
 		return builder.toString();
+	}
+	
+	/**
+	 * Creates a SQL query for finding the counts of each category in a facet
+	 * @param model
+	 * @return
+	 */
+	public static String createFilteredFacetCount(String columnName, QuerySpecification model){
+		TableExpression tableExpressionFromModel = model.getTableExpression();
+		WhereClause modifiedWhereClause = new WhereClause( filterSearchCondition(columnName, tableExpressionFromModel.getWhereClause().getSearchCondition()));
+		Pagination pagination = new Pagination(MAX_NUM_FACET_CATEGORIES, null);
+		
+		TableExpression revisedTableExpression = new TableExpression(tableExpressionFromModel.getFromClause(), modifiedWhereClause, null, null, pagination);
+		StringBuilder builder = new StringBuilder("SELECT ");
+		builder.append(columnName + ", COUNT(*) ");
+		builder.append(revisedTableExpression.toSql());
+		return builder.toString();
+	}
+	
+	/**
+	 * Removes all WhereClause predicates containing columnName
+	 * @param whereClause
+	 * @return
+	 */
+	public static SearchCondition filterSearchCondition(String columName, SearchCondition searchCondition){
+		//TODO: may need refactoring
+		List<BooleanTerm> booleanTerms = searchCondition.getOrBooleanTerms();
+		
+		List<BooleanTerm> filteredBoolTerms = new ArrayList<>();
+		for(BooleanTerm boolTerm: booleanTerms){
+			List<BooleanFactor> filteredBoolFactorList = new ArrayList<>();
+			for(BooleanFactor boolFactor : boolTerm.getAndBooleanFactors()){
+				//if boolean factor does not contain the columnName
+				BooleanTest booleanTest = boolFactor.getBooleanTest();
+				BooleanPrimary booleanPrimary = booleanTest.getBooleanPrimary();
+				Predicate predicate = booleanPrimary.getPredicate();
+				if(predicate != null){
+					if(!predicate.toSql().contains(columName)){
+						filteredBoolFactorList.add(boolFactor);
+					}
+				}else{
+					//recursively filter the inner search condition
+					SearchCondition innerSearchCondition = booleanPrimary.getSearchCondition();
+					if( innerSearchCondition != null){
+						SearchCondition filteredRecursiveSearchCondition = filterSearchCondition(columName, innerSearchCondition);
+						if(!filteredRecursiveSearchCondition.getOrBooleanTerms().isEmpty()){
+							//search condition not empty after filtering so add to list
+							//but first, we need to wrap the filtered SearchCondition around a bunch of other objects
+							BooleanPrimary filteredBooleanPrimary = new BooleanPrimary(filteredRecursiveSearchCondition);
+							BooleanTest filteredBooleanTest = new BooleanTest(filteredBooleanPrimary, booleanTest.getIs(), booleanTest.getNot(), booleanTest.getTruthValue());
+							BooleanFactor filteredBooleanFactor = new BooleanFactor(boolFactor.getNot(), filteredBooleanTest);
+							filteredBoolFactorList.add(filteredBooleanFactor);
+						}
+					}
+				}
+			}
+			if(!filteredBoolFactorList.isEmpty()){
+				filteredBoolTerms.add(new BooleanTerm(filteredBoolFactorList));
+			}
+		}
+		
+		return new SearchCondition(filteredBoolTerms);
 	}
 }

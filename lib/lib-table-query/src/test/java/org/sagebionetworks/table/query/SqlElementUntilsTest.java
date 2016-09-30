@@ -3,10 +3,15 @@ package org.sagebionetworks.table.query;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
+import java.util.List;
+
 import org.junit.Test;
 import org.sagebionetworks.repo.model.table.SortDirection;
 import org.sagebionetworks.repo.model.table.SortItem;
+import org.sagebionetworks.table.query.model.BooleanTerm;
 import org.sagebionetworks.table.query.model.QuerySpecification;
+import org.sagebionetworks.table.query.model.SearchCondition;
+import org.sagebionetworks.table.query.model.WhereClause;
 import org.sagebionetworks.table.query.util.SimpleAggregateQueryException;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 
@@ -285,5 +290,13 @@ public class SqlElementUntilsTest {
 		String countSql = SqlElementUntils.createCountSql(model);
 		assertEquals("SELECT COUNT(DISTINCT foo) FROM syn123", countSql);
 	}
-
+	
+	@Test
+	public void testFilterWhereClause() throws ParseException{
+		List<BooleanTerm> terms = SqlElementUntils.createBooleanTerms("(foo=1 AND bar < '1234')", "bar=2", "foo > 3", "(bar <> 'asdf')");
+		SearchCondition searchCondition = new SearchCondition(terms);
+		SearchCondition filteredSearchCondition = SqlElementUntils.filterSearchCondition("bar", searchCondition);
+		assertEquals("( foo = 1 ) OR foo > 3", filteredSearchCondition.toSql());
+	}
+	
 }

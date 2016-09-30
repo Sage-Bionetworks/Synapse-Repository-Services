@@ -41,6 +41,11 @@
 			"items": {
 				"type": "string"
 			}
+		},
+		"isFaceted": {
+			"description": "A column that is faceted will index the counts of its top 100 values",
+			"type": "boolean"
 		}
+		
     }
 }
