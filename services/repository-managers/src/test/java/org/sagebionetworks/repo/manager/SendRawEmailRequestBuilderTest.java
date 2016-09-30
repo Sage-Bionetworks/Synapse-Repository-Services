@@ -70,6 +70,51 @@ public class SendRawEmailRequestBuilderTest {
 		assertTrue(bodyContent.indexOf(UNSUBSCRIBE_ENDPOINT)>0);
 		assertTrue(bodyContent.indexOf(PROFILE_SETTING_ENDPOINT)>0);
 	}
+
+	@Test
+	public void testCreateRawNotificationEmailRequest() throws Exception {
+		String body = "this is the message body";
+		SendRawEmailRequest request = (new SendRawEmailRequestBuilder())
+				.withRecipientEmail("foo@bar.com")
+				.withSubject("subject")
+				.withBody(body, SendRawEmailRequestBuilder.BodyType.JSON)
+				.withSenderUserName("foobar")
+				.withSenderDisplayName("Foo Bar")
+				.withNotificationUnsubscribeEndpoint(UNSUBSCRIBE_ENDPOINT)
+				.withUnsubscribeLink(true)
+				.withUserProfileSettingEndpoint(PROFILE_SETTING_ENDPOINT)
+				.withProfileSettingLink(true)
+				.withIsNotificationMessage(true)
+				.withUserId("101")
+				.withTo("TO <to@foo.bar>")
+				.withCc("Cc <cc@foo.bar>")
+				.withBcc("Bcc <bcc@foo.bar>")
+				.build();
+		String from = EmailUtils.DEFAULT_EMAIL_ADDRESS_LOCAL_PART+StackConfiguration.getNotificationEmailSuffix();
+		assertFalse(request.getSource().equals("Foo Bar <foobar@synapse.org>"));
+		assertEquals(from, request.getSource());
+		assertEquals(1, request.getDestinations().size());
+		assertEquals("foo@bar.com", request.getDestinations().get(0));
+		MimeMessage mimeMessage = new MimeMessage(Session.getDefaultInstance(new Properties()),
+				new ByteArrayInputStream(request.getRawMessage().getData().array()));
+		assertEquals(1, mimeMessage.getFrom().length);
+		assertEquals(from, mimeMessage.getFrom()[0].toString());
+		assertEquals("subject", mimeMessage.getSubject());
+		assertEquals("TO <to@foo.bar>", mimeMessage.getHeader("To")[0]);
+		assertEquals("Cc <cc@foo.bar>", mimeMessage.getHeader("Cc")[0]);
+		assertEquals("Bcc <bcc@foo.bar>", mimeMessage.getHeader("Bcc")[0]);
+
+		assertTrue(mimeMessage.getContentType().startsWith("multipart/related"));
+		MimeMultipart content = (MimeMultipart)mimeMessage.getContent();
+		assertEquals(1, content.getCount());
+		assertTrue(content.getContentType().startsWith("multipart/related"));
+		BodyPart bodyPart = content.getBodyPart(0);
+		assertTrue(bodyPart.getContentType(), bodyPart.getContentType().startsWith("text/plain"));
+		String bodyContent = ((String)bodyPart.getContent());
+		assertTrue(bodyContent.startsWith(body));
+		assertTrue(bodyContent.indexOf(UNSUBSCRIBE_ENDPOINT)>0);
+		assertTrue(bodyContent.indexOf(PROFILE_SETTING_ENDPOINT)>0);
+	}
 	
 	@Test
 	public void testCreateRawEmailRequestWithOneTextAttachment() throws Exception {

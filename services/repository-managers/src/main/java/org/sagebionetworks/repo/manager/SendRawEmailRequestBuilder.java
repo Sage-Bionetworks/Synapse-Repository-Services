@@ -48,6 +48,7 @@ public class SendRawEmailRequestBuilder {
 	private String userId=null;
 	private Boolean withUnsubscribeLink=false;
 	private Boolean withProfileSettingLink=false;
+	private Boolean isNotificationMessage=false;
 	
 	public enum BodyType{JSON, PLAIN_TEXT, HTML};
 
@@ -112,6 +113,11 @@ public class SendRawEmailRequestBuilder {
 		this.withProfileSettingLink=withProfileSettingLink;
 		return this;
 	}
+	
+	public SendRawEmailRequestBuilder withIsNotificationMessage(Boolean isNotificationMessage) {
+		this.isNotificationMessage=isNotificationMessage;
+		return this;
+	}
 
 	public SendRawEmailRequestBuilder withUserId(String userId) {
 		this.userId=userId;
@@ -119,7 +125,12 @@ public class SendRawEmailRequestBuilder {
 	}
 
 	public SendRawEmailRequest build()  {
-		String source = EmailUtils.createSource(senderDisplayName, senderUserName);        
+		String source = null;
+		if (isNotificationMessage) {
+			source = EmailUtils.createSource(null, null);
+		} else {
+			source = EmailUtils.createSource(senderDisplayName, senderUserName);
+		}
 		// Create the subject and body of the message
 		if (subject == null) subject = "";
 
