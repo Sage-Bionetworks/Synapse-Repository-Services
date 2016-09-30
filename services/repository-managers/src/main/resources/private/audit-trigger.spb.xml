@@ -25,4 +25,22 @@
 		<property name="repeatInterval" value="957" />
 	</bean>
 
+	<bean id="objectRecordQueue"
+		class="org.sagebionetworks.repo.manager.audit.ObjectRecordQueueImpl"
+		scope="singleton" />
+
+	<!-- This trigger pushes ObjectRecords to S3 -->
+	<bean id="objectRecordQueueTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean">
+		<property name="jobDetail">
+			<bean
+				class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+				<property name="targetObject" ref="objectRecordQueue" />
+				<property name="targetMethod" value="timerFired" />
+				<property name="concurrent" value="false" />
+			</bean>
+		</property>
+		<property name="startDelay" value="133" />
+		<property name="repeatInterval" value="9783" />
+	</bean>
+
 </beans>

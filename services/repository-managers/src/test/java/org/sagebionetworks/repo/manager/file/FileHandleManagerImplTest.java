@@ -8,9 +8,6 @@ import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.reset;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.*;
 
 import java.io.IOException;
@@ -33,7 +30,9 @@ import org.apache.commons.fileupload.FileItemStream;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
@@ -83,17 +82,23 @@ import com.google.common.collect.Lists;
 public class FileHandleManagerImplTest {
 	
 	FileHandleManagerImpl manager;
+	@Mock
 	FileItemIterator mockIterator;
 	FileItemStream mockFileStream;
 	FileItemStream mockParamParentIdStream;
 	UserInfo mockUser;
+	@Mock
 	FileHandleDao mockfileMetadataDao;
 	FileTransferStrategy mockPrimaryStrategy;
 	FileTransferStrategy mockFallbackStrategy;
 	S3FileHandle validResults;
+	@Mock
 	AmazonS3Client mockS3Client;
+	@Mock
 	AuthorizationManager mockAuthorizationManager;
+	@Mock
 	StorageLocationDAO mockStorageLocationDao;
+	@Mock
 	FileHandleAuthorizationManager mockFileHandleAuthorizationManager;
 	
 	String bucket;
@@ -117,12 +122,16 @@ public class FileHandleManagerImplTest {
 	
 	@Before
 	public void before() throws UnsupportedEncodingException, IOException, NoSuchAlgorithmException{
-		mockIterator = Mockito.mock(FileItemIterator.class);
-		mockfileMetadataDao = Mockito.mock(FileHandleDao.class);
-		mockS3Client = Mockito.mock(AmazonS3Client.class);
-		mockAuthorizationManager = Mockito.mock(AuthorizationManager.class);
-		mockStorageLocationDao = Mockito.mock(StorageLocationDAO.class);
-		mockFileHandleAuthorizationManager = Mockito.mock(FileHandleAuthorizationManager.class);
+		MockitoAnnotations.initMocks(this);
+		// the manager to test.
+		manager = new FileHandleManagerImpl();
+		ReflectionTestUtils.setField(manager, "fileHandleDao", mockfileMetadataDao);
+		ReflectionTestUtils.setField(manager, "storageLocationDAO", mockPrimaryStrategy);
+		ReflectionTestUtils.setField(manager, "storageLocationDAO", mockFallbackStrategy);
+		ReflectionTestUtils.setField(manager, "authorizationManager", mockAuthorizationManager);
+		ReflectionTestUtils.setField(manager, "storageLocationDAO", mockS3Client);
+		ReflectionTestUtils.setField(manager, "storageLocationDAO", mockFileHandleAuthorizationManager);
+		ReflectionTestUtils.setField(manager, "storageLocationDAO", mockS3Client);
 		
 		// The user is not really a mock
 		mockUser = new UserInfo(false,"987");
@@ -203,14 +212,7 @@ public class FileHandleManagerImplTest {
 		externalProxyFileHandle.setStorageLocationId(proxyStorageLocationSettings.getStorageLocationId());
 		externalProxyFileHandle.setId("444444");
 		when(mockfileMetadataDao.createFile(externalProxyFileHandle)).thenReturn(externalProxyFileHandle);
-		
-		
-		// the manager to test.
-		manager = new FileHandleManagerImpl(
-				mockfileMetadataDao, mockPrimaryStrategy, 
-				mockFallbackStrategy, mockAuthorizationManager, 
-				mockS3Client, mockFileHandleAuthorizationManager);
-		ReflectionTestUtils.setField(manager, "storageLocationDAO", mockStorageLocationDao);
+
 		
 		// one
 		fha1 = new FileHandleAssociation();

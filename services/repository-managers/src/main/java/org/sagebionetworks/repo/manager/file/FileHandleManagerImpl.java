@@ -31,12 +31,15 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpHeaders;
 import org.apache.http.entity.ContentType;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.audit.dao.ObjectRecordBatch;
+import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
 import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.AuthorizationStatus;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
+import org.sagebionetworks.repo.manager.audit.ObjectRecordQueue;
 import org.sagebionetworks.repo.manager.file.transfer.FileTransferStrategy;
 import org.sagebionetworks.repo.manager.file.transfer.TransferRequest;
 import org.sagebionetworks.repo.manager.file.transfer.TransferUtils;
@@ -47,6 +50,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.audit.ObjectRecord;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.UploadDaemonStatusDao;
 import org.sagebionetworks.repo.model.dbo.dao.DBOStorageLocationDAOImpl;
@@ -61,6 +65,7 @@ import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.ExternalS3UploadDestination;
 import org.sagebionetworks.repo.model.file.ExternalUploadDestination;
+import org.sagebionetworks.repo.model.file.FileDownloadRecord;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
@@ -111,6 +116,8 @@ import com.google.common.collect.Lists;
  * 
  */
 public class FileHandleManagerImpl implements FileHandleManager {
+
+	private static final String FILE_DOWNLOAD_RECORD_TYPE = FileDownloadRecord.class.getSimpleName().toLowerCase();
 
 	public static final String MUST_INCLUDE_EITHER = "Must include either FileHandles or pre-signed URLs";
 
@@ -165,6 +172,9 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	
 	@Autowired
 	FileHandleAuthorizationManager fileHandleAuthorizationManager;
+	
+	@Autowired
+	ObjectRecordQueue objectRecordQueue;
 
 	/**
 	 * This is the first strategy we try to use.
@@ -198,29 +208,6 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	 */
 	public FileHandleManagerImpl() {
 		super();
-	}
-
-	/**
-	 * The IoC constructor.
-	 * 
-	 * @param fileMetadataDao
-	 * @param primaryStrategy
-	 * @param fallbackStrategy
-	 * @param authorizationManager
-	 * @param s3Client
-	 */
-	public FileHandleManagerImpl(FileHandleDao fileMetadataDao,
-			FileTransferStrategy primaryStrategy,
-			FileTransferStrategy fallbackStrategy,
-			AuthorizationManager authorizationManager, AmazonS3Client s3Client,
-			FileHandleAuthorizationManager fileHandleAuthorizationManager) {
-		super();
-		this.fileHandleDao = fileMetadataDao;
-		this.primaryStrategy = primaryStrategy;
-		this.fallbackStrategy = fallbackStrategy;
-		this.authorizationManager = authorizationManager;
-		this.s3Client = s3Client;
-		this.fileHandleAuthorizationManager=fileHandleAuthorizationManager;
 	}
 
 	/**
@@ -1099,6 +1086,8 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(request, "request");
 		ValidateArgument.required(request.getRequestedFiles(), "requestedFiles");
+		String userId = userInfo.toString();
+		long now = System.currentTimeMillis();
 		if(!request.getIncludeFileHandles() && !request.getIncludePreSignedURLs()){
 			throw new IllegalArgumentException(MUST_INCLUDE_EITHER);
 		}
@@ -1110,6 +1099,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		List<FileHandleAssociationAuthorizationStatus> authResults = fileHandleAuthorizationManager.canDownLoadFile(userInfo, request.getRequestedFiles());
 		List<FileResult> requestedFiles = new LinkedList<FileResult>();
 		Set<String> fileHandleIdsToFetch = new HashSet<String>();
+		List<ObjectRecord> downloadRecords = new LinkedList<>();
 		for(FileHandleAssociationAuthorizationStatus fhas: authResults){
 			FileResult result = new FileResult();
 			result.setFileHandleId(fhas.getAssociation().getFileHandleId());
@@ -1117,6 +1107,13 @@ public class FileHandleManagerImpl implements FileHandleManager {
 				result.setFailureCode(FileResultFailureCode.UNAUTHORIZED);
 			}else{
 				fileHandleIdsToFetch.add(fhas.getAssociation().getFileHandleId());
+				if(request.getIncludePreSignedURLs()){
+					FileDownloadRecord fdr = new FileDownloadRecord();
+					fdr.setUserId(userId);
+					fdr.setDownloadedFile(fhas.getAssociation());
+					ObjectRecord record = ObjectRecordBuilderUtils.buildObjectRecord(fdr, now);
+					downloadRecords.add(record);
+				}
 			}
 			requestedFiles.add(result);
 		}
@@ -1141,6 +1138,11 @@ public class FileHandleManagerImpl implements FileHandleManager {
 					}
 				}
 			}
+		}
+		// record the downloads for the audit
+		if(!downloadRecords.isEmpty()){
+			// Push the records to queue
+			objectRecordQueue.pushObjectRecordBatch(new ObjectRecordBatch(downloadRecords, FILE_DOWNLOAD_RECORD_TYPE));
 		}
 		BatchFileResult batch = new BatchFileResult();
 		batch.setRequestedFiles(requestedFiles);
