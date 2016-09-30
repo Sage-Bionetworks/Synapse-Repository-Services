@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.web.service;
 
 import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.NotReadyException;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -22,8 +23,8 @@ public interface AsynchronousJobServices {
 	 * @return
 	 * @throws NotFoundException 
 	 */
-	AsynchronousJobStatus startJob(Long userId, AsynchronousRequestBody body) throws NotFoundException;
-
+	AsynchronousJobStatus startJob(Long userId, AsynchronousRequestBody body) throws NotFoundException, UnauthorizedException;
+	
 	/**
 	 * Get the status for an existing job.
 	 * 
