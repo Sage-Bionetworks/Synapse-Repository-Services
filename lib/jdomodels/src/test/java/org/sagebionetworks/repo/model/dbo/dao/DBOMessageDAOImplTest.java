@@ -142,6 +142,7 @@ public class DBOMessageDAOImplTest {
 		dto.setUserProfileSettingEndpoint(userProfileSettingEndpoint);
 		dto.setWithUnsubscribeLink(true);
 		dto.setWithProfileSettingLink(false);
+		dto.setIsNotificationMessage(true);
 		// Note: InReplyToRoot is calculated by the DAO
 		String to = "Foo<foo@sb.com>";
 		dto.setTo(to);
@@ -164,6 +165,7 @@ public class DBOMessageDAOImplTest {
 		assertEquals(unsubEndpoint, dto.getNotificationUnsubscribeEndpoint());
 		assertEquals(userProfileSettingEndpoint, dto.getUserProfileSettingEndpoint());
 		assertTrue(dto.getWithUnsubscribeLink());
+		assertTrue(dto.getIsNotificationMessage());
 		assertFalse(dto.getWithProfileSettingLink());
 		assertEquals(recipients, dto.getRecipients());
 		assertEquals(subject, dto.getSubject());

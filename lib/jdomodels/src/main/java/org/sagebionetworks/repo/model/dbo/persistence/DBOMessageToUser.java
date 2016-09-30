@@ -29,6 +29,7 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 		new FieldColumn("profileSettingEndpoint", SqlConstants.COL_MESSAGE_PROFILE_SETTING_ENDPOINT),
 		new FieldColumn("withUnsubscribeLink", SqlConstants.COL_MESSAGE_WITH_UNSUBSCRIBE_LINK),
 		new FieldColumn("withProfileSettingLink", SqlConstants.COL_MESSAGE_WITH_PROFILE_SETTING_LINK),
+		new FieldColumn("isNotificationMessage", SqlConstants.COL_MESSAGE_IS_NOTIFICATION_MESSAGE),
 		new FieldColumn("to", SqlConstants.COL_MESSAGE_TO_USER_TO),
 		new FieldColumn("cc", SqlConstants.COL_MESSAGE_TO_USER_CC),
 		new FieldColumn("bcc", SqlConstants.COL_MESSAGE_TO_USER_BCC)
@@ -44,6 +45,7 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 	private String profileSettingEndpoint;
 	private Boolean withUnsubscribeLink;
 	private Boolean withProfileSettingLink;
+	private Boolean isNotificationMessage;
 	private String to;
 	private String cc;
 	private String bcc;
@@ -71,6 +73,7 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 				result.setProfileSettingEndpoint(rs.getString(SqlConstants.COL_MESSAGE_PROFILE_SETTING_ENDPOINT));
 				result.setWithUnsubscribeLink(rs.getBoolean(SqlConstants.COL_MESSAGE_WITH_UNSUBSCRIBE_LINK));
 				result.setWithProfileSettingLink(rs.getBoolean(SqlConstants.COL_MESSAGE_WITH_PROFILE_SETTING_LINK));
+				result.setIsNotificationMessage(rs.getBoolean(SqlConstants.COL_MESSAGE_IS_NOTIFICATION_MESSAGE));
 				result.setTo(rs.getString(SqlConstants.COL_MESSAGE_TO_USER_TO));
 				result.setCc(rs.getString(SqlConstants.COL_MESSAGE_TO_USER_CC));
 				result.setBcc(rs.getString(SqlConstants.COL_MESSAGE_TO_USER_BCC));
@@ -171,6 +174,14 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 		this.withProfileSettingLink = withProfileSettingLink;
 	}
 
+	public Boolean getIsNotificationMessage() {
+		return isNotificationMessage;
+	}
+
+	public void setIsNotificationMessage(Boolean isNotificationMessage) {
+		this.isNotificationMessage = isNotificationMessage;
+	}
+
 	public String getTo() {
 		return to;
 	}
@@ -239,6 +250,7 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 		result = prime * result + ((bcc == null) ? 0 : bcc.hashCode());
 		result = prime * result + ((cc == null) ? 0 : cc.hashCode());
 		result = prime * result + ((inReplyTo == null) ? 0 : inReplyTo.hashCode());
+		result = prime * result + ((isNotificationMessage == null) ? 0 : isNotificationMessage.hashCode());
 		result = prime * result + ((messageId == null) ? 0 : messageId.hashCode());
 		result = prime * result + ((notificationsEndpoint == null) ? 0 : notificationsEndpoint.hashCode());
 		result = prime * result + ((profileSettingEndpoint == null) ? 0 : profileSettingEndpoint.hashCode());
@@ -275,6 +287,11 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 			if (other.inReplyTo != null)
 				return false;
 		} else if (!inReplyTo.equals(other.inReplyTo))
+			return false;
+		if (isNotificationMessage == null) {
+			if (other.isNotificationMessage != null)
+				return false;
+		} else if (!isNotificationMessage.equals(other.isNotificationMessage))
 			return false;
 		if (messageId == null) {
 			if (other.messageId != null)
@@ -328,7 +345,8 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 				+ inReplyTo + ", subjectBytes=" + Arrays.toString(subjectBytes) + ", sent=" + sent
 				+ ", notificationsEndpoint=" + notificationsEndpoint + ", profileSettingEndpoint="
 				+ profileSettingEndpoint + ", withUnsubscribeLink=" + withUnsubscribeLink + ", withProfileSettingLink="
-				+ withProfileSettingLink + ", to=" + to + ", cc=" + cc + ", bcc=" + bcc + "]";
+				+ withProfileSettingLink + ", isNotificationMessage=" + isNotificationMessage + ", to=" + to + ", cc="
+				+ cc + ", bcc=" + bcc + "]";
 	}
 
 }

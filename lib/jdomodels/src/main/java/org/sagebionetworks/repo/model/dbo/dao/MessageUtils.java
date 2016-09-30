@@ -96,6 +96,7 @@ public class MessageUtils {
 		bundle.setUserProfileSettingEndpoint(info.getProfileSettingEndpoint());
 		bundle.setWithUnsubscribeLink(info.getWithUnsubscribeLink());
 		bundle.setWithProfileSettingLink(info.getWithProfileSettingLink());
+		bundle.setIsNotificationMessage(info.getIsNotificationMessage());
 		bundle.setTo(info.getTo());
 		bundle.setCc(info.getCc());
 		bundle.setBcc(info.getBcc());
@@ -236,6 +237,7 @@ public class MessageUtils {
 		info.setProfileSettingEndpoint(dto.getUserProfileSettingEndpoint());
 		info.setWithUnsubscribeLink(dto.getWithUnsubscribeLink());
 		info.setWithProfileSettingLink(dto.getWithProfileSettingLink());
+		info.setIsNotificationMessage(dto.getIsNotificationMessage());
 		info.setTo(dto.getTo());
 		info.setCc(dto.getCc());
 		info.setBcc(dto.getBcc());

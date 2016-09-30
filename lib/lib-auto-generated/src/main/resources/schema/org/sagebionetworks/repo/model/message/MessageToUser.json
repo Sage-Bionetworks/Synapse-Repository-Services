@@ -31,11 +31,15 @@
 		},
 		"withUnsubscribeLink": {
 			"type": "boolean",
-			"description": "should the unsubscribe link be included in the email"
+			"description": "should the unsubscribe link be included in the email?"
 		},
 		"withProfileSettingLink": {
 			"type": "boolean",
-			"description": "should the user profile setting link be included in the email"
+			"description": "should the user profile setting link be included in the email?"
+		},
+		"isNotificationMessage": {
+			"type": "boolean",
+			"description": "is this a notification message?"
 		},
 		"to": {
 			"type": "string",

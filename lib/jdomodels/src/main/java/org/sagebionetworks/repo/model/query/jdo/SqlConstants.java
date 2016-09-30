@@ -200,6 +200,7 @@ public class SqlConstants {
  	public static final String COL_MESSAGE_PROFILE_SETTING_ENDPOINT = "PROFILE_SETTING_ENDPOINT";
  	public static final String COL_MESSAGE_WITH_UNSUBSCRIBE_LINK    = "WITH_UNSUBSCRIBE_LINK";
  	public static final String COL_MESSAGE_WITH_PROFILE_SETTING_LINK = "WITH_PROFILE_SETTING_LINK";
+ 	public static final String COL_MESSAGE_IS_NOTIFICATION_MESSAGE  = "IS_NOTIFICATION_MESSAGE";
  	public static final String DDL_MESSAGE_TO_USER                  = "schema/MessageToUser-ddl.sql";
  	
  	// Message recipient
