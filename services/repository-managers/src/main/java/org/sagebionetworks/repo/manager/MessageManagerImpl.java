@@ -46,6 +46,7 @@ import org.sagebionetworks.repo.model.message.MessageSortBy;
 import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
+import org.sagebionetworks.repo.model.message.MessageToUserUtils;
 import org.sagebionetworks.repo.model.message.Settings;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -202,9 +203,6 @@ public class MessageManagerImpl implements MessageManager {
 							+ MAX_NUMBER_OF_NEW_MESSAGES + " message(s) every "
 							+ (MESSAGE_CREATION_INTERVAL_MILLISECONDS / 1000) + " second(s)");
 		}
-		dto.setWithUnsubscribeLink(false);
-		dto.setIsNotificationMessage(false);
-		dto.setWithProfileSettingLink(true);
 		return createMessage(userInfo, dto);
 	}
 
@@ -319,6 +317,7 @@ public class MessageManagerImpl implements MessageManager {
 		MessageToUser message = getMessage(userInfo, messageId);
 		message.setRecipients(recipients.getRecipients());
 		message.setInReplyTo(messageId);
+		message = MessageToUserUtils.setUserGeneratedMessageFooter(message);
 		return createMessageWithThrottle(userInfo, message);
 	}
 

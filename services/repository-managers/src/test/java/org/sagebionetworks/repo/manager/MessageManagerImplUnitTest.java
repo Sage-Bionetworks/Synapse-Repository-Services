@@ -35,6 +35,7 @@ import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.message.MessageRecipientSet;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.message.multipart.MessageBody;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
@@ -399,5 +400,38 @@ public class MessageManagerImplUnitTest {
 		assertEquals(StringUtils.join(errors, "\n"), 0, errors.size());
 	}
 
-	
+	@Test
+	public void testForwardMessage() throws Exception {
+		fileHandle.setContentType("application/json");
+		MessageBody messageBody = new MessageBody();
+		messageBody.setPlain("message body");
+		when(fileHandleManager.downloadFileToString(FILE_HANDLE_ID)).
+		thenReturn(EntityFactory.createJSONStringForEntity(messageBody));
+		when(fileHandleDAO.get(FILE_HANDLE_ID)).thenReturn(fileHandle);
+		
+		MessageToUser dto = messageManager.createMessageWithThrottle(creatorUserInfo, mtu);
+
+		reset(sesClient);
+		MessageRecipientSet receipients = new MessageRecipientSet();
+		receipients.setRecipients(dto.getRecipients());
+		messageManager.forwardMessage(creatorUserInfo, dto.getId(), receipients);
+		ArgumentCaptor<SendRawEmailRequest> argument = ArgumentCaptor.forClass(SendRawEmailRequest.class);
+
+		verify(sesClient).sendRawEmail(argument.capture());
+		SendRawEmailRequest ser = argument.getValue();
+		assertEquals("Foo FOO <foo@synapse.org>", ser.getSource());
+		assertEquals(1, ser.getDestinations().size());
+		assertEquals("bar@sagebase.org", ser.getDestinations().get(0));
+		String body = new String(ser.getRawMessage().getData().array());
+		assertTrue(body.indexOf("message body")>=0);
+		assertFalse(body.indexOf(UNSUBSCRIBE_ENDPOINT)>=0);
+		assertTrue(body.indexOf(PROFILE_SETTING_ENDPOINT)>=0);
+		assertEquals(mtu.getSubject(), MessageTestUtil.getSubjectFromRawMessage(ser));
+		assertEquals(mtu.getTo(), MessageTestUtil.getHeaderFromRawMessage(ser, "To"));
+		assertEquals(mtu.getCc(), MessageTestUtil.getHeaderFromRawMessage(ser, "Cc"));
+		assertEquals(mtu.getBcc(), MessageTestUtil.getHeaderFromRawMessage(ser, "Bcc"));
+		assertTrue(mtu.getWithProfileSettingLink());
+		assertFalse(mtu.getIsNotificationMessage());
+		assertFalse(mtu.getWithUnsubscribeLink());
+	}
 }

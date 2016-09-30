@@ -371,14 +371,11 @@ public class MessageManagerImplTest {
 		assertEquals(userInfo.getId().toString(), dto.getCreatedBy());
 		assertNotNull(dto.getCreatedOn());
 		assertNotNull(dto.getInReplyToRoot());
-		assertTrue(dto.getWithProfileSettingLink());
-		assertFalse(dto.getIsNotificationMessage());
-		assertFalse(dto.getWithUnsubscribeLink());
-		
+
 		// Make sure the timestamps on the messages are different 
 		Thread.sleep(5L); // just 5 milliseconds
 		
-		return dto;
+		return messageManager.getMessage(userInfo, dto.getId());
 	}
 	
 	/**

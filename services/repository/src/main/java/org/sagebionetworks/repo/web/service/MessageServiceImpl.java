@@ -17,6 +17,7 @@ import org.sagebionetworks.repo.model.message.MessageSortBy;
 import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
+import org.sagebionetworks.repo.model.message.MessageToUserUtils;
 import org.sagebionetworks.repo.model.message.cloudmailin.AuthorizationCheckHeader;
 import org.sagebionetworks.repo.model.message.cloudmailin.Message;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -54,7 +55,7 @@ public class MessageServiceImpl implements MessageService {
 	public MessageToUser create(Long userId, MessageToUser toCreate)
 			throws NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return messageManager.createMessageWithThrottle(userInfo, toCreate);
+		return messageManager.createMessageWithThrottle(userInfo, MessageToUserUtils.setUserGeneratedMessageFooter(toCreate));
 	}
 
 	@Override
