@@ -15,6 +15,7 @@ import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -40,7 +41,6 @@ import org.sagebionetworks.repo.manager.AuthorizationStatus;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.manager.audit.ObjectRecordQueue;
-import org.sagebionetworks.repo.manager.file.transfer.FileTransferStrategy;
 import org.sagebionetworks.repo.manager.file.transfer.TransferRequest;
 import org.sagebionetworks.repo.manager.file.transfer.TransferUtils;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -177,16 +177,6 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	ObjectRecordQueue objectRecordQueue;
 
 	/**
-	 * This is the first strategy we try to use.
-	 */
-	FileTransferStrategy primaryStrategy;
-	/**
-	 * When the primaryStrategy fails, we try fall-back strategy
-	 * 
-	 */
-	FileTransferStrategy fallbackStrategy;
-
-	/**
 	 * This is the maximum amount of time the upload workers are allowed to take
 	 * before timing out.
 	 */
@@ -208,24 +198,6 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	 */
 	public FileHandleManagerImpl() {
 		super();
-	}
-
-	/**
-	 * Inject the primary strategy.
-	 * 
-	 * @param primaryStrategy
-	 */
-	public void setPrimaryStrategy(FileTransferStrategy primaryStrategy) {
-		this.primaryStrategy = primaryStrategy;
-	}
-
-	/**
-	 * Inject the fall-back strategy.
-	 * 
-	 * @param fallbackStrategy
-	 */
-	public void setFallbackStrategy(FileTransferStrategy fallbackStrategy) {
-		this.fallbackStrategy = fallbackStrategy;
 	}
 
 	/**
@@ -1086,7 +1058,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(request, "request");
 		ValidateArgument.required(request.getRequestedFiles(), "requestedFiles");
-		String userId = userInfo.toString();
+		String userId = userInfo.getId().toString();
 		long now = System.currentTimeMillis();
 		if(!request.getIncludeFileHandles() && !request.getIncludePreSignedURLs()){
 			throw new IllegalArgumentException(MUST_INCLUDE_EITHER);
@@ -1099,21 +1071,16 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		List<FileHandleAssociationAuthorizationStatus> authResults = fileHandleAuthorizationManager.canDownLoadFile(userInfo, request.getRequestedFiles());
 		List<FileResult> requestedFiles = new LinkedList<FileResult>();
 		Set<String> fileHandleIdsToFetch = new HashSet<String>();
-		List<ObjectRecord> downloadRecords = new LinkedList<>();
+		Map<String, FileHandleAssociation> idToFileHandleAssociation = new HashMap<String, FileHandleAssociation>(request.getRequestedFiles().size());
+		List<ObjectRecord> downloadRecords = new LinkedList<ObjectRecord>();
 		for(FileHandleAssociationAuthorizationStatus fhas: authResults){
 			FileResult result = new FileResult();
+			idToFileHandleAssociation.put(fhas.getAssociation().getFileHandleId(), fhas.getAssociation());
 			result.setFileHandleId(fhas.getAssociation().getFileHandleId());
 			if(!fhas.getStatus().getAuthorized()){
 				result.setFailureCode(FileResultFailureCode.UNAUTHORIZED);
 			}else{
 				fileHandleIdsToFetch.add(fhas.getAssociation().getFileHandleId());
-				if(request.getIncludePreSignedURLs()){
-					FileDownloadRecord fdr = new FileDownloadRecord();
-					fdr.setUserId(userId);
-					fdr.setDownloadedFile(fhas.getAssociation());
-					ObjectRecord record = ObjectRecordBuilderUtils.buildObjectRecord(fdr, now);
-					downloadRecords.add(record);
-				}
 			}
 			requestedFiles.add(result);
 		}
@@ -1134,6 +1101,9 @@ public class FileHandleManagerImpl implements FileHandleManager {
 						if(request.getIncludePreSignedURLs()){
 							String url = getURLForFileHandle(handle, null);
 							fr.setPreSignedURL(url);
+							FileHandleAssociation association = idToFileHandleAssociation.get(fr.getFileHandleId());
+							ObjectRecord record = createObjectRecord(userId, association, now);
+							downloadRecords.add(record);
 						}
 					}
 				}
@@ -1148,4 +1118,12 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		batch.setRequestedFiles(requestedFiles);
 		return batch;
 	}
+	
+	static ObjectRecord createObjectRecord(String userId, FileHandleAssociation association, long nowMs){
+		FileDownloadRecord record = new FileDownloadRecord();
+		record.setDownloadedFile(association);
+		record.setUserId(userId);
+		return ObjectRecordBuilderUtils.buildObjectRecord(record, nowMs);
+	}
+	
 }
