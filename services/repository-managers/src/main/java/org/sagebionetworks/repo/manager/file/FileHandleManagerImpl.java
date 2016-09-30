@@ -1119,6 +1119,14 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		return batch;
 	}
 	
+	/**
+	 * Build an ObjectRecord for a file download.
+	 * 
+	 * @param userId
+	 * @param association
+	 * @param nowMs
+	 * @return
+	 */
 	static ObjectRecord createObjectRecord(String userId, FileHandleAssociation association, long nowMs){
 		FileDownloadRecord record = new FileDownloadRecord();
 		record.setDownloadedFile(association);

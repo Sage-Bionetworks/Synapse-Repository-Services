@@ -1,9 +1,6 @@
 package org.sagebionetworks;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -30,8 +27,14 @@ import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.manager.S3TestUtils;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.FileEntity;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.file.BatchFileRequest;
+import org.sagebionetworks.repo.model.file.BatchFileResult;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
+import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
+import org.sagebionetworks.repo.model.file.FileResult;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -174,6 +177,25 @@ public class IT054FileEntityTest {
 		assertTrue("The temporary URL did not contain the expected file handle key",tempUrl.toString().contains(previewFileHandle.getKey()));
 		synapse.downloadFromFileEntityPreviewForVersion(file.getId(), file.getVersionNumber(), tempfile);
 		assertTrue(tempfile.length()>0);
+		
+		FileHandleAssociation association = new FileHandleAssociation();
+		association.setAssociateObjectType(FileHandleAssociateType.FileEntity);
+		association.setAssociateObjectId(file.getId());
+		association.setFileHandleId(fileHandle.getId());
+		BatchFileRequest request = new BatchFileRequest();
+		request.setIncludeFileHandles(true);
+		request.setIncludePreSignedURLs(true);
+		request.setRequestedFiles(Lists.newArrayList(association));
+		
+		BatchFileResult results = synapse.getFileHandleAndUrlBatch(request);
+		assertNotNull(results);
+		assertNotNull(results.getRequestedFiles());
+		assertEquals(1, results.getRequestedFiles().size());
+		FileResult result = results.getRequestedFiles().get(0);
+		assertEquals(fileHandle.getId(), result.getFileHandle());
+		assertEquals(fileHandle, result.getFileHandle());
+		assertNotNull(result.getPreSignedURL());
+		assertNull(result.getFailureCode());
 	}
 
 	@Ignore

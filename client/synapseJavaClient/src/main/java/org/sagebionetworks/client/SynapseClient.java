@@ -98,6 +98,8 @@ import org.sagebionetworks.repo.model.entity.query.EntityQuery;
 import org.sagebionetworks.repo.model.entity.query.EntityQueryResults;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.file.AddPartResponse;
+import org.sagebionetworks.repo.model.file.BatchFileRequest;
+import org.sagebionetworks.repo.model.file.BatchFileResult;
 import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlRequest;
 import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlResponse;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadRequest;
@@ -2852,4 +2854,12 @@ public interface SynapseClient extends BaseClient {
 	List<TableUpdateResponse> getTableTransactionJobResults(String token,
 			String tableId) throws SynapseException,
 			SynapseResultNotReadyException;
+
+	/**
+	 * Get a batch of pre-signed URLs and/or FileHandles for the given list of FileHandleAssociations 
+	 * @param request
+	 * @return
+	 * @throws SynapseException 
+	 */
+	public BatchFileResult getFileHandleAndUrlBatch(BatchFileRequest request) throws SynapseException;
 }
