@@ -67,6 +67,7 @@ public class DockerManagerImpl implements DockerManager {
 	@Autowired
 	private TransactionalMessenger transactionalMessenger;
 	
+	public String MANIFEST_MEDIA_TYPE = "application/vnd.docker.distribution.manifest.v2+json";
 
 	/**
 	 * Answer Docker Registry authorization request.
@@ -214,6 +215,11 @@ public class DockerManagerImpl implements DockerManager {
 			RegistryEventAction action = event.getAction();
 			switch (action) {
 			case push:
+				//we only care about the notification if it is a manifest push, which contains metadata about the repository
+				//the other type of push would be layer blob pushes ("mediaType": "application/octet-stream"), which we don't care about
+				if(!event.getTarget().getMediaType().equals(MANIFEST_MEDIA_TYPE))
+					continue;
+				
 				// need to make sure this is a registry we support
 				String host = event.getRequest().getHost();
 				if (!StackConfiguration.getDockerRegistryHosts().contains(host)) continue;
@@ -257,6 +263,8 @@ public class DockerManagerImpl implements DockerManager {
 			case pull:
 				// nothing to do. We are being notified that someone has pulled a repository image
 				break;
+			case mount:
+				//nothing to do. We are being notified that another repository is being mounted to prevent re-upload
 			default:
 				throw new IllegalArgumentException("Unexpected action "+action);
 			}
