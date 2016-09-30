@@ -6,12 +6,12 @@ import static org.junit.Assert.assertNotNull;
 import java.util.List;
 
 import org.junit.Test;
+import org.sagebionetworks.repo.model.table.QueryResult;
 import org.sagebionetworks.repo.model.table.SortDirection;
 import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.table.query.model.BooleanTerm;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.SearchCondition;
-import org.sagebionetworks.table.query.model.WhereClause;
 import org.sagebionetworks.table.query.util.SimpleAggregateQueryException;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 
@@ -297,6 +297,13 @@ public class SqlElementUntilsTest {
 		SearchCondition searchCondition = new SearchCondition(terms);
 		SearchCondition filteredSearchCondition = SqlElementUntils.filterSearchCondition("bar", searchCondition);
 		assertEquals("( foo = 1 ) OR foo > 3", filteredSearchCondition.toSql());
+	}
+	
+	@Test
+	public void testCreateFilteredFacetCount() throws ParseException{
+		QuerySpecification querySpecification = new TableQueryParser("select * from syn123 where (col1 = 123 OR col1 = 456) AND col2 = 234 AND (col3 = 678 OR col3 = 789)").querySpecification();
+		String resultQuery = SqlElementUntils.createFilteredFacetCount("col1", querySpecification);
+		assertEquals("SELECT col1, COUNT(*) FROM syn123 WHERE col2 = 234 AND ( col3 = 678 OR col3 = 789 ) LIMIT 100", resultQuery);
 	}
 	
 }

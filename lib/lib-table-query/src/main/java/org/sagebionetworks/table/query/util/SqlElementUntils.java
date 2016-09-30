@@ -719,6 +719,7 @@ public class SqlElementUntils {
 						filteredBoolFactorList.add(boolFactor);
 					}
 				}else{
+					//TODO: IS THIS CORRECT BEHAVIOR FOR inner search conditions?
 					//recursively filter the inner search condition
 					SearchCondition innerSearchCondition = booleanPrimary.getSearchCondition();
 					if( innerSearchCondition != null){
