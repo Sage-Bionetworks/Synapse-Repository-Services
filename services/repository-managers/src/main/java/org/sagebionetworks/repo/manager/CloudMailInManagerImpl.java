@@ -25,6 +25,7 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.dbo.principal.AliasUtils;
 import org.sagebionetworks.repo.model.message.MessageToUser;
+import org.sagebionetworks.repo.model.message.MessageToUserUtils;
 import org.sagebionetworks.repo.model.message.cloudmailin.AuthorizationCheckHeader;
 import org.sagebionetworks.repo.model.message.cloudmailin.Envelope;
 import org.sagebionetworks.repo.model.message.cloudmailin.Message;
@@ -102,7 +103,7 @@ public class CloudMailInManagerImpl implements CloudMailInManager {
 				throw new IllegalArgumentException("Recipients list is required.");
 			MessageToUser mtu = new MessageToUser();
 			Long fromPrincipalId = lookupPrincipalIdForRegisteredEmailAddressAndAlternate(envelopeFrom, headerFrom);
-			mtu.setCreatedBy(fromPrincipalId.toString());		
+			mtu.setCreatedBy(fromPrincipalId.toString());
 			mtu.setSubject(subject);
 			mtu.setTo(to);
 			mtu.setCc(cc);
@@ -116,6 +117,7 @@ public class CloudMailInManagerImpl implements CloudMailInManager {
 			recipients.addAll(recipientPrincipals);
 			mtu.setRecipients(recipients);
 			mtu.setNotificationUnsubscribeEndpoint(notificationUnsubscribeEndpoint);
+			mtu = MessageToUserUtils.setUserGeneratedMessageFooter(mtu);
 			MessageToUserAndBody convertedMessage = new MessageToUserAndBody();
 			convertedMessage.setMetadata(mtu);
 			convertedMessage.setMimeType(ContentType.APPLICATION_JSON.getMimeType());

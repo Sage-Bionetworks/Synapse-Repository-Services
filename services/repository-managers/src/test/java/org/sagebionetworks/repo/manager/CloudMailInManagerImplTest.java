@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.when;
@@ -98,6 +99,9 @@ public class CloudMailInManagerImplTest {
 		assertEquals("to", mtu.getTo());
 		assertEquals("cc", mtu.getCc());
 		assertEquals("bcc", mtu.getBcc());
+		assertTrue(mtu.getWithProfileSettingLink());
+		assertFalse(mtu.getWithUnsubscribeLink());
+		assertFalse(mtu.getIsNotificationMessage());
 	}
 	
 	@Test
