@@ -202,8 +202,6 @@ public class MessageManagerImpl implements MessageManager {
 							+ MAX_NUMBER_OF_NEW_MESSAGES + " message(s) every "
 							+ (MESSAGE_CREATION_INTERVAL_MILLISECONDS / 1000) + " second(s)");
 		}
-		// Make sure the sender is correct
-		dto.setCreatedBy(userInfo.getId().toString());
 		dto.setWithUnsubscribeLink(false);
 		dto.setIsNotificationMessage(false);
 		dto.setWithProfileSettingLink(true);
@@ -213,6 +211,8 @@ public class MessageManagerImpl implements MessageManager {
 	@Override
 	@WriteTransaction
 	public MessageToUser createMessage(UserInfo userInfo, MessageToUser dto) throws NotFoundException {
+		// Make sure the sender is correct
+		dto.setCreatedBy(userInfo.getId().toString());
 		if (!userInfo.isAdmin()) {
 			// Can't be anonymous
 			if (AuthorizationUtils.isUserAnonymous(userInfo)) {
