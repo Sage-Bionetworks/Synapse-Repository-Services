@@ -37,6 +37,7 @@ public class DockerManagerImplAutowiredTest {
 	private static final String TYPE = "repository";
 	private static final String TAG = "lastest";
 	private static final String DIGEST = "sha256:10010101";
+	private static final String MEDIA_TYPE = DockerManagerImpl.MANIFEST_MEDIA_TYPE;
 
 	private String repositoryPath;
 	
@@ -85,7 +86,7 @@ public class DockerManagerImplAutowiredTest {
 
 		DockerRegistryEventList events = 
 				DockerRegistryEventUtil.createDockerRegistryEvent(
-						RegistryEventAction.push, SERVICE, adminUserInfo.getId(), repositoryPath, TAG, DIGEST);
+						RegistryEventAction.push, SERVICE, adminUserInfo.getId(), repositoryPath, TAG, DIGEST, MEDIA_TYPE);
 		dockerManager.dockerRegistryNotification(events);
 
 		String createdEntityId = dockerNodeDao.getEntityIdForRepositoryName(SERVICE+"/"+repositoryPath);

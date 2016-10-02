@@ -1536,11 +1536,13 @@ public class StackConfiguration {
 	
 	public static List<String> getDockerRegistryHosts() {
 		String s = configuration.getProperty("org.sagebionetworks.docker.registry.hostnames");
+		s = s.replaceAll("\\s+", "");
 		return Arrays.asList(s.split(","));
 	}
 	
 	public static List<String> getDockerReservedRegistryHosts() {
 		String s = configuration.getProperty("org.sagebionetworks.docker.reserved.hostnames");
+		s = s.replaceAll("\\s+", "");
 		return Arrays.asList(s.split(","));
 	}
 	
