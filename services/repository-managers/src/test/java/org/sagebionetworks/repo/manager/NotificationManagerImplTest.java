@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
@@ -63,6 +63,9 @@ public class NotificationManagerImplTest {
 		assertEquals(fileHandleId, mtu2.getFileHandleId());
 		assertEquals(subject, mtu2.getSubject());
 		assertEquals(to, mtu2.getRecipients());
+		assertTrue(mtu2.getIsNotificationMessage());
+		assertTrue(mtu2.getWithUnsubscribeLink());
+		assertFalse(mtu2.getWithProfileSettingLink());
 	}
 	
 	@Test
