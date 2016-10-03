@@ -25,10 +25,6 @@
 		<property name="repeatInterval" value="957" />
 	</bean>
 
-	<bean id="objectRecordQueue"
-		class="org.sagebionetworks.repo.manager.audit.ObjectRecordQueueImpl"
-		scope="singleton" />
-
 	<!-- This trigger pushes ObjectRecords to S3 -->
 	<bean id="objectRecordQueueTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean">
 		<property name="jobDetail">
