@@ -6,12 +6,14 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyCollection;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -28,17 +30,18 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.fileupload.FileItemIterator;
-import org.apache.commons.fileupload.FileItemStream;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.audit.dao.ObjectRecordBatch;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.AuthorizationStatus;
-import org.sagebionetworks.repo.manager.file.transfer.FileTransferStrategy;
+import org.sagebionetworks.repo.manager.audit.ObjectRecordQueue;
 import org.sagebionetworks.repo.manager.file.transfer.TransferRequest;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -46,6 +49,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.audit.ObjectRecord;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.BatchFileRequest;
 import org.sagebionetworks.repo.model.file.BatchFileResult;
@@ -82,19 +86,24 @@ import com.google.common.collect.Lists;
  */
 public class FileHandleManagerImplTest {
 	
-	FileHandleManagerImpl manager;
-	FileItemIterator mockIterator;
-	FileItemStream mockFileStream;
-	FileItemStream mockParamParentIdStream;
-	UserInfo mockUser;
+	@Mock
 	FileHandleDao mockfileMetadataDao;
-	FileTransferStrategy mockPrimaryStrategy;
-	FileTransferStrategy mockFallbackStrategy;
-	S3FileHandle validResults;
+	@Mock
 	AmazonS3Client mockS3Client;
+	@Mock
 	AuthorizationManager mockAuthorizationManager;
+	@Mock
 	StorageLocationDAO mockStorageLocationDao;
+	@Mock
 	FileHandleAuthorizationManager mockFileHandleAuthorizationManager;
+	@Mock
+	ObjectRecordQueue mockObjectRecordQueue;
+	
+	FileHandleManagerImpl manager;
+	
+	UserInfo mockUser;
+	
+	S3FileHandle validResults;
 	
 	String bucket;
 	String key;
@@ -113,46 +122,31 @@ public class FileHandleManagerImplTest {
 	FileHandleAssociation fha2;
 	FileHandleAssociation fhaMissing;
 	BatchFileRequest batchRequest;
+	ObjectRecord successRecord;
 	
 	
 	@Before
 	public void before() throws UnsupportedEncodingException, IOException, NoSuchAlgorithmException{
-		mockIterator = Mockito.mock(FileItemIterator.class);
-		mockfileMetadataDao = Mockito.mock(FileHandleDao.class);
-		mockS3Client = Mockito.mock(AmazonS3Client.class);
-		mockAuthorizationManager = Mockito.mock(AuthorizationManager.class);
-		mockStorageLocationDao = Mockito.mock(StorageLocationDAO.class);
-		mockFileHandleAuthorizationManager = Mockito.mock(FileHandleAuthorizationManager.class);
+		MockitoAnnotations.initMocks(this);
+		// the manager to test.
+		manager = new FileHandleManagerImpl();
+		ReflectionTestUtils.setField(manager, "fileHandleDao", mockfileMetadataDao);
+		ReflectionTestUtils.setField(manager, "authorizationManager", mockAuthorizationManager);
+		ReflectionTestUtils.setField(manager, "s3Client", mockS3Client);
+		ReflectionTestUtils.setField(manager, "storageLocationDAO", mockStorageLocationDao);
+		ReflectionTestUtils.setField(manager, "fileHandleAuthorizationManager", mockFileHandleAuthorizationManager);
+		ReflectionTestUtils.setField(manager, "objectRecordQueue", mockObjectRecordQueue);
 		
 		// The user is not really a mock
 		mockUser = new UserInfo(false,"987");
 		
-		// Other helper mocks
-		// First mock a file stream
-		mockFileStream = Mockito.mock(FileItemStream.class);
 		// This file stream is actually a file and not a parameter
 		String contentType = "text/plain";
 		String fileName = "someTextFile.txt";
 		String contentString = "I am a very short string";
 		byte[] contentBytes = contentString.getBytes();
 		String contentMD5 = BinaryUtils.toHex((MessageDigest.getInstance("MD5").digest(contentBytes)));
-		
-		when(mockFileStream.isFormField()).thenReturn(false);
-		when(mockFileStream.openStream()).thenReturn(new StringInputStream(contentString));
-		when(mockFileStream.getContentType()).thenReturn(contentType);
-		when(mockFileStream.getName()).thenReturn(fileName);
-		when(mockFileStream.getFieldName()).thenReturn("file");
-		// Mock a parameter as a stream.
-		mockParamParentIdStream = Mockito.mock(FileItemStream.class);
-		// This file stream is actually a file and not a parameter
-		when(mockParamParentIdStream.isFormField()).thenReturn(true);
-		when(mockParamParentIdStream.openStream()).thenReturn(new StringInputStream("syn123"));
-		when(mockParamParentIdStream.getContentType()).thenReturn(null);
-		when(mockParamParentIdStream.getName()).thenReturn(null);
-		when(mockParamParentIdStream.getFieldName()).thenReturn("parentId");
-		
-		mockPrimaryStrategy = Mockito.mock(FileTransferStrategy.class);
-		mockFallbackStrategy = Mockito.mock(FileTransferStrategy.class);
+				
 		// setup the primary to succeed
 		validResults = new S3FileHandle();
 		validResults.setId("123");
@@ -204,14 +198,6 @@ public class FileHandleManagerImplTest {
 		externalProxyFileHandle.setId("444444");
 		when(mockfileMetadataDao.createFile(externalProxyFileHandle)).thenReturn(externalProxyFileHandle);
 		
-		
-		// the manager to test.
-		manager = new FileHandleManagerImpl(
-				mockfileMetadataDao, mockPrimaryStrategy, 
-				mockFallbackStrategy, mockAuthorizationManager, 
-				mockS3Client, mockFileHandleAuthorizationManager);
-		ReflectionTestUtils.setField(manager, "storageLocationDAO", mockStorageLocationDao);
-		
 		// one
 		fha1 = new FileHandleAssociation();
 		fha1.setAssociateObjectId("syn123");
@@ -233,6 +219,8 @@ public class FileHandleManagerImplTest {
 		FileHandleAssociationAuthorizationStatus status2 = new FileHandleAssociationAuthorizationStatus(fha2, AuthorizationManagerUtil.AUTHORIZED);
 		FileHandleAssociationAuthorizationStatus missingStatus = new FileHandleAssociationAuthorizationStatus(fhaMissing, AuthorizationManagerUtil.AUTHORIZED);
 		List<FileHandleAssociationAuthorizationStatus> authResults = Lists.newArrayList(status1, status2, missingStatus);
+		
+		successRecord = FileHandleManagerImpl.createObjectRecord(mockUser.getId().toString(), fha2, 123L);
 		
 		when(mockFileHandleAuthorizationManager.canDownLoadFile(mockUser, associations)).thenReturn(authResults);
 		
@@ -920,6 +908,17 @@ public class FileHandleManagerImplTest {
 		
 		// only one pre-signed url should be generated
 		verify(mockS3Client).generatePresignedUrl(any(GeneratePresignedUrlRequest.class));
+		
+		// Verify a download record is created for the success case.
+		ArgumentCaptor<ObjectRecordBatch> batchCapture = ArgumentCaptor.forClass(ObjectRecordBatch.class);
+		verify(mockObjectRecordQueue).pushObjectRecordBatch(batchCapture.capture());
+		ObjectRecordBatch batch = batchCapture.getValue();
+		assertNotNull(batch.getRecords());
+		assertEquals(1, batch.getRecords().size());
+		ObjectRecord record = batch.getRecords().get(0);
+		assertEquals(successRecord.getJsonClassName(), record.getJsonClassName());
+		assertEquals(successRecord.getJsonString(), record.getJsonString());
+		assertNotNull(successRecord.getTimestamp());
 	}
 	
 	@Test
@@ -939,6 +938,8 @@ public class FileHandleManagerImplTest {
 		assertNull(result.getFailureCode());
 		assertNull(result.getFileHandle());
 		assertNotNull(result.getPreSignedURL());
+		// a batch of records should be pushed.
+		verify(mockObjectRecordQueue).pushObjectRecordBatch(any(ObjectRecordBatch.class));
 	}
 	
 	@Test
@@ -958,6 +959,8 @@ public class FileHandleManagerImplTest {
 		assertNull(result.getFailureCode());
 		assertNotNull(result.getFileHandle());
 		assertNull(result.getPreSignedURL());
+		// no downloads should be pushed since no urls were returned.
+		verify(mockObjectRecordQueue, never()).pushObjectRecordBatch(any(ObjectRecordBatch.class));
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -1034,6 +1037,8 @@ public class FileHandleManagerImplTest {
 		verify(mockfileMetadataDao, never()).getAllFileHandlesBatch(anyCollection());
 		// no urls should be generated.
 		verify(mockS3Client, never()).generatePresignedUrl(any(GeneratePresignedUrlRequest.class));
+		// no records pushed
+		verify(mockObjectRecordQueue, never()).pushObjectRecordBatch(any(ObjectRecordBatch.class));
 	}
 	
 

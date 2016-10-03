@@ -1,0 +1,13 @@
+{
+	"description": "Describes an association of a FileHandle with another object.",
+	"properties": {
+		"userId": {
+			"description": "The ID of the user that downloaded the file.",
+			"type": "string"
+		},
+		"downloadedFile": {
+			"description": "Data about the file that was downloaded.",
+			"$ref": "org.sagebionetworks.repo.model.file.FileHandleAssociation"
+		}
+	}
+}
