@@ -87,7 +87,7 @@ public class ObjectRecordQueueImpl implements ObjectRecordQueue {
 	}
 
 	@Override
-	public int peekQueueSize() {
+	public int getQueueSize() {
 		return queue.size();
 	}
 }

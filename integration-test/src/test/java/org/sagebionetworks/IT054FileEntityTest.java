@@ -192,8 +192,9 @@ public class IT054FileEntityTest {
 		assertNotNull(results.getRequestedFiles());
 		assertEquals(1, results.getRequestedFiles().size());
 		FileResult result = results.getRequestedFiles().get(0);
-		assertEquals(fileHandle.getId(), result.getFileHandle());
-		assertEquals(fileHandle, result.getFileHandle());
+		assertEquals(fileHandle.getId(), result.getFileHandleId());
+		assertNotNull(result.getFileHandle());
+		assertEquals(fileHandle.getId(), result.getFileHandle().getId());
 		assertNotNull(result.getPreSignedURL());
 		assertNull(result.getFailureCode());
 	}

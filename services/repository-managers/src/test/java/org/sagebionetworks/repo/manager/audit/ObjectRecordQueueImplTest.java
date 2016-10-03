@@ -115,8 +115,8 @@ public class ObjectRecordQueueImplTest {
 		when(mockObjectRecordDAO.saveBatch(anyListOf(ObjectRecord.class), anyString())).thenThrow(new IOException("Something went wrong"));
 		// add to the queue.
 		queue.pushObjectRecordBatch(batchOne);
-		assertEquals(1, queue.peekQueueSize());
+		assertEquals(1, queue.getQueueSize());
 		queue.timerFired();
-		assertEquals(0, queue.peekQueueSize());
+		assertEquals(0, queue.getQueueSize());
 	}
 }

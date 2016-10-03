@@ -24,11 +24,11 @@ public interface ObjectRecordQueue {
 	public void pushObjectRecordBatch(ObjectRecordBatch batch);
 	
 	/**
-	 * Peek at the number of batches in the Queue.
+	 * Get the number of batches in the Queue.
 	 * 
 	 * @return
 	 */
-	public int peekQueueSize();
+	public int getQueueSize();
 
 	/**
 	 * When the timer fires the queue will be emptied.

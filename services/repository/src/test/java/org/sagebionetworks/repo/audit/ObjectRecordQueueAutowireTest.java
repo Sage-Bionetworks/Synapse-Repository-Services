@@ -55,7 +55,7 @@ public class ObjectRecordQueueAutowireTest {
 		// push this record to the queue.
 		objectRecordQueue.pushObjectRecordBatch(batch);
 		// wait for the queue to be empty
-		while(objectRecordQueue.peekQueueSize() > 0){
+		while(objectRecordQueue.getQueueSize() > 0){
 			System.out.println("Waiting for queue to empty...");
 			Thread.sleep(2000);
 		}
