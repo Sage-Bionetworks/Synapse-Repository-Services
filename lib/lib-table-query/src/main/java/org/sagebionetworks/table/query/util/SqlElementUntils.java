@@ -689,16 +689,18 @@ public class SqlElementUntils {
 		TableExpression tableExpressionFromModel = model.getTableExpression();
 		WhereClause modifiedWhereClause = new WhereClause( filterSearchCondition(columnName, tableExpressionFromModel.getWhereClause().getSearchCondition()));
 		Pagination pagination = new Pagination(MAX_NUM_FACET_CATEGORIES, null);
-		
-		TableExpression revisedTableExpression = new TableExpression(tableExpressionFromModel.getFromClause(), modifiedWhereClause, null, null, pagination);
 		StringBuilder builder = new StringBuilder("SELECT ");
-		builder.append(columnName + ", COUNT(*) ");
-		builder.append(revisedTableExpression.toSql());
+		builder.append(columnName +" as value , COUNT(*) as count "); //TODO: "count" and "value" as final constants?
+		builder.append(tableExpressionFromModel.getFromClause().toSql());
+		builder.append(" ");
+		builder.append(modifiedWhereClause.toSql());
+		builder.append(" GROUP BY " + columnName + " ");
+		builder.append(pagination.toSql());
 		return builder.toString();
 	}
 	
 	/**
-	 * Removes all WhereClause predicates containing columnName
+	 * Returns a new SearchCondition with all WhereClause predicates containing columnName removed
 	 * @param whereClause
 	 * @return
 	 */

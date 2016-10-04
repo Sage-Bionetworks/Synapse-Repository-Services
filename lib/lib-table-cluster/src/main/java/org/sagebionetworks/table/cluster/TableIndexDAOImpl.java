@@ -26,6 +26,7 @@ import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.EntityDTO;
+import org.sagebionetworks.repo.model.table.FacetValue;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableConstants;
@@ -271,6 +272,26 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		// We use spring to create create the prepared statement
 		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
 		return namedTemplate.queryForObject(sql, new MapSqlParameterSource(parameters), Long.class);
+	}
+	
+	@Override
+	public List<FacetValue> facetCountQuery(String sql, Map<String, Object> parameters){
+		ValidateArgument.required(sql, "sql");
+		ValidateArgument.required(parameters, "parameters");
+		// We use spring to create create the prepared statement
+		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
+		
+		return namedTemplate.query(sql, parameters, new RowMapper<FacetValue>(){
+
+			@Override
+			public FacetValue mapRow(ResultSet rs, int rowNum) throws SQLException {
+				FacetValue facetValue= new FacetValue();
+				facetValue.setValue(rs.getString("count"));
+				facetValue.setCount(rs.getLong("value"));
+				return facetValue;
+			}
+			
+		});
 	}
 	
 	@Override

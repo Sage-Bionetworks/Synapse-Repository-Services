@@ -18,6 +18,8 @@ import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.EntityField;
+import org.sagebionetworks.repo.model.table.FacetColumn;
+import org.sagebionetworks.repo.model.table.FacetValue;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
 import org.sagebionetworks.repo.model.table.QueryNextPageToken;
@@ -40,6 +42,7 @@ import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.Pagination;
 import org.sagebionetworks.table.query.model.QuerySpecification;
+import org.sagebionetworks.table.query.model.SearchCondition;
 import org.sagebionetworks.table.query.model.WhereClause;
 import org.sagebionetworks.table.query.util.SimpleAggregateQueryException;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
@@ -575,6 +578,26 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			return 1L;
 		}
 	}
+	
+	/**
+	 * Run a facetCount query.
+	 */
+	FacetColumn runFacetCoumnCountQuery(SqlQuery originalQuery, String columnName,TableIndexDAO indexDao){
+		try{
+			String facetColumnSql = SqlElementUntils.createFilteredFacetCount(columnName, originalQuery.getTransformedModel());
+			
+			List<FacetValue> facetValues  = indexDao.facetCountQuery(facetColumnSql, originalQuery.getParameters());
+			FacetColumn facetColumn = new FacetColumn();
+			facetColumn.setColumnId(columnName);
+			facetColumn.setFacetValues(facetValues);
+			return facetColumn;
+		} catch (Exception e){
+			//TODO: not sure of what exceptions to expect yet
+			throw e;
+		}
+		
+	}
+	
 	
 	/**
 	 * Parser a query and convert ParseExceptions to IllegalArgumentExceptions

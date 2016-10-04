@@ -9,6 +9,7 @@ import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.EntityDTO;
+import org.sagebionetworks.repo.model.table.FacetValue;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -340,4 +341,12 @@ public interface TableIndexDAO {
 	 */
 	public void setIndexVersionAndSchemaMD5Hex(String tableId, Long viewCRC,
 			String schemaMD5Hex);
+
+	/**
+	 * Queries TODO TODO TODO TOD TODO
+	 * @param sql
+	 * @param parameters
+	 * @return list of facetValues
+	 */
+	public List<FacetValue> facetCountQuery(String sql, Map<String, Object> parameters);
 }
