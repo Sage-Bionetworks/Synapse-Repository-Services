@@ -3,10 +3,12 @@ package org.sagebionetworks.repo.web.filter;
 
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
 
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -79,6 +81,29 @@ public class ThrottleRulesCacheTest {
 		when(throttleRulesDao.getAllThrottleRules()).thenReturn(new LinkedList<ThrottleRule>());
 		throttleRulesCache.timerFired();
 		assertTrue(throttleRulesCache.getLastUpdated() > 0);
+	}
+	
+	/**
+	 * PLFM-4073
+	 */
+	@Test
+	public void testTimerFiredAddsLowerCase(){
+		long testID = 42;
+		String testPath = "/QwErTyAsDf/fakePath";
+		long testMaxCalls = 123;
+		long testPeriod = 456;
+		ThrottleRule throttleRule = new ThrottleRule(testID, testPath, testMaxCalls,testPeriod);
+		
+		when(throttleRulesDao.getAllThrottleRules()).thenReturn(Arrays.asList(new ThrottleRule[] {throttleRule}));
+		throttleRulesCache.timerFired();
+		
+		assertNull(throttleRulesCache.getThrottleLimit(testPath));
+		
+		ThrottleLimit limit = throttleRulesCache.getThrottleLimit(testPath.toLowerCase());
+		assertNotNull(limit);
+		
+		assertEquals(testMaxCalls, limit.getMaxCallsPerUserPerPeriod());
+		assertEquals(testPeriod, limit.getCallPeriodSec());
 	}
 
 }

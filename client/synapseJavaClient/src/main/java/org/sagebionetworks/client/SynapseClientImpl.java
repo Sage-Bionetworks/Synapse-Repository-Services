@@ -154,8 +154,6 @@ import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
 import org.sagebionetworks.repo.model.file.ProxyFileHandle;
-import org.sagebionetworks.repo.model.file.S3FileCopyRequest;
-import org.sagebionetworks.repo.model.file.S3FileCopyResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.S3UploadDestination;
 import org.sagebionetworks.repo.model.file.State;
@@ -2569,22 +2567,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		changes.setFileName(name);
 		changes.setContentType(contentType);
 		return doCreateJSONEntity(getFileEndpoint(), uri, changes);
-	}
-
-	@Override
-	public String s3FileCopyAsyncStart(List<String> fileEntityIds, String destinationBucket, Boolean overwrite, String baseKey)
-			throws SynapseException {
-		S3FileCopyRequest s3FileCopyRequest = new S3FileCopyRequest();
-		s3FileCopyRequest.setFiles(fileEntityIds);
-		s3FileCopyRequest.setBucket(destinationBucket);
-		s3FileCopyRequest.setOverwrite(overwrite);
-		s3FileCopyRequest.setBaseKey(baseKey);
-		return startAsynchJob(AsynchJobType.S3FileCopy, s3FileCopyRequest);
-	}
-
-	@Override
-	public S3FileCopyResults s3FileCopyAsyncGet(String asyncJobToken) throws SynapseException, SynapseResultNotReadyException {
-		return (S3FileCopyResults) getAsyncResult(AsynchJobType.S3FileCopy, asyncJobToken, (String) null);
 	}
 	
 	/*

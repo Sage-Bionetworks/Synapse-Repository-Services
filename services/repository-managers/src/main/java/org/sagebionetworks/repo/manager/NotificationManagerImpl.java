@@ -43,7 +43,9 @@ public class NotificationManagerImpl implements NotificationManager {
 					userInfo.getId().toString(), new Date(), message.getBody(), message.getMimeType());
 
 			message.getMetadata().setFileHandleId(fileHandle.getId());
-
+			message.getMetadata().setWithUnsubscribeLink(true);
+			message.getMetadata().setIsNotificationMessage(true);
+			message.getMetadata().setWithProfileSettingLink(false);
 			return messageManager.createMessage(userInfo, message.getMetadata());
 		} catch (IOException e) {
 			throw new RuntimeException(e);

@@ -2,6 +2,7 @@
     "type":"string",
     "enum":[
     	"push",
-		"pull"
+		"pull",
+		"mount"
     ]
 }

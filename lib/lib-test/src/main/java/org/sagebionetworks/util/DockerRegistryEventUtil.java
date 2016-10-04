@@ -14,7 +14,7 @@ public class DockerRegistryEventUtil {
 
 	// helper function to construct registry events in the prescribed format
 	public static DockerRegistryEventList createDockerRegistryEvent(
-			RegistryEventAction action, String host, long userId, String repositoryPath, String tag, String digest) {
+			RegistryEventAction action, String host, long userId, String repositoryPath, String tag, String digest, String mediaType) {
 		DockerRegistryEvent event = new DockerRegistryEvent();
 		event.setAction(action);
 		RegistryEventRequest eventRequest = new RegistryEventRequest();
@@ -27,6 +27,7 @@ public class DockerRegistryEventUtil {
 		target.setRepository(repositoryPath);
 		target.setTag(tag);
 		target.setDigest(digest);
+		target.setMediaType(mediaType);
 		event.setTarget(target);
 		DockerRegistryEventList eventList = new DockerRegistryEventList();
 		List<DockerRegistryEvent> events = new ArrayList<DockerRegistryEvent>();
