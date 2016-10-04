@@ -29,13 +29,13 @@ import org.sagebionetworks.repo.model.BooleanResult;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
-import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.EntityIdList;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.PaginatedIds;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ServiceConstants;
@@ -2172,7 +2172,7 @@ public class ServletTestHelper {
 	}
 
 	public DockerAuthorizationToken authorizeDockerAccess(DispatcherServlet dispatchServlet, Long userId,
-			String service, String scope) throws Exception {
+			String service, String[] scope) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, UrlHelpers.DOCKER_PATH, UrlHelpers.DOCKER_AUTHORIZATION, userId, null);
 		request.addParameter(AuthorizationConstants.DOCKER_SERVICE_PARAM, service);
@@ -2233,5 +2233,15 @@ public class ServletTestHelper {
 		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.OK);
 		return objectMapper.readValue(response.getContentAsString(), EntityThreadCounts.class);
+	}
+
+	public PaginatedIds getModerators(DispatcherServlet dispatchServlet, Long adminUserId, String forumId, Long limit, Long offset) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.REPO_PATH, UrlHelpers.FORUM+"/"+forumId+UrlHelpers.MODERATORS, userId, null);
+		request.addParameter("limit", limit.toString());
+		request.addParameter("offset", offset.toString());
+		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
+				HttpStatus.OK);
+		return objectMapper.readValue(response.getContentAsString(), PaginatedIds.class);
 	}
 }

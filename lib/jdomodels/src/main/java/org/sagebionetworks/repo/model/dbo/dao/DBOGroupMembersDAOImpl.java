@@ -1,9 +1,18 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GROUP_MEMBERS_GROUP_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GROUP_MEMBERS_MEMBER_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GROUP_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GROUP_IS_INDIVIDUAL;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_GROUP_MEMBERS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_GROUP;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
@@ -14,18 +23,22 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 
 public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
+	@Autowired
+	private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
 	@Autowired
 	private UserGroupDAO userGroupDAO;
@@ -57,7 +70,31 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 			"DELETE FROM "+SqlConstants.TABLE_GROUP_MEMBERS+
 			" WHERE "+SqlConstants.COL_GROUP_MEMBERS_GROUP_ID+"=:"+GROUP_ID_PARAM_NAME+
 			" AND "+SqlConstants.COL_GROUP_MEMBERS_MEMBER_ID+"=:"+MEMBER_ID_PARAM_NAME;
-			
+
+	private static final String IDS_PARAM = "ids";
+	private static final String LIMIT_PARAM = "limit";
+	private static final String OFFSET_PARAM = "offset";
+
+	private static final String SQL_GET_ALL_INDIVIDUALS = "SELECT DISTINCT (CASE"
+					+ " WHEN "+TABLE_USER_GROUP+"."+COL_USER_GROUP_IS_INDIVIDUAL
+					+" THEN "+TABLE_USER_GROUP+"."+COL_USER_GROUP_ID
+					+ " ELSE "+TABLE_GROUP_MEMBERS+"."+COL_GROUP_MEMBERS_MEMBER_ID
+				+ " END) AS USER_ID"
+			+ " FROM "+ TABLE_USER_GROUP +" LEFT OUTER JOIN "+TABLE_GROUP_MEMBERS
+				+ " ON "+TABLE_USER_GROUP+"."+COL_USER_GROUP_ID +" = "+TABLE_GROUP_MEMBERS+"."+COL_GROUP_MEMBERS_GROUP_ID
+			+ " WHERE "+TABLE_USER_GROUP+"."+COL_USER_GROUP_ID +" IN ( :"+IDS_PARAM+" )"
+			+ " ORDER BY USER_ID "
+			+ " LIMIT :"+LIMIT_PARAM+" OFFSET :"+OFFSET_PARAM;
+
+	private static final String SQL_GET_COUNT_ALL_INDIVIDUALS = "SELECT COUNT(DISTINCT CASE"
+			+ " WHEN "+TABLE_USER_GROUP+"."+COL_USER_GROUP_IS_INDIVIDUAL
+			+" THEN "+TABLE_USER_GROUP+"."+COL_USER_GROUP_ID
+			+ " ELSE "+TABLE_GROUP_MEMBERS+"."+COL_GROUP_MEMBERS_MEMBER_ID
+		+ " END)"
+	+ " FROM "+ TABLE_USER_GROUP +" LEFT OUTER JOIN "+TABLE_GROUP_MEMBERS
+		+ " ON "+TABLE_USER_GROUP+"."+COL_USER_GROUP_ID +" = "+TABLE_GROUP_MEMBERS+"."+COL_GROUP_MEMBERS_GROUP_ID
+	+ " WHERE "+TABLE_USER_GROUP+"."+COL_USER_GROUP_ID +" IN ( :"+IDS_PARAM+" )";
+
 	private static final RowMapper<DBOUserGroup> userGroupRowMapper =  (new DBOUserGroup()).getTableMapping();
 	
 	@Override
@@ -169,5 +206,33 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 	@Override
 	public void bootstrapGroups() throws Exception {
 		// in the case that the groups are initialized as Teams this is done in TeamManagerImpl.bootstrapTeams()
+	}
+
+	@Override
+	public Set<String> getIndividuals(Set<String> principalIds, Long limit, Long offset) {
+		ValidateArgument.required(principalIds, "principalIds");
+		ValidateArgument.required(limit, "limit");
+		ValidateArgument.required(offset, "offset");
+		Set<String> results = new HashSet<String>();
+		if (principalIds.isEmpty()) {
+			return results;
+		}
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue(IDS_PARAM, principalIds);
+		params.addValue(LIMIT_PARAM, limit);
+		params.addValue(OFFSET_PARAM, offset);
+		results.addAll(namedParameterJdbcTemplate.queryForList(SQL_GET_ALL_INDIVIDUALS, params, String.class));
+		return results;
+	}
+
+	@Override
+	public Long getIndividualCount(Set<String> principalIds) {
+		ValidateArgument.required(principalIds, "principalIds");
+		if (principalIds.isEmpty()) {
+			return 0L;
+		}
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue(IDS_PARAM, principalIds);
+		return namedParameterJdbcTemplate.queryForObject(SQL_GET_COUNT_ALL_INDIVIDUALS, params, Long.class);
 	}
 }

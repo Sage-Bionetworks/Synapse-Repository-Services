@@ -9,6 +9,7 @@ import static org.junit.Assert.fail;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -578,6 +579,12 @@ public class EntityPermissionsManagerImplTest {
 	
 	@Test
 	public void testCanDownload() throws Exception {
+		AccessControlList acl = entityPermissionsManager.getACL(project.getId(), adminUserInfo);
+		ResourceAccess ra = new ResourceAccess();
+		ra.setAccessType(Collections.singleton(ACCESS_TYPE.READ));
+		ra.setPrincipalId(otherUserInfo.getId());	
+		acl.getResourceAccess().add(ra);
+		entityPermissionsManager.updateACL(acl, adminUserInfo);
 		// baseline:  there is no restriction against downloading this entity
 		assertTrue(entityPermissionsManager.hasAccess(childNode.getId(), ACCESS_TYPE.DOWNLOAD, otherUserInfo).getAuthorized());
 		// now create an access requirement on project and child

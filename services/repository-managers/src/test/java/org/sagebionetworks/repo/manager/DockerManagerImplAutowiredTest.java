@@ -4,6 +4,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.commons.lang.RandomStringUtils;
 import org.junit.After;
 import org.junit.Before;
@@ -34,6 +37,7 @@ public class DockerManagerImplAutowiredTest {
 	private static final String TYPE = "repository";
 	private static final String TAG = "lastest";
 	private static final String DIGEST = "sha256:10010101";
+	private static final String MEDIA_TYPE = DockerManagerImpl.MANIFEST_MEDIA_TYPE;
 
 	private String repositoryPath;
 	
@@ -70,7 +74,8 @@ public class DockerManagerImplAutowiredTest {
 	@Test
 	public void testAuthorizeDockerAccess() {
 		// test to see if we can push to the project.  Answer should be yes!
-		String scope =TYPE+":"+repositoryPath+":push";
+		List<String> scope = new ArrayList<String>();
+		scope.add(TYPE+":"+repositoryPath+":push");
 		DockerAuthorizationToken token = dockerManager.authorizeDockerAccess(adminUserInfo, SERVICE, scope);
 		assertNotNull(token.getToken());
 	}
@@ -81,7 +86,7 @@ public class DockerManagerImplAutowiredTest {
 
 		DockerRegistryEventList events = 
 				DockerRegistryEventUtil.createDockerRegistryEvent(
-						RegistryEventAction.push, SERVICE, adminUserInfo.getId(), repositoryPath, TAG, DIGEST);
+						RegistryEventAction.push, SERVICE, adminUserInfo.getId(), repositoryPath, TAG, DIGEST, MEDIA_TYPE);
 		dockerManager.dockerRegistryNotification(events);
 
 		String createdEntityId = dockerNodeDao.getEntityIdForRepositoryName(SERVICE+"/"+repositoryPath);

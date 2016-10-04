@@ -46,6 +46,7 @@ import org.sagebionetworks.repo.model.message.MessageSortBy;
 import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
+import org.sagebionetworks.repo.model.message.MessageToUserUtils;
 import org.sagebionetworks.repo.model.message.Settings;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -210,7 +211,6 @@ public class MessageManagerImpl implements MessageManager {
 	public MessageToUser createMessage(UserInfo userInfo, MessageToUser dto) throws NotFoundException {
 		// Make sure the sender is correct
 		dto.setCreatedBy(userInfo.getId().toString());
-
 		if (!userInfo.isAdmin()) {
 			// Can't be anonymous
 			if (AuthorizationUtils.isUserAnonymous(userInfo)) {
@@ -317,6 +317,7 @@ public class MessageManagerImpl implements MessageManager {
 		MessageToUser message = getMessage(userInfo, messageId);
 		message.setRecipients(recipients.getRecipients());
 		message.setInReplyTo(messageId);
+		message = MessageToUserUtils.setUserGeneratedMessageFooter(message);
 		return createMessageWithThrottle(userInfo, message);
 	}
 
@@ -414,11 +415,12 @@ public class MessageManagerImpl implements MessageManager {
 		if (messageDAO.getMessageSent(dto.getId())) {
 			return errors;
 		}
+		String senderUserName = null;
 
 		UserInfo userInfo = userManager.getUserInfo(Long.parseLong(dto.getCreatedBy()));
 		
 		// in practice there is always a user name, but strictly speaking it is allowed to be missing
-		String senderUserName = null;
+		
 		try {
 			senderUserName = principalAliasDAO.getUserName(userInfo.getId());
 		} catch (NotFoundException e) {
@@ -481,6 +483,10 @@ public class MessageManagerImpl implements MessageManager {
 						.withSenderDisplayName(senderDisplayName)
 						.withUserId(userId)
 						.withNotificationUnsubscribeEndpoint(dto.getNotificationUnsubscribeEndpoint())
+						.withUnsubscribeLink(dto.getWithUnsubscribeLink())
+						.withUserProfileSettingEndpoint(dto.getUserProfileSettingEndpoint())
+						.withProfileSettingLink(dto.getWithProfileSettingLink())
+						.withIsNotificationMessage(dto.getIsNotificationMessage())
 						.build();
 					sesClient.sendRawEmail(sendRawEmailRequest);
 					// Should the message be marked as READ?

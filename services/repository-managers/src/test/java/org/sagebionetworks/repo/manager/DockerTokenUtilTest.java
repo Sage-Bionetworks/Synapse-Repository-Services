@@ -4,10 +4,15 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.security.cert.X509Certificate;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
+import org.apache.commons.net.util.Base64;
 import org.junit.Test;
+import org.sagebionetworks.repo.model.docker.RegistryEventAction;
 
 public class DockerTokenUtilTest {
 	
@@ -24,22 +29,56 @@ public class DockerTokenUtilTest {
 		String userName = "userName";
 		String type = "repository";
 		String registry = "docker.synapse.org";
-		String repository = "syn12345/myrepo";
-		List<String> actions = Arrays.asList(new String[] {"push", "pull"});
+		String repository1 = "syn12345/myrepo";
+		String repository2 = "syn12345/myotherrepo";
+		Set<RegistryEventAction> pushAndPullActions = new HashSet<RegistryEventAction>(Arrays.asList(new RegistryEventAction[] {RegistryEventAction.push, RegistryEventAction.pull}));
+		Set<RegistryEventAction> pullActionOnly = new HashSet<RegistryEventAction>(Arrays.asList(new RegistryEventAction[] {RegistryEventAction.pull}));
+		
+		
+		
 
 		long now = 1465768785754L;
+		long interval = 120;
 		String uuid = "8b263df7-dd04-4afe-8366-64f882e0942d";
+		
+		List<DockerScopePermission> permissions = new ArrayList<DockerScopePermission>();
+		permissions.add(new DockerScopePermission(type, repository1, pushAndPullActions));
+		permissions.add(new DockerScopePermission(type, repository2, pullActionOnly));
 
-		String token = DockerTokenUtil.createToken(userName, type, registry, repository, actions, now, uuid);
+		
+		String token = DockerTokenUtil.createToken(userName, registry, permissions, now, uuid);
 
 		// the 'expected' token was verified to work with the Docker registry
 		// note: the token is dependent on the credentials in stack.properties
 		// if those credentials are changed, then this test string must be regenerated
 		String[] pieces = token.split("\\.");
 		assertEquals(3, pieces.length);
-		String expectedHeadersBase64 = "eyJ0eXAiOiJKV1QiLCJraWQiOiJGV09aOjZKTlk6T1VaNTpCSExBOllXSkk6UEtMNDpHNlFSOlhDTUs6M0JVNDpFSVhXOkwzUTc6Vk1JUiIsImFsZyI6IkVTMjU2In0";
+		
+		String expectedHeaderString = "{\"typ\":\"JWT\",\"kid\":\""+DockerTokenUtil.PUBLIC_KEY_ID+"\",\"alg\":\"ES256\"}";
+		String expectedHeadersBase64 = Base64.encodeBase64URLSafeString( expectedHeaderString.getBytes());
 		assertEquals(expectedHeadersBase64, pieces[0]);
-		String expectedClaimSetBase64 = "eyJpc3MiOiJ3d3cuc3luYXBzZS5vcmciLCJhdWQiOiJkb2NrZXIuc3luYXBzZS5vcmciLCJleHAiOjE0NjU3Njg5MDUsIm5iZiI6MTQ2NTc2ODY2NSwiaWF0IjoxNDY1NzY4Nzg1LCJqdGkiOiI4YjI2M2RmNy1kZDA0LTRhZmUtODM2Ni02NGY4ODJlMDk0MmQiLCJzdWIiOiJ1c2VyTmFtZSIsImFjY2VzcyI6W3sibmFtZSI6InN5bjEyMzQ1L215cmVwbyIsInR5cGUiOiJyZXBvc2l0b3J5IiwiYWN0aW9ucyI6WyJwdXNoIiwicHVsbCJdfV19";
+		
+		StringBuilder expectedClaimSetStringBuilder = new StringBuilder("{\"iss\":\"www.synapse.org\",\"aud\":\"docker.synapse.org\",\"exp\":");
+		expectedClaimSetStringBuilder.append(now / 1000 + interval);
+		expectedClaimSetStringBuilder.append(",\"nbf\":");
+		expectedClaimSetStringBuilder.append(now / 1000 - interval);
+		expectedClaimSetStringBuilder.append(",\"iat\":");
+		expectedClaimSetStringBuilder.append(now / 1000);
+		expectedClaimSetStringBuilder.append(",\"jti\":\"");
+		expectedClaimSetStringBuilder.append(uuid);
+		expectedClaimSetStringBuilder.append("\",\"sub\":\"");
+		expectedClaimSetStringBuilder.append(userName);
+		expectedClaimSetStringBuilder.append("\",\"access\":[{\"name\":\"");
+		expectedClaimSetStringBuilder.append(repository1);
+		expectedClaimSetStringBuilder.append("\",\"type\":\"");
+		expectedClaimSetStringBuilder.append(type);
+		expectedClaimSetStringBuilder.append("\",\"actions\":[\"push\",\"pull\"]},{\"name\":\"");
+		expectedClaimSetStringBuilder.append(repository2);
+		expectedClaimSetStringBuilder.append("\",\"type\":\"");
+		expectedClaimSetStringBuilder.append(type);
+		expectedClaimSetStringBuilder.append("\",\"actions\":[\"pull\"]}]}");
+		
+		String expectedClaimSetBase64 = Base64.encodeBase64URLSafeString( expectedClaimSetStringBuilder.toString().getBytes());
 		assertEquals(expectedClaimSetBase64, pieces[1]);
 		assertTrue(pieces[2].length()>0); // since signature changes every time, we can't hard code an 'expected' value
 	}

@@ -238,12 +238,13 @@ public class TableViewManagerImplTest {
 		model.setId(change.getNewColumnId());
 		List<ColumnModel> schema = Lists.newArrayList(model);
 		List<String> newColumnIds = Lists.newArrayList(change.getNewColumnId());
-		when(columnModelManager.calculateNewSchemaIds(viewId, changes)).thenReturn(newColumnIds);
+		when(columnModelManager.calculateNewSchemaIdsAndValidate(viewId, changes)).thenReturn(newColumnIds);
 		when(columnModelManager.getColumnModel(userInfo, newColumnIds, true)).thenReturn(schema);
 		
 		// call under test
 		List<ColumnModel> newSchema = manager.applySchemaChange(userInfo, viewId, changes);
 		assertEquals(schema, newSchema);
+		verify(columnModelManager).calculateNewSchemaIdsAndValidate(viewId, changes);
 		verify(tableManagerSupport).setTableToProcessingAndTriggerUpdate(viewId);
 	}
 

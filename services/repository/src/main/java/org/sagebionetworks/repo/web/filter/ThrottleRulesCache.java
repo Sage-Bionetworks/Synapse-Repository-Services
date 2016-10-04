@@ -56,7 +56,7 @@ public class ThrottleRulesCache {
 		Map<String, ThrottleLimit> updatedRulesMap = new ConcurrentHashMap<String, ThrottleLimit>();
 		List<ThrottleRule> rules = throttleRulesDao.getAllThrottleRules();
 		for(ThrottleRule rule : rules){
-			updatedRulesMap.put(rule.getNormalizedPath(), new ThrottleLimit(rule.getMaxCallsPerPeriod(), rule.getPeriod()));
+			updatedRulesMap.put(rule.getNormalizedPath().toLowerCase(), new ThrottleLimit(rule.getMaxCallsPerPeriod(), rule.getPeriod()));
 		}
 		
 		//change the reference to the new map and flag that the thread finished updating

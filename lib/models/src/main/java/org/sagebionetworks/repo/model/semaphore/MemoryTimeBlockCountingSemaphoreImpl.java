@@ -14,6 +14,11 @@ public class MemoryTimeBlockCountingSemaphoreImpl implements MemoryTimeBlockCoun
 		ValidateArgument.requirement(timeoutSec >= 0, "timeoutSec must be a positive value");
 		ValidateArgument.requirement(maxLockCount >= 0, "maxLockCount must be a positive value");
 		
+		if(maxLockCount == 0){
+			//no need to track nor do anything if the max number of acquirable locks is 0
+			return false;
+		}
+		
 		SimpleSemaphore semaphore = keySemaphoreMap.get(key);
 		
 		if(semaphore == null){

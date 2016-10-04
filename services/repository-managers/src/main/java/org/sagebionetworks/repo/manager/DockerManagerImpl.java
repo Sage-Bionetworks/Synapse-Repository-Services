@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.manager;
 
 import static org.sagebionetworks.repo.model.docker.RegistryEventAction.pull;
-import static org.sagebionetworks.repo.model.docker.RegistryEventAction.push;
 import static org.sagebionetworks.repo.model.util.DockerNameUtil.REPO_NAME_PATH_SEP;
 
 import java.util.ArrayList;
@@ -16,8 +15,6 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.AuthorizationUtils;
-import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DockerCommitDao;
 import org.sagebionetworks.repo.model.DockerNodeDao;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -69,60 +66,73 @@ public class DockerManagerImpl implements DockerManager {
 	
 	@Autowired
 	private TransactionalMessenger transactionalMessenger;
-
+	
+	public static String MANIFEST_MEDIA_TYPE = "application/vnd.docker.distribution.manifest.v2+json";
 
 	/**
 	 * Answer Docker Registry authorization request.
 	 * 
 	 * @param userInfo
 	 * @param service
-	 * @param scope
+	 * @param scope optional parameter used to authenticate access to docker repositories.
+	 *			pass null if the docker client only needs to check login credentials
 	 * @return
 	 */
 	@Override
-	public DockerAuthorizationToken authorizeDockerAccess(UserInfo userInfo, String service, String scope) {
-		String type = null;
-		String repositoryPath = null;
-		Set<String> permittedAccessTypes = Collections.EMPTY_SET;
-		if (scope!=null) {
-			String[] scopeParts = scope.split(":");
-			if (scopeParts.length!=3) throw new RuntimeException("Expected 3 parts but found "+scopeParts.length);
-			type = scopeParts[0]; // type='repository'
-			repositoryPath = scopeParts[1]; // i.e. the 'path'
-			String accessTypes = scopeParts[2]; // e.g. push, pull
-			permittedAccessTypes = getPermittedAccessTypes(userInfo,  service,  type, repositoryPath, accessTypes);
+	public DockerAuthorizationToken authorizeDockerAccess(UserInfo userInfo, String service, List<String> scopes) {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(service, "service");
+		
+		List<DockerScopePermission> accessPermissions = new ArrayList<DockerScopePermission>();
+		
+		if (scopes != null) {
+			for(String scope : scopes){
+				String[] scopeParts = scope.split(":");
+				if (scopeParts.length!=3) throw new RuntimeException("Expected 3 parts in scope param but found "+scopeParts.length + ". Scope param was " + scope);
+				String type = scopeParts[0]; // type='repository'
+				
+				String repositoryPath = scopeParts[1]; // i.e. the 'path'
+				
+				String actionTypes = scopeParts[2]; // e.g. push, pull
+				Set<RegistryEventAction> permittedActions = getPermittedActions(userInfo,  service, repositoryPath, actionTypes);
+				
+				accessPermissions.add(new DockerScopePermission(type, repositoryPath, permittedActions));
+			}
 		}
 
 		// now construct the auth response and return it
 		long now = System.currentTimeMillis();
 		String uuid = UUID.randomUUID().toString();
 
-		String token = DockerTokenUtil.createToken(userInfo.getId().toString(), type, service, repositoryPath, 
-				new ArrayList<String>(permittedAccessTypes), now, uuid);
+		String token = DockerTokenUtil.createToken(userInfo.getId().toString(), service, accessPermissions, now, uuid);
 		DockerAuthorizationToken result = new DockerAuthorizationToken();
 		result.setToken(token);
 		return result;
 
 	}
 
-	public Set<String> getPermittedAccessTypes(UserInfo userInfo, 
-			String service, String type, String repositoryPath, String accessTypes) {
+	public Set<RegistryEventAction> getPermittedActions(UserInfo userInfo, 
+			String service, String repositoryPath, String actionTypes) {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(service, "service");
+		ValidateArgument.required(repositoryPath, "repositoryPath");
+		ValidateArgument.required(actionTypes, "actionTypes");
 
-		Set<String> permittedAccessTypes = new HashSet<String>();
+		Set<RegistryEventAction> permittedActions = new HashSet<RegistryEventAction>();
 
 		String parentId = validParentProjectId(repositoryPath);
 
-		if (parentId==null) return permittedAccessTypes;
+		if (parentId==null) return permittedActions;
 
 		String repositoryName = service+DockerNameUtil.REPO_NAME_PATH_SEP+repositoryPath;
 
 		String existingDockerRepoId = dockerNodeDao.getEntityIdForRepositoryName(repositoryName);
 
-		for (String requestedAccessTypeString : accessTypes.split(",")) {
-			RegistryEventAction requestedAccessType = RegistryEventAction.valueOf(requestedAccessTypeString);
-			switch (requestedAccessType) {
+		for (String requestedActionString : actionTypes.split(",")) {
+			RegistryEventAction requestedAction = RegistryEventAction.valueOf(requestedActionString);
+			switch (requestedAction) {
 			case push:
-				// check CREATE or UPDATE permission and add to permittedAccessTypes
+				// check CREATE or UPDATE permission and add to permittedActions
 				AuthorizationStatus as = null;
 				if (existingDockerRepoId==null) {
 					// check for create permission on parent
@@ -136,25 +146,23 @@ public class DockerManagerImpl implements DockerManager {
 							userInfo, existingDockerRepoId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE);
 				}
 				if (as!=null && as.getAuthorized()) {
-					permittedAccessTypes.add(requestedAccessType.name());
-					if (existingDockerRepoId==null) permittedAccessTypes.add(pull.name());
+					permittedActions.add(requestedAction);
+					if (existingDockerRepoId==null) permittedActions.add(pull);
 				}
 				break;
 			case pull:
-				// check READ+DOWNLOAD permission and add to permittedAccessTypes
+				// check DOWNLOAD permission and add to permittedActions
 				if (existingDockerRepoId!=null) {
 					if (authorizationManager.canAccess(
-							userInfo, existingDockerRepoId, ObjectType.ENTITY, ACCESS_TYPE.READ).getAuthorized() &&
-						authorizationManager.canAccess(
 							userInfo, existingDockerRepoId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD).getAuthorized()
-					) permittedAccessTypes.add(requestedAccessType.name());
+					) permittedActions.add(requestedAction);
 				}
 				break;
 			default:
-				throw new RuntimeException("Unexpected access type: "+requestedAccessType);
+				throw new RuntimeException("Unexpected action type: " + requestedAction);
 			}
 		}
-		return permittedAccessTypes;
+		return permittedActions;
 	}
 
 
@@ -207,6 +215,11 @@ public class DockerManagerImpl implements DockerManager {
 			RegistryEventAction action = event.getAction();
 			switch (action) {
 			case push:
+				//we only care about the notification if it is a manifest push, which contains metadata about the repository
+				//the other type of push would be layer blob pushes ("mediaType": "application/octet-stream"), which we don't care about
+				if(!event.getTarget().getMediaType().equals(MANIFEST_MEDIA_TYPE))
+					continue;
+				
 				// need to make sure this is a registry we support
 				String host = event.getRequest().getHost();
 				if (!StackConfiguration.getDockerRegistryHosts().contains(host)) continue;
@@ -250,6 +263,9 @@ public class DockerManagerImpl implements DockerManager {
 			case pull:
 				// nothing to do. We are being notified that someone has pulled a repository image
 				break;
+			case mount:
+				//nothing to do. We are being notified that another repository is being mounted to prevent re-upload
+				break;
 			default:
 				throw new IllegalArgumentException("Unexpected action "+action);
 			}
@@ -280,7 +296,7 @@ public class DockerManagerImpl implements DockerManager {
 		AuthorizationStatus authStatus = authorizationManager.canAccess(userInfo, entityId, ObjectType.ENTITY, ACCESS_TYPE.READ);
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(authStatus);
 		EntityType entityType = entityManager.getEntityType(userInfo, entityId);
-		if (!entityType.equals(entityType.dockerrepo)) throw new IllegalArgumentException("Only Docker reposiory entities have commits.");
+		if (!entityType.equals(EntityType.dockerrepo)) throw new IllegalArgumentException("Only Docker reposiory entities have commits.");
 		List<DockerCommit> commits = dockerCommitDao.listDockerCommits(entityId, sortBy, ascending, limit, offset);
 		long count = dockerCommitDao.countDockerCommits(entityId);
 		PaginatedResults<DockerCommit> result = new PaginatedResults<DockerCommit>();

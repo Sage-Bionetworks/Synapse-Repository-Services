@@ -567,7 +567,7 @@ public class TableManagerSupportTest {
 	}
 	
 	@Test
-	public void testValidateTableReadAccessFiewView(){
+	public void testValidateTableReadAccessFileView(){
 		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.entityview);
 		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(new AuthorizationStatus(true, ""));
 		//  call under test
@@ -578,7 +578,7 @@ public class TableManagerSupportTest {
 	}
 	
 	@Test (expected=UnauthorizedException.class)
-	public void testValidateTableReadAccessFiewViewNoRead(){
+	public void testValidateTableReadAccessFileViewNoRead(){
 		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.entityview);
 		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(new AuthorizationStatus(false, ""));
 		//  call under test

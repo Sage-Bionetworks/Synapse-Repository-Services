@@ -110,7 +110,14 @@ public interface AccessControlListDAO  {
 	public Set<Long> getAccessibleBenefactors(Set<Long> groups, Set<Long> benefactors,
 			ObjectType entity, ACCESS_TYPE read);
 
-	
+	/**
+	 * Retrieve all user groups that has ACCESS_TYPE accessType to the given object
+	 * 
+	 * @param objectId
+	 * @param objectType
+	 * @param accessType
+	 * @return
+	 */
+	public Set<String> getPrincipalIds(String objectId, ObjectType objectType, ACCESS_TYPE accessType);
 
-	
 }

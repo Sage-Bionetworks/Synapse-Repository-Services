@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.manager;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Properties;
@@ -17,7 +16,6 @@ import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
-import javax.mail.internet.MimeUtility;
 
 import org.apache.commons.net.util.Base64;
 import org.apache.http.entity.ContentType;
@@ -46,8 +44,11 @@ public class SendRawEmailRequestBuilder {
 	private String senderDisplayName=null;
 	private String senderUserName=null;
 	private String notificationUnsubscribeEndpoint=null;
+	private String userProfileSettingEndpoint=null;
 	private String userId=null;
-	
+	private boolean withUnsubscribeLink=false;
+	private boolean withProfileSettingLink=false;
+	private boolean isNotificationMessage=false;
 	
 	public enum BodyType{JSON, PLAIN_TEXT, HTML};
 
@@ -98,35 +99,67 @@ public class SendRawEmailRequestBuilder {
 		return this;
 	}
 
+	public SendRawEmailRequestBuilder withUnsubscribeLink(Boolean withUnsubscribeLink) {
+		if (withUnsubscribeLink != null) this.withUnsubscribeLink=withUnsubscribeLink;
+		return this;
+	}
+
+	public SendRawEmailRequestBuilder withUserProfileSettingEndpoint(String userProfileSettingEndpoint) {
+		this.userProfileSettingEndpoint=userProfileSettingEndpoint;
+		return this;
+	}
+
+	public SendRawEmailRequestBuilder withProfileSettingLink(Boolean withProfileSettingLink) {
+		if (withProfileSettingLink != null) this.withProfileSettingLink=withProfileSettingLink;
+		return this;
+	}
+	
+	public SendRawEmailRequestBuilder withIsNotificationMessage(Boolean isNotificationMessage) {
+		if (isNotificationMessage != null) this.isNotificationMessage=isNotificationMessage;
+		return this;
+	}
+
 	public SendRawEmailRequestBuilder withUserId(String userId) {
 		this.userId=userId;
 		return this;
 	}
 
 	public SendRawEmailRequest build()  {
-		String source = EmailUtils.createSource(senderDisplayName, senderUserName);        
+		String source = null;
+		if (isNotificationMessage) {
+			source = EmailUtils.createSource(null, null);
+		} else {
+			source = EmailUtils.createSource(senderDisplayName, senderUserName);
+		}
 		// Create the subject and body of the message
 		if (subject == null) subject = "";
 
 		String unsubscribeLink = null;
-        if (notificationUnsubscribeEndpoint==null) {
-        	notificationUnsubscribeEndpoint = StackConfiguration.getDefaultPortalNotificationEndpoint();
-        }
-		if (userId!=null) {
+		String profileSettingLink = null;
+		if (withUnsubscribeLink && notificationUnsubscribeEndpoint==null) {
+			notificationUnsubscribeEndpoint = StackConfiguration.getDefaultPortalNotificationEndpoint();
+		}
+		if (withProfileSettingLink && userProfileSettingEndpoint == null) {
+			userProfileSettingEndpoint = StackConfiguration.getDefaultPortalProfileSettingEndpoint();
+		}
+		if (withUnsubscribeLink && userId!=null) {
 			unsubscribeLink = EmailUtils.
 					createOneClickUnsubscribeLink(notificationUnsubscribeEndpoint, userId);
+		}
+		if (withProfileSettingLink && userId != null) {
+			profileSettingLink = userProfileSettingEndpoint;
 		}
 
 		MimeMultipart multipart;
 		switch (bodyType) {
 		case JSON:
-			multipart = createEmailBodyFromJSON(body, unsubscribeLink);
+			multipart = createEmailBodyFromJSON(body, unsubscribeLink, profileSettingLink);
 			break;
 		case PLAIN_TEXT:
-			multipart = createEmailBodyFromText(body, ContentType.TEXT_PLAIN, unsubscribeLink);
+			multipart = createEmailBodyFromText(body, ContentType.TEXT_PLAIN, unsubscribeLink, profileSettingLink);
 			break;
 		case HTML:
-			multipart = createEmailBodyFromText(body, ContentType.TEXT_HTML, unsubscribeLink);
+			multipart = createEmailBodyFromText(body, ContentType.TEXT_HTML, unsubscribeLink, profileSettingLink);
 			break;
 		default:
 			throw new IllegalStateException("Unexpected type "+bodyType);
@@ -166,7 +199,7 @@ public class SendRawEmailRequestBuilder {
 		return request;
 	}
 	
-	public static MimeMultipart createEmailBodyFromJSON(String messageBodyString, String unsubscribeLink) {
+	public static MimeMultipart createEmailBodyFromJSON(String messageBodyString, String unsubscribeLink, String userProfileSettingLink) {
 		try {
 			MessageBody messageBody = null;
 			boolean canDeserializeJSON = false;
@@ -191,14 +224,14 @@ public class SendRawEmailRequestBuilder {
 					alternativeBodyPart.setContent(alternativeMultiPart);
 					if (html!=null) {
 						BodyPart part = new MimeBodyPart();
-						part.setContent(EmailUtils.createEmailBodyFromHtml(html, unsubscribeLink), 
+						part.setContent(EmailUtils.createEmailBodyFromHtml(html, unsubscribeLink, userProfileSettingLink),
 							ContentType.TEXT_HTML.getMimeType());
 						alternativeMultiPart.addBodyPart(part);
 					} else if (plain!=null) {
 						BodyPart part = new MimeBodyPart();
-						part.setContent(EmailUtils.createEmailBodyFromText(plain, unsubscribeLink), 
+						part.setContent(EmailUtils.createEmailBodyFromText(plain, unsubscribeLink, userProfileSettingLink),
 								ContentType.TEXT_PLAIN.getMimeType());
-						alternativeMultiPart.addBodyPart(part);						
+						alternativeMultiPart.addBodyPart(part);
 					}
 					mp.addBodyPart(alternativeBodyPart);
 				}
@@ -232,7 +265,7 @@ public class SendRawEmailRequestBuilder {
 
 			} else {
 				BodyPart part = new MimeBodyPart();
-				part.setContent(EmailUtils.createEmailBodyFromText(messageBodyString, unsubscribeLink), 
+				part.setContent(EmailUtils.createEmailBodyFromText(messageBodyString, unsubscribeLink, userProfileSettingLink), 
 						ContentType.TEXT_PLAIN.getMimeType());
 				mp.addBodyPart(part);
 			}
@@ -242,17 +275,17 @@ public class SendRawEmailRequestBuilder {
 		}
 	}
 	
-	public static MimeMultipart createEmailBodyFromText(String messageBodyString, ContentType contentType, String unsubscribeLink) {
+	public static MimeMultipart createEmailBodyFromText(String messageBodyString, ContentType contentType, String unsubscribeLink, String userProfileSettingLink) {
 		MimeMultipart mp = new MimeMultipart("related");
 		try {
 			BodyPart part = new MimeBodyPart();
 			if (contentType.getMimeType().equals(ContentType.TEXT_HTML.getMimeType())) {
-				part.setContent(EmailUtils.createEmailBodyFromHtml(messageBodyString, unsubscribeLink), 
+				part.setContent(EmailUtils.createEmailBodyFromHtml(messageBodyString, unsubscribeLink, userProfileSettingLink), 
 						ContentType.TEXT_HTML.getMimeType());
 			} else if (contentType.getMimeType().equals(ContentType.TEXT_PLAIN.getMimeType())) {
 				StringBuilder sb = new StringBuilder("<html>\n<body>\n");
 				sb.append("<div style=\"white-space: pre-wrap;\">\n");
-				sb.append(EmailUtils.createEmailBodyFromHtml(messageBodyString, unsubscribeLink));
+				sb.append(EmailUtils.createEmailBodyFromHtml(messageBodyString, unsubscribeLink, userProfileSettingLink));
 				sb.append("\n</div>");
 				sb.append("\n</body>\n</html>\n");
 				part.setContent(sb.toString(), ContentType.TEXT_HTML.getMimeType());

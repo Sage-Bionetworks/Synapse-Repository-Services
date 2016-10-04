@@ -16,16 +16,13 @@ import java.nio.charset.Charset;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 
-import org.apache.commons.fileupload.FileItemIterator;
-import org.apache.commons.fileupload.FileItemStream;
-import org.apache.commons.fileupload.FileUploadException;
-import org.apache.commons.fileupload.util.Streams;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -53,6 +50,8 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.UploadDaemonStatusDao;
 import org.sagebionetworks.repo.model.dbo.dao.DBOStorageLocationDAOImpl;
+import org.sagebionetworks.repo.model.file.BatchFileRequest;
+import org.sagebionetworks.repo.model.file.BatchFileResult;
 import org.sagebionetworks.repo.model.file.ChunkRequest;
 import org.sagebionetworks.repo.model.file.ChunkResult;
 import org.sagebionetworks.repo.model.file.ChunkedFileToken;
@@ -66,6 +65,8 @@ import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
+import org.sagebionetworks.repo.model.file.FileResult;
+import org.sagebionetworks.repo.model.file.FileResultFailureCode;
 import org.sagebionetworks.repo.model.file.HasPreviewId;
 import org.sagebionetworks.repo.model.file.ProxyFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -86,7 +87,6 @@ import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.model.util.ContentTypeUtils;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.utils.ContentTypeUtil;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
@@ -112,22 +112,17 @@ import com.google.common.collect.Lists;
  */
 public class FileHandleManagerImpl implements FileHandleManager {
 
+	public static final String MUST_INCLUDE_EITHER = "Must include either FileHandles or pre-signed URLs";
+
 	public static final String UNAUTHORIZED_PROXY_FILE_HANDLE_MSG = "Only the creator of the ProxyStorageLocationSettings or a user with the 'create' permission on ProxyStorageLocationSettings.benefactorId can create a ProxyFileHandle using this storage location ID.";
 	
 	public static final long PRESIGNED_URL_EXPIRE_TIME_MS = 30 * 1000; // 30
 																		// secs
 
-	/**
-	 * Used as the file contents for old locationables and attachments that were never
-	 * successfully uploaded by the original user.  See PLFM-3266.
-	 */
-	static private String NEVER_UPLOADED_CONTENTS = "Placeholder for a file that has not been uploaded.";
-	/**
-	 * Used as the file name for old locationables and attachments that were never
-	 * successfully uploaded by the original user.  See PLFM-3266.
-	 */
-	private static final String PLACEHOLDER_SUFFIX = "_placeholder.txt";
+	public static final int MAX_REQUESTS_PER_CALL = 100;
 
+	public static final String MAX_REQUESTS_PER_CALL_MESSAGE = "Request exceeds the maximum number of objects per request: "+MAX_REQUESTS_PER_CALL;
+	
 	static private Log log = LogFactory.getLog(FileHandleManagerImpl.class);
 
 	private static String FILE_TOKEN_TEMPLATE = "%1$s/%2$s/%3$s"; // userid/UUID/filename
@@ -246,59 +241,6 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		this.fallbackStrategy = fallbackStrategy;
 	}
 
-	@WriteTransaction
-	@Override
-	public FileUploadResults uploadfiles(UserInfo userInfo,
-			Set<String> expectedParams, FileItemIterator itemIterator)
-			throws FileUploadException, IOException,
-			ServiceUnavailableException {
-		if (userInfo == null)
-			throw new IllegalArgumentException("UserInfo cannot be null");
-		if (expectedParams == null)
-			throw new IllegalArgumentException("UserInfo cannot be null");
-		if (itemIterator == null)
-			throw new IllegalArgumentException(
-					"FileItemIterator cannot be null");
-		if (primaryStrategy == null)
-			throw new IllegalStateException(
-					"The primaryStrategy has not been set.");
-		if (fallbackStrategy == null)
-			throw new IllegalStateException(
-					"The fallbackStrategy has not been set.");
-		FileUploadResults results = new FileUploadResults();
-		String userId = getUserId(userInfo);
-		// Upload all of the files
-		// Before we try to read any files make sure we have all of the expected
-		// parameters.
-		Set<String> expectedCopy = new HashSet<String>(expectedParams);
-		while (itemIterator.hasNext()) {
-			FileItemStream fis = itemIterator.next();
-			if (fis.isFormField()) {
-				// This is a parameter
-				// By removing it from the set we indicate that it was found.
-				expectedCopy.remove(fis.getFieldName());
-				// Map parameter in the results
-				results.getParameters().put(fis.getFieldName(),
-						Streams.asString(fis.openStream()));
-			} else {
-				// This is a file
-				if (!expectedCopy.isEmpty()) {
-					// We are missing some required parameters
-					throw new IllegalArgumentException(
-							"Missing one or more of the expected form fields: "
-									+ expectedCopy);
-				}
-				S3FileHandle s3Meta = uploadFile(userId, fis);
-				// If here then we succeeded
-				results.getFiles().add(s3Meta);
-			}
-		}
-		if (log.isDebugEnabled()) {
-			log.debug(results);
-		}
-		return results;
-	}
-
 	/**
 	 * Get the User's ID
 	 * 
@@ -309,36 +251,6 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		return userInfo.getId().toString();
 	}
 
-	/**
-	 * @param userId
-	 * @param fis
-	 * @return
-	 * @throws IOException
-	 * @throws ServiceUnavailableException
-	 */
-	@WriteTransaction
-	@Override
-	@Deprecated
-	public S3FileHandle uploadFile(String userId, FileItemStream fis)
-			throws IOException, ServiceUnavailableException {
-		// Create a token for this file
-		TransferRequest request = createRequest(fis.getContentType(), userId,
-				fis.getName(), fis.openStream());
-		S3FileHandle s3Meta = null;
-		try {
-			// Try the primary
-			s3Meta = primaryStrategy.transferToS3(request);
-		} catch (ServiceUnavailableException e) {
-			log.info("The primary file transfer strategy failed, attempting to use the fall-back strategy.");
-			// The primary strategy failed so try the fall-back.
-			s3Meta = fallbackStrategy.transferToS3(request);
-		}
-		// set this user as the creator of the file
-		s3Meta.setCreatedBy(userId);
-		// Save the file metadata to the DB.
-		s3Meta = fileHandleDao.createFile(s3Meta);
-		return s3Meta;
-	}
 
 	/**
 	 * Build up the S3FileMetadata.
@@ -1021,41 +933,6 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		}		
 	}
 
-	@WriteTransaction
-	@Override
-	public S3FileHandle createNeverUploadedPlaceHolderFileHandle(
-			String createdBy, Date modifiedOn, String name) throws IOException {
-		if(name == null){
-			name = "no-name";
-		}
-		// This will be the contents of the file.
-		byte[] bytes = NEVER_UPLOADED_CONTENTS.getBytes("UTF-8");
-		String fileName = name.replaceAll("\\.", "_")+PLACEHOLDER_SUFFIX;
-		ByteArrayInputStream in = new ByteArrayInputStream(bytes);
-		String md5 = MD5ChecksumHelper.getMD5ChecksumForByteArray(bytes);
-		String hexMd5 = BinaryUtils.toBase64(BinaryUtils.fromHex(md5));
-		// Upload the file to S3
-		ObjectMetadata meta = new ObjectMetadata();
-		meta.setContentType("text/plain");
-		meta.setContentMD5(hexMd5);
-		meta.setContentLength(bytes.length);
-		meta.setContentDisposition(TransferUtils.getContentDispositionValue(fileName));
-		String key = MultipartUtils.createNewKey(createdBy, fileName, null);
-		String bucket = StackConfiguration.getS3Bucket();
-		s3Client.putObject(bucket, key, in, meta);
-		// Create the file handle
-		S3FileHandle handle = new S3FileHandle();
-		handle.setBucketName(bucket);
-		handle.setKey(key);
-		handle.setContentMd5(md5);
-		handle.setContentType(meta.getContentType());
-		handle.setContentSize(meta.getContentLength());
-		handle.setFileName(fileName);
-		handle.setCreatedBy(createdBy);
-		handle.setCreatedOn(modifiedOn);
-		return fileHandleDao.createFile(handle, true);
-	}
-
 	@Override
 	public S3FileHandle createExternalS3FileHandle(UserInfo userInfo,
 			S3FileHandle fileHandle) {
@@ -1214,5 +1091,59 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(authStatus);
 		FileHandle fileHandle = fileHandleDao.get(fileHandleId);
 		return getURLForFileHandle(fileHandle, null);
+	}
+
+	@Override
+	public BatchFileResult getFileHandleAndUrlBatch(UserInfo userInfo,
+			BatchFileRequest request) {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(request, "request");
+		ValidateArgument.required(request.getRequestedFiles(), "requestedFiles");
+		if(!request.getIncludeFileHandles() && !request.getIncludePreSignedURLs()){
+			throw new IllegalArgumentException(MUST_INCLUDE_EITHER);
+		}
+		if(request.getRequestedFiles().size() > MAX_REQUESTS_PER_CALL){
+			throw new IllegalArgumentException(MAX_REQUESTS_PER_CALL_MESSAGE);
+		}
+		
+		// Determine which files the user can download
+		List<FileHandleAssociationAuthorizationStatus> authResults = fileHandleAuthorizationManager.canDownLoadFile(userInfo, request.getRequestedFiles());
+		List<FileResult> requestedFiles = new LinkedList<FileResult>();
+		Set<String> fileHandleIdsToFetch = new HashSet<String>();
+		for(FileHandleAssociationAuthorizationStatus fhas: authResults){
+			FileResult result = new FileResult();
+			result.setFileHandleId(fhas.getAssociation().getFileHandleId());
+			if(!fhas.getStatus().getAuthorized()){
+				result.setFailureCode(FileResultFailureCode.UNAUTHORIZED);
+			}else{
+				fileHandleIdsToFetch.add(fhas.getAssociation().getFileHandleId());
+			}
+			requestedFiles.add(result);
+		}
+		if(!fileHandleIdsToFetch.isEmpty()){
+			// lookup the file handles.
+			Map<String, FileHandle> fileHandles = fileHandleDao.getAllFileHandlesBatch(fileHandleIdsToFetch);
+			// add the fileHandles to the results
+			for(FileResult fr: requestedFiles){
+				if(fr.getFailureCode() == null){
+					FileHandle handle = fileHandles.get(fr.getFileHandleId());
+					if(handle == null){
+						fr.setFailureCode(FileResultFailureCode.NOT_FOUND);
+					}else{
+						// keep the file handle if requested
+						if(request.getIncludeFileHandles()){
+							fr.setFileHandle(handle);
+						}
+						if(request.getIncludePreSignedURLs()){
+							String url = getURLForFileHandle(handle, null);
+							fr.setPreSignedURL(url);
+						}
+					}
+				}
+			}
+		}
+		BatchFileResult batch = new BatchFileResult();
+		batch.setRequestedFiles(requestedFiles);
+		return batch;
 	}
 }

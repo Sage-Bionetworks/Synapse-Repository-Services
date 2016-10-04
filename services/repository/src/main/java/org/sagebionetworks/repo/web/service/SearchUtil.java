@@ -75,9 +75,14 @@ public class SearchUtil {
 					value = rangeStringBuilder.toString();
 				}
 				
-				if(!value.contains("{") && !value.contains("}") 
-					&& !value.contains("[") && !value.contains("]")){ //if not a continuous range such as [300,}
-					value = "'" + escapeQuotedValue(pair.getValue()) + "'";} //add quotes around value. i.e. value -> 'value'
+				if((value.contains("{") || value.contains("[")) 
+					&& (value.contains("}") || value.contains("]")) ){ //if is a continuous range such as [300,}
+					bqTerms.add("(range field=" + pair.getKey()+ " " + value + ")");
+					continue;
+				}
+				
+				//add quotes around value. i.e. value -> 'value'
+				value = "'" + escapeQuotedValue(pair.getValue()) + "'"; 
 				String term = pair.getKey() + ":" + value; 
 				if(pair.getNot() != null && pair.getNot()) {
 					term = "(not " + term + ")";

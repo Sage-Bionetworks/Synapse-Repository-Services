@@ -5,6 +5,9 @@ import static org.mockito.Mockito.verify;
 import static org.sagebionetworks.repo.web.filter.ThrottleUtils.generateCloudwatchProfiledata;
 import static org.sagebionetworks.repo.web.filter.ThrottleUtils.setResponseError;
 import static org.sagebionetworks.repo.web.filter.ThrottleUtils.isMigrationAdmin;
+import static org.sagebionetworks.repo.web.filter.ThrottleUtils.JSON_HTTP_CONTENT_TYPE;
+import static org.sagebionetworks.repo.web.filter.ThrottleUtils.UTF8_ENCODING;
+
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -88,6 +91,8 @@ public class ThrottleUtilTest {
 		setResponseError(mockResponse, httpError, reason);
 		//TODO: Switch to 429 http code once clients have been implemented to expect that code
 		verify(mockResponse).setStatus(httpError);
+		verify(mockResponse).setContentType(JSON_HTTP_CONTENT_TYPE);
+		verify(mockResponse).setCharacterEncoding(UTF8_ENCODING);
 		verify(mockWriter).println(reason);
 	}
 	

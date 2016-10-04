@@ -75,7 +75,8 @@ public class DockerManagerImplUnitTest {
 	
 	private static final String TAG = "v1";
 	private static final String DIGEST = "sha256:8900ee859c6808c9f83ce51bf44b508df63d1f2e8a839ca230471f1bac90ee19";
-
+	
+	private static final String MEDIA_TYPE = DockerManagerImpl.MANIFEST_MEDIA_TYPE;
 	
 	private DockerManagerImpl dockerManager;
 	
@@ -176,10 +177,21 @@ public class DockerManagerImplUnitTest {
 	public void testValidParentProjectIdHappyPath() {
 		assertEquals(PARENT_ID, dockerManager.validParentProjectId(PARENT_ID+"/myrepo"));
 	}
-
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void testAuthourizeDockerAccessNullUserInfo() throws Exception{
+		dockerManager.authorizeDockerAccess(null, SERVICE, new ArrayList<String>());
+	}
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void testAuthourizeDockerAccessNullService() throws Exception{
+		dockerManager.authorizeDockerAccess(USER_INFO, null, new ArrayList<String>());
+	}
+	
 	@Test
 	public void testAuthorizeDockerAccess() throws Exception {
-		String scope =TYPE+":"+REPOSITORY_PATH+":"+ACCESS_TYPES_STRING;
+		List<String> scope = new ArrayList<String>();
+		scope.add(TYPE+":"+REPOSITORY_PATH+":"+ACCESS_TYPES_STRING);
 		
 		// method under test:
 		DockerAuthorizationToken token = dockerManager.
@@ -198,13 +210,37 @@ public class DockerManagerImplUnitTest {
 		assertNotNull(token.getToken());
 	}
 	
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetPermittedAccessTypesNullUserInfo() throws Exception{
+		dockerManager.
+		getPermittedActions(null, SERVICE, REPOSITORY_PATH, ACCESS_TYPES_STRING);
+	}
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetPermittedAccessTypesNullService() throws Exception{
+		dockerManager.
+		getPermittedActions(USER_INFO, null, REPOSITORY_PATH, ACCESS_TYPES_STRING);
+	}
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetPermittedAccessTypesNullRepositoryPath() throws Exception{
+		dockerManager.
+		getPermittedActions(USER_INFO, SERVICE, null, ACCESS_TYPES_STRING);
+	}
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetPermittedAccessTypesNullAction() throws Exception{
+		dockerManager.
+		getPermittedActions(USER_INFO, SERVICE, REPOSITORY_PATH, null);
+	}
+	
 	@Test
 	public void testGetPermittedAccessTypesHappyCase() throws Exception {
 		// method under test:
-		Set<String> permitted = dockerManager.
-				getPermittedAccessTypes(USER_INFO, SERVICE, TYPE, REPOSITORY_PATH, ACCESS_TYPES_STRING);
+		Set<RegistryEventAction> permitted = dockerManager.
+				getPermittedActions(USER_INFO, SERVICE, REPOSITORY_PATH, ACCESS_TYPES_STRING);
 		
-		assertEquals(new HashSet(Arrays.asList(new String[]{"push", "pull"})), permitted);
+		assertEquals(new HashSet(Arrays.asList(new RegistryEventAction[]{RegistryEventAction.push, RegistryEventAction.pull})), permitted);
 	}
 
 	@Test
@@ -212,8 +248,8 @@ public class DockerManagerImplUnitTest {
 		String repositoryPath = "garbage/"+REPOSITORY_NAME;
 		
 		// method under test:
-		Set<String> permitted = dockerManager.
-				getPermittedAccessTypes(USER_INFO, SERVICE, TYPE, repositoryPath, ACCESS_TYPES_STRING);
+		Set<RegistryEventAction> permitted = dockerManager.
+				getPermittedActions(USER_INFO, SERVICE, repositoryPath, ACCESS_TYPES_STRING);
 		
 		assertTrue(permitted.isEmpty());
 	}
@@ -225,11 +261,11 @@ public class DockerManagerImplUnitTest {
 		when(dockerNodeDao.getEntityIdForRepositoryName(SERVICE+"/"+repositoryPath)).thenReturn(null);
 
 		// method under test:
-		Set<String> permitted = dockerManager.
-				getPermittedAccessTypes(USER_INFO, SERVICE, TYPE, repositoryPath, ACCESS_TYPES_STRING);
+		Set<RegistryEventAction> permitted = dockerManager.
+				getPermittedActions(USER_INFO, SERVICE, repositoryPath, ACCESS_TYPES_STRING);
 		
 		// client needs both push and pull access to push a not-yet-existing repo to the registry
-		assertEquals(new HashSet(Arrays.asList(new String[]{"push", "pull"})), permitted);
+		assertEquals(new HashSet(Arrays.asList(new RegistryEventAction[]{RegistryEventAction.push, RegistryEventAction.pull})), permitted);
 	}
 
 	@Test
@@ -243,8 +279,8 @@ public class DockerManagerImplUnitTest {
 				thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		
 		// method under test:
-		Set<String> permitted = dockerManager.
-				getPermittedAccessTypes(USER_INFO, SERVICE, TYPE, REPOSITORY_PATH, ACCESS_TYPES_STRING);
+		Set<RegistryEventAction> permitted = dockerManager.
+				getPermittedActions(USER_INFO, SERVICE, REPOSITORY_PATH, ACCESS_TYPES_STRING);
 
 		// Note, we DO have create access, but that doesn't let us 'push' since the repo already exists
 		assertTrue(permitted.toString(), permitted.isEmpty());
@@ -261,11 +297,12 @@ public class DockerManagerImplUnitTest {
 				thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		
 		// method under test:
-		Set<String> permitted = dockerManager.
-				getPermittedAccessTypes(USER_INFO, SERVICE, TYPE, REPOSITORY_PATH, "pull");
+		Set<RegistryEventAction> permitted = dockerManager.
+				getPermittedActions(USER_INFO, SERVICE, REPOSITORY_PATH, "pull");
 
-		// Note, we DO have create access, but that doesn't let us 'push' since the repo already exists
-		assertTrue(permitted.toString(), permitted.isEmpty());
+		// it's allowed because it's *DOWNLOAD* permission, not *READ* permission which we must have
+		assertEquals(new HashSet(Arrays.asList(new RegistryEventAction[]{RegistryEventAction.pull})), permitted);
+
 	}
 
 	@Test
@@ -282,8 +319,8 @@ public class DockerManagerImplUnitTest {
 				thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		
 		// method under test:
-		Set<String> permitted = dockerManager.
-				getPermittedAccessTypes(USER_INFO, SERVICE, TYPE, repositoryPath, ACCESS_TYPES_STRING);
+		Set<RegistryEventAction> permitted = dockerManager.
+				getPermittedActions(USER_INFO, SERVICE, repositoryPath, ACCESS_TYPES_STRING);
 
 		// Note, we DO have update access, but that doesn't let us 'push' since the repo doesn't exist
 		assertTrue(permitted.toString(), permitted.isEmpty());
@@ -294,7 +331,7 @@ public class DockerManagerImplUnitTest {
 		when(dockerNodeDao.getEntityIdForRepositoryName(REPOSITORY_NAME)).thenReturn(null);
 
 		DockerRegistryEventList events = 
-				DockerRegistryEventUtil.createDockerRegistryEvent(RegistryEventAction.push, REGISTRY_HOST, USER_ID, REPOSITORY_PATH, TAG, DIGEST);
+				DockerRegistryEventUtil.createDockerRegistryEvent(RegistryEventAction.push, REGISTRY_HOST, USER_ID, REPOSITORY_PATH, TAG, DIGEST, MEDIA_TYPE);
 		
 		// method under test:
 		dockerManager.dockerRegistryNotification(events);
@@ -319,7 +356,7 @@ public class DockerManagerImplUnitTest {
 	@Test
 	public void testDockerRegistryNotificationPushExistingEntity() {
 		DockerRegistryEventList events = 
-				DockerRegistryEventUtil.createDockerRegistryEvent(RegistryEventAction.push, REGISTRY_HOST, USER_ID, REPOSITORY_PATH, TAG, DIGEST);
+				DockerRegistryEventUtil.createDockerRegistryEvent(RegistryEventAction.push, REGISTRY_HOST, USER_ID, REPOSITORY_PATH, TAG, DIGEST, MEDIA_TYPE);
 		
 		// method under test:
 		dockerManager.dockerRegistryNotification(events);
@@ -341,7 +378,7 @@ public class DockerManagerImplUnitTest {
 		when(dockerNodeDao.getEntityIdForRepositoryName(REPOSITORY_NAME)).thenReturn(null);
 
 		DockerRegistryEventList events = 
-				DockerRegistryEventUtil.createDockerRegistryEvent(RegistryEventAction.push, "quay.io", USER_ID, REPOSITORY_PATH, TAG, DIGEST);
+				DockerRegistryEventUtil.createDockerRegistryEvent(RegistryEventAction.push, "quay.io", USER_ID, REPOSITORY_PATH, TAG, DIGEST, MEDIA_TYPE);
 		
 		// method under test:
 		dockerManager.dockerRegistryNotification(events);
@@ -350,13 +387,28 @@ public class DockerManagerImplUnitTest {
 		verify(dockerCommitDao, never()).createDockerCommit(anyString(), anyLong(), (DockerCommit)anyObject());
 	}
 	
+	@Test
+	public void testDockerRegistryNotificationPushNotManifestMediaType() {
+		when(dockerNodeDao.getEntityIdForRepositoryName(REPOSITORY_NAME)).thenReturn(null);
+
+		DockerRegistryEventList events = 
+				DockerRegistryEventUtil.createDockerRegistryEvent(RegistryEventAction.push, REGISTRY_HOST, USER_ID, REPOSITORY_PATH, TAG, DIGEST, "application/octet-stream");
+		
+		// method under test:
+		dockerManager.dockerRegistryNotification(events);
+		
+		verify(entityManager, never()).createEntity((UserInfo)anyObject(), (Entity)anyObject(), anyString());
+		verify(dockerCommitDao, never()).createDockerCommit(anyString(), anyLong(), (DockerCommit)anyObject());
+	}
+	
+	
 	@Test(expected=IllegalArgumentException.class)
 	public void testDockerRegistryNotificationPushNEWEntityParentIsFolder() {
 		when(dockerNodeDao.getEntityIdForRepositoryName(REPOSITORY_NAME)).thenReturn(null);
 		parentHeader.setType(EntityType.folder.name());
 
 		DockerRegistryEventList events = 
-				DockerRegistryEventUtil.createDockerRegistryEvent(RegistryEventAction.push, REGISTRY_HOST, USER_ID, REPOSITORY_PATH, TAG, DIGEST);
+				DockerRegistryEventUtil.createDockerRegistryEvent(RegistryEventAction.push, REGISTRY_HOST, USER_ID, REPOSITORY_PATH, TAG, DIGEST, MEDIA_TYPE);
 		
 		// method under test:
 		dockerManager.dockerRegistryNotification(events);
@@ -365,7 +417,16 @@ public class DockerManagerImplUnitTest {
 	@Test
 	public void testDockerRegistryNotificationPull() {
 		DockerRegistryEventList events = 
-				DockerRegistryEventUtil.createDockerRegistryEvent(RegistryEventAction.pull, REGISTRY_HOST, USER_ID, REPOSITORY_PATH, TAG, DIGEST);
+				DockerRegistryEventUtil.createDockerRegistryEvent(RegistryEventAction.pull, REGISTRY_HOST, USER_ID, REPOSITORY_PATH, TAG, DIGEST, MEDIA_TYPE);
+		dockerManager.dockerRegistryNotification(events);
+		// no create operation, since the repo already exists
+		verify(entityManager, never()).createEntity((UserInfo)anyObject(), (Entity)anyObject(), anyString());
+		verify(dockerCommitDao, never()).createDockerCommit(anyString(), anyLong(), (DockerCommit)anyObject());
+	}
+	@Test
+	public void testDockerRegistryNotificationMount() {
+		DockerRegistryEventList events = 
+				DockerRegistryEventUtil.createDockerRegistryEvent(RegistryEventAction.mount, REGISTRY_HOST, USER_ID, REPOSITORY_PATH, TAG, DIGEST, MEDIA_TYPE);
 		dockerManager.dockerRegistryNotification(events);
 		// no create operation, since the repo already exists
 		verify(entityManager, never()).createEntity((UserInfo)anyObject(), (Entity)anyObject(), anyString());
