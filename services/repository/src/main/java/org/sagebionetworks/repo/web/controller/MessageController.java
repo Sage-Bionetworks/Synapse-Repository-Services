@@ -104,7 +104,7 @@ public class MessageController extends BaseController {
 	 * 
 	 * @param toCreate the CloudMailIn message in JSON format
 	 * @param notificationUnsubscribeEndpoint
-	 * @throws NotFoundException
+	 * @throws Exception 
 	 */
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.CLOUDMAILIN_MESSAGE, method = RequestMethod.POST)
@@ -112,7 +112,7 @@ public class MessageController extends BaseController {
 			@RequestBody Message toCreate,
 			@RequestParam(value = AuthorizationConstants.NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM, 
 			required = false) String notificationUnsubscribeEndpoint
-			) throws NotFoundException {
+			) throws Exception {
 		serviceProvider.getMessageService().create(toCreate, notificationUnsubscribeEndpoint);
 	}
 

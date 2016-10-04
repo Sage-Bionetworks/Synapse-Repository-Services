@@ -1,0 +1,12 @@
+{
+	"description": "Batch of results for file pre-signed-URLs and/or FileHandles requests.",
+	"properties": {
+		"requestedFiles": {
+			"type": "array",
+			"description": "Defines the files to get.",
+			"items": {
+				"$ref":"org.sagebionetworks.repo.model.file.FileResult"
+			}
+		}
+	}
+}

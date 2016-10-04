@@ -8,15 +8,13 @@ import java.net.URL;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
-import org.apache.commons.fileupload.FileItemIterator;
-import org.apache.commons.fileupload.FileItemStream;
-import org.apache.commons.fileupload.FileUploadException;
 import org.apache.http.entity.ContentType;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.file.BatchFileRequest;
+import org.sagebionetworks.repo.model.file.BatchFileResult;
 import org.sagebionetworks.repo.model.file.ChunkRequest;
 import org.sagebionetworks.repo.model.file.ChunkResult;
 import org.sagebionetworks.repo.model.file.ChunkedFileToken;
@@ -33,7 +31,6 @@ import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
 import org.sagebionetworks.repo.model.file.UploadDestination;
 import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.web.ServiceUnavailableException;
 
 import com.amazonaws.event.ProgressListener;
 import com.amazonaws.services.s3.model.BucketCrossOriginConfiguration;
@@ -51,19 +48,6 @@ public interface FileHandleManager {
 	 * 
 	 */
 	public static final String AUTO_GENERATED_ALLOW_ALL_CORS_RULE_ID = "auto-generated-allow-all-CORS";
-	
-	/**
-	 * Upload all of the files found in a request and capture all of the parameters and meta-data.
-	 * 
-	 * @param userInfo - The User's information.
-	 * @param expectedParams - If any of the expected parameters are missing by the time we get to a file then an IllegalArgumentException will be thrown.
-	 * @param itemIterator - Iterates over all of the parts.
-	 * @return FileUploadResults
-	 * @throws IOException 
-	 * @throws FileUploadException 
-	 * @throws ServiceUnavailableException 
-	 */
-	FileUploadResults uploadfiles(UserInfo userInfo, Set<String> expectedParams, FileItemIterator itemIterator) throws FileUploadException, IOException, ServiceUnavailableException;
 	
 	/**
 	 * Get a file handle for a user.
@@ -351,21 +335,6 @@ public interface FileHandleManager {
 	String downloadFileToString(String fileHandleId) throws IOException;
 
 	/**
-	 * Create a file handle that is a place holder for a file that was never uploaded.
-	 * @param createdBy
-	 * @param modifiedOn
-	 * @param name 
-	 * @return
-	 * @throws UnsupportedEncodingException 
-	 * @throws IOException 
-	 */
-	S3FileHandle createNeverUploadedPlaceHolderFileHandle(String createdBy,
-			Date modifiedOn, String name) throws UnsupportedEncodingException, IOException;
-
-	@Deprecated
-	S3FileHandle uploadFile(String userId, FileItemStream fis) throws IOException, ServiceUnavailableException;
-
-	/**
 	 * 
 	 * @param userInfo
 	 * @param fileHandle
@@ -396,4 +365,13 @@ public interface FileHandleManager {
 	 */
 	ProxyFileHandle createExternalProxyFileHandle(UserInfo userInfo,
 			ProxyFileHandle fileHandle);
+
+	/**
+	 * Get a batch of FileHandles and URL
+	 * @param userInfo
+	 * @param request
+	 * @return
+	 */
+	BatchFileResult getFileHandleAndUrlBatch(UserInfo userInfo,
+			BatchFileRequest request);
 }

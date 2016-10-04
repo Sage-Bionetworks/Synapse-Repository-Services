@@ -148,6 +148,10 @@ public class MessageUtilsTest {
 		dto.setInReplyToRoot("789");
 		dto.setSubject("foo");
 		dto.setNotificationUnsubscribeEndpoint("bar");
+		dto.setUserProfileSettingEndpoint("userProfileSettingEndpoint");
+		dto.setWithProfileSettingLink(false);
+		dto.setWithUnsubscribeLink(true);
+		dto.setIsNotificationMessage(false);
 		dto.setTo("foo@sb.com");
 		dto.setCc("bar@sb.com");
 		dto.setBcc("baz@sb.com");

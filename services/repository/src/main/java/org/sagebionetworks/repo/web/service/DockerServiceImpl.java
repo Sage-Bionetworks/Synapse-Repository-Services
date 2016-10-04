@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.web.service;
 
-import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
@@ -11,7 +10,6 @@ import org.sagebionetworks.cloudwatch.ProfileData;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.DockerManager;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.model.LogEntry;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.docker.DockerAuthorizationToken;
 import org.sagebionetworks.repo.model.docker.DockerCommit;
@@ -52,7 +50,7 @@ public class DockerServiceImpl implements DockerService {
 	}
 	
 	public void log(Exception e) {
-		log.error(e);
+		log.error("DockerServiceImpl error", e);
 		// log twice, once with just the label
 		ProfileData logEvent = new ProfileData();
 		logEvent.setNamespace(DockerService.class.getName());
