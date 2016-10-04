@@ -36,6 +36,8 @@ import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableRowChange;
+import org.sagebionetworks.table.model.SparseChangeSet;
+import org.sagebionetworks.table.model.SparseRow;
 import org.sagebionetworks.util.TimeUtils;
 import org.sagebionetworks.util.ValidateArgument;
 
@@ -1271,6 +1273,29 @@ public class TableModelUtils {
 			results.add(select);
 		}
 		return results;
+	}
+	
+	/**
+	 * Create a new RowChangeSet from a full RowSet.
+	 * 
+	 * @param rowSet
+	 * @param schema
+	 * @param versionNumber
+	 */
+	public static SparseChangeSet createSparseChangeSet(RowSet rowSet, List<ColumnModel> schema,
+			long versionNumber) {
+		SparseChangeSet changeSet = new SparseChangeSet(schema, versionNumber);
+		// Add all rows
+		for (Row row : rowSet.getRows()) {
+			SparseRow sparse = changeSet.addEmptyRow();
+			sparse.setRowId(row.getRowId());
+			for (int i = 0; i < rowSet.getHeaders().size(); i++) {
+				SelectColumn header = rowSet.getHeaders().get(i);
+				String value = row.getValues().get(i);
+				sparse.setCellValue(header.getId(), value);
+			}
+		}
+		return changeSet;
 	}
 
 }
