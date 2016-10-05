@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.model.table.EntityDTO;
 import org.sagebionetworks.repo.model.table.FacetValue;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.ViewType;
+import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.support.TransactionCallback;
 
@@ -343,10 +344,10 @@ public interface TableIndexDAO {
 			String schemaMD5Hex);
 
 	/**
-	 * Queries TODO TODO TODO TOD TODO
-	 * @param sql
+	 * Runs a count query that returns the counts of values in a facet column
+	 * @param facetCountSql
 	 * @param parameters
 	 * @return list of facetValues
 	 */
-	public List<FacetValue> facetCountQuery(String sql, Map<String, Object> parameters);
+	public List<FacetValue> facetCountQuery(String facetCountSql, Map<String, Object> parameters);
 }

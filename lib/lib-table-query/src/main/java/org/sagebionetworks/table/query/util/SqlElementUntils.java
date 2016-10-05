@@ -685,7 +685,14 @@ public class SqlElementUntils {
 	 * @param model
 	 * @return
 	 */
-	public static String createFilteredFacetCount(String columnName, QuerySpecification model){
+	public static String createFilteredFacetCountSqlString(String columnName, QuerySpecification model){
+		ValidateArgument.required(columnName, "columnName");
+		ValidateArgument.required(model, "model");
+
+		if(model.hasAnyAggregateElements()){
+			throw new IllegalArgumentException("Aggregrate queries are not allowed");
+		}
+		
 		TableExpression tableExpressionFromModel = model.getTableExpression();
 		WhereClause modifiedWhereClause = new WhereClause( filterSearchCondition(columnName, tableExpressionFromModel.getWhereClause().getSearchCondition()));
 		Pagination pagination = new Pagination(MAX_NUM_FACET_CATEGORIES, null);

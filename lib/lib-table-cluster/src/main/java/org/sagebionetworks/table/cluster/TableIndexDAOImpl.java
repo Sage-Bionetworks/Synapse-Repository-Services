@@ -275,13 +275,13 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 	
 	@Override
-	public List<FacetValue> facetCountQuery(String sql, Map<String, Object> parameters){
-		ValidateArgument.required(sql, "sql");
+	public List<FacetValue> facetCountQuery(String facetCountSql, Map<String, Object> parameters){
+		ValidateArgument.required(facetCountSql, "facetCountSql");
 		ValidateArgument.required(parameters, "parameters");
 		// We use spring to create create the prepared statement
 		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
 		
-		return namedTemplate.query(sql, parameters, new RowMapper<FacetValue>(){
+		return namedTemplate.query(facetCountSql, parameters, new RowMapper<FacetValue>(){
 
 			@Override
 			public FacetValue mapRow(ResultSet rs, int rowNum) throws SQLException {

@@ -302,7 +302,7 @@ public class SqlElementUntilsTest {
 	@Test
 	public void testCreateFilteredFacetCount() throws ParseException{
 		QuerySpecification querySpecification = new TableQueryParser("select * from syn123 where (col1 = 123 OR col1 = 456) AND col2 = 234 AND (col3 = 678 OR col3 = 789)").querySpecification();
-		String resultQuery = SqlElementUntils.createFilteredFacetCount("col1", querySpecification);
+		String resultQuery = SqlElementUntils.createFilteredFacetCountSqlString("col1", querySpecification);
 		assertEquals("SELECT col1 as value , COUNT(*) as count FROM syn123 WHERE col2 = 234 AND ( col3 = 678 OR col3 = 789 ) GROUP BY col1 LIMIT 100", resultQuery);
 	}
 	

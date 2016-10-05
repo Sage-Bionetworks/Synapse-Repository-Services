@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.table;
 
 import java.io.StringWriter;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -289,6 +290,15 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		if(runCount){
 			// count requested.
 			count = runCountQuery(query, indexDao);
+		}
+		if(!query.isAggregatedResult()){ //facets only useful for non-agggregate queries
+			//TODO: get list of facet columns and call run 
+			List<String> facetedColumnNames = getFacetedColumNames();
+			List<FacetColumn> facetColumns = new ArrayList<>(facetedColumnNames.size());
+			for(String columnName: facetedColumnNames){
+				facetColumns.add(runFacetCoumnCountQuery(query, columnName, indexDao));			
+			}
+			bundle.setFacets(facetColumns);
 		}
 		bundle.setQueryResult(queryResult);
 		bundle.setQueryCount(count);
@@ -580,11 +590,12 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	}
 	
 	/**
-	 * Run a facetCount query.
+	 * Run a query that creates facet counts for its most frequent values in the specified column based on the original query.
 	 */
 	FacetColumn runFacetCoumnCountQuery(SqlQuery originalQuery, String columnName,TableIndexDAO indexDao){
+		//TODO: test
 		try{
-			String facetColumnSql = SqlElementUntils.createFilteredFacetCount(columnName, originalQuery.getTransformedModel());
+			String facetColumnSql = SqlElementUntils.createFilteredFacetCountSqlString(columnName, originalQuery.getTransformedModel());
 			
 			List<FacetValue> facetValues  = indexDao.facetCountQuery(facetColumnSql, originalQuery.getParameters());
 			FacetColumn facetColumn = new FacetColumn();
