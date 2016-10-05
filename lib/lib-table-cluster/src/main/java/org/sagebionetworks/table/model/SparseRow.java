@@ -74,5 +74,19 @@ public interface SparseRow {
 	 * @param columnId
 	 */
 	public void removeValue(String columnId);
+	
+	/**
+	 * The index of this row within the change set.
+	 * 
+	 * @return
+	 */
+	public int getRowIndex();
+	
+	/**
+	 * A row with no values is treated as a row delete.
+	 * 
+	 * @return
+	 */
+	public boolean isDelete();
 
 }

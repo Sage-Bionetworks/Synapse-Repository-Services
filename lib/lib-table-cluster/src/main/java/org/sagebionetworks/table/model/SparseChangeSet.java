@@ -1,14 +1,12 @@
 package org.sagebionetworks.table.model;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
 import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.Row;
-import org.sagebionetworks.repo.model.table.RowSet;
-import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.ValidateArgument;
@@ -19,32 +17,11 @@ import org.sagebionetworks.util.ValidateArgument;
  */
 public class SparseChangeSet {
 
+	List<ColumnModel> schema;
 	Map<String, ColumnModel> schemaMap;
 	Map<String, Integer> columnIndexMap;
 	long versionNumber;
 	List<SparseRow> sparseRows;
-
-	/**
-	 * Create a new RowChangeSet from a full RowSet.
-	 * 
-	 * @param rowSet
-	 * @param schema
-	 * @param versionNumber
-	 */
-	public SparseChangeSet(RowSet rowSet, List<ColumnModel> schema,
-			long versionNumber) {
-		this(schema, versionNumber);
-		// Add all rows
-		for (Row row : rowSet.getRows()) {
-			SparseRow sparse = this.addEmptyRow();
-			sparse.setRowId(row.getRowId());
-			for (int i = 0; i < rowSet.getHeaders().size(); i++) {
-				SelectColumn header = rowSet.getHeaders().get(i);
-				String value = row.getValues().get(i);
-				sparse.setCellValue(header.getId(), value);
-			}
-		}
-	}
 
 	/**
 	 * Create a new empty change set.
@@ -56,6 +33,7 @@ public class SparseChangeSet {
 		ValidateArgument.required(schema, "schema");
 		sparseRows = new LinkedList<SparseRow>();
 		this.versionNumber = versionNumber;
+		this.schema = new LinkedList<>(schema);
 		schemaMap = new HashMap<String, ColumnModel>(schema.size());
 		columnIndexMap = new HashMap<String, Integer>(schema.size());
 		for (int i = 0; i < schema.size(); i++) {
@@ -63,6 +41,15 @@ public class SparseChangeSet {
 			columnIndexMap.put(cm.getId(), i);
 			schemaMap.put(cm.getId(), cm);
 		}
+	}
+	
+	/**
+	 * Get the version number shared by all rows within this change set.
+	 * 
+	 * @return
+	 */
+	public long getChangeSetVersion(){
+		return versionNumber;
 	}
 
 	/**
@@ -91,8 +78,35 @@ public class SparseChangeSet {
 	 * @return
 	 */
 	public Iterable<Grouping> groupByValidValues() {
-
-		return null;
+		// group rows by the columns with values
+		Map<List<String>, List<SparseRow>> groupMap = new LinkedHashMap<>();
+		for(SparseRow row: this.rowIterator()){
+			List<String> columnIds = new LinkedList<>();
+			for(ColumnModel cm: schema){
+				if(row.hasCellValue(cm.getId())){
+					columnIds.add(cm.getId());
+				}
+			}
+			List<SparseRow> groupRows = groupMap.get(columnIds);
+			if(groupRows == null){
+				groupRows = new LinkedList<>();
+				groupMap.put(columnIds, groupRows);
+			}
+			groupRows.add(row);
+		}
+		// Build the grouping
+		List<Grouping> grouping = new LinkedList<>();
+		for(List<String> columnIds: groupMap.keySet()){
+			List<SparseRow> groupRows = groupMap.get(columnIds);
+			List<ColumnModel> models = new LinkedList<>();
+			for(String columnId: columnIds){
+				ColumnModel cm = getColumnModel(columnId);
+				models.add(cm);
+			}
+			Grouping group = new Grouping(models, groupRows);
+			grouping.add(group);
+		}
+		return grouping;
 	}
 
 	/**
@@ -176,6 +190,7 @@ public class SparseChangeSet {
 			ValidateArgument.required(columnId, "columnId");
 			ColumnModel cm = getColumnModel(columnId);
 			Integer columnIndex = getColumnIndex(columnId);
+			// process and validate the value.
 			value = TableModelUtils.validateRowValue(value, cm, rowIndex,
 					columnIndex);
 			valueMap.put(columnId, value);
@@ -186,6 +201,18 @@ public class SparseChangeSet {
 			ValidateArgument.required(columnId, "columnId");
 			valueMap.remove(columnId);
 		}
+
+		@Override
+		public int getRowIndex() {
+			return rowIndex;
+		}
+
+		@Override
+		public boolean isDelete() {
+			// this is a delete if there are no values
+			return valueMap.keySet().isEmpty();
+		}
+		
 	}
 
 }
