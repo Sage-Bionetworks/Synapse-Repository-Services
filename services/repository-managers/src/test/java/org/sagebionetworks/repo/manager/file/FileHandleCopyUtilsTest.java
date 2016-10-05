@@ -154,7 +154,7 @@ public class FileHandleCopyUtilsTest {
 	}
 
 	@Test
-	public void testCreateCopy() {
+	public void testCreateCopy() throws Exception{
 		when(mockIdGenerator.generateNewId(TYPE.FILE_IDS)).thenReturn(2L);
 		S3FileHandle fileHandle = new S3FileHandle();
 		String oldId = "1";
@@ -174,6 +174,8 @@ public class FileHandleCopyUtilsTest {
 		String newFileName = "newFileName";
 		overwriteData.setNewFileName(newFileName);
 		String newOwner = "777";
+
+		Thread.sleep(1000);
 
 		FileHandle newFileHandle = FileHandleCopyUtils.createCopy(newOwner, fileHandle, overwriteData, mockIdGenerator);
 		assertEquals("2", newFileHandle.getId());

@@ -1161,6 +1161,8 @@ public class FileHandleManagerImplTest {
 		Long newId = 789L;
 		when(mockIdGenerator.generateNewId(TYPE.FILE_IDS)).thenReturn(newId );
 
+		Thread.sleep(1000);
+
 		BatchFileHandleCopyResult result = manager.copyFileHandles(mockUser, batch);
 		assertNotNull(result);
 		List<FileHandleCopyResult> copyResults = result.getCopyResults();
