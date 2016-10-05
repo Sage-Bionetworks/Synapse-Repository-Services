@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
@@ -27,6 +28,8 @@ import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.ProxyFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.message.ChangeMessage;
+import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -42,6 +45,8 @@ public class DBOFileHandleDaoImplTest {
 	private FileHandleDao fileHandleDao;
 	@Autowired
 	private IdGenerator idGenerator;
+	@Autowired
+	private DBOChangeDAO changeDAO;
 	
 	private List<String> toDelete;
 	private String creatorUserGroupId;
@@ -608,6 +613,8 @@ public class DBOFileHandleDaoImplTest {
 
 	@Test
 	public void testCreateBatch() {
+		changeDAO.deleteAllChanges();
+		long startChangeNumber = changeDAO.getCurrentChangeNumber();
 		// imitate database time
 		Timestamp now = new Timestamp(System.currentTimeMillis()/1000*1000);
 		ArrayList<FileHandle> batch = new ArrayList<FileHandle>();
@@ -627,5 +634,14 @@ public class DBOFileHandleDaoImplTest {
 		fileHandleDao.createBatch(batch);
 		assertEquals(s3, fileHandleDao.get(s3.getId()));
 		assertEquals(external, fileHandleDao.get(external.getId()));
+
+		List<ChangeMessage> changes = changeDAO.listChanges(startChangeNumber, ObjectType.FILE, Long.MAX_VALUE);
+		assertNotNull(changes);
+		assertEquals(batch.size(), changes.size());
+		for (int i = 0; i < batch.size(); i++) {
+			ChangeMessage message = changes.get(i);
+			assertEquals(ChangeType.CREATE, message.getChangeType());
+			assertEquals(ObjectType.FILE, message.getObjectType());
+		}
 	}
 }
