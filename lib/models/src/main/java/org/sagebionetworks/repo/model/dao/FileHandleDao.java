@@ -134,4 +134,11 @@ public interface FileHandleDao {
 	long getCount() throws DatastoreException;
 
 	long getMaxId() throws DatastoreException;
+
+	/**
+	 * Create a batch of FileHandle
+	 * 
+	 * @param toCreate
+	 */
+	public void createBatch(List<FileHandle> toCreate);
 }
