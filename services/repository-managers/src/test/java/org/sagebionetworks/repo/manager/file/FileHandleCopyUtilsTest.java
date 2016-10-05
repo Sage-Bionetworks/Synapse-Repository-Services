@@ -83,25 +83,25 @@ public class FileHandleCopyUtilsTest {
 	}
 
 	@Test (expected=IllegalArgumentException.class)
-	public void testGetFileHandleOverrideDataWithNullBatch() {
-		FileHandleCopyUtils.getFileHandleOverwriteData(null);
+	public void testGetRequestMapWithNullBatch() {
+		FileHandleCopyUtils.getRequestMap(null);
 	}
 
 	@Test (expected=IllegalArgumentException.class)
-	public void testGetFileHandleOverrideDataWithNullRequestList() {
-		FileHandleCopyUtils.getFileHandleOverwriteData(new BatchFileHandleCopyRequest());
+	public void testGetRequestMapWithNullRequestList() {
+		FileHandleCopyUtils.getRequestMap(new BatchFileHandleCopyRequest());
 	}
 
 	@Test
-	public void testGetFileHandleOverrideDataWithEmptyRequestList() {
+	public void testGetRequestMapWithEmptyRequestList() {
 		BatchFileHandleCopyRequest batch = new BatchFileHandleCopyRequest();
 		batch.setCopyRequests(new ArrayList<FileHandleCopyRequest>(0));
 		assertEquals(new HashMap<String, FileHandleCopyRequest>(),
-				FileHandleCopyUtils.getFileHandleOverwriteData(batch));
+				FileHandleCopyUtils.getRequestMap(batch));
 	}
 
 	@Test
-	public void testGetFileHandleOverrideData() {
+	public void testGetRequestMap() {
 		BatchFileHandleCopyRequest batch = new BatchFileHandleCopyRequest();
 		List<FileHandleCopyRequest> requests = new ArrayList<FileHandleCopyRequest>(2);
 		batch.setCopyRequests(requests);
@@ -130,7 +130,7 @@ public class FileHandleCopyUtilsTest {
 		Map<String, FileHandleCopyRequest> expected = new HashMap<String, FileHandleCopyRequest>();
 		expected.put("1", request1);
 		expected.put("2", request2);
-		assertEquals(expected, FileHandleCopyUtils.getFileHandleOverwriteData(batch));
+		assertEquals(expected, FileHandleCopyUtils.getRequestMap(batch));
 	}
 
 	@Test (expected=IllegalArgumentException.class)

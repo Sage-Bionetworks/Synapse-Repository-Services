@@ -43,7 +43,7 @@ public class FileHandleCopyUtils {
 	 * @param batch
 	 * @return
 	 */
-	public static Map<String, FileHandleCopyRequest> getFileHandleOverwriteData(BatchFileHandleCopyRequest batch) {
+	public static Map<String, FileHandleCopyRequest> getRequestMap(BatchFileHandleCopyRequest batch) {
 		ValidateArgument.required(batch, "batch");
 		ValidateArgument.required(batch.getCopyRequests(), "BatchFileHandleCopyRequest.copyRequests");
 		Map<String, FileHandleCopyRequest> map = new HashMap<String, FileHandleCopyRequest>();

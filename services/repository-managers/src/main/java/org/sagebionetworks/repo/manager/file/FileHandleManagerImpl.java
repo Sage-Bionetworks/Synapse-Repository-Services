@@ -1181,7 +1181,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 
 		String userId = ""+userInfo.getId();
 		long now = System.currentTimeMillis();
-		Map<String, FileHandleCopyRequest> map = FileHandleCopyUtils.getFileHandleOverwriteData(request);
+		Map<String, FileHandleCopyRequest> map = FileHandleCopyUtils.getRequestMap(request);
 		List<FileHandle> toCreate = new ArrayList<FileHandle>();
 		List<ObjectRecord> copyRecords = new LinkedList<ObjectRecord>();
 		// lookup the file handles.
