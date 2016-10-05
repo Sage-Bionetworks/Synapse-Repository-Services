@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.model.file.BatchFileHandleCopyRequest;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
+import org.sagebionetworks.repo.model.file.FileHandleCopyRecord;
 import org.sagebionetworks.repo.model.file.FileHandleCopyRequest;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 
@@ -95,7 +96,7 @@ public class FileHandleCopyUtilsTest {
 	public void testGetFileHandleOverrideDataWithEmptyRequestList() {
 		BatchFileHandleCopyRequest batch = new BatchFileHandleCopyRequest();
 		batch.setCopyRequests(new ArrayList<FileHandleCopyRequest>(0));
-		assertEquals(new HashMap<String, FileHandleOverwriteData>(),
+		assertEquals(new HashMap<String, FileHandleCopyRequest>(),
 				FileHandleCopyUtils.getFileHandleOverwriteData(batch));
 	}
 
@@ -113,10 +114,6 @@ public class FileHandleCopyUtilsTest {
 		fha2.setAssociateObjectId("2");
 		fha2.setAssociateObjectType(FileHandleAssociateType.TableEntity);
 		fha2.setFileHandleId("2");
-		FileHandleAssociation fha3 = new FileHandleAssociation();
-		fha3.setAssociateObjectId("3");
-		fha3.setAssociateObjectType(FileHandleAssociateType.WikiAttachment);
-		fha3.setFileHandleId("3");
 
 		FileHandleCopyRequest request1 = new FileHandleCopyRequest();
 		request1.setOriginalFile(fha1);
@@ -126,33 +123,24 @@ public class FileHandleCopyUtilsTest {
 		request2.setOriginalFile(fha2);
 		String newContentType2 = "newContentType2";
 		request2.setNewContentType(newContentType2);
-		FileHandleCopyRequest request3 = new FileHandleCopyRequest();
-		request3.setOriginalFile(fha3);
 
 		requests.add(request1);
 		requests.add(request2);
-		requests.add(request3);
 
-		FileHandleOverwriteData data1 = new FileHandleOverwriteData();
-		data1.setNewFileName(newFileName1);
-		FileHandleOverwriteData data2 = new FileHandleOverwriteData();
-		data2.setNewContentType(newContentType2);
-
-		Map<String, FileHandleOverwriteData> expected = new HashMap<String, FileHandleOverwriteData>();
-		expected.put("1", data1);
-		expected.put("2", data2);
-		expected.put("3", new FileHandleOverwriteData());
+		Map<String, FileHandleCopyRequest> expected = new HashMap<String, FileHandleCopyRequest>();
+		expected.put("1", request1);
+		expected.put("2", request2);
 		assertEquals(expected, FileHandleCopyUtils.getFileHandleOverwriteData(batch));
 	}
 
 	@Test (expected=IllegalArgumentException.class)
 	public void testCreateCopyWithNullUserId() {
-		FileHandleCopyUtils.createCopy(null, new S3FileHandle(), new FileHandleOverwriteData(), mockIdGenerator);
+		FileHandleCopyUtils.createCopy(null, new S3FileHandle(), new FileHandleCopyRequest(), mockIdGenerator);
 	}
 
 	@Test (expected=IllegalArgumentException.class)
 	public void testCreateCopyWithNullFileHandle() {
-		FileHandleCopyUtils.createCopy("1", null, new FileHandleOverwriteData(), mockIdGenerator);
+		FileHandleCopyUtils.createCopy("1", null, new FileHandleCopyRequest(), mockIdGenerator);
 	}
 
 	@Test (expected=IllegalArgumentException.class)
@@ -162,7 +150,7 @@ public class FileHandleCopyUtilsTest {
 
 	@Test (expected=IllegalArgumentException.class)
 	public void testCreateCopyWithNullIdGenerator() {
-		FileHandleCopyUtils.createCopy("1", new S3FileHandle(), new FileHandleOverwriteData(), null);
+		FileHandleCopyUtils.createCopy("1", new S3FileHandle(), new FileHandleCopyRequest(), null);
 	}
 
 	@Test
@@ -182,7 +170,7 @@ public class FileHandleCopyUtilsTest {
 		String oldContentType = "oldContentType";
 		fileHandle.setContentType(oldContentType);
 
-		FileHandleOverwriteData overwriteData = new FileHandleOverwriteData();
+		FileHandleCopyRequest overwriteData = new FileHandleCopyRequest();
 		String newFileName = "newFileName";
 		overwriteData.setNewFileName(newFileName);
 		String newOwner = "777";
@@ -245,5 +233,33 @@ public class FileHandleCopyUtilsTest {
 		fha3.setAssociateObjectType(FileHandleAssociateType.WikiAttachment);
 		fha3.setFileHandleId("3");
 		assertTrue(FileHandleCopyUtils.hasDuplicates(Arrays.asList(fha1, fha2, fha3, fha2)));
+	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testCreateCopyRecordWithNullUserId() {
+		FileHandleCopyUtils.createCopyRecord(null, "2", new FileHandleAssociation());
+	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testCreateCopyRecordWithNullNewFileHandleId() {
+		FileHandleCopyUtils.createCopyRecord("1", null, new FileHandleAssociation());
+	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testCreateCopyRecordWithNullOriginalFileHandle() {
+		FileHandleCopyUtils.createCopyRecord("1", "2", null);
+	}
+
+	@Test
+	public void testCreateCopyRecord() {
+		String userId = "1";
+		String newFilehandleId = "2";
+		FileHandleAssociation originalFileHandle = new FileHandleAssociation();
+		originalFileHandle.setFileHandleId("3");
+		FileHandleCopyRecord record = FileHandleCopyUtils.createCopyRecord("1", "2", originalFileHandle);
+		assertNotNull(record);
+		assertEquals(userId, record.getUserId());
+		assertEquals(newFilehandleId, record.getNewFileHandleId());
+		assertEquals(originalFileHandle, record.getOriginalFileHandle());
 	}
 }

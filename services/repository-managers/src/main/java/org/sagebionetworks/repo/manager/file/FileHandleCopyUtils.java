@@ -14,11 +14,18 @@ import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.file.BatchFileHandleCopyRequest;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
+import org.sagebionetworks.repo.model.file.FileHandleCopyRecord;
 import org.sagebionetworks.repo.model.file.FileHandleCopyRequest;
 import org.sagebionetworks.util.ValidateArgument;
 
 public class FileHandleCopyUtils {
 
+	/**
+	 * Extract the list of FileHandleAssociation in the given BatchFileHandleCopyRequest
+	 * 
+	 * @param batch
+	 * @return
+	 */
 	public static List<FileHandleAssociation> getOriginalFiles(BatchFileHandleCopyRequest batch) {
 		ValidateArgument.required(batch, "batch");
 		ValidateArgument.required(batch.getCopyRequests(), "BatchFileHandleCopyRequest.copyRequests");
@@ -29,24 +36,35 @@ public class FileHandleCopyUtils {
 		return list;
 	}
 
-	public static Map<String, FileHandleOverwriteData> getFileHandleOverwriteData(BatchFileHandleCopyRequest batch) {
+	/**
+	 * Create and return a map from an original FileHandle ID to the request
+	 * 
+	 * @require no duplicate ID in the given batch
+	 * @param batch
+	 * @return
+	 */
+	public static Map<String, FileHandleCopyRequest> getFileHandleOverwriteData(BatchFileHandleCopyRequest batch) {
 		ValidateArgument.required(batch, "batch");
 		ValidateArgument.required(batch.getCopyRequests(), "BatchFileHandleCopyRequest.copyRequests");
-		Map<String, FileHandleOverwriteData> map = new HashMap<String, FileHandleOverwriteData>();
+		Map<String, FileHandleCopyRequest> map = new HashMap<String, FileHandleCopyRequest>();
 		for (FileHandleCopyRequest request : batch.getCopyRequests()) {
-			FileHandleOverwriteData data = new FileHandleOverwriteData();
-			if (request.getNewFileName() != null) {
-				data.setNewFileName(request.getNewFileName());
-			}
-			if (request.getNewContentType() != null) {
-				data.setNewContentType(request.getNewContentType());
-			}
-			map.put(request.getOriginalFile().getFileHandleId(), data);
+			map.put(request.getOriginalFile().getFileHandleId(), request);
 		}
 		return map;
 	}
 
-	public static FileHandle createCopy(String userId, FileHandle original, FileHandleOverwriteData overwriteData, IdGenerator idGenerator) {
+	/**
+	 * Create a new FileHandle object with a given FileHandle object.
+	 * Overwrite etag, id, createdOn, and createdBy fields.
+	 * Overwrite fileName and contentType fields if the new ones are set.
+	 * 
+	 * @param userId
+	 * @param original
+	 * @param overwriteData
+	 * @param idGenerator
+	 * @return
+	 */
+	public static FileHandle createCopy(String userId, FileHandle original, FileHandleCopyRequest overwriteData, IdGenerator idGenerator) {
 		ValidateArgument.required(userId, "userId");
 		ValidateArgument.required(original, "original");
 		ValidateArgument.required(overwriteData, "overrideData");
@@ -65,6 +83,13 @@ public class FileHandleCopyUtils {
 		return newFileHandle;
 	}
 
+	/**
+	 * Returns true if there is at least one duplicate FilehandleAssociation object found;
+	 * false otherwise.
+	 * 
+	 * @param requestedFiles
+	 * @return
+	 */
 	public static boolean hasDuplicates(List<FileHandleAssociation> requestedFiles) {
 		ValidateArgument.required(requestedFiles, "requestedFiles");
 		Set<FileHandleAssociation> seen = new HashSet<FileHandleAssociation>(requestedFiles.size());
@@ -75,5 +100,24 @@ public class FileHandleCopyUtils {
 			seen.add(fha);
 		}
 		return false;
+	}
+
+	/**
+	 * Create a record that captures info about FileHandle copy operation.
+	 * 
+	 * @param userId
+	 * @param newFileHandleId
+	 * @param originalFile
+	 * @return
+	 */
+	public static FileHandleCopyRecord createCopyRecord(String userId, String newFileHandleId, FileHandleAssociation originalFile) {
+		ValidateArgument.required(userId, "userId");
+		ValidateArgument.required(newFileHandleId, "newFileHandleId");
+		ValidateArgument.required(originalFile, "originalFile");
+		FileHandleCopyRecord record = new FileHandleCopyRecord();
+		record.setUserId(userId);
+		record.setOriginalFileHandle(originalFile);
+		record.setNewFileHandleId(newFileHandleId);
+		return record;
 	}
 }
