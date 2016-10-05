@@ -1,0 +1,12 @@
+{
+	"description": "Batch Request for copying FileHandles.",
+	"properties": {
+		"copyRequests": {
+			"type": "array",
+			"description": "Defines the copy requests.",
+			"items": {
+				"$ref":"org.sagebionetworks.repo.model.file.FileHandleCopyRequest"
+			}
+		}
+	}
+}
