@@ -861,6 +861,7 @@ public class UploadController extends BaseController {
 	 * 
 	 * @param userId
 	 * @param request
+	 * @throws HttpStatus.BAD_REQUEST for request with duplicated FileHandleId.
 	 * @return
 	 */
 	@ResponseStatus(HttpStatus.OK)

@@ -2874,6 +2874,7 @@ public interface SynapseClient extends BaseClient {
 	 * 
 	 * @param request
 	 * @return
+	 * @throws SynapseBadRequestException for request with duplicated FileHandleId.
 	 * @throws SynapseException
 	 */
 	public BatchFileHandleCopyResult copyFileHandles(BatchFileHandleCopyRequest request) throws SynapseException;
