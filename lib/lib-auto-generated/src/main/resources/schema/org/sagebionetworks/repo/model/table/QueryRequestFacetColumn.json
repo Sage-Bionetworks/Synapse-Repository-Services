@@ -1,0 +1,18 @@
+{
+	"description":"A set of values that have been selected for filtering in a faceted column",
+	
+    "properties":{
+		"columnId":{
+			"type": "string",
+			"description":"The ID of the faceted column",
+		},
+		"facetValues": {
+		    "description":"The set of facet values that were selected",
+			"type": "array",
+			"uniqueItems": true,
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.table.FacetValue"
+			}
+		}
+    }
+}

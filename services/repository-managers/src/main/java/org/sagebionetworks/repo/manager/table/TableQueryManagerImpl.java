@@ -41,9 +41,11 @@ import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
+import org.sagebionetworks.table.query.model.DerivedColumn;
 import org.sagebionetworks.table.query.model.Pagination;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.SearchCondition;
+import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.model.WhereClause;
 import org.sagebionetworks.table.query.util.SimpleAggregateQueryException;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
@@ -271,6 +273,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	QueryResultBundle queryAsStreamAfterAuthorization(ProgressCallback<Void> progressCallback, SqlQuery query,
 			RowHandler rowHandler, boolean runCount, TableIndexDAO indexDao)
 			throws TableUnavailableException, TableFailedException, LockUnavilableException {
+		//TODO: TEST
 		// build up the response.
 		QueryResultBundle bundle = new QueryResultBundle();
 		bundle.setColumnModels(query.getTableSchema());
@@ -296,13 +299,35 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			List<String> facetedColumnNames = getFacetedColumNames();
 			List<FacetColumn> facetColumns = new ArrayList<>(facetedColumnNames.size());
 			for(String columnName: facetedColumnNames){
-				facetColumns.add(runFacetCoumnCountQuery(query, columnName, indexDao));			
+				if(columnNameIsSelected(columnName, query.getModel().getSelectList())){
+					facetColumns.add(runFacetColumnCountQuery(query, columnName, indexDao));
+				}
 			}
 			bundle.setFacets(facetColumns);
 		}
 		bundle.setQueryResult(queryResult);
 		bundle.setQueryCount(count);
 		return bundle;
+	}
+	
+	public List<String> getFacetedColumnNames(){
+		//TODO: idk which table /class to get this info
+	}
+	
+	public boolean columnNameIsSelected(String columnName, SelectList selectList) {
+		//TODO: TEST
+		//if the SELECT is "*" always return true
+		if(selectList.getAsterisk()) {
+			return true;
+		}
+		
+		//iterate over the list of selected columns. TODO: Is there better way to find than O(n)? Putting into HashSet wouldn't make sense if we only using it once.
+		for(DerivedColumn selectedColumn : selectList.getColumns()){ 
+			if(selectedColumn.getValueExpression().toSql().equals(columnName)){
+				return true;
+			}
+		}
+		return false;
 	}
 
 
@@ -592,7 +617,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	/**
 	 * Run a query that creates facet counts for its most frequent values in the specified column based on the original query.
 	 */
-	FacetColumn runFacetCoumnCountQuery(SqlQuery originalQuery, String columnName,TableIndexDAO indexDao){
+	public FacetColumn runFacetColumnCountQuery(SqlQuery originalQuery, String columnName,TableIndexDAO indexDao){
 		//TODO: test
 		try{
 			String facetColumnSql = SqlElementUntils.createFilteredFacetCountSqlString(columnName, originalQuery.getTransformedModel());
