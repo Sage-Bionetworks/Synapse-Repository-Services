@@ -8,6 +8,7 @@ import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.ViewType;
+import org.sagebionetworks.table.model.SparseChangeSet;
 
 /**
  * The 'truth' of a Synapse table consists of metadata in the main repository
@@ -85,7 +86,7 @@ public interface TableIndexManager {
 	 *            must match the version number of each row in the passed
 	 *            changeset.
 	 */
-	public void applyChangeSetToIndex(RowSet rowset, List<ColumnModel> currentSchema,
+	public void applyChangeSetToIndex(SparseChangeSet rowset, List<ColumnModel> currentSchema,
 			long changeSetVersionNumber);
 
 	/**

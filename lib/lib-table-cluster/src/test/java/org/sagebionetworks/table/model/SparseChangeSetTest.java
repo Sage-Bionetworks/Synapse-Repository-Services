@@ -270,7 +270,6 @@ public class SparseChangeSetTest {
 		Grouping g5 = it.next();
 		assertEquals(Lists.newArrayList(), g5.getColumnsWithValues());
 		assertEquals(Lists.newArrayList(r4,r9), g5.getRows());
-		
 	}
 	
 }

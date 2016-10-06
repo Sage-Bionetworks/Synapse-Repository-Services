@@ -51,6 +51,16 @@ public class SparseChangeSet {
 	public long getChangeSetVersion(){
 		return versionNumber;
 	}
+	
+	/**
+	 * Get the schema of this change set.
+	 * 
+	 * @return
+	 */
+	public List<ColumnModel> getSchema(){
+		// return a copy.
+		return new LinkedList<>(schema);
+	}
 
 	/**
 	 * Iterate over all rows of this change set..

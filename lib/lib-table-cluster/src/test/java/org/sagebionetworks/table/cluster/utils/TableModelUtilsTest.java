@@ -20,6 +20,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -36,6 +37,9 @@ import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
+import org.sagebionetworks.table.model.Grouping;
+import org.sagebionetworks.table.model.SparseChangeSet;
+import org.sagebionetworks.table.model.SparseRow;
 
 import au.com.bytecode.opencsv.CSVReader;
 import au.com.bytecode.opencsv.CSVWriter;
@@ -1310,6 +1314,63 @@ public class TableModelUtilsTest {
 		assertEquals(null, results.get(1));
 		// last should match one
 		assertEquals(one.getId(), results.get(2).getId());
+	}
+	
+	@Test
+	public void testCreateSparseChangeSet(){
+		long versionNumber = 45;
+		List<String> headerIds = Lists.newArrayList("2","1");
+		List<SelectColumn> headers = TableModelUtils.getSelectColumnsFromColumnIds(headerIds, validModel);
+		
+		Row row1 = new Row();
+		row1.setRowId(1L);
+		row1.setVersionNumber(versionNumber);
+		row1.setValues(Lists.newArrayList("1", "true"));
+		
+		Row row2 = new Row();
+		row2.setRowId(2L);
+		row2.setVersionNumber(versionNumber);
+		row2.setValues(Lists.newArrayList("2", "false"));
+		
+		Row row3 = new Row();
+		row3.setRowId(3L);
+		row3.setVersionNumber(versionNumber);
+		// null values will be treated as a delete.
+		row3.setValues(null);
+		
+		Row row4 = new Row();
+		row4.setRowId(4L);
+		row4.setVersionNumber(versionNumber);
+		// empty list should be treated as a delete;
+		row4.setValues(new LinkedList<String>());
+		
+		RowSet rowSet = new RowSet();
+		rowSet.setHeaders(headers);
+		rowSet.setRows(Lists.newArrayList(row1, row2, row3, row4));
+		
+		// Call under test
+		SparseChangeSet sparse = TableModelUtils.createSparseChangeSet(rowSet, validModel, versionNumber);
+		assertNotNull(sparse);
+		assertEquals(versionNumber, sparse.getChangeSetVersion());
+		List<Grouping> grouping = new ArrayList<Grouping>();
+		for(Grouping group: sparse.groupByValidValues()){
+			grouping.add(group);
+		}
+		assertEquals(2, grouping.size());
+		// first group includes rows with all values.
+		Grouping group1 = grouping.get(0);
+		assertEquals(validModel, group1.getColumnsWithValues());
+		assertEquals(2, group1.getRows().size());
+		assertEquals(row1.getRowId(), group1.getRows().get(0).getRowId());
+		assertEquals(row2.getRowId(), group1.getRows().get(1).getRowId());
+		// second group includes rows that are deletes.
+		Grouping group2 = grouping.get(1);
+		assertEquals(new LinkedList<ColumnModel>(), group2.getColumnsWithValues());
+		assertEquals(2, group2.getRows().size());
+		SparseRow sparse3 = group2.getRows().get(0);
+		assertTrue(sparse3.isDelete());
+		assertEquals(row3.getRowId(), sparse3.getRowId());
+		assertEquals(row4.getRowId(), group2.getRows().get(1).getRowId());
 	}
 	
 }

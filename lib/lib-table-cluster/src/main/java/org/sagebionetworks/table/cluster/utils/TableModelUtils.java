@@ -1289,10 +1289,12 @@ public class TableModelUtils {
 		for (Row row : rowSet.getRows()) {
 			SparseRow sparse = changeSet.addEmptyRow();
 			sparse.setRowId(row.getRowId());
-			for (int i = 0; i < rowSet.getHeaders().size(); i++) {
-				SelectColumn header = rowSet.getHeaders().get(i);
-				String value = row.getValues().get(i);
-				sparse.setCellValue(header.getId(), value);
+			if(row.getValues() != null && !row.getValues().isEmpty()){
+				for (int i = 0; i < rowSet.getHeaders().size(); i++) {
+					SelectColumn header = rowSet.getHeaders().get(i);
+					String value = row.getValues().get(i);
+					sparse.setCellValue(header.getId(), value);
+				}
 			}
 		}
 		return changeSet;
