@@ -90,12 +90,12 @@ public class SendEmailRequestBuilder {
         Body messageBody = new Body();
         if (isHtml) {
             Content bodyContent = new Content().
-            		withData(EmailUtils.createEmailBodyFromHtml(body, unsubscribeLink)).
+            		withData(EmailUtils.createEmailBodyFromHtml(body, unsubscribeLink, null)).
             		withCharset(EMAIL_CHARSET);
         	messageBody.setHtml(bodyContent);
         } else {
             Content bodyContent = new Content().
-            		withData(EmailUtils.createEmailBodyFromText(body, unsubscribeLink)).
+            		withData(EmailUtils.createEmailBodyFromText(body, unsubscribeLink, null)).
             		withCharset(EMAIL_CHARSET);
             messageBody.setText(bodyContent);
         }

@@ -139,5 +139,11 @@ public class StubFileMetadataDao implements FileHandleDao {
 		return null;
 	}
 
+	@Override
+	public void createBatch(List<FileHandle> toCreate) {
+		// TODO Auto-generated method stub
+		
+	}
+
 
 }

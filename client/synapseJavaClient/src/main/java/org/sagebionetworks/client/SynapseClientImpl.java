@@ -138,6 +138,8 @@ import org.sagebionetworks.repo.model.entity.query.EntityQuery;
 import org.sagebionetworks.repo.model.entity.query.EntityQueryResults;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.file.AddPartResponse;
+import org.sagebionetworks.repo.model.file.BatchFileRequest;
+import org.sagebionetworks.repo.model.file.BatchFileResult;
 import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlRequest;
 import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlResponse;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadRequest;
@@ -450,6 +452,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String USER_BUNDLE = "/bundle";
 	private static final String FILE_ASSOCIATE_TYPE = "fileAssociateType";
 	private static final String FILE_ASSOCIATE_ID = "fileAssociateId";
+	
+	public static final String FILE_HANDLE_BATCH = "/fileHandle/batch";
 	
 	// web request pagination parameters
 	public static final String LIMIT = "limit";
@@ -7787,5 +7791,10 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseClientException(e);
 		}
+	}
+
+	@Override
+	public BatchFileResult getFileHandleAndUrlBatch(BatchFileRequest request) throws SynapseException {
+		return asymmetricalPost(fileEndpoint, FILE_HANDLE_BATCH, request , BatchFileResult.class, null);
 	}
 }

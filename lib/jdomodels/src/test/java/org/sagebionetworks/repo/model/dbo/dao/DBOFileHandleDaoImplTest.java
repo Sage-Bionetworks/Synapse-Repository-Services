@@ -1,9 +1,9 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.Assert.*;
-import static org.mockito.Mockito.when;
 
 import java.net.MalformedURLException;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -16,9 +16,11 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
@@ -26,7 +28,8 @@ import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.ProxyFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
+import org.sagebionetworks.repo.model.message.ChangeMessage;
+import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -40,6 +43,10 @@ public class DBOFileHandleDaoImplTest {
 
 	@Autowired
 	private FileHandleDao fileHandleDao;
+	@Autowired
+	private IdGenerator idGenerator;
+	@Autowired
+	private DBOChangeDAO changeDAO;
 	
 	private List<String> toDelete;
 	private String creatorUserGroupId;
@@ -592,5 +599,49 @@ public class DBOFileHandleDaoImplTest {
 		toDelete.add(pfh.getId());
 		ProxyFileHandle clone = (ProxyFileHandle) fileHandleDao.get(pfh.getId());
 		assertEquals(pfh, clone);
+	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testCreateBatchWithNullBatch() {
+		fileHandleDao.createBatch(null);
+	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testCreateBatchWithEmptyBatch() {
+		fileHandleDao.createBatch(new ArrayList<FileHandle>(0));
+	}
+
+	@Test
+	public void testCreateBatch() {
+		changeDAO.deleteAllChanges();
+		long startChangeNumber = changeDAO.getCurrentChangeNumber();
+		// imitate database time
+		Timestamp now = new Timestamp(System.currentTimeMillis()/1000*1000);
+		ArrayList<FileHandle> batch = new ArrayList<FileHandle>();
+		S3FileHandle s3 = TestUtils.createS3FileHandle(creatorUserGroupId);
+		s3.setId(""+idGenerator.generateNewId(TYPE.FILE_IDS));
+		s3.setEtag(UUID.randomUUID().toString());
+		s3.setCreatedOn(now);
+		batch.add(s3);
+		ExternalFileHandle external = new ExternalFileHandle();
+		external.setCreatedBy(creatorUserGroupId);
+		external.setExternalURL("http://google.com");
+		external.setFileName("fileName");
+		external.setId(""+idGenerator.generateNewId(TYPE.FILE_IDS));
+		external.setEtag(UUID.randomUUID().toString());
+		external.setCreatedOn(now);
+		batch.add(external);
+		fileHandleDao.createBatch(batch);
+		assertEquals(s3, fileHandleDao.get(s3.getId()));
+		assertEquals(external, fileHandleDao.get(external.getId()));
+
+		List<ChangeMessage> changes = changeDAO.listChanges(startChangeNumber, ObjectType.FILE, Long.MAX_VALUE);
+		assertNotNull(changes);
+		assertEquals(batch.size(), changes.size());
+		for (int i = 0; i < batch.size(); i++) {
+			ChangeMessage message = changes.get(i);
+			assertEquals(ChangeType.CREATE, message.getChangeType());
+			assertEquals(ObjectType.FILE, message.getObjectType());
+		}
 	}
 }
