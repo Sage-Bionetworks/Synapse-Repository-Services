@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.FileHandleCopyRecord;
 import org.sagebionetworks.repo.model.file.FileHandleCopyRequest;
+import org.sagebionetworks.repo.model.file.HasPreviewId;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 
 public class FileHandleCopyUtilsTest {
@@ -169,6 +170,7 @@ public class FileHandleCopyUtilsTest {
 		fileHandle.setFileName(oldFileName);
 		String oldContentType = "oldContentType";
 		fileHandle.setContentType(oldContentType);
+		fileHandle.setPreviewId("333");
 
 		FileHandleCopyRequest overwriteData = new FileHandleCopyRequest();
 		String newFileName = "newFileName";
@@ -186,6 +188,7 @@ public class FileHandleCopyUtilsTest {
 		assertEquals(newOwner, newFileHandle.getCreatedBy());
 		assertEquals(newFileName, newFileHandle.getFileName());
 		assertEquals(oldContentType, newFileHandle.getContentType());
+		assertNull(((HasPreviewId)newFileHandle).getPreviewId());
 	}
 
 	@Test (expected=IllegalArgumentException.class)

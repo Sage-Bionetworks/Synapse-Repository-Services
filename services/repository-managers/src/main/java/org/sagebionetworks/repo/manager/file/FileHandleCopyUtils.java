@@ -16,6 +16,7 @@ import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.FileHandleCopyRecord;
 import org.sagebionetworks.repo.model.file.FileHandleCopyRequest;
+import org.sagebionetworks.repo.model.file.HasPreviewId;
 import org.sagebionetworks.util.ValidateArgument;
 
 public class FileHandleCopyUtils {
@@ -80,6 +81,9 @@ public class FileHandleCopyUtils {
 		newFileHandle.setEtag(UUID.randomUUID().toString());
 		newFileHandle.setCreatedOn(new Date());
 		newFileHandle.setCreatedBy(userId);
+		if (newFileHandle instanceof HasPreviewId) {
+			((HasPreviewId) newFileHandle).setPreviewId(null);
+		}
 		return newFileHandle;
 	}
 
