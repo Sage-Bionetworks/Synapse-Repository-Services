@@ -243,6 +243,9 @@ public class V2WikiManagerImpl implements V2WikiManager {
 		if(!currentEtag.equals(wikiPage.getEtag())){
 			throw new ConflictingUpdateException("ObjectId: "+objectId+" was updated since you last fetched it, retrieve it again and reapply the update");
 		}
+		
+		wikiPageDao.deleteOldWikiVersions(wikiPage.getId(), 1000L);
+		
 		// Set modified by
 		wikiPage.setModifiedBy(user.getId().toString());
 		

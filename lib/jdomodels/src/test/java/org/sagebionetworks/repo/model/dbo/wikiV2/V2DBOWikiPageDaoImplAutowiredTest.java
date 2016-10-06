@@ -846,5 +846,51 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		assertEquals(1L, fileHandleIds.size());
 		assertTrue(fileHandleIds.contains(attachOne.getId()));
 	}
+	
+	@Test
+	public void testDeleteOldWikiVersions() throws Exception {
+		WikiPageKey k = createWikiVersions(5);
+		List<V2WikiHistorySnapshot> history = wikiPageDao.getWikiHistory(k, new Long(100), new Long(0));
+		assertEquals(5, history.size());
+
+		wikiPageDao.deleteOldWikiVersions(k.getWikiPageId(), 2L);
+		history = wikiPageDao.getWikiHistory(k, new Long(100), new Long(0));
+		assertEquals(2, history.size());
+		assertEquals("4", history.get(0).getVersion());
+		assertEquals("3", history.get(1).getVersion());
+	}
+	
+	private WikiPageKey createWikiVersions(int numVersions) throws Exception {
+		if (numVersions > 100) {
+			throw new IllegalArgumentException("Max 100 versions!");
+		}
+		
+		V2WikiPage pageSpec = new V2WikiPage();
+		String ownerId = "syn1082";
+		ObjectType ownerType = ObjectType.ENTITY;
+		pageSpec.setTitle("Title");
+		pageSpec.setCreatedBy(creatorUserGroupId);
+		pageSpec.setModifiedBy(creatorUserGroupId);
+		pageSpec.setMarkdownFileHandleId(markdownOne.getId());
+		Map<String, FileHandle> fileNameMap = new HashMap<String, FileHandle>();
+		List<String> newIds = new ArrayList<String>();
+		
+		// Create it
+		V2WikiPage clone = wikiPageDao.create(pageSpec, fileNameMap, ownerId, ownerType, newIds);
+
+		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(ownerId, ownerType, clone.getId());
+		toDelete.add(key);
+		
+		for (int v = 1; v < numVersions; v++) {
+			Thread.sleep(500);
+			V2WikiPage p = wikiPageDao.get(key, null); // Get latest version
+			String markdownId = (v % 2 == 0) ? markdownTwo.getId() : markdownOne.getId();
+			p.setMarkdownFileHandleId(markdownId);
+			V2WikiPage updated = wikiPageDao.updateWikiPage(p, fileNameMap, ownerId, ownerType, newIds);
+		}
+		
+		
+		return key;
+	}
 
 }
