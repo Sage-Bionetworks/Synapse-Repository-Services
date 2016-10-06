@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.table.FacetValue;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
 import org.sagebionetworks.repo.model.table.QueryNextPageToken;
+import org.sagebionetworks.repo.model.table.QueryRequestFacetColumn;
 import org.sagebionetworks.repo.model.table.QueryResult;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
@@ -96,8 +97,8 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	@Override
 	public QueryResultBundle querySinglePage(
 			ProgressCallback<Void> progressCallback, UserInfo user,
-			String query, List<SortItem> sortList, Long offset, Long limit,
-			boolean runQuery, boolean runCount, boolean isConsistent)
+			String query, List<SortItem> sortList, List<QueryRequestFacetColumn> selectedFacets, Long offset,
+			Long limit, boolean runQuery, boolean runCount, boolean isConsistent)
 			throws TableUnavailableException,
 			TableFailedException, LockUnavilableException {
 		try{
@@ -117,7 +118,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 				bundle.getQueryResult().getQueryResults().setRows(rowHandler.getRows());
 			}
 			// add the next page token if needed
-			if (isRowCountEqualToMaxRowsPerPage(bundle)) {
+			if (isRowCountEqualToMaxRowsPerPage(bundle)) { //TODO: fix for facets
 				int maxRowsPerPage = bundle.getMaxRowsPerPage().intValue();
 				long nextOffset = (offset == null ? 0 : offset) + maxRowsPerPage;
 				QueryNextPageToken nextPageToken = createNextPageToken(query,sortList,
@@ -359,9 +360,9 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			UserInfo user, QueryNextPageToken nextPageToken)
 			throws TableUnavailableException, TableFailedException,
 			LockUnavilableException {
-		Query query = createQueryFromNextPageToken(nextPageToken);
-		QueryResultBundle queryResult = querySinglePage(progressCallback, user, query.getSql(), null, query.getOffset(), query.getLimit(), true,
-				false, query.getIsConsistent());
+		Query query = createQueryFromNextPageToken(nextPageToken);//TODO: fix for facets
+		QueryResultBundle queryResult = querySinglePage(progressCallback, user, query.getSql(), null, null, query.getOffset(), query.getLimit(),
+				true, false, query.getIsConsistent());
 		return queryResult.getQueryResult();
 	}
 
@@ -390,11 +391,11 @@ public class TableQueryManagerImpl implements TableQueryManager {
 				user,
 				queryBundle.getQuery().getSql(),
 				queryBundle.getQuery().getSort(),
+				queryBundle.getQuery().getSelectedFacets(), 
 				queryBundle.getQuery().getOffset(),
 				queryBundle.getQuery().getLimit(),
 				runQuery,
-				runCount,
-				isConsistent
+				runCount, isConsistent
 				);
 		
 		if(runQuery){

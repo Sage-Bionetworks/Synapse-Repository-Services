@@ -477,7 +477,7 @@ public class TableQueryManagerImplTest {
 	public void testQuerySinglePageEmptySchema() throws Exception {
 		// Return no columns
 		when(mockColumnModelDAO.getColumnModelsForObject(tableId)).thenReturn(new LinkedList<ColumnModel>());
-		QueryResultBundle results = manager.querySinglePage(mockProgressCallbackVoid, user, "select * from " + tableId + " limit 1", null, null, null, true, false, true);
+		QueryResultBundle results = manager.querySinglePage(mockProgressCallbackVoid, user, "select * from " + tableId + " limit 1", null, null, null, null, true, false, true);
 		assertNotNull(results);
 		QueryResultBundle emptyResults = TableQueryManagerImpl.createEmptyBundle(tableId);
 		assertEquals(emptyResults, results);
@@ -491,7 +491,7 @@ public class TableQueryManagerImplTest {
 	public void testQueryIsConsistentTrueNotAvailable() throws Exception {
 		status.setState(TableState.PROCESSING);
 		try{
-			manager.querySinglePage(mockProgressCallbackVoid, user, "select * from " + tableId + " limit 1", null, null, null, true, false, true);
+			manager.querySinglePage(mockProgressCallbackVoid, user, "select * from " + tableId + " limit 1", null, null, null, null, true, false, true);
 			fail("should have failed");
 		}catch(TableUnavailableException e){
 			// expected
@@ -843,7 +843,7 @@ public class TableQueryManagerImplTest {
 		// call under test.
 		QueryResultBundle result = manager.querySinglePage(
 				mockProgressCallbackVoid, user, query, sortList,
-				offset, limit, runQuery, runCount, isConsistent);
+				null, offset, limit, runQuery, runCount, isConsistent);
 		
 		assertNotNull(result);
 		assertEquals(new Long(1), result.getMaxRowsPerPage());
@@ -870,7 +870,7 @@ public class TableQueryManagerImplTest {
 		// call under test.
 		QueryResultBundle result = manager.querySinglePage(
 				mockProgressCallbackVoid, user, query, sortList,
-				offset, limit, runQuery, runCount, isConsistent);
+				null, offset, limit, runQuery, runCount, isConsistent);
 		
 		assertNotNull(result);
 		assertNotNull(result.getMaxRowsPerPage());
@@ -889,7 +889,7 @@ public class TableQueryManagerImplTest {
 		// call under test.
 		QueryResultBundle result = manager.querySinglePage(
 				mockProgressCallbackVoid, user, query, sortList,
-				offset, limit, runQuery, runCount, isConsistent);
+				null, offset, limit, runQuery, runCount, isConsistent);
 		
 		assertNotNull(result);
 		assertNotNull(result.getQueryResult());
@@ -910,7 +910,7 @@ public class TableQueryManagerImplTest {
 		// call under test.
 		QueryResultBundle result = manager.querySinglePage(
 				mockProgressCallbackVoid, user, query, sortList,
-				offset, limit, runQuery, runCount, isConsistent);
+				null, offset, limit, runQuery, runCount, isConsistent);
 		
 		assertNotNull(result);
 		// there should be no query results.
@@ -933,7 +933,7 @@ public class TableQueryManagerImplTest {
 		// call under test.
 		QueryResultBundle result = manager.querySinglePage(
 				mockProgressCallbackVoid, user, query, sortList,
-				offset, limit, runQuery, runCount, isConsistent);
+				null, offset, limit, runQuery, runCount, isConsistent);
 		
 		assertNotNull(result);
 		// there should be no query results.
@@ -959,7 +959,7 @@ public class TableQueryManagerImplTest {
 		// call under test.
 		QueryResultBundle result = manager.querySinglePage(
 				mockProgressCallbackVoid, user, query, sortList,
-				offset, limit, runQuery, runCount, isConsistent);
+				null, offset, limit, runQuery, runCount, isConsistent);
 		
 		assertNotNull(result);
 		// there should be no query results.

@@ -5,6 +5,14 @@
             "type":"string",
             "description":"The SQL query string."
         },
+        "selectedFacets":{
+            "type":"array",
+            "description":"The selected facet filters.",
+            "items": {
+				"$ref": "org.sagebionetworks.repo.model.table.QueryRequestFacetColumn"
+			}
+            
+        },
 		"isConsistent":{
             "type":"boolean",
             "description":"Optional, default true. When true, a query will be run only if the index is up-to-date with all changes to the table and a read-lock is successfully acquired on the index. When set to false, the query will be run against the index regardless of the state of the index and without attempting to acquire a read-lock. When isConsistent is set to false the query results will not contain an etag so the results cannot be used as input to a table update."

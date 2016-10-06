@@ -706,49 +706,10 @@ public class SqlElementUntils {
 		return builder.toString();
 	}
 	
-	/**
-	 * Returns a new SearchCondition with all WhereClause predicates containing columnName removed
-	 * @param whereClause
-	 * @return
-	 */
-	public static SearchCondition filterSearchCondition(String columName, SearchCondition searchCondition){
-		//TODO: may need refactoring
-		List<BooleanTerm> booleanTerms = searchCondition.getOrBooleanTerms();
+	public static SearchCondition appendFacetSearchConditions(){
+		//TODO: TEST
 		
-		List<BooleanTerm> filteredBoolTerms = new ArrayList<>();
-		for(BooleanTerm boolTerm: booleanTerms){
-			List<BooleanFactor> filteredBoolFactorList = new ArrayList<>();
-			for(BooleanFactor boolFactor : boolTerm.getAndBooleanFactors()){
-				//if boolean factor does not contain the columnName
-				BooleanTest booleanTest = boolFactor.getBooleanTest();
-				BooleanPrimary booleanPrimary = booleanTest.getBooleanPrimary();
-				Predicate predicate = booleanPrimary.getPredicate();
-				if(predicate != null){
-					if(!predicate.toSql().contains(columName)){
-						filteredBoolFactorList.add(boolFactor);
-					}
-				}else{
-					//TODO: IS THIS CORRECT BEHAVIOR FOR inner search conditions?
-					//recursively filter the inner search condition
-					SearchCondition innerSearchCondition = booleanPrimary.getSearchCondition();
-					if( innerSearchCondition != null){
-						SearchCondition filteredRecursiveSearchCondition = filterSearchCondition(columName, innerSearchCondition);
-						if(!filteredRecursiveSearchCondition.getOrBooleanTerms().isEmpty()){
-							//search condition not empty after filtering so add to list
-							//but first, we need to wrap the filtered SearchCondition around a bunch of other objects
-							BooleanPrimary filteredBooleanPrimary = new BooleanPrimary(filteredRecursiveSearchCondition);
-							BooleanTest filteredBooleanTest = new BooleanTest(filteredBooleanPrimary, booleanTest.getIs(), booleanTest.getNot(), booleanTest.getTruthValue());
-							BooleanFactor filteredBooleanFactor = new BooleanFactor(boolFactor.getNot(), filteredBooleanTest);
-							filteredBoolFactorList.add(filteredBooleanFactor);
-						}
-					}
-				}
-			}
-			if(!filteredBoolFactorList.isEmpty()){
-				filteredBoolTerms.add(new BooleanTerm(filteredBoolFactorList));
-			}
-		}
-		
-		return new SearchCondition(filteredBoolTerms);
+		//TODO: Implement
 	}
+	
 }

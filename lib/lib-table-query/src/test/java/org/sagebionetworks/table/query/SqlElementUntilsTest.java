@@ -291,19 +291,6 @@ public class SqlElementUntilsTest {
 		assertEquals("SELECT COUNT(DISTINCT foo) FROM syn123", countSql);
 	}
 	
-	@Test
-	public void testFilterSearchCondition() throws ParseException{
-		List<BooleanTerm> terms = SqlElementUntils.createBooleanTerms("(foo=1 AND bar < '1234')", "bar=2", "foo > 3", "(bar <> 'asdf')");
-		SearchCondition searchCondition = new SearchCondition(terms);
-		SearchCondition filteredSearchCondition = SqlElementUntils.filterSearchCondition("bar", searchCondition);
-		assertEquals("( foo = 1 ) OR foo > 3", filteredSearchCondition.toSql());
-	}
 	
-	@Test
-	public void testCreateFilteredFacetCount() throws ParseException{
-		QuerySpecification querySpecification = new TableQueryParser("select * from syn123 where (col1 = 123 OR col1 = 456) AND col2 = 234 AND (col3 = 678 OR col3 = 789)").querySpecification();
-		String resultQuery = SqlElementUntils.createFilteredFacetCountSqlString("col1", querySpecification);
-		assertEquals("SELECT col1 as value , COUNT(*) as count FROM syn123 WHERE col2 = 234 AND ( col3 = 678 OR col3 = 789 ) GROUP BY col1 LIMIT 100", resultQuery);
-	}
 	
 }

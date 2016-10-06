@@ -359,30 +359,30 @@ public class TableWorkerIntegrationTest {
 		assertNull(queryResult.getNextPageToken());
 		compareValues(rowSet, 0, 5, queryResult.getQueryResults());
 
-		queryResult = tableQueryManger.querySinglePage(mockProgressCallbackVoid, adminUserInfo, sql, null, 5L, 1L, true, false, true).getQueryResult();
+		queryResult = tableQueryManger.querySinglePage(mockProgressCallbackVoid, adminUserInfo, sql, null, null, 5L, 1L, true, false, true).getQueryResult();
 		assertEquals(1, queryResult.getQueryResults().getRows().size());
 		assertNull(queryResult.getNextPageToken());
 		compareValues(rowSet, 5, 1, queryResult.getQueryResults());
 
-		queryResult = tableQueryManger.querySinglePage(mockProgressCallbackVoid, adminUserInfo, sql, null, 5L, 2L, true, false, true).getQueryResult();
+		queryResult = tableQueryManger.querySinglePage(mockProgressCallbackVoid, adminUserInfo, sql, null, null, 5L, 2L, true, false, true).getQueryResult();
 		assertEquals(1, queryResult.getQueryResults().getRows().size());
 		assertNull(queryResult.getNextPageToken());
 		compareValues(rowSet, 5, 1, queryResult.getQueryResults());
 
-		queryResult = tableQueryManger.querySinglePage(mockProgressCallbackVoid, adminUserInfo, sql + " limit 2 offset 3", null, 0L, 8L, true,
-				false, true).getQueryResult();
+		queryResult = tableQueryManger.querySinglePage(mockProgressCallbackVoid, adminUserInfo, sql + " limit 2 offset 3", null, null, 0L, 8L,
+				true, false, true).getQueryResult();
 		assertEquals(2, queryResult.getQueryResults().getRows().size());
 		assertNull(queryResult.getNextPageToken());
 		compareValues(rowSet, 3, 2, queryResult.getQueryResults());
 
-		queryResult = tableQueryManger.querySinglePage(mockProgressCallbackVoid, adminUserInfo, sql + " limit 8 offset 2", null, 2L, 2L, true,
-				false, true).getQueryResult();
+		queryResult = tableQueryManger.querySinglePage(mockProgressCallbackVoid, adminUserInfo, sql + " limit 8 offset 2", null, null, 2L, 2L,
+				true, false, true).getQueryResult();
 		assertEquals(2, queryResult.getQueryResults().getRows().size());
 		assertNull(queryResult.getNextPageToken());
 		compareValues(rowSet, 4, 2, queryResult.getQueryResults());
 
-		queryResult = tableQueryManger.querySinglePage(mockProgressCallbackVoid,adminUserInfo, sql + " limit 8 offset 3", null, 2L, 2L, true,
-				false, true).getQueryResult();
+		queryResult = tableQueryManger.querySinglePage(mockProgressCallbackVoid,adminUserInfo, sql + " limit 8 offset 3", null, null, 2L, 2L,
+				true, false, true).getQueryResult();
 		assertEquals(1, queryResult.getQueryResults().getRows().size());
 		assertNull(queryResult.getNextPageToken());
 		compareValues(rowSet, 5, 1, queryResult.getQueryResults());
@@ -1885,7 +1885,7 @@ public class TableWorkerIntegrationTest {
 		long start = System.currentTimeMillis();
 		while(true){
 			try {
-				QueryResultBundle queryResult = tableQueryManger.querySinglePage(mockProgressCallbackVoid, user, sql, sortItems, 0L, limit, true, false, true);
+				QueryResultBundle queryResult = tableQueryManger.querySinglePage(mockProgressCallbackVoid, user, sql, sortItems, null, 0L, limit, true, false, true);
 				return queryResult.getQueryResult();
 			} catch (LockUnavilableException e) {
 				System.out.println("Waiting for table lock: "+e.getLocalizedMessage());

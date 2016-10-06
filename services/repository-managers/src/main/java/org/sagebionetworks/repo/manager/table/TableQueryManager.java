@@ -9,6 +9,7 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
 import org.sagebionetworks.repo.model.table.QueryNextPageToken;
+import org.sagebionetworks.repo.model.table.QueryRequestFacetColumn;
 import org.sagebionetworks.repo.model.table.QueryResult;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.SortItem;
@@ -29,10 +30,11 @@ public interface TableQueryManager {
 	 * Execute a single page of a table query.
 	 * The query results of this call will never exceed the
 	 * maximum number of rows allowed. 
-	 * 
 	 * @param user
 	 * @param query
+	 * @param selectedFacets TODO
 	 * @param isConsistent
+	 * 
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
@@ -41,8 +43,8 @@ public interface TableQueryManager {
 	 * @throws ParseException 
 	 * @throws TableLockUnavailableException 
 	 */
-	public QueryResultBundle querySinglePage(ProgressCallback<Void> progressCallback, UserInfo user, String query, List<SortItem> sortList, Long offset, Long limit, boolean runQuery,
-			boolean runCount, boolean isConsistent) throws DatastoreException, NotFoundException, TableUnavailableException,
+	public QueryResultBundle querySinglePage(ProgressCallback<Void> progressCallback, UserInfo user, String query, List<SortItem> sortList, List<QueryRequestFacetColumn> selectedFacets, Long offset, Long limit,
+			boolean runQuery, boolean runCount, boolean isConsistent) throws DatastoreException, NotFoundException, TableUnavailableException,
 			TableFailedException, ParseException, LockUnavilableException;
 
 	/**
