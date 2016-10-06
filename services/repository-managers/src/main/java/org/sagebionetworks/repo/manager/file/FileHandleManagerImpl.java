@@ -37,6 +37,7 @@ import org.sagebionetworks.audit.dao.ObjectRecordBatch;
 import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
 import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.AuthorizationStatus;
@@ -140,7 +141,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 
 	public static final String MAX_REQUESTS_PER_CALL_MESSAGE = "Request exceeds the maximum number of objects per request: "+MAX_REQUESTS_PER_CALL;
 
-	public static final String DUPLICATED_REQUEST_MESSAGE = "Request contains duplicated files.";
+	public static final String DUPLICATED_REQUEST_MESSAGE = "Request contains duplicated FileHandleId.";
 
 	static private Log log = LogFactory.getLog(FileHandleManagerImpl.class);
 
@@ -1179,7 +1180,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 			return result;
 		}
 
-		String userId = ""+userInfo.getId();
+		String userId = userInfo.getId().toString();
 		long now = System.currentTimeMillis();
 		Map<String, FileHandleCopyRequest> map = FileHandleCopyUtils.getRequestMap(request);
 		List<FileHandle> toCreate = new ArrayList<FileHandle>();
@@ -1193,7 +1194,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 				if(original == null){
 					fhcr.setFailureCode(FileResultFailureCode.NOT_FOUND);
 				}else{
-					FileHandle newFileHandle = FileHandleCopyUtils.createCopy(userId, original, map.get(fhcr.getOriginalFileHandleId()), idGenerator);
+					FileHandle newFileHandle = FileHandleCopyUtils.createCopy(userId, original, map.get(fhcr.getOriginalFileHandleId()), idGenerator.generateNewId(TYPE.FILE_IDS).toString());
 					toCreate.add(newFileHandle);
 					fhcr.setNewFileHandle(newFileHandle);
 					// capture the data for audit

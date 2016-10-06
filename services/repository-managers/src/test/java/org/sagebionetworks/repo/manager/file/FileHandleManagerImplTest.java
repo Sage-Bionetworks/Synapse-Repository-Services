@@ -1,6 +1,11 @@
 package org.sagebionetworks.repo.manager.file;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyCollection;
 import static org.mockito.Matchers.anyString;
@@ -10,7 +15,8 @@ import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.sagebionetworks.repo.manager.file.FileHandleManagerImpl.*;
+import static org.sagebionetworks.repo.manager.file.FileHandleManagerImpl.FILE_HANDLE_COPY_RECORD_TYPE;
+import static org.sagebionetworks.repo.manager.file.FileHandleManagerImpl.MAX_REQUESTS_PER_CALL;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -20,7 +26,6 @@ import java.net.URL;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -74,7 +79,6 @@ import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ProxyStorageLocationSettings;
 import org.sagebionetworks.repo.model.project.S3StorageLocationSetting;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -1097,8 +1101,12 @@ public class FileHandleManagerImplTest {
 		BatchFileHandleCopyRequest batch = new BatchFileHandleCopyRequest();
 		List<FileHandleCopyRequest> copyRequests = new LinkedList<FileHandleCopyRequest>();
 		batch.setCopyRequests(copyRequests);
-		copyRequests.add(new FileHandleCopyRequest());
-		copyRequests.add(new FileHandleCopyRequest());
+		FileHandleCopyRequest request = new FileHandleCopyRequest();
+		FileHandleAssociation originalFile = new FileHandleAssociation();
+		originalFile.setFileHandleId("1");
+		request.setOriginalFile(originalFile);
+		copyRequests.add(request);
+		copyRequests.add(request);
 		manager.copyFileHandles(mockUser, batch);
 	}
 

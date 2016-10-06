@@ -9,8 +9,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.file.BatchFileHandleCopyRequest;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
@@ -62,16 +60,16 @@ public class FileHandleCopyUtils {
 	 * @param userId
 	 * @param original
 	 * @param overwriteData
-	 * @param idGenerator
+	 * @param newId
 	 * @return
 	 */
-	public static FileHandle createCopy(String userId, FileHandle original, FileHandleCopyRequest overwriteData, IdGenerator idGenerator) {
+	public static FileHandle createCopy(String userId, FileHandle original, FileHandleCopyRequest overwriteData, String newId) {
 		ValidateArgument.required(userId, "userId");
 		ValidateArgument.required(original, "original");
 		ValidateArgument.required(overwriteData, "overrideData");
-		ValidateArgument.required(idGenerator, "idGenerator");
+		ValidateArgument.required(newId, "newId");
 		FileHandle newFileHandle = original;
-		newFileHandle.setId(""+idGenerator.generateNewId(TYPE.FILE_IDS));
+		newFileHandle.setId(newId);
 		if (overwriteData.getNewFileName() != null) {
 			newFileHandle.setFileName(overwriteData.getNewFileName());
 		}
@@ -96,12 +94,12 @@ public class FileHandleCopyUtils {
 	 */
 	public static boolean hasDuplicates(List<FileHandleAssociation> requestedFiles) {
 		ValidateArgument.required(requestedFiles, "requestedFiles");
-		Set<FileHandleAssociation> seen = new HashSet<FileHandleAssociation>(requestedFiles.size());
+		Set<String> seen = new HashSet<String>(requestedFiles.size());
 		for (FileHandleAssociation fha : requestedFiles) {
-			if (seen.contains(fha)) {
+			if (seen.contains(fha.getFileHandleId())) {
 				return true;
 			}
-			seen.add(fha);
+			seen.add(fha.getFileHandleId());
 		}
 		return false;
 	}
