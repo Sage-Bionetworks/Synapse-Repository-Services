@@ -1,5 +1,6 @@
 package org.sagebionetworks.message.workers;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
@@ -151,6 +152,10 @@ public class MessageToUserWorkerIntegrationTest {
 			long elapse = System.currentTimeMillis() - start;
 			assertTrue("Timed out waiting for message to be sent", elapse < MAX_WAIT);
 		}
+		assertFalse(message.equals(messages.getResults().get(0).getMessage()));
+		message.setIsNotificationMessage(false);
+		message.setWithProfileSettingLink(false);
+		message.setWithUnsubscribeLink(false);
 		assertEquals(message, messages.getResults().get(0).getMessage());
 	}
 	

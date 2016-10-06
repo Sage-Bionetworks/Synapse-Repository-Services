@@ -658,7 +658,7 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		DockerRegistryEventList eventList = 
 				DockerRegistryEventUtil.createDockerRegistryEvent(
 						RegistryEventAction.push, "docker.synapse.org", 
-						adminUserId, project.getId()+"/repo-name", "latest", "000");
+						adminUserId, project.getId()+"/repo-name", "latest", "000", "application/vnd.docker.distribution.manifest.v2+json");
 		dockerManager.dockerRegistryNotification(eventList);
 		
 		// Create a folder to trash

@@ -20,5 +20,9 @@
 			ref="stackConfiguration.shouldMessagesBePublishedToTopic"></property>
 	</bean>
 
+	<bean id="objectRecordQueue"
+		class="org.sagebionetworks.repo.manager.audit.ObjectRecordQueueImpl"
+		scope="singleton" />
+
 
 </beans>

@@ -21,7 +21,7 @@
 		},
 		"tag": {
 			"type": "string",
-			"description": "The user supplied tag for the commit of the repsository being pushed or pulled."
+			"description": "The user supplied tag for the commit of the repository being pushed or pulled."
 		},
 		"url": {
 			"type": "string"
