@@ -1,11 +1,11 @@
 package org.sagebionetworks.table.query.util;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.sagebionetworks.repo.model.table.SortDirection;
 import org.sagebionetworks.repo.model.table.SortItem;
@@ -685,7 +685,8 @@ public class SqlElementUntils {
 	 * @param model
 	 * @return
 	 */
-	public static String createFilteredFacetCountSqlString(String columnName, QuerySpecification model){
+	public static String createFilteredFacetCountSqlString(String columnName, QuerySpecification model,  Map<String, String> facetSearchConditionMap){
+		//TODO: Test
 		ValidateArgument.required(columnName, "columnName");
 		ValidateArgument.required(model, "model");
 
@@ -694,22 +695,30 @@ public class SqlElementUntils {
 		}
 		
 		TableExpression tableExpressionFromModel = model.getTableExpression();
-		WhereClause modifiedWhereClause = new WhereClause( filterSearchCondition(columnName, tableExpressionFromModel.getWhereClause().getSearchCondition()));
 		Pagination pagination = new Pagination(MAX_NUM_FACET_CATEGORIES, null);
 		StringBuilder builder = new StringBuilder("SELECT ");
 		builder.append(columnName +" as value , COUNT(*) as count "); //TODO: "count" and "value" as final constants?
 		builder.append(tableExpressionFromModel.getFromClause().toSql());
 		builder.append(" ");
-		builder.append(modifiedWhereClause.toSql());
+		builder.append("WHERE ");
+		builder.append(createFacetSearchConditionString(columnName, facetSearchConditionMap));
 		builder.append(" GROUP BY " + columnName + " ");
 		builder.append(pagination.toSql());
 		return builder.toString();
 	}
 	
-	public static SearchCondition appendFacetSearchConditions(){
+	public static String createFacetSearchConditionString(String columnName, Map<String, String> facetSearchConditionMap){
 		//TODO: TEST
-		
-		//TODO: Implement
+		StringBuilder builder = new StringBuilder();
+		for(Entry<String, String> facetConditionPair : facetSearchConditionMap.entrySet()){
+			if(!facetConditionPair.getKey().equals(columnName)){
+				if(builder.length() > 0){ //not first condition so append AND
+					builder.append(" AND ");
+				}
+				builder.append(facetConditionPair.getValue());
+			}
+		}
+		return builder.toString();
 	}
 	
 }

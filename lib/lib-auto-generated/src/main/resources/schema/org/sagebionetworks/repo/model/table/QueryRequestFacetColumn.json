@@ -11,7 +11,7 @@
 			"type": "array",
 			"uniqueItems": true,
 			"items": {
-				"$ref": "org.sagebionetworks.repo.model.table.FacetValue"
+				"type": "string"
 			}
 		}
     }
