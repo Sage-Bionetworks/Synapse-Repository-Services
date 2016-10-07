@@ -24,7 +24,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class UploadControllerTest extends AbstractAutowiredControllerTestBase {
 	
 	@Autowired
-	private FileHandleDao fileMetadataDao;
+	private FileHandleDao fileHandleDao;
 	
 	private Long adminUserId;
 	private String adminUserIdString;
@@ -49,7 +49,7 @@ public class UploadControllerTest extends AbstractAutowiredControllerTestBase {
 		handleOne.setKey("mainFileKey");
 		handleOne.setEtag("etag");
 		handleOne.setFileName("foo.bar");
-		handleOne = fileMetadataDao.createFile(handleOne);
+		handleOne = fileHandleDao.createFile(handleOne);
 		toDelete.add(handleOne.getId());
 		// Create a preview
 		handleTwo = new PreviewFileHandle();
@@ -59,16 +59,16 @@ public class UploadControllerTest extends AbstractAutowiredControllerTestBase {
 		handleTwo.setKey("previewFileKey");
 		handleTwo.setEtag("etag");
 		handleTwo.setFileName("bar.txt");
-		handleTwo = fileMetadataDao.createFile(handleTwo);
+		handleTwo = fileHandleDao.createFile(handleTwo);
 		// Set two as the preview of one
-		fileMetadataDao.setPreviewId(handleOne.getId(), handleTwo.getId());
+		fileHandleDao.setPreviewId(handleOne.getId(), handleTwo.getId());
 		toDelete.add(handleTwo.getId());
 	}
 
 	@After
 	public void after() throws Exception {
 		for (String id : toDelete) {
-			fileMetadataDao.delete(id);
+			fileHandleDao.delete(id);
 		}
 	}
 
@@ -109,4 +109,5 @@ public class UploadControllerTest extends AbstractAutowiredControllerTestBase {
 			servletTestHelper.getFileHandle(adminUserId, handleOne.getId());
 		} catch (NotFoundException e) { }
 	}
+
 }

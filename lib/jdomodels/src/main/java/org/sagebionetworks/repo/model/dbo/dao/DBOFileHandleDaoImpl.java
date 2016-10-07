@@ -342,7 +342,6 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 	public void createBatch(List<FileHandle> toCreate) {
 		List<DBOFileHandle> dbos = FileMetadataUtils.createDBOsFromDTOs(toCreate);
 		for (DBOFileHandle dbo : dbos) {
-			dbo.setPreviewId(null);
 			transactionalMessenger.sendMessageAfterCommit(dbo, ChangeType.CREATE);
 		}
 		basicDao.createBatch(dbos);

@@ -6,6 +6,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
@@ -27,14 +28,19 @@ import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.manager.S3TestUtils;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.FileEntity;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.file.BatchFileHandleCopyRequest;
+import org.sagebionetworks.repo.model.file.BatchFileHandleCopyResult;
 import org.sagebionetworks.repo.model.file.BatchFileRequest;
 import org.sagebionetworks.repo.model.file.BatchFileResult;
+import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
+import org.sagebionetworks.repo.model.file.FileHandleCopyRequest;
+import org.sagebionetworks.repo.model.file.FileHandleCopyResult;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.FileResult;
+import org.sagebionetworks.repo.model.file.FileResultFailureCode;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -197,6 +203,58 @@ public class IT054FileEntityTest {
 		assertEquals(fileHandle.getId(), result.getFileHandle().getId());
 		assertNotNull(result.getPreSignedURL());
 		assertNull(result.getFailureCode());
+
+		/*
+		 * test copy FileHandles
+		 */
+
+		BatchFileHandleCopyRequest batch = new BatchFileHandleCopyRequest();
+		List<FileHandleCopyRequest> requests = new ArrayList<FileHandleCopyRequest>(2);
+		batch.setCopyRequests(requests);
+
+		FileHandleAssociation fha1 = association;
+		FileHandleAssociation fha2 = new FileHandleAssociation();
+		fha2.setAssociateObjectId(fha1.getAssociateObjectId());
+		fha2.setAssociateObjectType(fha1.getAssociateObjectType());
+		fha2.setFileHandleId("-1");
+
+		FileHandleCopyRequest request1 = new FileHandleCopyRequest();
+		request1.setOriginalFile(fha1);
+		String newFileName = "newFileName";
+		request1.setNewFileName(newFileName);
+		FileHandleCopyRequest request2 = new FileHandleCopyRequest();
+		request2.setOriginalFile(fha2);
+
+		requests.add(request1);
+		requests.add(request2);
+
+		BatchFileHandleCopyResult copyResult = synapse.copyFileHandles(batch);
+		assertNotNull(copyResult);
+		List<FileHandleCopyResult> copyResults = copyResult.getCopyResults();
+		assertNotNull(copyResults);
+		assertEquals(2, copyResults.size());
+		FileHandleCopyResult first = copyResults.get(0);
+		FileHandleCopyResult second = copyResults.get(1);
+		assertEquals(fha1.getFileHandleId(), first.getOriginalFileHandleId());
+		assertNull(first.getFailureCode());
+		assertEquals(fha2.getFileHandleId(), second.getOriginalFileHandleId());
+		assertEquals(FileResultFailureCode.UNAUTHORIZED, second.getFailureCode());
+		assertNull(second.getNewFileHandle());
+
+		FileHandle newFileHandle = first.getNewFileHandle();
+		assertNotNull(newFileHandle);
+		assertFalse(newFileHandle.getId().equals(fileHandle.getId()));
+		assertEquals(userToDelete.toString(), newFileHandle.getCreatedBy());
+		assertEquals(newFileName, newFileHandle.getFileName());
+		assertFalse(newFileHandle.getEtag().equals(fileHandle.getEtag()));
+		assertFalse(newFileHandle.getCreatedOn().equals(fileHandle.getCreatedOn()));
+		assertEquals(fileHandle.getContentMd5(), newFileHandle.getContentMd5());
+		assertEquals(fileHandle.getContentType(), newFileHandle.getContentType());
+		assertEquals(fileHandle.getConcreteType(), newFileHandle.getConcreteType());
+		assertEquals(fileHandle.getContentSize(), newFileHandle.getContentSize());
+		assertEquals(fileHandle.getStorageLocationId(), newFileHandle.getStorageLocationId());
+		assertEquals(fileHandle.getBucketName(), ((S3FileHandle) newFileHandle).getBucketName());
+		assertEquals(fileHandle.getKey(), ((S3FileHandle) newFileHandle).getKey());
 	}
 
 	@Ignore
@@ -302,5 +360,4 @@ public class IT054FileEntityTest {
 		fileHandlesToDelete.add(previewFileHandle.getId());
 		return previewFileHandle;
 	}
-	
 }

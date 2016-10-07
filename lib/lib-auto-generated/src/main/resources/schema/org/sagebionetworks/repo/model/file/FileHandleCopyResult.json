@@ -12,7 +12,7 @@
 		},
 		"failureCode": {
 			"type": "string",
-			"description": "Failure code for a files that cannot be downloaded.",
+			"description": "Failure code for a files that cannot be copied.",
 			"name": "FileResultFailureCode",
 			"enum": [
 				"NOT_FOUND",
