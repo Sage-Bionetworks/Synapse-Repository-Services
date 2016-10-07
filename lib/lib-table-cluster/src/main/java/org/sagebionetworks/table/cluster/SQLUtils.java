@@ -27,6 +27,8 @@ import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
+import org.sagebionetworks.table.model.Grouping;
+import org.sagebionetworks.table.model.SparseRow;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
@@ -448,9 +450,7 @@ public class SQLUtils {
 	 * @param tableId
 	 * @return
 	 */
-	public static String buildDeleteSQL(List<ColumnModel> schema, String tableId){
-		if(schema == null) throw new IllegalArgumentException("Schema cannot be null");
-		if(schema.size() < 1) throw new IllegalArgumentException("Schema must include at least on column");
+	public static String buildDeleteSQL(String tableId){
 		if(tableId == null) throw new IllegalArgumentException("TableID cannot be null");
  		StringBuilder builder = new StringBuilder();
 		builder.append("DELETE FROM ");
@@ -468,36 +468,25 @@ public class SQLUtils {
 	 * @param schema
 	 * @return
 	 */
-	public static SqlParameterSource[] bindParametersForCreateOrUpdate(RowSet toBind, List<ColumnModel> schema){
-		// First we need a mapping from the the schema to the RowSet
-		Map<String, Integer> columnIndexMap = new HashMap<String, Integer>();
-		int index = 0;
-		for (SelectColumn header : toBind.getHeaders()) {
-			// columns might no longer exists
-			if (header != null) {
-				columnIndexMap.put(header.getId(), index);
-			}
-			index++;
-		}
-
+	public static SqlParameterSource[] bindParametersForCreateOrUpdate(Grouping grouping){
 		// We will need a binding for every row
-		List<MapSqlParameterSource> results = Lists.newArrayListWithExpectedSize(toBind.getRows().size() * 2);
-		for(Row row: toBind.getRows()){
-			if (!TableModelUtils.isDeletedRow(row)) {
-				Map<String, Object> rowMap = new HashMap<String, Object>(schema.size() + 2);
+		List<MapSqlParameterSource> results = Lists.newArrayListWithExpectedSize(grouping.getRows().size() * 2);
+		for(SparseRow row: grouping.getRows()){
+			if (!row.isDelete()) {
+				Map<String, Object> rowMap = new HashMap<String, Object>(grouping.getColumnsWithValues().size() + 2);
 				// Always bind the row ID and version
 				if (row.getRowId() == null)
 					throw new IllegalArgumentException("RowID cannot be null");
-				if (row.getVersionNumber() == null)
+				if (row.getChangeSetVersion() == null)
 					throw new IllegalArgumentException("RowVersionNumber cannot be null");
 				rowMap.put(ROW_ID_BIND, row.getRowId());
-				rowMap.put(ROW_VERSION_BIND, row.getVersionNumber());
+				rowMap.put(ROW_VERSION_BIND, row.getChangeSetVersion());
 				// Bind each column
-				for (ColumnModel cm : schema) {
-					// Lookup the index of this column
-					Integer columnIndex = columnIndexMap.get(cm.getId());
-
-					String stringValue = (columnIndex == null) ? cm.getDefaultValue() : row.getValues().get(columnIndex);
+				for (ColumnModel cm : grouping.getColumnsWithValues()) {
+					String stringValue = row.getCellValue(cm.getId());
+					if(stringValue == null){
+						stringValue = cm.getDefaultValue();
+					}
 					Object value = parseValueForDB(cm.getColumnType(), stringValue);
 
 					String columnName = getColumnNameForId(cm.getId());
@@ -539,10 +528,11 @@ public class SQLUtils {
 	 * @param schema
 	 * @return
 	 */
-	public static SqlParameterSource bindParameterForDelete(RowSet toBind, List<ColumnModel> schema) {
+	public static SqlParameterSource bindParameterForDelete(List<SparseRow> toBind) {
 		List<Long> rowIds = Lists.newArrayList();
-		for (Row row : toBind.getRows()) {
-			if (TableModelUtils.isDeletedRow(row)) {
+		for (SparseRow row : toBind) {
+			ValidateArgument.requirement(row.isDelete(), "Expected only a delete row");
+			if (row.isDelete()) {
 				rowIds.add(row.getRowId());
 			}
 		}

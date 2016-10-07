@@ -1,12 +1,15 @@
 package org.sagebionetworks.table.model;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.ValidateArgument;
@@ -17,6 +20,7 @@ import org.sagebionetworks.util.ValidateArgument;
  */
 public class SparseChangeSet {
 
+	String tableId;
 	List<ColumnModel> schema;
 	Map<String, ColumnModel> schemaMap;
 	Map<String, Integer> columnIndexMap;
@@ -29,9 +33,11 @@ public class SparseChangeSet {
 	 * @param schema
 	 * @param versionNumber
 	 */
-	public SparseChangeSet(List<ColumnModel> schema, long versionNumber) {
+	public SparseChangeSet(String tableId, List<ColumnModel> schema, long versionNumber) {
+		ValidateArgument.required(tableId, "tableId");
 		ValidateArgument.required(schema, "schema");
-		sparseRows = new LinkedList<SparseRow>();
+		this.tableId = tableId;
+		this.sparseRows = new LinkedList<SparseRow>();
 		this.versionNumber = versionNumber;
 		this.schema = new LinkedList<>(schema);
 		schemaMap = new HashMap<String, ColumnModel>(schema.size());
@@ -81,6 +87,14 @@ public class SparseChangeSet {
 		sparseRows.add(newRow);
 		return newRow;
 	}
+	
+	/**
+	 * The ID of the table.
+	 * @return
+	 */
+	public String getTableId(){
+		return tableId;
+	}
 
 	/**
 	 * Group all rows by the columns they have values for.
@@ -113,7 +127,7 @@ public class SparseChangeSet {
 				ColumnModel cm = getColumnModel(columnId);
 				models.add(cm);
 			}
-			Grouping group = new Grouping(models, groupRows);
+			Grouping group = new Grouping(models, groupRows, tableId);
 			grouping.add(group);
 		}
 		return grouping;
@@ -150,6 +164,37 @@ public class SparseChangeSet {
 		}
 		return index;
 	}
+	
+	/**
+	 * Get all of the FileHandle ID within this change set.
+	 * @return
+	 */
+	public Set<Long> getFileHandleIdsInSparseChangeSet(){
+		// determine which columns are files
+		List<String> fileColumnIds = new LinkedList<>();
+		for(ColumnModel cm: schema){
+			if(ColumnType.FILEHANDLEID.equals(cm.getColumnType())){
+				fileColumnIds.add(cm.getId());
+			}
+		}
+		Set<Long> results = new HashSet<>();
+		for(SparseRow row: rowIterator()){
+			for(String fileColumnId: fileColumnIds){
+				if(row.hasCellValue(fileColumnId)){
+					String cellValue = row.getCellValue(fileColumnId);
+					if(!TableModelUtils.isNullOrEmpty(cellValue)){
+						try {
+							results.add(Long.parseLong(cellValue));
+						} catch (NumberFormatException e) {
+							throw new IllegalArgumentException("Passed a non-integer file handle id: "+cellValue);
+						}	
+					}
+				}
+			}
+		}
+		return results;
+	}
+	
 
 	/**
 	 * Private implementation of SparseRow. Note this class is not static, and

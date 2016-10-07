@@ -1284,7 +1284,7 @@ public class TableModelUtils {
 	 */
 	public static SparseChangeSet createSparseChangeSet(RowSet rowSet, List<ColumnModel> schema,
 			long versionNumber) {
-		SparseChangeSet changeSet = new SparseChangeSet(schema, versionNumber);
+		SparseChangeSet changeSet = new SparseChangeSet(rowSet.getTableId(), schema, versionNumber);
 		// Add all rows
 		for (Row row : rowSet.getRows()) {
 			SparseRow sparse = changeSet.addEmptyRow();
