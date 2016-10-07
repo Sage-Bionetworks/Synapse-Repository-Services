@@ -51,6 +51,7 @@ import org.sagebionetworks.table.query.model.Pagination;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.SearchCondition;
 import org.sagebionetworks.table.query.model.SelectList;
+import org.sagebionetworks.table.query.model.TableExpression;
 import org.sagebionetworks.table.query.model.WhereClause;
 import org.sagebionetworks.table.query.util.SimpleAggregateQueryException;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
@@ -290,26 +291,9 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		if(selectedFacets != null && !selectedFacets.isEmpty() && !query.isAggregatedResult()){ //facets only useful for non-agggregate queries
 			//TODO: get list of facet columns and call run 
 			
-			//get a map of faceted columns columnID->columnName for construction of SQL 
-			Map<String, String> facetedColumnNamesMap = getFacetedColumnNames(query.getTableSchema());
-			//get a set of all columns in the SELECT clause of the query
-			Set<String> columnsInSelect = getSelectedColumnNameSet(query.getModel().getSelectList());
 			
 			
-			
-			//create the SearchConditions based on each facet column's values and store them into facetSearchConditionStrings
-			for(QueryRequestFacetColumn selectedFacet : selectedFacets){
-				String facetColumnName = facetedColumnNamesMap.get(selectedFacet.getColumnId());
-				
-				//if the column id is in the map of faceted columns and the SELECT clause of the query mentions this column	
-				if(facetColumnName != null && ( query.getModel().getSelectList().getAsterisk() || columnsInSelect.contains(facetColumnName))){
-					
-					String facetSearchConditionString = buildFacetFilterSearchConditionString(facetColumnName, selectedFacet.getFacetValues());
 
-					//add to list of facets
-					facetSearchConditionMap.put(facetColumnName ,facetSearchConditionString);
-				}
-			}
 		}
 		
 		// run the actual query if needed.
@@ -352,21 +336,6 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		return bundle;
 	}
 	
-	/**
-	 * Returns a Map where the key is the ID of a faceted column and the value is the name of the column
-	 * @return
-	 */
-	public Map<String, String> getFacetedColumnNames(List<ColumnModel> columnModels){
-		//TODO: idk which table /class to get this info
-		Map<String, String> result = new HashMap<String, String>();
-		for(ColumnModel cm : columnModels){
-			if(cm.getIsFaceted()){
-				result.put(cm.getId(), cm.getName());
-			}
-		}
-		return result;
-	}
-	
 	Set<String> getSelectedColumnNameSet(SelectList selectList){
 		Set<String> result = new HashSet<>();
 		for(DerivedColumn column : selectList.getColumns()){
@@ -404,15 +373,27 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		return builder.toString();
 	}
 	
-	void appendSearchCondition(SqlQuery query, Map<String,String> facetSearchConditionMap){
-		WhereClause queryWhereClause = query.getModel().getTableExpression().getWhereClause();
+	SqlQuery appendSearchCondition(SqlQuery query, Map<String,String> facetSearchConditionMap){
+		QuerySpecification originalQuerySpecification = query.getModel();
+		TableExpression originalTableExpression = originalQuerySpecification.getTableExpression();
+		WhereClause queryWhereClause = originalTableExpression.getWhereClause();
 		SearchCondition querySearchCondition = queryWhereClause.getSearchCondition();
 		StringBuilder searchConditionBuilder = new StringBuilder("(" + querySearchCondition.toSql() + ")");
 		for(Entry<String, String> entry: facetSearchConditionMap.entrySet()){
 			searchConditionBuilder.append(" AND ");
 			searchConditionBuilder.append(entry.getValue());
 		}
+		try {
 			SearchCondition searchConditionWithFacet = SqlElementUntils.createSearchCondition(searchConditionBuilder.toString());
+			WhereClause modifiedWhereClause = new WhereClause(searchConditionWithFacet);
+			TableExpression modifiedTableExpression = new TableExpression(originalTableExpression.getFromClause(), modifiedWhereClause, originalTableExpression.getGroupByClause(),
+					originalTableExpression.getOrderByClause(), originalTableExpression.getPagination());
+			QuerySpecification modifiedQuerySpecification = new QuerySpecification(originalQuerySpecification.getSqlDirective(), originalQuerySpecification.getSetQuantifier(), originalQuerySpecification.getSelectList(), modifiedTableExpression);
+			return new SqlQuery(modifiedQuerySpecification, query.getTableSchema(), query.get, overrideLimit, maxBytesPerPage)
+		} catch (ParseException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 			//TODO: modify where clause somehow???/ perhaps add facetconditions to SearchQuery similar to offset and limit?
 		
 		
@@ -854,4 +835,42 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			throw new RuntimeException(e);
 		}
 	}
+	
+	/**
+	 * Returns a new filtered List of QueryRequestFacetColumns that match 
+	 * the schema
+	 * @return
+	 */
+	public static List<ValidatedQueryFacetColumn> validateFacetList(List<QueryRequestFacetColumn> selectedFacets, List<ColumnModel> schema){
+		Map<String, String> facetedColumnNamesMap = getFacetedColumnNames(schema);
+		
+		List<ValidatedQueryFacetColumn> validatedFacets = new ArrayList<ValidatedQueryFacetColumn>();
+		//create the SearchConditions based on each facet column's values and store them into facetSearchConditionStrings
+		for(QueryRequestFacetColumn selectedFacet : selectedFacets){
+			String facetColumnName = facetedColumnNamesMap.get(selectedFacet.getColumnId());
+			if(facetColumnName == null){
+				throw new IllegalArgumentException("Requested Facet column id: " + selectedFacet.getColumnId() + " is not a faceted column according to the schema.");
+			}
+			//add to list of facets
+			validatedFacets.add(new ValidatedQueryFacetColumn(selectedFacet.getColumnId(), facetColumnName, selectedFacet.getFacetValues()));
+		}
+		return validatedFacets;
+	}
+	
+	/**
+	 * Returns a Map where the key is the ID of a faceted column and the value is the name of the column
+	 * @return
+	 */
+	private static Map<String, String> getFacetedColumnNames(List<ColumnModel> columnModels){
+		//TODO: idk which table /class to get this info
+		Map<String, String> result = new HashMap<String, String>();
+		for(ColumnModel cm : columnModels){
+			if(cm.getIsFaceted()){
+				result.put(cm.getId(), cm.getName());
+			}
+		}
+		return result;
+	}
+	
+	
 }
