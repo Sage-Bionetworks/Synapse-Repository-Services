@@ -12,11 +12,13 @@ public class ValidatedQueryFacetColumn {
 	private String columnId;
 	private String columnName;
 	private Set<String> columnValues;
+	private boolean returnFacetCounts;
 	
-	public ValidatedQueryFacetColumn(String columnId, String columnName, Set<String> columnValues){
+	public ValidatedQueryFacetColumn(String columnId, String columnName, Set<String> columnValues, boolean returnFacetCounts){
 		this.columnId = columnId;
 		this.columnName = columnName;
 		this.columnValues = new HashSet<>(columnValues);
+		this.returnFacetCounts = returnFacetCounts;
 	}
 
 	public Set<String> getColumnValues() {
@@ -29,6 +31,10 @@ public class ValidatedQueryFacetColumn {
 
 	public String getColumnId() {
 		return columnId;
+	}
+	
+	public boolean returnFacetCounts(){
+		return returnFacetCounts;
 	}
 	
 

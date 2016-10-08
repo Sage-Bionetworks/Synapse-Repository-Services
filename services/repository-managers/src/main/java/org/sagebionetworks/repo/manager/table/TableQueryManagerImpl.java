@@ -372,32 +372,6 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		builder.append(")");
 		return builder.toString();
 	}
-	
-	SqlQuery appendSearchCondition(SqlQuery query, Map<String,String> facetSearchConditionMap){
-		QuerySpecification originalQuerySpecification = query.getModel();
-		TableExpression originalTableExpression = originalQuerySpecification.getTableExpression();
-		WhereClause queryWhereClause = originalTableExpression.getWhereClause();
-		SearchCondition querySearchCondition = queryWhereClause.getSearchCondition();
-		StringBuilder searchConditionBuilder = new StringBuilder("(" + querySearchCondition.toSql() + ")");
-		for(Entry<String, String> entry: facetSearchConditionMap.entrySet()){
-			searchConditionBuilder.append(" AND ");
-			searchConditionBuilder.append(entry.getValue());
-		}
-		try {
-			SearchCondition searchConditionWithFacet = SqlElementUntils.createSearchCondition(searchConditionBuilder.toString());
-			WhereClause modifiedWhereClause = new WhereClause(searchConditionWithFacet);
-			TableExpression modifiedTableExpression = new TableExpression(originalTableExpression.getFromClause(), modifiedWhereClause, originalTableExpression.getGroupByClause(),
-					originalTableExpression.getOrderByClause(), originalTableExpression.getPagination());
-			QuerySpecification modifiedQuerySpecification = new QuerySpecification(originalQuerySpecification.getSqlDirective(), originalQuerySpecification.getSetQuantifier(), originalQuerySpecification.getSelectList(), modifiedTableExpression);
-			return new SqlQuery(modifiedQuerySpecification, query.getTableSchema(), query.get, overrideLimit, maxBytesPerPage)
-		} catch (ParseException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-			//TODO: modify where clause somehow???/ perhaps add facetconditions to SearchQuery similar to offset and limit?
-		
-		
-	}
 
 
 	/**
@@ -842,35 +816,80 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @return
 	 */
 	public static List<ValidatedQueryFacetColumn> validateFacetList(List<QueryRequestFacetColumn> selectedFacets, List<ColumnModel> schema){
-		Map<String, String> facetedColumnNamesMap = getFacetedColumnNames(schema);
+		Map<String, ColumnModel> facetedColumnNamesMap = getColumnIdToSchemaMap(schema);
 		
 		List<ValidatedQueryFacetColumn> validatedFacets = new ArrayList<ValidatedQueryFacetColumn>();
 		//create the SearchConditions based on each facet column's values and store them into facetSearchConditionStrings
 		for(QueryRequestFacetColumn selectedFacet : selectedFacets){
-			String facetColumnName = facetedColumnNamesMap.get(selectedFacet.getColumnId());
-			if(facetColumnName == null){
-				throw new IllegalArgumentException("Requested Facet column id: " + selectedFacet.getColumnId() + " is not a faceted column according to the schema.");
-			}
+			ColumnModel columnModel = facetedColumnNamesMap.get(selectedFacet.getColumnId());
 			//add to list of facets
-			validatedFacets.add(new ValidatedQueryFacetColumn(selectedFacet.getColumnId(), facetColumnName, selectedFacet.getFacetValues()));
+			if(columnModel == null){
+				throw new IllegalArgumentException("Requested facet was not found in the schema");
+			}
+			validatedFacets.add(new ValidatedQueryFacetColumn(selectedFacet.getColumnId(), columnModel.getName(), selectedFacet.getFacetValues(), columnModel.getIsFaceted()));
 		}
 		return validatedFacets;
 	}
 	
 	/**
-	 * Returns a Map where the key is the ID of a faceted column and the value is the name of the column
+	 * Returns a Map where the key is the ID of a column and the value is the name of the column
 	 * @return
 	 */
-	private static Map<String, String> getFacetedColumnNames(List<ColumnModel> columnModels){
-		//TODO: idk which table /class to get this info
-		Map<String, String> result = new HashMap<String, String>();
+	private static Map<String, ColumnModel> getColumnIdToSchemaMap(List<ColumnModel> columnModels){
+		//TODO: test
+		Map<String, ColumnModel> result = new HashMap<String, ColumnModel>();
 		for(ColumnModel cm : columnModels){
-			if(cm.getIsFaceted()){
-				result.put(cm.getId(), cm.getName());
-			}
+			result.put(cm.getId(), cm);
 		}
 		return result;
 	}
 	
+	
+	SqlQuery appendSearchCondition(SqlQuery query, List<String> facetSearchConditionStrings){
+		QuerySpecification originalQuerySpecification = query.getModel();
+		TableExpression originalTableExpression = originalQuerySpecification.getTableExpression();
+		WhereClause queryWhereClause = originalTableExpression.getWhereClause();
+		SearchCondition querySearchCondition = queryWhereClause.getSearchCondition();
+
+		String searchcondition = concatFacetSearchConditions(facetSearchConditionStrings, null);
+		
+		try {
+			SearchCondition searchConditionWithFacet = SqlElementUntils.createSearchCondition(searchcondition);
+			WhereClause modifiedWhereClause = new WhereClause(searchConditionWithFacet);
+			TableExpression modifiedTableExpression = new TableExpression(originalTableExpression.getFromClause(), modifiedWhereClause, originalTableExpression.getGroupByClause(),
+					originalTableExpression.getOrderByClause(), originalTableExpression.getPagination());
+			QuerySpecification modifiedQuerySpecification = new QuerySpecification(originalQuerySpecification.getSqlDirective(), originalQuerySpecification.getSetQuantifier(), originalQuerySpecification.getSelectList(), modifiedTableExpression);
+			//return new SqlQuery(modifiedQuerySpecification, query.getTableSchema(), query.get, overrideLimit, maxBytesPerPage)
+		} catch (ParseException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+			//TODO: modify where clause somehow???/ perhaps add facetconditions to SearchQuery similar to offset and limit?
+		
+		
+	}
+	
+	/**
+	 * Concatenates a list of search condition Strings with AND and then wraps that search condition with a parenthesis
+	 * e.g. ["(col1 = 1 OR col1 = b)", "(col2 = c OR col2 = d)"] => "( (col1 = 1 OR col1 = b) AND (col2 = c OR col2 = d) )"
+	 * @param facetSearchConditionStrings list of search conditions that are wrapped by parenthesis e.g. "(col1 = a OR col1 = b)"
+	 * @param columNameToIgnore the name of the column to exclude from the concatenation
+	 * @return
+	 */
+	private String concatFacetSearchConditions(List<String> facetSearchConditionStrings, String columNameToIgnore){
+		//TODO: test
+		StringBuilder builder = new StringBuilder("( ");
+		int initialSize = builder.length(); //length with the "( " included
+		
+		for(String facetSearchCondition : facetSearchConditionStrings){
+			if(columNameToIgnore == null || !facetSearchCondition.contains(columNameToIgnore)){ //TODO: is there a better way to identify column name?
+				if(builder.length() > initialSize){ //not the first element
+					builder.append(" AND ");
+				}
+				builder.append(facetSearchCondition);
+			}
+		}
+		return builder.toString();
+	}
 	
 }
