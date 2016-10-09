@@ -27,6 +27,7 @@ import org.sagebionetworks.auth.services.AuthenticationService;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DomainType;
+import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.securitytools.HMACUtils;
 import org.springframework.mock.web.MockFilterChain;
@@ -177,7 +178,8 @@ public class AuthenticationFilterTest {
 	@Test
 	public void testHmac() throws Exception {
 		MockHttpServletRequest request = new MockHttpServletRequest();
-		signRequest(request, "/foo/bar/baz", username, secretKey);
+		String timestamp = new DateTime().toString();
+		signRequest(request, "/foo/bar/baz", username, secretKey, timestamp);
 		
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		MockFilterChain filterChain = new MockFilterChain();
@@ -191,14 +193,34 @@ public class AuthenticationFilterTest {
 		String passedAlongUsername = modRequest.getParameter(AuthorizationConstants.USER_ID_PARAM);
 		assertEquals(userId.toString(), passedAlongUsername);
 	}
+	
+	@Test(expected=UnauthenticatedException.class)
+	public void testMatchHMACSHA1SignatureOutOfDate() throws Exception {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		DateTime dt = new DateTime();
+		dt = dt.minusMinutes(35);
+		String timestamp = dt.toString();
+		signRequest(request, "/foo/bar/baz", username, secretKey, timestamp);
+		AuthenticationFilter.matchHMACSHA1Signature(request, secretKey);
+	}
+
+	@Test
+	public void testMatchHMACSHA1Signature() throws Exception {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		DateTime dt = new DateTime();
+		dt = dt.minusMinutes(1);
+		String timestamp = dt.toString();
+		signRequest(request, "/foo/bar/baz", username, secretKey, timestamp);
+		AuthenticationFilter.matchHMACSHA1Signature(request, secretKey);
+	}
 
 	/**
 	 * Adds signed headers to the request
 	 */
-	private static void signRequest(MockHttpServletRequest request, String requestURI, String reqUser, String reqKey) throws Exception {
+	private static void signRequest(MockHttpServletRequest request, String requestURI, String reqUser, String reqKey, String timestamp) throws Exception {
 		request.setRequestURI(requestURI);
 		request.addHeader(AuthorizationConstants.USER_ID_HEADER, reqUser);
-		request.addHeader(AuthorizationConstants.SIGNATURE_TIMESTAMP, new DateTime().toString());
+		request.addHeader(AuthorizationConstants.SIGNATURE_TIMESTAMP, timestamp);
     	String signature = HMACUtils.generateHMACSHA1Signature(reqUser, 
     			request.getRequestURI(), 
     			request.getHeader(AuthorizationConstants.SIGNATURE_TIMESTAMP), 
