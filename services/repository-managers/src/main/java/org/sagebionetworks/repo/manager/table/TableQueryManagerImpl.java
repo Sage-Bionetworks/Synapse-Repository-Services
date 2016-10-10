@@ -275,7 +275,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @throws TableFailedException
 	 * @throws TableLockUnavailableException
 	 */
-	QueryResultBundle queryAsStreamAfterAuthorization(ProgressCallback<Void> progressCallback, SqlQuery query, List<QueryRequestFacetColumn> selectedFacets,
+	QueryResultBundle queryAsStreamAfterAuthorization(ProgressCallback<Void> progressCallback, SqlQuery query, List<ValidatedQueryFacetColumn> queryFacetColumns,
 			RowHandler rowHandler, boolean runCount, TableIndexDAO indexDao)
 			throws TableUnavailableException, TableFailedException, LockUnavilableException {
 		//TODO: TEST
@@ -284,26 +284,10 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		bundle.setColumnModels(query.getTableSchema());
 		bundle.setSelectColumns(query.getSelectColumns());
 		
-		//map of column name to SearchCondition strings for each facet e.g. "col1" -> "(col1 = a OR col1 = b)", "col2" -> "(col2 = c OR col2 = d)"
-		Map<String, String> facetSearchConditionMap = new HashMap<>(); //TODO: revert to ArrayList?
-		
-		//create the facet search conditions
-		if(selectedFacets != null && !selectedFacets.isEmpty() && !query.isAggregatedResult()){ //facets only useful for non-agggregate queries
-			//TODO: get list of facet columns and call run 
-			
-			
-			
-
-		}
-		
 		// run the actual query if needed.
 		QueryResult queryResult = null;
 		if(rowHandler != null){
 			// run the query
-			if(!facetSearchConditionMap.isEmpty()){
-				//append the facet searchConditions to the query
-				appendSearchCondition(query, facetSearchConditionMap);
-			}
 			RowSet rowSet = runQueryAsStream(progressCallback, query, rowHandler, indexDao);
 			queryResult = new QueryResult();
 			queryResult.setQueryResults(rowSet);
@@ -317,17 +301,18 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		}
 		
 		//run the facet counts
-		if(!facetSearchConditionMap.isEmpty()){
-			Set<String> columnNames = facetSearchConditionMap.keySet();
-			List<FacetColumn> facets = new ArrayList<>(columnNames.size());
-			for(String columnName : columnNames){
-				FacetColumn facetColumnResult = runFacetColumnCountQuery(query, columnName, facetSearchConditionMap, indexDao);
+		if(!queryFacetColumns.isEmpty()){
+			List<FacetColumn> facetResults = new ArrayList<>();
+			for(ValidatedQueryFacetColumn facetQuery : queryFacetColumns){
+				//TODO: finish porcessing facets
+				if(facetQuery.returnFacetCounts()){
+					FacetColumn facetColumnResult = runFacetColumnCountQuery(query, facetQuery.getColumnName(), queryFacetColumns, indexDao);
 				
-				facets.add(facetColumnResult);
+					facetResults.add(facetColumnResult);
+				}
 			}
-			bundle.setFacets(facets);
+			bundle.setFacets(facetResults);
 		}
-		
 		
 		//run 
 
@@ -660,19 +645,19 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	/**
 	 * Run a query that creates facet counts for its most frequent values in the specified column based on the original query.
 	 */
-	public FacetColumn runFacetColumnCountQuery(SqlQuery originalQuery, String columnName, Map<String, String> facetSearchConditionMap ,TableIndexDAO indexDao){
+	public FacetColumn runFacetColumnCountQuery(SqlQuery originalQuery, String columnName, List<ValidatedQueryFacetColumn> facetColumns ,TableIndexDAO indexDao){
 		//TODO: test
 		try{
-			String facetColumnSql = SqlElementUntils.createFilteredFacetCountSqlString(columnName, originalQuery.getTransformedModel(), facetSearchConditionMap);
+			String facetColumnSql = SqlElementUntils.createFilteredFacetCountSqlString(columnName, originalQuery.getTransformedModel(), SqlElementUntils.createSearchCondition(concatFacetSearchConditionStrings(facetColumns, columnName)));
 			
 			List<FacetValue> facetValues  = indexDao.facetCountQuery(facetColumnSql, originalQuery.getParameters());
 			FacetColumn facetColumn = new FacetColumn();
 			facetColumn.setColumnId(columnName);
 			facetColumn.setFacetValues(facetValues);
 			return facetColumn;
-		} catch (Exception e){
+		} catch (ParseException e){
 			//TODO: not sure of what exceptions to expect yet
-			throw e;
+			throw new IllegalArgumentException(e);
 		}
 		
 	}
@@ -845,13 +830,13 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	}
 	
 	
-	SqlQuery appendSearchCondition(SqlQuery query, List<String> facetSearchConditionStrings){
+	SqlQuery appendSearchCondition(SqlQuery query, List<ValidatedQueryFacetColumn> facetColumns){
 		QuerySpecification originalQuerySpecification = query.getModel();
 		TableExpression originalTableExpression = originalQuerySpecification.getTableExpression();
 		WhereClause queryWhereClause = originalTableExpression.getWhereClause();
 		SearchCondition querySearchCondition = queryWhereClause.getSearchCondition();
 
-		String searchcondition = concatFacetSearchConditions(facetSearchConditionStrings, null);
+		String searchcondition = concatFacetSearchConditionStrings(facetColumns, null);
 		
 		try {
 			SearchCondition searchConditionWithFacet = SqlElementUntils.createSearchCondition(searchcondition);
@@ -876,17 +861,17 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @param columNameToIgnore the name of the column to exclude from the concatenation
 	 * @return
 	 */
-	private String concatFacetSearchConditions(List<String> facetSearchConditionStrings, String columNameToIgnore){
+	private static String concatFacetSearchConditionStrings(List<ValidatedQueryFacetColumn> facetColumns, String columNameToIgnore){
 		//TODO: test
 		StringBuilder builder = new StringBuilder("( ");
 		int initialSize = builder.length(); //length with the "( " included
 		
-		for(String facetSearchCondition : facetSearchConditionStrings){
-			if(columNameToIgnore == null || !facetSearchCondition.contains(columNameToIgnore)){ //TODO: is there a better way to identify column name?
+		for(ValidatedQueryFacetColumn facetColumn : facetColumns){
+			if(columNameToIgnore == null || !facetColumn.getColumnName().equals(columNameToIgnore)){ 
 				if(builder.length() > initialSize){ //not the first element
 					builder.append(" AND ");
 				}
-				builder.append(facetSearchCondition);
+				builder.append(facetColumn.getValuesSearchConditionString());
 			}
 		}
 		return builder.toString();

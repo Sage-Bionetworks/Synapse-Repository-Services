@@ -685,7 +685,7 @@ public class SqlElementUntils {
 	 * @param model
 	 * @return
 	 */
-	public static String createFilteredFacetCountSqlString(String columnName, QuerySpecification model,  Map<String, String> facetSearchConditionMap){
+	public static String createFilteredFacetCountSqlString(String columnName, QuerySpecification model,  SearchCondition facetSearchCondition){
 		//TODO: Test
 		ValidateArgument.required(columnName, "columnName");
 		ValidateArgument.required(model, "model");
@@ -701,23 +701,9 @@ public class SqlElementUntils {
 		builder.append(tableExpressionFromModel.getFromClause().toSql());
 		builder.append(" ");
 		builder.append("WHERE ");
-		builder.append(createFacetSearchConditionString(columnName, facetSearchConditionMap));
+		builder.append(facetSearchCondition.toSql()); //TODO: WHERE CLAUSE INSTEAD. MUST INCLUDE FACET SEARCH CONDITIONS AND NONFACET SEARCH CONDITIONS FROM USER
 		builder.append(" GROUP BY " + columnName + " ");
 		builder.append(pagination.toSql());
-		return builder.toString();
-	}
-	
-	public static String createFacetSearchConditionString(String columnName, Map<String, String> facetSearchConditionMap){
-		//TODO: TEST
-		StringBuilder builder = new StringBuilder();
-		for(Entry<String, String> facetConditionPair : facetSearchConditionMap.entrySet()){
-			if(!facetConditionPair.getKey().equals(columnName)){
-				if(builder.length() > 0){ //not first condition so append AND
-					builder.append(" AND ");
-				}
-				builder.append(facetConditionPair.getValue());
-			}
-		}
 		return builder.toString();
 	}
 	
