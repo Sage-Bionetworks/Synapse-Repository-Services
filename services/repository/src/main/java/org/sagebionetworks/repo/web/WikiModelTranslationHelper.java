@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.web;
 
+import static org.sagebionetworks.downloadtools.FileUtils.DEFAULT_FILE_CHARSET;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
@@ -8,7 +10,6 @@ import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.util.Date;
 
-import org.apache.http.HttpHeaders;
 import org.apache.http.entity.ContentType;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.downloadtools.FileUtils;
@@ -22,18 +23,15 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.TempFileProvider;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.utils.ContentTypeUtil;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Propagation;
-import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.util.BinaryUtils;
-
-import static org.sagebionetworks.downloadtools.FileUtils.DEFAULT_FILE_CHARSET;
 
 /**
  * Utility for converting between the WikiPage and V2WikiPage models.
@@ -122,7 +120,7 @@ public class WikiModelTranslationHelper implements WikiModelTranslator {
 		metadata.setContentMD5(hexMD5);
 		s3Client.putObject(StackConfiguration.getS3Bucket(), token.getKey(), in, metadata);
 		// Save the metadata
-		handle = fileMetadataDao.createFile(handle);
+		handle = (S3FileHandle) fileMetadataDao.createFile(handle);
 		
 		// Set the file handle id
 		wiki.setMarkdownFileHandleId(handle.getId());

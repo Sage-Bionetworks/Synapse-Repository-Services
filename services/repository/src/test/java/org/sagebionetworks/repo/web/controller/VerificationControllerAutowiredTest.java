@@ -14,6 +14,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -50,6 +52,9 @@ public class VerificationControllerAutowiredTest extends AbstractAutowiredContro
 	
 	@Autowired
 	private FileHandleDao fileMetadataDao;
+	
+	@Autowired
+	private IdGenerator idGenerator;
 
 
 	private Long adminUserId;
@@ -101,7 +106,6 @@ public class VerificationControllerAutowiredTest extends AbstractAutowiredContro
 		userProfile.setLocation(LOCATION);
 		userProfileManager.updateUserProfile(userInfo, userProfile);
 		
-		
 		fileHandleToDelete = new ExternalFileHandle();
 		fileHandleToDelete.setCreatedBy(userInfo.getId().toString());
 		fileHandleToDelete.setCreatedOn(new Date());
@@ -109,7 +113,9 @@ public class VerificationControllerAutowiredTest extends AbstractAutowiredContro
 		fileHandleToDelete.setFileName("foo.bar");
 		fileHandleToDelete.setContentMd5("handleOneContentMd5");
 		fileHandleToDelete.setExternalURL("http://foo.bar.com/baz.txt");
-		fileHandleToDelete = fileMetadataDao.createFile(fileHandleToDelete);
+		fileHandleToDelete.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		fileHandleToDelete.setEtag(UUID.randomUUID().toString());
+		fileHandleToDelete = (ExternalFileHandle) fileMetadataDao.createFile(fileHandleToDelete);
 	}
 
 	@After

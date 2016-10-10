@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.manager.file.preview;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.List;
 import java.util.UUID;
@@ -13,6 +12,8 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.entity.ContentType;
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.manager.file.transfer.TransferUtils;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.FileHandle;
@@ -23,7 +24,6 @@ import org.sagebionetworks.repo.util.ResourceTracker;
 import org.sagebionetworks.repo.util.ResourceTracker.ExceedsMaximumResources;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
-import org.sagebionetworks.util.Closer;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.s3.AmazonS3Client;
@@ -51,6 +51,9 @@ public class PreviewManagerImpl implements  PreviewManager {
 	
 	@Autowired
 	TempFileProvider tempFileProvider;
+
+	@Autowired
+	IdGenerator idGenerator;
 	
 	ResourceTracker resourceTracker;
 	
@@ -192,8 +195,10 @@ public class PreviewManagerImpl implements  PreviewManager {
 			// Upload this to S3
 			ObjectMetadata previewS3Meta = TransferUtils.prepareObjectMetadata(pfm);
 			s3Client.putObject(new PutObjectRequest(pfm.getBucketName(), pfm.getKey(), tempUpload).withMetadata(previewS3Meta));
+			pfm.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+			pfm.setEtag(UUID.randomUUID().toString());
 			// Save the metadata
-			pfm = fileMetadataDao.createFile(pfm);
+			pfm = (PreviewFileHandle) fileMetadataDao.createFile(pfm);
 			// Assign the preview id to the original file.
 			fileMetadataDao.setPreviewId(metadata.getId(), pfm.getId());
 			// done

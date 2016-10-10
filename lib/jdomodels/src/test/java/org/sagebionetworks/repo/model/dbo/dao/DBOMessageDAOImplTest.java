@@ -16,6 +16,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.MessageDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -54,6 +56,9 @@ public class DBOMessageDAOImplTest {
 	
 	@Autowired
 	private DBOChangeDAO changeDAO;
+
+	@Autowired
+	private IdGenerator idGenerator;
 	
 	private String fileHandleId;
 	
@@ -90,8 +95,8 @@ public class DBOMessageDAOImplTest {
 		// We need a file handle to satisfy a foreign key constraint
 		// But it doesn't need to point to an actual file
 		// Also, it doesn't matter who the handle is tied to
-		S3FileHandle handle = TestUtils.createS3FileHandle(maliciousUser.getId());
-		handle = fileDAO.createFile(handle);
+		S3FileHandle handle = TestUtils.createS3FileHandle(maliciousUser.getId(), idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		handle = (S3FileHandle) fileDAO.createFile(handle);
 		fileHandleId = handle.getId();
 
 		// Create all the messages

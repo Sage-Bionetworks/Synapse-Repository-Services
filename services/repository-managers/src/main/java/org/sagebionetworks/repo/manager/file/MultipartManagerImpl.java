@@ -7,6 +7,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.manager.file.transfer.TransferUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -57,6 +59,8 @@ public class MultipartManagerImpl implements MultipartManager {
 	TransferManager transferManager;
 	@Autowired
 	ProjectSettingsManager projectSettingsManager;
+	@Autowired
+	IdGenerator idGenerator;
 
 	@Override
 	public ChunkResult copyPart(ChunkedFileToken token, int partNumber, Long storageLocationId) throws DatastoreException, NotFoundException {
@@ -199,13 +203,12 @@ public class MultipartManagerImpl implements MultipartManager {
 		ObjectMetadata current = s3Client.getObjectMetadata(MultipartUtils.getBucket(storageLocationSetting), token.getKey());
 		// Capture the content length
 		fileHandle.setContentSize(current.getContentLength());
-		
+		fileHandle.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
 		// By default, previews are generated
-		if (ccfr.getShouldPreviewBeGenerated() == null) {
-			ccfr.setShouldPreviewBeGenerated(true);
+		if (ccfr.getShouldPreviewBeGenerated() != null && !ccfr.getShouldPreviewBeGenerated()) {
+			fileHandle.setPreviewId(fileHandle.getId());
 		}
-		
-		S3FileHandle result = fileHandleDao.createFile(fileHandle, ccfr.getShouldPreviewBeGenerated());
+		S3FileHandle result = (S3FileHandle) fileHandleDao.createFile(fileHandle);
 		// Upon success we need to delete all of the parts.
 		for(ChunkResult cp: chunkParts){
 			String partKey = getChunkPartKey(token, cp.getChunkNumber().intValue());
@@ -246,8 +249,9 @@ public class MultipartManagerImpl implements MultipartManager {
 			meta = this.s3Client.getObjectMetadata(results.getBucketName(), results.getKey());
 			handle.setContentSize(meta.getContentLength());
 
+			handle.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
 			// Save the file handle
-			handle = fileHandleDao.createFile(handle);
+			handle = (S3FileHandle) fileHandleDao.createFile(handle);
 			// done
 			return handle;
 		} catch (Exception e) {
