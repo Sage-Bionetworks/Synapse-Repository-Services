@@ -45,7 +45,9 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
  */
 public class V2WikiManagerImpl implements V2WikiManager {
 	
-	static private Log log = LogFactory.getLog(V2WikiManagerImpl.class);	
+	static private Log log = LogFactory.getLog(V2WikiManagerImpl.class);
+	
+	static final long NUM_OLD_WIKI_VERSIONS_TO_KEEP = 100L;
 	
 	private static final String USER_IS_NOT_AUTHORIZED_TEMPLATE = "User is not authorized to '%1$s' a WikiPage with an onwerId: '%2$s' of type: '%3$s'";
 	
@@ -244,7 +246,7 @@ public class V2WikiManagerImpl implements V2WikiManager {
 			throw new ConflictingUpdateException("ObjectId: "+objectId+" was updated since you last fetched it, retrieve it again and reapply the update");
 		}
 		
-		wikiPageDao.deleteOldWikiVersions(wikiPage.getId(), 1000L);
+		wikiPageDao.deleteOldWikiVersions(wikiPage.getId(), NUM_OLD_WIKI_VERSIONS_TO_KEEP);
 		
 		// Set modified by
 		wikiPage.setModifiedBy(user.getId().toString());

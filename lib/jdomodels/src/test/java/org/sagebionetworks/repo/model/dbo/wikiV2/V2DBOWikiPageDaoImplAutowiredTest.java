@@ -849,10 +849,19 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 	
 	@Test
 	public void testDeleteOldWikiVersions() throws Exception {
+		// Create 5 Wiki versions
 		WikiPageKey k = createWikiVersions(5);
 		List<V2WikiHistorySnapshot> history = wikiPageDao.getWikiHistory(k, new Long(100), new Long(0));
 		assertEquals(5, history.size());
 
+		// Delete old versions, keeping most recent two
+		wikiPageDao.deleteOldWikiVersions(k.getWikiPageId(), 2L);
+		history = wikiPageDao.getWikiHistory(k, new Long(100), new Long(0));
+		assertEquals(2, history.size());
+		assertEquals("4", history.get(0).getVersion());
+		assertEquals("3", history.get(1).getVersion());
+		
+		// Calling again should have no effect
 		wikiPageDao.deleteOldWikiVersions(k.getWikiPageId(), 2L);
 		history = wikiPageDao.getWikiHistory(k, new Long(100), new Long(0));
 		assertEquals(2, history.size());
@@ -860,9 +869,22 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		assertEquals("3", history.get(1).getVersion());
 	}
 	
+	@Test
+	public void testDeleteOldWikiVersionsLessThanMin() throws Exception {
+		// Create 5 Wiki versions
+		WikiPageKey k = createWikiVersions(5);
+		List<V2WikiHistorySnapshot> historyPre = wikiPageDao.getWikiHistory(k, new Long(100), new Long(0));
+		assertEquals(5, historyPre.size());
+
+		// Delete old versions, keeping most recent 10
+		wikiPageDao.deleteOldWikiVersions(k.getWikiPageId(), 10L);
+		List<V2WikiHistorySnapshot> historyPost = wikiPageDao.getWikiHistory(k, new Long(100), new Long(0));
+		assertEquals(historyPre, historyPost);
+	}
+	
 	private WikiPageKey createWikiVersions(int numVersions) throws Exception {
-		if (numVersions > 100) {
-			throw new IllegalArgumentException("Max 100 versions!");
+		if (numVersions > 500) {
+			throw new IllegalArgumentException("Max 500 versions!");
 		}
 		
 		V2WikiPage pageSpec = new V2WikiPage();
