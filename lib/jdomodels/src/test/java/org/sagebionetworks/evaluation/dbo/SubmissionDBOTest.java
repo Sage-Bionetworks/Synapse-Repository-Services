@@ -4,6 +4,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.util.UUID;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -62,6 +64,8 @@ public class SubmissionDBOTest {
 		meta.setContentMd5("md5");
 		meta.setCreatedBy("" + userId);
 		meta.setFileName("preview.jpg");
+		meta.setEtag(UUID.randomUUID().toString());
+		meta.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
 		fileHandleId = fileHandleDAO.createFile(meta).getId();
 		
     	// create a node

@@ -787,7 +787,7 @@ public class FileHandleManagerImplTest {
 		assertEquals("key", copy.getValue().getKey());
 		assertEquals("newname.png", copy.getValue().getFileName());
 		assertEquals("image", copy.getValue().getContentType());
-		assertNull(copy.getValue().getId());
+		assertNotNull(copy.getValue().getId());
 		assertEquals(mockUser.getId().toString(), copy.getValue().getCreatedBy());
 	}
 
@@ -805,7 +805,7 @@ public class FileHandleManagerImplTest {
 		assertEquals("key", copy.getValue().getKey());
 		assertEquals("newname.png", copy.getValue().getFileName());
 		assertEquals("text", copy.getValue().getContentType());
-		assertNull(copy.getValue().getId());
+		assertNotNull(copy.getValue().getId());
 		assertEquals(mockUser.getId().toString(), copy.getValue().getCreatedBy());
 	}
 
@@ -823,7 +823,7 @@ public class FileHandleManagerImplTest {
 		assertEquals("key", copy.getValue().getKey());
 		assertEquals("original.txt", copy.getValue().getFileName());
 		assertEquals("image", copy.getValue().getContentType());
-		assertNull(copy.getValue().getId());
+		assertNotNull(copy.getValue().getId());
 		assertEquals(mockUser.getId().toString(), copy.getValue().getCreatedBy());
 	}
 
