@@ -12,6 +12,8 @@ import java.util.UUID;
 
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang.exception.ExceptionUtils;
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -56,6 +58,9 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 
 	@Autowired
 	ProjectSettingsManager projectSettingsManager;
+
+	@Autowired
+	IdGenerator idGenerator;
 
 	/*
 	 * (non-Javadoc)
@@ -473,12 +478,12 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		fileHandle.setStorageLocationId(request.getStorageLocationId());
 		fileHandle.setContentSize(fileSize);
 		// By default a preview should be created.	
-		boolean shouldPreviewBeCreated = true;
-		if(request.getGeneratePreview() != null){
-			shouldPreviewBeCreated = request.getGeneratePreview().booleanValue();
+		fileHandle.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		if(request.getGeneratePreview() != null && !request.getGeneratePreview()){
+			fileHandle.setPreviewId(fileHandle.getId());
 		}
 		// dao creates the files handle.
-		return fileHandleDao.createFile(fileHandle, shouldPreviewBeCreated);
+		return (S3FileHandle) fileHandleDao.createFile(fileHandle);
 	}
 
 	@Override

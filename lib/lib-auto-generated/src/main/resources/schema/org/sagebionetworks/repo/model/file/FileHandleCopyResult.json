@@ -1,0 +1,23 @@
+{
+	"description": "Result of a FileHandleCopyRequest.",
+	"properties": {
+		"newFileHandle": {
+			"type": "object",
+			"$ref":"org.sagebionetworks.repo.model.file.FileHandle",
+			"description": "New FileHandle created from the copy request."
+		},
+		"originalFileHandleId":{
+			"type": "string",
+			"description": "The Id of the original FileHandle."
+		},
+		"failureCode": {
+			"type": "string",
+			"description": "Failure code for a files that cannot be copied.",
+			"name": "FileResultFailureCode",
+			"enum": [
+				"NOT_FOUND",
+				"UNAUTHORIZED"
+			]
+		}
+	}
+}

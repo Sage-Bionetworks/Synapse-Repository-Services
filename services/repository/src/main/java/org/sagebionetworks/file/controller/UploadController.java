@@ -19,6 +19,8 @@ import org.sagebionetworks.repo.model.NotReadyException;
 import org.sagebionetworks.repo.model.asynch.AsyncJobId;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.file.AddPartResponse;
+import org.sagebionetworks.repo.model.file.BatchFileHandleCopyRequest;
+import org.sagebionetworks.repo.model.file.BatchFileHandleCopyResult;
 import org.sagebionetworks.repo.model.file.BatchFileRequest;
 import org.sagebionetworks.repo.model.file.BatchFileResult;
 import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlRequest;
@@ -206,7 +208,6 @@ public class UploadController extends BaseController {
 	@RequestMapping(value = "/fileHandle/batch", method = RequestMethod.POST)
 	public @ResponseBody BatchFileResult getFileHandleAndUrlBatch(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String handleIdToCopyFrom,
 			@RequestBody BatchFileRequest request)
 			throws IOException, DatastoreException, NotFoundException,
 			ServiceUnavailableException, JSONObjectAdapterException {
@@ -851,4 +852,23 @@ public class UploadController extends BaseController {
 		return fileService.completeMultipartUpload(userId, uploadId);
 	}
 
+	/**
+	 * Copy a batch of FileHandles.
+	 * This API will check for DOWNLOAD permission on each FileHandle. If the user
+	 * has DOWNLOAD permission on a FileHandle, we will make a copy of the FileHandle,
+	 * replace the fileName and contentType of the file if they are specified in
+	 * the request, and return the new FileHandle.
+	 * 
+	 * @param userId
+	 * @param request
+	 * @throws HttpStatus.BAD_REQUEST for request with duplicated FileHandleId.
+	 * @return
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.FILE_HANDLES_COPY, method = RequestMethod.POST)
+	public @ResponseBody BatchFileHandleCopyResult copyFileHandles(
+			@RequestParam(required = true, value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody(required = true) BatchFileHandleCopyRequest request) {
+		return fileService.copyFileHandles(userId, request);
+	}
 }

@@ -499,7 +499,8 @@ public class TableWorkerTest {
 		// call under test
 		worker.applyRowChange(mockProgressCallback, mockTableIndexManager, tableId, trc);
 		// schema of the change should be applied
-		verify(mockTableIndexManager).setIndexSchema(mockProgressCallback, columns);
+		boolean removeMissingColumns = false;
+		verify(mockTableIndexManager).setIndexSchema(mockProgressCallback, columns, removeMissingColumns);
 		// the change set should be applied.
 		verify(mockTableIndexManager).applyChangeSetToIndex(rowSet1, columns,trc.getRowVersion());
 	}

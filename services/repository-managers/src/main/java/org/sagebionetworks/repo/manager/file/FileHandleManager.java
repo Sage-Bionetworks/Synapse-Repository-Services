@@ -13,6 +13,8 @@ import org.apache.http.entity.ContentType;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.file.BatchFileHandleCopyRequest;
+import org.sagebionetworks.repo.model.file.BatchFileHandleCopyResult;
 import org.sagebionetworks.repo.model.file.BatchFileRequest;
 import org.sagebionetworks.repo.model.file.BatchFileResult;
 import org.sagebionetworks.repo.model.file.ChunkRequest;
@@ -374,4 +376,13 @@ public interface FileHandleManager {
 	 */
 	BatchFileResult getFileHandleAndUrlBatch(UserInfo userInfo,
 			BatchFileRequest request);
+
+	/**
+	 * Make copy of a batch of FileHandles
+	 * 
+	 * @param userInfo
+	 * @param request
+	 * @return
+	 */
+	BatchFileHandleCopyResult copyFileHandles(UserInfo userInfo, BatchFileHandleCopyRequest request);
 }
