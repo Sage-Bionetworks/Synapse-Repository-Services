@@ -54,6 +54,7 @@ import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.securitytools.HMACUtils;
 import org.sagebionetworks.util.RetryException;
 import org.sagebionetworks.util.TimeUtils;
+import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.utils.HttpClientHelperException;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
 
@@ -790,6 +791,7 @@ public class SharedClientConnection {
 	}
 	
 	public void setUserIp(String ipAddress){
+		ValidateArgument.required(ipAddress, "ipAddress");
 		//verify that it is a proper IP address
 		if( !( InetAddressUtils.isIPv4Address(ipAddress) || InetAddressUtils.isIPv6Address(ipAddress) ) ){
 			throw new IllegalArgumentException("The provided ipAddress:" + ipAddress + " is not a standard IP address.");
