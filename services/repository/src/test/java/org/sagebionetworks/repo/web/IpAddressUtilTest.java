@@ -38,6 +38,6 @@ public class IpAddressUtilTest {
 		String xForwardedFor = "222.222.222.222, 123.123.123.123";
 		when(request.getHeader(IpAddressUtil.X_FORWARDED_FOR)).thenReturn(xForwardedFor);
 		when(request.getRemoteAddr()).thenReturn("should not be returned");
-		assertEquals("222.222.222.222", IpAddressUtil.getIpAddress(request));
+		assertEquals(xForwardedFor, IpAddressUtil.getIpAddress(request));
 	}
 }
