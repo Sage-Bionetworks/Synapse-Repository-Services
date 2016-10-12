@@ -1,17 +1,22 @@
 package org.sagebionetworks.repo.manager.file;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyCollection;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.sagebionetworks.repo.manager.file.FileHandleManagerImpl.FILE_HANDLE_COPY_RECORD_TYPE;
+import static org.sagebionetworks.repo.manager.file.FileHandleManagerImpl.MAX_REQUESTS_PER_CALL;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -20,23 +25,31 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 
-import org.apache.commons.fileupload.FileItemIterator;
-import org.apache.commons.fileupload.FileItemStream;
-import org.apache.commons.fileupload.FileUploadException;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.audit.dao.ObjectRecordBatch;
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.AuthorizationStatus;
-import org.sagebionetworks.repo.manager.file.transfer.FileTransferStrategy;
+import org.sagebionetworks.repo.manager.audit.ObjectRecordQueue;
 import org.sagebionetworks.repo.manager.file.transfer.TransferRequest;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -44,11 +57,20 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.audit.ObjectRecord;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.file.BatchFileHandleCopyRequest;
+import org.sagebionetworks.repo.model.file.BatchFileHandleCopyResult;
+import org.sagebionetworks.repo.model.file.BatchFileRequest;
+import org.sagebionetworks.repo.model.file.BatchFileResult;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
+import org.sagebionetworks.repo.model.file.FileHandleCopyRequest;
+import org.sagebionetworks.repo.model.file.FileHandleCopyResult;
+import org.sagebionetworks.repo.model.file.FileResult;
+import org.sagebionetworks.repo.model.file.FileResultFailureCode;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.ProxyFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -57,7 +79,7 @@ import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ProxyStorageLocationSettings;
 import org.sagebionetworks.repo.model.project.S3StorageLocationSetting;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.web.ServiceUnavailableException;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.amazonaws.AmazonClientException;
@@ -67,6 +89,7 @@ import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.util.BinaryUtils;
 import com.amazonaws.util.StringInputStream;
+import com.google.common.collect.Lists;
 
 /**
  * A unit test for the FileUploadManagerImpl.
@@ -76,19 +99,26 @@ import com.amazonaws.util.StringInputStream;
  */
 public class FileHandleManagerImplTest {
 	
-	FileHandleManagerImpl manager;
-	FileItemIterator mockIterator;
-	FileItemStream mockFileStream;
-	FileItemStream mockParamParentIdStream;
-	UserInfo mockUser;
-	FileHandleDao mockfileMetadataDao;
-	FileTransferStrategy mockPrimaryStrategy;
-	FileTransferStrategy mockFallbackStrategy;
-	S3FileHandle validResults;
+	@Mock
+	FileHandleDao mockFileHandleDao;
+	@Mock
 	AmazonS3Client mockS3Client;
+	@Mock
 	AuthorizationManager mockAuthorizationManager;
+	@Mock
 	StorageLocationDAO mockStorageLocationDao;
+	@Mock
 	FileHandleAuthorizationManager mockFileHandleAuthorizationManager;
+	@Mock
+	ObjectRecordQueue mockObjectRecordQueue;
+	@Mock
+	IdGenerator mockIdGenerator;
+	
+	FileHandleManagerImpl manager;
+	
+	UserInfo mockUser;
+	
+	S3FileHandle validResults;
 	
 	String bucket;
 	String key;
@@ -102,45 +132,37 @@ public class FileHandleManagerImplTest {
 	ProxyStorageLocationSettings proxyStorageLocationSettings;
 	ProxyFileHandle externalProxyFileHandle;
 	
+	List<FileHandleAssociation> associations;
+	FileHandleAssociation fha1;
+	FileHandleAssociation fha2;
+	FileHandleAssociation fhaMissing;
+	BatchFileRequest batchRequest;
+	ObjectRecord successRecord;
+	
 	
 	@Before
 	public void before() throws UnsupportedEncodingException, IOException, NoSuchAlgorithmException{
-		mockIterator = Mockito.mock(FileItemIterator.class);
-		mockfileMetadataDao = Mockito.mock(FileHandleDao.class);
-		mockS3Client = Mockito.mock(AmazonS3Client.class);
-		mockAuthorizationManager = Mockito.mock(AuthorizationManager.class);
-		mockStorageLocationDao = Mockito.mock(StorageLocationDAO.class);
-		mockFileHandleAuthorizationManager = Mockito.mock(FileHandleAuthorizationManager.class);
+		MockitoAnnotations.initMocks(this);
+		// the manager to test.
+		manager = new FileHandleManagerImpl();
+		ReflectionTestUtils.setField(manager, "fileHandleDao", mockFileHandleDao);
+		ReflectionTestUtils.setField(manager, "authorizationManager", mockAuthorizationManager);
+		ReflectionTestUtils.setField(manager, "s3Client", mockS3Client);
+		ReflectionTestUtils.setField(manager, "storageLocationDAO", mockStorageLocationDao);
+		ReflectionTestUtils.setField(manager, "fileHandleAuthorizationManager", mockFileHandleAuthorizationManager);
+		ReflectionTestUtils.setField(manager, "objectRecordQueue", mockObjectRecordQueue);
+		ReflectionTestUtils.setField(manager, "idGenerator", mockIdGenerator);
 		
 		// The user is not really a mock
 		mockUser = new UserInfo(false,"987");
 		
-		// Other helper mocks
-		// First mock a file stream
-		mockFileStream = Mockito.mock(FileItemStream.class);
 		// This file stream is actually a file and not a parameter
 		String contentType = "text/plain";
 		String fileName = "someTextFile.txt";
 		String contentString = "I am a very short string";
 		byte[] contentBytes = contentString.getBytes();
 		String contentMD5 = BinaryUtils.toHex((MessageDigest.getInstance("MD5").digest(contentBytes)));
-		
-		when(mockFileStream.isFormField()).thenReturn(false);
-		when(mockFileStream.openStream()).thenReturn(new StringInputStream(contentString));
-		when(mockFileStream.getContentType()).thenReturn(contentType);
-		when(mockFileStream.getName()).thenReturn(fileName);
-		when(mockFileStream.getFieldName()).thenReturn("file");
-		// Mock a parameter as a stream.
-		mockParamParentIdStream = Mockito.mock(FileItemStream.class);
-		// This file stream is actually a file and not a parameter
-		when(mockParamParentIdStream.isFormField()).thenReturn(true);
-		when(mockParamParentIdStream.openStream()).thenReturn(new StringInputStream("syn123"));
-		when(mockParamParentIdStream.getContentType()).thenReturn(null);
-		when(mockParamParentIdStream.getName()).thenReturn(null);
-		when(mockParamParentIdStream.getFieldName()).thenReturn("parentId");
-		
-		mockPrimaryStrategy = Mockito.mock(FileTransferStrategy.class);
-		mockFallbackStrategy = Mockito.mock(FileTransferStrategy.class);
+				
 		// setup the primary to succeed
 		validResults = new S3FileHandle();
 		validResults.setId("123");
@@ -174,7 +196,7 @@ public class FileHandleManagerImplTest {
 		externals3FileHandle.setStorageLocationId(storageLocationId);
 		externals3FileHandle.setContentMd5(md5);
 		
-		when(mockfileMetadataDao.createFile(externals3FileHandle)).thenReturn(externals3FileHandle);
+		when(mockFileHandleDao.createFile(externals3FileHandle)).thenReturn(externals3FileHandle);
 		
 		// proxy storage location setup.
 		proxyStorageLocationSettings = new ProxyStorageLocationSettings();
@@ -190,128 +212,48 @@ public class FileHandleManagerImplTest {
 		externalProxyFileHandle.setFilePath("/pathParent/pathChild");
 		externalProxyFileHandle.setStorageLocationId(proxyStorageLocationSettings.getStorageLocationId());
 		externalProxyFileHandle.setId("444444");
-		when(mockfileMetadataDao.createFile(externalProxyFileHandle)).thenReturn(externalProxyFileHandle);
+		when(mockFileHandleDao.createFile(externalProxyFileHandle)).thenReturn(externalProxyFileHandle);
 		
+		// one
+		fha1 = new FileHandleAssociation();
+		fha1.setAssociateObjectId("syn123");
+		fha1.setAssociateObjectType(FileHandleAssociateType.FileEntity);
+		fha1.setFileHandleId("333");
+		// two
+		fha2 = new FileHandleAssociation();
+		fha2.setAssociateObjectId("syn456");
+		fha2.setAssociateObjectType(FileHandleAssociateType.TableEntity);
+		fha2.setFileHandleId("444");
+		// missing
+		fhaMissing = new FileHandleAssociation();
+		fhaMissing.setAssociateObjectId("999");
+		fhaMissing.setAssociateObjectType(FileHandleAssociateType.WikiAttachment);
+		fhaMissing.setFileHandleId("555");
+		associations = Lists.newArrayList(fha1, fha2, fhaMissing);
 		
-		// the manager to test.
-		manager = new FileHandleManagerImpl(
-				mockfileMetadataDao, mockPrimaryStrategy, 
-				mockFallbackStrategy, mockAuthorizationManager, 
-				mockS3Client, mockFileHandleAuthorizationManager);
-		ReflectionTestUtils.setField(manager, "storageLocationDAO", mockStorageLocationDao);
-	}
-	
-	@Test (expected=IllegalStateException.class)
-	public void testPrimaryStrategyNull() throws Exception{
-		manager.setPrimaryStrategy(null);
-		FileUploadResults results = manager.uploadfiles(mockUser, new HashSet<String>(), mockIterator);
-	}
-	
-	@Test (expected=IllegalStateException.class)
-	public void testFallbacStrategyNull() throws Exception{
-		manager.setFallbackStrategy(null);
-		FileUploadResults results = manager.uploadfiles(mockUser, new HashSet<String>(), mockIterator);
-	}
-	
-	/**
-	 * Test that finding a file stream without the required parameters triggers an exception.
-	 * @throws FileUploadException
-	 * @throws IOException
-	 * @throws ServiceUnavailableException 
-	 */
-	@Test (expected=IllegalArgumentException.class)
-	public void testUploadfilesMissingExpectedParams() throws FileUploadException, IOException, ServiceUnavailableException{
-		// These are the parameters we expect to find before reading a file
-		HashSet<String> expectedParams = new HashSet<String>();
-		expectedParams.add("parentId");
-		// For this test the parent id parameter is missing
-		when(mockIterator.hasNext()).thenReturn(true, false);
-		when(mockIterator.next()).thenReturn(mockFileStream);
-		manager.uploadfiles(mockUser, expectedParams, mockIterator);
-	}
-	
-	/**
-	 * For this test all of the expected parameters are provided, and the primary strategy works.
-	 * @throws FileUploadException
-	 * @throws IOException
-	 * @throws ServiceUnavailableException 
-	 */
-	@Test
-	public void testUploadfilesWithExpectedParams() throws FileUploadException, IOException, ServiceUnavailableException{
-		// These are the parameters we expect to find before reading a file
-		HashSet<String> expectedParams = new HashSet<String>();
-		expectedParams.add("parentId");
-		// For this test the parent id parameter is missing
-		when(mockIterator.hasNext()).thenReturn(true, true, false);
-		// return the parentId param before the file.
-		when(mockIterator.next()).thenReturn(mockParamParentIdStream, mockFileStream);
-		// set the primary to fire.
-		when(mockPrimaryStrategy.transferToS3(any(TransferRequest.class))).thenReturn(validResults);
-		// Set the secondary to throw an exception
-		when(mockFallbackStrategy.transferToS3(any(TransferRequest.class))).thenThrow(new ServiceUnavailableException());
-		when(mockfileMetadataDao.createFile(validResults)).thenReturn(validResults);
-		FileUploadResults results = manager.uploadfiles(mockUser, expectedParams, mockIterator);
-		assertNotNull(results);
-		assertNotNull(results.getParameters());
-		assertNotNull(results.getFiles());
-		// Was parentId extracted as expected?
-		assertEquals("syn123", results.getParameters().get("parentId"));
-		// Do we have one file
-		assertEquals(1, results.getFiles().size());
-		S3FileHandle fileData = results.getFiles().get(0);
-		assertEquals("text/plain", fileData.getContentType());
-		assertNotNull(fileData.getKey());
-		assertNotNull(fileData.getBucketName());
+		FileHandleAssociationAuthorizationStatus status1 = new FileHandleAssociationAuthorizationStatus(fha1, AuthorizationManagerUtil.ACCESS_DENIED);
+		FileHandleAssociationAuthorizationStatus status2 = new FileHandleAssociationAuthorizationStatus(fha2, AuthorizationManagerUtil.AUTHORIZED);
+		FileHandleAssociationAuthorizationStatus missingStatus = new FileHandleAssociationAuthorizationStatus(fhaMissing, AuthorizationManagerUtil.AUTHORIZED);
+		List<FileHandleAssociationAuthorizationStatus> authResults = Lists.newArrayList(status1, status2, missingStatus);
 		
-		verify(mockfileMetadataDao, times(1)).createFile(validResults);
-		verify(mockPrimaryStrategy, times(1)).transferToS3(any(TransferRequest.class));
-		// the fall back should not have been called.
-		verify(mockFallbackStrategy, never()).transferToS3(any(TransferRequest.class));
-	}
-	
-	@Test
-	public void testFallbackStragegy() throws FileUploadException, IOException, ServiceUnavailableException{
-		// These are the parameters we expect to find before reading a file
-		HashSet<String> expectedParams = new HashSet<String>();
-		when(mockIterator.hasNext()).thenReturn(true, false);
-		// return the parentId param before the file.
-		when(mockIterator.next()).thenReturn(mockFileStream);
-		// Set the primary to fail.
-		when(mockPrimaryStrategy.transferToS3(any(TransferRequest.class))).thenThrow(new ServiceUnavailableException());
-		// Set the secondary to work
-		when(mockFallbackStrategy.transferToS3(any(TransferRequest.class))).thenReturn(validResults);
-		when(mockfileMetadataDao.createFile(validResults)).thenReturn(validResults);
-		FileUploadResults results = manager.uploadfiles(mockUser, expectedParams, mockIterator);
-		assertNotNull(results);
-		assertNotNull(results.getParameters());
-		assertNotNull(results.getFiles());
-		// Do we have one file
-		assertEquals(1, results.getFiles().size());
-		S3FileHandle fileData = results.getFiles().get(0);
-		assertEquals("text/plain", fileData.getContentType());
-		assertNotNull(fileData.getKey());
-		assertNotNull(fileData.getBucketName());
+		successRecord = FileHandleManagerImpl.createObjectRecord(mockUser.getId().toString(), fha2, 123L);
 		
-		verify(mockfileMetadataDao, times(1)).createFile(validResults);
-		verify(mockPrimaryStrategy, times(1)).transferToS3(any(TransferRequest.class));
-		// the fall back should have been called this time
-		verify(mockFallbackStrategy,times(1)).transferToS3(any(TransferRequest.class));
+		when(mockFileHandleAuthorizationManager.canDownLoadFile(mockUser, associations)).thenReturn(authResults);
+		
+		FileHandle fh2 = new S3FileHandle();
+		fh2.setId(fha2.getFileHandleId());
+		Map<String, FileHandle> handleMap = new HashMap<String, FileHandle>();
+		handleMap.put(fh2.getId(), fh2);
+		when(mockFileHandleDao.getAllFileHandlesBatch(any(Iterable.class))).thenReturn(handleMap);
+		
+		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).thenReturn(new URL("https", "host","/a-url"));
+		
+		batchRequest = new BatchFileRequest();
+		batchRequest.setRequestedFiles(associations);
+		batchRequest.setIncludeFileHandles(true);
+		batchRequest.setIncludePreSignedURLs(true);
 	}
 	
-	@Test (expected=ServiceUnavailableException.class)
-	public void testBothStrategiesFailed() throws FileUploadException, IOException, ServiceUnavailableException{
-		// These are the parameters we expect to find before reading a file
-		HashSet<String> expectedParams = new HashSet<String>();
-		when(mockIterator.hasNext()).thenReturn(true, false);
-		// return the parentId param before the file.
-		when(mockIterator.next()).thenReturn(mockFileStream);
-		// Set the primary to fail.
-		when(mockPrimaryStrategy.transferToS3(any(TransferRequest.class))).thenThrow(new ServiceUnavailableException());
-		// Set the fallback to fail.
-		when(mockFallbackStrategy.transferToS3(any(TransferRequest.class))).thenThrow(new ServiceUnavailableException());
-		when(mockfileMetadataDao.createFile(validResults)).thenReturn(validResults);
-		FileUploadResults results = manager.uploadfiles(mockUser, expectedParams, mockIterator);
-	}
 	@Test
 	public void testCreateMetadata() throws UnsupportedEncodingException{
 		// Create the metadata
@@ -329,7 +271,7 @@ public class FileHandleManagerImplTest {
 	public void testGetFileHandleUnAuthrozied() throws DatastoreException, NotFoundException{
 		// You must be authorized to see a file handle
 		String handleId = "123";
-		when(mockfileMetadataDao.get(handleId)).thenReturn(validResults);
+		when(mockFileHandleDao.get(handleId)).thenReturn(validResults);
 		// denied!
 		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, handleId, validResults.getCreatedBy())).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		manager.getRawFileHandle(mockUser, handleId);
@@ -339,7 +281,7 @@ public class FileHandleManagerImplTest {
 	public void testGetFileHandleAuthrozied() throws DatastoreException, NotFoundException{
 		// You must be authorized to see a file handle
 		String handleId = "123";
-		when(mockfileMetadataDao.get(handleId)).thenReturn(validResults);
+		when(mockFileHandleDao.get(handleId)).thenReturn(validResults);
 		// allow
 		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, handleId, validResults.getCreatedBy())).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		FileHandle handle = manager.getRawFileHandle(mockUser, handleId);
@@ -350,7 +292,7 @@ public class FileHandleManagerImplTest {
 	public void testDeleteNotFound() throws DatastoreException, NotFoundException{
 		// Deleting a handle that no longer exists should not throw an exception.
 		String handleId = "123";
-		when(mockfileMetadataDao.get(handleId)).thenThrow(new NotFoundException());
+		when(mockFileHandleDao.get(handleId)).thenThrow(new NotFoundException());
 		manager.deleteFileHandle(mockUser, handleId);
 	}
 	
@@ -358,7 +300,7 @@ public class FileHandleManagerImplTest {
 	public void testDeleteUnAuthorzied() throws DatastoreException, NotFoundException{
 		// Deleting a handle that no longer exists should not throw an exception.
 		String handleId = "123";
-		when(mockfileMetadataDao.get(handleId)).thenReturn(validResults);
+		when(mockFileHandleDao.get(handleId)).thenReturn(validResults);
 		// denied!
 		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, handleId, validResults.getCreatedBy())).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		manager.deleteFileHandle(mockUser, handleId);
@@ -368,21 +310,21 @@ public class FileHandleManagerImplTest {
 	public void testDeleteAuthorzied() throws DatastoreException, NotFoundException{
 		// Deleting a handle that no longer exists should not throw an exception.
 		String handleId = "123";
-		when(mockfileMetadataDao.get(handleId)).thenReturn(validResults);
+		when(mockFileHandleDao.get(handleId)).thenReturn(validResults);
 		// allow!
 		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, handleId, validResults.getCreatedBy())).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		manager.deleteFileHandle(mockUser, handleId);
 		// The S3 file should get deleted.
 		verify(mockS3Client, times(1)).deleteObject(validResults.getBucketName(), validResults.getKey());
 		// The database handle should be deleted.
-		verify(mockfileMetadataDao, times(1)).delete(handleId);
+		verify(mockFileHandleDao, times(1)).delete(handleId);
 	}
 	
 	@Test
 	public void testDeleteFileHandleDisablePreview() throws Exception {
 		// Deleting a file handle that has previews disabled should not StackOverflow :)
 		validResults.setPreviewId(validResults.getId());
-		when(mockfileMetadataDao.get(validResults.getId())).thenReturn(validResults);
+		when(mockFileHandleDao.get(validResults.getId())).thenReturn(validResults);
 		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, validResults.getId(), validResults.getCreatedBy())).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		manager.deleteFileHandle(mockUser, validResults.getId());
 	}
@@ -391,7 +333,7 @@ public class FileHandleManagerImplTest {
 	public void testClearPreviewUnauthroized() throws DatastoreException, NotFoundException{
 		// Deleting a handle that no longer exists should not throw an exception.
 		String handleId = "123";
-		when(mockfileMetadataDao.get(handleId)).thenReturn(validResults);
+		when(mockFileHandleDao.get(handleId)).thenReturn(validResults);
 		// denied!
 		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, handleId, validResults.getCreatedBy())).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		manager.clearPreview(mockUser, handleId);
@@ -401,12 +343,12 @@ public class FileHandleManagerImplTest {
 	public void testClearPreviewAuthorzied() throws DatastoreException, NotFoundException{
 		// Deleting a handle that no longer exists should not throw an exception.
 		String handleId = "123";
-		when(mockfileMetadataDao.get(handleId)).thenReturn(validResults);
+		when(mockFileHandleDao.get(handleId)).thenReturn(validResults);
 		// allow!
 		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, handleId, validResults.getCreatedBy())).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		manager.clearPreview(mockUser, handleId);
 		// The database reference to the preview handle should be cleared
-		verify(mockfileMetadataDao, times(1)).setPreviewId(eq(handleId), eq((String)null));
+		verify(mockFileHandleDao, times(1)).setPreviewId(eq(handleId), eq((String)null));
 	}
 	
 	
@@ -420,8 +362,8 @@ public class FileHandleManagerImplTest {
 		preview.setKey("previewKey");
 		// Assign the preview to the file
 		validResults.setPreviewId(preview.getId());
-		when(mockfileMetadataDao.get(validResults.getId())).thenReturn(validResults);
-		when(mockfileMetadataDao.get(preview.getId())).thenReturn(preview);
+		when(mockFileHandleDao.get(validResults.getId())).thenReturn(validResults);
+		when(mockFileHandleDao.get(preview.getId())).thenReturn(preview);
 		// Allow all calls
 		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(any(UserInfo.class), anyString(), any(String.class))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		// Now deleting the original handle should trigger the delete of the previews.
@@ -429,11 +371,11 @@ public class FileHandleManagerImplTest {
 		// The S3 file should get deleted.
 		verify(mockS3Client, times(1)).deleteObject(validResults.getBucketName(), validResults.getKey());
 		// The database handle should be deleted.
-		verify(mockfileMetadataDao, times(1)).delete(validResults.getId());
+		verify(mockFileHandleDao, times(1)).delete(validResults.getId());
 		// The S3 file for the preview should get deleted.
 		verify(mockS3Client, times(1)).deleteObject(preview.getBucketName(), preview.getKey());
 		// The database handle of the preview should be deleted.
-		verify(mockfileMetadataDao, times(1)).delete(preview.getId());
+		verify(mockFileHandleDao, times(1)).delete(preview.getId());
 	}
 	
 	@Test
@@ -441,7 +383,7 @@ public class FileHandleManagerImplTest {
 		ExternalFileHandle external = new ExternalFileHandle();
 		external.setId("123");
 		external.setExternalURL("http://google.com");
-		when(mockfileMetadataDao.get(external.getId())).thenReturn(external);
+		when(mockFileHandleDao.get(external.getId())).thenReturn(external);
 		// fire!
 		String redirect = manager.getRedirectURLForFileHandle(external.getId());
 		assertNotNull(redirect);
@@ -454,7 +396,7 @@ public class FileHandleManagerImplTest {
 		s3FileHandle.setId("123");
 		s3FileHandle.setBucketName("bucket");
 		s3FileHandle.setKey("key");
-		when(mockfileMetadataDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
+		when(mockFileHandleDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
 		String expectedURL = "https://amamzon.com";
 		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).
 			thenReturn(new URL(expectedURL));
@@ -471,7 +413,7 @@ public class FileHandleManagerImplTest {
 		s3FileHandle.setBucketName("bucket");
 		s3FileHandle.setKey("key");
 		s3FileHandle.setFileName("we will not use this one.jpg");
-		when(mockfileMetadataDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
+		when(mockFileHandleDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
 		String expectedURL = "https://amamzon.com";
 		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).
 			thenReturn(new URL(expectedURL));
@@ -526,7 +468,7 @@ public class FileHandleManagerImplTest {
 	@Test
 	public void testCreateExternalFileHappyCase() throws Exception{
 		ExternalFileHandle efh = createFileHandle();
-		when(mockfileMetadataDao.createFile(efh)).thenReturn(efh);
+		when(mockFileHandleDao.createFile(efh)).thenReturn(efh);
 		// This should work
 		ExternalFileHandle result = manager.createExternalFileHandle(mockUser, efh);
 		assertNotNull(result);
@@ -579,7 +521,7 @@ public class FileHandleManagerImplTest {
 		s3FileHandle.setCreatedBy("456");
 		s3FileHandle.setBucketName("bucket");
 		s3FileHandle.setKey("key");
-		when(mockfileMetadataDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
+		when(mockFileHandleDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
 		String expecedURL = "https://amamzon.com";
 		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).thenReturn(new URL(expecedURL));
 		when(mockAuthorizationManager.isUserCreatorOrAdmin(mockUser, s3FileHandle.getCreatedBy())).thenReturn(true);
@@ -594,7 +536,7 @@ public class FileHandleManagerImplTest {
 		s3FileHandle.setCreatedBy("456");
 		s3FileHandle.setBucketName("bucket");
 		s3FileHandle.setKey("key");
-		when(mockfileMetadataDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
+		when(mockFileHandleDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
 		String expecedURL = "https://amamzon.com";
 		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).thenReturn(new URL(expecedURL));
 		when(mockAuthorizationManager.isUserCreatorOrAdmin(mockUser, s3FileHandle.getCreatedBy())).thenReturn(false);
@@ -610,7 +552,7 @@ public class FileHandleManagerImplTest {
 		s3FileHandle.setCreatedBy("456");
 		s3FileHandle.setBucketName("bucket");
 		s3FileHandle.setKey("key");
-		when(mockfileMetadataDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
+		when(mockFileHandleDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
 		String expectedURL = "https://amazon.com";
 		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).thenReturn(new URL(expectedURL));
 		FileHandleAssociation association = new FileHandleAssociation();
@@ -833,14 +775,14 @@ public class FileHandleManagerImplTest {
 	
 	@Test
 	public void testCreateS3FileHandleCopy() {
-		when(mockfileMetadataDao.get("123")).thenReturn(createS3FileHandle());
+		when(mockFileHandleDao.get("123")).thenReturn(createS3FileHandle());
 		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, "123", "987"))
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 
 		manager.createS3FileHandleCopy(mockUser, "123", "newname.png", "image");
 
 		ArgumentCaptor<S3FileHandle> copy = ArgumentCaptor.forClass(S3FileHandle.class);
-		verify(mockfileMetadataDao).createFile(copy.capture());
+		verify(mockFileHandleDao).createFile(copy.capture());
 		assertEquals("bucket", copy.getValue().getBucketName());
 		assertEquals("key", copy.getValue().getKey());
 		assertEquals("newname.png", copy.getValue().getFileName());
@@ -851,14 +793,14 @@ public class FileHandleManagerImplTest {
 
 	@Test
 	public void testCreateS3FileHandleCopyOnlyName() {
-		when(mockfileMetadataDao.get("123")).thenReturn(createS3FileHandle());
+		when(mockFileHandleDao.get("123")).thenReturn(createS3FileHandle());
 		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, "123", "987"))
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 
 		manager.createS3FileHandleCopy(mockUser, "123", "newname.png", null);
 
 		ArgumentCaptor<S3FileHandle> copy = ArgumentCaptor.forClass(S3FileHandle.class);
-		verify(mockfileMetadataDao).createFile(copy.capture());
+		verify(mockFileHandleDao).createFile(copy.capture());
 		assertEquals("bucket", copy.getValue().getBucketName());
 		assertEquals("key", copy.getValue().getKey());
 		assertEquals("newname.png", copy.getValue().getFileName());
@@ -869,14 +811,14 @@ public class FileHandleManagerImplTest {
 
 	@Test
 	public void testCreateS3FileHandleCopyOnlyContentType() {
-		when(mockfileMetadataDao.get("123")).thenReturn(createS3FileHandle());
+		when(mockFileHandleDao.get("123")).thenReturn(createS3FileHandle());
 		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, "123", "987"))
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 
 		manager.createS3FileHandleCopy(mockUser, "123", null, "image");
 
 		ArgumentCaptor<S3FileHandle> copy = ArgumentCaptor.forClass(S3FileHandle.class);
-		verify(mockfileMetadataDao).createFile(copy.capture());
+		verify(mockFileHandleDao).createFile(copy.capture());
 		assertEquals("bucket", copy.getValue().getBucketName());
 		assertEquals("key", copy.getValue().getKey());
 		assertEquals("original.txt", copy.getValue().getFileName());
@@ -887,7 +829,7 @@ public class FileHandleManagerImplTest {
 
 	@Test
 	public void testCreateS3FileHandleNewPreview() {
-		when(mockfileMetadataDao.get("123")).thenReturn(createS3FileHandle(), createS3FileHandle(), createS3FileHandle(),
+		when(mockFileHandleDao.get("123")).thenReturn(createS3FileHandle(), createS3FileHandle(), createS3FileHandle(),
 				createS3FileHandle(), createS3FileHandle());
 		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, "123", "987"))
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
@@ -900,7 +842,7 @@ public class FileHandleManagerImplTest {
 		manager.createS3FileHandleCopy(mockUser, "123", "different.txt", null);
 		manager.createS3FileHandleCopy(mockUser, "123", "different.txt", "text");
 
-		verify(mockfileMetadataDao, times(5)).createFile(copy.capture());
+		verify(mockFileHandleDao, times(5)).createFile(copy.capture());
 		assertNull(copy.getAllValues().get(0).getPreviewId());
 		assertNull(copy.getAllValues().get(1).getPreviewId());
 		assertNotNull(copy.getAllValues().get(2).getPreviewId());
@@ -929,7 +871,7 @@ public class FileHandleManagerImplTest {
 	@SuppressWarnings("unchecked")
 	@Test(expected = NotFoundException.class)
 	public void testCreateS3FileHandleCopyFailOnNotExist() {
-		when(mockfileMetadataDao.get("123")).thenThrow(NotFoundException.class);
+		when(mockFileHandleDao.get("123")).thenThrow(NotFoundException.class);
 		manager.createS3FileHandleCopy(mockUser, "123", "new", null);
 	}
 
@@ -937,12 +879,184 @@ public class FileHandleManagerImplTest {
 	public void testCreateS3FileHandleCopyFailOnNotOwner() {
 		S3FileHandle originalFileHandle = createS3FileHandle();
 		originalFileHandle.setCreatedBy("000");
-		when(mockfileMetadataDao.get("123")).thenReturn(originalFileHandle);
+		when(mockFileHandleDao.get("123")).thenReturn(originalFileHandle);
 		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, "123", "000")).thenReturn(
 				AuthorizationManagerUtil.ACCESS_DENIED);
 
 		manager.createS3FileHandleCopy(mockUser, "123", null, "image");
 	}
+	
+	@Test
+	public void testGetFileHandleAndUrlBatch() throws Exception {		
+		// call under test
+		BatchFileResult results = manager.getFileHandleAndUrlBatch(mockUser, batchRequest);
+		assertNotNull(results);
+		assertNotNull(results.getRequestedFiles());
+		assertEquals(3, results.getRequestedFiles().size());
+		
+		// first one is unauthorized
+		FileResult result = results.getRequestedFiles().get(0);
+		assertNotNull(result);
+		assertEquals(fha1.getFileHandleId(), result.getFileHandleId());
+		assertEquals(FileResultFailureCode.UNAUTHORIZED, result.getFailureCode());
+		assertNull(result.getFileHandle());
+		assertNull(result.getPreSignedURL());
+		// second one is okay
+		result = results.getRequestedFiles().get(1);
+		assertNotNull(result);
+		assertEquals(fha2.getFileHandleId(), result.getFileHandleId());
+		assertNull(result.getFailureCode());
+		assertNotNull(result.getFileHandle());
+		assertNotNull(result.getPreSignedURL());
+		// last one is missing
+		result = results.getRequestedFiles().get(2);
+		assertNotNull(result);
+		assertEquals(fhaMissing.getFileHandleId(), result.getFileHandleId());
+		assertEquals(FileResultFailureCode.NOT_FOUND, result.getFailureCode());
+		assertNull(result.getFileHandle());
+		assertNull(result.getPreSignedURL());
+		
+		// only authorized files handles should be fetched
+		HashSet<String> expectedFetch = new HashSet<>();
+		expectedFetch.add(fha2.getFileHandleId());
+		expectedFetch.add(fhaMissing.getFileHandleId());
+		verify(mockFileHandleDao).getAllFileHandlesBatch(expectedFetch);
+		
+		// only one pre-signed url should be generated
+		verify(mockS3Client).generatePresignedUrl(any(GeneratePresignedUrlRequest.class));
+		
+		// Verify a download record is created for the success case.
+		ArgumentCaptor<ObjectRecordBatch> batchCapture = ArgumentCaptor.forClass(ObjectRecordBatch.class);
+		verify(mockObjectRecordQueue).pushObjectRecordBatch(batchCapture.capture());
+		ObjectRecordBatch batch = batchCapture.getValue();
+		assertNotNull(batch.getRecords());
+		assertEquals(1, batch.getRecords().size());
+		ObjectRecord record = batch.getRecords().get(0);
+		assertEquals(successRecord.getJsonClassName(), record.getJsonClassName());
+		assertEquals(successRecord.getJsonString(), record.getJsonString());
+		assertNotNull(successRecord.getTimestamp());
+	}
+	
+	@Test
+	public void testGetFileHandleAndUrlBatchUrlsOnly() throws Exception {	
+		batchRequest.setIncludeFileHandles(false);
+		batchRequest.setIncludePreSignedURLs(true);
+		// call under test
+		BatchFileResult results = manager.getFileHandleAndUrlBatch(mockUser, batchRequest);
+		assertNotNull(results);
+		assertNotNull(results.getRequestedFiles());
+		assertEquals(3, results.getRequestedFiles().size());
+		
+		// second one is okay
+		FileResult result = results.getRequestedFiles().get(1);
+		assertNotNull(result);
+		assertEquals(fha2.getFileHandleId(), result.getFileHandleId());
+		assertNull(result.getFailureCode());
+		assertNull(result.getFileHandle());
+		assertNotNull(result.getPreSignedURL());
+		// a batch of records should be pushed.
+		verify(mockObjectRecordQueue).pushObjectRecordBatch(any(ObjectRecordBatch.class));
+	}
+	
+	@Test
+	public void testGetFileHandleAndUrlBatchHandlesOnly() throws Exception {	
+		batchRequest.setIncludeFileHandles(true);
+		batchRequest.setIncludePreSignedURLs(false);
+		// call under test
+		BatchFileResult results = manager.getFileHandleAndUrlBatch(mockUser, batchRequest);
+		assertNotNull(results);
+		assertNotNull(results.getRequestedFiles());
+		assertEquals(3, results.getRequestedFiles().size());
+		
+		// second one is okay
+		FileResult result = results.getRequestedFiles().get(1);
+		assertNotNull(result);
+		assertEquals(fha2.getFileHandleId(), result.getFileHandleId());
+		assertNull(result.getFailureCode());
+		assertNotNull(result.getFileHandle());
+		assertNull(result.getPreSignedURL());
+		// no downloads should be pushed since no urls were returned.
+		verify(mockObjectRecordQueue, never()).pushObjectRecordBatch(any(ObjectRecordBatch.class));
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetFileHandleAndUrlBatchNullUser() throws Exception {
+		mockUser = null;
+		// call under test
+		manager.getFileHandleAndUrlBatch(mockUser, batchRequest);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetFileHandleAndUrlBatchNullRequest() throws Exception {
+		batchRequest = null;
+		// call under test
+		manager.getFileHandleAndUrlBatch(mockUser, batchRequest);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetFileHandleAndUrlBatchNullFiles() throws Exception {
+		batchRequest.setRequestedFiles(null);
+		// call under test
+		manager.getFileHandleAndUrlBatch(mockUser, batchRequest);
+	}
+	
+	@Test
+	public void testGetFileHandleAndUrlBatchOverLimit() throws Exception {
+		List<FileHandleAssociation> overLimit = new LinkedList<>();
+		for(int i=0; i<FileHandleManagerImpl.MAX_REQUESTS_PER_CALL+1; i++){
+			FileHandleAssociation fas = new FileHandleAssociation();
+			fas.setAssociateObjectId(""+i);
+			fas.setAssociateObjectType(FileHandleAssociateType.FileEntity);
+			fas.setFileHandleId(""+(i*1000));
+			overLimit.add(fas);
+		}
+		// call under test
+		batchRequest.setRequestedFiles(overLimit);
+		try {
+			// call under test
+			manager.getFileHandleAndUrlBatch(mockUser, batchRequest);
+			fail("should have thrown an exception");
+		} catch (IllegalArgumentException e) {
+			assertEquals(FileHandleManagerImpl.MAX_REQUESTS_PER_CALL_MESSAGE, e.getMessage());
+		}
+	}
+	
+	@Test
+	public void testGetFileHandleAndUrlBatchEitherHandleOrUrl() throws Exception {
+		batchRequest.setIncludeFileHandles(false);
+		batchRequest.setIncludePreSignedURLs(false);
+		try {
+			// call under test
+			manager.getFileHandleAndUrlBatch(mockUser, batchRequest);
+			fail("should have thrown an exception");
+		} catch (IllegalArgumentException e) {
+			assertEquals(FileHandleManagerImpl.MUST_INCLUDE_EITHER, e.getMessage());
+		}
+	}
+	
+	
+	@Test
+	public void testGetFileHandleAndUrlBatchAllUnauthorized() throws Exception {
+		// setup all failures.
+		FileHandleAssociationAuthorizationStatus status1 = new FileHandleAssociationAuthorizationStatus(fha1, AuthorizationManagerUtil.ACCESS_DENIED);
+		FileHandleAssociationAuthorizationStatus status2 = new FileHandleAssociationAuthorizationStatus(fha2, AuthorizationManagerUtil.ACCESS_DENIED);
+		FileHandleAssociationAuthorizationStatus missingStatus = new FileHandleAssociationAuthorizationStatus(fhaMissing, AuthorizationManagerUtil.ACCESS_DENIED);
+		List<FileHandleAssociationAuthorizationStatus> authResults = Lists.newArrayList(status1, status2, missingStatus);
+		reset(mockFileHandleAuthorizationManager);
+		when(mockFileHandleAuthorizationManager.canDownLoadFile(mockUser, associations)).thenReturn(authResults);
+		// call under test
+		BatchFileResult results = manager.getFileHandleAndUrlBatch(mockUser, batchRequest);
+		assertNotNull(results);
+		assertNotNull(results.getRequestedFiles());
+		assertEquals(3, results.getRequestedFiles().size());
+		// no file handles should be fetched.
+		verify(mockFileHandleDao, never()).getAllFileHandlesBatch(anyCollection());
+		// no urls should be generated.
+		verify(mockS3Client, never()).generatePresignedUrl(any(GeneratePresignedUrlRequest.class));
+		// no records pushed
+		verify(mockObjectRecordQueue, never()).pushObjectRecordBatch(any(ObjectRecordBatch.class));
+	}
+	
 
 	/**
 	 * This a file handle that has all of the required fields filled in.
@@ -956,4 +1070,159 @@ public class FileHandleManagerImplTest {
 		return efh;
 	}
 
+	@Test (expected=IllegalArgumentException.class)
+	public void testCopyFileHandlesWithNullUserInfo() {
+		manager.copyFileHandles(null, new BatchFileHandleCopyRequest());
+	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testCopyFileHandlesWithNullBatch() {
+		manager.copyFileHandles(mockUser, null);
+	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testCopyFileHandlesWithNullCopyRequest() {
+		manager.copyFileHandles(mockUser, new BatchFileHandleCopyRequest());
+	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testCopyFileHandlesWithCopyRequestOverMaxLimit() {
+		BatchFileHandleCopyRequest batch = new BatchFileHandleCopyRequest();
+		List<FileHandleCopyRequest> copyRequests = new LinkedList<FileHandleCopyRequest>();
+		batch.setCopyRequests(copyRequests);
+		for (int i = 0; i <= MAX_REQUESTS_PER_CALL; i++) {
+			copyRequests.add(new FileHandleCopyRequest());
+		}
+		manager.copyFileHandles(mockUser, batch);
+	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testCopyFileHandlesWithDuplicateRequests() {
+		BatchFileHandleCopyRequest batch = new BatchFileHandleCopyRequest();
+		List<FileHandleCopyRequest> copyRequests = new LinkedList<FileHandleCopyRequest>();
+		batch.setCopyRequests(copyRequests);
+		FileHandleCopyRequest request = new FileHandleCopyRequest();
+		FileHandleAssociation originalFile = new FileHandleAssociation();
+		originalFile.setFileHandleId("1");
+		request.setOriginalFile(originalFile);
+		copyRequests.add(request);
+		copyRequests.add(request);
+		manager.copyFileHandles(mockUser, batch);
+	}
+
+	@Test
+	public void testCopyFileHandles() throws Exception {
+		BatchFileHandleCopyRequest batch = new BatchFileHandleCopyRequest();
+		List<FileHandleCopyRequest> requests = new ArrayList<FileHandleCopyRequest>(2);
+		batch.setCopyRequests(requests);
+
+		FileHandleAssociation fha1 = new FileHandleAssociation();
+		fha1.setAssociateObjectId("1");
+		fha1.setAssociateObjectType(FileHandleAssociateType.FileEntity);
+		fha1.setFileHandleId("1");
+		FileHandleAssociation fha2 = new FileHandleAssociation();
+		fha2.setAssociateObjectId("2");
+		fha2.setAssociateObjectType(FileHandleAssociateType.TableEntity);
+		fha2.setFileHandleId("2");
+		FileHandleAssociation fha3 = new FileHandleAssociation();
+		fha3.setAssociateObjectId("3");
+		fha3.setAssociateObjectType(FileHandleAssociateType.TableEntity);
+		fha3.setFileHandleId("3");
+
+		FileHandleCopyRequest request1 = new FileHandleCopyRequest();
+		request1.setOriginalFile(fha1);
+		FileHandleCopyRequest request2 = new FileHandleCopyRequest();
+		request2.setOriginalFile(fha2);
+		String newFileName = "newFileName";
+		request2.setNewFileName(newFileName);
+		FileHandleCopyRequest request3 = new FileHandleCopyRequest();
+		request3.setOriginalFile(fha3);
+		String newContentType = "newContentType";
+		request3.setNewContentType(newContentType);
+
+		requests.add(request1);
+		requests.add(request2);
+		requests.add(request3);
+
+		List<FileHandleAssociationAuthorizationStatus> authResults = new LinkedList<FileHandleAssociationAuthorizationStatus>();
+		authResults.add(new FileHandleAssociationAuthorizationStatus(fha1, AuthorizationManagerUtil.ACCESS_DENIED));
+		authResults.add(new FileHandleAssociationAuthorizationStatus(fha2, AuthorizationManagerUtil.AUTHORIZED));
+		authResults.add(new FileHandleAssociationAuthorizationStatus(fha3, AuthorizationManagerUtil.AUTHORIZED));
+		when(mockFileHandleAuthorizationManager.canDownLoadFile(mockUser, FileHandleCopyUtils.getOriginalFiles(batch))).thenReturn(authResults);
+		Map<String, FileHandle> fileHandles = new HashMap<String, FileHandle>();
+
+		S3FileHandle fileHandle = new S3FileHandle();
+		String oldId = "1";
+		fileHandle.setId(oldId);
+		String originalOwner = "999";
+		fileHandle.setCreatedBy(originalOwner);
+		Date oldCreationDate = new Date();
+		fileHandle.setCreatedOn(oldCreationDate);
+		String oldEtag = UUID.randomUUID().toString();
+		fileHandle.setEtag(oldEtag);
+		String oldFileName = "oldFileName";
+		fileHandle.setFileName(oldFileName);
+		String oldContentType = "oldContentType";
+		fileHandle.setContentType(oldContentType);
+		fileHandles.put("2", fileHandle);
+		when(mockFileHandleDao.getAllFileHandlesBatch(any(List.class))).thenReturn(fileHandles);
+		Long newId = 789L;
+		when(mockIdGenerator.generateNewId(TYPE.FILE_IDS)).thenReturn(newId );
+
+		Thread.sleep(1000);
+
+		BatchFileHandleCopyResult result = manager.copyFileHandles(mockUser, batch);
+		assertNotNull(result);
+		List<FileHandleCopyResult> copyResults = result.getCopyResults();
+		assertNotNull(copyResults);
+		assertEquals(3, copyResults.size());
+		FileHandleCopyResult first = copyResults.get(0);
+		FileHandleCopyResult second = copyResults.get(1);
+		FileHandleCopyResult third = copyResults.get(2);
+		assertEquals(fha1.getFileHandleId(), first.getOriginalFileHandleId());
+		assertEquals(FileResultFailureCode.UNAUTHORIZED, first.getFailureCode());
+		assertNull(first.getNewFileHandle());
+		assertEquals(fha2.getFileHandleId(), second.getOriginalFileHandleId());
+		assertNull(second.getFailureCode());
+		assertEquals(fha3.getFileHandleId(), third.getOriginalFileHandleId());
+		assertEquals(FileResultFailureCode.NOT_FOUND, third.getFailureCode());
+		assertNull(third.getNewFileHandle());
+
+		ArgumentCaptor<Set> fileHandleListCaptor = ArgumentCaptor.forClass(Set.class);
+		verify(mockFileHandleDao).getAllFileHandlesBatch(fileHandleListCaptor.capture());
+		Set<String> fileHandleList = fileHandleListCaptor.getValue();
+		assertNotNull(fileHandleList);
+		assertTrue(fileHandleList.contains("2"));
+		assertTrue(fileHandleList.contains("3"));
+		assertEquals(2, fileHandleList.size());
+
+		ArgumentCaptor<List> captor = ArgumentCaptor.forClass(List.class);
+		verify(mockFileHandleDao).createBatch(captor.capture());
+		List<FileHandle> toCreate = captor.getValue();
+		assertNotNull(toCreate);
+		assertEquals(1, toCreate.size());
+		FileHandle newFileHandle = toCreate.get(0);
+		assertEquals(newId.toString(), newFileHandle.getId());
+		assertNotNull(newFileHandle.getEtag());
+		assertFalse(newFileHandle.getEtag().equals(oldEtag));
+		assertNotNull(newFileHandle.getCreatedOn());
+		assertFalse(newFileHandle.getCreatedOn().equals(oldCreationDate));
+		assertEquals(mockUser.getId().toString(), newFileHandle.getCreatedBy());
+		assertEquals(newFileName, newFileHandle.getFileName());
+		assertEquals(oldContentType, newFileHandle.getContentType());
+
+		assertEquals(newFileHandle, second.getNewFileHandle());
+
+		ArgumentCaptor<ObjectRecordBatch> recordCaptor = ArgumentCaptor.forClass(ObjectRecordBatch.class);
+		verify(mockObjectRecordQueue).pushObjectRecordBatch(recordCaptor.capture());
+		ObjectRecordBatch recordBatch = recordCaptor.getValue();
+		assertNotNull(recordBatch);
+		assertEquals(FILE_HANDLE_COPY_RECORD_TYPE, recordBatch.getType());
+		List<ObjectRecord> records = recordBatch.getRecords();
+		assertNotNull(records);
+		assertEquals(1, records.size());
+		ObjectRecord record = records.get(0);
+		assertEquals(EntityFactory.createJSONStringForEntity(FileHandleCopyUtils.createCopyRecord(mockUser.getId().toString(), newId.toString(), fha2)),
+				record.getJsonString());
+	}
 }

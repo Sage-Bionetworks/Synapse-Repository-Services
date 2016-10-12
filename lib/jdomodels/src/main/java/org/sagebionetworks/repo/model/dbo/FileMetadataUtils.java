@@ -2,6 +2,8 @@ package org.sagebionetworks.repo.model.dbo;
 
 import java.net.MalformedURLException;
 import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.sagebionetworks.repo.model.backup.FileHandleBackup;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle;
@@ -284,6 +286,15 @@ public class FileMetadataUtils {
 			out.setStorageLocationId(in.getStorageLocationId());
 		}
 		return out;
+	}
+
+	public static List<DBOFileHandle> createDBOsFromDTOs(List<FileHandle> dtos) {
+		ValidateArgument.required(dtos, "dtos");
+		List<DBOFileHandle> dbos = new ArrayList<DBOFileHandle>(dtos.size());
+		for (FileHandle dto : dtos){
+			dbos.add(createDBOFromDTO(dto));
+		}
+		return dbos;
 	}
 
 }

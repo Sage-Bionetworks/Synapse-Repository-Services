@@ -43,6 +43,8 @@ public class EmailUtils {
 	public static final String TEMPLATE_KEY_TEAM_WEB_LINK = "#teamWebLink#";
 	public static final String TEMPLATE_KEY_ONE_CLICK_JOIN = "#oneClickJoin#";
 	public static final String TEMPLATE_KEY_ONE_CLICK_UNSUBSCRIBE = "#oneClickUnsubscribe#";
+	public static final String TEMPLATE_KEY_PROFILE_SETTING_LINK = "#userProfileSettingLink#";
+	public static final String TEMPLATE_KEY_LINKS = "#links#";
 	public static final String TEMPLATE_KEY_INVITER_MESSAGE = "#inviterMessage#";
 	public static final String TEMPLATE_KEY_REQUESTER_MESSAGE = "#requesterMessage#";
 	public static final String TEMPLATE_KEY_ORIGINAL_EMAIL = "#originalEmail#";
@@ -228,31 +230,53 @@ public class EmailUtils {
 		return result;
 	}
 	
-	public static String createHtmlUnsubscribeFooter(String unsubscribeLink) {
+	public static String createHtmlUnsubscribeLink(String unsubscribeLink) {
 		Map<String,String> fieldValues = new HashMap<String,String>();
 		fieldValues.put(TEMPLATE_KEY_ONE_CLICK_UNSUBSCRIBE, unsubscribeLink);
-		return readMailTemplate("message/unsubscribeFooter.html",fieldValues);
+		return readMailTemplate("message/unsubscribeLink.html",fieldValues);
 	}
 	
-	public static String createTextUnsubscribeFooter(String unsubscribeLink) {
+	public static String createTextUnsubscribeLink(String unsubscribeLink) {
 		Map<String,String> fieldValues = new HashMap<String,String>();
 		fieldValues.put(TEMPLATE_KEY_ONE_CLICK_UNSUBSCRIBE, unsubscribeLink);
-		return readMailTemplate("message/unsubscribeFooter.txt",fieldValues);
+		return readMailTemplate("message/unsubscribeLink.txt",fieldValues);
+	}
+
+	public static String createHtmlFooterWithLinks(String links) {
+		Map<String,String> fieldValues = new HashMap<String,String>();
+		fieldValues.put(TEMPLATE_KEY_LINKS, links);
+		return readMailTemplate("message/footerWithLinks.html",fieldValues);
 	}
 	
 	public static String createEmailBodyFromHtml(String messageBody,
-			String unsubscribeLink) {
-		if (unsubscribeLink==null) return messageBody;
-	   	StringBuilder bodyWithFooter = new StringBuilder(messageBody);
-	   	bodyWithFooter.append(createHtmlUnsubscribeFooter(unsubscribeLink));
-   	return bodyWithFooter.toString();
+			String unsubscribeLink, String userProfileSettingLink) {
+		if (unsubscribeLink==null && userProfileSettingLink==null) return messageBody;
+		StringBuilder bodyWithFooter = new StringBuilder(messageBody);
+		StringBuilder links = new StringBuilder("");
+		if (unsubscribeLink!=null) links.append(createHtmlUnsubscribeLink(unsubscribeLink));
+		if (userProfileSettingLink!=null) links.append(createHtmlUserProfileSettingLink(userProfileSettingLink));
+		bodyWithFooter.append(createHtmlFooterWithLinks(links.toString()));
+	return bodyWithFooter.toString();
 	}
-	
+
 	public static String createEmailBodyFromText(String messageBody,
-			String unsubscribeLink) {
-		if (unsubscribeLink==null) return messageBody;
-    	StringBuilder bodyWithFooter = new StringBuilder(messageBody);
-    	bodyWithFooter.append(createTextUnsubscribeFooter(unsubscribeLink));
-    	return bodyWithFooter.toString();
+			String unsubscribeLink, String userProfileSettingLink) {
+		if (unsubscribeLink==null && userProfileSettingLink==null) return messageBody;
+		StringBuilder bodyWithFooter = new StringBuilder(messageBody);
+		if (unsubscribeLink!=null) bodyWithFooter.append(createTextUnsubscribeLink(unsubscribeLink));
+		if (userProfileSettingLink!=null) bodyWithFooter.append(createTextUserProfileSettingLink(userProfileSettingLink));
+		return bodyWithFooter.toString();
+	}
+
+	public static String createHtmlUserProfileSettingLink(String userProfileSettingLink) {
+		Map<String,String> fieldValues = new HashMap<String,String>();
+		fieldValues.put(TEMPLATE_KEY_PROFILE_SETTING_LINK, userProfileSettingLink);
+		return readMailTemplate("message/userProfileSettingLink.html",fieldValues);
+	}
+
+	public static String createTextUserProfileSettingLink(String userProfileSettingLink) {
+		Map<String,String> fieldValues = new HashMap<String,String>();
+		fieldValues.put(TEMPLATE_KEY_PROFILE_SETTING_LINK, userProfileSettingLink);
+		return readMailTemplate("message/userProfileSettingLink.txt",fieldValues);
 	}
 }

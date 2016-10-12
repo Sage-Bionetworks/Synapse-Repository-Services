@@ -35,6 +35,7 @@ import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -334,6 +335,16 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 	@Override
 	public long getMaxId() throws DatastoreException {
 		return simpleJdbcTemplate.queryForLong(SQL_MAX_FILE_ID);
+	}
+
+	@WriteTransactionReadCommitted
+	@Override
+	public void createBatch(List<FileHandle> toCreate) {
+		List<DBOFileHandle> dbos = FileMetadataUtils.createDBOsFromDTOs(toCreate);
+		for (DBOFileHandle dbo : dbos) {
+			transactionalMessenger.sendMessageAfterCommit(dbo, ChangeType.CREATE);
+		}
+		basicDao.createBatch(dbos);
 	}
 
 }

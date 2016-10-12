@@ -138,10 +138,23 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 */
 	@Override
 	public void setIndexSchema(ProgressCallback<Void> progressCallback, List<ColumnModel> newSchema) {
+		boolean removeMissingColumns = true;
+		setIndexSchema(progressCallback, newSchema, removeMissingColumns);
+	}
+	
+	/**
+	 * Set the table index schema to match the given schema.
+	 * 
+	 * @param progressCallback
+	 * @param newSchema
+	 * @param removeMissingColumns Should missing columns be removed?
+	 */
+	@Override
+	public void setIndexSchema(ProgressCallback<Void> progressCallback, List<ColumnModel> newSchema, boolean removeMissingColumns){
 		// Lookup the current schema of the index
 		List<DatabaseColumnInfo> currentSchema = tableIndexDao.getDatabaseInfo(tableId);
 		// create a change that replaces the old schema as needed.
-		List<ColumnChangeDetails> changes = SQLUtils.createReplaceSchemaChange(currentSchema, newSchema);
+		List<ColumnChangeDetails> changes = SQLUtils.createReplaceSchemaChange(currentSchema, newSchema, removeMissingColumns);
 		updateTableSchema(progressCallback, changes);
 	}
 

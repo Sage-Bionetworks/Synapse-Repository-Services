@@ -202,13 +202,15 @@ public class UrlHelpers {
 
 	public static final String FILE= "/file";
 	public static final String FILE_PREVIEW = "/filepreview";
-	public static final String FILE_HANDLE = "/filehandles";
+	public static final String FILE_HANDLES = "/filehandles";
 	public static final String ENTITY_FILE = ENTITY_ID+FILE;
 	public static final String ENTITY_FILE_PREVIEW = ENTITY_ID+FILE_PREVIEW;
-	public static final String ENTITY_FILE_HANDLES = ENTITY_ID+FILE_HANDLE;
+	public static final String ENTITY_FILE_HANDLES = ENTITY_ID+FILE_HANDLES;
 	public static final String S3_FILE_COPY = FILE + "/s3FileCopy";
 	public static final String S3_FILE_COPY_ASYNC_START = S3_FILE_COPY + ASYNC_START_REQUEST;
 	public static final String S3_FILE_COPY_ASYNC_GET = S3_FILE_COPY + ASYNC_GET_REQUEST;
+	public static final String COPY = "/copy";
+	public static final String FILE_HANDLES_COPY = FILE_HANDLES + COPY;
 	
 	public static final String BULK_FILE_DOWNLOAD = FILE + "/bulk";
 	public static final String BULK_FILE_DOWNLOAD_ASYNC_START = BULK_FILE_DOWNLOAD + ASYNC_START_REQUEST;
@@ -225,7 +227,7 @@ public class UrlHelpers {
 	// version
 	public static final String ENTITY_VERSION_FILE = ENTITY_ID+VERSION+VERSION_NUMBER+FILE;
 	public static final String ENTITY_VERSION_FILE_PREVIEW = ENTITY_ID+VERSION+VERSION_NUMBER+FILE_PREVIEW;
-	public static final String ENTITY_VERSION_FILE_HANDLES = ENTITY_ID+VERSION+VERSION_NUMBER+FILE_HANDLE;
+	public static final String ENTITY_VERSION_FILE_HANDLES = ENTITY_ID+VERSION+VERSION_NUMBER+FILE_HANDLES;
 	
 	public static final String ENTITY_CONVERT_LOCATIONABLE = ENTITY+"/convertLocationable";
 	public static final String ENTITY_CONVERT_LOCATIONABLE_START = ENTITY_CONVERT_LOCATIONABLE+"/start";
@@ -747,7 +749,7 @@ public class UrlHelpers {
 	public static final String ENTITY_TABLE_PARTIAL = ENTITY_TABLE + "/partial";
 	public static final String ENTITY_TABLE_DELETE_ROWS = ENTITY_ID + TABLE + "/deleteRows";
 	public static final String ENTITY_TABLE_GET_ROWS = ENTITY_ID + TABLE + "/getRows";
-	public static final String ENTITY_TABLE_FILE_HANDLES = ENTITY_TABLE + FILE_HANDLE;
+	public static final String ENTITY_TABLE_FILE_HANDLES = ENTITY_TABLE + FILE_HANDLES;
 	public static final String ENTITY_TABLE_FILE = ENTITY_TABLE + COLUMN_ID + ROW_ID + ROW_VERSION + FILE;
 	public static final String ENTITY_TABLE_FILE_PREVIEW = ENTITY_TABLE + COLUMN_ID + ROW_ID + ROW_VERSION + FILE_PREVIEW;
 	public static final String TABLE_QUERY = TABLE+"/query";
