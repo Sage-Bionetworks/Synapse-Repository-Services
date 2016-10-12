@@ -2878,4 +2878,10 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	public BatchFileHandleCopyResult copyFileHandles(BatchFileHandleCopyRequest request) throws SynapseException;
+	
+	/**
+	 * Sets the ip address of the user that this client is performing actions for.
+	 * @param ipAddress
+	 */
+	public void setUserIpAddress(String ipAddress);
 }

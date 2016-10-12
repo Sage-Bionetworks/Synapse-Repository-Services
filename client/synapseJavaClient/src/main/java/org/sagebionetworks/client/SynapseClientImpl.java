@@ -7805,4 +7805,11 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public BatchFileHandleCopyResult copyFileHandles(BatchFileHandleCopyRequest request) throws SynapseException {
 		return asymmetricalPost(fileEndpoint, FILE_HANDLES_COPY, request , BatchFileHandleCopyResult.class, null);
 	}
+
+	@Override
+	public void setUserIpAddress(String ipAddress) {
+		getSharedClientConnection().setUserIp(ipAddress);
+	}
+	
+	
 }
