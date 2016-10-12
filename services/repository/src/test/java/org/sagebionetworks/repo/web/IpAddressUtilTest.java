@@ -40,28 +40,4 @@ public class IpAddressUtilTest {
 		when(request.getRemoteAddr()).thenReturn("should not be returned");
 		assertEquals("222.222.222.222", IpAddressUtil.getIpAddress(request));
 	}
-	
-	
-	
-	///////////////////////////////////////
-	//parseRemoteIpFromXForwardedFor Tests
-	///////////////////////////////////////
-
-	@Test (expected = IllegalArgumentException.class)
-	public void testParseRemoteIpFromXForwardedForNullString() {
-		IpAddressUtil.parseRemoteIpFromXForwardedFor(null);
-	}
-	
-	@Test
-	public void testParseRemoteIpFromXForwardedForSingleValue() {
-		String xforwardedFor = "clientIP";
-		assertEquals("clientIP",IpAddressUtil.parseRemoteIpFromXForwardedFor(xforwardedFor));
-	}
-	
-	@Test
-	public void testParseRemoteIpFromXForwardedForMultipleValues() {
-		String xforwardedFor = "clientIP, proxy1, proxy2";
-		assertEquals("clientIP",IpAddressUtil.parseRemoteIpFromXForwardedFor(xforwardedFor));
-	}
-
 }
