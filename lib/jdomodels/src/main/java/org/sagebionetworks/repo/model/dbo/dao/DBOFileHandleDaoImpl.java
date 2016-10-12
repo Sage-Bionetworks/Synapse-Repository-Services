@@ -10,6 +10,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FILES;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -18,7 +19,6 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
@@ -30,7 +30,6 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.HasPreviewId;
-import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
@@ -128,47 +127,9 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 
 	@WriteTransaction
 	@Override
-	public <T extends FileHandle> T createFile(T fileHandle) {
-		return createFilePrivate(fileHandle, true);
-	}
-
-	@WriteTransaction
-	@Override
-	public S3FileHandle createFile(S3FileHandle metadata, boolean shouldPreviewBeGenerated) {
-		return createFilePrivate(metadata, shouldPreviewBeGenerated);
-	}
-	
-	@SuppressWarnings("unchecked")
-	private <T extends FileHandle> T createFilePrivate(T fileHandle, boolean shouldPreviewBeGenerated) {
-		if (fileHandle == null) {
-			throw new IllegalArgumentException("File handle cannot be null");
-		}
-		if (fileHandle.getFileName() == null) {
-			throw new IllegalArgumentException(
-					"File name cannot be null");
-		}
-		
-		// Convert to a DBO
-		DBOFileHandle dbo = FileMetadataUtils.createDBOFromDTO(fileHandle);
-		dbo.setId(idGenerator.generateNewId(TYPE.FILE_IDS));
-		dbo.setEtag(UUID.randomUUID().toString());
-		
-		// To disable preview generation, assign the ID to a non-null, non-preview file handle (itself)
-		if (!shouldPreviewBeGenerated) {
-			dbo.setPreviewId(dbo.getId());
-		} 
-		
-		// Save it to the DB
-		dbo = basicDao.createNew(dbo);
-		
-		// Send the create message
-		transactionalMessenger.sendMessageAfterCommit(dbo, ChangeType.CREATE);
-		
-		try {
-			return (T) get(dbo.getIdString());
-		} catch (NotFoundException e) {
-			throw new DatastoreException(e);
-		}
+	public FileHandle createFile(FileHandle fileHandle) {
+		createBatch(Arrays.asList(fileHandle));
+		return get(fileHandle.getId());
 	}
 
 	@WriteTransaction
@@ -339,8 +300,8 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 
 	@WriteTransactionReadCommitted
 	@Override
-	public void createBatch(List<FileHandle> toCreate) {
-		List<DBOFileHandle> dbos = FileMetadataUtils.createDBOsFromDTOs(toCreate);
+	public void createBatch(List<FileHandle> list) {
+		List<DBOFileHandle> dbos = FileMetadataUtils.createDBOsFromDTOs(list);
 		for (DBOFileHandle dbo : dbos) {
 			transactionalMessenger.sendMessageAfterCommit(dbo, ChangeType.CREATE);
 		}

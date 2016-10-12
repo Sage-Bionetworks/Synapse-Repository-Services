@@ -10,12 +10,15 @@ import java.net.URL;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -26,6 +29,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dao.WikiPageKeyHelper;
+import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -53,13 +57,16 @@ public class WikiControllerTest extends AbstractAutowiredControllerTestBase {
 	private NodeManager nodeManager;
 	
 	@Autowired
-	private FileHandleDao fileMetadataDao;
+	private FileHandleDao fileHandleDao;
 	
 	@Autowired
 	private V2WikiPageDao v2WikiPageDao;
 	
 	@Autowired
 	private AmazonS3Client s3Client;
+
+	@Autowired
+	private IdGenerator idGenerator;
 	
 	private Long adminUserId;
 	private String adminUserIdString;
@@ -85,7 +92,8 @@ public class WikiControllerTest extends AbstractAutowiredControllerTestBase {
 		handleOne.setKey("mainFileKey");
 		handleOne.setEtag("etag");
 		handleOne.setFileName("foo.bar");
-		handleOne = fileMetadataDao.createFile(handleOne);
+		handleOne.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		handleOne.setEtag(UUID.randomUUID().toString());
 		// Create a preview
 		handleTwo = new PreviewFileHandle();
 		handleTwo.setCreatedBy(adminUserIdString);
@@ -94,9 +102,18 @@ public class WikiControllerTest extends AbstractAutowiredControllerTestBase {
 		handleTwo.setKey("previewFileKey");
 		handleTwo.setEtag("etag");
 		handleTwo.setFileName("bar.txt");
-		handleTwo = fileMetadataDao.createFile(handleTwo);
+		handleTwo.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		handleTwo.setEtag(UUID.randomUUID().toString());
+
+		List<FileHandle> fileHandleToCreate = new LinkedList<FileHandle>();
+		fileHandleToCreate.add(handleOne);
+		fileHandleToCreate.add(handleTwo);
+		fileHandleDao.createBatch(fileHandleToCreate);
+
+		handleOne = (S3FileHandle) fileHandleDao.get(handleOne.getId());
+		handleTwo = (PreviewFileHandle) fileHandleDao.get(handleTwo.getId());
 		// Set two as the preview of one
-		fileMetadataDao.setPreviewId(handleOne.getId(), handleTwo.getId());
+		fileHandleDao.setPreviewId(handleOne.getId(), handleTwo.getId());
 	}
 	
 	
@@ -115,10 +132,10 @@ public class WikiControllerTest extends AbstractAutowiredControllerTestBase {
 			nodeManager.delete(userInfo, entity.getId());
 		}
 		if(handleOne != null && handleOne.getId() != null){
-			fileMetadataDao.delete(handleOne.getId());
+			fileHandleDao.delete(handleOne.getId());
 		}
 		if(handleTwo != null && handleTwo.getId() != null){
-			fileMetadataDao.delete(handleTwo.getId());
+			fileHandleDao.delete(handleTwo.getId());
 		}
 	}
 	
@@ -257,15 +274,15 @@ public class WikiControllerTest extends AbstractAutowiredControllerTestBase {
 		
 		// Delete file handles etc made when creating V2 wikis, starting with abandoned handles
 		// Start with child so resources aren't lost when deleting the parent first
-		S3FileHandle abandonedHandle = (S3FileHandle) fileMetadataDao.get(abandonedFileHandleId);
+		S3FileHandle abandonedHandle = (S3FileHandle) fileHandleDao.get(abandonedFileHandleId);
 		s3Client.deleteObject(abandonedHandle.getBucketName(), abandonedHandle.getKey());
-		fileMetadataDao.delete(abandonedFileHandleId);
+		fileHandleDao.delete(abandonedFileHandleId);
 		for(int i = toDelete.size() - 1; i >= 0; i--) {
 			V2WikiPage wikiPage = v2WikiPageDao.get(toDelete.get(i), null);
 			String markdownHandleId = wikiPage.getMarkdownFileHandleId();
-			S3FileHandle markdownHandle = (S3FileHandle) fileMetadataDao.get(markdownHandleId);
+			S3FileHandle markdownHandle = (S3FileHandle) fileHandleDao.get(markdownHandleId);
 			s3Client.deleteObject(markdownHandle.getBucketName(), markdownHandle.getKey());
-			fileMetadataDao.delete(markdownHandleId);
+			fileHandleDao.delete(markdownHandleId);
 		}
 		
 		// Now delete the wiki
