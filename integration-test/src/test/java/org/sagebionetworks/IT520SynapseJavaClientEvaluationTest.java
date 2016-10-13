@@ -48,7 +48,6 @@ import org.sagebionetworks.evaluation.model.SubmissionStatusBatch;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.model.TeamSubmissionEligibility;
 import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
-import org.sagebionetworks.evaluation.model.UserEvaluationState;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -438,6 +437,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		status.setStatus(SubmissionStatusEnum.SCORED);
 		status.setReport("Lorem ipsum");
 		status.setAnnotations(annos);
+		status.setCanCancel(true);
 		
 		SubmissionStatus statusClone = synapseOne.updateSubmissionStatus(status);
 		assertFalse("Modified date was not updated", status.getModifiedOn().equals(statusClone.getModifiedOn()));
@@ -460,6 +460,10 @@ public class IT520SynapseJavaClientEvaluationTest {
 		BatchUploadResponse batchUpdateResponse = synapseOne.updateSubmissionStatusBatch(eval1.getId(), batch);
 		// after last batch there's no 'next batch' token
 		assertNull(batchUpdateResponse.getNextUploadToken());
+
+		synapseOne.requestToCancelSubmission(sub1.getId());
+		status = synapseOne.getSubmissionStatus(sub1.getId());
+		assertTrue(status.getCancelRequested());
 		
 		// delete
 		synapseOne.deleteSubmission(sub1.getId());

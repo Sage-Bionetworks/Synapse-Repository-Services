@@ -7805,4 +7805,9 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public BatchFileHandleCopyResult copyFileHandles(BatchFileHandleCopyRequest request) throws SynapseException {
 		return asymmetricalPost(fileEndpoint, FILE_HANDLES_COPY, request , BatchFileHandleCopyResult.class, null);
 	}
+
+	@Override
+	public void requestToCancelSubmission(String submissionId) throws SynapseException {
+		getSharedClientConnection().putUri(repoEndpoint, EVALUATION_URI_PATH+SUBMISSION+"/"+submissionId+"/cancellation", getUserAgent());
+	}
 }

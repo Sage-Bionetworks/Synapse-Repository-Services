@@ -1222,4 +1222,19 @@ public class EvaluationController extends BaseController {
 			JSONObjectAdapterException {
 		return serviceProvider.getEvaluationService().query(query, userId);
 	}
+
+	/**
+	 * User requests to cancel their submission. Only the user who submitted a submission
+	 * can make this request.
+	 * 
+	 * @param userId
+	 * @param subId
+	 */
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	@RequestMapping(value = UrlHelpers.EVALUATION_SUBMISSION_CANCALLATION, method = RequestMethod.PUT)
+	public @ResponseBody void requestToCancelSubmission(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String subId) {
+		serviceProvider.getEvaluationService().processCancelSubmissionRequest(userId, subId);
+	}
 }
