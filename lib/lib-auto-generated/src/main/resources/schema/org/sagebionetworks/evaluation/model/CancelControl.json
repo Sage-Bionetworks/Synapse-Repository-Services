@@ -16,7 +16,7 @@
 		},
 		"cancelRequested": {
 			"type":"boolean",
-			"description":"Has user requested to cancel this submission? By default, this will be set to False. Submission owner can read and request to change this value. The queue's scoring application can only read this value."
+			"description":"Has user requested to cancel this submission? By default, this will be set to False. Submission owner can read and request to change this value."
 		}
 	}
 }
