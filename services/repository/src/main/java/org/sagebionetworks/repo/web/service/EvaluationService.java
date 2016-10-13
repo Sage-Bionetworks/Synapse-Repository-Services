@@ -425,5 +425,14 @@ public interface EvaluationService {
 			throws DatastoreException, NotFoundException, JSONObjectAdapterException, ParseException;
 
 	public TeamSubmissionEligibility getTeamSubmissionEligibility(Long userId, String evalId, String teamId) throws NotFoundException;
+
+	/**
+	 * Process the user's request to cancel their submission.
+	 * 
+	 * @param userId
+	 * @param subId
+	 * @return
+	 */
+	public void processCancelSubmissionRequest(Long userId, String subId);
 	
 }
