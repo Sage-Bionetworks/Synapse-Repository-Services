@@ -194,6 +194,7 @@ public class SubmissionStatusDAOImplTest {
 	    	SubmissionStatus clone = clones.get(0);
 	        clone.setStatus(SubmissionStatusEnum.SCORED);
 	        clone.setScore(0.9);
+	        clone.setCanCancel(false);
 	        Thread.sleep(1L);
 	        submissionStatusDAO.update(Collections.singletonList(clone));
 	        SubmissionStatus clone2 = submissionStatusDAO.get(clone.getId());
@@ -315,6 +316,8 @@ public class SubmissionStatusDAOImplTest {
     	subStatusDTO.setStatus(SubmissionStatusEnum.SCORED);
     	subStatusDTO.setReport("lorem ipsum");
     	subStatusDTO.setStatusVersion(5L);
+    	subStatusDTO.setCanCancel(true);
+    	subStatusDTO.setCancelRequested(false);
     	    	
     	subStatusDBO = SubmissionUtils.convertDtoToDbo(subStatusDTO);
     	subStatusDTOclone = SubmissionUtils.convertDboToDto(subStatusDBO);

@@ -878,4 +878,40 @@ public class SubmissionManagerTest {
 		assertTrue(result.isEmpty());
 		
 	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testProcessCancelRequestWithInvalidUserInfo() {
+		submissionManager.processUserCancelRequest(null, subWithId.getId());
+	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testProcessCancelRequestWithNullId() {
+		submissionManager.processUserCancelRequest(userInfo, null);
+	}
+
+	@Test (expected=UnauthorizedException.class)
+	public void testProcessCancelRequestWithUnauthorizedUser() {
+		UserInfo unauthorizedUser = new UserInfo(false);
+		unauthorizedUser.setId(Long.parseLong(USER_ID+1));
+		submissionManager.processUserCancelRequest(unauthorizedUser, subWithId.getId());
+	}
+
+	@Test (expected=UnauthorizedException.class)
+	public void testProcessCancelRequestWithAuthorizedUserNonCancellable() {
+		UserInfo authorizedUser = new UserInfo(false);
+		authorizedUser.setId(Long.parseLong(USER_ID));
+		submissionManager.processUserCancelRequest(authorizedUser, subWithId.getId());
+	}
+
+	@Test
+	public void testProcessCancelRequestWithAuthorizedUserCancellable() {
+		subStatus.setCanCancel(true);
+		UserInfo authorizedUser = new UserInfo(false);
+		authorizedUser.setId(Long.parseLong(USER_ID));
+		submissionManager.processUserCancelRequest(authorizedUser, subWithId.getId());
+		verify(mockSubmissionDAO).get(subWithId.getId());
+		verify(mockSubmissionStatusDAO).get(subWithId.getId());
+		subStatus.setCancelRequested(true);
+		verify(mockSubmissionStatusDAO).update(Arrays.asList(subStatus));
+	}
 }
