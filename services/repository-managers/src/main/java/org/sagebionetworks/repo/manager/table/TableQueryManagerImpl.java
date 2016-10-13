@@ -23,7 +23,10 @@ import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.EntityField;
+import org.sagebionetworks.repo.model.table.FacetRange;
+import org.sagebionetworks.repo.model.table.FacetType;
 import org.sagebionetworks.repo.model.table.QueryFacetResultColumn;
+import org.sagebionetworks.repo.model.table.QueryFacetResultValue;
 import org.sagebionetworks.repo.model.table.FacetValue;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
@@ -237,7 +240,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @throws TableFailedException
 	 * @throws EmptyResultException 
 	 */
-	QueryResultBundle queryAsStreamWithAuthorization(ProgressCallback<Void> progressCallback, UserInfo user, SqlQuery query, List<QueryRequestFacetColumn> selectedFacets,
+	QueryResultBundle queryAsStreamWithAuthorization(ProgressCallback<Void> progressCallback, UserInfo user, SqlQuery query, List<ValidatedQueryFacetColumn> selectedFacets,
 			RowHandler rowHandler, boolean runCount) throws NotFoundException, LockUnavilableException, TableUnavailableException, TableFailedException, EmptyResultException{
 		// Get a connection to the table.
 		TableIndexDAO indexDao = tableConnectionFactory.getConnection(query.getTableId());
@@ -300,16 +303,30 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			count = runCountQuery(query, indexDao);
 		}
 		
-		//run the facet counts
-		if(!queryFacetColumns.isEmpty()){
+		//run the facet counts if needed
+		if(queryFacetColumns != null && !queryFacetColumns.isEmpty()){
 			List<QueryFacetResultColumn> facetResults = new ArrayList<>();
 			for(ValidatedQueryFacetColumn facetQuery : queryFacetColumns){
-				//TODO: finish porcessing facets
-				if(facetQuery.returnFacetCounts()){
-					QueryFacetResultColumn facetColumnResult = runFacetColumnCountQuery(query, facetQuery.getColumnName(), queryFacetColumns, indexDao);
+				//TODO: finish processing facets
+				QueryFacetResultColumn facetColumnResult = new QueryFacetResultColumn();
+				facetColumnResult.setColumnName(facetQuery.getColumnName());
+				facetColumnResult.setFacetType(facetQuery.getFacetType());
 				
-					facetResults.add(facetColumnResult);
+				switch(facetQuery.getFacetType()){
+				case enumeration:
+					List<QueryFacetResultValue> facetValues = runFacetColumnCountQuery(query, facetQuery.getColumnName(), queryFacetColumns, indexDao);
+					
+					facetColumnResult.setFacetValues(facetValues);
+					
+					break;
+				case range:
+					//TODO: maybe add absolute min and max calculations and return those?
+					facetColumnResult.setFacetRange(facetQuery.getFacetRange());
+					break;
+				default:
+					throw new IllegalArgumentException("Unexpected FacetType");
 				}
+				facetResults.add(facetColumnResult);
 			}
 			bundle.setFacets(facetResults);
 		}
@@ -642,26 +659,6 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		}
 	}
 	
-	/**
-	 * Run a query that creates facet counts for its most frequent values in the specified column based on the original query.
-	 */
-	public QueryFacetResultColumn runFacetColumnCountQuery(SqlQuery originalQuery, String columnName, List<ValidatedQueryFacetColumn> facetColumns ,TableIndexDAO indexDao){
-		//TODO: test
-		try{
-			String facetColumnSql = SqlElementUntils.createFilteredFacetCountSqlString(columnName, originalQuery.getTransformedModel(), SqlElementUntils.createSearchCondition(concatFacetSearchConditionStrings(facetColumns, columnName)));
-			
-			List<FacetValue> facetValues  = indexDao.facetCountQuery(facetColumnSql, originalQuery.getParameters());
-			QueryFacetResultColumn facetColumn = new QueryFacetResultColumn();
-			facetColumn.setColumnId(columnName);
-			facetColumn.setFacetValues(facetValues);
-			return facetColumn;
-		} catch (ParseException e){
-			//TODO: not sure of what exceptions to expect yet
-			throw new IllegalArgumentException(e);
-		}
-		
-	}
-	
 	
 	/**
 	 * Parser a query and convert ParseExceptions to IllegalArgumentExceptions
@@ -802,34 +799,70 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 */
 	public static List<ValidatedQueryFacetColumn> validateFacetList(List<QueryRequestFacetColumn> selectedFacets, List<ColumnModel> schema){
 		
+		Map<String, QueryRequestFacetColumn> selectedFacetMap = createColumnNameToFacetColumnMap(selectedFacets);
 		List<ValidatedQueryFacetColumn> validatedFacets = new ArrayList<ValidatedQueryFacetColumn>();
 		//create the SearchConditions based on each facet column's values and store them into facetSearchConditionStrings
 		for(ColumnModel columnModel : schema){
 			//add to list of facets
-			if(columnModel == null){
-				throw new IllegalArgumentException("Requested facet was not found in the schema");
+			if (!columnModel.getFacetType().equals(FacetType.none)){//if it is a facet add it to the list
+				QueryRequestFacetColumn facetParams = selectedFacetMap.get(columnModel.getName());
+				Set<String> facetValues = null;
+				FacetRange facetRange = null;
+				if(facetParams != null){
+					facetValues = facetParams.getFacetValues();
+					facetRange = facetParams.getFacetRange();
+				}
+				//TODO: currently silently fails if the wrong type of parameter is passed in (treated as no search conditions). throw IllegalArugmentExcpetion?
+				validatedFacets.add(new ValidatedQueryFacetColumn(columnModel.getName(), columnModel.getFacetType(), facetValues, facetRange));
 			}
-			
-			validatedFacets.add(new ValidatedQueryFacetColumn(selectedFacet.getColumnId(), columnModel.getName(), selectedFacet.getFacetValues(), columnModel.getFacetType()));
 		}
 		return validatedFacets;
 	}
 	
-//	/**
-//	 * Returns a Map where the key is the ID of a column and the value is the name of the column
-//	 * @return
-//	 */
-//	private static Map<String, ColumnModel> getColumnIdToSchemaMap(List<ColumnModel> columnModels){
-//		//TODO: test
-//		Map<String, ColumnModel> result = new HashMap<String, ColumnModel>();
-//		for(ColumnModel cm : columnModels){
-//			result.put(cm.getId(), cm);
-//		}
-//		return result;
-//	}
+	/**
+	 * Returns a Map where the key is the name of a facet and the value is the corresponding QueryRequestFacetColumn
+	 * @return
+	 */
+	private static Map<String, QueryRequestFacetColumn> createColumnNameToFacetColumnMap(List<QueryRequestFacetColumn> selectedFacets){
+		//TODO: test
+		Map<String, QueryRequestFacetColumn> result = new HashMap<String, QueryRequestFacetColumn>();
+		for(QueryRequestFacetColumn facet : selectedFacets){
+			result.put(facet.getColumnName(), facet);
+		}
+		return result;
+	}
 	
 	
 	SqlQuery appendSearchCondition(SqlQuery query, List<ValidatedQueryFacetColumn> facetColumns){
+		/**
+		 * 			QuerySpecification modelCopy = new TableQueryParser(originalQuery.getModel().toSql()).querySpecification();
+			WhereClause where = originalQuery.getModel().getTableExpression().getWhereClause();
+			StringBuilder filterBuilder = new StringBuilder();
+			filterBuilder.append("WHERE ");
+			if(where != null){
+				filterBuilder.append("(");
+				filterBuilder.append(where.getSearchCondition().toSql());
+				filterBuilder.append(") AND ");
+			}
+			filterBuilder.append(SQLUtils.getColumnNameForId(benefactorColumnId));
+			filterBuilder.append(" IN (");
+			boolean isFirst = true;
+			for(Long id: accessibleBenefactors){
+				if(!isFirst){
+					filterBuilder.append(",");
+				}
+				filterBuilder.append(id);
+				isFirst = false;
+			}
+			filterBuilder.append(")");
+			// create the new where
+			where = new TableQueryParser(filterBuilder.toString()).whereClause();
+			modelCopy.getTableExpression().replaceWhere(where);
+			// return a copy
+			return new SqlQuery(modelCopy, originalQuery);
+		 */
+		
+		
 		QuerySpecification originalQuerySpecification = query.getModel();
 		TableExpression originalTableExpression = originalQuerySpecification.getTableExpression();
 		WhereClause queryWhereClause = originalTableExpression.getWhereClause();
@@ -866,14 +899,32 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		int initialSize = builder.length(); //length with the "( " included
 		
 		for(ValidatedQueryFacetColumn facetColumn : facetColumns){
-			if(columNameToIgnore == null || !facetColumn.getColumnName().equals(columNameToIgnore)){ 
-				if(builder.length() > initialSize){ //not the first element
-					builder.append(" AND ");
+			if(columNameToIgnore == null || !facetColumn.getColumnName().equals(columNameToIgnore)){ //make sure not to include the ignored column
+				String searchCondition = facetColumn.getSearchConditionString();
+				if(searchCondition != null && !searchCondition.equals("")){//don't add anything if there is no search condition
+					if(builder.length() > initialSize){ //not the first element
+						builder.append(" AND ");
+					}
+					builder.append(searchCondition);
 				}
-				builder.append(facetColumn.getValuesSearchConditionString());
 			}
 		}
 		return builder.toString();
 	}
 	
+	/**
+	 * Run a query that creates facet counts for its most frequent values in the specified column based on the original query.
+	 */
+	public List<QueryFacetResultValue> runFacetColumnCountQuery(SqlQuery originalQuery, String columnName, List<ValidatedQueryFacetColumn> facetColumns ,TableIndexDAO indexDao){
+		//TODO: test
+		try{
+			String facetColumnSql = SqlElementUntils.createFilteredFacetCountSqlString(columnName, originalQuery.getTransformedModel(), SqlElementUntils.createSearchCondition(concatFacetSearchConditionStrings(facetColumns, columnName)));
+			
+			return indexDao.facetCountQuery(facetColumnSql, originalQuery.getParameters());
+		} catch (ParseException e){
+			//TODO: not sure of what exceptions to expect yet
+			throw new IllegalArgumentException(e);
+		}
+		
+	}
 }

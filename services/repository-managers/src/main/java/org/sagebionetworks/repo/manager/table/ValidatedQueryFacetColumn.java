@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.manager.table;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.sagebionetworks.repo.model.search.Facet;
 import org.sagebionetworks.repo.model.table.FacetRange;
 import org.sagebionetworks.repo.model.table.FacetType;
 
@@ -44,7 +43,7 @@ public class ValidatedQueryFacetColumn {
 	}
 	
 	//returns null if no search conditions are applied
-	public String getValuesSearchConditionString(){
+	public String getSearchConditionString(){
 		return valuesSearchConditionString;
 	}
 	
