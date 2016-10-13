@@ -1,0 +1,12 @@
+{	
+	"description":"Selected minimum and maximum values for a range type facet",
+
+	"properties":{
+		"min": {
+			"type":"string"
+		},
+		"max":{
+			"type":"string"
+		}
+	}
+}

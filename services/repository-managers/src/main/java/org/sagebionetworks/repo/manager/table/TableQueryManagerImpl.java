@@ -23,7 +23,7 @@ import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.EntityField;
-import org.sagebionetworks.repo.model.table.FacetColumn;
+import org.sagebionetworks.repo.model.table.QueryFacetResultColumn;
 import org.sagebionetworks.repo.model.table.FacetValue;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
@@ -302,11 +302,11 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		
 		//run the facet counts
 		if(!queryFacetColumns.isEmpty()){
-			List<FacetColumn> facetResults = new ArrayList<>();
+			List<QueryFacetResultColumn> facetResults = new ArrayList<>();
 			for(ValidatedQueryFacetColumn facetQuery : queryFacetColumns){
 				//TODO: finish porcessing facets
 				if(facetQuery.returnFacetCounts()){
-					FacetColumn facetColumnResult = runFacetColumnCountQuery(query, facetQuery.getColumnName(), queryFacetColumns, indexDao);
+					QueryFacetResultColumn facetColumnResult = runFacetColumnCountQuery(query, facetQuery.getColumnName(), queryFacetColumns, indexDao);
 				
 					facetResults.add(facetColumnResult);
 				}
@@ -645,13 +645,13 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	/**
 	 * Run a query that creates facet counts for its most frequent values in the specified column based on the original query.
 	 */
-	public FacetColumn runFacetColumnCountQuery(SqlQuery originalQuery, String columnName, List<ValidatedQueryFacetColumn> facetColumns ,TableIndexDAO indexDao){
+	public QueryFacetResultColumn runFacetColumnCountQuery(SqlQuery originalQuery, String columnName, List<ValidatedQueryFacetColumn> facetColumns ,TableIndexDAO indexDao){
 		//TODO: test
 		try{
 			String facetColumnSql = SqlElementUntils.createFilteredFacetCountSqlString(columnName, originalQuery.getTransformedModel(), SqlElementUntils.createSearchCondition(concatFacetSearchConditionStrings(facetColumns, columnName)));
 			
 			List<FacetValue> facetValues  = indexDao.facetCountQuery(facetColumnSql, originalQuery.getParameters());
-			FacetColumn facetColumn = new FacetColumn();
+			QueryFacetResultColumn facetColumn = new QueryFacetResultColumn();
 			facetColumn.setColumnId(columnName);
 			facetColumn.setFacetValues(facetValues);
 			return facetColumn;
@@ -801,33 +801,32 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @return
 	 */
 	public static List<ValidatedQueryFacetColumn> validateFacetList(List<QueryRequestFacetColumn> selectedFacets, List<ColumnModel> schema){
-		Map<String, ColumnModel> facetedColumnNamesMap = getColumnIdToSchemaMap(schema);
 		
 		List<ValidatedQueryFacetColumn> validatedFacets = new ArrayList<ValidatedQueryFacetColumn>();
 		//create the SearchConditions based on each facet column's values and store them into facetSearchConditionStrings
-		for(QueryRequestFacetColumn selectedFacet : selectedFacets){
-			ColumnModel columnModel = facetedColumnNamesMap.get(selectedFacet.getColumnId());
+		for(ColumnModel columnModel : schema){
 			//add to list of facets
 			if(columnModel == null){
 				throw new IllegalArgumentException("Requested facet was not found in the schema");
 			}
-			validatedFacets.add(new ValidatedQueryFacetColumn(selectedFacet.getColumnId(), columnModel.getName(), selectedFacet.getFacetValues(), columnModel.getIsFaceted()));
+			
+			validatedFacets.add(new ValidatedQueryFacetColumn(selectedFacet.getColumnId(), columnModel.getName(), selectedFacet.getFacetValues(), columnModel.getFacetType()));
 		}
 		return validatedFacets;
 	}
 	
-	/**
-	 * Returns a Map where the key is the ID of a column and the value is the name of the column
-	 * @return
-	 */
-	private static Map<String, ColumnModel> getColumnIdToSchemaMap(List<ColumnModel> columnModels){
-		//TODO: test
-		Map<String, ColumnModel> result = new HashMap<String, ColumnModel>();
-		for(ColumnModel cm : columnModels){
-			result.put(cm.getId(), cm);
-		}
-		return result;
-	}
+//	/**
+//	 * Returns a Map where the key is the ID of a column and the value is the name of the column
+//	 * @return
+//	 */
+//	private static Map<String, ColumnModel> getColumnIdToSchemaMap(List<ColumnModel> columnModels){
+//		//TODO: test
+//		Map<String, ColumnModel> result = new HashMap<String, ColumnModel>();
+//		for(ColumnModel cm : columnModels){
+//			result.put(cm.getId(), cm);
+//		}
+//		return result;
+//	}
 	
 	
 	SqlQuery appendSearchCondition(SqlQuery query, List<ValidatedQueryFacetColumn> facetColumns){

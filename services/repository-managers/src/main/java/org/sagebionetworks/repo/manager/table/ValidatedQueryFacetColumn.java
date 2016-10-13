@@ -3,27 +3,37 @@ package org.sagebionetworks.repo.manager.table;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.sagebionetworks.repo.model.search.Facet;
+import org.sagebionetworks.repo.model.table.FacetRange;
+import org.sagebionetworks.repo.model.table.FacetType;
+
 /**
  * An immutable class representing requested facet columns that have been verified against its schema
  * @author zdong
  *
  */
 public class ValidatedQueryFacetColumn {
-	private String columnId;
 	private String columnName;
 	private Set<String> columnValues;
-	private boolean returnFacetCounts;
+	private FacetRange facetRange;
+	private FacetType facetType;
 	private String valuesSearchConditionString;
 	
-	public ValidatedQueryFacetColumn(String columnId, String columnName, Set<String> columnValues, boolean returnFacetCounts){
-		this.columnId = columnId;
+	/**
+	 * Constructor.
+	 * @param columnName
+	 * @param columnValues
+	 * @param facetRange 
+	 * @param facetType
+	 */
+	public ValidatedQueryFacetColumn(String columnName, FacetType facetType, Set<String> columnValues, FacetRange facetRange){
 		this.columnName = columnName;
 		this.columnValues = new HashSet<>(columnValues);
-		this.returnFacetCounts = returnFacetCounts;
-		
-		this.valuesSearchConditionString = createSearchConditionString(columnValues);
-		
+		this.facetRange = facetRange;
+		this.facetType = facetType;
+		this.valuesSearchConditionString = createSearchConditionString();
 	}
+	
 
 	public Set<String> getColumnValues() {
 		return new HashSet<>(columnValues);
@@ -32,20 +42,66 @@ public class ValidatedQueryFacetColumn {
 	public String getColumnName() {
 		return columnName;
 	}
-
-	public String getColumnId() {
-		return columnId;
-	}
 	
+	//returns null if no search conditions are applied
 	public String getValuesSearchConditionString(){
 		return valuesSearchConditionString;
 	}
 	
-	public boolean returnFacetCounts(){
-		return returnFacetCounts;
+	public FacetType getFacetType(){
+		return facetType;
 	}
 	
-	private String createSearchConditionString(Set<String> values){
+	public FacetRange getFacetRange(){
+		return facetRange;
+	}
+	
+	private String createSearchConditionString(){
+		switch (this.facetType){
+		case enumeration:
+			return createEnumerationSearchCondition(this.columnValues);
+		case range:
+			return createRangeSearchCondition(this.facetRange);
+		default:
+			throw new IllegalArgumentException("Unexpected facetType");
+		}
+		
+	}
+	
+	private String createRangeSearchCondition(FacetRange facetRange){
+		if(facetRange == null || ( (facetRange.getMin() == null || facetRange.getMin().equals(""))
+									&& (facetRange.getMax() == null || facetRange.getMax().equals("")) ) ){
+			return null;
+		}
+		String min = facetRange.getMin();
+		String max = facetRange.getMax();
+		
+		StringBuilder builder = new StringBuilder("(");
+		
+		//at this point we know at least one value is not null and is not empty string
+		builder.append(this.columnName);
+		if(min == null){ //only max exists
+			builder.append(" <= ");
+			builder.append(max);
+		}else if (max == null){ //only min exists
+			builder.append(" >= ");
+			builder.append(min);
+		}else{
+			builder.append(" BETWEEN ");
+			builder.append(min);
+			builder.append(" AND ");
+			builder.append(max);
+		}
+		
+		builder.append(")");
+		return builder.toString();
+	}
+	
+	private String createEnumerationSearchCondition(Set<String> values){
+		if(values == null || values.isEmpty()){
+			return null;
+		}
+		
 		//TODO: change if using predicates instead of values
 		StringBuilder builder = new StringBuilder("(");
 		int initialSize = builder.length();

@@ -1,0 +1,27 @@
+{
+	"description":"A facet column containing frequency counts of its most frequent values",
+	
+    "properties":{
+		"columnName":{
+			"type": "string",
+			"description":"The name of the faceted column"
+		},
+		
+		"facetType": {
+			"description": "The type of faceting applied to this column",
+			"$ref":"org.sagebionetworks.repo.model.table.FacetType"
+		},
+		
+		"facetValues": {
+			"description":"The list of QueryFacetResultValue that contain frequency counts for its most frequent values ",
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.table.QueryFacetResultValue"
+			}
+		},
+		"facetRange": {
+			"description":"The range that was given as part of the column's facet request, if any",
+			"$ref": "org.sagebionetworks.repo.model.table.FacetRange"
+		}
+	}
+}

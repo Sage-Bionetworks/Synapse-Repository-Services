@@ -42,9 +42,9 @@
 				"type": "string"
 			}
 		},
-		"isFaceted": {
-			"description": "A column that is faceted will index the counts of its top 100 values",
-			"type": "boolean"
+		"facetType": {
+			"description": "The type of faceting applied to this column",
+			"$ref":"org.sagebionetworks.repo.model.table.FacetType"
 		}
 		
     }

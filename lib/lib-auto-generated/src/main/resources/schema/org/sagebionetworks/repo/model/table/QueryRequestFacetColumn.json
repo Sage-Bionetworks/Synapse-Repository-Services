@@ -2,9 +2,13 @@
 	"description":"A set of values that have been selected for filtering in a faceted column",
 	
     "properties":{
-		"columnId":{
+		"columnName":{
 			"type": "string",
-			"description":"The ID of the faceted column",
+			"description":"The name of the faceted column"
+		},
+		"facetPredicateType": {
+			"description": "type of facet predicate operation to perform",
+			"$ref": "org.sagebionetworks.repo.model.table.QueryRequestFacetPredicateType"
 		},
 		"facetValues": {
 		    "description":"The set of facet values that were selected",
@@ -13,6 +17,10 @@
 			"items": {
 				"type": "string"
 			}
+		},
+		"facetRange": {
+			"description":"The range of facet values that were selected",
+			"$ref": "org.sagebionetworks.repo.model.table.FacetRange"
 		}
     }
 }
