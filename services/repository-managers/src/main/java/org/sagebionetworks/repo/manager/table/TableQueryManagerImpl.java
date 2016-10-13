@@ -161,7 +161,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @throws TableLockUnavailableException
 	 */
 	QueryResultBundle queryAsStream(final ProgressCallback<Void> progressCallback,
-			final UserInfo user, final SqlQuery query, final List<QueryRequestFacetColumn> selectedFacets,
+			final UserInfo user, final SqlQuery query, final List<ValidatedQueryFacetColumn> selectedFacets,
 			final RowHandler rowHandler,final  boolean runCount, final boolean isConsistent)
 			throws DatastoreException, NotFoundException,
 			TableUnavailableException, TableFailedException, LockUnavilableException, EmptyResultException {		
@@ -833,56 +833,30 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	}
 	
 	
-	SqlQuery appendSearchCondition(SqlQuery query, List<ValidatedQueryFacetColumn> facetColumns){
-		/**
-		 * 			QuerySpecification modelCopy = new TableQueryParser(originalQuery.getModel().toSql()).querySpecification();
-			WhereClause where = originalQuery.getModel().getTableExpression().getWhereClause();
-			StringBuilder filterBuilder = new StringBuilder();
-			filterBuilder.append("WHERE ");
-			if(where != null){
-				filterBuilder.append("(");
-				filterBuilder.append(where.getSearchCondition().toSql());
-				filterBuilder.append(") AND ");
+	SqlQuery appendFacetSearchCondition(SqlQuery query, List<ValidatedQueryFacetColumn> facetColumns){
+		ValidateArgument.required(query, "query");
+		ValidateArgument.required(facetColumns, "facetColumns");
+		ValidateArgument.requirement(!facetColumns.isEmpty(), "No need to append if facetColumns is empty.");
+		try{
+			QuerySpecification modelCopy = new TableQueryParser(query.getModel().toSql()).querySpecification();
+			WhereClause originalWhereClause = query.getModel().getTableExpression().getWhereClause();
+			
+			String facetSearchConditionString = concatFacetSearchConditionStrings(facetColumns, null);
+			StringBuilder builder = new StringBuilder("WHERE ");
+			if(originalWhereClause != null){
+				builder.append("(");
+				builder.append(originalWhereClause.getSearchCondition().toSql());
+				builder.append(") AND ");
 			}
-			filterBuilder.append(SQLUtils.getColumnNameForId(benefactorColumnId));
-			filterBuilder.append(" IN (");
-			boolean isFirst = true;
-			for(Long id: accessibleBenefactors){
-				if(!isFirst){
-					filterBuilder.append(",");
-				}
-				filterBuilder.append(id);
-				isFirst = false;
-			}
-			filterBuilder.append(")");
+			builder.append(facetSearchConditionString);
 			// create the new where
-			where = new TableQueryParser(filterBuilder.toString()).whereClause();
-			modelCopy.getTableExpression().replaceWhere(where);
+			WhereClause newWhereClause = new TableQueryParser(builder.toString()).whereClause();
+			modelCopy.getTableExpression().replaceWhere(newWhereClause);
 			// return a copy
-			return new SqlQuery(modelCopy, originalQuery);
-		 */
-		
-		
-		QuerySpecification originalQuerySpecification = query.getModel();
-		TableExpression originalTableExpression = originalQuerySpecification.getTableExpression();
-		WhereClause queryWhereClause = originalTableExpression.getWhereClause();
-		SearchCondition querySearchCondition = queryWhereClause.getSearchCondition();
-
-		String searchcondition = concatFacetSearchConditionStrings(facetColumns, null);
-		
-		try {
-			SearchCondition searchConditionWithFacet = SqlElementUntils.createSearchCondition(searchcondition);
-			WhereClause modifiedWhereClause = new WhereClause(searchConditionWithFacet);
-			TableExpression modifiedTableExpression = new TableExpression(originalTableExpression.getFromClause(), modifiedWhereClause, originalTableExpression.getGroupByClause(),
-					originalTableExpression.getOrderByClause(), originalTableExpression.getPagination());
-			QuerySpecification modifiedQuerySpecification = new QuerySpecification(originalQuerySpecification.getSqlDirective(), originalQuerySpecification.getSetQuantifier(), originalQuerySpecification.getSelectList(), modifiedTableExpression);
-			//return new SqlQuery(modifiedQuerySpecification, query.getTableSchema(), query.get, overrideLimit, maxBytesPerPage)
-		} catch (ParseException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			return new SqlQuery(modelCopy, query);
+		}catch (ParseException e){
+			throw new RuntimeException(e);
 		}
-			//TODO: modify where clause somehow???/ perhaps add facetconditions to SearchQuery similar to offset and limit?
-		
 		
 	}
 	
@@ -891,7 +865,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * e.g. ["(col1 = 1 OR col1 = b)", "(col2 = c OR col2 = d)"] => "( (col1 = 1 OR col1 = b) AND (col2 = c OR col2 = d) )"
 	 * @param facetSearchConditionStrings list of search conditions that are wrapped by parenthesis e.g. "(col1 = a OR col1 = b)"
 	 * @param columNameToIgnore the name of the column to exclude from the concatenation
-	 * @return
+	 * @return the concatenated string or null if there was nothing to concatenate
 	 */
 	private static String concatFacetSearchConditionStrings(List<ValidatedQueryFacetColumn> facetColumns, String columNameToIgnore){
 		//TODO: test
@@ -909,6 +883,11 @@ public class TableQueryManagerImpl implements TableQueryManager {
 				}
 			}
 		}
+		if(builder.length() == initialSize){ //edge case where nothing got concatenated together
+			return null;
+		}
+		
+		builder.append(")");
 		return builder.toString();
 	}
 	
