@@ -674,8 +674,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	public void processUserCancelRequest(UserInfo userInfo, String submissionId) {
 		UserInfo.validateUserInfo(userInfo);
 		ValidateArgument.required(submissionId, "submissionId");
-		Submission submission = submissionDAO.get(submissionId);
-		if (!submission.getUserId().equals(userInfo.getId().toString())) {
+		if (!submissionDAO.getCreatedBy(submissionId).equals(userInfo.getId().toString())) {
 			throw new UnauthorizedException(ONLY_SUBMITTER_REASON);
 		}
 		SubmissionStatus status = submissionStatusDAO.get(submissionId);

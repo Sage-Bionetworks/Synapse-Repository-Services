@@ -747,4 +747,20 @@ public class SubmissionDAOImplTest {
        	assertEquals(false, submissionDAO.hasContributedToTeamSubmission(Long.parseLong(evalId), 
     			Long.parseLong(userId), startDateIncl, endDateExcl, statuses));
     }
+
+    @Test(expected=IllegalArgumentException.class)
+    public void testGetCreatedByWithNullSubId(){
+    	submissionDAO.getCreatedBy(null);
+    }
+
+    @Test(expected=NotFoundException.class)
+    public void testGetCreatedByWithNotExistingSubmission(){
+    	submissionDAO.getCreatedBy(submission.getId());
+    }
+
+    @Test
+    public void testGetCreatedBy(){
+        String returnedId = submissionDAO.create(submission);
+    	assertEquals(userId, submissionDAO.getCreatedBy(returnedId));
+    }
 }

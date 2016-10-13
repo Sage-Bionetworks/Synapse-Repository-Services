@@ -891,6 +891,7 @@ public class SubmissionManagerTest {
 
 	@Test (expected=UnauthorizedException.class)
 	public void testProcessCancelRequestWithUnauthorizedUser() {
+		when(mockSubmissionDAO.getCreatedBy(subWithId.getId())).thenReturn(USER_ID);
 		UserInfo unauthorizedUser = new UserInfo(false);
 		unauthorizedUser.setId(Long.parseLong(USER_ID+1));
 		submissionManager.processUserCancelRequest(unauthorizedUser, subWithId.getId());
@@ -898,6 +899,7 @@ public class SubmissionManagerTest {
 
 	@Test (expected=UnauthorizedException.class)
 	public void testProcessCancelRequestWithAuthorizedUserNonCancellable() {
+		when(mockSubmissionDAO.getCreatedBy(subWithId.getId())).thenReturn(USER_ID);
 		UserInfo authorizedUser = new UserInfo(false);
 		authorizedUser.setId(Long.parseLong(USER_ID));
 		submissionManager.processUserCancelRequest(authorizedUser, subWithId.getId());
@@ -905,11 +907,12 @@ public class SubmissionManagerTest {
 
 	@Test
 	public void testProcessCancelRequestWithAuthorizedUserCancellable() {
+		when(mockSubmissionDAO.getCreatedBy(subWithId.getId())).thenReturn(USER_ID);
 		subStatus.setCanCancel(true);
 		UserInfo authorizedUser = new UserInfo(false);
 		authorizedUser.setId(Long.parseLong(USER_ID));
 		submissionManager.processUserCancelRequest(authorizedUser, subWithId.getId());
-		verify(mockSubmissionDAO).get(subWithId.getId());
+		verify(mockSubmissionDAO).getCreatedBy(subWithId.getId());
 		verify(mockSubmissionStatusDAO).get(subWithId.getId());
 		subStatus.setCancelRequested(true);
 		verify(mockSubmissionStatusDAO).update(Arrays.asList(subStatus));
