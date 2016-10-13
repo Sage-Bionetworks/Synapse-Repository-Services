@@ -1203,7 +1203,8 @@ public class EvaluationController extends BaseController {
 	 * <br/>
 	 * The fields userId, name, createdOn, submitterAlias, repositoryName and dockerDigest are private.
 	 * <br/>
-	 * The fields objectId, scopeId, entityId, versionNumber, modifiedOn, and status are public.
+	 * The fields objectId, scopeId, entityId, versionNumber, modifiedOn, status, canCancel, cancelRequested, 
+	 * and <a href="${org.sagebionetworks.evaluation.model.CancelControl}">CancelControl</a> are public.
 	 * <p/>
 	 * The query is to be URL encoded in the submitted request.
 	 * 
