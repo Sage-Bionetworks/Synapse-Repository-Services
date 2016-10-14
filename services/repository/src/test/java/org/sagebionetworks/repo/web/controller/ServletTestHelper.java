@@ -1532,7 +1532,7 @@ public class ServletTestHelper {
 
 	public TableFileHandleResults getTableFileHandles(DispatcherServlet instance, RowReferenceSet row, Long userId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.POST, UrlHelpers.ENTITY + "/" + row.getTableId()
-				+ UrlHelpers.TABLE + UrlHelpers.FILE_HANDLE, userId, row);
+				+ UrlHelpers.TABLE + UrlHelpers.FILE_HANDLES, userId, row);
 		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(instance, request, HttpStatus.OK);
 		TableFileHandleResults tfhr = ServletTestHelperUtils.readResponse(response, TableFileHandleResults.class);
 		return tfhr;

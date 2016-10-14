@@ -23,6 +23,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.principal.SynapseEmailService;
 import org.sagebionetworks.repo.manager.team.MembershipRequestManager;
@@ -136,6 +138,9 @@ public class MessageManagerImplTest {
 	
 	@Autowired
 	private NodeDAO nodeDAO;
+
+	@Autowired
+	private IdGenerator idGenerator;
 	
 
 	private static final MessageSortBy SORT_ORDER = MessageSortBy.SEND_DATE;
@@ -270,8 +275,8 @@ public class MessageManagerImplTest {
 		// Also, it doesn't matter who the handle is tied to
 		final String testUserId = testUser.getId().toString();
 		{
-			S3FileHandle handle = TestUtils.createS3FileHandle(testUserId);
-			handle = fileDAO.createFile(handle);
+			S3FileHandle handle = TestUtils.createS3FileHandle(testUserId, idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+			handle = (S3FileHandle) fileDAO.createFile(handle);
 			this.fileHandleId = handle.getId();
 			when(mockFileHandleManager.createCompressedFileFromString(eq(testUserId), any(Date.class), anyString())).thenReturn(handle);
 			when(mockFileHandleManager.downloadFileToString(fileHandleId)).thenReturn("some message body");
@@ -279,8 +284,8 @@ public class MessageManagerImplTest {
 		
 		{
 			String tmsUserId = trustedMessageSender.getId().toString();
-			S3FileHandle handle = TestUtils.createS3FileHandle(tmsUserId);
-			handle = fileDAO.createFile(handle);
+			S3FileHandle handle = TestUtils.createS3FileHandle(tmsUserId, idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+			handle = (S3FileHandle) fileDAO.createFile(handle);
 			this.tmsFileHandleId = handle.getId();
 			when(mockFileHandleManager.
 					createCompressedFileFromString(eq(tmsUserId), any(Date.class), anyString())).thenReturn(handle);

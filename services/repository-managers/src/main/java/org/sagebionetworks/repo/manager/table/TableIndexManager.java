@@ -105,6 +105,16 @@ public interface TableIndexManager {
 	public void setIndexSchema(ProgressCallback<Void> progressCallback, List<ColumnModel> currentSchema);
 	
 	/**
+	 * Set the current schema of the table's index with the option to keep columns that are missing.
+	 * 
+	 * @param progressCallback
+	 * @param newSchema
+	 * @param removeMissingColumns
+	 */
+	void setIndexSchema(ProgressCallback<Void> progressCallback,
+			List<ColumnModel> newSchema, boolean removeMissingColumns);
+	
+	/**
 	 * 
 	 * @param currentSchema
 	 */

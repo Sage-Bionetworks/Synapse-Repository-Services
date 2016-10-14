@@ -18,6 +18,8 @@ import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.EntityPermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -94,6 +96,8 @@ public class TableViewIntegrationTest {
 	ConnectionFactory tableConnectionFactory;
 	@Autowired
 	AsynchJobStatusManager asynchJobStatusManager;
+	@Autowired
+	private IdGenerator idGenerator;
 	
 	ProgressCallback<Void> mockProgressCallbackVoid;
 	
@@ -136,8 +140,10 @@ public class TableViewIntegrationTest {
 		sharedHandle.setCreatedOn(new Date(System.currentTimeMillis()));
 		sharedHandle.setEtag(UUID.randomUUID().toString());
 		sharedHandle.setFileName("foo.txt");
-		boolean shouldPreviewBeGenerated = false;
-		sharedHandle = fileHandleDao.createFile(sharedHandle, shouldPreviewBeGenerated);
+		sharedHandle.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		sharedHandle.setEtag(UUID.randomUUID().toString());
+		sharedHandle.setPreviewId(sharedHandle.getId());
+		sharedHandle = (S3FileHandle) fileHandleDao.createFile(sharedHandle);
 		
 		entitiesToDelete = new LinkedList<String>();
 		

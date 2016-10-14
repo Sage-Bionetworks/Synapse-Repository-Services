@@ -9,13 +9,15 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.CommentDAO;
 import org.sagebionetworks.repo.model.MessageDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
-import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.message.Comment;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -36,6 +38,9 @@ public class DBOCommentDAOImplTest {
 	
 	@Autowired
 	private FileHandleDao fileDAO;
+
+	@Autowired
+	private IdGenerator idGenerator;
 	
 	private String fileHandleId;	
 	private UserGroup maliciousUser;
@@ -53,7 +58,7 @@ public class DBOCommentDAOImplTest {
 		// We need a file handle to satisfy a foreign key constraint
 		// But it doesn't need to point to an actual file
 		// Also, it doesn't matter who the handle is tied to
-		S3FileHandle handle = TestUtils.createS3FileHandle(maliciousUser.getId());
+		FileHandle handle = TestUtils.createS3FileHandle(maliciousUser.getId(), idGenerator.generateNewId(TYPE.FILE_IDS).toString());
 		handle = fileDAO.createFile(handle);
 		fileHandleId = handle.getId();
 	}

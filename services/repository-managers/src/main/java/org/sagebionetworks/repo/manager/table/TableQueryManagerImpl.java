@@ -114,7 +114,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			// parser the query
 			SqlQuery sqlQuery = createQuery(query, sortList, offset, limit, this.maxBytesPerRequest);
 			
-			List<ValidatedQueryFacetColumn> validatedFacets = validateFacetList(selectedFacets, sqlQuery.getTableSchema());
+			List<ValidatedQueryFacetColumn> validatedFacets = validateFacetList(selectedFacets, sqlQuery.getTableSchema(), returnFacets);
 			
 			// run the query as a stream.
 			QueryResultBundle bundle = queryAsStream(progressCallback, user, sqlQuery, validatedFacets, rowHandler,runCount, returnFacets, isConsistent);
@@ -806,64 +806,91 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * the schema
 	 * @return
 	 */
-	public static List<ValidatedQueryFacetColumn> validateFacetList(List<QueryRequestFacetColumn> selectedFacets, List<ColumnModel> schema){
-		
+	public static List<ValidatedQueryFacetColumn> validateFacetList(List<QueryRequestFacetColumn> selectedFacets, List<ColumnModel> schema, boolean returnFacets){
 		Map<String, QueryRequestFacetColumn> selectedFacetMap = createColumnNameToFacetColumnMap(selectedFacets);
 		List<ValidatedQueryFacetColumn> validatedFacets = new ArrayList<ValidatedQueryFacetColumn>();
 		//create the SearchConditions based on each facet column's values and store them into facetSearchConditionStrings
 		for(ColumnModel columnModel : schema){
 			//add to list of facets
-			if (FacetType.enumeration.equals(columnModel.getFacetType()) || FacetType.range.equals(columnModel.getFacetType())){//if it is a facet add it to the list
-				QueryRequestFacetColumn facetParams = selectedFacetMap.get(columnModel.getName());
-				Set<String> facetValues = null;
-				FacetRange facetRange = null;
-				if(facetParams != null){
-					facetValues = facetParams.getFacetValues();
-					facetRange = facetParams.getFacetRange();
-				}
-				//TODO: currently silently fails if the wrong type of parameter is passed in (treated as no search conditions). throw IllegalArugmentExcpetion?
+			QueryRequestFacetColumn facetParams = selectedFacetMap.get(columnModel.getName());
+			determineAddToValidatedFacetList(validatedFacets, columnModel, facetParams, returnFacets);
+		}
+		return validatedFacets;
+	}
+
+	/**
+	 * Determines if a column should be added to the validatedFacets list based on the column's columnModel(aka schema)
+	 * and whether facet information will be later returned. 
+	 * @param validatedFacets List to append to.
+	 * @param columnModel schema information about the column
+	 * @param facetParams optional parameters that define facet filters to the column
+	 * @param returnFacets whether or not facet information will be returned to the caller
+	 */
+	public static void determineAddToValidatedFacetList(List<ValidatedQueryFacetColumn> validatedFacets,
+			ColumnModel columnModel, QueryRequestFacetColumn facetParams,
+			boolean returnFacets) {
+		ValidateArgument.required(columnModel, "columnModel");
+		ValidateArgument.required(validatedFacets, "validatedFacets");
+		
+		if (FacetType.enumeration.equals(columnModel.getFacetType()) || FacetType.range.equals(columnModel.getFacetType())){//if it is a facet add it to the list
+			Set<String> facetValues = null;
+			FacetRange facetRange = null;
+			if(facetParams != null){
+				facetValues = facetParams.getFacetValues();
+				facetRange = facetParams.getFacetRange();
+			}
+			//TODO: currently silently fails if the wrong type of parameter is passed in (treated as no search conditions). throw IllegalArugmentExcpetion?
+			if(returnFacets || facetParams != null){ //dont add to list if user does not want to return facets and there is no request associated with it
 				validatedFacets.add(new ValidatedQueryFacetColumn(columnModel.getName(), columnModel.getFacetType(), facetValues, facetRange));
 			}
 		}
-		return validatedFacets;
 	}
 	
 	/**
 	 * Returns a Map where the key is the name of a facet and the value is the corresponding QueryRequestFacetColumn
 	 * @return
 	 */
-	private static Map<String, QueryRequestFacetColumn> createColumnNameToFacetColumnMap(List<QueryRequestFacetColumn> selectedFacets){
+	public static Map<String, QueryRequestFacetColumn> createColumnNameToFacetColumnMap(List<QueryRequestFacetColumn> selectedFacets){
 		//TODO: test
 		Map<String, QueryRequestFacetColumn> result = new HashMap<String, QueryRequestFacetColumn>();
 		if(selectedFacets != null){
 			for(QueryRequestFacetColumn facet : selectedFacets){
-				result.put(facet.getColumnName(), facet);
+				QueryRequestFacetColumn shouldBeNull = result.put(facet.getColumnName(), facet);
+				if(shouldBeNull != null){
+					throw new IllegalArgumentException("Request contains QueryRequestFacetColumn with a duplicate column name");
+				}
 			}
 		}
 		return result;
 	}
 	
-	
-	SqlQuery appendFacetSearchCondition(SqlQuery query, List<ValidatedQueryFacetColumn> facetColumns){
+	/**
+	 * Returns a copy of the SqlQuery with searchConditions derived from the facetColums list appended to the query's WhereClause
+	 * @param query
+	 * @param facetColumns
+	 * @return
+	 */
+	public static SqlQuery appendFacetSearchCondition(SqlQuery query, List<ValidatedQueryFacetColumn> facetColumns){
 		//TODO: test
 		ValidateArgument.required(query, "query");
-		ValidateArgument.required(facetColumns, "facetColumns");
-		ValidateArgument.requirement(!facetColumns.isEmpty(), "No need to append if facetColumns is empty.");
+		
 		try{
 			QuerySpecification modelCopy = new TableQueryParser(query.getModel().toSql()).querySpecification();
-			WhereClause originalWhereClause = query.getModel().getTableExpression().getWhereClause();
-			
-			String facetSearchConditionString = concatFacetSearchConditionStrings(facetColumns, null);
-			StringBuilder builder = new StringBuilder("WHERE ");
-			if(originalWhereClause != null){
-				builder.append("(");
-				builder.append(originalWhereClause.getSearchCondition().toSql());
-				builder.append(") AND ");
+			if(facetColumns != null && !facetColumns.isEmpty()){
+				WhereClause originalWhereClause = query.getModel().getTableExpression().getWhereClause();
+				
+				String facetSearchConditionString = concatFacetSearchConditionStrings(facetColumns, null);
+				StringBuilder builder = new StringBuilder("WHERE ");
+				if(originalWhereClause != null){
+					builder.append("(");
+					builder.append(originalWhereClause.getSearchCondition().toSql());
+					builder.append(") AND ");
+				}
+				builder.append(facetSearchConditionString);
+				// create the new where
+				WhereClause newWhereClause = new TableQueryParser(builder.toString()).whereClause();
+				modelCopy.getTableExpression().replaceWhere(newWhereClause);
 			}
-			builder.append(facetSearchConditionString);
-			// create the new where
-			WhereClause newWhereClause = new TableQueryParser(builder.toString()).whereClause();
-			modelCopy.getTableExpression().replaceWhere(newWhereClause);
 			// return a copy
 			return new SqlQuery(modelCopy, query);
 		}catch (ParseException e){

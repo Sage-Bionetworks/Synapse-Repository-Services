@@ -27,47 +27,50 @@ public class ValidatedQueryFacetColumn {
 	 */
 	public ValidatedQueryFacetColumn(String columnName, FacetType facetType, Set<String> columnValues, FacetRange facetRange){
 		this.columnName = columnName;
-		this.columnValues = new HashSet<>(columnValues);
+		this.columnValues = (columnValues == null) ? null : new HashSet<>(columnValues);
 		this.facetRange = facetRange;
 		this.facetType = facetType;
 		this.valuesSearchConditionString = createSearchConditionString();
 	}
 	
-
+	/**
+	 * Returns a copy of the columnValues of this object or null if it does not have one
+	 * @return
+	 */
 	public Set<String> getColumnValues() {
-		return new HashSet<>(columnValues);
+		return (this.columnValues == null) ? null : new HashSet<>(this.columnValues);
 	}
 
 	public String getColumnName() {
-		return columnName;
+		return this.columnName;
 	}
 	
 	//returns null if no search conditions are applied
 	public String getSearchConditionString(){
-		return valuesSearchConditionString;
+		return this.valuesSearchConditionString;
 	}
 	
 	public FacetType getFacetType(){
-		return facetType;
+		return this.facetType;
 	}
 	
 	public FacetRange getFacetRange(){
-		return facetRange;
+		return this.facetRange;
 	}
 	
 	private String createSearchConditionString(){
 		switch (this.facetType){
 		case enumeration:
-			return createEnumerationSearchCondition(this.columnValues);
+			return createEnumerationSearchCondition(this.columnName, this.columnValues);
 		case range:
-			return createRangeSearchCondition(this.facetRange);
+			return createRangeSearchCondition(this.columnName, this.facetRange);
 		default:
 			throw new IllegalArgumentException("Unexpected FacetType");
 		}
 		
 	}
 	
-	private String createRangeSearchCondition(FacetRange facetRange){
+	private static String createRangeSearchCondition(String columnName, FacetRange facetRange){
 		if(facetRange == null || ( (facetRange.getMin() == null || facetRange.getMin().equals(""))
 									&& (facetRange.getMax() == null || facetRange.getMax().equals("")) ) ){
 			return null;
@@ -78,7 +81,7 @@ public class ValidatedQueryFacetColumn {
 		StringBuilder builder = new StringBuilder("(");
 		
 		//at this point we know at least one value is not null and is not empty string
-		builder.append(this.columnName);
+		builder.append(columnName);
 		if(min == null){ //only max exists
 			builder.append(" <= ");
 			builder.append(max);
@@ -96,7 +99,7 @@ public class ValidatedQueryFacetColumn {
 		return builder.toString();
 	}
 	
-	private String createEnumerationSearchCondition(Set<String> values){
+	private static String createEnumerationSearchCondition(String columnName, Set<String> values){
 		if(values == null || values.isEmpty()){
 			return null;
 		}

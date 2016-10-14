@@ -18,6 +18,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -28,6 +30,7 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -53,6 +56,9 @@ public class EntityServiceImplAutowiredTestNew extends AbstractAutowiredControll
 	
 	@Autowired
 	private ColumnModelManager columnModelManager;
+
+	@Autowired
+	private IdGenerator idGenerator;
 	
 	private Project project;
 	private List<String> toDelete;
@@ -82,21 +88,38 @@ public class EntityServiceImplAutowiredTestNew extends AbstractAutowiredControll
 		toDelete.add(project.getId());
 		
 		// Create some file handles
-		S3FileHandle handle = new S3FileHandle();
-		handle.setBucketName("bucket");
-		handle.setKey("key");
-		handle.setCreatedBy(adminUserInfo.getId().toString());
-		handle.setCreatedOn(new Date());
-		handle.setContentSize(123l);
-		handle.setConcreteType("text/plain");
-		handle.setEtag("etag");
-		handle.setFileName("foo.bar");
-		handle.setContentMd5("md5");
+		fileHandle1 = new S3FileHandle();
+		fileHandle1.setBucketName("bucket");
+		fileHandle1.setKey("key");
+		fileHandle1.setCreatedBy(adminUserInfo.getId().toString());
+		fileHandle1.setCreatedOn(new Date());
+		fileHandle1.setContentSize(123l);
+		fileHandle1.setConcreteType("text/plain");
+		fileHandle1.setEtag("etag");
+		fileHandle1.setFileName("foo.bar");
+		fileHandle1.setContentMd5("md5");
+		fileHandle1.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		fileHandle1.setEtag(UUID.randomUUID().toString());
 		
-		fileHandle1 = fileHandleDao.createFile(handle);
-		handle.setKey("key2");
-		handle.setFileName("two.txt");
-		fileHandle2 = fileHandleDao.createFile(handle);
+		fileHandle2 = new S3FileHandle();
+		fileHandle2.setBucketName("bucket");
+		fileHandle2.setKey("key2");
+		fileHandle2.setCreatedBy(adminUserInfo.getId().toString());
+		fileHandle2.setCreatedOn(new Date());
+		fileHandle2.setContentSize(123l);
+		fileHandle2.setConcreteType("text/plain");
+		fileHandle2.setEtag("etag");
+		fileHandle2.setFileName("two.txt");
+		fileHandle2.setContentMd5("md5");
+		fileHandle2.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		fileHandle2.setEtag(UUID.randomUUID().toString());
+
+		List<FileHandle> fileHandleToCreate = new LinkedList<FileHandle>();
+		fileHandleToCreate.add(fileHandle1);
+		fileHandleToCreate.add(fileHandle2);
+		fileHandleDao.createBatch(fileHandleToCreate);
+		fileHandle1 = (S3FileHandle) fileHandleDao.get(fileHandle1.getId());
+		fileHandle2 = (S3FileHandle) fileHandleDao.get(fileHandle2.getId());
 		
 		column = new ColumnModel();
 		column.setColumnType(ColumnType.INTEGER);

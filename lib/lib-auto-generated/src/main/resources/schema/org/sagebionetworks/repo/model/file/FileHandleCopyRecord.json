@@ -1,0 +1,17 @@
+{
+	"description": "Captures data related to copying a FileHandle.",
+	"properties": {
+		"userId": {
+			"description": "The ID of the user that makes FileHandle copy request.",
+			"type": "string"
+		},
+		"originalFileHandle": {
+			"description": "Data about the FileHandle that was copied.",
+			"$ref": "org.sagebionetworks.repo.model.file.FileHandleAssociation"
+		},
+		"newFileHandleId": {
+			"description": "The ID of the new FileHandle.",
+			"type": "string"
+		}
+	}
+}

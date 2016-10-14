@@ -26,6 +26,7 @@
 				<ref bean="accessRecorderTrigger" />
 				<ref bean="messagePublisherTrigger" />
 				<ref bean="throttleRulesCacheTrigger" />
+				<ref bean="objectRecordQueueTrigger" />
 			</list>
 		</property>
 	</bean>

@@ -23,11 +23,15 @@ import static org.sagebionetworks.repo.manager.table.TableQueryManagerImpl.BUNDL
 import static org.sagebionetworks.repo.manager.table.TableQueryManagerImpl.BUNDLE_MASK_QUERY_RESULTS;
 import static org.sagebionetworks.repo.manager.table.TableQueryManagerImpl.BUNDLE_MASK_QUERY_SELECT_COLUMNS;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -38,6 +42,7 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
+import org.sagebionetworks.database.semaphore.Sql;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -47,9 +52,13 @@ import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.EntityField;
+import org.sagebionetworks.repo.model.table.FacetRange;
+import org.sagebionetworks.repo.model.table.FacetType;
+import org.sagebionetworks.repo.model.table.FacetValue;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
 import org.sagebionetworks.repo.model.table.QueryNextPageToken;
+import org.sagebionetworks.repo.model.table.QueryRequestFacetColumn;
 import org.sagebionetworks.repo.model.table.QueryResult;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
@@ -104,6 +113,11 @@ public class TableQueryManagerImplTest {
 	List<SortItem> sortList;
 	SqlQuery capturedQuery;
 	
+	List<ValidatedQueryFacetColumn> validatedQueryFacetColumns;
+	
+	String facetColumnName;
+	ColumnModel facetColumnModel;
+	List<ColumnModel> facetSchema;
 	
 	@Before
 	public void before() throws Exception {
@@ -198,6 +212,13 @@ public class TableQueryManagerImplTest {
 		HashSet<Long> subSet = Sets.newHashSet(444L);
 		when(mockTableIndexDAO.getDistinctLongValues(tableId, benefactorColumn.getId())).thenReturn(benfactors);
 		when(mockTableManagerSupport.getAccessibleBenefactors(user, benfactors)).thenReturn(subSet);
+		
+		//facet setup
+		validatedQueryFacetColumns = new ArrayList<>();
+		facetColumnModel = new ColumnModel();
+		facetColumnModel.setName(facetColumnName);
+		facetSchema = new ArrayList<>();
+		facetSchema.add(facetColumnModel);
 	}
 
 	@Test (expected = UnauthorizedException.class)
@@ -1060,4 +1081,144 @@ public class TableQueryManagerImplTest {
 		assertNotNull(result);
 		assertEquals("SELECT i0 FROM syn123 WHERE _C999_ IN ( 444 )", result.getModel().toSql());
 	}
+	
+	/////////////////////////////////////////////
+	// createColumnNameToFacetColumnMap() Tests
+	/////////////////////////////////////////////
+	
+	@Test
+	public void testCreateColumnNameToFacetColumnMapNullList(){
+		Map<String, QueryRequestFacetColumn> map = TableQueryManagerImpl.createColumnNameToFacetColumnMap(null);
+		assertNotNull(map);
+		assertEquals(0, map.size());
+	}
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void testCreateColumnNameToFacetColumnMapDuplicateName(){
+		//setup
+		QueryRequestFacetColumn facetRequest1 = new QueryRequestFacetColumn();
+		String sameName = "asdf";
+		facetRequest1.setColumnName(sameName);
+		QueryRequestFacetColumn facetRequest2 = new QueryRequestFacetColumn();
+		facetRequest2.setColumnName(sameName);
+		
+		TableQueryManagerImpl.createColumnNameToFacetColumnMap(Arrays.asList(new QueryRequestFacetColumn[]{facetRequest1, facetRequest2}));
+	}
+	
+	@Test 
+	public void testCreateColumnNameToFacetColumnMap(){
+		//setup
+		QueryRequestFacetColumn facetRequest1 = new QueryRequestFacetColumn();
+		String name1 = "asdf";
+		facetRequest1.setColumnName(name1);
+
+		QueryRequestFacetColumn facetRequest2 = new QueryRequestFacetColumn();
+		String name2 = "qwerty";
+		facetRequest2.setColumnName(name2);
+		
+		Map<String, QueryRequestFacetColumn> map = TableQueryManagerImpl.createColumnNameToFacetColumnMap(Arrays.asList(new QueryRequestFacetColumn[]{facetRequest1, facetRequest2}));
+		assertNotNull(map);
+		assertEquals(2, map.size());
+		assertEquals(facetRequest1, map.get(name1));
+		assertEquals(facetRequest2, map.get(name2));
+	}
+	
+	/////////////////////////////////////////////
+	// determineAddToValidatedFacetList() Tests
+	/////////////////////////////////////////////
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void testDetermineAddToValidatedFacetListNullList(){
+		TableQueryManagerImpl.determineAddToValidatedFacetList(null, new ColumnModel(), new QueryRequestFacetColumn(), true);
+	}
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void testDetermineAddToValidatedFacetListNullColumnModel(){
+		TableQueryManagerImpl.determineAddToValidatedFacetList(validatedQueryFacetColumns, null, new QueryRequestFacetColumn(), true);
+	}
+	
+	@Test
+	public void testDetermineAddToValidatedFacetListColumnModelFacetTypeIsNull(){
+		facetColumnModel.setFacetType(null);
+		
+		TableQueryManagerImpl.determineAddToValidatedFacetList(validatedQueryFacetColumns, facetColumnModel, new QueryRequestFacetColumn(), true);
+		assertTrue(validatedQueryFacetColumns.isEmpty());
+	}
+	@Test
+	public void testDetermineAddToValidatedFacetListColumnModelFacetTypeIsNone(){
+		facetColumnModel.setFacetType(FacetType.none); 
+		
+		TableQueryManagerImpl.determineAddToValidatedFacetList(validatedQueryFacetColumns, facetColumnModel, new QueryRequestFacetColumn(), true);
+		assertTrue(validatedQueryFacetColumns.isEmpty());
+	}
+	
+	@Test
+	public void testDetermineAddToValidatedFacetListFacetParamsNullReturnFacetsFalse(){
+		facetColumnModel.setFacetType(FacetType.range); 
+		
+		TableQueryManagerImpl.determineAddToValidatedFacetList(validatedQueryFacetColumns, facetColumnModel, null, false);
+		assertTrue(validatedQueryFacetColumns.isEmpty());
+	}
+	
+	@Test
+	public void testDetermineAddToValidatedFacetListFacetParamsNullReturnFacetsTrue(){
+		facetColumnModel.setFacetType(FacetType.range); 
+		
+		TableQueryManagerImpl.determineAddToValidatedFacetList(validatedQueryFacetColumns, facetColumnModel, null, true);
+		assertEquals(1, validatedQueryFacetColumns.size());
+		ValidatedQueryFacetColumn validatedQueryFacetColumn = validatedQueryFacetColumns.get(0);
+		assertNull(validatedQueryFacetColumn.getFacetRange());
+		assertNull(validatedQueryFacetColumn.getColumnValues());
+		assertEquals(facetColumnName, validatedQueryFacetColumn.getColumnName());
+		assertEquals(FacetType.range, validatedQueryFacetColumn.getFacetType());
+		
+	}
+	
+	
+	@Test
+	public void testDetermineAddToValidatedFacetListFacetParamsNotNull(){
+		//setup
+		facetColumnModel.setFacetType(FacetType.range); 
+		
+		FacetRange facetRange = new FacetRange();
+		facetRange.setMin("123");
+		facetRange.setMax("456");
+		
+		
+		QueryRequestFacetColumn facetParams = new QueryRequestFacetColumn();
+		facetParams.setColumnName(facetColumnName);
+		facetParams.setFacetRange(facetRange);
+		facetParams.setFacetValues(null);
+		
+		TableQueryManagerImpl.determineAddToValidatedFacetList(validatedQueryFacetColumns, facetColumnModel, facetParams, false);
+		
+		assertEquals(1, validatedQueryFacetColumns.size());
+		ValidatedQueryFacetColumn validatedQueryFacetColumn = validatedQueryFacetColumns.get(0);
+		assertEquals(facetRange, validatedQueryFacetColumn.getFacetRange());
+		assertNull(validatedQueryFacetColumn.getColumnValues());
+		assertEquals(facetColumnName, validatedQueryFacetColumn.getColumnName());
+		assertEquals(FacetType.range, validatedQueryFacetColumn.getFacetType());
+	}
+	
+	///////////////////////////////////////
+	// appendFacetSearchCondition() Tests
+	///////////////////////////////////////
+	
+	@Test (expected =  IllegalArgumentException.class)
+	public void testAppendFacetSearchConditionNullQuery(){
+		TableQueryManagerImpl.appendFacetSearchCondition(null, validatedQueryFacetColumns);
+	}
+	
+	@Test
+	public void testAppendFacetSearchConditionNullFacetColumnsList() throws ParseException{
+		SqlQuery query = new SqlQuery("select asdf from " + tableId, facetSchema);
+		SqlQuery copy = TableQueryManagerImpl.appendFacetSearchCondition(query, validatedQueryFacetColumns);
+		
+		assertTrue(query != copy);//not same reference, are different object instances
+		assertEquals(query.getOutputSQL(), copy.getOutputSQL()); //but have same fields
+	}
+	
+	
+	
 }
+
