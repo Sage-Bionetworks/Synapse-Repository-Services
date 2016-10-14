@@ -656,6 +656,7 @@ public class UrlHelpers {
 	public static final String EVALUATION_ID_PERMISSIONS = EVALUATION + "/" + EVALUATION_ID_PATH_VAR + PERMISSIONS;
 	
 	public static final String EVALUATION_QUERY = SUBMISSION + QUERY;
+	public static final String EVALUATION_SUBMISSION_CANCALLATION = SUBMISSION_WITH_ID + "/cancellation";
 
 	// Wiki URL
 	public static final String WIKI = "/wiki";

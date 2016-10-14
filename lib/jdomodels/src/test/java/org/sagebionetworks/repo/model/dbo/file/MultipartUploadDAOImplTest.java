@@ -2,14 +2,14 @@ package org.sagebionetworks.repo.model.dbo.file;
 
 import static org.junit.Assert.*;
 
-import java.util.Calendar;
-import java.util.Date;
 import java.util.List;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
@@ -38,6 +38,8 @@ public class MultipartUploadDAOImplTest {
 	FileHandleDao fileHandleDao;
 	@Autowired
 	private DBOBasicDao basicDao;
+	@Autowired
+	private IdGenerator idGenerator;
 	
 	Long userId;
 	String hash;
@@ -286,8 +288,8 @@ public class MultipartUploadDAOImplTest {
 	@Test
 	public void testSetUploadComplete(){
 		// setup a file.
-		S3FileHandle file = TestUtils.createS3FileHandle(""+userId);
-		file = fileHandleDao.createFile(file);
+		S3FileHandle file = TestUtils.createS3FileHandle(userId.toString(), idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		file = (S3FileHandle) fileHandleDao.createFile(file);
 		
 		CompositeMultipartUploadStatus status = multipartUplaodDAO.createUploadStatus(createRequest);
 		assertNotNull(status);

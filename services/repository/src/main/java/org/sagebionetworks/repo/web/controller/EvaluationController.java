@@ -1203,7 +1203,8 @@ public class EvaluationController extends BaseController {
 	 * <br/>
 	 * The fields userId, name, createdOn, submitterAlias, repositoryName and dockerDigest are private.
 	 * <br/>
-	 * The fields objectId, scopeId, entityId, versionNumber, modifiedOn, and status are public.
+	 * The fields objectId, scopeId, entityId, versionNumber, modifiedOn, status, canCancel, cancelRequested, 
+	 * and <a href="${org.sagebionetworks.evaluation.model.CancelControl}">CancelControl</a> are public.
 	 * <p/>
 	 * The query is to be URL encoded in the submitted request.
 	 * 
@@ -1221,5 +1222,20 @@ public class EvaluationController extends BaseController {
 			throws NotFoundException, DatastoreException, ParseException, 
 			JSONObjectAdapterException {
 		return serviceProvider.getEvaluationService().query(query, userId);
+	}
+
+	/**
+	 * User requests to cancel their submission. Only the user who submitted a submission
+	 * can make this request.
+	 * 
+	 * @param userId
+	 * @param subId
+	 */
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	@RequestMapping(value = UrlHelpers.EVALUATION_SUBMISSION_CANCALLATION, method = RequestMethod.PUT)
+	public @ResponseBody void requestToCancelSubmission(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String subId) {
+		serviceProvider.getEvaluationService().processCancelSubmissionRequest(userId, subId);
 	}
 }

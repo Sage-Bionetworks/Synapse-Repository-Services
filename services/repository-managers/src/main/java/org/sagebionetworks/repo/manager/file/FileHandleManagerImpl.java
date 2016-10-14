@@ -439,8 +439,10 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		ValidateArgument.validUrl(fileHandle.getExternalURL());
 		// set this user as the creator of the file
 		fileHandle.setCreatedBy(getUserId(userInfo));
+		fileHandle.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		fileHandle.setEtag(UUID.randomUUID().toString());
 		// Save the file metadata to the DB.
-		return fileHandleDao.createFile(fileHandle);
+		return (ExternalFileHandle) fileHandleDao.createFile(fileHandle);
 	}
 
 	/**
@@ -868,7 +870,9 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		handle.setFileName(fileName);
 		handle.setCreatedBy(createdBy);
 		handle.setCreatedOn(modifiedOn);
-		return fileHandleDao.createFile(handle, true);
+		handle.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		handle.setEtag(UUID.randomUUID().toString());
+		return (S3FileHandle) fileHandleDao.createFile(handle);
 	}
 	
 	/**
@@ -966,8 +970,9 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		fileHandle.setCreatedBy(getUserId(userInfo));
 		fileHandle.setCreatedOn(new Date());
 		fileHandle.setEtag(UUID.randomUUID().toString());
+		fileHandle.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
 		// Save the file metadata to the DB.
-		return fileHandleDao.createFile(fileHandle);
+		return (S3FileHandle) fileHandleDao.createFile(fileHandle);
 	}
 	
 	@Override
@@ -1001,8 +1006,9 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		proxyFileHandle.setCreatedBy(getUserId(userInfo));
 		proxyFileHandle.setCreatedOn(new Date());
 		proxyFileHandle.setEtag(UUID.randomUUID().toString());
+		proxyFileHandle.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
 		// Save the file metadata to the DB.
-		return fileHandleDao.createFile(proxyFileHandle);
+		return (ProxyFileHandle) fileHandleDao.createFile(proxyFileHandle);
 	}
 
 	@Override
@@ -1027,7 +1033,6 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		}
 
 		newS3FileHandle.setId(null);
-		newS3FileHandle.setEtag(null);
 		newS3FileHandle.setCreatedBy(getUserId(userInfo));
 		newS3FileHandle.setCreatedOn(new Date());
 
@@ -1047,8 +1052,10 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		if (needsNewPreview) {
 			newS3FileHandle.setPreviewId(null);
 		}
+		newS3FileHandle.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		newS3FileHandle.setEtag(UUID.randomUUID().toString());
 		// Save the file metadata to the DB.
-		return fileHandleDao.createFile(newS3FileHandle);
+		return (S3FileHandle) fileHandleDao.createFile(newS3FileHandle);
 	}
 
 	@Override

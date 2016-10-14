@@ -2885,4 +2885,12 @@ public interface SynapseClient extends BaseClient {
 	 * @param ipAddress
 	 */
 	public void setUserIpAddress(String ipAddress);
+
+	/**
+	 * Make a request to cancel a submission.
+	 * 
+	 * @param submissionId
+	 * @throws SynapseException 
+	 */
+	public void requestToCancelSubmission(String submissionId) throws SynapseException;
 }

@@ -7807,9 +7807,12 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
+	public void requestToCancelSubmission(String submissionId) throws SynapseException {
+		getSharedClientConnection().putUri(repoEndpoint, EVALUATION_URI_PATH+"/"+SUBMISSION+"/"+submissionId+"/cancellation", getUserAgent());
+	}
+	
+	@Override
 	public void setUserIpAddress(String ipAddress) {
 		getSharedClientConnection().setUserIp(ipAddress);
 	}
-	
-	
 }

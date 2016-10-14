@@ -31,29 +31,6 @@ public class StubFileMetadataDao implements FileHandleDao {
 	Map<String, FileHandleBackup> backupMap = new HashMap<String, FileHandleBackup>();
 
 	@Override
-	public <T extends FileHandle> T createFile(T metadata) {
-		// Create the metadata
-		String id = ""+map.size()+1;
-		metadata.setId(id);
-		metadata.setCreatedOn(new Date());
-		map.put(id, metadata);
-		return metadata;
-	}
-	
-	@Override
-	public S3FileHandle createFile(S3FileHandle metadata, boolean shouldPreviewBeGenerated) {
-		// Create the metadata
-		String id = ""+map.size()+1;
-		metadata.setId(id);
-		if (shouldPreviewBeGenerated) {
-			metadata.setPreviewId(id);
-		}
-		metadata.setCreatedOn(new Date());
-		map.put(id, metadata);
-		return metadata;
-	}
-
-	@Override
 	public void setPreviewId(String fileId, String previewId)
 			throws DatastoreException, NotFoundException {
 		// Get the file form the mad
@@ -143,6 +120,16 @@ public class StubFileMetadataDao implements FileHandleDao {
 	public void createBatch(List<FileHandle> toCreate) {
 		// TODO Auto-generated method stub
 		
+	}
+
+	@Override
+	public FileHandle createFile(FileHandle metadata) {
+		// Create the metadata
+		String id = ""+map.size()+1;
+		metadata.setId(id);
+		metadata.setCreatedOn(new Date());
+		map.put(id, metadata);
+		return metadata;
 	}
 
 
