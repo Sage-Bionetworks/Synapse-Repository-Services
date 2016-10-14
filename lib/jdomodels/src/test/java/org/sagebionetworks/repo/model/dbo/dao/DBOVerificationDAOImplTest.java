@@ -17,6 +17,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.VerificationDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.FileHandle;
@@ -39,6 +41,9 @@ public class DBOVerificationDAOImplTest {
 	
 	@Autowired
 	private FileHandleDao fileHandleDao;
+
+	@Autowired
+	private IdGenerator idGenerator;
 	
 	// take advantage of these user IDs which are always present
 	private static final String USER_1_ID = "1";
@@ -113,7 +118,9 @@ public class DBOVerificationDAOImplTest {
 		fh.setCreatedBy(createdBy);
 		fh.setBucketName(UUID.randomUUID().toString());
 		fh.setKey(UUID.randomUUID().toString());
-		fh = fileHandleDao.createFile(fh);
+		fh.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		fh.setEtag(UUID.randomUUID().toString());
+		fh = (S3FileHandle) fileHandleDao.createFile(fh);
 		fhsToDelete.add(fh.getId());
 		return fh;
 	}

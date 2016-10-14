@@ -998,9 +998,9 @@ public class SQLUtils {
 	 * @param newSchema
 	 * @return
 	 */
-	public static List<ColumnChangeDetails> createReplaceSchemaChange(List<DatabaseColumnInfo> infoList, List<ColumnModel> newSchema){
+	public static List<ColumnChangeDetails> createReplaceSchemaChange(List<DatabaseColumnInfo> infoList, List<ColumnModel> newSchema, boolean removeMissingColumns){
 		List<ColumnModel> oldColumnIds = extractSchemaFromInfo(infoList);
-		return createReplaceSchemaChangeIds(oldColumnIds, newSchema);
+		return createReplaceSchemaChangeIds(oldColumnIds, newSchema, removeMissingColumns);
 	}
 	
 	/**
@@ -1013,16 +1013,18 @@ public class SQLUtils {
 	 * @param newSchema
 	 * @return
 	 */
-	public static List<ColumnChangeDetails> createReplaceSchemaChangeIds(List<ColumnModel> currentColunm, List<ColumnModel> newSchema){
+	public static List<ColumnChangeDetails> createReplaceSchemaChangeIds(List<ColumnModel> currentColunm, List<ColumnModel> newSchema, boolean removeMissingColumns){
 		Set<String> oldSet = createColumnIdSet(currentColunm);
 		Set<String> newSet = createColumnIdSet(newSchema);
 		List<ColumnChangeDetails> changes = new LinkedList<ColumnChangeDetails>();
-		// remove any column in the current that is not in the new.
-		for(ColumnModel oldColumn: currentColunm){
-			if(!newSet.contains(oldColumn.getId())){
-				// Remove this column
-				ColumnModel newColumn = null;
-				changes.add(new ColumnChangeDetails(oldColumn, newColumn));
+		if(removeMissingColumns){
+			// remove any column in the current that is not in the new.
+			for(ColumnModel oldColumn: currentColunm){
+				if(!newSet.contains(oldColumn.getId())){
+					// Remove this column
+					ColumnModel newColumn = null;
+					changes.add(new ColumnChangeDetails(oldColumn, newColumn));
+				}
 			}
 		}
 		// Add any column in the current that is not in the old.

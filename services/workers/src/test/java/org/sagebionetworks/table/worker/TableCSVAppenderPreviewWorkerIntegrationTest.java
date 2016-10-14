@@ -18,6 +18,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
@@ -70,6 +72,8 @@ public class TableCSVAppenderPreviewWorkerIntegrationTest {
 	AmazonS3Client s3Client;
 	@Autowired
 	SemaphoreManager semphoreManager;
+	@Autowired
+	private IdGenerator idGenerator;
 	
 	private UserInfo adminUserInfo;
 	RowReferenceSet referenceSet;
@@ -140,8 +144,11 @@ public class TableCSVAppenderPreviewWorkerIntegrationTest {
 		fileHandle.setContentType("text/csv");
 		fileHandle.setCreatedBy(""+adminUserInfo.getId());
 		fileHandle.setFileName("ToAppendToTable.csv");
+		fileHandle.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		fileHandle.setEtag(UUID.randomUUID().toString());
+		fileHandle.setPreviewId(fileHandle.getId());
 		// Upload the File to S3
-		fileHandle = fileHandleDao.createFile(fileHandle, false);
+		fileHandle = (S3FileHandle) fileHandleDao.createFile(fileHandle);
 		// Upload the file to S3.
 		s3Client.putObject(fileHandle.getBucketName(), fileHandle.getKey(), this.tempFile);
 		// We are now ready to start the job

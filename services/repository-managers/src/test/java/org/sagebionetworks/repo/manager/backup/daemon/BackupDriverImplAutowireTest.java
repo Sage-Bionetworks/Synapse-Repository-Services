@@ -15,6 +15,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.backup.Progress;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -53,6 +55,9 @@ public class BackupDriverImplAutowireTest {
 	
 	@Autowired
 	private BackupDriver backupDriver;
+
+	@Autowired
+	private IdGenerator idGenerator;
 	
 	private List<String> toDelete;
 	private UserInfo adminUser;
@@ -73,17 +78,30 @@ public class BackupDriverImplAutowireTest {
 		creatorUserGroupId = adminUser.getId().toString();
 		assertNotNull(creatorUserGroupId);
 		// The one will have a preview
-		withPreview = TestUtils.createS3FileHandle(creatorUserGroupId);
+		withPreview = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(TYPE.FILE_IDS).toString());
 		withPreview.setFileName("withPreview.txt");
-		withPreview = fileHandleDao.createFile(withPreview);
+		// The Preview
+		preview = TestUtils.createPreviewFileHandle(creatorUserGroupId, idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		preview.setFileName("preview.txt");
+
+		markdownFileHandle = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		markdownFileHandle.setFileName("markdown.txt");
+
+		List<FileHandle> fileHandleToCreate = new LinkedList<FileHandle>();
+		fileHandleToCreate.add(withPreview);
+		fileHandleToCreate.add(preview);
+		fileHandleToCreate.add(markdownFileHandle);
+		fileHandleDao.createBatch(fileHandleToCreate);
+
+		withPreview = (S3FileHandle) fileHandleDao.get(withPreview.getId());
 		assertNotNull(withPreview);
 		toDelete.add(withPreview.getId());
-		// The Preview
-		preview = TestUtils.createPreviewFileHandle(creatorUserGroupId);
-		preview.setFileName("preview.txt");
-		preview = fileHandleDao.createFile(preview);
+		preview = (PreviewFileHandle) fileHandleDao.get(preview.getId());
 		assertNotNull(preview);
 		toDelete.add(preview.getId());
+		markdownFileHandle = fileHandleDao.get(markdownFileHandle.getId());
+		toDelete.add(markdownFileHandle.getId());
+
 		// Assign it as a preview
 		fileHandleDao.setPreviewId(withPreview.getId(), preview.getId());
 		// The etag should have changed
@@ -92,12 +110,6 @@ public class BackupDriverImplAutowireTest {
 		ObjectType ownerType = ObjectType.EVALUATION;
 		wiki = new V2WikiPage();
 		wiki.setTitle("testPLFM_1937");
-		
-		markdownFileHandle = TestUtils.createS3FileHandle(creatorUserGroupId);
-		markdownFileHandle.setFileName("markdown.txt");
-		markdownFileHandle = fileHandleDao.createFile(markdownFileHandle);
-		toDelete.add(markdownFileHandle.getId());
-		
 		wiki.setMarkdownFileHandleId(markdownFileHandle.getId());
 		wiki.setCreatedBy(adminUser.getId().toString());
 		wiki.setModifiedBy(wiki.getCreatedBy());

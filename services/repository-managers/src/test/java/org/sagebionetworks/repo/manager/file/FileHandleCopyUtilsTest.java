@@ -1,7 +1,10 @@
 package org.sagebionetworks.repo.manager.file;
 
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -12,29 +15,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.file.BatchFileHandleCopyRequest;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.FileHandleCopyRecord;
 import org.sagebionetworks.repo.model.file.FileHandleCopyRequest;
+import org.sagebionetworks.repo.model.file.HasPreviewId;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 
 public class FileHandleCopyUtilsTest {
-
-	@Mock
-	private IdGenerator mockIdGenerator;
-
-	@Before
-	public void before() {
-		MockitoAnnotations.initMocks(this);
-	}
 
 	@Test (expected=IllegalArgumentException.class)
 	public void testGetOriginalFilesWithNullBatch() {
@@ -135,17 +126,17 @@ public class FileHandleCopyUtilsTest {
 
 	@Test (expected=IllegalArgumentException.class)
 	public void testCreateCopyWithNullUserId() {
-		FileHandleCopyUtils.createCopy(null, new S3FileHandle(), new FileHandleCopyRequest(), mockIdGenerator);
+		FileHandleCopyUtils.createCopy(null, new S3FileHandle(), new FileHandleCopyRequest(), "2");
 	}
 
 	@Test (expected=IllegalArgumentException.class)
 	public void testCreateCopyWithNullFileHandle() {
-		FileHandleCopyUtils.createCopy("1", null, new FileHandleCopyRequest(), mockIdGenerator);
+		FileHandleCopyUtils.createCopy("1", null, new FileHandleCopyRequest(), "2");
 	}
 
 	@Test (expected=IllegalArgumentException.class)
 	public void testCreateCopyWithNullFileHandleOverwriteData() {
-		FileHandleCopyUtils.createCopy("1", new S3FileHandle(), null, mockIdGenerator);
+		FileHandleCopyUtils.createCopy("1", new S3FileHandle(), null, "2");
 	}
 
 	@Test (expected=IllegalArgumentException.class)
@@ -155,7 +146,6 @@ public class FileHandleCopyUtilsTest {
 
 	@Test
 	public void testCreateCopy() throws Exception{
-		when(mockIdGenerator.generateNewId(TYPE.FILE_IDS)).thenReturn(2L);
 		S3FileHandle fileHandle = new S3FileHandle();
 		String oldId = "1";
 		fileHandle.setId(oldId);
@@ -169,6 +159,7 @@ public class FileHandleCopyUtilsTest {
 		fileHandle.setFileName(oldFileName);
 		String oldContentType = "oldContentType";
 		fileHandle.setContentType(oldContentType);
+		fileHandle.setPreviewId("333");
 
 		FileHandleCopyRequest overwriteData = new FileHandleCopyRequest();
 		String newFileName = "newFileName";
@@ -177,7 +168,7 @@ public class FileHandleCopyUtilsTest {
 
 		Thread.sleep(1000);
 
-		FileHandle newFileHandle = FileHandleCopyUtils.createCopy(newOwner, fileHandle, overwriteData, mockIdGenerator);
+		FileHandle newFileHandle = FileHandleCopyUtils.createCopy(newOwner, fileHandle, overwriteData, "2");
 		assertEquals("2", newFileHandle.getId());
 		assertNotNull(newFileHandle.getEtag());
 		assertFalse(newFileHandle.getEtag().equals(oldEtag));
@@ -186,6 +177,7 @@ public class FileHandleCopyUtilsTest {
 		assertEquals(newOwner, newFileHandle.getCreatedBy());
 		assertEquals(newFileName, newFileHandle.getFileName());
 		assertEquals(oldContentType, newFileHandle.getContentType());
+		assertNull(((HasPreviewId)newFileHandle).getPreviewId());
 	}
 
 	@Test (expected=IllegalArgumentException.class)
@@ -233,8 +225,8 @@ public class FileHandleCopyUtilsTest {
 		FileHandleAssociation fha3 = new FileHandleAssociation();
 		fha3.setAssociateObjectId("3");
 		fha3.setAssociateObjectType(FileHandleAssociateType.WikiAttachment);
-		fha3.setFileHandleId("3");
-		assertTrue(FileHandleCopyUtils.hasDuplicates(Arrays.asList(fha1, fha2, fha3, fha2)));
+		fha3.setFileHandleId("2");
+		assertTrue(FileHandleCopyUtils.hasDuplicates(Arrays.asList(fha1, fha2, fha3)));
 	}
 
 	@Test (expected=IllegalArgumentException.class)
