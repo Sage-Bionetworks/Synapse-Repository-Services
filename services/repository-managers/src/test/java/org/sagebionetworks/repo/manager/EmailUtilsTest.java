@@ -94,7 +94,7 @@ public class EmailUtilsTest {
 	}
 
 	@Test
-	public void testCreateOneUnsubscribeLink() throws Exception {
+	public void testCreateOneClickUnsubscribeLink() throws Exception {
 		String endpoint = "https://synapse.org/#";
 		String userId = "111";
 		String link = EmailUtils.createOneClickUnsubscribeLink(endpoint, userId);
@@ -110,11 +110,11 @@ public class EmailUtilsTest {
 	}
 
 	@Test
-	public void testCreateHtmlUnsubscribeFooter() throws Exception {
+	public void testCreateHtmlUnsubscribeLink() throws Exception {
 		String unsubscribeLink = "https://foo.bar.com#baz:12345";
-		String footer = EmailUtils.createHtmlUnsubscribeFooter(unsubscribeLink);
+		String footer = EmailUtils.createHtmlUnsubscribeLink(unsubscribeLink);
 		List<String> delims = Arrays.asList(new String[] {EmailUtils.TEMPLATE_KEY_ONE_CLICK_UNSUBSCRIBE});
-		List<String> templatePieces = EmailParseUtil.splitEmailTemplate("message/unsubscribeFooter.html", delims);
+		List<String> templatePieces = EmailParseUtil.splitEmailTemplate("message/unsubscribeLink.html", delims);
 		assertEquals(3, templatePieces.size());
 		assertTrue(footer.startsWith(templatePieces.get(0)));
 		assertTrue(footer.endsWith(templatePieces.get(2)));
@@ -123,32 +123,72 @@ public class EmailUtilsTest {
 	}
 
 	@Test
-	public void testCreateTextUnsubscribeFooter() throws Exception {
+	public void testCreateHtmlProfileSettingLink() throws Exception {
+		String profileSettingLink = "https://synapse.org/!#Profile:edit";
+		String footer = EmailUtils.createHtmlUserProfileSettingLink(profileSettingLink);
+		List<String> delims = Arrays.asList(new String[] {EmailUtils.TEMPLATE_KEY_PROFILE_SETTING_LINK});
+		List<String> templatePieces = EmailParseUtil.splitEmailTemplate("message/userProfileSettingLink.html", delims);
+		assertEquals(3, templatePieces.size());
+		assertTrue(footer.startsWith(templatePieces.get(0)));
+		assertTrue(footer.endsWith(templatePieces.get(2)));
+		assertEquals(profileSettingLink, EmailParseUtil.getTokenFromString(
+				footer, templatePieces.get(0), templatePieces.get(2)));
+	}
+
+	@Test
+	public void testCreateTextUnsubscribeLink() throws Exception {
 		String unsubscribeLink = "https://foo.bar.com#baz:12345";
-		String footer = EmailUtils.createTextUnsubscribeFooter(unsubscribeLink);
+		String footer = EmailUtils.createTextUnsubscribeLink(unsubscribeLink);
 		List<String> delims = Arrays.asList(new String[] {EmailUtils.TEMPLATE_KEY_ONE_CLICK_UNSUBSCRIBE});
-		List<String> templatePieces = EmailParseUtil.splitEmailTemplate("message/unsubscribeFooter.txt", delims);
+		List<String> templatePieces = EmailParseUtil.splitEmailTemplate("message/unsubscribeLink.txt", delims);
 		assertEquals(3, templatePieces.size());
 		assertTrue(footer.startsWith(templatePieces.get(0)));
 		assertTrue(footer.endsWith(templatePieces.get(2)));
 		assertEquals(unsubscribeLink, EmailParseUtil.getTokenFromString(
+				footer, templatePieces.get(0), templatePieces.get(2)));
+	}
+
+	@Test
+	public void testCreateTextProfileSettingLink() throws Exception {
+		String profileSettingLink = "https://synapse.org/!#Profile:edit";
+		String footer = EmailUtils.createTextUserProfileSettingLink(profileSettingLink);
+		List<String> delims = Arrays.asList(new String[] {EmailUtils.TEMPLATE_KEY_PROFILE_SETTING_LINK});
+		List<String> templatePieces = EmailParseUtil.splitEmailTemplate("message/userProfileSettingLink.txt", delims);
+		assertEquals(3, templatePieces.size());
+		assertTrue(footer.startsWith(templatePieces.get(0)));
+		assertTrue(footer.endsWith(templatePieces.get(2)));
+		assertEquals(profileSettingLink, EmailParseUtil.getTokenFromString(
 				footer, templatePieces.get(0), templatePieces.get(2)));
 	}
 
 	@Test
 	public void testCreateEmailBodyFromHtml() throws Exception {
-		assertEquals("foo", EmailUtils.createEmailBodyFromHtml("foo", null));		
-		String messageWithFooter = EmailUtils.createEmailBodyFromHtml("foo", "link");
-		assertTrue(messageWithFooter.startsWith(messageWithFooter));
-		assertTrue(messageWithFooter.endsWith(EmailUtils.createHtmlUnsubscribeFooter("link")));
+		assertEquals("foo", EmailUtils.createEmailBodyFromHtml("foo", null, null));
+
+		String messageWithUnsubscribeLinkFooter = EmailUtils.createEmailBodyFromHtml("foo", "link", null);
+		assertTrue(messageWithUnsubscribeLinkFooter.contains(EmailUtils.createHtmlUnsubscribeLink("link")));
+
+		String messageWithUserProfileLinkFooter = EmailUtils.createEmailBodyFromHtml("foo", null, "link");
+		assertTrue(messageWithUserProfileLinkFooter.contains(EmailUtils.createHtmlUserProfileSettingLink("link")));
+
+		String messageWithBothLinksFooter = EmailUtils.createEmailBodyFromHtml("foo", "link1", "link2");
+		assertTrue(messageWithBothLinksFooter.contains(EmailUtils.createHtmlUnsubscribeLink("link1")));
+		assertTrue(messageWithBothLinksFooter.contains(EmailUtils.createHtmlUserProfileSettingLink("link2")));
 	}
 
 	@Test
 	public void testCreateEmailBodyFromText() throws Exception {
-		assertEquals("foo", EmailUtils.createEmailBodyFromText("foo", null));
-		String messageWithFooter = EmailUtils.createEmailBodyFromText("foo", "link");
-		assertTrue(messageWithFooter.startsWith(messageWithFooter));
-		assertTrue(messageWithFooter.endsWith(EmailUtils.createTextUnsubscribeFooter("link")));		
+		assertEquals("foo", EmailUtils.createEmailBodyFromText("foo", null, null));
+
+		String messageWithUnsubscribeLinkFooter = EmailUtils.createEmailBodyFromText("foo", "link", null);
+		assertTrue(messageWithUnsubscribeLinkFooter.contains(EmailUtils.createTextUnsubscribeLink("link")));
+
+		String messageWithUserProfileLinkFooter = EmailUtils.createEmailBodyFromText("foo", null, "link");
+		assertTrue(messageWithUserProfileLinkFooter.contains(EmailUtils.createTextUserProfileSettingLink("link")));
+
+		String messageWithBothLinksFooter = EmailUtils.createEmailBodyFromText("foo", "link1", "link2");
+		assertTrue(messageWithBothLinksFooter.contains(EmailUtils.createTextUnsubscribeLink("link1")));
+		assertTrue(messageWithBothLinksFooter.contains(EmailUtils.createTextUserProfileSettingLink("link2")));
 	}
 	
 	@Test

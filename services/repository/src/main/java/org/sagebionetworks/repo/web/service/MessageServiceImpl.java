@@ -1,22 +1,25 @@
 package org.sagebionetworks.repo.web.service;
 
+import java.util.Date;
 import java.util.List;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.CloudMailInManager;
 import org.sagebionetworks.repo.manager.MessageManager;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
-import org.sagebionetworks.repo.manager.NotificationManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.message.MessageBundle;
 import org.sagebionetworks.repo.model.message.MessageRecipientSet;
 import org.sagebionetworks.repo.model.message.MessageSortBy;
 import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
+import org.sagebionetworks.repo.model.message.MessageToUserUtils;
 import org.sagebionetworks.repo.model.message.cloudmailin.AuthorizationCheckHeader;
 import org.sagebionetworks.repo.model.message.cloudmailin.Message;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -32,44 +35,37 @@ public class MessageServiceImpl implements MessageService {
 	
 	@Autowired
 	private CloudMailInManager cloudMailInManager;
-	
+
 	@Autowired
-	private NotificationManager notificationManager;
-	
-	public MessageServiceImpl() {}
-	
-	public MessageServiceImpl(MessageManager messageManager,
-			UserManager userManager,
-			CloudMailInManager cloudMailInManager,
-			NotificationManager notificationManager
-			) {
-		this.messageManager=messageManager;
-		this.userManager=userManager;
-		this.cloudMailInManager=cloudMailInManager;
-		this.notificationManager=notificationManager;
-	}
-	
-	
+	private FileHandleManager fileHandleManager;
+
 	@Override
 	public MessageToUser create(Long userId, MessageToUser toCreate)
 			throws NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return messageManager.createMessageWithThrottle(userInfo, toCreate);
+		return messageManager.createMessageWithThrottle(userInfo, MessageToUserUtils.setUserGeneratedMessageFooter(toCreate));
 	}
 
 	@Override
-	public void create(Message toCreate, String notificationUnsubscribeEndpoint) {
+	public void create(Message toCreate, String notificationUnsubscribeEndpoint) throws Exception {
 		List<MessageToUserAndBody> mtubs = cloudMailInManager.convertMessage(toCreate, notificationUnsubscribeEndpoint);
+		if (mtubs.isEmpty()) 
+			return;
 		UserInfo userInfo = userManager.getUserInfo(Long.parseLong(mtubs.get(0).getMetadata().getCreatedBy()));
-		notificationManager.sendNotifications(userInfo, mtubs);
+		for (MessageToUserAndBody message : mtubs) {
+			if (message.getMetadata().getRecipients().isEmpty()) continue;
+			FileHandle fileHandle = fileHandleManager.createCompressedFileFromString(
+					userInfo.getId().toString(), new Date(), message.getBody(), message.getMimeType());
+
+			message.getMetadata().setFileHandleId(fileHandle.getId());
+			messageManager.createMessage(userInfo, message.getMetadata());
+		}
 	}
 	
 	@Override
 	public void authorize(AuthorizationCheckHeader ach) {
 		cloudMailInManager.authorizeMessage(ach);
 	}
-
-
 
 	@Override
 	public PaginatedResults<MessageBundle> getInbox(Long userId,

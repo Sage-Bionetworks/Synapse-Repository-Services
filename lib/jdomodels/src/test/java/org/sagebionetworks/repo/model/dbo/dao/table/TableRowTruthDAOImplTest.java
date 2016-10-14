@@ -15,12 +15,15 @@ import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
@@ -60,6 +63,9 @@ public class TableRowTruthDAOImplTest {
 	
 	@Autowired
 	FileHandleDao fileHandleDao;
+
+	@Autowired
+	private IdGenerator idGenerator;
 
 	protected String creatorUserGroupId;
 
@@ -103,7 +109,10 @@ public class TableRowTruthDAOImplTest {
 			fh.setKey("mainFileKey");
 			fh.setEtag("etag");
 			fh.setFileName("foo.bar");
-			fh = fileHandleDao.createFile(fh, false);
+			fh.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+			fh.setEtag(UUID.randomUUID().toString());
+			fh.setPreviewId(fh.getId());
+			fh = (S3FileHandle) fileHandleDao.createFile(fh);
 			fileHandleIds.add(fh.getId());
 			created.add(fh);
 		}

@@ -10,6 +10,8 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.AddPartResponse;
+import org.sagebionetworks.repo.model.file.BatchFileHandleCopyRequest;
+import org.sagebionetworks.repo.model.file.BatchFileHandleCopyResult;
 import org.sagebionetworks.repo.model.file.BatchFileRequest;
 import org.sagebionetworks.repo.model.file.BatchFileResult;
 import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlRequest;
@@ -45,7 +47,7 @@ public class FileUploadServiceImpl implements FileUploadService {
 	UserManager userManager;
 	
 	@Autowired
-	FileHandleManager fileUploadManager;
+	FileHandleManager fileHandleManager;
 	
 	@Autowired
 	MultipartManagerV2 multipartManagerV2;
@@ -57,7 +59,7 @@ public class FileUploadServiceImpl implements FileUploadService {
 		if(handleId == null) throw new IllegalArgumentException("FileHandleId cannot be null");
 		// resolve the user
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return fileUploadManager.getRawFileHandle(userInfo, handleId);
+		return fileHandleManager.getRawFileHandle(userInfo, handleId);
 	}
 
 	@Override
@@ -66,7 +68,7 @@ public class FileUploadServiceImpl implements FileUploadService {
 		if(handleId == null) throw new IllegalArgumentException("FileHandleId cannot be null");
 		// resolve the user
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		fileUploadManager.deleteFileHandle(userInfo, handleId);
+		fileHandleManager.deleteFileHandle(userInfo, handleId);
 	}
 	
 	@Override
@@ -75,7 +77,7 @@ public class FileUploadServiceImpl implements FileUploadService {
 		if(handleId == null) throw new IllegalArgumentException("FileHandleId cannot be null");
 		// resolve the user
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		fileUploadManager.clearPreview(userInfo, handleId);
+		fileHandleManager.clearPreview(userInfo, handleId);
 	}
 
 	@Override
@@ -85,7 +87,7 @@ public class FileUploadServiceImpl implements FileUploadService {
 		if(fileHandle == null) throw new IllegalArgumentException("FileHandleId cannot be null");
 		// resolve the user
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return fileUploadManager.createExternalFileHandle(userInfo, fileHandle);
+		return fileHandleManager.createExternalFileHandle(userInfo, fileHandle);
 	}
 
 	@Override
@@ -94,28 +96,28 @@ public class FileUploadServiceImpl implements FileUploadService {
 		if(ccftr == null) throw new IllegalArgumentException("CreateChunkedFileTokenRequest cannot be null");
 		// resolve the user
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return fileUploadManager.createChunkedFileUploadToken(userInfo, ccftr);
+		return fileHandleManager.createChunkedFileUploadToken(userInfo, ccftr);
 	}
 
 	@Override
 	public URL createChunkedFileUploadPartURL(Long userId, ChunkRequest cpr) throws DatastoreException, NotFoundException {
 		// resolve the user
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return fileUploadManager.createChunkedFileUploadPartURL(userInfo, cpr);
+		return fileHandleManager.createChunkedFileUploadPartURL(userInfo, cpr);
 	}
 
 	@Override
 	public ChunkResult addChunkToFile(Long userId, ChunkRequest cpr) throws DatastoreException, NotFoundException {
 		// resolve the user
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return fileUploadManager.addChunkToFile(userInfo, cpr);
+		return fileHandleManager.addChunkToFile(userInfo, cpr);
 	}
 
 	@Override
 	public S3FileHandle completeChunkFileUpload(Long userId, CompleteChunkedFileRequest ccfr) throws DatastoreException, NotFoundException {
 		// resolve the user
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return fileUploadManager.completeChunkFileUpload(userInfo, ccfr);
+		return fileHandleManager.completeChunkFileUpload(userInfo, ccfr);
 	}
 
 	@Override
@@ -123,26 +125,26 @@ public class FileUploadServiceImpl implements FileUploadService {
 			NotFoundException {
 		// resolve the user
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return fileUploadManager.startUploadDeamon(userInfo, cacf);
+		return fileHandleManager.startUploadDeamon(userInfo, cacf);
 	}
 
 	@Override
 	public UploadDaemonStatus getUploadDaemonStatus(Long userId, String daemonId) throws DatastoreException, NotFoundException {
 		// resolve the user
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return fileUploadManager.getUploadDaemonStatus(userInfo, daemonId);
+		return fileHandleManager.getUploadDaemonStatus(userInfo, daemonId);
 	}
 
 	@Override
 	public String getPresignedUrlForFileHandle(Long userId, String fileHandleId) throws NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return fileUploadManager.getRedirectURLForFileHandle(userInfo, fileHandleId);
+		return fileHandleManager.getRedirectURLForFileHandle(userInfo, fileHandleId);
 	}
 
 	@Override
 	public String getPresignedUrlForFileHandle(Long userId, String fileHandleId, FileHandleAssociateType fileAssociateType, String fileAssociateId) throws NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return fileUploadManager.getRedirectURLForFileHandle(userInfo, fileHandleId, fileAssociateType, fileAssociateId);
+		return fileHandleManager.getRedirectURLForFileHandle(userInfo, fileHandleId, fileAssociateType, fileAssociateId);
 	}
 
 	@Override
@@ -150,47 +152,47 @@ public class FileUploadServiceImpl implements FileUploadService {
 	public List<UploadDestination> getUploadDestinations(Long userId, String parentId) throws DatastoreException, UnauthorizedException,
 			NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return fileUploadManager.getUploadDestinations(userInfo, parentId);
+		return fileHandleManager.getUploadDestinations(userInfo, parentId);
 	}
 
 	@Override
 	public List<UploadDestinationLocation> getUploadDestinationLocations(Long userId, String parentId) throws DatastoreException,
 			NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return fileUploadManager.getUploadDestinationLocations(userInfo, parentId);
+		return fileHandleManager.getUploadDestinationLocations(userInfo, parentId);
 	}
 
 	@Override
 	public UploadDestination getUploadDestination(Long userId, String parentId, Long storageLocationId) throws DatastoreException,
 			NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return fileUploadManager.getUploadDestination(userInfo, parentId, storageLocationId);
+		return fileHandleManager.getUploadDestination(userInfo, parentId, storageLocationId);
 	}
 
 	@Override
 	public UploadDestination getDefaultUploadDestination(Long userId, String parentId) throws DatastoreException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return fileUploadManager.getDefaultUploadDestination(userInfo, parentId);
+		return fileHandleManager.getDefaultUploadDestination(userInfo, parentId);
 	}
 
 	@Override
 	public S3FileHandle createExternalS3FileHandle(Long userId,
 			S3FileHandle fileHandle) {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return fileUploadManager.createExternalS3FileHandle(userInfo, fileHandle);
+		return fileHandleManager.createExternalS3FileHandle(userInfo, fileHandle);
 	}
 	
 	@Override
 	public ProxyFileHandle createExternalProxyFileHandle(Long userId,
 			ProxyFileHandle fileHandle) {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return fileUploadManager.createExternalProxyFileHandle(userInfo, fileHandle);
+		return fileHandleManager.createExternalProxyFileHandle(userInfo, fileHandle);
 	}
 
 	@Override
 	public S3FileHandle createS3FileHandleCopy(Long userId, String handleIdToCopyFrom, String fileName, String contentType) {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return fileUploadManager.createS3FileHandleCopy(userInfo, handleIdToCopyFrom, fileName, contentType);
+		return fileHandleManager.createS3FileHandleCopy(userInfo, handleIdToCopyFrom, fileName, contentType);
 	}
 
 	@Override
@@ -225,6 +227,12 @@ public class FileUploadServiceImpl implements FileUploadService {
 	public BatchFileResult getFileHandleAndUrlBatch(Long userId,
 			BatchFileRequest request) {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return fileUploadManager.getFileHandleAndUrlBatch(userInfo, request);
+		return fileHandleManager.getFileHandleAndUrlBatch(userInfo, request);
+	}
+
+	@Override
+	public BatchFileHandleCopyResult copyFileHandles(Long userId, BatchFileHandleCopyRequest request) {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return fileHandleManager.copyFileHandles(userInfo, request);
 	}
 }

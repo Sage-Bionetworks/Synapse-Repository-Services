@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
@@ -28,6 +29,8 @@ import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionContributor;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
@@ -77,6 +80,9 @@ public class SubmissionDAOImplTest {
 	
 	@Autowired
 	TeamDAO teamDAO;
+
+	@Autowired
+	private IdGenerator idGenerator;
 	
     private static final String SUBMISSION_ID = "206";
     private static final String SUBMISSION_2_ID = "307";
@@ -159,6 +165,8 @@ public class SubmissionDAOImplTest {
 		meta.setContentMd5("md5");
 		meta.setCreatedBy("" + userId);
 		meta.setFileName("preview.jpg");
+		meta.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		meta.setEtag(UUID.randomUUID().toString());
 		fileHandleId = fileHandleDAO.createFile(meta).getId();
 		
     	// create a node

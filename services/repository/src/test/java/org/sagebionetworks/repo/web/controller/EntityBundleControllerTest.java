@@ -8,11 +8,15 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -27,6 +31,7 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,13 +43,16 @@ public class EntityBundleControllerTest extends AbstractAutowiredControllerTestB
 	private static final String DUMMY_PROJECT = "Test Project";
 
 	@Autowired
-	private FileHandleDao fileMetadataDao;
+	private FileHandleDao fileHandleDao;
 	
 	@Autowired
 	private UserManager userManager;
 	
 	@Autowired
 	private NodeManager nodeManager;
+
+	@Autowired
+	private IdGenerator idGenerator;
 
 	private List<String> filesToDelete;
 	private List<String> toDelete;
@@ -55,7 +63,7 @@ public class EntityBundleControllerTest extends AbstractAutowiredControllerTestB
 
 	@Before
 	public void setUp() throws Exception {
-		assertNotNull(fileMetadataDao);
+		assertNotNull(fileHandleDao);
 		assertNotNull(userManager);
 		assertNotNull(nodeManager);
 		toDelete = new ArrayList<String>();
@@ -76,7 +84,7 @@ public class EntityBundleControllerTest extends AbstractAutowiredControllerTestB
 		}
 		
 		for (String id : filesToDelete) {
-			fileMetadataDao.delete(id);
+			fileHandleDao.delete(id);
 		}
 	}
 	
@@ -223,22 +231,36 @@ public class EntityBundleControllerTest extends AbstractAutowiredControllerTestB
 	@Test
 	public void testGetFileHandle() throws Exception{
 		
-		S3FileHandle handle = new S3FileHandle();
-		// Create a file handle
-		handle = new S3FileHandle();
-		handle.setCreatedBy(adminUserIdString);
-		handle.setCreatedOn(new Date());
-		handle.setBucketName("bucket");
-		handle.setKey("EntityControllerTest.testGetFileHandle1");
-		handle.setEtag("etag");
-		handle.setFileName("foo.bar");
-		S3FileHandle handleOne = fileMetadataDao.createFile(handle);
-		filesToDelete.add(handleOne.getId());
+		S3FileHandle handleOne = new S3FileHandle();
+		handleOne = new S3FileHandle();
+		handleOne.setCreatedBy(adminUserIdString);
+		handleOne.setCreatedOn(new Date());
+		handleOne.setBucketName("bucket");
+		handleOne.setKey("EntityControllerTest.testGetFileHandle1");
+		handleOne.setEtag("etag");
+		handleOne.setFileName("foo.bar");
+		handleOne.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		handleOne.setEtag(UUID.randomUUID().toString());
 		
-		// Second handle
-		handle.setKey("EntityControllerTest.testGetFileHandle2");
-		handle.setFileName("fo2o.bar");
-		S3FileHandle handleTwo = fileMetadataDao.createFile(handle);
+		S3FileHandle handleTwo = new S3FileHandle();
+		handleTwo = new S3FileHandle();
+		handleTwo.setCreatedBy(adminUserIdString);
+		handleTwo.setCreatedOn(new Date());
+		handleTwo.setBucketName("bucket");
+		handleTwo.setKey("EntityControllerTest.testGetFileHandle2");
+		handleTwo.setEtag("etag");
+		handleTwo.setFileName("fo2o.bar");
+		handleTwo.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		handleTwo.setEtag(UUID.randomUUID().toString());
+
+		List<FileHandle> fileHandleToCreate = new LinkedList<FileHandle>();
+		fileHandleToCreate.add(handleOne);
+		fileHandleToCreate.add(handleTwo);
+		fileHandleDao.createBatch(fileHandleToCreate);
+		
+		handleOne = (S3FileHandle) fileHandleDao.get(handleOne.getId());
+		filesToDelete.add(handleOne.getId());
+		handleTwo = (S3FileHandle) fileHandleDao.get(handleTwo.getId());
 		filesToDelete.add(handleTwo.getId());
 		
 		// Create an entity
