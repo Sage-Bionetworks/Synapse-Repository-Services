@@ -62,7 +62,7 @@ public class ValidatedQueryFacetColumn {
 		case range:
 			return createRangeSearchCondition(this.facetRange);
 		default:
-			throw new IllegalArgumentException("Unexpected facetType");
+			throw new IllegalArgumentException("Unexpected FacetType");
 		}
 		
 	}
@@ -101,7 +101,6 @@ public class ValidatedQueryFacetColumn {
 			return null;
 		}
 		
-		//TODO: change if using predicates instead of values
 		StringBuilder builder = new StringBuilder("(");
 		int initialSize = builder.length();
 		for(String value : values){

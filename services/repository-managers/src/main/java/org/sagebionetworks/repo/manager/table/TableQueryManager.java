@@ -44,7 +44,7 @@ public interface TableQueryManager {
 	 * @throws TableLockUnavailableException 
 	 */
 	public QueryResultBundle querySinglePage(ProgressCallback<Void> progressCallback, UserInfo user, String query, List<SortItem> sortList, List<QueryRequestFacetColumn> selectedFacets, Long offset, Long limit,
-			boolean runQuery, boolean runCount, boolean isConsistent) throws DatastoreException, NotFoundException, TableUnavailableException,
+			boolean runQuery, boolean runCount, boolean returnFacets, boolean isConsistent) throws DatastoreException, NotFoundException, TableUnavailableException,
 			TableFailedException, ParseException, LockUnavilableException;
 
 	/**

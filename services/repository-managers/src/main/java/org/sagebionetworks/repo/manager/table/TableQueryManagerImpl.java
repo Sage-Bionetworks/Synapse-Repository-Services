@@ -74,6 +74,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	public static final long BUNDLE_MASK_QUERY_SELECT_COLUMNS = 0x4;
 	public static final long BUNDLE_MASK_QUERY_MAX_ROWS_PER_PAGE = 0x8;
 	public static final long BUNDLE_MASK_QUERY_COLUMN_MODELS = 0x10;
+	public static final long BUNDLE_MASK_QUERY_FACETS = 0x20;
 	
 	@Autowired
 	TableManagerSupport tableManagerSupport;
@@ -105,7 +106,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	public QueryResultBundle querySinglePage(
 			ProgressCallback<Void> progressCallback, UserInfo user,
 			String query, List<SortItem> sortList, List<QueryRequestFacetColumn> selectedFacets, Long offset,
-			Long limit, boolean runQuery, boolean runCount, boolean isConsistent)
+			Long limit, boolean runQuery, boolean runCount, boolean returnFacets, boolean isConsistent)
 			throws TableUnavailableException,
 			TableFailedException, LockUnavilableException {
 		try{
@@ -116,8 +117,11 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			}
 			// parser the query
 			SqlQuery sqlQuery = createQuery(query, sortList, offset, limit, this.maxBytesPerRequest);
+			
+			List<ValidatedQueryFacetColumn> validatedFacets = validateFacetList(selectedFacets, sqlQuery.getTableSchema());
+			
 			// run the query as a stream.
-			QueryResultBundle bundle = queryAsStream(progressCallback, user, sqlQuery, selectedFacets,rowHandler,runCount, isConsistent);
+			QueryResultBundle bundle = queryAsStream(progressCallback, user, sqlQuery, validatedFacets, rowHandler,runCount, returnFacets, isConsistent);
 			// save the max rows per page.
 			bundle.setMaxRowsPerPage(sqlQuery.getMaxRowsPerPage());
 			// add captured rows to the bundle
@@ -125,11 +129,11 @@ public class TableQueryManagerImpl implements TableQueryManager {
 				bundle.getQueryResult().getQueryResults().setRows(rowHandler.getRows());
 			}
 			// add the next page token if needed
-			if (isRowCountEqualToMaxRowsPerPage(bundle)) { //TODO: fix for facets
+			if (isRowCountEqualToMaxRowsPerPage(bundle)) { //TODO: test
 				int maxRowsPerPage = bundle.getMaxRowsPerPage().intValue();
 				long nextOffset = (offset == null ? 0 : offset) + maxRowsPerPage;
 				QueryNextPageToken nextPageToken = createNextPageToken(query,sortList,
-						nextOffset, limit, isConsistent);
+						nextOffset, limit, isConsistent, selectedFacets);
 				bundle.getQueryResult().setNextPageToken(nextPageToken);
 			}
 			return bundle;
@@ -162,7 +166,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 */
 	QueryResultBundle queryAsStream(final ProgressCallback<Void> progressCallback,
 			final UserInfo user, final SqlQuery query, final List<ValidatedQueryFacetColumn> selectedFacets,
-			final RowHandler rowHandler,final  boolean runCount, final boolean isConsistent)
+			final RowHandler rowHandler,final  boolean runCount, final boolean returnFacets, final boolean isConsistent)
 			throws DatastoreException, NotFoundException,
 			TableUnavailableException, TableFailedException, LockUnavilableException, EmptyResultException {		
 		// consistent queries are run with a read lock on the table and include the current etag.
@@ -178,7 +182,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 						// We can only run this query if the table is available.
 						final TableStatus status = validateTableIsAvailable(query.getTableId());
 						// run the query
-						QueryResultBundle bundle = queryAsStreamWithAuthorization(progressCallback, user, query, selectedFacets, rowHandler, runCount);
+						QueryResultBundle bundle = queryAsStreamWithAuthorization(progressCallback, user, query, selectedFacets, rowHandler, runCount, returnFacets);
 						// add the status to the result
 						if(rowHandler != null){
 							// the etag is only returned for consistent queries.
@@ -188,7 +192,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 					}});
 		}else{
 			// run without a read lock.
-			return queryAsStreamWithAuthorization(progressCallback, user, query, selectedFacets,rowHandler, runCount);
+			return queryAsStreamWithAuthorization(progressCallback, user, query, selectedFacets,rowHandler, runCount, returnFacets);
 		}
 	}
 	
@@ -241,7 +245,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @throws EmptyResultException 
 	 */
 	QueryResultBundle queryAsStreamWithAuthorization(ProgressCallback<Void> progressCallback, UserInfo user, SqlQuery query, List<ValidatedQueryFacetColumn> selectedFacets,
-			RowHandler rowHandler, boolean runCount) throws NotFoundException, LockUnavilableException, TableUnavailableException, TableFailedException, EmptyResultException{
+			RowHandler rowHandler, boolean runCount, boolean returnFacets) throws NotFoundException, LockUnavilableException, TableUnavailableException, TableFailedException, EmptyResultException{
 		// Get a connection to the table.
 		TableIndexDAO indexDao = tableConnectionFactory.getConnection(query.getTableId());
 		
@@ -256,7 +260,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			filteredQuery = query;
 		}
 		// run the actual query.
-		return queryAsStreamAfterAuthorization(progressCallback, filteredQuery, selectedFacets, rowHandler, runCount, indexDao);
+		return queryAsStreamAfterAuthorization(progressCallback, filteredQuery, selectedFacets, rowHandler, runCount, returnFacets, indexDao);
 	}
 
 	/**
@@ -279,7 +283,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @throws TableLockUnavailableException
 	 */
 	QueryResultBundle queryAsStreamAfterAuthorization(ProgressCallback<Void> progressCallback, SqlQuery query, List<ValidatedQueryFacetColumn> queryFacetColumns,
-			RowHandler rowHandler, boolean runCount, TableIndexDAO indexDao)
+			RowHandler rowHandler, boolean runCount, boolean returnFacets,TableIndexDAO indexDao)
 			throws TableUnavailableException, TableFailedException, LockUnavilableException {
 		//TODO: TEST
 		// build up the response.
@@ -291,7 +295,13 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		QueryResult queryResult = null;
 		if(rowHandler != null){
 			// run the query
-			RowSet rowSet = runQueryAsStream(progressCallback, query, rowHandler, indexDao);
+			SqlQuery queryToRun;
+			if(queryFacetColumns != null && !queryFacetColumns.isEmpty()){
+				queryToRun = appendFacetSearchCondition(query, queryFacetColumns);
+			}else{
+				queryToRun = query;
+			}
+			RowSet rowSet = runQueryAsStream(progressCallback, queryToRun, rowHandler, indexDao);
 			queryResult = new QueryResult();
 			queryResult.setQueryResults(rowSet);
 		}
@@ -304,7 +314,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		}
 		
 		//run the facet counts if needed
-		if(queryFacetColumns != null && !queryFacetColumns.isEmpty()){
+		if(returnFacets && queryFacetColumns != null && !queryFacetColumns.isEmpty()){
 			List<QueryFacetResultColumn> facetResults = new ArrayList<>();
 			for(ValidatedQueryFacetColumn facetQuery : queryFacetColumns){
 				//TODO: finish processing facets
@@ -404,9 +414,9 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			UserInfo user, QueryNextPageToken nextPageToken)
 			throws TableUnavailableException, TableFailedException,
 			LockUnavilableException {
-		Query query = createQueryFromNextPageToken(nextPageToken);//TODO: fix for facets
-		QueryResultBundle queryResult = querySinglePage(progressCallback, user, query.getSql(), null, null, query.getOffset(), query.getLimit(),
-				true, false, query.getIsConsistent());
+		Query query = createQueryFromNextPageToken(nextPageToken);
+		QueryResultBundle queryResult = querySinglePage(progressCallback, user, query.getSql(), null, query.getSelectedFacets(), query.getOffset(), query.getLimit(),
+				true, false, false, query.getIsConsistent()); //TODO: when should runFacet be true???
 		return queryResult.getQueryResult();
 	}
 
@@ -426,6 +436,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		}
 		boolean runQuery = ((partMask & BUNDLE_MASK_QUERY_RESULTS) != 0);
 		boolean runCount = ((partMask & BUNDLE_MASK_QUERY_COUNT) != 0);
+		boolean runFacets = ((partMask & BUNDLE_MASK_QUERY_FACETS) != 0);
 		boolean isConsistent = BooleanUtils.isNotFalse(queryBundle.getQuery()
 				.getIsConsistent());
 		
@@ -439,7 +450,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 				queryBundle.getQuery().getOffset(),
 				queryBundle.getQuery().getLimit(),
 				runQuery,
-				runCount, isConsistent
+				runCount, runFacets, isConsistent
 				);
 		
 		if(runQuery){
@@ -473,15 +484,17 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @param isConsistent
 	 * @return
 	 */
-	public static QueryNextPageToken createNextPageToken(String sql, List<SortItem> sortList, Long nextOffset, Long limit, boolean isConsistent) {
+	public static QueryNextPageToken createNextPageToken(String sql, List<SortItem> sortList, Long nextOffset, Long limit, boolean isConsistent, List<QueryRequestFacetColumn> selectedFacets) {
+		//TODO: test
 		Query query = new Query();
 		query.setSql(sql);
 		query.setSort(sortList);
 		query.setOffset(nextOffset);
 		query.setLimit(limit);
 		query.setIsConsistent(isConsistent);
+		query.setSelectedFacets(selectedFacets);
 
-		StringWriter writer = new StringWriter(sql.length() + 50);
+		StringWriter writer = new StringWriter(sql.length() + 50);//TODO: increase initial buffer size to ?
 		XStream xstream = new XStream();
 		xstream.alias("Query", Query.class);
 		xstream.toXML(query, writer);
@@ -590,7 +603,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			boolean runCount = false;
 			boolean isConsistent = true;
 			QueryResultBundle result = queryAsStream(progressCallback, user,
-					query, null ,handler, runCount, isConsistent); //TODO: is NULL selectedFacets correct behavior?
+					query, null ,handler, runCount, false, isConsistent); //TODO: is NULL selectedFacets correct behavior?
 			// convert the response
 			DownloadFromTableResult response = new DownloadFromTableResult();
 			response.setHeaders(result.getSelectColumns());
@@ -834,6 +847,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	
 	
 	SqlQuery appendFacetSearchCondition(SqlQuery query, List<ValidatedQueryFacetColumn> facetColumns){
+		//TODO: test
 		ValidateArgument.required(query, "query");
 		ValidateArgument.required(facetColumns, "facetColumns");
 		ValidateArgument.requirement(!facetColumns.isEmpty(), "No need to append if facetColumns is empty.");
