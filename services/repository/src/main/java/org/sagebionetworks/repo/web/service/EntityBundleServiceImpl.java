@@ -195,6 +195,8 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 				eb.setThreadCount(0L);
 			} else if (result.getList().size() == 1) {
 				eb.setThreadCount(result.getList().get(0).getCount());
+			} else {
+				throw new IllegalStateException("Unexpected EntityThreadCount list size: "+result.getList().size());
 			}
 		}
 		return eb;

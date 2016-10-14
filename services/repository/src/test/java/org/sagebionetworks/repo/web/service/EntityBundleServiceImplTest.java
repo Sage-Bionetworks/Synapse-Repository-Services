@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.web.service;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyString;
@@ -375,7 +374,7 @@ public class EntityBundleServiceImplTest {
 		assertEquals((Long)1L, bundle.getThreadCount());
 	}
 
-	@Test
+	@Test (expected=IllegalStateException.class)
 	public void testThreadCountUnexpectedResultListSize() throws Exception {
 		String entityId = "syn123";
 		int mask = EntityBundle.THREAD_COUNT;
@@ -383,8 +382,6 @@ public class EntityBundleServiceImplTest {
 		threadCount.setEntityId(entityId);
 		threadCount.setCount(1L);
 		threadCounts.setList(Arrays.asList(threadCount, threadCount));
-		EntityBundle bundle = entityBundleService.getEntityBundle(TEST_USER1, entityId, mask, null);
-		assertNotNull(bundle);
-		assertNull(bundle.getThreadCount());
+		entityBundleService.getEntityBundle(TEST_USER1, entityId, mask, null);
 	}
 }
