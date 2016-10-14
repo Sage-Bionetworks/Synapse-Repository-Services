@@ -11,12 +11,15 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -27,6 +30,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dao.WikiPageKeyHelper;
+import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -46,7 +50,10 @@ public class V2WikiControllerTest extends AbstractAutowiredControllerTestBase {
 	private NodeManager nodeManager;
 	
 	@Autowired
-	private FileHandleDao fileMetadataDao;
+	private FileHandleDao fileHandleDao;
+
+	@Autowired
+	private IdGenerator idGenerator;
 	
 	private Long adminUserId;
 	private String adminUserIdString;
@@ -75,7 +82,9 @@ public class V2WikiControllerTest extends AbstractAutowiredControllerTestBase {
 		fileOneHandle.setKey("mainFileKey");
 		fileOneHandle.setEtag("etag");
 		fileOneHandle.setFileName("foo.bar");
-		fileOneHandle = fileMetadataDao.createFile(fileOneHandle);
+		fileOneHandle.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		fileOneHandle.setEtag(UUID.randomUUID().toString());
+	
 		// Create a preview
 		fileOnePreviewHandle = new PreviewFileHandle();
 		fileOnePreviewHandle.setCreatedBy(adminUserIdString);
@@ -84,9 +93,8 @@ public class V2WikiControllerTest extends AbstractAutowiredControllerTestBase {
 		fileOnePreviewHandle.setKey("previewFileKey");
 		fileOnePreviewHandle.setEtag("etag");
 		fileOnePreviewHandle.setFileName("bar.txt");
-		fileOnePreviewHandle = fileMetadataDao.createFile(fileOnePreviewHandle);
-		// Set two as the preview of one
-		fileMetadataDao.setPreviewId(fileOneHandle.getId(), fileOnePreviewHandle.getId());
+		fileOnePreviewHandle.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		fileOnePreviewHandle.setEtag(UUID.randomUUID().toString());
 		
 		markdownOneHandle = new S3FileHandle();
 		markdownOneHandle.setCreatedBy(adminUserIdString);
@@ -95,8 +103,9 @@ public class V2WikiControllerTest extends AbstractAutowiredControllerTestBase {
 		markdownOneHandle.setKey("markdownKey");
 		markdownOneHandle.setEtag("etag");
 		markdownOneHandle.setFileName("markdown");
+		markdownOneHandle.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		markdownOneHandle.setEtag(UUID.randomUUID().toString());
 		
-		markdownOneHandle = fileMetadataDao.createFile(markdownOneHandle);
 		markdownTwoHandle = new S3FileHandle();
 		markdownTwoHandle.setCreatedBy(adminUserIdString);
 		markdownTwoHandle.setCreatedOn(new Date());
@@ -104,7 +113,21 @@ public class V2WikiControllerTest extends AbstractAutowiredControllerTestBase {
 		markdownTwoHandle.setKey("markdownKey2");
 		markdownTwoHandle.setEtag("etag2");
 		markdownTwoHandle.setFileName("markdown2");
-		markdownTwoHandle = fileMetadataDao.createFile(markdownTwoHandle);
+		markdownTwoHandle.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		markdownTwoHandle.setEtag(UUID.randomUUID().toString());
+
+		List<FileHandle> fileHandleToCreate = new LinkedList<FileHandle>();
+		fileHandleToCreate.add(fileOneHandle);
+		fileHandleToCreate.add(fileOnePreviewHandle);
+		fileHandleToCreate.add(markdownOneHandle);
+		fileHandleToCreate.add(markdownTwoHandle);
+		fileHandleDao.createBatch(fileHandleToCreate);
+
+		fileOneHandle = (S3FileHandle) fileHandleDao.get(fileOneHandle.getId());
+		fileOnePreviewHandle = (PreviewFileHandle) fileHandleDao.get(fileOnePreviewHandle.getId());
+		markdownOneHandle = (S3FileHandle) fileHandleDao.get(markdownOneHandle.getId());
+		markdownTwoHandle = (S3FileHandle) fileHandleDao.get(markdownTwoHandle.getId());
+		fileHandleDao.setPreviewId(fileOneHandle.getId(), fileOnePreviewHandle.getId());
 	}
 	
 	@After
@@ -122,16 +145,16 @@ public class V2WikiControllerTest extends AbstractAutowiredControllerTestBase {
 			nodeManager.delete(userInfo, entity.getId());
 		}
 		if(fileOneHandle != null && fileOneHandle.getId() != null){
-			fileMetadataDao.delete(fileOneHandle.getId());
+			fileHandleDao.delete(fileOneHandle.getId());
 		}
 		if(fileOnePreviewHandle != null && fileOnePreviewHandle.getId() != null){
-			fileMetadataDao.delete(fileOnePreviewHandle.getId());
+			fileHandleDao.delete(fileOnePreviewHandle.getId());
 		}
 		if(markdownOneHandle != null && markdownOneHandle.getId() != null) {
-			fileMetadataDao.delete(markdownOneHandle.getId());
+			fileHandleDao.delete(markdownOneHandle.getId());
 		}
 		if(markdownTwoHandle != null && markdownTwoHandle.getId() != null) {
-			fileMetadataDao.delete(markdownTwoHandle.getId());
+			fileHandleDao.delete(markdownTwoHandle.getId());
 		}
 	}
 	

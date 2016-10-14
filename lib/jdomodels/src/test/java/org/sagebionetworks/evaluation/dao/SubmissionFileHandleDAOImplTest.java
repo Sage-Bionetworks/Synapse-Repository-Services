@@ -6,7 +6,9 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.Date;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
@@ -16,6 +18,8 @@ import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.evaluation.model.Submission;
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -26,7 +30,7 @@ import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.evaluation.ParticipantDAO;
 import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
 import org.sagebionetworks.repo.model.evaluation.SubmissionFileHandleDAO;
-import org.sagebionetworks.repo.model.evaluation.SubmissionStatusDAO;
+import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -43,9 +47,6 @@ public class SubmissionFileHandleDAOImplTest {
     private SubmissionDAO submissionDAO;
     
     @Autowired
-    private SubmissionStatusDAO submissionStatusDAO;
-    
-    @Autowired
     private SubmissionFileHandleDAO submissionFileHandleDAO;
     
     @Autowired
@@ -59,6 +60,9 @@ public class SubmissionFileHandleDAOImplTest {
 	
     @Autowired
     private FileHandleDao fileHandleDAO;
+
+	@Autowired
+	private IdGenerator idGenerator;
  
 	private String userId;
 	private String nodeId;
@@ -77,17 +81,46 @@ public class SubmissionFileHandleDAOImplTest {
     	userId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString();
     	
     	// create a file handle
-		PreviewFileHandle meta = new PreviewFileHandle();
-		meta.setBucketName("bucketName");
-		meta.setKey("key");
-		meta.setContentType("content type");
-		meta.setContentSize(123l);
-		meta.setContentMd5("md5");
-		meta.setCreatedBy("" + userId);
-		meta.setFileName("preview.jpg");
-		fileHandleId1 = fileHandleDAO.createFile(meta).getId();		
-		fileHandleId2 = fileHandleDAO.createFile(meta).getId();
-		fileHandleId3 = fileHandleDAO.createFile(meta).getId();
+		PreviewFileHandle meta1 = new PreviewFileHandle();
+		meta1.setBucketName("bucketName");
+		meta1.setKey("key");
+		meta1.setContentType("content type");
+		meta1.setContentSize(123l);
+		meta1.setContentMd5("md5");
+		meta1.setCreatedBy("" + userId);
+		meta1.setFileName("preview.jpg");
+		meta1.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		meta1.setEtag(UUID.randomUUID().toString());
+		PreviewFileHandle meta2 = new PreviewFileHandle();
+		meta2.setBucketName("bucketName");
+		meta2.setKey("key");
+		meta2.setContentType("content type");
+		meta2.setContentSize(123l);
+		meta2.setContentMd5("md5");
+		meta2.setCreatedBy("" + userId);
+		meta2.setFileName("preview.jpg");
+		meta2.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		meta2.setEtag(UUID.randomUUID().toString());
+		PreviewFileHandle meta3 = new PreviewFileHandle();
+		meta3.setBucketName("bucketName");
+		meta3.setKey("key");
+		meta3.setContentType("content type");
+		meta3.setContentSize(123l);
+		meta3.setContentMd5("md5");
+		meta3.setCreatedBy("" + userId);
+		meta3.setFileName("preview.jpg");
+		meta3.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		meta3.setEtag(UUID.randomUUID().toString());
+
+		List<FileHandle> fileHandleToCreate = new LinkedList<FileHandle>();
+		fileHandleToCreate.add(meta1);
+		fileHandleToCreate.add(meta2);
+		fileHandleToCreate.add(meta3);
+		fileHandleDAO.createBatch(fileHandleToCreate);
+
+		fileHandleId1 = meta1.getId();
+		fileHandleId2 = meta2.getId();
+		fileHandleId3 = meta3.getId();
 		
     	// create a node
   		Node toCreate = NodeTestUtils.createNew(name, Long.parseLong(userId));
