@@ -207,7 +207,7 @@ public class TableQueryManagerImplTest {
 		boolean runCount = true;
 		boolean isConsistent = true;
 		SqlQuery query = new SqlQuery("select * from " + tableId, models);
-		manager.queryAsStream(mockProgressCallbackVoid, user, query, rowHandler, runCount, isConsistent);
+		manager.queryAsStream(mockProgressCallbackVoid, user, query, null, rowHandler, runCount, false, isConsistent);
 	}
 	
 	@Test
@@ -216,7 +216,7 @@ public class TableQueryManagerImplTest {
 		boolean runCount = true;
 		boolean isConsistent = true;
 		SqlQuery query = new SqlQuery("select * from " + tableId, models);
-		manager.queryAsStream(mockProgressCallbackVoid, user, query, rowHandler, runCount, isConsistent);
+		manager.queryAsStream(mockProgressCallbackVoid, user, query, null, rowHandler, runCount, false, isConsistent);
 		verify(mockTableManagerSupport).validateTableReadAccess(user, tableId);
 	}
 	
@@ -227,7 +227,7 @@ public class TableQueryManagerImplTest {
 		boolean isConsistent = true;
 		SqlQuery query = new SqlQuery("select * from " + tableId, models);
 		// call under test.
-		QueryResultBundle result = manager.queryAsStream(mockProgressCallbackVoid, user, query, rowHandler, runCount, isConsistent);
+		QueryResultBundle result = manager.queryAsStream(mockProgressCallbackVoid, user, query, null, rowHandler, runCount, false, isConsistent);
 		assertNotNull(result);
 		assertNotNull(result.getQueryResult());
 		assertNotNull(result.getQueryResult().getQueryResults());
@@ -250,7 +250,7 @@ public class TableQueryManagerImplTest {
 		boolean isConsistent = true;
 		SqlQuery query = new SqlQuery("select * from " + tableId, models);
 		// call under test.
-		manager.queryAsStream(mockProgressCallbackVoid, user, query, rowHandler, runCount, isConsistent);
+		manager.queryAsStream(mockProgressCallbackVoid, user, query, null, rowHandler, runCount, false, isConsistent);
 	}
 	
 	@Test (expected=TableUnavailableException.class)
@@ -264,7 +264,7 @@ public class TableQueryManagerImplTest {
 		boolean isConsistent = true;
 		SqlQuery query = new SqlQuery("select * from " + tableId, models);
 		// call under test.
-		manager.queryAsStream(mockProgressCallbackVoid, user, query, rowHandler, runCount, isConsistent);
+		manager.queryAsStream(mockProgressCallbackVoid, user, query, null, rowHandler, runCount, false, isConsistent);
 	}
 	
 	@Test (expected=TableFailedException.class)
@@ -278,7 +278,7 @@ public class TableQueryManagerImplTest {
 		boolean isConsistent = true;
 		SqlQuery query = new SqlQuery("select * from " + tableId, models);
 		// call under test.
-		manager.queryAsStream(mockProgressCallbackVoid, user, query, rowHandler, runCount, isConsistent);
+		manager.queryAsStream(mockProgressCallbackVoid, user, query, null, rowHandler, runCount, false, isConsistent);
 	}
 	
 	@Test (expected=LockUnavilableException.class)
@@ -292,7 +292,7 @@ public class TableQueryManagerImplTest {
 		boolean isConsistent = true;
 		SqlQuery query = new SqlQuery("select * from " + tableId, models);
 		// call under test.
-		manager.queryAsStream(mockProgressCallbackVoid, user, query, rowHandler, runCount, isConsistent);
+		manager.queryAsStream(mockProgressCallbackVoid, user, query, null, rowHandler, runCount, false, isConsistent);
 	}
 	
 	@Test (expected=EmptyResultException.class)
@@ -306,7 +306,7 @@ public class TableQueryManagerImplTest {
 		boolean isConsistent = true;
 		SqlQuery query = new SqlQuery("select * from " + tableId, models);
 		// call under test.
-		manager.queryAsStream(mockProgressCallbackVoid, user, query, rowHandler, runCount, isConsistent);
+		manager.queryAsStream(mockProgressCallbackVoid, user, query, null, rowHandler, runCount, false, isConsistent);
 	}
 	
 	@Test
@@ -316,7 +316,7 @@ public class TableQueryManagerImplTest {
 		boolean isConsistent = false;
 		SqlQuery query = new SqlQuery("select * from " + tableId, models);
 		// call under test.
-		QueryResultBundle result = manager.queryAsStream(mockProgressCallbackVoid, user, query, rowHandler, runCount, isConsistent);
+		QueryResultBundle result = manager.queryAsStream(mockProgressCallbackVoid, user, query, null, rowHandler, runCount, false, isConsistent);
 		assertNotNull(result);
 		assertNotNull(result.getQueryResult());
 		assertNotNull(result.getQueryResult().getQueryResults());
@@ -337,7 +337,7 @@ public class TableQueryManagerImplTest {
 		RowHandler rowHandler = new SinglePageRowHandler();
 		boolean runCount = true;
 		// call under test
-		QueryResultBundle result = manager.queryAsStreamWithAuthorization(mockProgressCallbackVoid, user, query, rowHandler, runCount);
+		QueryResultBundle result = manager.queryAsStreamWithAuthorization(mockProgressCallbackVoid, user, query, null, rowHandler, runCount, false);
 		// auth check should occur
 		verify(mockTableManagerSupport).validateTableReadAccess(user, tableId);
 		// a benefactor check should not occur for TableEntities
@@ -362,7 +362,7 @@ public class TableQueryManagerImplTest {
 		RowHandler rowHandler = new SinglePageRowHandler();
 		boolean runCount = true;
 		// call under test
-		QueryResultBundle result = manager.queryAsStreamWithAuthorization(mockProgressCallbackVoid, user, query, rowHandler, runCount);
+		QueryResultBundle result = manager.queryAsStreamWithAuthorization(mockProgressCallbackVoid, user, query, null, rowHandler, runCount, false);
 		assertNotNull(result);
 		// auth check should occur
 		verify(mockTableManagerSupport).validateTableReadAccess(user, tableId);
@@ -382,7 +382,7 @@ public class TableQueryManagerImplTest {
 		boolean runCount = true;
 		SqlQuery query = new SqlQuery("select * from " + tableId, models);
 		// call under test
-		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(mockProgressCallbackVoid, query, rowHandler, runCount, mockTableIndexDAO);
+		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(mockProgressCallbackVoid, query, null, rowHandler, runCount, false, mockTableIndexDAO);
 		assertNotNull(results);
 		assertEquals(models, results.getColumnModels());
 		assertEquals(TableModelUtils.getSelectColumns(models), results.getSelectColumns());
@@ -404,7 +404,7 @@ public class TableQueryManagerImplTest {
 		boolean runCount = true;
 		SqlQuery query = new SqlQuery("select * from " + tableId+" limit 11", models);
 		// call under test
-		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(mockProgressCallbackVoid, query, rowHandler, runCount, mockTableIndexDAO);
+		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(mockProgressCallbackVoid, query, null, rowHandler, runCount, false, mockTableIndexDAO);
 		assertNotNull(results);
 		assertEquals(new Long(11), results.getQueryCount());
 	}
@@ -419,7 +419,7 @@ public class TableQueryManagerImplTest {
 		boolean runCount = false;
 		SqlQuery query = new SqlQuery("select * from " + tableId, models);
 		// call under test
-		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(mockProgressCallbackVoid, query, rowHandler, runCount, mockTableIndexDAO);
+		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(mockProgressCallbackVoid, query, null, rowHandler, runCount, false, mockTableIndexDAO);
 		assertNotNull(results);
 		assertEquals(models, results.getColumnModels());
 		assertEquals(TableModelUtils.getSelectColumns(models), results.getSelectColumns());
@@ -438,7 +438,7 @@ public class TableQueryManagerImplTest {
 		boolean runCount = true;
 		SqlQuery query = new SqlQuery("select * from " + tableId, models);
 		// call under test
-		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(mockProgressCallbackVoid, query, rowHandler, runCount, mockTableIndexDAO);
+		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(mockProgressCallbackVoid, query, null, rowHandler, runCount, false, mockTableIndexDAO);
 		assertNotNull(results);
 		assertEquals(models, results.getColumnModels());
 		assertEquals(TableModelUtils.getSelectColumns(models), results.getSelectColumns());
@@ -477,7 +477,7 @@ public class TableQueryManagerImplTest {
 	public void testQuerySinglePageEmptySchema() throws Exception {
 		// Return no columns
 		when(mockColumnModelDAO.getColumnModelsForObject(tableId)).thenReturn(new LinkedList<ColumnModel>());
-		QueryResultBundle results = manager.querySinglePage(mockProgressCallbackVoid, user, "select * from " + tableId + " limit 1", null, null, null, null, true, false, true);
+		QueryResultBundle results = manager.querySinglePage(mockProgressCallbackVoid, user, "select * from " + tableId + " limit 1", null, null, null, null, true, false, false ,true);
 		assertNotNull(results);
 		QueryResultBundle emptyResults = TableQueryManagerImpl.createEmptyBundle(tableId);
 		assertEquals(emptyResults, results);
@@ -491,7 +491,7 @@ public class TableQueryManagerImplTest {
 	public void testQueryIsConsistentTrueNotAvailable() throws Exception {
 		status.setState(TableState.PROCESSING);
 		try{
-			manager.querySinglePage(mockProgressCallbackVoid, user, "select * from " + tableId + " limit 1", null, null, null, null, true, false, true);
+			manager.querySinglePage(mockProgressCallbackVoid, user, "select * from " + tableId + " limit 1", null, null, null, null, true, false, false, true);
 			fail("should have failed");
 		}catch(TableUnavailableException e){
 			// expected
@@ -597,7 +597,7 @@ public class TableQueryManagerImplTest {
 		Long nextOffset = 10L;
 		Long limit = 21L;
 		boolean isConsistent = true;
-		QueryNextPageToken token = TableQueryManagerImpl.createNextPageToken(sql, sortList, nextOffset, limit, isConsistent);
+		QueryNextPageToken token = TableQueryManagerImpl.createNextPageToken(sql, sortList, nextOffset, limit, isConsistent, null);
 		Query query = TableQueryManagerImpl.createQueryFromNextPageToken(token);
 		assertEquals(sql, query.getSql());
 		assertEquals(nextOffset, query.getOffset());
@@ -843,7 +843,7 @@ public class TableQueryManagerImplTest {
 		// call under test.
 		QueryResultBundle result = manager.querySinglePage(
 				mockProgressCallbackVoid, user, query, sortList,
-				null, offset, limit, runQuery, runCount, isConsistent);
+				null, offset, limit, runQuery, runCount, false, isConsistent);
 		
 		assertNotNull(result);
 		assertEquals(new Long(1), result.getMaxRowsPerPage());
@@ -870,7 +870,7 @@ public class TableQueryManagerImplTest {
 		// call under test.
 		QueryResultBundle result = manager.querySinglePage(
 				mockProgressCallbackVoid, user, query, sortList,
-				null, offset, limit, runQuery, runCount, isConsistent);
+				null, offset, limit, runQuery, runCount, false, isConsistent);
 		
 		assertNotNull(result);
 		assertNotNull(result.getMaxRowsPerPage());
@@ -889,7 +889,7 @@ public class TableQueryManagerImplTest {
 		// call under test.
 		QueryResultBundle result = manager.querySinglePage(
 				mockProgressCallbackVoid, user, query, sortList,
-				null, offset, limit, runQuery, runCount, isConsistent);
+				null, offset, limit, runQuery, runCount, false, isConsistent);
 		
 		assertNotNull(result);
 		assertNotNull(result.getQueryResult());
@@ -910,7 +910,7 @@ public class TableQueryManagerImplTest {
 		// call under test.
 		QueryResultBundle result = manager.querySinglePage(
 				mockProgressCallbackVoid, user, query, sortList,
-				null, offset, limit, runQuery, runCount, isConsistent);
+				null, offset, limit, runQuery, runCount, false, isConsistent);
 		
 		assertNotNull(result);
 		// there should be no query results.
@@ -933,7 +933,7 @@ public class TableQueryManagerImplTest {
 		// call under test.
 		QueryResultBundle result = manager.querySinglePage(
 				mockProgressCallbackVoid, user, query, sortList,
-				null, offset, limit, runQuery, runCount, isConsistent);
+				null, offset, limit, runQuery, runCount, false, isConsistent);
 		
 		assertNotNull(result);
 		// there should be no query results.
@@ -959,7 +959,7 @@ public class TableQueryManagerImplTest {
 		// call under test.
 		QueryResultBundle result = manager.querySinglePage(
 				mockProgressCallbackVoid, user, query, sortList,
-				null, offset, limit, runQuery, runCount, isConsistent);
+				null, offset, limit, runQuery, runCount, false, isConsistent);
 		
 		assertNotNull(result);
 		// there should be no query results.

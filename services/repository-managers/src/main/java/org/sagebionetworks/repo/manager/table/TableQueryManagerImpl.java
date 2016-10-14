@@ -817,7 +817,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		//create the SearchConditions based on each facet column's values and store them into facetSearchConditionStrings
 		for(ColumnModel columnModel : schema){
 			//add to list of facets
-			if (!columnModel.getFacetType().equals(FacetType.none)){//if it is a facet add it to the list
+			if (FacetType.enumeration.equals(columnModel.getFacetType()) || FacetType.range.equals(columnModel.getFacetType())){//if it is a facet add it to the list
 				QueryRequestFacetColumn facetParams = selectedFacetMap.get(columnModel.getName());
 				Set<String> facetValues = null;
 				FacetRange facetRange = null;
@@ -839,8 +839,10 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	private static Map<String, QueryRequestFacetColumn> createColumnNameToFacetColumnMap(List<QueryRequestFacetColumn> selectedFacets){
 		//TODO: test
 		Map<String, QueryRequestFacetColumn> result = new HashMap<String, QueryRequestFacetColumn>();
-		for(QueryRequestFacetColumn facet : selectedFacets){
-			result.put(facet.getColumnName(), facet);
+		if(selectedFacets != null){
+			for(QueryRequestFacetColumn facet : selectedFacets){
+				result.put(facet.getColumnName(), facet);
+			}
 		}
 		return result;
 	}
