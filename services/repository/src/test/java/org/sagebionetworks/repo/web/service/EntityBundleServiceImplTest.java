@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.web.service;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyString;
@@ -14,6 +15,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
@@ -22,6 +24,8 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -30,6 +34,7 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityBundleCreate;
+import org.sagebionetworks.repo.model.EntityIdList;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -39,6 +44,8 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
+import org.sagebionetworks.repo.model.discussion.EntityThreadCount;
+import org.sagebionetworks.repo.model.discussion.EntityThreadCounts;
 import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
@@ -47,6 +54,7 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.service.discussion.DiscussionService;
 import org.sagebionetworks.repo.web.service.table.TableServices;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
@@ -55,18 +63,26 @@ public class EntityBundleServiceImplTest {
 	private EntityBundleService entityBundleService;
 	
 	private static final Long TEST_USER1 = 8745962384L;
-	
+
+	@Mock
 	private ServiceProvider mockServiceProvider;
+	@Mock
 	private EntityService mockEntityService;
+	@Mock
 	private TableServices mockTableService;
+	@Mock
 	private WikiService mockWikiService;
+	@Mock
 	private DoiService mockDoiService;
+	@Mock
+	private DiscussionService mockDiscussionService;
 	
 	private Project project;
 	private Folder study;
 	private Folder studyWithId;
 	private Annotations annos;
 	private AccessControlList acl;
+	private EntityThreadCounts threadCounts;
 	
 	private EntityBundle responseBundle;
 	
@@ -75,15 +91,9 @@ public class EntityBundleServiceImplTest {
 	private static final String STUDY_ID = "1";
 	private static final long BOOTSTRAP_USER_GROUP_ID = 0L;
 	
-	
-	
 	@Before
 	public void setUp() {
-		// Mocks
-		mockServiceProvider = mock(ServiceProvider.class);
-		mockEntityService = mock(EntityService.class);
-		mockWikiService = mock(WikiService.class);
-		mockDoiService = mock(DoiService.class);
+		MockitoAnnotations.initMocks(this);
 		
 		entityBundleService = new EntityBundleServiceImpl(mockServiceProvider);
 		mockTableService = mock(TableServices.class);
@@ -91,7 +101,8 @@ public class EntityBundleServiceImplTest {
 		when(mockServiceProvider.getWikiService()).thenReturn(mockWikiService);
 		when(mockServiceProvider.getEntityService()).thenReturn(mockEntityService);
 		when(mockServiceProvider.getDoiService()).thenReturn(mockDoiService);
-
+		when(mockServiceProvider.getDiscussionService()).thenReturn(mockDiscussionService);
+		
 		// Entities
 		project = new Project();
 		project.setName(DUMMY_PROJECT);
@@ -129,6 +140,10 @@ public class EntityBundleServiceImplTest {
 		responseBundle.setEntity(study);
 		responseBundle.setAnnotations(annos);
 		responseBundle.setAccessControlList(acl);
+
+		// thread count
+		threadCounts = new EntityThreadCounts();
+		when(mockDiscussionService.getThreadCounts(eq(TEST_USER1), any(EntityIdList.class))).thenReturn(threadCounts);
 	}
 
 	@Test
@@ -335,5 +350,41 @@ public class EntityBundleServiceImplTest {
 		EntityBundle bundle = entityBundleService.getEntityBundle(TEST_USER1, entityId, mask, null);
 		assertNotNull(bundle);
 		assertEquals(fileNameOverride, bundle.getFileName());
+	}
+
+	@Test
+	public void testThreadCountNoEntityRef() throws Exception {
+		String entityId = "syn123";
+		int mask = EntityBundle.THREAD_COUNT;
+		threadCounts.setList(new LinkedList<EntityThreadCount>());
+		EntityBundle bundle = entityBundleService.getEntityBundle(TEST_USER1, entityId, mask, null);
+		assertNotNull(bundle);
+		assertEquals((Long)0L, bundle.getThreadCount());
+	}
+
+	@Test
+	public void testThreadCount() throws Exception {
+		String entityId = "syn123";
+		int mask = EntityBundle.THREAD_COUNT;
+		EntityThreadCount threadCount = new EntityThreadCount();
+		threadCount.setEntityId(entityId);
+		threadCount.setCount(1L);
+		threadCounts.setList(Arrays.asList(threadCount));
+		EntityBundle bundle = entityBundleService.getEntityBundle(TEST_USER1, entityId, mask, null);
+		assertNotNull(bundle);
+		assertEquals((Long)1L, bundle.getThreadCount());
+	}
+
+	@Test
+	public void testThreadCountUnexpectedResultListSize() throws Exception {
+		String entityId = "syn123";
+		int mask = EntityBundle.THREAD_COUNT;
+		EntityThreadCount threadCount = new EntityThreadCount();
+		threadCount.setEntityId(entityId);
+		threadCount.setCount(1L);
+		threadCounts.setList(Arrays.asList(threadCount, threadCount));
+		EntityBundle bundle = entityBundleService.getEntityBundle(TEST_USER1, entityId, mask, null);
+		assertNotNull(bundle);
+		assertNull(bundle.getThreadCount());
 	}
 }
