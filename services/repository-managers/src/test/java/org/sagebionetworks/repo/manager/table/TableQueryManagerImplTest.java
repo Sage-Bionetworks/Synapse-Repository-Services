@@ -49,7 +49,9 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.FacetRange;
@@ -116,8 +118,12 @@ public class TableQueryManagerImplTest {
 	List<ValidatedQueryFacetColumn> validatedQueryFacetColumns;
 	
 	String facetColumnName;
+	String facetColumnId;
 	ColumnModel facetColumnModel;
 	List<ColumnModel> facetSchema;
+	String min1;
+	String max1;
+	FacetRange facetRange1;
 	
 	@Before
 	public void before() throws Exception {
@@ -214,11 +220,23 @@ public class TableQueryManagerImplTest {
 		when(mockTableManagerSupport.getAccessibleBenefactors(user, benfactors)).thenReturn(subSet);
 		
 		//facet setup
+		facetColumnId = "890";
+		facetColumnName = "asdf";
 		validatedQueryFacetColumns = new ArrayList<>();
 		facetColumnModel = new ColumnModel();
 		facetColumnModel.setName(facetColumnName);
+		facetColumnModel.setId(facetColumnId);
+		facetColumnModel.setColumnType(ColumnType.STRING);
+		facetColumnModel.setMaximumSize(50L);
 		facetSchema = new ArrayList<>();
 		facetSchema.add(facetColumnModel);
+		
+		
+		min1 = "23";
+		max1 = "56";
+		facetRange1 = new FacetRange();
+		facetRange1.setMax(max1);
+		facetRange1.setMin(min1);
 	}
 
 	@Test (expected = UnauthorizedException.class)
@@ -1211,14 +1229,57 @@ public class TableQueryManagerImplTest {
 	
 	@Test
 	public void testAppendFacetSearchConditionNullFacetColumnsList() throws ParseException{
-		SqlQuery query = new SqlQuery("select asdf from " + tableId, facetSchema);
-		SqlQuery copy = TableQueryManagerImpl.appendFacetSearchCondition(query, validatedQueryFacetColumns);
+		SqlQuery query = new SqlQuery("select * from " + tableId, facetSchema);
+		SqlQuery copy = TableQueryManagerImpl.appendFacetSearchCondition(query, null);
 		
 		assertTrue(query != copy);//not same reference, are different object instances
-		assertEquals(query.getOutputSQL(), copy.getOutputSQL()); //but have same fields
+		assertEquals(query.getOutputSQL(), copy.getOutputSQL()); //but are essentially the same
 	}
 	
+	@Test
+	public void testAppendFacetSearchConditionEmptyFacetColumnsList() throws ParseException{
+		SqlQuery query = new SqlQuery("select * from " + tableId, facetSchema);
+		
+		assertTrue(validatedQueryFacetColumns.isEmpty());
+		SqlQuery copy = TableQueryManagerImpl.appendFacetSearchCondition(query, validatedQueryFacetColumns);
 	
+		assertTrue(query != copy);//not same reference, are different object instances
+		assertEquals(query.getOutputSQL(), copy.getOutputSQL()); //but are essentially the same
+		
+	}
+	
+	@Test
+	public void testAppendFacetSearchConditionOriginalNoOriginalWhereClause() throws ParseException{
+		SqlQuery query = new SqlQuery("select * from " + tableId, facetSchema);
+		validatedQueryFacetColumns.add(new ValidatedQueryFacetColumn(facetColumnName, FacetType.range, null, facetRange1));
+		
+		SqlQuery modifiedQuery = TableQueryManagerImpl.appendFacetSearchCondition(query, validatedQueryFacetColumns);
+		assertEquals("SELECT _C"+facetColumnId+"_, ROW_ID, ROW_VERSION FROM T"+KeyFactory.stringToKey(tableId)+" WHERE ( ( _C"+facetColumnId+"_ BETWEEN :b0 AND :b1 ) )", modifiedQuery.getOutputSQL());
+		assertEquals(min1, modifiedQuery.getParameters().get("b0"));
+		assertEquals(max1, modifiedQuery.getParameters().get("b1"));
+
+	}
+	
+	@Test
+	public void testAppendFacetSearchConditionOriginalWithOriginalWhereClause() throws ParseException{
+		SqlQuery query = new SqlQuery("select * from " + tableId + " where asdf <> ayy and asdf < 'taco bell'", facetSchema);
+		
+		validatedQueryFacetColumns.add(new ValidatedQueryFacetColumn(facetColumnName, FacetType.range, null, facetRange1));
+		
+		SqlQuery modifiedQuery = TableQueryManagerImpl.appendFacetSearchCondition(query, validatedQueryFacetColumns);
+		assertEquals("SELECT _C"+facetColumnId+"_, ROW_ID, ROW_VERSION FROM T"+KeyFactory.stringToKey(tableId)+" WHERE ( _C"+facetColumnId+"_ <> :b0 AND _C"+facetColumnId+"_ < :b1 ) AND ( ( _C"+facetColumnId+"_ BETWEEN :b2 AND :b3 ) )", modifiedQuery.getOutputSQL());
+		assertEquals(min1, modifiedQuery.getParameters().get("b2"));
+		assertEquals(max1, modifiedQuery.getParameters().get("b3"));
+
+	}
+	
+	/////////////////////////////////////////////
+	// concatFacetSearchConditionStrings() Tests
+	/////////////////////////////////////////////
+	@Test
+	public void testConcatFacetSearchConditionStrings(){
+		
+	}
 	
 }
 

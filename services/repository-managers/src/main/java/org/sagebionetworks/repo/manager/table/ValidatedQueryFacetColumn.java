@@ -84,15 +84,15 @@ public class ValidatedQueryFacetColumn {
 		builder.append(columnName);
 		if(min == null){ //only max exists
 			builder.append(" <= ");
-			builder.append(max);
+			appendValueToStringBuilder(max, builder);
 		}else if (max == null){ //only min exists
 			builder.append(" >= ");
-			builder.append(min);
+			appendValueToStringBuilder(min, builder);
 		}else{
 			builder.append(" BETWEEN ");
-			builder.append(min);
+			appendValueToStringBuilder(min, builder);
 			builder.append(" AND ");
-			builder.append(max);
+			appendValueToStringBuilder(max, builder);
 		}
 		
 		builder.append(")");
@@ -112,9 +112,20 @@ public class ValidatedQueryFacetColumn {
 			}
 			builder.append(columnName);
 			builder.append("=");
-			builder.append(value);
+			appendValueToStringBuilder(value, builder);
 		}
 		return builder.toString();
+	}
+	
+	private static void appendValueToStringBuilder(String value, StringBuilder builder){
+		boolean containsSpaces = value.contains(" ");
+		if(containsSpaces){
+			builder.append("'");
+		}
+		builder.append(value);
+		if(containsSpaces){
+			builder.append("'");
+		}
 	}
 	
 

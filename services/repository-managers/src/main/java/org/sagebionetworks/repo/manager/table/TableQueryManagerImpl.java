@@ -908,6 +908,8 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 */
 	private static String concatFacetSearchConditionStrings(List<ValidatedQueryFacetColumn> facetColumns, String columNameToIgnore){
 		//TODO: test
+		ValidateArgument.required(facetColumns, "facetColumns");
+		
 		StringBuilder builder = new StringBuilder("( ");
 		int initialSize = builder.length(); //length with the "( " included
 		
@@ -940,8 +942,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			
 			return indexDao.facetCountQuery(facetColumnSql, originalQuery.getParameters());
 		} catch (ParseException e){
-			//TODO: not sure of what exceptions to expect yet
-			throw new IllegalArgumentException(e);
+			throw new RuntimeException(e);
 		}
 		
 	}
