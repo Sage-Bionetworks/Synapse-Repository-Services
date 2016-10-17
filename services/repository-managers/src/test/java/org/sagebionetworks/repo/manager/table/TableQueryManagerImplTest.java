@@ -31,18 +31,19 @@ import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
+import org.mockito.runners.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
-import org.sagebionetworks.database.semaphore.Sql;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -56,7 +57,6 @@ import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.FacetRange;
 import org.sagebionetworks.repo.model.table.FacetType;
-import org.sagebionetworks.repo.model.table.FacetValue;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
 import org.sagebionetworks.repo.model.table.QueryNextPageToken;
@@ -78,6 +78,7 @@ import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
+import org.sagebionetworks.table.query.model.SearchCondition;
 import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -86,6 +87,7 @@ import org.springframework.transaction.support.TransactionCallback;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+@RunWith(MockitoJUnitRunner.class)
 public class TableQueryManagerImplTest {
 	
 	@Mock
@@ -124,6 +126,11 @@ public class TableQueryManagerImplTest {
 	String min1;
 	String max1;
 	FacetRange facetRange1;
+	
+	String searchCondition1;
+	
+	@Mock
+	ValidatedQueryFacetColumn mockFacetColumn;
 	
 	@Before
 	public void before() throws Exception {
@@ -237,6 +244,10 @@ public class TableQueryManagerImplTest {
 		facetRange1 = new FacetRange();
 		facetRange1.setMax(max1);
 		facetRange1.setMin(min1);
+		
+		Mockito.when(mockFacetColumn.getColumnName()).thenReturn(facetColumnName);
+		searchCondition1 = "(searchCondition1)";
+		
 	}
 
 	@Test (expected = UnauthorizedException.class)
@@ -1276,10 +1287,54 @@ public class TableQueryManagerImplTest {
 	/////////////////////////////////////////////
 	// concatFacetSearchConditionStrings() Tests
 	/////////////////////////////////////////////
-	@Test
-	public void testConcatFacetSearchConditionStrings(){
-		
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void testConcatFacetSearchConditionStringsNullFacetColumnsList(){
+		TableQueryManagerImpl.concatFacetSearchConditionStrings(null, facetColumnName);
 	}
 	
+	@Test
+	public void testConcatFacetSearchConditionStringsNullColumnNameToIgnore(){
+		Mockito.when(mockFacetColumn.getSearchConditionString()).thenReturn(searchCondition1);
+		validatedQueryFacetColumns.add(mockFacetColumn);
+		assertEquals(1, validatedQueryFacetColumns.size());
+		
+		String result = TableQueryManagerImpl.concatFacetSearchConditionStrings(validatedQueryFacetColumns, null);
+		assertEquals("(" + searchCondition1 + ")", result);
+	}
+	
+	@Test 
+	public void testConcatFacetSearchConditionStringsOnlyFacetInListIsIgnored(){
+		
+		Mockito.when(mockFacetColumn.getSearchConditionString()).thenReturn(searchCondition1);
+		validatedQueryFacetColumns.add(mockFacetColumn);
+		assertEquals(1, validatedQueryFacetColumns.size());
+		
+		String result = TableQueryManagerImpl.concatFacetSearchConditionStrings(validatedQueryFacetColumns, facetColumnName);
+		assertNull(result);
+	}
+	
+	@Test
+	public void testConcatFacetSearchConditionStringSearchConditionStringIsNull(){
+		Mockito.when(mockFacetColumn.getSearchConditionString()).thenReturn(null);
+		validatedQueryFacetColumns.add(mockFacetColumn);
+		assertEquals(1, validatedQueryFacetColumns.size());
+		
+		String result = TableQueryManagerImpl.concatFacetSearchConditionStrings(validatedQueryFacetColumns, null);
+		assertNull(result);
+	}
+	
+	@Test
+	public void testConcatFacetSearchConditionStringMultipleFacetColumns(){
+		Mockito.when(mockFacetColumn.getSearchConditionString()).thenReturn(searchCondition1);
+		validatedQueryFacetColumns.add(mockFacetColumn);
+		String searchCondition2 = "(searchCondition2)";
+		ValidatedQueryFacetColumn mockFacetColumn2 = Mockito.mock(ValidatedQueryFacetColumn.class);
+		Mockito.when(mockFacetColumn2.getSearchConditionString()).thenReturn("(searchCondition2)");
+		validatedQueryFacetColumns.add(mockFacetColumn2);
+
+		String result = TableQueryManagerImpl.concatFacetSearchConditionStrings(validatedQueryFacetColumns, null);
+		assertEquals("(" + searchCondition1 + " AND " + searchCondition2 + ")", result);
+	}
 }
 

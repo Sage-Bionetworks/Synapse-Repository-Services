@@ -5,6 +5,7 @@ import java.util.Set;
 
 import org.sagebionetworks.repo.model.table.FacetRange;
 import org.sagebionetworks.repo.model.table.FacetType;
+import org.sagebionetworks.util.ValidateArgument;
 
 /**
  * An immutable class representing requested facet columns that have been verified against its schema
@@ -26,11 +27,21 @@ public class ValidatedQueryFacetColumn {
 	 * @param facetType
 	 */
 	public ValidatedQueryFacetColumn(String columnName, FacetType facetType, Set<String> columnValues, FacetRange facetRange){
+		ValidateArgument.required(columnName, "columnName");
+		ValidateArgument.required(facetType, "facetType");
+		
 		this.columnName = columnName;
 		this.columnValues = (columnValues == null) ? null : new HashSet<>(columnValues);
-		this.facetRange = facetRange;
+		this.facetRange = copyFacetRange(facetRange);
 		this.facetType = facetType;
 		this.valuesSearchConditionString = createSearchConditionString();
+	}
+	
+	private FacetRange copyFacetRange(FacetRange rangeToCopy){
+		FacetRange copiedRange = new FacetRange();
+		copiedRange.setMax(rangeToCopy.getMax());
+		copiedRange.setMin(rangeToCopy.getMin());
+		return copiedRange;
 	}
 	
 	/**
@@ -45,7 +56,7 @@ public class ValidatedQueryFacetColumn {
 		return this.columnName;
 	}
 	
-	//returns null if no search conditions are applied
+	//returns null if no search conditions exist
 	public String getSearchConditionString(){
 		return this.valuesSearchConditionString;
 	}
@@ -55,7 +66,7 @@ public class ValidatedQueryFacetColumn {
 	}
 	
 	public FacetRange getFacetRange(){
-		return this.facetRange;
+		return copyFacetRange(this.facetRange);
 	}
 	
 	private String createSearchConditionString(){

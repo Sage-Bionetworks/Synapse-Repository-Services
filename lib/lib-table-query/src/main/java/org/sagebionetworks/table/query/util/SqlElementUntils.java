@@ -682,10 +682,11 @@ public class SqlElementUntils {
 	
 	/**
 	 * Creates a SQL query for finding the counts of each category in a facet
-	 * @param model
+	 * @param model the original (non-transformed) model
 	 * @return
+	 * @throws ParseException 
 	 */
-	public static String createFilteredFacetCountSqlString(String columnName, QuerySpecification model,  SearchCondition facetSearchCondition){
+	public static QuerySpecification createFilteredFacetCountSqlQuerySpecification(String columnName, QuerySpecification model,  String facetSearchConditionString) throws ParseException{
 		//TODO: Test
 		ValidateArgument.required(columnName, "columnName");
 		ValidateArgument.required(model, "model");
@@ -695,16 +696,23 @@ public class SqlElementUntils {
 		}
 		
 		TableExpression tableExpressionFromModel = model.getTableExpression();
-		Pagination pagination = new Pagination(MAX_NUM_FACET_CATEGORIES, null);
+		Pagination pagination = new Pagination(MAX_NUM_FACET_CATEGORIES, null);//TODO: move this later to when we figure out the limit thing
 		StringBuilder builder = new StringBuilder("SELECT ");
-		builder.append(columnName +" as value , COUNT(*) as count "); //TODO: "count" and "value" as final constants?
+		builder.append(columnName);
+		builder.append(" AS value , COUNT(*) AS count "); //TODO: "count" and "value" as final constants?
 		builder.append(tableExpressionFromModel.getFromClause().toSql());
-		builder.append(" ");
-		builder.append("WHERE ");
-		builder.append(facetSearchCondition.toSql()); //TODO: WHERE CLAUSE INSTEAD. MUST INCLUDE FACET SEARCH CONDITIONS AND NONFACET SEARCH CONDITIONS FROM USER
+		builder.append(" WHERE (");
+		builder.append(tableExpressionFromModel.getWhereClause().getSearchCondition().toSql());
+		builder.append(")");
+		if(facetSearchConditionString != null){
+			builder.append(" AND (");
+			builder.append(facetSearchConditionString);
+			builder.append(")");
+		}
 		builder.append(" GROUP BY " + columnName + " ");
 		builder.append(pagination.toSql());
-		return builder.toString();
+		
+		return new TableQueryParser(builder.toString()).querySpecification();
 	}
 	
 }
