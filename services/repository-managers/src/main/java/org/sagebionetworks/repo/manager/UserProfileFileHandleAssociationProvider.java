@@ -8,6 +8,7 @@ import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.file.FileHandleAssociationProvider;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class UserProfileFileHandleAssociationProvider implements FileHandleAssociationProvider{
@@ -19,14 +20,19 @@ public class UserProfileFileHandleAssociationProvider implements FileHandleAssoc
 
 	@Override
 	public Set<String> getFileHandleIdsAssociatedWithObject(List<String> fileHandleIds, String objectId) {
-		String handleId = userProfileDAO.getPictureFileHandleId(objectId);
-		String previewId = fileHandleManager.getPreviewFileHandleId(handleId);
 		Set<String> result = new HashSet<String>();
-		if (fileHandleIds.contains(handleId)) {
-			result.add(handleId);
-		}
-		if (fileHandleIds.contains(previewId)) {
-			result.add(previewId);
+		try {
+			String handleId = userProfileDAO.getPictureFileHandleId(objectId);
+			String previewId = fileHandleManager.getPreviewFileHandleId(handleId);
+			if (fileHandleIds.contains(handleId)) {
+				result.add(handleId);
+			}
+			if (fileHandleIds.contains(previewId)) {
+				result.add(previewId);
+			}
+		} catch (NotFoundException e) {
+			// the user does not have a profile picture or the preview hasn't been generated yet
+			// just return what we've got.
 		}
 		return result;
 	}

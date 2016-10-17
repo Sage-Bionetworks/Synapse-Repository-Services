@@ -442,6 +442,11 @@ public class AuthorizationManagerImplUnitTest {
 	}
 
 	@Test
+	public void testCanDownloadTeamIcon() throws Exception {
+		assertTrue(authorizationManager.canAccess(userInfo, "123", ObjectType.TEAM, ACCESS_TYPE.DOWNLOAD).getAuthorized());
+	}
+
+	@Test
 	public void testCanAccessWiki() throws Exception {
 		String wikiId = "1";
 		String entityId = "syn123";

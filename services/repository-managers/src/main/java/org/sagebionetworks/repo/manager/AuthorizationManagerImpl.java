@@ -91,7 +91,8 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 
 		// anonymous can at most READ
 		if (AuthorizationUtils.isUserAnonymous(userInfo)) {
-			if (accessType != ACCESS_TYPE.READ) return AuthorizationManagerUtil.accessDenied("Anonymous users are unauthorized for all but public read operations.");
+			if (accessType != ACCESS_TYPE.READ && objectType != ObjectType.TEAM && objectType != ObjectType.USER_PROFILE)
+				return AuthorizationManagerUtil.accessDenied("Anonymous users are unauthorized for all but public read operations.");
 		}
 
 		switch (objectType) {
@@ -118,6 +119,11 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 				if (userInfo.isAdmin()) {
 					return AuthorizationManagerUtil.AUTHORIZED;
 				}
+				// everyone should be able to download the Team's Icon, even anonymous.
+				if (accessType==ACCESS_TYPE.DOWNLOAD) {
+					return AuthorizationManagerUtil.AUTHORIZED;
+				}
+				
 				// just check the acl
 				boolean teamAccessPermission = aclDAO.canAccess(userInfo.getGroups(), objectId, ObjectType.TEAM, accessType);
 				if (teamAccessPermission) {
@@ -142,8 +148,9 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 				return canAccess(userInfo, key.getOwnerObjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ);
 			}
 			case USER_PROFILE: {
+				// everyone should be able to download userProfile picture, even anonymous.
 				if (accessType==ACCESS_TYPE.DOWNLOAD) {
-				 return AuthorizationManagerUtil.AUTHORIZED;
+					return AuthorizationManagerUtil.AUTHORIZED;
 				} else {
 					return AuthorizationManagerUtil.accessDenied("Unexpected access type "+accessType);
 				}
