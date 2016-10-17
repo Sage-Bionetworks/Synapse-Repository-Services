@@ -643,17 +643,21 @@ public class TableQueryManagerImplTest {
 		sort.setColumn("i0");
 		sort.setDirection(SortDirection.DESC);
 		List<SortItem> sortList= Lists.newArrayList(sort);
+		QueryRequestFacetColumn facet = new QueryRequestFacetColumn();
+		facet.setColumnName(facetColumnName);
+		List<QueryRequestFacetColumn> selectedFacets = Lists.newArrayList(facet);
 		
 		Long nextOffset = 10L;
 		Long limit = 21L;
 		boolean isConsistent = true;
-		QueryNextPageToken token = TableQueryManagerImpl.createNextPageToken(sql, sortList, nextOffset, limit, isConsistent, null);
+		QueryNextPageToken token = TableQueryManagerImpl.createNextPageToken(sql, sortList, nextOffset, limit, isConsistent, selectedFacets);
 		Query query = TableQueryManagerImpl.createQueryFromNextPageToken(token);
 		assertEquals(sql, query.getSql());
 		assertEquals(nextOffset, query.getOffset());
 		assertEquals(limit, query.getLimit());
 		assertEquals(isConsistent, query.getIsConsistent());
 		assertEquals(sortList, query.getSort());
+		assertEquals(selectedFacets, query.getSelectedFacets());
 	}
 	
 	@Test

@@ -330,7 +330,6 @@ public class TableQueryManagerImpl implements TableQueryManager {
 					
 					break;
 				case range:
-					//TODO: maybe add absolute min and max calculations and return those?
 					FacetRange selectedRange = facetQuery.getFacetRange();
 					QueryFacetResultRange resultRange = runFacetColumnRangeQuery(query, facetQuery.getColumnName(), queryFacetColumns, indexDao);
 					if(selectedRange != null){
@@ -360,35 +359,6 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			result.add(column.getReferencedColumnName());
 		}
 		return result;
-	}
-	
-	String buildFacetFilterSearchConditionString(String columnName, Set<String> values){
-		//TODO: Test
-		StringBuilder builder = new StringBuilder("(");
-		
-		//flag to not add an OR to the first element
-		boolean firstElement = true;
-		
-		for(String value : values){
-			//need to put single quotes ' '  around value if it contains spaces
-			boolean containsSpaces = value.contains(" ");
-			
-			if(!firstElement){
-				builder.append(" OR ");
-			}
-			builder.append(columnName);
-			builder.append("=");
-			
-			if(containsSpaces) builder.append("'");
-			builder.append(value);
-			if(containsSpaces) builder.append("'");
-			
-			if(firstElement){
-				firstElement = false;
-			}
-		}
-		builder.append(")");
-		return builder.toString();
 	}
 
 
@@ -422,7 +392,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			LockUnavilableException {
 		Query query = createQueryFromNextPageToken(nextPageToken);
 		QueryResultBundle queryResult = querySinglePage(progressCallback, user, query.getSql(), null, query.getSelectedFacets(), query.getOffset(), query.getLimit(),
-				true, false, false, query.getIsConsistent()); //TODO: when should returnFacet be true???
+				true, false, false, query.getIsConsistent());
 		return queryResult.getQueryResult();
 	}
 
@@ -491,7 +461,6 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @return
 	 */
 	public static QueryNextPageToken createNextPageToken(String sql, List<SortItem> sortList, Long nextOffset, Long limit, boolean isConsistent, List<QueryRequestFacetColumn> selectedFacets) {
-		//TODO: test
 		Query query = new Query();
 		query.setSql(sql);
 		query.setSort(sortList);
@@ -609,7 +578,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			boolean runCount = false;
 			boolean isConsistent = true;
 			QueryResultBundle result = queryAsStream(progressCallback, user,
-					query, null ,handler, runCount, false, isConsistent); //TODO: is NULL selectedFacets correct behavior?
+					query, null ,handler, runCount, false, isConsistent); //TODO: NEED TO MODIFY DownloadFromTableRequest to take in facet parameters
 			// convert the response
 			DownloadFromTableResult response = new DownloadFromTableResult();
 			response.setHeaders(result.getSelectColumns());
