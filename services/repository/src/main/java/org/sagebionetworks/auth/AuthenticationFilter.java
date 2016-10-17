@@ -191,7 +191,9 @@ public class AuthenticationFilter implements Filter {
 		if("".equals(sessionToken.trim())) return true;
 		return false;
 	}
-	private static final long MAX_TIMESTAMP_DIFF_MIN = 15;
+
+	// One more min than max wait at client
+	private static final long MAX_TIMESTAMP_DIFF_MIN = 31;
 	
 	public static boolean isSigned(HttpServletRequest request) {
 		String username = request.getHeader(AuthorizationConstants.USER_ID_HEADER);

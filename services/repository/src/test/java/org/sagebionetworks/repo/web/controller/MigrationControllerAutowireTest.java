@@ -5,10 +5,15 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Date;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -16,6 +21,7 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
@@ -37,9 +43,11 @@ public class MigrationControllerAutowireTest extends AbstractAutowiredController
 	@Autowired
 	private NodeManager nodeManager;
 	@Autowired
-	private FileHandleDao fileMetadataDao;
+	private FileHandleDao fileHandleDao;
 	@Autowired
 	private StackStatusDao stackStatusDao;
+	@Autowired
+	private IdGenerator idGenerator;
 	
 	private Long adminUserId;
 	
@@ -55,7 +63,7 @@ public class MigrationControllerAutowireTest extends AbstractAutowiredController
 		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		String adminUserIdString = adminUserId.toString();
 
-		startFileCount = fileMetadataDao.getCount();
+		startFileCount = fileHandleDao.getCount();
 
 		// Create a file handle
 		handleOne = new S3FileHandle();
@@ -65,7 +73,8 @@ public class MigrationControllerAutowireTest extends AbstractAutowiredController
 		handleOne.setKey("mainFileKey");
 		handleOne.setEtag("etag");
 		handleOne.setFileName("foo.bar");
-		handleOne = fileMetadataDao.createFile(handleOne);
+		handleOne.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		handleOne.setEtag(UUID.randomUUID().toString());
 		// Create a preview
 		preview = new PreviewFileHandle();
 		preview.setCreatedBy(adminUserIdString);
@@ -74,9 +83,18 @@ public class MigrationControllerAutowireTest extends AbstractAutowiredController
 		preview.setKey("previewFileKey");
 		preview.setEtag("etag");
 		preview.setFileName("bar.txt");
-		preview = fileMetadataDao.createFile(preview);
+		preview.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		preview.setEtag(UUID.randomUUID().toString());
+
+		List<FileHandle> fileHandleToCreate = new LinkedList<FileHandle>();
+		fileHandleToCreate.add(handleOne);
+		fileHandleToCreate.add(preview);
+		fileHandleDao.createBatch(fileHandleToCreate);
+
+		handleOne = (S3FileHandle) fileHandleDao.get(handleOne.getId());
+		preview = (PreviewFileHandle) fileHandleDao.get(preview.getId());
 		// Set two as the preview of one
-		fileMetadataDao.setPreviewId(handleOne.getId(), preview.getId());
+		fileHandleDao.setPreviewId(handleOne.getId(), preview.getId());
 	}
 	
 	
@@ -88,10 +106,10 @@ public class MigrationControllerAutowireTest extends AbstractAutowiredController
 			nodeManager.delete(userInfo, entity.getId());
 		}
 		if(handleOne != null && handleOne.getId() != null){
-			fileMetadataDao.delete(handleOne.getId());
+			fileHandleDao.delete(handleOne.getId());
 		}
 		if(preview != null && preview.getId() != null){
-			fileMetadataDao.delete(preview.getId());
+			fileHandleDao.delete(preview.getId());
 		}
 	}
 	
