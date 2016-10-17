@@ -32,17 +32,13 @@ import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.SelfSignAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VerificationDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dao.discussion.DiscussionThreadDAO;
 import org.sagebionetworks.repo.model.dao.discussion.ForumDAO;
-import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
-import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.Forum;
-import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociationManager;
 import org.sagebionetworks.repo.model.provenance.Activity;
@@ -70,12 +66,6 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	private AccessApprovalDAO  accessApprovalDAO;
 	@Autowired
 	private ActivityDAO activityDAO;
-	@Autowired
-	private UserGroupDAO userGroupDAO;
-	@Autowired
-	private EvaluationDAO evaluationDAO;
-	@Autowired
-	private UserManager userManager;
 	@Autowired
 	private EntityPermissionsManager entityPermissionsManager;
 	@Autowired
@@ -114,7 +104,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 					return AuthorizationManagerUtil.AUTHORIZED;
 				}
 				if (accessType==ACCESS_TYPE.READ) {
-					return AuthorizationManagerUtil.AUTHORIZED;					
+					return AuthorizationManagerUtil.AUTHORIZED;
 				}
 				AccessRequirement accessRequirement = accessRequirementDAO.get(objectId);
 				return canAdminAccessRequirement(userInfo, accessRequirement);
@@ -150,6 +140,13 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 			case WIKI:{
 				WikiPageKey key = wikiPageDaoV2.lookupWikiKey(objectId);
 				return canAccess(userInfo, key.getOwnerObjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ);
+			}
+			case USER_PROFILE: {
+				if (accessType==ACCESS_TYPE.DOWNLOAD) {
+				 return AuthorizationManagerUtil.AUTHORIZED;
+				} else {
+					return AuthorizationManagerUtil.accessDenied("Unexpected access type "+accessType);
+				}
 			}
 			default:
 				throw new IllegalArgumentException("Unknown ObjectType: "+objectType);

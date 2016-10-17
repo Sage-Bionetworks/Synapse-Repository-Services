@@ -6,7 +6,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -46,7 +45,6 @@ import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
-import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VerificationDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
@@ -56,7 +54,6 @@ import org.sagebionetworks.repo.model.dao.discussion.ForumDAO;
 import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.Forum;
-import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociationManager;
 import org.sagebionetworks.repo.model.provenance.Activity;
@@ -79,13 +76,7 @@ public class AuthorizationManagerImplUnitTest {
 	@Mock
 	private ActivityDAO mockActivityDAO;
 	@Mock
-	private UserGroupDAO mockUserGroupDAO;
-	@Mock
 	private FileHandleDao mockFileHandleDao;
-	@Mock
-	private EvaluationDAO mockEvaluationDAO;
-	@Mock
-	private UserManager mockUserManager;
 	@Mock
 	private EntityPermissionsManager mockEntityPermissionsManager;
 	@Mock
@@ -126,11 +117,8 @@ public class AuthorizationManagerImplUnitTest {
 		ReflectionTestUtils.setField(authorizationManager, "accessRequirementDAO", mockAccessRequirementDAO);
 		ReflectionTestUtils.setField(authorizationManager, "accessApprovalDAO", mockAccessApprovalDAO);
 		ReflectionTestUtils.setField(authorizationManager, "activityDAO", mockActivityDAO);
-		ReflectionTestUtils.setField(authorizationManager, "userManager", mockUserManager);
 		ReflectionTestUtils.setField(authorizationManager, "entityPermissionsManager", mockEntityPermissionsManager);
 		ReflectionTestUtils.setField(authorizationManager, "fileHandleDao", mockFileHandleDao);
-		ReflectionTestUtils.setField(authorizationManager, "evaluationDAO", mockEvaluationDAO);
-		ReflectionTestUtils.setField(authorizationManager, "userGroupDAO", mockUserGroupDAO);
 		ReflectionTestUtils.setField(authorizationManager, "aclDAO", mockAclDAO);
 		ReflectionTestUtils.setField(authorizationManager, "nodeDao", mockNodeDao);
 		ReflectionTestUtils.setField(authorizationManager, "fileHandleAssociationSwitch", mockFileHandleAssociationManager);
@@ -145,7 +133,6 @@ public class AuthorizationManagerImplUnitTest {
 		evaluation = new Evaluation();
 		evaluation.setId(EVAL_ID);
 		evaluation.setOwnerId(EVAL_OWNER_PRINCIPAL_ID);
-		when(mockEvaluationDAO.get(EVAL_ID)).thenReturn(evaluation);
 
 		List<ACCESS_TYPE> participateAndDownload = new ArrayList<ACCESS_TYPE>();
 		participateAndDownload.add(ACCESS_TYPE.DOWNLOAD);
@@ -464,6 +451,26 @@ public class AuthorizationManagerImplUnitTest {
 		when(mockEntityPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, userInfo))
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		assertTrue(authorizationManager.canAccess(userInfo, wikiId, ObjectType.WIKI, ACCESS_TYPE.DOWNLOAD).getAuthorized());
+	}
+
+	@Test
+	public void testCanAccessUserProfile() throws Exception {
+		assertTrue(authorizationManager.canAccess(userInfo, userInfo.getId().toString(), ObjectType.USER_PROFILE, ACCESS_TYPE.DOWNLOAD).getAuthorized());
+		assertFalse(authorizationManager.canAccess(userInfo, userInfo.getId().toString(), ObjectType.USER_PROFILE, ACCESS_TYPE.CHANGE_PERMISSIONS).getAuthorized());
+		assertFalse(authorizationManager.canAccess(userInfo, userInfo.getId().toString(), ObjectType.USER_PROFILE, ACCESS_TYPE.CHANGE_SETTINGS).getAuthorized());
+		assertFalse(authorizationManager.canAccess(userInfo, userInfo.getId().toString(), ObjectType.USER_PROFILE, ACCESS_TYPE.CREATE).getAuthorized());
+		assertFalse(authorizationManager.canAccess(userInfo, userInfo.getId().toString(), ObjectType.USER_PROFILE, ACCESS_TYPE.DELETE).getAuthorized());
+		assertFalse(authorizationManager.canAccess(userInfo, userInfo.getId().toString(), ObjectType.USER_PROFILE, ACCESS_TYPE.DELETE_SUBMISSION).getAuthorized());
+		assertFalse(authorizationManager.canAccess(userInfo, userInfo.getId().toString(), ObjectType.USER_PROFILE, ACCESS_TYPE.MODERATE).getAuthorized());
+		assertFalse(authorizationManager.canAccess(userInfo, userInfo.getId().toString(), ObjectType.USER_PROFILE, ACCESS_TYPE.PARTICIPATE).getAuthorized());
+		assertFalse(authorizationManager.canAccess(userInfo, userInfo.getId().toString(), ObjectType.USER_PROFILE, ACCESS_TYPE.READ).getAuthorized());
+		assertFalse(authorizationManager.canAccess(userInfo, userInfo.getId().toString(), ObjectType.USER_PROFILE, ACCESS_TYPE.READ_PRIVATE_SUBMISSION).getAuthorized());
+		assertFalse(authorizationManager.canAccess(userInfo, userInfo.getId().toString(), ObjectType.USER_PROFILE, ACCESS_TYPE.SEND_MESSAGE).getAuthorized());
+		assertFalse(authorizationManager.canAccess(userInfo, userInfo.getId().toString(), ObjectType.USER_PROFILE, ACCESS_TYPE.SUBMIT).getAuthorized());
+		assertFalse(authorizationManager.canAccess(userInfo, userInfo.getId().toString(), ObjectType.USER_PROFILE, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE).getAuthorized());
+		assertFalse(authorizationManager.canAccess(userInfo, userInfo.getId().toString(), ObjectType.USER_PROFILE, ACCESS_TYPE.UPDATE).getAuthorized());
+		assertFalse(authorizationManager.canAccess(userInfo, userInfo.getId().toString(), ObjectType.USER_PROFILE, ACCESS_TYPE.UPDATE_SUBMISSION).getAuthorized());
+		assertFalse(authorizationManager.canAccess(userInfo, userInfo.getId().toString(), ObjectType.USER_PROFILE, ACCESS_TYPE.UPLOAD).getAuthorized());
 	}
 	
 	@Test

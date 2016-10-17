@@ -191,6 +191,10 @@
 					<bean
 						class="org.sagebionetworks.repo.manager.wiki.WikiFileHandleAssociationProvider" />
 				</entry>
+				<entry key="UserProfileAttachment">
+					<bean
+						class="org.sagebionetworks.repo.manager.UserProfileFileHandleAssociationProvider" />
+				</entry>
 			</map>
 		</property>
 	</bean>
