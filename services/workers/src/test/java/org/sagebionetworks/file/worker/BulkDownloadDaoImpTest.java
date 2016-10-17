@@ -13,6 +13,7 @@ import java.util.zip.ZipOutputStream;
 import org.apache.commons.io.IOUtils;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
 import static org.mockito.Mockito.*;
@@ -138,12 +139,18 @@ public class BulkDownloadDaoImpTest {
 		s3Handle.setId(fileHandleId);
 		s3Handle.setKey("someKey");
 		s3Handle.setBucketName("someBucket");
+		s3Handle.setContentType("contentType");
 		
 		File result = null;
 		try{
 			result = bulkDownloadDao.downloadToTempFile(s3Handle);
 			assertNotNull(result);
-			verify(mockS3client).getObject(any(GetObjectRequest.class), any(File.class));
+			ArgumentCaptor<GetObjectRequest> captor = ArgumentCaptor.forClass(GetObjectRequest.class);
+			verify(mockS3client).getObject(captor.capture(), any(File.class));
+			GetObjectRequest captured = captor.getValue();
+			assertEquals("someBucket", captured.getBucketName());
+			assertEquals("someKey", captured.getKey());
+			assertEquals("contentType", captured.getResponseHeaders().getContentType());
 		}finally{
 			if(result != null){
 				result.delete();

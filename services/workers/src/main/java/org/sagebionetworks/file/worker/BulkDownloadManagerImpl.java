@@ -23,6 +23,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import com.amazonaws.event.ProgressListener;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.GetObjectRequest;
+import com.amazonaws.services.s3.model.ResponseHeaderOverrides;
 
 public class BulkDownloadManagerImpl implements BulkDownloadManager{
 	
@@ -92,9 +93,12 @@ public class BulkDownloadManagerImpl implements BulkDownloadManager{
 	@Override
 	public File downloadToTempFile(S3FileHandle fileHandle) throws IOException {
 		File tempFile = File.createTempFile("FileHandle"+fileHandle.getId(), ".tmp");
+		ResponseHeaderOverrides responseHeaderOverrides = new ResponseHeaderOverrides();
+		responseHeaderOverrides.setContentType(fileHandle.getContentType());
+		GetObjectRequest request = new GetObjectRequest(fileHandle.getBucketName(),fileHandle.getKey());
+		request.setResponseHeaders(responseHeaderOverrides);
 		// download this file to the local machine
-		s3client.getObject(new GetObjectRequest(fileHandle.getBucketName(),
-				fileHandle.getKey()), tempFile);
+		s3client.getObject(request, tempFile);
 		return tempFile;
 	}
 
