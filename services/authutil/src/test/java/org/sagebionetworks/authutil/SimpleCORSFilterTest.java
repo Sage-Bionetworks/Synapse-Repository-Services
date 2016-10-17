@@ -1,22 +1,22 @@
 package org.sagebionetworks.authutil;
 
-import static org.mockito.Matchers.anyInt;
-import static org.mockito.Mockito.*;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Enumeration;
 
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.http.HttpStatus;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -52,16 +52,29 @@ public class SimpleCORSFilterTest {
 
 	@Test
 	public void testIsPreflight() throws IOException, ServletException{
-		// request header "access control request method" is set
+		// request header "access control request method" is set.
 		when(mockRequest.getHeader(SimpleCORSFilter.ACCESS_CONTROL_REQUEST_METHOD)).thenReturn("set");
+		// verify filter echos back custom headers that we request. 
+		String testHeaders = "Origin, X-Requested-With, Content-Type, Accept, " + AuthorizationConstants.SESSION_TOKEN_PARAM;
+		when(mockRequest.getHeader(SimpleCORSFilter.ACCESS_CONTROL_REQUEST_HEADERS)).thenReturn(testHeaders);
 		when(mockRequest.getMethod()).thenReturn(SimpleCORSFilter.OPTIONS);
 		filter.doFilter(mockRequest, mockResponse, mockChain);
 		verify(mockResponse).addHeader(SimpleCORSFilter.ACCESS_CONTROL_ALLOW_ORIGIN, SimpleCORSFilter.ALL_ORIGINS);
 		verify(mockResponse).addHeader(SimpleCORSFilter.ACCESS_CONTROL_MAX_AGE, SimpleCORSFilter.MAX_AGE);
-		verify(mockResponse).addHeader(SimpleCORSFilter.ACCESS_CONTROL_ALLOW_HEADERS, SimpleCORSFilter.HEADERS);
+		verify(mockResponse).addHeader(SimpleCORSFilter.ACCESS_CONTROL_ALLOW_HEADERS, testHeaders);
 		verify(mockResponse).addHeader(SimpleCORSFilter.ACCESS_CONTROL_ALLOW_METHODS, SimpleCORSFilter.METHODS);
 		verify(mockResponse).addHeader(SimpleCORSFilter.ACCESS_CONTROL_ALLOW_CREDENTIALS, Boolean.TRUE.toString());
 		
+		verify(mockChain, never()).doFilter(mockRequest, mockResponse);
+	}
+	
+	@Test
+	public void testIsPreflightNoCustomHeaders() throws IOException, ServletException{
+		// request header "access control request method" is set.
+		when(mockRequest.getHeader(SimpleCORSFilter.ACCESS_CONTROL_REQUEST_METHOD)).thenReturn("set");
+		when(mockRequest.getMethod()).thenReturn(SimpleCORSFilter.OPTIONS);
+		filter.doFilter(mockRequest, mockResponse, mockChain);
+		verify(mockResponse, never()).addHeader(eq(SimpleCORSFilter.ACCESS_CONTROL_ALLOW_HEADERS), anyString());
 		verify(mockChain, never()).doFilter(mockRequest, mockResponse);
 	}
 	

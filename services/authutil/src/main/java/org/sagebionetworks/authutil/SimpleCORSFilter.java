@@ -28,13 +28,16 @@ public class SimpleCORSFilter implements Filter {
 
 	public static final String OPTIONS = "OPTIONS";
 	public static final String ACCESS_CONTROL_REQUEST_METHOD = "Access-Control-Request-Method";
+	public static final String ACCESS_CONTROL_REQUEST_HEADERS = "Access-Control-Request-Headers";
+	
 	public static final String ALL_ORIGINS = "*";
 	public static final String METHODS = "POST, GET, PUT";
-	public static final String HEADERS = "Origin, X-Requested-With, Content-Type, Accept";
+	
 	public static final String MAX_AGE = "300";
 	public static final String ACCESS_CONTROL_ALLOW_CREDENTIALS = "Access-Control-Allow-Credentials";
 	public static final String ACCESS_CONTROL_ALLOW_METHODS = "Access-Control-Allow-Methods";
 	public static final String ACCESS_CONTROL_ALLOW_HEADERS = "Access-Control-Allow-Headers";
+	
 	public static final String ACCESS_CONTROL_MAX_AGE = "Access-Control-Max-Age";
 	public static final String ACCESS_CONTROL_ALLOW_ORIGIN = "Access-Control-Allow-Origin";
 	static private Logger log = LogManager.getLogger(SimpleCORSFilter.class);
@@ -56,7 +59,11 @@ public class SimpleCORSFilter implements Filter {
 			// header indicates how long the results of a preflight request can be cached in seconds
 			response.addHeader(ACCESS_CONTROL_MAX_AGE, MAX_AGE);
 			// header indicates which custom header field names can be used during the actual request.
-			response.addHeader(ACCESS_CONTROL_ALLOW_HEADERS, HEADERS);
+			// Echo back the requested headers
+			String customHeaders = request.getHeader(ACCESS_CONTROL_REQUEST_HEADERS);
+			if (customHeaders != null) {
+				response.addHeader(ACCESS_CONTROL_ALLOW_HEADERS, customHeaders);	
+			}
 			// header indicates the methods that can be used in the actual request.
 			response.addHeader(ACCESS_CONTROL_ALLOW_METHODS, METHODS);
 			// header indicates that the actual request can include user credentials (send cookies from another domain).
