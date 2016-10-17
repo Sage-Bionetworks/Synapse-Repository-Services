@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.model.table.FacetType;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
 import org.sagebionetworks.repo.model.table.QueryFacetResultColumn;
+import org.sagebionetworks.repo.model.table.QueryFacetResultRange;
 import org.sagebionetworks.repo.model.table.QueryFacetResultValue;
 import org.sagebionetworks.repo.model.table.QueryNextPageToken;
 import org.sagebionetworks.repo.model.table.QueryRequestFacetColumn;
@@ -41,8 +42,8 @@ import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
-import org.sagebionetworks.table.cluster.SQLUtils;
 import org.sagebionetworks.table.cluster.SQLTranslatorUtils;
+import org.sagebionetworks.table.cluster.SQLUtils;
 import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
@@ -51,7 +52,6 @@ import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.DerivedColumn;
 import org.sagebionetworks.table.query.model.Pagination;
 import org.sagebionetworks.table.query.model.QuerySpecification;
-import org.sagebionetworks.table.query.model.SearchCondition;
 import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.model.WhereClause;
 import org.sagebionetworks.table.query.util.SimpleAggregateQueryException;
@@ -331,7 +331,13 @@ public class TableQueryManagerImpl implements TableQueryManager {
 					break;
 				case range:
 					//TODO: maybe add absolute min and max calculations and return those?
-					facetColumnResult.setFacetRange(facetQuery.getFacetRange());
+					FacetRange selectedRange = facetQuery.getFacetRange();
+					QueryFacetResultRange resultRange = runFacetColumnRangeQuery(query, facetQuery.getColumnName(), queryFacetColumns, indexDao);
+					if(selectedRange != null){
+						resultRange.setSelectedMin(selectedRange.getMin());
+						resultRange.setSelectedMax(selectedRange.getMax());
+					}
+					facetColumnResult.setFacetRange(resultRange);
 					break;
 				default:
 					throw new IllegalArgumentException("Unexpected FacetType");
@@ -843,7 +849,6 @@ public class TableQueryManagerImpl implements TableQueryManager {
 				facetValues = facetParams.getFacetValues();
 				facetRange = facetParams.getFacetRange();
 			}
-			//TODO: currently silently fails if the wrong type of parameter is passed in (treated as no search conditions). throw IllegalArugmentExcpetion?
 			if(returnFacets || facetParams != null){ //dont add to list if user does not want to return facets and there is no request associated with it
 				validatedFacets.add(new ValidatedQueryFacetColumn(columnModel.getName(), columnModel.getFacetType(), facetValues, facetRange));
 			}
@@ -947,16 +952,26 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		ValidateArgument.required(indexDao, "tableIndexDao");
 		
 		//TODO: integration test
-		try{
-			String searchConditionString = concatFacetSearchConditionStrings(facetColumns, columnName);
-			QuerySpecification facetColumnCountQuery = SqlElementUntils.createFilteredFacetCountSqlQuerySpecification(columnName, originalQuery.getModel(), searchConditionString);
-			Map<String, Object> parameters = new HashMap<>();
-			SQLTranslatorUtils.translateModel(facetColumnCountQuery, parameters, originalQuery.getColumnNameToModelMap());
-			
-			return indexDao.facetCountQuery(facetColumnCountQuery.toSql(), parameters);
-		} catch (ParseException e){
-			throw new RuntimeException(e);
-		}
+		String searchConditionString = concatFacetSearchConditionStrings(facetColumns, columnName);
+		QuerySpecification facetColumnCountQuery = SqlElementUntils.createFilteredFacetCountSqlQuerySpecification(columnName, originalQuery.getModel(), searchConditionString);
+		Map<String, Object> parameters = new HashMap<>();
+		SQLTranslatorUtils.translateModel(facetColumnCountQuery, parameters, originalQuery.getColumnNameToModelMap());
 		
+		return indexDao.facetCountQuery(facetColumnCountQuery, parameters);
+	}
+	
+	public QueryFacetResultRange runFacetColumnRangeQuery(SqlQuery originalQuery, String columnName, List<ValidatedQueryFacetColumn> facetColumns, TableIndexDAO indexDao){
+		//TODO:Itegration test
+		ValidateArgument.required(originalQuery, "originalQuery");
+		ValidateArgument.required(columnName, "columnName");
+		ValidateArgument.required(facetColumns, "facetColumns");
+		ValidateArgument.required(indexDao, "tableIndexDao");
+		
+		String searchConditionString = concatFacetSearchConditionStrings(facetColumns, columnName);
+		QuerySpecification facetColumnRangeQuery = SqlElementUntils.createFilteredFacetRangeSqlQuerySpecification(columnName, originalQuery.getModel(), searchConditionString);
+		Map<String, Object> parameters = new HashMap<>();
+		SQLTranslatorUtils.translateModel(facetColumnRangeQuery, parameters, originalQuery.getColumnNameToModelMap());
+		
+		return indexDao.facetRangeQuery(facetColumnRangeQuery, parameters);
 	}
 }

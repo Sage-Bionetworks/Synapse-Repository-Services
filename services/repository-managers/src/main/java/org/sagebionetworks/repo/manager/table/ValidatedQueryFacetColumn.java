@@ -14,30 +14,43 @@ import org.sagebionetworks.util.ValidateArgument;
  */
 public class ValidatedQueryFacetColumn {
 	private String columnName;
+	private FacetType facetType;
 	private Set<String> columnValues;
 	private FacetRange facetRange;
-	private FacetType facetType;
-	private String valuesSearchConditionString;
+	private String searchConditionString;
 	
 	/**
 	 * Constructor.
-	 * @param columnName
-	 * @param columnValues
+	 * Pass in 
+	 * @param columnName name of the column
+	 * @param facetType the type of the facet either enum or 
+	 * @param columnValues the 
 	 * @param facetRange 
-	 * @param facetType
+	 * 
 	 */
 	public ValidatedQueryFacetColumn(String columnName, FacetType facetType, Set<String> columnValues, FacetRange facetRange){
 		ValidateArgument.required(columnName, "columnName");
 		ValidateArgument.required(facetType, "facetType");
 		
+		//checks to make sure that useless parameters are not passed in
+		if(FacetType.enumeration.equals(facetType) && facetRange != null){
+			throw new IllegalArgumentException("facetRange should be null if facetType is enumeration");
+		}
+		if(FacetType.range.equals(facetType) && columnValues != null){
+			throw new IllegalArgumentException("columnValues should be null if facetType is range");
+		}
+		
+		
 		this.columnName = columnName;
 		this.columnValues = (columnValues == null) ? null : new HashSet<>(columnValues);
-		this.facetRange = copyFacetRange(facetRange);
+		this.facetRange = (facetRange == null) ? null : copyFacetRange(facetRange);
 		this.facetType = facetType;
-		this.valuesSearchConditionString = createSearchConditionString();
+		this.searchConditionString = createSearchConditionString();
 	}
 	
 	private FacetRange copyFacetRange(FacetRange rangeToCopy){
+		ValidateArgument.required(rangeToCopy, "rangeToCopy");
+		
 		FacetRange copiedRange = new FacetRange();
 		copiedRange.setMax(rangeToCopy.getMax());
 		copiedRange.setMin(rangeToCopy.getMin());
@@ -58,7 +71,7 @@ public class ValidatedQueryFacetColumn {
 	
 	//returns null if no search conditions exist
 	public String getSearchConditionString(){
-		return this.valuesSearchConditionString;
+		return this.searchConditionString;
 	}
 	
 	public FacetType getFacetType(){
@@ -66,7 +79,7 @@ public class ValidatedQueryFacetColumn {
 	}
 	
 	public FacetRange getFacetRange(){
-		return copyFacetRange(this.facetRange);
+		return (this.facetRange == null) ? null : copyFacetRange(this.facetRange);
 	}
 	
 	private String createSearchConditionString(){
@@ -94,16 +107,16 @@ public class ValidatedQueryFacetColumn {
 		//at this point we know at least one value is not null and is not empty string
 		builder.append(columnName);
 		if(min == null){ //only max exists
-			builder.append(" <= ");
-			appendValueToStringBuilder(max, builder);
+			builder.append("<=");
+			appendValueToStringBuilder(builder, max);
 		}else if (max == null){ //only min exists
-			builder.append(" >= ");
-			appendValueToStringBuilder(min, builder);
+			builder.append(">=");
+			appendValueToStringBuilder(builder, min);
 		}else{
 			builder.append(" BETWEEN ");
-			appendValueToStringBuilder(min, builder);
+			appendValueToStringBuilder(builder, min);
 			builder.append(" AND ");
-			appendValueToStringBuilder(max, builder);
+			appendValueToStringBuilder(builder, max);
 		}
 		
 		builder.append(")");
@@ -123,12 +136,17 @@ public class ValidatedQueryFacetColumn {
 			}
 			builder.append(columnName);
 			builder.append("=");
-			appendValueToStringBuilder(value, builder);
+			appendValueToStringBuilder(builder, value);
 		}
+		builder.append(")");
 		return builder.toString();
 	}
 	
-	private static void appendValueToStringBuilder(String value, StringBuilder builder){
+	/**
+	 * Appends a value to the string builder
+	 * and places single quotes (') around it if the string contains spaces
+	 */ 
+	private static void appendValueToStringBuilder(StringBuilder builder, String value){
 		boolean containsSpaces = value.contains(" ");
 		if(containsSpaces){
 			builder.append("'");

@@ -48,12 +48,15 @@ import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.EntityDTO;
+import org.sagebionetworks.repo.model.table.QueryFacetResultRange;
 import org.sagebionetworks.repo.model.table.QueryFacetResultValue;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
+import org.sagebionetworks.table.query.model.QuerySpecification;
+import org.sagebionetworks.table.query.util.SqlElementUntils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.BadSqlGrammarException;
@@ -292,13 +295,13 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 	
 	@Override
-	public List<QueryFacetResultValue> facetCountQuery(String facetCountSql, Map<String, Object> parameters){
+	public List<QueryFacetResultValue> facetCountQuery(QuerySpecification facetCountSql, Map<String, Object> parameters){
 		ValidateArgument.required(facetCountSql, "facetCountSql");
 		ValidateArgument.required(parameters, "parameters");
 		// We use spring to create create the prepared statement
 		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
 		
-		return namedTemplate.query(facetCountSql, parameters, new RowMapper<QueryFacetResultValue>(){
+		return namedTemplate.query(facetCountSql.toSql(), parameters, new RowMapper<QueryFacetResultValue>(){
 
 			@Override
 			public QueryFacetResultValue mapRow(ResultSet rs, int rowNum) throws SQLException {
@@ -306,6 +309,26 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				facetValue.setValue(rs.getString("count"));
 				facetValue.setCount(rs.getLong("value"));
 				return facetValue;
+			}
+			
+		});
+	}
+	
+	@Override
+	public QueryFacetResultRange facetRangeQuery(QuerySpecification facetRangeSql, Map<String, Object> parameters){
+		ValidateArgument.required(facetRangeSql, "facetCountSql");
+		ValidateArgument.required(parameters, "parameters");
+		// We use spring to create create the prepared statement
+		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
+		
+		return namedTemplate.queryForObject(facetRangeSql.toSql(), parameters, new RowMapper<QueryFacetResultRange>(){
+
+			@Override
+			public QueryFacetResultRange mapRow(ResultSet rs, int rowNum) throws SQLException {
+				QueryFacetResultRange facetResultRange = new QueryFacetResultRange();
+				facetResultRange.setColumnMin(rs.getString(SqlElementUntils.MIN_ALIAS));
+				facetResultRange.setColumnMax(rs.getString(SqlElementUntils.MAX_ALIAS));
+				return facetResultRange;
 			}
 			
 		});

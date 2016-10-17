@@ -21,7 +21,7 @@
 		},
 		"facetRange": {
 			"description":"The range that was given as part of the column's facet request, if any",
-			"$ref": "org.sagebionetworks.repo.model.table.FacetRange"
+			"$ref": "org.sagebionetworks.repo.model.table.QueryFacetResultRange"
 		}
 	}
 }

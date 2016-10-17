@@ -69,6 +69,11 @@ public class SqlElementUntils {
 	// [0-9a-zA-z_])
 	private static final java.util.regex.Pattern NON_ESCAPABLE_COLUMN_NAME_CHARACTERS = java.util.regex.Pattern.compile("\\W");
 	public static final Long MAX_NUM_FACET_CATEGORIES = 100L;
+	public static final String VALUE_ALIAS = "value";
+	public static final String COUNT_ALIAS = "count";
+	public static final String MIN_ALIAS = "min";
+	public static final String MAX_ALIAS = "max";
+	
 	
 	/**
 	 * Create a value expression from an input SQL.
@@ -686,14 +691,10 @@ public class SqlElementUntils {
 	 * @return
 	 * @throws ParseException 
 	 */
-	public static QuerySpecification createFilteredFacetCountSqlQuerySpecification(String columnName, QuerySpecification model,  String facetSearchConditionString) throws ParseException{
+	public static QuerySpecification createFilteredFacetCountSqlQuerySpecification(String columnName, QuerySpecification model,  String facetSearchConditionString){
 		//TODO: Test
 		ValidateArgument.required(columnName, "columnName");
 		ValidateArgument.required(model, "model");
-
-		if(model.hasAnyAggregateElements()){
-			throw new IllegalArgumentException("Aggregrate queries are not allowed");
-		}
 		
 		TableExpression tableExpressionFromModel = model.getTableExpression();
 		Pagination pagination = new Pagination(MAX_NUM_FACET_CATEGORIES, null);//TODO: move this later to when we figure out the limit thing
@@ -701,6 +702,42 @@ public class SqlElementUntils {
 		builder.append(columnName);
 		builder.append(" AS value , COUNT(*) AS count "); //TODO: "count" and "value" as final constants?
 		builder.append(tableExpressionFromModel.getFromClause().toSql());
+		appendFacetWhereClauseToStringBuilder(builder, facetSearchConditionString, tableExpressionFromModel);
+		builder.append(" GROUP BY " + columnName + " ");
+		builder.append(pagination.toSql());
+		
+		try {
+			return new TableQueryParser(builder.toString()).querySpecification();
+		} catch (ParseException e) {
+			throw new RuntimeException(e);
+		}
+	}
+	
+	public static QuerySpecification createFilteredFacetRangeSqlQuerySpecification(String columnName, QuerySpecification model, String facetSearchConditionString){
+		//TODO: Test
+		ValidateArgument.required(columnName, "columnName");
+		ValidateArgument.required(model, "model");
+		
+		TableExpression tableExpressionFromModel = model.getTableExpression();
+		StringBuilder builder = new StringBuilder("SELECT MIN(");
+		builder.append(columnName);
+		builder.append(") as ");
+		builder.append(MIN_ALIAS);
+		builder.append(", MAX(");
+		builder.append(columnName);
+		builder.append(") as ");
+		builder.append(MAX_ALIAS);
+		appendFacetWhereClauseToStringBuilder(builder, facetSearchConditionString, tableExpressionFromModel);
+		
+		try {
+			return new TableQueryParser(builder.toString()).querySpecification();
+		} catch (ParseException e) {
+			throw new RuntimeException(e);
+		}
+	}
+	
+	private static void appendFacetWhereClauseToStringBuilder(StringBuilder builder, String facetSearchConditionString,
+			TableExpression tableExpressionFromModel) {
 		builder.append(" WHERE (");
 		builder.append(tableExpressionFromModel.getWhereClause().getSearchCondition().toSql());
 		builder.append(")");
@@ -709,10 +746,5 @@ public class SqlElementUntils {
 			builder.append(facetSearchConditionString);
 			builder.append(")");
 		}
-		builder.append(" GROUP BY " + columnName + " ");
-		builder.append(pagination.toSql());
-		
-		return new TableQueryParser(builder.toString()).querySpecification();
 	}
-	
 }

@@ -1,0 +1,21 @@
+{
+	"description": "Describes the value range selected by the user and the absolute minimum and maximum of a column's values",
+	"properties": {
+		"columnMin": {
+			"type": "string",
+			"description": "the smallest value in the column"
+		},
+		"columnMax": {
+			"type": "string",
+			"description": "the largest value in the column"
+		},
+		"selectedMin": {
+			"type": "string",
+			"description": "the lower bound of the selected range"
+		},
+		"selectedMax": {
+			"type": "string",
+			"description": "the upper bound of the selected range"
+		}
+	}
+}
