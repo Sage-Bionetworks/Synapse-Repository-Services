@@ -88,6 +88,8 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	private V2WikiPageDao wikiPageDaoV2;
 	@Autowired
 	private SubmissionDAO submissionDAO;
+	@Autowired
+	private MessageManager messageManager;
 	
 	@Override
 	public AuthorizationStatus canAccess(UserInfo userInfo, String objectId, ObjectType objectType, ACCESS_TYPE accessType)
@@ -166,6 +168,19 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 				} else {
 					return AuthorizationManagerUtil.accessDenied("Unexpected access type "+accessType);
 				}
+			case MESSAGE: {
+				if (accessType==ACCESS_TYPE.DOWNLOAD) {
+					try {
+						// if the user can get the message metadata, he/she can download the message
+						messageManager.getMessage(userInfo, objectId);
+						return AuthorizationManagerUtil.AUTHORIZED;
+					} catch (UnauthorizedException e) {
+						return AuthorizationManagerUtil.ACCESS_DENIED;
+					}
+				} else {
+					return AuthorizationManagerUtil.accessDenied("Unexpected access type "+accessType);
+				}
+			}
 			default:
 				throw new IllegalArgumentException("Unknown ObjectType: "+objectType);
 		}

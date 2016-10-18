@@ -47,6 +47,7 @@ import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VerificationDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
@@ -102,6 +103,8 @@ public class AuthorizationManagerImplUnitTest {
 	private Submission mockSubmission;
 	@Mock
 	private EvaluationPermissionsManager mockEvaluationPermissionsManager;
+	@Mock
+	private MessageManager mockMessageManager;
 
 	private static String USER_PRINCIPAL_ID = "123";
 	private static String EVAL_OWNER_PRINCIPAL_ID = "987";
@@ -137,6 +140,7 @@ public class AuthorizationManagerImplUnitTest {
 		ReflectionTestUtils.setField(authorizationManager, "wikiPageDaoV2", mockWikiPageDaoV2);
 		ReflectionTestUtils.setField(authorizationManager, "submissionDAO", mockSubmissionDAO);
 		ReflectionTestUtils.setField(authorizationManager, "evaluationPermissionsManager", mockEvaluationPermissionsManager);
+		ReflectionTestUtils.setField(authorizationManager, "messageManager", mockMessageManager);
 
 		userInfo = new UserInfo(false, USER_PRINCIPAL_ID);
 		adminUser = new UserInfo(true, 456L);
@@ -526,6 +530,38 @@ public class AuthorizationManagerImplUnitTest {
 		assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.EVALUATION_SUBMISSIONS, ACCESS_TYPE.UPDATE).getAuthorized());
 		assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.EVALUATION_SUBMISSIONS, ACCESS_TYPE.UPDATE_SUBMISSION).getAuthorized());
 		assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.EVALUATION_SUBMISSIONS, ACCESS_TYPE.UPLOAD).getAuthorized());
+	}
+
+	@Test
+	public void testCanAccessMessageAccessDenied() throws Exception {
+		String messageId = "1";
+		when(mockMessageManager.getMessage(userInfo, messageId)).thenThrow(new UnauthorizedException());
+		assertFalse(authorizationManager.canAccess(userInfo, messageId, ObjectType.MESSAGE, ACCESS_TYPE.DOWNLOAD).getAuthorized());
+	}
+
+	@Test
+	public void testCanAccessMessageAuthorized() throws Exception {
+		String messageId = "1";
+		assertTrue(authorizationManager.canAccess(userInfo, messageId, ObjectType.MESSAGE, ACCESS_TYPE.DOWNLOAD).getAuthorized());
+	}
+
+	@Test
+	public void testCanAccessMessageNonDownload() throws Exception {
+		assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.MESSAGE, ACCESS_TYPE.CHANGE_PERMISSIONS).getAuthorized());
+		assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.MESSAGE, ACCESS_TYPE.CHANGE_SETTINGS).getAuthorized());
+		assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.MESSAGE, ACCESS_TYPE.CREATE).getAuthorized());
+		assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.MESSAGE, ACCESS_TYPE.DELETE).getAuthorized());
+		assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.MESSAGE, ACCESS_TYPE.DELETE_SUBMISSION).getAuthorized());
+		assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.MESSAGE, ACCESS_TYPE.MODERATE).getAuthorized());
+		assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.MESSAGE, ACCESS_TYPE.PARTICIPATE).getAuthorized());
+		assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.MESSAGE, ACCESS_TYPE.READ).getAuthorized());
+		assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.MESSAGE, ACCESS_TYPE.READ_PRIVATE_SUBMISSION).getAuthorized());
+		assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.MESSAGE, ACCESS_TYPE.SEND_MESSAGE).getAuthorized());
+		assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.MESSAGE, ACCESS_TYPE.SUBMIT).getAuthorized());
+		assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.MESSAGE, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE).getAuthorized());
+		assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.MESSAGE, ACCESS_TYPE.UPDATE).getAuthorized());
+		assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.MESSAGE, ACCESS_TYPE.UPDATE_SUBMISSION).getAuthorized());
+		assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.MESSAGE, ACCESS_TYPE.UPLOAD).getAuthorized());
 	}
 	
 	@Test

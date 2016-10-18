@@ -203,6 +203,10 @@
 					<bean
 						class="org.sagebionetworks.evaluation.manager.SubmissionFileHandleAssociationProvider" />
 				</entry>
+				<entry key="MessageAttachment">
+					<bean
+						class="org.sagebionetworks.repo.manager.MessageFileHandleAssociationProvider" />
+				</entry>
 			</map>
 		</property>
 	</bean>
