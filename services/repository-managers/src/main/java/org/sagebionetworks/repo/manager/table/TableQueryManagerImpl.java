@@ -862,21 +862,12 @@ public class TableQueryManagerImpl implements TableQueryManager {
 				WhereClause originalWhereClause = query.getModel().getTableExpression().getWhereClause();
 				
 				String facetSearchConditionString = concatFacetSearchConditionStrings(facetColumns, null);
-				//TODO: i think i can improve the "if" logic here
-				if(facetSearchConditionString != null || originalWhereClause != null){
-					StringBuilder builder = new StringBuilder("WHERE ");
-					if(originalWhereClause != null){
-						builder.append("(");
-						builder.append(originalWhereClause.getSearchCondition().toSql());
-						builder.append(")");
-					}
-					if(facetSearchConditionString != null){
-						if(originalWhereClause != null){
-							builder.append(" AND ");
-						}
-						builder.append(facetSearchConditionString);
-					}
-					// create the new where
+				
+				StringBuilder builder = new StringBuilder();
+				SqlElementUntils.appendFacetWhereClauseToStringBuilder(builder, facetSearchConditionString, originalWhereClause);
+				
+				// create the new where if necessary
+				if(builder.length() > 0){
 					WhereClause newWhereClause = new TableQueryParser(builder.toString()).whereClause();
 					modelCopy.getTableExpression().replaceWhere(newWhereClause);
 				}
@@ -934,7 +925,6 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		ValidateArgument.required(facetColumns, "facetColumns");
 		ValidateArgument.required(indexDao, "tableIndexDao");
 		
-		//TODO: test
 		String searchConditionString = concatFacetSearchConditionStrings(facetColumns, columnName);
 		QuerySpecification facetColumnCountQuery = SqlElementUntils.createFilteredFacetCountSqlQuerySpecification(columnName, originalQuery.getModel(), searchConditionString);
 		Map<String, Object> parameters = new HashMap<>();
@@ -944,7 +934,6 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	}
 	
 	public static QueryFacetResultRange runFacetColumnRangeQuery(SqlQuery originalQuery, String columnName, List<ValidatedQueryFacetColumn> facetColumns, TableIndexDAO indexDao){
-		//TODO:test
 		ValidateArgument.required(originalQuery, "originalQuery");
 		ValidateArgument.required(columnName, "columnName");
 		ValidateArgument.required(facetColumns, "facetColumns");

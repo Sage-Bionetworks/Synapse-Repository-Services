@@ -1300,7 +1300,7 @@ public class TableQueryManagerImplTest {
 	}
 	
 	@Test
-	public void testAppendFacetSearchConditionOriginalWithOriginalWhereClause() throws ParseException{
+	public void testAppendFacetSearchConditionOriginalWithWhereClauseAndFacetSearchCondition() throws ParseException{
 		SqlQuery query = new SqlQuery("select * from " + tableId + " where asdf <> ayy and asdf < 'taco bell'", facetSchema);
 		
 		validatedQueryFacetColumns.add(new ValidatedQueryFacetColumn(facetColumnName, FacetType.range, null, facetRange1));
@@ -1310,6 +1310,13 @@ public class TableQueryManagerImplTest {
 		assertEquals(min1, modifiedQuery.getParameters().get("b2"));
 		assertEquals(max1, modifiedQuery.getParameters().get("b3"));
 
+	}
+	
+	@Test
+	public void testAppendFacetSearchConditionOriginalWhereClauseNoFacetSearchCondition() throws ParseException{
+		SqlQuery query = new SqlQuery("select * from " + tableId + " where asdf <> ayy and asdf < 'taco bell'", facetSchema);
+		SqlQuery modifiedQuery = TableQueryManagerImpl.appendFacetSearchCondition(query, validatedQueryFacetColumns);
+		assertEquals("SELECT _C"+facetColumnId+"_, ROW_ID, ROW_VERSION FROM T"+KeyFactory.stringToKey(tableId)+" WHERE _C"+facetColumnId+"_ <> :b0 AND _C"+facetColumnId+"_ < :b1", modifiedQuery.getOutputSQL());
 	}
 	
 	/////////////////////////////////////////////
@@ -1388,7 +1395,7 @@ public class TableQueryManagerImplTest {
 		TableQueryManagerImpl.runFacetColumnCountQuery(simpleQuery, facetColumnName, validatedQueryFacetColumns, null);
 	}
 	
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testRunFacetColumnCountQuery(){
 		List<QueryFacetResultValue> expectedResult = new ArrayList<>();
 		when(mockTableIndexDAO.facetCountQuery(any(QuerySpecification.class), any(Map.class))).thenReturn(expectedResult);
@@ -1397,9 +1404,9 @@ public class TableQueryManagerImplTest {
 
 		verify(mockTableIndexDAO).facetCountQuery(queryCaptor.capture(), paramsCaptor.capture());
 		
-		assertEquals("", queryCaptor.getValue().toSql());
-		assertEquals(5, paramsCaptor.getValue().size());
-		assertEquals("", paramsCaptor.getValue().get(":b0"));
+		assertEquals("SELECT _C890_ AS value, COUNT(*) AS frequency FROM T123 GROUP BY _C890_ LIMIT :b0", queryCaptor.getValue().toSql());
+		assertEquals(1, paramsCaptor.getValue().size());
+		assertEquals(SqlElementUntils.MAX_NUM_FACET_CATEGORIES, paramsCaptor.getValue().get("b0"));
 		
 		assertEquals(expectedResult, result);
 	}
@@ -1428,10 +1435,25 @@ public class TableQueryManagerImplTest {
 		TableQueryManagerImpl.runFacetColumnRangeQuery(simpleQuery, facetColumnName, validatedQueryFacetColumns, null);
 	}
 	
+	@Test
+	public void testRunFacetColumnRangeQuery(){
+		QueryFacetResultRange expectedResult = new QueryFacetResultRange();
+		when(mockTableIndexDAO.facetRangeQuery(any(QuerySpecification.class), any(Map.class))).thenReturn(expectedResult);
+		
+		QueryFacetResultRange result = TableQueryManagerImpl.runFacetColumnRangeQuery(simpleQuery, facetColumnName, validatedQueryFacetColumns, mockTableIndexDAO);
+
+		verify(mockTableIndexDAO).facetRangeQuery(queryCaptor.capture(), paramsCaptor.capture());
+		
+		assertEquals("SELECT MIN(_C890_) AS minimum, MAX(_C890_) AS maximum FROM T123", queryCaptor.getValue().toSql());
+		assertEquals(0, paramsCaptor.getValue().size());
+		
+		assertEquals(expectedResult, result);
+	}
+	
 	
 	////////////////////////////
 	// TODO:runFacetQueries() Tests
 	////////////////////////////
-
+	
 }
 

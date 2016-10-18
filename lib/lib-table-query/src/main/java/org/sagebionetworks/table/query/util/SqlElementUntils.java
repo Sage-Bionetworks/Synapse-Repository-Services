@@ -70,9 +70,9 @@ public class SqlElementUntils {
 	private static final java.util.regex.Pattern NON_ESCAPABLE_COLUMN_NAME_CHARACTERS = java.util.regex.Pattern.compile("\\W");
 	public static final Long MAX_NUM_FACET_CATEGORIES = 100L;
 	public static final String VALUE_ALIAS = "value";
-	public static final String COUNT_ALIAS = "count";
-	public static final String MIN_ALIAS = "min";
-	public static final String MAX_ALIAS = "max";
+	public static final String COUNT_ALIAS = "frequency";
+	public static final String MIN_ALIAS = "minimum";
+	public static final String MAX_ALIAS = "maximum";
 	
 	
 	/**
@@ -700,9 +700,13 @@ public class SqlElementUntils {
 		Pagination pagination = new Pagination(MAX_NUM_FACET_CATEGORIES, null);//TODO: move this later to when we figure out the limit thing
 		StringBuilder builder = new StringBuilder("SELECT ");
 		builder.append(columnName);
-		builder.append(" AS value , COUNT(*) AS count "); //TODO: "count" and "value" as final constants?
+		builder.append(" AS ");
+		builder.append(VALUE_ALIAS);
+		builder.append(", COUNT(*) AS ");
+		builder.append(COUNT_ALIAS);
+		builder.append(" ");
 		builder.append(tableExpressionFromModel.getFromClause().toSql());
-		appendFacetWhereClauseToStringBuilder(builder, facetSearchConditionString, tableExpressionFromModel);
+		appendFacetWhereClauseToStringBuilder(builder, facetSearchConditionString, tableExpressionFromModel.getWhereClause());
 		builder.append(" GROUP BY " + columnName + " ");
 		builder.append(pagination.toSql());
 		
@@ -727,7 +731,10 @@ public class SqlElementUntils {
 		builder.append(columnName);
 		builder.append(") as ");
 		builder.append(MAX_ALIAS);
-		appendFacetWhereClauseToStringBuilder(builder, facetSearchConditionString, tableExpressionFromModel);
+		builder.append(" ");
+		builder.append(model.getTableExpression().getFromClause().toSql());
+		builder.append(" ");
+		appendFacetWhereClauseToStringBuilder(builder, facetSearchConditionString, tableExpressionFromModel.getWhereClause());
 		
 		try {
 			return new TableQueryParser(builder.toString()).querySpecification();
@@ -736,18 +743,27 @@ public class SqlElementUntils {
 		}
 	}
 	
-	private static void appendFacetWhereClauseToStringBuilder(StringBuilder builder, String facetSearchConditionString,
-			TableExpression tableExpressionFromModel) {
-		//TODO: fix for when either or none have whereclause
-		//todo: perhaps combine with part in appendFacetSearchCondition()
-		boolean originalWhereClause;
-		builder.append(" WHERE (");
-		builder.append(tableExpressionFromModel.getWhereClause().getSearchCondition().toSql());
-		builder.append(")");
-		if(facetSearchConditionString != null){
-			builder.append(" AND (");
-			builder.append(facetSearchConditionString);
-			builder.append(")");
+	/*
+	 * Appends a WHERE clause to the string builder if necessary
+	 */
+	public static void appendFacetWhereClauseToStringBuilder(StringBuilder builder, String facetSearchConditionString,
+			WhereClause originalWhereClause) {
+		ValidateArgument.required(builder, "builder");
+		//TODO: extract tests form appendFacetSearchCondition
+		
+		if(facetSearchConditionString != null || originalWhereClause != null){
+			builder.append("WHERE ");
+			if(originalWhereClause != null){
+				builder.append("(");
+				builder.append(originalWhereClause.getSearchCondition().toSql());
+				builder.append(")");
+			}
+			if(facetSearchConditionString != null){
+				if(originalWhereClause != null){
+					builder.append(" AND ");
+				}
+				builder.append(facetSearchConditionString);
+			}
 		}
 	}
 }
