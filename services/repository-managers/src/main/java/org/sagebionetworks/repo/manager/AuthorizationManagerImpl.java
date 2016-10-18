@@ -9,6 +9,7 @@ import java.util.Set;
 
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.evaluation.manager.EvaluationPermissionsManager;
+import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.file.FileHandleAuthorizationStatus;
 import org.sagebionetworks.repo.manager.team.TeamConstants;
@@ -39,6 +40,7 @@ import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dao.discussion.DiscussionThreadDAO;
 import org.sagebionetworks.repo.model.dao.discussion.ForumDAO;
 import org.sagebionetworks.repo.model.discussion.Forum;
+import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociationManager;
 import org.sagebionetworks.repo.model.provenance.Activity;
@@ -84,6 +86,8 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	private FileHandleAssociationManager fileHandleAssociationSwitch;
 	@Autowired
 	private V2WikiPageDao wikiPageDaoV2;
+	@Autowired
+	private SubmissionDAO submissionDAO;
 	
 	@Override
 	public AuthorizationStatus canAccess(UserInfo userInfo, String objectId, ObjectType objectType, ACCESS_TYPE accessType)
@@ -155,6 +159,13 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 					return AuthorizationManagerUtil.accessDenied("Unexpected access type "+accessType);
 				}
 			}
+			case EVALUATION_SUBMISSIONS:
+				if (accessType==ACCESS_TYPE.DOWNLOAD) {
+					Submission submission = submissionDAO.get(objectId);
+					return evaluationPermissionsManager.hasAccess(userInfo, submission.getEvaluationId(), ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
+				} else {
+					return AuthorizationManagerUtil.accessDenied("Unexpected access type "+accessType);
+				}
 			default:
 				throw new IllegalArgumentException("Unknown ObjectType: "+objectType);
 		}

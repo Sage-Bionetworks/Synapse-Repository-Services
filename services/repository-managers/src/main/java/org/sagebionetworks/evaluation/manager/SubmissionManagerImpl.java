@@ -533,7 +533,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		if (!ids.contains(fileHandleId)) {
 			throw new NotFoundException("Submission " + submissionId + " does " +
 					"not contain the requested FileHandle " + fileHandleId);
-		}			
+		}
 		// generate the URL
 		return fileHandleManager.getRedirectURLForFileHandle(fileHandleId);
 	}

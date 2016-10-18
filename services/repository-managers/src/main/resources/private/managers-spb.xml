@@ -195,6 +195,14 @@
 					<bean
 						class="org.sagebionetworks.repo.manager.UserProfileFileHandleAssociationProvider" />
 				</entry>
+				<entry key="TeamAttachment">
+					<bean
+						class="org.sagebionetworks.repo.manager.team.TeamFileHandleAssociationProvider" />
+				</entry>
+				<entry key="SubmissionAttachment">
+					<bean
+						class="org.sagebionetworks.evaluation.manager.SubmissionFileHandleAssociationProvider" />
+				</entry>
 			</map>
 		</property>
 	</bean>
