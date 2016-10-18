@@ -738,6 +738,9 @@ public class SqlElementUntils {
 	
 	private static void appendFacetWhereClauseToStringBuilder(StringBuilder builder, String facetSearchConditionString,
 			TableExpression tableExpressionFromModel) {
+		//TODO: fix for when either or none have whereclause
+		//todo: perhaps combine with part in appendFacetSearchCondition()
+		boolean originalWhereClause;
 		builder.append(" WHERE (");
 		builder.append(tableExpressionFromModel.getWhereClause().getSearchCondition().toSql());
 		builder.append(")");

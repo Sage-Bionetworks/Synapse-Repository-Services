@@ -127,7 +127,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 				bundle.getQueryResult().getQueryResults().setRows(rowHandler.getRows());
 			}
 			// add the next page token if needed
-			if (isRowCountEqualToMaxRowsPerPage(bundle)) { //TODO: test
+			if (isRowCountEqualToMaxRowsPerPage(bundle)) {
 				int maxRowsPerPage = bundle.getMaxRowsPerPage().intValue();
 				long nextOffset = (offset == null ? 0 : offset) + maxRowsPerPage;
 				QueryNextPageToken nextPageToken = createNextPageToken(query,sortList,
@@ -299,6 +299,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		
 		// run the actual query if needed.
 		QueryResult queryResult = null;
+		List<QueryFacetResultColumn> facetResults = null;
 		if(rowHandler != null){
 			// run the query
 			RowSet rowSet = runQueryAsStream(progressCallback, queryToRun, rowHandler, indexDao);
@@ -315,52 +316,57 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		
 		//run the facet counts if needed
 		if(returnFacets && queryFacetColumns != null && !queryFacetColumns.isEmpty()){
-			List<QueryFacetResultColumn> facetResults = new ArrayList<>();
-			for(ValidatedQueryFacetColumn facetQuery : queryFacetColumns){
-				//TODO: finish processing facets
-				QueryFacetResultColumn facetColumnResult = new QueryFacetResultColumn();
-				facetColumnResult.setColumnName(facetQuery.getColumnName());
-				facetColumnResult.setFacetType(facetQuery.getFacetType());
-				
-				switch(facetQuery.getFacetType()){
-				case enumeration:
-					List<QueryFacetResultValue> facetValues = runFacetColumnCountQuery(query, facetQuery.getColumnName(), queryFacetColumns, indexDao);
-					
-					facetColumnResult.setFacetValues(facetValues);
-					
-					break;
-				case range:
-					FacetRange selectedRange = facetQuery.getFacetRange();
-					QueryFacetResultRange resultRange = runFacetColumnRangeQuery(query, facetQuery.getColumnName(), queryFacetColumns, indexDao);
-					if(selectedRange != null){
-						resultRange.setSelectedMin(selectedRange.getMin());
-						resultRange.setSelectedMax(selectedRange.getMax());
-					}
-					facetColumnResult.setFacetRange(resultRange);
-					break;
-				default:
-					throw new IllegalArgumentException("Unexpected FacetType");
-				}
-				facetResults.add(facetColumnResult);
-			}
-			bundle.setFacets(facetResults);
+			//use original query instead of queryToRun because need the where clause that was not modified by any facets
+			facetResults = runFacetQueries(query, queryFacetColumns, indexDao);
 		}
 		
 		//run 
 
 		bundle.setQueryResult(queryResult);
 		bundle.setQueryCount(count);
+		bundle.setFacets(facetResults);
 		return bundle;
 	}
 	
-	Set<String> getSelectedColumnNameSet(SelectList selectList){
-		Set<String> result = new HashSet<>();
-		for(DerivedColumn column : selectList.getColumns()){
-			result.add(column.getReferencedColumnName());
+	/**
+	 * Runs facet queries (enumeration count or range min/max) for all columns in queryFacetColumns. 
+	 * @param originalQuery the non-transformed query that was submitted by the user.
+	 * @param queryFacetColumns
+	 * @param indexDao
+	 * @return
+	 */
+	public List<QueryFacetResultColumn> runFacetQueries(SqlQuery originalQuery,
+			List<ValidatedQueryFacetColumn> queryFacetColumns, TableIndexDAO indexDao) {
+		//TODO: unit test and integration test
+		List<QueryFacetResultColumn> facetResults = new ArrayList<>();
+		for(ValidatedQueryFacetColumn facetQuery : queryFacetColumns){
+			QueryFacetResultColumn facetColumnResult = new QueryFacetResultColumn();
+			facetColumnResult.setColumnName(facetQuery.getColumnName());
+			facetColumnResult.setFacetType(facetQuery.getFacetType());
+			
+			switch(facetQuery.getFacetType()){
+			case enumeration:
+				List<QueryFacetResultValue> facetValues = runFacetColumnCountQuery(originalQuery, facetQuery.getColumnName(), queryFacetColumns, indexDao);
+				
+				facetColumnResult.setFacetValues(facetValues);
+				
+				break;
+			case range:
+				FacetRange selectedRange = facetQuery.getFacetRange();
+				QueryFacetResultRange resultRange = runFacetColumnRangeQuery(originalQuery, facetQuery.getColumnName(), queryFacetColumns, indexDao);
+				if(selectedRange != null){
+					resultRange.setSelectedMin(selectedRange.getMin());
+					resultRange.setSelectedMax(selectedRange.getMax());
+				}
+				facetColumnResult.setFacetRange(resultRange);
+				break;
+			default:
+				throw new IllegalArgumentException("Unexpected FacetType");
+			}
+			facetResults.add(facetColumnResult);
 		}
-		return result;
+		return facetResults;
 	}
-
 
 	/**
 	 * For the given bundle, is the number of rows equal to the maximum rows per
@@ -856,16 +862,24 @@ public class TableQueryManagerImpl implements TableQueryManager {
 				WhereClause originalWhereClause = query.getModel().getTableExpression().getWhereClause();
 				
 				String facetSearchConditionString = concatFacetSearchConditionStrings(facetColumns, null);
-				StringBuilder builder = new StringBuilder("WHERE ");
-				if(originalWhereClause != null){
-					builder.append("(");
-					builder.append(originalWhereClause.getSearchCondition().toSql());
-					builder.append(") AND ");
+				//TODO: i think i can improve the "if" logic here
+				if(facetSearchConditionString != null || originalWhereClause != null){
+					StringBuilder builder = new StringBuilder("WHERE ");
+					if(originalWhereClause != null){
+						builder.append("(");
+						builder.append(originalWhereClause.getSearchCondition().toSql());
+						builder.append(")");
+					}
+					if(facetSearchConditionString != null){
+						if(originalWhereClause != null){
+							builder.append(" AND ");
+						}
+						builder.append(facetSearchConditionString);
+					}
+					// create the new where
+					WhereClause newWhereClause = new TableQueryParser(builder.toString()).whereClause();
+					modelCopy.getTableExpression().replaceWhere(newWhereClause);
 				}
-				builder.append(facetSearchConditionString);
-				// create the new where
-				WhereClause newWhereClause = new TableQueryParser(builder.toString()).whereClause();
-				modelCopy.getTableExpression().replaceWhere(newWhereClause);
 			}
 			// return a copy
 			return new SqlQuery(modelCopy, query);
@@ -914,13 +928,13 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	/**
 	 * Run a query that creates facet counts for its most frequent values in the specified column based on the original query.
 	 */
-	public List<QueryFacetResultValue> runFacetColumnCountQuery(SqlQuery originalQuery, String columnName, List<ValidatedQueryFacetColumn> facetColumns ,TableIndexDAO indexDao){
+	public static List<QueryFacetResultValue> runFacetColumnCountQuery(SqlQuery originalQuery, String columnName, List<ValidatedQueryFacetColumn> facetColumns ,TableIndexDAO indexDao){
 		ValidateArgument.required(originalQuery, "originalQuery");
 		ValidateArgument.required(columnName, "columnName");
 		ValidateArgument.required(facetColumns, "facetColumns");
 		ValidateArgument.required(indexDao, "tableIndexDao");
 		
-		//TODO: integration test
+		//TODO: test
 		String searchConditionString = concatFacetSearchConditionStrings(facetColumns, columnName);
 		QuerySpecification facetColumnCountQuery = SqlElementUntils.createFilteredFacetCountSqlQuerySpecification(columnName, originalQuery.getModel(), searchConditionString);
 		Map<String, Object> parameters = new HashMap<>();
@@ -929,8 +943,8 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		return indexDao.facetCountQuery(facetColumnCountQuery, parameters);
 	}
 	
-	public QueryFacetResultRange runFacetColumnRangeQuery(SqlQuery originalQuery, String columnName, List<ValidatedQueryFacetColumn> facetColumns, TableIndexDAO indexDao){
-		//TODO:Itegration test
+	public static QueryFacetResultRange runFacetColumnRangeQuery(SqlQuery originalQuery, String columnName, List<ValidatedQueryFacetColumn> facetColumns, TableIndexDAO indexDao){
+		//TODO:test
 		ValidateArgument.required(originalQuery, "originalQuery");
 		ValidateArgument.required(columnName, "columnName");
 		ValidateArgument.required(facetColumns, "facetColumns");

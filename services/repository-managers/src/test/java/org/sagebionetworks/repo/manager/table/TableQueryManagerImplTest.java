@@ -36,6 +36,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
@@ -59,6 +60,8 @@ import org.sagebionetworks.repo.model.table.FacetRange;
 import org.sagebionetworks.repo.model.table.FacetType;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
+import org.sagebionetworks.repo.model.table.QueryFacetResultRange;
+import org.sagebionetworks.repo.model.table.QueryFacetResultValue;
 import org.sagebionetworks.repo.model.table.QueryNextPageToken;
 import org.sagebionetworks.repo.model.table.QueryRequestFacetColumn;
 import org.sagebionetworks.repo.model.table.QueryResult;
@@ -78,7 +81,9 @@ import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
+import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.SearchCondition;
+import org.sagebionetworks.table.query.util.SqlElementUntils;
 import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -119,6 +124,7 @@ public class TableQueryManagerImplTest {
 	
 	List<ValidatedQueryFacetColumn> validatedQueryFacetColumns;
 	
+	SqlQuery simpleQuery;
 	String facetColumnName;
 	String facetColumnId;
 	ColumnModel facetColumnModel;
@@ -128,6 +134,12 @@ public class TableQueryManagerImplTest {
 	FacetRange facetRange1;
 	
 	String searchCondition1;
+	
+	@Captor
+	ArgumentCaptor<QuerySpecification> queryCaptor;
+	
+	@Captor
+	ArgumentCaptor<Map<String,Object>> paramsCaptor;
 	
 	@Mock
 	ValidatedQueryFacetColumn mockFacetColumn;
@@ -247,7 +259,8 @@ public class TableQueryManagerImplTest {
 		
 		Mockito.when(mockFacetColumn.getColumnName()).thenReturn(facetColumnName);
 		searchCondition1 = "(searchCondition1)";
-		
+		simpleQuery = new SqlQuery("select * from " + tableId, facetSchema);
+
 	}
 
 	@Test (expected = UnauthorizedException.class)
@@ -1276,6 +1289,17 @@ public class TableQueryManagerImplTest {
 	}
 	
 	@Test
+	public void testAppendFacetSearchConditionOriginalNoOriginalWhereClauseNoFacetSearchCondition() throws ParseException{
+		SqlQuery query = new SqlQuery("select * from " + tableId, facetSchema);
+		validatedQueryFacetColumns.add(new ValidatedQueryFacetColumn(facetColumnName, FacetType.range, null, null));
+		
+		SqlQuery modifiedQuery = TableQueryManagerImpl.appendFacetSearchCondition(query, validatedQueryFacetColumns);
+		assertEquals("SELECT _C"+facetColumnId+"_, ROW_ID, ROW_VERSION FROM T"+KeyFactory.stringToKey(tableId), modifiedQuery.getOutputSQL());
+		assertEquals(0, modifiedQuery.getParameters().size());
+
+	}
+	
+	@Test
 	public void testAppendFacetSearchConditionOriginalWithOriginalWhereClause() throws ParseException{
 		SqlQuery query = new SqlQuery("select * from " + tableId + " where asdf <> ayy and asdf < 'taco bell'", facetSchema);
 		
@@ -1340,5 +1364,74 @@ public class TableQueryManagerImplTest {
 		String result = TableQueryManagerImpl.concatFacetSearchConditionStrings(validatedQueryFacetColumns, null);
 		assertEquals("(" + searchCondition1 + " AND " + searchCondition2 + ")", result);
 	}
+	
+	////////////////////////////////////
+	// runFacetColumnCountQuery() Tests
+	////////////////////////////////////
+	@Test(expected = IllegalArgumentException.class)
+	public void testRunFacetColumnCountQueryNullOriginalQuery(){
+		TableQueryManagerImpl.runFacetColumnCountQuery(null, facetColumnName, validatedQueryFacetColumns, mockTableIndexDAO);
+	}
+	
+	@Test(expected = IllegalArgumentException.class)
+	public void testRunFacetColumnCountQueryNullColumnName(){
+		TableQueryManagerImpl.runFacetColumnCountQuery(simpleQuery, null, validatedQueryFacetColumns, mockTableIndexDAO);
+	}
+	
+	@Test(expected = IllegalArgumentException.class)
+	public void testRunFacetColumnCountQueryNullFacetColumnsList(){
+		TableQueryManagerImpl.runFacetColumnCountQuery(simpleQuery, facetColumnName, null, mockTableIndexDAO);
+	}
+	
+	@Test(expected = IllegalArgumentException.class)
+	public void testRunFacetColumnCountQueryNullTableIndexDao(){
+		TableQueryManagerImpl.runFacetColumnCountQuery(simpleQuery, facetColumnName, validatedQueryFacetColumns, null);
+	}
+	
+	@Test(expected = IllegalArgumentException.class)
+	public void testRunFacetColumnCountQuery(){
+		List<QueryFacetResultValue> expectedResult = new ArrayList<>();
+		when(mockTableIndexDAO.facetCountQuery(any(QuerySpecification.class), any(Map.class))).thenReturn(expectedResult);
+		
+		List<QueryFacetResultValue> result = TableQueryManagerImpl.runFacetColumnCountQuery(simpleQuery, facetColumnName, validatedQueryFacetColumns, mockTableIndexDAO);
+
+		verify(mockTableIndexDAO).facetCountQuery(queryCaptor.capture(), paramsCaptor.capture());
+		
+		assertEquals("", queryCaptor.getValue().toSql());
+		assertEquals(5, paramsCaptor.getValue().size());
+		assertEquals("", paramsCaptor.getValue().get(":b0"));
+		
+		assertEquals(expectedResult, result);
+	}
+	
+	
+	////////////////////////////////////
+	// runFacetColumnRangeQuery() Tests
+	////////////////////////////////////
+	@Test(expected = IllegalArgumentException.class)
+	public void testRunFacetColumnRangeQueryNullOriginalQuery(){
+		TableQueryManagerImpl.runFacetColumnRangeQuery(null, facetColumnName, validatedQueryFacetColumns, mockTableIndexDAO);
+	}
+	
+	@Test(expected = IllegalArgumentException.class)
+	public void testRunFacetColumnRangeQueryNullColumnName(){
+		TableQueryManagerImpl.runFacetColumnRangeQuery(simpleQuery, null, validatedQueryFacetColumns, mockTableIndexDAO);
+	}
+	
+	@Test(expected = IllegalArgumentException.class)
+	public void testRunFacetColumnRangeQueryNullFacetColumnsList(){
+		TableQueryManagerImpl.runFacetColumnRangeQuery(simpleQuery, facetColumnName, null, mockTableIndexDAO);
+	}
+	
+	@Test(expected = IllegalArgumentException.class)
+	public void testRunFacetColumnRangeQueryNullTableIndexDao(){
+		TableQueryManagerImpl.runFacetColumnRangeQuery(simpleQuery, facetColumnName, validatedQueryFacetColumns, null);
+	}
+	
+	
+	////////////////////////////
+	// TODO:runFacetQueries() Tests
+	////////////////////////////
+
 }
 
