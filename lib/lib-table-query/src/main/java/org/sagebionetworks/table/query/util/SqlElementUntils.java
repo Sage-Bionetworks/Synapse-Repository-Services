@@ -686,13 +686,13 @@ public class SqlElementUntils {
 	}
 	
 	/**
-	 * Creates a SQL query for finding the counts of each category in a facet
-	 * @param model the original (non-transformed) model
-	 * @return
-	 * @throws ParseException 
+	 * Creates a SQL query for finding the counts of each distinct value in a faceted column
+	 * @param columnName the name of the faceted column
+	 * @param model the original (non-transformed) query off of which to obtain the FROM and WHERE clauses
+	 * @param facetSearchConditionString
+	 * @return the generated SQL query represented by QuerySpecification
 	 */
 	public static QuerySpecification createFilteredFacetCountSqlQuerySpecification(String columnName, QuerySpecification model,  String facetSearchConditionString){
-		//TODO: Test
 		ValidateArgument.required(columnName, "columnName");
 		ValidateArgument.required(model, "model");
 		
@@ -706,7 +706,8 @@ public class SqlElementUntils {
 		builder.append(COUNT_ALIAS);
 		builder.append(" ");
 		builder.append(tableExpressionFromModel.getFromClause().toSql());
-		appendFacetWhereClauseToStringBuilder(builder, facetSearchConditionString, tableExpressionFromModel.getWhereClause());
+		builder.append(" ");
+		appendFacetWhereClauseToStringBuilderIfNecessary(builder, facetSearchConditionString, tableExpressionFromModel.getWhereClause());
 		builder.append(" GROUP BY " + columnName + " ");
 		builder.append(pagination.toSql());
 		
@@ -717,8 +718,14 @@ public class SqlElementUntils {
 		}
 	}
 	
+	/**
+	 * Creates a SQL query for finding the minimum and maximum values of a faceted column
+	 * @param columnName the name of the faceted column
+	 * @param model model the original (non-transformed) query off of which to obtain the FROM and WHERE clauses
+	 * @param facetSearchConditionString
+	 * @return the generated SQL query represented by QuerySpecification
+	 */
 	public static QuerySpecification createFilteredFacetRangeSqlQuerySpecification(String columnName, QuerySpecification model, String facetSearchConditionString){
-		//TODO: Test
 		ValidateArgument.required(columnName, "columnName");
 		ValidateArgument.required(model, "model");
 		
@@ -734,7 +741,7 @@ public class SqlElementUntils {
 		builder.append(" ");
 		builder.append(model.getTableExpression().getFromClause().toSql());
 		builder.append(" ");
-		appendFacetWhereClauseToStringBuilder(builder, facetSearchConditionString, tableExpressionFromModel.getWhereClause());
+		appendFacetWhereClauseToStringBuilderIfNecessary(builder, facetSearchConditionString, tableExpressionFromModel.getWhereClause());
 		
 		try {
 			return new TableQueryParser(builder.toString()).querySpecification();
@@ -743,13 +750,15 @@ public class SqlElementUntils {
 		}
 	}
 	
-	/*
-	 * Appends a WHERE clause to the string builder if necessary
+	/**
+	 * Appends a WHERE clause to the String Builder if necessary
+	 * @param builder StringBuilder to append to
+	 * @param facetSearchConditionString SearchCondition string to append. pass null if none to append.
+	 * @param originalWhereClause the WHERE clause that was in the original query. pass null if not exist.
 	 */
-	public static void appendFacetWhereClauseToStringBuilder(StringBuilder builder, String facetSearchConditionString,
+	public static void appendFacetWhereClauseToStringBuilderIfNecessary(StringBuilder builder, String facetSearchConditionString,
 			WhereClause originalWhereClause) {
 		ValidateArgument.required(builder, "builder");
-		//TODO: extract tests form appendFacetSearchCondition
 		
 		if(facetSearchConditionString != null || originalWhereClause != null){
 			builder.append("WHERE ");
@@ -762,7 +771,9 @@ public class SqlElementUntils {
 				if(originalWhereClause != null){
 					builder.append(" AND ");
 				}
+				builder.append("(");
 				builder.append(facetSearchConditionString);
+				builder.append(")");
 			}
 		}
 	}

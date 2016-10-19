@@ -31,6 +31,7 @@ import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -56,10 +57,12 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.EntityField;
+import org.sagebionetworks.repo.model.table.FacetColumn;
 import org.sagebionetworks.repo.model.table.FacetRange;
 import org.sagebionetworks.repo.model.table.FacetType;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
+import org.sagebionetworks.repo.model.table.QueryFacetResultColumn;
 import org.sagebionetworks.repo.model.table.QueryFacetResultRange;
 import org.sagebionetworks.repo.model.table.QueryFacetResultValue;
 import org.sagebionetworks.repo.model.table.QueryNextPageToken;
@@ -82,7 +85,6 @@ import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.model.QuerySpecification;
-import org.sagebionetworks.table.query.model.SearchCondition;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
@@ -91,6 +93,7 @@ import org.springframework.transaction.support.TransactionCallback;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.sun.jdi.connect.Connector.Argument;
 
 @RunWith(MockitoJUnitRunner.class)
 public class TableQueryManagerImplTest {
@@ -134,6 +137,9 @@ public class TableQueryManagerImplTest {
 	FacetRange facetRange1;
 	
 	String searchCondition1;
+	
+	Set<String> supportedFacetColumns;
+	Set<String> requestedFacetColumns;
 	
 	@Captor
 	ArgumentCaptor<QuerySpecification> queryCaptor;
@@ -260,7 +266,9 @@ public class TableQueryManagerImplTest {
 		Mockito.when(mockFacetColumn.getColumnName()).thenReturn(facetColumnName);
 		searchCondition1 = "(searchCondition1)";
 		simpleQuery = new SqlQuery("select * from " + tableId, facetSchema);
-
+		
+		supportedFacetColumns = new HashSet<>();
+		requestedFacetColumns = new HashSet<>();
 	}
 
 	@Test (expected = UnauthorizedException.class)
@@ -509,6 +517,90 @@ public class TableQueryManagerImplTest {
 		assertNotNull(results.getQueryResult());
 		assertNotNull(results.getQueryResult().getQueryResults());
 	}
+	
+	
+
+	@Test
+	public void testQueryAsStreamAfterAuthorizationNonEmptyFacetColumnsListNotReturningFacets() throws ParseException, LockUnavilableException, TableUnavailableException, TableFailedException{
+		Long count = 201L;
+		String expectedPredicateValue = "asdfcheckforthis";
+		// setup count results
+		ArgumentCaptor<String> queryStringCaptor = ArgumentCaptor.forClass(String.class);
+		//capture the query to check that the queryToRun is result of appendFacetSearchCondition() and not the original query
+		when(mockTableIndexDAO.countQuery(queryStringCaptor.capture(), paramsCaptor.capture())).thenReturn(count);
+		
+		QueryFacetResultRange expectedRange =  new QueryFacetResultRange();
+		String expectedColumnName = "i0";
+		FacetType expectedFacetType = FacetType.range;
+		when(mockTableIndexDAO.facetRangeQuery(any(QuerySpecification.class), anyMapOf(String.class, Object.class))).thenReturn(expectedRange);
+		when(mockFacetColumn.getColumnName()).thenReturn(expectedColumnName);
+		when(mockFacetColumn.getSearchConditionString()).thenReturn("(i0>" + expectedPredicateValue+")");
+		when(mockFacetColumn.getFacetType()).thenReturn(expectedFacetType);
+		validatedQueryFacetColumns.add(mockFacetColumn);
+		
+		RowHandler rowHandler = null;
+		boolean returnFacets = false;
+		boolean runCount = true; //running count to check that the SqlQuery gets facet filters appended
+		
+		SqlQuery query = new SqlQuery("select * from " + tableId, models);
+		
+		
+		assertEquals(1, validatedQueryFacetColumns.size());
+		
+		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(mockProgressCallbackVoid, query, validatedQueryFacetColumns, rowHandler, runCount, returnFacets, mockTableIndexDAO);
+		assertNotNull(results);
+		assertEquals(models, results.getColumnModels());
+		assertEquals(TableModelUtils.getSelectColumns(models), results.getSelectColumns());
+		assertEquals(count, results.getQueryCount());
+		assertNull(results.getQueryResult());
+		
+		//check to make sure count query was run using a SqlQuery with an facet WHERE clause
+		assertTrue(queryStringCaptor.getValue().contains("WHERE ( ( ( _C0_ > :b0 ) ) )"));
+		Map<String, Object> capturedParams = paramsCaptor.getValue();
+		assertFalse(capturedParams.isEmpty());
+		assertEquals(expectedPredicateValue, capturedParams.get("b0"));
+	}
+	
+	@Test
+	public void testQueryAsStreamAfterAuthorizationNonEmptyFacetColumnsListReturnFacets() throws ParseException, LockUnavilableException, TableUnavailableException, TableFailedException{
+		String predicateValue = "asdfcheckforthis";
+	
+		QueryFacetResultRange expectedRange =  new QueryFacetResultRange();
+		String expectedColumnName = "i0";
+		FacetType expectedFacetType = FacetType.range;
+		when(mockTableIndexDAO.facetRangeQuery(any(QuerySpecification.class), anyMapOf(String.class, Object.class))).thenReturn(expectedRange);
+		when(mockFacetColumn.getColumnName()).thenReturn(expectedColumnName);
+		when(mockFacetColumn.getSearchConditionString()).thenReturn("(i0>" + predicateValue+")");
+		when(mockFacetColumn.getFacetType()).thenReturn(expectedFacetType);
+		validatedQueryFacetColumns.add(mockFacetColumn);
+		
+		RowHandler rowHandler = null;
+		boolean returnFacets = true;
+		boolean runCount = false; //running count to check that the SqlQuery gets facet filters appended
+		
+		SqlQuery query = new SqlQuery("select * from " + tableId, models);
+		
+		
+		assertEquals(1, validatedQueryFacetColumns.size());
+		
+		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(mockProgressCallbackVoid, query, validatedQueryFacetColumns, rowHandler, runCount, returnFacets, mockTableIndexDAO);
+		assertNotNull(results);
+		assertEquals(models, results.getColumnModels());
+		assertEquals(TableModelUtils.getSelectColumns(models), results.getSelectColumns());
+		assertNull(results.getQueryResult());
+		assertNull(results.getQueryCount());
+		
+		//facet result asserts
+		assertNotNull(results.getFacets());
+		assertEquals(1, results.getFacets().size());
+		QueryFacetResultColumn facetResultColumn = results.getFacets().get(0);
+		assertNotNull(facetResultColumn);
+		assertEquals(expectedRange,facetResultColumn.getFacetRange());
+		assertEquals(expectedColumnName,facetResultColumn.getColumnName());
+		assertNull(facetResultColumn.getFacetValues());
+		assertEquals(expectedFacetType, facetResultColumn.getFacetType());
+	}
+	
 	
 	@Test
 	public void testRunQueryAsStream() throws ParseException{
@@ -1277,47 +1369,18 @@ public class TableQueryManagerImplTest {
 	}
 	
 	@Test
-	public void testAppendFacetSearchConditionOriginalNoOriginalWhereClause() throws ParseException{
-		SqlQuery query = new SqlQuery("select * from " + tableId, facetSchema);
-		validatedQueryFacetColumns.add(new ValidatedQueryFacetColumn(facetColumnName, FacetType.range, null, facetRange1));
-		
-		SqlQuery modifiedQuery = TableQueryManagerImpl.appendFacetSearchCondition(query, validatedQueryFacetColumns);
-		assertEquals("SELECT _C"+facetColumnId+"_, ROW_ID, ROW_VERSION FROM T"+KeyFactory.stringToKey(tableId)+" WHERE ( ( _C"+facetColumnId+"_ BETWEEN :b0 AND :b1 ) )", modifiedQuery.getOutputSQL());
-		assertEquals(min1, modifiedQuery.getParameters().get("b0"));
-		assertEquals(max1, modifiedQuery.getParameters().get("b1"));
-
-	}
-	
-	@Test
-	public void testAppendFacetSearchConditionOriginalNoOriginalWhereClauseNoFacetSearchCondition() throws ParseException{
-		SqlQuery query = new SqlQuery("select * from " + tableId, facetSchema);
-		validatedQueryFacetColumns.add(new ValidatedQueryFacetColumn(facetColumnName, FacetType.range, null, null));
-		
-		SqlQuery modifiedQuery = TableQueryManagerImpl.appendFacetSearchCondition(query, validatedQueryFacetColumns);
-		assertEquals("SELECT _C"+facetColumnId+"_, ROW_ID, ROW_VERSION FROM T"+KeyFactory.stringToKey(tableId), modifiedQuery.getOutputSQL());
-		assertEquals(0, modifiedQuery.getParameters().size());
-
-	}
-	
-	@Test
-	public void testAppendFacetSearchConditionOriginalWithWhereClauseAndFacetSearchCondition() throws ParseException{
+	public void testAppendFacetSearchConditionNonEmptyFacetColumnsList() throws ParseException{
 		SqlQuery query = new SqlQuery("select * from " + tableId + " where asdf <> ayy and asdf < 'taco bell'", facetSchema);
 		
 		validatedQueryFacetColumns.add(new ValidatedQueryFacetColumn(facetColumnName, FacetType.range, null, facetRange1));
 		
 		SqlQuery modifiedQuery = TableQueryManagerImpl.appendFacetSearchCondition(query, validatedQueryFacetColumns);
-		assertEquals("SELECT _C"+facetColumnId+"_, ROW_ID, ROW_VERSION FROM T"+KeyFactory.stringToKey(tableId)+" WHERE ( _C"+facetColumnId+"_ <> :b0 AND _C"+facetColumnId+"_ < :b1 ) AND ( ( _C"+facetColumnId+"_ BETWEEN :b2 AND :b3 ) )", modifiedQuery.getOutputSQL());
+		assertEquals("SELECT _C"+facetColumnId+"_, ROW_ID, ROW_VERSION FROM T"+KeyFactory.stringToKey(tableId)+" WHERE ( _C"+facetColumnId+"_ <> :b0 AND _C"+facetColumnId+"_ < :b1 ) AND ( ( ( _C"+facetColumnId+"_ BETWEEN :b2 AND :b3 ) ) )", modifiedQuery.getOutputSQL());
 		assertEquals(min1, modifiedQuery.getParameters().get("b2"));
 		assertEquals(max1, modifiedQuery.getParameters().get("b3"));
-
 	}
 	
-	@Test
-	public void testAppendFacetSearchConditionOriginalWhereClauseNoFacetSearchCondition() throws ParseException{
-		SqlQuery query = new SqlQuery("select * from " + tableId + " where asdf <> ayy and asdf < 'taco bell'", facetSchema);
-		SqlQuery modifiedQuery = TableQueryManagerImpl.appendFacetSearchCondition(query, validatedQueryFacetColumns);
-		assertEquals("SELECT _C"+facetColumnId+"_, ROW_ID, ROW_VERSION FROM T"+KeyFactory.stringToKey(tableId)+" WHERE _C"+facetColumnId+"_ <> :b0 AND _C"+facetColumnId+"_ < :b1", modifiedQuery.getOutputSQL());
-	}
+
 	
 	/////////////////////////////////////////////
 	// concatFacetSearchConditionStrings() Tests
@@ -1404,6 +1467,7 @@ public class TableQueryManagerImplTest {
 
 		verify(mockTableIndexDAO).facetCountQuery(queryCaptor.capture(), paramsCaptor.capture());
 		
+		//verify that the query was transformed
 		assertEquals("SELECT _C890_ AS value, COUNT(*) AS frequency FROM T123 GROUP BY _C890_ LIMIT :b0", queryCaptor.getValue().toSql());
 		assertEquals(1, paramsCaptor.getValue().size());
 		assertEquals(SqlElementUntils.MAX_NUM_FACET_CATEGORIES, paramsCaptor.getValue().get("b0"));
@@ -1444,6 +1508,7 @@ public class TableQueryManagerImplTest {
 
 		verify(mockTableIndexDAO).facetRangeQuery(queryCaptor.capture(), paramsCaptor.capture());
 		
+		//verify that the query was transformed
 		assertEquals("SELECT MIN(_C890_) AS minimum, MAX(_C890_) AS maximum FROM T123", queryCaptor.getValue().toSql());
 		assertEquals(0, paramsCaptor.getValue().size());
 		
@@ -1452,8 +1517,107 @@ public class TableQueryManagerImplTest {
 	
 	
 	////////////////////////////
-	// TODO:runFacetQueries() Tests
+	// runFacetQueries() Tests
 	////////////////////////////
+	@Test (expected = IllegalArgumentException.class)
+	public void testRunFacetQueriesNullQuery(){
+		TableQueryManagerImpl.runFacetQueries(null, validatedQueryFacetColumns, mockTableIndexDAO);
+	}
 	
+	@Test (expected = IllegalArgumentException.class)
+	public void testRunFacetQueriesFacetColumns(){
+		TableQueryManagerImpl.runFacetQueries(simpleQuery, null, mockTableIndexDAO);
+	}
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void testRunFacetQueriesIndexDao(){
+		TableQueryManagerImpl.runFacetQueries(simpleQuery, validatedQueryFacetColumns, null);
+	}
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void testRunFacetQueriesUnexpectedFacetType(){
+		when(mockFacetColumn.getFacetType()).thenReturn(FacetType.none);
+		validatedQueryFacetColumns.add(mockFacetColumn);
+		assertEquals(1, validatedQueryFacetColumns.size());
+		
+		TableQueryManagerImpl.runFacetQueries(simpleQuery, validatedQueryFacetColumns, mockTableIndexDAO);
+	}
+	
+	@Test
+	public void testRunFacetQueries(){
+		List<QueryFacetResultValue> expectedFacetValues = new ArrayList<>();
+		when(mockTableIndexDAO.facetCountQuery(any(QuerySpecification.class), anyMapOf(String.class, Object.class))).thenReturn(expectedFacetValues);
+		QueryFacetResultRange expectedFacetRange = new QueryFacetResultRange();
+		when(mockTableIndexDAO.facetRangeQuery(any(QuerySpecification.class), anyMapOf(String.class, Object.class))).thenReturn(expectedFacetRange);
+
+		
+		ValidatedQueryFacetColumn mockFacetColumn2 = Mockito.mock(ValidatedQueryFacetColumn.class);
+		String columnName1 = "mockFacetColumn1";
+		FacetType facetType1 = FacetType.range;
+		when(mockFacetColumn.getFacetType()).thenReturn(facetType1);
+		when(mockFacetColumn.getColumnName()).thenReturn(columnName1);
+		
+		String columnName2 = "mockFacetColumn2";
+		FacetType facetType2 = FacetType.enumeration;
+		when(mockFacetColumn2.getFacetType()).thenReturn(facetType2);
+		when(mockFacetColumn2.getColumnName()).thenReturn(columnName2);
+		
+		validatedQueryFacetColumns.add(mockFacetColumn);
+		validatedQueryFacetColumns.add(mockFacetColumn2);
+		assertEquals(2, validatedQueryFacetColumns.size());
+		
+		
+		List<QueryFacetResultColumn> results = TableQueryManagerImpl.runFacetQueries(simpleQuery, validatedQueryFacetColumns, mockTableIndexDAO);
+		
+
+		verify(mockFacetColumn, times(1)).getFacetType();
+		verify(mockFacetColumn, times(1)).getFacetRange();
+		verify(mockFacetColumn2, times(1)).getFacetType();
+		verify(mockFacetColumn2, never()).getFacetRange();
+		
+		assertEquals(2, results.size());
+		
+		QueryFacetResultColumn result1 = results.get(0);
+		assertEquals(columnName1, result1.getColumnName());
+		assertEquals(facetType1, result1.getFacetType());
+		assertEquals(expectedFacetRange, result1.getFacetRange());
+		assertNull(result1.getFacetValues());
+		
+		QueryFacetResultColumn result2 = results.get(1);
+		assertEquals(columnName2, result2.getColumnName());
+		assertEquals(facetType2, result2.getFacetType());
+		assertEquals(expectedFacetValues, result2.getFacetValues());
+		assertNull(result2.getFacetRange());
+	}
+	
+	////////////////////////////////////////////
+	// checkForUnfacetedColumnsInRequest() test
+	////////////////////////////////////////////
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void testCheckForUnfacetedColumnsInRequestNullrequestedColumns(){
+		TableQueryManagerImpl.checkForUnfacetedColumnsInRequest(null, supportedFacetColumns);
+	}
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void testCheckForUnfacetedColumnsInRequestNullSupportedColumns(){
+		TableQueryManagerImpl.checkForUnfacetedColumnsInRequest(requestedFacetColumns, null);
+	}
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void testCheckForUnfacetedColumnsInRequestNotAllSuported(){
+		supportedFacetColumns.add("a");
+		supportedFacetColumns.add("b");
+		requestedFacetColumns.addAll(supportedFacetColumns);
+		requestedFacetColumns.add("z");
+		TableQueryManagerImpl.checkForUnfacetedColumnsInRequest(requestedFacetColumns, supportedFacetColumns);
+	}
+	
+	public void testCheckForUnfacetedColumnsInRequestAllSuported(){
+		supportedFacetColumns.add("a");
+		supportedFacetColumns.add("b");
+		requestedFacetColumns.addAll(supportedFacetColumns);
+		TableQueryManagerImpl.checkForUnfacetedColumnsInRequest(requestedFacetColumns, supportedFacetColumns);
+	}
 }
 

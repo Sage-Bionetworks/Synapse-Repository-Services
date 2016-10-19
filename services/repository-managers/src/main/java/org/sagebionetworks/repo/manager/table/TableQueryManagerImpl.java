@@ -49,10 +49,8 @@ import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
-import org.sagebionetworks.table.query.model.DerivedColumn;
 import org.sagebionetworks.table.query.model.Pagination;
 import org.sagebionetworks.table.query.model.QuerySpecification;
-import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.model.WhereClause;
 import org.sagebionetworks.table.query.util.SimpleAggregateQueryException;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
@@ -283,7 +281,6 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	QueryResultBundle queryAsStreamAfterAuthorization(ProgressCallback<Void> progressCallback, SqlQuery query, List<ValidatedQueryFacetColumn> queryFacetColumns,
 			RowHandler rowHandler, boolean runCount, boolean returnFacets,TableIndexDAO indexDao)
 			throws TableUnavailableException, TableFailedException, LockUnavilableException {
-		//TODO: TEST
 		// build up the response.
 		QueryResultBundle bundle = new QueryResultBundle();
 		bundle.setColumnModels(query.getTableSchema());
@@ -335,16 +332,20 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @param indexDao
 	 * @return
 	 */
-	public List<QueryFacetResultColumn> runFacetQueries(SqlQuery originalQuery,
+	public static List<QueryFacetResultColumn> runFacetQueries(SqlQuery originalQuery,
 			List<ValidatedQueryFacetColumn> queryFacetColumns, TableIndexDAO indexDao) {
-		//TODO: unit test and integration test
+		ValidateArgument.required(originalQuery, "originalQuery");
+		ValidateArgument.required(queryFacetColumns, "queryFacetColumns");
+		ValidateArgument.required(indexDao, "indexDao");
+		
+		
 		List<QueryFacetResultColumn> facetResults = new ArrayList<>();
 		for(ValidatedQueryFacetColumn facetQuery : queryFacetColumns){
-			QueryFacetResultColumn facetColumnResult = new QueryFacetResultColumn();
-			facetColumnResult.setColumnName(facetQuery.getColumnName());
-			facetColumnResult.setFacetType(facetQuery.getFacetType());
+			FacetType facetType = facetQuery.getFacetType();
 			
-			switch(facetQuery.getFacetType()){
+			QueryFacetResultColumn facetColumnResult = new QueryFacetResultColumn();
+			
+			switch(facetType){
 			case enumeration:
 				List<QueryFacetResultValue> facetValues = runFacetColumnCountQuery(originalQuery, facetQuery.getColumnName(), queryFacetColumns, indexDao);
 				
@@ -363,6 +364,9 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			default:
 				throw new IllegalArgumentException("Unexpected FacetType");
 			}
+			
+			facetColumnResult.setColumnName(facetQuery.getColumnName());
+			facetColumnResult.setFacetType(facetType);
 			facetResults.add(facetColumnResult);
 		}
 		return facetResults;
@@ -794,13 +798,35 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	public static List<ValidatedQueryFacetColumn> validateFacetList(List<QueryRequestFacetColumn> selectedFacets, List<ColumnModel> schema, boolean returnFacets){
 		Map<String, QueryRequestFacetColumn> selectedFacetMap = createColumnNameToFacetColumnMap(selectedFacets);
 		List<ValidatedQueryFacetColumn> validatedFacets = new ArrayList<ValidatedQueryFacetColumn>();
+		
+		
+		Set<String> supportedFacetColumnsColumns = new HashSet<String>();
+		
 		//create the SearchConditions based on each facet column's values and store them into facetSearchConditionStrings
 		for(ColumnModel columnModel : schema){
+			if(FacetType.enumeration.equals(columnModel.getFacetType()) || FacetType.range.equals(columnModel.getFacetType())){
+				supportedFacetColumnsColumns.add(columnModel.getName());
+			}
+			
 			//add to list of facets
 			QueryRequestFacetColumn facetParams = selectedFacetMap.get(columnModel.getName());
 			determineAddToValidatedFacetList(validatedFacets, columnModel, facetParams, returnFacets);
 		}
+		
+		checkForUnfacetedColumnsInRequest(selectedFacetMap.keySet(), supportedFacetColumnsColumns);
+		
 		return validatedFacets;
+	}
+	
+	
+
+	public static void checkForUnfacetedColumnsInRequest(Set<String> requestedColumns, Set<String> supportedColumns) {		
+		ValidateArgument.required(requestedColumns, "requestedColumns");
+		ValidateArgument.required(supportedColumns, "supportedColumns");
+		
+		if(!supportedColumns.containsAll(requestedColumns)){
+			throw new IllegalArgumentException("Requested facet columns must be in the set:" + supportedColumns.toString());
+		}
 	}
 
 	/**
@@ -817,14 +843,17 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		ValidateArgument.required(columnModel, "columnModel");
 		ValidateArgument.required(validatedFacets, "validatedFacets");
 		
-		if (FacetType.enumeration.equals(columnModel.getFacetType()) || FacetType.range.equals(columnModel.getFacetType())){//if it is a facet add it to the list
+		//if it is a facet add it to the list
+		if (FacetType.enumeration.equals(columnModel.getFacetType()) || FacetType.range.equals(columnModel.getFacetType())){
 			Set<String> facetValues = null;
 			FacetRange facetRange = null;
 			if(facetParams != null){
 				facetValues = facetParams.getFacetValues();
 				facetRange = facetParams.getFacetRange();
 			}
-			if(returnFacets || facetParams != null){ //dont add to list if user does not want to return facets and there is no request associated with it
+			
+			//dont add to list if user does not want to return facets and there is no request associated with it
+			if(returnFacets || facetParams != null){ 
 				validatedFacets.add(new ValidatedQueryFacetColumn(columnModel.getName(), columnModel.getFacetType(), facetValues, facetRange));
 			}
 		}
@@ -864,7 +893,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 				String facetSearchConditionString = concatFacetSearchConditionStrings(facetColumns, null);
 				
 				StringBuilder builder = new StringBuilder();
-				SqlElementUntils.appendFacetWhereClauseToStringBuilder(builder, facetSearchConditionString, originalWhereClause);
+				SqlElementUntils.appendFacetWhereClauseToStringBuilderIfNecessary(builder, facetSearchConditionString, originalWhereClause);
 				
 				// create the new where if necessary
 				if(builder.length() > 0){

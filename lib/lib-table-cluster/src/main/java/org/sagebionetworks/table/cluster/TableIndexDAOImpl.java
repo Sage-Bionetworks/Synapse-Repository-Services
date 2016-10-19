@@ -307,8 +307,8 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			@Override
 			public QueryFacetResultValue mapRow(ResultSet rs, int rowNum) throws SQLException {
 				QueryFacetResultValue facetValue = new QueryFacetResultValue();
-				facetValue.setValue(rs.getString("count"));
-				facetValue.setCount(rs.getLong("value"));
+				facetValue.setValue(rs.getString(SqlElementUntils.VALUE_ALIAS));
+				facetValue.setCount(rs.getLong(SqlElementUntils.COUNT_ALIAS));
 				return facetValue;
 			}
 			

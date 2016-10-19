@@ -5,6 +5,9 @@ import static org.junit.Assert.assertNotNull;
 
 import java.util.List;
 
+import javax.management.Query;
+
+import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.table.QueryResult;
 import org.sagebionetworks.repo.model.table.SortDirection;
@@ -12,12 +15,27 @@ import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.table.query.model.BooleanTerm;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.SearchCondition;
+import org.sagebionetworks.table.query.model.WhereClause;
 import org.sagebionetworks.table.query.util.SimpleAggregateQueryException;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 
 import com.google.common.collect.Lists;
 
 public class SqlElementUntilsTest {
+	WhereClause whereClause;
+	String facetSearchConditionString;
+	StringBuilder stringBuilder;
+	QuerySpecification simpleModel;
+	String columnName;
+	
+	@Before
+	public void setUp() throws ParseException{
+		whereClause = new WhereClause(SqlElementUntils.createSearchCondition("water=wet AND sky=blue"));
+		facetSearchConditionString = "(tabs > spaces)";
+		stringBuilder = new StringBuilder();
+		simpleModel = TableQueryParser.parserQuery("select * from syn123 where i like 'trains'");
+		columnName = "burrito";
+	}
 	
 	@Test
 	public void testConvertToPaginated() throws ParseException {
@@ -292,5 +310,75 @@ public class SqlElementUntilsTest {
 	}
 	
 	
+	////////////////////////////////////////////////////////////
+	// appendFacetWhereClauseToStringBuilderIfNecessary() tests
+	////////////////////////////////////////////////////////////
+	@Test (expected = IllegalArgumentException.class)
+	public void appendFacetWhereClauseToStringBuilderIfNecessaryNullBuilder(){
+		SqlElementUntils.appendFacetWhereClauseToStringBuilderIfNecessary(null, facetSearchConditionString, whereClause);
+	}
 	
+	@Test
+	public void appendFacetWhereClauseToStringBuilderIfNecessaryNullFacetSearchConditionStringNullWhereClause(){
+		SqlElementUntils.appendFacetWhereClauseToStringBuilderIfNecessary(stringBuilder, null, null);
+		assertEquals(0, stringBuilder.length());
+	}
+	
+	@Test
+	public void appendFacetWhereClauseToStringBuilderIfNecessaryNullWhereClause(){
+		SqlElementUntils.appendFacetWhereClauseToStringBuilderIfNecessary(stringBuilder, facetSearchConditionString, null);
+		assertEquals("WHERE ("+ facetSearchConditionString + ")", stringBuilder.toString());
+	}
+	
+	@Test
+	public void appendFacetWhereClauseToStringBuilderIfNecessaryNullFacetSearchConditionString(){
+		SqlElementUntils.appendFacetWhereClauseToStringBuilderIfNecessary(stringBuilder, null, whereClause);
+		assertEquals("WHERE ("+ whereClause.getSearchCondition().toSql() + ")", stringBuilder.toString());
+	}
+	
+	@Test
+	public void appendFacetWhereClauseToStringBuilderIfNecessaryNoNulls(){
+		SqlElementUntils.appendFacetWhereClauseToStringBuilderIfNecessary(stringBuilder, facetSearchConditionString, whereClause);
+		assertEquals("WHERE ("+ whereClause.getSearchCondition().toSql() + ") AND (" + facetSearchConditionString + ")", stringBuilder.toString());
+	}
+	
+	/////////////////////////////////////////////////////////
+	// createFilteredFacetCountSqlQuerySpecification() tests
+	/////////////////////////////////////////////////////////
+	@Test(expected = IllegalArgumentException.class)
+	public void testCreateFilteredFacetCountSqlQuerySpecificationNullColumnName(){
+		SqlElementUntils.createFilteredFacetCountSqlQuerySpecification(null, simpleModel, facetSearchConditionString);
+	}
+	
+	@Test(expected = IllegalArgumentException.class)
+	public void testCreateFilteredFacetCountSqlQuerySpecificationNullModel(){
+		SqlElementUntils.createFilteredFacetCountSqlQuerySpecification(columnName, null, facetSearchConditionString);
+
+	}
+	
+	@Test
+	public void testCreateFilteredFacetCountSqlQuerySpecification(){
+		QuerySpecification result = SqlElementUntils.createFilteredFacetCountSqlQuerySpecification(columnName, simpleModel, facetSearchConditionString);
+		assertEquals("SELECT burrito AS value, COUNT(*) AS frequency FROM syn123 WHERE ( i LIKE 'trains' ) AND ( ( tabs > spaces ) ) GROUP BY burrito LIMIT 100", result.toSql());
+	}
+	
+	/////////////////////////////////////////////////////////
+	// createFilteredFacetRangeSqlQuerySpecification() tests
+	/////////////////////////////////////////////////////////
+	
+	@Test(expected = IllegalArgumentException.class)
+	public void testCreateFilteredFacetRangeSqlQuerySpecificationNullColumnName(){
+		SqlElementUntils.createFilteredFacetRangeSqlQuerySpecification(null, simpleModel, facetSearchConditionString);
+	}
+	
+	@Test(expected = IllegalArgumentException.class)
+	public void testCreateFilteredFacetRangeSqlQuerySpecificationNullModel(){
+		SqlElementUntils.createFilteredFacetRangeSqlQuerySpecification(columnName, null, facetSearchConditionString);
+	}
+	
+	@Test
+	public void testCreateFilteredFacetRangeSqlQuerySpecification(){
+		QuerySpecification result = SqlElementUntils.createFilteredFacetRangeSqlQuerySpecification(columnName, simpleModel, facetSearchConditionString);
+		assertEquals("SELECT MIN(burrito) AS minimum, MAX(burrito) AS maximum FROM syn123 WHERE ( i LIKE 'trains' ) AND ( ( tabs > spaces ) )", result.toSql());
+	}
 }
