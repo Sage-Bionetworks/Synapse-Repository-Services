@@ -29,6 +29,8 @@ import org.sagebionetworks.repo.model.table.TableChangeType;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.table.cluster.utils.TableModelUtils;
+import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
@@ -325,8 +327,9 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 		indexManager.setIndexSchema(progressCallback, currentSchema, removeMissingColumns);
 		// This is a change that we must apply.
 		RowSet rowSet = tableEntityManager.getRowSet(tableId, changeSet.getRowVersion(), currentSchema);
+		SparseChangeSet sparse = TableModelUtils.createSparseChangeSet(rowSet, currentSchema, changeSet.getRowVersion());
 		// attempt to apply this change set to the table.
-		indexManager.applyChangeSetToIndex(rowSet, currentSchema, changeSet.getRowVersion());
+		indexManager.applyChangeSetToIndex(sparse, currentSchema, changeSet.getRowVersion());
 	}
 
 

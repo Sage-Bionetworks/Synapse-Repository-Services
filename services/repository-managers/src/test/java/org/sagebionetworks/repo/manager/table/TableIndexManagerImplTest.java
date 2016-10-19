@@ -10,6 +10,7 @@ import static org.mockito.Mockito.*;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -34,6 +35,9 @@ import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.table.cluster.DatabaseColumnInfo;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
+import org.sagebionetworks.table.model.Grouping;
+import org.sagebionetworks.table.model.SparseChangeSet;
+import org.sagebionetworks.table.model.SparseRow;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionCallback;
 
@@ -54,11 +58,15 @@ public class TableIndexManagerImplTest {
 	TableIndexManagerImpl manager;
 	String tableId;
 	Long versionNumber;
-	List<Row> rows;
-	RowSet rowSet;
+//	List<Row> rows;
+//	RowSet rowSet;
+	SparseChangeSet sparseChangeSet;
 	List<ColumnModel> schema;
 	List<SelectColumn> selectColumns;
 	Long crc32;
+	
+	Grouping groupOne;
+	Grouping groupTwo;
 	
 	@SuppressWarnings("unchecked")
 	@Before
@@ -67,11 +75,7 @@ public class TableIndexManagerImplTest {
 		tableId = "syn123";
 		manager = new TableIndexManagerImpl(mockIndexDao, mockManagerSupport, tableId);
 		
-		versionNumber = 99L;
-		rows = new ArrayList<Row>();
-		rows.add(TableModelTestUtils.createRow(1L, versionNumber, "1","2"));
-		rows.add(TableModelTestUtils.createRow(2L, versionNumber, "5","6"));
-		
+		versionNumber = 99L;		
 		schema = Arrays.asList(
 				TableModelTestUtils.createColumn(99L, "aString", ColumnType.STRING),
 				TableModelTestUtils.createColumn(101L, "aFile", ColumnType.FILEHANDLEID)
@@ -81,11 +85,22 @@ public class TableIndexManagerImplTest {
 				TableModelTestUtils.createSelectColumn(99L, "aString", ColumnType.STRING),
 				TableModelTestUtils.createSelectColumn(101L, "aFile", ColumnType.FILEHANDLEID)
 				);
+			
+		sparseChangeSet = new SparseChangeSet(tableId, schema, versionNumber);
+		SparseRow row = sparseChangeSet.addEmptyRow();
+		row.setRowId(0L);
+		row.setCellValue("99", "some string");
 		
-		rowSet = new RowSet();
-		rowSet.setRows(rows);
-		rowSet.setTableId(tableId);
-		rowSet.setHeaders(selectColumns);
+		row = sparseChangeSet.addEmptyRow();
+		row.setRowId(1l);
+		row.setCellValue("101", "2");
+		row = sparseChangeSet.addEmptyRow();
+		row.setRowId(2l);
+		row.setCellValue("101", "6");
+		
+		Iterator<Grouping> it = sparseChangeSet.groupByValidValues().iterator();
+		groupOne = it.next();
+		groupTwo = it.next();
 		
 		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(tableId)).thenReturn(-1L);
 		
@@ -132,11 +147,12 @@ public class TableIndexManagerImplTest {
 	@Test
 	public void testApplyChangeSetToIndexHappy(){
 		//call under test.
-		manager.applyChangeSetToIndex(rowSet, schema, versionNumber);
+		manager.applyChangeSetToIndex(sparseChangeSet, schema, versionNumber);
 		// All changes should be executed in a transaction
 		verify(mockIndexDao).executeInWriteTransaction(any(TransactionCallback.class));
-		// change should be written to the index
-		verify(mockIndexDao).createOrUpdateOrDeleteRows(rowSet, schema);
+		// both groups should be written
+		verify(mockIndexDao).createOrUpdateOrDeleteRows(groupOne);
+		verify(mockIndexDao).createOrUpdateOrDeleteRows(groupOne);
 		// files handles should be applied.
 		verify(mockIndexDao).applyFileHandleIdsToTable(tableId, Sets.newHashSet(2L, 6L));
 		// The new version should be set
@@ -148,10 +164,10 @@ public class TableIndexManagerImplTest {
 		// For this case the index already has this change set applied.
 		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(tableId)).thenReturn(versionNumber+1);
 		//call under test.
-		manager.applyChangeSetToIndex(rowSet, schema, versionNumber);
+		manager.applyChangeSetToIndex(sparseChangeSet, schema, versionNumber);
 		// nothing do do.
 		verify(mockIndexDao, never()).executeInWriteTransaction(any(TransactionCallback.class));
-		verify(mockIndexDao, never()).createOrUpdateOrDeleteRows(any(RowSet.class), anyList());
+		verify(mockIndexDao, never()).createOrUpdateOrDeleteRows(any(Grouping.class));
 		verify(mockIndexDao, never()).applyFileHandleIdsToTable(anyString(), anySet());
 		verify(mockIndexDao, never()).setMaxCurrentCompleteVersionForTable(anyString(), anyLong());
 	}
@@ -167,14 +183,17 @@ public class TableIndexManagerImplTest {
 				TableModelTestUtils.createSelectColumn(99L, "aString", ColumnType.STRING),
 				TableModelTestUtils.createSelectColumn(101L, "moreStrings", ColumnType.STRING)
 				);
-		rowSet.setHeaders(selectColumns);
+		sparseChangeSet = new SparseChangeSet(tableId, schema, versionNumber);
+		SparseRow row = sparseChangeSet.addEmptyRow();
+		row.setRowId(0L);
+		row.setCellValue("99", "some string");
 		
 		//call under test.
-		manager.applyChangeSetToIndex(rowSet, schema, versionNumber);
+		manager.applyChangeSetToIndex(sparseChangeSet, schema, versionNumber);
 		// All changes should be executed in a transaction
 		verify(mockIndexDao).executeInWriteTransaction(any(TransactionCallback.class));
 		// change should be written to the index
-		verify(mockIndexDao).createOrUpdateOrDeleteRows(rowSet, schema);
+		verify(mockIndexDao).createOrUpdateOrDeleteRows(groupOne);
 		// there are no files
 		verify(mockIndexDao, never()).applyFileHandleIdsToTable(anyString(), anySet());
 		// The new version should be set
@@ -209,14 +228,7 @@ public class TableIndexManagerImplTest {
 		String schemaMD5Hex = TableModelUtils. createSchemaMD5HexCM(Lists.newArrayList(new LinkedList<ColumnModel>()));
 		verify(mockIndexDao).setCurrentSchemaMD5Hex(tableId, schemaMD5Hex);
 	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testApplyChangeSetToIndexInvalidVersion(){
-		// use a version that does not match
-		versionNumber = versionNumber - 1;
-		//call under test.
-		manager.applyChangeSetToIndex(rowSet, schema, versionNumber);
-	}
+
 	
 	@Test
 	public void testIsVersionAppliedToIndexNoVersionApplied(){
