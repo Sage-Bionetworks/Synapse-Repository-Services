@@ -20,7 +20,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -1319,6 +1318,7 @@ public class TableModelUtilsTest {
 	@Test
 	public void testCreateSparseChangeSet(){
 		long versionNumber = 45;
+		String tableId = "syn123";
 		List<String> headerIds = Lists.newArrayList("2","1");
 		List<SelectColumn> headers = TableModelUtils.getSelectColumnsFromColumnIds(headerIds, validModel);
 		
@@ -1347,11 +1347,13 @@ public class TableModelUtilsTest {
 		RowSet rowSet = new RowSet();
 		rowSet.setHeaders(headers);
 		rowSet.setRows(Lists.newArrayList(row1, row2, row3, row4));
+		rowSet.setTableId(tableId);
 		
 		// Call under test
 		SparseChangeSet sparse = TableModelUtils.createSparseChangeSet(rowSet, validModel, versionNumber);
 		assertNotNull(sparse);
 		assertEquals(versionNumber, sparse.getChangeSetVersion());
+		assertEquals(tableId, sparse.getTableId());
 		List<Grouping> grouping = new ArrayList<Grouping>();
 		for(Grouping group: sparse.groupByValidValues()){
 			grouping.add(group);
