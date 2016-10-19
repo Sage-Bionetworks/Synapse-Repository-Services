@@ -1,6 +1,10 @@
 package org.sagebionetworks.table.model;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.Iterator;
 import java.util.List;
@@ -30,7 +34,7 @@ public class SparseChangeSetTest {
 		doubleColumn = TableModelTestUtils.createColumn(3L, "aDouble", ColumnType.DOUBLE);
 		schema = Lists.newArrayList(booleanColumn, stringColumn, doubleColumn);
 		versionNumber = 101;
-		changeSet = new SparseChangeSet(schema, versionNumber);
+		changeSet = new SparseChangeSet("syn123",schema, versionNumber);
 	}
 
 	
@@ -68,7 +72,7 @@ public class SparseChangeSetTest {
 	@Test (expected=IllegalArgumentException.class)
 	public void testNullSchema(){
 		schema = null;
-		changeSet = new SparseChangeSet(schema, versionNumber);
+		changeSet = new SparseChangeSet("syn123", schema, versionNumber);
 	}
 	
 	@Test
@@ -205,7 +209,7 @@ public class SparseChangeSetTest {
 		ColumnModel c2 = TableModelTestUtils.createColumn(2L, "two", ColumnType.STRING);
 		ColumnModel c3 = TableModelTestUtils.createColumn(3L, "three", ColumnType.STRING);
 		List<ColumnModel> schema = Lists.newArrayList(c1, c2, c3);
-		changeSet = new SparseChangeSet(schema, versionNumber);
+		changeSet = new SparseChangeSet("syn123",schema, versionNumber);
 		// add combinations of rows
 		SparseRow r0 = changeSet.addEmptyRow();
 		r0.setRowId(0L);

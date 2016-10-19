@@ -268,6 +268,111 @@ public class SparseChangeSet {
 			return valueMap.keySet().isEmpty();
 		}
 		
+		@Override
+		public int hashCode() {
+			final int prime = 31;
+			int result = 1;
+			result = prime * result + ((rowId == null) ? 0 : rowId.hashCode());
+			result = prime * result + rowIndex;
+			result = prime * result
+					+ ((valueMap == null) ? 0 : valueMap.hashCode());
+			return result;
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj)
+				return true;
+			if (obj == null)
+				return false;
+			if (getClass() != obj.getClass())
+				return false;
+			SparseRowImpl other = (SparseRowImpl) obj;
+			if (rowId == null) {
+				if (other.rowId != null)
+					return false;
+			} else if (!rowId.equals(other.rowId))
+				return false;
+			if (rowIndex != other.rowIndex)
+				return false;
+			if (valueMap == null) {
+				if (other.valueMap != null)
+					return false;
+			} else if (!valueMap.equals(other.valueMap))
+				return false;
+			return true;
+		}
+
+		@Override
+		public String toString() {
+			return "SparseRowImpl [rowIndex=" + rowIndex + ", rowId=" + rowId
+					+ ", valueMap=" + valueMap + "]";
+		}	
+		
+	}
+
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result
+				+ ((columnIndexMap == null) ? 0 : columnIndexMap.hashCode());
+		result = prime * result + ((schema == null) ? 0 : schema.hashCode());
+		result = prime * result
+				+ ((schemaMap == null) ? 0 : schemaMap.hashCode());
+		result = prime * result
+				+ ((sparseRows == null) ? 0 : sparseRows.hashCode());
+		result = prime * result + ((tableId == null) ? 0 : tableId.hashCode());
+		result = prime * result
+				+ (int) (versionNumber ^ (versionNumber >>> 32));
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		SparseChangeSet other = (SparseChangeSet) obj;
+		if (columnIndexMap == null) {
+			if (other.columnIndexMap != null)
+				return false;
+		} else if (!columnIndexMap.equals(other.columnIndexMap))
+			return false;
+		if (schema == null) {
+			if (other.schema != null)
+				return false;
+		} else if (!schema.equals(other.schema))
+			return false;
+		if (schemaMap == null) {
+			if (other.schemaMap != null)
+				return false;
+		} else if (!schemaMap.equals(other.schemaMap))
+			return false;
+		if (sparseRows == null) {
+			if (other.sparseRows != null)
+				return false;
+		} else if (!sparseRows.equals(other.sparseRows))
+			return false;
+		if (tableId == null) {
+			if (other.tableId != null)
+				return false;
+		} else if (!tableId.equals(other.tableId))
+			return false;
+		if (versionNumber != other.versionNumber)
+			return false;
+		return true;
+	}
+
+	@Override
+	public String toString() {
+		return "SparseChangeSet [tableId=" + tableId + ", schema=" + schema
+				+ ", versionNumber=" + versionNumber + ", sparseRows="
+				+ sparseRows + "]";
 	}
 
 }
