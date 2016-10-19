@@ -1,20 +1,25 @@
 package org.sagebionetworks.table.model;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 import java.util.Iterator;
 import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+
+import static org.mockito.Mockito.*;
+
+import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.SparseChangeSetDto;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 
 import com.google.common.collect.Lists;
 
@@ -26,15 +31,19 @@ public class SparseChangeSetTest {
 	List<ColumnModel> schema;
 	long versionNumber;
 	SparseChangeSet changeSet;
+	@Mock
+	ColumnModelProvider mockColumnModelProvider;
 	
 	@Before
 	public void before(){
+		MockitoAnnotations.initMocks(this);
 		booleanColumn = TableModelTestUtils.createColumn(1L, "aBoolean", ColumnType.BOOLEAN);
 		stringColumn = TableModelTestUtils.createColumn(2L, "aString", ColumnType.STRING);
 		doubleColumn = TableModelTestUtils.createColumn(3L, "aDouble", ColumnType.DOUBLE);
 		schema = Lists.newArrayList(booleanColumn, stringColumn, doubleColumn);
 		versionNumber = 101;
 		changeSet = new SparseChangeSet("syn123",schema, versionNumber);
+		when(mockColumnModelProvider.getColumns(anyListOf(String.class))).thenReturn(schema);
 	}
 
 	
@@ -274,6 +283,42 @@ public class SparseChangeSetTest {
 		Grouping g5 = it.next();
 		assertEquals(Lists.newArrayList(), g5.getColumnsWithValues());
 		assertEquals(Lists.newArrayList(r4,r9), g5.getRows());
+	}
+	
+	/**
+	 * Write a SparseChangeSet to a DTO and then use
+	 * the DTO to create an exact copy of the original SparseChangeSet.
+	 * @throws JSONObjectAdapterException 
+	 * 
+	 */
+	@Test
+	public void testToDtoAndBack() throws JSONObjectAdapterException{
+		// add some rows
+		SparseRow row = changeSet.addEmptyRow();
+		row.setRowId(0L);
+		row.setCellValue(booleanColumn.getId(), "true");
+		row.setCellValue(stringColumn.getId(), "aString");
+		row.setCellValue(doubleColumn.getId(), "2.21");
+		
+		row = changeSet.addEmptyRow();
+		row.setRowId(1L);
+		row.setCellValue(booleanColumn.getId(), "false");
+		row.setCellValue(doubleColumn.getId(), "2.22");
+		// Add a delete
+		row = changeSet.addEmptyRow();
+		row.setRowId(2L);
+		
+		row = changeSet.addEmptyRow();
+		row.setRowId(3L);
+		row.setCellValue(doubleColumn.getId(), "29.92");
+		// Write to a DTO
+		SparseChangeSetDto dto = changeSet.writeToDto();
+		assertNotNull(dto);
+		System.out.println(EntityFactory.createJSONStringForEntity(dto));
+		// Create a copy from the DTO
+		SparseChangeSet copy = new SparseChangeSet(dto, mockColumnModelProvider);
+		// the should be the same.
+		assertEquals(changeSet, copy);
 	}
 	
 }

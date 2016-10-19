@@ -10,6 +10,8 @@ import java.util.Set;
 
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.PartialRow;
+import org.sagebionetworks.repo.model.table.SparseChangeSetDto;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.ValidateArgument;
@@ -36,6 +38,43 @@ public class SparseChangeSet {
 	public SparseChangeSet(String tableId, List<ColumnModel> schema, long versionNumber) {
 		ValidateArgument.required(tableId, "tableId");
 		ValidateArgument.required(schema, "schema");
+		initialize(tableId, schema, versionNumber);
+	}
+	
+	/**
+	 * Create a new SparseChangeSet from a Data Transfer Object (DTO).
+	 * 
+	 * @param dto
+	 * @param columnProvider
+	 */
+	public SparseChangeSet(SparseChangeSetDto dto, ColumnModelProvider columnProvider){
+		ValidateArgument.required(dto, "dto");
+		ValidateArgument.required(dto.getTableId(), "dto.tableId");
+		ValidateArgument.required(dto.getVersionNumber(), "dto.versionNumber");
+		ValidateArgument.required(dto.getColumnIds(), "dto.columnIds");
+		ValidateArgument.required(dto.getRows(), "dto.rows");
+		ValidateArgument.required(columnProvider, "columnProvider");
+		initialize(dto.getTableId(), columnProvider.getColumns(dto.getColumnIds()), dto.getVersionNumber());
+		// Add all of the rows from the DTO.
+		for(PartialRow row: dto.getRows()){
+			SparseRow sparse = this.addEmptyRow();
+			sparse.setRowId(row.getRowId());
+			for(ColumnModel cm: this.schema){
+				if(row.getValues().containsKey(cm.getId())){
+					sparse.setCellValue(cm.getId(), row.getValues().get(cm.getId()));
+				}
+			}
+		}
+	}
+	
+	/**
+	 * Common initialization.
+	 * @param tableId
+	 * @param schema
+	 * @param versionNumber
+	 */
+	private void initialize(String tableId, List<ColumnModel> schema,
+			long versionNumber) {
 		this.tableId = tableId;
 		this.sparseRows = new LinkedList<SparseRow>();
 		this.versionNumber = versionNumber;
@@ -47,6 +86,37 @@ public class SparseChangeSet {
 			columnIndexMap.put(cm.getId(), i);
 			schemaMap.put(cm.getId(), cm);
 		}
+	}
+	
+	/**
+	 * Write all of the data from this change set into a Data Transfer Object
+	 * @return
+	 */
+	public SparseChangeSetDto writeToDto(){
+		SparseChangeSetDto dto = new SparseChangeSetDto();
+		dto.setTableId(this.tableId);
+		dto.setVersionNumber(this.versionNumber);
+		// Write the column models ids
+		List<String> columnIds = new LinkedList<String>();
+		for(ColumnModel cm: this.schema){
+			columnIds.add(cm.getId());
+		}
+		dto.setColumnIds(columnIds);
+		List<PartialRow> rows = new LinkedList<PartialRow>();
+		for(SparseRow row: this.sparseRows){
+			PartialRow partial = new PartialRow();
+			partial.setRowId(row.getRowId());
+			HashMap<String, String> values = new HashMap<String, String>(this.schema.size());
+			for(ColumnModel cm: this.schema){
+				if(row.hasCellValue(cm.getId())){
+					values.put(cm.getId(), row.getCellValue(cm.getId()));
+				}
+			}
+			partial.setValues(values);
+			rows.add(partial);
+		}
+		dto.setRows(rows);
+		return dto;
 	}
 	
 	/**
@@ -307,8 +377,7 @@ public class SparseChangeSet {
 		public String toString() {
 			return "SparseRowImpl [rowIndex=" + rowIndex + ", rowId=" + rowId
 					+ ", valueMap=" + valueMap + "]";
-		}	
-		
+		}
 	}
 
 

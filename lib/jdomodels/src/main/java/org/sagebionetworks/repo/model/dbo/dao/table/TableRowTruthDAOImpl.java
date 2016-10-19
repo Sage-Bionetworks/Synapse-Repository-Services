@@ -6,6 +6,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashSet;
@@ -246,12 +247,17 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	
 	@Override
 	public long appendSchemaChangeToTable(String userId, String tableId,
-			List<String> current, List<ColumnChange> changes) throws IOException {
+			List<String> current, final List<ColumnChange> changes) throws IOException {
 		
 		long coutToReserver = 1;
 		IdRange range = reserveIdsInRange(tableId, coutToReserver);
 		// We are ready to convert the file to a CSV and save it to S3.
-		String key = saveSchemaToS3(changes);
+		String key = saveToS3(new WriterCallback() {
+			@Override
+			public void write(OutputStream out) throws IOException {
+				ColumnModelUtils.writeSchemaChangeToGz(changes, out);
+			}
+		});
 		// record the change
 		DBOTableRowChange changeDBO = new DBOTableRowChange();
 		changeDBO.setTableId(KeyFactory.stringToKey(tableId));
@@ -268,14 +274,23 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		return range.getVersionNumber();
 	}
 	
-	String saveSchemaToS3(List<ColumnChange> changes)
-			throws IOException {
-		File temp = File.createTempFile("schemaChange", ".gz");
+	/**
+	 * Write the data from the given callback to S3.
+	 * 
+	 * @param callback
+	 * @return
+	 * @throws IOException
+	 */
+	String saveToS3(WriterCallback callback) throws IOException {
+		// First write to a temp file.
+		File temp = File.createTempFile("tempToS3", ".gz");
 		FileOutputStream out = null;
 		try {
 			out = new FileOutputStream(temp);
-			// Save this to the the zipped CSV
-			ColumnModelUtils.writeSchemaChangeToGz(changes, out);
+			// write to the temp file.
+			callback.write(out);
+			out.flush();
+			out.close();
 			// upload it to S3.
 			String key = String.format(KEY_TEMPLATE, UUID.randomUUID()
 					.toString());
