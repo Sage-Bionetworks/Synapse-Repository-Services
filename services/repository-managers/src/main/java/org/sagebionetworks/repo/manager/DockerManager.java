@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.manager;
 
+import java.util.List;
+
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.docker.DockerAuthorizationToken;
@@ -18,7 +20,7 @@ public interface DockerManager {
 	 * @param scope
 	 * @return
 	 */
-	public DockerAuthorizationToken authorizeDockerAccess(UserInfo userInfo, String service, String scope);
+	public DockerAuthorizationToken authorizeDockerAccess(UserInfo userInfo, String service, List<String> scopes);
 
 	/**
 	 * Process (push, pull) event notifications from Docker Registry

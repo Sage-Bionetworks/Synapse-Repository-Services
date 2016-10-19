@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.web.service;
 
+import java.util.List;
+
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.docker.DockerAuthorizationToken;
 import org.sagebionetworks.repo.model.docker.DockerCommit;
@@ -17,7 +19,7 @@ public interface DockerService {
 	 * @param scope
 	 * @return
 	 */
-	public DockerAuthorizationToken authorizeDockerAccess(Long userId, String service, String scope);
+	public DockerAuthorizationToken authorizeDockerAccess(Long userId, String service, List<String> scopes);
 	
 	/**
 	 * 

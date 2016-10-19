@@ -5,6 +5,7 @@ import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_C
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_EVAL_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_ID;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_USER_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_TEAM_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_STATUS;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_SUBMISSION_ID;
@@ -41,8 +42,10 @@ import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
 import org.sagebionetworks.repo.model.query.SQLConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
@@ -119,6 +122,10 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 			"SELECT * FROM "+TABLE_SUBMISSION_CONTRIBUTOR+
 			" WHERE "+COL_SUBMISSION_CONTRIBUTOR_SUBMISSION_ID+" in (:"+
 					COL_SUBMISSION_CONTRIBUTOR_SUBMISSION_ID+")";
+
+	private static final String SELECT_CREATED_BY = "SELECT "+COL_SUBMISSION_USER_ID
+			+ " FROM "+TABLE_SUBMISSION
+			+ " WHERE "+COL_SUBMISSION_ID +"= ?";
 
 	//------    Submission eligibility related query strings -----
 	
@@ -547,5 +554,15 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		sql.append(IS_TEAM_SUBMISSION_CLAUSE);
 		addStartEndAndStatusClauses(sql, param, startDateIncl, endDateExcl, statuses);
 		return simpleJdbcTemplate.queryForLong(sql.toString(), param) > 0;
+	}
+
+	@Override
+	public String getCreatedBy(String submissionId) {
+		ValidateArgument.required(submissionId, "submissionId");
+		try {
+			return simpleJdbcTemplate.queryForObject(SELECT_CREATED_BY, String.class, submissionId);
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException();
+		}
 	}
 }

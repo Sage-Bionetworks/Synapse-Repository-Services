@@ -19,7 +19,7 @@ public interface MessageService {
 	public MessageToUser create(Long userId, MessageToUser toCreate)
 			throws NotFoundException;
 
-	public void create(Message toCreate, String notificationUnsubscribeEndpoint);
+	public void create(Message toCreate, String notificationUnsubscribeEndpoint) throws Exception;
 	
 	public void authorize(AuthorizationCheckHeader ach);
 

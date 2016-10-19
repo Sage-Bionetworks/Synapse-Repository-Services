@@ -1,12 +1,11 @@
 package org.sagebionetworks.repo.manager.file;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyString;
@@ -35,6 +34,8 @@ import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -72,6 +73,8 @@ public class MultipartManagerV2ImplTest {
 	S3MultipartUploadDAO mockS3multipartUploadDAO;
 	@Mock
 	FileHandleDao mockFileHandleDao;
+	@Mock
+	IdGenerator mockIdGenerator;
 
 	MultipartUploadRequest request;	
 	String requestJson;
@@ -117,7 +120,8 @@ public class MultipartManagerV2ImplTest {
 		
 		fileHandle = new S3FileHandle();
 		fileHandle.setId("9999");
-		when(mockFileHandleDao.createFile(any(S3FileHandle.class), anyBoolean())).thenReturn(fileHandle);
+		when(mockIdGenerator.generateNewId(TYPE.FILE_IDS)).thenReturn(9999L);
+		when(mockFileHandleDao.createFile(any(S3FileHandle.class))).thenReturn(fileHandle);
 		
 		// setup a completed upload.
 		MultipartUploadStatus completeStatus = new MultipartUploadStatus();
@@ -191,7 +195,7 @@ public class MultipartManagerV2ImplTest {
 		ReflectionTestUtils.setField(manager, "projectSettingsManager", mockProjectSettingsManager);
 		ReflectionTestUtils.setField(manager, "s3multipartUploadDAO", mockS3multipartUploadDAO);
 		ReflectionTestUtils.setField(manager, "fileHandleDao", mockFileHandleDao);
-		
+		ReflectionTestUtils.setField(manager, "idGenerator", mockIdGenerator);
 	}
 	
 	@Test (expected=UnauthorizedException.class)
@@ -626,8 +630,7 @@ public class MultipartManagerV2ImplTest {
 		assertEquals(fileHandle, result);
 		
 		ArgumentCaptor<S3FileHandle> capture = ArgumentCaptor.forClass(S3FileHandle.class);
-		ArgumentCaptor<Boolean> previewCapture = ArgumentCaptor.forClass(Boolean.class);
-		verify(mockFileHandleDao).createFile(capture.capture(), previewCapture.capture());
+		verify(mockFileHandleDao).createFile(capture.capture());
 		
 		S3FileHandle capturedFileHandle = capture.getValue();
 		assertEquals(composite.getBucket(), capturedFileHandle.getBucketName());
@@ -639,8 +642,7 @@ public class MultipartManagerV2ImplTest {
 		assertNotNull(capturedFileHandle.getCreatedOn());
 		assertNotNull(capturedFileHandle.getEtag());
 		assertEquals(request.getFileName(), capturedFileHandle.getFileName());
-		// preview should be generated
-		assertTrue(previewCapture.getValue());
+		assertNull(capturedFileHandle.getPreviewId());
 	}
 	
 	@Test
@@ -652,11 +654,10 @@ public class MultipartManagerV2ImplTest {
 		assertEquals(fileHandle, result);
 		
 		ArgumentCaptor<S3FileHandle> capture = ArgumentCaptor.forClass(S3FileHandle.class);
-		ArgumentCaptor<Boolean> previewCapture = ArgumentCaptor.forClass(Boolean.class);
-		verify(mockFileHandleDao).createFile(capture.capture(), previewCapture.capture());
+		verify(mockFileHandleDao).createFile(capture.capture());
 		
 		// preview should not be generated
-		assertFalse(previewCapture.getValue());
+		assertEquals(capture.getValue().getPreviewId(), result.getId());
 	}
 	
 	@Test
@@ -670,7 +671,7 @@ public class MultipartManagerV2ImplTest {
 		
 		verify(mockMultiparUploadDAO).getUploadStatus(uploadId);
 		verify(mockMultiparUploadDAO).getAddedPartMD5s(uploadId);
-		verify(mockFileHandleDao).createFile(any(S3FileHandle.class), anyBoolean());
+		verify(mockFileHandleDao).createFile(any(S3FileHandle.class));
 		
 		ArgumentCaptor<CompleteMultipartRequest> completeCpature = ArgumentCaptor.forClass(CompleteMultipartRequest.class);
 		verify(mockS3multipartUploadDAO).completeMultipartUpload(completeCpature.capture());
@@ -705,7 +706,7 @@ public class MultipartManagerV2ImplTest {
 		
 		verify(mockMultiparUploadDAO).getUploadStatus(uploadId);
 		verify(mockMultiparUploadDAO, never()).getAddedPartMD5s(uploadId);
-		verify(mockFileHandleDao, never()).createFile(any(S3FileHandle.class), anyBoolean());
+		verify(mockFileHandleDao, never()).createFile(any(S3FileHandle.class));
 		verify(mockS3multipartUploadDAO, never()).completeMultipartUpload(any(CompleteMultipartRequest.class));
 		verify(mockMultiparUploadDAO, never()).setUploadComplete(uploadId, fileHandle.getId());		
 	}
@@ -723,7 +724,7 @@ public class MultipartManagerV2ImplTest {
 		}
 		verify(mockMultiparUploadDAO).getUploadStatus(uploadId);
 		verify(mockMultiparUploadDAO).getAddedPartMD5s(uploadId);
-		verify(mockFileHandleDao, never()).createFile(any(S3FileHandle.class), anyBoolean());
+		verify(mockFileHandleDao, never()).createFile(any(S3FileHandle.class));
 		verify(mockS3multipartUploadDAO, never()).completeMultipartUpload(any(CompleteMultipartRequest.class));
 		verify(mockMultiparUploadDAO, never()).setUploadComplete(uploadId, fileHandle.getId());		
 	}

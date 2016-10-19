@@ -1,0 +1,18 @@
+{
+	"description": "Request to make a copy of an existing FileHandle.",
+	"properties": {
+		"originalFile": {
+			"type": "object",
+			"$ref":"org.sagebionetworks.repo.model.file.FileHandleAssociation",
+			"description": "Defines the file to make a copy from."
+		},
+		"newFileName":{
+			"type": "string",
+			"description": "Set to override the original file name."
+		},
+		"newContentType":{
+			"type": "string",
+			"description": "Set to override the original content type."
+		}
+	}
+}

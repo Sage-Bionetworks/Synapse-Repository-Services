@@ -15,6 +15,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
@@ -22,6 +24,7 @@ import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableDAO;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle;
+import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.migration.MigrationType;
@@ -44,6 +47,9 @@ public class MigratableTableDAOImplAutowireTest {
 	
 	@Autowired
 	private MigratableTableDAO migratableTableDAO;
+
+	@Autowired
+	private IdGenerator idGenerator;
 	
 	private List<String> filesToDelete;
 	
@@ -72,27 +78,35 @@ public class MigratableTableDAOImplAutowireTest {
 		assertEquals(startCount, migrationCount);
 		long startMax = fileHandleDao.getMaxId();
 		// The one will have a preview
-		S3FileHandle withPreview = TestUtils.createS3FileHandle(creatorUserGroupId);
+		S3FileHandle withPreview = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(TYPE.FILE_IDS).toString());
 		withPreview.setFileName("withPreview.txt");
-		withPreview = fileHandleDao.createFile(withPreview);
-		assertNotNull(withPreview);
-		filesToDelete.add(withPreview.getId());
-		S3FileHandle withPreview2 = TestUtils.createS3FileHandle(creatorUserGroupId);
+		S3FileHandle withPreview2 = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(TYPE.FILE_IDS).toString());
 		withPreview2.setFileName("withPreview2.txt");
-		withPreview2 = fileHandleDao.createFile(withPreview2);
-		assertNotNull(withPreview2);
-		filesToDelete.add(withPreview2.getId());
 		// The Preview
-		PreviewFileHandle preview = TestUtils.createPreviewFileHandle(creatorUserGroupId);
+		PreviewFileHandle preview = TestUtils.createPreviewFileHandle(creatorUserGroupId, idGenerator.generateNewId(TYPE.FILE_IDS).toString());
 		preview.setFileName("preview.txt");
-		preview = fileHandleDao.createFile(preview);
-		assertNotNull(preview);
-		filesToDelete.add(preview.getId());
 		// Preview 2
-		PreviewFileHandle preview2 = TestUtils.createPreviewFileHandle(creatorUserGroupId);
+		PreviewFileHandle preview2 = TestUtils.createPreviewFileHandle(creatorUserGroupId, idGenerator.generateNewId(TYPE.FILE_IDS).toString());
 		preview2.setFileName("preview.txt");
-		preview2 = fileHandleDao.createFile(preview2);
+
+		List<FileHandle> fileHandleToCreate = new LinkedList<FileHandle>();
+		fileHandleToCreate.add(withPreview);
+		fileHandleToCreate.add(withPreview2);
+		fileHandleToCreate.add(preview);
+		fileHandleToCreate.add(preview2);
+		fileHandleDao.createBatch(fileHandleToCreate);
+		
+		withPreview = (S3FileHandle) fileHandleDao.get(withPreview.getId());
+		assertNotNull(withPreview);
+		withPreview2 = (S3FileHandle) fileHandleDao.get(withPreview2.getId());
+		assertNotNull(withPreview2);
+		preview = (PreviewFileHandle) fileHandleDao.get(preview.getId());
+		assertNotNull(preview);
+		preview2 = (PreviewFileHandle) fileHandleDao.get(preview2.getId());
 		assertNotNull(preview2);
+		filesToDelete.add(withPreview.getId());
+		filesToDelete.add(withPreview2.getId());
+		filesToDelete.add(preview.getId());
 		filesToDelete.add(preview2.getId());
 		
 		assertEquals(Long.parseLong(preview2.getId()), fileHandleDao.getMaxId());
@@ -228,7 +242,7 @@ public class MigratableTableDAOImplAutowireTest {
 	
 	@Test
 	public void testRunWithForeignKeyIgnored() throws Exception{
-		final S3FileHandle fh = TestUtils.createS3FileHandle(creatorUserGroupId);
+		final S3FileHandle fh = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(TYPE.FILE_IDS).toString());
 		fh.setFileName("withPreview.txt");
 		// This does not exists but we should be able to set while foreign keys are ignored.
 		fh.setPreviewId("-123");
@@ -244,14 +258,14 @@ public class MigratableTableDAOImplAutowireTest {
 			@Override
 			public Boolean call() throws Exception {
 				// We should be able to do this now that foreign keys are disabled.
-				S3FileHandle updated = fileHandleDao.createFile(fh);
+				S3FileHandle updated = (S3FileHandle) fileHandleDao.createFile(fh);
 				filesToDelete.add(updated.getId());
 				return true;
 			}});
 		assertTrue(result);
 		
 		// This should fail if constraints are back on.
-		final S3FileHandle fh2 = TestUtils.createS3FileHandle(creatorUserGroupId);
+		final S3FileHandle fh2 = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(TYPE.FILE_IDS).toString());
 		fh2.setFileName("withPreview2.txt");
 		// This does not exists but we should be able to set while foreign keys are ignored.
 		fh2.setPreviewId("-123");
@@ -333,9 +347,9 @@ public class MigratableTableDAOImplAutowireTest {
 	public void testGetMigrationTypeCount() throws Exception {
 		long startCount = fileHandleDao.getCount();
 		assertEquals(startCount, migratableTableDAO.getCount(MigrationType.FILE_HANDLE));
-		S3FileHandle handle = TestUtils.createS3FileHandle(creatorUserGroupId);
+		S3FileHandle handle = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(TYPE.FILE_IDS).toString());
 		handle.setFileName("handle");
-		handle = fileHandleDao.createFile(handle);
+		handle = (S3FileHandle) fileHandleDao.createFile(handle);
 		filesToDelete.add(handle.getId());
 		assertEquals(startCount+1, migratableTableDAO.getCount(MigrationType.FILE_HANDLE));
 		fileHandleDao.delete(handle.getId());
@@ -346,9 +360,9 @@ public class MigratableTableDAOImplAutowireTest {
 	public void testGetMigrationTypeCountForType() {
 		long startCount = fileHandleDao.getCount();
 		assertEquals(startCount, migratableTableDAO.getMigrationTypeCount(MigrationType.FILE_HANDLE).getCount().longValue());
-		S3FileHandle handle = TestUtils.createS3FileHandle(creatorUserGroupId);
+		S3FileHandle handle = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(TYPE.FILE_IDS).toString());
 		handle.setFileName("handle");
-		handle = fileHandleDao.createFile(handle);
+		handle = (S3FileHandle) fileHandleDao.createFile(handle);
 		filesToDelete.add(handle.getId());
 		assertEquals(startCount+1, migratableTableDAO.getMigrationTypeCount(MigrationType.FILE_HANDLE).getCount().longValue());
 		fileHandleDao.delete(handle.getId());
@@ -377,9 +391,9 @@ public class MigratableTableDAOImplAutowireTest {
 		assertNotNull(l.getList());
 		assertEquals(0, l.getList().size());
 		// Add a file handle
-		S3FileHandle handle1 = TestUtils.createS3FileHandle(creatorUserGroupId);
+		S3FileHandle handle1 = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(TYPE.FILE_IDS).toString());
 		handle1.setFileName("handle1");
-		handle1 = fileHandleDao.createFile(handle1);
+		handle1 = (S3FileHandle) fileHandleDao.createFile(handle1);
 		filesToDelete.add(handle1.getId());
 		// Test
 		l = migratableTableDAO.listRowMetadataByRange(MigrationType.FILE_HANDLE, startId, Long.parseLong(handle1.getId())-1, 10, 0);
@@ -400,9 +414,9 @@ public class MigratableTableDAOImplAutowireTest {
 		assertEquals(1, l.getList().size());
 		assertEquals(handle1.getId(), l.getList().get(0).getId().toString());
 		// Add a preview
-		PreviewFileHandle previewHandle1 = TestUtils.createPreviewFileHandle(creatorUserGroupId);
+		PreviewFileHandle previewHandle1 = TestUtils.createPreviewFileHandle(creatorUserGroupId, idGenerator.generateNewId(TYPE.FILE_IDS).toString());
 		previewHandle1.setFileName("preview1");
-		previewHandle1 = fileHandleDao.createFile(previewHandle1);
+		previewHandle1 = (PreviewFileHandle) fileHandleDao.createFile(previewHandle1);
 		filesToDelete.add(previewHandle1.getId());
 		// Test
 		l = migratableTableDAO.listRowMetadataByRange(MigrationType.FILE_HANDLE, startId, Long.parseLong(previewHandle1.getId()), 10, 0);
@@ -431,9 +445,9 @@ public class MigratableTableDAOImplAutowireTest {
 		List<Long> ids = new LinkedList<Long>();
 		// Create 5 file handles
 		for (int i = 1; i < 6; i++) {
-			S3FileHandle handle = TestUtils.createS3FileHandle(creatorUserGroupId);
+			S3FileHandle handle = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(TYPE.FILE_IDS).toString());
 			handle.setFileName("handle"+i);
-			handle = fileHandleDao.createFile(handle);
+			handle = (S3FileHandle) fileHandleDao.createFile(handle);
 			filesToDelete.add(handle.getId());
 			ids.add(Long.parseLong(handle.getId()));
 		}
@@ -473,9 +487,9 @@ public class MigratableTableDAOImplAutowireTest {
 		// Start checksum
 		String checksum1 = migratableTableDAO.getChecksumForType(MigrationType.FILE_HANDLE);
 		// Add file handle
-		S3FileHandle handle1 = TestUtils.createS3FileHandle(creatorUserGroupId);
+		S3FileHandle handle1 = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(TYPE.FILE_IDS).toString());
 		handle1.setFileName("handle1");
-		handle1 = fileHandleDao.createFile(handle1);
+		handle1 = (S3FileHandle) fileHandleDao.createFile(handle1);
 		filesToDelete.add(handle1.getId());
 		// Checksum again
 		String checksum2 = migratableTableDAO.getChecksumForType(MigrationType.FILE_HANDLE);
@@ -494,14 +508,14 @@ public class MigratableTableDAOImplAutowireTest {
 		long startCount = fileHandleDao.getCount();
 
 		// Add file handle
-		S3FileHandle handle1 = TestUtils.createS3FileHandle(creatorUserGroupId);
+		S3FileHandle handle1 = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(TYPE.FILE_IDS).toString());
 		handle1.setFileName("handle1");
-		handle1 = fileHandleDao.createFile(handle1);
+		handle1 = (S3FileHandle) fileHandleDao.createFile(handle1);
 		filesToDelete.add(handle1.getId());
 		// Add a preview
-		PreviewFileHandle previewHandle1 = TestUtils.createPreviewFileHandle(creatorUserGroupId);
+		PreviewFileHandle previewHandle1 = TestUtils.createPreviewFileHandle(creatorUserGroupId, idGenerator.generateNewId(TYPE.FILE_IDS).toString());
 		previewHandle1.setFileName("preview1");
-		previewHandle1 = fileHandleDao.createFile(previewHandle1);
+		previewHandle1 = (PreviewFileHandle) fileHandleDao.createFile(previewHandle1);
 		filesToDelete.add(previewHandle1.getId());
 		
 		// Checksum file only

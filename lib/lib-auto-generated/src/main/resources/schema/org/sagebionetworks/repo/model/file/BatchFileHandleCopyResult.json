@@ -1,0 +1,12 @@
+{
+	"description": "Batch Result for copying FileHandles.",
+	"properties": {
+		"copyResults": {
+			"type": "array",
+			"description": "The results of each individual requests.",
+			"items": {
+				"$ref":"org.sagebionetworks.repo.model.file.FileHandleCopyResult"
+			}
+		}
+	}
+}

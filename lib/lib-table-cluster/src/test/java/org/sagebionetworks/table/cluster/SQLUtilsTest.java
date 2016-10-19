@@ -995,13 +995,14 @@ public class SQLUtilsTest {
 	
 	@Test
 	public void testCreateReplaceSchemaChange(){
+		boolean removeMissingColumns = true;
 		ColumnModel one = TableModelTestUtils.createColumn(1L);
 		ColumnModel two = TableModelTestUtils.createColumn(2L);
 		ColumnModel three = TableModelTestUtils.createColumn(3L);
 		List<ColumnModel> oldSchema = Lists.newArrayList(one, two);
 		List<ColumnModel> newSchema = Lists.newArrayList(two, three);
 		// call under test
-		List<ColumnChangeDetails> results = SQLUtils.createReplaceSchemaChangeIds(oldSchema, newSchema);
+		List<ColumnChangeDetails> results = SQLUtils.createReplaceSchemaChangeIds(oldSchema, newSchema, removeMissingColumns);
 		assertNotNull(results);
 		assertEquals(2, results.size());
 		// one should be removed
@@ -1015,13 +1016,32 @@ public class SQLUtilsTest {
 	}
 	
 	@Test
+	public void testCreateReplaceSchemaRemoveMissingFalse(){
+		boolean removeMissingColumns = false;
+		ColumnModel one = TableModelTestUtils.createColumn(1L);
+		ColumnModel two = TableModelTestUtils.createColumn(2L);
+		ColumnModel three = TableModelTestUtils.createColumn(3L);
+		List<ColumnModel> oldSchema = Lists.newArrayList(one, two);
+		List<ColumnModel> newSchema = Lists.newArrayList(two, three);
+		// call under test
+		List<ColumnChangeDetails> results = SQLUtils.createReplaceSchemaChangeIds(oldSchema, newSchema, removeMissingColumns);
+		assertNotNull(results);
+		assertEquals(1, results.size());
+		// three should be added.
+		ColumnChangeDetails toAdd = results.get(0);
+		assertEquals(null, toAdd.getOldColumn());
+		assertEquals(three, toAdd.getNewColumn());
+	}
+	
+	@Test
 	public void testCreateReplaceSchemaChangeNoChange(){
+		boolean removeMissingColumns = true;
 		ColumnModel one = TableModelTestUtils.createColumn(1L);
 		ColumnModel two = TableModelTestUtils.createColumn(2L);
 		List<ColumnModel> oldSchema = Lists.newArrayList(one, two);
 		List<ColumnModel> newSchema = Lists.newArrayList(two, one);
 		// call under test
-		List<ColumnChangeDetails> results = SQLUtils.createReplaceSchemaChangeIds(oldSchema, newSchema);
+		List<ColumnChangeDetails> results = SQLUtils.createReplaceSchemaChangeIds(oldSchema, newSchema, removeMissingColumns);
 		assertNotNull(results);
 		assertEquals(0, results.size());
 	}

@@ -138,6 +138,10 @@ import org.sagebionetworks.repo.model.entity.query.EntityQuery;
 import org.sagebionetworks.repo.model.entity.query.EntityQueryResults;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.file.AddPartResponse;
+import org.sagebionetworks.repo.model.file.BatchFileHandleCopyRequest;
+import org.sagebionetworks.repo.model.file.BatchFileHandleCopyResult;
+import org.sagebionetworks.repo.model.file.BatchFileRequest;
+import org.sagebionetworks.repo.model.file.BatchFileResult;
 import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlRequest;
 import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlResponse;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadRequest;
@@ -154,8 +158,6 @@ import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
 import org.sagebionetworks.repo.model.file.ProxyFileHandle;
-import org.sagebionetworks.repo.model.file.S3FileCopyRequest;
-import org.sagebionetworks.repo.model.file.S3FileCopyResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.S3UploadDestination;
 import org.sagebionetworks.repo.model.file.State;
@@ -412,6 +414,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String EXTERNAL_FILE_HANDLE_PROXY = "/externalFileHandle/proxy";
 	private static final String FILE_HANDLES = "/filehandles";
 	protected static final String S3_FILE_COPY = FILE + "/s3FileCopy";
+	private static final String FILE_HANDLES_COPY = FILE_HANDLES+"/copy";
 	
 	protected static final String FILE_BULK = FILE+"/bulk";
 
@@ -452,6 +455,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String USER_BUNDLE = "/bundle";
 	private static final String FILE_ASSOCIATE_TYPE = "fileAssociateType";
 	private static final String FILE_ASSOCIATE_ID = "fileAssociateId";
+	
+	public static final String FILE_HANDLE_BATCH = "/fileHandle/batch";
 	
 	// web request pagination parameters
 	public static final String LIMIT = "limit";
@@ -2569,22 +2574,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		changes.setFileName(name);
 		changes.setContentType(contentType);
 		return doCreateJSONEntity(getFileEndpoint(), uri, changes);
-	}
-
-	@Override
-	public String s3FileCopyAsyncStart(List<String> fileEntityIds, String destinationBucket, Boolean overwrite, String baseKey)
-			throws SynapseException {
-		S3FileCopyRequest s3FileCopyRequest = new S3FileCopyRequest();
-		s3FileCopyRequest.setFiles(fileEntityIds);
-		s3FileCopyRequest.setBucket(destinationBucket);
-		s3FileCopyRequest.setOverwrite(overwrite);
-		s3FileCopyRequest.setBaseKey(baseKey);
-		return startAsynchJob(AsynchJobType.S3FileCopy, s3FileCopyRequest);
-	}
-
-	@Override
-	public S3FileCopyResults s3FileCopyAsyncGet(String asyncJobToken) throws SynapseException, SynapseResultNotReadyException {
-		return (S3FileCopyResults) getAsyncResult(AsynchJobType.S3FileCopy, asyncJobToken, (String) null);
 	}
 	
 	/*
@@ -7805,5 +7794,20 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseClientException(e);
 		}
+	}
+
+	@Override
+	public BatchFileResult getFileHandleAndUrlBatch(BatchFileRequest request) throws SynapseException {
+		return asymmetricalPost(fileEndpoint, FILE_HANDLE_BATCH, request , BatchFileResult.class, null);
+	}
+
+	@Override
+	public BatchFileHandleCopyResult copyFileHandles(BatchFileHandleCopyRequest request) throws SynapseException {
+		return asymmetricalPost(fileEndpoint, FILE_HANDLES_COPY, request , BatchFileHandleCopyResult.class, null);
+	}
+
+	@Override
+	public void requestToCancelSubmission(String submissionId) throws SynapseException {
+		getSharedClientConnection().putUri(repoEndpoint, EVALUATION_URI_PATH+"/"+SUBMISSION+"/"+submissionId+"/cancellation", getUserAgent());
 	}
 }

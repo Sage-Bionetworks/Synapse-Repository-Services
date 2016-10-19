@@ -1,15 +1,16 @@
 package org.sagebionetworks.file.services;
 
-import java.io.IOException;
 import java.net.URL;
 import java.util.List;
 
-import org.apache.commons.fileupload.FileItemIterator;
-import org.apache.commons.fileupload.FileUploadException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.AddPartResponse;
+import org.sagebionetworks.repo.model.file.BatchFileHandleCopyRequest;
+import org.sagebionetworks.repo.model.file.BatchFileHandleCopyResult;
+import org.sagebionetworks.repo.model.file.BatchFileRequest;
+import org.sagebionetworks.repo.model.file.BatchFileResult;
 import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlRequest;
 import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlResponse;
 import org.sagebionetworks.repo.model.file.ChunkRequest;
@@ -21,7 +22,6 @@ import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
-import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
 import org.sagebionetworks.repo.model.file.ProxyFileHandle;
@@ -30,7 +30,6 @@ import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
 import org.sagebionetworks.repo.model.file.UploadDestination;
 import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.web.ServiceUnavailableException;
 
 /**
  * Abstraction for the handling multi-part upload.
@@ -39,19 +38,6 @@ import org.sagebionetworks.repo.web.ServiceUnavailableException;
  */
 public interface FileUploadService {
 
-	
-	/**
-	 * Upload all files for this request.
-	 * @param userName
-	 * @param itemIterator
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 * @throws IOException 
-	 * @throws FileUploadException 
-	 * @throws ServiceUnavailableException 
-	 */
-	@Deprecated
-	FileHandleResults uploadFiles(Long userId, FileItemIterator itemIterator) throws DatastoreException, NotFoundException, FileUploadException, IOException, ServiceUnavailableException;
 
 	/**
 	 * Get a file handle by ID.
@@ -296,6 +282,22 @@ public interface FileUploadService {
 	 * @return
 	 */
 	MultipartUploadStatus completeMultipartUpload(Long userId, String uploadId);
-	
-	
+
+	/**
+	 * Get a batch of FileHandles for the given batch of requests.
+	 * 
+	 * @param userId
+	 * @param request
+	 * @return
+	 */
+	BatchFileResult getFileHandleAndUrlBatch(Long userId, BatchFileRequest request);
+
+	/**
+	 * Copy a batch of FileHandles.
+	 * 
+	 * @param userId
+	 * @param request
+	 * @return
+	 */
+	BatchFileHandleCopyResult copyFileHandles(Long userId, BatchFileHandleCopyRequest request);
 }

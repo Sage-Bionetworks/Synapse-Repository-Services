@@ -7,6 +7,8 @@ import java.net.URL;
 
 import org.junit.Test;
 
+import java.util.List;
+
 public class StackConfigurationTest {
 	
 	@Test
@@ -105,4 +107,21 @@ public class StackConfigurationTest {
 		}
 	}
 	
+	@Test
+	public void testGetDockerRegistryHosts() {
+		StackConfiguration cfg = new StackConfiguration();
+		List<String> regHosts = cfg.getDockerRegistryHosts();
+		for (String h: regHosts) {
+			assertEquals(h.trim(), h);
+		}
+	}
+	
+	@Test
+	public void testGetDockerReservedRegistryHosts() {
+		StackConfiguration cfg = new StackConfiguration();
+		List<String> regHosts = cfg.getDockerReservedRegistryHosts();
+		for (String h: regHosts) {
+			assertEquals(h.trim(), h);
+		}
+	}
 }

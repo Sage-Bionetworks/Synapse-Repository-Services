@@ -9,11 +9,14 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NodeConstants;
@@ -54,6 +57,9 @@ public class DBOUserProfileDAOImplTest {
 
 	@Autowired
 	private NotificationEmailDAO notificationEmailDAO;
+
+	@Autowired
+	private IdGenerator idGenerator;
 	
 	private UserGroup principal = null;
 	private UserGroup principal2 = null;
@@ -324,7 +330,9 @@ public class DBOUserProfileDAOImplTest {
 		ef.setCreatedBy(principal.getId());
 		ef.setCreatedOn(new Date());
 		ef.setFileName("Some name");
-		ef = fileHandleDao.createFile(ef);
+		ef.setEtag(UUID.randomUUID().toString());
+		ef.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		ef = (ExternalFileHandle) fileHandleDao.createFile(ef);
 		fileHandlesToDelete.add(ef.getId());
 		// Create a new type
 		UserProfile userProfile = createUserProfile();

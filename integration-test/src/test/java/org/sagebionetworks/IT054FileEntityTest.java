@@ -1,20 +1,15 @@
 package org.sagebionetworks;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.Callable;
 
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
@@ -29,22 +24,26 @@ import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
-import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseException;
-import org.sagebionetworks.client.exceptions.SynapseResultNotReadyException;
 import org.sagebionetworks.repo.manager.S3TestUtils;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.file.BatchFileHandleCopyRequest;
+import org.sagebionetworks.repo.model.file.BatchFileHandleCopyResult;
+import org.sagebionetworks.repo.model.file.BatchFileRequest;
+import org.sagebionetworks.repo.model.file.BatchFileResult;
+import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
+import org.sagebionetworks.repo.model.file.FileHandleAssociation;
+import org.sagebionetworks.repo.model.file.FileHandleCopyRequest;
+import org.sagebionetworks.repo.model.file.FileHandleCopyResult;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
+import org.sagebionetworks.repo.model.file.FileResult;
+import org.sagebionetworks.repo.model.file.FileResultFailureCode;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
-import org.sagebionetworks.repo.model.file.S3FileCopyResult;
-import org.sagebionetworks.repo.model.file.S3FileCopyResultType;
-import org.sagebionetworks.repo.model.file.S3FileCopyResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.sagebionetworks.util.Pair;
-import org.sagebionetworks.util.TimeUtils;
 import org.sagebionetworks.utils.DefaultHttpClientSingleton;
 import org.sagebionetworks.utils.HttpClientHelper;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
@@ -52,7 +51,6 @@ import org.sagebionetworks.utils.MD5ChecksumHelper;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.util.IOUtils;
-import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
 
 public class IT054FileEntityTest {
@@ -185,6 +183,78 @@ public class IT054FileEntityTest {
 		assertTrue("The temporary URL did not contain the expected file handle key",tempUrl.toString().contains(previewFileHandle.getKey()));
 		synapse.downloadFromFileEntityPreviewForVersion(file.getId(), file.getVersionNumber(), tempfile);
 		assertTrue(tempfile.length()>0);
+		
+		FileHandleAssociation association = new FileHandleAssociation();
+		association.setAssociateObjectType(FileHandleAssociateType.FileEntity);
+		association.setAssociateObjectId(file.getId());
+		association.setFileHandleId(fileHandle.getId());
+		BatchFileRequest request = new BatchFileRequest();
+		request.setIncludeFileHandles(true);
+		request.setIncludePreSignedURLs(true);
+		request.setRequestedFiles(Lists.newArrayList(association));
+		
+		BatchFileResult results = synapse.getFileHandleAndUrlBatch(request);
+		assertNotNull(results);
+		assertNotNull(results.getRequestedFiles());
+		assertEquals(1, results.getRequestedFiles().size());
+		FileResult result = results.getRequestedFiles().get(0);
+		assertEquals(fileHandle.getId(), result.getFileHandleId());
+		assertNotNull(result.getFileHandle());
+		assertEquals(fileHandle.getId(), result.getFileHandle().getId());
+		assertNotNull(result.getPreSignedURL());
+		assertNull(result.getFailureCode());
+
+		/*
+		 * test copy FileHandles
+		 */
+
+		BatchFileHandleCopyRequest batch = new BatchFileHandleCopyRequest();
+		List<FileHandleCopyRequest> requests = new ArrayList<FileHandleCopyRequest>(2);
+		batch.setCopyRequests(requests);
+
+		FileHandleAssociation fha1 = association;
+		FileHandleAssociation fha2 = new FileHandleAssociation();
+		fha2.setAssociateObjectId(fha1.getAssociateObjectId());
+		fha2.setAssociateObjectType(fha1.getAssociateObjectType());
+		fha2.setFileHandleId("-1");
+
+		FileHandleCopyRequest request1 = new FileHandleCopyRequest();
+		request1.setOriginalFile(fha1);
+		String newFileName = "newFileName";
+		request1.setNewFileName(newFileName);
+		FileHandleCopyRequest request2 = new FileHandleCopyRequest();
+		request2.setOriginalFile(fha2);
+
+		requests.add(request1);
+		requests.add(request2);
+
+		BatchFileHandleCopyResult copyResult = synapse.copyFileHandles(batch);
+		assertNotNull(copyResult);
+		List<FileHandleCopyResult> copyResults = copyResult.getCopyResults();
+		assertNotNull(copyResults);
+		assertEquals(2, copyResults.size());
+		FileHandleCopyResult first = copyResults.get(0);
+		FileHandleCopyResult second = copyResults.get(1);
+		assertEquals(fha1.getFileHandleId(), first.getOriginalFileHandleId());
+		assertNull(first.getFailureCode());
+		assertEquals(fha2.getFileHandleId(), second.getOriginalFileHandleId());
+		assertEquals(FileResultFailureCode.UNAUTHORIZED, second.getFailureCode());
+		assertNull(second.getNewFileHandle());
+
+		FileHandle newFileHandle = first.getNewFileHandle();
+		assertNotNull(newFileHandle);
+		assertFalse(newFileHandle.getId().equals(fileHandle.getId()));
+		assertEquals(userToDelete.toString(), newFileHandle.getCreatedBy());
+		assertEquals(newFileName, newFileHandle.getFileName());
+		assertFalse(newFileHandle.getEtag().equals(fileHandle.getEtag()));
+		assertFalse(newFileHandle.getCreatedOn().equals(fileHandle.getCreatedOn()));
+		assertEquals(fileHandle.getContentMd5(), newFileHandle.getContentMd5());
+		assertEquals(fileHandle.getContentType(), newFileHandle.getContentType());
+		assertEquals(fileHandle.getConcreteType(), newFileHandle.getConcreteType());
+		assertEquals(fileHandle.getContentSize(), newFileHandle.getContentSize());
+		assertEquals(fileHandle.getStorageLocationId(), newFileHandle.getStorageLocationId());
+		assertEquals(fileHandle.getBucketName(), ((S3FileHandle) newFileHandle).getBucketName());
+		assertEquals(fileHandle.getKey(), ((S3FileHandle) newFileHandle).getKey());
 	}
 
 	@Ignore
@@ -269,86 +339,7 @@ public class IT054FileEntityTest {
 		assertEquals(1, results.size());
 	}
 
-	@Test
-	public void testS3FileCopy() throws Exception {
-		FileEntity file = new FileEntity();
-		file.setName("file.nopreview");
-		file.setParentId(project.getId());
-		file.setDataFileHandleId(fileHandle.getId());
-		file = synapse.createEntity(file);
-
-		final String asyncJobToken = synapse.s3FileCopyAsyncStart(Collections.singletonList(file.getId()), StackConfiguration
-				.singleton().getExternalS3TestBucketName(), true, baseKey);
-
-		S3FileCopyResults s3FileCopyResults = TimeUtils.waitFor(20000, 100, new Callable<Pair<Boolean, S3FileCopyResults>>() {
-			@Override
-			public Pair<Boolean, S3FileCopyResults> call() throws Exception {
-				try {
-					S3FileCopyResults s3FileCopyResults = synapse.s3FileCopyAsyncGet(asyncJobToken);
-					return Pair.create(true, s3FileCopyResults);
-				} catch (SynapseResultNotReadyException e) {
-					return Pair.create(false, null);
-				}
-			}
-		});
-
-		assertEquals(1, s3FileCopyResults.getResults().size());
-		S3FileCopyResult s3FileCopyResult = s3FileCopyResults.getResults().get(0);
-		assertEquals(S3FileCopyResultType.COPIED, s3FileCopyResult.getResultType());
-		S3TestUtils.addObjectToDelete(s3FileCopyResult.getResultBucket(), s3FileCopyResult.getResultKey());
-		s3Client.getObjectMetadata(s3FileCopyResult.getResultBucket(), s3FileCopyResult.getResultKey());
-
-		final String asyncJobToken2 = synapse.s3FileCopyAsyncStart(Collections.singletonList(file.getId()), StackConfiguration.singleton()
-				.getExternalS3TestBucketName(), true, baseKey);
-
-		s3FileCopyResults = TimeUtils.waitFor(20000, 100, new Callable<Pair<Boolean, S3FileCopyResults>>() {
-			@Override
-			public Pair<Boolean, S3FileCopyResults> call() throws Exception {
-				try {
-					S3FileCopyResults s3FileCopyResults = synapse.s3FileCopyAsyncGet(asyncJobToken2);
-					return Pair.create(true, s3FileCopyResults);
-				} catch (SynapseResultNotReadyException e) {
-					return Pair.create(false, null);
-				}
-			}
-		});
-
-		assertEquals(1, s3FileCopyResults.getResults().size());
-		s3FileCopyResult = s3FileCopyResults.getResults().get(0);
-		assertEquals(S3FileCopyResultType.UPTODATE, s3FileCopyResult.getResultType());
-	}
-
-	@Test
-	public void testS3FileCopyCancel() throws Exception {
-		FileEntity file = new FileEntity();
-		file.setName("file.nopreview");
-		file.setParentId(project.getId());
-		file.setDataFileHandleId(fileHandle.getId());
-		file = synapse.createEntity(file);
-
-		final String asyncJobToken = synapse.s3FileCopyAsyncStart(Collections.singletonList(file.getId()), StackConfiguration.singleton()
-				.getExternalS3TestBucketName(), true, baseKey);
-
-		synapse.cancelAsynchJob(asyncJobToken);
-
-		assertTrue(TimeUtils.waitFor(20000, 100, asyncJobToken, new Predicate<String>() {
-			@Override
-			public boolean apply(String asyncJobToken) {
-				try {
-					synapse.s3FileCopyAsyncGet(asyncJobToken);
-					fail("Should have been canceled, maybe test is too time sensitive?");
-					return true;
-				} catch (SynapseBadRequestException e) {
-					return true;
-				} catch (SynapseResultNotReadyException e) {
-					return false;
-				} catch (SynapseException e) {
-					fail(e.getMessage());
-					return true;
-				}
-			}
-		}));
-	}
+	
 
 	/**
 	 * Wait for a preview to be generated for the given file handle.
@@ -369,5 +360,4 @@ public class IT054FileEntityTest {
 		fileHandlesToDelete.add(previewFileHandle.getId());
 		return previewFileHandle;
 	}
-	
 }

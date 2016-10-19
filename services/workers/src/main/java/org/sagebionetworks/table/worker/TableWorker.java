@@ -322,7 +322,9 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 		boolean keepOrder = true;
 		List<ColumnModel> currentSchema = tableManagerSupport.getColumnModel(changeSet.getIds(), keepOrder);
 		// Setup the table's index.
-		indexManager.setIndexSchema(progressCallback, currentSchema);
+		// Keep the missing columns see PLFM-4089
+		boolean removeMissingColumns = false;
+		indexManager.setIndexSchema(progressCallback, currentSchema, removeMissingColumns);
 		// This is a change that we must apply.
 		RowSet rowSet = tableEntityManager.getRowSet(tableId, changeSet.getRowVersion(), currentSchema);
 		SparseChangeSet sparse = TableModelUtils.createSparseChangeSet(rowSet, currentSchema, changeSet.getRowVersion());

@@ -49,7 +49,7 @@ public class ITDocker {
 
 	private static final String TYPE = "repository";
 	private static final String ACCESS_TYPES_STRING="push,pull";
-	
+	private static final String MEDIA_TYPE = "application/vnd.docker.distribution.manifest.v2+json";
 	public static final String DOCKER_REGISTRY_EVENTS = "/events";
 
 	private static SynapseAdminClient adminSynapse;
@@ -188,6 +188,7 @@ public class ITDocker {
 		eventActor.setName(""+userId);
 		RegistryEventTarget target = new RegistryEventTarget();
 		target.setRepository(repositoryPath);
+		target.setMediaType(MEDIA_TYPE);
 		target.setTag(tag);
 		target.setDigest(digest);
 		event.setTarget(target);
