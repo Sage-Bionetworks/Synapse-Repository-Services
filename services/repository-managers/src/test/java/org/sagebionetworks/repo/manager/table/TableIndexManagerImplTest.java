@@ -1,14 +1,19 @@
 package org.sagebionetworks.repo.manager.table;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Matchers.anyList;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anySet;
 import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -28,8 +33,6 @@ import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.EntityField;
-import org.sagebionetworks.repo.model.table.Row;
-import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.table.cluster.DatabaseColumnInfo;
@@ -58,8 +61,6 @@ public class TableIndexManagerImplTest {
 	TableIndexManagerImpl manager;
 	String tableId;
 	Long versionNumber;
-//	List<Row> rows;
-//	RowSet rowSet;
 	SparseChangeSet sparseChangeSet;
 	List<ColumnModel> schema;
 	List<SelectColumn> selectColumns;
@@ -152,7 +153,7 @@ public class TableIndexManagerImplTest {
 		verify(mockIndexDao).executeInWriteTransaction(any(TransactionCallback.class));
 		// both groups should be written
 		verify(mockIndexDao).createOrUpdateOrDeleteRows(groupOne);
-		verify(mockIndexDao).createOrUpdateOrDeleteRows(groupOne);
+		verify(mockIndexDao).createOrUpdateOrDeleteRows(groupTwo);
 		// files handles should be applied.
 		verify(mockIndexDao).applyFileHandleIdsToTable(tableId, Sets.newHashSet(2L, 6L));
 		// The new version should be set
