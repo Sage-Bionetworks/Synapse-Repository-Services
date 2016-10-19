@@ -12,6 +12,7 @@ import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -30,6 +31,7 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.table.AnnotationDTO;
+import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -37,16 +39,18 @@ import org.sagebionetworks.repo.model.table.EntityDTO;
 import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.IdRange;
+import org.sagebionetworks.repo.model.table.QueryFacetResultRange;
+import org.sagebionetworks.repo.model.table.QueryFacetResultValue;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.Table;
 import org.sagebionetworks.repo.model.table.TableEntity;
-import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
+import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.util.SimpleAggregateQueryException;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -56,7 +60,6 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import com.sun.tools.internal.ws.wsdl.framework.Entity;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:table-cluster-spb.xml" })
@@ -1517,6 +1520,87 @@ public class TableIndexDAOImplTest {
 		ColumnModel etagColumn = EntityField.findMatch(schema, EntityField.etag);
 		long crc32 = tableIndexDAO.calculateCRC32ofTableView(tableId, etagColumn.getId());
 		assertEquals(-1L, crc32);
+	}
+	
+	/////////////////////////////
+	// facetCountQuery() Tests
+	/////////////////////////////
+	@Test (expected = IllegalArgumentException.class)
+	public void testFacetCountQueryNullQuery(){
+		tableIndexDAO.facetCountQuery(null, new HashMap<String, Object>());
+	}
+	@Test (expected = IllegalArgumentException.class)
+	public void testFacetCountQueryNullParameters(){
+		tableIndexDAO.facetCountQuery(Mockito.mock(QuerySpecification.class), null);
+	}
+	
+	@Test 
+	public void testFacetCountQuery() throws ParseException{
+		List<ColumnModel> schema = setUpValuesForFacetTest();
+		
+		// This is our query
+		SqlQuery query = new SqlQuery("select * from " + tableId, schema);
+		QuerySpecification facetCountSql = SqlElementUntils.createFilteredFacetCountSqlQuerySpecification(schema.get(0).getName(), query.getModel(), null);
+		Map<String, Object> parameters = new HashMap<>();
+		SQLTranslatorUtils.translateModel(facetCountSql, parameters, query.getColumnNameToModelMap());
+		
+		List<QueryFacetResultValue> results = tableIndexDAO.facetCountQuery(facetCountSql, parameters);
+		for(int i = 0; i < results.size(); i++){
+			QueryFacetResultValue resultValue = results.get(i);
+			assertEquals(1L, resultValue.getCount().longValue());
+			assertEquals("string" + i, resultValue.getValue());
+		}
+	}
+	
+	/////////////////////////////
+	// facetRangeQuery() Tests
+	/////////////////////////////
+	@Test (expected = IllegalArgumentException.class)
+	public void testFacetRangeQueryNullQuery(){
+		tableIndexDAO.facetRangeQuery(null, new HashMap<String, Object>());
+	}
+	@Test (expected = IllegalArgumentException.class)
+	public void testFacetRangeQueryNullParameters(){
+		tableIndexDAO.facetRangeQuery(Mockito.mock(QuerySpecification.class), null);
+	}
+	
+	@Test 
+	public void testFacetRangeQuery() throws ParseException{
+		List<ColumnModel> schema = setUpValuesForFacetTest();
+		
+		// This is our query
+		SqlQuery query = new SqlQuery("select * from " + tableId, schema);
+		QuerySpecification facetRangeSql = SqlElementUntils.createFilteredFacetRangeSqlQuerySpecification(schema.get(0).getName(), query.getModel(), null);
+		Map<String, Object> parameters = new HashMap<>();
+		SQLTranslatorUtils.translateModel(facetRangeSql, parameters, query.getColumnNameToModelMap());
+		
+		QueryFacetResultRange results = tableIndexDAO.facetRangeQuery(facetRangeSql, parameters);
+		
+		assertEquals("string0", results.getColumnMin());
+		assertEquals("string1", results.getColumnMax());
+	
+	}
+	
+	
+	private List<ColumnModel> setUpValuesForFacetTest(){
+		// Create the table
+		List<ColumnModel> allTypes = TableModelTestUtils.createOneOfEachType();
+		createOrUpdateTable(allTypes, tableId);
+		// Now add some data
+		List<Row> rows = TableModelTestUtils.createRows(allTypes, 2);
+		RowSet set = new RowSet();
+		set.setRows(rows);
+		List<SelectColumn> headers = TableModelUtils.getSelectColumns(allTypes);
+		set.setHeaders(headers);
+		set.setTableId(tableId);
+		IdRange range = new IdRange();
+		range.setMinimumId(100L);
+		range.setMaximumId(200L);
+		range.setVersionNumber(3L);
+		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
+		// Now fill the table with data
+		tableIndexDAO.createOrUpdateOrDeleteRows(set, allTypes);
+		return allTypes;
 	}
 	
 	/**

@@ -327,19 +327,19 @@ public class SqlElementUntilsTest {
 	@Test
 	public void appendFacetWhereClauseToStringBuilderIfNecessaryNullWhereClause(){
 		SqlElementUntils.appendFacetWhereClauseToStringBuilderIfNecessary(stringBuilder, facetSearchConditionString, null);
-		assertEquals("WHERE ("+ facetSearchConditionString + ")", stringBuilder.toString());
+		assertEquals(" WHERE ("+ facetSearchConditionString + ")", stringBuilder.toString());
 	}
 	
 	@Test
 	public void appendFacetWhereClauseToStringBuilderIfNecessaryNullFacetSearchConditionString(){
 		SqlElementUntils.appendFacetWhereClauseToStringBuilderIfNecessary(stringBuilder, null, whereClause);
-		assertEquals("WHERE ("+ whereClause.getSearchCondition().toSql() + ")", stringBuilder.toString());
+		assertEquals(" WHERE ("+ whereClause.getSearchCondition().toSql() + ")", stringBuilder.toString());
 	}
 	
 	@Test
 	public void appendFacetWhereClauseToStringBuilderIfNecessaryNoNulls(){
 		SqlElementUntils.appendFacetWhereClauseToStringBuilderIfNecessary(stringBuilder, facetSearchConditionString, whereClause);
-		assertEquals("WHERE ("+ whereClause.getSearchCondition().toSql() + ") AND (" + facetSearchConditionString + ")", stringBuilder.toString());
+		assertEquals(" WHERE ("+ whereClause.getSearchCondition().toSql() + ") AND (" + facetSearchConditionString + ")", stringBuilder.toString());
 	}
 	
 	/////////////////////////////////////////////////////////

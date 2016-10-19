@@ -57,7 +57,6 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.EntityField;
-import org.sagebionetworks.repo.model.table.FacetColumn;
 import org.sagebionetworks.repo.model.table.FacetRange;
 import org.sagebionetworks.repo.model.table.FacetType;
 import org.sagebionetworks.repo.model.table.Query;
@@ -93,7 +92,6 @@ import org.springframework.transaction.support.TransactionCallback;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import com.sun.jdi.connect.Connector.Argument;
 
 @RunWith(MockitoJUnitRunner.class)
 public class TableQueryManagerImplTest {

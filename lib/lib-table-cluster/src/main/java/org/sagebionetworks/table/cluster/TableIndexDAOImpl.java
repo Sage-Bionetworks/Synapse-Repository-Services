@@ -296,7 +296,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	
 	@Override
 	public List<QueryFacetResultValue> facetCountQuery(QuerySpecification facetCountSql, Map<String, Object> parameters){
-		//TODO: test
 		ValidateArgument.required(facetCountSql, "facetCountSql");
 		ValidateArgument.required(parameters, "parameters");
 		// We use spring to create create the prepared statement
@@ -317,7 +316,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	
 	@Override
 	public QueryFacetResultRange facetRangeQuery(QuerySpecification facetRangeSql, Map<String, Object> parameters){
-		//TODO: test
 		ValidateArgument.required(facetRangeSql, "facetCountSql");
 		ValidateArgument.required(parameters, "parameters");
 		// We use spring to create create the prepared statement

@@ -706,7 +706,6 @@ public class SqlElementUntils {
 		builder.append(COUNT_ALIAS);
 		builder.append(" ");
 		builder.append(tableExpressionFromModel.getFromClause().toSql());
-		builder.append(" ");
 		appendFacetWhereClauseToStringBuilderIfNecessary(builder, facetSearchConditionString, tableExpressionFromModel.getWhereClause());
 		builder.append(" GROUP BY " + columnName + " ");
 		builder.append(pagination.toSql());
@@ -740,7 +739,6 @@ public class SqlElementUntils {
 		builder.append(MAX_ALIAS);
 		builder.append(" ");
 		builder.append(model.getTableExpression().getFromClause().toSql());
-		builder.append(" ");
 		appendFacetWhereClauseToStringBuilderIfNecessary(builder, facetSearchConditionString, tableExpressionFromModel.getWhereClause());
 		
 		try {
@@ -761,7 +759,7 @@ public class SqlElementUntils {
 		ValidateArgument.required(builder, "builder");
 		
 		if(facetSearchConditionString != null || originalWhereClause != null){
-			builder.append("WHERE ");
+			builder.append(" WHERE ");
 			if(originalWhereClause != null){
 				builder.append("(");
 				builder.append(originalWhereClause.getSearchCondition().toSql());
