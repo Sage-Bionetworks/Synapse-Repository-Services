@@ -28,6 +28,7 @@ public class TableRowChangeUtilsTest {
 		dto.setIds(Lists.newArrayList("111", "222"));
 		dto.setBucket("bucket");
 		dto.setKey("key");
+		dto.setKeyNew("newKey");
 		dto.setEtag("someEtag");
 		dto.setRowCount(999L);
 		dto.setChangeType(TableChangeType.ROW);

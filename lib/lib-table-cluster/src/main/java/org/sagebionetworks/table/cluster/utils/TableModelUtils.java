@@ -1,5 +1,6 @@
 package org.sagebionetworks.table.cluster.utils;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -22,6 +23,7 @@ import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 import org.apache.commons.codec.binary.Hex;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.sagebionetworks.repo.model.dao.table.RowAccessor;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
@@ -29,13 +31,17 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.IdRange;
+import org.sagebionetworks.repo.model.table.PartialRow;
 import org.sagebionetworks.repo.model.table.RawRowSet;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
+import org.sagebionetworks.repo.model.table.SparseChangeSetDto;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableRowChange;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.model.SparseRow;
 import org.sagebionetworks.util.TimeUtils;
@@ -58,6 +64,8 @@ import com.google.common.collect.Sets;
  * 
  */
 public class TableModelUtils {
+
+	public static final String UTF_8 = "UTF-8";
 
 	public static final Function<Long, String> LONG_TO_STRING = new Function<Long, String>() {
 		@Override
@@ -114,6 +122,7 @@ public class TableModelUtils {
 	 * @param isDeletion
 	 * @throws IOException
 	 */
+	@Deprecated
 	public static void validateAnWriteToCSVgz(List<ColumnModel> models, RawRowSet set, OutputStream out) throws IOException {
 		GZIPOutputStream zipOut = null;
 		OutputStreamWriter osw = null;
@@ -135,6 +144,30 @@ public class TableModelUtils {
 		}
 	}
 	
+	/**
+	 * Write a SparseChangeSetDto to the given output stream as GZIP compressed JSON.
+	 * @param set
+	 * @param out
+	 * @throws IOException
+	 */
+	public static void writeSparesChangeSetToGz(SparseChangeSetDto set, OutputStream out) throws IOException {
+		GZIPOutputStream zipOut = null;
+		try{
+			zipOut = new GZIPOutputStream(out);
+			String jsonString = EntityFactory.createJSONStringForEntity(set);
+			IOUtils.write(jsonString, zipOut, UTF_8);
+		} catch (JSONObjectAdapterException e) {
+			throw new RuntimeException(e);
+		}finally{
+			if(zipOut != null){
+				zipOut.flush();
+				zipOut.close();
+			}
+			if(out != null){
+				out.close();
+			}
+		}
+	}
 
 	/**
 	 * This utility will validate and convert the passed RowSet to an output
@@ -222,6 +255,7 @@ public class TableModelUtils {
 	/**
 	 * @param set
 	 */
+	@Deprecated
 	public static void validateRowSet(RawRowSet set) {
 		if (set == null)
 			throw new IllegalArgumentException("RowSet cannot be null");
@@ -233,6 +267,23 @@ public class TableModelUtils {
 		if (set.getRows().size() < 1)
 			throw new IllegalArgumentException(
 					"RowSet.rows must contain at least one row.");
+	}
+	
+	/**
+	 * Validate the given SparseChangeSetDto.
+	 * @param set
+	 */
+	public static void validateRowSet(SparseChangeSetDto set) {
+		if (set == null)
+			throw new IllegalArgumentException("SparseChangeSetDto cannot be null");
+		;
+		if (set.getColumnIds() == null)
+			throw new IllegalArgumentException("SparseChangeSetDto.columnIds cannot be null");
+		if (set.getRows() == null)
+			throw new IllegalArgumentException("SparseChangeSetDto.rows cannot be null");
+		if (set.getRows().size() < 1)
+			throw new IllegalArgumentException(
+					"SparseChangeSetDto.rows must contain at least one row.");
 	}
 	
 	/**
@@ -416,10 +467,26 @@ public class TableModelUtils {
 	 * Count all of the empty or invalid rows in the set
 	 * @param set
 	 */
+	@Deprecated
 	public static int countEmptyOrInvalidRowIds(RawRowSet set) {
 		validateRowSet(set);
 		int count = 0;
 		for (Row row : set.getRows()) {
+			if(isNullOrInvalid(row.getRowId())){
+				count++;
+			}
+		}
+		return count;
+	}
+	
+	/**
+	 * Count all of the empty or invalid rows in the set
+	 * @param set
+	 */
+	public static int countEmptyOrInvalidRowIds(SparseChangeSetDto set) {
+		validateRowSet(set);
+		int count = 0;
+		for (PartialRow row : set.getRows()) {
 			if(isNullOrInvalid(row.getRowId())){
 				count++;
 			}
@@ -453,12 +520,42 @@ public class TableModelUtils {
 	 * @param set
 	 * @param range
 	 */
+	@Deprecated
 	public static void assignRowIdsAndVersionNumbers(RawRowSet set, IdRange range) {
 		validateRowSet(set);
 		Long id = range.getMinimumId();
 		for (Row row : set.getRows()) {
 			// Set the version number for each row
 			row.setVersionNumber(range.getVersionNumber());
+			if(isNullOrInvalid(row.getRowId())){
+				if(range.getMinimumId() == null){
+					throw new IllegalStateException("RowSet required at least one row ID but none were allocated.");
+				}
+				// This row needs an id.
+				row.setRowId(id);
+				id++;
+				// Validate we have not exceeded the rows
+				if(row.getRowId() > range.getMaximumId()){
+					throw new IllegalStateException("RowSet required more row IDs than were allocated.");
+				}
+			}else{
+				// Validate the rowId is within range
+				if(row.getRowId() > range.getMaximumUpdateId()){
+					throw new IllegalArgumentException("Cannot update row: "+row.getRowId()+" because it does not exist.");
+				}
+			}
+		}
+	}
+	
+	/**
+	 * Assign RowIDs and version numbers to each row in the set according to the passed range.
+	 * @param set
+	 * @param range
+	 */
+	public static void assignRowIds(SparseChangeSetDto set, IdRange range) {
+		validateRowSet(set);
+		Long id = range.getMinimumId();
+		for (PartialRow row : set.getRows()) {
 			if(isNullOrInvalid(row.getRowId())){
 				if(range.getMinimumId() == null){
 					throw new IllegalStateException("RowSet required at least one row ID but none were allocated.");
@@ -538,6 +635,7 @@ public class TableModelUtils {
 	 * @return
 	 * @throws IOException
 	 */
+	@Deprecated
 	public static List<Row> readFromCSVgzStream(InputStream zippedStream) throws IOException {
 		GZIPInputStream zipIn = null;
 		InputStreamReader isr = null;
@@ -550,6 +648,28 @@ public class TableModelUtils {
 		}finally{
 			if(csvReader != null){
 				csvReader.close();
+			}
+		}
+	}
+	
+	/**
+	 * Read GZIP compressed JSON from the passed stream.
+	 * 
+	 * @param zippedStream
+	 * @return
+	 * @throws IOException
+	 */
+	public static SparseChangeSetDto readSparseChangeSetDtoFromGzStream(InputStream zippedStream) throws IOException {
+		GZIPInputStream zipIn = null;
+		try{
+			zipIn = new GZIPInputStream(zippedStream);
+			String json = IOUtils.toString(zipIn, UTF_8);
+			return EntityFactory.createEntityFromJSONString(json, SparseChangeSetDto.class);
+		} catch (JSONObjectAdapterException e) {
+			throw new RuntimeException(e);
+		}finally{
+			if(zipIn != null){
+				zipIn.close();
 			}
 		}
 	}
@@ -1242,7 +1362,7 @@ public class TableModelUtils {
 		}
 		try {
 			MessageDigest digest = MessageDigest.getInstance("MD5");
-			digest.update(builder.toString().getBytes("UTF-8"));
+			digest.update(builder.toString().getBytes(UTF_8));
 			return new String(Hex.encodeHex(digest.digest()));
 		} catch (Exception e) {
 			throw new RuntimeException(e);

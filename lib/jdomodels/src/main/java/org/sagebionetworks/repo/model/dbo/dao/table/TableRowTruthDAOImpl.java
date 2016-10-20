@@ -31,14 +31,17 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.IdRange;
+import org.sagebionetworks.repo.model.table.PartialRow;
 import org.sagebionetworks.repo.model.table.RawRowSet;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.SparseChangeSetDto;
 import org.sagebionetworks.repo.model.table.TableChangeType;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.ValidateArgument;
@@ -195,9 +198,57 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 			log.info("S3 error creating bucket: " + e.getStackTrace());
 		}
 	}
+	
+	@WriteTransactionReadCommitted
+	@Override
+	public RowReferenceSet appendRowSetToTable(String userId, String tableId, List<ColumnModel> columns, final SparseChangeSetDto delta)
+			throws IOException {
+		// Now set the row version numbers and ID.
+		int coutToReserver = TableModelUtils.countEmptyOrInvalidRowIds(delta);
+		// Reserver IDs for the missing
+		IdRange range = reserveIdsInRange(tableId, coutToReserver);
+		// Now assign the rowIds and set the version number
+		TableModelUtils.assignRowIds(delta, range);
+		// We are ready to convert the file to a CSV and save it to S3.
+		String key = saveToS3(new WriterCallback() {
+			@Override
+			public void write(OutputStream out) throws IOException {
+				TableModelUtils.writeSparesChangeSetToGz(delta, out);
+			}
+		});
+		// record the change
+		DBOTableRowChange changeDBO = new DBOTableRowChange();
+		changeDBO.setTableId(KeyFactory.stringToKey(tableId));
+		changeDBO.setRowVersion(range.getVersionNumber());
+		changeDBO.setEtag(range.getEtag());
+		changeDBO.setCreatedBy(Long.parseLong(userId));
+		changeDBO.setCreatedOn(System.currentTimeMillis());
+		changeDBO.setKeyNew(key);
+		changeDBO.setBucket(s3Bucket);
+		changeDBO.setRowCount(new Long(delta.getRows().size()));
+		changeDBO.setChangeType(TableChangeType.ROW.name());
+		basicDao.createNew(changeDBO);
+
+		// Prepare the results
+		RowReferenceSet results = new RowReferenceSet();
+		results.setHeaders(TableModelUtils.getSelectColumns(columns));
+		results.setTableId(tableId);
+		results.setEtag(changeDBO.getEtag());
+		List<RowReference> refs = new LinkedList<RowReference>();
+		// Build up the row references
+		for (PartialRow row : delta.getRows()) {
+			RowReference ref = new RowReference();
+			ref.setRowId(row.getRowId());
+			ref.setVersionNumber(range.getVersionNumber());
+			refs.add(ref);
+		}
+		results.setRows(refs);
+		return results;
+	}
 
 	@WriteTransaction
 	@Override
+	@Deprecated
 	public RowReferenceSet appendRowSetToTable(String userId, String tableId, List<ColumnModel> columns, RawRowSet delta)
 			throws IOException {
 		// Now set the row version numbers and ID.
@@ -391,6 +442,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	 * @throws IOException
 	 * @throws FileNotFoundException
 	 */
+	@Deprecated
 	private String saveCSVToS3(List<ColumnModel> models, RawRowSet delta)
 			throws IOException, FileNotFoundException {
 		File temp = File.createTempFile("rowSet", "csv.gz");
@@ -463,6 +515,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	 * @throws NotFoundException
 	 */
 	@Override
+	@Deprecated
 	public RowSet getRowSet(String tableId, long rowVersion, List<ColumnModel> columns)
 			throws IOException, NotFoundException {
 		TableRowChange dto = getTableRowChange(tableId, rowVersion);
@@ -476,6 +529,19 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 			set.setRows(rows);
 			set.setEtag(dto.getEtag());
 			return set;
+		} finally {
+			// Need to close the stream unconditionally.
+			object.getObjectContent().close();
+		}
+	}
+	
+	@Override
+	public SparseChangeSetDto getRowSet(String tableId, long rowVersion) throws IOException {
+		TableRowChange dto = getTableRowChange(tableId, rowVersion);
+		// Download the file from S3
+		S3Object object = s3Client.getObject(dto.getBucket(), dto.getKey());
+		try {
+			return TableModelUtils.readSparseChangeSetDtoFromGzStream(object.getObjectContent());
 		} finally {
 			// Need to close the stream unconditionally.
 			object.getObjectContent().close();

@@ -29,6 +29,7 @@ public class TableRowChangeUtils {
 		dto.setCreatedOn(new Date(dbo.getCreatedOn()));
 		dto.setBucket(dbo.getBucket());
 		dto.setKey(dbo.getKey());
+		dto.setKeyNew(dbo.getKeyNew());
 		dto.setRowCount(dbo.getRowCount());
 		dto.setChangeType(TableChangeType.valueOf(dbo.getChangeType()));
 		return dto;
@@ -52,6 +53,7 @@ public class TableRowChangeUtils {
 		dbo.setCreatedOn(dto.getCreatedOn().getTime());
 		dbo.setBucket(dto.getBucket());
 		dbo.setKey(dto.getKey());
+		dbo.setKeyNew(dto.getKeyNew());
 		dbo.setRowCount(dto.getRowCount());
 		dbo.setChangeType(dto.getChangeType().name());
 		return dbo;

@@ -314,7 +314,7 @@ public class SparseChangeSetTest {
 		// Write to a DTO
 		SparseChangeSetDto dto = changeSet.writeToDto();
 		assertNotNull(dto);
-		System.out.println(EntityFactory.createJSONStringForEntity(dto));
+		//System.out.println(EntityFactory.createJSONStringForEntity(dto));
 		// Create a copy from the DTO
 		SparseChangeSet copy = new SparseChangeSet(dto, mockColumnModelProvider);
 		// the should be the same.
