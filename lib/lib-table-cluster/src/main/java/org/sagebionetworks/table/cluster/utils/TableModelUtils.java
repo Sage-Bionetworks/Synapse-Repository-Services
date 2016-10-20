@@ -38,6 +38,7 @@ import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.SparseChangeSetDto;
+import org.sagebionetworks.repo.model.table.SparseRowDto;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -486,7 +487,7 @@ public class TableModelUtils {
 	public static int countEmptyOrInvalidRowIds(SparseChangeSetDto set) {
 		validateRowSet(set);
 		int count = 0;
-		for (PartialRow row : set.getRows()) {
+		for (SparseRowDto row : set.getRows()) {
 			if(isNullOrInvalid(row.getRowId())){
 				count++;
 			}
@@ -552,10 +553,12 @@ public class TableModelUtils {
 	 * @param set
 	 * @param range
 	 */
-	public static void assignRowIds(SparseChangeSetDto set, IdRange range) {
+	public static void assignRowIdsAndVersionNumbers(SparseChangeSetDto set, IdRange range) {
 		validateRowSet(set);
 		Long id = range.getMinimumId();
-		for (PartialRow row : set.getRows()) {
+		for (SparseRowDto row : set.getRows()) {
+			// Set the version number for each row
+			row.setVersionNumber(range.getVersionNumber());
 			if(isNullOrInvalid(row.getRowId())){
 				if(range.getMinimumId() == null){
 					throw new IllegalStateException("RowSet required at least one row ID but none were allocated.");
@@ -1402,13 +1405,13 @@ public class TableModelUtils {
 	 * @param schema
 	 * @param versionNumber
 	 */
-	public static SparseChangeSet createSparseChangeSet(RowSet rowSet, List<ColumnModel> schema,
-			long versionNumber) {
-		SparseChangeSet changeSet = new SparseChangeSet(rowSet.getTableId(), schema, versionNumber);
+	public static SparseChangeSet createSparseChangeSet(RowSet rowSet, List<ColumnModel> schema) {
+		SparseChangeSet changeSet = new SparseChangeSet(rowSet.getTableId(), schema);
 		// Add all rows
 		for (Row row : rowSet.getRows()) {
 			SparseRow sparse = changeSet.addEmptyRow();
 			sparse.setRowId(row.getRowId());
+			sparse.setVersionNumber(row.getVersionNumber());
 			if(row.getValues() != null && !row.getValues().isEmpty()){
 				for (int i = 0; i < rowSet.getHeaders().size(); i++) {
 					SelectColumn header = rowSet.getHeaders().get(i);

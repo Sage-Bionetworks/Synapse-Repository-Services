@@ -42,15 +42,10 @@ public class SparseChangeSetTest {
 		doubleColumn = TableModelTestUtils.createColumn(3L, "aDouble", ColumnType.DOUBLE);
 		schema = Lists.newArrayList(booleanColumn, stringColumn, doubleColumn);
 		versionNumber = 101;
-		changeSet = new SparseChangeSet("syn123",schema, versionNumber);
+		changeSet = new SparseChangeSet("syn123",schema);
 		when(mockColumnModelProvider.getColumns(anyListOf(String.class))).thenReturn(schema);
 	}
 
-	
-	@Test
-	public void testGetVersionNumber(){
-		assertEquals(versionNumber, changeSet.getChangeSetVersion());
-	}
 	
 	@Test
 	public void testGetColumnModel(){
@@ -81,7 +76,7 @@ public class SparseChangeSetTest {
 	@Test (expected=IllegalArgumentException.class)
 	public void testNullSchema(){
 		schema = null;
-		changeSet = new SparseChangeSet("syn123", schema, versionNumber);
+		changeSet = new SparseChangeSet("syn123", schema);
 	}
 	
 	@Test
@@ -218,7 +213,7 @@ public class SparseChangeSetTest {
 		ColumnModel c2 = TableModelTestUtils.createColumn(2L, "two", ColumnType.STRING);
 		ColumnModel c3 = TableModelTestUtils.createColumn(3L, "three", ColumnType.STRING);
 		List<ColumnModel> schema = Lists.newArrayList(c1, c2, c3);
-		changeSet = new SparseChangeSet("syn123",schema, versionNumber);
+		changeSet = new SparseChangeSet("syn123",schema);
 		// add combinations of rows
 		SparseRow r0 = changeSet.addEmptyRow();
 		r0.setRowId(0L);
@@ -296,17 +291,20 @@ public class SparseChangeSetTest {
 		// add some rows
 		SparseRow row = changeSet.addEmptyRow();
 		row.setRowId(0L);
+		row.setVersionNumber(111L);
 		row.setCellValue(booleanColumn.getId(), "true");
 		row.setCellValue(stringColumn.getId(), "aString");
 		row.setCellValue(doubleColumn.getId(), "2.21");
 		
 		row = changeSet.addEmptyRow();
 		row.setRowId(1L);
+		row.setVersionNumber(222L);
 		row.setCellValue(booleanColumn.getId(), "false");
 		row.setCellValue(doubleColumn.getId(), "2.22");
 		// Add a delete
 		row = changeSet.addEmptyRow();
 		row.setRowId(2L);
+		row.setVersionNumber(333L);
 		
 		row = changeSet.addEmptyRow();
 		row.setRowId(3L);

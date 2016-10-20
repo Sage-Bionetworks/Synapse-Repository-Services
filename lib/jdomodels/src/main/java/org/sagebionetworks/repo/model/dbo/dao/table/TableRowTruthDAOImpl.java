@@ -38,6 +38,7 @@ import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SparseChangeSetDto;
+import org.sagebionetworks.repo.model.table.SparseRowDto;
 import org.sagebionetworks.repo.model.table.TableChangeType;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -213,7 +214,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		// Reserver IDs for the missing
 		IdRange range = reserveIdsInRange(tableId, coutToReserver);
 		// Now assign the rowIds and set the version number
-		TableModelUtils.assignRowIds(delta, range);
+		TableModelUtils.assignRowIdsAndVersionNumbers(delta, range);
 		// We are ready to convert the file to a CSV and save it to S3.
 		String key = saveToS3(new WriterCallback() {
 			@Override
@@ -241,7 +242,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		results.setEtag(changeDBO.getEtag());
 		List<RowReference> refs = new LinkedList<RowReference>();
 		// Build up the row references
-		for (PartialRow row : delta.getRows()) {
+		for (SparseRowDto row : delta.getRows()) {
 			RowReference ref = new RowReference();
 			ref.setRowId(row.getRowId());
 			ref.setVersionNumber(range.getVersionNumber());

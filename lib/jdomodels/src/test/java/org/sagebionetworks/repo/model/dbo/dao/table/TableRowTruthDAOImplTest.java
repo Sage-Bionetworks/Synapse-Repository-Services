@@ -44,6 +44,7 @@ import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.SparseChangeSetDto;
+import org.sagebionetworks.repo.model.table.SparseRowDto;
 import org.sagebionetworks.repo.model.table.TableChangeType;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -1104,12 +1105,12 @@ public class TableRowTruthDAOImplTest {
 		List<ColumnModel> schema = Lists.newArrayList(aBoolean, aString);
 		List<String> columnIds = Lists.newArrayList(aBoolean.getId(), aString.getId());
 		
-		PartialRow rowOne = new PartialRow();
+		SparseRowDto rowOne = new SparseRowDto();
 		rowOne.setValues(new HashMap<String, String>());
 		rowOne.getValues().put(aBoolean.getId(), "true");
 		rowOne.getValues().put(aString.getId(), "foo");
 		
-		PartialRow rowTwo = new PartialRow();
+		SparseRowDto rowTwo = new SparseRowDto();
 		rowTwo.setValues(new HashMap<String, String>());
 		rowTwo.getValues().put(aString.getId(), "bar");
 		

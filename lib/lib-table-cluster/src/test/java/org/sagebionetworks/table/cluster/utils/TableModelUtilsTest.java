@@ -1317,7 +1317,7 @@ public class TableModelUtilsTest {
 	
 	@Test
 	public void testCreateSparseChangeSet(){
-		long versionNumber = 45;
+		Long versionNumber = 45L;
 		String tableId = "syn123";
 		List<String> headerIds = Lists.newArrayList("2","1");
 		List<SelectColumn> headers = TableModelUtils.getSelectColumnsFromColumnIds(headerIds, validModel);
@@ -1350,9 +1350,8 @@ public class TableModelUtilsTest {
 		rowSet.setTableId(tableId);
 		
 		// Call under test
-		SparseChangeSet sparse = TableModelUtils.createSparseChangeSet(rowSet, validModel, versionNumber);
+		SparseChangeSet sparse = TableModelUtils.createSparseChangeSet(rowSet, validModel);
 		assertNotNull(sparse);
-		assertEquals(versionNumber, sparse.getChangeSetVersion());
 		assertEquals(tableId, sparse.getTableId());
 		List<Grouping> grouping = new ArrayList<Grouping>();
 		for(Grouping group: sparse.groupByValidValues()){
@@ -1364,6 +1363,7 @@ public class TableModelUtilsTest {
 		assertEquals(validModel, group1.getColumnsWithValues());
 		assertEquals(2, group1.getRows().size());
 		assertEquals(row1.getRowId(), group1.getRows().get(0).getRowId());
+		assertEquals(versionNumber, group1.getRows().get(0).getVersionNumber());
 		assertEquals(row2.getRowId(), group1.getRows().get(1).getRowId());
 		// second group includes rows that are deletes.
 		Grouping group2 = grouping.get(1);

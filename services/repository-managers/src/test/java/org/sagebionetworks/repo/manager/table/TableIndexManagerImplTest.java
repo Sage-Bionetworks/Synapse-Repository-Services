@@ -87,7 +87,7 @@ public class TableIndexManagerImplTest {
 				TableModelTestUtils.createSelectColumn(101L, "aFile", ColumnType.FILEHANDLEID)
 				);
 			
-		sparseChangeSet = new SparseChangeSet(tableId, schema, versionNumber);
+		sparseChangeSet = new SparseChangeSet(tableId, schema);
 		SparseRow row = sparseChangeSet.addEmptyRow();
 		row.setRowId(0L);
 		row.setCellValue("99", "some string");
@@ -184,7 +184,7 @@ public class TableIndexManagerImplTest {
 				TableModelTestUtils.createSelectColumn(99L, "aString", ColumnType.STRING),
 				TableModelTestUtils.createSelectColumn(101L, "moreStrings", ColumnType.STRING)
 				);
-		sparseChangeSet = new SparseChangeSet(tableId, schema, versionNumber);
+		sparseChangeSet = new SparseChangeSet(tableId, schema);
 		SparseRow row = sparseChangeSet.addEmptyRow();
 		row.setRowId(0L);
 		row.setCellValue("99", "some string");

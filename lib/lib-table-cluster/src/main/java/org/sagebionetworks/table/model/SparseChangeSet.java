@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.PartialRow;
 import org.sagebionetworks.repo.model.table.SparseChangeSetDto;
+import org.sagebionetworks.repo.model.table.SparseRowDto;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.ValidateArgument;
@@ -26,7 +27,6 @@ public class SparseChangeSet {
 	List<ColumnModel> schema;
 	Map<String, ColumnModel> schemaMap;
 	Map<String, Integer> columnIndexMap;
-	long versionNumber;
 	List<SparseRow> sparseRows;
 
 	/**
@@ -35,10 +35,10 @@ public class SparseChangeSet {
 	 * @param schema
 	 * @param versionNumber
 	 */
-	public SparseChangeSet(String tableId, List<ColumnModel> schema, long versionNumber) {
+	public SparseChangeSet(String tableId, List<ColumnModel> schema) {
 		ValidateArgument.required(tableId, "tableId");
 		ValidateArgument.required(schema, "schema");
-		initialize(tableId, schema, versionNumber);
+		initialize(tableId, schema);
 	}
 	
 	/**
@@ -50,13 +50,12 @@ public class SparseChangeSet {
 	public SparseChangeSet(SparseChangeSetDto dto, ColumnModelProvider columnProvider){
 		ValidateArgument.required(dto, "dto");
 		ValidateArgument.required(dto.getTableId(), "dto.tableId");
-		ValidateArgument.required(dto.getVersionNumber(), "dto.versionNumber");
 		ValidateArgument.required(dto.getColumnIds(), "dto.columnIds");
 		ValidateArgument.required(dto.getRows(), "dto.rows");
 		ValidateArgument.required(columnProvider, "columnProvider");
-		initialize(dto.getTableId(), columnProvider.getColumns(dto.getColumnIds()), dto.getVersionNumber());
+		initialize(dto.getTableId(), columnProvider.getColumns(dto.getColumnIds()));
 		// Add all of the rows from the DTO.
-		for(PartialRow row: dto.getRows()){
+		for(SparseRowDto row: dto.getRows()){
 			SparseRow sparse = this.addEmptyRow();
 			sparse.setRowId(row.getRowId());
 			for(ColumnModel cm: this.schema){
@@ -73,11 +72,9 @@ public class SparseChangeSet {
 	 * @param schema
 	 * @param versionNumber
 	 */
-	private void initialize(String tableId, List<ColumnModel> schema,
-			long versionNumber) {
+	private void initialize(String tableId, List<ColumnModel> schema) {
 		this.tableId = tableId;
 		this.sparseRows = new LinkedList<SparseRow>();
-		this.versionNumber = versionNumber;
 		this.schema = new LinkedList<>(schema);
 		schemaMap = new HashMap<String, ColumnModel>(schema.size());
 		columnIndexMap = new HashMap<String, Integer>(schema.size());
@@ -95,17 +92,17 @@ public class SparseChangeSet {
 	public SparseChangeSetDto writeToDto(){
 		SparseChangeSetDto dto = new SparseChangeSetDto();
 		dto.setTableId(this.tableId);
-		dto.setVersionNumber(this.versionNumber);
 		// Write the column models ids
 		List<String> columnIds = new LinkedList<String>();
 		for(ColumnModel cm: this.schema){
 			columnIds.add(cm.getId());
 		}
 		dto.setColumnIds(columnIds);
-		List<PartialRow> rows = new LinkedList<PartialRow>();
+		List<SparseRowDto> rows = new LinkedList<SparseRowDto>();
 		for(SparseRow row: this.sparseRows){
-			PartialRow partial = new PartialRow();
+			SparseRowDto partial = new SparseRowDto();
 			partial.setRowId(row.getRowId());
+			partial.setVersionNumber(row.getVersionNumber());
 			HashMap<String, String> values = new HashMap<String, String>(this.schema.size());
 			for(ColumnModel cm: this.schema){
 				if(row.hasCellValue(cm.getId())){
@@ -117,15 +114,6 @@ public class SparseChangeSet {
 		}
 		dto.setRows(rows);
 		return dto;
-	}
-	
-	/**
-	 * Get the version number shared by all rows within this change set.
-	 * 
-	 * @return
-	 */
-	public long getChangeSetVersion(){
-		return versionNumber;
 	}
 	
 	/**
@@ -274,6 +262,7 @@ public class SparseChangeSet {
 
 		int rowIndex;
 		Long rowId;
+		Long versionNumber;
 		Map<String, String> valueMap = new HashMap<String, String>();
 
 		private SparseRowImpl(int rowIndex) {
@@ -291,7 +280,11 @@ public class SparseChangeSet {
 		}
 
 		@Override
-		public Long getChangeSetVersion() {
+		public void setVersionNumber(Long rowVersionNumber){
+			this.versionNumber = rowVersionNumber;
+		}
+		@Override
+		public Long getVersionNumber() {
 			return versionNumber;
 		}
 
@@ -344,6 +337,10 @@ public class SparseChangeSet {
 			int result = 1;
 			result = prime * result + ((rowId == null) ? 0 : rowId.hashCode());
 			result = prime * result + rowIndex;
+			result = prime
+					* result
+					+ ((versionNumber == null) ? 0 : versionNumber
+							.hashCode());
 			result = prime * result
 					+ ((valueMap == null) ? 0 : valueMap.hashCode());
 			return result;
@@ -365,6 +362,11 @@ public class SparseChangeSet {
 				return false;
 			if (rowIndex != other.rowIndex)
 				return false;
+			if (versionNumber == null) {
+				if (other.versionNumber != null)
+					return false;
+			} else if (!versionNumber.equals(other.versionNumber))
+				return false;
 			if (valueMap == null) {
 				if (other.valueMap != null)
 					return false;
@@ -376,7 +378,8 @@ public class SparseChangeSet {
 		@Override
 		public String toString() {
 			return "SparseRowImpl [rowIndex=" + rowIndex + ", rowId=" + rowId
-					+ ", valueMap=" + valueMap + "]";
+					+ ", rowVersionNumber=" + versionNumber + ", valueMap="
+					+ valueMap + "]";
 		}
 	}
 
@@ -393,8 +396,6 @@ public class SparseChangeSet {
 		result = prime * result
 				+ ((sparseRows == null) ? 0 : sparseRows.hashCode());
 		result = prime * result + ((tableId == null) ? 0 : tableId.hashCode());
-		result = prime * result
-				+ (int) (versionNumber ^ (versionNumber >>> 32));
 		return result;
 	}
 
@@ -432,16 +433,7 @@ public class SparseChangeSet {
 				return false;
 		} else if (!tableId.equals(other.tableId))
 			return false;
-		if (versionNumber != other.versionNumber)
-			return false;
 		return true;
-	}
-
-	@Override
-	public String toString() {
-		return "SparseChangeSet [tableId=" + tableId + ", schema=" + schema
-				+ ", versionNumber=" + versionNumber + ", sparseRows="
-				+ sparseRows + "]";
 	}
 
 }

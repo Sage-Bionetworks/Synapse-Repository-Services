@@ -181,10 +181,11 @@ public class SQLUtilsTest {
 	@Test
 	public void testBindParametersForCreateOrUpdate(){
 		List<ColumnModel> oldSchema = helperCreateColumnsWithIds("0","2","4");
-		SparseChangeSet set = new SparseChangeSet("syn123", oldSchema, 3L);
+		SparseChangeSet set = new SparseChangeSet("syn123", oldSchema);
 		for(int i=0; i<2; i++){
 			SparseRow row = set.addEmptyRow();
 			row.setRowId(new Long(i));
+			row.setVersionNumber(3L);
 			row.setCellValue("0", "111"+i);
 			row.setCellValue("2", "222"+i);
 			row.setCellValue("4", "333"+i);
@@ -220,7 +221,7 @@ public class SQLUtilsTest {
 		range.setMaximumId(200L);
 		range.setVersionNumber(3L);
 		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
-		SparseChangeSet sparseSet = TableModelUtils.createSparseChangeSet(set, newSchema, 3L);
+		SparseChangeSet sparseSet = TableModelUtils.createSparseChangeSet(set, newSchema);
 		Grouping grouping = sparseSet.groupByValidValues().iterator().next();
 		// bind!
 		SqlParameterSource[] results = SQLUtils.bindParametersForCreateOrUpdate(grouping);
