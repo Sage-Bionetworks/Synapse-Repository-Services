@@ -27,6 +27,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -3211,7 +3212,9 @@ public class NodeDAOImplTest {
 		fileHandle.setFileName(fileName);
 		fileHandle.setContentMd5(fileName);
 		fileHandle.setContentSize(TEST_FILE_SIZE);
-		fileHandle = fileHandleDao.createFile(fileHandle);
+		fileHandle.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		fileHandle.setEtag(UUID.randomUUID().toString());
+		fileHandle = (S3FileHandle) fileHandleDao.createFile(fileHandle);
 		fileHandlesToDelete.add(fileHandle.getId());
 		return fileHandle;
 	}

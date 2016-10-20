@@ -2878,4 +2878,12 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	public BatchFileHandleCopyResult copyFileHandles(BatchFileHandleCopyRequest request) throws SynapseException;
+
+	/**
+	 * Make a request to cancel a submission.
+	 * 
+	 * @param submissionId
+	 * @throws SynapseException 
+	 */
+	public void requestToCancelSubmission(String submissionId) throws SynapseException;
 }

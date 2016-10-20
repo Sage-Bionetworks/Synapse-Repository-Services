@@ -390,8 +390,12 @@ public class EvaluationServiceImpl implements EvaluationService {
 	public TeamSubmissionEligibility getTeamSubmissionEligibility(Long userId, String evalId, String teamId) throws NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return evaluationManager.getTeamSubmissionEligibility(userInfo, evalId, teamId);
-		
 	}
-	
+
+	@Override
+	public void processCancelSubmissionRequest(Long userId, String subId) {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		submissionManager.processUserCancelRequest(userInfo, subId);
+	}
 
 }

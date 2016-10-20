@@ -1333,4 +1333,11 @@ public class EntityServletTestHelper {
 		return ServletTestHelperUtils.readResponsePaginatedResults(response,
 				V2WikiHistorySnapshot.class);
 	}
+
+	public void cancelSubmission(Long userId, String subId) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.PUT, UrlHelpers.SUBMISSION+"/"+subId+"/cancellation",
+				userId, null);
+		ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request, HttpStatus.NO_CONTENT);
+	}
 }
