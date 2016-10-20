@@ -62,6 +62,7 @@ public class DBOTableRowChange implements MigratableDatabaseObject<DBOTableRowCh
 				change.setCreatedOn(rs.getLong(COL_TABLE_ROW_CREATED_ON));
 				change.setBucket(rs.getString(COL_TABLE_ROW_BUCKET));
 				change.setKey(rs.getString(COL_TABLE_ROW_KEY));
+				change.setKeyNew(rs.getString(COL_TABLE_ROW_KEY_NEW));
 				change.setRowCount(rs.getLong(COL_TABLE_ROW_COUNT));
 				change.setChangeType(rs.getString(COL_TABLE_ROW_TYPE));
 				return change;

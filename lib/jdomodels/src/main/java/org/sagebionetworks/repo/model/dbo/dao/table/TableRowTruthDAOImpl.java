@@ -88,10 +88,15 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 			+ " WHERE "
 			+ COL_TABLE_ROW_TABLE_ID
 			+ " = ? AND " + COL_TABLE_ROW_VERSION + " = ?";
+	
 	private static final String SQL_LIST_ALL_KEYS = "SELECT "
-			+ COL_TABLE_ROW_KEY + " FROM " + TABLE_ROW_CHANGE;
-	private static final String SQL_LIST_ALL_KEYS_FOR_TABLE = "SELECT " + COL_TABLE_ROW_KEY + " FROM " + TABLE_ROW_CHANGE + " WHERE "
-			+ COL_TABLE_ROW_TABLE_ID + " = ?";
+			+ COL_TABLE_ROW_KEY + " FROM " + TABLE_ROW_CHANGE+" WHERE "+COL_TABLE_ROW_KEY+" IS NOT NULL"
+					+ " UNION SELECT "+COL_TABLE_ROW_KEY_NEW+ " FROM " + TABLE_ROW_CHANGE+" WHERE "+COL_TABLE_ROW_KEY_NEW+" IS NOT NULL";
+	
+	private static final String SQL_LIST_ALL_KEYS_FOR_TABLE = "SELECT "
+			+ COL_TABLE_ROW_KEY + " FROM " + TABLE_ROW_CHANGE+" WHERE "+COL_TABLE_ROW_KEY+" IS NOT NULL AND "+COL_TABLE_ROW_TABLE_ID + " = ?"
+					+ " UNION SELECT "+COL_TABLE_ROW_KEY_NEW+ " FROM " + TABLE_ROW_CHANGE+" WHERE "+COL_TABLE_ROW_KEY_NEW+" IS NOT NULL AND "+COL_TABLE_ROW_TABLE_ID + " = ?";
+	
 	private static final String SQL_SELECT_ALL_ROW_CHANGES_FOR_TABLE = "SELECT * FROM "
 			+ TABLE_ROW_CHANGE
 			+ " WHERE "
@@ -136,7 +141,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	RowMapper<DBOTableRowChange> rowChangeMapper = new DBOTableRowChange()
 			.getTableMapping();
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public IdRange reserveIdsInRange(String tableIdString, long countToReserver) {
 		if (tableIdString == null)
@@ -539,7 +544,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	public SparseChangeSetDto getRowSet(String tableId, long rowVersion) throws IOException {
 		TableRowChange dto = getTableRowChange(tableId, rowVersion);
 		// Download the file from S3
-		S3Object object = s3Client.getObject(dto.getBucket(), dto.getKey());
+		S3Object object = s3Client.getObject(dto.getBucket(), dto.getKeyNew());
 		try {
 			return TableModelUtils.readSparseChangeSetDtoFromGzStream(object.getObjectContent());
 		} finally {
@@ -623,12 +628,13 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	 * @return
 	 */
 	private List<String> listAllKeysForTable(String tableId) {
+		long tableIdLong = KeyFactory.stringToKey(tableId);
 		return jdbcTemplate.query(SQL_LIST_ALL_KEYS_FOR_TABLE, new RowMapper<String>() {
 			@Override
 			public String mapRow(ResultSet rs, int rowNum) throws SQLException {
 				return rs.getString(COL_TABLE_ROW_KEY);
 			}
-		}, KeyFactory.stringToKey(tableId));
+		}, tableIdLong, tableIdLong);
 	}
 
 	/**

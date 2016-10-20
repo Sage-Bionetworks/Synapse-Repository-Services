@@ -24,7 +24,9 @@ public class TableRowChangeUtils {
 		dto.setTableId(KeyFactory.keyToString(dbo.getTableId()));
 		dto.setRowVersion(dbo.getRowVersion());
 		dto.setEtag(dbo.getEtag());
-		dto.setIds(TableModelUtils.readColumnModelIdsFromDelimitedString(dbo.getColumnIds()));
+		if(dbo.getColumnIds() != null){
+			dto.setIds(TableModelUtils.readColumnModelIdsFromDelimitedString(dbo.getColumnIds()));
+		}
 		dto.setCreatedBy(Long.toString(dbo.getCreatedBy()));
 		dto.setCreatedOn(new Date(dbo.getCreatedOn()));
 		dto.setBucket(dbo.getBucket());
@@ -48,7 +50,9 @@ public class TableRowChangeUtils {
 		dbo.setTableId(KeyFactory.stringToKey(dto.getTableId()));
 		dbo.setRowVersion(dto.getRowVersion());
 		dbo.setEtag(dto.getEtag());
-		dbo.setColumnIds(TableModelUtils.createDelimitedColumnModelIdString(dto.getIds()));
+		if(dto.getIds() != null){
+			dbo.setColumnIds(TableModelUtils.createDelimitedColumnModelIdString(dto.getIds()));
+		}
 		dbo.setCreatedBy(Long.parseLong(dto.getCreatedBy()));
 		dbo.setCreatedOn(dto.getCreatedOn().getTime());
 		dbo.setBucket(dto.getBucket());

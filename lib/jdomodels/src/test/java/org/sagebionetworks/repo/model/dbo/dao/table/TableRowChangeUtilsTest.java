@@ -40,4 +40,27 @@ public class TableRowChangeUtilsTest {
 		assertNotNull(clone);
 		assertEquals(dto, clone);
 	}
+	
+	@Test
+	public void testDTOandDBORoundTripOptionalFields(){
+		TableRowChange dto = new TableRowChange();
+		dto.setTableId("syn123");
+		dto.setRowVersion(12l);
+		dto.setCreatedBy("456");
+		dto.setCreatedOn(new Date(101));
+		dto.setIds(null);
+		dto.setBucket("bucket");
+		dto.setKey(null);
+		dto.setKeyNew("newKey");
+		dto.setEtag("someEtag");
+		dto.setRowCount(999L);
+		dto.setChangeType(TableChangeType.ROW);
+		// To DBO
+		DBOTableRowChange dbo = TableRowChangeUtils.createDBOFromDTO(dto);
+		assertNotNull(dbo);
+		// Create a clone
+		TableRowChange clone = TableRowChangeUtils.ceateDTOFromDBO(dbo);
+		assertNotNull(clone);
+		assertEquals(dto, clone);
+	}
 }
