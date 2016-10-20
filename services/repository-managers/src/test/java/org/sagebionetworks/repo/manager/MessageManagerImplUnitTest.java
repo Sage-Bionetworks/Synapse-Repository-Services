@@ -15,7 +15,8 @@ import org.apache.commons.lang.StringUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
-import org.mockito.Mockito;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.principal.SynapseEmailService;
@@ -49,18 +50,31 @@ import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
 
 public class MessageManagerImplUnitTest {
 	private MessageManagerImpl messageManager;
+	@Mock
 	private UserManager userManager;
+	@Mock
 	private MessageDAO messageDAO;
+	@Mock
 	private UserGroupDAO userGroupDAO;
+	@Mock
 	private GroupMembersDAO groupMembersDao;
+	@Mock
 	private UserProfileManager userProfileManager;
+	@Mock
 	private NotificationEmailDAO notificationEmailDao;
+	@Mock
 	private PrincipalAliasDAO principalAliasDAO;
+	@Mock
 	private AuthorizationManager authorizationManager;
+	@Mock
 	private FileHandleDao fileHandleDAO;
+	@Mock
 	private NodeDAO nodeDAO;
+	@Mock
 	private EntityPermissionsManager entityPermissionsManager;
+	@Mock
 	private SynapseEmailService sesClient;
+	@Mock
 	private FileHandleManager fileHandleManager;
 	
 	private MessageToUser mtu;
@@ -76,19 +90,7 @@ public class MessageManagerImplUnitTest {
 	
 	@Before
 	public void setUp() throws Exception {
-		messageDAO = Mockito.mock(MessageDAO.class);
-		userGroupDAO = Mockito.mock(UserGroupDAO.class);
-		groupMembersDao = Mockito.mock(GroupMembersDAO.class);
-		userManager = Mockito.mock(UserManager.class);
-		userProfileManager = Mockito.mock(UserProfileManager.class);
-		notificationEmailDao = Mockito.mock(NotificationEmailDAO.class);
-		principalAliasDAO = Mockito.mock(PrincipalAliasDAO.class);
-		authorizationManager = Mockito.mock(AuthorizationManager.class);
-		fileHandleDAO = Mockito.mock(FileHandleDao.class);
-		nodeDAO = Mockito.mock(NodeDAO.class);
-		entityPermissionsManager = Mockito.mock(EntityPermissionsManager.class);
-		sesClient = Mockito.mock(SynapseEmailService.class);
-		fileHandleManager = Mockito.mock(FileHandleManager.class);
+		MockitoAnnotations.initMocks(this);
 		
 		messageManager = new MessageManagerImpl();
 		ReflectionTestUtils.setField(messageManager, "messageDAO", messageDAO);
@@ -361,8 +363,9 @@ public class MessageManagerImplUnitTest {
 		assertEquals("noreply@synapse.org", ser.getSource());
 		assertEquals(1, ser.getDestination().getToAddresses().size());
 		assertEquals("foo@sagebase.org", ser.getDestination().getToAddresses().get(0));
-		assertTrue(ser.getMessage().getBody().getText().getData().indexOf(
-				"The following errors were experienced while delivering message")>=0);
+		String body = ser.getMessage().getBody().getText().getData();
+		assertTrue(body.indexOf("The following errors were experienced while delivering message")>=0);
+		assertTrue(body.indexOf(mtu.getSubject())>=0);
 	}
 	
 	@Test

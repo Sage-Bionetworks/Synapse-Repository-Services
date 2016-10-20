@@ -542,8 +542,19 @@ public class MessageManagerImpl implements MessageManager {
 			if (!userIsTrustedMessageSender &&
 					!ug.getIsIndividual() &&
 					!authorizationManager.canAccess(userInfo, principalId, ObjectType.TEAM, ACCESS_TYPE.SEND_MESSAGE).getAuthorized()) {
-				errors.add(userInfo.getId()
-						+ " may not send messages to the group (" + principalId + ")");
+				String sender = null;
+				String team = null;
+				try {
+					sender = principalAliasDAO.getUserName(userInfo.getId());
+				} catch (Exception e) {
+					sender = userInfo.getId().toString();
+				}
+				try {
+					team = principalAliasDAO.getTeamName(Long.parseLong(principalId));
+				} catch (Exception e) {
+					team = principalId;
+				}
+				errors.add(sender + " may not send messages to the group (" + team + ")");
 				continue;
 			}
 			
@@ -668,7 +679,7 @@ public class MessageManagerImpl implements MessageManager {
 		Map<String,String> fieldValues = new HashMap<String,String>();
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_DISPLAY_NAME, alias);
 		
-		fieldValues.put(EmailUtils.TEMPLATE_KEY_MESSAGE_ID, messageId);
+		fieldValues.put(EmailUtils.TEMPLATE_KEY_MESSAGE_SUBJECT, dto.getSubject());
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_DETAILS, "- " + StringUtils.join(errors, "\n- "));
 		String email = getEmailForUser(senderId);
 		String messageBody = EmailUtils.readMailTemplate("message/DeliveryFailureTemplate.txt", fieldValues);
