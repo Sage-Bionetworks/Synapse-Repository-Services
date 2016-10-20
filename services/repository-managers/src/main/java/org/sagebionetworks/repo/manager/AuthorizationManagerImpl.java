@@ -9,6 +9,7 @@ import java.util.Set;
 
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.evaluation.manager.EvaluationPermissionsManager;
+import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.file.FileHandleAuthorizationStatus;
 import org.sagebionetworks.repo.manager.team.TeamConstants;
@@ -32,17 +33,14 @@ import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.SelfSignAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VerificationDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dao.discussion.DiscussionThreadDAO;
 import org.sagebionetworks.repo.model.dao.discussion.ForumDAO;
-import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
-import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.Forum;
-import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
+import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociationManager;
 import org.sagebionetworks.repo.model.provenance.Activity;
@@ -71,12 +69,6 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	@Autowired
 	private ActivityDAO activityDAO;
 	@Autowired
-	private UserGroupDAO userGroupDAO;
-	@Autowired
-	private EvaluationDAO evaluationDAO;
-	@Autowired
-	private UserManager userManager;
-	@Autowired
 	private EntityPermissionsManager entityPermissionsManager;
 	@Autowired
 	private EvaluationPermissionsManager evaluationPermissionsManager;
@@ -94,6 +86,10 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	private FileHandleAssociationManager fileHandleAssociationSwitch;
 	@Autowired
 	private V2WikiPageDao wikiPageDaoV2;
+	@Autowired
+	private SubmissionDAO submissionDAO;
+	@Autowired
+	private MessageManager messageManager;
 	
 	@Override
 	public AuthorizationStatus canAccess(UserInfo userInfo, String objectId, ObjectType objectType, ACCESS_TYPE accessType)
@@ -101,7 +97,8 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 
 		// anonymous can at most READ
 		if (AuthorizationUtils.isUserAnonymous(userInfo)) {
-			if (accessType != ACCESS_TYPE.READ) return AuthorizationManagerUtil.accessDenied("Anonymous users are unauthorized for all but public read operations.");
+			if (accessType != ACCESS_TYPE.READ && objectType != ObjectType.TEAM && objectType != ObjectType.USER_PROFILE)
+				return AuthorizationManagerUtil.accessDenied("Anonymous users are unauthorized for all but public read operations.");
 		}
 
 		switch (objectType) {
@@ -114,7 +111,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 					return AuthorizationManagerUtil.AUTHORIZED;
 				}
 				if (accessType==ACCESS_TYPE.READ) {
-					return AuthorizationManagerUtil.AUTHORIZED;					
+					return AuthorizationManagerUtil.AUTHORIZED;
 				}
 				AccessRequirement accessRequirement = accessRequirementDAO.get(objectId);
 				return canAdminAccessRequirement(userInfo, accessRequirement);
@@ -128,6 +125,11 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 				if (userInfo.isAdmin()) {
 					return AuthorizationManagerUtil.AUTHORIZED;
 				}
+				// everyone should be able to download the Team's Icon, even anonymous.
+				if (accessType==ACCESS_TYPE.DOWNLOAD) {
+					return AuthorizationManagerUtil.AUTHORIZED;
+				}
+				
 				// just check the acl
 				boolean teamAccessPermission = aclDAO.canAccess(userInfo.getGroups(), objectId, ObjectType.TEAM, accessType);
 				if (teamAccessPermission) {
@@ -150,6 +152,34 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 			case WIKI:{
 				WikiPageKey key = wikiPageDaoV2.lookupWikiKey(objectId);
 				return canAccess(userInfo, key.getOwnerObjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ);
+			}
+			case USER_PROFILE: {
+				// everyone should be able to download userProfile picture, even anonymous.
+				if (accessType==ACCESS_TYPE.DOWNLOAD) {
+					return AuthorizationManagerUtil.AUTHORIZED;
+				} else {
+					return AuthorizationManagerUtil.accessDenied("Unexpected access type "+accessType);
+				}
+			}
+			case EVALUATION_SUBMISSIONS:
+				if (accessType==ACCESS_TYPE.DOWNLOAD) {
+					Submission submission = submissionDAO.get(objectId);
+					return evaluationPermissionsManager.hasAccess(userInfo, submission.getEvaluationId(), ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
+				} else {
+					return AuthorizationManagerUtil.accessDenied("Unexpected access type "+accessType);
+				}
+			case MESSAGE: {
+				if (accessType==ACCESS_TYPE.DOWNLOAD) {
+					try {
+						// if the user can get the message metadata, he/she can download the message
+						messageManager.getMessage(userInfo, objectId);
+						return AuthorizationManagerUtil.AUTHORIZED;
+					} catch (UnauthorizedException e) {
+						return AuthorizationManagerUtil.ACCESS_DENIED;
+					}
+				} else {
+					return AuthorizationManagerUtil.accessDenied("Unexpected access type "+accessType);
+				}
 			}
 			default:
 				throw new IllegalArgumentException("Unknown ObjectType: "+objectType);

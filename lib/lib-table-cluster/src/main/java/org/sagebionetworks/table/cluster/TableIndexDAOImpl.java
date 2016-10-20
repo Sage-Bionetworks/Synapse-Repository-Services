@@ -55,6 +55,7 @@ import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
+import org.sagebionetworks.table.model.Grouping;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 import org.sagebionetworks.util.ValidateArgument;
@@ -155,34 +156,29 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public void createOrUpdateOrDeleteRows(final RowSet rowset,
-			final List<ColumnModel> schema) {
-		if (rowset == null)
-			throw new IllegalArgumentException("Rowset cannot be null");
-		if (schema == null)
-			throw new IllegalArgumentException("Current schema cannot be null");
-
+	public void createOrUpdateOrDeleteRows(final Grouping grouping) {
+		ValidateArgument.required(grouping, "grouping");
 		// Execute this within a transaction
 		this.writeTransactionTemplate.execute(new TransactionCallback<Void>() {
 			@Override
 			public Void doInTransaction(TransactionStatus status) {
-				// Within a transaction
-				// Build the SQL
-				String createOrUpdateSql = SQLUtils.buildCreateOrUpdateRowSQL(schema,
-						rowset.getTableId());
-				String deleteSql = SQLUtils.buildDeleteSQL(schema, rowset.getTableId());
-				SqlParameterSource[] batchUpdateOrCreateBinding = SQLUtils
-						.bindParametersForCreateOrUpdate(rowset, schema);
-				SqlParameterSource batchDeleteBinding = SQLUtils
-						.bindParameterForDelete(rowset, schema);
 				// We need a named template for this case.
 				NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(template);
-				if (batchUpdateOrCreateBinding.length > 0) {
+				List<ColumnModel> groupingColumns = grouping.getColumnsWithValues();
+				if(groupingColumns.isEmpty()){
+					// This is a delete
+					String deleteSql = SQLUtils.buildDeleteSQL(grouping.getTableId());
+					SqlParameterSource batchDeleteBinding = SQLUtils
+							.bindParameterForDelete(grouping.getRows());
+					namedTemplate.update(deleteSql, batchDeleteBinding);
+				}else{
+					// this is a create or update
+					String createOrUpdateSql = SQLUtils.buildCreateOrUpdateRowSQL(groupingColumns,
+							grouping.getTableId());
+					SqlParameterSource[] batchUpdateOrCreateBinding = SQLUtils
+							.bindParametersForCreateOrUpdate(grouping);
 					namedTemplate.batchUpdate(createOrUpdateSql,
 							batchUpdateOrCreateBinding);
-				}
-				if (batchDeleteBinding != null) {
-					namedTemplate.update(deleteSql, batchDeleteBinding);
 				}
 				return null;
 			}

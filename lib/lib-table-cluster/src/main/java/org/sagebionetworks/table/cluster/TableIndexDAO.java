@@ -13,6 +13,7 @@ import org.sagebionetworks.repo.model.table.QueryFacetResultRange;
 import org.sagebionetworks.repo.model.table.QueryFacetResultValue;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.ViewType;
+import org.sagebionetworks.table.model.Grouping;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.support.TransactionCallback;
@@ -61,7 +62,7 @@ public interface TableIndexDAO {
 	 * @param rowset
 	 * @return
 	 */
-	void createOrUpdateOrDeleteRows(RowSet rowset, List<ColumnModel> currentSchema);
+	void createOrUpdateOrDeleteRows(Grouping grouping);
 	
 	/**
 	 * Query a RowSet from the table.

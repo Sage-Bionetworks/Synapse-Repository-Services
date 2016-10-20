@@ -8,6 +8,7 @@ import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.ViewType;
+import org.sagebionetworks.table.model.SparseChangeSet;
 
 /**
  * The 'truth' of a Synapse table consists of metadata in the main repository
@@ -85,17 +86,8 @@ public interface TableIndexManager {
 	 *            must match the version number of each row in the passed
 	 *            changeset.
 	 */
-	public void applyChangeSetToIndex(RowSet rowset, List<ColumnModel> currentSchema,
+	public void applyChangeSetToIndex(SparseChangeSet rowset, List<ColumnModel> currentSchema,
 			long changeSetVersionNumber);
-	
-	/**
-	 * Apply the given change set to the table's index.
-	 * This signature is used for the creation of a FileView and should not be used
-	 * for TableEntity.
-	 * @param rowset
-	 * @param currentSchema
-	 */
-	public void applyChangeSetToIndex(RowSet rowset, List<ColumnModel> currentSchema);
 
 	/**
 	 * Set the current schema of a table's index.

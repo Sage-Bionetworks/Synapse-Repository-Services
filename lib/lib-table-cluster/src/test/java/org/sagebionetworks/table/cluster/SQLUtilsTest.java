@@ -26,6 +26,9 @@ import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
+import org.sagebionetworks.table.model.Grouping;
+import org.sagebionetworks.table.model.SparseChangeSet;
+import org.sagebionetworks.table.model.SparseRow;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -179,37 +182,31 @@ public class SQLUtilsTest {
 	
 	@Test
 	public void testBindParametersForCreateOrUpdate(){
-		List<ColumnModel> newSchema = helperCreateColumnsWithIds("1","2","3");
-		// This column will be missing in the RowSet so it should get this default value.
-		newSchema.get(0).setDefaultValue("456");
 		List<ColumnModel> oldSchema = helperCreateColumnsWithIds("0","2","4");
-		RowSet set = new RowSet();
-		List<Row> rows = new LinkedList<Row>();
-		// Set the row IDs
+		SparseChangeSet set = new SparseChangeSet("syn123", oldSchema, 3L);
 		for(int i=0; i<2; i++){
-			Row row = new Row();
+			SparseRow row = set.addEmptyRow();
 			row.setRowId(new Long(i));
-			row.setVersionNumber(3L);
-			row.setValues(Arrays.asList("111"+i, "222"+i, "333"+i));
-			rows.add(row);
+			row.setCellValue("0", "111"+i);
+			row.setCellValue("2", "222"+i);
+			row.setCellValue("4", "333"+i);
 		}
-		set.setRows(rows);
-		set.setHeaders(TableModelUtils.getSelectColumns(oldSchema));
-		set.setTableId("syn123");
+		Grouping grouping = set.groupByValidValues().iterator().next();
+		
 		// bind!
-		SqlParameterSource[] results = SQLUtils.bindParametersForCreateOrUpdate(set, newSchema);
+		SqlParameterSource[] results = SQLUtils.bindParametersForCreateOrUpdate(grouping);
 		assertNotNull(results);
 		assertEquals("There should be one mapping for each row in the batch",2, results.length);
 		// First row
 		assertEquals(new Long(0), results[0].getValue(SQLUtils.ROW_ID_BIND));
 		assertEquals(new Long(3), results[0].getValue(SQLUtils.ROW_VERSION_BIND));
-		assertEquals(new Long(456), results[0].getValue("_C1_"));
+		assertEquals(new Long(1110), results[0].getValue("_C0_"));
 		assertEquals(new Long(2220), results[0].getValue("_C2_"));
-		assertEquals(null, results[0].getValue("_C3_"));
+		assertEquals(new Long(3330), results[0].getValue("_C4_"));
 		// second
-		assertEquals(new Long(456), results[1].getValue("_C1_"));
+		assertEquals(new Long(1111), results[1].getValue("_C0_"));
 		assertEquals(new Long(2221), results[1].getValue("_C2_"));
-		assertEquals(null, results[1].getValue("_C3_"));
+		assertEquals(new Long(3331), results[1].getValue("_C4_"));
 	}
 	
 	
@@ -225,8 +222,10 @@ public class SQLUtilsTest {
 		range.setMaximumId(200L);
 		range.setVersionNumber(3L);
 		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
+		SparseChangeSet sparseSet = TableModelUtils.createSparseChangeSet(set, newSchema, 3L);
+		Grouping grouping = sparseSet.groupByValidValues().iterator().next();
 		// bind!
-		SqlParameterSource[] results = SQLUtils.bindParametersForCreateOrUpdate(set, newSchema);
+		SqlParameterSource[] results = SQLUtils.bindParametersForCreateOrUpdate(grouping);
 		assertNotNull(results);
 		assertEquals("There should be one mapping for each row in the batch",3, results.length);
 		// First row

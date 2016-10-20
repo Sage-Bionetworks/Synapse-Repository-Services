@@ -49,6 +49,8 @@ import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
+import org.sagebionetworks.table.model.Grouping;
+import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.util.SimpleAggregateQueryException;
@@ -110,6 +112,20 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.createTableIfDoesNotExist(tableId);
 		boolean alterTemp = false;
 		return tableIndexDAO.alterTableAsNeeded(tableId, changes, alterTemp);
+	}
+	
+	/**
+	 * Helper to apply a change set to the index.s
+	 * @param rowSet
+	 * @param schema
+	 */
+	public void createOrUpdateOrDeleteRows(RowSet rowSet, List<ColumnModel> schema){
+		// Find the version number
+		long versionNumber = rowSet.getRows().get(0).getVersionNumber();
+		SparseChangeSet sparse = TableModelUtils.createSparseChangeSet(rowSet, schema, versionNumber);
+		for(Grouping grouping: sparse.groupByValidValues()){
+			tableIndexDAO.createOrUpdateOrDeleteRows(grouping);
+		}
 	}
 	
 	@Test
@@ -185,7 +201,7 @@ public class TableIndexDAOImplTest {
 		// Create the table
 		createOrUpdateTable(allTypes, tableId);
 		// Now fill the table with data
-		tableIndexDAO.createOrUpdateOrDeleteRows(set, allTypes);
+		createOrUpdateOrDeleteRows(set, allTypes);
 		List<Map<String, Object>> result = tableIndexDAO.getConnection()
 				.queryForList(
 						"SELECT * FROM "
@@ -208,8 +224,9 @@ public class TableIndexDAOImplTest {
 				Arrays.asList("update", "99.99", "3", "false", "123", "123",
 						"syn123.3", "link2", "largeText"));
 		rows.get(4).setVersionNumber(5L);
+		rows.get(0).setVersionNumber(5L);
 		// This should not fail
-		tableIndexDAO.createOrUpdateOrDeleteRows(set, allTypes);
+		createOrUpdateOrDeleteRows(set, allTypes);
 		// Check the update
 		result = tableIndexDAO.getConnection().queryForList(
 				"SELECT * FROM "
@@ -257,7 +274,7 @@ public class TableIndexDAOImplTest {
 		range.setVersionNumber(3L);
 		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
 		// Now fill the table with data
-		tableIndexDAO.createOrUpdateOrDeleteRows(set, allTypes);
+		createOrUpdateOrDeleteRows(set, allTypes);
 		// Check again
 		count = tableIndexDAO.getRowCountForTable(tableId);
 		assertEquals(new Long(rows.size()), count);
@@ -328,7 +345,7 @@ public class TableIndexDAOImplTest {
 		range.setVersionNumber(3L);
 		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
 		// Now fill the table with data
-		tableIndexDAO.createOrUpdateOrDeleteRows(set, allTypes);
+		createOrUpdateOrDeleteRows(set, allTypes);
 		// This is our query
 		SqlQuery query = new SqlQuery("select * from " + tableId, allTypes);
 		// Now query for the results
@@ -443,7 +460,7 @@ public class TableIndexDAOImplTest {
 			range.setVersionNumber(3L + i);
 			TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
 			// Now fill the table with data
-			tableIndexDAO.createOrUpdateOrDeleteRows(set, allTypes);
+			createOrUpdateOrDeleteRows(set, allTypes);
 		}
 		System.out.println("");
 
@@ -581,7 +598,7 @@ public class TableIndexDAOImplTest {
 		range.setVersionNumber(3L);
 		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
 		// Now fill the table with data
-		tableIndexDAO.createOrUpdateOrDeleteRows(set, doubleColumn);
+		createOrUpdateOrDeleteRows(set, doubleColumn);
 		// This is our query
 		SqlQuery query = new SqlQuery("select * from " + tableId, doubleColumn);
 		// Now query for the results
@@ -620,7 +637,7 @@ public class TableIndexDAOImplTest {
 		range.setVersionNumber(3L);
 		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
 		// Now fill the table with data
-		tableIndexDAO.createOrUpdateOrDeleteRows(set, allTypes);
+		createOrUpdateOrDeleteRows(set, allTypes);
 
 		// now delete the second and fourth row
 		set.getRows().remove(0);
@@ -629,7 +646,7 @@ public class TableIndexDAOImplTest {
 		set.getRows().get(1).getValues().clear();
 		range.setVersionNumber(4L);
 		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
-		tableIndexDAO.createOrUpdateOrDeleteRows(set, allTypes);
+		createOrUpdateOrDeleteRows(set, allTypes);
 		// This is our query
 		SqlQuery query = new SqlQuery("select * from " + tableId, allTypes);
 		// Now query for the results
@@ -659,7 +676,7 @@ public class TableIndexDAOImplTest {
 		range.setVersionNumber(3L);
 		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
 		// Now fill the table with data
-		tableIndexDAO.createOrUpdateOrDeleteRows(set, allTypes);
+		createOrUpdateOrDeleteRows(set, allTypes);
 		// Now query for the results
 		SqlQuery query = new SqlQuery("select * from " + tableId, allTypes);
 		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
@@ -709,7 +726,7 @@ public class TableIndexDAOImplTest {
 		range.setVersionNumber(3L);
 		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
 		// Now fill the table with data
-		tableIndexDAO.createOrUpdateOrDeleteRows(set, allTypes);
+		createOrUpdateOrDeleteRows(set, allTypes);
 		// Now a count query
 		SqlQuery query = new SqlQuery("select count(*) from " + tableId,
 				allTypes);
@@ -763,7 +780,7 @@ public class TableIndexDAOImplTest {
 		range.setVersionNumber(4L);
 		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
 		// Now fill the table with data
-		tableIndexDAO.createOrUpdateOrDeleteRows(set, schema);
+		createOrUpdateOrDeleteRows(set, schema);
 		// Now create the query
 		SqlQuery query = new SqlQuery(
 				"select foo, bar from "
@@ -818,7 +835,7 @@ public class TableIndexDAOImplTest {
 		range.setVersionNumber(4L);
 		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
 		// Now fill the table with data
-		tableIndexDAO.createOrUpdateOrDeleteRows(set, schema);
+		createOrUpdateOrDeleteRows(set, schema);
 		// Now create the query
 		SqlQuery query = new SqlQuery("select * from " + tableId
 				+ " where ROW_ID = 104 AND Row_Version > 1 limit 1 offset 0",
@@ -1041,7 +1058,7 @@ public class TableIndexDAOImplTest {
 		range.setVersionNumber(3L);
 		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
 		
-		tableIndexDAO.createOrUpdateOrDeleteRows(set, schema);
+		createOrUpdateOrDeleteRows(set, schema);
 		
 		Set<Long> results = tableIndexDAO.getDistinctLongValues(tableId, column.getId());
 		Set<Long> expected = Sets.newHashSet(3000L, 3001L);
@@ -1126,7 +1143,7 @@ public class TableIndexDAOImplTest {
 		range.setVersionNumber(3L);
 		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
 		
-		tableIndexDAO.createOrUpdateOrDeleteRows(set, schema);
+		createOrUpdateOrDeleteRows(set, schema);
 		
 		List<DatabaseColumnInfo> infoList = getAllColumnInfo(tableId);
 		assertNotNull(infoList);
@@ -1326,7 +1343,7 @@ public class TableIndexDAOImplTest {
 		range.setVersionNumber(3L);
 		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
 		
-		tableIndexDAO.createOrUpdateOrDeleteRows(set, schema);
+		createOrUpdateOrDeleteRows(set, schema);
 		
 		tableIndexDAO.deleteTemporaryTable(tableId);
 		// Create a copy of the table

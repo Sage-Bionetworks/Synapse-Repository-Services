@@ -26,7 +26,6 @@ import org.apache.commons.lang.StringUtils;
 import org.sagebionetworks.repo.model.dao.table.RowAccessor;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.IdRange;
@@ -37,8 +36,13 @@ import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableRowChange;
+import org.sagebionetworks.table.model.SparseChangeSet;
+import org.sagebionetworks.table.model.SparseRow;
 import org.sagebionetworks.util.TimeUtils;
 import org.sagebionetworks.util.ValidateArgument;
+
+import au.com.bytecode.opencsv.CSVReader;
+import au.com.bytecode.opencsv.CSVWriter;
 
 import com.google.common.base.Function;
 import com.google.common.collect.HashMultimap;
@@ -46,9 +50,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
-
-import au.com.bytecode.opencsv.CSVReader;
-import au.com.bytecode.opencsv.CSVWriter;
 
 /**
  * Utilities for working with Tables and Row data.
@@ -1272,6 +1273,31 @@ public class TableModelUtils {
 			results.add(select);
 		}
 		return results;
+	}
+	
+	/**
+	 * Create a new RowChangeSet from a full RowSet.
+	 * 
+	 * @param rowSet
+	 * @param schema
+	 * @param versionNumber
+	 */
+	public static SparseChangeSet createSparseChangeSet(RowSet rowSet, List<ColumnModel> schema,
+			long versionNumber) {
+		SparseChangeSet changeSet = new SparseChangeSet(rowSet.getTableId(), schema, versionNumber);
+		// Add all rows
+		for (Row row : rowSet.getRows()) {
+			SparseRow sparse = changeSet.addEmptyRow();
+			sparse.setRowId(row.getRowId());
+			if(row.getValues() != null && !row.getValues().isEmpty()){
+				for (int i = 0; i < rowSet.getHeaders().size(); i++) {
+					SelectColumn header = rowSet.getHeaders().get(i);
+					String value = row.getValues().get(i);
+					sparse.setCellValue(header.getId(), value);
+				}
+			}
+		}
+		return changeSet;
 	}
 
 }
