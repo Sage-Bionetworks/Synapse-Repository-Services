@@ -16,8 +16,9 @@ import org.apache.commons.lang.WordUtils;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.EmailUtils;
-import org.sagebionetworks.repo.manager.SendEmailRequestBuilder;
+import org.sagebionetworks.repo.manager.SendRawEmailRequestBuilder;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.SendRawEmailRequestBuilder.BodyType;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DomainType;
@@ -44,7 +45,7 @@ import org.sagebionetworks.securitytools.HMACUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.amazonaws.services.simpleemail.model.SendEmailRequest;
+import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
 
 /**
  * Basic implementation of the PrincipalManager.
@@ -235,13 +236,13 @@ public class PrincipalManagerImpl implements PrincipalManager {
 			fieldValues.put(EmailUtils.TEMPLATE_KEY_WEB_LINK, url);
 			fieldValues.put(EmailUtils.TEMPLATE_KEY_HTML_SAFE_WEB_LINK, url.replaceAll("&", "&amp;"));
 			String messageBody = EmailUtils.readMailTemplate("message/CreateAccountTemplate.html", fieldValues);
-			SendEmailRequest sendEmailRequest = (new SendEmailRequestBuilder())
+			SendRawEmailRequest sendEmailRequest = new SendRawEmailRequestBuilder()
 					.withRecipientEmail(user.getEmail())
 					.withSubject(subject)
-					.withBody(messageBody)
-					.withIsHtml(true)
+					.withBody(messageBody, BodyType.HTML)
+					.withIsNotificationMessage(true)
 					.build();	
-			sesClient.sendEmail(sendEmailRequest);
+			sesClient.sendRawEmail(sendEmailRequest);
 		} else {
 			throw new IllegalArgumentException("Unexpected Domain: "+domain);
 		}
@@ -371,13 +372,13 @@ public class PrincipalManagerImpl implements PrincipalManager {
 			fieldValues.put(EmailUtils.TEMPLATE_KEY_ORIGIN_CLIENT, domain.name());
 			fieldValues.put(EmailUtils.TEMPLATE_KEY_USERNAME, principalAliasDAO.getUserName(userInfo.getId()));
 			String messageBody = EmailUtils.readMailTemplate("message/AdditionalEmailTemplate.html", fieldValues);
-			SendEmailRequest sendEmailRequest = (new SendEmailRequestBuilder())
+			SendRawEmailRequest sendEmailRequest = new SendRawEmailRequestBuilder()
 					.withRecipientEmail(email.getEmail())
 					.withSubject(subject)
-					.withBody(messageBody)
-					.withIsHtml(true)
-					.build();	
-			sesClient.sendEmail(sendEmailRequest);
+					.withBody(messageBody, BodyType.HTML)
+					.withIsNotificationMessage(true)
+					.build();
+			sesClient.sendRawEmail(sendEmailRequest);
 		} else {
 			throw new IllegalArgumentException("Unexpected Domain: "+domain);
 		}

@@ -24,6 +24,7 @@
         "FORUM",
     	"THREAD",
     	"REPLY",
-    	"ENTITY_VIEW"
+    	"ENTITY_VIEW",
+		"USER_PROFILE"
     ]
 }

@@ -1,6 +1,6 @@
 Hello #displayName#,
 
-The following errors were experienced while delivering message #messageid#: 
+The following errors were experienced while delivering message #messageSubject#: 
 #details#
 
 Synapse Administrator
