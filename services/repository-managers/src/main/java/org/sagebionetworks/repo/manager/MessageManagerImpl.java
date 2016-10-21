@@ -14,6 +14,7 @@ import org.apache.http.entity.ContentType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.repo.manager.SendRawEmailRequestBuilder.BodyType;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.principal.SynapseEmailService;
 import org.sagebionetworks.repo.manager.team.TeamConstants;
@@ -628,16 +629,16 @@ public class MessageManagerImpl implements MessageManager {
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_WEB_LINK, webLink);
 		String messageBody = EmailUtils.readMailTemplate("message/PasswordResetTemplate.txt", fieldValues);
 		String email = getEmailForUser(recipientId);
-		SendEmailRequest sendEmailRequest = (new SendEmailRequestBuilder())
+		SendRawEmailRequest sendEmailRequest = new SendRawEmailRequestBuilder()
 				.withRecipientEmail(email)
 				.withSubject(subject)
-				.withBody(messageBody)
-				.withIsHtml(false)
+				.withBody(messageBody, BodyType.PLAIN_TEXT)
 				.withSenderUserName(alias)
 				.withSenderDisplayName(displayName)
 				.withUserId(recipientId.toString())
+				.withIsNotificationMessage(true)
 				.build();
-		sesClient.sendEmail(sendEmailRequest);
+		sesClient.sendRawEmail(sendEmailRequest);
 	}
 	
 	@Override
@@ -655,15 +656,15 @@ public class MessageManagerImpl implements MessageManager {
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_USERNAME, alias);
 		String messageBody = EmailUtils.readMailTemplate("message/WelcomeTemplate.txt", fieldValues);
 		String email = getEmailForUser(recipientId);
-		SendEmailRequest sendEmailRequest = (new SendEmailRequestBuilder())
+		SendRawEmailRequest sendEmailRequest = new SendRawEmailRequestBuilder()
 				.withRecipientEmail(email)
 				.withSubject(subject)
-				.withBody(messageBody)
-				.withIsHtml(false)
+				.withBody(messageBody, BodyType.PLAIN_TEXT)
 				.withUserId(recipientId.toString())
 				.withNotificationUnsubscribeEndpoint(notificationUnsubscribeEndpoint)
+				.withIsNotificationMessage(true)
 				.build();
-		sesClient.sendEmail(sendEmailRequest);
+		sesClient.sendRawEmail(sendEmailRequest);
 	}
 	
 	@Override
@@ -684,15 +685,15 @@ public class MessageManagerImpl implements MessageManager {
 		String email = getEmailForUser(senderId);
 		String messageBody = EmailUtils.readMailTemplate("message/DeliveryFailureTemplate.txt", fieldValues);
 		
-		SendEmailRequest sendEmailRequest = (new SendEmailRequestBuilder())
+		SendRawEmailRequest sendEmailRequest = new SendRawEmailRequestBuilder()
 				.withRecipientEmail(email)
 				.withSubject(subject)
-				.withBody(messageBody)
-				.withIsHtml(false)
+				.withBody(messageBody, BodyType.PLAIN_TEXT)
 				.withNotificationUnsubscribeEndpoint(dto.getNotificationUnsubscribeEndpoint())
 				.withUserId(senderId.toString())
+				.withIsNotificationMessage(true)
 				.build();
-		sesClient.sendEmail(sendEmailRequest);
+		sesClient.sendRawEmail(sendEmailRequest);
 	}
 	
 	
