@@ -54,7 +54,6 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.amazonaws.services.simpleemail.model.SendEmailRequest;
 import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
 import com.google.common.collect.Lists;
 
@@ -547,12 +546,12 @@ public class MessageManagerImpl implements MessageManager {
 				String team = null;
 				try {
 					sender = principalAliasDAO.getUserName(userInfo.getId());
-				} catch (Exception e) {
+				} catch (NotFoundException e) {
 					sender = userInfo.getId().toString();
 				}
 				try {
 					team = principalAliasDAO.getTeamName(Long.parseLong(principalId));
-				} catch (Exception e) {
+				} catch (NotFoundException e) {
 					team = principalId;
 				}
 				errors.add(sender + " may not send messages to the group (" + team + ")");

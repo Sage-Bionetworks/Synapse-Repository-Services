@@ -377,7 +377,6 @@ public class PrincipalManagerImpl implements PrincipalManager {
 					.withSubject(subject)
 					.withBody(messageBody, BodyType.HTML)
 					.withIsNotificationMessage(true)
-					.withUnsubscribeLink(true)
 					.build();
 			sesClient.sendRawEmail(sendEmailRequest);
 		} else {
