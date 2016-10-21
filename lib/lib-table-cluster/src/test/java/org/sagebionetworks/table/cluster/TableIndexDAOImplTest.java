@@ -1616,7 +1616,7 @@ public class TableIndexDAOImplTest {
 		range.setVersionNumber(3L);
 		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
 		// Now fill the table with data
-		tableIndexDAO.createOrUpdateOrDeleteRows(set, allTypes);
+		createOrUpdateOrDeleteRows(set, allTypes);
 		return allTypes;
 	}
 	
