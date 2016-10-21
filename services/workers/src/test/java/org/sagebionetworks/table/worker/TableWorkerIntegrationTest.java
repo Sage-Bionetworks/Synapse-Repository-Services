@@ -18,9 +18,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TimeZone;
 import java.util.UUID;
 
@@ -71,15 +73,22 @@ import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.search.Facet;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
+import org.sagebionetworks.repo.model.table.FacetRange;
+import org.sagebionetworks.repo.model.table.FacetType;
 import org.sagebionetworks.repo.model.table.PartialRow;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
+import org.sagebionetworks.repo.model.table.QueryFacetResultColumn;
+import org.sagebionetworks.repo.model.table.QueryFacetResultRange;
+import org.sagebionetworks.repo.model.table.QueryFacetResultValue;
 import org.sagebionetworks.repo.model.table.QueryNextPageToken;
+import org.sagebionetworks.repo.model.table.QueryRequestFacetColumn;
 import org.sagebionetworks.repo.model.table.QueryResult;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
@@ -1723,6 +1732,134 @@ public class TableWorkerIntegrationTest {
 		assertEquals(2, queryRows.size());
 		assertEquals(rowOneValues, queryRows.get(0).getValues());
 		assertEquals(Lists.newArrayList("false", null), queryRows.get(1).getValues());
+	}
+	
+	@Test
+	public void testFacetNoneSelected() throws Exception{
+		createSchemaOneOfEachType();
+		createTableWithSchema();
+		// Now add some data
+		RowSet rowSet = new RowSet();
+		rowSet.setRows(TableModelTestUtils.createRows(schema, 6));
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
+		rowSet.setTableId(tableId);
+		referenceSet = tableEntityManager.appendRows(adminUserInfo, tableId, schema,
+				rowSet, mockPprogressCallback);
+		rowSet = tableEntityManager.getCellValues(adminUserInfo, tableId, referenceSet,
+				schema);
+		// Wait for the table to become available
+		String sql = "select * from " + tableId + " order by row_id";
+		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 7L);
+		assertEquals(6, queryResult.getQueryResults().getRows().size());
+		assertNull(queryResult.getNextPageToken());
+		compareValues(rowSet, 0, 6, queryResult.getQueryResults());
+
+		queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 6L);
+		assertEquals(6, queryResult.getQueryResults().getRows().size());
+		assertNull(queryResult.getNextPageToken());
+		compareValues(rowSet, 0, 6, queryResult.getQueryResults());
+
+		queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 5L);
+		assertEquals(5, queryResult.getQueryResults().getRows().size());
+		assertNull(queryResult.getNextPageToken());
+		compareValues(rowSet, 0, 5, queryResult.getQueryResults());
+		
+		QueryResultBundle queryResultBundle = tableQueryManger.querySinglePage(mockProgressCallbackVoid, adminUserInfo, sql, null, null, 5L, 1L, true, false, true, true);
+		List<QueryFacetResultColumn> facets = queryResultBundle.getFacets();
+		assertNotNull(facets);
+		assertEquals(2, facets.size());
+		
+		
+		//first facet should be string
+		QueryFacetResultColumn strFacet = facets.get(0);
+		assertEquals(FacetType.enumeration, strFacet.getFacetType());
+		assertNull(strFacet.getFacetRange());
+		List<QueryFacetResultValue> enumValues = strFacet.getFacetValues();
+		for(int i = 0; i < enumValues.size() ; i++){
+			QueryFacetResultValue enumVal = enumValues.get(i);
+			assertEquals(1, enumVal.getCount().longValue());
+			assertEquals("string" + i, enumVal.getValue());
+		}
+		
+		//second facet is an integer
+		QueryFacetResultColumn intFacet = facets.get(1);
+		assertEquals(FacetType.range, intFacet.getFacetType());
+		assertNull(intFacet.getFacetValues());
+		QueryFacetResultRange facetRange = intFacet.getFacetRange();
+		assertNotNull(facetRange);
+		assertEquals(203000, Long.parseLong(facetRange.getColumnMin()));
+		assertEquals(203005, Long.parseLong(facetRange.getColumnMax()));
+		
+	}
+	
+	@Test
+	public void testFacetMultipleSelected() throws Exception{
+		createSchemaOneOfEachType();
+		createTableWithSchema();
+		// Now add some data
+		RowSet rowSet = new RowSet();
+		rowSet.setRows(TableModelTestUtils.createRows(schema, 6));
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
+		rowSet.setTableId(tableId);
+		referenceSet = tableEntityManager.appendRows(adminUserInfo, tableId, schema,
+				rowSet, mockPprogressCallback);
+		rowSet = tableEntityManager.getCellValues(adminUserInfo, tableId, referenceSet,
+				schema);
+		// Wait for the table to become available
+		String sql = "select * from " + tableId + " order by row_id";
+		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 7L);
+		assertEquals(6, queryResult.getQueryResults().getRows().size());
+		assertNull(queryResult.getNextPageToken());
+		compareValues(rowSet, 0, 6, queryResult.getQueryResults());
+
+		queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 6L);
+		assertEquals(6, queryResult.getQueryResults().getRows().size());
+		assertNull(queryResult.getNextPageToken());
+		compareValues(rowSet, 0, 6, queryResult.getQueryResults());
+
+		queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 5L);
+		assertEquals(5, queryResult.getQueryResults().getRows().size());
+		assertNull(queryResult.getNextPageToken());
+		compareValues(rowSet, 0, 5, queryResult.getQueryResults());
+		
+		
+		List<QueryRequestFacetColumn> selectedFacets = new ArrayList<>();
+		QueryRequestFacetColumn selectedColumn = new QueryRequestFacetColumn();
+		selectedColumn.setColumnName("i0");
+		Set<String> facetValues = new HashSet<>();
+		facetValues.add("string0");
+		facetValues.add("string3");
+		selectedColumn.setFacetValues(facetValues);
+		selectedFacets.add(selectedColumn);
+		
+		QueryResultBundle queryResultBundle = tableQueryManger.querySinglePage(mockProgressCallbackVoid, adminUserInfo, sql, null, selectedFacets, 5L, 1L, true, false, true, true);
+		List<QueryFacetResultColumn> facets = queryResultBundle.getFacets();
+		assertNotNull(facets);
+		assertEquals(2, facets.size());
+		
+		
+		//first facet should be string
+		QueryFacetResultColumn strFacet = facets.get(0);
+		assertEquals(FacetType.enumeration, strFacet.getFacetType());
+		assertNull(strFacet.getFacetRange());
+		List<QueryFacetResultValue> enumValues = strFacet.getFacetValues();
+		//selecting facet within same category should not affect the existence and counts of the other values
+		for(int i = 0; i < enumValues.size() ; i++){
+			QueryFacetResultValue enumVal = enumValues.get(i);
+			assertEquals(1, enumVal.getCount().longValue());
+			assertEquals("string" + i, enumVal.getValue());
+		}
+		
+		//second facet is an integer
+		QueryFacetResultColumn intFacet = facets.get(1);
+		assertEquals(FacetType.range, intFacet.getFacetType());
+		assertNull(intFacet.getFacetValues());
+		QueryFacetResultRange facetRange = intFacet.getFacetRange();
+		assertNotNull(facetRange);
+		//however it should affet the values in other columns
+		assertEquals(203000, Long.parseLong(facetRange.getColumnMin()));
+		assertEquals(203003, Long.parseLong(facetRange.getColumnMax()));
+		
 	}
 	
 	/**

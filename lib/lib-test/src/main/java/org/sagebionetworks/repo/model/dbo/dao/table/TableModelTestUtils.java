@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.FacetType;
 import org.sagebionetworks.repo.model.table.IdRange;
 import org.sagebionetworks.repo.model.table.PartialRow;
 import org.sagebionetworks.repo.model.table.Row;
@@ -69,6 +70,13 @@ public class TableModelTestUtils {
 			cm.setId("" + i);
 			if (type == ColumnType.STRING || type == ColumnType.LINK) {
 				cm.setMaximumSize(47L);
+			}
+			if(type == ColumnType.STRING){
+				cm.setFacetType(FacetType.enumeration);
+			}
+			
+			if(type == ColumnType.INTEGER){
+				cm.setFacetType(FacetType.range);
 			}
 			if (hasDefaults) {
 				String defaultValue;
