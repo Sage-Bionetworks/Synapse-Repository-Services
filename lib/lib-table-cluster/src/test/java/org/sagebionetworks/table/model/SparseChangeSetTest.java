@@ -288,6 +288,7 @@ public class SparseChangeSetTest {
 	 */
 	@Test
 	public void testToDtoAndBack() throws JSONObjectAdapterException{
+		changeSet.setEtag("etag1");
 		// add some rows
 		SparseRow row = changeSet.addEmptyRow();
 		row.setRowId(0L);

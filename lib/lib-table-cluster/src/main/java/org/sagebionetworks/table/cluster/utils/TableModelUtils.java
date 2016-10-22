@@ -1,6 +1,5 @@
 package org.sagebionetworks.table.cluster.utils;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -17,7 +16,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
@@ -31,7 +29,6 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.IdRange;
-import org.sagebionetworks.repo.model.table.PartialRow;
 import org.sagebionetworks.repo.model.table.RawRowSet;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
@@ -89,16 +86,6 @@ public class TableModelUtils {
 	public static final String COLUMN_MODEL_ID_STRING_DELIMITER = ",";
 	
 	public static final Pattern ENTITYID_PATTERN = Pattern.compile("syn(\\d+)(\\.(\\d+))?");
-
-	public static class NodeIdAndVersion {
-		public final Long id;
-		public final Long version;
-
-		public NodeIdAndVersion(Long id, Long version) {
-			this.id = id;
-			this.version = version;
-		}
-	}
 
 	public static final Function<ColumnModel, Long> COLUMN_MODEL_TO_ID = new Function<ColumnModel, Long>() {
 		@Override
@@ -275,16 +262,11 @@ public class TableModelUtils {
 	 * @param set
 	 */
 	public static void validateRowSet(SparseChangeSetDto set) {
-		if (set == null)
-			throw new IllegalArgumentException("SparseChangeSetDto cannot be null");
-		;
-		if (set.getColumnIds() == null)
-			throw new IllegalArgumentException("SparseChangeSetDto.columnIds cannot be null");
-		if (set.getRows() == null)
-			throw new IllegalArgumentException("SparseChangeSetDto.rows cannot be null");
-		if (set.getRows().size() < 1)
-			throw new IllegalArgumentException(
-					"SparseChangeSetDto.rows must contain at least one row.");
+		ValidateArgument.required(set, "SparseChangeSetDto");
+		ValidateArgument.required(set.getColumnIds(), "SparseChangeSetDto.columnIds");
+		ValidateArgument.required(set.getRows(), "SparseChangeSetDto.rows");
+		ValidateArgument.requirement(!set.getRows().isEmpty(), "SparseChangeSetDto.rows must contain at least one row");
+		ValidateArgument.required(set.getTableId(), "SparseChangeSetDto.tableId");
 	}
 	
 	/**
@@ -712,6 +694,21 @@ public class TableModelUtils {
 		List<String> ids = Lists.newArrayListWithCapacity(models.size());
 		for(ColumnModel model: models){
 			if(model.getId() == null) throw new IllegalArgumentException("ColumnModel ID cannot be null");
+			ids.add(model.getId());
+		}
+		return ids;
+	}
+	
+	/**
+	 * Given a list of SelectColumns get the list of Column Ids.
+	 * @param models
+	 * @return
+	 */
+	public static List<String> getColumnIdsFromSelectColumns(List<SelectColumn> models) {
+		ValidateArgument.required(models, "SelectColumns");
+		List<String> ids = Lists.newArrayListWithCapacity(models.size());
+		for(SelectColumn model: models){
+			ValidateArgument.required(model.getId(), "SelectColumn.id");
 			ids.add(model.getId());
 		}
 		return ids;
@@ -1233,54 +1230,6 @@ public class TableModelUtils {
 		return columnIdToSchemaIndexMap;
 	}
 
-
-	public static SetMultimap<Long, Long> createVersionToRowIdsMap(Map<Long, Long> currentVersionNumbers) {
-		// create a map from version to set of row ids map
-		SetMultimap<Long, Long> versions = HashMultimap.create();
-		for (Entry<Long, Long> rowVersion : currentVersionNumbers.entrySet()) {
-			versions.put(rowVersion.getValue(), rowVersion.getKey());
-		}
-		return versions;
-	}
-
-	public static SetMultimap<Long, RowAccessor> createVersionToRowsMap(Iterable<RowAccessor> currentRows) {
-		// create a map from version to set of row ids map
-		SetMultimap<Long, RowAccessor> versions = HashMultimap.create();
-		for (RowAccessor row : currentRows) {
-			versions.put(row.getVersionNumber(), row);
-		}
-		return versions;
-	}
-
-	public static SetMultimap<Long, Long> createVersionToRowIdsMap(Iterable<RowReference> refs) {
-		// create a map from version to set of row ids map
-		SetMultimap<Long, Long> versions = HashMultimap.create();
-		for (RowReference ref : refs) {
-			if (ref.getVersionNumber() == null) {
-				throw new IllegalArgumentException("version cannot be null (row " + ref.getRowId() + ")");
-			}
-			versions.put(ref.getVersionNumber(), ref.getRowId());
-		}
-		return versions;
-	}
-
-	public static NodeIdAndVersion parseEntityIdValue(String entityId) {
-		Matcher m = ENTITYID_PATTERN.matcher(entityId);
-		if (!m.matches()) {
-			return null;
-		}
-		Long id = Long.parseLong(m.group(1));
-		String versionString = null;
-		if (m.groupCount() == 3) {
-			versionString = m.group(3);
-		}
-		Long version = null;
-		if (versionString != null) {
-			version = Long.parseLong(versionString);
-		}
-		return new NodeIdAndVersion(id, version);
-	}
-
 	public static SelectColumn createSelectColumn(String name, ColumnType columnType, String id) {
 		SelectColumn newSelectColumn = new SelectColumn();
 		newSelectColumn.setName(name);
@@ -1407,20 +1356,57 @@ public class TableModelUtils {
 	 */
 	public static SparseChangeSet createSparseChangeSet(RowSet rowSet, List<ColumnModel> schema) {
 		SparseChangeSet changeSet = new SparseChangeSet(rowSet.getTableId(), schema);
+		changeSet.setEtag(rowSet.getEtag());
+		List<String> rowSetHeaderIds = getColumnIdsFromSelectColumns(rowSet.getHeaders());
+		Map<String, Integer> headerIdToIndex = createColumnIdToIndexMap(rowSetHeaderIds);
 		// Add all rows
 		for (Row row : rowSet.getRows()) {
 			SparseRow sparse = changeSet.addEmptyRow();
 			sparse.setRowId(row.getRowId());
 			sparse.setVersionNumber(row.getVersionNumber());
 			if(row.getValues() != null && !row.getValues().isEmpty()){
-				for (int i = 0; i < rowSet.getHeaders().size(); i++) {
-					SelectColumn header = rowSet.getHeaders().get(i);
-					String value = row.getValues().get(i);
-					sparse.setCellValue(header.getId(), value);
+				// add each value that matches the schema
+				for(ColumnModel column: schema){
+					Integer index = headerIdToIndex.get(column.getId());
+					if(index != null){
+						String value = row.getValues().get(index);
+						sparse.setCellValue(column.getId(), value);
+					}
 				}
 			}
 		}
 		return changeSet;
+	}
+	
+	/**
+	 * Convert form RawRowSet to SparseChangeSetDto.
+	 * 
+	 * @param rowSet
+	 * @return
+	 */
+	public static SparseChangeSetDto createSparseFromRowSet(RawRowSet rowSet) {
+		SparseChangeSetDto dto = new SparseChangeSetDto();
+		dto.setColumnIds(rowSet.getIds());
+		dto.setTableId(rowSet.getTableId());
+		dto.setEtag(rowSet.getEtag());
+		List<SparseRowDto> rows = new LinkedList<>();
+		dto.setRows(rows);
+		for (Row row : rowSet.getRows()) {
+			SparseRowDto rowDto = new SparseRowDto();
+			rows.add(rowDto);
+			rowDto.setRowId(row.getRowId());
+			rowDto.setVersionNumber(row.getVersionNumber());
+			HashMap<String, String> values = new HashMap<>();
+			rowDto.setValues(values);
+			if (row.getValues() != null) {
+				for (int i = 0; i < rowSet.getIds().size(); i++) {
+					String columnId = rowSet.getIds().get(i);
+					String value = row.getValues().get(i);
+					values.put(columnId, value);
+				}
+			}
+		}
+		return dto;
 	}
 
 }

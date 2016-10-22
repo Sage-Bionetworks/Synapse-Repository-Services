@@ -10,7 +10,6 @@ import java.util.Set;
 
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
-import org.sagebionetworks.repo.model.table.PartialRow;
 import org.sagebionetworks.repo.model.table.SparseChangeSetDto;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -24,6 +23,7 @@ import org.sagebionetworks.util.ValidateArgument;
 public class SparseChangeSet {
 
 	String tableId;
+	String etag;
 	List<ColumnModel> schema;
 	Map<String, ColumnModel> schemaMap;
 	Map<String, Integer> columnIndexMap;
@@ -54,10 +54,12 @@ public class SparseChangeSet {
 		ValidateArgument.required(dto.getRows(), "dto.rows");
 		ValidateArgument.required(columnProvider, "columnProvider");
 		initialize(dto.getTableId(), columnProvider.getColumns(dto.getColumnIds()));
+		this.etag = dto.getEtag();
 		// Add all of the rows from the DTO.
 		for(SparseRowDto row: dto.getRows()){
 			SparseRow sparse = this.addEmptyRow();
 			sparse.setRowId(row.getRowId());
+			sparse.setVersionNumber(row.getVersionNumber());
 			for(ColumnModel cm: this.schema){
 				if(row.getValues().containsKey(cm.getId())){
 					sparse.setCellValue(cm.getId(), row.getValues().get(cm.getId()));
@@ -92,6 +94,7 @@ public class SparseChangeSet {
 	public SparseChangeSetDto writeToDto(){
 		SparseChangeSetDto dto = new SparseChangeSetDto();
 		dto.setTableId(this.tableId);
+		dto.setEtag(this.etag);
 		// Write the column models ids
 		List<String> columnIds = new LinkedList<String>();
 		for(ColumnModel cm: this.schema){
@@ -116,6 +119,30 @@ public class SparseChangeSet {
 		return dto;
 	}
 	
+	/**
+	 * Get the number of rows currently in this set.
+	 * 
+	 * @return
+	 */
+	public int getRowCount() {
+		return this.sparseRows.size();
+	}
+	
+	/**
+	 * The etag identifies the version of a change set.
+	 * @return
+	 */
+	public String getEtag() {
+		return etag;
+	}
+
+	/**
+	 * The etag identifies the version of a change set.
+	 */
+	public void setEtag(String etag) {
+		this.etag = etag;
+	}
+
 	/**
 	 * Get the schema of this change set.
 	 * 
@@ -388,11 +415,8 @@ public class SparseChangeSet {
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result
-				+ ((columnIndexMap == null) ? 0 : columnIndexMap.hashCode());
+		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
 		result = prime * result + ((schema == null) ? 0 : schema.hashCode());
-		result = prime * result
-				+ ((schemaMap == null) ? 0 : schemaMap.hashCode());
 		result = prime * result
 				+ ((sparseRows == null) ? 0 : sparseRows.hashCode());
 		result = prime * result + ((tableId == null) ? 0 : tableId.hashCode());
@@ -408,20 +432,15 @@ public class SparseChangeSet {
 		if (getClass() != obj.getClass())
 			return false;
 		SparseChangeSet other = (SparseChangeSet) obj;
-		if (columnIndexMap == null) {
-			if (other.columnIndexMap != null)
+		if (etag == null) {
+			if (other.etag != null)
 				return false;
-		} else if (!columnIndexMap.equals(other.columnIndexMap))
+		} else if (!etag.equals(other.etag))
 			return false;
 		if (schema == null) {
 			if (other.schema != null)
 				return false;
 		} else if (!schema.equals(other.schema))
-			return false;
-		if (schemaMap == null) {
-			if (other.schemaMap != null)
-				return false;
-		} else if (!schemaMap.equals(other.schemaMap))
 			return false;
 		if (sparseRows == null) {
 			if (other.sparseRows != null)
@@ -434,6 +453,12 @@ public class SparseChangeSet {
 		} else if (!tableId.equals(other.tableId))
 			return false;
 		return true;
+	}
+
+	@Override
+	public String toString() {
+		return "SparseChangeSet [tableId=" + tableId + ", etag=" + etag
+				+ ", schema=" + schema + ", sparseRows=" + sparseRows + "]";
 	}
 
 }
