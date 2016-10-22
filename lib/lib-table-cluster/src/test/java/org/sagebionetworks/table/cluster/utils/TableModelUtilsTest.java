@@ -1375,7 +1375,7 @@ public class TableModelUtilsTest {
 		assertEquals(row1.getRowId(), one.getRowId());
 		assertEquals(row1.getVersionNumber(), one.getVersionNumber());
 		assertTrue(one.hasCellValue(c1.getId()));
-		assertEquals("true", one.hasCellValue(c1.getId()));
+		assertEquals("true", one.getCellValue(c1.getId()));
 		assertFalse(one.hasCellValue(c2.getId()));
 		assertFalse(one.hasCellValue(c3.getId()));
 	}
