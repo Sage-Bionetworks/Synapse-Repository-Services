@@ -1,0 +1,16 @@
+{	
+	"description":"Selected minimum and maximum values for a range type facet",
+	"implements": [
+		{
+		"$ref": "org.sagebionetworks.repo.model.table.FacetColumnRequest"
+		}
+	],
+	"properties":{
+		"min": {
+			"type":"string"
+		},
+		"max":{
+			"type":"string"
+		}
+	}
+}

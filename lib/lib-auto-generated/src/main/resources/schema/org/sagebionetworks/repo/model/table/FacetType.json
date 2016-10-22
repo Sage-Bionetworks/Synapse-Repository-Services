@@ -1,7 +1,6 @@
 {
     "type":"string",
     "enum":[
-    	"none",
 		"enumeration",
 		"range"
     ]

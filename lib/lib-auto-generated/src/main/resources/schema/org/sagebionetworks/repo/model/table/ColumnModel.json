@@ -43,7 +43,7 @@
 			}
 		},
 		"facetType": {
-			"description": "The type of faceting applied to this column",
+			"description": "Set to one of the enumerated values to indicate this column should be treated as a facet. \"Enumeration\" will return the most frequently seen values and their counts; selecting these values will cause the table results to be filtered. \"Range\" will allow the table to be filtered by a chosen lower and upper bound; these bounds are inclusive.",
 			"$ref":"org.sagebionetworks.repo.model.table.FacetType"
 		}
 		
