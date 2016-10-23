@@ -37,6 +37,10 @@
 			"type": "string",
 			"description": "The name of the S3 key where this change is stored"
 		},
+		"keyNew": {
+			"type": "string",
+			"description": "The name of the S3 key where this change is stored."
+		},
 		"rowCount": {
 			"type": "integer",
 			"description": "The number of rows in this change."

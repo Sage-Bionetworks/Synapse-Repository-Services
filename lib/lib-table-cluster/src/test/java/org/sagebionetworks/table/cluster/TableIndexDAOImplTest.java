@@ -116,9 +116,7 @@ public class TableIndexDAOImplTest {
 	 * @param schema
 	 */
 	public void createOrUpdateOrDeleteRows(RowSet rowSet, List<ColumnModel> schema){
-		// Find the version number
-		long versionNumber = rowSet.getRows().get(0).getVersionNumber();
-		SparseChangeSet sparse = TableModelUtils.createSparseChangeSet(rowSet, schema, versionNumber);
+		SparseChangeSet sparse = TableModelUtils.createSparseChangeSet(rowSet, schema);
 		for(Grouping grouping: sparse.groupByValidValues()){
 			tableIndexDAO.createOrUpdateOrDeleteRows(grouping);
 		}

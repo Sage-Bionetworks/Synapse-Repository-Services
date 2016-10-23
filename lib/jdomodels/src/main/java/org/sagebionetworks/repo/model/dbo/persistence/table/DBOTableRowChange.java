@@ -29,6 +29,7 @@ public class DBOTableRowChange implements MigratableDatabaseObject<DBOTableRowCh
 		new FieldColumn("createdOn", COL_TABLE_ROW_CREATED_ON),
 		new FieldColumn("bucket", COL_TABLE_ROW_BUCKET),
 		new FieldColumn("key", COL_TABLE_ROW_KEY),
+		new FieldColumn("keyNew", COL_TABLE_ROW_KEY_NEW),
 		new FieldColumn("rowCount", COL_TABLE_ROW_COUNT),
 		new FieldColumn("changeType", COL_TABLE_ROW_TYPE),
 	};
@@ -41,6 +42,7 @@ public class DBOTableRowChange implements MigratableDatabaseObject<DBOTableRowCh
 	private Long createdOn;
 	private String bucket;
 	private String key;
+	private String keyNew;
 	private Long rowCount;
 	private String changeType;
 	
@@ -60,6 +62,7 @@ public class DBOTableRowChange implements MigratableDatabaseObject<DBOTableRowCh
 				change.setCreatedOn(rs.getLong(COL_TABLE_ROW_CREATED_ON));
 				change.setBucket(rs.getString(COL_TABLE_ROW_BUCKET));
 				change.setKey(rs.getString(COL_TABLE_ROW_KEY));
+				change.setKeyNew(rs.getString(COL_TABLE_ROW_KEY_NEW));
 				change.setRowCount(rs.getLong(COL_TABLE_ROW_COUNT));
 				change.setChangeType(rs.getString(COL_TABLE_ROW_TYPE));
 				return change;
@@ -165,6 +168,22 @@ public class DBOTableRowChange implements MigratableDatabaseObject<DBOTableRowCh
 
 	public void setChangeType(String changeType) {
 		this.changeType = changeType;
+	}
+
+	/**
+	 * This new key will replace old key.
+	 * @return
+	 */
+	public String getKeyNew() {
+		return keyNew;
+	}
+
+	/**
+	 * This new key will replace the old key.
+	 * @param keyNew
+	 */
+	public void setKeyNew(String keyNew) {
+		this.keyNew = keyNew;
 	}
 
 	@Override
