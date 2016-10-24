@@ -5,7 +5,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -21,7 +20,6 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.IdRange;
-import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
@@ -183,10 +181,11 @@ public class SQLUtilsTest {
 	@Test
 	public void testBindParametersForCreateOrUpdate(){
 		List<ColumnModel> oldSchema = helperCreateColumnsWithIds("0","2","4");
-		SparseChangeSet set = new SparseChangeSet("syn123", oldSchema, 3L);
+		SparseChangeSet set = new SparseChangeSet("syn123", oldSchema);
 		for(int i=0; i<2; i++){
 			SparseRow row = set.addEmptyRow();
 			row.setRowId(new Long(i));
+			row.setVersionNumber(3L);
 			row.setCellValue("0", "111"+i);
 			row.setCellValue("2", "222"+i);
 			row.setCellValue("4", "333"+i);
@@ -222,7 +221,7 @@ public class SQLUtilsTest {
 		range.setMaximumId(200L);
 		range.setVersionNumber(3L);
 		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
-		SparseChangeSet sparseSet = TableModelUtils.createSparseChangeSet(set, newSchema, 3L);
+		SparseChangeSet sparseSet = TableModelUtils.createSparseChangeSet(set, newSchema);
 		Grouping grouping = sparseSet.groupByValidValues().iterator().next();
 		// bind!
 		SqlParameterSource[] results = SQLUtils.bindParametersForCreateOrUpdate(grouping);

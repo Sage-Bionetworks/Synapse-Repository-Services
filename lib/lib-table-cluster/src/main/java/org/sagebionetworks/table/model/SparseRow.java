@@ -1,6 +1,7 @@
 package org.sagebionetworks.table.model;
 
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.adapter.JSONEntity;
 
 /**
  * Represents a single row a sparsely populated change set. A cell value might
@@ -22,13 +23,19 @@ public interface SparseRow {
 	 * @param rowId
 	 */
 	public void setRowId(Long rowId);
+	
+	/**
+	 *  This row's version number.
+	 * 
+	 * @param rowVersionNumber
+	 */
+	public void setVersionNumber(Long rowVersionNumber);
 
 	/**
-	 * Get the version number assigned to this change set. This is the version
-	 * number of all rows within this change set.
+	 *  This row's version number.
 	 * 
 	 */
-	public Long getChangeSetVersion();
+	public Long getVersionNumber();
 
 	/**
 	 * Does this row have a cell value for the given column ID. Note: A NULL

@@ -147,7 +147,7 @@ public class TableWorkerTest {
 		rowSet1.setRows(Collections.singletonList(TableModelTestUtils.createRow(0L, 0L, "2")));
 		when(mockTableEntityManager.getRowSet(eq(tableId), eq(0L), anyListOf(ColumnModel.class))).thenReturn(rowSet1);
 		
-		sparseRowset1 = TableModelUtils.createSparseChangeSet(rowSet1, currentSchema, 0l);
+		sparseRowset1 = TableModelUtils.createSparseChangeSet(rowSet1, currentSchema);
 		
 		rowSet2 = new RowSet();
 		rowSet2.setTableId(tableId);
@@ -155,7 +155,7 @@ public class TableWorkerTest {
 		rowSet2.setRows(Collections.singletonList(TableModelTestUtils.createRow(0L, 1L, "3")));
 		when(mockTableEntityManager.getRowSet(eq(tableId), eq(1L), anyListOf(ColumnModel.class))).thenReturn(rowSet2);
 		
-		sparseRowset2 = TableModelUtils.createSparseChangeSet(rowSet2, currentSchema, 1l);
+		sparseRowset2 = TableModelUtils.createSparseChangeSet(rowSet2, currentSchema);
 		
 		when(mockTableManagerSupport.startTableProcessing(tableId)).thenReturn(resetToken);
 		
@@ -294,7 +294,7 @@ public class TableWorkerTest {
 		rowSet.setRows(Collections.singletonList(TableModelTestUtils.createRow(0L, 3L, "2")));
 		rowSet.setTableId(tableId);
 		rowSet.setHeaders(TableModelUtils.getSelectColumns(currentSchema));
-		SparseChangeSet sparsRowSet = TableModelUtils.createSparseChangeSet(rowSet, currentSchema, 3l);
+		SparseChangeSet sparsRowSet = TableModelUtils.createSparseChangeSet(rowSet, currentSchema);
 		when(mockTableEntityManager.getRowSet(eq(tableId), eq(3L), anyListOf(ColumnModel.class))).thenReturn(rowSet);
 		two.setObjectType(ObjectType.TABLE);
 		two.setChangeType(ChangeType.UPDATE);
