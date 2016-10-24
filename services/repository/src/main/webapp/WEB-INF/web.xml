@@ -16,6 +16,16 @@
 		<param-value>/WEB-INF/shared-context.xml</param-value>
 	</context-param>
 
+	<!-- This is the filter to redirect http:// to https:// -->
+	<filter>
+		<filter-name>httpToHttpsFilter</filter-name>
+		<filter-class>org.sagebionetworks.repo.web.filter.HttpToHttpsFilter</filter-class>
+	</filter>
+	<filter-mapping>
+		<filter-name>httpToHttpsFilter</filter-name>
+		<url-pattern>/*</url-pattern>
+	</filter-mapping>
+
 	<!-- This must remain the top-most filter in the filter chain.
 	 It is our last chance to capture and log unexpected exceptions.  
 	 Without it, users could see errors that never make it into our logs.
