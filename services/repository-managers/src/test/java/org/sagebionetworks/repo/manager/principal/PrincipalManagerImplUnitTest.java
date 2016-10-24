@@ -6,9 +6,15 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.io.ByteArrayInputStream;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.Properties;
+
+import javax.mail.Session;
+import javax.mail.internet.MimeMessage;
+import javax.mail.internet.MimeMultipart;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -36,8 +42,7 @@ import org.sagebionetworks.repo.model.principal.PrincipalAliasResponse;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import com.amazonaws.services.simpleemail.model.Message;
-import com.amazonaws.services.simpleemail.model.SendEmailRequest;
+import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
 
 public class PrincipalManagerImplUnitTest {
 
@@ -302,13 +307,14 @@ public class PrincipalManagerImplUnitTest {
 	public void testNewAccountEmailValidationHappyPath() throws Exception {
 		when(mockPrincipalAliasDAO.isAliasAvailable(EMAIL)).thenReturn(true);
 		manager.newAccountEmailValidation(user, "https://www.synapse.org?", DomainType.SYNAPSE);
-		ArgumentCaptor<SendEmailRequest> argument = ArgumentCaptor.forClass(SendEmailRequest.class);
-		verify(mockSynapseEmailService).sendEmail(argument.capture());
-		SendEmailRequest emailRequest =  argument.getValue();
-		assertEquals(Collections.singletonList(EMAIL), emailRequest.getDestination().getToAddresses());
-		Message message = emailRequest.getMessage();
-		assertEquals("Welcome to SYNAPSE!", message.getSubject().getData());
-		String body = message.getBody().getHtml().getData();
+		ArgumentCaptor<SendRawEmailRequest> argument = ArgumentCaptor.forClass(SendRawEmailRequest.class);
+		verify(mockSynapseEmailService).sendRawEmail(argument.capture());
+		SendRawEmailRequest emailRequest =  argument.getValue();
+		assertEquals(Collections.singletonList(EMAIL), emailRequest.getDestinations());
+		MimeMessage mimeMessage = new MimeMessage(Session.getDefaultInstance(new Properties()),
+				new ByteArrayInputStream(emailRequest.getRawMessage().getData().array()));
+		String body = (String)((MimeMultipart) mimeMessage.getContent()).getBodyPart(0).getContent();
+		assertEquals("Welcome to SYNAPSE!", mimeMessage.getSubject());
 		// check that all template fields have been replaced
 		assertTrue(body.indexOf("#")<0);
 		assertTrue(body.indexOf(FIRST_NAME)>=0); 
@@ -487,13 +493,14 @@ public class PrincipalManagerImplUnitTest {
 		when(mockPrincipalAliasDAO.getUserName(principalId)).thenReturn(USER_NAME);
 		
 		manager.additionalEmailValidation(userInfo, email, portalEndpoint, domain);
-		ArgumentCaptor<SendEmailRequest> argument = ArgumentCaptor.forClass(SendEmailRequest.class);
-		verify(mockSynapseEmailService).sendEmail(argument.capture());
-		SendEmailRequest emailRequest =  argument.getValue();
-		assertEquals(Collections.singletonList(EMAIL), emailRequest.getDestination().getToAddresses());
-		Message message = emailRequest.getMessage();
-		assertEquals("Request to add or change new email", message.getSubject().getData());
-		String body = message.getBody().getHtml().getData();
+		ArgumentCaptor<SendRawEmailRequest> argument = ArgumentCaptor.forClass(SendRawEmailRequest.class);
+		verify(mockSynapseEmailService).sendRawEmail(argument.capture());
+		SendRawEmailRequest emailRequest =  argument.getValue();
+		assertEquals(Collections.singletonList(EMAIL), emailRequest.getDestinations());
+		MimeMessage mimeMessage = new MimeMessage(Session.getDefaultInstance(new Properties()),
+				new ByteArrayInputStream(emailRequest.getRawMessage().getData().array()));
+		String body = (String)((MimeMultipart) mimeMessage.getContent()).getBodyPart(0).getContent();
+		assertEquals("Request to add or change new email", mimeMessage.getSubject());
 		// check that all template fields have been replaced
 		assertTrue(body, body.indexOf("#")<0);
 		// check that user's name appears

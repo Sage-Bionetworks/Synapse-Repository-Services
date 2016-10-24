@@ -36,6 +36,8 @@ import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
+import org.sagebionetworks.repo.model.table.SparseChangeSetDto;
+import org.sagebionetworks.repo.model.table.SparseRowDto;
 import org.sagebionetworks.table.model.Grouping;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.model.SparseRow;
@@ -1317,10 +1319,18 @@ public class TableModelUtilsTest {
 	
 	@Test
 	public void testCreateSparseChangeSet(){
-		long versionNumber = 45;
+		ColumnModel c1 = TableModelTestUtils.createColumn(1L, "aBoolean", ColumnType.BOOLEAN);
+		ColumnModel c2 = TableModelTestUtils.createColumn(2L, "anInteger", ColumnType.INTEGER);
+		ColumnModel c3 = TableModelTestUtils.createColumn(3L, "aString", ColumnType.STRING);
+		
+		List<ColumnModel> rowSetSchema = Lists.newArrayList(c2,c1);
+		// the current schema is not the same as the rowset schema.
+		List<ColumnModel> currentScema = Lists.newArrayList(c1,c3);
+		
+		Long versionNumber = 45L;
 		String tableId = "syn123";
 		List<String> headerIds = Lists.newArrayList("2","1");
-		List<SelectColumn> headers = TableModelUtils.getSelectColumnsFromColumnIds(headerIds, validModel);
+		List<SelectColumn> headers = TableModelUtils.getSelectColumnsFromColumnIds(headerIds, rowSetSchema);
 		
 		Row row1 = new Row();
 		row1.setRowId(1L);
@@ -1346,33 +1356,50 @@ public class TableModelUtilsTest {
 		
 		RowSet rowSet = new RowSet();
 		rowSet.setHeaders(headers);
+		rowSet.setEtag("etag");
 		rowSet.setRows(Lists.newArrayList(row1, row2, row3, row4));
 		rowSet.setTableId(tableId);
 		
 		// Call under test
-		SparseChangeSet sparse = TableModelUtils.createSparseChangeSet(rowSet, validModel, versionNumber);
+		SparseChangeSet sparse = TableModelUtils.createSparseChangeSet(rowSet, currentScema);
 		assertNotNull(sparse);
-		assertEquals(versionNumber, sparse.getChangeSetVersion());
-		assertEquals(tableId, sparse.getTableId());
-		List<Grouping> grouping = new ArrayList<Grouping>();
-		for(Grouping group: sparse.groupByValidValues()){
-			grouping.add(group);
+		assertEquals("etag", sparse.getEtag());
+		assertEquals(currentScema, sparse.getSchema());
+		assertEquals(4, sparse.getRowCount());
+		List<SparseRow> rows = new LinkedList<SparseRow>();
+		for(SparseRow row:sparse.rowIterator()){
+			rows.add(row);
 		}
-		assertEquals(2, grouping.size());
-		// first group includes rows with all values.
-		Grouping group1 = grouping.get(0);
-		assertEquals(validModel, group1.getColumnsWithValues());
-		assertEquals(2, group1.getRows().size());
-		assertEquals(row1.getRowId(), group1.getRows().get(0).getRowId());
-		assertEquals(row2.getRowId(), group1.getRows().get(1).getRowId());
-		// second group includes rows that are deletes.
-		Grouping group2 = grouping.get(1);
-		assertEquals(new LinkedList<ColumnModel>(), group2.getColumnsWithValues());
-		assertEquals(2, group2.getRows().size());
-		SparseRow sparse3 = group2.getRows().get(0);
-		assertTrue(sparse3.isDelete());
-		assertEquals(row3.getRowId(), sparse3.getRowId());
-		assertEquals(row4.getRowId(), group2.getRows().get(1).getRowId());
+		assertEquals(4, rows.size());
+		SparseRow one = rows.get(0);
+		assertEquals(row1.getRowId(), one.getRowId());
+		assertEquals(row1.getVersionNumber(), one.getVersionNumber());
+		assertTrue(one.hasCellValue(c1.getId()));
+		assertEquals("true", one.getCellValue(c1.getId()));
+		assertFalse(one.hasCellValue(c2.getId()));
+		assertFalse(one.hasCellValue(c3.getId()));
+	}
+	
+	@Test
+	public void testwriteReadSparesChangeSetGz() throws IOException{
+		SparseChangeSetDto dto = new SparseChangeSetDto();
+		dto.setTableId("syn123");
+		dto.setColumnIds(Lists.newArrayList("1","2","3"));
+		SparseRowDto rowDto = new SparseRowDto();
+		rowDto.setRowId(0L);
+		rowDto.setVersionNumber(101L);
+		Map<String, String> values = new HashMap<String, String>();
+		values.put("1", "foo");
+		values.put("2", "bar");
+		rowDto.setValues(values);
+		dto.setRows(Lists.newArrayList(rowDto));
+
+		ByteArrayOutputStream out = new ByteArrayOutputStream();
+		// call under test
+		TableModelUtils.writeSparesChangeSetToGz(dto, out);
+		// read it back
+		SparseChangeSetDto copy = TableModelUtils.readSparseChangeSetDtoFromGzStream(new ByteArrayInputStream(out.toByteArray()));
+		assertEquals(dto, copy);
 	}
 	
 }

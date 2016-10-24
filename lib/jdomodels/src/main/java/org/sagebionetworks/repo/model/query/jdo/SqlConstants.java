@@ -453,6 +453,7 @@ public class SqlConstants {
 	public static final String COL_TABLE_ROW_CREATED_ON		= "CREATED_ON";
 	public static final String COL_TABLE_ROW_BUCKET			= "S3_BUCKET";
 	public static final String COL_TABLE_ROW_KEY			= "S3_KEY";
+	public static final String COL_TABLE_ROW_KEY_NEW		= "S3_KEY_NEW";
 	public static final String COL_TABLE_ROW_COUNT			= "ROW_COUNT";
 	public static final String COL_TABLE_ROW_TYPE			= "CHANGE_TYPE";
 	public static final String DDL_TABLE_ROW_CHANGE = "schema/TableRowChange-ddl.sql";

@@ -470,23 +470,20 @@ public class SQLUtils {
 	 */
 	public static SqlParameterSource[] bindParametersForCreateOrUpdate(Grouping grouping){
 		// We will need a binding for every row
-		List<MapSqlParameterSource> results = Lists.newArrayListWithExpectedSize(grouping.getRows().size() * 2);
+		List<MapSqlParameterSource> results = new LinkedList<MapSqlParameterSource>();
 		for(SparseRow row: grouping.getRows()){
 			if (!row.isDelete()) {
 				Map<String, Object> rowMap = new HashMap<String, Object>(grouping.getColumnsWithValues().size() + 2);
 				// Always bind the row ID and version
 				if (row.getRowId() == null)
 					throw new IllegalArgumentException("RowID cannot be null");
-				if (row.getChangeSetVersion() == null)
+				if (row.getVersionNumber() == null)
 					throw new IllegalArgumentException("RowVersionNumber cannot be null");
 				rowMap.put(ROW_ID_BIND, row.getRowId());
-				rowMap.put(ROW_VERSION_BIND, row.getChangeSetVersion());
+				rowMap.put(ROW_VERSION_BIND, row.getVersionNumber());
 				// Bind each column
 				for (ColumnModel cm : grouping.getColumnsWithValues()) {
 					String stringValue = row.getCellValue(cm.getId());
-					if(stringValue == null){
-						stringValue = cm.getDefaultValue();
-					}
 					Object value = parseValueForDB(cm.getColumnType(), stringValue);
 
 					String columnName = getColumnNameForId(cm.getId());

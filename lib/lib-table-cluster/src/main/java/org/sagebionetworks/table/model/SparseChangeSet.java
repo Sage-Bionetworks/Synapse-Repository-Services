@@ -10,6 +10,8 @@ import java.util.Set;
 
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.SparseChangeSetDto;
+import org.sagebionetworks.repo.model.table.SparseRowDto;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.ValidateArgument;
@@ -21,10 +23,10 @@ import org.sagebionetworks.util.ValidateArgument;
 public class SparseChangeSet {
 
 	String tableId;
+	String etag;
 	List<ColumnModel> schema;
 	Map<String, ColumnModel> schemaMap;
 	Map<String, Integer> columnIndexMap;
-	long versionNumber;
 	List<SparseRow> sparseRows;
 
 	/**
@@ -33,12 +35,48 @@ public class SparseChangeSet {
 	 * @param schema
 	 * @param versionNumber
 	 */
-	public SparseChangeSet(String tableId, List<ColumnModel> schema, long versionNumber) {
+	public SparseChangeSet(String tableId, List<ColumnModel> schema) {
 		ValidateArgument.required(tableId, "tableId");
 		ValidateArgument.required(schema, "schema");
+		initialize(tableId, schema);
+	}
+	
+	/**
+	 * Create a new SparseChangeSet from a Data Transfer Object (DTO).
+	 * 
+	 * @param dto
+	 * @param columnProvider
+	 */
+	public SparseChangeSet(SparseChangeSetDto dto, ColumnModelProvider columnProvider){
+		ValidateArgument.required(dto, "dto");
+		ValidateArgument.required(dto.getTableId(), "dto.tableId");
+		ValidateArgument.required(dto.getColumnIds(), "dto.columnIds");
+		ValidateArgument.required(dto.getRows(), "dto.rows");
+		ValidateArgument.required(columnProvider, "columnProvider");
+		initialize(dto.getTableId(), columnProvider.getColumns(dto.getColumnIds()));
+		this.etag = dto.getEtag();
+		// Add all of the rows from the DTO.
+		for(SparseRowDto row: dto.getRows()){
+			SparseRow sparse = this.addEmptyRow();
+			sparse.setRowId(row.getRowId());
+			sparse.setVersionNumber(row.getVersionNumber());
+			for(ColumnModel cm: this.schema){
+				if(row.getValues().containsKey(cm.getId())){
+					sparse.setCellValue(cm.getId(), row.getValues().get(cm.getId()));
+				}
+			}
+		}
+	}
+	
+	/**
+	 * Common initialization.
+	 * @param tableId
+	 * @param schema
+	 * @param versionNumber
+	 */
+	private void initialize(String tableId, List<ColumnModel> schema) {
 		this.tableId = tableId;
 		this.sparseRows = new LinkedList<SparseRow>();
-		this.versionNumber = versionNumber;
 		this.schema = new LinkedList<>(schema);
 		schemaMap = new HashMap<String, ColumnModel>(schema.size());
 		columnIndexMap = new HashMap<String, Integer>(schema.size());
@@ -50,14 +88,61 @@ public class SparseChangeSet {
 	}
 	
 	/**
-	 * Get the version number shared by all rows within this change set.
+	 * Write all of the data from this change set into a Data Transfer Object
+	 * @return
+	 */
+	public SparseChangeSetDto writeToDto(){
+		SparseChangeSetDto dto = new SparseChangeSetDto();
+		dto.setTableId(this.tableId);
+		dto.setEtag(this.etag);
+		// Write the column models ids
+		List<String> columnIds = new LinkedList<String>();
+		for(ColumnModel cm: this.schema){
+			columnIds.add(cm.getId());
+		}
+		dto.setColumnIds(columnIds);
+		List<SparseRowDto> rows = new LinkedList<SparseRowDto>();
+		for(SparseRow row: this.sparseRows){
+			SparseRowDto partial = new SparseRowDto();
+			partial.setRowId(row.getRowId());
+			partial.setVersionNumber(row.getVersionNumber());
+			HashMap<String, String> values = new HashMap<String, String>(this.schema.size());
+			for(ColumnModel cm: this.schema){
+				if(row.hasCellValue(cm.getId())){
+					values.put(cm.getId(), row.getCellValue(cm.getId()));
+				}
+			}
+			partial.setValues(values);
+			rows.add(partial);
+		}
+		dto.setRows(rows);
+		return dto;
+	}
+	
+	/**
+	 * Get the number of rows currently in this set.
 	 * 
 	 * @return
 	 */
-	public long getChangeSetVersion(){
-		return versionNumber;
+	public int getRowCount() {
+		return this.sparseRows.size();
 	}
 	
+	/**
+	 * The etag identifies the version of a change set.
+	 * @return
+	 */
+	public String getEtag() {
+		return etag;
+	}
+
+	/**
+	 * The etag identifies the version of a change set.
+	 */
+	public void setEtag(String etag) {
+		this.etag = etag;
+	}
+
 	/**
 	 * Get the schema of this change set.
 	 * 
@@ -204,6 +289,7 @@ public class SparseChangeSet {
 
 		int rowIndex;
 		Long rowId;
+		Long versionNumber;
 		Map<String, String> valueMap = new HashMap<String, String>();
 
 		private SparseRowImpl(int rowIndex) {
@@ -221,7 +307,11 @@ public class SparseChangeSet {
 		}
 
 		@Override
-		public Long getChangeSetVersion() {
+		public void setVersionNumber(Long rowVersionNumber){
+			this.versionNumber = rowVersionNumber;
+		}
+		@Override
+		public Long getVersionNumber() {
 			return versionNumber;
 		}
 
@@ -274,6 +364,10 @@ public class SparseChangeSet {
 			int result = 1;
 			result = prime * result + ((rowId == null) ? 0 : rowId.hashCode());
 			result = prime * result + rowIndex;
+			result = prime
+					* result
+					+ ((versionNumber == null) ? 0 : versionNumber
+							.hashCode());
 			result = prime * result
 					+ ((valueMap == null) ? 0 : valueMap.hashCode());
 			return result;
@@ -295,6 +389,11 @@ public class SparseChangeSet {
 				return false;
 			if (rowIndex != other.rowIndex)
 				return false;
+			if (versionNumber == null) {
+				if (other.versionNumber != null)
+					return false;
+			} else if (!versionNumber.equals(other.versionNumber))
+				return false;
 			if (valueMap == null) {
 				if (other.valueMap != null)
 					return false;
@@ -306,9 +405,9 @@ public class SparseChangeSet {
 		@Override
 		public String toString() {
 			return "SparseRowImpl [rowIndex=" + rowIndex + ", rowId=" + rowId
-					+ ", valueMap=" + valueMap + "]";
-		}	
-		
+					+ ", rowVersionNumber=" + versionNumber + ", valueMap="
+					+ valueMap + "]";
+		}
 	}
 
 
@@ -316,16 +415,11 @@ public class SparseChangeSet {
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result
-				+ ((columnIndexMap == null) ? 0 : columnIndexMap.hashCode());
+		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
 		result = prime * result + ((schema == null) ? 0 : schema.hashCode());
-		result = prime * result
-				+ ((schemaMap == null) ? 0 : schemaMap.hashCode());
 		result = prime * result
 				+ ((sparseRows == null) ? 0 : sparseRows.hashCode());
 		result = prime * result + ((tableId == null) ? 0 : tableId.hashCode());
-		result = prime * result
-				+ (int) (versionNumber ^ (versionNumber >>> 32));
 		return result;
 	}
 
@@ -338,20 +432,15 @@ public class SparseChangeSet {
 		if (getClass() != obj.getClass())
 			return false;
 		SparseChangeSet other = (SparseChangeSet) obj;
-		if (columnIndexMap == null) {
-			if (other.columnIndexMap != null)
+		if (etag == null) {
+			if (other.etag != null)
 				return false;
-		} else if (!columnIndexMap.equals(other.columnIndexMap))
+		} else if (!etag.equals(other.etag))
 			return false;
 		if (schema == null) {
 			if (other.schema != null)
 				return false;
 		} else if (!schema.equals(other.schema))
-			return false;
-		if (schemaMap == null) {
-			if (other.schemaMap != null)
-				return false;
-		} else if (!schemaMap.equals(other.schemaMap))
 			return false;
 		if (sparseRows == null) {
 			if (other.sparseRows != null)
@@ -363,16 +452,13 @@ public class SparseChangeSet {
 				return false;
 		} else if (!tableId.equals(other.tableId))
 			return false;
-		if (versionNumber != other.versionNumber)
-			return false;
 		return true;
 	}
 
 	@Override
 	public String toString() {
-		return "SparseChangeSet [tableId=" + tableId + ", schema=" + schema
-				+ ", versionNumber=" + versionNumber + ", sparseRows="
-				+ sparseRows + "]";
+		return "SparseChangeSet [tableId=" + tableId + ", etag=" + etag
+				+ ", schema=" + schema + ", sparseRows=" + sparseRows + "]";
 	}
 
 }
