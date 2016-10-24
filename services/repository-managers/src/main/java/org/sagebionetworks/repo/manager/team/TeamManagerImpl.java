@@ -35,6 +35,7 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
@@ -230,6 +231,11 @@ public class TeamManagerImpl implements TeamManager {
 		acl.getResourceAccess().add(createResourceAccess(
 				Long.parseLong(teamId),
 				ModelConstants.TEAM_MESSENGER_PERMISSIONS));
+		// let public send messages to team by default
+		acl.getResourceAccess().add(createResourceAccess(
+				AuthorizationConstants.BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId(),
+				ModelConstants.TEAM_MESSENGER_PERMISSIONS));
+
 		return acl;
 	}
 	
