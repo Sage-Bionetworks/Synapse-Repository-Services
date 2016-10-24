@@ -131,4 +131,13 @@ public interface PrincipalAliasDAO {
 	 * @return
 	 */
 	public Set<String> lookupPrincipalIds(Set<String> usernameList);
+
+	/**
+	 * Get team name for the given principalId
+	 * 
+	 * @param principalId
+	 * @return
+	 * @throws NotFoundException
+	 */
+	public String getTeamName(Long principalId) throws NotFoundException;
 }

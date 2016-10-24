@@ -12,6 +12,7 @@ import static org.mockito.Mockito.when;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -35,12 +36,15 @@ import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.IdRange;
+import org.sagebionetworks.repo.model.table.PartialRow;
 import org.sagebionetworks.repo.model.table.RawRowSet;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
+import org.sagebionetworks.repo.model.table.SparseChangeSetDto;
+import org.sagebionetworks.repo.model.table.SparseRowDto;
 import org.sagebionetworks.repo.model.table.TableChangeType;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -1088,6 +1092,44 @@ public class TableRowTruthDAOImplTest {
 		} catch (IllegalArgumentException e) {
 			assertEquals(TableRowTruthDAOImpl.SCAN_ROWS_TYPE_ERROR, e.getMessage());
 		}
+	}
+	
+	@Test
+	public void testAppendRowSetToTable() throws IOException{
+		// Create some test column models
+		String tableId = "syn123";
+		String userId = "444";
+		
+		ColumnModel aBoolean = TableModelTestUtils.createColumn(201L, "aBoolean", ColumnType.BOOLEAN);
+		ColumnModel aString = TableModelTestUtils.createColumn(202L, "aString", ColumnType.STRING);
+		List<ColumnModel> schema = Lists.newArrayList(aBoolean, aString);
+		List<String> columnIds = Lists.newArrayList(aBoolean.getId(), aString.getId());
+		
+		SparseRowDto rowOne = new SparseRowDto();
+		rowOne.setValues(new HashMap<String, String>());
+		rowOne.getValues().put(aBoolean.getId(), "true");
+		rowOne.getValues().put(aString.getId(), "foo");
+		
+		SparseRowDto rowTwo = new SparseRowDto();
+		rowTwo.setValues(new HashMap<String, String>());
+		rowTwo.getValues().put(aString.getId(), "bar");
+		
+		SparseChangeSetDto dto = new SparseChangeSetDto();
+		dto.setTableId(tableId);
+		dto.setRows(Lists.newArrayList(rowOne, rowTwo));
+		dto.setColumnIds(columnIds);
+		
+		// Save it
+		RowReferenceSet refSet = tableRowTruthDao.appendRowSetToTable(userId, tableId, schema, dto);
+		assertNotNull(refSet);
+		long versionNumber = -1;
+		for(RowReference ref: refSet.getRows()){
+			versionNumber = ref.getVersionNumber();
+		}
+		
+		// fetch it back
+		SparseChangeSetDto copy = tableRowTruthDao.getRowSet(tableId, versionNumber);
+		assertEquals(dto, copy);
 	}
 
 }

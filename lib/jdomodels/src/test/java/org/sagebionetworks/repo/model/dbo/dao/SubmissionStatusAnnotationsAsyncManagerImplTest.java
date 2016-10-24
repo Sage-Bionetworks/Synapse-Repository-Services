@@ -6,6 +6,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.sagebionetworks.repo.model.dbo.dao.SubmissionStatusAnnotationsAsyncManagerImpl.*;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -16,6 +17,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.sagebionetworks.evaluation.dbo.DBOConstants;
+import org.sagebionetworks.evaluation.model.CancelControl;
 import org.sagebionetworks.evaluation.model.EvaluationSubmissions;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
@@ -34,6 +36,7 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 
 public class SubmissionStatusAnnotationsAsyncManagerImplTest {
@@ -116,7 +119,7 @@ public class SubmissionStatusAnnotationsAsyncManagerImplTest {
 		ssAnnoAsyncManager = new SubmissionStatusAnnotationsAsyncManagerImpl(mockSubStatusAnnoDAO, mockEvaluationSubmissionsDAO);
 	}
 	
-	private void insertExpectedAnnos(Annotations annos) {
+	private void insertExpectedAnnos(Annotations annos) throws Exception {
 		annos.setDoubleAnnos(new ArrayList<DoubleAnnotation>());
 		annos.setLongAnnos(new ArrayList<LongAnnotation>());
 		annos.setStringAnnos(new ArrayList<StringAnnotation>());
@@ -211,6 +214,32 @@ public class SubmissionStatusAnnotationsAsyncManagerImplTest {
 		digestAnno.setKey(DBOConstants.PARAM_SUBMISSION_DOCKER_DIGEST);
 		digestAnno.setValue(DOCKER_DIGEST);
 		annos.getStringAnnos().add(digestAnno);
+
+		// canCancel
+		StringAnnotation canCancelAnno = new StringAnnotation();
+		canCancelAnno.setIsPrivate(false);
+		canCancelAnno.setKey(CAN_CANCEL);
+		canCancelAnno.setValue(Boolean.FALSE.toString());
+		annos.getStringAnnos().add(canCancelAnno);
+
+		// cancelRequested
+		StringAnnotation cancelRequestedAnno = new StringAnnotation();
+		cancelRequestedAnno.setIsPrivate(false);
+		cancelRequestedAnno.setKey(CANCEL_REQUESTED);
+		cancelRequestedAnno.setValue(Boolean.FALSE.toString());
+		annos.getStringAnnos().add(cancelRequestedAnno);
+
+		// cancelControl
+		CancelControl cancelControl = new CancelControl();
+		cancelControl.setCanCancel(false);
+		cancelControl.setCancelRequested(false);
+		cancelControl.setSubmissionId(submission.getId());
+		cancelControl.setUserId(submission.getUserId());
+		StringAnnotation cancelControlAnno = new StringAnnotation();
+		cancelControlAnno.setIsPrivate(false);
+		cancelControlAnno.setKey(CANCEL_CONTROL);
+		cancelControlAnno.setValue(EntityFactory.createJSONStringForEntity(cancelControl));
+		annos.getStringAnnos().add(cancelControlAnno);
 	}
 	
 	@Test

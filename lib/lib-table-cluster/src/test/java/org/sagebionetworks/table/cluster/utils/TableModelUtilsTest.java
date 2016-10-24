@@ -36,6 +36,11 @@ import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
+import org.sagebionetworks.repo.model.table.SparseChangeSetDto;
+import org.sagebionetworks.repo.model.table.SparseRowDto;
+import org.sagebionetworks.table.model.Grouping;
+import org.sagebionetworks.table.model.SparseChangeSet;
+import org.sagebionetworks.table.model.SparseRow;
 
 import au.com.bytecode.opencsv.CSVReader;
 import au.com.bytecode.opencsv.CSVWriter;
@@ -1310,6 +1315,91 @@ public class TableModelUtilsTest {
 		assertEquals(null, results.get(1));
 		// last should match one
 		assertEquals(one.getId(), results.get(2).getId());
+	}
+	
+	@Test
+	public void testCreateSparseChangeSet(){
+		ColumnModel c1 = TableModelTestUtils.createColumn(1L, "aBoolean", ColumnType.BOOLEAN);
+		ColumnModel c2 = TableModelTestUtils.createColumn(2L, "anInteger", ColumnType.INTEGER);
+		ColumnModel c3 = TableModelTestUtils.createColumn(3L, "aString", ColumnType.STRING);
+		
+		List<ColumnModel> rowSetSchema = Lists.newArrayList(c2,c1);
+		// the current schema is not the same as the rowset schema.
+		List<ColumnModel> currentScema = Lists.newArrayList(c1,c3);
+		
+		Long versionNumber = 45L;
+		String tableId = "syn123";
+		List<String> headerIds = Lists.newArrayList("2","1");
+		List<SelectColumn> headers = TableModelUtils.getSelectColumnsFromColumnIds(headerIds, rowSetSchema);
+		
+		Row row1 = new Row();
+		row1.setRowId(1L);
+		row1.setVersionNumber(versionNumber);
+		row1.setValues(Lists.newArrayList("1", "true"));
+		
+		Row row2 = new Row();
+		row2.setRowId(2L);
+		row2.setVersionNumber(versionNumber);
+		row2.setValues(Lists.newArrayList("2", "false"));
+		
+		Row row3 = new Row();
+		row3.setRowId(3L);
+		row3.setVersionNumber(versionNumber);
+		// null values will be treated as a delete.
+		row3.setValues(null);
+		
+		Row row4 = new Row();
+		row4.setRowId(4L);
+		row4.setVersionNumber(versionNumber);
+		// empty list should be treated as a delete;
+		row4.setValues(new LinkedList<String>());
+		
+		RowSet rowSet = new RowSet();
+		rowSet.setHeaders(headers);
+		rowSet.setEtag("etag");
+		rowSet.setRows(Lists.newArrayList(row1, row2, row3, row4));
+		rowSet.setTableId(tableId);
+		
+		// Call under test
+		SparseChangeSet sparse = TableModelUtils.createSparseChangeSet(rowSet, currentScema);
+		assertNotNull(sparse);
+		assertEquals("etag", sparse.getEtag());
+		assertEquals(currentScema, sparse.getSchema());
+		assertEquals(4, sparse.getRowCount());
+		List<SparseRow> rows = new LinkedList<SparseRow>();
+		for(SparseRow row:sparse.rowIterator()){
+			rows.add(row);
+		}
+		assertEquals(4, rows.size());
+		SparseRow one = rows.get(0);
+		assertEquals(row1.getRowId(), one.getRowId());
+		assertEquals(row1.getVersionNumber(), one.getVersionNumber());
+		assertTrue(one.hasCellValue(c1.getId()));
+		assertEquals("true", one.getCellValue(c1.getId()));
+		assertFalse(one.hasCellValue(c2.getId()));
+		assertFalse(one.hasCellValue(c3.getId()));
+	}
+	
+	@Test
+	public void testwriteReadSparesChangeSetGz() throws IOException{
+		SparseChangeSetDto dto = new SparseChangeSetDto();
+		dto.setTableId("syn123");
+		dto.setColumnIds(Lists.newArrayList("1","2","3"));
+		SparseRowDto rowDto = new SparseRowDto();
+		rowDto.setRowId(0L);
+		rowDto.setVersionNumber(101L);
+		Map<String, String> values = new HashMap<String, String>();
+		values.put("1", "foo");
+		values.put("2", "bar");
+		rowDto.setValues(values);
+		dto.setRows(Lists.newArrayList(rowDto));
+
+		ByteArrayOutputStream out = new ByteArrayOutputStream();
+		// call under test
+		TableModelUtils.writeSparesChangeSetToGz(dto, out);
+		// read it back
+		SparseChangeSetDto copy = TableModelUtils.readSparseChangeSetDtoFromGzStream(new ByteArrayInputStream(out.toByteArray()));
+		assertEquals(dto, copy);
 	}
 	
 }

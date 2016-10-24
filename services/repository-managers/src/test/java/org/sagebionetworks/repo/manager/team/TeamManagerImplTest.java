@@ -39,6 +39,7 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ListWrapper;
@@ -247,17 +248,24 @@ public class TeamManagerImplTest {
 		AccessControlList acl = TeamManagerImpl.createInitialAcl(userInfo, TEAM_ID, now);
 		assertEquals(now, acl.getCreationDate());
 		assertEquals(TEAM_ID, acl.getId());
-		assertEquals(2, acl.getResourceAccess().size());
+		assertEquals(3, acl.getResourceAccess().size());
 		for (ResourceAccess ra : acl.getResourceAccess()) {
 			if (ra.getPrincipalId().toString().equals(MEMBER_PRINCIPAL_ID)) {
-		assertEquals(new HashSet<ACCESS_TYPE>(Arrays.asList(new ACCESS_TYPE[]{
-				ACCESS_TYPE.READ, 
-				ACCESS_TYPE.UPDATE, 
-				ACCESS_TYPE.DELETE, 
-				ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE, 
-				ACCESS_TYPE.SEND_MESSAGE})), ra.getAccessType());
+				assertEquals(new HashSet<ACCESS_TYPE>(Arrays.asList(new ACCESS_TYPE[]{
+						ACCESS_TYPE.READ, 
+						ACCESS_TYPE.UPDATE, 
+						ACCESS_TYPE.DELETE, 
+						ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE, 
+						ACCESS_TYPE.SEND_MESSAGE})), ra.getAccessType());
 			} else if (ra.getPrincipalId().toString().equals(TEAM_ID)) {
+				assertEquals(new HashSet<ACCESS_TYPE>(Arrays.asList(new ACCESS_TYPE[]{
+						ACCESS_TYPE.READ, 
+						ACCESS_TYPE.SEND_MESSAGE})), ra.getAccessType());
 				
+			} else if (ra.getPrincipalId().equals(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId())) {
+				assertEquals(new HashSet<ACCESS_TYPE>(Arrays.asList(new ACCESS_TYPE[]{
+						ACCESS_TYPE.READ, 
+						ACCESS_TYPE.SEND_MESSAGE})), ra.getAccessType());
 			} else {
 				fail("Unexpected principal ID"+ra.getPrincipalId());
 	}
