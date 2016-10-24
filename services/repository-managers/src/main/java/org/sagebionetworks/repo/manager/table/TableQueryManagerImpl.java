@@ -22,15 +22,16 @@ import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.EntityField;
-import org.sagebionetworks.repo.model.table.FacetRange;
+import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
+import org.sagebionetworks.repo.model.table.FacetColumnRequest;
+import org.sagebionetworks.repo.model.table.FacetColumnResult;
+import org.sagebionetworks.repo.model.table.FacetColumnResultRange;
+import org.sagebionetworks.repo.model.table.FacetColumnResultValueCount;
+import org.sagebionetworks.repo.model.table.FacetColumnResultValues;
 import org.sagebionetworks.repo.model.table.FacetType;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
-import org.sagebionetworks.repo.model.table.QueryFacetResultColumn;
-import org.sagebionetworks.repo.model.table.QueryFacetResultRange;
-import org.sagebionetworks.repo.model.table.QueryFacetResultValue;
 import org.sagebionetworks.repo.model.table.QueryNextPageToken;
-import org.sagebionetworks.repo.model.table.QueryRequestFacetColumn;
 import org.sagebionetworks.repo.model.table.QueryResult;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
@@ -101,7 +102,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	@Override
 	public QueryResultBundle querySinglePage(
 			ProgressCallback<Void> progressCallback, UserInfo user,
-			String query, List<SortItem> sortList, List<QueryRequestFacetColumn> selectedFacets, Long offset,
+			String query, List<SortItem> sortList, List<FacetColumnRequest> selectedFacets, Long offset,
 			Long limit, boolean runQuery, boolean runCount, boolean returnFacets, boolean isConsistent)
 			throws TableUnavailableException,
 			TableFailedException, LockUnavilableException {
@@ -296,7 +297,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		
 		// run the actual query if needed.
 		QueryResult queryResult = null;
-		List<QueryFacetResultColumn> facetResults = null;
+		List<FacetColumnResult> facetResults = null;
 		if(rowHandler != null){
 			// run the query
 			RowSet rowSet = runQueryAsStream(progressCallback, queryToRun, rowHandler, indexDao);
@@ -332,34 +333,34 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @param indexDao
 	 * @return
 	 */
-	public static List<QueryFacetResultColumn> runFacetQueries(SqlQuery originalQuery,
+	public static List<FacetColumnResult> runFacetQueries(SqlQuery originalQuery,
 			List<ValidatedQueryFacetColumn> queryFacetColumns, TableIndexDAO indexDao) {
 		ValidateArgument.required(originalQuery, "originalQuery");
 		ValidateArgument.required(queryFacetColumns, "queryFacetColumns");
 		ValidateArgument.required(indexDao, "indexDao");
 		
 		
-		List<QueryFacetResultColumn> facetResults = new ArrayList<>();
+		List<FacetColumnResult> facetResults = new ArrayList<>();
 		for(ValidatedQueryFacetColumn facetQuery : queryFacetColumns){
 			FacetType facetType = facetQuery.getFacetType();
-			
-			QueryFacetResultColumn facetColumnResult = new QueryFacetResultColumn();
+			FacetColumnResult facetColumnResult;
 			
 			switch(facetType){
 			case enumeration:
-				List<QueryFacetResultValue> facetValues = runFacetColumnCountQuery(originalQuery, facetQuery.getColumnName(), queryFacetColumns, indexDao);
+				List<FacetColumnResultValueCount> facetValues = runFacetColumnCountQuery(originalQuery, facetQuery.getColumnName(), queryFacetColumns, indexDao);
+				FacetColumnResultValues facetResultValues= new FacetColumnResultValues();
 				
-				facetColumnResult.setFacetValues(facetValues);
-				
+				facetResultValues.setFacetValues(facetValues);
+				facetColumnResult = facetResultValues;
 				break;
 			case range:
-				FacetRange selectedRange = facetQuery.getFacetRange();
-				QueryFacetResultRange resultRange = runFacetColumnRangeQuery(originalQuery, facetQuery.getColumnName(), queryFacetColumns, indexDao);
+				FacetColumnRangeRequest selectedRange = (FacetColumnRangeRequest) facetQuery.getFacetColumnRequest();
+				FacetColumnResultRange resultRange = runFacetColumnRangeQuery(originalQuery, facetQuery.getColumnName(), queryFacetColumns, indexDao);
 				if(selectedRange != null){
 					resultRange.setSelectedMin(selectedRange.getMin());
 					resultRange.setSelectedMax(selectedRange.getMax());
 				}
-				facetColumnResult.setFacetRange(resultRange);
+				facetColumnResult = resultRange;
 				break;
 			default:
 				throw new IllegalArgumentException("Unexpected FacetType");
@@ -470,7 +471,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @param isConsistent
 	 * @return
 	 */
-	public static QueryNextPageToken createNextPageToken(String sql, List<SortItem> sortList, Long nextOffset, Long limit, boolean isConsistent, List<QueryRequestFacetColumn> selectedFacets) {
+	public static QueryNextPageToken createNextPageToken(String sql, List<SortItem> sortList, Long nextOffset, Long limit, boolean isConsistent, List<FacetColumnRequest> selectedFacets) {
 		Query query = new Query();
 		query.setSql(sql);
 		query.setSort(sortList);
@@ -795,8 +796,8 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * the schema
 	 * @return
 	 */
-	public static List<ValidatedQueryFacetColumn> validateFacetList(List<QueryRequestFacetColumn> selectedFacets, List<ColumnModel> schema, boolean returnFacets){
-		Map<String, QueryRequestFacetColumn> selectedFacetMap = createColumnNameToFacetColumnMap(selectedFacets);
+	public static List<ValidatedQueryFacetColumn> validateFacetList(List<FacetColumnRequest> selectedFacets, List<ColumnModel> schema, boolean returnFacets){
+		Map<String, FacetColumnRequest> selectedFacetMap = createColumnNameToFacetColumnMap(selectedFacets);
 		List<ValidatedQueryFacetColumn> validatedFacets = new ArrayList<ValidatedQueryFacetColumn>();
 		
 		
@@ -809,7 +810,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			}
 			
 			//add to list of facets
-			QueryRequestFacetColumn facetParams = selectedFacetMap.get(columnModel.getName());
+			FacetColumnRequest facetParams = selectedFacetMap.get(columnModel.getName());
 			determineAddToValidatedFacetList(validatedFacets, columnModel, facetParams, returnFacets);
 		}
 		
@@ -838,23 +839,16 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @param returnFacets whether or not facet information will be returned to the caller
 	 */
 	public static void determineAddToValidatedFacetList(List<ValidatedQueryFacetColumn> validatedFacets,
-			ColumnModel columnModel, QueryRequestFacetColumn facetParams,
+			ColumnModel columnModel, FacetColumnRequest facetParams,
 			boolean returnFacets) {
 		ValidateArgument.required(columnModel, "columnModel");
 		ValidateArgument.required(validatedFacets, "validatedFacets");
 		
 		//if it is a facet add it to the list
-		if (FacetType.enumeration.equals(columnModel.getFacetType()) || FacetType.range.equals(columnModel.getFacetType())){
-			Set<String> facetValues = null;
-			FacetRange facetRange = null;
-			if(facetParams != null){
-				facetValues = facetParams.getFacetValues();
-				facetRange = facetParams.getFacetRange();
-			}
-			
+		if (FacetType.enumeration.equals(columnModel.getFacetType()) || FacetType.range.equals(columnModel.getFacetType())){			
 			//dont add to list if user does not want to return facets and there is no request associated with it
 			if(returnFacets || facetParams != null){ 
-				validatedFacets.add(new ValidatedQueryFacetColumn(columnModel.getName(), columnModel.getFacetType(), facetValues, facetRange));
+				validatedFacets.add(new ValidatedQueryFacetColumn(columnModel.getName(), columnModel.getFacetType(), facetParams));
 			}
 		}
 	}
@@ -863,11 +857,11 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * Returns a Map where the key is the name of a facet and the value is the corresponding QueryRequestFacetColumn
 	 * @return
 	 */
-	public static Map<String, QueryRequestFacetColumn> createColumnNameToFacetColumnMap(List<QueryRequestFacetColumn> selectedFacets){
-		Map<String, QueryRequestFacetColumn> result = new HashMap<String, QueryRequestFacetColumn>();
+	public static Map<String, FacetColumnRequest> createColumnNameToFacetColumnMap(List<FacetColumnRequest> selectedFacets){
+		Map<String, FacetColumnRequest> result = new HashMap<String, FacetColumnRequest>();
 		if(selectedFacets != null){
-			for(QueryRequestFacetColumn facet : selectedFacets){
-				QueryRequestFacetColumn shouldBeNull = result.put(facet.getColumnName(), facet);
+			for(FacetColumnRequest facet : selectedFacets){
+				FacetColumnRequest shouldBeNull = result.put(facet.getColumnName(), facet);
 				if(shouldBeNull != null){
 					throw new IllegalArgumentException("Request contains QueryRequestFacetColumn with a duplicate column name");
 				}
@@ -948,7 +942,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	/**
 	 * Run a query that creates facet counts for its most frequent values in the specified column based on the original query.
 	 */
-	public static List<QueryFacetResultValue> runFacetColumnCountQuery(SqlQuery originalQuery, String columnName, List<ValidatedQueryFacetColumn> facetColumns ,TableIndexDAO indexDao){
+	public static List<FacetColumnResultValueCount> runFacetColumnCountQuery(SqlQuery originalQuery, String columnName, List<ValidatedQueryFacetColumn> facetColumns ,TableIndexDAO indexDao){
 		ValidateArgument.required(originalQuery, "originalQuery");
 		ValidateArgument.required(columnName, "columnName");
 		ValidateArgument.required(facetColumns, "facetColumns");
@@ -962,7 +956,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		return indexDao.facetCountQuery(facetColumnCountQuery, parameters);
 	}
 	
-	public static QueryFacetResultRange runFacetColumnRangeQuery(SqlQuery originalQuery, String columnName, List<ValidatedQueryFacetColumn> facetColumns, TableIndexDAO indexDao){
+	public static FacetColumnResultRange runFacetColumnRangeQuery(SqlQuery originalQuery, String columnName, List<ValidatedQueryFacetColumn> facetColumns, TableIndexDAO indexDao){
 		ValidateArgument.required(originalQuery, "originalQuery");
 		ValidateArgument.required(columnName, "columnName");
 		ValidateArgument.required(facetColumns, "facetColumns");

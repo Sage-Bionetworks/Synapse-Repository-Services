@@ -1,5 +1,10 @@
 {
-	"description": "Describes the value range selected by the user and the absolute minimum and maximum of a column's values. Includes the minimum and maximum values of a range facet column and selected ranges applied to the filter.",
+	"description": "Includes the minimum and maximum values of a range facet column and selected ranges applied to the filter.",
+	"implements": [
+		{
+		"$ref": "org.sagebionetworks.repo.model.table.FacetColumnResult"
+		}
+	],
 	"properties": {
 		"columnMin": {
 			"type": "string",

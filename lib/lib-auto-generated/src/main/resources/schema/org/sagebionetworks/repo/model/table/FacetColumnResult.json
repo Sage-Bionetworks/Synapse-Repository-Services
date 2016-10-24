@@ -1,5 +1,6 @@
 {
-	"description":"A request to filter selected values of a facet column",
+	"description":"Resulting information about a faceted column",
+	"type":"interface",
     "properties":{
 		"columnName":{
 			"type": "string",
@@ -10,17 +11,5 @@
 			"description": "The type of faceting applied to this column",
 			"$ref":"org.sagebionetworks.repo.model.table.FacetType"
 		},
-		
-		"facetValues": {
-			"description":"The list of QueryFacetResultValue that contain frequency counts for its most frequent values ",
-			"type": "array",
-			"items": {
-				"$ref": "org.sagebionetworks.repo.model.table.QueryFacetResultValue"
-			}
-		},
-		"facetRange": {
-			"description":"The range that was given as part of the column's facet request, if any",
-			"$ref": "org.sagebionetworks.repo.model.table.QueryFacetResultRange"
-		}
 	}
 }

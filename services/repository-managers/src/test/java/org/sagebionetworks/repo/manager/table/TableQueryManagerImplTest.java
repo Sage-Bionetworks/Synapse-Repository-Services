@@ -57,15 +57,16 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.EntityField;
-import org.sagebionetworks.repo.model.table.FacetRange;
+import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
+import org.sagebionetworks.repo.model.table.FacetColumnRequest;
+import org.sagebionetworks.repo.model.table.FacetColumnResult;
+import org.sagebionetworks.repo.model.table.FacetColumnResultRange;
+import org.sagebionetworks.repo.model.table.FacetColumnResultValueCount;
+import org.sagebionetworks.repo.model.table.FacetColumnResultValues;
 import org.sagebionetworks.repo.model.table.FacetType;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
-import org.sagebionetworks.repo.model.table.QueryFacetResultColumn;
-import org.sagebionetworks.repo.model.table.QueryFacetResultRange;
-import org.sagebionetworks.repo.model.table.QueryFacetResultValue;
 import org.sagebionetworks.repo.model.table.QueryNextPageToken;
-import org.sagebionetworks.repo.model.table.QueryRequestFacetColumn;
 import org.sagebionetworks.repo.model.table.QueryResult;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
@@ -132,7 +133,7 @@ public class TableQueryManagerImplTest {
 	List<ColumnModel> facetSchema;
 	String min1;
 	String max1;
-	FacetRange facetRange1;
+	FacetColumnRangeRequest facetRange1;
 	
 	String searchCondition1;
 	
@@ -257,7 +258,7 @@ public class TableQueryManagerImplTest {
 		
 		min1 = "23";
 		max1 = "56";
-		facetRange1 = new FacetRange();
+		facetRange1 = new FacetColumnRangeRequest();
 		facetRange1.setMax(max1);
 		facetRange1.setMin(min1);
 		
@@ -527,7 +528,7 @@ public class TableQueryManagerImplTest {
 		//capture the query to check that the queryToRun is result of appendFacetSearchCondition() and not the original query
 		when(mockTableIndexDAO.countQuery(queryStringCaptor.capture(), paramsCaptor.capture())).thenReturn(count);
 		
-		QueryFacetResultRange expectedRange =  new QueryFacetResultRange();
+		FacetColumnResultRange expectedRange =  new FacetColumnResultRange();
 		String expectedColumnName = "i0";
 		FacetType expectedFacetType = FacetType.range;
 		when(mockTableIndexDAO.facetRangeQuery(any(QuerySpecification.class), anyMapOf(String.class, Object.class))).thenReturn(expectedRange);
@@ -563,7 +564,7 @@ public class TableQueryManagerImplTest {
 	public void testQueryAsStreamAfterAuthorizationNonEmptyFacetColumnsListReturnFacets() throws ParseException, LockUnavilableException, TableUnavailableException, TableFailedException{
 		String predicateValue = "asdfcheckforthis";
 	
-		QueryFacetResultRange expectedRange =  new QueryFacetResultRange();
+		FacetColumnResultRange expectedRange =  new FacetColumnResultRange();
 		String expectedColumnName = "i0";
 		FacetType expectedFacetType = FacetType.range;
 		when(mockTableIndexDAO.facetRangeQuery(any(QuerySpecification.class), anyMapOf(String.class, Object.class))).thenReturn(expectedRange);
@@ -591,11 +592,10 @@ public class TableQueryManagerImplTest {
 		//facet result asserts
 		assertNotNull(results.getFacets());
 		assertEquals(1, results.getFacets().size());
-		QueryFacetResultColumn facetResultColumn = results.getFacets().get(0);
+		FacetColumnResult facetResultColumn = results.getFacets().get(0);
 		assertNotNull(facetResultColumn);
-		assertEquals(expectedRange,facetResultColumn.getFacetRange());
+		assertEquals(expectedRange, (FacetColumnResultRange) facetResultColumn);
 		assertEquals(expectedColumnName,facetResultColumn.getColumnName());
-		assertNull(facetResultColumn.getFacetValues());
 		assertEquals(expectedFacetType, facetResultColumn.getFacetType());
 	}
 	
@@ -746,9 +746,9 @@ public class TableQueryManagerImplTest {
 		sort.setColumn("i0");
 		sort.setDirection(SortDirection.DESC);
 		List<SortItem> sortList= Lists.newArrayList(sort);
-		QueryRequestFacetColumn facet = new QueryRequestFacetColumn();
+		FacetColumnRequest facet = new FacetColumnRangeRequest();
 		facet.setColumnName(facetColumnName);
-		List<QueryRequestFacetColumn> selectedFacets = Lists.newArrayList(facet);
+		List<FacetColumnRequest> selectedFacets = Lists.newArrayList(facet);
 		
 		Long nextOffset = 10L;
 		Long limit = 21L;
@@ -1224,7 +1224,7 @@ public class TableQueryManagerImplTest {
 	
 	@Test
 	public void testCreateColumnNameToFacetColumnMapNullList(){
-		Map<String, QueryRequestFacetColumn> map = TableQueryManagerImpl.createColumnNameToFacetColumnMap(null);
+		Map<String, FacetColumnRequest> map = TableQueryManagerImpl.createColumnNameToFacetColumnMap(null);
 		assertNotNull(map);
 		assertEquals(0, map.size());
 	}
@@ -1232,27 +1232,27 @@ public class TableQueryManagerImplTest {
 	@Test (expected = IllegalArgumentException.class)
 	public void testCreateColumnNameToFacetColumnMapDuplicateName(){
 		//setup
-		QueryRequestFacetColumn facetRequest1 = new QueryRequestFacetColumn();
+		FacetColumnRequest facetRequest1 = new FacetColumnRangeRequest();
 		String sameName = "asdf";
 		facetRequest1.setColumnName(sameName);
-		QueryRequestFacetColumn facetRequest2 = new QueryRequestFacetColumn();
+		FacetColumnRequest facetRequest2 = new FacetColumnRangeRequest();
 		facetRequest2.setColumnName(sameName);
 		
-		TableQueryManagerImpl.createColumnNameToFacetColumnMap(Arrays.asList(new QueryRequestFacetColumn[]{facetRequest1, facetRequest2}));
+		TableQueryManagerImpl.createColumnNameToFacetColumnMap(Lists.newArrayList(facetRequest1, facetRequest2));
 	}
 	
 	@Test 
 	public void testCreateColumnNameToFacetColumnMap(){
 		//setup
-		QueryRequestFacetColumn facetRequest1 = new QueryRequestFacetColumn();
+		FacetColumnRequest facetRequest1 = new FacetColumnRangeRequest();
 		String name1 = "asdf";
 		facetRequest1.setColumnName(name1);
 
-		QueryRequestFacetColumn facetRequest2 = new QueryRequestFacetColumn();
+		FacetColumnRequest facetRequest2 = new FacetColumnRangeRequest();
 		String name2 = "qwerty";
 		facetRequest2.setColumnName(name2);
 		
-		Map<String, QueryRequestFacetColumn> map = TableQueryManagerImpl.createColumnNameToFacetColumnMap(Arrays.asList(new QueryRequestFacetColumn[]{facetRequest1, facetRequest2}));
+		Map<String, FacetColumnRequest> map = TableQueryManagerImpl.createColumnNameToFacetColumnMap(Lists.newArrayList(facetRequest1, facetRequest2));
 		assertNotNull(map);
 		assertEquals(2, map.size());
 		assertEquals(facetRequest1, map.get(name1));
@@ -1265,26 +1265,19 @@ public class TableQueryManagerImplTest {
 	
 	@Test (expected = IllegalArgumentException.class)
 	public void testDetermineAddToValidatedFacetListNullList(){
-		TableQueryManagerImpl.determineAddToValidatedFacetList(null, new ColumnModel(), new QueryRequestFacetColumn(), true);
+		TableQueryManagerImpl.determineAddToValidatedFacetList(null, new ColumnModel(), new FacetColumnRangeRequest(), true);
 	}
 	
 	@Test (expected = IllegalArgumentException.class)
 	public void testDetermineAddToValidatedFacetListNullColumnModel(){
-		TableQueryManagerImpl.determineAddToValidatedFacetList(validatedQueryFacetColumns, null, new QueryRequestFacetColumn(), true);
+		TableQueryManagerImpl.determineAddToValidatedFacetList(validatedQueryFacetColumns, null, new FacetColumnRangeRequest(), true);
 	}
 	
 	@Test
 	public void testDetermineAddToValidatedFacetListColumnModelFacetTypeIsNull(){
 		facetColumnModel.setFacetType(null);
 		
-		TableQueryManagerImpl.determineAddToValidatedFacetList(validatedQueryFacetColumns, facetColumnModel, new QueryRequestFacetColumn(), true);
-		assertTrue(validatedQueryFacetColumns.isEmpty());
-	}
-	@Test
-	public void testDetermineAddToValidatedFacetListColumnModelFacetTypeIsNone(){
-		facetColumnModel.setFacetType(FacetType.none); 
-		
-		TableQueryManagerImpl.determineAddToValidatedFacetList(validatedQueryFacetColumns, facetColumnModel, new QueryRequestFacetColumn(), true);
+		TableQueryManagerImpl.determineAddToValidatedFacetList(validatedQueryFacetColumns, facetColumnModel, new FacetColumnRangeRequest(), true);
 		assertTrue(validatedQueryFacetColumns.isEmpty());
 	}
 	
@@ -1303,8 +1296,7 @@ public class TableQueryManagerImplTest {
 		TableQueryManagerImpl.determineAddToValidatedFacetList(validatedQueryFacetColumns, facetColumnModel, null, true);
 		assertEquals(1, validatedQueryFacetColumns.size());
 		ValidatedQueryFacetColumn validatedQueryFacetColumn = validatedQueryFacetColumns.get(0);
-		assertNull(validatedQueryFacetColumn.getFacetRange());
-		assertNull(validatedQueryFacetColumn.getColumnValues());
+		assertNull(validatedQueryFacetColumn.getFacetColumnRequest());
 		assertEquals(facetColumnName, validatedQueryFacetColumn.getColumnName());
 		assertEquals(FacetType.range, validatedQueryFacetColumn.getFacetType());
 		
@@ -1316,22 +1308,19 @@ public class TableQueryManagerImplTest {
 		//setup
 		facetColumnModel.setFacetType(FacetType.range); 
 		
-		FacetRange facetRange = new FacetRange();
+		FacetColumnRangeRequest facetRange = new FacetColumnRangeRequest();
 		facetRange.setMin("123");
 		facetRange.setMax("456");
 		
 		
-		QueryRequestFacetColumn facetParams = new QueryRequestFacetColumn();
+		FacetColumnRequest facetParams = new FacetColumnRangeRequest();
 		facetParams.setColumnName(facetColumnName);
-		facetParams.setFacetRange(facetRange);
-		facetParams.setFacetValues(null);
 		
 		TableQueryManagerImpl.determineAddToValidatedFacetList(validatedQueryFacetColumns, facetColumnModel, facetParams, false);
 		
 		assertEquals(1, validatedQueryFacetColumns.size());
 		ValidatedQueryFacetColumn validatedQueryFacetColumn = validatedQueryFacetColumns.get(0);
-		assertEquals(facetRange, validatedQueryFacetColumn.getFacetRange());
-		assertNull(validatedQueryFacetColumn.getColumnValues());
+		assertEquals(facetRange, validatedQueryFacetColumn);
 		assertEquals(facetColumnName, validatedQueryFacetColumn.getColumnName());
 		assertEquals(FacetType.range, validatedQueryFacetColumn.getFacetType());
 	}
@@ -1370,7 +1359,7 @@ public class TableQueryManagerImplTest {
 	public void testAppendFacetSearchConditionNonEmptyFacetColumnsList() throws ParseException{
 		SqlQuery query = new SqlQuery("select * from " + tableId + " where asdf <> ayy and asdf < 'taco bell'", facetSchema);
 		
-		validatedQueryFacetColumns.add(new ValidatedQueryFacetColumn(facetColumnName, FacetType.range, null, facetRange1));
+		validatedQueryFacetColumns.add(new ValidatedQueryFacetColumn(facetColumnName, FacetType.range, facetRange1));
 		
 		SqlQuery modifiedQuery = TableQueryManagerImpl.appendFacetSearchCondition(query, validatedQueryFacetColumns);
 		assertEquals("SELECT _C"+facetColumnId+"_, ROW_ID, ROW_VERSION FROM T"+KeyFactory.stringToKey(tableId)+" WHERE ( _C"+facetColumnId+"_ <> :b0 AND _C"+facetColumnId+"_ < :b1 ) AND ( ( ( _C"+facetColumnId+"_ BETWEEN :b2 AND :b3 ) ) )", modifiedQuery.getOutputSQL());
@@ -1458,10 +1447,10 @@ public class TableQueryManagerImplTest {
 	
 	@Test
 	public void testRunFacetColumnCountQuery(){
-		List<QueryFacetResultValue> expectedResult = new ArrayList<>();
+		List<FacetColumnResultValueCount> expectedResult = new ArrayList<>();
 		when(mockTableIndexDAO.facetCountQuery(any(QuerySpecification.class), any(Map.class))).thenReturn(expectedResult);
 		
-		List<QueryFacetResultValue> result = TableQueryManagerImpl.runFacetColumnCountQuery(simpleQuery, facetColumnName, validatedQueryFacetColumns, mockTableIndexDAO);
+		List<FacetColumnResultValueCount> result = TableQueryManagerImpl.runFacetColumnCountQuery(simpleQuery, facetColumnName, validatedQueryFacetColumns, mockTableIndexDAO);
 
 		verify(mockTableIndexDAO).facetCountQuery(queryCaptor.capture(), paramsCaptor.capture());
 		
@@ -1499,10 +1488,10 @@ public class TableQueryManagerImplTest {
 	
 	@Test
 	public void testRunFacetColumnRangeQuery(){
-		QueryFacetResultRange expectedResult = new QueryFacetResultRange();
+		FacetColumnResultRange expectedResult = new FacetColumnResultRange();
 		when(mockTableIndexDAO.facetRangeQuery(any(QuerySpecification.class), any(Map.class))).thenReturn(expectedResult);
 		
-		QueryFacetResultRange result = TableQueryManagerImpl.runFacetColumnRangeQuery(simpleQuery, facetColumnName, validatedQueryFacetColumns, mockTableIndexDAO);
+		FacetColumnResultRange result = TableQueryManagerImpl.runFacetColumnRangeQuery(simpleQuery, facetColumnName, validatedQueryFacetColumns, mockTableIndexDAO);
 
 		verify(mockTableIndexDAO).facetRangeQuery(queryCaptor.capture(), paramsCaptor.capture());
 		
@@ -1532,20 +1521,12 @@ public class TableQueryManagerImplTest {
 		TableQueryManagerImpl.runFacetQueries(simpleQuery, validatedQueryFacetColumns, null);
 	}
 	
-	@Test (expected = IllegalArgumentException.class)
-	public void testRunFacetQueriesUnexpectedFacetType(){
-		when(mockFacetColumn.getFacetType()).thenReturn(FacetType.none);
-		validatedQueryFacetColumns.add(mockFacetColumn);
-		assertEquals(1, validatedQueryFacetColumns.size());
-		
-		TableQueryManagerImpl.runFacetQueries(simpleQuery, validatedQueryFacetColumns, mockTableIndexDAO);
-	}
 	
 	@Test
 	public void testRunFacetQueries(){
 		List<QueryFacetResultValue> expectedFacetValues = new ArrayList<>();
 		when(mockTableIndexDAO.facetCountQuery(any(QuerySpecification.class), anyMapOf(String.class, Object.class))).thenReturn(expectedFacetValues);
-		QueryFacetResultRange expectedFacetRange = new QueryFacetResultRange();
+		FacetColumnResultRange expectedFacetRange = new FacetColumnResultRange();
 		when(mockTableIndexDAO.facetRangeQuery(any(QuerySpecification.class), anyMapOf(String.class, Object.class))).thenReturn(expectedFacetRange);
 
 		

@@ -36,7 +36,7 @@
 			"description": "The list of facets for the search results",
 			"type": "array",
 			"items": {
-				"$ref": "org.sagebionetworks.repo.model.table.QueryFacetResultColumn"
+				"$ref": "org.sagebionetworks.repo.model.table.FacetColumnResult"
 			}
 		}
     }

@@ -9,7 +9,7 @@
             "type":"array",
             "description":"The selected facet filters.",
             "items": {
-				"$ref": "org.sagebionetworks.repo.model.table.QueryRequestFacetColumn"
+				"$ref": "org.sagebionetworks.repo.model.table.FacetColumnRequest"
 			}
             
         },

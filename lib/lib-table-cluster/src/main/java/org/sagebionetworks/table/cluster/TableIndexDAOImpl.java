@@ -48,8 +48,8 @@ import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.EntityDTO;
-import org.sagebionetworks.repo.model.table.QueryFacetResultRange;
-import org.sagebionetworks.repo.model.table.QueryFacetResultValue;
+import org.sagebionetworks.repo.model.table.FacetColumnResultRange;
+import org.sagebionetworks.repo.model.table.FacetColumnResultValueCount;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableConstants;
@@ -291,17 +291,17 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 	
 	@Override
-	public List<QueryFacetResultValue> facetCountQuery(QuerySpecification facetCountSql, Map<String, Object> parameters){
+	public List<FacetColumnResultValueCount> facetCountQuery(QuerySpecification facetCountSql, Map<String, Object> parameters){
 		ValidateArgument.required(facetCountSql, "facetCountSql");
 		ValidateArgument.required(parameters, "parameters");
 		// We use spring to create create the prepared statement
 		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
 		
-		return namedTemplate.query(facetCountSql.toSql(), parameters, new RowMapper<QueryFacetResultValue>(){
+		return namedTemplate.query(facetCountSql.toSql(), parameters, new RowMapper<FacetColumnResultValueCount>(){
 
 			@Override
-			public QueryFacetResultValue mapRow(ResultSet rs, int rowNum) throws SQLException {
-				QueryFacetResultValue facetValue = new QueryFacetResultValue();
+			public FacetColumnResultValueCount mapRow(ResultSet rs, int rowNum) throws SQLException {
+				FacetColumnResultValueCount facetValue = new FacetColumnResultValueCount();
 				facetValue.setValue(rs.getString(SqlElementUntils.VALUE_ALIAS));
 				facetValue.setCount(rs.getLong(SqlElementUntils.COUNT_ALIAS));
 				return facetValue;
@@ -311,17 +311,17 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 	
 	@Override
-	public QueryFacetResultRange facetRangeQuery(QuerySpecification facetRangeSql, Map<String, Object> parameters){
+	public FacetColumnResultRange facetRangeQuery(QuerySpecification facetRangeSql, Map<String, Object> parameters){
 		ValidateArgument.required(facetRangeSql, "facetCountSql");
 		ValidateArgument.required(parameters, "parameters");
 		// We use spring to create create the prepared statement
 		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
 		
-		return namedTemplate.queryForObject(facetRangeSql.toSql(), parameters, new RowMapper<QueryFacetResultRange>(){
+		return namedTemplate.queryForObject(facetRangeSql.toSql(), parameters, new RowMapper<FacetColumnResultRange>(){
 
 			@Override
-			public QueryFacetResultRange mapRow(ResultSet rs, int rowNum) throws SQLException {
-				QueryFacetResultRange facetResultRange = new QueryFacetResultRange();
+			public FacetColumnResultRange mapRow(ResultSet rs, int rowNum) throws SQLException {
+				FacetColumnResultRange facetResultRange = new FacetColumnResultRange();
 				facetResultRange.setColumnMin(rs.getString(SqlElementUntils.MIN_ALIAS));
 				facetResultRange.setColumnMax(rs.getString(SqlElementUntils.MAX_ALIAS));
 				return facetResultRange;

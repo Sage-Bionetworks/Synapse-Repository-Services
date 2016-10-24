@@ -9,8 +9,8 @@ import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.EntityDTO;
-import org.sagebionetworks.repo.model.table.QueryFacetResultRange;
-import org.sagebionetworks.repo.model.table.QueryFacetResultValue;
+import org.sagebionetworks.repo.model.table.FacetColumnResultRange;
+import org.sagebionetworks.repo.model.table.FacetColumnResultValueCount;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.table.model.Grouping;
@@ -351,7 +351,7 @@ public interface TableIndexDAO {
 	 * @param parameters
 	 * @return list of facetValues
 	 */
-	public List<QueryFacetResultValue> facetCountQuery(QuerySpecification facetCountSql, Map<String, Object> parameters);
+	public List<FacetColumnResultValueCount> facetCountQuery(QuerySpecification facetCountSql, Map<String, Object> parameters);
 	
 	/**
 	 * Runs a min/max query that returns the minimum and maximum values of a facet column
@@ -359,5 +359,5 @@ public interface TableIndexDAO {
 	 * @param parameters
 	 * @return list of facetValues
 	 */
-	public QueryFacetResultRange facetRangeQuery(QuerySpecification facetRangeSql, Map<String, Object> parameters);
+	public FacetColumnResultRange facetRangeQuery(QuerySpecification facetRangeSql, Map<String, Object> parameters);
 }

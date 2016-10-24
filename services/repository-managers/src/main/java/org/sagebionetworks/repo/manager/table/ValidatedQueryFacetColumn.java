@@ -1,22 +1,20 @@
 package org.sagebionetworks.repo.manager.table;
 
-import java.util.HashSet;
-import java.util.Set;
-
-import org.sagebionetworks.repo.model.table.FacetRange;
+import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
+import org.sagebionetworks.repo.model.table.FacetColumnRequest;
+import org.sagebionetworks.repo.model.table.FacetColumnValuesRequest;
 import org.sagebionetworks.repo.model.table.FacetType;
 import org.sagebionetworks.util.ValidateArgument;
 
 /**
- * An immutable class representing requested facet columns that have been verified against its schema
+ * An class representing requested facet columns that have been verified against its schema
  * @author zdong
  *
  */
 public class ValidatedQueryFacetColumn {
 	private String columnName;
 	private FacetType facetType;
-	private Set<String> columnValues;
-	private FacetRange facetRange;
+	private FacetColumnRequest facetColumnRequest;
 	private String searchConditionString;
 	
 	/**
@@ -28,45 +26,30 @@ public class ValidatedQueryFacetColumn {
 	 * @param facetRange 
 	 * 
 	 */
-	public ValidatedQueryFacetColumn(String columnName, FacetType facetType, Set<String> columnValues, FacetRange facetRange){
+	public ValidatedQueryFacetColumn(String columnName, FacetType facetType, FacetColumnRequest facetColumnRequest){
 		ValidateArgument.required(columnName, "columnName");
 		ValidateArgument.required(facetType, "facetType");
 		
 		//checks to make sure that useless parameters are not passed in
-		if(FacetType.enumeration.equals(facetType) && facetRange != null){
-			throw new IllegalArgumentException("facetRange should be null if facetType is enumeration");
+		if(FacetType.enumeration.equals(facetType) && (facetColumnRequest instanceof FacetColumnValuesRequest)){
+			throw new IllegalArgumentException("facetColumnRequest was not an instance of FacetColumnValuesRequest");
 		}
-		if(FacetType.range.equals(facetType) && columnValues != null){
-			throw new IllegalArgumentException("columnValues should be null if facetType is range");
+		if(FacetType.range.equals(facetType) && (facetColumnRequest instanceof FacetColumnRangeRequest)){
+			throw new IllegalArgumentException("facetColumnRequest was not an instance of FacetColumnRangeRequest");
 		}
 		
 		
 		this.columnName = columnName;
-		this.columnValues = (columnValues == null) ? null : new HashSet<>(columnValues);
-		this.facetRange = (facetRange == null) ? null : copyFacetRange(facetRange);
 		this.facetType = facetType;
 		this.searchConditionString = createSearchConditionString();
-	}
-	
-	private FacetRange copyFacetRange(FacetRange rangeToCopy){
-		ValidateArgument.required(rangeToCopy, "rangeToCopy");
-		
-		FacetRange copiedRange = new FacetRange();
-		copiedRange.setMax(rangeToCopy.getMax());
-		copiedRange.setMin(rangeToCopy.getMin());
-		return copiedRange;
-	}
-	
-	/**
-	 * Returns a copy of the columnValues of this object or null if it does not have one
-	 * @return
-	 */
-	public Set<String> getColumnValues() {
-		return (this.columnValues == null) ? null : new HashSet<>(this.columnValues);
 	}
 
 	public String getColumnName() {
 		return this.columnName;
+	}
+	
+	public FacetColumnRequest getFacetColumnRequest(){
+		return this.getFacetColumnRequest();
 	}
 	
 	//returns null if no search conditions exist
@@ -78,23 +61,19 @@ public class ValidatedQueryFacetColumn {
 		return this.facetType;
 	}
 	
-	public FacetRange getFacetRange(){
-		return (this.facetRange == null) ? null : copyFacetRange(this.facetRange);
-	}
-	
 	private String createSearchConditionString(){
 		switch (this.facetType){
 		case enumeration:
-			return createEnumerationSearchCondition(this.columnName, this.columnValues);
+			return createEnumerationSearchCondition(this.columnName, (FacetColumnValuesRequest) this.facetColumnRequest);
 		case range:
-			return createRangeSearchCondition(this.columnName, this.facetRange);
+			return createRangeSearchCondition(this.columnName, (FacetColumnRangeRequest) this.facetColumnRequest);
 		default:
 			throw new IllegalArgumentException("Unexpected FacetType");
 		}
 		
 	}
 	
-	private static String createRangeSearchCondition(String columnName, FacetRange facetRange){
+	private static String createRangeSearchCondition(String columnName, FacetColumnRangeRequest facetRange){
 		if(facetRange == null || ( (facetRange.getMin() == null || facetRange.getMin().equals(""))
 									&& (facetRange.getMax() == null || facetRange.getMax().equals("")) ) ){
 			return null;
@@ -123,14 +102,14 @@ public class ValidatedQueryFacetColumn {
 		return builder.toString();
 	}
 	
-	private static String createEnumerationSearchCondition(String columnName, Set<String> values){
-		if(values == null || values.isEmpty()){
+	private static String createEnumerationSearchCondition(String columnName, FacetColumnValuesRequest facetValues){
+		if(facetValues == null || facetValues.getFacetValues() == null|| facetValues.getFacetValues().isEmpty()){
 			return null;
 		}
 		
 		StringBuilder builder = new StringBuilder("(");
 		int initialSize = builder.length();
-		for(String value : values){
+		for(String value : facetValues.getFacetValues()){
 			if(builder.length() > initialSize){
 				builder.append(" OR ");
 			}
