@@ -21,12 +21,8 @@ import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.EntityField;
-import org.sagebionetworks.repo.model.table.Row;
-import org.sagebionetworks.repo.model.table.RowSet;
-import org.sagebionetworks.repo.model.table.SelectColumn;
+import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.TableConstants;
-import org.sagebionetworks.repo.model.table.ViewType;
-import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.model.Grouping;
 import org.sagebionetworks.table.model.SparseRow;
 import org.sagebionetworks.util.ValidateArgument;
@@ -1307,6 +1303,47 @@ public class SQLUtils {
 		String tableName = getTableNameForId(viewId, TableType.INDEX);
 		String columnId = getColumnNameForId(etagColumnId);
 		return String.format(TableConstants.SQL_TABLE_VIEW_CRC_32_TEMPLATE, columnId, tableName);
+	}
+	
+	/**
+	 * 
+	 * @param refs
+	 * @param selectColumns
+	 * @return
+	 */
+	public static String buildSelectRowIds(String tableId, List<RowReference> refs, List<ColumnModel> selectColumns){
+		ValidateArgument.required(tableId, "tableId");
+		ValidateArgument.required(refs, "RowReferences");
+		ValidateArgument.requirement(!refs.isEmpty(), "Must include at least one RowReference");
+		ValidateArgument.required(selectColumns, "select columns");
+		ValidateArgument.requirement(!selectColumns.isEmpty(), "Must include at least one select column");
+
+		StringBuilder builder = new StringBuilder();
+		builder.append("SELECT ");
+		boolean first = true;
+		for(ColumnModel cm: selectColumns){
+			if(!first){
+				builder.append(", ");
+			}
+			builder.append(cm.getName());
+			first = false;
+		}
+		builder.append(" FROM ");
+		builder.append(tableId);
+		builder.append(" WHERE ");
+		builder.append(ROW_ID);
+		builder.append(" IN (");
+		first = true;
+		for(RowReference ref: refs){
+			if(!first){
+				builder.append(", ");
+			}
+			ValidateArgument.required(ref.getRowId(), "RowReference.rowId");
+			builder.append(ref.getRowId());
+			first = false;
+		}
+		builder.append(")");
+		return builder.toString();
 	}
 
 }

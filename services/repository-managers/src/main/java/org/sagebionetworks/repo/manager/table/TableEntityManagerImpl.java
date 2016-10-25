@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.table;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -17,12 +18,14 @@ import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.manager.util.CollectionUtils;
 import org.sagebionetworks.manager.util.Validate;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.table.RowAccessor;
+import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.dao.table.RowSetAccessor;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.exception.ReadOnlyException;
@@ -48,8 +51,11 @@ import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
+import org.sagebionetworks.table.cluster.SQLUtils;
+import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
+import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
@@ -409,21 +415,45 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	}
 
 	@Override
-	public String getCellValue(UserInfo userInfo, String tableId, RowReference rowRef, ColumnModel column) throws IOException,
+	public Row getCellValue(UserInfo userInfo, String tableId, RowReference rowRef, ColumnModel column) throws IOException,
 			NotFoundException {
-		tableManagerSupport.validateTableReadAccess(userInfo, tableId);
-		Row row = tableRowTruthDao.getRowOriginal(tableId, rowRef, Lists.newArrayList(column));
-		return row.getValues().get(0);
+		RowSet set = getCellValues(userInfo, tableId, Lists.newArrayList(rowRef), Lists.newArrayList(column));
+		return set.getRows().get(0);
 	}
 
 	@Override
-	public RowSet getCellValues(UserInfo userInfo, String tableId, RowReferenceSet rowRefs, List<ColumnModel> columns)
+	public RowSet getCellValues(UserInfo userInfo, String tableId, List<RowReference> rows, List<ColumnModel> columns)
 			throws IOException, NotFoundException {
 		tableManagerSupport.validateTableReadAccess(userInfo, tableId);
-		return tableRowTruthDao.getRowSet(rowRefs, columns);
+		EntityType type = tableManagerSupport.getTableEntityType(tableId);
+		if(!EntityType.table.equals(type)){
+			throw new UnauthorizedException("Can only be called for TableEntities");
+		}
+		TableIndexDAO indexDao = tableConnectionFactory.getConnection(tableId);
+		String sql = SQLUtils.buildSelectRowIds(tableId, rows, columns);
+		final Map<Long, Row> rowMap = new HashMap<Long, Row>(rows.size());
+		try {
+			SqlQuery query = new SqlQuery(sql, columns);
+			indexDao.queryAsStream(null, query, new  RowHandler() {
+				@Override
+				public void nextRow(Row row) {
+					rowMap.put(row.getRowId(), row);
+				}
+			});
+			RowSet results = new RowSet();
+			results.setTableId(tableId);
+			results.setHeaders(query.getSelectColumns());
+			List<Row> resultRows = new LinkedList<Row>();
+			results.setRows(resultRows);
+			for(RowReference ref:rows){
+				Row row = rowMap.get(ref.getRowId());
+				resultRows.add(row);
+			}
+			return results;
+		} catch (ParseException e) {
+			throw new RuntimeException(e);
+		}
 	}
-
-
 	
 	private void validateRequestSize(List<ColumnModel> columns, int rowCount) {
 		// Validate the request is under the max bytes per requested

@@ -40,12 +40,14 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.manager.file.FileHandleAuthorizationStatus;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.table.RowAccessor;
+import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.dao.table.RowSetAccessor;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
@@ -74,6 +76,7 @@ import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
+import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
@@ -117,6 +120,7 @@ public class TableEntityManagerTest {
 	UserInfo user;
 	String tableId;
 	Long tableIdLong;
+	List<Row> rows;
 	RowSet set;
 	RawRowSet rawSet;
 	PartialRowSet partialSet;
@@ -155,7 +159,7 @@ public class TableEntityManagerTest {
 		schemaMD5Hex = TableModelUtils.createSchemaMD5HexCM(models);
 		tableId = "syn123";
 		tableIdLong = KeyFactory.stringToKey(tableId);
-		List<Row> rows = TableModelTestUtils.createRows(models, 10);
+		rows = TableModelTestUtils.createRows(models, 10);
 		set = new RowSet();
 		set.setTableId(tableId);
 		set.setHeaders(TableModelUtils.getSelectColumns(models));
@@ -262,6 +266,24 @@ public class TableEntityManagerTest {
 		when(mockColumModelManager.getColumnChangeDetails(changes)).thenReturn(columChangedetails);
 		newColumnIds = Lists.newArrayList("111","333");
 		when(mockColumModelManager.calculateNewSchemaIdsAndValidate(tableId, changes)).thenReturn(newColumnIds);
+		
+		when(mockTableManagerSupport.getTableEntityType(tableId)).thenReturn(EntityType.table);
+		
+		doAnswer(new Answer<Boolean>() {
+			@Override
+			public Boolean answer(InvocationOnMock invocation) throws Throwable {
+				RowHandler handler = (RowHandler) invocation.getArguments()[2];
+				// pass each row
+				long rowId = 0;
+				for(Row row: rows){
+					Row copy = new Row();
+					copy.setRowId(rowId++);
+					copy.setValues(new LinkedList<String>(row.getValues()));
+					handler.nextRow(copy);
+				}
+				return true;
+			}
+		}).when(mockTableIndexDAO).queryAsStream(any(ProgressCallback.class), any(SqlQuery.class), any(RowHandler.class));
 	}
 	
 	@Test (expected=UnauthorizedException.class)
@@ -626,11 +648,35 @@ public class TableEntityManagerTest {
 
 		RowSet returnValue = new RowSet();
 		when(mockTruthDao.getRowSet(rows, models)).thenReturn(returnValue);
-		RowSet result = manager.getCellValues(user, tableId, rows, models);
-		assertTrue(result == returnValue);
-
-		verify(mockTruthDao).getRowSet(rows, models);
+		RowSet result = manager.getCellValues(user, tableId, rows.getRows(), models);
+		assertNotNull(result);
+		assertEquals(tableId, tableId);
+		assertEquals(rows.getHeaders(), result.getHeaders());
+		assertNotNull(result.getRows());
+		assertEquals(2, result.getRows().size());
+		Row row = result.getRows().get(0);
+		assertEquals(new Long(1), row.getRowId());
+		row = result.getRows().get(1);
+		assertEquals(new Long(3), row.getRowId());
+		
 		verify(mockTableManagerSupport).validateTableReadAccess(user, tableId);
+		verify(mockTableManagerSupport).getTableEntityType(tableId);
+	}
+	
+	@Test (expected=UnauthorizedException.class)
+	public void testGetCellValuesNonTable() throws DatastoreException, NotFoundException, IOException {
+		// get cell values is only authorized for tables.
+		when(mockTableManagerSupport.getTableEntityType(tableId)).thenReturn(EntityType.entityview);
+		RowReferenceSet rows = new RowReferenceSet();
+		rows.setTableId(tableId);
+		rows.setHeaders(TableModelUtils.getSelectColumns(models));
+		rows.setEtag("444");
+		rows.setRows(Lists.newArrayList(TableModelTestUtils.createRowReference(1L, 2L), TableModelTestUtils.createRowReference(3L, 4L)));
+
+		RowSet returnValue = new RowSet();
+		when(mockTruthDao.getRowSet(rows, models)).thenReturn(returnValue);
+		// call under test
+		manager.getCellValues(user, tableId, rows.getRows(), models);
 	}
 
 	@Test(expected = UnauthorizedException.class)
@@ -640,15 +686,13 @@ public class TableEntityManagerTest {
 	}
 
 	@Test
-	public void testGetColumnValuesHappy() throws Exception {
+	public void testGetCellValue() throws Exception {
 		final int columnIndex = 1;
 		RowReference rowRef = new RowReference();
-		Row row = new Row();
-		row.setValues(Lists.newArrayList("yy"));
-		reset(mockTruthDao);
-		when(mockTruthDao.getRowOriginal(eq(tableId), eq(rowRef), anyListOf(ColumnModel.class))).thenReturn(row);
-		String result = manager.getCellValue(user, tableId, rowRef, models.get(columnIndex));
-		assertEquals("yy", result);
+		rowRef.setRowId(1L);
+		Row result = manager.getCellValue(user, tableId, rowRef, models.get(columnIndex));
+		assertNotNull(result);
+		assertEquals("string1", result.getValues().get(0));
 		verify(mockTableManagerSupport).validateTableReadAccess(user, tableId);
 	}
 
