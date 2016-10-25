@@ -381,8 +381,6 @@ public class MigrationManagerImplAutowireTest {
 			rowRefs.setRows(Collections.singletonList(TableModelTestUtils.createRowReference(0L, 0L)));
 			rowRefs.setTableId(tableId);
 			rowRefs.setHeaders(TableModelUtils.getSelectColumns(models));
-			tableEntityManager.getCellValues(adminUser, tableId, rowRefs, models);
-
 			assertEquals(0, indexDao.getRowCountForTable(tableId).intValue());
 
 			migrationManager.deleteObjectsById(adminUser, MigrationType.TABLE_SEQUENCE, Lists.newArrayList(KeyFactory.stringToKey(tableId)));
