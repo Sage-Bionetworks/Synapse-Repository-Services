@@ -19,7 +19,7 @@
 	<!-- This is the filter to redirect http:// to https:// -->
 	<filter>
 		<filter-name>httpToHttpsFilter</filter-name>
-		<filter-class>org.sagebionetworks.repo.web.filter.HttpToHttpsFilter</filter-class>
+		<filter-class>org.sagebionetworks.repo.web.filter.HttpToHttpsRedirectFilter</filter-class>
 	</filter>
 	<filter-mapping>
 		<filter-name>httpToHttpsFilter</filter-name>
