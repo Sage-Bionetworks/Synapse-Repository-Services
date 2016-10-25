@@ -8,6 +8,10 @@
 		"count":{
             "type":"integer",
             "description":"the number of times the value appears in the column"
+		},
+		"isSelected":{
+			"type":"boolean",
+			"description":"whether this facet was selected by the user"
 		}
     }
 }

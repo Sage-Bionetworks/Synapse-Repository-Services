@@ -285,12 +285,12 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		bundle.setColumnModels(query.getTableSchema());
 		bundle.setSelectColumns(query.getSelectColumns());
 		
-		FacetModel facetModel = new FacetModel(queryFacetColumns, query.getColumnNameToModelMap(), returnFacets);
+		FacetModel facetModel = new FacetModel(queryFacetColumns, query, returnFacets);
 		
 		//determine whether or not to run with facet filters
 		SqlQuery queryToRun;
-		if(facetModel.hasFilters()){
-			queryToRun = facetModel.getFacetFilteredQuery(query);
+		if(facetModel.hasFiltersApplied()){
+			queryToRun = facetModel.getFacetFilteredQuery();
 		}else{
 			queryToRun = query;
 		}
@@ -315,7 +315,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		//run the facet counts if needed
 		if(returnFacets){
 			//use original query instead of queryToRun because need the where clause that was not modified by any facets
-			facetResults = runFacetQueries(query, facetModel, indexDao);
+			facetResults = runFacetQueries(facetModel, indexDao);
 		}
 		
 		//run 
@@ -333,42 +333,15 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @param indexDao
 	 * @return
 	 */
-	public static List<FacetColumnResult> runFacetQueries(SqlQuery originalQuery,
-			FacetModel facetModel, TableIndexDAO indexDao) {
-		ValidateArgument.required(originalQuery, "originalQuery");
+	public static List<FacetColumnResult> runFacetQueries(FacetModel facetModel, TableIndexDAO indexDao) {
 		ValidateArgument.required(facetModel, "queryFacetColumns");
 		ValidateArgument.required(indexDao, "indexDao");
 		
 		
 		List<FacetColumnResult> facetResults = new ArrayList<>();
-		for(ValidatedQueryFacetColumn facetQuery : queryFacetColumns){
-			FacetType facetType = facetQuery.getFacetType();
-			FacetColumnResult facetColumnResult;
-			
-			switch(facetType){
-			case enumeration:
-				List<FacetColumnResultValueCount> facetValues = runFacetColumnCountQuery(originalQuery, facetQuery.getColumnName(), indexDao);
-				FacetColumnResultValues facetResultValues= new FacetColumnResultValues();
-				
-				facetResultValues.setFacetValues(facetValues);
-				facetColumnResult = facetResultValues;
-				break;
-			case range:
-				FacetColumnRangeRequest selectedRange = (FacetColumnRangeRequest) facetQuery.getFacetColumnRequest();
-				FacetColumnResultRange resultRange = runFacetColumnRangeQuery(originalQuery, facetQuery.getColumnName(), indexDao);
-				if(selectedRange != null){
-					resultRange.setSelectedMin(selectedRange.getMin());
-					resultRange.setSelectedMax(selectedRange.getMax());
-				}
-				facetColumnResult = resultRange;
-				break;
-			default:
-				throw new IllegalArgumentException("Unexpected FacetType");
-			}
-			
-			facetColumnResult.setColumnName(facetQuery.getColumnName());
-			facetColumnResult.setFacetType(facetType);
-			facetResults.add(facetColumnResult);
+		for(FacetTransformer facetQueryTransformer : facetModel.getFacetInformationQueries()){
+			RowSet rowSet = indexDao.query(null, facetQueryTransformer.getFacetSqlQuery());
+			facetResults.add(facetQueryTransformer.translateToResult(rowSet));
 		}
 		return facetResults;
 	}

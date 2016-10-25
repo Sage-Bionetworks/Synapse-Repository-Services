@@ -344,20 +344,4 @@ public interface TableIndexDAO {
 	 */
 	public void setIndexVersionAndSchemaMD5Hex(String tableId, Long viewCRC,
 			String schemaMD5Hex);
-
-	/**
-	 * Runs a count query that returns the counts of values in a facet column
-	 * @param facetCountSql
-	 * @param parameters
-	 * @return list of facetValues
-	 */
-	public List<FacetColumnResultValueCount> facetCountQuery(QuerySpecification facetCountSql, Map<String, Object> parameters);
-	
-	/**
-	 * Runs a min/max query that returns the minimum and maximum values of a facet column
-	 * @param facetCountSql
-	 * @param parameters
-	 * @return list of facetValues
-	 */
-	public FacetColumnResultRange facetRangeQuery(QuerySpecification facetRangeSql, Map<String, Object> parameters);
 }

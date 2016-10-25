@@ -48,16 +48,12 @@ import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.EntityDTO;
-import org.sagebionetworks.repo.model.table.FacetColumnResultRange;
-import org.sagebionetworks.repo.model.table.FacetColumnResultValueCount;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
 import org.sagebionetworks.table.model.Grouping;
-import org.sagebionetworks.table.query.model.QuerySpecification;
-import org.sagebionetworks.table.query.util.SqlElementUntils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.BadSqlGrammarException;
@@ -288,46 +284,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		// We use spring to create create the prepared statement
 		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
 		return namedTemplate.queryForObject(sql, new MapSqlParameterSource(parameters), Long.class);
-	}
-	
-	@Override
-	public List<FacetColumnResultValueCount> facetCountQuery(QuerySpecification facetCountSql, Map<String, Object> parameters){
-		ValidateArgument.required(facetCountSql, "facetCountSql");
-		ValidateArgument.required(parameters, "parameters");
-		// We use spring to create create the prepared statement
-		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
-		
-		return namedTemplate.query(facetCountSql.toSql(), parameters, new RowMapper<FacetColumnResultValueCount>(){
-
-			@Override
-			public FacetColumnResultValueCount mapRow(ResultSet rs, int rowNum) throws SQLException {
-				FacetColumnResultValueCount facetValue = new FacetColumnResultValueCount();
-				facetValue.setValue(rs.getString(SqlElementUntils.VALUE_ALIAS));
-				facetValue.setCount(rs.getLong(SqlElementUntils.COUNT_ALIAS));
-				return facetValue;
-			}
-			
-		});
-	}
-	
-	@Override
-	public FacetColumnResultRange facetRangeQuery(QuerySpecification facetRangeSql, Map<String, Object> parameters){
-		ValidateArgument.required(facetRangeSql, "facetCountSql");
-		ValidateArgument.required(parameters, "parameters");
-		// We use spring to create create the prepared statement
-		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
-		
-		return namedTemplate.queryForObject(facetRangeSql.toSql(), parameters, new RowMapper<FacetColumnResultRange>(){
-
-			@Override
-			public FacetColumnResultRange mapRow(ResultSet rs, int rowNum) throws SQLException {
-				FacetColumnResultRange facetResultRange = new FacetColumnResultRange();
-				facetResultRange.setColumnMin(rs.getString(SqlElementUntils.MIN_ALIAS));
-				facetResultRange.setColumnMax(rs.getString(SqlElementUntils.MAX_ALIAS));
-				return facetResultRange;
-			}
-			
-		});
 	}
 	
 	@Override

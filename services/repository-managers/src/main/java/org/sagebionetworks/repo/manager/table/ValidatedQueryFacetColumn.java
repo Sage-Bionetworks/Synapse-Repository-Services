@@ -51,11 +51,18 @@ public class ValidatedQueryFacetColumn {
 		return this.columnName;
 	}
 	
+	/**
+	 * returns null if there were no filter requests associated with this column
+	 * @return
+	 */
 	public FacetColumnRequest getFacetColumnRequest(){
 		return this.facetColumnRequest;
 	}
 	
-	//returns null if no search conditions exist
+	/**
+	 * returns null if no search conditions exist
+	 * @return
+	 */
 	public String getSearchConditionString(){
 		return this.searchConditionString;
 	}
