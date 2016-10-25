@@ -73,22 +73,22 @@ import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.repo.model.search.Facet;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
-import org.sagebionetworks.repo.model.table.FacetRange;
+import org.sagebionetworks.repo.model.table.FacetColumnRequest;
+import org.sagebionetworks.repo.model.table.FacetColumnResult;
+import org.sagebionetworks.repo.model.table.FacetColumnResultRange;
+import org.sagebionetworks.repo.model.table.FacetColumnResultValueCount;
+import org.sagebionetworks.repo.model.table.FacetColumnResultValues;
+import org.sagebionetworks.repo.model.table.FacetColumnValuesRequest;
 import org.sagebionetworks.repo.model.table.FacetType;
 import org.sagebionetworks.repo.model.table.PartialRow;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
-import org.sagebionetworks.repo.model.table.QueryFacetResultColumn;
-import org.sagebionetworks.repo.model.table.QueryFacetResultRange;
-import org.sagebionetworks.repo.model.table.QueryFacetResultValue;
 import org.sagebionetworks.repo.model.table.QueryNextPageToken;
-import org.sagebionetworks.repo.model.table.QueryRequestFacetColumn;
 import org.sagebionetworks.repo.model.table.QueryResult;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
@@ -110,20 +110,18 @@ import org.sagebionetworks.util.TimeUtils;
 import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.sagebionetworks.util.csv.CSVWriterStreamProxy;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
-import org.springframework.aop.framework.Advised;
-import org.springframework.aop.support.AopUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-
-import au.com.bytecode.opencsv.CSVReader;
-import au.com.bytecode.opencsv.CSVWriter;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+
+import au.com.bytecode.opencsv.CSVReader;
+import au.com.bytecode.opencsv.CSVWriter;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -1765,27 +1763,27 @@ public class TableWorkerIntegrationTest {
 		compareValues(rowSet, 0, 5, queryResult.getQueryResults());
 		
 		QueryResultBundle queryResultBundle = tableQueryManger.querySinglePage(mockProgressCallbackVoid, adminUserInfo, sql, null, null, 5L, 1L, true, false, true, true);
-		List<QueryFacetResultColumn> facets = queryResultBundle.getFacets();
+		List<FacetColumnResult> facets = queryResultBundle.getFacets();
 		assertNotNull(facets);
 		assertEquals(2, facets.size());
 		
 		
 		//first facet should be string
-		QueryFacetResultColumn strFacet = facets.get(0);
+		FacetColumnResult strFacet = facets.get(0);
 		assertEquals(FacetType.enumeration, strFacet.getFacetType());
-		assertNull(strFacet.getFacetRange());
-		List<QueryFacetResultValue> enumValues = strFacet.getFacetValues();
+		assertTrue(strFacet instanceof FacetColumnResultValues);
+		List<FacetColumnResultValueCount> enumValues = ((FacetColumnResultValues) strFacet).getFacetValues();
 		for(int i = 0; i < enumValues.size() ; i++){
-			QueryFacetResultValue enumVal = enumValues.get(i);
+			FacetColumnResultValueCount enumVal = enumValues.get(i);
 			assertEquals(1, enumVal.getCount().longValue());
 			assertEquals("string" + i, enumVal.getValue());
 		}
 		
 		//second facet is an integer
-		QueryFacetResultColumn intFacet = facets.get(1);
+		FacetColumnResult intFacet = facets.get(1);
 		assertEquals(FacetType.range, intFacet.getFacetType());
-		assertNull(intFacet.getFacetValues());
-		QueryFacetResultRange facetRange = intFacet.getFacetRange();
+		assertTrue(intFacet instanceof FacetColumnResultRange);
+		FacetColumnResultRange facetRange = (FacetColumnResultRange) intFacet;
 		assertNotNull(facetRange);
 		assertEquals(203000, Long.parseLong(facetRange.getColumnMin()));
 		assertEquals(203005, Long.parseLong(facetRange.getColumnMax()));
@@ -1823,38 +1821,38 @@ public class TableWorkerIntegrationTest {
 		compareValues(rowSet, 0, 5, queryResult.getQueryResults());
 		
 		
-		List<QueryRequestFacetColumn> selectedFacets = new ArrayList<>();
-		QueryRequestFacetColumn selectedColumn = new QueryRequestFacetColumn();
+		List<FacetColumnRequest> selectedFacets = new ArrayList<>();
+		FacetColumnRequest selectedColumn = new FacetColumnValuesRequest();
 		selectedColumn.setColumnName("i0");
 		Set<String> facetValues = new HashSet<>();
 		facetValues.add("string0");
 		facetValues.add("string3");
-		selectedColumn.setFacetValues(facetValues);
+		((FacetColumnValuesRequest)selectedColumn).setFacetValues(facetValues);
 		selectedFacets.add(selectedColumn);
 		
 		QueryResultBundle queryResultBundle = tableQueryManger.querySinglePage(mockProgressCallbackVoid, adminUserInfo, sql, null, selectedFacets, 5L, 1L, true, false, true, true);
-		List<QueryFacetResultColumn> facets = queryResultBundle.getFacets();
+		List<FacetColumnResult> facets = queryResultBundle.getFacets();
 		assertNotNull(facets);
 		assertEquals(2, facets.size());
 		
 		
 		//first facet should be string
-		QueryFacetResultColumn strFacet = facets.get(0);
+		FacetColumnResult strFacet = facets.get(0);
 		assertEquals(FacetType.enumeration, strFacet.getFacetType());
-		assertNull(strFacet.getFacetRange());
-		List<QueryFacetResultValue> enumValues = strFacet.getFacetValues();
+		assertTrue(strFacet instanceof FacetColumnResultValues);
+		List<FacetColumnResultValueCount> enumValues = ((FacetColumnResultValues)strFacet).getFacetValues();
 		//selecting facet within same category should not affect the existence and counts of the other values
 		for(int i = 0; i < enumValues.size() ; i++){
-			QueryFacetResultValue enumVal = enumValues.get(i);
+			FacetColumnResultValueCount enumVal = enumValues.get(i);
 			assertEquals(1, enumVal.getCount().longValue());
 			assertEquals("string" + i, enumVal.getValue());
 		}
 		
 		//second facet is an integer
-		QueryFacetResultColumn intFacet = facets.get(1);
+		FacetColumnResult intFacet = facets.get(1);
 		assertEquals(FacetType.range, intFacet.getFacetType());
-		assertNull(intFacet.getFacetValues());
-		QueryFacetResultRange facetRange = intFacet.getFacetRange();
+		assertTrue(intFacet instanceof FacetColumnResultRange);
+		FacetColumnResultRange facetRange = (FacetColumnResultRange) intFacet;
 		assertNotNull(facetRange);
 		//however it should affet the values in other columns
 		assertEquals(203000, Long.parseLong(facetRange.getColumnMin()));

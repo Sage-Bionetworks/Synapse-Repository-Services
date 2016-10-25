@@ -38,9 +38,9 @@ import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.EntityDTO;
 import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.EntityView;
+import org.sagebionetworks.repo.model.table.FacetColumnResultRange;
+import org.sagebionetworks.repo.model.table.FacetColumnResultValueCount;
 import org.sagebionetworks.repo.model.table.IdRange;
-import org.sagebionetworks.repo.model.table.QueryFacetResultRange;
-import org.sagebionetworks.repo.model.table.QueryFacetResultValue;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
@@ -1561,9 +1561,9 @@ public class TableIndexDAOImplTest {
 		Map<String, Object> parameters = new HashMap<>();
 		SQLTranslatorUtils.translateModel(facetCountSql, parameters, query.getColumnNameToModelMap());
 		
-		List<QueryFacetResultValue> results = tableIndexDAO.facetCountQuery(facetCountSql, parameters);
+		List<FacetColumnResultValueCount> results = tableIndexDAO.facetCountQuery(facetCountSql, parameters);
 		for(int i = 0; i < results.size(); i++){
-			QueryFacetResultValue resultValue = results.get(i);
+			FacetColumnResultValueCount resultValue = results.get(i);
 			assertEquals(1L, resultValue.getCount().longValue());
 			assertEquals("string" + i, resultValue.getValue());
 		}
@@ -1591,7 +1591,7 @@ public class TableIndexDAOImplTest {
 		Map<String, Object> parameters = new HashMap<>();
 		SQLTranslatorUtils.translateModel(facetRangeSql, parameters, query.getColumnNameToModelMap());
 		
-		QueryFacetResultRange results = tableIndexDAO.facetRangeQuery(facetRangeSql, parameters);
+		FacetColumnResultRange results = tableIndexDAO.facetRangeQuery(facetRangeSql, parameters);
 		
 		assertEquals("string0", results.getColumnMin());
 		assertEquals("string1", results.getColumnMax());

@@ -1,82 +1,84 @@
 package org.sagebionetworks.repo.manager.table;
 
-import static org.junit.Assert.*;
-
-import java.util.HashSet;
-import java.util.Set;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.sagebionetworks.repo.model.table.FacetRange;
+import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
+import org.sagebionetworks.repo.model.table.FacetColumnValuesRequest;
 import org.sagebionetworks.repo.model.table.FacetType;
+
+import com.google.common.collect.Sets;
+
 
 public class ValidatedQueryFacetColumnTest {
 	String columnName;
-	Set<String> columnValues;
-	FacetRange facetRange;
+	FacetColumnValuesRequest facetValues;
+	FacetColumnRangeRequest facetRange;
 	@Before
 	public void setUp(){
 		columnName = "someColumn";
-		columnValues = new HashSet<>();
-		facetRange = new FacetRange();
+		facetValues = new FacetColumnValuesRequest();
+		facetRange = new FacetColumnRangeRequest();
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testConstructorNullColumnName() {
-		new ValidatedQueryFacetColumn(null, FacetType.enumeration, columnValues, null);
+		new ValidatedQueryFacetColumn(null, FacetType.enumeration, facetValues);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testConstructorNullFacetType() {
-		new ValidatedQueryFacetColumn(columnName, null, columnValues, facetRange);
+		new ValidatedQueryFacetColumn(columnName, null, facetValues);
 	}
 	
 	@Test (expected = IllegalArgumentException.class)
 	public void testConstructorWrongParameterForEnumeration(){
-		new ValidatedQueryFacetColumn(columnName, FacetType.enumeration, null, facetRange);
+		new ValidatedQueryFacetColumn(columnName, FacetType.enumeration, facetRange);
 	}
 	
 	@Test (expected = IllegalArgumentException.class)
 	public void testConstructorWrongParameterForRange(){
-		new ValidatedQueryFacetColumn(columnName, FacetType.range, columnValues, null);
+		new ValidatedQueryFacetColumn(columnName, FacetType.range, facetValues);
 	}
 	
-	@Test (expected = IllegalArgumentException.class)
-	public void testConstructorUnexpectedFacetType(){
-		new ValidatedQueryFacetColumn(columnName, FacetType.none, null, null);
+	@Test
+	public void testConstructorNullFacetRequest(){
+		ValidatedQueryFacetColumn validatedQueryFacetColumn = new ValidatedQueryFacetColumn(columnName, FacetType.range, null);
+		assertEquals(columnName, validatedQueryFacetColumn.getColumnName());
+		assertNull(validatedQueryFacetColumn.getFacetColumnRequest());
+		assertNull(validatedQueryFacetColumn.getSearchConditionString());
 	}
 	
 	@Test
 	public void testConstructorForEnumerationNoSearchCondition(){
-		ValidatedQueryFacetColumn validatedQueryFacetColumn = new ValidatedQueryFacetColumn(columnName, FacetType.enumeration, columnValues, null);
+		ValidatedQueryFacetColumn validatedQueryFacetColumn = new ValidatedQueryFacetColumn(columnName, FacetType.enumeration, facetValues);
 		assertEquals(columnName, validatedQueryFacetColumn.getColumnName());
 		
-		//the columnValues set should have been copied
-		assertTrue(columnValues != validatedQueryFacetColumn.getColumnValues());
-		assertEquals(columnValues, validatedQueryFacetColumn.getColumnValues());
+		assertFalse(validatedQueryFacetColumn.getFacetColumnRequest() instanceof FacetColumnRangeRequest);
+		assertEquals(facetValues, validatedQueryFacetColumn.getFacetColumnRequest());
 		
-		assertNull(validatedQueryFacetColumn.getFacetRange());
 		assertNull(validatedQueryFacetColumn.getSearchConditionString());
 	}
 	
 	@Test
 	public void testConstructorForRangeNoSearchCondition(){
-		ValidatedQueryFacetColumn validatedQueryFacetColumn = new ValidatedQueryFacetColumn(columnName, FacetType.range, null, facetRange);
+		ValidatedQueryFacetColumn validatedQueryFacetColumn = new ValidatedQueryFacetColumn(columnName, FacetType.range, facetRange);
 		assertEquals(columnName, validatedQueryFacetColumn.getColumnName());
 		
-		assertNull(validatedQueryFacetColumn.getColumnValues());
-		
-		//the facetRange should have been copied
-		assertTrue(facetRange != validatedQueryFacetColumn.getFacetRange());
-		assertEquals(facetRange, validatedQueryFacetColumn.getFacetRange());
+		assertFalse(validatedQueryFacetColumn.getFacetColumnRequest() instanceof FacetColumnValuesRequest);
+
+		assertEquals(facetRange, validatedQueryFacetColumn.getFacetColumnRequest());
 		assertNull(validatedQueryFacetColumn.getSearchConditionString());
 	}
 	
 	@Test
 	public void testEnumerationSearchConditionStringOneValue(){
 		String value = "hello";
-		columnValues.add(value);
-		ValidatedQueryFacetColumn validatedQueryFacetColumn = new ValidatedQueryFacetColumn(columnName, FacetType.enumeration, columnValues, null);
+		facetValues.setFacetValues(Sets.newHashSet(value));
+		ValidatedQueryFacetColumn validatedQueryFacetColumn = new ValidatedQueryFacetColumn(columnName, FacetType.enumeration, facetValues);
 		assertEquals("(" + columnName + "=" + value + ")", validatedQueryFacetColumn.getSearchConditionString());
 	}
 	
@@ -84,18 +86,18 @@ public class ValidatedQueryFacetColumnTest {
 	public void testEnumerationSearchConditionStringTwoValues(){
 		String value1 = "hello";
 		String value2 = "world";
-		columnValues.add(value1);
-		columnValues.add(value2);
+		facetValues.setFacetValues(Sets.newHashSet(value1, value2));
 
-		ValidatedQueryFacetColumn validatedQueryFacetColumn = new ValidatedQueryFacetColumn(columnName, FacetType.enumeration, columnValues, null);
+
+		ValidatedQueryFacetColumn validatedQueryFacetColumn = new ValidatedQueryFacetColumn(columnName, FacetType.enumeration, facetValues);
 		assertEquals("(" + columnName + "=" + value1 + " OR " + columnName + "=" + value2 + ")", validatedQueryFacetColumn.getSearchConditionString());
 	}
 	
 	@Test
 	public void testEnumerationSearchConditionStringOneValueContainsSpace(){
 		String value = "hello world";
-		columnValues.add(value);
-		ValidatedQueryFacetColumn validatedQueryFacetColumn = new ValidatedQueryFacetColumn(columnName, FacetType.enumeration, columnValues, null);
+		facetValues.setFacetValues(Sets.newHashSet(value));
+		ValidatedQueryFacetColumn validatedQueryFacetColumn = new ValidatedQueryFacetColumn(columnName, FacetType.enumeration, facetValues);
 		assertEquals("(" + columnName + "='" + value + "')", validatedQueryFacetColumn.getSearchConditionString());
 	}
 	
@@ -103,7 +105,7 @@ public class ValidatedQueryFacetColumnTest {
 	public void testRangeSearchConditionStringMinOnly(){
 		String min = "42";
 		facetRange.setMin(min);
-		ValidatedQueryFacetColumn validatedQueryFacetColumn = new ValidatedQueryFacetColumn(columnName, FacetType.range, null, facetRange);
+		ValidatedQueryFacetColumn validatedQueryFacetColumn = new ValidatedQueryFacetColumn(columnName, FacetType.range, facetRange);
 		assertEquals("(" + columnName + ">=" + min + ")", validatedQueryFacetColumn.getSearchConditionString());
 	}
 	
@@ -111,7 +113,7 @@ public class ValidatedQueryFacetColumnTest {
 	public void testRangeSearchConditionStringMaxOnly(){
 		String max = "42";
 		facetRange.setMax(max);
-		ValidatedQueryFacetColumn validatedQueryFacetColumn = new ValidatedQueryFacetColumn(columnName, FacetType.range, null, facetRange);
+		ValidatedQueryFacetColumn validatedQueryFacetColumn = new ValidatedQueryFacetColumn(columnName, FacetType.range, facetRange);
 		assertEquals("(" + columnName + "<=" + max + ")", validatedQueryFacetColumn.getSearchConditionString());
 	}
 	
@@ -121,7 +123,7 @@ public class ValidatedQueryFacetColumnTest {
 		String max = "456";
 		facetRange.setMin(min);
 		facetRange.setMax(max);
-		ValidatedQueryFacetColumn validatedQueryFacetColumn = new ValidatedQueryFacetColumn(columnName, FacetType.range, null, facetRange);
+		ValidatedQueryFacetColumn validatedQueryFacetColumn = new ValidatedQueryFacetColumn(columnName, FacetType.range, facetRange);
 		assertEquals("(" + columnName + " BETWEEN " + min + " AND " + max + ")", validatedQueryFacetColumn.getSearchConditionString());
 	}
 }

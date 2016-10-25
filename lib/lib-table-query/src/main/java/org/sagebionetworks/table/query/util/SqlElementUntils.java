@@ -5,7 +5,6 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import org.sagebionetworks.repo.model.table.SortDirection;
 import org.sagebionetworks.repo.model.table.SortItem;
@@ -68,12 +67,6 @@ public class SqlElementUntils {
 	// it so happens that javas definition of word characters matches exactly with sqls non-escapable characters
 	// [0-9a-zA-z_])
 	private static final java.util.regex.Pattern NON_ESCAPABLE_COLUMN_NAME_CHARACTERS = java.util.regex.Pattern.compile("\\W");
-	public static final Long MAX_NUM_FACET_CATEGORIES = 100L;
-	public static final String VALUE_ALIAS = "value";
-	public static final String COUNT_ALIAS = "frequency";
-	public static final String MIN_ALIAS = "minimum";
-	public static final String MAX_ALIAS = "maximum";
-	
 	
 	/**
 	 * Create a value expression from an input SQL.
@@ -683,96 +676,5 @@ public class SqlElementUntils {
 			isFirst = false;
 		}
 		return builder.toString();
-	}
-	
-	/**
-	 * Creates a SQL query for finding the counts of each distinct value in a faceted column
-	 * @param columnName the name of the faceted column
-	 * @param model the original (non-transformed) query off of which to obtain the FROM and WHERE clauses
-	 * @param facetSearchConditionString
-	 * @return the generated SQL query represented by QuerySpecification
-	 */
-	public static QuerySpecification createFilteredFacetCountSqlQuerySpecification(String columnName, QuerySpecification model,  String facetSearchConditionString){
-		ValidateArgument.required(columnName, "columnName");
-		ValidateArgument.required(model, "model");
-		
-		TableExpression tableExpressionFromModel = model.getTableExpression();
-		Pagination pagination = new Pagination(MAX_NUM_FACET_CATEGORIES, null);//TODO: move this later to when we figure out the limit thing
-		StringBuilder builder = new StringBuilder("SELECT ");
-		builder.append(columnName);
-		builder.append(" AS ");
-		builder.append(VALUE_ALIAS);
-		builder.append(", COUNT(*) AS ");
-		builder.append(COUNT_ALIAS);
-		builder.append(" ");
-		builder.append(tableExpressionFromModel.getFromClause().toSql());
-		appendFacetWhereClauseToStringBuilderIfNecessary(builder, facetSearchConditionString, tableExpressionFromModel.getWhereClause());
-		builder.append(" GROUP BY " + columnName + " ");
-		builder.append(pagination.toSql());
-		
-		try {
-			return new TableQueryParser(builder.toString()).querySpecification();
-		} catch (ParseException e) {
-			throw new RuntimeException(e);
-		}
-	}
-	
-	/**
-	 * Creates a SQL query for finding the minimum and maximum values of a faceted column
-	 * @param columnName the name of the faceted column
-	 * @param model model the original (non-transformed) query off of which to obtain the FROM and WHERE clauses
-	 * @param facetSearchConditionString
-	 * @return the generated SQL query represented by QuerySpecification
-	 */
-	public static QuerySpecification createFilteredFacetRangeSqlQuerySpecification(String columnName, QuerySpecification model, String facetSearchConditionString){
-		ValidateArgument.required(columnName, "columnName");
-		ValidateArgument.required(model, "model");
-		
-		TableExpression tableExpressionFromModel = model.getTableExpression();
-		StringBuilder builder = new StringBuilder("SELECT MIN(");
-		builder.append(columnName);
-		builder.append(") as ");
-		builder.append(MIN_ALIAS);
-		builder.append(", MAX(");
-		builder.append(columnName);
-		builder.append(") as ");
-		builder.append(MAX_ALIAS);
-		builder.append(" ");
-		builder.append(model.getTableExpression().getFromClause().toSql());
-		appendFacetWhereClauseToStringBuilderIfNecessary(builder, facetSearchConditionString, tableExpressionFromModel.getWhereClause());
-		
-		try {
-			return new TableQueryParser(builder.toString()).querySpecification();
-		} catch (ParseException e) {
-			throw new RuntimeException(e);
-		}
-	}
-	
-	/**
-	 * Appends a WHERE clause to the String Builder if necessary
-	 * @param builder StringBuilder to append to
-	 * @param facetSearchConditionString SearchCondition string to append. pass null if none to append.
-	 * @param originalWhereClause the WHERE clause that was in the original query. pass null if not exist.
-	 */
-	public static void appendFacetWhereClauseToStringBuilderIfNecessary(StringBuilder builder, String facetSearchConditionString,
-			WhereClause originalWhereClause) {
-		ValidateArgument.required(builder, "builder");
-		
-		if(facetSearchConditionString != null || originalWhereClause != null){
-			builder.append(" WHERE ");
-			if(originalWhereClause != null){
-				builder.append("(");
-				builder.append(originalWhereClause.getSearchCondition().toSql());
-				builder.append(")");
-			}
-			if(facetSearchConditionString != null){
-				if(originalWhereClause != null){
-					builder.append(" AND ");
-				}
-				builder.append("(");
-				builder.append(facetSearchConditionString);
-				builder.append(")");
-			}
-		}
 	}
 }

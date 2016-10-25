@@ -1311,16 +1311,13 @@ public class TableQueryManagerImplTest {
 		FacetColumnRangeRequest facetRange = new FacetColumnRangeRequest();
 		facetRange.setMin("123");
 		facetRange.setMax("456");
+		facetRange.setColumnName(facetColumnName);
 		
-		
-		FacetColumnRequest facetParams = new FacetColumnRangeRequest();
-		facetParams.setColumnName(facetColumnName);
-		
-		TableQueryManagerImpl.determineAddToValidatedFacetList(validatedQueryFacetColumns, facetColumnModel, facetParams, false);
+		TableQueryManagerImpl.determineAddToValidatedFacetList(validatedQueryFacetColumns, facetColumnModel, facetRange, false);
 		
 		assertEquals(1, validatedQueryFacetColumns.size());
 		ValidatedQueryFacetColumn validatedQueryFacetColumn = validatedQueryFacetColumns.get(0);
-		assertEquals(facetRange, validatedQueryFacetColumn);
+		assertEquals(facetRange, validatedQueryFacetColumn.getFacetColumnRequest());
 		assertEquals(facetColumnName, validatedQueryFacetColumn.getColumnName());
 		assertEquals(FacetType.range, validatedQueryFacetColumn.getFacetType());
 	}
@@ -1524,7 +1521,7 @@ public class TableQueryManagerImplTest {
 	
 	@Test
 	public void testRunFacetQueries(){
-		List<QueryFacetResultValue> expectedFacetValues = new ArrayList<>();
+		List<FacetColumnResultValueCount> expectedFacetValues = new ArrayList<>();
 		when(mockTableIndexDAO.facetCountQuery(any(QuerySpecification.class), anyMapOf(String.class, Object.class))).thenReturn(expectedFacetValues);
 		FacetColumnResultRange expectedFacetRange = new FacetColumnResultRange();
 		when(mockTableIndexDAO.facetRangeQuery(any(QuerySpecification.class), anyMapOf(String.class, Object.class))).thenReturn(expectedFacetRange);
@@ -1546,27 +1543,25 @@ public class TableQueryManagerImplTest {
 		assertEquals(2, validatedQueryFacetColumns.size());
 		
 		
-		List<QueryFacetResultColumn> results = TableQueryManagerImpl.runFacetQueries(simpleQuery, validatedQueryFacetColumns, mockTableIndexDAO);
+		List<FacetColumnResult> results = TableQueryManagerImpl.runFacetQueries(simpleQuery, validatedQueryFacetColumns, mockTableIndexDAO);
 		
 
 		verify(mockFacetColumn, times(1)).getFacetType();
-		verify(mockFacetColumn, times(1)).getFacetRange();
 		verify(mockFacetColumn2, times(1)).getFacetType();
-		verify(mockFacetColumn2, never()).getFacetRange();
 		
 		assertEquals(2, results.size());
 		
-		QueryFacetResultColumn result1 = results.get(0);
+		FacetColumnResult result1 = results.get(0);
+		assertTrue(result1 instanceof FacetColumnResultRange);
 		assertEquals(columnName1, result1.getColumnName());
 		assertEquals(facetType1, result1.getFacetType());
-		assertEquals(expectedFacetRange, result1.getFacetRange());
-		assertNull(result1.getFacetValues());
+		assertEquals(expectedFacetRange, result1);
 		
-		QueryFacetResultColumn result2 = results.get(1);
+		FacetColumnResult result2 = results.get(1);
+		assertTrue(result1 instanceof FacetColumnResultRange);
 		assertEquals(columnName2, result2.getColumnName());
 		assertEquals(facetType2, result2.getFacetType());
-		assertEquals(expectedFacetValues, result2.getFacetValues());
-		assertNull(result2.getFacetRange());
+		assertEquals(expectedFacetValues, ((FacetColumnResultValues) result2).getFacetValues());
 	}
 	
 	////////////////////////////////////////////

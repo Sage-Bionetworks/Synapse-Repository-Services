@@ -31,16 +31,19 @@ public class ValidatedQueryFacetColumn {
 		ValidateArgument.required(facetType, "facetType");
 		
 		//checks to make sure that useless parameters are not passed in
-		if(FacetType.enumeration.equals(facetType) && (facetColumnRequest instanceof FacetColumnValuesRequest)){
-			throw new IllegalArgumentException("facetColumnRequest was not an instance of FacetColumnValuesRequest");
-		}
-		if(FacetType.range.equals(facetType) && (facetColumnRequest instanceof FacetColumnRangeRequest)){
-			throw new IllegalArgumentException("facetColumnRequest was not an instance of FacetColumnRangeRequest");
+		if(facetColumnRequest != null){
+			if(FacetType.enumeration.equals(facetType) && !(facetColumnRequest instanceof FacetColumnValuesRequest)){
+				throw new IllegalArgumentException("facetColumnRequest was not an instance of FacetColumnValuesRequest");
+			}
+			if(FacetType.range.equals(facetType) && !(facetColumnRequest instanceof FacetColumnRangeRequest)){
+				throw new IllegalArgumentException("facetColumnRequest was not an instance of FacetColumnRangeRequest");
+			}
 		}
 		
 		
 		this.columnName = columnName;
 		this.facetType = facetType;
+		this.facetColumnRequest = facetColumnRequest;
 		this.searchConditionString = createSearchConditionString();
 	}
 
@@ -49,7 +52,7 @@ public class ValidatedQueryFacetColumn {
 	}
 	
 	public FacetColumnRequest getFacetColumnRequest(){
-		return this.getFacetColumnRequest();
+		return this.facetColumnRequest;
 	}
 	
 	//returns null if no search conditions exist

@@ -115,10 +115,8 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			// parser the query
 			SqlQuery sqlQuery = createQuery(query, sortList, offset, limit, this.maxBytesPerRequest);
 			
-			List<ValidatedQueryFacetColumn> validatedFacets = validateFacetList(selectedFacets, sqlQuery.getTableSchema(), returnFacets);
-			
 			// run the query as a stream.
-			QueryResultBundle bundle = queryAsStream(progressCallback, user, sqlQuery, validatedFacets, rowHandler,runCount, returnFacets, isConsistent);
+			QueryResultBundle bundle = queryAsStream(progressCallback, user, sqlQuery, selectedFacets, rowHandler,runCount, returnFacets, isConsistent);
 			// save the max rows per page.
 			bundle.setMaxRowsPerPage(sqlQuery.getMaxRowsPerPage());
 			// add captured rows to the bundle
@@ -162,7 +160,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @throws TableLockUnavailableException
 	 */
 	QueryResultBundle queryAsStream(final ProgressCallback<Void> progressCallback,
-			final UserInfo user, final SqlQuery query, final List<ValidatedQueryFacetColumn> selectedFacets,
+			final UserInfo user, final SqlQuery query, final List<FacetColumnRequest> selectedFacets,
 			final RowHandler rowHandler,final  boolean runCount, final boolean returnFacets, final boolean isConsistent)
 			throws DatastoreException, NotFoundException,
 			TableUnavailableException, TableFailedException, LockUnavilableException, EmptyResultException {		
@@ -241,7 +239,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @throws TableFailedException
 	 * @throws EmptyResultException 
 	 */
-	QueryResultBundle queryAsStreamWithAuthorization(ProgressCallback<Void> progressCallback, UserInfo user, SqlQuery query, List<ValidatedQueryFacetColumn> selectedFacets,
+	QueryResultBundle queryAsStreamWithAuthorization(ProgressCallback<Void> progressCallback, UserInfo user, SqlQuery query, List<FacetColumnRequest> selectedFacets,
 			RowHandler rowHandler, boolean runCount, boolean returnFacets) throws NotFoundException, LockUnavilableException, TableUnavailableException, TableFailedException, EmptyResultException{
 		// Get a connection to the table.
 		TableIndexDAO indexDao = tableConnectionFactory.getConnection(query.getTableId());
@@ -279,7 +277,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @throws TableFailedException
 	 * @throws TableLockUnavailableException
 	 */
-	QueryResultBundle queryAsStreamAfterAuthorization(ProgressCallback<Void> progressCallback, SqlQuery query, List<ValidatedQueryFacetColumn> queryFacetColumns,
+	QueryResultBundle queryAsStreamAfterAuthorization(ProgressCallback<Void> progressCallback, SqlQuery query, List<FacetColumnRequest> queryFacetColumns,
 			RowHandler rowHandler, boolean runCount, boolean returnFacets,TableIndexDAO indexDao)
 			throws TableUnavailableException, TableFailedException, LockUnavilableException {
 		// build up the response.
@@ -287,10 +285,12 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		bundle.setColumnModels(query.getTableSchema());
 		bundle.setSelectColumns(query.getSelectColumns());
 		
+		FacetModel facetModel = new FacetModel(queryFacetColumns, query.getColumnNameToModelMap(), returnFacets);
+		
 		//determine whether or not to run with facet filters
 		SqlQuery queryToRun;
-		if(queryFacetColumns != null && !queryFacetColumns.isEmpty()){
-			queryToRun = appendFacetSearchCondition(query, queryFacetColumns);
+		if(facetModel.hasFilters()){
+			queryToRun = facetModel.getFacetFilteredQuery(query);
 		}else{
 			queryToRun = query;
 		}
@@ -313,9 +313,9 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		}
 		
 		//run the facet counts if needed
-		if(returnFacets && queryFacetColumns != null && !queryFacetColumns.isEmpty()){
+		if(returnFacets){
 			//use original query instead of queryToRun because need the where clause that was not modified by any facets
-			facetResults = runFacetQueries(query, queryFacetColumns, indexDao);
+			facetResults = runFacetQueries(query, facetModel, indexDao);
 		}
 		
 		//run 
@@ -334,9 +334,9 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @return
 	 */
 	public static List<FacetColumnResult> runFacetQueries(SqlQuery originalQuery,
-			List<ValidatedQueryFacetColumn> queryFacetColumns, TableIndexDAO indexDao) {
+			FacetModel facetModel, TableIndexDAO indexDao) {
 		ValidateArgument.required(originalQuery, "originalQuery");
-		ValidateArgument.required(queryFacetColumns, "queryFacetColumns");
+		ValidateArgument.required(facetModel, "queryFacetColumns");
 		ValidateArgument.required(indexDao, "indexDao");
 		
 		
@@ -347,7 +347,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			
 			switch(facetType){
 			case enumeration:
-				List<FacetColumnResultValueCount> facetValues = runFacetColumnCountQuery(originalQuery, facetQuery.getColumnName(), queryFacetColumns, indexDao);
+				List<FacetColumnResultValueCount> facetValues = runFacetColumnCountQuery(originalQuery, facetQuery.getColumnName(), indexDao);
 				FacetColumnResultValues facetResultValues= new FacetColumnResultValues();
 				
 				facetResultValues.setFacetValues(facetValues);
@@ -355,7 +355,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 				break;
 			case range:
 				FacetColumnRangeRequest selectedRange = (FacetColumnRangeRequest) facetQuery.getFacetColumnRequest();
-				FacetColumnResultRange resultRange = runFacetColumnRangeQuery(originalQuery, facetQuery.getColumnName(), queryFacetColumns, indexDao);
+				FacetColumnResultRange resultRange = runFacetColumnRangeQuery(originalQuery, facetQuery.getColumnName(), indexDao);
 				if(selectedRange != null){
 					resultRange.setSelectedMin(selectedRange.getMin());
 					resultRange.setSelectedMax(selectedRange.getMax());
@@ -789,184 +789,5 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		} catch (ParseException e) {
 			throw new RuntimeException(e);
 		}
-	}
-	
-	/**
-	 * Returns a new filtered List of QueryRequestFacetColumns that match 
-	 * the schema
-	 * @return
-	 */
-	public static List<ValidatedQueryFacetColumn> validateFacetList(List<FacetColumnRequest> selectedFacets, List<ColumnModel> schema, boolean returnFacets){
-		Map<String, FacetColumnRequest> selectedFacetMap = createColumnNameToFacetColumnMap(selectedFacets);
-		List<ValidatedQueryFacetColumn> validatedFacets = new ArrayList<ValidatedQueryFacetColumn>();
-		
-		
-		Set<String> supportedFacetColumnsColumns = new HashSet<String>();
-		
-		//create the SearchConditions based on each facet column's values and store them into facetSearchConditionStrings
-		for(ColumnModel columnModel : schema){
-			if(FacetType.enumeration.equals(columnModel.getFacetType()) || FacetType.range.equals(columnModel.getFacetType())){
-				supportedFacetColumnsColumns.add(columnModel.getName());
-			}
-			
-			//add to list of facets
-			FacetColumnRequest facetParams = selectedFacetMap.get(columnModel.getName());
-			determineAddToValidatedFacetList(validatedFacets, columnModel, facetParams, returnFacets);
-		}
-		
-		checkForUnfacetedColumnsInRequest(selectedFacetMap.keySet(), supportedFacetColumnsColumns);
-		
-		return validatedFacets;
-	}
-	
-	
-
-	public static void checkForUnfacetedColumnsInRequest(Set<String> requestedColumns, Set<String> supportedColumns) {		
-		ValidateArgument.required(requestedColumns, "requestedColumns");
-		ValidateArgument.required(supportedColumns, "supportedColumns");
-		
-		if(!supportedColumns.containsAll(requestedColumns)){
-			throw new IllegalArgumentException("Requested facet columns must be in the set:" + supportedColumns.toString());
-		}
-	}
-
-	/**
-	 * Determines if a column should be added to the validatedFacets list based on the column's columnModel(aka schema)
-	 * and whether facet information will be later returned. 
-	 * @param validatedFacets List to append to.
-	 * @param columnModel schema information about the column
-	 * @param facetParams optional parameters that define facet filters to the column
-	 * @param returnFacets whether or not facet information will be returned to the caller
-	 */
-	public static void determineAddToValidatedFacetList(List<ValidatedQueryFacetColumn> validatedFacets,
-			ColumnModel columnModel, FacetColumnRequest facetParams,
-			boolean returnFacets) {
-		ValidateArgument.required(columnModel, "columnModel");
-		ValidateArgument.required(validatedFacets, "validatedFacets");
-		
-		//if it is a facet add it to the list
-		if (FacetType.enumeration.equals(columnModel.getFacetType()) || FacetType.range.equals(columnModel.getFacetType())){			
-			//dont add to list if user does not want to return facets and there is no request associated with it
-			if(returnFacets || facetParams != null){ 
-				validatedFacets.add(new ValidatedQueryFacetColumn(columnModel.getName(), columnModel.getFacetType(), facetParams));
-			}
-		}
-	}
-	
-	/**
-	 * Returns a Map where the key is the name of a facet and the value is the corresponding QueryRequestFacetColumn
-	 * @return
-	 */
-	public static Map<String, FacetColumnRequest> createColumnNameToFacetColumnMap(List<FacetColumnRequest> selectedFacets){
-		Map<String, FacetColumnRequest> result = new HashMap<String, FacetColumnRequest>();
-		if(selectedFacets != null){
-			for(FacetColumnRequest facet : selectedFacets){
-				FacetColumnRequest shouldBeNull = result.put(facet.getColumnName(), facet);
-				if(shouldBeNull != null){
-					throw new IllegalArgumentException("Request contains QueryRequestFacetColumn with a duplicate column name");
-				}
-			}
-		}
-		return result;
-	}
-	
-	/**
-	 * Returns a copy of the SqlQuery with searchConditions derived from the facetColums list appended to the query's WhereClause
-	 * @param query
-	 * @param facetColumns
-	 * @return
-	 */
-	public static SqlQuery appendFacetSearchCondition(SqlQuery query, List<ValidatedQueryFacetColumn> facetColumns){
-		ValidateArgument.required(query, "query");
-		
-		try{
-			QuerySpecification modelCopy = new TableQueryParser(query.getModel().toSql()).querySpecification();
-			if(facetColumns != null && !facetColumns.isEmpty()){
-				WhereClause originalWhereClause = query.getModel().getTableExpression().getWhereClause();
-				
-				String facetSearchConditionString = concatFacetSearchConditionStrings(facetColumns, null);
-				
-				StringBuilder builder = new StringBuilder();
-				SqlElementUntils.appendFacetWhereClauseToStringBuilderIfNecessary(builder, facetSearchConditionString, originalWhereClause);
-				
-				// create the new where if necessary
-				if(builder.length() > 0){
-					WhereClause newWhereClause = new TableQueryParser(builder.toString()).whereClause();
-					modelCopy.getTableExpression().replaceWhere(newWhereClause);
-				}
-			}
-			// return a copy
-			return new SqlQuery(modelCopy, query);
-		}catch (ParseException e){
-			throw new RuntimeException(e);
-		}
-		
-	}
-	
-	/**
-	 * Concatenates a list of search condition Strings with AND and then wraps that search condition with a parenthesis
-	 * e.g. ["(col1 = 1 OR col1 = b)", "(col2 = c OR col2 = d)"] => "( (col1 = 1 OR col1 = b) AND (col2 = c OR col2 = d) )"
-	 * @param facetSearchConditionStrings list of search conditions that are wrapped by parenthesis e.g. "(col1 = a OR col1 = b)"
-	 * @param columNameToIgnore the name of the column to exclude from the concatenation
-	 * @return the concatenated string or null if there was nothing to concatenate
-	 */
-	public static String concatFacetSearchConditionStrings(List<ValidatedQueryFacetColumn> facetColumns, String columNameToIgnore){
-		ValidateArgument.required(facetColumns, "facetColumns");
-		
-		if(facetColumns.isEmpty()){
-			return null;
-		}
-		
-		StringBuilder builder = new StringBuilder("(");
-		int initialSize = builder.length(); //length with the "( " included
-		
-		for(ValidatedQueryFacetColumn facetColumn : facetColumns){
-			if(columNameToIgnore == null || !facetColumn.getColumnName().equals(columNameToIgnore)){ //make sure not to include the ignored column
-				String searchCondition = facetColumn.getSearchConditionString();
-				if(searchCondition != null){//don't add anything if there is no search condition
-					if(builder.length() > initialSize){ //not the first element
-						builder.append(" AND ");
-					}
-					builder.append(searchCondition);
-				}
-			}
-		}
-		if(builder.length() == initialSize){ //edge case where nothing got concatenated together
-			return null;
-		}
-		
-		builder.append(")");
-		return builder.toString();
-	}
-	
-	/**
-	 * Run a query that creates facet counts for its most frequent values in the specified column based on the original query.
-	 */
-	public static List<FacetColumnResultValueCount> runFacetColumnCountQuery(SqlQuery originalQuery, String columnName, List<ValidatedQueryFacetColumn> facetColumns ,TableIndexDAO indexDao){
-		ValidateArgument.required(originalQuery, "originalQuery");
-		ValidateArgument.required(columnName, "columnName");
-		ValidateArgument.required(facetColumns, "facetColumns");
-		ValidateArgument.required(indexDao, "tableIndexDao");
-		
-		String searchConditionString = concatFacetSearchConditionStrings(facetColumns, columnName);
-		QuerySpecification facetColumnCountQuery = SqlElementUntils.createFilteredFacetCountSqlQuerySpecification(columnName, originalQuery.getModel(), searchConditionString);
-		Map<String, Object> parameters = new HashMap<>();
-		SQLTranslatorUtils.translateModel(facetColumnCountQuery, parameters, originalQuery.getColumnNameToModelMap());
-		
-		return indexDao.facetCountQuery(facetColumnCountQuery, parameters);
-	}
-	
-	public static FacetColumnResultRange runFacetColumnRangeQuery(SqlQuery originalQuery, String columnName, List<ValidatedQueryFacetColumn> facetColumns, TableIndexDAO indexDao){
-		ValidateArgument.required(originalQuery, "originalQuery");
-		ValidateArgument.required(columnName, "columnName");
-		ValidateArgument.required(facetColumns, "facetColumns");
-		ValidateArgument.required(indexDao, "tableIndexDao");
-		
-		String searchConditionString = concatFacetSearchConditionStrings(facetColumns, columnName);
-		QuerySpecification facetColumnRangeQuery = SqlElementUntils.createFilteredFacetRangeSqlQuerySpecification(columnName, originalQuery.getModel(), searchConditionString);
-		Map<String, Object> parameters = new HashMap<>();
-		SQLTranslatorUtils.translateModel(facetColumnRangeQuery, parameters, originalQuery.getColumnNameToModelMap());
-		
-		return indexDao.facetRangeQuery(facetColumnRangeQuery, parameters);
 	}
 }
