@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.table;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -29,17 +30,13 @@ public class FacetModel {
 	
 	
 	public FacetModel(List<FacetColumnRequest> selectedFacets, SqlQuery sqlQuery, boolean returnFacets) {
-		ValidateArgument.required(selectedFacets, "selectedFacets");
-		ValidateArgument.required(sqlQuery, "schema");
+		ValidateArgument.required(sqlQuery, "schema"); //TODO:Test
 		
 		//process the selected facets
 		Map<String, FacetColumnRequest> selectedFacetMap = createColumnNameToFacetColumnMap(selectedFacets);
+		Set<String> facetedColumnNames = new HashSet<>();
 		
-		//check that there are no unsupported facet column names selected
-		if(!sqlQuery.getColumnNameToModelMap().keySet().containsAll(selectedFacetMap.keySet())){
-			throw new IllegalArgumentException("Requested facet column names must be in the set:" + sqlQuery.getColumnNameToModelMap().keySet().toString());
-		}
-		
+	
 		//setting fields
 		this.validatedFacets = new ArrayList<ValidatedQueryFacetColumn>();
 		this.hasFilters = selectedFacets != null && !selectedFacets.isEmpty();
@@ -47,15 +44,22 @@ public class FacetModel {
 		
 		//create the SearchConditions based on each facet column's values and store them into facetSearchConditionStrings
 		for(ColumnModel columnModel : sqlQuery.getTableSchema()){
-			if(columnModel.getFacetType() != null){				
+			if(columnModel.getFacetType() != null){
+				facetedColumnNames.add(columnModel.getName());
+				
 				FacetColumnRequest facetColumnRequest = selectedFacetMap.get(columnModel.getName());
 				
 				//if it is a faceted column and user either wants returned facets or they have applied a filter to the facet
-				if ((returnFacets || facetColumnRequest != null) ){
+				if (returnFacets || facetColumnRequest != null ){
 					this.validatedFacets.add(new ValidatedQueryFacetColumn(columnModel.getName(), columnModel.getFacetType(), facetColumnRequest));
 				}
 			}
 			
+		}
+		
+		//check that there are no unsupported facet column names selected
+		if(!facetedColumnNames.containsAll(selectedFacetMap.keySet())){
+			throw new IllegalArgumentException("Requested facet column names must all be in the set: " + facetedColumnNames + " Requested set of column names: " + selectedFacetMap.keySet());
 		}
 		
 		
@@ -97,7 +101,7 @@ public class FacetModel {
 			if(!this.validatedFacets.isEmpty()){
 				WhereClause originalWhereClause = sqlQuery.getModel().getTableExpression().getWhereClause();
 				
-				String facetSearchConditionString = FacetUtils.concatFacetSearchConditionStrings(null, this.validatedFacets);
+				String facetSearchConditionString = FacetUtils.concatFacetSearchConditionStrings(this.validatedFacets, null);
 				
 				StringBuilder builder = new StringBuilder();
 				FacetUtils.appendFacetWhereClauseToStringBuilderIfNecessary(builder, facetSearchConditionString, originalWhereClause);

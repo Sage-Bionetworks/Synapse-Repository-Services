@@ -12,7 +12,8 @@ public class FacetUtils {
 	 * @param columNameToIgnore the name of the column to exclude from the concatenation
 	 * @return the concatenated string or null if there was nothing to concatenate
 	 */
-	public static String concatFacetSearchConditionStrings(String columNameToIgnore, List<ValidatedQueryFacetColumn> validatedFacets){
+	public static String concatFacetSearchConditionStrings(List<ValidatedQueryFacetColumn> validatedFacets, String columNameToIgnore){
+		ValidateArgument.required(validatedFacets, "validatedFacets");
 		
 		if(validatedFacets.isEmpty()){
 			return null;

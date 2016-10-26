@@ -49,7 +49,7 @@ public class FacetTransformerRange implements FacetTransformer {
 	public SqlQuery getFacetSqlQuery() {
 		if(this.generatedFacetSqlQuery != null) return this.generatedFacetSqlQuery;
 		
-		String facetSearchConditionString = FacetUtils.concatFacetSearchConditionStrings(columnName, facets);
+		String facetSearchConditionString = FacetUtils.concatFacetSearchConditionStrings(facets, columnName);
 		
 		TableExpression tableExpressionFromModel = originalQuery.getModel().getTableExpression();
 		StringBuilder builder = new StringBuilder("SELECT MIN(");
