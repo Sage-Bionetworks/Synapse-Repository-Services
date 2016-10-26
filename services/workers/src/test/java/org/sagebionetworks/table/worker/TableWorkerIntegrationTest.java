@@ -338,11 +338,13 @@ public class TableWorkerIntegrationTest {
 		rowSet.setTableId(tableId);
 		referenceSet = tableEntityManager.appendRows(adminUserInfo, tableId, schema,
 				rowSet, mockPprogressCallback);
-		rowSet = tableEntityManager.getCellValues(adminUserInfo, tableId, referenceSet,
+		String sql = "select * from " + tableId;
+		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 7L);
+		rowSet = tableEntityManager.getCellValues(adminUserInfo, tableId, referenceSet.getRows(),
 				schema);
 		// Wait for the table to become available
-		String sql = "select * from " + tableId + " order by row_id";
-		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 7L);
+		sql = "select * from " + tableId + " order by row_id";
+		queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 7L);
 		assertEquals(6, queryResult.getQueryResults().getRows().size());
 		assertNull(queryResult.getNextPageToken());
 		compareValues(rowSet, 0, 6, queryResult.getQueryResults());

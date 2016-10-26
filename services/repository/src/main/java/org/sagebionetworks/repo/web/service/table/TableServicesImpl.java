@@ -13,7 +13,6 @@ import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
@@ -108,7 +107,7 @@ public class TableServicesImpl implements TableServices {
 		UserInfo user = userManager.getUserInfo(userId);
 		List<ColumnModel> columns = columnModelManager.getCurrentColumns(user, rowsToGet.getTableId(), rowsToGet.getHeaders());
 
-		return tableEntityManager.getCellValues(user, rowsToGet.getTableId(), rowsToGet, columns);
+		return tableEntityManager.getCellValues(user, rowsToGet.getTableId(), rowsToGet.getRows(), columns);
 	}
 
 	@Override
@@ -123,7 +122,7 @@ public class TableServicesImpl implements TableServices {
 				throw new IllegalArgumentException("Column " + cm.getId() + " is not of type FILEHANDLEID");
 			}
 		}
-		RowSet rowSet = tableEntityManager.getCellValues(userInfo, fileHandlesToFind.getTableId(), fileHandlesToFind, columns);
+		RowSet rowSet = tableEntityManager.getCellValues(userInfo, fileHandlesToFind.getTableId(), fileHandlesToFind.getRows(), columns);
 
 		// we expect there to be null entries, but the file handle manager does not
 		List<String> idsList = Lists.newArrayListWithCapacity(columns.size() * rowSet.getRows().size());
@@ -171,7 +170,8 @@ public class TableServicesImpl implements TableServices {
 		if (model.getColumnType() != ColumnType.FILEHANDLEID) {
 			throw new IllegalArgumentException("Column " + columnId + " is not of type FILEHANDLEID");
 		}
-		String fileHandleId = tableEntityManager.getCellValue(userInfo, tableId, rowRef, model);
+		Row row = tableEntityManager.getCellValue(userInfo, tableId, rowRef, model);
+		String fileHandleId = row.getValues().get(0);
 		// Use the FileHandle ID to get the URL
 		return fileHandleManager.getRedirectURLForFileHandle(fileHandleId);
 	}
@@ -188,7 +188,8 @@ public class TableServicesImpl implements TableServices {
 		if (model.getColumnType() != ColumnType.FILEHANDLEID) {
 			throw new IllegalArgumentException("Column " + columnId + " is not of type FILEHANDLEID");
 		}
-		String fileHandleId = tableEntityManager.getCellValue(userInfo, tableId, rowRef, model);
+		Row row = tableEntityManager.getCellValue(userInfo, tableId, rowRef, model);
+		String fileHandleId = row.getValues().get(0);
 		// Use the FileHandle ID to get the URL
 		String previewFileHandleId = fileHandleManager.getPreviewFileHandleId(fileHandleId);
 		return fileHandleManager.getRedirectURLForFileHandle(previewFileHandleId);

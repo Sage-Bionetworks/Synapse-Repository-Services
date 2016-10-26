@@ -5870,6 +5870,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		}
 	}
 
+	@Deprecated
 	@Override
 	public RowSet getRowsFromTable(RowReferenceSet toGet)
 			throws SynapseException, SynapseTableUnavailableException {

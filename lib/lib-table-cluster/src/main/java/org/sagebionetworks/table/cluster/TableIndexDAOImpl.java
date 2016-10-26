@@ -289,14 +289,15 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	@Override
 	public boolean queryAsStream(final ProgressCallback<Void> callback, final SqlQuery query, final RowHandler handler) {
 		ValidateArgument.required(query, "Query");
-		ValidateArgument.required(callback, "ProgressCallback");
 		// We use spring to create create the prepared statement
 		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
 		namedTemplate.query(query.getOutputSQL(), new MapSqlParameterSource(query.getParameters()), new RowCallbackHandler() {
 			@Override
 			public void processRow(ResultSet rs) throws SQLException {
 				// refresh the lock.
-				callback.progressMade(null);
+				if(callback != null){
+					callback.progressMade(null);
+				}
 				Row row = SQLTranslatorUtils.readRow(rs, query.includesRowIdAndVersion(), query.getSelectColumns());
 				handler.nextRow(row);
 			}

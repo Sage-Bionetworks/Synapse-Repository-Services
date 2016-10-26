@@ -327,7 +327,7 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 		indexManager.setIndexSchema(progressCallback, currentSchema, removeMissingColumns);
 		// This is a change that we must apply.
 		RowSet rowSet = tableEntityManager.getRowSet(tableId, changeSet.getRowVersion(), currentSchema);
-		SparseChangeSet sparse = TableModelUtils.createSparseChangeSet(rowSet, currentSchema, changeSet.getRowVersion());
+		SparseChangeSet sparse = TableModelUtils.createSparseChangeSet(rowSet, currentSchema);
 		// attempt to apply this change set to the table.
 		indexManager.applyChangeSetToIndex(sparse, currentSchema, changeSet.getRowVersion());
 	}

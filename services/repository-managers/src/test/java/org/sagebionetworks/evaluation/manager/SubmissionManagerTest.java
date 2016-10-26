@@ -916,5 +916,7 @@ public class SubmissionManagerTest {
 		verify(mockSubmissionStatusDAO).get(subWithId.getId());
 		subStatus.setCancelRequested(true);
 		verify(mockSubmissionStatusDAO).update(Arrays.asList(subStatus));
+		verify(mockSubmissionDAO).get(subWithId.getId());
+		verify(mockEvaluationSubmissionsDAO).updateEtagForEvaluation(EVAL_ID_LONG, true, ChangeType.UPDATE);
 	}
 }

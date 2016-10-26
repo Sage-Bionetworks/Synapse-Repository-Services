@@ -53,13 +53,8 @@ public interface TableIndexDAO {
 	
 	/**
 	 * Create or update the rows passed in the given RowSet.
-	 * 
-	 * Note: The passed RowSet is not required to match the current schema.
-	 * Columns in the Rowset that are not part of the current schema will be ignored.
-	 * Columns in the current schema that are not part of the RowSet will be set to
-	 * the default value of the column.
-	 * @param connection
-	 * @param rowset
+
+	 * @param grouping group of rows that change the same columns.
 	 * @return
 	 */
 	void createOrUpdateOrDeleteRows(Grouping grouping);

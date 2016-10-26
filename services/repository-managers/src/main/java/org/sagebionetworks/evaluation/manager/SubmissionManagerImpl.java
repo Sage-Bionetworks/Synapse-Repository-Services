@@ -683,5 +683,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		}
 		status.setCancelRequested(Boolean.TRUE);
 		submissionStatusDAO.update(Arrays.asList(status));
+		String evalId = submissionDAO.get(submissionId).getEvaluationId();
+		evaluationSubmissionsDAO.updateEtagForEvaluation(KeyFactory.stringToKey(evalId), true, ChangeType.UPDATE);
 	}
 }

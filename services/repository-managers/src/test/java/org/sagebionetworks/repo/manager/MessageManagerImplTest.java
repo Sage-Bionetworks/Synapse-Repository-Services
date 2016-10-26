@@ -32,6 +32,7 @@ import org.sagebionetworks.repo.manager.team.TeamConstants;
 import org.sagebionetworks.repo.manager.team.TeamManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.EntityType;
@@ -261,6 +262,18 @@ public class MessageManagerImplTest {
 		testTeam.setName("MessageManagerImplTest");
 		testTeam = teamManager.create(testUser, testTeam);
 		final String testTeamId = testTeam.getId();
+		
+		// we don't want the public to be able to send messages to the team
+		AccessControlList acl = teamManager.getACL(testUser, testTeamId);
+		Set<ResourceAccess> ras = new HashSet<ResourceAccess>();
+		for (ResourceAccess ra : acl.getResourceAccess()) {
+			if (!ra.getPrincipalId().equals(
+					AuthorizationConstants.BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId())) {
+				ras.add(ra);
+			}
+		}
+		acl.setResourceAccess(ras);
+		teamManager.updateACL(testUser, acl);
 		
 		// Mock out the file handle manager so that the fake file handle won't result in broken downloads
 		String url = MessageManagerImplTest.class.getClassLoader().getResource("images/notAnImage.txt").toExternalForm();

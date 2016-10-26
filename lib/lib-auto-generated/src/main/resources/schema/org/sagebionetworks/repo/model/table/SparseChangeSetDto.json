@@ -1,0 +1,27 @@
+{
+	"description":"Data Transfer Object (DTO) for a SparseChangeSet",
+	"properties":{
+		"tableId":{
+			"description":"The ID of the table.",
+			"type": "string"
+		},
+		"etag":{
+			"description":"Etag identifies the version of this change set.",
+			"type": "string"
+		},
+		"columnIds": {
+		    "description":"The column IDs that define the schema of this change set.",
+			"type": "array",
+			"items": {
+				"type": "string"
+			}
+		},
+		"rows": {
+			"description":"The partial rows of this set.",
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.table.SparseRowDto"
+			}
+		}
+	}
+}

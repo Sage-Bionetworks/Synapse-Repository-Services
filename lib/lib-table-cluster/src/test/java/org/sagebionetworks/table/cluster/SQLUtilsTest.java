@@ -5,7 +5,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -21,7 +20,7 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.IdRange;
-import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
@@ -183,10 +182,11 @@ public class SQLUtilsTest {
 	@Test
 	public void testBindParametersForCreateOrUpdate(){
 		List<ColumnModel> oldSchema = helperCreateColumnsWithIds("0","2","4");
-		SparseChangeSet set = new SparseChangeSet("syn123", oldSchema, 3L);
+		SparseChangeSet set = new SparseChangeSet("syn123", oldSchema);
 		for(int i=0; i<2; i++){
 			SparseRow row = set.addEmptyRow();
 			row.setRowId(new Long(i));
+			row.setVersionNumber(3L);
 			row.setCellValue("0", "111"+i);
 			row.setCellValue("2", "222"+i);
 			row.setCellValue("4", "333"+i);
@@ -222,7 +222,7 @@ public class SQLUtilsTest {
 		range.setMaximumId(200L);
 		range.setVersionNumber(3L);
 		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
-		SparseChangeSet sparseSet = TableModelUtils.createSparseChangeSet(set, newSchema, 3L);
+		SparseChangeSet sparseSet = TableModelUtils.createSparseChangeSet(set, newSchema);
 		Grouping grouping = sparseSet.groupByValidValues().iterator().next();
 		// bind!
 		SqlParameterSource[] results = SQLUtils.bindParametersForCreateOrUpdate(grouping);
@@ -1262,5 +1262,74 @@ public class SQLUtilsTest {
 		String etagColumnId = "444";
 		String sql = SQLUtils.buildTableViewCRC32Sql(viewId, etagColumnId);
 		assertEquals("SELECT SUM(CRC32(CONCAT(ROW_ID, '-', _C444_))) FROM T123", sql);
+	}
+	
+	@Test
+	public void testBuildSelectRowIds(){
+		RowReference ref1 = new RowReference();
+		ref1.setRowId(222L);
+		RowReference ref2 = new RowReference();
+		ref2.setRowId(333L);
+		
+		ColumnModel c1 = TableModelTestUtils.createColumn(1L);
+		ColumnModel c2 = TableModelTestUtils.createColumn(2L);
+		
+		String sql = SQLUtils.buildSelectRowIds("syn123", Lists.newArrayList(ref1, ref2), Lists.newArrayList(c1,  c2));
+		String expected = "SELECT col_1, col_2 FROM syn123 WHERE ROW_ID IN (222, 333)";
+		assertEquals(expected, sql);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testBuildSelectRowIdsNullRefts(){
+		RowReference ref1 = new RowReference();
+		ref1.setRowId(222L);
+		RowReference ref2 = new RowReference();
+		ref2.setRowId(333L);
+		
+		ColumnModel c1 = TableModelTestUtils.createColumn(1L);
+		ColumnModel c2 = TableModelTestUtils.createColumn(2L);
+		
+		SQLUtils.buildSelectRowIds("syn123", null, Lists.newArrayList(c1,  c2));
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testBuildSelectRowIdsNullColumns(){
+		RowReference ref1 = new RowReference();
+		ref1.setRowId(222L);
+		RowReference ref2 = new RowReference();
+		ref2.setRowId(333L);
+		SQLUtils.buildSelectRowIds("syn123", Lists.newArrayList(ref1, ref2), null);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testBuildSelectRowIdsEmptyRefs(){
+		ColumnModel c1 = TableModelTestUtils.createColumn(1L);
+		ColumnModel c2 = TableModelTestUtils.createColumn(2L);
+		
+		String sql = SQLUtils.buildSelectRowIds("syn123", new LinkedList<RowReference>(), Lists.newArrayList(c1,  c2));
+		String expected = "SELECT col_1, col_2 FROM syn123 WHERE ROW_ID IN (222, 333)";
+		assertEquals(expected, sql);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testBuildSelectRowIdsEmptyColumns(){
+		RowReference ref1 = new RowReference();
+		ref1.setRowId(222L);
+		RowReference ref2 = new RowReference();
+		ref2.setRowId(333L);
+		SQLUtils.buildSelectRowIds("syn123", Lists.newArrayList(ref1, ref2), new LinkedList<ColumnModel>());
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testBuildSelectRowIdsNullRefRowId(){
+		RowReference ref1 = new RowReference();
+		ref1.setRowId(null);
+		RowReference ref2 = new RowReference();
+		ref2.setRowId(333L);
+		
+		ColumnModel c1 = TableModelTestUtils.createColumn(1L);
+		ColumnModel c2 = TableModelTestUtils.createColumn(2L);
+		
+		SQLUtils.buildSelectRowIds("syn123", Lists.newArrayList(ref1, ref2), Lists.newArrayList(c1,  c2));
 	}
 }
