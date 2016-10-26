@@ -123,6 +123,7 @@ import org.sagebionetworks.repo.model.quiz.PassingRecord;
 import org.sagebionetworks.repo.model.quiz.QuizResponse;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.IdRange;
 import org.sagebionetworks.repo.model.table.RawRowSet;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.ViewType;
@@ -487,12 +488,10 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		// create some test rows.
 		List<Row> rows = TableModelTestUtils.createRows(models, 5);
 		RawRowSet set = new RawRowSet(TableModelUtils.getIds(models), null, tableId, rows);
-		// Append the rows to the table
-		tableRowTruthDao.appendRowSetToTable(adminUserIdString, tableId, models, set);
-		// Append some more rows
-		rows = TableModelTestUtils.createRows(models, 6);
-		set = new RawRowSet(TableModelUtils.getIds(models), null, tableId, rows);
-		tableRowTruthDao.appendRowSetToTable(adminUserIdString, tableId, models, set);
+		IdRange range = tableRowTruthDao.reserveIdsInRange(tableId, 5);
+		// Now assign the rowIds and set the version number
+		TableModelUtils.assignRowIdsAndVersionNumbers(set, range);
+		tableRowTruthDao.appendRowSetToTable(adminUserIdString, tableId, range.getEtag(), range.getVersionNumber(), models, set);
 	}
 
 	public void createNewUser() throws NotFoundException {

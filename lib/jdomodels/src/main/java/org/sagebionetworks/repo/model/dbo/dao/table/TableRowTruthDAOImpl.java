@@ -253,29 +253,18 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		return results;
 	}
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	@Deprecated
-	public RowReferenceSet appendRowSetToTable(String userId, String tableId, List<ColumnModel> columns, RawRowSet delta)
+	public void appendRowSetToTable(String userId, String tableId, String etag, long versionNumber, List<ColumnModel> columns, RawRowSet delta)
 			throws IOException {
-		// Now set the row version numbers and ID.
-		int coutToReserver = TableModelUtils.countEmptyOrInvalidRowIds(delta);
-		// Reserver IDs for the missing
-		IdRange range = reserveIdsInRange(tableId, coutToReserver);
-		// Are any rows being updated?
-		if (coutToReserver < delta.getRows().size()) {
-			// Validate that this update does not contain any row level conflicts.
-			checkForRowLevelConflict(tableId, delta);
-		}
-		// Now assign the rowIds and set the version number
-		TableModelUtils.assignRowIdsAndVersionNumbers(delta, range);
 		// We are ready to convert the file to a CSV and save it to S3.
 		String key = saveCSVToS3(columns, delta);
 		// record the change
 		DBOTableRowChange changeDBO = new DBOTableRowChange();
 		changeDBO.setTableId(KeyFactory.stringToKey(tableId));
-		changeDBO.setRowVersion(range.getVersionNumber());
-		changeDBO.setEtag(range.getEtag());
+		changeDBO.setRowVersion(versionNumber);
+		changeDBO.setEtag(etag);
 		changeDBO.setColumnIds(TableModelUtils.createDelimitedColumnModelIdString(
 				TableModelUtils.getIds(columns)));
 		changeDBO.setCreatedBy(Long.parseLong(userId));
@@ -285,22 +274,6 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		changeDBO.setRowCount(new Long(delta.getRows().size()));
 		changeDBO.setChangeType(TableChangeType.ROW.name());
 		basicDao.createNew(changeDBO);
-
-		// Prepare the results
-		RowReferenceSet results = new RowReferenceSet();
-		results.setHeaders(TableModelUtils.getSelectColumns(columns));
-		results.setTableId(tableId);
-		results.setEtag(changeDBO.getEtag());
-		List<RowReference> refs = new LinkedList<RowReference>();
-		// Build up the row references
-		for (Row row : delta.getRows()) {
-			RowReference ref = new RowReference();
-			ref.setRowId(row.getRowId());
-			ref.setVersionNumber(row.getVersionNumber());
-			refs.add(ref);
-		}
-		results.setRows(refs);
-		return results;
 	}
 	
 	@Override
