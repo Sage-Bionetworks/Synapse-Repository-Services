@@ -33,6 +33,7 @@ import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.IdRange;
 import org.sagebionetworks.repo.model.table.PartialRow;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.RawRowSet;
@@ -281,7 +282,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		});
 		List<ColumnModel> columns = tableManagerSupport.getColumnModelsForTable(tableId);
 		RawRowSet rowSetToDelete = new RawRowSet(TableModelUtils.getIds(columns), rowsToDelete.getEtag(), tableId, rows);
-		RowReferenceSet result = tableRowTruthDao.appendRowSetToTable(user.getId().toString(), tableId, columns, rowSetToDelete);
+		RowReferenceSet result = appendRowsToTable(user, columns, rowSetToDelete);
 		// The table has change so we must reset the state.
 		tableManagerSupport.setTableToProcessingAndTriggerUpdate(tableId);
 		return result;
@@ -320,9 +321,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 			batch.add(row);
 			// batch using the actual size of the row.
 			batchSizeBytes += TableModelUtils.calculateActualRowSize(row);
-			if(batchSizeBytes >= maxBytesPerChangeSet){
-				// Validate there aren't any illegal file handle replaces
-				validateFileHandles(user, tableId, columns, delta.getRows());
+			if(batchSizeBytes >= maxBytesPerChangeSet){;
 				// Send this batch and keep the etag.
 				etag = appendBatchOfRowsToTable(user, columns, delta, results, progressCallback);
 				// Clear the batch
@@ -337,7 +336,6 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		// Send the last batch is there are any rows
 		if(!batch.isEmpty()){
 			// Validate there aren't any illegal file handle replaces
-			validateFileHandles(user, tableId, columns, delta.getRows());
 			etag = appendBatchOfRowsToTable(user, columns, delta, results, progressCallback);
 		}
 		// The table has change so we must reset the state.
@@ -373,9 +371,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	private String appendBatchOfRowsToTable(UserInfo user, List<ColumnModel> columns, RawRowSet delta, RowReferenceSet results,
 			ProgressCallback<Long> progressCallback)
 			throws IOException, ReadOnlyException {
-		// See PLFM-3041
-		checkStackWiteStatus();
-		RowReferenceSet rrs = tableRowTruthDao.appendRowSetToTable(user.getId().toString(), delta.getTableId(), columns, delta);
+		RowReferenceSet rrs = appendRowsToTable(user, columns, delta);
 		if(progressCallback != null){
 			progressCallback.progressMade(new Long(rrs.getRows().size()));
 		}
@@ -392,6 +388,54 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		}
 		return rrs.getEtag();
 	}
+
+
+	/**
+	 * Append the given rows to the 
+	 * @param user
+	 * @param columns
+	 * @param delta
+	 * @return
+	 * @throws IOException
+	 */
+	RowReferenceSet appendRowsToTable(UserInfo user, List<ColumnModel> columns,
+			RawRowSet delta) throws IOException {
+		// See PLFM-3041
+		checkStackWiteStatus();
+		validateFileHandles(user, delta.getTableId(), columns, delta.getRows());
+		
+		// Now set the row version numbers and ID.
+		int coutToReserver = TableModelUtils.countEmptyOrInvalidRowIds(delta);
+		// Reserver IDs for the missing
+		IdRange range = tableRowTruthDao.reserveIdsInRange(delta.getTableId(), coutToReserver);
+		// Are any rows being updated?
+		if (coutToReserver < delta.getRows().size()) {
+			// Validate that this update does not contain any row level conflicts.
+			tableRowTruthDao.checkForRowLevelConflict(delta.getTableId(), delta);
+		}
+		// Now assign the rowIds and set the version number
+		TableModelUtils.assignRowIdsAndVersionNumbers(delta, range);
+		
+		tableRowTruthDao.appendRowSetToTable(user.getId().toString(), delta.getTableId(), range.getEtag(), range.getVersionNumber(), columns, delta);
+		
+		// Prepare the results
+		RowReferenceSet results = new RowReferenceSet();
+		results.setHeaders(TableModelUtils.getSelectColumns(columns));
+		results.setTableId(delta.getTableId());
+		results.setEtag(range.getEtag());
+		List<RowReference> refs = new LinkedList<RowReference>();
+		// Build up the row references
+		for (Row row : delta.getRows()) {
+			RowReference ref = new RowReference();
+			ref.setRowId(row.getRowId());
+			ref.setVersionNumber(row.getVersionNumber());
+			refs.add(ref);
+		}
+		results.setRows(refs);
+		return results;
+	}
+	
+	
 	
 	@Override
 	public List<TableRowChange> listRowSetsKeysForTable(String tableId) {

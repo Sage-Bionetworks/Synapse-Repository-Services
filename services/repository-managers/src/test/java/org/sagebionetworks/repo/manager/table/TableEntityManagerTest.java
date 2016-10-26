@@ -58,6 +58,7 @@ import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.IdRange;
 import org.sagebionetworks.repo.model.table.PartialRow;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.RawRowSet;
@@ -284,6 +285,12 @@ public class TableEntityManagerTest {
 				return true;
 			}
 		}).when(mockTableIndexDAO).queryAsStream(any(ProgressCallback.class), any(SqlQuery.class), any(RowHandler.class));
+		
+		IdRange range = new IdRange();
+		range.setEtag("rangeEtg");
+		range.setVersionNumber(3L);
+		range.setMaximumId(maximumId);
+		when(mockTruthDao.reserveIdsInRange(eq(tableId), anyInt())).thenReturn(value);
 	}
 	
 	@Test (expected=UnauthorizedException.class)
@@ -298,6 +305,11 @@ public class TableEntityManagerTest {
 		manager.appendRowsAsStream(user, tableId, models, set.getRows().iterator(),
 				"etag",
 				null, mockProgressCallback);
+	}
+	
+	@Test
+	public void testAppendRowsToTable() throws IOException{
+		RowReferenceSet refSet = manager.appendRowsToTable(user, models, rawSet);
 	}
 	
 	@Test
