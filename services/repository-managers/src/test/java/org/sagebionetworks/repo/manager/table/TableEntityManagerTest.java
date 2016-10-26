@@ -30,6 +30,8 @@ import java.util.Set;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
@@ -112,6 +114,8 @@ public class TableEntityManagerTest {
 	TableManagerSupport mockTableManagerSupport;
 	@Mock
 	TableIndexManager mockIndexManager;
+	@Captor
+	ArgumentCaptor<List<String>> stringListCaptor;
 
 	
 	List<ColumnModel> models;
@@ -201,38 +205,7 @@ public class TableEntityManagerTest {
 		// read-write be default.
 		when(mockStackStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_WRITE);
 		rowIdSequence = 0;
-		rowVersionSequence = 0;
-		// Stub the dao 
-		stub(mockTruthDao.appendRowSetToTable(any(String.class), any(String.class), anyListOf(ColumnModel.class), any(RawRowSet.class)))
-				.toAnswer(new Answer<RowReferenceSet>() {
-
-					@Override
-					public RowReferenceSet answer(InvocationOnMock invocation) throws Throwable {
-						RowReferenceSet results = new RowReferenceSet();
-						String tableId = (String) invocation.getArguments()[1];
-						List<ColumnModel> columns = (List<ColumnModel>) invocation.getArguments()[2];
-						assertNotNull(columns);
-						RawRowSet rowset = (RawRowSet) invocation.getArguments()[3];
-						results.setTableId(tableId);
-						results.setEtag("etag" + rowVersionSequence);
-						List<RowReference> resultsRefs = new LinkedList<RowReference>();
-						results.setRows(resultsRefs);
-						if (rowset != null) {
-							// Set the id an version for each row
-							for (@SuppressWarnings("unused")
-							Row row : rowset.getRows()) {
-								RowReference ref = new RowReference();
-								ref.setRowId(rowIdSequence);
-								ref.setVersionNumber(rowVersionSequence);
-								resultsRefs.add(ref);
-								rowIdSequence++;
-							}
-							rowVersionSequence++;
-						}
-						return results;
-					}
-				});
-		
+		rowVersionSequence = 0;		
 		// By default set the user as the creator of all files handles
 		doAnswer(new Answer<Set<String>>() {
 
@@ -289,8 +262,10 @@ public class TableEntityManagerTest {
 		IdRange range = new IdRange();
 		range.setEtag("rangeEtg");
 		range.setVersionNumber(3L);
-		range.setMaximumId(maximumId);
-		when(mockTruthDao.reserveIdsInRange(eq(tableId), anyInt())).thenReturn(value);
+		range.setMaximumId(100L);
+		range.setMaximumUpdateId(50L);
+		range.setMinimumId(51L);
+		when(mockTruthDao.reserveIdsInRange(eq(tableId), anyInt())).thenReturn(range);
 	}
 	
 	@Test (expected=UnauthorizedException.class)
@@ -309,7 +284,23 @@ public class TableEntityManagerTest {
 	
 	@Test
 	public void testAppendRowsToTable() throws IOException{
+		// assign a rowId and version to trigger a row level conflict test.
+		rawSet.getRows().get(0).setRowId(50L);
+		rawSet.getRows().get(0).setVersionNumber(0L);
+		// Call under test
 		RowReferenceSet refSet = manager.appendRowsToTable(user, models, rawSet);
+		assertNotNull(refSet);
+		int rowCount = rawSet.getRows().size();
+		// check stack status
+		verify(mockStackStatusDao).getCurrentStatus();
+		// check file handles
+		verify(mockFileDao).getFileHandleIdsCreatedByUser(eq(user.getId()), stringListCaptor.capture());
+		List<String> fileHandes = stringListCaptor.getValue();
+		assertNotNull(fileHandes);
+		assertEquals(rowCount, fileHandes.size());
+		verify(mockTruthDao).reserveIdsInRange(tableId, new Long(rowCount-1));
+		// row level conflict test
+
 	}
 	
 	@Test
