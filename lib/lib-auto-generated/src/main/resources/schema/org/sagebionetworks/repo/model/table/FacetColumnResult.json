@@ -1,0 +1,15 @@
+{
+	"description":"Resulting information about a faceted column",
+	"type":"interface",
+    "properties":{
+		"columnName":{
+			"type": "string",
+			"description":"The name of the faceted column"
+		},
+		
+		"facetType": {
+			"description": "The type of faceting applied to this column",
+			"$ref":"org.sagebionetworks.repo.model.table.FacetType"
+		}
+	}
+}

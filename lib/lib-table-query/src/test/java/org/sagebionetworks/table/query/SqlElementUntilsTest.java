@@ -285,5 +285,4 @@ public class SqlElementUntilsTest {
 		String countSql = SqlElementUntils.createCountSql(model);
 		assertEquals("SELECT COUNT(DISTINCT foo) FROM syn123", countSql);
 	}
-
 }
