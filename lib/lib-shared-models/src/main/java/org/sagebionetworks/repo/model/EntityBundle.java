@@ -38,6 +38,7 @@ public class EntityBundle implements JSONEntity, Serializable {
 	public static int BENEFACTOR_ACL			= 0x4000;
 	public static int DOI						= 0x8000;
 	public static int FILE_NAME					= 0x10000;
+	public static int THREAD_COUNT				= 0x20000;
 	
 	private static FileHandleInstanceFactory fileHandleInstanceFactory = new FileHandleInstanceFactory();
 	private static EntityInstanceFactory entityInstanceFactory = new EntityInstanceFactory();
@@ -59,6 +60,7 @@ public class EntityBundle implements JSONEntity, Serializable {
 	public static final String JSON_ROOT_WIKI_ID = "rootWikiId";
 	public static final String JSON_DOI = "doi";
 	public static final String JSON_FILE_NAME = "fileName";
+	public static final String JSON_THREAD_COUNT = "threadCount";
 	
 	private Entity entity;
 	private String entityType;
@@ -76,6 +78,7 @@ public class EntityBundle implements JSONEntity, Serializable {
 	private AccessControlList benefactorAcl;
 	private Doi doi;
 	private String fileName;
+	private Long threadCount;
 
 	/**
 	 * Create a new EntityBundle
@@ -200,6 +203,9 @@ public class EntityBundle implements JSONEntity, Serializable {
 		if(toInitFrom.has(JSON_FILE_NAME)){
 			fileName = toInitFrom.getString(JSON_FILE_NAME);
 		}
+		if(toInitFrom.has(JSON_THREAD_COUNT)) {
+			threadCount = toInitFrom.getLong(JSON_THREAD_COUNT);
+		}
 		return toInitFrom;
 	}
 
@@ -294,6 +300,9 @@ public class EntityBundle implements JSONEntity, Serializable {
 		}
 		if (fileName != null){
 			writeTo.put(JSON_FILE_NAME, fileName);
+		}
+		if (threadCount != null) {
+			writeTo.put(JSON_THREAD_COUNT, threadCount);
 		}
 		return writeTo;
 	}
@@ -492,56 +501,45 @@ public class EntityBundle implements JSONEntity, Serializable {
 		this.fileName = fileName;
 	}
 
+	public Long getThreadCount() {
+		return threadCount;
+	}
+
+	public void setThreadCount(Long threadCount) {
+		this.threadCount = threadCount;
+	}
+
 	@Override
 	public String toString() {
-		return "EntityBundle [entity=" + entity + ", entityType=" + entityType
-				+ ", annotations=" + annotations + ", permissions="
-				+ permissions + ", path=" + path + ", referencedBy="
-				+ referencedBy + ", hasChildren=" + hasChildren + ", acl="
-				+ acl + ", accessRequirements=" + accessRequirements
-				+ ", unmetAccessRequirements=" + unmetAccessRequirements
-				+ ", fileHandles=" + fileHandles + ", tableBundle="
-				+ tableBundle + ", rootWikiId=" + rootWikiId
-				+ ", benefactorAcl=" + benefactorAcl + ", doi=" + doi
-				+ ", fileName=" + fileName + "]";
+		return "EntityBundle [entity=" + entity + ", entityType=" + entityType + ", annotations=" + annotations
+				+ ", permissions=" + permissions + ", path=" + path + ", referencedBy=" + referencedBy
+				+ ", hasChildren=" + hasChildren + ", acl=" + acl + ", accessRequirements=" + accessRequirements
+				+ ", unmetAccessRequirements=" + unmetAccessRequirements + ", fileHandles=" + fileHandles
+				+ ", tableBundle=" + tableBundle + ", rootWikiId=" + rootWikiId + ", benefactorAcl=" + benefactorAcl
+				+ ", doi=" + doi + ", fileName=" + fileName + ", threadCount=" + threadCount + "]";
 	}
 	
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime
-				* result
-				+ ((accessRequirements == null) ? 0 : accessRequirements
-						.hashCode());
+		result = prime * result + ((accessRequirements == null) ? 0 : accessRequirements.hashCode());
 		result = prime * result + ((acl == null) ? 0 : acl.hashCode());
-		result = prime * result
-				+ ((annotations == null) ? 0 : annotations.hashCode());
-		result = prime * result
-				+ ((benefactorAcl == null) ? 0 : benefactorAcl.hashCode());
+		result = prime * result + ((annotations == null) ? 0 : annotations.hashCode());
+		result = prime * result + ((benefactorAcl == null) ? 0 : benefactorAcl.hashCode());
 		result = prime * result + ((doi == null) ? 0 : doi.hashCode());
 		result = prime * result + ((entity == null) ? 0 : entity.hashCode());
-		result = prime * result
-				+ ((entityType == null) ? 0 : entityType.hashCode());
-		result = prime * result
-				+ ((fileHandles == null) ? 0 : fileHandles.hashCode());
-		result = prime * result
-				+ ((fileName == null) ? 0 : fileName.hashCode());
-		result = prime * result
-				+ ((hasChildren == null) ? 0 : hasChildren.hashCode());
+		result = prime * result + ((entityType == null) ? 0 : entityType.hashCode());
+		result = prime * result + ((fileHandles == null) ? 0 : fileHandles.hashCode());
+		result = prime * result + ((fileName == null) ? 0 : fileName.hashCode());
+		result = prime * result + ((hasChildren == null) ? 0 : hasChildren.hashCode());
 		result = prime * result + ((path == null) ? 0 : path.hashCode());
-		result = prime * result
-				+ ((permissions == null) ? 0 : permissions.hashCode());
-		result = prime * result
-				+ ((referencedBy == null) ? 0 : referencedBy.hashCode());
-		result = prime * result
-				+ ((rootWikiId == null) ? 0 : rootWikiId.hashCode());
-		result = prime * result
-				+ ((tableBundle == null) ? 0 : tableBundle.hashCode());
-		result = prime
-				* result
-				+ ((unmetAccessRequirements == null) ? 0
-						: unmetAccessRequirements.hashCode());
+		result = prime * result + ((permissions == null) ? 0 : permissions.hashCode());
+		result = prime * result + ((referencedBy == null) ? 0 : referencedBy.hashCode());
+		result = prime * result + ((rootWikiId == null) ? 0 : rootWikiId.hashCode());
+		result = prime * result + ((tableBundle == null) ? 0 : tableBundle.hashCode());
+		result = prime * result + ((threadCount == null) ? 0 : threadCount.hashCode());
+		result = prime * result + ((unmetAccessRequirements == null) ? 0 : unmetAccessRequirements.hashCode());
 		return result;
 	}
 
@@ -629,11 +627,15 @@ public class EntityBundle implements JSONEntity, Serializable {
 				return false;
 		} else if (!tableBundle.equals(other.tableBundle))
 			return false;
+		if (threadCount == null) {
+			if (other.threadCount != null)
+				return false;
+		} else if (!threadCount.equals(other.threadCount))
+			return false;
 		if (unmetAccessRequirements == null) {
 			if (other.unmetAccessRequirements != null)
 				return false;
-		} else if (!unmetAccessRequirements
-				.equals(other.unmetAccessRequirements))
+		} else if (!unmetAccessRequirements.equals(other.unmetAccessRequirements))
 			return false;
 		return true;
 	}

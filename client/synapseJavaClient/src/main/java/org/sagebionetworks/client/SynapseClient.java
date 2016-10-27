@@ -1204,6 +1204,7 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 * @throws SynapseTableUnavailableException
 	 */
+	@Deprecated
 	public RowSet getRowsFromTable(RowReferenceSet toGet) throws SynapseException, SynapseTableUnavailableException;
 
 	/**

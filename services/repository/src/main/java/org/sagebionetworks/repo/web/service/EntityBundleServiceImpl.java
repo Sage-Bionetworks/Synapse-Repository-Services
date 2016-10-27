@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.web.service;
 
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -16,6 +17,7 @@ import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityBundleCreate;
 import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.EntityIdList;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -24,6 +26,7 @@ import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
+import org.sagebionetworks.repo.model.discussion.EntityThreadCounts;
 import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -182,6 +185,18 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 				}
 			} else {
 				eb.setFileName(fileEntity.getFileNameOverride());
+			}
+		}
+		if ((mask & EntityBundle.THREAD_COUNT) > 0) {
+			EntityIdList entityIdList = new EntityIdList();
+			entityIdList.setIdList(Arrays.asList(entityId));
+			EntityThreadCounts result = serviceProvider.getDiscussionService().getThreadCounts(userId, entityIdList );
+			if (result.getList().isEmpty()) {
+				eb.setThreadCount(0L);
+			} else if (result.getList().size() == 1) {
+				eb.setThreadCount(result.getList().get(0).getCount());
+			} else {
+				throw new IllegalStateException("Unexpected EntityThreadCount list size: "+result.getList().size());
 			}
 		}
 		return eb;

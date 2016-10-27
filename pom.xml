@@ -625,27 +625,6 @@
 				<artifactId>im4java</artifactId>
 				<version>${org.im4java.version}</version>
 			</dependency>
-	
-			<dependency>
-				<groupId>org.openoffice</groupId>
-				<artifactId>juh</artifactId>
-				<version>${org.openoffice.version}</version>
-			</dependency>
-			<dependency>
-				<groupId>org.openoffice</groupId>
-				<artifactId>jurt</artifactId>
-				<version>${org.openoffice.version}</version>
-			</dependency>
-			<dependency>
-				<groupId>org.openoffice</groupId>
-				<artifactId>ridl</artifactId>
-				<version>${org.openoffice.version}</version>
-			</dependency>
-			<dependency>
-				<groupId>org.openoffice</groupId>
-				<artifactId>unoil</artifactId>
-				<version>${org.openoffice.version}</version>
-			</dependency>
 
 		</dependencies>
 	</dependencyManagement>
@@ -828,39 +807,6 @@
 					<version>${findbugs-maven-plugin.version}</version>
 				</plugin>
 				<plugin>
-					<!-- To use the clover2 plugin, you will need the license file and add 
-						the following property to the ~/.m2/settings.xml file: <maven.clover.licenseLocation>/path/to/clover.license</maven.clover.licenseLocation> -->
-					<groupId>com.atlassian.maven.plugins</groupId>
-					<artifactId>maven-clover2-plugin</artifactId>
-					<version>${maven-clover2-plugin.version}</version>
-					<configuration>
-						<excludes>
-							<exclude>**/*Test.java</exclude>
-							<exclude>**/org/sagebionetworks/repo/model/bootstrap/DatabasePreparation.java
-							</exclude>
-							<exclude>**/org/sagebionetworks/StackConfiguration.java</exclude>
-							<exclude>**/org/sagebionetworks/TemplatedConfigurationImpl.java
-							</exclude>
-							<exclude>**/org/sagebionetworks/SettingsLoader.java</exclude>
-							<exclude>**/org/sagebionetworks/StringEncrypter.java</exclude>
-							<exclude>**/org/sagebionetworks/ResourceEncoder.java</exclude>
-							<exclude>**/org/sagebionetworks/ResourceUtils.java</exclude>
-						</excludes>
-						<jdk>1.6</jdk>
-						<flushPolicy>threaded</flushPolicy>
-						<flushInterval>300</flushInterval>
-					</configuration>
-					<executions>
-						<execution>
-							<phase>pre-site</phase>
-							<goals>
-								<goal>instrument</goal>
-								<goal>aggregate</goal>
-							</goals>
-						</execution>
-					</executions>
-				</plugin>
-				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-dependency-plugin</artifactId>
 					<version>2.7</version>
@@ -872,12 +818,6 @@
 				</plugin>
 			</plugins>
 		</pluginManagement>
-		<plugins>
-			<plugin>
-				<groupId>com.atlassian.maven.plugins</groupId>
-				<artifactId>maven-clover2-plugin</artifactId>
-			</plugin>
-		</plugins>
 	</build>
 
 	<!-- Specify hard-coded project properties that should be shared here -->
@@ -912,16 +852,12 @@
 		<schema-to-pojo.version>0.3.11</schema-to-pojo.version>
 		<org.json.version>20090211</org.json.version>
 		<com.amazonaws.version>1.9.24</com.amazonaws.version>
-		<!-- Note this is the lastest version of clover that our current Atlassian 
-			license can get. -->
-		<maven-clover2-plugin.version>3.1.3</maven-clover2-plugin.version>
 		<findbugs-maven-plugin.version>2.5.2</findbugs-maven-plugin.version>
 		<org.apache.httpcomponents.version>4.2.5
 		</org.apache.httpcomponents.version>
 		<com.sun.tools.version>1.7</com.sun.tools.version>
 		<org.apache.pivot.version>2.0.1</org.apache.pivot.version>
 		<log4j.version>2.6.1</log4j.version>
-		<org.openoffice.version>3.2.1</org.openoffice.version>
 		<org.im4java.version>1.4.0</org.im4java.version>
 	</properties>
 
@@ -956,11 +892,6 @@
 				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>findbugs-maven-plugin</artifactId>
 				<version>${findbugs-maven-plugin.version}</version>
-			</plugin>
-			<plugin>
-				<groupId>com.atlassian.maven.plugins</groupId>
-				<artifactId>maven-clover2-plugin</artifactId>
-				<version>${maven-clover2-plugin.version}</version>
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>

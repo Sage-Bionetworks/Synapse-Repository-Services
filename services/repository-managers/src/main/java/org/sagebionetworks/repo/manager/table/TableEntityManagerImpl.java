@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.table;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -17,12 +18,14 @@ import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.manager.util.CollectionUtils;
 import org.sagebionetworks.manager.util.Validate;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.table.RowAccessor;
+import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.dao.table.RowSetAccessor;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.exception.ReadOnlyException;
@@ -30,6 +33,7 @@ import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.IdRange;
 import org.sagebionetworks.repo.model.table.PartialRow;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.RawRowSet;
@@ -48,8 +52,11 @@ import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
+import org.sagebionetworks.table.cluster.SQLUtils;
+import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
+import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
@@ -275,7 +282,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		});
 		List<ColumnModel> columns = tableManagerSupport.getColumnModelsForTable(tableId);
 		RawRowSet rowSetToDelete = new RawRowSet(TableModelUtils.getIds(columns), rowsToDelete.getEtag(), tableId, rows);
-		RowReferenceSet result = tableRowTruthDao.appendRowSetToTable(user.getId().toString(), tableId, columns, rowSetToDelete);
+		RowReferenceSet result = appendRowsToTable(user, columns, rowSetToDelete);
 		// The table has change so we must reset the state.
 		tableManagerSupport.setTableToProcessingAndTriggerUpdate(tableId);
 		return result;
@@ -314,9 +321,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 			batch.add(row);
 			// batch using the actual size of the row.
 			batchSizeBytes += TableModelUtils.calculateActualRowSize(row);
-			if(batchSizeBytes >= maxBytesPerChangeSet){
-				// Validate there aren't any illegal file handle replaces
-				validateFileHandles(user, tableId, columns, delta.getRows());
+			if(batchSizeBytes >= maxBytesPerChangeSet){;
 				// Send this batch and keep the etag.
 				etag = appendBatchOfRowsToTable(user, columns, delta, results, progressCallback);
 				// Clear the batch
@@ -331,7 +336,6 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		// Send the last batch is there are any rows
 		if(!batch.isEmpty()){
 			// Validate there aren't any illegal file handle replaces
-			validateFileHandles(user, tableId, columns, delta.getRows());
 			etag = appendBatchOfRowsToTable(user, columns, delta, results, progressCallback);
 		}
 		// The table has change so we must reset the state.
@@ -367,9 +371,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	private String appendBatchOfRowsToTable(UserInfo user, List<ColumnModel> columns, RawRowSet delta, RowReferenceSet results,
 			ProgressCallback<Long> progressCallback)
 			throws IOException, ReadOnlyException {
-		// See PLFM-3041
-		checkStackWiteStatus();
-		RowReferenceSet rrs = tableRowTruthDao.appendRowSetToTable(user.getId().toString(), delta.getTableId(), columns, delta);
+		RowReferenceSet rrs = appendRowsToTable(user, columns, delta);
 		if(progressCallback != null){
 			progressCallback.progressMade(new Long(rrs.getRows().size()));
 		}
@@ -386,6 +388,54 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		}
 		return rrs.getEtag();
 	}
+
+
+	/**
+	 * Append the given rows to the 
+	 * @param user
+	 * @param columns
+	 * @param delta
+	 * @return
+	 * @throws IOException
+	 */
+	RowReferenceSet appendRowsToTable(UserInfo user, List<ColumnModel> columns,
+			RawRowSet delta) throws IOException {
+		// See PLFM-3041
+		checkStackWiteStatus();
+		validateFileHandles(user, delta.getTableId(), columns, delta.getRows());
+		
+		// Now set the row version numbers and ID.
+		int coutToReserver = TableModelUtils.countEmptyOrInvalidRowIds(delta);
+		// Reserver IDs for the missing
+		IdRange range = tableRowTruthDao.reserveIdsInRange(delta.getTableId(), coutToReserver);
+		// Are any rows being updated?
+		if (coutToReserver < delta.getRows().size()) {
+			// Validate that this update does not contain any row level conflicts.
+			tableRowTruthDao.checkForRowLevelConflict(delta.getTableId(), delta);
+		}
+		// Now assign the rowIds and set the version number
+		TableModelUtils.assignRowIdsAndVersionNumbers(delta, range);
+		
+		tableRowTruthDao.appendRowSetToTable(user.getId().toString(), delta.getTableId(), range.getEtag(), range.getVersionNumber(), columns, delta);
+		
+		// Prepare the results
+		RowReferenceSet results = new RowReferenceSet();
+		results.setHeaders(TableModelUtils.getSelectColumns(columns));
+		results.setTableId(delta.getTableId());
+		results.setEtag(range.getEtag());
+		List<RowReference> refs = new LinkedList<RowReference>();
+		// Build up the row references
+		for (Row row : delta.getRows()) {
+			RowReference ref = new RowReference();
+			ref.setRowId(row.getRowId());
+			ref.setVersionNumber(row.getVersionNumber());
+			refs.add(ref);
+		}
+		results.setRows(refs);
+		return results;
+	}
+	
+	
 	
 	@Override
 	public List<TableRowChange> listRowSetsKeysForTable(String tableId) {
@@ -409,21 +459,45 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	}
 
 	@Override
-	public String getCellValue(UserInfo userInfo, String tableId, RowReference rowRef, ColumnModel column) throws IOException,
+	public Row getCellValue(UserInfo userInfo, String tableId, RowReference rowRef, ColumnModel column) throws IOException,
 			NotFoundException {
-		tableManagerSupport.validateTableReadAccess(userInfo, tableId);
-		Row row = tableRowTruthDao.getRowOriginal(tableId, rowRef, Lists.newArrayList(column));
-		return row.getValues().get(0);
+		RowSet set = getCellValues(userInfo, tableId, Lists.newArrayList(rowRef), Lists.newArrayList(column));
+		return set.getRows().get(0);
 	}
 
 	@Override
-	public RowSet getCellValues(UserInfo userInfo, String tableId, RowReferenceSet rowRefs, List<ColumnModel> columns)
+	public RowSet getCellValues(UserInfo userInfo, String tableId, List<RowReference> rows, List<ColumnModel> columns)
 			throws IOException, NotFoundException {
 		tableManagerSupport.validateTableReadAccess(userInfo, tableId);
-		return tableRowTruthDao.getRowSet(rowRefs, columns);
+		EntityType type = tableManagerSupport.getTableEntityType(tableId);
+		if(!EntityType.table.equals(type)){
+			throw new UnauthorizedException("Can only be called for TableEntities");
+		}
+		TableIndexDAO indexDao = tableConnectionFactory.getConnection(tableId);
+		String sql = SQLUtils.buildSelectRowIds(tableId, rows, columns);
+		final Map<Long, Row> rowMap = new HashMap<Long, Row>(rows.size());
+		try {
+			SqlQuery query = new SqlQuery(sql, columns);
+			indexDao.queryAsStream(null, query, new  RowHandler() {
+				@Override
+				public void nextRow(Row row) {
+					rowMap.put(row.getRowId(), row);
+				}
+			});
+			RowSet results = new RowSet();
+			results.setTableId(tableId);
+			results.setHeaders(query.getSelectColumns());
+			List<Row> resultRows = new LinkedList<Row>();
+			results.setRows(resultRows);
+			for(RowReference ref:rows){
+				Row row = rowMap.get(ref.getRowId());
+				resultRows.add(row);
+			}
+			return results;
+		} catch (ParseException e) {
+			throw new RuntimeException(e);
+		}
 	}
-
-
 	
 	private void validateRequestSize(List<ColumnModel> columns, int rowCount) {
 		// Validate the request is under the max bytes per requested

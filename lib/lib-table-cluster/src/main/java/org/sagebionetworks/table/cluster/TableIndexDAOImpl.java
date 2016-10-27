@@ -33,6 +33,7 @@ import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
+import org.sagebionetworks.table.model.Grouping;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
@@ -134,34 +135,29 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public void createOrUpdateOrDeleteRows(final RowSet rowset,
-			final List<ColumnModel> schema) {
-		if (rowset == null)
-			throw new IllegalArgumentException("Rowset cannot be null");
-		if (schema == null)
-			throw new IllegalArgumentException("Current schema cannot be null");
-
+	public void createOrUpdateOrDeleteRows(final Grouping grouping) {
+		ValidateArgument.required(grouping, "grouping");
 		// Execute this within a transaction
 		this.writeTransactionTemplate.execute(new TransactionCallback<Void>() {
 			@Override
 			public Void doInTransaction(TransactionStatus status) {
-				// Within a transaction
-				// Build the SQL
-				String createOrUpdateSql = SQLUtils.buildCreateOrUpdateRowSQL(schema,
-						rowset.getTableId());
-				String deleteSql = SQLUtils.buildDeleteSQL(schema, rowset.getTableId());
-				SqlParameterSource[] batchUpdateOrCreateBinding = SQLUtils
-						.bindParametersForCreateOrUpdate(rowset, schema);
-				SqlParameterSource batchDeleteBinding = SQLUtils
-						.bindParameterForDelete(rowset, schema);
 				// We need a named template for this case.
 				NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(template);
-				if (batchUpdateOrCreateBinding.length > 0) {
+				List<ColumnModel> groupingColumns = grouping.getColumnsWithValues();
+				if(groupingColumns.isEmpty()){
+					// This is a delete
+					String deleteSql = SQLUtils.buildDeleteSQL(grouping.getTableId());
+					SqlParameterSource batchDeleteBinding = SQLUtils
+							.bindParameterForDelete(grouping.getRows());
+					namedTemplate.update(deleteSql, batchDeleteBinding);
+				}else{
+					// this is a create or update
+					String createOrUpdateSql = SQLUtils.buildCreateOrUpdateRowSQL(groupingColumns,
+							grouping.getTableId());
+					SqlParameterSource[] batchUpdateOrCreateBinding = SQLUtils
+							.bindParametersForCreateOrUpdate(grouping);
 					namedTemplate.batchUpdate(createOrUpdateSql,
 							batchUpdateOrCreateBinding);
-				}
-				if (batchDeleteBinding != null) {
-					namedTemplate.update(deleteSql, batchDeleteBinding);
 				}
 				return null;
 			}
@@ -276,14 +272,15 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	@Override
 	public boolean queryAsStream(final ProgressCallback<Void> callback, final SqlQuery query, final RowHandler handler) {
 		ValidateArgument.required(query, "Query");
-		ValidateArgument.required(callback, "ProgressCallback");
 		// We use spring to create create the prepared statement
 		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
 		namedTemplate.query(query.getOutputSQL(), new MapSqlParameterSource(query.getParameters()), new RowCallbackHandler() {
 			@Override
 			public void processRow(ResultSet rs) throws SQLException {
 				// refresh the lock.
-				callback.progressMade(null);
+				if(callback != null){
+					callback.progressMade(null);
+				}
 				Row row = SQLTranslatorUtils.readRow(rs, query.includesRowIdAndVersion(), query.getSelectColumns());
 				handler.nextRow(row);
 			}

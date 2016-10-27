@@ -7,15 +7,22 @@ import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.*;
 
+import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Properties;
+
+import javax.mail.Session;
+import javax.mail.internet.MimeMessage;
+import javax.mail.internet.MimeMultipart;
 
 import org.apache.commons.lang.StringUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
-import org.mockito.Mockito;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.principal.SynapseEmailService;
@@ -43,24 +50,36 @@ import org.sagebionetworks.repo.util.MessageTestUtil;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import com.amazonaws.services.simpleemail.model.SendEmailRequest;
 import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
 
 
 public class MessageManagerImplUnitTest {
 	private MessageManagerImpl messageManager;
+	@Mock
 	private UserManager userManager;
+	@Mock
 	private MessageDAO messageDAO;
+	@Mock
 	private UserGroupDAO userGroupDAO;
+	@Mock
 	private GroupMembersDAO groupMembersDao;
+	@Mock
 	private UserProfileManager userProfileManager;
+	@Mock
 	private NotificationEmailDAO notificationEmailDao;
+	@Mock
 	private PrincipalAliasDAO principalAliasDAO;
+	@Mock
 	private AuthorizationManager authorizationManager;
+	@Mock
 	private FileHandleDao fileHandleDAO;
+	@Mock
 	private NodeDAO nodeDAO;
+	@Mock
 	private EntityPermissionsManager entityPermissionsManager;
+	@Mock
 	private SynapseEmailService sesClient;
+	@Mock
 	private FileHandleManager fileHandleManager;
 	
 	private MessageToUser mtu;
@@ -76,19 +95,7 @@ public class MessageManagerImplUnitTest {
 	
 	@Before
 	public void setUp() throws Exception {
-		messageDAO = Mockito.mock(MessageDAO.class);
-		userGroupDAO = Mockito.mock(UserGroupDAO.class);
-		groupMembersDao = Mockito.mock(GroupMembersDAO.class);
-		userManager = Mockito.mock(UserManager.class);
-		userProfileManager = Mockito.mock(UserProfileManager.class);
-		notificationEmailDao = Mockito.mock(NotificationEmailDAO.class);
-		principalAliasDAO = Mockito.mock(PrincipalAliasDAO.class);
-		authorizationManager = Mockito.mock(AuthorizationManager.class);
-		fileHandleDAO = Mockito.mock(FileHandleDao.class);
-		nodeDAO = Mockito.mock(NodeDAO.class);
-		entityPermissionsManager = Mockito.mock(EntityPermissionsManager.class);
-		sesClient = Mockito.mock(SynapseEmailService.class);
-		fileHandleManager = Mockito.mock(FileHandleManager.class);
+		MockitoAnnotations.initMocks(this);
 		
 		messageManager = new MessageManagerImpl();
 		ReflectionTestUtils.setField(messageManager, "messageDAO", messageDAO);
@@ -325,44 +332,52 @@ public class MessageManagerImplUnitTest {
 	}
 
 	@Test
-	public void testWelcomeEmail() {
+	public void testWelcomeEmail() throws Exception{
 		messageManager.sendWelcomeEmail(RECIPIENT_ID, DomainType.SYNAPSE, UNSUBSCRIBE_ENDPOINT);
-		ArgumentCaptor<SendEmailRequest> argument = ArgumentCaptor.forClass(SendEmailRequest.class);
-		verify(sesClient).sendEmail(argument.capture());
-		SendEmailRequest ser = argument.getValue();
+		ArgumentCaptor<SendRawEmailRequest> argument = ArgumentCaptor.forClass(SendRawEmailRequest.class);
+		verify(sesClient).sendRawEmail(argument.capture());
+		SendRawEmailRequest ser = argument.getValue();
 		assertEquals("noreply@synapse.org", ser.getSource());
-		assertEquals(1, ser.getDestination().getToAddresses().size());
-		assertEquals("bar@sagebase.org", ser.getDestination().getToAddresses().get(0));
-		assertTrue(ser.getMessage().getBody().getText().getData().indexOf(
-				"Welcome to Synapse!")>=0);
+		assertEquals(1, ser.getDestinations().size());
+		assertEquals("bar@sagebase.org", ser.getDestinations().get(0));
+		MimeMessage mimeMessage = new MimeMessage(Session.getDefaultInstance(new Properties()),
+				new ByteArrayInputStream(ser.getRawMessage().getData().array()));
+		String body = (String)((MimeMultipart) mimeMessage.getContent()).getBodyPart(0).getContent();
+		assertTrue(body.indexOf("Welcome to Synapse!")>=0);
 	}
 
 	@Test
-	public void testPasswordResetEmail() {
+	public void testPasswordResetEmail() throws Exception{
 		messageManager.sendPasswordResetEmail(RECIPIENT_ID, DomainType.SYNAPSE, "abcdefg");
-		ArgumentCaptor<SendEmailRequest> argument = ArgumentCaptor.forClass(SendEmailRequest.class);
-		verify(sesClient).sendEmail(argument.capture());
-		SendEmailRequest ser = argument.getValue();
-		assertEquals("Bar BAR <bar@synapse.org>", ser.getSource());
-		assertEquals(1, ser.getDestination().getToAddresses().size());
-		assertEquals("bar@sagebase.org", ser.getDestination().getToAddresses().get(0));
-		assertTrue(ser.getMessage().getBody().getText().getData().indexOf(
+		ArgumentCaptor<SendRawEmailRequest> argument = ArgumentCaptor.forClass(SendRawEmailRequest.class);
+		verify(sesClient).sendRawEmail(argument.capture());
+		SendRawEmailRequest ser = argument.getValue();
+		assertEquals("noreply@synapse.org", ser.getSource());
+		assertEquals(1, ser.getDestinations().size());
+		assertEquals("bar@sagebase.org", ser.getDestinations().get(0));
+		MimeMessage mimeMessage = new MimeMessage(Session.getDefaultInstance(new Properties()),
+				new ByteArrayInputStream(ser.getRawMessage().getData().array()));
+		String body = (String)((MimeMultipart) mimeMessage.getContent()).getBodyPart(0).getContent();
+		assertTrue(body.indexOf(
 				"Please follow the link below to set your password.")>=0);
 	}
 
 
 	@Test
-	public void testSendDeliveryFailureEmail() {
+	public void testSendDeliveryFailureEmail() throws Exception {
 		List<String> errors = new ArrayList<String>();
 		messageManager.sendDeliveryFailureEmail(MESSAGE_ID, errors);
-		ArgumentCaptor<SendEmailRequest> argument = ArgumentCaptor.forClass(SendEmailRequest.class);
-		verify(sesClient).sendEmail(argument.capture());
-		SendEmailRequest ser = argument.getValue();
+		ArgumentCaptor<SendRawEmailRequest> argument = ArgumentCaptor.forClass(SendRawEmailRequest.class);
+		verify(sesClient).sendRawEmail(argument.capture());
+		SendRawEmailRequest ser = argument.getValue();
 		assertEquals("noreply@synapse.org", ser.getSource());
-		assertEquals(1, ser.getDestination().getToAddresses().size());
-		assertEquals("foo@sagebase.org", ser.getDestination().getToAddresses().get(0));
-		assertTrue(ser.getMessage().getBody().getText().getData().indexOf(
-				"The following errors were experienced while delivering message")>=0);
+		assertEquals(1, ser.getDestinations().size());
+		assertEquals("foo@sagebase.org", ser.getDestinations().get(0));
+		MimeMessage mimeMessage = new MimeMessage(Session.getDefaultInstance(new Properties()),
+				new ByteArrayInputStream(ser.getRawMessage().getData().array()));
+		String body = (String)((MimeMultipart) mimeMessage.getContent()).getBodyPart(0).getContent();
+		assertTrue(body.indexOf("The following errors were experienced while delivering message")>=0);
+		assertTrue(body.indexOf(mtu.getSubject())>=0);
 	}
 	
 	@Test

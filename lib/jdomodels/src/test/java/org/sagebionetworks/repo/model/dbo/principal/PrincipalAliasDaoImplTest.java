@@ -472,6 +472,37 @@ public class PrincipalAliasDaoImplTest {
 		toLookup.add(username);
 		toLookup.add("notExist");
 		assertEquals(expected, principalAliasDao.lookupPrincipalIds(toLookup));
+	}
 
+	@Test (expected = NotFoundException.class)
+	public void testGetUserNameNotFound() {
+		principalAliasDao.getUserName(principalId+1);
+	}
+
+	@Test
+	public void testGetUserName() {
+		String username = UUID.randomUUID().toString();
+		PrincipalAlias alias = new PrincipalAlias();
+		alias.setAlias(username);
+		alias.setType(AliasType.USER_NAME);
+		alias.setPrincipalId(principalId);
+		principalAliasDao.bindAliasToPrincipal(alias);
+		assertEquals(username, principalAliasDao.getUserName(principalId));
+	}
+
+	@Test (expected = NotFoundException.class)
+	public void testGetTeamNameNotFound() {
+		principalAliasDao.getTeamName(principalId+1);
+	}
+
+	@Test
+	public void testGetTeamName() {
+		String teamName = UUID.randomUUID().toString();
+		PrincipalAlias alias = new PrincipalAlias();
+		alias.setAlias(teamName);
+		alias.setType(AliasType.TEAM_NAME);
+		alias.setPrincipalId(principalId);
+		principalAliasDao.bindAliasToPrincipal(alias);
+		assertEquals(teamName, principalAliasDao.getTeamName(principalId));
 	}
 }

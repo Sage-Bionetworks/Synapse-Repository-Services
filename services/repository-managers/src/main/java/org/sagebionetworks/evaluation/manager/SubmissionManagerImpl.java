@@ -533,7 +533,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		if (!ids.contains(fileHandleId)) {
 			throw new NotFoundException("Submission " + submissionId + " does " +
 					"not contain the requested FileHandle " + fileHandleId);
-		}			
+		}
 		// generate the URL
 		return fileHandleManager.getRedirectURLForFileHandle(fileHandleId);
 	}
@@ -683,5 +683,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		}
 		status.setCancelRequested(Boolean.TRUE);
 		submissionStatusDAO.update(Arrays.asList(status));
+		String evalId = submissionDAO.get(submissionId).getEvaluationId();
+		evaluationSubmissionsDAO.updateEtagForEvaluation(KeyFactory.stringToKey(evalId), true, ChangeType.UPDATE);
 	}
 }
