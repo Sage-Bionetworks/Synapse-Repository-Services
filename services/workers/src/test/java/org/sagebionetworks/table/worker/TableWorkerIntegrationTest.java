@@ -1736,33 +1736,9 @@ public class TableWorkerIntegrationTest {
 	
 	@Test
 	public void testFacetNoneSelected() throws Exception{
-		createSchemaOneOfEachType();
-		createTableWithSchema();
-		// Now add some data
-		RowSet rowSet = new RowSet();
-		rowSet.setRows(TableModelTestUtils.createRows(schema, 6));
-		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
-		rowSet.setTableId(tableId);
-		referenceSet = tableEntityManager.appendRows(adminUserInfo, tableId, schema,
-				rowSet, mockPprogressCallback);
-		rowSet = tableEntityManager.getCellValues(adminUserInfo, tableId, referenceSet.getRows(),
-				schema);
-		// Wait for the table to become available
-		String sql = "select * from " + tableId + " order by row_id";
-		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 7L);
-		assertEquals(6, queryResult.getQueryResults().getRows().size());
-		assertNull(queryResult.getNextPageToken());
-		compareValues(rowSet, 0, 6, queryResult.getQueryResults());
-
-		queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 6L);
-		assertEquals(6, queryResult.getQueryResults().getRows().size());
-		assertNull(queryResult.getNextPageToken());
-		compareValues(rowSet, 0, 6, queryResult.getQueryResults());
-
-		queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 5L);
-		assertEquals(5, queryResult.getQueryResults().getRows().size());
-		assertNull(queryResult.getNextPageToken());
-		compareValues(rowSet, 0, 5, queryResult.getQueryResults());
+		String sql = facetTestSetup();
+		long expectedMin = 203000;
+		long expectedMax = 203005;
 		
 		QueryResultBundle queryResultBundle = tableQueryManger.querySinglePage(mockProgressCallbackVoid, adminUserInfo, sql, null, null, 5L, 1L, true, false, true, true);
 		List<FacetColumnResult> facets = queryResultBundle.getFacets();
@@ -1787,41 +1763,17 @@ public class TableWorkerIntegrationTest {
 		assertTrue(intFacet instanceof FacetColumnResultRange);
 		FacetColumnResultRange facetRange = (FacetColumnResultRange) intFacet;
 		assertNotNull(facetRange);
-		assertEquals(203000, Long.parseLong(facetRange.getColumnMin()));
-		assertEquals(203005, Long.parseLong(facetRange.getColumnMax()));
+		assertEquals(expectedMin, Long.parseLong(facetRange.getColumnMin()));
+		assertEquals(expectedMax, Long.parseLong(facetRange.getColumnMax()));
 		
 	}
 	
 	@Test
 	public void testFacetMultipleSelected() throws Exception{
-		createSchemaOneOfEachType();
-		createTableWithSchema();
-		// Now add some data
-		RowSet rowSet = new RowSet();
-		rowSet.setRows(TableModelTestUtils.createRows(schema, 6));
-		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
-		rowSet.setTableId(tableId);
-		referenceSet = tableEntityManager.appendRows(adminUserInfo, tableId, schema,
-				rowSet, mockPprogressCallback);
-		rowSet = tableEntityManager.getCellValues(adminUserInfo, tableId, referenceSet.getRows(),
-				schema);
-		// Wait for the table to become available
-		String sql = "select * from " + tableId + " order by row_id";
-		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 7L);
-		assertEquals(6, queryResult.getQueryResults().getRows().size());
-		assertNull(queryResult.getNextPageToken());
-		compareValues(rowSet, 0, 6, queryResult.getQueryResults());
+		String sql = facetTestSetup();
 
-		queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 6L);
-		assertEquals(6, queryResult.getQueryResults().getRows().size());
-		assertNull(queryResult.getNextPageToken());
-		compareValues(rowSet, 0, 6, queryResult.getQueryResults());
-
-		queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 5L);
-		assertEquals(5, queryResult.getQueryResults().getRows().size());
-		assertNull(queryResult.getNextPageToken());
-		compareValues(rowSet, 0, 5, queryResult.getQueryResults());
-		
+		long expectedMin = 203000;
+		long expectedMax = 203003;
 		
 		List<FacetColumnRequest> selectedFacets = new ArrayList<>();
 		FacetColumnRequest selectedColumn = new FacetColumnValuesRequest();
@@ -1850,16 +1802,52 @@ public class TableWorkerIntegrationTest {
 			assertEquals("string" + i, enumVal.getValue());
 		}
 		
-		//second facet is an integer
+		//second facet is an integer range
 		FacetColumnResult intFacet = facets.get(1);
 		assertEquals(FacetType.range, intFacet.getFacetType());
 		assertTrue(intFacet instanceof FacetColumnResultRange);
 		FacetColumnResultRange facetRange = (FacetColumnResultRange) intFacet;
 		assertNotNull(facetRange);
-		//however it should affet the values in other columns
-		assertEquals(203000, Long.parseLong(facetRange.getColumnMin()));
-		assertEquals(203003, Long.parseLong(facetRange.getColumnMax()));
+		//it should affect the values in other columns when a facet of another column is selected
+		assertEquals(expectedMin, Long.parseLong(facetRange.getColumnMin()));
+		assertEquals(expectedMax, Long.parseLong(facetRange.getColumnMax()));
 		
+	}
+	
+	/**
+	 * Stolen from testLimitOffset()
+	 */
+	private String facetTestSetup() throws Exception{
+		createSchemaOneOfEachType();
+		createTableWithSchema();
+		// Now add some data
+		RowSet rowSet = new RowSet();
+		rowSet.setRows(TableModelTestUtils.createRows(schema, 6));
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
+		rowSet.setTableId(tableId);
+		referenceSet = tableEntityManager.appendRows(adminUserInfo, tableId, schema,
+				rowSet, mockPprogressCallback);
+		String sql = "select * from " + tableId;
+		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 7L);
+		rowSet = tableEntityManager.getCellValues(adminUserInfo, tableId, referenceSet.getRows(),
+				schema);
+		// Wait for the table to become available
+		sql = "select * from " + tableId + " order by row_id";
+		queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 7L);
+		assertEquals(6, queryResult.getQueryResults().getRows().size());
+		assertNull(queryResult.getNextPageToken());
+		compareValues(rowSet, 0, 6, queryResult.getQueryResults());
+
+		queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 6L);
+		assertEquals(6, queryResult.getQueryResults().getRows().size());
+		assertNull(queryResult.getNextPageToken());
+		compareValues(rowSet, 0, 6, queryResult.getQueryResults());
+
+		queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 5L);
+		assertEquals(5, queryResult.getQueryResults().getRows().size());
+		assertNull(queryResult.getNextPageToken());
+		compareValues(rowSet, 0, 5, queryResult.getQueryResults());
+		return sql;
 	}
 	
 	/**
