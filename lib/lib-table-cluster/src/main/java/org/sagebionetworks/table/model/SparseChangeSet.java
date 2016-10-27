@@ -36,9 +36,13 @@ public class SparseChangeSet {
 	 * @param versionNumber
 	 */
 	public SparseChangeSet(String tableId, List<ColumnModel> schema) {
+		this(tableId, schema, null);
+	}
+	
+	public SparseChangeSet(String tableId, List<ColumnModel> schema, String etag) {
 		ValidateArgument.required(tableId, "tableId");
 		ValidateArgument.required(schema, "schema");
-		initialize(tableId, schema);
+		initialize(tableId, schema, etag);
 	}
 	
 	/**
@@ -53,8 +57,7 @@ public class SparseChangeSet {
 		ValidateArgument.required(dto.getColumnIds(), "dto.columnIds");
 		ValidateArgument.required(dto.getRows(), "dto.rows");
 		ValidateArgument.required(columnProvider, "columnProvider");
-		initialize(dto.getTableId(), columnProvider.getColumns(dto.getColumnIds()));
-		this.etag = dto.getEtag();
+		initialize(dto.getTableId(), columnProvider.getColumns(dto.getColumnIds()), dto.getEtag());
 		// Add all of the rows from the DTO.
 		addAllRows(dto.getRows());
 	}
@@ -65,10 +68,10 @@ public class SparseChangeSet {
 	 * @param schema
 	 * @param rows
 	 */
-	public SparseChangeSet(String tableId, List<ColumnModel> schema, List<SparseRowDto> rows){
+	public SparseChangeSet(String tableId, List<ColumnModel> schema, List<SparseRowDto> rows, String etag){
 		ValidateArgument.required(tableId, "tableId");
 		ValidateArgument.required(schema, "schema");
-		initialize(tableId, schema);
+		initialize(tableId, schema, etag);
 		addAllRows(rows);
 	}
 
@@ -96,10 +99,11 @@ public class SparseChangeSet {
 	 * @param schema
 	 * @param versionNumber
 	 */
-	private void initialize(String tableId, List<ColumnModel> schema) {
+	private void initialize(String tableId, List<ColumnModel> schema, String etag) {
 		this.tableId = tableId;
 		this.sparseRows = new LinkedList<SparseRow>();
 		this.schema = new LinkedList<>(schema);
+		this.etag = etag;
 		schemaMap = new HashMap<String, ColumnModel>(schema.size());
 		columnIndexMap = new HashMap<String, Integer>(schema.size());
 		for (int i = 0; i < schema.size(); i++) {

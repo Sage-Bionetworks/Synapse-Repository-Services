@@ -12,7 +12,6 @@ import java.util.Set;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.collections.Transform;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.manager.util.CollectionUtils;
@@ -25,9 +24,7 @@ import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
-import org.sagebionetworks.repo.model.dao.table.RowAccessor;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
-import org.sagebionetworks.repo.model.dao.table.RowSetAccessor;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.exception.ReadOnlyException;
 import org.sagebionetworks.repo.model.status.StatusEnum;
@@ -37,7 +34,6 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.IdRange;
 import org.sagebionetworks.repo.model.table.PartialRow;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
-import org.sagebionetworks.repo.model.table.RawRowSet;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
@@ -62,22 +58,17 @@ import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.model.SparseRow;
 import org.sagebionetworks.table.query.ParseException;
-import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.support.TransactionTemplate;
 
-import com.google.common.base.Function;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 public class TableEntityManagerImpl implements TableEntityManager {
 	
 	private static final int EXCLUSIVE_LOCK_TIMEOUT_MS = 5*1000;
-
-	private static final String PARTIAL_ROW_KEY_NOT_A_VALID = "PartialRow.value.key: '%s' is not a valid column ID for row ID: %s";
 
 	static private Log log = LogFactory.getLog(TableEntityManagerImpl.class);
 
@@ -129,32 +120,47 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		validateRequestSize(columns, delta.getRows().size());
 		// For this case we want to capture the resulting RowReferenceSet
 		RowReferenceSet results = new RowReferenceSet();
-		appendRowsAsStream(user, tableId, columns, delta.getRows().iterator(), delta.getEtag(), results, progressCallback);
+		SparseChangeSet sparseChangeSet = TableModelUtils.createSparseChangeSet(delta, columns);
+		SparseChangeSetDto dto = sparseChangeSet.writeToDto();
+		appendRowsAsStream(user, tableId, columns, dto.getRows().iterator(), delta.getEtag(), results, progressCallback);
 		return results;
 	}
 	
 	@WriteTransactionReadCommitted
 	@Override
 	public RowReferenceSet appendPartialRows(UserInfo user, String tableId, List<ColumnModel> columns,
-			PartialRowSet rowsToAppendOrUpdateOrDelete, ProgressCallback<Long> progressCallback)
+			PartialRowSet partial, ProgressCallback<Long> progressCallback)
 			throws DatastoreException, NotFoundException, IOException {
 		Validate.required(user, "User");
 		Validate.required(tableId, "TableId");
 		Validate.required(columns, "columns");
-		Validate.required(rowsToAppendOrUpdateOrDelete, "RowsToAppendOrUpdate");
+		Validate.required(partial, "RowsToAppendOrUpdate");
 		// Validate the request is under the max bytes per requested
-		validateRequestSize(columns, rowsToAppendOrUpdateOrDelete.getRows().size());
-		// For this case we want to capture the resulting RowReferenceSet
-		RowReferenceSet results = new RowReferenceSet();
+		validateRequestSize(columns, partial.getRows().size());
+		
+		/*
+		 * Partial change sets do not require row level conflict checking.
+		 * By using the version number and etag from the last row change applied
+		 * to the table, row level conflict check is bypassed.
+		 */
+		TableRowChange lastRowChange = tableRowTruthDao.getLastTableRowChange(tableId, TableChangeType.ROW);
+		Long versionNumber = 0L;
+		String lastEtag = null;
+		if(lastRowChange != null){
+			versionNumber = lastRowChange.getRowVersion();
+			lastEtag = lastRowChange.getEtag();
+		}
+		
 		List<SparseRowDto> sparseRows = new LinkedList<SparseRowDto>();
-		for(PartialRow partialRow: rowsToAppendOrUpdateOrDelete.getRows()){
+		for(PartialRow partialRow: partial.getRows()){
 			SparseRowDto sparseRow = new SparseRowDto();
 			sparseRow.setRowId(partialRow.getRowId());
+			sparseRow.setVersionNumber(versionNumber);
 			sparseRow.setValues(partialRow.getValues());
 			sparseRows.add(sparseRow);
 		}
-		
-		appendRowsAsStream(user, tableId, columns, sparseRows.iterator(), results, progressCallback);
+		RowReferenceSet results = new RowReferenceSet();
+		appendRowsAsStream(user, tableId, columns, sparseRows.iterator(), lastEtag, results, progressCallback);
 		return results;
 	}
 
@@ -169,21 +175,16 @@ public class TableEntityManagerImpl implements TableEntityManager {
 
 		// Validate the user has permission to edit the table
 		tableManagerSupport.validateTableWriteAccess(user, tableId);
-
-		// create a rowset of all deletes
-		List<Row> rows = Transform.toList(rowsToDelete.getRowIds(), new Function<Long, Row>() {
-			@Override
-			public Row apply(Long input) {
-				Row row = new Row();
-				row.setRowId(input);
-				row.setVersionNumber(null);
-				row.setValues(null);
-				return row;
-			}
-		});
+		
 		List<ColumnModel> columns = tableManagerSupport.getColumnModelsForTable(tableId);
-		RawRowSet rowSetToDelete = new RawRowSet(TableModelUtils.getIds(columns), rowsToDelete.getEtag(), tableId, rows);
-		RowReferenceSet result = appendRowsToTable(user, columns, rowSetToDelete);
+		SparseChangeSet changeSet = new SparseChangeSet(tableId, columns, rowsToDelete.getEtag());
+		for(Long rowId: rowsToDelete.getRowIds()){
+			SparseRow row = changeSet.addEmptyRow();
+			// A delete row has an ID and no values.
+			row.setRowId(rowId);
+		}
+		
+		RowReferenceSet result = appendRowsToTable(user, columns, changeSet);
 		// The table has change so we must reset the state.
 		tableManagerSupport.setTableToProcessingAndTriggerUpdate(tableId);
 		return result;
@@ -198,7 +199,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 
 	@WriteTransactionReadCommitted
 	@Override
-	public String appendRowsAsStream(UserInfo user, String tableId, List<ColumnModel> columns, Iterator<SparseRowDto> rowStream,
+	public String appendRowsAsStream(UserInfo user, String tableId, List<ColumnModel> columns, Iterator<SparseRowDto> rowStream, String etag,
 			RowReferenceSet results, ProgressCallback<Long> progressCallback) throws DatastoreException, NotFoundException, IOException {
 		ValidateArgument.required(user, "User");
 		ValidateArgument.required(tableId, "TableId");
@@ -221,7 +222,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 			batchSizeBytes += TableModelUtils.calculateActualRowSize(row);
 			if(batchSizeBytes >= maxBytesPerChangeSet){
 				// Send this batch and keep the etag.
-				SparseChangeSet delta = new SparseChangeSet(tableId, columns, batch);
+				SparseChangeSet delta = new SparseChangeSet(tableId, columns, batch, etag);
 				etag = appendBatchOfRowsToTable(user, columns, delta, results, progressCallback);
 				// Clear the batch
 				count += batch.size();
@@ -235,7 +236,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		// Send the last batch is there are any rows
 		if(!batch.isEmpty()){
 			// Validate there aren't any illegal file handle replaces
-			SparseChangeSet delta = new SparseChangeSet(tableId, columns, batch);
+			SparseChangeSet delta = new SparseChangeSet(tableId, columns, batch, etag);
 			etag = appendBatchOfRowsToTable(user, columns, delta, results, progressCallback);
 		}
 		// The table has change so we must reset the state.
