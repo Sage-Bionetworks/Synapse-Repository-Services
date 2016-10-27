@@ -56,7 +56,29 @@ public class SparseChangeSet {
 		initialize(dto.getTableId(), columnProvider.getColumns(dto.getColumnIds()));
 		this.etag = dto.getEtag();
 		// Add all of the rows from the DTO.
-		for(SparseRowDto row: dto.getRows()){
+		addAllRows(dto.getRows());
+	}
+	
+	/**
+	 * Create a SparseChangeSet.
+	 * @param tableId
+	 * @param schema
+	 * @param rows
+	 */
+	public SparseChangeSet(String tableId, List<ColumnModel> schema, List<SparseRowDto> rows){
+		ValidateArgument.required(tableId, "tableId");
+		ValidateArgument.required(schema, "schema");
+		initialize(tableId, schema);
+		addAllRows(rows);
+	}
+
+	/**
+	 * Add all of the given rows to this change set.
+	 * @param rows
+	 */
+	public void addAllRows(Iterable<SparseRowDto> rows) {
+		// Add all of the rows from the DTO.
+		for(SparseRowDto row: rows){
 			SparseRow sparse = this.addEmptyRow();
 			sparse.setRowId(row.getRowId());
 			sparse.setVersionNumber(row.getVersionNumber());

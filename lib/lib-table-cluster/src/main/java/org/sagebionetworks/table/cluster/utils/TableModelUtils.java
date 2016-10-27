@@ -261,12 +261,11 @@ public class TableModelUtils {
 	 * Validate the given SparseChangeSetDto.
 	 * @param set
 	 */
-	public static void validateRowSet(SparseChangeSetDto set) {
-		ValidateArgument.required(set, "SparseChangeSetDto");
-		ValidateArgument.required(set.getColumnIds(), "SparseChangeSetDto.columnIds");
-		ValidateArgument.required(set.getRows(), "SparseChangeSetDto.rows");
-		ValidateArgument.requirement(!set.getRows().isEmpty(), "SparseChangeSetDto.rows must contain at least one row");
-		ValidateArgument.required(set.getTableId(), "SparseChangeSetDto.tableId");
+	public static void validateRowSet(SparseChangeSet set) {
+		ValidateArgument.required(set, "SparseChangeSet");
+		ValidateArgument.required(set.getSchema(), "SparseChangeSet.schema");
+		ValidateArgument.requirement(set.getRowCount() > 0, "SparseChangeSet must contain at least one row.");
+		ValidateArgument.required(set.getTableId(), "SparseChangeSet.tableId");
 	}
 	
 	/**
@@ -450,26 +449,10 @@ public class TableModelUtils {
 	 * Count all of the empty or invalid rows in the set
 	 * @param set
 	 */
-	@Deprecated
-	public static int countEmptyOrInvalidRowIds(RawRowSet set) {
+	public static int countEmptyOrInvalidRowIds(SparseChangeSet set) {
 		validateRowSet(set);
 		int count = 0;
-		for (Row row : set.getRows()) {
-			if(isNullOrInvalid(row.getRowId())){
-				count++;
-			}
-		}
-		return count;
-	}
-	
-	/**
-	 * Count all of the empty or invalid rows in the set
-	 * @param set
-	 */
-	public static int countEmptyOrInvalidRowIds(SparseChangeSetDto set) {
-		validateRowSet(set);
-		int count = 0;
-		for (SparseRowDto row : set.getRows()) {
+		for (SparseRow row : set.rowIterator()) {
 			if(isNullOrInvalid(row.getRowId())){
 				count++;
 			}
@@ -535,10 +518,10 @@ public class TableModelUtils {
 	 * @param set
 	 * @param range
 	 */
-	public static void assignRowIdsAndVersionNumbers(SparseChangeSetDto set, IdRange range) {
+	public static void assignRowIdsAndVersionNumbers(SparseChangeSet set, IdRange range) {
 		validateRowSet(set);
 		Long id = range.getMinimumId();
-		for (SparseRowDto row : set.getRows()) {
+		for (SparseRow row : set.rowIterator()) {
 			// Set the version number for each row
 			row.setVersionNumber(range.getVersionNumber());
 			if(isNullOrInvalid(row.getRowId())){
@@ -797,12 +780,12 @@ public class TableModelUtils {
 	 * @param rows
 	 * @return
 	 */
-	public static Map<Long, Long> getDistictValidRowIds(Iterable<Row> rows) {
+	public static Map<Long, Long> getDistictValidRowIds(Iterable<SparseRow> rows) {
 		ValidateArgument.required(rows, "rows");
 		Map<Long, Long> distictRowIds = Maps.newHashMap();
-		for (Row ref : rows) {
+		for (SparseRow ref : rows) {
 			if (!isNullOrInvalid(ref.getRowId())) {
-				if(ref.getValues() != null){
+				if(!ref.isDelete()){
 					if (distictRowIds.put(ref.getRowId(), ref.getVersionNumber()) != null) {
 						// the row id is found twice int the same rowset
 						throw new IllegalArgumentException("The row id " + ref.getRowId() + " is included more than once in the rowset");
@@ -984,13 +967,15 @@ public class TableModelUtils {
 	 * @param row
 	 * @return
 	 */
-	public static int calculateActualRowSize(Row row){
+	public static int calculateActualRowSize(SparseRowDto row){
 		// row ID + row version.
 		int bytes = ColumnConstants.MAX_INTEGER_BYTES_AS_STRING*2;
 		if(row.getValues() != null){
-			for(String value: row.getValues()){
-				if(value != null){
-					bytes += value.length() * ColumnConstants.MAX_BYTES_PER_CHAR_UTF_8;
+			for(String key: row.getValues().keySet()){
+				String value = row.getValues().get(key);
+				if (value != null) {
+					bytes += value.length()
+							* ColumnConstants.MAX_BYTES_PER_CHAR_UTF_8;
 				}
 			}
 		}

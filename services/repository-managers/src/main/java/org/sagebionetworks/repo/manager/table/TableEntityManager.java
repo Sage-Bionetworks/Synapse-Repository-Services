@@ -17,6 +17,7 @@ import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.SparseRowDto;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateResponse;
@@ -84,9 +85,6 @@ public interface TableEntityManager {
 	 * @param tableId The ID of the table entity to append the rows too.
 	 * @param models The schema of the rows being appended.
 	 * @param rowStream The stream of rows to append to the table.
-	 * @param etag
-	 *            The last etag read before apply an update. An etag must be
-	 *            provide if any rows are being updated.
 	 * @param results
 	 *            This parameter is optional. When provide, it will be populated
 	 *            with a RowReference for each row appended to the table. This
@@ -98,7 +96,7 @@ public interface TableEntityManager {
 	 * @throws NotFoundException
 	 * @throws IOException
 	 */
-	String appendRowsAsStream(UserInfo user, String tableId, List<ColumnModel> columns, Iterator<Row> rowStream, String etag,
+	String appendRowsAsStream(UserInfo user, String tableId, List<ColumnModel> columns, Iterator<SparseRowDto> rowStream,
 			RowReferenceSet results, ProgressCallback<Long> progressCallback) throws DatastoreException, NotFoundException, IOException;
 
 	/**

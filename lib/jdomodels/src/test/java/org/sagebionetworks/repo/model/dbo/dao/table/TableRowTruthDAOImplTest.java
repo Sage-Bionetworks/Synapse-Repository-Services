@@ -206,11 +206,6 @@ public class TableRowTruthDAOImplTest {
 		int coutToReserver = TableModelUtils.countEmptyOrInvalidRowIds(delta);
 		// Reserver IDs for the missing
 		IdRange range = tableRowTruthDao.reserveIdsInRange(delta.getTableId(), coutToReserver);
-		// Are any rows being updated?
-		if (coutToReserver < delta.getRows().size()) {
-			// Validate that this update does not contain any row level conflicts.
-			tableRowTruthDao.checkForRowLevelConflict(delta.getTableId(), delta);
-		}
 		// Now assign the rowIds and set the version number
 		TableModelUtils.assignRowIdsAndVersionNumbers(delta, range);
 		
@@ -230,6 +225,28 @@ public class TableRowTruthDAOImplTest {
 		}
 		results.setRows(refs);
 		return results;
+	}
+	
+	/**
+	 * Helper to append SparseChangeSetDto to a table.
+	 * @param userId
+	 * @param tableId
+	 * @param columns
+	 * @param delta
+	 * @return
+	 * @throws IOException
+	 */
+	private long appendRowSetToTable(String userId,
+			String tableId, List<ColumnModel> columns, SparseChangeSetDto delta) throws IOException {
+		// Now set the row version numbers and ID.
+		int coutToReserver = TableModelUtils.countEmptyOrInvalidRowIds(delta);
+		// Reserver IDs for the missing
+		IdRange range = tableRowTruthDao.reserveIdsInRange(delta.getTableId(), coutToReserver);
+		// Now assign the rowIds and set the version number
+		TableModelUtils.assignRowIdsAndVersionNumbers(delta, range);
+		
+		tableRowTruthDao.appendRowSetToTable(userId, delta.getTableId(), range.getEtag(), range.getVersionNumber(), columns, delta);
+		return range.getVersionNumber();
 	}
 
 	@Test
@@ -1161,13 +1178,7 @@ public class TableRowTruthDAOImplTest {
 		dto.setColumnIds(columnIds);
 		
 		// Save it
-		RowReferenceSet refSet = tableRowTruthDao.appendRowSetToTable(userId, tableId, schema, dto);
-		assertNotNull(refSet);
-		long versionNumber = -1;
-		for(RowReference ref: refSet.getRows()){
-			versionNumber = ref.getVersionNumber();
-		}
-		
+		long versionNumber = appendRowSetToTable(userId, tableId, schema, dto);
 		// fetch it back
 		SparseChangeSetDto copy = tableRowTruthDao.getRowSet(tableId, versionNumber);
 		assertEquals(dto, copy);

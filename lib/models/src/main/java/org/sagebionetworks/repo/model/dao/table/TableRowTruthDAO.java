@@ -2,9 +2,7 @@ package org.sagebionetworks.repo.model.dao.table;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Set;
 
-import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.IdRange;
@@ -89,7 +87,7 @@ public interface TableRowTruthDAO {
 	 * @return
 	 * @throws IOException
 	 */
-	public RowReferenceSet appendRowSetToTable(String userId, String tableId, List<ColumnModel> columns, SparseChangeSetDto delta)
+	public void appendRowSetToTable(String userId, String tableId, String etag, long versionNumber, List<ColumnModel> columns, SparseChangeSetDto delta)
 			throws IOException;
 	
 	/**
@@ -135,6 +133,14 @@ public interface TableRowTruthDAO {
 	public SparseChangeSetDto getRowSet(String tableId, long rowVersion) throws IOException;
 	
 	/**
+	 * Get the ChangeSet for the given dto.
+	 * @param rowChange
+	 * @return
+	 * @throws IOException 
+	 */
+	public SparseChangeSetDto getRowSet(TableRowChange dto) throws IOException;
+	
+	/**
 	 * Use this method to scan over an entire RowSet without loading the set into memory.  For each row found in the 
 	 * set, the passed handler will be called with the value of the row.
 	 * @param tableId
@@ -177,20 +183,6 @@ public interface TableRowTruthDAO {
 	 * @throws NotFoundException
 	 */
 	public Row getRowOriginal(String tableId, RowReference ref, List<ColumnModel> columns) throws IOException, NotFoundException;
-	
-	/**
-	 * Get all the latest versions of the rows specified by the rowIds
-	 * 
-	 * @param tableId
-	 * @param rowIdsInOut the set of row ids to find
-	 * @param minVersion only check with versions equal or greater than the minVersion
-	 * @param columnMapper
-	 * @return
-	 * @throws IOException
-	 * @throws NotFoundException
-	 */
-	public RowSetAccessor getLatestVersionsWithRowData(String tableId, Set<Long> rowIds, long minVersion, List<ColumnModel> columns)
-			throws IOException, NotFoundException;
 
 	/**
 	 * List the keys of all change sets applied to a table.
@@ -235,25 +227,13 @@ public interface TableRowTruthDAO {
 	public void truncateAllRowData();
 	
 	/**
-	 * Check for a row level conflicts in the passed change sets, by scanning
-	 * each row of each change set and looking for the intersection with the
-	 * passed row Ids.
-	 * 
-	 * @param tableId
-	 * @param delta
-	 * @throws IOException 
-	 * @throws ConflictingUpdateException
-	 *             when a conflict is found
-	 */
-	public void checkForRowLevelConflict(String tableId, RawRowSet delta) throws IOException;
-
-	/**
 	 * Scan over a given changeset
 	 * @param handler
 	 * @param dto
 	 * @throws IOException
 	 */
 	public void scanChange(RowHandler handler, TableRowChange dto) throws IOException;
+
 	
 	
 }
