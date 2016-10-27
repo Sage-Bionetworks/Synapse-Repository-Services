@@ -31,11 +31,12 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
+import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseServerException;
-import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
 import org.sagebionetworks.client.exceptions.SynapseTooManyRequestsException;
+import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
 
 public class SharedClientConnectionTest {
 	
@@ -293,6 +294,26 @@ public class SharedClientConnectionTest {
 		assertEquals(expectedResponse, result);
 		assertNotNull(requestHeaderCaptor.getValue().get("signature"));
 		assertNotNull(requestHeaderCaptor.getValue().get("signatureTimestamp"));
+	}
+	
+	@Test(expected = IllegalArgumentException.class)
+	public void testSetUserIpAddressNull(){
+		sharedClientConnection.setUserIp(null);
+	}
+	
+	@Test(expected = IllegalArgumentException.class)
+	public void testSetUserIpAddressIncorrectFormat(){
+		sharedClientConnection.setUserIp("123.122.999.999");
+	}
+	
+	@Test
+	public void testSetUserIpAddress() throws SynapseException{
+		String ip = "127.0.0.1";
+		String body = "{\"foo\":\"bar\"}";
+		configureMockHttpResponse(201, body);
+		sharedClientConnection.setUserIp(ip);
+		sharedClientConnection.postJson(endpoint, uri,jsonString, userAgent, null);
+		assertEquals(ip, requestHeaderCaptor.getValue().get("X-Forwarded-For"));
 	}
 	
 

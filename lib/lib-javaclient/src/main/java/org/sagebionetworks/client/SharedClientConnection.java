@@ -22,6 +22,7 @@ import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.client.utils.URIBuilder;
+import org.apache.http.conn.util.InetAddressUtils;
 import org.apache.http.entity.ContentType;
 import org.apache.http.util.EntityUtils;
 import org.apache.logging.log4j.LogManager;
@@ -53,6 +54,7 @@ import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.securitytools.HMACUtils;
 import org.sagebionetworks.util.RetryException;
 import org.sagebionetworks.util.TimeUtils;
+import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.utils.HttpClientHelperException;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
 
@@ -75,6 +77,7 @@ public class SharedClientConnection {
 	protected static final String DEFAULT_AUTH_ENDPOINT = "https://repo-prod.prod.sagebase.org/auth/v1";
 	private static final String SESSION_TOKEN_HEADER = "sessionToken";
 	private static final String REQUEST_PROFILE_DATA = "profile_request";
+	private static final String X_FORWARDED_FOR_HEADER = "X-Forwarded-For";
 
 	protected String authEndpoint;
 
@@ -795,6 +798,16 @@ public class SharedClientConnection {
 			request.setHeader(headerEntry.getKey(), headerEntry.getValue());
 		}
 		request.setHeader(USER_AGENT, userAgent);
+	}
+	
+	public void setUserIp(String ipAddress){
+		ValidateArgument.required(ipAddress, "ipAddress");
+		//verify that it is a proper IP address
+		if( !( InetAddressUtils.isIPv4Address(ipAddress) || InetAddressUtils.isIPv6Address(ipAddress) ) ){
+			throw new IllegalArgumentException("The provided ipAddress:" + ipAddress + " is not a standard IP address.");
+		}
+		defaultGETDELETEHeaders.put(X_FORWARDED_FOR_HEADER, ipAddress);
+		defaultPOSTPUTHeaders.put(X_FORWARDED_FOR_HEADER, ipAddress);
 	}
 }
 
