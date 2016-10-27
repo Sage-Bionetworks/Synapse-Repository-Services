@@ -10,6 +10,6 @@
 		"facetType": {
 			"description": "The type of faceting applied to this column",
 			"$ref":"org.sagebionetworks.repo.model.table.FacetType"
-		},
+		}
 	}
 }

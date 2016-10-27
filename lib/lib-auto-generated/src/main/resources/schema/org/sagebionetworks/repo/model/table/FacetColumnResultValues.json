@@ -12,7 +12,7 @@
 			"items": {
 				"$ref": "org.sagebionetworks.repo.model.table.FacetColumnResultValueCount"
 			}
-		},
+		}
 	}
 }
 
