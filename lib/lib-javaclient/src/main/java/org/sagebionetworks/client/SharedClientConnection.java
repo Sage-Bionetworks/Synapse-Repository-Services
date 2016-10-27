@@ -370,16 +370,23 @@ public class SharedClientConnection {
 		} 
 		setHeaders(get, modHeaders, userAgent);
 		// Add the header that sets the content type and the boundary
-		HttpResponse response = clientProvider.execute(get);
-		HttpEntity entity = response.getEntity();
-		int statusCode = response.getStatusLine().getStatusCode();
-		if (!isOKStatusCode(statusCode)) {
-			// we only want to read the input stream in case of an error
-			String responseBody = (null != entity) ? EntityUtils.toString(entity) : null;
-			convertHttpResponseToException(statusCode, responseBody);
+		HttpResponse response = null;
+		try {
+			response = clientProvider.execute(get);
+			HttpEntity entity = response.getEntity();
+			int statusCode = response.getStatusLine().getStatusCode();
+			if (!isOKStatusCode(statusCode)) {
+				// we only want to read the input stream in case of an error
+				String responseBody = (null != entity) ? EntityUtils.toString(entity) : null;
+				convertHttpResponseToException(statusCode, responseBody);
+			}
+			Charset charset = getCharacterSetFromResponse(response);
+			return FileUtils.readStreamAsString(entity.getContent(), charset, /*gunzip*/true);
+		} finally {
+			if (response != null) {
+				EntityUtils.consumeQuietly(response.getEntity());
+			}
 		}
-		Charset charset = getCharacterSetFromResponse(response);
-		return FileUtils.readStreamAsString(entity.getContent(), charset, /*gunzip*/true);
 	}
 
 	public File downloadFromSynapse(String url, String md5,
@@ -679,9 +686,9 @@ public class SharedClientConnection {
 		String requestUrl = null;
 		String responseBody = null;
 		int statusCode = 0;
+		HttpResponse response = null;
 		try {
 			requestUrl = createRequestUrl(endpoint, uri, parameters);
-			HttpResponse response;
 			if (retryRequestIfServiceUnavailable) {
 				response = performRequestWithRetry(requestUrl, requestMethod, requestContent, requestHeaders);
 			} else {
@@ -694,13 +701,14 @@ public class SharedClientConnection {
 			if (errorHandler != null) {
 				errorHandler.handleError(statusCode, responseBody);
 			}
+			return new ResponseBodyAndStatusCode(responseBody, statusCode);
 		} catch (SynapseServerException sse) {
 			throw sse;
 		} catch (Exception e) {
 			throw new SynapseClientException(e);
+		} finally {
+			EntityUtils.consumeQuietly(response.getEntity());
 		}
-		
-		return new ResponseBodyAndStatusCode(responseBody, statusCode);
 	}
 	
 	protected JSONObject convertResponseBodyToJSON(

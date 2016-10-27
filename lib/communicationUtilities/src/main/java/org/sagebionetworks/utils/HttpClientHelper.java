@@ -23,7 +23,6 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 
-import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
@@ -670,15 +669,19 @@ public class HttpClientHelper {
 		}
 
 		HttpResponse response = client.execute(put);
-		if (300 <= response.getStatusLine().getStatusCode()) {
-			String errorMessage = "Request(" + requestUrl + ") failed: "
-					+ response.getStatusLine().getReasonPhrase();
-			HttpEntity responseEntity = response.getEntity();
-			String responseContent = EntityUtils.toString(responseEntity);
-			if (null != responseEntity) {
-				errorMessage += responseContent;
+		try {
+			if (300 <= response.getStatusLine().getStatusCode()) {
+				String errorMessage = "Request(" + requestUrl + ") failed: "
+						+ response.getStatusLine().getReasonPhrase();
+				HttpEntity responseEntity = response.getEntity();
+				String responseContent = EntityUtils.toString(responseEntity);
+				if (null != responseEntity) {
+					errorMessage += responseContent;
+				}
+				throw new HttpClientHelperException(errorMessage, response.getStatusLine().getStatusCode(), responseContent);
 			}
-			throw new HttpClientHelperException(errorMessage, response.getStatusLine().getStatusCode(), responseContent);
+		} finally {
+			EntityUtils.consumeQuietly(response.getEntity());
 		}
 	}
 }
