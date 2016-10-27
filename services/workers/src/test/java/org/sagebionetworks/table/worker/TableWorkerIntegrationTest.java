@@ -1745,7 +1745,7 @@ public class TableWorkerIntegrationTest {
 		rowSet.setTableId(tableId);
 		referenceSet = tableEntityManager.appendRows(adminUserInfo, tableId, schema,
 				rowSet, mockPprogressCallback);
-		rowSet = tableEntityManager.getCellValues(adminUserInfo, tableId, referenceSet,
+		rowSet = tableEntityManager.getCellValues(adminUserInfo, tableId, referenceSet.getRows(),
 				schema);
 		// Wait for the table to become available
 		String sql = "select * from " + tableId + " order by row_id";
@@ -1803,7 +1803,7 @@ public class TableWorkerIntegrationTest {
 		rowSet.setTableId(tableId);
 		referenceSet = tableEntityManager.appendRows(adminUserInfo, tableId, schema,
 				rowSet, mockPprogressCallback);
-		rowSet = tableEntityManager.getCellValues(adminUserInfo, tableId, referenceSet,
+		rowSet = tableEntityManager.getCellValues(adminUserInfo, tableId, referenceSet.getRows(),
 				schema);
 		// Wait for the table to become available
 		String sql = "select * from " + tableId + " order by row_id";
