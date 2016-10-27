@@ -176,11 +176,6 @@
 			<version>2.0.0-m19</version>
 		</dependency>
 
-		<dependency>
-			<groupId>org.im4java</groupId>
-			<artifactId>im4java</artifactId>
-		</dependency>
-
 		<!-- JSON -->
 		<dependency>
 			<groupId>org.json</groupId>
