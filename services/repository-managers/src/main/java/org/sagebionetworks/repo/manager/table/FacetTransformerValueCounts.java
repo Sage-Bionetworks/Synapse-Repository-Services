@@ -18,16 +18,15 @@ import org.sagebionetworks.table.query.model.TableExpression;
 import org.sagebionetworks.util.ValidateArgument;
 
 public class FacetTransformerValueCounts implements FacetTransformer {
-	private static final String VALUE_ALIAS = "value";
-	private static final String COUNT_ALIAS = "frequency";
-	private static final long MAX_NUM_FACET_CATEGORIES = 100;
+	public static final String VALUE_ALIAS = "value";
+	public static final String COUNT_ALIAS = "frequency";
+	public static final long MAX_NUM_FACET_CATEGORIES = 100;
 	
 	
 	private String columnName;
 	private List<ValidatedQueryFacetColumn> facets;
-	private SqlQuery originalQuery;
 	
-	private SqlQuery generatedFacetSqlQuery = null;
+	private SqlQuery generatedFacetSqlQuery;
 	private Set<String> selectedValues;
 	
 	public FacetTransformerValueCounts(String columnName, List<ValidatedQueryFacetColumn> facets, SqlQuery originalQuery, Set<String> selectedValues){
@@ -36,8 +35,8 @@ public class FacetTransformerValueCounts implements FacetTransformer {
 		ValidateArgument.required(originalQuery, "originalQuery");
 		this.columnName = columnName;
 		this.facets = facets;
-		this.originalQuery = originalQuery;
 		this.selectedValues = selectedValues;
+		this.generatedFacetSqlQuery = generateFacetSqlQuery(originalQuery);
 	}
 	
 	
@@ -47,10 +46,11 @@ public class FacetTransformerValueCounts implements FacetTransformer {
 	}
 
 	@Override
-	public SqlQuery getFacetSqlQuery() {
-		if(this.generatedFacetSqlQuery != null) return generatedFacetSqlQuery;
-
-		
+	public SqlQuery getFacetSqlQuery(){
+		return this.generatedFacetSqlQuery;
+	}
+	
+	private SqlQuery generateFacetSqlQuery(SqlQuery originalQuery) {
 		String facetSearchConditionString = FacetUtils.concatFacetSearchConditionStrings(facets, columnName);
 		
 		TableExpression tableExpressionFromModel = originalQuery.getModel().getTableExpression();
@@ -68,8 +68,7 @@ public class FacetTransformerValueCounts implements FacetTransformer {
 		builder.append(pagination.toSql());
 		
 		try {
-			this.generatedFacetSqlQuery =  new SqlQuery(builder.toString(), originalQuery.getTableSchema());
-			return this.generatedFacetSqlQuery;
+			return new SqlQuery(builder.toString(), originalQuery.getTableSchema());
 		} catch (ParseException e) {
 			throw new RuntimeException(e);
 		}
@@ -77,10 +76,12 @@ public class FacetTransformerValueCounts implements FacetTransformer {
 
 	@Override
 	public FacetColumnResult translateToResult(RowSet rowSet) {
+		ValidateArgument.required(rowSet, "rowSet");
+		
 		List<SelectColumn> headers = rowSet.getHeaders();
 		//check for expected headers
-		if(headers.size() != 2 || !headers.get(0).equals(VALUE_ALIAS) || !headers.get(1).equals(COUNT_ALIAS)){
-			throw new IllegalArgumentException("The RowSet's headers did not contain the expected column names");
+		if(headers.size() != 2 || !headers.get(0).getName().equals(VALUE_ALIAS) || !headers.get(1).getName().equals(COUNT_ALIAS)){
+			throw new IllegalArgumentException("The RowSet's headers did not contain the expected column names" + headers);
 		}
 		
 		List<FacetColumnResultValueCount> valueCounts = new ArrayList<>();

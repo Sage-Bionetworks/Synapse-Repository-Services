@@ -19,37 +19,37 @@ public class FacetTransformerRange implements FacetTransformer {
 	
 	private String columnName;
 	private List<ValidatedQueryFacetColumn> facets;
-	private SqlQuery originalQuery;
+	private String selectedMin;
+	private String selectedMax;
 	
-	private SqlQuery generatedFacetSqlQuery = null;
+	private SqlQuery generatedFacetSqlQuery;
 	
-	public FacetTransformerRange(String columnName, List<ValidatedQueryFacetColumn> facets, SqlQuery originalQuery){
+	public FacetTransformerRange(String columnName, List<ValidatedQueryFacetColumn> facets, SqlQuery originalQuery, String selectedMin, String selectedMax){
 		ValidateArgument.required(columnName, "columnName");
 		ValidateArgument.required(facets, "facets");
 		ValidateArgument.required(originalQuery, "originalQuery");
 		this.columnName = columnName;
 		this.facets = facets;
-		this.originalQuery = originalQuery;
+		this.selectedMin = selectedMin;
+		this.selectedMax = selectedMax;
+		this.generatedFacetSqlQuery = generateFacetSqlQuery(originalQuery);
 	}
 	
 	@Override
 	public String getColumnName() {
 		return this.columnName;
 	}
-
+	
+	@Override
+	public SqlQuery getFacetSqlQuery(){
+		return this.generatedFacetSqlQuery;
+	}
 	
 	/**
 	 * Creates a new SQL query for finding the minimum and maximum values of a faceted column
-	 * @param columnName the name of the faceted column
-	 * @param model model the original (non-transformed) query off of which to obtain the FROM and WHERE clauses
-	 * @param facetSearchConditionString
-	 * @return the generated SQL query represented by QuerySpecification
+	 * @return the generated SQL query represented by SqlQuery
 	 */
-	@Override
-	public SqlQuery getFacetSqlQuery() {
-		if(this.generatedFacetSqlQuery != null) return this.generatedFacetSqlQuery;
-		
-		String facetSearchConditionString = FacetUtils.concatFacetSearchConditionStrings(facets, columnName);
+	private SqlQuery generateFacetSqlQuery(SqlQuery originalQuery) {
 		
 		TableExpression tableExpressionFromModel = originalQuery.getModel().getTableExpression();
 		StringBuilder builder = new StringBuilder("SELECT MIN(");
@@ -62,22 +62,22 @@ public class FacetTransformerRange implements FacetTransformer {
 		builder.append(MAX_ALIAS);
 		builder.append(" ");
 		builder.append(tableExpressionFromModel.getFromClause().toSql());
+		String facetSearchConditionString = FacetUtils.concatFacetSearchConditionStrings(facets, columnName);
 		FacetUtils.appendFacetWhereClauseToStringBuilderIfNecessary(builder, facetSearchConditionString, tableExpressionFromModel.getWhereClause());
 		
 		try {
-			this.generatedFacetSqlQuery =  new SqlQuery(builder.toString(), originalQuery.getTableSchema());
-			return this.generatedFacetSqlQuery;
+			return new SqlQuery(builder.toString(), originalQuery.getTableSchema());
 		} catch (ParseException e) {
 			throw new RuntimeException(e);
 		}
-		
 	}
-
+	
 	@Override
 	public FacetColumnResult translateToResult(RowSet rowSet) {
+		ValidateArgument.required(rowSet, "rowSet");
 		List<SelectColumn> headers = rowSet.getHeaders();
 		//check for expected headers
-		if(headers.size() != 2 || !headers.get(0).equals(MIN_ALIAS) || !headers.get(1).equals(MAX_ALIAS)){
+		if(headers.size() != 2 || !headers.get(0).getName().equals(MIN_ALIAS) || !headers.get(1).getName().equals(MAX_ALIAS)){
 			throw new IllegalArgumentException("The RowSet's headers did not contain the expected column names");
 		}
 		
@@ -95,8 +95,8 @@ public class FacetTransformerRange implements FacetTransformer {
 		List<String> values =  row.getValues();
 		result.setColumnMin(values.get(0));
 		result.setColumnMax(values.get(1));
-		
-		
+		result.setSelectedMin(this.selectedMin);
+		result.setSelectedMax(this.selectedMax);
 		
 		return result;
 	}

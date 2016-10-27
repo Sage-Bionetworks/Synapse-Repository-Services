@@ -11,6 +11,7 @@ import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyMapOf;
 import static org.mockito.Matchers.anySetOf;
 import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.stub;
@@ -518,17 +519,35 @@ public class TableQueryManagerImplTest {
 	}
 	
 	@Test
-	public void testQueryAsStreamAfterAuthorizationNonEmptyFacetColumnsListReturnFacets() throws ParseException, LockUnavilableException, TableUnavailableException, TableFailedException{
-		String predicateValue = "asdfcheckforthis";
-	
-		FacetColumnResultRange expectedRange =  new FacetColumnResultRange();
-		String expectedColumnName = "i0";
+	public void testQueryAsStreamAfterAuthorizationNonEmptyFacetColumnsListReturnFacets() throws ParseException, LockUnavilableException, TableUnavailableException, TableFailedException{	
+		String expectedColMin = "100";
+		String expectedColMax = "123";
+		String expectedColumnName = "i2";
 		FacetType expectedFacetType = FacetType.range;
-		when(mockTableIndexDAO.facetRangeQuery(any(QuerySpecification.class), anyMapOf(String.class, Object.class))).thenReturn(expectedRange);
-		when(mockFacetColumn.getColumnName()).thenReturn(expectedColumnName);
-		when(mockFacetColumn.getSearchConditionString()).thenReturn("(i0>" + predicateValue+")");
-		when(mockFacetColumn.getFacetType()).thenReturn(expectedFacetType);
-		validatedQueryFacetColumns.add(mockFacetColumn);
+		RowSet rowSet1 = new RowSet();
+		RowSet rowSet2 = new RowSet();
+		
+		//select column for first row
+		SelectColumn row1col1 = new SelectColumn();
+		row1col1.setName(FacetTransformerValueCounts.VALUE_ALIAS);
+		SelectColumn row1col2 = new SelectColumn();
+		row1col2.setName(FacetTransformerValueCounts.COUNT_ALIAS);
+		rowSet1.setHeaders(Lists.newArrayList(row1col1, row1col2));
+		rowSet1.setRows(new ArrayList<Row>());
+		
+		//select column for second row
+		SelectColumn row2col1 = new SelectColumn();
+		row2col1.setName(FacetTransformerRange.MIN_ALIAS);
+		SelectColumn row2col2 = new SelectColumn();
+		row2col2.setName(FacetTransformerRange.MAX_ALIAS);
+		rowSet2.setHeaders(Lists.newArrayList(row2col1, row2col2));
+		Row row = new Row();
+		row.setValues(Lists.newArrayList(expectedColMin, expectedColMax));
+		rowSet2.setRows(Lists.newArrayList(row));
+		
+		when(mockTableIndexDAO.query(any(ProgressCallback.class), any(SqlQuery.class))).thenReturn(rowSet1, rowSet2);
+		List<FacetColumnRequest> facetRequestList = new ArrayList<>();
+		facetRequestList.add(facetColumnRequest);
 		
 		RowHandler rowHandler = null;
 		boolean returnFacets = true;
@@ -537,9 +556,9 @@ public class TableQueryManagerImplTest {
 		SqlQuery query = new SqlQuery("select * from " + tableId, models);
 		
 		
-		assertEquals(1, validatedQueryFacetColumns.size());
+		assertEquals(1, facetRequestList.size());
 		
-		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(mockProgressCallbackVoid, query, validatedQueryFacetColumns, rowHandler, runCount, returnFacets, mockTableIndexDAO);
+		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(mockProgressCallbackVoid, query, facetRequestList, rowHandler, runCount, returnFacets, mockTableIndexDAO);
 		assertNotNull(results);
 		assertEquals(models, results.getColumnModels());
 		assertEquals(TableModelUtils.getSelectColumns(models), results.getSelectColumns());
@@ -548,10 +567,11 @@ public class TableQueryManagerImplTest {
 		
 		//facet result asserts
 		assertNotNull(results.getFacets());
-		assertEquals(1, results.getFacets().size());
-		FacetColumnResult facetResultColumn = results.getFacets().get(0);
+		assertEquals(2, results.getFacets().size());
+		FacetColumnResult facetResultColumn = results.getFacets().get(1);
 		assertNotNull(facetResultColumn);
-		assertEquals(expectedRange, (FacetColumnResultRange) facetResultColumn);
+		assertEquals(expectedColMin, ((FacetColumnResultRange) facetResultColumn ).getColumnMin());
+		assertEquals(expectedColMax, ((FacetColumnResultRange) facetResultColumn ).getColumnMax());
 		assertEquals(expectedColumnName,facetResultColumn.getColumnName());
 		assertEquals(expectedFacetType, facetResultColumn.getFacetType());
 	}

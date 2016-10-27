@@ -78,6 +78,7 @@ public class TableModelTestUtils {
 			if(type == ColumnType.INTEGER){
 				cm.setFacetType(FacetType.range);
 			}
+			
 			if (hasDefaults) {
 				String defaultValue;
 				switch (type) {
