@@ -5,7 +5,6 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.Date;
 import java.util.LinkedList;
@@ -17,7 +16,6 @@ import org.im4java.core.ConvertCmd;
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
@@ -27,7 +25,6 @@ import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.preview.ImagePreviewGenerator;
-import org.sagebionetworks.repo.manager.file.preview.OfficePreviewGenerator;
 import org.sagebionetworks.repo.manager.file.preview.PdfPreviewGenerator;
 import org.sagebionetworks.repo.manager.file.preview.TabCsvPreviewGenerator;
 import org.sagebionetworks.repo.manager.file.preview.TextPreviewGenerator;
@@ -169,20 +166,5 @@ public class PreviewIntegrationTest {
 		} catch (FileNotFoundException e) {
 			Assume.assumeNoException(e);
 		}
-	}
-
-	@Test
-	public void testRoundTripOffice() throws Exception {
-		if(!StackConfiguration.singleton().getOpenOfficeImageMagicePreviewsEnabled()){
-			return;
-		}
-		try {
-			OfficePreviewGenerator.initialize();
-		} catch (FileNotFoundException e) {
-			Assume.assumeNoException(e);
-		} catch (Exception e) {
-			throw e;
-		}
-		testRoundTripHelper(LITTLE_DOC_NAME, "application/msword");
 	}
 }
