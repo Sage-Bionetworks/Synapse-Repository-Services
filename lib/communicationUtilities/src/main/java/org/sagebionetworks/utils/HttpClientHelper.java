@@ -681,7 +681,9 @@ public class HttpClientHelper {
 				throw new HttpClientHelperException(errorMessage, response.getStatusLine().getStatusCode(), responseContent);
 			}
 		} finally {
-			EntityUtils.consumeQuietly(response.getEntity());
+			if (response != null) {
+				EntityUtils.consumeQuietly(response.getEntity());
+			}
 		}
 	}
 }
