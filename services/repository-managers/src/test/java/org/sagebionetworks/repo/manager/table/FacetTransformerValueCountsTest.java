@@ -77,7 +77,6 @@ public class FacetTransformerValueCountsTest {
 	public void testConstructor() {
 		assertEquals(columnName, ReflectionTestUtils.getField(facetTransformer, "columnName"));
 		assertEquals(facets, ReflectionTestUtils.getField(facetTransformer, "facets"));
-		assertEquals(originalQuery, ReflectionTestUtils.getField(facetTransformer, "originalQuery"));
 		assertEquals(selectedValuesSet, ReflectionTestUtils.getField(facetTransformer, "selectedValues"));
 		
 		

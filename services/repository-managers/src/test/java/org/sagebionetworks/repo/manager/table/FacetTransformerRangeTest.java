@@ -71,7 +71,6 @@ public class FacetTransformerRangeTest {
 	public void testConstructor() {
 		assertEquals(columnName, ReflectionTestUtils.getField(facetTransformer, "columnName"));
 		assertEquals(facets, ReflectionTestUtils.getField(facetTransformer, "facets"));
-		assertEquals(originalQuery, ReflectionTestUtils.getField(facetTransformer, "originalQuery"));
 		assertEquals(selectedMin, ReflectionTestUtils.getField(facetTransformer, "selectedMin"));
 		assertEquals(selectedMax, ReflectionTestUtils.getField(facetTransformer, "selectedMax"));		
 		//this is tested in a separate test
