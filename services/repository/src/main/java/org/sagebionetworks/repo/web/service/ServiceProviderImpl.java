@@ -20,8 +20,6 @@ public class ServiceProviderImpl implements ServiceProvider {
 	@Autowired
 	private AdministrationService administrationService;
 	@Autowired
-	private ConceptService conceptService;
-	@Autowired
 	private EntityService entityService;
 	@Autowired
 	private EntityBundleService entityBundleService;
@@ -86,9 +84,6 @@ public class ServiceProviderImpl implements ServiceProvider {
 	}
 	public AdministrationService getAdministrationService() {
 		return administrationService;
-	}
-	public ConceptService getConceptService() {
-		return conceptService;
 	}
 	public EntityService getEntityService() {
 		return entityService;
