@@ -16,11 +16,14 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
@@ -54,6 +57,9 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
+
+	@Autowired
+	private IdGenerator idGenerator;
 
 	private List<WikiPageKey> toDelete;
 	private String creatorUserGroupId;
@@ -96,48 +102,62 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		String longFileNamePrefix = "loooooooooooooooooooooooooooooooooooooonnnnnnnnnnnnnnnnnnnnnnnnnnnggggggggggggggggggggggggg";
 		
 		// Create a few files
-		S3FileHandle meta = new S3FileHandle();
-		meta.setBucketName("bucketName");
-		meta.setKey("key");
-		meta.setContentType("content type");
-		meta.setContentSize(123l);
-		meta.setContentMd5("md5");
-		meta.setCreatedBy(creatorUserGroupId);
-		meta.setFileName(longFileNamePrefix+".txt1");
-		meta = fileMetadataDao.createFile(meta);
-		attachOne = meta;
+		attachOne = new S3FileHandle();
+		attachOne.setBucketName("bucketName");
+		attachOne.setKey("key");
+		attachOne.setContentType("content type");
+		attachOne.setContentSize(123l);
+		attachOne.setContentMd5("md5");
+		attachOne.setCreatedBy(creatorUserGroupId);
+		attachOne.setFileName(longFileNamePrefix+".txt1");
+		attachOne.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		attachOne.setEtag(UUID.randomUUID().toString());
 
-		meta = new S3FileHandle();
-		meta.setBucketName("bucketName2");
-		meta.setKey("key2");
-		meta.setContentType("content type2");
-		meta.setContentSize(123l);
-		meta.setContentMd5("md52");
-		meta.setCreatedBy(creatorUserGroupId);
-		meta.setFileName(longFileNamePrefix+".txt2");
-		meta = fileMetadataDao.createFile(meta);
-		attachTwo = meta;
+		attachTwo = new S3FileHandle();
+		attachTwo.setBucketName("bucketName2");
+		attachTwo.setKey("key2");
+		attachTwo.setContentType("content type2");
+		attachTwo.setContentSize(123l);
+		attachTwo.setContentMd5("md52");
+		attachTwo.setCreatedBy(creatorUserGroupId);
+		attachTwo.setFileName(longFileNamePrefix+".txt2");
+		attachTwo.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		attachTwo.setEtag(UUID.randomUUID().toString());
 		
 		//Create different markdown content
-		meta = new S3FileHandle();
-		meta.setBucketName("markdownBucketName");
-		meta.setKey("key3");
-		meta.setContentType("content type3");
-		meta.setContentSize((long) 1231);
-		meta.setContentMd5("md53");
-		meta.setCreatedBy(creatorUserGroupId);
-		meta.setFileName("markdown1");
-		markdownOne = fileMetadataDao.createFile(meta);
+		markdownOne = new S3FileHandle();
+		markdownOne.setBucketName("markdownBucketName");
+		markdownOne.setKey("key3");
+		markdownOne.setContentType("content type3");
+		markdownOne.setContentSize((long) 1231);
+		markdownOne.setContentMd5("md53");
+		markdownOne.setCreatedBy(creatorUserGroupId);
+		markdownOne.setFileName("markdown1");
+		markdownOne.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		markdownOne.setEtag(UUID.randomUUID().toString());
 		
-		meta = new S3FileHandle();
-		meta.setBucketName("markdownBucketName2");
-		meta.setKey("key4");
-		meta.setContentType("content type4");
-		meta.setContentSize((long) 1231);
-		meta.setContentMd5("md54");
-		meta.setCreatedBy(creatorUserGroupId);
-		meta.setFileName("markdown2");
-		markdownTwo = fileMetadataDao.createFile(meta);
+		markdownTwo = new S3FileHandle();
+		markdownTwo.setBucketName("markdownBucketName2");
+		markdownTwo.setKey("key4");
+		markdownTwo.setContentType("content type4");
+		markdownTwo.setContentSize((long) 1231);
+		markdownTwo.setContentMd5("md54");
+		markdownTwo.setCreatedBy(creatorUserGroupId);
+		markdownTwo.setFileName("markdown2");
+		markdownTwo.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		markdownTwo.setEtag(UUID.randomUUID().toString());
+
+		List<FileHandle> fileHandleToCreate = new LinkedList<FileHandle>();
+		fileHandleToCreate.add(attachOne);
+		fileHandleToCreate.add(attachTwo);
+		fileHandleToCreate.add(markdownOne);
+		fileHandleToCreate.add(markdownTwo);
+		fileMetadataDao.createBatch(fileHandleToCreate);
+
+		attachOne = (S3FileHandle) fileMetadataDao.get(attachOne.getId());
+		attachTwo = (S3FileHandle) fileMetadataDao.get(attachTwo.getId());
+		markdownOne = (S3FileHandle) fileMetadataDao.get(markdownOne.getId());
+		markdownTwo = (S3FileHandle) fileMetadataDao.get(markdownTwo.getId());
 	}
 	
 	/**
@@ -845,6 +865,74 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		assertNotNull(fileHandleIds);
 		assertEquals(1L, fileHandleIds.size());
 		assertTrue(fileHandleIds.contains(attachOne.getId()));
+	}
+	
+	@Test
+	public void testDeleteOldWikiVersions() throws Exception {
+		// Create 5 Wiki versions
+		WikiPageKey k = createWikiVersions(5);
+		List<V2WikiHistorySnapshot> history = wikiPageDao.getWikiHistory(k, new Long(100), new Long(0));
+		assertEquals(5, history.size());
+
+		// Delete old versions, keeping most recent two
+		wikiPageDao.deleteOldWikiVersions(k.getWikiPageId(), 2L);
+		history = wikiPageDao.getWikiHistory(k, new Long(100), new Long(0));
+		assertEquals(2, history.size());
+		assertEquals("4", history.get(0).getVersion());
+		assertEquals("3", history.get(1).getVersion());
+		
+		// Calling again should have no effect
+		wikiPageDao.deleteOldWikiVersions(k.getWikiPageId(), 2L);
+		history = wikiPageDao.getWikiHistory(k, new Long(100), new Long(0));
+		assertEquals(2, history.size());
+		assertEquals("4", history.get(0).getVersion());
+		assertEquals("3", history.get(1).getVersion());
+	}
+	
+	@Test
+	public void testDeleteOldWikiVersionsLessThanMin() throws Exception {
+		// Create 5 Wiki versions
+		WikiPageKey k = createWikiVersions(5);
+		List<V2WikiHistorySnapshot> historyPre = wikiPageDao.getWikiHistory(k, new Long(100), new Long(0));
+		assertEquals(5, historyPre.size());
+
+		// Delete old versions, keeping most recent 10
+		wikiPageDao.deleteOldWikiVersions(k.getWikiPageId(), 10L);
+		List<V2WikiHistorySnapshot> historyPost = wikiPageDao.getWikiHistory(k, new Long(100), new Long(0));
+		assertEquals(historyPre, historyPost);
+	}
+	
+	private WikiPageKey createWikiVersions(int numVersions) throws Exception {
+		if (numVersions > 500) {
+			throw new IllegalArgumentException("Max 500 versions!");
+		}
+		
+		V2WikiPage pageSpec = new V2WikiPage();
+		String ownerId = "syn1082";
+		ObjectType ownerType = ObjectType.ENTITY;
+		pageSpec.setTitle("Title");
+		pageSpec.setCreatedBy(creatorUserGroupId);
+		pageSpec.setModifiedBy(creatorUserGroupId);
+		pageSpec.setMarkdownFileHandleId(markdownOne.getId());
+		Map<String, FileHandle> fileNameMap = new HashMap<String, FileHandle>();
+		List<String> newIds = new ArrayList<String>();
+		
+		// Create it
+		V2WikiPage clone = wikiPageDao.create(pageSpec, fileNameMap, ownerId, ownerType, newIds);
+
+		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(ownerId, ownerType, clone.getId());
+		toDelete.add(key);
+		
+		for (int v = 1; v < numVersions; v++) {
+			Thread.sleep(500);
+			V2WikiPage p = wikiPageDao.get(key, null); // Get latest version
+			String markdownId = (v % 2 == 0) ? markdownTwo.getId() : markdownOne.getId();
+			p.setMarkdownFileHandleId(markdownId);
+			V2WikiPage updated = wikiPageDao.updateWikiPage(p, fileNameMap, ownerId, ownerType, newIds);
+		}
+		
+		
+		return key;
 	}
 
 }

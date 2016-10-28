@@ -6,6 +6,7 @@ import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_DISPLAY_N
 import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_NAME;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -65,10 +66,12 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class SubmissionManagerImpl implements SubmissionManager {
@@ -83,8 +86,6 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	private SubmissionFileHandleDAO submissionFileHandleDAO;
 	@Autowired
 	private EvaluationSubmissionsDAO evaluationSubmissionsDAO;
-	@Autowired
-	private ParticipantManager participantManager;
 	@Autowired
 	private EntityManager entityManager;
 	@Autowired
@@ -109,8 +110,11 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	public static final String TEAM_SUBMISSION_NOTIFICATION_TEMPLATE = "message/teamSubmissionNotificationTemplate.html";
 
 	private static final String TEAM_SUBMISSION_SUBJECT = "Team Challenge Submission";
-	
-	
+
+	private static final String ONLY_SUBMITTER_REASON = "Only the user who submitted this submission could perform this action.";
+
+	private static final String NON_CANCELLABLE_REASON = "This submission is currently noncancellable.";
+
 	@Override
 	public Submission getSubmission(UserInfo userInfo, String submissionId) throws DatastoreException, NotFoundException {
 		EvaluationUtils.ensureNotNull(submissionId, "Submission ID");
@@ -529,7 +533,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		if (!ids.contains(fileHandleId)) {
 			throw new NotFoundException("Submission " + submissionId + " does " +
 					"not contain the requested FileHandle " + fileHandleId);
-		}			
+		}
 		// generate the URL
 		return fileHandleManager.getRedirectURLForFileHandle(fileHandleId);
 	}
@@ -663,5 +667,23 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		}
 		
 		return annos;
+	}
+
+	@WriteTransactionReadCommitted
+	@Override
+	public void processUserCancelRequest(UserInfo userInfo, String submissionId) {
+		UserInfo.validateUserInfo(userInfo);
+		ValidateArgument.required(submissionId, "submissionId");
+		if (!submissionDAO.getCreatedBy(submissionId).equals(userInfo.getId().toString())) {
+			throw new UnauthorizedException(ONLY_SUBMITTER_REASON);
+		}
+		SubmissionStatus status = submissionStatusDAO.get(submissionId);
+		if (status.getCanCancel() == null || !status.getCanCancel()) {
+			throw new UnauthorizedException(NON_CANCELLABLE_REASON);
+		}
+		status.setCancelRequested(Boolean.TRUE);
+		submissionStatusDAO.update(Arrays.asList(status));
+		String evalId = submissionDAO.get(submissionId).getEvaluationId();
+		evaluationSubmissionsDAO.updateEtagForEvaluation(KeyFactory.stringToKey(evalId), true, ChangeType.UPDATE);
 	}
 }

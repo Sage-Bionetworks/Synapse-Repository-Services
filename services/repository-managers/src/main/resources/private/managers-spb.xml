@@ -114,30 +114,12 @@
 		</property>
 		<property name="arguments" ref="stackConfiguration.fileMultipartUploadDaemonCopyPartMaxThreads"/>
 	</bean>
-
-	<!-- Fixed Memory Pool - Used to provided a fix amount of memory used for transfering files
-	      from http input streams to S3 -->
-	<bean id="fileTransferFixedMemoryPool" class="org.sagebionetworks.repo.util.FixedMemoryPool" init-method="initialize">
-	    <!-- This first argument controls the maximum memory used by the pool -->
-	    <property name="maxMemoryBytes" ref="stackConfiguration.maxFileTransferMemoryPoolBytes"/>
-	    <property name="blockSizeBytes" ref="stackConfiguration.fileTransferBufferSizeBytes"/>
-	</bean>
-	
-	<!-- Memory File Transfer Strategy -->
-	<bean id="memoryTransferStrategy" class="org.sagebionetworks.repo.manager.file.transfer.MemoryTransferStrategy" />
 	
 	<!-- Temp file provider -->
 	<bean id="tempFileProvider" class="org.sagebionetworks.repo.model.file.TempFileProviderImpl" />
 	
-	<!-- Temp File Transfer Strategy -->
-	<bean id="tempFileTransferStrategy" class="org.sagebionetworks.repo.manager.file.transfer.TempFileTransferStrategy" />
-	
 	<!-- File Upload manager -->
 	<bean id="fileHandleManager" class="org.sagebionetworks.repo.manager.file.FileHandleManagerImpl" init-method="initialize" >
-	    <!-- The memory strategy is the primary -->
-	    <property name="primaryStrategy" ref="memoryTransferStrategy"/>
-	   	<!-- The temp strategy is the fall-back -->
-	    <property name="fallbackStrategy" ref="tempFileTransferStrategy"/>
 	    <property name="multipartUploadDaemonTimeoutMS" ref="stackConfiguration.fileMultipartUploadDaemonTimeoutMS"/>
 	</bean>
 	
@@ -180,7 +162,6 @@
 	            <bean class="org.sagebionetworks.repo.manager.file.preview.TextPreviewGenerator" />
 	            <bean class="org.sagebionetworks.repo.manager.file.preview.ZipPreviewGenerator" />
 		    	<bean class="org.sagebionetworks.repo.manager.file.preview.PdfPreviewGenerator" />
-	            <bean class="org.sagebionetworks.repo.manager.file.preview.OfficePreviewGenerator"/>
 	        </list>
 	    </property>
 	    <!-- The maximum amount of memory to uses -->
@@ -208,6 +189,22 @@
 				<entry key="WikiAttachment">
 					<bean
 						class="org.sagebionetworks.repo.manager.wiki.WikiFileHandleAssociationProvider" />
+				</entry>
+				<entry key="UserProfileAttachment">
+					<bean
+						class="org.sagebionetworks.repo.manager.UserProfileFileHandleAssociationProvider" />
+				</entry>
+				<entry key="TeamAttachment">
+					<bean
+						class="org.sagebionetworks.repo.manager.team.TeamFileHandleAssociationProvider" />
+				</entry>
+				<entry key="SubmissionAttachment">
+					<bean
+						class="org.sagebionetworks.evaluation.manager.SubmissionFileHandleAssociationProvider" />
+				</entry>
+				<entry key="MessageAttachment">
+					<bean
+						class="org.sagebionetworks.repo.manager.MessageFileHandleAssociationProvider" />
 				</entry>
 			</map>
 		</property>

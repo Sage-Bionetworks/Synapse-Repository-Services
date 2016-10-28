@@ -562,6 +562,7 @@ public class TableController extends BaseController {
 	 * @throws NotFoundException
 	 * @throws IOException
 	 */
+	@Deprecated
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_GET_ROWS, method = RequestMethod.POST)
 	public @ResponseBody

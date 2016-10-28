@@ -125,6 +125,16 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 			"SELECT "+V2_COL_WIKI_MARKDOWN_ATTACHMENT_ID_LIST
 			+" FROM "+V2_TABLE_WIKI_MARKDOWN
 			+" WHERE "+V2_COL_WIKI_MARKDOWN_ID+" = ?";
+	private static final String SQL_DELETE_OLD_WIKI_VERSIONS = 
+		"DELETE m " +
+		"FROM " + V2_TABLE_WIKI_MARKDOWN  + " m " +
+		"left join (SELECT " + V2_COL_WIKI_MARKDOWN_ID + ", " + V2_COL_WIKI_MARKDOWN_VERSION +
+			" from " + V2_TABLE_WIKI_MARKDOWN +
+			" where " + V2_COL_WIKI_MARKDOWN_ID + " = ?" +
+			" order by " + V2_COL_WIKI_MARKDOWN_VERSION + " desc limit ?) f " +
+			" on f." + V2_COL_WIKI_MARKDOWN_VERSION + " = m." + V2_COL_WIKI_MARKDOWN_VERSION +
+			" and f." + V2_COL_WIKI_MARKDOWN_ID + " = m." + V2_COL_WIKI_MARKDOWN_ID +
+			" where m." + V2_COL_WIKI_MARKDOWN_ID + " = ? and f." + V2_COL_WIKI_MARKDOWN_VERSION + " is null" ;
 
 	private static final TableMapping<V2DBOWikiMarkdown> WIKI_MARKDOWN_ROW_MAPPER = new V2DBOWikiMarkdown().getTableMapping();
 	private static final TableMapping<V2DBOWikiPage> WIKI_PAGE_ROW_MAPPER = new V2DBOWikiPage().getTableMapping();
@@ -767,5 +777,19 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 			allAttachments.addAll(list);
 		}
 		return allAttachments;
+	}
+	
+	@WriteTransaction
+	@Override
+	public void deleteOldWikiVersions(String wikiPageId, Long numVersionsToKeep) {
+		ValidateArgument.required(wikiPageId, "wikiPageId");
+		ValidateArgument.required(numVersionsToKeep, "numVersionsToKeep");
+		try {
+			// Delete the wiki using both the root and the id
+			Long wikiId = new Long(wikiPageId);
+			jdbcTemplate.update(SQL_DELETE_OLD_WIKI_VERSIONS, wikiId, numVersionsToKeep, wikiId);
+		} catch (NotFoundException e){
+			// Nothing to do if the wiki does not exist.
+		}
 	}
 }

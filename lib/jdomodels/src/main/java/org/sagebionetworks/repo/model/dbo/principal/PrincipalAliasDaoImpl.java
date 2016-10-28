@@ -37,7 +37,6 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -301,6 +300,14 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 		List<PrincipalAlias> aliases = listPrincipalAliases(principalId, AliasType.USER_NAME);
 		if (aliases.isEmpty()) throw new NotFoundException("No user name for "+principalId);
 		if (aliases.size()>1) throw new IllegalStateException("Expected one user name but found "+aliases.size()+" for "+principalId);
+		return aliases.get(0).getAlias();
+	}
+
+	@Override
+	public String getTeamName(Long principalId) throws NotFoundException {
+		List<PrincipalAlias> aliases = listPrincipalAliases(principalId, AliasType.TEAM_NAME);
+		if (aliases.isEmpty()) throw new NotFoundException("No team name for "+principalId);
+		if (aliases.size()>1) throw new IllegalStateException("Expected one team name but found "+aliases.size()+" for "+principalId);
 		return aliases.get(0).getAlias();
 	}
 

@@ -13,8 +13,10 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -31,13 +33,17 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpHeaders;
 import org.apache.http.entity.ContentType;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.audit.dao.ObjectRecordBatch;
+import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
 import org.sagebionetworks.downloadtools.FileUtils;
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.AuthorizationStatus;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
-import org.sagebionetworks.repo.manager.file.transfer.FileTransferStrategy;
+import org.sagebionetworks.repo.manager.audit.ObjectRecordQueue;
 import org.sagebionetworks.repo.manager.file.transfer.TransferRequest;
 import org.sagebionetworks.repo.manager.file.transfer.TransferUtils;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -47,9 +53,12 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.audit.ObjectRecord;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.UploadDaemonStatusDao;
 import org.sagebionetworks.repo.model.dbo.dao.DBOStorageLocationDAOImpl;
+import org.sagebionetworks.repo.model.file.BatchFileHandleCopyRequest;
+import org.sagebionetworks.repo.model.file.BatchFileHandleCopyResult;
 import org.sagebionetworks.repo.model.file.BatchFileRequest;
 import org.sagebionetworks.repo.model.file.BatchFileResult;
 import org.sagebionetworks.repo.model.file.ChunkRequest;
@@ -61,9 +70,13 @@ import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.ExternalS3UploadDestination;
 import org.sagebionetworks.repo.model.file.ExternalUploadDestination;
+import org.sagebionetworks.repo.model.file.FileDownloadRecord;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
+import org.sagebionetworks.repo.model.file.FileHandleCopyRecord;
+import org.sagebionetworks.repo.model.file.FileHandleCopyRequest;
+import org.sagebionetworks.repo.model.file.FileHandleCopyResult;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.FileResult;
 import org.sagebionetworks.repo.model.file.FileResultFailureCode;
@@ -86,6 +99,7 @@ import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.model.util.ContentTypeUtils;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.utils.ContentTypeUtil;
@@ -112,6 +126,10 @@ import com.google.common.collect.Lists;
  */
 public class FileHandleManagerImpl implements FileHandleManager {
 
+	private static final String FILE_DOWNLOAD_RECORD_TYPE = FileDownloadRecord.class.getSimpleName().toLowerCase();
+
+	public static final String FILE_HANDLE_COPY_RECORD_TYPE = FileHandleCopyRecord.class.getSimpleName().toLowerCase();
+
 	public static final String MUST_INCLUDE_EITHER = "Must include either FileHandles or pre-signed URLs";
 
 	public static final String UNAUTHORIZED_PROXY_FILE_HANDLE_MSG = "Only the creator of the ProxyStorageLocationSettings or a user with the 'create' permission on ProxyStorageLocationSettings.benefactorId can create a ProxyFileHandle using this storage location ID.";
@@ -122,7 +140,9 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	public static final int MAX_REQUESTS_PER_CALL = 100;
 
 	public static final String MAX_REQUESTS_PER_CALL_MESSAGE = "Request exceeds the maximum number of objects per request: "+MAX_REQUESTS_PER_CALL;
-	
+
+	public static final String DUPLICATED_REQUEST_MESSAGE = "Request contains duplicated FileHandleId.";
+
 	static private Log log = LogFactory.getLog(FileHandleManagerImpl.class);
 
 	private static String FILE_TOKEN_TEMPLATE = "%1$s/%2$s/%3$s"; // userid/UUID/filename
@@ -165,16 +185,12 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	
 	@Autowired
 	FileHandleAuthorizationManager fileHandleAuthorizationManager;
+	
+	@Autowired
+	ObjectRecordQueue objectRecordQueue;
 
-	/**
-	 * This is the first strategy we try to use.
-	 */
-	FileTransferStrategy primaryStrategy;
-	/**
-	 * When the primaryStrategy fails, we try fall-back strategy
-	 * 
-	 */
-	FileTransferStrategy fallbackStrategy;
+	@Autowired
+	private IdGenerator idGenerator;
 
 	/**
 	 * This is the maximum amount of time the upload workers are allowed to take
@@ -198,47 +214,6 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	 */
 	public FileHandleManagerImpl() {
 		super();
-	}
-
-	/**
-	 * The IoC constructor.
-	 * 
-	 * @param fileMetadataDao
-	 * @param primaryStrategy
-	 * @param fallbackStrategy
-	 * @param authorizationManager
-	 * @param s3Client
-	 */
-	public FileHandleManagerImpl(FileHandleDao fileMetadataDao,
-			FileTransferStrategy primaryStrategy,
-			FileTransferStrategy fallbackStrategy,
-			AuthorizationManager authorizationManager, AmazonS3Client s3Client,
-			FileHandleAuthorizationManager fileHandleAuthorizationManager) {
-		super();
-		this.fileHandleDao = fileMetadataDao;
-		this.primaryStrategy = primaryStrategy;
-		this.fallbackStrategy = fallbackStrategy;
-		this.authorizationManager = authorizationManager;
-		this.s3Client = s3Client;
-		this.fileHandleAuthorizationManager=fileHandleAuthorizationManager;
-	}
-
-	/**
-	 * Inject the primary strategy.
-	 * 
-	 * @param primaryStrategy
-	 */
-	public void setPrimaryStrategy(FileTransferStrategy primaryStrategy) {
-		this.primaryStrategy = primaryStrategy;
-	}
-
-	/**
-	 * Inject the fall-back strategy.
-	 * 
-	 * @param fallbackStrategy
-	 */
-	public void setFallbackStrategy(FileTransferStrategy fallbackStrategy) {
-		this.fallbackStrategy = fallbackStrategy;
 	}
 
 	/**
@@ -464,8 +439,10 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		ValidateArgument.validUrl(fileHandle.getExternalURL());
 		// set this user as the creator of the file
 		fileHandle.setCreatedBy(getUserId(userInfo));
+		fileHandle.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		fileHandle.setEtag(UUID.randomUUID().toString());
 		// Save the file metadata to the DB.
-		return fileHandleDao.createFile(fileHandle);
+		return (ExternalFileHandle) fileHandleDao.createFile(fileHandle);
 	}
 
 	/**
@@ -893,7 +870,9 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		handle.setFileName(fileName);
 		handle.setCreatedBy(createdBy);
 		handle.setCreatedOn(modifiedOn);
-		return fileHandleDao.createFile(handle, true);
+		handle.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		handle.setEtag(UUID.randomUUID().toString());
+		return (S3FileHandle) fileHandleDao.createFile(handle);
 	}
 	
 	/**
@@ -991,8 +970,9 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		fileHandle.setCreatedBy(getUserId(userInfo));
 		fileHandle.setCreatedOn(new Date());
 		fileHandle.setEtag(UUID.randomUUID().toString());
+		fileHandle.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
 		// Save the file metadata to the DB.
-		return fileHandleDao.createFile(fileHandle);
+		return (S3FileHandle) fileHandleDao.createFile(fileHandle);
 	}
 	
 	@Override
@@ -1026,8 +1006,9 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		proxyFileHandle.setCreatedBy(getUserId(userInfo));
 		proxyFileHandle.setCreatedOn(new Date());
 		proxyFileHandle.setEtag(UUID.randomUUID().toString());
+		proxyFileHandle.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
 		// Save the file metadata to the DB.
-		return fileHandleDao.createFile(proxyFileHandle);
+		return (ProxyFileHandle) fileHandleDao.createFile(proxyFileHandle);
 	}
 
 	@Override
@@ -1052,7 +1033,6 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		}
 
 		newS3FileHandle.setId(null);
-		newS3FileHandle.setEtag(null);
 		newS3FileHandle.setCreatedBy(getUserId(userInfo));
 		newS3FileHandle.setCreatedOn(new Date());
 
@@ -1072,8 +1052,10 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		if (needsNewPreview) {
 			newS3FileHandle.setPreviewId(null);
 		}
+		newS3FileHandle.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		newS3FileHandle.setEtag(UUID.randomUUID().toString());
 		// Save the file metadata to the DB.
-		return fileHandleDao.createFile(newS3FileHandle);
+		return (S3FileHandle) fileHandleDao.createFile(newS3FileHandle);
 	}
 
 	@Override
@@ -1099,6 +1081,8 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(request, "request");
 		ValidateArgument.required(request.getRequestedFiles(), "requestedFiles");
+		String userId = userInfo.getId().toString();
+		long now = System.currentTimeMillis();
 		if(!request.getIncludeFileHandles() && !request.getIncludePreSignedURLs()){
 			throw new IllegalArgumentException(MUST_INCLUDE_EITHER);
 		}
@@ -1110,8 +1094,11 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		List<FileHandleAssociationAuthorizationStatus> authResults = fileHandleAuthorizationManager.canDownLoadFile(userInfo, request.getRequestedFiles());
 		List<FileResult> requestedFiles = new LinkedList<FileResult>();
 		Set<String> fileHandleIdsToFetch = new HashSet<String>();
+		Map<String, FileHandleAssociation> idToFileHandleAssociation = new HashMap<String, FileHandleAssociation>(request.getRequestedFiles().size());
+		List<ObjectRecord> downloadRecords = new LinkedList<ObjectRecord>();
 		for(FileHandleAssociationAuthorizationStatus fhas: authResults){
 			FileResult result = new FileResult();
+			idToFileHandleAssociation.put(fhas.getAssociation().getFileHandleId(), fhas.getAssociation());
 			result.setFileHandleId(fhas.getAssociation().getFileHandleId());
 			if(!fhas.getStatus().getAuthorized()){
 				result.setFailureCode(FileResultFailureCode.UNAUTHORIZED);
@@ -1137,13 +1124,102 @@ public class FileHandleManagerImpl implements FileHandleManager {
 						if(request.getIncludePreSignedURLs()){
 							String url = getURLForFileHandle(handle, null);
 							fr.setPreSignedURL(url);
+							FileHandleAssociation association = idToFileHandleAssociation.get(fr.getFileHandleId());
+							ObjectRecord record = createObjectRecord(userId, association, now);
+							downloadRecords.add(record);
 						}
 					}
 				}
 			}
 		}
+		// record the downloads for the audit
+		if(!downloadRecords.isEmpty()){
+			// Push the records to queue
+			objectRecordQueue.pushObjectRecordBatch(new ObjectRecordBatch(downloadRecords, FILE_DOWNLOAD_RECORD_TYPE));
+		}
 		BatchFileResult batch = new BatchFileResult();
 		batch.setRequestedFiles(requestedFiles);
 		return batch;
+	}
+	
+	/**
+	 * Build an ObjectRecord for a file download.
+	 * 
+	 * @param userId
+	 * @param association
+	 * @param nowMs
+	 * @return
+	 */
+	static ObjectRecord createObjectRecord(String userId, FileHandleAssociation association, long nowMs){
+		FileDownloadRecord record = new FileDownloadRecord();
+		record.setDownloadedFile(association);
+		record.setUserId(userId);
+		return ObjectRecordBuilderUtils.buildObjectRecord(record, nowMs);
+	}
+
+	@WriteTransactionReadCommitted
+	@Override
+	public BatchFileHandleCopyResult copyFileHandles(UserInfo userInfo, BatchFileHandleCopyRequest request) {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(request, "request");
+		ValidateArgument.required(request.getCopyRequests(), "BatchFileHandleCopyRequest.copyRequests");
+		ValidateArgument.requirement(request.getCopyRequests().size() <= MAX_REQUESTS_PER_CALL, MAX_REQUESTS_PER_CALL_MESSAGE);
+		List<FileHandleAssociation> requestedFiles = FileHandleCopyUtils.getOriginalFiles(request);
+		ValidateArgument.requirement(!FileHandleCopyUtils.hasDuplicates(requestedFiles), DUPLICATED_REQUEST_MESSAGE);
+
+		// Determine which files the user can download
+		List<FileHandleAssociationAuthorizationStatus> authResults = fileHandleAuthorizationManager.canDownLoadFile(userInfo, requestedFiles);
+		List<FileHandleCopyResult> copyResults = new LinkedList<FileHandleCopyResult>();
+		Set<String> fileHandleIdsToFetch = new HashSet<String>();
+		for(FileHandleAssociationAuthorizationStatus fhas: authResults){
+			FileHandleCopyResult result = new FileHandleCopyResult();
+			result.setOriginalFileHandleId(fhas.getAssociation().getFileHandleId());
+			if(!fhas.getStatus().getAuthorized()){
+				result.setFailureCode(FileResultFailureCode.UNAUTHORIZED);
+			}else{
+				fileHandleIdsToFetch.add(fhas.getAssociation().getFileHandleId());
+			}
+			copyResults.add(result);
+		}
+		BatchFileHandleCopyResult result = new BatchFileHandleCopyResult();
+		result.setCopyResults(copyResults);
+		if(fileHandleIdsToFetch.isEmpty()){
+			return result;
+		}
+
+		String userId = userInfo.getId().toString();
+		long now = System.currentTimeMillis();
+		Map<String, FileHandleCopyRequest> map = FileHandleCopyUtils.getRequestMap(request);
+		List<FileHandle> toCreate = new ArrayList<FileHandle>();
+		List<ObjectRecord> copyRecords = new LinkedList<ObjectRecord>();
+		// lookup the file handles.
+		Map<String, FileHandle> fileHandles = fileHandleDao.getAllFileHandlesBatch(fileHandleIdsToFetch);
+
+		for(FileHandleCopyResult fhcr: copyResults){
+			if(fhcr.getFailureCode() == null){
+				FileHandle original = fileHandles.get(fhcr.getOriginalFileHandleId());
+				if(original == null){
+					fhcr.setFailureCode(FileResultFailureCode.NOT_FOUND);
+				}else{
+					FileHandle newFileHandle = FileHandleCopyUtils.createCopy(userId, original, map.get(fhcr.getOriginalFileHandleId()), idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+					toCreate.add(newFileHandle);
+					fhcr.setNewFileHandle(newFileHandle);
+					// capture the data for audit
+					FileHandleCopyRecord fileHandleCopyRecord = FileHandleCopyUtils.createCopyRecord(userId, newFileHandle.getId(), map.get(fhcr.getOriginalFileHandleId()).getOriginalFile());
+					ObjectRecord record = ObjectRecordBuilderUtils.buildObjectRecord(fileHandleCopyRecord, now);
+					copyRecords.add(record);
+				}
+			}
+		}
+		if (!toCreate.isEmpty()) {
+			fileHandleDao.createBatch(toCreate);
+		}
+		// for audit
+		if(!copyRecords.isEmpty()){
+			// Push the records to queue
+			objectRecordQueue.pushObjectRecordBatch(new ObjectRecordBatch(copyRecords, FILE_HANDLE_COPY_RECORD_TYPE));
+		}
+
+		return result;
 	}
 }

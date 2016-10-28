@@ -1,0 +1,18 @@
+{	
+	"description":"Selected minimum and maximum values for a range type facet",
+	"implements": [
+		{
+		"$ref": "org.sagebionetworks.repo.model.table.FacetColumnRequest"
+		}
+	],
+	"properties":{
+		"facetValues": {
+		    "description":"The set of facet values that were selected",
+			"type": "array",
+			"uniqueItems": true,
+			"items": {
+				"type": "string"
+			}
+		}
+	}
+}

@@ -5,7 +5,10 @@ import static org.junit.Assert.assertNotNull;
 
 import java.net.MalformedURLException;
 import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
 
 import org.junit.Test;
 import org.sagebionetworks.repo.model.backup.FileHandleBackup;
@@ -84,7 +87,6 @@ public class FileMetadataUtilsTest {
 	
 	@Test
 	public void testS3FileMetadataRoundTrip() throws MalformedURLException{
-		// External
 		S3FileHandle meta = new S3FileHandle();
 		meta.setCreatedBy("456");
 		meta.setCreatedOn(new Date());
@@ -108,7 +110,6 @@ public class FileMetadataUtilsTest {
 	
 	@Test
 	public void testPreviewFileMetadataRoundTrip() throws MalformedURLException{
-		// External
 		PreviewFileHandle meta = new PreviewFileHandle();
 		meta.setCreatedBy("456");
 		meta.setCreatedOn(new Date());
@@ -180,5 +181,66 @@ public class FileMetadataUtilsTest {
 		assertEquals(proxy, clone);
 	}
 
+	@Test (expected=IllegalArgumentException.class)
+	public void testCreateDBOsFromDTOsWithNullList(){
+		FileMetadataUtils.createDBOsFromDTOs(null);
+	}
 
+	@Test
+	public void testCreateDBOsFromDTOs() {
+		ExternalFileHandle external = new ExternalFileHandle();
+		external.setCreatedBy("456");
+		external.setCreatedOn(new Date());
+		external.setExternalURL("http://google.com");
+		external.setId("987");
+		external.setPreviewId("456");
+		external.setEtag("etag");
+		external.setFileName("fileName");
+		external.setContentType("text/plain");
+		external.setContentSize(12345L);
+
+		S3FileHandle s3 = new S3FileHandle();
+		s3.setCreatedBy("456");
+		s3.setCreatedOn(new Date());
+		s3.setId("987");
+		s3.setBucketName("bucketName");
+		s3.setKey("key");
+		s3.setContentMd5("md5");
+		s3.setContentSize(123l);
+		s3.setContentType("contentType");
+		s3.setPreviewId("9999");
+		s3.setEtag("etag");
+		s3.setFileName("foo.txt");
+
+		PreviewFileHandle preview = new PreviewFileHandle();
+		preview.setCreatedBy("456");
+		preview.setCreatedOn(new Date());
+		preview.setId("987");
+		preview.setBucketName("bucketName");
+		preview.setKey("key");
+		preview.setContentMd5("md5");
+		preview.setContentSize(123l);
+		preview.setContentType("contentType");
+		preview.setFileName("preview.txt");
+		preview.setEtag("etag");
+
+		ProxyFileHandle proxy = new ProxyFileHandle();
+		proxy.setFilePath("/foo/bar/cat.txt");
+		proxy.setCreatedBy("456");
+		proxy.setCreatedOn(new Date());
+		proxy.setId("987");
+		proxy.setContentMd5("md5");
+		proxy.setContentSize(123l);
+		proxy.setContentType("contentType");
+		proxy.setPreviewId("9999");
+		proxy.setFileName("cat.txt");
+
+		List<FileHandle> list = new ArrayList<FileHandle>();
+		list.addAll(Arrays.asList(external, s3, preview, proxy));
+		List<DBOFileHandle> dbos = FileMetadataUtils.createDBOsFromDTOs(list);
+
+		for (int i = 0; i < list.size(); i++) {
+			assertEquals(list.get(i), FileMetadataUtils.createDTOFromDBO(dbos.get(i)));
+		}
+	}
 }

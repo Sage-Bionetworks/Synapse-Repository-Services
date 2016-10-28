@@ -99,7 +99,6 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadEntityReference;
 import org.sagebionetworks.repo.model.docker.DockerRegistryEventList;
 import org.sagebionetworks.repo.model.docker.RegistryEventAction;
-import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -116,7 +115,6 @@ import org.sagebionetworks.repo.model.migration.MigrationTypeList;
 import org.sagebionetworks.repo.model.migration.MigrationUtils;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
-import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.S3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
@@ -125,6 +123,7 @@ import org.sagebionetworks.repo.model.quiz.PassingRecord;
 import org.sagebionetworks.repo.model.quiz.QuizResponse;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.IdRange;
 import org.sagebionetworks.repo.model.table.RawRowSet;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.ViewType;
@@ -142,7 +141,6 @@ import org.sagebionetworks.util.DockerRegistryEventUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.annotation.DirtiesContext;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 /**
@@ -170,7 +168,7 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 	private UserManager userManager;
 
 	@Autowired
-	private FileHandleDao fileMetadataDao;
+	private FileHandleDao fileHandleDao;
 
 	@Autowired
 	private UserProfileManager userProfileManager;
@@ -189,9 +187,6 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 
 	@Autowired
 	private UserGroupDAO userGroupDAO;
-	
-	@Autowired
-	private PrincipalAliasDAO principalAliasDAO;
 
 	@Autowired
 	private GroupMembersDAO groupMembersDAO;
@@ -298,7 +293,6 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 	private S3FileHandle handleOne;
 	private S3FileHandle markdownOne;
 	private PreviewFileHandle preview;
-	private ExternalFileHandle sftpFileHandle;
 
 	// Evaluation
 	private Evaluation evaluation;
@@ -494,12 +488,10 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		// create some test rows.
 		List<Row> rows = TableModelTestUtils.createRows(models, 5);
 		RawRowSet set = new RawRowSet(TableModelUtils.getIds(models), null, tableId, rows);
-		// Append the rows to the table
-		tableRowTruthDao.appendRowSetToTable(adminUserIdString, tableId, models, set);
-		// Append some more rows
-		rows = TableModelTestUtils.createRows(models, 6);
-		set = new RawRowSet(TableModelUtils.getIds(models), null, tableId, rows);
-		tableRowTruthDao.appendRowSetToTable(adminUserIdString, tableId, models, set);
+		IdRange range = tableRowTruthDao.reserveIdsInRange(tableId, 5);
+		// Now assign the rowIds and set the version number
+		TableModelUtils.assignRowIdsAndVersionNumbers(set, range);
+		tableRowTruthDao.appendRowSetToTable(adminUserIdString, tableId, range.getEtag(), range.getVersionNumber(), models, set);
 	}
 
 	public void createNewUser() throws NotFoundException {
@@ -692,7 +684,8 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		handleOne.setKey("mainFileKey");
 		handleOne.setEtag("etag");
 		handleOne.setFileName("foo.bar");
-		handleOne = fileMetadataDao.createFile(handleOne);
+		handleOne.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		handleOne.setEtag(UUID.randomUUID().toString());
 		// Create markdown content
 		markdownOne = new S3FileHandle();
 		markdownOne.setCreatedBy(adminUserIdString);
@@ -701,7 +694,8 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		markdownOne.setKey("markdownFileKey");
 		markdownOne.setEtag("etag");
 		markdownOne.setFileName("markdown1");
-		markdownOne = fileMetadataDao.createFile(markdownOne);
+		markdownOne.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		markdownOne.setEtag(UUID.randomUUID().toString());
 		// Create a preview
 		preview = new PreviewFileHandle();
 		preview.setCreatedBy(adminUserIdString);
@@ -710,9 +704,20 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		preview.setKey("previewFileKey");
 		preview.setEtag("etag");
 		preview.setFileName("bar.txt");
-		preview = fileMetadataDao.createFile(preview);
+		preview.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		preview.setEtag(UUID.randomUUID().toString());
+		
+		List<FileHandle> fileHandleToCreate = new LinkedList<FileHandle>();
+		fileHandleToCreate.add(handleOne);
+		fileHandleToCreate.add(markdownOne);
+		fileHandleToCreate.add(preview);
+		fileHandleDao.createBatch(fileHandleToCreate);
+		
+		handleOne = (S3FileHandle) fileHandleDao.get(handleOne.getId());
+		markdownOne = (S3FileHandle) fileHandleDao.get(markdownOne.getId());
+		preview = (PreviewFileHandle) fileHandleDao.get(preview.getId());
 		// Set two as the preview of one
-		fileMetadataDao.setPreviewId(handleOne.getId(), preview.getId());
+		fileHandleDao.setPreviewId(handleOne.getId(), preview.getId());
 
 		return handleOne.getId();
 	}

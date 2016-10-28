@@ -21,6 +21,8 @@ import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -38,6 +40,7 @@ import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
+import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -112,6 +115,9 @@ public class MigrationManagerImplAutowireTest {
 	@Autowired
 	StackStatusDao stackStatusDao;
 
+	@Autowired
+	IdGenerator idGenerator;
+
 
 	private List<String> toDelete;
 	private UserInfo adminUser;
@@ -137,18 +143,25 @@ public class MigrationManagerImplAutowireTest {
 		startCount = fileHandleDao.getCount();
 		
 		// The one will have a preview
-		withPreview = TestUtils.createS3FileHandle(creatorUserGroupId);
+		withPreview = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(TYPE.FILE_IDS).toString());
 		withPreview.setFileName("withPreview.txt");
-		withPreview = fileHandleDao.createFile(withPreview);
-		assertNotNull(withPreview);
-		toDelete.add(withPreview.getId());
 		startId = Integer.parseInt(withPreview.getId());
 		// The Preview
-		preview = TestUtils.createPreviewFileHandle(creatorUserGroupId);
+		preview = TestUtils.createPreviewFileHandle(creatorUserGroupId, idGenerator.generateNewId(TYPE.FILE_IDS).toString());
 		preview.setFileName("preview.txt");
-		preview = fileHandleDao.createFile(preview);
+
+		List<FileHandle> fileHandleToCreate = new LinkedList<FileHandle>();
+		fileHandleToCreate.add(preview);
+		fileHandleToCreate.add(withPreview);
+		fileHandleDao.createBatch(fileHandleToCreate);
+
+		withPreview = (S3FileHandle) fileHandleDao.get(withPreview.getId());
+		assertNotNull(withPreview);
+		toDelete.add(withPreview.getId());
+		preview = (PreviewFileHandle) fileHandleDao.get(preview.getId());
 		assertNotNull(preview);
 		toDelete.add(preview.getId());
+
 		// Assign it as a preview
 		fileHandleDao.setPreviewId(withPreview.getId(), preview.getId());
 		// The etag should have changed
@@ -368,8 +381,6 @@ public class MigrationManagerImplAutowireTest {
 			rowRefs.setRows(Collections.singletonList(TableModelTestUtils.createRowReference(0L, 0L)));
 			rowRefs.setTableId(tableId);
 			rowRefs.setHeaders(TableModelUtils.getSelectColumns(models));
-			tableEntityManager.getCellValues(adminUser, tableId, rowRefs, models);
-
 			assertEquals(0, indexDao.getRowCountForTable(tableId).intValue());
 
 			migrationManager.deleteObjectsById(adminUser, MigrationType.TABLE_SEQUENCE, Lists.newArrayList(KeyFactory.stringToKey(tableId)));

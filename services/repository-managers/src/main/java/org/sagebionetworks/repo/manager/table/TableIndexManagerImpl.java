@@ -8,12 +8,13 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.EntityField;
-import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.table.cluster.DatabaseColumnInfo;
 import org.sagebionetworks.table.cluster.SQLUtils;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
+import org.sagebionetworks.table.model.Grouping;
+import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionCallback;
@@ -63,11 +64,9 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * java.util.List, long)
 	 */
 	@Override
-	public void applyChangeSetToIndex(final RowSet rowset, final List<ColumnModel> currentSchema,
+	public void applyChangeSetToIndex(final SparseChangeSet rowset, List<ColumnModel> currentSchema,
 			final long changeSetVersionNumber) {
 		// Validate all rows have the same version number
-		TableModelUtils.validateRowVersions(rowset.getRows(),
-				changeSetVersionNumber);
 		// Has this version already been applied to the table index?
 		final long currentVersion = tableIndexDao
 				.getMaxCurrentCompleteVersionForTable(tableId);
@@ -77,12 +76,12 @@ public class TableIndexManagerImpl implements TableIndexManager {
 					.executeInWriteTransaction(new TransactionCallback<Void>() {
 						@Override
 						public Void doInTransaction(TransactionStatus status) {
-							// apply the change to the index
-							tableIndexDao.createOrUpdateOrDeleteRows(rowset,
-									currentSchema);
+							// apply all groups to the table
+							for(Grouping grouping: rowset.groupByValidValues()){
+								tableIndexDao.createOrUpdateOrDeleteRows(grouping);
+							}
 							// Extract all file handle IDs from this set
-							Set<Long> fileHandleIds = TableModelUtils
-									.getFileHandleIdsInRowSet(rowset);
+							Set<Long> fileHandleIds = rowset.getFileHandleIdsInSparseChangeSet();
 							if (!fileHandleIds.isEmpty()) {
 								tableIndexDao.applyFileHandleIdsToTable(
 										tableId, fileHandleIds);
@@ -94,23 +93,6 @@ public class TableIndexManagerImpl implements TableIndexManager {
 						}
 					});
 		}
-	}
-	
-	@Override
-	public void applyChangeSetToIndex(final RowSet rowset,
-			final List<ColumnModel> currentSchema) {
-		// apply all changes in a transaction
-		tableIndexDao
-				.executeInWriteTransaction(new TransactionCallback<Void>() {
-					@Override
-					public Void doInTransaction(TransactionStatus status) {
-						// apply the change to the index
-						tableIndexDao.createOrUpdateOrDeleteRows(rowset,
-								currentSchema);
-						return null;
-					}
-				});
-		
 	}
 
 	/*
@@ -138,10 +120,23 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 */
 	@Override
 	public void setIndexSchema(ProgressCallback<Void> progressCallback, List<ColumnModel> newSchema) {
+		boolean removeMissingColumns = true;
+		setIndexSchema(progressCallback, newSchema, removeMissingColumns);
+	}
+	
+	/**
+	 * Set the table index schema to match the given schema.
+	 * 
+	 * @param progressCallback
+	 * @param newSchema
+	 * @param removeMissingColumns Should missing columns be removed?
+	 */
+	@Override
+	public void setIndexSchema(ProgressCallback<Void> progressCallback, List<ColumnModel> newSchema, boolean removeMissingColumns){
 		// Lookup the current schema of the index
 		List<DatabaseColumnInfo> currentSchema = tableIndexDao.getDatabaseInfo(tableId);
 		// create a change that replaces the old schema as needed.
-		List<ColumnChangeDetails> changes = SQLUtils.createReplaceSchemaChange(currentSchema, newSchema);
+		List<ColumnChangeDetails> changes = SQLUtils.createReplaceSchemaChange(currentSchema, newSchema, removeMissingColumns);
 		updateTableSchema(progressCallback, changes);
 	}
 

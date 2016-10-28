@@ -5,7 +5,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -21,11 +20,14 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.IdRange;
-import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
+import org.sagebionetworks.table.model.Grouping;
+import org.sagebionetworks.table.model.SparseChangeSet;
+import org.sagebionetworks.table.model.SparseRow;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -179,37 +181,32 @@ public class SQLUtilsTest {
 	
 	@Test
 	public void testBindParametersForCreateOrUpdate(){
-		List<ColumnModel> newSchema = helperCreateColumnsWithIds("1","2","3");
-		// This column will be missing in the RowSet so it should get this default value.
-		newSchema.get(0).setDefaultValue("456");
 		List<ColumnModel> oldSchema = helperCreateColumnsWithIds("0","2","4");
-		RowSet set = new RowSet();
-		List<Row> rows = new LinkedList<Row>();
-		// Set the row IDs
+		SparseChangeSet set = new SparseChangeSet("syn123", oldSchema);
 		for(int i=0; i<2; i++){
-			Row row = new Row();
+			SparseRow row = set.addEmptyRow();
 			row.setRowId(new Long(i));
 			row.setVersionNumber(3L);
-			row.setValues(Arrays.asList("111"+i, "222"+i, "333"+i));
-			rows.add(row);
+			row.setCellValue("0", "111"+i);
+			row.setCellValue("2", "222"+i);
+			row.setCellValue("4", "333"+i);
 		}
-		set.setRows(rows);
-		set.setHeaders(TableModelUtils.getSelectColumns(oldSchema));
-		set.setTableId("syn123");
+		Grouping grouping = set.groupByValidValues().iterator().next();
+		
 		// bind!
-		SqlParameterSource[] results = SQLUtils.bindParametersForCreateOrUpdate(set, newSchema);
+		SqlParameterSource[] results = SQLUtils.bindParametersForCreateOrUpdate(grouping);
 		assertNotNull(results);
 		assertEquals("There should be one mapping for each row in the batch",2, results.length);
 		// First row
 		assertEquals(new Long(0), results[0].getValue(SQLUtils.ROW_ID_BIND));
 		assertEquals(new Long(3), results[0].getValue(SQLUtils.ROW_VERSION_BIND));
-		assertEquals(new Long(456), results[0].getValue("_C1_"));
+		assertEquals(new Long(1110), results[0].getValue("_C0_"));
 		assertEquals(new Long(2220), results[0].getValue("_C2_"));
-		assertEquals(null, results[0].getValue("_C3_"));
+		assertEquals(new Long(3330), results[0].getValue("_C4_"));
 		// second
-		assertEquals(new Long(456), results[1].getValue("_C1_"));
+		assertEquals(new Long(1111), results[1].getValue("_C0_"));
 		assertEquals(new Long(2221), results[1].getValue("_C2_"));
-		assertEquals(null, results[1].getValue("_C3_"));
+		assertEquals(new Long(3331), results[1].getValue("_C4_"));
 	}
 	
 	
@@ -225,8 +222,10 @@ public class SQLUtilsTest {
 		range.setMaximumId(200L);
 		range.setVersionNumber(3L);
 		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
+		SparseChangeSet sparseSet = TableModelUtils.createSparseChangeSet(set, newSchema);
+		Grouping grouping = sparseSet.groupByValidValues().iterator().next();
 		// bind!
-		SqlParameterSource[] results = SQLUtils.bindParametersForCreateOrUpdate(set, newSchema);
+		SqlParameterSource[] results = SQLUtils.bindParametersForCreateOrUpdate(grouping);
 		assertNotNull(results);
 		assertEquals("There should be one mapping for each row in the batch",3, results.length);
 		// First row
@@ -996,13 +995,14 @@ public class SQLUtilsTest {
 	
 	@Test
 	public void testCreateReplaceSchemaChange(){
+		boolean removeMissingColumns = true;
 		ColumnModel one = TableModelTestUtils.createColumn(1L);
 		ColumnModel two = TableModelTestUtils.createColumn(2L);
 		ColumnModel three = TableModelTestUtils.createColumn(3L);
 		List<ColumnModel> oldSchema = Lists.newArrayList(one, two);
 		List<ColumnModel> newSchema = Lists.newArrayList(two, three);
 		// call under test
-		List<ColumnChangeDetails> results = SQLUtils.createReplaceSchemaChangeIds(oldSchema, newSchema);
+		List<ColumnChangeDetails> results = SQLUtils.createReplaceSchemaChangeIds(oldSchema, newSchema, removeMissingColumns);
 		assertNotNull(results);
 		assertEquals(2, results.size());
 		// one should be removed
@@ -1016,13 +1016,32 @@ public class SQLUtilsTest {
 	}
 	
 	@Test
+	public void testCreateReplaceSchemaRemoveMissingFalse(){
+		boolean removeMissingColumns = false;
+		ColumnModel one = TableModelTestUtils.createColumn(1L);
+		ColumnModel two = TableModelTestUtils.createColumn(2L);
+		ColumnModel three = TableModelTestUtils.createColumn(3L);
+		List<ColumnModel> oldSchema = Lists.newArrayList(one, two);
+		List<ColumnModel> newSchema = Lists.newArrayList(two, three);
+		// call under test
+		List<ColumnChangeDetails> results = SQLUtils.createReplaceSchemaChangeIds(oldSchema, newSchema, removeMissingColumns);
+		assertNotNull(results);
+		assertEquals(1, results.size());
+		// three should be added.
+		ColumnChangeDetails toAdd = results.get(0);
+		assertEquals(null, toAdd.getOldColumn());
+		assertEquals(three, toAdd.getNewColumn());
+	}
+	
+	@Test
 	public void testCreateReplaceSchemaChangeNoChange(){
+		boolean removeMissingColumns = true;
 		ColumnModel one = TableModelTestUtils.createColumn(1L);
 		ColumnModel two = TableModelTestUtils.createColumn(2L);
 		List<ColumnModel> oldSchema = Lists.newArrayList(one, two);
 		List<ColumnModel> newSchema = Lists.newArrayList(two, one);
 		// call under test
-		List<ColumnChangeDetails> results = SQLUtils.createReplaceSchemaChangeIds(oldSchema, newSchema);
+		List<ColumnChangeDetails> results = SQLUtils.createReplaceSchemaChangeIds(oldSchema, newSchema, removeMissingColumns);
 		assertNotNull(results);
 		assertEquals(0, results.size());
 	}
@@ -1243,5 +1262,74 @@ public class SQLUtilsTest {
 		String etagColumnId = "444";
 		String sql = SQLUtils.buildTableViewCRC32Sql(viewId, etagColumnId);
 		assertEquals("SELECT SUM(CRC32(CONCAT(ROW_ID, '-', _C444_))) FROM T123", sql);
+	}
+	
+	@Test
+	public void testBuildSelectRowIds(){
+		RowReference ref1 = new RowReference();
+		ref1.setRowId(222L);
+		RowReference ref2 = new RowReference();
+		ref2.setRowId(333L);
+		
+		ColumnModel c1 = TableModelTestUtils.createColumn(1L);
+		ColumnModel c2 = TableModelTestUtils.createColumn(2L);
+		
+		String sql = SQLUtils.buildSelectRowIds("syn123", Lists.newArrayList(ref1, ref2), Lists.newArrayList(c1,  c2));
+		String expected = "SELECT col_1, col_2 FROM syn123 WHERE ROW_ID IN (222, 333)";
+		assertEquals(expected, sql);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testBuildSelectRowIdsNullRefts(){
+		RowReference ref1 = new RowReference();
+		ref1.setRowId(222L);
+		RowReference ref2 = new RowReference();
+		ref2.setRowId(333L);
+		
+		ColumnModel c1 = TableModelTestUtils.createColumn(1L);
+		ColumnModel c2 = TableModelTestUtils.createColumn(2L);
+		
+		SQLUtils.buildSelectRowIds("syn123", null, Lists.newArrayList(c1,  c2));
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testBuildSelectRowIdsNullColumns(){
+		RowReference ref1 = new RowReference();
+		ref1.setRowId(222L);
+		RowReference ref2 = new RowReference();
+		ref2.setRowId(333L);
+		SQLUtils.buildSelectRowIds("syn123", Lists.newArrayList(ref1, ref2), null);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testBuildSelectRowIdsEmptyRefs(){
+		ColumnModel c1 = TableModelTestUtils.createColumn(1L);
+		ColumnModel c2 = TableModelTestUtils.createColumn(2L);
+		
+		String sql = SQLUtils.buildSelectRowIds("syn123", new LinkedList<RowReference>(), Lists.newArrayList(c1,  c2));
+		String expected = "SELECT col_1, col_2 FROM syn123 WHERE ROW_ID IN (222, 333)";
+		assertEquals(expected, sql);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testBuildSelectRowIdsEmptyColumns(){
+		RowReference ref1 = new RowReference();
+		ref1.setRowId(222L);
+		RowReference ref2 = new RowReference();
+		ref2.setRowId(333L);
+		SQLUtils.buildSelectRowIds("syn123", Lists.newArrayList(ref1, ref2), new LinkedList<ColumnModel>());
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testBuildSelectRowIdsNullRefRowId(){
+		RowReference ref1 = new RowReference();
+		ref1.setRowId(null);
+		RowReference ref2 = new RowReference();
+		ref2.setRowId(333L);
+		
+		ColumnModel c1 = TableModelTestUtils.createColumn(1L);
+		ColumnModel c2 = TableModelTestUtils.createColumn(2L);
+		
+		SQLUtils.buildSelectRowIds("syn123", Lists.newArrayList(ref1, ref2), Lists.newArrayList(c1,  c2));
 	}
 }

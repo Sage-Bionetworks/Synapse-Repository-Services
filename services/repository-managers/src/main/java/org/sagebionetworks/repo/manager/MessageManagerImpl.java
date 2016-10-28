@@ -14,6 +14,7 @@ import org.apache.http.entity.ContentType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.repo.manager.SendRawEmailRequestBuilder.BodyType;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.principal.SynapseEmailService;
 import org.sagebionetworks.repo.manager.team.TeamConstants;
@@ -53,7 +54,6 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.amazonaws.services.simpleemail.model.SendEmailRequest;
 import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
 import com.google.common.collect.Lists;
 
@@ -542,8 +542,19 @@ public class MessageManagerImpl implements MessageManager {
 			if (!userIsTrustedMessageSender &&
 					!ug.getIsIndividual() &&
 					!authorizationManager.canAccess(userInfo, principalId, ObjectType.TEAM, ACCESS_TYPE.SEND_MESSAGE).getAuthorized()) {
-				errors.add(userInfo.getId()
-						+ " may not send messages to the group (" + principalId + ")");
+				String sender = null;
+				String team = null;
+				try {
+					sender = principalAliasDAO.getUserName(userInfo.getId());
+				} catch (NotFoundException e) {
+					sender = userInfo.getId().toString();
+				}
+				try {
+					team = principalAliasDAO.getTeamName(Long.parseLong(principalId));
+				} catch (NotFoundException e) {
+					team = principalId;
+				}
+				errors.add(sender + " may not send messages to the group (" + team + ")");
 				continue;
 			}
 			
@@ -617,16 +628,16 @@ public class MessageManagerImpl implements MessageManager {
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_WEB_LINK, webLink);
 		String messageBody = EmailUtils.readMailTemplate("message/PasswordResetTemplate.txt", fieldValues);
 		String email = getEmailForUser(recipientId);
-		SendEmailRequest sendEmailRequest = (new SendEmailRequestBuilder())
+		SendRawEmailRequest sendEmailRequest = new SendRawEmailRequestBuilder()
 				.withRecipientEmail(email)
 				.withSubject(subject)
-				.withBody(messageBody)
-				.withIsHtml(false)
+				.withBody(messageBody, BodyType.PLAIN_TEXT)
 				.withSenderUserName(alias)
 				.withSenderDisplayName(displayName)
 				.withUserId(recipientId.toString())
+				.withIsNotificationMessage(true)
 				.build();
-		sesClient.sendEmail(sendEmailRequest);
+		sesClient.sendRawEmail(sendEmailRequest);
 	}
 	
 	@Override
@@ -644,15 +655,15 @@ public class MessageManagerImpl implements MessageManager {
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_USERNAME, alias);
 		String messageBody = EmailUtils.readMailTemplate("message/WelcomeTemplate.txt", fieldValues);
 		String email = getEmailForUser(recipientId);
-		SendEmailRequest sendEmailRequest = (new SendEmailRequestBuilder())
+		SendRawEmailRequest sendEmailRequest = new SendRawEmailRequestBuilder()
 				.withRecipientEmail(email)
 				.withSubject(subject)
-				.withBody(messageBody)
-				.withIsHtml(false)
+				.withBody(messageBody, BodyType.PLAIN_TEXT)
 				.withUserId(recipientId.toString())
 				.withNotificationUnsubscribeEndpoint(notificationUnsubscribeEndpoint)
+				.withIsNotificationMessage(true)
 				.build();
-		sesClient.sendEmail(sendEmailRequest);
+		sesClient.sendRawEmail(sendEmailRequest);
 	}
 	
 	@Override
@@ -668,20 +679,20 @@ public class MessageManagerImpl implements MessageManager {
 		Map<String,String> fieldValues = new HashMap<String,String>();
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_DISPLAY_NAME, alias);
 		
-		fieldValues.put(EmailUtils.TEMPLATE_KEY_MESSAGE_ID, messageId);
+		fieldValues.put(EmailUtils.TEMPLATE_KEY_MESSAGE_SUBJECT, dto.getSubject());
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_DETAILS, "- " + StringUtils.join(errors, "\n- "));
 		String email = getEmailForUser(senderId);
 		String messageBody = EmailUtils.readMailTemplate("message/DeliveryFailureTemplate.txt", fieldValues);
 		
-		SendEmailRequest sendEmailRequest = (new SendEmailRequestBuilder())
+		SendRawEmailRequest sendEmailRequest = new SendRawEmailRequestBuilder()
 				.withRecipientEmail(email)
 				.withSubject(subject)
-				.withBody(messageBody)
-				.withIsHtml(false)
+				.withBody(messageBody, BodyType.PLAIN_TEXT)
 				.withNotificationUnsubscribeEndpoint(dto.getNotificationUnsubscribeEndpoint())
 				.withUserId(senderId.toString())
+				.withIsNotificationMessage(true)
 				.build();
-		sesClient.sendEmail(sendEmailRequest);
+		sesClient.sendRawEmail(sendEmailRequest);
 	}
 	
 	

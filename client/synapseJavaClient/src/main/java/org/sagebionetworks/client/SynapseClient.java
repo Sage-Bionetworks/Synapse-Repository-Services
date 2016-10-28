@@ -13,6 +13,7 @@ import java.util.Set;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.entity.ContentType;
 import org.json.JSONObject;
+import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseResultNotReadyException;
 import org.sagebionetworks.client.exceptions.SynapseTableUnavailableException;
@@ -98,6 +99,10 @@ import org.sagebionetworks.repo.model.entity.query.EntityQuery;
 import org.sagebionetworks.repo.model.entity.query.EntityQueryResults;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.file.AddPartResponse;
+import org.sagebionetworks.repo.model.file.BatchFileHandleCopyRequest;
+import org.sagebionetworks.repo.model.file.BatchFileHandleCopyResult;
+import org.sagebionetworks.repo.model.file.BatchFileRequest;
+import org.sagebionetworks.repo.model.file.BatchFileResult;
 import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlRequest;
 import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlResponse;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadRequest;
@@ -1200,6 +1205,7 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 * @throws SynapseTableUnavailableException
 	 */
+	@Deprecated
 	public RowSet getRowsFromTable(RowReferenceSet toGet) throws SynapseException, SynapseTableUnavailableException;
 
 	/**
@@ -2852,4 +2858,40 @@ public interface SynapseClient extends BaseClient {
 	List<TableUpdateResponse> getTableTransactionJobResults(String token,
 			String tableId) throws SynapseException,
 			SynapseResultNotReadyException;
+
+	/**
+	 * Get a batch of pre-signed URLs and/or FileHandles for the given list of FileHandleAssociations 
+	 * @param request
+	 * @return
+	 * @throws SynapseException 
+	 */
+	public BatchFileResult getFileHandleAndUrlBatch(BatchFileRequest request) throws SynapseException;
+
+	/**
+	 * Copy a batch of FileHandles.
+	 * This API will check for DOWNLOAD permission on each FileHandle. If the user
+	 * has DOWNLOAD permission on a FileHandle, we will make a copy of the FileHandle,
+	 * replace the fileName and contentType of the file if they are specified in
+	 * the request, and return the new FileHandle.
+	 * 
+	 * @param request
+	 * @return
+	 * @throws SynapseBadRequestException for request with duplicated FileHandleId.
+	 * @throws SynapseException
+	 */
+	public BatchFileHandleCopyResult copyFileHandles(BatchFileHandleCopyRequest request) throws SynapseException;
+	
+	/**
+	 * Sets the ip address of the user that this client is performing actions for.
+	 * @param ipAddress
+	 */
+	public void setUserIpAddress(String ipAddress);
+
+	/**
+	 * Make a request to cancel a submission.
+	 * 
+	 * @param submissionId
+	 * @throws SynapseException 
+	 */
+	public void requestToCancelSubmission(String submissionId) throws SynapseException;
 }
