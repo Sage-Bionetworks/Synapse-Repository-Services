@@ -110,33 +110,33 @@ public class TableEntityManagerImpl implements TableEntityManager {
 
 	@WriteTransactionReadCommitted
 	@Override
-	public RowReferenceSet appendRows(UserInfo user, String tableId, List<ColumnModel> columns, RowSet delta, ProgressCallback<Long> progressCallback)
+	public RowReferenceSet appendRows(UserInfo user, String tableId, RowSet delta, ProgressCallback<Long> progressCallback)
 			throws DatastoreException, NotFoundException, IOException {
 		ValidateArgument.required(user, "User");
 		ValidateArgument.required(tableId, "TableId");
-		ValidateArgument.required(columns, "columns");
 		ValidateArgument.required(delta, "RowSet");
+		List<ColumnModel> currentSchema = columModelManager.getColumnModelsForTable(user, tableId);
 		// Validate the request is under the max bytes per requested
-		validateRequestSize(columns, delta.getRows().size());
+		validateRequestSize(currentSchema, delta.getRows().size());
 		// For this case we want to capture the resulting RowReferenceSet
 		RowReferenceSet results = new RowReferenceSet();
-		SparseChangeSet sparseChangeSet = TableModelUtils.createSparseChangeSet(delta, columns);
+		SparseChangeSet sparseChangeSet = TableModelUtils.createSparseChangeSet(delta, currentSchema);
 		SparseChangeSetDto dto = sparseChangeSet.writeToDto();
-		appendRowsAsStream(user, tableId, columns, dto.getRows().iterator(), delta.getEtag(), results, progressCallback);
+		appendRowsAsStream(user, tableId, currentSchema, dto.getRows().iterator(), delta.getEtag(), results, progressCallback);
 		return results;
 	}
 	
 	@WriteTransactionReadCommitted
 	@Override
-	public RowReferenceSet appendPartialRows(UserInfo user, String tableId, List<ColumnModel> columns,
+	public RowReferenceSet appendPartialRows(UserInfo user, String tableId,
 			PartialRowSet partial, ProgressCallback<Long> progressCallback)
 			throws DatastoreException, NotFoundException, IOException {
 		Validate.required(user, "User");
 		Validate.required(tableId, "TableId");
-		Validate.required(columns, "columns");
 		Validate.required(partial, "RowsToAppendOrUpdate");
+		List<ColumnModel> currentSchema = columModelManager.getColumnModelsForTable(user, tableId);
 		// Validate the request is under the max bytes per requested
-		validateRequestSize(columns, partial.getRows().size());
+		validateRequestSize(currentSchema, partial.getRows().size());
 		
 		/*
 		 * Partial change sets do not require row level conflict checking.
@@ -160,7 +160,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 			sparseRows.add(sparseRow);
 		}
 		RowReferenceSet results = new RowReferenceSet();
-		appendRowsAsStream(user, tableId, columns, sparseRows.iterator(), lastEtag, results, progressCallback);
+		appendRowsAsStream(user, tableId, currentSchema, sparseRows.iterator(), lastEtag, results, progressCallback);
 		return results;
 	}
 
@@ -359,17 +359,19 @@ public class TableEntityManagerImpl implements TableEntityManager {
 			versionOfDelta = Math.max(versionOfDelta, versionOfEtag);
 		}
 		final Set<Long> deltaRowIds = rowIdToRowVersionNumberFromUpdate.keySet();
-		// Need to check all changes that have been applied since the version of the delta?
-		List<TableRowChange> rowChanges = tableRowTruthDao.listRowSetsKeysForTableGreaterThanVersion(tableIdString, versionOfDelta);
-		// scan all changes greater than this row.
-		for (final TableRowChange rowChange : rowChanges) {
-			if(TableChangeType.COLUMN.equals(rowChange.getChangeType())){
-				SparseChangeSetDto change = tableRowTruthDao.getRowSet(rowChange);
-				for(SparseRowDto row: change.getRows()){
-					if (deltaRowIds.contains(row.getRowId())) {
-						throw new ConflictingUpdateException("Row id: " + row.getRowId()
-								+ " has been changed since last read.  Please get the latest value for this row and then attempt to update it again.");
-					}			
+		if(!deltaRowIds.isEmpty()){
+			// Need to check all changes that have been applied since the version of the delta?
+			List<TableRowChange> rowChanges = tableRowTruthDao.listRowSetsKeysForTableGreaterThanVersion(tableIdString, versionOfDelta);
+			// scan all changes greater than this row.
+			for (final TableRowChange rowChange : rowChanges) {
+				if(TableChangeType.ROW.equals(rowChange.getChangeType())){
+					SparseChangeSetDto change = tableRowTruthDao.getRowSet(rowChange);
+					for(SparseRowDto row: change.getRows()){
+						if (deltaRowIds.contains(row.getRowId())) {
+							throw new ConflictingUpdateException("Row id: " + row.getRowId()
+									+ " has been changed since last read.  Please get the latest value for this row and then attempt to update it again.");
+						}			
+					}
 				}
 			}
 		}

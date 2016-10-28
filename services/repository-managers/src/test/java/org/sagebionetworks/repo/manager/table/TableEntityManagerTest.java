@@ -11,14 +11,7 @@ import static org.mockito.Matchers.anyListOf;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.stub;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -43,6 +36,7 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.manager.file.FileHandleAuthorizationStatus;
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -72,6 +66,9 @@ import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
+import org.sagebionetworks.repo.model.table.SparseChangeSetDto;
+import org.sagebionetworks.repo.model.table.SparseRowDto;
+import org.sagebionetworks.repo.model.table.TableChangeType;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableSchemaChangeRequest;
 import org.sagebionetworks.repo.model.table.TableSchemaChangeResponse;
@@ -84,6 +81,8 @@ import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
+import org.sagebionetworks.table.model.SparseChangeSet;
+import org.sagebionetworks.table.model.SparseRow;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -1034,5 +1033,126 @@ public class TableEntityManagerTest {
 		assertEquals(columChangedetails, details);
 		verify(mockTruthDao).getSchemaChangeForVersion(tableId, versionNumber);
 		verify(mockColumModelManager).getColumnChangeDetails(schemaChangeRequest.getChanges());
+	}
+	
+	@Test
+	public void testCheckForRowLevelConflictWithConflict() throws IOException{
+		String etag = "anEtag";
+		Long etagVersion = 25L;
+		when(mockTruthDao.getVersionForEtag(tableId, etag)).thenReturn(25L);
+		TableRowChange change = new TableRowChange();
+		change.setKey("someKey");
+		change.setChangeType(TableChangeType.ROW);
+		when(mockTruthDao.listRowSetsKeysForTableGreaterThanVersion(tableId, etagVersion)).thenReturn(Lists.newArrayList(change));
+		SparseChangeSetDto conflictUpdate = new SparseChangeSetDto();
+		SparseRowDto conflictRow = new SparseRowDto();
+		conflictRow.setRowId(0L);
+		conflictUpdate.setRows(Lists.newArrayList(conflictRow));
+		when(mockTruthDao.getRowSet(change)).thenReturn(conflictUpdate);
+		
+		List<ColumnModel> columns = TableModelTestUtils.createOneOfEachType();
+		SparseChangeSet changeSet = new SparseChangeSet(tableId, columns);
+		changeSet.setEtag(etag);
+		
+		// add some rows
+		SparseRow row = changeSet.addEmptyRow();
+		row.setRowId(0L);
+		row.setVersionNumber(2L);
+		row.setCellValue("1", "1.1");
+		
+		row = changeSet.addEmptyRow();
+		row.setRowId(1L);
+		row.setVersionNumber(1L);
+		row.setCellValue("1", "2.1");
+		
+		try {
+			manager.checkForRowLevelConflict(tableId, changeSet);
+			fail("Should have failed.");
+		} catch (ConflictingUpdateException e) {
+			assertTrue(e.getMessage().startsWith(""));
+		}
+		// The etag version should be used to list the values
+		verify(mockTruthDao).listRowSetsKeysForTableGreaterThanVersion(tableId, etagVersion);
+	}
+	
+	
+	@Test
+	public void testCheckForRowLevelConflictNoEtag() throws IOException{
+		List<ColumnModel> columns = TableModelTestUtils.createOneOfEachType();
+		SparseChangeSet changeSet = new SparseChangeSet(tableId, columns);
+		changeSet.setEtag(null);
+		
+		// add some rows
+		SparseRow row = changeSet.addEmptyRow();
+		row.setRowId(0L);
+		row.setVersionNumber(2L);
+		row.setCellValue("1", "1.1");
+		
+		row = changeSet.addEmptyRow();
+		row.setRowId(1L);
+		row.setVersionNumber(1L);
+		row.setCellValue("1", "2.1");
+		
+		manager.checkForRowLevelConflict(tableId, changeSet);
+		// All versions greater than two should be scanned
+		verify(mockTruthDao).listRowSetsKeysForTableGreaterThanVersion(tableId, 2L);
+	}
+	
+	@Test
+	public void testCheckForRowLevelConflictWithEtag() throws IOException{
+		String etag = "anEtag";
+		Long etagVersion = 25L;
+		when(mockTruthDao.getVersionForEtag(tableId, etag)).thenReturn(25L);
+		List<ColumnModel> columns = TableModelTestUtils.createOneOfEachType();
+		SparseChangeSet changeSet = new SparseChangeSet(tableId, columns);
+		changeSet.setEtag(etag);
+		
+		// add some rows
+		SparseRow row = changeSet.addEmptyRow();
+		row.setRowId(0L);
+		row.setVersionNumber(2L);
+		row.setCellValue("1", "1.1");
+		
+		row = changeSet.addEmptyRow();
+		row.setRowId(1L);
+		row.setVersionNumber(1L);
+		row.setCellValue("1", "2.1");
+		
+		manager.checkForRowLevelConflict(tableId, changeSet);
+		// The etag version should be used to list the values
+		verify(mockTruthDao).listRowSetsKeysForTableGreaterThanVersion(tableId, etagVersion);
+	}
+	
+	@Test
+	public void testCheckForRowLevleConflictNoUpdate() throws IOException{
+		List<ColumnModel> columns = TableModelTestUtils.createOneOfEachType();
+		SparseChangeSet changeSet = new SparseChangeSet(tableId, columns);
+		// the row does not have a rowId so it should not conflict
+		SparseRow row = changeSet.addEmptyRow();
+		row.setCellValue("1", "1.1");
+		manager.checkForRowLevelConflict(tableId, changeSet);
+		// the dao should not be used when no rows are updated.
+		verifyNoMoreInteractions(mockTruthDao);
+	}
+	
+	/**
+	 * This is a test for PLFM-3355
+	 * @throws IOException
+	 */
+	@Test
+	public void testCheckForRowLevelConflictNullVersionNumber() throws IOException{
+		List<ColumnModel> columns = TableModelTestUtils.createOneOfEachType();
+		SparseChangeSet changeSet = new SparseChangeSet(tableId, columns);
+		SparseRow row = changeSet.addEmptyRow();
+		row.setRowId(1L);
+		row.setVersionNumber(null);
+		row.setCellValue("1", "1.1");
+		// This should fail as a null version number is passed in. 
+		try {
+			manager.checkForRowLevelConflict(tableId, changeSet);
+			fail("should have failed");
+		} catch (IllegalArgumentException e) {
+			assertEquals("Row version number cannot be null", e.getMessage());
+		}
 	}
 }

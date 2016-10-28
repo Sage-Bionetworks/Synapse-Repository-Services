@@ -444,6 +444,18 @@ public class TableModelUtils {
 		}
 		return value;
 	}
+	
+	@Deprecated
+	public static int countEmptyOrInvalidRowIds(RawRowSet set) {
+		validateRowSet(set);
+		int count = 0;
+		for (Row row : set.getRows()) {
+			if(isNullOrInvalid(row.getRowId())){
+				count++;
+			}
+		}
+		return count;
+	}
 
 	/**
 	 * Count all of the empty or invalid rows in the set

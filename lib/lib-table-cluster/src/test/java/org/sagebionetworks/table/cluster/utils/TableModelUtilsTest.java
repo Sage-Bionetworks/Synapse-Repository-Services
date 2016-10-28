@@ -39,7 +39,6 @@ import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.SparseChangeSetDto;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
-import org.sagebionetworks.table.model.Grouping;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.model.SparseRow;
 
@@ -757,59 +756,57 @@ public class TableModelUtilsTest {
 	
 	@Test
 	public void testDistictRowIds() {
-		List<Row> refs = new LinkedList<Row>();
-		Row ref = new Row();
-		ref.setRowId(100l);
-		ref.setVersionNumber(500L);
-		ref.setValues(new LinkedList<String>());
-		refs.add(ref);
+		SparseChangeSet changeSet = new SparseChangeSet("syn123", validModel);
 		
-		ref = new Row();
-		ref.setRowId(101l);
-		ref.setVersionNumber(501L);
-		ref.setValues(new LinkedList<String>());
-		refs.add(ref);
+		SparseRow row = changeSet.addEmptyRow();
+		row.setRowId(100l);
+		row.setVersionNumber(500L);
+		row.setCellValue("1", "true");
 		
-		ref = new Row();
-		ref.setRowId(null);
-		refs.add(ref);
-		ref = new Row();
-		ref.setRowId(-1l);
-		refs.add(ref);
+		row = changeSet.addEmptyRow();
+		row.setRowId(101l);
+		row.setVersionNumber(501L);
+		row.setCellValue("1", "true");
+		
+		row = changeSet.addEmptyRow();
+		row.setRowId(null);
+		
+		row = changeSet.addEmptyRow();
+		row.setRowId(-1L);
+		
+		row = changeSet.addEmptyRow();
+		row.setRowId(102L);
+		row.setVersionNumber(502L);
+		
 		Map<Long, Long> expected = Maps.newHashMap();
 		expected.put(101l, 501L);
 		expected.put(100l, 500L);
-		assertEquals(expected, TableModelUtils.getDistictValidRowIds(refs));
+		assertEquals(expected, TableModelUtils.getDistictValidRowIds(changeSet.rowIterator()));
 	}
 	
 	@Test(expected = IllegalArgumentException.class)
 	public void testDuplicateRowIds() {
-		List<Row> refs = new LinkedList<Row>();
-		Row ref = new Row();
-		ref.setRowId(100l);
-		ref.setVersionNumber(500L);
-		ref.setValues(new LinkedList<String>());
-		refs.add(ref);
+		SparseChangeSet changeSet = new SparseChangeSet("syn123", validModel);
 		
-		ref = new Row();
-		ref.setRowId(101l);
-		ref.setVersionNumber(501L);
-		ref.setValues(new LinkedList<String>());
-		refs.add(ref);
+		SparseRow row = changeSet.addEmptyRow();
+		row.setRowId(100l);
+		row.setVersionNumber(500L);
+		row.setCellValue("1", "true");
 		
-		ref = new Row();
-		ref.setRowId(100l);
-		ref.setVersionNumber(600L);
-		ref.setValues(new LinkedList<String>());
-		refs.add(ref);
+		row = changeSet.addEmptyRow();
+		row.setRowId(101l);
+		row.setVersionNumber(501L);
+		row.setCellValue("1", "true");
 		
-		ref = new Row();
-		ref.setRowId(null);
-		refs.add(ref);
-		ref = new Row();
-		ref.setRowId(-1l);
-		refs.add(ref);
-		TableModelUtils.getDistictValidRowIds(refs);
+		row = changeSet.addEmptyRow();
+		row.setRowId(100l);
+		row.setVersionNumber(500L);
+		row.setCellValue("1", "false");
+		
+		Map<Long, Long> expected = Maps.newHashMap();
+		expected.put(101l, 501L);
+		expected.put(100l, 500L);
+		assertEquals(expected, TableModelUtils.getDistictValidRowIds(changeSet.rowIterator()));
 	}
 
 	@Test
@@ -998,10 +995,14 @@ public class TableModelUtilsTest {
 	
 	@Test
 	public void testCalculateActualRowSize(){
-		Row row = new Row();
+		SparseRowDto row = new SparseRowDto();
 		row.setRowId(123L);
 		row.setVersionNumber(456L);
-		row.setValues(Lists.newArrayList("one",null,"muchLonger"));
+		Map<String, String> values = new HashMap<String, String>();
+		values.put("1", "one");
+		values.put("2", null);
+		values.put("3", "muchLonger");
+		row.setValues(values);
 		int expectedBytes = 79;
 		int actualBytes = TableModelUtils.calculateActualRowSize(row);
 		assertEquals(expectedBytes, actualBytes);
@@ -1009,7 +1010,7 @@ public class TableModelUtilsTest {
 
 	@Test
 	public void testCalculateActualRowSizeNullValues(){
-		Row row = new Row();
+		SparseRowDto row = new SparseRowDto();
 		row.setRowId(123L);
 		row.setVersionNumber(456L);
 		row.setValues(null);

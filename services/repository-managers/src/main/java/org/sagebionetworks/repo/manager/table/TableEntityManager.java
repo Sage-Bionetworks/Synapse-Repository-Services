@@ -42,7 +42,7 @@ public interface TableEntityManager {
 	 * @throws DatastoreException
 	 * @throws IOException
 	 */
-	public RowReferenceSet appendRows(UserInfo user, String tableId, List<ColumnModel> columns, RowSet delta, ProgressCallback<Long> progressCallback)
+	public RowReferenceSet appendRows(UserInfo user, String tableId, RowSet delta, ProgressCallback<Long> progressCallback)
 			throws DatastoreException, NotFoundException, IOException;
 
 	/**
@@ -57,7 +57,7 @@ public interface TableEntityManager {
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 */
-	public RowReferenceSet appendPartialRows(UserInfo user, String tableId, List<ColumnModel> columns,
+	public RowReferenceSet appendPartialRows(UserInfo user, String tableId,
 			PartialRowSet rowsToAppendOrUpdateOrDelete, ProgressCallback<Long> progressCallback) throws DatastoreException, NotFoundException, IOException;
 
 	/**

@@ -74,6 +74,7 @@ public interface TableRowTruthDAO {
 	 * @return
 	 * @throws IOException
 	 */
+	@Deprecated
 	public void appendRowSetToTable(String userId, String tableId, String etag, long versionNumber, List<ColumnModel> columns, RawRowSet delta)
 			throws IOException;
 	
