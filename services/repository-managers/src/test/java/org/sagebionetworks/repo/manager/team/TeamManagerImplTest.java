@@ -880,6 +880,7 @@ public class TeamManagerImplTest {
 		when(mockMembershipRqstSubmissionDAO.getOpenByTeamAndRequesterCount(eq(Long.parseLong(TEAM_ID)), eq(Long.parseLong(MEMBER_PRINCIPAL_ID)), anyLong())).thenReturn(1L);
 		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.SEND_MESSAGE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		
 		TeamMembershipStatus tms = teamManagerImpl.getTeamMembershipStatus(userInfo, TEAM_ID, principalUserInfo);
 		assertEquals(TEAM_ID, tms.getTeamId());
@@ -890,6 +891,7 @@ public class TeamManagerImplTest {
 		assertTrue(tms.getCanJoin());
 		assertTrue(tms.getMembershipApprovalRequired());
 		assertFalse(tms.getHasUnmetAccessRequirement());
+		assertTrue(tms.getCanSendEmail());
 		
 		when(mockGroupMembersDAO.getMembers(TEAM_ID)).thenReturn(Arrays.asList(new UserGroup[]{}));
 		when(mockMembershipInvtnSubmissionDAO.getOpenByTeamAndUserCount(eq(Long.parseLong(TEAM_ID)), eq(Long.parseLong(MEMBER_PRINCIPAL_ID)), anyLong())).thenReturn(0L);
@@ -903,6 +905,7 @@ public class TeamManagerImplTest {
 		assertFalse(tms.getCanJoin());
 		assertTrue(tms.getMembershipApprovalRequired());
 		assertFalse(tms.getHasUnmetAccessRequirement());
+		assertTrue(tms.getCanSendEmail());
 		
 		// if the team is open the user 'can join' even if they have no invitation
 		team.setCanPublicJoin(true);
@@ -915,6 +918,7 @@ public class TeamManagerImplTest {
 		assertTrue(tms.getCanJoin());
 		assertFalse(tms.getMembershipApprovalRequired());
 		assertFalse(tms.getHasUnmetAccessRequirement());
+		assertTrue(tms.getCanSendEmail());
 		
 		mockUnmetAccessRequirements(true, principalUserInfo);
 		tms = teamManagerImpl.getTeamMembershipStatus(userInfo, TEAM_ID, principalUserInfo);
@@ -923,6 +927,7 @@ public class TeamManagerImplTest {
 		assertFalse(tms.getCanJoin());
 		assertFalse(tms.getMembershipApprovalRequired());
 		assertTrue(tms.getHasUnmetAccessRequirement());
+		assertTrue(tms.getCanSendEmail());
 	}
 	
 	@Test
