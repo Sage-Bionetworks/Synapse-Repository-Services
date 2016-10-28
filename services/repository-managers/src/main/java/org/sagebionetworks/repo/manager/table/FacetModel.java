@@ -18,6 +18,12 @@ import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.WhereClause;
 import org.sagebionetworks.util.ValidateArgument;
 
+/**
+ * Class responsible for generating all facet related queries and transforming
+ * the query results into FacetColumnResult.
+ * @author zdong
+ *
+ */
 public class FacetModel {
 	public static final Long MAX_NUM_FACET_CATEGORIES = 100L;
 	
@@ -27,8 +33,14 @@ public class FacetModel {
 	private List<FacetTransformer> facetTransformers;
 	
 	
+	/**
+	 * Constructor
+	 * @param selectedFacets list of facets filters selected by the user
+	 * @param sqlQuery the sqlQuery on which to base the generated facet queries.
+	 * @param returnFacets whether facet information will be returned back to the user
+	 */
 	public FacetModel(List<FacetColumnRequest> selectedFacets, SqlQuery sqlQuery, boolean returnFacets) {
-		ValidateArgument.required(sqlQuery, "sqlQuery"); //TODO:Test
+		ValidateArgument.required(sqlQuery, "sqlQuery");
 	
 		//setting fields
 		this.hasFilters = selectedFacets != null && !selectedFacets.isEmpty();

@@ -444,7 +444,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		query.setIsConsistent(isConsistent);
 		query.setSelectedFacets(selectedFacets);
 
-		StringWriter writer = new StringWriter(sql.length() + 50);//TODO: increase initial buffer size to ?
+		StringWriter writer = new StringWriter(sql.length() + 50);
 		XStream xstream = new XStream();
 		xstream.alias("Query", Query.class);
 		xstream.toXML(query, writer);

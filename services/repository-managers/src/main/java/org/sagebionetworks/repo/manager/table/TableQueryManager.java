@@ -32,7 +32,7 @@ public interface TableQueryManager {
 	 * maximum number of rows allowed. 
 	 * @param user
 	 * @param query
-	 * @param selectedFacets TODO
+	 * @param selectedFacets
 	 * @param isConsistent
 	 * 
 	 * @return

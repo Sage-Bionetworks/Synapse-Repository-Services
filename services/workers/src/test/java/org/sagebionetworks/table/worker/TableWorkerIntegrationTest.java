@@ -35,7 +35,6 @@ import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.manager.AccessApprovalManager;
 import org.sagebionetworks.repo.manager.AccessRequirementManager;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
@@ -168,8 +167,6 @@ public class TableWorkerIntegrationTest {
 	DBOChangeDAO changeDAO;
 	@Autowired
 	RepositoryMessagePublisher repositoryMessagePublisher;
-	@Autowired
-	private IdGenerator idGenerator;
 
 	private UserInfo adminUserInfo;
 	RowReferenceSet referenceSet;
@@ -180,12 +177,14 @@ public class TableWorkerIntegrationTest {
 	ProgressCallback<Long> mockPprogressCallback;
 	ProgressCallback<Void> mockProgressCallbackVoid;
 
-	private List<UserInfo> users = Lists.newArrayList();
+	private List<UserInfo> users;
 
 	private String projectId;
+	private String simpleSql;
 
 	@Before
 	public void before() throws Exception {
+		users = Lists.newArrayList();
 		mockPprogressCallback = Mockito.mock(ProgressCallback.class);
 		mockProgressCallbackVoid= Mockito.mock(ProgressCallback.class);
 		// Only run this test if the table feature is enabled.
@@ -196,6 +195,7 @@ public class TableWorkerIntegrationTest {
 		this.tableId = null;
 		// Start with an empty database
 		this.tableConnectionFactory.dropAllTablesForAllConnections();
+		simpleSql = "select * from " + tableId;
 	}
 	
 	@After
@@ -1736,11 +1736,11 @@ public class TableWorkerIntegrationTest {
 	
 	@Test
 	public void testFacetNoneSelected() throws Exception{
-		String sql = facetTestSetup();
+		facetTestSetup();
 		long expectedMin = 203000;
 		long expectedMax = 203005;
 		
-		QueryResultBundle queryResultBundle = tableQueryManger.querySinglePage(mockProgressCallbackVoid, adminUserInfo, sql, null, null, 5L, 1L, true, false, true, true);
+		QueryResultBundle queryResultBundle = tableQueryManger.querySinglePage(mockProgressCallbackVoid, adminUserInfo, simpleSql, null, null, 5L, 1L, true, false, true, true);
 		List<FacetColumnResult> facets = queryResultBundle.getFacets();
 		assertNotNull(facets);
 		assertEquals(2, facets.size());
@@ -1770,7 +1770,7 @@ public class TableWorkerIntegrationTest {
 	
 	@Test
 	public void testFacetMultipleSelected() throws Exception{
-		String sql = facetTestSetup();
+		facetTestSetup();
 
 		long expectedMin = 203000;
 		long expectedMax = 203003;
@@ -1784,7 +1784,7 @@ public class TableWorkerIntegrationTest {
 		((FacetColumnValuesRequest)selectedColumn).setFacetValues(facetValues);
 		selectedFacets.add(selectedColumn);
 		
-		QueryResultBundle queryResultBundle = tableQueryManger.querySinglePage(mockProgressCallbackVoid, adminUserInfo, sql, null, selectedFacets, 5L, 1L, true, false, true, true);
+		QueryResultBundle queryResultBundle = tableQueryManger.querySinglePage(mockProgressCallbackVoid, adminUserInfo, simpleSql, null, selectedFacets, 5L, 1L, true, false, true, true);
 		List<FacetColumnResult> facets = queryResultBundle.getFacets();
 		assertNotNull(facets);
 		assertEquals(2, facets.size());
@@ -1817,7 +1817,7 @@ public class TableWorkerIntegrationTest {
 	/**
 	 * Stolen from testLimitOffset()
 	 */
-	private String facetTestSetup() throws Exception{
+	private void facetTestSetup() throws Exception{
 		createSchemaOneOfEachType();
 		createTableWithSchema();
 		// Now add some data
@@ -1827,27 +1827,10 @@ public class TableWorkerIntegrationTest {
 		rowSet.setTableId(tableId);
 		referenceSet = tableEntityManager.appendRows(adminUserInfo, tableId, schema,
 				rowSet, mockPprogressCallback);
-		String sql = "select * from " + tableId;
-		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 7L);
+		simpleSql = "select * from " + tableId;
+		waitForConsistentQuery(adminUserInfo, simpleSql, null, 7L);
 		rowSet = tableEntityManager.getCellValues(adminUserInfo, tableId, referenceSet.getRows(),
 				schema);
-		// Wait for the table to become available
-		sql = "select * from " + tableId + " order by row_id";
-		queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 7L);
-		assertEquals(6, queryResult.getQueryResults().getRows().size());
-		assertNull(queryResult.getNextPageToken());
-		compareValues(rowSet, 0, 6, queryResult.getQueryResults());
-
-		queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 6L);
-		assertEquals(6, queryResult.getQueryResults().getRows().size());
-		assertNull(queryResult.getNextPageToken());
-		compareValues(rowSet, 0, 6, queryResult.getQueryResults());
-
-		queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 5L);
-		assertEquals(5, queryResult.getQueryResults().getRows().size());
-		assertNull(queryResult.getNextPageToken());
-		compareValues(rowSet, 0, 5, queryResult.getQueryResults());
-		return sql;
 	}
 	
 	/**

@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertFalse;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -13,7 +14,6 @@ import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
@@ -27,7 +27,8 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 public class FacetModelTest {
-
+	FacetModel facetModel;
+	
 	Set<String> supportedFacetColumns;
 	Set<String> requestedFacetColumns;
 
@@ -47,6 +48,8 @@ public class FacetModelTest {
 	FacetColumnRangeRequest rangeRequest;
 	FacetColumnValuesRequest valuesRequest;
 	ArrayList<FacetColumnRequest> selectedFacets;
+	
+	SqlQuery query;
 	
 	@Before
 	public void setUp() throws Exception {
@@ -91,7 +94,45 @@ public class FacetModelTest {
 		simpleQuery = new SqlQuery("select * from " + tableId, facetSchema);
 		selectedFacets = Lists.newArrayList((FacetColumnRequest)rangeRequest, (FacetColumnRequest)valuesRequest);
 		
+		query = new SqlQuery("select * from " + tableId + " where asdf <> ayy and asdf < 'taco bell'",
+				facetSchema);
 	}
+	/////////////////////
+	// Constructor tests
+	/////////////////////
+	@Test
+	public void testConstructor(){
+		facetModel = new FacetModel(selectedFacets, query, true);		
+		//just checking that we will get some result back after construction of object.
+		//the results are unit tested later.
+		assertNotNull(facetModel.getFacetFilteredQuery());
+		List<FacetTransformer> facetTransformers = facetModel.getFacetInformationQueries();
+		assertNotNull(facetTransformers);
+		for(FacetTransformer transformer : facetTransformers){
+			assertNotNull(transformer);
+		}
+		assertTrue(facetModel.hasFiltersApplied());
+	}
+	
+	
+	/////////////////////////////
+	// hasFiltersApplied tests()
+	/////////////////////////////
+	public void testHasFiltersAppliedNullSelectedFacetsInConstructor(){
+		facetModel = new FacetModel(null, query, true);
+		assertFalse(facetModel.hasFiltersApplied());
+	}
+	
+	public void testHasFiltersAppliedEmptySelectedFacetsInConstructor(){
+		facetModel = new FacetModel(new ArrayList<FacetColumnRequest>(), query, true);
+		assertFalse(facetModel.hasFiltersApplied());
+	}
+	
+	public void testHasFiltersAppliedNonEmptySelectedFacetsInConstructor(){
+		facetModel = new FacetModel(null, query, true);
+		assertTrue(facetModel.hasFiltersApplied());
+	}
+	
 	
 	
 	///////////////////////////////
@@ -254,9 +295,14 @@ public class FacetModelTest {
 		validatedQueryFacetColumns.add(new ValidatedQueryFacetColumn(facetColumnName, FacetType.range, rangeRequest));
 
 		SqlQuery modifiedQuery = FacetModel.generateFacetFilteredQuery(query, validatedQueryFacetColumns);
-		assertEquals("SELECT _C" + facetColumnId + "_, _C" + facetColumnId2+"_, ROW_ID, ROW_VERSION FROM T" + KeyFactory.stringToKey(tableId)
-				+ " WHERE ( _C" + facetColumnId + "_ <> :b0 AND _C" + facetColumnId + "_ < :b1 ) AND ( ( ( _C"
-				+ facetColumnId + "_ BETWEEN :b2 AND :b3 ) ) )", modifiedQuery.getOutputSQL());
+		String expectedTransformedQuery = "SELECT _C890_, _C098_, ROW_ID, ROW_VERSION FROM T123"
+				+ " WHERE ( _C890_ <> :b0 AND _C890_ < :b1 )"
+				+ " AND ( ( ( _C890_ BETWEEN :b2 AND :b3 ) ) )";
+		assertEquals(expectedTransformedQuery, modifiedQuery.getOutputSQL());
+		//check the original where clauses' parameters
+		assertEquals("ayy", modifiedQuery.getParameters().get("b0"));
+		assertEquals("taco bell", modifiedQuery.getParameters().get("b1"));
+		//check the facet's where clauses' parameters
 		assertEquals(min, modifiedQuery.getParameters().get("b2"));
 		assertEquals(max, modifiedQuery.getParameters().get("b3"));
 	}
