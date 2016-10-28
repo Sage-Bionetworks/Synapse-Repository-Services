@@ -161,7 +161,6 @@
 				</bean>
 	            <bean class="org.sagebionetworks.repo.manager.file.preview.TextPreviewGenerator" />
 	            <bean class="org.sagebionetworks.repo.manager.file.preview.ZipPreviewGenerator" />
-		    	<bean class="org.sagebionetworks.repo.manager.file.preview.PdfPreviewGenerator" />
 	        </list>
 	    </property>
 	    <!-- The maximum amount of memory to uses -->

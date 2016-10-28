@@ -309,7 +309,6 @@
 				<version>${com.amazonaws.version}</version>
 			</dependency>
 
-
 			<dependency>
 				<groupId>org.apache.httpcomponents</groupId>
 				<artifactId>httpclient</artifactId>
@@ -619,13 +618,6 @@
 				<version>${org.apache.pivot.version}</version>
 			</dependency>
 
-			<!-- previews -->
-			<dependency>
-				<groupId>org.im4java</groupId>
-				<artifactId>im4java</artifactId>
-				<version>${org.im4java.version}</version>
-			</dependency>
-
 		</dependencies>
 	</dependencyManagement>
 	<!-- Only list globally used plugins in this file -->
@@ -858,7 +850,6 @@
 		<com.sun.tools.version>1.7</com.sun.tools.version>
 		<org.apache.pivot.version>2.0.1</org.apache.pivot.version>
 		<log4j.version>2.6.1</log4j.version>
-		<org.im4java.version>1.4.0</org.im4java.version>
 	</properties>
 
 	<distributionManagement>
