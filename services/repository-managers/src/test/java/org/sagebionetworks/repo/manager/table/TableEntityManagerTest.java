@@ -379,61 +379,6 @@ public class TableEntityManagerTest {
 		}
 		verify(mockTableManagerSupport, never()).setTableToProcessingAndTriggerUpdate(tableId);
 	}
-	
-	@Test
-	public void testValidatePartialRowString(){
-		PartialRow partialRow = new PartialRow();
-		partialRow.setRowId(null);
-		partialRow.setValues(ImmutableMap.of("foo", "updated value 2"));
-	
-		Set<Long> columnIds = ImmutableSet.of(123l,456L);
-		try {
-			TableEntityManagerImpl.validatePartialRow(partialRow, columnIds);
-			fail("Should have failed since a column name was used and not an ID.");
-		} catch (Exception e) {
-			assertEquals("PartialRow.value.key: 'foo' is not a valid column ID for row ID: null", e.getMessage());
-		}
-	}
-	
-	@Test
-	public void testValidatePartialRowNoMatch(){
-		PartialRow partialRow = new PartialRow();
-		partialRow.setRowId(999L);
-		partialRow.setValues(ImmutableMap.of("789", "updated value 2"));
-	
-		Set<Long> columnIds = ImmutableSet.of(123l,456L);
-		try {
-			TableEntityManagerImpl.validatePartialRow(partialRow, columnIds);
-			fail("Should have failed since a column name was used and not an ID.");
-		} catch (Exception e) {
-			assertEquals("PartialRow.value.key: '789' is not a valid column ID for row ID: 999", e.getMessage());
-		}
-	}
-	
-	@Test
-	public void testValidatePartialRowHappy(){
-		PartialRow partialRow = new PartialRow();
-		partialRow.setRowId(999L);
-		partialRow.setValues(ImmutableMap.of("456", "updated value 2"));
-		Set<Long> columnIds = ImmutableSet.of(123l,456L);
-		TableEntityManagerImpl.validatePartialRow(partialRow, columnIds);
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testValidatePartialRowNullRow(){
-		PartialRow partialRow = null;
-		Set<Long> columnIds = ImmutableSet.of(123l,456L);
-		TableEntityManagerImpl.validatePartialRow(partialRow, columnIds);
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testValidatePartialRowNullSet(){
-		PartialRow partialRow = new PartialRow();
-		partialRow.setRowId(null);
-		partialRow.setValues(ImmutableMap.of("foo", "updated value 2"));
-		Set<Long> columnIds = null;
-		TableEntityManagerImpl.validatePartialRow(partialRow, columnIds);
-	}
 
 	@Test
 	public void testAppendRowsAsStreamHappy() throws DatastoreException, NotFoundException, IOException{

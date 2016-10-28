@@ -20,6 +20,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -58,6 +59,7 @@ public class TableModelUtilsTest {
 	
 	List<ColumnModel> validModel;
 	RawRowSet validRowSet;
+	SparseChangeSet validSparseRowSet;
 	RawRowSet validRowSet2;
 	StringWriter outWritter;
 	CSVWriter out;
@@ -65,16 +67,16 @@ public class TableModelUtilsTest {
 	@Before
 	public void before() {
 		validModel = new LinkedList<ColumnModel>();
-		ColumnModel cm = new ColumnModel();
-		cm.setName("one");
-		cm.setId("1");
-		cm.setColumnType(ColumnType.BOOLEAN);
-		validModel.add(cm);
-		cm = new ColumnModel();
-		cm.setName("two");
-		cm.setId("2");
-		cm.setColumnType(ColumnType.INTEGER);
-		validModel.add(cm);
+		ColumnModel cm1 = new ColumnModel();
+		cm1.setName("one");
+		cm1.setId("1");
+		cm1.setColumnType(ColumnType.BOOLEAN);
+		validModel.add(cm1);
+		ColumnModel cm2 = new ColumnModel();
+		cm2.setName("two");
+		cm2.setId("2");
+		cm2.setColumnType(ColumnType.INTEGER);
+		validModel.add(cm2);
 
 		List<String> ids = Lists.newArrayList("2", "1");
 		List<Row> rows = new LinkedList<Row>();
@@ -96,7 +98,9 @@ public class TableModelUtilsTest {
 		values.add("false");
 		row.setValues(values);
 		rows.add(row);
-		validRowSet = new RawRowSet(ids, null, null, rows);
+		validRowSet = new RawRowSet(ids, null, "syn123", rows);
+		
+		validSparseRowSet = TableModelUtils.createSparseChangeSet(validRowSet, Lists.newArrayList(cm2, cm1));
 
 		outWritter = new StringWriter();
 		out = new CSVWriter(outWritter);
@@ -544,26 +548,27 @@ public class TableModelUtilsTest {
 
 	@Test
 	public void testCountEmptyOrInvalidRowIdsNone() {
-		assertEquals(0, TableModelUtils.countEmptyOrInvalidRowIds(validRowSet));
+		assertEquals(0, TableModelUtils.countEmptyOrInvalidRowIds(validSparseRowSet));
 	}
 
 	@Test
 	public void testCountEmptyOrInvalidRowIdsNull() {
-		validRowSet.getRows().get(0).setRowId(null);
-		assertEquals(1, TableModelUtils.countEmptyOrInvalidRowIds(validRowSet));
+		validSparseRowSet.rowIterator().iterator().next().setRowId(null);
+		assertEquals(1, TableModelUtils.countEmptyOrInvalidRowIds(validSparseRowSet));
 	}
 
 	@Test
 	public void testCountEmptyOrInvalidRowIdsInvalid() {
-		validRowSet.getRows().get(0).setRowId(-1l);
-		assertEquals(1, TableModelUtils.countEmptyOrInvalidRowIds(validRowSet));
+		validSparseRowSet.rowIterator().iterator().next().setRowId(-1l);
+		assertEquals(1, TableModelUtils.countEmptyOrInvalidRowIds(validSparseRowSet));
 	}
 
 	@Test
 	public void testCountEmptyOrInvalidRowIdsMixed() {
-		validRowSet.getRows().get(0).setRowId(-1l);
-		validRowSet.getRows().get(1).setRowId(null);
-		assertEquals(2, TableModelUtils.countEmptyOrInvalidRowIds(validRowSet));
+		Iterator<SparseRow> it = validSparseRowSet.rowIterator().iterator();
+		it.next().setRowId(-1l);
+		it.next().setRowId(null);
+		assertEquals(2, TableModelUtils.countEmptyOrInvalidRowIds(validSparseRowSet));
 	}
 	
 	@Test

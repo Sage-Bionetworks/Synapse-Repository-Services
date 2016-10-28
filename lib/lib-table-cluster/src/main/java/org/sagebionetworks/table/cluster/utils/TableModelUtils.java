@@ -1364,34 +1364,30 @@ public class TableModelUtils {
 	}
 	
 	/**
-	 * Convert form RawRowSet to SparseChangeSetDto.
-	 * 
-	 * @param rowSet
+	 * Create a RowSet from a RawRowSet.
+	 * @param rawRowSet
+	 * @param schema
 	 * @return
 	 */
-	public static SparseChangeSetDto createSparseFromRowSet(RawRowSet rowSet) {
-		SparseChangeSetDto dto = new SparseChangeSetDto();
-		dto.setColumnIds(rowSet.getIds());
-		dto.setTableId(rowSet.getTableId());
-		dto.setEtag(rowSet.getEtag());
-		List<SparseRowDto> rows = new LinkedList<>();
-		dto.setRows(rows);
-		for (Row row : rowSet.getRows()) {
-			SparseRowDto rowDto = new SparseRowDto();
-			rows.add(rowDto);
-			rowDto.setRowId(row.getRowId());
-			rowDto.setVersionNumber(row.getVersionNumber());
-			HashMap<String, String> values = new HashMap<>();
-			rowDto.setValues(values);
-			if (row.getValues() != null) {
-				for (int i = 0; i < rowSet.getIds().size(); i++) {
-					String columnId = rowSet.getIds().get(i);
-					String value = row.getValues().get(i);
-					values.put(columnId, value);
-				}
-			}
-		}
-		return dto;
+	public static RowSet createRowSet(RawRowSet rawRowSet, List<ColumnModel> schema){
+		RowSet rowSet = new RowSet();
+		rowSet.setEtag(rawRowSet.getEtag());
+		rowSet.setHeaders(getSelectColumns(schema));
+		rowSet.setTableId(rawRowSet.getTableId());
+		rowSet.setRows(new LinkedList<>(rawRowSet.getRows()));
+		return rowSet;
 	}
+	
+	/**
+	 * Create a SparseChangeSet from a RawRowSet
+	 * @param rawRowSet
+	 * @param schema
+	 * @return
+	 */
+	public static SparseChangeSet createSparseChangeSet(RawRowSet rawRowSet, List<ColumnModel> schema) {
+		RowSet rowSet = createRowSet(rawRowSet, schema);
+		return createSparseChangeSet(rowSet, schema);
+	}
+	
 
 }
