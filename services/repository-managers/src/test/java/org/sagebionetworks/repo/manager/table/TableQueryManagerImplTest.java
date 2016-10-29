@@ -799,9 +799,11 @@ public class TableQueryManagerImplTest {
 		List<SortItem> sortList = null;
 		boolean includeRowIdAndVersion = false;
 		boolean writeHeader = true;
+		List<FacetColumnRequest> selectedFacets = null;
+
 		// call under test
 		DownloadFromTableResult results = manager.runConsistentQueryAsStream(
-				mockProgressCallbackVoid, user, sql, sortList, writer,
+				mockProgressCallbackVoid, user, sql, sortList, selectedFacets, writer,
 				includeRowIdAndVersion, writeHeader);
 		assertNotNull(results);
 		
@@ -817,9 +819,10 @@ public class TableQueryManagerImplTest {
 		List<SortItem> sortList = null;
 		boolean includeRowIdAndVersion = false;
 		boolean writeHeader = true;
+		List<FacetColumnRequest> selectedFacets = null;
 		// call under test
 		manager.runConsistentQueryAsStream(
-				mockProgressCallbackVoid, user, sql, sortList, writer,
+				mockProgressCallbackVoid, user, sql, sortList, selectedFacets, writer,
 				includeRowIdAndVersion, writeHeader);
 	}
 	

@@ -96,8 +96,8 @@ public interface TableQueryManager {
 	 * @throws TableFailedException
 	 * @throws TableLockUnavailableException 
 	 */
-	DownloadFromTableResult runConsistentQueryAsStream(ProgressCallback<Void> progressCallback, UserInfo user, String sql, List<SortItem> list, CSVWriterStream writer,
-			boolean includeRowIdAndVersion, boolean writeHeader) throws TableUnavailableException, NotFoundException, TableFailedException, LockUnavilableException;
+	DownloadFromTableResult runConsistentQueryAsStream(ProgressCallback<Void> progressCallback, UserInfo user, String sql, List<SortItem> list, List<FacetColumnRequest> selectedFacets
+			,CSVWriterStream writer, boolean includeRowIdAndVersion, boolean writeHeader) throws TableUnavailableException, NotFoundException, TableFailedException, LockUnavilableException;
 
 
 	/**

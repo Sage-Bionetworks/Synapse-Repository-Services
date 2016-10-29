@@ -529,7 +529,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	@Override
 	public DownloadFromTableResult runConsistentQueryAsStream(
 			ProgressCallback<Void> progressCallback, UserInfo user, String sql,
-			List<SortItem> sortList, final CSVWriterStream writer,
+			List<SortItem> sortList, List<FacetColumnRequest> selectedFacets,final CSVWriterStream writer,
 			boolean includeRowIdAndVersion, final boolean writeHeader)
 			throws TableUnavailableException, NotFoundException,
 			TableFailedException, LockUnavilableException {
@@ -553,7 +553,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			boolean runCount = false;
 			boolean isConsistent = true;
 			QueryResultBundle result = queryAsStream(progressCallback, user,
-					query, null ,handler, runCount, false, isConsistent); //TODO: NEED TO MODIFY DownloadFromTableRequest to take in facet parameters
+					query, selectedFacets ,handler, runCount, false, isConsistent); //TODO: NEED TO MODIFY DownloadFromTableRequest to take in facet parameters
 			// convert the response
 			DownloadFromTableResult response = new DownloadFromTableResult();
 			response.setHeaders(result.getSelectColumns());

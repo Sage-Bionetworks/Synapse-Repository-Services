@@ -1928,7 +1928,7 @@ public class TableWorkerIntegrationTest {
 		while(true){
 			try {
 				tableQueryManger.validateTableIsAvailable(tableId);
-				return tableQueryManger.runConsistentQueryAsStream(mockProgressCallbackVoid, adminUserInfo, sql, null, writer, includeRowIdAndVersion, writeHeader);
+				return tableQueryManger.runConsistentQueryAsStream(mockProgressCallbackVoid, adminUserInfo, sql, null, null, writer, includeRowIdAndVersion, writeHeader);
 			}  catch (LockUnavilableException e) {
 				System.out.println("Waiting for table lock: "+e.getLocalizedMessage());
 			} catch (TableUnavailableException e) {
