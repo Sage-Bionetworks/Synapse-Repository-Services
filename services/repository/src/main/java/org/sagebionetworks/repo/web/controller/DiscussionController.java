@@ -104,9 +104,9 @@ public class DiscussionController extends BaseController {
 	 * @param userId - The ID of the user who is making the request
 	 * @param limit - Limits the size of the page returned. For example, a page size of 10 require limit = 10. The maximum Limit for this call is 20.
 	 * @param offset - The index of the pagination offset. For a page size of 10, the first page would be at offset = 0, and the second page would be at offset = 10.
-	 * @param sort - The field to sort the resulting threads on. Available options: <a href="${org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder}">DiscussionThreadOrder</a>.
+	 * @param sort - The field to sort the resulting threads on
 	 * @param ascending - The direction of sort: true for ascending, and false for descending
-	 * @param filter - Filter deleted/ not deleted threads. Available options: <a href="${org.sagebionetworks.repo.model.discussion.DiscussionFilter}">DiscussionFilter</a>.
+	 * @param filter - Filter deleted/ not deleted threads
 	 * @param forumId - The forum ID to which the returning threads belong
 	 * @return
 	 */
@@ -361,9 +361,9 @@ public class DiscussionController extends BaseController {
 	 * @param userId - The ID of the user who is making the request
 	 * @param limit - Limits the size of the page returned. For example, a page size of 10 require limit = 10. The maximum Limit for this call is 100.
 	 * @param offset - The index of the pagination offset. For a page size of 10, the first page would be at offset = 0, and the second page would be at offset = 10.
-	 * @param sort - The field to sort the resulting replies on. Available options: <a href="${org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder}">DiscussionReplyOrder</a>.
+	 * @param sort - The field to sort the resulting threads on
 	 * @param ascending - The direction of sort: true for ascending, and false for descending
-	 * @param filter - Filter deleted/ not deleted replies. Available options: <a href="${org.sagebionetworks.repo.model.discussion.DiscussionFilter}">DiscussionFilter</a>.
+	 * @param filter - Filter deleted/ not deleted replies
 	 * @param threadId - The thread ID to which the returning replies belong
 	 * @return
 	 */
@@ -407,7 +407,7 @@ public class DiscussionController extends BaseController {
 	 * Target users: anyone who has READ permission to the project.
 	 * 
 	 * @param userId - The ID of the user who is making the request
-	 * @param filter - Filter deleted/ not deleted threads. Available options: <a href="${org.sagebionetworks.repo.model.discussion.DiscussionFilter}">DiscussionFilter</a>.
+	 * @param filter - Filter deleted/ not deleted threads
 	 * @param forumId - The forum ID to which the returning threads belong
 	 * @return
 	 */
@@ -426,7 +426,7 @@ public class DiscussionController extends BaseController {
 	 * Target users: anyone who has READ permission to the project.
 	 * 
 	 * @param userId - The ID of the user who is making the request
-	 * @param filter - Filter deleted/ not deleted replies. Available options: <a href="${org.sagebionetworks.repo.model.discussion.DiscussionFilter}">DiscussionFilter</a>.
+	 * @param filter - Filter deleted/ not deleted threads
 	 * @param threadId - The thread ID to which the returning replies belong
 	 * @return
 	 */
@@ -448,7 +448,7 @@ public class DiscussionController extends BaseController {
 	 * @param userId - The ID of the user who is making the request
 	 * @param limit - Limits the size of the page returned. For example, a page size of 10 require limit = 10. The maximum Limit for this call is 20.
 	 * @param offset - The index of the pagination offset. For a page size of 10, the first page would be at offset = 0, and the second page would be at offset = 10.
-	 * @param sort - The field to sort the resulting threads on. Available options: <a href="${org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder}">DiscussionThreadOrder</a>.
+	 * @param sort - The field to sort the resulting threads on
 	 * @param ascending - The direction of sort: true for ascending, and false for descending
 	 * @param id - The request entityId
 	 * @return the threads that user has read permission to.
