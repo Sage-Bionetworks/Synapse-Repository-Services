@@ -119,12 +119,6 @@
 				<artifactId>log4j-jcl</artifactId>
 				<version>${log4j.version}</version>
 			</dependency>
-			<!-- Jena provides ontology APIs including loading and querying for RDF -->
-			<dependency>
-				<groupId>com.hp.hpl.jena</groupId>
-				<artifactId>tdb</artifactId>
-				<version>0.8.5</version>
-			</dependency>
 			
 			<!-- OAuth support -->
 			<dependency>
@@ -409,11 +403,6 @@
 				<version>${project.version}</version>
 			</dependency>
 
-			<dependency>
-				<groupId>org.sagebionetworks</groupId>
-				<artifactId>lib-concepts</artifactId>
-				<version>${project.version}</version>
-			</dependency>
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
 				<artifactId>lib-audit</artifactId>
