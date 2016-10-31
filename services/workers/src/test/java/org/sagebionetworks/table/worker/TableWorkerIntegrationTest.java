@@ -1424,7 +1424,7 @@ public class TableWorkerIntegrationTest {
 		CSVWriterStreamProxy proxy = new CSVWriterStreamProxy(csvWriter);
 		// Downlaod the data to a csv
 		boolean includeRowIdAndVersion = true;
-		DownloadFromTableResult response = waitForConsistentStreamQuery("select * from " + tableId, proxy, includeRowIdAndVersion, true);
+		DownloadFromTableResult response = waitForConsistentStreamQuery("select * from " + tableId, proxy, null, includeRowIdAndVersion, true);
 		assertNotNull(response);
 		assertNotNull(response.getEtag());
 		// Read the results
@@ -1444,7 +1444,7 @@ public class TableWorkerIntegrationTest {
 		proxy = new CSVWriterStreamProxy(csvWriter);
 		includeRowIdAndVersion = false;
 		response = waitForConsistentStreamQuery("select count(a), a from " + tableId + " group by a order by a", proxy,
-				includeRowIdAndVersion, true);
+				null, includeRowIdAndVersion, true);
 		assertNotNull(response);
 		assertNotNull(response.getEtag());
 		// Read the results
@@ -1471,7 +1471,7 @@ public class TableWorkerIntegrationTest {
 		csvWriter = new CSVWriter(stringWriter);
 		proxy = new CSVWriterStreamProxy(csvWriter);
 		includeRowIdAndVersion = false;
-		response = waitForConsistentStreamQuery("select c, a, b from " + tableId, proxy, includeRowIdAndVersion, true);
+		response = waitForConsistentStreamQuery("select c, a, b from " + tableId, proxy, null, includeRowIdAndVersion, true);
 		// read the results
 		copyReader = new CSVReader(new StringReader(stringWriter.toString()));
 		copy = copyReader.readAll();
@@ -1523,7 +1523,7 @@ public class TableWorkerIntegrationTest {
 		CSVWriterStreamProxy proxy = new CSVWriterStreamProxy(csvWriter);
 		// Downlaod the data to a csv
 		boolean includeRowIdAndVersion = true;
-		DownloadFromTableResult response = waitForConsistentStreamQuery(aggregateSql, proxy, includeRowIdAndVersion, true);
+		DownloadFromTableResult response = waitForConsistentStreamQuery(aggregateSql, proxy, null, includeRowIdAndVersion, true);
 		assertNotNull(response);
 		assertNotNull(response.getEtag());
 		// Read the results
@@ -1533,6 +1533,40 @@ public class TableWorkerIntegrationTest {
 		assertNotNull(copy);
 		assertEquals(expectedResults.length, copy.size());
 		for (int i = 0; i < expectedResults.length; i++) {
+			assertArrayEquals(expectedResults[i], copy.get(i));
+		}
+	}
+	
+	@Test
+	public void testCSVDownloadWithFacets() throws Exception{
+		//setup
+		facetTestSetup();
+		boolean includeRowIdAndVersion = false;
+		String sql = "select i0 from " + tableId;
+		StringWriter stringWriter = new StringWriter();
+		CSVWriter csvWriter = new CSVWriter(stringWriter);
+		CSVWriterStreamProxy proxy = new CSVWriterStreamProxy(csvWriter);
+		FacetColumnValuesRequest facetRequest = new FacetColumnValuesRequest();
+		facetRequest.setColumnName("i0");
+		facetRequest.setFacetValues(Sets.newHashSet("string0", "string2"));
+		List<FacetColumnRequest> selectedFacets = new ArrayList<>();
+		selectedFacets.add(facetRequest);
+		
+		// Downlaod the data to a csv
+		DownloadFromTableResult response = waitForConsistentStreamQuery(sql, proxy, selectedFacets, includeRowIdAndVersion, true);
+		assertNotNull(response);
+		assertNotNull(response.getEtag());
+		
+		// Read the results
+		CSVReader copyReader = new CSVReader(new StringReader(stringWriter.toString()));
+		List<String[]> copy = copyReader.readAll();
+		copyReader.close();
+		assertNotNull(copy);
+		
+		//compare the results
+		String[][] expectedResults = { { "i0" }, { "string0" }, { "string2" } };
+		assertEquals(expectedResults.length, copy.size());
+		for (int i = 0; i < copy.size(); i++) {
 			assertArrayEquals(expectedResults[i], copy.get(i));
 		}
 	}
@@ -1922,13 +1956,13 @@ public class TableWorkerIntegrationTest {
 	 * @throws NotFoundException
 	 * @throws InterruptedException
 	 */
-	private DownloadFromTableResult waitForConsistentStreamQuery(String sql, CSVWriterStream writer, boolean includeRowIdAndVersion,
+	private DownloadFromTableResult waitForConsistentStreamQuery(String sql, CSVWriterStream writer, List<FacetColumnRequest> selectedFacets,boolean includeRowIdAndVersion,
 			boolean writeHeader) throws Exception {
 		long start = System.currentTimeMillis();
 		while(true){
 			try {
 				tableQueryManger.validateTableIsAvailable(tableId);
-				return tableQueryManger.runConsistentQueryAsStream(mockProgressCallbackVoid, adminUserInfo, sql, null, null, writer, includeRowIdAndVersion, writeHeader);
+				return tableQueryManger.runConsistentQueryAsStream(mockProgressCallbackVoid, adminUserInfo, sql, null, selectedFacets, writer, includeRowIdAndVersion, writeHeader);
 			}  catch (LockUnavilableException e) {
 				System.out.println("Waiting for table lock: "+e.getLocalizedMessage());
 			} catch (TableUnavailableException e) {

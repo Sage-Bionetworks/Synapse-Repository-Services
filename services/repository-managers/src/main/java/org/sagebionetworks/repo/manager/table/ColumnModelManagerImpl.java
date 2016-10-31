@@ -125,7 +125,7 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 		}
 	}
 	
-	private void validateFacetType(ColumnModel columnModel){
+	void validateFacetType(ColumnModel columnModel){
 		//validate the facetType agains its d
 		FacetType facetType = columnModel.getFacetType();
 		ColumnType columnType = columnModel.getColumnType();
@@ -140,20 +140,16 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 			case BOOLEAN:
 				if(facetType != FacetType.enumeration)
 					throw new IllegalArgumentException("Boolean columns can only be enumeration faceted");
+				break;
 			//doubles and dates can only be range faceted
 			case DOUBLE:
 			case DATE:
 				if(facetType != FacetType.range)
 					throw new IllegalArgumentException("Date columns can only be ranges");
+				break;
 			//files, entities, links, and largetexts can not be faceted
-			case FILEHANDLEID:
-			case ENTITYID:
-			case LINK:
-			case LARGETEXT:
-				throw new IllegalArgumentException("The ColumnType:" + columnType + "can not be faceted");
-			
 			default:
-				throw new IllegalArgumentException("Unexpected columnType");
+				throw new IllegalArgumentException("The ColumnType:" + columnType + " can not be faceted");
 			}
 		}
 	}

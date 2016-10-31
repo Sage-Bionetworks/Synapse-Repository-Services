@@ -387,7 +387,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		}
 		boolean runQuery = ((partMask & BUNDLE_MASK_QUERY_RESULTS) != 0);
 		boolean runCount = ((partMask & BUNDLE_MASK_QUERY_COUNT) != 0);
-		boolean runFacets = ((partMask & BUNDLE_MASK_QUERY_FACETS) != 0);
+		boolean returnFacets = ((partMask & BUNDLE_MASK_QUERY_FACETS) != 0);
 		boolean isConsistent = BooleanUtils.isNotFalse(queryBundle.getQuery()
 				.getIsConsistent());
 		
@@ -401,7 +401,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 				queryBundle.getQuery().getOffset(),
 				queryBundle.getQuery().getLimit(),
 				runQuery,
-				runCount, runFacets, isConsistent
+				runCount, returnFacets, isConsistent
 				);
 		
 		if(runQuery){
