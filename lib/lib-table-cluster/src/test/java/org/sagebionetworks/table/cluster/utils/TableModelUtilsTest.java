@@ -32,6 +32,7 @@ import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.IdRange;
+import org.sagebionetworks.repo.model.table.PartialRow;
 import org.sagebionetworks.repo.model.table.RawRowSet;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
@@ -45,6 +46,8 @@ import org.sagebionetworks.table.model.SparseRow;
 import au.com.bytecode.opencsv.CSVReader;
 import au.com.bytecode.opencsv.CSVWriter;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -1406,6 +1409,46 @@ public class TableModelUtilsTest {
 		// read it back
 		SparseChangeSetDto copy = TableModelUtils.readSparseChangeSetDtoFromGzStream(new ByteArrayInputStream(out.toByteArray()));
 		assertEquals(dto, copy);
+	}
+	
+
+	@Test
+	public void testValidatePartialRowString(){
+		PartialRow partialRow = new PartialRow();
+		partialRow.setRowId(null);
+		partialRow.setValues(ImmutableMap.of("foo", "updated value 2"));
+	
+		Set<Long> columnIds = ImmutableSet.of(123l,456L);
+		try {
+			TableModelUtils.validatePartialRow(partialRow, columnIds);
+			fail("Should have failed since a column name was used and not an ID.");
+		} catch (Exception e) {
+			assertEquals("PartialRow.value.key: 'foo' is not a valid column ID for row ID: null", e.getMessage());
+		}
+	}
+	
+	@Test
+	public void testValidatePartialRowNoMatch(){
+		PartialRow partialRow = new PartialRow();
+		partialRow.setRowId(999L);
+		partialRow.setValues(ImmutableMap.of("789", "updated value 2"));
+	
+		Set<Long> columnIds = ImmutableSet.of(123l,456L);
+		try {
+			TableModelUtils.validatePartialRow(partialRow, columnIds);
+			fail("Should have failed since a column name was used and not an ID.");
+		} catch (Exception e) {
+			assertEquals("PartialRow.value.key: '789' is not a valid column ID for row ID: 999", e.getMessage());
+		}
+	}
+	
+	@Test
+	public void testValidatePartialRowHappy(){
+		PartialRow partialRow = new PartialRow();
+		partialRow.setRowId(999L);
+		partialRow.setValues(ImmutableMap.of("456", "updated value 2"));
+		Set<Long> columnIds = ImmutableSet.of(123l,456L);
+		TableModelUtils.validatePartialRow(partialRow, columnIds);
 	}
 	
 }

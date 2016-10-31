@@ -71,7 +71,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	private static final int EXCLUSIVE_LOCK_TIMEOUT_MS = 5*1000;
 
 	static private Log log = LogFactory.getLog(TableEntityManagerImpl.class);
-
+	
 	public static final int READ_LOCK_TIMEOUT_SEC = 60;
 	
 	@Autowired
@@ -137,6 +137,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		List<ColumnModel> currentSchema = columModelManager.getColumnModelsForTable(user, tableId);
 		// Validate the request is under the max bytes per requested
 		validateRequestSize(currentSchema, partial.getRows().size());
+		TableModelUtils.validatePartialRowSet(partial, currentSchema);
 		
 		/*
 		 * Partial change sets do not require row level conflict checking.
@@ -163,7 +164,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		appendRowsAsStream(user, tableId, currentSchema, sparseRows.iterator(), lastEtag, results, progressCallback);
 		return results;
 	}
-
+	
 
 	@WriteTransactionReadCommitted
 	@Override
@@ -218,6 +219,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		int count = 0;
 		while(rowStream.hasNext()){
 			SparseRowDto row = rowStream.next();
+			batch.add(row);
 			// batch using the actual size of the row.
 			batchSizeBytes += TableModelUtils.calculateActualRowSize(row);
 			if(batchSizeBytes >= maxBytesPerChangeSet){

@@ -27,7 +27,6 @@ import java.util.UUID;
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
@@ -97,12 +96,11 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
+import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.util.TimeUtils;
 import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.sagebionetworks.util.csv.CSVWriterStreamProxy;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
-import org.springframework.aop.framework.Advised;
-import org.springframework.aop.support.AopUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -1241,10 +1239,9 @@ public class TableWorkerIntegrationTest {
 		rowSet.setRows(rows);
 		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 		rowSet.setTableId(tableId);
+		SparseChangeSet sparse = TableModelUtils.createSparseChangeSet(rowSet, schema);
 		long start = System.currentTimeMillis();
-		tableEntityManager.appendRowsAsStream(adminUserInfo, tableId, schema, rowSet
-				.getRows()
-				.iterator(), null, null, null);
+		tableEntityManager.appendRowsAsStream(adminUserInfo, tableId, schema, sparse.writeToDto().getRows().iterator(), null, null, null);
 		System.out.println("Appended "+rowSet.getRows().size()+" rows in: "+(System.currentTimeMillis()-start)+" MS");
 		// Query for the results
 		String sql = "select A, a, \"Has Space\",\"" + specialChars + "\" from " + tableId + "";

@@ -11,7 +11,14 @@ import static org.mockito.Matchers.anyListOf;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.stub;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -44,9 +51,7 @@ import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
-import org.sagebionetworks.repo.model.dao.table.RowAccessor;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
-import org.sagebionetworks.repo.model.dao.table.RowSetAccessor;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.exception.ReadOnlyException;
@@ -87,7 +92,6 @@ import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -129,6 +133,7 @@ public class TableEntityManagerTest {
 	List<Row> rows;
 	RowSet set;
 	RawRowSet rawSet;
+	SparseChangeSet sparseChangeSet;
 	PartialRowSet partialSet;
 	RawRowSet expectedRawRows;
 	RowReferenceSet refSet;
@@ -172,6 +177,8 @@ public class TableEntityManagerTest {
 		set.setHeaders(TableModelUtils.getSelectColumns(models));
 		set.setRows(rows);
 		rawSet = new RawRowSet(TableModelUtils.getIds(models), null, tableId, Lists.newArrayList(rows));
+		
+		sparseChangeSet = TableModelUtils.createSparseChangeSet(rawSet, models);
 
 		List<PartialRow> partialRows = TableModelTestUtils.createPartialRows(models, 10);
 		partialSet = new PartialRowSet();
@@ -239,6 +246,7 @@ public class TableEntityManagerTest {
 		
 		columChangedetails = TableModelTestUtils.createDetailsForChanges(changes);
 		
+		when(mockColumModelManager.getColumnModelsForTable(user, tableId)).thenReturn(models);
 		when(mockColumModelManager.getColumnChangeDetails(changes)).thenReturn(columChangedetails);
 		newColumnIds = Lists.newArrayList("111","333");
 		when(mockColumModelManager.calculateNewSchemaIdsAndValidate(tableId, changes)).thenReturn(newColumnIds);
@@ -288,13 +296,13 @@ public class TableEntityManagerTest {
 	@Test (expected=UnauthorizedException.class)
 	public void testAppendRowsUnauthroized() throws DatastoreException, NotFoundException, IOException{
 		doThrow(new UnauthorizedException()).when(mockTableManagerSupport).validateTableWriteAccess(user, tableId);
-		manager.appendRows(user, tableId, models, set, mockProgressCallback);
+		manager.appendRows(user, tableId, set, mockProgressCallback);
 	}
 	
 	@Test (expected=UnauthorizedException.class)
 	public void testAppendRowsAsStreamUnauthroized() throws DatastoreException, NotFoundException, IOException{
 		doThrow(new UnauthorizedException()).when(mockTableManagerSupport).validateTableWriteAccess(user, tableId);
-		manager.appendRowsAsStream(user, tableId, models, set.getRows().iterator(),
+		manager.appendRowsAsStream(user, tableId, models, sparseChangeSet.writeToDto().getRows().iterator(),
 				"etag",
 				null, mockProgressCallback);
 	}
@@ -305,9 +313,11 @@ public class TableEntityManagerTest {
 		rawSet.getRows().get(0).setRowId(1L);
 		rawSet.getRows().get(0).setVersionNumber(0L);
 		
+		sparseChangeSet = TableModelUtils.createSparseChangeSet(rawSet, models);
+		
 		int rowCount = rawSet.getRows().size();
 		// Call under test
-		RowReferenceSet refSet = manager.appendRowsToTable(user, models, rawSet);
+		RowReferenceSet refSet = manager.appendRowsToTable(user, models, sparseChangeSet);
 		assertNotNull(refSet);
 		assertEquals(tableId, refSet.getTableId());
 		assertEquals(range.getEtag(), refSet.getEtag());
@@ -333,14 +343,14 @@ public class TableEntityManagerTest {
 		assertEquals(rowCount, fileHandes.size());
 		verify(mockTruthDao).reserveIdsInRange(tableId, new Long(rowCount-1));
 		// row level conflict test
-		verify(mockTruthDao).checkForRowLevelConflict(tableId, rawSet);
+		verify(mockTruthDao).listRowSetsKeysForTableGreaterThanVersion(tableId, 0L);
 		// save the row set
-		verify(mockTruthDao).appendRowSetToTable(""+user.getId(), tableId, range.getEtag(), range.getVersionNumber(), models, rawSet);
+		verify(mockTruthDao).appendRowSetToTable(""+user.getId(), tableId, range.getEtag(), range.getVersionNumber(), models, sparseChangeSet.writeToDto());
 	}
 	
 	@Test
 	public void testAppendRowsHappy() throws DatastoreException, NotFoundException, IOException{
-		RowReferenceSet results = manager.appendRows(user, tableId, models, set, mockProgressCallback);
+		RowReferenceSet results = manager.appendRows(user, tableId, set, mockProgressCallback);
 		assertNotNull(results);
 		// verify the table status was set
 		verify(mockTableManagerSupport, times(1)).setTableToProcessingAndTriggerUpdate(tableId);
@@ -349,7 +359,7 @@ public class TableEntityManagerTest {
 	
 	@Test
 	public void testAppendPartialRowsHappy() throws DatastoreException, NotFoundException, IOException {
-		RowReferenceSet results = manager.appendPartialRows(user, tableId, models, partialSet, mockProgressCallback);
+		RowReferenceSet results = manager.appendPartialRows(user, tableId, partialSet, mockProgressCallback);
 		assertNotNull(results);
 		// verify the table status was set
 		verify(mockTableManagerSupport, times(1)).setTableToProcessingAndTriggerUpdate(tableId);
@@ -371,7 +381,7 @@ public class TableEntityManagerTest {
 		partialSet.setTableId(tableId);
 		partialSet.setRows(Arrays.asList(partialRow));
 		try {
-			manager.appendPartialRows(user, tableId, models, partialSet, mockProgressCallback);
+			manager.appendPartialRows(user, tableId, partialSet, mockProgressCallback);
 			fail("Should have failed since a column name was used and not an ID.");
 		} catch (IllegalArgumentException e) {
 			assertEquals("PartialRow.value.key: 'foo' is not a valid column ID for row ID: null", e.getMessage());
@@ -382,7 +392,7 @@ public class TableEntityManagerTest {
 	@Test
 	public void testAppendRowsAsStreamHappy() throws DatastoreException, NotFoundException, IOException{
 		RowReferenceSet results = new RowReferenceSet();
-		String etag = manager.appendRowsAsStream(user, tableId, models, set.getRows().iterator(), "etag", results, mockProgressCallback);
+		String etag = manager.appendRowsAsStream(user, tableId, models, sparseChangeSet.writeToDto().getRows().iterator(), "etag", results, mockProgressCallback);
 		assertNotNull(results);
 		assertEquals(tableId, results.getTableId());
 		assertEquals(range.getEtag(), results.getEtag());
@@ -412,7 +422,7 @@ public class TableEntityManagerTest {
 		tooBigSet.setHeaders(TableModelUtils.getSelectColumns(models));
 		tooBigSet.setRows(rows);
 		try {
-			manager.appendRows(user, tableId, models, tooBigSet, mockProgressCallback);
+			manager.appendRows(user, tableId, tooBigSet, mockProgressCallback);
 			fail("The passed RowSet should have been too large");
 		} catch (IllegalArgumentException e) {
 			assertTrue(e.getMessage().contains("Request exceed the maximum number of bytes per request"));
@@ -422,12 +432,11 @@ public class TableEntityManagerTest {
 	@Test
 	public void testAppendRowsAsStreamMultipleBatches() throws DatastoreException, NotFoundException, IOException{
 		// calculate the actual size of the first row
-		int actualSizeFristRowBytes = TableModelUtils.calculateActualRowSize(set.getRows().get(0));
+		int actualSizeFristRowBytes = TableModelUtils.calculateActualRowSize(sparseChangeSet.writeToDto().getRows().get(0));
 		// With this max, there should be three batches (4,8,2)
 		manager.setMaxBytesPerChangeSet(actualSizeFristRowBytes*3);
 		RowReferenceSet results = new RowReferenceSet();
-		String etag = manager.appendRowsAsStream(user, tableId, models, set.getRows()
-				.iterator(), "etag", results, mockProgressCallback);
+		String etag = manager.appendRowsAsStream(user, tableId, models, sparseChangeSet.writeToDto().getRows().iterator(), "etag", results, mockProgressCallback);
 		assertEquals(range.getEtag(), etag);
 		assertEquals(tableId, results.getTableId());
 		assertEquals(etag, results.getEtag());
@@ -460,7 +469,7 @@ public class TableEntityManagerTest {
 		assertNotNull(deleteRows);
 
 		// verify the correct row set was generated
-		verify(mockTruthDao).appendRowSetToTable(eq(user.getId().toString()), eq(tableId), eq(range.getEtag()), eq(range.getVersionNumber()), anyListOf(ColumnModel.class), any(RawRowSet.class));
+		verify(mockTruthDao).appendRowSetToTable(eq(user.getId().toString()), eq(tableId), eq(range.getEtag()), eq(range.getVersionNumber()), anyListOf(ColumnModel.class), any(SparseChangeSetDto.class));
 		// verify the table status was set
 		verify(mockTableManagerSupport, times(1)).setTableToProcessingAndTriggerUpdate(tableId);
 		verify(mockTableManagerSupport).validateTableWriteAccess(user, tableId);
@@ -468,8 +477,9 @@ public class TableEntityManagerTest {
 	
 	@Test
 	public void testValidateFileHandlesAuthorizedCreatedBy(){
+		ColumnModel fileColumn = TableModelTestUtils.createColumn(1L, "a", ColumnType.FILEHANDLEID);
 		List<SelectColumn> cols = new ArrayList<SelectColumn>();
-		cols.add(TableModelTestUtils.createSelectColumn(1L, "a", ColumnType.FILEHANDLEID));
+		cols.add(TableModelUtils.createSelectColumn(fileColumn));
 		
 		List<Row> rows = new ArrayList<Row>();
 		rows.add(TableModelTestUtils.createRow(1L, 0L, "1"));
@@ -478,12 +488,14 @@ public class TableEntityManagerTest {
 		RowSet rowset = new RowSet();
 		rowset.setHeaders(cols);
 		rowset.setRows(rows);
+		rowset.setTableId("syn123");
+		SparseChangeSet sparse = TableModelUtils.createSparseChangeSet(rowset, Lists.newArrayList(fileColumn));
 		
 		// Setup the user as the creator of the files handles
 		when(mockFileDao.getFileHandleIdsCreatedByUser(anyLong(), any(List.class))).thenReturn(Sets.newHashSet("1", "5"));
 		
 		// call under test
-		manager.validateFileHandles(user, tableId, rowset);
+		manager.validateFileHandles(user, tableId, sparse);
 		// should check the files created by the user.
 		verify(mockFileDao).getFileHandleIdsCreatedByUser(user.getId(), Lists.newArrayList("1","5"));
 		// since all of the files were created by the user there is no need to lookup the associated files.
@@ -492,8 +504,9 @@ public class TableEntityManagerTest {
 	
 	@Test
 	public void testValidateFileHandlesAuthorizedCreatedByAndAssociated(){
+		ColumnModel fileColumn = TableModelTestUtils.createColumn(1L, "a", ColumnType.FILEHANDLEID);
 		List<SelectColumn> cols = new ArrayList<SelectColumn>();
-		cols.add(TableModelTestUtils.createSelectColumn(1L, "a", ColumnType.FILEHANDLEID));
+		cols.add(TableModelUtils.createSelectColumn(fileColumn));
 		
 		List<Row> rows = new ArrayList<Row>();
 		rows.add(TableModelTestUtils.createRow(1L, 0L, "1"));
@@ -502,6 +515,8 @@ public class TableEntityManagerTest {
 		RowSet rowset = new RowSet();
 		rowset.setHeaders(cols);
 		rowset.setRows(rows);
+		rowset.setTableId("syn123");
+		SparseChangeSet sparse = TableModelUtils.createSparseChangeSet(rowset, Lists.newArrayList(fileColumn));
 		
 		// Setup 1 to be created by.
 		when(mockFileDao.getFileHandleIdsCreatedByUser(anyLong(), any(List.class))).thenReturn(Sets.newHashSet("1"));
@@ -509,7 +524,7 @@ public class TableEntityManagerTest {
 		when(mockTableIndexDAO.getFileHandleIdsAssociatedWithTable(any(Set.class), anyString())).thenReturn(Sets.newHashSet( 5L ));
 		
 		// call under test
-		manager.validateFileHandles(user, tableId, rowset);
+		manager.validateFileHandles(user, tableId, sparse);
 		// should check the files created by the user.
 		verify(mockFileDao).getFileHandleIdsCreatedByUser(user.getId(), Lists.newArrayList("1","5"));
 		// since 1 was created by the user only 5 should be tested for association.
@@ -518,8 +533,9 @@ public class TableEntityManagerTest {
 	
 	@Test (expected=UnauthorizedException.class)
 	public void testValidateFileHandlesUnAuthorized(){
+		ColumnModel fileColumn = TableModelTestUtils.createColumn(1L, "a", ColumnType.FILEHANDLEID);
 		List<SelectColumn> cols = new ArrayList<SelectColumn>();
-		cols.add(TableModelTestUtils.createSelectColumn(1L, "a", ColumnType.FILEHANDLEID));
+		cols.add(TableModelUtils.createSelectColumn(fileColumn));
 		
 		List<Row> rows = new ArrayList<Row>();
 		rows.add(TableModelTestUtils.createRow(1L, 0L, "1"));
@@ -528,6 +544,8 @@ public class TableEntityManagerTest {
 		RowSet rowset = new RowSet();
 		rowset.setHeaders(cols);
 		rowset.setRows(rows);
+		rowset.setTableId("syn123");
+		SparseChangeSet sparse = TableModelUtils.createSparseChangeSet(rowset, Lists.newArrayList(fileColumn));
 		
 		// Setup 1 to be created by.
 		when(mockFileDao.getFileHandleIdsCreatedByUser(anyLong(), any(List.class))).thenReturn(Sets.newHashSet("1"));
@@ -535,7 +553,7 @@ public class TableEntityManagerTest {
 		when(mockTableIndexDAO.getFileHandleIdsAssociatedWithTable(any(Set.class), anyString())).thenReturn(new HashSet<Long>());
 		
 		// call under test
-		manager.validateFileHandles(user, tableId, rowset);
+		manager.validateFileHandles(user, tableId, sparse);
 	}
 	
 	@Test
@@ -556,17 +574,11 @@ public class TableEntityManagerTest {
 		replaceRows.get(1).getValues().set(ColumnType.FILEHANDLEID.ordinal(), null);
 		// unowned, but unchanged replaceRows[2]
 		replace.setRows(replaceRows);
-
-		RowSetAccessor originalAccessor = mock(RowSetAccessor.class);
-		RowAccessor row2Accessor = mock(RowAccessor.class);
-		when(originalAccessor.getRow(2L)).thenReturn(row2Accessor);
-		when(row2Accessor.getCellById(models.get(ColumnType.FILEHANDLEID.ordinal()).getId())).thenReturn("505002");
-
-		when(mockTruthDao.getLatestVersionsWithRowData(tableId, Sets.newHashSet(2L), 0L, models)).thenReturn(originalAccessor);
+		
 		// call under test
-		manager.appendRows(user, tableId, models, replace, mockProgressCallback);
+		manager.appendRows(user, tableId, replace, mockProgressCallback);
 
-		verify(mockTruthDao).appendRowSetToTable(eq(user.getId().toString()), eq(tableId), eq(range.getEtag()), eq(range.getVersionNumber()), anyListOf(ColumnModel.class), any(RawRowSet.class));
+		verify(mockTruthDao).appendRowSetToTable(eq(user.getId().toString()), eq(tableId), eq(range.getEtag()), eq(range.getVersionNumber()), anyListOf(ColumnModel.class), any(SparseChangeSetDto.class));
 
 		verify(mockFileDao).getFileHandleIdsCreatedByUser(anyLong(), any(List.class));
 		verify(mockTableManagerSupport).validateTableWriteAccess(user, tableId);
@@ -588,9 +600,9 @@ public class TableEntityManagerTest {
 		updateRows.get(1).getValues().set(ColumnType.FILEHANDLEID.ordinal(), null);
 		replace.setRows(updateRows);
 
-		manager.appendRows(user, tableId, models, replace, mockProgressCallback);
+		manager.appendRows(user, tableId, replace, mockProgressCallback);
 
-		verify(mockTruthDao).appendRowSetToTable(eq(user.getId().toString()), eq(tableId), eq(range.getEtag()), eq(range.getVersionNumber()), anyListOf(ColumnModel.class), any(RawRowSet.class));
+		verify(mockTruthDao).appendRowSetToTable(eq(user.getId().toString()), eq(tableId), eq(range.getEtag()), eq(range.getVersionNumber()), anyListOf(ColumnModel.class), any(SparseChangeSetDto.class));
 		verify(mockFileDao).getFileHandleIdsCreatedByUser(anyLong(), any(List.class));
 		verify(mockTableManagerSupport).validateTableWriteAccess(user, tableId);
 	}
@@ -667,7 +679,7 @@ public class TableEntityManagerTest {
 		// three batches with this size
 		manager.setMaxBytesPerChangeSet(300);
 		RowReferenceSet results = new RowReferenceSet();
-		manager.appendRowsAsStream(user, tableId, models, set.getRows().iterator(),
+		manager.appendRowsAsStream(user, tableId, models, sparseChangeSet.writeToDto().getRows().iterator(),
 				"etag",
 				results, mockProgressCallback);
 		verify(mockProgressCallback, times(3)).progressMade(anyLong());
@@ -680,7 +692,7 @@ public class TableEntityManagerTest {
 		// three batches with this size
 		manager.setMaxBytesPerChangeSet(300);
 		RowReferenceSet results = new RowReferenceSet();
-		manager.appendRowsAsStream(user, tableId, models, set.getRows().iterator(),
+		manager.appendRowsAsStream(user, tableId, models, sparseChangeSet.writeToDto().getRows().iterator(),
 				"etag",
 				results, mockProgressCallback);
 		verify(mockProgressCallback, times(3)).progressMade(anyLong());

@@ -29,6 +29,8 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.IdRange;
+import org.sagebionetworks.repo.model.table.PartialRow;
+import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.RawRowSet;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
@@ -71,6 +73,8 @@ public class TableModelUtils {
 			return input.toString();
 		}
 	};
+	
+	private static final String PARTIAL_ROW_KEY_NOT_A_VALID = "PartialRow.value.key: '%s' is not a valid column ID for row ID: %s";
 
 	private static final String INVALID_VALUE_TEMPLATE = "Value at [%1$s,%2$s] was not a valid %3$s. %4$s";
 	private static final String TABLE_SEMAPHORE_KEY_TEMPLATE = "TALBE-LOCK-%1$d";
@@ -1399,6 +1403,46 @@ public class TableModelUtils {
 	public static SparseChangeSet createSparseChangeSet(RawRowSet rawRowSet, List<ColumnModel> schema) {
 		RowSet rowSet = createRowSet(rawRowSet, schema);
 		return createSparseChangeSet(rowSet, schema);
+	}
+	
+	/**
+	 * Validate the given PartialRowSet against the given schema.
+	 * @param partial
+	 * @param schema
+	 */
+	public static void validatePartialRowSet(PartialRowSet partial, List<ColumnModel> schema){
+		Set<Long> columnIds = new HashSet<Long>(schema.size());
+		for(ColumnModel cm: schema){
+			columnIds.add(Long.parseLong(cm.getId()));
+		}
+		for(PartialRow row: partial.getRows()){
+			validatePartialRow(row, columnIds);
+		}
+	}
+	
+	/**
+	 * Validate the PartialRow matches the headers.
+	 * 
+	 * @param row
+	 * @param headers
+	 */
+	public static void validatePartialRow(PartialRow row, Set<Long> columnIds){
+		ValidateArgument.required(row, "PartialRow");
+		ValidateArgument.required(columnIds, "columnIds");
+		if(row != null){
+			if(row.getValues() != null){
+				for(String key: row.getValues().keySet()){
+					try {
+						Long columnId = Long.parseLong(key);
+						if(!columnIds.contains(columnId)){
+							throw new IllegalArgumentException(String.format(PARTIAL_ROW_KEY_NOT_A_VALID, key, row.getRowId()));
+						}
+					} catch (NumberFormatException e) {
+						throw new IllegalArgumentException(String.format(PARTIAL_ROW_KEY_NOT_A_VALID, key, row.getRowId()));
+					}
+				}
+			}
+		}
 	}
 	
 

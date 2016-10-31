@@ -194,7 +194,7 @@ public class MigrationManagerImplAutowireTest {
 			rowSet.setRows(TableModelTestUtils.createRows(schema, 2));
 			rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 			rowSet.setTableId(tableId);
-			tableEntityManager.appendRows(adminUser, tableId, schema, rowSet, mockProgressCallback);
+			tableEntityManager.appendRows(adminUser, tableId, rowSet, mockProgressCallback);
 		}
 		stackConfig = new StackConfiguration();
 	}
