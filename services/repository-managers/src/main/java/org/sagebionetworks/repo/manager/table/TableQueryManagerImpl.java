@@ -553,7 +553,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			boolean runCount = false;
 			boolean isConsistent = true;
 			QueryResultBundle result = queryAsStream(progressCallback, user,
-					query, selectedFacets ,handler, runCount, false, isConsistent); //TODO: NEED TO MODIFY DownloadFromTableRequest to take in facet parameters
+					query, selectedFacets ,handler, runCount, false, isConsistent);
 			// convert the response
 			DownloadFromTableResult response = new DownloadFromTableResult();
 			response.setHeaders(result.getSelectColumns());
