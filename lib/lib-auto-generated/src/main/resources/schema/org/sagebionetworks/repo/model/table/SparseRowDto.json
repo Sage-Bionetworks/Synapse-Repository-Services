@@ -1,0 +1,24 @@
+{
+	"title":"PartialRow",
+	"description":"Represents a single partial row of a TableEntity",
+	"properties":{
+		"rowId":{
+			"type":"integer",
+			"description":"The immutable ID of a row."
+		},
+		"versionNumber":{
+			"type":"integer",
+			"description":"The the version number of this row."
+		},
+		"values": {
+			"description": "The values for columns of this row as a map. The key is the columnId and value is the cell value",
+			"type": "map",
+			"key":{
+				"type": "string"
+			},
+		   	"value":{
+				"type": "string"
+			}
+		}
+	}
+}

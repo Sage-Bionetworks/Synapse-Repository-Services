@@ -5870,6 +5870,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		}
 	}
 
+	@Deprecated
 	@Override
 	public RowSet getRowsFromTable(RowReferenceSet toGet)
 			throws SynapseException, SynapseTableUnavailableException {
@@ -7804,5 +7805,15 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public BatchFileHandleCopyResult copyFileHandles(BatchFileHandleCopyRequest request) throws SynapseException {
 		return asymmetricalPost(fileEndpoint, FILE_HANDLES_COPY, request , BatchFileHandleCopyResult.class, null);
+	}
+
+	@Override
+	public void requestToCancelSubmission(String submissionId) throws SynapseException {
+		getSharedClientConnection().putUri(repoEndpoint, EVALUATION_URI_PATH+"/"+SUBMISSION+"/"+submissionId+"/cancellation", getUserAgent());
+	}
+	
+	@Override
+	public void setUserIpAddress(String ipAddress) {
+		getSharedClientConnection().setUserIp(ipAddress);
 	}
 }

@@ -4,8 +4,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayOutputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.Date;
 import java.util.LinkedList;
@@ -13,22 +11,16 @@ import java.util.List;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.http.entity.ContentType;
-import org.im4java.core.ConvertCmd;
 import org.junit.After;
-import org.junit.Assume;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.junit.BeforeAll;
 import org.sagebionetworks.junit.ParallelizedSpringJUnit4ClassRunner;
 import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.preview.ImagePreviewGenerator;
-import org.sagebionetworks.repo.manager.file.preview.OfficePreviewGenerator;
-import org.sagebionetworks.repo.manager.file.preview.PdfPreviewGenerator;
 import org.sagebionetworks.repo.manager.file.preview.TabCsvPreviewGenerator;
 import org.sagebionetworks.repo.manager.file.preview.TextPreviewGenerator;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -56,8 +48,6 @@ public class PreviewIntegrationTest {
 	private static String LITTLE_CSV_NAME = "previewtest.csv";
 	private static String LITTLE_TAB_NAME = "previewtest.tab";
 	private static String LITTLE_TXT_NAME = "previewtest.txt";
-	private static String LITTLE_PDF_NAME = "previewtest.pdf";
-	private static String LITTLE_DOC_NAME = "previewtest.doc";
 	public static final long MAX_WAIT = 30*1000; // 30 seconds
 	
 	@Autowired
@@ -156,33 +146,5 @@ public class PreviewIntegrationTest {
 	@Test
 	public void testRoundTripTxt() throws Exception {
 		testRoundTripHelper(LITTLE_TXT_NAME, TextPreviewGenerator.TEXT_PLAIN);
-	}
-
-	@Test
-	public void testRoundTripPdf() throws Exception {
-		if(!StackConfiguration.singleton().getOpenOfficeImageMagicePreviewsEnabled()){
-			return;
-		}
-		ConvertCmd convert = new ConvertCmd();
-		try {
-			convert.searchForCmd(convert.getCommand().get(0), PdfPreviewGenerator.IMAGE_MAGICK_SEARCH_PATH);
-		} catch (FileNotFoundException e) {
-			Assume.assumeNoException(e);
-		}
-	}
-
-	@Test
-	public void testRoundTripOffice() throws Exception {
-		if(!StackConfiguration.singleton().getOpenOfficeImageMagicePreviewsEnabled()){
-			return;
-		}
-		try {
-			OfficePreviewGenerator.initialize();
-		} catch (FileNotFoundException e) {
-			Assume.assumeNoException(e);
-		} catch (Exception e) {
-			throw e;
-		}
-		testRoundTripHelper(LITTLE_DOC_NAME, "application/msword");
 	}
 }

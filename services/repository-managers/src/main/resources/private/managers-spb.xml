@@ -161,8 +161,6 @@
 				</bean>
 	            <bean class="org.sagebionetworks.repo.manager.file.preview.TextPreviewGenerator" />
 	            <bean class="org.sagebionetworks.repo.manager.file.preview.ZipPreviewGenerator" />
-		    	<bean class="org.sagebionetworks.repo.manager.file.preview.PdfPreviewGenerator" />
-	            <bean class="org.sagebionetworks.repo.manager.file.preview.OfficePreviewGenerator"/>
 	        </list>
 	    </property>
 	    <!-- The maximum amount of memory to uses -->
@@ -190,6 +188,22 @@
 				<entry key="WikiAttachment">
 					<bean
 						class="org.sagebionetworks.repo.manager.wiki.WikiFileHandleAssociationProvider" />
+				</entry>
+				<entry key="UserProfileAttachment">
+					<bean
+						class="org.sagebionetworks.repo.manager.UserProfileFileHandleAssociationProvider" />
+				</entry>
+				<entry key="TeamAttachment">
+					<bean
+						class="org.sagebionetworks.repo.manager.team.TeamFileHandleAssociationProvider" />
+				</entry>
+				<entry key="SubmissionAttachment">
+					<bean
+						class="org.sagebionetworks.evaluation.manager.SubmissionFileHandleAssociationProvider" />
+				</entry>
+				<entry key="MessageAttachment">
+					<bean
+						class="org.sagebionetworks.repo.manager.MessageFileHandleAssociationProvider" />
 				</entry>
 			</map>
 		</property>
@@ -242,14 +256,6 @@
     </bean>
 
 	<bean id="stackStatusManager" class="org.sagebionetworks.repo.manager.StackStatusManagerImpl"
-		scope="singleton" />
-
-	<bean id="conceptCache"
-		class="org.sagebionetworks.repo.manager.ontology.ConceptCacheLocalImpl"
-		scope="singleton" />
-
-	<bean id="conceptManager"
-		class="org.sagebionetworks.repo.manager.ontology.ConceptManagerImpl"
 		scope="singleton" />
 
 	<bean id="s3Utility" class="org.sagebionetworks.repo.manager.AmazonS3UtilityImpl"

@@ -16,17 +16,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 import org.apache.commons.codec.binary.Hex;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.sagebionetworks.repo.model.dao.table.RowAccessor;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.IdRange;
@@ -35,10 +34,19 @@ import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
+import org.sagebionetworks.repo.model.table.SparseChangeSetDto;
+import org.sagebionetworks.repo.model.table.SparseRowDto;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableRowChange;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.table.model.SparseChangeSet;
+import org.sagebionetworks.table.model.SparseRow;
 import org.sagebionetworks.util.TimeUtils;
 import org.sagebionetworks.util.ValidateArgument;
+
+import au.com.bytecode.opencsv.CSVReader;
+import au.com.bytecode.opencsv.CSVWriter;
 
 import com.google.common.base.Function;
 import com.google.common.collect.HashMultimap;
@@ -47,9 +55,6 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 
-import au.com.bytecode.opencsv.CSVReader;
-import au.com.bytecode.opencsv.CSVWriter;
-
 /**
  * Utilities for working with Tables and Row data.
  * 
@@ -57,6 +62,8 @@ import au.com.bytecode.opencsv.CSVWriter;
  * 
  */
 public class TableModelUtils {
+
+	public static final String UTF_8 = "UTF-8";
 
 	public static final Function<Long, String> LONG_TO_STRING = new Function<Long, String>() {
 		@Override
@@ -79,16 +86,6 @@ public class TableModelUtils {
 	public static final String COLUMN_MODEL_ID_STRING_DELIMITER = ",";
 	
 	public static final Pattern ENTITYID_PATTERN = Pattern.compile("syn(\\d+)(\\.(\\d+))?");
-
-	public static class NodeIdAndVersion {
-		public final Long id;
-		public final Long version;
-
-		public NodeIdAndVersion(Long id, Long version) {
-			this.id = id;
-			this.version = version;
-		}
-	}
 
 	public static final Function<ColumnModel, Long> COLUMN_MODEL_TO_ID = new Function<ColumnModel, Long>() {
 		@Override
@@ -113,6 +110,7 @@ public class TableModelUtils {
 	 * @param isDeletion
 	 * @throws IOException
 	 */
+	@Deprecated
 	public static void validateAnWriteToCSVgz(List<ColumnModel> models, RawRowSet set, OutputStream out) throws IOException {
 		GZIPOutputStream zipOut = null;
 		OutputStreamWriter osw = null;
@@ -134,6 +132,30 @@ public class TableModelUtils {
 		}
 	}
 	
+	/**
+	 * Write a SparseChangeSetDto to the given output stream as GZIP compressed JSON.
+	 * @param set
+	 * @param out
+	 * @throws IOException
+	 */
+	public static void writeSparesChangeSetToGz(SparseChangeSetDto set, OutputStream out) throws IOException {
+		GZIPOutputStream zipOut = null;
+		try{
+			zipOut = new GZIPOutputStream(out);
+			String jsonString = EntityFactory.createJSONStringForEntity(set);
+			IOUtils.write(jsonString, zipOut, UTF_8);
+		} catch (JSONObjectAdapterException e) {
+			throw new RuntimeException(e);
+		}finally{
+			if(zipOut != null){
+				zipOut.flush();
+				zipOut.close();
+			}
+			if(out != null){
+				out.close();
+			}
+		}
+	}
 
 	/**
 	 * This utility will validate and convert the passed RowSet to an output
@@ -221,6 +243,7 @@ public class TableModelUtils {
 	/**
 	 * @param set
 	 */
+	@Deprecated
 	public static void validateRowSet(RawRowSet set) {
 		if (set == null)
 			throw new IllegalArgumentException("RowSet cannot be null");
@@ -232,6 +255,18 @@ public class TableModelUtils {
 		if (set.getRows().size() < 1)
 			throw new IllegalArgumentException(
 					"RowSet.rows must contain at least one row.");
+	}
+	
+	/**
+	 * Validate the given SparseChangeSetDto.
+	 * @param set
+	 */
+	public static void validateRowSet(SparseChangeSetDto set) {
+		ValidateArgument.required(set, "SparseChangeSetDto");
+		ValidateArgument.required(set.getColumnIds(), "SparseChangeSetDto.columnIds");
+		ValidateArgument.required(set.getRows(), "SparseChangeSetDto.rows");
+		ValidateArgument.requirement(!set.getRows().isEmpty(), "SparseChangeSetDto.rows must contain at least one row");
+		ValidateArgument.required(set.getTableId(), "SparseChangeSetDto.tableId");
 	}
 	
 	/**
@@ -415,10 +450,26 @@ public class TableModelUtils {
 	 * Count all of the empty or invalid rows in the set
 	 * @param set
 	 */
+	@Deprecated
 	public static int countEmptyOrInvalidRowIds(RawRowSet set) {
 		validateRowSet(set);
 		int count = 0;
 		for (Row row : set.getRows()) {
+			if(isNullOrInvalid(row.getRowId())){
+				count++;
+			}
+		}
+		return count;
+	}
+	
+	/**
+	 * Count all of the empty or invalid rows in the set
+	 * @param set
+	 */
+	public static int countEmptyOrInvalidRowIds(SparseChangeSetDto set) {
+		validateRowSet(set);
+		int count = 0;
+		for (SparseRowDto row : set.getRows()) {
 			if(isNullOrInvalid(row.getRowId())){
 				count++;
 			}
@@ -452,10 +503,42 @@ public class TableModelUtils {
 	 * @param set
 	 * @param range
 	 */
+	@Deprecated
 	public static void assignRowIdsAndVersionNumbers(RawRowSet set, IdRange range) {
 		validateRowSet(set);
 		Long id = range.getMinimumId();
 		for (Row row : set.getRows()) {
+			// Set the version number for each row
+			row.setVersionNumber(range.getVersionNumber());
+			if(isNullOrInvalid(row.getRowId())){
+				if(range.getMinimumId() == null){
+					throw new IllegalStateException("RowSet required at least one row ID but none were allocated.");
+				}
+				// This row needs an id.
+				row.setRowId(id);
+				id++;
+				// Validate we have not exceeded the rows
+				if(row.getRowId() > range.getMaximumId()){
+					throw new IllegalStateException("RowSet required more row IDs than were allocated.");
+				}
+			}else{
+				// Validate the rowId is within range
+				if(row.getRowId() > range.getMaximumUpdateId()){
+					throw new IllegalArgumentException("Cannot update row: "+row.getRowId()+" because it does not exist.");
+				}
+			}
+		}
+	}
+	
+	/**
+	 * Assign RowIDs and version numbers to each row in the set according to the passed range.
+	 * @param set
+	 * @param range
+	 */
+	public static void assignRowIdsAndVersionNumbers(SparseChangeSetDto set, IdRange range) {
+		validateRowSet(set);
+		Long id = range.getMinimumId();
+		for (SparseRowDto row : set.getRows()) {
 			// Set the version number for each row
 			row.setVersionNumber(range.getVersionNumber());
 			if(isNullOrInvalid(row.getRowId())){
@@ -537,6 +620,7 @@ public class TableModelUtils {
 	 * @return
 	 * @throws IOException
 	 */
+	@Deprecated
 	public static List<Row> readFromCSVgzStream(InputStream zippedStream) throws IOException {
 		GZIPInputStream zipIn = null;
 		InputStreamReader isr = null;
@@ -549,6 +633,28 @@ public class TableModelUtils {
 		}finally{
 			if(csvReader != null){
 				csvReader.close();
+			}
+		}
+	}
+	
+	/**
+	 * Read GZIP compressed JSON from the passed stream.
+	 * 
+	 * @param zippedStream
+	 * @return
+	 * @throws IOException
+	 */
+	public static SparseChangeSetDto readSparseChangeSetDtoFromGzStream(InputStream zippedStream) throws IOException {
+		GZIPInputStream zipIn = null;
+		try{
+			zipIn = new GZIPInputStream(zippedStream);
+			String json = IOUtils.toString(zipIn, UTF_8);
+			return EntityFactory.createEntityFromJSONString(json, SparseChangeSetDto.class);
+		} catch (JSONObjectAdapterException e) {
+			throw new RuntimeException(e);
+		}finally{
+			if(zipIn != null){
+				zipIn.close();
 			}
 		}
 	}
@@ -588,6 +694,21 @@ public class TableModelUtils {
 		List<String> ids = Lists.newArrayListWithCapacity(models.size());
 		for(ColumnModel model: models){
 			if(model.getId() == null) throw new IllegalArgumentException("ColumnModel ID cannot be null");
+			ids.add(model.getId());
+		}
+		return ids;
+	}
+	
+	/**
+	 * Given a list of SelectColumns get the list of Column Ids.
+	 * @param models
+	 * @return
+	 */
+	public static List<String> getColumnIdsFromSelectColumns(List<SelectColumn> models) {
+		ValidateArgument.required(models, "SelectColumns");
+		List<String> ids = Lists.newArrayListWithCapacity(models.size());
+		for(SelectColumn model: models){
+			ValidateArgument.required(model.getId(), "SelectColumn.id");
 			ids.add(model.getId());
 		}
 		return ids;
@@ -1109,54 +1230,6 @@ public class TableModelUtils {
 		return columnIdToSchemaIndexMap;
 	}
 
-
-	public static SetMultimap<Long, Long> createVersionToRowIdsMap(Map<Long, Long> currentVersionNumbers) {
-		// create a map from version to set of row ids map
-		SetMultimap<Long, Long> versions = HashMultimap.create();
-		for (Entry<Long, Long> rowVersion : currentVersionNumbers.entrySet()) {
-			versions.put(rowVersion.getValue(), rowVersion.getKey());
-		}
-		return versions;
-	}
-
-	public static SetMultimap<Long, RowAccessor> createVersionToRowsMap(Iterable<RowAccessor> currentRows) {
-		// create a map from version to set of row ids map
-		SetMultimap<Long, RowAccessor> versions = HashMultimap.create();
-		for (RowAccessor row : currentRows) {
-			versions.put(row.getVersionNumber(), row);
-		}
-		return versions;
-	}
-
-	public static SetMultimap<Long, Long> createVersionToRowIdsMap(Iterable<RowReference> refs) {
-		// create a map from version to set of row ids map
-		SetMultimap<Long, Long> versions = HashMultimap.create();
-		for (RowReference ref : refs) {
-			if (ref.getVersionNumber() == null) {
-				throw new IllegalArgumentException("version cannot be null (row " + ref.getRowId() + ")");
-			}
-			versions.put(ref.getVersionNumber(), ref.getRowId());
-		}
-		return versions;
-	}
-
-	public static NodeIdAndVersion parseEntityIdValue(String entityId) {
-		Matcher m = ENTITYID_PATTERN.matcher(entityId);
-		if (!m.matches()) {
-			return null;
-		}
-		Long id = Long.parseLong(m.group(1));
-		String versionString = null;
-		if (m.groupCount() == 3) {
-			versionString = m.group(3);
-		}
-		Long version = null;
-		if (versionString != null) {
-			version = Long.parseLong(versionString);
-		}
-		return new NodeIdAndVersion(id, version);
-	}
-
 	public static SelectColumn createSelectColumn(String name, ColumnType columnType, String id) {
 		SelectColumn newSelectColumn = new SelectColumn();
 		newSelectColumn.setName(name);
@@ -1241,7 +1314,7 @@ public class TableModelUtils {
 		}
 		try {
 			MessageDigest digest = MessageDigest.getInstance("MD5");
-			digest.update(builder.toString().getBytes("UTF-8"));
+			digest.update(builder.toString().getBytes(UTF_8));
 			return new String(Hex.encodeHex(digest.digest()));
 		} catch (Exception e) {
 			throw new RuntimeException(e);
@@ -1272,6 +1345,68 @@ public class TableModelUtils {
 			results.add(select);
 		}
 		return results;
+	}
+	
+	/**
+	 * Create a new RowChangeSet from a full RowSet.
+	 * 
+	 * @param rowSet
+	 * @param schema
+	 * @param versionNumber
+	 */
+	public static SparseChangeSet createSparseChangeSet(RowSet rowSet, List<ColumnModel> schema) {
+		SparseChangeSet changeSet = new SparseChangeSet(rowSet.getTableId(), schema);
+		changeSet.setEtag(rowSet.getEtag());
+		List<String> rowSetHeaderIds = getColumnIdsFromSelectColumns(rowSet.getHeaders());
+		Map<String, Integer> headerIdToIndex = createColumnIdToIndexMap(rowSetHeaderIds);
+		// Add all rows
+		for (Row row : rowSet.getRows()) {
+			SparseRow sparse = changeSet.addEmptyRow();
+			sparse.setRowId(row.getRowId());
+			sparse.setVersionNumber(row.getVersionNumber());
+			if(row.getValues() != null && !row.getValues().isEmpty()){
+				// add each value that matches the schema
+				for(ColumnModel column: schema){
+					Integer index = headerIdToIndex.get(column.getId());
+					if(index != null){
+						String value = row.getValues().get(index);
+						sparse.setCellValue(column.getId(), value);
+					}
+				}
+			}
+		}
+		return changeSet;
+	}
+	
+	/**
+	 * Convert form RawRowSet to SparseChangeSetDto.
+	 * 
+	 * @param rowSet
+	 * @return
+	 */
+	public static SparseChangeSetDto createSparseFromRowSet(RawRowSet rowSet) {
+		SparseChangeSetDto dto = new SparseChangeSetDto();
+		dto.setColumnIds(rowSet.getIds());
+		dto.setTableId(rowSet.getTableId());
+		dto.setEtag(rowSet.getEtag());
+		List<SparseRowDto> rows = new LinkedList<>();
+		dto.setRows(rows);
+		for (Row row : rowSet.getRows()) {
+			SparseRowDto rowDto = new SparseRowDto();
+			rows.add(rowDto);
+			rowDto.setRowId(row.getRowId());
+			rowDto.setVersionNumber(row.getVersionNumber());
+			HashMap<String, String> values = new HashMap<>();
+			rowDto.setValues(values);
+			if (row.getValues() != null) {
+				for (int i = 0; i < rowSet.getIds().size(); i++) {
+					String columnId = rowSet.getIds().get(i);
+					String value = row.getValues().get(i);
+					values.put(columnId, value);
+				}
+			}
+		}
+		return dto;
 	}
 
 }

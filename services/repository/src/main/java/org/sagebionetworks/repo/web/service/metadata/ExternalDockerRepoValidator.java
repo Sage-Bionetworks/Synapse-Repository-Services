@@ -55,9 +55,9 @@ public class ExternalDockerRepoValidator implements EntityValidator<DockerReposi
 		String registryHost = DockerNameUtil.getRegistryHost(repositoryName);
 		if (registryHost!=null) {
 			if (StackConfiguration.getDockerRegistryHosts().contains(registryHost)) {
-				throw new InvalidModelException("Cannot create a managed Docker repository.");
+				throw new InvalidModelException("Cannot create or update a managed Docker repository.");
 			} else if (isReserved(registryHost)) {
-				throw new InvalidModelException("Cannot create a Docker repository having a reserved registry host.");
+				throw new InvalidModelException("Cannot create or update a Docker repository having a reserved registry host.");
 			}
 		}
 		dockerRepository.setIsManaged(false);

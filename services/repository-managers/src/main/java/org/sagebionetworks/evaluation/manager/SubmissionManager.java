@@ -223,4 +223,11 @@ public interface SubmissionManager {
 			String submissionId, String filehandleId)
 			throws DatastoreException, NotFoundException;
 
+	/**
+	 * Process the user cancel request
+	 * 
+	 * @param userInfo
+	 * @param submissionId
+	 */
+	public void processUserCancelRequest(UserInfo userInfo, String submissionId);
 }

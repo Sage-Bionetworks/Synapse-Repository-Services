@@ -9,8 +9,12 @@ import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.EntityDTO;
+import org.sagebionetworks.repo.model.table.FacetColumnResultRange;
+import org.sagebionetworks.repo.model.table.FacetColumnResultValueCount;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.ViewType;
+import org.sagebionetworks.table.model.Grouping;
+import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.support.TransactionCallback;
 
@@ -49,16 +53,11 @@ public interface TableIndexDAO {
 	
 	/**
 	 * Create or update the rows passed in the given RowSet.
-	 * 
-	 * Note: The passed RowSet is not required to match the current schema.
-	 * Columns in the Rowset that are not part of the current schema will be ignored.
-	 * Columns in the current schema that are not part of the RowSet will be set to
-	 * the default value of the column.
-	 * @param connection
-	 * @param rowset
+
+	 * @param grouping group of rows that change the same columns.
 	 * @return
 	 */
-	void createOrUpdateOrDeleteRows(RowSet rowset, List<ColumnModel> currentSchema);
+	void createOrUpdateOrDeleteRows(Grouping grouping);
 	
 	/**
 	 * Query a RowSet from the table.
