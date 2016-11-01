@@ -1,0 +1,9 @@
+{
+	"description": "Async migration responses will implement this type of AsynchronousResponseBody",
+	"type": "interface",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody"
+		}
+	]
+}
