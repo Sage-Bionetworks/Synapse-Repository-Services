@@ -218,10 +218,6 @@ public class IT100TableControllerTest {
 		assertNotNull(queryResults.getRows());
 		assertEquals(2, queryResults.getRows().size());
 
-		// get the rows direct
-		RowSet directResults = synapse.getRowsFromTable(results1);
-		assertEquals(queryResults, directResults);
-
 		// Now use these results to update the table. By setting the row IDs to null, they should be treated as additions
 		for(Row row: queryResults.getRows()){
 			row.setRowId(null);
@@ -274,100 +270,6 @@ public class IT100TableControllerTest {
 		assertEquals(Arrays.asList(TableModelUtils.createSelectColumn(one)), bundle.getSelectColumns());
 		assertNotNull(bundle.getMaxRowsPerPage());
 		assertTrue(bundle.getMaxRowsPerPage() > 0);
-	}
-
-	@Test
-	public void testColumnOrdering() throws SynapseException, InterruptedException {
-		// Create a few columns to add to a table entity
-		List<ColumnModel> columns = Lists.newArrayList();
-		List<String> idList = Lists.newArrayList();
-		for (int i = 0; i < 3; i++) {
-			ColumnModel cm = new ColumnModel();
-			cm.setName("col" + i);
-			cm.setColumnType(ColumnType.STRING);
-			cm = synapse.createColumnModel(cm);
-			columns.add(cm);
-			idList.add(cm.getId());
-		}
-
-		// Create a project to contain it all
-		TableEntity table = createTable(idList);
-
-		// Append some rows
-		List<Row> rows = Lists.newArrayList();
-		for (int i = 0; i < 2; i++) {
-			String[] values = new String[columns.size()];
-			for (int j = 0; j < columns.size(); j++) {
-				values[j] = "val-" + i + "-" + j;
-			}
-			Row row = TableModelTestUtils.createRow(null, null, values);
-			row.setValues(Lists.reverse(row.getValues()));
-			rows.add(row);
-		}
-		List<PartialRow> partialRows = Lists.newArrayList();
-		for (int i = 2; i < 4; i++) {
-			String[] keysAndValues = new String[columns.size() * 2];
-			for (int j = 0; j < columns.size(); j++) {
-				keysAndValues[2 * j] = columns.get(j).getId();
-				keysAndValues[2 * j + 1] = "val-" + i + "-" + j;
-			}
-			PartialRow row = TableModelTestUtils.createPartialRow(null, keysAndValues);
-			partialRows.add(row);
-		}
-
-		RowSet set = new RowSet();
-		set.setRows(rows);
-		set.setHeaders(Lists.reverse(TableModelUtils.getSelectColumns(columns)));
-		set.setTableId(table.getId());
-		RowReferenceSet newRows = synapse.appendRowsToTable(set, MAX_APPEND_TIMEOUT, table.getId());
-
-		PartialRowSet toAppend = new PartialRowSet();
-		toAppend.setTableId(table.getId());
-		toAppend.setRows(partialRows);
-		RowReferenceSet newRows2 = synapse.appendRowsToTable(toAppend, MAX_APPEND_TIMEOUT, table.getId());
-
-		// get in original order
-		RowReferenceSet toGet = new RowReferenceSet();
-		toGet.setTableId(table.getId());
-		toGet.setHeaders(TableModelUtils.getSelectColumns(columns));
-		toGet.setRows(newRows.getRows());
-		RowSet rowsFromTable = synapse.getRowsFromTable(toGet);
-		assertEquals(toGet.getHeaders(), rowsFromTable.getHeaders());
-
-		for (int i = 0; i < 2; i++) {
-			String[] values = new String[columns.size()];
-			for (int j = 0; j < columns.size(); j++) {
-				values[j] = "val-" + i + "-" + j;
-			}
-			assertEquals(Lists.newArrayList(values), rowsFromTable.getRows().get(i).getValues());
-		}
-
-		// get in original order
-		toGet.setRows(newRows2.getRows());
-		rowsFromTable = synapse.getRowsFromTable(toGet);
-		assertEquals(toGet.getHeaders(), rowsFromTable.getHeaders());
-
-		for (int i = 2; i < 4; i++) {
-			String[] values = new String[columns.size()];
-			for (int j = 0; j < columns.size(); j++) {
-				values[j] = "val-" + i + "-" + j;
-			}
-			assertEquals(Lists.newArrayList(values), rowsFromTable.getRows().get(i - 2).getValues());
-		}
-
-		// get in reverse order
-		toGet.setHeaders(Lists.reverse(TableModelUtils.getSelectColumns(columns)));
-		toGet.setRows(newRows.getRows());
-		rowsFromTable = synapse.getRowsFromTable(toGet);
-		assertEquals(toGet.getHeaders(), rowsFromTable.getHeaders());
-
-		for (int i = 0; i < 2; i++) {
-			String[] values = new String[columns.size()];
-			for (int j = 0; j < columns.size(); j++) {
-				values[j] = "val-" + i + "-" + j;
-			}
-			assertEquals(Lists.reverse(Lists.newArrayList(values)), rowsFromTable.getRows().get(i).getValues());
-		}
 	}
 
 	@Test
@@ -545,6 +447,8 @@ public class IT100TableControllerTest {
 		set.setHeaders(TableModelUtils.getSelectColumns(columns));
 		set.setTableId(table.getId());
 		RowReferenceSet results = synapse.appendRowsToTable(set, MAX_APPEND_TIMEOUT, table.getId());
+		RowSet queryResults = waitForQueryResults("select * from " + table.getId(), null, null, table.getId());
+		assertNotNull(queryResults);
 
 		TableFileHandleResults fileHandles = synapse.getFileHandlesFromTable(results);
 		assertEquals(fileHandle.getId(), fileHandles.getRows().get(0).getList().get(0).getId());

@@ -14,6 +14,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import javax.servlet.ServletException;
 
@@ -21,6 +22,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -95,6 +98,9 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 	@Autowired
 	private TeamManager teamManager;
 
+	@Autowired
+	private IdGenerator idGenerator;
+
 	private Long userId;
 	private UserInfo testUser;
 	private Team testTeam;
@@ -136,7 +142,9 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 		handleOne.setKey("EntityControllerTest.mainFileKey");
 		handleOne.setEtag("etag");
 		handleOne.setFileName("foo.bar");
-		handleOne = fileMetadataDao.createFile(handleOne);
+		handleOne.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		handleOne.setEtag(UUID.randomUUID().toString());
+		handleOne = (S3FileHandle) fileMetadataDao.createFile(handleOne);
 		// create a column model
 		columnModelOne = new ColumnModel();
 		columnModelOne.setName("one");

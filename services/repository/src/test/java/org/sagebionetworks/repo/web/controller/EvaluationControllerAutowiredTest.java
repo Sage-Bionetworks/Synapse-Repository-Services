@@ -307,6 +307,7 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 		annots.setObjectId(status.getId());
 		annots.setScopeId(eval1.getId());
 		status.setAnnotations(annots);
+		status.setCanCancel(true);
 		SubmissionStatus statusClone = entityServletHelper.updateSubmissionStatus(status, adminUserId);
 		assertFalse("Modified date was not updated", status.getModifiedOn().equals(statusClone.getModifiedOn()));
 		status.setModifiedOn(statusClone.getModifiedOn());
@@ -318,6 +319,10 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 		assertTrue(Double.isNaN(statusClone.getAnnotations().getDoubleAnnos().get(0).getValue()));
 		assertEquals(initialCount + 1, entityServletHelper.getSubmissionCount(adminUserId, eval1.getId()));
 		
+		entityServletHelper.cancelSubmission(testUserId, sub1.getId());
+		status = entityServletHelper.getSubmissionStatus(adminUserId, sub1.getId());
+		assertTrue(status.getCancelRequested());
+		
 		// delete
 		entityServletHelper.deleteSubmission(sub1.getId(), adminUserId);
 		try {
@@ -328,9 +333,7 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 		}
 		assertEquals(initialCount, entityServletHelper.getSubmissionCount(adminUserId, eval1.getId()));
 	}
-	
 
-	
 	@Test(expected=UnauthorizedException.class)
 	public void testSubmissionUnauthorized() throws Exception {		
 		eval1.setStatus(EvaluationStatus.OPEN);
@@ -509,5 +512,4 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
     	nodesToDelete.add(KeyFactory.stringToKey(id).toString());
     	return id;
 	}
-
 }

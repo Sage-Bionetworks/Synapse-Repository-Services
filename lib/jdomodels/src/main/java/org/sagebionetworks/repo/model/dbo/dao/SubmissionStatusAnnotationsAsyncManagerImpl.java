@@ -9,6 +9,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.evaluation.dbo.DBOConstants;
+import org.sagebionetworks.evaluation.model.CancelControl;
 import org.sagebionetworks.evaluation.model.EvaluationSubmissions;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
@@ -25,12 +26,16 @@ import org.sagebionetworks.repo.model.evaluation.EvaluationSubmissionsDAO;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionStatusAnnotationsAsyncManager {
 	
 	public static final String REPOSITORY_NAME = "repositoryName";
+	public static final String CAN_CANCEL = "canCancel";
+	public static final String CANCEL_REQUESTED = "cancelRequested";
+	public static final String CANCEL_CONTROL = "cancelControl";
 	private static final String BUNDLE_ENTITY_FIELD = "entity";	
 
 	@Autowired
@@ -105,7 +110,7 @@ public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionSt
 		annotationsDAO.deleteAnnotationsByScope(evalId);
 	}
 
-	private static Annotations fillInAnnotations(Submission submission, SubmissionStatus subStatus) {
+	private static Annotations fillInAnnotations(Submission submission, SubmissionStatus subStatus) throws JSONObjectAdapterException {
 		Annotations annos = subStatus.getAnnotations();
 		if (annos == null) {
 			annos = new Annotations();
@@ -154,7 +159,7 @@ public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionSt
 	private static void insertSystemAnnotations(Submission submission, SubmissionStatus subStatus,
 			Map<String, LongAnnotation> longAnnoMap,
 			Map<String, DoubleAnnotation> doubleAnnoMap,
-			Map<String, StringAnnotation> stringAnnoMap) {
+			Map<String, StringAnnotation> stringAnnoMap) throws JSONObjectAdapterException {
 		// owner ID (the Submission ID)
 		LongAnnotation ownerIdAnno = new LongAnnotation();
 		ownerIdAnno.setIsPrivate(false);
@@ -263,6 +268,39 @@ public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionSt
 			insertAnnotation(digestAnno, longAnnoMap, doubleAnnoMap, stringAnnoMap);
 		}
 
+		// canCancel
+		Boolean canCancel = Boolean.FALSE;
+		if (subStatus.getCanCancel() != null && subStatus.getCanCancel()) {
+			canCancel = Boolean.TRUE;
+		}
+		StringAnnotation canCancelAnno = new StringAnnotation();
+		canCancelAnno.setIsPrivate(false);
+		canCancelAnno.setKey(CAN_CANCEL);
+		canCancelAnno.setValue(canCancel.toString());
+		insertAnnotation(canCancelAnno, longAnnoMap, doubleAnnoMap, stringAnnoMap);
+
+		// cancelRequested
+		Boolean cancelRequested = Boolean.FALSE;
+		if (subStatus.getCancelRequested() != null && subStatus.getCancelRequested()) {
+			cancelRequested = Boolean.TRUE;
+		}
+		StringAnnotation cancelRequestedAnno = new StringAnnotation();
+		cancelRequestedAnno.setIsPrivate(false);
+		cancelRequestedAnno.setKey(CANCEL_REQUESTED);
+		cancelRequestedAnno.setValue(cancelRequested.toString());
+		insertAnnotation(cancelRequestedAnno, longAnnoMap, doubleAnnoMap, stringAnnoMap);
+
+		// cancelControl
+		CancelControl cancelControl = new CancelControl();
+		cancelControl.setCanCancel(canCancel);
+		cancelControl.setCancelRequested(cancelRequested);
+		cancelControl.setSubmissionId(submission.getId());
+		cancelControl.setUserId(submission.getUserId());
+		StringAnnotation cancelControlAnno = new StringAnnotation();
+		cancelControlAnno.setIsPrivate(false);
+		cancelControlAnno.setKey(CANCEL_CONTROL);
+		cancelControlAnno.setValue(EntityFactory.createJSONStringForEntity(cancelControl));
+		insertAnnotation(cancelControlAnno, longAnnoMap, doubleAnnoMap, stringAnnoMap);
 	}
 	
 	public static String getDockerRepositoryNameFromSubmission(Submission submission) {

@@ -12,7 +12,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.LinkedList;
@@ -24,6 +23,8 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -31,6 +32,7 @@ import org.sagebionetworks.repo.model.file.TempFileProvider;
 import org.sagebionetworks.repo.util.ResourceTracker;
 import org.sagebionetworks.repo.util.ResourceTracker.ExceedsMaximumResources;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.GetObjectRequest;
@@ -56,6 +58,8 @@ public class PreviewManagerImplTest {
 	private FileOutputStream mockOutputStream;
 	@Mock
 	private S3ObjectInputStream mockS3ObjectInputStream;
+	@Mock
+	private IdGenerator mockIdGenerator;
 	Long maxPreviewSize = 100l;
 	float multiplerForContentType = 1.5f;
 	String testContentType = "text/plain";
@@ -91,7 +95,10 @@ public class PreviewManagerImplTest {
 		testMetadata.setFileName("fileName.txt");
 		testMetadata.setKey("key");
 		// Add this to the stub
-		testMetadata = stubFileMetadataDao.createFile(testMetadata);
+		testMetadata = (S3FileHandle) stubFileMetadataDao.createFile(testMetadata);
+
+		ReflectionTestUtils.setField(previewManager, "idGenerator", mockIdGenerator);
+		when(mockIdGenerator.generateNewId(TYPE.FILE_IDS)).thenReturn(789L);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)

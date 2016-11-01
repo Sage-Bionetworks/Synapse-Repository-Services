@@ -411,7 +411,7 @@ public class SynapseTest {
 		String id = "123";
 		configureMockHttpResponse(204, "");
 		synapse.deleteActivity(id);		
-		verify(mockResponse, times(2)).getEntity();
+		verify(mockResponse, times(4)).getEntity();
 	}		
 	
 	@Test

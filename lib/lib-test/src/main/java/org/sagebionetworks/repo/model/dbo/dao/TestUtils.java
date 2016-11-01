@@ -5,6 +5,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import org.sagebionetworks.repo.model.annotation.Annotations;
 import org.sagebionetworks.repo.model.annotation.DoubleAnnotation;
@@ -23,8 +24,8 @@ public class TestUtils {
 	 * 
 	 * @return
 	 */
-	public static S3FileHandle createS3FileHandle(String createdById) {
-		return createS3FileHandle(createdById, 123);
+	public static S3FileHandle createS3FileHandle(String createdById, String fileHandleId) {
+		return createS3FileHandle(createdById, 123, fileHandleId);
 	}
 
 	/**
@@ -32,8 +33,8 @@ public class TestUtils {
 	 * 
 	 * @return
 	 */
-	public static S3FileHandle createS3FileHandle(String createdById, int sizeInBytes) {
-		return createS3FileHandle(createdById, sizeInBytes, "content type");
+	public static S3FileHandle createS3FileHandle(String createdById, int sizeInBytes, String fileHandleId) {
+		return createS3FileHandle(createdById, sizeInBytes, "content type", fileHandleId);
 	}
 
 	/**
@@ -41,7 +42,7 @@ public class TestUtils {
 	 * 
 	 * @return
 	 */
-	public static S3FileHandle createS3FileHandle(String createdById, int sizeInBytes, String contentType) {
+	public static S3FileHandle createS3FileHandle(String createdById, int sizeInBytes, String contentType, String fileHandleId) {
 		S3FileHandle meta = new S3FileHandle();
 		meta.setBucketName("bucketName");
 		meta.setKey("key");
@@ -50,6 +51,8 @@ public class TestUtils {
 		meta.setContentMd5("md5");
 		meta.setCreatedBy(createdById);
 		meta.setFileName("foobar.txt");
+		meta.setId(fileHandleId);
+		meta.setEtag(UUID.randomUUID().toString());
 		return meta;
 	}
 
@@ -57,23 +60,23 @@ public class TestUtils {
 	 * Helper to create a PreviewFileHandle
 	 * @return
 	 */
-	public static PreviewFileHandle createPreviewFileHandle(String createdById) {
-		return createPreviewFileHandle(createdById, 123);
+	public static PreviewFileHandle createPreviewFileHandle(String createdById, String fileHandleId) {
+		return createPreviewFileHandle(createdById, 123, fileHandleId);
 	}
 
 	/**
 	 * Helper to create a PreviewFileHandle
 	 * @return
 	 */
-	public static PreviewFileHandle createPreviewFileHandle(String createdById, int sizeInBytes) {
-		return createPreviewFileHandle(createdById, 123, "content type");
+	public static PreviewFileHandle createPreviewFileHandle(String createdById, int sizeInBytes, String fileHandleId) {
+		return createPreviewFileHandle(createdById, sizeInBytes, "content type", fileHandleId);
 	}
 
 	/**
 	 * Helper to create a PreviewFileHandle
 	 * @return
 	 */
-	public static PreviewFileHandle createPreviewFileHandle(String createdById, int sizeInBytes, String contentType) {
+	public static PreviewFileHandle createPreviewFileHandle(String createdById, int sizeInBytes, String contentType, String fileHandleId) {
 		PreviewFileHandle meta = new PreviewFileHandle();
 		meta.setBucketName("bucketName");
 		meta.setKey("key");
@@ -82,6 +85,8 @@ public class TestUtils {
 		meta.setContentMd5("md5");
 		meta.setCreatedBy(createdById);
 		meta.setFileName("preview.jpg");
+		meta.setEtag(UUID.randomUUID().toString());
+		meta.setId(fileHandleId);
 		return meta;
 	}
 

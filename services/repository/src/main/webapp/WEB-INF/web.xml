@@ -16,6 +16,16 @@
 		<param-value>/WEB-INF/shared-context.xml</param-value>
 	</context-param>
 
+	<!-- This is the filter to redirect http:// to https:// -->
+	<filter>
+		<filter-name>httpToHttpsFilter</filter-name>
+		<filter-class>org.sagebionetworks.repo.web.filter.HttpToHttpsRedirectFilter</filter-class>
+	</filter>
+	<filter-mapping>
+		<filter-name>httpToHttpsFilter</filter-name>
+		<url-pattern>/*</url-pattern>
+	</filter-mapping>
+
 	<!-- This must remain the top-most filter in the filter chain.
 	 It is our last chance to capture and log unexpected exceptions.  
 	 Without it, users could see errors that never make it into our logs.
@@ -199,14 +209,6 @@
 			<param-value>false</param-value>
 		</init-param>
 	</filter>
-
-	<filter-mapping>
-		<filter-name>jsonpCallbackFilter</filter-name>
-		<!-- This filter should only be used on publicly accessible methods to 
-			minimize the risks of Cross-site request forgery (CSRF) associated with JSONP. 
-			Only add patterns that are public! -->
-		<url-pattern>/repo/v1/concept/*</url-pattern>
-	</filter-mapping>
 
 	<filter-mapping>
 		<filter-name>jsonpCallbackFilter</filter-name>

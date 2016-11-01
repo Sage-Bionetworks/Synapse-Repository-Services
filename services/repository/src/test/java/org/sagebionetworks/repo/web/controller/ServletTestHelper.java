@@ -82,8 +82,6 @@ import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.message.cloudmailin.Message;
-import org.sagebionetworks.repo.model.ontology.Concept;
-import org.sagebionetworks.repo.model.ontology.ConceptResponsePage;
 import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
 import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasRequest;
@@ -974,58 +972,6 @@ public class ServletTestHelper {
 				HttpStatus.OK);
 	}
 
-
-
-	public ConceptResponsePage getConceptsForParent(String parentId,
-			String pefix, int limit, int offset) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, UrlHelpers.CONCEPT + "/" + parentId
-						+ UrlHelpers.CHILDERN_TRANSITIVE, null, null);
-		if (pefix != null) {
-			request.setParameter(UrlHelpers.PREFIX_FILTER, pefix);
-		}
-		request.setParameter(ServiceConstants.PAGINATION_LIMIT_PARAM, ""
-				+ limit);
-		request.setParameter(ServiceConstants.PAGINATION_OFFSET_PARAM, ""
-				+ offset);
-
-		MockHttpServletResponse response = ServletTestHelperUtils
-				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
-
-		return objectMapper.readValue(response.getContentAsString(),
-				ConceptResponsePage.class);
-	}
-
-	/**
-	 * Get a single concept from its id
-	 */
-	public Concept getConcept(String id) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, UrlHelpers.CONCEPT + "/" + id, null, null);
-
-		MockHttpServletResponse response = ServletTestHelperUtils
-				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
-
-		return objectMapper.readValue(response.getContentAsString(),
-				Concept.class);
-	}
-
-	/**
-	 * Get a single concept from its id
-	 */
-	public String getConceptAsJSONP(String id, String callbackName)
-			throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, UrlHelpers.CONCEPT + "/" + id, null, null);
-		// Add the header that indicates we want JSONP
-		request.addParameter(UrlHelpers.REQUEST_CALLBACK_JSONP, callbackName);
-
-		MockHttpServletResponse response = ServletTestHelperUtils
-				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
-
-		return response.getContentAsString();
-	}
-
 	public UserGroupHeaderResponsePage getUserGroupHeadersByPrefix(
 			String pefix, int limit, int offest) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
@@ -1043,26 +989,6 @@ public class ServletTestHelper {
 
 		return objectMapper.readValue(response.getContentAsString(),
 				UserGroupHeaderResponsePage.class);
-	}
-
-	public String getUserGroupHeadersAsJSONP(String pefix, int limit,
-			int offest, String callbackName) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, UrlHelpers.CONCEPT + "/", null, null);
-		// Add the header that indicates we want JSONP
-		request.addParameter(UrlHelpers.REQUEST_CALLBACK_JSONP, callbackName);
-		if (pefix != null) {
-			request.setParameter(UrlHelpers.PREFIX_FILTER, pefix);
-		}
-		request.setParameter(ServiceConstants.PAGINATION_LIMIT_PARAM, ""
-				+ limit);
-		request.setParameter(ServiceConstants.PAGINATION_OFFSET_PARAM, ""
-				+ offest);
-
-		MockHttpServletResponse response = ServletTestHelperUtils
-				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
-
-		return response.getContentAsString();
 	}
 
 	public UserEntityPermissions getUserEntityPermissions(
@@ -1532,7 +1458,7 @@ public class ServletTestHelper {
 
 	public TableFileHandleResults getTableFileHandles(DispatcherServlet instance, RowReferenceSet row, Long userId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.POST, UrlHelpers.ENTITY + "/" + row.getTableId()
-				+ UrlHelpers.TABLE + UrlHelpers.FILE_HANDLE, userId, row);
+				+ UrlHelpers.TABLE + UrlHelpers.FILE_HANDLES, userId, row);
 		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(instance, request, HttpStatus.OK);
 		TableFileHandleResults tfhr = ServletTestHelperUtils.readResponse(response, TableFileHandleResults.class);
 		return tfhr;

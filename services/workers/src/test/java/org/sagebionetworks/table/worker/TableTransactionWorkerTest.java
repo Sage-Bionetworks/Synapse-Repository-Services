@@ -34,7 +34,6 @@ import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.amazonaws.services.sqs.model.Message;
-import com.sun.star.lang.IllegalArgumentException;
 
 public class TableTransactionWorkerTest {
 	

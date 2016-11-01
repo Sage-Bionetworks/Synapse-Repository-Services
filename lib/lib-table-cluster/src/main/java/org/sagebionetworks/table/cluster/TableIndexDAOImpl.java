@@ -1,5 +1,26 @@
 package org.sagebionetworks.table.cluster;
 
+import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_ENTITY_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_KEY;
+import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_TYPE;
+import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_VALUE;
+import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_BENEFACTOR_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_CRATED_BY;
+import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_CRATED_ON;
+import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_ETAG;
+import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_FILE_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_MODIFIED_BY;
+import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_MODIFIED_ON;
+import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_NAME;
+import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_PARENT_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_PROJECT_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_TYPE;
+import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_VERSION;
+import static org.sagebionetworks.repo.model.table.TableConstants.PARENT_ID_PARAMETER_NAME;
+import static org.sagebionetworks.repo.model.table.TableConstants.SQL_ENTITY_REPLICATION_CRC_32;
+import static org.sagebionetworks.repo.model.table.TableConstants.TYPE_PARAMETER_NAME;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -22,6 +43,7 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.table.AnnotationDTO;
+import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -29,12 +51,10 @@ import org.sagebionetworks.repo.model.table.EntityDTO;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableConstants;
-import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
-import org.sagebionetworks.table.cluster.utils.TableModelUtils;
+import org.sagebionetworks.table.model.Grouping;
 import org.sagebionetworks.util.ValidateArgument;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
@@ -51,8 +71,6 @@ import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.DefaultTransactionDefinition;
 import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
-
-import static org.sagebionetworks.repo.model.table.TableConstants.*;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -134,34 +152,29 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public void createOrUpdateOrDeleteRows(final RowSet rowset,
-			final List<ColumnModel> schema) {
-		if (rowset == null)
-			throw new IllegalArgumentException("Rowset cannot be null");
-		if (schema == null)
-			throw new IllegalArgumentException("Current schema cannot be null");
-
+	public void createOrUpdateOrDeleteRows(final Grouping grouping) {
+		ValidateArgument.required(grouping, "grouping");
 		// Execute this within a transaction
 		this.writeTransactionTemplate.execute(new TransactionCallback<Void>() {
 			@Override
 			public Void doInTransaction(TransactionStatus status) {
-				// Within a transaction
-				// Build the SQL
-				String createOrUpdateSql = SQLUtils.buildCreateOrUpdateRowSQL(schema,
-						rowset.getTableId());
-				String deleteSql = SQLUtils.buildDeleteSQL(schema, rowset.getTableId());
-				SqlParameterSource[] batchUpdateOrCreateBinding = SQLUtils
-						.bindParametersForCreateOrUpdate(rowset, schema);
-				SqlParameterSource batchDeleteBinding = SQLUtils
-						.bindParameterForDelete(rowset, schema);
 				// We need a named template for this case.
 				NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(template);
-				if (batchUpdateOrCreateBinding.length > 0) {
+				List<ColumnModel> groupingColumns = grouping.getColumnsWithValues();
+				if(groupingColumns.isEmpty()){
+					// This is a delete
+					String deleteSql = SQLUtils.buildDeleteSQL(grouping.getTableId());
+					SqlParameterSource batchDeleteBinding = SQLUtils
+							.bindParameterForDelete(grouping.getRows());
+					namedTemplate.update(deleteSql, batchDeleteBinding);
+				}else{
+					// this is a create or update
+					String createOrUpdateSql = SQLUtils.buildCreateOrUpdateRowSQL(groupingColumns,
+							grouping.getTableId());
+					SqlParameterSource[] batchUpdateOrCreateBinding = SQLUtils
+							.bindParametersForCreateOrUpdate(grouping);
 					namedTemplate.batchUpdate(createOrUpdateSql,
 							batchUpdateOrCreateBinding);
-				}
-				if (batchDeleteBinding != null) {
-					namedTemplate.update(deleteSql, batchDeleteBinding);
 				}
 				return null;
 			}
@@ -276,14 +289,15 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	@Override
 	public boolean queryAsStream(final ProgressCallback<Void> callback, final SqlQuery query, final RowHandler handler) {
 		ValidateArgument.required(query, "Query");
-		ValidateArgument.required(callback, "ProgressCallback");
 		// We use spring to create create the prepared statement
 		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
 		namedTemplate.query(query.getOutputSQL(), new MapSqlParameterSource(query.getParameters()), new RowCallbackHandler() {
 			@Override
 			public void processRow(ResultSet rs) throws SQLException {
 				// refresh the lock.
-				callback.progressMade(null);
+				if(callback != null){
+					callback.progressMade(null);
+				}
 				Row row = SQLTranslatorUtils.readRow(rs, query.includesRowIdAndVersion(), query.getSelectColumns());
 				handler.nextRow(row);
 			}

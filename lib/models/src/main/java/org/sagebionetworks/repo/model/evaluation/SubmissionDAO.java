@@ -174,5 +174,11 @@ public interface SubmissionDAO {
 			long contributorId, Date startDateIncl, Date endDateExcl,
 			Set<SubmissionStatusEnum> statuses);
 
-
+	/**
+	 * Get the Id of the user who created the submission.
+	 * 
+	 * @param submissionId
+	 * @return
+	 */
+	String getCreatedBy(String submissionId);
 }

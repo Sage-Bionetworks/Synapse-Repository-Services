@@ -1,0 +1,20 @@
+{
+	"description": "Includes the minimum and maximum values of a range facet column and selected ranges applied to the filter.",
+	"implements": [
+		{
+		"$ref": "org.sagebionetworks.repo.model.table.FacetColumnResult"
+		}
+	],
+	"properties": {
+		"facetValues": {
+			"description":"The list of QueryFacetResultValue that contain frequency counts for its most frequent values ",
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.table.FacetColumnResultValueCount"
+			}
+		}
+	}
+}
+
+
+

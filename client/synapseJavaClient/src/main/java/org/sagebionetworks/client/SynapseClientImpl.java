@@ -138,6 +138,8 @@ import org.sagebionetworks.repo.model.entity.query.EntityQuery;
 import org.sagebionetworks.repo.model.entity.query.EntityQueryResults;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.file.AddPartResponse;
+import org.sagebionetworks.repo.model.file.BatchFileHandleCopyRequest;
+import org.sagebionetworks.repo.model.file.BatchFileHandleCopyResult;
 import org.sagebionetworks.repo.model.file.BatchFileRequest;
 import org.sagebionetworks.repo.model.file.BatchFileResult;
 import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlRequest;
@@ -412,6 +414,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String EXTERNAL_FILE_HANDLE_PROXY = "/externalFileHandle/proxy";
 	private static final String FILE_HANDLES = "/filehandles";
 	protected static final String S3_FILE_COPY = FILE + "/s3FileCopy";
+	private static final String FILE_HANDLES_COPY = FILE_HANDLES+"/copy";
 	
 	protected static final String FILE_BULK = FILE+"/bulk";
 
@@ -5867,6 +5870,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		}
 	}
 
+	@Deprecated
 	@Override
 	public RowSet getRowsFromTable(RowReferenceSet toGet)
 			throws SynapseException, SynapseTableUnavailableException {
@@ -7796,5 +7800,20 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public BatchFileResult getFileHandleAndUrlBatch(BatchFileRequest request) throws SynapseException {
 		return asymmetricalPost(fileEndpoint, FILE_HANDLE_BATCH, request , BatchFileResult.class, null);
+	}
+
+	@Override
+	public BatchFileHandleCopyResult copyFileHandles(BatchFileHandleCopyRequest request) throws SynapseException {
+		return asymmetricalPost(fileEndpoint, FILE_HANDLES_COPY, request , BatchFileHandleCopyResult.class, null);
+	}
+
+	@Override
+	public void requestToCancelSubmission(String submissionId) throws SynapseException {
+		getSharedClientConnection().putUri(repoEndpoint, EVALUATION_URI_PATH+"/"+SUBMISSION+"/"+submissionId+"/cancellation", getUserAgent());
+	}
+	
+	@Override
+	public void setUserIpAddress(String ipAddress) {
+		getSharedClientConnection().setUserIp(ipAddress);
 	}
 }

@@ -16,8 +16,6 @@ public interface ServiceProvider {
 	
 	public AdministrationService getAdministrationService();
 	
-	public ConceptService getConceptService();
-	
 	public EntityService getEntityService();
 	
 	public EntityBundleService getEntityBundleService();

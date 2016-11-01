@@ -8,13 +8,17 @@ import java.net.URL;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
+import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -24,7 +28,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class UploadControllerTest extends AbstractAutowiredControllerTestBase {
 	
 	@Autowired
-	private FileHandleDao fileMetadataDao;
+	private FileHandleDao fileHandleDao;
+	@Autowired
+	private IdGenerator idGenerator;
 	
 	private Long adminUserId;
 	private String adminUserIdString;
@@ -49,8 +55,8 @@ public class UploadControllerTest extends AbstractAutowiredControllerTestBase {
 		handleOne.setKey("mainFileKey");
 		handleOne.setEtag("etag");
 		handleOne.setFileName("foo.bar");
-		handleOne = fileMetadataDao.createFile(handleOne);
-		toDelete.add(handleOne.getId());
+		handleOne.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		handleOne.setEtag(UUID.randomUUID().toString());
 		// Create a preview
 		handleTwo = new PreviewFileHandle();
 		handleTwo.setCreatedBy(adminUserIdString);
@@ -59,16 +65,26 @@ public class UploadControllerTest extends AbstractAutowiredControllerTestBase {
 		handleTwo.setKey("previewFileKey");
 		handleTwo.setEtag("etag");
 		handleTwo.setFileName("bar.txt");
-		handleTwo = fileMetadataDao.createFile(handleTwo);
+		handleTwo.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		handleTwo.setEtag(UUID.randomUUID().toString());
+
+		List<FileHandle> fileHandleToCreate = new LinkedList<FileHandle>();
+		fileHandleToCreate.add(handleOne);
+		fileHandleToCreate.add(handleTwo);
+		fileHandleDao.createBatch(fileHandleToCreate);
+		
+		handleOne = (S3FileHandle) fileHandleDao.get(handleOne.getId());
+		toDelete.add(handleOne.getId());
+		handleTwo = (PreviewFileHandle) fileHandleDao.get(handleTwo.getId());
 		// Set two as the preview of one
-		fileMetadataDao.setPreviewId(handleOne.getId(), handleTwo.getId());
+		fileHandleDao.setPreviewId(handleOne.getId(), handleTwo.getId());
 		toDelete.add(handleTwo.getId());
 	}
 
 	@After
 	public void after() throws Exception {
 		for (String id : toDelete) {
-			fileMetadataDao.delete(id);
+			fileHandleDao.delete(id);
 		}
 	}
 
@@ -109,4 +125,5 @@ public class UploadControllerTest extends AbstractAutowiredControllerTestBase {
 			servletTestHelper.getFileHandle(adminUserId, handleOne.getId());
 		} catch (NotFoundException e) { }
 	}
+
 }
