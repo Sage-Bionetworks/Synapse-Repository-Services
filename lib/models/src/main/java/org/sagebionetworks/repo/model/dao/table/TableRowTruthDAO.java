@@ -7,8 +7,6 @@ import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.IdRange;
 import org.sagebionetworks.repo.model.table.RawRowSet;
-import org.sagebionetworks.repo.model.table.Row;
-import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SparseChangeSetDto;
@@ -88,7 +86,7 @@ public interface TableRowTruthDAO {
 	 * @return
 	 * @throws IOException
 	 */
-	public void appendRowSetToTable(String userId, String tableId, String etag, long versionNumber, List<ColumnModel> columns, SparseChangeSetDto delta)
+	public String appendRowSetToTable(String userId, String tableId, String etag, long versionNumber, List<ColumnModel> columns, SparseChangeSetDto delta)
 			throws IOException;
 	
 	/**
@@ -140,50 +138,6 @@ public interface TableRowTruthDAO {
 	 * @throws IOException 
 	 */
 	public SparseChangeSetDto getRowSet(TableRowChange dto) throws IOException;
-	
-	/**
-	 * Use this method to scan over an entire RowSet without loading the set into memory.  For each row found in the 
-	 * set, the passed handler will be called with the value of the row.
-	 * @param tableId
-	 * @param rowVersion
-	 * @param handler
-	 * @throws IOException
-	 * @throws NotFoundException 
-	 */
-	public TableRowChange scanRowSet(String tableId, long rowVersion, RowHandler handler) throws IOException, NotFoundException;
-	
-	/**
-	 * Get a RowSet for all rows referenced in the requested form.
-	 * 
-	 * @param ref
-	 * @return
-	 * @throws IOException 
-	 * @throws NotFoundException 
-	 */
-	public RowSet getRowSet(RowReferenceSet ref, List<ColumnModel> columns) throws IOException, NotFoundException;
-	
-	/**
-	 * Get all the rows referenced in their unmodified form.
-	 * There will be one RowSet for each distinct row version requested.
-	 * Note: The headers can vary from one version to another.
-	 * @param ref
-	 * @return
-	 * @throws IOException
-	 * @throws NotFoundException 
-	 */
-	public List<RawRowSet> getRowSetOriginals(RowReferenceSet ref, List<ColumnModel> columns) throws IOException, NotFoundException;
-
-	/**
-	 * Get a rows referenced in its unmodified form.
-	 * 
-	 * @param tableId
-	 * @param ref
-	 * @param columns
-	 * @return
-	 * @throws IOException
-	 * @throws NotFoundException
-	 */
-	public Row getRowOriginal(String tableId, RowReference ref, List<ColumnModel> columns) throws IOException, NotFoundException;
 
 	/**
 	 * List the keys of all change sets applied to a table.
@@ -226,15 +180,16 @@ public interface TableRowTruthDAO {
 	 * 
 	 */
 	public void truncateAllRowData();
-	
-	/**
-	 * Scan over a given changeset
-	 * @param handler
-	 * @param dto
-	 * @throws IOException
-	 */
-	public void scanChange(RowHandler handler, TableRowChange dto) throws IOException;
 
-	
+	/**
+	 * Upgrade and existing change set using the new SparseChangeSetDto.
+	 * @param tableId
+	 * @param rowVersion
+	 * @param writeToDto
+	 * @return The new key of the change set.
+	 * @throws IOException 
+	 */
+	public TableRowChange upgradeToNewChangeSet(String tableId, long rowVersion,
+			SparseChangeSetDto newDto) throws IOException;	
 	
 }

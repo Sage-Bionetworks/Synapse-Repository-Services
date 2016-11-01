@@ -8,7 +8,6 @@ import java.util.Set;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
@@ -23,6 +22,7 @@ import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
+import org.sagebionetworks.table.model.SparseChangeSet;
 
 /**
  * Abstraction for Table Row management.
@@ -118,6 +118,16 @@ public interface TableEntityManager {
 	 */
 	public RowSet getRowSet(String tableId, Long rowVersion, List<ColumnModel> columns)
 			throws IOException, NotFoundException;
+	
+	/**
+	 * Get the a SparseChangeSet for a given TableRowChange.
+	 * 
+	 * @param change
+	 * @return
+	 * @throws IOException 
+	 * @throws NotFoundException 
+	 */
+	public SparseChangeSet getSparseChangeSet(TableRowChange change) throws NotFoundException, IOException;
 	
 	/**
 	 * Get the schema change for a given version.

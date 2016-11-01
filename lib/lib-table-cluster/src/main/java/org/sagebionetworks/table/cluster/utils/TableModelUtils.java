@@ -707,8 +707,12 @@ public class TableModelUtils {
 		ValidateArgument.required(models, "SelectColumns");
 		List<String> ids = Lists.newArrayListWithCapacity(models.size());
 		for(SelectColumn model: models){
-			ValidateArgument.required(model.getId(), "SelectColumn.id");
-			ids.add(model.getId());
+			if(model == null){
+				ids.add(null);
+			}else{
+				ValidateArgument.required(model.getId(), "SelectColumn.id");
+				ids.add(model.getId());
+			}
 		}
 		return ids;
 	}
@@ -1080,7 +1084,9 @@ public class TableModelUtils {
 		Map<String, Integer> columnIndexMap = Maps.newHashMap();
 		int index = 0;
 		for (String columnId : columnIds) {
-			columnIndexMap.put(columnId, index);
+			if(columnId != null){
+				columnIndexMap.put(columnId, index);
+			}
 			index++;
 		}
 		return columnIndexMap;

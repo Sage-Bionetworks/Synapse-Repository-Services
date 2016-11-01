@@ -24,12 +24,10 @@ import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableChangeType;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
@@ -313,23 +311,17 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 	 */
 	void applyRowChange(ProgressCallback<Void> progressCallback,
 			final TableIndexManager indexManager, String tableId,
-			TableRowChange changeSet) throws IOException {
-		ValidateArgument.required(changeSet, "changeSet");
-		if(!TableChangeType.ROW.equals(changeSet.getChangeType())){
+			TableRowChange change) throws IOException {
+		ValidateArgument.required(change, "changeSet");
+		if(!TableChangeType.ROW.equals(change.getChangeType())){
 			throw new IllegalArgumentException("Expected: "+TableChangeType.ROW);
 		}
-		// Get the current schema from the change set
-		boolean keepOrder = true;
-		List<ColumnModel> currentSchema = tableManagerSupport.getColumnModel(changeSet.getIds(), keepOrder);
-		// Setup the table's index.
-		// Keep the missing columns see PLFM-4089
-		boolean removeMissingColumns = false;
-		indexManager.setIndexSchema(progressCallback, currentSchema, removeMissingColumns);
-		// This is a change that we must apply.
-		RowSet rowSet = tableEntityManager.getRowSet(tableId, changeSet.getRowVersion(), currentSchema);
-		SparseChangeSet sparse = TableModelUtils.createSparseChangeSet(rowSet, currentSchema);
+		// Get the changeset.
+		SparseChangeSet sparseChangeSet = tableEntityManager.getSparseChangeSet(change);
+		// match the schema to the change set.
+		indexManager.setIndexSchema(progressCallback, sparseChangeSet.getSchema());
 		// attempt to apply this change set to the table.
-		indexManager.applyChangeSetToIndex(sparse, currentSchema, changeSet.getRowVersion());
+		indexManager.applyChangeSetToIndex(sparseChangeSet, change.getRowVersion());
 	}
 
 

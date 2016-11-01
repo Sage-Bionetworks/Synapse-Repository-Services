@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.exception.ReadOnlyException;
@@ -84,6 +85,8 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	FileHandleDao fileHandleDao;
 	@Autowired
 	ColumnModelManager columModelManager;
+	@Autowired
+	ColumnModelDAO columnModelDao;
 	@Autowired
 	TableManagerSupport tableManagerSupport;
 	@Autowired
@@ -717,6 +720,26 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	@Override
 	public List<String> getTableSchema(UserInfo user, String id) {
 		return columModelManager.getColumnIdForTable(id);
+	}
+
+
+	@WriteTransactionReadCommitted
+	@Override
+	public SparseChangeSet getSparseChangeSet(TableRowChange change) throws NotFoundException, IOException {
+		// If the new key is null then we need to translate from the old type to the new type.
+		if(change.getKeyNew() == null){
+			// Lookup the current schema
+			List<ColumnModel> currentSchema = columnModelDao.getColumnModelsForObject(change.getTableId());
+			// Lookup the old type
+			RowSet oldRowSet = tableRowTruthDao.getRowSet(change.getTableId(), change.getRowVersion(), currentSchema);
+			// translate to the new sparse
+			SparseChangeSet sparse = TableModelUtils.createSparseChangeSet(oldRowSet, currentSchema);
+			// upgrade this change using the new sparse changeset.
+			change = tableRowTruthDao.upgradeToNewChangeSet(change.getTableId(), change.getRowVersion(), sparse.writeToDto());
+		}
+		SparseChangeSetDto dto = tableRowTruthDao.getRowSet(change);
+		List<ColumnModel> schema = columnModelDao.getColumnModel(dto.getColumnIds(), true);
+		return new SparseChangeSet(dto, schema);
 	}
 
 }

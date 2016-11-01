@@ -103,8 +103,7 @@ public class TableIndexDAOImplTest {
 	 */
 	public boolean createOrUpdateTable(List<ColumnModel> newSchema, String tableId){
 		List<DatabaseColumnInfo> currentSchema = tableIndexDAO.getDatabaseInfo(tableId);
-		boolean removeMissingColumns = true;
-		List<ColumnChangeDetails> changes = SQLUtils.createReplaceSchemaChange(currentSchema, newSchema, removeMissingColumns);
+		List<ColumnChangeDetails> changes = SQLUtils.createReplaceSchemaChange(currentSchema, newSchema);
 		tableIndexDAO.createTableIfDoesNotExist(tableId);
 		boolean alterTemp = false;
 		return tableIndexDAO.alterTableAsNeeded(tableId, changes, alterTemp);

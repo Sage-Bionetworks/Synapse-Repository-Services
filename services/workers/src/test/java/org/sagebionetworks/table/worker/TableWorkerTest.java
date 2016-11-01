@@ -244,8 +244,8 @@ public class TableWorkerTest {
 		verify(mockTableManagerSupport, times(1)).attemptToSetTableStatusToAvailable(tableId, resetToken, "etag2");
 		verify(mockTableManagerSupport, times(4)).attemptToUpdateTableProgress(eq(tableId), eq(resetToken), anyString(), anyLong(), anyLong());
 		
-		verify(mockTableIndexManager).applyChangeSetToIndex(sparseRowset1, currentSchema, 0L);
-		verify(mockTableIndexManager).applyChangeSetToIndex(sparseRowset2, currentSchema, 1L);
+		verify(mockTableIndexManager).applyChangeSetToIndex(sparseRowset1, 0L);
+		verify(mockTableIndexManager).applyChangeSetToIndex(sparseRowset2, 1L);
 		// Progress should be made for each result
 		verify(mockProgressCallback, times(2)).progressMade(null);
 		verify(mockTableIndexManager).optimizeTableIndices();
@@ -263,7 +263,7 @@ public class TableWorkerTest {
 		worker.run(mockProgressCallback, two);
 		
 		verify(mockTableEntityManager, never()).getRowSet(eq(tableId), eq(0L), anyListOf(ColumnModel.class));
-		verify(mockTableIndexManager).applyChangeSetToIndex(sparseRowset2, currentSchema, 1L);
+		verify(mockTableIndexManager).applyChangeSetToIndex(sparseRowset2, 1L);
 		
 		// Progress should be made for each change even if there is no work.
 		verify(mockProgressCallback, times(2)).progressMade(null);
@@ -306,7 +306,7 @@ public class TableWorkerTest {
 		// The status should get set to available
 		verify(mockTableManagerSupport, times(1)).attemptToSetTableStatusToAvailable(tableId, resetToken, "etag");
 		
-		verify(mockTableIndexManager).applyChangeSetToIndex(sparsRowSet, currentSchema, trc.getRowVersion());
+		verify(mockTableIndexManager).applyChangeSetToIndex(sparsRowSet, trc.getRowVersion());
 	}
 	
 	/**
@@ -476,12 +476,12 @@ public class TableWorkerTest {
 		
 		// this time the second change set has an error
 		RuntimeException error = new RuntimeException("Bad Change Set");
-		doThrow(error).when(mockTableIndexManager).applyChangeSetToIndex(sparseRowset2, currentSchema, 1L);
+		doThrow(error).when(mockTableIndexManager).applyChangeSetToIndex(sparseRowset2, 1L);
 		
 		// call under test
 		worker.run(mockProgressCallback, two);
 		
-		verify(mockTableIndexManager).applyChangeSetToIndex(sparseRowset1, currentSchema, 0L);
+		verify(mockTableIndexManager).applyChangeSetToIndex(sparseRowset1, 0L);
 		
 		// The status should get set to failed
 		verify(mockTableManagerSupport, times(1)).attemptToSetTableStatusToFailed(anyString(), anyString(), anyString(), anyString());
@@ -512,10 +512,9 @@ public class TableWorkerTest {
 		// call under test
 		worker.applyRowChange(mockProgressCallback, mockTableIndexManager, tableId, trc);
 		// schema of the change should be applied
-		boolean removeMissingColumns = false;
-		verify(mockTableIndexManager).setIndexSchema(mockProgressCallback, currentSchema, removeMissingColumns);
+		verify(mockTableIndexManager).setIndexSchema(mockProgressCallback, currentSchema);
 		// the change set should be applied.
-		verify(mockTableIndexManager).applyChangeSetToIndex(sparseRowset1, currentSchema,trc.getRowVersion());
+		verify(mockTableIndexManager).applyChangeSetToIndex(sparseRowset1,trc.getRowVersion());
 	}
 	
 	@Test (expected=IllegalArgumentException.class)

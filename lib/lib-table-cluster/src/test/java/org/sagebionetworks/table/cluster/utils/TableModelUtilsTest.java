@@ -1,11 +1,6 @@
 package org.sagebionetworks.table.cluster.utils;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 
@@ -1388,6 +1383,55 @@ public class TableModelUtilsTest {
 		assertFalse(one.hasCellValue(c2.getId()));
 		assertFalse(one.hasCellValue(c3.getId()));
 	}
+	
+	@Test
+	public void testCreateSparseChangeSetNullSelectColumns(){
+		ColumnModel c1 = TableModelTestUtils.createColumn(1L, "aBoolean", ColumnType.BOOLEAN);
+		ColumnModel c2 = TableModelTestUtils.createColumn(2L, "anInteger", ColumnType.INTEGER);
+		ColumnModel c3 = TableModelTestUtils.createColumn(3L, "aString", ColumnType.STRING);
+		
+		// the current schema is not the same as the rowset schema.
+		List<ColumnModel> currentScema = Lists.newArrayList(c1,c3);
+		
+		Long versionNumber = 45L;
+		String tableId = "syn123";
+		List<String> headerIds = Lists.newArrayList("2","1");
+		// any column ID not in the current schema will have a null SelectColumn.
+		List<SelectColumn> headers = TableModelUtils.getSelectColumnsFromColumnIds(headerIds, currentScema);
+		assertNotNull(headers);
+		assertEquals(2, headers.size());
+		// the first header should be null
+		assertNull(headers.get(0));
+		assertNotNull(headers.get(1));
+		assertEquals(c1.getId(), headers.get(1).getId());
+		
+		Row row1 = new Row();
+		row1.setRowId(1L);
+		row1.setVersionNumber(versionNumber);
+		row1.setValues(Lists.newArrayList("1", "true"));
+		
+		
+		RowSet rowSet = new RowSet();
+		rowSet.setHeaders(headers);
+		rowSet.setEtag("etag");
+		rowSet.setRows(Lists.newArrayList(row1));
+		rowSet.setTableId(tableId);
+		
+		// Call under test
+		SparseChangeSet sparse = TableModelUtils.createSparseChangeSet(rowSet, currentScema);
+		assertNotNull(sparse);
+		// should have one row that only includes the columns that overlap the current schema and rowset.
+		assertEquals(1, sparse.getRowCount());
+		SparseRow one = sparse.rowIterator().iterator().next();
+		assertEquals(row1.getRowId(), one.getRowId());
+		assertEquals(row1.getVersionNumber(), one.getVersionNumber());
+		assertTrue(one.hasCellValue(c1.getId()));
+		assertEquals("true", one.getCellValue(c1.getId()));
+		assertFalse(one.hasCellValue(c2.getId()));
+		assertFalse(one.hasCellValue(c3.getId()));
+	}
+	
+
 	
 	@Test
 	public void testwriteReadSparesChangeSetGz() throws IOException{

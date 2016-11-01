@@ -615,8 +615,6 @@ public class TableEntityManagerTest {
 		rows.setEtag("444");
 		rows.setRows(Lists.newArrayList(TableModelTestUtils.createRowReference(1L, 2L), TableModelTestUtils.createRowReference(3L, 4L)));
 
-		RowSet returnValue = new RowSet();
-		when(mockTruthDao.getRowSet(rows, models)).thenReturn(returnValue);
 		RowSet result = manager.getCellValues(user, tableId, rows.getRows(), models);
 		assertNotNull(result);
 		assertEquals(tableId, tableId);
@@ -642,8 +640,6 @@ public class TableEntityManagerTest {
 		rows.setEtag("444");
 		rows.setRows(Lists.newArrayList(TableModelTestUtils.createRowReference(1L, 2L), TableModelTestUtils.createRowReference(3L, 4L)));
 
-		RowSet returnValue = new RowSet();
-		when(mockTruthDao.getRowSet(rows, models)).thenReturn(returnValue);
 		// call under test
 		manager.getCellValues(user, tableId, rows.getRows(), models);
 	}

@@ -51,13 +51,13 @@ public class SparseChangeSet {
 	 * @param dto
 	 * @param columnProvider
 	 */
-	public SparseChangeSet(SparseChangeSetDto dto, ColumnModelProvider columnProvider){
+	public SparseChangeSet(SparseChangeSetDto dto, List<ColumnModel> schema){
 		ValidateArgument.required(dto, "dto");
 		ValidateArgument.required(dto.getTableId(), "dto.tableId");
 		ValidateArgument.required(dto.getColumnIds(), "dto.columnIds");
 		ValidateArgument.required(dto.getRows(), "dto.rows");
-		ValidateArgument.required(columnProvider, "columnProvider");
-		initialize(dto.getTableId(), columnProvider.getColumns(dto.getColumnIds()), dto.getEtag());
+		ValidateArgument.required(schema, "schema");
+		initialize(dto.getTableId(), schema, dto.getEtag());
 		// Add all of the rows from the DTO.
 		addAllRows(dto.getRows());
 	}
