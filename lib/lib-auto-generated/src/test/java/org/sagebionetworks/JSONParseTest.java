@@ -8,9 +8,8 @@ import java.io.IOException;
 import java.util.Iterator;
 
 import org.apache.commons.io.FileUtils;
+import org.codehaus.jackson.JsonParseException;
 import org.junit.Test;
-
-import com.fasterxml.jackson.core.JsonParseException;
 
 /**
  * Validate all JSON schema files in lib-auto-generated

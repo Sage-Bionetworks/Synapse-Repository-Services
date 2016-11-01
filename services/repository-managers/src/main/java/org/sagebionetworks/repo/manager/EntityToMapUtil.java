@@ -3,11 +3,10 @@ package org.sagebionetworks.repo.manager;
 import java.util.Iterator;
 import java.util.Map;
 
+import org.codehaus.jackson.map.ObjectMapper;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityWithAnnotations;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * Converts an entity with annotations to a map
