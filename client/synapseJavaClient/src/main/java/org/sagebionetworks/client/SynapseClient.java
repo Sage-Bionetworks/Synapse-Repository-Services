@@ -13,6 +13,7 @@ import java.util.Set;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.entity.ContentType;
 import org.json.JSONObject;
+import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseResultNotReadyException;
 import org.sagebionetworks.client.exceptions.SynapseTableUnavailableException;
@@ -2879,6 +2880,12 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	public BatchFileHandleCopyResult copyFileHandles(BatchFileHandleCopyRequest request) throws SynapseException;
+	
+	/**
+	 * Sets the ip address of the user that this client is performing actions for.
+	 * @param ipAddress
+	 */
+	public void setUserIpAddress(String ipAddress);
 
 	/**
 	 * Make a request to cancel a submission.

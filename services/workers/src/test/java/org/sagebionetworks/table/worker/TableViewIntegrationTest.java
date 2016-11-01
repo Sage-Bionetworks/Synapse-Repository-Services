@@ -373,7 +373,7 @@ public class TableViewIntegrationTest {
 				boolean runQuery = true;
 				boolean runCount = true;
 				boolean isConsistent = true;
-				return tableQueryManger.querySinglePage(mockProgressCallbackVoid, user, sql, sortList, offset, limit, runQuery, runCount, isConsistent);
+				return tableQueryManger.querySinglePage(mockProgressCallbackVoid, user, sql, sortList, null, offset, limit, runQuery, runCount, false, isConsistent);
 			} catch (LockUnavilableException e) {
 				System.out.println("Waiting for table lock: "+e.getLocalizedMessage());
 			} catch (TableUnavailableException e) {

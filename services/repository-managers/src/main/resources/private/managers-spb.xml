@@ -161,8 +161,6 @@
 				</bean>
 	            <bean class="org.sagebionetworks.repo.manager.file.preview.TextPreviewGenerator" />
 	            <bean class="org.sagebionetworks.repo.manager.file.preview.ZipPreviewGenerator" />
-		    	<bean class="org.sagebionetworks.repo.manager.file.preview.PdfPreviewGenerator" />
-	            <bean class="org.sagebionetworks.repo.manager.file.preview.OfficePreviewGenerator"/>
 	        </list>
 	    </property>
 	    <!-- The maximum amount of memory to uses -->
@@ -258,14 +256,6 @@
     </bean>
 
 	<bean id="stackStatusManager" class="org.sagebionetworks.repo.manager.StackStatusManagerImpl"
-		scope="singleton" />
-
-	<bean id="conceptCache"
-		class="org.sagebionetworks.repo.manager.ontology.ConceptCacheLocalImpl"
-		scope="singleton" />
-
-	<bean id="conceptManager"
-		class="org.sagebionetworks.repo.manager.ontology.ConceptManagerImpl"
 		scope="singleton" />
 
 	<bean id="s3Utility" class="org.sagebionetworks.repo.manager.AmazonS3UtilityImpl"

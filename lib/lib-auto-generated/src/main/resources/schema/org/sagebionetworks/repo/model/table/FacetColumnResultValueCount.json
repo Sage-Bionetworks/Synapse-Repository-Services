@@ -1,0 +1,17 @@
+{
+	"description": "A pair containing the value of a column and the number of times that value appears",
+    "properties":{
+        "value":{
+            "type":"string",
+            "description":"the value that is in a column"
+        },
+		"count":{
+            "type":"integer",
+            "description":"the number of times the value appears in the column"
+		},
+		"isSelected":{
+			"type":"boolean",
+			"description":"whether this facet was selected by the user"
+		}
+    }
+}

@@ -9,9 +9,12 @@ import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.EntityDTO;
+import org.sagebionetworks.repo.model.table.FacetColumnResultRange;
+import org.sagebionetworks.repo.model.table.FacetColumnResultValueCount;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.table.model.Grouping;
+import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.support.TransactionCallback;
 
@@ -336,5 +339,4 @@ public interface TableIndexDAO {
 	 */
 	public void setIndexVersionAndSchemaMD5Hex(String tableId, Long viewCRC,
 			String schemaMD5Hex);
-
 }

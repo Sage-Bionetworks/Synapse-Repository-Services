@@ -22,6 +22,7 @@ import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.client.utils.URIBuilder;
+import org.apache.http.conn.util.InetAddressUtils;
 import org.apache.http.entity.ContentType;
 import org.apache.http.util.EntityUtils;
 import org.apache.logging.log4j.LogManager;
@@ -44,7 +45,6 @@ import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
 import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DomainType;
-import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.auth.LoginCredentials;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
@@ -54,6 +54,7 @@ import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.securitytools.HMACUtils;
 import org.sagebionetworks.util.RetryException;
 import org.sagebionetworks.util.TimeUtils;
+import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.utils.HttpClientHelperException;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
 
@@ -76,6 +77,7 @@ public class SharedClientConnection {
 	protected static final String DEFAULT_AUTH_ENDPOINT = "https://repo-prod.prod.sagebase.org/auth/v1";
 	private static final String SESSION_TOKEN_HEADER = "sessionToken";
 	private static final String REQUEST_PROFILE_DATA = "profile_request";
+	private static final String X_FORWARDED_FOR_HEADER = "X-Forwarded-For";
 
 	protected String authEndpoint;
 
@@ -370,16 +372,23 @@ public class SharedClientConnection {
 		} 
 		setHeaders(get, modHeaders, userAgent);
 		// Add the header that sets the content type and the boundary
-		HttpResponse response = clientProvider.execute(get);
-		HttpEntity entity = response.getEntity();
-		int statusCode = response.getStatusLine().getStatusCode();
-		if (!isOKStatusCode(statusCode)) {
-			// we only want to read the input stream in case of an error
-			String responseBody = (null != entity) ? EntityUtils.toString(entity) : null;
-			convertHttpResponseToException(statusCode, responseBody);
+		HttpResponse response = null;
+		try {
+			response = clientProvider.execute(get);
+			HttpEntity entity = response.getEntity();
+			int statusCode = response.getStatusLine().getStatusCode();
+			if (!isOKStatusCode(statusCode)) {
+				// we only want to read the input stream in case of an error
+				String responseBody = (null != entity) ? EntityUtils.toString(entity) : null;
+				convertHttpResponseToException(statusCode, responseBody);
+			}
+			Charset charset = getCharacterSetFromResponse(response);
+			return FileUtils.readStreamAsString(entity.getContent(), charset, /*gunzip*/true);
+		} finally {
+			if (response != null) {
+				EntityUtils.consumeQuietly(response.getEntity());
+			}
 		}
-		Charset charset = getCharacterSetFromResponse(response);
-		return FileUtils.readStreamAsString(entity.getContent(), charset, /*gunzip*/true);
 	}
 
 	public File downloadFromSynapse(String url, String md5,
@@ -679,9 +688,9 @@ public class SharedClientConnection {
 		String requestUrl = null;
 		String responseBody = null;
 		int statusCode = 0;
+		HttpResponse response = null;
 		try {
 			requestUrl = createRequestUrl(endpoint, uri, parameters);
-			HttpResponse response;
 			if (retryRequestIfServiceUnavailable) {
 				response = performRequestWithRetry(requestUrl, requestMethod, requestContent, requestHeaders);
 			} else {
@@ -694,13 +703,16 @@ public class SharedClientConnection {
 			if (errorHandler != null) {
 				errorHandler.handleError(statusCode, responseBody);
 			}
+			return new ResponseBodyAndStatusCode(responseBody, statusCode);
 		} catch (SynapseServerException sse) {
 			throw sse;
 		} catch (Exception e) {
 			throw new SynapseClientException(e);
+		} finally {
+			if (response != null) {
+				EntityUtils.consumeQuietly(response.getEntity());
+			}
 		}
-		
-		return new ResponseBodyAndStatusCode(responseBody, statusCode);
 	}
 	
 	protected JSONObject convertResponseBodyToJSON(
@@ -786,6 +798,16 @@ public class SharedClientConnection {
 			request.setHeader(headerEntry.getKey(), headerEntry.getValue());
 		}
 		request.setHeader(USER_AGENT, userAgent);
+	}
+	
+	public void setUserIp(String ipAddress){
+		ValidateArgument.required(ipAddress, "ipAddress");
+		//verify that it is a proper IP address
+		if( !( InetAddressUtils.isIPv4Address(ipAddress) || InetAddressUtils.isIPv6Address(ipAddress) ) ){
+			throw new IllegalArgumentException("The provided ipAddress:" + ipAddress + " is not a standard IP address.");
+		}
+		defaultGETDELETEHeaders.put(X_FORWARDED_FOR_HEADER, ipAddress);
+		defaultPOSTPUTHeaders.put(X_FORWARDED_FOR_HEADER, ipAddress);
 	}
 }
 

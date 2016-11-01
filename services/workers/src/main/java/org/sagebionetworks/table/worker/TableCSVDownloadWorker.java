@@ -7,7 +7,6 @@ import java.io.Writer;
 import org.apache.commons.lang.BooleanUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.sagebionetworks.common.util.progress.ForwardingProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
@@ -22,7 +21,6 @@ import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
@@ -66,8 +64,8 @@ public class TableCSVDownloadWorker implements MessageDrivenRunner {
 			UserInfo user = userManger.getUserInfo(status.getStartedByUserId());
 			DownloadFromTableRequest request = AsynchJobUtils.extractRequestBody(status, DownloadFromTableRequest.class);
 			// Before we start determine how many rows there are.
-			QueryResultBundle queryResult = tableQueryManger.querySinglePage(progressCallback, user, request.getSql(), request.getSort(), null, null, false, true,
-					true);
+			QueryResultBundle queryResult = tableQueryManger.querySinglePage(progressCallback, user, request.getSql(), request.getSort(), null, null, null, false,
+					true, false, true);
 			long rowCount = queryResult.getQueryCount();
 			// Since each row must first be read from the database then uploaded to S3
 			// The total amount of progress is two times the number of rows.
@@ -87,7 +85,7 @@ public class TableCSVDownloadWorker implements MessageDrivenRunner {
 			// Execute the actual query and stream the results to the file.
 			DownloadFromTableResult result = null;
 			try{
-				result = tableQueryManger.runConsistentQueryAsStream(progressCallback, user, request.getSql(), request.getSort(), stream,
+				result = tableQueryManger.runConsistentQueryAsStream(progressCallback, user, request.getSql(), request.getSort(), request.getSelectedFacets(), stream,
 						includeRowIdAndVersion, writeHeaders);
 			}finally{
 				writer.close();

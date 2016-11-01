@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.FacetType;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.TableConstants;
@@ -80,7 +81,7 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 		if(authorizationManager.isAnonymousUser(user)){
 			throw new UnauthorizedException("You must login to create a ColumnModel");
 		}
-		checkColumnNaming(columnModel);
+		validateColumnModel(columnModel);
 		// Pass it along to the DAO.
 		return columnModelDao.createColumnModel(columnModel);
 	}
@@ -96,7 +97,7 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 		}
 		// first quickly check for naming errors
 		for (ColumnModel columnModel : columnModels) {
-			checkColumnNaming(columnModel);
+			validateColumnModel(columnModel);
 		}
 		// the create all column models
 		List<ColumnModel> results = Lists.newArrayListWithCapacity(columnModels.size());
@@ -107,6 +108,11 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 		return results;
 	}
 
+	private void validateColumnModel(ColumnModel columnModel) {
+		checkColumnNaming(columnModel);
+		validateFacetType(columnModel);
+	}
+	
 	private void checkColumnNaming(ColumnModel columnModel) {
 		// Validate the name
 		if (TableConstants.isReservedColumnName(columnModel.getName())) {
@@ -118,6 +124,36 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 					+ " is a SQL key word and cannot be used as a column name.");
 		}
 	}
+	
+	void validateFacetType(ColumnModel columnModel){
+		//validate the facetType agains its d
+		FacetType facetType = columnModel.getFacetType();
+		ColumnType columnType = columnModel.getColumnType();
+		
+		if(facetType != null){
+			switch(columnType){
+			//integers and strings can be any type of facet
+			case INTEGER:
+			case STRING:
+				break;
+			//booleans can only be faceted by enumeration
+			case BOOLEAN:
+				if(facetType != FacetType.enumeration)
+					throw new IllegalArgumentException("Boolean columns can only be enumeration faceted");
+				break;
+			//doubles and dates can only be range faceted
+			case DOUBLE:
+			case DATE:
+				if(facetType != FacetType.range)
+					throw new IllegalArgumentException("Date columns can only be ranges");
+				break;
+			//files, entities, links, and largetexts can not be faceted
+			default:
+				throw new IllegalArgumentException("The ColumnType:" + columnType + " can not be faceted");
+			}
+		}
+	}
+	
 
 	@Override
 	public ColumnModel getColumnModel(UserInfo user, String columnId) throws DatastoreException, NotFoundException {

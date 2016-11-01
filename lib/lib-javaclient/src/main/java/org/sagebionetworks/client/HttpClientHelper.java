@@ -32,13 +32,18 @@ public class HttpClientHelper {
 		if (null == uri) {
 			throw new IllegalArgumentException("must provide uri");
 		}
+		HttpResponse response = null;
 		try {
-			HttpResponse response = clientProvider.performRequest(endpoint + uri, "GET", null, null);
+			response = clientProvider.performRequest(endpoint + uri, "GET", null, null);
 			int statusCode = response.getStatusLine().getStatusCode();
 			if (statusCode!=HttpStatus.SC_OK) throw new SynapseServerException(statusCode);
 			return EntityUtils.toString(response.getEntity());
 		} catch (IOException e) {
 			throw new SynapseClientException(e);
+		} finally {
+			if (response != null) {
+				EntityUtils.consumeQuietly(response.getEntity());
+			}
 		}
 	}
 	
@@ -51,6 +56,7 @@ public class HttpClientHelper {
 	 * @throws ClientProtocolException
 	 */
 	public String putFileToURL(URL url, File file, String contentType) throws SynapseException {
+		HttpResponse response = null;
 		try {
 			if (url == null)
 				throw new IllegalArgumentException("URL cannot be null");
@@ -62,7 +68,7 @@ public class HttpClientHelper {
 			@SuppressWarnings("deprecation")
 			org.apache.http.entity.FileEntity fe = new org.apache.http.entity.FileEntity(file, contentType);
 			httppost.setEntity(fe);
-			HttpResponse response = clientProvider.execute(httppost);
+			response = clientProvider.execute(httppost);
 			int code = response.getStatusLine().getStatusCode();
 			if (code < 200 || code > 299) {
 				throw new SynapseServerException(code, "Response code: " + code + " " + response.getStatusLine().getReasonPhrase()
@@ -73,6 +79,10 @@ public class HttpClientHelper {
 			throw new SynapseClientException(e);
 		} catch (IOException e) {
 			throw new SynapseClientException(e);
+		} finally {
+			if (response != null) {
+				EntityUtils.consumeQuietly(response.getEntity());
+			}
 		}
 
 	}
@@ -85,6 +95,7 @@ public class HttpClientHelper {
 	 * @throws SynapseException
 	 */
 	public String putBytesToURL(URL url, byte[] content, String contentType) throws SynapseException {
+		HttpResponse response = null;
 		try {
 			if (url == null)
 				throw new IllegalArgumentException("URL cannot be null");
@@ -94,7 +105,7 @@ public class HttpClientHelper {
 			ByteArrayEntity se = new ByteArrayEntity(content);
 			httppost.setHeader("content-type", contentType);
 			httppost.setEntity(se);
-			HttpResponse response = clientProvider.execute(httppost);
+			response = clientProvider.execute(httppost);
 			int code = response.getStatusLine().getStatusCode();
 			if (code < 200 || code > 299) {
 				throw new SynapseServerException(code, "Response code: " + code + " " + response.getStatusLine().getReasonPhrase()
@@ -105,6 +116,10 @@ public class HttpClientHelper {
 			throw new SynapseClientException(e);
 		} catch (IOException e) {
 			throw new SynapseClientException(e);
+		} finally {
+			if (response != null) {
+				EntityUtils.consumeQuietly(response.getEntity());
+			}
 		}
 
 	}
