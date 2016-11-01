@@ -1451,5 +1451,37 @@ public class TableModelUtils {
 		}
 	}
 	
+	/**
+	 * Translate from a PartialRowSet to a SparseChangeSetDto.
+	 * @param versionNumber
+	 * @param partialSet
+	 * @return
+	 */
+	public static SparseChangeSetDto createSparseChangeSetFromPartialRowSet(TableRowChange lastRowChange, PartialRowSet partialSet){
+		Long versionNumber = 0L;
+		String lastEtag = null;
+		if(lastRowChange != null){
+			versionNumber = lastRowChange.getRowVersion();
+			lastEtag = lastRowChange.getEtag();
+		}
+		List<SparseRowDto> sparseRows = new LinkedList<SparseRowDto>();
+		for(PartialRow partialRow: partialSet.getRows()){
+			// ignore partial rows with empty values
+			if(partialRow.getValues() != null && partialRow.getValues().isEmpty()){
+				continue;
+			}
+			SparseRowDto sparseRow = new SparseRowDto();
+			sparseRow.setRowId(partialRow.getRowId());
+			sparseRow.setVersionNumber(versionNumber);
+			sparseRow.setValues(partialRow.getValues());
+			sparseRows.add(sparseRow);
+		}
+		SparseChangeSetDto results = new SparseChangeSetDto();
+		results.setEtag(lastEtag);
+		results.setRows(sparseRows);
+		results.setTableId(partialSet.getTableId());;
+		return results;
+	}
+	
 
 }

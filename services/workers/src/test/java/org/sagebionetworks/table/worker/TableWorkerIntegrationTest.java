@@ -277,10 +277,6 @@ public class TableWorkerIntegrationTest {
 				queryResult.getQueryResults().getEtag());
 		assertEquals("The etag should also match the rereferenceSet.etag", referenceSet.getEtag(), queryResult.getQueryResults().getEtag());
 
-		@SuppressWarnings("unchecked")
-		RowSet expectedRowSet = tableEntityManager.getRowSet(tableId, referenceSet.getRows().get(0).getVersionNumber(),
-				schema);
-		assertEquals(expectedRowSet, queryResult.getQueryResults());
 	}
 	
 	/**
@@ -705,8 +701,7 @@ public class TableWorkerIntegrationTest {
 		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 100L);
 		assertEquals(16, queryResult.getQueryResults().getRows().size());
 
-		RowSet expectedRowSet = tableEntityManager.getRowSet(tableId, referenceSet.getRows().get(0).getVersionNumber(),
-				schema);
+		RowSet expectedRowSet = queryResult.getQueryResults();
 
 		// apply updates to expected and actual
 		List<PartialRow> partialRows = Lists.newArrayList(); 

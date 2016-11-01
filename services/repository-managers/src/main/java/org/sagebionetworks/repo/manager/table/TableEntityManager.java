@@ -106,18 +106,6 @@ public interface TableEntityManager {
 	 * @return
 	 */
 	public List<TableRowChange> listRowSetsKeysForTable(String tableId);
-
-	/**
-	 * Get a specific RowSet.
-	 * 
-	 * @param tableId
-	 * @param rowVersion
-	 * @return
-	 * @throws NotFoundException
-	 * @throws IOException
-	 */
-	public RowSet getRowSet(String tableId, Long rowVersion, List<ColumnModel> columns)
-			throws IOException, NotFoundException;
 	
 	/**
 	 * Get the a SparseChangeSet for a given TableRowChange.

@@ -85,9 +85,11 @@ public class SparseChangeSet {
 			SparseRow sparse = this.addEmptyRow();
 			sparse.setRowId(row.getRowId());
 			sparse.setVersionNumber(row.getVersionNumber());
-			for(ColumnModel cm: this.schema){
-				if(row.getValues().containsKey(cm.getId())){
-					sparse.setCellValue(cm.getId(), row.getValues().get(cm.getId()));
+			if(row.getValues() != null){
+				for(ColumnModel cm: this.schema){
+					if(row.getValues().containsKey(cm.getId())){
+						sparse.setCellValue(cm.getId(), row.getValues().get(cm.getId()));
+					}
 				}
 			}
 		}

@@ -148,23 +148,9 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		 * to the table, row level conflict check is bypassed.
 		 */
 		TableRowChange lastRowChange = tableRowTruthDao.getLastTableRowChange(tableId, TableChangeType.ROW);
-		Long versionNumber = 0L;
-		String lastEtag = null;
-		if(lastRowChange != null){
-			versionNumber = lastRowChange.getRowVersion();
-			lastEtag = lastRowChange.getEtag();
-		}
-		
-		List<SparseRowDto> sparseRows = new LinkedList<SparseRowDto>();
-		for(PartialRow partialRow: partial.getRows()){
-			SparseRowDto sparseRow = new SparseRowDto();
-			sparseRow.setRowId(partialRow.getRowId());
-			sparseRow.setVersionNumber(versionNumber);
-			sparseRow.setValues(partialRow.getValues());
-			sparseRows.add(sparseRow);
-		}
+		SparseChangeSetDto dto = TableModelUtils.createSparseChangeSetFromPartialRowSet(lastRowChange, partial);
 		RowReferenceSet results = new RowReferenceSet();
-		appendRowsAsStream(user, tableId, currentSchema, sparseRows.iterator(), lastEtag, results, progressCallback);
+		appendRowsAsStream(user, tableId, currentSchema, dto.getRows().iterator(), results.getEtag(), results, progressCallback);
 		return results;
 	}
 	
@@ -385,12 +371,6 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	@Override
 	public List<TableRowChange> listRowSetsKeysForTable(String tableId) {
 		return tableRowTruthDao.listRowSetsKeysForTable(tableId);
-	}
-
-	@Override
-	public RowSet getRowSet(String tableId, Long rowVersion, List<ColumnModel> columns) throws IOException,
-			NotFoundException {
-		return tableRowTruthDao.getRowSet(tableId, rowVersion, columns);
 	}
 
 	@Override
@@ -730,11 +710,11 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		if(change.getKeyNew() == null){
 			// Lookup the current schema
 			List<ColumnModel> currentSchema = columnModelDao.getColumnModelsForObject(change.getTableId());
-			// Lookup the old type
+			// fetch the old type.
 			RowSet oldRowSet = tableRowTruthDao.getRowSet(change.getTableId(), change.getRowVersion(), currentSchema);
 			// translate to the new sparse
 			SparseChangeSet sparse = TableModelUtils.createSparseChangeSet(oldRowSet, currentSchema);
-			// upgrade this change using the new sparse changeset.
+			// upgrade this change using the new sparse change set.
 			change = tableRowTruthDao.upgradeToNewChangeSet(change.getTableId(), change.getRowVersion(), sparse.writeToDto());
 		}
 		SparseChangeSetDto dto = tableRowTruthDao.getRowSet(change);

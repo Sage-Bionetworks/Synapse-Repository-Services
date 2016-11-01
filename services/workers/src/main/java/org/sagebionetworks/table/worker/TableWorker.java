@@ -316,7 +316,7 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 		if(!TableChangeType.ROW.equals(change.getChangeType())){
 			throw new IllegalArgumentException("Expected: "+TableChangeType.ROW);
 		}
-		// Get the changeset.
+		// Get the change set.
 		SparseChangeSet sparseChangeSet = tableEntityManager.getSparseChangeSet(change);
 		// match the schema to the change set.
 		indexManager.setIndexSchema(progressCallback, sparseChangeSet.getSchema());

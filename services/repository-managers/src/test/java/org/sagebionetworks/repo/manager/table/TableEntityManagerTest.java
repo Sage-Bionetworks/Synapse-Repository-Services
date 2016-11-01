@@ -51,6 +51,7 @@ import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
@@ -116,6 +117,8 @@ public class TableEntityManagerTest {
 	@Mock
 	ColumnModelManager mockColumModelManager;
 	@Mock
+	ColumnModelDAO mockColumnModelDao;
+	@Mock
 	TableManagerSupport mockTableManagerSupport;
 	@Mock
 	TableIndexManager mockIndexManager;
@@ -162,6 +165,7 @@ public class TableEntityManagerTest {
 		ReflectionTestUtils.setField(manager, "fileHandleDao", mockFileDao);
 		ReflectionTestUtils.setField(manager, "columModelManager", mockColumModelManager);
 		ReflectionTestUtils.setField(manager, "tableManagerSupport", mockTableManagerSupport);
+		ReflectionTestUtils.setField(manager, "columnModelDao", mockColumnModelDao);
 		
 		maxBytesPerRequest = 10000000;
 		manager.setMaxBytesPerRequest(maxBytesPerRequest);
@@ -247,6 +251,7 @@ public class TableEntityManagerTest {
 		columChangedetails = TableModelTestUtils.createDetailsForChanges(changes);
 		
 		when(mockColumModelManager.getColumnModelsForTable(user, tableId)).thenReturn(models);
+		when(mockColumnModelDao.getColumnModelsForObject(tableId)).thenReturn(models);
 		when(mockColumModelManager.getColumnChangeDetails(changes)).thenReturn(columChangedetails);
 		newColumnIds = Lists.newArrayList("111","333");
 		when(mockColumModelManager.calculateNewSchemaIdsAndValidate(tableId, changes)).thenReturn(newColumnIds);
@@ -1162,5 +1167,45 @@ public class TableEntityManagerTest {
 		} catch (IllegalArgumentException e) {
 			assertEquals("Row version number cannot be null", e.getMessage());
 		}
+	}
+	
+	@Test
+	public void testGetSparseChangeSetNewKeyNull() throws NotFoundException, IOException{
+		Long versionNumber = 101L;
+		SparseChangeSetDto dto = sparseChangeSet.writeToDto();
+		TableRowChange change = new TableRowChange();
+		change.setTableId(tableId);
+		change.setRowVersion(versionNumber);
+		change.setKey("oldKey");
+		// when the new key is null the change set needs to be upgraded.
+		change.setKeyNew(null);
+		when(mockTruthDao.getRowSet(tableId, versionNumber, models)).thenReturn(set);
+		when(mockTruthDao.upgradeToNewChangeSet(tableId, versionNumber, dto)).thenReturn(change);
+		when(mockTruthDao.getRowSet(change)).thenReturn(dto);
+		// call under test
+		SparseChangeSet result = manager.getSparseChangeSet(change);
+		assertNotNull(result);
+		// change set should be upgraded.
+		verify(mockTruthDao).upgradeToNewChangeSet(tableId, versionNumber, dto);
+	}
+	
+	@Test
+	public void testGetSparseChangeSetNewKeyExists() throws NotFoundException, IOException{
+		Long versionNumber = 101L;
+		SparseChangeSetDto dto = sparseChangeSet.writeToDto();
+		TableRowChange change = new TableRowChange();
+		change.setTableId(tableId);
+		change.setRowVersion(versionNumber);
+		change.setKey("oldKey");
+		// the new key exists for this case.
+		change.setKeyNew("newKey");
+		when(mockTruthDao.getRowSet(tableId, versionNumber, models)).thenReturn(set);
+		when(mockTruthDao.getRowSet(change)).thenReturn(dto);
+		// call under test
+		SparseChangeSet result = manager.getSparseChangeSet(change);
+		assertNotNull(result);
+		// should not be upgraded since it already has.
+		verify(mockTruthDao, never()).upgradeToNewChangeSet(anyString(), anyLong(), any(SparseChangeSetDto.class));
+		verify(mockColumnModelDao, never()).getColumnIdsForObject(anyString());
 	}
 }

@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.IdRange;
 import org.sagebionetworks.repo.model.table.PartialRow;
+import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.RawRowSet;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
@@ -35,6 +36,7 @@ import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.SparseChangeSetDto;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
+import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.model.SparseRow;
 
@@ -1493,6 +1495,92 @@ public class TableModelUtilsTest {
 		partialRow.setValues(ImmutableMap.of("456", "updated value 2"));
 		Set<Long> columnIds = ImmutableSet.of(123l,456L);
 		TableModelUtils.validatePartialRow(partialRow, columnIds);
+	}
+	
+	@Test
+	public void testCreateSparseChangeSetFromPartialRowSet(){
+		Long versionNumber = 101L;
+		TableRowChange lastRowChange = new TableRowChange();
+		lastRowChange.setRowVersion(versionNumber);
+		lastRowChange.setEtag("etag");
+		PartialRowSet partialSet = new PartialRowSet();
+		partialSet.setTableId("syn123");
+		
+		PartialRow one = new PartialRow();
+		one.setRowId(1L);
+		one.setValues(new HashMap<String, String>());
+		one.getValues().put("11", "one");
+		
+		PartialRow two = new PartialRow();
+		two.setRowId(2L);
+		two.setValues(new HashMap<String, String>());
+		two.getValues().put("22", "two");
+		
+		PartialRow emptyValues = new PartialRow();
+		emptyValues.setRowId(3L);
+		emptyValues.setValues(new HashMap<String, String>());
+		
+		PartialRow deleteValue = new PartialRow();
+		deleteValue.setRowId(4L);
+		deleteValue.setValues(null);
+		
+		partialSet.setRows(Lists.newArrayList(one, two, emptyValues, deleteValue));
+		
+		// call under test
+		SparseChangeSetDto results = TableModelUtils.createSparseChangeSetFromPartialRowSet(lastRowChange, partialSet);
+		assertNotNull(results);
+		assertEquals(partialSet.getTableId(), results.getTableId());
+		assertEquals(lastRowChange.getEtag(), results.getEtag());
+		// The empty value row should not be included in the results.
+		assertEquals(3, results.getRows().size());
+		SparseRowDto sparseOne = results.getRows().get(0);
+		SparseRowDto sparseTwo = results.getRows().get(1);
+		SparseRowDto sparseDelete = results.getRows().get(2);
+		
+		// one
+		assertEquals(one.getRowId(), sparseOne.getRowId());
+		assertEquals(versionNumber, sparseOne.getVersionNumber());
+		assertEquals(one.getValues(), sparseOne.getValues());
+		// two
+		assertEquals(two.getRowId(), sparseTwo.getRowId());
+		assertEquals(versionNumber, sparseTwo.getVersionNumber());
+		assertEquals(two.getValues(), sparseTwo.getValues());
+		// delete
+		assertEquals(deleteValue.getRowId(), sparseDelete.getRowId());
+		assertEquals(versionNumber, sparseDelete.getVersionNumber());
+		assertNull(sparseDelete.getValues());
+	}
+	
+	@Test
+	public void testCreateSparseChangeSetFromPartialRowSetNullLastChange(){
+		// the last change can be null
+		TableRowChange lastRowChange =  null;
+		
+		PartialRowSet partialSet = new PartialRowSet();
+		partialSet.setTableId("syn123");
+		
+		PartialRow one = new PartialRow();
+		one.setRowId(1L);
+		one.setValues(new HashMap<String, String>());
+		one.getValues().put("11", "one");
+		
+		partialSet.setRows(Lists.newArrayList(one));
+		
+		// call under test
+		SparseChangeSetDto results = TableModelUtils.createSparseChangeSetFromPartialRowSet(lastRowChange, partialSet);
+		assertNotNull(results);
+		assertEquals(partialSet.getTableId(), results.getTableId());
+		// etag is null when the last change is null
+		assertEquals(null, results.getEtag());
+		// The empty value row should not be included in the results.
+		assertEquals(1, results.getRows().size());
+		SparseRowDto sparseOne = results.getRows().get(0);
+		
+		// one
+		assertEquals(one.getRowId(), sparseOne.getRowId());
+		assertEquals(new Long(0), sparseOne.getVersionNumber());
+		assertEquals(one.getValues(), sparseOne.getValues());
+
 	}
 	
 }

@@ -2,18 +2,18 @@ package org.sagebionetworks.table.worker;
 
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyListOf;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.stub;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -145,7 +145,6 @@ public class TableWorkerTest {
 		rowSet1.setTableId(tableId);
 		rowSet1.setHeaders(TableModelUtils.getSelectColumns(currentSchema));
 		rowSet1.setRows(Collections.singletonList(TableModelTestUtils.createRow(0L, 0L, "2")));
-		when(mockTableEntityManager.getRowSet(eq(tableId), eq(0L), anyListOf(ColumnModel.class))).thenReturn(rowSet1);
 		
 		sparseRowset1 = TableModelUtils.createSparseChangeSet(rowSet1, currentSchema);
 		
@@ -153,7 +152,6 @@ public class TableWorkerTest {
 		rowSet2.setTableId(tableId);
 		rowSet2.setHeaders(TableModelUtils.getSelectColumns(currentSchema));
 		rowSet2.setRows(Collections.singletonList(TableModelTestUtils.createRow(0L, 1L, "3")));
-		when(mockTableEntityManager.getRowSet(eq(tableId), eq(1L), anyListOf(ColumnModel.class))).thenReturn(rowSet2);
 		
 		sparseRowset2 = TableModelUtils.createSparseChangeSet(rowSet2, currentSchema);
 		
@@ -162,6 +160,9 @@ public class TableWorkerTest {
 		when(mockTableManagerSupport.isIndexWorkRequired(tableId)).thenReturn(true);
 		
 		when(mockTableManagerSupport.getColumnModel(anyListOf(String.class), anyBoolean())).thenReturn(currentSchema);
+		
+		when(mockTableEntityManager.getSparseChangeSet(trc1)).thenReturn(sparseRowset1);
+		when(mockTableEntityManager.getSparseChangeSet(trc2)).thenReturn(sparseRowset2);
 	}
 	
 	
@@ -262,7 +263,6 @@ public class TableWorkerTest {
 		// call under test
 		worker.run(mockProgressCallback, two);
 		
-		verify(mockTableEntityManager, never()).getRowSet(eq(tableId), eq(0L), anyListOf(ColumnModel.class));
 		verify(mockTableIndexManager).applyChangeSetToIndex(sparseRowset2, 1L);
 		
 		// Progress should be made for each change even if there is no work.
@@ -295,7 +295,7 @@ public class TableWorkerTest {
 		rowSet.setTableId(tableId);
 		rowSet.setHeaders(TableModelUtils.getSelectColumns(currentSchema));
 		SparseChangeSet sparsRowSet = TableModelUtils.createSparseChangeSet(rowSet, currentSchema);
-		when(mockTableEntityManager.getRowSet(eq(tableId), eq(3L), anyListOf(ColumnModel.class))).thenReturn(rowSet);
+		when(mockTableEntityManager.getSparseChangeSet(trc)).thenReturn(sparsRowSet);
 		two.setObjectType(ObjectType.TABLE);
 		two.setChangeType(ChangeType.UPDATE);
 		two.setObjectEtag(resetToken);
@@ -508,6 +508,8 @@ public class TableWorkerTest {
 		trc.setRowCount(12L);
 		trc.setIds(currentColumnIds);
 		trc.setChangeType(TableChangeType.ROW);
+		
+		when(mockTableEntityManager.getSparseChangeSet(trc)).thenReturn(sparseRowset1);
 		
 		// call under test
 		worker.applyRowChange(mockProgressCallback, mockTableIndexManager, tableId, trc);
