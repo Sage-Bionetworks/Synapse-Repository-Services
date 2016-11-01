@@ -801,29 +801,21 @@
 		<guiceVersion>3.0-rc2</guiceVersion>
 		<guavaVersion>10.0.1</guavaVersion>
 		<reflectionsVersion>0.9.9-RC1</reflectionsVersion>
-		<org.springframework.version>4.0.2.RELEASE
-		</org.springframework.version>
+		<org.springframework.version>4.0.2.RELEASE</org.springframework.version>
 		<jackson.version>1.8.1</jackson.version>
 		<xstream.version>1.3.1</xstream.version>
-		<maven.build.timestamp.format>yyyy-MM-dd'T'HH:mm:ssZ
-		</maven.build.timestamp.format>
-		<datanucleus.version>1.1.5</datanucleus.version>
-		<org.datanucleus.datanucleus-enhancer.version>1.1.4
-		</org.datanucleus.datanucleus-enhancer.version>
+		<maven.build.timestamp.format>yyyy-MM-dd'T'HH:mm:ssZ</maven.build.timestamp.format>
 		<javax.transaction.jta.version>1.1</javax.transaction.jta.version>
 		<javax.jdo.jdo2-api.version>2.3-ec</javax.jdo.jdo2-api.version>
-		<mysql.mysql-connector-java.version>5.1.13
-		</mysql.mysql-connector-java.version>
+		<mysql.mysql-connector-java.version>5.1.13</mysql.mysql-connector-java.version>
 		<org.aspectj.aspectjlib.version>1.6.2</org.aspectj.aspectjlib.version>
 		<org.aspectj.version>1.6.10</org.aspectj.version>
-		<org.apache.commons.commons-dbcp.version>1.4
-		</org.apache.commons.commons-dbcp.version>
+		<org.apache.commons.commons-dbcp.version>1.4</org.apache.commons.commons-dbcp.version>
 		<schema-to-pojo.version>0.3.11</schema-to-pojo.version>
 		<org.json.version>20090211</org.json.version>
-		<com.amazonaws.version>1.9.24</com.amazonaws.version>
+		<com.amazonaws.version>1.11.45</com.amazonaws.version>
 		<findbugs-maven-plugin.version>2.5.2</findbugs-maven-plugin.version>
-		<org.apache.httpcomponents.version>4.2.5
-		</org.apache.httpcomponents.version>
+		<org.apache.httpcomponents.version>4.5.2</org.apache.httpcomponents.version>
 		<com.sun.tools.version>1.7</com.sun.tools.version>
 		<org.apache.pivot.version>2.0.1</org.apache.pivot.version>
 		<log4j.version>2.6.1</log4j.version>

@@ -12,6 +12,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.json.JSONObject;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -25,8 +26,6 @@ import org.sagebionetworks.repo.model.message.multipart.MessageBody;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
-
-import com.amazonaws.util.json.JSONObject;
 
 public class CloudMailInManagerImplTest {
 	private CloudMailInManagerImpl cloudMailInManager = null;
