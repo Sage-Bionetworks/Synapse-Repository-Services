@@ -1820,7 +1820,7 @@ public class TableWorkerIntegrationTest {
 		rowSet.setRows(TableModelTestUtils.createRows(schema, 6));
 		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 		rowSet.setTableId(tableId);
-		referenceSet = tableEntityManager.appendRows(adminUserInfo, tableId, schema,
+		referenceSet = tableEntityManager.appendRows(adminUserInfo, tableId,
 				rowSet, mockPprogressCallback);
 		simpleSql = "select * from " + tableId;
 		waitForConsistentQuery(adminUserInfo, simpleSql, null, 7L);
