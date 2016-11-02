@@ -238,6 +238,6 @@ public interface TableEntityManager {
 	 * @param id
 	 * @return
 	 */
-	public List<String> getTableSchema(UserInfo user, String id);
+	public List<String> getTableSchema(String id);
 
 }

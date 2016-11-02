@@ -1208,4 +1208,11 @@ public class TableEntityManagerTest {
 		verify(mockTruthDao, never()).upgradeToNewChangeSet(anyString(), anyLong(), any(SparseChangeSetDto.class));
 		verify(mockColumnModelDao, never()).getColumnIdsForObject(anyString());
 	}
+	
+	public void testGetTableSchema(){
+		when(mockColumModelManager.getColumnIdForTable(tableId)).thenReturn(newColumnIds);
+		List<String> retrievedSchema = manager.getTableSchema(tableId);
+		assertEquals(newColumnIds, retrievedSchema);
+
+	}
 }
