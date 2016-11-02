@@ -25,6 +25,7 @@ public class MigrationWorker implements MessageDrivenRunner {
 	private AsynchJobStatusManager asynchJobStatusManager;
 	@Autowired
 	private UserManager userManager;
+	// For easier testing
 	@Autowired
 	private AsyncMigrationRequestProcessor requestProcessor;
 
@@ -32,7 +33,6 @@ public class MigrationWorker implements MessageDrivenRunner {
 	public void run(ProgressCallback<Void> progressCallback, Message message)
 			throws RecoverableMessageException, Exception {
 		
-		// First read the body
 		try {
 			processStatus(progressCallback, message);
 		} catch (Throwable e) {
@@ -42,10 +42,6 @@ public class MigrationWorker implements MessageDrivenRunner {
 	
 	public void processStatus(final ProgressCallback<Void> progressCallback, final Message message) throws Throwable {
 		final AsynchronousJobStatus status = asynchJobStatusManager.lookupJobStatus(message.getBody());
-		this.dispatchProcessStatus(progressCallback, status);
-	}
-	
-	private void dispatchProcessStatus(final ProgressCallback<Void> progressCallback, final AsynchronousJobStatus status) throws Throwable {
 		final UserInfo user = userManager.getUserInfo(status.getStartedByUserId());
 		final AsyncMigrationRequest req = AsynchJobUtils.extractRequestBody(status, AsyncMigrationRequest.class);
 		if (req instanceof AsyncMigrationTypeCountRequest) {
@@ -58,5 +54,5 @@ public class MigrationWorker implements MessageDrivenRunner {
 			throw new IllegalArgumentException("Unrecognized AsyncMigrationRequest");
 		}
 	}
-
+	
 }

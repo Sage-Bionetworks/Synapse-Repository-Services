@@ -1,7 +1,9 @@
 package org.sagebionetworks.migration.worker;
 
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
 
+import org.sagebionetworks.common.util.progress.AutoProgressingCallable;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
@@ -19,12 +21,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 public class AsyncMigrationRequestProcessorImpl implements AsyncMigrationRequestProcessor {
 
+	public static final long AUTO_PROGRESS_FREQUENCY_MS = 5*1000; // 5 seconds
+
 	@Autowired
 	private AsynchJobStatusManager asynchJobStatusManager;
 	@Autowired
 	private MigrationManager migrationManager;
 	@Autowired
-	private MigrationManagerSupport migrationManagerSupport;
+	ExecutorService migrationExecutorService;
+
 
 	@Override
 	public void processAsyncMigrationTypeCountRequest(
@@ -34,7 +39,7 @@ public class AsyncMigrationRequestProcessorImpl implements AsyncMigrationRequest
 		final String t = mtcReq.getType();
 		final MigrationType mt = MigrationType.valueOf(t);
 		try {
-			migrationManagerSupport.callWithAutoProgress(progressCallback, new Callable<Void>() {
+			callWithAutoProgress(progressCallback, new Callable<Void>() {
 				@Override
 				public Void call() throws Exception {
 					MigrationTypeCount mtc = migrationManager.getMigrationTypeCount(user, mt);
@@ -64,7 +69,7 @@ public class AsyncMigrationRequestProcessorImpl implements AsyncMigrationRequest
 		final long minId = mrcReq.getMinId();
 		final long maxId = mrcReq.getMaxId();
 		try {
-			migrationManagerSupport.callWithAutoProgress(progressCallback, new Callable<Void>() {
+			callWithAutoProgress(progressCallback, new Callable<Void>() {
 				@Override
 				public Void call() throws Exception {
 					MigrationRangeChecksum mrc = migrationManager.getChecksumForIdRange(user, mt, salt, minId, maxId);
@@ -81,5 +86,13 @@ public class AsyncMigrationRequestProcessorImpl implements AsyncMigrationRequest
 		}
 		
 	}
+
+	private <R> R callWithAutoProgress(ProgressCallback<Void> callback, Callable<R> callable) throws Exception {
+		AutoProgressingCallable<R> auto = new AutoProgressingCallable<R>(
+				migrationExecutorService, callable, AUTO_PROGRESS_FREQUENCY_MS);
+		return auto.call(callback);
+	}
+
+
 
 }
