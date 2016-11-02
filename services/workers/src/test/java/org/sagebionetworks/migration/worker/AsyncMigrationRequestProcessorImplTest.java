@@ -20,8 +20,11 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.migration.MigrationManager;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationRangeChecksumRequest;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationRangeChecksumResult;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountResult;
+import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -85,6 +88,50 @@ public class AsyncMigrationRequestProcessorImplTest {
 		when(mockMigrationManager.getMigrationTypeCount(eq(userInfo), eq(MigrationType.valueOf(mtcr.getType())))).thenThrow(expectedException);
 		
 		reqProcessor.processAsyncMigrationTypeCountRequest(mockProgressCallback, userInfo, mtcr, jobId);
+		
+		verify(mockAsynchJobStatusManager).setJobFailed(jobId, eq(expectedException));
+		
+	}
+
+	@Test
+	public void testProcessAsyncMigrationRangeChecksumRequestOK() throws Throwable {
+		String jobId = "1";
+		UserInfo userInfo = new UserInfo(true);
+		userInfo.setId(100L);
+		AsyncMigrationRangeChecksumRequest mtcr = new AsyncMigrationRangeChecksumRequest();
+		mtcr.setType(MigrationType.ACCESS_APPROVAL.name());
+		mtcr.setMinId(0L);
+		mtcr.setMaxId(100L);
+		mtcr.setSalt("abcd");
+		MigrationRangeChecksum expectedChecksum = new MigrationRangeChecksum();
+		expectedChecksum.setChecksum("checksum");
+		expectedChecksum.setMinid(0L);
+		expectedChecksum.setMaxid(100L);
+		expectedChecksum.setType(MigrationType.ACCESS_APPROVAL);
+		when(mockMigrationManager.getChecksumForIdRange(userInfo, MigrationType.ACCESS_APPROVAL, "abcd", 0L, 100L)).thenReturn(expectedChecksum);
+		AsyncMigrationRangeChecksumResult expectedAsyncRes = new AsyncMigrationRangeChecksumResult();
+		expectedAsyncRes.setChecksum(expectedChecksum);
+		
+		reqProcessor.processAsyncMigrationRangeChecksumRequest(mockProgressCallback, userInfo, mtcr, jobId);
+		
+		verify(mockAsynchJobStatusManager).setComplete(jobId, expectedAsyncRes);
+		
+	}
+
+	@Test(expected=IllegalArgumentException.class)
+	public void testProcessAsyncMigrationRangeChecksumRequestNotOK() throws Throwable {
+		String jobId = "1";
+		UserInfo userInfo = new UserInfo(true);
+		userInfo.setId(100L);
+		AsyncMigrationRangeChecksumRequest mtcr = new AsyncMigrationRangeChecksumRequest();
+		mtcr.setType(MigrationType.ACCESS_APPROVAL.name());
+		mtcr.setMinId(0L);
+		mtcr.setMaxId(100L);
+		mtcr.setSalt("abcd");
+		Exception expectedException = new IllegalArgumentException("SomeException");
+		when(mockMigrationManager.getChecksumForIdRange(userInfo, MigrationType.ACCESS_APPROVAL, "abcd", 0L, 100L)).thenThrow(expectedException);
+	
+		reqProcessor.processAsyncMigrationRangeChecksumRequest(mockProgressCallback, userInfo, mtcr, jobId);
 		
 		verify(mockAsynchJobStatusManager).setJobFailed(jobId, eq(expectedException));
 		
