@@ -18,7 +18,6 @@
 		<module>id-generator</module>
 		<module>lib-auto-generated</module>
 		<module>lib-shared-models</module>
-		<module>lib-concepts</module>
 		<module>communicationUtilities</module>
 		<module>securityUtilities</module>
 		<module>models</module>

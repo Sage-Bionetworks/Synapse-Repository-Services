@@ -41,9 +41,6 @@
 	<bean id="administrationService"
 		class="org.sagebionetworks.repo.web.service.AdministrationServiceImpl" />
 
-	<!-- The Concept Service -->
-	<bean id="conceptService" class="org.sagebionetworks.repo.web.service.ConceptServiceImpl" />
-
 	<!-- The Entity Service -->
 	<bean id="entityService" class="org.sagebionetworks.repo.web.service.EntityServiceImpl" />
 

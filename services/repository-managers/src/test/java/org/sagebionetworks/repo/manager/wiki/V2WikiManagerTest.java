@@ -179,8 +179,6 @@ public class V2WikiManagerTest {
 		verify(mockWikiDao, times(1)).updateWikiPage(page,new HashMap<String, FileHandle>(), "123", ObjectType.ENTITY, newIds);
 		// The lock must be acquired
 		verify(mockWikiDao, times(1)).lockForUpdate("000");
-		// Should have attempted to delete old versions
-		verify(mockWikiDao, times(1)).deleteOldWikiVersions("000", V2WikiManagerImpl.NUM_OLD_WIKI_VERSIONS_TO_KEEP);
 	}
 	
 	@Test (expected=ConflictingUpdateException.class)

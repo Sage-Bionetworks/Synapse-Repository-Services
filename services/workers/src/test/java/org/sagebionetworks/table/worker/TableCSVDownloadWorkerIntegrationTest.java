@@ -312,7 +312,7 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		long start = System.currentTimeMillis();
 		while(true){
 			try {
-				return tableQueryManger.querySinglePage(mockProgressCallback, adminUserInfo, sql, null, 0L, 100L, true, false, true).getQueryResult().getQueryResults();
+				return tableQueryManger.querySinglePage(mockProgressCallback, adminUserInfo, sql, null, null, 0L, 100L, true, false, false, true).getQueryResult().getQueryResults();
 			}  catch (LockUnavilableException e) {
 				System.out.println("Waiting for table lock: "+e.getLocalizedMessage());
 			} catch (TableUnavailableException e) {

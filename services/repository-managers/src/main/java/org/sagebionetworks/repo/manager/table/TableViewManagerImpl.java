@@ -100,5 +100,9 @@ public class TableViewManagerImpl implements TableViewManager {
 		tableManagerSupport.setTableToProcessingAndTriggerUpdate(viewId);
 		return newSchema;
 	}
-
+	
+	@Override
+	public List<String> getTableSchema(String tableId){
+		return columModelManager.getColumnIdForTable(tableId);
+	}
 }

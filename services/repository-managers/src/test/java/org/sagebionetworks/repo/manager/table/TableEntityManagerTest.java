@@ -1090,4 +1090,11 @@ public class TableEntityManagerTest {
 		verify(mockTruthDao).getSchemaChangeForVersion(tableId, versionNumber);
 		verify(mockColumModelManager).getColumnChangeDetails(schemaChangeRequest.getChanges());
 	}
+	
+	@Test
+	public void testGetTableSchema(){
+		when(mockColumModelManager.getColumnIdForTable(tableId)).thenReturn(newColumnIds);
+		List<String> retrievedSchema = manager.getTableSchema(tableId);
+		assertEquals(newColumnIds, retrievedSchema);
+	}
 }

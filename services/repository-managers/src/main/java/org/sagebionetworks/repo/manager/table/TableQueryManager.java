@@ -7,6 +7,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
+import org.sagebionetworks.repo.model.table.FacetColumnRequest;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
 import org.sagebionetworks.repo.model.table.QueryNextPageToken;
 import org.sagebionetworks.repo.model.table.QueryResult;
@@ -29,10 +30,11 @@ public interface TableQueryManager {
 	 * Execute a single page of a table query.
 	 * The query results of this call will never exceed the
 	 * maximum number of rows allowed. 
-	 * 
 	 * @param user
 	 * @param query
+	 * @param selectedFacets
 	 * @param isConsistent
+	 * 
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
@@ -41,8 +43,8 @@ public interface TableQueryManager {
 	 * @throws ParseException 
 	 * @throws TableLockUnavailableException 
 	 */
-	public QueryResultBundle querySinglePage(ProgressCallback<Void> progressCallback, UserInfo user, String query, List<SortItem> sortList, Long offset, Long limit, boolean runQuery,
-			boolean runCount, boolean isConsistent) throws DatastoreException, NotFoundException, TableUnavailableException,
+	public QueryResultBundle querySinglePage(ProgressCallback<Void> progressCallback, UserInfo user, String query, List<SortItem> sortList, List<FacetColumnRequest> selectedFacets, Long offset, Long limit,
+			boolean runQuery, boolean runCount, boolean returnFacets, boolean isConsistent) throws DatastoreException, NotFoundException, TableUnavailableException,
 			TableFailedException, ParseException, LockUnavilableException;
 
 	/**
@@ -94,8 +96,8 @@ public interface TableQueryManager {
 	 * @throws TableFailedException
 	 * @throws TableLockUnavailableException 
 	 */
-	DownloadFromTableResult runConsistentQueryAsStream(ProgressCallback<Void> progressCallback, UserInfo user, String sql, List<SortItem> list, CSVWriterStream writer,
-			boolean includeRowIdAndVersion, boolean writeHeader) throws TableUnavailableException, NotFoundException, TableFailedException, LockUnavilableException;
+	DownloadFromTableResult runConsistentQueryAsStream(ProgressCallback<Void> progressCallback, UserInfo user, String sql, List<SortItem> list, List<FacetColumnRequest> selectedFacets
+			,CSVWriterStream writer, boolean includeRowIdAndVersion, boolean writeHeader) throws TableUnavailableException, NotFoundException, TableFailedException, LockUnavilableException;
 
 
 	/**
