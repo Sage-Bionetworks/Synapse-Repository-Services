@@ -22,7 +22,6 @@
 	<import resource="classpath:table-cluster-spb.xml" />
 	<import resource="classpath:log-sweeper.spb.xml" />
 	<import resource="classpath:id-generator.spb.xml" />
-	<import resource="classpath:concept-dao-beans.spb.xml" />
 
 	<!-- non worker triggers -->
 	<import resource="classpath:managers-topic-publisher-triggers-import.xml" />
@@ -55,6 +54,7 @@
     <import resource="classpath:table-view-worker-sqs-spb.xml"/>
     <import resource="classpath:table-update-transaction-worker-sqs-spb.xml"/>
     <import resource="classpath:table-entity-replication-worker-spb.xml"/>
+    <import resource="classpath:migration-sqs-spb.xml" />
 
 	<bean id="mainScheduler"
 			class="org.springframework.scheduling.quartz.SchedulerFactoryBean"
@@ -90,6 +90,7 @@
 				<ref bean="fileBulkDownloadMessageReveiverTrigger"/>
 				<ref bean="threadStatsWorkerTrigger"/>
 				<ref bean="broadcastMessageQueueMessageReveiverTrigger"/>
+				<ref bean="migrationMessageReceiverTrigger"/>
 				<!-- others -->
 				<ref bean="changeSentMessageSynchTrigger" />
 				<ref bean="stackConfigurationReloadTrigger" />

@@ -29,6 +29,7 @@
 	<bean name="stackConfiguration.asyncQueueName[PROJECT_STATS_V2]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean name="stackConfiguration.asyncQueueName[TABLE_UPDATE_TRANSACTION]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean name="stackConfiguration.asyncQueueName[THREAD_STATS]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	<bean name="stackConfiguration.asyncQueueName[MIGRATION]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	
 	<bean name="stackConfiguration.workerQueueName[ProjectStatsWorker]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean name="stackConfiguration.workerQueueName[SyncFolderWorker]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />

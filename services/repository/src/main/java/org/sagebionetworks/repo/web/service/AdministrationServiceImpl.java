@@ -20,7 +20,6 @@ import org.sagebionetworks.repo.manager.backup.daemon.BackupDaemonLauncher;
 import org.sagebionetworks.repo.manager.doi.DoiAdminManager;
 import org.sagebionetworks.repo.manager.message.MessageSyndication;
 import org.sagebionetworks.repo.manager.message.RepositoryMessagePublisher;
-import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -36,7 +35,6 @@ import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
-import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOSessionToken;
@@ -68,10 +66,6 @@ import org.springframework.transaction.support.TransactionSynchronization;
 public class AdministrationServiceImpl implements AdministrationService  {
 
 	static private Logger log = LogManager.getLogger(AdministrationServiceImpl.class);
-
-	@Autowired
-	private DBOBasicDao basicDao;
-	
 	@Autowired
 	private BackupDaemonLauncher backupDaemonLauncher;	
 	
