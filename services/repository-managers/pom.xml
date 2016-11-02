@@ -183,7 +183,7 @@
 		<dependency>
 			<groupId>io.jsonwebtoken</groupId>
 			<artifactId>jjwt</artifactId>
-			<version>0.6.0</version>
+			<version>0.7.0</version>
 		</dependency>
 
 		<!-- jsonwebtoken seems to need this JSON library -->
