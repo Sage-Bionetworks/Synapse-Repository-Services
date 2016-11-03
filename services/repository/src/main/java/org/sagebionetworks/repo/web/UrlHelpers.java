@@ -477,11 +477,6 @@ public class UrlHelpers {
 	public static final String DAEMON 						= ADMIN+"/daemon";
 	public static final String DAEMON_ID					= "/{daemonId}";
 	public static final String ENTITY_DAEMON_ID				= DAEMON+DAEMON_ID;
-	
-	public static final String CONCEPT	= "/concept";
-	public static final String CONCEPT_ID	= CONCEPT+ID;
-	public static final String CHILDERN_TRANSITIVE = "/childrenTransitive";
-	public static final String CONCEPT_ID_CHILDERN_TRANSITIVE	= CONCEPT_ID+CHILDERN_TRANSITIVE;
 
 	/**
 	 * Storage usage summary for the current user.

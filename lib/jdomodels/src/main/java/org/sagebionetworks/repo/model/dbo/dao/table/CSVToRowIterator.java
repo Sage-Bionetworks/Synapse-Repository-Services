@@ -1,19 +1,17 @@
 package org.sagebionetworks.repo.model.dbo.dao.table;
 
 import java.io.IOException;
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.repo.model.table.SparseRowDto;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.springframework.util.CollectionUtils;
-
-import com.google.common.collect.Lists;
 
 import au.com.bytecode.opencsv.CSVReader;
 
@@ -23,7 +21,7 @@ import au.com.bytecode.opencsv.CSVReader;
  * @author jmhill
  * 
  */
-public class CSVToRowIterator implements Iterator<Row> {
+public class CSVToRowIterator implements Iterator<SparseRowDto> {
 
 	private final CSVReader reader;
 	private final Map<Long, Integer> columnIdToCsvColumnIndexMap;
@@ -76,10 +74,10 @@ public class CSVToRowIterator implements Iterator<Row> {
 	}
 
 	@Override
-	public Row next() {
+	public SparseRowDto next() {
 		// Convert the row.
-		Row row = new Row();
-		ArrayList<String> values = Lists.<String> newArrayListWithCapacity(resultSchema.size());
+		SparseRowDto row = new SparseRowDto();
+		Map<String, String> values = new HashMap<>(resultSchema.size());
 		boolean anyValues = false; // no values at all in a row denotes a deletion
 		for (int i = 0; i < resultSchema.size(); i++) {
 			Long columnId = Long.parseLong(resultSchema.get(i).getId());
@@ -91,7 +89,8 @@ public class CSVToRowIterator implements Iterator<Row> {
 					value = lastRow[csvColumnIndex];
 				}
 			}
-			values.add(value);
+			values.put(columnId.toString(), value);
+
 		}
 		if (anyValues) {
 			row.setValues(values);

@@ -1,0 +1,26 @@
+{
+	"description": "Includes the minimum and maximum values of a range facet column and selected ranges applied to the filter.",
+	"implements": [
+		{
+		"$ref": "org.sagebionetworks.repo.model.table.FacetColumnResult"
+		}
+	],
+	"properties": {
+		"columnMin": {
+			"type": "string",
+			"description": "the smallest value in the column"
+		},
+		"columnMax": {
+			"type": "string",
+			"description": "the largest value in the column"
+		},
+		"selectedMin": {
+			"type": "string",
+			"description": "the lower bound of the selected range"
+		},
+		"selectedMax": {
+			"type": "string",
+			"description": "the upper bound of the selected range"
+		}
+	}
+}

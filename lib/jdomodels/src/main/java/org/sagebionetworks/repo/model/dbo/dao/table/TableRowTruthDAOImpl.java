@@ -1,6 +1,15 @@
 package org.sagebionetworks.repo.model.dbo.dao.table;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ID_SEQUENCE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ID_SEQUENCE_TABLE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_KEY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_KEY_NEW;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_TABLE_ETAG;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_TABLE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_VERSION;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ROW_CHANGE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TABLE_ID_SEQUENCE;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -9,19 +18,11 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.sagebionetworks.repo.model.ConflictingUpdateException;
-import org.sagebionetworks.repo.model.dao.table.RowAccessor;
-import org.sagebionetworks.repo.model.dao.table.RowHandler;
-import org.sagebionetworks.repo.model.dao.table.RowSetAccessor;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.table.ColumnModelUtils;
@@ -31,21 +32,15 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.IdRange;
-import org.sagebionetworks.repo.model.table.PartialRow;
 import org.sagebionetworks.repo.model.table.RawRowSet;
 import org.sagebionetworks.repo.model.table.Row;
-import org.sagebionetworks.repo.model.table.RowReference;
-import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SparseChangeSetDto;
-import org.sagebionetworks.repo.model.table.SparseRowDto;
 import org.sagebionetworks.repo.model.table.TableChangeType;
 import org.sagebionetworks.repo.model.table.TableRowChange;
-import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
-import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -55,9 +50,6 @@ import org.springframework.jdbc.core.RowMapper;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.S3Object;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 
 /**
  * Basic S3 & RDS implementation of the TableRowTruthDAO.
@@ -67,6 +59,8 @@ import com.google.common.collect.Sets;
  */
 public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	
+	private static final String SQL_UPDATE_ROW_CHANGE_WITH_NEW_KEY = "UPDATE "+TABLE_ROW_CHANGE+" SET "+COL_TABLE_ROW_KEY_NEW+" = ? WHERE "+COL_TABLE_ROW_TABLE_ID+" = ? AND "+COL_TABLE_ROW_VERSION+" =?";
+
 	public static final String SCAN_ROWS_TYPE_ERROR = "Can only scan over table changes of type: "+TableChangeType.ROW;
 
 	private static Logger log = LogManager.getLogger(TableRowTruthDAOImpl.class);
@@ -208,15 +202,9 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	
 	@WriteTransactionReadCommitted
 	@Override
-	public RowReferenceSet appendRowSetToTable(String userId, String tableId, List<ColumnModel> columns, final SparseChangeSetDto delta)
+	public String appendRowSetToTable(String userId, String tableId, String etag, long versionNumber, List<ColumnModel> columns, final SparseChangeSetDto delta)
 			throws IOException {
-		// Now set the row version numbers and ID.
-		int coutToReserver = TableModelUtils.countEmptyOrInvalidRowIds(delta);
-		// Reserver IDs for the missing
-		IdRange range = reserveIdsInRange(tableId, coutToReserver);
-		// Now assign the rowIds and set the version number
-		TableModelUtils.assignRowIdsAndVersionNumbers(delta, range);
-		// We are ready to convert the file to a CSV and save it to S3.
+		// Write the delta to S3
 		String key = saveToS3(new WriterCallback() {
 			@Override
 			public void write(OutputStream out) throws IOException {
@@ -226,8 +214,8 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		// record the change
 		DBOTableRowChange changeDBO = new DBOTableRowChange();
 		changeDBO.setTableId(KeyFactory.stringToKey(tableId));
-		changeDBO.setRowVersion(range.getVersionNumber());
-		changeDBO.setEtag(range.getEtag());
+		changeDBO.setRowVersion(versionNumber);
+		changeDBO.setEtag(etag);
 		changeDBO.setCreatedBy(Long.parseLong(userId));
 		changeDBO.setCreatedOn(System.currentTimeMillis());
 		changeDBO.setKeyNew(key);
@@ -235,22 +223,23 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		changeDBO.setRowCount(new Long(delta.getRows().size()));
 		changeDBO.setChangeType(TableChangeType.ROW.name());
 		basicDao.createNew(changeDBO);
-
-		// Prepare the results
-		RowReferenceSet results = new RowReferenceSet();
-		results.setHeaders(TableModelUtils.getSelectColumns(columns));
-		results.setTableId(tableId);
-		results.setEtag(changeDBO.getEtag());
-		List<RowReference> refs = new LinkedList<RowReference>();
-		// Build up the row references
-		for (SparseRowDto row : delta.getRows()) {
-			RowReference ref = new RowReference();
-			ref.setRowId(row.getRowId());
-			ref.setVersionNumber(range.getVersionNumber());
-			refs.add(ref);
-		}
-		results.setRows(refs);
-		return results;
+		return key;
+	}
+	
+	@WriteTransactionReadCommitted
+	@Override
+	public TableRowChange upgradeToNewChangeSet(String tableIdString, long rowVersion, final SparseChangeSetDto newDto) throws IOException {
+		// Write the delta to S3
+		String key = saveToS3(new WriterCallback() {
+			@Override
+			public void write(OutputStream out) throws IOException {
+				TableModelUtils.writeSparesChangeSetToGz(newDto, out);
+			}
+		});
+		Long tableId = KeyFactory.stringToKey(tableIdString);
+		// Set the new key only.
+		jdbcTemplate.update(SQL_UPDATE_ROW_CHANGE_WITH_NEW_KEY, key, tableId, rowVersion);
+		return getTableRowChange(tableIdString, rowVersion);
 	}
 
 	@WriteTransactionReadCommitted
@@ -518,40 +507,15 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	@Override
 	public SparseChangeSetDto getRowSet(String tableId, long rowVersion) throws IOException {
 		TableRowChange dto = getTableRowChange(tableId, rowVersion);
+		return getRowSet(dto);
+	}
+	
+	@Override
+	public SparseChangeSetDto getRowSet(TableRowChange dto) throws IOException {
 		// Download the file from S3
 		S3Object object = s3Client.getObject(dto.getBucket(), dto.getKeyNew());
 		try {
 			return TableModelUtils.readSparseChangeSetDtoFromGzStream(object.getObjectContent());
-		} finally {
-			// Need to close the stream unconditionally.
-			object.getObjectContent().close();
-		}
-	}
-
-	@Override
-	public TableRowChange scanRowSet(String tableId, long rowVersion,
-			RowHandler handler) throws IOException, NotFoundException {
-		TableRowChange dto = getTableRowChange(tableId, rowVersion);
-		// stream the file from S3
-		scanChange(handler, dto);
-		return dto;
-	}
-
-	/**
-	 * @param handler
-	 * @param dto
-	 * @return
-	 * @throws IOException
-	 */
-	@Override
-	public void scanChange(RowHandler handler, TableRowChange dto)
-			throws IOException {
-		ValidateArgument.required(dto, "TableRowChange");
-		ValidateArgument.requirement(TableChangeType.ROW.equals(dto.getChangeType()), SCAN_ROWS_TYPE_ERROR);
-		S3Object object = s3Client.getObject(dto.getBucket(), dto.getKey());
-		try {
-			TableModelUtils.scanFromCSVgzStream(object.getObjectContent(),
-					handler);
 		} finally {
 			// Need to close the stream unconditionally.
 			object.getObjectContent().close();
@@ -612,160 +576,6 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		}, tableIdLong, tableIdLong);
 	}
 
-	/**
-	 * Get the RowSet original for each row referenced.
-	 * 
-	 * @throws NotFoundException
-	 */
-	@Override
-	public List<RawRowSet> getRowSetOriginals(RowReferenceSet ref, List<ColumnModel> columns)
-			throws IOException, NotFoundException {
-		if (ref == null)
-			throw new IllegalArgumentException("RowReferenceSet cannot be null");
-		if (ref.getTableId() == null)
-			throw new IllegalArgumentException(
-					"RowReferenceSet.tableId cannot be null");
-		if (ref.getHeaders() == null)
-			throw new IllegalArgumentException(
-					"RowReferenceSet.headers cannot be null");
-		if (ref.getRows() == null)
-			throw new IllegalArgumentException(
-					"RowReferenceSet.rows cannot be null");
-		// First determine the versions we will need to inspect for this query.
-		Set<Long> versions = TableModelUtils.getDistictVersions(ref.getRows());
-		final Set<RowReference> rowsToFetch = new HashSet<RowReference>(
-				ref.getRows());
-		List<RawRowSet> results = Lists.newArrayListWithCapacity(versions.size());
-		// For each version of the table
-		for (Long version : versions) {
-			// Scan over the delta
-			final List<Row> rows = Lists.newLinkedList();
-			TableRowChange trc = scanRowSet(ref.getTableId(), version, new RowHandler() {
-				@Override
-				public void nextRow(Row row) {
-					// Is this a row we are looking for?
-					RowReference thisRowRef = new RowReference();
-					thisRowRef.setRowId(row.getRowId());
-					thisRowRef.setVersionNumber(row.getVersionNumber());
-					if (rowsToFetch.contains(thisRowRef)) {
-						// This is a match
-						rows.add(row);
-					}
-				}
-			});
-			// fill in the rest of the values
-			results.add(new RawRowSet(trc.getIds(), trc.getEtag(), ref.getTableId(), rows));
-		}
-		return results;
-	}
-
-	/**
-	 * Get the RowSet original for each row referenced.
-	 * 
-	 * @throws NotFoundException
-	 */
-	@Override
-	public Row getRowOriginal(String tableId, final RowReference ref, List<ColumnModel> columns) throws IOException, NotFoundException {
-		if (ref == null)
-			throw new IllegalArgumentException("RowReferenceSet cannot be null");
-		if (tableId == null)
-			throw new IllegalArgumentException("RowReferenceSet.tableId cannot be null");
-		// First determine the versions we will need to inspect for this query.
-		final List<Row> results = Lists.newArrayList();
-		TableRowChange trc = scanRowSet(tableId, ref.getVersionNumber(), new RowHandler() {
-			@Override
-			public void nextRow(Row row) {
-				// Is this a row we are looking for?
-				if (row.getRowId().equals(ref.getRowId())) {
-					results.add(row);
-				}
-			}
-		});
-		if (results.size() == 0) {
-			throw new NotFoundException("Row not found, row=" + ref.getRowId() + ", version=" + ref.getVersionNumber());
-		}
-		Map<String, Integer> columnIndexMap = TableModelUtils.createColumnIdToIndexMap(trc);
-		return TableModelUtils.convertToSchemaAndMerge(results.get(0), columnIndexMap, columns);
-	}
-
-	@Override
-	public RowSetAccessor getLatestVersionsWithRowData(String tableId, Set<Long> rowIds, long minVersion, List<ColumnModel> columns)
-			throws IOException {
-		final Map<Long, RowAccessor> rowIdToRowMap = Maps.newHashMap();
-
-		List<TableRowChange> rowChanges = listRowSetsKeysForTableGreaterThanVersion(tableId, minVersion - 1);
-
-		final Set<Long> rowsToFind = Sets.newHashSet(rowIds);
-		// we are scanning backwards through the row changes.
-		// For each version of the table (starting at the last one)
-		for (final TableRowChange rowChange : Lists.reverse(rowChanges)) {
-			if (rowsToFind.isEmpty()) {
-				// we found all the rows that we need to find
-				break;
-			}
-
-			final List<String> rowChangeColumnIds = rowChange.getIds();
-			// Scan over the delta
-			scanChange(new RowHandler() {
-				@Override
-				public void nextRow(final Row row) {
-					// if we still needed it, we no longer need to find this one
-					if (rowsToFind.remove(row.getRowId())) {
-						appendRowDataToMap(rowIdToRowMap, rowChangeColumnIds, row);
-					}
-				}
-			}, rowChange);
-		}
-		return new RowSetAccessor(rowIdToRowMap);
-	}
-
-	protected void appendRowDataToMap(final Map<Long, RowAccessor> rowIdToRowMap, final List<String> rowChangeColumnIds, final Row row) {
-		if (TableModelUtils.isDeletedRow(row)) {
-			rowIdToRowMap.remove(row.getRowId());
-		} else {
-			rowIdToRowMap.put(row.getRowId(), new RowAccessor() {
-				Map<String, Integer> columnIdToIndexMap = null;
-
-				@Override
-				public String getCellById(String columnId) {
-					if (columnIdToIndexMap == null) {
-						columnIdToIndexMap = TableModelUtils.createColumnIdToIndexMap(rowChangeColumnIds);
-					}
-					Integer index = columnIdToIndexMap.get(columnId);
-					if (row.getValues() == null || index == null || index >= row.getValues().size()) {
-						return null;
-					}
-					return row.getValues().get(index);
-				}
-
-				@Override
-				public Long getRowId() {
-					return row.getRowId();
-				}
-
-				@Override
-				public Long getVersionNumber() {
-					return row.getVersionNumber();
-				}
-			});
-		}
-	}
-
-	@Override
-	public RowSet getRowSet(RowReferenceSet ref, List<ColumnModel> columns)
-			throws IOException, NotFoundException {
-		// Get all of the data in the raw form.
-		List<RawRowSet> allSets = getRowSetOriginals(ref, columns);
-		// the list of rowsets is sorted by version number. The highest version (last rowset) is the most recent for all
-		// rows. We return that as the etag
-		String etag = null;
-		if (!allSets.isEmpty()) {
-			etag = allSets.get(allSets.size() - 1).getEtag();
-		}
-		// Convert and merge all data into the requested form
-		return TableModelUtils.convertToSchemaAndMerge(allSets, columns, ref.getTableId(), etag);
-	}
-
 	public String getS3Bucket() {
 		return s3Bucket;
 	}
@@ -778,52 +588,5 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	public void setS3Bucket(String s3Bucket) {
 		this.s3Bucket = s3Bucket;
 	}
-
-	protected void throwUpdateConflict(Long rowId) {
-		throw new ConflictingUpdateException("Row id: " + rowId
-				+ " has been changed since last read.  Please get the latest value for this row and then attempt to update it again.");
-	}
 	
-	/**
-	 * Check for a row level conflicts in the passed change sets, by scanning each row of each change set and looking
-	 * for the intersection with the passed row Ids.
-	 * 
-	 * @param tableId
-	 * @param delta
-	 * @param coutToReserver
-	 * @throws ConflictingUpdateException when a conflict is found
-	 */
-	@Override
-	public void checkForRowLevelConflict(String tableIdString, RawRowSet delta) throws IOException {
-		// Map each valid row to its version number
-		Map<Long, Long> rowIdToRowVersionNumberFromUpdate = TableModelUtils.getDistictValidRowIds(delta.getRows());
-		long versionOfDelta = -1;
-		for(Long versionNumber: rowIdToRowVersionNumberFromUpdate.values()){
-			if(versionNumber == null){
-				throw new IllegalArgumentException("Row version number cannot be null");
-			}
-			versionOfDelta = Math.max(versionOfDelta, versionNumber);
-		}
-		// If we were given an etag we can use it to determine the version used to create the delta.
-		if(delta.getEtag() != null){
-			long versionOfEtag = getVersionForEtag(tableIdString, delta.getEtag());
-			versionOfDelta = Math.max(versionOfDelta, versionOfEtag);
-		}
-		final Set<Long> deltaRowIds = rowIdToRowVersionNumberFromUpdate.keySet();
-		// Need to check all changes that have been applied since the version of the delta?
-		List<TableRowChange> rowChanges = listRowSetsKeysForTableGreaterThanVersion(tableIdString, versionOfDelta);
-		// scan all changes greater than this row.
-		for (final TableRowChange rowChange : rowChanges) {
-			// Scan all recent updates
-			scanChange(new RowHandler() {
-				@Override
-				public void nextRow(final Row row) {
-					if(deltaRowIds.contains(row.getRowId())){
-						throwUpdateConflict(row.getRowId());
-					}
-				}
-			}, rowChange);
-		}
-	}
-
 }

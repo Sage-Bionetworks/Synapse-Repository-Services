@@ -64,7 +64,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * java.util.List, long)
 	 */
 	@Override
-	public void applyChangeSetToIndex(final SparseChangeSet rowset, List<ColumnModel> currentSchema,
+	public void applyChangeSetToIndex(final SparseChangeSet rowset,
 			final long changeSetVersionNumber) {
 		// Validate all rows have the same version number
 		// Has this version already been applied to the table index?
@@ -108,21 +108,6 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		final long currentVersion = tableIndexDao.getMaxCurrentCompleteVersionForTable(tableId);
 		return currentVersion >= versionNumber;
 	}
-
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see
-	 * org.sagebionetworks.repo.manager.table.TableIndexManager#setIndexSchema
-	 * (org
-	 * .sagebionetworks.repo.manager.table.TableIndexManager.TableIndexConnection
-	 * , java.util.List)
-	 */
-	@Override
-	public void setIndexSchema(ProgressCallback<Void> progressCallback, List<ColumnModel> newSchema) {
-		boolean removeMissingColumns = true;
-		setIndexSchema(progressCallback, newSchema, removeMissingColumns);
-	}
 	
 	/**
 	 * Set the table index schema to match the given schema.
@@ -132,11 +117,11 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * @param removeMissingColumns Should missing columns be removed?
 	 */
 	@Override
-	public void setIndexSchema(ProgressCallback<Void> progressCallback, List<ColumnModel> newSchema, boolean removeMissingColumns){
+	public void setIndexSchema(ProgressCallback<Void> progressCallback, List<ColumnModel> newSchema){
 		// Lookup the current schema of the index
 		List<DatabaseColumnInfo> currentSchema = tableIndexDao.getDatabaseInfo(tableId);
 		// create a change that replaces the old schema as needed.
-		List<ColumnChangeDetails> changes = SQLUtils.createReplaceSchemaChange(currentSchema, newSchema, removeMissingColumns);
+		List<ColumnChangeDetails> changes = SQLUtils.createReplaceSchemaChange(currentSchema, newSchema);
 		updateTableSchema(progressCallback, changes);
 	}
 
