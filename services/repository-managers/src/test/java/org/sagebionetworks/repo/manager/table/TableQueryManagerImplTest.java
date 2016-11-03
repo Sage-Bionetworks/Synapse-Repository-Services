@@ -684,12 +684,8 @@ public class TableQueryManagerImplTest {
 	}
 	
 	@Test
-	public void testQueryBundle() throws LockUnavilableException, TableUnavailableException, TableFailedException{
-
-
-		
+	public void testQueryBundleFacets() throws LockUnavilableException, TableUnavailableException, TableFailedException{
 		when(mockTableIndexDAO.query(any(ProgressCallback.class), any(SqlQuery.class))).thenReturn(rowSet1, rowSet2);
-		
 		
 		Query query = new Query();
 		query.setSql("select * from " + tableId);
