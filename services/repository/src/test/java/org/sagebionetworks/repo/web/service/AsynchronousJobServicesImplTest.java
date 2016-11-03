@@ -47,7 +47,7 @@ public class AsynchronousJobServicesImplTest {
 	}
 
 	@Test(expected=UnauthorizedException.class)
-	public void testStartAdminJobAsAdminUnauthorized() {
+	public void testStartAdminJobAsRegular() {
 		Long userId = 123L;
 		UserInfo expectedUser = new UserInfo(false);
 		expectedUser.setId(123L);
@@ -84,7 +84,7 @@ public class AsynchronousJobServicesImplTest {
 	}
 	
 	@Test
-	public void testStartRegularJobAsNonAdmin() {
+	public void testStartRegularJobAsRegular() {
 		Long userId = 123L;
 		UserInfo expectedUser = new UserInfo(false);
 		expectedUser.setId(123L);
