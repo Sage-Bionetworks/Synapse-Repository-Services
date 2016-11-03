@@ -11,7 +11,6 @@ import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyMapOf;
 import static org.mockito.Matchers.anySetOf;
 import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.stub;
@@ -33,7 +32,6 @@ import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -54,16 +52,13 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnResult;
 import org.sagebionetworks.repo.model.table.FacetColumnResultRange;
-import org.sagebionetworks.repo.model.table.FacetColumnResultValueCount;
 import org.sagebionetworks.repo.model.table.FacetColumnResultValues;
 import org.sagebionetworks.repo.model.table.FacetType;
 import org.sagebionetworks.repo.model.table.Query;
@@ -86,8 +81,6 @@ import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
-import org.sagebionetworks.table.query.model.QuerySpecification;
-import org.sagebionetworks.table.query.util.SqlElementUntils;
 import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -485,7 +478,6 @@ public class TableQueryManagerImplTest {
 
 	@Test
 	public void testQueryAsStreamAfterAuthorizationNonEmptyFacetColumnsListNotReturningFacets() throws ParseException, LockUnavilableException, TableUnavailableException, TableFailedException{
-		//TODO: test after unit tests for facetModel
 		Long count = 201L;
 		// setup count results
 		ArgumentCaptor<String> queryStringCaptor = ArgumentCaptor.forClass(String.class);
@@ -807,9 +799,11 @@ public class TableQueryManagerImplTest {
 		List<SortItem> sortList = null;
 		boolean includeRowIdAndVersion = false;
 		boolean writeHeader = true;
+		List<FacetColumnRequest> selectedFacets = null;
+
 		// call under test
 		DownloadFromTableResult results = manager.runConsistentQueryAsStream(
-				mockProgressCallbackVoid, user, sql, sortList, writer,
+				mockProgressCallbackVoid, user, sql, sortList, selectedFacets, writer,
 				includeRowIdAndVersion, writeHeader);
 		assertNotNull(results);
 		
@@ -825,9 +819,10 @@ public class TableQueryManagerImplTest {
 		List<SortItem> sortList = null;
 		boolean includeRowIdAndVersion = false;
 		boolean writeHeader = true;
+		List<FacetColumnRequest> selectedFacets = null;
 		// call under test
 		manager.runConsistentQueryAsStream(
-				mockProgressCallbackVoid, user, sql, sortList, writer,
+				mockProgressCallbackVoid, user, sql, sortList, selectedFacets, writer,
 				includeRowIdAndVersion, writeHeader);
 	}
 	
@@ -1210,46 +1205,46 @@ public class TableQueryManagerImplTest {
 	}	
 	
 	@Test
-	public void testRunFacetQueries(){//TODO: rename to mock...
+	public void testRunFacetQueries(){
 		//setup
-		FacetModel facetModel = Mockito.mock(FacetModel.class);
-		FacetTransformer transformer1 = Mockito.mock(FacetTransformerValueCounts.class);
-		FacetTransformer transformer2 = Mockito.mock(FacetTransformerRange.class);
-		SqlQuery sql1 = Mockito.mock(SqlQuery.class);
-		SqlQuery sql2 = Mockito.mock(SqlQuery.class);
+		FacetModel mockFacetModel = Mockito.mock(FacetModel.class);
+		FacetTransformer mockTransformer1 = Mockito.mock(FacetTransformerValueCounts.class);
+		FacetTransformer mockTransformer2 = Mockito.mock(FacetTransformerRange.class);
+		SqlQuery mockSql1 = Mockito.mock(SqlQuery.class);
+		SqlQuery mockSql2 = Mockito.mock(SqlQuery.class);
 		RowSet rs1 = new RowSet();
 		RowSet rs2 = new RowSet();
 		FacetColumnResultValues result1 = new FacetColumnResultValues();
 		FacetColumnResultRange result2 = new FacetColumnResultRange();
 		
 		
-		when(transformer1.getFacetSqlQuery()).thenReturn(sql1);
-		when(transformer2.getFacetSqlQuery()).thenReturn(sql2);
-		when(mockTableIndexDAO.query(null, sql1)).thenReturn(rs1);
-		when(mockTableIndexDAO.query(null, sql2)).thenReturn(rs2);
-		when(transformer1.translateToResult(rs1)).thenReturn(result1);
-		when(transformer2.translateToResult(rs2)).thenReturn(result2);
-		List<FacetTransformer> transformersList = Arrays.asList(transformer1, transformer2);
-		when(facetModel.getFacetInformationQueries()).thenReturn(transformersList);
+		when(mockTransformer1.getFacetSqlQuery()).thenReturn(mockSql1);
+		when(mockTransformer2.getFacetSqlQuery()).thenReturn(mockSql2);
+		when(mockTableIndexDAO.query(null, mockSql1)).thenReturn(rs1);
+		when(mockTableIndexDAO.query(null, mockSql2)).thenReturn(rs2);
+		when(mockTransformer1.translateToResult(rs1)).thenReturn(result1);
+		when(mockTransformer2.translateToResult(rs2)).thenReturn(result2);
+		List<FacetTransformer> transformersList = Arrays.asList(mockTransformer1, mockTransformer2);
+		when(mockFacetModel.getFacetInformationQueries()).thenReturn(transformersList);
 		
 		//call method
-		List<FacetColumnResult> results = manager.runFacetQueries(facetModel, mockTableIndexDAO);
+		List<FacetColumnResult> results = manager.runFacetQueries(mockFacetModel, mockTableIndexDAO);
 		
 		//verify and assert
-		verify(facetModel).getFacetInformationQueries();
-		verify(transformer1).getFacetSqlQuery();
-		verify(transformer2).getFacetSqlQuery();
-		verify(mockTableIndexDAO).query(null, sql1);
-		verify(mockTableIndexDAO).query(null, sql2);
-		verify(transformer1).translateToResult(rs1);
-		verify(transformer2).translateToResult(rs2);
+		verify(mockFacetModel).getFacetInformationQueries();
+		verify(mockTransformer1).getFacetSqlQuery();
+		verify(mockTransformer2).getFacetSqlQuery();
+		verify(mockTableIndexDAO).query(null, mockSql1);
+		verify(mockTableIndexDAO).query(null, mockSql2);
+		verify(mockTransformer1).translateToResult(rs1);
+		verify(mockTransformer2).translateToResult(rs2);
 		
 		
 		assertEquals(2, results.size());
 		assertEquals(result1, results.get(0));
 		assertEquals(result2, results.get(1));
 		
-		verifyNoMoreInteractions(mockTableIndexDAO, facetModel,transformer1, transformer2);
+		verifyNoMoreInteractions(mockTableIndexDAO, mockFacetModel,mockTransformer1, mockTransformer2);
 
 	}
 

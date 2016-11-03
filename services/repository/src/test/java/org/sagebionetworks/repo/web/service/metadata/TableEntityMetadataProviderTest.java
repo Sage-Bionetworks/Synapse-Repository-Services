@@ -1,6 +1,8 @@
 package org.sagebionetworks.repo.web.service.metadata;
 
+import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.List;
 
@@ -64,6 +66,16 @@ public class TableEntityMetadataProviderTest  {
 		// call under test
 		provider.entityUpdated(userInfo, table);
 		verify(tableEntityManager).setTableSchema(userInfo, columnIds, entityId);
+	}
+	
+	@Test
+	public void testAddTypeSpecificMetadata(){
+		TableEntity testEntity = new TableEntity();
+		testEntity.setId(entityId);
+		when(tableEntityManager.getTableSchema(entityId)).thenReturn(columnIds);
+		provider.addTypeSpecificMetadata(testEntity, null, null, null); //the other parameters are not used at all
+		verify(tableEntityManager).getTableSchema(entityId);
+		assertEquals(columnIds, testEntity.getColumnIds());
 	}
 
 }

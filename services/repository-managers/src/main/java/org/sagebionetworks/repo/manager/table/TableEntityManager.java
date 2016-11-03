@@ -8,7 +8,6 @@ import java.util.Set;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
@@ -17,11 +16,13 @@ import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.SparseRowDto;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
+import org.sagebionetworks.table.model.SparseChangeSet;
 
 /**
  * Abstraction for Table Row management.
@@ -41,7 +42,7 @@ public interface TableEntityManager {
 	 * @throws DatastoreException
 	 * @throws IOException
 	 */
-	public RowReferenceSet appendRows(UserInfo user, String tableId, List<ColumnModel> columns, RowSet delta, ProgressCallback<Long> progressCallback)
+	public RowReferenceSet appendRows(UserInfo user, String tableId, RowSet delta, ProgressCallback<Long> progressCallback)
 			throws DatastoreException, NotFoundException, IOException;
 
 	/**
@@ -56,7 +57,7 @@ public interface TableEntityManager {
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 */
-	public RowReferenceSet appendPartialRows(UserInfo user, String tableId, List<ColumnModel> columns,
+	public RowReferenceSet appendPartialRows(UserInfo user, String tableId,
 			PartialRowSet rowsToAppendOrUpdateOrDelete, ProgressCallback<Long> progressCallback) throws DatastoreException, NotFoundException, IOException;
 
 	/**
@@ -84,9 +85,6 @@ public interface TableEntityManager {
 	 * @param tableId The ID of the table entity to append the rows too.
 	 * @param models The schema of the rows being appended.
 	 * @param rowStream The stream of rows to append to the table.
-	 * @param etag
-	 *            The last etag read before apply an update. An etag must be
-	 *            provide if any rows are being updated.
 	 * @param results
 	 *            This parameter is optional. When provide, it will be populated
 	 *            with a RowReference for each row appended to the table. This
@@ -98,7 +96,7 @@ public interface TableEntityManager {
 	 * @throws NotFoundException
 	 * @throws IOException
 	 */
-	String appendRowsAsStream(UserInfo user, String tableId, List<ColumnModel> columns, Iterator<Row> rowStream, String etag,
+	String appendRowsAsStream(UserInfo user, String tableId, List<ColumnModel> columns, Iterator<SparseRowDto> rowStream, String etag,
 			RowReferenceSet results, ProgressCallback<Long> progressCallback) throws DatastoreException, NotFoundException, IOException;
 
 	/**
@@ -108,18 +106,16 @@ public interface TableEntityManager {
 	 * @return
 	 */
 	public List<TableRowChange> listRowSetsKeysForTable(String tableId);
-
+	
 	/**
-	 * Get a specific RowSet.
+	 * Get the a SparseChangeSet for a given TableRowChange.
 	 * 
-	 * @param tableId
-	 * @param rowVersion
+	 * @param change
 	 * @return
-	 * @throws NotFoundException
-	 * @throws IOException
+	 * @throws IOException 
+	 * @throws NotFoundException 
 	 */
-	public RowSet getRowSet(String tableId, Long rowVersion, List<ColumnModel> columns)
-			throws IOException, NotFoundException;
+	public SparseChangeSet getSparseChangeSet(TableRowChange change) throws NotFoundException, IOException;
 	
 	/**
 	 * Get the schema change for a given version.
@@ -242,6 +238,6 @@ public interface TableEntityManager {
 	 * @param id
 	 * @return
 	 */
-	public List<String> getTableSchema(UserInfo user, String id);
+	public List<String> getTableSchema(String id);
 
 }

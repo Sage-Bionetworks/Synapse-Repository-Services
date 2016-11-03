@@ -36,9 +36,13 @@ public class SparseChangeSet {
 	 * @param versionNumber
 	 */
 	public SparseChangeSet(String tableId, List<ColumnModel> schema) {
+		this(tableId, schema, null);
+	}
+	
+	public SparseChangeSet(String tableId, List<ColumnModel> schema, String etag) {
 		ValidateArgument.required(tableId, "tableId");
 		ValidateArgument.required(schema, "schema");
-		initialize(tableId, schema);
+		initialize(tableId, schema, etag);
 	}
 	
 	/**
@@ -47,22 +51,45 @@ public class SparseChangeSet {
 	 * @param dto
 	 * @param columnProvider
 	 */
-	public SparseChangeSet(SparseChangeSetDto dto, ColumnModelProvider columnProvider){
+	public SparseChangeSet(SparseChangeSetDto dto, List<ColumnModel> schema){
 		ValidateArgument.required(dto, "dto");
 		ValidateArgument.required(dto.getTableId(), "dto.tableId");
 		ValidateArgument.required(dto.getColumnIds(), "dto.columnIds");
 		ValidateArgument.required(dto.getRows(), "dto.rows");
-		ValidateArgument.required(columnProvider, "columnProvider");
-		initialize(dto.getTableId(), columnProvider.getColumns(dto.getColumnIds()));
-		this.etag = dto.getEtag();
+		ValidateArgument.required(schema, "schema");
+		initialize(dto.getTableId(), schema, dto.getEtag());
 		// Add all of the rows from the DTO.
-		for(SparseRowDto row: dto.getRows()){
+		addAllRows(dto.getRows());
+	}
+	
+	/**
+	 * Create a SparseChangeSet.
+	 * @param tableId
+	 * @param schema
+	 * @param rows
+	 */
+	public SparseChangeSet(String tableId, List<ColumnModel> schema, List<SparseRowDto> rows, String etag){
+		ValidateArgument.required(tableId, "tableId");
+		ValidateArgument.required(schema, "schema");
+		initialize(tableId, schema, etag);
+		addAllRows(rows);
+	}
+
+	/**
+	 * Add all of the given rows to this change set.
+	 * @param rows
+	 */
+	public void addAllRows(Iterable<SparseRowDto> rows) {
+		// Add all of the rows from the DTO.
+		for(SparseRowDto row: rows){
 			SparseRow sparse = this.addEmptyRow();
 			sparse.setRowId(row.getRowId());
 			sparse.setVersionNumber(row.getVersionNumber());
-			for(ColumnModel cm: this.schema){
-				if(row.getValues().containsKey(cm.getId())){
-					sparse.setCellValue(cm.getId(), row.getValues().get(cm.getId()));
+			if(row.getValues() != null){
+				for(ColumnModel cm: this.schema){
+					if(row.getValues().containsKey(cm.getId())){
+						sparse.setCellValue(cm.getId(), row.getValues().get(cm.getId()));
+					}
 				}
 			}
 		}
@@ -74,10 +101,11 @@ public class SparseChangeSet {
 	 * @param schema
 	 * @param versionNumber
 	 */
-	private void initialize(String tableId, List<ColumnModel> schema) {
+	private void initialize(String tableId, List<ColumnModel> schema, String etag) {
 		this.tableId = tableId;
 		this.sparseRows = new LinkedList<SparseRow>();
 		this.schema = new LinkedList<>(schema);
+		this.etag = etag;
 		schemaMap = new HashMap<String, ColumnModel>(schema.size());
 		columnIndexMap = new HashMap<String, Integer>(schema.size());
 		for (int i = 0; i < schema.size(); i++) {
