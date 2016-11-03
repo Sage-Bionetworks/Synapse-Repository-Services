@@ -23,6 +23,7 @@ import static org.sagebionetworks.repo.manager.table.TableQueryManagerImpl.BUNDL
 import static org.sagebionetworks.repo.manager.table.TableQueryManagerImpl.BUNDLE_MASK_QUERY_MAX_ROWS_PER_PAGE;
 import static org.sagebionetworks.repo.manager.table.TableQueryManagerImpl.BUNDLE_MASK_QUERY_RESULTS;
 import static org.sagebionetworks.repo.manager.table.TableQueryManagerImpl.BUNDLE_MASK_QUERY_SELECT_COLUMNS;
+import static org.sagebionetworks.repo.manager.table.TableQueryManagerImpl.BUNDLE_MASK_QUERY_FACETS;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -125,6 +126,9 @@ public class TableQueryManagerImplTest {
 	String facetColumnName;
 	String facetMax;
 	FacetColumnRangeRequest facetColumnRequest;
+	private FacetColumnResultRange expectedRangeResult;
+	private RowSet rowSet1;
+	private RowSet rowSet2;
 	
 	@Before
 	public void before() throws Exception {
@@ -225,6 +229,18 @@ public class TableQueryManagerImplTest {
 		facetColumnRequest = new FacetColumnRangeRequest();
 		facetColumnRequest.setColumnName(facetColumnName);
 		facetColumnRequest.setMax(facetMax);
+		
+		String expectedColMin = "100";
+		String expectedColMax = "123";
+		String expectedColumnName = "i2";
+		FacetType expectedFacetType = FacetType.range;
+		rowSet1 = createRowSetForTest(Lists.newArrayList(FacetTransformerValueCounts.VALUE_ALIAS, FacetTransformerValueCounts.COUNT_ALIAS));
+		rowSet2 = createRowSetForTest(Lists.newArrayList(FacetTransformerRange.MIN_ALIAS, FacetTransformerRange.MAX_ALIAS), Lists.newArrayList(expectedColMin, expectedColMax));
+		expectedRangeResult = new FacetColumnResultRange();
+		expectedRangeResult.setColumnName(expectedColumnName);
+		expectedRangeResult.setColumnMin(expectedColMin);
+		expectedRangeResult.setFacetType(expectedFacetType);
+		expectedRangeResult.setColumnMax(expectedColMax);
 	}
 
 	@Test (expected = UnauthorizedException.class)
@@ -512,34 +528,12 @@ public class TableQueryManagerImplTest {
 	
 	@Test
 	public void testQueryAsStreamAfterAuthorizationNonEmptyFacetColumnsListReturnFacets() throws ParseException, LockUnavilableException, TableUnavailableException, TableFailedException{	
-		String expectedColMin = "100";
-		String expectedColMax = "123";
-		String expectedColumnName = "i2";
-		FacetType expectedFacetType = FacetType.range;
-		RowSet rowSet1 = new RowSet();
-		RowSet rowSet2 = new RowSet();
-		
-		//select column for first row
-		SelectColumn row1col1 = new SelectColumn();
-		row1col1.setName(FacetTransformerValueCounts.VALUE_ALIAS);
-		SelectColumn row1col2 = new SelectColumn();
-		row1col2.setName(FacetTransformerValueCounts.COUNT_ALIAS);
-		rowSet1.setHeaders(Lists.newArrayList(row1col1, row1col2));
-		rowSet1.setRows(new ArrayList<Row>());
-		
-		//select column for second row
-		SelectColumn row2col1 = new SelectColumn();
-		row2col1.setName(FacetTransformerRange.MIN_ALIAS);
-		SelectColumn row2col2 = new SelectColumn();
-		row2col2.setName(FacetTransformerRange.MAX_ALIAS);
-		rowSet2.setHeaders(Lists.newArrayList(row2col1, row2col2));
-		Row row = new Row();
-		row.setValues(Lists.newArrayList(expectedColMin, expectedColMax));
-		rowSet2.setRows(Lists.newArrayList(row));
-		
 		when(mockTableIndexDAO.query(any(ProgressCallback.class), any(SqlQuery.class))).thenReturn(rowSet1, rowSet2);
 		List<FacetColumnRequest> facetRequestList = new ArrayList<>();
 		facetRequestList.add(facetColumnRequest);
+		expectedRangeResult.setSelectedMin(facetColumnRequest.getMin());
+		expectedRangeResult.setSelectedMax(facetColumnRequest.getMax());
+
 		
 		RowHandler rowHandler = null;
 		boolean returnFacets = true;
@@ -561,11 +555,7 @@ public class TableQueryManagerImplTest {
 		assertNotNull(results.getFacets());
 		assertEquals(2, results.getFacets().size());
 		FacetColumnResult facetResultColumn = results.getFacets().get(1);
-		assertNotNull(facetResultColumn);
-		assertEquals(expectedColMin, ((FacetColumnResultRange) facetResultColumn ).getColumnMin());
-		assertEquals(expectedColMax, ((FacetColumnResultRange) facetResultColumn ).getColumnMax());
-		assertEquals(expectedColumnName,facetResultColumn.getColumnName());
-		assertEquals(expectedFacetType, facetResultColumn.getFacetType());
+		assertEquals(expectedRangeResult, facetResultColumn);
 	}
 	
 	
@@ -691,6 +681,30 @@ public class TableQueryManagerImplTest {
 		assertEquals(count, bundle.getQueryCount());
 		assertEquals(selectColumns, bundle.getSelectColumns());
 		assertEquals(maxRowsPerPage, bundle.getMaxRowsPerPage());
+	}
+	
+	@Test
+	public void testQueryBundleFacets() throws LockUnavilableException, TableUnavailableException, TableFailedException{
+		when(mockTableIndexDAO.query(any(ProgressCallback.class), any(SqlQuery.class))).thenReturn(rowSet1, rowSet2);
+		
+		Query query = new Query();
+		query.setSql("select * from " + tableId);
+		query.setIsConsistent(true);
+		query.setOffset(0L);
+		query.setLimit(Long.MAX_VALUE);
+		QueryBundleRequest queryBundle = new QueryBundleRequest();
+		queryBundle.setQuery(query);
+		
+		queryBundle.setPartMask(BUNDLE_MASK_QUERY_FACETS);
+		QueryResultBundle bundle = manager.queryBundle(mockProgressCallbackVoid, user, queryBundle);
+		assertNull(bundle.getQueryResult());
+		assertNull(bundle.getQueryCount());
+		assertNull(bundle.getSelectColumns());
+		assertNull(bundle.getColumnModels());
+		assertNotNull(bundle.getFacets());
+		assertEquals(2, bundle.getFacets().size());
+		//we don't care about the first facet result because it has no useful data and only exists to make sure for loops work
+		assertEquals(expectedRangeResult, bundle.getFacets().get(1));
 	}
 	
 	@Test
@@ -1246,6 +1260,29 @@ public class TableQueryManagerImplTest {
 		
 		verifyNoMoreInteractions(mockTableIndexDAO, mockFacetModel,mockTransformer1, mockTransformer2);
 
+	}
+	
+	private RowSet createRowSetForTest(List<String> headerNames, List<String>... rowValues){
+		RowSet rowSet = new RowSet();
+		List<SelectColumn> headerObjects = new ArrayList<>();
+		
+		//select column for first row
+		for(String headerName: headerNames){
+			SelectColumn headerObj = new SelectColumn();
+			headerObj.setName(headerName);
+			headerObjects.add(headerObj);
+		}
+		rowSet.setHeaders(headerObjects);
+		rowSet.setRows(new ArrayList<Row>());
+		
+		List<Row> rows = new ArrayList<Row>();
+		for(List<String> rowValue : rowValues){
+			Row row = new Row();
+			row.setValues(rowValue);
+			rows.add(row);
+		}
+		rowSet.setRows(rows);
+		return rowSet;
 	}
 
 }

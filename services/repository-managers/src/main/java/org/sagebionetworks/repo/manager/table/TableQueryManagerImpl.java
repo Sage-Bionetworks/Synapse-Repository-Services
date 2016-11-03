@@ -411,6 +411,10 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			bundle.setQueryCount(queryResult.getQueryCount());
 		}
 		
+		if(returnFacets){
+			bundle.setFacets(queryResult.getFacets());
+		}
+		
 		// select columns must be fetched for for the select columns or max
 		// rows per page.
 		if ((partMask & BUNDLE_MASK_QUERY_SELECT_COLUMNS) > 0) {
