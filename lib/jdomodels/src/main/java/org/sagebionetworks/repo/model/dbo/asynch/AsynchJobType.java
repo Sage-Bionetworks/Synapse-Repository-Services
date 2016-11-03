@@ -5,6 +5,8 @@ import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadRequest;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadResponse;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationRequest;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationResponse;
 import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
@@ -42,7 +44,9 @@ public enum AsynchJobType {
 
 	QUERY_NEXT_PAGE(QueryNextPageToken.class, QueryResult.class),
 	
-	BULK_FILE_DOWNLOAD(BulkFileDownloadRequest.class, BulkFileDownloadResponse.class);
+	BULK_FILE_DOWNLOAD(BulkFileDownloadRequest.class, BulkFileDownloadResponse.class),
+	
+	MIGRATION(AsyncMigrationRequest.class, AsyncMigrationResponse.class);
 
 	private Class<? extends AsynchronousRequestBody> requestClass;
 	private Class<? extends AsynchronousResponseBody> responseClass;
