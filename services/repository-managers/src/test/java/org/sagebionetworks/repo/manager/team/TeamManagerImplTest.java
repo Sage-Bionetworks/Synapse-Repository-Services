@@ -262,7 +262,7 @@ public class TeamManagerImplTest {
 						ACCESS_TYPE.READ, 
 						ACCESS_TYPE.SEND_MESSAGE})), ra.getAccessType());
 				
-			} else if (ra.getPrincipalId().equals(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId())) {
+			} else if (ra.getPrincipalId().equals(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId())) {
 				assertEquals(new HashSet<ACCESS_TYPE>(Arrays.asList(new ACCESS_TYPE[]{
 						ACCESS_TYPE.READ, 
 						ACCESS_TYPE.SEND_MESSAGE})), ra.getAccessType());
