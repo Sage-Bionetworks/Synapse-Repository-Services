@@ -880,9 +880,22 @@ public class TeamManagerImplTest {
 		when(mockMembershipRqstSubmissionDAO.getOpenByTeamAndRequesterCount(eq(Long.parseLong(TEAM_ID)), eq(Long.parseLong(MEMBER_PRINCIPAL_ID)), anyLong())).thenReturn(1L);
 		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
-		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.SEND_MESSAGE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.SEND_MESSAGE)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		
 		TeamMembershipStatus tms = teamManagerImpl.getTeamMembershipStatus(userInfo, TEAM_ID, principalUserInfo);
+		assertEquals(TEAM_ID, tms.getTeamId());
+		assertEquals(principalId, tms.getUserId());
+		assertTrue(tms.getIsMember());
+		assertTrue(tms.getHasOpenInvitation());
+		assertTrue(tms.getHasOpenRequest());
+		assertTrue(tms.getCanJoin());
+		assertTrue(tms.getMembershipApprovalRequired());
+		assertFalse(tms.getHasUnmetAccessRequirement());
+		assertFalse(tms.getCanSendEmail());
+		
+		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.SEND_MESSAGE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		
+		tms = teamManagerImpl.getTeamMembershipStatus(userInfo, TEAM_ID, principalUserInfo);
 		assertEquals(TEAM_ID, tms.getTeamId());
 		assertEquals(principalId, tms.getUserId());
 		assertTrue(tms.getIsMember());
