@@ -1,7 +1,10 @@
 {
 	"description":"Resulting information about a faceted column",
 	"type":"interface",
-    "properties":{
+	"properties":{
+		"concreteType":{
+			"type": "string"
+		},
 		"columnName":{
 			"type": "string",
 			"description":"The name of the faceted column"
