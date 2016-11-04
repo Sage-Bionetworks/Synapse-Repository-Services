@@ -630,7 +630,7 @@ public class MessageManagerImplTest {
 	
 	@Test
 	public void testTrustedUserCanSendToAnyTeam() throws Exception {
-		// can't send a message to a team you're not in...
+		// Should be able to send a message to a team you're not in...
 		MessageToUser messageToTeam = createMessage(otherTestUser, "messageToTeam", 
 					new HashSet<String>() {{add(testTeam.getId());}}, null);
 		cleanup.add(messageToTeam.getId());
