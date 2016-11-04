@@ -706,6 +706,7 @@ public class TeamManagerImpl implements TeamManager {
 		tms.setCanJoin(canAddTeamMember(userInfo, teamId, principalUserInfo, isMember));
 		tms.setHasUnmetAccessRequirement(hasUnmetAccessRequirements(principalUserInfo, teamId));
 		tms.setMembershipApprovalRequired(isMembershipApprovalRequired(principalUserInfo, teamId));
+		tms.setCanSendEmail(authorizationManager.canAccess(principalUserInfo, teamId, ObjectType.TEAM, ACCESS_TYPE.SEND_MESSAGE).getAuthorized());
 		return tms;
 	}
 
