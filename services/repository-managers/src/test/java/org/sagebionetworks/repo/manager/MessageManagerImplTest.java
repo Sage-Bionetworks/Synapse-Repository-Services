@@ -625,8 +625,7 @@ public class MessageManagerImplTest {
 	@Test
 	public void testSendMessage_NotAllowed() throws Exception {
 		List<String> errors = sendUnsentMessages(true);
-		assertEquals(1, errors.size());
-		assertTrue(errors.get(0).contains("may not send"));
+		assertEquals(0, errors.size());
 	}
 	
 	@Test
@@ -635,7 +634,7 @@ public class MessageManagerImplTest {
 		MessageToUser messageToTeam = createMessage(otherTestUser, "messageToTeam", 
 					new HashSet<String>() {{add(testTeam.getId());}}, null);
 		cleanup.add(messageToTeam.getId());
-		assertEquals(1, messageManager.processMessage(messageToTeam.getId(), null).size());
+		assertEquals(0, messageManager.processMessage(messageToTeam.getId(), null).size());
 
 		// ... unless you're a Trusted Message Sender
 		messageToTeam = createMessageWithThrottle(trustedMessageSender, "messageToTeam", tmsFileHandleId,
