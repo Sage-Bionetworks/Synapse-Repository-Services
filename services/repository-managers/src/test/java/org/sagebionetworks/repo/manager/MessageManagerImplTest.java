@@ -626,11 +626,12 @@ public class MessageManagerImplTest {
 	public void testSendMessage_NotAllowed() throws Exception {
 		List<String> errors = sendUnsentMessages(true);
 		assertEquals(1, errors.size());
+		assertTrue(errors.get(0).contains("may not send"));
 	}
 	
 	@Test
 	public void testTrustedUserCanSendToAnyTeam() throws Exception {
-		// Should not be able to send a message to a team you're not in...
+		// Cannot send a message to a team you're not in...
 		MessageToUser messageToTeam = createMessage(otherTestUser, "messageToTeam", 
 					new HashSet<String>() {{add(testTeam.getId());}}, null);
 		cleanup.add(messageToTeam.getId());
