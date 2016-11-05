@@ -53,7 +53,8 @@ import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 public class AnnotationsDAOImpl implements AnnotationsDAO {
 	
@@ -75,8 +76,6 @@ public class AnnotationsDAOImpl implements AnnotationsDAO {
 	
 	private static final String SELECT_ANNO_BLOB = "SELECT " + COL_SUBSTATUS_ANNO_BLOB + " FROM " +
 			TABLE_SUBSTATUS_ANNO_BLOB + " WHERE " + COL_SUBSTATUS_ANNO_SUBID + " = ?";
-	
-	private static final String STATUS_VERSION = "STATUS_VERSION";
 	
 	//	select s.*, t.* from JDOSUBMISSION s, JDOSUBMISSION_STATUS t 
 	//	left outer join SUBSTATUS_ANNOTATIONS_BLOB a on a.SUBMISSION_ID=t.ID
@@ -107,7 +106,7 @@ public class AnnotationsDAOImpl implements AnnotationsDAO {
 			COL_SUBSTATUS_ANNO_SUBID+" IN (:"+COL_SUBSTATUS_ANNO_SUBID+")";
 
 	@Autowired
-	private SimpleJdbcTemplate simpleJdbcTemplate;
+	private JdbcTemplate jdbcTemplate;
 	
 	@Autowired
 	private DBOBasicDao dboBasicDao;
@@ -120,7 +119,7 @@ public class AnnotationsDAOImpl implements AnnotationsDAO {
 		results.setStringAnnos(new ArrayList<StringAnnotation>());
 		
 		// Get the Owner
-		simpleJdbcTemplate.query(SELECT_FROM_ANNO_OWNER, new RowMapper<String>() {
+		jdbcTemplate.query(SELECT_FROM_ANNO_OWNER, new RowMapper<String>() {
 			@Override
 			public String mapRow(ResultSet rs, int rowNum) throws SQLException {
 				String subId = rs.getString(COL_SUBSTATUS_ANNO_SUBID);
@@ -132,10 +131,10 @@ public class AnnotationsDAOImpl implements AnnotationsDAO {
 		}, owner);
 		
 		// Get the Strings
-		simpleJdbcTemplate.query(SELECT_STRING_ANNOS, new RowMapper<String>() {
+		jdbcTemplate.query(SELECT_STRING_ANNOS, new RowMapper<String>() {
 			@Override
 			public String mapRow(ResultSet rs, int rowNum) throws SQLException {
-				StringAnnotation sa = new StringAnnotation();				
+				StringAnnotation sa = new StringAnnotation();
 				sa.setKey(rs.getString(COL_SUBSTATUS_ANNO_ATTRIBUTE));
 				sa.setValue(rs.getString(COL_SUBSTATUS_ANNO_VALUE));
 				sa.setIsPrivate(rs.getBoolean(COL_SUBSTATUS_ANNO_IS_PRIVATE));
@@ -144,10 +143,10 @@ public class AnnotationsDAOImpl implements AnnotationsDAO {
 			}
 		}, owner);
 		// Get the longs
-		simpleJdbcTemplate.query(SELECT_LONG_ANNOS, new RowMapper<String>() {
+		jdbcTemplate.query(SELECT_LONG_ANNOS, new RowMapper<String>() {
 			@Override
 			public String mapRow(ResultSet rs, int rowNum) throws SQLException {
-				Long value = rs.getLong(COL_SUBSTATUS_ANNO_VALUE);				
+				Long value = rs.getLong(COL_SUBSTATUS_ANNO_VALUE);
 				if (rs.wasNull()) {
 					value = null;
 				}
@@ -160,7 +159,7 @@ public class AnnotationsDAOImpl implements AnnotationsDAO {
 			}
 		}, owner);
 		// Get the doubles
-		simpleJdbcTemplate.query(SELECT_DOUBLE_ANNOS, new RowMapper<String>() {
+		jdbcTemplate.query(SELECT_DOUBLE_ANNOS, new RowMapper<String>() {
 			@Override
 			public String mapRow(ResultSet rs, int rowNum) throws SQLException {
 				Double value = rs.getDouble(COL_SUBSTATUS_ANNO_VALUE);
@@ -182,7 +181,7 @@ public class AnnotationsDAOImpl implements AnnotationsDAO {
 	@Override
 	public Annotations getAnnotationsFromBlob(Long owner) {
 		final Annotations annos = new Annotations();
-		simpleJdbcTemplate.query(SELECT_ANNO_BLOB, new RowMapper<String>() {
+		jdbcTemplate.query(SELECT_ANNO_BLOB, new RowMapper<String>() {
 			@Override
 			public String mapRow(ResultSet rs, int rowNum) throws SQLException {
 				String json = null;
@@ -269,7 +268,7 @@ public class AnnotationsDAOImpl implements AnnotationsDAO {
 			ssAnnoBlobDBOs.add(ssAnnoBlobDBO);
 		}
 		
-		// Persist the DBOs		
+		// Persist the DBOs
 		
 		// Delete existing annos for this object
 		deleteAnnotationsByOwnerIds(ownerIds);
@@ -284,14 +283,14 @@ public class AnnotationsDAOImpl implements AnnotationsDAO {
 		}
 		dboBasicDao.createBatch(ownerDBOs);
 		
-		dboBasicDao.createBatch(ssAnnoBlobDBOs);	
+		dboBasicDao.createBatch(ssAnnoBlobDBOs);
 		
 		// Create the typed annos
 		if (!longAnnoDBOs.isEmpty()) {
 			dboBasicDao.createBatch(longAnnoDBOs);
 		}
 		if (!doubleAnnoDBOs.isEmpty()) {
-			dboBasicDao.createBatch(doubleAnnoDBOs);		
+			dboBasicDao.createBatch(doubleAnnoDBOs);
 		}
 		if (!stringAnnoDBOs.isEmpty()) {
 			dboBasicDao.createBatch(stringAnnoDBOs);
@@ -304,7 +303,8 @@ public class AnnotationsDAOImpl implements AnnotationsDAO {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		Collections.sort(ownerIds);
 		param.addValue(COL_SUBSTATUS_ANNO_SUBID, ownerIds);
-		simpleJdbcTemplate.update(DELETE_FROM_ANNO_OWNERS, param);	
+		NamedParameterJdbcTemplate namedJdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate.getDataSource());
+		namedJdbcTemplate.update(DELETE_FROM_ANNO_OWNERS, param);
 	}
 	
 	
@@ -317,7 +317,8 @@ public class AnnotationsDAOImpl implements AnnotationsDAO {
 	public List<SubmissionBundle> getChangedSubmissions(Long scopeId) {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_SUBMISSION_EVAL_ID, scopeId);
-		return simpleJdbcTemplate.query(SELECT_MISSING_OR_CHANGED_SUBSTATUSES,
+		NamedParameterJdbcTemplate namedJdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate.getDataSource());
+		return namedJdbcTemplate.query(SELECT_MISSING_OR_CHANGED_SUBSTATUSES, param,
 				new RowMapper<SubmissionBundle>() {
 					@Override
 					public SubmissionBundle mapRow(ResultSet rs, int rowNum)
@@ -333,33 +334,32 @@ public class AnnotationsDAOImpl implements AnnotationsDAO {
 						sb.setSubmissionStatus(submissionStatus);
 						return sb;
 					}
-		}, param);
+		});
 	}
 	
 	@WriteTransaction
 	@Override
 	public void deleteAnnotationsByScope(Long scopeId) {
 		if (scopeId == null) throw new IllegalArgumentException("Owner id cannot be null");
-		
+		NamedParameterJdbcTemplate namedJdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate.getDataSource());
 		// first find the IDs that are in the annotations table but (no longer) in the SUBMISSION (truth) table
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_SUBSTATUS_ANNO_EVALID, scopeId);
-		List<Long> idsToDelete = simpleJdbcTemplate.query(
-				SELECT_IDS_FOR_DELETED_SUBMISSIONS, 
+		List<Long> idsToDelete = namedJdbcTemplate.query(
+				SELECT_IDS_FOR_DELETED_SUBMISSIONS, param,
 				new RowMapper<Long>(){
 					@Override
 					public Long mapRow(ResultSet rs, int rowNum)
 							throws SQLException {
 						return rs.getLong(COL_SUBSTATUS_ANNO_SUBID);
-					}}, 
-				param);
+					}});
 		
 		// Now delete the annotation table entries
 		// deleting the annotations' owners which will trigger the cascade delete of all annotations.
 		if (idsToDelete.isEmpty()) return;
 		param = new MapSqlParameterSource();
 		param.addValue(COL_SUBSTATUS_ANNO_SUBID, idsToDelete);
-		simpleJdbcTemplate.update(DELETE_ANNOS_FOR_DELETED_SUBMISSIONS, param);
+		namedJdbcTemplate.update(DELETE_ANNOS_FOR_DELETED_SUBMISSIONS, param);
 	}
 
 }
